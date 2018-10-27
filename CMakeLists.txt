@@ -264,3 +264,19 @@ add_subdirectory(psl)
 add_subdirectory(format)
 add_subdirectory(meta)
 add_subdirectory(core)
+
+
+# ==================================================================================================
+# Set accessible defines for child projects to use
+# ==================================================================================================
+
+set(PARADIGM_DEFINES ${PARADIGM_DEFINES} CACHE STRING "Paradigm Defines")
+set(PARADIGM_WSI_LIB ${WSI_LIB} CACHE STRING "The used WSI library define")
+set(PARADIGM_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} CACHE STRING "CXX flags")
+set(PARADIGM_CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "CXX flags release")
+set(PARADIGM_CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "CXX flags debug")
+set(PARADIGM_CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} CACHE STRING "linker flags exe")
+set(PARADIGM_CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} CACHE STRING "linker flags lib")
+set(PARADIGM_COMPILE_OPTIONS ${COMPILE_OPTIONS} CACHE STRING "compile options")
+set(PARADIGM_COMPILE_OPTIONS_EXE ${COMPILE_OPTIONS_EXE} CACHE STRING "compile options exe")
+set(PARADIGM_COMPILE_OPTIONS_LIB  ${COMPILE_OPTIONS_LIB} CACHE STRING "compile options lib")
