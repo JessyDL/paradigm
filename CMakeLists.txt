@@ -243,18 +243,6 @@ else()
 endif()
 
 
-# setup assimp
-set(ASSIMP_PATH "" CACHE PATH "set the override root directory of where assimp is")
-if(ASSIMP_PATH STREQUAL  "")
-	set(ASSIMP_INC_PATH "${PARADIGM_EXTERNAL_PATH}/inc/assimp")
-	set(ASSIMP_BIN_PATH "${PARADIGM_EXTERNAL_PATH}/bin/assimp")
-	set(ASSIMP_LIB "${PARADIGM_EXTERNAL_PATH}/lib/assimp/assimp-vc140-mt.lib")
-else()
-	set(ASSIMP_INC_PATH "${ASSIMP_PATH}/include")
-	set(ASSIMP_BIN_PATH "${ASSIMP_PATH}/bin/x64")
-	set(ASSIMP_LIB "${ASSIMP_PATH}/lib/x64/assimp-vc140-mt.lib")
-endif()
-
 setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
 
 #externals
