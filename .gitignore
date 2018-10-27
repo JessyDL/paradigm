@@ -2,6 +2,5 @@
 builds/
 tools/cache/
 tests/common/build/
-/core/inc/header_info.h
 docker/cache/
 project_files/
