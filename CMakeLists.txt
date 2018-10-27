@@ -71,11 +71,12 @@ endif()
 # ==================================================================================================
 # general defines
 # ==================================================================================================
-
-add_definitions(-DUNICODE 
+set(PARADIGM_DEFINES -DUNICODE 
 				-D_UNICODE
 				-DNOMINMAX
-				-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)				
+				-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+set(PARADIGM_DEFINES ${PARADIGM_DEFINES} GLOBAL)
+add_definitions(${PARADIGM_DEFINES} )				
 
 SET(CMAKE_CXX_FLAGS_RELEASE "-DRELEASE -DNDEBUG")
 SET(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
