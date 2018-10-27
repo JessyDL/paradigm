@@ -1,0 +1,4 @@
+author: Nemanja Trifunovic
+source: https://github.com/zeux/volk
+version: ec1d78a3bab6693566b8897e63f1e2bfc523c613
+targets: vulkan 1.1.82.0

@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="psl::buffer&lt;*,*&gt;">
+    <DisplayString>{{ size = {last - first} }}</DisplayString>
+    <Expand>
+        <Item Name="[size]">last - first</Item>
+        <Item Name="[capacity]">m_Capacity - first</Item>
+        <ArrayItems>
+          <Size>last - first</Size>
+          <ValuePointer>first</ValuePointer>
+        </ArrayItems>
+    </Expand>
+  </Type>
+</AutoVisualizer>

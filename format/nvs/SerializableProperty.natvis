@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?> 
+<AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
+  <Type Name="Paradigm::SystemIO::PropertyDetail::ValueImpl&lt;*&gt;">
+    <Expand>
+      <ExpandedItem>data</ExpandedItem>
+      <Item Name="[value]">value</Item>
+    </Expand>
+  </Type>
+</AutoVisualizer>

@@ -1,0 +1,13 @@
+SET(SRC 
+src/file.cpp
+src/platform_utils.cpp
+src/terminal_utils.cpp
+src/formatted_string_buffer.cpp
+src/stdafx_psl.cpp
+src/memory/allocator.cpp
+src/memory/range.cpp
+src/memory/region.cpp
+src/memory/segment.cpp
+src/task.cpp
+)
+SET(SRC ${SRC} PARENT_SCOPE)

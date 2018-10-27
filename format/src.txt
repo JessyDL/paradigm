@@ -1,0 +1,5 @@
+SET(SRC 
+src/format.cpp
+src/serialization.cpp
+)
+SET(SRC ${SRC} PARENT_SCOPE)

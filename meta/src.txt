@@ -1,0 +1,7 @@
+SET(SRC 
+src/library.cpp
+src/meta.cpp
+src/meta_apple.cpp
+src/meta_linux.cpp
+src/meta_win32.cpp)
+SET(SRC ${SRC} PARENT_SCOPE)
