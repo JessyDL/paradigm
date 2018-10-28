@@ -21,7 +21,6 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 message("using compiler $ENV{CXX}")
 message("using compiler ${CMAKE_CXX_COMPILER_ID}")
-
 set(PROJECT_COMPILER_FEATURES "cxx_std_17")
 
 target_architecture(ARCHITECTURE)
@@ -30,6 +29,9 @@ set(PARADIGM_ROOT ${PROJECT_SOURCE_DIR})
 set(PARADIGM_EXTERNAL_PATH ${PARADIGM_ROOT}/externals)
 set(VULKAN_VERSION CACHE STRING "default")
 set(VULKAN_ROOT CACHE STRING "")
+
+OPTION(PARADIGM_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
+
 if (MSVC_IDE)
     option(VS_ADD_NATIVE_VISUALIZERS "Configure project to use Visual Studio native visualizers" TRUE)
 else()
@@ -256,6 +258,8 @@ if(NOT ${PARADIGM_SOURCE_ONLY})
 	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
 		include(${PROJECT_SOURCE_DIR}/modules.txt)
 	endif()
+else()
+	message("did not compile the project by request")
 endif()
 
 # ==================================================================================================

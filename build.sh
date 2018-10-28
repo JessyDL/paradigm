@@ -312,8 +312,11 @@ if [ $CMAKE_UPDATE == "true" ]; then
 	cmake .
 elif [[ ! -d "CMakeFiles" ]]; then
 	echo generating project files for "$CMAKE_GENERATOR"
+	echo setting root directory to "$ROOT_DIRECTORY"
 	echo setting build directory to "$BUILD_FOLDER/$build_output"
-	cmake -G "$CMAKE_GENERATOR" "$ROOT_DIRECTORY" -DBUILD_DIRECTORY="$BUILD_FOLDER/$build_output" -DVULKAN_VERSION=$VULKAN_VERSION -DVULKAN_ROOT=$VULKAN_ROOT $CMAKE_PLATFORM -DVULKAN_STATIC=$VULKAN_STATIC "${CMAKE_PARAMS}"
+	CMAKE_PARAMS="-DBUILD_DIRECTORY="$BUILD_FOLDER/$build_output" -DVULKAN_VERSION=$VULKAN_VERSION -DVULKAN_ROOT=$VULKAN_ROOT $CMAKE_PLATFORM -DVULKAN_STATIC=$VULKAN_STATIC $CMAKE_PARAMS"
+	echo -e "\n${GREEN}running cmake with the parameters $CMAKE_PARAMS ${NC}"
+	cmake -G "$CMAKE_GENERATOR" "$ROOT_DIRECTORY" ${CMAKE_PARAMS}
 fi
 
 if [ $CUSTOM_ARGUMENTS == "true" ] && [ $CMAKE_UPDATE == "true" ]; then
