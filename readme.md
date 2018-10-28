@@ -36,13 +36,13 @@ The less easy way, but perhaps better and easier to integrate. The values that a
 -DVULKAN_VERSION: string based value that is a 1-1 match with a installed vulkan SDK instance.
 
 ## Examples
-### basic-app
-<img align="left" src="https://raw.githubusercontent.com/JessyDL/paradigm-example-app/master/example_app_01.png" width=450>
-Basic example app showcasing how to create a surface, loading a meta::library, create memory::region's and a resource::cache, and finally rendering a basic textured box.
-
-[link to repository](https://github.com/JessyDL/paradigm-example-app)
-<br><br>
-
+Following are some examples that showcase various usages of this project, click the image to go to the repository.
+| |  |
+|:--:|---|
+| **basic-app** |  |
+| <a href="https://github.com/JessyDL/paradigm-example-app"><img src="https://raw.githubusercontent.com/JessyDL/paradigm-example-app/master/example_app_01.png" width=600></a> | Basic example app showcasing how to create a surface, loading a meta::library, create memory::region's and a resource::cache, and finally rendering a basic textured box.|
+| **assembler** |  |
+| <a href="https://github.com/JessyDL/assembler"><img src="https://raw.githubusercontent.com/JessyDL/assembler/master/output.png" ></a> | The assembler project is a CLI toolchain that allows you to generate data files that can be used by the engine, as well as generating resource libraries. Its setup is a bit different due to the fact that it consumes the library mostly as a source. |
 
 ## Project Structure
 ### Sub-Projects

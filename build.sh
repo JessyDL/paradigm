@@ -49,7 +49,9 @@ declare VULKAN_STATIC=false
 # with this we can verify, and warn the user when the project won't be built (and ignore the arguments).
 declare CUSTOM_ARGUMENTS=false
 declare VERBOSE_LOGGING=false
-
+# allows you to set parameters directly to CMake
+# warning this one should appear last in the list as everything after is ignored!
+declare CMAKE_PARAMS=""
 
 # we will parse all arguments
 # flags start with a '-' and other arguments are of the syntax ARGUMENT_NAME=ARGUMENT_VALUE
@@ -89,6 +91,15 @@ do
 	if [[ ${ARGUMENT:0:1} == "-" ]]; then
 		KEY=${ARGUMENT:1:$((${#ARGUMENT}-1))}
 		VALUE=true
+		
+		if [ ${KEY} == "cmake_params" ]; then
+			declare -i next_i=$i+1
+			if [ $next_i -le "$#" ]; then
+				declare NEXTARG="${!next_i}"
+				CMAKE_PARAMS=$NEXTARG
+			fi
+			break;
+		fi
 		
 		declare -i next_i=$i+1
 		if [ $next_i -le "$#" ]; then
@@ -302,7 +313,7 @@ if [ $CMAKE_UPDATE == "true" ]; then
 elif [[ ! -d "CMakeFiles" ]]; then
 	echo generating project files for "$CMAKE_GENERATOR"
 	echo setting build directory to "$BUILD_FOLDER/$build_output"
-	cmake -G "$CMAKE_GENERATOR" "$ROOT_DIRECTORY" -DBUILD_DIRECTORY="$BUILD_FOLDER/$build_output" -DVULKAN_VERSION=$VULKAN_VERSION -DVULKAN_ROOT=$VULKAN_ROOT $CMAKE_PLATFORM -DVULKAN_STATIC=$VULKAN_STATIC
+	cmake -G "$CMAKE_GENERATOR" "$ROOT_DIRECTORY" -DBUILD_DIRECTORY="$BUILD_FOLDER/$build_output" -DVULKAN_VERSION=$VULKAN_VERSION -DVULKAN_ROOT=$VULKAN_ROOT $CMAKE_PLATFORM -DVULKAN_STATIC=$VULKAN_STATIC "${CMAKE_PARAMS}"
 fi
 
 if [ $CUSTOM_ARGUMENTS == "true" ] && [ $CMAKE_UPDATE == "true" ]; then
