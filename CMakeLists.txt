@@ -253,6 +253,9 @@ add_subdirectory(format)
 add_subdirectory(meta)
 add_subdirectory(core)
 
+if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
+	include(${PROJECT_SOURCE_DIR}/modules.txt)
+endif()
 
 # ==================================================================================================
 # Set accessible defines for child projects to use
