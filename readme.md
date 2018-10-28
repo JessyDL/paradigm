@@ -39,11 +39,15 @@ The less easy way, but perhaps better and easier to integrate. The values that a
 Following are some examples that showcase various usages of this project, click the image to go to the repository.
 
 **[basic-app](https://github.com/JessyDL/paradigm-example-app)**
+
 <a href="https://github.com/JessyDL/paradigm-example-app"><img src="https://raw.githubusercontent.com/JessyDL/paradigm-example-app/master/example_app_01.png" height=150></a> 
+
 Basic example app showcasing how to create a surface, loading a meta::library, create memory::region's and a resource::cache, and finally rendering a basic textured box.
 
 **[assembler](https://github.com/JessyDL/assembler)**
+
 <a href="https://github.com/JessyDL/assembler"><img src="https://raw.githubusercontent.com/JessyDL/assembler/master/output.png" height=150></a> 
+
 The assembler project is a CLI toolchain that allows you to generate data files that can be used by the engine, as well as generating resource libraries. Its setup is a bit different due to the fact that it consumes the library mostly as a source. 
 
 ## Project Structure
