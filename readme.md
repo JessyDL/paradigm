@@ -85,6 +85,10 @@ used to generate dynamic bindings for Vulkan, unless static linking is selected.
 ### Vulkan-hpp
 We use the generated hpp files from the Khronos group to get somewhat sensible C++ like code.
 
+# Documentation
+A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
+API examples, tutorials, and best practices guide will be written at a later time. For the time being, you can look at the example projects provided in the examples section.
+
 # Future
 ### Language
 This project will keep up with the latest C++ language improvements till atleast C++2a, as we require some of the newer features to create safer and easier to reason about interfaces for, amongst other things, serialization. After C++2a we will freeze the language to that version and keep it stable.
