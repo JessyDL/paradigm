@@ -21,11 +21,18 @@ For more detailed description about the engine itself, go to the readme of the `
 | ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)| -| Vulkan |
 | ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
-| ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge)|   - | Vulkan|
+| ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | Vulkan|
 | ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | Vulkan|
 ## Building
+### Prerequisites
+To use `assembler` on Windows, Bash on Ubuntu on Windows should be installed.
+[CMake ]( http://cmake.org/) 3.11 or higher is required on all platforms.
+
+### Creating the project files
 You can build the libraries using the provided build.sh file that can be invoked, or by invoking cmake directly. The build.sh just helps you to set up a workspace and sets some critical defines that will be used in the build process.
+
 So far only MSVC (2017) and CLang (6.0.0) are supported compilers. The project will likely incorrectly generate for other compilers.
+
 #### build.sh
 The build script accepts settings preceding with the `-` character, and values follow after the `=` character, for example to set the Vulkan version you can write `-VULKAN_VERSION="1.1.82.1"`. Some values are flags, and don't need a value after them such as the CLEAN_CMAKE parameter that can be invoked by writing `-c`.
 To see all possible arguments, check the start of the build script, where all options are declared.
