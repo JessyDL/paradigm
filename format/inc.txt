@@ -2,4 +2,3 @@ SET(INC
 inc/format.h
 inc/serialization.h
 )
-SET(INC ${INC} PARENT_SCOPE)

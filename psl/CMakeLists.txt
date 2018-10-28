@@ -33,6 +33,7 @@ if(LINUX)
 target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 	libc++experimental.a )
 endif()
+set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
 target_compile_options(${LOCAL_PROJECT} PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_LIB})

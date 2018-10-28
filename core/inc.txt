@@ -43,4 +43,3 @@ inc/vk/shader.h
 inc/vk/swapchain.h
 inc/vk/texture.h
 )
-SET(INC ${INC} PARENT_SCOPE)

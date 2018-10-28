@@ -28,4 +28,3 @@ inc/platform_utils.h
 inc/file.h
 inc/stdafx_psl.h
 )
-SET(INC ${INC} PARENT_SCOPE)

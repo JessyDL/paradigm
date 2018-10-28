@@ -42,4 +42,3 @@ src/vk/shader.cpp
 src/vk/swapchain.cpp
 src/vk/texture.cpp
 )
-SET(SRC ${SRC} PARENT_SCOPE)

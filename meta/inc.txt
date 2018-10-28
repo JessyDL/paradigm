@@ -2,4 +2,3 @@ SET(INC
 inc/library.h
 inc/meta.h
 )
-SET(INC ${INC} PARENT_SCOPE)

@@ -10,4 +10,3 @@ src/memory/region.cpp
 src/memory/segment.cpp
 src/task.cpp
 )
-SET(SRC ${SRC} PARENT_SCOPE)
