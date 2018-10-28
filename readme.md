@@ -76,14 +76,10 @@ You can find internal and (public) release builds in the tags on this repo.
 
 ##  External Libraries
 The following external libraries may be used in one, or many of the sub projects. The specific project readme's will describe their dependencies in more detail so you can always verify which project uses what.
-### GLM
-GLM is a mathematics library. We use this extensively in the `core` project.
-### GLI
-GLI is a small library that is responsible for texture format loading. Similar to GLM, we use this extensively in the `core` project.
-### volk
-used to generate dynamic bindings for Vulkan, unless static linking is selected.
-### Vulkan-hpp
-We use the generated hpp files from the Khronos group to get somewhat sensible C++ like code.
+- `GLM` mathematics library
+- `GLI` image loading and saving
+- `volk` dynamic bindings for vulkan
+- `Vulkan-hpp` generated C++ like headers for Vulkan
 
 # Documentation
 A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
@@ -94,6 +90,13 @@ API examples, tutorials, and best practices guide will be written at a later tim
 This project will keep up with the latest C++ language improvements till atleast C++2a, as we require some of the newer features to create safer and easier to reason about interfaces for, amongst other things, serialization. After C++2a we will freeze the language to that version and keep it stable.
 ### Graphics Backends
 After we have both the editor project and the rendering engine going, we will look towards supporting all available Vulkan platforms first, and then after implement GLeS 3.0. Don't expect this to happen anytime soon though, a long way from there still.
+
+# Extras
+### Statically bind Vulkan
+If you wish to statically bind vulkan, you can use the flag `-VULKAN_STATIC` in the `build.sh` script, or alternatively invoke `cmake` directly with the `-DVULKAN_STATIC=true` flag. 
+Note that depending on the platform, static binding is impossible (like Android).
+### Build as executable
+If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPARADIGM_CORE_EXECUTABLE` as a `-cmake_param` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
 
 # License
 This project is dual-licensed under commercial and open source licenses. Licensed under GNU AGPLv3 for free usage, and licensed under a commercial license you can purchase or request for commercial usage.
