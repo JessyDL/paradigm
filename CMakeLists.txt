@@ -207,7 +207,7 @@ else()
     
 endif()
 
-if(NOT ${VULKAN_STATIC})
+if(NOT ${VULKAN_STATIC} AND NOT ${PARADIGM_SOURCE_ONLY})
 	message("binding external volk library to handle dynamic bindings for vulkan")
 	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_NO_PROTOTYPES -DVK_DYNAMIC_DISPATCH_VOLK")	
 endif()
@@ -242,19 +242,20 @@ else()
 	message(FATAL_ERROR "no surface to render set, or platform is not supported")
 endif()
 
+if(NOT ${PARADIGM_SOURCE_ONLY})
+	setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
 
-setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
+	#externals
 
-#externals
+	#core libraries
+	add_subdirectory(psl)
+	add_subdirectory(format)
+	add_subdirectory(meta)
+	add_subdirectory(core)
 
-#core libraries
-add_subdirectory(psl)
-add_subdirectory(format)
-add_subdirectory(meta)
-add_subdirectory(core)
-
-if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
-	include(${PROJECT_SOURCE_DIR}/modules.txt)
+	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
+		include(${PROJECT_SOURCE_DIR}/modules.txt)
+	endif()
 endif()
 
 # ==================================================================================================
