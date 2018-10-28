@@ -31,6 +31,7 @@ set(VULKAN_VERSION CACHE STRING "default")
 set(VULKAN_ROOT CACHE STRING "")
 
 OPTION(PARADIGM_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
+OPTION(PARADIGM_CORE_EXECUTABLE "should the core library be compiled as executable instead?" OFF)
 
 if (MSVC_IDE)
     option(VS_ADD_NATIVE_VISUALIZERS "Configure project to use Visual Studio native visualizers" TRUE)
@@ -77,6 +78,10 @@ set(PARADIGM_DEFINES -DUNICODE
 				-D_UNICODE
 				-DNOMINMAX
 				-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+				
+if(PARADIGM_CORE_EXECUTABLE)
+	set(PARADIGM_DEFINES ${PARADIGM_DEFINES} -DCORE_EXECUTABLE)
+endif()
 				
 add_definitions(${PARADIGM_DEFINES} )				
 
