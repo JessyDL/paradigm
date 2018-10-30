@@ -297,6 +297,26 @@ namespace core::systems::ecs
 
 			return entities;
 		}
+
+		template<typename T>
+		T& get_component(entity e)
+		{
+			constexpr component_key_t int_id = component_key<T>;
+			auto eMapIt = m_EntityMap.find(e);
+			auto foundIt = std::remove_if(eMapIt->second.begin(), eMapIt->second.end(), [&int_id](const std::pair<component_key_t, size_t>& pair)
+			{
+				return pair.first == int_id;
+			});
+
+			if (foundIt == std::end(eMapIt->second))
+			{
+				throw std::runtime_error("missing component");
+			}
+			auto index = foundIt->second;
+			auto mem_pair = m_Components.find(int_id);
+			return *(T*)mem_pair->second.second[index].range().begin;
+		}
+
 	private:
 		template<typename T>
 		void fill_in(const std::vector<entity>& entities, std::vector<T>& out)

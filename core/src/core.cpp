@@ -920,12 +920,14 @@ int entry()
 	}
 
 	core::systems::ecs::state state;
-	core::systems::ecs::entity e{state.create()};
-	core::systems::ecs::entity e2{state.create()};
-	core::systems::ecs::entity e3{state.create()};
+	auto e{state.create()};
+	auto e2{state.create()};
+	auto e3{state.create()};
 	state.add_component<float>(e);
 	state.remove_component<float>(e);
 	state.add_component<int>(e,5);
+	auto& int_comp = state.get_component<int>(e);
+	int_comp += 10;
 	state.add_component<int>(e3,3);
 	state.add_component<int>(e,1);
 	state.add_component<float>(e,5.0f);
@@ -933,6 +935,8 @@ int entry()
 	state.add_component<float>(e3);
 	state.add_component<uint8_t>(e, uint8_t{ 0u });
 	state.add_component<uint8_t>(e2, uint8_t{ 1u });
+	auto& uint8_t_comp = state.get_component<uint8_t>(e2);
+	uint8_t_comp += 99;
 
 	auto res = state.filter<float, int>();
 
