@@ -18,6 +18,7 @@ inc/event.h
 inc/memory/allocator.h
 inc/memory/range.h
 inc/memory/region.h
+inc/memory/raw_region.h
 inc/memory/segment.h
 inc/ustring.h
 inc/evoke.h

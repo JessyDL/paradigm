@@ -2,6 +2,8 @@
 #include "stdafx.h"
 #include "entity.h"
 #include "range.h"
+#include "memory/raw_region.h"
+#include "IDGenerator.h"
 
 namespace core::ecs
 {
@@ -56,8 +58,8 @@ namespace core::ecs
 
 	public:
 
-		template<typename T, typename ... Ts>
-		bool add_component(const std::vector<entity>& entities, Ts&&... args) noexcept
+		template<typename T>
+		bool add_component(const std::vector<entity>& entities, std::optional<T> _template = std::nullopt) noexcept
 		{
 			static_assert(std::is_pod<T>::value, "the component type must be a POD (std::is_pod<T>::value == true)");
 			constexpr component_key_t int_id = component_key<T>;
@@ -80,7 +82,7 @@ namespace core::ecs
 			auto it = m_Components.find(int_id);
 			if (it == m_Components.end())
 			{
-				m_Components.emplace(int_id, std::pair<memory::region, std::vector<memory::segment>>{ memory::region{ 1024 * 1024 * 1024, sizeof(T), new memory::default_allocator(true) }, std::vector<memory::segment>{} });
+				m_Components.emplace(int_id, std::tuple<memory::raw_region, size_t, psl::IDGenerator<uint64_t>>{ memory::raw_region{1024 * 1024 * 1024}, (size_t)sizeof(T), std::numeric_limits<uint64_t>::max() });
 				it = m_Components.find(int_id);
 			}
 			auto& pair{ it->second };
@@ -88,20 +90,21 @@ namespace core::ecs
 			for(auto it = std::begin(ent_cpy); it != end; ++it)
 			{
 				const entity& e{ *it };
-				auto res = pair.second.emplace_back(pair.first.allocate(sizeof(T)).value());
-				res.set<T>(T{ std::forward<Ts>(args)... });
+				auto index = std::get<2>(pair).CreateID().second;
 
-				auto index = (res.range().begin - (std::uintptr_t)pair.first.data()) / sizeof(T);
+				if (_template)
+					std::memcpy(std::get<0>(pair).data(), &_template.value(), sizeof(T));
+
 				m_EntityMap[e].emplace_back(int_id, index);
 				m_ComponentMap[int_id].emplace_back(e);
 			}
 			return true;
 		}
 
-		template<typename T, typename ... Ts>
-		bool add_component(entity e, Ts&&... args) noexcept
+		template<typename T>
+		bool add_component(entity e, std::optional<T> _template = std::nullopt) noexcept
 		{
-			return add_component<T>(std::vector<entity>{ e }, std::forward<Ts>(args)...);
+			return add_component<T>(std::vector<entity>{ e }, _template);
 		}
 
 		template<typename T>
@@ -123,7 +126,8 @@ namespace core::ecs
 			eCompIt->second.erase(std::remove(eCompIt->second.begin(), eCompIt->second.end(), e), eCompIt->second.end());
 
 			auto& mem_pair = m_Components.find(int_id);
-			mem_pair->second.first.deallocate(mem_pair->second.second[index]);
+			void* loc = (void*)((std::uintptr_t)std::get<0>(mem_pair->second).data() + sizeof(T) * index);
+			std::memset(loc, 0, std::get<1>(mem_pair->second));
 
 			return true;
 		}
@@ -155,7 +159,8 @@ namespace core::ecs
 					}
 
 					auto& mem_pair = m_Components.find(type);
-					mem_pair->second.first.deallocate(mem_pair->second.second[index]);
+					void* loc = (void*)((std::uintptr_t)std::get<0>(mem_pair->second).data() + std::get<1>(mem_pair->second) * index);
+					std::memset(loc, 0, std::get<1>(mem_pair->second));
 				}
 				return true;
 			}
@@ -213,7 +218,7 @@ namespace core::ecs
 			}
 			auto index = foundIt->second;
 			auto mem_pair = m_Components.find(int_id);
-			return *(T*)mem_pair->second.second[index].range().begin;
+			return *(T*)((std::uintptr_t)std::get<0>(mem_pair->second).data() + std::get<1>(mem_pair->second) * index);
 		}
 
 		void tick()
@@ -286,8 +291,8 @@ namespace core::ecs
 				auto index = foundIt->second;
 
 				auto mem_pair = m_Components.find(int_id);
-				auto range = mem_pair->second.second[index].range();
-				std::memcpy(&out[i], (void*)range.begin, sizeof(T));
+				void* loc = (void*)((std::uintptr_t)std::get<0>(mem_pair->second).data() + sizeof(T) * index);
+				std::memcpy(&out[i], loc, sizeof(T));
 				++i;
 			}
 		}
@@ -323,7 +328,7 @@ namespace core::ecs
 		std::unordered_map<component_key_t, std::vector<entity>> m_ComponentMap;
 
 		/// \brief backing memory
-		std::unordered_map<component_key_t, std::pair<memory::region, std::vector<memory::segment>>> m_Components;
+		std::unordered_map<component_key_t, std::tuple<memory::raw_region, size_t, psl::IDGenerator<uint64_t>>> m_Components;
 
 		/// overhead is 
 		/// sizeof(component) * Nc + sizeof(entity) * Ne +																// store ever component as well as entity
