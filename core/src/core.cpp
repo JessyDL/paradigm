@@ -940,7 +940,9 @@ int entry()
 	auto e2{state.create()};
 	auto e3{state.create()};
 	state.add_component<float>(e);
+	state.add_component<float>(e);
 	state.remove_component<float>(e);
+	state.add_component<float>(e);
 	state.add_component<int>(e,5);
 	auto& int_comp = state.get_component<int>(e);
 	int_comp += 10;

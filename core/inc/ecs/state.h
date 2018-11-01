@@ -74,14 +74,16 @@ namespace core::ecs
 			auto it = m_Components.find(int_id);
 			if (it == m_Components.end())
 			{
-				m_Components.emplace(int_id, std::pair<memory::region, std::vector<memory::segment>>{ memory::region{ 1024 * 1024 * 1024, sizeof(int), new memory::default_allocator(true) }, std::vector<memory::segment>{} });
+				m_Components.emplace(int_id, std::pair<memory::region, std::vector<memory::segment>>{ memory::region{ 1024 * 1024 * 1024, sizeof(T), new memory::default_allocator(true) }, std::vector<memory::segment>{} });
 				it = m_Components.find(int_id);
 			}
 			auto& pair{ it->second };
 
 			auto res = pair.second.emplace_back(pair.first.allocate(sizeof(T)).value());
 			res.set<T>(T{ std::forward<Ts>(args)... });
-			m_EntityMap[e].emplace_back(int_id, pair.second.size() - 1);
+
+			auto index = (res.range().begin - (std::uintptr_t)pair.first.data()) / sizeof(T);
+			m_EntityMap[e].emplace_back(int_id, index);
 			m_ComponentMap[int_id].emplace_back(e);
 			return true;
 		}
@@ -104,8 +106,8 @@ namespace core::ecs
 			auto eCompIt = m_ComponentMap.find(int_id);
 			eCompIt->second.erase(std::remove(eCompIt->second.begin(), eCompIt->second.end(), e), eCompIt->second.end());
 
-			auto mem_pair = m_Components.find(int_id);
-			// todo: remove segment;
+			auto& mem_pair = m_Components.find(int_id);
+			mem_pair->second.first.deallocate(mem_pair->second.second[index]);
 
 			return true;
 		}
@@ -119,16 +121,15 @@ namespace core::ecs
 		{
 			if (auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 			{
-				for (auto& pair : eMapIt->second)
+				for (const auto& [type, index] : eMapIt->second)
 				{
-					auto type = pair.first;
-					auto index = pair.second;
-
-					if (auto cMapIt = m_ComponentMap.find(pair.first); cMapIt != std::end(m_ComponentMap))
+					if (auto cMapIt = m_ComponentMap.find(type); cMapIt != std::end(m_ComponentMap))
 					{
 						cMapIt->second.erase(std::remove(cMapIt->second.begin(), cMapIt->second.end(), e), cMapIt->second.end());
 					}
-					// todo: remove segment;
+
+					auto& mem_pair = m_Components.find(type);
+					mem_pair->second.first.deallocate(mem_pair->second.second[index]);
 				}
 				return true;
 			}
