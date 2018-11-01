@@ -42,7 +42,7 @@
 
 #include "utility/geometry.h"
 
-#include "systems/ecs.h"
+#include "ecs/ecs.hpp"
 
 
 using namespace core;
@@ -899,7 +899,23 @@ int android_entry()
 	return 0;
 }
 
+
 #endif
+
+struct float_system
+{
+	core::ecs::range<float> m_Floats;
+
+	void announce(core::ecs::state& state)
+	{
+		state.register_rw_range(m_Floats);
+	}
+	
+	void tick(std::chrono::duration<float> dTime)
+	{
+
+	}
+};
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -911,7 +927,7 @@ int entry()
 
 	std::vector<float> fl_v{ {5.0f, 9.3f, 12.6f, 44.f, 4211689.0f, 78.542f, 99.f} };
 	std::vector<size_t> fl_i{ {0,5,2,3,6} };
-	core::systems::ecs::range<float> fl_range{ fl_v, fl_i };
+	core::ecs::range<float> fl_range{ fl_v, fl_i };
 
 	for (auto i : fl_range)
 	{
@@ -919,7 +935,7 @@ int entry()
 		core::log->info("{}", i);
 	}
 
-	core::systems::ecs::state state;
+	core::ecs::state state;
 	auto e{state.create()};
 	auto e2{state.create()};
 	auto e3{state.create()};
@@ -935,7 +951,9 @@ int entry()
 	state.add_component<float>(e3);
 	state.add_component<uint8_t>(e, uint8_t{ 0u });
 	state.add_component<uint8_t>(e2, uint8_t{ 1u });
-	auto& uint8_t_comp = state.get_component<uint8_t>(e2);
+
+	typedef uint8_t name_t;
+	auto& uint8_t_comp = state.get_component<name_t>(e2);
 	uint8_t_comp += 99;
 
 	auto res = state.filter<float, int>();
@@ -943,6 +961,9 @@ int entry()
 	std::vector<float> filter_range_fl;
 	std::vector<uint8_t> filter_range_uint;
 	res = state.filter<float, uint8_t>(filter_range_fl, filter_range_uint);
+
+	float_system fl_system{};
+	state.register_system(fl_system);
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};

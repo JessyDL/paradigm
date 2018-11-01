@@ -1,177 +1,13 @@
 #pragma once
 #include "stdafx.h"
+#include "entity.h"
+#include "range.h"
 
-
-namespace core::systems::ecs
+namespace core::ecs
 {
-	/// ----------------------------------------------------------------------------------------------
-	/// jmp_buffer
-	/// ----------------------------------------------------------------------------------------------
-
 	template<typename T>
-	class range
+	class filter
 	{
-	public:
-		class iterator
-		{
-			friend class range;
-			iterator(T* target, std::vector<size_t>::iterator index, std::vector<size_t>::const_iterator end) : target(target), index(index), end(end)
-			{
-
-			}
-		public:
-			T& operator*()
-			{
-				return *target;
-			}
-
-			bool operator!=(iterator other)
-			{
-				return index != other.index;
-			}
-
-			iterator operator++() const
-			{
-				std::uintptr_t jmp_size = (*std::next(index) - *index) * sizeof(T);
-				return iterator{ (T*)((std::uintptr_t)target + jmp_size), std::next(index), end };
-			}
-
-			iterator& operator++()
-			{
-				auto next = std::next(index);
-				if (end == next)
-				{
-					target = (T*)((std::uintptr_t)target + sizeof(T));
-					index = next;
-					return *this;
-				}
-				std::uintptr_t jmp_size = (*next - *index) * sizeof(T);
-				target = (T*)((std::uintptr_t)target + jmp_size);
-				index = next;
-				return *this;
-			}
-		private:
-			T* target;
-			std::vector<size_t>::iterator index;
-			std::vector<size_t>::const_iterator end;
-		};
-
-		range(std::vector<T>& target, const std::vector<size_t>& indices)
-			: m_Target(&target), m_Indices(indices)
-		{
-			std::sort(m_Indices.begin(), m_Indices.end());
-		};
-
-		range() : m_Target(nullptr), m_Indices({})
-		{
-
-		}
-
-
-		T& operator[](size_t index)
-		{
-			return (*m_Target)[m_Indices[index]];
-		}
-
-		iterator begin()
-		{
-			size_t index = *m_Indices.begin();
-			return iterator{ &(*m_Target)[index], m_Indices.begin(), m_Indices.end() };
-		}
-
-		iterator end()
-		{
-			size_t index = *std::prev(m_Indices.end());
-			return iterator{ (T*)((std::uintptr_t)&(*m_Target)[index] + sizeof(T)), m_Indices.end() , m_Indices.end() };
-		}
-	private:
-		std::vector<T>* m_Target{ nullptr };
-		std::vector<size_t> m_Indices;
-	};
-
-	/// ----------------------------------------------------------------------------------------------
-	/// Entity
-	/// ----------------------------------------------------------------------------------------------
-	struct entity;
-	static bool valid(entity e) noexcept;
-
-	/// \brief entity points to a collection of components
-	struct entity
-	{
-	public:
-		entity() = default;
-		entity(uint64_t id) : m_ID(id) {};
-		~entity() = default;
-		entity(const entity&) = default;
-		entity& operator=(const entity&) = default;
-		entity(entity&&) = default;
-		entity& operator=(entity&&) = default;
-
-		bool valid() const noexcept
-		{
-			return m_ID != 0u;
-		}
-		friend static bool valid(entity e) noexcept;
-		bool operator==(entity b) const noexcept
-		{
-			return m_ID == b.m_ID;
-		}
-		bool operator<=(entity b) const noexcept
-		{
-			return m_ID <= b.m_ID;
-		}
-		bool operator!=(entity b) const noexcept
-		{
-			return m_ID != b.m_ID;
-		}
-		bool operator>=(entity b) const noexcept
-		{
-			return m_ID >= b.m_ID;
-		}
-		bool operator<(entity b) const noexcept
-		{
-			return m_ID < b.m_ID;
-		}
-		bool operator>(entity b) const noexcept
-		{
-			return m_ID > b.m_ID;
-		}
-
-		uint64_t id() const noexcept { return m_ID; };
-	private:
-		uint64_t m_ID;
-	};
-
-	/// \brief checks if an entity is valid or not
-	/// \param[in] e the entity to check
-	static bool valid(entity e) noexcept
-	{
-		return e.m_ID != 0u;
-	};
-}
-
-namespace std
-{
-	template <>
-	struct hash<core::systems::ecs::entity>
-	{
-		std::size_t operator()(core::systems::ecs::entity const& e) const noexcept
-		{
-			return e.id();
-		}
-	};
-} // namespace std
-
-namespace core::systems::ecs
-{
-
-
-	/// ----------------------------------------------------------------------------------------------
-	/// container
-	/// ----------------------------------------------------------------------------------------------
-	class container
-	{
-
 	};
 
 	class state
@@ -182,10 +18,46 @@ namespace core::systems::ecs
 
 		using component_key_t = void(*)();
 
+		struct system_binding
+		{
+			std::unordered_map<component_key_t, void*> m_RBindings;
+			std::unordered_map<component_key_t, void*> m_RWBindings;
+			std::vector<component_key_t> filters;
+
+			template<typename T>
+			void register_rw(void* binding_point)
+			{
+				constexpr component_key_t int_id = component_key<T>;
+				m_RWBindings[int_id] = binding_point;
+				filters.emplace_back(int_id);
+			}
+			template<typename T>
+			void register_r(void* binding_point)
+			{
+				constexpr component_key_t int_id = component_key<T>;
+				m_RBindings[int_id] = binding_point;
+				filters.emplace_back(int_id);
+			}
+			template<typename T>
+			void register_filter()
+			{
+				constexpr component_key_t int_id = component_key<T>;
+				filters.emplace_back(int_id);
+			}
+
+			void prepare(state& s)
+			{
+				auto& entities = s.dynamic_filter(filters);
+
+				//std::vector<component_key_t, void*> targetbuffers;
+				//s.dynamic_filter(entities, filters, targetbuffers);
+			}
+		};
+
 	public:
 
 		template<typename T, typename ... Ts>
-		bool add_component(entity e, Ts&&... args)
+		bool add_component(entity e, Ts&&... args) noexcept
 		{
 			static_assert(std::is_pod<T>::value, "the component type must be a POD (std::is_pod<T>::value == true)");
 			constexpr component_key_t int_id = component_key<T>;
@@ -215,7 +87,7 @@ namespace core::systems::ecs
 		}
 
 		template<typename T>
-		bool remove_component(entity e)
+		bool remove_component(entity e) noexcept
 		{
 			constexpr component_key_t int_id = component_key<T>;
 			auto eMapIt = m_EntityMap.find(e);
@@ -238,12 +110,12 @@ namespace core::systems::ecs
 			return true;
 		}
 
-		entity create()
+		entity create() noexcept
 		{
 			return m_EntityMap.emplace(entity{ ++mID }, std::vector<std::pair<component_key_t, size_t>>{}).first->first;
 		}
 
-		bool destroy(entity e)
+		bool destroy(entity e) noexcept
 		{
 			if (auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 			{
@@ -264,17 +136,17 @@ namespace core::systems::ecs
 		}
 
 		template<typename... Ts>
-		std::vector<entity> filter()
+		std::vector<entity> filter() const noexcept
 		{
 			static const std::vector<component_key_t> keys{ {component_key<Ts>...} };
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
-			std::vector<entity> v_intersection{ m_ComponentMap[keys[0]] };
+			std::vector<entity> v_intersection{ m_ComponentMap.at(keys[0]) };
 
 			for (size_t i = 1; i < keys.size(); ++i)
 			{
 				std::vector<entity> intermediate;
-				const auto& it = m_ComponentMap[keys[i]];
+				const auto& it = m_ComponentMap.at(keys[i]);
 				std::set_intersection(v_intersection.begin(), v_intersection.end(),
 					it.begin(), it.end(),
 					std::back_inserter(intermediate));
@@ -285,7 +157,7 @@ namespace core::systems::ecs
 		}
 
 		template<typename... Ts>
-		std::vector<entity> filter(std::vector<Ts>&... out)
+		std::vector<entity> filter(std::vector<Ts>&... out)  const noexcept
 		{
 			static const std::vector<component_key_t> keys{ {component_key<Ts>...} };
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
@@ -317,9 +189,60 @@ namespace core::systems::ecs
 			return *(T*)mem_pair->second.second[index].range().begin;
 		}
 
-	private:
+		void tick()
+		{
+
+			for (const auto& system : m_Systems)
+			{
+
+				std::invoke(system, std::chrono::duration<float>{0});
+			}
+		}
+
 		template<typename T>
-		void fill_in(const std::vector<entity>& entities, std::vector<T>& out)
+		void register_system(T& target)
+		{
+			target.announce(*this);
+			m_Systems.emplace_back(std::bind(&T::tick, &target, std::placeholders::_1));
+		}
+
+		template<typename T>
+		void register_rw_range(range<T>& range)
+		{
+			constexpr component_key_t int_id = component_key<T>;
+			currBindings.m_RWBindings[int_id] = &range;
+		}
+	private:
+		std::vector<entity> dynamic_filter(const std::vector<component_key_t>& keys) const noexcept
+		{
+			std::vector<entity> v_intersection{ m_ComponentMap.at(keys[0]) };
+
+			for (size_t i = 1; i < keys.size(); ++i)
+			{
+				std::vector<entity> intermediate;
+				const auto& it = m_ComponentMap.at(keys[i]);
+				std::set_intersection(v_intersection.begin(), v_intersection.end(),
+					it.begin(), it.end(),
+					std::back_inserter(intermediate));
+				v_intersection = intermediate;
+			}
+
+			return v_intersection;
+		}
+
+		std::vector<entity> dynamic_filter(const std::vector<component_key_t>& keys, const std::vector<std::pair<component_key_t, void*>>& targetBuffers)  const noexcept
+		{
+
+			auto entities{ dynamic_filter(keys) };			
+
+			//(fill_in(entities, out), ...);
+
+
+			return entities;
+		}
+
+		template<typename T>
+		void fill_in(const std::vector<entity>& entities, std::vector<T>& out) const noexcept
 		{
 			constexpr component_key_t int_id = component_key<T>;
 			out.resize(entities.size());
@@ -340,6 +263,28 @@ namespace core::systems::ecs
 				std::memcpy(&out[i], (void*)range.begin, sizeof(T));
 				++i;
 			}
+		}
+
+		void fill_in(const std::vector<entity>& entities, component_key_t int_id, void* out) const noexcept
+		{
+			/*out.resize(entities.size());
+			size_t i = 0;
+
+			for (const auto& e : entities)
+			{
+				auto eMapIt = m_EntityMap.find(e);
+				auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(), [&int_id](const std::pair<component_key_t, size_t>& pair)
+				{
+					return pair.first == int_id;
+				});	
+
+				auto index = foundIt->second;
+
+				auto mem_pair = m_Components.find(int_id);
+				auto range = mem_pair->second.second[index].range();
+				std::memcpy(&out[i], (void*)range.begin, sizeof(T));
+				++i;
+			}*/
 		}
 
 
@@ -364,8 +309,11 @@ namespace core::systems::ecs
 		/// where Nec is the count of entities that uses this component type.
 		/// where Nct is the count of unique component types.
 
+		std::vector<std::function<void(std::chrono::duration<float>)>> m_Systems;
+
+		system_binding currBindings;
 	};
-	
+
 	class system
 	{
 	public:
@@ -374,6 +322,5 @@ namespace core::systems::ecs
 			static_assert(std::is_pod<entity>::value, "entity no longer POD");
 		}
 	private:
-		container m_Container;
 	};
 }
