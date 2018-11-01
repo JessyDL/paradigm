@@ -57,19 +57,25 @@ namespace core::ecs
 	public:
 
 		template<typename T, typename ... Ts>
-		bool add_component(entity e, Ts&&... args) noexcept
+		bool add_component(const std::vector<entity>& entities, Ts&&... args) noexcept
 		{
 			static_assert(std::is_pod<T>::value, "the component type must be a POD (std::is_pod<T>::value == true)");
 			constexpr component_key_t int_id = component_key<T>;
 
-			auto eMapIt = m_EntityMap.find(e);
-			if (eMapIt == std::end(m_EntityMap))
-				return false;
-			for (auto eComp : eMapIt->second)
+			auto ent_cpy = entities;
+			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e)
 			{
-				if (eComp.first == int_id)
-					return false;
-			}
+				auto eMapIt = m_EntityMap.find(e);
+				if (eMapIt == std::end(m_EntityMap))
+					return true;
+
+				for (auto eComp : eMapIt->second)
+				{
+					if (eComp.first == int_id)
+						return true;
+				}
+				return false;
+			});
 
 			auto it = m_Components.find(int_id);
 			if (it == m_Components.end())
@@ -79,13 +85,23 @@ namespace core::ecs
 			}
 			auto& pair{ it->second };
 
-			auto res = pair.second.emplace_back(pair.first.allocate(sizeof(T)).value());
-			res.set<T>(T{ std::forward<Ts>(args)... });
+			for(auto it = std::begin(ent_cpy); it != end; ++it)
+			{
+				const entity& e{ *it };
+				auto res = pair.second.emplace_back(pair.first.allocate(sizeof(T)).value());
+				res.set<T>(T{ std::forward<Ts>(args)... });
 
-			auto index = (res.range().begin - (std::uintptr_t)pair.first.data()) / sizeof(T);
-			m_EntityMap[e].emplace_back(int_id, index);
-			m_ComponentMap[int_id].emplace_back(e);
+				auto index = (res.range().begin - (std::uintptr_t)pair.first.data()) / sizeof(T);
+				m_EntityMap[e].emplace_back(int_id, index);
+				m_ComponentMap[int_id].emplace_back(e);
+			}
 			return true;
+		}
+
+		template<typename T, typename ... Ts>
+		bool add_component(entity e, Ts&&... args) noexcept
+		{
+			return add_component<T>(std::vector<entity>{ e }, std::forward<Ts>(args)...);
 		}
 
 		template<typename T>
@@ -115,6 +131,16 @@ namespace core::ecs
 		entity create() noexcept
 		{
 			return m_EntityMap.emplace(entity{ ++mID }, std::vector<std::pair<component_key_t, size_t>>{}).first->first;
+		}
+
+		std::vector<entity> create(size_t count) noexcept
+		{
+			m_EntityMap.reserve(m_EntityMap.size() + count);
+			std::vector<entity> result(count);
+			std::iota (std::begin(result), std::end(result), mID + 1);
+			for(size_t i = 0u; i < count; ++i)
+				m_EntityMap.emplace(entity{ ++mID }, std::vector<std::pair<component_key_t, size_t>>{});
+			return result;
 		}
 
 		bool destroy(entity e) noexcept

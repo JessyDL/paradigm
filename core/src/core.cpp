@@ -939,8 +939,11 @@ int entry()
 	auto e{state.create()};
 	auto e2{state.create()};
 	auto e3{state.create()};
+	auto e_list{ state.create(100000) };
 	state.add_component<float>(e);
 	state.add_component<float>(e);
+	state.add_component<float>(e_list);
+	state.add_component<float>(e_list);
 	state.remove_component<float>(e);
 	state.add_component<float>(e);
 	state.add_component<int>(e,5);
