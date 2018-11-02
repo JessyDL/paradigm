@@ -96,7 +96,7 @@ After we have both the editor project and the rendering engine going, we will lo
 If you wish to statically bind vulkan, you can use the flag `-VULKAN_STATIC` in the `build.sh` script, or alternatively invoke `cmake` directly with the `-DVULKAN_STATIC=true` flag. 
 Note that depending on the platform, static binding is impossible (like Android).
 ### Build as executable
-If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPARADIGM_CORE_EXECUTABLE` as a `-cmake_param` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
+If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `"-DPARADIGM_CORE_EXECUTABLE=true"` as a `-cmake_params` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
 
 # License
 This project is dual-licensed under commercial and open source licenses. Licensed under GNU AGPLv3 for free usage, and licensed under a commercial license you can purchase or request for commercial usage.
