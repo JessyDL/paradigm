@@ -939,7 +939,7 @@ int entry()
 	auto e{state.create()};
 	auto e2{state.create()};
 	auto e3{state.create()};
-	auto e_list{ state.create(100000) };
+	auto e_list{ state.create(10000000) };
 	state.add_component<float>(e, 2.0f);
 	state.add_component<float>(e);
 	state.add_component<float>(e_list);
