@@ -44,6 +44,8 @@
 
 #include "ecs/ecs.hpp"
 
+#include "math/math.hpp"
+
 
 using namespace core;
 using namespace core::resource;
@@ -69,6 +71,7 @@ struct framedata
 class transform
 {
   public:
+	transform() = default;
 	const glm::vec3& position() const noexcept { return m_Position; };
 	const glm::quat& rotation() const noexcept { return m_Rotation; };
 	const glm::vec3& scale() const noexcept { return m_Scale; };
@@ -916,6 +919,13 @@ struct float_system
 
 	}
 };
+
+struct transform2
+{
+	transform2() = default;
+	psl::vec3 pos;
+};
+
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -924,6 +934,14 @@ int entry()
 #endif
 	setup_loggers();
 
+
+	psl::tvec<float, 3> vec_test{ 0,2,5 };
+	psl::tvec<float, 3> vec_test2{ 5,3,0 };
+
+
+	vec_test += vec_test2 * vec_test2;
+
+	auto item{ vec_test[0] };
 
 	std::vector<float> fl_v{ {5.0f, 9.3f, 12.6f, 44.f, 4211689.0f, 78.542f, 99.f} };
 	std::vector<size_t> fl_i{ {0,5,2,3,6} };
@@ -943,7 +961,7 @@ int entry()
 	state.add_component<float>(e, 2.0f);
 	state.add_component<float>(e);
 	state.add_component<float>(e_list);
-	state.add_component<float>(e_list);
+	state.add_component<transform2>(e_list);
 	state.remove_component<float>(e);
 	state.add_component<float>(e);
 	state.add_component<int>(e,5);
@@ -969,6 +987,8 @@ int entry()
 
 	float_system fl_system{};
 	state.register_system(fl_system);
+
+
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
