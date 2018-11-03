@@ -8,6 +8,14 @@
 
 namespace utility::templates
 {
+	template <size_t N, class T>
+	constexpr std::array<T,N> make_array(const T &v)  noexcept
+	{
+		std::array<T,N> ret;
+		ret.fill(v);
+		return ret;
+	}
+
 	// handy utility for the compilers that wish to compile static_assert(false,"") in dead code paths that should error out
 	template<typename T>
 	struct always_false : std::false_type

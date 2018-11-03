@@ -44,6 +44,8 @@
 
 #include "ecs/ecs.hpp"
 
+#include "math/math.hpp"
+
 
 using namespace core;
 using namespace core::resource;
@@ -69,6 +71,7 @@ struct framedata
 class transform
 {
   public:
+	transform() = default;
 	const glm::vec3& position() const noexcept { return m_Position; };
 	const glm::quat& rotation() const noexcept { return m_Rotation; };
 	const glm::vec3& scale() const noexcept { return m_Scale; };
@@ -916,6 +919,37 @@ struct float_system
 
 	}
 };
+
+struct transform2
+{
+	transform2() = default;
+	psl::vec3 pos;
+};
+
+void math_test()
+{
+	std::array<psl::tvec<float, 4>, 4> teste { { {0, 2, 5, 0}, { 0,2,5,0 }, { 0,2,5,0 }, { 0,2,5,0 } }};
+
+	psl::mat4x4 mat42{ 1, 2, 3, 4, 5,6,7,8, 9,10,11,12, 13,14,15,16  };
+	auto& res = mat42.column<0>();
+	res = mat42.column<1>();
+	mat42.swizzle();
+	mat42.swizzle();
+	mat42.row<0>(mat42.column<1>());
+	psl::tvec<double, 4> vec_test{ 0,2,5,0  };
+	psl::tvec<double, 4> vec_test2{ 5,3,0,0 };
+
+	psl::vec3 v3{ psl::vec3::zero };
+
+	psl::mat4x4 mat4{5 };
+	auto test = mat4.row<0>().at<3>();
+	test = mat4.at<0,3>();
+	vec_test += vec_test2 * vec_test2 * psl::dvec4::down;
+	
+	psl::vec2 vec2_test{ 0,3 };
+	const auto& x = vec2_test.x();
+}
+
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -924,7 +958,8 @@ int entry()
 #endif
 	setup_loggers();
 
-
+	math_test();
+	
 	std::vector<float> fl_v{ {5.0f, 9.3f, 12.6f, 44.f, 4211689.0f, 78.542f, 99.f} };
 	std::vector<size_t> fl_i{ {0,5,2,3,6} };
 	core::ecs::range<float> fl_range{ fl_v, fl_i };
@@ -943,7 +978,7 @@ int entry()
 	state.add_component<float>(e, 2.0f);
 	state.add_component<float>(e);
 	state.add_component<float>(e_list);
-	state.add_component<float>(e_list);
+	state.add_component<transform2>(e_list);
 	state.remove_component<float>(e);
 	state.add_component<float>(e);
 	state.add_component<int>(e,5);
@@ -969,6 +1004,8 @@ int entry()
 
 	float_system fl_system{};
 	state.register_system(fl_system);
+
+
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
