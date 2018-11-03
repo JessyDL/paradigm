@@ -1,31 +1,12 @@
 #pragma once
 #include <limits>
 #include <utility>
-#include <tuple>
+#include "template_utils.h"
 
 #define USE_SSE2
 
 namespace psl
 {
-	namespace details
-	{
-		template <size_t, class T>
-		using T_ = T;
-
-		template <class T, size_t... Is>
-		auto make_tuple(std::index_sequence<Is...>)
-		{
-			return std::tuple<T_<Is, T>...>{};
-		}
-
-		template <class T, size_t N>
-		auto make_tuple()
-		{
-			return make_tuple<T>(std::make_index_sequence<N>{});
-		}
-
-
-	} // namespace details
 	template <typename precision_t, size_t dimensions>
 	struct tvec
 	{
@@ -39,6 +20,7 @@ namespace psl
 		constexpr tvec() noexcept = default;
 
 		constexpr tvec(const std::array<precision_t, dimensions>& value) noexcept : value(value){};
+		constexpr tvec(const precision_t& value) noexcept : value(utility::templates::make_array<dimensions>(value)){};
 
 		template <typename... Args>
 		constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}){};
@@ -50,11 +32,24 @@ namespace psl
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
 			static_assert(std::is_pod<tvec<precision_t, dimensions>>::value, "should remain POD");
+
 			return value[index];
 		}
 
-		constexpr precision_t& operator[](size_t index) const noexcept { return value[index]; }
+		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
+		template<size_t index>
+		constexpr precision_t& at() noexcept
+		{
+			static_assert(index < dimensions, "out of range");
+			return value.at(index);
+		}
+		template<size_t index>
+		constexpr const precision_t& at() const noexcept
+		{
+			static_assert(index < dimensions, "out of range");
+			return value.at(index);
+		}
 
 		// ---------------------------------------------
 		// members
@@ -85,7 +80,20 @@ namespace psl
 			return value[index];
 		}
 
-		constexpr precision_t& operator[](size_t index) const noexcept { return value[index]; }
+		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+
+		template<size_t index>
+		constexpr precision_t& at() noexcept
+		{
+			static_assert(index < 1, "out of range");
+			return value.at(index);
+		}
+		template<size_t index>
+		constexpr const precision_t& at() const noexcept
+		{
+			static_assert(index < 1, "out of range");
+			return value.at(index);
+		}
 
 		// ---------------------------------------------
 		// members
@@ -129,7 +137,20 @@ namespace psl
 			return value[index];
 		}
 
-		constexpr precision_t& operator[](size_t index) const noexcept { return value[index]; }
+		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+
+		template<size_t index>
+		constexpr precision_t& at() noexcept
+		{
+			static_assert(index < 2, "out of range");
+			return value.at(index);
+		}
+		template<size_t index>
+		constexpr const precision_t& at() const noexcept
+		{
+			static_assert(index < 2, "out of range");
+			return value.at(index);
+		}
 
 		// ---------------------------------------------
 		// members
@@ -179,7 +200,20 @@ namespace psl
 			return value[index];
 		}
 
-		constexpr precision_t& operator[](size_t index) const noexcept { return value[index]; }
+		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+
+		template<size_t index>
+		constexpr precision_t& at() noexcept
+		{
+			static_assert(index < 3, "out of range");
+			return value.at(index);
+		}
+		template<size_t index>
+		constexpr const precision_t& at() const noexcept
+		{
+			static_assert(index < 3, "out of range");
+			return value.at(index);
+		}
 
 		// ---------------------------------------------
 		// members
@@ -212,6 +246,13 @@ namespace psl
 			: value({std::move(x), std::move(y), std::move(z), std::move(w)}){};
 		constexpr tvec(const precision_t& value) noexcept : value({value, value, value, value}){};
 
+		template<typename src_precision_t>
+		constexpr tvec(std::array<src_precision_t,4>&& arr) noexcept
+			: value({std::move(arr)}){};
+
+		template<typename src_precision_t>
+		constexpr tvec(const std::array<src_precision_t,4>& value) noexcept : value({arr}){};
+
 		// ---------------------------------------------
 		// getters
 		// ---------------------------------------------
@@ -234,7 +275,20 @@ namespace psl
 			return value[index];
 		}
 
-		constexpr precision_t& operator[](size_t index) const noexcept { return value[index]; }
+		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+
+		template<size_t index>
+		constexpr precision_t& at() noexcept
+		{
+			static_assert(index < 4, "out of range");
+			return value.at(index);
+		}
+		template<size_t index>
+		constexpr const precision_t& at() const noexcept
+		{
+			static_assert(index < 4, "out of range");
+			return value.at(index);
+		}
 
 
 		// ---------------------------------------------
