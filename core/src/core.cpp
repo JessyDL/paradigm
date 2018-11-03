@@ -930,16 +930,19 @@ void math_test()
 {
 	std::array<psl::tvec<float, 4>, 4> teste { { {0, 2, 5, 0}, { 0,2,5,0 }, { 0,2,5,0 }, { 0,2,5,0 } }};
 
-	psl::mat4x4 mat43{  {0, 2, 5, 0}, { 0,2,5,0 }, { 0,2,5,0 }, { 0,2,5,0 }  };
 	psl::mat4x4 mat42{ 1, 2, 3, 4, 5,6,7,8, 9,10,11,12, 13,14,15,16  };
-
+	auto& res = mat42.column<0>();
+	res = mat42.column<1>();
+	mat42.swizzle();
+	mat42.swizzle();
+	mat42.row<0>(mat42.column<1>());
 	psl::tvec<double, 4> vec_test{ 0,2,5,0  };
 	psl::tvec<double, 4> vec_test2{ 5,3,0,0 };
 
 	psl::vec3 v3{ psl::vec3::zero };
 
 	psl::mat4x4 mat4{5 };
-	auto test = mat4.at<0>().at<3>();
+	auto test = mat4.row<0>().at<3>();
 	test = mat4.at<0,3>();
 	vec_test += vec_test2 * vec_test2 * psl::dvec4::down;
 	

@@ -5,70 +5,108 @@
 
 namespace psl
 {
-	template<typename precision_t, size_t dimension_x, size_t dimension_y>
+	template<typename precision_t, size_t columns_n, size_t rows_n>
 	struct tmat
 	{
-	private:
-		constexpr void fold(size_t& x, size_t& y, const precision_t& arg) noexcept
-		{
-			value[y][x] = arg;
-			++x;
-			x = x % dimension_x;
-			if(x == 0)
-				++y;
-		}
-	public:
 		constexpr tmat() noexcept = default;
-		template<typename... Args, typename = typename std::enable_if<sizeof...(Args) == dimension_x * dimension_y>::type>
-		constexpr tmat(Args&&... args) noexcept
+		template<typename... Args, typename = typename std::enable_if<sizeof...(Args) == columns_n * rows_n>::type>
+		constexpr tmat(Args&&... args) noexcept : value({ static_cast<precision_t>(std::forward<Args>(args))... })
 		{
-			size_t y = 0u;
-			size_t x = 0u;
-			((fold(x,y, static_cast<precision_t>(args))), ...);
 		};
-
+		
 		constexpr tmat(const precision_t& value) noexcept : 
-			value(utility::templates::make_array<dimension_y, tvec<precision_t, dimension_x>>(tvec<precision_t, dimension_x>{value}))
+			value(utility::templates::make_array<rows_n * columns_n, precision_t>(value))
 		{ 
 		};
 
-		constexpr tvec<precision_t, dimension_x>& operator[](size_t index) noexcept
+		constexpr precision_t& operator[](size_t index) noexcept
 		{
 			return value[index];
 		}
-		constexpr const tvec<precision_t, dimension_x>& operator[](size_t index) const noexcept
+		constexpr const precision_t& operator[](size_t index) const noexcept
 		{
 			return value[index];
 		}
 
-		template<size_t index>
-		constexpr tvec<precision_t, dimension_x>& at() noexcept
-		{
-			static_assert(index < dimension_y, "out of range");
-			return value.at(index);
-		}
-		template<size_t index>
-		constexpr const tvec<precision_t, dimension_x>& at() const noexcept
-		{
-			static_assert(index < dimension_y, "out of range");
-			return value.at(index);
-		}
-
-		template<size_t index_x, size_t index_y>
+		template<size_t row, size_t column>
 		constexpr precision_t& at() noexcept
 		{
-			static_assert(index_x < dimension_y && index_y < dimension_x, "out of range");
-			return value.at(index_x).at<index_y>();
+			static_assert(row < rows_n && column < columns_n, "out of range");
+			return value[column + columns_n * row];
 		}
-		template<size_t index_x, size_t index_y>
+		template<size_t row, size_t column>
 		constexpr const precision_t& at() const noexcept
 		{
-			static_assert(index_x < dimension_y && index_y < dimension_x, "out of range");
-			return value.at(index_x).at<index_y>();
+			static_assert(row < rows_n && column < columns_n, "out of range");
+			return value[column + columns_n * row];
+		}
+		
+		template<size_t index>
+		constexpr tvec<precision_t, columns_n> row() const noexcept
+		{
+			static_assert(index < rows_n, "out of range");
+			tvec<precision_t, columns_n> res{};
+			std::memcpy(res.value.data(), &value[index * columns_n], sizeof(precision_t) * columns_n);
+			return res;
+		}
+		constexpr tvec<precision_t, columns_n> row(size_t index) const noexcept
+		{
+			tvec<precision_t, columns_n> res{};
+			std::memcpy(res.value.data(), &value[index * columns_n], sizeof(precision_t) * columns_n);
+			return res;
+		}
+
+		template<size_t index>
+		constexpr tvec<precision_t, rows_n> column() const noexcept
+		{
+			static_assert(index < columns_n, "out of range");
+			tvec<precision_t, rows_n> res{};
+			for (size_t i = 0; i < rows_n; ++i)
+				res[i] = value[i * rows_n + index];
+			return res;
+		}
+		constexpr tvec<precision_t, rows_n> column(size_t index) const noexcept
+		{
+			tvec<precision_t, rows_n> res{};
+			for (size_t i = 0; i < rows_n; ++i)
+				res[i] = value[i * rows_n + index];
+			return res;
+		}
+
+		template<size_t index>
+		constexpr void row(const tvec<precision_t, columns_n>& v) noexcept
+		{
+			static_assert(index < rows_n, "out of range");
+			std::memcpy(&value[index * columns_n], v.value.data(), sizeof(precision_t) * columns_n);
+		}
+		constexpr void row(size_t index, const tvec<precision_t, columns_n>& v) noexcept
+		{
+			std::memcpy(&value[index * columns_n], v.value.data(), sizeof(precision_t) * columns_n);
+		}
+
+		template<size_t index>
+		constexpr void column(const tvec<precision_t, rows_n>& v) noexcept
+		{
+			static_assert(index < columns_n, "out of range");
+			for (size_t i = 0; i < rows_n; ++i)
+				value[i * rows_n + index] = v[i];
+		}
+		constexpr void column(size_t index, const tvec<precision_t, rows_n>& v) noexcept
+		{
+			for (size_t i = 0; i < rows_n; ++i)
+				value[i * rows_n + index] = v[i];
+		}
+
+		constexpr void swizzle() noexcept
+		{
+			std::array<precision_t, columns_n * rows_n> new_values;
+			for(size_t i = 0; i < columns_n; ++i)
+				std::memcpy(&new_values[i * columns_n], column(i).value.data(), sizeof(precision_t) * columns_n);
+			value = new_values;
 		}
 
 
-		std::array<tvec<precision_t, dimension_x>, dimension_y> value;
+		std::array<precision_t, columns_n * rows_n> value;
 	};
 
 	using mat4x4 = tmat<float,4,4>;
