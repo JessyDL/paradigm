@@ -926,6 +926,18 @@ struct transform2
 	psl::vec3 pos;
 };
 
+void math_test()
+{
+	psl::tvec<double, 4> vec_test{ 0,2,5,0 };
+	psl::tvec<double, 4> vec_test2{ 5,3,0,0 };
+
+
+	vec_test += vec_test2 * vec_test2;
+
+	psl::vec2 vec2_test{ 0,3 };
+	const auto& x = vec2_test.x();
+}
+
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -934,15 +946,8 @@ int entry()
 #endif
 	setup_loggers();
 
-
-	psl::tvec<float, 3> vec_test{ 0,2,5 };
-	psl::tvec<float, 3> vec_test2{ 5,3,0 };
-
-
-	vec_test += vec_test2 * vec_test2;
-
-	auto item{ vec_test[0] };
-
+	math_test();
+	
 	std::vector<float> fl_v{ {5.0f, 9.3f, 12.6f, 44.f, 4211689.0f, 78.542f, 99.f} };
 	std::vector<size_t> fl_i{ {0,5,2,3,6} };
 	core::ecs::range<float> fl_range{ fl_v, fl_i };
