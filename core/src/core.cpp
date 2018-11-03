@@ -928,12 +928,13 @@ struct transform2
 
 void math_test()
 {
-	psl::tvec<double, 4> vec_test{ 0,2,5,0 };
+	psl::tvec<double, 4> vec_test{ 0,2,5,0  };
 	psl::tvec<double, 4> vec_test2{ 5,3,0,0 };
 
+	psl::vec3 v3{ psl::vec3::zero };
 
-	vec_test += vec_test2 * vec_test2;
-
+	vec_test += vec_test2 * vec_test2 * psl::dvec4::down;
+	
 	psl::vec2 vec2_test{ 0,3 };
 	const auto& x = vec2_test.x();
 }

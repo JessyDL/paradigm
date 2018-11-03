@@ -33,4 +33,5 @@ inc/math/math.hpp
 inc/math/vec.h
 inc/math/matrix.h
 inc/math/quaternion.h
+inc/math/utility.h
 )
