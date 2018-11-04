@@ -5,6 +5,7 @@
 #include "memory/raw_region.h"
 #include "IDGenerator.h"
 #include <type_traits>
+#include "event.h"
 
 namespace core::ecs
 {
@@ -40,9 +41,8 @@ namespace std
 	struct hash<core::ecs::details::component_info>
 	{
 		std::size_t operator()(core::ecs::details::component_info const& ci) const noexcept
-		{ 
-			static_assert(sizeof(size_t) == sizeof(core::ecs::details::component_key_t),
-						  "should be castable");
+		{
+			static_assert(sizeof(size_t) == sizeof(core::ecs::details::component_key_t), "should be castable");
 			return (size_t)ci.id;
 		}
 	};
@@ -54,30 +54,37 @@ namespace core::ecs
 	{
 		struct system_binding
 		{
-			std::unordered_map<details::component_key_t, void*> m_RBindings;
-			std::unordered_map<details::component_key_t, void*> m_RWBindings;
+			std::unordered_map<details::component_key_t, std::tuple<void**, void**, size_t>>
+				m_RBindings;
+			std::unordered_map<details::component_key_t, std::tuple<void**, void**, size_t>>
+				m_RWBindings;
 			std::vector<details::component_key_t> filters;
 
 			template <typename T>
-			void register_rw(void* binding_point)
+			void reg(const core::ecs::vector<T, access::READ_WRITE>& vec)
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
-				m_RWBindings[int_id]					  = binding_point;
+				m_RWBindings.emplace(int_id,
+									 std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
 				filters.emplace_back(int_id);
 			}
+
 			template <typename T>
-			void register_r(void* binding_point)
+			void reg(const core::ecs::vector<T, access::READ_ONLY>& vec)
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
-				m_RBindings[int_id]						  = binding_point;
+				m_RBindings.emplace(int_id,
+									std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
 				filters.emplace_back(int_id);
 			}
+
 			template <typename T>
-			void register_filter()
+			void reg()
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				filters.emplace_back(int_id);
 			}
+
 
 			void prepare(state& s)
 			{
@@ -123,10 +130,13 @@ namespace core::ecs
 				const entity& e{*it};
 				auto index = pair.generator.CreateID().second;
 
-				if(_template) std::memcpy(pair.region.data(), &_template.value(), sizeof(T));
+				if(_template)
+					std::memcpy((void*)((std::uintptr_t)pair.region.data() + index * sizeof(T)), &_template.value(),
+								sizeof(T));
 
 				m_EntityMap[e].emplace_back(int_id, index);
-				pair.entities.emplace_back(e);
+
+				pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
 			}
 			return true;
 		}
@@ -151,8 +161,9 @@ namespace core::ecs
 
 			eMapIt->second.erase(foundIt, eMapIt->second.end());
 			const auto& eCompIt = m_Components.find(int_id);
-			eCompIt->second.entities.erase(std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-								  eCompIt->second.entities.end());
+			eCompIt->second.entities.erase(
+				std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+				eCompIt->second.entities.end());
 
 			void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
 			std::memset(loc, 0, eCompIt->second.size);
@@ -183,8 +194,9 @@ namespace core::ecs
 				{
 					if(const auto& cMapIt = m_Components.find(type); cMapIt != std::end(m_Components))
 					{
-						cMapIt->second.entities.erase(std::remove(cMapIt->second.entities.begin(), cMapIt->second.entities.end(), e),
-											 cMapIt->second.entities.end());
+						cMapIt->second.entities.erase(
+							std::remove(cMapIt->second.entities.begin(), cMapIt->second.entities.end(), e),
+							cMapIt->second.entities.end());
 
 						void* loc = (void*)((std::uintptr_t)cMapIt->second.region.data() + cMapIt->second.size * index);
 						std::memset(loc, 0, cMapIt->second.size);
@@ -249,29 +261,135 @@ namespace core::ecs
 
 		void tick()
 		{
-
 			for(const auto& system : m_Systems)
 			{
+				auto& sBindings				= std::get<1>(system.second);
+				auto& entities				= dynamic_filter(sBindings.filters);
+				std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
+				for(auto& rwBinding : sBindings.m_RWBindings)
+				{
+					const auto& mem_pair = m_Components.find(rwBinding.first);
+					auto size			 = std::get<2>(rwBinding.second);
+					auto id				 = rwBinding.first;
 
-				std::invoke(system, std::chrono::duration<float>{0});
+					auto& data_begin = std::get<0>(rwBinding.second);
+					*data_begin = (void*)cache_offset;
+					for(const auto& e : entities)
+					{
+
+						auto eMapIt  = m_EntityMap.find(e);
+						auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+													[&id](const std::pair<details::component_key_t, size_t>& pair) {
+														return pair.first == id;
+													});
+
+						auto index = foundIt->second;
+						void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+						std::memcpy((void*)cache_offset, loc, std::get<2>(rwBinding.second));
+						cache_offset += size;
+					}
+					auto& data_end = std::get<1>(rwBinding.second);
+					*data_end = (void*)cache_offset;
+				}
+				for(auto& rBinding : sBindings.m_RBindings)
+				{
+					const auto& mem_pair = m_Components.find(rBinding.first);
+					auto size			 = std::get<2>(rBinding.second);
+					auto id				 = rBinding.first;
+
+					auto& data_begin = std::get<0>(rBinding.second);
+					*data_begin = (void*)cache_offset;
+					for(const auto& e : entities)
+					{
+
+						auto eMapIt  = m_EntityMap.find(e);
+						auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+													[&id](const std::pair<details::component_key_t, size_t>& pair) {
+														return pair.first == id;
+													});
+
+						auto index = foundIt->second;
+						void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+						std::memcpy((void*)cache_offset, loc, std::get<2>(rBinding.second));
+						cache_offset += size;
+					}
+					auto& data_end = std::get<1>(rBinding.second);
+					*data_end = (void*)cache_offset;
+				}
+
+				std::invoke(std::get<0>(system.second), *this, entities, std::chrono::duration<float>{0});
+				for(const auto& rwBinding : sBindings.m_RWBindings)
+				{
+					set(entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second), rwBinding.first);
+				}
 			}
 		}
 
 		template <typename T>
 		void register_system(T& target)
 		{
+			m_Systems.emplace(&target, std::tuple{std::bind(&T::tick, &target, std::placeholders::_1,
+															std::placeholders::_2, std::placeholders::_3),
+												  system_binding{}});
+			currBinding = &std::get<1>(m_Systems[(void*)&target]);
 			target.announce(*this);
-			m_Systems.emplace_back(std::bind(&T::tick, &target, std::placeholders::_1));
 		}
 
 		template <typename T>
-		void register_rw_range(range<T>& range)
+		void register_dependency(const T& range)
 		{
-			constexpr details::component_key_t int_id = details::component_key<T>;
-			currBindings.m_RWBindings[int_id]		  = &range;
+			currBinding->reg(range);
+		}
+
+		template <typename T>
+		void register_dependency()
+		{
+			currBinding->reg<T>();
+		}
+
+		template <typename T>
+		void set(const std::vector<entity>& entities, const std::vector<T>& data)
+		{
+			constexpr details::component_key_t id = details::component_key<T>;
+			const auto& mem_pair				  = m_Components.find(id);
+			auto size							  = sizeof(T);
+			size_t i							  = 0
+
+				for(const auto& e : entities)
+			{
+				auto eMapIt  = m_EntityMap.find(e);
+				auto foundIt = std::find_if(
+					eMapIt->second.begin(), eMapIt->second.end(),
+					[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
+
+				auto index = foundIt->second;
+				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+				std::memcpy(loc, &data[i], size);
+				++i;
+			}
 		}
 
 	  private:
+		void set(const std::vector<entity>& entities, void* data, size_t size, details::component_key_t id)
+		{
+			const auto& mem_pair = m_Components.find(id);
+
+			size_t i = 0;
+			std::uintptr_t data_loc = (std::uintptr_t)data;
+			for(const auto& e : entities)
+			{
+				auto eMapIt  = m_EntityMap.find(e);
+				auto foundIt = std::find_if(
+					eMapIt->second.begin(), eMapIt->second.end(),
+					[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
+
+				auto index = foundIt->second;
+				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+				std::memcpy(loc,(void*)data_loc, size);
+				data_loc += size;
+			}
+		}
+
 		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept
 		{
 			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
@@ -319,7 +437,7 @@ namespace core::ecs
 											});
 
 				auto index = foundIt->second;
-				void* loc			 = (void*)((std::uintptr_t)mem_pair->second.region.data() + sizeof(T) * index);
+				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + sizeof(T) * index);
 				std::memcpy(&out[i], loc, sizeof(T));
 				++i;
 			}
@@ -368,9 +486,14 @@ namespace core::ecs
 		/// where Nec is the count of entities that uses this component type.
 		/// where Nct is the count of unique component types.
 
-		std::vector<std::function<void(std::chrono::duration<float>)>> m_Systems;
-
-		system_binding currBindings;
+		// std::vector<std::function<void(std::chrono::duration<float>)>> m_Systems;
+		system_binding* currBinding{nullptr};
+		std::unordered_map<
+			void*,
+			std::tuple<std::function<void(core::ecs::state&, const std::vector<entity>&, std::chrono::duration<float>)>,
+					   system_binding>>
+			m_Systems;
+		memory::raw_region m_Cache{1024 * 1024 * 32};
 	};
 
 	class system

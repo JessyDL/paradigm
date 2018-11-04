@@ -87,4 +87,127 @@ namespace core::ecs
 		std::vector<T>* m_Target{ nullptr };
 		std::vector<size_t> m_Indices;
 	};
+
+	enum access
+	{
+		READ_WRITE = 0,
+		READ_ONLY = 1
+	};
+
+	class state;
+
+	template<typename T,access access_level = access::READ_WRITE>
+	struct vector
+	{
+		friend class core::ecs::state;
+	public:
+		struct iterator
+		{
+		public:
+			constexpr iterator(T* data) noexcept : data(data) {};
+			constexpr T& operator*()  noexcept
+			{
+				return *data;
+			}
+
+			constexpr const T& operator*() const noexcept
+			{
+				return *data;
+			}
+
+			constexpr bool operator!=(iterator other) const noexcept
+			{
+				return data != other.data;
+			}
+
+			constexpr iterator operator++() const noexcept
+			{
+				return iterator(data + 1);
+			}
+
+			constexpr iterator& operator++() noexcept
+			{
+				++data;
+				return *this;
+			}
+		private:
+			T* data;
+		};
+
+		constexpr const T& operator[](size_t index) const noexcept
+		{			
+			return *(data + index);
+		}
+		constexpr T& operator[](size_t index)  noexcept
+		{			
+			return *(data + index);
+		}
+
+		iterator begin() const noexcept
+		{
+			return iterator{data };
+		}
+
+		iterator end() const noexcept
+		{
+			return iterator{ tail };
+		}
+
+	private:
+		T* data;
+		T* tail;
+	};
+
+	template<typename T>
+	struct vector<T, access::READ_ONLY>
+	{
+		friend class core::ecs::state;
+	public:
+		struct iterator
+		{
+		public:
+			constexpr iterator(T* data) noexcept : data(data) {};
+			constexpr const T& operator*() const noexcept
+			{
+				return *data;
+			}
+
+			constexpr bool operator!=(iterator other) const noexcept
+			{
+				return data != other.data;
+			}
+
+			constexpr iterator operator++() const noexcept 
+			{
+				return iterator(data + 1);
+			}
+
+			constexpr iterator& operator++() noexcept
+			{
+				++data;
+				return *this;
+			}
+		private:
+			T* data;
+		};
+
+		constexpr const T& operator[](size_t index) const noexcept
+		{			
+			return *(data + index);
+		}
+
+		iterator begin() const noexcept
+		{
+			return iterator{data };
+		}
+
+		iterator end() const noexcept
+		{
+			return iterator{ tail };
+		}
+
+	private:
+		T* data;
+		T* tail;
+	};
 }
