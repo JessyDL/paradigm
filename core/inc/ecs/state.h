@@ -15,10 +15,18 @@ namespace core::ecs
 
 	namespace details
 	{
-		template <typename>
-		static void component_key(){};
+		// added to trick the compiler to not throw away the results at compile time
+		template<typename T>
+		constexpr static const std::uintptr_t component_key_var{ 0u };
 
-		using component_key_t = void (*)();
+		template<typename T>
+		constexpr static const std::uintptr_t* component_key() noexcept
+		{ 
+			return &component_key_var<T>;
+		}
+
+		using component_key_t = const std::uintptr_t*(*)();
+
 
 		struct component_info
 		{
@@ -61,7 +69,7 @@ namespace core::ecs
 			std::vector<details::component_key_t> filters;
 
 			template <typename T>
-			void reg(const core::ecs::vector<T, access::READ_WRITE>& vec)
+			void reg(core::ecs::vector<T, access::READ_WRITE>& vec) noexcept
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				m_RWBindings.emplace(int_id,
@@ -70,7 +78,7 @@ namespace core::ecs
 			}
 
 			template <typename T>
-			void reg(const core::ecs::vector<T, access::READ_ONLY>& vec)
+			void reg(core::ecs::vector<T, access::READ_ONLY>& vec) noexcept
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				m_RBindings.emplace(int_id,
@@ -79,7 +87,7 @@ namespace core::ecs
 			}
 
 			template <typename T>
-			void reg()
+			void reg() noexcept
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				filters.emplace_back(int_id);
@@ -210,7 +218,7 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> filter() const noexcept
 		{
-			static const std::vector<details::component_key_t> keys{{details::component_key<Ts>...}};
+			static const std::vector<details::component_key_t> keys{{details::component_key<Ts> ...}};
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
 			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
@@ -230,7 +238,7 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> filter(std::vector<Ts>&... out) const noexcept
 		{
-			static const std::vector<details::component_key_t> keys{{details::component_key<Ts>...}};
+			static const std::vector<details::component_key_t> keys{{details::component_key<Ts> ...}};
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
 			auto entities{filter<Ts...>()};
@@ -266,7 +274,8 @@ namespace core::ecs
 				auto& sBindings				= std::get<1>(system.second);
 				auto& entities				= dynamic_filter(sBindings.filters);
 				std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
-				for(auto& rwBinding : sBindings.m_RWBindings)
+
+				for(const auto& rwBinding : sBindings.m_RWBindings)
 				{
 					const auto& mem_pair = m_Components.find(rwBinding.first);
 					auto size			 = std::get<2>(rwBinding.second);
@@ -291,7 +300,7 @@ namespace core::ecs
 					auto& data_end = std::get<1>(rwBinding.second);
 					*data_end = (void*)cache_offset;
 				}
-				for(auto& rBinding : sBindings.m_RBindings)
+				for(const auto& rBinding : sBindings.m_RBindings)
 				{
 					const auto& mem_pair = m_Components.find(rBinding.first);
 					auto size			 = std::get<2>(rBinding.second);
@@ -335,10 +344,10 @@ namespace core::ecs
 			target.announce(*this);
 		}
 
-		template <typename T>
-		void register_dependency(const T& range)
+		template <typename T, core::ecs::access access_level >
+		void register_dependency(core::ecs::vector<T, access_level>& range) noexcept
 		{
-			currBinding->reg(range);
+			currBinding->reg<T>(range);
 		}
 
 		template <typename T>
