@@ -1,18 +1,18 @@
 language: cpp
 compiler: clang
 sudo: required
-
 os: linux
-    addons:
-        apt:
-          sources:
-            - ubuntu-toolchain-r-test
-          packages:
-            - clang-6.0.1
-            - libstdc++6
+
+addons:
+  apt:
+    sources:
+      - ubuntu-toolchain-r-test
+    packages:
+      - clang-6.0.1
+      - libstdc++6
     env:
-        - MATRIX_EVAL="CC=clang-6.0.1 && CXX=clang++-6.0.1"
-        - LINKER_FLAGS="-stdlib=libc++ -lc++abi"
+      - MATRIX_EVAL="CC=clang-6.0.1 && CXX=clang++-6.0.1"
+      - LINKER_FLAGS="-stdlib=libc++ -lc++abi"
 
 before_install:
   # Install a supported cmake version (>= 3.11)
