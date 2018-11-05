@@ -9,10 +9,6 @@
 
 namespace core::ecs
 {
-	template <typename T>
-	class filter
-	{};
-
 	namespace details
 	{
 		// added to trick the compiler to not throw away the results at compile time
@@ -33,7 +29,7 @@ namespace core::ecs
 			component_info() = default;
 			component_info(memory::raw_region&& region, std::vector<entity>&& entities, component_key_t id, size_t size)
 				: region(std::move(region)), entities(std::move(entities)), id(id), size(size),
-				  generator(std::numeric_limits<uint64_t>::max()){};
+				  generator(region.size() / size){};
 			memory::raw_region region;
 			std::vector<entity> entities;
 			component_key_t id;
@@ -58,10 +54,20 @@ namespace std
 
 namespace core::ecs
 {
+	template<typename T>
+	struct filter{};
+
 	class state
 	{
 		struct system_binding
 		{
+			system_binding() = default;
+
+			template<typename... Ts>
+			system_binding(const Ts&... args)
+			{
+				reg(args ...);
+			}
 			std::unordered_map<details::component_key_t, std::tuple<void**, void**, size_t>>
 				m_RBindings;
 			std::unordered_map<details::component_key_t, std::tuple<void**, void**, size_t>>
@@ -128,7 +134,7 @@ namespace core::ecs
 			{
 				m_Components.emplace(
 					int_id,
-					details::component_info{memory::raw_region{1024 * 1024 * 1024}, {}, int_id, (size_t)sizeof(T)});
+					details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(T)});
 				it = m_Components.find(int_id);
 			}
 			auto& pair{it->second};
@@ -342,6 +348,7 @@ namespace core::ecs
 												  system_binding{}});
 			currBinding = &std::get<1>(m_Systems[(void*)&target]);
 			target.announce(*this);
+			currBinding = nullptr;
 		}
 
 		template <typename T, core::ecs::access access_level >
@@ -503,6 +510,9 @@ namespace core::ecs
 					   system_binding>>
 			m_Systems;
 		memory::raw_region m_Cache{1024 * 1024 * 32};
+
+
+		//std::unordered_map<details::component_key_t, 
 	};
 
 	class system

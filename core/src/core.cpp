@@ -907,16 +907,23 @@ int android_entry()
 
 struct float_system
 {
-	core::ecs::range<float> m_Floats;
+	core::ecs::vector<float, core::ecs::access::READ_ONLY> m_Floats;
+	core::ecs::vector<int, core::ecs::access::READ_WRITE> m_Ints;
 
 	void announce(core::ecs::state& state)
 	{
-		state.register_rw_range(m_Floats);
+		state.register_dependency(m_Floats);
+		state.register_dependency(m_Ints);
 	}
 	
-	void tick(std::chrono::duration<float> dTime)
+	void tick(core::ecs::state& state, const std::vector<core::ecs::entity>& entities, std::chrono::duration<float> dTime)
 	{
-
+		core::log->info("running float_system");
+		for(size_t i = 0; i < entities.size(); ++i)
+		{
+			//core::log->info("    entity - {0} has health {1} and lives {2}", entities[i].id(), m_Floats[i], m_Ints[i]);
+			m_Ints[i] += 5;
+		}
 	}
 };
 
@@ -928,8 +935,6 @@ struct transform2
 
 void math_test()
 {
-	std::array<psl::tvec<float, 4>, 4> teste { { {0, 2, 5, 0}, { 0,2,5,0 }, { 0,2,5,0 }, { 0,2,5,0 } }};
-
 	psl::mat4x4 mat42{ 1, 2, 3, 4, 5,6,7,8, 9,10,11,12, 13,14,15,16  };
 	auto& res = mat42.column<0>();
 	res = mat42.column<1>();
@@ -950,37 +955,35 @@ void math_test()
 	const auto& x = vec2_test.x();
 }
 
-int entry()
+
+void ecs_test()
 {
-#ifdef PLATFORM_WINDOWS
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
-	setup_loggers();
+	// write unit test to check IDs are unique
 
-	math_test();
-	
-	std::vector<float> fl_v{ {5.0f, 9.3f, 12.6f, 44.f, 4211689.0f, 78.542f, 99.f} };
-	std::vector<size_t> fl_i{ {0,5,2,3,6} };
-	core::ecs::range<float> fl_range{ fl_v, fl_i };
+	using namespace core::ecs::details;
+	static_assert(component_key<float> != component_key<int>, "should not be printed");
+	//static_assert(type_id<float> == type_id<int>, "this should be printed");
+	std::unordered_map<component_key_t, int> map;
+	constexpr component_key_t id = component_key<float>;
+	constexpr component_key_t id2 = component_key<int>;
+	map[id] = 0;
+	map[id2] = 1;
+	map[component_key<long>] = 2;
 
-	for (auto i : fl_range)
-	{
-		i += 5.0f;
-		core::log->info("{}", i);
-	}
+	auto size = map.size();
 
 	core::ecs::state state;
 	auto e{state.create()};
 	auto e2{state.create()};
 	auto e3{state.create()};
-	auto e_list{ state.create(10000000) };
+	auto e_list{ state.create(1000000) };
 	state.add_component<float>(e, 2.0f);
 	state.add_component<float>(e);
 	state.add_component<float>(e_list);
+	state.add_component<int>(e_list);
 	state.add_component<transform2>(e_list);
 	state.remove_component<float>(e);
-	state.add_component<float>(e);
+	//state.add_component<float>(e);
 	state.add_component<int>(e,5);
 	auto& int_comp = state.get_component<int>(e);
 	int_comp += 10;
@@ -988,7 +991,7 @@ int entry()
 	state.add_component<int>(e,1);
 	state.add_component<float>(e,5.0f);
 	state.add_component<float>(e2);
-	state.add_component<float>(e3);
+	state.add_component<float>(e3,2384.0f);
 	state.add_component<uint8_t>(e, uint8_t{ 0u });
 	state.add_component<uint8_t>(e2, uint8_t{ 1u });
 
@@ -997,15 +1000,29 @@ int entry()
 	uint8_t_comp += 99;
 
 	auto res = state.filter<float, int>();
+	auto val = state.get_component<float>(e3);
 
 	std::vector<float> filter_range_fl;
 	std::vector<uint8_t> filter_range_uint;
-	res = state.filter<float, uint8_t>(filter_range_fl, filter_range_uint);
+	//res = state.filter<float, uint8_t>(filter_range_fl, filter_range_uint);
 
 	float_system fl_system{};
 	state.register_system(fl_system);
+	for(int i = 0; i < 100; ++i)
+		state.tick();
+}
 
+int entry()
+{
+#ifdef PLATFORM_WINDOWS
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+	setup_loggers();
 
+	//math_test();
+	ecs_test();
+	return 0;
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
