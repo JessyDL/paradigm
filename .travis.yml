@@ -31,6 +31,4 @@ before_install:
   - export CXX="clang++-6.0" CC="clang-6.0"
 
 script:
-  - eval $MATRIX_EVAL
-  - ls
-  - sudo ./build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR -COMPILER CLang
+  - bash build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR -COMPILER CLang
