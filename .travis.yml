@@ -8,10 +8,10 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
     packages:
-      - clang-6.0.1
+      - clang-6.0
       - libstdc++6
     env:
-      - MATRIX_EVAL="CC=clang-6.0.1 && CXX=clang++-6.0.1"
+      - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0"
       - LINKER_FLAGS="-stdlib=libc++ -lc++abi"
 
 before_install:
