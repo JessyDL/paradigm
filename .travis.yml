@@ -36,7 +36,7 @@ before_install:
   - cd Vulkan-Hpp
   - git checkout 7e701c79d6998260712dc6578732d534871f0f8a
   - cd ~
-  - export VULKAN_ROOT_DIR="~/VulkanSDK"
+  - export VULKAN_ROOT_DIR="$TRAVIS_BUILD_DIR/../VulkanSDK"
   - mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/"
   - mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
   - cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
@@ -77,7 +77,7 @@ before_install:
 
 script:
   - echo ${VK_VERSION}
-  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT ${VULKAN_ROOT_DIR} -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
   - make
   
