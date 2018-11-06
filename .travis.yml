@@ -15,7 +15,7 @@ env:
   global:
     - VK_VERSION="1.1.82.1"
 
-before_install:VulkanSDK
+before_install:
   # Install a supported cmake version (>= 3.11)
   - mkdir $HOME/usr
   - export PATH="$HOME/usr/bin:$PATH"
@@ -26,22 +26,26 @@ before_install:VulkanSDK
   # Install Vulkan SDK
   - sudo apt-get -qq update
   - sudo apt-get install -y libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
-  - cd $TRAVIS_BUILD_DIR
+  - cd $HOME
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
   - cd Vulkan-Headers
   - git checkout c4e056d365472174471a243dfefbfe66a03564af
-  - cd $TRAVIS_BUILD_DIR
+  - cd $HOME
   - git clone https://github.com/KhronosGroup/Vulkan-Hpp.git Vulkan-Hpp
   - cd Vulkan-Hpp
   - git checkout 7e701c79d6998260712dc6578732d534871f0f8a
-  - cd $TRAVIS_BUILD_DIR
-  - mkdir -p ~/VulkanSDK/${VK_VERSION}/x86_64/
-  - mkdir -p ~/VulkanSDK/${VK_VERSION}/Include/vulkan/
-  - cp -r Vulkan-Headers/include/vulkan/. ~/VulkanSDK/${VK_VERSION}/Include/vulkan/
-  - cp -r Vulkan-Hpp/vulkan/. ~/VulkanSDK/${VK_VERSION}/Include/vulkan/
-  - export VULKAN_SDK=~/VulkanSDK/${VK_VERSION}/x86_64
-  - cd ~/VulkanSDK 
+  - cd $HOME
+  - mkdir -p VulkanSDK/${VK_VERSION}/x86_64/
+  - mkdir -p VulkanSDK/${VK_VERSION}/Include/vulkan/
+  - cp -r Vulkan-Headers/include/vulkan/. VulkanSDK/${VK_VERSION}/Include/vulkan/
+  - cp -r Vulkan-Hpp/vulkan/. VulkanSDK/${VK_VERSION}/Include/vulkan/
+  - export VULKAN_SDK=$HOME/VulkanSDK/${VK_VERSION}/x86_64
+  - cd VulkanSDK 
   - echo $(ls) 
+  - cd ${VK_VERSION} 
+  - echo $(ls) 
+  - cd Include/vulkan 
+  - echo $(ls)
   
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
@@ -68,6 +72,6 @@ before_install:VulkanSDK
 
 script:
   - echo ${VK_VERSION}
-  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -VULKAN_ROOT ~/VulkanSDK -COMPILER CLang -G Make -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -VULKAN_ROOT $HOME/VulkanSDK -COMPILER CLang -G Make -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
   - make
