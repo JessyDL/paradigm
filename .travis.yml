@@ -27,15 +27,15 @@ before_install:
   # Install Vulkan SDK
   - sudo apt-get -qq update
   - sudo apt-get install -y libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
-  - cd "~"
+  - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
   - cd Vulkan-Headers
   - git checkout c4e056d365472174471a243dfefbfe66a03564af
-  - cd "~"
+  - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Hpp.git Vulkan-Hpp
   - cd Vulkan-Hpp
   - git checkout 7e701c79d6998260712dc6578732d534871f0f8a
-  - cd "~"
+  - cd ~
   - mkdir -p "~/VulkanSDK/${VK_VERSION}/x86_64/"
   - mkdir -p "~/VulkanSDK/${VK_VERSION}/Include/vulkan/"
   - cp -r Vulkan-Headers/include/vulkan/. "~/VulkanSDK/${VK_VERSION}/Include/vulkan/"
