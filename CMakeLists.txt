@@ -250,8 +250,11 @@ else()
 endif()
 
 if(NOT ${PARADIGM_SOURCE_ONLY})
-	setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
-
+	if(NOT ${VULKAN_STATIC})
+		setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
+	else()
+		VULKAN_INC_PATH="${VULKAN_ROOT}/${VULKAN_VERSION}/Include"
+	endif()
 	#externals
 
 	#core libraries
@@ -266,6 +269,21 @@ if(NOT ${PARADIGM_SOURCE_ONLY})
 else()
 	message("did not compile the project by request")
 endif()
+
+include(FetchContent)
+
+FetchContent_Declare(
+  catch
+  GIT_REPOSITORY https://github.com/catchorg/Catch2
+  GIT_TAG        v2.4.2
+)
+
+FetchContent_GetProperties(catch)
+if(NOT catch_POPULATED)
+  FetchContent_Populate(catch)
+  add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR})
+endif()
+
 
 # ==================================================================================================
 # Set accessible defines for child projects to use
