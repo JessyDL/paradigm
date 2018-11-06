@@ -250,11 +250,8 @@ else()
 endif()
 
 if(NOT ${PARADIGM_SOURCE_ONLY})
-	if(NOT ${VULKAN_STATIC})
-		setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
-	else()
-		set(VULKAN_INC_PATH "${VULKAN_ROOT}/${VULKAN_VERSION}/Include")
-	endif()
+	setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
+	
 	#externals
 
 	#core libraries
