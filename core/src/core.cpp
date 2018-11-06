@@ -412,7 +412,7 @@ class world
 		}
 		else
 		{
-			static_assert(utility::templates::always_false{}, "please select a type that is supported");
+			static_assert(utility::templates::always_false<int>{}, "please select a type that is supported");
 		}
 	}
 
@@ -936,7 +936,7 @@ struct transform2
 void math_test()
 {
 	psl::mat4x4 mat42{ 1, 2, 3, 4, 5,6,7,8, 9,10,11,12, 13,14,15,16  };
-	auto& res = mat42.column<0>();
+	auto res = mat42.column<0>();
 	res = mat42.column<1>();
 	mat42.swizzle();
 	mat42.swizzle();

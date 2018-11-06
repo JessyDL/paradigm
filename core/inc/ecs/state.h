@@ -98,15 +98,6 @@ namespace core::ecs
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				filters.emplace_back(int_id);
 			}
-
-
-			void prepare(state& s)
-			{
-				auto& entities = s.dynamic_filter(filters);
-
-				// std::vector<details::component_key_t, void*> targetbuffers;
-				// s.dynamic_filter(entities, filters, targetbuffers);
-			}
 		};
 
 
@@ -369,7 +360,7 @@ namespace core::ecs
 			constexpr details::component_key_t id = details::component_key<T>;
 			const auto& mem_pair				  = m_Components.find(id);
 			auto size							  = sizeof(T);
-			size_t i							  = 0
+			size_t i = 0;
 
 				for(const auto& e : entities)
 			{

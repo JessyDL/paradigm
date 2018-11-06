@@ -25,7 +25,7 @@ namespace core::ecs
 		{
 			return m_ID != 0u;
 		}
-		friend static bool valid(entity e) noexcept;
+		friend bool valid(entity e) noexcept;
 		bool operator==(entity b) const noexcept
 		{
 			return m_ID == b.m_ID;

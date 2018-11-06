@@ -251,7 +251,7 @@ namespace psl
 			: value({std::move(arr)}){};
 
 		template<typename src_precision_t>
-		constexpr tvec(const std::array<src_precision_t,4>& value) noexcept : value({arr}){};
+		constexpr tvec(const std::array<src_precision_t,4>& value) noexcept : value({value}){};
 
 		// ---------------------------------------------
 		// getters
