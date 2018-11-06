@@ -1021,8 +1021,8 @@ int entry()
 	setup_loggers();
 
 	//math_test();
-	ecs_test();
-	return 0;
+	//ecs_test();
+	//return 0;
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
