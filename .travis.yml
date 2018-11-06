@@ -41,6 +41,6 @@ before_install:
   - export PATH=$PATH:$TRAVIS_BUILD_DIR/../ninja
 
 script:
-  - bash build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Ninja
-  - cd /home/travis/build/JessyDL/paradigm/project_files/ninja/x64/
-  - ninja
+  - bash build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Make
+  - cd /home/travis/build/JessyDL/paradigm/project_files/make/x64/
+  - make .
