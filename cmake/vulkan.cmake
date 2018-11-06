@@ -48,7 +48,7 @@ function(vk_get_directory VULKAN_ROOT VULKAN_VERSION output_inc output_lib)
 	endif()
 	
 	if(NOT EXISTS "${local_inc}" OR NOT IS_DIRECTORY "${local_inc}")
-		message(FATAL_ERROR "could not locate vulkan, nor the include path on this system using the version [${VULKAN_VERSION}], please set 'VULKAN_ROOT' manually to the root directory of the SDK, and the 'VULKAN_VERSION' to the version of vulkan you wish to include")
+		message(FATAL_ERROR "could not locate vulkan, nor the include path (tried ${local_inc}) on this system using the version [${VULKAN_VERSION}], please set 'VULKAN_ROOT' manually to the root directory of the SDK, and the 'VULKAN_VERSION' to the version of vulkan you wish to include")
 	endif()
 	set(${output_inc} "${local_inc}" PARENT_SCOPE)
 	set(${output_lib} "${local_lib}" PARENT_SCOPE)
