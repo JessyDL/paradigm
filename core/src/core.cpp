@@ -412,7 +412,7 @@ class world
 		}
 		else
 		{
-			static_assert(utility::templates::always_false<int>{}, "please select a type that is supported");
+			static_assert(utility::templates::always_false<T>{}, "please select a type that is supported");
 		}
 	}
 

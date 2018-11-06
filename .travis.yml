@@ -44,10 +44,16 @@ before_install:
   - make cxx -j2
   - sudo make install-cxxabi install-cxx
   
-  - cd $TRAVIS_BUILD_DIR
+  # Install Ninja
+  - cd $TRAVIS_BUILD_DIR/../
+  - mkdir $TRAVIS_BUILD_DIR/../tmp
+  - curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $TRAVIS_BUILD_DIR/../tmp/ninja-linux.zip
+  - unzip $TRAVIS_BUILD_DIR/../tmp/ninja-linux.zip -d $TRAVIS_BUILD_DIR/../ninja
+  - export PATH=$PATH:$TRAVIS_BUILD_DIR/../ninja
   
+  - cd $TRAVIS_BUILD_DIR
 
 script:
-  - bash build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Make -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
-  - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
-  - make
+  - bash build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Ninja -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - cd $TRAVIS_BUILD_DIR/project_files/ninja/x64/
+  - ninja

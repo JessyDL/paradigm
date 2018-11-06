@@ -269,7 +269,7 @@ namespace core::ecs
 			for(const auto& system : m_Systems)
 			{
 				auto& sBindings				= std::get<1>(system.second);
-				auto& entities				= dynamic_filter(sBindings.filters);
+				auto entities				= dynamic_filter(sBindings.filters);
 				std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
 
 				for(const auto& rwBinding : sBindings.m_RWBindings)
