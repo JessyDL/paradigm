@@ -17,18 +17,9 @@ env:
     - WEBHOOK_URL="https://discordapp.com/api/webhooks/509389651321290762/XiAI5ESdNAEEsV1lE60Hq3Cu8nRbFxmpgjc-k0vjeird7bOaG3F3S1A8PTWtCxNAIuRo"
 
 before_install:
-  # Install cmake 3.13-rc2
-  - cd ~
-  - git clone https://github.com/Kitware/CMake.git cmake-git
-  - cd cmake-git
-  - git checkout tags/v3.13.0-rc2
-  - ./bootstrap
-  - make
-  - sudo make install
-
   # Install Vulkan SDK
   - sudo apt-get -qq update
-  - sudo apt-get install -y libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
+  - sudo apt-get install -y libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
   - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
   - cd Vulkan-Headers
@@ -61,6 +52,15 @@ before_install:
   - cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
   - make cxx -j2
   - sudo make install-cxxabi install-cxx
+  
+  # Install cmake 3.13-rc2
+  - cd ~
+  - git clone https://github.com/Kitware/CMake.git cmake-git
+  - cd cmake-git
+  - git checkout tags/v3.13.0-rc2
+  - ./bootstrap
+  - make
+  - sudo make install
   
   # Install Ninja
   - cd $TRAVIS_BUILD_DIR/../
