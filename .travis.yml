@@ -38,4 +38,4 @@ before_install:
 script:
   - bash build.sh -VULKAN_VERSION 1.1.82.1 -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Make -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
   - cd /home/travis/build/JessyDL/paradigm/project_files/make/x64/
-  - cmake .
+  - make
