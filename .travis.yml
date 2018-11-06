@@ -10,10 +10,11 @@ addons:
       - llvm-toolchain-trusty-6.0
     packages:
       - clang-6.0
-    env:
-      - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0"
-      - LINKER_FLAGS="-stdlib=libc++ -lc++abi"
-      - VK_VERSION="1.1.82.1"
+      
+env:
+  - MATRIX_EVAL="CC=clang-6.0 && CXX=clang++-6.0"
+  - LINKER_FLAGS="-stdlib=libc++ -lc++abi"
+  - VK_VERSION="1.1.82.1"
 
 before_install:
   # Install a supported cmake version (>= 3.11)
@@ -35,11 +36,11 @@ before_install:
   - cd Vulkan-Hpp
   - git checkout 7e701c79d6998260712dc6578732d534871f0f8a
   - cd $TRAVIS_BUILD_DIR
-  - mkdir -p VulkanSDK/$VK_VERSION/x86_64/
-  - mkdir -p VulkanSDK/$VK_VERSION/Include/vulkan/
-  - cp -r Vulkan-Headers/include/vulkan/. VulkanSDK/$VK_VERSION/Include/vulkan/
-  - cp -r Vulkan-Hpp/vulkan/. VulkanSDK/$VK_VERSION/Include/vulkan/
-  - export VULKAN_SDK=$TRAVIS_BUILD_DIR/../VulkanSDK/$VK_VERSION/x86_64
+  - mkdir -p VulkanSDK/${VK_VERSION}/x86_64/
+  - mkdir -p VulkanSDK/${VK_VERSION}/Include/vulkan/
+  - cp -r Vulkan-Headers/include/vulkan/. VulkanSDK/${VK_VERSION}/Include/vulkan/
+  - cp -r Vulkan-Hpp/vulkan/. VulkanSDK/${VK_VERSION}/Include/vulkan/
+  - export VULKAN_SDK=$TRAVIS_BUILD_DIR/../VulkanSDK/${VK_VERSION}/x86_64
   
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
@@ -65,6 +66,7 @@ before_install:
   - cd $TRAVIS_BUILD_DIR
 
 script:
-  - bash build.sh -VULKAN_VERSION $VK_VERSION -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Make -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - echo ${VK_VERSION}
+  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -COMPILER CLang -G Make -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
   - make
