@@ -44,7 +44,7 @@ before_install:
   - echo $(ls) 
   - cd ${VK_VERSION} 
   - echo $(ls) 
-  - Include/vulkan 
+  - cd Include/vulkan 
   - echo $(ls)
   
   # Install libc++
