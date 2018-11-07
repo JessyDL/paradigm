@@ -3,35 +3,51 @@ compiler: clang
 sudo: false
 os: linux
 
+notifications:
+  email: false
+
 cache:
   directories:
   - $HOME/cache/llvm-build
   - $HOME/cache/cmake
   
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-trusty-6.0
-    packages:
-      - clang-6.0
-      - libassimp-dev
-      - libxcb-dri3-0
-      - libxcb-present0
-      - libxcb-dri3-dev
-      - libx11-dev 
-      - libx11-xcb-dev 
-      - libmirclient-dev 
-      - libwayland-dev 
-      - libxrandr-dev
-      
-env:
-  global:
-    - VK_VERSION="1.1.82.1"
-    - CPATH=/usr/local/clang-6.0.1/include/c++/v1
-    - LD_LIBRARY_PATH=/usr/local/clang-6.0.1/lib
 
+      
+matrix:
+  include:
+    ##########################################################################
+    # Clang on Linux
+    ##########################################################################
+    - name: "Linux CLang 6.0 Release"
+    - env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release 
+    addons: &clang60
+      apt:
+        sources:
+          - ubuntu-toolchain-r-test
+          - llvm-toolchain-trusty-6.0
+        packages:
+          - clang-6.0
+          - libassimp-dev
+          - libxcb-dri3-0
+          - libxcb-present0
+          - libxcb-dri3-dev
+          - libx11-dev 
+          - libx11-xcb-dev 
+          - libmirclient-dev 
+          - libwayland-dev 
+          - libxrandr-dev
+
+    - name: "Linux CLang 6.0 Debug"
+    - env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug 
+    addons: *clang60
+          
 before_install:
+  - export CXX=${COMPILER}
+  - ${CXX} --version
+  
+  - DEPS_DIR="${TRAVIS_BUILD_DIR}/deps"
+  - mkdir -p "${DEPS_DIR}"
+  
   # Install a supported cmake version (>= 3.11)
   - mkdir $HOME/usr
   - export PATH="$HOME/usr/bin:$PATH"
@@ -66,26 +82,34 @@ before_install:
   - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
   - export VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64"
   
-  # Install libc++
-  - cd $TRAVIS_BUILD_DIR/../
-  - git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
-  - git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
-  - git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi
+  ############################################################################
+  # [linux]: Install the right version of libc++
+  ############################################################################
+  - cd "${DEPS_DIR}"
   - |
-    if [ -z "$(ls -A ${HOME}/cache/llvm-build)" ]
-    then
-       mkdir llvm-build && cd llvm-build
-       cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
-       make cxx -j2
-       mkdir -p $HOME/cache/llvm-build
-       cp -r . $HOME/cache/llvm-build/
-    else      
-       echo "llvm cache loaded"
-       mkdir llvm-build
-       cp -r $HOME/cache/llvm-build/. llvm-build/       
+    LLVM_INSTALL=${DEPS_DIR}/llvm/install
+    # if in linux and compiler clang and llvm not installed
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -n "$(ls -A ${LLVM_INSTALL})" ]]; then
+      if   [[ "${CXX}" == "clang++-3.6" ]]; then LLVM_VERSION="3.6.2";
+      elif [[ "${CXX}" == "clang++-3.7" ]]; then LLVM_VERSION="3.7.1";
+      elif [[ "${CXX}" == "clang++-3.8" ]]; then LLVM_VERSION="3.8.1";
+      elif [[ "${CXX}" == "clang++-3.9" ]]; then LLVM_VERSION="3.9.1";
+      fi
+      LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
+      LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
+      LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
+      mkdir -p llvm llvm/build llvm/projects/libcxx llvm/projects/libcxxabi
+      travis_retry wget -O - ${LLVM_URL} | tar --strip-components=1 -xJ -C llvm
+      travis_retry wget -O - ${LIBCXX_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxx
+      travis_retry wget -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi
+      (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
+      (cd llvm/build/projects/libcxx && make install -j2)
+      (cd llvm/build/projects/libcxxabi && make install -j2)
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
     fi
-  - cd $TRAVIS_BUILD_DIR/../llvm-build
-  
+
   # Install Ninja
   - cd $TRAVIS_BUILD_DIR/../
   - mkdir $TRAVIS_BUILD_DIR/../tmp
