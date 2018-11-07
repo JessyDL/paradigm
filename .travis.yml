@@ -56,8 +56,8 @@ before_install:
   
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
-  - if test -d /llvm-build
-    then 
+  - |
+    if test -d /llvm-build; then 
        echo "llvm cache loaded"
     else
        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
