@@ -66,11 +66,7 @@ before_install:
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
   - |
-    if [ -e "$HOME/cache/llvm-build/CMakeLists.txt" ]
-    then
-       echo "llvm cache loaded"
-       mkdir llvm-build
-       cp -r $HOME/cache/llvm-build/. llvm-build/       
+    if [ -z "$(ls -A ${HOME}/cache/llvm-build)" ]
     else
        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
        git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
@@ -80,6 +76,10 @@ before_install:
        make cxx -j2
        mkdir -p $HOME/cache/llvm-build
        cp -r . $HOME/cache/llvm-build/
+    else      
+       echo "llvm cache loaded"
+       mkdir llvm-build
+       cp -r $HOME/cache/llvm-build/. llvm-build/       
     fi
   - cd $TRAVIS_BUILD_DIR/../llvm-build
   - sudo make install-cxxabi install-cxx
