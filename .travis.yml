@@ -2,6 +2,7 @@ language: cpp
 compiler: clang
 sudo: false
 os: linux
+dist: trusty
 
 notifications:
   email: false
@@ -17,7 +18,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-    - env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release 
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release 
       addons: &clang60
         apt:
           sources:
@@ -27,6 +28,7 @@ matrix:
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-6.0
+            - g++-7
             - libassimp-dev
             - libxcb-dri3-0
             - libxcb-present0
@@ -38,7 +40,7 @@ matrix:
             - libxrandr-dev
 
     - name: "Linux CLang 6.0 Debug"
-    - env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug 
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug 
       addons: *clang60
 
 before_install:
