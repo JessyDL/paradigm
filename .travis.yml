@@ -6,6 +6,7 @@ os: linux
 cache:
   directories:
   - $HOME/cache/llvm-build
+  - $HOME/cache/cmake
   
 addons:
   apt:
@@ -24,13 +25,13 @@ before_install:
   - mkdir $HOME/usr
   - export PATH="$HOME/usr/bin:$PATH"
   - |
-    if test -d $HOME/cache/cmake; then
+    if exist $HOME/cache/cmake/cmake.sh
+    then
       cd $HOME/cache/cmake
     else
       mkdir -p $HOME/cache/cmake
       cd $HOME/cache/cmake
       wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
-      chmod +x cmake.sh
     fi
   - chmod +x cmake.sh
   - ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
@@ -65,7 +66,8 @@ before_install:
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
   - |
-    if test -d $HOME/cache/llvm-build; then 
+    if exist $HOME/cache/llvm-build/*.make
+    then
        echo "llvm cache loaded"
        mkdir llvm-build
        cp -r $HOME/cache/llvm-build/. llvm-build/       
