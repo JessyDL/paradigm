@@ -218,12 +218,20 @@ namespace core::ecs
 			static const std::vector<details::component_key_t> keys{{details::component_key<Ts> ...}};
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
-			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
+			auto comp_it = m_Components.find(keys[0]);
+			if (comp_it == std::end(m_Components))
+				return {};
+
+			std::vector<entity> v_intersection{comp_it->second.entities};
 
 			for(size_t i = 1; i < keys.size(); ++i)
 			{
 				std::vector<entity> intermediate;
-				const auto& it = m_Components.at(keys[i]).entities;
+				auto comp_it = m_Components.find(keys[i]);
+				if (comp_it == std::end(m_Components))
+					continue;
+
+				const auto& it = comp_it->second.entities;
 				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 									  std::back_inserter(intermediate));
 				v_intersection = intermediate;

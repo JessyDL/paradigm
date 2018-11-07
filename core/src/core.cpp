@@ -956,62 +956,6 @@ void math_test()
 }
 
 
-void ecs_test()
-{
-	// write unit test to check IDs are unique
-
-	using namespace core::ecs::details;
-	static_assert(component_key<float> != component_key<int>, "should not be printed");
-	//static_assert(type_id<float> == type_id<int>, "this should be printed");
-	std::unordered_map<component_key_t, int> map;
-	constexpr component_key_t id = component_key<float>;
-	constexpr component_key_t id2 = component_key<int>;
-	map[id] = 0;
-	map[id2] = 1;
-	map[component_key<long>] = 2;
-
-	auto size = map.size();
-
-	core::ecs::state state;
-	auto e{state.create()};
-	auto e2{state.create()};
-	auto e3{state.create()};
-	auto e_list{ state.create(1000000) };
-	state.add_component<float>(e, 2.0f);
-	state.add_component<float>(e);
-	state.add_component<float>(e_list);
-	state.add_component<int>(e_list);
-	state.add_component<transform2>(e_list);
-	state.remove_component<float>(e);
-	//state.add_component<float>(e);
-	state.add_component<int>(e,5);
-	auto& int_comp = state.get_component<int>(e);
-	int_comp += 10;
-	state.add_component<int>(e3,3);
-	state.add_component<int>(e,1);
-	state.add_component<float>(e,5.0f);
-	state.add_component<float>(e2);
-	state.add_component<float>(e3,2384.0f);
-	state.add_component<uint8_t>(e, uint8_t{ 0u });
-	state.add_component<uint8_t>(e2, uint8_t{ 1u });
-
-	typedef uint8_t name_t;
-	auto& uint8_t_comp = state.get_component<name_t>(e2);
-	uint8_t_comp += 99;
-
-	auto res = state.filter<float, int>();
-	auto val = state.get_component<float>(e3);
-
-	std::vector<float> filter_range_fl;
-	std::vector<uint8_t> filter_range_uint;
-	//res = state.filter<float, uint8_t>(filter_range_fl, filter_range_uint);
-
-	float_system fl_system{};
-	state.register_system(fl_system);
-	for(int i = 0; i < 100; ++i)
-		state.tick();
-}
-
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -1021,8 +965,7 @@ int entry()
 	setup_loggers();
 
 	//math_test();
-	//ecs_test();
-	//return 0;
+
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};

@@ -32,6 +32,7 @@ set(VULKAN_ROOT CACHE STRING "")
 
 OPTION(PARADIGM_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 OPTION(PARADIGM_CORE_EXECUTABLE "should the core library be compiled as executable instead?" OFF)
+OPTION(TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
 
 if (MSVC_IDE)
     option(VS_ADD_NATIVE_VISUALIZERS "Configure project to use Visual Studio native visualizers" TRUE)
@@ -78,6 +79,10 @@ set(PARADIGM_DEFINES -DUNICODE
 				-D_UNICODE
 				-DNOMINMAX
 				-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+				
+if(PARADIGM_CORE_EXECUTABLE AND TESTS)
+	message(FATAL_ERROR "you cannot mix PARADIGM_CORE_EXECUTABLE and TESTS flags")
+endif()
 				
 if(PARADIGM_CORE_EXECUTABLE)
 	set(PARADIGM_DEFINES ${PARADIGM_DEFINES} -DCORE_EXECUTABLE)
@@ -260,6 +265,9 @@ if(NOT ${PARADIGM_SOURCE_ONLY})
 	add_subdirectory(format)
 	add_subdirectory(meta)
 	add_subdirectory(core)
+	if(${TESTS})
+		add_subdirectory(tests)
+	endif()
 
 	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
 		include(${PROJECT_SOURCE_DIR}/modules.txt)
@@ -267,6 +275,7 @@ if(NOT ${PARADIGM_SOURCE_ONLY})
 else()
 	message("did not compile the project by request")
 endif()
+
 
 # ==================================================================================================
 # Set accessible defines for child projects to use
