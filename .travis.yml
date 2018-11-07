@@ -11,13 +11,17 @@ cache:
   directories:
   - $HOME/cache
   
+branches:
+  except:
+  - gh-pages
+  
 matrix:
   include:
     ##########################################################################
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION="6.0.1"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master"
       addons: &clang60
         apt:
           sources:
@@ -27,7 +31,6 @@ matrix:
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-6.0
-            - g++-7
             - libassimp-dev
             - libxcb-dri3-0
             - libxcb-present0
@@ -39,7 +42,7 @@ matrix:
             - libxrandr-dev
 
     - name: "Linux CLang 6.0 Debug"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug LLVM_VERSION="6.0.1"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug LLVM_VERSION_TAG="master"
       addons: *clang60
 
 install:
@@ -88,32 +91,35 @@ install:
   - cd "${DEPS_DIR}"
   - |
     LLVM_INSTALL=${DEPS_DIR}/llvm/install
-    mkdir -p $LLVM_INSTALL
     # if in linux and compiler clang and llvm not installed
-    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -z "$(ls -A ${LLVM_INSTALL})" ]]; then    
-      LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
-      LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
-      LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then    
       
-      mkdir -p llvm llvm/build llvm/projects/libcxx llvm/projects/libcxxabi
-      travis_retry wget -O - ${LLVM_URL} | tar --strip-components=1 -xJ -C llvm || exit 1
-      travis_retry wget -O - ${LIBCXX_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxx || exit 1
-      travis_retry wget -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi || exit 1
-      (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${DEPS_DIR}/llvm/install) || exit 1
+      git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
+      mkdir -p llvm/build llvm/projects
+      git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
+      git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm/projects/libcxxabi
       
-      (cd  /build/projects/libcxx && make install -j2) || exit 1
-      (cd llvm/build/projects/libcxxabi && make install -j2) || exit 1
+      cd llvm
+      git checkout $LLVM_VERSION_TAG
+      cd projects/libcxx
+      git checkout $LLVM_VERSION_TAG
+      cd ../libcxxabi
+      git checkout $LLVM_VERSION_TAG
+      cd ../../../
       
-      export CXXFLAGS="-isystem ${DEPS_DIR}/llvm/install/include/c++/v1"
-      export LDFLAGS="-L ${DEPS_DIR}/llvm/install/lib -l c++ -l c++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/install/lib"
+      (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
+      (cd llvm/build/projects/libcxx && make install -j2)
+      (cd llvm/build/projects/libcxxabi && make install -j2)
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
     else
-      (cd  /build/projects/libcxx && make install -j2) || exit 1
-      (cd llvm/build/projects/libcxxabi && make install -j2) || exit 1
-      
-      export CXXFLAGS="-isystem ${DEPS_DIR}/llvm/install/include/c++/v1"
-      export LDFLAGS="-L ${DEPS_DIR}/llvm/install/lib -l c++ -l c++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/install/lib"
+      echo "building from cache"
+      (cd llvm/build/projects/libcxx && make install -j2)
+      (cd llvm/build/projects/libcxxabi && make install -j2)
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
     fi
 
   # Install Ninja
