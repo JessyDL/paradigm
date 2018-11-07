@@ -26,6 +26,7 @@ namespace psl
 		constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}){};
 
 
+
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
@@ -415,6 +416,10 @@ namespace psl
 	template <typename precision_t>
 	constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept
 	{
+#ifdef MATH_DIV_ZERO_CHECK
+		if (other.value[0] == 0)
+			throw std::runtime_exception("division by 0");
+#endif
 		owner.value /= other.value;
 		return owner;
 	}
@@ -458,6 +463,20 @@ namespace psl
 		return cpy;
 	}
 
+	template <typename precision_t>
+	constexpr bool operator==(const tvec<precision_t, 1>& left,
+		const tvec<precision_t, 1>& right) noexcept
+	{
+		return left[0] == right[0];
+	}
+
+	template <typename precision_t>
+	constexpr bool operator!=(const tvec<precision_t, 1>& left,
+		const tvec<precision_t, 1>& right) noexcept
+	{
+		return left[0] != right[0];
+	}
+
 	// ---------------------------------------------
 	// operators tvec<precision_t, 2>
 	// ---------------------------------------------
@@ -479,6 +498,10 @@ namespace psl
 	template <typename precision_t>
 	constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept
 	{
+#ifdef MATH_DIV_ZERO_CHECK
+		if (other.value[0] == 0 || other.value[1] == 0)
+			throw std::runtime_exception("division by 0");
+#endif
 		owner.value[0] /= other.value[0];
 		owner.value[1] /= other.value[1];
 		return owner;
@@ -528,6 +551,22 @@ namespace psl
 		return cpy;
 	}
 
+	template <typename precision_t>
+	constexpr bool operator==(const tvec<precision_t, 2>& left,
+		const tvec<precision_t, 2>& right) noexcept
+	{
+		return left[0] == right[0] &&
+			left[1] == right[1];
+	}
+
+	template <typename precision_t>
+	constexpr bool operator!=(const tvec<precision_t, 2>& left,
+		const tvec<precision_t, 2>& right) noexcept
+	{
+		return left[0] != right[0] || 
+			left[1] != right[1];
+	}
+
 	// ---------------------------------------------
 	// operators tvec<precision_t, 3>
 	// ---------------------------------------------
@@ -551,6 +590,10 @@ namespace psl
 	template <typename precision_t>
 	constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept
 	{
+#ifdef MATH_DIV_ZERO_CHECK
+		if (other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
+			throw std::runtime_exception("division by 0");
+#endif
 		owner.value[0] /= other.value[0];
 		owner.value[1] /= other.value[1];
 		owner.value[2] /= other.value[2];
@@ -604,6 +647,24 @@ namespace psl
 		cpy.value[1] -= right.value[1];
 		cpy.value[2] -= right.value[2];
 		return cpy;
+	}
+
+	template <typename precision_t>
+	constexpr bool operator==(const tvec<precision_t, 3>& left,
+		const tvec<precision_t, 3>& right) noexcept
+	{
+		return left[0] == right[0] &&
+			left[1] == right[1] &&
+			left[2] == right[2];
+	}
+
+	template <typename precision_t>
+	constexpr bool operator!=(const tvec<precision_t, 3>& left,
+		const tvec<precision_t, 3>& right) noexcept
+	{
+		return left[0] != right[0] || 
+			left[1] != right[1] || 
+			left[2] != right[2];
 	}
 
 	// ---------------------------------------------
@@ -677,6 +738,10 @@ namespace psl
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4>& operator/=(tvec<precision_t, 4>& owner, const tvec<precision_t, 4>& other) noexcept
 	{
+#ifdef MATH_DIV_ZERO_CHECK
+		if (other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0 || other.value[3] == 0)
+			throw std::runtime_exception("division by 0");
+#endif
 		if constexpr (std::is_same<float, precision_t>::value)
 		{
 			_mm_store_ps(owner.value.data(), 
@@ -808,6 +873,26 @@ namespace psl
 	}
 
 
+	template <typename precision_t>
+	constexpr bool operator==(const tvec<precision_t, 4>& left,
+		const tvec<precision_t, 4>& right) noexcept
+	{
+		return left[0] == right[0] &&
+			left[1] == right[1] &&
+			left[2] == right[2] &&
+			left[3] == right[3];
+	}
+
+	template <typename precision_t>
+	constexpr bool operator!=(const tvec<precision_t, 4>& left,
+		const tvec<precision_t, 4>& right) noexcept
+	{
+		return left[0] != right[0] || 
+			left[1] != right[1] || 
+			left[2] != right[2] || 
+			left[3] != right[3];
+	}
+
 	// ---------------------------------------------
 	// operators tvec<precision_t, N>
 	// ---------------------------------------------
@@ -830,7 +915,14 @@ namespace psl
 	constexpr tvec<precision_t, dimensions>& operator/=(tvec<precision_t, dimensions>& owner,
 		const tvec<precision_t, dimensions>& other) noexcept
 	{
-		for(size_t i = 0; i < dimensions; ++i) owner.value[i] /= other.value[i];
+		for (size_t i = 0; i < dimensions; ++i)
+		{
+#ifdef MATH_DIV_ZERO_CHECK
+			if (other.value[i] == 0)
+				throw std::runtime_exception("division by 0");
+#endif
+			owner.value[i] /= other.value[i];
+		}
 		return owner;
 	}
 	template <typename precision_t, size_t dimensions>
@@ -872,5 +964,21 @@ namespace psl
 		auto cpy = left;
 		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] -= right.value[i];
 		return cpy;
+	}
+
+
+
+	template <typename precision_t, size_t dimensions>
+	constexpr bool operator==(const tvec<precision_t, dimensions>& left,
+		const tvec<precision_t, dimensions>& right) noexcept
+	{
+		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) == 0;
+	}
+
+	template <typename precision_t, size_t dimensions>
+	constexpr bool operator!=(const tvec<precision_t, dimensions>& left,
+		const tvec<precision_t, dimensions>& right) noexcept
+	{
+		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) != 0;
 	}
 } // namespace psl

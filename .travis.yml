@@ -1,31 +1,72 @@
 language: cpp
 compiler: clang
-sudo: required
+sudo: false
 os: linux
+dist: trusty
 
-addons:
-  apt:
-    sources:
-      - ubuntu-toolchain-r-test
-      - llvm-toolchain-trusty-6.0
-    packages:
-      - clang-6.0
-      
-env:
-  global:
-    - VK_VERSION="1.1.82.1"
+notifications:
+  email: false
 
-before_install:
+cache:
+  directories:
+  - $HOME/cache
+  
+branches:
+  except:
+  - gh-pages
+  
+matrix:
+  include:
+    ##########################################################################
+    # Clang on Linux
+    ##########################################################################
+    - name: "Linux CLang 6.0 Release"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master"
+      addons: &clang60
+        apt:
+          sources:
+            - ubuntu-toolchain-r-test
+            - llvm-toolchain-trusty-6.0
+            - sourceline: 'deb http://apt.llvm.org/trusty/ llvm-toolchain-trusty-6.0 main'
+              key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
+          packages:
+            - clang-6.0
+            - libassimp-dev
+            - libxcb-dri3-0
+            - libxcb-present0
+            - libxcb-dri3-dev
+            - libx11-dev 
+            - libx11-xcb-dev 
+            - libmirclient-dev 
+            - libwayland-dev 
+            - libxrandr-dev
+
+    - name: "Linux CLang 6.0 Debug"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug LLVM_VERSION_TAG="master"
+      addons: *clang60
+
+install:
+  - export CXX=${COMPILER}
+  - ${CXX} --version
+  
+  - DEPS_DIR="$HOME/cache"
+  
   # Install a supported cmake version (>= 3.11)
   - mkdir $HOME/usr
   - export PATH="$HOME/usr/bin:$PATH"
-  - wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+  - |
+    if [ -e "$HOME/cache/cmake/cmake.sh" ]
+    then
+      cd $HOME/cache/cmake
+    else
+      mkdir -p $HOME/cache/cmake
+      cd $HOME/cache/cmake
+      wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+    fi
   - chmod +x cmake.sh
   - ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
   
   # Install Vulkan SDK
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
   - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
   - cd Vulkan-Headers
@@ -43,24 +84,44 @@ before_install:
   - cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
   - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
   - export VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64"
-  - cd "${VULKAN_ROOT_DIR}"
-  - echo $(ls) 
-  - cd ${VK_VERSION} 
-  - echo $(ls) 
-  - cd Include/vulkan 
-  - echo $(ls)
   
-  # Install libc++
-  - cd $TRAVIS_BUILD_DIR/../
-  - git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
-  - git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
-  - git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi
-  
-  - mkdir llvm-build && cd llvm-build
-  - cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
-  - make cxx -j2
-  - sudo make install-cxxabi install-cxx
-  
+  ############################################################################
+  # [linux]: Install the right version of libc++
+  ############################################################################
+  - cd "${DEPS_DIR}"
+  - |
+    LLVM_INSTALL=${DEPS_DIR}/llvm/install
+    # if in linux and compiler clang and llvm not installed
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then    
+      
+      git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
+      mkdir -p llvm/build llvm/projects
+      git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
+      git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm/projects/libcxxabi
+      
+      cd llvm
+      git checkout $LLVM_VERSION_TAG
+      cd projects/libcxx
+      git checkout $LLVM_VERSION_TAG
+      cd ../libcxxabi
+      git checkout $LLVM_VERSION_TAG
+      cd ../../../
+      
+      (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
+      (cd llvm/build/projects/libcxx && make install -j2)
+      (cd llvm/build/projects/libcxxabi && make install -j2)
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
+    else
+      echo "building from cache"
+      (cd llvm/build/projects/libcxx && make install -j2)
+      (cd llvm/build/projects/libcxxabi && make install -j2)
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
+    fi
+
   # Install Ninja
   - cd $TRAVIS_BUILD_DIR/../
   - mkdir $TRAVIS_BUILD_DIR/../tmp
@@ -70,17 +131,12 @@ before_install:
   
   # Misc
   - export CXX="clang++-6.0" CC="clang-6.0"
-  - eval "${MATRIX_EVAL}"
-  - cd $TRAVIS_BUILD_DIR
-  - eval vk_home_dir=${VULKAN_ROOT_DIR}
-  - echo $vk_home_dir # prints home path
-  
+  - cd $TRAVIS_BUILD_DIR  
 
 script:
-  - echo ${VK_VERSION}
-  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
-  - make
+  - make -j2
   
 after_success:
   - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh

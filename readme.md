@@ -1,5 +1,5 @@
 ﻿
-![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/using-vulkan%201.1-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/status-passed%20all%20tests-green.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/version-0.1.0-lightgrey.svg?longCache=true&style=for-the-badge) ![Git last commit](https://img.shields.io/github/last-commit/JessyDL/Paradigm.svg?style=for-the-badge) 
+![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.1.82.1-red.svg?longCache=true&style=for-the-badge)  ![](https://img.shields.io/badge/version-0.1.0-lightgrey.svg?longCache=true&style=for-the-badge) 
 # Paradigm Engine
 Paradigm Engine is a Vulkan first modern graphics rendering engine written in C++17. It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice. C# bindings will be provided as well as example projects showcasing simple gameplay.
 
@@ -18,7 +18,7 @@ For more detailed description about the engine itself, go to the readme of the `
 | Architecture| Status        | Size | Backend|
 | :-------------|:-------------| -----:|---:|
 | ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)| 1.2mb | Vulkan |
-| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)| -| Vulkan |
+| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?logo=travis&style=for-the-badge)](https://github.com/JessyDL/paradigm) | -| Vulkan |
 | ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | Vulkan|
@@ -80,10 +80,19 @@ The following external libraries may be used in one, or many of the sub projects
 - `GLI` image loading and saving
 - `volk` dynamic bindings for vulkan
 - `Vulkan-hpp` generated C++ like headers for Vulkan
+- `Catch2` when compiling the tests, Catch2 will be pulled in.
 
 # Documentation
 A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
 API examples, tutorials, and best practices guide will be written at a later time. For the time being, you can look at the example projects provided in the examples section.
+
+# Tests
+### building
+You can compile the tests by setting `cmake_params "-DTESTS=ON"` in `build.sh` or alternatively setting the value directly in CMake.
+
+Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
+
+*warning* you cannot mix `-DPARADIGM_CORE_EXECUTABLE` and `-DTESTS`, this will fail.
 
 # Future
 ### Language
@@ -96,7 +105,7 @@ After we have both the editor project and the rendering engine going, we will lo
 If you wish to statically bind vulkan, you can use the flag `-VULKAN_STATIC` in the `build.sh` script, or alternatively invoke `cmake` directly with the `-DVULKAN_STATIC=true` flag. 
 Note that depending on the platform, static binding is impossible (like Android).
 ### Build as executable
-If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `"-DPARADIGM_CORE_EXECUTABLE=true"` as a `-cmake_params` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
+If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPARADIGM_CORE_EXECUTABLE` as a `-cmake_param` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
 
 # License
 This project is dual-licensed under commercial and open source licenses. Licensed under GNU AGPLv3 for free usage, and licensed under a commercial license you can purchase or request for commercial usage.

@@ -37,14 +37,18 @@ endif()
 set(_PCH_SOURCE_CXX "src/stdafx.cpp")
 add_precompiled_header(${LOCAL_PROJECT} "stdafx.h")
 
+if(TESTS)
+	set(TEST_LIBS Catch2)
+endif()
+
 if(${VULKAN_STATIC})	
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${VULKAN_LIB_NAME}  ${PROJECT_PSL} ${PROJECT_FORMAT} 
-		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} )
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${TEST_LIBS})
 else()
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${PROJECT_PSL} ${PROJECT_FORMAT} 
-		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${CMAKE_DL_LIBS} ${PARADIGM_DL_LIBS})
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${CMAKE_DL_LIBS} ${PARADIGM_DL_LIBS} ${TEST_LIBS})
 endif()
 
 target_include_directories(${LOCAL_PROJECT}
