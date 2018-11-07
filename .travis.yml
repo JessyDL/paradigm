@@ -23,7 +23,15 @@ before_install:
   # Install a supported cmake version (>= 3.11)
   - mkdir $HOME/usr
   - export PATH="$HOME/usr/bin:$PATH"
-  - wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+  - |
+    if test -d $HOME/cache/cmake; then
+      cd $HOME/cache/cmake
+    else
+      mkdir -p $HOME/cache/cmake
+      cd $HOME/cache/cmake
+      wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+      chmod +x cmake.sh
+    fi
   - chmod +x cmake.sh
   - ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
   
@@ -59,6 +67,8 @@ before_install:
   - |
     if test -d $HOME/cache/llvm-build; then 
        echo "llvm cache loaded"
+       mkdir llvm-build
+       cp -r $HOME/cache/llvm-build/. llvm-build/       
     else
        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
        git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
@@ -67,8 +77,9 @@ before_install:
        cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
        make cxx -j2
        mkdir -p $HOME/cache/llvm-build
-       cp -r ../llvm-build $HOME/cache/llvm-build
-    fi    
+       cp -r . $HOME/cache/llvm-build/
+    fi
+  - cd $TRAVIS_BUILD_DIR/../llvm-build
   - sudo make install-cxxabi install-cxx
   
   # Install Ninja
