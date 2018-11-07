@@ -25,7 +25,7 @@ before_install:
   - mkdir $HOME/usr
   - export PATH="$HOME/usr/bin:$PATH"
   - |
-    if exist $HOME/cache/cmake/cmake.sh
+    if [ -e "$HOME/cache/cmake/cmake.sh" ]
     then
       cd $HOME/cache/cmake
     else
@@ -66,7 +66,7 @@ before_install:
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
   - |
-    if exist $HOME/cache/llvm-build/*.make
+    if [ -e "$HOME/cache/llvm-build/CMakeLists.txt" ]
     then
        echo "llvm cache loaded"
        mkdir llvm-build
