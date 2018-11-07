@@ -80,10 +80,19 @@ The following external libraries may be used in one, or many of the sub projects
 - `GLI` image loading and saving
 - `volk` dynamic bindings for vulkan
 - `Vulkan-hpp` generated C++ like headers for Vulkan
+- `Catch2` when compiling the tests, Catch2 will be pulled in.
 
 # Documentation
 A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
 API examples, tutorials, and best practices guide will be written at a later time. For the time being, you can look at the example projects provided in the examples section.
+
+# Tests
+### building
+You can compile the tests by setting `cmake_params "-DTESTS=ON"` in `build.sh` or alternatively setting the value directly in CMake.
+
+Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
+
+*warning* you cannot mix `-DPARADIGM_CORE_EXECUTABLE` and `-DTESTS`, this will fail.
 
 # Future
 ### Language
