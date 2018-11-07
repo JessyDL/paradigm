@@ -15,6 +15,10 @@ env:
   global:
     - VK_VERSION="1.1.82.1"
 
+ cache:
+  - directories:
+    $TRAVIS_BUILD_DIR/../llvm-build
+  
 before_install:
   # Install a supported cmake version (>= 3.11)
   - mkdir $HOME/usr
@@ -52,13 +56,17 @@ before_install:
   
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
-  - git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
-  - git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
-  - git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi
-  
-  - mkdir llvm-build && cd llvm-build
-  - cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
-  - make cxx -j2
+  - if test -d /llvm-build; 
+    then 
+       echo "llvm cache loaded"
+    else
+       git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
+       git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
+       git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi
+       mkdir llvm-build && cd llvm-build
+       cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
+       make cxx -j2
+    fi    
   - sudo make install-cxxabi install-cxx
   
   # Install Ninja
