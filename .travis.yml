@@ -67,7 +67,7 @@ before_install:
   - cd $TRAVIS_BUILD_DIR/../
   - |
     if [ -z "$(ls -A ${HOME}/cache/llvm-build)" ]
-    else
+    then
        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
        git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm-source/projects/libcxx
        git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm-source/projects/libcxxabi
