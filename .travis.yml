@@ -3,10 +3,6 @@ compiler: clang
 sudo: required
 os: linux
 
- cache:
-  directories:
-  - $HOME/cache/llvm-build
-  
 addons:
   apt:
     sources:
