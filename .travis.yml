@@ -101,9 +101,10 @@ before_install:
 
 script:
   - echo ${VK_VERSION}
-  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
-  - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
-  - make
+  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Ninja -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - cd $TRAVIS_BUILD_DIR/project_files/ninja/x64/
+  - echo $(ls)
+  - ninja
   
 after_success:
   - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
