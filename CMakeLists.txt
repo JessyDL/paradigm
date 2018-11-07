@@ -268,21 +268,6 @@ else()
 	message("did not compile the project by request")
 endif()
 
-include(FetchContent)
-
-FetchContent_Declare(
-  catch
-  GIT_REPOSITORY https://github.com/catchorg/Catch2
-  GIT_TAG        v2.4.2
-)
-
-FetchContent_GetProperties(catch)
-if(NOT catch_POPULATED)
-  FetchContent_Populate(catch)
-  add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR})
-endif()
-
-
 # ==================================================================================================
 # Set accessible defines for child projects to use
 # ==================================================================================================
