@@ -1,6 +1,5 @@
 language: cpp
 compiler: clang
-sudo: required
 os: linux
 
 cache:
@@ -13,6 +12,15 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
       - llvm-toolchain-trusty-6.0
+      - libassimp-dev
+      - libxcb-dri3-0
+      - libxcb-present0
+      - libxcb-dri3-dev
+      - libx11-dev 
+      - libx11-xcb-dev 
+      - libmirclient-dev 
+      - libwayland-dev 
+      - libxrandr-dev
     packages:
       - clang-6.0
       
@@ -37,8 +45,6 @@ before_install:
   - ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
   
   # Install Vulkan SDK
-  - sudo apt-get -qq update
-  - sudo apt-get install -y libassimp-dev libglm-dev graphviz libxcb-dri3-0 libxcb-present0 libpciaccess0 cmake libpng-dev libxcb-dri3-dev libx11-dev libx11-xcb-dev libmirclient-dev libwayland-dev libxrandr-dev
   - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
   - cd Vulkan-Headers
@@ -76,7 +82,7 @@ before_install:
        cp -r $HOME/cache/llvm-build/. llvm-build/       
     fi
   - cd $TRAVIS_BUILD_DIR/../llvm-build
-  - sudo make install-cxxabi install-cxx
+  - make install-cxxabi install-cxx
   
   # Install Ninja
   - cd $TRAVIS_BUILD_DIR/../
@@ -84,7 +90,6 @@ before_install:
   - curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $TRAVIS_BUILD_DIR/../tmp/ninja-linux.zip
   - unzip $TRAVIS_BUILD_DIR/../tmp/ninja-linux.zip -d $TRAVIS_BUILD_DIR/../ninja
   - export PATH=$PATH:$TRAVIS_BUILD_DIR/../ninja
-  - ninja --version
   
   # Misc
   - export CXX="clang++-6.0" CC="clang-6.0"
@@ -98,7 +103,6 @@ script:
   - echo ${VK_VERSION}
   - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Ninja -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
   - cd $TRAVIS_BUILD_DIR/project_files/ninja/x64/
-  - echo $(ls)
   - ninja
   
 after_success:
