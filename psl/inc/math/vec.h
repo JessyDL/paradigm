@@ -972,13 +972,13 @@ namespace psl
 	constexpr bool operator==(const tvec<precision_t, dimensions>& left,
 		const tvec<precision_t, dimensions>& right) noexcept
 	{
-		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(T)) == 0;
+		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) == 0;
 	}
 
 	template <typename precision_t, size_t dimensions>
 	constexpr bool operator!=(const tvec<precision_t, dimensions>& left,
 		const tvec<precision_t, dimensions>& right) noexcept
 	{
-		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(T)) != 0;
+		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) != 0;
 	}
 } // namespace psl
