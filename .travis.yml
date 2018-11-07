@@ -43,7 +43,7 @@ matrix:
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug 
       addons: *clang60
 
-before_install:
+install:
   - export CXX=${COMPILER}
   - ${CXX} --version
   
