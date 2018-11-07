@@ -90,7 +90,7 @@ install:
     LLVM_INSTALL=${DEPS_DIR}/llvm/install
     mkdir -p $LLVM_INSTALL
     # if in linux and compiler clang and llvm not installed
-    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -n "$(ls -A ${LLVM_INSTALL})" ]]; then    
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -z "$(ls -A ${LLVM_INSTALL})" ]]; then    
       LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
       LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
       LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
@@ -101,6 +101,13 @@ install:
       travis_retry wget -O - ${LIBCXXABI_URL} | tar --strip-components=1 -xJ -C llvm/projects/libcxxabi || exit 1
       (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${DEPS_DIR}/llvm/install) || exit 1
       
+      (cd  /build/projects/libcxx && make install -j2) || exit 1
+      (cd llvm/build/projects/libcxxabi && make install -j2) || exit 1
+      
+      export CXXFLAGS="-isystem ${DEPS_DIR}/llvm/install/include/c++/v1"
+      export LDFLAGS="-L ${DEPS_DIR}/llvm/install/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${DEPS_DIR}/llvm/install/lib"
+    else
       (cd  /build/projects/libcxx && make install -j2) || exit 1
       (cd llvm/build/projects/libcxxabi && make install -j2) || exit 1
       
