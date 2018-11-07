@@ -28,6 +28,8 @@ addons:
 env:
   global:
     - VK_VERSION="1.1.82.1"
+    - CPATH=/usr/local/clang-6.0.1/include/c++/v1
+    - LD_LIBRARY_PATH=/usr/local/clang-6.0.1/lib
 
 before_install:
   # Install a supported cmake version (>= 3.11)
@@ -83,7 +85,6 @@ before_install:
        cp -r $HOME/cache/llvm-build/. llvm-build/       
     fi
   - cd $TRAVIS_BUILD_DIR/../llvm-build
-  - make install-cxxabi install-cxx
   
   # Install Ninja
   - cd $TRAVIS_BUILD_DIR/../
