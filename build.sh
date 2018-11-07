@@ -218,31 +218,6 @@ case "$GENERATOR" in
 		  fi
 		  CMAKE_GENERATOR="Visual Studio 15 2017 $target_platform";;		  
 	Ninja) 
-		CLANG_PATH="${LLVM_PATH//\\//}"
-		CMAKE_CXX="C:/Program Files/LLVM/bin/clang-cl.exe"		# DCMAKE_CXX_COMPILER
-		CMAKE_C="C:/Program Files/LLVM/bin/clang-cl.exe"		# DCMAKE_C_COMPILER
-		CMAKE_LINKER="C:/Program Files/LLVM/bin/lld-link.exe"	# DCMAKE_LINKER
-
-        if [[ "$OSTYPE" == "linux-gnu" ]]; then
-			export CC=/usr/bin/clang
-            export CXX=/usr/bin/clang++
-		elif [[ "$OSTYPE" == "darwin"* ]]; then
-			export CC=/usr/bin/clang
-            export CXX=/usr/bin/clang++
-		elif [[ "$OSTYPE" == "cygwin" ]]; then
-			export CC=C:/Program Files/LLVM/bin/clang-cl.exe
-            export CXX=C:/Program Files/LLVM/bin/clang-cl.exe
-		elif [[ "$OSTYPE" == "msys" ]]; then
-			export CC=C:/Program Files/LLVM/bin/clang-cl.exe
-            export CXX=C:/Program Files/LLVM/bin/clang-cl.exe
-		elif [[ "$OSTYPE" == "win32" ]]; then
-			export CC=C:/Program Files/LLVM/bin/clang-cl.exe
-            export CXX=C:/Program Files/LLVM/bin/clang-cl.exe
-		else
-			echo -e ${RED}ERROR${NC}: unsupported platform detected.
-			exit 1
-		fi
-
 		CMAKE_GENERATOR="Ninja";;
 	Make) CMAKE_CXX=""
 		CMAKE_GENERATOR="Unix Makefiles";;
