@@ -17,7 +17,7 @@ env:
 
  cache:
   - directories:
-    $TRAVIS_BUILD_DIR/../llvm-build
+    - $TRAVIS_BUILD_DIR/../llvm-build
   
 before_install:
   # Install a supported cmake version (>= 3.11)
