@@ -1,5 +1,6 @@
 language: cpp
 compiler: clang
+sudo: false
 os: linux
 
 cache:
@@ -12,6 +13,8 @@ addons:
     sources:
       - ubuntu-toolchain-r-test
       - llvm-toolchain-trusty-6.0
+    packages:
+      - clang-6.0
       - libassimp-dev
       - libxcb-dri3-0
       - libxcb-present0
@@ -21,8 +24,6 @@ addons:
       - libmirclient-dev 
       - libwayland-dev 
       - libxrandr-dev
-    packages:
-      - clang-6.0
       
 env:
   global:
