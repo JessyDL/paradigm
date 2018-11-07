@@ -282,8 +282,9 @@ if [ $CMAKE_UPDATE == "false" ] && [ -z $CONFIG ]; then
 	fi
 
 	echo checking if the correct vulkan sdk version is installed..
-	if [ ! -d "$VULKAN_ROOT/$VULKAN_VERSION" ]; then
+	if [ ! -d $VULKAN_ROOT/$VULKAN_VERSION ]; then
 		echo -e ${RED}ERROR${NC}: could not find the vulkan SDK version [${GREEN}VULKAN_VERSION${NC}] [${YELLOW}${VULKAN_VERSION}${NC}], please install it to continue or choose a different version.
+		echo -e     looked in $VULKAN_ROOT/$VULKAN_VERSION..
 		exit 1
 	fi
 fi

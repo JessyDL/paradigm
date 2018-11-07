@@ -175,7 +175,8 @@ if(GENERATOR_TOOLSET_VC)
 	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental")
 else()
 	set(COMPILE_OPTIONS ${COMPILE_OPTIONS} " -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function -std=c++1z")
-
+	set(PARADIGM_DL_LIBS "c++fs")
+	
 	if (LINUX)
 		set(COMPILE_OPTIONS "${COMPILE_OPTIONS} -stdlib=libc++")
 	endif()
@@ -251,7 +252,7 @@ endif()
 
 if(NOT ${PARADIGM_SOURCE_ONLY})
 	setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
-
+	
 	#externals
 
 	#core libraries

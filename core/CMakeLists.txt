@@ -14,10 +14,16 @@ if(VS_ADD_NATIVE_VISUALIZERS)
 	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/nvs" PREFIX "natvis" FILES ${NATVIS}) 
 endif()
 link_libraries(${WSI_LIB})
-link_directories(${VULKAN_LIB_PATH})
 
 
-if(NOT ${VULKAN_STATIC})
+if(${VULKAN_STATIC})		
+	link_directories(${VULKAN_LIB_PATH})
+	if(PARADIGM_CORE_EXECUTABLE)
+		add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
+	else()
+		add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
+	endif()	
+else()	
 	source_group(TREE "${PARADIGM_EXTERNAL_PATH}/volk" PREFIX "volk" FILES ${PARADIGM_EXTERNAL_PATH}/volk/volk.c) 
 	if(PARADIGM_CORE_EXECUTABLE)
 		add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS} ${PARADIGM_EXTERNAL_PATH}/volk/volk.c)
@@ -26,20 +32,20 @@ if(NOT ${VULKAN_STATIC})
 	endif()
 	SET_SOURCE_FILES_PROPERTIES( ${PARADIGM_EXTERNAL_PATH}/volk/volk.c PROPERTIES LANGUAGE CXX )
 	set(_PCH_EXCLUDED ${PARADIGM_EXTERNAL_PATH}/volk/volk.c)
-else()
-	if(PARADIGM_CORE_EXECUTABLE)
-		add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
-	else()
-		add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
-	endif()
 endif()
 
 set(_PCH_SOURCE_CXX "src/stdafx.cpp")
 add_precompiled_header(${LOCAL_PROJECT} "stdafx.h")
 
-target_link_libraries(${LOCAL_PROJECT} PUBLIC 
-	${VULKAN_LIB_NAME}  ${PROJECT_PSL} ${PROJECT_FORMAT} 
-	${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} )
+if(${VULKAN_STATIC})	
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
+		${VULKAN_LIB_NAME}  ${PROJECT_PSL} ${PROJECT_FORMAT} 
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} )
+else()
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
+		${PROJECT_PSL} ${PROJECT_FORMAT} 
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${CMAKE_DL_LIBS} ${PARADIGM_DL_LIBS})
+endif()
 
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
