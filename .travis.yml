@@ -5,7 +5,7 @@ os: linux
 
  cache:
   directories:
-  - $TRAVIS_BUILD_DIR/../llvm-build
+  - $HOME/cache/llvm-build
   
 addons:
   apt:
@@ -57,7 +57,7 @@ before_install:
   # Install libc++
   - cd $TRAVIS_BUILD_DIR/../
   - |
-    if test -d /llvm-build; then 
+    if test -d $HOME/cache/llvm-build; then 
        echo "llvm cache loaded"
     else
        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm-source
@@ -66,6 +66,8 @@ before_install:
        mkdir llvm-build && cd llvm-build
        cmake -DCMAKE_C_COMPILER=${C_COMPILER} -DCMAKE_CXX_COMPILER=${COMPILER} -DCMAKE_BUILD_TYPE=RelWithDebInfo -DCMAKE_INSTALL_PREFIX=/usr -DLIBCXX_ABI_UNSTABLE=ON -DLLVM_USE_SANITIZER=${LIBCXX_SANITIZER} -DLLVM_BUILD_32_BITS=OFF ../llvm-source
        make cxx -j2
+       mkdir -p $HOME/cache/llvm-build
+       cp -r ../llvm-build $HOME/cache/llvm-build
     fi    
   - sudo make install-cxxabi install-cxx
   
