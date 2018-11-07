@@ -175,7 +175,7 @@ if(GENERATOR_TOOLSET_VC)
 	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental")
 else()
 	set(COMPILE_OPTIONS ${COMPILE_OPTIONS} " -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function -std=c++1z")
-
+	set(COMPILE_OPTIONS_EXE ${COMPILE_OPTIONS_EXE} " -lc++fs";
 	if (LINUX)
 		set(COMPILE_OPTIONS "${COMPILE_OPTIONS} -stdlib=libc++")
 	endif()

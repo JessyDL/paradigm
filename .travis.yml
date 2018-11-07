@@ -14,7 +14,6 @@ addons:
 env:
   global:
     - VK_VERSION="1.1.82.1"
-    - WEBHOOK_URL="https://discordapp.com/api/webhooks/509389651321290762/XiAI5ESdNAEEsV1lE60Hq3Cu8nRbFxmpgjc-k0vjeird7bOaG3F3S1A8PTWtCxNAIuRo"
 
 before_install:
   # Install a supported cmake version (>= 3.11)
