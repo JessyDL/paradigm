@@ -90,7 +90,7 @@ install:
     LLVM_INSTALL=${DEPS_DIR}/llvm/install
     mkdir -p $LLVM_INSTALL
     # if in linux and compiler clang and llvm not installed
-    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -z "$(ls -A ${LLVM_INSTALL})"]]; then    
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang"] && [ -z "$(ls -A ${LLVM_INSTALL})" ]]; then    
       LLVM_URL="http://llvm.org/releases/${LLVM_VERSION}/llvm-${LLVM_VERSION}.src.tar.xz"
       LIBCXX_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxx-${LLVM_VERSION}.src.tar.xz"
       LIBCXXABI_URL="http://llvm.org/releases/${LLVM_VERSION}/libcxxabi-${LLVM_VERSION}.src.tar.xz"
