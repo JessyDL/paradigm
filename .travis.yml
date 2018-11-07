@@ -92,7 +92,7 @@ install:
     LLVM_INSTALL=${DEPS_DIR}/llvm/install
     mkdir -p $LLVM_INSTALL
     # if in linux and compiler clang and llvm not installed
-    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && -n "$(ls -A ${LLVM_INSTALL})" ]]; then
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" ]]; then
       if   [[ "${CXX}" == "clang++-3.6" ]]; then LLVM_VERSION="3.6.2";
       elif [[ "${CXX}" == "clang++-3.7" ]]; then LLVM_VERSION="3.7.1";
       elif [[ "${CXX}" == "clang++-3.8" ]]; then LLVM_VERSION="3.8.1";
@@ -131,7 +131,7 @@ install:
 
 script:
   - echo ${VK_VERSION}
-  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Ninja -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true"
+  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Ninja -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "-DPARADIGM_CORE_EXECUTABLE=true -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
   - cd $TRAVIS_BUILD_DIR/project_files/ninja/x64/
   - ninja
   
