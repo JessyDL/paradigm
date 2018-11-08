@@ -137,9 +137,9 @@ script:
   
   - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
-  - make -j2
+  - make_res = "$(make -j2)"
   - |
-    if [ "$UTESTS" = true ]; then
+    if [ "$UTESTS" = true && $make_res -eq 0 ]; then
       cd $TRAVIS_BUILD_DIR/builds/make/bin
       chmod +x tests
       ./tests -o results.txt

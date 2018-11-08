@@ -423,7 +423,7 @@ namespace psl
 	/// \param[in] _Destination the destination to memcpy to.
 	/// \param[in] _Source the source to memcpy from.
 	/// \param[in] _SourceSize the amount of bytes to copy from the source.
-	static char_t* memcpy_s(char_t* const _Destination, char_t const* const _Source, rsize_t const _SourceSize)
+	static char_t* memcpy_s(char_t* const _Destination, char_t const* const _Source, size_t const _SourceSize)
 	{
 		if constexpr(sizeof(char_t) == sizeof(wchar_t))
 		{
