@@ -65,5 +65,5 @@ WEBHOOK_DATA='{
   } ]
 }'
 
-(curl --fail --progress-bar --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -A "TravisCI-Webhook" -H Content-Type:application/json -H X-Author:k3rn31p4nic#8383 -d "$WEBHOOK_DATA" "$2" \
+(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "$WEBHOOK_DATA" "$2" \
 && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
