@@ -105,7 +105,7 @@ install:
         (cd ${DEPS_DIR}/llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
       fi
       (cd ${DEPS_DIR}/llvm/build/projects/libcxx && make install -j2)
-      cd ${DEPS_DIR}/llvm/build/projects/libcxxabi && make install -j2)
+      (cd ${DEPS_DIR}/llvm/build/projects/libcxxabi && make install -j2)
       export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
       export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
       export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
