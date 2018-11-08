@@ -1,6 +1,6 @@
 ﻿// format.cpp : Defines the entry point for the console application.
 //
-#pragma once
+
 #define CATCH_CONFIG_RUNNER
 #include <catch2/catch.hpp>
 #include "stdafx_tests.h"
