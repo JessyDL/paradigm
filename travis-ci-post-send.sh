@@ -38,10 +38,10 @@ fi
 
 if [[ $UTESTS == true ]]; then
   foo=$(<${UTESTS_RESULTS})
-  if [[ ${#foo} > 240 ]]; then
-    foo=${foo:0:240}
+  if [[ ${#foo} > 2000 ]]; then
+    foo=${foo:0:2000}
   fi
-  UNIT_TEST_RESULTS='"content": "'"$foo"'"'
+  UNIT_TEST_RESULTS='"content": "'"$foo"'",'
 else 
   UNIT_TEST_RESULTS=""
 fi
@@ -79,9 +79,3 @@ WEBHOOK_DATA='{
 echo -e "$WEBHOOK_DATA"
 (curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "$WEBHOOK_DATA" "$2" \
 && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
-
-if [[ $UTESTS == true ]]; then
-  value=$(<${UTESTS_RESULTS})
-  (curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:multipart/form-data -d '{ "file": "'"$value"'"}' "$2" \
-  && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
-fi

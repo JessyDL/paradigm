@@ -134,7 +134,7 @@ script:
     if [[ $UTESTS == true ]]; then
       cd $TRAVIS_BUILD_DIR/builds/make/x64/release/x64/bin
       chmod +x tests
-      ./tests -o results.txt
+      ./tests -r compact -o results.txt
       export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/builds/make/x64/release/x64/bin/results.txt"
     fi
   
