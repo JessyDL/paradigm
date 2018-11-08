@@ -91,4 +91,10 @@ TEST_CASE("vec math", "[MATH]")
 		pow_v = 5.3541f;
 		REQUIRE(pow(tvec<float, 3>{ 1, 0, 3  }, pow_v) == tvec<float, 3>{ std::powf(1,pow_v), 0, std::powf(3,pow_v)  });
 	}
+	SECTION("normalize")
+	{
+		auto mag = magnitude(tvec<float, 3>{ 1, 0, 3  });
+		REQUIRE(normalize(tvec<float, 3>{ 1, 0, 3  }) == tvec<float, 3>{ 1.0f / mag, 0, 3.0f / mag  });
+		REQUIRE(normalize(tvec<float, 3>{ 8, 0, 0  }) == tvec<float, 3>{ 1, 0, 0  });
+	}
 }

@@ -1209,7 +1209,7 @@ namespace psl::math
 	template <typename precision_t, size_t dimensions>
 	constexpr static tvec<precision_t, dimensions> normalize(const tvec<precision_t, dimensions>& vec) noexcept
 	{
-		return res / magnitude(vec);
+		return vec / magnitude(vec);
 	}
 
 	template <typename precision_t>

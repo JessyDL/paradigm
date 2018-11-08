@@ -21,7 +21,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release"
       addons: &clang60
         apt:
           sources:
@@ -42,7 +42,7 @@ matrix:
             - libxrandr-dev
 
     - name: "Linux CLang 6.0 Debug"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug LLVM_VERSION_TAG="master"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Debug LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Debug"
       addons: *clang60
 
 install:
@@ -139,12 +139,12 @@ script:
   - make -j2
   
 after_success:
-  - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
-  - chmod +x send.sh
+  - cd $TRAVIS_BUILD_DIR
+  - chmod +x travis-ci-post-send.sh
   - ./send.sh success $WEBHOOK_URL
 after_failure:
-  - wget https://raw.githubusercontent.com/DiscordHooks/travis-ci-discord-webhook/master/send.sh
-  - chmod +x send.sh
+  - cd $TRAVIS_BUILD_DIR
+  - chmod +x travis-ci-post-send.sh
   - ./send.sh failure $WEBHOOK_URL
   
   
