@@ -25,9 +25,9 @@ COMMITTER_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%cN")"
 COMMIT_MESSAGE="$(git log -1 "$TRAVIS_COMMIT" --pretty="%s%n%b")"
 
 if [ "$AUTHOR_NAME" == "$COMMITTER_NAME" ]; then
-  CREDITS="$AUTHOR_NAME authored & committed"
+  CREDITS="by $AUTHOR_NAME"
 else
-  CREDITS="$AUTHOR_NAME authored & $COMMITTER_NAME committed"
+  CREDITS="by $AUTHOR_NAME & $COMMITTER_NAME"
 fi
 
 if [[ $TRAVIS_PULL_REQUEST != false ]]; then
@@ -48,6 +48,7 @@ WEBHOOK_DATA='{
       "icon_url": "'$AVATAR'"
     },
     "title": "'"$STATUS_MESSAGE"'",
+    "description": "'"${COMMIT_MESSAGE//$'\n'/ }"\\n"$CREDITS"'",
     "url": "'"$URL"'",
     "fields": [
       {
@@ -61,7 +62,6 @@ WEBHOOK_DATA='{
         "inline": true
       }
     ],
-    "description": "'"${COMMIT_MESSAGE//$'\n'/ }"\\n\\n"$CREDITS"'",
     "timestamp": "'"$TIMESTAMP"'"
   } ]
 }'

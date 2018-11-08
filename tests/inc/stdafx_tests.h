@@ -8,9 +8,6 @@
 #include "stdafx.h"
 #include "targetver.h"
 
-#include <stdio.h>
-#include <tchar.h>
-
 #include <catch2/catch.hpp>
 
 // TODO: reference additional headers your program requires here
