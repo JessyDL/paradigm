@@ -5,10 +5,11 @@
 #include <catch2/catch.hpp>
 #include "stdafx_tests.h"
 
+#ifdef PLATFORM_WINDOWS
 #define _CRTDBG_MAP_ALLOC  
 #include <stdlib.h>  
 #include <crtdbg.h>  
-#include <optional>
+#endif
 
 #include "spdlog/spdlog.h"
 #include "spdlog/async.h"
