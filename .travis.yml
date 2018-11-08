@@ -83,10 +83,9 @@ install:
   # [linux]: Install the right version of libc++
   ############################################################################
   - cd "${DEPS_DIR}"
+  - LLVM_INSTALL=${TRAVIS_BUILD_DIR}/../llvm/install
+  - mkdir -p "${LLVM_INSTALL}"
   - |
-    LLVM_INSTALL=${TRAVIS_BUILD_DIR}/../llvm/install
-    mkdir -p "${LLVM_INSTALL}"
-    # if in linux and compiler clang and llvm not installed
     if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then   
       git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
       mkdir -p llvm/build llvm/projects
@@ -99,7 +98,6 @@ install:
       git checkout $LLVM_VERSION_TAG
       cd ../libcxxabi
       git checkout $LLVM_VERSION_TAG
-      cd ../../../
     fi
   - cd ${DEPS_DIR}/llvm/build/projects/libcxx
   - make install -j2
@@ -111,16 +109,16 @@ install:
 
   # Install Ninja
   - |
-    if [[ ! -d "${DEPS_DIR}/ninja" ]]; then
-	  mkdir $DEPS_DIR/ninja
-	  curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
+    if [ ! -d "${DEPS_DIR}/ninja" ]; then
+      mkdir $DEPS_DIR/ninja
+      curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
       unzip $DEPS_DIR/ninja/ninja-linux.zip -d $DEPS_DIR/ninja
-	fi
+    fi
   - export PATH=$PATH:$DEPS_DIR/ninja
   
   # Misc
   - export CXX="clang++-6.0" CC="clang-6.0"
-  - cd $TRAVIS_BUILD_DIR  
+  - cd $TRAVIS_BUILD_DIR
 
 script:  
   - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
