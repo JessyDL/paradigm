@@ -141,10 +141,10 @@ script:
 after_success:
   - cd $TRAVIS_BUILD_DIR
   - chmod +x travis-ci-post-send.sh
-  - ./send.sh success $WEBHOOK_URL
+  - ./travis-ci-post-send.sh success $WEBHOOK_URL
 after_failure:
   - cd $TRAVIS_BUILD_DIR
   - chmod +x travis-ci-post-send.sh
-  - ./send.sh failure $WEBHOOK_URL
+  - ./travis-ci-post-send.sh failure $WEBHOOK_URL
   
   
