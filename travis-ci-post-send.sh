@@ -22,6 +22,7 @@ esac
 
 AUTHOR_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%aN")"
 COMMITTER_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%cN")"
+COMMIT_MESSAGE="$(git log -1 "$TRAVIS_COMMIT" --pretty="%s%n%b")"
 
 if [ "$AUTHOR_NAME" == "$COMMITTER_NAME" ]; then
   CREDITS="$AUTHOR_NAME authored & committed"
@@ -42,12 +43,11 @@ WEBHOOK_DATA='{
   "embeds": [ {
     "color": '$EMBED_COLOR',
     "author": {
-      "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"',
+      "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'",
       "url": "'"$TRAVIS_BUILD_WEB_URL"'",
       "icon_url": "'$AVATAR'"
     },
     "title": "'"$STATUS_MESSAGE"'",
-    "description": "'"${TRAVIS_COMMIT_MESSAGE//$'\n'/ }"\\n\\n"$CREDITS"'",
     "url": "'"$URL"'",
     "fields": [
       {
@@ -61,9 +61,10 @@ WEBHOOK_DATA='{
         "inline": true
       }
     ],
+    "description": "'"${COMMIT_MESSAGE//$'\n'/ }"\\n\\n"$CREDITS"'",
     "timestamp": "'"$TIMESTAMP"'"
   } ]
 }'
-echo -e "'$WEBHOOK_DATA'"
-(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "'$WEBHOOK_DATA'" "$2" \
+echo -e "$WEBHOOK_DATA"
+(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "$WEBHOOK_DATA" "$2" \
 && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
