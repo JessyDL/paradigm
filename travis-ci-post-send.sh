@@ -47,6 +47,7 @@ WEBHOOK_DATA='{
       "icon_url": "'$AVATAR'"
     },
     "title": "'"$STATUS_MESSAGE"'",
+    "description": "'"${TRAVIS_COMMIT_MESSAGE//$'\n'/ }"\\n\\n"$CREDITS"'",
     "url": "'"$URL"'",
     "fields": [
       {
@@ -60,10 +61,9 @@ WEBHOOK_DATA='{
         "inline": true
       }
     ],
-    "description": "'"${TRAVIS_COMMIT_MESSAGE//$'\n'/ }"\\n\\n"$CREDITS"'",
     "timestamp": "'"$TIMESTAMP"'"
   } ]
 }'
-
-(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "$WEBHOOK_DATA" "$2" \
+echo -e "'$WEBHOOK_DATA'"
+(curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "'$WEBHOOK_DATA'" "$2" \
 && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
