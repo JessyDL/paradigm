@@ -37,11 +37,12 @@ else
 fi
 
 if [[ $UTESTS == true ]]; then
-  foo=$(<${UTESTS_RESULTS})
+  foo=$(<${UTESTS_RESULTS})  
+  UNIT_TEST_STATUS=${foo##*$'\n'}
   if [[ ${#foo} > 2000 ]]; then
     foo=${foo:0:2000}
   fi
-  UNIT_TEST_RESULTS='"content": "'"$foo"'",'
+  UNIT_TEST_RESULTS=',{ "title": "'"$UNIT_TEST_STATUS"'", "description": "'"$foo"'"}'
 else 
   UNIT_TEST_RESULTS=""
 fi
@@ -50,7 +51,6 @@ TIMESTAMP=$(date --utc +%FT%TZ)
 WEBHOOK_DATA='{
   "username": "",
   "avatar_url": "https://travis-ci.org/images/logos/TravisCI-Mascot-1.png",
-  '"$UNIT_TEST_RESULTS"'
   "embeds": [ {
     "color": '$EMBED_COLOR',
     "author": {
@@ -74,7 +74,7 @@ WEBHOOK_DATA='{
       }
     ],
     "timestamp": "'"$TIMESTAMP"'"
-  } ]
+  } '"$UNIT_TEST_RESULTS"' ]
 }'
 echo -e "$WEBHOOK_DATA"
 (curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "$WEBHOOK_DATA" "$2" \
