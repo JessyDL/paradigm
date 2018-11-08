@@ -38,6 +38,7 @@ matrix:
     - name: "Linux CLang 6.0 Unit Tests"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DTESTS=ON" UTESTS=true
       addons: *clang60
+      
 
 install:
   - export CXX=${COMPILER}
@@ -46,20 +47,21 @@ install:
   - DEPS_DIR="$HOME/cache"
   
   # Install a supported cmake version (>= 3.11)
-  - mkdir $HOME/usr
-  - export PATH="$HOME/usr/bin:$PATH"
   - |
-    if [ -e "$HOME/cache/cmake/cmake.sh" ]
-    then
-      cd $HOME/cache/cmake
-    else
-      mkdir -p $HOME/cache/cmake
-      cd $HOME/cache/cmake
-      wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      mkdir $HOME/usr
+      export PATH="$HOME/usr/bin:$PATH"
+      if [ -e "$HOME/cache/cmake/cmake.sh" ]; then
+          cd $HOME/cache/cmake
+      else
+        mkdir -p $HOME/cache/cmake
+        cd $HOME/cache/cmake
+        wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+      fi
+      chmod +x cmake.sh
+      ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
     fi
-  - chmod +x cmake.sh
-  - ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
-  
+    
   # Install Vulkan SDK
   - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
@@ -86,35 +88,39 @@ install:
   - LLVM_INSTALL=${TRAVIS_BUILD_DIR}/../llvm/install
   - mkdir -p "${LLVM_INSTALL}"
   - |
-    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then   
-      git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
-      mkdir -p llvm/build llvm/projects
-      git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
-      git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm/projects/libcxxabi
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then   
+        git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
+        mkdir -p llvm/build llvm/projects
+        git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
+        git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm/projects/libcxxabi
 
-      cd llvm
-      git checkout $LLVM_VERSION_TAG
-      cd projects/libcxx
-      git checkout $LLVM_VERSION_TAG
-      cd ../libcxxabi
-      git checkout $LLVM_VERSION_TAG
+        cd llvm
+        git checkout $LLVM_VERSION_TAG
+        cd projects/libcxx
+        git checkout $LLVM_VERSION_TAG
+        cd ../libcxxabi
+        git checkout $LLVM_VERSION_TAG
+      
+        (cd ${DEPS_DIR}/llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
+      fi
+      (cd ${DEPS_DIR}/llvm/build/projects/libcxx && make install -j2)
+      cd ${DEPS_DIR}/llvm/build/projects/libcxxabi && make install -j2)
+      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
     fi
-  - cd ${DEPS_DIR}/llvm/build/projects/libcxx
-  - make install -j2
-  - cd ${DEPS_DIR}/llvm/build/projects/libcxxabi
-  - make install -j2
-  - export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
-  - export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
-  - export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
 
   # Install Ninja
   - |
-    if [ ! -d "${DEPS_DIR}/ninja" ]; then
-      mkdir $DEPS_DIR/ninja
-      curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
-      unzip $DEPS_DIR/ninja/ninja-linux.zip -d $DEPS_DIR/ninja
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      if [ ! -d "${DEPS_DIR}/ninja" ]; then
+        mkdir $DEPS_DIR/ninja
+        curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
+        unzip $DEPS_DIR/ninja/ninja-linux.zip -d $DEPS_DIR/ninja
+      fi
+      export PATH=$PATH:$DEPS_DIR/ninja
     fi
-  - export PATH=$PATH:$DEPS_DIR/ninja
   
   # Misc
   - export CXX="clang++-6.0" CC="clang-6.0"
@@ -126,17 +132,10 @@ script:
   - make -j2
   - |
     if [[ $UTESTS == true ]]; then
-      cd $TRAVIS_BUILD_DIR/builds
-      echo $(ls)
-      cd make
-      echo $(ls)
-      cd x64
-      echo $(ls)
-      cd bin
-      echo $(ls)
+      cd $TRAVIS_BUILD_DIR/builds/make/x64/release/x64/bin
       chmod +x tests
       ./tests -o results.txt
-      echo $(ls)
+      export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/builds/make/x64/release/x64/bin/results.txt"
     fi
   
 after_success:
