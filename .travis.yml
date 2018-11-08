@@ -32,15 +32,9 @@ matrix:
           packages:
             - clang-6.0
             - libassimp-dev
-            - libxcb-dri3-0
-            - libxcb-present0
-            - libxcb-dri3-dev
             - libx11-dev 
             - libx11-xcb-dev 
-            - libmirclient-dev 
-            - libwayland-dev 
             - libxrandr-dev
-
     - name: "Linux CLang 6.0 Unit Tests"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DTESTS=ON" UTESTS=true
       addons: *clang60
@@ -90,15 +84,15 @@ install:
   ############################################################################
   - cd "${DEPS_DIR}"
   - |
-    LLVM_INSTALL=${DEPS_DIR}/llvm/install
+    LLVM_INSTALL=${TRAVIS_BUILD_DIR}/../llvm/install
+    mkdir -p "${LLVM_INSTALL}"
     # if in linux and compiler clang and llvm not installed
-    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then    
-      
+    if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then   
       git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
       mkdir -p llvm/build llvm/projects
       git clone --depth=1 https://github.com/llvm-mirror/libcxx.git llvm/projects/libcxx
       git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git llvm/projects/libcxxabi
-      
+
       cd llvm
       git checkout $LLVM_VERSION_TAG
       cd projects/libcxx
@@ -106,28 +100,23 @@ install:
       cd ../libcxxabi
       git checkout $LLVM_VERSION_TAG
       cd ../../../
-      
-      (cd llvm/build && cmake .. -DCMAKE_INSTALL_PREFIX=${LLVM_INSTALL})
-      (cd llvm/build/projects/libcxx && make install -j2)
-      (cd llvm/build/projects/libcxxabi && make install -j2)
-      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
-      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
-    else
-      echo "building from cache"
-      (cd llvm/build/projects/libcxx && make install -j2)
-      (cd llvm/build/projects/libcxxabi && make install -j2)
-      export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
-      export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
-      export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
     fi
+  - cd ${DEPS_DIR}/llvm/build/projects/libcxx
+  - make install -j2
+  - cd ${DEPS_DIR}/llvm/build/projects/libcxxabi
+  - make install -j2
+  - export CXXFLAGS="-isystem ${LLVM_INSTALL}/include/c++/v1"
+  - export LDFLAGS="-L ${LLVM_INSTALL}/lib -l c++ -l c++abi"
+  - export LD_LIBRARY_PATH="${LD_LIBRARY_PATH}:${LLVM_INSTALL}/lib"
 
   # Install Ninja
-  - cd $TRAVIS_BUILD_DIR/../
-  - mkdir $TRAVIS_BUILD_DIR/../tmp
-  - curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $TRAVIS_BUILD_DIR/../tmp/ninja-linux.zip
-  - unzip $TRAVIS_BUILD_DIR/../tmp/ninja-linux.zip -d $TRAVIS_BUILD_DIR/../ninja
-  - export PATH=$PATH:$TRAVIS_BUILD_DIR/../ninja
+  - |
+    if [[ ! -d "${DEPS_DIR}/ninja" ]]; then
+	  mkdir $DEPS_DIR/ninja
+	  curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
+      unzip $DEPS_DIR/ninja/ninja-linux.zip -d $DEPS_DIR/ninja
+	fi
+  - export PATH=$PATH:$DEPS_DIR/ninja
   
   # Misc
   - export CXX="clang++-6.0" CC="clang-6.0"
@@ -136,12 +125,20 @@ install:
 script:  
   - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
-  - make_res="$(make -j2)"
+  - make -j2
   - |
-    if [ "$UTESTS" = true && $make_res -eq 0 ]; then
-      cd $TRAVIS_BUILD_DIR/builds/make/bin
+    if [[ $UTESTS == true ]]; then
+      cd $TRAVIS_BUILD_DIR/builds
+      echo $(ls)
+      cd make
+      echo $(ls)
+      cd x64
+      echo $(ls)
+      cd bin
+      echo $(ls)
       chmod +x tests
       ./tests -o results.txt
+      echo $(ls)
     fi
   
 after_success:
