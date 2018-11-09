@@ -35,9 +35,6 @@
 #include "data/sampler.h"
 #include "vk/sampler.h"
 
-// glm rotate
-#include "glm/gtx/rotate_vector.hpp"
-
 #include "systems/input.h"
 
 #include "utility/geometry.h"
@@ -45,403 +42,17 @@
 #include "ecs/ecs.hpp"
 
 #include "math/math.hpp"
-
+#include "ecs/components/transform.h"
+#include "ecs/components/camera.h"
+#include "ecs/components/input_tag.h"
+#include "ecs/components/renderable.h"
 #include "ecs/systems/fly.h"
-
+#include "ecs/systems/render.h"
 
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
 using namespace core::os;
-
-struct framedata
-{
-	glm::mat4 clipMatrix;
-	glm::mat4 projectionMatrix;
-	glm::mat4 modelMatrix;
-	glm::mat4 viewMatrix;
-	glm::mat4 WVP;
-	glm::mat4 VP;
-	glm::vec4 ScreenParams;
-	glm::vec4 GameTimer;
-	glm::vec4 Parameters;
-	glm::vec4 FogColor;
-	glm::vec4 viewPos;
-	glm::vec4 viewDir;
-};
-
-class transform
-{
-  public:
-	transform() = default;
-	const glm::vec3& position() const noexcept { return m_Position; };
-	const glm::quat& rotation() const noexcept { return m_Rotation; };
-	const glm::vec3& scale() const noexcept { return m_Scale; };
-	const glm::vec3& up() const noexcept { return m_Up; };
-	const glm::vec3& direction() const noexcept { return m_Direction; };
-
-	void position(const glm::vec3& value) { m_Position = value; };
-	void rotation(const glm::quat& value)
-	{
-		m_Direction = glm::normalize(glm::rotate(value, m_Direction));
-		m_Rotation  = value;
-	};
-	void scale(const glm::vec3& value) { m_Scale = value; };
-	void up(const glm::vec3& value) { m_Up = glm::normalize(value); };
-	void direction(const glm::vec3& value)
-	{
-		m_Direction = glm::normalize(value);
-		m_Rotation  = glm::quat(glm::radians(m_Direction));
-	};
-
-	void rotate(const glm::detail::float32& degrees, const glm::vec3& axis)
-	{
-		m_Rotation  = m_Rotation * glm::normalize(glm::angleAxis(degrees, axis));
-		m_Direction = glm::rotate(m_Direction, degrees, axis);
-	}
-
-  private:
-	glm::vec3 m_Position{glm::vec3::Zero};
-	glm::vec3 m_Scale{glm::vec3::One};
-	glm::quat m_Rotation{1, 0, 0, 0};
-	glm::vec3 m_Up{glm::vec3::Up};
-	glm::vec3 m_Direction{glm::vec3::Forward};
-};
-
-class camera
-{
-	const glm::mat4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
-						 +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
-
-  public:
-	camera(core::resource::handle<core::gfx::buffer> buffer, core::resource::handle<core::os::surface> surface)
-		: fdatasegment(buffer->reserve(sizeof(framedata)).value()), m_Buffer(buffer), m_Surface(surface)
-	{
-		m_Transform.position(glm::vec3(0, 0, -5.0f));
-		update_buffer();
-	}
-
-	void tick(std::chrono::duration<float> dTime) { update_buffer(); }
-
-	transform& transform() { return m_Transform; }
-
-	const std::vector<core::gfx::drawlayer>& layers() const noexcept { return m_Layers; }
-	void layers(const std::vector<core::gfx::drawlayer>& layers) noexcept { m_Layers = layers; }
-  private:
-	void update_buffer()
-	{
-		fdata.ScreenParams =
-			glm::vec4((float)m_Surface->data().width(), (float)m_Surface->data().height(), m_Near, m_Far);
-
-		fdata.projectionMatrix = glm::perspective(
-			glm::radians(m_FOV), (float)m_Surface->data().width() / (float)m_Surface->data().height(), m_Near, m_Far);
-		fdata.clipMatrix = clip;
-
-		fdata.viewMatrix =
-			glm::lookAt(m_Transform.position(), m_Transform.position() + m_Transform.direction(), m_Transform.up());
-		fdata.modelMatrix = glm::mat4();
-		fdata.viewPos	 = glm::vec4(m_Transform.position(), 1.0);
-		fdata.viewDir	 = glm::vec4(m_Transform.direction(), 0.0);
-
-		fdata.VP  = fdata.clipMatrix * fdata.projectionMatrix * fdata.viewMatrix;
-		fdata.WVP = fdata.VP * fdata.modelMatrix;
-		m_Buffer->commit({{&fdata, fdatasegment}});
-	}
-	memory::segment fdatasegment;
-	core::resource::handle<core::gfx::buffer> m_Buffer;
-	core::resource::handle<core::os::surface> m_Surface;
-	framedata fdata{};
-
-	::transform m_Transform{};
-	float m_FOV{60};
-	float m_Near = 0.1f;
-	float m_Far  = 24.f;
-	std::vector<core::gfx::drawlayer> m_Layers;
-};
-
-class transform_inputlistener
-{
-  public:
-	transform_inputlistener(transform& transform, core::systems::input& inputSystem)
-		: m_Transform(transform), m_InputSystem(inputSystem)
-	{
-		m_InputSystem.subscribe(this);
-	}
-
-	~transform_inputlistener() { m_InputSystem.unsubscribe(this); }
-	void on_key_pressed(core::systems::input::keycode keyCode)
-	{
-		using keycode_t = core::systems::input::keycode;
-		switch(keyCode)
-		{
-		case keycode_t::Z: { m_Moving[0] = true;
-		}
-		break;
-		case keycode_t::Q: { m_Moving[2] = true;
-		}
-		break;
-		case keycode_t::S: { m_Moving[1] = true;
-		}
-		break;
-		case keycode_t::D: { m_Moving[3] = true;
-		}
-		break;
-		case keycode_t::SPACE: { m_Up = true;
-		}
-		break;
-		default: break;
-		}
-	}
-
-	void on_key_released(core::systems::input::keycode keyCode)
-	{
-		using keycode_t = core::systems::input::keycode;
-		switch(keyCode)
-		{
-		case keycode_t::Z: { m_Moving[0] = false;
-		}
-		break;
-		case keycode_t::Q: { m_Moving[2] = false;
-		}
-		break;
-		case keycode_t::S: { m_Moving[1] = false;
-		}
-		break;
-		case keycode_t::D: { m_Moving[3] = false;
-		}
-		break;
-		case keycode_t::SPACE: { m_Up = false;
-		}
-		break;
-		default: break;
-		}
-	}
-
-	void on_mouse_move(core::systems::input::mouse_delta delta)
-	{
-		if(!m_AllowRotating) return;
-		m_MouseTargetX += delta.x;
-		m_MouseTargetY += delta.y;
-	}
-
-	void on_scroll(core::systems::input::scroll_delta delta)
-	{
-		m_MoveSpeed += m_MoveStepIncrease * delta.y;
-		m_MoveSpeed = std::max(m_MoveSpeed, 0.05f);
-	}
-
-	void on_mouse_pressed(core::systems::input::mousecode mCode)
-	{
-		if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = true;
-	}
-
-	void on_mouse_released(core::systems::input::mousecode mCode)
-	{
-		if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = false;
-	}
-
-	void tick(std::chrono::duration<float> dTime)
-	{
-		// m_Transform.position(m_Transform.position() + (m_MoveVector * dTime.count()));
-		if(m_Moving[0])
-		{
-			glm::vec3 forward = m_Transform.direction();
-			// forward.y = 0;
-			forward = glm::normalize(forward);
-			m_Transform.position(m_Transform.position() + forward * m_MoveSpeed * dTime.count());
-		}
-
-		if(m_Moving[1])
-		{
-			glm::vec3 forward = m_Transform.direction();
-			// forward.y = 0;
-			forward = glm::normalize(forward);
-			m_Transform.position(m_Transform.position() - forward * m_MoveSpeed * dTime.count());
-		}
-
-		if(m_Moving[2])
-		{
-			glm::vec3 Left = glm::cross(m_Transform.direction(), m_Transform.up());
-			Left		   = glm::normalize(Left);
-			Left *= m_MoveSpeed * dTime.count();
-			m_Transform.position(m_Transform.position() - Left);
-		}
-
-		if(m_Moving[3])
-		{
-			glm::vec3 Right = glm::cross(m_Transform.up(), m_Transform.direction());
-			Right			= glm::normalize(Right);
-			Right *= m_MoveSpeed * dTime.count();
-			m_Transform.position(m_Transform.position() - Right);
-		}
-
-		if(m_Up)
-		{
-			m_Transform.position(m_Transform.position() + glm::vec3::Up * dTime.count() * 1.0f * m_MoveSpeed);
-		}
-
-		if(m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY)
-		{
-			float mouseSpeed = 0.004f;
-			auto diffX		 = m_MouseX - m_MouseTargetX;
-			auto diffY		 = m_MouseY - m_MouseTargetY;
-			m_AngleH		 = mouseSpeed * diffX;
-			ChangeHeading(-m_AngleH);
-
-			m_AngleV = mouseSpeed * diffY;
-			ChangePitch(m_AngleV);
-			m_MouseX = m_MouseTargetX;
-			m_MouseY = m_MouseTargetY;
-
-			// detmine axis for pitch rotation
-			glm::vec3 axis = glm::cross(m_Transform.direction(), m_Transform.up());
-			// compute quaternion for pitch based on the camera pitch angle
-			glm::quat pitch_quat = glm::angleAxis(m_Pitch, axis);
-			// determine heading quaternion from the camera up vector and the heading angle
-			glm::quat heading_quat = glm::angleAxis(m_Heading, m_Transform.up());
-			// add the two quaternions
-			glm::quat temp = glm::cross(pitch_quat, heading_quat);
-			m_Transform.rotation(glm::normalize(temp));
-
-			m_AngleH  = 0;
-			m_AngleV  = 0;
-			m_Pitch   = 0;
-			m_Heading = 0;
-		}
-	}
-
-  private:
-	void ChangePitch(float degrees)
-	{
-		m_Pitch += degrees;
-
-		// Check bounds for the camera pitch
-		if(m_Pitch > 360.0f)
-		{
-			m_Pitch -= 360.0f;
-		}
-		else if(m_Pitch < -360.0f)
-		{
-			m_Pitch += 360.0f;
-		}
-	}
-
-	void ChangeHeading(float degrees)
-	{ // This controls how the heading is changed if the camera is pointed straight up or down
-		// The heading delta direction changes
-		if((m_Pitch > 90 && m_Pitch < 270) || (m_Pitch < -90 && m_Pitch > -270))
-		{
-			m_Heading += degrees;
-		}
-		else
-		{
-			m_Heading -= degrees;
-		}
-		// Check bounds for the camera heading
-		if(m_Heading > 360.0f)
-		{
-			m_Heading -= 360.0f;
-		}
-		else if(m_Heading < -360.0f)
-		{
-			m_Heading += 360.0f;
-		}
-	}
-
-
-	std::array<bool, 4> m_Moving{false};
-	bool m_Up{false};
-	glm::vec3 m_MoveVector{};
-	transform& m_Transform;
-	core::systems::input& m_InputSystem;
-
-	int64_t m_MouseX{1};
-	int64_t m_MouseY{1};
-
-	int64_t m_MouseTargetX{1};
-	int64_t m_MouseTargetY{1};
-
-	float m_Pitch{ 0 };
-	float m_Heading{ 0 };
-	float m_AngleH{ 0 };
-	float m_AngleV{ 0 };
-
-	float m_MoveSpeed{1.0f};
-	const float m_MoveStepIncrease{0.035f};
-	bool m_AllowRotating{false};
-};
-
-class renderer
-{
-  public:
-	renderer(resource::cache& cache, const UID& geometry, const UID& material)
-	{
-		m_Geometry = cache.find<core::gfx::geometry>(geometry);
-		m_Material = cache.find<core::gfx::material>(material);
-	};
-	renderer(resource::handle<core::gfx::geometry>& geometry, resource::handle<core::gfx::material>& material)
-		: m_Geometry(geometry), m_Material(material){};
-
-	transform& transform() noexcept { return m_Transform; }
-
-	void tick(std::chrono::duration<float> dTime) { }
-  private:
-	::transform m_Transform;
-	resource::handle<core::gfx::geometry> m_Geometry;
-	resource::handle<core::gfx::material> m_Material;
-};
-
-class world
-{
-  public:
-	world() = default;
-
-	template <typename T, typename... Args>
-	T& add(Args&&... args)
-	{
-		if constexpr (std::is_same<T, camera>::value)
-		{
-			auto& dGroup = m_Drawgroups.emplace_back();
-			auto& layer = dGroup.layer("default", 0);
-			auto& c = m_Cameras.emplace_back(std::forward<Args>(args)...);
-			c.layers({ layer });
-			return c;
-		}
-		else if constexpr (std::is_same<T, renderer>::value)
-		{
-			return m_Renderers.emplace_back(std::forward<Args>(args)...);
-		}
-		else
-		{
-			static_assert(utility::templates::always_false<T>{}, "please select a type that is supported");
-		}
-	}
-
-	void tick(std::chrono::duration<float> dTime) 
-	{ 
-		for (auto& c : m_Cameras)
-		{
-			c.tick(dTime);
-		}
-		for (auto& r : m_Renderers)
-		{
-			r.tick(dTime);
-		}
-	}
-
-	void set_visible_to(const renderer& renderer, const camera& camera)
-	{
-		for (const auto& c : m_Cameras)
-		{
-			//if(c.)
-		}
-	}
-
-  private:
-	std::vector<renderer> m_Renderers;
-	std::vector<camera> m_Cameras;
-	std::vector<core::gfx::drawgroup> m_Drawgroups;
-};
 
 #ifndef PLATFORM_ANDROID
 void setup_loggers()
@@ -906,57 +517,6 @@ int android_entry()
 
 #endif
 
-struct float_system
-{
-	core::ecs::vector<float, core::ecs::access::READ_ONLY> m_Floats;
-	core::ecs::vector<int, core::ecs::access::READ_WRITE> m_Ints;
-
-	void announce(core::ecs::state& state)
-	{
-		state.register_dependency(m_Floats);
-		state.register_dependency(m_Ints);
-	}
-	
-	void tick(core::ecs::state& state, const std::vector<core::ecs::entity>& entities, std::chrono::duration<float> dTime)
-	{
-		core::log->info("running float_system");
-		for(size_t i = 0; i < entities.size(); ++i)
-		{
-			//core::log->info("    entity - {0} has health {1} and lives {2}", entities[i].id(), m_Floats[i], m_Ints[i]);
-			m_Ints[i] += 5;
-		}
-	}
-};
-
-struct transform2
-{
-	transform2() = default;
-	psl::vec3 pos;
-};
-
-void math_test()
-{
-	psl::mat4x4 mat42{ 1, 2, 3, 4, 5,6,7,8, 9,10,11,12, 13,14,15,16  };
-	auto res = mat42.column<0>();
-	res = mat42.column<1>();
-	mat42.swizzle();
-	mat42.swizzle();
-	mat42.row<0>(mat42.column<1>());
-	psl::tvec<double, 4> vec_test{ 0,2,5,0  };
-	psl::tvec<double, 4> vec_test2{ 5,3,0,0 };
-
-	psl::vec3 v3{ psl::vec3::zero };
-
-	psl::mat4x4 mat4{5 };
-	auto test = mat4.row<0>().at<3>();
-	test = mat4.at<0,3>();
-	vec_test += vec_test2 * vec_test2 * psl::dvec4::down;
-	
-	psl::vec2 vec2_test{ 0,3 };
-	const auto& x = vec2_test.x();
-}
-
-
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -964,8 +524,6 @@ int entry()
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
 	setup_loggers();
-
-	//math_test();
 
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
@@ -993,7 +551,6 @@ int entry()
 	swapchain_handle.load(surface_handle, context_handle);
 	surface_handle->register_swapchain(swapchain_handle);
 	context_handle->device().waitIdle();
-	pass pass{context_handle, swapchain_handle};
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	auto stagingBufferData = create<data::buffer>(cache);
@@ -1008,7 +565,7 @@ int entry()
 	frameBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
 						 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 						 resource_region
-							 .create_region(sizeof(framedata) * 128,
+							 .create_region(sizeof(core::ecs::systems::render::framedata) * 128,
 											context_handle->properties().limits.minUniformBufferOffsetAlignment,
 											new memory::default_allocator(true))
 							 .value());
@@ -1125,41 +682,24 @@ int entry()
 
 	// create the ecs
 	core::ecs::state ECSState{};
-	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::input_tag>(std::nullopt, std::nullopt);
+	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
+	auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>(core::ecs::components::renderable{ material.ID(), geometry.ID(), 0u }, std::nullopt);
 
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
 	ECSState.register_system(fly_system);
-	// create the draw instruction
-	core::gfx::drawgroup dGroup{};
 
-	auto& default_layer = dGroup.layer("default", 0);
-	auto& call			= dGroup.add(default_layer, material);
-	call.add(geometry);
-
-	pass.add(dGroup);
-
-	world world{};
-	camera& cam = world.add<camera>(frameBuffer, surface_handle);
-	pass.build();
-
-	transform_inputlistener listener{cam.transform(), surface_handle->input()};
+	core::ecs::systems::render render_system{ cache, context_handle, swapchain_handle, surface_handle, frameBuffer };
+	ECSState.register_system(render_system);
 
 	uint64_t frameCount										 = 0u;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
 	{
-		if(surface_handle->open() && swapchain_handle->is_ready())
-		{
-			pass.prepare();
-			pass.present();
-		}
 		auto current_time = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed =
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
-		world.tick(elapsed);
 		ECSState.tick(elapsed);
-		listener.tick(elapsed);
 		++frameCount;
 	}
 	return 0;

@@ -304,14 +304,16 @@ void pass::present()
 }
 
 
-void pass::bias(const core::gfx::depth_bias& bias) { m_DepthBias = bias; }
-core::gfx::depth_bias pass::bias() const { return m_DepthBias; }
+void pass::bias(const core::gfx::depth_bias& bias) noexcept { m_DepthBias = bias; }
+core::gfx::depth_bias pass::bias() const noexcept { return m_DepthBias; }
 
-void pass::add(core::gfx::drawgroup& group) { m_AllGroups.push_back(group); }
-void pass::remove(const core::gfx::drawgroup& group)
+void pass::add(core::gfx::drawgroup& group) noexcept { m_AllGroups.push_back(group); }
+void pass::remove(const core::gfx::drawgroup& group) noexcept
 {
 	m_AllGroups.erase(
 		std::remove_if(std::begin(m_AllGroups), std::end(m_AllGroups),
 					   [&group](const std::reference_wrapper<drawgroup>& element) { return &group == &element.get(); }),
 		std::end(m_AllGroups));
 }
+
+void pass::clear() noexcept { m_AllGroups.clear(); }

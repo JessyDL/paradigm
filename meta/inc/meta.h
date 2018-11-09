@@ -3,21 +3,6 @@
 #include "platform_def.h"
 #include "string_utils.h"
 
-
-#if defined(META_GENERIC_UUID)
-
-#elif defined (PLATFORM_WINDOWS)
-#include <Rpc.h>
-#include <objbase.h>
-#elif defined(PLATFORM_LINUX)
-#include <uuid/uuid.h>
-#elif defined(PLATFORM_ANDROID)
-// forcibly define it for android
-#define META_GENERIC_UUID
-#else
-#error implement UUID for the given platform
-#endif
-
 namespace std
 {
 #ifdef _MSC_VER
@@ -33,19 +18,12 @@ namespace std
 struct UID
 {
 
-private:
+public:
 	UID(const psl::string8_t &key);
 
 	friend struct std::hash<UID>;
-#if defined(META_GENERIC_UUID)
 	using PUID = std::array<uint8_t, 16>;
-#elif defined(PLATFORM_WINDOWS)
-	using PUID = UUID;
-#elif defined(PLATFORM_LINUX)
-	using PUID = uuid_t;
-#else
-	using PUID = std::array<unsigned char, 16>;
-#endif
+
 
 
 public:
@@ -55,10 +33,10 @@ public:
 	/// \param[in] id the internal representation of a UID.
 	UID(const PUID& id);
 	
-	UID(const UID& other) noexcept;
-	UID(UID&& other) noexcept;
-	UID& operator=(const UID& other) noexcept;
-	UID& operator=(UID&& other) noexcept;
+	UID(const UID& other) noexcept = default;
+	UID(UID&& other) noexcept = default;
+	UID& operator=(const UID& other) noexcept = default;
+	UID& operator=(UID&& other) noexcept = default;
 
 	/// \brief creates a string based representation of the owned UID.
 	///
@@ -122,19 +100,8 @@ namespace std {
 	{
 		size_t operator()(const UID & x) const
 		{
-		#if defined(PLATFORM_WINDOWS) && !defined(META_GENERIC_UUID)
-			RPC_STATUS status;
-			auto copy = x.GUID;
-			auto hash = UuidHash(&copy, &status);
-			if (RPC_S_OK != status)
-			{
-				debug_break();
-			}
-			return hash;
-		#else
 			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
 			return half[0] ^ half[1];
-		#endif
 		}
 	};
 }

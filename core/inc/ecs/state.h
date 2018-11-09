@@ -339,9 +339,27 @@ namespace core::ecs
 		{
 			constexpr details::component_key_t int_id = details::component_key<T>;
 			auto eMapIt								  = m_EntityMap.find(e);
-			auto foundIt							  = std::remove_if(
+			auto foundIt							  = std::find_if(
 				 eMapIt->second.begin(), eMapIt->second.end(),
 				 [&int_id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == int_id; });
+
+			if(foundIt == std::end(eMapIt->second))
+			{
+				throw std::runtime_error("missing component");
+			}
+			const auto& index	= foundIt->second;
+			const auto& mem_pair = m_Components.find(int_id);
+			return *(T*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
+		}
+
+		template <typename T>
+		const T& read_component(entity e) const
+		{
+			constexpr details::component_key_t int_id = details::component_key<T>;
+			auto eMapIt								  = m_EntityMap.find(e);
+			auto foundIt							  = std::find_if(
+				eMapIt->second.begin(), eMapIt->second.end(),
+				[&int_id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == int_id; });
 
 			if(foundIt == std::end(eMapIt->second))
 			{

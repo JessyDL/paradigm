@@ -1,12 +1,8 @@
 ﻿#include "meta.h"
 #include <random>
 
+const UID UID::invalid_uid = PUID{0};
 
-#if !defined(PLATFORM_ANDROID) || defined(META_GENERIC_UUID)
-const UID UID::invalid_uid = UID::generate();
-#endif
-
-#ifdef META_GENERIC_UUID
 
 struct uuid_components
 {
@@ -20,27 +16,6 @@ struct uuid_components
 UID::UID(const psl::string8_t& key) : GUID(convert(key).GUID) {}
 UID::UID() : GUID(invalid_uid.GUID) {}
 UID::UID(const PUID& id) : GUID(id) {}
-UID::UID(const UID& other) noexcept : GUID(other.GUID) {}
-UID::UID(UID&& other) noexcept : GUID(std::move(other.GUID)) { other.invalidate(); }
-
-UID& UID::operator=(const UID& other) noexcept
-{
-	if(GUID != other.GUID)
-	{
-		GUID = other.GUID;
-	}
-	return *this;
-}
-
-UID& UID::operator=(UID&& other) noexcept
-{
-	if(GUID != other.GUID)
-	{
-		GUID = std::move(other.GUID);
-		other.invalidate();
-	}
-	return *this;
-}
 
 bool UID::operator==(const UID& b) const { return GUID == b.GUID; }
 bool UID::operator!=(const UID& b) const { return GUID != b.GUID; }
@@ -166,4 +141,3 @@ bool UID::valid(const psl::string8_t &key)
 
 	return true;
 }
-#endif

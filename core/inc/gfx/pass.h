@@ -56,22 +56,24 @@ namespace core::gfx
 		void present();
 
 		/// \brief set the depth bias on the current pass.
-		void bias(const core::gfx::depth_bias& bias);
+		void bias(const core::gfx::depth_bias& bias) noexcept;
 
 		/// \brief returns the current dept bias on this instance.
 		/// \returns the current dept bias on this instance.
-		core::gfx::depth_bias bias() const;
+		core::gfx::depth_bias bias() const noexcept;
 
 		/// \brief build, and records the draw, and other instructions associated with this pass.
 		/// \returns true on success, false if submitting the instructions to the GPU failed.
 		bool build();
 
 		/// \brief add an additional drawgroup to be included in this pass' draw instructions.
-		void add(core::gfx::drawgroup& group);
+		void add(core::gfx::drawgroup& group) noexcept;
 
 		/// \brief removes an existing drawgroup from this pass' draw instructions.
-		void remove(const core::gfx::drawgroup& group);
+		void remove(const core::gfx::drawgroup& group) noexcept;
 
+		/// \brief removes all drawgroups from this pass' draw instructions.
+		void clear() noexcept;
 	  private:
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
 		/// \param[in] size the amount of fences to create.

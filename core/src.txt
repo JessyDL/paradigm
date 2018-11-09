@@ -43,4 +43,5 @@ src/vk/swapchain.cpp
 src/vk/texture.cpp
 
 src/ecs/systems/fly.cpp
+src/ecs/systems/render.cpp
 )
