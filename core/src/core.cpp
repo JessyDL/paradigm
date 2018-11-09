@@ -1126,8 +1126,7 @@ int entry()
 	// create the ecs
 	core::ecs::state ECSState{};
 	auto eCam = ECSState.create();
-	ECSState.add_component<core::ecs::components::transform>(eCam);
-	ECSState.add_component<core::ecs::components::input_tag>(eCam);
+	ECSState.add_components<core::ecs::components::transform, core::ecs::components::input_tag>(eCam, std::nullopt, std::nullopt);
 
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
 	ECSState.register_system(fly_system);

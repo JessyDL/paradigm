@@ -103,7 +103,7 @@ namespace core::ecs
 
 	  public:
 		template <typename T>
-		bool add_component(const std::vector<entity>& entities, std::optional<T> _template = std::nullopt) noexcept
+		void add_component(const std::vector<entity>& entities, std::optional<T> _template = std::nullopt) noexcept
 		{
 			static_assert(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value, 
 				"the component type must be trivially copyable and standard layout (std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
@@ -146,37 +146,72 @@ namespace core::ecs
 
 				pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
 			}
-			return true;
 		}
 
-		template <typename T>
-		bool add_component(entity e, std::optional<T> _template = std::nullopt) noexcept
+		template <typename... Ts>
+		void add_components(const std::vector<entity>& entities, std::optional<Ts>... _template) noexcept
 		{
-			return add_component<T>(std::vector<entity>{e}, _template);
+			( add_component<Ts>(entities, _template), ...);
+		}
+
+
+		template <typename T>
+		void add_component(entity e, std::optional<T> _template = std::nullopt) noexcept
+		{
+			add_component<T>(std::vector<entity>{e}, _template);
+		}
+
+		template <typename... Ts>
+		void add_components(entity e, std::optional<Ts>... _template) noexcept
+		{
+			( add_component<Ts>(std::vector<entity>{e}, _template), ...);
 		}
 
 		template <typename T>
-		bool remove_component(entity e) noexcept
+		void remove_component(const std::vector<entity>& entities) noexcept
 		{
 			constexpr details::component_key_t int_id = details::component_key<T>;
-			auto eMapIt								  = m_EntityMap.find(e);
-			auto foundIt							  = std::remove_if(
-				 eMapIt->second.begin(), eMapIt->second.end(),
-				 [&int_id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == int_id; });
 
-			if(foundIt == std::end(eMapIt->second)) return false;
-			auto index = foundIt->second;
+			for (auto e : entities)
+			{
+				auto eMapIt = m_EntityMap.find(e);
+				auto foundIt = std::remove_if(
+					eMapIt->second.begin(), eMapIt->second.end(),
+					[&int_id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == int_id; });
 
-			eMapIt->second.erase(foundIt, eMapIt->second.end());
-			const auto& eCompIt = m_Components.find(int_id);
-			eCompIt->second.entities.erase(
-				std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-				eCompIt->second.entities.end());
+				if (foundIt == std::end(eMapIt->second)) continue;
+				auto index = foundIt->second;
 
-			void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
-			std::memset(loc, 0, eCompIt->second.size);
-			return true;
+				eMapIt->second.erase(foundIt, eMapIt->second.end());
+				const auto& eCompIt = m_Components.find(int_id);
+				eCompIt->second.entities.erase(
+					std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+					eCompIt->second.entities.end());
+
+				void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
+				std::memset(loc, 0, eCompIt->second.size);
+			}
 		}
+
+		template <typename... Ts>
+		void remove_components(const std::vector<entity>& entities) noexcept
+		{
+			( remove_component<Ts>(entities), ...);
+		}
+
+
+		template <typename T>
+		void remove_component(entity e) noexcept
+		{
+			remove_component<T>(std::vector<entity>{e});
+		}
+
+		template <typename... Ts>
+		void remove_components(entity e) noexcept
+		{
+			( remove_component<Ts>(std::vector<entity>{e}), ...);
+		}
+
 
 		entity create() noexcept
 		{
