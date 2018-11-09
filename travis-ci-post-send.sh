@@ -22,11 +22,11 @@ esac
 
 PREVIOUS_COMMIT="$(git rev-parse --short=12 "$TRAVIS_COMMIT"^1)"
 if [ $PREVIOUS_COMMIT == ${TRAVIS_COMMIT_RANGE:0:12} ]; then
-  COMMIT_RANGE=$TRAVIS_COMMIT
-  COMMIT_URL='https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$COMMIT_RANGE"''
+  COMMIT_URL='https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$TRAVIS_COMMIT"''
+  COMMIT_RANGE=${TRAVIS_COMMIT:0:12}
 else
+  COMMIT_URL='https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$TRAVIS_COMMIT_RANGE"''
   COMMIT_RANGE=$TRAVIS_COMMIT_RANGE
-  COMMIT_URL='https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$COMMIT_RANGE"''
 fi
 
 AUTHOR_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%aN, " | sort -u)"
@@ -76,7 +76,7 @@ WEBHOOK_DATA='{
     "color": '$EMBED_COLOR',
     "author": { "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'", "url": "'"$TRAVIS_BUILD_WEB_URL"'","icon_url": "'$AVATAR'" },
     "title": "'"$TRAVIS_BRANCH"' - '"$COMMIT_RANGE"'",
-    "description": "'"${COMMIT_MESSAGE//$'\n'/\\n}"'",
+    "description": " - '"${COMMIT_MESSAGE//$'\n'/\\n - }"'",
     "timestamp": "'"$TIMESTAMP"'",
     "url": "'"$COMMIT_URL"'",
     "footer": { "text": "'"$CREDITS"'" }
