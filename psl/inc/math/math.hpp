@@ -72,3 +72,69 @@ namespace psl::math
 		return quat * vec;
 	}
 } // namespace psl::math
+
+
+/// conversions
+namespace psl::math
+{
+
+	template <typename precision_t>
+	constexpr static tquat<precision_t> from_euler(precision_t pitch, precision_t yaw, precision_t roll) noexcept
+	{
+		constexpr precision_t half{ precision_t{1} / precision_t{2} };
+		pitch = psl::math::radians(pitch)* half;
+		yaw = psl::math::radians(yaw)* half;
+		roll = psl::math::radians(roll)* half;
+		precision_t cy = cos(roll);
+		precision_t sy = sin(roll);
+		precision_t cr = cos(yaw);
+		precision_t sr = sin(yaw);
+		precision_t cp = cos(pitch);
+		precision_t sp = sin(pitch);
+
+		return tquat<precision_t>
+		{
+			cy * cr * cp + sy * sr * sp,
+			cy * cr * sp + sy * sr * cp,
+			cy * sr * cp - sy * cr * sp, 
+			sy * cr * cp - cy * sr * sp
+		};
+	}
+	template <typename precision_t>
+	constexpr static tquat<precision_t> from_euler(const psl::tvec<precision_t, 3>& vec) noexcept
+	{
+		return from_euler(vec[0], vec[1], vec[2]);
+	}
+
+	template <typename precision_t>
+	constexpr static tvec<precision_t,3> to_euler(const tquat<precision_t>& q) noexcept
+	{
+		tvec<precision_t, 3> res;
+		precision_t sqw = q[3]*q[3];
+		precision_t sqx = q[0]*q[0];
+		precision_t sqy = q[1]*q[1];
+		precision_t sqz = q[2]*q[2];
+		precision_t unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
+		precision_t test = q[0]*q[1] + q[2]*q[3];
+		if (test > precision_t{ 100 } / precision_t{ 201 }*unit) { // singularity at north pole
+			res[0] = precision_t{ 2 } *atan2(q[0], q[3]);
+			res[1] = PI / precision_t{ 2 };
+			res[2] = precision_t{ 0 };
+		}
+		else if (test < -precision_t{ 100 } / precision_t{ 201 }*unit) { // singularity at south pole
+			res[0] = -precision_t{ 2 } * atan2(q[0],q[3]);
+			res[1] = -PI / precision_t{ 2 };
+			res[2] = 0;
+		}
+		else
+		{
+			res[0] = atan2(precision_t{ 2 }*q[1] * q[3] - 2 * q[0] * q[2], sqx - sqy - sqz + sqw);
+			res[1] = asin(precision_t{ 2 }*test / unit);
+			res[2] = atan2(precision_t{ 2 }*q[0] * q[3] - 2 * q[1] * q[2], -sqx + sqy - sqz + sqw);
+		}
+		res[0] = degrees(res[0]);
+		res[1] = degrees(res[1]);
+		res[2] = degrees(res[2]);
+		return res;
+	}
+}

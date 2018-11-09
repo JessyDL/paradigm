@@ -43,4 +43,11 @@ namespace psl::math
 
 		return value * tvec<T, dimensions>(static_cast<T>(DEG));
 	}
+
+	template<typename precision_t>
+	static constexpr bool compare_to(const precision_t& left, const precision_t& right, uint8_t decimals) noexcept
+	{
+		int64_t pow = (int64_t)std::pow(10, decimals);
+		return (int64_t)(left * pow) == (int64_t)(right * pow);
+	}
 }

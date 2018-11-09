@@ -4,7 +4,7 @@
 using namespace psl;
 using namespace math;
 
-TEST_CASE("vec math", "[MATH]")
+TEST_CASE("mathematics", "[MATH]")
 {
 	tvec<float, 4> v1{1, 2, 5, 0};
 	tvec<float, 4> v2{5, 3, 2, 3};
@@ -87,15 +87,7 @@ TEST_CASE("vec math", "[MATH]")
 
 	SECTION("quaternions::multiplication")
 	{
-		quat q1{ 1,5,3,0 };
-		quat q2{ 1,5,3,5 };
-		auto q3 = q1 * q2;
-
-		REQUIRE(q3 == quat{q1[0] * q2[0], q1[1] * q2[1], q1[2] * q2[2], q1[3] * q2[3]});
-
-		q1 *= q2;
-		REQUIRE(q3 == q1);
-		REQUIRE(q3 != q2);
+		// todo
 	}
 
 	SECTION("vectors::division")
@@ -138,7 +130,6 @@ TEST_CASE("vec math", "[MATH]")
 		REQUIRE(cross(tvec<double, 3>{1, 2, 5}, tvec<double, 3>{5, 3, 2}) == tvec<double, 3>{-11, 23, -7});
 		REQUIRE(dot(cross(tvec<float, 3>{1, 0, 3}, tvec<float, 3>{1, 5, 7}), tvec<float, 3>{1, 5, 7}) == 0);
 	}
-
 	SECTION("vectors::magnitude")
 	{
 		REQUIRE(magnitude(tvec<float, 3>{1, 0, 3}) == std::sqrtf(10.0f));
@@ -167,5 +158,18 @@ TEST_CASE("vec math", "[MATH]")
 		REQUIRE(angle_axis(85.0, dvec3(30, 15, 8)) ==
 				dquat{-29.882595093587820, -14.941297546793910, -7.9686920249567521, 0.088383699305805544});
 		REQUIRE(angle_axis(.5f, vec3(783, 178, 62)) == quat{193.717300f, 44.0379066f, 15.3390455f, 0.968912423f});
+	}
+
+	SECTION("quaternions::to/from_euler")
+	{
+		auto vec = dvec3{ 5,10,90 };
+		auto quat = from_euler(vec);
+		auto vec2 = to_euler(quat);
+
+		// due to precision errors we will round
+		vec2[0] = std::round(vec2[0]);
+		vec2[1] = std::round(vec2[1]);
+		vec2[2] = std::round(vec2[2]);
+		REQUIRE(vec == vec2);
 	}
 }

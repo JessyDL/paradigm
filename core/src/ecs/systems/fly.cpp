@@ -89,7 +89,7 @@ void fly::tick(core::ecs::state& state, const std::vector<core::ecs::entity>& en
 			// determine heading quaternion from the camera up vector and the heading angle
 			quat heading_quat = angle_axis(m_Heading, m_Transforms[i].up);
 			// add the two quaternions
-			quat temp				 = normalize(cross(pitch_quat, heading_quat));
+			quat temp				 = normalize(pitch_quat * heading_quat);
 			m_Transforms[i].direction = normalize(rotate(temp, m_Transforms[i].direction));
 			m_Transforms[i].rotation = temp;			
 		}

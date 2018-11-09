@@ -92,23 +92,11 @@ namespace psl
 	template <typename precision_t>
 	constexpr tquat<precision_t>& operator*=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept
 	{
-		if constexpr(std::is_same<float, precision_t>::value)
-		{
-			_mm_store_ps(owner.value.data(),
-						 _mm_mul_ps(_mm_load_ps(owner.value.data()), _mm_load_ps(other.value.data())));
-		}
-		else if constexpr(std::is_same<double, precision_t>::value)
-		{
-			_mm_store_pd(owner.value.data(),
-						 _mm_mul_pd(_mm_load_pd(owner.value.data()), _mm_load_pd(other.value.data())));
-		}
-		else
-		{
-			owner.value[0] *= other.value[0];
-			owner.value[1] *= other.value[1];
-			owner.value[2] *= other.value[2];
-			owner.value[3] *= other.value[3];
-		}
+		tquat<precision_t> left = owner;
+		owner.value[0] = left.value[0] * other.value[3] + left.value[1] * other.value[2] - left.value[2] * other.value[1] + left.value[3] * other.value[0];
+		owner.value[1] = -left.value[0] * other.value[2] + left.value[1] * other.value[3] + left.value[2] * other.value[0] + left.value[3] * other.value[1];
+		owner.value[2] = left.value[0] * other.value[1] - left.value[1] * other.value[0] + left.value[2] * other.value[3] + left.value[3] * other.value[2];
+		owner.value[3] = -left.value[0] * other.value[0] - left.value[1] * other.value[1] - left.value[2] * other.value[2] + left.value[3] * other.value[3];
 		return owner;
 	}
 
@@ -175,10 +163,11 @@ namespace psl
 	template <typename precision_t>
 	constexpr tquat<precision_t>& operator*=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept
 	{
-		owner.value[0] *= other.value[0];
-		owner.value[1] *= other.value[1];
-		owner.value[2] *= other.value[2];
-		owner.value[3] *= other.value[3];
+		tquat<precision_t> left = owner;
+		owner.value[0] = left.value[0] * other.value[3] + left.value[1] * other.value[2] - left.value[2] * other.value[1] + left.value[3] * other.value[0];
+		owner.value[1] = -left.value[0] * other.value[2] + left.value[1] * other.value[3] + left.value[2] * other.value[0] + left.value[3] * other.value[1];
+		owner.value[2] = left.value[0] * other.value[1] - left.value[1] * other.value[0] + left.value[2] * other.value[3] + left.value[3] * other.value[2];
+		owner.value[3] = -left.value[0] * other.value[0] - left.value[1] * other.value[1] - left.value[2] * other.value[2] + left.value[3] * other.value[3];
 		return owner;
 	}
 
@@ -289,14 +278,6 @@ namespace psl
 namespace psl::math
 {
 	template <typename precision_t>
-	constexpr static tquat<precision_t> cross(const tquat<precision_t>& left, const tquat<precision_t>& right) noexcept
-	{
-		return tquat<precision_t>{left[3] * right[3] - left[0] * right[0] - left[1] * right[1] - left[2] * right[2],
-								  left[3] * right[0] + left[0] * right[3] + left[1] * right[2] - left[2] * right[1],
-								  left[3] * right[1] + left[1] * right[3] + left[2] * right[0] - left[0] * right[2],
-								  left[3] * right[2] + left[2] * right[3] + left[0] * right[1] - left[1] * right[0]};
-	}
-	template <typename precision_t>
 	constexpr static precision_t dot(const tquat<precision_t>& left, const tquat<precision_t>& right) noexcept
 	{
 		return precision_t{left[0] * right[0] + left[1] * right[1] + left[2] * right[2] + left[3] * right[3]};
@@ -336,4 +317,5 @@ namespace psl::math
 	{
 		return quat / magnitude(quat);
 	}
+
 } // namespace psl::math
