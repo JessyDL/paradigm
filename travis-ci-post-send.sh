@@ -22,7 +22,7 @@ esac
 
 AUTHOR_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%aN")"
 COMMITTER_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%cN")"
-COMMIT_MESSAGE="$(git log -1 "$TRAVIS_COMMIT" --pretty="%B")"
+COMMIT_MESSAGE="$(git log -1 "$TRAVIS_COMMIT" --pretty="%s%n%b")"
 
 if [ "$AUTHOR_NAME" == "$COMMITTER_NAME" ]; then
   CREDITS="by $AUTHOR_NAME"
@@ -68,8 +68,8 @@ WEBHOOK_DATA='{
   [{
     "color": '$EMBED_COLOR',
     "author": { "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'", "url": "'"$TRAVIS_BUILD_WEB_URL"'","icon_url": "'$AVATAR'" },
-    "title": "'"$TRAVIS_BRANCH"' - '"${TRAVIS_COMMIT:0:7}"'",
-    "description": "'"$COMMIT_MESSAGE"'",
+    "title": "'"$TRAVIS_BRANCH"' - '"$TRAVIS_COMMIT_RANGE"'",
+    "description": "'"${COMMIT_MESSAGE//$'\n'/ }"'",
     "timestamp": "'"$TIMESTAMP"'",
     "url": "https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$TRAVIS_COMMIT"'",
     "footer": { "text": "'"$CREDITS"'" }

@@ -287,7 +287,6 @@ class transform_inputlistener
 			auto diffY		 = m_MouseY - m_MouseTargetY;
 			m_AngleH		 = mouseSpeed * diffX;
 			ChangeHeading(-m_AngleH);
-			core::log->info(m_AngleH);
 
 			m_AngleV = mouseSpeed * diffY;
 			ChangePitch(m_AngleV);
@@ -296,10 +295,8 @@ class transform_inputlistener
 
 			// detmine axis for pitch rotation
 			glm::vec3 axis = glm::cross(m_Transform.direction(), m_Transform.up());
-			//core::log->info("glm axis: {0} {1} {2}", axis[0], axis[1], axis[2]);
 			// compute quaternion for pitch based on the camera pitch angle
 			glm::quat pitch_quat = glm::angleAxis(m_Pitch, axis);
-			//core::log->info("glm pitch_quat: {0} {1} {2} {3}", pitch_quat[0], pitch_quat[1], pitch_quat[2], pitch_quat[3]);
 			// determine heading quaternion from the camera up vector and the heading angle
 			glm::quat heading_quat = glm::angleAxis(m_Heading, m_Transform.up());
 			// add the two quaternions

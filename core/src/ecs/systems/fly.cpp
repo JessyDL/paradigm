@@ -81,11 +81,8 @@ void fly::tick(core::ecs::state& state, const std::vector<core::ecs::entity>& en
 		{
 			// determine axis for pitch rotation
 			vec3 axis = cross(m_Transforms[i].direction, m_Transforms[i].up);
-			//core::log->info("ecs axis: {0} {1} {2}", axis[0], axis[1], axis[2]);
 			// compute quaternion for pitch based on the camera pitch angle
 			quat pitch_quat = angle_axis(m_Pitch, axis);
-
-			//core::log->info("ecs pitch_quat: {0} {1} {2} {3}", pitch_quat[0], pitch_quat[1], pitch_quat[2], pitch_quat[3]);
 			// determine heading quaternion from the camera up vector and the heading angle
 			quat heading_quat = angle_axis(m_Heading, m_Transforms[i].up);
 			// add the two quaternions
