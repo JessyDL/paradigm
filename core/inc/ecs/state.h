@@ -272,7 +272,7 @@ namespace core::ecs
 			return *(T*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
 		}
 
-		void tick()
+		void tick(std::chrono::duration<float> dTime = std::chrono::duration<float>{ 0.0f })
 		{
 			for(const auto& system : m_Systems)
 			{
@@ -331,7 +331,7 @@ namespace core::ecs
 					*data_end = (void*)cache_offset;
 				}
 
-				std::invoke(std::get<0>(system.second), *this, entities, std::chrono::duration<float>{0});
+				std::invoke(std::get<0>(system.second), *this, entities, dTime);
 				for(const auto& rwBinding : sBindings.m_RWBindings)
 				{
 					set(entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second), rwBinding.first);
@@ -407,12 +407,20 @@ namespace core::ecs
 
 		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept
 		{
-			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
+			auto comp_it = m_Components.find(keys[0]);
+			if (comp_it == std::end(m_Components))
+				return {};
+
+			std::vector<entity> v_intersection{comp_it->second.entities};
 
 			for(size_t i = 1; i < keys.size(); ++i)
 			{
+				comp_it = m_Components.find(keys[i]);
+				if (comp_it == std::end(m_Components))
+					continue;
+
 				std::vector<entity> intermediate;
-				const auto& it = m_Components.at(keys[i]).entities;
+				const auto& it = comp_it->second.entities;
 				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 									  std::back_inserter(intermediate));
 				v_intersection = intermediate;
