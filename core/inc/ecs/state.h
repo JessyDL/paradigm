@@ -13,10 +13,10 @@ namespace core::ecs
 	{
 		// added to trick the compiler to not throw away the results at compile time
 		template<typename T>
-		constexpr static const std::uintptr_t component_key_var{ 0u };
+		constexpr const std::uintptr_t component_key_var{ 0u };
 
 		template<typename T>
-		constexpr static const std::uintptr_t* component_key() noexcept
+		constexpr const std::uintptr_t* component_key() noexcept
 		{ 
 			return &component_key_var<T>;
 		}
@@ -105,7 +105,8 @@ namespace core::ecs
 		template <typename T>
 		bool add_component(const std::vector<entity>& entities, std::optional<T> _template = std::nullopt) noexcept
 		{
-			static_assert(std::is_pod<T>::value, "the component type must be a POD (std::is_pod<T>::value == true)");
+			static_assert(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value, 
+				"the component type must be trivially copyable and standard layout (std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
 			constexpr details::component_key_t int_id = details::component_key<T>;
 
 			auto ent_cpy = entities;
@@ -130,14 +131,16 @@ namespace core::ecs
 			}
 			auto& pair{it->second};
 
+			if (!_template)
+				_template = T();
+
 			for(auto it = std::begin(ent_cpy); it != end; ++it)
 			{
 				const entity& e{*it};
 				auto index = pair.generator.CreateID().second;
 
-				if(_template)
-					std::memcpy((void*)((std::uintptr_t)pair.region.data() + index * sizeof(T)), &_template.value(),
-								sizeof(T));
+				std::memcpy((void*)((std::uintptr_t)pair.region.data() + index * sizeof(T)), &_template.value(),
+								sizeof(T));				
 
 				m_EntityMap[e].emplace_back(int_id, index);
 
@@ -218,20 +221,18 @@ namespace core::ecs
 			static const std::vector<details::component_key_t> keys{{details::component_key<Ts> ...}};
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
-			auto comp_it = m_Components.find(keys[0]);
-			if (comp_it == std::end(m_Components))
-				return {};
+			for (const auto& key : keys)
+			{
+				if (m_Components.find(key) == std::end(m_Components))
+					return {};
+			}
 
-			std::vector<entity> v_intersection{comp_it->second.entities};
+			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
 
 			for(size_t i = 1; i < keys.size(); ++i)
 			{
 				std::vector<entity> intermediate;
-				auto comp_it = m_Components.find(keys[i]);
-				if (comp_it == std::end(m_Components))
-					continue;
-
-				const auto& it = comp_it->second.entities;
+				const auto& it = m_Components.at(keys[i]).entities;
 				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 									  std::back_inserter(intermediate));
 				v_intersection = intermediate;
@@ -407,20 +408,17 @@ namespace core::ecs
 
 		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept
 		{
-			auto comp_it = m_Components.find(keys[0]);
-			if (comp_it == std::end(m_Components))
-				return {};
-
-			std::vector<entity> v_intersection{comp_it->second.entities};
+			for (const auto& key : keys)
+			{
+				if (m_Components.find(key) == std::end(m_Components))
+					return {};
+			}
+			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
 
 			for(size_t i = 1; i < keys.size(); ++i)
 			{
-				comp_it = m_Components.find(keys[i]);
-				if (comp_it == std::end(m_Components))
-					continue;
-
 				std::vector<entity> intermediate;
-				const auto& it = comp_it->second.entities;
+				const auto& it = m_Components.at(keys[i]).entities;
 				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 									  std::back_inserter(intermediate));
 				v_intersection = intermediate;
@@ -520,13 +518,5 @@ namespace core::ecs
 
 
 		//std::unordered_map<details::component_key_t, 
-	};
-
-	class system
-	{
-	  public:
-		system() { static_assert(std::is_pod<entity>::value, "entity no longer POD"); }
-
-	  private:
 	};
 } // namespace core::ecs

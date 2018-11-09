@@ -35,6 +35,11 @@ inc/ecs/ecs.hpp
 inc/ecs/range.h
 inc/ecs/state.h
 inc/ecs/entity.h
+inc/ecs/systems/fly.h
+inc/ecs/components/camera.h
+inc/ecs/components/transform.h
+inc/ecs/components/renderable.h
+inc/ecs/components/input_tag.h
 
 inc/utility/geometry.h
 

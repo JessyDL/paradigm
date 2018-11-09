@@ -88,6 +88,6 @@ TEST_CASE("systems", "[ECS]")
 	REQUIRE(results.size() == 10);
 	for (const auto& res : results)
 	{
-		CHECK(res == 10 * 5);
+		REQUIRE(res == 10 * 5);
 	}
 }

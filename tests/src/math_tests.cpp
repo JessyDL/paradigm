@@ -67,12 +67,15 @@ TEST_CASE("vec math", "[MATH]")
 		REQUIRE(dot(tvec<float, 3>{ 1,0,3  }, tvec<float, 3>{ 1,5,7 }) == 22.0f);
 		REQUIRE(dot(v1,v2) == 21.0f);
 		REQUIRE(dot(tvec<double, 4>{ 1,2,5,0  },tvec<double, 4>{ 5,3,2,3 }) == 21.0);
+
+		REQUIRE(dot(tquat<double>{ 1,2,5,0  },tquat<double>{ 5,3,2,3 }) == 21.0);
 	}
 
 	SECTION("cross")
 	{
 		REQUIRE(cross(tvec<float, 3>{ 1,0,3  }, tvec<float, 3>{ 1,5,7 }) == tvec<float, 3>{ -15,-4, 5 });
 		REQUIRE(cross(tvec<double, 3>{ 1,2,5  }, tvec<double, 3>{ 5,3,2 }) == tvec<double, 3>{ -11,23, -7 });
+		REQUIRE(dot(cross(tvec<float, 3>{ 1, 0, 3  }, tvec<float, 3>{ 1, 5, 7 }), tvec<float, 3>{ 1, 5, 7 }) == 0);
 	}
 
 	SECTION("magnitude")

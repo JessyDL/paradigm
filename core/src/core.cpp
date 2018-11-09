@@ -46,6 +46,8 @@
 
 #include "math/math.hpp"
 
+#include "ecs/systems/fly.h"
+
 
 using namespace core;
 using namespace core::resource;
@@ -294,8 +296,10 @@ class transform_inputlistener
 
 			// detmine axis for pitch rotation
 			glm::vec3 axis = glm::cross(m_Transform.direction(), m_Transform.up());
+			//core::log->info("glm axis: {0} {1} {2}", axis[0], axis[1], axis[2]);
 			// compute quaternion for pitch based on the camera pitch angle
 			glm::quat pitch_quat = glm::angleAxis(m_Pitch, axis);
+			//core::log->info("glm pitch_quat: {0} {1} {2} {3}", pitch_quat[0], pitch_quat[1], pitch_quat[2], pitch_quat[3]);
 			// determine heading quaternion from the camera up vector and the heading angle
 			glm::quat heading_quat = glm::angleAxis(m_Heading, m_Transform.up());
 			// add the two quaternions
@@ -360,10 +364,10 @@ class transform_inputlistener
 	int64_t m_MouseTargetX{1};
 	int64_t m_MouseTargetY{1};
 
-	float m_Pitch;
-	float m_Heading;
-	float m_AngleH;
-	float m_AngleV;
+	float m_Pitch{ 0 };
+	float m_Heading{ 0 };
+	float m_AngleH{ 0 };
+	float m_AngleV{ 0 };
 
 	float m_MoveSpeed{1.0f};
 	const float m_MoveStepIncrease{0.035f};
@@ -1122,6 +1126,14 @@ int entry()
 	auto material = create<gfx::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer, matBuffer);
 
+	// create the ecs
+	core::ecs::state ECSState{};
+	auto eCam = ECSState.create();
+	ECSState.add_component<core::ecs::components::transform>(eCam);
+	ECSState.add_component<core::ecs::components::input_tag>(eCam);
+
+	core::ecs::systems::fly fly_system{ surface_handle->input() };
+	ECSState.register_system(fly_system);
 	// create the draw instruction
 	core::gfx::drawgroup dGroup{};
 
@@ -1151,6 +1163,7 @@ int entry()
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
 		world.tick(elapsed);
+		ECSState.tick(elapsed);
 		listener.tick(elapsed);
 		++frameCount;
 	}
