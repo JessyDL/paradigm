@@ -312,13 +312,13 @@ namespace psl::math
 		{
 			std::pow(quat[0], pow_value), std::pow(quat[1], pow_value), std::pow(quat[2], pow_value),
 				std::pow(quat[3], pow_value)
-		}
+		};
 	}
 
 	template <typename precision_t>
 	constexpr static tquat<precision_t> sqrt(const tquat<precision_t>& quat) noexcept
 	{
-		return tquat<precision_t> { std::sqrt(quat[0]), std::sqrt(quat[1]), std::sqrt(quat[2]), std::sqrt(quat[3]) }
+		return tquat<precision_t> { std::sqrt(quat[0]), std::sqrt(quat[1]), std::sqrt(quat[2]), std::sqrt(quat[3]) };
 	}
 
 	template <typename precision_t>
