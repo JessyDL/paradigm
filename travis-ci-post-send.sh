@@ -68,7 +68,7 @@ WEBHOOK_DATA='{
   [{
     "color": '$EMBED_COLOR',
     "author": { "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'", "url": "'"$TRAVIS_BUILD_WEB_URL"'","icon_url": "'$AVATAR'" },
-    "title": "'"[\`$TRAVIS_BRANCH\`](https://github.com/$TRAVIS_REPO_SLUG/tree/$TRAVIS_BRANCH)"' '"[\`${TRAVIS_COMMIT:0:7}\`](https://github.com/$TRAVIS_REPO_SLUG/commit/$TRAVIS_COMMIT)"'",
+    "title": "[$TRAVIS_BRANCH](https://github.com/$TRAVIS_REPO_SLUG/tree/$TRAVIS_BRANCH) [${TRAVIS_COMMIT:0:7}](https://github.com/$TRAVIS_REPO_SLUG/commit/$TRAVIS_COMMIT)",
     "description": "'"${COMMIT_MESSAGE//$'\n'/ }"\\n"$CREDITS"'",
     "timestamp": "'"$TIMESTAMP"'"
     '"$UNIT_TEST_RESULTS"'
