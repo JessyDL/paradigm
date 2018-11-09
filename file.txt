@@ -1,0 +1,1 @@
+removed platform specific UID facilities in favour of the generic solution\\nUID is now trivially copyable\\nmade the world render through the ECS instead\\nfixed an issue where ecs::state::get_components would mutate its containers\\ngfx::pass can now clear all the contained drawgroups

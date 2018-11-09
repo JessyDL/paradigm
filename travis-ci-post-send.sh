@@ -33,7 +33,7 @@ AUTHOR_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%aN, " | sort -u)"
 AUTHOR_LIST=${AUTHOR_LIST:0:${#AUTHOR_LIST}-2}
 COMMITTER_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%cN, " | sort -u)"
 COMMITTER_LIST=${COMMITTER_LIST:0:${#COMMITTER_LIST}-2}
-COMMIT_MESSAGE="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%s%n%b")"
+COMMIT_MESSAGE="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%B")"
 
 CREDITS="by $AUTHOR_LIST"
 
@@ -76,7 +76,7 @@ WEBHOOK_DATA='{
     "color": '$EMBED_COLOR',
     "author": { "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'", "url": "'"$TRAVIS_BUILD_WEB_URL"'","icon_url": "'$AVATAR'" },
     "title": "'"$TRAVIS_BRANCH"' - '"$COMMIT_RANGE"'",
-    "description": "'"${COMMIT_MESSAGE//$'\n'/ }"'",
+    "description": "'"${COMMIT_MESSAGE//$'\n'/\\\\n}"'",
     "timestamp": "'"$TIMESTAMP"'",
     "url": "'"$COMMIT_URL"'",
     "footer": { "text": "'"$CREDITS"'" }
