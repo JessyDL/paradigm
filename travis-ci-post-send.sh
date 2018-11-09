@@ -76,7 +76,7 @@ WEBHOOK_DATA='{
     "color": '$EMBED_COLOR',
     "author": { "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'", "url": "'"$TRAVIS_BUILD_WEB_URL"'","icon_url": "'$AVATAR'" },
     "title": "'"$TRAVIS_BRANCH"' - '"$COMMIT_RANGE"'",
-    "description": "'"${COMMIT_MESSAGE//$'\n'/\\\\n}"'",
+    "description": "'"${COMMIT_MESSAGE//$'\n'/\\n}"'",
     "timestamp": "'"$TIMESTAMP"'",
     "url": "'"$COMMIT_URL"'",
     "footer": { "text": "'"$CREDITS"'" }
