@@ -36,46 +36,44 @@ else
   URL=""
 fi
 
-if [[ $UTESTS == true ]]; then
-  foo=$(<${UTESTS_RESULTS})  
-  UNIT_TEST_STATUS=${foo##*$'\n'}
-  if [[ ${#foo} > 2000 ]]; then
-    foo=${foo:0:2000}
-  fi
-  UNIT_TEST_RESULTS=',{ "title": "'"$UNIT_TEST_STATUS"'", "description": "'"$foo"'"}'
-else 
-  UNIT_TEST_RESULTS=""
-fi
-
 TIMESTAMP=$(date --utc +%FT%TZ)
+case $1 in
+  "success" )
+    if [[ $UTESTS == true ]]; then
+      UTESTS_TXT=$(<${UTESTS_RESULTS})  
+      if [[ ${#UTESTS_TXT} > 1024 ]]; then
+        UTESTS_TXT=${UTESTS_TXT:0:1024}
+      fi
+      UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Passed", "value": "'"$UTESTS_TXT"'" } ]'
+    else 
+      UNIT_TEST_RESULTS=""
+    fi
+    ;;
+  "failure" )
+    if [[ $UTESTS == true ]]; then
+      UTESTS_TXT=$(<${UTESTS_RESULTS})  
+      if [[ ${#UTESTS_TXT} > 1024 ]]; then
+        UTESTS_TXT=${UTESTS_TXT:0:1024}
+      fi
+      UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Failed", "value": "'"$UTESTS_TXT"'" } ]'
+    else 
+      UNIT_TEST_RESULTS=""
+    fi
+    ;;
+esac
+	
 WEBHOOK_DATA='{
-  "username": "",
   "avatar_url": "https://travis-ci.org/images/logos/TravisCI-Mascot-1.png",
-  "embeds": [ {
+  "embeds": 
+  [{
     "color": '$EMBED_COLOR',
-    "author": {
-      "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'",
-      "url": "'"$TRAVIS_BUILD_WEB_URL"'",
-      "icon_url": "'$AVATAR'"
-    },
-    "title": "'"$STATUS_MESSAGE"'",
+    "author": { "name": "Job #'"$TRAVIS_JOB_NUMBER"' '"$BUILD_NAME"'", "url": "'"$TRAVIS_BUILD_WEB_URL"'","icon_url": "'$AVATAR'" },
+    "title": "'"[\`$TRAVIS_BRANCH\`](https://github.com/$TRAVIS_REPO_SLUG/tree/$TRAVIS_BRANCH)"' '"[\`${TRAVIS_COMMIT:0:7}\`](https://github.com/$TRAVIS_REPO_SLUG/commit/$TRAVIS_COMMIT)"'",
     "description": "'"${COMMIT_MESSAGE//$'\n'/ }"\\n"$CREDITS"'",
-    "url": "'"$URL"'",
-    "fields": [
-      {
-        "name": "Commit",
-        "value": "'"[\`${TRAVIS_COMMIT:0:7}\`](https://github.com/$TRAVIS_REPO_SLUG/commit/$TRAVIS_COMMIT)"'",
-        "inline": true
-      },
-      {
-        "name": "Branch/Tag",
-        "value": "'"[\`$TRAVIS_BRANCH\`](https://github.com/$TRAVIS_REPO_SLUG/tree/$TRAVIS_BRANCH)"'",
-        "inline": true
-      }
-    ],
     "timestamp": "'"$TIMESTAMP"'"
-  } '"$UNIT_TEST_RESULTS"' ]
-}'
+    '"$UNIT_TEST_RESULTS"'
+  }]}'
+	
 echo -e "$WEBHOOK_DATA"
 (curl --connect-timeout 5 --max-time 10 --retry 5 --retry-delay 0 --retry-max-time 40 -H Content-Type:application/json -d "$WEBHOOK_DATA" "$2" \
 && echo -e "\\n[Webhook]: Successfully sent the webhook.") || echo -e "\\n[Webhook]: Unable to send webhook."
