@@ -285,7 +285,7 @@ cd $CMAKE_FOLDER/$cmake_output
 
 if [ $CMAKE_UPDATE == "true" ]; then
 	echo reconfiguring project files for "$CMAKE_GENERATOR"
-	cmake .
+	cmake . ${CMAKE_PARAMS}
 elif [[ ! -d "CMakeFiles" ]]; then
 	echo generating project files for "$CMAKE_GENERATOR"
 	echo setting root directory to "$ROOT_DIRECTORY"

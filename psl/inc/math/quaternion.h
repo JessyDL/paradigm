@@ -235,6 +235,7 @@ namespace psl
 	constexpr tquat<precision_t> operator+(const tquat<precision_t>& left, const tquat<precision_t>& right) noexcept
 	{
 		auto cpy = left;
+		cpy += right;
 		return cpy;
 	}
 	template <typename precision_t>
@@ -273,7 +274,16 @@ namespace psl
 		return cpy;
 	}
 
-
+	template <typename precision_t>
+	constexpr bool operator==(const tquat<precision_t>& left, const tquat<precision_t>& right) noexcept
+	{
+		return left.value == right.value;
+	}
+	template <typename precision_t>
+	constexpr bool operator!=(const tquat<precision_t>& left, const tquat<precision_t>& right) noexcept
+	{
+		return left.value != right.value;
+	}
 } // namespace psl
 
 namespace psl::math
