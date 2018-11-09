@@ -167,6 +167,12 @@ namespace core::ecs
 			( add_component<Ts>(std::vector<entity>{e}, _template), ...);
 		}
 
+		template <typename... Ts>
+		void add_components(entity e) noexcept
+		{
+			( add_component<Ts>(std::vector<entity>{e}), ...);
+		}
+
 		template <typename T>
 		void remove_component(const std::vector<entity>& entities) noexcept
 		{
@@ -213,12 +219,31 @@ namespace core::ecs
 		}
 
 
+		template<typename ... Ts>
 		entity create() noexcept
 		{
-			return m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
+			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
 				.first->first;
+			if constexpr (sizeof...(Ts) > 0)
+			{
+				add_components<Ts...>(e);
+			}
+			return e;
 		}
 
+		template<typename ... Ts>
+		entity create(std::optional<Ts>... _template) noexcept
+		{
+			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
+				.first->first;
+			if constexpr (sizeof...(Ts) > 0)
+			{
+				add_components<Ts...>(e, _template...);
+			}
+			return e;
+		}
+
+		template<typename ... Ts>
 		std::vector<entity> create(size_t count) noexcept
 		{
 			m_EntityMap.reserve(m_EntityMap.size() + count);
@@ -226,6 +251,25 @@ namespace core::ecs
 			std::iota(std::begin(result), std::end(result), mID + 1);
 			for(size_t i = 0u; i < count; ++i)
 				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
+			if constexpr (sizeof...(Ts) > 0)
+			{
+				add_components<Ts...>(result);
+			}
+			return result;
+		}
+
+		template<typename ... Ts>
+		std::vector<entity> create(size_t count, std::optional<Ts>... _template) noexcept
+		{
+			m_EntityMap.reserve(m_EntityMap.size() + count);
+			std::vector<entity> result(count);
+			std::iota(std::begin(result), std::end(result), mID + 1);
+			for(size_t i = 0u; i < count; ++i)
+				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
+			if constexpr (sizeof...(Ts) > 0)
+			{
+				add_components<Ts...>(result, _template...);
+			}
 			return result;
 		}
 

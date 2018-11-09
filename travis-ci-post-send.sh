@@ -23,10 +23,10 @@ esac
 PREVIOUS_COMMIT="$(git rev-parse --short=12 "$TRAVIS_COMMIT"^1)"
 if [ $PREVIOUS_COMMIT == ${TRAVIS_COMMIT_RANGE:0:12} ]; then
   COMMIT_RANGE=$TRAVIS_COMMIT
-  COMMIT_URL='"https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$COMMIT_RANGE"'"'
+  COMMIT_URL='https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$COMMIT_RANGE"''
 else
   COMMIT_RANGE=$TRAVIS_COMMIT_RANGE
-  COMMIT_URL='"https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$COMMIT_RANGE"'"'
+  COMMIT_URL='https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$COMMIT_RANGE"''
 fi
 
 AUTHOR_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%aN, " | sort -u)"
