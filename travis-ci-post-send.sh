@@ -20,6 +20,15 @@ case $1 in
     ;;
 esac
 
+PREVIOUS_COMMIT="$(git rev-parse --short=12 "$TRAVIS_COMMIT"^1)"
+if [ $PREVIOUS_COMMIT == ${TRAVIS_COMMIT_RANGE:0:12} ]; then
+  COMMIT_RANGE=$TRAVIS_COMMIT
+  COMMIT_URL='"https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$COMMIT_RANGE"'"'
+else
+  COMMIT_RANGE=$TRAVIS_COMMIT_RANGE
+  COMMIT_URL='"https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$COMMIT_RANGE"'"'
+fi
+
 AUTHOR_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%aN, " | sort -u)"
 AUTHOR_LIST=${AUTHOR_LIST:0:${#AUTHOR_LIST}-2}
 COMMITTER_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%cN, " | sort -u)"
@@ -69,7 +78,7 @@ WEBHOOK_DATA='{
     "title": "'"$TRAVIS_BRANCH"' - '"$TRAVIS_COMMIT_RANGE"'",
     "description": "'"${COMMIT_MESSAGE//$'\n'/ }"'",
     "timestamp": "'"$TIMESTAMP"'",
-    "url": "https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$TRAVIS_COMMIT_RANGE"'",
+    "url": "'"$COMMIT_URL"'",
     "footer": { "text": "'"$CREDITS"'" }
     '"$UNIT_TEST_RESULTS"'
   }]}'
