@@ -72,7 +72,7 @@ WEBHOOK_DATA='{
     "description": "'"$COMMIT_MESSAGE"'",
     "timestamp": "'"$TIMESTAMP"'",
     "url": "https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$TRAVIS_COMMIT"'",
-    "footer": "'"$CREDITS"'"
+    "footer": { "text": "'"$CREDITS"'" }
     '"$UNIT_TEST_RESULTS"'
   }]}'
 	
