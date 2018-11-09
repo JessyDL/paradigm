@@ -18,8 +18,8 @@ namespace psl
 	constexpr psl::tvec<precision_t, 3> operator*(const psl::tquat<precision_t>& quat, const psl::tvec<precision_t, 3>& vec) noexcept
 	{
 		const tvec<precision_t, 3> qVec{ quat[0], quat[1], quat[2]};
-		const tvec<precision_t, 3> uv(cross(qVec, vec));
-		const tvec<precision_t, 3> uuv(cross(qVec, uv));
+		const tvec<precision_t, 3> uv(psl::math::cross(qVec, vec));
+		const tvec<precision_t, 3> uuv(psl::math::cross(qVec, uv));
 
 		return vec + ((uv * quat[3]) + uuv) * precision_t { 2 };
 	}
