@@ -317,5 +317,15 @@ namespace psl::math
 	{
 		return quat / magnitude(quat);
 	}
+	template <typename precision_t>
+	constexpr static tquat<precision_t> conjugate(const tquat<precision_t>& quat)
+	{
+		return tquat<precision_t>{-quat[0], -quat[1], -quat[2], quat[3] };
+	}
 
+	template <typename precision_t>
+	constexpr static tquat<precision_t> inverse(const tquat<precision_t>& quat)
+	{
+		return conjugate(quat) / dot(quat, quat);
+	}
 } // namespace psl::math

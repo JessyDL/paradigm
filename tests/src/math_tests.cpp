@@ -172,4 +172,17 @@ TEST_CASE("mathematics", "[MATH]")
 		vec2[2] = std::round(vec2[2]);
 		REQUIRE(vec == vec2);
 	}
+
+	SECTION("quaternions::conjugate")
+	{
+		dquat dq{ 15,3,5,8 };
+		REQUIRE(conjugate(dq) == dquat{ -15,-3,-5,8 });
+	}
+
+	SECTION("quaternions::inverse")
+	{
+		dquat dq{ 15,3,5,8 };
+		double mag = dot(dq, dq);
+		REQUIRE(inverse(dq) == dquat{ -15.0 / mag,-3.0/ mag,-5.0/ mag, 8.0/ mag });
+	}
 }
