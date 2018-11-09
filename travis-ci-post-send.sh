@@ -20,15 +20,13 @@ case $1 in
     ;;
 esac
 
-AUTHOR_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%aN")"
-COMMITTER_NAME="$(git log -1 "$TRAVIS_COMMIT" --pretty="%cN")"
-COMMIT_MESSAGE="$(git log -1 "$TRAVIS_COMMIT" --pretty="%s%n%b")"
+AUTHOR_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%aN, " | sort -u)"
+AUTHOR_LIST=${AUTHOR_LIST:0:${#AUTHOR_LIST}-2}
+COMMITTER_LIST="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%cN, " | sort -u)"
+COMMITTER_LIST=${COMMITTER_LIST:0:${#COMMITTER_LIST}-2}
+COMMIT_MESSAGE="$(git log "$TRAVIS_COMMIT_RANGE" --pretty="%s%n%b")"
 
-if [ "$AUTHOR_NAME" == "$COMMITTER_NAME" ]; then
-  CREDITS="by $AUTHOR_NAME"
-else
-  CREDITS="by $AUTHOR_NAME & $COMMITTER_NAME"
-fi
+CREDITS="by $AUTHOR_LIST"
 
 if [[ $TRAVIS_PULL_REQUEST != false ]]; then
   URL="https://github.com/$TRAVIS_REPO_SLUG/pull/$TRAVIS_PULL_REQUEST"
@@ -71,7 +69,7 @@ WEBHOOK_DATA='{
     "title": "'"$TRAVIS_BRANCH"' - '"$TRAVIS_COMMIT_RANGE"'",
     "description": "'"${COMMIT_MESSAGE//$'\n'/ }"'",
     "timestamp": "'"$TIMESTAMP"'",
-    "url": "https://github.com/'"$TRAVIS_REPO_SLUG"'/commit/'"$TRAVIS_COMMIT"'",
+    "url": "https://github.com/'"$TRAVIS_REPO_SLUG"'/compare/'"$TRAVIS_COMMIT_RANGE"'",
     "footer": { "text": "'"$CREDITS"'" }
     '"$UNIT_TEST_RESULTS"'
   }]}'
