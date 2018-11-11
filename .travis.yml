@@ -39,6 +39,15 @@ matrix:
             - doxygen-doc
             - doxygen-latex
             - graphviz
+      deploy:
+        provider: pages
+        skip-cleanup: true
+        github-token: $GH_REPO_TOKEN  
+        local_dir: docs/html
+        keep-history: true
+        name: Travis-CI
+        on:
+          branch: develop
     - name: "Linux CLang 6.0 Unit Tests"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DTESTS=ON" UTESTS=true
       addons: *clang60
@@ -145,18 +154,8 @@ script:
 after_success:
   - |
     if [[ $DOXGEN == true ]]; then
-       cd $TRAVIS_BUILD_DIR/tools
+       cd $TRAVIS_BUILD_DIR
        doxygen doxyfile
-       cd $TRAVIS_BUILD_DIR/../
-       mkdir docs
-       cp -r $TRAVIS_BUILD_DIR/docs/html/. $TRAVIS_BUILD_DIR/../docs/
-       cd $TRAVIS_BUILD_DIR/
-       git checkout --orphan gh-pages
-       git rm -rf .
-       cp -r $TRAVIS_BUILD_DIR/../docs/. $TRAVIS_BUILD_DIR/
-       git add .
-       git commit -a -m "updated documentation to commit ${TRAVIS_COMMIT}"
-       git push origin gh-pages
     fi
   - cd $TRAVIS_BUILD_DIR
   - chmod +x travis-ci-post-send.sh
