@@ -19,8 +19,8 @@ namespace core
 			vec3 = 2,
 			vec4 = 3,
 			mat2 = 4,
-			mat3 = 5,
-			mat4 =6
+			mat3x3 = 5,
+			mat4x4 =6
 		};
 		stream(type type = type::single) : m_Type(type)
 		{
@@ -58,11 +58,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<glm::vec2>>> as_vec2()
+		std::optional<std::reference_wrapper<std::vector<psl::vec2>>> as_vec2()
 		{
 			if(m_Type == type::vec2)
 			{
-				return *(std::vector<glm::vec2>*)&m_Data.value;
+				return *(std::vector<psl::vec2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -70,11 +70,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<glm::vec3>>> as_vec3()
+		std::optional<std::reference_wrapper<std::vector<psl::vec3>>> as_vec3()
 		{
 			if(m_Type == type::vec3)
 			{
-				return *(std::vector<glm::vec3>*)&m_Data.value;
+				return *(std::vector<psl::vec3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -82,11 +82,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<glm::vec4>>> as_vec4()
+		std::optional<std::reference_wrapper<std::vector<psl::vec4>>> as_vec4()
 		{
 			if(m_Type == type::vec4)
 			{
-				return *(std::vector<glm::vec4>*)&m_Data.value;
+				return *(std::vector<psl::vec4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -95,11 +95,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<glm::mat2>>> as_mat2()
+		std::optional<std::reference_wrapper<std::vector<psl::mat2x2>>> as_mat2()
 		{
 			if(m_Type == type::mat2)
 			{
-				return *(std::vector<glm::mat2>*)&m_Data.value;
+				return *(std::vector<psl::mat2x2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -107,11 +107,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<glm::mat3>>> as_mat3()
+		std::optional<std::reference_wrapper<std::vector<psl::mat3x3>>> as_mat3()
 		{
-			if(m_Type == type::mat3)
+			if(m_Type == type::mat3x3)
 			{
-				return *(std::vector<glm::mat3>*)&m_Data.value;
+				return *(std::vector<psl::mat3x3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -119,11 +119,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<glm::mat4>>> as_mat4()
+		std::optional<std::reference_wrapper<std::vector<psl::mat4x4>>> as_mat4()
 		{
-			if(m_Type == type::mat4)
+			if(m_Type == type::mat4x4)
 			{
-				return *(std::vector<glm::mat4>*)&m_Data.value;
+				return *(std::vector<psl::mat4x4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -145,11 +145,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<glm::vec2>>> as_vec2()const
+		std::optional<std::reference_wrapper<const std::vector<psl::vec2>>> as_vec2()const
 		{
 			if(m_Type == type::vec2)
 			{
-				return *(std::vector<glm::vec2>*)&m_Data.value;
+				return *(std::vector<psl::vec2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -157,11 +157,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<glm::vec3>>> as_vec3()const
+		std::optional<std::reference_wrapper<const std::vector<psl::vec3>>> as_vec3()const
 		{
 			if(m_Type == type::vec3)
 			{
-				return *(std::vector<glm::vec3>*)&m_Data.value;
+				return *(std::vector<psl::vec3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -169,11 +169,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<glm::vec4>>> as_vec4()const
+		std::optional<std::reference_wrapper<const std::vector<psl::vec4>>> as_vec4()const
 		{
 			if(m_Type == type::vec4)
 			{
-				return *(std::vector<glm::vec4>*)&m_Data.value;
+				return *(std::vector<psl::vec4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -181,11 +181,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<glm::mat2>>> as_mat2()const
+		std::optional<std::reference_wrapper<const std::vector<psl::mat2x2>>> as_mat2()const
 		{
 			if(m_Type == type::mat2)
 			{
-				return *(std::vector<glm::mat2>*)&m_Data.value;
+				return *(std::vector<psl::mat2x2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -193,11 +193,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<glm::mat3>>> as_mat3()const
+		std::optional<std::reference_wrapper<const std::vector<psl::mat3x3>>> as_mat3()const
 		{
-			if(m_Type == type::mat3)
+			if(m_Type == type::mat3x3)
 			{
-				return *(std::vector<glm::mat3>*)&m_Data.value;
+				return *(std::vector<psl::mat3x3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -205,11 +205,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<glm::mat4>>> as_mat4()const
+		std::optional<std::reference_wrapper<const std::vector<psl::mat4x4>>> as_mat4()const
 		{
-			if(m_Type == type::mat4)
+			if(m_Type == type::mat4x4)
 			{
-				return *(std::vector<glm::mat4>*)&m_Data.value;
+				return *(std::vector<psl::mat4x4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -242,11 +242,11 @@ namespace core
 				{
 					return m_Data.value.size() / 4;
 				}break;
-				case type::mat3:
+				case type::mat3x3:
 				{
 					return m_Data.value.size() / 9;
 				}break;
-				case type::mat4:
+				case type::mat4x4:
 				{
 					return m_Data.value.size() / 16;
 				}break;

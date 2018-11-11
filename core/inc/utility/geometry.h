@@ -11,9 +11,9 @@ namespace utility::geometry
 	/// \param[in] uvs vertex UVs
 	/// \param[in] indices triangle indices.
 	/// \note it is expected this is valid geometry data, only minimal to no data validation is done.
-	static std::vector<glm::vec3> generate_tangents(const std::vector<glm::vec3>& positions, const std::vector<glm::vec2>& uvs, const std::vector<uint32_t>& indices)
+	static std::vector<psl::vec3> generate_tangents(const std::vector<psl::vec3>& positions, const std::vector<psl::vec2>& uvs, const std::vector<uint32_t>& indices)
 	{
-		std::vector<glm::vec3> tangents;
+		std::vector<psl::vec3> tangents;
 		tangents.resize(positions.size());
 
 		for(int i = 0; i < indices.size(); i += 3)
@@ -27,19 +27,19 @@ namespace utility::geometry
 			const auto & u1 = uvs[indices[i + 1]];
 			const auto & u2 = uvs[indices[i + 2]];
 
-			glm::vec3 edge1 = v1 - v0;
-			glm::vec3 edge2 = v2 - v0;
-			glm::vec2 deltaUV1 = u1 - u0;
-			glm::vec2 deltaUV2 = u2 - u0;
+			psl::vec3 edge1 = v1 - v0;
+			psl::vec3 edge2 = v2 - v0;
+			psl::vec2 deltaUV1 = u1 - u0;
+			psl::vec2 deltaUV2 = u2 - u0;
 
-			float r = 1.0f / (deltaUV1.x * deltaUV2.y - deltaUV1.y * deltaUV2.x);
-			glm::vec3 tangent = glm::normalize((edge1 * deltaUV2.y - edge2 * deltaUV1.y)*r);
-
+			float r = 1.0f / (deltaUV1[0] * deltaUV2[1] - deltaUV1[1] * deltaUV2[0]);
+			psl::vec3 tangent = ((edge1 * deltaUV2[1] - edge2 * deltaUV1[1])*r);
+			tangent = psl::math::normalize(tangent);
 			tangents[indices[i + 0]] = tangent;
 			tangents[indices[i + 1]] = tangent;
 			tangents[indices[i + 2]] = tangent;
 			/*
-			glm::vec3 bitangent = glm::normalize((edge2 * deltaUV1.x - edge1 * deltaUV2.x)*r);
+			psl::vec3 bitangent = psl::math::normalize((edge2 * deltaUV1[0] - edge1 * deltaUV2[0])*r);
 			v0.m_bitangent = bitangent;
 			v1.m_bitangent = bitangent;
 			v2.m_bitangent = bitangent;
@@ -99,20 +99,20 @@ namespace utility::geometry
 		auto& normals = normStream.as_vec3().value().get();
 		auto& uvs = uvStream.as_vec2().value().get();
 
-		vertices.emplace_back(glm::vec3{right, top, 0.0f});
-		vertices.emplace_back(glm::vec3{left, top, 0.0f});
-		vertices.emplace_back(glm::vec3{left, bottom, 0.0f});
-		vertices.emplace_back(glm::vec3{right, bottom, 0.0f});
+		vertices.emplace_back(psl::vec3{right, top, 0.0f});
+		vertices.emplace_back(psl::vec3{left, top, 0.0f});
+		vertices.emplace_back(psl::vec3{left, bottom, 0.0f});
+		vertices.emplace_back(psl::vec3{right, bottom, 0.0f});
 
-		normals.emplace_back(glm::vec3{1.0f, 1.0f, 1.0f});
-		normals.emplace_back(glm::vec3{1.0f, 1.0f, 1.0f});
-		normals.emplace_back(glm::vec3{1.0f, 1.0f, 1.0f});
-		normals.emplace_back(glm::vec3{1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
 
-		uvs.emplace_back(glm::vec2{1.0f, 1.0f});
-		uvs.emplace_back(glm::vec2{0.0f, 1.0f});
-		uvs.emplace_back(glm::vec2{0.0f, 0.0f});
-		uvs.emplace_back(glm::vec2{1.0f, 0.0f});
+		uvs.emplace_back(psl::vec2{1.0f, 1.0f});
+		uvs.emplace_back(psl::vec2{0.0f, 1.0f});
+		uvs.emplace_back(psl::vec2{0.0f, 0.0f});
+		uvs.emplace_back(psl::vec2{1.0f, 0.0f});
 
 		auto boxGeomData = core::resource::create<core::data::geometry>(cache);
 		boxGeomData.load();
@@ -139,7 +139,7 @@ namespace utility::geometry
 	/// \param[in] uvScale multiplier on the UV scale, where {1, 1} is the normalized coordinates.
 	/// \returns the handle to the generated geometry data.
 	/// \note the final size of the object is always 2x the extents. This means that a size {2, 1} results into a min-coordinate {-2, -1} and max-coordinate {2, 1}.
-	static core::resource::handle<core::data::geometry> create_plane(core::resource::cache& cache, glm::vec2 size = glm::vec2::One, glm::ivec2 subdivisions = glm::ivec2(1, 1), glm::vec2 uvScale = glm::vec2::One)
+	static core::resource::handle<core::data::geometry> create_plane(core::resource::cache& cache, psl::vec2 size = psl::vec2::one, psl::ivec2 subdivisions = psl::ivec2(1, 1), psl::vec2 uvScale = psl::vec2::one)
 	{
 		core::stream vertStream{core::stream::type::vec3};
 		core::stream normStream{core::stream::type::vec3};
@@ -149,30 +149,30 @@ namespace utility::geometry
 		auto& normals = normStream.as_vec3().value().get();
 		auto& uvs = uvStream.as_vec2().value().get();
 
-		vertices.resize((subdivisions.x + 1) * (subdivisions.y + 1));
-		normals.resize((subdivisions.x + 1) * (subdivisions.y + 1));
-		uvs.resize((subdivisions.x + 1) * (subdivisions.y + 1));
+		vertices.resize((subdivisions[0] + 1) * (subdivisions[1] + 1));
+		normals.resize((subdivisions[0] + 1) * (subdivisions[1] + 1));
+		uvs.resize((subdivisions[0] + 1) * (subdivisions[1] + 1));
 
-		glm::vec2 offset = -(size * 0.5f);
-		for(auto i = 0, y = 0; y <= subdivisions.y; y++)
+		psl::vec2 offset = (size * -0.5f);
+		for(auto i = 0, y = 0; y <= subdivisions[1]; y++)
 		{
-			for(auto x = 0; x <= subdivisions.x; x++, i++)
+			for(auto x = 0; x <= subdivisions[0]; x++, i++)
 			{
-				vertices[i] = glm::vec3(((float)x / ((float)subdivisions.x))*size.x + offset.x, 0, ((float)y / ((float)subdivisions.y))*size.y + offset.y);
-				normals[i] = glm::vec3::Up;
-				uvs[i] = glm::vec2(((float)x / ((float)subdivisions.x))*uvScale.x, ((float)y / ((float)subdivisions.y))*uvScale.y);
+				vertices[i] = psl::vec3(((float)x / ((float)subdivisions[0]))*size[0] + offset[0], 0, ((float)y / ((float)subdivisions[1]))*size[1] + offset[1]);
+				normals[i] = psl::vec3::up;
+				uvs[i] = psl::vec2(((float)x / ((float)subdivisions[0]))*uvScale[0], ((float)y / ((float)subdivisions[1]))*uvScale[1]);
 			}
 		}
 
-		std::vector<uint32_t> indexBuffer((subdivisions.x) * (subdivisions.y) * 6);
-		for(auto ti = 0, vi = 0, y = 0; y < subdivisions.y; y++, vi++)
+		std::vector<uint32_t> indexBuffer((subdivisions[0]) * (subdivisions[1]) * 6);
+		for(auto ti = 0, vi = 0, y = 0; y < subdivisions[1]; y++, vi++)
 		{
-			for(auto x = 0; x < subdivisions.x; x++, ti += 6, vi++)
+			for(auto x = 0; x < subdivisions[0]; x++, ti += 6, vi++)
 			{
 				indexBuffer[ti] = vi;
 				indexBuffer[ti + 3] = indexBuffer[ti + 2] = vi + 1;
-				indexBuffer[ti + 4] = indexBuffer[ti + 1] = vi + subdivisions.x + 1;
-				indexBuffer[ti + 5] = vi + subdivisions.x + 2;
+				indexBuffer[ti + 4] = indexBuffer[ti + 1] = vi + subdivisions[0] + 1;
+				indexBuffer[ti + 5] = vi + subdivisions[0] + 2;
 			}
 		}
 
@@ -197,23 +197,23 @@ namespace utility::geometry
 	/// \param[in] scale the scale of the object.
 	/// \returns the handle to the generated geometry data.
 	/// \note unlike extent, scale implies that the final size is equal to the scale (i.e. an object of 1 unit at a scale of 1 is equal to 1unit).
-	static core::resource::handle<core::data::geometry> create_box(core::resource::cache& cache, glm::vec3 scale = glm::vec3::One)
+	static core::resource::handle<core::data::geometry> create_box(core::resource::cache& cache, psl::vec3 scale = psl::vec3::one)
 	{
-		float length = scale.x;
-		float width = scale.y;
-		float height = scale.z;
+		float length = scale[0];
+		float width = scale[1];
+		float height = scale[2];
 
-		glm::vec3 p0 = glm::vec3(-length * .5f, -width * .5f, height * .5f);
-		glm::vec3 p1 = glm::vec3(length * .5f, -width * .5f, height * .5f);
-		glm::vec3 p2 = glm::vec3(length * .5f, -width * .5f, -height * .5f);
-		glm::vec3 p3 = glm::vec3(-length * .5f, -width * .5f, -height * .5f);
+		psl::vec3 p0 = psl::vec3(-length * .5f, -width * .5f, height * .5f);
+		psl::vec3 p1 = psl::vec3(length * .5f, -width * .5f, height * .5f);
+		psl::vec3 p2 = psl::vec3(length * .5f, -width * .5f, -height * .5f);
+		psl::vec3 p3 = psl::vec3(-length * .5f, -width * .5f, -height * .5f);
 
-		glm::vec3 p4 = glm::vec3(-length * .5f, width * .5f, height * .5f);
-		glm::vec3 p5 = glm::vec3(length * .5f, width * .5f, height * .5f);
-		glm::vec3 p6 = glm::vec3(length * .5f, width * .5f, -height * .5f);
-		glm::vec3 p7 = glm::vec3(-length * .5f, width * .5f, -height * .5f);
+		psl::vec3 p4 = psl::vec3(-length * .5f, width * .5f, height * .5f);
+		psl::vec3 p5 = psl::vec3(length * .5f, width * .5f, height * .5f);
+		psl::vec3 p6 = psl::vec3(length * .5f, width * .5f, -height * .5f);
+		psl::vec3 p7 = psl::vec3(-length * .5f, width * .5f, -height * .5f);
 
-		std::vector<glm::vec3> vertices
+		std::vector<psl::vec3> vertices
 		{
 			// Bottom
 			p0, p1, p2, p3,
@@ -234,33 +234,33 @@ namespace utility::geometry
 			p7, p6, p5, p4
 		};
 
-		std::vector<glm::vec3> normals
+		std::vector<psl::vec3> normals
 		{
 			// Bottom
-			glm::vec3::Down, glm::vec3::Down, glm::vec3::Down, glm::vec3::Down,
+			psl::vec3::down, psl::vec3::down, psl::vec3::down, psl::vec3::down,
 
 			// Right
-			glm::vec3::Right, glm::vec3::Right, glm::vec3::Right, glm::vec3::Right,
+			psl::vec3::right, psl::vec3::right, psl::vec3::right, psl::vec3::right,
 
 			// Front
-			glm::vec3::Forward, glm::vec3::Forward, glm::vec3::Forward, glm::vec3::Forward,
+			psl::vec3::forward, psl::vec3::forward, psl::vec3::forward, psl::vec3::forward,
 
 			// Back
-			glm::vec3::Back, glm::vec3::Back, glm::vec3::Back, glm::vec3::Back,
+			psl::vec3::back, psl::vec3::back, psl::vec3::back, psl::vec3::back,
 
 			// Left
-			glm::vec3::Left, glm::vec3::Left, glm::vec3::Left, glm::vec3::Left,
+			psl::vec3::left, psl::vec3::left, psl::vec3::left, psl::vec3::left,
 
 			// Top
-			glm::vec3::Up, glm::vec3::Up, glm::vec3::Up, glm::vec3::Up
+			psl::vec3::up, psl::vec3::up, psl::vec3::up, psl::vec3::up
 		};
 
-		glm::vec2 _00(0.f, 0.f);
-		glm::vec2 _10(1.f, 0.f);
-		glm::vec2 _01(0.f, 1.f);
-		glm::vec2 _11(1.f, 1.f);
+		psl::vec2 _00(0.f, 0.f);
+		psl::vec2 _10(1.f, 0.f);
+		psl::vec2 _01(0.f, 1.f);
+		psl::vec2 _11(1.f, 1.f);
 
-		std::vector<glm::vec2> uvs
+		std::vector<psl::vec2> uvs
 		{
 			// Bottom
 			_11, _01, _00, _10,
@@ -317,11 +317,11 @@ namespace utility::geometry
 		core::stream uvStream{core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
-		memcpy(vertStream.data(), vertices.data(), sizeof(glm::vec3) * vertices.size());
+		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
 		normStream.as_vec3().value().get().resize(normals.size());
-		memcpy(normStream.data(), normals.data(), sizeof(glm::vec3) * normals.size());
+		memcpy(normStream.data(), normals.data(), sizeof(psl::vec3) * normals.size());
 		uvStream.as_vec2().value().get().resize(uvs.size());
-		memcpy(uvStream.data(), uvs.data(), sizeof(glm::vec2) * uvs.size());
+		memcpy(uvStream.data(), uvs.data(), sizeof(psl::vec2) * uvs.size());
 
 		boxGeomData->vertices(core::data::geometry::constants::POSITION, vertStream);
 		boxGeomData->vertices(core::data::geometry::constants::NORMAL, normStream);

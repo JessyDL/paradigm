@@ -34,6 +34,7 @@
 #include <glm/bbox.h>
 #include "glmUtility.h"
 
+
 #define VULKAN_HPP_NO_EXCEPTIONS
 #include "vulkan_stdafx.h"
 
@@ -59,6 +60,7 @@
 #include "meta.h"
 #include "library.h"
 #include "systems/resource.h"
+#include "math/math.hpp"
 
 #include "data/stream.h"
 

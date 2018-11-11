@@ -35,7 +35,7 @@ namespace core::data
 
 	public:
 		using index_size_t = uint32_t;
-		using bone_t = glm::mat4;
+		using bone_t = psl::mat4x4;
 
 		/// \brief contains globally pre-defined keys for common streams that most engines have.
 		struct constants

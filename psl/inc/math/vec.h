@@ -182,6 +182,8 @@ namespace psl
 			: value({std::move(x), std::move(y), std::move(z)}){};
 		constexpr tvec(const precision_t& value) noexcept : value({value, value, value}){};
 
+		constexpr tvec(const tvec<precision_t, 2>& v2, const precision_t& value) noexcept : value({v2[0], v2[1], value}) {};
+
 		// ---------------------------------------------
 		// getters
 		// ---------------------------------------------
@@ -247,6 +249,9 @@ namespace psl
 		constexpr tvec(precision_t&& x, precision_t&& y, precision_t&& z, precision_t&& w) noexcept
 			: value({std::move(x), std::move(y), std::move(z), std::move(w)}){};
 		constexpr tvec(const precision_t& value) noexcept : value({value, value, value, value}){};
+
+		constexpr tvec(const tvec<precision_t, 2>& a, const tvec<precision_t, 2>& b) noexcept : value({a[0], a[1], b[0], b[1]}) {};
+		constexpr tvec(const tvec<precision_t, 3>& v3, const precision_t& value) noexcept : value({v3[0], v3[1], v3[2], value}) {};
 
 		template<typename src_precision_t>
 		constexpr tvec(std::array<src_precision_t,4>&& arr) noexcept

@@ -29,7 +29,7 @@ namespace core::ecs::systems
 {
 	class render
 	{
-		const glm::mat4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
+		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
 			+0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
 			   
 		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_Transforms;
@@ -42,18 +42,18 @@ namespace core::ecs::systems
 	public:
 		struct framedata
 		{
-			glm::mat4 clipMatrix;
-			glm::mat4 projectionMatrix;
-			glm::mat4 modelMatrix;
-			glm::mat4 viewMatrix;
-			glm::mat4 WVP;
-			glm::mat4 VP;
-			glm::vec4 ScreenParams;
-			glm::vec4 GameTimer;
-			glm::vec4 Parameters;
-			glm::vec4 FogColor;
-			glm::vec4 viewPos;
-			glm::vec4 viewDir;
+			psl::mat4x4 clipMatrix;
+			psl::mat4x4 projectionMatrix;
+			psl::mat4x4 modelMatrix;
+			psl::mat4x4 viewMatrix;
+			psl::mat4x4 WVP;
+			psl::mat4x4 VP;
+			psl::vec4 ScreenParams;
+			psl::vec4 GameTimer;
+			psl::vec4 Parameters;
+			psl::vec4 FogColor;
+			psl::vec4 viewPos;
+			psl::vec4 viewDir;
 		};
 
 		render(core::resource::handle<core::gfx::context> context, 

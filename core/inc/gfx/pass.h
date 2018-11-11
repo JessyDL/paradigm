@@ -17,11 +17,11 @@ namespace core::gfx
 				float clamp;
 				float slopeFactor;
 			};
-			glm::vec3 bias;
+			psl::vec3 bias;
 			float components[3];
 		};
 
-		depth_bias() : bias(glm::vec3::Zero){};
+		depth_bias() : bias(psl::vec3::zero){};
 	};
 
 	/// \brief a pass describes a start-to-finish sequence of commands to render into a set of rendertargets.

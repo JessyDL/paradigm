@@ -589,7 +589,7 @@ int entry()
 
 	// load the example model
 	// auto geomData = create<data::geometry>(cache, UID::convert("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"));
-	auto geomData = utility::geometry::create_box(cache, glm::vec3::One);
+	auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
 	geomData.load();
 	auto& positionstream =
 		geomData->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
@@ -601,17 +601,17 @@ int entry()
 	{
 		if(inverse_colors)
 		{
-			float red   = std::max(-range, std::min(range, positionstream[i].x)) / range;
-			float green = std::max(-range, std::min(range, positionstream[i].y)) / range;
-			float blue  = std::max(-range, std::min(range, positionstream[i].z)) / range;
-			colors.emplace_back(glm::vec3(red, green, blue));
+			float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
+			float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
+			float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
+			colors.emplace_back(psl::vec3(red, green, blue));
 		}
 		else
 		{
-			float red   = (std::max(-range, std::min(range, positionstream[i].x)) + range) / (range * 2);
-			float green = (std::max(-range, std::min(range, positionstream[i].y)) + range) / (range * 2);
-			float blue  = (std::max(-range, std::min(range, positionstream[i].z)) + range) / (range * 2);
-			colors.emplace_back(glm::vec3(red, green, blue));
+			float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+			float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
+			float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+			colors.emplace_back(psl::vec3(red, green, blue));
 		}
 	}
 
