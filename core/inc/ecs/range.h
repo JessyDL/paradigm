@@ -231,4 +231,67 @@ namespace core::ecs
 		T* data;
 		T* tail;
 	};
+
+	template<access access_level>
+	struct vector<core::ecs::entity, access_level>
+	{
+		friend class core::ecs::state;
+	public:
+		struct iterator
+		{
+		public:
+			constexpr iterator(core::ecs::entity* data) noexcept : data(data) {};
+			constexpr const core::ecs::entity& operator*() const noexcept
+			{
+				return *data;
+			}
+
+			constexpr bool operator!=(iterator other) const noexcept
+			{
+				return data != other.data;
+			}
+
+			constexpr iterator operator++() const noexcept
+			{
+				return iterator(data + 1);
+			}
+
+			constexpr iterator& operator++() noexcept
+			{
+				++data;
+				return *this;
+			}
+		private:
+			core::ecs::entity* data;
+		};
+		vector() noexcept = default;
+		~vector() noexcept = default;
+		vector(const vector&) noexcept = default;
+		vector(vector&&) noexcept = default;
+		vector& operator=(const vector&) noexcept = default;
+		vector& operator=(vector&&) noexcept = default;
+
+		constexpr const core::ecs::entity& operator[](size_t index) const noexcept
+		{
+			return *(data + index);
+		}
+
+		iterator begin() const noexcept
+		{
+			return iterator{data};
+		}
+
+		iterator end() const noexcept
+		{
+			return iterator{tail};
+		}
+		constexpr size_t size() const noexcept
+		{
+			return (tail - data);
+		}
+
+	private:
+		core::ecs::entity* data;
+		core::ecs::entity* tail;
+	};
 }
