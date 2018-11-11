@@ -82,9 +82,9 @@ namespace core::ecs
 			friend class core::ecs::state;
 		  public:
 			  /// \brief constructs a unique set of dependencies
-			dependency_pack(core::ecs::vector<entity>& entities) noexcept : m_Entities(entities){};
+			dependency_pack(core::ecs::vector<entity>& entities) : m_Entities(entities){};
 			template<typename... Ts>
-			dependency_pack(core::ecs::vector<entity>& entities, Ts&... filters) noexcept : m_Entities(entities) { (add(filters), ...); };
+			dependency_pack(core::ecs::vector<entity>& entities, Ts&... filters) : m_Entities(entities) { (add(filters), ...); };
 			~dependency_pack() noexcept						 = default;
 			dependency_pack(const dependency_pack& other) = default;
 			dependency_pack(dependency_pack&& other)  = default;
