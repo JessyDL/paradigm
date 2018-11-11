@@ -133,6 +133,12 @@ namespace core::ecs
 		private:
 			T* data;
 		};
+		vector() noexcept = default;
+		~vector() noexcept = default;
+		vector(const vector&) noexcept = default;
+		vector(vector&&) noexcept = default;
+		vector& operator=(const vector&) noexcept = default;
+		vector& operator=(vector&&) noexcept = default;
 
 		constexpr const T& operator[](size_t index) const noexcept
 		{			
@@ -151,6 +157,11 @@ namespace core::ecs
 		iterator end() const noexcept
 		{
 			return iterator{ tail };
+		}
+
+		constexpr size_t size() const noexcept
+		{
+			return (tail - data);
 		}
 
 	private:
@@ -190,6 +201,12 @@ namespace core::ecs
 		private:
 			T* data;
 		};
+		vector() noexcept = default;
+		~vector() noexcept = default;
+		vector(const vector&) noexcept = default;
+		vector(vector&&) noexcept = default;
+		vector& operator=(const vector&) noexcept = default;
+		vector& operator=(vector&&) noexcept = default;
 
 		constexpr const T& operator[](size_t index) const noexcept
 		{			
@@ -204,6 +221,10 @@ namespace core::ecs
 		iterator end() const noexcept
 		{
 			return iterator{ tail };
+		}
+		constexpr size_t size() const noexcept
+		{
+			return (tail - data);
 		}
 
 	private:

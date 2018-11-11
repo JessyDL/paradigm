@@ -11,13 +11,13 @@ namespace core::ecs::systems
 		friend class core::systems::input;
 	private:
 		core::ecs::vector<core::ecs::components::transform, core::ecs::access::READ_WRITE> m_Transforms;
-
+		core::ecs::vector<core::ecs::entity> m_Entities;
 	public:
 		fly(core::systems::input& inputSystem);
 		~fly();
 		void announce(core::ecs::state& state);
 
-		void tick(core::ecs::state& state, const std::vector<core::ecs::entity>& entities, std::chrono::duration<float> dTime);
+		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
 
 	private:
 		void on_key_pressed(core::systems::input::keycode keyCode);

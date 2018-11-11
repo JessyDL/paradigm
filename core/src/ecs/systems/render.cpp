@@ -28,12 +28,11 @@ render::render(core::resource::cache& cache,
 
 void render::announce(core::ecs::state& state)
 {
-	state.register_dependency(m_Transforms);
-	state.register_dependency(m_Renderers);
+	state.register_dependency(*this, {m_RenderableEntities, m_Transforms, m_Renderers });
+	state.register_dependency(*this, {m_CameraEntities, m_Cameras});
 }
 
-void render::tick(core::ecs::state& state, const std::vector<core::ecs::entity>& entities,
-	std::chrono::duration<float> dTime)
+void render::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
 	if (!m_Surface->open() || !m_Swapchain->is_ready())
 		return;
@@ -44,7 +43,7 @@ void render::tick(core::ecs::state& state, const std::vector<core::ecs::entity>&
 	m_Pass.clear();
 	core::gfx::drawgroup dGroup{};
 	auto& default_layer = dGroup.layer("default", 0);
-	for (size_t i = 0; i < entities.size(); ++i)
+	for (size_t i = 0; i < m_RenderableEntities.size(); ++i)
 	{
 		const auto& renderable = m_Renderers[i];
 		auto mat = m_Cache.find<core::gfx::material>(renderable.material);

@@ -15,12 +15,10 @@ fly::~fly() { m_InputSystem.unsubscribe(this); }
 
 void fly::announce(core::ecs::state& state)
 {
-	state.register_dependency(m_Transforms);
-	state.register_dependency<core::ecs::components::input_tag>();
+	state.register_dependency(*this, core::ecs::state::dependency_pack{m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{} });
 }
 
-void fly::tick(core::ecs::state& state, const std::vector<core::ecs::entity>& entities,
-			   std::chrono::duration<float> dTime)
+void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
 	if (m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY)
 	{
@@ -37,7 +35,7 @@ void fly::tick(core::ecs::state& state, const std::vector<core::ecs::entity>& en
 
 	}
 
-	for(size_t i = 0; i < entities.size(); ++i)
+	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
 		// m_Transform.position(m_Transform.position() + (m_MoveVector * dTime.count()));
 		if(m_Moving[0])

@@ -34,6 +34,10 @@ namespace core::ecs::systems
 			   
 		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_Transforms;
 		core::ecs::vector<core::ecs::components::renderable, core::ecs::READ_ONLY> m_Renderers;
+		core::ecs::vector<core::ecs::entity> m_RenderableEntities;
+
+		core::ecs::vector<core::ecs::components::camera, core::ecs::READ_ONLY> m_Cameras;
+		core::ecs::vector<core::ecs::entity> m_CameraEntities;
 	public:
 		struct framedata
 		{
@@ -57,7 +61,7 @@ namespace core::ecs::systems
 			core::resource::handle<core::os::surface> surface,
 			core::resource::handle<core::gfx::buffer> buffer);
 		void announce(core::ecs::state& state);
-		void tick(core::ecs::state& state, const std::vector<core::ecs::entity>& entities, std::chrono::duration<float> dTime);
+		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
 
 	private:
 		void update_buffer(const core::ecs::components::transform& camTransform);
