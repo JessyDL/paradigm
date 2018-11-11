@@ -515,6 +515,9 @@ namespace core::resource
 		const details::vtable& container<T>::m_vTable = details::vtable_for<container<T>>;
 	} // namespace details
 
+	template<typename T>
+	class indirect_handle;
+
 	/// \brief wraps around a resource for sharing and management purposes.
 	///
 	/// resource handles are used to manage the lifetime of resources, and tracking
@@ -523,6 +526,8 @@ namespace core::resource
 	class handle final
 	{
 		friend class cache;
+
+		friend class indirect_handle<T>;
 		handle(cache& cache, const UID& uid, std::shared_ptr<details::container<T>>& container)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(container){};
 
@@ -576,37 +581,10 @@ namespace core::resource
 				m_Container->m_State = other.m_Container->m_State;
 			}
 		};
-		handle(const handle& other)
-			: m_Cache(other.m_Cache), uid(other.uid), resource_uid(other.resource_uid),
-			  m_Container(other.m_Container){};
-		handle& operator=(const handle& other)
-		{
-			if(this != &other)
-			{
-				m_Cache		 = (other.m_Cache);
-				uid			 = (other.uid);
-				m_Container  = (other.m_Container);
-				resource_uid = (other.resource_uid);
-			}
-
-			return *this;
-		}
-
-		handle(handle&& other)
-			: m_Cache(other.m_Cache), uid(other.uid), resource_uid(other.resource_uid),
-			  m_Container(other.m_Container){};
-		handle& operator=(handle&& other)
-		{
-			if(this != &other)
-			{
-				m_Cache		 = (other.m_Cache);
-				uid			 = (other.uid);
-				m_Container  = (other.m_Container);
-				resource_uid = (other.resource_uid);
-			}
-
-			return *this;
-		};
+		handle(const handle& other) = default;
+		handle& operator=(const handle& other) = default;
+		handle(handle&& other) = default;
+		handle& operator=(handle&& other) = default;
 
 		operator const T&() const
 		{
@@ -854,4 +832,39 @@ namespace core::resource
 					  "lacking a 'copy' constructor on T, cannot create a new handle with the given source.");
 		return source.copy(cache, std::forward<Args>(args)...);
 	}
+
+	template<typename T>
+	class indirect_handle
+	{
+	public:
+		indirect_handle() noexcept = default;
+		indirect_handle(const UID& uid, cache* cache) noexcept  : m_Cache(cache), m_UID(uid) {};
+		indirect_handle(const handle<T>& handle) noexcept : m_Cache(handle.m_Cache), m_UID(handle.uid) {};
+
+		operator const core::resource::handle<T>() const noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+		operator core::resource::handle<T>() noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+		operator const T&() const noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+		operator T&() noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+
+		T& operator->() noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+	private:
+		cache* m_Cache{nullptr};
+		UID m_UID{};
+	};
+
 } // namespace core::resource

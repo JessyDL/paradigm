@@ -5,9 +5,10 @@ namespace core::ecs::components
 {
 	struct camera
 	{
-		float fov;
-		float near;
-		float far;
-		std::array<uint32_t, 256> layers;
+		float fov{60};
+		float near{0.1f};
+		float far{24.0f};
+		core::resource::indirect_handle<core::gfx::pass> pass;
+		std::array<uint32_t, 16> layers{0};
 	};
 }

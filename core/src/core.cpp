@@ -683,12 +683,12 @@ int entry()
 	// create the ecs
 	core::ecs::state ECSState{};
 	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
-	auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>(core::ecs::components::renderable{ material.ID(), geometry.ID(), 0u }, std::nullopt);
+	auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>(core::ecs::components::renderable{ material, geometry, 0u }, std::nullopt);
 
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
 	ECSState.register_system(fly_system);
 
-	core::ecs::systems::render render_system{ cache, context_handle, swapchain_handle, surface_handle, frameBuffer };
+	core::ecs::systems::render render_system{ context_handle, swapchain_handle, surface_handle, frameBuffer };
 	ECSState.register_system(render_system);
 
 	uint64_t frameCount										 = 0u;

@@ -37,6 +37,7 @@ namespace core::ecs::systems
 		core::ecs::vector<core::ecs::entity> m_RenderableEntities;
 
 		core::ecs::vector<core::ecs::components::camera, core::ecs::READ_ONLY> m_Cameras;
+		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_CameraTransforms;
 		core::ecs::vector<core::ecs::entity> m_CameraEntities;
 	public:
 		struct framedata
@@ -55,8 +56,7 @@ namespace core::ecs::systems
 			glm::vec4 viewDir;
 		};
 
-		render(core::resource::cache& cache, 
-			core::resource::handle<core::gfx::context> context, 
+		render(core::resource::handle<core::gfx::context> context, 
 			core::resource::handle<core::gfx::swapchain> swapchain, 
 			core::resource::handle<core::os::surface> surface,
 			core::resource::handle<core::gfx::buffer> buffer);
@@ -64,16 +64,14 @@ namespace core::ecs::systems
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
 
 	private:
-		void update_buffer(const core::ecs::components::transform& camTransform);
+		void update_buffer(size_t index, const core::ecs::components::transform& transform, const core::ecs::components::camera& camera);
 
-		core::resource::cache& m_Cache;
 		core::gfx::drawgroup m_DrawGroup{};
 		core::gfx::pass m_Pass;
 		core::resource::handle<core::gfx::swapchain> m_Swapchain;
 		core::resource::handle<core::os::surface> m_Surface;
 
-		core::ecs::components::camera m_Camera;
-		memory::segment fdatasegment;
+		std::vector<memory::segment> fdatasegment;
 		core::resource::handle<core::gfx::buffer> m_Buffer;
 		framedata fdata{};
 	};

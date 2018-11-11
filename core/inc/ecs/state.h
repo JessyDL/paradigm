@@ -177,7 +177,10 @@ namespace core::ecs
 			}
 			else
 			{
-				if(!_template) _template = T();
+				if constexpr(!std::is_trivially_constructible<T>::value)
+				{
+					if(!_template) _template = T();
+				}
 
 				for(auto it = std::begin(ent_cpy); it != end; ++it)
 				{
