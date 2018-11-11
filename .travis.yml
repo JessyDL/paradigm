@@ -21,7 +21,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPARADIGM_CORE_EXECUTABLE=ON" UTESTS=false
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPARADIGM_CORE_EXECUTABLE=ON" UTESTS=false DOXGEN=true
       addons: &clang60
         apt:
           sources:
@@ -35,6 +35,10 @@ matrix:
             - libx11-dev 
             - libx11-xcb-dev 
             - libxrandr-dev
+            - doxygen
+            - doxygen-doc
+            - doxygen-latex
+            - graphviz
     - name: "Linux CLang 6.0 Unit Tests"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DTESTS=ON" UTESTS=true
       addons: *clang60
@@ -137,11 +141,27 @@ script:
       ./tests -r compact -o results.txt
       export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/builds/make/x64/release/x64/bin/results.txt"
     fi
-  
+
 after_success:
+  - |
+    if [[ $DOXGEN == true ]]; then
+       cd $TRAVIS_BUILD_DIR/tools
+       doxygen doxyfile
+       cd $TRAVIS_BUILD_DIR/../
+       mkdir docs
+       cp -r $TRAVIS_BUILD_DIR/docs/html/. $TRAVIS_BUILD_DIR/../docs/
+       cd $TRAVIS_BUILD_DIR/
+       git checkout --orphan gh-pages
+       git rm -rf .
+       cp -r $TRAVIS_BUILD_DIR/../docs/. $TRAVIS_BUILD_DIR/
+       git add .
+       git commit -a -m "updated documentation to commit ${TRAVIS_COMMIT}"
+       git push origin gh-pages
+    fi
   - cd $TRAVIS_BUILD_DIR
   - chmod +x travis-ci-post-send.sh
   - ./travis-ci-post-send.sh success $WEBHOOK_URL
+  
 after_failure:
   - cd $TRAVIS_BUILD_DIR
   - chmod +x travis-ci-post-send.sh
