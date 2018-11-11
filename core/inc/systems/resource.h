@@ -837,9 +837,9 @@ namespace core::resource
 	class indirect_handle
 	{
 	public:
-		indirect_handle() noexcept = default;
-		indirect_handle(const UID& uid, cache* cache) noexcept  : m_Cache(cache), m_UID(uid) {};
-		indirect_handle(const handle<T>& handle) noexcept : m_Cache(handle.m_Cache), m_UID(handle.uid) {};
+		indirect_handle() = default;
+		indirect_handle(const UID& uid, cache* cache)  : m_Cache(cache), m_UID(uid) {};
+		indirect_handle(const handle<T>& handle) : m_Cache(handle.m_Cache), m_UID(handle.uid) {};
 
 		operator const core::resource::handle<T>() const noexcept
 		{
