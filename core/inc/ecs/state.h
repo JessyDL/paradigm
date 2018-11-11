@@ -33,6 +33,10 @@ namespace core::ecs
 			component_info(memory::raw_region&& region, std::vector<entity>&& entities, component_key_t id, size_t size)
 				: region(std::move(region)), entities(std::move(entities)), id(id), size(size),
 				  generator(region.size() / size){};
+
+			component_info(std::vector<entity>&& entities, component_key_t id)
+				: region(128), entities(std::move(entities)), id(id), size(size), generator(1)
+			{};
 			memory::raw_region region;
 			std::vector<entity> entities;
 			component_key_t id;
@@ -82,10 +86,10 @@ namespace core::ecs
 			template<typename... Ts>
 			dependency_pack(core::ecs::vector<entity>& entities, Ts&... filters) noexcept : m_Entities(entities) { (add(filters), ...); };
 			~dependency_pack() noexcept						 = default;
-			dependency_pack(const dependency_pack& other) noexcept = default;
-			dependency_pack(dependency_pack&& other) = default;
-			dependency_pack& operator=(const dependency_pack&) noexcept =default;
-			dependency_pack& operator=(dependency_pack&&) noexcept = default;
+			dependency_pack(const dependency_pack& other) = default;
+			dependency_pack(dependency_pack&& other)  = default;
+			dependency_pack& operator=(const dependency_pack&) =default;
+			dependency_pack& operator=(dependency_pack&&) = default;
 
 			template <typename T>
 			void add(core::ecs::vector<T, access::READ_WRITE>& vec) noexcept
@@ -150,25 +154,43 @@ namespace core::ecs
 			auto it = m_Components.find(int_id);
 			if(it == m_Components.end())
 			{
-				m_Components.emplace(int_id, details::component_info{
-												 memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(T)});
+				if constexpr(std::is_empty<T>::value)
+				{
+					m_Components.emplace(int_id, details::component_info{{}, int_id});
+				}
+				else
+				{
+					m_Components.emplace(int_id, details::component_info{
+													 memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(T)});
+				}
 				it = m_Components.find(int_id);
 			}
 			auto& pair{it->second};
-
-			if(!_template) _template = T();
-
-			for(auto it = std::begin(ent_cpy); it != end; ++it)
+			if constexpr(std::is_empty<T>::value)
 			{
-				const entity& e{*it};
-				auto index = pair.generator.CreateID().second;
+				for(auto it = std::begin(ent_cpy); it != end; ++it)
+				{
+					const entity& e{*it};
+					m_EntityMap[e].emplace_back(int_id, 0);
+					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
+				}
+			}
+			else
+			{
+				if(!_template) _template = T();
 
-				std::memcpy((void*)((std::uintptr_t)pair.region.data() + index * sizeof(T)), &_template.value(),
-							sizeof(T));
+				for(auto it = std::begin(ent_cpy); it != end; ++it)
+				{
+					const entity& e{*it};
+					auto index = pair.generator.CreateID().second;
 
-				m_EntityMap[e].emplace_back(int_id, index);
+					std::memcpy((void*)((std::uintptr_t)pair.region.data() + index * sizeof(T)), &_template.value(),
+								sizeof(T));
 
-				pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
+					m_EntityMap[e].emplace_back(int_id, index);
+
+					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
+				}
 			}
 		}
 
@@ -214,16 +236,29 @@ namespace core::ecs
 											  });
 
 				if(foundIt == std::end(eMapIt->second)) continue;
-				auto index = foundIt->second;
+				if constexpr(std::is_empty<T>::value)
+				{
+					eMapIt->second.erase(foundIt, eMapIt->second.end());
 
-				eMapIt->second.erase(foundIt, eMapIt->second.end());
-				const auto& eCompIt = m_Components.find(int_id);
-				eCompIt->second.entities.erase(
-					std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-					eCompIt->second.entities.end());
+					const auto& eCompIt = m_Components.find(int_id);
+					eCompIt->second.entities.erase(
+						std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+						eCompIt->second.entities.end());
+				}
+				else
+				{
+					auto index = foundIt->second;
 
-				void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
-				std::memset(loc, 0, eCompIt->second.size);
+					eMapIt->second.erase(foundIt, eMapIt->second.end());
+
+					const auto& eCompIt = m_Components.find(int_id);
+					eCompIt->second.entities.erase(
+						std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+						eCompIt->second.entities.end());
+
+					void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
+					std::memset(loc, 0, eCompIt->second.size);
+				}
 			}
 		}
 
@@ -390,7 +425,7 @@ namespace core::ecs
 		}
 
 		template <typename T>
-		const T& read_component(entity e) const
+		const T& get_component(entity e) const
 		{
 			constexpr details::component_key_t int_id = details::component_key<T>;
 			auto eMapIt								  = m_EntityMap.find(e);
@@ -497,7 +532,7 @@ namespace core::ecs
 		}
 
 		template <typename T>
-		void register_dependency(T& system, dependency_pack&& pack) noexcept
+		void register_dependency(T& system, dependency_pack&& pack)
 		{
 			auto it = m_Systems.find(&system);
 			if(it == std::end(m_Systems))

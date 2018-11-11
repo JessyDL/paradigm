@@ -38,7 +38,7 @@ void render::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 		return;
 
 	auto eCam = state.filter<transform, camera>();
-	update_buffer(state.read_component<transform>(eCam[0]));
+	update_buffer(state.get_component<transform>(eCam[0]));
 
 	m_Pass.clear();
 	core::gfx::drawgroup dGroup{};
