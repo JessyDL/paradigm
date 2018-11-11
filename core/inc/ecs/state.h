@@ -84,7 +84,7 @@ namespace core::ecs
 			  /// \brief constructs a unique set of dependencies
 			dependency_pack(core::ecs::vector<entity>& entities) : m_Entities(entities){};
 			template<typename... Ts>
-			dependency_pack(core::ecs::vector<entity>& entities, Ts&... filters) : m_Entities(entities) { (add(filters), ...); };
+			dependency_pack(core::ecs::vector<entity>& entities, Ts&&... filters) : m_Entities(entities) { (add(filters), ...); };
 			~dependency_pack() noexcept						 = default;
 			dependency_pack(const dependency_pack& other) = default;
 			dependency_pack(dependency_pack&& other)  = default;
@@ -115,7 +115,7 @@ namespace core::ecs
 			}
 
 			template<typename... Ts>
-			void add(Ts&... args) noexcept
+			void add(Ts&&... args) noexcept
 			{
 				( add(args), ... );
 			}
