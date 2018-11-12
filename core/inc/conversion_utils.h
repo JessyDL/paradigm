@@ -73,7 +73,7 @@ namespace serialization::converters
 	static psl::tquat<precision_t> from_string(psl::string8::view str) noexcept
 	{
 		auto split = utility::string::split(str, psl::string8::view{","});
-		psl::tquat<precision_t, size> res;
+		psl::tquat<precision_t> res;
 		for(size_t i = 0; i < 4; ++i)
 			res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 		return res;
