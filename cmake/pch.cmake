@@ -156,7 +156,6 @@ function(add_precompiled_header _target _input)
 		endif()
 	endif(MSVC)
   
-  return()
   # figure out what this isn't working
   if(CMAKE_COMPILER_IS_GNUCXX OR (CMAKE_CXX_COMPILER_ID MATCHES ".*Clang"))
     get_filename_component(_name ${_input} NAME)
