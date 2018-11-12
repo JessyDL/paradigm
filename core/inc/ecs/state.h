@@ -182,17 +182,25 @@ namespace core::ecs
 					if(!_template) _template = T();
 				}
 
+				std::vector<uint64_t> indices;
+				indices.reserve(std::distance(std::begin(ent_cpy), end));
 				for(auto it = std::begin(ent_cpy); it != end; ++it)
 				{
 					const entity& e{*it};
 					auto index = pair.generator.CreateID().second;
-
-					std::memcpy((void*)((std::uintptr_t)pair.region.data() + index * sizeof(T)), &_template.value(),
-								sizeof(T));
-
+					indices.emplace_back(index);
 					m_EntityMap[e].emplace_back(int_id, index);
 
 					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
+				}
+
+				if(_template)
+				{
+					for(auto i = 0; i < indices.size(); ++i)
+					{
+						std::memcpy((void*)((std::uintptr_t)pair.region.data() + indices[i] * sizeof(T)), &_template.value(),
+									sizeof(T));
+					}
 				}
 			}
 		}
