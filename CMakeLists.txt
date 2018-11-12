@@ -77,8 +77,7 @@ endif()
 # ==================================================================================================
 set(PARADIGM_DEFINES -DUNICODE 
 				-D_UNICODE
-				-DNOMINMAX
-				-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
+				-DNOMINMAX)
 				
 if(PARADIGM_CORE_EXECUTABLE AND TESTS)
 	message(FATAL_ERROR "you cannot mix PARADIGM_CORE_EXECUTABLE and TESTS flags")
