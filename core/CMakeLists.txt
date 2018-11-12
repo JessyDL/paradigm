@@ -56,7 +56,6 @@ target_include_directories(${LOCAL_PROJECT}
         ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${VULKAN_INC_PATH}
 		${PARADIGM_EXTERNAL_PATH}/inc/gli
-		${PARADIGM_EXTERNAL_PATH}/inc/glm
 	PRIVATE
 		${WSI_INC}
 )

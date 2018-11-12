@@ -18,7 +18,7 @@ For more detailed description about the engine itself, go to the readme of the `
 | Architecture| Status        | Size | Backend|
 | :-------------|:-------------| -----:|---:|
 | ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)| 1.2mb | Vulkan |
-| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?logo=travis&style=for-the-badge)](https://github.com/JessyDL/paradigm) | -| Vulkan |
+| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?logo=travis&style=for-the-badge)](https://travis-ci.com/JessyDL/paradigm) | -| Vulkan |
 | ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | Vulkan|
@@ -76,7 +76,6 @@ You can find internal and (public) release builds in the tags on this repo.
 
 ##  External Libraries
 The following external libraries may be used in one, or many of the sub projects. The specific project readme's will describe their dependencies in more detail so you can always verify which project uses what.
-- `GLM` mathematics library
 - `GLI` image loading and saving
 - `volk` dynamic bindings for vulkan
 - `Vulkan-hpp` generated C++ like headers for Vulkan
