@@ -70,7 +70,8 @@ else()
 	endif()
 endif()
 
-set(_PCH_SOURCE_CXX "src/stdafx.cpp")
+set(_PCH_SOURCE_CXX "stdafx.cpp")
+set(_PCH_SOURCE_PREFIX "src/")
 add_precompiled_header(${LOCAL_PROJECT} "stdafx.h")
 
 if(TESTS)
