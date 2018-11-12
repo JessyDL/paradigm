@@ -17,21 +17,7 @@
 #include <stdio.h>
 #include "logging.h"
 
-//#define GLM_FORCE_MESSAGES
-#define GLM_FORCE_RADIANS
-#define GLM_FORCE_DEPTH_ZERO_TO_ONE
-//#define GLM_FORCE_INLINE
-#define GLM_FORCE_SIZE_T_LENGTH
-#ifdef __clang__
-#define GLM_FORCE_CXX14
-#endif
-#include <glm/glm.hpp>
-#include <glm/gtc/matrix_transform.hpp>
-#include <glm/gtx/transform.hpp>
-#include <glm/gtx/euler_angles.hpp>
-#include <glm/gtc/quaternion.hpp>
-#include <glm/gtx/quaternion.hpp>
-#include <glm/bbox.h>
+
 #include "string_utils.h"
 
 

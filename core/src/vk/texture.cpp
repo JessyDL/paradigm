@@ -181,21 +181,21 @@ void texture::create_2D()
 
 void texture::load_2D()
 {
-	gli::texture2D* m_Texture2DData = (gli::texture2D*)m_TextureData;
+	gli::texture2d* m_Texture2DData = (gli::texture2d*)m_TextureData;
 	if(m_Texture2DData->empty())
 	{
 		LOG_ERROR("Empty texture");
 		debug_break();
 	}
 
-	if(m_Meta->width() != (uint32_t)(*m_Texture2DData)[0].dimensions().x)
-		m_Meta->width((uint32_t)(*m_Texture2DData)[0].dimensions().x);
+	if(m_Meta->width() != (uint32_t)(*m_Texture2DData)[0].extent().x)
+		m_Meta->width((uint32_t)(*m_Texture2DData)[0].extent().x);
 
-	if(m_Meta->height() != (uint32_t)(*m_Texture2DData)[0].dimensions().y)
-		m_Meta->height((uint32_t)(*m_Texture2DData)[0].dimensions().y);
+	if(m_Meta->height() != (uint32_t)(*m_Texture2DData)[0].extent().y)
+		m_Meta->height((uint32_t)(*m_Texture2DData)[0].extent().y);
 
-	if(m_Meta->depth() != (uint32_t)(*m_Texture2DData)[0].dimensions().z)
-		m_Meta->depth((uint32_t)(*m_Texture2DData)[0].dimensions().z);
+	if(m_Meta->depth() != (uint32_t)(*m_Texture2DData)[0].extent().z)
+		m_Meta->depth((uint32_t)(*m_Texture2DData)[0].extent().z);
 
 	m_MipLevels = (uint32_t)m_Texture2DData->levels();
 	m_Meta->mip_levels(m_MipLevels);
@@ -265,7 +265,7 @@ void texture::load_2D()
 
 		// Setup buffer copy regions for each mip level
 		std::vector<vk::BufferImageCopy> bufferCopyRegions;
-		uint32_t offset = segment.range().begin;
+		uintptr_t offset = segment.range().begin;
 
 		for(uint32_t i = 0; i < m_MipLevels; i++)
 		{
@@ -274,14 +274,14 @@ void texture::load_2D()
 			bufferCopyRegion.imageSubresource.mipLevel		 = i;
 			bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
 			bufferCopyRegion.imageSubresource.layerCount	 = m_Meta->layers();
-			bufferCopyRegion.imageExtent.width				 = (uint32_t)(*m_Texture2DData)[i].dimensions().x;
-			bufferCopyRegion.imageExtent.height				 = (uint32_t)(*m_Texture2DData)[i].dimensions().y;
+			bufferCopyRegion.imageExtent.width				 = (uint32_t)(*m_Texture2DData)[i].extent().x;
+			bufferCopyRegion.imageExtent.height				 = (uint32_t)(*m_Texture2DData)[i].extent().y;
 			bufferCopyRegion.imageExtent.depth				 = 1;
 			bufferCopyRegion.bufferOffset					 = offset;
 
 			bufferCopyRegions.push_back(bufferCopyRegion);
 
-			offset += (uint32_t)(*m_Texture2DData)[i].size();
+			offset += (*m_Texture2DData)[i].size();
 		}
 
 		// Create optimal tiled target image

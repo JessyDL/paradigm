@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "ustring.h"
 #include "string_utils.h"
-#include <glm/glm.hpp>
 #include <vector>
 #include "math/matrix.h"
 #include "math/vec.h"

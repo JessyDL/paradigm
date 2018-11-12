@@ -1,3 +1,0 @@
-author: Nemanja Trifunovic
-source: https://github.com/nemtrif/utfcpp
-version: 2.3.5

@@ -77,6 +77,7 @@ You can find internal and (public) release builds in the tags on this repo.
 ##  External Libraries
 The following external libraries may be used in one, or many of the sub projects. The specific project readme's will describe their dependencies in more detail so you can always verify which project uses what.
 - `GLI` image loading and saving
+- `GLM` mathematics library used only by `GLI`
 - `volk` dynamic bindings for vulkan
 - `Vulkan-hpp` generated C++ like headers for Vulkan
 - `Catch2` when compiling the tests, Catch2 will be pulled in.
