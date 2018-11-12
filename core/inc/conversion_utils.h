@@ -13,7 +13,7 @@ namespace serialization::converters
 	// psl::tvec
 	// -----------------------------------------------------------------------------
 	template<typename precision_t, size_t size>
-	static constexpr psl::string8_t to_string(const psl::tvec<precision_t, size>& value) noexcept
+	static psl::string8_t to_string(const psl::tvec<precision_t, size>& value) noexcept
 	{
 		psl::string8_t res{utility::converter<precision_t>().to_string(value.value[0])};
 		for(size_t i = 1; i < size; ++i)
@@ -22,7 +22,7 @@ namespace serialization::converters
 	}
 
 	template<typename precision_t, size_t size>
-	static constexpr bool to_string(const psl::tvec<precision_t, size>& value, psl::string8_t& out) noexcept
+	static bool to_string(const psl::tvec<precision_t, size>& value, psl::string8_t& out) noexcept
 	{
 		out = utility::converter<precision_t>().to_string(value.value[0]);
 		for(size_t i = 1; i < size; ++i)
@@ -31,7 +31,7 @@ namespace serialization::converters
 	}
 
 	template<typename precision_t, size_t size>
-	static constexpr psl::tvec<precision_t, size> from_string(psl::string8::view str) noexcept
+	static psl::tvec<precision_t, size> from_string(psl::string8::view str) noexcept
 	{
 		auto split = utility::string::split(str, psl::string8::view{","});
 		psl::tvec<precision_t, size> res;
@@ -41,7 +41,7 @@ namespace serialization::converters
 	}
 
 	template<typename precision_t, size_t size>
-	static constexpr void from_string(psl::string8::view str, psl::tvec<precision_t, size>& out) noexcept
+	static void from_string(psl::string8::view str, psl::tvec<precision_t, size>& out) noexcept
 	{
 		auto split = utility::string::split(str, ",");
 		for(size_t i = 0; i < size; ++i)
@@ -52,7 +52,7 @@ namespace serialization::converters
 	// psl::tquat
 	// -----------------------------------------------------------------------------
 	template<typename precision_t>
-	static constexpr psl::string8_t to_string(const psl::tquat<precision_t>& value) noexcept
+	static psl::string8_t to_string(const psl::tquat<precision_t>& value) noexcept
 	{
 		psl::string8_t res{utility::converter<precision_t>().to_string(value.value[0])};
 		for(size_t i = 1; i < 4; ++i)
@@ -61,7 +61,7 @@ namespace serialization::converters
 	}
 
 	template<typename precision_t>
-	static constexpr bool to_string(const psl::tquat<precision_t>& value, psl::string8_t& out) noexcept
+	static bool to_string(const psl::tquat<precision_t>& value, psl::string8_t& out) noexcept
 	{
 		out = utility::converter<precision_t>().to_string(value.value[0]);
 		for(size_t i = 1; i < 4; ++i)
@@ -70,7 +70,7 @@ namespace serialization::converters
 	}
 
 	template<typename precision_t>
-	static constexpr psl::tquat<precision_t> from_string(psl::string8::view str) noexcept
+	static psl::tquat<precision_t> from_string(psl::string8::view str) noexcept
 	{
 		auto split = utility::string::split(str, psl::string8::view{","});
 		psl::tquat<precision_t, size> res;
@@ -80,7 +80,7 @@ namespace serialization::converters
 	}
 
 	template<typename precision_t>
-	static constexpr void from_string(psl::string8::view str, psl::tquat<precision_t>& out) noexcept
+	static void from_string(psl::string8::view str, psl::tquat<precision_t>& out) noexcept
 	{
 		auto split = utility::string::split(str, ",");
 		for(size_t i = 0; i < 4; ++i)
@@ -91,38 +91,38 @@ namespace serialization::converters
 	// psl::tmat
 	// -----------------------------------------------------------------------------
 	template<typename precision_t, size_t nX, size_t nY>
-	static constexpr psl::string8_t to_string(const psl::tmat<precision_t, nX, nY>& value) noexcept
+	static psl::string8_t to_string(const psl::tmat<precision_t, nX, nY>& value) noexcept
 	{
 		psl::string8_t res{utility::converter<precision_t>().to_string(value.value[0])};
-		for(nX, nY_t i = 1; i < nX * nY; ++i)
+		for(size_t i = 1; i < nX * nY; ++i)
 			res += ", " + utility::converter<precision_t>().to_string(value.value[i]);
 		return res;
 	}
 
 	template<typename precision_t, size_t nX, size_t nY>
-	static constexpr bool to_string(const psl::tmat<precision_t, nX, nY>& value, psl::string8_t& out) noexcept
+	static bool to_string(const psl::tmat<precision_t, nX, nY>& value, psl::string8_t& out) noexcept
 	{
 		out = utility::converter<precision_t>().to_string(value.value[0]);
-		for(nX, nY_t i = 1; i < nX * nY; ++i)
+		for(size_t i = 1; i < nX * nY; ++i)
 			out += ", " + utility::converter<precision_t>().to_string(value.value[i]);
 		return true;
 	}
 
 	template<typename precision_t, size_t nX, size_t nY>
-	static constexpr psl::tmat<precision_t, nX, nY> from_string(psl::string8::view str) noexcept
+	static psl::tmat<precision_t, nX, nY> from_string(psl::string8::view str) noexcept
 	{
 		auto split = utility::string::split(str, psl::string8::view{","});
 		psl::tmat<precision_t, nX, nY> res;
-		for(nX, nY_t i = 0; i < nX *nY; ++i)
+		for(size_t i = 0; i < nX *nY; ++i)
 			res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 		return res;
 	}
 
 	template<typename precision_t, size_t nX, size_t nY>
-	static constexpr void from_string(psl::string8::view str, psl::tmat<precision_t, nX, nY>& out) noexcept
+	static void from_string(psl::string8::view str, psl::tmat<precision_t, nX, nY>& out) noexcept
 	{
 		auto split = utility::string::split(str, ",");
-		for(nX, nY_t i = 0; i < nX * nY; ++i)
+		for(size_t i = 0; i < nX * nY; ++i)
 			out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 }
