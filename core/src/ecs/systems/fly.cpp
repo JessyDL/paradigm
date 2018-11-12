@@ -15,7 +15,7 @@ fly::~fly() { m_InputSystem.unsubscribe(this); }
 
 void fly::announce(core::ecs::state& state)
 {
-	state.register_dependency(*this, core::ecs::state::dependency_pack{m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{} });
+	state.register_dependency(*this, {m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{} });
 }
 
 void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)

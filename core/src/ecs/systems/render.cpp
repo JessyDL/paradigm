@@ -1,7 +1,9 @@
 #include "stdafx.h"
 #include "ecs/systems/render.h"
+#include "gfx/drawgroup.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
+#include "ecs/components/camera.h"
 #include "vk/swapchain.h"
 #include "vk/context.h"
 #include "os/surface.h"
@@ -10,22 +12,25 @@
 
 #include "vk/buffer.h"
 
+using namespace core::resource;
+using namespace core::gfx;
+using namespace core::os;
+using namespace core;
 using namespace core::ecs::systems;
 using namespace core::ecs::components;
+using namespace psl;
 
-render::render(core::resource::handle<core::gfx::context> context,
-			   core::resource::handle<core::gfx::swapchain> swapchain,
-			   core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer)
+render::render(handle<context> context, handle<swapchain> swapchain, handle<surface> surface, handle<buffer> buffer)
 	: m_Pass(context, swapchain), m_Swapchain(swapchain), m_Surface(surface), m_Buffer(buffer)
 {}
 
-void render::announce(core::ecs::state& state)
+void render::announce(ecs::state& state)
 {
 	state.register_dependency(*this, {m_RenderableEntities, m_Transforms, m_Renderers});
 	state.register_dependency(*this, {m_CameraEntities, m_Cameras, m_CameraTransforms});
 }
 
-void render::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
+void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 {
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
 
@@ -55,22 +60,23 @@ void render::update_buffer(size_t index, const transform& transform, const core:
 		fdatasegment.emplace_back(m_Buffer->reserve(sizeof(framedata)).value());
 	}
 	{
-		psl::vec3 position  = transform.position;
-		psl::vec3 direction = transform.direction;
-		psl::vec3 up		= transform.up;
+		vec3 position  = transform.position;
+		vec3 direction = transform.direction;
+		vec3 up		   = transform.up;
 
+		framedata fdata{};
 		fdata.ScreenParams =
 			psl::vec4((float)m_Surface->data().width(), (float)m_Surface->data().height(), camera.near, camera.far);
 
-		fdata.projectionMatrix = psl::math::perspective_projection(
-			psl::math::radians(camera.fov), (float)m_Surface->data().width() / (float)m_Surface->data().height(),
+		fdata.projectionMatrix = math::perspective_projection(
+			math::radians(camera.fov), (float)m_Surface->data().width() / (float)m_Surface->data().height(),
 			camera.near, camera.far);
 		fdata.clipMatrix = clip;
 
-		fdata.viewMatrix  = psl::math::look_at(position, position + direction, up);
-		fdata.modelMatrix = psl::mat4x4(1);
-		fdata.viewPos	 = psl::vec4(position, 1.0);
-		fdata.viewDir	 = psl::vec4(direction, 0.0);
+		fdata.viewMatrix  = math::look_at(position, position + direction, up);
+		fdata.modelMatrix = mat4x4(1);
+		fdata.viewPos	 = vec4(position, 1.0);
+		fdata.viewDir	 = vec4(direction, 0.0);
 
 		fdata.VP  = fdata.clipMatrix * fdata.projectionMatrix * fdata.viewMatrix;
 		fdata.WVP = fdata.VP * fdata.modelMatrix;
