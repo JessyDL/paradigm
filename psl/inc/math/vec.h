@@ -4,8 +4,6 @@
 #include "template_utils.h"
 #include <algorithm>
 
-#define USE_SSE2
-
 namespace psl
 {
 	template <typename precision_t, size_t dimensions>
