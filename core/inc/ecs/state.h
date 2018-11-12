@@ -35,7 +35,7 @@ namespace core::ecs
 				  generator(region.size() / size){};
 
 			component_info(std::vector<entity>&& entities, component_key_t id)
-				: region(128), entities(std::move(entities)), id(id), size(size), generator(1)
+				: region(128), entities(std::move(entities)), id(id), size(1), generator(1)
 			{};
 			memory::raw_region region;
 			std::vector<entity> entities;
