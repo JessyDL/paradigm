@@ -41,6 +41,20 @@ if(NOT glm_POPULATED)
   add_subdirectory(${glm_SOURCE_DIR} ${glm_BINARY_DIR} EXCLUDE_FROM_ALL)
 endif()
 
+FetchContent_Declare(
+  volk 
+  GIT_REPOSITORY https://github.com/zeux/volk.git
+  GIT_TAG        e610db090ba1cea4714d4e06a72f7f352deeda67
+)
+
+FetchContent_GetProperties(volk)
+if(NOT volk_POPULATED)
+  FetchContent_Populate(volk)
+  add_subdirectory(${volk_SOURCE_DIR} ${volk_BINARY_DIR} EXCLUDE_FROM_ALL)
+endif()
+
+EXECUTE_PROCESS(WORKING_DIRECTORY "${volk_SOURCE_DIR}" COMMAND python "generate.py" "https://raw.githubusercontent.com/KhronosGroup/Vulkan-Headers/c4e056d365472174471a243dfefbfe66a03564af/registry/vk.xml")
+
 if(${VULKAN_STATIC})		
 	link_directories(${VULKAN_LIB_PATH})
 	if(PARADIGM_CORE_EXECUTABLE)
@@ -49,14 +63,11 @@ if(${VULKAN_STATIC})
 		add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
 	endif()	
 else()	
-	source_group(TREE "${PARADIGM_EXTERNAL_PATH}/volk" PREFIX "volk" FILES ${PARADIGM_EXTERNAL_PATH}/volk/volk.c) 
 	if(PARADIGM_CORE_EXECUTABLE)
-		add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS} ${PARADIGM_EXTERNAL_PATH}/volk/volk.c)
+		add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
 	else()
-		add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS} ${PARADIGM_EXTERNAL_PATH}/volk/volk.c)
+		add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
 	endif()
-	SET_SOURCE_FILES_PROPERTIES( ${PARADIGM_EXTERNAL_PATH}/volk/volk.c PROPERTIES LANGUAGE CXX )
-	set(_PCH_EXCLUDED ${PARADIGM_EXTERNAL_PATH}/volk/volk.c)
 endif()
 
 set(_PCH_SOURCE_CXX "src/stdafx.cpp")
@@ -69,17 +80,18 @@ endif()
 if(${VULKAN_STATIC})	
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${VULKAN_LIB_NAME}  ${PROJECT_PSL} ${PROJECT_FORMAT} 
-		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${TEST_LIBS} gli glm)
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${TEST_LIBS} gli glm volk)
 else()
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${PROJECT_PSL} ${PROJECT_FORMAT} 
-		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${CMAKE_DL_LIBS} ${PARADIGM_DL_LIBS} ${TEST_LIBS} gli glm)
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${SHLWAPI} ${CMAKE_DL_LIBS} ${PARADIGM_DL_LIBS} ${TEST_LIBS} gli glm volk)
 endif()
 
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${VULKAN_INC_PATH}
+		${volk_SOURCE_DIR}
 	PRIVATE
 		${WSI_INC}
 )

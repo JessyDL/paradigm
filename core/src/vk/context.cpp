@@ -497,7 +497,8 @@ context::~context()
 	deinit_debug();
 	m_Instance.destroy();
 #if defined(VK_DYNAMIC_DISPATCH_VOLK)
-	volkFree();
+	// todo: get rid of volk that doesn't even clean its own memory..
+	//volkFree();
 #endif
 	core::ivk::log->info("vulkan context destroyed");
 }
