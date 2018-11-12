@@ -32,7 +32,7 @@
 #include <glm/gtc/quaternion.hpp>
 #include <glm/gtx/quaternion.hpp>
 #include <glm/bbox.h>
-#include "glmUtility.h"
+#include "string_utils.h"
 
 
 #define VULKAN_HPP_NO_EXCEPTIONS
@@ -61,6 +61,7 @@
 #include "library.h"
 #include "systems/resource.h"
 #include "math/math.hpp"
+#include "conversion_utils.h"
 
 #include "data/stream.h"
 
