@@ -2,7 +2,6 @@ SET(INC
 inc/conversion_utils.h
 inc/header_info.h
 inc/logging.h
-inc/stdafx.h
 inc/stdb_truetype.h
 inc/targetver.h
 inc/vulkan_stdafx.h

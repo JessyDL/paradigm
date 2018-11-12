@@ -1,5 +1,4 @@
-﻿#include "stdafx.h"
-#include "data/buffer.h"
+﻿#include "data/buffer.h"
 
 using namespace core::data;
 

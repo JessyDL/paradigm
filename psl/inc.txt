@@ -27,7 +27,6 @@ inc/vulkan_utils.h
 inc/expected.h
 inc/platform_utils.h
 inc/file.h
-inc/stdafx_psl.h
 
 inc/math/math.hpp
 inc/math/vec.h
