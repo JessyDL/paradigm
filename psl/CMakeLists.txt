@@ -16,11 +16,6 @@ endif()
 
 add_library(${LOCAL_PROJECT} STATIC ${INC} ${SRC} ${NATVIS})
 
-set(_PCH_SOURCE_CXX "stdafx_psl.cpp")
-set(_PCH_SOURCE_PREFIX "src/")
-set(_PCH_HEADER_PREFIX "inc/")
-add_precompiled_header(${LOCAL_PROJECT} stdafx_psl.h SOURCE_CXX stdafx_psl.cpp FORCEINCLUDE)
-
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
         $<INSTALL_INTERFACE:include>    
@@ -64,4 +59,9 @@ endif()
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
-target_compile_options(${LOCAL_PROJECT} PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_LIB})
+target_compile_options(${LOCAL_PROJECT} PUBLIC ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_LIB})
+
+set(_PCH_SOURCE_CXX "stdafx_psl.cpp")
+set(_PCH_SOURCE_PREFIX "src/")
+set(_PCH_HEADER_PREFIX "inc/")
+add_precompiled_header(${LOCAL_PROJECT} stdafx_psl.h SOURCE_CXX stdafx_psl.cpp FORCEINCLUDE)

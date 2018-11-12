@@ -70,10 +70,6 @@ else()
 	endif()
 endif()
 
-set(_PCH_SOURCE_CXX "stdafx.cpp")
-set(_PCH_SOURCE_PREFIX "src/")
-set(_PCH_HEADER_PREFIX "inc/")
-add_precompiled_header(${LOCAL_PROJECT} stdafx.h SOURCE_CXX stdafx.cpp FORCEINCLUDE)
 
 if(TESTS)
 	set(TEST_LIBS Catch2)
@@ -105,4 +101,9 @@ endif()
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
-target_compile_options(${LOCAL_PROJECT} PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
+target_compile_options(${LOCAL_PROJECT} PUBLIC ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
+
+set(_PCH_SOURCE_CXX "stdafx.cpp")
+set(_PCH_SOURCE_PREFIX "src/")
+set(_PCH_HEADER_PREFIX "inc/")
+add_precompiled_header(${LOCAL_PROJECT} stdafx.h SOURCE_CXX stdafx.cpp FORCEINCLUDE)
