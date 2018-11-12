@@ -72,7 +72,7 @@ endif()
 
 set(_PCH_SOURCE_CXX "stdafx.cpp")
 set(_PCH_SOURCE_PREFIX "src/")
-add_precompiled_header(${LOCAL_PROJECT} "stdafx.h")
+add_precompiled_header(${LOCAL_PROJECT} "stdafx.h" FORCEINCLUDE)
 
 if(TESTS)
 	set(TEST_LIBS Catch2)

@@ -18,7 +18,7 @@ add_library(${LOCAL_PROJECT} STATIC ${INC} ${SRC} ${NATVIS})
 
 set(_PCH_SOURCE_CXX "stdafx_psl.cpp")
 set(_PCH_SOURCE_PREFIX "src/")
-add_precompiled_header(${LOCAL_PROJECT} "stdafx_psl.h")
+add_precompiled_header(${LOCAL_PROJECT} "stdafx_psl.h" FORCEINCLUDE)
 
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
