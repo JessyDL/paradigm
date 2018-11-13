@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 set(PROJECT_CORE core CACHE INTERNAL "")
 set(LOCAL_PROJECT ${PROJECT_CORE})
-project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
+project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX CXXPCH)
 
 include(inc.txt)
 include(src.txt)
@@ -103,7 +103,6 @@ set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
 target_compile_options(${LOCAL_PROJECT} PUBLIC ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
 
-set(_PCH_SOURCE_CXX "stdafx.cpp")
-set(_PCH_SOURCE_PREFIX "src/")
-set(_PCH_HEADER_PREFIX "inc/")
-add_precompiled_header(${LOCAL_PROJECT} stdafx.h SOURCE_CXX stdafx.cpp FORCEINCLUDE)
+
+set_target_properties(${LOCAL_PROJECT} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "inc/stdafx.h")
+cotire(${LOCAL_PROJECT})

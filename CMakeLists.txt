@@ -11,10 +11,10 @@ project(${PROJECT_PARADIGM} VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_INCLUDE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
 
-include(${CMAKE_INCLUDE_PATH}/pch2.cmake)
-include(${CMAKE_INCLUDE_PATH}/platform.cmake)
-include(${CMAKE_INCLUDE_PATH}/vulkan.cmake)
-include(${CMAKE_INCLUDE_PATH}/assimp.cmake)
+include(cotire)
+include(platform)
+include(vulkan)
+include(assimp)
 
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON) 

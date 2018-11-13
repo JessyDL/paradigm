@@ -57,11 +57,9 @@ else()
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC utf8cpp spdlog)
 endif()
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
-
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
 target_compile_options(${LOCAL_PROJECT} PUBLIC ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_LIB})
 
-set(_PCH_SOURCE_CXX "stdafx_psl.cpp")
-set(_PCH_SOURCE_PREFIX "src/")
-set(_PCH_HEADER_PREFIX "inc/")
-add_precompiled_header(${LOCAL_PROJECT} stdafx_psl.h SOURCE_CXX stdafx_psl.cpp FORCEINCLUDE)
+
+set_target_properties(${LOCAL_PROJECT} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "inc/stdafx_psl.h")
+cotire(${LOCAL_PROJECT})
