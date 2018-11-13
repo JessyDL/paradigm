@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 set(PROJECT_CORE core CACHE INTERNAL "")
 set(LOCAL_PROJECT ${PROJECT_CORE})
-project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX CXXPCH)
+project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 
 include(inc.txt)
 include(src.txt)
