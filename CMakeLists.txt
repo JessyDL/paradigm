@@ -37,6 +37,7 @@ OPTION(TESTS "should the tests be compiled? Note that, you cannot have core be a
 if (MSVC_IDE)
     option(VS_ADD_NATIVE_VISUALIZERS "Configure project to use Visual Studio native visualizers" TRUE)
 else()
+    set(CMAKE_CXX_COMPILER_LAUNCHER "clang++")
 	set(VS_ADD_NATIVE_VISUALIZERS FALSE CACHE INTERNAL "Native visualizers are Visual Studio extension" FORCE)
 endif()
 
