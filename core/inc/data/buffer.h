@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "stdafx.h"
 
 /// \brief contains all data types that can be serialized to/from disk.
 namespace core::data

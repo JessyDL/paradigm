@@ -60,6 +60,7 @@ set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
 target_compile_options(${LOCAL_PROJECT} PUBLIC ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_LIB})
 
-
-set_target_properties(${LOCAL_PROJECT} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "inc/stdafx_psl.h")
-cotire(${LOCAL_PROJECT})
+if(USE_PCH)
+	set_target_properties(${LOCAL_PROJECT} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "inc/stdafx_psl.h")
+	cotire(${LOCAL_PROJECT})
+endif()
