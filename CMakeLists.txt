@@ -165,7 +165,8 @@ endif()
 set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
 if(GENERATOR_TOOLSET_VC)
-	set(COMPILE_OPTIONS ${COMPILE_OPTIONS} /nologo /MP /sdl /Zc:forScope /Zc:inline /Zc:rvalueCast /Zc:wchar_t /GR- /fp:precise /W3 )
+	add_compile_options(/nologo /MP /sdl /Zc:forScope /Zc:inline /Zc:rvalueCast /Zc:wchar_t /GR- /fp:precise /W3 /permissive-)
+
 	set(COMPILE_OPTIONS_EXE ${COMPILE_OPTIONS_EXE}
 							$<$<CONFIG:Debug>:             /MDd /Od /RTC1 /Z7>
 							$<$<CONFIG:Release>:           /MD  /O2 /Oi /Gy /GL /Zi>
@@ -176,7 +177,7 @@ if(GENERATOR_TOOLSET_VC)
 							$<$<CONFIG:Release>:           /MD  /O2 /Oi /Gy /GL /Zi>
 							$<$<CONFIG:RelWithDebInfo>:    /MD  /O2 /Oi /Gy /GL /Zo /Z7>
 							$<$<CONFIG:RelNoOptimization>: /MDd /Od /RTC1 /Zi>)
-	
+							
 	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF")
 	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG")
 	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental")
