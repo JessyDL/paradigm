@@ -10,7 +10,7 @@ endif()
 cmake_minimum_required(VERSION 3.11)
 set(PROJECT_PARADIGM paradigm CACHE INTERNAL "")
 project(${PROJECT_PARADIGM} VERSION 1.0.0 LANGUAGES CXX)
-set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
+set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
 
 ###############################################################################
@@ -45,7 +45,6 @@ OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check
 if(PE_PCH)
 	include(cotire)
 endif()
-include(platform)
 include(vulkan)
 include(assimp)
 
