@@ -11,7 +11,7 @@ namespace core::gfx
 	{
 		union
 		{
-			struct
+			union
 			{
 				float constantFactor;
 				float clamp;

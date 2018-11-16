@@ -46,10 +46,10 @@ namespace memory
 		region * m_Region{nullptr};
 		virtual std::optional<segment> do_allocate(region* region, std::size_t bytes) = 0;
 		virtual bool do_deallocate(segment& segment) = 0;
-		virtual void initialize(region* region) {};
+		virtual void initialize([[maybe_unused]] region* region) {};
 		virtual std::vector<range> get_committed() = 0;
 		virtual std::vector<range> get_available() = 0;
-		virtual void do_compact(region* region) {};
+		virtual void do_compact([[maybe_unused]] region* region) {};
 		virtual bool get_owns(const memory::segment& segment) const noexcept = 0;
 		const bool m_IsPhysicallyBacked{true};
 	};

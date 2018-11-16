@@ -21,7 +21,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPARADIGM_CORE_EXECUTABLE=ON" UTESTS=false DOXGEN=true
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_EXE=ON" UTESTS=false DOXGEN=true
       addons: &clang60
         apt:
           sources:
@@ -49,7 +49,7 @@ matrix:
         on:
           branch: develop
     - name: "Linux CLang 6.0 Unit Tests"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DTESTS=ON" UTESTS=true
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true
       addons: *clang60
       
 
@@ -140,7 +140,7 @@ install:
   - cd $TRAVIS_BUILD_DIR
 
 script:  
-  - bash build.sh -VULKAN_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VULKAN_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+  - bash build.sh -VK_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VK_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
   - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
   - make -j2
   - |

@@ -50,7 +50,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 					binding.descriptor(), shader_handle->stage(), binding.binding_slot()));
 			}
 			break;
-			default: throw new std::runtime_error("this should not be reached"); return false;
+			default: throw new std::runtime_error("this should not be reached");
 			}
 		}
 	}

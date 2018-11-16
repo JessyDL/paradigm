@@ -168,9 +168,9 @@ namespace core::ecs
 			auto& pair{it->second};
 			if constexpr(std::is_empty<T>::value)
 			{
-				for(auto it = std::begin(ent_cpy); it != end; ++it)
+				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
 				{
-					const entity& e{*it};
+					const entity& e{*ent_it};
 					m_EntityMap[e].emplace_back(int_id, 0);
 					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
 				}
@@ -184,9 +184,9 @@ namespace core::ecs
 
 				std::vector<uint64_t> indices;
 				indices.reserve(std::distance(std::begin(ent_cpy), end));
-				for(auto it = std::begin(ent_cpy); it != end; ++it)
+				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
 				{
-					const entity& e{*it};
+					const entity& e{*ent_it};
 					auto index = pair.generator.CreateID().second;
 					indices.emplace_back(index);
 					m_EntityMap[e].emplace_back(int_id, index);

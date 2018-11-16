@@ -3,7 +3,8 @@
 # ==================================================================================================
 
 # will check the directory, and if it exists
-function(vk_get_directory VULKAN_ROOT VULKAN_VERSION output_inc output_lib)	
+function(vk_get_directory VULKAN_ROOT VULKAN_VERSION output_inc output_lib)
+	string(REGEX REPLACE "/$" "" VULKAN_ROOT "${VULKAN_ROOT}")
 	if(NOT EXISTS "${VULKAN_ROOT}/${VULKAN_VERSION}" OR NOT IS_DIRECTORY "${VULKAN_ROOT}/${VULKAN_VERSION}")
 		if(NOT ${VULKAN_VERSION} EQUAL "")
 			if(WIN32)
@@ -74,6 +75,6 @@ function(setup_vulkan root version out_inc_path out_lib_path out_lib_name)
 			message(FATAL_ERROR "unsupported platform")
 		endif()
 	else()
-		set(${out_inc_path} "${VK_INCPATH}" "${PARADIGM_EXTERNAL_PATH}/volk" PARENT_SCOPE )			
+		set(${out_inc_path} "${VK_INCPATH}" "" PARENT_SCOPE )	
 	endif()	
 endfunction()

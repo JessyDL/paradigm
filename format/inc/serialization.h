@@ -1941,9 +1941,9 @@ namespace serialization
 					{
 						target = (T*)((*it->second)());
 					}
-					else if(auto it = accessor::polymorphic_data().find(id); it != accessor::polymorphic_data().end())
+					else if(auto poly_it = accessor::polymorphic_data().find(id); poly_it != accessor::polymorphic_data().end())
 					{
-						target = (T*)((*it->second->factory)());
+						target = (T*)((*poly_it->second->factory)());
 					}
 					else
 					{

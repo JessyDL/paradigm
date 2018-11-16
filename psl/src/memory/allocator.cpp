@@ -57,7 +57,6 @@ void default_allocator::initialize(region* region)
 
 std::optional<segment> default_allocator::do_allocate(region* region, std::size_t bytes)
 {
-	auto base_offset = region->data();
 	auto mod = bytes % region->alignment();
 	bytes = (mod)? bytes + region->alignment() - mod : bytes;
 	auto index = 0u;

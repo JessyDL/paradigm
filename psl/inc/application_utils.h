@@ -39,8 +39,6 @@ namespace utility::application::path
 #else
 #error not supported
 #endif
-		// todo platform specific versions
-		return {};
 	}
 
 	/// \brief location where the application is being ran from, check utility::application::path::get_path() for more info.

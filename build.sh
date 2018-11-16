@@ -36,10 +36,10 @@ declare BUILD_FOLDER=$PWD/builds
 declare CMAKE_FOLDER=$PWD/project_files
 # what vulkan version should we target?
 # warning: this should correspond to the internally used "volk" library in case you dynamically link.
-declare VULKAN_VERSION="1.1.82.1"
+declare VK_VERSION="1.1.82.1"
 # where can we find the vulkan SDK path?
 # note: it will automatically try to find it depending on some platform defaults.
-declare VULKAN_ROOT=""
+declare VK_ROOT=""
 # when set to true it will run cmake again to update the project files found in the target directory.
 # this is useful for when you want to tweak parameters, and not generate the full project again.
 declare CMAKE_UPDATE=false
@@ -133,10 +133,10 @@ do
 			o) ;&
             CMAKE_FOLDER) 	CUSTOM_ARGUMENTS=true
 							CMAKE_FOLDER=${VALUE} ;;
-            VULKAN_VERSION) CUSTOM_ARGUMENTS=true
-							VULKAN_VERSION=${VALUE} ;;
-            VULKAN_ROOT) 	CUSTOM_ARGUMENTS=true
-							VULKAN_ROOT=${VALUE} ;;
+            VK_VERSION) CUSTOM_ARGUMENTS=true
+							VK_VERSION=${VALUE} ;;
+            VK_ROOT) 	CUSTOM_ARGUMENTS=true
+							VK_ROOT=${VALUE} ;;
 			G) ;&
 			GENERATOR)		GENERATOR=${VALUE} ;;
 			C) ;&
@@ -234,32 +234,32 @@ if [ $CMAKE_UPDATE == "true" ] && [ ! -f "$CMAKE_FOLDER/$cmake_output/CMakeCache
 fi
 
 if [ $CMAKE_UPDATE == "false" ] && [ -z $CONFIG ]; then
-	if [ -z $VULKAN_ROOT ]; then
+	if [ -z $VK_ROOT ]; then
 		if [[ "$OSTYPE" == "linux-gnu" ]]; then
-			VULKAN_ROOT=/VulkanSDK/
+			VK_ROOT=/VulkanSDK/
 		elif [[ "$OSTYPE" == "darwin"* ]]; then
-			VULKAN_ROOT=/VulkanSDK/
+			VK_ROOT=/VulkanSDK/
 		elif [[ "$OSTYPE" == "cygwin" ]]; then
-			VULKAN_ROOT=C:/VulkanSDK/
+			VK_ROOT=C:/VulkanSDK/
 		elif [[ "$OSTYPE" == "msys" ]]; then
-			VULKAN_ROOT=C:/VulkanSDK/
+			VK_ROOT=C:/VulkanSDK/
 		elif [[ "$OSTYPE" == "win32" ]]; then
-			VULKAN_ROOT=C:/VulkanSDK/
+			VK_ROOT=C:/VulkanSDK/
 		else
 			echo -e ${RED}ERROR${NC}: unsupported platform detected.
 			exit 1
 		fi
-		echo the vulkan SDK root has been set to $VULKAN_ROOT
-		if [ ! -d "$VULKAN_ROOT" ]; then
-			echo -e ${RED}ERROR${NC}: the automatic search for the vulkan SDK yielded no results, please pass in the value using the [${GREEN}VULKAN_ROOT${NC}] argument.
+		echo the vulkan SDK root has been set to $VK_ROOT
+		if [ ! -d "$VK_ROOT" ]; then
+			echo -e ${RED}ERROR${NC}: the automatic search for the vulkan SDK yielded no results, please pass in the value using the [${GREEN}VK_ROOT${NC}] argument.
 			exit 1
 		fi
 	fi
 
 	echo checking if the correct vulkan sdk version is installed..
-	if [ ! -d $VULKAN_ROOT/$VULKAN_VERSION ]; then
-		echo -e ${RED}ERROR${NC}: could not find the vulkan SDK version [${GREEN}VULKAN_VERSION${NC}] [${YELLOW}${VULKAN_VERSION}${NC}], please install it to continue or choose a different version.
-		echo -e     looked in $VULKAN_ROOT/$VULKAN_VERSION..
+	if [ ! -d $VK_ROOT/$VK_VERSION ]; then
+		echo -e ${RED}ERROR${NC}: could not find the vulkan SDK version [${GREEN}VK_VERSION${NC}] [${YELLOW}${VK_VERSION}${NC}], please install it to continue or choose a different version.
+		echo -e     looked in $VK_ROOT/$VK_VERSION..
 		exit 1
 	fi
 fi
@@ -290,7 +290,7 @@ elif [[ ! -d "CMakeFiles" ]]; then
 	echo generating project files for "$CMAKE_GENERATOR"
 	echo setting root directory to "$ROOT_DIRECTORY"
 	echo setting build directory to "$BUILD_FOLDER/$build_output"
-	CMAKE_PARAMS="-DBUILD_DIRECTORY="$BUILD_FOLDER/$build_output" -DVULKAN_VERSION=$VULKAN_VERSION -DVULKAN_ROOT=$VULKAN_ROOT $CMAKE_PLATFORM -DVULKAN_STATIC=$VULKAN_STATIC $CMAKE_PARAMS"
+	CMAKE_PARAMS="-DPE_BUILD_DIR="$BUILD_FOLDER/$build_output" -DVK_VERSION=$VK_VERSION -DVK_ROOT=$VK_ROOT $CMAKE_PLATFORM -DVULKAN_STATIC=$VULKAN_STATIC $CMAKE_PARAMS"
 	echo -e "\n${GREEN}running cmake with the parameters $CMAKE_PARAMS ${NC}"
 	cmake -G "$CMAKE_GENERATOR" "$ROOT_DIRECTORY" ${CMAKE_PARAMS}
 fi

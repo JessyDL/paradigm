@@ -318,7 +318,6 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		m_Context->device().unmapMemory(m_Memory);
 		return true;
 	}
-	return false;
 }
 // bool buffer::map(const memory::region& region, const memory::segment& segment)
 //{

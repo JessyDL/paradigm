@@ -1208,7 +1208,7 @@ std::pair<nodes_t, children_t> container::create(data& parent, psl::string8::vie
 	if (auto index = rfind_first_of(name, name.size(), constants::NAMESPACE_DIVIDER); index != psl::string8_t::npos)
 	{
 		psl::string8_t parent_name = fullname(parent) + psl::string8_t{ name.substr(0, index - constants::NAMESPACE_DIVIDER.size()) };
-		auto parent_index = index_of(parent_name);
+		parent_index = index_of(parent_name);
 		name = name.substr(index);
 
 	}

@@ -40,8 +40,8 @@ bool buffer::deallocate(memory::segment& segment)
 size_t buffer::size() const
 {
 	return m_Region.size();
-	return std::accumulate(std::begin(m_Segments), std::end(m_Segments), (size_t)0u,
-						   [](size_t sum, const memory::segment& segment) { return sum + segment.range().size(); });
+	//return std::accumulate(std::begin(m_Segments), std::end(m_Segments), (size_t)0u,
+	//					   [](size_t sum, const memory::segment& segment) { return sum + segment.range().size(); });
 }
 vk::BufferUsageFlags buffer::usage() const { return m_Usage.value; }
 vk::MemoryPropertyFlags buffer::memoryPropertyFlags() const { return m_MemoryPropertyFlags.value; }

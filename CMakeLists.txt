@@ -3,281 +3,205 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "ERROR: detected an in-tree build. please create a sub-directory and invoke cmake from there, or a location outside the project.")
 endif()
 
-# we use https://cmake.org/cmake/help/latest/module/FetchContent.html
+if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
+    message(FATAL_ERROR "we require a 64bit build platform")
+endif()
+
 cmake_minimum_required(VERSION 3.11)
 set(PROJECT_PARADIGM paradigm CACHE INTERNAL "")
 project(${PROJECT_PARADIGM} VERSION 1.0.0 LANGUAGES CXX)
-
-set(CMAKE_INCLUDE_PATH ${PROJECT_SOURCE_DIR}/cmake)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_SOURCE_DIR}/cmake")
-OPTION(USE_PCH "generate and use precompiled headers (if supported)" OFF)
+include(CMakeDependentOption)
 
-if(USE_PCH)
+###############################################################################
+###                    general options and setup                            ###
+###############################################################################
+OPTION(PE_PCH "generate and use precompiled headers (if supported)" OFF)
+OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
+OPTION(PE_EXE "should the core library be compiled as executable instead?" OFF)
+OPTION(PE_TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
+set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
+set(VK_VERSION "" CACHE STRING "The vulkan version to use")
+OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
+
+include(findXCB)
+include(findWayland)
+OPTION(PE_WSI_D2D "use Direct to Display" OFF)
+CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "Wayland_FOUND" OFF)
+CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
+CMAKE_DEPENDENT_OPTION(PE_WSI_WIN32 "use win32 surface" ON "WIN32" OFF)
+
+set(PE_PLATFORM "AUTO" CACHE STRING "Target platform to build for, leave to 'AUTO' to detect and select the platform for you.")
+set_property(CACHE PE_PLATFORM PROPERTY STRINGS AUTO WINDOWS LINUX ANDROID)
+set(PE_INSTRUCTION_SET "OFF" CACHE STRING "Instruction set to use for SIMD instructions")
+set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS OFF SSE2)
+
+OPTION(VS_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
+
+set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where to build the project to")
+set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
+OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check 'compile options' section in the CMakelists.txt file)" TRUE)
+
+if(PE_PCH)
 	include(cotire)
 endif()
 include(platform)
 include(vulkan)
 include(assimp)
 
+set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set_property(GLOBAL PROPERTY USE_FOLDERS ON) 
-
-message("using compiler $ENV{CXX}")
-message("using compiler ${CMAKE_CXX_COMPILER_ID}")
-set(PROJECT_COMPILER_FEATURES "cxx_std_17")
-
-target_architecture(ARCHITECTURE)
-
-set(PARADIGM_ROOT ${PROJECT_SOURCE_DIR})
-set(PARADIGM_EXTERNAL_PATH ${PARADIGM_ROOT}/externals)
-set(VULKAN_VERSION CACHE STRING "default")
-set(VULKAN_ROOT CACHE STRING "")
-
-OPTION(PARADIGM_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
-OPTION(PARADIGM_CORE_EXECUTABLE "should the core library be compiled as executable instead?" OFF)
-OPTION(TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
-
-if (MSVC_IDE)
-    option(VS_ADD_NATIVE_VISUALIZERS "Configure project to use Visual Studio native visualizers" TRUE)
-else()
-	set(VS_ADD_NATIVE_VISUALIZERS FALSE CACHE INTERNAL "Native visualizers are Visual Studio extension" FORCE)
+if(PE_EXE)
+	list(APPEND PE_DEFINES -DCORE_EXECUTABLE)
 endif()
 
-if (UNIX AND NOT APPLE AND NOT ANDROID)
-    set(LINUX TRUE)
+list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
+
+if(NOT ${PE_INSTRUCTION_SET} STREQUAL "OFF")	
+	list(APPEND PE_DEFINES -DINSTRUCTIONS_${PE_INSTRUCTION_SET})
 endif()
 
-OPTION(USE_D2D_WSI "use Direct to Display (if supported)" OFF)
-if(LINUX)
-	OPTION(USE_WAYLAND_WSI "use Wayland" OFF)
-	OPTION(USE_XCB_WSI "use XCB" ON)
-else()
-	set(USE_WAYLAND_WSI FALSE CACHE INTERNAL "wayland is only for Linux OS's" FORCE)
-	set(USE_XCB_WSI FALSE CACHE INTERNAL "XCB is only for Linux OS's" FORCE)
+if(NOT ${VK_STATIC} AND NOT ${PE_SOURCE_ONLY})	
+	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES;-DVK_DYNAMIC_DISPATCH_VOLK)
 endif()
 
-if(WIN32)
-	OPTION(USE_WIN32_WSI "use win32" ON)
-else()
-	set(USE_WIN32_WSI FALSE CACHE INTERNAL "win32 is only for Windows OS" FORCE)
+###############################################################################
+###                    validation                                           ###
+###############################################################################
+
+if(PE_EXE AND PE_TESTS)
+	message(FATAL_ERROR "you cannot mix [PE_EXE] and [PE_TESTS] flags")
 endif()
 
-set(BUILD_DIRECTORY "" CACHE PATH "target location where to build the project to")
-if(BUILD_DIRECTORY STREQUAL "")
-	set(BUILD_DIRECTORY "${CMAKE_BINARY_DIR}/builds/")
-endif()
-
-
-# set(BaseName “binary” CACHE STRING “BaseName chosen by the user at CMake configure time”)
-# set_property(CACHE BaseName PROPERTY STRINGS binary octal decimal hexadecimal)
-
-if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
-    message(FATAL_ERROR "we require a 64bit build platform")
-endif()
-
-# ==================================================================================================
-# general defines
-# ==================================================================================================
-set(PARADIGM_DEFINES -DUNICODE 
-				-D_UNICODE
-				-DNOMINMAX)
-				
-if(PARADIGM_CORE_EXECUTABLE AND TESTS)
-	message(FATAL_ERROR "you cannot mix PARADIGM_CORE_EXECUTABLE and TESTS flags")
-endif()
-				
-if(PARADIGM_CORE_EXECUTABLE)
-	set(PARADIGM_DEFINES ${PARADIGM_DEFINES} -DCORE_EXECUTABLE)
-endif()
-				
-add_definitions(${PARADIGM_DEFINES} )				
-
-SET(CMAKE_CXX_FLAGS_RELEASE "-DRELEASE -DNDEBUG")
-SET(CMAKE_CXX_FLAGS_DEBUG "-DDEBUG")
-
-
-# ==================================================================================================
-# OS specific
-# ==================================================================================================
-
-set(SHLWAPI "")
-set(RPCRT4 "")
-if(WIN32)
-	set(SHLWAPI Shlwapi.lib)
-	set(RPCRT4 Rpcrt4.lib)
-endif()
-
-
-# platform definitions
-if (WIN32)
-    add_definitions(-DPLATFORM_WINDOWS)
-else (LINUX)
-    add_definitions(-DPLATFORM_LINUX)
+###############################################################################
+###                    setup output directories                             ###
+###############################################################################
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PE_BUILD_DIR}/default/lib 
+	CACHE PATH "Output directory for static libraries.")
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PE_BUILD_DIR}/default/lib
+	CACHE PATH "Output directory for shared libraries.")
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PE_BUILD_DIR}/default/bin
+	CACHE PATH "Output directory for executables and DLL's.")
 	
-endif()
-add_definitions(-DPLATFORM_${ARCHITECTURE})
-# ==================================================================================================
-# Setup output directories
-# ==================================================================================================
-if(ARCHITECTURE STREQUAL "X64")
-	set(ARCHI "x64")
-else()
-	set(ARCHI ${ARCHITEXTURE})
-endif()
+file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
+file(MAKE_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
+file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
 
-file(MAKE_DIRECTORY ${BUILD_DIRECTORY}/release/${ARCHI})
-file(MAKE_DIRECTORY ${BUILD_DIRECTORY}/release_dbginfo/${ARCHI})
-file(MAKE_DIRECTORY ${BUILD_DIRECTORY}/debug/${ARCHI})
+foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+	string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+	string(TOLOWER ${OUTPUTCONFIG} OUTPUTCONFIG_FOLDERNAME)
+	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/bin" CACHE PATH "" FORCE)
+	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib" CACHE PATH "" FORCE)
+	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib" CACHE PATH "" FORCE)
+	
+	file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
+	file(MAKE_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
+	file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
+endforeach()
 
-set(EXECUTABLE_OUTPUT_PATH ${BUILD_DIRECTORY}/${ARCHI}/bin CACHE INTERNAL "")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${BUILD_DIRECTORY}/${ARCHI}/bin CACHE INTERNAL "")
-set(EXECUTABLE_OUTPUT_PATH_RELEASE ${BUILD_DIRECTORY}/release/${ARCHI}/bin CACHE INTERNAL "")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}/release/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}/release/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELEASE ${BUILD_DIRECTORY}/release/${ARCHI}/bin CACHE INTERNAL "")
-set(EXECUTABLE_OUTPUT_PATH_RELWITHDEBINFO ${BUILD_DIRECTORY}/release_dbginfo/${ARCHI}/bin CACHE INTERNAL "")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_RELWITHDEBINFO ${BUILD_DIRECTORY}/release_dbginfo/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${BUILD_DIRECTORY}/release_dbginfo/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO ${BUILD_DIRECTORY}/release_dbginfo/${ARCHI}/bin CACHE INTERNAL "")
-set(EXECUTABLE_OUTPUT_PATH_DEBUG ${BUILD_DIRECTORY}/debug/${ARCHI}/bin CACHE INTERNAL "")
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_DEBUG ${BUILD_DIRECTORY}/debug/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${BUILD_DIRECTORY}/debug/${ARCHI}/lib CACHE INTERNAL "")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${BUILD_DIRECTORY}/debug/${ARCHI}/bin CACHE INTERNAL "")
+###############################################################################
+###                    compile options                                      ###
+###############################################################################
 
-# ==================================================================================================
-# figure out the generators
-# ==================================================================================================
-if(MSVC)
-	if(CMAKE_GENERATOR_TOOLSET MATCHES ".*(clang|llvm|CLang|LLVM).*")
-		set(GENERATOR_TOOLSET_VC false)	
-	else()
-		set(GENERATOR_TOOLSET_VC true)
-	endif()
-else()
-	set(GENERATOR_TOOLSET_VC false)	
-endif()
-
-# ==================================================================================================
-# General compiler & linker flags
-# ==================================================================================================
 set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
-if(GENERATOR_TOOLSET_VC)
-	add_compile_options(/nologo /MP /sdl /Zc:forScope /Zc:inline /Zc:rvalueCast /Zc:wchar_t /GR- /fp:precise /W3 /permissive-)
+list(APPEND PE_COMPILER_FEATURES cxx_std_17)
 
-	set(COMPILE_OPTIONS_EXE ${COMPILE_OPTIONS_EXE}
-							$<$<CONFIG:Debug>:             /MDd /Od /RTC1 /Z7>
-							$<$<CONFIG:Release>:           /MD  /O2 /Oi /Gy /GL /Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD  /O2 /Oi /Gy /GL /Zo /Z7>
-							$<$<CONFIG:RelNoOptimization>: /MDd /Od /RTC1 /Zi>)
-	set(COMPILE_OPTIONS_LIB  ${COMPILE_OPTIONS_LIB}
-							$<$<CONFIG:Debug>:             /MDd /Od /RTC1 /Z7>
-							$<$<CONFIG:Release>:           /MD  /O2 /Oi /Gy /GL /Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD  /O2 /Oi /Gy /GL /Zo /Z7>
-							$<$<CONFIG:RelNoOptimization>: /MDd /Od /RTC1 /Zi>)
-							
-	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF")
-	set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG")
-	set(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "${CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO} /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental")
+if(MSVC) # we currently make no distinction for CLang (todo)
+	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/GR-;/fp:precise;/W4;/permissive-;/JMC)
+	list(APPEND PE_COMPILE_OPTIONS /wd4505 #unreferenced local function has been removed 
+	)
+	list(APPEND PE_COMPILE_OPTIONS_EXE
+							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
+							$<$<CONFIG:Release>:           /MD /O2;/Oi;/Gy;/GL;/Zi>
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy;/GL;/Zo;/Z7>
+							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
+	list(APPEND PE_COMPILE_OPTIONS_LIB
+							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
+							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy;/GL;/Zi>
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy;/GL;/Zo;/Z7>
+							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
+	set(CMAKE_EXE_LINKER_FLAGS_$<$<CONFIG:Debug>:             /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF>
+										$<$<CONFIG:Release>:           /INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG>
+										$<$<CONFIG:RelWithDebInfo>:    /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental>
+										$<$<CONFIG:RelNoOptimization>: /INCREMENTAL /OPT:NOREF /OPT:NOICF>)
 else()
-	set(COMPILE_OPTIONS ${COMPILE_OPTIONS} " -fstrict-aliasing -Wno-unknown-pragmas -Wno-unused-function -std=c++1z")
-	set(PARADIGM_DL_LIBS "c++fs")
-	
-	#set(CMAKE_CXX_COMPILER_LAUNCHER "clang++")
-	#set(CMAKE_C_COMPILER_LAUNCHER "clang")
-	#set(CMAKE_LINKER "clang++")
-	#set(CMAKE_CXX_LINKER "clang++")
-	#set(CMAKE_C_LINKER "clang")
-	#set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wno-error=unused-command-line-argument")
-	
-	if (LINUX)
-		set(COMPILE_OPTIONS "${COMPILE_OPTIONS} -stdlib=libc++")
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-fno-rtti;-Wall;-Wextra;-g)
+	list(APPEND PE_DL_LIBS c++fs)
+	if (PE_PLATFORM STREQUAL "LINUX")
+		list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
 	endif()
-
+	
+	list(APPEND PE_COMPILE_OPTIONS
+							$<$<CONFIG:Debug>:             -gdwarf-2>
+							$<$<CONFIG:Release>:           -fomit-frame-pointer;-ffunction-sections;-fdata-sections>)
+							
 	# Add colors to ninja builds
 	if (UNIX AND CMAKE_GENERATOR STREQUAL "Ninja")
-		set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fcolor-diagnostics")
-		set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
+		list(APPEND PE_COMPILE_OPTIONS -fcolor-diagnostics)
 	endif()
-	
-	
-    set(COMPILE_OPTIONS ${COMPILE_OPTIONS} -fno-exceptions -fno-rtti)
-	set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fomit-frame-pointer -ffunction-sections -fdata-sections")
-	set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -gdwarf-2")
-	
-	# Strip unused sections
-	set(GC_SECTIONS "--gc-sections")
-	set(B_SYMBOLIC_FUNCTIONS "-Bsymbolic-functions")
-
 	if (APPLE)
-		set(GC_SECTIONS "-dead_strip")
-		set(B_SYMBOLIC_FUNCTIONS "")
-
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
+		
 		# tell ranlib to ignore empty compilation units
 		set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
 		set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
 		# prevents ar from invoking ranlib, let CMake do it
 		set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
 		set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
+	else()
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -Wl --gc-sections -g")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} --gc-sections -Bsymbolic-functions")
 	endif()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -stdlib=libc++ -g -Wno-error=unused-command-line-argument")
-	set(COMPILE_OPTIONS "")
-	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -Wl,${GC_SECTIONS} -g")
-	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -Wl,${GC_SECTIONS} -Wl,${B_SYMBOLIC_FUNCTIONS}")
-    
 endif()
 
-if(NOT ${VULKAN_STATIC} AND NOT ${PARADIGM_SOURCE_ONLY})
-	message("binding external volk library to handle dynamic bindings for vulkan")
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DVK_NO_PROTOTYPES -DVK_DYNAMIC_DISPATCH_VOLK")	
-endif()
+###############################################################################
+###                    setup WSI defines                                    ###
+###############################################################################
 
-# ==================================================================================================
-# Setup external dependencies
-# ==================================================================================================
-set(WSI_LIB "" CACHE INTERNAL "WSI library to link (if any)" FORCE)
-set(WSI_INC "" CACHE INTERNAL "WSI include directories (if any)" FORCE)
-
-if(USE_D2D_WSI)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSURFACE_D2D")
+set(HAS_WSI FALSE)
+if(NOT HAS_WSI AND PE_WSI_D2D)
+	list(APPEND PE_DEFINES -DSURFACE_D2D)
 	message("using D2D WSI")
-elseif(USE_WAYLAND_WSI)
-	find_package(Wayland REQUIRED)
-	if (NOT WAYLAND_FOUND)
-		message(FATAL_ERROR "Wayland development package not found")
-	endif ()
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSURFACE_WAYLAND -DVK_USE_PLATFORM_WAYLAND_KHR")
-	add_definitions(-DVK_USE_PLATFORM_WAYLAND_KHR)
+	set(HAS_WSI TRUE)
+endif()
+if(NOT HAS_WSI AND PE_WSI_WAYLAND AND WAYLAND_FOUND)
+	list(APPEND PE_DEFINES -DSURFACE_WAYLAND;-DVK_USE_PLATFORM_WAYLAND_KHR)
 	set(WSI_LIB ${WAYLAND_CLIENT_LIBRARIES})
 	set(WSI_INC ${WAYLAND_INCLUDE_DIR})
 	message("using Wayland WSI")
-elseif(USE_XCB_WSI)
-	find_package(XCB REQUIRED)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSURFACE_XCB -DVK_USE_PLATFORM_XCB_KHR")
-	add_definitions(-DVK_USE_PLATFORM_XCB_KHR)
+	set(HAS_WSI TRUE)
+endif()
+if(NOT HAS_WSI AND PE_WSI_XCB AND XCB_FOUND)
+	list(APPEND PE_DEFINES -DSURFACE_XCB;-DVK_USE_PLATFORM_XCB_KHR)
 	set(WSI_LIB ${XCB_LIBRARIES})
 	message("using XCB WSI")
-elseif(USE_WIN32_WSI)
-	set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -DSURFACE_WIN32 -DVK_USE_PLATFORM_WIN32_KHR")
-	add_definitions(-DVK_USE_PLATFORM_WIN32_KHR)
+	set(HAS_WSI TRUE)
+endif()
+if(NOT HAS_WSI AND PE_WSI_WIN32)
+	list(APPEND PE_DEFINES -DSURFACE_WIN32;-DVK_USE_PLATFORM_WIN32_KHR)
 	message("using WIN32 WSI")
-else()
-	message(FATAL_ERROR "no surface to render set, or platform is not supported")
+	set(HAS_WSI TRUE)
+endif()
+if(NOT HAS_WSI)
+	message(FATAL_ERROR "Could not find a suitable WSI, or none was selected")
 endif()
 
-if(NOT ${PARADIGM_SOURCE_ONLY})
-	setup_vulkan("${VULKAN_ROOT}" "${VULKAN_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
-	
-	#externals
+###############################################################################
+###                    Add the sub projects                                 ###
+###############################################################################
 
-	#core libraries
+add_definitions(${PE_DEFINES})
+
+if(NOT ${PE_SOURCE_ONLY})
+	setup_vulkan("${VK_ROOT}" "${VK_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
+	
 	add_subdirectory(psl)
 	add_subdirectory(format)
 	add_subdirectory(meta)
 	add_subdirectory(core)
-	if(${TESTS})
+	if(${PE_TESTS})
 		add_subdirectory(tests)
 	endif()
 
@@ -287,19 +211,3 @@ if(NOT ${PARADIGM_SOURCE_ONLY})
 else()
 	message("did not compile the project by request")
 endif()
-
-
-# ==================================================================================================
-# Set accessible defines for child projects to use
-# ==================================================================================================
-
-set(PARADIGM_DEFINES ${PARADIGM_DEFINES} CACHE STRING "Paradigm Defines")
-set(PARADIGM_WSI_LIB ${WSI_LIB} CACHE STRING "The used WSI library define")
-set(PARADIGM_CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS} CACHE STRING "CXX flags")
-set(PARADIGM_CMAKE_CXX_FLAGS_RELEASE ${CMAKE_CXX_FLAGS_RELEASE} CACHE STRING "CXX flags release")
-set(PARADIGM_CMAKE_CXX_FLAGS_DEBUG ${CMAKE_CXX_FLAGS_DEBUG} CACHE STRING "CXX flags debug")
-set(PARADIGM_CMAKE_EXE_LINKER_FLAGS ${CMAKE_EXE_LINKER_FLAGS} CACHE STRING "linker flags exe")
-set(PARADIGM_CMAKE_SHARED_LINKER_FLAGS ${CMAKE_SHARED_LINKER_FLAGS} CACHE STRING "linker flags lib")
-set(PARADIGM_COMPILE_OPTIONS ${COMPILE_OPTIONS} CACHE STRING "compile options")
-set(PARADIGM_COMPILE_OPTIONS_EXE ${COMPILE_OPTIONS_EXE} CACHE STRING "compile options exe")
-set(PARADIGM_COMPILE_OPTIONS_LIB  ${COMPILE_OPTIONS_LIB} CACHE STRING "compile options lib")

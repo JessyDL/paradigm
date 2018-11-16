@@ -789,7 +789,6 @@ uint32_t context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& 
 	}
 
 	throw std::runtime_error("could not find memory type");
-	return 0;
 }
 
 void context::flush(vk::CommandBuffer commandBuffer, bool free)

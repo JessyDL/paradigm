@@ -151,6 +151,7 @@ bool file::close()
 		m_File = {};
 	}
 	return success;
+#else
+	throw std::runtime_error("not implemented");
 #endif
-	return false;
 }

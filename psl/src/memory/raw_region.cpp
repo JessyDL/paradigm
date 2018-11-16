@@ -12,8 +12,6 @@ using namespace memory;
 raw_region::raw_region(uint64_t size)
 {
 #if defined(PLATFORM_WINDOWS)
-		DWORD dwPages = 0;              // Count of pages gotten so far
-
 		SYSTEM_INFO sSysInfo;         // Useful information about the system
 		GetSystemInfo(&sSysInfo);     // Initialize the structure.
 		m_PageSize = sSysInfo.dwPageSize;

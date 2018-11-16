@@ -1,5 +1,4 @@
 SET(INC 
-inc/stdafx_psl.h
 inc/application_utils.h
 inc/formatted_string_buffer.h
 inc/string_utils.h
