@@ -31,6 +31,7 @@ else()
 	FetchContent_Declare(volk GIT_REPOSITORY https://github.com/zeux/volk.git GIT_TAG e610db090ba1cea4714d4e06a72f7f352deeda67 GIT_PROGRESS TRUE)
 	FetchContent_GetProperties(volk)
 	if(NOT volk_POPULATED) 
+		message(STATUS "fetching volk...")
 		FetchContent_Populate(volk)
 		project(volk_proj VERSION 1.0.0 LANGUAGES CXX)
 		add_library(volk_proj STATIC ${volk_SOURCE_DIR}/volk.c)
@@ -38,6 +39,8 @@ else()
 		target_compile_features(volk_proj PRIVATE ${PE_COMPILER_FEATURES})
 		set_target_properties(volk_proj PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(volk_proj PUBLIC ${VULKAN_INC_PATH})
+		message(STATUS "${VULKAN_INC_PATH}")
+		message(STATUS "volk fetched")
 	endif()
 
 	message(STATUS "generating dynamic lib for vulkan")
@@ -67,7 +70,7 @@ else()
 endif()
 
 target_include_directories(${LOCAL_PROJECT}
-    PUBLIC 
+	PUBLIC 
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${VULKAN_INC_PATH}
 		${volk_SOURCE_DIR}

@@ -89,8 +89,8 @@ install:
   - mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
   - mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
   - cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
-  - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
   - cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
+  - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
   - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
   - export VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64"
   
