@@ -39,7 +39,6 @@ else()
 		target_compile_features(volk_proj PRIVATE ${PE_COMPILER_FEATURES})
 		set_target_properties(volk_proj PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(volk_proj PUBLIC ${VULKAN_INC_PATH})
-		message(STATUS "${VULKAN_INC_PATH}")
 		message(STATUS "volk fetched")
 	endif()
 

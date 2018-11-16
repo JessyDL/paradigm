@@ -13,6 +13,10 @@ project(${PROJECT_PARADIGM} VERSION 1.0.0 LANGUAGES CXX)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
 
+if (UNIX AND NOT APPLE AND NOT ANDROID)
+    set(LINUX TRUE)
+endif()
+
 ###############################################################################
 ###                    general options and setup                            ###
 ###############################################################################
