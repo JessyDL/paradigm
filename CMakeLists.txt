@@ -24,8 +24,8 @@ set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the v
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 
-include(findXCB)
-include(findWayland)
+include(FindXCB)
+include(FindWayland)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "Wayland_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
