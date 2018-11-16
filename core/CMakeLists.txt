@@ -37,6 +37,7 @@ else()
 		target_compile_options(volk_proj PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
 		target_compile_features(volk_proj PRIVATE ${PE_COMPILER_FEATURES})
 		set_target_properties(volk_proj PROPERTIES LINKER_LANGUAGE CXX)
+		target_include_directories(volk_proj PUBLIC ${VULKAN_INC_PATH})
 	endif()
 
 	message(STATUS "generating dynamic lib for vulkan")
