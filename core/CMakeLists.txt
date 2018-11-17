@@ -65,7 +65,7 @@ if(${VULKAN_STATIC})
 else()
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${PROJECT_PSL} ${PROJECT_FORMAT} 
-		${PROJECT_META} ${PROJECT_INTERCEPT} ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS} volk)
+		${PROJECT_META} ${PROJECT_INTERCEPT} ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS} volk_proj)
 endif()
 
 target_include_directories(${LOCAL_PROJECT}
@@ -80,7 +80,7 @@ target_include_directories(${LOCAL_PROJECT}
 )
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC WSI_LIB)
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})
 endif()
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
