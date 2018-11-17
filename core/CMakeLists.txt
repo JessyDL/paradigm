@@ -75,7 +75,7 @@ target_include_directories(${LOCAL_PROJECT}
 		${volk_SOURCE_DIR}
 	PRIVATE
 		${gli_SOURCE_DIR}
-		${gli_SOURCE_DIR}/external
+		${gli_SOURCE_DIR}/external/glm
 		${WSI_INC}
 )
 

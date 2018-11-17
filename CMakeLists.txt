@@ -24,6 +24,7 @@ OPTION(PE_PCH "generate and use precompiled headers (if supported)" OFF)
 OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 OPTION(PE_EXE "should the core library be compiled as executable instead?" OFF)
 OPTION(PE_TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
+OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
 set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
@@ -111,9 +112,14 @@ set(CXX_EXTENSIONS OFF )
 list(APPEND PE_COMPILER_FEATURES cxx_std_17)
 
 if(MSVC) # we currently make no distinction for CLang (todo)
-	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/GR-;/fp:precise;/W4;/permissive-;/JMC)
-	list(APPEND PE_COMPILE_OPTIONS /wd4505 #unreferenced local function has been removed 
-	)
+	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/GR-;/fp:precise;/permissive-;/JMC)
+	list(APPEND PE_COMPILE_OPTIONS /wd4505)
+	if(${PE_VERBOSE})
+		list(APPEND PE_COMPILE_OPTIONS /W4)	
+	else()
+		list(APPEND PE_COMPILE_OPTIONS /W3)
+	endif()
+	
 	list(APPEND PE_COMPILE_OPTIONS_EXE
 							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
 							$<$<CONFIG:Release>:           /MD /O2;/Oi;/Gy;/GL;/Zi>
@@ -129,10 +135,14 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 										$<$<CONFIG:RelWithDebInfo>:    /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental>
 										$<$<CONFIG:RelNoOptimization>: /INCREMENTAL /OPT:NOREF /OPT:NOICF>)
 else()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-fno-rtti;-Wall;-Wextra;-g)
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-fno-rtti;-g)
 	list(APPEND PE_DL_LIBS c++fs)
 	if (PE_PLATFORM STREQUAL "LINUX")
 		list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
+	endif()
+	
+	if(${PE_VERBOSE})
+		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
 	
 	list(APPEND PE_COMPILE_OPTIONS
