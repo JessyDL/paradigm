@@ -135,7 +135,7 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 										$<$<CONFIG:RelWithDebInfo>:    /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental>
 										$<$<CONFIG:RelNoOptimization>: /INCREMENTAL /OPT:NOREF /OPT:NOICF>)
 else()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-fno-rtti;-g)
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-fno-rtti;-g)
 	list(APPEND PE_DL_LIBS c++fs)
 	if (PE_PLATFORM STREQUAL "LINUX")
 		list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
