@@ -34,6 +34,7 @@ namespace utility::application::path
 		{
 			return psl::string{dirname(result)} + "/";
 		}
+		return "";
 #elif defined(PLATFORM_ANDROID) // we run in a sandbox where we are root
 		return "";
 #else
