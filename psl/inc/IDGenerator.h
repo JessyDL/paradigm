@@ -23,8 +23,6 @@ namespace psl
 		T m_Count;				  // Number of ranges in list
 		T m_Capacity;			  // Total capacity of range list
 		T m_MaxID;
-		IDGenerator &operator=(const IDGenerator &);
-		IDGenerator(const IDGenerator &);
 
 	  public:
 		explicit IDGenerator(const T max_id)
@@ -50,6 +48,9 @@ namespace psl
 		{
 			if(m_Ranges != nullptr) ::free(m_Ranges);
 		}
+
+		IDGenerator &operator=(const IDGenerator &) = default;
+		IDGenerator(const IDGenerator &) = default;
 
 		IDGenerator(IDGenerator &&other)
 			: m_Ranges(other.m_Ranges), m_Count(other.m_Count), m_Capacity(other.m_Capacity), m_MaxID(other.m_MaxID)

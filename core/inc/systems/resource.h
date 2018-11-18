@@ -32,6 +32,24 @@ namespace core::resource
 	template <typename T>
 	class handle;
 
+
+	template<typename T>
+	class tag
+	{
+	public:
+		tag(const UID& uid) : m_UID(uid) {};
+		~tag() = default;
+		tag(const tag&) = default;
+		tag(tag&&) = default;
+		tag& operator=(const tag&) = default;
+		tag& operator=(tag&&) = default;
+
+		operator const UID&() const noexcept{return m_UID;};
+		const UID& uid() const noexcept { return m_UID;};
+	private:
+		UID m_UID{};
+	};
+
 	template <typename T, bool use_custom_uid = false>
 	class dependency
 	{
@@ -596,6 +614,10 @@ namespace core::resource
 			throw std::runtime_error("tried to derefence a missing, or not loaded resource");
 		}
 
+		operator tag<T>() const
+		{
+			return tag<T>(uid);
+		}
 
 		/// \returns true of the handle has a valid, loaded object.
 		operator bool() const { return uid && (m_Container) && m_Container->m_State == state::LOADED; }
@@ -858,6 +880,21 @@ namespace core::resource
 			return m_Cache->find<T>(m_UID);
 		}
 
+		operator tag<T>() const
+		{
+			return tag<T>(m_UID);
+		}
+
+		core::resource::handle<T> handle() const noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+
+		const T& operator->() const noexcept
+		{
+			return m_Cache->find<T>(m_UID);
+		}
+
 		T& operator->() noexcept
 		{
 			return m_Cache->find<T>(m_UID);
@@ -866,5 +903,6 @@ namespace core::resource
 		cache* m_Cache{nullptr};
 		UID m_UID{};
 	};
+
 
 } // namespace core::resource

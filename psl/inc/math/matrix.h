@@ -21,6 +21,21 @@ namespace psl
 			}
 		};
 
+		template <size_t columns2_n, size_t rows2_n>
+		constexpr tmat(const tmat<precision_t, columns2_n, rows2_n>& val) noexcept : value({0})
+		{
+			for(size_t i = 0; i < columns_n; ++i)
+			{
+				value[i * columns_n + i] = 1;
+			}
+			for(size_t i = 0; i < rows2_n; ++i)
+			{
+				for(size_t x = 0; x < columns2_n; ++x)
+				{
+					value[x + columns_n * i] = val[x + columns2_n * i];				
+				}
+			}
+		}
 		constexpr precision_t& operator[](size_t index) noexcept { return value[index]; }
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 		constexpr precision_t& operator[](std::array<size_t, 2> index) noexcept
@@ -220,6 +235,7 @@ namespace psl
 		}
 		return res;
 	}
+
 } // namespace psl
 
 

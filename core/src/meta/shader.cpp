@@ -257,3 +257,25 @@ bool shader::erase(shader::descriptor value)
 	m_Descriptors.value.erase(it);
 	return true;
 }
+
+
+std::vector<shader::vertex::binding> shader::instance_bindings() const noexcept
+{
+	std::vector<shader::vertex::binding> res;
+	for(const auto& binding : m_VertexBindings.value)
+	{
+		if(psl::string8::view(binding.buffer()).substr(0, 9) != "INSTANCE_")
+			continue;
+		res.emplace_back(binding);
+	}
+	return res;
+}
+std::optional<shader::descriptor> shader::material_data() const noexcept
+{
+	for(const auto& descriptor : m_Descriptors.value)
+	{
+		if(descriptor.name() == "MATERIAL_DATA")
+			return descriptor;
+	}
+	return std::nullopt;
+}

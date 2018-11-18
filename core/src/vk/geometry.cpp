@@ -134,8 +134,6 @@ bool geometry::compatible(const core::gfx::material& material) const noexcept
 
 void geometry::bind(vk::CommandBuffer& buffer, const core::gfx::material& material) const noexcept
 {
-	std::vector<vk::DeviceSize> m_Offsets;
-	std::vector<vk::Buffer> m_Buffers;
 
 	for(const auto& shader: material.shaders())
 	{
@@ -150,14 +148,13 @@ void geometry::bind(vk::CommandBuffer& buffer, const core::gfx::material& materi
 				{
 					if(psl::to_string8_t(b.name) == vBinding.buffer())
 					{
-						m_Offsets.push_back(vk::DeviceSize(b.segment.range().begin + b.sub_range.begin));
-						m_Buffers.push_back(m_GeometryBuffer->gpu_buffer());
+						auto offset = vk::DeviceSize{b.segment.range().begin + b.sub_range.begin};
+						buffer.bindVertexBuffers(vBinding.binding_slot(), 1, &m_GeometryBuffer->gpu_buffer(), &offset);
 					}
 				}
 			}
 		}
 	}
 
-	buffer.bindVertexBuffers(0, (uint32_t)m_Buffers.size(), m_Buffers.data(), m_Offsets.data());
 	buffer.bindIndexBuffer(m_IndicesBuffer->gpu_buffer(), m_IndicesSegment.range().begin + m_IndicesSubRange.begin, vk::IndexType::eUint32);
 }

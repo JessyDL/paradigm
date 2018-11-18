@@ -414,6 +414,8 @@ namespace core::meta
 		/// \returns true if the element has been found and erased.
 		bool erase(vertex::binding element);
 
+		std::vector<vertex::binding> instance_bindings() const noexcept;
+		std::optional<descriptor> material_data() const noexcept;
 	  private:
 		/// \brief method that will be invoked by the serialization system.
 		/// \tparam S the type of the serializer/deserializer
@@ -429,7 +431,6 @@ namespace core::meta
 		serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
 		serialization::property<std::vector<vertex::binding>, const_str("VERTEX_BINDINGS", 15)> m_VertexBindings;
 		serialization::property<std::vector<descriptor>, const_str("DESCRIPTORS", 11)> m_Descriptors;
-
 
 		/// \brief the polymorphic serialization name for the format::node that will be used to calculate the CRC64 ID
 		/// of this type on.

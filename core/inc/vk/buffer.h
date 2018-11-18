@@ -73,6 +73,9 @@ namespace core::gfx
 				: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)) {};
 			commit_instruction() {};
 
+			commit_instruction(void* source, size_t size, memory::segment segment, std::optional<memory::range> sub_range = std::nullopt)
+				: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(size)
+			{};
 			/// \brief target segment in the buffer
 			memory::segment segment{};
 			/// \brief possible sub range within the segment. 

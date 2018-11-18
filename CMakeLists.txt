@@ -77,6 +77,11 @@ if(PE_EXE AND PE_TESTS)
 	message(FATAL_ERROR "you cannot mix [PE_EXE] and [PE_TESTS] flags")
 endif()
 
+if(WIN32)
+	list(APPEND PE_DL_LIBS Shlwapi.lib)
+endif()
+
+
 ###############################################################################
 ###                    setup output directories                             ###
 ###############################################################################

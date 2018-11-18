@@ -47,7 +47,7 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 		if(utility::vulkan::is_depthstencil(binding.description.format))
 		{
 			// Only one depth attachment allowed
-			assert(!hasDepth);
+			//assert(!hasDepth);
 			depthReference.attachment = attachmentIndex;
 			depthReference.layout	 = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 			hasDepth				  = true;

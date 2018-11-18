@@ -1,4 +1,5 @@
 ﻿#pragma once
+#include "IDGenerator.h"
 
 namespace core::data
 {
@@ -26,11 +27,78 @@ namespace core::gfx
 	/// Together with a core::gfx::geometry, this describes all the resources you need to render something on screen.
 	class material final
 	{
+		template <typename T>
+		using optional_ref = std::optional<std::reference_wrapper<T>>;
+
 		template <typename T, bool use_custom_uid = false>
 		using dependency = core::resource::dependency<T, use_custom_uid>;
 
 		template <typename... Ts>
 		using packet = core::resource::packet<Ts...>;
+
+		struct instance_element
+		{
+			uint32_t slot;
+			uint32_t size_of_element;
+			psl::string name;
+		};
+
+		struct instance_object_data
+		{
+			uint32_t slot;
+			uint32_t size_of_element;
+			memory::segment segment;
+		};
+
+		struct instance_object
+		{
+			instance_object(uint32_t capacity = 0u, size_t elements = 0) : segments({}), id_generator(capacity), size(0u) { segments.reserve(elements);};
+			~instance_object() = default;
+			instance_object(const instance_object& other) : segments(other.segments), id_generator(other.id_generator), size(other.size) {};
+			instance_object(instance_object&&) = default;
+			instance_object& operator=(const instance_object&) = default;
+			instance_object& operator=(instance_object&&) = default;
+
+			std::vector<instance_object_data> segments;
+			psl::IDGenerator<uint32_t> id_generator;
+			uint32_t size;
+		};
+
+		class instance_data
+		{
+		  public:
+			instance_data(std::vector<instance_element>&& elements, uint32_t size)
+				: elements(std::move(elements)), m_Capacity(size), m_Instance({}){};
+			instance_data()						= default;
+			~instance_data()					= default;
+			instance_data(const instance_data&) = default;
+			instance_data(instance_data&&)		= default;
+			instance_data& operator=(const instance_data&) = default;
+			instance_data& operator=(instance_data&&) = default;
+
+			std::optional<uint32_t> add(core::resource::handle<core::gfx::buffer> buffer, const UID& uid);
+
+			bool remove(core::resource::handle<core::gfx::buffer> buffer, const UID& uid, uint32_t id);
+
+			bool has_data() const noexcept { return elements.size() > 0; }
+
+			optional_ref<instance_element> has_element(psl::string_view name) const noexcept;
+
+			optional_ref<instance_element> has_element(uint32_t slot) const noexcept;
+			optional_ref<instance_object> instance(const UID& uid) noexcept;
+			uint32_t size(const UID& uid) const noexcept;
+
+			const auto& begin() const { return std::begin(elements); }
+
+			const auto& end() const { return std::end(elements); }
+
+			bool remove_all(core::resource::handle<core::gfx::buffer> buffer);
+			bool remove_all(core::resource::handle<core::gfx::buffer> buffer, const UID& uid);
+		  private:
+			std::vector<instance_element> elements;
+			std::unordered_map<UID, instance_object> m_Instance;
+			uint32_t m_Capacity;
+		};
 
 	  public:
 		using resource_dependency = packet<dependency<core::data::material, true>, UID, core::resource::cache>;
@@ -38,7 +106,7 @@ namespace core::gfx
 		/// \brief the constructor that will create and bind the necesary resources to create a valid pipeline.
 		/// \param[in] packet resource packet containing the data that is needed from the resource system.
 		/// \param[in] context a handle to a graphics context (needs to be valid and loaded) which will own the
-		/// material. 
+		/// material.
 		/// \param[in] data the material data this instance will be based on.
 		/// \param[in] pipeline_cache the pipeline_cache this instance can request a pipeline from.
 		/// \param[in] materialBuffer a GPU buffer that can be used by this instance to upload data to (if needed).
@@ -49,7 +117,7 @@ namespace core::gfx
 				 core::resource::handle<core::gfx::buffer> materialBuffer,
 				 core::resource::handle<core::gfx::buffer> instanceBuffer);
 		material()				  = delete;
-		~material()				  = default;
+		~material();
 		material(const material&) = delete;
 		material(material&&)	  = delete;
 		material& operator=(const material&) = delete;
@@ -98,7 +166,39 @@ namespace core::gfx
 		/// \param[in] geometry the geometry to check.
 		uint32_t instances(const core::resource::handle<core::gfx::geometry> geometry) const;
 
+
+		std::optional<uint32_t> instantiate(const core::resource::tag<core::gfx::geometry>& geometry);
+		bool release(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id);
+		bool release_all();
+		template <typename T>
+		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, psl::string_view name,
+				 const T& value)
+		{
+			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
+			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
+			if(auto res = m_InstanceData.has_element(name); res)
+			{
+				return set(geometry, id, res.value().get().slot, &value, sizeof(T));
+			}
+			return false;
+		};
+
+		template <typename T>
+		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding,
+				 const T& value)
+		{
+			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
+			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
+			if(auto res = m_InstanceData.has_element(binding); res)
+			{
+				return set(geometry, id, res.value().get().slot, &value, sizeof(T));
+			}
+			return false;
+		};
+
 	  private:
+		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding, const void* data,
+				 size_t size);
 		/// \returns the pipeline this material instance uses for the given framebuffer.
 		/// \details tries to find, and return a core::gfx::pipeline that can satisfy the
 		/// requirements of this material. In case none is present, then one will be created instead.
@@ -122,16 +222,17 @@ namespace core::gfx
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::sampler>>> m_Samplers;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::buffer>>> m_Buffers;
 
-
 		core::resource::handle<core::gfx::buffer> m_MaterialBuffer;
 		core::resource::handle<core::gfx::buffer> m_InstanceBuffer;
 
 		// UID maps to the UID of a framebuffer or a swapchain
 		std::unordered_map<UID, core::resource::handle<core::gfx::pipeline>> m_Pipeline;
+		core::resource::handle<core::gfx::pipeline> m_Bound;
+
+		instance_data m_InstanceData;
+		/* m_MaterialData*/
 
 		// value to indicate if this material can actually be used or not
 		bool m_IsValid{true};
-
-		core::resource::handle<core::gfx::pipeline> m_Bound;
 	};
 } // namespace core::gfx

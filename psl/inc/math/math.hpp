@@ -177,4 +177,84 @@ namespace psl::math
 		res[{3, 2}] = dot(f, eye);
 		return res;
 	}
+
+
+	template <typename precision_t>
+	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
+	{
+		psl::tmat<precision_t, 4, 4> res{};
+		res.row<0>(tmat.row<0>() * tvec[0]);
+		res.row<1>(tmat.row<1>() * tvec[1]);
+		res.row<2>(tmat.row<2>() * tvec[2]);
+		res.row<3>(tmat.row<3>());
+		return res;
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
+	{
+		psl::tmat<precision_t, 4, 4> res{tmat};
+		res.row<3>(tmat.row<0>()* tvec[0] + tmat.row<1>() * tvec[1] + tmat.row<2>() * tvec[2] + tmat.row<3>());
+		return res;
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tmat<precision_t, 4, 4> rotate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec, precision_t angle) noexcept
+	{
+		constexpr precision_t a = angle;
+		constexpr precision_t c = cos(a);
+		constexpr precision_t s = sin(a);
+
+		psl::tvec<precision_t, 3> axis(normalize(tvec));
+		psl::tvec<precision_t, 3> temp((precision_t{1} - c) * axis);
+
+		psl::tmat<precision_t, 4, 4> res_int{};
+		res_int[{0, 0}] = c + temp[0] * axis[0];
+		res_int[{0, 1}] = temp[0] * axis[1] + s * axis[2];
+		res_int[{0, 2}] = temp[0] * axis[2] - s * axis[1];
+
+		res_int[{1, 0}] = temp[1] * axis[0] - s * axis[2];
+		res_int[{1, 1}] = c + temp[1] * axis[1];
+		res_int[{1, 2}] = temp[1] * axis[2] + s * axis[0];
+
+		res_int[{2, 0}] = temp[2] * axis[0] + s * axis[1];
+		res_int[{2, 1}] = temp[2] * axis[1] - s * axis[0];
+		res_int[{2, 2}] = c + temp[2] * axis[2];
+
+		psl::tmat<precision_t, 4, 4> res{};
+		res.row<0>(tmat.row<0>() * res_int[{0, 0}] + tmat.row<1>() * res_int[{0, 1}] + tmat.row<2>() * res_int[{0, 2}]);
+		res.row<1>(tmat.row<0>() * res_int[{1, 0}] + tmat.row<1>() * res_int[{1, 1}] + tmat.row<2>() * res_int[{1, 2}]);
+		res.row<2>(tmat.row<0>() * res_int[{2, 0}] + tmat.row<1>() * res_int[{2, 1}] + tmat.row<2>() * res_int[{2, 2}]);
+		res.row<3>(tmat.row<3>());
+		return res;
+	}
+
+	template <typename precision_t>
+	constexpr static tmat<precision_t, 3, 3> to_matrix(const psl::tquat<precision_t>& value) noexcept
+	{
+		tmat<precision_t, 3, 3> res{1};
+		precision_t qxx(value[0] * value[0]);
+		precision_t qyy(value[1] * value[1]);
+		precision_t qzz(value[2] * value[2]);
+		precision_t qxz(value[0] * value[2]);
+		precision_t qxy(value[0] * value[1]);
+		precision_t qyz(value[1] * value[2]);
+		precision_t qwx(value[3] * value[0]);
+		precision_t qwy(value[3] * value[1]);
+		precision_t qwz(value[3] * value[2]);
+
+		res[{0, 0}] = precision_t{1} - precision_t{2} * (qyy + qzz);
+		res[{0, 1}] = precision_t{2} * (qxy + qwz);
+		res[{0, 2}] = precision_t{2} * (qxz - qwy);
+
+		res[{1, 0}] = precision_t{2} * (qxy - qwz);
+		res[{1, 1}] = precision_t{1} - precision_t{2} * (qxx + qzz);
+		res[{1, 2}] = precision_t{2} * (qyz + qwx);
+
+		res[{2, 0}] = precision_t{2} * (qxz + qwy);
+		res[{2, 1}] = precision_t{2} * (qyz - qwx);
+		res[{2, 2}] = precision_t{1} - precision_t{2} * (qxx + qyy);
+		return res;
+	};
+
 } // namespace psl::math

@@ -48,6 +48,7 @@
 #include "ecs/components/renderable.h"
 #include "ecs/systems/fly.h"
 #include "ecs/systems/render.h"
+#include "ecs/systems/geometry_instance.h"
 
 using namespace core;
 using namespace core::resource;
@@ -620,7 +621,7 @@ int entry()
 	geometry.load(context_handle, geomData, geomBuffer, geomBuffer);
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
-	if(!cache.library().contains(UID::convert("f889c133-1ec0-44ea-9209-251cd236f887")) ||
+	if(!cache.library().contains(UID::convert("3982b466-58fe-4918-8735-fc6cc45378b0")) ||
 	   !cache.library().contains(UID::convert("4429d63a-9867-468f-a03f-cf56fee3c82e")))
 	{
 		core::log->critical(
@@ -629,7 +630,7 @@ int entry()
 		return -1;
 	}
 	auto vertShaderMeta =
-		cache.library().get<core::meta::shader>(UID::convert("f889c133-1ec0-44ea-9209-251cd236f887")).value();
+		cache.library().get<core::meta::shader>(UID::convert("3982b466-58fe-4918-8735-fc6cc45378b0")).value();
 	auto fragShaderMeta =
 		cache.library().get<core::meta::shader>(UID::convert("4429d63a-9867-468f-a03f-cf56fee3c82e")).value();
 
@@ -683,14 +684,20 @@ int entry()
 	// create the ecs
 	core::ecs::state ECSState{};
 	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
-	auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>(core::ecs::components::renderable{ material, geometry, 0u }, std::nullopt);
 
+	for(int x = 0; x < 32; ++x)
+	{
+		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
+			(core::ecs::components::renderable{ material, geometry, 0u }, 
+			 core::ecs::components::transform{psl::vec3(std::rand() % 6 - 3,std::rand() % 6 - 3,std::rand() % 6 - 3)});
+	}
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
 	ECSState.register_system(fly_system);
 
 	core::ecs::systems::render render_system{ context_handle, swapchain_handle, surface_handle, frameBuffer };
 	ECSState.register_system(render_system);
-
+	core::ecs::systems::geometry_instance geometry_instance{};
+	ECSState.register_system(geometry_instance);
 	uint64_t frameCount										 = 0u;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
