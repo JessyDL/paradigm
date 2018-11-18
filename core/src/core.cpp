@@ -685,11 +685,12 @@ int entry()
 	core::ecs::state ECSState{};
 	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
 
-	for(int x = 0; x < 32; ++x)
+	for(int x = 0; x < 1024; ++x)
 	{
 		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
 			(core::ecs::components::renderable{ material, geometry, 0u }, 
-			 core::ecs::components::transform{psl::vec3(std::rand() % 6 - 3,std::rand() % 6 - 3,std::rand() % 6 - 3)});
+			 core::ecs::components::transform{psl::vec3(std::rand() % 6 - 3,std::rand() % 6 - 3,std::rand() % 6 - 3), 
+			 psl::vec3(std::rand() % 10 / 10.0f, std::rand() % 10 / 10.0f, std::rand() % 10 / 10.0f)});
 	}
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
 	ECSState.register_system(fly_system);
