@@ -194,7 +194,7 @@ namespace psl::math
 	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
 	{
 		psl::tmat<precision_t, 4, 4> res{tmat};
-		res.row<3>(tmat.row(0)* tvec[0] + tmat.row(1) * tvec[1] + tmat.row(2) * tvec[2] + tmat.row(3));
+		res.row(3, tmat.row(0)* tvec[0] + tmat.row(1) * tvec[1] + tmat.row(2) * tvec[2] + tmat.row(3));
 		return res;
 	}
 
