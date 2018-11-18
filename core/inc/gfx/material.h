@@ -82,9 +82,9 @@ namespace core::gfx
 
 			bool has_data() const noexcept { return elements.size() > 0; }
 
-			optional_ref<instance_element> has_element(psl::string_view name) const noexcept;
+			optional_ref<const instance_element> has_element(psl::string_view name) const noexcept;
 
-			optional_ref<instance_element> has_element(uint32_t slot) const noexcept;
+			optional_ref<const instance_element> has_element(uint32_t slot) const noexcept;
 			optional_ref<instance_object> instance(const UID& uid) noexcept;
 			uint32_t size(const UID& uid) const noexcept;
 

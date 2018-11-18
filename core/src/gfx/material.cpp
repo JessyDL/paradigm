@@ -54,7 +54,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				iData.size_of_element = vBinding.size();
 				iData.name = vBinding.buffer();
 			}
-			m_InstanceData = instance_data(std::move(elements), 1024);
+			m_InstanceData = instance_data(std::move(elements), 10240);
 		}
 		// now we validate the shader, and store all the bound resource handles
 		for(const auto& binding : stage.bindings())
@@ -312,23 +312,23 @@ bool material::instance_data::remove(core::resource::handle<core::gfx::buffer> b
 	return false;
 }
 
-material::optional_ref<material::instance_element> material::instance_data::has_element(psl::string_view name) const noexcept
+material::optional_ref<const material::instance_element> material::instance_data::has_element(psl::string_view name) const noexcept
 {
 	if(auto it = std::find_if(std::begin(elements), std::end(elements),
 							  [&name](const instance_element& element) { return element.name == name; });
 	   it != std::end(elements))
 	{
-		return *it._Ptr;
+		return *it;
 	}
 	return std::nullopt;
 }
-material::optional_ref<material::instance_element> material::instance_data::has_element(uint32_t slot) const noexcept
+material::optional_ref<const material::instance_element> material::instance_data::has_element(uint32_t slot) const noexcept
 {
 	if(auto it = std::find_if(std::begin(elements), std::end(elements),
 							  [&slot](const instance_element& element) { return element.slot == slot; });
 	   it != std::end(elements))
 	{
-		return *it._Ptr;
+		return *it;
 	}
 	return std::nullopt;
 }
