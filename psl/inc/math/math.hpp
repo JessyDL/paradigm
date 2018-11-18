@@ -183,10 +183,10 @@ namespace psl::math
 	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
 	{
 		psl::tmat<precision_t, 4, 4> res{};
-		res.row<0>(tmat.row<0>() * tvec[0]);
-		res.row<1>(tmat.row<1>() * tvec[1]);
-		res.row<2>(tmat.row<2>() * tvec[2]);
-		res.row<3>(tmat.row<3>());
+		res.row(0, tmat.row(0) * tvec[0]);
+		res.row(1, tmat.row(1) * tvec[1]);
+		res.row(2, tmat.row(2) * tvec[2]);
+		res.row(3, tmat.row(3));
 		return res;
 	}
 
@@ -194,7 +194,7 @@ namespace psl::math
 	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
 	{
 		psl::tmat<precision_t, 4, 4> res{tmat};
-		res.row<3>(tmat.row<0>()* tvec[0] + tmat.row<1>() * tvec[1] + tmat.row<2>() * tvec[2] + tmat.row<3>());
+		res.row<3>(tmat.row(0)* tvec[0] + tmat.row(1) * tvec[1] + tmat.row(2) * tvec[2] + tmat.row(3));
 		return res;
 	}
 
@@ -222,10 +222,10 @@ namespace psl::math
 		res_int[{2, 2}] = c + temp[2] * axis[2];
 
 		psl::tmat<precision_t, 4, 4> res{};
-		res.row<0>(tmat.row<0>() * res_int[{0, 0}] + tmat.row<1>() * res_int[{0, 1}] + tmat.row<2>() * res_int[{0, 2}]);
-		res.row<1>(tmat.row<0>() * res_int[{1, 0}] + tmat.row<1>() * res_int[{1, 1}] + tmat.row<2>() * res_int[{1, 2}]);
-		res.row<2>(tmat.row<0>() * res_int[{2, 0}] + tmat.row<1>() * res_int[{2, 1}] + tmat.row<2>() * res_int[{2, 2}]);
-		res.row<3>(tmat.row<3>());
+		res.row(0, tmat.row(0) * res_int[{0, 0}] + tmat.row(1) * res_int[{0, 1}] + tmat.row(2) * res_int[{0, 2}]);
+		res.row(1, tmat.row(0) * res_int[{1, 0}] + tmat.row(1) * res_int[{1, 1}] + tmat.row(2) * res_int[{1, 2}]);
+		res.row(2, tmat.row(0) * res_int[{2, 0}] + tmat.row(1) * res_int[{2, 1}] + tmat.row(2) * res_int[{2, 2}]);
+		res.row(3, tmat.row(3));
 		return res;
 	}
 
