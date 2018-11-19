@@ -52,6 +52,7 @@ case $1 in
         UTESTS_TXT=${UTESTS_TXT:0:1024}
       fi
 	   UTESTS_TXT=${UTESTS_TXT//\'/\"}
+	   UTESTS_TXT=${UTESTS_TXT//'\n'/\\n}
       UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Passed", "value": "'"$UTESTS_TXT"'" } ]'
     else 
       UNIT_TEST_RESULTS=""
@@ -64,6 +65,7 @@ case $1 in
         UTESTS_TXT=${UTESTS_TXT:0:1024}
       fi
 	   UTESTS_TXT=${UTESTS_TXT//\'/\"}
+	   UTESTS_TXT=${UTESTS_TXT//'\n'/\\n}
       UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Failed", "value": "'"$UTESTS_TXT"'" } ]'
     else 
       UNIT_TEST_RESULTS=""
