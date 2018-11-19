@@ -73,6 +73,19 @@ namespace psl::math
 	{
 		return quat * vec;
 	}
+
+
+	template <typename precision_t>
+	constexpr static precision_t saturate(precision_t value) noexcept
+	{
+		return std::clamp(value, precision_t{0}, precision_t{1});
+	}
+
+	template <typename precision_t>
+	constexpr static precision_t clamp(precision_t value, precision_t min = 0, precision_t max = 1) noexcept
+	{
+		return std::clamp(value, min, max);
+	}
 } // namespace psl::math
 
 
@@ -116,13 +129,13 @@ namespace psl::math
 		if(test > precision_t{100} / precision_t{201} * unit)
 		{ // singularity at north pole
 			res[0] = precision_t{2} * atan2(q[0], q[3]);
-			res[1] = PI / precision_t{2};
+			res[1] = constants<precision_t>::PI / precision_t{2};
 			res[2] = precision_t{0};
 		}
 		else if(test < -precision_t{100} / precision_t{201} * unit)
 		{ // singularity at south pole
 			res[0] = -precision_t{2} * atan2(q[0], q[3]);
-			res[1] = -PI / precision_t{2};
+			res[1] = -constants<precision_t>::PI / precision_t{2};
 			res[2] = 0;
 		}
 		else
@@ -257,4 +270,25 @@ namespace psl::math
 		return res;
 	};
 
+	template<typename precision_t>
+	constexpr static tquat<precision_t> look_at(const tvec<precision_t, 3>& origin, const tvec<precision_t, 3>& target) noexcept
+	{
+		auto forward = normalize(target - origin);
+		
+		precision_t fDot = saturate(dot(tvec<precision_t, 3>::forward, origin));
+
+		if(abs(fDot - precision_t{-1}) < std::numeric_limits<precision_t>::epsilon())
+		{
+			return tquat<precision_t>{tvec<precision_t, 3>::up, constants<precision_t>::PI};
+		}
+		if(abs(fDot - precision_t{1}) < std::numeric_limits<precision_t>::epsilon())
+		{
+			return tquat<precision_t>::identity;
+		}
+
+		precision_t rotAngle = acos(fDot);
+		tvec<precision_t, 3> rotAxis = cross(tvec<precision_t, 3>::forward, forward);
+		rotAxis = normalize(rotAxis);
+		return angle_axis(rotAngle, rotAxis);
+	}
 } // namespace psl::math

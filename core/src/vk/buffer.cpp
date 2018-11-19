@@ -233,7 +233,13 @@ bool buffer::commit(std::vector<commit_instruction> instructions)
 		}
 
 		m_Context->device().unmapMemory(stagingBuffer->m_Memory);
-		return copy_from(stagingBuffer, copyRegions);
+		auto res = copy_from(stagingBuffer, copyRegions);
+		for(auto segm : stagingSegments)
+		{
+			if(segm.second.begin == 0)
+				stagingBuffer->deallocate(segm.first);
+		}
+		return res;
 	}
 	else
 	{

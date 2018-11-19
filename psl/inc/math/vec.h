@@ -25,7 +25,15 @@ namespace psl
 		constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}){};
 
 
+		operator const std::array<precision_t, dimensions>&() const noexcept
+		{
+			return value;
+		}
 
+		operator std::array<precision_t, dimensions>&() noexcept
+		{
+			return value;
+		}
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
@@ -74,6 +82,16 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
+		operator const std::array<precision_t, 1>&() const noexcept
+		{
+			return value;
+		}
+
+		operator std::array<precision_t, 1>&() noexcept
+		{
+			return value;
+		}
+
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
 			static_assert(std::is_pod<tvec<precision_t, 1>>::value, "should remain POD");
@@ -131,6 +149,16 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
+		operator const std::array<precision_t, 2>&() const noexcept
+		{
+			return value;
+		}
+
+		operator std::array<precision_t, 2>&() noexcept
+		{
+			return value;
+		}
+
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
 			static_assert(std::is_pod<tvec<precision_t, 2>>::value, "should remain POD");
@@ -195,6 +223,15 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
+		operator const std::array<precision_t, 3>&() const noexcept
+		{
+			return value;
+		}
+
+		operator std::array<precision_t, 3>&() noexcept
+		{
+			return value;
+		}
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
@@ -273,6 +310,15 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
+		operator const std::array<precision_t, 4>&() const noexcept
+		{
+			return value;
+		}
+
+		operator std::array<precision_t, 4>&() noexcept
+		{
+			return value;
+		}
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
@@ -787,7 +833,7 @@ namespace psl
 	// operators tvec<precision_t, 4>
 	// ---------------------------------------------
 
-#ifdef USE_SSE2
+#ifdef INSTRUCTIONS_SSE2
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4>& operator+=(tvec<precision_t, 4>& owner, const tvec<precision_t, 4>& other) noexcept
 	{

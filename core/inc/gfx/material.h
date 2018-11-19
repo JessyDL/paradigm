@@ -184,6 +184,19 @@ namespace core::gfx
 		};
 
 		template <typename T>
+		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id_first, psl::string_view name,
+				 const std::vector<T>& values)
+		{
+			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
+			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
+			if(auto res = m_InstanceData.has_element(name); res)
+			{
+				return set(geometry, id_first, res.value().get().slot, values.data(), sizeof(T), values.size());
+			}
+			return false;
+		}
+
+		template <typename T>
 		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding,
 				 const T& value)
 		{
@@ -199,6 +212,9 @@ namespace core::gfx
 	  private:
 		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding, const void* data,
 				 size_t size);
+
+		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id_first, uint32_t binding, const void* data,
+				 size_t size, size_t count);
 		/// \returns the pipeline this material instance uses for the given framebuffer.
 		/// \details tries to find, and return a core::gfx::pipeline that can satisfy the
 		/// requirements of this material. In case none is present, then one will be created instead.

@@ -13,9 +13,12 @@ namespace core::ecs::systems
 {
 	class geometry_instance
 	{
-		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_Transforms;
+		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_WRITE> m_Transforms;
 		core::ecs::vector<core::ecs::components::renderable, core::ecs::READ_ONLY> m_Renderers;
 		core::ecs::vector<core::ecs::entity> m_Entities;
+
+		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_CamTransform;
+		core::ecs::vector<core::ecs::entity> m_CamEntities;
 
 	public:
 		void announce(core::ecs::state& state);

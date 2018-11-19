@@ -54,7 +54,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				iData.size_of_element = vBinding.size();
 				iData.name = vBinding.buffer();
 			}
-			m_InstanceData = instance_data(std::move(elements), 10240);
+			m_InstanceData = instance_data(std::move(elements), 1024*1024);
 		}
 		// now we validate the shader, and store all the bound resource handles
 		for(const auto& binding : stage.bindings())
@@ -247,6 +247,27 @@ bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uin
 				m_InstanceBuffer->commit( { core::gfx::buffer::commit_instruction{(void*)data, size, element.segment, memory::range{element.size_of_element * id, element.size_of_element * (id + 1) }}});
 				return true;
 			}
+		}
+	}
+	return false;
+}
+
+
+bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id_first, uint32_t binding, const void* data,
+		 size_t size, size_t count)
+{
+	auto opt = m_InstanceData.instance(geometry);
+	if(!opt)
+		return false;
+
+	auto& instance_obj = opt.value().get();
+	
+	for(const auto& element : instance_obj.segments)
+	{
+		if(element.slot == binding)
+		{
+			m_InstanceBuffer->commit({core::gfx::buffer::commit_instruction{(void*)data, size * count, element.segment, memory::range{element.size_of_element * id_first, element.size_of_element * (id_first + count) }}});
+			return true;
 		}
 	}
 	return false;

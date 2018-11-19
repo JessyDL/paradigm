@@ -49,5 +49,6 @@ namespace core::ecs::systems
 		float m_MoveSpeed{1.0f};
 		const float m_MoveStepIncrease{0.035f};
 		bool m_AllowRotating{false};
+		bool m_Boost {false};
 	};
 }

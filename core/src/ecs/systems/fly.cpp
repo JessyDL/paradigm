@@ -20,7 +20,8 @@ void fly::announce(core::ecs::state& state)
 
 void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
-	if (m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY)
+	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
+	if (bHasRotated)
 	{
 		float mouseSpeed = 0.004f;
 		auto diffX = m_MouseX - m_MouseTargetX;
@@ -34,66 +35,66 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 		m_MouseY = m_MouseTargetY;
 
 	}
-
+	vec3 accDirectionVec{0};
+	bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
+		auto direction = m_Transforms[i].rotation * vec3::forward;
+		auto up = vec3::up;
 		// m_Transform.position(m_Transform.position() + (m_MoveVector * dTime.count()));
 		if(m_Moving[0])
 		{
-			vec3 forward = m_Transforms[i].direction;
-			// forward.y = 0;
-			forward					 = normalize(forward);
-			m_Transforms[i].position = m_Transforms[i].position + forward * m_MoveSpeed * dTime.count();
+			accDirectionVec += direction;
+			hasMoved = true;
 		}
 
 		if(m_Moving[1])
 		{
-			vec3 forward = m_Transforms[i].direction;
-			// forward.y = 0;
-			forward					 = normalize(forward);
-			m_Transforms[i].position = m_Transforms[i].position - forward * m_MoveSpeed * dTime.count();
+			accDirectionVec -= direction;
+			hasMoved = true;
 		}
 
 		if(m_Moving[2])
 		{
-			vec3 Left = cross(m_Transforms[i].direction, m_Transforms[i].up);
-			Left	  = normalize(Left);
-			Left *= m_MoveSpeed * dTime.count();
-			m_Transforms[i].position = m_Transforms[i].position - Left;
+			accDirectionVec -= cross(direction, up);
+			hasMoved = true;
 		}
 
 		if(m_Moving[3])
 		{
-			vec3 Right = cross(m_Transforms[i].up, m_Transforms[i].direction);
-			Right	  = normalize(Right);
-			Right *= m_MoveSpeed * dTime.count();
-			m_Transforms[i].position = m_Transforms[i].position - Right;
+			accDirectionVec -= cross(up, direction);
+			hasMoved = true;
 		}
 
 		if(m_Up)
 		{
-			m_Transforms[i].position = m_Transforms[i].position + vec3::up * dTime.count() * 1.0f * m_MoveSpeed;
+			accDirectionVec += up;
+			hasMoved = true;
 		}
 
-		if(m_AngleH != 0 || m_AngleV != 0)
+		if(hasMoved)
+		{
+			hasMoved = false;
+			m_Transforms[i].position = m_Transforms[i].position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *10: m_MoveSpeed) * dTime.count();
+			accDirectionVec = {0};
+		}
+		if(bHasRotated)
 		{
 			// determine axis for pitch rotation
-			vec3 axis = cross(m_Transforms[i].direction, m_Transforms[i].up);
+			vec3 axis = cross(direction, up);
 			// compute quaternion for pitch based on the camera pitch angle
 			quat pitch_quat = angle_axis(m_Pitch, axis);
 			// determine heading quaternion from the camera up vector and the heading angle
-			quat heading_quat = angle_axis(m_Heading, m_Transforms[i].up);
+			quat heading_quat = angle_axis(m_Heading, up);
 			// add the two quaternions
-			quat temp				 = normalize(pitch_quat * heading_quat);
-			m_Transforms[i].direction = normalize(rotate(temp, m_Transforms[i].direction));
-			m_Transforms[i].rotation = temp;			
+			m_Transforms[i].rotation = normalize(pitch_quat * heading_quat);
 		}
 	}
 
-	m_AngleH  = 0;
-	m_AngleV  = 0;
-	m_Pitch   = 0;
-	m_Heading = 0;
+	//m_AngleH  = 0;
+	//m_AngleV  = 0;
+	//m_Pitch   = 0;
+	//m_Heading = 0;
 }
 
 void fly::on_key_pressed(core::systems::input::keycode keyCode)
@@ -114,6 +115,11 @@ void fly::on_key_pressed(core::systems::input::keycode keyCode)
 	}
 	break;
 	case keycode_t::SPACE: { m_Up = true;
+	}
+	break;
+	case keycode_t::LEFT_SHIFT:
+	{
+		m_Boost = true;
 	}
 	break;
 	default: break;
@@ -138,6 +144,11 @@ void fly::on_key_released(core::systems::input::keycode keyCode)
 	}
 	break;
 	case keycode_t::SPACE: { m_Up = false;
+	}
+	break;
+	case keycode_t::LEFT_SHIFT:
+	{
+		m_Boost = false;
 	}
 	break;
 	default: break;

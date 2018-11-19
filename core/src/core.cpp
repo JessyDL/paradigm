@@ -557,7 +557,7 @@ int entry()
 	auto stagingBufferData = create<data::buffer>(cache);
 	stagingBufferData.load(vk::BufferUsageFlagBits::eTransferSrc,
 						   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						   memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+						   memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
 	auto stagingBuffer = create<gfx::buffer>(cache);
 	stagingBuffer.load(context_handle, stagingBufferData);
 
@@ -638,7 +638,7 @@ int entry()
 	auto matBufferData = create<data::buffer>(cache);
 	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
 					   vk::MemoryPropertyFlagBits::eDeviceLocal,
-					   memory::region{1024 * 1024, context_handle->properties().limits.minStorageBufferOffsetAlignment,
+					   memory::region{1024 * 1024 * 128, context_handle->properties().limits.minStorageBufferOffsetAlignment,
 									  new memory::default_allocator(false)});
 	auto matBuffer = create<gfx::buffer>(cache);
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
@@ -685,12 +685,14 @@ int entry()
 	core::ecs::state ECSState{};
 	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
 
+	const size_t area = 12;
+	const size_t size_steps = 24;
 	for(int x = 0; x < 1024; ++x)
 	{
 		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
 			(core::ecs::components::renderable{ material, geometry, 0u }, 
-			 core::ecs::components::transform{psl::vec3(std::rand() % 6 - 3,std::rand() % 6 - 3,std::rand() % 6 - 3), 
-			 psl::vec3(std::rand() % 10 / 10.0f, std::rand() % 10 / 10.0f, std::rand() % 10 / 10.0f)});
+			 core::ecs::components::transform{psl::vec3((float)(std::rand() % area) - (area/2.0f),(float)(std::rand() % area) - (area / 2.0f),(float)(std::rand() % area) - (area / 2.0f)),
+			 psl::vec3((float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps)});
 	}
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
 	ECSState.register_system(fly_system);
@@ -709,6 +711,7 @@ int entry()
 		last_tick = current_time;
 		ECSState.tick(elapsed);
 		++frameCount;
+		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 	}
 	return 0;
 }

@@ -16,6 +16,9 @@ namespace psl
 			: value({std::move(x), std::move(y), std::move(z), std::move(w)}){};
 		constexpr tquat(const precision_t& value) noexcept : value({value, value, value, value}){};
 
+		constexpr tquat(const std::array<precision_t, 3>& vec, const precision_t& w) noexcept
+			: value({vec[0], vec[1], vec[2], w})
+		{};
 		// ---------------------------------------------
 		// getters
 		// ---------------------------------------------
@@ -62,7 +65,7 @@ namespace psl
 	// ---------------------------------------------
 	// operators tquat<precision_t>
 	// ---------------------------------------------
-#ifdef USE_SSE2
+#ifdef INSTRUCTIONS_SSE2
 
 	template <typename precision_t>
 	constexpr tquat<precision_t>& operator+=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept
