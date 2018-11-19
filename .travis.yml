@@ -145,10 +145,8 @@ script:
   - make -j2
   - |
     if [[ $UTESTS == true ]]; then
-      cd $TRAVIS_BUILD_DIR/builds/make/x64/default/bin
-      chmod +x tests
-      ./tests -r compact -o results.txt
-      export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/builds/make/x64/default/bin/results.txt"
+      ctest . -O results.txt --output-on-failure
+      export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/project_files/make/x64/results.txt"
     fi
 
 after_success:

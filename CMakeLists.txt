@@ -220,6 +220,7 @@ if(NOT ${PE_SOURCE_ONLY})
 	add_subdirectory(meta)
 	add_subdirectory(core)
 	if(${PE_TESTS})
+		enable_testing()
 		add_subdirectory(tests)
 	endif()
 

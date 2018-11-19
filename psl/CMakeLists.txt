@@ -54,8 +54,6 @@ target_include_directories(${LOCAL_PROJECT}
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
 		${utf8cpp_SOURCE_DIR}/source
 		${spdlog_SOURCE_DIR}/include
-    PRIVATE
-        ${CMAKE_CURRENT_SOURCE_DIR}/src
 )
 
 if(LINUX)
