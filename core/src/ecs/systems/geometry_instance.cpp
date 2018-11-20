@@ -33,8 +33,8 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	}
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
-		//m_Transforms[i].position += (normalize(m_Transforms[i].position) * dTime.count() * 10.0f * sin(accTime));
-		//m_Transforms[i].rotation = psl::math::look_at(m_Transforms[i].position, m_CamTransform[0].position);
+		m_Transforms[i].position += (normalize(m_Transforms[i].position) * dTime.count() * 3.0f * sin(accTime*0.1f));
+		m_Transforms[i].rotation = normalize(psl::math::look_at_q(m_Transforms[i].position, m_CamTransform[0].position, psl::vec3::up));
 		//m_Transforms[i].rotation = normalize(m_CamTransform[0].rotation);
 	}
 
@@ -70,11 +70,11 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 			}
 			++indexCount;
 			setStart = false;
-			const psl::mat4x4 translationMat = translate(psl::mat4x4(1.0f), m_Transforms[i].position);
-			const psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
-			const psl::mat4x4 scaleMat = scale(psl::mat4x4(1.0f), m_Transforms[i].scale);
+			psl::mat4x4 translationMat = translate(m_Transforms[i].position);
+			psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
+			psl::mat4x4 scaleMat = scale(m_Transforms[i].scale);
 
-			modelMats.emplace_back(translationMat * scaleMat * rotationMat);
+			modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 
 			//m_Renderers[i].material.handle()->set(m_Renderers[i].geometry, index.value(), "INSTANCE_TRANSFORM", modelMatrix);
 		}

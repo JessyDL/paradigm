@@ -1093,6 +1093,14 @@ namespace psl
 	// ---------------------------------------------
 	// operators tvec<precision_t, N>
 	// ---------------------------------------------
+
+	template <typename precision_t, size_t dimensions>
+	constexpr tvec<precision_t, dimensions> operator- (const tvec<precision_t, dimensions>& owner) noexcept
+	{
+		auto cpy = owner;
+		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] = -cpy.value[i];
+		return cpy;
+	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator+=(tvec<precision_t, dimensions>& owner,
 		const tvec<precision_t, dimensions>& other) noexcept

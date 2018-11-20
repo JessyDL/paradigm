@@ -107,7 +107,9 @@ namespace psl::math
 		precision_t cp = cos(pitch);
 		precision_t sp = sin(pitch);
 
-		return tquat<precision_t>{cy * cr * cp + sy * sr * sp, cy * cr * sp + sy * sr * cp, cy * sr * cp - sy * cr * sp,
+		return tquat<precision_t>{cy * cr * cp + sy * sr * sp, 
+								  cy * cr * sp + sy * sr * cp, 
+								  cy * sr * cp - sy * cr * sp,
 								  sy * cr * cp - cy * sr * sp};
 	}
 	template <typename precision_t>
@@ -193,21 +195,42 @@ namespace psl::math
 
 
 	template <typename precision_t>
-	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
+	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tmat<precision_t, 4, 4>& mat, const psl::tvec<precision_t, 3>& vec) noexcept
 	{
 		psl::tmat<precision_t, 4, 4> res{};
-		res.row(0, tmat.row(0) * tvec[0]);
-		res.row(1, tmat.row(1) * tvec[1]);
-		res.row(2, tmat.row(2) * tvec[2]);
-		res.row(3, tmat.row(3));
+		res.row(0, mat.row(0) * vec[0]);
+		res.row(1, mat.row(1) * vec[1]);
+		res.row(2, mat.row(2) * vec[2]);
+		res.row(3, mat.row(3));
 		return res;
 	}
 
 	template <typename precision_t>
-	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec) noexcept
+	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tvec<precision_t, 3>& vec) noexcept
 	{
-		psl::tmat<precision_t, 4, 4> res{tmat};
-		res.row(3, tmat.row(0)* tvec[0] + tmat.row(1) * tvec[1] + tmat.row(2) * tvec[2] + tmat.row(3));
+		constexpr psl::tmat<precision_t, 4, 4> mat{1};
+		psl::tmat<precision_t, 4, 4> res{};
+		res.row(0, mat.row(0) * vec[0]);
+		res.row(1, mat.row(1) * vec[1]);
+		res.row(2, mat.row(2) * vec[2]);
+		res.row(3, mat.row(3));
+		return res;
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& mat, const psl::tvec<precision_t, 3>& vec) noexcept
+	{
+		psl::tmat<precision_t, 4, 4> res{mat};
+		res.row(3, mat.row(0)* vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
+		return res;
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tvec<precision_t, 3>& vec) noexcept
+	{
+		constexpr psl::tmat<precision_t, 4, 4> mat{1};
+		psl::tmat<precision_t, 4, 4> res{mat};
+		res.row(3, mat.row(0)* vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
 		return res;
 	}
 
@@ -271,24 +294,73 @@ namespace psl::math
 	};
 
 	template<typename precision_t>
-	constexpr static tquat<precision_t> look_at(const tvec<precision_t, 3>& origin, const tvec<precision_t, 3>& target) noexcept
+	static constexpr tquat<precision_t> to_quat(tmat<precision_t, 3, 3> const& mat) noexcept
 	{
-		auto forward = normalize(target - origin);
-		
-		precision_t fDot = saturate(dot(tvec<precision_t, 3>::forward, origin));
+		precision_t fourXSquaredMinus1 = mat[{0, 0}] - mat[{1, 1}] - mat[{2, 2}];
+		precision_t fourYSquaredMinus1 = mat[{1, 1}] - mat[{0, 0}] - mat[{2, 2}];
+		precision_t fourZSquaredMinus1 = mat[{2, 2}] - mat[{0, 0}] - mat[{1, 1}];
+		precision_t fourWSquaredMinus1 = mat[{0, 0}] + mat[{1, 1}] + mat[{2, 2}];
 
-		if(abs(fDot - precision_t{-1}) < std::numeric_limits<precision_t>::epsilon())
+		int biggestIndex = 0;
+		precision_t fourBiggestSquaredMinus1 = fourWSquaredMinus1;
+		if(fourXSquaredMinus1 > fourBiggestSquaredMinus1)
 		{
-			return tquat<precision_t>{tvec<precision_t, 3>::up, constants<precision_t>::PI};
+			fourBiggestSquaredMinus1 = fourXSquaredMinus1;
+			biggestIndex = 1;
 		}
-		if(abs(fDot - precision_t{1}) < std::numeric_limits<precision_t>::epsilon())
+		if(fourYSquaredMinus1 > fourBiggestSquaredMinus1)
 		{
-			return tquat<precision_t>::identity;
+			fourBiggestSquaredMinus1 = fourYSquaredMinus1;
+			biggestIndex = 2;
+		}
+		if(fourZSquaredMinus1 > fourBiggestSquaredMinus1)
+		{
+			fourBiggestSquaredMinus1 = fourZSquaredMinus1;
+			biggestIndex = 3;
 		}
 
-		precision_t rotAngle = acos(fDot);
-		tvec<precision_t, 3> rotAxis = cross(tvec<precision_t, 3>::forward, forward);
-		rotAxis = normalize(rotAxis);
-		return angle_axis(rotAngle, rotAxis);
+		precision_t biggestVal = std::sqrt(fourBiggestSquaredMinus1 + static_cast<precision_t>(1)) * static_cast<precision_t>(0.5);
+		precision_t mult = static_cast<precision_t>(0.25) / biggestVal;
+
+		switch(biggestIndex)
+		{
+			case 0:
+			return tquat<precision_t>((mat[{1, 2}] - mat[{2, 1}]) * mult, (mat[{2, 0}] - mat[{0, 2}]) * mult, (mat[{0, 1}] - mat[{1, 0}]) * mult, biggestVal);
+			case 1:
+			return tquat<precision_t>(biggestVal, (mat[{0, 1}] + mat[{1, 0}]) * mult, (mat[{2, 0}] + mat[{0, 2}]) * mult, (mat[{1, 2}] - mat[{2, 1}]) * mult);
+			case 2:
+			return tquat<precision_t>((mat[{0, 1}] + mat[{1, 0}]) * mult, biggestVal, (mat[{1, 2}] + mat[{2, 1}]) * mult, (mat[{2, 0}] - mat[{0, 2}]) * mult);
+			case 3:
+			return tquat<precision_t>((mat[{2, 0}] + mat[{0, 2}]) * mult, (mat[{1, 2}] + mat[{2, 1}]) * mult, biggestVal, (mat[{0, 1}] - mat[{1, 0}]) * mult);
+			default: // Silence a -Wswitch-default warning in GCC. Should never actually get here. Assert is just for sanity.
+			assert(false);
+			return tquat<precision_t>(0, 0, 0, 1);
+		}
 	}
+
+	template<typename precision_t>
+	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& direction, const tvec<precision_t, 3>& up) noexcept
+	{
+		psl::tmat<precision_t, 3, 3> mat;
+
+		mat.row(2, -direction);
+		mat.row(0, normalize(cross(up, mat.row(2))));
+		mat.row(1, cross(mat.row(2), mat.row(0)));
+
+		return to_quat(mat);
+	}
+	template<typename precision_t>
+	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& origin, const tvec<precision_t, 3>& target, const tvec<precision_t, 3>& up) noexcept
+	{
+		return look_at_q(normalize(target - origin), up);
+	}
+
+
+	template<typename precision_t>
+	constexpr static precision_t mix(const precision_t& x, const precision_t& y, precision_t a) noexcept
+	{
+		return (x + a * (y - x));
+	}
+
+
 } // namespace psl::math

@@ -30,7 +30,6 @@ void render::announce(ecs::state& state)
 	state.register_dependency(*this, {m_CameraEntities, m_Cameras, m_CameraTransforms});
 }
 
-int first_run_renderer = 0;
 void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 {
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
@@ -40,9 +39,8 @@ void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 		update_buffer(i, m_CameraTransforms[i], m_Cameras[i]);
 	}
 
-	//if(first_run_renderer < 3)
+	// todo only rebuild when detecting changes
 	{
-		++first_run_renderer;
 		m_Pass.clear();
 		core::gfx::drawgroup dGroup{};
 		auto& default_layer = dGroup.layer("default", 0);

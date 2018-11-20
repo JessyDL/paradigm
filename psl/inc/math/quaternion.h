@@ -199,10 +199,13 @@ namespace psl
 	template <typename precision_t>
 	constexpr tquat<precision_t>& operator*=(tquat<precision_t>& owner, const precision_t& other) noexcept
 	{
-		owner.value[0] *= other;
-		owner.value[1] *= other;
-		owner.value[2] *= other;
-		owner.value[3] *= other;
+		tquat<precision_t> cpy{owner};
+
+		owner[3] = cpy[3] * other[3] - cpy[0] * other[0] - cpy[1] * other[1] - cpy[2] * other[2];
+		owner[0] = cpy[3] * other[0] + cpy[0] * other[3] + cpy[1] * other[2] - cpy[2] * other[1];
+		owner[1] = cpy[3] * other[1] + cpy[1] * other[3] + cpy[2] * other[0] - cpy[0] * other[2];
+		owner[2] = cpy[3] * other[2] + cpy[2] * other[3] + cpy[0] * other[1] - cpy[1] * other[0];
+
 		return owner;
 	}
 

@@ -1,6 +1,7 @@
 #pragma once
 #include "stdafx.h"
 #include "ecs/systems/fly.h"
+
 using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl;
@@ -23,13 +24,13 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
 	if (bHasRotated)
 	{
-		float mouseSpeed = 0.004f;
+		float mouseSpeed = 12.0f;
 		auto diffX = m_MouseX - m_MouseTargetX;
 		auto diffY = m_MouseY - m_MouseTargetY;
-		m_AngleH = mouseSpeed * diffX;
+		m_AngleH = mouseSpeed * diffX * dTime.count();
 		head_to(-m_AngleH);
 
-		m_AngleV = mouseSpeed * diffY;
+		m_AngleV = mouseSpeed * diffY * dTime.count();
 		pitch_to(m_AngleV);
 		m_MouseX = m_MouseTargetX;
 		m_MouseY = m_MouseTargetY;
@@ -87,12 +88,35 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 			// determine heading quaternion from the camera up vector and the heading angle
 			quat heading_quat = angle_axis(m_Heading, up);
 			// add the two quaternions
-			m_Transforms[i].rotation = normalize(pitch_quat * heading_quat);
+			//m_Transforms[i].rotation = normalize(pitch_quat * heading_quat);
+
+
+
+			//m_Transforms[i].rotation = key_quat * m_Transforms[i].rotation;
+			//m_Transforms[i].rotation = normalize(m_Transforms[i].rotation);
+
+			//FPS camera:  RotationX(pitch) * RotationY(yaw)
+			psl::quat qPitch = angle_axis(radians(m_AngleV), axis);
+			m_Transforms[i].rotation = normalize(qPitch) * m_Transforms[i].rotation;
+			psl::quat qYaw = angle_axis(radians(m_AngleH), up);
+			m_Transforms[i].rotation = normalize(qYaw) * m_Transforms[i].rotation;
+			psl::quat qRoll = angle_axis(0.0f, vec3(0, 0, 1));
+			m_Transforms[i].rotation = normalize(qRoll) * m_Transforms[i].rotation;
+
+			//For a FPS camera we can omit roll
+			//quat m_d_orientation = qPitch * qYaw;
+			//quat delta = mix(quat(0, 0, 0, 0), m_d_orientation, dTime.count());
+			//m_Transforms[i].rotation = normalize(delta) * m_Transforms[i].rotation;
+			//quat orientation = qPitch * qYaw;
+			//m_Transforms[i].rotation = normalize(orientation);
+
+			
+
 		}
 	}
 
-	//m_AngleH  = 0;
-	//m_AngleV  = 0;
+	m_AngleH  = 0;
+	m_AngleV  = 0;
 	//m_Pitch   = 0;
 	//m_Heading = 0;
 }

@@ -7,6 +7,7 @@ namespace psl::math
 	template<typename precision_t = double>
 	class constants
 	{
+	public:
 		static constexpr precision_t PI {static_cast<precision_t>(3.14159265358979323846264338327950288419716939937510582097494459230781640628620899862803482534211706798214808651328230664709384460955058223172535940812848111745028410270)};
 		static constexpr precision_t DEG{precision_t{180} / PI};
 		static constexpr precision_t RAD{PI / precision_t{180}};

@@ -685,13 +685,17 @@ int entry()
 	core::ecs::state ECSState{};
 	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
 
-	const size_t area = 12;
+	const size_t area = 64;
+	const size_t area_granularity = 128;
 	const size_t size_steps = 24;
-	for(int x = 0; x < 1024; ++x)
+	for(int x = 0; x < 100000; ++x)
 	{
 		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
 			(core::ecs::components::renderable{ material, geometry, 0u }, 
-			 core::ecs::components::transform{psl::vec3((float)(std::rand() % area) - (area/2.0f),(float)(std::rand() % area) - (area / 2.0f),(float)(std::rand() % area) - (area / 2.0f)),
+			 core::ecs::components::transform{psl::vec3(
+			 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area/2.0f),
+			 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f),
+			 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f)),
 			 psl::vec3((float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps)});
 	}
 	core::ecs::systems::fly fly_system{ surface_handle->input() };
@@ -711,7 +715,6 @@ int entry()
 		last_tick = current_time;
 		ECSState.tick(elapsed);
 		++frameCount;
-		std::this_thread::sleep_for(std::chrono::milliseconds(30));
 	}
 	return 0;
 }
