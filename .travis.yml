@@ -152,15 +152,15 @@ script:
 after_success:
   - |
     if [[ $DOXGEN == true ]]; then
-       cd $TRAVIS_BUILD_DIR
+       cd $TRAVIS_BUILD_DIR/tools
        doxygen doxyfile
     fi
-  - cd $TRAVIS_BUILD_DIR
+  - cd $TRAVIS_BUILD_DIR/tools
   - chmod +x travis-ci-post-send.sh
   - ./travis-ci-post-send.sh success $WEBHOOK_URL
   
 after_failure:
-  - cd $TRAVIS_BUILD_DIR
+  - cd $TRAVIS_BUILD_DIR/tools
   - chmod +x travis-ci-post-send.sh
   - ./travis-ci-post-send.sh failure $WEBHOOK_URL
   

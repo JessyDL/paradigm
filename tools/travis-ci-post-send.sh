@@ -43,35 +43,22 @@ else
   URL=""
 fi
 
+UNIT_TEST_RESULTS=""
+if [[ $UTESTS == true ]]; then
+	python format_tests.py "${UTESTS_RESULTS}" output.txt
+	UTESTS_TXT=$(<output.txt)
+	if [[ ${#UTESTS_TXT} > 1024 ]]; then
+		UTESTS_TXT=${UTESTS_TXT:0:1024}
+	fi
+	case $1 in
+	  "success" )
+		  UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Passed", "value": "'"$UTESTS_TXT"'" } ]' ;;
+	  "failure" )
+		  UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Failed", "value": "'"$UTESTS_TXT"'" } ]' ;;
+	esac
+fi
+
 TIMESTAMP=$(date --utc +%FT%TZ)
-case $1 in
-  "success" )
-    if [[ $UTESTS == true ]]; then
-      UTESTS_TXT=$(<${UTESTS_RESULTS})  
-      if [[ ${#UTESTS_TXT} > 1024 ]]; then
-        UTESTS_TXT=${UTESTS_TXT:0:1024}
-      fi
-	   UTESTS_TXT=${UTESTS_TXT//\'/\"}
-	   UTESTS_TXT=${UTESTS_TXT//'\n'/\\n}
-      UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Passed", "value": "'"$UTESTS_TXT"'" } ]'
-    else 
-      UNIT_TEST_RESULTS=""
-    fi
-    ;;
-  "failure" )
-    if [[ $UTESTS == true ]]; then
-      UTESTS_TXT=$(<${UTESTS_RESULTS})  
-      if [[ ${#UTESTS_TXT} > 1024 ]]; then
-        UTESTS_TXT=${UTESTS_TXT:0:1024}
-      fi
-	   UTESTS_TXT=${UTESTS_TXT//\'/\"}
-	   UTESTS_TXT=${UTESTS_TXT//'\n'/\\n}
-      UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Failed", "value": "'"$UTESTS_TXT"'" } ]'
-    else 
-      UNIT_TEST_RESULTS=""
-    fi
-    ;;
-esac
 	
 echo -e "$UNIT_TEST_RESULTS"
 
