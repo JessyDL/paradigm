@@ -33,8 +33,15 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	}
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
+		auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
 		m_Transforms[i].position += (normalize(m_Transforms[i].position) * dTime.count() * 3.0f * sin(accTime*0.1f));
-		m_Transforms[i].rotation = normalize(psl::math::look_at_q(m_Transforms[i].position, m_CamTransform[0].position, psl::vec3::up));
+		m_Transforms[i].rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * m_Transforms[i].rotation);
+		if(mag < 6)
+		{
+			m_Transforms[i].rotation = normalize(psl::math::look_at_q(m_Transforms[i].position, m_CamTransform[0].position, psl::vec3::up));
+		}
+
+		//
 		//m_Transforms[i].rotation = normalize(m_CamTransform[0].rotation);
 	}
 

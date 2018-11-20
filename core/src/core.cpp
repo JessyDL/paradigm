@@ -688,7 +688,7 @@ int entry()
 	const size_t area = 64;
 	const size_t area_granularity = 128;
 	const size_t size_steps = 24;
-	for(int x = 0; x < 100000; ++x)
+	for(int x = 0; x < 50000; ++x)
 	{
 		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
 			(core::ecs::components::renderable{ material, geometry, 0u }, 
