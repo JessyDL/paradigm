@@ -84,7 +84,7 @@ WEBHOOK_DATA='{
     "timestamp": "'"$TIMESTAMP"'",
     "url": "'"$COMMIT_URL"'",
     "footer": { "text": "'"$CREDITS"'" }
-    '"$UNIT_TEST_RESULTS"'
+    '$UNIT_TEST_RESULTS'
   }]}'
 	
 echo -e "$WEBHOOK_DATA"
