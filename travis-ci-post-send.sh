@@ -51,7 +51,7 @@ case $1 in
       if [[ ${#UTESTS_TXT} > 1024 ]]; then
         UTESTS_TXT=${UTESTS_TXT:0:1024}
       fi
-	   UTESTS_TXT=${UTESTS_TXT//\'/\"}
+	   UTESTS_TXT=${UTESTS_TXT//\"/\'}
 	   UTESTS_TXT=${UTESTS_TXT//'\n'/\\n}
       UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Passed", "value": "'"$UTESTS_TXT"'" } ]'
     else 
@@ -64,7 +64,7 @@ case $1 in
       if [[ ${#UTESTS_TXT} > 1024 ]]; then
         UTESTS_TXT=${UTESTS_TXT:0:1024}
       fi
-	   UTESTS_TXT=${UTESTS_TXT//\'/\"}
+	   UTESTS_TXT=${UTESTS_TXT//\"/\'}
 	   UTESTS_TXT=${UTESTS_TXT//'\n'/\\n}
       UNIT_TEST_RESULTS=', "fields": [{"name": "Unit Tests - Failed", "value": "'"$UTESTS_TXT"'" } ]'
     else 
