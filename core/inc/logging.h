@@ -2,6 +2,7 @@
 #include "spdlog/spdlog.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <memory>
+#include "profiling/profiler.h"
 
 namespace core
 {
@@ -26,4 +27,6 @@ namespace core
 	{
 		extern std::shared_ptr<spdlog::logger> log;
 	}
+
+	extern psl::profiling::profiler profiler;
 }

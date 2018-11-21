@@ -13,6 +13,7 @@ using namespace core::gfx;
 void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index,
 					  std::optional<core::resource::handle<core::gfx::material>> replacement)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(replacement) replacement.value()->bind_pipeline(cmdBuffer, framebuffer, index);
 
 	for(auto& drawLayer : m_Group)
@@ -47,6 +48,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<frameb
 void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index,
 					  std::optional<core::resource::handle<core::gfx::material>> replacement)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(replacement) replacement.value()->bind_pipeline(cmdBuffer, swapchain, index);
 
 	for(auto& drawLayer : m_Group)

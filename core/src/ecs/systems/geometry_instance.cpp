@@ -25,12 +25,15 @@ std::vector<psl::mat4x4> modelMats;
 float accTime {0.0f};
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
+	PROFILE_SCOPE(core::profiler)
 	accTime += dTime.count();
-
+	core::profiler.scope_begin("release material handles");
 	for(const auto& renderer : m_Renderers)
 	{
 		renderer.material.handle()->release_all();
 	}
+	core::profiler.scope_end();
+	core::profiler.scope_begin("rotate and reposition all transforms");
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
 		auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
@@ -44,6 +47,7 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 		//
 		//m_Transforms[i].rotation = normalize(m_CamTransform[0].rotation);
 	}
+	core::profiler.scope_end();
 
 	modelMats.clear();
 
@@ -52,6 +56,7 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	uint32_t startIndex = 0u;
 	uint32_t indexCount = 0u;
 	bool setStart = true;
+	core::profiler.scope_begin("generate instance data");
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
 		if(auto index = m_Renderers[i].material.handle()->instantiate(m_Renderers[i].geometry); index)
@@ -77,18 +82,21 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 			}
 			++indexCount;
 			setStart = false;
-			psl::mat4x4 translationMat = translate(m_Transforms[i].position);
-			psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
-			psl::mat4x4 scaleMat = scale(m_Transforms[i].scale);
+			const psl::mat4x4 translationMat = translate(m_Transforms[i].position);
+			const psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
+			const psl::mat4x4 scaleMat = scale(m_Transforms[i].scale);
 
 			modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 
 			//m_Renderers[i].material.handle()->set(m_Renderers[i].geometry, index.value(), "INSTANCE_TRANSFORM", modelMatrix);
 		}
 	}
+	core::profiler.scope_end();
 
+	core::profiler.scope_begin("sending new instance data to GPU");
 	if(modelMats.size() > 0)
 		cachedMat->set(cachedGeom, startIndex, "INSTANCE_TRANSFORM", modelMats);
+	core::profiler.scope_end();
 	modelMats.clear();
 	
 }

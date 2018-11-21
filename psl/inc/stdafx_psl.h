@@ -30,6 +30,9 @@ namespace platform::specifics
 
 } // namespace platform::specifics
 
+#include "timer.h"
+#include "profiling/profiler.h"
+
 #if !defined(NDEBUG) && defined(NDEBUG) && !defined(DEBUG)
 #define NDEBUG 1
 #endif

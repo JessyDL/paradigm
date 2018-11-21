@@ -33,4 +33,6 @@ inc/math/vec.h
 inc/math/matrix.h
 inc/math/quaternion.h
 inc/math/utility.h
+
+inc/profiling/profiler.h
 )

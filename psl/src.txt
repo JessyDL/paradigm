@@ -10,4 +10,6 @@ src/memory/raw_region.cpp
 src/memory/region.cpp
 src/memory/segment.cpp
 src/task.cpp
+
+src/profiling/profiler.cpp
 )

@@ -228,7 +228,7 @@ namespace psl::math
 	template <typename precision_t>
 	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tvec<precision_t, 3>& vec) noexcept
 	{
-		constexpr psl::tmat<precision_t, 4, 4> mat{1};
+		static const psl::tmat<precision_t, 4, 4> mat{1};
 		psl::tmat<precision_t, 4, 4> res{mat};
 		res.row(3, mat.row(0)* vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
 		return res;

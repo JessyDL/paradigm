@@ -688,7 +688,7 @@ int entry()
 	const size_t area = 64;
 	const size_t area_granularity = 128;
 	const size_t size_steps = 24;
-	for(int x = 0; x < 50000; ++x)
+	for(int x = 0; x < 5000; ++x)
 	{
 		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
 			(core::ecs::components::renderable{ material, geometry, 0u }, 
@@ -705,17 +705,36 @@ int entry()
 	ECSState.register_system(render_system);
 	core::ecs::systems::geometry_instance geometry_instance{};
 	ECSState.register_system(geometry_instance);
-	uint64_t frameCount										 = 0u;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
 	{
+		core::profiler.next_frame();
 		auto current_time = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed =
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
 		ECSState.tick(elapsed);
-		++frameCount;
+		auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();
+		core::log->info("ECS has {} renderables alive right now", all_geom.size());
+		std::vector<core::ecs::entity> to_delete;
+		for(int x = 0; x < 1200; ++x)
+		{
+			to_delete.emplace_back(all_geom[std::rand() % all_geom.size()]);
+		}
+		ECSState.destroy(to_delete);
+		for(int x = 0; x < 1200; ++x)
+		{
+			auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
+				(core::ecs::components::renderable{material, geometry, 0u},
+				 core::ecs::components::transform{psl::vec3(
+				 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f),
+				 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f),
+				 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f)),
+				 psl::vec3((float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps)});
+		}
 	}
+
+	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt", core::profiler.to_string());
 	return 0;
 }
 

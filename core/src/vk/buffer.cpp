@@ -16,6 +16,7 @@ buffer::buffer(const UID& uid, cache& cache, handle<context> context, handle<dat
 	: m_Context(context), m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(uid),
 	  m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::gfx::buffer>{}))
 {
+	PROFILE_SCOPE(core::profiler)
 	core::ivk::log->info("creating an ivk::buffer of {0} bytes size.", m_BufferDataHandle->size());
 	vk::MemoryRequirements memReqs;
 	auto& region   = m_BufferDataHandle->region();
@@ -91,6 +92,7 @@ buffer::buffer(const UID& uid, cache& cache, handle<context> context, handle<dat
 
 buffer::~buffer()
 {
+	PROFILE_SCOPE(core::profiler)
 	core::ivk::log->info("destroying an ivk::buffer of {0} bytes size.", m_BufferDataHandle->size());
 	m_Context->device().destroyBuffer(m_Buffer, nullptr);
 	m_Context->device().freeMemory(m_Memory, nullptr);
@@ -105,6 +107,7 @@ std::optional<memory::segment> buffer::reserve(vk::DeviceSize size) { return m_B
 
 std::vector<std::pair<memory::segment, memory::range>> buffer::reserve(std::vector<vk::DeviceSize> sizes, bool optimize)
 {
+	PROFILE_SCOPE(core::profiler)
 	vk::DeviceSize totalSize =
 		std::accumulate(std::next(std::begin(sizes)), std::end(sizes), sizes[0],
 						[](vk::DeviceSize sum, const vk::DeviceSize& element) { return sum + element; });
@@ -158,6 +161,7 @@ failure:
 
 bool buffer::commit(std::vector<commit_instruction> instructions)
 {
+	PROFILE_SCOPE(core::profiler)
 	vk::DeviceSize totalSize =
 		std::accumulate(std::next(std::begin(instructions)), std::end(instructions), std::begin(instructions)->size,
 						[](vk::DeviceSize sum, const commit_instruction& element) { return sum + element.size; });
@@ -269,6 +273,7 @@ bool buffer::deallocate(memory::segment& segment) { return m_BufferDataHandle->d
 
 bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(size == 0) return true;
 
 	if(size > m_BufferDataHandle->size() || (size + offset) > m_BufferDataHandle->size())
@@ -336,6 +341,7 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 
 bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::vector<vk::BufferCopy>& copyRegions)
 {
+	PROFILE_SCOPE(core::profiler)
 	vk::Queue queue = m_Context->queue();
 	wait_until_ready();
 
@@ -424,6 +430,7 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 
 bool buffer::set(const void* data, std::vector<vk::BufferCopy> commands) // maps to the UpdateBuffer of the old version
 {
+	PROFILE_SCOPE(core::profiler)
 	if(data == nullptr || commands.size() == 0)
 	{
 		core::ivk::log->error(((data == nullptr) ? "tried passing nullptr to update an ivk::buffer"

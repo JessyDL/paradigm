@@ -16,11 +16,13 @@ fly::~fly() { m_InputSystem.unsubscribe(this); }
 
 void fly::announce(core::ecs::state& state)
 {
+	PROFILE_SCOPE(core::profiler)
 	state.register_dependency(*this, {m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{} });
 }
 
 void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
+	PROFILE_SCOPE(core::profiler)
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
 	if (bHasRotated)
 	{

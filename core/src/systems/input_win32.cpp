@@ -186,6 +186,7 @@ LRESULT CALLBACK input::win_event_handler(HWND hWnd, UINT uMsg, WPARAM wParam, L
 
 void input::tick()
 {
+	PROFILE_SCOPE(core::profiler)
 	MSG msg;
 	ZeroMemory(&msg, sizeof(MSG));
 	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0)

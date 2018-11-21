@@ -265,6 +265,7 @@ namespace core::resource
 		cache(::meta::library&& library, memory::allocator_base* allocator)
 			: m_Library(std::move(library)), m_Allocator(allocator)
 		{
+			PROFILE_SCOPE(core::profiler)
 			assert(m_Allocator != nullptr && m_Allocator->is_physically_backed());
 			LOG_INFO("creating cache");
 		};
@@ -276,6 +277,7 @@ namespace core::resource
 
 		~cache()
 		{
+			PROFILE_SCOPE(core::profiler)
 			LOG_INFO("destroying cache start");
 			bool bErased	 = false;
 			size_t iteration = 0u;
@@ -316,6 +318,7 @@ namespace core::resource
 
 		void free(bool recursive = true)
 		{
+			PROFILE_SCOPE(core::profiler)
 			bool bErased	 = false;
 			size_t iteration = 0u;
 			size_t count	 = 0u;
@@ -380,6 +383,7 @@ namespace core::resource
 		template <typename T>
 		bool reset(const UID& uid, bool force = false)
 		{
+			PROFILE_SCOPE(core::profiler)
 			auto it = m_Handles.find(uid);
 			if(it == m_Handles.end()) return false;
 
@@ -453,6 +457,7 @@ namespace core::resource
 				if(m_Resource && segment) // already set
 					return false;
 
+				PROFILE_SCOPE(core::profiler)
 				if(auto region = cache.allocator()->allocate(sizeof(T)); region)
 				{
 
@@ -477,6 +482,7 @@ namespace core::resource
 			{
 				if(m_Resource && segment)
 				{
+					PROFILE_SCOPE(core::profiler)
 					LOG_INFO("(container destroy start)");
 					auto ptr = m_Resource.get();
 					ptr->T::~T();
@@ -497,6 +503,7 @@ namespace core::resource
 			{
 				if(m_Resource && segment) // already set
 					return false;
+				PROFILE_SCOPE(core::profiler)
 
 				if(auto region = cache.allocator()->allocate(sizeof(T)); region)
 				{
@@ -559,6 +566,7 @@ namespace core::resource
 			: m_Cache(&cache), uid(cache.library().create().first),
 			  m_Container(std::make_shared<details::container<T>>()), resource_uid(uid)
 		{
+			PROFILE_SCOPE(core::profiler)
 			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
 		};
@@ -567,6 +575,7 @@ namespace core::resource
 		handle(cache& cache, const UID& uid)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(std::make_shared<details::container<T>>())
 		{
+			PROFILE_SCOPE(core::profiler)
 			// todo need to subscribe to the library, somehow figure out what type of meta type I use
 			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
@@ -575,6 +584,7 @@ namespace core::resource
 		handle(cache& cache, const UID& uid, const UID& resource)
 			: m_Cache(&cache), uid(uid), resource_uid(resource), m_Container(std::make_shared<details::container<T>>())
 		{
+			PROFILE_SCOPE(core::profiler)
 			// todo need to subscribe to the library, somehow figure out what type of meta type I use
 			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
@@ -590,6 +600,7 @@ namespace core::resource
 			  resource_uid((other.m_Cache->library().is_physical_file(other.resource_uid)) ? other.resource_uid : uid),
 			  m_Container(std::make_shared<details::container<T>>())
 		{
+			PROFILE_SCOPE(core::profiler)
 			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
 
@@ -633,6 +644,7 @@ namespace core::resource
 		template <typename... Args>
 		bool load(Args&&... args)
 		{
+			PROFILE_SCOPE(core::profiler)
 			if constexpr(details::has_resource_dependency<T>::value)
 			{
 				if constexpr(!std::is_constructible<T, typename T::resource_dependency, Args...>::value)
@@ -764,6 +776,7 @@ namespace core::resource
 		/// again. \warning Regardless of success, the handle will become invalid.
 		bool unload(bool force = false)
 		{
+			PROFILE_SCOPE(core::profiler)
 			m_Container.reset();
 			return m_Cache->reset<T>(resource_uid, force);
 		}
@@ -784,6 +797,7 @@ namespace core::resource
 		typename std::enable_if<std::is_constructible<T, const T&, const UID&, cache&, Args...>::value, handle<T>>::type
 		copy(cache& cache, Args&&... args) const
 		{
+			PROFILE_SCOPE(core::profiler)
 			auto res =
 				(m_Cache->library().is_physical_file(resource_uid) ? handle<T>(cache, UID::generate(), resource_uid)
 																   : handle<T>(cache));
@@ -810,6 +824,7 @@ namespace core::resource
 	template <typename T>
 	static handle<T> create(cache& cache)
 	{
+		PROFILE_SCOPE(core::profiler)
 		return handle<T>(cache);
 	}
 
@@ -820,6 +835,7 @@ namespace core::resource
 	template <typename T>
 	static handle<T> create(cache& cache, const UID& uid)
 	{
+		PROFILE_SCOPE(core::profiler)
 		return handle<T>{cache, UID::generate(), uid};
 	}
 
@@ -831,6 +847,7 @@ namespace core::resource
 	template <typename T>
 	static handle<T> create_shared(cache& cache, const UID& uid)
 	{
+		PROFILE_SCOPE(core::profiler)
 		auto res = cache.find<T>(uid);
 		if(res) return res;
 		return handle<T>(cache, uid);
@@ -839,6 +856,7 @@ namespace core::resource
 	template <typename T, typename Y>
 	static handle<T> create_shared(cache& cache, const core::resource::handle<Y>& base)
 	{
+		PROFILE_SCOPE(core::profiler)
 		auto res = cache.find<T>(base.RUID());
 		if(res) return res;
 		return handle<T>(cache, base.RUID());
@@ -850,6 +868,7 @@ namespace core::resource
 	template <typename T, typename... Args>
 	static handle<T> copy(cache& cache, const handle<T>& source, Args&&... args)
 	{
+		PROFILE_SCOPE(core::profiler)
 		static_assert(std::is_constructible<T, const T&, const UID&, resource::cache&, Args...>::value,
 					  "lacking a 'copy' constructor on T, cannot create a new handle with the given source.");
 		return source.copy(cache, std::forward<Args>(args)...);

@@ -133,6 +133,7 @@ namespace core::ecs
 		template <typename T>
 		void add_component(const std::vector<entity>& entities, std::optional<T> _template = std::nullopt) noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
 			static_assert(
 				std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value,
 				"the component type must be trivially copyable and standard layout "
@@ -236,6 +237,7 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(const std::vector<entity>& entities) noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t int_id = details::component_key<T>;
 
 			for(auto e : entities)
@@ -300,6 +302,7 @@ namespace core::ecs
 		template <typename... Ts>
 		entity create() noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
 			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
 						 .first->first;
 			if constexpr(sizeof...(Ts) > 0)
@@ -312,6 +315,7 @@ namespace core::ecs
 		template <typename... Ts>
 		entity create(std::optional<Ts>... _template) noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
 			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
 						 .first->first;
 			if constexpr(sizeof...(Ts) > 0)
@@ -324,6 +328,7 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> create(size_t count) noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
 			m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
@@ -339,6 +344,7 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> create(size_t count, std::optional<Ts>... _template) noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
 			m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
@@ -351,11 +357,14 @@ namespace core::ecs
 			return result;
 		}
 
-		bool destroy(entity e) noexcept
+		void destroy(const std::vector<entity>& entities) noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
+			for(const auto& e : entities)
+			{
 			if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 			{
-				for(const auto& [type, index] : eMapIt->second)
+				for(const auto&[type, index] : eMapIt->second)
 				{
 					if(const auto& cMapIt = m_Components.find(type); cMapIt != std::end(m_Components))
 					{
@@ -367,10 +376,15 @@ namespace core::ecs
 						std::memset(loc, 0, cMapIt->second.size);
 					}
 				}
-				return true;
 			}
-			return false;
+			}
 		}
+
+		void destroy(entity e) noexcept
+		{
+			destroy({e});
+		}
+
 
 		// -----------------------------------------------------------------------------
 		// filter on components
@@ -378,38 +392,20 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> filter() const noexcept
 		{
-			static const std::vector<details::component_key_t> keys{{details::component_key<Ts>...}};
+			PROFILE_SCOPE(core::profiler)
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
-
-			for(const auto& key : keys)
-			{
-				if(m_Components.find(key) == std::end(m_Components)) return {};
-			}
-
-			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
-
-			for(size_t i = 1; i < keys.size(); ++i)
-			{
-				std::vector<entity> intermediate;
-				const auto& it = m_Components.at(keys[i]).entities;
-				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
-									  std::back_inserter(intermediate));
-				v_intersection = intermediate;
-			}
-
-			return v_intersection;
+			return dynamic_filter({details::component_key<Ts>...});
 		}
 
 		template <typename... Ts>
 		std::vector<entity> filter(std::vector<Ts>&... out) const noexcept
 		{
-			static const std::vector<details::component_key_t> keys{{details::component_key<Ts>...}};
+			PROFILE_SCOPE(core::profiler)
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
-			auto entities{filter<Ts...>()};
+			auto entities{dynamic_filter({details::component_key<Ts>...})};
 
 			(fill_in(entities, out), ...);
-
 
 			return entities;
 		}
@@ -420,6 +416,7 @@ namespace core::ecs
 		template <typename T>
 		T& get_component(entity e)
 		{
+			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t int_id = details::component_key<T>;
 			auto eMapIt								  = m_EntityMap.find(e);
 			auto foundIt							  = std::find_if(
@@ -438,6 +435,7 @@ namespace core::ecs
 		template <typename T>
 		const T& get_component(entity e) const
 		{
+			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t int_id = details::component_key<T>;
 			auto eMapIt								  = m_EntityMap.find(e);
 			auto foundIt							  = std::find_if(
@@ -458,6 +456,7 @@ namespace core::ecs
 		// -----------------------------------------------------------------------------
 		void tick(std::chrono::duration<float> dTime = std::chrono::duration<float>{0.0f})
 		{
+			PROFILE_SCOPE(core::profiler)
 			for(auto& system : m_Systems)
 			{
 				auto& sBindings				= std::get<1>(system.second);
@@ -536,6 +535,7 @@ namespace core::ecs
 		template <typename T>
 		void register_system(T& target)
 		{
+			PROFILE_SCOPE(core::profiler)
 			m_Systems.emplace(&target, std::tuple{std::bind(&T::tick, &target, std::placeholders::_1,
 															std::placeholders::_2),
 												  std::vector<dependency_pack>{}});
@@ -545,6 +545,7 @@ namespace core::ecs
 		template <typename T>
 		void register_dependency(T& system, dependency_pack&& pack)
 		{
+			PROFILE_SCOPE(core::profiler)
 			auto it = m_Systems.find(&system);
 			if(it == std::end(m_Systems))
 			{
@@ -559,6 +560,7 @@ namespace core::ecs
 		template <typename T>
 		void set(const std::vector<entity>& entities, const std::vector<T>& data)
 		{
+			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t id = details::component_key<T>;
 			const auto& mem_pair				  = m_Components.find(id);
 			auto size							  = sizeof(T);
@@ -581,6 +583,7 @@ namespace core::ecs
 	  private:
 		void set(const core::ecs::vector<entity>& entities, void* data, size_t size, details::component_key_t id)
 		{
+			PROFILE_SCOPE(core::profiler)
 			const auto& mem_pair = m_Components.find(id);
 
 			size_t i				= 0;
@@ -601,84 +604,59 @@ namespace core::ecs
 
 		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept
 		{
+			PROFILE_SCOPE(core::profiler)
+
 			for(const auto& key : keys)
 			{
 				if(m_Components.find(key) == std::end(m_Components)) return {};
 			}
+
 			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
 
 			for(size_t i = 1; i < keys.size(); ++i)
 			{
 				std::vector<entity> intermediate;
+				intermediate.reserve(v_intersection.size());
 				const auto& it = m_Components.at(keys[i]).entities;
 				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 									  std::back_inserter(intermediate));
-				v_intersection = intermediate;
+				v_intersection = std::move(intermediate);
 			}
 
 			return v_intersection;
 		}
 
-		std::vector<entity>
-		dynamic_filter(const std::vector<details::component_key_t>& keys,
-					   const std::vector<std::pair<details::component_key_t, void*>>& targetBuffers) const noexcept
+
+		void fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept
 		{
-
-			auto entities{dynamic_filter(keys)};
-
-			//(fill_in(entities, out), ...);
-
-
-			return entities;
-		}
-
-		template <typename T>
-		void fill_in(const std::vector<entity>& entities, std::vector<T>& out) const noexcept
-		{
-			constexpr details::component_key_t int_id = details::component_key<T>;
-			out.resize(entities.size());
+			PROFILE_SCOPE(core::profiler)
 			size_t i = 0;
 
 			const auto& mem_pair = m_Components.find(int_id);
 
 			for(const auto& e : entities)
 			{
-				auto eMapIt  = m_EntityMap.find(e);
+				auto eMapIt = m_EntityMap.find(e);
 				auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-											[&int_id](const std::pair<details::component_key_t, size_t>& pair) {
+											[&int_id](const std::pair<details::component_key_t, size_t>& pair)
+											{
 												return pair.first == int_id;
 											});
 
-				auto index = foundIt->second;
-				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + sizeof(T) * index);
-				std::memcpy(&out[i], loc, sizeof(T));
+				auto index = foundIt->second;				
+				void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
+				std::memcpy((void*)((std::uintptr_t)out + (i * mem_pair->second.size)), loc, mem_pair->second.size);
 				++i;
 			}
 		}
-
-		void fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept
+		
+		template <typename T>
+		void fill_in(const std::vector<entity>& entities, std::vector<T>& out) const noexcept
 		{
-			/*out.resize(entities.size());
-			size_t i = 0;
-
-			for (const auto& e : entities)
-			{
-				auto eMapIt = m_EntityMap.find(e);
-				auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(), [&int_id](const
-			std::pair<details::component_key_t, size_t>& pair)
-				{
-					return pair.first == int_id;
-				});
-
-				auto index = foundIt->second;
-
-				auto mem_pair = m_Components.find(int_id);
-				auto range = mem_pair->second.second[index].range();
-				std::memcpy(&out[i], (void*)range.begin, sizeof(T));
-				++i;
-			}*/
+			PROFILE_SCOPE(core::profiler)
+			out.resize(entities.size());
+			return fill_in(entities, details::component_key<T>, out.data());
 		}
-
 
 		uint64_t mID{0u};
 		/// \brief gets what components this entity uses, and which index it lives on.

@@ -909,26 +909,6 @@ namespace utility
 
 
 	template<>
-	struct converter<int>
-	{
-		static psl::string8_t to_string(const int& x)
-		{
-			return std::to_string(x);
-		}
-
-		static int from_string(psl::string8::view str)
-		{
-			int x;
-		#if __has_include(<charconv>)
-			std::from_chars(str.data(), str.data() + str.size(), x);
-		#else
-			return std::stoi(psl::string8_t(str));
-		#endif
-			return x;
-		}
-	};
-
-	template<>
 	struct converter<float>
 	{
 		static psl::string8_t to_string(const float& x)
@@ -1015,6 +995,79 @@ namespace utility
 		}
 	};
 
+	template<>
+	struct converter<int8_t>
+	{
+		static psl::string8_t to_string(const int8_t& x)
+		{
+			return std::to_string(x);
+		}
+
+		static int8_t from_string(psl::string8::view str)
+		{
+			int x;
+		#if __has_include(<charconv>)
+			std::from_chars(str.data(), str.data() + str.size(), x);
+		#else
+			return std::stoi(psl::string8_t(str));
+		#endif
+			return x;
+		}
+	};
+
+	template<>
+	struct converter<int16_t>
+	{
+		static psl::string8_t to_string(const int16_t& x)
+		{
+			return std::to_string(x);
+		}
+
+		static int16_t from_string(psl::string8::view str)
+		{
+			int x;
+		#if __has_include(<charconv>)
+			std::from_chars(str.data(), str.data() + str.size(), x);
+		#else
+			return std::stoi(psl::string8_t(str));
+		#endif
+			return x;
+		}
+	};
+
+	template<>
+	struct converter<int32_t>
+	{
+		static psl::string8_t to_string(const int32_t& x)
+		{
+			return std::to_string(x);
+		}
+
+		static int32_t from_string(psl::string8::view str)
+		{
+			int x;
+		#if __has_include(<charconv>)
+			std::from_chars(str.data(), str.data() + str.size(), x);
+		#else
+			return std::stoi(psl::string8_t(str));
+		#endif
+			return x;
+		}
+
+	};
+	template<>
+	struct converter<int64_t>
+	{
+		static psl::string8_t to_string(const int64_t& x)
+		{
+			return std::to_string(x);
+		}
+
+		static int64_t from_string(psl::string8::view str)
+		{
+			return (int64_t)std::stoll(psl::string8_t(str));
+		}
+	};
 	// short hand version that calls the converter for you
 	template<typename T>
 	static T from_string(psl::string8::view str)

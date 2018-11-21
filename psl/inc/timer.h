@@ -14,10 +14,11 @@ namespace psl
 			m_Point = std::chrono::high_resolution_clock::now();
 		}
 
-		uint64_t elapsed() const
+		template<typename type = std::chrono::nanoseconds>
+		type elapsed() const
 		{
-			return std::chrono::duration_cast<std::chrono::nanoseconds>(
-				std::chrono::high_resolution_clock::now() - m_Point).count();
+			return std::chrono::duration_cast<type>(
+				std::chrono::high_resolution_clock::now() - m_Point);
 		}
 
 	private:

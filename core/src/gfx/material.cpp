@@ -24,6 +24,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 	: m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data), m_MaterialBuffer(materialBuffer),
 	  m_InstanceBuffer(instanceBuffer)
 {
+	PROFILE_SCOPE(core::profiler)
 	const auto& ID = packet.get<UID>();
 	auto& cache	= packet.get<core::resource::cache>();
 	m_IsValid	  = false;
@@ -142,6 +143,7 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::buffer>>
 // todo
 core::resource::handle<pipeline> material::get(core::resource::handle<framebuffer> framebuffer)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_Pipeline.find(framebuffer.ID()); it == std::end(m_Pipeline))
 	{
 		m_Pipeline[framebuffer.ID()] = m_PipelineCache->get(m_Data, framebuffer);
@@ -155,6 +157,7 @@ core::resource::handle<pipeline> material::get(core::resource::handle<framebuffe
 
 core::resource::handle<pipeline> material::get(core::resource::handle<swapchain> swapchain)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_Pipeline.find(swapchain.ID()); it == std::end(m_Pipeline))
 	{
 		m_Pipeline[swapchain.ID()] = m_PipelineCache->get(m_Data, swapchain);
@@ -169,6 +172,7 @@ core::resource::handle<pipeline> material::get(core::resource::handle<swapchain>
 bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer,
 							 uint32_t drawIndex)
 {
+	PROFILE_SCOPE(core::profiler)
 	m_Bound = get(framebuffer);
 	if(m_Bound->has_pushconstants())
 	{
@@ -189,6 +193,7 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
 							 uint32_t drawIndex)
 {
+	PROFILE_SCOPE(core::profiler)
 	m_Bound = get(swapchain);
 	if(m_Bound->has_pushconstants())
 	{
@@ -210,6 +215,7 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 
 bool material::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<geometry> geometry)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(auto iDataIt = m_InstanceData.instance(geometry.ID()); iDataIt)
 	{
 		auto& iData = iDataIt.value().get();		
@@ -234,6 +240,7 @@ uint32_t material::instances(const core::resource::handle<core::gfx::geometry> g
 bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding, const void* data,
 		 size_t size)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_InstanceData.instance(geometry); it)
 	{
 		auto& instance_obj = it.value().get();
@@ -256,6 +263,7 @@ bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uin
 bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id_first, uint32_t binding, const void* data,
 		 size_t size, size_t count)
 {
+	PROFILE_SCOPE(core::profiler)
 	auto opt = m_InstanceData.instance(geometry);
 	if(!opt)
 		return false;

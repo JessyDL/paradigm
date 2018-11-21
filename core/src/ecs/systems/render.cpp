@@ -26,12 +26,14 @@ render::render(handle<context> context, handle<swapchain> swapchain, handle<surf
 
 void render::announce(ecs::state& state)
 {
+	PROFILE_SCOPE(core::profiler)
 	state.register_dependency(*this, {m_RenderableEntities, m_Transforms, m_Renderers});
 	state.register_dependency(*this, {m_CameraEntities, m_Cameras, m_CameraTransforms});
 }
 
 void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 {
+	PROFILE_SCOPE(core::profiler)
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
 
 	for(size_t i = 0; i < m_CameraEntities.size(); ++i)
@@ -58,6 +60,7 @@ void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 
 void render::update_buffer(size_t index, const transform& transform, const core::ecs::components::camera& camera)
 {
+	PROFILE_SCOPE(core::profiler)
 	while(index >= fdatasegment.size())
 	{
 		fdatasegment.emplace_back(m_Buffer->reserve(sizeof(framedata)).value());
