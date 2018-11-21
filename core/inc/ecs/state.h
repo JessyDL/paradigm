@@ -360,23 +360,36 @@ namespace core::ecs
 		void destroy(const std::vector<entity>& entities) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
+
+			std::unordered_map<details::component_key_t, std::vector<entity>> erased_entities;
 			for(const auto& e : entities)
 			{
-			if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
-			{
-				for(const auto&[type, index] : eMapIt->second)
+				if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 				{
-					if(const auto& cMapIt = m_Components.find(type); cMapIt != std::end(m_Components))
+					for(const auto&[type, index] : eMapIt->second)
 					{
-						cMapIt->second.entities.erase(
-							std::remove(cMapIt->second.entities.begin(), cMapIt->second.entities.end(), e),
-							cMapIt->second.entities.end());
-
-						void* loc = (void*)((std::uintptr_t)cMapIt->second.region.data() + cMapIt->second.size * index);
-						std::memset(loc, 0, cMapIt->second.size);
+						erased_entities[type].emplace_back(e);
 					}
+					m_EntityMap.erase(eMapIt);
 				}
 			}
+
+			for(auto& c : erased_entities)
+			{
+				if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
+				{
+					std::sort(std::begin(c.second), std::end(c.second));
+					auto ib = std::begin(c.second);
+					auto iter = std::remove_if(
+						std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
+						[&ib, &c](entity x) -> bool
+						{
+							while(ib != std::end(c.second) && *ib < x) ++ib;
+							return (ib != std::end(c.second) && *ib == x);
+						});
+
+					cMapIt->second.entities.erase(iter,	cMapIt->second.entities.end());
+				}
 			}
 		}
 
