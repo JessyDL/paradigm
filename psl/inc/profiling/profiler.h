@@ -11,10 +11,17 @@
 
 #define TOKENPASTE(x, y) x ## y
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
-#define PROFILE_SCOPE(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) = profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO));
-#define PROFILE_SCOPE_BEGIN(profiler) profiler.scope_begin(psl::string(FUNCTION_SIGNATURE_INFO));
-#define PROFILE_SCOPE_END(profiler) profiler.scope_end();
-
+#ifdef PE_PROFILER
+#define PROFILE_SCOPE(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) = profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO), (void*)this);
+#define PROFILE_SCOPE_STATIC(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) = profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO));
+#define PROFILE_SCOPE_BEGIN(profiler) profiler.scope_begin(psl::string(FUNCTION_SIGNATURE_INFO), (void*)this);
+#define PROFILE_SCOPE_END(profiler) profiler.scope_end((void*)this);
+#else
+#define PROFILE_SCOPE(profiler)
+#define PROFILE_SCOPE_STATIC(profiler)
+#define PROFILE_SCOPE_BEGIN(profiler)
+#define PROFILE_SCOPE_END(profiler)
+#endif
 namespace psl::profiling
 {
 	class profiler
@@ -33,8 +40,9 @@ namespace psl::profiling
 
 	struct scope_info
 	{
-		scope_info(uint64_t name, size_t depth) : name(name), duration(0), depth(depth) {};
+		scope_info(uint64_t name, size_t depth, bool mangled_name = false) : name(name), duration(0), depth(depth), mangled_name(mangled_name){};
 		uint64_t name;
+		bool mangled_name;
 		std::chrono::microseconds duration;
 		size_t depth;
 	};
@@ -42,6 +50,7 @@ namespace psl::profiling
 	struct frame_info
 	{
 		void push(const psl::string& name) noexcept;
+		void push(uint64_t name) noexcept;
 		void pop() noexcept;
 		void clear();
 		void end();
@@ -58,8 +67,13 @@ namespace psl::profiling
 		profiler(size_t buffer_size = 5);
 		void next_frame();
 		volatile scoped_block scope(const psl::string& name) noexcept;
+		volatile scoped_block scope() noexcept;
+		volatile scoped_block scope(void* target) noexcept;
+		volatile scoped_block scope(const psl::string& name, void* target) noexcept;
 		void scope_begin(const psl::string& name);
+		void scope_begin(const psl::string& name, void* target);
 		void scope_end();
+		void scope_end(void* target);
 
 		psl::string to_string() const;
 	private:

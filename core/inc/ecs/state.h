@@ -13,8 +13,25 @@
 /// The ECS namespace contains a fully functioning ECS
 namespace core::ecs
 {
+	template <typename T>
+	class tag
+	{};
+
 	namespace details
 	{
+
+		template <typename T>
+		struct is_tag : std::false_type
+		{
+			using type = T;
+		};
+
+		template <typename T>
+		struct is_tag<core::ecs::tag<T>> : std::true_type
+		{
+			using type = T;
+		};
+
 		// added to trick the compiler to not throw away the results at compile time
 		template <typename T>
 		constexpr const std::uintptr_t component_key_var{0u};
@@ -36,8 +53,7 @@ namespace core::ecs
 				  generator(region.size() / size){};
 
 			component_info(std::vector<entity>&& entities, component_key_t id)
-				: region(128), entities(std::move(entities)), id(id), size(1), generator(1)
-			{};
+				: region(128), entities(std::move(entities)), id(id), size(1), generator(1){};
 			memory::raw_region region;
 			std::vector<entity> entities;
 			component_key_t id;
@@ -81,15 +97,19 @@ namespace core::ecs
 		class dependency_pack
 		{
 			friend class core::ecs::state;
+
 		  public:
-			  /// \brief constructs a unique set of dependencies
+			/// \brief constructs a unique set of dependencies
 			dependency_pack(core::ecs::vector<entity>& entities) : m_Entities(entities){};
-			template<typename... Ts>
-			dependency_pack(core::ecs::vector<entity>& entities, Ts&&... filters) : m_Entities(entities) { (add(filters), ...); };
-			~dependency_pack() noexcept						 = default;
+			template <typename... Ts>
+			dependency_pack(core::ecs::vector<entity>& entities, Ts&&... filters) : m_Entities(entities)
+			{
+				(add(filters), ...);
+			};
+			~dependency_pack() noexcept					  = default;
 			dependency_pack(const dependency_pack& other) = default;
-			dependency_pack(dependency_pack&& other)  = default;
-			dependency_pack& operator=(const dependency_pack&) =default;
+			dependency_pack(dependency_pack&& other)	  = default;
+			dependency_pack& operator=(const dependency_pack&) = default;
 			dependency_pack& operator=(dependency_pack&&) = default;
 
 			template <typename T>
@@ -115,10 +135,10 @@ namespace core::ecs
 				filters.emplace_back(int_id);
 			}
 
-			template<typename... Ts>
+			template <typename... Ts>
 			void add(Ts&&... args) noexcept
 			{
-				( add(args), ... );
+				(add(args), ...);
 			}
 
 		  private:
@@ -131,16 +151,69 @@ namespace core::ecs
 		// -----------------------------------------------------------------------------
 		// add component
 		// -----------------------------------------------------------------------------
+
+	  private:
 		template <typename T>
-		void add_component(const std::vector<entity>& entities, std::optional<T> _template = std::nullopt) noexcept
+		typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
+		initialize_component(void* location, const std::vector<size_t>& indices, T&& data) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
+			for(auto i = 0; i < indices.size(); ++i)
+			{
+				std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
+			}
+		}
+
+		template <typename T>
+		typename std::enable_if<std::is_invocable<T, size_t>::value>::type
+		initialize_component(void* location, const std::vector<size_t>& indices, T&& invokable) noexcept
+		{
+			constexpr size_t size = sizeof(std::invoke_result<T, size_t>::type);
+			PROFILE_SCOPE(core::profiler)
+			for(auto i = 0; i < indices.size(); ++i)
+			{
+				auto v{std::invoke(invokable, i)};
+				std::memcpy((void*)((std::uintptr_t)location + indices[i] * size), &v, size);
+			}
+		}
+
+		template <typename T, typename SFINEA = void>
+		struct get_component_type
+		{
+			using type = typename std::invoke_result<T, size_t>::type;
+		};
+		template <typename T>
+		struct get_component_type<T, typename std::enable_if<!std::is_invocable<T, size_t>::value>::type>
+		{
+			using type = typename core::ecs::details::is_tag<T>::type;
+		};
+
+		template <typename T, typename SFINEA = void>
+		struct get_forward_type
+		{
+			using type = T;
+		};
+		template <typename T>
+		struct get_forward_type<T, typename std::enable_if<!std::is_invocable<T, size_t>::value>::type>
+		{
+			using type = typename core::ecs::details::is_tag<T>::type;
+		};
+
+	  public:
+		template <typename T>
+		void add_component(const std::vector<entity>& entities, T&& _template) noexcept
+		{
+			using component_type = typename get_component_type<T>::type;
+			using forward_type   = typename get_forward_type<T>::type;
+
+
+			PROFILE_SCOPE(core::profiler)
 			static_assert(
-				std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value,
+				std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
 				"the component type must be trivially copyable and standard layout "
 				"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
-			constexpr details::component_key_t int_id = details::component_key<T>;
-
+			constexpr details::component_key_t int_id = details::component_key<component_type>;
+			core::profiler.scope_begin("duplicate_check");
 			auto ent_cpy = entities;
 			auto end	 = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
 				auto eMapIt = m_EntityMap.find(e);
@@ -152,80 +225,125 @@ namespace core::ecs
 				}
 				return false;
 			});
+			core::profiler.scope_end();
+			ent_cpy.resize(std::distance(std::begin(ent_cpy), end));
+			std::sort(std::begin(ent_cpy), end);
 
 			auto it = m_Components.find(int_id);
 			if(it == m_Components.end())
 			{
-				if constexpr(std::is_empty<T>::value)
+				core::profiler.scope_begin("create backing storage");
+				if constexpr(std::is_empty<component_type>::value)
 				{
 					m_Components.emplace(int_id, details::component_info{{}, int_id});
 				}
 				else
 				{
-					m_Components.emplace(int_id, details::component_info{
-													 memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(T)});
+					m_Components.emplace(
+						int_id,
+						details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(T)});
 				}
 				it = m_Components.find(int_id);
+				core::profiler.scope_end();
 			}
 			auto& pair{it->second};
-			if constexpr(std::is_empty<T>::value)
+
+			m_EntityMap.reserve(m_EntityMap.size() + std::distance(std::begin(ent_cpy), end));
+
+			if constexpr(std::is_empty<component_type>::value)
 			{
+				core::profiler.scope_begin("emplace empty components");
 				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
 				{
 					const entity& e{*ent_it};
 					m_EntityMap[e].emplace_back(int_id, 0);
 					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
 				}
+				core::profiler.scope_end();
 			}
 			else
 			{
-				if constexpr(!std::is_trivially_constructible<T>::value)
-				{
-					if(!_template) _template = T();
-				}
-
+				core::profiler.scope_begin("emplace components");
 				std::vector<uint64_t> indices;
-				indices.reserve(std::distance(std::begin(ent_cpy), end));
-				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
-				{
-					const entity& e{*ent_it};
-					auto index = pair.generator.CreateID().second;
-					indices.emplace_back(index);
-					m_EntityMap[e].emplace_back(int_id, index);
+				uint64_t id_range;
+				const auto count = std::distance(std::begin(ent_cpy), end);
+				core::profiler.scope_begin("reserve");
+				indices.reserve(count);
+				m_EntityMap.reserve(m_EntityMap.size() + count);
 
-					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
-				}
 
-				if(_template)
+				std::vector<entity> merged;
+				merged.reserve(pair.entities.size() + count);
+				std::merge(std::begin(pair.entities), std::end(pair.entities), std::begin(ent_cpy), end,
+						   std::back_inserter(merged));
+				pair.entities = std::move(merged);
+
+				core::profiler.scope_end();
+
+				if(pair.generator.CreateRangeID(id_range, count))
 				{
-					for(auto i = 0; i < indices.size(); ++i)
+					core::profiler.scope_begin("fast path");
+					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
 					{
-						std::memcpy((void*)((std::uintptr_t)pair.region.data() + indices[i] * sizeof(T)), &_template.value(),
-									sizeof(T));
+						const entity& e{*ent_it};
+						indices.emplace_back(id_range);
+						m_EntityMap[e].emplace_back(int_id, id_range);
+						++id_range;
 					}
+					core::profiler.scope_end();
+				}
+				else
+				{
+					core::profiler.scope_begin("slow path");
+					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+					{
+						const entity& e{*ent_it};
+						auto index = pair.generator.CreateID().second;
+						indices.emplace_back(index);
+						m_EntityMap[e].emplace_back(int_id, index);
+					}
+					core::profiler.scope_end();
+				}
+				core::profiler.scope_end();
+
+				if constexpr(core::ecs::details::is_tag<T>::value)
+				{
+					if constexpr(!std::is_trivially_constructible<component_type>::value)
+					{
+						component_type v{};
+						initialize_component(pair.region.data(), indices, std::move(v));
+					}
+				}
+				else
+				{
+					initialize_component(pair.region.data(), indices, std::forward<forward_type>(_template));
 				}
 			}
 		}
 
-		template <typename... Ts>
-		void add_components(const std::vector<entity>& entities, std::optional<Ts>... _template) noexcept
-		{
-			(add_component<Ts>(entities, _template), ...);
-		}
-
-
 		template <typename T>
-		void add_component(entity e, std::optional<T> _template = std::nullopt) noexcept
+		void add_component(const std::vector<entity>& entities) noexcept
 		{
-			add_component<T>(std::vector<entity>{e}, _template);
+			return add_component(entities, core::ecs::tag<T>{});
 		}
 
 		template <typename... Ts>
-		void add_components(entity e, std::optional<Ts>... _template) noexcept
+		void add_components(const std::vector<entity>& entities, Ts&&... args) noexcept
 		{
-			(add_component<Ts>(std::vector<entity>{e}, _template), ...);
+			(add_component(entities, std::forward<Ts>(args)), ...);
 		}
 
+		template <typename... Ts>
+		void add_components(const std::vector<entity>& entities) noexcept
+		{
+			(add_component<Ts>(entities), ...);
+		}
+
+		template <typename... Ts>
+		void add_components(entity e, Ts&&... args) noexcept
+		{
+			(add_component(std::vector<entity>{e}, std::forward<Ts>(args)), ...);
+		}
 		template <typename... Ts>
 		void add_components(entity e) noexcept
 		{
@@ -300,31 +418,6 @@ namespace core::ecs
 		// create entities
 		// -----------------------------------------------------------------------------
 
-		template <typename... Ts>
-		entity create() noexcept
-		{
-			PROFILE_SCOPE(core::profiler)
-			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
-						 .first->first;
-			if constexpr(sizeof...(Ts) > 0)
-			{
-				add_components<Ts...>(e);
-			}
-			return e;
-		}
-
-		template <typename... Ts>
-		entity create(std::optional<Ts>... _template) noexcept
-		{
-			PROFILE_SCOPE(core::profiler)
-			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
-						 .first->first;
-			if constexpr(sizeof...(Ts) > 0)
-			{
-				add_components<Ts...>(e, _template...);
-			}
-			return e;
-		}
 
 		template <typename... Ts>
 		std::vector<entity> create(size_t count) noexcept
@@ -343,7 +436,7 @@ namespace core::ecs
 		}
 
 		template <typename... Ts>
-		std::vector<entity> create(size_t count, std::optional<Ts>... _template) noexcept
+		std::vector<entity> create(size_t count, Ts&&... args) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
 			m_EntityMap.reserve(m_EntityMap.size() + count);
@@ -353,10 +446,38 @@ namespace core::ecs
 				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
 			if constexpr(sizeof...(Ts) > 0)
 			{
-				add_components<Ts...>(result, _template...);
+				add_components(result, std::forward<Ts>(args)...);
 			}
 			return result;
 		}
+
+		template <typename... Ts>
+		entity create_one(Ts&&... args) noexcept
+		{
+			PROFILE_SCOPE(core::profiler)
+			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
+						 .first->first;
+			if constexpr(sizeof...(Ts) > 0)
+			{
+				add_components(e, std::forward<Ts>(args)...);
+			}
+			return e;
+		}
+
+
+		template <typename... Ts>
+		entity create_one() noexcept
+		{
+			PROFILE_SCOPE(core::profiler)
+			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<details::component_key_t, size_t>>{})
+						 .first->first;
+			if constexpr(sizeof...(Ts) > 0)
+			{
+				add_components<Ts...>(e);
+			}
+			return e;
+		}
+
 
 		void destroy(const std::vector<entity>& entities) noexcept
 		{
@@ -364,11 +485,12 @@ namespace core::ecs
 
 			ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
 			ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
+			core::profiler.scope_begin("erase entities");
 			for(const auto& e : entities)
 			{
 				if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 				{
-					for(const auto&[type, index] : eMapIt->second)
+					for(const auto& [type, index] : eMapIt->second)
 					{
 						erased_entities[type].emplace_back(e);
 						erased_ids[type].emplace_back(index);
@@ -376,39 +498,59 @@ namespace core::ecs
 					m_EntityMap.erase(eMapIt);
 				}
 			}
+			core::profiler.scope_end();
 
+			core::profiler.scope_begin("erase IDs");
 			for(auto& c : erased_ids)
 			{
 				if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
 				{
-					for(auto id : c.second)
-						cMapIt->second.generator.DestroyID(id);
+					if(c.second.size() > 64)
+					{
+						std::sort(std::begin(c.second), std::end(c.second));
+						auto index		 = std::begin(c.second);
+						auto range_start = index;
+						const auto end   = std::prev(std::end(c.second), 1);
+						while(index != end)
+						{
+							auto next = std::next(index, 1);
+							if(*index + 1 != *next)
+							{
+								cMapIt->second.generator.DestroyRangeID(*range_start, std::distance(range_start, next));
+								range_start = next;
+							}
+							index = next;
+						}
+						cMapIt->second.generator.DestroyRangeID(*range_start, std::distance(range_start, std::end(c.second)));
+					}
+					else
+					{
+						for(auto id : c.second) cMapIt->second.generator.DestroyID(id);
+					}
 				}
 			}
+			core::profiler.scope_end();
 
+			core::profiler.scope_begin("erase components");
 			for(auto& c : erased_entities)
 			{
 				if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
 				{
 					std::sort(std::begin(c.second), std::end(c.second));
-					auto ib = std::begin(c.second);
-					auto iter = std::remove_if(
-						std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
-						[&ib, &c](entity x) -> bool
-						{
-							while(ib != std::end(c.second) && *ib < x) ++ib;
-							return (ib != std::end(c.second) && *ib == x);
-						});
+					auto ib   = std::begin(c.second);
+					auto iter = std::remove_if(std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
+											   [&ib, &c](entity x) -> bool {
+												   while(ib != std::end(c.second) && *ib < x) ++ib;
+												   return (ib != std::end(c.second) && *ib == x);
+											   });
 
-					cMapIt->second.entities.erase(iter,	cMapIt->second.entities.end());
+					cMapIt->second.entities.erase(iter, cMapIt->second.entities.end());
 				}
 			}
+			core::profiler.scope_end();
 		}
 
-		void destroy(entity e) noexcept
-		{
-			destroy({e});
-		}
+		void destroy(entity e) noexcept { destroy({e}); }
 
 
 		// -----------------------------------------------------------------------------
@@ -484,9 +626,10 @@ namespace core::ecs
 			PROFILE_SCOPE(core::profiler)
 			for(auto& system : m_Systems)
 			{
+				core::profiler.scope_begin("ticking system");
 				auto& sBindings				= std::get<1>(system.second);
 				std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
-
+				core::profiler.scope_begin("preparing data");
 				for(auto& dep_pack : sBindings)
 				{
 					auto entities = dynamic_filter(dep_pack.filters);
@@ -494,6 +637,7 @@ namespace core::ecs
 					dep_pack.m_Entities.data = (entity*)cache_offset;
 					dep_pack.m_Entities.tail = (entity*)(cache_offset + sizeof(entity) * entities.size());
 					cache_offset += sizeof(entity) * entities.size();
+					core::profiler.scope_begin("read-write data");
 					for(const auto& rwBinding : dep_pack.m_RWBindings)
 					{
 						const auto& mem_pair = m_Components.find(rwBinding.first);
@@ -519,6 +663,8 @@ namespace core::ecs
 						auto& data_end = std::get<1>(rwBinding.second);
 						*data_end	  = (void*)cache_offset;
 					}
+					core::profiler.scope_end();
+					core::profiler.scope_begin("read-only data");
 					for(const auto& rBinding : dep_pack.m_RBindings)
 					{
 						const auto& mem_pair = m_Components.find(rBinding.first);
@@ -544,16 +690,19 @@ namespace core::ecs
 						auto& data_end = std::get<1>(rBinding.second);
 						*data_end	  = (void*)cache_offset;
 					}
+					core::profiler.scope_end();
 				}
+				core::profiler.scope_end();
 				std::invoke(std::get<0>(system.second), *this, dTime);
 				for(const auto& dep_pack : sBindings)
 				{
-				for(const auto& rwBinding : dep_pack.m_RWBindings)
-				{
-					set(dep_pack.m_Entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second),
-						rwBinding.first);
+					for(const auto& rwBinding : dep_pack.m_RWBindings)
+					{
+						set(dep_pack.m_Entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second),
+							rwBinding.first);
+					}
 				}
-				}
+				core::profiler.scope_end();
 			}
 		}
 
@@ -561,9 +710,9 @@ namespace core::ecs
 		void register_system(T& target)
 		{
 			PROFILE_SCOPE(core::profiler)
-			m_Systems.emplace(&target, std::tuple{std::bind(&T::tick, &target, std::placeholders::_1,
-															std::placeholders::_2),
-												  std::vector<dependency_pack>{}});
+			m_Systems.emplace(&target,
+							  std::tuple{std::bind(&T::tick, &target, std::placeholders::_1, std::placeholders::_2),
+										 std::vector<dependency_pack>{}});
 			target.announce(*this);
 		}
 
@@ -574,8 +723,9 @@ namespace core::ecs
 			auto it = m_Systems.find(&system);
 			if(it == std::end(m_Systems))
 			{
-				m_Systems.emplace(&system, std::tuple{std::bind(&T::tick, &system, std::placeholders::_1,
-																std::placeholders::_2), std::vector<dependency_pack>{}});
+				m_Systems.emplace(&system,
+								  std::tuple{std::bind(&T::tick, &system, std::placeholders::_1, std::placeholders::_2),
+											 std::vector<dependency_pack>{}});
 				it = m_Systems.find(&system);
 			}
 			std::get<1>(it->second).emplace_back(std::move(pack));
@@ -661,20 +811,19 @@ namespace core::ecs
 
 			for(const auto& e : entities)
 			{
-				auto eMapIt = m_EntityMap.find(e);
+				auto eMapIt  = m_EntityMap.find(e);
 				auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-											[&int_id](const std::pair<details::component_key_t, size_t>& pair)
-											{
+											[&int_id](const std::pair<details::component_key_t, size_t>& pair) {
 												return pair.first == int_id;
 											});
 
-				auto index = foundIt->second;				
-				void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
+				auto index = foundIt->second;
+				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
 				std::memcpy((void*)((std::uintptr_t)out + (i * mem_pair->second.size)), loc, mem_pair->second.size);
 				++i;
 			}
 		}
-		
+
 		template <typename T>
 		void fill_in(const std::vector<entity>& entities, std::vector<T>& out) const noexcept
 		{
@@ -702,14 +851,11 @@ namespace core::ecs
 		/// where Nec is the count of entities that uses this component type.
 		/// where Nct is the count of unique component types.
 
-		std::unordered_map<
-			void*,
-			std::tuple<std::function<void(core::ecs::state&, std::chrono::duration<float>)>,
-						std::vector<dependency_pack>>>
+		std::unordered_map<void*, std::tuple<std::function<void(core::ecs::state&, std::chrono::duration<float>)>,
+											 std::vector<dependency_pack>>>
 			m_Systems;
 		memory::raw_region m_Cache{1024 * 1024 * 32};
 
-		
 
 		// std::unordered_map<details::component_key_t,
 	};

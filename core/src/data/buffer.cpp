@@ -25,12 +25,13 @@ std::optional<memory::segment> buffer::allocate(size_t size)
 }
 bool buffer::deallocate(memory::segment& segment) 
 { 
+	auto range = segment.range();
 	if(m_Region.deallocate(segment))
 	{
 		
 		m_Segments.erase(
 			std::remove_if(std::begin(m_Segments), std::end(m_Segments),
-						   [&segment](const memory::segment& entry) { return entry.range() == segment.range(); }),
+						   [&range](const memory::segment& entry) { return entry.range() == range; }),
 			std::end(m_Segments));
 		return true;
 	}

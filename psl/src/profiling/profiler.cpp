@@ -1,6 +1,13 @@
 ﻿#include "stdafx_psl.h"
 #include "profiling/profiler.h"
 #include "string_utils.h"
+#include "platform_utils.h"
+#include "application_utils.h"
+
+#ifdef PLATFORM_WINDOWS
+#pragma comment(lib, "Dbghelp.lib")
+#include <Dbghelp.h>
+#endif
 
 using namespace psl::profiling;
 
@@ -32,6 +39,13 @@ void profiler::frame_info::push(const psl::string& name) noexcept
 	m_Scopes[m_Scopes.size() -1].duration = m_Timer.elapsed<std::chrono::microseconds>();
 }
 
+void profiler::frame_info::push(uint64_t name) noexcept
+{
+	m_Stack += 1;
+	m_Scopes.emplace_back(name, m_Stack, true);
+	m_Scopes[m_Scopes.size() - 1].duration = m_Timer.elapsed<std::chrono::microseconds>();
+}
+
 void profiler::frame_info::pop() noexcept
 {
 	auto it = std::find_if(std::reverse_iterator(std::end(m_Scopes)),
@@ -54,41 +68,130 @@ void profiler::frame_info::end()
 {
 	duration = m_Timer.elapsed<std::chrono::microseconds>();
 }
-void profiler::next_frame()
-{
-	m_Frames[m_FrameIndex].end();
-	m_FrameIndex = (m_FrameIndex + 1) % m_Frames.size();
-	m_Frames[m_FrameIndex].clear();
-}
 
 profiler::profiler(size_t buffer_size)
 {
+#ifdef PE_PROFILER
 	m_Frames.resize(buffer_size);
+#endif
 }
+
+void profiler::next_frame()
+{
+#ifdef PE_PROFILER
+	m_Frames[m_FrameIndex].end();
+	m_FrameIndex = (m_FrameIndex + 1) % m_Frames.size();
+	m_Frames[m_FrameIndex].clear();
+#endif
+}
+
 
 volatile profiler::scoped_block profiler::scope(const psl::string& name) noexcept
 {
+#ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].push(name);
+#endif
+	return {*this};
+}
+volatile profiler::scoped_block profiler::scope(const psl::string& name, void* target) noexcept
+{
+#ifdef PE_PROFILER
+	m_Frames[m_FrameIndex].push(name);
+#endif
+	return {*this};
+}
+
+volatile profiler::scoped_block profiler::scope(void* target) noexcept
+{
+	m_Frames[m_FrameIndex].push((std::uintptr_t)target);
+	return {*this};
+}
+
+volatile profiler::scoped_block profiler::scope() noexcept
+{
+#ifdef PE_PROFILER
+	auto res = utility::debug::raw_trace(1,1);
+	m_Frames[m_FrameIndex].push((std::uintptr_t)res[0]);
+#endif
 	return {*this};
 }
 
 void profiler::scope_begin(const psl::string& name)
 {
+#ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].push(name);
+#endif
+}
+void profiler::scope_begin(const psl::string& name, void* target)
+{
+#ifdef PE_PROFILER
+	m_Frames[m_FrameIndex].push(name);
+#endif
 }
 
 void profiler::scope_end()
 {
+#ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].pop();
+#endif
+}
+void profiler::scope_end(void* target)
+{
+#ifdef PE_PROFILER
+	m_Frames[m_FrameIndex].pop();
+#endif
 }
 
 
 psl::string profiler::to_string() const
 {
-	psl::timer init_timer;
 	psl::string res;
+#ifdef PE_PROFILER
+	ska::bytell_hash_map<uint64_t, psl::string> demangled_info;
 	const auto endIt = (m_FrameIndex + 1) % m_Frames.size();
 	auto i = endIt;
+#ifdef PLATFORM_WINDOWS
+	/*auto mapping = utility::platform::file::read(utility::application::path::get_path() + "core.map");
+	if(mapping)
+	{
+		auto index = mapping.value().find_first_not_of("\r\n\t ", mapping.value().find("Lib:Object") + 10);
+		bool reached_end = false;
+		psl::string demangled;
+		demangled.resize(256);
+		while(!reached_end)
+		{
+			auto end = mapping.value().find('\n', index);
+			psl::string line = mapping.value().substr(index, end - index);
+			auto elements = utility::string::split(line, " ", true);
+			psl::string mangled{elements[1]};
+			auto size = UnDecorateSymbolName(mangled.c_str(), demangled.data(), 256, UNDNAME_COMPLETE);
+			demangled_info[psl::string(elements[1])] = demangled.substr(0, size);
+			index = end + 1;
+			if(mapping.value()[index] == '\r' || mapping.value()[index] == '\n')
+				reached_end = true;
+		}
+	}*/
+	do
+	{
+		const auto& frame_data = m_Frames[i];
+		for(const auto& scope : frame_data.m_Scopes)
+		{
+			if(scope.mangled_name)
+			{
+			#ifdef PLATFORM_WINDOWS
+				if(auto it = demangled_info.find(scope.name); it == std::end(demangled_info))
+				{
+					demangled_info.insert({scope.name, utility::debug::demangle((void*)scope.name).name});
+				}
+			#endif			
+			}
+		}
+		i = (i + 1) % m_Frames.size();
+	} while(i != endIt);
+
+#endif
+	psl::timer init_timer;
+	i = endIt;
 	do
 	{
 		const auto& frame_data = m_Frames[i];
@@ -106,13 +209,26 @@ psl::string profiler::to_string() const
 			percentageStr.resize(percentageStr.size() - 2);
 			percentageStr += "%";
 			psl::string durationStr = utility::converter<long long>::to_string(scope.duration.count()) + u8"μs";
-
+			psl::string name;
+			if(scope.mangled_name)
+			{
+				if(auto it = demangled_info.find(scope.name); it != std::end(demangled_info))
+				{
+					name = it->second;
+				}
+			}
+			else
+			{
+				name = frame_data.m_IDMap.at(scope.name);
+				
+			}
 			int32_t bufferSize = scope.depth * 2 + 20 - durationStr.size() - percentageStr.size();
-			res += psl::string(scope.depth * 2, ' ') + percentageStr + " - " + durationStr + psl::string(std::max(bufferSize, 2), ' ') + frame_data.m_IDMap.at(scope.name) + "\n";
+			res += psl::string(scope.depth * 2, ' ') + percentageStr + " - " + durationStr + psl::string(std::max(bufferSize, 2), ' ') + name + "\n";
 		}
 		res += "endframe\n--------------------------------------------------------------------------------\n";
 		i = (i + 1) % m_Frames.size();
 	}
 	while(i != endIt);
+#endif
 	return res;
 }

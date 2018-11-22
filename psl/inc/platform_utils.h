@@ -45,6 +45,14 @@ namespace utility
 		/// \returns an std::vector containing a struct of trace_info of the current callstack (excluding this method).
 		static std::vector<trace_info> trace(size_t offset = 0u, size_t depth = 255u);
 
+
+		/// \brief method to get raw trace information of the current callstack.
+		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the callstack).
+		/// \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the current information, while 255 would likely get you to the root).
+		/// \returns an std::vector containing void pointers pointing to the address of the current callstack (excluding this method).
+		static std::vector<void*> raw_trace(size_t offset = 0u, size_t depth = 255u);
+
+		static utility::debug::trace_info demangle(void* target);
 		/// \brief helper method to give a name to a specific thread.
 		/// \param[in] id thread::id that will be named.
 		/// \param[in] name the name to assign to the given thread::id.

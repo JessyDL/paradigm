@@ -191,35 +191,75 @@ std::vector<utility::debug::trace_info> utility::debug::trace(size_t offset, siz
 {
 	std::vector<utility::debug::trace_info> res;
 #ifdef PLATFORM_WINDOWS
-	unsigned int i;
-	std::vector<void*> stack;
-	stack.resize(depth);
-	unsigned short frames;
-	IMAGEHLP_SYMBOL64* symbol;
-	HANDLE process;
+	std::vector<void*> stack{raw_trace(offset, depth)};
+	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {
+		IMAGEHLP_SYMBOL64* symbol;
+		symbol				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+		symbol->MaxNameLength = 255;
+		symbol->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
+		std::unique_ptr<IMAGEHLP_SYMBOL64> s{symbol};
+		return s;
+	});
 
-	process = GetCurrentProcess();
+	static HANDLE process = std::invoke([]() {
+		HANDLE h = GetCurrentProcess();
+		SymInitialize(h, NULL, TRUE);
+		return h;
+	});
 
-	SymInitialize(process, NULL, TRUE);
+	res.reserve(stack.size());
 
-	frames = CaptureStackBackTrace((DWORD)(offset + 1u), (DWORD)depth, stack.data(), NULL);
 
-	res.reserve(frames);
-
-	symbol				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
-	symbol->MaxNameLength = 255;
-	symbol->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
-
-	for(i = 0; i < frames; i++)
+	for(unsigned int i = 0; i < stack.size(); i++)
 	{
-		SymGetSymFromAddr64(process, (DWORD64)(stack[i]), 0, symbol);
+		SymGetSymFromAddr64(process, (DWORD64)(stack[i]), 0, symbol.get());
 		utility::debug::trace_info info;
 		info.name = psl::from_string8_t(psl::string8_t(symbol->Name));
 		info.addr = symbol->Address;
 		res.push_back(info);
 	}
-
-	free(symbol);
 #endif
 	return res;
+}
+
+std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth)
+{
+	std::vector<void*> stack;
+#ifdef PLATFORM_WINDOWS
+	stack.resize(depth);
+	unsigned short frames;
+	static HANDLE process = std::invoke([]() {
+		HANDLE h = GetCurrentProcess();
+		SymInitialize(h, NULL, TRUE);
+		return h;
+	});
+
+	frames = CaptureStackBackTrace((DWORD)(offset + 1u), (DWORD)depth, stack.data(), NULL);
+	stack.resize(frames);
+#endif
+	return stack;
+}
+
+
+utility::debug::trace_info utility::debug::demangle(void* target)
+{
+	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {
+		IMAGEHLP_SYMBOL64* symbol;
+		symbol				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+		symbol->MaxNameLength = 255;
+		symbol->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
+		std::unique_ptr<IMAGEHLP_SYMBOL64> s{symbol};
+		return s;
+	});
+	static HANDLE process							 = std::invoke([]() {
+		   HANDLE h = GetCurrentProcess();
+		   SymInitialize(h, NULL, TRUE);
+		   return h;
+	});
+
+	SymGetSymFromAddr64(process, (DWORD64)(target), 0, symbol.get());
+	utility::debug::trace_info info;
+	info.name = psl::from_string8_t(psl::string8_t(symbol->Name));
+	info.addr = symbol->Address;
+	return info;
 }

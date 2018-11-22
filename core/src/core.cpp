@@ -638,7 +638,8 @@ int entry()
 	auto matBufferData = create<data::buffer>(cache);
 	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
 					   vk::MemoryPropertyFlagBits::eDeviceLocal,
-					   memory::region{1024 * 1024 * 128, context_handle->properties().limits.minStorageBufferOffsetAlignment,
+					   memory::region{1024 * 1024 * 128,
+									  context_handle->properties().limits.minStorageBufferOffsetAlignment,
 									  new memory::default_allocator(false)});
 	auto matBuffer = create<gfx::buffer>(cache);
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
@@ -683,25 +684,36 @@ int entry()
 
 	// create the ecs
 	core::ecs::state ECSState{};
-	auto eCam = ECSState.create<core::ecs::components::transform, core::ecs::components::camera, core::ecs::components::input_tag>(std::nullopt, std::nullopt, std::nullopt);
+	auto eCam = ECSState.create_one(
+		core::ecs::tag<core::ecs::components::transform>{}, 
+		core::ecs::tag<core::ecs::components::camera>{}, 
+		core::ecs::tag<core::ecs::components::input_tag>{});
 
-	const size_t area = 64;
+	const size_t area			  = 64;
 	const size_t area_granularity = 128;
-	const size_t size_steps = 24;
-	for(int x = 0; x < 5000; ++x)
-	{
-		auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
-			(core::ecs::components::renderable{ material, geometry, 0u }, 
-			 core::ecs::components::transform{psl::vec3(
-			 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area/2.0f),
-			 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f),
-			 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f)),
-			 psl::vec3((float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps)});
-	}
-	core::ecs::systems::fly fly_system{ surface_handle->input() };
+	const size_t size_steps		  = 24;
+	ECSState.create(
+		50000,
+		core::ecs::components::renderable{material, geometry, 0u},
+		[&area_granularity, &area, &size_steps](size_t index)
+		{
+			return core::ecs::components::transform{
+				psl::vec3((float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+							  (area / 2.0f),
+						  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+							  (area / 2.0f),
+						  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+							  (area / 2.0f)),
+
+				psl::vec3((float)(std::rand() % size_steps) / size_steps,
+						  (float)(std::rand() % size_steps) / size_steps,
+						  (float)(std::rand() % size_steps) / size_steps)};
+		});
+
+	core::ecs::systems::fly fly_system{surface_handle->input()};
 	ECSState.register_system(fly_system);
 
-	core::ecs::systems::render render_system{ context_handle, swapchain_handle, surface_handle, frameBuffer };
+	core::ecs::systems::render render_system{context_handle, swapchain_handle, surface_handle, frameBuffer};
 	ECSState.register_system(render_system);
 	core::ecs::systems::geometry_instance geometry_instance{};
 	ECSState.register_system(geometry_instance);
@@ -714,28 +726,36 @@ int entry()
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
 		ECSState.tick(elapsed);
-		auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();
+		/*auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();
 		core::log->info("ECS has {} renderables alive right now", all_geom.size());
 		std::vector<core::ecs::entity> to_delete;
-		/*for(int x = 0; x < 1200; ++x)
+		for(size_t x = 0; x < std::min(size_t{1200}, all_geom.size()); ++x)
 		{
 			to_delete.emplace_back(all_geom[std::rand() % all_geom.size()]);
-		}*/
-		context_handle->device().waitIdle();
-		ECSState.destroy(all_geom);
-		for(int x = 0; x < 12000; ++x)
-		{
-			auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
-				(core::ecs::components::renderable{material, geometry, 0u},
-				 core::ecs::components::transform{psl::vec3(
-				 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f),
-				 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f),
-				 (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) - (area / 2.0f)),
-				 psl::vec3((float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps, (float)(std::rand() % size_steps) / size_steps)});
 		}
+		all_geom = std::move(to_delete);
+		ECSState.destroy(all_geom);
+		ECSState.create(
+			1200,
+			core::ecs::components::renderable{material, geometry, 0u},
+			[&area_granularity, &area, &size_steps](size_t index) 
+			{
+				return core::ecs::components::transform{
+					psl::vec3((float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+								  (area / 2.0f),
+							  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+								  (area / 2.0f),
+							  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+								  (area / 2.0f)),
+
+					psl::vec3((float)(std::rand() % size_steps) / size_steps,
+							  (float)(std::rand() % size_steps) / size_steps,
+							  (float)(std::rand() % size_steps) / size_steps)};
+			});*/
 	}
 
-	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt", core::profiler.to_string());
+	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
+								   core::profiler.to_string());
 	return 0;
 }
 

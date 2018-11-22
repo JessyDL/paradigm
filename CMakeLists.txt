@@ -24,6 +24,7 @@ OPTION(PE_PCH "generate and use precompiled headers (if supported)" OFF)
 OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 OPTION(PE_EXE "should the core library be compiled as executable instead?" OFF)
 OPTION(PE_TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
+OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
 set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
@@ -63,6 +64,10 @@ list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
 
 if(NOT ${PE_INSTRUCTION_SET} STREQUAL "OFF")	
 	list(APPEND PE_DEFINES -DINSTRUCTIONS_${PE_INSTRUCTION_SET})
+endif()
+
+if(${PE_PROFILER})
+	list(APPEND PE_DEFINES -DPE_PROFILER)
 endif()
 
 if(NOT ${VK_STATIC} AND NOT ${PE_SOURCE_ONLY})	

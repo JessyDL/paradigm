@@ -327,13 +327,14 @@ bool material::instance_data::remove(core::resource::handle<core::gfx::buffer> b
 	if(auto it = m_Instance.find(uid); it != std::end(m_Instance) && it->second.id_generator.DestroyID(id))
 	{
 		--it->second.size;
-
+		it->second.id_generator.DestroyID(id);
 		if(it->second.size == 0)
 		{
 			for(auto& segment : it->second.segments)
 			{
 				buffer->deallocate(segment.segment);
 			}
+			it->second.segments.clear();
 			m_Instance.erase(it);
 		}
 		return true;
@@ -388,6 +389,7 @@ bool material::instance_data::remove_all(core::resource::handle<core::gfx::buffe
 		{
 			buffer->deallocate(segment.segment);
 		}
+		instance.second.segments.clear();
 	}
 	m_Instance.clear();
 	return true;
@@ -400,6 +402,7 @@ bool material::instance_data::remove_all(core::resource::handle<core::gfx::buffe
 		{
 			buffer->deallocate(segment.segment);
 		}
+		it->second.segments.clear();
 		m_Instance.erase(it);
 		return true;
 	}

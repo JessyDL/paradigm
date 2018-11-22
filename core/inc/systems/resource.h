@@ -824,7 +824,7 @@ namespace core::resource
 	template <typename T>
 	static handle<T> create(cache& cache)
 	{
-		PROFILE_SCOPE(core::profiler)
+		PROFILE_SCOPE_STATIC(core::profiler)
 		return handle<T>(cache);
 	}
 
@@ -835,7 +835,7 @@ namespace core::resource
 	template <typename T>
 	static handle<T> create(cache& cache, const UID& uid)
 	{
-		PROFILE_SCOPE(core::profiler)
+		PROFILE_SCOPE_STATIC(core::profiler)
 		return handle<T>{cache, UID::generate(), uid};
 	}
 
@@ -847,7 +847,7 @@ namespace core::resource
 	template <typename T>
 	static handle<T> create_shared(cache& cache, const UID& uid)
 	{
-		PROFILE_SCOPE(core::profiler)
+		PROFILE_SCOPE_STATIC(core::profiler)
 		auto res = cache.find<T>(uid);
 		if(res) return res;
 		return handle<T>(cache, uid);
@@ -856,7 +856,7 @@ namespace core::resource
 	template <typename T, typename Y>
 	static handle<T> create_shared(cache& cache, const core::resource::handle<Y>& base)
 	{
-		PROFILE_SCOPE(core::profiler)
+		PROFILE_SCOPE_STATIC(core::profiler)
 		auto res = cache.find<T>(base.RUID());
 		if(res) return res;
 		return handle<T>(cache, base.RUID());
@@ -868,7 +868,7 @@ namespace core::resource
 	template <typename T, typename... Args>
 	static handle<T> copy(cache& cache, const handle<T>& source, Args&&... args)
 	{
-		PROFILE_SCOPE(core::profiler)
+		PROFILE_SCOPE_STATIC(core::profiler)
 		static_assert(std::is_constructible<T, const T&, const UID&, resource::cache&, Args...>::value,
 					  "lacking a 'copy' constructor on T, cannot create a new handle with the given source.");
 		return source.copy(cache, std::forward<Args>(args)...);

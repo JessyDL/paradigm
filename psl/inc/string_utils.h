@@ -204,24 +204,39 @@ namespace utility
 			return str;
 		}
 
-		inline static std::vector<psl::string8::view> &split(psl::string8::view s, psl::string8::view delimiter, std::vector<psl::string8::view> &inout)
+		inline static std::vector<psl::string8::view> &split(psl::string8::view s, psl::string8::view delimiter, std::vector<psl::string8::view> &inout, bool ignore_consecutive = false)
 		{
 			size_t pos = 0u;
 			size_t prev = 0u;
-			while((pos = s.find(delimiter, pos)) != psl::string8::view::npos)
+			if(ignore_consecutive)
 			{
-				inout.emplace_back(s.substr(prev, pos - prev));
-				pos += delimiter.length();
-				prev = pos;
+				while((pos = s.find(delimiter, pos)) != psl::string8::view::npos)
+				{
+					inout.emplace_back(s.substr(prev, pos - prev));
+					do
+					{
+					pos += delimiter.length();
+					} while(s.substr(pos, delimiter.length()) == delimiter);
+					prev = pos;
+				}
+			}
+			else
+			{			
+				while((pos = s.find(delimiter, pos)) != psl::string8::view::npos)
+				{
+					inout.emplace_back(s.substr(prev, pos - prev));
+					pos += delimiter.length();
+					prev = pos;
+				}
 			}
 			pos = s.size();
 			inout.emplace_back(s.substr(prev, pos - prev));
 			return inout;
 		}
-		inline static std::vector<psl::string8::view> split(psl::string8::view s, psl::string8::view delimiter)
+		inline static std::vector<psl::string8::view> split(psl::string8::view s, psl::string8::view delimiter, bool ignore_consecutive = true)
 		{
 			std::vector<psl::string8::view> res;
-			split(s, delimiter, res);
+			split(s, delimiter, res, ignore_consecutive);
 			return res;
 		}
 
