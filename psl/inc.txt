@@ -27,6 +27,8 @@ inc/vulkan_utils.h
 inc/expected.h
 inc/platform_utils.h
 inc/file.h
+inc/bytell_hash_map.hpp
+inc/flat_hash_map.hpp
 
 inc/math/math.hpp
 inc/math/vec.h

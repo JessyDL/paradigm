@@ -717,12 +717,13 @@ int entry()
 		auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();
 		core::log->info("ECS has {} renderables alive right now", all_geom.size());
 		std::vector<core::ecs::entity> to_delete;
-		for(int x = 0; x < 1200; ++x)
+		/*for(int x = 0; x < 1200; ++x)
 		{
 			to_delete.emplace_back(all_geom[std::rand() % all_geom.size()]);
-		}
-		ECSState.destroy(to_delete);
-		for(int x = 0; x < 1200; ++x)
+		}*/
+		context_handle->device().waitIdle();
+		ECSState.destroy(all_geom);
+		for(int x = 0; x < 12000; ++x)
 		{
 			auto eGeom = ECSState.create<core::ecs::components::renderable, core::ecs::components::transform>
 				(core::ecs::components::renderable{material, geometry, 0u},

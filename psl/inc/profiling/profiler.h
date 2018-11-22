@@ -2,7 +2,7 @@
 #include <stack>
 #include <unordered_map>
 #include "IDGenerator.h"
-
+#include "bytell_hash_map.hpp"
 #if defined(_MSC_VER)
 	#define FUNCTION_SIGNATURE_INFO __FUNCSIG__
 #else
@@ -49,8 +49,8 @@ namespace psl::profiling
 		psl::timer m_Timer{};
 		std::chrono::microseconds duration;
 		size_t m_Stack{0};
-		std::unordered_map<psl::string, uint64_t> m_NameMap;
-		std::unordered_map<uint64_t, psl::string> m_IDMap;
+		ska::bytell_hash_map<psl::string, uint64_t> m_NameMap;
+		ska::bytell_hash_map<uint64_t, psl::string> m_IDMap;
 		uint64_t IDCounter{0};
 	};
 

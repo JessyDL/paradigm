@@ -6,6 +6,7 @@
 #include "IDGenerator.h"
 #include <type_traits>
 #include "event.h"
+#include "bytell_hash_map.hpp"
 
 /// \brief Entity Component System
 ///
@@ -122,8 +123,8 @@ namespace core::ecs
 
 		  private:
 			core::ecs::vector<entity>& m_Entities;
-			std::unordered_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
-			std::unordered_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
+			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
+			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
 			std::vector<details::component_key_t> filters;
 		};
 
@@ -361,7 +362,8 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 
-			std::unordered_map<details::component_key_t, std::vector<entity>> erased_entities;
+			ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
+			ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
 			for(const auto& e : entities)
 			{
 				if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
@@ -369,8 +371,18 @@ namespace core::ecs
 					for(const auto&[type, index] : eMapIt->second)
 					{
 						erased_entities[type].emplace_back(e);
+						erased_ids[type].emplace_back(index);
 					}
 					m_EntityMap.erase(eMapIt);
+				}
+			}
+
+			for(auto& c : erased_ids)
+			{
+				if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
+				{
+					for(auto id : c.second)
+						cMapIt->second.generator.DestroyID(id);
 				}
 			}
 
@@ -673,10 +685,10 @@ namespace core::ecs
 
 		uint64_t mID{0u};
 		/// \brief gets what components this entity uses, and which index it lives on.
-		std::unordered_map<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
+		ska::bytell_hash_map<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
 
 		/// \brief backing memory
-		std::unordered_map<details::component_key_t, details::component_info> m_Components;
+		ska::bytell_hash_map<details::component_key_t, details::component_info> m_Components;
 		/// overhead is
 		/// sizeof(component) * Nc + sizeof(entity) * Ne +
 		/// // store ever component as well as entity (sizeof(entity) + ((sizeof(size_t) /* component ID */ +
@@ -697,6 +709,7 @@ namespace core::ecs
 			m_Systems;
 		memory::raw_region m_Cache{1024 * 1024 * 32};
 
+		
 
 		// std::unordered_map<details::component_key_t,
 	};
