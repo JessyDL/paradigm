@@ -743,10 +743,10 @@ int entry()
 					((std::rand() % 5000) / 500.0f) * 3.0f, 1.0f};
 			});
 
-		if(ECSState.filter<core::ecs::components::attractor>().size() < 15)
+		if(ECSState.filter<core::ecs::components::attractor>().size() < 5)
 		{
 		ECSState.create(
-			15,
+			5,
 			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
 			[&size_steps](size_t index) { return core::ecs::components::attractor{(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f, (float)(std::rand() % size_steps) / size_steps * 80}; },
 			[&area_granularity, &area, &size_steps](size_t index)

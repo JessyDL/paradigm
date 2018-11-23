@@ -31,7 +31,7 @@ namespace core::ecs
 		using iterator_element_t = std::tuple<typename core::ecs::vector<entity>::iterator, typename core::ecs::vector<Ts>::iterator ...>;
 
 		template <typename Tuple, typename F, std::size_t ...Indices>
-		void for_each_impl(Tuple&& tuple, F&& f, std::index_sequence<Indices...>)
+		static void for_each_impl(Tuple&& tuple, F&& f, std::index_sequence<Indices...>)
 		{
 			using swallow = int[];
 			(void)swallow
@@ -42,7 +42,7 @@ namespace core::ecs
 		}
 
 		template <typename Tuple, typename F>
-		void for_each(Tuple&& tuple, F&& f)
+		static void for_each(Tuple&& tuple, F&& f)
 		{
 			constexpr std::size_t N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
 			for_each_impl(std::forward<Tuple>(tuple), std::forward<F>(f),
