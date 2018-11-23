@@ -60,6 +60,12 @@ namespace psl::math
 	}
 
 	template <typename precision_t>
+	constexpr static precision_t sqrt(precision_t value) noexcept
+	{
+		return std::sqrt(value);
+	}
+
+	template <typename precision_t>
 	constexpr static tquat<precision_t> angle_axis(const precision_t& angle,
 												   const psl::tvec<precision_t, 3>& vec) noexcept
 	{

@@ -591,7 +591,8 @@ int entry()
 
 	// load the example model
 	// auto geomData = create<data::geometry>(cache, UID::convert("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"));
-	auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
+	//auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
+	auto geomData = utility::geometry::create_icosphere(cache, psl::vec3::one);
 	geomData.load();
 	auto& positionstream =
 		geomData->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
@@ -685,7 +686,9 @@ int entry()
 
 	// create the ecs
 	core::ecs::state ECSState{};
-	auto eCam = ECSState.create_one(core::ecs::tag<core::ecs::components::transform>{},
+	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
+	camTrans.rotation = psl::math::look_at_q(-camTrans.position, psl::vec3::zero, psl::vec3::up);
+	auto eCam = ECSState.create_one(std::move(camTrans),
 									core::ecs::tag<core::ecs::components::camera>{},
 									core::ecs::tag<core::ecs::components::input_tag>{});
 
@@ -726,21 +729,23 @@ int entry()
 		ECSState.destroy(all_geom);
 		*/
 		ECSState.create(
-			120, core::ecs::components::renderable{material, geometry, 0u},
+			120, 
+			core::ecs::components::renderable{material, geometry, 0u},
+			core::ecs::tag<core::ecs::components::transform>{}/*
 			[&size_steps](size_t index) {
 				return core::ecs::components::transform{
 					psl::vec3(0, 0, 0),
 					psl::vec3((float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps)};
-			},
+			}*/,
 			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
 			[&size_steps](size_t index) {
 				return core::ecs::components::velocity{
 					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
 												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
 												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-					((std::rand() % 5000) / 500.0f) * 3.0f, 1.0f};
+					((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 			});
 
 		if(ECSState.filter<core::ecs::components::attractor>().size() < 5)
