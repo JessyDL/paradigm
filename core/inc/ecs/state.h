@@ -259,7 +259,7 @@ namespace core::ecs
 		typename std::enable_if<std::is_invocable<T, size_t>::value>::type
 		initialize_component(void* location, const std::vector<size_t>& indices, T&& invokable) noexcept
 		{
-			constexpr size_t size = sizeof(std::invoke_result<T, size_t>::type);
+			constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
 			PROFILE_SCOPE(core::profiler)
 			for(auto i = 0; i < indices.size(); ++i)
 			{
