@@ -122,7 +122,7 @@ set(CXX_EXTENSIONS OFF )
 list(APPEND PE_COMPILER_FEATURES cxx_std_17)
 
 if(MSVC) # we currently make no distinction for CLang (todo)
-	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/GR-;/fp:precise;/permissive-;/JMC)
+	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)
 	if(${PE_VERBOSE})
 		list(APPEND PE_COMPILE_OPTIONS /W4)	
@@ -137,15 +137,15 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
 	list(APPEND PE_COMPILE_OPTIONS_LIB
 							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
-							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy;/GL;/Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy;/GL;/Zo;/Z7>
+							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy;/Zi>
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy;/Zo;/Z7>
 							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
 	set(CMAKE_EXE_LINKER_FLAGS_$<$<CONFIG:Debug>:             /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF>
 										$<$<CONFIG:Release>:           /INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG>
 										$<$<CONFIG:RelWithDebInfo>:    /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental>
 										$<$<CONFIG:RelNoOptimization>: /INCREMENTAL /OPT:NOREF /OPT:NOICF>)
 else()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-fno-rtti;-g)
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-g)
 	list(APPEND PE_DL_LIBS c++fs)
 	if (PE_PLATFORM STREQUAL "LINUX")
 		list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
