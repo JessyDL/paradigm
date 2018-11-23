@@ -6,7 +6,6 @@
 #include "ecs/components/transform.h"
 #include "ecs/components/input_tag.h"
 #include "conversion_utils.h"
-#include <execution>
 
 using namespace core::resource;
 using namespace core::gfx;
