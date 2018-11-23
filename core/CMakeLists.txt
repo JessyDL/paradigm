@@ -42,7 +42,7 @@ else()
 		
 		project(volk_proj VERSION 1.0.0 LANGUAGES CXX)
 		add_library(volk_proj STATIC ${volk_SOURCE_DIR}/volk.h ${volk_SOURCE_DIR}/volk.c)
-		target_compile_options(volk_proj PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+		target_compile_options(volk_proj PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB})
 		target_compile_features(volk_proj PRIVATE ${PE_COMPILER_FEATURES})
 		set_target_properties(volk_proj PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(volk_proj PUBLIC ${VULKAN_INC_PATH})
