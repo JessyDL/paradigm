@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "data/window.h"
 
+using namespace psl;
 using namespace core::data;
 using namespace core::gfx;
 

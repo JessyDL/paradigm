@@ -16,32 +16,32 @@
 #undef minor
 #undef major
 #endif
-using namespace format;
+using namespace psl::format;
 
 
-format::data::data(container * parent, nodes_t index) : m_Handle(new handle(index, parent)) {}
+psl::format::data::data(container * parent, nodes_t index) : m_Handle(new handle(index, parent)) {}
 
-value_range_t & format::data::reinterpret_as_value_range() const
+value_range_t & psl::format::data::reinterpret_as_value_range() const
 {
 	return *((value_range_t*)(buffer));
 }
 
-value_t & format::data::reinterpret_as_value() const
+value_t & psl::format::data::reinterpret_as_value() const
 {
 	return *((value_t*)(&buffer));
 }
 
-reference_range_t & format::data::reinterpret_as_reference_range() const
+reference_range_t & psl::format::data::reinterpret_as_reference_range() const
 {
 	return *((reference_range_t*)(buffer));
 }
 
-reference_t & format::data::reinterpret_as_reference() const
+reference_t & psl::format::data::reinterpret_as_reference() const
 {
 	return *((reference_t*)(&buffer));
 }
 
-collection_t & format::data::reinterpret_as_collection() const
+collection_t & psl::format::data::reinterpret_as_collection() const
 {
 	return *((collection_t*)(&buffer));
 }
@@ -142,7 +142,7 @@ psl::string8_t::size_type rfind_first_of(
 	return (pos == 0)? psl::string8_t::npos: rfind_first_of(str, pos - 1, chars);
 }
 
-bool format::container::remove(data & data)
+bool psl::format::container::remove(data & data)
 {
 	if (data.root() != this)
 		return false;
@@ -285,7 +285,7 @@ bool format::container::remove(data & data)
 	return true;
 }
 
-nodes_t format::container::add_node(nodes_t parent)
+nodes_t psl::format::container::add_node(nodes_t parent)
 {
 	if (m_NodeData.size() + 1 == std::numeric_limits<nodes_t>::max())
 		throw new max_nodes_reached();
@@ -317,7 +317,7 @@ nodes_t format::container::add_node(nodes_t parent)
 
 	return insert_index;
 }
-nodes_t format::container::add_node()
+nodes_t psl::format::container::add_node()
 {
 	if (m_NodeData.size() + 1 == std::numeric_limits<nodes_t>::max())
 		throw new max_nodes_reached();
@@ -325,7 +325,7 @@ nodes_t format::container::add_node()
 	return (nodes_t)(m_NodeData.size() - 1u);
 }
 
-std::pair<size_t, size_t> format::container::insert_name(psl::string8::view name, nodes_t index)
+std::pair<size_t, size_t> psl::format::container::insert_name(psl::string8::view name, nodes_t index)
 {
 	size_t name_shift_value = name.size();
 	size_t name_shift_index = 0;
@@ -345,7 +345,7 @@ std::pair<size_t, size_t> format::container::insert_name(psl::string8::view name
 	return std::make_pair(name_shift_index, name_shift_value);
 }
 
-value_t format::container::insert_content(psl::string8::view content, nodes_t index)
+value_t psl::format::container::insert_content(psl::string8::view content, nodes_t index)
 {
 	size_t content_shift_value = content.size();
 	size_t content_shift_index = 0;
@@ -398,7 +398,7 @@ value_t format::container::insert_content(psl::string8::view content, nodes_t in
 	return std::make_pair(false, std::make_pair(content_shift_index, content_shift_value));
 }
 
-value_range_t format::container::insert_content(std::vector<psl::string8::view> content, nodes_t index)
+value_range_t psl::format::container::insert_content(std::vector<psl::string8::view> content, nodes_t index)
 {
 	psl::string8_t agg_content;
 	value_range_t res;
@@ -467,18 +467,18 @@ value_range_t format::container::insert_content(std::vector<psl::string8::view> 
 	return res;
 }
 
-nodes_t format::container::index_of(const data & data) const
+nodes_t psl::format::container::index_of(const data & data) const
 {
 	auto dif = std::uintptr_t(&data) - std::uintptr_t(m_NodeData.data());
-	if (dif % sizeof(format::data) != 0u || dif < 0u || dif > m_NodeData.size() * sizeof(format::data))
+	if (dif % sizeof(psl::format::data) != 0u || dif < 0u || dif > m_NodeData.size() * sizeof(psl::format::data))
 	{
 		throw new node_not_found(this, data.name());
 	}
 
-	return (nodes_t)(dif / sizeof(format::data));
+	return (nodes_t)(dif / sizeof(psl::format::data));
 }
 
-nodes_t format::container::index_of(const data & data, psl::string8::view child) const
+nodes_t psl::format::container::index_of(const data & data, psl::string8::view child) const
 {
 	nodes_t parent_index = index_of(data);
 
@@ -504,7 +504,7 @@ nodes_t format::container::index_of(const data & data, psl::string8::view child)
 	return std::numeric_limits<nodes_t>::max();
 }
 
-format::container::features parse_header(psl::string8::view content)
+psl::format::container::features parse_header(psl::string8::view content)
 {
 	if (content.size() == 0)
 		return {};
@@ -513,7 +513,7 @@ format::container::features parse_header(psl::string8::view content)
 	psl::string8_t numeric_values{ "0123456789" };
 	psl::string8::view header{ &content[0], search(content, constants::HEAD_OPEN) };
 
-	format::container::features features{};
+	psl::format::container::features features{};
 	if (auto index = search(header, "CHECKSUM"); index != psl::string8_t::npos)
 	{
 		auto chksum_start = header.find_first_of(numeric_values, index);
@@ -848,7 +848,7 @@ container::~container()
 	}
 }
 
-std::optional<data*> format::data::parent()
+std::optional<data*> psl::format::data::parent()
 {
 	return root()->parent(*this);
 }
@@ -892,9 +892,9 @@ std::optional<std::vector<std::pair<bool, psl::string8::view>>> data::as_value_r
 	return res;
 }
 
-bool format::container::set_reference(format::data & source, format::data & target)
+bool psl::format::container::set_reference(psl::format::data & source, psl::format::data & target)
 {
-	if (source.m_Type != format::type::REFERENCE)
+	if (source.m_Type != psl::format::type::REFERENCE)
 		return false;
 
 	reference_t* res = (reference_t*)(source._data());
@@ -939,17 +939,17 @@ nodes_t container::index_of(psl::string8::view name) const
 	return std::numeric_limits<nodes_t>::max();
 }
 
-bool format::data::parent(data & parent)
+bool psl::format::data::parent(data & parent)
 {
 	return root()->parent(parent, *this);
 }
 
-void format::data::unparent()
+void psl::format::data::unparent()
 {
 	root()->unparent(*this);
 }
 
-psl::string8_t data::to_string(const format::settings& settings) const
+psl::string8_t data::to_string(const psl::format::settings& settings) const
 {
 	psl::string8_t res;
 	to_string(settings, res);
@@ -957,7 +957,7 @@ psl::string8_t data::to_string(const format::settings& settings) const
 }
 
 
-void data::to_string(const format::settings& settings, psl::string8_t& out) const
+void data::to_string(const psl::format::settings& settings, psl::string8_t& out) const
 {
 	const char endl = '\n';
 	const char tab = '\t';
@@ -1055,7 +1055,7 @@ psl::string8::view data::name() const
 	return psl::string8::view{ &(root()->m_InternalData[m_Name.first]), m_Name.second };
 }
 
-container * format::data::root() const { return m_Handle->m_Container; }
+container * psl::format::data::root() const { return m_Handle->m_Container; }
 
 handle& container::add_value(psl::string8::view name, psl::string8::view content)
 {
@@ -1189,7 +1189,7 @@ handle& container::add_reference_range(data& parent, psl::string8::view name, st
 
 
 
-bool format::container::parent(data & new_parent, data & node)
+bool psl::format::container::parent(data & new_parent, data & node)
 {
 	if (node.root() != this)
 		return false;
@@ -1351,7 +1351,7 @@ psl::string8_t container::compact_header::build(const container& container)
 	return res;
 }
 
-bool container::compact_header::try_decode(psl::string8::view source, format::container& target)
+bool container::compact_header::try_decode(psl::string8::view source, psl::format::container& target)
 {
 	if(source.size() < 10)
 	{
@@ -1384,8 +1384,8 @@ bool container::compact_header::try_decode(psl::string8::view source, format::co
 		content_header[i].offsets.resize(content_header[i].count);
 		memcpy(content_header[i].offsets.data(), data, sizeof(size_t) * content_header[i].offsets.size());
 		data += sizeof(size_t) * content_header[i].offsets.size();
-		auto& node = target.m_NodeData.emplace_back(std::forward<format::data>(format::data(&target, (nodes_t)i)));
-		node.m_Type = (format::type)entries[i].type;
+		auto& node = target.m_NodeData.emplace_back(std::forward<psl::format::data>(psl::format::data(&target, (nodes_t)i)));
+		node.m_Type = (psl::format::type)entries[i].type;
 		node.m_Name = std::make_pair(entries[i].name_start, entries[i].name_size);
 		node.m_Depth = entries[i].depth;
 		switch(node.type())
@@ -1456,12 +1456,12 @@ bool container::compact_header::try_decode(psl::string8::view source, format::co
 	memcpy(target.m_Content.data(), data, sizeof(psl::string8::char_t) * target.m_Content.size());
 	return true;
 }
-psl::string8_t container::to_string(std::optional<format::settings> settings) const
+psl::string8_t container::to_string(std::optional<psl::format::settings> settings) const
 {
 	psl::string8_t res;
 	if(!settings && m_Settings)
 		settings = m_Settings;
-	format::settings setting{};
+	psl::format::settings setting{};
 	if(settings)
 		setting = settings.value();
 

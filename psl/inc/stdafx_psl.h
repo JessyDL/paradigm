@@ -15,6 +15,7 @@
 #include <windows.h>
 #endif
 
+//#include "range/v3/all.hpp"
 
 #ifdef PLATFORM_ANDROID
 #include <android/log.h>
@@ -32,6 +33,8 @@ namespace platform::specifics
 
 #include "timer.h"
 #include "profiling/profiler.h"
+
+#include "range/v3/all.hpp"
 
 #if !defined(NDEBUG) && defined(NDEBUG) && !defined(DEBUG)
 #define NDEBUG 1

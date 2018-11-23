@@ -13,15 +13,15 @@ namespace core::data
 	/// \author Jessy De Lannoit
 	class buffer
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 	public:
 		/// will do the minimal setup needed, no allocations happen at this point yet.
-		/// \param[in] uid the UID that is assigned to this object
+		/// \param[in] uid the psl::UID that is assigned to this object
 		/// \param[in] cache which cache this object has been allocated in
 		/// \param[in] usage the usage flags that signify how the resource should be used by the GPU
 		/// \param[in] memoryPropertyFlags what are the properties of the memory (i.e. where does it live)
 		/// \param[in] memory_region what is the owning region of this memory. Note that this parameter also will dictate the size and alignment of the resource.
-		buffer(const UID& uid, core::resource::cache& cache, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memoryPropertyFlags, memory::region&& memory_region);
+		buffer(const psl::UID& uid, core::resource::cache& cache, vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memoryPropertyFlags, memory::region&& memory_region);
 
 		~buffer();
 
@@ -64,11 +64,11 @@ namespace core::data
 		template <typename S>
 		void serialize(S& serializer)
 		{
-			if constexpr(serialization::details::is_encoder<S>::value)
+			if constexpr(psl::serialization::details::is_encoder<S>::value)
 			{
-				serialization::property<size_t, const_str("SIZE", 4)> size{m_Region.size()};
-				serialization::property<size_t, const_str("ALIGNMENT", 9)> alignment{m_Region.alignment()};
-				serialization::property<std::vector<psl::string8_t>, const_str("DATA", 4)> data{};
+				psl::serialization::property<size_t, const_str("SIZE", 4)> size{m_Region.size()};
+				psl::serialization::property<size_t, const_str("ALIGNMENT", 9)> alignment{m_Region.alignment()};
+				psl::serialization::property<std::vector<psl::string8_t>, const_str("DATA", 4)> data{};
 
 				for(auto it : m_Segments)
 				{
@@ -79,9 +79,9 @@ namespace core::data
 			}
 			else
 			{
-				serialization::property<size_t, const_str("SIZE", 4)> size{0u};
-				serialization::property<size_t, const_str("ALIGNMENT", 9)> alignment{4u};
-				serialization::property<std::vector<psl::string8_t>, const_str("DATA", 4)> data{};
+				psl::serialization::property<size_t, const_str("SIZE", 4)> size{0u};
+				psl::serialization::property<size_t, const_str("ALIGNMENT", 9)> alignment{4u};
+				psl::serialization::property<std::vector<psl::string8_t>, const_str("DATA", 4)> data{};
 
 				serializer << m_Usage << m_MemoryPropertyFlags << size << alignment << data;
 				for(auto it : data.value)
@@ -101,7 +101,7 @@ namespace core::data
 
 		memory::region m_Region;
 		std::vector<memory::segment> m_Segments;
-		serialization::property<vk::BufferUsageFlags, const_str("USAGE", 5)> m_Usage;
-		serialization::property<vk::MemoryPropertyFlags, const_str("PROPERTIES", 10)> m_MemoryPropertyFlags;
+		psl::serialization::property<vk::BufferUsageFlags, const_str("USAGE", 5)> m_Usage;
+		psl::serialization::property<vk::MemoryPropertyFlags, const_str("PROPERTIES", 10)> m_MemoryPropertyFlags;
 	};
 }

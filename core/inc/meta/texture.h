@@ -9,14 +9,14 @@ namespace core::meta
 	/// \warning The description is assumed to be correct, otherwise undefined behaviour happens.
 	/// \note although this class allows runtime editing, it's unlikely you'd need it unless you generate textures.
 	/// and wish to serialize them to disk.
-	class texture final : public ::meta::file
+	class texture final : public psl::meta::file
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 		friend class library;
 
 	  public:
 		texture() = default;
-		explicit texture(const UID& key) noexcept : ::meta::file(key){};
+		explicit texture(const psl::UID& key) noexcept : psl::meta::file(key){};
 
 		~texture() = default;
 
@@ -96,26 +96,26 @@ namespace core::meta
 		template <typename S>
 		void serialize(S& s)
 		{
-			::meta::file::serialize(s);
+			psl::meta::file::serialize(s);
 			s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
 			  << m_UsageFlags << m_AspectMask;
 		}
 		/// \brief validates this texture
 		bool validate() const noexcept;
-		serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width{0u};
-		serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height{0u};
-		serialization::property<uint32_t, const_str("DEPTH", 5)> m_Depth{1u};
-		serialization::property<uint32_t, const_str("MIP_LEVELS", 10)> m_MipLevels{1u};
-		serialization::property<uint32_t, const_str("LAYERS", 6)> m_LayerCount{1u};
-		serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format{vk::Format::eUndefined};
-		serialization::property<vk::ImageViewType, const_str("IMAGE_TYPE", 10)> m_ImageType{vk::ImageViewType::e2D};
-		serialization::property<vk::ImageUsageFlags, const_str("USAGE", 5)> m_UsageFlags{
+		psl::serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width{0u};
+		psl::serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height{0u};
+		psl::serialization::property<uint32_t, const_str("DEPTH", 5)> m_Depth{1u};
+		psl::serialization::property<uint32_t, const_str("MIP_LEVELS", 10)> m_MipLevels{1u};
+		psl::serialization::property<uint32_t, const_str("LAYERS", 6)> m_LayerCount{1u};
+		psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format{vk::Format::eUndefined};
+		psl::serialization::property<vk::ImageViewType, const_str("IMAGE_TYPE", 10)> m_ImageType{vk::ImageViewType::e2D};
+		psl::serialization::property<vk::ImageUsageFlags, const_str("USAGE", 5)> m_UsageFlags{
 			vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled};
-		serialization::property<vk::ImageAspectFlags, const_str("ASPECT_MASK", 11)> m_AspectMask{
+		psl::serialization::property<vk::ImageAspectFlags, const_str("ASPECT_MASK", 11)> m_AspectMask{
 			vk::ImageAspectFlagBits::eColor};
 
 
-		/// \brief the polymorphic serialization name for the format::node that will be used to calculate the CRC64 ID
+		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64 ID
 		/// of this type on.
 		static constexpr const char polymorphic_name[13]{"TEXTURE_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.

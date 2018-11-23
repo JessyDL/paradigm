@@ -2,6 +2,7 @@
 #include "data/framebuffer.h"
 #include "meta/texture.h"
 
+using namespace psl;
 using namespace core::data;
 
 framebuffer::framebuffer(const UID& uid, core::resource::cache& cache, uint32_t width, uint32_t height, uint32_t layers)

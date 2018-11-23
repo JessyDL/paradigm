@@ -6,9 +6,9 @@ namespace core::data
 	/// \brief describes the data to build a core::gfx::sampler instance
 	class sampler final
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 	public:
-		sampler(const UID& uid, core::resource::cache& cache);
+		sampler(const psl::UID& uid, core::resource::cache& cache);
 		~sampler() = default;
 		sampler(const sampler& other) = delete;
 		sampler(sampler&& other) = delete;
@@ -155,26 +155,26 @@ namespace core::data
 
 		static constexpr const char serialization_name[8]{"SAMPLER"};
 
-		serialization::property<bool, const_str("MIPMAPS", 7)>						m_MipMapped = true;
-		serialization::property<vk::SamplerMipmapMode, const_str("MIP_MODE", 8)>	m_MipMapMode = vk::SamplerMipmapMode::eNearest;
-		serialization::property<float, const_str("MIP_BIAS", 8)>					m_MipLodBias = 0.0f;
-		serialization::property<float, const_str("MIP_MIN", 7)>						m_MinLod = 0.0f;
-		serialization::property<float, const_str("MIP_MAX", 7)>						m_MaxLod = 0.0f;
+		psl::serialization::property<bool, const_str("MIPMAPS", 7)>						m_MipMapped = true;
+		psl::serialization::property<vk::SamplerMipmapMode, const_str("MIP_MODE", 8)>	m_MipMapMode = vk::SamplerMipmapMode::eNearest;
+		psl::serialization::property<float, const_str("MIP_BIAS", 8)>					m_MipLodBias = 0.0f;
+		psl::serialization::property<float, const_str("MIP_MIN", 7)>						m_MinLod = 0.0f;
+		psl::serialization::property<float, const_str("MIP_MAX", 7)>						m_MaxLod = 0.0f;
 
-		serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_U",9)>	m_AddressModeU = vk::SamplerAddressMode::eRepeat;
-		serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_V", 9)>	m_AddressModeV = vk::SamplerAddressMode::eRepeat;
-		serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_W", 9)>	m_AddressModeW = vk::SamplerAddressMode::eRepeat;
-		serialization::property<vk::BorderColor, const_str("BORDER_COLOR", 12)>		m_BorderColor = vk::BorderColor::eFloatTransparentBlack;
+		psl::serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_U",9)>	m_AddressModeU = vk::SamplerAddressMode::eRepeat;
+		psl::serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_V", 9)>	m_AddressModeV = vk::SamplerAddressMode::eRepeat;
+		psl::serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_W", 9)>	m_AddressModeW = vk::SamplerAddressMode::eRepeat;
+		psl::serialization::property<vk::BorderColor, const_str("BORDER_COLOR", 12)>		m_BorderColor = vk::BorderColor::eFloatTransparentBlack;
 
-		serialization::property<bool, const_str("ANISOTROPY",10)>					m_AnisotropyEnable = true;
-		serialization::property<float, const_str("MAX_ANISO", 9)>					m_MaxAnisotropy = 2.0f;
+		psl::serialization::property<bool, const_str("ANISOTROPY",10)>					m_AnisotropyEnable = true;
+		psl::serialization::property<float, const_str("MAX_ANISO", 9)>					m_MaxAnisotropy = 2.0f;
 
-		serialization::property<bool, const_str("COMPARE", 7)>						m_CompareEnable = false;
-		serialization::property<vk::CompareOp, const_str("COMPARE_OPERATION", 17)>	m_CompareOp = vk::CompareOp::eNever;
+		psl::serialization::property<bool, const_str("COMPARE", 7)>						m_CompareEnable = false;
+		psl::serialization::property<vk::CompareOp, const_str("COMPARE_OPERATION", 17)>	m_CompareOp = vk::CompareOp::eNever;
 
-		serialization::property<vk::Filter, const_str("FILTER_MIN", 10)>			m_MinFilter = vk::Filter::eLinear;
-		serialization::property<vk::Filter, const_str("FILTER_MAX", 10)>			m_MaxFilter = vk::Filter::eLinear;
+		psl::serialization::property<vk::Filter, const_str("FILTER_MIN", 10)>			m_MinFilter = vk::Filter::eLinear;
+		psl::serialization::property<vk::Filter, const_str("FILTER_MAX", 10)>			m_MaxFilter = vk::Filter::eLinear;
 
-		serialization::property<bool, const_str("NORMALIZED_COORDINATES",22)>		m_NormalizedCoordinates = true;
+		psl::serialization::property<bool, const_str("NORMALIZED_COORDINATES",22)>		m_NormalizedCoordinates = true;
 	};
 }

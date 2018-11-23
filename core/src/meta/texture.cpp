@@ -2,8 +2,9 @@
 #include "meta/texture.h"
 
 using namespace core::meta;
+using namespace psl::serialization;
 
-const uint64_t texture::polymorphic_identity{serialization::register_polymorphic<texture>()};
+const uint64_t texture::polymorphic_identity{register_polymorphic<texture>()};
 
 
 uint32_t texture::width() const noexcept { return m_Width.value; }

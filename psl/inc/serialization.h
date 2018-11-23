@@ -14,7 +14,7 @@
 #define SUPPORT_POLYMORPH
 
 // we give a start offset because of the first character is used as a check
-#define get_char(name, ii) ::serialization::details::get_nth_character<ii + 1>(name)
+#define get_char(name, ii) ::psl::serialization::details::get_nth_character<ii + 1>(name)
 #define get_char_2(str, size) get_char(str, size - 2)
 #define get_char_3(str, size) get_char(str, size - 3), get_char_2(str, size)
 #define get_char_4(str, size) get_char(str, size - 4), get_char_3(str, size)
@@ -143,7 +143,7 @@
 #define get_char_127(str, size) get_char(str, size - 127), get_char_126(str, size)
 #define get_char_128(str, size) get_char(str, size - 128), get_char_127(str, size)
 
-#define const_str(str, size) ::serialization::details::check_str<size>(str), get_char_##size(str, size)
+#define const_str(str, size) ::psl::serialization::details::check_str<size>(str), get_char_##size(str, size)
 
 namespace psl
 {
@@ -171,7 +171,7 @@ namespace psl
 /// In this namespace you'll find the utilities to help you in serializing and deserializing
 /// data with (almost) zero-cost overhead, with exception being the polymorphic variant which has
 /// a lookup cost.
-namespace serialization
+namespace psl::serialization
 {
 	namespace details
 	{
@@ -258,7 +258,7 @@ namespace serialization
 		inline static auto serialize_fn(S& s, T& obj);
 
 		template <typename T>
-		inline static auto to_string(T& t, format::container& container, format::data& parent)
+		inline static auto to_string(T& t, psl::format::container& container, psl::format::data& parent)
 			-> decltype(t.to_string(container, parent))
 		{
 			t.to_string(container, parent);
@@ -320,7 +320,7 @@ namespace serialization
 						  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
 						  "\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
 						  "\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
-						  "\"friend class serialization::accessor\"\n");
+						  "\"friend class psl::serialization::accessor\"\n");
 			return T::serialization_name;
 		}
 
@@ -331,7 +331,7 @@ namespace serialization
 						  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
 						  "\t\t - has a public variable \"static constexpr const char* polymorphic_name\"\n"
 						  "\t\t - or a private variable \"static constexpr const char* polymorphic_name\" and added "
-						  "\"friend class serialization::accessor\"\n");
+						  "\"friend class psl::serialization::accessor\"\n");
 
 			return utility::crc64(T::polymorphic_name);
 		}
@@ -341,9 +341,9 @@ namespace serialization
 		{
 			static_assert(is_polymorphic<T>::value,
 						  "\nYou are missing, or have incorrectly defined the following requirements:"
-						  "\n\t- virtual const serialization::polymorphic_base& polymorphic_id() { return "
+						  "\n\t- virtual const psl::serialization::polymorphic_base& polymorphic_id() { return "
 						  "polymorphic_container; }"
-						  "\n\t- static const serialization::polymorphic<YOUR TYPE HERE> polymorphic_container;");
+						  "\n\t- static const psl::serialization::polymorphic<YOUR TYPE HERE> polymorphic_container;");
 			return obj.polymorphic_id();
 		}
 
@@ -352,9 +352,9 @@ namespace serialization
 		{
 			static_assert(is_polymorphic<T>::value,
 						  "\nYou are missing, or have incorrectly defined the following requirements:"
-						  "\n\t- virtual const serialization::polymorphic_base& polymorphic_id() { return "
+						  "\n\t- virtual const psl::serialization::polymorphic_base& polymorphic_id() { return "
 						  "polymorphic_container; }"
-						  "\n\t- static const serialization::polymorphic<YOUR TYPE HERE> polymorphic_container;");
+						  "\n\t- static const psl::serialization::polymorphic<YOUR TYPE HERE> polymorphic_container;");
 			return obj->polymorphic_id();
 		}
 
@@ -444,7 +444,7 @@ namespace serialization
 
 		template <typename S, typename T>
 		struct member_function_serialize<
-			S, T, std::void_t<decltype(::serialization::accessor::serialize(std::declval<S&>(), std::declval<T&>()))>>
+			S, T, std::void_t<decltype(::psl::serialization::accessor::serialize(std::declval<S&>(), std::declval<T&>()))>>
 			: std::true_type
 		{};
 
@@ -456,7 +456,7 @@ namespace serialization
 
 		template <typename S, typename T>
 		struct function_serialize<
-			S, T, std::void_t<decltype(serialization::serialize(std::declval<S&>(), std::declval<T&>()))>>
+			S, T, std::void_t<decltype(psl::serialization::serialize(std::declval<S&>(), std::declval<T&>()))>>
 			: std::true_type
 		{};
 
@@ -465,7 +465,7 @@ namespace serialization
 		struct is_property : std::false_type
 		{};
 		template <typename A, char... C>
-		struct is_property<serialization::property<A, C...>> : std::true_type
+		struct is_property<psl::serialization::property<A, C...>> : std::true_type
 		{};
 
 		template <typename T, typename Encoder = encode_to_format>
@@ -502,7 +502,7 @@ namespace serialization
 		struct is_pointer : std::false_type
 		{};
 		template <typename T, char... Char>
-		struct is_pointer<serialization::property<ptr<T>, Char...>> : std::true_type
+		struct is_pointer<psl::serialization::property<ptr<T>, Char...>> : std::true_type
 		{};
 
 		template <typename T>
@@ -904,8 +904,8 @@ namespace serialization
 			auto lambda{[]() { return new T(); }};
 			data.factory = new invocable_wrapper<decltype(lambda)>(std::forward<decltype(lambda)>(lambda));
 
-			data.encoder					 = &vtable_for<T, serialization::encode_to_format>;
-			data.decoder					 = &vtable_for<T, serialization::decode_from_format>;
+			data.encoder					 = &vtable_for<T, psl::serialization::encode_to_format>;
+			data.decoder					 = &vtable_for<T, psl::serialization::decode_from_format>;
 			accessor::polymorphic_data()[ID] = &data;
 		}
 
@@ -927,7 +927,7 @@ namespace serialization
 	template <typename T, typename... Base>
 	static const uint64_t register_polymorphic()
 	{
-		static serialization::polymorphic<T> polymorphic_container;
+		static psl::serialization::polymorphic<T> polymorphic_container;
 		if constexpr(sizeof...(Base) > 0)
 		{
 			notify_base<Base...>(accessor::name<T>(), accessor::id<T>());
@@ -977,7 +977,7 @@ namespace serialization
 		using property_base::operator^=;
 		using property_base::operator&=;
 
-		/*! @fn serialization::property<T, char...>::value @copydoc serialization::details::property<T>::value
+		/*! @fn psl::serialization::property<T, char...>::value @copydoc psl::serialization::details::property<T>::value
 		*
 		 */
 
@@ -1301,10 +1301,10 @@ namespace serialization
 	class decode_from_format : decoder
 	{
 		using codec_t	 = decode_from_format;
-		using container_t = format::container;
+		using container_t = psl::format::container;
 
 	  public:
-		decode_from_format(format::container& container, format::handle* root,
+		decode_from_format(psl::format::container& container, psl::format::handle* root,
 						   std::unordered_map<uint64_t, invocable_wrapper_base*> factory = {})
 			: m_Container(container), m_CollectionStack{{root}}, m_Factory(factory){};
 
@@ -1406,9 +1406,9 @@ namespace serialization
 		}
 
 		template <typename T>
-		void parse_collection(T& property, format::nodes_t index)
+		void parse_collection(T& property, psl::format::nodes_t index)
 		{
-			if(index == std::numeric_limits<format::nodes_t>::max()) return;
+			if(index == std::numeric_limits<psl::format::nodes_t>::max()) return;
 
 			auto& collection = m_Container[index];
 			m_CollectionStack.push(&collection);
@@ -1433,7 +1433,7 @@ namespace serialization
 							  "\t\t- a function in the namespace 'serialization' of the signature: template<typename "
 							  "S> void serialize(S& s, T& target) {};\n"
 							  "\t\t- if you did declare a member function, but wanted the serialize to be private, "
-							  "please add 'friend class serialization::serializer' to your class");
+							  "please add 'friend class psl::serialization::serializer' to your class");
 			}
 			m_CollectionStack.pop();
 		}
@@ -1522,7 +1522,7 @@ namespace serialization
 				size_t actual_index = 0;
 				for(auto i = begin; i < end; ++i)
 				{
-					if((size_t)(m_Container[format::nodes_t(i)].get().depth()) - 1u ==
+					if((size_t)(m_Container[psl::format::nodes_t(i)].get().depth()) - 1u ==
 					   (size_t)(m_CollectionStack.top()->get().depth()))
 					{
 						if constexpr(std::is_pointer<contained_t>::value)
@@ -1530,12 +1530,12 @@ namespace serialization
 							using deref_t = typename std::remove_pointer<contained_t>::type;
 							value.emplace_back(
 								create_polymorphic_collection<deref_t>(utility::to_string(actual_index)));
-							parse_collection(*value[actual_index], (format::nodes_t)(i));
+							parse_collection(*value[actual_index], (psl::format::nodes_t)(i));
 						}
 						else
 						{
 							value.emplace_back();
-							parse_collection(value[actual_index], (format::nodes_t)(i));
+							parse_collection(value[actual_index], (psl::format::nodes_t)(i));
 						}
 						++actual_index;
 					}
@@ -1570,13 +1570,13 @@ namespace serialization
 
 				for(auto i = begin; i < end; ++i)
 				{
-					if((size_t)(m_Container[format::nodes_t(i)].get().depth()) - 1u ==
+					if((size_t)(m_Container[psl::format::nodes_t(i)].get().depth()) - 1u ==
 					   (size_t)(m_CollectionStack.top()->get().depth()))
 					{
 						// auto& pair = value.emplace(, typename T::value_type{});
 						auto& sub_val = value[utility::from_string<typename utility::templates::get_key_type<T>::type>(
-							m_Container[format::nodes_t(i)].get().name())];
-						parse_collection(sub_val, (format::nodes_t)(i));
+							m_Container[psl::format::nodes_t(i)].get().name())];
+						parse_collection(sub_val, (psl::format::nodes_t)(i));
 					}
 				}
 				m_CollectionStack.pop();
@@ -1628,13 +1628,13 @@ namespace serialization
 			}
 		}
 
-		format::container& m_Container;
-		std::stack<format::handle*> m_CollectionStack;
+		psl::format::container& m_Container;
+		std::stack<psl::format::handle*> m_CollectionStack;
 
 		// reference resolving
-		std::unordered_map<std::uintptr_t, format::handle*> m_ReferenceNodes;
-		std::unordered_map<std::uintptr_t, format::handle*> m_PointerNodes;
-		std::unordered_map<format::handle*, std::uintptr_t> m_ReferenceMap;
+		std::unordered_map<std::uintptr_t, psl::format::handle*> m_ReferenceNodes;
+		std::unordered_map<std::uintptr_t, psl::format::handle*> m_PointerNodes;
+		std::unordered_map<psl::format::handle*, std::uintptr_t> m_ReferenceMap;
 
 		// polymorphic override
 		std::unordered_map<uint64_t, invocable_wrapper_base*> m_Factory;
@@ -1643,10 +1643,10 @@ namespace serialization
 	class encode_to_format : encoder
 	{
 		using codec_t	 = encode_to_format;
-		using container_t = format::container;
+		using container_t = psl::format::container;
 
 	  public:
-		encode_to_format(format::container& container, format::handle* root)
+		encode_to_format(psl::format::container& container, psl::format::handle* root)
 			: m_Container(container), m_CollectionStack{{root}} {};
 
 		template <typename T, char... Char>
@@ -1687,9 +1687,9 @@ namespace serialization
 
 				m_Container.add_reference(m_CollectionStack.top()->get(), property.name(), m_Container[0].get());
 				m_ReferenceMap[(std::uintptr_t)&property.value] =
-					&m_Container[(format::nodes_t)(m_Container.size() - 1u)];
+					&m_Container[(psl::format::nodes_t)(m_Container.size() - 1u)];
 				m_ToBeResolvedReferenceMap[(std::uintptr_t)(property.value)] =
-					&m_Container[(format::nodes_t)(m_Container.size() - 1u)];
+					&m_Container[(psl::format::nodes_t)(m_Container.size() - 1u)];
 			}
 		}
 
@@ -1728,7 +1728,7 @@ namespace serialization
 							  "\t\t- a function in the namespace 'serialization' of the signature: template<typename "
 							  "S> void serialize(S& s, T& target) {};\n"
 							  "\t\t- if you did declare a member function, but wanted the serialize to be private, "
-							  "please add 'friend class serialization::serializer' to your class");
+							  "please add 'friend class psl::serialization::serializer' to your class");
 			}
 			m_CollectionStack.pop();
 		}
@@ -1814,26 +1814,26 @@ namespace serialization
 					previous = loc;
 				}
 				m_Container.add_value_range(m_CollectionStack.top()->get(), name, res);
-				m_ReferenceMap[(std::uintptr_t)&value] = &m_Container[(format::nodes_t)(m_Container.size() - 1u)];
+				m_ReferenceMap[(std::uintptr_t)&value] = &m_Container[(psl::format::nodes_t)(m_Container.size() - 1u)];
 			}
 			else
 			{
 				m_Container.add_value(m_CollectionStack.top()->get(), name, utility::to_string<contained_t>(value));
-				m_ReferenceMap[(std::uintptr_t)&value] = &m_Container[(format::nodes_t)(m_Container.size() - 1u)];
+				m_ReferenceMap[(std::uintptr_t)&value] = &m_Container[(psl::format::nodes_t)(m_Container.size() - 1u)];
 			}
 		}
 
 
-		format::container& m_Container;
-		std::stack<format::handle*> m_CollectionStack;
+		psl::format::container& m_Container;
+		std::stack<psl::format::handle*> m_CollectionStack;
 
-		std::unordered_map<std::uintptr_t, format::handle*> m_ReferenceMap;
-		std::unordered_map<std::uintptr_t, format::handle*> m_ToBeResolvedReferenceMap;
+		std::unordered_map<std::uintptr_t, psl::format::handle*> m_ReferenceMap;
+		std::unordered_map<std::uintptr_t, psl::format::handle*> m_ToBeResolvedReferenceMap;
 	};
 	template <typename T>
 	vtable<encode_to_format> const vtable_for<T, encode_to_format> = {[](void* this_, encode_to_format& s) {
 		T* t = static_cast<T*>(this_);
-		serialization::property<psl::string8_t, const_str("POLYMORPHIC_ID", 14)> p{
+		psl::serialization::property<psl::string8_t, const_str("POLYMORPHIC_ID", 14)> p{
 			utility::to_string(accessor::polymorphic_id(t))};
 		s.parse(p);
 		accessor::serialize_directly<encode_to_format, T>(s, *t);
@@ -1848,14 +1848,14 @@ namespace serialization
 						  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
 						  "\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
 						  "\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
-						  "\"friend class serialization::accessor\"\n");
+						  "\"friend class psl::serialization::accessor\"\n");
 			static_assert(is_member_fn<T, Encoder>() || is_fn<T, Encoder>(),
 						  "\n\tPlease define one of the following for the serializer:\n"
 						  "\t\t- a member function of the type template<typename S> void serialize(S& s) {};\n"
 						  "\t\t- a function in the namespace 'serialization' of the signature: template<typename S> "
 						  "void serialize(S& s, T& target) {};\n"
 						  "\t\t- if you did declare a member function, but wanted the serialize to be private, please "
-						  "add 'friend class serialization::serializer' to your class");
+						  "add 'friend class psl::serialization::serializer' to your class");
 		}
 
 		template <typename T, typename Encoder>
@@ -1882,7 +1882,7 @@ namespace serialization
 		}
 
 		template <typename Encoder, typename T>
-		void serialize(T* target, format::container& out, std::optional<psl::string8::view> name = {})
+		void serialize(T* target, psl::format::container& out, std::optional<psl::string8::view> name = {})
 		{
 			if(target == nullptr) return;
 			serialize<Encoder, T>(*target, out, name);
@@ -1891,7 +1891,7 @@ namespace serialization
 		template <typename Encoder, typename T>
 		void serialize(T& target, psl::string8::view filename, std::optional<psl::string8::view> name = {})
 		{
-			format::container out;
+			psl::format::container out;
 			serialize<Encoder, T>(target, out, name);
 			utility::platform::file::write(psl::from_string8_t(filename), psl::from_string8_t(out.to_string()));
 		};
@@ -1900,13 +1900,13 @@ namespace serialization
 		void serialize(T* target, psl::string8::view filename, std::optional<psl::string8::view> name = {})
 		{
 			if(target == nullptr) return;
-			format::container out;
+			psl::format::container out;
 			serialize<Encoder, T>(*target, out, name);
 			utility::platform::file::write(psl::from_string8_t(filename), psl::from_string8_t(out.to_string()));
 		};
 
 		template <typename Encoder, typename T>
-		void serialize(T& target, format::container& out, std::optional<psl::string8::view> name = {})
+		void serialize(T& target, psl::format::container& out, std::optional<psl::string8::view> name = {})
 		{
 			check<T, Encoder>();
 			auto& collection = out.add_collection((name) ? name.value() : accessor::name<T>());
@@ -1925,7 +1925,7 @@ namespace serialization
 		};
 
 		template <typename Encoder, typename T>
-		bool deserialize(T*& target, format::container& out, std::optional<psl::string8::view> name = {})
+		bool deserialize(T*& target, psl::format::container& out, std::optional<psl::string8::view> name = {})
 		{
 			if(target == nullptr)
 			{
@@ -1963,7 +1963,7 @@ namespace serialization
 		{
 			auto res = utility::platform::file::read(psl::from_string8_t(filename));
 			if(!res) return false;
-			format::container cont{psl::to_string8_t(res.value())};
+			psl::format::container cont{psl::to_string8_t(res.value())};
 			return deserialize<Encoder, T>(target, cont, name);
 		}
 
@@ -1972,12 +1972,12 @@ namespace serialization
 		{
 			auto res = utility::platform::file::read(psl::from_string8_t(filename));
 			if(!res) return false;
-			format::container cont{psl::to_string8_t(res.value())};
+			psl::format::container cont{psl::to_string8_t(res.value())};
 			return deserialize<Encoder, T>(target, cont, name);
 		}
 
 		template <typename Encoder, typename T>
-		bool deserialize(T& target, format::container& out, std::optional<psl::string8::view> name = {})
+		bool deserialize(T& target, psl::format::container& out, std::optional<psl::string8::view> name = {})
 		{
 			check<T, Encoder>();
 
@@ -2017,7 +2017,7 @@ namespace serialization
 		}
 		else
 		{
-			serialization::serialize(s, obj);
+			psl::serialization::serialize(s, obj);
 		}
 	}
 	template <typename S, typename T>

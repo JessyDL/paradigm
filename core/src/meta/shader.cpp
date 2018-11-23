@@ -2,8 +2,8 @@
 #include "meta/shader.h"
 
 using namespace core::meta;
-
-const uint64_t shader::polymorphic_identity{serialization::register_polymorphic<shader>()};
+using namespace psl::serialization;
+const uint64_t shader::polymorphic_identity{register_polymorphic<shader>()};
 
 // vertex attribute
 shader::vertex::attribute::attribute() {}

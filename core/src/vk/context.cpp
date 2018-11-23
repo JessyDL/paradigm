@@ -3,6 +3,7 @@
 #include "os/surface.h"
 
 
+using namespace psl;
 using namespace core::gfx;
 using namespace core::os;
 

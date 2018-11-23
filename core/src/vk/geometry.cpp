@@ -8,6 +8,7 @@
 #include "vk/shader.h"
 #include "meta/shader.h"
 
+using namespace psl;
 using namespace core::resource;
 using namespace core::gfx;
 

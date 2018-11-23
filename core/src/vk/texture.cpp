@@ -26,14 +26,15 @@
 #define fread cached_fread
 #define ftell cached_ftell
 #endif
+using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 
-texture::texture(const UID& uid, core::resource::cache& cache, ::meta::file* metaFile, handle<context> context) : texture(uid, cache, metaFile, context, {})
+texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, handle<context> context) : texture(uid, cache, metaFile, context, {})
 {
 
 }
-texture::texture(const UID& uid, core::resource::cache& cache, ::meta::file* metaFile, handle<context> context, core::resource::handle<core::gfx::buffer> stagingBuffer)
+texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, handle<context> context, core::resource::handle<core::gfx::buffer> stagingBuffer)
 	:
 	m_Cache(cache), m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)), m_StagingBuffer(stagingBuffer)
 {

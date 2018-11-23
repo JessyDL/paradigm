@@ -18,7 +18,7 @@ namespace core::gfx
 	class sampler final
 	{
 	  public:
-		sampler(const UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
+		sampler(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
 				core::resource::handle<core::data::sampler> sampler_data);
 		~sampler();
 

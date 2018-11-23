@@ -3,6 +3,7 @@
 #include "vk/sampler.h"
 #include "data/sampler.h"
 
+using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 using namespace core;

@@ -13,13 +13,13 @@ namespace core::data
 	/// *should* be rendered. It also contains facilities to set default values on buffers if needed.
 	class material final
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 
 	  public:
 		/// \brief describes the blend operation (source/destination) per color component in the render operation.
 		class blendstate
 		{
-			friend class serialization::accessor;
+			friend class psl::serialization::accessor;
 
 		  public:
 			  /// \param[in] enabled is the blendstate active (true) or not (false).
@@ -76,29 +76,29 @@ namespace core::data
 						   << m_AlphaBlendFactorSrc << m_AlphaBlendFactorDst << m_AlphaBlendOp << m_ColorComponents;
 			}
 			static constexpr const char serialization_name[12]{"BLEND_STATE"};
-			serialization::property<bool, const_str("ENABLED", 7)> m_Enabled{false};
-			serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
-			serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_SRC", 15)> m_ColorBlendFactorSrc{
+			psl::serialization::property<bool, const_str("ENABLED", 7)> m_Enabled{false};
+			psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
+			psl::serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_SRC", 15)> m_ColorBlendFactorSrc{
 				vk::BlendFactor::eOne};
-			serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_DST", 15)> m_ColorBlendFactorDst{
+			psl::serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_DST", 15)> m_ColorBlendFactorDst{
 				vk::BlendFactor::eZero};
-			serialization::property<vk::BlendOp, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{vk::BlendOp::eAdd};
+			psl::serialization::property<vk::BlendOp, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{vk::BlendOp::eAdd};
 
 
-			serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_SRC", 15)> m_AlphaBlendFactorSrc{
+			psl::serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_SRC", 15)> m_AlphaBlendFactorSrc{
 				vk::BlendFactor::eOne};
-			serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_DST", 15)> m_AlphaBlendFactorDst{
+			psl::serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_DST", 15)> m_AlphaBlendFactorDst{
 				vk::BlendFactor::eZero};
-			serialization::property<vk::BlendOp, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{vk::BlendOp::eAdd};
+			psl::serialization::property<vk::BlendOp, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{vk::BlendOp::eAdd};
 
-			serialization::property<vk::ColorComponentFlags, const_str("COMPONENT_FLAGS", 15)> m_ColorComponents{
+			psl::serialization::property<vk::ColorComponentFlags, const_str("COMPONENT_FLAGS", 15)> m_ColorComponents{
 				vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
 				vk::ColorComponentFlagBits::eA};
 		};
 
 		class binding
 		{
-			friend class serialization::accessor;
+			friend class psl::serialization::accessor;
 
 		  public:
 			binding()				= default;
@@ -110,15 +110,15 @@ namespace core::data
 
 			uint32_t binding_slot() const;
 			vk::DescriptorType descriptor() const;
-			const UID& texture() const;
-			const UID& sampler() const;
-			const UID& buffer() const;
+			const psl::UID& texture() const;
+			const psl::UID& sampler() const;
+			const psl::UID& buffer() const;
 
 			void binding_slot(uint32_t value);
 			void descriptor(vk::DescriptorType value);
-			void texture(const UID& value, psl::string_view tag = {});
-			void sampler(const UID& value, psl::string_view tag = {});
-			void buffer(const UID& value, psl::string_view tag = {});
+			void texture(const psl::UID& value, psl::string_view tag = {});
+			void sampler(const psl::UID& value, psl::string_view tag = {});
+			void buffer(const psl::UID& value, psl::string_view tag = {});
 
 		  private:
 			template <typename S>
@@ -126,7 +126,7 @@ namespace core::data
 			{
 				s << m_Binding << m_Description;
 
-				if constexpr(serialization::details::is_decoder<S>::value)
+				if constexpr(psl::serialization::details::is_decoder<S>::value)
 				{
 					throw std::runtime_error("we need to solve the design issue of tagged resources");
 					switch(m_Description.value)
@@ -134,22 +134,22 @@ namespace core::data
 					case vk::DescriptorType::eCombinedImageSampler:
 					{
 
-						serialization::property<psl::string, const_str("TEXTURE", 7)> uid{};
+						psl::serialization::property<psl::string, const_str("TEXTURE", 7)> uid{};
 						s << uid;
 
-						serialization::property<psl::string, const_str("SAMPLER", 7)> sampler{};
+						psl::serialization::property<psl::string, const_str("SAMPLER", 7)> sampler{};
 						s << sampler;
 					}
 					break;
 					case vk::DescriptorType::eUniformBuffer:
 					{
-						serialization::property<psl::string, const_str("UBO", 3)> uid{};
+						psl::serialization::property<psl::string, const_str("UBO", 3)> uid{};
 						s << uid;
 					}
 					break;
 					case vk::DescriptorType::eStorageBuffer:
 					{
-						serialization::property<psl::string, const_str("SSBO", 4)> uid{};
+						psl::serialization::property<psl::string, const_str("SSBO", 4)> uid{};
 						s << uid;
 					}
 					break;
@@ -163,22 +163,22 @@ namespace core::data
 					{
 						if(m_UIDTag.size() > 0)
 						{
-							serialization::property<psl::string, const_str("TEXTURE", 7)> uid{m_UIDTag};
+							psl::serialization::property<psl::string, const_str("TEXTURE", 7)> uid{m_UIDTag};
 							s << uid;
 						}
 						else
 						{
-							serialization::property<UID, const_str("TEXTURE", 7)> uid{m_UID};
+							psl::serialization::property<psl::UID, const_str("TEXTURE", 7)> uid{m_UID};
 							s << uid;
 						}
 						if(m_SamplerUIDTag.size() > 0)
 						{
-							serialization::property<psl::string, const_str("SAMPLER", 7)> sampler{m_SamplerUIDTag};
+							psl::serialization::property<psl::string, const_str("SAMPLER", 7)> sampler{m_SamplerUIDTag};
 							s << sampler;
 						}
 						else
 						{
-							serialization::property<UID, const_str("SAMPLER", 7)> sampler{m_SamplerUID};
+							psl::serialization::property<psl::UID, const_str("SAMPLER", 7)> sampler{m_SamplerUID};
 							s << sampler;
 						}
 					}
@@ -187,12 +187,12 @@ namespace core::data
 					{
 						if(m_BufferTag.size() > 0)
 						{
-							serialization::property<psl::string, const_str("UBO", 3)> uid{m_BufferTag};
+							psl::serialization::property<psl::string, const_str("UBO", 3)> uid{m_BufferTag};
 							s << uid;
 						}
 						else
 						{
-							serialization::property<UID, const_str("UBO", 3)> uid{m_Buffer};
+							psl::serialization::property<psl::UID, const_str("UBO", 3)> uid{m_Buffer};
 							s << uid;
 						}
 					}
@@ -201,12 +201,12 @@ namespace core::data
 					{
 						if(m_BufferTag.size() > 0)
 						{
-							serialization::property<psl::string, const_str("SSBO", 4)> uid{m_BufferTag};
+							psl::serialization::property<psl::string, const_str("SSBO", 4)> uid{m_BufferTag};
 							s << uid;
 						}
 						else
 						{
-							serialization::property<UID, const_str("SSBO", 4)> uid{m_Buffer};
+							psl::serialization::property<psl::UID, const_str("SSBO", 4)> uid{m_Buffer};
 							s << uid;
 						}
 					}
@@ -215,11 +215,11 @@ namespace core::data
 				}
 			}
 
-			serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding; // the slot in the shader to bind to
-			serialization::property<vk::DescriptorType, const_str("DESCRIPTOR", 10)> m_Description;
-			UID m_UID;
-			UID m_SamplerUID; // in case of texture binding
-			UID m_Buffer;
+			psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding; // the slot in the shader to bind to
+			psl::serialization::property<vk::DescriptorType, const_str("DESCRIPTOR", 10)> m_Description;
+			psl::UID m_UID;
+			psl::UID m_SamplerUID; // in case of texture binding
+			psl::UID m_Buffer;
 
 			psl::string m_UIDTag;
 			psl::string m_BufferTag;
@@ -230,7 +230,7 @@ namespace core::data
 
 		class stage
 		{
-			friend class serialization::accessor;
+			friend class psl::serialization::accessor;
 
 		  public:
 			stage()				= default;
@@ -241,10 +241,10 @@ namespace core::data
 			stage& operator=(stage&&) = default;
 
 			const vk::ShaderStageFlags shader_stage() const;
-			const UID& shader() const;
+			const psl::UID& shader() const;
 			const std::vector<binding>& bindings() const;
 
-			void shader(vk::ShaderStageFlags stage, const UID& value);
+			void shader(vk::ShaderStageFlags stage, const psl::UID& value);
 			void bindings(const std::vector<binding>& value);
 
 			void set(const binding& value);
@@ -256,13 +256,13 @@ namespace core::data
 			{
 				s << m_Stage << m_Shader << m_Bindings;
 			}
-			serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
-			serialization::property<UID, const_str("SHADER", 6)> m_Shader;
-			serialization::property<std::vector<binding>, const_str("BINDINGS", 8)> m_Bindings;
+			psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
+			psl::serialization::property<psl::UID, const_str("SHADER", 6)> m_Shader;
+			psl::serialization::property<std::vector<binding>, const_str("BINDINGS", 8)> m_Bindings;
 			static constexpr const char serialization_name[15]{"MATERIAL_STAGE"};
 		};
 
-		material(const UID& uid, core::resource::cache& cache);
+		material(const psl::UID& uid, core::resource::cache& cache);
 		~material();
 
 		material(const material&) = delete;
@@ -298,7 +298,7 @@ namespace core::data
 		void erase(const blendstate& value);
 		void undefine(psl::string8::view value);
 
-		void from_shaders(::meta::library& library, std::vector<core::meta::shader*> shaderMetas);
+		void from_shaders(psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas);
 
 	  private:
 		template <typename S>
@@ -311,16 +311,16 @@ namespace core::data
 
 		static constexpr const char serialization_name[9]{"MATERIAL"};
 
-		serialization::property<std::vector<stage>, const_str("STAGES", 6)> m_Stage;
-		serialization::property<std::vector<blendstate>, const_str("BLEND_STATES", 12)> m_BlendStates;
-		serialization::property<std::vector<psl::string8_t>, const_str("DEFINES", 7)> m_Defines;
-		serialization::property<vk::CullModeFlagBits, const_str("CULLING", 7)> m_Culling{vk::CullModeFlagBits::eBack};
+		psl::serialization::property<std::vector<stage>, const_str("STAGES", 6)> m_Stage;
+		psl::serialization::property<std::vector<blendstate>, const_str("BLEND_STATES", 12)> m_BlendStates;
+		psl::serialization::property<std::vector<psl::string8_t>, const_str("DEFINES", 7)> m_Defines;
+		psl::serialization::property<vk::CullModeFlagBits, const_str("CULLING", 7)> m_Culling{vk::CullModeFlagBits::eBack};
 
-		serialization::property<vk::CompareOp, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
+		psl::serialization::property<vk::CompareOp, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
 			vk::CompareOp::eLessOrEqual};
-		serialization::property<int, const_str("PRIORITY", 8)> m_RenderOrder{0};
-		serialization::property<bool, const_str("DEPTH_TEST", 10)> m_DepthTest{true};
-		serialization::property<bool, const_str("DEPTH_WRITE", 11)> m_DepthWrite{true};
-		serialization::property<bool, const_str("WIREFRAME_MODE", 14)> m_Wireframe{false};
+		psl::serialization::property<int, const_str("PRIORITY", 8)> m_RenderOrder{0};
+		psl::serialization::property<bool, const_str("DEPTH_TEST", 10)> m_DepthTest{true};
+		psl::serialization::property<bool, const_str("DEPTH_WRITE", 11)> m_DepthWrite{true};
+		psl::serialization::property<bool, const_str("WIREFRAME_MODE", 14)> m_Wireframe{false};
 	};
 } // namespace core::data

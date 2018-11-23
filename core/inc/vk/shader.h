@@ -37,8 +37,8 @@ namespace core::gfx
 				return name != other.name;
 			}
 		};
-		shader(const UID& uid, core::resource::cache& cache, ::meta::file* metaFile, core::resource::handle<core::gfx::context> context);
-		shader(const UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, const std::vector<specialization> specializations);
+		shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context);
+		shader(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, const std::vector<specialization> specializations);
 		~shader();
 		shader(const shader&) = delete;
 		shader(shader&&) = delete;
@@ -56,6 +56,6 @@ namespace core::gfx
 		std::vector<std::pair<specialization, vk::PipelineShaderStageCreateInfo>> m_Specializations;
 		core::resource::cache& m_Cache;
 		core::meta::shader* m_Meta;
-		const UID m_UID;
+		const psl::UID m_UID;
 	};
 }

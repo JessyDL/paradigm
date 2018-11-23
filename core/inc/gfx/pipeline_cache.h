@@ -82,7 +82,7 @@ namespace core::gfx
 	class pipeline_cache
 	{
 	  public:
-		pipeline_cache(const UID& uid, core::resource::cache& cache,
+		pipeline_cache(const psl::UID& uid, core::resource::cache& cache,
 					   core::resource::handle<core::gfx::context> context);
 		~pipeline_cache();
 		pipeline_cache(const pipeline_cache&) = delete;

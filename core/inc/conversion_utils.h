@@ -7,7 +7,7 @@
 #include "math/quaternion.h"
 
 
-namespace serialization::converters
+namespace psl::serialization::converters
 {
 	// -----------------------------------------------------------------------------
 	// psl::tvec

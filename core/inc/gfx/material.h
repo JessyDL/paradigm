@@ -76,32 +76,32 @@ namespace core::gfx
 			instance_data& operator=(const instance_data&) = default;
 			instance_data& operator=(instance_data&&) = default;
 
-			std::optional<uint32_t> add(core::resource::handle<core::gfx::buffer> buffer, const UID& uid);
+			std::optional<uint32_t> add(core::resource::handle<core::gfx::buffer> buffer, const psl::UID& uid);
 
-			bool remove(core::resource::handle<core::gfx::buffer> buffer, const UID& uid, uint32_t id);
+			bool remove(core::resource::handle<core::gfx::buffer> buffer, const psl::UID& uid, uint32_t id);
 
 			bool has_data() const noexcept { return elements.size() > 0; }
 
 			optional_ref<const instance_element> has_element(psl::string_view name) const noexcept;
 
 			optional_ref<const instance_element> has_element(uint32_t slot) const noexcept;
-			optional_ref<instance_object> instance(const UID& uid) noexcept;
-			uint32_t size(const UID& uid) const noexcept;
+			optional_ref<instance_object> instance(const psl::UID& uid) noexcept;
+			uint32_t size(const psl::UID& uid) const noexcept;
 
 			const auto& begin() const { return std::begin(elements); }
 
 			const auto& end() const { return std::end(elements); }
 
 			bool remove_all(core::resource::handle<core::gfx::buffer> buffer);
-			bool remove_all(core::resource::handle<core::gfx::buffer> buffer, const UID& uid);
+			bool remove_all(core::resource::handle<core::gfx::buffer> buffer, const psl::UID& uid);
 		  private:
 			std::vector<instance_element> elements;
-			std::unordered_map<UID, instance_object> m_Instance;
+			std::unordered_map<psl::UID, instance_object> m_Instance;
 			uint32_t m_Capacity;
 		};
 
 	  public:
-		using resource_dependency = packet<dependency<core::data::material, true>, UID, core::resource::cache>;
+		using resource_dependency = packet<dependency<core::data::material, true>, psl::UID, core::resource::cache>;
 
 		/// \brief the constructor that will create and bind the necesary resources to create a valid pipeline.
 		/// \param[in] packet resource packet containing the data that is needed from the resource system.
@@ -241,8 +241,8 @@ namespace core::gfx
 		core::resource::handle<core::gfx::buffer> m_MaterialBuffer;
 		core::resource::handle<core::gfx::buffer> m_InstanceBuffer;
 
-		// UID maps to the UID of a framebuffer or a swapchain
-		std::unordered_map<UID, core::resource::handle<core::gfx::pipeline>> m_Pipeline;
+		// psl::UID maps to the psl::UID of a framebuffer or a swapchain
+		std::unordered_map<psl::UID, core::resource::handle<core::gfx::pipeline>> m_Pipeline;
 		core::resource::handle<core::gfx::pipeline> m_Bound;
 
 		instance_data m_InstanceData;

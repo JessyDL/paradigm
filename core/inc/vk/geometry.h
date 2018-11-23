@@ -26,7 +26,7 @@ namespace core::gfx
 		/// \param[in] data the geometry source data for this instance.
 		/// \param[in] geometryBuffer the buffer that the mesh data will be uploaded to.
 		/// \param[in] indicesBuffer the buffer that the indices data will be uploaded to.
-		geometry(const UID& uid,
+		geometry(const psl::UID& uid,
 				 core::resource::cache& cache,
 				 core::resource::handle<context> context,
 				 core::resource::handle<core::data::geometry> data,
@@ -59,6 +59,6 @@ namespace core::gfx
 		memory::segment m_IndicesSegment;
 		memory::range m_IndicesSubRange;
 		std::vector<binding> m_Bindings;
-		const UID& m_UID;
+		const psl::UID& m_UID;
 	};
 }

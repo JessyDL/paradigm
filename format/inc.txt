@@ -1,4 +1,0 @@
-SET(INC 
-inc/format.h
-inc/serialization.h
-)

@@ -1,4 +1,0 @@
-SET(INC 
-inc/library.h
-inc/meta.h
-)

@@ -9,7 +9,7 @@ namespace core
 	/// \see core::data::geometry
 	class stream
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 	public:
 		/// \brief the supported internal types of the stream.
 		enum class type
@@ -270,7 +270,7 @@ namespace core
 
 		static constexpr const char serialization_name[12]{"CORE_STREAM"};
 
-		serialization::property<std::vector<float>, const_str("DATA", 4)> m_Data;
-		serialization::property<type, const_str("TYPE", 4)> m_Type;
+		psl::serialization::property<std::vector<float>, const_str("DATA", 4)> m_Data;
+		psl::serialization::property<type, const_str("TYPE", 4)> m_Type;
 	};
 }

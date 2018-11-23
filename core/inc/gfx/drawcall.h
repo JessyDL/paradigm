@@ -20,7 +20,7 @@ namespace core::gfx
 
 		bool add(core::resource::handle<core::gfx::geometry> geometry) noexcept;
 		bool remove(core::resource::handle<core::gfx::geometry> geometry) noexcept;
-		bool remove(const UID& geometry) noexcept;
+		bool remove(const psl::UID& geometry) noexcept;
 
 		void material(core::resource::handle<core::gfx::material> material) noexcept;
 		core::resource::handle<core::gfx::material> material() const noexcept;

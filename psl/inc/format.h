@@ -50,7 +50,7 @@
 */
 
 
-namespace format
+namespace psl::format
 {
 	struct handle;
 

@@ -12,7 +12,7 @@ namespace core::gfx
 	class pipeline
 	{
 	public:
-		pipeline(const UID& uid, 
+		pipeline(const psl::UID& uid,
 				 core::resource::cache& cache, 
 				 core::resource::handle<context> context, 
 				 core::resource::handle<core::data::material> data,
@@ -48,7 +48,7 @@ namespace core::gfx
 		/// \param[in] bindingLocation the binding location to update.
 		/// \param[in] textureMeta the new texture to bind to that location.
 		/// \param[in] samplerMeta the new sampler to bind to that location.
-		bool update(uint32_t bindingLocation, const UID& textureMeta, const UID& samplerMeta);
+		bool update(uint32_t bindingLocation, const psl::UID& textureMeta, const psl::UID& samplerMeta);
 		/// \returns if updating that binding location was successful. It has to be an eStorageBuffer or eUniformBuffer descriptor binding point to be successful. 
 		/// \param[in] bindingLocation the binding location to update. 
 		/// \param[in] offset the new offset of the buffer binding.

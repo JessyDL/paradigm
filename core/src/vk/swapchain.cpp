@@ -5,6 +5,7 @@
 #include "vk/texture.h"
 #include "meta/texture.h"
 
+using namespace psl;
 using namespace core;
 using namespace core::gfx;
 using namespace core::os;

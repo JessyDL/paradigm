@@ -114,7 +114,7 @@ namespace core::gfx
 		template <typename T>
 		using optional_ref = std::optional<std::reference_wrapper<T>>;
 
-		context(const UID &uid, core::resource::cache &cache, psl::string8::view name, uint32_t deviceIndex = 0u);
+		context(const psl::UID &uid, core::resource::cache &cache, psl::string8::view name, uint32_t deviceIndex = 0u);
 		~context();
 		context(const context &) = delete;
 		context(context &&)		 = delete;

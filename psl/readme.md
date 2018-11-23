@@ -1,6 +1,6 @@
-﻿# Format
-Format contains both a method for disk based serialization of classes, as well as a data-format to serialize to and from.
-In general the overhead for using the serialization is *none*, unless actual serialization happens. See meta::file for an example of polymorphic serialization, and core::data::* classes for examples of static serialization.
+﻿# PSL
+PSL contains both a method for disk based serialization of classes, as well as a data-format to serialize to and from.
+In general the overhead for using the serialization is *none*, unless actual serialization happens. See psl::meta::file for an example of polymorphic serialization, and core::data::* classes for examples of static serialization.
 
 ## Static serialization
 Static serialization is pretty trivial to use, and has no specific overhead. The compiler should be smart enough to inline most of the code that will be generated, and there are no indirections present in the system (aside from what you introduce) so it should all be transparent for the compiler to process and optimize.
@@ -54,7 +54,7 @@ class polymorphic_serialization_base_example
     
     static constexpr const char serialization_name[10]{"UNIT_BASE"};
     
-    /// the polymorphic serialization name for the format::node that will be used to calculate the CRC64 ID
+    /// the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64 ID
     /// of this type on.
     static constexpr const char polymorphic_name[5]{"META"};
     
@@ -94,7 +94,7 @@ class derived_example : public polymorphic_serialization_base_example
         serializer << m_Armor;
     }
 
-    /// the polymorphic serialization name for the format::node that will be used to calculate the CRC64 ID
+    /// the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64 ID
     /// of this type on.
     static constexpr const char polymorphic_name[10]{"TANK_UNIT"};
     /// returns the polymorphic ID at runtime, to resolve what type this is.

@@ -29,6 +29,10 @@ inc/platform_utils.h
 inc/file.h
 inc/bytell_hash_map.hpp
 inc/flat_hash_map.hpp
+inc/format.h
+inc/serialization.h
+inc/library.h
+inc/meta.h
 
 inc/math/math.hpp
 inc/math/vec.h

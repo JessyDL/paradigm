@@ -6,6 +6,7 @@
 #include "data/framebuffer.h"
 #include "meta/texture.h"
 
+using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 using namespace core;

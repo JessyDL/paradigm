@@ -44,7 +44,7 @@ namespace core::gfx
 			uint32_t index;
 		};
 
-		framebuffer(const UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::framebuffer> data);
+		framebuffer(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::framebuffer> data);
 		framebuffer(const framebuffer&) = delete;
 		framebuffer(framebuffer&&) = delete;
 		framebuffer& operator=(const framebuffer&) = delete;
@@ -66,7 +66,7 @@ namespace core::gfx
 		/// \returns the image descriptor.
 		vk::DescriptorImageInfo descriptor() const noexcept;
 	private:
-		bool add(core::resource::cache& cache, const UID& uid, vk::AttachmentDescription description, size_t index, size_t count);
+		bool add(core::resource::cache& cache, const psl::UID& uid, vk::AttachmentDescription description, size_t index, size_t count);
 
 		std::vector<core::resource::handle<core::gfx::texture>> m_Textures;
 		std::vector<binding> m_Bindings;

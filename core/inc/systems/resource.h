@@ -37,17 +37,17 @@ namespace core::resource
 	class tag
 	{
 	public:
-		tag(const UID& uid) : m_UID(uid) {};
+		tag(const psl::UID& uid) : m_UID(uid) {};
 		~tag() = default;
 		tag(const tag&) = default;
 		tag(tag&&) = default;
 		tag& operator=(const tag&) = default;
 		tag& operator=(tag&&) = default;
 
-		operator const UID&() const noexcept{return m_UID;};
-		const UID& uid() const noexcept { return m_UID;};
+		operator const psl::UID&() const noexcept{return m_UID;};
+		const psl::UID& uid() const noexcept { return m_UID;};
 	private:
-		UID m_UID{};
+		psl::UID m_UID{};
 	};
 
 	template <typename T, bool use_custom_uid = false>
@@ -83,11 +83,11 @@ namespace core::resource
 		};
 
 		template <>
-		class packet<UID>
+		class packet<psl::UID>
 		{
 		  public:
-			packet(const UID& uid) noexcept : m_UID(uid){};
-			packet() noexcept : m_UID(UID::invalid_uid){};
+			packet(const psl::UID& uid) noexcept : m_UID(uid){};
+			packet() noexcept : m_UID(psl::UID::invalid_uid){};
 			packet(const packet& other) noexcept : m_UID(other.m_UID){};
 			packet(packet&& other) noexcept : m_UID(other.m_UID){};
 			packet& operator=(const packet& other) noexcept
@@ -107,11 +107,11 @@ namespace core::resource
 				return *this;
 			};
 
-			UID& value() { return m_UID; }
-			const UID& uid() const noexcept { return m_UID; }
+			psl::UID& value() { return m_UID; }
+			const psl::UID& uid() const noexcept { return m_UID; }
 
 		  private:
-			UID m_UID;
+			  psl::UID m_UID;
 		};
 
 
@@ -223,7 +223,7 @@ namespace core::resource
 	// forward declare the static function as it needs access to cache internals
 	class cache;
 	template <typename T>
-	static handle<T> create_shared(cache& cache, const UID& uid);
+	static handle<T> create_shared(cache& cache, const psl::UID& uid);
 
 
 	/// \brief represents a container of resources and their UID mappings
@@ -232,8 +232,8 @@ namespace core::resource
 	/// of resources. It also controls the memory that the resource will be allocated to.
 	/// This means that every resource is guaranteed to be part of atleast one cache.
 	/// Resource can also access other resources within the same cache with ease through the
-	/// shared meta::library instance. Libraries can be shared between caches, but remember that
-	/// neither the meta::library nor core::resource::cache are thread-safe by themselves.
+	/// shared psl::meta::library instance. Libraries can be shared between caches, but remember that
+	/// neither the psl::meta::library nor core::resource::cache are thread-safe by themselves.
 	/// \todo check multi-cache
 	class cache final
 	{
@@ -255,14 +255,14 @@ namespace core::resource
 		};
 
 	  public:
-		/*cache(::meta::library&& library, size_t size, size_t alignment,
+		/*cache(psl::meta::library&& library, size_t size, size_t alignment,
 			  memory::allocator_base* allocator = new memory::default_allocator(true))
 			: m_Library(std::move(library)), m_Region(size, alignment, allocator)
 		{
 			LOG_INFO("creating cache");
 		};
 */
-		cache(::meta::library&& library, memory::allocator_base* allocator)
+		cache(psl::meta::library&& library, memory::allocator_base* allocator)
 			: m_Library(std::move(library)), m_Allocator(allocator)
 		{
 			PROFILE_SCOPE(core::profiler)
@@ -347,27 +347,27 @@ namespace core::resource
 
 
 		// const memory::region& region() const { return m_Region; };
-		::meta::library& library() { return m_Library; };
+		psl::meta::library& library() { return m_Library; };
 		memory::allocator_base* allocator() const { return m_Allocator; };
 
 		template <typename T>
-		handle<T> find(const UID& uid)
+		handle<T> find(const psl::UID& uid)
 		{
 			auto it = m_Handles.find(uid);
-			if(it == m_Handles.end()) return handle<T>(*this, UID::invalid_uid);
+			if(it == m_Handles.end()) return handle<T>(*this, psl::UID::invalid_uid);
 
 			for(auto& e : it->second)
 			{
 				if(e.id == details::container<T>::id)
 					return handle<T>(*this, uid, *((std::shared_ptr<details::container<T>>*)(&e.container)));
 			}
-			return handle<T>(*this, UID::invalid_uid);
+			return handle<T>(*this, psl::UID::invalid_uid);
 		}
 
 	  private:
 		template <typename T>
-		friend handle<T> core::resource::create_shared(cache& cache, const UID& uid);
-		std::optional<entry* const> get(const UID& uid, uint64_t ID)
+		friend handle<T> core::resource::create_shared(cache& cache, const psl::UID& uid);
+		std::optional<entry* const> get(const psl::UID& uid, uint64_t ID)
 		{
 			const auto& it = m_Handles.find(uid);
 			if(it == std::end(m_Handles)) return {};
@@ -381,7 +381,7 @@ namespace core::resource
 
 
 		template <typename T>
-		bool reset(const UID& uid, bool force = false)
+		bool reset(const psl::UID& uid, bool force = false)
 		{
 			PROFILE_SCOPE(core::profiler)
 			auto it = m_Handles.find(uid);
@@ -401,16 +401,16 @@ namespace core::resource
 			return false;
 		}
 
-		void reg(uint64_t id, const UID& uid, std::shared_ptr<void> container, state& state,
+		void reg(uint64_t id, const psl::UID& uid, std::shared_ptr<void> container, state& state,
 				 const details::vtable& vtable)
 		{
 			m_Handles[uid].emplace_back(id, container, state, vtable);
 		}
 
-		::meta::library m_Library;
+		psl::meta::library m_Library;
 		// memory::region m_Region;
 		memory::allocator_base* m_Allocator;
-		std::unordered_map<UID, std::vector<entry>> m_Handles;
+		std::unordered_map<psl::UID, std::vector<entry>> m_Handles;
 		static uint64_t id;
 	};
 	namespace details
@@ -427,7 +427,7 @@ namespace core::resource
 			bool has_value() const { return m_Resource && segment; }
 
 			template <typename... Args>
-			bool set(UID& uid, cache& cache, Args&&... args)
+			bool set(psl::UID& uid, cache& cache, Args&&... args)
 			{
 				if(m_Resource && segment) // already set
 					return false;
@@ -499,7 +499,7 @@ namespace core::resource
 
 		  private:
 			template <typename... Args>
-			bool copy_set(const T& source, UID& uid, cache& cache, Args&&... args)
+			bool copy_set(const T& source, psl::UID& uid, cache& cache, Args&&... args)
 			{
 				if(m_Resource && segment) // already set
 					return false;
@@ -553,12 +553,12 @@ namespace core::resource
 		friend class cache;
 
 		friend class indirect_handle<T>;
-		handle(cache& cache, const UID& uid, std::shared_ptr<details::container<T>>& container)
+		handle(cache& cache, const psl::UID& uid, std::shared_ptr<details::container<T>>& container)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(container){};
 
 	  public:
 		handle()
-			: m_Cache(nullptr), uid(UID::invalid_uid), resource_uid(uid){
+			: m_Cache(nullptr), uid(psl::UID::invalid_uid), resource_uid(uid){
 
 													   };
 
@@ -572,7 +572,7 @@ namespace core::resource
 		};
 
 		/// \note only used in the scenario of "create_shared"
-		handle(cache& cache, const UID& uid)
+		handle(cache& cache, const psl::UID& uid)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(std::make_shared<details::container<T>>())
 		{
 			PROFILE_SCOPE(core::profiler)
@@ -581,7 +581,7 @@ namespace core::resource
 						 m_Container->m_State, m_Container->m_vTable);
 		};
 
-		handle(cache& cache, const UID& uid, const UID& resource)
+		handle(cache& cache, const psl::UID& uid, const psl::UID& resource)
 			: m_Cache(&cache), uid(uid), resource_uid(resource), m_Container(std::make_shared<details::container<T>>())
 		{
 			PROFILE_SCOPE(core::profiler)
@@ -594,9 +594,9 @@ namespace core::resource
 		/// source. this will create a new resource, that branches off from the current state the other resource is in.
 		/// it invokes the copy constructor of the contained type, and so if it is not present, this will not compile.
 		template <typename... Args, typename = typename std::enable_if<
-										std::is_constructible<T, const T&, const UID&, cache&, Args...>::value>::type>
+										std::is_constructible<T, const T&, const psl::UID&, cache&, Args...>::value>::type>
 		handle(deep_copy_t, const handle& other, Args&&... args)
-			: m_Cache(other.m_Cache), uid(UID::generate()),
+			: m_Cache(other.m_Cache), uid(psl::UID::generate()),
 			  resource_uid((other.m_Cache->library().is_physical_file(other.resource_uid)) ? other.resource_uid : uid),
 			  m_Container(std::make_shared<details::container<T>>())
 		{
@@ -654,9 +654,9 @@ namespace core::resource
 						"there was no suitable constructor for the given type that would accept these arguments.");
 				}
 				typename T::resource_dependency pac;
-				if constexpr(details::has_packet<UID, typename T::resource_dependency>::value)
+				if constexpr(details::has_packet<psl::UID, typename T::resource_dependency>::value)
 				{
-					std::get<details::packet<UID>>(pac.data) = details::packet<UID>(uid);
+					std::get<details::packet<psl::UID>>(pac.data) = details::packet<psl::UID>(uid);
 				}
 				if constexpr(details::has_packet<core::resource::cache, typename T::resource_dependency>::value)
 				{
@@ -671,13 +671,13 @@ namespace core::resource
 					m_Container->m_State = state::LOADING;
 					if(m_Container->set(*m_Cache, pac, std::forward<Args>(args)...))
 					{
-						if constexpr(serialization::details::is_collection<T>::value)
+						if constexpr(psl::serialization::details::is_collection<T>::value)
 						{
 							if(auto result = m_Cache->library().load(resource_uid); result)
 							{
-								serialization::serializer s;
-								format::container cont{result.value()};
-								s.deserialize<serialization::decode_from_format, T>(*(m_Container->resource()), cont);
+								psl::serialization::serializer s;
+								psl::format::container cont{result.value()};
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()), cont);
 							}
 						}
 						m_Container->m_State = state::LOADED;
@@ -690,7 +690,7 @@ namespace core::resource
 
 				return m_Container->m_State == state::LOADED;
 			}
-			else if constexpr(std::is_constructible<T, const UID&, cache&, Args...>::value)
+			else if constexpr(std::is_constructible<T, const psl::UID&, cache&, Args...>::value)
 			{
 				if(!uid) return false;
 
@@ -699,13 +699,13 @@ namespace core::resource
 					m_Container->m_State = state::LOADING;
 					if(m_Container->set(uid, *m_Cache, std::forward<Args>(args)...))
 					{
-						if constexpr(serialization::details::is_collection<T>::value)
+						if constexpr(psl::serialization::details::is_collection<T>::value)
 						{
 							if(auto result = m_Cache->library().load(resource_uid); result)
 							{
-								serialization::serializer s;
-								format::container cont{result.value()};
-								s.deserialize<serialization::decode_from_format, T>(*(m_Container->resource()), cont);
+								psl::serialization::serializer s;
+								psl::format::container cont{result.value()};
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()), cont);
 							}
 						}
 						m_Container->m_State = state::LOADED;
@@ -718,7 +718,7 @@ namespace core::resource
 
 				return m_Container->m_State == state::LOADED;
 			}
-			else if constexpr(std::is_constructible<T, const UID&, cache&, ::meta::file*, Args...>::value)
+			else if constexpr(std::is_constructible<T, const psl::UID&, cache&, psl::meta::file*, Args...>::value)
 			{
 				if(!uid) return false;
 
@@ -728,13 +728,13 @@ namespace core::resource
 					auto metaPtr		 = m_Cache->library().get(resource_uid);
 					if(metaPtr && m_Container->set(uid, *m_Cache, metaPtr.value(), std::forward<Args>(args)...))
 					{
-						if constexpr(serialization::details::is_collection<T>::value)
+						if constexpr(psl::serialization::details::is_collection<T>::value)
 						{
 							if(auto result = m_Cache->library().load(resource_uid); result)
 							{
-								serialization::serializer s;
-								format::container cont{result.value()};
-								s.deserialize<serialization::decode_from_format, T>(*(m_Container->resource()), cont);
+								psl::serialization::serializer s;
+								psl::format::container cont{result.value()};
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()), cont);
 							}
 						}
 						m_Container->m_State = state::LOADED;
@@ -782,7 +782,7 @@ namespace core::resource
 		}
 
 		/// \returns the UID assigned to the handle
-		const UID& ID() const noexcept { return uid; }
+		const psl::UID& ID() const noexcept { return uid; }
 
 		/// \returns the resource UID, this is shared between all handles of different types that are based on the same
 		/// resource.
@@ -791,15 +791,15 @@ namespace core::resource
 		/// resources. The same is true for handles of the same type.
 		/// \note the ID() and RUID() are the same for generated resources, as then the "Resource UID" is considered
 		/// the memory location of the handle.
-		const UID& RUID() const noexcept { return resource_uid; }
+		const psl::UID& RUID() const noexcept { return resource_uid; }
 
 		template <typename... Args>
-		typename std::enable_if<std::is_constructible<T, const T&, const UID&, cache&, Args...>::value, handle<T>>::type
+		typename std::enable_if<std::is_constructible<T, const T&, const psl::UID&, cache&, Args...>::value, handle<T>>::type
 		copy(cache& cache, Args&&... args) const
 		{
 			PROFILE_SCOPE(core::profiler)
 			auto res =
-				(m_Cache->library().is_physical_file(resource_uid) ? handle<T>(cache, UID::generate(), resource_uid)
+				(m_Cache->library().is_physical_file(resource_uid) ? handle<T>(cache, psl::UID::generate(), resource_uid)
 																   : handle<T>(cache));
 
 			if(m_Container && m_Container->has_value())
@@ -815,8 +815,8 @@ namespace core::resource
 
 	  private:
 		cache* m_Cache;
-		UID uid;		  // my actual UID
-		UID resource_uid; // the disk based resource I'm based on, this can be the same like my actual uid if I'm a
+		psl::UID uid;		  // my actual UID
+		psl::UID resource_uid; // the disk based resource I'm based on, this can be the same like my actual uid if I'm a
 						  // shared resource, or it can be the same if I'm not a physical file.
 		std::shared_ptr<details::container<T>> m_Container;
 	};
@@ -833,10 +833,10 @@ namespace core::resource
 	/// if this resource is disk-based it might speed up loading due to using the already cached value (todo)
 	/// The resulting resource has a new UID.
 	template <typename T>
-	static handle<T> create(cache& cache, const UID& uid)
+	static handle<T> create(cache& cache, const psl::UID& uid)
 	{
 		PROFILE_SCOPE_STATIC(core::profiler)
-		return handle<T>{cache, UID::generate(), uid};
+		return handle<T>{cache, psl::UID::generate(), uid};
 	}
 
 	/// \details will either find the resource with the given UID, and return that, or create a new one using that UID.
@@ -845,7 +845,7 @@ namespace core::resource
 	///
 	/// The resulting resource keeps the UID you create it with, meaning it can be found again using this function.
 	template <typename T>
-	static handle<T> create_shared(cache& cache, const UID& uid)
+	static handle<T> create_shared(cache& cache, const psl::UID& uid)
 	{
 		PROFILE_SCOPE_STATIC(core::profiler)
 		auto res = cache.find<T>(uid);
@@ -869,7 +869,7 @@ namespace core::resource
 	static handle<T> copy(cache& cache, const handle<T>& source, Args&&... args)
 	{
 		PROFILE_SCOPE_STATIC(core::profiler)
-		static_assert(std::is_constructible<T, const T&, const UID&, resource::cache&, Args...>::value,
+		static_assert(std::is_constructible<T, const T&, const psl::UID&, resource::cache&, Args...>::value,
 					  "lacking a 'copy' constructor on T, cannot create a new handle with the given source.");
 		return source.copy(cache, std::forward<Args>(args)...);
 	}
@@ -879,7 +879,7 @@ namespace core::resource
 	{
 	public:
 		indirect_handle() = default;
-		indirect_handle(const UID& uid, cache* cache)  : m_Cache(cache), m_UID(uid) {};
+		indirect_handle(const psl::UID& uid, cache* cache)  : m_Cache(cache), m_UID(uid) {};
 		indirect_handle(const handle<T>& handle) : m_Cache(handle.m_Cache), m_UID(handle.uid) {};
 
 		operator const core::resource::handle<T>() const noexcept
@@ -920,7 +920,7 @@ namespace core::resource
 		}
 	private:
 		cache* m_Cache{nullptr};
-		UID m_UID{};
+		psl::UID m_UID{};
 	};
 
 

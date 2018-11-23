@@ -31,7 +31,7 @@ namespace core::data
 	/// \todo support numbered streams (i.e. UV0, UV1, etc..).
 	class geometry
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 
 	public:
 		using index_size_t = uint32_t;
@@ -58,7 +58,7 @@ namespace core::data
 			static constexpr psl::string_view BONES = "GEOMETRY_BONES";
 		};
 		geometry() = default;
-		geometry(const UID& uid,
+		geometry(const psl::UID& uid,
 				 core::resource::cache& cache);
 		~geometry();
 		geometry(const geometry&) = delete;
@@ -103,8 +103,8 @@ namespace core::data
 		/// \brief serialization name to be used by the serializer when writing and reading this container to and from disk.
 		static constexpr const char serialization_name[9]{"GEOMETRY"};
 
-		serialization::property<std::vector<index_size_t>, const_str("INDICES", 7)> m_Indices;
-		serialization::property<std::unordered_map<psl::string, core::stream>, const_str("STREAMS", 7)> m_VertexStreams;
+		psl::serialization::property<std::vector<index_size_t>, const_str("INDICES", 7)> m_Indices;
+		psl::serialization::property<std::unordered_map<psl::string, core::stream>, const_str("STREAMS", 7)> m_VertexStreams;
 	};
 
 }

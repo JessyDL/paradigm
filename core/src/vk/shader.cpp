@@ -4,11 +4,12 @@
 #include "vk/context.h"
 
 
+using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 using namespace core;
 
-shader::shader(const UID& uid, core::resource::cache& cache, ::meta::file* metaFile, core::resource::handle<core::gfx::context> context)
+shader::shader(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context)
 	: m_Context(context), m_Cache(cache), m_UID(uid),
 	  m_Meta(cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr))
 {

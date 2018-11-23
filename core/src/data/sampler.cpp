@@ -1,6 +1,7 @@
 ﻿#include "stdafx.h"
 #include "data/sampler.h"
 
+using namespace psl;
 using namespace core::data;
 using namespace core::resource;
 

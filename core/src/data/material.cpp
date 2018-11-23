@@ -2,6 +2,7 @@
 #include "data/material.h"
 #include "meta/shader.h"
 
+using namespace psl;
 using namespace core::data;
 
 material::material(const UID& uid, core::resource::cache& cache) {}
@@ -130,7 +131,7 @@ void material::undefine(psl::string8::view value)
 	if(it == std::end(m_Defines.value)) m_Defines.value.erase(it);
 }
 
-void material::from_shaders(::meta::library& library, std::vector<core::meta::shader*> shaderMetas)
+void material::from_shaders(psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas)
 {
 	std::vector<stage>& stages = m_Stage.value;
 	for(auto shader : shaderMetas)

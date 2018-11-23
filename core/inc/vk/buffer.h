@@ -29,7 +29,7 @@ namespace core::gfx
 		/// allignment is incorrect, a suitable warning (and potential override) will be supplied.
 		/// If the supplied buffer_data is non-virtual (i.e. backed by real memory location), then the resource
 		/// will be duplicated and accessible for read access through the core::data::buffer handle directly.
-		buffer(const UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> buffer_data, std::optional<core::resource::handle<core::gfx::buffer>> staging_buffer = std::nullopt);
+		buffer(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> buffer_data, std::optional<core::resource::handle<core::gfx::buffer>> staging_buffer = std::nullopt);
 		~buffer();
 		buffer(const buffer&) = delete;
 		buffer(buffer&&) = delete;
@@ -164,7 +164,7 @@ namespace core::gfx
 		core::resource::handle<core::gfx::buffer> m_StagingBuffer;
 		core::resource::cache& m_Cache;
 
-		UID m_UID;
+		psl::UID m_UID;
 	};
 
 }

@@ -6,6 +6,7 @@
 #include "vk/swapchain.h"
 #include "vk/pipeline.h"
 
+using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 

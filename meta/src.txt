@@ -1,3 +1,0 @@
-SET(SRC 
-src/library.cpp
-src/meta.cpp)

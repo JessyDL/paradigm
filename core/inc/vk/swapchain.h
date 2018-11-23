@@ -30,7 +30,7 @@ namespace core::gfx
 		friend class core::os::surface;
 
 	  public:
-		swapchain(const UID& uid, core::resource::cache& cache, core::resource::handle<core::os::surface> surface,
+		swapchain(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::os::surface> surface,
 				  core::resource::handle<core::gfx::context> context, bool use_depth = true);
 		~swapchain();
 

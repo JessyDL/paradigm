@@ -2,6 +2,7 @@
 #include "gfx/drawcall.h"
 #include <algorithm>
 
+using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 drawcall::drawcall(handle<core::gfx::material> material, const std::vector<handle<geometry>>& geometry) noexcept

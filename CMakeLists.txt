@@ -221,8 +221,6 @@ if(NOT ${PE_SOURCE_ONLY})
 	setup_vulkan("${VK_ROOT}" "${VK_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
 	
 	add_subdirectory(psl)
-	add_subdirectory(format)
-	add_subdirectory(meta)
 	add_subdirectory(core)
 	if(${PE_TESTS})
 		enable_testing()

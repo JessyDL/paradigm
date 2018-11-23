@@ -23,8 +23,8 @@ namespace core::gfx
 	class texture
 	{
 	public:
-		texture(const UID& uid, core::resource::cache& cache, ::meta::file* metaFile, core::resource::handle<core::gfx::context> context, core::resource::handle<core::gfx::buffer> stagingBuffer);
-		texture(const UID& uid, core::resource::cache& cache, ::meta::file* metaFile, core::resource::handle<core::gfx::context> context);
+		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context, core::resource::handle<core::gfx::buffer> stagingBuffer);
+		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context);
 		~texture();
 
 		/// \returns the vk::Image associated with this instance.
@@ -43,7 +43,7 @@ namespace core::gfx
 		uint32_t mip_levels() const noexcept;
 		/// \returns a descriptor image info for the given sampler, if none are present one is generated.
 		/// \note these are maintained by the texture object itself and will live as long as the texture does.
-		vk::DescriptorImageInfo& descriptor(const UID &sampler);
+		vk::DescriptorImageInfo& descriptor(const psl::UID &sampler);
 
 	private:
 		void load_2D();
@@ -63,6 +63,6 @@ namespace core::gfx
 		core::resource::handle<core::gfx::context> m_Context;
 		core::meta::texture* m_Meta;
 
-		std::unordered_map<UID, vk::DescriptorImageInfo*> m_Descriptors;
+		std::unordered_map<psl::UID, vk::DescriptorImageInfo*> m_Descriptors;
 	};
 }

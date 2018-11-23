@@ -1,8 +1,10 @@
 ﻿#include "library.h"
 #include "platform_utils.h"
 
-using namespace meta;
-const uint64_t file::polymorphic_identity{serialization::register_polymorphic<file>()};
+using namespace psl::meta;
+using namespace psl::serialization;
+using namespace psl;
+const uint64_t file::polymorphic_identity{register_polymorphic<file>()};
 
 library::library(psl::string8::view lib)
 {
@@ -16,7 +18,7 @@ library::library(psl::string8::view lib)
 	if(utility::platform::file::exists(psl::from_string8_t(m_LibraryLocation)))
 	{
 		// Load library into memory
-		serialization::serializer s;
+		serializer s;
 
 		std::ifstream library(m_LibraryLocation, std::ifstream::in | std::ifstream::binary);
 		for(psl::string8_t line; getline(library, line);)
@@ -38,7 +40,7 @@ library::library(psl::string8::view lib)
 				// todo handle error
 				continue;
 			}
-			s.deserialize<serialization::decode_from_format>(metaPtr, root + metapath);
+			s.deserialize<decode_from_format>(metaPtr, root + metapath);
 
 			auto pair = m_MetaData.emplace(metaPtr->ID(), std::move(metaPtr));
 			m_TagMap[filepath].insert(pair.first->second.data->ID());
@@ -59,8 +61,8 @@ bool library::serialize(const UID& uid)
 
 	psl::string8_t filepath = psl::string8_t(m_LibraryFolder) +
 							  psl::to_string8_t(utility::platform::directory::seperator) + it->second.readableName;
-	serialization::serializer s;
-	s.serialize<serialization::encode_to_format>(it->second.data.get(), psl::string8::view{filepath});
+	serializer s;
+	s.serialize<encode_to_format>(it->second.data.get(), psl::string8::view{filepath});
 	return true;
 };
 

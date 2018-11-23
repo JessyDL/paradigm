@@ -3,6 +3,7 @@
 #include "data/buffer.h"
 #include "vk/context.h"
 
+using namespace psl;
 using namespace core;
 using namespace core::gfx;
 using namespace core::resource;

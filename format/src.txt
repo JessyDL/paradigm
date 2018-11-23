@@ -1,4 +1,0 @@
-SET(SRC 
-src/format.cpp
-src/serialization.cpp
-)

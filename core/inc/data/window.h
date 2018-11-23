@@ -27,11 +27,11 @@ namespace core::data
 	/// \brief contains the data to initialize a core::os::surface
 	class window
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 
 	  public:
-		window(const UID& uid, core::resource::cache& cache);
-		window(const window& other, const UID& uid, core::resource::cache& cache, psl::string8::view name) noexcept;
+		window(const psl::UID& uid, core::resource::cache& cache);
+		window(const window& other, const psl::UID& uid, core::resource::cache& cache, psl::string8::view name) noexcept;
 		~window() = default;
 		window(uint32_t width = 800, uint32_t height = 600,
 			   core::gfx::surface_mode mode   = core::gfx::surface_mode::WINDOWED,
@@ -86,11 +86,11 @@ namespace core::data
 
 		static constexpr const char serialization_name[7]{"WINDOW"};
 
-		serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
-		serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width;
-		serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height;
+		psl::serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
+		psl::serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width;
+		psl::serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height;
 
-		serialization::property<core::gfx::surface_mode, const_str("MODE", 4)> m_WindowMode;
-		serialization::property<core::gfx::buffering, const_str("BUFFERING", 9)> m_Buffering;
+		psl::serialization::property<core::gfx::surface_mode, const_str("MODE", 4)> m_WindowMode;
+		psl::serialization::property<core::gfx::buffering, const_str("BUFFERING", 9)> m_Buffering;
 	};
 } // namespace core::data

@@ -15,8 +15,17 @@ endif()
 FetchContent_Declare(utf8cpp GIT_REPOSITORY https://github.com/nemtrif/utfcpp.git GIT_TAG v2.3.6 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(utf8cpp)
 if(NOT utf8cpp_POPULATED)
+	message(STATUS "fetching utf8cpp...")
 	FetchContent_Populate(utf8cpp)
 	message(STATUS "utf8cpp fetched")
+endif()
+
+FetchContent_Declare(rangev GIT_REPOSITORY https://github.com/ericniebler/range-v3.git GIT_TAG 00d4676502aa257a3ce934b50555211b4791ae05 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_GetProperties(rangev)
+if(NOT rangev_POPULATED)
+	message(STATUS "fetching range-v3...")
+	FetchContent_Populate(rangev)
+	message(STATUS "range-v3 fetched")
 endif()
 
 if(PE_PCH AND NOT MSVC)
@@ -54,6 +63,7 @@ target_include_directories(${LOCAL_PROJECT}
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
 		${utf8cpp_SOURCE_DIR}/source
 		${spdlog_SOURCE_DIR}/include
+		${rangev_SOURCE_DIR}/include
 )
 
 if(LINUX)

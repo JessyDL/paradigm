@@ -6,11 +6,11 @@ namespace core::meta
 	///
 	/// shaders need various metadata that can describe the binding points and types of resources
 	/// a SPIR-V might be expecting, as well as the pipeline stage it is assigned to.
-	/// This extension to meta::file contains that type of data.
+	/// This extension to psl::meta::file contains that type of data.
 	/// \todo add a way to deal with push_constants
-	class shader final : public ::meta::file
+	class shader final : public psl::meta::file
 	{
-		friend class serialization::accessor;
+		friend class psl::serialization::accessor;
 		friend class library;
 
 	  public:
@@ -24,7 +24,7 @@ namespace core::meta
 			/// \brief vertex attribute description.
 			class attribute
 			{
-				friend class serialization::accessor;
+				friend class psl::serialization::accessor;
 
 			  public:
 				attribute();
@@ -69,20 +69,20 @@ namespace core::meta
 				{
 					s << m_Location << m_Format << m_Offset;
 				}
-				/// \brief the serialization name for the format::node
+				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[17]{"VERTEX_ATTRIBUTE"};
-				serialization::property<uint32_t, const_str("LOCATION", 8)> m_Location;
-				serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
-				serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;
+				psl::serialization::property<uint32_t, const_str("LOCATION", 8)> m_Location;
+				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
+				psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;
 			};
 
 			/// \brief generic shader binding descriptor. describes the type and location of a vertex binding resource.
 			///
 			/// shaders can have various bindings such as textures, UBO's, SSBO's, Dynamic UBO's, etc...
-			/// this class describes the type and either the UID, or the tag that points to a resource in the runtime.
+			/// this class describes the type and either the psl::UID, or the tag that points to a resource in the runtime.
 			class binding
 			{
-				friend class serialization::accessor;
+				friend class psl::serialization::accessor;
 
 			  public:
 				binding();
@@ -99,7 +99,7 @@ namespace core::meta
 				/// \returns the set input rate (per-vertex or per-instance) of this binding.
 				vk::VertexInputRate input_rate() const noexcept;
 				/// \returns the buffer this binding is bound to.
-				/// \note this can either be a UID, or a TAG
+				/// \note this can either be a psl::UID, or a TAG
 				psl::string8_t buffer() const noexcept;
 				/// \returns the attribute collection of this binding.
 				const std::vector<attribute>& attributes() const noexcept;
@@ -114,12 +114,12 @@ namespace core::meta
 				/// \brief sets the expected input rate of the binding (i.e. should we offset per-vertex, or
 				/// per-instance in the data) \param[in] value the new input rate.
 				void input_rate(vk::VertexInputRate value);
-				/// \brief sets the UID, or TAG that will suggest where to find the data to bind.
+				/// \brief sets the psl::UID, or TAG that will suggest where to find the data to bind.
 				/// \details in core::data::geometry you will see some information about tags,
 				/// these tags can be set here to identify the binding points of the geometry data in the shader
 				/// i.e. what is the position binding, uv binding, etc..
 				/// \see core::data::geometry core::gfx::geometry
-				/// \param[in] value the new UID or TAG
+				/// \param[in] value the new psl::UID or TAG
 				void buffer(psl::string8_t value);
 				/// \brief sets the collection of attributes that make up this binding.
 				/// \param[in] value the attribute collection that will replace the current.
@@ -143,13 +143,13 @@ namespace core::meta
 				{
 					s << m_Binding << m_Size << m_InputRate << m_Buffer << m_Attributes;
 				}
-				/// \brief the serialization name for the format::node
+				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[15]{"VERTEX_BINDING"};
-				serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
-				serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
-				serialization::property<vk::VertexInputRate, const_str("INPUT_RATE", 10)> m_InputRate;
-				serialization::property<psl::string8_t, const_str("BUFFER", 6)> m_Buffer;
-				serialization::property<std::vector<attribute>, const_str("ATTRIBUTES", 10)> m_Attributes;
+				psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
+				psl::serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
+				psl::serialization::property<vk::VertexInputRate, const_str("INPUT_RATE", 10)> m_InputRate;
+				psl::serialization::property<psl::string8_t, const_str("BUFFER", 6)> m_Buffer;
+				psl::serialization::property<std::vector<attribute>, const_str("ATTRIBUTES", 10)> m_Attributes;
 			};
 		};
 
@@ -163,7 +163,7 @@ namespace core::meta
 		/// you can view it as the finer detailed level core::meta::shader::descriptor
 		class instance
 		{
-			friend class serialization::accessor;
+			friend class psl::serialization::accessor;
 
 		  public:
 			/// \brief Describes an element of a data container
@@ -177,7 +177,7 @@ namespace core::meta
 			/// as their offset parameter is in relation to the parent.
 			class element
 			{
-				friend class serialization::accessor;
+				friend class psl::serialization::accessor;
 
 			  public:
 				element();
@@ -227,12 +227,12 @@ namespace core::meta
 				{
 					s << m_Name << m_Format << m_Offset << m_Default;
 				}
-				/// \brief the serialization name for the format::node
+				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[24]{"SHADER_INSTANCE_ELEMENT"};
-				serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
-				serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
-				serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;
-				serialization::property<std::vector<uint8_t>, const_str("DEFAULT", 7)> m_Default;
+				psl::serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
+				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
+				psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;
+				psl::serialization::property<std::vector<uint8_t>, const_str("DEFAULT", 7)> m_Default;
 			};
 
 			instance();
@@ -279,15 +279,15 @@ namespace core::meta
 			{
 				s << m_Size << m_Elements;
 			}
-			/// \brief the serialization name for the format::node
+			/// \brief the serialization name for the psl::format::node
 			static constexpr const char serialization_name[21]{"SHADER_INSTANCE_DATA"};
-			serialization::property<std::vector<element>, const_str("ELEMENTS", 8)> m_Elements;
-			serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
+			psl::serialization::property<std::vector<element>, const_str("ELEMENTS", 8)> m_Elements;
+			psl::serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
 		};
 
 		class descriptor
 		{
-			friend class serialization::accessor;
+			friend class psl::serialization::accessor;
 
 		  public:
 			descriptor();
@@ -354,19 +354,19 @@ namespace core::meta
 				s << m_Binding << m_Name << m_Size << m_Type << m_SubElements;
 			}
 
-			/// \brief the serialization name for the format::node
+			/// \brief the serialization name for the psl::format::node
 			static constexpr const char serialization_name[26]{"SHADER_BINDING_DESCRIPTOR"};
 
-			serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
-			serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
-			serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
-			serialization::property<vk::DescriptorType, const_str("TYPE", 4)> m_Type;
-			serialization::property<std::vector<instance::element>, const_str("SUB_ELEMENTS", 12)> m_SubElements;
+			psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
+			psl::serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
+			psl::serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
+			psl::serialization::property<vk::DescriptorType, const_str("TYPE", 4)> m_Type;
+			psl::serialization::property<std::vector<instance::element>, const_str("SUB_ELEMENTS", 12)> m_SubElements;
 		};
 
 
 		shader() = default;
-		shader(const UID& key) : ::meta::file(key){};
+		shader(const psl::UID& key) : psl::meta::file(key){};
 
 		~shader() = default;
 
@@ -423,16 +423,16 @@ namespace core::meta
 		template <typename S>
 		void serialize(S& s)
 		{
-			::meta::file::serialize(s);
+			psl::meta::file::serialize(s);
 
 			s << m_Stage << m_VertexBindings << m_Descriptors;
 		}
 
-		serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
-		serialization::property<std::vector<vertex::binding>, const_str("VERTEX_BINDINGS", 15)> m_VertexBindings;
-		serialization::property<std::vector<descriptor>, const_str("DESCRIPTORS", 11)> m_Descriptors;
+		psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
+		psl::serialization::property<std::vector<vertex::binding>, const_str("VERTEX_BINDINGS", 15)> m_VertexBindings;
+		psl::serialization::property<std::vector<descriptor>, const_str("DESCRIPTORS", 11)> m_Descriptors;
 
-		/// \brief the polymorphic serialization name for the format::node that will be used to calculate the CRC64 ID
+		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64 ID
 		/// of this type on.
 		static constexpr const char polymorphic_name[12]{"SHADER_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.

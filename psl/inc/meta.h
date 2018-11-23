@@ -11,6 +11,8 @@ namespace std
 #endif
 }
 
+namespace psl
+{
 /// \brief is an object holding a Unique IDentifier (UID)
 ///
 /// UID generates a unique ID, either through a random number generator, or by using OS provided
@@ -94,11 +96,11 @@ private:
 	PUID GUID;
 	
 };
-
+}
 namespace std {
-	template <> struct hash<UID>
+	template <> struct hash<psl::UID>
 	{
-		size_t operator()(const UID & x) const
+		size_t operator()(const psl::UID & x) const
 		{
 			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
 			return half[0] ^ half[1];
@@ -109,16 +111,16 @@ namespace std {
 namespace utility
 {
 	template<>
-	struct converter<UID>
+	struct converter<psl::UID>
 	{
-		static psl::string8_t to_string(const UID& x)
+		static psl::string8_t to_string(const psl::UID& x)
 		{
 			return x.to_string();
 		}
 
-		static UID from_string(psl::string8::view str)
+		static psl::UID from_string(psl::string8::view str)
 		{
-			return UID::convert(psl::string8_t(str));
+			return psl::UID::convert(psl::string8_t(str));
 		}
 	};
 }

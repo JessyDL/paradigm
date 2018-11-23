@@ -30,8 +30,8 @@ namespace core::os
 	class surface
 	{
 	  public:
-		surface(const UID& uid, core::resource::cache& cache, core::resource::handle<data::window> data);
-		surface(const surface& other, const UID& uid, core::resource::cache& cache,
+		surface(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<data::window> data);
+		surface(const surface& other, const psl::UID& uid, core::resource::cache& cache,
 				core::resource::handle<data::window> data);
 		~surface();
 		surface(const surface&) = delete;
