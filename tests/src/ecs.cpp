@@ -3,6 +3,31 @@
 
 using namespace core::ecs;
 using namespace tests::ecs;
+
+
+namespace tests::ecs
+{
+struct float_system
+{
+	core::ecs::vector<const float> m_Floats;
+	core::ecs::vector<int> m_Ints;
+	core::ecs::vector<core::ecs::entity> m_Entities;
+
+	void announce(core::ecs::state& state)
+	{
+		state.register_dependency(*this, {m_Entities, m_Floats, m_Ints});
+	}
+
+	void tick(core::ecs::state& state, std::chrono::duration<float> dTime)
+	{
+		for(size_t i = 0; i < m_Entities.size(); ++i)
+		{
+			m_Ints[i] += 5;
+		}
+	}
+};
+}
+
 TEST_CASE("component_key must be unique", "[ECS]")
 {
 	using namespace core::ecs::details;
@@ -82,6 +107,8 @@ TEST_CASE("systems", "[ECS]")
 	for(int i = 0; i < 10; ++i)
 		state.tick();
 
+	std::is_empty<int>::value;
+	sizeof(int);
 	std::vector<int> results;
 	auto f = state.filter<int>(results);
 	REQUIRE(results.size() == f.size());

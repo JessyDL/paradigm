@@ -35,10 +35,7 @@ endif()
 add_executable(${LOCAL_PROJECT} ${INC} ${SRC} ${NATVIS})
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "tests")
-				
 target_link_libraries(${LOCAL_PROJECT} PUBLIC ${SHLWAPI} Catch2 ${PROJECT_CORE} )
-
-
 
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 

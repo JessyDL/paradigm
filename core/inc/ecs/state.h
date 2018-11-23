@@ -332,7 +332,7 @@ namespace core::ecs
 				{
 					m_Components.emplace(
 						int_id,
-						details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(T)});
+						details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(component_type)});
 				}
 				it = m_Components.find(int_id);
 				core::profiler.scope_end();
@@ -899,7 +899,8 @@ namespace core::ecs
 			size_t i = 0;
 
 			const auto& mem_pair = m_Components.find(int_id);
-
+			const auto size = mem_pair->second.size;
+			const std::uintptr_t data = (std::uintptr_t)mem_pair->second.region.data();
 			for(const auto& e : entities)
 			{
 				auto eMapIt  = m_EntityMap.find(e);
@@ -909,8 +910,8 @@ namespace core::ecs
 											});
 
 				auto index = foundIt->second;
-				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
-				std::memcpy((void*)((std::uintptr_t)out + (i * mem_pair->second.size)), loc, mem_pair->second.size);
+				void* loc  = (void*)(data + size * index);
+				std::memcpy((void*)((std::uintptr_t)out + (i * size)), loc, size);
 				++i;
 			}
 		}

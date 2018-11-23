@@ -22,7 +22,8 @@ endif()
 ###############################################################################
 OPTION(PE_PCH "generate and use precompiled headers (if supported)" OFF)
 OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
-OPTION(PE_EXE "should the core library be compiled as executable instead?" OFF)
+set(PE_MODE "LIB" CACHE STRING "should the core library be compiled as library (default), executable, or should the tests be built.")
+set_property(CACHE PE_MODE PROPERTY STRINGS LIB EXE)
 OPTION(PE_TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
@@ -56,7 +57,7 @@ include(assimp)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(PE_EXE)
+if(PE_MODE STREQUAL "EXE")
 	list(APPEND PE_DEFINES -DCORE_EXECUTABLE)
 endif()
 
@@ -78,14 +79,13 @@ endif()
 ###                    validation                                           ###
 ###############################################################################
 
-if(PE_EXE AND PE_TESTS)
-	message(FATAL_ERROR "you cannot mix [PE_EXE] and [PE_TESTS] flags")
-endif()
-
 if(WIN32)
 	list(APPEND PE_DL_LIBS Shlwapi.lib)
 endif()
 
+if(PE_MODE STREQUAL "EXE" AND PE_TESTS)
+	message(FATAL_ERROR "you cannot mix [PE_EXE] and [PE_TESTS] flags")
+endif()
 
 ###############################################################################
 ###                    setup output directories                             ###

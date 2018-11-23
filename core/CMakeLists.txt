@@ -50,7 +50,7 @@ else()
 	endif()	
 endif()
 
-if(${PE_EXE})
+if(PE_MODE STREQUAL "EXE")
 	add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
 else()
 	add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
