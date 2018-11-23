@@ -21,7 +21,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_EXE=ON" UTESTS=false DOXGEN=true
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true
       addons: &clang60
         apt:
           sources:
