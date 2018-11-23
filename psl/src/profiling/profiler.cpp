@@ -171,6 +171,7 @@ psl::string profiler::to_string() const
 				reached_end = true;
 		}
 	}*/
+#endif
 	do
 	{
 		const auto& frame_data = m_Frames[i];
@@ -178,18 +179,14 @@ psl::string profiler::to_string() const
 		{
 			if(scope.mangled_name)
 			{
-			#ifdef PLATFORM_WINDOWS
 				if(auto it = demangled_info.find(scope.name); it == std::end(demangled_info))
 				{
 					demangled_info.insert({scope.name, utility::debug::demangle((void*)scope.name).name});
 				}
-			#endif			
 			}
 		}
 		i = (i + 1) % m_Frames.size();
 	} while(i != endIt);
-
-#endif
 	psl::timer init_timer;
 	i = endIt;
 	do

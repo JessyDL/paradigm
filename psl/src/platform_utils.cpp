@@ -243,6 +243,8 @@ std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth)
 
 utility::debug::trace_info utility::debug::demangle(void* target)
 {
+	utility::debug::trace_info info;
+#ifdef PLATFORM_WINDOWS
 	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {
 		IMAGEHLP_SYMBOL64* symbol;
 		symbol				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
@@ -258,8 +260,8 @@ utility::debug::trace_info utility::debug::demangle(void* target)
 	});
 
 	SymGetSymFromAddr64(process, (DWORD64)(target), 0, symbol.get());
-	utility::debug::trace_info info;
 	info.name = psl::from_string8_t(psl::string8_t(symbol->Name));
 	info.addr = symbol->Address;
+#endif
 	return info;
 }
