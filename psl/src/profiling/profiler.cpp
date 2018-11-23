@@ -194,8 +194,8 @@ psl::string profiler::to_string() const
 		const auto& frame_data = m_Frames[i];
 		std::chrono::microseconds duration = (frame_data.duration.count() == 0) ? frame_data.m_Timer.elapsed<std::chrono::microseconds>() - init_timer.elapsed< std::chrono::microseconds>() : frame_data.duration;
 		res += "--------------------------------------------------------------------------------\nframe\n";
-		res += "\t duration: " + utility::converter<long long>::to_string(duration.count()) + u8"μs\n";
-		res += "\t invocations: " + utility::converter<long long>::to_string(frame_data.m_Scopes.size()) + "\n";
+		res += "\t duration: " + utility::converter<typename decltype(duration.count())>::to_string(duration.count()) + u8"μs\n";
+		res += "\t invocations: " + utility::converter<size_t>::to_string(frame_data.m_Scopes.size()) + "\n";
 		for(const auto& scope : frame_data.m_Scopes)
 		{
 			double percentage = (double)(scope.duration.count() * 1000000 / duration.count()) / 10000.0;
@@ -205,7 +205,7 @@ psl::string profiler::to_string() const
 				percentageStr.insert(std::begin(percentageStr), '0');
 			percentageStr.resize(percentageStr.size() - 2);
 			percentageStr += "%";
-			psl::string durationStr = utility::converter<long long>::to_string(scope.duration.count()) + u8"μs";
+			psl::string durationStr = utility::converter<size_t>::to_string(scope.duration.count()) + u8"μs";
 			psl::string name;
 			if(scope.mangled_name)
 			{
