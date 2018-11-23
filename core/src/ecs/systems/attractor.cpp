@@ -11,7 +11,7 @@ using namespace psl::math;
 
 void attractor::announce(core::ecs::state& state)
 {
-	state.register_dependency(*this, {m_Entities, m_Transforms, core::ecs::filter<core::ecs::components::renderable>{}, m_Velocity});
+	state.register_dependency(*this, {m_Entities, m_Transforms, m_Velocity});
 	state.register_dependency(*this, {m_AttractorEntities, m_AttractorTransform, m_Attractors});
 }
 void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
