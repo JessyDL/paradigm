@@ -17,6 +17,97 @@ namespace core::ecs
 	class tag
 	{};
 
+	struct all
+	{};
+
+	struct  par
+	{};
+
+	template<bool has_entities = true, typename... Ts>
+	class pack
+	{
+		using range_t = std::tuple<core::ecs::vector<entity>, core::ecs::vector<Ts>...>;
+		using range_element_t = std::tuple<entity, Ts...>;
+		using iterator_element_t = std::tuple<typename core::ecs::vector<entity>::iterator, typename core::ecs::vector<Ts>::iterator ...>;
+
+		template <typename Tuple, typename F, std::size_t ...Indices>
+		void for_each_impl(Tuple&& tuple, F&& f, std::index_sequence<Indices...>)
+		{
+			using swallow = int[];
+			(void)swallow
+			{
+				1,
+					(f(std::get<Indices>(std::forward<Tuple>(tuple))), void(), int{})...
+			};
+		}
+
+		template <typename Tuple, typename F>
+		void for_each(Tuple&& tuple, F&& f)
+		{
+			constexpr std::size_t N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
+			for_each_impl(std::forward<Tuple>(tuple), std::forward<F>(f),
+						  std::make_index_sequence<N>{});
+		}
+	public:
+		class iterator
+		{
+		public:
+			constexpr iterator(const range_t& range) noexcept 
+			{
+			};
+			constexpr iterator(iterator_element_t data) noexcept : data(data) {};
+			constexpr const iterator_element_t& operator*() const noexcept
+			{
+				return data;
+			}
+			constexpr bool operator!=(iterator other) const noexcept
+			{
+				return std::get<0>(data) != std::get<0>(other.data);
+			}
+			constexpr iterator operator++() const noexcept
+			{
+				auto next = iterator(data);
+				++next;
+				return next;
+			}
+			constexpr iterator& operator++() noexcept
+			{
+				for_each(data, [](auto& element){++element;});
+				return *this;
+			}
+		private:
+			iterator_element_t data;
+		};
+		range_t read()
+		{
+			return m_Pack;
+		}
+
+		template<typename T>
+		const core::ecs::vector<T>& get()
+		{
+			return std::get<core::ecs::vector<T>>(m_Pack);
+		}
+
+		iterator begin() const noexcept
+		{
+			return iterator{m_Pack};
+		}
+
+		iterator end() const noexcept
+		{
+			return iterator{m_Pack};
+		}
+		constexpr size_t size() const noexcept
+		{
+			return std::get<0>(m_Pack).size();
+		}
+
+	private:
+		range_t m_Pack;
+	};
+
+
 	namespace details
 	{
 
@@ -113,7 +204,7 @@ namespace core::ecs
 			dependency_pack& operator=(dependency_pack&&) = default;
 
 			template <typename T>
-			void add(core::ecs::vector<T, access::READ_WRITE>& vec) noexcept
+			void add(core::ecs::vector<T>& vec) noexcept
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				m_RWBindings.emplace(int_id, std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
@@ -121,7 +212,7 @@ namespace core::ecs
 			}
 
 			template <typename T>
-			void add(core::ecs::vector<T, access::READ_ONLY>& vec) noexcept
+			void add(core::ecs::vector<const T>& vec) noexcept
 			{
 				constexpr details::component_key_t int_id = details::component_key<T>;
 				m_RBindings.emplace(int_id, std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});

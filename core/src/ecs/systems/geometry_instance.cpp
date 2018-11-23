@@ -6,6 +6,7 @@
 #include "ecs/components/transform.h"
 #include "ecs/components/input_tag.h"
 #include "conversion_utils.h"
+#include <execution>
 
 using namespace core::resource;
 using namespace core::gfx;
@@ -17,16 +18,32 @@ using namespace psl::math;
 
 void geometry_instance::announce(core::ecs::state& state)
 {
-	state.register_dependency(*this, {m_Entities, m_Transforms, m_Renderers});
+	state.register_dependency(*this, {m_Entities, m_Transforms, m_Renderers, m_Velocity});
+	state.register_dependency(*this, {m_LifeEntities, m_Lifetime});
 	state.register_dependency(*this, {m_CamEntities, m_CamTransform, core::ecs::filter<core::ecs::components::input_tag>{}});
 }
+
+
 
 std::vector<psl::mat4x4> modelMats;
 float accTime {0.0f};
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
+	pack<true, const transform, const renderable> p{};
+	auto pAck = p.read();
+	auto transformPack = p.get<const transform>();
 	PROFILE_SCOPE(core::profiler)
 	accTime += dTime.count();
+
+	std::vector<entity> dead_ents;
+	for(size_t i = 0; i < m_LifeEntities.size(); ++i)
+	{
+		m_Lifetime[i].value -= dTime.count();
+		if(m_Lifetime[i].value <= 0.0f)
+			dead_ents.emplace_back(m_LifeEntities[i]);
+	}
+	state.add_component<dead_tag>(dead_ents);
+
 	core::profiler.scope_begin("release material handles");
 	for(const auto& renderer : m_Renderers)
 	{
@@ -34,18 +51,29 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	}
 	core::profiler.scope_end();
 	core::profiler.scope_begin("rotate and reposition all transforms");
+
+	//for(size_t i = 0; i < m_Entities.size(); ++i)
+	//{
+	//	auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
+	//	m_Transforms[i].position += (normalize(m_Transforms[i].position) * dTime.count() * 3.0f * sin(accTime*0.1f));
+	//	m_Transforms[i].rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * m_Transforms[i].rotation);
+	//	if(mag < 6)
+	//	{
+	//		m_Transforms[i].rotation = normalize(psl::math::look_at_q(m_Transforms[i].position, m_CamTransform[0].position, psl::vec3::up));
+	//	}
+
+	//	//
+	//	//m_Transforms[i].rotation = normalize(m_CamTransform[0].rotation);
+	//}
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
-		auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
-		m_Transforms[i].position += (normalize(m_Transforms[i].position) * dTime.count() * 3.0f * sin(accTime*0.1f));
+		m_Transforms[i].position += m_Velocity[i].direction * m_Velocity[i].force * dTime.count();
+		const auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
 		m_Transforms[i].rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * m_Transforms[i].rotation);
 		if(mag < 6)
 		{
 			m_Transforms[i].rotation = normalize(psl::math::look_at_q(m_Transforms[i].position, m_CamTransform[0].position, psl::vec3::up));
 		}
-
-		//
-		//m_Transforms[i].rotation = normalize(m_CamTransform[0].rotation);
 	}
 	core::profiler.scope_end();
 

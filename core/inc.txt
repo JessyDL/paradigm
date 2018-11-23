@@ -38,6 +38,7 @@ inc/ecs/entity.h
 inc/ecs/systems/fly.h
 inc/ecs/systems/render.h
 inc/ecs/systems/geometry_instance.h
+inc/ecs/systems/attractor.h
 inc/ecs/components/camera.h
 inc/ecs/components/transform.h
 inc/ecs/components/renderable.h

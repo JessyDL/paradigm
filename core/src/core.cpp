@@ -49,6 +49,7 @@
 #include "ecs/systems/fly.h"
 #include "ecs/systems/render.h"
 #include "ecs/systems/geometry_instance.h"
+#include "ecs/systems/attractor.h"
 
 using namespace core;
 using namespace core::resource;
@@ -684,31 +685,14 @@ int entry()
 
 	// create the ecs
 	core::ecs::state ECSState{};
-	auto eCam = ECSState.create_one(
-		core::ecs::tag<core::ecs::components::transform>{}, 
-		core::ecs::tag<core::ecs::components::camera>{}, 
-		core::ecs::tag<core::ecs::components::input_tag>{});
+	auto eCam = ECSState.create_one(core::ecs::tag<core::ecs::components::transform>{},
+									core::ecs::tag<core::ecs::components::camera>{},
+									core::ecs::tag<core::ecs::components::input_tag>{});
 
-	const size_t area			  = 64;
+	const size_t area			  = 128;
 	const size_t area_granularity = 128;
 	const size_t size_steps		  = 24;
-	ECSState.create(
-		50000,
-		core::ecs::components::renderable{material, geometry, 0u},
-		[&area_granularity, &area, &size_steps](size_t index)
-		{
-			return core::ecs::components::transform{
-				psl::vec3((float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-							  (area / 2.0f),
-						  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-							  (area / 2.0f),
-						  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-							  (area / 2.0f)),
-
-				psl::vec3((float)(std::rand() % size_steps) / size_steps,
-						  (float)(std::rand() % size_steps) / size_steps,
-						  (float)(std::rand() % size_steps) / size_steps)};
-		});
+	
 
 	core::ecs::systems::fly fly_system{surface_handle->input()};
 	ECSState.register_system(fly_system);
@@ -717,6 +701,8 @@ int entry()
 	ECSState.register_system(render_system);
 	core::ecs::systems::geometry_instance geometry_instance{};
 	ECSState.register_system(geometry_instance);
+	core::ecs::systems::attractor attractor{};
+	ECSState.register_system(attractor);
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
 	{
@@ -726,6 +712,9 @@ int entry()
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
 		ECSState.tick(elapsed);
+		ECSState.destroy(ECSState.filter<core::ecs::components::dead_tag>());
+		core::log->info("ECS has {} renderables alive right now", ECSState.filter<core::ecs::components::renderable>().size());
+
 		/*auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();
 		core::log->info("ECS has {} renderables alive right now", all_geom.size());
 		std::vector<core::ecs::entity> to_delete;
@@ -735,10 +724,32 @@ int entry()
 		}
 		all_geom = std::move(to_delete);
 		ECSState.destroy(all_geom);
+		*/
 		ECSState.create(
-			1200,
-			core::ecs::components::renderable{material, geometry, 0u},
-			[&area_granularity, &area, &size_steps](size_t index) 
+			120, core::ecs::components::renderable{material, geometry, 0u},
+			[&size_steps](size_t index) {
+				return core::ecs::components::transform{
+					psl::vec3(0, 0, 0),
+					psl::vec3((float)(std::rand() % size_steps) / size_steps,
+							  (float)(std::rand() % size_steps) / size_steps,
+							  (float)(std::rand() % size_steps) / size_steps)};
+			},
+			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
+			[&size_steps](size_t index) {
+				return core::ecs::components::velocity{
+					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
+					((std::rand() % 5000) / 500.0f) * 3.0f, 1.0f};
+			});
+
+		if(ECSState.filter<core::ecs::components::attractor>().size() < 15)
+		{
+		ECSState.create(
+			15,
+			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
+			[&size_steps](size_t index) { return core::ecs::components::attractor{(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f, (float)(std::rand() % size_steps) / size_steps * 80}; },
+			[&area_granularity, &area, &size_steps](size_t index)
 			{
 				return core::ecs::components::transform{
 					psl::vec3((float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
@@ -751,7 +762,8 @@ int entry()
 					psl::vec3((float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps)};
-			});*/
+			});
+		}
 	}
 
 	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",

@@ -87,30 +87,29 @@ namespace core::ecs
 		std::vector<T>* m_Target{ nullptr };
 		std::vector<size_t> m_Indices;
 	};
-
-	enum access
-	{
-		READ_WRITE = 0,
-		READ_ONLY = 1
-	};
-
+	
 	class state;
 
-	template<typename T,access access_level = access::READ_WRITE>
+	template<typename T>
 	struct vector
 	{
 		friend class core::ecs::state;
+		using storage_type = std::remove_const_t<std::remove_pointer_t<std::remove_reference_t<T>>>;
 	public:
+		using component_t = std::remove_pointer_t<std::remove_reference_t<T>>;
+		static constexpr const bool is_read_only{std::is_const_v<T>};
+
 		struct iterator
 		{
 		public:
-			constexpr iterator(T* data) noexcept : data(data) {};
-			constexpr T& operator*()  noexcept
+			constexpr iterator(component_t* data) noexcept : data(data) {};
+
+			constexpr component_t& operator*()  noexcept
 			{
 				return *data;
 			}
 
-			constexpr const T& operator*() const noexcept
+			constexpr const component_t& operator*() const noexcept
 			{
 				return *data;
 			}
@@ -131,7 +130,7 @@ namespace core::ecs
 				return *this;
 			}
 		private:
-			T* data;
+			storage_type* data;
 		};
 		vector() noexcept = default;
 		~vector() noexcept = default;
@@ -140,45 +139,49 @@ namespace core::ecs
 		vector& operator=(const vector&) noexcept = default;
 		vector& operator=(vector&&) noexcept = default;
 
-		constexpr const T& operator[](size_t index) const noexcept
-		{			
+		constexpr const component_t& operator[](size_t index) const noexcept
+		{
 			return *(data + index);
 		}
-		constexpr T& operator[](size_t index)  noexcept
-		{			
+
+		constexpr component_t& operator[](size_t index) noexcept
+		{
 			return *(data + index);
 		}
 
 		iterator begin() const noexcept
 		{
-			return iterator{data };
+			return iterator{data};
 		}
 
 		iterator end() const noexcept
 		{
-			return iterator{ tail };
+			return iterator{tail};
 		}
-
 		constexpr size_t size() const noexcept
 		{
 			return (tail - data);
 		}
 
 	private:
-		T* data;
-		T* tail;
+		storage_type* data;
+		storage_type* tail;
 	};
 
 	template<typename T>
-	struct vector<T, access::READ_ONLY>
+	struct vector<const T>
 	{
 		friend class core::ecs::state;
+		using storage_type = std::remove_const_t<std::remove_pointer_t<std::remove_reference_t<T>>>;
 	public:
+		using component_t = std::remove_pointer_t<std::remove_reference_t<T>>;
+		static constexpr const bool is_read_only{true};
+
 		struct iterator
 		{
 		public:
-			constexpr iterator(T* data) noexcept : data(data) {};
-			constexpr const T& operator*() const noexcept
+			constexpr iterator(component_t* data) noexcept : data(data) {};
+			constexpr const component_t& operator*() const noexcept
 			{
 				return *data;
 			}
@@ -188,7 +191,7 @@ namespace core::ecs
 				return data != other.data;
 			}
 
-			constexpr iterator operator++() const noexcept 
+			constexpr iterator operator++() const noexcept
 			{
 				return iterator(data + 1);
 			}
@@ -199,7 +202,7 @@ namespace core::ecs
 				return *this;
 			}
 		private:
-			T* data;
+			storage_type* data;
 		};
 		vector() noexcept = default;
 		~vector() noexcept = default;
@@ -208,19 +211,19 @@ namespace core::ecs
 		vector& operator=(const vector&) noexcept = default;
 		vector& operator=(vector&&) noexcept = default;
 
-		constexpr const T& operator[](size_t index) const noexcept
-		{			
+		constexpr const component_t& operator[](size_t index) const noexcept
+		{
 			return *(data + index);
 		}
 
 		iterator begin() const noexcept
 		{
-			return iterator{data };
+			return iterator{data};
 		}
 
 		iterator end() const noexcept
 		{
-			return iterator{ tail };
+			return iterator{tail};
 		}
 		constexpr size_t size() const noexcept
 		{
@@ -228,12 +231,13 @@ namespace core::ecs
 		}
 
 	private:
-		T* data;
-		T* tail;
+		storage_type* data;
+		storage_type* tail;
 	};
 
-	template<access access_level>
-	struct vector<core::ecs::entity, access_level>
+
+	template<>
+	struct vector<core::ecs::entity>
 	{
 		friend class core::ecs::state;
 	public:

@@ -26,12 +26,12 @@ namespace core::ecs::systems
 		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
 							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
 
-		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_Transforms;
-		core::ecs::vector<core::ecs::components::renderable, core::ecs::READ_ONLY> m_Renderers;
+		core::ecs::vector<const core::ecs::components::transform> m_Transforms;
+		core::ecs::vector<const core::ecs::components::renderable> m_Renderers;
 		core::ecs::vector<core::ecs::entity> m_RenderableEntities;
 
-		core::ecs::vector<core::ecs::components::camera, core::ecs::READ_ONLY> m_Cameras;
-		core::ecs::vector<core::ecs::components::transform, core::ecs::READ_ONLY> m_CameraTransforms;
+		core::ecs::vector<const core::ecs::components::camera> m_Cameras;
+		core::ecs::vector<const core::ecs::components::transform> m_CameraTransforms;
 		core::ecs::vector<core::ecs::entity> m_CameraEntities;
 
 	  public:
