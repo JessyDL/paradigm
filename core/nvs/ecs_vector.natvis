@@ -11,4 +11,22 @@
       </ArrayItems>    
   </Expand>
   </Type>
+  <Type Name="core::resource::handle&lt;*&gt;">
+    <DisplayString>{{ state = {m_Container->m_State} }}</DisplayString>
+    <Expand>
+      <Item Name="[resource]" Condition="m_Container != nullptr">*m_Container->m_Resource</Item>
+      <Item Name="[resource]" Condition="m_Container == nullptr">nullptr</Item>
+      <Item Name="[UID]">uid</Item>
+      <Item Name="[RUID]">resource_uid</Item>
+      <Item Name="[cache]">m_Cache</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="core::resource::indirect_handle&lt;*&gt;">
+    <DisplayString>{{ UID = {m_UID} }}</DisplayString>
+    <Expand>
+      <Item Name="[UID]">m_UID</Item>
+      <Item Name="[cache]">m_Cache</Item>
+    </Expand>
+  </Type>
 </AutoVisualizer>

@@ -25,7 +25,7 @@ bool allocator_base::deallocate(segment& segment)
 	if(is_physically_backed())	// zero-reset
 		std::memset((void*)local.begin, 0, local.size());
 
-	static range r{0u, 0u};
+	static range r{std::numeric_limits<std::uint64_t>::max(), 0u};
 	segment = memory::segment{r, false};
 
 	return true;
@@ -117,9 +117,12 @@ bool default_allocator::do_deallocate(segment& segment)
 				m_Committed.emplace_back(r.end, committed.end);
 				committed.end = r.begin;
 			}
-			break;
+			goto free;
 		}
 	}
+
+	goto fail;
+	free:
 	for(auto& free : m_Free)
 	{
 		if(free.begin == r.end)
@@ -161,6 +164,10 @@ bool default_allocator::do_deallocate(segment& segment)
 end:
 
 	return true;
+
+fail:
+
+	return false;
 }
 std::vector<range> default_allocator::get_committed()
 {

@@ -751,7 +751,7 @@ void context::init_descriptor_pool()
 	// All descriptors used in this example are allocated from this pool
 	vk::DescriptorPoolCreateInfo descriptorPoolInfo =
 		utility::vulkan::defaults::descriptor_pool_ci((uint32_t)typeCounts.size(), typeCounts.data(), 32);
-
+	descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
 	utility::vulkan::check(m_Device.createDescriptorPool(&descriptorPoolInfo, nullptr, &m_DescriptorPool));
 }
 

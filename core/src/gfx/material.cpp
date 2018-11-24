@@ -22,11 +22,11 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 				   core::resource::handle<core::gfx::buffer> materialBuffer,
 				   core::resource::handle<core::gfx::buffer> instanceBuffer)
-	: m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data), m_MaterialBuffer(materialBuffer),
+	: m_UID(packet.get<UID>()), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data), m_MaterialBuffer(materialBuffer),
 	  m_InstanceBuffer(instanceBuffer)
 {
 	PROFILE_SCOPE(core::profiler)
-	const auto& ID = packet.get<UID>();
+	const auto& ID = m_UID;
 	auto& cache	= packet.get<core::resource::cache>();
 	m_IsValid	  = false;
 
@@ -56,7 +56,8 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				iData.size_of_element = vBinding.size();
 				iData.name = vBinding.buffer();
 			}
-			m_InstanceData = instance_data(std::move(elements), 1024*1024);
+			// todo this hard coded value should be resolved
+			m_InstanceData = instance_data(std::move(elements), 1024*32);
 		}
 		// now we validate the shader, and store all the bound resource handles
 		for(const auto& binding : stage.bindings())
@@ -147,7 +148,7 @@ core::resource::handle<pipeline> material::get(core::resource::handle<framebuffe
 	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_Pipeline.find(framebuffer.ID()); it == std::end(m_Pipeline))
 	{
-		m_Pipeline[framebuffer.ID()] = m_PipelineCache->get(m_Data, framebuffer);
+		m_Pipeline[framebuffer.ID()] = m_PipelineCache->get(m_UID, m_Data, framebuffer);
 		return m_Pipeline[framebuffer.ID()];
 	}
 	else
@@ -161,7 +162,7 @@ core::resource::handle<pipeline> material::get(core::resource::handle<swapchain>
 	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_Pipeline.find(swapchain.ID()); it == std::end(m_Pipeline))
 	{
-		m_Pipeline[swapchain.ID()] = m_PipelineCache->get(m_Data, swapchain);
+		m_Pipeline[swapchain.ID()] = m_PipelineCache->get(m_UID, m_Data, swapchain);
 		return m_Pipeline[swapchain.ID()];
 	}
 	else
@@ -309,7 +310,15 @@ std::optional<uint32_t> material::instance_data::add(core::resource::handle<core
 			auto& data = it->second.segments.emplace_back();
 			data.slot = elementIt.slot;
 			data.size_of_element = elementIt.size_of_element;
-			data.segment = buffer->reserve(elementIt.size_of_element * m_Capacity).value();
+			if(auto segm = buffer->reserve(elementIt.size_of_element * m_Capacity); !segm)
+			{
+				core::gfx::log->error("available buffer size: {0} while trying to allocate {1}", buffer->free_size(), elementIt.size_of_element * m_Capacity);			
+			}
+			else
+			{
+				data.segment = segm.value();
+			}
+
 		}
 	}
 
@@ -335,7 +344,7 @@ bool material::instance_data::remove(core::resource::handle<core::gfx::buffer> b
 			{
 				buffer->deallocate(segment.segment);
 			}
-			it->second.segments.clear();
+
 			m_Instance.erase(it);
 		}
 		return true;
@@ -390,7 +399,7 @@ bool material::instance_data::remove_all(core::resource::handle<core::gfx::buffe
 		{
 			buffer->deallocate(segment.segment);
 		}
-		instance.second.segments.clear();
+
 	}
 	m_Instance.clear();
 	return true;
@@ -403,7 +412,7 @@ bool material::instance_data::remove_all(core::resource::handle<core::gfx::buffe
 		{
 			buffer->deallocate(segment.segment);
 		}
-		it->second.segments.clear();
+
 		m_Instance.erase(it);
 		return true;
 	}

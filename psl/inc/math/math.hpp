@@ -358,7 +358,7 @@ namespace psl::math
 	template<typename precision_t>
 	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& origin, const tvec<precision_t, 3>& target, const tvec<precision_t, 3>& up) noexcept
 	{
-		return look_at_q(normalize(target - origin), up);
+		return look_at_q(normalize(origin - target), up);
 	}
 
 

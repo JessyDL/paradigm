@@ -71,6 +71,7 @@ bool pass::build()
 	LOG_INFO("Rebuilding Command Buffers");
 	m_LastBuildFrame = m_FrameCount;
 
+	m_Context->device().waitIdle();
 	m_Context->device().freeCommandBuffers(m_Context->command_pool(), m_DrawCommandBuffers.size(),
 										   m_DrawCommandBuffers.data());
 

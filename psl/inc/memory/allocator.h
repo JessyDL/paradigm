@@ -23,6 +23,8 @@ namespace memory
 
 		[[nodiscard]] std::optional<segment> allocate(std::size_t bytes)
 		{
+			if(bytes == 0)
+				return std::nullopt;
 			return do_allocate(m_Region, bytes);
 		};
 

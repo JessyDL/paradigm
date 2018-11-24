@@ -585,14 +585,14 @@ int entry()
 	geomBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer |
 							vk::BufferUsageFlagBits::eTransferDst,
 						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024, 4, new memory::default_allocator(false)});
+						memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
 	auto geomBuffer = create<gfx::buffer>(cache);
 	geomBuffer.load(context_handle, geomBufferData, stagingBuffer);
 
 	// load the example model
 	// auto geomData = create<data::geometry>(cache, UID::convert("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"));
 	//auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
-	auto geomData = utility::geometry::create_icosphere(cache, psl::vec3::one);
+	auto geomData = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
 	geomData.load();
 	auto& positionstream =
 		geomData->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
@@ -622,6 +622,49 @@ int entry()
 	auto geometry = create<gfx::geometry>(cache);
 	geometry.load(context_handle, geomData, geomBuffer, geomBuffer);
 
+	std::vector<resource::handle<data::geometry>> geometryDataHandles;
+	std::vector<resource::handle<gfx::geometry>> geometryHandles;
+	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
+	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
+	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
+	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
+	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12,8));
+	for(auto& handle : geometryDataHandles)
+	{
+		handle.load();
+		auto& positionstream =
+			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
+		core::stream colorstream{core::stream::type::vec3};
+		auto& colors = colorstream.as_vec3().value().get();
+		const float range = 1.0f;
+		const bool inverse_colors = false;
+		for(auto i = 0; i < positionstream.size(); ++i)
+		{
+			if(inverse_colors)
+			{
+				float red = std::max(-range, std::min(range, positionstream[i][0])) / range;
+				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
+				float blue = std::max(-range, std::min(range, positionstream[i][2])) / range;
+				colors.emplace_back(psl::vec3(red, green, blue));
+			}
+			else
+			{
+				float red = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
+				float blue = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+				colors.emplace_back(psl::vec3(red, green, blue));
+			}
+		}
+
+		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
+
+		geometryHandles.emplace_back(create<gfx::geometry>(cache));
+		geometryHandles[geometryHandles.size() -1].load(context_handle, handle, geomBuffer, geomBuffer);
+	}
+
+
+
 	// get a vertex and fragment shader that can be combined, we only need the meta
 	if(!cache.library().contains(psl::UID::convert("3982b466-58fe-4918-8735-fc6cc45378b0")) ||
 	   !cache.library().contains(psl::UID::convert("4429d63a-9867-468f-a03f-cf56fee3c82e")))
@@ -640,7 +683,7 @@ int entry()
 	auto matBufferData = create<data::buffer>(cache);
 	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
 					   vk::MemoryPropertyFlagBits::eDeviceLocal,
-					   memory::region{1024 * 1024 * 128,
+					   memory::region{1024 * 1024 * 32,
 									  context_handle->properties().limits.minStorageBufferOffsetAlignment,
 									  new memory::default_allocator(false)});
 	auto matBuffer = create<gfx::buffer>(cache);
@@ -649,6 +692,9 @@ int entry()
 	// create the texture
 	auto textureHandle = create<gfx::texture>(cache, psl::UID::convert("3c4af7eb-289e-440d-99d9-20b5738f0200"));
 	textureHandle.load(context_handle);
+
+	auto textureHandle2 = create<gfx::texture>(cache, psl::UID::convert("7f24e25c-8b94-4da4-8a31-493815889698"));
+	textureHandle2.load(context_handle);
 
 	// create the sampler
 	auto samplerData = create<data::sampler>(cache);
@@ -665,7 +711,6 @@ int entry()
 	matData.load();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 	auto stages = matData->stages();
-
 	for(auto& stage : stages)
 	{
 		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
@@ -677,17 +722,32 @@ int entry()
 		// binding.texture()
 	}
 	matData->stages(stages);
+	auto matData2 = resource::copy<data::material>(cache, matData);
+	for(auto& stage : stages)
+	{
+		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+
+		auto bindings = stage.bindings();
+		bindings[0].texture(textureHandle2.RUID());
+		bindings[0].sampler(samplerHandle.RUID());
+		stage.bindings(bindings);
+		// binding.texture()
+	}
+	matData2->stages(stages);
 	psl::serialization::serializer s;
 	s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
 												 utility::application::path::get_path() + "material_example.mat");
 
 	auto material = create<gfx::material>(cache);
-	material.load(context_handle, matData, pipeline_cache, matBuffer, matBuffer);
+	material.load(context_handle, matData, pipeline_cache, matBuffer, geomBuffer);
+
+	auto material2 = create<gfx::material>(cache);
+	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
 
 	// create the ecs
 	core::ecs::state ECSState{};
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
-	camTrans.rotation = psl::math::look_at_q(-camTrans.position, psl::vec3::zero, psl::vec3::up);
+	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 	auto eCam = ECSState.create_one(std::move(camTrans),
 									core::ecs::tag<core::ecs::components::camera>{},
 									core::ecs::tag<core::ecs::components::input_tag>{});
@@ -730,7 +790,10 @@ int entry()
 		*/
 		ECSState.create(
 			120, 
-			core::ecs::components::renderable{material, geometry, 0u},
+			[&material, &geometryHandles, &material2](size_t index)
+			{ 
+				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};
+			},
 			core::ecs::tag<core::ecs::components::transform>{}/*
 			[&size_steps](size_t index) {
 				return core::ecs::components::transform{

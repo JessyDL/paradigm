@@ -26,15 +26,21 @@ std::optional<memory::segment> buffer::allocate(size_t size)
 }
 bool buffer::deallocate(memory::segment& segment) 
 { 
-	auto range = segment.range();
+	memory::range range{segment.range()};
 	if(m_Region.deallocate(segment))
 	{
-		
-		m_Segments.erase(
-			std::remove_if(std::begin(m_Segments), std::end(m_Segments),
-						   [&range](const memory::segment& entry) { return entry.range() == range; }),
-			std::end(m_Segments));
+		auto it = std::remove_if(std::begin(m_Segments), std::end(m_Segments),
+								 [&range](const memory::segment& entry) { return entry.range() == range; });
+
+		if(it == std::end(m_Segments))
+			core::data::log->critical("could not erase the range {0} - {1}", range.begin, range.end);
+
+		m_Segments.erase(it, std::end(m_Segments));
 		return true;
+	}
+	else
+	{
+		core::data::log->warn("tried to erase a range {0} - {1} that was not present in the buffer", range.begin, range.end);
 	}
 	return false; 
 }

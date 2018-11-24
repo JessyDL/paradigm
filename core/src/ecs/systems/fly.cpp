@@ -78,7 +78,7 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 		if(hasMoved)
 		{
 			hasMoved = false;
-			m_Transforms[i].position = m_Transforms[i].position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *10: m_MoveSpeed) * dTime.count();
+			m_Transforms[i].position = m_Transforms[i].position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * dTime.count();
 			accDirectionVec = {0};
 		}
 		if(bHasRotated)

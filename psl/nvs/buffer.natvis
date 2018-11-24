@@ -11,4 +11,83 @@
         </ArrayItems>
     </Expand>
   </Type>
+  <Type Name="memory::range">
+    <DisplayString>{{ size = {end - begin} }}</DisplayString>
+    <Expand>
+      <Item Name="[begin]">begin</Item>
+      <Item Name="[end]">end</Item>
+      <Item Name="[size]">end - begin</Item>
+      <Synthetic Name="sizes">
+        <Expand>
+          <Item Name="[kb]">end / 1024 - begin / 1024 </Item>
+          <Item Name="[mb]">end / 1048576 - begin / 1048576 </Item>
+          <Item Name="[gb]">end / 1073741824 - begin / 1073741824 </Item>
+        </Expand>  
+      </Synthetic>
+    </Expand>
+  </Type>
+  <Type Name="memory::region">
+    <DisplayString Condition="m_Size / 1024 &lt; 1024">{{ size = {m_Size / 1024}kb - {m_Size}b}}</DisplayString>
+    <DisplayString Condition="m_Size / 1024 &gt; 1024">{{ size = {m_Size / 1048576}mb - {m_Size}b }}</DisplayString>
+    <Expand>
+      <Item Name="[alignment]">m_Alignment</Item>
+      <Item Name="[size]">m_Size</Item>
+      <Item Name="[location]" Condition="m_Base != nullptr">m_Base</Item>
+      <Synthetic  Name="[location]" Condition="m_Base == nullptr">
+        <DisplayString>virtual memory</DisplayString>
+      </Synthetic >
+      <Item Name="[parent]">m_Parent</Item>
+      <Item Name="[allocator]">m_Allocator</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="memory::segment">
+    <DisplayString Condition="m_Range->end / 1024 - m_Range->begin / 1024 &lt; 1024">{{ size = {m_Range->end / 1024 - m_Range->begin / 1024}kb - {m_Range->end - m_Range->begin}b}}</DisplayString>
+    <DisplayString Condition="m_Range->end / 1024 - m_Range->begin / 1024 &gt; 1024">{{ size = {m_Range->end / 1048576 - m_Range->begin / 1048576}mb - {m_Range->end - m_Range->begin}b }}</DisplayString>
+    <Expand>
+      <Item Name="[virtual]">m_IsVirtual</Item>
+      <ExpandedItem>*m_Range</ExpandedItem>
+    </Expand>
+  </Type>
+  <Type Name="dummy::hex_dummy_low">
+    <DisplayString Condition="((c &amp; 0x0f) == 0x00)">0</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x01)">1</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x02)">2</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x03)">3</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x04)">4</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x05)">5</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x06)">6</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x07)">7</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x08)">8</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x09)">9</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x0a)">A</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x0b)">B</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x0c)">C</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x0d)">D</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x0e)">E</DisplayString>
+    <DisplayString Condition="((c &amp; 0x0f) == 0x0f)">F</DisplayString>
+  </Type>
+
+  <Type Name="dummy::hex_dummy_high">
+    <DisplayString Condition="((c >> 4) == 0x00)">0</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x01)">1</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x02)">2</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x03)">3</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x04)">4</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x05)">5</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x06)">6</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x07)">7</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x08)">8</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x09)">9</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x0a)">A</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x0b)">B</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x0c)">C</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x0d)">D</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x0e)">E</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x0f)">F</DisplayString>
+  </Type>
+
+  <Type Name="psl::UID">
+    <DisplayString>{*(dummy::hex_dummy_high*)(&amp;GUID[0])}{*(dummy::hex_dummy_low*)(&amp;GUID[0])}{*(dummy::hex_dummy_high*)(&amp;GUID[1])}{*(dummy::hex_dummy_low*)(&amp;GUID[1])}{*(dummy::hex_dummy_high*)(&amp;GUID[2])}{*(dummy::hex_dummy_low*)(&amp;GUID[2])}{*(dummy::hex_dummy_high*)(&amp;GUID[3])}{*(dummy::hex_dummy_low*)(&amp;GUID[3])}-{*(dummy::hex_dummy_high*)(&amp;GUID[4])}{*(dummy::hex_dummy_low*)(&amp;GUID[4])}{*(dummy::hex_dummy_high*)(&amp;GUID[5])}{*(dummy::hex_dummy_low*)(&amp;GUID[5])}-{*(dummy::hex_dummy_high*)(&amp;GUID[6])}{*(dummy::hex_dummy_low*)(&amp;GUID[6])}{*(dummy::hex_dummy_high*)(&amp;GUID[7])}{*(dummy::hex_dummy_low*)(&amp;GUID[7])}-{*(dummy::hex_dummy_high*)(&amp;GUID[8])}{*(dummy::hex_dummy_low*)(&amp;GUID[8])}{*(dummy::hex_dummy_high*)(&amp;GUID[9])}{*(dummy::hex_dummy_low*)(&amp;GUID[9])}-{*(dummy::hex_dummy_high*)(&amp;GUID[10])}{*(dummy::hex_dummy_low*)(&amp;GUID[10])}{*(dummy::hex_dummy_high*)(&amp;GUID[11])}{*(dummy::hex_dummy_low*)(&amp;GUID[11])}{*(dummy::hex_dummy_high*)(&amp;GUID[12])}{*(dummy::hex_dummy_low*)(&amp;GUID[12])}{*(dummy::hex_dummy_high*)(&amp;GUID[13])}{*(dummy::hex_dummy_low*)(&amp;GUID[13])}{*(dummy::hex_dummy_high*)(&amp;GUID[14])}{*(dummy::hex_dummy_low*)(&amp;GUID[14])}{*(dummy::hex_dummy_high*)(&amp;GUID[15])}{*(dummy::hex_dummy_low*)(&amp;GUID[15])}</DisplayString>
+  </Type>
 </AutoVisualizer>

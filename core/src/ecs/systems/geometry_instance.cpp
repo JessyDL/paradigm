@@ -24,7 +24,6 @@ void geometry_instance::announce(core::ecs::state& state)
 
 
 
-std::vector<psl::mat4x4> modelMats;
 float accTime {0.0f};
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
@@ -69,61 +68,62 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 		m_Transforms[i].position += m_Velocity[i].direction * m_Velocity[i].force * dTime.count();
 		const auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
 		m_Transforms[i].rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * m_Transforms[i].rotation);
-		if(mag < 6)
-		{
-			m_Transforms[i].rotation = normalize(psl::math::look_at_q(m_Transforms[i].position, m_CamTransform[0].position, psl::vec3::up));
-		}
 	}
 	core::profiler.scope_end();
-
-	modelMats.clear();
-
-	handle<material> cachedMat;
-	handle<geometry> cachedGeom;
-	uint32_t startIndex = 0u;
-	uint32_t indexCount = 0u;
-	bool setStart = true;
-	core::profiler.scope_begin("generate instance data");
+	
+	ska::bytell_hash_map<psl::UID, ska::bytell_hash_map<psl::UID, std::vector<size_t>>> UniqueCombinations;
 	for(size_t i = 0; i < m_Entities.size(); ++i)
 	{
-		if(auto index = m_Renderers[i].material.handle()->instantiate(m_Renderers[i].geometry); index)
-		{
-			if(i > 0 && 
-				(m_Renderers[i].material.handle() != cachedMat ||
-				 m_Renderers[i].geometry.handle() != cachedGeom || 
-				 index.value() - indexCount != startIndex))
-			{
-				cachedMat->set(cachedGeom, startIndex, "INSTANCE_TRANSFORM", modelMats);
-				modelMats.clear();
-				cachedMat = m_Renderers[i].material.handle();
-				cachedGeom = m_Renderers[i].geometry.handle();
-				startIndex = index.value();
-				indexCount = 0;
-			}
-
-			if(setStart)
-			{
-				startIndex = index.value();
-				cachedMat = m_Renderers[i].material.handle();
-				cachedGeom = m_Renderers[i].geometry.handle();
-			}
-			++indexCount;
-			setStart = false;
-			const psl::mat4x4 translationMat = translate(m_Transforms[i].position);
-			const psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
-			const psl::mat4x4 scaleMat = scale(m_Transforms[i].scale);
-
-			modelMats.emplace_back(translationMat * rotationMat * scaleMat);
-
-			//m_Renderers[i].material.handle()->set(m_Renderers[i].geometry, index.value(), "INSTANCE_TRANSFORM", modelMatrix);
-		}
+		UniqueCombinations[m_Renderers[i].material][m_Renderers[i].geometry].emplace_back(i);
 	}
-	core::profiler.scope_end();
 
-	core::profiler.scope_begin("sending new instance data to GPU");
-	if(modelMats.size() > 0)
-		cachedMat->set(cachedGeom, startIndex, "INSTANCE_TRANSFORM", modelMats);
-	core::profiler.scope_end();
-	modelMats.clear();
-	
+	std::vector<psl::mat4x4> modelMats;
+	for(const auto& uniqueCombination : UniqueCombinations)
+	{
+		for(const auto& uniqueIndex : uniqueCombination.second)
+		{
+			if(uniqueIndex.second.size() == 0)
+				continue;
+
+			modelMats.clear();
+			auto materialHandle = m_Renderers[uniqueIndex.second[0]].material.handle();
+			auto geometryHandle = m_Renderers[uniqueIndex.second[0]].geometry.handle();
+
+			uint32_t startIndex = 0u;
+			uint32_t indexCount = 0u;
+			bool setStart = true;
+			core::profiler.scope_begin("generate instance data");
+			for(size_t i : uniqueIndex.second)
+			{
+				if(auto instanceID = materialHandle->instantiate(geometryHandle); instanceID)
+				{
+					if(!setStart && (instanceID.value() - indexCount != startIndex))
+					{
+						materialHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
+						modelMats.clear();
+						startIndex = instanceID.value();
+						indexCount = 0;
+					}
+
+					if(setStart)
+					{
+						startIndex = instanceID.value();
+					}
+
+					++indexCount;
+					setStart = false;
+					const psl::mat4x4 translationMat = translate(m_Transforms[i].position);
+					const psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
+					const psl::mat4x4 scaleMat = scale(m_Transforms[i].scale);
+
+					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
+				}
+			}
+			core::profiler.scope_end();
+			core::profiler.scope_begin("sending new instance data to GPU");
+			if(modelMats.size() > 0)
+				materialHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
+			core::profiler.scope_end();
+		}		
+	}	
 }

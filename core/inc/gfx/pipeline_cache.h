@@ -29,7 +29,7 @@ namespace core::gfx
 		/// \brief constructor based on the data you wish to store.
 		/// \warning the pipeline_key does not update when the material data has been updated.
 		/// the material will no longer be able to use this key when it changes its properties.
-		pipeline_key(core::resource::handle<core::data::material> data, vk::RenderPass pass);
+		pipeline_key(const psl::UID& uid, core::resource::handle<core::data::material> data, vk::RenderPass pass);
 
 		bool operator==(const pipeline_key& other) const noexcept
 		{
@@ -50,6 +50,7 @@ namespace core::gfx
 		const std::vector<std::pair<vk::DescriptorType, uint32_t>> descriptors;
 		/// \brief the bound renderpass of this key.
 		const vk::RenderPass renderPass;
+		psl::UID uid;
 	};
 } // namespace core::gfx
 
@@ -60,7 +61,7 @@ namespace std
 	{
 		std::size_t operator()(core::gfx::pipeline_key const& s) const noexcept
 		{
-			std::size_t seed = s.descriptors.size() * 2 + 1;
+			std::size_t seed = std::hash<psl::UID>{}(s.uid);
 			for(auto& i : s.descriptors)
 			{
 				seed ^= (uint64_t)i.first + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -95,14 +96,14 @@ namespace core::gfx
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] framebuffer the framebuffer that will be bound to.
-		core::resource::handle<core::gfx::pipeline> get(core::resource::handle<core::data::material> data,
+		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid, core::resource::handle<core::data::material> data,
 														core::resource::handle<framebuffer> framebuffer);
 		/// \brief allows you to get a pipeline that satisfy the material requirements and is bound to the given
 		/// swapchain.
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] swapchain the swapchain that will be bound to.
-		core::resource::handle<core::gfx::pipeline> get(core::resource::handle<core::data::material> data,
+		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid, core::resource::handle<core::data::material> data,
 														core::resource::handle<swapchain> swapchain);
 
 	  private:

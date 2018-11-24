@@ -227,6 +227,7 @@ namespace core::gfx
 		/// \param[in] swapchain the swapchain to bind to.
 		core::resource::handle<pipeline> get(core::resource::handle<swapchain> swapchain);
 
+		psl::UID m_UID;
 		core::resource::handle<core::gfx::context> m_Context;
 		core::resource::handle<core::gfx::pipeline_cache> m_PipelineCache;
 		core::resource::handle<core::data::material> m_Data;

@@ -45,6 +45,8 @@ namespace core::gfx
 		/// \returns a memory::segment on success.
 		[[nodiscard]] std::optional<memory::segment> reserve(vk::DeviceSize size);
 
+
+		size_t free_size() const noexcept;
 		/// \brief tries to reserve all requested sizes in the memory::region of this buffer.
 		///
 		/// optmized version of reserve() that works on a batch of data. It will try to satisfy allocating

@@ -24,9 +24,9 @@ pipeline_cache::pipeline_cache(const UID& uid, core::resource::cache& cache,
 pipeline_cache::~pipeline_cache() { m_Context->device().destroyPipelineCache(m_PipelineCache); }
 
 // todo: actually generate a hash for these items
-core::resource::handle<core::gfx::pipeline> pipeline_cache::get(handle<core::data::material> data, core::resource::handle<framebuffer> framebuffer)
+core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<framebuffer> framebuffer)
 {
-	pipeline_key key(data, framebuffer->render_pass());
+	pipeline_key key(uid, data, framebuffer->render_pass());
 	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))
 	{
 		return it->second;
@@ -39,9 +39,9 @@ core::resource::handle<core::gfx::pipeline> pipeline_cache::get(handle<core::dat
 	return pipelineHandle;
 }
 
-core::resource::handle<core::gfx::pipeline> pipeline_cache::get(handle<core::data::material> data, core::resource::handle<swapchain> swapchain)
+core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<swapchain> swapchain)
 {
-	pipeline_key key(data, swapchain->renderpass());
+	pipeline_key key(uid, data, swapchain->renderpass());
 	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))
 	{
 		return it->second;
@@ -67,7 +67,7 @@ std::vector<std::pair<vk::DescriptorType, uint32_t>> fill_in_descriptors(core::r
 	return descriptors;
 }
 
-pipeline_key::pipeline_key(core::resource::handle<core::data::material> data, vk::RenderPass pass)	:	 renderPass(pass), descriptors(fill_in_descriptors(data, pass))
+pipeline_key::pipeline_key(const psl::UID& uid, core::resource::handle<core::data::material> data, vk::RenderPass pass)	:	 uid(uid), renderPass(pass), descriptors(fill_in_descriptors(data, pass))
 {
 	
 }

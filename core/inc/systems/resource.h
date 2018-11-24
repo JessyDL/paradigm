@@ -635,7 +635,14 @@ namespace core::resource
 
 		state resource_state() const noexcept { return (!m_Container) ? state::INVALID : m_Container->m_State; }
 
-
+		bool operator==(const handle& other)
+		{
+			return other.uid == uid;
+		}
+		bool operator!=(const handle& other)
+		{
+			return other.uid != uid;
+		}
 		/// \returns true if the resource is loaded
 		/// \brief loads the resource with the given arguments.
 		/// \details loads the resource with the given arguments. In case
@@ -899,6 +906,15 @@ namespace core::resource
 			return m_Cache->find<T>(m_UID);
 		}
 
+		operator const psl::UID&() const noexcept
+		{
+			return m_UID;
+		}
+
+		operator psl::UID() noexcept
+		{
+			return m_UID;
+		}
 		operator tag<T>() const
 		{
 			return tag<T>(m_UID);
@@ -918,6 +934,8 @@ namespace core::resource
 		{
 			return m_Cache->find<T>(m_UID);
 		}
+
+
 	private:
 		cache* m_Cache{nullptr};
 		psl::UID m_UID{};

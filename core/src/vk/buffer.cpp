@@ -104,6 +104,12 @@ buffer::~buffer()
 	}
 }
 
+size_t buffer::free_size() const noexcept
+{
+	auto available = m_BufferDataHandle->region().allocator()->available();
+	return std::accumulate(std::next(std::begin(available)), std::end(available), available[0].size(),
+					[](size_t sum, const memory::range& element) { return sum + element.size(); });
+}
 std::optional<memory::segment> buffer::reserve(vk::DeviceSize size) { return m_BufferDataHandle->allocate(size); }
 
 std::vector<std::pair<memory::segment, memory::range>> buffer::reserve(std::vector<vk::DeviceSize> sizes, bool optimize)

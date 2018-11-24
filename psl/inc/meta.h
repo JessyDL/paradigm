@@ -108,6 +108,18 @@ namespace std {
 	};
 }
 
+namespace dummy
+{
+	struct hex_dummy_low
+	{
+		unsigned char c;
+	};
+
+	struct hex_dummy_high
+	{
+		unsigned char c;
+	};
+}
 namespace utility
 {
 	template<>

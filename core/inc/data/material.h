@@ -263,6 +263,7 @@ namespace core::data
 		};
 
 		material(const psl::UID& uid, core::resource::cache& cache);
+		material(const material& other, const psl::UID& uid, core::resource::cache& cache);
 		~material();
 
 		material(const material&) = delete;
