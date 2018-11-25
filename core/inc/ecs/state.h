@@ -695,7 +695,6 @@ namespace core::ecs
 				auto index = foundIt->second;
 				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
 				std::memcpy(loc, &data[i], size);
-				++i;
 			}
 		}
 
