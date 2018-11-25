@@ -13,7 +13,7 @@ struct float_system
 	core::ecs::vector<int> m_Ints;
 	core::ecs::vector<core::ecs::entity> m_Entities;
 
-	void announce(core::ecs::state& state)
+	float_system(core::ecs::state& state)
 	{
 		state.register_dependency(*this, {m_Entities, m_Floats, m_Ints});
 	}
@@ -102,8 +102,7 @@ TEST_CASE("systems", "[ECS]")
 	state.add_component<int>(e_list1);
 
 
-	float_system fl_system{};
-	state.register_system(fl_system);
+	float_system fl_system{state};
 	for(int i = 0; i < 10; ++i)
 		state.tick();
 
