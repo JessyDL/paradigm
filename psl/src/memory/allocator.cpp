@@ -25,8 +25,8 @@ bool allocator_base::deallocate(segment& segment)
 	if(is_physically_backed())	// zero-reset
 		std::memset((void*)local.begin, 0, local.size());
 
-	static range r{std::numeric_limits<std::uint64_t>::max(), 0u};
-	segment = memory::segment{r, false};
+	//static range r{std::numeric_limits<std::uint64_t>::max(), 0u};
+	//segment = memory::segment{r, false};
 
 	return true;
 };
@@ -50,6 +50,11 @@ std::vector<range> allocator_base::available()
 	return get_available();
 }
 
+memory::range allocator_base::get_range() const
+{
+	return m_Region->range();
+}
+
 void default_allocator::initialize(region* region)
 {
 	m_Free.emplace_back((std::uintptr_t)(region->data()), (std::uintptr_t)(region->data()) + region->size());
@@ -62,7 +67,6 @@ std::optional<segment> default_allocator::do_allocate(region* region, std::size_
 	auto index = 0u;
 	for(auto& free : m_Free)
 	{
-		++index;
 		if (free.size() >= bytes)
 		{
 			auto begin = free.begin;
@@ -77,18 +81,22 @@ std::optional<segment> default_allocator::do_allocate(region* region, std::size_
 				if (free.begin == begin)
 				{
 					free.begin += bytes;
+					if(free.size() == 0)
+						m_Free.erase(std::next(std::begin(m_Free), index));
 				}
 				else
 				{
 					auto oldBegin = free.begin;
 					auto oldEnd = begin;
 					free.begin = r.end;
-					auto it = std::next(std::begin(m_Free), index - 1);
+					auto it = std::next(std::begin(m_Free), index);
 					m_Free.emplace(it, memory::range{ oldBegin, oldEnd });
 				}
-				return std::optional<segment>{std::in_place_t{}, m_Committed.emplace_back(r), is_physically_backed()};
+				auto it = m_Committed.emplace(std::upper_bound(std::begin(m_Committed), std::end(m_Committed), r), r);
+				return std::optional<segment>{std::in_place_t{}, *it, is_physically_backed()};
 			}
 		}
+		++index;
 	}
 	
 	return { };
@@ -136,7 +144,7 @@ bool default_allocator::do_deallocate(segment& segment)
 			goto collapse;
 		}
 	}
-	m_Free.emplace_back(r);
+	m_Free.emplace(std::upper_bound(std::begin(m_Free), std::end(m_Free), r), r);
 
 	collapse:
 	for(auto it = std::begin(m_Free); it != std::end(m_Free); ++it)
@@ -169,33 +177,34 @@ fail:
 
 	return false;
 }
-std::vector<range> default_allocator::get_committed()
+std::vector<range> default_allocator::get_committed() const
 {
 	if(m_Committed.size() == 0)
 		return {};
+	auto r = get_range();
 	if(m_Free.size() == 0)
-		return std::vector<range>{ { std::begin(m_Committed)->begin, std::end(m_Committed)->end }};
+		return std::vector<range>{ { r }};
 
 	std::vector<range> all_ranges{};
 	
-	if(std::begin(m_Free)->begin > std::begin(m_Committed)->end)
+	
+	if(std::begin(m_Free)->begin > r.begin)
 	{
-		all_ranges.emplace_back(std::begin(m_Committed)->begin, std::begin(m_Free)->begin);
+		all_ranges.emplace_back(r.begin, std::begin(m_Free)->begin);
 	}
-	for(std::list<range>::iterator it = std::begin(m_Free), next = std::next(it, 1); next != std::end(m_Free); ++it, ++next)
+	for(auto it = std::begin(m_Free), next = std::next(it, 1); next != std::end(m_Free); ++it, ++next)
 	{
 		all_ranges.emplace_back(it->end, next->begin);
 	}
-
-	if(m_Free.size() > 0 && m_Committed.size() > 0 && std::prev(std::end(m_Free), 1)->end < std::prev(std::end(m_Committed),1)->begin)
+	if(std::prev(std::end(m_Free))->end < r.end)
 	{
-		all_ranges.emplace_back(std::prev(std::end(m_Free),1)->end, std::prev(std::end(m_Committed),1)->end);
+		all_ranges.emplace_back(std::end(m_Free)->end, r.end);
 	}
+
 	return all_ranges;
 }
-std::vector<range> default_allocator::get_available()
+std::vector<range> default_allocator::get_available() const
 {
-	m_Free.sort([](const range& first, const range& second) { return first.begin < second.begin; });
 	return std::vector<range>{std::begin(m_Free), std::end(m_Free)};
 }
 
@@ -298,7 +307,7 @@ bool block_allocator::do_deallocate(segment& segment)
 	return true;
 }
 
-std::vector<range> block_allocator::get_committed()
+std::vector<range> block_allocator::get_committed() const
 {
 	auto copy = m_Ranges;
 	auto it = std::remove_if(std::begin(copy), std::end(copy), [](const memory::range& range)
@@ -310,7 +319,7 @@ std::vector<range> block_allocator::get_committed()
 	return copy;
 }
 
-std::vector<range> block_allocator::get_available()
+std::vector<range> block_allocator::get_available() const
 {
 	auto copy = m_Ranges;
 

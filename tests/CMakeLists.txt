@@ -11,14 +11,15 @@ include(src.txt)
 FetchContent_Declare(
   catch
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v2.4.0
+  GIT_TAG        master
 )
 
 FetchContent_GetProperties(catch)
 if(NOT catch_POPULATED)
   FetchContent_Populate(catch)
-  
+	EXECUTE_PROCESS(WORKING_DIRECTORY "${catch_SOURCE_DIR}/scripts" COMMAND python "generateSingleHeader.py")  
   add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR} EXCLUDE_FROM_ALL)
+
 endif()
 
 include(${catch_SOURCE_DIR}/contrib/Catch.cmake)

@@ -3,4 +3,5 @@ src/main.cpp
 src/stdafx_tests.cpp
 src/ecs.cpp
 src/math_tests.cpp
+src/memory.cpp
 )

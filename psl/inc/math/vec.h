@@ -261,7 +261,11 @@ namespace psl
 	};
 
 	template <typename precision_t>
-	struct tvec<precision_t, 4>
+	struct
+	#ifdef INSTRUCTIONS_SSE2
+		alignas(16)
+	#endif
+		tvec<precision_t, 4>
 	{
 		using tvec_t = tvec<precision_t, 4>;
 

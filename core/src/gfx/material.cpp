@@ -312,7 +312,12 @@ std::optional<uint32_t> material::instance_data::add(core::resource::handle<core
 			data.size_of_element = elementIt.size_of_element;
 			if(auto segm = buffer->reserve(elementIt.size_of_element * m_Capacity); !segm)
 			{
-				core::gfx::log->error("available buffer size: {0} while trying to allocate {1}", buffer->free_size(), elementIt.size_of_element * m_Capacity);			
+				core::gfx::log->error("available buffer size: {0} while trying to allocate {1}", buffer->free_size(), elementIt.size_of_element * m_Capacity);
+				auto available = buffer->data()->region().allocator()->available();
+				for(const auto& av : available)
+				{
+					core::gfx::log->error("\t sub rang size: {0}", av.size());
+				}
 			}
 			else
 			{

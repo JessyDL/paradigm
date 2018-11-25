@@ -3,6 +3,13 @@
 
 using namespace psl;
 using namespace math;
+//
+//TEMPLATE_TEST_CASE("mathematics", "[MATH][template]", 
+//				   tvec<float, 4>, tvec<float, 3>, tvec<float, 2>,
+//				   tvec<double, 4>, tvec<double, 3>, tvec<double, 2>)
+//{
+//
+//}
 
 TEST_CASE("mathematics", "[MATH]")
 {

@@ -56,11 +56,6 @@ else()
 	add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
 endif()	
 
-
-if(${PE_TESTS})
-	set(TEST_LIBS Catch2)
-endif()
-
 if(${VULKAN_STATIC})	
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${VULKAN_LIB_NAME}  ${PROJECT_PSL} 

@@ -10,6 +10,7 @@
 namespace memory
 {
 	class region;
+	class range;
 	/// \brief base class that defines the interface for an allocator.
 	class allocator_base
 	{
@@ -44,13 +45,14 @@ namespace memory
 		void compact();
 	protected:
 		bool commit(const range& range);
+		memory::range get_range() const;
 	private:
 		region * m_Region{nullptr};
 		virtual std::optional<segment> do_allocate(region* region, std::size_t bytes) = 0;
 		virtual bool do_deallocate(segment& segment) = 0;
 		virtual void initialize([[maybe_unused]] region* region) {};
-		virtual std::vector<range> get_committed() = 0;
-		virtual std::vector<range> get_available() = 0;
+		virtual std::vector<range> get_committed() const = 0;
+		virtual std::vector<range> get_available() const = 0;
 		virtual void do_compact([[maybe_unused]] region* region) {};
 		virtual bool get_owns(const memory::segment& segment) const noexcept = 0;
 		const bool m_IsPhysicallyBacked{true};
@@ -66,8 +68,8 @@ namespace memory
 		std::optional<segment> do_allocate(region* region, std::size_t bytes) override;
 		bool do_deallocate(segment& segment) override;
 		void initialize(region* region) override;
-		std::vector<range> get_committed() override;
-		std::vector<range> get_available() override;
+		std::vector<range> get_committed() const override;
+		std::vector<range> get_available() const override;
 		void do_compact(region* region) override;
 		bool get_owns(const memory::segment& segment) const noexcept override;
 		std::list<range> m_Committed;
@@ -86,8 +88,8 @@ namespace memory
 		bool do_deallocate(segment& segment) override;
 		void initialize(region* region) override;
 
-		std::vector<range> get_committed() override;
-		std::vector<range> get_available() override;
+		std::vector<range> get_committed() const override;
+		std::vector<range> get_available() const override;
 
 		bool get_owns(const memory::segment& segment) const noexcept override;
 

@@ -3,4 +3,5 @@ inc/stdafx_tests.h
 inc/targetver.h
 inc/ecs.h
 inc/math_tests.h
+inc/memory.h
 )

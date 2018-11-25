@@ -3,7 +3,11 @@
 namespace psl
 {
 	template <typename precision_t>
-	struct tquat
+	struct 
+	#ifdef INSTRUCTIONS_SSE2
+		alignas(16)
+	#endif
+		tquat
 	{
 		using tquat_t = tquat<precision_t>;
 
@@ -68,12 +72,14 @@ namespace psl
 #ifdef INSTRUCTIONS_SSE2
 
 	template <typename precision_t>
-	constexpr tquat<precision_t>& operator+=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept
+	tquat<precision_t>& operator+=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept
 	{
 		if constexpr(std::is_same<float, precision_t>::value)
 		{
-			_mm_store_ps(owner.value.data(),
-						 _mm_add_ps(_mm_load_ps(owner.value.data()), _mm_load_ps(other.value.data())));
+			auto ownL{_mm_load_ps(owner.value.data())};
+			auto othL{_mm_load_ps(other.value.data())};
+			auto addR{_mm_add_ps(ownL, othL)};
+			_mm_store_ps(owner.value.data(), addR);
 		}
 		else if constexpr(std::is_same<double, precision_t>::value)
 		{
