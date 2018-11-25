@@ -29,7 +29,7 @@ namespace core::ecs::systems
 		core::ecs::vector<core::ecs::entity> m_AttractorEntities;
 
 	public:
-		void announce(core::ecs::state& state);
+		attractor(core::ecs::state& state);
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
 	private:
 	};

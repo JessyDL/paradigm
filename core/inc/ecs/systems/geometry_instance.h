@@ -26,7 +26,8 @@ namespace core::ecs::systems
 		core::ecs::vector<core::ecs::components::lifetime> m_Lifetime;
 		core::ecs::vector<core::ecs::entity> m_LifeEntities;
 	public:
-		void announce(core::ecs::state& state);
+		geometry_instance(core::ecs::state& state);
+
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
 	private:
 	};

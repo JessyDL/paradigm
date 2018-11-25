@@ -20,46 +20,38 @@ namespace core::ecs
 	struct all
 	{};
 
-	struct  par
+	struct par
 	{};
 
-	template<bool has_entities = true, typename... Ts>
+	template <bool has_entities = true, typename... Ts>
 	class pack
 	{
-		using range_t = std::tuple<core::ecs::vector<entity>, core::ecs::vector<Ts>...>;
+		using range_t		  = std::tuple<core::ecs::vector<entity>, core::ecs::vector<Ts>...>;
 		using range_element_t = std::tuple<entity, Ts...>;
-		using iterator_element_t = std::tuple<typename core::ecs::vector<entity>::iterator, typename core::ecs::vector<Ts>::iterator ...>;
+		using iterator_element_t =
+			std::tuple<typename core::ecs::vector<entity>::iterator, typename core::ecs::vector<Ts>::iterator...>;
 
-		template <typename Tuple, typename F, std::size_t ...Indices>
+		template <typename Tuple, typename F, std::size_t... Indices>
 		static void for_each_impl(Tuple&& tuple, F&& f, std::index_sequence<Indices...>)
 		{
 			using swallow = int[];
-			(void)swallow
-			{
-				1,
-					(f(std::get<Indices>(std::forward<Tuple>(tuple))), void(), int{})...
-			};
+			(void)swallow{1, (f(std::get<Indices>(std::forward<Tuple>(tuple))), void(), int{})...};
 		}
 
 		template <typename Tuple, typename F>
 		static void for_each(Tuple&& tuple, F&& f)
 		{
 			constexpr std::size_t N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
-			for_each_impl(std::forward<Tuple>(tuple), std::forward<F>(f),
-						  std::make_index_sequence<N>{});
+			for_each_impl(std::forward<Tuple>(tuple), std::forward<F>(f), std::make_index_sequence<N>{});
 		}
-	public:
+
+	  public:
 		class iterator
 		{
-		public:
-			constexpr iterator(const range_t& range) noexcept 
-			{
-			};
-			constexpr iterator(iterator_element_t data) noexcept : data(data) {};
-			constexpr const iterator_element_t& operator*() const noexcept
-			{
-				return data;
-			}
+		  public:
+			constexpr iterator(const range_t& range) noexcept {};
+			constexpr iterator(iterator_element_t data) noexcept : data(data){};
+			constexpr const iterator_element_t& operator*() const noexcept { return data; }
 			constexpr bool operator!=(iterator other) const noexcept
 			{
 				return std::get<0>(data) != std::get<0>(other.data);
@@ -72,38 +64,27 @@ namespace core::ecs
 			}
 			constexpr iterator& operator++() noexcept
 			{
-				for_each(data, [](auto& element){++element;});
+				for_each(data, [](auto& element) { ++element; });
 				return *this;
 			}
-		private:
+
+		  private:
 			iterator_element_t data;
 		};
-		range_t read()
-		{
-			return m_Pack;
-		}
+		range_t read() { return m_Pack; }
 
-		template<typename T>
+		template <typename T>
 		const core::ecs::vector<T>& get()
 		{
 			return std::get<core::ecs::vector<T>>(m_Pack);
 		}
 
-		iterator begin() const noexcept
-		{
-			return iterator{m_Pack};
-		}
+		iterator begin() const noexcept { return iterator{m_Pack}; }
 
-		iterator end() const noexcept
-		{
-			return iterator{m_Pack};
-		}
-		constexpr size_t size() const noexcept
-		{
-			return std::get<0>(m_Pack).size();
-		}
+		iterator end() const noexcept { return iterator{m_Pack}; }
+		constexpr size_t size() const noexcept { return std::get<0>(m_Pack).size(); }
 
-	private:
+	  private:
 		range_t m_Pack;
 	};
 
@@ -331,8 +312,8 @@ namespace core::ecs
 				else
 				{
 					m_Components.emplace(
-						int_id,
-						details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(component_type)});
+						int_id, details::component_info{
+									memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(component_type)});
 				}
 				it = m_Components.find(int_id);
 				core::profiler.scope_end();
@@ -410,6 +391,10 @@ namespace core::ecs
 					initialize_component(pair.region.data(), indices, std::forward<forward_type>(_template));
 				}
 			}
+
+			m_AddedEntities.insert(std::end(m_AddedEntities), std::begin(ent_cpy), std::end(ent_cpy));
+			auto& addedComponentsRange = m_AddedComponents[int_id];
+			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
 		}
 
 		template <typename T>
@@ -449,7 +434,8 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t int_id = details::component_key<T>;
-
+			std::vector<entity> ent_cpy;
+			ent_cpy.reserve(entities.size());
 			for(auto e : entities)
 			{
 				auto eMapIt  = m_EntityMap.find(e);
@@ -459,6 +445,8 @@ namespace core::ecs
 											  });
 
 				if(foundIt == std::end(eMapIt->second)) continue;
+
+				ent_cpy.emplace_back(e);
 				if constexpr(std::is_empty<T>::value)
 				{
 					eMapIt->second.erase(foundIt, eMapIt->second.end());
@@ -483,6 +471,10 @@ namespace core::ecs
 					std::memset(loc, 0, eCompIt->second.size);
 				}
 			}
+
+			m_RemovedEntities.insert(std::end(m_RemovedEntities), std::begin(ent_cpy), std::end(ent_cpy));
+			auto& removedComponentsRange = m_RemovedComponents[int_id];
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
 		}
 
 		template <typename... Ts>
@@ -570,78 +562,8 @@ namespace core::ecs
 		}
 
 
-		void destroy(const std::vector<entity>& entities) noexcept
-		{
-			PROFILE_SCOPE(core::profiler)
-
-			ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
-			ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
-			core::profiler.scope_begin("erase entities");
-			for(const auto& e : entities)
-			{
-				if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
-				{
-					for(const auto& [type, index] : eMapIt->second)
-					{
-						erased_entities[type].emplace_back(e);
-						erased_ids[type].emplace_back(index);
-					}
-					m_EntityMap.erase(eMapIt);
-				}
-			}
-			core::profiler.scope_end();
-
-			core::profiler.scope_begin("erase IDs");
-			for(auto& c : erased_ids)
-			{
-				if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
-				{
-					if(c.second.size() > 64)
-					{
-						std::sort(std::begin(c.second), std::end(c.second));
-						auto index		 = std::begin(c.second);
-						auto range_start = index;
-						const auto end   = std::prev(std::end(c.second), 1);
-						while(index != end)
-						{
-							auto next = std::next(index, 1);
-							if(*index + 1 != *next)
-							{
-								cMapIt->second.generator.DestroyRangeID(*range_start, std::distance(range_start, next));
-								range_start = next;
-							}
-							index = next;
-						}
-						cMapIt->second.generator.DestroyRangeID(*range_start, std::distance(range_start, std::end(c.second)));
-					}
-					else
-					{
-						for(auto id : c.second) cMapIt->second.generator.DestroyID(id);
-					}
-				}
-			}
-			core::profiler.scope_end();
-
-			core::profiler.scope_begin("erase components");
-			for(auto& c : erased_entities)
-			{
-				if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
-				{
-					std::sort(std::begin(c.second), std::end(c.second));
-					auto ib   = std::begin(c.second);
-					auto iter = std::remove_if(std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
-											   [&ib, &c](entity x) -> bool {
-												   while(ib != std::end(c.second) && *ib < x) ++ib;
-												   return (ib != std::end(c.second) && *ib == x);
-											   });
-
-					cMapIt->second.entities.erase(iter, cMapIt->second.entities.end());
-				}
-			}
-			core::profiler.scope_end();
-		}
-
-		void destroy(entity e) noexcept { destroy({e}); }
+		void destroy(const std::vector<entity>& entities) noexcept;
+		void destroy(entity e) noexcept;
 
 
 		// -----------------------------------------------------------------------------
@@ -712,99 +634,31 @@ namespace core::ecs
 		// -----------------------------------------------------------------------------
 		// systems
 		// -----------------------------------------------------------------------------
-		void tick(std::chrono::duration<float> dTime = std::chrono::duration<float>{0.0f})
+		void tick(std::chrono::duration<float> dTime = std::chrono::duration<float>{0.0f});
+
+		enum class listener_type
 		{
-			PROFILE_SCOPE(core::profiler)
-			for(auto& system : m_Systems)
-			{
-				core::profiler.scope_begin("ticking system");
-				auto& sBindings				= std::get<1>(system.second);
-				std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
-				core::profiler.scope_begin("preparing data");
-				for(auto& dep_pack : sBindings)
-				{
-					auto entities = dynamic_filter(dep_pack.filters);
-					std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-					dep_pack.m_Entities.data = (entity*)cache_offset;
-					dep_pack.m_Entities.tail = (entity*)(cache_offset + sizeof(entity) * entities.size());
-					cache_offset += sizeof(entity) * entities.size();
-					core::profiler.scope_begin("read-write data");
-					for(const auto& rwBinding : dep_pack.m_RWBindings)
-					{
-						const auto& mem_pair = m_Components.find(rwBinding.first);
-						auto size			 = std::get<2>(rwBinding.second);
-						auto id				 = rwBinding.first;
+			PER_TICK = 0,
+			ON_CHANGE = 1,
+			ON_ADD = 2,
+			ON_REMOVE = 3
+		};
 
-						auto& data_begin = std::get<0>(rwBinding.second);
-						*data_begin		 = (void*)cache_offset;
-						for(const auto& e : dep_pack.m_Entities)
-						{
-
-							auto eMapIt  = m_EntityMap.find(e);
-							auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-														[&id](const std::pair<details::component_key_t, size_t>& pair) {
-															return pair.first == id;
-														});
-
-							auto index = foundIt->second;
-							void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-							std::memcpy((void*)cache_offset, loc, std::get<2>(rwBinding.second));
-							cache_offset += size;
-						}
-						auto& data_end = std::get<1>(rwBinding.second);
-						*data_end	  = (void*)cache_offset;
-					}
-					core::profiler.scope_end();
-					core::profiler.scope_begin("read-only data");
-					for(const auto& rBinding : dep_pack.m_RBindings)
-					{
-						const auto& mem_pair = m_Components.find(rBinding.first);
-						auto size			 = std::get<2>(rBinding.second);
-						auto id				 = rBinding.first;
-
-						auto& data_begin = std::get<0>(rBinding.second);
-						*data_begin		 = (void*)cache_offset;
-						for(const auto& e : dep_pack.m_Entities)
-						{
-
-							auto eMapIt  = m_EntityMap.find(e);
-							auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-														[&id](const std::pair<details::component_key_t, size_t>& pair) {
-															return pair.first == id;
-														});
-
-							auto index = foundIt->second;
-							void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-							std::memcpy((void*)cache_offset, loc, std::get<2>(rBinding.second));
-							cache_offset += size;
-						}
-						auto& data_end = std::get<1>(rBinding.second);
-						*data_end	  = (void*)cache_offset;
-					}
-					core::profiler.scope_end();
-				}
-				core::profiler.scope_end();
-				std::invoke(std::get<0>(system.second), *this, dTime);
-				for(const auto& dep_pack : sBindings)
-				{
-					for(const auto& rwBinding : dep_pack.m_RWBindings)
-					{
-						set(dep_pack.m_Entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second),
-							rwBinding.first);
-					}
-				}
-				core::profiler.scope_end();
-			}
-		}
-
+		enum class call_policy_type
+		{
+			TICK = 0x1,
+			PRE_TICK = 0x2,
+			POST_TICK = 0x4,
+			ALL = TICK | PRE_TICK | POST_TICK
+		};
 		template <typename T>
-		void register_system(T& target)
+		void register_system(T& target, call_policy_type policy = call_policy_type::TICK, listener_type type = listener_type::PER_TICK)
 		{
 			PROFILE_SCOPE(core::profiler)
 			m_Systems.emplace(&target,
 							  std::tuple{std::bind(&T::tick, &target, std::placeholders::_1, std::placeholders::_2),
 										 std::vector<dependency_pack>{}});
-			target.announce(*this);
+
 		}
 
 		template <typename T>
@@ -830,9 +684,8 @@ namespace core::ecs
 			constexpr details::component_key_t id = details::component_key<T>;
 			const auto& mem_pair				  = m_Components.find(id);
 			auto size							  = sizeof(T);
-			size_t i							  = 0;
 
-			for(const auto& e : entities)
+			for(const auto& [i, e] : psl::enumerate(entities))
 			{
 				auto eMapIt  = m_EntityMap.find(e);
 				auto foundIt = std::find_if(
@@ -847,74 +700,9 @@ namespace core::ecs
 		}
 
 	  private:
-		void set(const core::ecs::vector<entity>& entities, void* data, size_t size, details::component_key_t id)
-		{
-			PROFILE_SCOPE(core::profiler)
-			const auto& mem_pair = m_Components.find(id);
-
-			size_t i				= 0;
-			std::uintptr_t data_loc = (std::uintptr_t)data;
-			for(const auto& e : entities)
-			{
-				auto eMapIt  = m_EntityMap.find(e);
-				auto foundIt = std::find_if(
-					eMapIt->second.begin(), eMapIt->second.end(),
-					[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
-
-				auto index = foundIt->second;
-				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-				std::memcpy(loc, (void*)data_loc, size);
-				data_loc += size;
-			}
-		}
-
-		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept
-		{
-			PROFILE_SCOPE(core::profiler)
-
-			for(const auto& key : keys)
-			{
-				if(m_Components.find(key) == std::end(m_Components)) return {};
-			}
-
-			std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
-
-			for(size_t i = 1; i < keys.size(); ++i)
-			{
-				std::vector<entity> intermediate;
-				intermediate.reserve(v_intersection.size());
-				const auto& it = m_Components.at(keys[i]).entities;
-				std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
-									  std::back_inserter(intermediate));
-				v_intersection = std::move(intermediate);
-			}
-
-			return v_intersection;
-		}
-
-
-		void fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept
-		{
-			PROFILE_SCOPE(core::profiler)
-			size_t i = 0;
-
-			const auto& mem_pair = m_Components.find(int_id);
-			const auto size = mem_pair->second.size;
-			const std::uintptr_t data = (std::uintptr_t)mem_pair->second.region.data();
-			for(const auto& e : entities)
-			{
-				auto eMapIt  = m_EntityMap.find(e);
-				auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-											[&int_id](const std::pair<details::component_key_t, size_t>& pair) {
-												return pair.first == int_id;
-											});
-
-				auto index = foundIt->second;
-				void* loc  = (void*)(data + size * index);
-				std::memcpy((void*)((std::uintptr_t)out + (i * size)), loc, size);
-				++i;
-			}
-		}
+		void set(const core::ecs::vector<entity>& entities, void* data, size_t size, details::component_key_t id);
+		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept;
+		void fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept;
 
 		template <typename T>
 		void fill_in(const std::vector<entity>& entities, std::vector<T>& out) const noexcept
@@ -948,6 +736,11 @@ namespace core::ecs
 			m_Systems;
 		memory::raw_region m_Cache{1024 * 1024 * 32};
 
+		// keep track of changed data
+		std::vector<entity> m_AddedEntities;
+		std::vector<entity> m_RemovedEntities;
+		ska::bytell_hash_map<details::component_key_t, std::vector<entity>> m_AddedComponents;
+		ska::bytell_hash_map<details::component_key_t, std::vector<entity>> m_RemovedComponents;
 
 		// std::unordered_map<details::component_key_t,
 	};

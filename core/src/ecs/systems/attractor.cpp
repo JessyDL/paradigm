@@ -9,11 +9,13 @@
 using namespace core::ecs::systems;
 using namespace psl::math;
 
-void attractor::announce(core::ecs::state& state)
+attractor::attractor(core::ecs::state& state)
 {
+	state.register_system(*this);
 	state.register_dependency(*this, {m_Entities, m_Transforms, m_Velocity});
 	state.register_dependency(*this, {m_AttractorEntities, m_AttractorTransform, m_Attractors});
 }
+
 void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
 	for(size_t i = 0; i < m_Entities.size(); ++i)

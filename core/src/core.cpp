@@ -757,15 +757,11 @@ int entry()
 	const size_t size_steps		  = 24;
 	
 
-	core::ecs::systems::fly fly_system{surface_handle->input()};
-	ECSState.register_system(fly_system);
+	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
+	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
+	core::ecs::systems::geometry_instance geometry_instance{ECSState};
+	core::ecs::systems::attractor attractor{ECSState};
 
-	core::ecs::systems::render render_system{context_handle, swapchain_handle, surface_handle, frameBuffer};
-	ECSState.register_system(render_system);
-	core::ecs::systems::geometry_instance geometry_instance{};
-	ECSState.register_system(geometry_instance);
-	core::ecs::systems::attractor attractor{};
-	ECSState.register_system(attractor);
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
 	{

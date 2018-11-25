@@ -13,8 +13,9 @@ namespace core::ecs
 	struct entity
 	{
 	public:
+		using value_type = uint64_t;
 		entity() = default;
-		entity(uint64_t id) : m_ID(id) {};
+		entity(value_type id) : m_ID(id) {};
 		~entity() = default;
 		entity(const entity&) = default;
 		entity& operator=(const entity&) = default;
@@ -51,9 +52,9 @@ namespace core::ecs
 			return m_ID > b.m_ID;
 		}
 
-		uint64_t id() const noexcept { return m_ID; };
+		value_type id() const noexcept { return m_ID; };
 	private:
-		uint64_t m_ID;
+		value_type m_ID;
 	};
 
 	/// \brief checks if an entity is valid or not

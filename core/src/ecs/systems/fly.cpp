@@ -7,18 +7,14 @@ using namespace core::ecs::components;
 using namespace psl;
 using namespace psl::math;
 
-fly::fly(core::systems::input& inputSystem) : m_InputSystem(inputSystem) 
-{ 
+fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
+{
+	state.register_system(*this);
+	state.register_dependency(*this, {m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{}});
 	m_InputSystem.subscribe(this); 
 };
 
 fly::~fly() { m_InputSystem.unsubscribe(this); }
-
-void fly::announce(core::ecs::state& state)
-{
-	PROFILE_SCOPE(core::profiler)
-	state.register_dependency(*this, {m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{} });
-}
 
 void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {

@@ -19,7 +19,7 @@ profiler::scoped_block::~scoped_block() noexcept
 }
 
 profiler::scoped_block::scoped_block(scoped_block&& other) : prf(other.prf){other.prf = nullptr;}
-
+profiler::scoped_block::scoped_block(volatile scoped_block&& other) : prf(other.prf) { other.prf = nullptr; }
 void profiler::frame_info::push(const psl::string& name) noexcept
 {
 	auto it = m_NameMap.find(name);

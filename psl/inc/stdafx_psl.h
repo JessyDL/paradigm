@@ -35,6 +35,7 @@ namespace platform::specifics
 #include "profiling/profiler.h"
 
 #include "range/v3/all.hpp"
+#include "enumerate.h"
 
 #if !defined(NDEBUG) && defined(NDEBUG) && !defined(DEBUG)
 #define NDEBUG 1

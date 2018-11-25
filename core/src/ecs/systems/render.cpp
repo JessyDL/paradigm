@@ -20,16 +20,18 @@ using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl;
 
-render::render(handle<context> context, handle<swapchain> swapchain, handle<surface> surface, handle<buffer> buffer)
+render::render(core::ecs::state& state, 
+			   handle<context> context, 
+			   handle<swapchain> swapchain, 
+			   handle<surface> surface,
+			   handle<buffer> buffer)
 	: m_Pass(context, swapchain), m_Swapchain(swapchain), m_Surface(surface), m_Buffer(buffer)
-{}
-
-void render::announce(ecs::state& state)
 {
-	PROFILE_SCOPE(core::profiler)
+	state.register_system(*this);
 	state.register_dependency(*this, {m_RenderableEntities, m_Transforms, m_Renderers});
 	state.register_dependency(*this, {m_CameraEntities, m_Cameras, m_CameraTransforms});
 }
+
 
 void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 {

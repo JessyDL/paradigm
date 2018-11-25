@@ -15,14 +15,13 @@ using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl::math;
 
-void geometry_instance::announce(core::ecs::state& state)
+geometry_instance::geometry_instance(core::ecs::state& state)
 {
+	state.register_system(*this);
 	state.register_dependency(*this, {m_Entities, m_Transforms, m_Renderers, m_Velocity});
 	state.register_dependency(*this, {m_LifeEntities, m_Lifetime});
 	state.register_dependency(*this, {m_CamEntities, m_CamTransform, core::ecs::filter<core::ecs::components::input_tag>{}});
 }
-
-
 
 float accTime {0.0f};
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)

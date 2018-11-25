@@ -13,8 +13,11 @@ namespace core::gfx
 	class swapchain;
 	class drawcall;
 
-	// drawgroup:
-	// a collection of draw instructions to be recorded and sent to the GPU.
+	/// \brief a collection of draw instructions to be recorded and sent to the GPU.
+	///
+	/// describes a group of various core::gfx::drawcalls, ordered by core::gfx::drawlayers.
+	/// these are then pinned to a set of possible outputs (swapchain or framebuffer)
+	/// which will be used by the render to order and output them.
 	class drawgroup
 	{
 	public:
@@ -30,6 +33,12 @@ namespace core::gfx
 		std::optional<std::reference_wrapper<const drawlayer>> get(const psl::string& layer) const noexcept;
 		bool priority(drawlayer& layer, uint32_t priority) noexcept;
 
+		bool add(core::resource::indirect_handle<core::gfx::swapchain> swapchain);
+		bool add(core::resource::indirect_handle<core::gfx::framebuffer> framebuffer);
+
+		bool remove(core::resource::indirect_handle<core::gfx::swapchain> swapchain);
+		bool remove(core::resource::indirect_handle<core::gfx::framebuffer> framebuffer);
+
 		drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::material> material) noexcept;
 
 		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index, std::optional<core::resource::handle<core::gfx::material>> replacement = std::nullopt);
@@ -40,5 +49,7 @@ namespace core::gfx
 
 	private:
 		std::map<drawlayer, std::vector<drawcall>> m_Group;
+		core::resource::handle<core::gfx::swapchain> m_Swapchain;
+		std::vector<core::resource::handle<core::gfx::framebuffer>> m_Framebuffers;
 	};
 }

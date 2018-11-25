@@ -42,6 +42,7 @@ src/vk/shader.cpp
 src/vk/swapchain.cpp
 src/vk/texture.cpp
 
+src/ecs/state.cpp
 src/ecs/systems/fly.cpp
 src/ecs/systems/render.cpp
 src/ecs/systems/geometry_instance.cpp

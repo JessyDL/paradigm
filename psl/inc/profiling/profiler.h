@@ -12,8 +12,8 @@
 #define TOKENPASTE(x, y) x ## y
 #define TOKENPASTE2(x, y) TOKENPASTE(x, y)
 #ifdef PE_PROFILER
-#define PROFILE_SCOPE(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) { profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO), (void*)this) };
-#define PROFILE_SCOPE_STATIC(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) { profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO)) };
+#define PROFILE_SCOPE(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) { std::move(profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO), (void*)this)) };
+#define PROFILE_SCOPE_STATIC(profiler) volatile auto TOKENPASTE2(prof_, __LINE__) { std::move(profiler.scope(psl::string(FUNCTION_SIGNATURE_INFO))) };
 #define PROFILE_SCOPE_BEGIN(profiler) profiler.scope_begin(psl::string(FUNCTION_SIGNATURE_INFO), (void*)this);
 #define PROFILE_SCOPE_END(profiler) profiler.scope_end((void*)this);
 #else
@@ -32,6 +32,7 @@ namespace psl::profiling
 		~scoped_block() noexcept;
 		scoped_block(const scoped_block&) = delete;
 		scoped_block(scoped_block&& other);
+		scoped_block(volatile scoped_block&& other);
 		scoped_block& operator=(const scoped_block&) = delete;
 		scoped_block& operator=(scoped_block&&) = delete;
 	private:

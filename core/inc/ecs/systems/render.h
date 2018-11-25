@@ -51,11 +51,12 @@ namespace core::ecs::systems
 			psl::vec4 viewDir;
 		};
 
-		render(core::resource::handle<core::gfx::context> context,
+		render(core::ecs::state& state,
+			   core::resource::handle<core::gfx::context> context,
 			   core::resource::handle<core::gfx::swapchain> swapchain,
 			   core::resource::handle<core::os::surface> surface, 
 			   core::resource::handle<core::gfx::buffer> buffer);
-		void announce(core::ecs::state& state);
+
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
 
 	  private:
