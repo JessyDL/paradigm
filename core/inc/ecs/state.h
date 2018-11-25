@@ -23,6 +23,8 @@ namespace core::ecs
 	struct par
 	{};
 
+	class state;
+
 	template <bool has_entities = true, typename... Ts>
 	class pack
 	{
@@ -132,6 +134,37 @@ namespace core::ecs
 			size_t size;
 			psl::IDGenerator<uint64_t> generator;
 		};
+
+		template <typename T, typename SFINEA = void>
+		struct mf_pre_tick : std::false_type
+		{};
+
+		/// \brief SFINAE tag that is used to detect the method signature for the `pre_tick` listener.
+		template <typename T>
+		struct mf_pre_tick<T, std::void_t<decltype(std::declval<T&>().pre_tick(std::declval<core::ecs::state&>()))>>
+			: std::true_type
+		{};
+
+		template <typename T, typename SFINEA = void>
+		struct mf_post_tick : std::false_type
+		{};
+
+		/// \brief SFINAE tag that is used to detect the method signature for the `post_tick` listener.
+		template <typename T>
+		struct mf_post_tick<T, std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::state&>()))>>
+			: std::true_type
+		{};
+
+
+		template <typename T, typename SFINEA = void>
+		struct mf_tick : std::false_type
+		{};
+
+		/// \brief SFINAE tag that is used to detect the method signature for the `tick` listener.
+		template <typename T>
+		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::state&>(), std::declval<std::chrono::duration<float>>()))>>
+			: std::true_type
+		{};
 	} // namespace details
 } // namespace core::ecs
 
@@ -218,6 +251,46 @@ namespace core::ecs
 			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
 			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
 			std::vector<details::component_key_t> filters;
+		};
+
+
+
+	private:
+		struct system_description
+		{
+			template<typename T>
+			system_description(T& target)
+			{
+				if constexpr(details::mf_tick<T>::value)
+				{
+					tick = [&target](core::ecs::state& state, std::chrono::duration<float> dTime)
+					{
+						target.tick(state, dTime);
+					};
+				}
+				if constexpr(details::mf_pre_tick<T>::value)
+				{
+					pre_tick = [&target](core::ecs::state& state)
+					{
+						target.pre_tick(state);
+					};
+				}
+				if constexpr(details::mf_post_tick<T>::value)
+				{
+					post_tick = [&target](core::ecs::state& state)
+					{
+						target.post_tick(state);
+					};
+				}
+			}
+
+			std::function<void(core::ecs::state&, std::chrono::duration<float>)> tick;
+			std::function<void(core::ecs::state&)> pre_tick;
+			std::function<void(core::ecs::state&)> post_tick;
+
+			std::vector<dependency_pack> tick_dependencies;
+			std::vector<dependency_pack> pre_tick_dependencies;
+			std::vector<dependency_pack> post_tick_dependencies;
 		};
 
 		// -----------------------------------------------------------------------------
@@ -655,10 +728,7 @@ namespace core::ecs
 		void register_system(T& target, call_policy_type policy = call_policy_type::TICK, listener_type type = listener_type::PER_TICK)
 		{
 			PROFILE_SCOPE(core::profiler)
-			m_Systems.emplace(&target,
-							  std::tuple{std::bind(&T::tick, &target, std::placeholders::_1, std::placeholders::_2),
-										 std::vector<dependency_pack>{}});
-
+			m_Systems.emplace(&target, system_description{target});
 		}
 
 		template <typename T>
@@ -668,12 +738,10 @@ namespace core::ecs
 			auto it = m_Systems.find(&system);
 			if(it == std::end(m_Systems))
 			{
-				m_Systems.emplace(&system,
-								  std::tuple{std::bind(&T::tick, &system, std::placeholders::_1, std::placeholders::_2),
-											 std::vector<dependency_pack>{}});
+				m_Systems.emplace(&system, system_description{system});
 				it = m_Systems.find(&system);
 			}
-			std::get<1>(it->second).emplace_back(std::move(pack));
+			it->second.tick_dependencies.emplace_back(std::move(pack));
 		}
 
 
@@ -730,9 +798,7 @@ namespace core::ecs
 		/// where Nec is the count of entities that uses this component type.
 		/// where Nct is the count of unique component types.
 
-		std::unordered_map<void*, std::tuple<std::function<void(core::ecs::state&, std::chrono::duration<float>)>,
-											 std::vector<dependency_pack>>>
-			m_Systems;
+		std::unordered_map<void*, system_description> m_Systems;
 		memory::raw_region m_Cache{1024 * 1024 * 32};
 
 		// keep track of changed data

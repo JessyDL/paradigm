@@ -75,7 +75,7 @@ void state::destroy(const std::vector<entity>& entities) noexcept
 	core::profiler.scope_end();
 }
 
-void state::destroy(entity e) noexcept { destroy({e}); }
+void state::destroy(entity e) noexcept { destroy(std::vector<core::ecs::entity>{e}); }
 
 void state::tick(std::chrono::duration<float> dTime)
 {
@@ -83,7 +83,7 @@ void state::tick(std::chrono::duration<float> dTime)
 	for(auto& system : m_Systems)
 	{
 		core::profiler.scope_begin("ticking system");
-		auto& sBindings				= std::get<1>(system.second);
+		auto& sBindings				= system.second.tick_dependencies;
 		std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
 		core::profiler.scope_begin("preparing data");
 		for(auto& dep_pack : sBindings)
@@ -147,7 +147,7 @@ void state::tick(std::chrono::duration<float> dTime)
 			core::profiler.scope_end();
 		}
 		core::profiler.scope_end();
-		std::invoke(std::get<0>(system.second), *this, dTime);
+		std::invoke(system.second.tick, *this, dTime);
 		for(const auto& dep_pack : sBindings)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
