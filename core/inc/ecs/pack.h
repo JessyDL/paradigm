@@ -32,7 +32,7 @@ namespace core::ecs
 	template<typename... Ts>
 	struct on_break {};
 
-	/// \brief tag that disallows a certain component to be present.
+	/// \brief tag that disallows a certain component to be present on the given entity.
 	///
 	/// Sometimes you want to filter on all items, except a subgroup. This tag can aid in this.
 	/// For example, if you had a debug system that would log an error for all entities that are
@@ -82,25 +82,30 @@ namespace core::ecs
 		using range_element_t = std::tuple<Ts...>;
 		using iterator_element_t = std::tuple<typename psl::array_view<Ts>::iterator...>;
 
+		template <std::size_t...Is, typename T>
+		static auto iterator_begin(std::index_sequence<Is...>, const T& t)
+		{
+			return std::make_tuple(std::begin(std::get<Is>(t))...);
+		}
+		template <std::size_t...Is, typename T>
+		static auto iterator_end(std::index_sequence<Is...>, const T& t)
+		{
+			return std::make_tuple(std::end(std::get<Is>(t))...);
+		}
+
 	public:
 		class iterator
 		{
-			template <std::size_t...Is, typename T>
-			auto init_impl(std::index_sequence<Is...>, const T& t)
+			template <std::size_t...Is>
+			auto pack_impl(std::index_sequence<Is...>)
 			{
-				return std::make_tuple(std::begin(std::get<Is>(t))...);
+				return std::forward_as_tuple((std::get<Is>(data).value()) ...);
 			}
 
 			template <std::size_t...Is>
-			auto pack_impl(std::index_sequence<Is...>, const iterator_element_t& t)
+			const auto cpack_impl(std::index_sequence<Is...>) const
 			{
-				return std::make_tuple(*std::get<Is>(t)...);
-			}
-
-			template <std::size_t...Is>
-			const auto cpack_impl(std::index_sequence<Is...>, const iterator_element_t& t) const
-			{
-				return std::make_tuple(*std::get<Is>(t)...);
+				return std::forward_as_tuple((std::get<Is>(data).cvalue()) ...);
 			}
 
 			template <std::size_t...Is>
@@ -109,7 +114,7 @@ namespace core::ecs
 				return (++std::get<Is>(data), ...);
 			}
 		public:
-			constexpr iterator(const range_t& range) noexcept : data(init_impl(std::index_sequence_for<Ts...>{}, range))
+			constexpr iterator(const range_t& range) noexcept : data(iterator_begin(std::index_sequence_for<Ts...>{}, range))
 			{
 
 			};
@@ -117,6 +122,7 @@ namespace core::ecs
 
 			constexpr iterator operator++() const noexcept
 			{
+				
 				auto next = iterator(data);
 				++next;
 				return next;
@@ -131,17 +137,17 @@ namespace core::ecs
 
 			bool operator==(const iterator &other) const noexcept { return std::get<0>(data) == std::get<0>(other.data); }
 
-			auto operator*() -> decltype(pack_impl(std::index_sequence_for<Ts...>{}, std::declval<iterator_element_t>()))
+			auto operator*()
 			{
-				return pack_impl(std::index_sequence_for<Ts...>{}, data);
+				return pack_impl(std::index_sequence_for<Ts...>{});
 			}
-			auto operator*() const  -> decltype(cpack_impl(std::index_sequence_for<Ts...>{}, std::declval<iterator_element_t>()))
+			auto operator*() const
 			{
-				return cpack_impl(std::index_sequence_for<Ts...>{}, data);
+				return cpack_impl(std::index_sequence_for<Ts...>{});
 			}
 
 			template<typename T>
-			auto get()	-> decltype(*std::get<typename psl::array_view<T>::iterator>(std::declval<iterator_element_t>()))
+			auto get()	-> typename decltype(*std::get<typename psl::array_view<T>::iterator>(std::declval<iterator_element_t>()))
 			{
 				static_assert(details::tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
 				return *std::get<typename psl::array_view<T>::iterator>(data);
@@ -156,6 +162,11 @@ namespace core::ecs
 		private:
 			iterator_element_t data;
 		};
+		pack(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views) ...))
+		{
+
+		}
+
 		range_t read() { return m_Pack; }
 
 		template <typename T>
@@ -172,9 +183,9 @@ namespace core::ecs
 			return std::get<N>(m_Pack);
 		}
 
-		iterator begin() const noexcept { return iterator{m_Pack}; }
+		iterator begin() const noexcept { return iterator{iterator_begin(std::index_sequence_for<Ts...>{}, m_Pack)}; }
 
-		iterator end() const noexcept { return iterator{m_Pack}; }
+		iterator end() const noexcept { return iterator{iterator_end(std::index_sequence_for<Ts...>{}, m_Pack)}; }
 		constexpr size_t size() const noexcept { return std::get<0>(m_Pack).size(); }
 
 	private:

@@ -27,9 +27,43 @@ geometry_instance::geometry_instance(core::ecs::state& state)
 	state.register_dependency(*this, {m_CamEntities, m_CamTransform, core::ecs::filter<core::ecs::components::input_tag>{}});
 }
 
+//void tick(core::ecs::state& state, std::chrono::duration<float> dTime,
+//		  pack<const entity, on_combine<const transform, const renderable>, except<lifetime>> pack_1,
+//		  pack<lifetime, const renderable> pack_2)
+//{
+//
+//}
 float accTime {0.0f};
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
+	//pack<const entity, const transform, const renderable> pack{};
+	//auto packet = std::begin(pack);
+	//
+	//auto tr = packet.get<const renderable>();
+	//auto res{packet.get<0>()};
+	//static_assert(std::is_same<decltype(packet.get<0>()), const entity&>::value);
+
+	////auto [elementE, elementT, elementR] = *packet;
+
+	//for(const auto[elementE, elementT, elementR] : pack)
+	//{
+	//
+	//}
+
+	std::vector<int> iVec{0, 5, 3};
+	std::vector<float> fVec{0.0f, 5.0f, 3.0f};
+	pack<int, const float> p{iVec, fVec};
+
+	for(auto [i, f] : p)
+	{
+		i += 1;
+		i += 1;
+		i += 1;
+		// f *= 2.0f;
+	}
+
+	//auto pAck = p.read();
+	//auto transformPack = p.get<const transform>();
 	PROFILE_SCOPE(core::profiler)
 	accTime += dTime.count();
 

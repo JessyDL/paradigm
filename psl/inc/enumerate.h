@@ -128,6 +128,17 @@ namespace psl
 			{
 				return *it;
 			}
+
+			T& value()
+			{
+				return *it;			
+			}
+
+
+			const T& cvalue() const
+			{
+				return *it;
+			}
 		private:
 			T* it;
 		};
