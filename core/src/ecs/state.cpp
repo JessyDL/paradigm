@@ -3,7 +3,6 @@
 
 using namespace core::ecs;
 
-
 void state::destroy(const std::vector<entity>& entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)

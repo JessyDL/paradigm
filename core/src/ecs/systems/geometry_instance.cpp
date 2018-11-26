@@ -6,6 +6,7 @@
 #include "ecs/components/transform.h"
 #include "ecs/components/input_tag.h"
 #include "conversion_utils.h"
+#include "ecs/pack.h"
 
 using namespace core::resource;
 using namespace core::gfx;
@@ -16,118 +17,6 @@ using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl::math;
 
-template<typename T>
-struct on_add{};
-template<typename T>
-struct on_remove{};
-template<typename T>
-struct on_modified{};
-
-template<typename T>
-struct except_add {};
-template<typename T>
-struct except_modified {};
-
-namespace details
-{
-	template<bool has_entities, typename... Ts>
-	struct pack_tuple
-	{
-		using range_t = std::tuple<core::ecs::vector<entity>, core::ecs::vector<Ts>...>;
-		using range_element_t = std::tuple<entity, Ts...>;
-	};
-
-	template<typename... Ts>
-	struct pack_tuple<false, Ts...>
-	{
-		using range_t = std::tuple<core::ecs::vector<Ts>...>;
-		using range_element_t = std::tuple<Ts...>;
-	};
-	
-	template <typename T, typename Tuple>
-	struct has_type;
-
-	template <typename T>
-	struct has_type<T, std::tuple<>> : std::false_type {};
-
-	template <typename T, typename U, typename... Ts>
-	struct has_type<T, std::tuple<U, Ts...>> : has_type<T, std::tuple<Ts...>> {};
-
-	template <typename T, typename... Ts>
-	struct has_type<T, std::tuple<T, Ts...>> : std::true_type {};
-
-	template <typename T, typename Tuple>
-	using tuple_contains_type = typename has_type<T, Tuple>::type;
-}
-
-template <bool has_entities, typename... Ts>
-class tpack
-{
-	using range_t = typename ::details::pack_tuple<has_entities, Ts...>::range_t;
-	using range_element_t = typename ::details::pack_tuple<has_entities, Ts...>::range_element_t;
-	using iterator_element_t =
-		std::tuple<typename core::ecs::vector<entity>::iterator, typename core::ecs::vector<Ts>::iterator...>;
-
-	template <typename Tuple, typename F, std::size_t... Indices>
-	static void for_each_impl(Tuple&& tuple, F&& f, std::index_sequence<Indices...>)
-	{
-		using swallow = int[];
-		(void)swallow
-		{
-			1, (f(std::get<Indices>(std::forward<Tuple>(tuple))), void(), int{})...
-		};
-	}
-
-	template <typename Tuple, typename F>
-	static void for_each(Tuple&& tuple, F&& f)
-	{
-		constexpr std::size_t N = std::tuple_size<std::remove_reference_t<Tuple>>::value;
-		for_each_impl(std::forward<Tuple>(tuple), std::forward<F>(f), std::make_index_sequence<N>{});
-	}
-
-public:
-	class iterator
-	{
-	public:
-		constexpr iterator(const range_t& range) noexcept {};
-		constexpr iterator(iterator_element_t data) noexcept : data(data) {};
-		constexpr const iterator_element_t& operator*() const noexcept { return data; }
-		constexpr bool operator!=(iterator other) const noexcept
-		{
-			return std::get<0>(data) != std::get<0>(other.data);
-		}
-		constexpr iterator operator++() const noexcept
-		{
-			auto next = iterator(data);
-			++next;
-			return next;
-		}
-		constexpr iterator& operator++() noexcept
-		{
-			for_each(data, [](auto& element) { ++element; });
-			return *this;
-		}
-
-	private:
-		iterator_element_t data;
-	};
-	range_t read() { return m_Pack; }
-
-	template <typename T>
-	const core::ecs::vector<T>& get()
-	{
-		static_assert(::details::tuple_contains_type<core::ecs::vector<T>, range_t>::value, "the requested component type does not exist in the pack");
-		return std::get<core::ecs::vector<T>>(m_Pack);
-	}
-
-	iterator begin() const noexcept { return iterator{m_Pack}; }
-
-	iterator end() const noexcept { return iterator{m_Pack}; }
-	constexpr size_t size() const noexcept { return std::get<0>(m_Pack).size(); }
-
-private:
-	range_t m_Pack;
-};
 
 
 geometry_instance::geometry_instance(core::ecs::state& state)
@@ -141,9 +30,6 @@ geometry_instance::geometry_instance(core::ecs::state& state)
 float accTime {0.0f};
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
-	//tpack<true, const transform, const renderable> p{};
-	//auto pAck = p.read();
-	//auto transformPack = p.get<const transform>();
 	PROFILE_SCOPE(core::profiler)
 	accTime += dTime.count();
 

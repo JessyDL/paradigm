@@ -35,6 +35,7 @@ inc/ecs/ecs.hpp
 inc/ecs/range.h
 inc/ecs/state.h
 inc/ecs/entity.h
+inc/ecs/pack.h
 inc/ecs/systems/fly.h
 inc/ecs/systems/render.h
 inc/ecs/systems/geometry_instance.h

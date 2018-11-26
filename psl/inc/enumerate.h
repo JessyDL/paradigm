@@ -79,10 +79,12 @@ namespace psl
 	class array_view
 	{
 	public:
+		using element_type = T;
 		class iterator
 		{
 		public:
-			iterator(T* iterator) noexcept : it(iterator) {}
+			iterator() noexcept : it(iterator) {}
+			iterator(T* iterator = nullptr) noexcept : it(iterator) {}
 			~iterator() = default;
 			iterator(const iterator& other) noexcept = default;
 			iterator(iterator&& other) noexcept = default;
@@ -122,8 +124,6 @@ namespace psl
 			{
 				return *it;
 			}
-
-
 			const T& operator*() const
 			{
 				return *it;
@@ -131,15 +131,26 @@ namespace psl
 		private:
 			T* it;
 		};
+		array_view() : first(nullptr), last(nullptr) {};
 		template<typename container_t>
-		array_view(container_t& container) : first(std::begin(container)), last(std::end(container)) {};
+		array_view(container_t& container) : first(container.data()), last(container.data() + container.size()) {};
 		array_view(T* first, T* last) : first(first), last(last) {};
 
 		~array_view() = default;
-		array_view(const iterator& other) noexcept = default;
-		array_view(iterator&& other) noexcept = default;
+		array_view(const array_view& other) noexcept = default;
+		array_view(array_view&& other) noexcept = default;
 		array_view& operator=(const array_view& other) noexcept = default;
 		array_view& operator=(array_view&& other) noexcept = default;
+
+		T& operator[](size_t index)
+		{
+			return *(first + index);
+		}
+
+		const T& operator[](size_t index) const
+		{
+			return *(first + index);
+		}
 
 		iterator begin() const { return iterator(first); }
 
