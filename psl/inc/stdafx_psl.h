@@ -31,11 +31,6 @@ namespace platform::specifics
 
 } // namespace platform::specifics
 
-#include "timer.h"
-#include "profiling/profiler.h"
-
-#include "range/v3/all.hpp"
-#include "enumerate.h"
 
 #if !defined(NDEBUG) && defined(NDEBUG) && !defined(DEBUG)
 #define NDEBUG 1
@@ -123,3 +118,13 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 	some helper classes provided to track and manage memory (both physically backed and non-physically backed).
 	You can find more information in memory::region about this.
 */
+
+
+#include "template_utils.h"
+#include "timer.h"
+#include "profiling/profiler.h"
+
+#include "range/v3/all.hpp"
+#include "enumerate.h"
+#include "array_view.h"
+#include "pack_view.h"

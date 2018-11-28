@@ -34,6 +34,7 @@ geometry_instance::geometry_instance(core::ecs::state& state)
 //
 //}
 float accTime {0.0f};
+
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
 	//pack<const entity, const transform, const renderable> pack{};
@@ -50,6 +51,9 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	//
 	//}
 
+	//component_pack<transform, renderable, on_add<float>> pack();
+	using pack_internal_t = typename component_pack<transform, renderable, on_combine<float, int>>::combine_t;
+	pack_internal_t pack_instance;
 	std::vector<int> iVec{0, 5, 3};
 	std::vector<float> fVec{0.0f, 5.0f, 3.0f};
 	pack<int, const float> p{iVec, fVec};

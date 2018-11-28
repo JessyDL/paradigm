@@ -16,6 +16,22 @@ namespace utility::templates
 		return ret;
 	}
 
+
+	template <typename T, typename Tuple>
+	struct has_type;
+
+	template <typename T>
+	struct has_type<T, std::tuple<>> : std::false_type {};
+
+	template <typename T, typename U, typename... Ts>
+	struct has_type<T, std::tuple<U, Ts...>> : has_type<T, std::tuple<Ts...>> {};
+
+	template <typename T, typename... Ts>
+	struct has_type<T, std::tuple<T, Ts...>> : std::true_type {};
+
+	template <typename T, typename Tuple>
+	using tuple_contains_type = typename has_type<T, Tuple>::type;
+
 	// handy utility for the compilers that wish to compile static_assert(false,"") in dead code paths that should error out
 	template<typename T>
 	struct always_false : std::false_type

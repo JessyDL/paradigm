@@ -35,6 +35,8 @@ inc/serialization.h
 inc/library.h
 inc/meta.h
 inc/enumerate.h
+inc/array_view.h
+inc/pack_view.h
 
 inc/math/math.hpp
 inc/math/vec.h
