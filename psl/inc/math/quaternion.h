@@ -204,3 +204,6 @@ namespace psl::math
 		return conjugate(quat) / dot(quat, quat);
 	}
 } // namespace psl::math
+
+#include "math/SSE/quaternion.h"
+#include "math/fallback/quaternion.h"

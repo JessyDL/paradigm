@@ -1,4 +1,5 @@
 #pragma once
+#if INSTRUCTION_SET == 0
 #include "math/quaternion.h"
 
 namespace psl
@@ -48,3 +49,4 @@ namespace psl
 		return owner;
 	}
 }
+#endif

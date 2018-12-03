@@ -1116,3 +1116,6 @@ namespace psl::math
 
 
 } // namespace psl
+
+#include "math/SSE/vec.h"
+#include "math/fallback/vec.h"

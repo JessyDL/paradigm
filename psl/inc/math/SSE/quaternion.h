@@ -1,6 +1,6 @@
 #pragma once
+#if INSTRUCTION_SET == 1
 #include "math/quaternion.h"
-
 namespace psl
 {
 	template <typename precision_t>
@@ -89,3 +89,5 @@ namespace psl
 		return owner;
 	}
 }
+
+#endif

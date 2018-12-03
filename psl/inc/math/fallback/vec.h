@@ -1,4 +1,5 @@
 #pragma once
+#if INSTRUCTION_SET == 0
 #include "math/vec.h"
 
 namespace psl
@@ -41,3 +42,4 @@ namespace psl
 		return owner;
 	}
 }
+#endif
