@@ -41,7 +41,7 @@ CMAKE_DEPENDENT_OPTION(PE_WSI_WIN32 "use win32 surface" ON "WIN32" OFF)
 set(PE_PLATFORM "AUTO" CACHE STRING "Target platform to build for, leave to 'AUTO' to detect and select the platform for you.")
 set_property(CACHE PE_PLATFORM PROPERTY STRINGS AUTO WINDOWS LINUX ANDROID)
 set(PE_INSTRUCTION_SET "OFF" CACHE STRING "Instruction set to use for SIMD instructions")
-set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS OFF SSE2)
+set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS fallback SSE AVX AVX2)
 
 OPTION(VS_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
 
@@ -62,10 +62,6 @@ if(PE_MODE STREQUAL "EXE")
 endif()
 
 list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
-
-if(NOT ${PE_INSTRUCTION_SET} STREQUAL "OFF")	
-	list(APPEND PE_DEFINES -DINSTRUCTIONS_${PE_INSTRUCTION_SET})
-endif()
 
 if(${PE_PROFILER})
 	list(APPEND PE_DEFINES -DPE_PROFILER)
