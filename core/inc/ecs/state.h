@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "entity.h"
 #include "range.h"
+#include "pack.h"
 #include "memory/raw_region.h"
 #include "IDGenerator.h"
 #include <type_traits>
@@ -22,6 +23,10 @@ namespace core::ecs
 
 	struct par
 	{};
+
+	struct tick {};
+	struct pre_tick {};
+	struct post_tick {};
 
 	class state;
 
@@ -138,14 +143,25 @@ namespace core::ecs
 		{
 			friend class core::ecs::state;
 
+
+			template <std::size_t... Is, typename T>
+			static auto create_filters(std::index_sequence<Is...>, const T& t)
+			{
+				(add(t.get<Is>()), ...);
+			}
+
 		  public:
 			/// \brief constructs a unique set of dependencies
-			dependency_pack(core::ecs::vector<entity>& entities) : m_Entities(entities){};
 			template <typename... Ts>
-			dependency_pack(core::ecs::vector<entity>& entities, Ts&&... filters) : m_Entities(entities)
+			dependency_pack(core::ecs::vector<entity>& entities, Ts&&... filters) : m_Entities(&entities)
 			{
 				(add(filters), ...);
 			};
+			template<typename... Ts>
+			dependency_pack(core::ecs::pack<Ts...>& pack)	:	m_Entities(nullptr)
+			{
+				//create_filters(std::index_sequence_for<Ts...>{}, pack);
+			}
 			~dependency_pack() noexcept					  = default;
 			dependency_pack(const dependency_pack& other) = default;
 			dependency_pack(dependency_pack&& other)	  = default;
@@ -182,7 +198,7 @@ namespace core::ecs
 			}
 
 		  private:
-			core::ecs::vector<entity>& m_Entities;
+			core::ecs::vector<entity>* m_Entities;
 			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
 			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
 			std::vector<details::component_key_t> filters;
@@ -680,6 +696,34 @@ namespace core::ecs
 			it->second.tick_dependencies.emplace_back(std::move(pack));
 		}
 
+		template <typename T, typename Y, typename... Ts >
+		void register_dependency(T& system, Y method, core::ecs::pack<Ts...>& pack)
+		{
+			PROFILE_SCOPE(core::profiler)
+				auto it = m_Systems.find(&system);
+			if(it == std::end(m_Systems))
+			{
+				m_Systems.emplace(&system, system_description{system});
+				it = m_Systems.find(&system);
+			}
+			dependency_pack p{ pack };
+			if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			{
+				it->second.tick_dependencies.emplace_back(std::move(p));
+			}
+			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
+			{
+				it->second.pre_tick_dependencies.emplace_back(std::move(p));
+			}
+			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			{
+				it->second.post_tick_dependencies.emplace_back(std::move(p));
+			}
+			else
+			{
+				static_assert(utility::templates::always_false_v<Y>, "the method should be one of the pre-approved types. Either `tick`, `pre_tick`, or `post_tick`");
+			}
+		}
 
 		template <typename T>
 		void set(const std::vector<entity>& entities, const std::vector<T>& data)

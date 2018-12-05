@@ -24,7 +24,6 @@ namespace psl
 		{
 			return std::make_tuple(std::end(std::get<Is>(t))...);
 		}
-
 	public:
 		class iterator
 		{
@@ -96,6 +95,10 @@ namespace psl
 			iterator_element_t data;
 		};
 		pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views) ...))
+		{
+
+		}
+		pack_view() : m_Pack(range_t{})
 		{
 
 		}

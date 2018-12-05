@@ -89,8 +89,11 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			auto entities = dynamic_filter(dep_pack.filters);
 			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-			dep_pack.m_Entities.data = (entity*)cache_offset;
-			dep_pack.m_Entities.tail = (entity*)(cache_offset + sizeof(entity) * entities.size());
+			if(dep_pack.m_Entities != nullptr)
+			{
+				dep_pack.m_Entities->data = (entity*)cache_offset;
+				dep_pack.m_Entities->tail = (entity*)(cache_offset + sizeof(entity) * entities.size());
+			}
 			cache_offset += sizeof(entity) * entities.size();
 			core::profiler.scope_begin("read-write data");
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
@@ -101,7 +104,7 @@ void state::tick(std::chrono::duration<float> dTime)
 
 				auto& data_begin = std::get<0>(rwBinding.second);
 				*data_begin		 = (void*)cache_offset;
-				for(const auto& e : dep_pack.m_Entities)
+				for(const auto& e : entities)
 				{
 
 					auto eMapIt  = m_EntityMap.find(e);
@@ -127,7 +130,7 @@ void state::tick(std::chrono::duration<float> dTime)
 
 				auto& data_begin = std::get<0>(rBinding.second);
 				*data_begin		 = (void*)cache_offset;
-				for(const auto& e : dep_pack.m_Entities)
+				for(const auto& e : entities)
 				{
 
 					auto eMapIt  = m_EntityMap.find(e);
@@ -151,7 +154,12 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				set(dep_pack.m_Entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second),
+				if(dep_pack.m_Entities == nullptr)
+				{
+					core::log->error("cannot set the pack due to entities not being recorded");
+					continue;
+				}
+				set(*dep_pack.m_Entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second),
 					rwBinding.first);
 			}
 		}

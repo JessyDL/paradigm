@@ -6,6 +6,7 @@ project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 include(inc.txt)
 include(src.txt)
 include(FetchContent)
+set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 

@@ -22,17 +22,12 @@ using namespace psl::math;
 geometry_instance::geometry_instance(core::ecs::state& state)
 {
 	state.register_system(*this);
+	//state.register_dependency(*this, core::ecs::tick{}, m_Geometry);
 	state.register_dependency(*this, {m_Entities, m_Transforms, m_Renderers, m_Velocity});
 	state.register_dependency(*this, {m_LifeEntities, m_Lifetime});
 	state.register_dependency(*this, {m_CamEntities, m_CamTransform, core::ecs::filter<core::ecs::components::input_tag>{}});
 }
 
-//void tick(core::ecs::state& state, std::chrono::duration<float> dTime,
-//		  pack<const entity, on_combine<const transform, const renderable>, except<lifetime>> pack_1,
-//		  pack<lifetime, const renderable> pack_2)
-//{
-//
-//}
 float accTime {0.0f};
 
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)

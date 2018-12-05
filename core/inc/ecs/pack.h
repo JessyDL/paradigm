@@ -113,7 +113,7 @@ namespace core::ecs
 		};
 
 		template <typename T>
-		struct extract_except<on_except<T>>
+		struct extract_except<except<T>>
 		{
 			using type = std::tuple<T>;
 		};
@@ -223,32 +223,32 @@ namespace core::ecs
 			using type = typename tuple_to_pack_view<typename typelist_to_tuple<Ts...>::type>::type;
 		};
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct typelist_to_add_pack
 		{
 			using type = decltype(details::merge_tuple(std::declval<typename details::extract_add<Ts>::type>()...));
 		};
 
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct typelist_to_combine_pack
 		{
 			using type = decltype(details::merge_tuple(std::declval<typename details::extract_combine<Ts>::type>()...));
 		};
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct typelist_to_except_pack
 		{
 			using type = decltype(details::merge_tuple(std::declval<typename details::extract_except<Ts>::type>()...));
 		};
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct typelist_to_break_pack
 		{
 			using type = decltype(details::merge_tuple(std::declval<typename details::extract_break<Ts>::type>()...));
 		};
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct typelist_to_remove_pack
 		{
 			using type = decltype(details::merge_tuple(std::declval<typename details::extract_remove<Ts>::type>()...));
@@ -274,10 +274,6 @@ namespace core::ecs
 	template <typename... Ts>
 	class pack
 	{
-		using range_t			 = std::tuple<psl::array_view<Ts>...>;
-		using range_element_t	= std::tuple<Ts...>;
-		using iterator_element_t = std::tuple<typename psl::array_view<Ts>::iterator...>;
-
 		template <std::size_t... Is, typename T>
 		static auto iterator_begin(std::index_sequence<Is...>, const T& t)
 		{
@@ -290,6 +286,10 @@ namespace core::ecs
 		}
 
 	  public:
+		using range_t			 = std::tuple<psl::array_view<Ts>...>;
+		using range_element_t	= std::tuple<Ts...>;
+		using iterator_element_t = std::tuple<typename psl::array_view<Ts>::iterator...>;
+
 		class iterator
 		{
 			template <std::size_t... Is>
@@ -363,6 +363,7 @@ namespace core::ecs
 		  private:
 			iterator_element_t data;
 		};
+		pack() : m_Pack() {};
 		pack(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {}
 
 		range_t read() { return m_Pack; }
@@ -389,6 +390,7 @@ namespace core::ecs
 		constexpr size_t size() const noexcept { return std::get<0>(m_Pack).size(); }
 
 	  private:
+		  psl::array_view<entity> m_Entities;
 		range_t m_Pack;
 	};
 } // namespace core::ecs
