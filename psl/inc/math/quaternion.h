@@ -205,5 +205,7 @@ namespace psl::math
 	}
 } // namespace psl::math
 
+#include "math/AVX2/quaternion.h"
+#include "math/AVX/quaternion.h"
 #include "math/SSE/quaternion.h"
 #include "math/fallback/quaternion.h"

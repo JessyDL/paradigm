@@ -92,6 +92,12 @@ namespace psl::math
 	{
 		return std::clamp(value, min, max);
 	}
+
+	template <typename precision_t, size_t dimensions>
+	constexpr static precision_t distance(const tvec<precision_t, dimensions>& vec1, const tvec<precision_t, dimensions>& vec2) noexcept
+	{
+		return psl::math::magnitude(vec1 - vec2);
+	}
 } // namespace psl::math
 
 

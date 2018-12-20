@@ -1117,5 +1117,7 @@ namespace psl::math
 
 } // namespace psl
 
+#include "math/AVX2/vec.h"
+#include "math/AVX/vec.h"
 #include "math/SSE/vec.h"
 #include "math/fallback/vec.h"
