@@ -16,19 +16,19 @@ fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSy
 
 fly::~fly() { m_InputSystem.unsubscribe(this); }
 
-void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
+void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
 	if (bHasRotated)
 	{
-		float mouseSpeed = 12.0f;
+		float mouseSpeed = .12f;
 		auto diffX = m_MouseX - m_MouseTargetX;
 		auto diffY = m_MouseY - m_MouseTargetY;
-		m_AngleH = mouseSpeed * diffX * dTime.count();
+		m_AngleH = mouseSpeed * diffX;
 		head_to(-m_AngleH);
 
-		m_AngleV = mouseSpeed * diffY * dTime.count();
+		m_AngleV = mouseSpeed * diffY;
 		pitch_to(m_AngleV);
 		m_MouseX = m_MouseTargetX;
 		m_MouseY = m_MouseTargetY;
@@ -76,7 +76,7 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 		{
 			hasMoved = false;
 
-			transform.position = transform.position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * dTime.count();
+			transform.position = transform.position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * rTime.count();
 			accDirectionVec = {0};
 		}
 		if(bHasRotated)

@@ -28,7 +28,7 @@ namespace core::ecs::systems
 	  public:
 		geometry_instance(core::ecs::state& state);
 
-		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
+		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	  private:
 	};

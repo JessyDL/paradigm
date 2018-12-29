@@ -251,7 +251,7 @@ namespace core::ecs
 		template <typename... Ts>
 		struct typelist_to_pack
 		{
-			using type = decltype(std::tuple_cat(std::declval<typename details::extract_physical<Ts>::type>()...));
+			using type = decltype(std::tuple_cat(std::declval<typename details::decode_type<Ts>::type>()...));
 		};
 
 		template <typename... Ts>

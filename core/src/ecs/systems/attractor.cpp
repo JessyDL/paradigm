@@ -16,7 +16,7 @@ attractor::attractor(core::ecs::state& state)
 	state.register_dependency(*this, core::ecs::tick{}, m_Attractors);
 }
 
-void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
+void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	for (auto [movTrans, movVel] : m_Movables)
 	{

@@ -15,7 +15,7 @@ namespace core::ecs::systems
 		fly(core::ecs::state& state, core::systems::input& inputSystem);
 		~fly();
 
-		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
+		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	private:
 		void on_key_pressed(core::systems::input::keycode keyCode);

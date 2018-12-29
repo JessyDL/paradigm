@@ -55,7 +55,7 @@ namespace core::ecs::systems
 			   core::resource::handle<core::os::surface> surface, 
 			   core::resource::handle<core::gfx::buffer> buffer);
 
-		void tick(core::ecs::state& state, std::chrono::duration<float> dTime);
+		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	  private:
 		void update_buffer(size_t index, const core::ecs::components::transform& transform,

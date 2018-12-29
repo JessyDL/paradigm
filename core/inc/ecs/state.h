@@ -105,7 +105,7 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `tick` listener.
 		template <typename T>
-		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::state&>(), std::declval<std::chrono::duration<float>>()))>>
+		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::state&>(), std::declval<std::chrono::duration<float>>(), std::declval<std::chrono::duration<float>>()))>>
 			: std::true_type
 		{};
 	} // namespace details
@@ -172,7 +172,8 @@ namespace core::ecs
 			dependency_pack(core::ecs::pack<Ts...>& pack)
 			{
 				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{}, pack);
-				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::pack<Ts...>::filter_t>::value>{}, pack);
+				using filter_t = typename core::ecs::pack<Ts...>::filter_t;
+				filter(std::make_index_sequence<std::tuple_size<filter_t>::value>{}, pack);
 			}
 			dependency_pack() {};
 			~dependency_pack() noexcept					  = default;
@@ -230,9 +231,9 @@ namespace core::ecs
 			{
 				if constexpr(details::mf_tick<T>::value)
 				{
-					tick = [&target](core::ecs::state& state, std::chrono::duration<float> dTime)
+					tick = [&target](core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 					{
-						target.tick(state, dTime);
+						target.tick(state, dTime, rTime);
 					};
 				}
 				if constexpr(details::mf_pre_tick<T>::value)
@@ -252,7 +253,7 @@ namespace core::ecs
 			}
 
 			std::vector<void*> external_dependencies;
-			std::function<void(core::ecs::state&, std::chrono::duration<float>)> tick;
+			std::function<void(core::ecs::state&, std::chrono::duration<float>, std::chrono::duration<float>)> tick;
 			std::function<void(core::ecs::state&)> pre_tick;
 			std::function<void(core::ecs::state&)> post_tick;
 

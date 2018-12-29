@@ -29,7 +29,7 @@ geometry_instance::geometry_instance(core::ecs::state& state)
 
 float accTime {0.0f};
 
-void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
+void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	accTime += dTime.count();
