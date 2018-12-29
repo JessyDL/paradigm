@@ -46,10 +46,9 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	state.add_component<dead_tag>(dead_ents);
 
 	core::profiler.scope_begin("release material handles");
-	for (auto ent : m_Geometry)
+	for (auto [renderable, velocity, transform] : m_Geometry)
 	{
-		auto& renderer = std::get<const core::ecs::components::renderable&>(ent);
-		renderer.material.handle()->release_all();
+		renderable.material.handle()->release_all();
 	}
 	core::profiler.scope_end();
 	core::profiler.scope_begin("rotate and reposition all transforms");
@@ -73,10 +72,8 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 
 
 	auto& primary_camera = std::get<const core::ecs::components::transform&>(*m_Cameras.begin());
-	for (auto ent : m_Geometry)
+	for (auto [renderable, velocity, transform] : m_Geometry)
 	{
-		auto& transform = std::get<core::ecs::components::transform&>(ent);
-		auto& velocity = std::get<const core::ecs::components::velocity&>(ent);
 		transform.position += velocity.direction * velocity.force * dTime.count();
 		const auto mag = magnitude(transform.position - primary_camera.position);
 		transform.rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * transform.rotation);

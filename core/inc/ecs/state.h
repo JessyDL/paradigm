@@ -128,6 +128,8 @@ namespace core::ecs
 {
 	class state
 	{
+		template<typename KeyT, typename ValueT>
+		using key_value_container = ska::bytell_hash_map<KeyT, ValueT>;
 	  public:
 		/// \brief describes a set of dependencies for a given system
 		///
@@ -188,8 +190,8 @@ namespace core::ecs
 
 		  private:
 			core::ecs::vector<entity>* m_Entities;
-			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
-			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
+			key_value_container<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
+			key_value_container<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
 			std::vector<details::component_key_t> filters;
 		};
 
@@ -222,14 +224,14 @@ namespace core::ecs
 			template<typename... Ts>
 			dep_pack(core::ecs::entity_pack<Ts...>& pack)
 			{
-				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::entity_pack<Ts...>::range_t>>{}, pack);
+				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::entity_pack<Ts...>::pack_t::range_t>>{}, pack);
 				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::entity_pack<Ts...>::filter_t>::value>{}, pack);
 			}
 
 			template<typename... Ts>
 			dep_pack(core::ecs::pack<Ts...>& pack)
 			{
-				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::range_t>>{}, pack);
+				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{}, pack);
 				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::pack<Ts...>::filter_t>::value>{}, pack);
 			}
 			dep_pack() {};
@@ -272,9 +274,9 @@ namespace core::ecs
 		private:
 			psl::array_view<core::ecs::entity>* m_Entities{ nullptr };
 			psl::array_view<core::ecs::entity> m_StoredEnts{  };
-			ska::bytell_hash_map<details::component_key_t, size_t> m_Sizes;
-			ska::bytell_hash_map<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
-			ska::bytell_hash_map<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
+			key_value_container<details::component_key_t, size_t> m_Sizes;
+			key_value_container<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
+			key_value_container<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
 			std::vector<details::component_key_t> filters;
 		};
 
@@ -864,10 +866,10 @@ namespace core::ecs
 
 		uint64_t mID{0u};
 		/// \brief gets what components this entity uses, and which index it lives on.
-		ska::bytell_hash_map<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
+		key_value_container<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
 
 		/// \brief backing memory
-		ska::bytell_hash_map<details::component_key_t, details::component_info> m_Components;
+		key_value_container<details::component_key_t, details::component_info> m_Components;
 		/// overhead is
 		/// sizeof(component) * Nc + sizeof(entity) * Ne +
 		/// // store ever component as well as entity (sizeof(entity) + ((sizeof(size_t) /* component ID */ +
@@ -887,8 +889,8 @@ namespace core::ecs
 		// keep track of changed data
 		std::vector<entity> m_AddedEntities;
 		std::vector<entity> m_RemovedEntities;
-		ska::bytell_hash_map<details::component_key_t, std::vector<entity>> m_AddedComponents;
-		ska::bytell_hash_map<details::component_key_t, std::vector<entity>> m_RemovedComponents;
+		key_value_container<details::component_key_t, std::vector<entity>> m_AddedComponents;
+		key_value_container<details::component_key_t, std::vector<entity>> m_RemovedComponents;
 
 		// std::unordered_map<details::component_key_t,
 	};
