@@ -22,62 +22,33 @@ using namespace psl::math;
 geometry_instance::geometry_instance(core::ecs::state& state)
 {
 	state.register_system(*this);
-	//state.register_dependency(*this, core::ecs::tick{}, m_Geometry);
-	state.register_dependency(*this, {m_Entities, m_Transforms, m_Renderers, m_Velocity});
-	state.register_dependency(*this, {m_LifeEntities, m_Lifetime});
-	state.register_dependency(*this, {m_CamEntities, m_CamTransform, core::ecs::filter<core::ecs::components::input_tag>{}});
+	state.register_dependency(*this, core::ecs::tick{}, m_Geometry);
+	state.register_dependency(*this, core::ecs::tick{}, m_Cameras);
+	state.register_dependency(*this, core::ecs::tick{}, m_Lifetimes);
 }
 
 float accTime {0.0f};
 
 void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 {
-	//pack<const entity, const transform, const renderable> pack{};
-	//auto packet = std::begin(pack);
-	//
-	//auto tr = packet.get<const renderable>();
-	//auto res{packet.get<0>()};
-	//static_assert(std::is_same<decltype(packet.get<0>()), const entity&>::value);
-
-	////auto [elementE, elementT, elementR] = *packet;
-
-	//for(const auto[elementE, elementT, elementR] : pack)
-	//{
-	//
-	//}
-
-	//component_pack<transform, renderable, on_add<float>> pack();
-	using pack_internal_t = typename component_pack<transform, renderable, on_combine<float, int>>::combine_t;
-	pack_internal_t pack_instance;
-	std::vector<int> iVec{0, 5, 3};
-	std::vector<float> fVec{0.0f, 5.0f, 3.0f};
-	pack<int, const float> p{iVec, fVec};
-
-	for(auto [i, f] : p)
-	{
-		i += 1;
-		i += 1;
-		i += 1;
-		// f *= 2.0f;
-	}
-
-	//auto pAck = p.read();
-	//auto transformPack = p.get<const transform>();
 	PROFILE_SCOPE(core::profiler)
 	accTime += dTime.count();
 
 	std::vector<entity> dead_ents;
-	for(size_t i = 0; i < m_LifeEntities.size(); ++i)
+	for (auto ent : m_Lifetimes)
 	{
-		m_Lifetime[i].value -= dTime.count();
-		if(m_Lifetime[i].value <= 0.0f)
-			dead_ents.emplace_back(m_LifeEntities[i]);
+		auto& lifetime = std::get<core::ecs::components::lifetime&>(ent);
+		lifetime.value -= dTime.count();
+		if(lifetime.value <= 0.0f)
+			dead_ents.emplace_back(std::get<core::ecs::entity&>(ent));
 	}
+
 	state.add_component<dead_tag>(dead_ents);
 
 	core::profiler.scope_begin("release material handles");
-	for(const auto& renderer : m_Renderers)
+	for (auto ent : m_Geometry)
 	{
+		auto& renderer = std::get<const core::ecs::components::renderable&>(ent);
 		renderer.material.handle()->release_all();
 	}
 	core::profiler.scope_end();
@@ -96,18 +67,28 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	//	//
 	//	//m_Transforms[i].rotation = normalize(m_CamTransform[0].rotation);
 	//}
-	for(size_t i = 0; i < m_Entities.size(); ++i)
+
+	if (m_Cameras.size() == 0)
+		return;
+
+
+	auto& primary_camera = std::get<const core::ecs::components::transform&>(*m_Cameras.begin());
+	for (auto ent : m_Geometry)
 	{
-		m_Transforms[i].position += m_Velocity[i].direction * m_Velocity[i].force * dTime.count();
-		const auto mag = magnitude(m_Transforms[i].position - m_CamTransform[0].position);
-		m_Transforms[i].rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * m_Transforms[i].rotation);
+		auto& transform = std::get<core::ecs::components::transform&>(ent);
+		auto& velocity = std::get<const core::ecs::components::velocity&>(ent);
+		transform.position += velocity.direction * velocity.force * dTime.count();
+		const auto mag = magnitude(transform.position - primary_camera.position);
+		transform.rotation = normalize(psl::quat(0.8f* dTime.count() * saturate((mag - 6)*0.1f), 0.0f, 0.0f, 1.0f) * transform.rotation);
 	}
 	core::profiler.scope_end();
 	
 	ska::bytell_hash_map<psl::UID, ska::bytell_hash_map<psl::UID, std::vector<size_t>>> UniqueCombinations;
-	for(size_t i = 0; i < m_Entities.size(); ++i)
+
+	for(size_t i = 0; i < m_Geometry.size(); ++i)
 	{
-		UniqueCombinations[m_Renderers[i].material][m_Renderers[i].geometry].emplace_back(i);
+		auto& renderer = std::get<const renderable&>(m_Geometry[i]);
+		UniqueCombinations[renderer.material][renderer.geometry].emplace_back(i);
 	}
 
 	std::vector<psl::mat4x4> modelMats;
@@ -119,8 +100,9 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 				continue;
 
 			modelMats.clear();
-			auto materialHandle = m_Renderers[uniqueIndex.second[0]].material.handle();
-			auto geometryHandle = m_Renderers[uniqueIndex.second[0]].geometry.handle();
+			auto& renderer = std::get<const renderable&>(m_Geometry[uniqueIndex.second[0]]);
+			auto materialHandle = renderer.material.handle();
+			auto geometryHandle = renderer.geometry.handle();
 
 			uint32_t startIndex = 0u;
 			uint32_t indexCount = 0u;
@@ -145,9 +127,10 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 
 					++indexCount;
 					setStart = false;
-					const psl::mat4x4 translationMat = translate(m_Transforms[i].position);
-					const psl::mat4x4 rotationMat = to_matrix(m_Transforms[i].rotation);
-					const psl::mat4x4 scaleMat = scale(m_Transforms[i].scale);
+					auto& transform = std::get<core::ecs::components::transform&>(m_Geometry[i]);
+					const psl::mat4x4 translationMat = translate(transform.position);
+					const psl::mat4x4 rotationMat = to_matrix(transform.rotation);
+					const psl::mat4x4 scaleMat = scale(transform.scale);
 
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 				}

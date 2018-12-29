@@ -56,6 +56,9 @@ namespace core::ecs
 			return &component_key_var<T>;
 		}
 
+		template<typename T>
+		using remove_all = typename std::remove_pointer<typename std::remove_reference<typename std::remove_cv<T>::type>::type>::type;
+
 		using component_key_t = const std::uintptr_t* (*)();
 
 
@@ -123,10 +126,6 @@ namespace std
 
 namespace core::ecs
 {
-	template <typename T>
-	struct filter
-	{};
-
 	class state
 	{
 	  public:
@@ -144,12 +143,6 @@ namespace core::ecs
 			friend class core::ecs::state;
 
 
-			template <std::size_t... Is, typename T>
-			static auto create_filters(std::index_sequence<Is...>, const T& t)
-			{
-				(add(t.get<Is>()), ...);
-			}
-
 		  public:
 			/// \brief constructs a unique set of dependencies
 			template <typename... Ts>
@@ -157,11 +150,7 @@ namespace core::ecs
 			{
 				(add(filters), ...);
 			};
-			template<typename... Ts>
-			dependency_pack(core::ecs::pack<Ts...>& pack)	:	m_Entities(nullptr)
-			{
-				//create_filters(std::index_sequence_for<Ts...>{}, pack);
-			}
+			dependency_pack() : m_Entities(nullptr) {};
 			~dependency_pack() noexcept					  = default;
 			dependency_pack(const dependency_pack& other) = default;
 			dependency_pack(dependency_pack&& other)	  = default;
@@ -171,7 +160,7 @@ namespace core::ecs
 			template <typename T>
 			void add(core::ecs::vector<T>& vec) noexcept
 			{
-				constexpr details::component_key_t int_id = details::component_key<T>;
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
 				m_RWBindings.emplace(int_id, std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
 				filters.emplace_back(int_id);
 			}
@@ -179,7 +168,7 @@ namespace core::ecs
 			template <typename T>
 			void add(core::ecs::vector<const T>& vec) noexcept
 			{
-				constexpr details::component_key_t int_id = details::component_key<T>;
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
 				m_RBindings.emplace(int_id, std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
 				filters.emplace_back(int_id);
 			}
@@ -187,7 +176,7 @@ namespace core::ecs
 			template <typename T>
 			void add(core::ecs::filter<T>& filter) noexcept
 			{
-				constexpr details::component_key_t int_id = details::component_key<T>;
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
 				filters.emplace_back(int_id);
 			}
 
@@ -201,6 +190,91 @@ namespace core::ecs
 			core::ecs::vector<entity>* m_Entities;
 			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
 			ska::bytell_hash_map<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
+			std::vector<details::component_key_t> filters;
+		};
+
+
+		class dep_pack
+		{
+			friend class core::ecs::state;
+			template <std::size_t... Is, typename T>
+			auto create_dependency_filters(std::index_sequence<Is...>, T& t)
+			{
+				(add(t.reference_get<Is>()), ...);
+			}
+
+			template<typename F>
+			void filter_impl()
+			{
+				using component_t = F;
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_t>>;
+				filters.emplace_back(int_id);
+				m_Sizes[int_id] = sizeof(component_t);
+			}
+
+			template <std::size_t... Is, typename T>
+			auto filter(std::index_sequence<Is...>, T& t)
+			{
+				(filter_impl<typename std::tuple_element<Is, typename T::filter_t>::type>(), ...);
+			}
+
+		public:
+			template<typename... Ts>
+			dep_pack(core::ecs::entity_pack<Ts...>& pack)
+			{
+				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::entity_pack<Ts...>::range_t>>{}, pack);
+				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::entity_pack<Ts...>::filter_t>::value>{}, pack);
+			}
+
+			template<typename... Ts>
+			dep_pack(core::ecs::pack<Ts...>& pack)
+			{
+				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::range_t>>{}, pack);
+				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::pack<Ts...>::filter_t>::value>{}, pack);
+			}
+			dep_pack() {};
+			~dep_pack() noexcept					  = default;
+			dep_pack(const dep_pack& other) = default;
+			dep_pack(dep_pack&& other)	  = default;
+			dep_pack& operator=(const dep_pack&) = default;
+			dep_pack& operator=(dep_pack&&) = default;
+
+		private:
+			template <typename T>
+			void add(psl::array_view<T>& vec) noexcept
+			{
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
+				m_RWBindings.emplace(int_id, (psl::array_view<std::uintptr_t>*)&vec);
+			}
+
+			template <typename T>
+			void add(psl::array_view<const T>& vec) noexcept
+			{
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
+				m_RBindings.emplace(int_id, (psl::array_view<std::uintptr_t>*)&vec);
+			}
+
+			void add(psl::array_view<core::ecs::entity>& vec) noexcept
+			{
+				m_Entities = &vec;
+			}
+
+			void add(psl::array_view<const core::ecs::entity>& vec) noexcept
+			{
+				m_Entities = (psl::array_view<core::ecs::entity>*)&vec;
+			}
+
+			template <typename... Ts>
+			void add(Ts&&... args) noexcept
+			{
+				(add(args), ...);
+			}
+		private:
+			psl::array_view<core::ecs::entity>* m_Entities{ nullptr };
+			psl::array_view<core::ecs::entity> m_StoredEnts{  };
+			ska::bytell_hash_map<details::component_key_t, size_t> m_Sizes;
+			ska::bytell_hash_map<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
+			ska::bytell_hash_map<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
 			std::vector<details::component_key_t> filters;
 		};
 
@@ -240,9 +314,9 @@ namespace core::ecs
 			std::function<void(core::ecs::state&)> pre_tick;
 			std::function<void(core::ecs::state&)> post_tick;
 
-			std::vector<dependency_pack> tick_dependencies;
-			std::vector<dependency_pack> pre_tick_dependencies;
-			std::vector<dependency_pack> post_tick_dependencies;
+			std::vector<dep_pack> tick_dependencies;
+			std::vector<dep_pack> pre_tick_dependencies;
+			std::vector<dep_pack> post_tick_dependencies;
 		};
 
 		// -----------------------------------------------------------------------------
@@ -309,7 +383,7 @@ namespace core::ecs
 				std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
 				"the component type must be trivially copyable and standard layout "
 				"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
-			constexpr details::component_key_t int_id = details::component_key<component_type>;
+			constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_type>>;
 			core::profiler.scope_begin("duplicate_check");
 			auto ent_cpy = entities;
 			auto end	 = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
@@ -458,7 +532,7 @@ namespace core::ecs
 		void remove_component(const std::vector<entity>& entities) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
-			constexpr details::component_key_t int_id = details::component_key<T>;
+			constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
 			std::vector<entity> ent_cpy;
 			ent_cpy.reserve(entities.size());
 			for(auto e : entities)
@@ -599,7 +673,7 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
-			return dynamic_filter({details::component_key<Ts>...});
+			return dynamic_filter({details::component_key<details::remove_all<Ts>>...});
 		}
 
 		template <typename... Ts>
@@ -608,7 +682,7 @@ namespace core::ecs
 			PROFILE_SCOPE(core::profiler)
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
 
-			auto entities{dynamic_filter({details::component_key<Ts>...})};
+			auto entities{dynamic_filter({details::component_key<details::remove_all<Ts>>...})};
 
 			(fill_in(entities, out), ...);
 
@@ -622,7 +696,7 @@ namespace core::ecs
 		T& get_component(entity e)
 		{
 			PROFILE_SCOPE(core::profiler)
-			constexpr details::component_key_t int_id = details::component_key<T>;
+			constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
 			auto eMapIt								  = m_EntityMap.find(e);
 			auto foundIt							  = std::find_if(
 				 eMapIt->second.begin(), eMapIt->second.end(),
@@ -641,7 +715,7 @@ namespace core::ecs
 		const T& get_component(entity e) const
 		{
 			PROFILE_SCOPE(core::profiler)
-			constexpr details::component_key_t int_id = details::component_key<T>;
+			constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
 			auto eMapIt								  = m_EntityMap.find(e);
 			auto foundIt							  = std::find_if(
 				 eMapIt->second.begin(), eMapIt->second.end(),
@@ -683,7 +757,7 @@ namespace core::ecs
 			m_Systems.emplace(&target, system_description{target});
 		}
 
-		template <typename T>
+		/*template <typename T>
 		void register_dependency(T& system, dependency_pack&& pack)
 		{
 			PROFILE_SCOPE(core::profiler)
@@ -694,7 +768,7 @@ namespace core::ecs
 				it = m_Systems.find(&system);
 			}
 			it->second.tick_dependencies.emplace_back(std::move(pack));
-		}
+		}*/
 
 		template <typename T, typename Y, typename... Ts >
 		void register_dependency(T& system, Y method, core::ecs::pack<Ts...>& pack)
@@ -706,7 +780,35 @@ namespace core::ecs
 				m_Systems.emplace(&system, system_description{system});
 				it = m_Systems.find(&system);
 			}
-			dependency_pack p{ pack };
+			dep_pack p{ pack };
+			if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			{
+				it->second.tick_dependencies.emplace_back(std::move(p));
+			}
+			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
+			{
+				it->second.pre_tick_dependencies.emplace_back(std::move(p));
+			}
+			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			{
+				it->second.post_tick_dependencies.emplace_back(std::move(p));
+			}
+			else
+			{
+				static_assert(utility::templates::always_false_v<Y>, "the method should be one of the pre-approved types. Either `tick`, `pre_tick`, or `post_tick`");
+			}
+		}
+		template <typename T, typename Y, typename... Ts >
+		void register_dependency(T& system, Y method, core::ecs::entity_pack<Ts...>& pack)
+		{
+			PROFILE_SCOPE(core::profiler)
+				auto it = m_Systems.find(&system);
+			if(it == std::end(m_Systems))
+			{
+				m_Systems.emplace(&system, system_description{system});
+				it = m_Systems.find(&system);
+			}
+			dep_pack p{ pack};
 			if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
 			{
 				it->second.tick_dependencies.emplace_back(std::move(p));
@@ -729,7 +831,7 @@ namespace core::ecs
 		void set(const std::vector<entity>& entities, const std::vector<T>& data)
 		{
 			PROFILE_SCOPE(core::profiler)
-			constexpr details::component_key_t id = details::component_key<T>;
+			constexpr details::component_key_t id = details::component_key<details::remove_all<T>>;
 			const auto& mem_pair				  = m_Components.find(id);
 			auto size							  = sizeof(T);
 
@@ -747,6 +849,7 @@ namespace core::ecs
 		}
 
 	  private:
+		void set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id);
 		void set(const core::ecs::vector<entity>& entities, void* data, size_t size, details::component_key_t id);
 		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept;
 		void fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept;
@@ -756,7 +859,7 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			out.resize(entities.size());
-			return fill_in(entities, details::component_key<T>, out.data());
+			return fill_in(entities, details::component_key<details::remove_all<T>>, out.data());
 		}
 
 		uint64_t mID{0u};

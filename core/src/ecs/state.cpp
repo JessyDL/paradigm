@@ -89,21 +89,18 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			auto entities = dynamic_filter(dep_pack.filters);
 			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+			dep_pack.m_StoredEnts =  psl::array_view<core::ecs::entity>((entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
 			if(dep_pack.m_Entities != nullptr)
-			{
-				dep_pack.m_Entities->data = (entity*)cache_offset;
-				dep_pack.m_Entities->tail = (entity*)(cache_offset + sizeof(entity) * entities.size());
-			}
+				*dep_pack.m_Entities = dep_pack.m_StoredEnts;
 			cache_offset += sizeof(entity) * entities.size();
 			core::profiler.scope_begin("read-write data");
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				const auto& mem_pair = m_Components.find(rwBinding.first);
-				auto size			 = std::get<2>(rwBinding.second);
-				auto id				 = rwBinding.first;
+				const auto& mem_pair = m_Components.find(rwBinding.first);				
+				const auto size			 = dep_pack.m_Sizes[rwBinding.first];
+				const auto id				 = rwBinding.first;
+				std::uintptr_t data_begin = cache_offset;
 
-				auto& data_begin = std::get<0>(rwBinding.second);
-				*data_begin		 = (void*)cache_offset;
 				for(const auto& e : entities)
 				{
 
@@ -114,22 +111,24 @@ void state::tick(std::chrono::duration<float> dTime)
 
 					auto index = foundIt->second;
 					void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-					std::memcpy((void*)cache_offset, loc, std::get<2>(rwBinding.second));
+					std::memcpy((void*)cache_offset, loc, size);
 					cache_offset += size;
 				}
-				auto& data_end = std::get<1>(rwBinding.second);
-				*data_end	  = (void*)cache_offset;
+
+				*rwBinding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
+
+				size_t x = 0;
 			}
 			core::profiler.scope_end();
 			core::profiler.scope_begin("read-only data");
 			for(const auto& rBinding : dep_pack.m_RBindings)
 			{
 				const auto& mem_pair = m_Components.find(rBinding.first);
-				auto size			 = std::get<2>(rBinding.second);
-				auto id				 = rBinding.first;
+				const auto size			 = dep_pack.m_Sizes[rBinding.first];
+				const auto id				 = rBinding.first;
 
-				auto& data_begin = std::get<0>(rBinding.second);
-				*data_begin		 = (void*)cache_offset;
+				std::uintptr_t data_begin = cache_offset;
+
 				for(const auto& e : entities)
 				{
 
@@ -140,11 +139,11 @@ void state::tick(std::chrono::duration<float> dTime)
 
 					auto index = foundIt->second;
 					void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-					std::memcpy((void*)cache_offset, loc, std::get<2>(rBinding.second));
+					std::memcpy((void*)cache_offset, loc, size);
 					cache_offset += size;
 				}
-				auto& data_end = std::get<1>(rBinding.second);
-				*data_end	  = (void*)cache_offset;
+
+				*rBinding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 			}
 			core::profiler.scope_end();
 		}
@@ -154,13 +153,9 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				if(dep_pack.m_Entities == nullptr)
-				{
-					core::log->error("cannot set the pack due to entities not being recorded");
-					continue;
-				}
-				set(*dep_pack.m_Entities, *(void**)std::get<0>(rwBinding.second), std::get<2>(rwBinding.second),
-					rwBinding.first);
+				const size_t size = dep_pack.m_Sizes.at(rwBinding.first);
+				std::uintptr_t data = (std::uintptr_t)&std::begin(*rwBinding.second).value();
+				set(dep_pack.m_StoredEnts, (void*)data, size, rwBinding.first);
 			}
 		}
 		core::profiler.scope_end();
@@ -185,6 +180,26 @@ void state::set(const core::ecs::vector<entity>& entities, void* data, size_t si
 		auto foundIt =
 			std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
 						 [&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
+
+		auto index = foundIt->second;
+		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+		std::memcpy(loc, (void*)data_loc, size);
+		data_loc += size;
+	}
+}
+
+void state::set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id)
+{
+	PROFILE_SCOPE(core::profiler)
+		const auto& mem_pair = m_Components.find(id);
+
+	std::uintptr_t data_loc = (std::uintptr_t)data;
+	for(const auto& [i, e] : psl::enumerate(entities))
+	{
+		auto eMapIt = m_EntityMap.find(e);
+		auto foundIt =
+			std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+				[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
 
 		auto index = foundIt->second;
 		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);

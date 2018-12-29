@@ -10,8 +10,7 @@ namespace core::ecs::systems
 	{
 		friend class core::systems::input;
 	private:
-		core::ecs::vector<core::ecs::components::transform> m_Transforms;
-		core::ecs::vector<core::ecs::entity> m_Entities;
+		core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> m_Movables;
 	public:
 		fly(core::ecs::state& state, core::systems::input& inputSystem);
 		~fly();

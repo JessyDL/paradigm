@@ -28,8 +28,8 @@ render::render(core::ecs::state& state,
 	: m_Pass(context, swapchain), m_Swapchain(swapchain), m_Surface(surface), m_Buffer(buffer)
 {
 	state.register_system(*this);
-	state.register_dependency(*this, {m_RenderableEntities, m_Transforms, m_Renderers});
-	state.register_dependency(*this, {m_CameraEntities, m_Cameras, m_CameraTransforms});
+	state.register_dependency(*this, core::ecs::tick{}, m_Renderables);
+	state.register_dependency(*this, core::ecs::tick{}, m_Cameras);
 }
 
 
@@ -38,9 +38,10 @@ void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 	PROFILE_SCOPE(core::profiler)
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
 
-	for(size_t i = 0; i < m_CameraEntities.size(); ++i)
+	size_t i = 0;
+	for(auto [camera, transform] : m_Cameras)
 	{
-		update_buffer(i, m_CameraTransforms[i], m_Cameras[i]);
+		update_buffer(i++, transform, camera);
 	}
 
 	// todo only rebuild when detecting changes
@@ -48,9 +49,8 @@ void render::tick(ecs::state& state, std::chrono::duration<float> dTime)
 		m_Pass.clear();
 		core::gfx::drawgroup dGroup{};
 		auto& default_layer = dGroup.layer("default", 0);
-		for(size_t i = 0; i < m_RenderableEntities.size(); ++i)
+		for(auto [transform, renderable] : m_Renderables)
 		{
-			const auto& renderable = m_Renderers[i];
 			dGroup.add(default_layer, renderable.material).add(renderable.geometry);
 		}
 		m_Pass.add(dGroup);

@@ -10,7 +10,7 @@ using namespace psl::math;
 fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
 {
 	state.register_system(*this);
-	state.register_dependency(*this, {m_Entities, m_Transforms, core::ecs::filter< core::ecs::components::input_tag>{}});
+	state.register_dependency(*this, core::ecs::tick{}, m_Movables);
 	m_InputSystem.subscribe(this); 
 };
 
@@ -36,9 +36,10 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 	}
 	vec3 accDirectionVec{0};
 	bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
-	for(size_t i = 0; i < m_Entities.size(); ++i)
+
+	for(auto [transform] : m_Movables)
 	{
-		auto direction = m_Transforms[i].rotation * vec3::forward;
+		auto direction = transform.rotation * vec3::forward;
 		auto up = vec3::up;
 		// m_Transform.position(m_Transform.position() + (m_MoveVector * dTime.count()));
 		if(m_Moving[0])
@@ -74,7 +75,8 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 		if(hasMoved)
 		{
 			hasMoved = false;
-			m_Transforms[i].position = m_Transforms[i].position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * dTime.count();
+
+			transform.position = transform.position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * dTime.count();
 			accDirectionVec = {0};
 		}
 		if(bHasRotated)
@@ -95,11 +97,11 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime)
 
 			//FPS camera:  RotationX(pitch) * RotationY(yaw)
 			psl::quat qPitch = angle_axis(radians(m_AngleV), axis);
-			m_Transforms[i].rotation = normalize(qPitch) * m_Transforms[i].rotation;
+			transform.rotation = normalize(qPitch) * transform.rotation;
 			psl::quat qYaw = angle_axis(radians(m_AngleH), up);
-			m_Transforms[i].rotation = normalize(qYaw) * m_Transforms[i].rotation;
+			transform.rotation = normalize(qYaw) * transform.rotation;
 			psl::quat qRoll = angle_axis(0.0f, vec3(0, 0, 1));
-			m_Transforms[i].rotation = normalize(qRoll) * m_Transforms[i].rotation;
+			transform.rotation = normalize(qRoll) * transform.rotation;
 
 			//For a FPS camera we can omit roll
 			//quat m_d_orientation = qPitch * qYaw;

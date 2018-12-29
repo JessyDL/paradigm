@@ -26,13 +26,11 @@ namespace core::ecs::systems
 		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
 							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
 
-		core::ecs::vector<const core::ecs::components::transform> m_Transforms;
-		core::ecs::vector<const core::ecs::components::renderable> m_Renderers;
-		core::ecs::vector<core::ecs::entity> m_RenderableEntities;
+		core::ecs::pack<const core::ecs::components::transform,
+			const core::ecs::components::renderable> m_Renderables;
 
-		core::ecs::vector<const core::ecs::components::camera> m_Cameras;
-		core::ecs::vector<const core::ecs::components::transform> m_CameraTransforms;
-		core::ecs::vector<core::ecs::entity> m_CameraEntities;
+		core::ecs::pack<const core::ecs::components::camera,
+			const core::ecs::components::transform> m_Cameras;
 
 	  public:
 		struct framedata

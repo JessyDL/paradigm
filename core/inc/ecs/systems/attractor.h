@@ -20,13 +20,11 @@ namespace core::ecs::systems
 {
 	class attractor
 	{
-		core::ecs::vector<const core::ecs::components::transform> m_Transforms;
-		core::ecs::vector<core::ecs::components::velocity> m_Velocity;
-		core::ecs::vector<core::ecs::entity> m_Entities;
+		core::ecs::pack<const core::ecs::components::transform,
+			core::ecs::components::velocity> m_Movables;
 
-		core::ecs::vector<const core::ecs::components::transform> m_AttractorTransform;
-		core::ecs::vector<const core::ecs::components::attractor> m_Attractors;
-		core::ecs::vector<core::ecs::entity> m_AttractorEntities;
+		core::ecs::pack<const core::ecs::components::transform,
+			const core::ecs::components::attractor> m_Attractors;
 
 	public:
 		attractor(core::ecs::state& state);
