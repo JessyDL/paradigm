@@ -351,33 +351,33 @@ namespace core::ecs
 		using except_t  = typename details::typelist_to_except_pack<Ts...>::type;
 
 	  public:
-		pack() : m_Test() {};
+		pack() : m_Pack() {};
 
-		pack(pack_t views) : m_Test(views) {}
+		pack(pack_t views) : m_Pack(views) {}
 
-		pack_t view() { return m_Test; }
+		pack_t view() { return m_Pack; }
 
 		template <typename T>
 		psl::array_view<T> get() const noexcept
 		{
-			return m_Test.get<psl::array_view<T>>();
+			return m_Pack.get<psl::array_view<T>>();
 		}
 
 		template <size_t N>
 		auto get() const noexcept -> decltype(std::declval<pack_t>().get<N>())
 		{
-			return m_Test.get<N>();
+			return m_Pack.get<N>();
 		}
 
 		auto operator[](size_t index) const noexcept -> decltype(std::declval<typename pack_t::iterator>().operator*())
 		{
-			return m_Test[index];
+			return m_Pack[index];
 		}
 
-		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Test); }
+		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Pack); }
 
-		auto end() const noexcept -> typename pack_t::iterator  { return std::end(m_Test); }
-		constexpr size_t size() const noexcept { return m_Test.size(); }
+		auto end() const noexcept -> typename pack_t::iterator  { return std::end(m_Pack); }
+		constexpr size_t size() const noexcept { return m_Pack.size(); }
 
 	  private:
 
@@ -386,10 +386,10 @@ namespace core::ecs
 		  {
 			  static_assert(N < std::tuple_size<typename pack_t::range_t>::value,
 				  "you requested a component outside of the range of the pack");
-			  return m_Test.ref_get<N>();
+			  return m_Pack.ref_get<N>();
 		  }
 		  
-		pack_t m_Test;
+		pack_t m_Pack;
 	};
 
 	template <typename... Ts>
@@ -406,33 +406,33 @@ namespace core::ecs
 		using except_t  = typename details::typelist_to_except_pack<Ts...>::type;
 
 	public:
-		entity_pack() : m_Test() {};
+		entity_pack() : m_Pack() {};
 
-		entity_pack(pack_t views) : m_Test(views) {}
+		entity_pack(pack_t views) : m_Pack(views) {}
 
-		pack_t view() { return m_Test; }
+		pack_t view() { return m_Pack; }
 
 		template <typename T>
 		psl::array_view<T> get() const noexcept
 		{
-			return m_Test.get<psl::array_view<T>>();
+			return m_Pack.get<psl::array_view<T>>();
 		}
 
 		template <size_t N>
 		auto get() const noexcept -> decltype(std::declval<pack_t>().get<N>())
 		{
-			return m_Test.get<N>();
+			return m_Pack.get<N>();
 		}
 
 		auto operator[](size_t index) const noexcept -> decltype(std::declval<typename pack_t::iterator>().operator*())
 		{
-			return m_Test[index];
+			return m_Pack[index];
 		}
 
-		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Test); }
+		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Pack); }
 
-		auto end() const noexcept -> typename pack_t::iterator { return std::end(m_Test); }
-		constexpr size_t size() const noexcept { return m_Test.size(); }
+		auto end() const noexcept -> typename pack_t::iterator { return std::end(m_Pack); }
+		constexpr size_t size() const noexcept { return m_Pack.size(); }
 
 		psl::array_view<core::ecs::entity> entities() const
 		{
@@ -449,199 +449,9 @@ namespace core::ecs
 		{
 			static_assert(N < std::tuple_size<typename pack_t::range_t>::value,
 				"you requested a component outside of the range of the pack");
-			return m_Test.ref_get<N>();
+			return m_Pack.ref_get<N>();
 		}
 
-		pack_t m_Test;
+		pack_t m_Pack;
 	};
-/*
-	template <typename... Ts>
-	class entity_pack
-	{
-		friend class core::ecs::state;
-
-
-		template<typename... Ts>
-		struct to_iter{};
-
-		template<typename... Ts>
-		struct to_iter<std::tuple<Ts...>>
-		{
-			using type = std::tuple<typename Ts::iterator...>;
-		};
-
-	public:
-		using range_element_t = typename details::typelist_to_physical_pack<Ts..., core::ecs::entity>::type;
-		using range_t		  = typename details::wrap_with_array_view<range_element_t>::type;
-		using iterator_element_t = typename to_iter<range_t>::type;
-
-
-		using filter_t = typename details::typelist_to_pack<Ts...>::type;
-		using combine_t = typename details::typelist_to_combine_pack<Ts...>::type;
-		using break_t   = typename details::typelist_to_break_pack<Ts...>::type;
-		using add_t		= typename details::typelist_to_add_pack<Ts...>::type;
-		using remove_t  = typename details::typelist_to_remove_pack<Ts...>::type;
-		using except_t  = typename details::typelist_to_except_pack<Ts...>::type;
-
-	private:
-
-		template <std::size_t... Is, typename T>
-		static auto iterator_end(std::index_sequence<Is...>, const T& t)
-		{
-			return std::make_tuple(std::end(std::get<Is>(t))...);
-		}
-
-		template <std::size_t... Is, typename T>
-		static auto create_iterator(std::index_sequence<Is...>, const T& t, size_t index = 0)
-		{
-			return std::make_tuple(std::next(std::begin(std::get<Is>(t)), index)...);
-		}
-
-	public:
-
-		class iterator
-		{
-		public:
-			typedef iterator self_type;
-			typedef iterator_element_t value_type;
-			typedef iterator_element_t& reference;
-			typedef iterator_element_t* pointer;
-			typedef std::ptrdiff_t difference_type;
-			typedef std::random_access_iterator_tag iterator_category;
-
-		private:
-			template <std::size_t... Is>
-			auto pack_impl(std::index_sequence<Is...>)
-			{
-				return std::forward_as_tuple((std::get<Is>(data).value())...);
-			}
-
-			template <std::size_t... Is>
-			const auto cpack_impl(std::index_sequence<Is...>) const
-			{
-				return std::forward_as_tuple((std::get<Is>(data).cvalue())...);
-			}
-			
-			template <std::size_t... Is>
-			auto advance(std::index_sequence<Is...>, difference_type offset = 1)
-			{
-				return (std::advance(std::get<Is>(data), offset), ...);
-			}
-		public:
-
-			constexpr iterator(const range_t& range) noexcept
-				: data(create_iterator(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}, range)){
-
-			};
-			constexpr iterator(iterator_element_t data) noexcept : data(data){};
-
-			constexpr iterator operator++() const noexcept
-			{
-
-				auto next = iterator(data);
-				++next;
-				return next;
-			}
-			constexpr iterator& operator++() noexcept
-			{
-				advance(std::make_index_sequence<std::tuple_size<range_element_t>::value>{});
-				return *this;
-			}
-
-			iterator& operator+=(difference_type offset)
-			{
-				advance(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}, offset);
-				return *this;
-			}
-
-			iterator& operator-=(difference_type offset)
-			{
-				advance(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}, -offset);
-				return *this;
-			}
-
-			bool operator!=(const iterator& other) const noexcept
-			{
-				return std::get<0>(data) != std::get<0>(other.data);
-			}
-
-			bool operator==(const iterator& other) const noexcept
-			{
-				return std::get<0>(data) == std::get<0>(other.data);
-			}
-
-			auto operator*() { return pack_impl(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}); }
-			auto operator*() const { return cpack_impl(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}); }
-
-			template <typename T>
-			auto get() ->
-				typename decltype(*std::get<typename psl::array_view<T>::iterator>(std::declval<iterator_element_t>()))
-			{
-				static_assert(details::tuple_contains_type<psl::array_view<T>, range_t>::value,
-					"the requested component type does not exist in the pack");
-				return *std::get<typename psl::array_view<T>::iterator>(data);
-			}
-
-			template <size_t N>
-			auto get() const noexcept -> decltype(*std::get<N>(std::declval<iterator_element_t>()))
-			{
-				static_assert(N < std::tuple_size<range_t>::value,
-					"you requested a component outside of the range of the pack");
-				return *std::get<N>(data);
-			}
-
-		private:
-			iterator_element_t data;
-		};
-
-		range_t read() { return m_Pack; }
-
-		template <typename T>
-		psl::array_view<T> get() const noexcept
-		{
-			static_assert(details::tuple_contains_type<psl::array_view<T>, range_t>::value,
-				"the requested component type does not exist in the pack");
-			return std::get<psl::array_view<T>>(m_Pack);
-		}
-
-		template <size_t N>
-		auto get() const noexcept -> decltype(std::get<N>(std::declval<range_t>()))
-		{
-			static_assert(N < std::tuple_size<range_t>::value,
-				"you requested a component outside of the range of the pack");
-			return std::get<N>(m_Pack);
-		}
-		auto operator[](size_t index) const noexcept -> decltype(std::declval<iterator>().operator*())
-		{
-			return *iterator{create_iterator(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}, m_Pack, index)};
-		}
-
-		iterator begin() const noexcept { return iterator{create_iterator(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}, m_Pack)}; }
-
-		iterator end() const noexcept { return iterator{iterator_end(std::make_index_sequence<std::tuple_size<range_element_t>::value>{}, m_Pack)}; }
-		constexpr size_t size() const noexcept { return std::get<0>(m_Pack).size(); }
-
-		entity_pack() : m_Pack() {};
-		entity_pack(range_t views) : m_Pack(views) {}
-		psl::array_view<core::ecs::entity> entities() const
-		{
-			return reference_get<std::tuple_size<range_t>::value - 1>();
-		}
-	private:
-		psl::array_view<core::ecs::entity>& reference_get_entities() noexcept
-		{
-			return reference_get<std::tuple_size<range_t>::value - 1>();
-		}
-
-
-		template <size_t N>
-		auto reference_get() noexcept -> decltype(std::get<N>(std::declval<range_t>()))&
-		{
-			static_assert(N < std::tuple_size<range_t>::value,
-				"you requested a component outside of the range of the pack");
-			return std::get<N>(m_Pack);
-		}
-
-		range_t m_Pack;
-	};*/
 } // namespace core::ecs
