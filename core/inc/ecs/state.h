@@ -143,62 +143,6 @@ namespace core::ecs
 		class dependency_pack
 		{
 			friend class core::ecs::state;
-
-
-		  public:
-			/// \brief constructs a unique set of dependencies
-			template <typename... Ts>
-			dependency_pack(core::ecs::vector<entity>& entities, Ts&&... filters) : m_Entities(&entities)
-			{
-				(add(filters), ...);
-			};
-			dependency_pack() : m_Entities(nullptr) {};
-			~dependency_pack() noexcept					  = default;
-			dependency_pack(const dependency_pack& other) = default;
-			dependency_pack(dependency_pack&& other)	  = default;
-			dependency_pack& operator=(const dependency_pack&) = default;
-			dependency_pack& operator=(dependency_pack&&) = default;
-
-			template <typename T>
-			void add(core::ecs::vector<T>& vec) noexcept
-			{
-				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
-				m_RWBindings.emplace(int_id, std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
-				filters.emplace_back(int_id);
-			}
-
-			template <typename T>
-			void add(core::ecs::vector<const T>& vec) noexcept
-			{
-				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
-				m_RBindings.emplace(int_id, std::tuple{(void**)&vec.data, (void**)&vec.tail, sizeof(T)});
-				filters.emplace_back(int_id);
-			}
-
-			template <typename T>
-			void add(core::ecs::filter<T>& filter) noexcept
-			{
-				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
-				filters.emplace_back(int_id);
-			}
-
-			template <typename... Ts>
-			void add(Ts&&... args) noexcept
-			{
-				(add(args), ...);
-			}
-
-		  private:
-			core::ecs::vector<entity>* m_Entities;
-			key_value_container<details::component_key_t, std::tuple<void**, void**, size_t>> m_RBindings;
-			key_value_container<details::component_key_t, std::tuple<void**, void**, size_t>> m_RWBindings;
-			std::vector<details::component_key_t> filters;
-		};
-
-
-		class dep_pack
-		{
-			friend class core::ecs::state;
 			template <std::size_t... Is, typename T>
 			auto create_dependency_filters(std::index_sequence<Is...>, T& t)
 			{
@@ -208,10 +152,13 @@ namespace core::ecs
 			template<typename F>
 			void filter_impl()
 			{
-				using component_t = F;
-				constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_t>>;
-				filters.emplace_back(int_id);
-				m_Sizes[int_id] = sizeof(component_t);
+				if constexpr (!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
+				{
+					using component_t = F;
+					constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_t>>;
+					filters.emplace_back(int_id);
+					m_Sizes[int_id] = sizeof(component_t);
+				}
 			}
 
 			template <std::size_t... Is, typename T>
@@ -222,24 +169,17 @@ namespace core::ecs
 
 		public:
 			template<typename... Ts>
-			dep_pack(core::ecs::entity_pack<Ts...>& pack)
-			{
-				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::entity_pack<Ts...>::pack_t::range_t>>{}, pack);
-				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::entity_pack<Ts...>::filter_t>::value>{}, pack);
-			}
-
-			template<typename... Ts>
-			dep_pack(core::ecs::pack<Ts...>& pack)
+			dependency_pack(core::ecs::pack<Ts...>& pack)
 			{
 				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{}, pack);
 				filter(std::make_index_sequence<std::tuple_size<typename core::ecs::pack<Ts...>::filter_t>::value>{}, pack);
 			}
-			dep_pack() {};
-			~dep_pack() noexcept					  = default;
-			dep_pack(const dep_pack& other) = default;
-			dep_pack(dep_pack&& other)	  = default;
-			dep_pack& operator=(const dep_pack&) = default;
-			dep_pack& operator=(dep_pack&&) = default;
+			dependency_pack() {};
+			~dependency_pack() noexcept					  = default;
+			dependency_pack(const dependency_pack& other) = default;
+			dependency_pack(dependency_pack&& other)	  = default;
+			dependency_pack& operator=(const dependency_pack&) = default;
+			dependency_pack& operator=(dependency_pack&&) = default;
 
 		private:
 			template <typename T>
@@ -316,9 +256,9 @@ namespace core::ecs
 			std::function<void(core::ecs::state&)> pre_tick;
 			std::function<void(core::ecs::state&)> post_tick;
 
-			std::vector<dep_pack> tick_dependencies;
-			std::vector<dep_pack> pre_tick_dependencies;
-			std::vector<dep_pack> post_tick_dependencies;
+			std::vector<dependency_pack> tick_dependencies;
+			std::vector<dependency_pack> pre_tick_dependencies;
+			std::vector<dependency_pack> post_tick_dependencies;
 		};
 
 		// -----------------------------------------------------------------------------
@@ -782,35 +722,7 @@ namespace core::ecs
 				m_Systems.emplace(&system, system_description{system});
 				it = m_Systems.find(&system);
 			}
-			dep_pack p{ pack };
-			if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
-			{
-				it->second.tick_dependencies.emplace_back(std::move(p));
-			}
-			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
-			{
-				it->second.pre_tick_dependencies.emplace_back(std::move(p));
-			}
-			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
-			{
-				it->second.post_tick_dependencies.emplace_back(std::move(p));
-			}
-			else
-			{
-				static_assert(utility::templates::always_false_v<Y>, "the method should be one of the pre-approved types. Either `tick`, `pre_tick`, or `post_tick`");
-			}
-		}
-		template <typename T, typename Y, typename... Ts >
-		void register_dependency(T& system, Y method, core::ecs::entity_pack<Ts...>& pack)
-		{
-			PROFILE_SCOPE(core::profiler)
-				auto it = m_Systems.find(&system);
-			if(it == std::end(m_Systems))
-			{
-				m_Systems.emplace(&system, system_description{system});
-				it = m_Systems.find(&system);
-			}
-			dep_pack p{ pack};
+			dependency_pack p{ pack };
 			if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
 			{
 				it->second.tick_dependencies.emplace_back(std::move(p));

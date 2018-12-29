@@ -341,7 +341,10 @@ namespace core::ecs
 	class pack
 	{
 		friend class core::ecs::state;
+
 	public:
+		static constexpr bool has_entities{ std::disjunction<std::is_same<core::ecs::entity, Ts>...>::value };
+
 		using pack_t	= typename details::typelist_to_pack_view<Ts...>::type;
 		using filter_t = typename details::typelist_to_pack<Ts...>::type;
 		using combine_t = typename details::typelist_to_combine_pack<Ts...>::type;
@@ -380,18 +383,21 @@ namespace core::ecs
 		constexpr size_t size() const noexcept { return m_Pack.size(); }
 
 	  private:
+		template <size_t N>
+		auto reference_get() noexcept -> decltype(std::declval<pack_t>().ref_get<N>())
+		{
+			return m_Pack.ref_get<N>();
+		}
 
-		  template <size_t N>
-		  auto reference_get() noexcept -> decltype(std::declval<pack_t>().ref_get<N>())
-		  {
-			  static_assert(N < std::tuple_size<typename pack_t::range_t>::value,
-				  "you requested a component outside of the range of the pack");
-			  return m_Pack.ref_get<N>();
-		  }
+		template <typename T>
+		psl::array_view<T>& reference_get() noexcept
+		{
+			return m_Pack.ref_get<T>();
+		}
 		  
 		pack_t m_Pack;
 	};
-
+/*
 	template <typename... Ts>
 	class entity_pack
 	{
@@ -453,5 +459,5 @@ namespace core::ecs
 		}
 
 		pack_t m_Pack;
-	};
+	};*/
 } // namespace core::ecs

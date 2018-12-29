@@ -35,12 +35,11 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 	accTime += dTime.count();
 
 	std::vector<entity> dead_ents;
-	for (auto ent : m_Lifetimes)
+	for (auto [lifetime, entity] : m_Lifetimes)
 	{
-		auto& lifetime = std::get<core::ecs::components::lifetime&>(ent);
 		lifetime.value -= dTime.count();
 		if(lifetime.value <= 0.0f)
-			dead_ents.emplace_back(std::get<core::ecs::entity&>(ent));
+			dead_ents.emplace_back(entity);
 	}
 
 	state.add_component<dead_tag>(dead_ents);

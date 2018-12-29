@@ -168,6 +168,14 @@ namespace psl
 			static_assert(N < std::tuple_size<range_t>::value, "you requested a component outside of the range of the pack");
 			return std::get<N>(m_Pack);
 		}
+
+
+		template <typename T>
+		psl::array_view<T>& ref_get() noexcept
+		{
+			static_assert(utility::templates::tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
+			return std::get<psl::array_view<T>>(m_Pack);
+		}
 	private:
 		range_t m_Pack;
 	};

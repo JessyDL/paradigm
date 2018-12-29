@@ -23,7 +23,7 @@ namespace core::ecs::systems
 		core::ecs::pack<const core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>>
 			m_Cameras;
 
-		core::ecs::entity_pack<core::ecs::components::lifetime> m_Lifetimes;
+		core::ecs::pack<core::ecs::components::lifetime, core::ecs::entity> m_Lifetimes;
 
 	  public:
 		geometry_instance(core::ecs::state& state);
