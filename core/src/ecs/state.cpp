@@ -87,7 +87,7 @@ void state::tick(std::chrono::duration<float> dTime)
 		core::profiler.scope_begin("preparing data");
 		for(auto& dep_pack : sBindings)
 		{
-			auto entities = dynamic_filter(dep_pack.filters);
+			auto entities = filter(dep_pack);
 			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
 			dep_pack.m_StoredEnts = psl::array_view<core::ecs::entity>(
 				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));

@@ -79,6 +79,34 @@ namespace core::ecs
 
 	namespace details
 	{
+		template <typename T>
+		struct is_selector : std::false_type {};
+
+		template <typename... Ts>
+		struct is_selector<on_add<Ts...>> : std::true_type {};
+
+		template <typename... Ts>
+		struct is_selector<on_remove<Ts...>> : std::true_type {};
+
+		template <typename... Ts>
+		struct is_selector<filter<Ts...>> : std::true_type {};
+
+		template <typename... Ts>
+		struct is_selector<except<Ts...>> : std::true_type {};
+
+		template <typename... Ts>
+		struct is_selector<on_break<Ts...>> : std::true_type {};
+
+		template <typename... Ts>
+		struct is_selector<on_combine<Ts...>> : std::true_type {};
+
+
+		template <typename T>
+		struct is_exception : std::false_type {};
+
+		template <typename... Ts>
+		struct is_exception<except<Ts...>> : std::true_type {};
+
 		template <typename T, typename Tuple>
 		struct has_type;
 

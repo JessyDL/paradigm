@@ -25,9 +25,12 @@ namespace core::ecs
 	struct par
 	{};
 
-	struct tick {};
-	struct pre_tick {};
-	struct post_tick {};
+	struct tick
+	{};
+	struct pre_tick
+	{};
+	struct post_tick
+	{};
 
 	class state;
 
@@ -57,8 +60,9 @@ namespace core::ecs
 			return &component_key_var<T>;
 		}
 
-		template<typename T>
-		using remove_all = typename std::remove_pointer<typename std::remove_reference<typename std::remove_cv<T>::type>::type>::type;
+		template <typename T>
+		using remove_all =
+			typename std::remove_pointer<typename std::remove_reference<typename std::remove_cv<T>::type>::type>::type;
 
 		using component_key_t = const std::uintptr_t* (*)();
 
@@ -106,7 +110,9 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `tick` listener.
 		template <typename T>
-		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::state&>(), std::declval<std::chrono::duration<float>>(), std::declval<std::chrono::duration<float>>()))>>
+		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::state&>(),
+																	   std::declval<std::chrono::duration<float>>(),
+																	   std::declval<std::chrono::duration<float>>()))>>
 			: std::true_type
 		{};
 	} // namespace details
@@ -129,8 +135,9 @@ namespace core::ecs
 {
 	class state
 	{
-		template<typename KeyT, typename ValueT>
+		template <typename KeyT, typename ValueT>
 		using key_value_container = ska::bytell_hash_map<KeyT, ValueT>;
+
 	  public:
 		/// \brief describes a set of dependencies for a given system
 		///
@@ -150,40 +157,48 @@ namespace core::ecs
 				(add(t.reference_get<Is>()), ...);
 			}
 
-			template<typename F>
-			void filter_impl()
+			template <typename F>
+			void select_impl(std::vector<details::component_key_t>& target)
 			{
-				if constexpr (!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
+				if constexpr(!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
 				{
 					using component_t = F;
-					constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_t>>;
-					filters.emplace_back(int_id);
+					constexpr details::component_key_t int_id =
+						details::component_key<details::remove_all<component_t>>;
+					target.emplace_back(int_id);
 					m_Sizes[int_id] = sizeof(component_t);
 				}
 			}
 
 			template <std::size_t... Is, typename T>
-			auto filter(std::index_sequence<Is...>, T& t)
+			auto select(std::index_sequence<Is...>, T, std::vector<details::component_key_t>& target)
 			{
-				(filter_impl<typename std::tuple_element<Is, typename T::filter_t>::type>(), ...);
+				(select_impl<typename std::tuple_element<Is, T>::type>(target), ...);
 			}
 
-		public:
-			template<typename... Ts>
+		  public:
+			template <typename... Ts>
 			dependency_pack(core::ecs::pack<Ts...>& pack)
 			{
-				create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{}, pack);
-				using filter_t = typename core::ecs::pack<Ts...>::filter_t;
-				filter(std::make_index_sequence<std::tuple_size<filter_t>::value>{}, pack);
+				create_dependency_filters(
+					std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{},
+					pack);
+				using pack_t = core::ecs::pack<Ts...>;
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value>{}, typename pack_t::filter_t{}, filters);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::add_t>::value>{}, typename pack_t::add_t{}, on_add);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_t>::value>{}, typename pack_t::remove_t{}, on_remove);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value>{}, typename pack_t::break_t{}, on_break);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value>{}, typename pack_t::combine_t{}, on_combine);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{}, typename pack_t::except_t{}, except);
 			}
-			dependency_pack() {};
+			dependency_pack(){};
 			~dependency_pack() noexcept					  = default;
 			dependency_pack(const dependency_pack& other) = default;
 			dependency_pack(dependency_pack&& other)	  = default;
 			dependency_pack& operator=(const dependency_pack&) = default;
 			dependency_pack& operator=(dependency_pack&&) = default;
 
-		private:
+		  private:
 			template <typename T>
 			void add(psl::array_view<T>& vec) noexcept
 			{
@@ -198,10 +213,7 @@ namespace core::ecs
 				m_RBindings.emplace(int_id, (psl::array_view<std::uintptr_t>*)&vec);
 			}
 
-			void add(psl::array_view<core::ecs::entity>& vec) noexcept
-			{
-				m_Entities = &vec;
-			}
+			void add(psl::array_view<core::ecs::entity>& vec) noexcept { m_Entities = &vec; }
 
 			void add(psl::array_view<const core::ecs::entity>& vec) noexcept
 			{
@@ -213,43 +225,41 @@ namespace core::ecs
 			{
 				(add(args), ...);
 			}
-		private:
-			psl::array_view<core::ecs::entity>* m_Entities{ nullptr };
-			psl::array_view<core::ecs::entity> m_StoredEnts{  };
+
+		  private:
+			psl::array_view<core::ecs::entity>* m_Entities{nullptr};
+			psl::array_view<core::ecs::entity> m_StoredEnts{};
 			key_value_container<details::component_key_t, size_t> m_Sizes;
 			key_value_container<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
 			key_value_container<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
+
 			std::vector<details::component_key_t> filters;
+			std::vector<details::component_key_t> on_add;
+			std::vector<details::component_key_t> on_remove;
+			std::vector<details::component_key_t> except;
+			std::vector<details::component_key_t> on_combine;
+			std::vector<details::component_key_t> on_break;
 		};
 
 
-
-	private:
+	  private:
 		struct system_description
 		{
-			template<typename T>
+			template <typename T>
 			system_description(T& target)
 			{
 				if constexpr(details::mf_tick<T>::value)
 				{
-					tick = [&target](core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
-					{
-						target.tick(state, dTime, rTime);
-					};
+					tick = [&target](core::ecs::state& state, std::chrono::duration<float> dTime,
+									 std::chrono::duration<float> rTime) { target.tick(state, dTime, rTime); };
 				}
 				if constexpr(details::mf_pre_tick<T>::value)
 				{
-					pre_tick = [&target](core::ecs::state& state)
-					{
-						target.pre_tick(state);
-					};
+					pre_tick = [&target](core::ecs::state& state) { target.pre_tick(state); };
 				}
 				if constexpr(details::mf_post_tick<T>::value)
 				{
-					post_tick = [&target](core::ecs::state& state)
-					{
-						target.post_tick(state);
-					};
+					post_tick = [&target](core::ecs::state& state) { target.post_tick(state); };
 				}
 			}
 
@@ -330,7 +340,7 @@ namespace core::ecs
 			constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_type>>;
 			core::profiler.scope_begin("duplicate_check");
 			std::vector<entity> ent_cpy = entities;
-			auto end	 = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
+			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
 				auto eMapIt = m_EntityMap.find(e);
 				if(eMapIt == std::end(m_EntityMap)) return true;
 
@@ -536,7 +546,7 @@ namespace core::ecs
 		template <typename... Ts>
 		void remove_components(entity e) noexcept
 		{
-			(remove_component<Ts>(psl::array_view<entity>{&e, &e +1}), ...);
+			(remove_component<Ts>(psl::array_view<entity>{&e, &e + 1}), ...);
 		}
 
 
@@ -617,98 +627,232 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
-			std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
-			return dynamic_filter(keys);
+			return filter_foreach(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>());
 		}
 
 		template <typename... Ts>
 		std::vector<entity> filter(std::vector<Ts>&... out) const noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
-			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
-
-			auto entities{dynamic_filter({details::component_key<details::remove_all<Ts>>...})};
-
+			auto entities{filter<Ts...>()};
 			(fill_in(entities, out), ...);
-
 			return entities;
 		}
 
-		private:
-			template <std::size_t... Is, typename... Ts>
-			std::vector<details::component_key_t> filter_keys(std::index_sequence<Is...>, std::tuple<Ts...>, const key_value_container<details::component_key_t, std::vector<entity>>& key_list)
+	  private:
+		  std::vector<entity> filter(const dependency_pack& pack) const
+		  {
+			  std::optional<std::vector<entity>> result{ std::nullopt };
+
+			  auto merge = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
+			  {
+				  if (!out)
+					  return to_merge;
+
+				  std::vector<entity> v_intersection;
+				  v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
+				  std::set_intersection(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
+					  std::end(to_merge), std::back_inserter(v_intersection));
+
+				  return v_intersection;
+			  };
+
+			  auto difference = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
+			  {
+				  if (!out)
+					  return to_merge;
+
+				  std::vector<entity> v_intersection;
+				  v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
+				  std::set_difference(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
+					  std::end(to_merge), std::back_inserter(v_intersection));
+
+				  return v_intersection;
+			  };
+
+			  if (pack.filters.size() > 0)
+			  {
+				  result = merge(result, filter_default(pack.filters));
+			  }
+			  if (pack.on_add.size() > 0)
+			  {
+				  result = merge(result, filter_on_add(pack.on_add));
+			  }
+			  if (pack.on_remove.size() > 0)
+			  {
+				  result =  merge(result, filter_on_remove(pack.on_remove));
+			  }
+			  if (pack.on_combine.size() > 0)
+			  {
+				  result = merge(result, filter_on_combine(pack.on_combine));
+			  }
+			  if (pack.on_break.size() > 0)
+			  {
+				  result = merge(result, filter_on_break(pack.on_break));
+			  }
+			  if (pack.except.size() > 0)
+			  {
+				  result = difference(result, filter_except(pack.except));
+			  }
+
+			  return result.value_or(std::vector<entity>{});
+		  }
+
+		template <std::size_t... Is, typename... Ts>
+		std::vector<entity> filter_foreach(std::index_sequence<Is...>, std::tuple<Ts...>) const
+		{
+			std::optional<std::vector<entity>> result{ std::nullopt };
+			auto merge = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
 			{
-				std::vector<details::component_key_t> keys_out{};
-				([&]()
-				{ 
-					auto key = details::component_key<details::remove_all<typename std::tuple_element<Is, std::tuple<Ts>>::type>>; 
-					if (auto it = key_list.find(key); key != std::end(key_list))
-						keys_out.emplace_back(key);
-				}, ...);
-				return keys_out;
-			}
-			template <std::size_t... Is, typename... Ts>
-			std::vector<details::component_key_t> filter_remaining_keys(std::index_sequence<Is...>, std::tuple<Ts...>, const std::vector<details::component_key_t>& key_list)
+				if (!out)
+					return to_merge;
+
+				std::vector<entity> v_intersection;
+				v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
+				std::set_intersection(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
+					std::end(to_merge), std::back_inserter(v_intersection));
+
+				return v_intersection;
+			};
+
+			auto difference = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
 			{
-				std::vector<details::component_key_t> keys_out{};
-				([&]()
-				{ 
-					auto key = details::component_key<details::remove_all<typename std::tuple_element<Is, std::tuple<Ts>>::type>>; 
-					if(std::find(std::begin(key_list), std::end(key_list), key) != std::end(key_list))
-						keys_out.emplace_back(key);
-				}, ...);
-				return keys_out;
-			}
+				if (!out)
+					return to_merge;
 
-			template<typename... Ts>
-			std::vector<entity> filter_impl(on_add<Ts...>)
+				std::vector<entity> v_intersection;
+				v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
+				std::set_difference(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
+					std::end(to_merge), std::back_inserter(v_intersection));
+
+				return v_intersection;
+			};
+
+
+			([&]() {
+				using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
+				if constexpr (!details::is_exception<component_t>::value)
+				{
+					result = merge(result, filter_impl(component_t{}));
+				}
+			},
+				...);
+
+			([&]() {
+				using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
+				if constexpr (details::is_exception<component_t>::value)
+				{
+					result = difference(result, filter_impl(component_t{}));
+				}
+			},
+				...);
+
+			return result.value_or(std::vector<entity>{});
+		}
+		
+		std::vector<details::component_key_t> filter_keys(psl::array_view<details::component_key_t> keys, const key_value_container<details::component_key_t, std::vector<entity>>& key_list) const
+		{
+			std::vector<details::component_key_t> keys_out{};
+			for (auto key : keys)
 			{
-				std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
-				return dynamic_filter(keys, m_AddedComponents);
+				if (key_list.find(key) != std::end(key_list))
+					keys_out.emplace_back(key);
 			}
+			return keys;
+		}
 
-			template<typename... Ts>
-			std::vector<entity> filter_impl(on_remove<Ts...>)
-			{
-				std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
-				return dynamic_filter(keys, m_RemovedComponents);
-			}
+		std::vector<entity> filter_on_add(std::vector<details::component_key_t> keys) const
+		{
+			return dynamic_filter(keys, m_AddedComponents);
+		}
 
-			template<typename... Ts>
-			std::vector<entity> filter_impl(except<Ts...>)
-			{
-				std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
-				return dynamic_filter(keys);
-			}
+		std::vector<entity> filter_on_remove(std::vector<details::component_key_t> keys) const
+		{
+			return dynamic_filter(keys, m_RemovedComponents);
+		}
+
+		std::vector<entity> filter_except(std::vector<details::component_key_t> keys) const
+		{
+			return dynamic_filter(keys);
+		}
+
+		std::vector<entity> filter_on_combine(std::vector<details::component_key_t> keys) const
+		{
+			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_AddedComponents)};
+			if(added_keys.size() == 0) // at least 1 should be present
+				return {};
+			std::vector<details::component_key_t> remaining_keys{};
+
+			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
+				std::back_inserter(remaining_keys));
+
+			auto entities = dynamic_filter(added_keys, m_AddedComponents);
+			return dynamic_filter(remaining_keys, entities);
+		}
+
+		std::vector<entity> filter_on_break(std::vector<details::component_key_t> keys) const
+		{
+			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_RemovedComponents)};
+			if(added_keys.size() == 0) // at least 1 should be present
+				return {};
+			std::vector<details::component_key_t> remaining_keys{};
+
+			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
+				std::back_inserter(remaining_keys));
+			auto entities = dynamic_filter(added_keys, m_RemovedComponents);
+			return dynamic_filter(remaining_keys, entities);
+		}
+
+		std::vector<entity> filter_default(std::vector<details::component_key_t> keys) const
+		{
+			return dynamic_filter(keys);
+		}
+
+		template <typename... Ts>
+		std::vector<entity> filter_impl(on_add<Ts...>) const
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
+			return filter_on_add(keys);
+		}
+
+		template <typename... Ts>
+		std::vector<entity> filter_impl(on_remove<Ts...>) const
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
+			return filter_on_remove(keys);
+		}
+
+		template <typename... Ts>
+		std::vector<entity> filter_impl(except<Ts...>) const
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
+			return filter_except(keys);
+		}
 
 
-			template<typename... Ts>
-			std::vector<entity> filter_impl(on_combine<Ts...>)
-			{
-				std::vector<details::component_key_t> added_keys{ filter_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, m_AddedComponents) };
-				if (added_keys.size() == 0) // at least 1 should be present
-					return {};
+		template <typename... Ts>
+		std::vector<entity> filter_impl(on_combine<Ts...>) const
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
+			return filter_on_combine(keys);
+		}
 
-				std::vector<details::component_key_t> remaining_keys{ filter_remaining_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, added_keys) };
+		template <typename... Ts>
+		std::vector<entity> filter_impl(on_break<Ts...>) const
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
+			return filter_on_break(keys);
+		}
 
-				auto entities = dynamic_filter(added_keys, m_AddedComponents);
-				return dynamic_filter(remaining_keys, entities);
-			}
+		template <typename T>
+		std::vector<entity> filter_impl(T) const
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<T>>}};
+			return filter_default(keys);
+		}
 
-			template<typename... Ts>
-			std::vector<entity> filter_impl(on_break<Ts...>)
-			{
-				std::vector<details::component_key_t> added_keys{ filter_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, m_RemovedComponents) };
-				if (added_keys.size() == 0) // at least 1 should be present
-					return {};
 
-				std::vector<details::component_key_t> remaining_keys{ filter_remaining_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, added_keys) };
-
-				auto entities = dynamic_filter(added_keys, m_RemovedComponents);
-				return dynamic_filter(remaining_keys, entities);
-			}
-		public:
-
+	  public:
 		// -----------------------------------------------------------------------------
 		// get component
 		// -----------------------------------------------------------------------------
@@ -757,21 +901,22 @@ namespace core::ecs
 
 		enum class listener_type
 		{
-			PER_TICK = 0,
+			PER_TICK  = 0,
 			ON_CHANGE = 1,
-			ON_ADD = 2,
+			ON_ADD	= 2,
 			ON_REMOVE = 3
 		};
 
 		enum class call_policy_type
 		{
-			TICK = 0x1,
-			PRE_TICK = 0x2,
+			TICK	  = 0x1,
+			PRE_TICK  = 0x2,
 			POST_TICK = 0x4,
-			ALL = TICK | PRE_TICK | POST_TICK
+			ALL		  = TICK | PRE_TICK | POST_TICK
 		};
 		template <typename T>
-		void register_system(T& target, call_policy_type policy = call_policy_type::TICK, listener_type type = listener_type::PER_TICK)
+		void register_system(T& target, call_policy_type policy = call_policy_type::TICK,
+							 listener_type type = listener_type::PER_TICK)
 		{
 			PROFILE_SCOPE(core::profiler)
 			m_Systems.emplace(&target, system_description{target});
@@ -790,32 +935,34 @@ namespace core::ecs
 			it->second.tick_dependencies.emplace_back(std::move(pack));
 		}*/
 
-		template <typename T, typename Y, typename... Ts >
+		template <typename T, typename Y, typename... Ts>
 		void register_dependency(T& system, Y method, core::ecs::pack<Ts...>& pack)
 		{
 			PROFILE_SCOPE(core::profiler)
-				auto it = m_Systems.find(&system);
+			auto it = m_Systems.find(&system);
 			if(it == std::end(m_Systems))
 			{
 				m_Systems.emplace(&system, system_description{system});
 				it = m_Systems.find(&system);
 			}
-			dependency_pack p{ pack };
-			if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			dependency_pack p{pack};
+			if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
 			{
 				it->second.tick_dependencies.emplace_back(std::move(p));
 			}
-			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
+			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
 			{
 				it->second.pre_tick_dependencies.emplace_back(std::move(p));
 			}
-			else if constexpr (std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
 			{
 				it->second.post_tick_dependencies.emplace_back(std::move(p));
 			}
 			else
 			{
-				static_assert(utility::templates::always_false_v<Y>, "the method should be one of the pre-approved types. Either `tick`, `pre_tick`, or `post_tick`");
+				static_assert(
+					utility::templates::always_false_v<Y>,
+					"the method should be one of the pre-approved types. Either `tick`, `pre_tick`, or `post_tick`");
 			}
 		}
 
@@ -842,8 +989,13 @@ namespace core::ecs
 
 	  private:
 		void set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id);
-		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys, std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
-		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys, const key_value_container<details::component_key_t, std::vector<entity>>& container, std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
+		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys,
+										   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const
+			noexcept;
+		std::vector<entity>
+		dynamic_filter(psl::array_view<details::component_key_t> keys,
+					   const key_value_container<details::component_key_t, std::vector<entity>>& container,
+					   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
 		void fill_in(psl::array_view<entity> entities, details::component_key_t int_id, void* out) const noexcept;
 
 		template <typename T>
