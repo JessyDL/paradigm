@@ -269,7 +269,7 @@ namespace core::ecs
 	  private:
 		template <typename T>
 		typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
-		initialize_component(void* location, const std::vector<size_t>& indices, T&& data) noexcept
+		initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
 			for(auto i = 0; i < indices.size(); ++i)
@@ -280,7 +280,7 @@ namespace core::ecs
 
 		template <typename T>
 		typename std::enable_if<std::is_invocable<T, size_t>::value>::type
-		initialize_component(void* location, const std::vector<size_t>& indices, T&& invokable) noexcept
+		initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
 		{
 			constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
 			PROFILE_SCOPE(core::profiler)
@@ -315,7 +315,7 @@ namespace core::ecs
 
 	  public:
 		template <typename T>
-		void add_component(const std::vector<entity>& entities, T&& _template) noexcept
+		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
 			using component_type = typename get_component_type<T>::type;
 			using forward_type   = typename get_forward_type<T>::type;
@@ -328,7 +328,7 @@ namespace core::ecs
 				"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
 			constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_type>>;
 			core::profiler.scope_begin("duplicate_check");
-			auto ent_cpy = entities;
+			std::vector<entity> ent_cpy = entities;
 			auto end	 = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
 				auto eMapIt = m_EntityMap.find(e);
 				if(eMapIt == std::end(m_EntityMap)) return true;
@@ -440,19 +440,19 @@ namespace core::ecs
 		}
 
 		template <typename T>
-		void add_component(const std::vector<entity>& entities) noexcept
+		void add_component(psl::array_view<entity> entities) noexcept
 		{
 			return add_component(entities, core::ecs::tag<T>{});
 		}
 
 		template <typename... Ts>
-		void add_components(const std::vector<entity>& entities, Ts&&... args) noexcept
+		void add_components(psl::array_view<entity> entities, Ts&&... args) noexcept
 		{
 			(add_component(entities, std::forward<Ts>(args)), ...);
 		}
 
 		template <typename... Ts>
-		void add_components(const std::vector<entity>& entities) noexcept
+		void add_components(psl::array_view<entity> entities) noexcept
 		{
 			(add_component<Ts>(entities), ...);
 		}
@@ -460,19 +460,19 @@ namespace core::ecs
 		template <typename... Ts>
 		void add_components(entity e, Ts&&... args) noexcept
 		{
-			(add_component(std::vector<entity>{e}, std::forward<Ts>(args)), ...);
+			(add_component(psl::array_view<entity>{&e, &e + 1}, std::forward<Ts>(args)), ...);
 		}
 		template <typename... Ts>
 		void add_components(entity e) noexcept
 		{
-			(add_component<Ts>(std::vector<entity>{e}), ...);
+			(add_component<Ts>(psl::array_view<entity>{&e, &e + 1}), ...);
 		}
 
 		// -----------------------------------------------------------------------------
 		// remove component
 		// -----------------------------------------------------------------------------
 		template <typename T>
-		void remove_component(const std::vector<entity>& entities) noexcept
+		void remove_component(psl::array_view<entity> entities) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
@@ -520,7 +520,7 @@ namespace core::ecs
 		}
 
 		template <typename... Ts>
-		void remove_components(const std::vector<entity>& entities) noexcept
+		void remove_components(psl::array_view<entity> entities) noexcept
 		{
 			(remove_component<Ts>(entities), ...);
 		}
@@ -529,13 +529,13 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(entity e) noexcept
 		{
-			remove_component<T>(std::vector<entity>{e});
+			remove_component<T>(psl::array_view<entity>{&e, &e + 1});
 		}
 
 		template <typename... Ts>
 		void remove_components(entity e) noexcept
 		{
-			(remove_component<Ts>(std::vector<entity>{e}), ...);
+			(remove_component<Ts>(psl::array_view<entity>{&e, &e +1}), ...);
 		}
 
 
@@ -616,7 +616,8 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			static_assert(sizeof...(Ts) >= 1, "you should atleast have one component to filter on");
-			return dynamic_filter({details::component_key<details::remove_all<Ts>>...});
+			std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
+			return dynamic_filter(keys);
 		}
 
 		template <typename... Ts>
@@ -743,7 +744,7 @@ namespace core::ecs
 		}
 
 		template <typename T>
-		void set(const std::vector<entity>& entities, const std::vector<T>& data)
+		void set(psl::array_view<entity> entities, psl::array_view<T> data)
 		{
 			PROFILE_SCOPE(core::profiler)
 			constexpr details::component_key_t id = details::component_key<details::remove_all<T>>;
@@ -765,12 +766,11 @@ namespace core::ecs
 
 	  private:
 		void set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id);
-		void set(const core::ecs::vector<entity>& entities, void* data, size_t size, details::component_key_t id);
-		std::vector<entity> dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept;
-		void fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept;
+		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys) const noexcept;
+		void fill_in(psl::array_view<entity> entities, details::component_key_t int_id, void* out) const noexcept;
 
 		template <typename T>
-		void fill_in(const std::vector<entity>& entities, std::vector<T>& out) const noexcept
+		void fill_in(psl::array_view<entity> entities, std::vector<T>& out) const noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
 			out.resize(entities.size());

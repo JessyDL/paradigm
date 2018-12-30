@@ -168,7 +168,7 @@ void state::tick(std::chrono::duration<float> dTime)
 	m_RemovedComponents.clear();
 }
 
-void state::set(const core::ecs::vector<entity>& entities, void* data, size_t size, details::component_key_t id)
+void state::set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id)
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& mem_pair = m_Components.find(id);
@@ -188,27 +188,7 @@ void state::set(const core::ecs::vector<entity>& entities, void* data, size_t si
 	}
 }
 
-void state::set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id)
-{
-	PROFILE_SCOPE(core::profiler)
-		const auto& mem_pair = m_Components.find(id);
-
-	std::uintptr_t data_loc = (std::uintptr_t)data;
-	for(const auto& [i, e] : psl::enumerate(entities))
-	{
-		auto eMapIt = m_EntityMap.find(e);
-		auto foundIt =
-			std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-				[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
-
-		auto index = foundIt->second;
-		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-		std::memcpy(loc, (void*)data_loc, size);
-		data_loc += size;
-	}
-}
-
-std::vector<entity> state::dynamic_filter(const std::vector<details::component_key_t>& keys) const noexcept
+std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key_t> keys) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 
@@ -233,7 +213,7 @@ std::vector<entity> state::dynamic_filter(const std::vector<details::component_k
 }
 
 
-void state::fill_in(const std::vector<entity>& entities, details::component_key_t int_id, void* out) const noexcept
+void state::fill_in(psl::array_view<entity> entities, details::component_key_t int_id, void* out) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 

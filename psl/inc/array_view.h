@@ -110,6 +110,12 @@ namespace psl
 
 		operator array_view<const value_type>&() const noexcept { return *(array_view<const T>*)(this); }
 
+
+		operator std::vector<value_type>() const noexcept 
+		{
+			return std::vector<value_type>{first, last};
+		}
+
 		iterator begin() const { return iterator(first); }
 
 		iterator end() const { return iterator(last); }
