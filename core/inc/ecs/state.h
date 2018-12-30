@@ -634,6 +634,81 @@ namespace core::ecs
 			return entities;
 		}
 
+		private:
+			template <std::size_t... Is, typename... Ts>
+			std::vector<details::component_key_t> filter_keys(std::index_sequence<Is...>, std::tuple<Ts...>, const key_value_container<details::component_key_t, std::vector<entity>>& key_list)
+			{
+				std::vector<details::component_key_t> keys_out{};
+				([&]()
+				{ 
+					auto key = details::component_key<details::remove_all<typename std::tuple_element<Is, std::tuple<Ts>>::type>>; 
+					if (auto it = key_list.find(key); key != std::end(key_list))
+						keys_out.emplace_back(key);
+				}, ...);
+				return keys_out;
+			}
+			template <std::size_t... Is, typename... Ts>
+			std::vector<details::component_key_t> filter_remaining_keys(std::index_sequence<Is...>, std::tuple<Ts...>, const std::vector<details::component_key_t>& key_list)
+			{
+				std::vector<details::component_key_t> keys_out{};
+				([&]()
+				{ 
+					auto key = details::component_key<details::remove_all<typename std::tuple_element<Is, std::tuple<Ts>>::type>>; 
+					if(std::find(std::begin(key_list), std::end(key_list), key) != std::end(key_list))
+						keys_out.emplace_back(key);
+				}, ...);
+				return keys_out;
+			}
+
+			template<typename... Ts>
+			std::vector<entity> filter_impl(on_add<Ts...>)
+			{
+				std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
+				return dynamic_filter(keys, m_AddedComponents);
+			}
+
+			template<typename... Ts>
+			std::vector<entity> filter_impl(on_remove<Ts...>)
+			{
+				std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
+				return dynamic_filter(keys, m_RemovedComponents);
+			}
+
+			template<typename... Ts>
+			std::vector<entity> filter_impl(except<Ts...>)
+			{
+				std::vector<details::component_key_t> keys{ {details::component_key<details::remove_all<Ts>>...} };
+				return dynamic_filter(keys);
+			}
+
+
+			template<typename... Ts>
+			std::vector<entity> filter_impl(on_combine<Ts...>)
+			{
+				std::vector<details::component_key_t> added_keys{ filter_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, m_AddedComponents) };
+				if (added_keys.size() == 0) // at least 1 should be present
+					return {};
+
+				std::vector<details::component_key_t> remaining_keys{ filter_remaining_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, added_keys) };
+
+				auto entities = dynamic_filter(added_keys, m_AddedComponents);
+				return dynamic_filter(remaining_keys, entities);
+			}
+
+			template<typename... Ts>
+			std::vector<entity> filter_impl(on_break<Ts...>)
+			{
+				std::vector<details::component_key_t> added_keys{ filter_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, m_RemovedComponents) };
+				if (added_keys.size() == 0) // at least 1 should be present
+					return {};
+
+				std::vector<details::component_key_t> remaining_keys{ filter_remaining_keys(std::make_index_sequence<sizeof...(Ts)>(), std::tuple<Ts...>, added_keys) };
+
+				auto entities = dynamic_filter(added_keys, m_RemovedComponents);
+				return dynamic_filter(remaining_keys, entities);
+			}
+		public:
+
 		// -----------------------------------------------------------------------------
 		// get component
 		// -----------------------------------------------------------------------------
@@ -767,7 +842,8 @@ namespace core::ecs
 
 	  private:
 		void set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id);
-		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys) const noexcept;
+		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys, std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
+		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys, const key_value_container<details::component_key_t, std::vector<entity>>& container, std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
 		void fill_in(psl::array_view<entity> entities, details::component_key_t int_id, void* out) const noexcept;
 
 		template <typename T>

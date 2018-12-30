@@ -7,7 +7,7 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 
-		ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
+	ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
 	ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
 	core::profiler.scope_begin("erase entities");
 	for(const auto& e : entities)
@@ -63,10 +63,10 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 			std::sort(std::begin(c.second), std::end(c.second));
 			auto ib   = std::begin(c.second);
 			auto iter = std::remove_if(std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
-				[&ib, &c](entity x) -> bool {
-				while(ib != std::end(c.second) && *ib < x) ++ib;
-				return (ib != std::end(c.second) && *ib == x);
-			});
+									   [&ib, &c](entity x) -> bool {
+										   while(ib != std::end(c.second) && *ib < x) ++ib;
+										   return (ib != std::end(c.second) && *ib == x);
+									   });
 
 			cMapIt->second.entities.erase(iter, cMapIt->second.entities.end());
 		}
@@ -89,16 +89,16 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			auto entities = dynamic_filter(dep_pack.filters);
 			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-			dep_pack.m_StoredEnts =  psl::array_view<core::ecs::entity>((entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
-			if(dep_pack.m_Entities != nullptr)
-				*dep_pack.m_Entities = dep_pack.m_StoredEnts;
+			dep_pack.m_StoredEnts = psl::array_view<core::ecs::entity>(
+				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+			if(dep_pack.m_Entities != nullptr) *dep_pack.m_Entities = dep_pack.m_StoredEnts;
 			cache_offset += sizeof(entity) * entities.size();
 			core::profiler.scope_begin("read-write data");
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				const auto& mem_pair = m_Components.find(rwBinding.first);				
-				const auto size			 = dep_pack.m_Sizes[rwBinding.first];
-				const auto id				 = rwBinding.first;
+				const auto& mem_pair	  = m_Components.find(rwBinding.first);
+				const auto size			  = dep_pack.m_Sizes[rwBinding.first];
+				const auto id			  = rwBinding.first;
 				std::uintptr_t data_begin = cache_offset;
 
 				for(const auto& e : entities)
@@ -115,7 +115,8 @@ void state::tick(std::chrono::duration<float> dTime)
 					cache_offset += size;
 				}
 
-				*rwBinding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
+				*rwBinding.second =
+					psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 
 				size_t x = 0;
 			}
@@ -124,8 +125,8 @@ void state::tick(std::chrono::duration<float> dTime)
 			for(const auto& rBinding : dep_pack.m_RBindings)
 			{
 				const auto& mem_pair = m_Components.find(rBinding.first);
-				const auto size			 = dep_pack.m_Sizes[rBinding.first];
-				const auto id				 = rBinding.first;
+				const auto size		 = dep_pack.m_Sizes[rBinding.first];
+				const auto id		 = rBinding.first;
 
 				std::uintptr_t data_begin = cache_offset;
 
@@ -143,7 +144,8 @@ void state::tick(std::chrono::duration<float> dTime)
 					cache_offset += size;
 				}
 
-				*rBinding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
+				*rBinding.second =
+					psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 			}
 			core::profiler.scope_end();
 		}
@@ -153,7 +155,7 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				const size_t size = dep_pack.m_Sizes.at(rwBinding.first);
+				const size_t size   = dep_pack.m_Sizes.at(rwBinding.first);
 				std::uintptr_t data = (std::uintptr_t)&std::begin(*rwBinding.second).value();
 				set(dep_pack.m_StoredEnts, (void*)data, size, rwBinding.first);
 			}
@@ -188,7 +190,8 @@ void state::set(psl::array_view<entity> entities, void* data, size_t size, detai
 	}
 }
 
-std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key_t> keys) const noexcept
+std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key_t> keys,
+										  std::optional<psl::array_view<entity>> pre_selection) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 
@@ -197,13 +200,65 @@ std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key
 		if(m_Components.find(key) == std::end(m_Components)) return {};
 	}
 
-	std::vector<entity> v_intersection{m_Components.at(keys[0]).entities};
+	const auto& first_selection = m_Components.at(keys[0]);
+
+	std::vector<entity> v_intersection{};
+	if(pre_selection)
+	{
+		v_intersection.reserve(std::min(pre_selection.value().size(), first_selection.entities.size()));
+
+		std::set_intersection(std::begin(first_selection.entities), std::end(first_selection.entities),
+							  std::begin(pre_selection.value()), std::end(pre_selection.value()),
+							  std::back_inserter(v_intersection));
+	}
+	else
+		v_intersection = first_selection.entities;
 
 	for(size_t i = 1; i < keys.size(); ++i)
 	{
 		std::vector<entity> intermediate;
 		intermediate.reserve(v_intersection.size());
 		const auto& it = m_Components.at(keys[i]).entities;
+		std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
+							  std::back_inserter(intermediate));
+		v_intersection = std::move(intermediate);
+		if(v_intersection.size() == 0) return v_intersection;
+	}
+
+	return v_intersection;
+}
+
+std::vector<entity>
+state::dynamic_filter(psl::array_view<details::component_key_t> keys,
+					  const key_value_container<details::component_key_t, std::vector<entity>>& container,
+					  std::optional<psl::array_view<entity>> pre_selection) const noexcept
+{
+	PROFILE_SCOPE(core::profiler)
+
+	for(const auto& key : keys)
+	{
+		if(container.find(key) == std::end(container)) return {};
+	}
+
+
+	const auto& first_selection = container.at(keys[0]);
+
+	std::vector<entity> v_intersection{};
+	if(pre_selection)
+	{
+		v_intersection.reserve(std::min(pre_selection.value().size(), first_selection.size()));
+
+		std::set_intersection(std::begin(first_selection), std::end(first_selection), std::begin(pre_selection.value()),
+							  std::end(pre_selection.value()), std::back_inserter(v_intersection));
+	}
+	else
+		v_intersection = first_selection;
+
+	for(size_t i = 1; i < keys.size(); ++i)
+	{
+		std::vector<entity> intermediate;
+		intermediate.reserve(v_intersection.size());
+		const auto& it = container.at(keys[i]);
 		std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 							  std::back_inserter(intermediate));
 		v_intersection = std::move(intermediate);

@@ -3,10 +3,25 @@
 
 namespace core::ecs
 {
-	template <typename T>
+	/// \brief on_add tag allows you to select entities (and components) that have recently added
+	/// the given component type
+	///
+	/// You can use this tag to listen to the event of a specific component type being added to
+	/// an entity.
+	/// \warn tags do not mean this component will be present in the pack, they are considered 
+	/// filter directives (or specialized filter directives).
+	template <typename... Ts>
 	struct on_add
 	{};
-	template <typename T>
+
+	/// \brief tag that allows you to listen to the event of a component of the given type being 
+	/// removed.
+	///
+	/// You can use this tag to listen to the event of a component of the given type being removed
+	/// to an entity.
+	/// \warn tags do not mean this component will be present in the pack, they are considered 
+	/// filter directives (or specialized filter directives).
+	template <typename... Ts>
 	struct on_remove
 	{};
 
@@ -19,6 +34,8 @@ namespace core::ecs
 	/// components. Take core::ecs::components::renderable and core::ecs::components::transform
 	/// as example, who, when combined, create a draw call. The system that creates them should
 	/// not need to care if the transform was added first or last.
+	/// \warn tags do not mean this component will be present in the pack, they are considered 
+	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct on_combine
 	{};
@@ -29,6 +46,8 @@ namespace core::ecs
 	/// instead of containing all recently combined components, it instead contains all those
 	/// who recently broke connection. This can be ideal to use in a system (such as a render
 	/// system), to erase draw calls.
+	/// \warn tags do not mean this component will be present in the pack, they are considered 
+	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct on_break
 	{};
@@ -39,7 +58,10 @@ namespace core::ecs
 	/// For example, if you had a debug system that would log an error for all entities that are
 	/// renderable, but lacked a transform, then you could use the `except` tag to denote the filter
 	/// what to do as a hint.
-	template <typename T>
+	/// Except directives are always executed last, regardless of order in the parameter pack.
+	/// \warn tags do not mean this component will be present in the pack, they are considered 
+	/// filter directives (or specialized filter directives).
+	template <typename... Ts>
 	struct except
 	{};
 
@@ -48,6 +70,8 @@ namespace core::ecs
 	///
 	/// When you just want to create a generic filtering behaviour, without getting the components
 	/// themselves, then you can use this tag to mark those requested components.
+	/// \warn tags do not mean this component will be present in the pack, they are considered 
+	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct filter
 	{};
@@ -85,10 +109,10 @@ namespace core::ecs
 			using type = std::tuple<>;
 		};
 
-		template <typename T>
-		struct extract_add<on_add<T>>
+		template <typename... Ts>
+		struct extract_add<on_add<Ts...>>
 		{
-			using type = std::tuple<T>;
+			using type = std::tuple<Ts...>;
 		};
 
 		template <typename T>
@@ -97,10 +121,10 @@ namespace core::ecs
 			using type = std::tuple<>;
 		};
 
-		template <typename T>
-		struct extract_remove<on_remove<T>>
+		template <typename... Ts>
+		struct extract_remove<on_remove<Ts...>>
 		{
-			using type = std::tuple<T>;
+			using type = std::tuple<Ts...>;
 		};
 
 		template <typename T>
@@ -109,10 +133,10 @@ namespace core::ecs
 			using type = std::tuple<>;
 		};
 
-		template <typename T>
-		struct extract_except<except<T>>
+		template <typename... Ts>
+		struct extract_except<except<Ts...>>
 		{
-			using type = std::tuple<T>;
+			using type = std::tuple<Ts...>;
 		};
 
 		template <typename T>
@@ -127,20 +151,20 @@ namespace core::ecs
 			using type = std::tuple<>;
 		};
 
-		template <typename T>
-		struct extract_physical<on_add<T>>
+		template <typename... Ts>
+		struct extract_physical<on_add<Ts...>>
 		{
 			using type = std::tuple<>;
 		};
 
-		template <typename T>
-		struct extract_physical<on_remove<T>>
+		template <typename... Ts>
+		struct extract_physical<on_remove<Ts...>>
 		{
 			using type = std::tuple<>;
 		};
 
-		template <typename T>
-		struct extract_physical<except<T>>
+		template <typename... Ts>
+		struct extract_physical<except<Ts...>>
 		{
 			using type = std::tuple<>;
 		};
@@ -188,22 +212,22 @@ namespace core::ecs
 			using type = std::tuple<T>;
 		};
 
-		template <typename T>
-		struct decode_type<on_add<T>>
+		template <typename... Ts>
+		struct decode_type<on_add<Ts...>>
 		{
-			using type = std::tuple<T>;
+			using type = std::tuple<Ts...>;
 		};
 
-		template <typename T>
-		struct decode_type<on_remove<T>>
+		template <typename... Ts>
+		struct decode_type<on_remove<Ts...>>
 		{
-			using type = std::tuple<T>;
+			using type = std::tuple<Ts...>;
 		};
 
-		template <typename T>
-		struct decode_type<except<T>>
+		template <typename... Ts>
+		struct decode_type<except<Ts...>>
 		{
-			using type = std::tuple<T>;
+			using type = std::tuple<Ts...>;
 		};
 
 		template <typename... Ts>
@@ -320,6 +344,12 @@ namespace core::ecs
 			using range_element_t	= typename details::typelist_to_physical_pack<Ts...>::type;
 			using range_t			 = typename wrap_with_array_view<range_element_t>::type;
 			using iterator_element_t = std::tuple<typename range_t::iterator...>;
+		};
+
+		template<typename... Ts>
+		struct filter_types
+		{
+			
 		};
 	} // namespace details
 }
