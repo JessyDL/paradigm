@@ -70,7 +70,7 @@ void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<floa
 		return;
 
 
-	auto& primary_camera = std::get<const core::ecs::components::transform&>(*m_Cameras.begin());
+	auto& primary_camera = *std::begin(m_Cameras.get<const core::ecs::components::transform>());
 	for (auto [renderable, velocity, transform] : m_Geometry)
 	{
 		transform.position += velocity.direction * velocity.force * dTime.count();

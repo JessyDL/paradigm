@@ -3,26 +3,25 @@
 
 namespace psl
 {
-	template<typename T>
+	template <typename T>
 	class array_view
 	{
-	public:
-		using element_type = T;
+	  public:
 		class iterator
 		{
-		public:
+		  public:
 			typedef iterator self_type;
-			typedef T value_type;
-			typedef T& reference;
-			typedef T* pointer;
-			typedef std::ptrdiff_t difference_type;
+			using value_type = typename std::remove_reference<T>::type;
+			using reference = value_type&;
+			using pointer = value_type*;
+			using difference_type = std::ptrdiff_t;
 			typedef std::random_access_iterator_tag iterator_category;
 
 			iterator() noexcept : it(iterator) {}
-			iterator(T* iterator = nullptr) noexcept : it(iterator) {}
-			~iterator() = default;
+			iterator(pointer iterator = nullptr) noexcept : it(iterator) {}
+			~iterator()								 = default;
 			iterator(const iterator& other) noexcept = default;
-			iterator(iterator&& other) noexcept = default;
+			iterator(iterator&& other) noexcept		 = default;
 			iterator& operator=(const iterator& other) noexcept = default;
 			iterator& operator=(iterator&& other) noexcept = default;
 
@@ -63,64 +62,64 @@ namespace psl
 				return *this;
 			}
 
-			bool operator!=(const iterator &other) const noexcept { return it != other.it; }
+			bool operator!=(const iterator& other) const noexcept { return it != other.it; }
 
-			bool operator==(const iterator &other) const noexcept { return it == other.it; }
+			bool operator==(const iterator& other) const noexcept { return it == other.it; }
 
-			T& operator*()
-			{
-				return *it;
-			}
-			const T& operator*() const
-			{
-				return *it;
-			}
+			reference operator*() { return *it; }
+			const reference operator*() const { return *it; }
 
-			T& value()
-			{
-				return *it;			
-			}
+			reference value() { return *it; }
 
-			const T& cvalue() const
-			{
-				return *it;
-			}
-		private:
-			T* it;
+			const reference cvalue() const { return *it; }
+
+		  private:
+			pointer it;
 		};
-		array_view() : first(nullptr), last(nullptr) {};
-		//template<typename container_t>
-		//array_view(container_t& container) : first(container.data()), last(container.data() + container.size()) {};
-		array_view(T* first, T* last) : first(first), last(last) {};
 
-		template<typename IT>
-		array_view(IT& first, IT& last) : first(&(*first)), last(&(*last)) {};
+		using value_type = typename std::remove_reference<typename std::remove_const<T>::type>::type;
+		using reference = value_type&;
+		using pointer = value_type*;
+		using difference_type = std::ptrdiff_t;
 
-		~array_view() = default;
+		array_view() : first(nullptr), last(nullptr){};
+		// template<typename container_t>
+		// array_view(container_t& container) : first(container.data()), last(container.data() + container.size()) {};
+		array_view(pointer first, pointer last) : first(first), last(last){};
+
+		template <typename IT>
+		array_view(IT first, IT last) : first(&(*first)), last(&(*last)){};
+
+
+		array_view(const std::vector<value_type>& container)
+			: first((pointer)container.data()), last((pointer)container.data() + container.size()){};
+
+		template<size_t N>
+		array_view(const std::array<value_type, N>& container) : first((pointer)container.data()), last((pointer)container.data() + N)
+		{};
+
+		~array_view()								 = default;
 		array_view(const array_view& other) noexcept = default;
-		array_view(array_view&& other) noexcept = default;
+		array_view(array_view&& other) noexcept		 = default;
 		array_view& operator=(const array_view& other) noexcept = default;
 		array_view& operator=(array_view&& other) noexcept = default;
 
-		T& operator[](size_t index)
-		{
-			return *(first + index);
-		}
+		reference operator[](size_t index) { return *(first + index); }
 
-		const T& operator[](size_t index) const
-		{
-			return *(first + index);
-		}
+		const reference operator[](size_t index) const { return *(first + index); }
+
+		operator array_view<const value_type>&() const noexcept { return *(array_view<const T>*)(this); }
 
 		iterator begin() const { return iterator(first); }
 
 		iterator end() const { return iterator(last); }
 
-		size_t size() const { return last - first;}
+		size_t size() const { return last - first; }
 
-		T*& internal_data() { return first; };
-	private:
-		T* first;
-		T* last;
+		pointer& internal_data() { return first; };
+
+	  private:
+		  pointer first;
+		  pointer last;
 	};
 } // namespace psl

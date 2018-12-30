@@ -3,11 +3,11 @@
 
 using namespace core::ecs;
 
-void state::destroy(const std::vector<entity>& entities) noexcept
+void state::destroy(psl::array_view<entity> entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 
-	ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
+		ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
 	ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
 	core::profiler.scope_begin("erase entities");
 	for(const auto& e : entities)
@@ -63,10 +63,10 @@ void state::destroy(const std::vector<entity>& entities) noexcept
 			std::sort(std::begin(c.second), std::end(c.second));
 			auto ib   = std::begin(c.second);
 			auto iter = std::remove_if(std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
-									   [&ib, &c](entity x) -> bool {
-										   while(ib != std::end(c.second) && *ib < x) ++ib;
-										   return (ib != std::end(c.second) && *ib == x);
-									   });
+				[&ib, &c](entity x) -> bool {
+				while(ib != std::end(c.second) && *ib < x) ++ib;
+				return (ib != std::end(c.second) && *ib == x);
+			});
 
 			cMapIt->second.entities.erase(iter, cMapIt->second.entities.end());
 		}
@@ -74,7 +74,7 @@ void state::destroy(const std::vector<entity>& entities) noexcept
 	core::profiler.scope_end();
 }
 
-void state::destroy(entity e) noexcept { destroy(std::vector<core::ecs::entity>{e}); }
+void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
 
 void state::tick(std::chrono::duration<float> dTime)
 {

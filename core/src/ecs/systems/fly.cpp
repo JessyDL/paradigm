@@ -34,48 +34,41 @@ void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std:
 		m_MouseY = m_MouseTargetY;
 
 	}
-	vec3 accDirectionVec{0};
-	bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
+	const bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
 
 	for(auto [transform] : m_Movables)
 	{
+		vec3 accDirectionVec{0};
 		auto direction = transform.rotation * vec3::forward;
 		auto up = vec3::up;
 		// m_Transform.position(m_Transform.position() + (m_MoveVector * dTime.count()));
 		if(m_Moving[0])
 		{
 			accDirectionVec += direction;
-			hasMoved = true;
 		}
 
 		if(m_Moving[1])
 		{
 			accDirectionVec -= direction;
-			hasMoved = true;
 		}
 
 		if(m_Moving[2])
 		{
 			accDirectionVec -= cross(direction, up);
-			hasMoved = true;
 		}
 
 		if(m_Moving[3])
 		{
 			accDirectionVec -= cross(up, direction);
-			hasMoved = true;
 		}
 
 		if(m_Up)
 		{
 			accDirectionVec += up;
-			hasMoved = true;
 		}
 
 		if(hasMoved)
 		{
-			hasMoved = false;
-
 			transform.position = transform.position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * rTime.count();
 			accDirectionVec = {0};
 		}

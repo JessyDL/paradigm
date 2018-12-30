@@ -47,7 +47,11 @@ namespace core::ecs
 	{};
 
 
-	template<typename... Ts>
+	/// \brief tag allows you to filter on sets of components
+	///
+	/// When you just want to create a generic filtering behaviour, without getting the components
+	/// themselves, then you can use this tag to mark those requested components.
+	template <typename... Ts>
 	struct filter
 	{};
 
@@ -216,7 +220,7 @@ namespace core::ecs
 		{
 			using type = std::tuple<Ts...>;
 		};
-		
+
 		template <typename... Ts>
 		struct decode_type<filter<Ts...>>
 		{
@@ -292,13 +296,13 @@ namespace core::ecs
 		};
 
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct wrap_with_array_view
 		{
 			using type = std::tuple<psl::array_view<Ts>...>;
 		};
 
-		template<typename... Ts>
+		template <typename... Ts>
 		struct wrap_with_array_view<std::tuple<Ts...>>
 		{
 			using type = std::tuple<psl::array_view<Ts>...>;
@@ -307,46 +311,31 @@ namespace core::ecs
 		template <bool has_entities, typename... Ts>
 		struct pack_tuple
 		{
-			using range_element_t = typename details::typelist_to_physical_pack<Ts..., core::ecs::entity>::type;
-			using range_t		  = typename wrap_with_array_view<range_element_t>::type;
+			using range_element_t	= typename details::typelist_to_physical_pack<Ts..., core::ecs::entity>::type;
+			using range_t			 = typename wrap_with_array_view<range_element_t>::type;
 			using iterator_element_t = std::tuple<typename range_t::iterator...>;
 		};
 
 		template <typename... Ts>
 		struct pack_tuple<false, Ts...>
 		{
-			using range_element_t = typename details::typelist_to_physical_pack<Ts...>::type;
-			using range_t		  = typename wrap_with_array_view<range_element_t>::type;
+			using range_element_t	= typename details::typelist_to_physical_pack<Ts...>::type;
+			using range_t			 = typename wrap_with_array_view<range_element_t>::type;
 			using iterator_element_t = std::tuple<typename range_t::iterator...>;
 		};
 	} // namespace details
 
-	template <typename... Ts>
-	class component_pack
-	{
-	  public:
-		//using pack_t	= typename details::typelist_to_pack_view<Ts...>::type;
-		using combine_t = typename details::typelist_to_combine_pack<Ts...>::type;
-		using break_t   = typename details::typelist_to_break_pack<Ts...>::type;
-		using add_t		= typename details::typelist_to_add_pack<Ts...>::type;
-		using remove_t  = typename details::typelist_to_remove_pack<Ts...>::type;
-		using except_t  = typename details::typelist_to_except_pack<Ts...>::type;
-
-	  public:
-	  private:
-		//pack_t m_Pack;
-	};
-
+	/// \brief an iterable container to work with components and entities.
 	template <typename... Ts>
 	class pack
 	{
 		friend class core::ecs::state;
 
-	public:
-		static constexpr bool has_entities{ std::disjunction<std::is_same<core::ecs::entity, Ts>...>::value };
+	  public:
+		static constexpr bool has_entities{std::disjunction<std::is_same<core::ecs::entity, Ts>...>::value};
 
 		using pack_t	= typename details::typelist_to_pack_view<Ts...>::type;
-		using filter_t = typename details::typelist_to_pack<Ts...>::type;
+		using filter_t  = typename details::typelist_to_pack<Ts...>::type;
 		using combine_t = typename details::typelist_to_combine_pack<Ts...>::type;
 		using break_t   = typename details::typelist_to_break_pack<Ts...>::type;
 		using add_t		= typename details::typelist_to_add_pack<Ts...>::type;
@@ -354,7 +343,7 @@ namespace core::ecs
 		using except_t  = typename details::typelist_to_except_pack<Ts...>::type;
 
 	  public:
-		pack() : m_Pack() {};
+		pack() : m_Pack(){};
 
 		pack(pack_t views) : m_Pack(views) {}
 
@@ -363,7 +352,7 @@ namespace core::ecs
 		template <typename T>
 		psl::array_view<T> get() const noexcept
 		{
-			return m_Pack.get<psl::array_view<T>>();
+			return m_Pack.get<T>();
 		}
 
 		template <size_t N>
@@ -379,10 +368,11 @@ namespace core::ecs
 
 		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Pack); }
 
-		auto end() const noexcept -> typename pack_t::iterator  { return std::end(m_Pack); }
+		auto end() const noexcept -> typename pack_t::iterator { return std::end(m_Pack); }
 		constexpr size_t size() const noexcept { return m_Pack.size(); }
 
 	  private:
+		// todo: we should elminate the need for this.
 		template <size_t N>
 		auto reference_get() noexcept -> decltype(std::declval<pack_t>().ref_get<N>())
 		{
@@ -394,7 +384,7 @@ namespace core::ecs
 		{
 			return m_Pack.ref_get<T>();
 		}
-		  
+
 		pack_t m_Pack;
 	};
 } // namespace core::ecs

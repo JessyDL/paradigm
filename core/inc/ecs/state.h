@@ -604,7 +604,7 @@ namespace core::ecs
 		}
 
 
-		void destroy(const std::vector<entity>& entities) noexcept;
+		void destroy(psl::array_view<entity> entities) noexcept;
 		void destroy(entity e) noexcept;
 
 
