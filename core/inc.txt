@@ -32,11 +32,13 @@ inc/systems/input.h
 inc/systems/resource.h
 
 inc/ecs/ecs.hpp
+inc/ecs/selectors.h
 inc/ecs/range.h
 inc/ecs/state.h
 inc/ecs/entity.h
 inc/ecs/pack.h
 inc/ecs/systems/fly.h
+inc/ecs/systems/death.h
 inc/ecs/systems/render.h
 inc/ecs/systems/geometry_instance.h
 inc/ecs/systems/attractor.h

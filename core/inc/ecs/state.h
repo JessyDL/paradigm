@@ -2,6 +2,7 @@
 #include "stdafx.h"
 #include "entity.h"
 #include "range.h"
+#include "selectors.h"
 #include "pack.h"
 #include "memory/raw_region.h"
 #include "IDGenerator.h"
