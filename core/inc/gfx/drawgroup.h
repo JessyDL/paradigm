@@ -40,6 +40,7 @@ namespace core::gfx
 		bool remove(core::resource::indirect_handle<core::gfx::framebuffer> framebuffer);
 
 		drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::material> material) noexcept;
+		std::optional<std::reference_wrapper<drawcall>> get(const drawlayer& layer, core::resource::handle<core::gfx::material> material) noexcept;
 
 		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index, std::optional<core::resource::handle<core::gfx::material>> replacement = std::nullopt);
 		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index, std::optional<core::resource::handle<core::gfx::material>> replacement = std::nullopt);

@@ -14,6 +14,5 @@ death::death(state& state)
 
 void death::tick(state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
-
 	state.destroy(m_Dead.get<core::ecs::entity>());
 }

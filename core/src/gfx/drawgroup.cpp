@@ -145,3 +145,20 @@ drawcall& drawgroup::add(const drawlayer& layer, core::resource::handle<core::gf
 	}
 	return m_Group[layer].emplace_back(material);
 }
+
+std::optional<std::reference_wrapper<drawcall>> drawgroup::get(const drawlayer& layer, core::resource::handle<core::gfx::material> material) noexcept
+{
+	auto it = m_Group.find(layer);
+	if (it != std::end(m_Group))
+	{
+		if(auto matIt = std::find_if(std::begin(it->second), std::end(it->second), [&material](const drawcall& call)
+		{
+			return call.material() == material;
+		}); matIt != std::end(it->second))
+		{
+			return *matIt;
+		}
+	}
+
+	return std::nullopt;
+}

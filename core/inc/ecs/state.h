@@ -15,6 +15,7 @@
 /// The ECS namespace contains a fully functioning ECS
 namespace core::ecs
 {
+
 	template <typename T>
 	class tag
 	{};
@@ -37,6 +38,8 @@ namespace core::ecs
 
 	namespace details
 	{
+		template <typename KeyT, typename ValueT>
+		using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
 
 		template <typename T>
 		struct is_tag : std::false_type
@@ -115,6 +118,134 @@ namespace core::ecs
 																	   std::declval<std::chrono::duration<float>>()))>>
 			: std::true_type
 		{};
+
+		/*template <typename T>
+		void add_component(
+			details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
+			details::key_value_container_t<details::component_key_t, details::component_info> components,
+			psl::array_view<entity> entities, T&& _template) noexcept
+		{
+			using component_type = typename get_component_type<T>::type;
+			using forward_type   = typename get_forward_type<T>::type;
+
+
+			PROFILE_SCOPE(core::profiler)
+				static_assert(
+					std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
+					"the component type must be trivially copyable and standard layout "
+					"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
+			constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_type>>;
+			core::profiler.scope_begin("duplicate_check");
+			std::vector<entity> ent_cpy = entities;
+			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
+				auto eMapIt = entityMap.find(e);
+				if(eMapIt == std::end(entityMap)) return true;
+
+				for(auto eComp : eMapIt->second)
+				{
+					if(eComp.first == int_id) return true;
+				}
+				return false;
+			});
+			core::profiler.scope_end();
+			ent_cpy.resize(std::distance(std::begin(ent_cpy), end));
+			std::sort(std::begin(ent_cpy), end);
+
+			auto it = components.find(int_id);
+			if(it == components.end())
+			{
+				core::profiler.scope_begin("create backing storage");
+				if constexpr(std::is_empty<component_type>::value)
+				{
+					components.emplace(int_id, details::component_info{{}, int_id});
+				}
+				else
+				{
+					components.emplace(
+						int_id, details::component_info{
+							memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(component_type)});
+				}
+				it = components.find(int_id);
+				core::profiler.scope_end();
+			}
+			auto& pair{it->second};
+
+			entityMap.reserve(entityMap.size() + std::distance(std::begin(ent_cpy), end));
+
+			if constexpr(std::is_empty<component_type>::value)
+			{
+				core::profiler.scope_begin("emplace empty components");
+				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+				{
+					const entity& e{*ent_it};
+					entityMap[e].emplace_back(int_id, 0);
+					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
+				}
+				core::profiler.scope_end();
+			}
+			else
+			{
+				core::profiler.scope_begin("emplace components");
+				std::vector<uint64_t> indices;
+				uint64_t id_range;
+				const auto count = std::distance(std::begin(ent_cpy), end);
+				core::profiler.scope_begin("reserve");
+				indices.reserve(count);
+				entityMap.reserve(entityMap.size() + count);
+
+
+				std::vector<entity> merged;
+				merged.reserve(pair.entities.size() + count);
+				std::merge(std::begin(pair.entities), std::end(pair.entities), std::begin(ent_cpy), end,
+					std::back_inserter(merged));
+				pair.entities = std::move(merged);
+
+				core::profiler.scope_end();
+
+				if(pair.generator.CreateRangeID(id_range, count))
+				{
+					core::profiler.scope_begin("fast path");
+					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+					{
+						const entity& e{*ent_it};
+						indices.emplace_back(id_range);
+						entityMap[e].emplace_back(int_id, id_range);
+						++id_range;
+					}
+					core::profiler.scope_end();
+				}
+				else
+				{
+					core::profiler.scope_begin("slow path");
+					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+					{
+						const entity& e{*ent_it};
+						auto index = pair.generator.CreateID().second;
+						indices.emplace_back(index);
+						entityMap[e].emplace_back(int_id, index);
+					}
+					core::profiler.scope_end();
+				}
+				core::profiler.scope_end();
+
+				if constexpr(core::ecs::details::is_tag<T>::value)
+				{
+					if constexpr(!std::is_trivially_constructible<component_type>::value)
+					{
+						component_type v{};
+						initialize_component(pair.region.data(), indices, std::move(v));
+					}
+				}
+				else
+				{
+					initialize_component(pair.region.data(), indices, std::forward<forward_type>(_template));
+				}
+			}
+
+			m_AddedEntities.insert(std::end(m_AddedEntities), std::begin(ent_cpy), std::end(ent_cpy));
+			auto& addedComponentsRange = m_AddedComponents[int_id];
+			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+		}*/
 	} // namespace details
 } // namespace core::ecs
 
@@ -135,8 +266,6 @@ namespace core::ecs
 {
 	class state
 	{
-		template <typename KeyT, typename ValueT>
-		using key_value_container = ska::bytell_hash_map<KeyT, ValueT>;
 
 	  public:
 		/// \brief describes a set of dependencies for a given system
@@ -229,9 +358,9 @@ namespace core::ecs
 		  private:
 			psl::array_view<core::ecs::entity>* m_Entities{nullptr};
 			psl::array_view<core::ecs::entity> m_StoredEnts{};
-			key_value_container<details::component_key_t, size_t> m_Sizes;
-			key_value_container<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
-			key_value_container<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
+			details::key_value_container_t<details::component_key_t, size_t> m_Sizes;
+			details::key_value_container_t<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
+			details::key_value_container_t<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
 
 			std::vector<details::component_key_t> filters;
 			std::vector<details::component_key_t> on_add;
@@ -729,28 +858,28 @@ namespace core::ecs
 			};
 
 
-			([&]() {
+			(std::invoke([&]() {
 				using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
 				if constexpr (!details::is_exception<component_t>::value)
 				{
 					result = merge(result, filter_impl(component_t{}));
 				}
-			},
+			}),
 				...);
 
-			([&]() {
+			(std::invoke([&]() {
 				using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
 				if constexpr (details::is_exception<component_t>::value)
 				{
 					result = difference(result, filter_impl(component_t{}));
 				}
-			},
+			}),
 				...);
 
 			return result.value_or(std::vector<entity>{});
 		}
 		
-		std::vector<details::component_key_t> filter_keys(psl::array_view<details::component_key_t> keys, const key_value_container<details::component_key_t, std::vector<entity>>& key_list) const
+		std::vector<details::component_key_t> filter_keys(psl::array_view<details::component_key_t> keys, const details::key_value_container_t<details::component_key_t, std::vector<entity>>& key_list) const
 		{
 			std::vector<details::component_key_t> keys_out{};
 			for (auto key : keys)
@@ -778,6 +907,7 @@ namespace core::ecs
 
 		std::vector<entity> filter_on_combine(std::vector<details::component_key_t> keys) const
 		{
+			std::sort(std::begin(keys), std::end(keys));
 			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_AddedComponents)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
@@ -787,11 +917,15 @@ namespace core::ecs
 				std::back_inserter(remaining_keys));
 
 			auto entities = dynamic_filter(added_keys, m_AddedComponents);
-			return dynamic_filter(remaining_keys, entities);
+			if(remaining_keys.size() > 0)
+				return dynamic_filter(remaining_keys, entities);
+
+			return entities;
 		}
 
 		std::vector<entity> filter_on_break(std::vector<details::component_key_t> keys) const
 		{
+			std::sort(std::begin(keys), std::end(keys));
 			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_RemovedComponents)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
@@ -800,7 +934,10 @@ namespace core::ecs
 			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
 				std::back_inserter(remaining_keys));
 			auto entities = dynamic_filter(added_keys, m_RemovedComponents);
-			return dynamic_filter(remaining_keys, entities);
+			if(remaining_keys.size() > 0)
+				return dynamic_filter(remaining_keys, entities);
+
+			return entities;
 		}
 
 		std::vector<entity> filter_default(std::vector<details::component_key_t> keys) const
@@ -994,7 +1131,7 @@ namespace core::ecs
 			noexcept;
 		std::vector<entity>
 		dynamic_filter(psl::array_view<details::component_key_t> keys,
-					   const key_value_container<details::component_key_t, std::vector<entity>>& container,
+					   const details::key_value_container_t<details::component_key_t, std::vector<entity>>& container,
 					   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
 		void fill_in(psl::array_view<entity> entities, details::component_key_t int_id, void* out) const noexcept;
 
@@ -1008,10 +1145,10 @@ namespace core::ecs
 
 		uint64_t mID{0u};
 		/// \brief gets what components this entity uses, and which index it lives on.
-		key_value_container<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
+		details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
 
 		/// \brief backing memory
-		key_value_container<details::component_key_t, details::component_info> m_Components;
+		details::key_value_container_t<details::component_key_t, details::component_info> m_Components;
 		/// overhead is
 		/// sizeof(component) * Nc + sizeof(entity) * Ne +
 		/// // store ever component as well as entity (sizeof(entity) + ((sizeof(size_t) /* component ID */ +
@@ -1031,9 +1168,41 @@ namespace core::ecs
 		// keep track of changed data
 		std::vector<entity> m_AddedEntities;
 		std::vector<entity> m_RemovedEntities;
-		key_value_container<details::component_key_t, std::vector<entity>> m_AddedComponents;
-		key_value_container<details::component_key_t, std::vector<entity>> m_RemovedComponents;
+		details::key_value_container_t<details::component_key_t, std::vector<entity>> m_AddedComponents;
+		details::key_value_container_t<details::component_key_t, std::vector<entity>> m_RemovedComponents;
 
 		// std::unordered_map<details::component_key_t,
+	};
+
+	class deferred_instructions
+	{
+	public:
+		template <typename... Ts>
+		void create(size_t count)
+		{
+
+		}
+
+		template <typename... Ts>
+		void create(size_t count, Ts&&... Args)
+		{
+
+		}
+
+		void destroy(psl::array_view<entity> entities);
+
+		template<typename ...Ts>
+		void add_components(psl::array_view<entity> entities);
+
+		template<typename ...Ts>
+		void remove_components(psl::array_view<entity> entities);
+	private:
+		psl::array_view<entity> m_MarkedForDestruction;
+
+		details::key_value_container_t<entity, std::vector<details::component_key_t>> m_ErasedComponents;
+
+		// these are reserved for added components only, not to be confused with dynamic editing of components
+		details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
+		details::key_value_container_t<details::component_key_t, details::component_info> m_Components;
 	};
 } // namespace core::ecs

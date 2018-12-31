@@ -29,10 +29,12 @@ render::render(core::ecs::state& state,
 {
 	state.register_system(*this);
 	state.register_dependency(*this, core::ecs::tick{}, m_Renderables);
+		state.register_dependency(*this, core::ecs::tick{}, m_BrokenRenderables);
 	state.register_dependency(*this, core::ecs::tick{}, m_Cameras);
 }
 
 
+core::gfx::drawgroup dGroup{};
 void render::tick(ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -44,14 +46,20 @@ void render::tick(ecs::state& state, std::chrono::duration<float> dTime, std::ch
 		update_buffer(i++, transform, camera);
 	}
 
-	// todo only rebuild when detecting changes
 	{
 		m_Pass.clear();
-		core::gfx::drawgroup dGroup{};
 		auto& default_layer = dGroup.layer("default", 0);
 		for(auto [transform, renderable] : m_Renderables)
 		{
 			dGroup.add(default_layer, renderable.material).add(renderable.geometry);
+		}
+
+		for(auto [transform, renderable] : m_BrokenRenderables)
+		{
+			if (auto dCall = dGroup.get(default_layer, renderable.material))
+			{
+				dCall.value().get().remove(renderable.geometry.operator const psl::UID &());
+			}
 		}
 		m_Pass.add(dGroup);
 		m_Pass.build();

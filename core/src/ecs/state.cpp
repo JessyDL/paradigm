@@ -230,7 +230,7 @@ std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key
 
 std::vector<entity>
 state::dynamic_filter(psl::array_view<details::component_key_t> keys,
-					  const key_value_container<details::component_key_t, std::vector<entity>>& container,
+					  const details::key_value_container_t<details::component_key_t, std::vector<entity>>& container,
 					  std::optional<psl::array_view<entity>> pre_selection) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)

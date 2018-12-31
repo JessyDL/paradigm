@@ -27,7 +27,11 @@ namespace core::ecs::systems
 							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
 
 		core::ecs::pack<const core::ecs::components::transform,
-			const core::ecs::components::renderable> m_Renderables;
+			const core::ecs::components::renderable, core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>> m_Renderables;
+
+
+		core::ecs::pack<const core::ecs::components::transform,
+			const core::ecs::components::renderable, core::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>> m_BrokenRenderables;
 
 		core::ecs::pack<const core::ecs::components::camera,
 			const core::ecs::components::transform> m_Cameras;
