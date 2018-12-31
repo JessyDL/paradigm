@@ -5,7 +5,17 @@ project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 
 include(FetchContent)
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
-FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.2.1 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 5.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_GetProperties(fmt)
+if(NOT fmt_POPULATED)
+	message(STATUS "fetching fmt...")
+	FetchContent_Populate(fmt)
+	message(STATUS "fmt fetched")
+endif()
+
+SET(SPDLOG_FMT_EXTERNAL ON)
+FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG 0955ea5b8510fdc1784f4f5684728011f129f60d GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
 	message(STATUS "fetching spdlog...")

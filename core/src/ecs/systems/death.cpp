@@ -1,10 +1,11 @@
 #include "stdafx.h"
 #include "ecs/systems/death.h"
-#include "ecs/components/transform.h"
+#include "ecs/components/dead_tag.h"
 
 using namespace core::ecs::components;
 using namespace core::ecs::systems;
 using namespace core::ecs;
+
 
 death::death(state& state)
 {

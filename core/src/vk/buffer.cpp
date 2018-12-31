@@ -359,19 +359,22 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::vector<vk::BufferCopy>& copyRegions)
 {
 	PROFILE_SCOPE(core::profiler)
+	core::profiler.scope_begin("prepare", this);
 	vk::Queue queue = m_Context->queue();
 	wait_until_ready();
 
 	auto totalsize = std::accumulate(copyRegions.begin(), copyRegions.end(), 0,
 									 [&](int sum, const vk::BufferCopy& region) { return sum + (int)region.size; });
+
 	core::ivk::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
-						 std::to_string(other->m_UID), std::to_string(m_UID), totalsize, copyRegions.size());
+		utility::to_string(other->m_UID), utility::to_string(m_UID), totalsize, copyRegions.size());
 
 	for(const auto& region : copyRegions)
 	{
 		core::ivk::log->info("srcOffset | dstOffset | size : {0} | {1} | {2}", region.srcOffset, region.dstOffset,
-							 region.size);
+			region.size);
 	}
+
 	vk::CommandBufferBeginInfo cmdBufferBeginInfo;
 	cmdBufferBeginInfo.pNext = NULL;
 
@@ -379,10 +382,7 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 	// Note that the staging buffer must not be deleted before the copies
 	// have been submitted and executed
 	utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
-
 	m_CommandBuffer.copyBuffer(other->m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
-
-
 	m_CommandBuffer.end();
 
 	// Submit copies to the queue
@@ -390,11 +390,15 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 	copySubmitInfo.commandBufferCount = 1;
 	copySubmitInfo.pCommandBuffers	= &m_CommandBuffer;
 	m_Context->device().resetFences(m_BufferCompleted);
+	core::profiler.scope_end(this);
 	utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
+	core::profiler.scope_begin("wait idle", this);
 	queue.waitIdle();
+	core::profiler.scope_end(this);
 
 	if(m_BufferDataHandle->memoryPropertyFlags() == vk::MemoryPropertyFlagBits::eHostVisible)
 	{
+		core::profiler.scope_begin("replicate to host", this);
 		// TODO this really needs to be per region..
 		// auto tuple = m_Context->Device().mapMemory(m_Memory, 0, m_Descriptor.range);
 		// utility::vulkan::check(tuple.result);
@@ -402,7 +406,7 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 		// m_Context->Device().unmapMemory(m_Memory);
 
 		core::ivk::log->info("mapping an ivk::buffer of size {0} to a pool of size {1}",
-							 std::to_string(m_BufferDataHandle->size()), std::to_string(m_BufferDataHandle->size()));
+			utility::to_string(m_BufferDataHandle->size()), utility::to_string(m_BufferDataHandle->size()));
 
 		uint32_t minVal{std::numeric_limits<uint32_t>::max()}, maxVal{std::numeric_limits<uint32_t>::min()};
 		for(const auto& region : copyRegions)
@@ -437,6 +441,7 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 			}
 			m_Context->device().unmapMemory(m_Memory);
 		}
+		core::profiler.scope_end(this);
 		return true;
 	}
 
@@ -467,8 +472,8 @@ bool buffer::set(const void* data, std::vector<vk::BufferCopy> commands) // maps
 
 		psl::string8_t message = "\n";
 		for(auto it = end; it != std::end(commands); ++it)
-			message += "size: " + std::to_string(it->size) + " srcOffset: " + std::to_string(it->srcOffset) +
-					   " dstOffset: " + std::to_string(it->dstOffset) + "\n";
+			message += "size: " + utility::to_string(it->size) + " srcOffset: " + utility::to_string(it->srcOffset) +
+					   " dstOffset: " + utility::to_string(it->dstOffset) + "\n";
 		core::ivk::log->debug(message);
 		return false;
 	}
@@ -499,7 +504,7 @@ bool buffer::set(const void* data, std::vector<vk::BufferCopy> commands) // maps
 
 	m_Context->device().resetFences(m_BufferCompleted);
 	utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
-	queue.waitIdle();
+	//queue.waitIdle();
 	// m_CommandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 
 	return true;
@@ -508,6 +513,7 @@ bool buffer::is_busy() const { return m_Context->device().getFenceStatus(m_Buffe
 
 void buffer::wait_until_ready(uint64_t timeout) const
 {
+	PROFILE_SCOPE(core::profiler)
 	if(is_busy())
 	{
 		m_Context->device().waitForFences(m_BufferCompleted, VK_TRUE, timeout);

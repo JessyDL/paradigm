@@ -5,6 +5,7 @@
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/input_tag.h"
+#include "ecs/components/velocity.h"
 
 using namespace core::ecs::systems;
 using namespace psl::math;

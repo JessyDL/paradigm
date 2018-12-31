@@ -39,13 +39,18 @@ inc/ecs/entity.h
 inc/ecs/pack.h
 inc/ecs/systems/fly.h
 inc/ecs/systems/death.h
+inc/ecs/systems/lifetime.h
 inc/ecs/systems/render.h
 inc/ecs/systems/geometry_instance.h
 inc/ecs/systems/attractor.h
+inc/ecs/systems/movement.h
 inc/ecs/components/camera.h
 inc/ecs/components/transform.h
 inc/ecs/components/renderable.h
 inc/ecs/components/input_tag.h
+inc/ecs/components/dead_tag.h
+inc/ecs/components/lifetime.h
+inc/ecs/components/velocity.h
 
 inc/utility/geometry.h
 

@@ -28,10 +28,17 @@ bool UID::operator>=(const UID& b) const { return GUID >= b.GUID; }
 
 const psl::string8_t UID::to_string() const
 {
-	uuid_components& result = *(uuid_components*)(GUID.data());
+	psl::string8_t str;
+	str.resize(37);
+	sprintf_s(str.data(),str.size(),
+		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
+		GUID[3], GUID[2], GUID[1], GUID[0], GUID[5], GUID[4], GUID[7], GUID[6],
+		GUID[8], GUID[9], GUID[10], GUID[11], GUID[12], GUID[13], GUID[14], GUID[15]
+	);
+	return str;
 
-	const uint8_t* data = reinterpret_cast<const uint8_t*>(GUID.data());
-	std::stringstream s;
+	/*uuid_components& result = *(uuid_components*)(GUID.data());
+	psl::string8::stream s;
 	s << std::hex << std::setfill('0')
 		<< std::setw(8) << result.a
 		<< "-"
@@ -49,7 +56,7 @@ const psl::string8_t UID::to_string() const
 		<< std::setw(2) << (uint16_t)result.e[4]
 		<< std::setw(2) << (uint16_t)result.e[5];
 
-	return s.str();
+	return s.str();*/
 }
 
 UID UID::generate()

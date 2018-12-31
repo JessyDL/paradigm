@@ -46,10 +46,15 @@
 #include "ecs/components/camera.h"
 #include "ecs/components/input_tag.h"
 #include "ecs/components/renderable.h"
+#include "ecs/components/lifetime.h"
+#include "ecs/components/velocity.h"
 #include "ecs/systems/fly.h"
 #include "ecs/systems/render.h"
 #include "ecs/systems/geometry_instance.h"
 #include "ecs/systems/attractor.h"
+#include "ecs/systems/death.h"
+#include "ecs/systems/lifetime.h"
+#include "ecs/systems/movement.h"
 
 using namespace core;
 using namespace core::resource;
@@ -70,10 +75,10 @@ void setup_loggers()
 	if(!utility::platform::file::exists(utility::application::path::get_path() + sub_path + "main.log"))
 		utility::platform::file::write(utility::application::path::get_path() + sub_path + "main.log", "");
 	std::vector<spdlog::sink_ptr> sinks;
-	auto mainlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+	auto mainlogger = std::make_shared < spdlog::sinks::basic_file_sink_mt > (
 		utility::application::path::get_path() + sub_path + "main.log", true);
 	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-
+	outlogger->set_level(spdlog::level::level_enum::warn);
 
 	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "ivk.log", true);
@@ -95,7 +100,7 @@ void setup_loggers()
 		utility::application::path::get_path() + sub_path + "core.log", true);
 
 	sinks.push_back(mainlogger);
-	sinks.push_back(outlogger);
+	//sinks.push_back(outlogger);
 	sinks.push_back(corelogger);
 
 	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
@@ -105,7 +110,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	sinks.push_back(outlogger);
+	//sinks.push_back(outlogger);
 	sinks.push_back(systemslogger);
 
 	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
@@ -114,7 +119,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	sinks.push_back(outlogger);
+	//sinks.push_back(outlogger);
 	sinks.push_back(oslogger);
 
 	auto os_logger = std::make_shared<spdlog::logger>("os", begin(sinks), end(sinks));
@@ -123,7 +128,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	sinks.push_back(outlogger);
+	//sinks.push_back(outlogger);
 	sinks.push_back(datalogger);
 
 	auto data_logger = std::make_shared<spdlog::logger>("data", begin(sinks), end(sinks));
@@ -132,7 +137,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	sinks.push_back(outlogger);
+	//sinks.push_back(outlogger);
 	sinks.push_back(gfxlogger);
 
 	auto gfx_logger = std::make_shared<spdlog::logger>("gfx", begin(sinks), end(sinks));
@@ -141,7 +146,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	sinks.push_back(outlogger);
+	//sinks.push_back(outlogger);
 	sinks.push_back(ivklogger);
 
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
@@ -761,6 +766,9 @@ int entry()
 	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
 	core::ecs::systems::geometry_instance geometry_instance{ECSState};
 	core::ecs::systems::attractor attractor{ECSState};
+	core::ecs::systems::death death{ ECSState };
+	core::ecs::systems::lifetime lifetime{ ECSState };
+	core::ecs::systems::movement movement{ ECSState };
 
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
@@ -771,7 +779,6 @@ int entry()
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
 		ECSState.tick(elapsed);
-		ECSState.destroy(ECSState.filter<core::ecs::components::dead_tag>());
 		core::log->info("ECS has {} renderables alive right now", ECSState.filter<core::ecs::components::renderable>().size());
 
 		/*auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();

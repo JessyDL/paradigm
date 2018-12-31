@@ -1,27 +1,23 @@
 #pragma once
 #include "ecs/ecs.hpp"
-#include "gfx/pass.h"
-#include "systems/resource.h"
 
 namespace core::ecs::components
 {
 	struct transform;
-	struct renderable;
+	struct velocity;
 } // namespace core::ecs::components
 
 namespace core::ecs::systems
 {
-	class geometry_instance
+	class movement
 	{
-		core::ecs::pack<const core::ecs::components::renderable, core::ecs::components::transform>
-			m_Geometry;
-
-		
-	  public:
-		geometry_instance(core::ecs::state& state);
+		core::ecs::pack<const core::ecs::components::velocity, core::ecs::components::transform>
+			m_Movable;
+	public:
+		movement(core::ecs::state& state);
 
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
-	  private:
+	private:
 	};
 } // namespace core::ecs::systems

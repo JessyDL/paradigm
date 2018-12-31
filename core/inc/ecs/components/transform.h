@@ -3,22 +3,6 @@
 
 namespace core::ecs::components
 {
-	struct dead_tag {};
-	struct lifetime
-	{
-		lifetime(float value = 10.0f) : value(value) {};
-
-		float value{};
-	};
-
-	struct velocity
-	{
-		velocity() = default;
-		velocity(psl::vec3 direction, float force, float inertia) : direction(direction), force(force), inertia(inertia) {};
-		psl::vec3 direction;
-		float force;
-		float inertia;
-	};
 	struct transform
 	{
 		transform() = default;

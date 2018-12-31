@@ -3,20 +3,20 @@
 
 namespace core::ecs::components
 {
-	struct dead_tag;
+	struct lifetime;
 }
 
 
 namespace core::ecs::systems
 {
-	class death
+	class lifetime
 	{
 	public:
-		death(core::ecs::state& state);
+		lifetime(core::ecs::state& state);
 
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
-	private:
 
-		core::ecs::pack<core::ecs::entity, core::ecs::on_add<core::ecs::components::dead_tag>> m_Dead;
+	private:
+		core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> m_Lifetime;
 	};
 }
