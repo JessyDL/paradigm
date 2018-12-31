@@ -2,6 +2,7 @@
 #include "ecs/ecs.hpp"
 #include "gfx/pass.h"
 #include "systems/resource.h"
+#include "gfx/drawgroup.h"
 
 namespace core::gfx
 {
@@ -58,7 +59,12 @@ namespace core::ecs::systems
 			   core::resource::handle<core::gfx::swapchain> swapchain,
 			   core::resource::handle<core::os::surface> surface, 
 			   core::resource::handle<core::gfx::buffer> buffer);
+		~render() = default;
 
+		render(const render&) = delete;
+		render(render&&) = delete;
+		render& operator=(const render&) = delete;
+		render& operator=(render&&) = delete;
 		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	  private:
@@ -71,5 +77,6 @@ namespace core::ecs::systems
 
 		std::vector<memory::segment> fdatasegment;
 		core::resource::handle<core::gfx::buffer> m_Buffer;
+		core::gfx::drawgroup m_DrawGroup{};
 	};
 } // namespace core::ecs::systems

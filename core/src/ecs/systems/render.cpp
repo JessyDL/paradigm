@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "ecs/systems/render.h"
-#include "gfx/drawgroup.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
 #include "ecs/components/camera.h"
@@ -34,7 +33,6 @@ render::render(core::ecs::state& state,
 }
 
 
-core::gfx::drawgroup dGroup{};
 void render::tick(ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -48,20 +46,20 @@ void render::tick(ecs::state& state, std::chrono::duration<float> dTime, std::ch
 
 	{
 		m_Pass.clear();
-		auto& default_layer = dGroup.layer("default", 0);
+		auto& default_layer = m_DrawGroup.layer("default", 0);
 		for(auto [transform, renderable] : m_Renderables)
 		{
-			dGroup.add(default_layer, renderable.material).add(renderable.geometry);
+			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
 		}
 
 		for(auto [transform, renderable] : m_BrokenRenderables)
 		{
-			if (auto dCall = dGroup.get(default_layer, renderable.material))
+			if (auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID &());
 			}
 		}
-		m_Pass.add(dGroup);
+		m_Pass.add(m_DrawGroup);
 		m_Pass.build();
 	}
 	m_Pass.prepare();
