@@ -19,6 +19,8 @@ attractor::attractor(core::ecs::state& state)
 
 void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
+	PROFILE_SCOPE(core::profiler)
+
 	for (auto [movTrans, movVel] : m_Movables)
 	{
 		for (auto [attrTransform, attractor] : m_Attractors)
@@ -26,9 +28,7 @@ void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime
 			const auto mag = saturate((attractor.radius - magnitude(movTrans.position - attrTransform.position)) / attractor.radius) * dTime.count();
 			const auto direction = normalize(attrTransform.position - movTrans.position) * attractor.force;
 
-			movVel.direction[0] = mix(movVel.direction[0], direction[0], mag);
-			movVel.direction[1] = mix(movVel.direction[1], direction[1], mag);
-			movVel.direction[2] = mix(movVel.direction[2], direction[2], mag);
+			movVel.direction = mix<float, float, float, 3>(movVel.direction, direction, mag);
 		}
 	}
 }

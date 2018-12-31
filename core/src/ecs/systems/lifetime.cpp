@@ -15,6 +15,7 @@ systems::lifetime::lifetime(state& state)
 
 void systems::lifetime::tick(state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
+	PROFILE_SCOPE(core::profiler)
 	std::vector<entity> dead_entities;
 	for (auto[entity, lifetime] : m_Lifetime)
 	{

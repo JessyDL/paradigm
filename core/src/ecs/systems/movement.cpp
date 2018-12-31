@@ -16,6 +16,7 @@ movement::movement(state& state)
 
 void movement::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
+	PROFILE_SCOPE(core::profiler)
 	for (auto [velocity, transform] : m_Movable)
 	{
 		transform.position += velocity.direction * velocity.force * dTime.count();

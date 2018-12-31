@@ -10,6 +10,7 @@ namespace psl
 	struct tvec
 	{
 		using tvec_t = tvec<precision_t, dimensions>;
+		using container_t = std::array<precision_t, dimensions>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -18,21 +19,20 @@ namespace psl
 
 		constexpr tvec() noexcept = default;
 
-		constexpr tvec(const std::array<precision_t, dimensions>& value) noexcept : value(value){};
+		constexpr tvec(const container_t& value) noexcept : value(value){};
 		constexpr tvec(const precision_t& value) noexcept : value(utility::templates::make_array<dimensions>(value)){};
 
 		template <typename... Args>
 		constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}){};
 
 
-		operator const std::array<precision_t, dimensions>&() const noexcept
-		{
-			return value;
-		}
+		operator container_t() const noexcept { return value; }
+		operator container_t&() noexcept { return value; }
 
-		operator std::array<precision_t, dimensions>&() noexcept
+		tvec_t& operator=(const container_t& container)
 		{
-			return value;
+			value = container;
+			return *this;
 		}
 		// ---------------------------------------------
 		// operators
@@ -62,13 +62,14 @@ namespace psl
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		std::array<precision_t, dimensions> value;
+		container_t value;
 	};
 
 	template <typename precision_t>
 	struct tvec<precision_t, 1>
 	{
 		using tvec_t = tvec<precision_t, 1>;
+		using container_t = std::array<precision_t, 1>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -82,14 +83,14 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
-		operator const std::array<precision_t, 1>&() const noexcept
-		{
-			return value;
-		}
+		operator container_t() const noexcept { return value; }
+		operator container_t&() noexcept { return value; }
 
-		operator std::array<precision_t, 1>&() noexcept
+
+		tvec_t& operator=(const container_t& container)
 		{
-			return value;
+			value = container;
+			return *this;
 		}
 
 		constexpr precision_t& operator[](size_t index) noexcept
@@ -123,6 +124,7 @@ namespace psl
 	struct tvec<precision_t, 2>
 	{
 		using tvec_t = tvec<precision_t, 2>;
+		using container_t = std::array<precision_t, 2>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -149,15 +151,8 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
-		operator const std::array<precision_t, 2>&() const noexcept
-		{
-			return value;
-		}
-
-		operator std::array<precision_t, 2>&() noexcept
-		{
-			return value;
-		}
+		operator container_t() const noexcept { return value; }
+		operator container_t&() noexcept { return value; }
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
@@ -190,6 +185,7 @@ namespace psl
 	struct tvec<precision_t, 3>
 	{
 		using tvec_t = tvec<precision_t, 3>;
+		using container_t = std::array<precision_t, 3>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -223,14 +219,13 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
-		operator const std::array<precision_t, 3>&() const noexcept
-		{
-			return value;
-		}
+		operator container_t() const noexcept { return value; }
+		operator container_t&() noexcept { return value; }
 
-		operator std::array<precision_t, 3>&() noexcept
+		tvec_t& operator=(const container_t& container)
 		{
-			return value;
+			value = container;
+			return *this;
 		}
 
 		constexpr precision_t& operator[](size_t index) noexcept
@@ -265,6 +260,7 @@ namespace psl
 	struct alignas(16) tvec<precision_t, 4>
 	{
 		using tvec_t = tvec<precision_t, 4>;
+		using container_t = std::array<precision_t, 4>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -311,14 +307,13 @@ namespace psl
 		// ---------------------------------------------
 		// operators
 		// ---------------------------------------------
-		operator const std::array<precision_t, 4>&() const noexcept
-		{
-			return value;
-		}
+		operator container_t() const noexcept { return value; }
+		operator container_t&() noexcept { return value; }
 
-		operator std::array<precision_t, 4>&() noexcept
+		tvec_t& operator=(const container_t& container)
 		{
-			return value;
+			value = container;
+			return *this;
 		}
 
 		constexpr precision_t& operator[](size_t index) noexcept

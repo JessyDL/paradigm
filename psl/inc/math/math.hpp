@@ -374,5 +374,19 @@ namespace psl::math
 		return (x + a * (y - x));
 	}
 
+	template<typename element1_t, typename element2_t, typename precision_t, size_t N>
+	constexpr static std::array<element1_t, N> mix(const std::array<element1_t, N>& x, const std::array<element2_t, N>& y, precision_t a) noexcept
+	{
+		std::array<element1_t, N> result;
+		for(auto i = 0; i < N; ++i)
+			result[i] = (x[i] + a * (y[i] - x[i]));
+		return result;
+	}
+
+	template<typename element1_t, typename element2_t, typename precision_t, size_t N>
+	constexpr static std::array<element1_t, N> mix(const psl::tvec<element1_t, N>& x, const psl::tvec<element2_t, N>& y, precision_t a) noexcept
+	{
+		return mix(x.value, y.value, a);
+	}
 
 } // namespace psl::math
