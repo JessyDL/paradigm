@@ -9,6 +9,7 @@ namespace psl
 	template <typename precision_t, size_t dimensions>
 	struct tvec
 	{
+		static constexpr size_t dimensions_n{ dimensions };
 		using tvec_t = tvec<precision_t, dimensions>;
 		using container_t = std::array<precision_t, dimensions>;
 
@@ -39,7 +40,7 @@ namespace psl
 		// ---------------------------------------------
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
-			static_assert(std::is_pod<tvec<precision_t, dimensions>>::value, "should remain POD");
+			static_assert(std::is_pod<tvec_t>::value, "should remain POD");
 
 			return value[index];
 		}
@@ -49,27 +50,44 @@ namespace psl
 		template<size_t index>
 		constexpr precision_t& at() noexcept
 		{
-			static_assert(index < dimensions, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 		template<size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
-			static_assert(index < dimensions, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
+
+		template<size_t new_size>
+		tvec<precision_t, new_size> resize()
+		{
+			if constexpr (new_size == dimensions_n)
+			{
+				return *this;
+			}
+			else
+			{
+				tvec<precision_t, new_size> res{};
+				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
+				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+			}
+		}
+
 		container_t value;
 	};
 
 	template <typename precision_t>
 	struct tvec<precision_t, 1>
 	{
-		using tvec_t = tvec<precision_t, 1>;
-		using container_t = std::array<precision_t, 1>;
+		static constexpr size_t dimensions_n{ 1 };
+		using tvec_t = tvec<precision_t, dimensions_n>;
+		using container_t = precision_t;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -95,7 +113,7 @@ namespace psl
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
-			static_assert(std::is_pod<tvec<precision_t, 1>>::value, "should remain POD");
+			static_assert(std::is_pod<tvec_t>::value, "should remain POD");
 			return value[index];
 		}
 
@@ -104,27 +122,43 @@ namespace psl
 		template<size_t index>
 		constexpr precision_t& at() noexcept
 		{
-			static_assert(index < 1, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 		template<size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
-			static_assert(index < 1, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		precision_t value;
+		template<size_t new_size>
+		tvec<precision_t, new_size> resize()
+		{
+			if constexpr (new_size == dimensions_n)
+			{
+				return *this;
+			}
+			else
+			{
+				tvec<precision_t, new_size> res{};
+				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
+				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+			}
+		}
+
+		container_t value;
 	};
 
 	template <typename precision_t>
 	struct tvec<precision_t, 2>
 	{
-		using tvec_t = tvec<precision_t, 2>;
-		using container_t = std::array<precision_t, 2>;
+		static constexpr size_t dimensions_n{ 2 };
+		using tvec_t = tvec<precision_t, dimensions_n>;
+		using container_t = std::array<precision_t, dimensions_n>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -156,7 +190,7 @@ namespace psl
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
-			static_assert(std::is_pod<tvec<precision_t, 2>>::value, "should remain POD");
+			static_assert(std::is_pod<tvec_t>::value, "should remain POD");
 			return value[index];
 		}
 
@@ -165,27 +199,42 @@ namespace psl
 		template<size_t index>
 		constexpr precision_t& at() noexcept
 		{
-			static_assert(index < 2, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 		template<size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
-			static_assert(index < 2, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		std::array<precision_t, 2> value;
+		template<size_t new_size>
+		tvec<precision_t, new_size> resize()
+		{
+			if constexpr (new_size == dimensions_n)
+			{
+				return *this;
+			}
+			else
+			{
+				tvec<precision_t, new_size> res{};
+				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
+				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+			}
+		}
+		container_t value;
 	};
 
 	template <typename precision_t>
 	struct tvec<precision_t, 3>
 	{
-		using tvec_t = tvec<precision_t, 3>;
-		using container_t = std::array<precision_t, 3>;
+		static constexpr size_t dimensions_n{ 3 };
+		using tvec_t = tvec<precision_t, dimensions_n>;
+		using container_t = std::array<precision_t, dimensions_n>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -230,7 +279,7 @@ namespace psl
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
-			static_assert(std::is_pod<tvec<precision_t, 3>>::value, "should remain POD");
+			static_assert(std::is_pod<tvec_t>::value, "should remain POD");
 			return value[index];
 		}
 
@@ -239,26 +288,41 @@ namespace psl
 		template<size_t index>
 		constexpr precision_t& at() noexcept
 		{
-			static_assert(index < 3, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 		template<size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
-			static_assert(index < 3, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		std::array<precision_t, 3> value;
+		template<size_t new_size>
+		tvec<precision_t, new_size> resize()
+		{
+			if constexpr (new_size == dimensions_n)
+			{
+				return *this;
+			}
+			else
+			{
+				tvec<precision_t, new_size> res{};
+				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
+				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+			}
+		}
+		container_t value;
 	};
 
 	// todo alignas should be handled more gracefully
 	template <typename precision_t>
 	struct alignas(16) tvec<precision_t, 4>
 	{
+		static constexpr size_t dimensions_n{ 4 };
 		using tvec_t = tvec<precision_t, 4>;
 		using container_t = std::array<precision_t, 4>;
 
@@ -286,11 +350,11 @@ namespace psl
 		constexpr tvec(const tvec<precision_t, 3>& v3, const precision_t& value) noexcept : value({v3[0], v3[1], v3[2], value}) {};
 
 		template<typename src_precision_t>
-		constexpr tvec(std::array<src_precision_t,4>&& arr) noexcept
+		constexpr tvec(std::array<src_precision_t,dimensions_n>&& arr) noexcept
 			: value({std::move(arr)}){};
 
 		template<typename src_precision_t>
-		constexpr tvec(const std::array<src_precision_t,4>& value) noexcept : value({value}){};
+		constexpr tvec(const std::array<src_precision_t,dimensions_n>& value) noexcept : value({value}){};
 
 		// ---------------------------------------------
 		// getters
@@ -318,7 +382,7 @@ namespace psl
 
 		constexpr precision_t& operator[](size_t index) noexcept
 		{
-			static_assert(std::is_pod<tvec<precision_t, 4>>::value, "should remain POD");
+			static_assert(std::is_pod<tvec_t>::value, "should remain POD");
 			return value[index];
 		}
 
@@ -327,13 +391,13 @@ namespace psl
 		template<size_t index>
 		constexpr precision_t& at() noexcept
 		{
-			static_assert(index < 4, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 		template<size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
-			static_assert(index < 4, "out of range");
+			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
@@ -341,7 +405,22 @@ namespace psl
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		std::array<precision_t, 4> value;
+		template<size_t new_size>
+		tvec<precision_t, new_size> resize()
+		{
+			if constexpr (new_size == dimensions_n)
+			{
+				return *this;
+			}
+			else
+			{
+				tvec<precision_t, new_size> res{};
+				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
+				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+			}
+		}
+
+		container_t value;
 	};
 
 
