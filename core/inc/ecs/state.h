@@ -119,67 +119,131 @@ namespace core::ecs
 			: std::true_type
 		{};
 
-		/*template <typename T>
-		void add_component(
-			details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
-			details::key_value_container_t<details::component_key_t, details::component_info> components,
-			psl::array_view<entity> entities, T&& _template) noexcept
+
+		template <typename T, typename SFINEA = void>
+		struct get_component_type
 		{
-			using component_type = typename get_component_type<T>::type;
-			using forward_type   = typename get_forward_type<T>::type;
+			using type = typename std::invoke_result<T, size_t>::type;
+		};
+		template <typename T>
+		struct get_component_type<T, typename std::enable_if<!std::is_invocable<T, size_t>::value>::type>
+		{
+			using type = typename core::ecs::details::is_tag<T>::type;
+		};
+
+		template <typename T, typename SFINEA = void>
+		struct get_forward_type
+		{
+			using type = T;
+		};
+		template <typename T>
+		struct get_forward_type<T, typename std::enable_if<!std::is_invocable<T, size_t>::value>::type>
+		{
+			using type = typename core::ecs::details::is_tag<T>::type;
+		};
 
 
-			PROFILE_SCOPE(core::profiler)
-				static_assert(
-					std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
-					"the component type must be trivially copyable and standard layout "
-					"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
-			constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_type>>;
+		template <typename T>
+		typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
+			initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
+		{
+			core::profiler.scope();
+				for(auto i = 0; i < indices.size(); ++i)
+				{
+					std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
+				}
+		}
+
+		template <typename T>
+		typename std::enable_if<std::is_invocable<T, size_t>::value>::type
+			initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
+		{
+			constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
+			core::profiler.scope();
+				for(auto i = 0; i < indices.size(); ++i)
+				{
+					auto v{std::invoke(invokable, i)};
+					std::memcpy((void*)((std::uintptr_t)location + indices[i] * size), &v, size);
+				}
+		}
+
+		template <typename T>
+		std::vector<entity> duplicate_component_check(psl::array_view<entity> entities, const details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap)
+		{
 			core::profiler.scope_begin("duplicate_check");
+			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
 			std::vector<entity> ent_cpy = entities;
-			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
+			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [&entityMap, key](const entity& e) {
 				auto eMapIt = entityMap.find(e);
 				if(eMapIt == std::end(entityMap)) return true;
 
 				for(auto eComp : eMapIt->second)
 				{
-					if(eComp.first == int_id) return true;
+					if(eComp.first == key) return true;
 				}
 				return false;
 			});
 			core::profiler.scope_end();
 			ent_cpy.resize(std::distance(std::begin(ent_cpy), end));
-			std::sort(std::begin(ent_cpy), end);
+			return ent_cpy;
+		}
 
-			auto it = components.find(int_id);
+		template<typename T>
+		component_info& get_component_info(details::key_value_container_t<details::component_key_t, details::component_info>& components)
+		{
+			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
+			auto it = components.find(key);
 			if(it == components.end())
 			{
 				core::profiler.scope_begin("create backing storage");
-				if constexpr(std::is_empty<component_type>::value)
+				if constexpr(std::is_empty<T>::value)
 				{
-					components.emplace(int_id, details::component_info{{}, int_id});
+					components.emplace(key, details::component_info{{}, key});
 				}
 				else
 				{
 					components.emplace(
-						int_id, details::component_info{
-							memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(component_type)});
+						key, details::component_info{
+							memory::raw_region{1024 * 1024 * 128}, {}, key, (size_t)sizeof(T)});
 				}
-				it = components.find(int_id);
+				it = components.find(key);
 				core::profiler.scope_end();
 			}
-			auto& pair{it->second};
+			return it->second;
+		}
+		template <typename T>
+		void add_component(
+			details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
+			details::key_value_container_t<details::component_key_t, details::component_info>& components,
+			psl::array_view<entity> entities, T&& _template,
+			std::optional<std::reference_wrapper<details::key_value_container_t<details::component_key_t, std::vector<entity>>>> addedComponents = std::nullopt) noexcept
+		{
+			using component_type = typename get_component_type<T>::type;
+			using forward_type   = typename get_forward_type<T>::type;
 
-			entityMap.reserve(entityMap.size() + std::distance(std::begin(ent_cpy), end));
+
+			core::profiler.scope();
+				static_assert(
+					std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
+					"the component type must be trivially copyable and standard layout "
+					"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
+			constexpr details::component_key_t key = details::component_key<details::remove_all<component_type>>;
+
+			std::vector<entity> ent_cpy = duplicate_component_check<component_type>(entities, entityMap);
+			std::sort(std::begin(ent_cpy), std::end(ent_cpy));
+
+			auto& componentInfo{get_component_info<component_type>(components)};
+
+			entityMap.reserve(entityMap.size() + std::distance(std::begin(ent_cpy), std::end(ent_cpy)));
 
 			if constexpr(std::is_empty<component_type>::value)
 			{
 				core::profiler.scope_begin("emplace empty components");
-				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+				for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
 				{
 					const entity& e{*ent_it};
-					entityMap[e].emplace_back(int_id, 0);
-					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
+					entityMap[e].emplace_back(key, 0);
+					componentInfo.entities.emplace(std::upper_bound(std::begin(componentInfo.entities), std::end(componentInfo.entities), e), e);
 				}
 				core::profiler.scope_end();
 			}
@@ -188,28 +252,28 @@ namespace core::ecs
 				core::profiler.scope_begin("emplace components");
 				std::vector<uint64_t> indices;
 				uint64_t id_range;
-				const auto count = std::distance(std::begin(ent_cpy), end);
+				const auto count = std::distance(std::begin(ent_cpy), std::end(ent_cpy));
 				core::profiler.scope_begin("reserve");
 				indices.reserve(count);
 				entityMap.reserve(entityMap.size() + count);
 
 
 				std::vector<entity> merged;
-				merged.reserve(pair.entities.size() + count);
-				std::merge(std::begin(pair.entities), std::end(pair.entities), std::begin(ent_cpy), end,
+				merged.reserve(componentInfo.entities.size() + count);
+				std::merge(std::begin(componentInfo.entities), std::end(componentInfo.entities), std::begin(ent_cpy), std::end(ent_cpy),
 					std::back_inserter(merged));
-				pair.entities = std::move(merged);
+				componentInfo.entities = std::move(merged);
 
 				core::profiler.scope_end();
 
-				if(pair.generator.CreateRangeID(id_range, count))
+				if(componentInfo.generator.CreateRangeID(id_range, count))
 				{
 					core::profiler.scope_begin("fast path");
-					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+					for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
 					{
 						const entity& e{*ent_it};
 						indices.emplace_back(id_range);
-						entityMap[e].emplace_back(int_id, id_range);
+						entityMap[e].emplace_back(key, id_range);
 						++id_range;
 					}
 					core::profiler.scope_end();
@@ -217,12 +281,12 @@ namespace core::ecs
 				else
 				{
 					core::profiler.scope_begin("slow path");
-					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
+					for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
 					{
 						const entity& e{*ent_it};
-						auto index = pair.generator.CreateID().second;
+						auto index = componentInfo.generator.CreateID().second;
 						indices.emplace_back(index);
-						entityMap[e].emplace_back(int_id, index);
+						entityMap[e].emplace_back(key, index);
 					}
 					core::profiler.scope_end();
 				}
@@ -233,19 +297,21 @@ namespace core::ecs
 					if constexpr(!std::is_trivially_constructible<component_type>::value)
 					{
 						component_type v{};
-						initialize_component(pair.region.data(), indices, std::move(v));
+						initialize_component(componentInfo.region.data(), indices, std::move(v));
 					}
 				}
 				else
 				{
-					initialize_component(pair.region.data(), indices, std::forward<forward_type>(_template));
+					initialize_component(componentInfo.region.data(), indices, std::forward<forward_type>(_template));
 				}
 			}
 
-			m_AddedEntities.insert(std::end(m_AddedEntities), std::begin(ent_cpy), std::end(ent_cpy));
-			auto& addedComponentsRange = m_AddedComponents[int_id];
-			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
-		}*/
+			if (addedComponents)
+			{
+				auto& addedComponentsRange = addedComponents.value().get()[key];
+				addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+			}
+		}
 	} // namespace details
 } // namespace core::ecs
 
@@ -406,177 +472,10 @@ namespace core::ecs
 		// add component
 		// -----------------------------------------------------------------------------
 
-	  private:
-		template <typename T>
-		typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
-		initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
-		{
-			PROFILE_SCOPE(core::profiler)
-			for(auto i = 0; i < indices.size(); ++i)
-			{
-				std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
-			}
-		}
-
-		template <typename T>
-		typename std::enable_if<std::is_invocable<T, size_t>::value>::type
-		initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
-		{
-			constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
-			PROFILE_SCOPE(core::profiler)
-			for(auto i = 0; i < indices.size(); ++i)
-			{
-				auto v{std::invoke(invokable, i)};
-				std::memcpy((void*)((std::uintptr_t)location + indices[i] * size), &v, size);
-			}
-		}
-
-		template <typename T, typename SFINEA = void>
-		struct get_component_type
-		{
-			using type = typename std::invoke_result<T, size_t>::type;
-		};
-		template <typename T>
-		struct get_component_type<T, typename std::enable_if<!std::is_invocable<T, size_t>::value>::type>
-		{
-			using type = typename core::ecs::details::is_tag<T>::type;
-		};
-
-		template <typename T, typename SFINEA = void>
-		struct get_forward_type
-		{
-			using type = T;
-		};
-		template <typename T>
-		struct get_forward_type<T, typename std::enable_if<!std::is_invocable<T, size_t>::value>::type>
-		{
-			using type = typename core::ecs::details::is_tag<T>::type;
-		};
-
-	  public:
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
-			using component_type = typename get_component_type<T>::type;
-			using forward_type   = typename get_forward_type<T>::type;
-
-
-			PROFILE_SCOPE(core::profiler)
-			static_assert(
-				std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
-				"the component type must be trivially copyable and standard layout "
-				"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
-			constexpr details::component_key_t int_id = details::component_key<details::remove_all<component_type>>;
-			core::profiler.scope_begin("duplicate_check");
-			std::vector<entity> ent_cpy = entities;
-			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [this, int_id](const entity& e) {
-				auto eMapIt = m_EntityMap.find(e);
-				if(eMapIt == std::end(m_EntityMap)) return true;
-
-				for(auto eComp : eMapIt->second)
-				{
-					if(eComp.first == int_id) return true;
-				}
-				return false;
-			});
-			core::profiler.scope_end();
-			ent_cpy.resize(std::distance(std::begin(ent_cpy), end));
-			std::sort(std::begin(ent_cpy), end);
-
-			auto it = m_Components.find(int_id);
-			if(it == m_Components.end())
-			{
-				core::profiler.scope_begin("create backing storage");
-				if constexpr(std::is_empty<component_type>::value)
-				{
-					m_Components.emplace(int_id, details::component_info{{}, int_id});
-				}
-				else
-				{
-					m_Components.emplace(
-						int_id, details::component_info{
-									memory::raw_region{1024 * 1024 * 128}, {}, int_id, (size_t)sizeof(component_type)});
-				}
-				it = m_Components.find(int_id);
-				core::profiler.scope_end();
-			}
-			auto& pair{it->second};
-
-			m_EntityMap.reserve(m_EntityMap.size() + std::distance(std::begin(ent_cpy), end));
-
-			if constexpr(std::is_empty<component_type>::value)
-			{
-				core::profiler.scope_begin("emplace empty components");
-				for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
-				{
-					const entity& e{*ent_it};
-					m_EntityMap[e].emplace_back(int_id, 0);
-					pair.entities.emplace(std::upper_bound(std::begin(pair.entities), std::end(pair.entities), e), e);
-				}
-				core::profiler.scope_end();
-			}
-			else
-			{
-				core::profiler.scope_begin("emplace components");
-				std::vector<uint64_t> indices;
-				uint64_t id_range;
-				const auto count = std::distance(std::begin(ent_cpy), end);
-				core::profiler.scope_begin("reserve");
-				indices.reserve(count);
-				m_EntityMap.reserve(m_EntityMap.size() + count);
-
-
-				std::vector<entity> merged;
-				merged.reserve(pair.entities.size() + count);
-				std::merge(std::begin(pair.entities), std::end(pair.entities), std::begin(ent_cpy), end,
-						   std::back_inserter(merged));
-				pair.entities = std::move(merged);
-
-				core::profiler.scope_end();
-
-				if(pair.generator.CreateRangeID(id_range, count))
-				{
-					core::profiler.scope_begin("fast path");
-					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
-					{
-						const entity& e{*ent_it};
-						indices.emplace_back(id_range);
-						m_EntityMap[e].emplace_back(int_id, id_range);
-						++id_range;
-					}
-					core::profiler.scope_end();
-				}
-				else
-				{
-					core::profiler.scope_begin("slow path");
-					for(auto ent_it = std::begin(ent_cpy); ent_it != end; ++ent_it)
-					{
-						const entity& e{*ent_it};
-						auto index = pair.generator.CreateID().second;
-						indices.emplace_back(index);
-						m_EntityMap[e].emplace_back(int_id, index);
-					}
-					core::profiler.scope_end();
-				}
-				core::profiler.scope_end();
-
-				if constexpr(core::ecs::details::is_tag<T>::value)
-				{
-					if constexpr(!std::is_trivially_constructible<component_type>::value)
-					{
-						component_type v{};
-						initialize_component(pair.region.data(), indices, std::move(v));
-					}
-				}
-				else
-				{
-					initialize_component(pair.region.data(), indices, std::forward<forward_type>(_template));
-				}
-			}
-
-			m_AddedEntities.insert(std::end(m_AddedEntities), std::begin(ent_cpy), std::end(ent_cpy));
-			auto& addedComponentsRange = m_AddedComponents[int_id];
-			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template), m_AddedComponents);
 		}
 
 		template <typename T>
@@ -1177,6 +1076,45 @@ namespace core::ecs
 	class deferred_instructions
 	{
 	public:
+		// -----------------------------------------------------------------------------
+		// add component
+		// -----------------------------------------------------------------------------
+
+		template <typename T>
+		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
+		{
+			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template));
+		}
+
+		template <typename T>
+		void add_component(psl::array_view<entity> entities) noexcept
+		{
+			return add_component(entities, core::ecs::tag<T>{});
+		}
+
+		template <typename... Ts>
+		void add_components(psl::array_view<entity> entities, Ts&&... args) noexcept
+		{
+			(add_component(entities, std::forward<Ts>(args)), ...);
+		}
+
+		template <typename... Ts>
+		void add_components(psl::array_view<entity> entities) noexcept
+		{
+			(add_component<Ts>(entities), ...);
+		}
+
+		template <typename... Ts>
+		void add_components(entity e, Ts&&... args) noexcept
+		{
+			(add_component(psl::array_view<entity>{&e, &e + 1}, std::forward<Ts>(args)), ...);
+		}
+		template <typename... Ts>
+		void add_components(entity e) noexcept
+		{
+			(add_component<Ts>(psl::array_view<entity>{&e, &e + 1}), ...);
+		}
+
 		template <typename... Ts>
 		void create(size_t count)
 		{
@@ -1189,15 +1127,15 @@ namespace core::ecs
 
 		}
 
-		void destroy(psl::array_view<entity> entities);
-
-		template<typename ...Ts>
-		void add_components(psl::array_view<entity> entities);
+		void destroy(psl::array_view<entity> entities)
+		{
+			//m_MarkedForDestruction.insert(std::end(m_MarkedForDestruction), std::begin(entities), std::end(entities));
+		}
 
 		template<typename ...Ts>
 		void remove_components(psl::array_view<entity> entities);
 	private:
-		psl::array_view<entity> m_MarkedForDestruction;
+		std::vector<entity> m_MarkedForDestruction;
 
 		details::key_value_container_t<entity, std::vector<details::component_key_t>> m_ErasedComponents;
 
