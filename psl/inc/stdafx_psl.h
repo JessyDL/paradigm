@@ -100,6 +100,19 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #define DBG_LIKELY(expr) (!!(expr))
 #endif
 
+
+#define assert_debug_break(condition) \
+if(condition)	\
+{							\
+	debug_break();			\
+}							\
+
+#define assert(condition) \
+if(condition)	\
+{							\
+	debug_break();			\
+}							\
+
 #if !defined(NDEBUG) || (NDEBUG == 0)
 #define dbg_assert(expr)                                                                                               \
 	do                                                                                                                 \

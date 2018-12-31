@@ -206,6 +206,9 @@ bool buffer::commit(std::vector<commit_instruction> instructions)
 			return false;
 		}
 
+		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+			debug_break();
+
 		// put the data onto the staging buffer && create the copy region instructions
 		std::vector<vk::BufferCopy> copyRegions;
 		copyRegions.reserve(stagingSegments.size());
@@ -214,6 +217,8 @@ bool buffer::commit(std::vector<commit_instruction> instructions)
 		std::uintptr_t offset = boundSegment.range().begin - (std::uintptr_t)stagingBuffer->m_BufferDataHandle->region().data();
 		auto tuple = m_Context->device().mapMemory(stagingBuffer->m_Memory, offset, boundSegment.range().size());
 
+		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+			debug_break();
 		for(auto i = 0; i < stagingSegments.size(); ++i)
 		{
 			if(stagingSegments[i].first.range() != boundSegment.range())
@@ -241,8 +246,13 @@ bool buffer::commit(std::vector<commit_instruction> instructions)
 			copyRegion.srcOffset = offset + stagingSegments[i].second.begin;
 			copyRegion.dstOffset = instructions[i].segment.range().begin + instructions[i].sub_range.value_or(memory::range{}).begin - (std::uintptr_t)m_BufferDataHandle->region().data();
 			copyRegion.size = instructions[i].size;
+
+			if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+				debug_break();
 		}
 
+		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
+			debug_break();
 		m_Context->device().unmapMemory(stagingBuffer->m_Memory);
 		auto res = copy_from(stagingBuffer, copyRegions);
 		for(auto segm : stagingSegments)

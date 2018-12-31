@@ -26,16 +26,18 @@ std::optional<memory::segment> buffer::allocate(size_t size)
 }
 bool buffer::deallocate(memory::segment& segment) 
 { 
-	memory::range range{segment.range()};
+	const memory::range range{segment.range()};
+	auto find_it = std::find_if(std::begin(m_Segments), std::end(m_Segments), [&range](const memory::segment& entry) { return entry.range() == range; });
+	if (find_it == std::end(m_Segments))
+	{
+		core::data::log->critical("could not erase the range {0} - {1}", range.begin, range.end);
+		return false;
+	}
+
 	if(m_Region.deallocate(segment))
 	{
-		auto it = std::remove_if(std::begin(m_Segments), std::end(m_Segments),
-								 [&range](const memory::segment& entry) { return entry.range() == range; });
-
-		if(it == std::end(m_Segments))
-			core::data::log->critical("could not erase the range {0} - {1}", range.begin, range.end);
-
-		m_Segments.erase(it, std::end(m_Segments));
+		std::rotate(find_it, std::next(find_it), std::end(m_Segments));
+		m_Segments.erase(std::prev(std::end(m_Segments)), std::end(m_Segments));
 		return true;
 	}
 	else
