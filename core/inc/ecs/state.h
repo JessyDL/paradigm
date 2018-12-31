@@ -312,6 +312,60 @@ namespace core::ecs
 				addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
 			}
 		}
+
+			template <typename T>
+			void remove_component(
+				details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
+				details::key_value_container_t<details::component_key_t, details::component_info>& components,
+				psl::array_view<entity> entities,
+				std::optional<std::reference_wrapper<details::key_value_container_t<details::component_key_t, std::vector<entity>>>> removedComponents = std::nullopt) noexcept
+			{
+				PROFILE_SCOPE_STATIC(core::profiler)
+					constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
+				std::vector<entity> ent_cpy;
+				ent_cpy.reserve(entities.size());
+				for(auto e : entities)
+				{
+					auto eMapIt  = entityMap.find(e);
+					auto foundIt = std::remove_if(eMapIt->second.begin(), eMapIt->second.end(),
+						[&key](const std::pair<details::component_key_t, size_t>& pair) {
+						return pair.first == key;
+					});
+
+					if(foundIt == std::end(eMapIt->second)) continue;
+
+					ent_cpy.emplace_back(e);
+					if constexpr(std::is_empty<T>::value)
+					{
+						eMapIt->second.erase(foundIt, eMapIt->second.end());
+
+						const auto& eCompIt = components.find(key);
+						eCompIt->second.entities.erase(
+							std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+							eCompIt->second.entities.end());
+					}
+					else
+					{
+						auto index = foundIt->second;
+
+						eMapIt->second.erase(foundIt, eMapIt->second.end());
+
+						const auto& eCompIt = components.find(key);
+						eCompIt->second.entities.erase(
+							std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+							eCompIt->second.entities.end());
+
+						void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
+						std::memset(loc, 0, eCompIt->second.size);
+					}
+				}
+
+				if (removedComponents)
+				{
+					auto& removedComponentsRange = removedComponents.value().get()[key];
+					removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+				}
+			}
 	} // namespace details
 } // namespace core::ecs
 
@@ -467,7 +521,7 @@ namespace core::ecs
 			std::vector<dependency_pack> pre_tick_dependencies;
 			std::vector<dependency_pack> post_tick_dependencies;
 		};
-
+		public:
 		// -----------------------------------------------------------------------------
 		// add component
 		// -----------------------------------------------------------------------------
@@ -513,49 +567,7 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			PROFILE_SCOPE(core::profiler)
-			constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
-			std::vector<entity> ent_cpy;
-			ent_cpy.reserve(entities.size());
-			for(auto e : entities)
-			{
-				auto eMapIt  = m_EntityMap.find(e);
-				auto foundIt = std::remove_if(eMapIt->second.begin(), eMapIt->second.end(),
-											  [&int_id](const std::pair<details::component_key_t, size_t>& pair) {
-												  return pair.first == int_id;
-											  });
-
-				if(foundIt == std::end(eMapIt->second)) continue;
-
-				ent_cpy.emplace_back(e);
-				if constexpr(std::is_empty<T>::value)
-				{
-					eMapIt->second.erase(foundIt, eMapIt->second.end());
-
-					const auto& eCompIt = m_Components.find(int_id);
-					eCompIt->second.entities.erase(
-						std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-						eCompIt->second.entities.end());
-				}
-				else
-				{
-					auto index = foundIt->second;
-
-					eMapIt->second.erase(foundIt, eMapIt->second.end());
-
-					const auto& eCompIt = m_Components.find(int_id);
-					eCompIt->second.entities.erase(
-						std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-						eCompIt->second.entities.end());
-
-					void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
-					std::memset(loc, 0, eCompIt->second.size);
-				}
-			}
-
-			m_RemovedEntities.insert(std::end(m_RemovedEntities), std::begin(ent_cpy), std::end(ent_cpy));
-			auto& removedComponentsRange = m_RemovedComponents[int_id];
-			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+			details::remove_component<T>(m_EntityMap, m_Components, entities, m_RemovedComponents);
 		}
 
 		template <typename... Ts>
@@ -1115,25 +1127,77 @@ namespace core::ecs
 			(add_component<Ts>(psl::array_view<entity>{&e, &e + 1}), ...);
 		}
 
-		template <typename... Ts>
-		void create(size_t count)
+		// -----------------------------------------------------------------------------
+		// remove component
+		// -----------------------------------------------------------------------------
+		template <typename T>
+		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-
+			details::remove_component(m_EntityMap, m_Components, entities);
 		}
 
 		template <typename... Ts>
-		void create(size_t count, Ts&&... Args)
+		void remove_components(psl::array_view<entity> entities) noexcept
 		{
-
+			(remove_component<Ts>(entities), ...);
 		}
 
+
+		template <typename T>
+		void remove_component(entity e) noexcept
+		{
+			remove_component<T>(psl::array_view<entity>{&e, &e + 1});
+		}
+
+		template <typename... Ts>
+		void remove_components(entity e) noexcept
+		{
+			(remove_component<Ts>(psl::array_view<entity>{&e, &e + 1}), ...);
+		}
+
+		// -----------------------------------------------------------------------------
+		// create entities
+		// -----------------------------------------------------------------------------
+		template <typename... Ts>
+		std::vector<entity> create(size_t count) noexcept
+		{
+			PROFILE_SCOPE(core::profiler)
+				m_EntityMap.reserve(m_EntityMap.size() + count);
+			std::vector<entity> result(count);
+			std::iota(std::begin(result), std::end(result), mID + 1);
+			for(size_t i = 0u; i < count; ++i)
+				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
+			if constexpr(sizeof...(Ts) > 0)
+			{
+				add_components<Ts...>(result);
+			}
+			return result;
+		}
+
+		template <typename... Ts>
+		std::vector<entity> create(size_t count, Ts&&... args) noexcept
+		{
+			PROFILE_SCOPE(core::profiler)
+				m_EntityMap.reserve(m_EntityMap.size() + count);
+			std::vector<entity> result(count);
+			std::iota(std::begin(result), std::end(result), mID + 1);
+			for(size_t i = 0u; i < count; ++i)
+				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
+			if constexpr(sizeof...(Ts) > 0)
+			{
+				add_components(result, std::forward<Ts>(args)...);
+			}
+			return result;
+		}
+
+		// -----------------------------------------------------------------------------
+		// destroy entities
+		// -----------------------------------------------------------------------------
 		void destroy(psl::array_view<entity> entities)
 		{
-			//m_MarkedForDestruction.insert(std::end(m_MarkedForDestruction), std::begin(entities), std::end(entities));
+			m_MarkedForDestruction.insert(std::end(m_MarkedForDestruction), std::begin(entities), std::end(entities));
 		}
 
-		template<typename ...Ts>
-		void remove_components(psl::array_view<entity> entities);
 	private:
 		std::vector<entity> m_MarkedForDestruction;
 
@@ -1142,5 +1206,7 @@ namespace core::ecs
 		// these are reserved for added components only, not to be confused with dynamic editing of components
 		details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
 		details::key_value_container_t<details::component_key_t, details::component_info> m_Components;
+
+		uint64_t mID{0u};
 	};
 } // namespace core::ecs

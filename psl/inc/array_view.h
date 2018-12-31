@@ -17,8 +17,8 @@ namespace psl
 			using difference_type = std::ptrdiff_t;
 			typedef std::random_access_iterator_tag iterator_category;
 
-			iterator() noexcept : it(iterator) {}
-			iterator(pointer iterator = nullptr) noexcept : it(iterator) {}
+			iterator() noexcept : it(nullptr) {}
+			iterator(pointer ptr) noexcept : it(ptr) {}
 			~iterator()								 = default;
 			iterator(const iterator& other) noexcept = default;
 			iterator(iterator&& other) noexcept		 = default;
@@ -50,16 +50,40 @@ namespace psl
 				return copy;
 			}
 
-			iterator& operator+=(difference_type offset)
+			iterator& operator+=(difference_type offset) noexcept
 			{
 				it += offset;
 				return *this;
 			}
 
-			iterator& operator-=(difference_type offset)
+			iterator& operator-=(difference_type offset) noexcept
 			{
 				it -= offset;
 				return *this;
+			}
+
+			iterator operator+(difference_type offset) const
+			{
+				auto copy{*this};
+				copy += offset;
+				return copy;
+			}
+
+			iterator operator-(difference_type offset) const
+			{
+				auto copy{*this};
+				copy -= offset;
+				return copy;
+			}
+
+			difference_type operator-(iterator offset) const
+			{
+				return difference_type{ it - offset.it };
+			}
+
+			difference_type operator+(iterator offset) const
+			{
+				return difference_type{ it + offset.it };
 			}
 
 			bool operator!=(const iterator& other) const noexcept { return it != other.it; }
@@ -72,6 +96,16 @@ namespace psl
 			reference value() { return *it; }
 
 			const reference cvalue() const { return *it; }
+
+			operator reference()
+			{
+				return *it;
+			}
+
+			operator value_type() const
+			{
+				return *it;
+			}
 
 		  private:
 			pointer it;
