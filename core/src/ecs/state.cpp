@@ -150,7 +150,8 @@ void state::tick(std::chrono::duration<float> dTime)
 			core::profiler.scope_end();
 		}
 		core::profiler.scope_end();
-		std::invoke(system.second.tick, *this, dTime, dTime);
+		commands cmds;
+		std::invoke(system.second.tick, cmds, dTime, dTime);
 		for(const auto& dep_pack : sBindings)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)

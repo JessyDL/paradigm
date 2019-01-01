@@ -17,7 +17,7 @@ attractor::attractor(core::ecs::state& state)
 	state.register_dependency(*this, core::ecs::tick{}, m_Attractors);
 }
 
-void attractor::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void attractor::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 

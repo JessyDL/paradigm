@@ -14,7 +14,7 @@ movement::movement(state& state)
 	state.register_dependency(*this, ecs::tick{}, m_Movable);
 }
 
-void movement::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void movement::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	for (auto [velocity, transform] : m_Movable)

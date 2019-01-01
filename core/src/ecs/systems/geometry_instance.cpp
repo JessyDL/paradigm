@@ -24,7 +24,7 @@ geometry_instance::geometry_instance(core::ecs::state& state)
 	state.register_dependency(*this, core::ecs::tick{}, m_Geometry);
 }
 
-void geometry_instance::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void geometry_instance::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	

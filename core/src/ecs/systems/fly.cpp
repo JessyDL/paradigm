@@ -16,7 +16,7 @@ fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSy
 
 fly::~fly() { m_InputSystem.unsubscribe(this); }
 
-void fly::tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void fly::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;

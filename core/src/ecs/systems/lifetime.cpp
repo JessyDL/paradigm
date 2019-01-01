@@ -13,7 +13,7 @@ systems::lifetime::lifetime(state& state)
 	state.register_dependency(*this, ecs::tick{}, m_Lifetime);
 }
 
-void systems::lifetime::tick(state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void systems::lifetime::tick(commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	std::vector<entity> dead_entities;
@@ -24,6 +24,6 @@ void systems::lifetime::tick(state& state, std::chrono::duration<float> dTime, s
 			dead_entities.emplace_back(entity);
 	}
 
-	state.add_component<dead_tag>(dead_entities);
-	state.remove_component<lifetime>(dead_entities);
+	commands.add_component<dead_tag>(dead_entities);
+	commands.remove_component<lifetime>(dead_entities);
 }

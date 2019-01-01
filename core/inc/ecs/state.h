@@ -34,6 +34,7 @@ namespace core::ecs
 	{};
 
 	class state;
+	class commands;
 
 
 	namespace details
@@ -92,7 +93,7 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `pre_tick` listener.
 		template <typename T>
-		struct mf_pre_tick<T, std::void_t<decltype(std::declval<T&>().pre_tick(std::declval<core::ecs::state&>()))>>
+		struct mf_pre_tick<T, std::void_t<decltype(std::declval<T&>().pre_tick(std::declval<core::ecs::commands&>()))>>
 			: std::true_type
 		{};
 
@@ -102,7 +103,7 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `post_tick` listener.
 		template <typename T>
-		struct mf_post_tick<T, std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::state&>()))>>
+		struct mf_post_tick<T, std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::commands&>()))>>
 			: std::true_type
 		{};
 
@@ -113,7 +114,7 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `tick` listener.
 		template <typename T>
-		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::state&>(),
+		struct mf_tick<T, std::void_t<decltype(std::declval<T&>().tick(std::declval<core::ecs::commands&>(),
 																	   std::declval<std::chrono::duration<float>>(),
 																	   std::declval<std::chrono::duration<float>>()))>>
 			: std::true_type
@@ -412,10 +413,10 @@ namespace core::ecs
 				if constexpr(!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
 				{
 					using component_t = F;
-					constexpr details::component_key_t int_id =
+					constexpr details::component_key_t key =
 						details::component_key<details::remove_all<component_t>>;
-					target.emplace_back(int_id);
-					m_Sizes[int_id] = sizeof(component_t);
+					target.emplace_back(key);
+					m_Sizes[key] = sizeof(component_t);
 				}
 			}
 
@@ -499,23 +500,23 @@ namespace core::ecs
 			{
 				if constexpr(details::mf_tick<T>::value)
 				{
-					tick = [&target](core::ecs::state& state, std::chrono::duration<float> dTime,
+					tick = [&target](core::ecs::commands& state, std::chrono::duration<float> dTime,
 									 std::chrono::duration<float> rTime) { target.tick(state, dTime, rTime); };
 				}
 				if constexpr(details::mf_pre_tick<T>::value)
 				{
-					pre_tick = [&target](core::ecs::state& state) { target.pre_tick(state); };
+					pre_tick = [&target](core::ecs::commands& state) { target.pre_tick(state); };
 				}
 				if constexpr(details::mf_post_tick<T>::value)
 				{
-					post_tick = [&target](core::ecs::state& state) { target.post_tick(state); };
+					post_tick = [&target](core::ecs::commands& state) { target.post_tick(state); };
 				}
 			}
 
 			std::vector<void*> external_dependencies;
-			std::function<void(core::ecs::state&, std::chrono::duration<float>, std::chrono::duration<float>)> tick;
-			std::function<void(core::ecs::state&)> pre_tick;
-			std::function<void(core::ecs::state&)> post_tick;
+			std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)> tick;
+			std::function<void(core::ecs::commands&)> pre_tick;
+			std::function<void(core::ecs::commands&)> post_tick;
 
 			std::vector<dependency_pack> tick_dependencies;
 			std::vector<dependency_pack> pre_tick_dependencies;
@@ -1085,8 +1086,25 @@ namespace core::ecs
 		// std::unordered_map<details::component_key_t,
 	};
 
-	class deferred_instructions
+	/// \brief contains commands for the core::ecs::state to process at a later time
+	///
+	/// this class will be passed to all ecs systems that wish to get access to editing
+	/// the ECS state while the system is being executed.
+	/// There is no promise when these commands get executed, except that they will be synchronized
+	/// by the next tick event.
+	/// \warn there is an order to the commands, the command with least precedence is the add_components
+	/// commands, followed by remove_components commands. After which the create entity command has precedence
+	/// and finally the destroy entity. This means adding an entity, adding components, and then destroying it 
+	/// turns into a no-op.
+	/// \warn the precedence of commands persists between several command blocks. This means that even if command
+	/// block 'A' adds components, if command block 'B' removes them, it will be as if they never existed.
+	/// \warn entities and components that are created and destroyed immediately are not visible to the systems.
+	/// you will not receive on_add and other filter instructions from these objects.
+	class commands final
 	{
+		friend class ecs::state;
+		// only our good friend ecs::state should be able to create us. This is to prevent misuse.
+		commands() = default ;
 	public:
 		// -----------------------------------------------------------------------------
 		// add component
@@ -1133,7 +1151,7 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			details::remove_component(m_EntityMap, m_Components, entities);
+			details::remove_component<T>(m_EntityMap, m_Components, entities);
 		}
 
 		template <typename... Ts>

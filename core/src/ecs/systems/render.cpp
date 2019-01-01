@@ -33,7 +33,7 @@ render::render(core::ecs::state& state,
 }
 
 
-void render::tick(ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void render::tick(ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;

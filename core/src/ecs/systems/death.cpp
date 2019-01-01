@@ -13,8 +13,8 @@ death::death(state& state)
 	state.register_dependency(*this, ecs::tick{}, m_Dead);
 }
 
-void death::tick(state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void death::tick(commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
-	state.destroy(m_Dead.get<core::ecs::entity>());
+	commands.destroy(m_Dead.get<core::ecs::entity>());
 }

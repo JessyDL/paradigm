@@ -16,7 +16,7 @@ namespace core::ecs::systems
 	public:
 		movement(core::ecs::state& state);
 
-		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
+		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	private:
 	};

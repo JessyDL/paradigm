@@ -14,7 +14,7 @@ namespace core::ecs::systems
 	public:
 		lifetime(core::ecs::state& state);
 
-		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
+		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	private:
 		core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> m_Lifetime;

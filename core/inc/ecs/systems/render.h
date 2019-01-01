@@ -65,7 +65,7 @@ namespace core::ecs::systems
 		render(render&&) = delete;
 		render& operator=(const render&) = delete;
 		render& operator=(render&&) = delete;
-		void tick(core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
+		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	  private:
 		void update_buffer(size_t index, const core::ecs::components::transform& transform,
