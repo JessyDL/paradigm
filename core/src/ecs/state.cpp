@@ -150,8 +150,9 @@ void state::tick(std::chrono::duration<float> dTime)
 			core::profiler.scope_end();
 		}
 		core::profiler.scope_end();
-		commands cmds;
+		commands cmds{ *this, mID };
 		std::invoke(system.second.tick, cmds, dTime, dTime);
+		execute_commands(cmds);
 		for(const auto& dep_pack : sBindings)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
@@ -287,4 +288,16 @@ void state::fill_in(psl::array_view<entity> entities, details::component_key_t i
 		void* loc  = (void*)(data + size * index);
 		std::memcpy((void*)((std::uintptr_t)out + (i * size)), loc, size);
 	}
+}
+
+commands::commands(state& state, uint64_t id_offset)	:	m_State(state), m_StartID(id_offset), mID(id_offset)
+{
+
+}
+
+void state::execute_commands(commands& cmds)
+{
+	// add components
+	auto id_offset = mID - cmds.mID;
+	//for(auto entity : cmds.)
 }

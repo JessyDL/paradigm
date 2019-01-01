@@ -176,7 +176,10 @@ namespace core::ecs
 			std::vector<entity> ent_cpy = entities;
 			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [&entityMap, key](const entity& e) {
 				auto eMapIt = entityMap.find(e);
-				if(eMapIt == std::end(entityMap)) return true;
+				if (eMapIt == std::end(entityMap))
+				{
+					return true;
+				}
 
 				for(auto eComp : eMapIt->second)
 				{
@@ -188,6 +191,7 @@ namespace core::ecs
 			ent_cpy.resize(std::distance(std::begin(ent_cpy), end));
 			return ent_cpy;
 		}
+
 
 		template<typename T>
 		component_info& get_component_info(details::key_value_container_t<details::component_key_t, details::component_info>& components)
@@ -1036,6 +1040,62 @@ namespace core::ecs
 			}
 		}
 
+		bool exists(entity e) const noexcept
+		{
+			return m_EntityMap.find(e) != std::end(m_EntityMap);
+		}
+		template<typename T>
+		bool has_component(entity e) const noexcept
+		{
+			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
+			if (auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+			{
+				return std::any_of(std::begin(eIt->second), std::end(eIt->second), [&key](const std::pair<details::component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
+			}
+
+			return false;
+		}
+
+		template<typename... Ts>
+		bool has_components(entity e) const noexcept
+		{
+			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
+			if (auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+			{
+				return std::all_of(std::begin(keys), std::end(keys), [&eIt](const details::component_key_t& key)
+				{
+					return std::any_of(std::begin(eIt->second), std::end(eIt->second), [&key](const std::pair<details::component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
+				});			
+			}
+			return false;
+		}
+
+
+		// will return false when the entity does not exist either
+		template<typename T>
+		bool is_owned_by(entity e, const T& component)
+		{
+			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
+			if (auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+			{
+				if (auto compIt = std::find_if(std::begin(eIt->second), std::end(eIt->second), [&key](const std::pair<details::component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
+					compIt != std::end(eIt->second))
+				{
+					auto compDataIt = m_Components.find(key);
+					auto diff = &component - (T*)compDataIt->second.region.data();
+					return compIt->second == diff;
+				}
+				return false;
+			}
+			return false;
+		}
+
+		template<typename... Ts>
+		bool is_owned_by(entity e, const Ts&... components)
+		{
+			return false;
+		}
+
 	  private:
 		void set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id);
 		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys,
@@ -1054,6 +1114,8 @@ namespace core::ecs
 			out.resize(entities.size());
 			return fill_in(entities, details::component_key<details::remove_all<T>>, out.data());
 		}
+
+		void execute_commands(commands& cmds);
 
 		uint64_t mID{0u};
 		/// \brief gets what components this entity uses, and which index it lives on.
@@ -1104,7 +1166,17 @@ namespace core::ecs
 	{
 		friend class ecs::state;
 		// only our good friend ecs::state should be able to create us. This is to prevent misuse.
-		commands() = default ;
+		commands(state& state, uint64_t id_offset);
+
+	private:
+		void verify_entities(psl::array_view<entity> entities)
+		{
+			for (auto entity : entities)
+			{
+				if (entity < m_StartID && !m_State.exists(entity))
+					m_EntityMap.emplace(entity, std::vector<std::pair<details::component_key_t, size_t>>{});
+			}
+		}
 	public:
 		// -----------------------------------------------------------------------------
 		// add component
@@ -1113,6 +1185,7 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
+			verify_entities(entities);
 			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template));
 		}
 
@@ -1151,7 +1224,11 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			details::remove_component<T>(m_EntityMap, m_Components, entities);
+			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
+			for (auto entity : entities)
+			{
+				m_ErasedComponents[entity].emplace_back(key);
+			}
 		}
 
 		template <typename... Ts>
@@ -1225,6 +1302,8 @@ namespace core::ecs
 		details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;
 		details::key_value_container_t<details::component_key_t, details::component_info> m_Components;
 
+		state& m_State;
 		uint64_t mID{0u};
+		uint64_t m_StartID{0u};
 	};
 } // namespace core::ecs
