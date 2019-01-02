@@ -193,15 +193,14 @@ namespace core::ecs
 		}
 
 
-		template<typename T>
-		component_info& get_component_info(details::key_value_container_t<details::component_key_t, details::component_info>& components)
+
+		static component_info& get_component_info(details::component_key_t key, size_t component_size, details::key_value_container_t<details::component_key_t, details::component_info>& components)
 		{
-			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
 			auto it = components.find(key);
 			if(it == components.end())
 			{
 				core::profiler.scope_begin("create backing storage");
-				if constexpr(std::is_empty<T>::value)
+				if (component_size == 1)
 				{
 					components.emplace(key, details::component_info{{}, key});
 				}
@@ -209,13 +208,38 @@ namespace core::ecs
 				{
 					components.emplace(
 						key, details::component_info{
-							memory::raw_region{1024 * 1024 * 128}, {}, key, (size_t)sizeof(T)});
+							memory::raw_region{1024 * 1024 * 128}, {}, key, component_size});
 				}
 				it = components.find(key);
 				core::profiler.scope_end();
 			}
 			return it->second;
 		}
+
+		template<typename T>
+		static component_info& get_component_info(details::key_value_container_t<details::component_key_t, details::component_info>& components)
+		{
+			constexpr auto key = details::component_key<details::remove_all<T>>;
+			auto it = components.find(key);
+			if(it == components.end())
+			{
+				core::profiler.scope_begin("create backing storage");
+				if (std::is_empty<T>::value)
+				{
+					components.emplace(key, details::component_info{{}, key});
+				}
+				else
+				{
+					components.emplace(
+						key, details::component_info{
+							memory::raw_region{1024 * 1024 * 128}, {}, key, sizeof(T)});
+				}
+				it = components.find(key);
+				core::profiler.scope_end();
+			}
+			return it->second;
+		}
+
 		template <typename T>
 		void add_component(
 			details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
@@ -526,6 +550,48 @@ namespace core::ecs
 			std::vector<dependency_pack> pre_tick_dependencies;
 			std::vector<dependency_pack> post_tick_dependencies;
 		};
+
+		template<typename Fn>
+		void copy_components(details::component_key_t key, psl::array_view<entity> entities, const size_t component_size, Fn&& function)
+		{
+			static_assert(std::is_same<typename std::invoke_result<Fn, entity>::type, std::uintptr_t>::value, "the return value must be a location in memory");
+
+			if (entities.size() == 0)
+				return;
+
+			auto& cInfo{ details::get_component_info(key, component_size, m_Components) };
+			uint64_t component_location;
+			if (cInfo.generator.CreateRangeID(component_location, entities.size()))
+			{
+				cInfo.entities.insert(std::end(cInfo.entities), std::begin(entities), std::end(entities));
+				for (auto e : entities)
+				{
+					std::uintptr_t source = std::invoke(function, e);
+					std::uintptr_t destination = (std::uintptr_t)cInfo.region.data() + component_location * component_size;
+					std::memcpy((void*)destination, (void*)source, component_size);
+					m_EntityMap[e].emplace_back(std::pair<details::component_key_t, size_t>{key, component_location});
+					++component_location;
+				}
+			}
+			else
+			{
+				auto halfway_it = std::next(std::begin(entities), entities.size() / 2);
+				if (halfway_it != std::end(entities) && halfway_it != std::begin(entities))
+				{
+					copy_components(key, psl::array_view<entity>(std::begin(entities), halfway_it), component_size, std::forward<Fn>(function));
+					copy_components(key, psl::array_view<entity>(halfway_it, std::end(entities)), component_size, std::forward<Fn>(function));
+				}
+				else
+				{
+					auto it = std::begin(entities);
+					for (auto e : entities)
+					{
+						copy_components(key, psl::array_view<entity>(it, std::next(it)), component_size, std::forward<Fn>(function));
+						it = std::next(it);
+					}
+				}
+			}
+		}
 		public:
 		// -----------------------------------------------------------------------------
 		// add component
@@ -1169,6 +1235,13 @@ namespace core::ecs
 		commands(state& state, uint64_t id_offset);
 
 	private:
+
+		/// \brief verify the entities exist locally
+		///
+		/// Entities might exist, but not be present in the command queue's local data containers,
+		/// this command makes sure that entities that exist in the ecs::state are then replicated 
+		/// locally so that components can be added.
+		/// \param[in] entities the entity list to verify
 		void verify_entities(psl::array_view<entity> entities)
 		{
 			for (auto entity : entities)
@@ -1260,8 +1333,11 @@ namespace core::ecs
 				m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
-			for(size_t i = 0u; i < count; ++i)
+			for (size_t i = 0u; i < count; ++i)
+			{
+				m_NewEntities.emplace_back(mID);
 				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
+			}
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components<Ts...>(result);
@@ -1276,8 +1352,11 @@ namespace core::ecs
 				m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
-			for(size_t i = 0u; i < count; ++i)
+			for (size_t i = 0u; i < count; ++i)
+			{
+				m_NewEntities.emplace_back(mID);
 				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
+			}
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components(result, std::forward<Ts>(args)...);
@@ -1294,7 +1373,13 @@ namespace core::ecs
 		}
 
 	private:
+		/// \brief applies the changeset to the local data for processing
+		///
+		/// conflicting commands, such as adding and removing components get resolved locally first
+		/// before we process the final commands.
+		void apply();
 		std::vector<entity> m_MarkedForDestruction;
+		std::vector<entity> m_NewEntities;
 
 		details::key_value_container_t<entity, std::vector<details::component_key_t>> m_ErasedComponents;
 

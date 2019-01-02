@@ -150,7 +150,7 @@ void state::tick(std::chrono::duration<float> dTime)
 			core::profiler.scope_end();
 		}
 		core::profiler.scope_end();
-		commands cmds{ *this, mID };
+		commands cmds{*this, mID};
 		std::invoke(system.second.tick, cmds, dTime, dTime);
 		execute_commands(cmds);
 		for(const auto& dep_pack : sBindings)
@@ -290,14 +290,78 @@ void state::fill_in(psl::array_view<entity> entities, details::component_key_t i
 	}
 }
 
-commands::commands(state& state, uint64_t id_offset)	:	m_State(state), m_StartID(id_offset), mID(id_offset)
-{
+commands::commands(state& state, uint64_t id_offset) : m_State(state), m_StartID(id_offset), mID(id_offset) {}
 
+void commands::apply()
+{
+	std::vector<entity> added_entities;
+	std::vector<entity> removed_entities;
+	std::vector<entity> destroyed_entities;
+	std::set_difference(std::begin(m_NewEntities), std::end(m_NewEntities), std::begin(m_MarkedForDestruction),
+						std::end(m_MarkedForDestruction), std::back_inserter(added_entities));
+	std::set_difference(std::begin(m_NewEntities), std::end(m_NewEntities), std::begin(added_entities),
+						std::end(added_entities), std::back_inserter(removed_entities));
+	std::set_difference(std::begin(m_MarkedForDestruction), std::end(m_MarkedForDestruction),
+						std::begin(removed_entities), std::end(removed_entities),
+						std::back_inserter(destroyed_entities));
+
+	for(auto& [key, cInfo] : m_Components)
+	{
+		std::vector<ecs::entity> actual_entities;
+		std::set_difference(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(removed_entities),
+							std::end(removed_entities), std::back_inserter(actual_entities));
+		cInfo.entities = actual_entities;
+	}
+
+	m_ErasedComponents.erase(
+		std::remove_if(
+			std::begin(m_ErasedComponents), std::end(m_ErasedComponents),
+			[&removed_entities](const std::pair<core::ecs::entity, std::vector<details::component_key_t>>& comp_pair) {
+				return std::find(std::begin(removed_entities), std::end(removed_entities), comp_pair.first) !=
+					   std::end(removed_entities);
+			}),
+		std::end(m_ErasedComponents));
+
+
+	m_NewEntities		   = added_entities;
+	m_MarkedForDestruction = destroyed_entities;
 }
 
 void state::execute_commands(commands& cmds)
 {
+	cmds.apply();
+	// we shift the current ID with the difference of the highest ID generated in the command
+	const auto generated_id_n  = cmds.mID - cmds.m_StartID;
+	const auto id_difference_n = mID - cmds.m_StartID;
+	mID += generated_id_n;
+
+	// add entities
+	for(auto e : cmds.m_NewEntities)
+	{
+		entity newEntity{e.id() + id_difference_n};
+		m_EntityMap.emplace(newEntity, std::vector<std::pair<details::component_key_t, size_t>>{});
+	}
+
 	// add components
-	auto id_offset = mID - cmds.mID;
-	//for(auto entity : cmds.)
+	const auto& entityMap = cmds.m_EntityMap;
+	for(const auto& [key, cInfo] : cmds.m_Components)
+	{
+		copy_components(key, cInfo.entities, cInfo.size, [&key, &id_difference_n, &cInfo, &entityMap](entity e) {
+			entity oldEntity{e.id() - id_difference_n};
+			auto eIt = entityMap.find(oldEntity);
+			auto cIt = std::find_if(
+				std::begin(eIt->second), std::end(eIt->second),
+				[&key](const std::pair<details::component_key_t, size_t> keyPair) { return key == keyPair.first; });
+			return ((std::uintptr_t)cInfo.region.data() + (cInfo.size * cIt->second));
+		});
+	}
+
+	for(const auto& [entity, cInfoVec] : cmds.m_EntityMap)
+	{
+		for(const auto& [key, cInfo] : cInfoVec)
+		{
+			// memcpy all components from the command into the real one.
+			//add_component()
+		}
+	}
 }
