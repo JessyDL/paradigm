@@ -792,7 +792,7 @@ int entry()
 		ECSState.destroy(all_geom);
 		*/
 		ECSState.create(
-			120, 
+			12, 
 			[&material, &geometryHandles, &material2](size_t index)
 			{ 
 				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};
@@ -805,7 +805,7 @@ int entry()
 							  (float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps)};
 			}*/,
-			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
+			[](size_t index) { return core::ecs::components::lifetime{.1f + ((std::rand() % 50) / 50.0f) * 1.0f}; },
 			[&size_steps](size_t index) {
 				return core::ecs::components::velocity{
 					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,

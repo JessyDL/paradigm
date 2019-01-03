@@ -40,7 +40,8 @@ namespace core::ecs
 	namespace details
 	{
 		template <typename KeyT, typename ValueT>
-		using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
+		//using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
+		using key_value_container_t = std::unordered_map<KeyT, ValueT>;
 
 		template <typename T>
 		struct is_tag : std::false_type
@@ -560,8 +561,16 @@ namespace core::ecs
 				return;
 
 			auto& cInfo{ details::get_component_info(key, component_size, m_Components) };
-			uint64_t component_location;
-			if (cInfo.generator.CreateRangeID(component_location, entities.size()))
+			uint64_t component_location{0};
+			if (component_size == 1)
+			{
+				cInfo.entities.insert(std::end(cInfo.entities), std::begin(entities), std::end(entities));
+				for (auto e : entities)
+				{
+					m_EntityMap[e].emplace_back(std::pair<details::component_key_t, size_t>{key, component_location});
+				}
+			}
+			else if ((entities.size() == 1 && cInfo.generator.CreateID(component_location)) || cInfo.generator.CreateRangeID(component_location, entities.size()))
 			{
 				cInfo.entities.insert(std::end(cInfo.entities), std::begin(entities), std::end(entities));
 				for (auto e : entities)
@@ -592,6 +601,7 @@ namespace core::ecs
 				}
 			}
 		}
+		void destroy_component_generator_ids(details::component_info& cInfo, psl::array_view<entity> entities);
 		public:
 		// -----------------------------------------------------------------------------
 		// add component
@@ -600,7 +610,7 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
-			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template), m_AddedComponents);
+			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template), m_StateChange[(m_Tick + 1 )%2].added_components);
 		}
 
 		template <typename T>
@@ -634,11 +644,11 @@ namespace core::ecs
 
 		// -----------------------------------------------------------------------------
 		// remove component
-		// -----------------------------------------------------------------------------
+		// -----------------------------------------------------------------------------	private:
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			details::remove_component<T>(m_EntityMap, m_Components, entities, m_RemovedComponents);
+			details::remove_component<T>(m_EntityMap, m_Components, entities, m_StateChange[(m_Tick + 1 )%2].removed_components);
 		}
 
 		template <typename... Ts>
@@ -874,12 +884,12 @@ namespace core::ecs
 
 		std::vector<entity> filter_on_add(std::vector<details::component_key_t> keys) const
 		{
-			return dynamic_filter(keys, m_AddedComponents);
+			return dynamic_filter(keys, m_StateChange[m_Tick%2].added_components);
 		}
 
 		std::vector<entity> filter_on_remove(std::vector<details::component_key_t> keys) const
 		{
-			return dynamic_filter(keys, m_RemovedComponents);
+			return dynamic_filter(keys, m_StateChange[m_Tick%2].removed_components);
 		}
 
 		std::vector<entity> filter_except(std::vector<details::component_key_t> keys) const
@@ -890,7 +900,7 @@ namespace core::ecs
 		std::vector<entity> filter_on_combine(std::vector<details::component_key_t> keys) const
 		{
 			std::sort(std::begin(keys), std::end(keys));
-			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_AddedComponents)};
+			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick%2].added_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
 			std::vector<details::component_key_t> remaining_keys{};
@@ -898,7 +908,7 @@ namespace core::ecs
 			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
 				std::back_inserter(remaining_keys));
 
-			auto entities = dynamic_filter(added_keys, m_AddedComponents);
+			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick%2].added_components);
 			if(remaining_keys.size() > 0)
 				return dynamic_filter(remaining_keys, entities);
 
@@ -908,14 +918,14 @@ namespace core::ecs
 		std::vector<entity> filter_on_break(std::vector<details::component_key_t> keys) const
 		{
 			std::sort(std::begin(keys), std::end(keys));
-			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_RemovedComponents)};
+			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick%2].removed_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
 			std::vector<details::component_key_t> remaining_keys{};
 
 			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
 				std::back_inserter(remaining_keys));
-			auto entities = dynamic_filter(added_keys, m_RemovedComponents);
+			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick%2].removed_components);
 			if(remaining_keys.size() > 0)
 				return dynamic_filter(remaining_keys, entities);
 
@@ -1206,10 +1216,23 @@ namespace core::ecs
 		memory::raw_region m_Cache{1024 * 1024 * 32};
 
 		// keep track of changed data
-		std::vector<entity> m_AddedEntities;
-		std::vector<entity> m_RemovedEntities;
-		details::key_value_container_t<details::component_key_t, std::vector<entity>> m_AddedComponents;
-		details::key_value_container_t<details::component_key_t, std::vector<entity>> m_RemovedComponents;
+		struct difference_set
+		{
+			void clear()
+			{
+				added_entities.clear();
+				removed_entities.clear();
+				added_components.clear();
+				removed_components.clear();
+			}
+			std::vector<entity> added_entities;
+			std::vector<entity> removed_entities;
+			details::key_value_container_t<details::component_key_t, std::vector<entity>> added_components;
+			details::key_value_container_t<details::component_key_t, std::vector<entity>> removed_components;
+		};
+
+		std::array<difference_set, 2> m_StateChange;
+		size_t m_Tick{ 0 };
 
 		// std::unordered_map<details::component_key_t,
 	};
@@ -1246,7 +1269,7 @@ namespace core::ecs
 		{
 			for (auto entity : entities)
 			{
-				if (entity < m_StartID && !m_State.exists(entity))
+				if (entity <= m_StartID && m_State.exists(entity))
 					m_EntityMap.emplace(entity, std::vector<std::pair<details::component_key_t, size_t>>{});
 			}
 		}
@@ -1258,6 +1281,8 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
+			if (entities.size() == 0)
+				return;
 			verify_entities(entities);
 			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template));
 		}
@@ -1297,11 +1322,10 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
+			if (entities.size() == 0)
+				return;
 			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
-			for (auto entity : entities)
-			{
-				m_ErasedComponents[entity].emplace_back(key);
-			}
+			m_ErasedComponents[key].insert(std::end(m_ErasedComponents[key]), std::begin(entities), std::end(entities));
 		}
 
 		template <typename... Ts>
@@ -1329,6 +1353,8 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> create(size_t count) noexcept
 		{
+			if (count == 0)
+				return {};
 			PROFILE_SCOPE(core::profiler)
 				m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
@@ -1348,6 +1374,8 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> create(size_t count, Ts&&... args) noexcept
 		{
+			if (count == 0)
+				return {};
 			PROFILE_SCOPE(core::profiler)
 				m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
@@ -1369,6 +1397,8 @@ namespace core::ecs
 		// -----------------------------------------------------------------------------
 		void destroy(psl::array_view<entity> entities)
 		{
+			if (entities.size() == 0)
+				return;
 			m_MarkedForDestruction.insert(std::end(m_MarkedForDestruction), std::begin(entities), std::end(entities));
 		}
 
@@ -1377,11 +1407,11 @@ namespace core::ecs
 		///
 		/// conflicting commands, such as adding and removing components get resolved locally first
 		/// before we process the final commands.
-		void apply();
+		void apply(size_t id_difference_n);
 		std::vector<entity> m_MarkedForDestruction;
 		std::vector<entity> m_NewEntities;
 
-		details::key_value_container_t<entity, std::vector<details::component_key_t>> m_ErasedComponents;
+		details::key_value_container_t<details::component_key_t, std::vector<entity>> m_ErasedComponents;
 
 		// these are reserved for added components only, not to be confused with dynamic editing of components
 		details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> m_EntityMap;

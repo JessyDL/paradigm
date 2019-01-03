@@ -25,5 +25,5 @@ void systems::lifetime::tick(commands& commands, std::chrono::duration<float> dT
 	}
 
 	commands.add_component<dead_tag>(dead_entities);
-	commands.remove_component<lifetime>(dead_entities);
+	commands.remove_component<components::lifetime>(dead_entities);
 }

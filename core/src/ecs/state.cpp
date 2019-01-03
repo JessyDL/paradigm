@@ -6,6 +6,8 @@ using namespace core::ecs;
 void state::destroy(psl::array_view<entity> entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)
+	if (entities.size() == 0)
+		return;
 
 	ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
 	ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
@@ -79,6 +81,7 @@ void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e 
 void state::tick(std::chrono::duration<float> dTime)
 {
 	PROFILE_SCOPE(core::profiler)
+	++m_Tick;
 	for(auto& system : m_Systems)
 	{
 		core::profiler.scope_begin("ticking system");
@@ -165,11 +168,7 @@ void state::tick(std::chrono::duration<float> dTime)
 		core::profiler.scope_end();
 	}
 
-
-	m_AddedEntities.clear();
-	m_RemovedEntities.clear();
-	m_AddedComponents.clear();
-	m_RemovedComponents.clear();
+	m_StateChange[m_Tick % 2].clear();
 }
 
 void state::set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id)
@@ -292,7 +291,7 @@ void state::fill_in(psl::array_view<entity> entities, details::component_key_t i
 
 commands::commands(state& state, uint64_t id_offset) : m_State(state), m_StartID(id_offset), mID(id_offset) {}
 
-void commands::apply()
+void commands::apply(size_t id_difference_n)
 {
 	std::vector<entity> added_entities;
 	std::vector<entity> removed_entities;
@@ -311,44 +310,111 @@ void commands::apply()
 		std::set_difference(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(removed_entities),
 							std::end(removed_entities), std::back_inserter(actual_entities));
 		cInfo.entities = actual_entities;
+		for (auto& e : cInfo.entities)
+		{
+			if (e.id() > m_StartID)
+				e = entity{ e.id() + id_difference_n };
+		}
 	}
 
-	m_ErasedComponents.erase(
-		std::remove_if(
-			std::begin(m_ErasedComponents), std::end(m_ErasedComponents),
-			[&removed_entities](const std::pair<core::ecs::entity, std::vector<details::component_key_t>>& comp_pair) {
-				return std::find(std::begin(removed_entities), std::end(removed_entities), comp_pair.first) !=
-					   std::end(removed_entities);
-			}),
-		std::end(m_ErasedComponents));
+	for (auto&[key, entities] : m_ErasedComponents)
+	{
+		std::vector<entity> removed_components;
+		std::set_difference(std::begin(entities), std::end(entities), std::begin(removed_entities),
+			std::end(removed_entities), std::back_inserter(removed_components));
 
+		entities = removed_components;
+		for (auto& e : entities)
+		{
+			if (e.id() > m_StartID)
+				e = entity{ e.id() + id_difference_n };
+		}
+	}
 
 	m_NewEntities		   = added_entities;
 	m_MarkedForDestruction = destroyed_entities;
+	for (auto& e : added_entities)
+	{
+		if (e.id() > m_StartID)
+			e = entity{ e.id() + id_difference_n };
+	}
+	for (auto& e : destroyed_entities)
+	{
+		if (e.id() > m_StartID)
+			e = entity{ e.id() + id_difference_n };
+	}
+
+	details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> old_entity_map{ std::move(m_EntityMap) };
+	m_EntityMap = details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>{};
+	for (auto&[e, vec] : old_entity_map)
+	{
+		entity ent{e};
+		if (e.id() > m_StartID)
+			ent = entity{ e.id() + id_difference_n };
+		
+		m_EntityMap.emplace(ent, std::move(vec));
+	}
+}
+
+
+void state::destroy_component_generator_ids(details::component_info& cInfo, psl::array_view<entity> entities)
+{
+	if (entities.size() == 0)
+		return;
+	std::vector<size_t> IDs;
+	for (auto e : entities)
+	{
+		if (auto it = m_EntityMap.find(e); it != std::end(m_EntityMap))
+		{
+			auto pair = std::remove_if(std::begin(it->second), std::end(it->second), [&cInfo](const std::pair<details::component_key_t, size_t>& pair)
+			{ return pair.first == cInfo.id; });
+			if (pair == std::end(it->second))
+				continue;
+			IDs.emplace_back(pair->second);
+			it->second.erase(pair, std::end(it->second));
+		}
+	}
+	if (IDs.size() == 0)
+		return;
+	std::sort(std::begin(IDs), std::end(IDs));
+	size_t cachedStartIndex = IDs[0];
+	size_t cachedPrevIndex = IDs[0];
+	for (auto i = 1; i < IDs.size(); ++i)
+	{
+		++cachedPrevIndex;
+		if (IDs[i] != cachedPrevIndex)
+		{
+			cInfo.generator.DestroyRangeID(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
+
+			cachedPrevIndex = IDs[i];
+			cachedStartIndex = IDs[i];
+		}
+	}
+	cInfo.generator.DestroyRangeID(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
 }
 
 void state::execute_commands(commands& cmds)
 {
-	cmds.apply();
 	// we shift the current ID with the difference of the highest ID generated in the command
-	const auto generated_id_n  = cmds.mID - cmds.m_StartID;
 	const auto id_difference_n = mID - cmds.m_StartID;
-	mID += generated_id_n;
+	cmds.apply(id_difference_n);
+	mID += cmds.mID - cmds.m_StartID;
 
 	// add entities
-	for(auto e : cmds.m_NewEntities)
+	if (cmds.m_NewEntities.size() > 0)
 	{
-		entity newEntity{e.id() + id_difference_n};
-		m_EntityMap.emplace(newEntity, std::vector<std::pair<details::component_key_t, size_t>>{});
+		for (auto e : cmds.m_NewEntities)
+		{
+			m_EntityMap.emplace(e, std::vector<std::pair<details::component_key_t, size_t>>{});
+		}
+		m_StateChange[(m_Tick + 1) % 2].added_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_entities), std::begin(cmds.m_NewEntities), std::end(cmds.m_NewEntities));
 	}
-
 	// add components
 	const auto& entityMap = cmds.m_EntityMap;
 	for(const auto& [key, cInfo] : cmds.m_Components)
 	{
-		copy_components(key, cInfo.entities, cInfo.size, [&key, &id_difference_n, &cInfo, &entityMap](entity e) {
-			entity oldEntity{e.id() - id_difference_n};
-			auto eIt = entityMap.find(oldEntity);
+		copy_components(key, cInfo.entities, cInfo.size, [&key, &cInfo, &entityMap](entity e) {
+			auto eIt = entityMap.find(e);
 			auto cIt = std::find_if(
 				std::begin(eIt->second), std::end(eIt->second),
 				[&key](const std::pair<details::component_key_t, size_t> keyPair) { return key == keyPair.first; });
@@ -356,12 +422,21 @@ void state::execute_commands(commands& cmds)
 		});
 	}
 
-	for(const auto& [entity, cInfoVec] : cmds.m_EntityMap)
+	// remove entities
+	destroy(cmds.m_MarkedForDestruction);
+
+	for (const auto&[key, entities] : cmds.m_ErasedComponents)
 	{
-		for(const auto& [key, cInfo] : cInfoVec)
-		{
-			// memcpy all components from the command into the real one.
-			//add_component()
-		}
+		if (entities.size() == 0)
+			continue;
+		std::vector<entity> erased_entities;
+		auto compIt = m_Components.find(key);
+		if (compIt == std::end(m_Components))
+			continue;
+		std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities), std::end(compIt->second.entities), std::back_inserter(erased_entities));
+		destroy_component_generator_ids(compIt->second, erased_entities);
+		std::vector<entity> remaining_entities;
+		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities), std::begin(erased_entities), std::end(erased_entities), std::back_inserter(remaining_entities));
+		compIt->second.entities = remaining_entities;
 	}
 }
