@@ -39,6 +39,7 @@ matrix:
             - doxygen-doc
             - doxygen-latex
             - graphviz
+            - python3
       deploy:
         provider: pages
         skip-cleanup: true
