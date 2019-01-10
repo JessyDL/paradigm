@@ -30,7 +30,7 @@ const psl::string8_t UID::to_string() const
 {
 	psl::string8_t str;
 	str.resize(37);
-	sprintf_s(str.data(),str.size(),
+	snprintf(str.data(),str.size(),
 		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
 		GUID[3], GUID[2], GUID[1], GUID[0], GUID[5], GUID[4], GUID[7], GUID[6],
 		GUID[8], GUID[9], GUID[10], GUID[11], GUID[12], GUID[13], GUID[14], GUID[15]
