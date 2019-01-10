@@ -4,7 +4,6 @@ set(LOCAL_PROJECT ${PROJECT_PSL})
 project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 
 include(FetchContent)
-set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 
 FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 5.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(fmt)
