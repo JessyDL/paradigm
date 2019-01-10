@@ -107,11 +107,13 @@ if(condition)	\
 	debug_break();			\
 }							\
 
-#define assert(condition) \
-if(condition)	\
-{							\
-	debug_break();			\
-}							\
+#if !defined(assert)
+	#define assert(condition) \
+	if(condition)	\
+	{							\
+		debug_break();			\
+	}
+#endif // !assert
 
 #if !defined(NDEBUG) || (NDEBUG == 0)
 #define dbg_assert(expr)                                                                                               \
