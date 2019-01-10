@@ -194,7 +194,7 @@ psl::string profiler::to_string() const
 		const auto& frame_data = m_Frames[i];
 		std::chrono::microseconds duration = (frame_data.duration.count() == 0) ? frame_data.m_Timer.elapsed<std::chrono::microseconds>() - init_timer.elapsed< std::chrono::microseconds>() : frame_data.duration;
 		res += "--------------------------------------------------------------------------------\nframe\n";
-		res += "\t duration: " + utility::converter<typename decltype(duration.count())>::to_string(duration.count()) + u8"μs\n";
+		res += "\t duration: " + utility::converter<decltype(duration.count())>::to_string(duration.count()) + u8"μs\n";
 		res += "\t invocations: " + utility::converter<size_t>::to_string(frame_data.m_Scopes.size()) + "\n";
 		for(const auto& scope : frame_data.m_Scopes)
 		{

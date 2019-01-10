@@ -114,7 +114,7 @@ namespace psl
 			}
 
 			template<typename T>
-			auto get()	-> typename decltype(*std::get<typename psl::array_view<T>::iterator>(std::declval<iterator_element_t>()))
+			auto get()	-> decltype(*std::get<typename psl::array_view<T>::iterator>(std::declval<iterator_element_t>()))
 			{
 				using array_view_t = psl::array_view<T>;
 				static_assert(utility::templates::tuple_contains_type<array_view_t, range_t>::value, "the requested component type does not exist in the pack");
