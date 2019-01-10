@@ -569,6 +569,7 @@ namespace core::ecs
 				{
 					m_EntityMap[e].emplace_back(std::pair<details::component_key_t, size_t>{key, component_location});
 				}
+				std::sort(std::begin(cInfo.entities), std::end(cInfo.entities));
 			}
 			else if ((entities.size() == 1 && cInfo.generator.CreateID(component_location)) || cInfo.generator.CreateRangeID(component_location, entities.size()))
 			{
@@ -581,6 +582,7 @@ namespace core::ecs
 					m_EntityMap[e].emplace_back(std::pair<details::component_key_t, size_t>{key, component_location});
 					++component_location;
 				}
+				std::sort(std::begin(cInfo.entities), std::end(cInfo.entities));
 			}
 			else
 			{

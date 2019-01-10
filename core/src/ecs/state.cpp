@@ -155,7 +155,6 @@ void state::tick(std::chrono::duration<float> dTime)
 		core::profiler.scope_end();
 		commands cmds{*this, mID};
 		std::invoke(system.second.tick, cmds, dTime, dTime);
-		execute_commands(cmds);
 		for(const auto& dep_pack : sBindings)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
@@ -165,6 +164,7 @@ void state::tick(std::chrono::duration<float> dTime)
 				set(dep_pack.m_StoredEnts, (void*)data, size, rwBinding.first);
 			}
 		}
+		execute_commands(cmds);
 		core::profiler.scope_end();
 	}
 
@@ -175,7 +175,8 @@ void state::set(psl::array_view<entity> entities, void* data, size_t size, detai
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& mem_pair = m_Components.find(id);
-
+	if(mem_pair == std::end(m_Components) || mem_pair->second.size == 1)
+		return;
 	std::uintptr_t data_loc = (std::uintptr_t)data;
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
