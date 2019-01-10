@@ -35,6 +35,7 @@ const psl::string8_t UID::to_string() const
 		GUID[3], GUID[2], GUID[1], GUID[0], GUID[5], GUID[4], GUID[7], GUID[6],
 		GUID[8], GUID[9], GUID[10], GUID[11], GUID[12], GUID[13], GUID[14], GUID[15]
 	);
+	str.resize(36);
 	return str;
 
 	/*uuid_components& result = *(uuid_components*)(GUID.data());
