@@ -21,7 +21,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
     - name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true CMAKE_VERSION="3.13.2"
       addons: &clang60
         apt:
           sources:
@@ -49,13 +49,14 @@ matrix:
         on:
           branch: develop
     - name: "Linux CLang 6.0 Unit Tests"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true CMAKE_VERSION="3.13.2"
       addons: *clang60
       
 
 install:
   - export CXX=${COMPILER}
   - ${CXX} --version
+  - echo ${TRAVIS_OS_NAME}
   
   - DEPS_DIR="$HOME/cache"
   
@@ -64,17 +65,18 @@ install:
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
       mkdir $HOME/usr
       export PATH="$HOME/usr/bin:$PATH"
-      if [ -e "$HOME/cache/cmake/cmake.sh" ]; then
+      if [ -e "$HOME/cache/cmake/cmake-${CMAKE_VERSION}.sh" ]; then
           cd $HOME/cache/cmake
       else
         mkdir -p $HOME/cache/cmake
         cd $HOME/cache/cmake
-        wget -O cmake.sh https://cmake.org/files/v3.13/cmake-3.13.0-rc2-Linux-x86_64.sh
+        wget -O cmake-${CMAKE_VERSION}.sh https://github.com/Kitware/CMake/releases/download/v${CMAKE_VERSION}/cmake-${CMAKE_VERSION}-Linux-x86_64.sh
       fi
-      chmod +x cmake.sh
-      ./cmake.sh --prefix=$HOME/usr --exclude-subdir --skip-license
+      chmod +x cmake-${CMAKE_VERSION}.sh
+      ./cmake-${CMAKE_VERSION}.sh --prefix=$HOME/usr --exclude-subdir --skip-license
     fi
-    
+  - cmake --version
+  
   # Install Vulkan SDK
   - cd ~
   - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
