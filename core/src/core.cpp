@@ -792,7 +792,7 @@ int entry()
 		ECSState.destroy(all_geom);
 		*/
 		ECSState.create(
-			12, 
+			1200, 
 			[&material, &geometryHandles, &material2](size_t index)
 			{ 
 				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};

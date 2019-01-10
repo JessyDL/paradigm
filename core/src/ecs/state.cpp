@@ -74,6 +74,7 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 		}
 	}
 	core::profiler.scope_end();
+	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities), std::begin(entities), std::end(entities));
 }
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
@@ -174,8 +175,10 @@ void state::tick(std::chrono::duration<float> dTime)
 void state::set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id)
 {
 	PROFILE_SCOPE(core::profiler)
+	if(entities.size() == 0)
+		return;
 	const auto& mem_pair = m_Components.find(id);
-	if(mem_pair == std::end(m_Components) || mem_pair->second.size == 1)
+	if(mem_pair->second.size == 1)
 		return;
 	std::uintptr_t data_loc = (std::uintptr_t)data;
 	for(const auto& [i, e] : psl::enumerate(entities))
@@ -421,11 +424,13 @@ void state::execute_commands(commands& cmds)
 				[&key](const std::pair<details::component_key_t, size_t> keyPair) { return key == keyPair.first; });
 			return ((std::uintptr_t)cInfo.region.data() + (cInfo.size * cIt->second));
 		});
+		m_StateChange[(m_Tick + 1) % 2].added_components[key].insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_components[key]), std::begin(cInfo.entities), std::end(cInfo.entities));
 	}
 
 	// remove entities
 	destroy(cmds.m_MarkedForDestruction);
 
+	// remove components
 	for (const auto&[key, entities] : cmds.m_ErasedComponents)
 	{
 		if (entities.size() == 0)
@@ -439,5 +444,6 @@ void state::execute_commands(commands& cmds)
 		std::vector<entity> remaining_entities;
 		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities), std::begin(erased_entities), std::end(erased_entities), std::back_inserter(remaining_entities));
 		compIt->second.entities = remaining_entities;
+		m_StateChange[(m_Tick + 1) % 2].removed_components[key].insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_components[key]), std::begin(entities), std::end(entities));
 	}
 }
