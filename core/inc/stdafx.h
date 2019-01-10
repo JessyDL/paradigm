@@ -93,7 +93,6 @@ _ACRTIMP void __cdecl _wassert(_In_z_ wchar_t const* _Message, _In_z_ wchar_t co
 	__pragma(message("TODO: " #number "\nDescription: " #desc "\n" __FILE__ "(" STRINGIZE(__LINE__) ")"))
 
 
-#include "Logger.h"
 
 //#ifdef DEBUG
 #include <malloc.h>

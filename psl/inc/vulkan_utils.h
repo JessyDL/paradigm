@@ -3,7 +3,6 @@
 #include "ustring.h"
 #include <assert.h>
 #include <unordered_map>
-#include "Logger.h"
 
 /// \brief helper namespace that contains handy defaults and constructor helpers for Vulkan objects
 namespace utility::vulkan::defaults

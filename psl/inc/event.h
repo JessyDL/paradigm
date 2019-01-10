@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <functional>
 #include <vector>
-#include "Logger.h"
 #include "delegate.h"
 
 namespace internals

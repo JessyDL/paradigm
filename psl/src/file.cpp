@@ -2,7 +2,6 @@
 #include "file.h"
 #include "platform_def.h"
 #include "string_utils.h"
-#include "Logger.h"
 
 using namespace utility::os;
 

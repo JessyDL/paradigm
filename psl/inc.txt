@@ -13,7 +13,6 @@ inc/crc32.h
 inc/Literals.h
 inc/terminal_utils.h
 inc/delegate.h
-inc/Logger.h
 inc/timer.h
 inc/event.h
 inc/memory/allocator.h

@@ -9,7 +9,6 @@
 #include <stack>
 #include <unordered_set>
 #include "template_utils.h"
-#include "Logger.h"
 #include "crc32.h"
 #define SUPPORT_POLYMORPH
 
