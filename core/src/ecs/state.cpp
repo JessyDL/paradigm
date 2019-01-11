@@ -417,12 +417,16 @@ void state::execute_commands(commands& cmds)
 	const auto& entityMap = cmds.m_EntityMap;
 	for(const auto& [key, cInfo] : cmds.m_Components)
 	{
-		copy_components(key, cInfo.entities, cInfo.size, [&](entity e) {
+		// https://stackoverflow.com/questions/46114214/lambda-implicit-capture-fails-with-variable-declared-from-structured-binding
+		// workaround for wording in standard that is being followed by clang/gcc implicitly.
+		const auto& named_key{key};
+		const auto& named_cInfo{cInfo};
+		copy_components(key, cInfo.entities, cInfo.size, [&named_key, &named_cInfo, &entityMap](entity e) {
 			auto eIt = entityMap.find(e);
 			auto cIt = std::find_if(
 				std::begin(eIt->second), std::end(eIt->second),
-				[&key](const std::pair<details::component_key_t, size_t> keyPair) { return key == keyPair.first; });
-			return ((std::uintptr_t)cInfo.region.data() + (cInfo.size * cIt->second));
+				[&named_key](const std::pair<details::component_key_t, size_t> keyPair) { return named_key == keyPair.first; });
+			return ((std::uintptr_t)named_cInfo.region.data() + (named_cInfo.size * cIt->second));
 		});
 		m_StateChange[(m_Tick + 1) % 2].added_components[key].insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_components[key]), std::begin(cInfo.entities), std::end(cInfo.entities));
 	}
