@@ -40,7 +40,7 @@ namespace core::ecs
 		template <size_t N>
 		auto get() const noexcept
 		{
-			return m_Pack.get<N>();
+			return m_Pack.template get<N>();
 		}
 
 		auto operator[](size_t index) const noexcept -> decltype(std::declval<typename pack_t::iterator>().operator*())
@@ -58,7 +58,7 @@ namespace core::ecs
 		template <size_t N>
 		auto reference_get() noexcept 
 		{
-			return m_Pack.ref_get<N>();
+			return m_Pack.template ref_get<N>();
 		}
 
 		template <typename T>

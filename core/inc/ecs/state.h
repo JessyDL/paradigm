@@ -433,7 +433,7 @@ namespace core::ecs
 			template <std::size_t... Is, typename T>
 			auto create_dependency_filters(std::index_sequence<Is...>, T& t)
 			{
-				(add(t.reference_get<Is>()), ...);
+				(add(t.template reference_get<Is>()), ...);
 			}
 
 			template <typename F>
