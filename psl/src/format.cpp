@@ -1387,13 +1387,13 @@ bool container::compact_header::try_decode(psl::string8::view source, psl::forma
 		auto& node = target.m_NodeData.emplace_back(std::forward<psl::format::data>(psl::format::data(&target, (nodes_t)i)));
 		node.m_Type = (psl::format::type)entries[i].type;
 		node.m_Name = std::make_pair(entries[i].name_start, entries[i].name_size);
-		node.m_Depth = entries[i].depth;
+		node.m_Depth = (children_t)entries[i].depth;
 		switch(node.type())
 		{
 			case type::COLLECTION:
 			{
 				auto& val = node.reinterpret_as_collection();
-				val = content_header[i].offsets[0];
+				val = (collection_t)content_header[i].offsets[0];
 			} break;
 			case type::VALUE:
 			{

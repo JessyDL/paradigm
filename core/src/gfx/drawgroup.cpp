@@ -38,7 +38,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<frameb
 				geometryHandle->bind(cmdBuffer, material);
 				material->bind_geometry(cmdBuffer, geometryHandle);
 
-				cmdBuffer.drawIndexed(geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
+				cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
 			}
 		}
 	}
@@ -73,7 +73,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapch
 				geometryHandle->bind(cmdBuffer, material);
 				material->bind_geometry(cmdBuffer, geometryHandle);
 
-				cmdBuffer.drawIndexed(geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
+				cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
 			}
 		}
 	}

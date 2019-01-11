@@ -219,8 +219,8 @@ psl::string profiler::to_string() const
 				name = frame_data.m_IDMap.at(scope.name);
 				
 			}
-			int32_t bufferSize = scope.depth * 2 + 20 - durationStr.size() - percentageStr.size();
-			res += psl::string(scope.depth * 2, ' ') + percentageStr + " - " + durationStr + psl::string(std::max(bufferSize, 2), ' ') + name + "\n";
+			size_t bufferSize = scope.depth * 2 + 20 - durationStr.size() - percentageStr.size();
+			res += psl::string(scope.depth * 2, ' ') + percentageStr + " - " + durationStr + psl::string(std::max(bufferSize, (size_t)2), ' ') + name + "\n";
 		}
 		res += "endframe\n--------------------------------------------------------------------------------\n";
 		i = (i + 1) % m_Frames.size();

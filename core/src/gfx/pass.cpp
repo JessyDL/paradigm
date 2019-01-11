@@ -72,10 +72,10 @@ bool pass::build()
 	m_LastBuildFrame = m_FrameCount;
 
 	m_Context->device().waitIdle();
-	m_Context->device().freeCommandBuffers(m_Context->command_pool(), m_DrawCommandBuffers.size(),
+	m_Context->device().freeCommandBuffers(m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(),
 										   m_DrawCommandBuffers.data());
 
-	m_Buffers = m_DrawCommandBuffers.size();
+	m_Buffers = (uint32_t)m_DrawCommandBuffers.size();
 
 	vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
 	cmdBufAllocateInfo.commandPool		  = m_Context->command_pool();
@@ -276,7 +276,7 @@ void pass::present()
 	}
 	else
 	{
-		m_SubmitInfo.waitSemaphoreCount = semaphores.size();
+		m_SubmitInfo.waitSemaphoreCount = (uint32_t)semaphores.size();
 		m_SubmitInfo.pWaitSemaphores	= semaphores.data();
 
 		for(auto i = 0; i < semaphores.size(); ++i) stageFlags.push_back(m_SubmitPipelineStages);

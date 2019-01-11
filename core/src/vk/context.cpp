@@ -650,7 +650,7 @@ void context::init_device()
 		queueCreateInfo[0].queueCount		= 1;
 		queueCreateInfo[0].pQueuePriorities = queuePriorities.data();
 
-		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), queueCreateInfo.size(), m_Device)))
+		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device)))
 		{
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
@@ -673,7 +673,7 @@ void context::init_device()
 		queueCreateInfo[1].pQueuePriorities = queuePriorities.data();
 
 
-		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), queueCreateInfo.size(), m_Device)))
+		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device)))
 		{
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);

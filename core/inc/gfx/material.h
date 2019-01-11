@@ -88,9 +88,9 @@ namespace core::gfx
 			optional_ref<instance_object> instance(const psl::UID& uid) noexcept;
 			uint32_t size(const psl::UID& uid) const noexcept;
 
-			const auto& begin() const { return std::begin(elements); }
+			auto begin() const { return std::cbegin(elements); }
 
-			const auto& end() const { return std::end(elements); }
+			auto end() const { return std::cend(elements); }
 
 			bool remove_all(core::resource::handle<core::gfx::buffer> buffer);
 			bool remove_all(core::resource::handle<core::gfx::buffer> buffer, const psl::UID& uid);
