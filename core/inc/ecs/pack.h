@@ -38,7 +38,7 @@ namespace core::ecs
 		}
 
 		template <size_t N>
-		auto get() const noexcept
+		auto get() const noexcept -> decltype(std::declval<pack_t>().template get<N>())
 		{
 			return m_Pack.template get<N>();
 		}
@@ -56,7 +56,7 @@ namespace core::ecs
 	  private:
 		// todo: we should elminate the need for this.
 		template <size_t N>
-		auto reference_get() noexcept 
+		auto reference_get() noexcept -> decltype(std::declval<pack_t>().template ref_get<N>())
 		{
 			return m_Pack.template ref_get<N>();
 		}

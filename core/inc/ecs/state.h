@@ -499,12 +499,6 @@ namespace core::ecs
 				m_Entities = (psl::array_view<core::ecs::entity>*)&vec;
 			}
 
-			template <typename... Ts>
-			void add(Ts&&... args) noexcept
-			{
-				(add(args), ...);
-			}
-
 		  private:
 			psl::array_view<core::ecs::entity>* m_Entities{nullptr};
 			psl::array_view<core::ecs::entity> m_StoredEnts{};
@@ -1079,14 +1073,17 @@ namespace core::ecs
 			dependency_pack p{pack};
 			if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
 			{
+				static_assert(details::mf_tick<T>::value, "cannot register tick as there is not method that has a suitable signature or the method itself does not exist.");
 				it->second.tick_dependencies.emplace_back(std::move(p));
 			}
 			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
 			{
+				static_assert(details::mf_pre_tick<T>::value, "cannot register pre_tick as there is not method that has a suitable signature or the method itself does not exist.");
 				it->second.pre_tick_dependencies.emplace_back(std::move(p));
 			}
-			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
+			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::post_tick>::value)
 			{
+				static_assert(details::mf_post_tick<T>::value, "cannot register post_tick as there is not method that has a suitable signature or the method itself does not exist.");
 				it->second.post_tick_dependencies.emplace_back(std::move(p));
 			}
 			else
