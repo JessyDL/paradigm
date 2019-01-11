@@ -152,6 +152,8 @@ void setup_loggers()
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
 	spdlog::register_logger(ivk_logger);
 	core::ivk::log = ivk_logger;
+
+	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 #else
 #include "spdlog/sinks/android_sink.h"
@@ -163,6 +165,7 @@ void setup_loggers()
 	core::data::log	= spdlog::android_logger_mt("data");
 	core::gfx::log	 = spdlog::android_logger_mt("gfx");
 	core::ivk::log	 = spdlog::android_logger_mt("ivk");
+	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 
 #endif

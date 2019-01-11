@@ -95,7 +95,7 @@ namespace psl
 
 			reference value() { return *it; }
 
-			const reference cvalue() const { return *it; }
+			reference cvalue() const { return *it; }
 
 			operator reference()
 			{
@@ -140,7 +140,7 @@ namespace psl
 
 		reference operator[](size_t index) { return *(first + index); }
 
-		const reference operator[](size_t index) const { return *(first + index); }
+		reference operator[](size_t index) const { return *(first + index); }
 
 		operator array_view<const value_type>&() const noexcept { return *(array_view<const T>*)(this); }
 
