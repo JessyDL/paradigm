@@ -1,4 +1,3 @@
-#pragma once
 #include "stdafx.h"
 #include "ecs/systems/fly.h"
 
@@ -70,7 +69,7 @@ void fly::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime
 		if(hasMoved)
 		{
 			transform.position = transform.position + normalize(accDirectionVec) * ((m_Boost)?m_MoveSpeed *40: m_MoveSpeed) * rTime.count();
-			accDirectionVec = {0};
+			accDirectionVec = psl::vec3::zero;
 		}
 		if(bHasRotated)
 		{
