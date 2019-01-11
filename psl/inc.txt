@@ -44,6 +44,7 @@ inc/math/matrix.h
 inc/math/quaternion.h
 inc/math/utility.h
 inc/math/${PE_INSTRUCTION_SET}/vec.h
+inc/math/${PE_INSTRUCTION_SET}/matrix.h
 inc/math/${PE_INSTRUCTION_SET}/quaternion.h
 
 inc/profiling/profiler.h
