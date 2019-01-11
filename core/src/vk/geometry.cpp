@@ -19,7 +19,7 @@ geometry::geometry(const UID& uid, cache& cache, handle<context> context,
 	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(uid)
 {
 	std::vector<vk::DeviceSize> sizeRequests;
-	sizeRequests.reserve(m_Data->vertex_streams().size() + (m_GeometryBuffer == m_IndicesBuffer)?1:0);
+	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer)?1:0));
 	std::for_each(std::begin(m_Data->vertex_streams()), std::end(m_Data->vertex_streams()), [&sizeRequests](const std::pair<psl::string, core::stream>& element)
 				  {
 					  sizeRequests.emplace_back((uint32_t)element.second.bytesize());

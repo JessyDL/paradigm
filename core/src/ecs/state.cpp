@@ -417,7 +417,7 @@ void state::execute_commands(commands& cmds)
 	const auto& entityMap = cmds.m_EntityMap;
 	for(const auto& [key, cInfo] : cmds.m_Components)
 	{
-		copy_components(key, cInfo.entities, cInfo.size, [&key, &cInfo, &entityMap](entity e) {
+		copy_components(key, cInfo.entities, cInfo.size, [&](entity e) {
 			auto eIt = entityMap.find(e);
 			auto cIt = std::find_if(
 				std::begin(eIt->second), std::end(eIt->second),
