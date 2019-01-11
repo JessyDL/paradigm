@@ -86,7 +86,7 @@ namespace psl
 	struct tvec<precision_t, 1>
 	{
 		static constexpr size_t dimensions_n{ 1 };
-		using tvec_t = tvec<precision_t, dimensions_n>;
+		using tvec_t = tvec<precision_t, 1>;
 		using container_t = precision_t;
 
 		const static tvec_t zero;
@@ -157,8 +157,8 @@ namespace psl
 	struct tvec<precision_t, 2>
 	{
 		static constexpr size_t dimensions_n{ 2 };
-		using tvec_t = tvec<precision_t, dimensions_n>;
-		using container_t = std::array<precision_t, dimensions_n>;
+		using tvec_t = tvec<precision_t, 2>;
+		using container_t = std::array<precision_t, 2>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -233,8 +233,8 @@ namespace psl
 	struct tvec<precision_t, 3>
 	{
 		static constexpr size_t dimensions_n{ 3 };
-		using tvec_t = tvec<precision_t, dimensions_n>;
-		using container_t = std::array<precision_t, dimensions_n>;
+		using tvec_t = tvec<precision_t, 3>;
+		using container_t = std::array<precision_t, 3>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
