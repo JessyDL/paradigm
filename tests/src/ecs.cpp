@@ -9,20 +9,18 @@ namespace tests::ecs
 {
 struct float_system
 {
-	core::ecs::vector<const float> m_Floats;
-	core::ecs::vector<int> m_Ints;
-	core::ecs::vector<core::ecs::entity> m_Entities;
+	core::ecs::pack<const float, int> m_Pack;
 
 	float_system(core::ecs::state& state)
 	{
-		state.register_dependency(*this, {m_Entities, m_Floats, m_Ints});
+		state.register_dependency(*this, core::ecs::tick{}, m_Pack);
 	}
 
-	void tick(core::ecs::state& state, std::chrono::duration<float> dTime)
+	void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 	{
-		for(size_t i = 0; i < m_Entities.size(); ++i)
+		for(auto [fl, i] : m_Pack)
 		{
-			m_Ints[i] += 5;
+			i += 5;
 		}
 	}
 };
