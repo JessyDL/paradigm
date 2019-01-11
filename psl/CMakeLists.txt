@@ -14,7 +14,7 @@ if(NOT fmt_POPULATED)
 endif()
 
 SET(SPDLOG_FMT_EXTERNAL ON)
-FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
 	message(STATUS "fetching spdlog...")
