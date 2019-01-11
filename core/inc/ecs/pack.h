@@ -34,11 +34,11 @@ namespace core::ecs
 		template <typename T>
 		psl::array_view<T> get() const noexcept
 		{
-			return m_Pack.get<T>();
+			return m_Pack.template get<T>();
 		}
 
 		template <size_t N>
-		auto get() const noexcept -> decltype(std::declval<pack_t>().get<N>())
+		auto get() const noexcept
 		{
 			return m_Pack.get<N>();
 		}
@@ -56,7 +56,7 @@ namespace core::ecs
 	  private:
 		// todo: we should elminate the need for this.
 		template <size_t N>
-		auto reference_get() noexcept -> decltype(std::declval<pack_t>().ref_get<N>())
+		auto reference_get() noexcept 
 		{
 			return m_Pack.ref_get<N>();
 		}
@@ -64,7 +64,7 @@ namespace core::ecs
 		template <typename T>
 		psl::array_view<T>& reference_get() noexcept
 		{
-			return m_Pack.ref_get<T>();
+			return m_Pack.template ref_get<T>();
 		}
 
 		pack_t m_Pack;
