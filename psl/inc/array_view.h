@@ -91,7 +91,7 @@ namespace psl
 			bool operator==(const iterator& other) const noexcept { return it == other.it; }
 
 			reference operator*() { return *it; }
-			const reference operator*() const { return *it; }
+			reference operator*() const { return *it; }
 
 			reference value() { return *it; }
 
