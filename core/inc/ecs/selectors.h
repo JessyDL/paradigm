@@ -357,27 +357,5 @@ namespace core::ecs
 		{
 			using type = std::tuple<psl::array_view<Ts>...>;
 		};
-
-		template <bool has_entities, typename... Ts>
-		struct pack_tuple
-		{
-			using range_element_t	= typename details::typelist_to_physical_pack<Ts..., core::ecs::entity>::type;
-			using range_t			 = typename wrap_with_array_view<range_element_t>::type;
-			using iterator_element_t = std::tuple<typename range_t::iterator...>;
-		};
-
-		template <typename... Ts>
-		struct pack_tuple<false, Ts...>
-		{
-			using range_element_t	= typename details::typelist_to_physical_pack<Ts...>::type;
-			using range_t			 = typename wrap_with_array_view<range_element_t>::type;
-			using iterator_element_t = std::tuple<typename range_t::iterator...>;
-		};
-
-		template<typename... Ts>
-		struct filter_types
-		{
-			
-		};
 	} // namespace details
 }
