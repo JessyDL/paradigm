@@ -74,7 +74,7 @@ if(condition)	\
 
 #if !defined(assert)
 #define assert(condition) \
-	if(condition)	\
+	if(!(condition))	\
 	{							\
 		debug_break();			\
 	}
