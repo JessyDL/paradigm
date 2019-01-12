@@ -1,5 +1,4 @@
 #include "ecs/state.h"
-#include <execution>
 #include "enumerate.h"
 
 using namespace core::ecs;
