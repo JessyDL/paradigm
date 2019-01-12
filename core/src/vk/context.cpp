@@ -4,6 +4,12 @@
 #include "meta.h"
 #include "logging.h"
 
+#ifdef PLATFORM_LINUX
+// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
+#undef minor
+#undef major
+#endif
+
 using namespace psl;
 using namespace core::gfx;
 using namespace core::os;

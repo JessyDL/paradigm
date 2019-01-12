@@ -1,7 +1,9 @@
 #pragma once
 #include "event.h"
 #include "ustring.h"
-#if defined(SURFACE_WIN32)
+#if defined(SURFACE_XCB)
+#include <xcb/xcb.h>
+#elif defined(SURFACE_WIN32)
 #include <Windows.h>
 #endif
 
