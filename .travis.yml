@@ -128,15 +128,15 @@ install:
     fi
 
   # Install Ninja
-  - |
-    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
-      if [ ! -d "${DEPS_DIR}/ninja" ]; then
-        mkdir $DEPS_DIR/ninja
-        curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
-        unzip $DEPS_DIR/ninja/ninja-linux.zip -d $DEPS_DIR/ninja
-      fi
-      export PATH=$PATH:$DEPS_DIR/ninja
-    fi
+  #- |
+  #  if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+  #    if [ ! -d "${DEPS_DIR}/ninja" ]; then
+  #      mkdir $DEPS_DIR/ninja
+  #      curl -L https://github.com/ninja-build/ninja/releases/download/v1.8.2/ninja-linux.zip -o $DEPS_DIR/ninja/ninja-linux.zip
+  #      unzip $DEPS_DIR/ninja/ninja-linux.zip -d $DEPS_DIR/ninja
+  #    fi
+  #    export PATH=$PATH:$DEPS_DIR/ninja
+  #  fi
   
   # Misc
   - export CXX="clang++-6.0" CC="clang-6.0"
