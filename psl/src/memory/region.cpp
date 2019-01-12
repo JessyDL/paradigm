@@ -1,6 +1,5 @@
 ﻿#include "memory/region.h"
 #include <algorithm>
-#include "assertions.h"
 #include "platform_def.h"
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
@@ -9,6 +8,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
+#include "assertions.h"
+#include "logging.h"
 using namespace memory;
 
 region::region(region& parent, memory::segment& segment, uint64_t pageSize, uint64_t alignment, allocator_base* allocator)
@@ -183,7 +184,7 @@ region::~region()
 	#else
 		if(munmap(m_Base, sizeof(int)) == -1)
 		{
-			fprintf(stderr, "munmap()() failed\n");
+			LOG_ERROR("munmap()() failed");
 			exit(EXIT_FAILURE);
 		}
 	#endif

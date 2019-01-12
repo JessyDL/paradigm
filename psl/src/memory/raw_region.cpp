@@ -9,6 +9,7 @@
 #include <unistd.h>
 #endif
 #include "assertions.h"
+#include "logging.h"
 using namespace memory;
 
 
@@ -62,7 +63,7 @@ raw_region::~raw_region()
 #else
 	if (munmap(m_Base, sizeof(int)) == -1)
 	{
-		fprintf(stderr, "munmap()() failed\n");
+		LOG_ERROR("munmap()() failed");
 		exit(EXIT_FAILURE);
 	}
 #endif
