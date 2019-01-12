@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "ecs/systems/fly.h"
 
 using namespace core::ecs::systems;

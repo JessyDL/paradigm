@@ -1,7 +1,10 @@
 ﻿#pragma once
-#include "stdafx.h"
+
 #include "gfx/drawcall.h"
 #include "gfx/drawlayer.h"
+#include <map>
+#include <vector>
+#include "systems/resource.h"
 
 
 namespace core::gfx

@@ -1,4 +1,19 @@
 #pragma once
+#include <vector>
+#include "gfx/material.h"
+#include "vk/geometry.h"
+
+namespace core::resource
+{
+	template<typename T>
+	class handle;
+}
+
+
+namespace psl
+{
+	struct UID;
+}
 
 namespace core::gfx
 {

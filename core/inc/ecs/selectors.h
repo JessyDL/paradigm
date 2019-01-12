@@ -1,9 +1,9 @@
 #pragma once
-
+#include "pack_view.h"
 
 namespace core::ecs
 {
-	/// \brief on_add tag allows you to select entities (and components) that have recently added
+	/// \brief tag that allows you to select entities (and components) that have recently added
 	/// the given component type
 	///
 	/// You can use this tag to listen to the event of a specific component type being added to

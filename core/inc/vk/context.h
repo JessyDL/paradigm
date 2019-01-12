@@ -1,6 +1,7 @@
-﻿
-#pragma once
-#include "stdafx.h"
+﻿#pragma once
+#include <optional>
+#include "vulkan_stdafx.h"
+
 
 namespace core::ivk
 {
@@ -96,9 +97,19 @@ namespace core::ivk
 	};
 } // namespace core::ivk
 
+namespace psl
+{
+	struct UID;
+}
+
 namespace core::os
 {
 	class surface;
+}
+
+namespace core::resource
+{
+	class cache;
 }
 namespace core::gfx
 {

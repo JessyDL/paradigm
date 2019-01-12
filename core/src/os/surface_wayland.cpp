@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "os/surface.h"
 #if defined(SURFACE_WAYLAND)
 using namespace core::os;

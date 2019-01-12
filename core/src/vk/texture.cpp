@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "stdafx_psl.h"
 #include "vk/texture.h"
 #include "meta/texture.h"

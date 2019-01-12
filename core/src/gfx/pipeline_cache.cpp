@@ -1,10 +1,11 @@
-﻿#include "stdafx.h"
-#include "gfx/pipeline_cache.h"
+﻿#include "gfx/pipeline_cache.h"
 #include "vk/context.h"
 #include "data/material.h"
 #include "vk/framebuffer.h"
 #include "vk/swapchain.h"
 #include "vk/pipeline.h"
+#include "meta.h"
+#include "logging.h"
 
 using namespace psl;
 using namespace core::gfx;

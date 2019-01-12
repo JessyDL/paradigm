@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "ecs/systems/render.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"

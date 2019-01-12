@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include "ustring.h"
 #include <optional>
-#include "stdafx_psl.h"
 
 namespace utility::os
 {
@@ -63,9 +62,9 @@ namespace utility::os
 		size_t m_Size;
 		size_t m_ContentSize;
 #ifdef PLATFORM_WINDOWS
-		std::optional<HANDLE> m_File;
-		std::optional<HANDLE> m_Map;
-		std::optional<LPVOID> m_MapView;
+		std::optional<void*> m_File;
+		std::optional<void*> m_Map;
+		std::optional<void*> m_MapView;
 #endif
 	};
 }

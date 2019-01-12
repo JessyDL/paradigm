@@ -1,7 +1,8 @@
-﻿#include "stdafx.h"
-#include "vk/context.h"
+﻿#include "vk/context.h"
 #include "os/surface.h"
-
+#include "systems/resource.h"
+#include "meta.h"
+#include "logging.h"
 
 using namespace psl;
 using namespace core::gfx;

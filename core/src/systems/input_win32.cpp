@@ -1,6 +1,7 @@
-#include "stdafx.h"
+
 #include "systems/input.h"
 #include "os/surface.h"
+#include "logging.h"
 
 #if defined(PLATFORM_WINDOWS)
 // https://chromium.googlesource.com/chromium/src/+/master/ui/events/keycodes/dom/keycode_converter_data.inc

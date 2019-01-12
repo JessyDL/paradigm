@@ -1,5 +1,9 @@
 #pragma once
 #include "event.h"
+#include "ustring.h"
+#if defined(SURFACE_WIN32)
+#include <Windows.h>
+#endif
 
 namespace core::os
 {

@@ -1,5 +1,6 @@
-﻿#include "stdafx.h"
-#include "data/window.h"
+﻿#include "data/window.h"
+#include "systems/resource.h"
+#include "meta.h"
 
 using namespace psl;
 using namespace core::data;

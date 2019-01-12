@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include "meta.h"
 #include "data/window.h"
+#include "systems/resource.h"
 
 #if defined(SURFACE_XCB)
 #include <xcb/xcb.h>

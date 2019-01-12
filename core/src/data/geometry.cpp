@@ -1,5 +1,5 @@
-﻿#include "stdafx.h"
-#include "data/geometry.h"
+﻿#include "data/geometry.h"
+#include "systems/resource.h"
 
 using namespace psl;
 using namespace core::data;

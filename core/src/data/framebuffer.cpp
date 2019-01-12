@@ -1,5 +1,4 @@
-﻿#include "stdafx.h"
-#include "data/framebuffer.h"
+﻿#include "data/framebuffer.h"
 #include "meta/texture.h"
 
 using namespace psl;

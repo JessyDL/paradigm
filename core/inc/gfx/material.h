@@ -1,5 +1,8 @@
 ﻿#pragma once
 #include "IDGenerator.h"
+#include <optional>
+#include "systems/resource.h"
+#include "vulkan_stdafx.h"
 
 namespace core::data
 {

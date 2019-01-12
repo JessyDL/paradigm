@@ -1,6 +1,14 @@
 ﻿#pragma once
-#include "stdafx.h"
-
+#include "serialization.h"
+#include "vulkan_stdafx.h"
+namespace psl
+{
+	struct UID;
+}
+namespace core::resource
+{
+	class cache;
+}
 namespace core::data
 {
 	/// \brief describes the data to build a core::gfx::sampler instance

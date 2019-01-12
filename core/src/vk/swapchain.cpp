@@ -1,9 +1,9 @@
-﻿#include "stdafx.h"
-#include "vk/swapchain.h"
+﻿#include "vk/swapchain.h"
 #include "os/surface.h"
 #include "vk/context.h"
 #include "vk/texture.h"
 #include "meta/texture.h"
+#include "logging.h"
 
 using namespace psl;
 using namespace core;

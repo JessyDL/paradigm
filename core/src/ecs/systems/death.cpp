@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "ecs/systems/death.h"
 #include "ecs/components/dead_tag.h"
 

@@ -3,6 +3,8 @@
 #include "gfx/pass.h"
 #include "systems/resource.h"
 #include "gfx/drawgroup.h"
+#include "math/vec.h"
+#include "math/matrix.h"
 
 namespace core::gfx
 {

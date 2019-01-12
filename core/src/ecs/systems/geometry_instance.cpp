@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "ecs/systems/geometry_instance.h"
 #include "gfx/material.h"
 #include "vk/geometry.h"

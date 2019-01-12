@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "vk/context.h"
 #include "gfx/material.h"
 #include "data/material.h"

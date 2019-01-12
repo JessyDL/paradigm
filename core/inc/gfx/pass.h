@@ -1,5 +1,8 @@
 ﻿#pragma once
-#include "stdafx.h"
+#include "math/vec.h"
+#include "systems/resource.h"
+#include <vector>
+#include "vulkan_stdafx.h"
 
 namespace core::gfx
 {

@@ -1,6 +1,6 @@
-#include "stdafx.h"
-#include "ecs/state.h"
 
+#include "ecs/state.h"
+#include <execution>
 using namespace core::ecs;
 
 void state::destroy(psl::array_view<entity> entities) noexcept
@@ -78,6 +78,22 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 }
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
+
+void state::prepare_system(std::chrono::duration<float> dTime, memory::raw_region& cache, size_t cache_offset, void* system, std::vector<dependency_pack>& bindings)
+{
+	PROFILE_SCOPE(core::profiler);
+	for(auto& dep_pack : bindings)
+	{
+		auto entities = filter(dep_pack);
+		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+		dep_pack.m_StoredEnts = psl::array_view<core::ecs::entity>(
+			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+		if(dep_pack.m_Entities != nullptr) *dep_pack.m_Entities = dep_pack.m_StoredEnts;
+		cache_offset += sizeof(entity) * entities.size();
+
+		//std::for_each(std::execution::par_unseq, )
+	}
+}
 
 void state::tick(std::chrono::duration<float> dTime)
 {

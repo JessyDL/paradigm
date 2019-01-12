@@ -1,9 +1,17 @@
 ﻿#pragma once
-#include "stdafx.h"
+#include "serialization.h"
+#include "vulkan_stdafx.h"
+#include "meta.h"
+#include "systems/resource.h"
+
 
 namespace core::gfx
 {
 	class sampler;
+}
+namespace core::resource
+{
+	class cache;
 }
 namespace core::data
 {

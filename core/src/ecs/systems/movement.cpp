@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "ecs/systems/movement.h"
 #include "ecs/components/velocity.h"
 #include "ecs/components/transform.h"

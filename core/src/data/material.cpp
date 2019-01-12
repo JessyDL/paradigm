@@ -1,6 +1,6 @@
-﻿#include "stdafx.h"
-#include "data/material.h"
+﻿#include "data/material.h"
 #include "meta/shader.h"
+#include "systems/resource.h"
 
 using namespace psl;
 using namespace core::data;

@@ -1,8 +1,8 @@
 #pragma once
-#include <stack>
-#include <unordered_map>
-#include "IDGenerator.h"
 #include "bytell_hash_map.hpp"
+#include "ustring.h"
+#include "timer.h"
+
 #if defined(_MSC_VER)
 	#define FUNCTION_SIGNATURE_INFO __FUNCSIG__
 #else

@@ -1,5 +1,16 @@
 ﻿#pragma once
-#include "stdafx.h"
+#include <cstdint>
+#include "serialization.h"
+
+namespace core::resource
+{
+	class cache;
+}
+
+namespace psl
+{
+	struct UID;
+}
 
 namespace core::gfx
 {

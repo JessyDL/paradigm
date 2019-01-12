@@ -1,5 +1,8 @@
 ﻿#pragma once
 #include "platform_def.h"
+#include "string_utils.h"
+
+#define VULKAN_HPP_NO_EXCEPTIONS
 
 #if defined(SURFACE_XCB)
 #ifndef VK_USE_PLATFORM_XCB_KHR

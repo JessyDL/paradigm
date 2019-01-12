@@ -1,5 +1,5 @@
 #pragma once
-#include "stdafx.h"
+
 #include "entity.h"
 #include "range.h"
 #include "selectors.h"
@@ -9,6 +9,7 @@
 #include <type_traits>
 #include "event.h"
 #include "bytell_hash_map.hpp"
+#include "logging.h"
 
 /// \brief Entity Component System
 ///
@@ -39,6 +40,10 @@ namespace core::ecs
 
 	namespace details
 	{
+		using tick_t = std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)>;
+		using pre_tick_t = std::function<void(core::ecs::commands&)>;
+		using post_tick_t = std::function<void(core::ecs::commands&)>;
+
 		template <typename KeyT, typename ValueT>
 		//using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
 		using key_value_container_t = std::unordered_map<KeyT, ValueT>;
@@ -537,9 +542,9 @@ namespace core::ecs
 			}
 
 			std::vector<void*> external_dependencies;
-			std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)> tick;
-			std::function<void(core::ecs::commands&)> pre_tick;
-			std::function<void(core::ecs::commands&)> post_tick;
+			details::tick_t tick;
+			details::pre_tick_t pre_tick;
+			details::post_tick_t post_tick;
 
 			std::vector<dependency_pack> tick_dependencies;
 			std::vector<dependency_pack> pre_tick_dependencies;
@@ -757,6 +762,10 @@ namespace core::ecs
 		}
 
 	  private:
+
+		  void prepare_system(std::chrono::duration<float> dTime, memory::raw_region& cache_offset, size_t offset, void* system, std::vector<dependency_pack>& bindings);
+		  void prepare_data(psl::array_view<entity> entities, memory::raw_region& cache_offset, size_t offset, psl::array_view<std::uintptr_t>& target);
+
 		  std::vector<entity> filter(const dependency_pack& pack) const
 		  {
 			  std::optional<std::vector<entity>> result{ std::nullopt };

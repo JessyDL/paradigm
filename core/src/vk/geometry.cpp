@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "vk/geometry.h"
 #include "data/geometry.h"
 #include "vk/buffer.h"

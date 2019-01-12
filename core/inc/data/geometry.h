@@ -1,5 +1,20 @@
 ﻿#pragma once
 
+#include "math/matrix.h"
+#include "data/stream.h"
+#include "ustring.h"
+#include <unordered_map>
+#include <vector>
+
+namespace psl
+{
+	struct UID;
+}
+
+namespace core::resource
+{
+	class cache;
+}
 /*
 #define GEOMETRY_VERTEX_POSITION "GEOMETRY_VERTEX_POSITION"
 #define GEOMETRY_VERTEX_COLOR "GEOMETRY_VERTEX_COLOR"

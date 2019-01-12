@@ -1,5 +1,7 @@
 ﻿#pragma once
-
+#include "vulkan_stdafx.h"
+#include "systems/resource.h"
+#include <unordered_map>
 namespace core::meta
 {
 	class texture;

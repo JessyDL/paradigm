@@ -1,6 +1,21 @@
 ﻿#pragma once
-#include "stdafx.h"
+#include "serialization.h"
+#include <vector>
+#include <optional>
+#include "vulkan_stdafx.h"
+#include "memory/region.h"
+#include "memory/segment.h"
 
+namespace psl
+{
+	struct UID;
+}
+
+
+namespace core::resource
+{
+	class cache;
+}
 /// \brief contains all data types that can be serialized to/from disk.
 namespace core::data
 {

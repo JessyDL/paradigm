@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "vk/context.h"
 #include "vk/pipeline.h"
 #include "data/material.h"

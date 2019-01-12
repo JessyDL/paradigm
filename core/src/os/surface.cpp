@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "os/surface.h"
 #include "vk/swapchain.h"
 #include "systems/input.h"

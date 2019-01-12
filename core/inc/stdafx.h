@@ -21,7 +21,6 @@
 #include "string_utils.h"
 
 
-#define VULKAN_HPP_NO_EXCEPTIONS
 #include "vulkan_stdafx.h"
 
 #include <vector>
@@ -50,6 +49,8 @@
 #include "conversion_utils.h"
 
 #include "data/stream.h"
+
+#include "ecs/ecs.hpp"
 
 #if defined(DEBUG) && defined(PLATFORM_WINDOWS)
 #define _CRTDBG_MAP_ALLOC

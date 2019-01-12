@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "vk/context.h"
 #include "vk/sampler.h"
 #include "data/sampler.h"

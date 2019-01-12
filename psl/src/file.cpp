@@ -1,7 +1,7 @@
-﻿#include "stdafx_psl.h"
-#include "file.h"
+﻿#include "file.h"
 #include "platform_def.h"
-#include "string_utils.h"
+#include <Windows.h>
+#include "spdlog/spdlog.h" 
 
 using namespace utility::os;
 
@@ -124,7 +124,7 @@ bool file::close()
 	bool success = true;
 	if (m_MapView && !UnmapViewOfFile(m_MapView.value()))
 	{
-		LOG_ERROR("Error occurred during the closing of the mmap view with error: ", GetLastError());
+		spdlog::get("main")->error("Error occurred during the closing of the mmap view with error: ", GetLastError());
 		success = false;
 	}
 	else
@@ -133,7 +133,7 @@ bool file::close()
 	}
 	if (m_Map && !CloseHandle(m_Map.value()))
 	{
-		LOG_ERROR("Error occurred during the closing of the mmap handle with error: ", GetLastError());
+		spdlog::get("main")->error("Error occurred during the closing of the mmap handle with error: ", GetLastError());
 		success = false;
 	}
 	else
@@ -142,7 +142,7 @@ bool file::close()
 	}
 	if (m_File && !CloseHandle(m_File.value()))
 	{
-		LOG_ERROR("Error occurred during the closing of the file handle with error: ", GetLastError());
+		spdlog::get("main")->error("Error occurred during the closing of the file handle with error: ", GetLastError());
 		success = false;
 	}
 	else

@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "systems/resource.h"
+#include <vector>
 namespace core::data
 {
 	class material;

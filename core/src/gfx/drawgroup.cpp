@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "gfx/drawgroup.h"
 #include "gfx/material.h"
 #include "vk/geometry.h"
@@ -7,6 +7,7 @@
 #include "vk/framebuffer.h"
 #include "vk/swapchain.h"
 #include "vk/buffer.h"
+#include "logging.h"
 
 using namespace core::gfx;
 

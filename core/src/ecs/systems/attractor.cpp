@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "ecs/systems/attractor.h"
 #include "gfx/material.h"
 #include "vk/geometry.h"

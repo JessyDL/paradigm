@@ -1,5 +1,5 @@
-﻿#include "stdafx.h"
-#include "meta/texture.h"
+﻿#include "meta/texture.h"
+#include "systems/resource.h"
 
 using namespace core::meta;
 using namespace psl::serialization;

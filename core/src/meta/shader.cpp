@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "meta/shader.h"
 
 using namespace core::meta;

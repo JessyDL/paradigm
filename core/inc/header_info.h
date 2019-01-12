@@ -1,4 +1,6 @@
 // generated header file don't edit.
+#pragma once
+#include "ustring.h"
 
 /// \brief major version of the application
 #define VERSION_MAJOR 0

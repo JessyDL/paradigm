@@ -1,5 +1,4 @@
 #pragma once
-#include "stdafx.h"
 #include "ecs/entity.h"
 #include "ecs/range.h"
 #include "ecs/selectors.h"

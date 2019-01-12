@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "vk/framebuffer.h"
 #include "vk/context.h"
 #include "vk/texture.h"

@@ -1,4 +1,13 @@
 ﻿#pragma once
+#include "serialization.h"
+#include "vulkan_stdafx.h"
+#include "library.h"
+#include "meta.h"
+
+namespace core::resource
+{
+	class cache;
+}
 
 namespace core::meta
 {

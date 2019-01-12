@@ -1,4 +1,8 @@
 ﻿#pragma once
+#include "serialization.h"
+#include "math/vec.h"
+#include "math/matrix.h"
+#include <vector>
 
 namespace core
 {

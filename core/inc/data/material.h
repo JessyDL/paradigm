@@ -1,8 +1,20 @@
 ﻿#pragma once
+#include "serialization.h"
+#include "vulkan_stdafx.h"
+#include "meta.h"
 
+namespace core::resource
+{
+	class cache;
+}
 namespace core::meta
 {
 	class shader;
+}
+namespace psl::meta
+{
+	class library;
+	class file;
 }
 namespace core::data
 {

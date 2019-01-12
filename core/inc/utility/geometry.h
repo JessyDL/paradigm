@@ -1,6 +1,8 @@
 #pragma once
-#include "stdafx.h"
+
 #include "data/geometry.h"
+#include "math/math.hpp"
+#include <vector>
 
 /// \brief various geometry and geometry related operation utilities.
 namespace utility::geometry

@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include "systems/resource.h"
+#include "vulkan_stdafx.h"
 
 namespace core::gfx
 {
@@ -11,6 +13,11 @@ namespace core::gfx
 namespace core::data
 {
 	class material;
+}
+
+namespace psl
+{
+	struct UID;
 }
 
 

@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+﻿
 #include "os/surface.h"
 #include "systems/input.h"
 #ifdef SURFACE_WIN32

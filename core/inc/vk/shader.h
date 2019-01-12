@@ -1,4 +1,9 @@
 ﻿#pragma once
+#include "ustring.h"
+#include "meta.h"
+#include "systems/resource.h"
+#include <optional>
+#include "vulkan_stdafx.h"
 
 namespace core::meta
 {

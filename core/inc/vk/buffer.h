@@ -1,4 +1,9 @@
 ﻿#pragma once
+#include "vulkan_stdafx.h"
+#include "systems/resource.h"
+#include <optional>
+#include "memory/segment.h"
+
 
 namespace core::data
 {

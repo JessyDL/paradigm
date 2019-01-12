@@ -1,5 +1,6 @@
 ﻿#pragma once
-#include "stdafx.h"
+#include "systems/resource.h"
+#include "vulkan_stdafx.h"
 
 namespace core::os
 {

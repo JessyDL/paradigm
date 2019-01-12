@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "os/surface.h"
 #ifdef SURFACE_XCB
 #include <xcb/xcb.h>

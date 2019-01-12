@@ -1,4 +1,4 @@
-#include "stdafx.h"
+
 #include "os/surface.h"
 
 #if defined(PLATFORM_ANDROID)
