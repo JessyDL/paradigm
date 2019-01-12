@@ -1,6 +1,8 @@
 ﻿#include "file.h"
 #include "platform_def.h"
+#if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
+#endif
 #include "spdlog/spdlog.h" 
 
 using namespace utility::os;
