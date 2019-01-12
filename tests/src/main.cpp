@@ -12,7 +12,6 @@
 #endif
 
 #include "spdlog/spdlog.h"
-#include "spdlog/async.h"
 
 void setup_loggers()
 {
