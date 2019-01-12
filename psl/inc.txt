@@ -8,6 +8,7 @@ inc/HandleGenerator.h
 inc/task.h
 inc/buffer.h
 inc/logging.h
+inc/assertions.h
 inc/IDGenerator.h
 inc/template_utils.h
 inc/crc32.h

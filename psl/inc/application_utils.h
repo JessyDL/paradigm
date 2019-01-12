@@ -1,14 +1,6 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
 #include "ustring.h"
-#ifdef WIN32
-#include "Shlwapi.h"
-#endif
-#if defined(PLATFORM_LINUX)
-#include <unistd.h>
-#include <limits.h>
-#include <libgen.h>
-#endif
+
 /// \brief contains application specific information and utilities
 ///
 /// this namespace contains application specific information and utilities that might help you to find
@@ -19,28 +11,7 @@ namespace utility::application::path
 	/// \todo check if returning an empty path for android is correct behaviour.
 	/// \returns an absolute path where the application is being ran from.
 	/// \note even though the path is absolute, don't expect it to look like a windows path on other platforms.
-	inline static const psl::string get_path()
-	{
-#ifdef WIN32
-		wchar_t dest[MAX_PATH];
-		GetModuleFileName(NULL, dest, MAX_PATH);
-		PathRemoveFileSpec(dest);
-		return psl::from_platform_string(std::wstring_view{dest}) + "\\";
-#elif defined PLATFORM_LINUX
-		char result[PATH_MAX];
-		ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);
-		const char *path;
-		if(count != -1)
-		{
-			return psl::string{dirname(result)} + "/";
-		}
-		return "";
-#elif defined(PLATFORM_ANDROID) // we run in a sandbox where we are root
-		return "";
-#else
-#error not supported
-#endif
-	}
+	psl::string get_path();
 
 	/// \brief location where the application is being ran from, check utility::application::path::get_path() for more info.
 	static const psl::string project   = get_path();

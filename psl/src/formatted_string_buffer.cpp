@@ -1,6 +1,5 @@
-﻿#include "stdafx_psl.h"
-#include "formatted_string_buffer.h"
-
+﻿#include "formatted_string_buffer.h"
+#include "logging.h"
 
 formatted_string_buffer::formatted_string_buffer()
 {

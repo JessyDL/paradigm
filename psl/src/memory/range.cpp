@@ -1,6 +1,5 @@
-﻿#include "stdafx_psl.h"
-#include "memory/range.h"
-#include <cassert>
+﻿#include "memory/range.h"
+#include "assertions.h"
 
 using namespace memory;
 

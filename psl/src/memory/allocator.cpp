@@ -1,5 +1,4 @@
-﻿#include "stdafx_psl.h"
-#include "memory/allocator.h"
+﻿#include "memory/allocator.h"
 #include "memory/region.h"
 #include "memory/range.h"
 #include <algorithm>

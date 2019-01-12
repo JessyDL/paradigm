@@ -1,10 +1,10 @@
-﻿#include "stdafx_psl.h"
-#include "profiling/profiler.h"
+﻿#include "profiling/profiler.h"
 #include "string_utils.h"
 #include "platform_utils.h"
 #include "application_utils.h"
 
 #ifdef PLATFORM_WINDOWS
+#include <Windows.h>
 #pragma comment(lib, "Dbghelp.lib")
 #include <Dbghelp.h>
 #endif

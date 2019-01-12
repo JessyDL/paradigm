@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
 #include "format.h"
 #include "string_utils.h"
 #include "platform_utils.h"
@@ -10,6 +9,7 @@
 #include <unordered_set>
 #include "template_utils.h"
 #include "crc32.h"
+#include "logging.h"
 #define SUPPORT_POLYMORPH
 
 // we give a start offset because of the first character is used as a check

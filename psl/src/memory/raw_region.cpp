@@ -1,11 +1,14 @@
-#include "stdafx_psl.h"
-
 #include "memory/raw_region.h"
 #include <algorithm>
+#include "platform_def.h"
+#if defined(PLATFORM_WINDOWS)
+#include <Windows.h>
+#endif
 #if defined(PLATFORM_LINUX) || defined (PLATFORM_ANDROID)
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
+#include "assertions.h"
 using namespace memory;
 
 

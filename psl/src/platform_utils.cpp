@@ -1,7 +1,7 @@
-﻿#include "stdafx_psl.h"
-#include "platform_utils.h"
+﻿#include "platform_utils.h"
 
 #ifdef PLATFORM_WINDOWS
+#include <Windows.h>
 #pragma comment(lib, "Dbghelp.lib")
 #include <Dbghelp.h>
 #endif

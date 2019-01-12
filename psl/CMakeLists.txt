@@ -30,12 +30,14 @@ if(NOT utf8cpp_POPULATED)
 	message(STATUS "utf8cpp fetched")
 endif()
 
-FetchContent_Declare(rangev GIT_REPOSITORY https://github.com/ericniebler/range-v3.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-FetchContent_GetProperties(rangev)
-if(NOT rangev_POPULATED)
-	message(STATUS "fetching range-v3...")
-	FetchContent_Populate(rangev)
-	message(STATUS "range-v3 fetched")
+if(USE_RANGEV)
+	FetchContent_Declare(rangev GIT_REPOSITORY https://github.com/ericniebler/range-v3.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+	FetchContent_GetProperties(rangev)
+	if(NOT rangev_POPULATED)
+		message(STATUS "fetching range-v3...")
+		FetchContent_Populate(rangev)
+		message(STATUS "range-v3 fetched")
+	endif()
 endif()
 
 if(PE_PCH AND NOT MSVC)
@@ -75,6 +77,12 @@ target_include_directories(${LOCAL_PROJECT}
 		${spdlog_SOURCE_DIR}/include
 		${rangev_SOURCE_DIR}/include
 )
+if(USE_RANGEV)
+target_include_directories(${LOCAL_PROJECT}
+    PUBLIC 
+		${rangev_SOURCE_DIR}/include
+)
+endif()
 
 if(LINUX)
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC libc++experimental.a)

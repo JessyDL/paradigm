@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
 #include <string>
 #include <string_view>
 #include <unordered_map>
@@ -8,6 +7,7 @@
 #include <memory>
 #include "serialization.h"
 #include "meta.h"
+#include "logging.h"
 
 /// \brief contains utilities to identify types and instances at runtime and on disk.
 ///

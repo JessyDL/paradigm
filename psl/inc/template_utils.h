@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
 #include <variant>
 #include <functional>
+#include "assertions.h"
 
 namespace utility::templates
 {

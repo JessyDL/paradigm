@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
 #include "platform_def.h"
 #include "string_utils.h"
+#include <array>
 
 namespace std
 {

@@ -117,7 +117,7 @@ namespace psl
 			auto get()	-> decltype(*std::get<typename psl::array_view<T>::iterator>(std::declval<iterator_element_t>()))
 			{
 				using array_view_t = psl::array_view<T>;
-				static_assert(utility::templates::template tuple_contains_type<array_view_t, range_t>::value, "the requested component type does not exist in the pack");
+				static_assert(::utility::templates::template tuple_contains_type<array_view_t, range_t>::value, "the requested component type does not exist in the pack");
 				return *std::get<typename psl::array_view<T>::iterator>(data);
 			}
 
@@ -142,7 +142,7 @@ namespace psl
 		template <typename T>
 		psl::array_view<T> get() const noexcept
 		{
-			static_assert(utility::templates::template tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
+			static_assert(::utility::templates::template tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
 			return std::get<psl::array_view<T>>(m_Pack);
 		}
 
@@ -173,7 +173,7 @@ namespace psl
 		template <typename T>
 		psl::array_view<T>& ref_get() noexcept
 		{
-			static_assert(utility::templates::template tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
+			static_assert(::utility::templates::template tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
 			return std::get<psl::array_view<T>>(m_Pack);
 		}
 	private:

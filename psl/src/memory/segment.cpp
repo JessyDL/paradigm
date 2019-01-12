@@ -1,5 +1,4 @@
-﻿#include "stdafx_psl.h"
-#include "memory/segment.h"
+﻿#include "memory/segment.h"
 #include "memory/range.h"
 
 using namespace memory;

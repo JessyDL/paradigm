@@ -1,5 +1,4 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
 #include "ustring.h"
 #include "string_utils.h"
 #include <memory>

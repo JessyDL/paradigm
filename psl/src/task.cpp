@@ -1,5 +1,4 @@
-﻿#include "stdafx_psl.h"
-#include "task.h"
+﻿#include "task.h"
 using namespace psl::async;
 
 

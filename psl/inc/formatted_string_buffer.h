@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "stdafx_psl.h"
+#include <vector>
 #include "ustring.h"
 
 class formatted_string_buffer

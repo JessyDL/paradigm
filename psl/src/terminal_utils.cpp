@@ -1,6 +1,7 @@
-﻿#include "stdafx_psl.h"
-#include "terminal_utils.h"
-
+﻿#include "terminal_utils.h"
+#ifdef PLATFORM_WINDOWS
+#include <Windows.h>
+#endif
 using namespace utility;
 
 void utility::terminal::set_color(color foreground, color background)

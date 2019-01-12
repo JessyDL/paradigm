@@ -2,6 +2,7 @@ SET(SRC
 src/file.cpp
 src/platform_utils.cpp
 src/terminal_utils.cpp
+src/application_utils.cpp
 src/formatted_string_buffer.cpp
 src/stdafx_psl.cpp
 src/memory/allocator.cpp

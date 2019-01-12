@@ -1,7 +1,6 @@
 ﻿#pragma once
 #include <vector>
-#include "stdafx_psl.h"
-#include <assert.h>
+#include "assertions.h"
 #include "memory/range.h"
 #include <list>
 #include <algorithm>

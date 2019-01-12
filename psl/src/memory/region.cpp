@@ -1,6 +1,10 @@
-﻿#include "stdafx_psl.h"
-#include "memory/region.h"
+﻿#include "memory/region.h"
 #include <algorithm>
+#include "assertions.h"
+#include "platform_def.h"
+#if defined(PLATFORM_WINDOWS)
+#include <Windows.h>
+#endif
 #if defined(PLATFORM_LINUX) || defined (PLATFORM_ANDROID)
 #include <sys/mman.h>
 #include <unistd.h>

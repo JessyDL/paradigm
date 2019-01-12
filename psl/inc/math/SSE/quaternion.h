@@ -1,6 +1,7 @@
 #pragma once
 #if INSTRUCTION_SET == 1
 #include "math/quaternion.h"
+#include <xmmintrin.h>
 namespace psl
 {
 	template <typename precision_t>
