@@ -1,17 +1,20 @@
 ﻿#include "systems/resource.h"
 #include "profiling/profiler.h"
 #include "logging.h"
+#include "assertions.h"
+#include <cassert>
 
 using namespace core::resource;
 
 uint64_t cache::id{0};
 
 
+
 cache::cache(psl::meta::library&& library, memory::allocator_base* allocator)
 	: m_Library(std::move(library)), m_Allocator(allocator)
 {
 	PROFILE_SCOPE(core::profiler)
-		assert(m_Allocator != nullptr && m_Allocator->is_physically_backed());
+	assert(m_Allocator != nullptr && m_Allocator->is_physically_backed());
 	LOG_INFO("creating cache");
 }
 

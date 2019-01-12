@@ -1,6 +1,5 @@
-
-#include "os/surface.h"
 #ifdef SURFACE_XCB
+#include "os/surface.h"
 #include <xcb/xcb.h>
 #include "systems/input.h"
 

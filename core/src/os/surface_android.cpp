@@ -1,7 +1,6 @@
-
+#if defined(PLATFORM_ANDROID)
 #include "os/surface.h"
 
-#if defined(PLATFORM_ANDROID)
 using namespace core::os;
 
 bool surface::init_surface() { return true; }

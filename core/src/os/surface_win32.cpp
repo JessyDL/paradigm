@@ -1,8 +1,9 @@
-﻿
+﻿#ifdef SURFACE_WIN32
 #include "os/surface.h"
 #include "systems/input.h"
-#ifdef SURFACE_WIN32
-//#include <Windows.h>
+#include "assertions.h"
+#include <cassert>
+
 using namespace core::os;
 using namespace core;
 

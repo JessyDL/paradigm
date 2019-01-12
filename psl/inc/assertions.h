@@ -1,4 +1,5 @@
 #pragma once
+#include <cassert>
 
 
 #if defined(HEDLEY_ALWAYS_INLINE)
@@ -72,13 +73,9 @@ if(condition)	\
 	debug_break();			\
 }							\
 
-#if !defined(assert)
-#define assert(condition) \
-	if(!(condition))	\
-	{							\
-		debug_break();			\
-	}
-#endif // !assert
+
+
+
 
 #if !defined(NDEBUG) || (NDEBUG == 0)
 #define dbg_assert(expr)                                                                                               \

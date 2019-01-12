@@ -3,7 +3,9 @@
 #include "data/window.h"
 #include "systems/resource.h"
 
-#if defined(SURFACE_XCB)
+#if defined(SURFACE_WIN32)
+#include <Windows.h>
+#elif defined(SURFACE_XCB)
 #include <xcb/xcb.h>
 #elif defined(SURFACE_WAYLAND)
 #include <wayland-client.h>

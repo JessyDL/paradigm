@@ -1,7 +1,6 @@
-
+#if defined(SURFACE_D2D)
 #include "os/surface.h"
 
-#if defined(SURFACE_D2D)
 using namespace core::os;
 
 bool surface::init_surface() { return true; }
