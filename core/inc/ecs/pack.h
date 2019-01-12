@@ -6,6 +6,8 @@
 
 namespace core::ecs
 {
+	class state;
+
 	/// \brief an iterable container to work with components and entities.
 	template <typename... Ts>
 	class pack

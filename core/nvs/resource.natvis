@@ -1,16 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
-  <Type Name="core::ecs::vector&lt;*&gt;">
-    <DisplayString Condition="is_read_only">{{ size = {tail - data}; access = read-only}}</DisplayString>
-    <DisplayString>{{ size = {tail - data}; access = read write}}</DisplayString>
-    <Expand>
-      <Item Name="[size]">tail - data</Item>
-      <ArrayItems>
-        <Size>tail - data</Size>
-        <ValuePointer>data</ValuePointer>
-      </ArrayItems>    
-  </Expand>
-  </Type>
   <Type Name="core::resource::handle&lt;*&gt;">
     <DisplayString>{{ state = {m_Container->m_State} }}</DisplayString>
     <Expand>
