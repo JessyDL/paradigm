@@ -11,6 +11,8 @@
 #include "bytell_hash_map.hpp"
 #include "logging.h"
 #include <numeric>
+#include "enumerate.h"
+
 /// \brief Entity Component System
 ///
 /// The ECS namespace contains a fully functioning ECS
