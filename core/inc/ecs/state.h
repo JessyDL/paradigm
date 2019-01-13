@@ -42,12 +42,13 @@ namespace core::ecs
 
 	namespace details
 	{
-		using tick_t = std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)>;
-		using pre_tick_t = std::function<void(core::ecs::commands&)>;
+		using tick_t =
+			std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)>;
+		using pre_tick_t  = std::function<void(core::ecs::commands&)>;
 		using post_tick_t = std::function<void(core::ecs::commands&)>;
 
 		template <typename KeyT, typename ValueT>
-		//using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
+		// using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
 		using key_value_container_t = std::unordered_map<KeyT, ValueT>;
 
 		template <typename T>
@@ -111,7 +112,8 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `post_tick` listener.
 		template <typename T>
-		struct mf_post_tick<T, std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::commands&>()))>>
+		struct mf_post_tick<T,
+							std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::commands&>()))>>
 			: std::true_type
 		{};
 
@@ -154,37 +156,40 @@ namespace core::ecs
 
 		template <typename T>
 		typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
-			initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
+		initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
 		{
 			core::profiler.scope();
-				for(auto i = 0; i < indices.size(); ++i)
-				{
-					std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
-				}
+			for(auto i = 0; i < indices.size(); ++i)
+			{
+				std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
+			}
 		}
 
 		template <typename T>
 		typename std::enable_if<std::is_invocable<T, size_t>::value>::type
-			initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
+		initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
 		{
 			constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
 			core::profiler.scope();
-				for(auto i = 0; i < indices.size(); ++i)
-				{
-					auto v{std::invoke(invokable, i)};
-					std::memcpy((void*)((std::uintptr_t)location + indices[i] * size), &v, size);
-				}
+			for(auto i = 0; i < indices.size(); ++i)
+			{
+				auto v{std::invoke(invokable, i)};
+				std::memcpy((void*)((std::uintptr_t)location + indices[i] * size), &v, size);
+			}
 		}
 
 		template <typename T>
-		std::vector<entity> duplicate_component_check(psl::array_view<entity> entities, const details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap)
+		std::vector<entity> duplicate_component_check(
+			psl::array_view<entity> entities,
+			const details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>&
+				entityMap)
 		{
 			core::profiler.scope_begin("duplicate_check");
 			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
-			std::vector<entity> ent_cpy = entities;
+			std::vector<entity> ent_cpy			   = entities;
 			auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [&entityMap, key](const entity& e) {
 				auto eMapIt = entityMap.find(e);
-				if (eMapIt == std::end(entityMap))
+				if(eMapIt == std::end(entityMap))
 				{
 					return true;
 				}
@@ -201,22 +206,22 @@ namespace core::ecs
 		}
 
 
-
-		static component_info& get_component_info(details::component_key_t key, size_t component_size, details::key_value_container_t<details::component_key_t, details::component_info>& components)
+		static component_info& get_component_info(
+			details::component_key_t key, size_t component_size,
+			details::key_value_container_t<details::component_key_t, details::component_info>& components)
 		{
 			auto it = components.find(key);
 			if(it == components.end())
 			{
 				core::profiler.scope_begin("create backing storage");
-				if (component_size == 1)
+				if(component_size == 1)
 				{
 					components.emplace(key, details::component_info{{}, key});
 				}
 				else
 				{
 					components.emplace(
-						key, details::component_info{
-							memory::raw_region{1024 * 1024 * 128}, {}, key, component_size});
+						key, details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, key, component_size});
 				}
 				it = components.find(key);
 				core::profiler.scope_end();
@@ -224,23 +229,23 @@ namespace core::ecs
 			return it->second;
 		}
 
-		template<typename T>
-		static component_info& get_component_info(details::key_value_container_t<details::component_key_t, details::component_info>& components)
+		template <typename T>
+		static component_info& get_component_info(
+			details::key_value_container_t<details::component_key_t, details::component_info>& components)
 		{
 			constexpr auto key = details::component_key<details::remove_all<T>>;
-			auto it = components.find(key);
+			auto it			   = components.find(key);
 			if(it == components.end())
 			{
 				core::profiler.scope_begin("create backing storage");
-				if (std::is_empty<T>::value)
+				if(std::is_empty<T>::value)
 				{
 					components.emplace(key, details::component_info{{}, key});
 				}
 				else
 				{
 					components.emplace(
-						key, details::component_info{
-							memory::raw_region{1024 * 1024 * 128}, {}, key, sizeof(T)});
+						key, details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, key, sizeof(T)});
 				}
 				it = components.find(key);
 				core::profiler.scope_end();
@@ -253,17 +258,19 @@ namespace core::ecs
 			details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
 			details::key_value_container_t<details::component_key_t, details::component_info>& components,
 			psl::array_view<entity> entities, T&& _template,
-			std::optional<std::reference_wrapper<details::key_value_container_t<details::component_key_t, std::vector<entity>>>> addedComponents = std::nullopt) noexcept
+			std::optional<
+				std::reference_wrapper<details::key_value_container_t<details::component_key_t, std::vector<entity>>>>
+				addedComponents = std::nullopt) noexcept
 		{
 			using component_type = typename get_component_type<T>::type;
 			using forward_type   = typename get_forward_type<T>::type;
 
 
 			core::profiler.scope();
-				static_assert(
-					std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
-					"the component type must be trivially copyable and standard layout "
-					"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
+			static_assert(
+				std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
+				"the component type must be trivially copyable and standard layout "
+				"(std::is_trivially_copyable<T>::value == true && std::is_standard_layout<T>::value == true)");
 			constexpr details::component_key_t key = details::component_key<details::remove_all<component_type>>;
 
 			std::vector<entity> ent_cpy = duplicate_component_check<component_type>(entities, entityMap);
@@ -280,7 +287,8 @@ namespace core::ecs
 				{
 					const entity& e{*ent_it};
 					entityMap[e].emplace_back(key, 0);
-					componentInfo.entities.emplace(std::upper_bound(std::begin(componentInfo.entities), std::end(componentInfo.entities), e), e);
+					componentInfo.entities.emplace(
+						std::upper_bound(std::begin(componentInfo.entities), std::end(componentInfo.entities), e), e);
 				}
 				core::profiler.scope_end();
 			}
@@ -297,8 +305,8 @@ namespace core::ecs
 
 				std::vector<entity> merged;
 				merged.reserve(componentInfo.entities.size() + count);
-				std::merge(std::begin(componentInfo.entities), std::end(componentInfo.entities), std::begin(ent_cpy), std::end(ent_cpy),
-					std::back_inserter(merged));
+				std::merge(std::begin(componentInfo.entities), std::end(componentInfo.entities), std::begin(ent_cpy),
+						   std::end(ent_cpy), std::back_inserter(merged));
 				componentInfo.entities = std::move(merged);
 
 				core::profiler.scope_end();
@@ -343,66 +351,67 @@ namespace core::ecs
 				}
 			}
 
-			if (addedComponents)
+			if(addedComponents)
 			{
 				auto& addedComponentsRange = addedComponents.value().get()[key];
 				addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
 			}
 		}
 
-			template <typename T>
-			void remove_component(
-				details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
-				details::key_value_container_t<details::component_key_t, details::component_info>& components,
-				psl::array_view<entity> entities,
-				std::optional<std::reference_wrapper<details::key_value_container_t<details::component_key_t, std::vector<entity>>>> removedComponents = std::nullopt) noexcept
+		template <typename T>
+		void remove_component(
+			details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>& entityMap,
+			details::key_value_container_t<details::component_key_t, details::component_info>& components,
+			psl::array_view<entity> entities,
+			std::optional<
+				std::reference_wrapper<details::key_value_container_t<details::component_key_t, std::vector<entity>>>>
+				removedComponents = std::nullopt) noexcept
+		{
+			PROFILE_SCOPE_STATIC(core::profiler)
+			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
+			std::vector<entity> ent_cpy;
+			ent_cpy.reserve(entities.size());
+			for(auto e : entities)
 			{
-				PROFILE_SCOPE_STATIC(core::profiler)
-					constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
-				std::vector<entity> ent_cpy;
-				ent_cpy.reserve(entities.size());
-				for(auto e : entities)
+				auto eMapIt  = entityMap.find(e);
+				auto foundIt = std::remove_if(
+					eMapIt->second.begin(), eMapIt->second.end(),
+					[&key](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == key; });
+
+				if(foundIt == std::end(eMapIt->second)) continue;
+
+				ent_cpy.emplace_back(e);
+				if constexpr(std::is_empty<T>::value)
 				{
-					auto eMapIt  = entityMap.find(e);
-					auto foundIt = std::remove_if(eMapIt->second.begin(), eMapIt->second.end(),
-						[&key](const std::pair<details::component_key_t, size_t>& pair) {
-						return pair.first == key;
-					});
+					eMapIt->second.erase(foundIt, eMapIt->second.end());
 
-					if(foundIt == std::end(eMapIt->second)) continue;
-
-					ent_cpy.emplace_back(e);
-					if constexpr(std::is_empty<T>::value)
-					{
-						eMapIt->second.erase(foundIt, eMapIt->second.end());
-
-						const auto& eCompIt = components.find(key);
-						eCompIt->second.entities.erase(
-							std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-							eCompIt->second.entities.end());
-					}
-					else
-					{
-						auto index = foundIt->second;
-
-						eMapIt->second.erase(foundIt, eMapIt->second.end());
-
-						const auto& eCompIt = components.find(key);
-						eCompIt->second.entities.erase(
-							std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-							eCompIt->second.entities.end());
-
-						void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
-						std::memset(loc, 0, eCompIt->second.size);
-					}
+					const auto& eCompIt = components.find(key);
+					eCompIt->second.entities.erase(
+						std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+						eCompIt->second.entities.end());
 				}
-
-				if (removedComponents)
+				else
 				{
-					auto& removedComponentsRange = removedComponents.value().get()[key];
-					removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+					auto index = foundIt->second;
+
+					eMapIt->second.erase(foundIt, eMapIt->second.end());
+
+					const auto& eCompIt = components.find(key);
+					eCompIt->second.entities.erase(
+						std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+						eCompIt->second.entities.end());
+
+					void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
+					std::memset(loc, 0, eCompIt->second.size);
 				}
 			}
+
+			if(removedComponents)
+			{
+				auto& removedComponentsRange = removedComponents.value().get()[key];
+				removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
+			}
+		}
 	} // namespace details
 } // namespace core::ecs
 
@@ -424,6 +433,11 @@ namespace core::ecs
 	class state
 	{
 
+		template<typename T>
+		struct type_container
+		{
+			using type = T;
+		};
 	  public:
 		/// \brief describes a set of dependencies for a given system
 		///
@@ -448,9 +462,8 @@ namespace core::ecs
 			{
 				if constexpr(!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
 				{
-					using component_t = F;
-					constexpr details::component_key_t key =
-						details::component_key<details::remove_all<component_t>>;
+					using component_t					   = F;
+					constexpr details::component_key_t key = details::component_key<details::remove_all<component_t>>;
 					target.emplace_back(key);
 					m_Sizes[key] = sizeof(component_t);
 				}
@@ -466,18 +479,10 @@ namespace core::ecs
 			template <typename... Ts>
 			dependency_pack(core::ecs::pack<Ts...>& pack)
 			{
-				create_dependency_filters(
-					std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{},
-					pack);
-				using pack_t = core::ecs::pack<Ts...>;
-				select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value>{}, typename pack_t::filter_t{}, filters);
-				select(std::make_index_sequence<std::tuple_size<typename pack_t::add_t>::value>{}, typename pack_t::add_t{}, on_add);
-				select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_t>::value>{}, typename pack_t::remove_t{}, on_remove);
-				select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value>{}, typename pack_t::break_t{}, on_break);
-				select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value>{}, typename pack_t::combine_t{}, on_combine);
-				select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{}, typename pack_t::except_t{}, except);
+				declare(pack);
 			}
-			dependency_pack(){};
+
+			dependency_pack() = default;
 			~dependency_pack() noexcept					  = default;
 			dependency_pack(const dependency_pack& other) = default;
 			dependency_pack(dependency_pack&& other)	  = default;
@@ -485,6 +490,27 @@ namespace core::ecs
 			dependency_pack& operator=(dependency_pack&&) = default;
 
 		  private:
+			  template <typename... Ts>
+			  void declare(core::ecs::pack<Ts...>& pack)
+			  {
+				  create_dependency_filters(
+					  std::make_index_sequence<std::tuple_size_v<typename core::ecs::pack<Ts...>::pack_t::range_t>>{},
+					  pack);
+				  using pack_t = core::ecs::pack<Ts...>;
+				  select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value>{},
+						 typename pack_t::filter_t{}, filters);
+				  select(std::make_index_sequence<std::tuple_size<typename pack_t::add_t>::value>{},
+						 typename pack_t::add_t{}, on_add);
+				  select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_t>::value>{},
+						 typename pack_t::remove_t{}, on_remove);
+				  select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value>{},
+						 typename pack_t::break_t{}, on_break);
+				  select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value>{},
+						 typename pack_t::combine_t{}, on_combine);
+				  select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{},
+						 typename pack_t::except_t{}, except);
+			  }
+
 			template <typename T>
 			void add(psl::array_view<T>& vec) noexcept
 			{
@@ -512,6 +538,100 @@ namespace core::ecs
 			details::key_value_container_t<details::component_key_t, size_t> m_Sizes;
 			details::key_value_container_t<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RBindings;
 			details::key_value_container_t<details::component_key_t, psl::array_view<std::uintptr_t>*> m_RWBindings;
+
+			std::vector<details::component_key_t> filters;
+			std::vector<details::component_key_t> on_add;
+			std::vector<details::component_key_t> on_remove;
+			std::vector<details::component_key_t> except;
+			std::vector<details::component_key_t> on_combine;
+			std::vector<details::component_key_t> on_break;
+		};
+
+		class owner_dependency_pack
+		{
+			friend class core::ecs::state;
+			template <std::size_t... Is, typename T>
+			auto create_dependency_filters(std::index_sequence<Is...>, type_container<T>)
+			{
+				(
+					add(type_container<typename std::remove_reference<decltype(std::declval<T>().template get<Is>())>::type>{})
+					, ...);
+			}
+
+			template <typename F>
+			void select_impl(std::vector<details::component_key_t>& target)
+			{
+				if constexpr(!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
+				{
+					using component_t = F;
+					constexpr details::component_key_t key = details::component_key<details::remove_all<component_t>>;
+					target.emplace_back(key);
+					m_Sizes[key] = sizeof(component_t);
+				}
+			}
+
+			template <std::size_t... Is, typename T>
+			auto select(std::index_sequence<Is...>, T, std::vector<details::component_key_t>& target)
+			{
+				(select_impl<typename std::tuple_element<Is, T>::type>(target), ...);
+			}
+
+		public:			
+			template <typename T>
+			owner_dependency_pack(type_container<T>)
+			{
+				using pack_t = T;
+				create_dependency_filters(
+					std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>>{}, type_container<T>{});
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value>{},
+					   typename pack_t::filter_t{}, filters);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::add_t>::value>{},
+					   typename pack_t::add_t{}, on_add);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_t>::value>{},
+					   typename pack_t::remove_t{}, on_remove);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value>{},
+					   typename pack_t::break_t{}, on_break);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value>{},
+					   typename pack_t::combine_t{}, on_combine);
+				select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{},
+					   typename pack_t::except_t{}, except);
+			};
+
+
+			~owner_dependency_pack() noexcept = default;
+			owner_dependency_pack(const owner_dependency_pack& other) = default;
+			owner_dependency_pack(owner_dependency_pack&& other) = default;
+			owner_dependency_pack& operator=(const owner_dependency_pack&) = default;
+			owner_dependency_pack& operator=(owner_dependency_pack&&) = default;
+
+		private:
+
+
+			template <typename T>
+			void add(type_container<psl::array_view<T>>) noexcept
+			{
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
+				m_RWBindings.emplace(int_id, psl::array_view<std::uintptr_t>{});
+			}
+
+			template <typename T>
+			void add(type_container<psl::array_view<const T>>) noexcept
+			{
+				constexpr details::component_key_t int_id = details::component_key<details::remove_all<T>>;
+				m_RBindings.emplace(int_id, psl::array_view<std::uintptr_t>{});
+			}
+			
+
+			void add(type_container<psl::array_view<core::ecs::entity>>) noexcept
+			{}
+			void add(type_container<psl::array_view<const core::ecs::entity>>) noexcept
+			{}
+
+		private:
+			psl::array_view<core::ecs::entity> m_Entities{};
+			details::key_value_container_t<details::component_key_t, size_t> m_Sizes;
+			details::key_value_container_t<details::component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
+			details::key_value_container_t<details::component_key_t, psl::array_view<std::uintptr_t>> m_RWBindings;
 
 			std::vector<details::component_key_t> filters;
 			std::vector<details::component_key_t> on_add;
@@ -553,32 +673,35 @@ namespace core::ecs
 			std::vector<dependency_pack> post_tick_dependencies;
 		};
 
-		template<typename Fn>
-		void copy_components(details::component_key_t key, psl::array_view<entity> entities, const size_t component_size, Fn&& function)
+		template <typename Fn>
+		void copy_components(details::component_key_t key, psl::array_view<entity> entities,
+							 const size_t component_size, Fn&& function)
 		{
-			static_assert(std::is_same<typename std::invoke_result<Fn, entity>::type, std::uintptr_t>::value, "the return value must be a location in memory");
+			static_assert(std::is_same<typename std::invoke_result<Fn, entity>::type, std::uintptr_t>::value,
+						  "the return value must be a location in memory");
 
-			if (entities.size() == 0)
-				return;
+			if(entities.size() == 0) return;
 
-			auto& cInfo{ details::get_component_info(key, component_size, m_Components) };
+			auto& cInfo{details::get_component_info(key, component_size, m_Components)};
 			uint64_t component_location{0};
-			if (component_size == 1)
+			if(component_size == 1)
 			{
 				cInfo.entities.insert(std::end(cInfo.entities), std::begin(entities), std::end(entities));
-				for (auto e : entities)
+				for(auto e : entities)
 				{
 					m_EntityMap[e].emplace_back(std::pair<details::component_key_t, size_t>{key, component_location});
 				}
 				std::sort(std::begin(cInfo.entities), std::end(cInfo.entities));
 			}
-			else if ((entities.size() == 1 && cInfo.generator.CreateID(component_location)) || cInfo.generator.CreateRangeID(component_location, entities.size()))
+			else if((entities.size() == 1 && cInfo.generator.CreateID(component_location)) ||
+					cInfo.generator.CreateRangeID(component_location, entities.size()))
 			{
 				cInfo.entities.insert(std::end(cInfo.entities), std::begin(entities), std::end(entities));
-				for (auto e : entities)
+				for(auto e : entities)
 				{
 					std::uintptr_t source = std::invoke(function, e);
-					std::uintptr_t destination = (std::uintptr_t)cInfo.region.data() + component_location * component_size;
+					std::uintptr_t destination =
+						(std::uintptr_t)cInfo.region.data() + component_location * component_size;
 					std::memcpy((void*)destination, (void*)source, component_size);
 					m_EntityMap[e].emplace_back(std::pair<details::component_key_t, size_t>{key, component_location});
 					++component_location;
@@ -588,24 +711,30 @@ namespace core::ecs
 			else
 			{
 				auto batch_size = entities.size() / 2;
-				if (batch_size > 2)
+				if(batch_size > 2)
 				{
-					copy_components(key, psl::array_view<entity>(std::begin(entities), batch_size), component_size, std::forward<Fn>(function));
-					copy_components(key, psl::array_view<entity>(std::next(std::begin(entities), batch_size), entities.size() - batch_size), component_size, std::forward<Fn>(function));
+					copy_components(key, psl::array_view<entity>(std::begin(entities), batch_size), component_size,
+									std::forward<Fn>(function));
+					copy_components(key,
+									psl::array_view<entity>(std::next(std::begin(entities), batch_size),
+															entities.size() - batch_size),
+									component_size, std::forward<Fn>(function));
 				}
 				else
 				{
 					auto it = std::begin(entities);
-					for (auto e : entities)
+					for(auto e : entities)
 					{
-						copy_components(key, psl::array_view<entity>(it, 1), component_size, std::forward<Fn>(function));
+						copy_components(key, psl::array_view<entity>(it, 1), component_size,
+										std::forward<Fn>(function));
 						it = std::next(it);
 					}
 				}
 			}
 		}
 		void destroy_component_generator_ids(details::component_info& cInfo, psl::array_view<entity> entities);
-		public:
+
+	  public:
 		// -----------------------------------------------------------------------------
 		// add component
 		// -----------------------------------------------------------------------------
@@ -613,7 +742,8 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
-			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template), m_StateChange[(m_Tick + 1 )%2].added_components);
+			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template),
+								   m_StateChange[(m_Tick + 1) % 2].added_components);
 		}
 
 		template <typename T>
@@ -651,7 +781,8 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			details::remove_component<T>(m_EntityMap, m_Components, entities, m_StateChange[(m_Tick + 1 )%2].removed_components);
+			details::remove_component<T>(m_EntityMap, m_Components, entities,
+										 m_StateChange[(m_Tick + 1) % 2].removed_components);
 		}
 
 		template <typename... Ts>
@@ -764,139 +895,139 @@ namespace core::ecs
 		}
 
 	  private:
-
-		  void prepare_system(memory::raw_region& cache, size_t cache_offset, void* system, std::vector<dependency_pack>& bindings);
-		  size_t prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, dependency_pack& dep_pack);
-		  size_t prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, const std::pair< details::component_key_t, psl::array_view<std::uintptr_t>*>& binding, size_t element_size);
-		  std::vector<entity> filter(const dependency_pack& pack) const
-		  {
-			  std::optional<std::vector<entity>> result{ std::nullopt };
-
-			  auto merge = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
-			  {
-				  if (!out)
-					  return to_merge;
-
-				  std::vector<entity> v_intersection;
-				  v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
-				  std::set_intersection(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
-					  std::end(to_merge), std::back_inserter(v_intersection));
-
-				  return v_intersection;
-			  };
-
-			  auto difference = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
-			  {
-				  if (!out)
-					  return to_merge;
-
-				  std::vector<entity> v_intersection;
-				  v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
-				  std::set_difference(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
-					  std::end(to_merge), std::back_inserter(v_intersection));
-
-				  return v_intersection;
-			  };
-
-			  if (pack.filters.size() > 0)
-			  {
-				  result = merge(result, filter_default(pack.filters));
-			  }
-			  if (pack.on_add.size() > 0)
-			  {
-				  result = merge(result, filter_on_add(pack.on_add));
-			  }
-			  if (pack.on_remove.size() > 0)
-			  {
-				  result =  merge(result, filter_on_remove(pack.on_remove));
-			  }
-			  if (pack.on_combine.size() > 0)
-			  {
-				  result = merge(result, filter_on_combine(pack.on_combine));
-			  }
-			  if (pack.on_break.size() > 0)
-			  {
-				  result = merge(result, filter_on_break(pack.on_break));
-			  }
-			  if (pack.except.size() > 0)
-			  {
-				  result = difference(result, filter_except(pack.except));
-			  }
-
-			  return result.value_or(std::vector<entity>{});
-		  }
-
-		template <std::size_t... Is, typename... Ts>
-		std::vector<entity> filter_foreach(std::index_sequence<Is...>, std::tuple<Ts...>) const
+		void prepare_system(memory::raw_region& cache, size_t cache_offset, void* system,
+							std::vector<dependency_pack>& bindings);
+		size_t prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
+								dependency_pack& dep_pack);
+		size_t prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
+							const std::pair<details::component_key_t, psl::array_view<std::uintptr_t>*>& binding,
+							size_t element_size);
+		std::vector<entity> filter(const dependency_pack& pack) const
 		{
-			std::optional<std::vector<entity>> result{ std::nullopt };
-			auto merge = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
-			{
-				if (!out)
-					return to_merge;
+			std::optional<std::vector<entity>> result{std::nullopt};
+
+			auto merge = [](std::optional<std::vector<entity>> out,
+							std::vector<entity> to_merge) -> std::vector<entity> {
+				if(!out) return to_merge;
 
 				std::vector<entity> v_intersection;
 				v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
 				std::set_intersection(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
-					std::end(to_merge), std::back_inserter(v_intersection));
+									  std::end(to_merge), std::back_inserter(v_intersection));
 
 				return v_intersection;
 			};
 
-			auto difference = [](std::optional<std::vector<entity>> out, std::vector<entity> to_merge) -> std::vector<entity>
-			{
-				if (!out)
-					return to_merge;
+			auto difference = [](std::optional<std::vector<entity>> out,
+								 std::vector<entity> to_merge) -> std::vector<entity> {
+				if(!out) return to_merge;
 
 				std::vector<entity> v_intersection;
 				v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
 				std::set_difference(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
-					std::end(to_merge), std::back_inserter(v_intersection));
+									std::end(to_merge), std::back_inserter(v_intersection));
+
+				return v_intersection;
+			};
+
+			if(pack.filters.size() > 0)
+			{
+				result = merge(result, filter_default(pack.filters));
+			}
+			if(pack.on_add.size() > 0)
+			{
+				result = merge(result, filter_on_add(pack.on_add));
+			}
+			if(pack.on_remove.size() > 0)
+			{
+				result = merge(result, filter_on_remove(pack.on_remove));
+			}
+			if(pack.on_combine.size() > 0)
+			{
+				result = merge(result, filter_on_combine(pack.on_combine));
+			}
+			if(pack.on_break.size() > 0)
+			{
+				result = merge(result, filter_on_break(pack.on_break));
+			}
+			if(pack.except.size() > 0)
+			{
+				result = difference(result, filter_except(pack.except));
+			}
+
+			return result.value_or(std::vector<entity>{});
+		}
+
+		template <std::size_t... Is, typename... Ts>
+		std::vector<entity> filter_foreach(std::index_sequence<Is...>, std::tuple<Ts...>) const
+		{
+			std::optional<std::vector<entity>> result{std::nullopt};
+			auto merge = [](std::optional<std::vector<entity>> out,
+							std::vector<entity> to_merge) -> std::vector<entity> {
+				if(!out) return to_merge;
+
+				std::vector<entity> v_intersection;
+				v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
+				std::set_intersection(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
+									  std::end(to_merge), std::back_inserter(v_intersection));
+
+				return v_intersection;
+			};
+
+			auto difference = [](std::optional<std::vector<entity>> out,
+								 std::vector<entity> to_merge) -> std::vector<entity> {
+				if(!out) return to_merge;
+
+				std::vector<entity> v_intersection;
+				v_intersection.reserve(std::max(out.value().size(), to_merge.size()));
+				std::set_difference(std::begin(out.value()), std::end(out.value()), std::begin(to_merge),
+									std::end(to_merge), std::back_inserter(v_intersection));
 
 				return v_intersection;
 			};
 
 
 			(std::invoke([&]() {
-				using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
-				if constexpr (!details::is_exception<component_t>::value)
-				{
-					result = merge(result, filter_impl(component_t{}));
-				}
-			}),
-				...);
+				 using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
+				 if constexpr(!details::is_exception<component_t>::value)
+				 {
+					 result = merge(result, filter_impl(component_t{}));
+				 }
+			 }),
+			 ...);
 
 			(std::invoke([&]() {
-				using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
-				if constexpr (details::is_exception<component_t>::value)
-				{
-					result = difference(result, filter_impl(component_t{}));
-				}
-			}),
-				...);
+				 using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
+				 if constexpr(details::is_exception<component_t>::value)
+				 {
+					 result = difference(result, filter_impl(component_t{}));
+				 }
+			 }),
+			 ...);
 
 			return result.value_or(std::vector<entity>{});
 		}
-		
-		std::vector<details::component_key_t> filter_keys(psl::array_view<details::component_key_t> keys, const details::key_value_container_t<details::component_key_t, std::vector<entity>>& key_list) const
+
+		std::vector<details::component_key_t>
+		filter_keys(psl::array_view<details::component_key_t> keys,
+					const details::key_value_container_t<details::component_key_t, std::vector<entity>>& key_list) const
 		{
 			std::vector<details::component_key_t> keys_out{};
-			for (auto key : keys)
+			for(auto key : keys)
 			{
-				if (key_list.find(key) != std::end(key_list))
-					keys_out.emplace_back(key);
+				if(key_list.find(key) != std::end(key_list)) keys_out.emplace_back(key);
 			}
 			return keys;
 		}
 
 		std::vector<entity> filter_on_add(std::vector<details::component_key_t> keys) const
 		{
-			return dynamic_filter(keys, m_StateChange[m_Tick%2].added_components);
+			return dynamic_filter(keys, m_StateChange[m_Tick % 2].added_components);
 		}
 
 		std::vector<entity> filter_on_remove(std::vector<details::component_key_t> keys) const
 		{
-			return dynamic_filter(keys, m_StateChange[m_Tick%2].removed_components);
+			return dynamic_filter(keys, m_StateChange[m_Tick % 2].removed_components);
 		}
 
 		std::vector<entity> filter_except(std::vector<details::component_key_t> keys) const
@@ -907,17 +1038,17 @@ namespace core::ecs
 		std::vector<entity> filter_on_combine(std::vector<details::component_key_t> keys) const
 		{
 			std::sort(std::begin(keys), std::end(keys));
-			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick%2].added_components)};
+			std::vector<details::component_key_t> added_keys{
+				filter_keys(keys, m_StateChange[m_Tick % 2].added_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
 			std::vector<details::component_key_t> remaining_keys{};
 
 			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
-				std::back_inserter(remaining_keys));
+								std::back_inserter(remaining_keys));
 
-			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick%2].added_components);
-			if(remaining_keys.size() > 0)
-				return dynamic_filter(remaining_keys, entities);
+			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick % 2].added_components);
+			if(remaining_keys.size() > 0) return dynamic_filter(remaining_keys, entities);
 
 			return entities;
 		}
@@ -925,16 +1056,16 @@ namespace core::ecs
 		std::vector<entity> filter_on_break(std::vector<details::component_key_t> keys) const
 		{
 			std::sort(std::begin(keys), std::end(keys));
-			std::vector<details::component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick%2].removed_components)};
+			std::vector<details::component_key_t> added_keys{
+				filter_keys(keys, m_StateChange[m_Tick % 2].removed_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
 			std::vector<details::component_key_t> remaining_keys{};
 
 			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
-				std::back_inserter(remaining_keys));
-			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick%2].removed_components);
-			if(remaining_keys.size() > 0)
-				return dynamic_filter(remaining_keys, entities);
+								std::back_inserter(remaining_keys));
+			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick % 2].removed_components);
+			if(remaining_keys.size() > 0) return dynamic_filter(remaining_keys, entities);
 
 			return entities;
 		}
@@ -1084,17 +1215,23 @@ namespace core::ecs
 			dependency_pack p{pack};
 			if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::tick>::value)
 			{
-				static_assert(details::mf_tick<T>::value, "cannot register tick as there is not method that has a suitable signature or the method itself does not exist.");
+				static_assert(details::mf_tick<T>::value,
+							  "cannot register tick as there is not method that has a suitable signature or the method "
+							  "itself does not exist.");
 				it->second.tick_dependencies.emplace_back(std::move(p));
 			}
 			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::pre_tick>::value)
 			{
-				static_assert(details::mf_pre_tick<T>::value, "cannot register pre_tick as there is not method that has a suitable signature or the method itself does not exist.");
+				static_assert(details::mf_pre_tick<T>::value,
+							  "cannot register pre_tick as there is not method that has a suitable signature or the "
+							  "method itself does not exist.");
 				it->second.pre_tick_dependencies.emplace_back(std::move(p));
 			}
 			else if constexpr(std::is_same<std::remove_cv_t<Y>, core::ecs::post_tick>::value)
 			{
-				static_assert(details::mf_post_tick<T>::value, "cannot register post_tick as there is not method that has a suitable signature or the method itself does not exist.");
+				static_assert(details::mf_post_tick<T>::value,
+							  "cannot register post_tick as there is not method that has a suitable signature or the "
+							  "method itself does not exist.");
 				it->second.post_tick_dependencies.emplace_back(std::move(p));
 			}
 			else
@@ -1126,49 +1263,54 @@ namespace core::ecs
 			}
 		}
 
-		bool exists(entity e) const noexcept
-		{
-			return m_EntityMap.find(e) != std::end(m_EntityMap);
-		}
-		template<typename T>
+		bool exists(entity e) const noexcept { return m_EntityMap.find(e) != std::end(m_EntityMap); }
+		template <typename T>
 		bool has_component(entity e) const noexcept
 		{
 			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
-			if (auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				return std::any_of(std::begin(eIt->second), std::end(eIt->second), [&key](const std::pair<details::component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
+				return std::any_of(std::begin(eIt->second), std::end(eIt->second),
+								   [&key](const std::pair<details::component_key_t, size_t> comp_pair) {
+									   return comp_pair.first == key;
+								   });
 			}
 
 			return false;
 		}
 
-		template<typename... Ts>
+		template <typename... Ts>
 		bool has_components(entity e) const noexcept
 		{
 			std::vector<details::component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
-			if (auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				return std::all_of(std::begin(keys), std::end(keys), [&eIt](const details::component_key_t& key)
-				{
-					return std::any_of(std::begin(eIt->second), std::end(eIt->second), [&key](const std::pair<details::component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
-				});			
+				return std::all_of(std::begin(keys), std::end(keys), [&eIt](const details::component_key_t& key) {
+					return std::any_of(std::begin(eIt->second), std::end(eIt->second),
+									   [&key](const std::pair<details::component_key_t, size_t> comp_pair) {
+										   return comp_pair.first == key;
+									   });
+				});
 			}
 			return false;
 		}
 
 
 		// will return false when the entity does not exist either
-		template<typename T>
+		template <typename T>
 		bool is_owned_by(entity e, const T& component)
 		{
 			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
-			if (auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				if (auto compIt = std::find_if(std::begin(eIt->second), std::end(eIt->second), [&key](const std::pair<details::component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
-					compIt != std::end(eIt->second))
+				if(auto compIt = std::find_if(std::begin(eIt->second), std::end(eIt->second),
+											  [&key](const std::pair<details::component_key_t, size_t> comp_pair) {
+												  return comp_pair.first == key;
+											  });
+				   compIt != std::end(eIt->second))
 				{
 					auto compDataIt = m_Components.find(key);
-					auto diff = &component - (T*)compDataIt->second.region.data();
+					auto diff		= &component - (T*)compDataIt->second.region.data();
 					return compIt->second == diff;
 				}
 				return false;
@@ -1176,13 +1318,117 @@ namespace core::ecs
 			return false;
 		}
 
-		template<typename... Ts>
+		template <typename... Ts>
 		bool is_owned_by(entity e, const Ts&... components)
 		{
 			return false;
 		}
 
+
 	  private:
+		// todo move these helpers to a better location
+		template <typename T>
+		struct func_traits : public func_traits<decltype(&T::operator())>
+		{};
+
+		template <typename C, typename Ret, typename... Args>
+		struct func_traits<Ret (C::*)(Args...)>
+		{
+			using result_t	= Ret;
+			using arguments_t = std::tuple<Args...>;
+		};
+
+		template <typename Ret, typename... Args>
+		struct func_traits<Ret (*)(Args...)>
+		{
+			using result_t	= Ret;
+			using arguments_t = std::tuple<Args...>;
+		};
+
+		template <typename C, typename Ret, typename... Args>
+		struct func_traits<Ret (C::*)(Args...) const>
+		{
+			using result_t	= Ret;
+			using arguments_t = std::tuple<Args...>;
+		};
+
+		template <size_t N, typename... Args>
+		decltype(auto) magic_get(Args&&... as) noexcept
+		{
+			return std::get<N>(std::forward_as_tuple(std::forward<Args>(as)...));
+		}
+
+		
+
+		template<typename... Ts>
+		struct get_packs
+		{
+			using type = std::tuple<Ts...>;
+		};
+
+		template<typename... Ts>
+		struct get_packs<std::tuple<Ts...>> : public get_packs<Ts...>
+		{
+		};
+
+		template<typename... Ts>
+		struct get_packs<core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>, Ts...> : public get_packs<Ts...>
+		{
+		};
+		
+
+		template <std::size_t... Is, typename T>
+		std::vector<owner_dependency_pack> expand(std::index_sequence<Is...>, type_container<T> t)
+		{
+			std::vector<owner_dependency_pack> res;
+			( std::invoke([&]()
+			 {
+				res.emplace_back( owner_dependency_pack(type_container<typename std::tuple_element<Is, T>::type>{}) );
+					 
+			 }), ...);
+			return res;
+		}
+
+	  public:
+		template <class Fn, class... Args>
+		void declare(Fn&& fn, Args&&... args)
+		{
+			if constexpr(std::is_member_function_pointer<Fn>::value)
+			{
+				auto system = magic_get<0>(args...);
+			}
+			else if constexpr(std::is_pointer<typename std::decay<Fn>::type>::value)
+			{}
+
+			auto dSys = std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
+			std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)> y =
+				[this, dSys](core::ecs::commands& commands, std::chrono::duration<float> dTime,
+							 std::chrono::duration<float> rTime) {
+								 using pack_t = typename get_packs<typename func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+								 auto dependency_packs = expand(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, type_container<pack_t>{});
+
+								 tick_system(dependency_packs);
+					// auto tuple = typename func_traits<typename std::decay<Fn>::type>::arguments_t{2, 2.0};
+					// dSys.operator()(commands, dTime, rTime);
+				};
+		}
+
+		template <class Fn>
+		void declare(Fn&& fn)
+		{
+			std::function<void(core::ecs::commands&, std::chrono::duration<float>, std::chrono::duration<float>)> y =
+				[this, fn](core::ecs::commands& commands, std::chrono::duration<float> dTime,
+						   std::chrono::duration<float> rTime) {
+							   using pack_t = typename get_packs<typename func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+							   auto dependency_packs = expand(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, type_container<pack_t>{});
+					// auto tuple = typename func_traits<typename std::decay<Fn>::type>::arguments_t{3, 2.0};
+					// fn.operator()(commands, dTime, rTime);
+				};
+		}
+
+	  private:
+
+		  void tick_system(std::vector<owner_dependency_pack>& pack_template){};
 		void set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id);
 		std::vector<entity> dynamic_filter(psl::array_view<details::component_key_t> keys,
 										   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const
@@ -1242,7 +1488,7 @@ namespace core::ecs
 		};
 
 		std::array<difference_set, 2> m_StateChange;
-		size_t m_Tick{ 0 };
+		size_t m_Tick{0};
 
 		// std::unordered_map<details::component_key_t,
 	};
@@ -1255,7 +1501,7 @@ namespace core::ecs
 	/// by the next tick event.
 	/// \warn there is an order to the commands, the command with least precedence is the add_components
 	/// commands, followed by remove_components commands. After which the create entity command has precedence
-	/// and finally the destroy entity. This means adding an entity, adding components, and then destroying it 
+	/// and finally the destroy entity. This means adding an entity, adding components, and then destroying it
 	/// turns into a no-op.
 	/// \warn the precedence of commands persists between several command blocks. This means that even if command
 	/// block 'A' adds components, if command block 'B' removes them, it will be as if they never existed.
@@ -1267,23 +1513,23 @@ namespace core::ecs
 		// only our good friend ecs::state should be able to create us. This is to prevent misuse.
 		commands(state& state, uint64_t id_offset);
 
-	private:
-
+	  private:
 		/// \brief verify the entities exist locally
 		///
 		/// Entities might exist, but not be present in the command queue's local data containers,
-		/// this command makes sure that entities that exist in the ecs::state are then replicated 
+		/// this command makes sure that entities that exist in the ecs::state are then replicated
 		/// locally so that components can be added.
 		/// \param[in] entities the entity list to verify
 		void verify_entities(psl::array_view<entity> entities)
 		{
-			for (auto entity : entities)
+			for(auto entity : entities)
 			{
-				if (entity <= m_StartID && m_State.exists(entity))
+				if(entity <= m_StartID && m_State.exists(entity))
 					m_EntityMap.emplace(entity, std::vector<std::pair<details::component_key_t, size_t>>{});
 			}
 		}
-	public:
+
+	  public:
 		// -----------------------------------------------------------------------------
 		// add component
 		// -----------------------------------------------------------------------------
@@ -1291,8 +1537,7 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
-			if (entities.size() == 0)
-				return;
+			if(entities.size() == 0) return;
 			verify_entities(entities);
 			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template));
 		}
@@ -1332,8 +1577,7 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			if (entities.size() == 0)
-				return;
+			if(entities.size() == 0) return;
 			constexpr details::component_key_t key = details::component_key<details::remove_all<T>>;
 			m_ErasedComponents[key].insert(std::end(m_ErasedComponents[key]), std::begin(entities), std::end(entities));
 		}
@@ -1363,13 +1607,12 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> create(size_t count) noexcept
 		{
-			if (count == 0)
-				return {};
+			if(count == 0) return {};
 			PROFILE_SCOPE(core::profiler)
-				m_EntityMap.reserve(m_EntityMap.size() + count);
+			m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
-			for (size_t i = 0u; i < count; ++i)
+			for(size_t i = 0u; i < count; ++i)
 			{
 				m_NewEntities.emplace_back(mID);
 				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
@@ -1384,13 +1627,12 @@ namespace core::ecs
 		template <typename... Ts>
 		std::vector<entity> create(size_t count, Ts&&... args) noexcept
 		{
-			if (count == 0)
-				return {};
+			if(count == 0) return {};
 			PROFILE_SCOPE(core::profiler)
-				m_EntityMap.reserve(m_EntityMap.size() + count);
+			m_EntityMap.reserve(m_EntityMap.size() + count);
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
-			for (size_t i = 0u; i < count; ++i)
+			for(size_t i = 0u; i < count; ++i)
 			{
 				m_NewEntities.emplace_back(mID);
 				m_EntityMap.emplace(++mID, std::vector<std::pair<details::component_key_t, size_t>>{});
@@ -1407,12 +1649,11 @@ namespace core::ecs
 		// -----------------------------------------------------------------------------
 		void destroy(psl::array_view<entity> entities)
 		{
-			if (entities.size() == 0)
-				return;
+			if(entities.size() == 0) return;
 			m_MarkedForDestruction.insert(std::end(m_MarkedForDestruction), std::begin(entities), std::end(entities));
 		}
 
-	private:
+	  private:
 		/// \brief applies the changeset to the local data for processing
 		///
 		/// conflicting commands, such as adding and removing components get resolved locally first
