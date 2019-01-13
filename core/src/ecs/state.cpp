@@ -1,5 +1,6 @@
 #include "ecs/state.h"
 #include "enumerate.h"
+#include "assertions.h"
 
 using namespace core::ecs;
 
@@ -79,30 +80,160 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
 
-void state::prepare_system(std::chrono::duration<float> dTime, memory::raw_region& cache, size_t cache_offset, void* system, std::vector<dependency_pack>& bindings)
+size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, const std::pair< details::component_key_t, psl::array_view<std::uintptr_t>*>& binding, size_t element_size)
+{
+	const auto& mem_pair = m_Components.find(binding.first);
+	const auto id = binding.first;
+	std::uintptr_t data_begin = cache_offset;
+
+	for(const auto& e : entities)
+	{
+		auto eMapIt = m_EntityMap.find(e);
+		auto foundIt = std::find_if(
+			eMapIt->second.begin(), eMapIt->second.end(),
+			[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
+
+		auto index = foundIt->second;
+		void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + element_size * index);
+		std::memcpy((void*)cache_offset, loc, element_size);
+		cache_offset += element_size;
+	}
+
+
+	return cache_offset - data_begin;
+}
+
+size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, dependency_pack& dep_pack)
+{
+	auto workload_divider = [&](const auto& binding)
+	{
+		// split up the workload
+		std::uintptr_t data_begin = cache_offset;
+		constexpr size_t work_load = 2;
+		size_t batch_size = entities.size() / work_load;
+		if(batch_size <= 1)
+		{
+			cache_offset += prepare_data(entities, cache, cache_offset, binding, dep_pack.m_Sizes[binding.first]);
+
+			*binding.second =
+				psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
+		}
+		else
+		{
+			size_t dispatched_n = 0;
+			for(auto i = 0; i < work_load - 1; ++i)
+			{
+				psl::array_view<entity> entities_slice{std::next(std::begin(entities), dispatched_n), batch_size};
+
+				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding, dep_pack.m_Sizes[binding.first]);
+
+				dispatched_n += batch_size;
+			}
+
+			{
+				psl::array_view<entity> entities_slice{std::next(std::begin(entities), dispatched_n), entities.size() - dispatched_n};
+
+				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding, dep_pack.m_Sizes[binding.first]);
+			}
+
+			*binding.second =
+				psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
+		}
+	};
+	PROFILE_SCOPE(core::profiler);
+	size_t offset_start = cache_offset;
+	for(const auto& binding : dep_pack.m_RBindings)
+	{
+		workload_divider(binding);
+	}
+	for(const auto& binding : dep_pack.m_RWBindings)
+	{
+		workload_divider(binding);
+	}
+	return cache_offset - offset_start;
+}
+
+void state::prepare_system(memory::raw_region& cache, size_t cache_offset, void* system, std::vector<dependency_pack>& bindings)
 {
 	PROFILE_SCOPE(core::profiler);
 	for(auto& dep_pack : bindings)
 	{
 		auto entities = filter(dep_pack);
+		if(entities.size() == 0)
+			continue;
 		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
 		dep_pack.m_StoredEnts = psl::array_view<core::ecs::entity>(
 			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
 		if(dep_pack.m_Entities != nullptr) *dep_pack.m_Entities = dep_pack.m_StoredEnts;
 		cache_offset += sizeof(entity) * entities.size();
 
-		//std::for_each(std::execution::par_unseq, )
+		cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
 	}
 }
 
 void state::tick(std::chrono::duration<float> dTime)
 {
+	/*auto write_data = [](core::ecs::state& state, std::vector<dependency_pack>& dep_packs)
+	{
+
+		for(const auto& dep_pack : dep_packs)
+		{
+			for(const auto& binding : dep_pack.m_RWBindings)
+			{
+				const size_t size = dep_pack.m_Sizes.at(binding.first);
+				std::uintptr_t data = (std::uintptr_t)&std::begin(*binding.second).value();
+				state.set(dep_pack.m_StoredEnts, (void*)data, size, binding.first);
+			}
+		}
+	};
 	PROFILE_SCOPE(core::profiler)
 	++m_Tick;
+	std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
+	for(auto& system : m_Systems)
+	{
+		if(system.second.pre_tick)
+		{
+			core::profiler.scope("pre_tick system", this);
+			prepare_system(m_Cache, cache_offset, system.first, system.second.pre_tick_dependencies);
+			commands cmds{*this, mID};
+			std::invoke(system.second.pre_tick, cmds);
+			write_data(*this, system.second.pre_tick_dependencies);
+			execute_commands(cmds);
+		}
+	}
+	for(auto& system : m_Systems)
+	{
+		if(system.second.tick)
+		{
+			core::profiler.scope("tick system", this);
+			prepare_system(m_Cache, cache_offset, system.first, system.second.tick_dependencies);
+			commands cmds{*this, mID};
+			std::invoke(system.second.tick, cmds, dTime, dTime);
+			write_data(*this, system.second.tick_dependencies);
+			execute_commands(cmds);
+		}
+	}
+	for(auto& system : m_Systems)
+	{
+		if(system.second.post_tick)
+		{
+			core::profiler.scope("post_tick system", this);
+			prepare_system(m_Cache, cache_offset, system.first, system.second.post_tick_dependencies);
+			commands cmds{*this, mID};
+			std::invoke(system.second.post_tick, cmds);
+			write_data(*this, system.second.post_tick_dependencies);
+			execute_commands(cmds);
+		}
+	}
+
+	m_StateChange[m_Tick % 2].clear();*/
+
+	PROFILE_SCOPE(core::profiler)
+		++m_Tick;
 	for(auto& system : m_Systems)
 	{
 		core::profiler.scope_begin("ticking system");
-		auto& sBindings				= system.second.tick_dependencies;
+		auto& sBindings = system.second.tick_dependencies;
 		std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
 		core::profiler.scope_begin("preparing data");
 		for(auto& dep_pack : sBindings)
@@ -116,21 +247,21 @@ void state::tick(std::chrono::duration<float> dTime)
 			core::profiler.scope_begin("read-write data");
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				const auto& mem_pair	  = m_Components.find(rwBinding.first);
-				const auto size			  = dep_pack.m_Sizes[rwBinding.first];
-				const auto id			  = rwBinding.first;
+				const auto& mem_pair = m_Components.find(rwBinding.first);
+				const auto size = dep_pack.m_Sizes[rwBinding.first];
+				const auto id = rwBinding.first;
 				std::uintptr_t data_begin = cache_offset;
 
 				for(const auto& e : entities)
 				{
 
-					auto eMapIt  = m_EntityMap.find(e);
+					auto eMapIt = m_EntityMap.find(e);
 					auto foundIt = std::find_if(
 						eMapIt->second.begin(), eMapIt->second.end(),
 						[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
 
 					auto index = foundIt->second;
-					void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+					void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
 					std::memcpy((void*)cache_offset, loc, size);
 					cache_offset += size;
 				}
@@ -145,21 +276,21 @@ void state::tick(std::chrono::duration<float> dTime)
 			for(const auto& rBinding : dep_pack.m_RBindings)
 			{
 				const auto& mem_pair = m_Components.find(rBinding.first);
-				const auto size		 = dep_pack.m_Sizes[rBinding.first];
-				const auto id		 = rBinding.first;
+				const auto size = dep_pack.m_Sizes[rBinding.first];
+				const auto id = rBinding.first;
 
 				std::uintptr_t data_begin = cache_offset;
 
 				for(const auto& e : entities)
 				{
 
-					auto eMapIt  = m_EntityMap.find(e);
+					auto eMapIt = m_EntityMap.find(e);
 					auto foundIt = std::find_if(
 						eMapIt->second.begin(), eMapIt->second.end(),
 						[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
 
 					auto index = foundIt->second;
-					void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+					void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
 					std::memcpy((void*)cache_offset, loc, size);
 					cache_offset += size;
 				}
@@ -179,7 +310,7 @@ void state::tick(std::chrono::duration<float> dTime)
 		{
 			for(const auto& rwBinding : dep_pack.m_RWBindings)
 			{
-				const size_t size   = dep_pack.m_Sizes.at(rwBinding.first);
+				const size_t size = dep_pack.m_Sizes.at(rwBinding.first);
 				std::uintptr_t data = (std::uintptr_t)&std::begin(*rwBinding.second).value();
 				set(dep_pack.m_StoredEnts, (void*)data, size, rwBinding.first);
 			}

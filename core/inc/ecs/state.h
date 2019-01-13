@@ -587,18 +587,18 @@ namespace core::ecs
 			}
 			else
 			{
-				auto halfway_it = std::next(std::begin(entities), entities.size() / 2);
-				if (halfway_it != std::end(entities) && halfway_it != std::begin(entities))
+				auto batch_size = entities.size() / 2;
+				if (batch_size > 2)
 				{
-					copy_components(key, psl::array_view<entity>(std::begin(entities), halfway_it), component_size, std::forward<Fn>(function));
-					copy_components(key, psl::array_view<entity>(halfway_it, std::end(entities)), component_size, std::forward<Fn>(function));
+					copy_components(key, psl::array_view<entity>(std::begin(entities), batch_size), component_size, std::forward<Fn>(function));
+					copy_components(key, psl::array_view<entity>(std::next(std::begin(entities), batch_size), entities.size() - batch_size), component_size, std::forward<Fn>(function));
 				}
 				else
 				{
 					auto it = std::begin(entities);
 					for (auto e : entities)
 					{
-						copy_components(key, psl::array_view<entity>(it, std::next(it)), component_size, std::forward<Fn>(function));
+						copy_components(key, psl::array_view<entity>(it, 1), component_size, std::forward<Fn>(function));
 						it = std::next(it);
 					}
 				}
@@ -765,9 +765,9 @@ namespace core::ecs
 
 	  private:
 
-		  void prepare_system(std::chrono::duration<float> dTime, memory::raw_region& cache_offset, size_t offset, void* system, std::vector<dependency_pack>& bindings);
-		  void prepare_data(psl::array_view<entity> entities, memory::raw_region& cache_offset, size_t offset, psl::array_view<std::uintptr_t>& target);
-
+		  void prepare_system(memory::raw_region& cache, size_t cache_offset, void* system, std::vector<dependency_pack>& bindings);
+		  size_t prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, dependency_pack& dep_pack);
+		  size_t prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, const std::pair< details::component_key_t, psl::array_view<std::uintptr_t>*>& binding, size_t element_size);
 		  std::vector<entity> filter(const dependency_pack& pack) const
 		  {
 			  std::optional<std::vector<entity>> result{ std::nullopt };

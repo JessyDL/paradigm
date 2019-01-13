@@ -122,7 +122,7 @@ namespace psl
 		array_view(pointer first, pointer last) : first(first), last(last){};
 
 		template <typename IT>
-		array_view(IT first, IT last) : first(&(*first)), last(&(*last)){};
+		array_view(IT first, size_t count) : first(std::addressof(*first)), last((pointer)((std::uintptr_t)std::addressof(*first) + count * sizeof(T))){};
 
 
 		array_view(const std::vector<value_type>& container)
