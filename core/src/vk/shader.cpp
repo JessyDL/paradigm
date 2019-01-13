@@ -1,5 +1,4 @@
-﻿
-#include "vk/shader.h"
+﻿#include "vk/shader.h"
 #include "meta/shader.h"
 #include "vk/context.h"
 

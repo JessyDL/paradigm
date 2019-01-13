@@ -18,6 +18,7 @@
 #include "logging.h"
 
 
+#include "ustring.h"
 #include "string_utils.h"
 
 
@@ -31,6 +32,8 @@
 #include <string>
 #include <array>
 #include <memory>
+#include "array_view.h"
+#include "enumerate.h"
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
@@ -39,11 +42,11 @@
 #endif
 
 
-#include "string_utils.h"
 #include "application_utils.h"
 
 #include "meta.h"
 #include "library.h"
+#include "serialization.h"
 #include "systems/resource.h"
 #include "math/math.hpp"
 #include "conversion_utils.h"

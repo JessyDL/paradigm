@@ -1,8 +1,7 @@
-
+#ifdef SURFACE_XCB
 #include "systems/input.h"
 #include "os/surface.h"
 
-#ifdef SURFACE_XCB
 using namespace core::systems;
 using kc = input::keycode;
 
