@@ -19,7 +19,6 @@ death::death(state& state)
 	//state.declare([](int x, double y) { x = 0; });
 }
 
-void death::easy(int, double) {}
 void death::tick(commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
 	PROFILE_SCOPE(core::profiler)
