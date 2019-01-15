@@ -16,10 +16,10 @@ Some of the key reasons why this engine exists:
 
 For more detailed description about the engine itself, go to the readme of the `core` project, which is in the folder of the same name. Similarly all sub-projects that make up the engine all have their own readme's describing their intent, structure, status and dependencies. This readme is just to give a larger oversight over the entire project.
 ## Status
-| Architecture| Status        | Size | Backend|
+| Architecture| Status        | Unit Tests | Backend|
 | :-------------|:-------------| -----:|---:|
-| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)| 1.2mb | Vulkan |
-| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?logo=travis&style=for-the-badge)](https://travis-ci.com/JessyDL/paradigm) | -| Vulkan |
+| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?logo=travis&style=for-the-badge)](https://travis-ci.com/JessyDL/paradigm) | [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?label=tests&style=for-the-badge)](https://travis-ci.com/JessyDL/paradigm) | Vulkan |
+| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?logo=travis&style=for-the-badge)](https://travis-ci.com/JessyDL/paradigm) | [![Travis (.com) branch](https://img.shields.io/travis/com/JessyDL/paradigm.svg?label=tests&style=for-the-badge)](https://travis-ci.com/JessyDL/paradigm)| Vulkan |
 | ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK|
 | ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | Vulkan|

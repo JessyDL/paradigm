@@ -50,12 +50,19 @@ matrix:
         on:
           branch: develop
     - name: "Linux CLang 6.0 Unit Tests"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true CMAKE_VERSION="3.13.2" BADGE=linux
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true CMAKE_VERSION="3.13.2" BADGE=linux-tests
       addons: *clang60
     - os: windows
       filter_secrets: false 
       name: "Windows VC++ Release" 
-      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=false DOXGEN=false CMAKE_VERSION="3.13.2" YARN_GPG=no BADGE=windows
+      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=false DOXGEN=false CMAKE_VERSION="3.13.2" BADGE=windows
+      before_install:
+        - choco install -y python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+    - os: windows
+      filter_secrets: false 
+      name: "Windows VC++ Unit Tests" 
+      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=true DOXGEN=false CMAKE_VERSION="3.13.2" BADGE=windows-tests
       before_install:
         - choco install -y python3
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
@@ -185,7 +192,11 @@ script:
   - |
     if [[ $UTESTS == true ]]; then
       ctest . -O results.txt --output-on-failure
-      export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/project_files/make/x64/results.txt"
+      if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then 
+        export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/project_files/make/x64/results.txt"      
+      else
+        export UTESTS_RESULTS="$TRAVIS_BUILD_DIR/project_files/msvc/x64-VC++/results.txt"  
+      fi
     fi
 
 after_success:
