@@ -99,18 +99,17 @@ namespace psl
 			return false;
 		}
 
-		size_t begin = 0;
-		if(text[begin] == '{')
+		if(text[0] == '{')
 		{
 			if(text[size - 1] != '}')
 			{
 				return false;
 			}
-			begin += 1;
+			text += 1;
 		}
 
-		if((text[begin + 8] != '-') || (text[begin + 13] != '-') || (text[begin + 18] != '-') ||
-		   (text[begin + 23] != '-'))
+		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') ||
+			(text[23] != '-'))
 		{
 			return false;
 		}
@@ -169,7 +168,24 @@ namespace psl
 			throw std::domain_error("parsed text is of incorrect size to be a UID");
 		}
 
-		constexpr auto parse = [](const char* text) {
+		if(text[0] == '{')
+		{
+			if(text[size - 1] != '}')
+			{
+				throw std::domain_error("parsed text is of incorrect format to be a UID");
+			}
+			text += 1;
+		}
+
+
+		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') ||
+		   (text[23] != '-'))
+		{
+			throw std::domain_error("parsed text is of incorrect format to be a UID");
+		}
+		
+		constexpr auto parse = [](const char* text)
+		{
 			uint8_t result{};
 			for(size_t i = 0; i < 2; ++i)
 			{
@@ -188,27 +204,6 @@ namespace psl
 			}
 			return result;
 		};
-
-		size_t begin = 0;
-		size_t end   = size - 1;
-		if(text[begin] == '{')
-		{
-			if(text[end] != '}')
-			{
-				throw std::domain_error("parsed text is of incorrect format to be a UID");
-			}
-
-			begin += 1;
-			end -= 1;
-			text += 1;
-		}
-
-
-		if((text[begin + 8] != '-') || (text[begin + 13] != '-') || (text[begin + 18] != '-') ||
-		   (text[begin + 23] != '-'))
-		{
-			throw std::domain_error("parsed text is of incorrect format to be a UID");
-		}
 
 		psl::UID::PUID res{};
 		auto res_offset = 0;
@@ -253,6 +248,22 @@ namespace psl
 			return psl::UID::invalid_uid;
 		}
 
+		if(text[0] == '{')
+		{
+			if(text[size - 1] != '}')
+			{
+				return psl::UID::invalid_uid;
+			}
+			text += 1;
+		}
+
+
+		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') ||
+			(text[23] != '-'))
+		{
+			return psl::UID::invalid_uid;
+		}
+
 		constexpr auto parse = [](const char* text, uint8_t& out)
 		{
 			for(size_t i = 0; i < 2; ++i)
@@ -273,26 +284,6 @@ namespace psl
 			return true;
 		};
 
-		size_t begin = 0;
-		size_t end = size - 1;
-		if(text[begin] == '{')
-		{
-			if(text[end] != '}')
-			{
-				return psl::UID::invalid_uid;
-			}
-
-			begin += 1;
-			end -= 1;
-			text += 1;
-		}
-
-
-		if((text[begin + 8] != '-') || (text[begin + 13] != '-') || (text[begin + 18] != '-') ||
-			(text[begin + 23] != '-'))
-		{
-			return psl::UID::invalid_uid;
-		}
 
 		psl::UID::PUID res{};
 		auto res_offset = 0;
