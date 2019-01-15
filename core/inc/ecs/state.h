@@ -475,7 +475,7 @@ namespace core::ecs
 				using pack_t = T;
 				using range_t = typename pack_t::pack_t::range_t;
 
-				return T(pack_t::pack_t{fill_in(type_container<typename std::tuple_element<Is, range_t>::type>()) ...});
+				return T(pack_t::pack_t(fill_in(type_container<typename std::tuple_element<Is, range_t>::type>()) ...));
 			}
 
 		public:
