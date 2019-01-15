@@ -26,7 +26,7 @@ library::library(psl::string8::view lib)
 			size_t start		= line.find("UID=") + 4;
 			size_t end			= line.find("]", start);
 			psl::string8_t meta = line.substr(start, end - start);
-			auto uid			= UID::convert(meta);
+			auto uid			= utility::converter<UID>::from_string(meta);
 			size_t startPath	= line.find("METAPATH=") + 9;
 			size_t endPath		= line.find("]", startPath);
 

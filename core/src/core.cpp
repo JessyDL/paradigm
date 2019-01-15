@@ -540,7 +540,7 @@ int entry()
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
 	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
 
-	auto window_data = create<data::window>(cache, psl::UID::convert("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"));
+	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data.load();
 
 	auto surface_handle = create<surface>(cache);
@@ -674,8 +674,8 @@ int entry()
 
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
-	if(!cache.library().contains(psl::UID::convert("3982b466-58fe-4918-8735-fc6cc45378b0")) ||
-	   !cache.library().contains(psl::UID::convert("4429d63a-9867-468f-a03f-cf56fee3c82e")))
+	if(!cache.library().contains("3982b466-58fe-4918-8735-fc6cc45378b0"_uid) ||
+	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
 	{
 		core::log->critical(
 			"Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
@@ -683,9 +683,9 @@ int entry()
 		return -1;
 	}
 	auto vertShaderMeta =
-		cache.library().get<core::meta::shader>(psl::UID::convert("3982b466-58fe-4918-8735-fc6cc45378b0")).value();
+		cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
 	auto fragShaderMeta =
-		cache.library().get<core::meta::shader>(psl::UID::convert("4429d63a-9867-468f-a03f-cf56fee3c82e")).value();
+		cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
 	// create the material buffer and instance buffer
 	auto matBufferData = create<data::buffer>(cache);
@@ -698,10 +698,10 @@ int entry()
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
 
 	// create the texture
-	auto textureHandle = create<gfx::texture>(cache, psl::UID::convert("3c4af7eb-289e-440d-99d9-20b5738f0200"));
+	auto textureHandle = create<gfx::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
 	textureHandle.load(context_handle);
 
-	auto textureHandle2 = create<gfx::texture>(cache, psl::UID::convert("7f24e25c-8b94-4da4-8a31-493815889698"));
+	auto textureHandle2 = create<gfx::texture>(cache, "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
 	textureHandle2.load(context_handle);
 
 	// create the sampler

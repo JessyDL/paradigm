@@ -19,16 +19,13 @@ namespace psl
 	/// methods. It is immutable once created.
 	struct UID
 	{
-
 	  public:
-		UID(const psl::string8_t& key);
-
 		friend struct std::hash<UID>;
 		using PUID = std::array<uint8_t, 16>;
 
+		UID(const psl::string8_t& key);
 
-	  public:
-		/// \brief constructor that creates a valid UID.
+		/// \brief constructor that creates an invalid UID.
 		UID() = default;
 		/// a constructor that created a UID from the internal representation (PUID).
 		/// \param[in] id the internal representation of a UID.
@@ -51,14 +48,14 @@ namespace psl
 		/// "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}" to this method, it will parse it and will return a valid UID
 		/// instance. Otherwise it will return UID::invalid_uid. \param[in] key a string in the valid format to convert
 		/// to UID. \returns either a valid UID based on the key, or UID::invalid_uid if something went wrong.
-		static constexpr UID convert(const psl::string8_t& key);
+		static constexpr UID from_string(const psl::string8_t& key);
 
 		/// \brief checks the given string if it's in a valid UID format.
 		/// \param[in] key the string to be checked.
 		/// \returns true if the given key is convertible to a UID instance.
 		static constexpr bool valid(const psl::string8_t& key) noexcept;
 
-		/// \brief generates a UID, it is equivalent to calling the default UID::UID() constructor.
+		/// \brief generates a UID.
 		/// \returns a valid UID.
 		static UID generate();
 
@@ -108,8 +105,7 @@ namespace psl
 			text += 1;
 		}
 
-		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') ||
-			(text[23] != '-'))
+		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-'))
 		{
 			return false;
 		}
@@ -178,14 +174,12 @@ namespace psl
 		}
 
 
-		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') ||
-		   (text[23] != '-'))
+		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-'))
 		{
 			throw std::domain_error("parsed text is of incorrect format to be a UID");
 		}
-		
-		constexpr auto parse = [](const char* text)
-		{
+
+		constexpr auto parse = [](const char* text) {
 			uint8_t result{};
 			for(size_t i = 0; i < 2; ++i)
 			{
@@ -242,7 +236,7 @@ namespace psl
 	constexpr psl::UID make_uid(const char* text, std::size_t size) noexcept
 	{
 		constexpr const size_t short_size = 36;
-		constexpr const size_t long_size = 38;
+		constexpr const size_t long_size  = 38;
 		if(size != short_size && size != long_size)
 		{
 			return psl::UID::invalid_uid;
@@ -258,14 +252,12 @@ namespace psl
 		}
 
 
-		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') ||
-			(text[23] != '-'))
+		if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-'))
 		{
 			return psl::UID::invalid_uid;
 		}
 
-		constexpr auto parse = [](const char* text, uint8_t& out)
-		{
+		constexpr auto parse = [](const char* text, uint8_t& out) {
 			for(size_t i = 0; i < 2; ++i)
 			{
 				auto character = text[i];
@@ -320,8 +312,14 @@ namespace psl
 		return psl::UID{res};
 	}
 
-	constexpr psl::UID psl::UID::convert(const psl::string8_t& key) { return psl::make_uid(key.data(), key.size()); }
-	constexpr bool psl::UID::valid(const psl::string8_t& key) noexcept { return psl::valid_uid(key.data(), key.size()); }
+	constexpr psl::UID psl::UID::from_string(const psl::string8_t& key)
+	{
+		return psl::make_uid(key.data(), key.size());
+	}
+	constexpr bool psl::UID::valid(const psl::string8_t& key) noexcept
+	{
+		return psl::valid_uid(key.data(), key.size());
+	}
 } // namespace psl
 
 
@@ -337,7 +335,7 @@ namespace dummy
 	{
 		unsigned char c;
 	};
-}
+} // namespace dummy
 
 namespace std
 {
@@ -359,7 +357,7 @@ namespace utility
 	{
 		static psl::string8_t to_string(const psl::UID& x) { return x.to_string(); }
 
-		static psl::UID from_string(psl::string8::view str) { return psl::UID::convert(psl::string8_t(str)); }
+		static psl::UID from_string(psl::string8::view str) { return psl::make_uid(str.data(), str.size()); }
 	};
 } // namespace utility
 

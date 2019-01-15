@@ -179,7 +179,7 @@ void material::from_shaders(psl::meta::library& library, std::vector<core::meta:
 				case vk::DescriptorType::eStorageBufferDynamic:
 				case vk::DescriptorType::eUniformBuffer:
 				case vk::DescriptorType::eUniformBufferDynamic:
-				if(auto uid = UID::convert(psl::string(descr.name())); uid)
+				if(auto uid = UID::from_string(psl::string(descr.name())); uid)
 				{
 					binding.buffer(uid);
 				}

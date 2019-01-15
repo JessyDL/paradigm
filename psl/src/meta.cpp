@@ -5,17 +5,7 @@ using namespace psl;
 
 const UID UID::invalid_uid = PUID{0};
 
-
-struct uuid_components
-{
-	uint32_t a;
-	uint16_t b;
-	uint16_t c;
-	uint8_t d[2];
-	uint8_t e[6];
-};
-
-UID::UID(const psl::string8_t& key) : GUID(convert(key).GUID) {}
+UID::UID(const psl::string8_t& key) : GUID(from_string(key).GUID) {}
 
 bool UID::operator==(const UID& b) const { return GUID == b.GUID; }
 bool UID::operator!=(const UID& b) const { return GUID != b.GUID; }
@@ -35,27 +25,6 @@ const psl::string8_t UID::to_string() const
 	);
 	str.resize(36);
 	return str;
-
-	/*uuid_components& result = *(uuid_components*)(GUID.data());
-	psl::string8::stream s;
-	s << std::hex << std::setfill('0')
-		<< std::setw(8) << result.a
-		<< "-"
-		<< std::setw(4) << result.b
-		<< "-"
-		<< std::setw(4) << result.c
-		<< "-"
-		<< std::setw(2) << (uint16_t)result.d[0]
-		<< std::setw(2) << (uint16_t)result.d[1]
-		<< "-"
-		<< std::setw(2) << (uint16_t)result.e[0]
-		<< std::setw(2) << (uint16_t)result.e[1]
-		<< std::setw(2) << (uint16_t)result.e[2]
-		<< std::setw(2) << (uint16_t)result.e[3]
-		<< std::setw(2) << (uint16_t)result.e[4]
-		<< std::setw(2) << (uint16_t)result.e[5];
-
-	return s.str();*/
 }
 
 UID UID::generate()
