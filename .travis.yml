@@ -62,7 +62,7 @@ matrix:
     - os: windows
       filter_secrets: false 
       name: "Windows VC++ Unit Tests" 
-      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=true DOXGEN=false CMAKE_VERSION="3.13.2" BADGE=windows-tests
+      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON -DPE_PCH=ON" UTESTS=true DOXGEN=false CMAKE_VERSION="3.13.2" BADGE=windows-tests
       before_install:
         - choco install -y python3
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
