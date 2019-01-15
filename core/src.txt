@@ -44,10 +44,7 @@ src/vk/texture.cpp
 
 src/ecs/state.cpp
 src/ecs/systems/fly.cpp
-src/ecs/systems/death.cpp
-src/ecs/systems/lifetime.cpp
 src/ecs/systems/render.cpp
 src/ecs/systems/geometry_instance.cpp
 src/ecs/systems/attractor.cpp
-src/ecs/systems/movement.cpp
 )
