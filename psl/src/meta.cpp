@@ -16,8 +16,6 @@ struct uuid_components
 };
 
 UID::UID(const psl::string8_t& key) : GUID(convert(key).GUID) {}
-UID::UID() : GUID(invalid_uid.GUID) {}
-UID::UID(const PUID& id) : GUID(id) {}
 
 bool UID::operator==(const UID& b) const { return GUID == b.GUID; }
 bool UID::operator!=(const UID& b) const { return GUID != b.GUID; }
@@ -32,7 +30,7 @@ const psl::string8_t UID::to_string() const
 	str.resize(37);
 	snprintf(str.data(),str.size(),
 		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
-		GUID[3], GUID[2], GUID[1], GUID[0], GUID[5], GUID[4], GUID[7], GUID[6],
+		GUID[0], GUID[1], GUID[2], GUID[3], GUID[4], GUID[5], GUID[6], GUID[7],
 		GUID[8], GUID[9], GUID[10], GUID[11], GUID[12], GUID[13], GUID[14], GUID[15]
 	);
 	str.resize(36);
@@ -75,79 +73,4 @@ UID UID::generate()
 	my[1] = (my[1] & 0x3FFFFFFFFFFFFFFFULL) | 0x8000000000000000ULL;
 
 	return res;
-}
-
-constexpr int hex_to_uchar(const char c)
-{
-	using namespace std::string_literals;
-	if('0' <= c && c <= '9')
-		return c - '0';
-	else if('a' <= c && c <= 'f')
-		return 10 + c - 'a';
-	else if('A' <= c && c <= 'F')
-		return 10 + c - 'A';
-	else
-		throw std::domain_error{"invalid character in GUID"s};
-}
-
-template<class T>
-constexpr T parse(const char *ptr)
-{
-	T result{};
-	for(size_t i = 0; i < sizeof(T) * 2; ++i)
-		result |= hex_to_uchar(ptr[i]) << (4 * ((sizeof(T) * 2) - i - 1));
-	return result;
-}
-
-
-UID UID::convert(const psl::string8_t&key)
-{
-	PUID res{};
-
-	const auto first_pos = key.find_first_not_of('{');
-	const auto last_pos = utility::string::rfind_first_not_of(key, '}');
-
-	if(first_pos == key.npos || last_pos == key.npos || last_pos < first_pos || last_pos - first_pos != 35)
-		return invalid_uid;
-
-
-	uuid_components& result = *(uuid_components*)(&res);
-	auto begin = key.c_str();
-	result.a = parse<uint32_t>(begin);
-	begin += 8 + 1;
-	result.b = parse<uint16_t>(begin);
-	begin += 4 + 1;
-	result.c = parse<uint16_t>(begin);
-	begin += 4 + 1;
-	result.d[0] = parse<uint8_t>(begin);
-	begin += 2;
-	result.d[1] = parse<uint8_t>(begin);
-	begin += 2 + 1;
-	for(size_t i = 0; i < 6; ++i)
-		result.e[i] = parse<uint8_t>(begin + i * 2);
-
-	return res;
-}
-
-bool UID::valid(const psl::string8_t &key)
-{
-	const auto first_pos = key.find_first_not_of('{');
-	const auto last_pos = utility::string::rfind_first_not_of(key, '}');
-
-	if(first_pos == key.npos || last_pos == key.npos || last_pos < first_pos || last_pos - first_pos != 35)
-		return false;
-
-	for(size_t i = first_pos; i < last_pos; i += 2)
-	{
-		if(key[i] == '-')
-			i += 1;
-
-		const auto& ch0 = key[i];
-		const auto& ch1 = key[i + 1];
-
-		if(!isxdigit(ch0) || !isxdigit(ch1) || hex_to_uchar(ch0) == 0 || hex_to_uchar(ch1) == 0)
-			return false;
-	}
-
-	return true;
 }
