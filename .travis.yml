@@ -1,8 +1,4 @@
 language: cpp
-compiler: clang
-sudo: false
-os: linux
-dist: trusty
 
 notifications:
   email: false
@@ -17,10 +13,14 @@ branches:
   
 matrix:
   include:
+    - os: linux
+      dist: trusty
+      sudo: false
+      compiler: clang
     ##########################################################################
     # Clang on Linux
     ##########################################################################
-    - name: "Linux CLang 6.0 Release"
+      name: "Linux CLang 6.0 Release"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true CMAKE_VERSION="3.13.2"
       addons: &clang60
         apt:
@@ -52,11 +52,16 @@ matrix:
     - name: "Linux CLang 6.0 Unit Tests"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true CMAKE_VERSION="3.13.2"
       addons: *clang60
-      
-
+    - os: windows
+      filter_secrets: false 
+      name: "Windows VC++ Release" 
+      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=false DOXGEN=false CMAKE_VERSION="3.13.2" YARN_GPG=no
+      before_install:
+        - choco install -y python3
+        - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
+        
 install:
   - export CXX=${COMPILER}
-  - ${CXX} --version
   - echo ${TRAVIS_OS_NAME}
   
   - DEPS_DIR="$HOME/cache"
@@ -79,32 +84,50 @@ install:
   - cmake --version
   
   # Install Vulkan SDK
-  - cd ~
-  - git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
-  - cd Vulkan-Headers
-  - git checkout c4e056d365472174471a243dfefbfe66a03564af
-  - cd ~
-  - git clone https://github.com/KhronosGroup/Vulkan-Hpp.git Vulkan-Hpp
-  - cd Vulkan-Hpp
-  - git checkout 7e701c79d6998260712dc6578732d534871f0f8a
-  - cd ~
-  - export VULKAN_ROOT_DIR="$TRAVIS_BUILD_DIR/../VulkanSDK"
-  - mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
-  - mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
-  - cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
-  - cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
-  - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
-  - cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
-  - export VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64"
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      export VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64"
+      cd ~
+      git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
+      cd Vulkan-Headers
+      git checkout c4e056d365472174471a243dfefbfe66a03564af
+      cd ~
+      git clone https://github.com/KhronosGroup/Vulkan-Hpp.git Vulkan-Hpp
+      cd Vulkan-Hpp
+      git checkout 7e701c79d6998260712dc6578732d534871f0f8a
+      cd ~
+      export VULKAN_ROOT_DIR="$TRAVIS_BUILD_DIR/../VulkanSDK"
+      mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
+      mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
+      cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
+      cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
+      cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
+      cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64/include/vulkan/"
+    else
+      export VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}"
+      cd ~
+      git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers
+      cd Vulkan-Headers
+      git checkout c4e056d365472174471a243dfefbfe66a03564af
+      cd ~
+      git clone https://github.com/KhronosGroup/Vulkan-Hpp.git Vulkan-Hpp
+      cd Vulkan-Hpp
+      git checkout 7e701c79d6998260712dc6578732d534871f0f8a
+      cd ~
+      export VULKAN_ROOT_DIR="$TRAVIS_BUILD_DIR/../VulkanSDK"
+      mkdir -p "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
+      cp -r Vulkan-Headers/include/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
+      cp -r Vulkan-Hpp/vulkan/. "${VULKAN_ROOT_DIR}/${VK_VERSION}/Include/vulkan/"
+    fi
   
   ############################################################################
   # [linux]: Install the right version of libc++
   ############################################################################
-  - cd "${DEPS_DIR}"
-  - LLVM_INSTALL=${TRAVIS_BUILD_DIR}/../llvm/install
-  - mkdir -p "${LLVM_INSTALL}"
   - |
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      cd "${DEPS_DIR}"
+      LLVM_INSTALL=${TRAVIS_BUILD_DIR}/../llvm/install
+      mkdir -p "${LLVM_INSTALL}"
       if [[ "${TRAVIS_OS_NAME}" == "linux" && "${CXX%%+*}" == "clang" && ! -d "${DEPS_DIR}/llvm" ]]; then   
         git clone --depth=1 https://github.com/llvm-mirror/llvm.git llvm
         mkdir -p llvm/build llvm/projects
@@ -139,13 +162,26 @@ install:
   #  fi
   
   # Misc
-  - export CXX="clang++-6.0" CC="clang-6.0"
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then
+      export CXX="clang++-6.0" CC="clang-6.0"
+    else
+      python --version
+    fi
+    
   - cd $TRAVIS_BUILD_DIR
 
 script:  
-  - bash build.sh -VK_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VK_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
-  - cd $TRAVIS_BUILD_DIR/project_files/make/x64/
-  - make -j2
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then    
+      bash build.sh -VK_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VK_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+      cd $TRAVIS_BUILD_DIR/project_files/make/x64/
+      make -j2    
+    else
+      bash build.sh -VK_VERSION ${VK_VERSION} -VK_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+      cd $TRAVIS_BUILD_DIR/project_files/msvc/x64-VC++/
+      cmake --build . --config $BUILD_TYPE -j 2
+    fi
   - |
     if [[ $UTESTS == true ]]; then
       ctest . -O results.txt --output-on-failure
@@ -159,12 +195,17 @@ after_success:
        doxygen doxyfile
     fi
   - cd $TRAVIS_BUILD_DIR/tools
-  - chmod +x travis-ci-post-send.sh
-  - ./travis-ci-post-send.sh success $WEBHOOK_URL
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then   
+      chmod +x travis-ci-post-send.sh
+    fi
+  - bash travis-ci-post-send.sh success $WEBHOOK_URL
   
 after_failure:
   - cd $TRAVIS_BUILD_DIR/tools
-  - chmod +x travis-ci-post-send.sh
-  - ./travis-ci-post-send.sh failure $WEBHOOK_URL
-  
+  - |
+    if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then   
+      chmod +x travis-ci-post-send.sh
+    fi
+  - bash travis-ci-post-send.sh failure $WEBHOOK_URL
   
