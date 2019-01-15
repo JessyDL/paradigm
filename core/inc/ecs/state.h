@@ -473,9 +473,10 @@ namespace core::ecs
 			T to_pack_impl(std::index_sequence<Is...>, type_container<T>)
 			{
 				using pack_t = T;
+				using pack_view_t = typename pack_t::pack_t;
 				using range_t = typename pack_t::pack_t::range_t;
 
-				return T(pack_t::pack_t(fill_in(type_container<typename std::tuple_element<Is, range_t>::type>()) ...));
+				return T{pack_view_t(fill_in(type_container<typename std::tuple_element<Is, range_t>::type>()) ...)};
 			}
 
 		public:
