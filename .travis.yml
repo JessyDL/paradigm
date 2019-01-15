@@ -11,10 +11,6 @@ branches:
   except:
   - gh-pages
 
-env:
-  - BADGE=linux
-  - BADGE=windows
-
 matrix:
   include:
     - os: linux
