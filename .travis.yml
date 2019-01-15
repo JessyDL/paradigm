@@ -10,7 +10,11 @@ cache:
 branches:
   except:
   - gh-pages
-  
+
+env:
+  - BADGE=linux
+  - BADGE=windows
+
 matrix:
   include:
     - os: linux
@@ -21,7 +25,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
       name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true CMAKE_VERSION="3.13.2"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true CMAKE_VERSION="3.13.2" BADGE=linux
       addons: &clang60
         apt:
           sources:
@@ -50,12 +54,12 @@ matrix:
         on:
           branch: develop
     - name: "Linux CLang 6.0 Unit Tests"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true CMAKE_VERSION="3.13.2"
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_TESTS=ON" UTESTS=true CMAKE_VERSION="3.13.2" BADGE=linux
       addons: *clang60
     - os: windows
       filter_secrets: false 
       name: "Windows VC++ Release" 
-      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=false DOXGEN=false CMAKE_VERSION="3.13.2" YARN_GPG=no
+      env: VK_VERSION="1.1.82.1" COMPILER=VC++ BUILD_TYPE=Release BUILD_NAME="Windows VC++ Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE -DPE_PCH=ON" UTESTS=false DOXGEN=false CMAKE_VERSION="3.13.2" YARN_GPG=no BADGE=windows
       before_install:
         - choco install -y python3
         - export PATH="/c/Python37:/c/Python37/Scripts:$PATH"
