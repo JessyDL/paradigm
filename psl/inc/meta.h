@@ -17,7 +17,7 @@ namespace psl
 	///
 	/// UID generates a unique ID, either through a random number generator, or by using OS provided
 	/// methods. It is immutable once created.
-	struct UID
+	struct UID final
 	{
 	  public:
 		friend struct std::hash<UID>;

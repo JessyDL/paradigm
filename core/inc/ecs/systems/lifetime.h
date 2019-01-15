@@ -1,22 +1,26 @@
 #pragma once
 #include "ecs/ecs.hpp"
-
-namespace core::ecs::components
-{
-	struct lifetime;
-}
+#include "ecs/components/lifetime.h"
+#include "ecs/components/dead_tag.h"
 
 
 namespace core::ecs::systems
 {
-	class lifetime
+	auto lifetime = [](core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+					   core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> life_pack)
 	{
-	public:
-		lifetime(core::ecs::state& state);
+		using namespace core::ecs;
+		using namespace core::ecs::components;
 
-		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
+		std::vector<entity> dead_entities;
+		for(auto[entity, lifetime] : life_pack)
+		{
+			lifetime.value -= dTime.count();
+			if(lifetime.value <= 0.0f)
+				dead_entities.emplace_back(entity);
+		}
 
-	private:
-		core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> m_Lifetime;
+		commands.add_component<dead_tag>(dead_entities);
+		commands.remove_component<components::lifetime>(dead_entities);
 	};
 }

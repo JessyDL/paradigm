@@ -1,23 +1,21 @@
 #pragma once
 #include "ecs/ecs.hpp"
-
-namespace core::ecs::components
-{
-	struct transform;
-	struct velocity;
-} // namespace core::ecs::components
+#include "ecs/components/velocity.h"
+#include "ecs/components/transform.h"
 
 namespace core::ecs::systems
 {
-	class movement
+	auto movement = [](core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+					   core::ecs::pack<const core::ecs::components::velocity, core::ecs::components::transform> movables)
 	{
-		core::ecs::pack<const core::ecs::components::velocity, core::ecs::components::transform>
-			m_Movable;
-	public:
-		movement(core::ecs::state& state);
+		using namespace psl::math;
+		using namespace core::ecs;
+		using namespace core::ecs::components;
 
-		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
-
-	private:
+		for(auto[velocity, transform] : movables)
+		{
+			transform.position += velocity.direction * velocity.force * dTime.count();
+			transform.rotation = normalize(psl::quat(0.8f* dTime.count(), 0.0f, 0.0f, 1.0f) * transform.rotation);
+		}
 	};
 } // namespace core::ecs::systems

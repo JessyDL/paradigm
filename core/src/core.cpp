@@ -47,6 +47,7 @@
 #include "ecs/components/input_tag.h"
 #include "ecs/components/renderable.h"
 #include "ecs/components/lifetime.h"
+#include "ecs/components/dead_tag.h"
 #include "ecs/components/velocity.h"
 #include "ecs/systems/fly.h"
 #include "ecs/systems/render.h"
@@ -769,9 +770,10 @@ int entry()
 	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
 	core::ecs::systems::geometry_instance geometry_instance{ECSState};
 	core::ecs::systems::attractor attractor{ECSState};
-	core::ecs::systems::death death{ ECSState };
-	core::ecs::systems::lifetime lifetime{ ECSState };
-	core::ecs::systems::movement movement{ ECSState };
+
+	ECSState.declare(core::ecs::systems::movement);
+	ECSState.declare(core::ecs::systems::death);
+	ECSState.declare(core::ecs::systems::lifetime);
 
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())

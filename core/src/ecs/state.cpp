@@ -80,10 +80,9 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
 
-size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, const std::pair< details::component_key_t, psl::array_view<std::uintptr_t>*>& binding, size_t element_size)
+size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, details::component_key_t id, size_t element_size)
 {
-	const auto& mem_pair = m_Components.find(binding.first);
-	const auto id = binding.first;
+	const auto& mem_pair = m_Components.find(id);
 	std::uintptr_t data_begin = cache_offset;
 
 	for(const auto& e : entities)
@@ -103,9 +102,9 @@ size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region&
 	return cache_offset - data_begin;
 }
 
-size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, dependency_pack& dep_pack)
+size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, details::owner_dependency_pack& dep_pack)
 {
-	auto workload_divider = [&](const auto& binding)
+	auto workload_divider = [&](auto& binding)
 	{
 		// split up the workload
 		std::uintptr_t data_begin = cache_offset;
@@ -113,9 +112,9 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_reg
 		size_t batch_size = entities.size() / work_load;
 		if(batch_size <= 1)
 		{
-			cache_offset += prepare_data(entities, cache, cache_offset, binding, dep_pack.m_Sizes[binding.first]);
+			cache_offset += prepare_data(entities, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
 
-			*binding.second =
+			binding.second =
 				psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 		}
 		else
@@ -125,7 +124,7 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_reg
 			{
 				psl::array_view<entity> entities_slice{std::next(std::begin(entities), dispatched_n), batch_size};
 
-				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding, dep_pack.m_Sizes[binding.first]);
+				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
 
 				dispatched_n += batch_size;
 			}
@@ -133,101 +132,78 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_reg
 			{
 				psl::array_view<entity> entities_slice{std::next(std::begin(entities), dispatched_n), entities.size() - dispatched_n};
 
-				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding, dep_pack.m_Sizes[binding.first]);
+				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
 			}
 
-			*binding.second =
+			binding.second =
 				psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 		}
 	};
 	PROFILE_SCOPE(core::profiler);
 	size_t offset_start = cache_offset;
-	for(const auto& binding : dep_pack.m_RBindings)
+	for(auto& binding : dep_pack.m_RBindings)
 	{
 		workload_divider(binding);
 	}
-	for(const auto& binding : dep_pack.m_RWBindings)
+	for(auto& binding : dep_pack.m_RWBindings)
 	{
 		workload_divider(binding);
 	}
 	return cache_offset - offset_start;
 }
 
-void state::prepare_system(memory::raw_region& cache, size_t cache_offset, void* system, std::vector<dependency_pack>& bindings)
+void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, memory::raw_region& cache, size_t cache_offset, system_information& system, std::vector<commands>& cmds)
 {
-	PROFILE_SCOPE(core::profiler);
-	for(auto& dep_pack : bindings)
-	{
-		auto entities = filter(dep_pack);
-		if(entities.size() == 0)
-			continue;
-		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-		dep_pack.m_StoredEnts = psl::array_view<core::ecs::entity>(
-			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
-		if(dep_pack.m_Entities != nullptr) *dep_pack.m_Entities = dep_pack.m_StoredEnts;
-		cache_offset += sizeof(entity) * entities.size();
-
-		cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
-	}
-}
-
-void state::tick(std::chrono::duration<float> dTime)
-{
-	/*auto write_data = [](core::ecs::state& state, std::vector<dependency_pack>& dep_packs)
+	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs)
 	{
 
 		for(const auto& dep_pack : dep_packs)
 		{
-			for(const auto& binding : dep_pack.m_RWBindings)
+			for( auto& binding : dep_pack.m_RWBindings)
 			{
 				const size_t size = dep_pack.m_Sizes.at(binding.first);
-				std::uintptr_t data = (std::uintptr_t)&std::begin(*binding.second).value();
-				state.set(dep_pack.m_StoredEnts, (void*)data, size, binding.first);
+				std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
+				state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
 			}
 		}
 	};
-	PROFILE_SCOPE(core::profiler)
-	++m_Tick;
-	std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
-	for(auto& system : m_Systems)
+
+	PROFILE_SCOPE(core::profiler);
+	/*std::vector<std::vector<entity>> multi_entity_pack;
+	std::vector<std::vector<details::owner_dependency_pack>> packs;
+	
+	auto& pack = packs.emplace_back(std::invoke(system.pack_generator));
+	for(auto& dep_pack : pack)
 	{
-		if(system.second.pre_tick)
-		{
-			core::profiler.scope("pre_tick system", this);
-			prepare_system(m_Cache, cache_offset, system.first, system.second.pre_tick_dependencies);
-			commands cmds{*this, mID};
-			std::invoke(system.second.pre_tick, cmds);
-			write_data(*this, system.second.pre_tick_dependencies);
-			execute_commands(cmds);
-		}
-	}
-	for(auto& system : m_Systems)
-	{
-		if(system.second.tick)
-		{
-			core::profiler.scope("tick system", this);
-			prepare_system(m_Cache, cache_offset, system.first, system.second.tick_dependencies);
-			commands cmds{*this, mID};
-			std::invoke(system.second.tick, cmds, dTime, dTime);
-			write_data(*this, system.second.tick_dependencies);
-			execute_commands(cmds);
-		}
-	}
-	for(auto& system : m_Systems)
-	{
-		if(system.second.post_tick)
-		{
-			core::profiler.scope("post_tick system", this);
-			prepare_system(m_Cache, cache_offset, system.first, system.second.post_tick_dependencies);
-			commands cmds{*this, mID};
-			std::invoke(system.second.post_tick, cmds);
-			write_data(*this, system.second.post_tick_dependencies);
-			execute_commands(cmds);
-		}
+		multi_entity_pack.emplace_back(filter(dep_pack));
 	}
 
-	m_StateChange[m_Tick % 2].clear();*/
+	for(auto i = 0; i < cmds.size(); ++i)
+	{
+		
+	}*/
+	for(auto& cmd : cmds)
+	{
+		auto pack = std::invoke(system.pack_generator);
+		for(auto& dep_pack : pack)
+		{
+			auto entities = filter(dep_pack);
+			if(entities.size() == 0)
+				continue;
+			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+			dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
+				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
 
+			cache_offset += sizeof(entity) * entities.size();
+
+			cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
+		}
+		std::invoke(system.invocable, cmd, dTime, rTime, pack);
+		write_data(*this, pack);
+	}
+}
+void state::tick(std::chrono::duration<float> dTime)
+{
 	PROFILE_SCOPE(core::profiler)
 		++m_Tick;
 	for(auto& system : m_Systems)
@@ -319,6 +295,20 @@ void state::tick(std::chrono::duration<float> dTime)
 		core::profiler.scope_end();
 	}
 
+
+	std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
+	for(auto& system : m_SystemInformations)
+	{
+		std::vector<commands> cmds;
+		for(auto i = 0; i < 1; ++i)
+			cmds.emplace_back(commands{*this, mID});
+
+		prepare_system(dTime, dTime, m_Cache, cache_offset, system, cmds);
+		
+
+		for(auto i = 0; i < 1; ++i)
+			execute_commands(cmds[i]);
+	}
 	m_StateChange[m_Tick % 2].clear();
 }
 
