@@ -8,27 +8,81 @@ namespace core::ecs
 {
 	class state;
 
+	struct partial
+	{};
+	struct full
+	{};
+
 	/// \brief an iterable container to work with components and entities.
 	template <typename... Ts>
 	class pack
 	{
 		friend class core::ecs::state;
 
+		template <typename... Ys>
+		struct type_pack
+		{
+			using pack_t	= typename details::typelist_to_pack_view<Ys...>::type;
+			using filter_t  = typename details::typelist_to_pack<Ys...>::type;
+			using combine_t = typename details::typelist_to_combine_pack<Ys...>::type;
+			using break_t   = typename details::typelist_to_break_pack<Ys...>::type;
+			using add_t		= typename details::typelist_to_add_pack<Ys...>::type;
+			using remove_t  = typename details::typelist_to_remove_pack<Ys...>::type;
+			using except_t  = typename details::typelist_to_except_pack<Ys...>::type;
+			using policy_t  = core::ecs::full;
+		};
+
+		template <typename... Ys>
+		struct type_pack<core::ecs::full, Ys...>
+		{
+			using pack_t	= typename details::typelist_to_pack_view<Ys...>::type;
+			using filter_t  = typename details::typelist_to_pack<Ys...>::type;
+			using combine_t = typename details::typelist_to_combine_pack<Ys...>::type;
+			using break_t   = typename details::typelist_to_break_pack<Ys...>::type;
+			using add_t		= typename details::typelist_to_add_pack<Ys...>::type;
+			using remove_t  = typename details::typelist_to_remove_pack<Ys...>::type;
+			using except_t  = typename details::typelist_to_except_pack<Ys...>::type;
+			using policy_t  = core::ecs::full;
+		};
+
+		template <typename... Ys>
+		struct type_pack<core::ecs::partial, Ys...>
+		{
+			using pack_t	= typename details::typelist_to_pack_view<Ys...>::type;
+			using filter_t  = typename details::typelist_to_pack<Ys...>::type;
+			using combine_t = typename details::typelist_to_combine_pack<Ys...>::type;
+			using break_t   = typename details::typelist_to_break_pack<Ys...>::type;
+			using add_t		= typename details::typelist_to_add_pack<Ys...>::type;
+			using remove_t  = typename details::typelist_to_remove_pack<Ys...>::type;
+			using except_t  = typename details::typelist_to_except_pack<Ys...>::type;
+			using policy_t  = core::ecs::partial;
+		};
+
+
+		template <typename T, typename... Ys>
+		void check_policy()
+		{
+			static_assert(!core::ecs::details::has_type<core::ecs::partial, std::tuple<Ys...>>::value &&
+							  !core::ecs::details::has_type<core::ecs::partial, std::tuple<Ys...>>::value,
+						  "policy types such as 'partial' and 'full' can only appear as the first type");
+		}
+
 	  public:
 		static constexpr bool has_entities{std::disjunction<std::is_same<core::ecs::entity, Ts>...>::value};
 
-		using pack_t	= typename details::typelist_to_pack_view<Ts...>::type;
-		using filter_t  = typename details::typelist_to_pack<Ts...>::type;
-		using combine_t = typename details::typelist_to_combine_pack<Ts...>::type;
-		using break_t   = typename details::typelist_to_break_pack<Ts...>::type;
-		using add_t		= typename details::typelist_to_add_pack<Ts...>::type;
-		using remove_t  = typename details::typelist_to_remove_pack<Ts...>::type;
-		using except_t  = typename details::typelist_to_except_pack<Ts...>::type;
+		using pack_t	= typename type_pack<Ts...>::pack_t;
+		using filter_t  = typename type_pack<Ts...>::filter_t;
+		using combine_t = typename type_pack<Ts...>::combine_t;
+		using break_t   = typename type_pack<Ts...>::break_t;
+		using add_t		= typename type_pack<Ts...>::add_t;
+		using remove_t  = typename type_pack<Ts...>::remove_t;
+		using except_t  = typename type_pack<Ts...>::except_t;
+		using policy_t  = typename type_pack<Ts...>::policy_t;
 
 	  public:
-		pack() : m_Pack(){};
+		pack() : m_Pack() { check_policy<Ts...>(); };
 
-		pack(pack_t views) : m_Pack(views) {}
+		pack(pack_t views) : m_Pack(views) { check_policy<Ts...>(); }
 
 		pack_t view() { return m_Pack; }
 

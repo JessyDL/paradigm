@@ -11,9 +11,17 @@ using namespace core::ecs::systems;
 using namespace psl::math;
 
 
-void attr_tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, core::ecs::pack<const core::ecs::components::transform,
-	core::ecs::components::velocity> movables, core::ecs::pack<const core::ecs::components::transform,
-			   const core::ecs::components::attractor> attractors)
+
+void attr_tick(
+	core::ecs::commands& commands, 
+	std::chrono::duration<float> dTime, 
+	std::chrono::duration<float> rTime, 
+	core::ecs::pack<core::ecs::partial, 
+					const core::ecs::components::transform,
+					core::ecs::components::velocity> movables, 
+	core::ecs::pack<core::ecs::full, 
+					const core::ecs::components::transform,
+					const core::ecs::components::attractor> attractors)
 {
 	for(auto[movTrans, movVel] : movables)
 	{
@@ -28,7 +36,7 @@ void attr_tick(core::ecs::commands& commands, std::chrono::duration<float> dTime
 }
 attractor::attractor(core::ecs::state& state)
 {
-	state.declare(attr_tick);
+	state.declare(core::ecs::par{}, attr_tick);
 	//state.register_system(*this);
 	//state.register_dependency(*this, core::ecs::tick{}, m_Movables);
 	//state.register_dependency(*this, core::ecs::tick{}, m_Attractors);

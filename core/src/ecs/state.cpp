@@ -170,17 +170,18 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 	PROFILE_SCOPE(core::profiler);
 	/*std::vector<std::vector<entity>> multi_entity_pack;
-	std::vector<std::vector<details::owner_dependency_pack>> packs;
 	
-	auto& pack = packs.emplace_back(std::invoke(system.pack_generator));
+	auto pack{ std::invoke(system.pack_generator) };
+	size_t partial_n = 1;
 	for(auto& dep_pack : pack)
 	{
+		partial_n = dep_pack.allow_partial() ? cmds.size() : partial_n;
 		multi_entity_pack.emplace_back(filter(dep_pack));
 	}
 
-	for(auto i = 0; i < cmds.size(); ++i)
+	for(auto i = 0; i < partial_n; ++i)
 	{
-		
+		auto& dep_pack = pack[i];
 	}*/
 	for(auto& cmd : cmds)
 	{

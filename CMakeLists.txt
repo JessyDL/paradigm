@@ -138,13 +138,13 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	
 	list(APPEND PE_COMPILE_OPTIONS_EXE
 							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
-							$<$<CONFIG:Release>:           /MD /O2;/Oi;/Gy;/GL;/Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy;/GL;/Zo;/Z7>
+							$<$<CONFIG:Release>:           /MD /O2;/Oi;/Gy-;/GL;/Zi>
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/GL;/Zo;/Z7>
 							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
 	list(APPEND PE_COMPILE_OPTIONS_LIB
 							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
-							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy;/Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy;/Zo;/Z7>
+							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy-;/Zi>
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/Zo;/Z7>
 							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
 	set(CMAKE_EXE_LINKER_FLAGS_$<$<CONFIG:Debug>:             /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF>
 										$<$<CONFIG:Release>:           /INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG>
