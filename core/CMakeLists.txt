@@ -55,6 +55,7 @@ else()
 	endif()	
 endif()
 
+
 if(PE_MODE STREQUAL "EXE")
 	add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
 else()
@@ -126,4 +127,9 @@ endif()
 if(PE_PCH AND MSVC)
 	set_target_properties(${LOCAL_PROJECT} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "inc/stdafx.h")
 	cotire(${LOCAL_PROJECT})
+endif()
+
+
+if(MSVC)
+	set_property(SOURCE "src/core.cpp" APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif()
