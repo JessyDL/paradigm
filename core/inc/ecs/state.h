@@ -27,6 +27,8 @@ namespace core::ecs
 	{};
 	struct seq
 	{};
+	struct main_only
+	{};
 
 	struct tick
 	{};
@@ -525,6 +527,20 @@ namespace core::ecs
 
 			bool allow_partial() const noexcept { return m_IsPartial; };
 
+			size_t size_per_element() const noexcept
+			{
+				size_t res{0};
+				for(const auto& binding : m_RBindings)
+				{
+					res += m_Sizes.at(binding.first);
+				}
+
+				for(const auto& binding : m_RWBindings)
+				{
+					res += m_Sizes.at(binding.first);
+				}
+				return res;
+			}
 		private:
 			template <typename T>
 			void add(type_container<psl::array_view<T>>) noexcept

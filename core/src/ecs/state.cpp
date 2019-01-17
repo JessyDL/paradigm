@@ -1,6 +1,7 @@
 #include "ecs/state.h"
 #include "enumerate.h"
 #include "assertions.h"
+#include <future>
 
 using namespace core::ecs;
 
@@ -104,53 +105,46 @@ size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region&
 
 size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, details::owner_dependency_pack& dep_pack)
 {
-	auto workload_divider = [&](auto& binding)
-	{
-		// split up the workload
-		std::uintptr_t data_begin = cache_offset;
-		constexpr size_t work_load = 2;
-		size_t batch_size = entities.size() / work_load;
-		if(batch_size <= 1)
-		{
-			cache_offset += prepare_data(entities, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
-
-			binding.second =
-				psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
-		}
-		else
-		{
-			size_t dispatched_n = 0;
-			for(auto i = 0; i < work_load - 1; ++i)
-			{
-				psl::array_view<entity> entities_slice{std::next(std::begin(entities), dispatched_n), batch_size};
-
-				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
-
-				dispatched_n += batch_size;
-			}
-
-			{
-				psl::array_view<entity> entities_slice{std::next(std::begin(entities), dispatched_n), entities.size() - dispatched_n};
-
-				cache_offset += prepare_data(entities_slice, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
-			}
-
-			binding.second =
-				psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
-		}
-	};
 	PROFILE_SCOPE(core::profiler);
 	size_t offset_start = cache_offset;
 	for(auto& binding : dep_pack.m_RBindings)
 	{
-		workload_divider(binding);
+		std::uintptr_t data_begin = cache_offset;
+		cache_offset += prepare_data(entities, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
+		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 	}
 	for(auto& binding : dep_pack.m_RWBindings)
 	{
-		workload_divider(binding);
+		std::uintptr_t data_begin = cache_offset;
+		cache_offset += prepare_data(entities, cache, cache_offset, binding.first, dep_pack.m_Sizes[binding.first]);
+		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
 	}
 	return cache_offset - offset_start;
 }
+
+
+struct workload_pack
+{
+	workload_pack(std::vector<entity>&& entities) : entities(entities) {};
+
+	void split(size_t count)
+	{
+		count = std::max(count, size_t{1});
+		size_t batch_size = entities.size() / count;
+		size_t dispatched_n = 0;
+		count = (batch_size <= 2)?1:count;
+		for(auto i = 0; i < count - 1; ++i)
+		{
+			split_entities.emplace_back(psl::array_view<entity>{std::next(std::begin(entities), dispatched_n), batch_size});
+			dispatched_n += batch_size;
+		}
+
+		split_entities.emplace_back(psl::array_view<entity>{std::next(std::begin(entities), dispatched_n), entities.size() - dispatched_n});
+	}
+
+	std::vector<entity> entities;
+	std::vector<psl::array_view<entity>> split_entities;
+};
 
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, memory::raw_region& cache, size_t cache_offset, system_information& system, std::vector<commands>& cmds)
 {
@@ -168,21 +162,48 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		}
 	};
 
-	PROFILE_SCOPE(core::profiler);
-	/*std::vector<std::vector<entity>> multi_entity_pack;
-	
-	auto pack{ std::invoke(system.pack_generator) };
-	size_t partial_n = 1;
-	for(auto& dep_pack : pack)
-	{
-		partial_n = dep_pack.allow_partial() ? cmds.size() : partial_n;
-		multi_entity_pack.emplace_back(filter(dep_pack));
-	}
+	// design:
+	// 3 types of execution policies:
+	//		- sequential/parallel & full packs only: only one context can be active at a given time
+	//		- parallel & some partial packs: true parallel multi-context system
+	//		- sequential & some partial packs: only one context can be active, but the system can be spread out and fill smaller holes of context downtime
+	//
+	// heuristics:
+	//   should prefer scheduling full systems first, followed by sequential. These will be the blockers for high contested components.
+	//   and are antithethical to parallelization.
+	//   The next heuristic should take into account highly contested components and try to get them through the funnel faster.
+	//   Components are contested when there is a RW lock on them. Bigger lists of them increase the heuristic value.
+	//   Lastly historical timing data should be tracked for the average time per entity a given system takes to execute.
+	//   Preffering to schedule intensive blocking systems first using estimated times of execution.
 
-	for(auto i = 0; i < partial_n; ++i)
-	{
-		auto& dep_pack = pack[i];
+	/*{
+		std::vector<workload_pack> workload_packs;
+		std::vector<std::vector<details::owner_dependency_pack>> dependency_packs{{std::invoke(system.pack_generator)}};
+
+		size_t largest_workload = 1;
+		for(auto& dep_pack : dependency_packs[0])
+		{
+			auto& wPack{workload_packs.emplace_back(workload_pack{filter(dep_pack)})};
+			if(system.is_multithreaded && dep_pack.allow_partial())
+			{
+				wPack.split(cmds.size());
+			}
+			largest_workload = std::max(largest_workload, wPack.split_entities.size());
+		}
+
+		dependency_packs.reserve(largest_workload);
+		for(auto i = 1; i < largest_workload; ++i)
+		{
+			dependency_packs.emplace_back(std::invoke(system.pack_generator));
+		}
+
+		[this]()
+		{
+			dep_pack.m_Entities = entities;
+			prepare_bindings(entities, cache, cache_offset, dep_pack);
+		}
 	}*/
+	PROFILE_SCOPE(core::profiler);
 	for(auto& cmd : cmds)
 	{
 		auto pack = std::invoke(system.pack_generator);
@@ -301,13 +322,13 @@ void state::tick(std::chrono::duration<float> dTime)
 	for(auto& system : m_SystemInformations)
 	{
 		std::vector<commands> cmds;
-		for(auto i = 0; i < 1; ++i)
+		for(auto i = 0; i < 6; ++i)
 			cmds.emplace_back(commands{*this, mID});
 
 		prepare_system(dTime, dTime, m_Cache, cache_offset, system, cmds);
 		
 
-		for(auto i = 0; i < 1; ++i)
+		for(auto i = 0; i < 6; ++i)
 			execute_commands(cmds[i]);
 	}
 	m_StateChange[m_Tick % 2].clear();

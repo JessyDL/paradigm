@@ -122,7 +122,7 @@ namespace psl
 		array_view(pointer first, pointer last) : first(first), last(last){};
 
 		template <typename IT>
-		array_view(IT first, size_t count) : first(std::addressof(*first)), last((pointer)((std::uintptr_t)std::addressof(*first) + count * sizeof(T))){};
+		array_view(IT first, size_t count) : first((count>0)?std::addressof(*first):nullptr), last((count > 0) ? (pointer)((std::uintptr_t)std::addressof(*first) + count * sizeof(T)):nullptr){};
 
 
 		array_view(const std::vector<value_type>& container)
@@ -158,6 +158,7 @@ namespace psl
 
 		pointer& internal_data() { return first; };
 
+		pointer data() {return first;};
 	  private:
 		  pointer first;
 		  pointer last;
