@@ -26,8 +26,8 @@ render::render(core::ecs::state& state,
 			   handle<buffer> buffer)
 	: m_Pass(context, swapchain), m_Swapchain(swapchain), m_Surface(surface), m_Buffer(buffer)
 {
-	state.declare(&render::tick_cameras, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
-	state.declare(&render::tick_draws, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
+	state.declare(&render::tick_cameras, this);
+	state.declare(&render::tick_draws, this);
 }
 
 void render::tick_cameras(

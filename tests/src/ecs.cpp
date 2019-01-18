@@ -6,13 +6,18 @@ using namespace core::ecs;
 using namespace tests::ecs;
 
 
+void registration_test(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+{
+}
+
+
 namespace tests::ecs
 {
 struct float_system
 {
 	float_system(core::ecs::state& state)
 	{
-		state.declare(&float_system::tick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+		state.declare(&float_system::tick, this);
 	}
 
 	void tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, core::ecs::pack<const float, int> pack)
@@ -94,6 +99,8 @@ TEST_CASE("systems", "[ECS]")
 	auto e_list1{ state.create(10) };
 	auto e_list2{ state.create(40) };
 	auto e_list3{ state.create(50) };
+
+	state.declare(registration_test);
 
 	state.add_component<float>(e_list1);
 	state.add_component<int>(e_list1);

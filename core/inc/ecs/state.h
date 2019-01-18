@@ -908,7 +908,7 @@ namespace core::ecs
 
 
 		template <class Fn>
-		void declare(bool is_mt, Fn&& fn)
+		void declare_impl(bool is_mt, Fn&& fn)
 		{
 			std::function<std::vector<details::owner_dependency_pack>()> pack_generator = []
 			()
@@ -936,17 +936,9 @@ namespace core::ecs
 		}
 
 
-		template <class Fn, class... Args>
-		void declare(bool is_mt, Fn&& fn, Args&&... args)
+		template <class Fn, class T>
+		typename std::enable_if<std::is_member_function_pointer<Fn>::value>::type declare_impl(bool is_mt, Fn&& fn, T* ptr)
 		{
-			if constexpr(std::is_member_function_pointer<Fn>::value)
-			{
-			}
-			else if constexpr(std::is_pointer<typename std::decay<Fn>::type>::value)
-			{}
-
-			auto dSys = std::bind(std::forward<Fn>(fn), std::forward<Args>(args)...);
-
 			std::function<std::vector<details::owner_dependency_pack>()> pack_generator = []
 			()
 			{
@@ -956,55 +948,57 @@ namespace core::ecs
 			};
 
 			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>, std::vector<details::owner_dependency_pack>&)> system_tick =
-				[dSys]
+				[fn, ptr]
 			(core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
-				std::chrono::duration<float> rTime, std::vector<details::owner_dependency_pack>& packs)
+			 std::chrono::duration<float> rTime, std::vector<details::owner_dependency_pack>& packs)
 			{
 				using pack_t =
 					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
 
 				auto tuple_argument_list = std::tuple_cat(
+					std::make_tuple(ptr),
 					std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>>(command_buffer, dTime, rTime),
 					details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container< pack_t>{}, packs));
 
-				std::apply(dSys, tuple_argument_list);
+				std::apply(fn, tuple_argument_list);
 			};
 			m_SystemInformations.emplace_back(system_information{is_mt, pack_generator, system_tick});
 		}
+
 
 	  public:
 		template <class Fn>
 		void declare(Fn&& fn)
 		{
-			declare(false, std::forward<Fn>(fn));
+			declare_impl(false, std::forward<Fn>(fn));
 		}
 
 		template <class Fn>
 		void declare(core::ecs::par, Fn&& fn)
 		{
-			declare(true, std::forward<Fn>(fn));
+			declare_impl(true, std::forward<Fn>(fn));
 		}
 
 		template <class Fn>
 		void declare(core::ecs::seq, Fn&& fn)
 		{
-			declare(false, std::forward<Fn>(fn));
+			declare_impl(false, std::forward<Fn>(fn));
 		}
 
-		template <class Fn, class... Args>
-		void declare(Fn&& fn, Args&&... args)
+		template <class Fn, class T>
+		void declare(Fn&& fn, T* ptr)
 		{
-			declare(false, std::forward<Fn>(fn), std::forward<Args>(args)...);
+			declare_impl(false, std::forward<Fn>(fn), ptr);
 		}
-		template <class Fn, class... Args>
-		void declare(core::ecs::par, Fn&& fn, Args&&... args)
+		template <class Fn, class T>
+		void declare(core::ecs::par, Fn&& fn, T* ptr)
 		{
-			declare(true, std::forward<Fn>(fn), std::forward<Args>(args)...);
+			declare_impl(true, std::forward<Fn>(fn), ptr);
 		}
-		template <class Fn, class... Args>
-		void declare(core::ecs::seq, Fn&& fn, Args&&... args)
+		template <class Fn, class T>
+		void declare(core::ecs::seq, Fn&& fn, T* ptr)
 		{
-			declare(false, std::forward<Fn>(fn), std::forward<Args>(args)...);
+			declare_impl(false, std::forward<Fn>(fn), ptr);
 		}
 
 	  private:

@@ -1,6 +1,5 @@
 
 #include "ecs/systems/fly.h"
-#include <functional>
 	
 using namespace core::ecs::systems;
 using namespace core::ecs::components;
@@ -9,7 +8,7 @@ using namespace psl::math;
 
 fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
 {
-	state.declare(&fly::tick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	state.declare(&fly::tick, this);
 	m_InputSystem.subscribe(this); 
 };
 
