@@ -1,5 +1,6 @@
 #include "stdafx_tests.h"
 #include "ecs.h"
+#include "ecs/command_buffer.h"
 
 using namespace core::ecs;
 using namespace tests::ecs;
@@ -9,16 +10,14 @@ namespace tests::ecs
 {
 struct float_system
 {
-	core::ecs::pack<const float, int> m_Pack;
-
 	float_system(core::ecs::state& state)
 	{
-		state.register_dependency(*this, core::ecs::tick{}, m_Pack);
+		state.declare(&float_system::tick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	}
 
-	void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+	void tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, core::ecs::pack<const float, int> pack)
 	{
-		for(auto [fl, i] : m_Pack)
+		for(auto [fl, i] : pack)
 		{
 			i += 5;
 		}
