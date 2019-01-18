@@ -368,4 +368,36 @@ namespace utility::templates
 		template <typename T, typename U>	using has_assignment_right_shift = typename details::has_assignment_right_shift<T, U>::type;
 
 	}
+
+
+	// todo move these helpers to a better location
+	template <typename T>
+	struct func_traits : public func_traits<decltype(&T::operator())>
+	{};
+
+	template <typename C, typename Ret, typename... Args>
+	struct func_traits<Ret(C::*)(Args...)>
+	{
+		using result_t = Ret;
+		using arguments_t = std::tuple<Args...>;
+	};
+
+	template <typename Ret, typename... Args>
+	struct func_traits<Ret(*)(Args...)>
+	{
+		using result_t = Ret;
+		using arguments_t = std::tuple<Args...>;
+	};
+
+	template <typename C, typename Ret, typename... Args>
+	struct func_traits<Ret(C::*)(Args...) const>
+	{
+		using result_t = Ret;
+		using arguments_t = std::tuple<Args...>;
+	};
+}
+
+namespace psl::templates
+{
+	using namespace utility::templates;
 }

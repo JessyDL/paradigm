@@ -12,10 +12,10 @@
 #include "logging.h"
 #include <numeric>
 #include "enumerate.h"
-#include "command_buffer.h"
 #include "component_key.h"
 #include "component_info.h"
 #include "state_operations.h"
+#include "template_utils.h"
 
 /// \brief Entity Component System
 ///
@@ -889,39 +889,7 @@ namespace core::ecs
 
 
 	  private:
-		// todo move these helpers to a better location
-		template <typename T>
-		struct func_traits : public func_traits<decltype(&T::operator())>
-		{};
-
-		template <typename C, typename Ret, typename... Args>
-		struct func_traits<Ret (C::*)(Args...)>
-		{
-			using result_t	= Ret;
-			using arguments_t = std::tuple<Args...>;
-		};
-
-		template <typename Ret, typename... Args>
-		struct func_traits<Ret (*)(Args...)>
-		{
-			using result_t	= Ret;
-			using arguments_t = std::tuple<Args...>;
-		};
-
-		template <typename C, typename Ret, typename... Args>
-		struct func_traits<Ret (C::*)(Args...) const>
-		{
-			using result_t	= Ret;
-			using arguments_t = std::tuple<Args...>;
-		};
-
-		template <size_t N, typename... Args>
-		decltype(auto) magic_get(Args&&... as) noexcept
-		{
-			return std::get<N>(std::forward_as_tuple(std::forward<Args>(as)...));
-		}
-
-
+		
 		template <typename... Ts>
 		struct get_packs
 		{
@@ -946,7 +914,7 @@ namespace core::ecs
 			()
 			{
 				using pack_t =
-					typename get_packs<typename func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
 				return  details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container<pack_t>{});
 			};
 
@@ -956,7 +924,7 @@ namespace core::ecs
 				std::chrono::duration<float> rTime, std::vector<details::owner_dependency_pack>& packs)
 			{
 				using pack_t =
-					typename get_packs<typename func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
 
 				auto tuple_argument_list = std::tuple_cat(
 					std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>>(command_buffer, dTime, rTime),
@@ -983,7 +951,7 @@ namespace core::ecs
 			()
 			{
 				using pack_t =
-					typename get_packs<typename func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
 				return  details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container<pack_t>{});
 			};
 
@@ -993,7 +961,7 @@ namespace core::ecs
 				std::chrono::duration<float> rTime, std::vector<details::owner_dependency_pack>& packs)
 			{
 				using pack_t =
-					typename get_packs<typename func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
 
 				auto tuple_argument_list = std::tuple_cat(
 					std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>>(command_buffer, dTime, rTime),

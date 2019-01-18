@@ -1,6 +1,7 @@
 #include "ecs/state.h"
 #include "enumerate.h"
 #include "assertions.h"
+#include "ecs/command_buffer.h"
 #include <future>
 
 using namespace core::ecs;
