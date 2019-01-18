@@ -22,23 +22,14 @@ namespace core::ecs::components
 	struct renderable;
 	struct camera;
 } // namespace core::ecs::components
+
 namespace core::ecs::systems
 {
 	class render
 	{
 		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
 							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
-
-		core::ecs::pack<const core::ecs::components::transform,
-			const core::ecs::components::renderable, core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>> m_Renderables;
-
-
-		core::ecs::pack<const core::ecs::components::transform,
-			const core::ecs::components::renderable, core::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>> m_BrokenRenderables;
-
-		core::ecs::pack<const core::ecs::components::camera,
-			const core::ecs::components::transform> m_Cameras;
-
+		
 	  public:
 		struct framedata
 		{
@@ -56,20 +47,28 @@ namespace core::ecs::systems
 			psl::vec4 viewDir;
 		};
 
-		render(core::ecs::state& state,
-			   core::resource::handle<core::gfx::context> context,
+		render(core::ecs::state& state, core::resource::handle<core::gfx::context> context,
 			   core::resource::handle<core::gfx::swapchain> swapchain,
-			   core::resource::handle<core::os::surface> surface, 
-			   core::resource::handle<core::gfx::buffer> buffer);
+			   core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer);
 		~render() = default;
 
 		render(const render&) = delete;
-		render(render&&) = delete;
+		render(render&&)	  = delete;
 		render& operator=(const render&) = delete;
 		render& operator=(render&&) = delete;
-		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	  private:
+		void tick_cameras(
+			core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+			core::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
+		void tick_draws(
+			core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+			core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
+							core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
+				renderables,
+			core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
+							core::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
+				broken_renderables);
 		void update_buffer(size_t index, const core::ecs::components::transform& transform,
 						   const core::ecs::components::camera& camera);
 

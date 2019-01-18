@@ -1,6 +1,7 @@
 
 #include "ecs/systems/fly.h"
-
+#include <functional>
+	
 using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl;
@@ -8,14 +9,14 @@ using namespace psl::math;
 
 fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
 {
-	state.register_system(*this);
-	state.register_dependency(*this, core::ecs::tick{}, m_Movables);
+	state.declare(&fly::tick, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
 	m_InputSystem.subscribe(this); 
 };
 
 fly::~fly() { m_InputSystem.unsubscribe(this); }
 
-void fly::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void fly::tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+			   core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> movables)
 {
 	PROFILE_SCOPE(core::profiler)
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
@@ -35,7 +36,7 @@ void fly::tick(core::ecs::commands& commands, std::chrono::duration<float> dTime
 	}
 	const bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
 
-	for(auto [transform] : m_Movables)
+	for(auto [transform] : movables)
 	{
 		vec3 accDirectionVec{0};
 		auto direction = transform.rotation * vec3::forward;

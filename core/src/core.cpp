@@ -758,8 +758,8 @@ int entry()
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 	auto eCam = ECSState.create_one(std::move(camTrans),
-									core::ecs::tag<core::ecs::components::camera>{},
-									core::ecs::tag<core::ecs::components::input_tag>{});
+									core::ecs::empty<core::ecs::components::camera>{},
+									core::ecs::empty<core::ecs::components::input_tag>{});
 
 	const size_t area			  = 128;
 	const size_t area_granularity = 128;
@@ -768,12 +768,13 @@ int entry()
 
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
-	core::ecs::systems::geometry_instance geometry_instance{ECSState};
-	core::ecs::systems::attractor attractor{ECSState};
 
 	ECSState.declare(core::ecs::systems::movement);
 	ECSState.declare(core::ecs::systems::death);
 	ECSState.declare(core::ecs::systems::lifetime);
+
+	ECSState.declare(core::ecs::systems::attractor);
+	ECSState.declare(core::ecs::systems::geometry_instance);
 
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
@@ -802,7 +803,7 @@ int entry()
 			{ 
 				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};
 			},
-			core::ecs::tag<core::ecs::components::transform>{}/*
+			core::ecs::empty<core::ecs::components::transform>{}/*
 			[&size_steps](size_t index) {
 				return core::ecs::components::transform{
 					psl::vec3(0, 0, 0),

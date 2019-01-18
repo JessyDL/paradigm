@@ -9,15 +9,16 @@ namespace core::ecs::systems
 	class fly
 	{
 		friend class core::systems::input;
-	private:
-		core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> m_Movables;
+
 	public:
 		fly(core::ecs::state& state, core::systems::input& inputSystem);
 		~fly();
 
-		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
 
 	private:
+		void tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+				  core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> movables);
+
 		void on_key_pressed(core::systems::input::keycode keyCode);
 		void on_key_released(core::systems::input::keycode keyCode);
 		void on_mouse_move(core::systems::input::mouse_delta delta);

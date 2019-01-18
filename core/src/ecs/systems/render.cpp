@@ -26,35 +26,41 @@ render::render(core::ecs::state& state,
 			   handle<buffer> buffer)
 	: m_Pass(context, swapchain), m_Swapchain(swapchain), m_Surface(surface), m_Buffer(buffer)
 {
-	state.register_system(*this);
-	state.register_dependency(*this, core::ecs::tick{}, m_Renderables);
-		state.register_dependency(*this, core::ecs::tick{}, m_BrokenRenderables);
-	state.register_dependency(*this, core::ecs::tick{}, m_Cameras);
+	state.declare(&render::tick_cameras, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4);
+	state.declare(&render::tick_draws, this, std::placeholders::_1, std::placeholders::_2, std::placeholders::_3, std::placeholders::_4, std::placeholders::_5);
 }
 
-
-void render::tick(ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void render::tick_cameras(
+	core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+	core::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras)
 {
-	PROFILE_SCOPE(core::profiler)
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
-
 	size_t i = 0;
-	for(auto [camera, transform] : m_Cameras)
+	for(auto[camera, transform] : cameras)
 	{
 		update_buffer(i++, transform, camera);
 	}
-
+}
+void render::tick_draws(
+	core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+	core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
+	core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
+	renderables,
+	core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
+	core::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
+	broken_renderables)
+{
 	{
 		m_Pass.clear();
 		auto& default_layer = m_DrawGroup.layer("default", 0);
-		for(auto [transform, renderable] : m_Renderables)
+		for(auto[transform, renderable] : renderables)
 		{
 			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
 		}
 
-		for(auto [transform, renderable] : m_BrokenRenderables)
+		for(auto[transform, renderable] : broken_renderables)
 		{
-			if (auto dCall = m_DrawGroup.get(default_layer, renderable.material))
+			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID &());
 			}

@@ -1,12 +1,13 @@
 #pragma once
 
-#include "ecs/ecs.hpp"
+#include "ecs/command_buffer.h"
+#include "ecs/pack.h"
+#include "ecs/components/velocity.h"
+#include "ecs/components/transform.h"
+#include "math/math.hpp"
 
 namespace core::ecs::components
 {
-	struct transform;
-	struct velocity;
-
 	struct attractor
 	{
 		attractor() = default;
@@ -18,17 +19,27 @@ namespace core::ecs::components
 
 namespace core::ecs::systems
 {
-	class attractor
+	auto attractor = [](
+		core::ecs::command_buffer& commands,
+		std::chrono::duration<float> dTime,
+		std::chrono::duration<float> rTime,
+		core::ecs::pack<core::ecs::partial,
+		const core::ecs::components::transform,
+		core::ecs::components::velocity> movables,
+		core::ecs::pack<core::ecs::full,
+		const core::ecs::components::transform,
+		const core::ecs::components::attractor> attractors)
 	{
-		core::ecs::pack<const core::ecs::components::transform,
-			core::ecs::components::velocity> m_Movables;
+		using namespace psl::math;
+		for(auto[movTrans, movVel] : movables)
+		{
+			for(auto[attrTransform, attractor] : attractors)
+			{
+				const auto mag = saturate((attractor.radius - magnitude(movTrans.position - attrTransform.position)) / attractor.radius) * dTime.count();
+				const auto direction = normalize(attrTransform.position - movTrans.position) * attractor.force;
 
-		core::ecs::pack<const core::ecs::components::transform,
-			const core::ecs::components::attractor> m_Attractors;
-
-	public:
-		attractor(core::ecs::state& state);
-		void tick(core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime);
-	private:
+				movVel.direction = mix<float, float, float, 3>(movVel.direction, direction, mag);
+			}
+		}
 	};
 }

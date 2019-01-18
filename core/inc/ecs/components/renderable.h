@@ -1,7 +1,11 @@
 #pragma once
 #include "math/math.hpp"
 
-
+namespace core::gfx
+{
+	class material;
+	class geometry;
+}
 namespace core::ecs::components
 {
 	struct renderable

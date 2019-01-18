@@ -8,11 +8,10 @@ using namespace core::ecs;
 void state::destroy(psl::array_view<entity> entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)
-	if (entities.size() == 0)
-		return;
+	if(entities.size() == 0) return;
 
-	ska::bytell_hash_map<details::component_key_t, std::vector<entity>> erased_entities;
-	ska::bytell_hash_map<details::component_key_t, std::vector<uint64_t>> erased_ids;
+	ska::bytell_hash_map<component_key_t, std::vector<entity>> erased_entities;
+	ska::bytell_hash_map<component_key_t, std::vector<uint64_t>> erased_ids;
 	core::profiler.scope_begin("erase entities");
 	for(const auto& e : entities)
 	{
@@ -76,25 +75,26 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 		}
 	}
 	core::profiler.scope_end();
-	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities), std::begin(entities), std::end(entities));
+	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities),
+															std::begin(entities), std::end(entities));
 }
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
 
-size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, details::component_key_t id, size_t element_size)
+size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
+						   component_key_t id, size_t element_size)
 {
-	const auto& mem_pair = m_Components.find(id);
+	const auto& mem_pair	  = m_Components.find(id);
 	std::uintptr_t data_begin = cache_offset;
 
 	for(const auto& e : entities)
 	{
-		auto eMapIt = m_EntityMap.find(e);
-		auto foundIt = std::find_if(
-			eMapIt->second.begin(), eMapIt->second.end(),
-			[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
+		auto eMapIt  = m_EntityMap.find(e);
+		auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+									[&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
 
 		auto index = foundIt->second;
-		void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + element_size * index);
+		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + element_size * index);
 		std::memcpy((void*)cache_offset, loc, element_size);
 		cache_offset += element_size;
 	}
@@ -103,7 +103,8 @@ size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region&
 	return cache_offset - data_begin;
 }
 
-size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset, details::owner_dependency_pack& dep_pack)
+size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
+							   details::owner_dependency_pack& dep_pack)
 {
 	PROFILE_SCOPE(core::profiler);
 	size_t offset_start = cache_offset;
@@ -125,37 +126,39 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_reg
 
 struct workload_pack
 {
-	workload_pack(std::vector<entity>&& entities) : entities(entities) {};
+	workload_pack(std::vector<entity>&& entities) : entities(entities){};
 
 	void split(size_t count)
 	{
-		count = std::max(count, size_t{1});
-		size_t batch_size = entities.size() / count;
+		count				= std::max(count, size_t{1});
+		size_t batch_size   = entities.size() / count;
 		size_t dispatched_n = 0;
-		count = (batch_size <= 2)?1:count;
+		count				= (batch_size <= 2) ? 1 : count;
 		for(auto i = 0; i < count - 1; ++i)
 		{
-			split_entities.emplace_back(psl::array_view<entity>{std::next(std::begin(entities), dispatched_n), batch_size});
+			split_entities.emplace_back(
+				psl::array_view<entity>{std::next(std::begin(entities), dispatched_n), batch_size});
 			dispatched_n += batch_size;
 		}
 
-		split_entities.emplace_back(psl::array_view<entity>{std::next(std::begin(entities), dispatched_n), entities.size() - dispatched_n});
+		split_entities.emplace_back(
+			psl::array_view<entity>{std::next(std::begin(entities), dispatched_n), entities.size() - dispatched_n});
 	}
 
 	std::vector<entity> entities;
 	std::vector<psl::array_view<entity>> split_entities;
 };
 
-void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, memory::raw_region& cache, size_t cache_offset, system_information& system, std::vector<commands>& cmds)
+void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+						   memory::raw_region& cache, size_t cache_offset, system_information& system,
+						   std::vector<command_buffer>& cmds)
 {
-	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs)
-	{
-
+	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs) {
 		for(const auto& dep_pack : dep_packs)
 		{
-			for( auto& binding : dep_pack.m_RWBindings)
+			for(auto& binding : dep_pack.m_RWBindings)
 			{
-				const size_t size = dep_pack.m_Sizes.at(binding.first);
+				const size_t size   = dep_pack.m_Sizes.at(binding.first);
 				std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
 				state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
 			}
@@ -165,16 +168,19 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	// design:
 	// 3 types of execution policies:
 	//		- sequential/parallel & full packs only: only one context can be active at a given time
-	//		- parallel & some partial packs: true parallel multi-context system
-	//		- sequential & some partial packs: only one context can be active, but the system can be spread out and fill smaller holes of context downtime
+	//		- parallel & some/full partial packs: true parallel multi-context system
+	//		- sequential & some/full partial packs: only one context can be active, but the system can be spread out and
+	// fill smaller holes of context downtime
 	//
-	// heuristics:
-	//   should prefer scheduling full systems first, followed by sequential. These will be the blockers for high contested components.
-	//   and are antithethical to parallelization.
-	//   The next heuristic should take into account highly contested components and try to get them through the funnel faster.
-	//   Components are contested when there is a RW lock on them. Bigger lists of them increase the heuristic value.
-	//   Lastly historical timing data should be tracked for the average time per entity a given system takes to execute.
-	//   Preffering to schedule intensive blocking systems first using estimated times of execution.
+	// There is one more policy type, main_only. This forces the system to run on the thread that invokes
+	// ecs::state::tick. This can be used in scenarios where a system needs to touch global state and either read it, or
+	// mutate it without using mutexes. heuristics:
+	//   should prefer scheduling full systems first, followed by sequential. These will be the blockers for high
+	//   contested components. and are antithethical to parallelization. The next heuristic should take into account
+	//   highly contested components and try to get them through the funnel faster. Components are contested when there
+	//   is a RW lock on them. Bigger lists of them increase the heuristic value. Lastly historical timing data should
+	//   be tracked for the average time per entity a given system takes to execute. Preffering to schedule intensive
+	//   blocking systems first using estimated times of execution.
 
 	/*{
 		std::vector<workload_pack> workload_packs;
@@ -207,11 +213,11 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	for(auto& cmd : cmds)
 	{
 		auto pack = std::invoke(system.pack_generator);
+		core::profiler.scope_begin("fill_in system data");
 		for(auto& dep_pack : pack)
 		{
 			auto entities = filter(dep_pack);
-			if(entities.size() == 0)
-				continue;
+			if(entities.size() == 0) continue;
 			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
 			dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
 				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
@@ -220,135 +226,47 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 			cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
 		}
+		core::profiler.scope_end();
+		core::profiler.scope_begin("invoke system");
 		std::invoke(system.invocable, cmd, dTime, rTime, pack);
+		core::profiler.scope_end();
+		core::profiler.scope_begin("write system data to ecs::state");
 		write_data(*this, pack);
+		core::profiler.scope_end();
 	}
 }
 void state::tick(std::chrono::duration<float> dTime)
 {
 	PROFILE_SCOPE(core::profiler)
-		++m_Tick;
-	for(auto& system : m_Systems)
-	{
-		core::profiler.scope_begin("ticking system");
-		auto& sBindings = system.second.tick_dependencies;
-		std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
-		core::profiler.scope_begin("preparing data");
-		for(auto& dep_pack : sBindings)
-		{
-			auto entities = filter(dep_pack);
-			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-			dep_pack.m_StoredEnts = psl::array_view<core::ecs::entity>(
-				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
-			if(dep_pack.m_Entities != nullptr) *dep_pack.m_Entities = dep_pack.m_StoredEnts;
-			cache_offset += sizeof(entity) * entities.size();
-			core::profiler.scope_begin("read-write data");
-			for(const auto& rwBinding : dep_pack.m_RWBindings)
-			{
-				const auto& mem_pair = m_Components.find(rwBinding.first);
-				const auto size = dep_pack.m_Sizes[rwBinding.first];
-				const auto id = rwBinding.first;
-				std::uintptr_t data_begin = cache_offset;
-
-				for(const auto& e : entities)
-				{
-
-					auto eMapIt = m_EntityMap.find(e);
-					auto foundIt = std::find_if(
-						eMapIt->second.begin(), eMapIt->second.end(),
-						[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
-
-					auto index = foundIt->second;
-					void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-					std::memcpy((void*)cache_offset, loc, size);
-					cache_offset += size;
-				}
-
-				*rwBinding.second =
-					psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
-
-				size_t x = 0;
-			}
-			core::profiler.scope_end();
-			core::profiler.scope_begin("read-only data");
-			for(const auto& rBinding : dep_pack.m_RBindings)
-			{
-				const auto& mem_pair = m_Components.find(rBinding.first);
-				const auto size = dep_pack.m_Sizes[rBinding.first];
-				const auto id = rBinding.first;
-
-				std::uintptr_t data_begin = cache_offset;
-
-				for(const auto& e : entities)
-				{
-
-					auto eMapIt = m_EntityMap.find(e);
-					auto foundIt = std::find_if(
-						eMapIt->second.begin(), eMapIt->second.end(),
-						[&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
-
-					auto index = foundIt->second;
-					void* loc = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
-					std::memcpy((void*)cache_offset, loc, size);
-					cache_offset += size;
-				}
-
-				*rBinding.second =
-					psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache_offset);
-			}
-			core::profiler.scope_end();
-		}
-		core::profiler.scope_end();
-		commands cmds{*this, mID};
-
-		if(system.second.tick)
-			std::invoke(system.second.tick, cmds, dTime, dTime);
-
-		for(const auto& dep_pack : sBindings)
-		{
-			for(const auto& rwBinding : dep_pack.m_RWBindings)
-			{
-				const size_t size = dep_pack.m_Sizes.at(rwBinding.first);
-				std::uintptr_t data = (std::uintptr_t)&std::begin(*rwBinding.second).value();
-				set(dep_pack.m_StoredEnts, (void*)data, size, rwBinding.first);
-			}
-		}
-		execute_commands(cmds);
-		core::profiler.scope_end();
-	}
-
+	++m_Tick;
 
 	std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
 	for(auto& system : m_SystemInformations)
 	{
-		std::vector<commands> cmds;
-		for(auto i = 0; i < 6; ++i)
-			cmds.emplace_back(commands{*this, mID});
+		PROFILE_SCOPE(core::profiler)
+		std::vector<command_buffer> cmds;
+		for(auto i = 0; i < 1; ++i) cmds.emplace_back(command_buffer{*this, mID});
 
 		prepare_system(dTime, dTime, m_Cache, cache_offset, system, cmds);
-		
 
-		for(auto i = 0; i < 6; ++i)
-			execute_commands(cmds[i]);
+
+		for(auto i = 0; i < 1; ++i) execute_command_buffer(cmds[i]);
 	}
 	m_StateChange[m_Tick % 2].clear();
 }
 
-void state::set(psl::array_view<entity> entities, void* data, size_t size, details::component_key_t id)
+void state::set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id)
 {
 	PROFILE_SCOPE(core::profiler)
-	if(entities.size() == 0)
-		return;
+	if(entities.size() == 0) return;
 	const auto& mem_pair = m_Components.find(id);
-	if(mem_pair->second.size == 1)
-		return;
+	if(mem_pair->second.size == 1) return;
 	std::uintptr_t data_loc = (std::uintptr_t)data;
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
-		auto eMapIt = m_EntityMap.find(e);
-		auto foundIt =
-			std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-						 [&id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == id; });
+		auto eMapIt  = m_EntityMap.find(e);
+		auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+									[&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
 
 		auto index = foundIt->second;
 		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
@@ -357,7 +275,7 @@ void state::set(psl::array_view<entity> entities, void* data, size_t size, detai
 	}
 }
 
-std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key_t> keys,
+std::vector<entity> state::dynamic_filter(psl::array_view<component_key_t> keys,
 										  std::optional<psl::array_view<entity>> pre_selection) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
@@ -396,8 +314,8 @@ std::vector<entity> state::dynamic_filter(psl::array_view<details::component_key
 }
 
 std::vector<entity>
-state::dynamic_filter(psl::array_view<details::component_key_t> keys,
-					  const details::key_value_container_t<details::component_key_t, std::vector<entity>>& container,
+state::dynamic_filter(psl::array_view<component_key_t> keys,
+					  const details::key_value_container_t<component_key_t, std::vector<entity>>& container,
 					  std::optional<psl::array_view<entity>> pre_selection) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
@@ -435,7 +353,7 @@ state::dynamic_filter(psl::array_view<details::component_key_t> keys,
 }
 
 
-void state::fill_in(psl::array_view<entity> entities, details::component_key_t int_id, void* out) const noexcept
+void state::fill_in(psl::array_view<entity> entities, component_key_t int_id, void* out) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 
@@ -444,10 +362,10 @@ void state::fill_in(psl::array_view<entity> entities, details::component_key_t i
 	const std::uintptr_t data = (std::uintptr_t)mem_pair->second.region.data();
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
-		auto eMapIt  = m_EntityMap.find(e);
-		auto foundIt = std::find_if(
-			eMapIt->second.begin(), eMapIt->second.end(),
-			[&int_id](const std::pair<details::component_key_t, size_t>& pair) { return pair.first == int_id; });
+		auto eMapIt = m_EntityMap.find(e);
+		auto foundIt =
+			std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+						 [&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
 
 		auto index = foundIt->second;
 		void* loc  = (void*)(data + size * index);
@@ -455,111 +373,42 @@ void state::fill_in(psl::array_view<entity> entities, details::component_key_t i
 	}
 }
 
-commands::commands(state& state, uint64_t id_offset) : m_State(state), m_StartID(id_offset), mID(id_offset) {}
-
-void commands::apply(size_t id_difference_n)
-{
-	std::vector<entity> added_entities;
-	std::vector<entity> removed_entities;
-	std::vector<entity> destroyed_entities;
-	std::set_difference(std::begin(m_NewEntities), std::end(m_NewEntities), std::begin(m_MarkedForDestruction),
-						std::end(m_MarkedForDestruction), std::back_inserter(added_entities));
-	std::set_difference(std::begin(m_NewEntities), std::end(m_NewEntities), std::begin(added_entities),
-						std::end(added_entities), std::back_inserter(removed_entities));
-	std::set_difference(std::begin(m_MarkedForDestruction), std::end(m_MarkedForDestruction),
-						std::begin(removed_entities), std::end(removed_entities),
-						std::back_inserter(destroyed_entities));
-
-	for(auto& [key, cInfo] : m_Components)
-	{
-		std::vector<ecs::entity> actual_entities;
-		std::set_difference(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(removed_entities),
-							std::end(removed_entities), std::back_inserter(actual_entities));
-		cInfo.entities = actual_entities;
-		for (auto& e : cInfo.entities)
-		{
-			if (e.id() > m_StartID)
-				e = entity{ e.id() + id_difference_n };
-		}
-	}
-
-	for (auto&[key, entities] : m_ErasedComponents)
-	{
-		std::vector<entity> removed_components;
-		std::set_difference(std::begin(entities), std::end(entities), std::begin(removed_entities),
-			std::end(removed_entities), std::back_inserter(removed_components));
-
-		entities = removed_components;
-		for (auto& e : entities)
-		{
-			if (e.id() > m_StartID)
-				e = entity{ e.id() + id_difference_n };
-		}
-	}
-
-	m_NewEntities		   = added_entities;
-	m_MarkedForDestruction = destroyed_entities;
-	for (auto& e : added_entities)
-	{
-		if (e.id() > m_StartID)
-			e = entity{ e.id() + id_difference_n };
-	}
-	for (auto& e : destroyed_entities)
-	{
-		if (e.id() > m_StartID)
-			e = entity{ e.id() + id_difference_n };
-	}
-
-	details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>> old_entity_map{ std::move(m_EntityMap) };
-	m_EntityMap = details::key_value_container_t<entity, std::vector<std::pair<details::component_key_t, size_t>>>{};
-	for (auto&[e, vec] : old_entity_map)
-	{
-		entity ent{e};
-		if (e.id() > m_StartID)
-			ent = entity{ e.id() + id_difference_n };
-		
-		m_EntityMap.emplace(ent, std::move(vec));
-	}
-}
-
 
 void state::destroy_component_generator_ids(details::component_info& cInfo, psl::array_view<entity> entities)
 {
-	if (entities.size() == 0)
-		return;
+	if(entities.size() == 0) return;
 	std::vector<size_t> IDs;
-	for (auto e : entities)
+	for(auto e : entities)
 	{
-		if (auto it = m_EntityMap.find(e); it != std::end(m_EntityMap))
+		if(auto it = m_EntityMap.find(e); it != std::end(m_EntityMap))
 		{
-			auto pair = std::remove_if(std::begin(it->second), std::end(it->second), [&cInfo](const std::pair<details::component_key_t, size_t>& pair)
-			{ return pair.first == cInfo.id; });
-			if (pair == std::end(it->second))
-				continue;
+			auto pair = std::remove_if(
+				std::begin(it->second), std::end(it->second),
+				[&cInfo](const std::pair<component_key_t, size_t>& pair) { return pair.first == cInfo.id; });
+			if(pair == std::end(it->second)) continue;
 			IDs.emplace_back(pair->second);
 			it->second.erase(pair, std::end(it->second));
 		}
 	}
-	if (IDs.size() == 0)
-		return;
+	if(IDs.size() == 0) return;
 	std::sort(std::begin(IDs), std::end(IDs));
 	size_t cachedStartIndex = IDs[0];
-	size_t cachedPrevIndex = IDs[0];
-	for (auto i = 1; i < IDs.size(); ++i)
+	size_t cachedPrevIndex  = IDs[0];
+	for(auto i = 1; i < IDs.size(); ++i)
 	{
 		++cachedPrevIndex;
-		if (IDs[i] != cachedPrevIndex)
+		if(IDs[i] != cachedPrevIndex)
 		{
 			cInfo.generator.DestroyRangeID(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
 
-			cachedPrevIndex = IDs[i];
+			cachedPrevIndex  = IDs[i];
 			cachedStartIndex = IDs[i];
 		}
 	}
 	cInfo.generator.DestroyRangeID(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
 }
 
-void state::execute_commands(commands& cmds)
+void state::execute_command_buffer(command_buffer& cmds)
 {
 	// we shift the current ID with the difference of the highest ID generated in the command
 	const auto id_difference_n = mID - cmds.m_StartID;
@@ -567,13 +416,15 @@ void state::execute_commands(commands& cmds)
 	mID += cmds.mID - cmds.m_StartID;
 
 	// add entities
-	if (cmds.m_NewEntities.size() > 0)
+	if(cmds.m_NewEntities.size() > 0)
 	{
-		for (auto e : cmds.m_NewEntities)
+		for(auto e : cmds.m_NewEntities)
 		{
-			m_EntityMap.emplace(e, std::vector<std::pair<details::component_key_t, size_t>>{});
+			m_EntityMap.emplace(e, std::vector<std::pair<component_key_t, size_t>>{});
 		}
-		m_StateChange[(m_Tick + 1) % 2].added_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_entities), std::begin(cmds.m_NewEntities), std::end(cmds.m_NewEntities));
+		m_StateChange[(m_Tick + 1) % 2].added_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_entities),
+															  std::begin(cmds.m_NewEntities),
+															  std::end(cmds.m_NewEntities));
 	}
 	// add components
 	const auto& entityMap = cmds.m_EntityMap;
@@ -587,29 +438,34 @@ void state::execute_commands(commands& cmds)
 			auto eIt = entityMap.find(e);
 			auto cIt = std::find_if(
 				std::begin(eIt->second), std::end(eIt->second),
-				[&named_key](const std::pair<details::component_key_t, size_t> keyPair) { return named_key == keyPair.first; });
+				[&named_key](const std::pair<component_key_t, size_t> keyPair) { return named_key == keyPair.first; });
 			return ((std::uintptr_t)named_cInfo.region.data() + (named_cInfo.size * cIt->second));
 		});
-		m_StateChange[(m_Tick + 1) % 2].added_components[key].insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_components[key]), std::begin(cInfo.entities), std::end(cInfo.entities));
+		m_StateChange[(m_Tick + 1) % 2].added_components[key].insert(
+			std::end(m_StateChange[(m_Tick + 1) % 2].added_components[key]), std::begin(cInfo.entities),
+			std::end(cInfo.entities));
 	}
 
 	// remove entities
 	destroy(cmds.m_MarkedForDestruction);
 
 	// remove components
-	for (const auto&[key, entities] : cmds.m_ErasedComponents)
+	for(const auto& [key, entities] : cmds.m_ErasedComponents)
 	{
-		if (entities.size() == 0)
-			continue;
+		if(entities.size() == 0) continue;
 		std::vector<entity> erased_entities;
 		auto compIt = m_Components.find(key);
-		if (compIt == std::end(m_Components))
-			continue;
-		std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities), std::end(compIt->second.entities), std::back_inserter(erased_entities));
+		if(compIt == std::end(m_Components)) continue;
+		std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities),
+							  std::end(compIt->second.entities), std::back_inserter(erased_entities));
 		destroy_component_generator_ids(compIt->second, erased_entities);
 		std::vector<entity> remaining_entities;
-		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities), std::begin(erased_entities), std::end(erased_entities), std::back_inserter(remaining_entities));
+		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities),
+							std::begin(erased_entities), std::end(erased_entities),
+							std::back_inserter(remaining_entities));
 		compIt->second.entities = remaining_entities;
-		m_StateChange[(m_Tick + 1) % 2].removed_components[key].insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_components[key]), std::begin(entities), std::end(entities));
+		m_StateChange[(m_Tick + 1) % 2].removed_components[key].insert(
+			std::end(m_StateChange[(m_Tick + 1) % 2].removed_components[key]), std::begin(entities),
+			std::end(entities));
 	}
 }

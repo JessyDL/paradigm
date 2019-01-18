@@ -5,7 +5,7 @@
 
 namespace core::ecs::systems
 {
-	auto movement = [](core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+	auto movement = [](core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 					   core::ecs::pack<const core::ecs::components::velocity, core::ecs::components::transform> movables)
 	{
 		using namespace psl::math;

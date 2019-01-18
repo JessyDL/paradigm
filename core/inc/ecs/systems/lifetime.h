@@ -1,12 +1,15 @@
 #pragma once
-#include "ecs/ecs.hpp"
+#include "ecs/entity.h"
+#include "ecs/selectors.h"
+#include "ecs/pack.h"
+#include "ecs/command_buffer.h"
 #include "ecs/components/lifetime.h"
 #include "ecs/components/dead_tag.h"
 
 
 namespace core::ecs::systems
 {
-	auto lifetime = [](core::ecs::commands& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+	auto lifetime = [](core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 					   core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> life_pack)
 	{
 		using namespace core::ecs;
