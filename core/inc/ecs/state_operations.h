@@ -7,6 +7,7 @@
 #include "component_info.h"
 #include "component_key.h"
 #include "bytell_hash_map.hpp"
+#include <optional>
 
 namespace core::ecs::details
 {
