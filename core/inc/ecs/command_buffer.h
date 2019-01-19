@@ -5,6 +5,7 @@
 #include "entity.h"
 #include "component_key.h"
 #include "state_operations.h"
+#include <numeric>
 
 namespace core::ecs
 {
