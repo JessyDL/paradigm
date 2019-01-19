@@ -149,13 +149,10 @@ namespace core::ecs::details
 	}
 
 	template <typename T>
-	void add_component(
+	std::vector<entity>&& add_component(
 		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>& entityMap,
 		details::key_value_container_t<component_key_t, details::component_info>& components,
-		psl::array_view<entity> entities, T&& _template,
-		std::optional<
-		std::reference_wrapper<details::key_value_container_t<component_key_t, std::vector<entity>>>>
-		addedComponents = std::nullopt) noexcept
+		psl::array_view<entity> entities, T&& _template) noexcept
 	{
 		using component_type = typename get_component_type<T>::type;
 		using forward_type = typename get_forward_type<T>::type;
@@ -246,21 +243,14 @@ namespace core::ecs::details
 			}
 		}
 
-		if(addedComponents)
-		{
-			auto& addedComponentsRange = addedComponents.value().get()[key];
-			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
-		}
+		return std::move(ent_cpy);
 	}
 
 	template <typename T>
-	void remove_component(
+	std::vector<entity>&& remove_component(
 		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>& entityMap,
 		details::key_value_container_t<component_key_t, details::component_info>& components,
-		psl::array_view<entity> entities,
-		std::optional<
-		std::reference_wrapper<details::key_value_container_t<component_key_t, std::vector<entity>>>>
-		removedComponents = std::nullopt) noexcept
+		psl::array_view<entity> entities) noexcept
 	{
 		constexpr component_key_t key = details::component_key<details::remove_all<T>>;
 		std::vector<entity> ent_cpy;
@@ -300,10 +290,6 @@ namespace core::ecs::details
 			}
 		}
 
-		if(removedComponents)
-		{
-			auto& removedComponentsRange = removedComponents.value().get()[key];
-			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(ent_cpy), std::end(ent_cpy));
-		}
+		return std::move(ent_cpy);
 	}
 }

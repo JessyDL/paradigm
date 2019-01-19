@@ -381,8 +381,13 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
-			details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template),
-								   m_StateChange[(m_Tick + 1) % 2].added_components);
+			auto added_entities{details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template))};
+
+			using component_type		  = typename details::get_component_type<T>::type;
+			constexpr component_key_t key = details::component_key<details::remove_all<component_type>>;
+
+			auto& addedComponentsRange = m_StateChange[(m_Tick + 1) % 2].added_components[key];
+			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(added_entities), std::end(added_entities));
 		}
 
 		template <typename T>
@@ -420,8 +425,14 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			details::remove_component<T>(m_EntityMap, m_Components, entities,
-										 m_StateChange[(m_Tick + 1) % 2].removed_components);
+			auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
+
+
+			using component_type		  = typename details::get_component_type<T>::type;
+			constexpr component_key_t key = details::component_key<details::remove_all<component_type>>;
+
+			auto& removedComponentsRange = m_StateChange[(m_Tick + 1) % 2].removed_components[key];
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(removed_entities), std::end(removed_entities));
 		}
 
 		template <typename... Ts>
