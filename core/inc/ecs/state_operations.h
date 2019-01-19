@@ -54,7 +54,6 @@ namespace core::ecs::details
 	typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
 		initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
 	{
-		core::profiler.scope();
 		for(auto i = 0; i < indices.size(); ++i)
 		{
 			std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
@@ -66,7 +65,6 @@ namespace core::ecs::details
 		initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
 	{
 		constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
-		core::profiler.scope();
 		for(auto i = 0; i < indices.size(); ++i)
 		{
 			auto v{std::invoke(invokable, i)};
@@ -80,7 +78,6 @@ namespace core::ecs::details
 		const details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>&
 		entityMap)
 	{
-		core::profiler.scope_begin("duplicate_check");
 		constexpr component_key_t key = details::component_key<details::remove_all<T>>;
 		std::vector<entity> ent_cpy = entities;
 		auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [&entityMap, key](const entity& e)
@@ -97,7 +94,6 @@ namespace core::ecs::details
 									  }
 									  return false;
 								  });
-		core::profiler.scope_end();
 		ent_cpy.resize(std::distance(std::begin(ent_cpy), end));
 		return ent_cpy;
 	}
@@ -132,7 +128,6 @@ namespace core::ecs::details
 		auto it = components.find(key);
 		if(it == components.end())
 		{
-			core::profiler.scope_begin("create backing storage");
 			if(std::is_empty<T>::value)
 			{
 				components.emplace(key, details::component_info{{}, key});
@@ -143,7 +138,6 @@ namespace core::ecs::details
 					key, details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, key, sizeof(T)});
 			}
 			it = components.find(key);
-			core::profiler.scope_end();
 		}
 		return it->second;
 	}
@@ -158,7 +152,6 @@ namespace core::ecs::details
 		using forward_type = typename get_forward_type<T>::type;
 
 
-		core::profiler.scope();
 		static_assert(
 			std::is_trivially_copyable<component_type>::value && std::is_standard_layout<component_type>::value,
 			"the component type must be trivially copyable and standard layout "
@@ -174,7 +167,6 @@ namespace core::ecs::details
 
 		if constexpr(std::is_empty<component_type>::value)
 		{
-			core::profiler.scope_begin("emplace empty components");
 			for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
 			{
 				const entity& e{*ent_it};
@@ -182,15 +174,12 @@ namespace core::ecs::details
 				componentInfo.entities.emplace(
 					std::upper_bound(std::begin(componentInfo.entities), std::end(componentInfo.entities), e), e);
 			}
-			core::profiler.scope_end();
 		}
 		else
 		{
-			core::profiler.scope_begin("emplace components");
 			std::vector<uint64_t> indices;
 			uint64_t id_range;
 			const auto count = std::distance(std::begin(ent_cpy), std::end(ent_cpy));
-			core::profiler.scope_begin("reserve");
 			indices.reserve(count);
 			entityMap.reserve(entityMap.size() + count);
 
@@ -201,11 +190,8 @@ namespace core::ecs::details
 					   std::end(ent_cpy), std::back_inserter(merged));
 			componentInfo.entities = std::move(merged);
 
-			core::profiler.scope_end();
-
 			if(componentInfo.generator.CreateRangeID(id_range, count))
 			{
-				core::profiler.scope_begin("fast path");
 				for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
 				{
 					const entity& e{*ent_it};
@@ -213,11 +199,9 @@ namespace core::ecs::details
 					entityMap[e].emplace_back(key, id_range);
 					++id_range;
 				}
-				core::profiler.scope_end();
 			}
 			else
 			{
-				core::profiler.scope_begin("slow path");
 				for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
 				{
 					const entity& e{*ent_it};
@@ -225,9 +209,7 @@ namespace core::ecs::details
 					indices.emplace_back(index);
 					entityMap[e].emplace_back(key, index);
 				}
-				core::profiler.scope_end();
 			}
-			core::profiler.scope_end();
 
 			if constexpr(core::ecs::details::is_tag<T>::value)
 			{
