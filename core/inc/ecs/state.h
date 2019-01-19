@@ -22,12 +22,14 @@
 /// The ECS namespace contains a fully functioning ECS
 namespace core::ecs
 {
-	struct par
-	{};
-	struct seq
-	{};
-	struct main_only
-	{};
+	enum class threading
+	{
+		seq		   = 0,
+		sequential = seq,
+		par		   = 1,
+		parallel   = par,
+		main	   = 2
+	};
 
 	struct tick
 	{};
@@ -53,14 +55,15 @@ namespace core::ecs
 		{
 			using type = T;
 		};
-		
+
 		template <typename T, typename SFINEA = void>
 		struct mf_pre_tick : std::false_type
 		{};
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `pre_tick` listener.
 		template <typename T>
-		struct mf_pre_tick<T, std::void_t<decltype(std::declval<T&>().pre_tick(std::declval<core::ecs::command_buffer&>()))>>
+		struct mf_pre_tick<
+			T, std::void_t<decltype(std::declval<T&>().pre_tick(std::declval<core::ecs::command_buffer&>()))>>
 			: std::true_type
 		{};
 
@@ -70,8 +73,8 @@ namespace core::ecs
 
 		/// \brief SFINAE tag that is used to detect the method signature for the `post_tick` listener.
 		template <typename T>
-		struct mf_post_tick<T,
-							std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::command_buffer&>()))>>
+		struct mf_post_tick<
+			T, std::void_t<decltype(std::declval<T&>().post_tick(std::declval<core::ecs::command_buffer&>()))>>
 			: std::true_type
 		{};
 
@@ -87,7 +90,7 @@ namespace core::ecs
 																	   std::declval<std::chrono::duration<float>>()))>>
 			: std::true_type
 		{};
-		
+
 
 		/// \brief describes a set of dependencies for a given system
 		///
@@ -114,7 +117,7 @@ namespace core::ecs
 			{
 				if constexpr(!std::is_same<details::remove_all<F>, core::ecs::entity>::value)
 				{
-					using component_t = F;
+					using component_t			  = F;
 					constexpr component_key_t key = details::component_key<details::remove_all<component_t>>;
 					target.emplace_back(key);
 					m_Sizes[key] = sizeof(component_t);
@@ -127,13 +130,12 @@ namespace core::ecs
 				(select_impl<typename std::tuple_element<Is, T>::type>(target), ...);
 			}
 
-			template<typename T>
+			template <typename T>
 			psl::array_view<T> fill_in(type_container<psl::array_view<T>>)
 			{
 				if constexpr(std::is_same<T, core::ecs::entity>::value)
 				{
 					return m_Entities;
-
 				}
 				else if constexpr(std::is_const<T>::value)
 				{
@@ -143,21 +145,21 @@ namespace core::ecs
 				else
 				{
 					constexpr component_key_t int_id = details::component_key<details::remove_all<T>>;
-					return *(psl::array_view<T>*)&m_RWBindings[int_id];				
+					return *(psl::array_view<T>*)&m_RWBindings[int_id];
 				}
 			}
 
 			template <std::size_t... Is, typename T>
 			T to_pack_impl(std::index_sequence<Is...>, type_container<T>)
 			{
-				using pack_t = T;
+				using pack_t	  = T;
 				using pack_view_t = typename pack_t::pack_t;
-				using range_t = typename pack_t::pack_t::range_t;
+				using range_t	 = typename pack_t::pack_t::range_t;
 
-				return T{pack_view_t(fill_in(type_container<typename std::tuple_element<Is, range_t>::type>()) ...)};
+				return T{pack_view_t(fill_in(type_container<typename std::tuple_element<Is, range_t>::type>())...)};
 			}
 
-		public:
+		  public:
 			template <typename T>
 			owner_dependency_pack(type_container<T>)
 			{
@@ -178,16 +180,16 @@ namespace core::ecs
 				select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{},
 					   typename pack_t::except_t{}, except);
 
-				if constexpr (std::is_same<core::ecs::partial, typename pack_t::policy_t>::value)
+				if constexpr(std::is_same<core::ecs::partial, typename pack_t::policy_t>::value)
 				{
 					m_IsPartial = true;
 				}
 			};
 
 
-			~owner_dependency_pack() noexcept = default;
+			~owner_dependency_pack() noexcept						  = default;
 			owner_dependency_pack(const owner_dependency_pack& other) = default;
-			owner_dependency_pack(owner_dependency_pack&& other) = default;
+			owner_dependency_pack(owner_dependency_pack&& other)	  = default;
 			owner_dependency_pack& operator=(const owner_dependency_pack&) = default;
 			owner_dependency_pack& operator=(owner_dependency_pack&&) = default;
 
@@ -195,7 +197,7 @@ namespace core::ecs
 			template <typename... Ts>
 			core::ecs::pack<Ts...> to_pack(type_container<core::ecs::pack<Ts...>>)
 			{
-				using pack_t = core::ecs::pack<Ts...>;
+				using pack_t  = core::ecs::pack<Ts...>;
 				using range_t = typename pack_t::pack_t::range_t;
 
 				return to_pack_impl(std::make_index_sequence<std::tuple_size<range_t>::value>{},
@@ -218,7 +220,8 @@ namespace core::ecs
 				}
 				return res;
 			}
-		private:
+
+		  private:
 			template <typename T>
 			void add(type_container<psl::array_view<T>>) noexcept
 			{
@@ -237,7 +240,7 @@ namespace core::ecs
 			void add(type_container<psl::array_view<core::ecs::entity>>) noexcept {}
 			void add(type_container<psl::array_view<const core::ecs::entity>>) noexcept {}
 
-		private:
+		  private:
 			psl::array_view<core::ecs::entity> m_Entities{};
 			details::key_value_container_t<component_key_t, size_t> m_Sizes;
 			details::key_value_container_t<component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
@@ -256,10 +259,9 @@ namespace core::ecs
 		std::vector<owner_dependency_pack> expand_to_dependency_pack(std::index_sequence<Is...>, type_container<T> t)
 		{
 			std::vector<owner_dependency_pack> res;
-			(std::invoke([&]()
-						 {
-							 res.emplace_back(owner_dependency_pack(type_container<typename std::tuple_element<Is, T>::type>{}));
-						 }),
+			(std::invoke([&]() {
+				 res.emplace_back(owner_dependency_pack(type_container<typename std::tuple_element<Is, T>::type>{}));
+			 }),
 			 ...);
 			return res;
 		}
@@ -267,9 +269,11 @@ namespace core::ecs
 
 		template <std::size_t... Is, typename... Ts>
 		std::tuple<Ts...> compress_from_dependency_pack(std::index_sequence<Is...>, type_container<std::tuple<Ts...>> t,
-								   std::vector<owner_dependency_pack>& pack)
+														std::vector<owner_dependency_pack>& pack)
 		{
-			return std::tuple<Ts...>{pack[Is].to_pack(type_container<typename std::remove_reference<decltype(std::get<Is>(std::declval<std::tuple<Ts...>>()))>::type>{})...};
+			return std::tuple<Ts...>{
+				pack[Is].to_pack(type_container<typename std::remove_reference<decltype(
+									 std::get<Is>(std::declval<std::tuple<Ts...>>()))>::type>{})...};
 		}
 	} // namespace details
 } // namespace core::ecs
@@ -293,21 +297,19 @@ namespace core::ecs
 	{
 
 	  public:
-
-
-
-
 	  private:
-		  struct system_information
-		  {
-			  bool is_multithreaded = false;
-			  std::function<std::vector<details::owner_dependency_pack>()> pack_generator;
-			  std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>, std::vector<details::owner_dependency_pack>&)> invocable;
-		  };
-		  
+		struct system_information
+		{
+			threading threading = threading::sequential;
+			std::function<std::vector<details::owner_dependency_pack>()> pack_generator;
+			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>,
+							   std::vector<details::owner_dependency_pack>&)>
+				invocable;
+		};
+
 		template <typename Fn>
-		void copy_components(component_key_t key, psl::array_view<entity> entities,
-							 const size_t component_size, Fn&& function)
+		void copy_components(component_key_t key, psl::array_view<entity> entities, const size_t component_size,
+							 Fn&& function)
 		{
 			static_assert(std::is_same<typename std::invoke_result<Fn, entity>::type, std::uintptr_t>::value,
 						  "the return value must be a location in memory");
@@ -320,7 +322,8 @@ namespace core::ecs
 			if(component_size == 1)
 			{
 				std::vector<entity> merged_set;
-				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities), std::end(entities), std::back_inserter(merged_set));
+				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities),
+							   std::end(entities), std::back_inserter(merged_set));
 				cInfo.entities = std::move(merged_set);
 				for(auto e : entities)
 				{
@@ -331,7 +334,8 @@ namespace core::ecs
 					cInfo.generator.CreateRangeID(component_location, entities.size()))
 			{
 				std::vector<entity> merged_set;
-				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities), std::end(entities), std::back_inserter(merged_set));
+				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities),
+							   std::end(entities), std::back_inserter(merged_set));
 				cInfo.entities = std::move(merged_set);
 				for(auto e : entities)
 				{
@@ -481,8 +485,7 @@ namespace core::ecs
 		entity create_one(Ts&&... args) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
-			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<component_key_t, size_t>>{})
-						 .first->first;
+			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<component_key_t, size_t>>{}).first->first;
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components(e, std::forward<Ts>(args)...);
@@ -495,8 +498,7 @@ namespace core::ecs
 		entity create_one() noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
-			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<component_key_t, size_t>>{})
-						 .first->first;
+			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<component_key_t, size_t>>{}).first->first;
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components<Ts...>(e);
@@ -533,19 +535,19 @@ namespace core::ecs
 		size_t prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
 								details::owner_dependency_pack& dep_pack);
 		size_t prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
-							component_key_t id,
-							size_t element_size);
+							component_key_t id, size_t element_size);
 
 
-		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, memory::raw_region& cache, size_t cache_offset, system_information& system, std::vector<command_buffer>& cmds);
+		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+							memory::raw_region& cache, size_t cache_offset, system_information& system,
+							std::vector<command_buffer>& cmds);
 
 		std::vector<entity> filter(const details::owner_dependency_pack& pack) const
 		{
 			std::optional<std::vector<entity>> result{std::nullopt};
 
 			auto merge = [](std::optional<std::vector<entity>> out,
-							std::vector<entity> to_merge) -> std::vector<entity>
-			{
+							std::vector<entity> to_merge) -> std::vector<entity> {
 				if(!out) return to_merge;
 
 				std::vector<entity> v_intersection;
@@ -557,8 +559,7 @@ namespace core::ecs
 			};
 
 			auto difference = [](std::optional<std::vector<entity>> out,
-								 std::vector<entity> to_merge) -> std::vector<entity>
-			{
+								 std::vector<entity> to_merge) -> std::vector<entity> {
 				if(!out) return to_merge;
 
 				std::vector<entity> v_intersection;
@@ -669,16 +670,12 @@ namespace core::ecs
 			return dynamic_filter(keys, m_StateChange[m_Tick % 2].removed_components);
 		}
 
-		std::vector<entity> filter_except(std::vector<component_key_t> keys) const
-		{
-			return dynamic_filter(keys);
-		}
+		std::vector<entity> filter_except(std::vector<component_key_t> keys) const { return dynamic_filter(keys); }
 
 		std::vector<entity> filter_on_combine(std::vector<component_key_t> keys) const
 		{
 			std::sort(std::begin(keys), std::end(keys));
-			std::vector<component_key_t> added_keys{
-				filter_keys(keys, m_StateChange[m_Tick % 2].added_components)};
+			std::vector<component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick % 2].added_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
 			std::vector<component_key_t> remaining_keys{};
@@ -695,8 +692,7 @@ namespace core::ecs
 		std::vector<entity> filter_on_break(std::vector<component_key_t> keys) const
 		{
 			std::sort(std::begin(keys), std::end(keys));
-			std::vector<component_key_t> added_keys{
-				filter_keys(keys, m_StateChange[m_Tick % 2].removed_components)};
+			std::vector<component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick % 2].removed_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
 				return {};
 			std::vector<component_key_t> remaining_keys{};
@@ -709,10 +705,7 @@ namespace core::ecs
 			return entities;
 		}
 
-		std::vector<entity> filter_default(std::vector<component_key_t> keys) const
-		{
-			return dynamic_filter(keys);
-		}
+		std::vector<entity> filter_default(std::vector<component_key_t> keys) const { return dynamic_filter(keys); }
 
 		template <typename... Ts>
 		std::vector<entity> filter_impl(on_add<Ts...>) const
@@ -767,10 +760,10 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			constexpr component_key_t int_id = details::component_key<details::remove_all<T>>;
-			auto eMapIt								  = m_EntityMap.find(e);
-			auto foundIt							  = std::find_if(
-				 eMapIt->second.begin(), eMapIt->second.end(),
-				 [&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
+			auto eMapIt						 = m_EntityMap.find(e);
+			auto foundIt					 = std::find_if(
+				eMapIt->second.begin(), eMapIt->second.end(),
+				[&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
 
 			if(foundIt == std::end(eMapIt->second))
 			{
@@ -786,10 +779,10 @@ namespace core::ecs
 		{
 			PROFILE_SCOPE(core::profiler)
 			constexpr component_key_t int_id = details::component_key<details::remove_all<T>>;
-			auto eMapIt								  = m_EntityMap.find(e);
-			auto foundIt							  = std::find_if(
-				 eMapIt->second.begin(), eMapIt->second.end(),
-				 [&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
+			auto eMapIt						 = m_EntityMap.find(e);
+			auto foundIt					 = std::find_if(
+				eMapIt->second.begin(), eMapIt->second.end(),
+				[&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
 
 			if(foundIt == std::end(eMapIt->second))
 			{
@@ -804,21 +797,21 @@ namespace core::ecs
 		// systems
 		// -----------------------------------------------------------------------------
 		void tick(std::chrono::duration<float> dTime = std::chrono::duration<float>{0.0f});
-		
+
 		template <typename T>
 		void set(psl::array_view<entity> entities, psl::array_view<T> data)
 		{
 			PROFILE_SCOPE(core::profiler)
 			constexpr component_key_t id = details::component_key<details::remove_all<T>>;
-			const auto& mem_pair				  = m_Components.find(id);
-			auto size							  = sizeof(T);
+			const auto& mem_pair		 = m_Components.find(id);
+			auto size					 = sizeof(T);
 
 			for(const auto& [i, e] : psl::enumerate(entities))
 			{
-				auto eMapIt  = m_EntityMap.find(e);
-				auto foundIt = std::find_if(
-					eMapIt->second.begin(), eMapIt->second.end(),
-					[&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
+				auto eMapIt = m_EntityMap.find(e);
+				auto foundIt =
+					std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
+								 [&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
 
 				auto index = foundIt->second;
 				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
@@ -833,10 +826,9 @@ namespace core::ecs
 			constexpr component_key_t key = details::component_key<details::remove_all<T>>;
 			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				return std::any_of(std::begin(eIt->second), std::end(eIt->second),
-								   [&key](const std::pair<component_key_t, size_t> comp_pair) {
-									   return comp_pair.first == key;
-								   });
+				return std::any_of(
+					std::begin(eIt->second), std::end(eIt->second),
+					[&key](const std::pair<component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
 			}
 
 			return false;
@@ -849,10 +841,9 @@ namespace core::ecs
 			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
 				return std::all_of(std::begin(keys), std::end(keys), [&eIt](const component_key_t& key) {
-					return std::any_of(std::begin(eIt->second), std::end(eIt->second),
-									   [&key](const std::pair<component_key_t, size_t> comp_pair) {
-										   return comp_pair.first == key;
-									   });
+					return std::any_of(
+						std::begin(eIt->second), std::end(eIt->second),
+						[&key](const std::pair<component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
 				});
 			}
 			return false;
@@ -866,10 +857,9 @@ namespace core::ecs
 			constexpr component_key_t key = details::component_key<details::remove_all<T>>;
 			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				if(auto compIt = std::find_if(std::begin(eIt->second), std::end(eIt->second),
-											  [&key](const std::pair<component_key_t, size_t> comp_pair) {
-												  return comp_pair.first == key;
-											  });
+				if(auto compIt = std::find_if(
+					   std::begin(eIt->second), std::end(eIt->second),
+					   [&key](const std::pair<component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
 				   compIt != std::end(eIt->second))
 				{
 					auto compDataIt = m_Components.find(key);
@@ -889,7 +879,6 @@ namespace core::ecs
 
 
 	  private:
-		
 		template <typename... Ts>
 		struct get_packs
 		{
@@ -906,99 +895,81 @@ namespace core::ecs
 		{};
 
 
-
-		template <class Fn>
-		void declare_impl(bool is_mt, Fn&& fn)
+		template <typename Fn, typename T = void>
+		void declare_impl(threading threading, Fn&& fn, T* ptr = nullptr)
 		{
-			std::function<std::vector<details::owner_dependency_pack>()> pack_generator = []
-			()
-			{
-				using pack_t =
-					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
-				return  details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container<pack_t>{});
+
+			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
+			std::function<std::vector<details::owner_dependency_pack>()> pack_generator = []() {
+				using pack_t = typename get_packs<function_args>::type;
+				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
+														  details::type_container<pack_t>{});
 			};
 
-			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>, std::vector<details::owner_dependency_pack>&)> system_tick =
-				[&fn]
-			(core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
-				std::chrono::duration<float> rTime, std::vector<details::owner_dependency_pack>& packs)
+			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>,
+							   std::vector<details::owner_dependency_pack>&)>
+				system_tick;
+
+			if constexpr(std::is_member_function_pointer<Fn>::value)
 			{
-				using pack_t =
-					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+				system_tick = [fn, ptr](core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
+										std::chrono::duration<float> rTime,
+										std::vector<details::owner_dependency_pack>& packs) {
+					using pack_t = typename get_packs<function_args>::type;
 
-				auto tuple_argument_list = std::tuple_cat(
-					std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>>(command_buffer, dTime, rTime),
-					details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container< pack_t>{}, packs));
+					auto tuple_argument_list = std::tuple_cat(
+						std::make_tuple(ptr),
+						std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>,
+								   std::chrono::duration<float>>(command_buffer, dTime, rTime),
+						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
+															   details::type_container<pack_t>{}, packs));
 
-				std::apply(fn, tuple_argument_list);
-			};
-			m_SystemInformations.emplace_back(system_information{is_mt, pack_generator, system_tick});
-		}
-
-
-		template <class Fn, class T>
-		typename std::enable_if<std::is_member_function_pointer<Fn>::value>::type declare_impl(bool is_mt, Fn&& fn, T* ptr)
-		{
-			std::function<std::vector<details::owner_dependency_pack>()> pack_generator = []
-			()
+					std::apply(fn, tuple_argument_list);
+				};
+			}
+			else
 			{
-				using pack_t =
-					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
-				return  details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container<pack_t>{});
-			};
+				system_tick = [fn](core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
+								   std::chrono::duration<float> rTime,
+								   std::vector<details::owner_dependency_pack>& packs) {
+					using pack_t = typename get_packs<function_args>::type;
 
-			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>, std::vector<details::owner_dependency_pack>&)> system_tick =
-				[fn, ptr]
-			(core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
-			 std::chrono::duration<float> rTime, std::vector<details::owner_dependency_pack>& packs)
-			{
-				using pack_t =
-					typename get_packs<typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t>::type;
+					auto tuple_argument_list = std::tuple_cat(
+						std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>,
+								   std::chrono::duration<float>>(command_buffer, dTime, rTime),
+						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
+															   details::type_container<pack_t>{}, packs));
 
-				auto tuple_argument_list = std::tuple_cat(
-					std::make_tuple(ptr),
-					std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>>(command_buffer, dTime, rTime),
-					details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{}, details::type_container< pack_t>{}, packs));
-
-				std::apply(fn, tuple_argument_list);
-			};
-			m_SystemInformations.emplace_back(system_information{is_mt, pack_generator, system_tick});
+					std::apply(fn, tuple_argument_list);
+				};
+			}
+			m_SystemInformations.emplace_back(system_information{threading, pack_generator, system_tick});
 		}
 
 
 	  public:
-		template <class Fn>
+		template <typename Fn>
 		void declare(Fn&& fn)
 		{
-			declare_impl(false, std::forward<Fn>(fn));
+			declare_impl(threading::sequential, std::forward<Fn>(fn));
 		}
 
-		template <class Fn>
-		void declare(core::ecs::par, Fn&& fn)
+
+		template <typename Fn>
+		void declare(threading threading, Fn&& fn)
 		{
-			declare_impl(true, std::forward<Fn>(fn));
+			declare_impl(threading, std::forward<Fn>(fn));
 		}
 
-		template <class Fn>
-		void declare(core::ecs::seq, Fn&& fn)
-		{
-			declare_impl(false, std::forward<Fn>(fn));
-		}
-
-		template <class Fn, class T>
+		template <typename Fn, typename T>
 		void declare(Fn&& fn, T* ptr)
 		{
-			declare_impl(false, std::forward<Fn>(fn), ptr);
+			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr);
 		}
-		template <class Fn, class T>
-		void declare(core::ecs::par, Fn&& fn, T* ptr)
+		template <typename Fn, typename T>
+		void declare(threading threading, Fn&& fn, T* ptr)
 		{
-			declare_impl(true, std::forward<Fn>(fn), ptr);
-		}
-		template <class Fn, class T>
-		void declare(core::ecs::seq, Fn&& fn, T* ptr)
-		{
-			declare_impl(false, std::forward<Fn>(fn), ptr);
+			declare_impl(threading, std::forward<Fn>(fn), ptr);
 		}
 
 	  private:
