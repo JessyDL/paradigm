@@ -1,0 +1,40 @@
+FROM mcr.microsoft.com/windows/servercore:1803_KB4471324
+
+ENV	CMAKE_VERSION="3.13"
+ENV	CMAKE_PATCH="3"
+ENV	VSBUILDTOOLS="15.9.4.0"
+ENV	VK_VERSION="1.1.82.1"
+ENV EXTRA_CMAKE_PARAMS="-DPE_MODE=LIB"
+ENV DOXGEN=false
+ENV CORE_COUNT=6
+ENV BUILD_TYPE=Release
+
+ENV ChocolateyUseWindowsCompression false
+RUN powershell Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Force
+RUN powershell -NoProfile -ExecutionPolicy Bypass -Command "iex ((New-Object System.Net.WebClient).DownloadString('https://chocolatey.org/install.ps1'))" && SET "PATH=%PATH%;%ALLUSERSPROFILE%\chocolatey\bin"
+RUN choco install git.install -y 
+
+SHELL ["powershell", "-command"]
+
+RUN choco install -y visualstudio2017buildtools --version $Env:VSBUILDTOOLS
+RUN choco install cmake -y --installargs 'ADD_CMAKE_TO_PATH=System'
+
+# install vulkan
+WORKDIR VulkanSDK
+RUN git clone https://github.com/KhronosGroup/Vulkan-Headers.git Vulkan-Headers; \
+	cd Vulkan-Headers; \
+	git checkout c4e056d365472174471a243dfefbfe66a03564af; \
+	cd .. ; \
+	git clone https://github.com/KhronosGroup/Vulkan-Hpp.git Vulkan-Hpp; \
+	cd Vulkan-Hpp; \
+  git checkout 7e701c79d6998260712dc6578732d534871f0f8a; \
+	cd .. ; \
+	mkdir -p "$Env:VK_VERSION/Include/vulkan/"; \
+	Copy-Item -Path Vulkan-Headers/include/vulkan -Recurse -Destination "$Env:VK_VERSION/Include/vulkan/" -Container -Force; \
+	Copy-Item -Path Vulkan-Hpp/vulkan -Recurse -Destination "$Env:VK_VERSION/Include/vulkan/" -Container -Force
+
+ENV VULKAN_ROOT_DIR="C:/VulkanSDK"
+ENV VULKAN_SDK="$Env:VULKAN_ROOT_DIR/$Env:VK_VERSION/"
+
+WORKDIR /
+COPY scripts /

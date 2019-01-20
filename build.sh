@@ -155,7 +155,7 @@ done
 # ---------------------------------------------------------------------------------------------------------------------
 
 case "$GENERATOR" in
-	MSVC) if [ "$COMPILER" != "VC++" ] && [ "$COMPILER" != "CLang" ] && [ "$COMPILER" != "LLVM" ]; then 
+	MSVC) if [ "$COMPILER" != "VC++" ] && [ "$COMPILER" != "CLang" ]; then 
 			echo -e ${RED}ERROR${NC}: the [${GREEN}COMPILER${NC}] [${YELLOW}${COMPILER}${NC}] is incorrect. The [${GREEN}GENERATOR${NC}] [${YELLOW}${GENERATOR}${NC}] can only have one of the following compilers [${YELLOW}VC++${NC}], [${YELLOW}LLVM${NC}], or [${YELLOW}CLang${NC}]
 			exit 1
 		  fi;;
