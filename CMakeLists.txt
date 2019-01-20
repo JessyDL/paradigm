@@ -22,9 +22,8 @@ endif()
 ###############################################################################
 OPTION(PE_PCH "generate and use precompiled headers (if supported)" OFF)
 OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
-set(PE_MODE "LIB" CACHE STRING "should the core library be compiled as library (default), executable, or should the tests be built.")
-set_property(CACHE PE_MODE PROPERTY STRINGS LIB EXE)
-OPTION(PE_TESTS "should the tests be compiled? Note that, you cannot have core be an executable in that scenario" OFF)
+set(PE_MODE "LIB" CACHE STRING "should the core library be compiled as library (default), executable, or library without tests.")
+set_property(CACHE PE_MODE PROPERTY STRINGS LIB EXE, LIB_NO_TESTS)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
 set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
@@ -87,10 +86,6 @@ endif()
 
 if(WIN32)
 	list(APPEND PE_DL_LIBS Shlwapi.lib)
-endif()
-
-if(PE_MODE STREQUAL "EXE" AND PE_TESTS)
-	message(FATAL_ERROR "you cannot mix [PE_EXE] and [PE_TESTS] flags")
 endif()
 
 ###############################################################################
@@ -228,7 +223,7 @@ if(NOT ${PE_SOURCE_ONLY})
 	
 	add_subdirectory(psl)
 	add_subdirectory(core)
-	if(${PE_TESTS})
+	if(${PE_MODE} STREQUAL "LIB")
 		enable_testing()
 		add_subdirectory(tests)
 	endif()
