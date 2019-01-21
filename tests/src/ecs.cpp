@@ -100,7 +100,6 @@ TEST_CASE("systems", "[ECS]")
 	auto e_list2{ state.create(40) };
 	auto e_list3{ state.create(50) };
 
-	state.declare(registration_test);
 
 	state.add_component<float>(e_list1);
 	state.add_component<int>(e_list1);
@@ -120,4 +119,14 @@ TEST_CASE("systems", "[ECS]")
 	{
 		REQUIRE(res == 10 * 5);
 	}
+}
+
+
+TEST_CASE("declaring system signatures", "[ECS]")
+{
+	state state;
+	state.declare(registration_test);
+	float_system fl_system{state};
+
+
 }

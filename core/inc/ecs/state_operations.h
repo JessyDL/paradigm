@@ -143,7 +143,7 @@ namespace core::ecs::details
 	}
 
 	template <typename T>
-	std::vector<entity>&& add_component(
+	std::vector<entity> add_component(
 		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>& entityMap,
 		details::key_value_container_t<component_key_t, details::component_info>& components,
 		psl::array_view<entity> entities, T&& _template) noexcept
@@ -229,7 +229,7 @@ namespace core::ecs::details
 	}
 
 	template <typename T>
-	std::vector<entity>&& remove_component(
+	std::vector<entity> remove_component(
 		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>& entityMap,
 		details::key_value_container_t<component_key_t, details::component_info>& components,
 		psl::array_view<entity> entities) noexcept

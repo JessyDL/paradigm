@@ -108,14 +108,14 @@ mkdir -p $BUILD_FOLDER/$build_output -Force
 if($CLEAN_BUILD -or $CLEAN)
 {
 	echo "cleaning $BUILD_FOLDER/$build_output"
-	Get-ChildItem -Path "$BUILD_FOLDER/$build_output" -Recurse | Remove-Item -force -recurse
+	Get-ChildItem -Path "$BUILD_FOLDER/$build_output" -Recurse | Remove-Item -Force -Recurse
 }
 
 if($CLEAN_CMAKE -or $CLEAN)
 {
 	
 	echo "cleaning $CMAKE_FOLDER/$cmake_output"
-	Get-ChildItem -Path "$CMAKE_FOLDER/$cmake_output" -Recurse | Remove-Item -force -recurse
+	Get-ChildItem -Path "$CMAKE_FOLDER/$cmake_output" -Recurse | Remove-Item -Force -Recurse
 }
 
 cd $CMAKE_FOLDER/$cmake_output
