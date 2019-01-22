@@ -92,8 +92,8 @@ namespace core::os
 		/// \todo can we hide this?
 		void register_swapchain(core::resource::handle<core::gfx::swapchain> swapchain);
 #if defined(SURFACE_WIN32)
-		HINSTANCE surface_instance() const { return _win32_instance; };
-		HWND surface_handle() const { return _win32_window; };
+		HINSTANCE surface_instance() const { return win32_instance; };
+		HWND surface_handle() const { return win32_window; };
 #elif defined(SURFACE_XCB)
 		xcb_connection_t *connection() const { return _xcb_connection; }
 		xcb_window_t surface_handle() const { return _xcb_window; };
@@ -158,10 +158,10 @@ namespace core::os
 		bool m_IndicatorLocked{false};
 		core::systems::input* m_InputSystem;
 #if defined(SURFACE_WIN32)
-		HINSTANCE _win32_instance = NULL;
-		HWND _win32_window		  = NULL;
-		psl::platform_string _win32_class_name;
-		static uint64_t _win32_class_id_counter;
+		HINSTANCE win32_instance = NULL;
+		HWND win32_window		  = NULL;
+		psl::platform_string win32_class_name;
+		static uint64_t win32_class_id_counter;
 		// void TranslateInputMessage(MSG *msg);
 #elif defined(SURFACE_XCB)
 		xcb_connection_t *_xcb_connection;

@@ -7,9 +7,10 @@
 using namespace core::os;
 using namespace core;
 
+uint64_t surface::win32_class_id_counter {0};
+
 bool surface::init_surface()
 {
-	static uint64_t _win32_class_id_counter = 0;
 	WNDCLASSEX win_class{};
 	assert(m_Data->width() > 0);
 	assert(m_Data->height() > 0);
@@ -17,9 +18,9 @@ bool surface::init_surface()
 	int width  = m_Data->width();
 	int height = m_Data->height();
 
-	_win32_instance   = GetModuleHandle(nullptr);
-	_win32_class_name = std::to_wstring(_win32_class_id_counter);
-	_win32_class_id_counter++;
+	win32_instance   = GetModuleHandle(nullptr);
+	win32_class_name = std::to_wstring(win32_class_id_counter);
+	win32_class_id_counter++;
 
 	int screenWidth  = GetSystemMetrics(SM_CXSCREEN);
 	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
@@ -29,12 +30,12 @@ bool surface::init_surface()
 	win_class.lpfnWndProc   = core::systems::input::win_event_handler;
 	win_class.cbClsExtra	= 0;
 	win_class.cbWndExtra	= 0;
-	win_class.hInstance		= _win32_instance; // hInstance
+	win_class.hInstance		= win32_instance; // hInstance
 	win_class.hIcon			= NULL;
 	win_class.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	win_class.hbrBackground = (HBRUSH)COLOR_WINDOW;
 	win_class.lpszMenuName  = NULL;
-	win_class.lpszClassName = _win32_class_name.c_str();
+	win_class.lpszClassName = win32_class_name.c_str();
 	win_class.hIconSm		= NULL;
 	// Register window class:
 	if(!RegisterClassEx(&win_class))
@@ -91,8 +92,8 @@ bool surface::init_surface()
 	// Create window with the registered class:
 	RECT wr = {0, 0, LONG(width), LONG(height)};
 	AdjustWindowRectEx(&wr, style, FALSE, ex_style);
-	_win32_window = CreateWindowEx(0,
-								   _win32_class_name.c_str(),						// class name
+	win32_window = CreateWindowEx(0,
+								   win32_class_name.c_str(),						// class name
 								   psl::to_platform_string(m_Data->name()).c_str(), // app name
 								   style,											// window style
 								   0, 0,											// x/y coords
@@ -100,16 +101,16 @@ bool surface::init_surface()
 								   wr.bottom - wr.top,								// height
 								   NULL,											// handle to parent
 								   NULL,											// handle to menu
-								   _win32_instance,									// hInstance
+								   win32_instance,									// hInstance
 								   NULL);											// no extra parameters
-	if(!_win32_window)
+	if(!win32_window)
 	{
 		// It didn't work, so try to give a useful error:
 		LOG_ERROR("Cannot create a window in which to draw!");
 		fflush(stdout);
 		std::exit(-1);
 	}
-	SetWindowLongPtr(_win32_window, GWLP_USERDATA, (LONG_PTR)this);
+	SetWindowLongPtr(win32_window, GWLP_USERDATA, (LONG_PTR)this);
 
 	if(!fullscreen)
 	{
@@ -119,7 +120,7 @@ bool surface::init_surface()
 		// SetWindowPos(_win32_window, 0, x, y, 0, 0, SWP_NOZORDER | SWP_NOSIZE);
 	}
 
-	ShowWindow(_win32_window, SW_SHOW);
+	ShowWindow(win32_window, SW_SHOW);
 	focus(true);
 
 	RAWINPUTDEVICE Rid[2];
@@ -143,7 +144,7 @@ bool surface::init_surface()
 	m_Data->mode((fullscreen) ? core::gfx::surface_mode::FULLSCREEN : core::gfx::surface_mode::WINDOWED);
 
 	RECT windowSize;
-	GetClientRect(_win32_window, &windowSize);
+	GetClientRect(win32_window, &windowSize);
 	// m_Width = GetSystemMetrics(SM_CXSCREEN);
 	// m_Height = GetSystemMetrics(SM_CYSCREEN);
 	m_Data->width(windowSize.right - windowSize.left);
@@ -155,8 +156,8 @@ bool surface::init_surface()
 void surface::deinit_surface()
 {
 	focus(false);
-	DestroyWindow(_win32_window);
-	UnregisterClass(_win32_class_name.c_str(), _win32_instance);
+	DestroyWindow(win32_window);
+	UnregisterClass(win32_class_name.c_str(), win32_instance);
 }
 void surface::focus(bool value)
 {
@@ -167,12 +168,12 @@ void surface::focus(bool value)
 		if(m_IndicatorClipped)
 		{
 			RECT rect;
-			GetWindowRect(_win32_window, &rect);
+			GetWindowRect(win32_window, &rect);
 			ClipCursor(&rect);
 		}
 		if(!m_IndicatorVisible) ShowCursor(false);
 
-		SetForegroundWindow(_win32_window);
+		SetForegroundWindow(win32_window);
 		SetFocus(_win32_window);
 	}
 	else

@@ -25,6 +25,7 @@ OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 set(PE_MODE "LIB" CACHE STRING "should the core library be compiled as library (default), executable, or library without tests.")
 set_property(CACHE PE_MODE PROPERTY STRINGS LIB EXE, LIB_NO_TESTS)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
+OPTION(PE_ANALYZE "enables static analyzers for the given platform" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
 set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
@@ -114,6 +115,27 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 	file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
 endforeach()
 
+if(${PE_ANALYZE})
+	if(MSVC)
+	
+	else()
+		set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
+	endif()
+	
+	find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
+	if (CMAKE_CXX_CPPCHECK)
+			list(
+					APPEND CMAKE_CXX_CPPCHECK 
+							"--enable=warning"
+							"--inconclusive"
+							"--force" 
+							"--inline-suppr"
+							"--suppressions-list=${CMAKE_SOURCE_DIR}/tools/CppCheckSuppressions.txt"
+			)
+	endif()
+	
+endif()
+
 if(${PE_VERBOSE} AND NOT MSVC)
 	set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
 endif()
@@ -129,7 +151,7 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)
 	if(${PE_VERBOSE})
-		list(APPEND PE_COMPILE_OPTIONS /W4 /w14640 /w14242 /w14254)	
+		list(APPEND PE_COMPILE_OPTIONS /W4 /w14640 /w14242 /w14254 /wd4100)	
 	else()
 		list(APPEND PE_COMPILE_OPTIONS /W3)
 	endif()
