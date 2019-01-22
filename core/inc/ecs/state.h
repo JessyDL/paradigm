@@ -256,7 +256,7 @@ namespace core::ecs
 		};
 
 		template <std::size_t... Is, typename T>
-		std::vector<owner_dependency_pack> expand_to_dependency_pack(std::index_sequence<Is...>, type_container<T> t)
+		std::vector<owner_dependency_pack> expand_to_dependency_pack(std::index_sequence<Is...>, type_container<T>)
 		{
 			std::vector<owner_dependency_pack> res;
 			(std::invoke([&]() {
@@ -268,7 +268,7 @@ namespace core::ecs
 
 
 		template <std::size_t... Is, typename... Ts>
-		std::tuple<Ts...> compress_from_dependency_pack(std::index_sequence<Is...>, type_container<std::tuple<Ts...>> t,
+		std::tuple<Ts...> compress_from_dependency_pack(std::index_sequence<Is...>, type_container<std::tuple<Ts...>>,
 														std::vector<owner_dependency_pack>& pack)
 		{
 			return std::tuple<Ts...>{
@@ -361,12 +361,10 @@ namespace core::ecs
 				}
 				else
 				{
-					auto it = std::begin(entities);
-					for(auto e : entities)
+					for(auto it = std::begin(entities); it != std::end(entities); it = std::next(it))
 					{
 						copy_components(key, psl::array_view<entity>(it, 1), component_size,
 										std::forward<Fn>(function));
-						it = std::next(it);
 					}
 				}
 			}
@@ -882,12 +880,11 @@ namespace core::ecs
 			return false;
 		}
 
-		template <typename... Ts>
-		bool is_owned_by(entity e, const Ts&... components)
+		template <typename T, typename... Ts>
+		bool is_owned_by(entity e, const T& component, const Ts&... components)
 		{
-			return false;
+			return is_owned_by(e, std::forward<T>(component)) && is_owned_by(e, std::forward<Ts...>(components));
 		}
-
 
 	  private:
 		template <typename... Ts>
@@ -984,9 +981,6 @@ namespace core::ecs
 		}
 
 	  private:
-		template <typename Fn>
-		void tick_system(std::vector<details::owner_dependency_pack>& pack_template, Fn&& fnPtr)
-		{}
 		void set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id);
 		std::vector<entity> dynamic_filter(psl::array_view<component_key_t> keys,
 										   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const
