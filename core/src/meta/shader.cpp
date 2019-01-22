@@ -140,11 +140,7 @@ shader::descriptor::~descriptor() {}
 
 bool shader::descriptor::has_default_value() const noexcept
 {
-	for(const auto& element : m_SubElements.value)
-	{
-		if(element.default_value().size() > 0) return true;
-	}
-	return false; 
+	return std::any_of(std::begin(m_SubElements.value), std::end(m_SubElements.value), [](const auto& element) { return element.default_value().size() > 0;});
 }
 
 uint32_t shader::descriptor::binding() const noexcept { return m_Binding.value; }
@@ -272,10 +268,12 @@ std::vector<shader::vertex::binding> shader::instance_bindings() const noexcept
 }
 std::optional<shader::descriptor> shader::material_data() const noexcept
 {
-	for(const auto& descriptor : m_Descriptors.value)
+	auto it = std::find_if(std::begin(m_Descriptors.value), std::end(m_Descriptors.value), [](const auto& descriptor)
 	{
-		if(descriptor.name() == "MATERIAL_DATA")
-			return descriptor;
-	}
-	return std::nullopt;
+		return(descriptor.name() == "MATERIAL_DATA");
+	});
+	std::optional<shader::descriptor> res{std::nullopt};
+	if(it != std::end(m_Descriptors.value))
+		res = *it;
+	return res;
 }

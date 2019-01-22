@@ -187,7 +187,7 @@ namespace core::systems
 		}
 
 	  public:
-		renderer(cache* cache) : m_Cache(cache), deviceIndex(lock(0)), m_Thread(&core::systems::renderer::main, this) {}
+		explicit renderer(cache* cache) : m_Cache(cache), deviceIndex(lock(0)), m_Thread(&core::systems::renderer::main, this) {}
 		~renderer();
 		renderer(renderer&& other) = delete;
 		renderer& operator=(renderer&& other) = delete;

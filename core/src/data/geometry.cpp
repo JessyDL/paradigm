@@ -39,9 +39,5 @@ bool geometry::is_valid() const
 		return false;
 	}
 
-	for(const auto& pair : m_VertexStreams.value)
-	{
-		if(pair.second.size() != it->second.size()) return false;
-	}
-	return true;
+	return !std::any_of(std::begin(m_VertexStreams.value), std::end(m_VertexStreams.value), [&it](const auto& pair){return pair.second.size() != it->second.size();});
 }

@@ -54,7 +54,7 @@ namespace core::ecs::details
 	typename std::enable_if<!std::is_invocable<T, size_t>::value>::type
 		initialize_component(void* location, psl::array_view<size_t> indices, T&& data) noexcept
 	{
-		for(auto i = 0; i < indices.size(); ++i)
+		for(size_t i = 0; i < indices.size(); ++i)
 		{
 			std::memcpy((void*)((std::uintptr_t)location + indices[i] * sizeof(T)), &data, sizeof(T));
 		}
@@ -65,7 +65,7 @@ namespace core::ecs::details
 		initialize_component(void* location, psl::array_view<size_t> indices, T&& invokable) noexcept
 	{
 		constexpr size_t size = sizeof(typename std::invoke_result<T, size_t>::type);
-		for(auto i = 0; i < indices.size(); ++i)
+		for(size_t i = 0; i < indices.size(); ++i)
 		{
 			auto v{std::invoke(invokable, i)};
 			std::memcpy((void*)((std::uintptr_t)location + indices[i] * size), &v, size);
@@ -225,7 +225,7 @@ namespace core::ecs::details
 			}
 		}
 
-		return std::move(ent_cpy);
+		return ent_cpy;
 	}
 
 	template <typename T>
@@ -272,6 +272,6 @@ namespace core::ecs::details
 			}
 		}
 
-		return std::move(ent_cpy);
+		return ent_cpy;
 	}
 }

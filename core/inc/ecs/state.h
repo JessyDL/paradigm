@@ -883,7 +883,7 @@ namespace core::ecs
 		template <typename T, typename... Ts>
 		bool is_owned_by(entity e, const T& component, const Ts&... components)
 		{
-			return is_owned_by(e, std::forward<T>(component)) && is_owned_by(e, std::forward<Ts...>(components));
+			return is_owned_by(e, std::forward<T>(component)) && is_owned_by(e, std::forward<Ts>(components)...);
 		}
 
 	  private:

@@ -106,8 +106,7 @@ bool pass::build()
 	else
 	{
 		const auto& attachments = m_Framebuffer->data()->attachments();
-		clearValues.reserve(attachments.size());
-		for(const auto& attach : attachments) clearValues.emplace_back(attach.clear_value());
+		std::transform(std::begin(attachments), std::end(attachments), std::begin(clearValues), [](const auto& attach) {return attach.clear_value();});
 	}
 	bool success = false;
 	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i)
