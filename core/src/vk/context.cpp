@@ -53,7 +53,7 @@ inline static psl::string8_t size_denotation(size_t size)
 struct VKAPIVersion
 {
   public:
-	VKAPIVersion(uint32_t version)
+	explicit VKAPIVersion(uint32_t version)
 		: major((uint32_t)(version) >> 22), minor(((uint32_t)(version) >> 12) & 0x3ff),
 		  patch((uint32_t)(version)&0xfff){};
 
@@ -635,7 +635,7 @@ void context::init_device()
 	{
 		m_PhysicalDeviceProperties = m_PhysicalDevice.getProperties();
 	}
-	catch(std::exception e)
+	catch(const std::exception& e)
 	{}
 	m_PhysicalDeviceFeatures		 = m_PhysicalDevice.getFeatures();
 	m_PhysicalDeviceMemoryProperties = m_PhysicalDevice.getMemoryProperties();

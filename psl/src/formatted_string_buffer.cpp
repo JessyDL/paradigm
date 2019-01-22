@@ -1,5 +1,6 @@
 ﻿#include "formatted_string_buffer.h"
 #include "logging.h"
+#include <numeric>
 
 formatted_string_buffer::formatted_string_buffer()
 {
@@ -46,8 +47,9 @@ void formatted_string_buffer::DecreaseIndent()
 psl::string8_t formatted_string_buffer::ToString() const
 {
 	psl::string8_t result;
-	for (const auto& text : m_Buffer)
-		result += text + "\n";
-
-	return result;
+	auto append_string = [](psl::string8_t accum, const psl::string8_t& entry)
+	{
+		return accum + entry + '\n';
+	};
+	return std::accumulate(std::begin(m_Buffer), std::end(m_Buffer), psl::string8_t{}, append_string);
 }

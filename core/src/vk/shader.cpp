@@ -49,9 +49,9 @@ shader::shader(const UID& uid, core::resource::cache& cache, core::resource::han
 			   const std::vector<specialization> specializations)
 	: m_Context(context), m_Cache(cache), m_UID(uid)
 {
-	core::meta::shader& meta = *cache.library().get<core::meta::shader>(uid).value();
 	if(cache.library().is_physical_file(uid))
 	{
+		core::meta::shader& meta = *cache.library().get<core::meta::shader>(uid).value();
 		auto result = cache.library().load(uid);
 		if(!result)
 		{

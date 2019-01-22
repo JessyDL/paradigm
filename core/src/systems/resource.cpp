@@ -24,13 +24,12 @@ cache::~cache()
 		LOG_INFO("destroying cache start");
 	bool bErased = false;
 	size_t iteration = 0u;
-	size_t count = 0u;
 	bool bLeaks = false;
 	do
 	{
 		bErased = false;
 		bLeaks = false;
-		count = 0u;
+		size_t count = 0u;
 		for(auto& pair : m_Handles)
 		{
 			for(auto& it : pair.second)
@@ -64,11 +63,10 @@ void cache::free(bool recursive)
 	PROFILE_SCOPE(core::profiler)
 		bool bErased = false;
 	size_t iteration = 0u;
-	size_t count = 0u;
 	do
 	{
 		bErased = false;
-		count = 0u;
+		size_t count = 0u;
 		for(auto& pair : m_Handles)
 		{
 			for(auto& it : pair.second)

@@ -193,12 +193,12 @@ std::vector<utility::debug::trace_info> utility::debug::trace(size_t offset, siz
 #ifdef PLATFORM_WINDOWS
 	std::vector<void*> stack{raw_trace(offset, depth)};
 	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {
-		IMAGEHLP_SYMBOL64* symbol;
-		symbol				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
-		symbol->MaxNameLength = 255;
-		symbol->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
-		std::unique_ptr<IMAGEHLP_SYMBOL64> s{symbol};
-		return s;
+		IMAGEHLP_SYMBOL64* sPtr;
+		sPtr				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+		sPtr->MaxNameLength = 255;
+		sPtr->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
+		std::unique_ptr<IMAGEHLP_SYMBOL64> sUPtr{sPtr};
+		return sUPtr;
 	});
 
 	static HANDLE process = std::invoke([]() {
@@ -246,12 +246,12 @@ utility::debug::trace_info utility::debug::demangle(void* target)
 	utility::debug::trace_info info;
 #ifdef PLATFORM_WINDOWS
 	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {
-		IMAGEHLP_SYMBOL64* symbol;
-		symbol				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
-		symbol->MaxNameLength = 255;
-		symbol->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
-		std::unique_ptr<IMAGEHLP_SYMBOL64> s{symbol};
-		return s;
+		IMAGEHLP_SYMBOL64* sPtr;
+		sPtr				  = (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+		sPtr->MaxNameLength = 255;
+		sPtr->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
+		std::unique_ptr<IMAGEHLP_SYMBOL64> sUPtr{sPtr};
+		return sUPtr;
 	});
 	static HANDLE process							 = std::invoke([]() {
 		   HANDLE h = GetCurrentProcess();

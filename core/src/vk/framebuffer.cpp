@@ -30,10 +30,8 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 
 	// now we create the renderpass that describes the framebuffer
 	std::vector<vk::AttachmentDescription> attachmentDescriptions;
-	for(const auto& binding : m_Bindings)
-	{
-		attachmentDescriptions.push_back(binding.description);
-	};
+	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::begin(attachmentDescriptions), [](const auto& binding)
+	{	return binding.description; });
 
 	// Collect attachment references
 	std::vector<vk::AttachmentReference> colorReferences;
@@ -171,12 +169,8 @@ std::vector<framebuffer::attachment> framebuffer::attachments(uint32_t index) co
 	if(index >= m_Bindings.size()) return {};
 
 	std::vector<framebuffer::attachment> res;
-	res.reserve(m_Bindings.size());
-
-	for(const auto& binding : m_Bindings)
-	{
-		res.emplace_back((binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0]);
-	}
+	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::begin(res), [index](const auto& binding)
+	{ return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0]; });
 	return res;
 }
 core::resource::handle<core::gfx::sampler> framebuffer::sampler() const noexcept { return m_Sampler; }

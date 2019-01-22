@@ -419,8 +419,8 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				}
 				break;
 				default:
-					throw new std::runtime_error("This should not be reached");
 					m_IsValid = false;
+					throw new std::runtime_error("This should not be reached");
 					return false;
 				}
 			}
@@ -538,15 +538,13 @@ bool pipeline::update(uint32_t bindingLocation, vk::DeviceSize offset, vk::Devic
 
 bool pipeline::get(uint32_t bindingLocation, vk::WriteDescriptorSet& out)
 {
-	for(auto& set : m_DescriptorSets)
+	if(auto it = std::find_if(std::begin(m_DescriptorSets), std::end(m_DescriptorSets), [bindingLocation](const auto& set)
+	{ return set.dstBinding == bindingLocation; }); it != std::end(m_DescriptorSets))
 	{
-		if(set.dstBinding == bindingLocation)
-		{
-			out = set;
-			return true;
-		}
+		out = *it;
+		return true;
 	}
-
+	
 	LOG_ERROR("Could not find the binding location in the pipeline");
 	return false;
 }

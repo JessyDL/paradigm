@@ -60,7 +60,6 @@ LRESULT CALLBACK input::win_event_handler(HWND hWnd, UINT uMsg, WPARAM wParam, L
 				break;
 			}
 			break;
-			break;
 			case WM_CLOSE: surface->terminate(); return 0;
 			case WM_SIZE:
 			{
