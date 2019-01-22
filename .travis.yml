@@ -31,6 +31,9 @@ matrix:
               key_url: 'https://apt.llvm.org/llvm-snapshot.gpg.key'
           packages:
             - clang-6.0
+            - clang-tidy-6.0
+            - clang-format-6.0
+            - clang-tools-6.0
             - libassimp-dev
             - libx11-dev 
             - libx11-xcb-dev 

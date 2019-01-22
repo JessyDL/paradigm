@@ -114,6 +114,9 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 	file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
 endforeach()
 
+if(${PE_VERBOSE} AND NOT MSVC)
+	set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
+endif()
 ###############################################################################
 ###                    compile options                                      ###
 ###############################################################################

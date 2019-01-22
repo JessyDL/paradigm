@@ -107,6 +107,21 @@ ENV VULKAN_SDK="${VULKAN_ROOT_DIR}/${VK_VERSION}/x86_64"
 WORKDIR /
 # get, install, and build the project
 COPY scripts /
-RUN chmod +x /install.sh
+RUN chmod +x /install.sh && \
+	chmod +x /clone.sh  && \
+	chmod +x /copy.sh 
+	
+RUN apt-get update && \
+  apt-get install -y rsync \
+	clang-tools-${CLANG_VERSION} \
+	clang-format-${CLANG_VERSION} \
+	clang-tidy-${CLANG_VERSION}
+	
+RUN update-alternatives --install /usr/bin/clang-apply-replacements clang-apply-replacements /usr/bin/clang-apply-replacements-${CLANG_VERSION} 100 && \
+  update-alternatives --install /usr/bin/clang-check clang-check /usr/bin/clang-check-${CLANG_VERSION} 100 && \
+  update-alternatives --install /usr/bin/clang-query clang-query /usr/bin/clang-query-${CLANG_VERSION} 100 && \
+  update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-${CLANG_VERSION} 100 && \
+  update-alternatives --install /usr/bin/scan-build scan-build /usr/bin/scan-build-${CLANG_VERSION} 100 && \
+  update-alternatives --install /usr/bin/scan-view scan-view /usr/bin/scan-view-${CLANG_VERSION} 100
 
-CMD ["/bin/bash", "/install.sh"]
+CMD ["/bin/bash"]
