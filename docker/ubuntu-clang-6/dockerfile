@@ -115,7 +115,9 @@ RUN apt-get update && \
   apt-get install -y rsync \
 	clang-tools-${CLANG_VERSION} \
 	clang-format-${CLANG_VERSION} \
-	clang-tidy-${CLANG_VERSION}
+	clang-tidy-${CLANG_VERSION} \
+	iwyu \
+	cppcheck
 	
 RUN update-alternatives --install /usr/bin/clang-apply-replacements clang-apply-replacements /usr/bin/clang-apply-replacements-${CLANG_VERSION} 100 && \
   update-alternatives --install /usr/bin/clang-check clang-check /usr/bin/clang-check-${CLANG_VERSION} 100 && \
