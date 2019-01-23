@@ -6,7 +6,7 @@
 #include "ecs/command_buffer.h"
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
-#include "bytell_hash_map.hpp"
+#include "bytell_map.h"
 
 namespace core::ecs::systems
 {
@@ -32,7 +32,7 @@ namespace core::ecs::systems
 			renderable.material.handle()->release_all();
 		}
 
-		ska::bytell_hash_map<psl::UID, ska::bytell_hash_map<psl::UID, std::vector<size_t>>> UniqueCombinations;
+		psl::bytell_map<psl::UID, psl::bytell_map<psl::UID, std::vector<size_t>>> UniqueCombinations;
 
 		for(size_t i = 0; i < geometry_pack.size(); ++i)
 		{

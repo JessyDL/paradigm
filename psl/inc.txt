@@ -29,8 +29,6 @@ inc/vulkan_utils.h
 inc/expected.h
 inc/platform_utils.h
 inc/file.h
-inc/bytell_hash_map.hpp
-inc/flat_hash_map.hpp
 inc/format.h
 inc/serialization.h
 inc/library.h
@@ -39,6 +37,13 @@ inc/enumerate.h
 inc/array_view.h
 inc/pack_view.h
 inc/monads.h
+
+inc/unordered_map.h
+inc/vector.h
+inc/array.h
+inc/unordered_map.h
+inc/flat_map.h
+inc/bytell_map.h
 
 inc/math/math.hpp
 inc/math/vec.h

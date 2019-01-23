@@ -1,5 +1,5 @@
 #pragma once
-#include "bytell_hash_map.hpp"
+#include "bytell_map.h"
 #include "ustring.h"
 #include "timer.h"
 
@@ -59,8 +59,8 @@ namespace psl::profiling
 		psl::timer m_Timer{};
 		std::chrono::microseconds duration;
 		size_t m_Stack{0};
-		ska::bytell_hash_map<psl::string, uint64_t> m_NameMap;
-		ska::bytell_hash_map<uint64_t, psl::string> m_IDMap;
+		psl::bytell_map<psl::string, uint64_t> m_NameMap;
+		psl::bytell_map<uint64_t, psl::string> m_IDMap;
 		uint64_t IDCounter{0};
 	};
 

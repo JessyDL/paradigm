@@ -27,7 +27,7 @@ namespace core::ecs
 	class command_buffer final
 	{
 		template <typename KeyT, typename ValueT>
-		using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
+		using key_value_container_t = psl::bytell_map<KeyT, ValueT>;
 		// using key_value_container_t = std::unordered_map<KeyT, ValueT>;
 
 		friend class ecs::state;

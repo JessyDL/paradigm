@@ -15,7 +15,7 @@ surface::surface(const UID& uid, core::resource::cache& cache, core::resource::h
 
 surface::surface(const surface& other, const UID& uid, core::resource::cache& cache,
 				 core::resource::handle<data::window> data)
-	: m_Data(data)
+	: m_Data(data), m_InputSystem(new core::systems::input())
 {
 	init_surface();
 }

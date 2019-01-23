@@ -14,7 +14,7 @@ using namespace core::resource;
 swapchain::swapchain(const UID& uid, cache& cache, handle<core::os::surface> surface,
 					 handle<core::gfx::context> context, bool use_depth)
 	: m_OSSurface(surface), m_Context(context), m_Cache(cache), m_DepthTextureHandle(create<texture>(cache)),
-	  m_UseDepth(use_depth)
+	m_UseDepth(use_depth), m_SurfaceFormat{}
 {
 #ifdef SURFACE_WIN32
 	vk::Win32SurfaceCreateInfoKHR createInfo;

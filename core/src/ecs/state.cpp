@@ -11,8 +11,8 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	PROFILE_SCOPE(core::profiler)
 	if(entities.size() == 0) return;
 
-	ska::bytell_hash_map<component_key_t, std::vector<entity>> erased_entities;
-	ska::bytell_hash_map<component_key_t, std::vector<uint64_t>> erased_ids;
+	psl::bytell_map<component_key_t, std::vector<entity>> erased_entities;
+	psl::bytell_map<component_key_t, std::vector<uint64_t>> erased_ids;
 	core::profiler.scope_begin("erase entities");
 	for(const auto& e : entities)
 	{

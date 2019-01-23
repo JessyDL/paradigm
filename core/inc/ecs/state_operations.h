@@ -6,13 +6,13 @@
 #include "entity.h"
 #include "component_info.h"
 #include "component_key.h"
-#include "bytell_hash_map.hpp"
+#include "bytell_map.h"
 #include <optional>
 
 namespace core::ecs::details
 {
 	template <typename KeyT, typename ValueT>
-	using key_value_container_t = ska::bytell_hash_map<KeyT, ValueT>;
+	using key_value_container_t = psl::bytell_map<KeyT, ValueT>;
 	//using key_value_container_t = std::unordered_map<KeyT, ValueT>;
 
 

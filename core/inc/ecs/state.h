@@ -8,7 +8,6 @@
 #include "IDGenerator.h"
 #include <type_traits>
 #include "event.h"
-#include "bytell_hash_map.hpp"
 #include "logging.h"
 #include <numeric>
 #include "enumerate.h"

@@ -20,7 +20,7 @@ namespace utility::geometry
 		std::vector<psl::vec3> tangents;
 		tangents.resize(positions.size());
 
-		for(int i = 0; i < indices.size(); i += 3)
+		for(size_t i = 0; i < indices.size(); i += 3)
 		{
 			// Shortcuts for vertices
 			const auto& v0 = positions[indices[i + 0]];
@@ -647,7 +647,7 @@ namespace utility::geometry
 		std::vector<uint32_t> triangles = std::vector<uint32_t>(nbIndexes);
 
 		//Top Cap
-		size_t i = 0;
+		uint32_t i = 0;
 		for(auto lon = 0; lon < longitude; lon++)
 		{
 			triangles[i++] = lon + 2;
@@ -691,7 +691,7 @@ namespace utility::geometry
 
 
 		float min = 1, max = -1;
-		uint32_t northIndex = -1, southIndex = -1;
+		uint32_t northIndex{0}, southIndex{0};
 		for(i = 0; i < vertices.size(); ++i)
 		{
 			if(res_positions[i][1] < min)
@@ -992,7 +992,7 @@ namespace utility::geometry
 		}
 
 		float min = 1, max = -1;
-		uint32_t northIndex = -1, southIndex = -1;
+		uint32_t northIndex{0}, southIndex{0};
 		for(uint32_t i = 0; i < res_positions.size(); ++i)
 		{
 			if(res_positions[i][1] < min)

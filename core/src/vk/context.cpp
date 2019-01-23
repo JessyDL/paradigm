@@ -542,11 +542,11 @@ void context::deinit_debug()
 {
 	if(m_Validated)
 	{
-		PFN_vkDestroyDebugReportCallbackEXT vkDestroyDebugReportCallbackEXT =
+		PFN_vkDestroyDebugReportCallbackEXT fnp_vkDestroyDebugReportCallbackEXT =
 			reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
 				vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugReportCallbackEXT"));
 
-		if(vkDestroyDebugReportCallbackEXT) vkDestroyDebugReportCallbackEXT(m_Instance, m_DebugReport, nullptr);
+		if(fnp_vkDestroyDebugReportCallbackEXT) fnp_vkDestroyDebugReportCallbackEXT(m_Instance, m_DebugReport, nullptr);
 	}
 }
 
@@ -555,14 +555,14 @@ bool context::queue_index(vk::QueueFlags flag, vk::Queue& queue, uint32_t& queue
 {
 	// Find a queue that supports graphics operations
 	std::vector<vk::QueueFamilyProperties> queueProps = m_PhysicalDevice.getQueueFamilyProperties();
-	uint32_t secondBest								  = -1;
+	std::optional<uint32_t> secondBest								  = std::nullopt;
 	for(queueIndex = 0; queueIndex < queueProps.size(); queueIndex++)
 	{
 		if(queueProps[queueIndex].queueFlags & flag) secondBest = queueIndex;
 
 		if(queueProps[queueIndex].queueFlags == flag) break;
 	}
-	if(queueIndex >= queueProps.size() && secondBest != -1) queueIndex = secondBest;
+	if(queueIndex >= queueProps.size() && secondBest.has_value()) queueIndex = secondBest.value();
 	if(queueIndex >= queueProps.size())
 	{
 		core::ivk::log->warn("Could not find the appropriate queue enabled bit for {}", vk::to_string(flag));

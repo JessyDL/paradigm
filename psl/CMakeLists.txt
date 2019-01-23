@@ -5,6 +5,16 @@ project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 
 include(FetchContent)
 
+FetchContent_Declare(
+	skarupke
+	GIT_REPOSITORY https://github.com/skarupke/flat_hash_map.git
+)
+
+FetchContent_GetProperties(skarupke)
+if(NOT skarupke_POPULATED)
+  FetchContent_Populate(skarupke)
+endif()
+
 FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 5.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(fmt)
 if(NOT fmt_POPULATED)
@@ -76,6 +86,7 @@ target_include_directories(${LOCAL_PROJECT}
 		${utf8cpp_SOURCE_DIR}/source
 		${spdlog_SOURCE_DIR}/include
 		${rangev_SOURCE_DIR}/include
+		${skarupke_SOURCE_DIR}/
 )
 if(USE_RANGEV)
 target_include_directories(${LOCAL_PROJECT}
