@@ -111,7 +111,6 @@ namespace psl
 		}
 
 		constexpr auto parse = [](const char* text) {
-			bool result{};
 			for(size_t i = 0; i < 2; ++i)
 			{
 				auto character = text[i];

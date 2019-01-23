@@ -6,7 +6,7 @@
 
 using namespace core::resource;
 
-uint64_t cache::id{0};
+uint64_t cache::m_ID{0};
 
 
 

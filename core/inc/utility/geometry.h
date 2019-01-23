@@ -647,7 +647,7 @@ namespace utility::geometry
 		std::vector<uint32_t> triangles = std::vector<uint32_t>(nbIndexes);
 
 		//Top Cap
-		auto i = 0;
+		size_t i = 0;
 		for(auto lon = 0; lon < longitude; lon++)
 		{
 			triangles[i++] = lon + 2;
@@ -692,7 +692,7 @@ namespace utility::geometry
 
 		float min = 1, max = -1;
 		uint32_t northIndex = -1, southIndex = -1;
-		for(uint32_t i = 0; i < vertices.size(); ++i)
+		for(i = 0; i < vertices.size(); ++i)
 		{
 			if(res_positions[i][1] < min)
 			{

@@ -174,7 +174,7 @@ void surface::focus(bool value)
 		if(!m_IndicatorVisible) ShowCursor(false);
 
 		SetForegroundWindow(win32_window);
-		SetFocus(_win32_window);
+		SetFocus(win32_window);
 	}
 	else
 	{

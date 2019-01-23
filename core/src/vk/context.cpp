@@ -515,11 +515,11 @@ void context::init_debug()
 {
 	if(m_Validated)
 	{
-		PFN_vkCreateDebugReportCallbackEXT vkCreateDebugReportCallbackEXT =
+		PFN_vkCreateDebugReportCallbackEXT fnp_vkCreateDebugReportCallbackEXT =
 			reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
 				vkGetInstanceProcAddr(m_Instance, "vkCreateDebugReportCallbackEXT"));
-		PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
-			reinterpret_cast<PFN_vkDebugReportMessageEXT>(vkGetInstanceProcAddr(m_Instance, "vkDebugReportMessageEXT"));
+		//PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
+		//	reinterpret_cast<PFN_vkDebugReportMessageEXT>(vkGetInstanceProcAddr(m_Instance, "vkDebugReportMessageEXT"));
 
 		VkDebugReportCallbackCreateInfoEXT callbackCreateInfo;
 		callbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
@@ -534,7 +534,7 @@ void context::init_debug()
 
 		/* Register the callback */
 		utility::vulkan::check(
-			vkCreateDebugReportCallbackEXT(m_Instance, &callbackCreateInfo, nullptr, &m_DebugReport));
+			fnp_vkCreateDebugReportCallbackEXT(m_Instance, &callbackCreateInfo, nullptr, &m_DebugReport));
 	}
 }
 

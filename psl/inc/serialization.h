@@ -1563,7 +1563,7 @@ namespace psl::serialization
 
 				size_t begin		= m_Container.index_of(m_CollectionStack.top()->get()) + 1u;
 				size_t end			= begin + size;
-				size_t actual_index = 0;
+				//size_t actual_index = 0;
 
 				static_assert(details::is_keyed_range<T>::value, "never seen");
 

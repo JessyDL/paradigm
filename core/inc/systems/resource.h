@@ -342,7 +342,7 @@ namespace core::resource
 		// memory::region m_Region;
 		memory::allocator_base* m_Allocator;
 		std::unordered_map<psl::UID, std::vector<entry>> m_Handles;
-		static uint64_t id;
+		static uint64_t m_ID;
 	};
 	namespace details
 	{
@@ -465,7 +465,7 @@ namespace core::resource
 
 
 		template <typename T>
-		const uint64_t container<T>::id{cache::id++};
+		const uint64_t container<T>::id{cache::m_ID++};
 
 		template <typename T>
 		const details::vtable& container<T>::m_vTable = details::vtable_for<container<T>>;

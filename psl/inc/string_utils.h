@@ -1020,7 +1020,7 @@ namespace utility
 
 		static int8_t from_string(psl::string8::view str)
 		{
-			int x;
+			int8_t x;
 		#if __has_include(<charconv>)
 			std::from_chars(str.data(), str.data() + str.size(), x);
 		#else
@@ -1040,7 +1040,7 @@ namespace utility
 
 		static int16_t from_string(psl::string8::view str)
 		{
-			int x;
+			int16_t x;
 		#if __has_include(<charconv>)
 			std::from_chars(str.data(), str.data() + str.size(), x);
 		#else
@@ -1060,7 +1060,7 @@ namespace utility
 
 		static int32_t from_string(psl::string8::view str)
 		{
-			int x;
+			int32_t x;
 		#if __has_include(<charconv>)
 			std::from_chars(str.data(), str.data() + str.size(), x);
 		#else

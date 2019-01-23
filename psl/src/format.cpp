@@ -1194,8 +1194,8 @@ bool psl::format::container::parent(data & new_parent, data & node)
 	if (node.root() != this)
 		return false;
 
-	auto index_node = index_of(node);
-	auto index_parent = index_of(new_parent);
+	//auto index_node = index_of(node);
+	//auto index_parent = index_of(new_parent);
 
 	return false;
 }
@@ -1467,7 +1467,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 
 	if(setting.compact_string)
 	{
-		size_t reserve = m_Content.size() + m_InternalData.size();
+		//size_t reserve = m_Content.size() + m_InternalData.size();
 		compact_header header;
 		
 		return header.build(*this);
@@ -1635,20 +1635,20 @@ void container::move(data& node, nodes_t index)
 		{
 		case type::VALUE:
 		{
-			auto [is_literal, content_info] = m_NodeData[current_index].reinterpret_as_value();
-			auto content_index = content_info.first;
-			auto content_size = content_info.second;
-			if (auto it = rfind_last_index_of({ type::VALUE, type::VALUE_RANGE }, m_NodeData.begin() + current_index, m_NodeData.begin() + index); it != m_NodeData.begin() + current_index)
-			{
-				auto last_value_node = it - m_NodeData.begin();
-				if (it->m_Type == type::VALUE)
-				{
-				}
-				else
-				{
+			//auto [is_literal, content_info] = m_NodeData[current_index].reinterpret_as_value();
+			//auto content_index = content_info.first;
+			//auto content_size = content_info.second;
+			//if (auto it = rfind_last_index_of({ type::VALUE, type::VALUE_RANGE }, m_NodeData.begin() + current_index, m_NodeData.begin() + index); it != m_NodeData.begin() + current_index)
+			//{
+			//	//auto last_value_node = it - m_NodeData.begin();
+			//	if (it->m_Type == type::VALUE)
+			//	{
+			//	}
+			//	else
+			//	{
 
-				}
-			}
+			//	}
+			//}
 
 		}break;
 		case type::VALUE_RANGE:
