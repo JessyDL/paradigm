@@ -1,4 +1,5 @@
 #pragma once
+#include "vector.h"
 #include "bytell_map.h"
 #include "ustring.h"
 #include "timer.h"
@@ -55,7 +56,7 @@ namespace psl::profiling
 		void pop() noexcept;
 		void clear();
 		void end();
-		std::vector<scope_info> m_Scopes{};
+		psl::vector<scope_info> m_Scopes{};
 		psl::timer m_Timer{};
 		std::chrono::microseconds duration;
 		size_t m_Stack{0};
@@ -78,7 +79,7 @@ namespace psl::profiling
 
 		psl::string to_string() const;
 	private:
-		std::vector<frame_info> m_Frames;
+		psl::vector<frame_info> m_Frames;
 		size_t m_FrameIndex;
 	};
 }
