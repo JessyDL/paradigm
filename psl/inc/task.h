@@ -813,6 +813,13 @@ namespace psl::async2
 		READ	   = 0,
 		READ_WRITE = 1
 	};
+
+	enum class launch : uint8_t
+	{
+		immediate = 0,
+		async = 1,
+		deferred = 2
+	};
 	class barrier
 	{
 	  public:
@@ -821,6 +828,14 @@ namespace psl::async2
 		barrier(location_t begin, location_t end, barrier_type type = barrier_type::READ)
 			: m_Begin(begin), m_End(end), m_Type(type){};
 
+		bool operator==(const barrier& other) const noexcept
+		{
+			return m_Begin == other.m_Begin && m_End == other.m_End && m_Type == other.m_Type;
+		}
+		bool operator!=(const barrier& other) const noexcept
+		{
+			return m_Begin != other.m_Begin || m_End != other.m_End || m_Type != other.m_Type;
+		}
 		location_t begin() const noexcept { return m_Begin; }
 		location_t end() const noexcept { return m_End; }
 		location_t size() const noexcept { return m_End - m_Begin; }
@@ -845,8 +860,8 @@ namespace psl::async2
 
 		bool overlaps(const barrier& other) const noexcept
 		{
-			return (other.m_Begin >= m_Begin && other.m_Begin <= m_End) ||
-				   (other.m_End >= m_Begin && other.m_End <= m_End);
+			return (other.m_Begin >= m_Begin && other.m_Begin < m_End) ||
+				   (other.m_End > m_Begin && other.m_End <= m_End);
 		}
 
 	  private:
@@ -867,7 +882,7 @@ namespace psl::async2
 
 		std::future<R> future() noexcept { return m_Promise.get_future(); }
 
-		void operator()() override { std::apply(m_Invocable, m_Arguments); }
+		void operator()() override { m_Promise.set_value(std::move(std::apply(m_Invocable, m_Arguments))); }
 
 	  private:
 		std::function<R(Args...)> m_Invocable;
@@ -877,21 +892,48 @@ namespace psl::async2
 
 	using token_t = std::uintptr_t;
 
-	class worker
-	{};
+	template<typename T>
+	class task_token
+	{
+	
+
+	private:
+		std::future<T> m_Future;
+	};
 	class scheduler
 	{
 		struct description
 		{
-			details::task_base* task;
-			std::vector<barrier> barriers;
-			std::vector<token_t> tokens;
+			description() = default;
+			description(details::task_base* task) : task(task) {};
+			description(const description&) = default;
+			description& operator=(const description&) = default;
+			description(description&& other)	:	task(std::move(other.task)), barriers(std::move(other.barriers)), tokens(std::move(other.tokens))
+			{
+				other.task = nullptr;
+			}
+
+			description& operator=(description&& other)
+			{
+				if(this != &other)
+				{
+					task = std::move(other.task);
+					barriers = std::move(other.barriers);
+					tokens = std::move(other.tokens);
+					other.task = nullptr;
+				}
+				return *this;
+			}
+			details::task_base* task{nullptr};
+			std::vector<barrier> barriers{};
+			std::vector<token_t> tokens{};
 		};
 
+		
 	  public:
 		template <typename Fn, typename... Args>
-		typename std::enable_if<!std::is_member_function_pointer<Fn>::value,
-								std::future<typename psl::templates::func_traits<Fn>::result_t>>::type
+		[[nodiscard]] typename std::enable_if<!std::is_member_function_pointer<Fn>::value,
+			std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>>::type
 		schedule(Fn&& function, Args&&... arguments)
 		{
 			using return_t = typename psl::templates::func_traits<Fn>::result_t;
@@ -899,14 +941,14 @@ namespace psl::async2
 
 			auto ret = m_TaskList.emplace(
 				m_TokenGenerator++,
-				description{new task_t{std::forward<Fn>(function), std::forward<Args>(arguments)...}, {}, {}});
+				description{new task_t{std::forward<Fn>(function), std::forward<Args>(arguments)...}});
 			task_t& task{*(task_t*)(ret.first->second.task)};
-			return task.future();
+			return std::pair{ret.first->first, task.future()};
 		}
 
 		template <typename Fn, typename T, typename... Args>
-		typename std::enable_if<std::is_member_function_pointer<Fn>::value,
-								std::future<typename psl::templates::func_traits<Fn>::result_t>>::type
+		[[nodiscard]] typename std::enable_if<std::is_member_function_pointer<Fn>::value,
+			std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>>::type
 		schedule(Fn&& function, T* target, Args&&... arguments)
 		{
 			using return_t = typename psl::templates::func_traits<Fn>::result_t;
@@ -917,25 +959,54 @@ namespace psl::async2
 			};
 
 			auto ret = m_TaskList.emplace(m_TokenGenerator++,
-										  description{new task_t{func, std::forward<Args>(arguments)...}, {}, {}});
+										  description{new task_t{func, std::forward<Args>(arguments)...}});
 			task_t& task{*(task_t*)(ret.first->second.task)};
-			return task.future();
+			return std::pair{ret.first->first, task.future()};
 		}
 
 		template <typename Fn>
-		std::future<typename psl::templates::func_traits<Fn>::result_t> schedule(Fn&& function)
+		[[nodiscard]] std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>> schedule(Fn&& function)
 		{
 			using return_t = typename psl::templates::func_traits<Fn>::result_t;
 			using task_t   = typename details::transform_to_task<Fn>::type;
 
 			auto ret =
-				m_TaskList.emplace(m_TokenGenerator++, description{new task_t{std::forward<Fn>(function)}, {}, {}});
+				m_TaskList.emplace(m_TokenGenerator++, description{new task_t{std::forward<Fn>(function)}});
 			task_t& task{*(task_t*)(ret.first->second.task)};
-			return task.future();
+			return std::pair{ret.first->first, task.future()};
 		}
 
-		void add(token_t token, barrier barrier) noexcept {}
+		void dependency(token_t token, barrier&& barrier) noexcept 
+		{
+			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+			{
+				it->second.barriers.emplace_back(std::move(barrier));
+			}
+		}
 
+		void dependency(token_t token, std::vector<barrier>&& barriers) noexcept
+		{
+			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+			{
+				std::move(std::begin(barriers), std::end(barriers), std::back_inserter(it->second.barriers));
+			}
+		}
+
+		void dependency(token_t token, token_t other) noexcept
+		{
+			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+			{
+				it->second.tokens.emplace_back(other);
+			}
+		}
+
+		void dependency(token_t token, std::vector<token_t>&& other) noexcept
+		{
+			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+			{
+				std::move(std::begin(other), std::end(other), std::back_inserter(it->second.tokens));
+			}
+		}
 		/// \brief Start executing all scheduled tasks
 		///
 		/// When invoking execute, all scheduled tasks will be enqueued on the worker task queues,
@@ -943,43 +1014,7 @@ namespace psl::async2
 		/// Re-using a token that was assigned to a task before executing results in undefined behaviour.
 		/// At best, an immediate crash, at worst "it works".
 		/// \param[in] blocking when true, the invoking thread will wait for the results before continuing.
-		void execute(bool blocking = true)
-		{
-			while(m_TaskList.size() > 0)
-			{
-				std::vector<std::pair<token_t, std::future<void>>> scheduled{};
-				std::vector<barrier_type> locks{};
-
-				for(auto& [token, description] : m_TaskList)
-				{
-					// IF any_of the tasks dependency tokens are still not finalized 
-					// OR
-					// IF any_of the barriers conflicts with already scheduled tasks
-					// THEN don't enqueue.
-					if(std::any_of(std::begin(description.tokens), std::end(description.tokens),
-								   [&](token_t t) { return m_TaskList.find(t) != std::end(m_TaskList); }) ||
-
-					   std::any_of(std::begin(description.barriers), std::end(description.barriers),
-								   [&locks](const barrier& b) {
-									   return std::any_of(std::begin(locks), std::end(locks),
-														  [&b](const barrier& lock_b) { return b.conflicts(lock_b); });
-								   }))
-						continue;
-
-
-					locks.insert(std::end(locks), std::begin(description.barriers), std::end(description.barriers));
-					scheduled.emplace_back(
-						std::async(std::launch::async, &details::task_base::operator(), description.task));
-				}
-
-
-				std::for_each(std::begin(scheduled), std::end(scheduled),
-							  [&](const std::pair<token_t, std::future<void>>& pair) {
-								  pair.second.wait();
-								  m_TaskList.erase(pair.first);
-							  });
-			}
-		}
+		[[nodiscard]] std::future<void> execute(launch policy = launch::immediate);
 
 	  private:
 		std::unordered_map<token_t, description> m_TaskList;
