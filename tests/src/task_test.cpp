@@ -3,7 +3,7 @@
 #include "task.h"
 #include <chrono>
 
-namespace async = psl::async2;
+namespace async = psl::async;
 
 uint64_t findSieveSize(uint64_t n)
 {
@@ -92,13 +92,50 @@ TEST_CASE("free-floating tasks", "[async]")
 	REQUIRE(std::accumulate(std::begin(results), std::end(results), 0, [](int sum, std::future<int>& value) { return sum + value.get();}) == iteration_count * 5);
 }
 
-TEST_CASE("tasks with inter-dependencies", "[async]")
+
+TEST_CASE("tasks with inter-task-dependencies", "[async]")
 {
 	async::scheduler scheduler;
-	size_t iteration_count = 12 * 10;
+	size_t iteration_count = 1024;
 
-	std::vector<uint64_t> shared_values{50045, 150020, 121005, 233100, 250045, 367000, 50045, 150020, 121005, 233100, 250045, 367000};
-	std::vector<uint64_t> shared_output{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	std::vector<bool> trigger_check{};
+	trigger_check.resize(iteration_count);
+	std::fill(std::begin(trigger_check), std::end(trigger_check), false);
+	std::vector<std::pair<psl::async::token_t, std::future<int>>> results;
+	for(size_t i = 0; i < iteration_count; ++i)
+	{
+		std::optional<size_t> verify_index = std::nullopt;
+		if(i > 0)
+			verify_index = std::rand() % i;
+		results.emplace_back(scheduler.schedule([verify_index, &trigger_check, i]()
+												{
+													if(verify_index && !trigger_check[verify_index.value()])
+														return 10;
+													trigger_check[i] = true;
+													return 5;
+												}));
+
+		if(verify_index)
+		{
+			scheduler.dependency(results[results.size() - 1].first, results[verify_index.value()].first);
+		}
+	}
+
+
+	auto future = scheduler.execute();
+
+	REQUIRE(std::accumulate(std::begin(results), std::end(results), 0, [](int sum, std::pair<psl::async::token_t, std::future<int>>& value) { return sum + value.second.get(); }) == iteration_count * 5);
+}
+
+TEST_CASE("tasks with inter-memory-dependencies", "[async]")
+{
+	async::scheduler scheduler{24};
+	size_t iteration_count = 24 * 10;
+
+	std::vector<uint64_t> shared_values{50045, 150020, 121005, 233100, 250045, 367000, 50045, 150020, 121005, 233100, 250045, 367000,
+	50045, 150020, 121005, 233100, 250045, 367000, 50045, 150020, 121005, 233100, 250045, 367000};
+	std::vector<uint64_t> shared_output{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
+	0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
 	uint64_t calculated_value = 0;
 	for(auto val : shared_values)
@@ -122,7 +159,7 @@ TEST_CASE("tasks with inter-dependencies", "[async]")
 		results.emplace_back(std::move(pair.second));
 	}
 
-	auto future = scheduler.execute(async::launch::async);
-
+	auto future = scheduler.execute(async::launch::immediate);
+	future.wait();
 	REQUIRE(std::accumulate(std::begin(results), std::end(results), uint64_t{0}, [](uint64_t sum, std::future<uint64_t>& value) { return sum + value.get(); }) == (iteration_count / shared_output.size()) * calculated_value);
 }

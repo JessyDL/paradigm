@@ -4,4 +4,5 @@ inc/targetver.h
 inc/ecs.h
 inc/math_tests.h
 inc/memory.h
+inc/task_test.h
 )
