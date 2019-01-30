@@ -5,7 +5,9 @@
 using namespace core::ecs;
 
 
-command_buffer::command_buffer(state& state, uint64_t id_offset) : m_State(state), m_StartID(id_offset), mID(id_offset) {}
+command_buffer::command_buffer(const state& state, uint64_t id_offset) : m_State(state), mID(id_offset), m_StartID(id_offset) {}
+
+command_buffer::command_buffer(const state& state)  : m_State(state), mID(m_State.mID), m_StartID(mID) {}
 
 void command_buffer::verify_entities(psl::array_view<entity> entities)
 {

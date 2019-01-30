@@ -11,7 +11,7 @@
 namespace core::ecs::systems
 {
 	auto geometry_instance = 
-		[](core::ecs::command_buffer& commands, 
+		[](const core::ecs::state& state, 
 		   std::chrono::duration<float> dTime, 
 		   std::chrono::duration<float> rTime, 
 		   core::ecs::pack<const core::ecs::components::renderable, core::ecs::components::transform>
@@ -87,6 +87,8 @@ namespace core::ecs::systems
 					materialHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
 			}
 		}
+
+		return core::ecs::command_buffer{state};
 	};
 
 } // namespace core::ecs::systems

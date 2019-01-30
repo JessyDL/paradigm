@@ -16,6 +16,11 @@
 #include "state_operations.h"
 #include "template_utils.h"
 
+namespace psl::async
+{
+	class scheduler;
+}
+
 /// \brief Entity Component System
 ///
 /// The ECS namespace contains a fully functioning ECS
@@ -292,17 +297,22 @@ namespace std
 
 namespace core::ecs
 {
-	class state
+	class state final
 	{
+		friend class core::ecs::command_buffer;
 
 	  public:
+		state();
+		~state();
+
 	  private:
 		struct system_information
 		{
 			threading threading = threading::sequential;
 			std::function<std::vector<details::owner_dependency_pack>()> pack_generator;
-			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>,
-							   std::vector<details::owner_dependency_pack>&)>
+			std::function<core::ecs::command_buffer(const core::ecs::state&, std::chrono::duration<float>,
+													std::chrono::duration<float>,
+													std::vector<details::owner_dependency_pack>&)>
 				invocable;
 		};
 
@@ -378,13 +388,15 @@ namespace core::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& _template) noexcept
 		{
-			auto added_entities{details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template))};
+			auto added_entities{
+				details::add_component(m_EntityMap, m_Components, entities, std::forward<T>(_template))};
 
 			using component_type		  = typename details::get_component_type<T>::type;
 			constexpr component_key_t key = details::component_key<details::remove_all<component_type>>;
 
 			auto& addedComponentsRange = m_StateChange[(m_Tick + 1) % 2].added_components[key];
-			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(added_entities), std::end(added_entities));
+			addedComponentsRange.insert(std::end(addedComponentsRange), std::begin(added_entities),
+										std::end(added_entities));
 		}
 
 		template <typename T>
@@ -429,7 +441,8 @@ namespace core::ecs
 			constexpr component_key_t key = details::component_key<details::remove_all<component_type>>;
 
 			auto& removedComponentsRange = m_StateChange[(m_Tick + 1) % 2].removed_components[key];
-			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(removed_entities), std::end(removed_entities));
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(removed_entities),
+										  std::end(removed_entities));
 		}
 
 		template <typename... Ts>
@@ -897,7 +910,7 @@ namespace core::ecs
 		{};
 
 		template <typename... Ts>
-		struct get_packs<core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>, Ts...>
+		struct get_packs<const core::ecs::state&, std::chrono::duration<float>, std::chrono::duration<float>, Ts...>
 			: public get_packs<Ts...>
 		{};
 
@@ -913,41 +926,42 @@ namespace core::ecs
 														  details::type_container<pack_t>{});
 			};
 
-			std::function<void(core::ecs::command_buffer&, std::chrono::duration<float>, std::chrono::duration<float>,
-							   std::vector<details::owner_dependency_pack>&)>
+			std::function<core::ecs::command_buffer(const core::ecs::state&, std::chrono::duration<float>,
+													std::chrono::duration<float>,
+													std::vector<details::owner_dependency_pack>&)>
 				system_tick;
 
 			if constexpr(std::is_member_function_pointer<Fn>::value)
 			{
-				system_tick = [fn, ptr](core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
-										std::chrono::duration<float> rTime,
-										std::vector<details::owner_dependency_pack>& packs) {
+				system_tick = [fn,
+							   ptr](const core::ecs::state& state, std::chrono::duration<float> dTime,
+									std::chrono::duration<float> rTime,
+									std::vector<details::owner_dependency_pack>& packs) -> core::ecs::command_buffer {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
-						std::make_tuple(ptr),
-						std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>,
-								   std::chrono::duration<float>>(command_buffer, dTime, rTime),
+						std::tuple<T*, const core::ecs::state&, std::chrono::duration<float>,
+								   std::chrono::duration<float>>(ptr, state, dTime, rTime),
 						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
 															   details::type_container<pack_t>{}, packs));
 
-					std::apply(fn, tuple_argument_list);
+					return std::apply(fn, std::move(tuple_argument_list));
 				};
 			}
 			else
 			{
-				system_tick = [fn](core::ecs::command_buffer& command_buffer, std::chrono::duration<float> dTime,
+				system_tick = [fn](const core::ecs::state& state, std::chrono::duration<float> dTime,
 								   std::chrono::duration<float> rTime,
-								   std::vector<details::owner_dependency_pack>& packs) {
+								   std::vector<details::owner_dependency_pack>& packs) -> core::ecs::command_buffer {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
-						std::tuple<core::ecs::command_buffer&, std::chrono::duration<float>,
-								   std::chrono::duration<float>>(command_buffer, dTime, rTime),
+						std::tuple<const core::ecs::state&, std::chrono::duration<float>, std::chrono::duration<float>>(
+							state, dTime, rTime),
 						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
 															   details::type_container<pack_t>{}, packs));
 
-					std::apply(fn, tuple_argument_list);
+					return std::apply(fn, std::move(tuple_argument_list));
 				};
 			}
 			m_SystemInformations.emplace_back(system_information{threading, pack_generator, system_tick});
@@ -1039,6 +1053,7 @@ namespace core::ecs
 			details::key_value_container_t<component_key_t, std::vector<entity>> removed_components;
 		};
 
+		psl::async::scheduler* m_Scheduler{nullptr};
 		std::array<difference_set, 2> m_StateChange;
 		size_t m_Tick{0};
 

@@ -30,19 +30,20 @@ render::render(core::ecs::state& state,
 	state.declare(threading::seq, &render::tick_draws, this);
 }
 
-void render::tick_cameras(
-	core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+core::ecs::command_buffer render::tick_cameras(
+	const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 	core::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras)
 {
-	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
+	if(!m_Surface->open() || !m_Swapchain->is_ready()) return core::ecs::command_buffer{state};
 	size_t i = 0;
 	for(auto[camera, transform] : cameras)
 	{
 		update_buffer(i++, transform, camera);
 	}
+	return core::ecs::command_buffer{state};
 }
-void render::tick_draws(
-	core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+core::ecs::command_buffer render::tick_draws(
+	const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 	core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
 	core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
 	renderables,
@@ -70,6 +71,7 @@ void render::tick_draws(
 	}
 	m_Pass.prepare();
 	m_Pass.present();
+	return core::ecs::command_buffer{state};
 }
 
 void render::update_buffer(size_t index, const transform& transform, const core::ecs::components::camera& camera)

@@ -15,7 +15,7 @@ fly::fly(core::ecs::state& state, core::systems::input& inputSystem) : m_InputSy
 
 fly::~fly() { m_InputSystem.unsubscribe(this); }
 
-void fly::tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+core::ecs::command_buffer fly::tick(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 			   core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> movables)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -112,6 +112,8 @@ void fly::tick(core::ecs::command_buffer& commands, std::chrono::duration<float>
 	m_AngleV  = 0;
 	//m_Pitch   = 0;
 	//m_Heading = 0;
+
+	return core::ecs::command_buffer{state};
 }
 
 void fly::on_key_pressed(core::systems::input::keycode keyCode)

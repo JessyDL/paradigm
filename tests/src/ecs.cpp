@@ -6,8 +6,9 @@ using namespace core::ecs;
 using namespace tests::ecs;
 
 
-void registration_test(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+core::ecs::command_buffer registration_test(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
 {
+	return command_buffer{state};
 }
 
 
@@ -20,12 +21,13 @@ struct float_system
 		state.declare(&float_system::tick, this);
 	}
 
-	void tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, core::ecs::pack<const float, int> pack)
+	core::ecs::command_buffer tick(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, core::ecs::pack<const float, int> pack)
 	{
 		for(auto [fl, i] : pack)
 		{
 			i += 5;
 		}
+		return core::ecs::command_buffer{state};
 	}
 };
 }

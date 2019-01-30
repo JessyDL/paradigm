@@ -631,12 +631,8 @@ void context::init_device()
 	}
 
 
-	try
-	{
-		m_PhysicalDeviceProperties = m_PhysicalDevice.getProperties();
-	}
-	catch(const std::exception& e)
-	{}
+	m_PhysicalDeviceProperties = m_PhysicalDevice.getProperties();
+	
 	m_PhysicalDeviceFeatures		 = m_PhysicalDevice.getFeatures();
 	m_PhysicalDeviceMemoryProperties = m_PhysicalDevice.getMemoryProperties();
 

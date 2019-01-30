@@ -16,7 +16,7 @@ namespace core::ecs::systems
 
 
 	private:
-		void tick(core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+		core::ecs::command_buffer tick(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 				  core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> movables);
 
 		void on_key_pressed(core::systems::input::keycode keyCode);

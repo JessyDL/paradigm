@@ -3,8 +3,19 @@
 #include "assertions.h"
 #include "ecs/command_buffer.h"
 #include <future>
+#include "task.h"
 
 using namespace core::ecs;
+
+state::state()	: m_Scheduler(new psl::async::scheduler())
+{
+
+}
+
+state::~state()
+{
+	delete(m_Scheduler);
+}
 
 void state::destroy(psl::array_view<entity> entities) noexcept
 {
@@ -150,6 +161,7 @@ struct workload_pack
 	std::vector<psl::array_view<entity>> split_entities;
 };
 
+
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   memory::raw_region& cache, size_t cache_offset, system_information& system,
 						   std::vector<command_buffer>& cmds)
@@ -229,12 +241,31 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		}
 		core::profiler.scope_end();
 		core::profiler.scope_begin("invoke system");
-		std::invoke(system.invocable, cmd, dTime, rTime, pack);
+		std::invoke(system.invocable, *this, dTime, rTime, pack);
 		core::profiler.scope_end();
 		core::profiler.scope_begin("write system data to ecs::state");
+
 		write_data(*this, pack);
+		///*auto future = m_Scheduler->schedule([](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs)
+		//					  {
+		//						  for(const auto& dep_pack : dep_packs)
+		//						  {
+		//							  for(auto& binding : dep_pack.m_RWBindings)
+		//							  {
+		//								  const size_t size = dep_pack.m_Sizes.at(binding.first);
+		//								  std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
+		//								  state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
+		//							  }
+		//						  }
+		//					  }, *this, pack);*/
+
 		core::profiler.scope_end();
 	}
+}
+
+bool test_func(int& ref)
+{
+	return true;
 }
 void state::tick(std::chrono::duration<float> dTime)
 {
@@ -254,6 +285,13 @@ void state::tick(std::chrono::duration<float> dTime)
 		for(auto i = 0; i < 1; ++i) execute_command_buffer(cmds[i]);
 	}
 	m_StateChange[m_Tick % 2].clear();
+
+
+	//psl::async2::scheduler scheduler;
+
+	//scheduler.schedule(&state::tick, this, dTime);
+	//int test_int = 5;
+	//scheduler.schedule(&test_func, test_int);
 }
 
 void state::set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id)

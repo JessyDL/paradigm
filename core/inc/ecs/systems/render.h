@@ -58,11 +58,11 @@ namespace core::ecs::systems
 		render& operator=(render&&) = delete;
 
 	  private:
-		void tick_cameras(
-			core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+		core::ecs::command_buffer tick_cameras(
+			const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 			core::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
-		void tick_draws(
-			core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+		core::ecs::command_buffer tick_draws(
+			const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 			core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
 							core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
 				renderables,

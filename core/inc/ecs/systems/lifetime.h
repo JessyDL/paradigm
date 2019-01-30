@@ -9,7 +9,7 @@
 
 namespace core::ecs::systems
 {
-	auto lifetime = [](core::ecs::command_buffer& commands, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+	auto lifetime = [](const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 					   core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> life_pack)
 	{
 		using namespace core::ecs;
@@ -23,7 +23,9 @@ namespace core::ecs::systems
 				dead_entities.emplace_back(entity);
 		}
 
+		core::ecs::command_buffer commands{state};
 		commands.add_component<dead_tag>(dead_entities);
 		commands.remove_component<components::lifetime>(dead_entities);
+		return commands;
 	};
 }
