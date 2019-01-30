@@ -68,12 +68,20 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 	};
 
 	auto is_invalid = [](const enqueued_task& task, psl::array_view<enqueued_task> preceding_tasks,
+						 psl::array_view<std::optional<enqueued_task>> inflight_tasks,
 						 const std::vector<barrier>& barriers) -> bool {
 		const auto& description = task.description;
 		return (std::any_of(std::begin(description.tokens), std::end(description.tokens),
 							[&](token_t t) {
 								return std::find_if(std::begin(preceding_tasks), std::end(preceding_tasks),
-													[t](const enqueued_task& pre_task) { return pre_task.token == t; }) != std::end(preceding_tasks);
+													[t](const enqueued_task& pre_task) {
+														return pre_task.token == t;
+													}) != std::end(preceding_tasks) ||
+									   std::find_if(std::begin(inflight_tasks), std::end(inflight_tasks),
+													[t](const std::optional<enqueued_task>& inflight_task) {
+														return inflight_task.has_value() &&
+															   inflight_task.value().token == t;
+													}) != std::end(inflight_tasks);
 							}) ||
 
 				std::any_of(std::begin(description.barriers), std::end(description.barriers),
@@ -84,7 +92,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 	};
 
 	auto execution_impl = [is_invalid, calculate_heuristic](std::unordered_map<token_t, description> tasklist,
-															 size_t workerCount) {
+															size_t workerCount) {
 		if(tasklist.size() == 0) return;
 		std::vector<std::optional<enqueued_task>> scheduled{};
 		std::vector<barrier> locks{};
@@ -113,13 +121,14 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 
 						for(const auto& b : descr.barriers)
 							locks.erase(std::find(std::begin(locks), std::end(locks), b));
+						scheduled[i] = std::nullopt;
 					}
 
 					auto index = size_t{0};
 					for(auto& enqueued_task : enqueued_tasks)
 					{
 						++index;
-						if(is_invalid(enqueued_task, enqueued_tasks, locks)) continue;
+						if(is_invalid(enqueued_task, enqueued_tasks, scheduled, locks)) continue;
 
 						locks.insert(std::end(locks), std::begin(enqueued_task.description.barriers),
 									 std::end(enqueued_task.description.barriers));
@@ -145,10 +154,19 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 			}
 		}
 	};
-
-	auto launch_policy = (policy == launch::async) ? std::launch::async : std::launch::deferred;
-	auto res		   = std::async(launch_policy, execution_impl, m_TaskList, m_WorkerCount * 2);
+	std::future<void> res;
+	if(policy == launch::immediate)
+	{
+		execution_impl(m_TaskList, m_WorkerCount * 2);
+		std::promise<void> temp;
+		res = temp.get_future();
+		temp.set_value();
+	}
+	else
+	{
+		auto launch_policy = (policy == launch::async) ? std::launch::async : std::launch::deferred;
+		res				   = std::async(launch_policy, execution_impl, m_TaskList, m_WorkerCount * 2);
+	}
 	m_TaskList.clear();
-	if(policy == launch::immediate) res.wait();
 	return res;
 }
