@@ -44,6 +44,7 @@ namespace core::ecs
 		void verify_entities(psl::array_view<entity> entities);
 
 	  public:
+		  command_buffer() = default;
 		  command_buffer(const state& state);
 		// -----------------------------------------------------------------------------
 		// add component
@@ -181,7 +182,7 @@ namespace core::ecs
 		key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>> m_EntityMap;
 		key_value_container_t<component_key_t, details::component_info> m_Components;
 
-		const state& m_State;
+		state const * m_State{nullptr};
 		uint64_t mID{0u};
 		uint64_t m_StartID{0u};
 	};

@@ -5,15 +5,15 @@
 using namespace core::ecs;
 
 
-command_buffer::command_buffer(const state& state, uint64_t id_offset) : m_State(state), mID(id_offset), m_StartID(id_offset) {}
+command_buffer::command_buffer(const state& state, uint64_t id_offset) : m_State(&state), mID(id_offset), m_StartID(id_offset) {}
 
-command_buffer::command_buffer(const state& state)  : m_State(state), mID(m_State.mID), m_StartID(mID) {}
+command_buffer::command_buffer(const state& state)  : m_State(&state), mID(m_State->mID), m_StartID(mID) {}
 
 void command_buffer::verify_entities(psl::array_view<entity> entities)
 {
 	for(auto entity : entities)
 	{
-		if(entity <= m_StartID && m_State.exists(entity))
+		if(entity <= m_StartID && m_State->exists(entity))
 			m_EntityMap.emplace(entity, std::vector<std::pair<component_key_t, size_t>>{});
 	}
 }

@@ -10,7 +10,7 @@
 namespace core::ecs::systems
 {
 	auto lifetime = [](const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-					   core::ecs::pack<core::ecs::entity, core::ecs::components::lifetime> life_pack)
+					   core::ecs::pack<core::ecs::partial, core::ecs::entity, core::ecs::components::lifetime> life_pack)
 	{
 		using namespace core::ecs;
 		using namespace core::ecs::components;

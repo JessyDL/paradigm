@@ -769,11 +769,11 @@ int entry()
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
 
-	ECSState.declare(core::ecs::systems::movement);
-	ECSState.declare(core::ecs::systems::death);
+	ECSState.declare(core::ecs::threading::par, ::ecs::systems::movement);
+	ECSState.declare(core::ecs::threading::par, core::ecs::systems::death);
 	ECSState.declare(core::ecs::systems::lifetime);
 
-	ECSState.declare(core::ecs::systems::attractor);
+	ECSState.declare(core::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
@@ -798,7 +798,7 @@ int entry()
 		ECSState.destroy(all_geom);
 		*/
 		ECSState.create(
-			1200, 
+			1500, 
 			[&material, &geometryHandles, &material2](size_t index)
 			{ 
 				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};

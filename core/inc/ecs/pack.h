@@ -109,19 +109,6 @@ namespace core::ecs
 		constexpr size_t size() const noexcept { return m_Pack.size(); }
 
 	  private:
-		// todo: we should elminate the need for this.
-		template <size_t N>
-		auto reference_get() noexcept -> decltype(std::declval<pack_t>().template ref_get<N>())
-		{
-			return m_Pack.template ref_get<N>();
-		}
-
-		template <typename T>
-		psl::array_view<T>& reference_get() noexcept
-		{
-			return m_Pack.template ref_get<T>();
-		}
-
 		pack_t m_Pack;
 	};
 } // namespace core::ecs

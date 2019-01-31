@@ -225,6 +225,28 @@ namespace core::ecs
 				return res;
 			}
 
+			size_t entities() const noexcept
+			{
+				return m_Entities.size();
+			}
+			owner_dependency_pack slice(size_t begin, size_t end) const noexcept
+			{
+				owner_dependency_pack cpy{*this};
+
+				cpy.m_Entities = cpy.m_Entities.slice(begin, end);
+
+				for(auto& binding : cpy.m_RBindings)
+				{
+					auto size = cpy.m_Sizes[binding.first] / sizeof(std::uintptr_t);
+					binding.second = binding.second.slice(size * begin, size * end);
+				}
+				for(auto& binding : cpy.m_RWBindings)
+				{
+					auto size = cpy.m_Sizes[binding.first] / sizeof(std::uintptr_t);
+					binding.second = binding.second.slice(size * begin, size * end);
+				}
+				return cpy;
+			}
 		  private:
 			template <typename T>
 			void add(type_container<psl::array_view<T>>) noexcept
@@ -279,6 +301,16 @@ namespace core::ecs
 				pack[Is].to_pack(type_container<typename std::remove_reference<decltype(
 									 std::get<Is>(std::declval<std::tuple<Ts...>>()))>::type>{})...};
 		}
+
+		struct system_information
+		{
+			threading threading = threading::sequential;
+			std::function<std::vector<details::owner_dependency_pack>()> pack_generator;
+			std::function<core::ecs::command_buffer(const core::ecs::state&, std::chrono::duration<float>,
+													std::chrono::duration<float>,
+													std::vector<details::owner_dependency_pack>)>
+				invocable;
+		};
 	} // namespace details
 } // namespace core::ecs
 
@@ -306,15 +338,7 @@ namespace core::ecs
 		~state();
 
 	  private:
-		struct system_information
-		{
-			threading threading = threading::sequential;
-			std::function<std::vector<details::owner_dependency_pack>()> pack_generator;
-			std::function<core::ecs::command_buffer(const core::ecs::state&, std::chrono::duration<float>,
-													std::chrono::duration<float>,
-													std::vector<details::owner_dependency_pack>&)>
-				invocable;
-		};
+		
 
 		template <typename Fn>
 		void copy_components(component_key_t key, psl::array_view<entity> entities, const size_t component_size,
@@ -560,8 +584,12 @@ namespace core::ecs
 
 
 		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-							memory::raw_region& cache, size_t cache_offset, system_information& system,
+							memory::raw_region& cache, size_t cache_offset, details::system_information& system,
 							std::vector<command_buffer>& cmds);
+
+
+		std::vector<core::ecs::command_buffer> prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+							memory::raw_region& cache, size_t cache_offset, details::system_information& system);
 
 		std::vector<entity> filter(const details::owner_dependency_pack& pack) const
 		{
@@ -928,7 +956,7 @@ namespace core::ecs
 
 			std::function<core::ecs::command_buffer(const core::ecs::state&, std::chrono::duration<float>,
 													std::chrono::duration<float>,
-													std::vector<details::owner_dependency_pack>&)>
+													std::vector<details::owner_dependency_pack>)>
 				system_tick;
 
 			if constexpr(std::is_member_function_pointer<Fn>::value)
@@ -936,7 +964,7 @@ namespace core::ecs
 				system_tick = [fn,
 							   ptr](const core::ecs::state& state, std::chrono::duration<float> dTime,
 									std::chrono::duration<float> rTime,
-									std::vector<details::owner_dependency_pack>& packs) -> core::ecs::command_buffer {
+									std::vector<details::owner_dependency_pack> packs) -> core::ecs::command_buffer {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
@@ -952,7 +980,7 @@ namespace core::ecs
 			{
 				system_tick = [fn](const core::ecs::state& state, std::chrono::duration<float> dTime,
 								   std::chrono::duration<float> rTime,
-								   std::vector<details::owner_dependency_pack>& packs) -> core::ecs::command_buffer {
+								   std::vector<details::owner_dependency_pack> packs) -> core::ecs::command_buffer {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
@@ -964,7 +992,7 @@ namespace core::ecs
 					return std::apply(fn, std::move(tuple_argument_list));
 				};
 			}
-			m_SystemInformations.emplace_back(system_information{threading, pack_generator, system_tick});
+			m_SystemInformations.emplace_back(details::system_information{threading, pack_generator, system_tick});
 		}
 
 
@@ -1016,7 +1044,7 @@ namespace core::ecs
 
 		uint64_t mID{0u};
 
-		std::vector<system_information> m_SystemInformations;
+		std::vector<details::system_information> m_SystemInformations;
 		/// \brief gets what components this entity uses, and which index it lives on.
 		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>> m_EntityMap;
 

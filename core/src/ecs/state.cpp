@@ -7,15 +7,9 @@
 
 using namespace core::ecs;
 
-state::state()	: m_Scheduler(new psl::async::scheduler())
-{
+state::state() : m_Scheduler(new psl::async::scheduler()) {}
 
-}
-
-state::~state()
-{
-	delete(m_Scheduler);
-}
+state::~state() { delete(m_Scheduler); }
 
 void state::destroy(psl::array_view<entity> entities) noexcept
 {
@@ -161,9 +155,104 @@ struct workload_pack
 	std::vector<psl::array_view<entity>> split_entities;
 };
 
+std::vector<std::vector<details::owner_dependency_pack>> slice(std::vector<details::owner_dependency_pack>& source,
+															   size_t count)
+{
+	std::vector<std::vector<details::owner_dependency_pack>> res;
+	res.resize(count);
+	for(auto& dep_pack : source)
+	{
+		if(dep_pack.allow_partial() && dep_pack.entities() > count)
+		{
+			auto batch_size = std::floor(dep_pack.entities() / count);
+			auto processed  = 0;
+			for(auto i = 0; i < count - 1; ++i)
+			{
+				res[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
+				processed += batch_size;
+			}
+			res[res.size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
+		}
+		else
+		{
+			for(auto i = 0; i < count; ++i) res[i].emplace_back(dep_pack);
+		}
+	}
+	return res;
+}
 
+
+std::vector<command_buffer> state::prepare_system(std::chrono::duration<float> dTime,
+												  std::chrono::duration<float> rTime, memory::raw_region& cache,
+												  size_t cache_offset, details::system_information& system)
+{
+	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs) {
+		for(const auto& dep_pack : dep_packs)
+		{
+			for(auto& binding : dep_pack.m_RWBindings)
+			{
+				const size_t size   = dep_pack.m_Sizes.at(binding.first);
+				std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
+				state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
+			}
+		}
+	};
+	PROFILE_SCOPE(core::profiler);
+
+	auto pack = std::invoke(system.pack_generator);
+	bool has_partial =
+		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+	
+	std::vector<std::vector<details::owner_dependency_pack>> pack_vec;
+	core::profiler.scope_begin("fill_in system data");
+	for(auto& dep_pack : pack)
+	{
+		auto entities = filter(dep_pack);
+		if(entities.size() == 0) continue;
+		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+		dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
+			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+
+		cache_offset += sizeof(entity) * entities.size();
+
+		cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
+	}
+
+	core::profiler.scope_end();
+	core::profiler.scope_begin("invoke system");
+
+	std::vector<command_buffer> commands;
+	if(has_partial && system.threading == threading::par)
+	{
+		auto multi_pack = slice(pack, m_Scheduler->workers());
+
+		std::vector<std::future<command_buffer>> future_commands;
+		for(auto& mPack : multi_pack)
+		{
+			future_commands.emplace_back(std::move(m_Scheduler->schedule<decltype(system.invocable)>(
+				system.invocable, *this, dTime, rTime, mPack))
+											 .second);
+		}
+
+		m_Scheduler->execute().wait();
+		for(auto& fCommands : future_commands)
+		{
+			commands.emplace_back(std::move(fCommands.get()));
+		}
+	}
+	else
+	{
+		commands.emplace_back(std::move(std::invoke(system.invocable, *this, dTime, rTime, pack)));
+	}
+	core::profiler.scope_end();
+	core::profiler.scope_begin("write system data to ecs::state");
+
+	write_data(*this, pack);
+	core::profiler.scope_end();
+	return commands;
+}
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-						   memory::raw_region& cache, size_t cache_offset, system_information& system,
+						   memory::raw_region& cache, size_t cache_offset, details::system_information& system,
 						   std::vector<command_buffer>& cmds)
 {
 	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs) {
@@ -246,7 +335,8 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		core::profiler.scope_begin("write system data to ecs::state");
 
 		write_data(*this, pack);
-		///*auto future = m_Scheduler->schedule([](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs)
+		///*auto future = m_Scheduler->schedule([](core::ecs::state& state, std::vector<details::owner_dependency_pack>&
+		/// dep_packs)
 		//					  {
 		//						  for(const auto& dep_pack : dep_packs)
 		//						  {
@@ -263,10 +353,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	}
 }
 
-bool test_func(int& ref)
-{
-	return true;
-}
+bool test_func(int& ref) { return true; }
 void state::tick(std::chrono::duration<float> dTime)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -276,22 +363,20 @@ void state::tick(std::chrono::duration<float> dTime)
 	for(auto& system : m_SystemInformations)
 	{
 		PROFILE_SCOPE(core::profiler)
-		std::vector<command_buffer> cmds;
-		for(auto i = 0; i < 1; ++i) cmds.emplace_back(command_buffer{*this, mID});
 
-		prepare_system(dTime, dTime, m_Cache, cache_offset, system, cmds);
+		std::vector<command_buffer> cmds = prepare_system(dTime, dTime, m_Cache, cache_offset, system);
 
 
-		for(auto i = 0; i < 1; ++i) execute_command_buffer(cmds[i]);
+		for(auto i = 0; i < cmds.size(); ++i) execute_command_buffer(cmds[i]);
 	}
 	m_StateChange[m_Tick % 2].clear();
 
 
-	//psl::async2::scheduler scheduler;
+	// psl::async2::scheduler scheduler;
 
-	//scheduler.schedule(&state::tick, this, dTime);
-	//int test_int = 5;
-	//scheduler.schedule(&test_func, test_int);
+	// scheduler.schedule(&state::tick, this, dTime);
+	// int test_int = 5;
+	// scheduler.schedule(&test_func, test_int);
 }
 
 void state::set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id)
