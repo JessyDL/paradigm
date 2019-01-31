@@ -161,21 +161,6 @@ namespace psl
 		iterator end() const noexcept { return iterator{iterator_end(std::index_sequence_for<Ts...>{}, m_Pack)}; }
 		constexpr size_t size() const noexcept { return std::get<0>(m_Pack).size(); }
 
-
-		template <size_t N>
-		auto ref_get() noexcept	-> decltype(std::get<N>(std::declval<range_t>()))&
-		{
-			static_assert(N < std::tuple_size<range_t>::value, "you requested a component outside of the range of the pack");
-			return std::get<N>(m_Pack);
-		}
-
-
-		template <typename T>
-		psl::array_view<T>& ref_get() noexcept
-		{
-			static_assert(::utility::templates::template tuple_contains_type<psl::array_view<T>, range_t>::value, "the requested component type does not exist in the pack");
-			return std::get<psl::array_view<T>>(m_Pack);
-		}
 	private:
 		range_t m_Pack;
 	};

@@ -367,6 +367,22 @@ namespace psl::async
 			return std::pair{ret.first->first, task.future()};
 		}
 
+		template <typename Fn, typename... Args>
+		[[nodiscard]] typename std::enable_if<
+			!std::is_member_function_pointer<Fn>::value,
+			std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>>::type
+			schedule(Fn function, Args&&... arguments)
+		{
+			using return_t = typename psl::templates::func_traits<Fn>::result_t;
+			using task_t = task<return_t, Args&&...>;
+
+			auto ret = m_TaskList.emplace(
+				m_TokenGenerator++,
+				description{new task_t{function, std::forward<Args>(arguments)...}});
+			task_t& task{*(task_t*)(ret.first->second.task)};
+			return std::pair{ret.first->first, task.future()};
+		}
+
 		template <typename Fn, typename T, typename... Args>
 		[[nodiscard]] typename std::enable_if<
 			std::is_member_function_pointer<Fn>::value,

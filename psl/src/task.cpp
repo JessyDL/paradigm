@@ -154,19 +154,13 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 			}
 		}
 	};
-	std::future<void> res;
-	if(policy == launch::immediate)
-	{
-		execution_impl(m_TaskList, m_WorkerCount * 2);
-		std::promise<void> temp;
-		res = temp.get_future();
-		temp.set_value();
-	}
-	else
-	{
-		auto launch_policy = (policy == launch::async) ? std::launch::async : std::launch::deferred;
-		res				   = std::async(launch_policy, execution_impl, m_TaskList, m_WorkerCount * 2);
-	}
+
+	auto launch_policy	= (policy == launch::async) ? std::launch::async : std::launch::deferred;
+	std::future<void> res = std::async(launch_policy, execution_impl, m_TaskList, m_WorkerCount * 2);
+
 	m_TaskList.clear();
+
+	if(policy == launch::immediate) res.wait();
+
 	return res;
 }
