@@ -19,7 +19,10 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 		enqueued_task(scheduler::description description, token_t token, size_t heuristic)
 			: description(description), token(token), heuristic(heuristic){};
 
-		~enqueued_task() { delete(description.task); }
+		~enqueued_task()
+		{ 
+
+		}
 
 		enqueued_task(enqueued_task&& other) = default;
 		enqueued_task& operator=(enqueued_task&& other) = default;
@@ -46,6 +49,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 				size_t barrier_conflict{
 					size_t(std::count_if(std::begin(task_description.barriers), std::end(task_description.barriers),
 										 [&barrier](const async::barrier& b) { return b.conflicts(barrier); }))};
+				barrier_conflict *= 2;
 				heuristic += barrier_conflict * barrier_conflict;
 			}
 		}
@@ -61,7 +65,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 								   ? 1
 								   : 0;
 		}
-
+		my_dependencies *= 2;
 		heuristic += my_dependencies * my_dependencies * my_dependencies;
 
 		return heuristic;
@@ -105,10 +109,11 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 			enqueued_tasks.emplace_back(enqueued_task{descr, token, calculate_heuristic(token, tasklist)});
 		}
 		std::sort(std::begin(enqueued_tasks), std::end(enqueued_tasks),
-				  [](const enqueued_task& a, const enqueued_task& b) { return a.heuristic < b.heuristic; });
+				  [](const enqueued_task& a, const enqueued_task& b) { return a.heuristic > b.heuristic; });
 
 		tasklist.clear();
 
+		std::vector< details::task_base*> finalized_tasks;
 		while(enqueued_tasks.size() > 0)
 		{
 			for(size_t i = 0; i < scheduled.size(); ++i)
@@ -119,6 +124,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 					{
 						auto& descr{scheduled[i].value().description};
 
+						finalized_tasks.emplace_back(descr.task);
 						for(const auto& b : descr.barriers)
 							locks.erase(std::find(std::begin(locks), std::end(locks), b));
 						scheduled[i] = std::nullopt;
@@ -151,7 +157,14 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 			if(scheduled[i].has_value())
 			{
 				scheduled[i].value().future.wait();
+				finalized_tasks.emplace_back(scheduled[i].value().description.task);
+				scheduled[i] = std::nullopt;
 			}
+		}
+
+		for(auto task : finalized_tasks)
+		{
+			delete(task);
 		}
 	};
 

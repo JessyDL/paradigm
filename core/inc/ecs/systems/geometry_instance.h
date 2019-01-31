@@ -14,7 +14,7 @@ namespace core::ecs::systems
 		[](const core::ecs::state& state, 
 		   std::chrono::duration<float> dTime, 
 		   std::chrono::duration<float> rTime, 
-		   core::ecs::pack<const core::ecs::components::renderable, core::ecs::components::transform>
+		   core::ecs::pack<const core::ecs::components::renderable, const core::ecs::components::transform>
 								geometry_pack)
 	{
 		using namespace core::resource;
@@ -75,7 +75,7 @@ namespace core::ecs::systems
 
 						++indexCount;
 						setStart = false;
-						auto& transform = std::get<core::ecs::components::transform&>(geometry_pack[i]);
+						auto& transform = std::get<const core::ecs::components::transform&>(geometry_pack[i]);
 						const psl::mat4x4 translationMat = translate(transform.position);
 						const psl::mat4x4 rotationMat = to_matrix(transform.rotation);
 						const psl::mat4x4 scaleMat = scale(transform.scale);

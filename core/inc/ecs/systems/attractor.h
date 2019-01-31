@@ -29,26 +29,7 @@ namespace core::ecs::systems
 			   attractors) {
 			using namespace psl::math;
 
-			auto movTrans = movables.get< const core::ecs::components::transform>();
-			auto movVel = movables.get<core::ecs::components::velocity>();
-			auto attrTransform = attractors.get< const core::ecs::components::transform>();
-			auto attractor = attractors.get< const core::ecs::components::attractor>();
-
-			for(auto i = size_t{0}; i < movTrans.size(); ++i)
-			{
-			
-				for(auto u = size_t{0}; u < attractor.size(); ++u)
-				{
-					const auto mag =
-						saturate((attractor[u].radius - magnitude(movTrans[i].position - attrTransform[u].position)) /
-								 attractor[u].radius) *
-						dTime.count();
-					const auto direction = normalize(attrTransform[u].position - movTrans[i].position) * attractor[u].force;
-
-					movVel[i].direction = mix<float, float, float, 3>(movVel[i].direction, direction, mag);
-				}
-			}
-			/*for(auto [movTrans, movVel] : movables)
+			for(auto [movTrans, movVel] : movables)
 			{
 				for(auto [attrTransform, attractor] : attractors)
 				{
@@ -60,7 +41,7 @@ namespace core::ecs::systems
 
 					movVel.direction = mix<float, float, float, 3>(movVel.direction, direction, mag);
 				}
-			}*/
+			}
 
 			return core::ecs::command_buffer{state};
 		};

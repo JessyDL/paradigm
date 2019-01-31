@@ -7,6 +7,31 @@
 
 using namespace core::ecs;
 
+details::owner_dependency_pack details::owner_dependency_pack::slice(size_t begin, size_t end) const noexcept
+{
+	owner_dependency_pack cpy{*this};
+
+	cpy.m_Entities = cpy.m_Entities.slice(begin, end);
+
+	for(auto& binding : cpy.m_RBindings)
+	{
+		auto size = cpy.m_Sizes[binding.first];
+
+		std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
+		std::uintptr_t end_mem   = (std::uintptr_t)binding.second.data() + (end * size);
+		binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
+	}
+	for(auto& binding : cpy.m_RWBindings)
+	{
+		auto size = cpy.m_Sizes[binding.first];
+		// binding.second = binding.second.slice(size * begin, size * end);
+		std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
+		std::uintptr_t end_mem   = (std::uintptr_t)binding.second.data() + (end * size);
+		binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
+	}
+	return cpy;
+}
+
 state::state() : m_Scheduler(new psl::async::scheduler()) {}
 
 state::~state() { delete(m_Scheduler); }
@@ -88,7 +113,7 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
 
 size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
-						   component_key_t id, size_t element_size)
+						   component_key_t id, size_t element_size) const noexcept
 {
 	const auto& mem_pair	  = m_Components.find(id);
 	std::uintptr_t data_begin = cache_offset;
@@ -110,7 +135,7 @@ size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region&
 }
 
 size_t state::prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
-							   details::owner_dependency_pack& dep_pack)
+							   details::owner_dependency_pack& dep_pack) const noexcept
 {
 	PROFILE_SCOPE(core::profiler);
 	size_t offset_start = cache_offset;
@@ -186,87 +211,17 @@ std::vector<command_buffer> state::prepare_system(std::chrono::duration<float> d
 												  std::chrono::duration<float> rTime, memory::raw_region& cache,
 												  size_t cache_offset, details::system_information& system)
 {
-	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs) {
+	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack> dep_packs) {
 		for(const auto& dep_pack : dep_packs)
 		{
 			for(auto& binding : dep_pack.m_RWBindings)
 			{
 				const size_t size   = dep_pack.m_Sizes.at(binding.first);
-				std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
+				std::uintptr_t data = (std::uintptr_t)binding.second.data();
 				state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
 			}
 		}
 	};
-	PROFILE_SCOPE(core::profiler);
-
-	auto pack = std::invoke(system.pack_generator);
-	bool has_partial =
-		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
-	
-	std::vector<std::vector<details::owner_dependency_pack>> pack_vec;
-	core::profiler.scope_begin("fill_in system data");
-	for(auto& dep_pack : pack)
-	{
-		auto entities = filter(dep_pack);
-		if(entities.size() == 0) continue;
-		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-		dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
-			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
-
-		cache_offset += sizeof(entity) * entities.size();
-
-		cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
-	}
-
-	core::profiler.scope_end();
-	core::profiler.scope_begin("invoke system");
-
-	std::vector<command_buffer> commands;
-	if(has_partial && system.threading == threading::par)
-	{
-		auto multi_pack = slice(pack, m_Scheduler->workers());
-
-		std::vector<std::future<command_buffer>> future_commands;
-		for(auto& mPack : multi_pack)
-		{
-			future_commands.emplace_back(std::move(m_Scheduler->schedule<decltype(system.invocable)>(
-				system.invocable, *this, dTime, rTime, mPack))
-											 .second);
-		}
-
-		m_Scheduler->execute().wait();
-		for(auto& fCommands : future_commands)
-		{
-			commands.emplace_back(std::move(fCommands.get()));
-		}
-	}
-	else
-	{
-		commands.emplace_back(std::move(std::invoke(system.invocable, *this, dTime, rTime, pack)));
-	}
-	core::profiler.scope_end();
-	core::profiler.scope_begin("write system data to ecs::state");
-
-	write_data(*this, pack);
-	core::profiler.scope_end();
-	return commands;
-}
-void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-						   memory::raw_region& cache, size_t cache_offset, details::system_information& system,
-						   std::vector<command_buffer>& cmds)
-{
-	auto write_data = [](core::ecs::state& state, std::vector<details::owner_dependency_pack>& dep_packs) {
-		for(const auto& dep_pack : dep_packs)
-		{
-			for(auto& binding : dep_pack.m_RWBindings)
-			{
-				const size_t size   = dep_pack.m_Sizes.at(binding.first);
-				std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
-				state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
-			}
-		}
-	};
-
 	// design:
 	// 3 types of execution policies:
 	//		- sequential/parallel & full packs only: only one context can be active at a given time
@@ -283,77 +238,99 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	//   is a RW lock on them. Bigger lists of them increase the heuristic value. Lastly historical timing data should
 	//   be tracked for the average time per entity a given system takes to execute. Preffering to schedule intensive
 	//   blocking systems first using estimated times of execution.
-
-	/*{
-		std::vector<workload_pack> workload_packs;
-		std::vector<std::vector<details::owner_dependency_pack>> dependency_packs{{std::invoke(system.pack_generator)}};
-
-		size_t largest_workload = 1;
-		for(auto& dep_pack : dependency_packs[0])
-		{
-			auto& wPack{workload_packs.emplace_back(workload_pack{filter(dep_pack)})};
-			if(system.is_multithreaded && dep_pack.allow_partial())
-			{
-				wPack.split(cmds.size());
-			}
-			largest_workload = std::max(largest_workload, wPack.split_entities.size());
-		}
-
-		dependency_packs.reserve(largest_workload);
-		for(auto i = 1; i < largest_workload; ++i)
-		{
-			dependency_packs.emplace_back(std::invoke(system.pack_generator));
-		}
-
-		[this]()
-		{
-			dep_pack.m_Entities = entities;
-			prepare_bindings(entities, cache, cache_offset, dep_pack);
-		}
-	}*/
 	PROFILE_SCOPE(core::profiler);
-	for(auto& cmd : cmds)
+
+	auto pack = std::invoke(system.pack_generator);
+	bool has_partial =
+		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+
+	core::profiler.scope_begin("fill_in system data");
+	for(auto& dep_pack : pack)
 	{
-		auto pack = std::invoke(system.pack_generator);
-		core::profiler.scope_begin("fill_in system data");
+		auto entities = filter(dep_pack);
+		if(entities.size() == 0) continue;
+		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+		dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
+			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+
+		cache_offset += sizeof(entity) * entities.size();
+
+		cache_offset += prepare_bindings(entities, cache, cache_offset, dep_pack);
+	}
+
+	core::profiler.scope_end();
+	core::profiler.scope_begin("invoke system");
+
+	std::vector<command_buffer> commands;
+	if(has_partial && system.threading == threading::par)
+	{
+		auto multi_pack = slice(pack, m_Scheduler->workers());
+		/*std::vector<std::vector<details::owner_dependency_pack>> multi_pack;
+		multi_pack.resize(m_Scheduler->workers());
+
+		size_t pack_index = 0;
 		for(auto& dep_pack : pack)
 		{
+
 			auto entities = filter(dep_pack);
-			if(entities.size() == 0) continue;
-			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-			dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
-				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+			if(entities.size() == 0)
+			{
+				for(auto i = 0; i < multi_pack.size(); ++i) multi_pack[i].emplace_back(dep_pack);
+				continue;
+			}
 
-			cache_offset += sizeof(entity) * entities.size();
+			size_t processed = 0;
+			for(auto i = 0; i < multi_pack.size(); ++i)
+			{
+				size_t element_size = dep_pack.size_per_element();
+				auto batch_size = std::floor(entities.size() / multi_pack.size());
+				size_t batch_offset{cache_offset + (processed* element_size)};
 
-			cache_offset += prepare_bindings(entities, m_Cache, cache_offset, dep_pack);
+
+				auto t1 = m_Scheduler->schedule([this, entities = psl::array_view<entity>(entities).slice(processed, processed + batch_size), batch_size, batch_offset, &pack = multi_pack[i][pack_index]]() {
+					auto cache_offset = batch_offset;
+					std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+					pack.m_Entities = psl::array_view<core::ecs::entity>(
+						(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+
+					cache_offset += sizeof(entity) * entities.size();
+
+					cache_offset += prepare_bindings(entities, cache, cache_offset, pack);
+				});
+				processed += batch_size;
+			}
+			++pack_index;
+		}*/
+		std::vector<std::future<command_buffer>> future_commands;
+		std::vector<std::future<void>> futures;
+		for(auto& mPack : multi_pack)
+		{
+			auto t1 = m_Scheduler->schedule<decltype(system.invocable)>(system.invocable, *this, dTime, rTime, mPack);
+
+			auto t2 = m_Scheduler->schedule<decltype(write_data)>(write_data, *this, mPack);
+
+			m_Scheduler->dependency(t2.first, t1.first);
+
+			future_commands.emplace_back(std::move(t1.second));
 		}
-		core::profiler.scope_end();
-		core::profiler.scope_begin("invoke system");
-		std::invoke(system.invocable, *this, dTime, rTime, pack);
-		core::profiler.scope_end();
-		core::profiler.scope_begin("write system data to ecs::state");
 
-		write_data(*this, pack);
-		///*auto future = m_Scheduler->schedule([](core::ecs::state& state, std::vector<details::owner_dependency_pack>&
-		/// dep_packs)
-		//					  {
-		//						  for(const auto& dep_pack : dep_packs)
-		//						  {
-		//							  for(auto& binding : dep_pack.m_RWBindings)
-		//							  {
-		//								  const size_t size = dep_pack.m_Sizes.at(binding.first);
-		//								  std::uintptr_t data = (std::uintptr_t)&std::begin(binding.second).value();
-		//								  state.set(dep_pack.m_Entities, (void*)data, size, binding.first);
-		//							  }
-		//						  }
-		//					  }, *this, pack);*/
-
-		core::profiler.scope_end();
+		m_Scheduler->execute().wait();
+		for(auto& fCommands : future_commands)
+		{
+			commands.emplace_back(std::move(fCommands.get()));
+		}
 	}
+	else
+	{
+		commands.emplace_back(std::move(std::invoke(system.invocable, *this, dTime, rTime, pack)));
+		write_data(*this, pack);
+	}
+	core::profiler.scope_end();
+
+
+	return commands;
 }
 
-bool test_func(int& ref) { return true; }
 void state::tick(std::chrono::duration<float> dTime)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -366,22 +343,13 @@ void state::tick(std::chrono::duration<float> dTime)
 
 		std::vector<command_buffer> cmds = prepare_system(dTime, dTime, m_Cache, cache_offset, system);
 
-
 		for(auto i = 0; i < cmds.size(); ++i) execute_command_buffer(cmds[i]);
 	}
 	m_StateChange[m_Tick % 2].clear();
-
-
-	// psl::async2::scheduler scheduler;
-
-	// scheduler.schedule(&state::tick, this, dTime);
-	// int test_int = 5;
-	// scheduler.schedule(&test_func, test_int);
 }
 
-void state::set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id)
+void state::set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id) const noexcept
 {
-	PROFILE_SCOPE(core::profiler)
 	if(entities.size() == 0) return;
 	const auto& mem_pair = m_Components.find(id);
 	if(mem_pair->second.size == 1) return;

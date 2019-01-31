@@ -17,17 +17,34 @@ namespace core::ecs::details
 	{
 		component_info() = default;
 		component_info(memory::raw_region&& region, std::vector<entity>&& entities, component_key_t id, size_t size)
-			: region(std::move(region)), entities(std::move(entities)), id(id), size(size),
+			: region(std::move(region)), entities(std::move(entities)), id(id), size(size), capacity(region.size() / size),
 			generator(region.size() / size)
 		{};
 
 		component_info(std::vector<entity>&& entities, component_key_t id)
 			: region(128), entities(std::move(entities)), id(id), size(1), generator(1)
 		{};
+
+		void grow()
+		{
+			
+		}
+
+		void shrink()
+		{
+		
+		}
+
+		void resize(size_t new_capacity)
+		{
+		
+		}
+
 		memory::raw_region region;
 		std::vector<entity> entities;
 		component_key_t id;
 		size_t size;
+		size_t capacity;
 		psl::IDGenerator<uint64_t> generator;
 	};
 }

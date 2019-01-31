@@ -229,24 +229,7 @@ namespace core::ecs
 			{
 				return m_Entities.size();
 			}
-			owner_dependency_pack slice(size_t begin, size_t end) const noexcept
-			{
-				owner_dependency_pack cpy{*this};
-
-				cpy.m_Entities = cpy.m_Entities.slice(begin, end);
-
-				for(auto& binding : cpy.m_RBindings)
-				{
-					auto size = cpy.m_Sizes[binding.first] / sizeof(std::uintptr_t);
-					binding.second = binding.second.slice(size * begin, size * end);
-				}
-				for(auto& binding : cpy.m_RWBindings)
-				{
-					auto size = cpy.m_Sizes[binding.first] / sizeof(std::uintptr_t);
-					binding.second = binding.second.slice(size * begin, size * end);
-				}
-				return cpy;
-			}
+			owner_dependency_pack slice(size_t begin, size_t end) const noexcept;
 		  private:
 			template <typename T>
 			void add(type_container<psl::array_view<T>>) noexcept
@@ -578,16 +561,9 @@ namespace core::ecs
 
 	  private:
 		size_t prepare_bindings(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
-								details::owner_dependency_pack& dep_pack);
+								details::owner_dependency_pack& dep_pack) const noexcept;
 		size_t prepare_data(psl::array_view<entity> entities, memory::raw_region& cache, size_t cache_offset,
-							component_key_t id, size_t element_size);
-
-
-		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-							memory::raw_region& cache, size_t cache_offset, details::system_information& system,
-							std::vector<command_buffer>& cmds);
-
-
+							component_key_t id, size_t element_size) const noexcept;
 		std::vector<core::ecs::command_buffer> prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 							memory::raw_region& cache, size_t cache_offset, details::system_information& system);
 
@@ -1022,7 +998,7 @@ namespace core::ecs
 		}
 
 	  private:
-		void set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id);
+		void set(psl::array_view<entity> entities, void* data, size_t size, component_key_t id) const noexcept;
 		std::vector<entity> dynamic_filter(psl::array_view<component_key_t> keys,
 										   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const
 			noexcept;
@@ -1081,6 +1057,7 @@ namespace core::ecs
 			details::key_value_container_t<component_key_t, std::vector<entity>> removed_components;
 		};
 
+		memory::raw_region m_Region;
 		psl::async::scheduler* m_Scheduler{nullptr};
 		std::array<difference_set, 2> m_StateChange;
 		size_t m_Tick{0};

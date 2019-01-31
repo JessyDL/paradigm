@@ -771,7 +771,7 @@ int entry()
 
 	ECSState.declare(core::ecs::threading::par, ::ecs::systems::movement);
 	ECSState.declare(core::ecs::threading::par, core::ecs::systems::death);
-	ECSState.declare(core::ecs::systems::lifetime);
+	ECSState.declare(core::ecs::threading::par, core::ecs::systems::lifetime);
 
 	ECSState.declare(core::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
@@ -798,7 +798,7 @@ int entry()
 		ECSState.destroy(all_geom);
 		*/
 		ECSState.create(
-			1500, 
+			500, 
 			[&material, &geometryHandles, &material2](size_t index)
 			{ 
 				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};
@@ -811,7 +811,7 @@ int entry()
 							  (float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps)};
 			}*/,
-			[](size_t index) { return core::ecs::components::lifetime{.1f + ((std::rand() % 50) / 50.0f) * 1.0f}; },
+			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 8.0f}; },
 			[&size_steps](size_t index) {
 				return core::ecs::components::velocity{
 					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
@@ -820,10 +820,10 @@ int entry()
 					((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 			});
 
-		if(ECSState.filter<core::ecs::components::attractor>().size() < 5)
+		if(ECSState.filter<core::ecs::components::attractor>().size() < 2)
 		{
 		ECSState.create(
-			5,
+			2,
 			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
 			[&size_steps](size_t index) { return core::ecs::components::attractor{(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f, (float)(std::rand() % size_steps) / size_steps * 80}; },
 			[&area_granularity, &area, &size_steps](size_t index)

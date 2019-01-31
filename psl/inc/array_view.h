@@ -160,7 +160,7 @@ namespace psl
 
 		pointer& internal_data() { return first; };
 
-		pointer data() {return first;};
+		pointer data() const noexcept {return first;};
 
 		array_view slice(size_t begin, size_t end)
 		{
