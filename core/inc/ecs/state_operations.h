@@ -106,14 +106,14 @@ namespace core::ecs::details
 		auto it = components.find(key);
 		if(it == components.end())
 		{
-			if(component_size == 1)
+			if(component_size == 0)
 			{
-				components.emplace(key, details::component_info{{}, key});
+				components.emplace(key, details::component_info{key});
 			}
 			else
 			{
 				components.emplace(
-					key, details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, key, component_size});
+					key, details::component_info{key, component_size});
 			}
 			it = components.find(key);
 		}
@@ -130,12 +130,12 @@ namespace core::ecs::details
 		{
 			if(std::is_empty<T>::value)
 			{
-				components.emplace(key, details::component_info{{}, key});
+				components.emplace(key, details::component_info{key});
 			}
 			else
 			{
 				components.emplace(
-					key, details::component_info{memory::raw_region{1024 * 1024 * 128}, {}, key, sizeof(T)});
+					key, details::component_info{key, sizeof(T)});
 			}
 			it = components.find(key);
 		}
@@ -163,6 +163,9 @@ namespace core::ecs::details
 
 		auto& componentInfo{get_component_info<component_type>(components)};
 
+		if(componentInfo.available() <= ent_cpy.size())
+			componentInfo.resize(std::max(componentInfo.capacity * 2, componentInfo.capacity + ent_cpy.size()));
+
 		entityMap.reserve(entityMap.size() + std::distance(std::begin(ent_cpy), std::end(ent_cpy)));
 
 		if constexpr(std::is_empty<component_type>::value)
@@ -178,7 +181,6 @@ namespace core::ecs::details
 		else
 		{
 			std::vector<uint64_t> indices;
-			uint64_t id_range;
 			const auto count = std::distance(std::begin(ent_cpy), std::end(ent_cpy));
 			indices.reserve(count);
 			entityMap.reserve(entityMap.size() + count);
@@ -190,24 +192,16 @@ namespace core::ecs::details
 					   std::end(ent_cpy), std::back_inserter(merged));
 			componentInfo.entities = std::move(merged);
 
-			if(componentInfo.generator.CreateRangeID(id_range, count))
+			auto id_ranges = componentInfo.generator.create_multi(count);
+			auto ent_it = std::begin(ent_cpy);
+			for(const auto& id_range : id_ranges)
 			{
-				for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
+				for(auto i = id_range.first; i < id_range.second; ++i)
 				{
 					const entity& e{*ent_it};
-					indices.emplace_back(id_range);
-					entityMap[e].emplace_back(key, id_range);
-					++id_range;
-				}
-			}
-			else
-			{
-				for(auto ent_it = std::begin(ent_cpy); ent_it != std::end(ent_cpy); ++ent_it)
-				{
-					const entity& e{*ent_it};
-					auto index = componentInfo.generator.CreateID().second;
-					indices.emplace_back(index);
-					entityMap[e].emplace_back(key, index);
+					indices.emplace_back(i);
+					entityMap[e].emplace_back(key, i);
+					ent_it = std::next(ent_it);
 				}
 			}
 

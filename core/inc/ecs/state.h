@@ -15,7 +15,7 @@
 #include "component_info.h"
 #include "state_operations.h"
 #include "template_utils.h"
-
+#include "memory/region.h"
 namespace psl::async
 {
 	class scheduler;
@@ -335,7 +335,7 @@ namespace core::ecs
 			auto& cInfo{details::get_component_info(key, component_size, m_Components)};
 
 			uint64_t component_location{0};
-			if(component_size == 1)
+			if(component_size == 0)
 			{
 				std::vector<entity> merged_set;
 				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities),
@@ -346,8 +346,8 @@ namespace core::ecs
 					m_EntityMap[e].emplace_back(std::pair<component_key_t, size_t>{key, component_location});
 				}
 			}
-			else if((entities.size() == 1 && cInfo.generator.CreateID(component_location)) ||
-					cInfo.generator.CreateRangeID(component_location, entities.size()))
+			else if((entities.size() == 1 && cInfo.generator.try_create(component_location)) ||
+					cInfo.generator.try_create(component_location, entities.size()))
 			{
 				std::vector<entity> merged_set;
 				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities),
@@ -387,7 +387,7 @@ namespace core::ecs
 		}
 		void destroy_component_generator_ids(details::component_info& cInfo, psl::array_view<entity> entities);
 
-	  public:
+	  private:
 		// -----------------------------------------------------------------------------
 		// add component
 		// -----------------------------------------------------------------------------
@@ -411,7 +411,7 @@ namespace core::ecs
 		{
 			return add_component(entities, core::ecs::empty<T>{});
 		}
-
+	public:
 		template <typename... Ts>
 		void add_components(psl::array_view<entity> entities, Ts&&... args) noexcept
 		{
@@ -1057,7 +1057,7 @@ namespace core::ecs
 			details::key_value_container_t<component_key_t, std::vector<entity>> removed_components;
 		};
 
-		memory::raw_region m_Region;
+		//memory::region m_Region{1024* 1024* 1024, 4};
 		psl::async::scheduler* m_Scheduler{nullptr};
 		std::array<difference_set, 2> m_StateChange;
 		size_t m_Tick{0};

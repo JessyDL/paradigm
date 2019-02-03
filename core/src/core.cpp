@@ -811,7 +811,7 @@ int entry()
 							  (float)(std::rand() % size_steps) / size_steps,
 							  (float)(std::rand() % size_steps) / size_steps)};
 			}*/,
-			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 8.0f}; },
+			[](size_t index) { return core::ecs::components::lifetime{0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
 			[&size_steps](size_t index) {
 				return core::ecs::components::velocity{
 					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,

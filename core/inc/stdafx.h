@@ -55,7 +55,7 @@
 
 #include "ecs/ecs.hpp"
 
-#if defined(DEBUG) && defined(PLATFORM_WINDOWS)
+#if defined(PLATFORM_WINDOWS)
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>
 #include <crtdbg.h>

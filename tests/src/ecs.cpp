@@ -58,11 +58,11 @@ TEST_CASE("filtering", "[ECS]")
 
 	SECTION("only the first 100 are given all components")
 	{
-		state.add_component<float>(e_list1);
-		state.add_component<bool>(e_list1);
-		state.add_component<int>(e_list1);
-		state.add_component<char>(e_list1);
-		state.add_component<std::byte>(e_list1);
+		state.add_components<float>(e_list1);
+		state.add_components<bool>(e_list1);
+		state.add_components<int>(e_list1);
+		state.add_components<char>(e_list1);
+		state.add_components<std::byte>(e_list1);
 
 		auto f = state.filter<float, bool, int, char, std::byte>();
 		REQUIRE(f == e_list1);
@@ -70,12 +70,12 @@ TEST_CASE("filtering", "[ECS]")
 
 	SECTION("500 are given two component types and 100 are given 3 component types where 2 overlap")
 	{
-		state.add_component<int>(e_list1);
-		state.add_component<char>(e_list1);
-		state.add_component<bool>(e_list1);
+		state.add_components<int>(e_list1);
+		state.add_components<char>(e_list1);
+		state.add_components<bool>(e_list1);
 
-		state.add_component<char>(e_list3);
-		state.add_component<bool>(e_list3);
+		state.add_components<char>(e_list3);
+		state.add_components<bool>(e_list3);
 
 
 		auto f = state.filter<float, bool, int, char, std::byte>();
@@ -103,8 +103,8 @@ TEST_CASE("systems", "[ECS]")
 	auto e_list3{ state.create(50) };
 
 
-	state.add_component<float>(e_list1);
-	state.add_component<int>(e_list1);
+	state.add_components<float>(e_list1);
+	state.add_components<int>(e_list1);
 
 
 	float_system fl_system{state};

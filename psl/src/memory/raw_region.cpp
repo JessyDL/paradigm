@@ -20,9 +20,8 @@ raw_region::raw_region(uint64_t size)
 		GetSystemInfo(&sSysInfo);     // Initialize the structure.
 		m_PageSize = sSysInfo.dwPageSize;
 
-		uint64_t pages = (size + (size % m_PageSize)) / m_PageSize;
-		pages = (pages == 0u) ? 1u : pages;
-		m_Size = pages * m_PageSize;
+		m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
+
 		m_Base = (void*)VirtualAlloc(
 			NULL,                 // System selects address
 			m_Size,					// Size of allocation
@@ -38,10 +37,7 @@ raw_region::raw_region(uint64_t size)
 #else
 		m_PageSize = sysconf(_SC_PAGE_SIZE);
 
-		uint64_t pages = (size + (size % m_PageSize)) / m_PageSize;
-		pages = (pages == 0u) ? 1u : pages;
-
-		m_Size = m_PageSize * pages;
+		m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
 
 		auto addr = mmap(NULL, m_Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		if(addr == MAP_FAILED)

@@ -49,15 +49,13 @@ region::region(uint64_t size, uint64_t alignment, allocator_base* allocator)
 		GetSystemInfo(&sSysInfo); // Initialize the structure.
 		m_PageSize = sSysInfo.dwPageSize;
 
-		uint64_t pages = (size + (size % m_PageSize)) / m_PageSize;
-		pages		   = (pages == 0u) ? 1u : pages;
-		m_Size		   = pages * m_PageSize;
+		m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
 		m_Base		   = VirtualAlloc(NULL,			  // System selects address
 							  m_Size,		  // Size of allocation
 							  MEM_RESERVE,	// Allocate reserved pages
 							  PAGE_NOACCESS); // Protection = no access
 
-		m_PageState.resize(pages);
+		m_PageState.resize(m_Size / m_PageSize);
 
 		if(m_Base == nullptr)
 		{
@@ -67,10 +65,7 @@ region::region(uint64_t size, uint64_t alignment, allocator_base* allocator)
 #else
 		m_PageSize = sysconf(_SC_PAGE_SIZE);
 
-		uint64_t pages = (size + (size % m_PageSize)) / m_PageSize;
-		pages		   = (pages == 0u) ? 1u : pages;
-
-		m_Size = m_PageSize * pages;
+		m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
 
 		auto addr = mmap(NULL, m_Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
 		if(addr == MAP_FAILED)

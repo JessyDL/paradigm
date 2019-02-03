@@ -45,7 +45,7 @@ TEST_CASE("memory", "[memory]")
 	REQUIRE(physically_backed == region.allocator()->is_physically_backed());
 	REQUIRE(alignment == region.alignment());
 
-	auto index		= GENERATE(range(0, 2));
+	auto index		= GENERATE(0, 1, 2);
 	const auto& set = size_set[index];
 	SECTION("allocations/deallocations - sequential")
 	{

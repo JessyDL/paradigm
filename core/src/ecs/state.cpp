@@ -63,6 +63,8 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	{
 		if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
 		{
+			if(cMapIt->second.is_tag())
+				continue;
 			if(c.second.size() > 64)
 			{
 				std::sort(std::begin(c.second), std::end(c.second));
@@ -74,16 +76,16 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 					auto next = std::next(index, 1);
 					if(*index + 1 != *next)
 					{
-						cMapIt->second.generator.DestroyRangeID(*range_start, std::distance(range_start, next));
+						cMapIt->second.generator.destroy(*range_start, std::distance(range_start, next));
 						range_start = next;
 					}
 					index = next;
 				}
-				cMapIt->second.generator.DestroyRangeID(*range_start, std::distance(range_start, std::end(c.second)));
+				cMapIt->second.generator.destroy(*range_start, std::distance(range_start, std::end(c.second)));
 			}
 			else
 			{
-				for(auto id : c.second) cMapIt->second.generator.DestroyID(id);
+				for(auto id : c.second) cMapIt->second.generator.destroy(id);
 			}
 		}
 	}
@@ -352,7 +354,7 @@ void state::set(psl::array_view<entity> entities, void* data, size_t size, compo
 {
 	if(entities.size() == 0) return;
 	const auto& mem_pair = m_Components.find(id);
-	if(mem_pair->second.size == 1) return;
+	if(mem_pair->second.is_tag()) return;
 	std::uintptr_t data_loc = (std::uintptr_t)data;
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
@@ -474,15 +476,15 @@ void state::destroy_component_generator_ids(details::component_info& cInfo, psl:
 	{
 		if(auto it = m_EntityMap.find(e); it != std::end(m_EntityMap))
 		{
-			auto pair = std::remove_if(
+			auto pair = std::find_if(
 				std::begin(it->second), std::end(it->second),
 				[&cInfo](const std::pair<component_key_t, size_t>& pair) { return pair.first == cInfo.id; });
 			if(pair == std::end(it->second)) continue;
 			IDs.emplace_back(pair->second);
-			it->second.erase(pair, std::end(it->second));
+			it->second.erase(pair);
 		}
 	}
-	if(IDs.size() == 0) return;
+	if(IDs.size() == 0 || cInfo.is_tag()) return;
 	std::sort(std::begin(IDs), std::end(IDs));
 	size_t cachedStartIndex = IDs[0];
 	size_t cachedPrevIndex  = IDs[0];
@@ -491,13 +493,15 @@ void state::destroy_component_generator_ids(details::component_info& cInfo, psl:
 		++cachedPrevIndex;
 		if(IDs[i] != cachedPrevIndex)
 		{
-			cInfo.generator.DestroyRangeID(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
+			cInfo.generator.destroy(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
 
 			cachedPrevIndex  = IDs[i];
 			cachedStartIndex = IDs[i];
 		}
 	}
-	cInfo.generator.DestroyRangeID(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
+	if(cachedStartIndex == cachedPrevIndex)
+		cachedPrevIndex += 1;
+	cInfo.generator.destroy(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
 }
 
 void state::execute_command_buffer(command_buffer& cmds)
