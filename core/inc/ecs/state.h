@@ -346,8 +346,7 @@ namespace core::ecs
 					m_EntityMap[e].emplace_back(std::pair<component_key_t, size_t>{key, component_location});
 				}
 			}
-			else if((entities.size() == 1 && cInfo.generator.try_create(component_location)) ||
-					cInfo.generator.try_create(component_location, entities.size()))
+			else if(cInfo.generator.try_create(component_location, entities.size()))
 			{
 				std::vector<entity> merged_set;
 				std::set_union(std::begin(cInfo.entities), std::end(cInfo.entities), std::begin(entities),

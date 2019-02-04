@@ -104,18 +104,21 @@ namespace psl
 		std::vector<std::pair<T, T>> create_multi(T count = 1)
 		{
 			std::vector<std::pair<T, T>> result{};
-			auto i = 0;
-			for(auto &r : m_FreeRanges)
+			for(auto i = 0; i < m_FreeRanges.size();)
 			{
+				auto& r = m_FreeRanges[i];
 				auto consume = std::min(r.size(), count);
 				count -= consume;
 
 				result.emplace_back(std::pair<T, T>{r.first, r.first + consume});
 				r.first += consume;
-				if(r.size() == 0) m_FreeRanges.erase(std::next(std::begin(m_FreeRanges), i));
+				if(r.size() == 0) 
+					m_FreeRanges.erase(std::next(std::begin(m_FreeRanges), i));
+				else
+					++i;
+
 				if(count == 0)
 					break;
-				++i;
 			}
 			if(count > 0)
 			{
