@@ -96,9 +96,10 @@ target_include_directories(${LOCAL_PROJECT}
 endif()
 
 if(LINUX)
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC libc++experimental.a)
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC libc++experimental.a ${CMAKE_THREAD_LIBS_INIT})
+else()
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${CMAKE_THREAD_LIBS_INIT})
 endif()
-target_link_libraries (${LOCAL_PROJECT} ${CMAKE_THREAD_LIBS_INIT})
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
