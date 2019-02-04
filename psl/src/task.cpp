@@ -177,3 +177,10 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 
 	return res;
 }
+
+
+
+void scheduler::enforce_sequential(std::vector<token_t> tokens) noexcept
+{
+
+}
