@@ -116,6 +116,13 @@ namespace psl
 					break;
 				++i;
 			}
+			if(count > 0)
+			{
+				for(auto& r : result)
+					destroy(r.first, r.second - r.first);
+
+				throw std::runtime_error("out of available ID's");
+			}
 			return result;
 		}
 
@@ -163,7 +170,7 @@ namespace psl
 			for(size_t i = ((index > size_t{0})?index - size_t{1}:index); i < ((m_FreeRanges.size() > index + size_t{1})?index + size_t{1}: index); )
 			{
 				if(m_FreeRanges.size() <= i+1)
-					continue;
+					break;
 				if(m_FreeRanges[i].last == m_FreeRanges[i+1].first)
 				{
 					m_FreeRanges[i].last = m_FreeRanges[i + 1].last;
