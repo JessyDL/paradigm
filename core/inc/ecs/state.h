@@ -16,6 +16,8 @@
 #include "state_operations.h"
 #include "template_utils.h"
 #include "memory/region.h"
+#include "command_buffer.h"
+
 namespace psl::async
 {
 	class scheduler;
