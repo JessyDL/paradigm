@@ -77,9 +77,9 @@ if(VS_USE_NATVIS)
 	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/nvs" PREFIX "natvis" FILES ${NATVIS}) 
 endif()
 
+find_package (Threads)
 
 add_library(${LOCAL_PROJECT} STATIC ${INC} ${SRC} ${NATVIS})
-
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
@@ -98,6 +98,7 @@ endif()
 if(LINUX)
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC libc++experimental.a)
 endif()
+target_link_libraries (${LOCAL_PROJECT} ${CMAKE_THREAD_LIBS_INIT})
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
