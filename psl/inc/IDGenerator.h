@@ -80,6 +80,7 @@ namespace psl
 
 		T create(T count = 1)
 		{
+			if(count == 0)  throw std::runtime_error("there should be at least 1 ID created");
 			if(m_FreeRanges.size() == 0) throw std::runtime_error("out of available ID's");
 
 			auto i = 0;
@@ -128,7 +129,7 @@ namespace psl
 
 		bool try_create(T& out, T count = 1)
 		{
-			if(m_FreeRanges.size() == 0) 
+			if(m_FreeRanges.size() == 0 || count == 0)
 			{
 				return false;
 			}
@@ -153,6 +154,8 @@ namespace psl
 
 		bool destroy(T id, T count = 1)
 		{
+			if(count == 0)
+				return false;
 			range r{id, id + count};
 			auto insert_loc = std::upper_bound(std::begin(m_FreeRanges), std::end(m_FreeRanges), r);
 
@@ -162,27 +165,20 @@ namespace psl
 				return false;
 			}
 
-			auto it = m_FreeRanges.insert(insert_loc, r);
+			size_t index = std::distance(std::begin(m_FreeRanges), m_FreeRanges.insert(insert_loc, r));
 
-			size_t index = std::distance(std::begin(m_FreeRanges), it);
-
-	
-			for(size_t i = ((index > size_t{0})?index - size_t{1}:index); i < ((m_FreeRanges.size() > index + size_t{1})?index + size_t{1}: index); )
+			for(size_t i = ((index > 0) ? index - 1 : index), end = std::min(index + 1, m_FreeRanges.size()); i < end; )
 			{
-				if(m_FreeRanges.size() <= i+1)
+				if(m_FreeRanges.size() <= i + 1)
 					break;
-				if(m_FreeRanges[i].last == m_FreeRanges[i+1].first)
+				if(m_FreeRanges[i].last == m_FreeRanges[i + 1].first)
 				{
 					m_FreeRanges[i].last = m_FreeRanges[i + 1].last;
-					m_FreeRanges.erase(std::next(std::begin(m_FreeRanges), i + size_t{1}));
-
-					if(m_FreeRanges.size() == 1)
-						break;
+					m_FreeRanges.erase(std::next(std::begin(m_FreeRanges), i + 1));
 					continue;
 				}
 				++i;
 			}
-
 			return true;
 		}
 
