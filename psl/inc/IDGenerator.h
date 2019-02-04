@@ -206,7 +206,7 @@ namespace psl
 				if(range.size() > r.size())
 					r = range;
 			}
-			return range;
+			return r;
 		}
 
 	};
