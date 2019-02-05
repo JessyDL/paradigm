@@ -346,6 +346,7 @@ namespace psl::async
 			details::task_base* task{nullptr};
 			std::vector<barrier> barriers{};
 			std::vector<token_t> tokens{};
+			std::vector<token_t> blockers{};
 		};
 
 
@@ -414,37 +415,13 @@ namespace psl::async
 			return std::pair{ret.first->first, task.future()};
 		}
 
-		void dependency(token_t token, barrier&& barrier) noexcept
-		{
-			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
-			{
-				it->second.barriers.emplace_back(std::move(barrier));
-			}
-		}
+		void dependency(token_t token, barrier&& barrier) noexcept;
 
-		void dependency(token_t token, std::vector<barrier>&& barriers) noexcept
-		{
-			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
-			{
-				std::move(std::begin(barriers), std::end(barriers), std::back_inserter(it->second.barriers));
-			}
-		}
+		void dependency(token_t token, std::vector<barrier>&& barriers) noexcept;
 
-		void dependency(token_t token, token_t other) noexcept
-		{
-			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
-			{
-				it->second.tokens.emplace_back(other);
-			}
-		}
+		void dependency(token_t token, token_t other) noexcept;
 
-		void dependency(token_t token, std::vector<token_t>&& other) noexcept
-		{
-			if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
-			{
-				std::move(std::begin(other), std::end(other), std::back_inserter(it->second.tokens));
-			}
-		}
+		void dependency(token_t token, std::vector<token_t>&& other) noexcept;
 
 		/// \brief signifies which tasks cannot run in parallel
 		///

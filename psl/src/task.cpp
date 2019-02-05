@@ -19,10 +19,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 		enqueued_task(scheduler::description description, token_t token, size_t heuristic)
 			: description(description), token(token), heuristic(heuristic){};
 
-		~enqueued_task()
-		{ 
-
-		}
+		~enqueued_task() {}
 
 		enqueued_task(enqueued_task&& other) = default;
 		enqueued_task& operator=(enqueued_task&& other) = default;
@@ -75,17 +72,23 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 						 psl::array_view<std::optional<enqueued_task>> inflight_tasks,
 						 const std::vector<barrier>& barriers) -> bool {
 		const auto& description = task.description;
-		return (std::any_of(std::begin(description.tokens), std::end(description.tokens),
-							[&](token_t t) {
-								return std::find_if(std::begin(preceding_tasks), std::end(preceding_tasks),
-													[t](const enqueued_task& pre_task) {
-														return pre_task.token == t;
-													}) != std::end(preceding_tasks) ||
-									   std::find_if(std::begin(inflight_tasks), std::end(inflight_tasks),
-													[t](const std::optional<enqueued_task>& inflight_task) {
-														return inflight_task.has_value() &&
-															   inflight_task.value().token == t;
-													}) != std::end(inflight_tasks);
+		return (std::any_of(std::begin(inflight_tasks), std::end(inflight_tasks),
+							[&description](const std::optional<enqueued_task>& enqueued) {
+								return enqueued &&
+									   (std::any_of(std::begin(description.blockers), std::end(description.blockers),
+													[inflight_token = enqueued.value().token](token_t t) {
+														return inflight_token == t;
+													}) ||
+										std::any_of(std::begin(description.tokens), std::end(description.tokens),
+													[inflight_token = enqueued.value().token](token_t t) {
+														return inflight_token == t;
+													}));
+							}) ||
+				std::any_of(std::begin(preceding_tasks), std::end(preceding_tasks),
+							[&description](const enqueued_task& pre_task) {
+								return std::any_of(
+									std::begin(description.tokens), std::end(description.tokens),
+									[inflight_token = pre_task.token](token_t t) { return inflight_token == t; });
 							}) ||
 
 				std::any_of(std::begin(description.barriers), std::end(description.barriers),
@@ -113,7 +116,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 
 		tasklist.clear();
 
-		std::vector< details::task_base*> finalized_tasks;
+		std::vector<details::task_base*> finalized_tasks;
 		while(enqueued_tasks.size() > 0)
 		{
 			for(size_t i = 0; i < scheduled.size(); ++i)
@@ -178,9 +181,49 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 	return res;
 }
 
+void scheduler::dependency(token_t token, barrier&& barrier) noexcept
+{
+	if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+	{
+		it->second.barriers.emplace_back(std::move(barrier));
+	}
+}
 
+void scheduler::dependency(token_t token, std::vector<barrier>&& barriers) noexcept
+{
+	if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+	{
+		std::move(std::begin(barriers), std::end(barriers), std::back_inserter(it->second.barriers));
+	}
+}
+
+void scheduler::dependency(token_t token, token_t other) noexcept
+{
+	if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+	{
+		it->second.tokens.emplace_back(other);
+	}
+}
+
+void scheduler::dependency(token_t token, std::vector<token_t>&& other) noexcept
+{
+	if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+	{
+		std::move(std::begin(other), std::end(other), std::back_inserter(it->second.tokens));
+	}
+}
 
 void scheduler::enforce_sequential(std::vector<token_t> tokens) noexcept
 {
-
+	for(auto token : tokens)
+	{
+		if(auto it = m_TaskList.find(token); it != std::end(m_TaskList))
+		{
+			auto size = it->second.blockers.size();
+			it->second.blockers.insert(std::end(it->second.blockers), std::begin(tokens), std::end(tokens));
+			it->second.blockers.erase(
+				std::remove(std::next(std::begin(it->second.blockers), size), std::end(it->second.blockers), it->first),
+				std::end(it->second.blockers));
+		}
+	}
 }

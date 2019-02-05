@@ -11,6 +11,11 @@
 #undef far
 #endif
 
+constexpr std::size_t operator "" _sz(unsigned long long n)
+{
+	return n;
+}
+
 namespace psl
 {
 
@@ -97,6 +102,13 @@ namespace psl::math
 	constexpr static precision_t distance(const tvec<precision_t, dimensions>& vec1, const tvec<precision_t, dimensions>& vec2) noexcept
 	{
 		return psl::math::magnitude(vec1 - vec2);
+	}
+
+
+	template <typename precision_t>
+	constexpr static precision_t floor(precision_t value) noexcept
+	{
+		return std::floor(value);
 	}
 } // namespace psl::math
 

@@ -4,7 +4,8 @@
 #include "ecs/command_buffer.h"
 #include <future>
 #include "task.h"
-
+#include "platform_def.h"
+#include "math/math.hpp"
 using namespace core::ecs;
 
 details::owner_dependency_pack details::owner_dependency_pack::slice(size_t begin, size_t end) const noexcept
@@ -191,8 +192,8 @@ std::vector<std::vector<details::owner_dependency_pack>> slice(std::vector<detai
 	{
 		if(dep_pack.allow_partial() && dep_pack.entities() > count)
 		{
-			auto batch_size = std::floor(dep_pack.entities() / count);
-			auto processed  = 0;
+			auto batch_size = dep_pack.entities() / count;
+			size_t processed  = 0_sz;
 			for(auto i = 0; i < count - 1; ++i)
 			{
 				res[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
