@@ -76,7 +76,7 @@ void setup_loggers()
 	if(!utility::platform::file::exists(utility::application::path::get_path() + sub_path + "main.log"))
 		utility::platform::file::write(utility::application::path::get_path() + sub_path + "main.log", "");
 	std::vector<spdlog::sink_ptr> sinks;
-	auto mainlogger = std::make_shared < spdlog::sinks::basic_file_sink_mt > (
+	auto mainlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "main.log", true);
 	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	outlogger->set_level(spdlog::level::level_enum::warn);
@@ -101,7 +101,7 @@ void setup_loggers()
 		utility::application::path::get_path() + sub_path + "core.log", true);
 
 	sinks.push_back(mainlogger);
-	//sinks.push_back(outlogger);
+	// sinks.push_back(outlogger);
 	sinks.push_back(corelogger);
 
 	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
@@ -111,7 +111,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	//sinks.push_back(outlogger);
+	// sinks.push_back(outlogger);
 	sinks.push_back(systemslogger);
 
 	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
@@ -120,7 +120,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	//sinks.push_back(outlogger);
+	// sinks.push_back(outlogger);
 	sinks.push_back(oslogger);
 
 	auto os_logger = std::make_shared<spdlog::logger>("os", begin(sinks), end(sinks));
@@ -129,7 +129,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	//sinks.push_back(outlogger);
+	// sinks.push_back(outlogger);
 	sinks.push_back(datalogger);
 
 	auto data_logger = std::make_shared<spdlog::logger>("data", begin(sinks), end(sinks));
@@ -138,7 +138,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	//sinks.push_back(outlogger);
+	// sinks.push_back(outlogger);
 	sinks.push_back(gfxlogger);
 
 	auto gfx_logger = std::make_shared<spdlog::logger>("gfx", begin(sinks), end(sinks));
@@ -147,7 +147,7 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	//sinks.push_back(outlogger);
+	// sinks.push_back(outlogger);
 	sinks.push_back(ivklogger);
 
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
@@ -187,7 +187,9 @@ namespace core::systems
 		}
 
 	  public:
-		explicit renderer(cache* cache) : m_Cache(cache), deviceIndex(lock(0)), m_Thread(&core::systems::renderer::main, this) {}
+		explicit renderer(cache* cache)
+			: m_Cache(cache), deviceIndex(lock(0)), m_Thread(&core::systems::renderer::main, this)
+		{}
 		~renderer();
 		renderer(renderer&& other) = delete;
 		renderer& operator=(renderer&& other) = delete;
@@ -308,8 +310,8 @@ core::systems::renderer* init(size_t views = 1)
 {
 	psl::string libraryPath{utility::application::path::library + _T("resources.metalib"_sv)};
 
-	cache* cache = new core::resource::cache(psl::meta::library{psl::from_string8_t(libraryPath)}, 1024u * 1024u * 20u, 4u,
-											 new memory::default_allocator());
+	cache* cache = new core::resource::cache(psl::meta::library{psl::from_string8_t(libraryPath)}, 1024u * 1024u * 20u,
+											 4u, new memory::default_allocator());
 
 	auto window_data = create_shared<data::window>(*cache, UID::convert("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"));
 	window_data.load();
@@ -600,7 +602,7 @@ int entry()
 
 	// load the example model
 	// auto geomData = create<data::geometry>(cache, UID::convert("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"));
-	//auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
+	// auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
 	auto geomData = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
 	geomData.load();
 	auto& positionstream =
@@ -638,30 +640,30 @@ int entry()
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
 	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
 	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
-	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12,8));
+	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
 	for(auto& handle : geometryDataHandles)
 	{
 		handle.load();
 		auto& positionstream =
 			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
 		core::stream colorstream{core::stream::type::vec3};
-		auto& colors = colorstream.as_vec3().value().get();
-		const float range = 1.0f;
+		auto& colors			  = colorstream.as_vec3().value().get();
+		const float range		  = 1.0f;
 		const bool inverse_colors = false;
 		for(auto i = 0; i < positionstream.size(); ++i)
 		{
 			if(inverse_colors)
 			{
-				float red = std::max(-range, std::min(range, positionstream[i][0])) / range;
+				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
 				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-				float blue = std::max(-range, std::min(range, positionstream[i][2])) / range;
+				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
 				colors.emplace_back(psl::vec3(red, green, blue));
 			}
 			else
 			{
-				float red = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
 				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-				float blue = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
 				colors.emplace_back(psl::vec3(red, green, blue));
 			}
 		}
@@ -669,9 +671,8 @@ int entry()
 		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
 
 		geometryHandles.emplace_back(create<gfx::geometry>(cache));
-		geometryHandles[geometryHandles.size() -1].load(context_handle, handle, geomBuffer, geomBuffer);
+		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, geomBuffer, geomBuffer);
 	}
-
 
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
@@ -683,10 +684,8 @@ int entry()
 		if(surface_handle) surface_handle->terminate();
 		return -1;
 	}
-	auto vertShaderMeta =
-		cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-	auto fragShaderMeta =
-		cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
 	// create the material buffer and instance buffer
 	auto matBufferData = create<data::buffer>(cache);
@@ -745,7 +744,7 @@ int entry()
 	matData2->stages(stages);
 	psl::serialization::serializer s;
 	s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
-												 utility::application::path::get_path() + "material_example.mat");
+													  utility::application::path::get_path() + "material_example.mat");
 
 	auto material = create<gfx::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer, geomBuffer);
@@ -757,14 +756,13 @@ int entry()
 	core::ecs::state ECSState{};
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
-	auto eCam = ECSState.create_one(std::move(camTrans),
-									core::ecs::empty<core::ecs::components::camera>{},
+	auto eCam		  = ECSState.create_one(std::move(camTrans), core::ecs::empty<core::ecs::components::camera>{},
 									core::ecs::empty<core::ecs::components::input_tag>{});
 
 	const size_t area			  = 128;
 	const size_t area_granularity = 128;
 	const size_t size_steps		  = 24;
-	
+
 
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
@@ -776,6 +774,25 @@ int entry()
 	ECSState.declare(core::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
+	ECSState.create(
+		50,
+		[&material, &geometryHandles, &material2](size_t index)
+		{
+			return core::ecs::components::renderable{(std::rand() % 2 == 0) ? material : material2,
+													 geometryHandles[std::rand() % geometryHandles.size()], 0u};
+		},
+		core::ecs::empty<core::ecs::components::transform>{},
+			[](size_t index) { return core::ecs::components::lifetime{0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
+			[&size_steps](size_t index)
+		{
+			return core::ecs::components::velocity{
+				psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+											   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+											   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
+				((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
+		});
+
+	size_t iterations										 = 256;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
 	{
@@ -785,32 +802,16 @@ int entry()
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
 		ECSState.tick(elapsed);
-		core::log->info("ECS has {} renderables alive right now", ECSState.filter<core::ecs::components::renderable>().size());
+		core::log->info("ECS has {} renderables alive right now",
+						ECSState.filter<core::ecs::components::renderable>().size());
 
-		/*auto all_geom = ECSState.filter<core::ecs::components::renderable, core::ecs::components::transform>();
-		core::log->info("ECS has {} renderables alive right now", all_geom.size());
-		std::vector<core::ecs::entity> to_delete;
-		for(size_t x = 0; x < std::min(size_t{1200}, all_geom.size()); ++x)
-		{
-			to_delete.emplace_back(all_geom[std::rand() % all_geom.size()]);
-		}
-		all_geom = std::move(to_delete);
-		ECSState.destroy(all_geom);
-		*/
-		ECSState.create(
-			500, 
-			[&material, &geometryHandles, &material2](size_t index)
-			{ 
-				return core::ecs::components::renderable{(std::rand() % 2  == 0)?material:material2, geometryHandles[std::rand() % geometryHandles.size()], 0u};
+		/*ECSState.create(
+			(iterations > 0) ? 500 : (std::rand()% 100 == 0)?1:0,
+			[&material, &geometryHandles, &material2](size_t index) {
+				return core::ecs::components::renderable{(std::rand() % 2 == 0) ? material : material2,
+														 geometryHandles[std::rand() % geometryHandles.size()], 0u};
 			},
-			core::ecs::empty<core::ecs::components::transform>{}/*
-			[&size_steps](size_t index) {
-				return core::ecs::components::transform{
-					psl::vec3(0, 0, 0),
-					psl::vec3((float)(std::rand() % size_steps) / size_steps,
-							  (float)(std::rand() % size_steps) / size_steps,
-							  (float)(std::rand() % size_steps) / size_steps)};
-			}*/,
+			core::ecs::empty<core::ecs::components::transform>{},
 			[](size_t index) { return core::ecs::components::lifetime{0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
 			[&size_steps](size_t index) {
 				return core::ecs::components::velocity{
@@ -819,27 +820,37 @@ int entry()
 												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
 					((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 			});
-
-		if(ECSState.filter<core::ecs::components::attractor>().size() < 2)
+*/
+		if(iterations > 0)
 		{
-		ECSState.create(
-			2,
-			[](size_t index) { return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
-			[&size_steps](size_t index) { return core::ecs::components::attractor{(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f, (float)(std::rand() % size_steps) / size_steps * 80}; },
-			[&area_granularity, &area, &size_steps](size_t index)
+			if(ECSState.filter<core::ecs::components::attractor>().size() < 2)
 			{
-				return core::ecs::components::transform{
-					psl::vec3((float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-								  (area / 2.0f),
-							  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-								  (area / 2.0f),
-							  (float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-								  (area / 2.0f)),
+				ECSState.create(
+					2,
+					[](size_t index) {
+						return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f};
+					},
+					[&size_steps](size_t index) {
+						return core::ecs::components::attractor{(float)(std::rand() % size_steps) / size_steps * 3 +
+																	0.5f,
+																(float)(std::rand() % size_steps) / size_steps * 80};
+					},
+					[&area_granularity, &area, &size_steps](size_t index) {
+						return core::ecs::components::transform{
+							psl::vec3(
+								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+									(area / 2.0f),
+								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+									(area / 2.0f),
+								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+									(area / 2.0f)),
 
-					psl::vec3((float)(std::rand() % size_steps) / size_steps,
-							  (float)(std::rand() % size_steps) / size_steps,
-							  (float)(std::rand() % size_steps) / size_steps)};
-			});
+							psl::vec3((float)(std::rand() % size_steps) / size_steps,
+									  (float)(std::rand() % size_steps) / size_steps,
+									  (float)(std::rand() % size_steps) / size_steps)};
+					});
+			}
+			--iterations;
 		}
 	}
 

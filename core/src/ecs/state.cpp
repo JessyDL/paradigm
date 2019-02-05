@@ -37,10 +37,10 @@ state::state() : m_Scheduler(new psl::async::scheduler()) {}
 
 state::~state() { delete(m_Scheduler); }
 
-void state::destroy(psl::array_view<entity> entities) noexcept
+void state::destroy_immediate(psl::array_view<entity> entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)
-	if(entities.size() == 0) return;
+		if(entities.size() == 0) return;
 
 	psl::bytell_map<component_key_t, std::vector<entity>> erased_entities;
 	psl::bytell_map<component_key_t, std::vector<uint64_t>> erased_ids;
@@ -49,7 +49,7 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	{
 		if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 		{
-			for(const auto& [type, index] : eMapIt->second)
+			for(const auto&[type, index] : eMapIt->second)
 			{
 				erased_entities[type].emplace_back(e);
 				erased_ids[type].emplace_back(index);
@@ -64,14 +64,13 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	{
 		if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
 		{
-			if(cMapIt->second.is_tag())
-				continue;
+			if(cMapIt->second.is_tag()) continue;
 			if(c.second.size() > 64)
 			{
 				std::sort(std::begin(c.second), std::end(c.second));
-				auto index		 = std::begin(c.second);
+				auto index = std::begin(c.second);
 				auto range_start = index;
-				const auto end   = std::prev(std::end(c.second), 1);
+				const auto end = std::prev(std::end(c.second), 1);
 				while(index != end)
 				{
 					auto next = std::next(index, 1);
@@ -98,9 +97,10 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 		if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
 		{
 			std::sort(std::begin(c.second), std::end(c.second));
-			auto ib   = std::begin(c.second);
+			auto ib = std::begin(c.second);
 			auto iter = std::remove_if(std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
-									   [&ib, &c](entity x) -> bool {
+									   [&ib, &c](entity x) -> bool
+									   {
 										   while(ib != std::end(c.second) && *ib < x) ++ib;
 										   return (ib != std::end(c.second) && *ib == x);
 									   });
@@ -111,6 +111,37 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	core::profiler.scope_end();
 	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities),
 															std::begin(entities), std::end(entities));
+}
+
+
+void state::destroy_immediate(component_key_t key, psl::array_view<entity> entities) noexcept
+{
+	if(entities.size() == 0) return;
+	auto compIt = m_Components.find(key);
+	if(compIt == std::end(m_Components)) return;
+
+	destroy_component_generator_ids(compIt->second, entities);
+}
+
+void state::destroy(psl::array_view<entity> entities) noexcept
+{
+	details::key_value_container_t<component_key_t, std::vector<entity>> map;
+
+	for(auto e : entities)
+	{
+		if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
+		{
+			for(const auto& pair : eIt->second)
+			{
+				map[pair.first].emplace_back(e);
+			}
+		}
+	}
+
+	for(const auto& [key, entities] : map)
+		remove_components({key}, entities);
+
+	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities), std::begin(entities), std::end(entities));
 }
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
@@ -187,13 +218,18 @@ std::vector<std::vector<details::owner_dependency_pack>> slice(std::vector<detai
 															   size_t count)
 {
 	std::vector<std::vector<details::owner_dependency_pack>> res;
+
+	bool can_split = std::any_of(std::begin(source), std::end(source), [count](const auto& dep_pack) {
+		return dep_pack.allow_partial() && dep_pack.entities() > count;
+	});
+	count		   = (can_split) ? count : 1;
 	res.resize(count);
 	for(auto& dep_pack : source)
 	{
 		if(dep_pack.allow_partial() && dep_pack.entities() > count)
 		{
-			auto batch_size = dep_pack.entities() / count;
-			size_t processed  = 0_sz;
+			auto batch_size  = dep_pack.entities() / count;
+			size_t processed = 0_sz;
 			for(auto i = 0; i < count - 1; ++i)
 			{
 				res[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
@@ -247,70 +283,35 @@ std::vector<command_buffer> state::prepare_system(std::chrono::duration<float> d
 	bool has_partial =
 		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
 
-	core::profiler.scope_begin("fill_in system data");
-	for(auto& dep_pack : pack)
-	{
-		auto entities = filter(dep_pack);
-		if(entities.size() == 0) continue;
-		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-		dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
-			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
-
-		cache_offset += sizeof(entity) * entities.size();
-
-		cache_offset += prepare_bindings(entities, cache, cache_offset, dep_pack);
-	}
-
-	core::profiler.scope_end();
-	core::profiler.scope_begin("invoke system");
-
 	std::vector<command_buffer> commands;
 	if(has_partial && system.threading == threading::par)
 	{
-		auto multi_pack = slice(pack, m_Scheduler->workers());
-		/*std::vector<std::vector<details::owner_dependency_pack>> multi_pack;
-		multi_pack.resize(m_Scheduler->workers());
-
-		size_t pack_index = 0;
 		for(auto& dep_pack : pack)
 		{
-
+			core::profiler.scope_begin("filtering");
 			auto entities = filter(dep_pack);
-			if(entities.size() == 0)
-			{
-				for(auto i = 0; i < multi_pack.size(); ++i) multi_pack[i].emplace_back(dep_pack);
-				continue;
-			}
+			core::profiler.scope_end();
+			if(entities.size() == 0) continue;
+			core::profiler.scope_begin("copy");
+			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+			dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
+				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
 
-			size_t processed = 0;
-			for(auto i = 0; i < multi_pack.size(); ++i)
-			{
-				size_t element_size = dep_pack.size_per_element();
-				auto batch_size = std::floor(entities.size() / multi_pack.size());
-				size_t batch_offset{cache_offset + (processed* element_size)};
+			cache_offset += sizeof(entity) * entities.size();
 
+			cache_offset += prepare_bindings(entities, cache, cache_offset, dep_pack);
+			core::profiler.scope_end();
+		}
 
-				auto t1 = m_Scheduler->schedule([this, entities = psl::array_view<entity>(entities).slice(processed, processed + batch_size), batch_size, batch_offset, &pack = multi_pack[i][pack_index]]() {
-					auto cache_offset = batch_offset;
-					std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-					pack.m_Entities = psl::array_view<core::ecs::entity>(
-						(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+		auto multi_pack = slice(pack, m_Scheduler->workers());
 
-					cache_offset += sizeof(entity) * entities.size();
-
-					cache_offset += prepare_bindings(entities, cache, cache_offset, pack);
-				});
-				processed += batch_size;
-			}
-			++pack_index;
-		}*/
 		std::vector<std::future<command_buffer>> future_commands;
-		std::vector<std::future<void>> futures;
+
 		for(auto& mPack : multi_pack)
 		{
-			auto t1 = m_Scheduler->schedule<decltype(system.invocable)>(system.invocable, *this, dTime, rTime, mPack);
+			auto t1 = m_Scheduler->schedule(system.invocable, *this, dTime, rTime, mPack);
 
-			auto t2 = m_Scheduler->schedule<decltype(write_data)>(write_data, *this, mPack);
+			auto t2 = m_Scheduler->schedule(write_data, *this, mPack);
 
 			m_Scheduler->dependency(t2.first, t1.first);
 
@@ -320,16 +321,36 @@ std::vector<command_buffer> state::prepare_system(std::chrono::duration<float> d
 		m_Scheduler->execute().wait();
 		for(auto& fCommands : future_commands)
 		{
-			commands.emplace_back(std::move(fCommands.get()));
+			if(!fCommands.valid()) fCommands.wait();
+			auto cmd = fCommands.get();
+			execute_command_buffer(cmd);
+			// commands.emplace_back(fCommands.get());
 		}
 	}
 	else
 	{
-		commands.emplace_back(std::move(std::invoke(system.invocable, *this, dTime, rTime, pack)));
-		write_data(*this, pack);
-	}
-	core::profiler.scope_end();
+		for(auto& dep_pack : pack)
+		{
+			core::profiler.scope_begin("filtering");
+			auto entities = filter(dep_pack);
+			core::profiler.scope_end();
+			if(entities.size() == 0) continue;
+			core::profiler.scope_begin("copy");
+			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+			dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
+				(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
 
+			cache_offset += sizeof(entity) * entities.size();
+
+			cache_offset += prepare_bindings(entities, cache, cache_offset, dep_pack);
+			core::profiler.scope_end();
+		}
+
+		auto cmd(std::move(std::invoke(system.invocable, *this, dTime, rTime, pack)));
+
+		write_data(*this, pack);
+		execute_command_buffer(cmd);
+	}
 
 	return commands;
 }
@@ -339,15 +360,50 @@ void state::tick(std::chrono::duration<float> dTime)
 	PROFILE_SCOPE(core::profiler)
 	++m_Tick;
 
+	/*std::vector<std::vector<std::future<std::vector<entity>>>> filter_results;
+	for(const auto& system : m_SystemInformations)
+	{
+		auto& vec = filter_results.emplace_back();
+		auto packs = std::invoke(system.pack_generator);
+
+		for(const auto& pack : packs)
+		{
+			vec.emplace_back(m_Scheduler->schedule([this](details::owner_dependency_pack pack)
+								  {
+									  return filter(pack);
+								  }, pack).second);
+		}
+	}*/
+
 	std::uintptr_t cache_offset = (std::uintptr_t)m_Cache.data();
 	for(auto& system : m_SystemInformations)
 	{
 		PROFILE_SCOPE(core::profiler)
 
-		std::vector<command_buffer> cmds = prepare_system(dTime, dTime, m_Cache, cache_offset, system);
+		std::vector<command_buffer> cmds{prepare_system(dTime, dTime, m_Cache, cache_offset, system)};
 
-		for(auto i = 0; i < cmds.size(); ++i) execute_command_buffer(cmds[i]);
+		// for(auto i = 0; i < cmds.size(); ++i) execute_command_buffer(cmds[i]);
 	}
+
+	for(auto&[key, entities] : m_StateChange[(m_Tick+1) % 2].removed_components)
+	{
+		if(entities.size() == 0) continue;
+		std::vector<entity> erased_entities;
+		auto compIt = m_Components.find(key);
+		if(compIt == std::end(m_Components)) continue;
+		std::sort(std::begin(entities), std::end(entities));
+		std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities),
+							  std::end(compIt->second.entities), std::back_inserter(erased_entities));
+		entities = erased_entities;
+		std::vector<entity> remaining_entities;
+		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities),
+							std::begin(erased_entities), std::end(erased_entities),
+							std::back_inserter(remaining_entities));
+		compIt->second.entities = remaining_entities;
+	}
+	destroy_immediate(m_StateChange[m_Tick % 2].removed_entities);
+	for(const auto&[key, entities] : m_StateChange[m_Tick % 2].removed_components)
+		destroy_immediate(key, entities);
 	m_StateChange[m_Tick % 2].clear();
 }
 
@@ -500,8 +556,7 @@ void state::destroy_component_generator_ids(details::component_info& cInfo, psl:
 			cachedStartIndex = IDs[i];
 		}
 	}
-	if(cachedStartIndex == cachedPrevIndex)
-		cachedPrevIndex += 1;
+	if(cachedStartIndex == cachedPrevIndex) cachedPrevIndex += 1;
 	cInfo.generator.destroy(cachedStartIndex, cachedPrevIndex - cachedStartIndex);
 }
 
@@ -549,18 +604,6 @@ void state::execute_command_buffer(command_buffer& cmds)
 	// remove components
 	for(const auto& [key, entities] : cmds.m_ErasedComponents)
 	{
-		if(entities.size() == 0) continue;
-		std::vector<entity> erased_entities;
-		auto compIt = m_Components.find(key);
-		if(compIt == std::end(m_Components)) continue;
-		std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities),
-							  std::end(compIt->second.entities), std::back_inserter(erased_entities));
-		destroy_component_generator_ids(compIt->second, erased_entities);
-		std::vector<entity> remaining_entities;
-		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities),
-							std::begin(erased_entities), std::end(erased_entities),
-							std::back_inserter(remaining_entities));
-		compIt->second.entities = remaining_entities;
 		m_StateChange[(m_Tick + 1) % 2].removed_components[key].insert(
 			std::end(m_StateChange[(m_Tick + 1) % 2].removed_components[key]), std::begin(entities),
 			std::end(entities));

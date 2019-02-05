@@ -21,6 +21,8 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<frameb
 	{
 		for(auto& drawCall : drawLayer.second)
 		{
+			if(drawCall.m_Geometry.size() == 0)
+				continue;
 			auto material = drawCall.m_Material;
 			if(replacement)
 			{
@@ -56,6 +58,8 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapch
 	{
 		for(auto& drawCall : drawLayer.second)
 		{
+			if(drawCall.m_Geometry.size() == 0)
+				continue;
 			auto material = drawCall.m_Material;
 			if(replacement)
 			{

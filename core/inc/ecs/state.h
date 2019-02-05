@@ -442,22 +442,26 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
+			//auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
 
 
 			using component_type		  = typename details::get_component_type<T>::type;
 			constexpr component_key_t key = details::component_key<details::remove_all<component_type>>;
 
 			auto& removedComponentsRange = m_StateChange[(m_Tick + 1) % 2].removed_components[key];
-			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(removed_entities),
-										  std::end(removed_entities));
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(entities),
+										  std::end(entities));
 		}
 
-		template <typename... Ts>
-		void remove_components(psl::array_view<entity> entities) noexcept
+		void remove_component(component_key_t key, psl::array_view<entity> entities) noexcept
 		{
-			(remove_component<Ts>(entities), ...);
+			//auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
+
+			auto& removedComponentsRange = m_StateChange[(m_Tick + 1) % 2].removed_components[key];
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(entities),
+										  std::end(entities));
 		}
+
 
 
 		template <typename T>
@@ -467,11 +471,29 @@ namespace core::ecs
 		}
 
 		template <typename... Ts>
+		void remove_components(psl::array_view<entity> entities) noexcept
+		{
+			(remove_component<Ts>(entities), ...);
+		}
+
+		template <typename... Ts>
 		void remove_components(entity e) noexcept
 		{
 			(remove_component<Ts>(psl::array_view<entity>{&e, &e + 1}), ...);
 		}
 
+
+		void remove_components(std::vector<component_key_t> keys, psl::array_view<entity> entities) noexcept
+		{
+			for(const auto& key : keys)
+				remove_component(key, entities);
+		}
+
+		void remove_components(std::vector<component_key_t> keys, entity e) noexcept
+		{
+			for(const auto& key : keys)
+				remove_component(key, psl::array_view<entity>{&e, &e + 1});
+		}
 
 		// -----------------------------------------------------------------------------
 		// create entities
@@ -538,6 +560,11 @@ namespace core::ecs
 
 		void destroy(psl::array_view<entity> entities) noexcept;
 		void destroy(entity e) noexcept;
+
+		private:
+			void destroy_immediate(psl::array_view<entity> entities) noexcept;
+			void destroy_immediate(component_key_t key, psl::array_view<entity> entities) noexcept;
+		public:
 
 
 		// -----------------------------------------------------------------------------

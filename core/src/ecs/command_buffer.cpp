@@ -9,6 +9,14 @@ command_buffer::command_buffer(const state& state, uint64_t id_offset) : m_State
 
 command_buffer::command_buffer(const state& state)  : m_State(&state), mID(m_State->mID), m_StartID(mID) {}
 
+command_buffer::~command_buffer()
+{
+	m_MarkedForDestruction.clear();
+	m_NewEntities.clear();
+	m_ErasedComponents.clear();
+	m_EntityMap.clear();
+	m_Components.clear();
+}
 void command_buffer::verify_entities(psl::array_view<entity> entities)
 {
 	for(auto entity : entities)
@@ -23,6 +31,8 @@ void command_buffer::apply(size_t id_difference_n)
 	std::vector<entity> added_entities;
 	std::vector<entity> removed_entities;
 	std::vector<entity> destroyed_entities;
+	std::sort(std::begin(m_MarkedForDestruction), std::end(m_MarkedForDestruction));
+
 	std::set_difference(std::begin(m_NewEntities), std::end(m_NewEntities), std::begin(m_MarkedForDestruction),
 						std::end(m_MarkedForDestruction), std::back_inserter(added_entities));
 	std::set_difference(std::begin(m_NewEntities), std::end(m_NewEntities), std::begin(added_entities),

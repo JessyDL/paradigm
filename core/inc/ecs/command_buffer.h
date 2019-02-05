@@ -17,13 +17,12 @@ namespace core::ecs
 	/// There is no promise when these command_buffer get executed, except that they will be synchronized
 	/// by the next tick event.
 	/// \warn there is an order to the command_buffer, the command with least precedence is the add_components
-	/// command_buffer, followed by remove_components command_buffer. After which the create entity command has precedence
-	/// and finally the destroy entity. This means adding an entity, adding components, and then destroying it
-	/// turns into a no-op.
-	/// \warn the precedence of command_buffer persists between several command blocks. This means that even if command
-	/// block 'A' adds components, if command block 'B' removes them, it will be as if they never existed.
-	/// \warn entities and components that are created and destroyed immediately are not visible to the systems.
-	/// you will not receive on_add and other filter instructions from these objects.
+	/// command_buffer, followed by remove_components command_buffer. After which the create entity command has
+	/// precedence and finally the destroy entity. This means adding an entity, adding components, and then destroying
+	/// it turns into a no-op. \warn the precedence of command_buffer persists between several command blocks. This
+	/// means that even if command block 'A' adds components, if command block 'B' removes them, it will be as if they
+	/// never existed. \warn entities and components that are created and destroyed immediately are not visible to the
+	/// systems. you will not receive on_add and other filter instructions from these objects.
 	class command_buffer final
 	{
 		template <typename KeyT, typename ValueT>
@@ -44,8 +43,9 @@ namespace core::ecs
 		void verify_entities(psl::array_view<entity> entities);
 
 	  public:
-		  command_buffer() = default;
-		  command_buffer(const state& state);
+		command_buffer() = default;
+		command_buffer(const state& state);
+		~command_buffer();
 		// -----------------------------------------------------------------------------
 		// add component
 		// -----------------------------------------------------------------------------
@@ -182,7 +182,7 @@ namespace core::ecs
 		key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>> m_EntityMap;
 		key_value_container_t<component_key_t, details::component_info> m_Components;
 
-		state const * m_State{nullptr};
+		state const* m_State{nullptr};
 		uint64_t mID{0u};
 		uint64_t m_StartID{0u};
 	};

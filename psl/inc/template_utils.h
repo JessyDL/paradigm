@@ -371,8 +371,9 @@ namespace utility::templates
 
 
 	// todo move these helpers to a better location
+
 	template <typename T>
-	struct func_traits : public func_traits<decltype(&T::operator())>
+	struct func_traits : public func_traits<decltype(&decltype(std::function{std::declval<T>()})::operator()) >
 	{};
 
 	template <typename C, typename Ret, typename... Args>
@@ -395,6 +396,7 @@ namespace utility::templates
 		using result_t = Ret;
 		using arguments_t = std::tuple<Args...>;
 	};
+
 }
 
 namespace psl::templates

@@ -137,6 +137,7 @@ namespace psl::async
 		class task_base
 		{
 		  public:
+			  virtual ~task_base() = default;
 			virtual void operator()() = 0;
 		};
 	} // namespace details
@@ -213,6 +214,7 @@ namespace psl::async
 			: m_Invocable(std::forward<Fn>(invocable)), m_Arguments(std::forward<Args>(arguments)...)
 		{}
 
+		virtual ~task() = default;
 		std::future<R> future() noexcept { return m_Promise.get_future(); }
 
 		void operator()() override 
@@ -231,6 +233,38 @@ namespace psl::async
 	  private:
 		std::function<R(Args...)> m_Invocable;
 		std::tuple<Args...> m_Arguments;
+		std::promise<R> m_Promise;
+	};
+
+	template <typename R, typename T, typename... Args>
+	class member_task : public details::task_base
+	{
+	public:
+		template <typename Fn>
+		member_task(Fn&& invocable, T* ptr, Args&&... arguments)
+			: m_Invocable(std::forward<Fn>(invocable)), m_Ptr(ptr), m_Arguments(std::forward<Args>(arguments)...)
+		{}
+		virtual ~member_task() = default;
+
+		std::future<R> future() noexcept { return m_Promise.get_future(); }
+
+		void operator()() override
+		{
+			if constexpr(std::is_same<R, void>::value)
+			{
+				std::apply(m_Invocable, m_Ptr, m_Arguments);
+				m_Promise.set_value();
+			}
+			else
+			{
+				m_Promise.set_value(std::move(std::apply(m_Invocable, m_Ptr, m_Arguments)));
+			}
+		}
+
+	private:
+		std::function<R(Args...)> m_Invocable;
+		std::tuple<Args...> m_Arguments;
+		T* m_Ptr;
 		std::promise<R> m_Promise;
 	};
 
@@ -352,7 +386,7 @@ namespace psl::async
 
 	  public:
 		  scheduler(std::optional<size_t> prefered_workers = std::nullopt, bool force = false);
-		template <typename Fn, typename... Args>
+		/*template <typename Fn, typename... Args>
 		[[nodiscard]] typename std::enable_if<
 			!std::is_member_function_pointer<Fn>::value,
 			std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>>::type
@@ -366,25 +400,41 @@ namespace psl::async
 				description{new task_t{std::forward<Fn>(function), std::forward<Args>(arguments)...}});
 			task_t& task{*(task_t*)(ret.first->second.task)};
 			return std::pair{ret.first->first, task.future()};
-		}
+		}*/
 
 		template <typename Fn, typename... Args>
-		[[nodiscard]] typename std::enable_if<
-			!std::is_member_function_pointer<Fn>::value,
-			std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>>::type
-			schedule(Fn function, Args&&... arguments)
+		[[nodiscard]] auto schedule(Fn&& function, Args&&... arguments)
 		{
-			using return_t = typename psl::templates::func_traits<Fn>::result_t;
-			using task_t = task<return_t, Args&&...>;
+			using fn_t = Fn;
+			if constexpr(!std::is_member_function_pointer<Fn>::value)
+			{
+				using return_t = typename psl::templates::func_traits<fn_t>::result_t;
+				using task_t = task<return_t, Args&&...>;
 
-			auto ret = m_TaskList.emplace(
-				m_TokenGenerator++,
-				description{new task_t{function, std::forward<Args>(arguments)...}});
-			task_t& task{*(task_t*)(ret.first->second.task)};
-			return std::pair{ret.first->first, task.future()};
+				auto ret = m_TaskList.emplace(
+					m_TokenGenerator++,
+					description{new task_t{function, std::forward<Args>(arguments)...}});
+				task_t& task{*(task_t*)(ret.first->second.task)};
+				return std::pair{ret.first->first, task.future()};
+			}
+			else
+			{
+				using return_t = typename psl::templates::func_traits<fn_t>::result_t;
+				using task_t = member_task<return_t, Args&&...>;
+
+				auto func = [function](Args&&... args) -> return_t
+				{
+					return std::invoke(function, std::forward<Args>(args)...);
+				};
+
+				auto ret =
+					m_TaskList.emplace(m_TokenGenerator++, description{new task_t{func, std::forward<Args>(arguments)...}});
+				task_t& task{*(task_t*)(ret.first->second.task)};
+				return std::pair{ret.first->first, task.future()};
+			}
 		}
 
-		template <typename Fn, typename T, typename... Args>
+		/*template <typename Fn, typename T, typename... Args>
 		[[nodiscard]] typename std::enable_if<
 			std::is_member_function_pointer<Fn>::value,
 			std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>>::type
@@ -401,7 +451,7 @@ namespace psl::async
 				m_TaskList.emplace(m_TokenGenerator++, description{new task_t{func, std::forward<Args>(arguments)...}});
 			task_t& task{*(task_t*)(ret.first->second.task)};
 			return std::pair{ret.first->first, task.future()};
-		}
+		}*/
 
 		template <typename Fn>
 		[[nodiscard]] std::pair<token_t, std::future<typename psl::templates::func_traits<Fn>::result_t>>

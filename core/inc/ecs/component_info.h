@@ -29,6 +29,7 @@ namespace core::ecs::details
 			: entities(std::move(other.entities)), region(std::move(other.region)), generator(std::move(other.generator)), id(std::move(other.id)),
 			capacity(std::move(other.capacity)), size(std::move(other.size))
 		{};
+		~component_info() = default;
 		component_info& operator=(const component_info& other)
 		{
 			if(this != &other)

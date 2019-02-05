@@ -130,6 +130,7 @@ scheduler::scheduler(std::optional<size_t> prefered_workers, bool force)
 						finalized_tasks.emplace_back(descr.task);
 						for(const auto& b : descr.barriers)
 							locks.erase(std::find(std::begin(locks), std::end(locks), b));
+
 						scheduled[i] = std::nullopt;
 					}
 
