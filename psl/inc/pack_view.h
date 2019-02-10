@@ -5,8 +5,6 @@
 
 namespace psl
 {
-
-
 	template <typename... Ts>
 	class pack_view
 	{

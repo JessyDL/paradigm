@@ -53,8 +53,6 @@
 
 #include "data/stream.h"
 
-#include "ecs/ecs.hpp"
-
 #if defined(PLATFORM_WINDOWS)
 #define _CRTDBG_MAP_ALLOC
 #include <stdlib.h>

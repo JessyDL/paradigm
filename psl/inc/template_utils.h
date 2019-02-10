@@ -396,7 +396,25 @@ namespace utility::templates
 		using result_t = Ret;
 		using arguments_t = std::tuple<Args...>;
 	};
+	
+	template <typename T>
+	struct is_invocable
+	{
+		template <typename U, typename = decltype(&decltype(std::function{std::declval<T>()})::operator())>
+		static long test(const U&&);
+		static char test(...);
 
+		static constexpr bool value = sizeof(test(std::declval<T>())) == sizeof(long);
+	};
+
+	/*template<typename T, typename = void>
+	struct is_invocable : std::is_function<T> {};
+
+	template<typename T>
+	struct is_invocable<T, typename std::enable_if<
+		std::is_same<decltype(void(&T::operator())), void>::value
+	>::type> : std::true_type
+	{};*/
 }
 
 namespace psl::templates
