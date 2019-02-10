@@ -774,24 +774,6 @@ int entry()
 	ECSState.declare(core::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-	ECSState.create(
-		50,
-		[&material, &geometryHandles, &material2](size_t index)
-		{
-			return core::ecs::components::renderable{(std::rand() % 2 == 0) ? material : material2,
-													 geometryHandles[std::rand() % geometryHandles.size()], 0u};
-		},
-		core::ecs::empty<core::ecs::components::transform>{},
-			[](size_t index) { return core::ecs::components::lifetime{0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
-			[&size_steps](size_t index)
-		{
-			return core::ecs::components::velocity{
-				psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-											   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-											   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-				((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
-		});
-
 	size_t iterations										 = 256;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	while(surface_handle->tick())
@@ -805,8 +787,8 @@ int entry()
 		core::log->info("ECS has {} renderables alive right now",
 						ECSState.filter<core::ecs::components::renderable>().size());
 
-		/*ECSState.create(
-			(iterations > 0) ? 500 : (std::rand()% 100 == 0)?1:0,
+		ECSState.create(
+			(iterations > 0) ? 50 : (std::rand()% 100 == 0)?1:0,
 			[&material, &geometryHandles, &material2](size_t index) {
 				return core::ecs::components::renderable{(std::rand() % 2 == 0) ? material : material2,
 														 geometryHandles[std::rand() % geometryHandles.size()], 0u};
@@ -820,7 +802,7 @@ int entry()
 												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
 					((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 			});
-*/
+
 		if(iterations > 0)
 		{
 			if(ECSState.filter<core::ecs::components::attractor>().size() < 2)

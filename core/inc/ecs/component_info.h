@@ -87,6 +87,7 @@ namespace core::ecs::details
 		bool is_tag() const noexcept { return size == 0; }
 
 		std::vector<entity> entities;
+		std::vector<entity> removed_entities;
 		memory::raw_region region;
 		psl::generator<uint64_t> generator;
 		component_key_t id;

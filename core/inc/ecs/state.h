@@ -443,24 +443,24 @@ namespace core::ecs
 		template <typename T>
 		void remove_component(psl::array_view<entity> entities) noexcept
 		{
-			//auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
+			auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
 
 
 			using component_type		  = typename details::get_component_type<T>::type;
 			constexpr component_key_t key = details::component_key<details::remove_all<component_type>>;
 
 			auto& removedComponentsRange = m_StateChange[(m_Tick + 1) % 2].removed_components[key];
-			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(entities),
-										  std::end(entities));
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(removed_entities),
+										  std::end(removed_entities));
 		}
 
 		void remove_component(component_key_t key, psl::array_view<entity> entities) noexcept
 		{
-			//auto removed_entities{details::remove_component<T>(m_EntityMap, m_Components, entities)};
+			auto removed_entities{details::remove_component(key, m_EntityMap, m_Components, entities)};
 
 			auto& removedComponentsRange = m_StateChange[(m_Tick + 1) % 2].removed_components[key];
-			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(entities),
-										  std::end(entities));
+			removedComponentsRange.insert(std::end(removedComponentsRange), std::begin(removed_entities),
+										  std::end(removed_entities));
 		}
 
 
@@ -624,7 +624,7 @@ namespace core::ecs
 				return v_intersection;
 			};
 
-			bool include_deleted{pack.on_remove.size() > 0 || pack.on_remove.size() > 0};
+			bool include_deleted{pack.on_remove.size() > 0 || pack.on_break.size() > 0};
 
 			if(pack.on_remove.size() > 0)
 			{
@@ -636,7 +636,7 @@ namespace core::ecs
 			}
 			if(pack.filters.size() > 0)
 			{
-				result = merge(result, filter_default(pack.filters));
+				result = merge(result, filter_default(pack.filters, include_deleted));
 			}
 			if(pack.on_add.size() > 0)
 			{
@@ -653,6 +653,25 @@ namespace core::ecs
 
 			return result.value_or(std::vector<entity>{});
 		}
+		template<typename... Ts>
+		struct needs_dead_entities_impl	: std::false_type
+		{
+		};
+
+		template<typename... Ts>
+		struct needs_dead_entities_impl<on_break<Ts...>> : std::true_type
+		{};
+
+		template<typename... Ts>
+		struct needs_dead_entities_impl < on_remove<Ts...>> : std::true_type
+		{};
+
+
+		template<typename... Ts>
+		struct needs_dead_entities
+		{
+			static constexpr bool value{std::disjunction<needs_dead_entities_impl<Ts> ...>::value };
+		};
 
 		template <std::size_t... Is, typename... Ts>
 		std::vector<entity> filter_foreach(std::index_sequence<Is...>, std::tuple<Ts...>) const
@@ -682,12 +701,13 @@ namespace core::ecs
 				return v_intersection;
 			};
 
+			constexpr bool include_dead = needs_dead_entities<Ts...>::value;
 
 			(std::invoke([&]() {
 				 using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
 				 if constexpr(!details::is_exception<component_t>::value)
 				 {
-					 result = merge(result, filter_impl(component_t{}));
+					 result = merge(result, filter_impl(component_t{}, include_dead));
 				 }
 			 }),
 			 ...);
@@ -696,7 +716,7 @@ namespace core::ecs
 				 using component_t = typename std::tuple_element<Is, std::tuple<Ts...>>::type;
 				 if constexpr(details::is_exception<component_t>::value)
 				 {
-					 result = difference(result, filter_impl(component_t{}));
+					 result = difference(result, filter_impl(component_t{}, include_dead));
 				 }
 			 }),
 			 ...);
@@ -747,6 +767,8 @@ namespace core::ecs
 
 		std::vector<entity> filter_on_break(std::vector<component_key_t> keys) const
 		{
+			if(m_StateChange[m_Tick % 2].removed_components.size() == 0)
+				return {};
 			std::sort(std::begin(keys), std::end(keys));
 			std::vector<component_key_t> added_keys{filter_keys(keys, m_StateChange[m_Tick % 2].removed_components)};
 			if(added_keys.size() == 0) // at least 1 should be present
@@ -758,30 +780,30 @@ namespace core::ecs
 			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick % 2].removed_components);
 			if(remaining_keys.size() > 0) 
 			{
-				return dynamic_filter(remaining_keys, entities);
+				return dynamic_filter_dead(remaining_keys, entities);
 			}
 
 			return entities;
 		}
 
-		std::vector<entity> filter_default(std::vector<component_key_t> keys) const { return dynamic_filter(keys); }
+		std::vector<entity> filter_default(std::vector<component_key_t> keys, bool include_dead) const { return (include_dead)?dynamic_filter_dead(keys):dynamic_filter(keys); }
 
 		template <typename... Ts>
-		std::vector<entity> filter_impl(on_add<Ts...>) const
+		std::vector<entity> filter_impl(on_add<Ts...>, bool include_dead) const
 		{
 			std::vector<component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
 			return filter_on_add(keys);
 		}
 
 		template <typename... Ts>
-		std::vector<entity> filter_impl(on_remove<Ts...>) const
+		std::vector<entity> filter_impl(on_remove<Ts...>, bool include_dead) const
 		{
 			std::vector<component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
 			return filter_on_remove(keys);
 		}
 
 		template <typename... Ts>
-		std::vector<entity> filter_impl(except<Ts...>) const
+		std::vector<entity> filter_impl(except<Ts...>, bool include_dead) const
 		{
 			std::vector<component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
 			return filter_except(keys);
@@ -789,24 +811,25 @@ namespace core::ecs
 
 
 		template <typename... Ts>
-		std::vector<entity> filter_impl(on_combine<Ts...>) const
+		std::vector<entity> filter_impl(on_combine<Ts...>, bool include_dead) const
 		{
 			std::vector<component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
 			return filter_on_combine(keys);
 		}
 
 		template <typename... Ts>
-		std::vector<entity> filter_impl(on_break<Ts...>) const
+		std::vector<entity> filter_impl(on_break<Ts...>, bool include_dead) const
 		{
 			std::vector<component_key_t> keys{{details::component_key<details::remove_all<Ts>>...}};
 			return filter_on_break(keys);
 		}
 
 		template <typename T>
-		std::vector<entity> filter_impl(T) const
+		std::vector<entity> filter_impl(T, bool include_dead) const
 		{
 			std::vector<component_key_t> keys{{details::component_key<details::remove_all<T>>}};
-			return filter_default(keys);
+			// todo: check logic
+			return filter_default(keys, include_dead);
 		}
 
 
@@ -1023,6 +1046,12 @@ namespace core::ecs
 		dynamic_filter(psl::array_view<component_key_t> keys,
 					   const details::key_value_container_t<component_key_t, std::vector<entity>>& container,
 					   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
+
+
+		std::vector<entity>
+			dynamic_filter_dead(psl::array_view<component_key_t> keys,
+						   std::optional<psl::array_view<entity>> pre_selection = std::nullopt) const noexcept;
+
 		void fill_in(psl::array_view<entity> entities, component_key_t int_id, void* out) const noexcept;
 
 		template <typename T>

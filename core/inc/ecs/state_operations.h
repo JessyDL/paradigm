@@ -222,6 +222,32 @@ namespace core::ecs::details
 		return ent_cpy;
 	}
 
+	static std::vector<entity> remove_component(component_key_t key,
+		details::key_value_container_t<entity, entity_data>& entityMap,
+		details::key_value_container_t<component_key_t, details::component_info>& components,
+		psl::array_view<entity> entities) noexcept
+	{
+		std::vector<entity> ent_cpy;
+		ent_cpy.reserve(entities.size());
+		for(auto e : entities)
+		{
+			auto eMapIt = entityMap.find(e);
+			auto foundIt = std::find(std::begin(eMapIt->second.components), std::end(eMapIt->second.components), key);
+
+			if(foundIt == std::end(eMapIt->second.components)) continue;
+
+			ent_cpy.emplace_back(e);
+			const auto& eCompIt = components.find(key);
+			eCompIt->second.entities.erase(
+				std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
+				eCompIt->second.entities.end());
+
+			eCompIt->second.removed_entities.emplace(std::upper_bound(std::begin(eCompIt->second.removed_entities), std::end(eCompIt->second.removed_entities), e), e);
+		}
+
+		return ent_cpy;
+	}
+
 	template <typename T>
 	std::vector<entity> remove_component(
 		details::key_value_container_t<entity, entity_data>& entityMap,
@@ -229,43 +255,6 @@ namespace core::ecs::details
 		psl::array_view<entity> entities) noexcept
 	{
 		constexpr component_key_t key = details::component_key<details::remove_all<T>>;
-		std::vector<entity> ent_cpy;
-		ent_cpy.reserve(entities.size());
-		for(auto e : entities)
-		{
-			auto eMapIt = entityMap.find(e);
-			auto foundIt = std::remove_if(
-				eMapIt->second.begin(), eMapIt->second.end(),
-				[&key](const std::pair<component_key_t, size_t>& pair) { return pair.first == key; });
-
-			if(foundIt == std::end(eMapIt->second)) continue;
-
-			ent_cpy.emplace_back(e);
-			if constexpr(std::is_empty<T>::value)
-			{
-				eMapIt->second.erase(foundIt, eMapIt->second.end());
-
-				const auto& eCompIt = components.find(key);
-				eCompIt->second.entities.erase(
-					std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-					eCompIt->second.entities.end());
-			}
-			else
-			{
-				auto index = foundIt->second;
-
-				eMapIt->second.erase(foundIt, eMapIt->second.end());
-
-				const auto& eCompIt = components.find(key);
-				eCompIt->second.entities.erase(
-					std::remove(eCompIt->second.entities.begin(), eCompIt->second.entities.end(), e),
-					eCompIt->second.entities.end());
-
-				void* loc = (void*)((std::uintptr_t)eCompIt->second.region.data() + eCompIt->second.size * index);
-				std::memset(loc, 0, eCompIt->second.size);
-			}
-		}
-
-		return ent_cpy;
+		return remove_component(key, entityMap, components, entities);
 	}
 }

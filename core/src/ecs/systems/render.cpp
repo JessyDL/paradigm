@@ -43,8 +43,6 @@ core::ecs::command_buffer render::tick_cameras(
 	return core::ecs::command_buffer{state};
 }
 
-int countdown = 500;
-int countdown2 = 500;
 core::ecs::command_buffer render::tick_draws(
 	const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 	core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
@@ -67,12 +65,9 @@ core::ecs::command_buffer render::tick_draws(
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID &());
-				--countdown;
 			}
-			--countdown2;
 		}
-		if(countdown == 0 || countdown2 == 0)
-			debug_break();
+
 		m_Pass.add(m_DrawGroup);
 		m_Pass.build();
 	}

@@ -381,7 +381,7 @@ void state::tick(std::chrono::duration<float> dTime)
 
 		// for(auto i = 0; i < cmds.size(); ++i) execute_command_buffer(cmds[i]);
 	}
-
+/*
 	for(auto&[key, entities] : m_StateChange[(m_Tick+1) % 2].removed_components)
 	{
 		if(entities.size() == 0) continue;
@@ -397,7 +397,7 @@ void state::tick(std::chrono::duration<float> dTime)
 							std::begin(erased_entities), std::end(erased_entities),
 							std::back_inserter(remaining_entities));
 		compIt->second.entities = remaining_entities;
-	}
+	}*/
 	destroy_immediate(m_StateChange[m_Tick % 2].removed_entities);
 	for(const auto&[key, entities] : m_StateChange[m_Tick % 2].removed_components)
 		destroy_immediate(key, entities);
@@ -436,7 +436,7 @@ std::vector<entity> state::dynamic_filter(psl::array_view<component_key_t> keys,
 	if(pre_selection)
 	{
 		v_intersection.reserve(std::min(pre_selection.value().size(), first_selection.entities.size()));
-
+		
 		std::set_intersection(std::begin(first_selection.entities), std::end(first_selection.entities),
 							  std::begin(pre_selection.value()), std::end(pre_selection.value()),
 							  std::back_inserter(v_intersection));
@@ -492,6 +492,64 @@ state::dynamic_filter(psl::array_view<component_key_t> keys,
 		std::set_intersection(v_intersection.begin(), v_intersection.end(), it.begin(), it.end(),
 							  std::back_inserter(intermediate));
 		v_intersection = std::move(intermediate);
+	}
+
+	return v_intersection;
+}
+
+
+std::vector<entity>
+state::dynamic_filter_dead(psl::array_view<component_key_t> keys,
+					  std::optional<psl::array_view<entity>> pre_selection) const noexcept
+{
+	PROFILE_SCOPE(core::profiler)
+
+		for(const auto& key : keys)
+		{
+			if(m_Components.find(key) == std::end(m_Components)) return {};
+		}
+
+	const auto& first_selection = m_Components.at(keys[0]);
+
+	std::vector<entity> v_intersection{};
+	if(pre_selection)
+	{
+		std::vector<entity> entities;
+
+		std::merge(std::begin(first_selection.entities), std::end(first_selection.entities), 
+				   std::begin(first_selection.removed_entities), std::end(first_selection.removed_entities), 
+				   std::back_inserter(entities));
+
+		v_intersection.reserve(std::min(pre_selection.value().size(), entities.size()));
+
+		std::set_intersection(std::begin(entities), std::end(entities),
+							  std::begin(pre_selection.value()), std::end(pre_selection.value()),
+							  std::back_inserter(v_intersection));
+	}
+	else
+	{
+		std::merge(std::begin(first_selection.entities), std::end(first_selection.entities),
+				   std::begin(first_selection.removed_entities), std::end(first_selection.removed_entities),
+				   std::back_inserter(v_intersection));
+	}
+
+	for(size_t i = 1; i < keys.size(); ++i)
+	{
+		std::vector<entity> intermediate;
+		intermediate.reserve(v_intersection.size());
+		const auto& it = m_Components.at(keys[i]);
+
+
+		std::vector<entity> entities;
+
+		std::merge(std::begin(it.entities), std::end(it.entities),
+				   std::begin(it.removed_entities), std::end(it.removed_entities),
+				   std::back_inserter(entities));
+
+		std::set_intersection(v_intersection.begin(), v_intersection.end(), std::begin(entities), std::end(entities),
+							  std::back_inserter(intermediate));
+		v_intersection = std::move(intermediate);
+		if(v_intersection.size() == 0) return v_intersection;
 	}
 
 	return v_intersection;
