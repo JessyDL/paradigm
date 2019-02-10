@@ -75,7 +75,7 @@ namespace core::ecs::details
 	template <typename T>
 	std::vector<entity> duplicate_component_check(
 		psl::array_view<entity> entities,
-		const details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>&
+		const details::key_value_container_t<entity, entity_data>&
 		entityMap)
 	{
 		constexpr component_key_t key = details::component_key<details::remove_all<T>>;
@@ -88,9 +88,9 @@ namespace core::ecs::details
 										  return true;
 									  }
 
-									  for(auto eComp : eMapIt->second)
+									  for(auto eComp : eMapIt->second.components)
 									  {
-										  if(eComp.first == key) return true;
+										  if(eComp == key) return true;
 									  }
 									  return false;
 								  });
@@ -144,7 +144,7 @@ namespace core::ecs::details
 
 	template <typename T>
 	std::vector<entity> add_component(
-		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>& entityMap,
+		details::key_value_container_t<entity, entity_data>& entityMap,
 		details::key_value_container_t<component_key_t, details::component_info>& components,
 		psl::array_view<entity> entities, T&& _template) noexcept
 	{
@@ -224,7 +224,7 @@ namespace core::ecs::details
 
 	template <typename T>
 	std::vector<entity> remove_component(
-		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>& entityMap,
+		details::key_value_container_t<entity, entity_data>& entityMap,
 		details::key_value_container_t<component_key_t, details::component_info>& components,
 		psl::array_view<entity> entities) noexcept
 	{

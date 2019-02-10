@@ -3,6 +3,7 @@
 #include <functional>
 
 using namespace core::ecs;
+using namespace core::ecs::details;
 
 
 command_buffer::command_buffer(const state& state, uint64_t id_offset) : m_State(&state), mID(id_offset), m_StartID(id_offset) {}
@@ -22,7 +23,7 @@ void command_buffer::verify_entities(psl::array_view<entity> entities)
 	for(auto entity : entities)
 	{
 		if(entity <= m_StartID && m_State->exists(entity))
-			m_EntityMap.emplace(entity, std::vector<std::pair<component_key_t, size_t>>{});
+			m_EntityMap.emplace(entity, entity_data{});
 	}
 }
 
@@ -81,8 +82,8 @@ void command_buffer::apply(size_t id_difference_n)
 			e = entity{e.id() + id_difference_n};
 	}
 
-	details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>> old_entity_map{std::move(m_EntityMap)};
-	m_EntityMap = details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>>{};
+	details::key_value_container_t<entity, details::entity_data> old_entity_map{std::move(m_EntityMap)};
+	m_EntityMap = details::key_value_container_t<entity, details::entity_data>{};
 	for(auto&[e, vec] : old_entity_map)
 	{
 		entity ent{e};

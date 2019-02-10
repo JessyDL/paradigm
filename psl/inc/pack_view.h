@@ -164,4 +164,10 @@ namespace psl
 	private:
 		range_t m_Pack;
 	};
+
+	template<typename... Ts>
+	psl::pack_view<Ts...> zip(psl::array_view<Ts>... range)
+	{
+		return psl::pack_view<Ts...>(range ...);
+	}
 } // namespace psl

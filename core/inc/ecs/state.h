@@ -318,6 +318,7 @@ namespace core::ecs
 	{
 		friend class core::ecs::command_buffer;
 
+
 	  public:
 		state();
 		~state();
@@ -345,7 +346,7 @@ namespace core::ecs
 				cInfo.entities = std::move(merged_set);
 				for(auto e : entities)
 				{
-					m_EntityMap[e].emplace_back(std::pair<component_key_t, size_t>{key, component_location});
+					m_EntityMap[e].emplace_back(key, component_location);
 				}
 			}
 			else if(cInfo.generator.try_create(component_location, entities.size()))
@@ -360,7 +361,7 @@ namespace core::ecs
 					std::uintptr_t destination =
 						(std::uintptr_t)cInfo.region.data() + component_location * component_size;
 					std::memcpy((void*)destination, (void*)source, component_size);
-					m_EntityMap[e].emplace_back(std::pair<component_key_t, size_t>{key, component_location});
+					m_EntityMap[e].emplace_back(key, component_location);
 					++component_location;
 				}
 			}
@@ -508,7 +509,7 @@ namespace core::ecs
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
 			for(size_t i = 0u; i < count; ++i)
-				m_EntityMap.emplace(++mID, std::vector<std::pair<component_key_t, size_t>>{});
+				m_EntityMap.emplace(++mID, details::entity_data{});
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components<Ts...>(result);
@@ -524,7 +525,7 @@ namespace core::ecs
 			std::vector<entity> result(count);
 			std::iota(std::begin(result), std::end(result), mID + 1);
 			for(size_t i = 0u; i < count; ++i)
-				m_EntityMap.emplace(++mID, std::vector<std::pair<component_key_t, size_t>>{});
+				m_EntityMap.emplace(++mID, details::entity_data{});
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components(result, std::forward<Ts>(args)...);
@@ -536,7 +537,7 @@ namespace core::ecs
 		entity create_one(Ts&&... args) noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
-			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<component_key_t, size_t>>{}).first->first;
+			auto e = m_EntityMap.emplace(entity{++mID}, details::entity_data{}).first->first;
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components(e, std::forward<Ts>(args)...);
@@ -549,7 +550,7 @@ namespace core::ecs
 		entity create_one() noexcept
 		{
 			PROFILE_SCOPE(core::profiler)
-			auto e = m_EntityMap.emplace(entity{++mID}, std::vector<std::pair<component_key_t, size_t>>{}).first->first;
+			auto e = m_EntityMap.emplace(entity{++mID}, details::entity_data{}).first->first;
 			if constexpr(sizeof...(Ts) > 0)
 			{
 				add_components<Ts...>(e);
@@ -623,6 +624,16 @@ namespace core::ecs
 				return v_intersection;
 			};
 
+			bool include_deleted{pack.on_remove.size() > 0 || pack.on_remove.size() > 0};
+
+			if(pack.on_remove.size() > 0)
+			{
+				result = merge(result, filter_on_remove(pack.on_remove));
+			}
+			if(pack.on_break.size() > 0)
+			{
+				result = merge(result, filter_on_break(pack.on_break));
+			}
 			if(pack.filters.size() > 0)
 			{
 				result = merge(result, filter_default(pack.filters));
@@ -631,17 +642,9 @@ namespace core::ecs
 			{
 				result = merge(result, filter_on_add(pack.on_add));
 			}
-			if(pack.on_remove.size() > 0)
-			{
-				result = merge(result, filter_on_remove(pack.on_remove));
-			}
 			if(pack.on_combine.size() > 0)
 			{
 				result = merge(result, filter_on_combine(pack.on_combine));
-			}
-			if(pack.on_break.size() > 0)
-			{
-				result = merge(result, filter_on_break(pack.on_break));
 			}
 			if(pack.except.size() > 0)
 			{
@@ -753,7 +756,10 @@ namespace core::ecs
 			std::set_difference(std::begin(keys), std::end(keys), std::begin(added_keys), std::end(added_keys),
 								std::back_inserter(remaining_keys));
 			auto entities = dynamic_filter(added_keys, m_StateChange[m_Tick % 2].removed_components);
-			if(remaining_keys.size() > 0) return dynamic_filter(remaining_keys, entities);
+			if(remaining_keys.size() > 0) 
+			{
+				return dynamic_filter(remaining_keys, entities);
+			}
 
 			return entities;
 		}
@@ -814,15 +820,11 @@ namespace core::ecs
 			PROFILE_SCOPE(core::profiler)
 			constexpr component_key_t int_id = details::component_key<details::remove_all<T>>;
 			auto eMapIt						 = m_EntityMap.find(e);
-			auto foundIt					 = std::find_if(
-				eMapIt->second.begin(), eMapIt->second.end(),
-				[&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
 
-			if(foundIt == std::end(eMapIt->second))
-			{
+			size_t index{};
+			if(!eMapIt->second.index(int_id, index))
 				throw std::runtime_error("missing component");
-			}
-			const auto& index	= foundIt->second;
+				
 			const auto& mem_pair = m_Components.find(int_id);
 			return *(T*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
 		}
@@ -833,15 +835,11 @@ namespace core::ecs
 			PROFILE_SCOPE(core::profiler)
 			constexpr component_key_t int_id = details::component_key<details::remove_all<T>>;
 			auto eMapIt						 = m_EntityMap.find(e);
-			auto foundIt					 = std::find_if(
-				eMapIt->second.begin(), eMapIt->second.end(),
-				[&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
 
-			if(foundIt == std::end(eMapIt->second))
-			{
+			size_t index{};
+			if(!eMapIt->second.index(int_id, index))
 				throw std::runtime_error("missing component");
-			}
-			const auto& index	= foundIt->second;
+
 			const auto& mem_pair = m_Components.find(int_id);
 			return *(T*)((std::uintptr_t)mem_pair->second.region.data() + mem_pair->second.size * index);
 		}
@@ -862,11 +860,7 @@ namespace core::ecs
 			for(const auto& [i, e] : psl::enumerate(entities))
 			{
 				auto eMapIt = m_EntityMap.find(e);
-				auto foundIt =
-					std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-								 [&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
-
-				auto index = foundIt->second;
+				auto index = eMapIt->second.unsafe_index(id);
 				void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
 				std::memcpy(loc, &data[i], size);
 			}
@@ -879,9 +873,7 @@ namespace core::ecs
 			constexpr component_key_t key = details::component_key<details::remove_all<T>>;
 			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				return std::any_of(
-					std::begin(eIt->second), std::end(eIt->second),
-					[&key](const std::pair<component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
+				return std::find(std::begin(eIt->second.components), std::end(eIt->second.components), key) != std::end(eIt->second.components);
 			}
 
 			return false;
@@ -894,9 +886,7 @@ namespace core::ecs
 			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
 				return std::all_of(std::begin(keys), std::end(keys), [&eIt](const component_key_t& key) {
-					return std::any_of(
-						std::begin(eIt->second), std::end(eIt->second),
-						[&key](const std::pair<component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
+					return std::find(std::begin(eIt->second.components), std::end(eIt->second.components), key) != std::end(eIt->second.components);
 				});
 			}
 			return false;
@@ -910,16 +900,13 @@ namespace core::ecs
 			constexpr component_key_t key = details::component_key<details::remove_all<T>>;
 			if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 			{
-				if(auto compIt = std::find_if(
-					   std::begin(eIt->second), std::end(eIt->second),
-					   [&key](const std::pair<component_key_t, size_t> comp_pair) { return comp_pair.first == key; });
-				   compIt != std::end(eIt->second))
-				{
-					auto compDataIt = m_Components.find(key);
-					auto diff		= &component - (T*)compDataIt->second.region.data();
-					return compIt->second == diff;
-				}
-				return false;
+				size_t index{};
+				if(!eIt->second.index(key, index))
+					return false;
+
+				auto compDataIt = m_Components.find(key);
+				auto diff = &component - (T*)compDataIt->second.region.data();
+				return index == diff;
 			}
 			return false;
 		}
@@ -929,6 +916,8 @@ namespace core::ecs
 		{
 			return is_owned_by(e, std::forward<T>(component)) && is_owned_by(e, std::forward<Ts>(components)...);
 		}
+
+		void reset(psl::array_view<entity> entities) noexcept;
 
 	  private:
 		template <typename... Ts>
@@ -1050,7 +1039,7 @@ namespace core::ecs
 
 		std::vector<details::system_information> m_SystemInformations;
 		/// \brief gets what components this entity uses, and which index it lives on.
-		details::key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>> m_EntityMap;
+		details::key_value_container_t<entity, details::entity_data> m_EntityMap;
 
 		/// \brief backing memory
 		details::key_value_container_t<component_key_t, details::component_info> m_Components;

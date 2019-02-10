@@ -5,6 +5,7 @@
 #include "entity.h"
 #include "component_key.h"
 #include "state_operations.h"
+#include "component_info.h"
 #include <numeric>
 
 namespace core::ecs
@@ -130,7 +131,7 @@ namespace core::ecs
 			for(size_t i = 0u; i < count; ++i)
 			{
 				m_NewEntities.emplace_back(mID);
-				m_EntityMap.emplace(++mID, std::vector<std::pair<component_key_t, size_t>>{});
+				m_EntityMap.emplace(++mID, details::entity_data{});
 			}
 			if constexpr(sizeof...(Ts) > 0)
 			{
@@ -149,7 +150,7 @@ namespace core::ecs
 			for(size_t i = 0u; i < count; ++i)
 			{
 				m_NewEntities.emplace_back(mID);
-				m_EntityMap.emplace(++mID, std::vector<std::pair<component_key_t, size_t>>{});
+				m_EntityMap.emplace(++mID, details::entity_data{});
 			}
 			if constexpr(sizeof...(Ts) > 0)
 			{
@@ -179,7 +180,7 @@ namespace core::ecs
 		key_value_container_t<component_key_t, std::vector<entity>> m_ErasedComponents;
 
 		// these are reserved for added components only, not to be confused with dynamic editing of components
-		key_value_container_t<entity, std::vector<std::pair<component_key_t, size_t>>> m_EntityMap;
+		key_value_container_t<entity, details::entity_data> m_EntityMap;
 		key_value_container_t<component_key_t, details::component_info> m_Components;
 
 		state const* m_State{nullptr};

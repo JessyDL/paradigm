@@ -49,7 +49,7 @@ void state::destroy_immediate(psl::array_view<entity> entities) noexcept
 	{
 		if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 		{
-			for(const auto&[type, index] : eMapIt->second)
+			for(const auto&[type, index] : eMapIt->second.zip())
 			{
 				erased_entities[type].emplace_back(e);
 				erased_ids[type].emplace_back(index);
@@ -127,19 +127,19 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 {
 	details::key_value_container_t<component_key_t, std::vector<entity>> map;
 
+	reset(entities);
+
 	for(auto e : entities)
 	{
 		if(auto eIt = m_EntityMap.find(e); eIt != std::end(m_EntityMap))
 		{
-			for(const auto& pair : eIt->second)
+			for(const auto& key : eIt->second.components)
 			{
-				map[pair.first].emplace_back(e);
+				map[key].emplace_back(e);
 			}
 		}
 	}
 
-	for(const auto& [key, entities] : map)
-		remove_components({key}, entities);
 
 	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities), std::begin(entities), std::end(entities));
 }
@@ -155,10 +155,7 @@ size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region&
 	for(const auto& e : entities)
 	{
 		auto eMapIt  = m_EntityMap.find(e);
-		auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-									[&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
-
-		auto index = foundIt->second;
+		auto index = eMapIt->second.unsafe_index(id);
 		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + element_size * index);
 		std::memcpy((void*)cache_offset, loc, element_size);
 		cache_offset += element_size;
@@ -416,10 +413,7 @@ void state::set(psl::array_view<entity> entities, void* data, size_t size, compo
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
 		auto eMapIt  = m_EntityMap.find(e);
-		auto foundIt = std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-									[&id](const std::pair<component_key_t, size_t>& pair) { return pair.first == id; });
-
-		auto index = foundIt->second;
+		auto index = eMapIt->second.unsafe_index(id);
 		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
 		std::memcpy(loc, (void*)data_loc, size);
 		data_loc += size;
@@ -514,11 +508,7 @@ void state::fill_in(psl::array_view<entity> entities, component_key_t int_id, vo
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
 		auto eMapIt = m_EntityMap.find(e);
-		auto foundIt =
-			std::find_if(eMapIt->second.begin(), eMapIt->second.end(),
-						 [&int_id](const std::pair<component_key_t, size_t>& pair) { return pair.first == int_id; });
-
-		auto index = foundIt->second;
+		auto index = eMapIt->second.unsafe_index(int_id);
 		void* loc  = (void*)(data + size * index);
 		std::memcpy((void*)((std::uintptr_t)out + (i * size)), loc, size);
 	}
@@ -533,12 +523,13 @@ void state::destroy_component_generator_ids(details::component_info& cInfo, psl:
 	{
 		if(auto it = m_EntityMap.find(e); it != std::end(m_EntityMap))
 		{
-			auto pair = std::find_if(
-				std::begin(it->second), std::end(it->second),
-				[&cInfo](const std::pair<component_key_t, size_t>& pair) { return pair.first == cInfo.id; });
-			if(pair == std::end(it->second)) continue;
-			IDs.emplace_back(pair->second);
-			it->second.erase(pair);
+			auto keyIt = std::find(std::begin(it->second.components), std::end(it->second.components), cInfo.id);
+			if(keyIt == std::end(it->second.components)) continue;
+
+			auto index = std::distance(std::begin(it->second.components), keyIt);
+
+			IDs.emplace_back(it->second.indices[index]);
+			it->second.erase(*keyIt);
 		}
 	}
 	if(IDs.size() == 0 || cInfo.is_tag()) return;
@@ -572,7 +563,7 @@ void state::execute_command_buffer(command_buffer& cmds)
 	{
 		for(auto e : cmds.m_NewEntities)
 		{
-			m_EntityMap.emplace(e, std::vector<std::pair<component_key_t, size_t>>{});
+			m_EntityMap.emplace(e, details::entity_data{});
 		}
 		m_StateChange[(m_Tick + 1) % 2].added_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].added_entities),
 															  std::begin(cmds.m_NewEntities),
@@ -589,9 +580,10 @@ void state::execute_command_buffer(command_buffer& cmds)
 		copy_components(key, cInfo.entities, cInfo.size, [&named_key, &named_cInfo, &entityMap](entity e) {
 			auto eIt = entityMap.find(e);
 			auto cIt = std::find_if(
-				std::begin(eIt->second), std::end(eIt->second),
-				[&named_key](const std::pair<component_key_t, size_t> keyPair) { return named_key == keyPair.first; });
-			return ((std::uintptr_t)named_cInfo.region.data() + (named_cInfo.size * cIt->second));
+				std::begin(eIt->second.components), std::end(eIt->second.components),
+				[&named_key](component_key_t key) { return named_key == key; });
+			auto index = std::distance(std::begin(eIt->second.components), cIt);
+			return ((std::uintptr_t)named_cInfo.region.data() + (named_cInfo.size * eIt->second.indices[index]));
 		});
 		m_StateChange[(m_Tick + 1) % 2].added_components[key].insert(
 			std::end(m_StateChange[(m_Tick + 1) % 2].added_components[key]), std::begin(cInfo.entities),
@@ -608,4 +600,23 @@ void state::execute_command_buffer(command_buffer& cmds)
 			std::end(m_StateChange[(m_Tick + 1) % 2].removed_components[key]), std::begin(entities),
 			std::end(entities));
 	}
+}
+
+void state::reset(psl::array_view<entity> entities) noexcept
+{
+	details::key_value_container_t<component_key_t, std::vector<entity>> removed;
+	for(auto e : entities)
+	{
+		auto eIt = m_EntityMap.find(e);
+		if(eIt == std::end(m_EntityMap))
+			continue;
+
+
+		for(const auto& key : eIt->second.components)
+		{
+			removed[key].emplace_back(e);
+		}
+	}
+	for(const auto& [key, es] : removed)
+		remove_component(key, es);
 }
