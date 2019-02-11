@@ -114,7 +114,8 @@ namespace psl
 		};
 
 		using value_type = typename std::remove_reference<typename std::remove_const<T>::type>::type;
-		using reference = value_type&;
+		using reference = typename std::remove_reference<T>::type & ;
+		using const_reference = const reference;
 		using pointer = value_type*;
 		using difference_type = std::ptrdiff_t;
 
@@ -142,12 +143,12 @@ namespace psl
 
 		reference operator[](size_t index) { return *(first + index); }
 
-		reference operator[](size_t index) const { return *(first + index); }
+		const_reference operator[](size_t index) const { return *(first + index); }
 
 		operator array_view<const value_type>&() const noexcept { return *(array_view<const T>*)(this); }
 
 
-		operator std::vector<value_type>() const noexcept 
+		explicit operator std::vector<value_type>() const noexcept
 		{
 			return std::vector<value_type>{first, last};
 		}
