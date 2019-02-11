@@ -733,7 +733,7 @@ namespace core::ecs
 			{
 				if(key_list.find(key) != std::end(key_list)) keys_out.emplace_back(key);
 			}
-			return keys;
+			return std::vector<component_key_t>{keys};
 		}
 
 		std::vector<entity> filter_on_add(std::vector<component_key_t> keys) const
