@@ -407,14 +407,11 @@ namespace utility::templates
 		static constexpr bool value = sizeof(test(std::declval<T>())) == sizeof(long);
 	};
 
-	/*template<typename T, typename = void>
-	struct is_invocable : std::is_function<T> {};
-
 	template<typename T>
-	struct is_invocable<T, typename std::enable_if<
-		std::is_same<decltype(void(&T::operator())), void>::value
-	>::type> : std::true_type
-	{};*/
+	struct proxy_type
+	{
+		using type = T;
+	};
 }
 
 namespace psl::templates

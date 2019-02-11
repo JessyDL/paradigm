@@ -142,4 +142,23 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 }
 
 
+psl::array<entity> state::filter_impl(details::component_key_t key,
+									  std::optional<psl::array_view<entity>> entities) const noexcept
+{
+	auto it = m_Components.find(key);
+	if(it == std::end(m_Components)) return {};
+
+	if(entities)
+	{
+		psl::array<entity> result;
+		std::set_intersection(std::begin(entities.value()), std::end(entities.value()),
+							  std::begin(it->second.entities()), std::end(it->second.entities()),
+							  std::back_inserter(result));
+		return result;
+	}
+
+	return it->second.entities();
+}
+
+
 void state::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept {}
