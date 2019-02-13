@@ -79,27 +79,20 @@ psl::array<std::pair<entity, entity>> component_info::add(psl::array_view<std::p
 
 	if(available() <= count) resize(std::max(m_Capacity * 2, m_Capacity + count));
 
-	auto indices = m_Generator.create_multi(count);
+	//auto indices = m_Generator.create_multi(count);
 
 	if(is_tag()) return {};
 
-	auto indices_i = 0;
-	auto index	 = indices[indices_i].first;
 	for(auto e_range : entities)
 	{
 		for(auto e = e_range.first; e < e_range.second; ++e)
 		{
 			assert(!m_Entities.has(e));
-			m_Entities[e] = index;
-			if(++index >= indices[indices_i].second)
-			{
-				++indices_i;
-				if(indices_i < indices.size()) index = indices[indices_i].first;
-			}
+			m_Entities[e] = e;
 		}
 	}
 
-	return indices;
+	return psl::array<std::pair<entity, entity>>{entities};
 }
 
 void component_info::destroy(psl::array_view<std::pair<entity, entity>> entities)
@@ -107,6 +100,7 @@ void component_info::destroy(psl::array_view<std::pair<entity, entity>> entities
 	for(auto e_range : entities)
 	{
 		m_Entities.erase(e_range.first, e_range.second);
+		//m_Generator.destroy(e_range.first, e_range.second - e_range.first);
 	}
 }
 
@@ -114,6 +108,7 @@ void component_info::destroy(psl::array_view<std::pair<entity, entity>> entities
 void component_info::destroy(entity entity)
 {
 	m_Entities.erase(entity);
+	//m_Generator.destroy(entity);
 }
 void component_info::purge() {}
 

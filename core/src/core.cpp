@@ -628,6 +628,28 @@ void DestroyOneLess()
 	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 0u, 999999u }});
 	timer.count();
 }
+void IterateCreateDeleteSingleComponent()
+{
+	psl::ecs::state state{};
+	std::cout << "Looping 10000 times creating and deleting a random number of entities" << std::endl;
+	timer timer;
+	psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>> ranges;
+	for(int i = 0; i < 1000; i++)
+	{
+		state.create<position>(10000);
+
+		psl::array<psl::ecs::entity> range{state.view<position>()};
+		for(auto entity : range)
+		{
+			if(rand() % 2 == 0)
+			{
+				state.destroy(entity);
+			}
+		}
+	}
+
+	timer.count();
+}
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -642,6 +664,7 @@ int entry()
 	Destroy();
 	DestroyMany();
 	DestroyOneLess();
+	IterateCreateDeleteSingleComponent();
 	// create the ecs
 	psl::ecs::state ECSState{};
 

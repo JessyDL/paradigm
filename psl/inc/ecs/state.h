@@ -162,6 +162,17 @@ namespace psl::ecs
 
 		void reset(psl::array_view<entity> entities) noexcept;
 		
+		template<typename T>
+		auto view()
+		{
+			auto key = details::key_for<T>();
+			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+								   {
+									   return pair.first == key;
+								   });
+
+			return it->second.entities();
+		}
 	  private:
 		//------------------------------------------------------------
 		// helpers

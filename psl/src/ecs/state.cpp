@@ -198,6 +198,11 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 	{
 		cInfo.destroy(entities);
 	}
+
+	for(auto range : entities)
+	{
+		m_Generator.destroy(range.first, range.second - range.first);
+	}
 }
 
 
@@ -207,4 +212,5 @@ void state::destroy(entity entity) noexcept
 	{
 		cInfo.destroy(entity);
 	}
+	m_Generator.destroy(entity);
 }
