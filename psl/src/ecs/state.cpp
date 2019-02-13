@@ -1,5 +1,6 @@
 #include "ecs/state.h"
 #include "task.h"
+#include <numeric>
 
 using namespace psl::ecs;
 
@@ -67,7 +68,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 		for(const auto& id_range : ids)
 		{
 			auto location = (std::uintptr_t)cInfo.data() + (id_range.first * size);
-			std::memset((void*)(location + id_range.first * size), 0, size * (id_range.second - id_range.first));
+			std::memset((void*)(location), 0, size * (id_range.second - id_range.first));
 		}
 	}
 
@@ -111,6 +112,54 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 
 	auto& added_components = m_Changes[m_ChangeSetTick % 2].added_components[key];
 	added_components.insert(std::end(added_components), std::begin(entities), std::end(entities));
+}
+
+
+// empty construction
+void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
+{
+	auto& cInfo = get_component_info(key, size);
+
+	cInfo.add(entities);
+
+	/*if(!cInfo.is_tag())
+	{
+		for(auto e : entities)
+		{
+			auto location = (std::uintptr_t)cInfo.data() + (e * size);
+			std::memset((void*)(location), 0, size);
+		}
+	}*/
+
+}
+
+// invocable based construction
+void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
+							   std::function<void(std::uintptr_t, size_t)> invocable)
+{
+	assert(size != 0);
+	auto& cInfo = get_component_info(key, size);
+
+	cInfo.add(entities);
+	for(auto e : entities)
+	{
+		auto location = (std::uintptr_t)cInfo.data() + (e * size);
+		std::invoke(invocable, location, 1);
+	}
+}
+
+// prototype based construction
+void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
+							   void* prototype)
+{
+	assert(size != 0);
+	auto& cInfo = get_component_info(key, size);
+
+	cInfo.add(entities);
+	for(auto e : entities)
+	{
+		std::memcpy((void*)((std::uintptr_t)cInfo.data() + e * size), prototype, size);
+	}
 }
 
 
@@ -173,6 +222,7 @@ psl::array<entity> state::filter_impl(details::component_key_t key,
 	return it->second;
 }
 
+
 void state::remove_component(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities) noexcept
 {
 	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
@@ -181,10 +231,7 @@ void state::remove_component(details::component_key_t key, psl::array_view<std::
 						   });
 	assert(it != std::end(m_Components));
 	if(it == std::end(m_Components)) return;
-
-	psl::array<uint64_t> indices;
-	auto& destroyed_data = m_Changes[m_ChangeSetTick % 2].destroyed_data;
-
+	
 
 	it->second.destroy(entities);
 
@@ -192,19 +239,62 @@ void state::remove_component(details::component_key_t key, psl::array_view<std::
 	removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
 }
 
+
+void state::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
+{
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+						   {
+							   return pair.first == key;
+						   });
+	assert(it != std::end(m_Components));
+	if(it == std::end(m_Components)) return;
+
+	//auto& destroyed_data = m_Changes[m_ChangeSetTick % 2].destroyed_data;
+
+
+	it->second.destroy(entities);
+
+	//auto& removed_components = m_Changes[m_ChangeSetTick % 2].removed_components[key];
+	//removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
+}
+
+
 void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcept
 {
+	auto count = std::accumulate(std::begin(entities), std::end(entities), entity{0},
+								 [](entity sum, const auto& range) { return sum + (range.second - range.first); });
 	for(auto& [key, cInfo] : m_Components)
 	{
 		cInfo.destroy(entities);
 	}
+	m_Orphans += count;
 
 	for(auto range : entities)
 	{
-		m_Generator.destroy(range.first, range.second - range.first);
+		for(auto e = range.first; e < range.second; ++e)
+		{
+			m_Entities[e] = m_Next;
+			m_Next = e;
+		}
 	}
 }
 
+// consider an alias feature
+// ie: alias transform = position, rotation, scale components
+void state::destroy(psl::array_view<entity> entities) noexcept
+{
+	for(auto&[key, cInfo] : m_Components)
+	{
+		cInfo.destroy(entities);
+	}
+
+	m_Orphans += entities.size();
+	for(auto e : entities)
+	{
+		m_Entities[e] = m_Next;
+		m_Next = e;
+	}
+}
 
 void state::destroy(entity entity) noexcept
 {
@@ -212,5 +302,8 @@ void state::destroy(entity entity) noexcept
 	{
 		cInfo.destroy(entity);
 	}
-	m_Generator.destroy(entity);
+	m_Entities[entity] = m_Next;
+	m_Next = entity;
+
+	++m_Orphans;
 }

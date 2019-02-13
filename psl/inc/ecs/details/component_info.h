@@ -30,7 +30,7 @@ namespace psl::ecs::details
 		component_info(component_info&& other);
 		~component_info();
 		component_info& operator=(const component_info& other) = delete;
-		component_info& operator=(component_info&& other);
+		component_info& operator							   =(component_info&& other);
 		void grow();
 
 		void shrink();
@@ -42,9 +42,11 @@ namespace psl::ecs::details
 		bool is_tag() const noexcept;
 
 
+		void add(psl::array_view<entity> entities);
 		psl::array<std::pair<entity, entity>> add(psl::array_view<std::pair<entity, entity>> entities);
-		void destroy(psl::array_view<std::pair<entity, entity>> entities);
-		void destroy(entity entity);
+		void destroy(psl::array_view<std::pair<entity, entity>> entities) noexcept;
+		void destroy(psl::array_view<entity> entities) noexcept;
+		void destroy(entity entity) noexcept;
 		void purge();
 
 		void* data() const noexcept;
@@ -53,11 +55,10 @@ namespace psl::ecs::details
 
 		psl::array_view<entity> entities() const noexcept;
 		bool has_component(entity e) const noexcept;
+
 	  private:
 		psl::sparse_array<entity, entity> m_Entities;
-
 		memory::raw_region* m_Region;
-		psl::generator<entity> m_Generator;
 		component_key_t m_ID;
 		size_t m_Capacity;
 		size_t m_Size;
@@ -69,9 +70,6 @@ namespace std
 	template <>
 	struct hash<psl::ecs::details::component_info>
 	{
-		std::size_t operator()(psl::ecs::details::component_info const& ci) const noexcept
-		{
-			return ci.id();
-		}
+		std::size_t operator()(psl::ecs::details::component_info const& ci) const noexcept { return ci.id(); }
 	};
 } // namespace std
