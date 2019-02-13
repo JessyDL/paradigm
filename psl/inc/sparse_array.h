@@ -92,11 +92,28 @@ namespace psl
 
 		sparse_array() noexcept					   = default;
 		~sparse_array()							   = default;
-		sparse_array(const sparse_array&) noexcept = default;
-		sparse_array(sparse_array&&) noexcept	  = default;
-		sparse_array& operator=(const sparse_array&) noexcept = default;
-		sparse_array& operator=(sparse_array&&) noexcept = default;
-
+		sparse_array(const sparse_array& other) noexcept : m_Dense(other.m_Dense), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
+		sparse_array(sparse_array&& other) noexcept : m_Dense(std::move(other.m_Dense)), m_Reverse(std::move(other.m_Reverse)), m_Sparse(std::move(other.m_Sparse)) {};
+		sparse_array& operator=(const sparse_array& other) noexcept 
+		{
+			if(this != &other)
+			{
+				m_Dense = other.m_Dense;
+				m_Reverse = other.m_Reverse;
+				m_Sparse = other.m_Sparse;
+			}
+			return *this;
+		}
+		sparse_array& operator=(sparse_array&& other) noexcept
+		{
+			if(this != &other)
+			{
+				m_Dense = std::move(other.m_Dense);
+				m_Reverse = std::move(other.m_Reverse);
+				m_Sparse = std::move(other.m_Sparse);
+			}
+			return *this;
+		}
 		size_type size() const noexcept { return std::size(m_Dense); }
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
@@ -155,6 +172,51 @@ namespace psl
 			chunk[index] = (index_type)m_Dense.size();
 			m_Reverse.emplace_back(index);
 			m_Dense.push_back(value);
+		}
+
+		template<typename ItF, typename ItL>
+		void insert(index_type index, ItF&& first, ItL&& last)
+		{
+			auto first_index = index;
+			auto last_index = (index_type)std::distance(first, last) + index;
+			auto end_index = last_index;
+			index_type first_chunk;
+			index_type last_chunk;
+			chunk_info_for(first_index, first_index, first_chunk);
+			chunk_info_for(last_index, last_index, last_chunk);
+
+			if(end_index >= capacity()) resize(end_index + 1);
+
+			for(auto i = first_index; i < last_index + 1; ++i)
+			{
+				if(m_Sparse[i].size() == 0)
+				{
+					m_Sparse[i].resize(chunks_size);
+					std::fill_n(std::begin(m_Sparse[i]), chunks_size, std::numeric_limits<index_type>::max());
+				}
+			}
+
+			auto it = first;
+
+			for(auto i = first_chunk; i < last_chunk; ++i)
+			{
+				for(auto x = first_index; x < chunks_size; ++x)
+				{
+					m_Sparse[i][x] = (index_type)m_Dense.size();
+					m_Reverse.emplace_back(index++);
+					m_Dense.emplace_back((*it));
+					it = std::next(it);
+				}
+				first_index = 0;
+			}
+		
+			for(auto x = 0u; x < last_index; ++x)
+			{
+				m_Sparse[last_index][x] = (index_type)m_Dense.size();
+				m_Reverse.emplace_back(index++);
+				m_Dense.emplace_back((*it));
+				it = std::next(it);
+			}
 		}
 
 		void emplace(index_type index, value_type&& value)
@@ -220,6 +282,15 @@ namespace psl
 			if(m_Sparse.size() == 0)
 				return;
 
+			first = std::min< index_type>(first,(index_type) capacity() -1);
+			last = std::min< index_type>(last, (index_type)capacity() -1 );
+
+			if(last - first == 1)
+			{
+				erase(first);
+				return;
+			}
+
 			if(last - first == m_Dense.size() && std::all_of(&first, &last, [this](index_type i) { return has(i); }))
 			{
 				m_Dense.clear();
@@ -249,15 +320,20 @@ namespace psl
 				for(auto x = index; x < chunks_size; ++x)
 				{
 					const auto dense_index {m_Sparse[i][x]};
-					if(dense_index == std::numeric_limits<index_type>::max())
-						continue;
+					//if(dense_index == std::numeric_limits<index_type>::max())
+					//	continue;
 					++count;
 					m_Sparse[i][x] = std::numeric_limits<index_type>::max();
+					if(std::size(m_Dense) - dense_index == count)
+						continue;
 					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense), count));
 					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
 
 					const auto new_index = m_Reverse[dense_index];
 
+					// todo check if this optimization holds true
+					//if(new_index > first && new_index < last)
+					//	continue;
 					index_type new_element_index, new_chunk_index;
 					chunk_info_for(new_index, new_element_index, new_chunk_index);
 					m_Sparse[new_chunk_index][new_element_index] = dense_index;
@@ -266,18 +342,23 @@ namespace psl
 			}
 			if(m_Sparse[last_chunk].size() > 0)
 			{
-				for(auto x = 0u; x < last_index; ++x)
+				for(auto x = index; x < last_index; ++x)
 				{
 					const auto dense_index{m_Sparse[last_chunk][x]};
-					if(dense_index == std::numeric_limits<index_type>::max())
-						continue;
+					//if(dense_index == std::numeric_limits<index_type>::max())
+					//	continue;
 					++count;
 					m_Sparse[last_chunk][x] = std::numeric_limits<index_type>::max();
+					if(std::size(m_Dense) - dense_index == count)
+						continue;
 					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense), count));
 					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
 
 					const auto new_index = m_Reverse[dense_index];
 
+					// todo check if this optimization holds true
+					//if(new_index > first && new_index < last)
+					//	continue;
 					index_type new_element_index, new_chunk_index;
 					chunk_info_for(new_index, new_element_index, new_chunk_index);
 					m_Sparse[new_chunk_index][new_element_index] = dense_index;
@@ -289,9 +370,9 @@ namespace psl
 		}
 
 		psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
-
+		psl::array_view<value_type> dense() const noexcept { return m_Dense; }
 	  private:
-		psl::array<index_type>& chunk_for(index_type& index)
+		  __forceinline psl::array<index_type>& chunk_for(index_type& index)
 		{
 			if(index >= capacity()) resize(index + 1);
 			index_type chunk_index;
@@ -315,7 +396,7 @@ namespace psl
 			return chunk;
 		}
 
-		void chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept
+		__forceinline void chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept
 		{
 			if constexpr(is_power_of_two)
 			{
