@@ -81,7 +81,7 @@ psl::array<std::pair<entity, entity>> component_info::add(psl::array_view<std::p
 		for(auto e = e_range.first; e < e_range.second; ++e)
 		{
 			assert(!m_Entities.has(e));
-			m_Entities[e] = e;
+			m_Entities[e] = ((std::uintptr_t)m_Region->data() + (e * m_Size));
 		}
 	}
 
@@ -97,7 +97,7 @@ void component_info::add(psl::array_view<entity> entities)
 	for(auto e : entities)
 	{
 		assert(!m_Entities.has(e));
-		m_Entities[e] = e;
+		m_Entities[e] = ((std::uintptr_t)m_Region->data() + (e * m_Size));
 	}
 }
 
@@ -128,3 +128,8 @@ size_t component_info::id() const noexcept
 
 psl::array_view<entity> component_info::entities() const noexcept { return m_Entities.indices(); }
 bool component_info::has_component(entity e) const noexcept { return m_Entities.has(e); }
+
+psl::array_view<std::uintptr_t> component_info::component_data() const noexcept
+{
+	return m_Entities.dense();
+}

@@ -214,7 +214,7 @@ namespace psl::ecs
 		void reset(psl::array_view<entity> entities) noexcept;
 		
 		template<typename T>
-		auto view()
+		auto entities()
 		{
 			auto key = details::key_for<T>();
 			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
@@ -223,6 +223,18 @@ namespace psl::ecs
 								   });
 
 			return it->second.entities();
+		}
+
+		template<typename T>
+		psl::array_view<T> view()
+		{
+			auto key = details::key_for<T>();
+			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+								   {
+									   return pair.first == key;
+								   });
+
+			return *(psl::array_view<T>*)(&it->second.component_data());
 		}
 	  private:
 		//------------------------------------------------------------

@@ -552,17 +552,23 @@ struct timer final
 	void count()
 	{
 		auto now = std::chrono::high_resolution_clock::now();
-		std::cout << std::chrono::duration<double>(now - start).count() * 1000 << "ms\n";
+		std::cout << (std::chrono::duration<double>(now - start) - paused).count() * 1000 << "ms\n";
 		start = std::chrono::high_resolution_clock::now();
 	}
 
-	void reset()
+	void pause() { pause_start = std::chrono::high_resolution_clock::now(); }
+	void resume()
 	{
-		start = std::chrono::high_resolution_clock::now();
+		auto now = std::chrono::high_resolution_clock::now();
+		paused += std::chrono::duration<double>(now - pause_start);
 	}
+
+	void reset() { start = std::chrono::high_resolution_clock::now(); }
 
   private:
 	std::chrono::time_point<std::chrono::high_resolution_clock> start;
+	std::chrono::time_point<std::chrono::high_resolution_clock> pause_start;
+	std::chrono::duration<double> paused{0.0};
 };
 
 
@@ -572,12 +578,20 @@ struct position
 	std::uint64_t y;
 };
 
+struct rotation
+{
+	std::uint64_t x;
+	std::uint64_t y;
+};
 void Construct()
 {
 	psl::ecs::state state{};
 	std::cout << "Constructing 1000000 entities" << std::endl;
 	timer timer;
-	for(std::uint64_t i = 0; i < 1000000L; i++){state.create();	}
+	for(std::uint64_t i = 0; i < 1000000L; i++)
+	{
+		state.create();
+	}
 	timer.count();
 }
 
@@ -593,7 +607,7 @@ void ConstructMany()
 void ConstructManyOneComponent()
 {
 	psl::ecs::state state{};
-	std::cout << "Constructing 1000000 entities at once" << std::endl;
+	std::cout << "Constructing 1000000 entities /w one component at once" << std::endl;
 	timer timer;
 	state.create<position>(1000000u);
 	timer.count();
@@ -605,7 +619,10 @@ void Destroy()
 	std::cout << "Destroying 1000000 entities" << std::endl;
 	state.create<position>(1000000u);
 	timer timer;
-	for(std::uint32_t i = 0; i < 1000000L; i++) { state.destroy(i); }
+	for(std::uint32_t i = 0; i < 1000000L; i++)
+	{
+		state.destroy(i);
+	}
 	timer.count();
 }
 
@@ -615,7 +632,7 @@ void DestroyMany()
 	std::cout << "Destroying 1000000 entities at once" << std::endl;
 	state.create<position>(1000000u);
 	timer timer;
-	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 0u, 1000000u }});
+	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
 	timer.count();
 }
 
@@ -625,29 +642,83 @@ void DestroyOneLess()
 	std::cout << "Destroying 999999u entities out of 1000000u at once" << std::endl;
 	state.create<position>(1000000u);
 	timer timer;
-	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 0u, 999999u }});
+	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 999999u}});
 	timer.count();
 }
+
+void RemovingOne()
+{
+	psl::ecs::state state{};
+	std::cout << "Removing 1000000 components from entities" << std::endl;
+	auto entities = state.create<position>(1000001u);
+	entities.resize(entities.size() -1);
+	timer timer;
+	state.remove_components<position>(entities);
+	timer.count();
+}
+
+void RemovingOneFromMany()
+{
+	psl::ecs::state state{};
+	std::cout << "Removing 1000000 components from entities with 2 components" << std::endl;
+	auto entities = state.create<position, rotation>(1000001u);
+	entities.resize(entities.size() - 1);
+	timer timer;
+	state.remove_components<position>(entities);
+	timer.count();
+}
+
 void IterateCreateDeleteSingleComponent()
 {
 	psl::ecs::state state{};
 	std::cout << "Looping 10000 times creating and deleting a random number of entities" << std::endl;
 	timer timer;
-	psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>> ranges;
-	for(int i = 0; i < 1000; i++)
+
+	for(int i = 0; i < 10000; i++)
 	{
 		state.create<position>(10000);
+		timer.pause();
+		psl::array<psl::ecs::entity> range{state.entities<position>()};
+		timer.resume();
 
-		psl::array<psl::ecs::entity> range{state.view<position>()};
-		for(auto entity : range)
-		{
-			if(rand() % 2 == 0)
-			{
-				state.destroy(entity);
-			}
-		}
+		//range.resize(
+		//	std::distance(std::begin(range), std::remove_if(std::begin(range), std::end(range),
+		//													[](const auto& r) { return std::rand() % 2 == 0; })));
+		////std::sort(std::begin(range), std::end(range));
+		//auto start_index = range[0];
+		//auto end_index   = start_index;
+		//auto it			 = std::next(std::begin(range));
+		//psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>> ranges;
+		//for(auto end = std::end(range); it != end; ++it)
+		//{
+		//	++end_index;
+		//	if((*it) != end_index)
+		//	{
+		//		ranges.emplace_back(std::make_pair(start_index, end_index));
+		//		start_index = (*it);
+		//		end_index   = start_index;
+		//	}
+		//}
+		//ranges.emplace_back(std::make_pair(start_index, end_index + 1));
+		//state.destroy(ranges);
+		std::for_each(std::begin(range), std::end(range), [&state](auto e){ if(rand() % 2 == 0)state.destroy(e); });
 	}
 
+	timer.count();
+}
+
+void IterateOneComponentView()
+{
+	psl::ecs::state state{};
+	size_t count = 0;
+	std::cout << "Iterating over 1000000 entities that have one component" << std::endl;
+
+	state.create<position>(1000000);
+	timer timer;
+	for(const auto& e : state.view<position>())
+	{
+		//e.x = 5;
+	}
 	timer.count();
 }
 int entry()
@@ -658,13 +729,50 @@ int entry()
 #endif
 	setup_loggers();
 
-	Construct();
-	ConstructMany();
-	ConstructManyOneComponent();
-	Destroy();
-	DestroyMany();
-	DestroyOneLess();
-	IterateCreateDeleteSingleComponent();
+	//for(auto n = 0; n < 10000; ++n)
+	//{
+	//	psl::sparse_array<size_t, size_t, 4> set;
+	//	for(auto i = 0; i < 100; ++i) set[i] = i;
+
+	//	for(auto i = 0; i < 100; ++i) assert(set[i] == i);
+
+	//	/*for(auto i : set.indices())
+	//	{
+	//		if(set[i] != set.dense()[i])
+	//			debug_break();
+	//	}*/
+
+	//	for(auto c = 0; c < 100; ++c)
+	//	{
+	//		auto start = std::rand() % 200;
+	//		auto size = std::rand() % 6;
+	//		auto before{set};
+	//		set.erase(start, start + size); 
+
+	//		/*for(auto i = 0; i < set.size(); ++i)
+	//		{
+	//			if(set[set.indices()[i]] != set.dense()[i])
+	//				debug_break();
+	//		}*/
+	//	}
+	//}
+
+
+	//IterateCreateDeleteSingleComponent();
+
+	//for(auto i = 0; i < 10; ++i)
+	{
+		Construct();
+		ConstructMany();
+		ConstructManyOneComponent();
+		Destroy();
+		DestroyMany();
+		DestroyOneLess();
+		IterateOneComponentView();
+		RemovingOne();
+		RemovingOneFromMany();
+	}
+	return 0;
 	// create the ecs
 	psl::ecs::state ECSState{};
 
@@ -677,16 +785,16 @@ int entry()
 	timer timer;
 	auto entities = ECSState.create(1000000000L);
 	timer.count();
-	ECSState.add_components<position>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 0u, 1000000u }});
-	ECSState.remove_components<position>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 0u, 1000000u}});
+	ECSState.add_components<position>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
+	ECSState.remove_components<position>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
 	timer.reset();
-	ECSState.add_components<position>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 0u, 1000000u }});
+	ECSState.add_components<position>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
 	timer.count();
-	ECSState.add_components<renderable, transform, lifetime, velocity>(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{ { 100000u, 200000u }});
+	ECSState.add_components<renderable, transform, lifetime, velocity>(
+		psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{100000u, 200000u}});
 	timer.count();
 	ECSState.add_components(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 100000u}},
-							[](renderable& target) {},
-							psl::ecs::empty<transform>{},
+							[](renderable& target) {}, psl::ecs::empty<transform>{},
 							[](lifetime& target) { target.value = 0.5f + ((std::rand() % 50) / 50.0f) * 2.0f; },
 							[&size_steps](velocity& target) {
 								target.direction = psl::math::normalize(

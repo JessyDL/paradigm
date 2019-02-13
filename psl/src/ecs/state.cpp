@@ -235,8 +235,8 @@ void state::remove_component(details::component_key_t key, psl::array_view<std::
 
 	it->second.destroy(entities);
 
-	auto& removed_components = m_Changes[m_ChangeSetTick % 2].removed_components[key];
-	removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
+	//auto& removed_components = m_Changes[m_ChangeSetTick % 2].removed_components[key];
+	//removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
 }
 
 

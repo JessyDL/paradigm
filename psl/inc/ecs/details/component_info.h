@@ -54,10 +54,11 @@ namespace psl::ecs::details
 		size_t id() const noexcept;
 
 		psl::array_view<entity> entities() const noexcept;
+		psl::array_view<std::uintptr_t> component_data() const noexcept;
 		bool has_component(entity e) const noexcept;
 
 	  private:
-		psl::sparse_array<entity, entity> m_Entities;
+		psl::sparse_array<std::uintptr_t, entity> m_Entities;
 		memory::raw_region* m_Region;
 		component_key_t m_ID;
 		size_t m_Capacity;
