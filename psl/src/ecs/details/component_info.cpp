@@ -3,20 +3,24 @@
 #include "memory/raw_region.h"
 #include <algorithm>
 #include "pack_view.h"
+#include <numeric>
 
 using namespace psl::ecs;
 using namespace psl::ecs::details;
 
 component_info::component_info(component_key_t id, size_t size, size_t capacity)
-	: m_Entities(), m_Region((size > 0)?new memory::raw_region(capacity * size): nullptr),
-	  m_Generator((size> 0)?std::numeric_limits<uint64_t>::max(): 0), m_ID(id), m_Capacity((size>0)?capacity:0), m_Size(size)
+	: m_Entities(), m_Region((size > 0) ? new memory::raw_region(capacity * size) : nullptr),
+	  m_Generator((size > 0) ? std::numeric_limits<entity>::max() : 0u), m_ID(id),
+	  m_Capacity((size > 0) ? capacity : 0), m_Size(size)
 {}
 
 component_info::component_info(component_info&& other)
 	: m_Entities(std::move(other.m_Entities)), m_Region(std::move(other.m_Region)),
 	  m_Generator(std::move(other.m_Generator)), m_ID(std::move(other.m_ID)), m_Capacity(std::move(other.m_Capacity)),
-	  m_Size(std::move(other.m_Size)){
-	other.m_Region = nullptr;};
+	  m_Size(std::move(other.m_Size))
+{
+	other.m_Region = nullptr;
+};
 
 component_info::~component_info()
 {
@@ -27,12 +31,12 @@ component_info& component_info::operator=(component_info&& other)
 {
 	if(this != &other)
 	{
-		m_Entities  = std::move(other.m_Entities);
-		m_Region	= std::move(other.m_Region);
-		m_Generator = std::move(other.m_Generator);
-		m_ID		= std::move(other.m_ID);
-		m_Capacity  = std::move(other.m_Capacity);
-		m_Size		= std::move(other.m_Size);
+		m_Entities	 = std::move(other.m_Entities);
+		m_Region	   = std::move(other.m_Region);
+		m_Generator	= std::move(other.m_Generator);
+		m_ID		   = std::move(other.m_ID);
+		m_Capacity	 = std::move(other.m_Capacity);
+		m_Size		   = std::move(other.m_Size);
 		other.m_Region = nullptr;
 	}
 	return *this;
@@ -68,57 +72,51 @@ uint64_t component_info::available() const noexcept { return m_Capacity - m_Enti
 
 bool component_info::is_tag() const noexcept { return m_Size == 0; }
 
-psl::array<std::pair<uint64_t, uint64_t>> component_info::add(psl::array_view<entity> entities)
+psl::array<std::pair<entity, entity>> component_info::add(psl::array_view<std::pair<entity, entity>> entities)
 {
-	if(available() <= entities.size())
-		resize(std::max(m_Capacity * 2, m_Capacity + entities.size()));
+	auto count = std::accumulate(std::begin(entities), std::end(entities), entity{0},
+								 [](entity sum, const auto& range) { return sum + (range.second - range.first); });
 
-	m_Entities.insert(std::end(m_Entities), std::begin(entities), std::end(entities));
+	if(available() <= count) resize(std::max(m_Capacity * 2, m_Capacity + count));
 
-	if(is_tag())
-		return {};
-	return m_Generator.create_multi(entities.size());
-}
+	auto indices = m_Generator.create_multi(count);
 
-void component_info::destroy(psl::array_view<entity> entities, psl::array_view<uint64_t> indices)
-{
-	assert(entities.size() == indices.size());
+	if(is_tag()) return {};
 
-	auto ib   = std::begin(entities);
-	auto iter = std::remove_if(std::begin(m_Entities), std::end(m_Entities), [&ib, &entities](entity e) -> bool {
-		while(ib != std::end(entities) && *ib < e) ++ib;
-		return (ib != std::end(entities) && *ib == e);
-	});
-
-	assert(std::distance(iter, std::end(m_Entities)) == entities.size());
-
-	psl::array<std::pair<uint64_t, uint64_t>> collapsed_indices;
-
-	uint64_t range_start = indices[0];
-	uint64_t range_end   = indices[0] + 1;
-	for(auto i = size_t{1}; i < indices.size(); ++i)
+	auto indices_i = 0;
+	auto index	 = indices[indices_i].first;
+	for(auto e_range : entities)
 	{
-		if(indices[i] != range_end)
+		for(auto e = e_range.first; e < e_range.second; ++e)
 		{
-			collapsed_indices.emplace_back(range_start, range_end - range_start);
-			range_start = indices[i];
-			range_end   = range_start;
+			assert(!m_Entities.has(e));
+			m_Entities[e] = index;
+			if(++index >= indices[indices_i].second)
+			{
+				++indices_i;
+				if(indices_i < indices.size()) index = indices[indices_i].first;
+			}
 		}
-		range_end += 1;
 	}
-	collapsed_indices.emplace_back(range_start, range_end - range_start);
-	m_MarkedForDeletion.insert(std::end(m_MarkedForDeletion), std::begin(collapsed_indices),
-							   std::end(collapsed_indices));
+
+	return indices;
 }
 
-void component_info::purge()
+void component_info::destroy(psl::array_view<std::pair<entity, entity>> entities)
 {
-	for(auto& range : m_MarkedForDeletion) m_Generator.destroy(range.first, range.second);
+	for(auto e_range : entities)
+	{
+		m_Entities.erase(e_range.first, e_range.second);
+	}
 }
 
 
-psl::array_view<entity> component_info::entities() const noexcept { return m_Entities; }
-psl::array_view<entity> component_info::deleted_entities() const noexcept { return m_DeletedEntities; }
+void component_info::destroy(entity entity)
+{
+	m_Entities.erase(entity);
+}
+void component_info::purge() {}
+
 
 void* component_info::data() const noexcept { return m_Region->data(); }
 
@@ -127,4 +125,13 @@ size_t component_info::id() const noexcept
 {
 	static_assert(sizeof(size_t) == sizeof(psl::ecs::details::component_key_t), "should be castable");
 	return (size_t)m_ID;
+}
+
+psl::array_view<entity> component_info::entities() const noexcept
+{
+	return m_Entities.indices();
+}
+bool component_info::has_component(entity e) const noexcept
+{
+	return m_Generator.valid(e);
 }

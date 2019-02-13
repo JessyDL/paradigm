@@ -4,14 +4,12 @@
 #include "component_key.h"
 #include "IDGenerator.h"
 #include "array_view.h"
+#include "../entity.h"
+#include "sparse_array.h"
 
 namespace memory
 {
 	class raw_region;
-}
-namespace psl::ecs
-{
-	struct entity;
 }
 
 namespace psl
@@ -44,22 +42,22 @@ namespace psl::ecs::details
 		bool is_tag() const noexcept;
 
 
-		psl::array<std::pair<uint64_t, uint64_t>> add(psl::array_view<entity> entities);
-		void destroy(psl::array_view<entity> entities, psl::array_view<uint64_t> indices);
+		psl::array<std::pair<entity, entity>> add(psl::array_view<std::pair<entity, entity>> entities);
+		void destroy(psl::array_view<std::pair<entity, entity>> entities);
+		void destroy(entity entity);
 		void purge();
-
-		psl::array_view<entity> entities() const noexcept;
-		psl::array_view<entity> deleted_entities() const noexcept;
 
 		void* data() const noexcept;
 
 		size_t id() const noexcept;
+
+		psl::array_view<entity> entities() const noexcept;
+		bool has_component(entity e) const noexcept;
 	  private:
-		psl::array<entity> m_Entities;
-		psl::array<entity> m_DeletedEntities;
-		psl::array<std::pair<uint64_t, uint64_t>> m_MarkedForDeletion;
+		psl::sparse_array<entity, entity> m_Entities;
+
 		memory::raw_region* m_Region;
-		psl::generator<uint64_t> m_Generator;
+		psl::generator<entity> m_Generator;
 		component_key_t m_ID;
 		size_t m_Capacity;
 		size_t m_Size;

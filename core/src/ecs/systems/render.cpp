@@ -11,18 +11,18 @@
 
 #include "vk/buffer.h"
 
-using namespace core::resource;
+using core::resource::handle;
 using namespace core::gfx;
 using namespace core::os;
 using namespace core;
+using namespace core::ecs;
 using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl;
+using std::chrono::duration;
+using core::ecs::state;
 
-render::render(core::ecs::state& state, 
-			   handle<context> context, 
-			   handle<swapchain> swapchain, 
-			   handle<surface> surface,
+render::render(core::ecs::state& state, handle<context> context, handle<swapchain> swapchain, handle<surface> surface,
 			   handle<buffer> buffer)
 	: m_Pass(context, swapchain), m_Swapchain(swapchain), m_Surface(surface), m_Buffer(buffer)
 {
@@ -36,35 +36,32 @@ core::ecs::command_buffer render::tick_cameras(
 {
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return core::ecs::command_buffer{state};
 	size_t i = 0;
-	for(auto[camera, transform] : cameras)
+	for(auto [camera, transform] : cameras)
 	{
 		update_buffer(i++, transform, camera);
 	}
 	return core::ecs::command_buffer{state};
 }
 
-core::ecs::command_buffer render::tick_draws(
-	const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-	core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
-	core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
-	renderables,
-	core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
-	core::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
-	broken_renderables)
+core::ecs::command_buffer
+render::tick_draws(const state& state, duration<float> dTime, duration<float> rTime,
+				   pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
+				   pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
 {
 	{
 		m_Pass.clear();
 		auto& default_layer = m_DrawGroup.layer("default", 0);
-		for(auto[transform, renderable] : renderables)
+		auto res = renderables.get<const transform>();
+		for(auto [transform, renderable] : renderables)
 		{
 			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
 		}
 
-		for(auto[transform, renderable] : broken_renderables)
+		for(auto [transform, renderable] : broken_renderables)
 		{
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
-				dCall.value().get().remove(renderable.geometry.operator const psl::UID &());
+				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}
 		}
 

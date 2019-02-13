@@ -14,28 +14,32 @@ state::state(size_t workers)
 
 void state::tick(std::chrono::duration<float> dTime)
 {
+	++m_ChangeSetTick;
 	// tick systems;
 
 	// purge m_Changes[m_Tick];
 
+	//for(const auto&[key, entities] : m_Changes[m_Tick % 2].removed_components) m_Components[key].purge();
 
+	m_Changes[m_Tick % 2] = {};
 	++m_Tick;
 }
 
 details::component_info& state::get_component_info(component_key_t key, size_t size)
 {
-	auto it = m_Components.find(key);
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+						   { return pair.first == key; });
 
 	if(it != std::end(m_Components)) return it->second;
 
-	return m_Components.emplace(key, details::component_info{key, size}).first->second;
+	return m_Components.emplace_back(key, details::component_info{key, size, 3000000}).second;
 }
 
 psl::array<entity> prepare_for_add_component(component_key_t key, psl::array_view<entity> entities_view,
 											 const psl::bytell_map<entity, entity_info>& map)
 {
-	std::vector<entity> entities = entities_view;
-#if defined(_DEBUG)
+	std::vector<entity> entities{entities_view};
+#if defined(_DEBUG) && defined(SAFE_ECS)
 	auto size = std::distance(std::begin(entities),
 							  std::remove_if(std::begin(entities), std::end(entities), [&map, key](const entity& e) {
 								  auto eMapIt = map.find(e);
@@ -44,108 +48,79 @@ psl::array<entity> prepare_for_add_component(component_key_t key, psl::array_vie
 									  return true;
 								  }
 
-								  for(auto eComp : eMapIt->second.components)
-								  {
-									  if(eComp == key) return true;
-								  }
-								  return false;
+								  return eMapIt->second.has(key);
 							  }));
 	assert(entities.size() == size);
 #endif
-	std::sort(std::begin(entities), std::end(entities));
 	return entities;
 }
 
 // empty construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
+void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size)
 {
 	auto& cInfo						   = get_component_info(key, size);
-	psl::array<entity> unique_entities = prepare_for_add_component(key, entities, m_Entities);
-	entities						   = unique_entities;
 
 	auto ids = cInfo.add(entities);
-	m_Entities.reserve(m_Entities.size() + entities.size());
-	if(cInfo.is_tag())
+
+	if(!cInfo.is_tag())
 	{
-		for(auto eIt = std::begin(entities); eIt != std::end(entities); ++eIt)
-		{
-			const entity& e{*eIt};
-			m_Entities[e].emplace_back(key, 0);
-		}
-	}
-	else
-	{
-		auto eIt = std::begin(entities);
 		for(const auto& id_range : ids)
 		{
-			for(auto i = id_range.first; i < id_range.first + id_range.second; ++i)
-			{
-				const entity& e{*eIt};
-				m_Entities[e].emplace_back(key, i);
-				std::memset((void*)((std::uintptr_t)cInfo.data() + i * size), 0, size);
-				eIt = std::next(eIt);
-			}
+			auto location = (std::uintptr_t)cInfo.data() + (id_range.first * size);
+			std::memset((void*)(location + id_range.first * size), 0, size * (id_range.second - id_range.first));
 		}
 	}
+
+	auto& added_components = m_Changes[m_ChangeSetTick % 2].added_components[key];
+	added_components.insert(std::end(added_components), std::begin(entities), std::end(entities));
 }
 
 // invocable based construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
+void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size,
 							   std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	assert(size != 0);
 	auto& cInfo						   = get_component_info(key, size);
-	psl::array<entity> unique_entities = prepare_for_add_component(key, entities, m_Entities);
-	entities						   = unique_entities;
 
 	auto ids = cInfo.add(entities);
-	m_Entities.reserve(m_Entities.size() + entities.size());
-
-	auto eIt = std::begin(entities);
 	for(const auto& id_range : ids)
 	{
-		for(auto i = id_range.first; i < id_range.first + id_range.second; ++i)
-		{
-			const entity& e{*eIt};
-			m_Entities[e].emplace_back(key, i);
-			eIt = std::next(eIt);
-		}
-
 		auto location = (std::uintptr_t)cInfo.data() + (id_range.first * size);
-		std::invoke(invocable, location, id_range.second);
+		std::invoke(invocable, location, id_range.second - id_range.first);
 	}
+
+	auto& added_components = m_Changes[m_ChangeSetTick % 2].added_components[key];
+	added_components.insert(std::end(added_components), std::begin(entities), std::end(entities));
 }
 
 // prototype based construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
+void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size,
 							   void* prototype)
 {
 	assert(size != 0);
 	auto& cInfo						   = get_component_info(key, size);
-	psl::array<entity> unique_entities = prepare_for_add_component(key, entities, m_Entities);
-	entities						   = unique_entities;
 
 	auto ids = cInfo.add(entities);
-	m_Entities.reserve(m_Entities.size() + entities.size());
-
-	auto eIt = std::begin(entities);
 	for(const auto& id_range : ids)
 	{
-		for(auto i = id_range.first; i < id_range.first + id_range.second; ++i)
+		for(auto i = id_range.first; i < id_range.second; ++i)
 		{
-			const entity& e{*eIt};
-			m_Entities[e].emplace_back(key, i);
 			std::memcpy((void*)((std::uintptr_t)cInfo.data() + i * size), prototype, size);
-			eIt = std::next(eIt);
 		}
 	}
+
+	auto& added_components = m_Changes[m_ChangeSetTick % 2].added_components[key];
+	added_components.insert(std::end(added_components), std::begin(entities), std::end(entities));
 }
 
 
 psl::array<entity> state::filter_impl(details::component_key_t key,
 									  std::optional<psl::array_view<entity>> entities) const noexcept
 {
-	auto it = m_Components.find(key);
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+						   {
+							   return pair.first == key;
+						   });
 	if(it == std::end(m_Components)) return {};
 
 	if(entities)
@@ -157,8 +132,79 @@ psl::array<entity> state::filter_impl(details::component_key_t key,
 		return result;
 	}
 
-	return it->second.entities();
+	return psl::array<entity>{it->second.entities()};
+}
+
+psl::array<entity> state::filter_except_impl(details::component_key_t key,
+											 std::optional<psl::array_view<entity>> entities) const noexcept
+{
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+						   {
+							   return pair.first == key;
+						   });
+	if(it == std::end(m_Components)) return {};
+
+	if(entities)
+	{
+		psl::array<entity> result;
+		std::set_difference(std::begin(entities.value()), std::end(entities.value()), std::begin(it->second.entities()),
+							std::end(it->second.entities()), std::back_inserter(result));
+		return result;
+	}
+
+	return psl::array<entity>{it->second.entities()};
+}
+
+psl::array<entity> state::filter_impl(details::component_key_t key,
+									  const psl::bytell_map<details::component_key_t, psl::array<entity>>& map,
+									  std::optional<psl::array_view<entity>> entities) const noexcept
+{
+	auto it = map.find(key);
+	if(it == std::end(map)) return {};
+
+	if(entities)
+	{
+		psl::array<entity> result;
+		std::set_intersection(std::begin(entities.value()), std::end(entities.value()), std::begin(it->second),
+							  std::end(it->second), std::back_inserter(result));
+		return result;
+	}
+
+	return it->second;
+}
+
+void state::remove_component(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities) noexcept
+{
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+						   {
+							   return pair.first == key;
+						   });
+	assert(it != std::end(m_Components));
+	if(it == std::end(m_Components)) return;
+
+	psl::array<uint64_t> indices;
+	auto& destroyed_data = m_Changes[m_ChangeSetTick % 2].destroyed_data;
+
+
+	it->second.destroy(entities);
+
+	auto& removed_components = m_Changes[m_ChangeSetTick % 2].removed_components[key];
+	removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
+}
+
+void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcept
+{
+	for(auto& [key, cInfo] : m_Components)
+	{
+		cInfo.destroy(entities);
+	}
 }
 
 
-void state::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept {}
+void state::destroy(entity entity) noexcept
+{
+	for(auto&[key, cInfo] : m_Components)
+	{
+		cInfo.destroy(entity);
+	}
+}

@@ -106,7 +106,6 @@ namespace psl
 			return iterator{m_Dense.data() + m_Dense.size(), m_Reverse.data() + m_Reverse.size()};
 		};
 
-
 		reference operator[](index_type index)
 		{
 			auto sub_index = index;
@@ -182,10 +181,7 @@ namespace psl
 					chunk_index = (index - (index % mod_val)) / chunks_size;
 					index		= index % mod_val;
 				}
-				if(m_Sparse[chunk_index].size() > 0)
-				{
-					return m_Sparse[chunk_index][index] != std::numeric_limits<index_type>::max();
-				}
+				return m_Sparse[chunk_index].size() > 0 && m_Sparse[chunk_index][index] != std::numeric_limits<index_type>::max();				
 			}
 			return false;
 		}
@@ -195,26 +191,104 @@ namespace psl
 		void* data() noexcept { return m_Dense.data(); };
 		void* cdata() const noexcept { return m_Dense.data(); };
 
-		void erase(index_type index)
+		void erase(index_type index) noexcept
 		{
-			if(has(index))
+			index_type sparse_index, chunk_index;
+			chunk_info_for(index, sparse_index, chunk_index);
+			if(m_Sparse[chunk_index].size() > 0 && m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max())
 			{
-				auto sparse_index = index;
-				auto& chunk		  = chunk_for(index);
+				const auto dense_index = m_Sparse[chunk_index][sparse_index];
+				m_Sparse[chunk_index][sparse_index] = std::numeric_limits<index_type>::max();
 
-				auto dense_index = chunk[index];
-				std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense)));
-				std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse)));
-				m_Dense.resize(m_Dense.size() - 1);
-				m_Reverse.resize(m_Reverse.size() - 1);
+				if(dense_index != m_Dense.size() - 1)
+				{
+					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense)));
+					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse)));
 
-				chunk[index] = std::numeric_limits<index_type>::max();
+					sparse_index = m_Reverse[dense_index];
+					chunk_info_for(sparse_index, index, chunk_index);
+					m_Sparse[chunk_index][index] = dense_index;
+				}
 
-				index		 = m_Reverse[dense_index];
-				chunk		 = chunk_for(index);
-				chunk[index] = sparse_index;
+				m_Dense.pop_back();
+				m_Reverse.pop_back();
 			}
 		}
+
+		void erase(index_type first, index_type last) noexcept
+		{
+			if(m_Sparse.size() == 0)
+				return;
+
+			if(last - first == m_Dense.size() && std::all_of(&first, &last, [this](index_type i) { return has(i); }))
+			{
+				m_Dense.clear();
+				m_Reverse.clear();
+				m_Sparse.clear();
+				return;
+			}
+			auto first_index = first;
+			auto last_index = last;
+			index_type first_chunk;
+			index_type last_chunk;
+			chunk_info_for(first, first_index, first_chunk);
+			chunk_info_for(last, last_index, last_chunk);
+
+			index_type count{0};
+			index_type processed{0};
+
+			auto index = first_index;
+			for(auto i = first_chunk; i < last_chunk; ++i)
+			{
+				if(m_Sparse[i].size() == 0)
+				{
+					index = 0u;
+					continue;
+				}
+
+				for(auto x = index; x < chunks_size; ++x)
+				{
+					const auto dense_index {m_Sparse[i][x]};
+					if(dense_index == std::numeric_limits<index_type>::max())
+						continue;
+					++count;
+					m_Sparse[i][x] = std::numeric_limits<index_type>::max();
+					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense), count));
+					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
+
+					const auto new_index = m_Reverse[dense_index];
+
+					index_type new_element_index, new_chunk_index;
+					chunk_info_for(new_index, new_element_index, new_chunk_index);
+					m_Sparse[new_chunk_index][new_element_index] = dense_index;
+				}
+				index = 0u;
+			}
+			if(m_Sparse[last_chunk].size() > 0)
+			{
+				for(auto x = 0u; x < last_index; ++x)
+				{
+					const auto dense_index{m_Sparse[last_chunk][x]};
+					if(dense_index == std::numeric_limits<index_type>::max())
+						continue;
+					++count;
+					m_Sparse[last_chunk][x] = std::numeric_limits<index_type>::max();
+					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense), count));
+					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
+
+					const auto new_index = m_Reverse[dense_index];
+
+					index_type new_element_index, new_chunk_index;
+					chunk_info_for(new_index, new_element_index, new_chunk_index);
+					m_Sparse[new_chunk_index][new_element_index] = dense_index;
+				}
+			}
+
+			m_Dense.resize(m_Dense.size() - count);
+			m_Reverse.resize(m_Reverse.size() - count);
+		}
+
+		psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
 
 	  private:
 		psl::array<index_type>& chunk_for(index_type& index)
@@ -239,6 +313,20 @@ namespace psl
 			}
 
 			return chunk;
+		}
+
+		void chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept
+		{
+			if constexpr(is_power_of_two)
+			{
+				chunk_index = (index - (index & mod_val)) / chunks_size;
+				element_index = index & mod_val;
+			}
+			else
+			{
+				chunk_index = (index - (index % mod_val)) / chunks_size;
+				element_index = index % mod_val;
+			}
 		}
 
 		psl::array<value_type> m_Dense;

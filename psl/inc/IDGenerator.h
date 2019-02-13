@@ -185,7 +185,7 @@ namespace psl
 			return true;
 		}
 
-		bool valid(T id, T count = 1)
+		bool valid(T id, T count = 1) const noexcept
 		{
 			range r{id, id + count};
 			auto insert_loc = std::upper_bound(std::begin(m_FreeRanges), std::end(m_FreeRanges), r);
