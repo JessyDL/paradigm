@@ -43,8 +43,6 @@
 
 #include "math/math.hpp"
 
-#define NEW_ECS
-#ifdef NEW_ECS
 #include "../../psl/inc/ecs/state.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/camera.h"
@@ -53,23 +51,6 @@
 #include "ecs/components/lifetime.h"
 #include "ecs/components/dead_tag.h"
 #include "ecs/components/velocity.h"
-#else
-#include "ecs/ecs.hpp"
-#include "ecs/components/transform.h"
-#include "ecs/components/camera.h"
-#include "ecs/components/input_tag.h"
-#include "ecs/components/renderable.h"
-#include "ecs/components/lifetime.h"
-#include "ecs/components/dead_tag.h"
-#include "ecs/components/velocity.h"
-#include "ecs/systems/fly.h"
-#include "ecs/systems/render.h"
-#include "ecs/systems/geometry_instance.h"
-#include "ecs/systems/attractor.h"
-#include "ecs/systems/death.h"
-#include "ecs/systems/lifetime.h"
-#include "ecs/systems/movement.h"
-#endif
 
 using namespace core;
 using namespace core::resource;
@@ -543,7 +524,6 @@ int android_entry()
 
 
 #endif
-#if defined(NEW_ECS)
 
 struct timer final
 {
@@ -571,6 +551,62 @@ struct timer final
 	std::chrono::duration<double> paused{0.0};
 };
 
+class benchmark
+{
+  public:
+	template <typename F>
+	benchmark(F&& fnc, const size_t iterations)
+	{
+		std::chrono::time_point<std::chrono::high_resolution_clock> start{};
+		results.reserve(iterations);
+		for(size_t i = 0; i < iterations; ++i)
+		{
+			start = std::chrono::high_resolution_clock::now();
+			std::invoke(fnc);
+			results.emplace_back(
+				std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start).count() * 1000.0);
+		}
+		std::sort(std::begin(results), std::end(results));
+	}
+
+	template <typename F, typename F2>
+	benchmark(F2&& buildup, F&& fnc, const size_t iterations)
+	{
+		std::chrono::time_point<std::chrono::high_resolution_clock> start{};
+		results.reserve(iterations);
+		for(size_t i = 0; i < iterations; ++i)
+		{
+			auto res{std::invoke(buildup)};
+			start = std::chrono::high_resolution_clock::now();
+			std::apply(fnc, res);
+			results.emplace_back(
+				std::chrono::duration<double>(std::chrono::high_resolution_clock::now() - start).count() * 1000.0);
+		}
+		std::sort(std::begin(results), std::end(results));
+	}
+
+
+	double time(size_t percentile)
+	{
+		percentile   = std::max<size_t>(std::min<size_t>(100, percentile), 0);
+		size_t index = (100.0 / (double)(results.size() + 1)) * (double)percentile;
+		return results[index];
+	}
+
+	template <typename... size_t>
+	void log(spdlog::logger& logger, size_t... percentiles)
+	{
+		std::string format{"    {} iterations [ "};
+		(format.append(std::to_string(percentiles) + "% {}ms | "), ...);
+		format.resize(format.size() - 2);
+		format.append(" ]");
+		logger.info(format.c_str(), results.size(), time(percentiles)...);
+	};
+
+  private:
+	std::vector<double> results;
+};
+
 
 struct position
 {
@@ -583,95 +619,129 @@ struct rotation
 	std::uint64_t x;
 	std::uint64_t y;
 };
-void Construct()
+void Construct(spdlog::logger& log)
 {
-	psl::ecs::state state{};
-	std::cout << "Constructing 1000000 entities" << std::endl;
-	timer timer;
-	for(std::uint64_t i = 0; i < 1000000L; i++)
-	{
-		state.create();
-	}
-	timer.count();
+	log.info("Constructing 1000000 entities");
+
+	benchmark b{[]() { return std::tuple<psl::ecs::state>(); },
+				[](psl::ecs::state& state) {
+					for(std::uint64_t i = 0; i < 1000000L; i++)
+					{
+						state.create();
+					}
+				},
+				100};
+
+	b.log(log, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void ConstructMany()
+void ConstructMany(spdlog::logger& log)
 {
-	psl::ecs::state state{};
-	std::cout << "Constructing 1000000 entities at once" << std::endl;
-	timer timer;
-	state.create(1000000);
-	timer.count();
+	log.info("Constructing 1000000 entities at once");
+	benchmark b{[]() { return std::tuple<psl::ecs::state>(); }, [](psl::ecs::state& state) { state.create(1000000L); },
+				100};
+
+	b.log(log, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void ConstructManyOneComponent()
+void ConstructManyOneComponent(spdlog::logger& logger)
 {
-	psl::ecs::state state{};
-	std::cout << "Constructing 1000000 entities /w one component at once" << std::endl;
-	timer timer;
-	state.create<position>(1000000u);
-	timer.count();
+	logger.info("Constructing 1000000 entities /w one component at once");
+	benchmark b{[]() { return std::tuple<psl::ecs::state>(); },
+				[](psl::ecs::state& state) { state.create<position>(1000000u); }, 100};
+	b.log(logger, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void Destroy()
+void Destroy(spdlog::logger& logger)
 {
-	psl::ecs::state state{};
-	std::cout << "Destroying 1000000 entities" << std::endl;
-	state.create<position>(1000000u);
-	timer timer;
-	for(std::uint32_t i = 0; i < 1000000L; i++)
-	{
-		state.destroy(i);
-	}
-	timer.count();
+	logger.info("Destroying 1000000 entities");
+
+	benchmark b{[]() {
+					psl::ecs::state s{};
+					s.create<position>(1000000u);
+					return std::tuple<psl::ecs::state>(std::move(s));
+				},
+				[](psl::ecs::state& state) {
+					for(std::uint32_t i = 0; i < 1000000L; i++)
+					{
+						state.destroy(i);
+					}
+				},
+				100};
+	b.log(logger, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void DestroyMany()
+void DestroyMany(spdlog::logger& logger)
 {
 	psl::ecs::state state{};
-	std::cout << "Destroying 1000000 entities at once" << std::endl;
-	state.create<position>(1000000u);
-	timer timer;
-	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
-	timer.count();
+	logger.info("Constructing 1000000 entities /w one component at once");
+
+	benchmark b{[]() {
+					psl::ecs::state s{};
+					s.create<position>(1000000u);
+					return std::tuple<psl::ecs::state>(std::move(s));
+				},
+				[](psl::ecs::state& state) {
+					state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
+				},
+				100};
+	b.log(logger, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void DestroyOneLess()
+void DestroyOneLess(spdlog::logger& logger)
 {
-	psl::ecs::state state{};
-	std::cout << "Destroying 999999u entities out of 1000000u at once" << std::endl;
-	state.create<position>(1000000u);
-	timer timer;
-	state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 999999u}});
-	timer.count();
+	logger.info("Destroying 999999u entities out of 1000000u at once");
+
+	benchmark b{[]() {
+					psl::ecs::state s{};
+					s.create<position>(1000000u);
+					return std::tuple<psl::ecs::state>(std::move(s));
+				},
+				[](psl::ecs::state& state) {
+					state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 999999u}});
+				},
+				100};
+	b.log(logger, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void RemovingOne()
+void RemovingOne(spdlog::logger& logger)
 {
-	psl::ecs::state state{};
-	std::cout << "Removing 1000000 components from entities" << std::endl;
-	auto entities = state.create<position>(1000001u);
-	entities.resize(entities.size() -1);
-	timer timer;
-	state.remove_components<position>(entities);
-	timer.count();
+	logger.info("Removing 1000000 components from entities");
+
+	benchmark b{[]() {
+					psl::ecs::state s{};
+					auto entities = s.create<position>(1000001u);
+					entities.resize(entities.size() - 1);
+					return std::tuple<psl::array<psl::ecs::entity>, psl::ecs::state>(std::move(entities), std::move(s));
+				},
+				[](psl::array<psl::ecs::entity>& entities, psl::ecs::state& state) {
+					state.remove_components<position>(entities);
+				},
+				100};
+	b.log(logger, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void RemovingOneFromMany()
+void RemovingOneFromMany(spdlog::logger& logger)
 {
-	psl::ecs::state state{};
-	std::cout << "Removing 1000000 components from entities with 2 components" << std::endl;
-	auto entities = state.create<position, rotation>(1000001u);
-	entities.resize(entities.size() - 1);
-	timer timer;
-	state.remove_components<position>(entities);
-	timer.count();
+	logger.info("Removing 1000000 components from entities with 2 components");
+
+	benchmark b{[]() {
+					psl::ecs::state s{};
+					auto entities = s.create<position, rotation>(1000001u);
+					entities.resize(entities.size() - 1);
+					return std::tuple<psl::array<psl::ecs::entity>, psl::ecs::state>(std::move(entities), std::move(s));
+				},
+				[](psl::array<psl::ecs::entity>& entities, psl::ecs::state& state) {
+					state.remove_components<position>(entities);
+				},
+				100};
+	b.log(logger, 0, 25, 50, 80, 95, 98, 100);
 }
 
-void IterateCreateDeleteSingleComponent()
+void IterateCreateDeleteSingleComponent(spdlog::logger& logger)
 {
 	psl::ecs::state state{};
-	std::cout << "Looping 10000 times creating and deleting a random number of entities" << std::endl;
+	logger.info("Looping 10000 times creating and deleting a random number of entities");
 	timer timer;
 
 	for(int i = 0; i < 10000; i++)
@@ -681,15 +751,15 @@ void IterateCreateDeleteSingleComponent()
 		psl::array<psl::ecs::entity> range{state.entities<position>()};
 		timer.resume();
 
-		//range.resize(
+		// range.resize(
 		//	std::distance(std::begin(range), std::remove_if(std::begin(range), std::end(range),
 		//													[](const auto& r) { return std::rand() % 2 == 0; })));
 		////std::sort(std::begin(range), std::end(range));
-		//auto start_index = range[0];
-		//auto end_index   = start_index;
-		//auto it			 = std::next(std::begin(range));
-		//psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>> ranges;
-		//for(auto end = std::end(range); it != end; ++it)
+		// auto start_index = range[0];
+		// auto end_index   = start_index;
+		// auto it			 = std::next(std::begin(range));
+		// psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>> ranges;
+		// for(auto end = std::end(range); it != end; ++it)
 		//{
 		//	++end_index;
 		//	if((*it) != end_index)
@@ -699,28 +769,62 @@ void IterateCreateDeleteSingleComponent()
 		//		end_index   = start_index;
 		//	}
 		//}
-		//ranges.emplace_back(std::make_pair(start_index, end_index + 1));
-		//state.destroy(ranges);
-		std::for_each(std::begin(range), std::end(range), [&state](auto e){ if(rand() % 2 == 0)state.destroy(e); });
+		// ranges.emplace_back(std::make_pair(start_index, end_index + 1));
+		// state.destroy(ranges);
+		std::for_each(std::begin(range), std::end(range), [&state](auto e) {
+			if(rand() % 2 == 0) state.destroy(e);
+		});
 	}
 
 	timer.count();
 }
 
-void IterateOneComponentView()
+void IterateOneComponentView(spdlog::logger& log)
 {
 	psl::ecs::state state{};
 	size_t count = 0;
-	std::cout << "Iterating over 1000000 entities that have one component" << std::endl;
+	log.info("Iterating over 1000000 entities that have one component");
 
 	state.create<position>(1000000);
-	timer timer;
-	for(const auto& e : state.view<position>())
-	{
-		//e.x = 5;
-	}
-	timer.count();
+	auto view = state.view<position>();
+
+
+	benchmark set_values{[&view]() { std::for_each(std::begin(view), std::end(view), [](position& e) { e.x = 5; }); },
+						 250};
+	benchmark const_values{[&view, &count]() {
+							   std::for_each(std::begin(view), std::end(view),
+											 [&count](const position& e) { count += e.x; });
+						   },
+						   250};
+
+	set_values.log(log, 0, 25, 50, 80, 95, 98, 100);
+	const_values.log(log, 0, 25, 50, 80, 95, 98, 100);
 }
+
+// void IterateOneComponent()
+//{
+//	psl::ecs::state state{};
+//	size_t count = 0;
+//	std::cout << "Iterating over 1000000 entities that have one component" << std::endl;
+//
+//	state.create<position>(1000000);
+//	auto view = state.filter<position>();
+//	std::cout << std::to_string(view.size()) << std::endl;
+//	timer timer;
+//
+//	for(auto e : view)
+//	{
+//		e->x = 5;
+//	}
+//	timer.count();
+//
+//	for(auto e : view)
+//	{
+//		count += e->x;
+//	}
+//	timer.count();
+//	std::cout << std::to_string(count) << std::endl;
+//}
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -729,7 +833,7 @@ int entry()
 #endif
 	setup_loggers();
 
-	//for(auto n = 0; n < 10000; ++n)
+	// for(auto n = 0; n < 10000; ++n)
 	//{
 	//	psl::sparse_array<size_t, size_t, 4> set;
 	//	for(auto i = 0; i < 100; ++i) set[i] = i;
@@ -747,7 +851,7 @@ int entry()
 	//		auto start = std::rand() % 200;
 	//		auto size = std::rand() % 6;
 	//		auto before{set};
-	//		set.erase(start, start + size); 
+	//		set.erase(start, start + size);
 
 	//		/*for(auto i = 0; i < set.size(); ++i)
 	//		{
@@ -758,19 +862,23 @@ int entry()
 	//}
 
 
-	//IterateCreateDeleteSingleComponent();
+	// IterateCreateDeleteSingleComponent();
 
-	//for(auto i = 0; i < 10; ++i)
+	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	spdlog::logger logger{"", outlogger};
+
+	// for(auto i = 0; i < 10; ++i)
 	{
-		Construct();
-		ConstructMany();
-		ConstructManyOneComponent();
-		Destroy();
-		DestroyMany();
-		DestroyOneLess();
-		IterateOneComponentView();
-		RemovingOne();
-		RemovingOneFromMany();
+		IterateOneComponentView(logger);
+		Construct(logger);
+		ConstructMany(logger);
+		ConstructManyOneComponent(logger);
+		Destroy(logger);
+		DestroyMany(logger);
+		DestroyOneLess(logger);
+		IterateOneComponentView(logger);
+		RemovingOne(logger);
+		RemovingOneFromMany(logger);
 	}
 	return 0;
 	// create the ecs
@@ -813,321 +921,7 @@ int entry()
 	// timer.count();
 	return 0;
 }
-#else
 
-
-int entry()
-{
-#ifdef PLATFORM_WINDOWS
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
-	setup_loggers();
-
-	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
-
-	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
-
-	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-	window_data.load();
-
-	auto surface_handle = create<surface>(cache);
-	if(!surface_handle.load(window_data))
-	{
-		core::log->critical("Could not create a OS surface to draw on.");
-		return -1;
-	}
-
-	auto context_handle = create<context>(cache);
-	if(!context_handle.load(APPLICATION_FULL_NAME, 0))
-	{
-		core::log->critical("Could not create graphics API surface to use for drawing.");
-		return -1;
-	}
-
-	auto swapchain_handle = create<swapchain>(cache);
-	swapchain_handle.load(surface_handle, context_handle);
-	surface_handle->register_swapchain(swapchain_handle);
-	context_handle->device().waitIdle();
-
-	// create a staging buffer, this is allows for more advantagous resource access for the GPU
-	auto stagingBufferData = create<data::buffer>(cache);
-	stagingBufferData.load(vk::BufferUsageFlagBits::eTransferSrc,
-						   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						   memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
-	auto stagingBuffer = create<gfx::buffer>(cache);
-	stagingBuffer.load(context_handle, stagingBufferData);
-
-	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto frameBufferData = create<data::buffer>(cache);
-	frameBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
-						 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						 resource_region
-							 .create_region(sizeof(core::ecs::systems::render::framedata) * 128,
-											context_handle->properties().limits.minUniformBufferOffsetAlignment,
-											new memory::default_allocator(true))
-							 .value());
-	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
-	// memory::default_allocator(true)});
-	auto frameBuffer = create<gfx::buffer>(cache);
-	frameBuffer.load(context_handle, frameBufferData);
-	cache.library().set(frameBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
-
-	// create the buffers to store the model in
-	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
-	// a copy on the CPU
-	// - then we create the vulkan buffer resource to interface with the GPU
-	auto geomBufferData = create<data::buffer>(cache);
-	geomBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer |
-							vk::BufferUsageFlagBits::eTransferDst,
-						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
-	auto geomBuffer = create<gfx::buffer>(cache);
-	geomBuffer.load(context_handle, geomBufferData, stagingBuffer);
-
-	// load the example model
-	// auto geomData = create<data::geometry>(cache, UID::convert("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"));
-	// auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
-	auto geomData = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
-	geomData.load();
-	auto& positionstream =
-		geomData->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
-	core::stream colorstream{core::stream::type::vec3};
-	auto& colors			  = colorstream.as_vec3().value().get();
-	const float range		  = 1.0f;
-	const bool inverse_colors = false;
-	for(auto i = 0; i < positionstream.size(); ++i)
-	{
-		if(inverse_colors)
-		{
-			float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
-			float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-			float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
-			colors.emplace_back(psl::vec3(red, green, blue));
-		}
-		else
-		{
-			float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
-			float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-			float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
-			colors.emplace_back(psl::vec3(red, green, blue));
-		}
-	}
-
-	geomData->vertices(core::data::geometry::constants::COLOR, colorstream);
-	auto geometry = create<gfx::geometry>(cache);
-	geometry.load(context_handle, geomData, geomBuffer, geomBuffer);
-
-	std::vector<resource::handle<data::geometry>> geometryDataHandles;
-	std::vector<resource::handle<gfx::geometry>> geometryHandles;
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
-	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
-	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
-	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
-	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
-	for(auto& handle : geometryDataHandles)
-	{
-		handle.load();
-		auto& positionstream =
-			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
-		core::stream colorstream{core::stream::type::vec3};
-		auto& colors			  = colorstream.as_vec3().value().get();
-		const float range		  = 1.0f;
-		const bool inverse_colors = false;
-		for(auto i = 0; i < positionstream.size(); ++i)
-		{
-			if(inverse_colors)
-			{
-				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
-				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
-				colors.emplace_back(psl::vec3(red, green, blue));
-			}
-			else
-			{
-				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
-				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
-				colors.emplace_back(psl::vec3(red, green, blue));
-			}
-		}
-
-		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
-
-		geometryHandles.emplace_back(create<gfx::geometry>(cache));
-		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, geomBuffer, geomBuffer);
-	}
-
-
-	// get a vertex and fragment shader that can be combined, we only need the meta
-	if(!cache.library().contains("3982b466-58fe-4918-8735-fc6cc45378b0"_uid) ||
-	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
-	{
-		core::log->critical(
-			"Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
-		if(surface_handle) surface_handle->terminate();
-		return -1;
-	}
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
-
-	// create the material buffer and instance buffer
-	auto matBufferData = create<data::buffer>(cache);
-	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-					   vk::MemoryPropertyFlagBits::eDeviceLocal,
-					   memory::region{1024 * 1024 * 32,
-									  context_handle->properties().limits.minStorageBufferOffsetAlignment,
-									  new memory::default_allocator(false)});
-	auto matBuffer = create<gfx::buffer>(cache);
-	matBuffer.load(context_handle, matBufferData, stagingBuffer);
-
-	// create the texture
-	auto textureHandle = create<gfx::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
-	textureHandle.load(context_handle);
-
-	auto textureHandle2 = create<gfx::texture>(cache, "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
-	textureHandle2.load(context_handle);
-
-	// create the sampler
-	auto samplerData = create<data::sampler>(cache);
-	samplerData.load();
-	auto samplerHandle = create<gfx::sampler>(cache);
-	samplerHandle.load(context_handle, samplerData);
-
-	// create a pipeline cache
-	auto pipeline_cache = create<core::gfx::pipeline_cache>(cache);
-	pipeline_cache.load(context_handle);
-
-	// load the example material
-	auto matData = create<data::material>(cache);
-	matData.load();
-	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	auto stages = matData->stages();
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
-
-		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle.RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-		// binding.texture()
-	}
-	matData->stages(stages);
-	auto matData2 = resource::copy<data::material>(cache, matData);
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
-
-		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle2.RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-		// binding.texture()
-	}
-	matData2->stages(stages);
-	psl::serialization::serializer s;
-	s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
-													  utility::application::path::get_path() + "material_example.mat");
-
-	auto material = create<gfx::material>(cache);
-	material.load(context_handle, matData, pipeline_cache, matBuffer, geomBuffer);
-
-	auto material2 = create<gfx::material>(cache);
-	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
-
-	// create the ecs
-	core::ecs::state ECSState{};
-	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
-	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
-	auto eCam		  = ECSState.create_one(std::move(camTrans), core::ecs::empty<core::ecs::components::camera>{},
-									core::ecs::empty<core::ecs::components::input_tag>{});
-
-	const size_t area			  = 128;
-	const size_t area_granularity = 128;
-	const size_t size_steps		  = 24;
-
-
-	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
-
-	ECSState.declare(core::ecs::threading::par, ::ecs::systems::movement);
-	ECSState.declare(core::ecs::threading::par, core::ecs::systems::death);
-	ECSState.declare(core::ecs::threading::par, core::ecs::systems::lifetime);
-
-	ECSState.declare(core::ecs::threading::par, core::ecs::systems::attractor);
-	ECSState.declare(core::ecs::systems::geometry_instance);
-
-	size_t iterations										 = 256;
-	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
-	while(surface_handle->tick())
-	{
-		core::profiler.next_frame();
-		auto current_time = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> elapsed =
-			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
-		last_tick = current_time;
-		ECSState.tick(elapsed);
-		core::log->info("ECS has {} renderables alive right now",
-						ECSState.filter<core::ecs::components::renderable>().size());
-
-		ECSState.create(
-			(iterations > 0) ? 50 : (std::rand() % 100 == 0) ? 1 : 0,
-			[&material, &geometryHandles, &material2](size_t index) {
-				return core::ecs::components::renderable{(std::rand() % 2 == 0) ? material : material2,
-														 geometryHandles[std::rand() % geometryHandles.size()], 0u};
-			},
-			core::ecs::empty<core::ecs::components::transform>{},
-			[](size_t index) { return core::ecs::components::lifetime{0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
-			[&size_steps](size_t index) {
-				return core::ecs::components::velocity{
-					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-					((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
-			});
-
-		if(iterations > 0)
-		{
-			if(ECSState.filter<core::ecs::components::attractor>().size() < 2)
-			{
-				ECSState.create(
-					2,
-					[](size_t index) {
-						return core::ecs::components::lifetime{5.0f + ((std::rand() % 50) / 50.0f) * 5.0f};
-					},
-					[&size_steps](size_t index) {
-						return core::ecs::components::attractor{(float)(std::rand() % size_steps) / size_steps * 3 +
-																	0.5f,
-																(float)(std::rand() % size_steps) / size_steps * 80};
-					},
-					[&area_granularity, &area, &size_steps](size_t index) {
-						return core::ecs::components::transform{
-							psl::vec3(
-								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-									(area / 2.0f),
-								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-									(area / 2.0f),
-								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-									(area / 2.0f)),
-
-							psl::vec3((float)(std::rand() % size_steps) / size_steps,
-									  (float)(std::rand() % size_steps) / size_steps,
-									  (float)(std::rand() % size_steps) / size_steps)};
-					});
-			}
-			--iterations;
-		}
-	}
-
-	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
-								   core::profiler.to_string());
-	return 0;
-}
-
-#endif
 static bool initialized = false;
 #if defined(PLATFORM_ANDROID)
 

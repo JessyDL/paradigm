@@ -30,6 +30,25 @@ namespace psl
 			return *m_Ptr;
 		}
 
+		T* operator->() noexcept
+		{
+			return m_Ptr;
+		}
+
+		T const * operator->() const noexcept
+		{
+			return m_Ptr;
+		}
+
+		T& operator*() noexcept
+		{
+			return *m_Ptr;
+		}
+
+		const T& operator*() const noexcept
+		{
+			return *m_Ptr;
+		}
 	  private:
 		T* m_Ptr{nullptr};
 	};

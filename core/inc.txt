@@ -31,17 +31,6 @@ inc/os/surface.h
 inc/systems/input.h
 inc/systems/resource.h
 
-inc/ecs/ecs.hpp
-inc/ecs/selectors.h
-inc/ecs/range.h
-inc/ecs/state.h
-inc/ecs/entity.h
-inc/ecs/pack.h
-inc/ecs/command_buffer.h
-inc/ecs/component_info.h
-inc/ecs/component_key.h
-inc/ecs/state_operations.h
-
 inc/ecs/systems/fly.h
 inc/ecs/systems/death.h
 inc/ecs/systems/lifetime.h

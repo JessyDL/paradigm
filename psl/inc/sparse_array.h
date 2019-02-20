@@ -94,7 +94,7 @@ namespace psl
 		~sparse_array()							   = default;
 		sparse_array(const sparse_array& other) noexcept : m_Dense(other.m_Dense), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
 		sparse_array(sparse_array&& other) noexcept : m_Dense(std::move(other.m_Dense)), m_Reverse(std::move(other.m_Reverse)), m_Sparse(std::move(other.m_Sparse)) {};
-		sparse_array& operator=(const sparse_array& other) noexcept 
+		sparse_array& operator=(const sparse_array& other) noexcept
 		{
 			if(this != &other)
 			{
@@ -164,7 +164,13 @@ namespace psl
 			}
 			if(m_Sparse.size() <= chunk_index) m_Sparse.resize(chunk_index + 1);
 		}
-
+		void insert(index_type index)
+		{
+			auto& chunk = chunk_for(index);
+			chunk[index] = (index_type)m_Dense.size();
+			m_Reverse.emplace_back(index);
+			m_Dense.emplace_back();
+		}
 		void insert(index_type index, const_reference value)
 		{
 			auto& chunk = chunk_for(index);
@@ -209,7 +215,7 @@ namespace psl
 				}
 				first_index = 0;
 			}
-		
+
 			for(auto x = 0u; x < last_index; ++x)
 			{
 				m_Sparse[last_index][x] = (index_type)m_Dense.size();
@@ -243,7 +249,7 @@ namespace psl
 					chunk_index = (index - (index % mod_val)) / chunks_size;
 					index		= index % mod_val;
 				}
-				return m_Sparse[chunk_index].size() > 0 && m_Sparse[chunk_index][index] != std::numeric_limits<index_type>::max();				
+				return m_Sparse[chunk_index].size() > 0 && m_Sparse[chunk_index][index] != std::numeric_limits<index_type>::max();
 			}
 			return false;
 		}
@@ -251,7 +257,6 @@ namespace psl
 		constexpr bool empty() const noexcept { return std::empty(m_Dense); };
 
 		void* data() noexcept { return m_Dense.data(); };
-		void* cdata() const noexcept { return m_Dense.data(); };
 
 		void erase(index_type index) noexcept
 		{

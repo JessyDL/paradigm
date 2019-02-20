@@ -26,16 +26,6 @@ void state::tick(std::chrono::duration<float> dTime)
 	++m_Tick;
 }
 
-details::component_info& state::get_component_info(component_key_t key, size_t size)
-{
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
-						   { return pair.first == key; });
-
-	if(it != std::end(m_Components)) return it->second;
-
-	return m_Components.emplace_back(key, details::component_info{key, size, 3000000}).second;
-}
-
 psl::array<entity> prepare_for_add_component(component_key_t key, psl::array_view<entity> entities_view,
 											 const psl::bytell_map<entity, entity_info>& map)
 {
@@ -56,24 +46,46 @@ psl::array<entity> prepare_for_add_component(component_key_t key, psl::array_vie
 	return entities;
 }
 
+
+psl::array_view<entity> state::entities_for(details::component_key_t key) const noexcept
+{
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo)
+						   {
+							   return cInfo->id() == key;
+						   });
+	return (it != std::end(m_Components))? (*it)->entities() : psl::array_view<entity>{};
+}
+
+details::component_info* state::get_component_info(details::component_key_t key, size_t size)
+{
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo)
+						   {
+							   return cInfo->id() == key;
+						   });
+
+	assert(it != std::end(m_Components));
+	return it->operator->();
+}
+
+
 // empty construction
 void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size)
 {
-	auto& cInfo						   = get_component_info(key, size);
+	auto cInfo						   = get_component_info(key, size);
 
-	auto ids = cInfo.add(entities);
+	cInfo->add(entities);
 
-	if(!cInfo.is_tag())
+	if(!cInfo->is_tag())
 	{
-		for(const auto& id_range : ids)
+		for(const auto& id_range : entities)
 		{
-			auto location = (std::uintptr_t)cInfo.data() + (id_range.first * size);
+			auto location = (std::uintptr_t)cInfo->data() + (id_range.first * size);
 			std::memset((void*)(location), 0, size * (id_range.second - id_range.first));
 		}
 	}
 
-	auto& added_components = m_Changes[m_ChangeSetTick % 2].added_components[key];
-	added_components.insert(std::end(added_components), std::begin(entities), std::end(entities));
+	//auto& added_components = m_Changes[m_ChangeSetTick % 2].added_components[key];
+	//added_components.insert(std::end(added_components), std::begin(entities), std::end(entities));
 }
 
 // invocable based construction
@@ -81,12 +93,12 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 							   std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	assert(size != 0);
-	auto& cInfo						   = get_component_info(key, size);
+	auto cInfo						   = get_component_info(key, size);
 
-	auto ids = cInfo.add(entities);
-	for(const auto& id_range : ids)
+	cInfo->add(entities);
+	for(const auto& id_range : entities)
 	{
-		auto location = (std::uintptr_t)cInfo.data() + (id_range.first * size);
+		auto location = (std::uintptr_t)cInfo->data() + (id_range.first * size);
 		std::invoke(invocable, location, id_range.second - id_range.first);
 	}
 
@@ -99,14 +111,14 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 							   void* prototype)
 {
 	assert(size != 0);
-	auto& cInfo						   = get_component_info(key, size);
+	auto cInfo						   = get_component_info(key, size);
 
-	auto ids = cInfo.add(entities);
-	for(const auto& id_range : ids)
+	cInfo->add(entities);
+	for(const auto& id_range : entities)
 	{
 		for(auto i = id_range.first; i < id_range.second; ++i)
 		{
-			std::memcpy((void*)((std::uintptr_t)cInfo.data() + i * size), prototype, size);
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + i * size), prototype, size);
 		}
 	}
 
@@ -118,9 +130,9 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 // empty construction
 void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
 {
-	auto& cInfo = get_component_info(key, size);
+	auto cInfo = get_component_info(key, size);
 
-	cInfo.add(entities);
+	cInfo->add(entities);
 
 	/*if(!cInfo.is_tag())
 	{
@@ -138,12 +150,12 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 							   std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	assert(size != 0);
-	auto& cInfo = get_component_info(key, size);
+	auto cInfo = get_component_info(key, size);
 
-	cInfo.add(entities);
+	cInfo->add(entities);
 	for(auto e : entities)
 	{
-		auto location = (std::uintptr_t)cInfo.data() + (e * size);
+		auto location = (std::uintptr_t)cInfo->data() + (e * size);
 		std::invoke(invocable, location, 1);
 	}
 }
@@ -153,12 +165,12 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 							   void* prototype)
 {
 	assert(size != 0);
-	auto& cInfo = get_component_info(key, size);
+	auto cInfo = get_component_info(key, size);
 
-	cInfo.add(entities);
+	cInfo->add(entities);
 	for(auto e : entities)
 	{
-		std::memcpy((void*)((std::uintptr_t)cInfo.data() + e * size), prototype, size);
+		std::memcpy((void*)((std::uintptr_t)cInfo->data() + e * size), prototype, size);
 	}
 }
 
@@ -166,42 +178,34 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 psl::array<entity> state::filter_impl(details::component_key_t key,
 									  std::optional<psl::array_view<entity>> entities) const noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
-						   {
-							   return pair.first == key;
-						   });
-	if(it == std::end(m_Components)) return {};
+	auto found{entities_for(key)};
 
-	if(entities)
+	if(entities && found.size() > 0)
 	{
 		psl::array<entity> result;
 		std::set_intersection(std::begin(entities.value()), std::end(entities.value()),
-							  std::begin(it->second.entities()), std::end(it->second.entities()),
+							  std::begin(found), std::end(found),
 							  std::back_inserter(result));
 		return result;
 	}
 
-	return psl::array<entity>{it->second.entities()};
+	return psl::array<entity>{found};
 }
 
 psl::array<entity> state::filter_except_impl(details::component_key_t key,
 											 std::optional<psl::array_view<entity>> entities) const noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
-						   {
-							   return pair.first == key;
-						   });
-	if(it == std::end(m_Components)) return {};
+	auto found { entities_for(key) };
 
-	if(entities)
+	if(entities && found.size() > 0)
 	{
 		psl::array<entity> result;
-		std::set_difference(std::begin(entities.value()), std::end(entities.value()), std::begin(it->second.entities()),
-							std::end(it->second.entities()), std::back_inserter(result));
+		std::set_difference(std::begin(entities.value()), std::end(entities.value()), std::begin(found),
+							std::end(found), std::back_inserter(result));
 		return result;
 	}
 
-	return psl::array<entity>{it->second.entities()};
+	return psl::array<entity>{found};
 }
 
 psl::array<entity> state::filter_impl(details::component_key_t key,
@@ -225,37 +229,25 @@ psl::array<entity> state::filter_impl(details::component_key_t key,
 
 void state::remove_component(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities) noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo)
 						   {
-							   return pair.first == key;
+							   return cInfo->id() == key;
 						   });
 	assert(it != std::end(m_Components));
-	if(it == std::end(m_Components)) return;
-	
-
-	it->second.destroy(entities);
-
-	//auto& removed_components = m_Changes[m_ChangeSetTick % 2].removed_components[key];
-	//removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
+	(*it)->destroy(entities);
 }
 
 
 void state::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
+	auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo)
 						   {
-							   return pair.first == key;
+							   return cInfo->id() == key;
 						   });
 	assert(it != std::end(m_Components));
-	if(it == std::end(m_Components)) return;
-
-	//auto& destroyed_data = m_Changes[m_ChangeSetTick % 2].destroyed_data;
 
 
-	it->second.destroy(entities);
-
-	//auto& removed_components = m_Changes[m_ChangeSetTick % 2].removed_components[key];
-	//removed_components.insert(std::end(removed_components), std::begin(entities), std::end(entities));
+	(*it)->destroy(entities);
 }
 
 
@@ -263,9 +255,9 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 {
 	auto count = std::accumulate(std::begin(entities), std::end(entities), entity{0},
 								 [](entity sum, const auto& range) { return sum + (range.second - range.first); });
-	for(auto& [key, cInfo] : m_Components)
+	for(auto& cInfo : m_Components)
 	{
-		cInfo.destroy(entities);
+		cInfo->destroy(entities);
 	}
 	m_Orphans += count;
 
@@ -283,9 +275,9 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 // ie: alias transform = position, rotation, scale components
 void state::destroy(psl::array_view<entity> entities) noexcept
 {
-	for(auto&[key, cInfo] : m_Components)
+	for(auto& cInfo : m_Components)
 	{
-		cInfo.destroy(entities);
+		cInfo->destroy(entities);
 	}
 
 	m_Orphans += entities.size();
@@ -298,12 +290,18 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 
 void state::destroy(entity entity) noexcept
 {
-	for(auto&[key, cInfo] : m_Components)
+	for(auto& cInfo : m_Components)
 	{
-		cInfo.destroy(entity);
+		cInfo->destroy(entity);
 	}
 	m_Entities[entity] = m_Next;
 	m_Next = entity;
 
 	++m_Orphans;
+}
+
+
+void state::fill_in(details::component_key_t key, psl::array_view<entity> entities, psl::array_view<std::uintptr_t>& data)
+{
+
 }

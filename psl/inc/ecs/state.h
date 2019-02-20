@@ -48,9 +48,9 @@ namespace psl::ecs
 		state(size_t workers = 0);
 		~state()			= default;
 		state(const state&) = delete;
-		state(state&&)		= delete;
+		state(state&&)		= default;
 		state& operator=(const state&) = delete;
-		state& operator=(state&&) = delete;
+		state& operator=(state&&) = default;
 
 		template <typename... Ts>
 		void add_components(psl::array_view<entity> entities)
@@ -101,16 +101,15 @@ namespace psl::ecs
 			if(m_Orphans > 0)
 			{
 				--m_Orphans;
-				const auto orphan = m_Next;
-				m_Next = m_Entities[(size_t)m_Next];
+				const auto orphan		   = m_Next;
+				m_Next					   = m_Entities[(size_t)m_Next];
 				m_Entities[(size_t)orphan] = orphan;
 				return orphan;
 			}
 			else
 			{
 				// we do this to protect ourselves from 1 entity loops
-				if(m_Entities.size() + 1 >= m_Entities.capacity())
-					m_Entities.reserve(m_Entities.size() * 2 + 1);			
+				if(m_Entities.size() + 1 >= m_Entities.capacity()) m_Entities.reserve(m_Entities.size() * 2 + 1);
 
 				return m_Entities.emplace_back((entity)m_Entities.size());
 			}
@@ -133,7 +132,7 @@ namespace psl::ecs
 			{
 				const auto orphan = m_Next;
 				entities.emplace_back(orphan);
-				m_Next = m_Entities[(size_t)m_Next];
+				m_Next					   = m_Entities[(size_t)m_Next];
 				m_Entities[(size_t)orphan] = orphan;
 			}
 
@@ -166,7 +165,7 @@ namespace psl::ecs
 			{
 				auto orphan = m_Next;
 				entities.emplace_back(orphan);
-				m_Next = m_Entities[(size_t)m_Next];
+				m_Next					   = m_Entities[(size_t)m_Next];
 				m_Entities[(size_t)orphan] = orphan;
 			}
 
@@ -212,35 +211,51 @@ namespace psl::ecs
 		void tick(std::chrono::duration<float> dTime);
 
 		void reset(psl::array_view<entity> entities) noexcept;
-		
-		template<typename T>
-		auto entities()
-		{
-			auto key = details::key_for<T>();
-			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
-								   {
-									   return pair.first == key;
-								   });
 
-			return it->second.entities();
+		template <typename T>
+		psl::array_view<entity> entities()
+		{
+			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
+				constexpr auto key{details::key_for<T>()};
+				return cInfo->id() == key;
+			});
+			return (it != std::end(m_Components)) ? (*it)->entities() : psl::array_view<entity>{};
 		}
 
-		template<typename T>
+		template <typename T>
 		psl::array_view<T> view()
 		{
-			auto key = details::key_for<T>();
-			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [key](const auto& pair)
-								   {
-									   return pair.first == key;
-								   });
-
-			return *(psl::array_view<T>*)(&it->second.component_data());
+			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
+				constexpr auto key{details::key_for<T>()};
+				return cInfo->id() == key;
+			});
+			return (it != std::end(m_Components))
+					   ? ((details::component_info_typed<T>*)(it->operator->()))->entity_data().dense()
+					   : psl::array_view<T>{};
 		}
+
 	  private:
 		//------------------------------------------------------------
 		// helpers
 		//------------------------------------------------------------
-		details::component_info& get_component_info(details::component_key_t key, size_t size);
+		void fill_in(details::component_key_t key, psl::array_view<entity> entities,
+					 psl::array_view<std::uintptr_t>& data);
+
+		psl::array_view<entity> entities_for(details::component_key_t key) const noexcept;
+
+		template <typename T>
+		void create_storage()
+		{
+			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
+				constexpr auto key = details::key_for<T>();
+				return (key == cInfo->id());
+			});
+
+			constexpr auto key = details::key_for<T>();
+			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());
+		}
+
+		details::component_info* get_component_info(details::component_key_t key, size_t size);
 
 		//------------------------------------------------------------
 		// add_component
@@ -254,6 +269,7 @@ namespace psl::ecs
 				static_assert(!std::is_empty_v<T>,
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
+				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
 			}
 			else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
@@ -268,6 +284,8 @@ namespace psl::ecs
 				static_assert(!std::is_empty_v<type>,
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
+
+				create_storage<type>();
 				add_component_impl(details::key_for<type>(), entities, sizeof(type),
 								   [prototype](std::uintptr_t location, size_t count) {
 									   for(auto i = size_t{0}; i < count; ++i)
@@ -286,6 +304,7 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<std::pair<entity, entity>> entities, psl::ecs::empty<T>&& prototype)
 		{
+			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
 				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
@@ -300,6 +319,7 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<std::pair<entity, entity>> entities)
 		{
+			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
 				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
@@ -314,12 +334,16 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& prototype)
 		{
+
 			if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
 						 std::is_trivially_destructible<T>::value)
 			{
 				static_assert(!std::is_empty_v<T>,
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
+
+
+				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
 			}
 			else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
@@ -334,12 +358,12 @@ namespace psl::ecs
 				static_assert(!std::is_empty_v<type>,
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
+				create_storage<type>();
 				add_component_impl(details::key_for<type>(), entities, sizeof(type),
-								   [prototype](std::uintptr_t location, size_t count)
-								   {
+								   [prototype](std::uintptr_t location, size_t count) {
 									   for(auto i = size_t{0}; i < count; ++i)
 									   {
-										   std::invoke(prototype, *((type*)(location)+i));
+										   std::invoke(prototype, *((type*)(location) + i));
 									   }
 								   });
 			}
@@ -353,6 +377,8 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, psl::ecs::empty<T>&& prototype)
 		{
+			create_storage<T>();
+
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
 				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
@@ -367,6 +393,7 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities)
 		{
+			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
 				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
@@ -378,11 +405,12 @@ namespace psl::ecs
 			}
 		}
 
-		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size);
-		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size,
-								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities, size_t size,
-								void* prototype);
+		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
+								size_t size);
+		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
+								size_t size, std::function<void(std::uintptr_t, size_t)> invocable);
+		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
+								size_t size, void* prototype);
 
 
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size);
@@ -394,7 +422,8 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// remove_component
 		//------------------------------------------------------------
-		void remove_component(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities) noexcept;
+		void remove_component(details::component_key_t key,
+							  psl::array_view<std::pair<entity, entity>> entities) noexcept;
 		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
 
 
@@ -468,11 +497,11 @@ namespace psl::ecs
 
 
 		psl::array<entity> m_Entities;
-		//psl::sparse_array<entity> m_Entities;
-		psl::array<std::pair< details::component_key_t, details::component_info>> m_Components;
-		//psl::bytell_map<details::component_key_t, details::component_info> m_Components;
+		// psl::sparse_array<entity> m_Entities;
 
-		//psl::generator<entity> m_Generator;
+		// psl::array<std::pair<details::component_key_t, void*>> m_ComponentData;
+		psl::array<psl::unique_ptr<details::component_info>> m_Components;
+
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
 		psl::static_array<difference_set, 2> m_Changes;

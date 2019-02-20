@@ -44,6 +44,7 @@ set(PE_INSTRUCTION_SET "fallback" CACHE STRING "Instruction set to use for SIMD 
 set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS fallback SSE AVX AVX2)
 
 OPTION(VS_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
+OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
 
 set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where to build the project to")
 set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
@@ -251,6 +252,10 @@ if(NOT ${PE_SOURCE_ONLY})
 	if(${PE_MODE} STREQUAL "LIB")
 		enable_testing()
 		add_subdirectory(tests)
+	endif()
+	
+	if(${PE_BENCHMARKS})
+		add_subdirectory(benchmarks)	
 	endif()
 
 	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")

@@ -44,6 +44,8 @@ inc/array.h
 inc/unordered_map.h
 inc/flat_map.h
 inc/bytell_map.h
+inc/sparse_array.h
+inc/unique_ptr.h
 
 inc/math/math.hpp
 inc/math/vec.h
@@ -55,4 +57,12 @@ inc/math/${PE_INSTRUCTION_SET}/matrix.h
 inc/math/${PE_INSTRUCTION_SET}/quaternion.h
 
 inc/profiling/profiler.h
+
+inc/ecs/entity.h
+inc/ecs/state.h
+inc/ecs/pack.h
+inc/ecs/selectors.h
+inc/ecs/details/component_info.h
+inc/ecs/details/component_key.h
+inc/ecs/details/entity_info.h
 )

@@ -42,8 +42,6 @@ src/vk/shader.cpp
 src/vk/swapchain.cpp
 src/vk/texture.cpp
 
-src/ecs/state.cpp
-src/ecs/command_buffer.cpp
 src/ecs/systems/fly.cpp
 src/ecs/systems/render.cpp
 )

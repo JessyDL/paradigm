@@ -17,4 +17,7 @@ src/library.cpp
 src/meta.cpp
 
 src/profiling/profiler.cpp
+
+src/ecs/state.cpp
+src/ecs/details/component_info.cpp
 )
