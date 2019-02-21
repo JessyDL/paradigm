@@ -1,12 +1,14 @@
-﻿#include "stdafx_tests.h"
+﻿#include "stdafx_benchmarks.h"
 
 #ifdef PLATFORM_WINDOWS
-#define _CRTDBG_MAP_ALLOC  
-#include <stdlib.h>  
-#include <crtdbg.h>  
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 #endif
 
 #include "spdlog/spdlog.h"
+#include "benchmarks/runner.h"
+#include "benchmarks/ecs.h"
 
 void setup_loggers()
 {
@@ -14,7 +16,7 @@ void setup_loggers()
 	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
 	spdlog::register_logger(logger);
 	core::log = logger;
-	
+
 
 	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
 	spdlog::register_logger(system_logger);
@@ -41,12 +43,15 @@ void setup_loggers()
 	core::ivk::log = ivk_logger;
 }
 
-int main(int argc, char* argv[]) 
+int main(int argc, char* argv[])
 {
 #ifdef PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
+	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+	spdlog::logger logger{"", outlogger};
 
+	RUN_ALL_BENCHMARKS(logger);
 	return 0;
 }

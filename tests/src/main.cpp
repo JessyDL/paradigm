@@ -6,9 +6,9 @@
 #include "stdafx_tests.h"
 
 #ifdef PLATFORM_WINDOWS
-#define _CRTDBG_MAP_ALLOC  
-#include <stdlib.h>  
-#include <crtdbg.h>  
+#define _CRTDBG_MAP_ALLOC
+#include <stdlib.h>
+#include <crtdbg.h>
 #endif
 
 #include "spdlog/spdlog.h"
@@ -19,7 +19,7 @@ void setup_loggers()
 	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
 	spdlog::register_logger(logger);
 	core::log = logger;
-	
+
 
 	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
 	spdlog::register_logger(system_logger);
@@ -46,7 +46,7 @@ void setup_loggers()
 	core::ivk::log = ivk_logger;
 }
 
-int main(int argc, char* argv[]) 
+int main(int argc, char* argv[])
 {
 #ifdef PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
@@ -54,6 +54,6 @@ int main(int argc, char* argv[])
 #endif
 	setup_loggers();
 	int result = Catch::Session().run(argc, argv);
-	
+
 	return result;
 }
