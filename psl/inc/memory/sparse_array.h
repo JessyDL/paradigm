@@ -392,6 +392,15 @@ namespace psl::memory
 			m_Reverse.resize(m_Reverse.size() - count);
 		}
 
+		void reserve(size_t capacity)
+		{
+			if(capacity <= m_Reverse.capacity())
+				return;
+
+			m_Reverse.reserve(capacity);
+			grow();
+		}
+
 		psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
 		psl::array_view<value_type> dense() const noexcept { return psl::array_view<value_type>{(T*)m_DenseData.data(), (T*)m_DenseData.data() + m_Reverse.size() }; }
 	  private:

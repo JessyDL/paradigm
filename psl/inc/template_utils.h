@@ -16,6 +16,8 @@ namespace utility::templates
 		return ret;
 	}
 
+	template<typename T>
+	struct type_container { using type = T;};
 
 	template <typename T, typename Tuple>
 	struct has_type;
@@ -112,7 +114,7 @@ namespace utility::templates
 	template<typename T> struct is_associative_container { static constexpr bool value{ false }; };
 	template<typename T> struct is_trivial_container { static constexpr bool value{ false }; };
 	template<typename T> struct is_complex_container{ static constexpr bool value{ false };};
-	template<typename T> struct is_container 
+	template<typename T> struct is_container
 	{
 		static constexpr bool value{ is_trivial_container<T>::value || is_complex_container<T>::value || is_associative_container<T>::value };
 	};
@@ -132,7 +134,7 @@ namespace utility::templates
 	template<typename T, typename A>
 	struct is_pair<std::pair<T, A>> { static constexpr bool value{ true }; };
 
-	template<typename T> struct get_key_type 
+	template<typename T> struct get_key_type
 	{
 	};
 
@@ -145,7 +147,7 @@ namespace utility::templates
 
 	template<typename T, typename A>
 	struct get_value_type<std::unordered_map<T, A>> { using type = A; };
-	
+
 	namespace operators
 	{
 		namespace details
@@ -396,7 +398,7 @@ namespace utility::templates
 		using result_t = Ret;
 		using arguments_t = std::tuple<Args...>;
 	};
-	
+
 	template <typename T>
 	struct is_invocable
 	{

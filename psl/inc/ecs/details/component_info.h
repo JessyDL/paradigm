@@ -54,10 +54,16 @@ namespace psl::ecs::details
 
 		void add(psl::array_view<entity> entities) override
 		{
+			m_Entities.reserve(m_Entities.size() + entities.size());
 			for(auto e : entities) m_Entities.insert(e);
 		}
 		void add(psl::array_view<std::pair<entity, entity>> entities) override
 		{
+			auto count = std::accumulate(
+				std::begin(entities), std::end(entities), size_t{0},
+				[](size_t sum, const std::pair<entity, entity>& r) { return sum + (r.second - r.first); });
+
+			m_Entities.reserve(m_Entities.size() + count);
 			for(auto range : entities)
 			{
 				for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
@@ -87,8 +93,8 @@ namespace psl::ecs::details
 	template <typename T>
 	class component_info_typed<T, true> final : public component_info
 	{
-	public:
-		component_info_typed() : component_info(details::key_for<T>(), 0) {};
+	  public:
+		component_info_typed() : component_info(details::key_for<T>(), 0){};
 		psl::sparse_array<T, entity>& entity_data() { throw std::runtime_error("there is no data to a tag type"); };
 
 		void add(psl::array_view<entity> entities) override
@@ -119,7 +125,7 @@ namespace psl::ecs::details
 
 		bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
 
-	private:
+	  private:
 		psl::sparse_array<int, entity> m_Entities{};
 	};
 } // namespace psl::ecs::details

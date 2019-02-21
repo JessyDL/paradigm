@@ -2,11 +2,13 @@
 #include "entity.h"
 #include "selectors.h"
 #include "pack.h"
+#include "command_buffer.h"
 #include "IDGenerator.h"
 #include "vector.h"
 #include "details/component_key.h"
 #include "details/entity_info.h"
 #include "details/component_info.h"
+#include "details/system_information.h"
 #include "unique_ptr.h"
 #include "bytell_map.h"
 #include "array.h"
@@ -22,27 +24,12 @@ namespace psl::async
 
 namespace psl::ecs
 {
-	enum class threading
-	{
-		seq		   = 0,
-		sequential = seq,
-		par		   = 1,
-		parallel   = par,
-		main	   = 2
-	};
 
 	template <typename T>
 	struct empty
 	{};
 
-	struct storage
-	{
-		psl::bytell_map<entity, details::entity_info> entities;
-		psl::bytell_map<details::component_key_t, details::component_info> components;
-	};
-
-
-	class state
+	class state final
 	{
 	  public:
 		state(size_t workers = 0);
@@ -95,7 +82,8 @@ namespace psl::ecs
 		{
 			for(const auto& cInfo : m_Components)
 			{
-				return std::all_of(std::begin(entities), std::end(entities), [&cInfo](entity e) { return cInfo->has_component(e);});
+				return std::all_of(std::begin(entities), std::end(entities),
+								   [&cInfo](entity e) { return cInfo->has_component(e); });
 			}
 		}
 
@@ -238,6 +226,30 @@ namespace psl::ecs
 			return (it != std::end(m_Components))
 					   ? ((details::component_info_typed<T>*)(it->operator->()))->entity_data().dense()
 					   : psl::array_view<T>{};
+		}
+
+		template <typename Fn>
+		void declare(Fn&& fn)
+		{
+			declare_impl(threading::sequential, std::forward<Fn>(fn));
+		}
+
+
+		template <typename Fn>
+		void declare(threading threading, Fn&& fn)
+		{
+			declare_impl(threading, std::forward<Fn>(fn));
+		}
+
+		template <typename Fn, typename T>
+		void declare(Fn&& fn, T* ptr)
+		{
+			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr);
+		}
+		template <typename Fn, typename T>
+		void declare(threading threading, Fn&& fn, T* ptr)
+		{
+			declare_impl(threading, std::forward<Fn>(fn), ptr);
 		}
 
 	  private:
@@ -492,6 +504,71 @@ namespace psl::ecs
 		void set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept;
 
 
+		//------------------------------------------------------------
+		// system declare
+		//------------------------------------------------------------
+		template <typename... Ts>
+		struct get_packs
+		{
+			using type = std::tuple<Ts...>;
+		};
+
+		template <typename... Ts>
+		struct get_packs<std::tuple<Ts...>> : public get_packs<Ts...>
+		{};
+
+		template <typename... Ts>
+		struct get_packs<psl::ecs::info&, Ts...>
+			: public get_packs<Ts...>
+		{};
+
+		template <typename Fn, typename T = void>
+		void declare_impl(threading threading, Fn&& fn, T* ptr = nullptr)
+		{
+
+			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
+			std::function<std::vector<details::dependency_pack>()> pack_generator = []() {
+				using pack_t = typename get_packs<function_args>::type;
+				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
+														  psl::templates::type_container<pack_t>{});
+			};
+
+			std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)>
+				system_tick;
+
+			if constexpr(std::is_member_function_pointer<Fn>::value)
+			{
+				system_tick = [fn,
+							   ptr](psl::ecs::info& info,
+									std::vector<details::dependency_pack> packs) -> psl::ecs::command_buffer {
+					using pack_t = typename get_packs<function_args>::type;
+
+					auto tuple_argument_list = std::tuple_cat(
+						std::tuple<T*, psl::ecs::info&>(ptr, info),
+						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
+															   psl::templates::type_container<pack_t>{}, packs));
+
+					std::apply(fn, std::move(tuple_argument_list));
+				};
+			}
+			else
+			{
+				system_tick = [fn](psl::ecs::info& info,
+								   std::vector<details::dependency_pack> packs) -> psl::ecs::command_buffer {
+					using pack_t = typename get_packs<function_args>::type;
+
+					auto tuple_argument_list = std::tuple_cat(
+						std::tuple<psl::ecs::info&>(info),
+						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
+															   psl::templates::type_container<pack_t>{}, packs));
+
+					std::apply(fn, std::move(tuple_argument_list));
+				};
+			}
+			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick));
+		}
+
+
 		struct difference_set
 		{
 			psl::bytell_map<details::component_key_t, psl::array<std::pair<entity, entity>>> added_components;
@@ -501,12 +578,9 @@ namespace psl::ecs
 			psl::bytell_map<entity, details::entity_info> destroyed_data;
 		};
 
-
 		psl::array<entity> m_Entities;
-		// psl::sparse_array<entity> m_Entities;
-
-		// psl::array<std::pair<details::component_key_t, void*>> m_ComponentData;
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;
+		std::vector<details::system_information> m_SystemInformations;
 
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
