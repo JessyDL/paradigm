@@ -540,7 +540,7 @@ namespace psl::ecs
 			{
 				system_tick = [fn,
 							   ptr](psl::ecs::info& info,
-									std::vector<details::dependency_pack> packs) -> psl::ecs::command_buffer {
+									std::vector<details::dependency_pack> packs) -> void {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
@@ -554,7 +554,7 @@ namespace psl::ecs
 			else
 			{
 				system_tick = [fn](psl::ecs::info& info,
-								   std::vector<details::dependency_pack> packs) -> psl::ecs::command_buffer {
+								   std::vector<details::dependency_pack> packs) -> void {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
