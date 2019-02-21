@@ -79,7 +79,7 @@ namespace core::ecs::details
 		entityMap)
 	{
 		constexpr component_key_t key = details::component_key<details::remove_all<T>>;
-		std::vector<entity> ent_cpy = entities;
+		std::vector<entity> ent_cpy/* = entities*/;
 		auto end = std::remove_if(std::begin(ent_cpy), std::end(ent_cpy), [&entityMap, key](const entity& e)
 								  {
 									  auto eMapIt = entityMap.find(e);

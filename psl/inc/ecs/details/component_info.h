@@ -4,7 +4,7 @@
 #include "../entity.h"
 #include "sparse_array.h"
 #include "memory/sparse_array.h"
-
+#include <numeric>
 
 namespace psl
 {

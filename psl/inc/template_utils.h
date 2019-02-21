@@ -375,7 +375,8 @@ namespace utility::templates
 	// todo move these helpers to a better location
 
 	template <typename T>
-	struct func_traits : public func_traits<decltype(&decltype(std::function{std::declval<T>()})::operator()) >
+	//struct func_traits : public func_traits<decltype(&decltype(std::function(std::declval<T>()))::operator()) >
+	struct func_traits : public func_traits<decltype(&T::operator()) >
 	{};
 
 	template <typename C, typename Ret, typename... Args>
@@ -402,7 +403,7 @@ namespace utility::templates
 	template <typename T>
 	struct is_invocable
 	{
-		template <typename U, typename = decltype(&decltype(std::function{std::declval<T>()})::operator())>
+		template <typename U, typename = decltype(&T::operator())>
 		static long test(const U&&);
 		static char test(...);
 

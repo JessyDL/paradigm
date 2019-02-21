@@ -10,7 +10,7 @@ namespace psl::ecs::details
 	{
 		entity_info() noexcept = default;
 		~entity_info() = default;
-		entity_info(const entity_info&) noexcept = default;
+		entity_info(const entity_info&) = default;
 		entity_info(entity_info&&) noexcept = default;
 		entity_info& operator=(const entity_info&) = default;
 		entity_info& operator=(entity_info&&) = default;
