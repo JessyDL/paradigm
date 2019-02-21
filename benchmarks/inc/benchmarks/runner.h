@@ -4,12 +4,14 @@
 #include <vector>
 #include <cstdint>
 
+#include <future>
+
 #define INTERNAL_UNIQUE_NAME_LINE2(name, counter) name##counter
 #define INTERNAL_UNIQUE_NAME_LINE(name, counter) INTERNAL_UNIQUE_NAME_LINE2(name, counter)
 #define INTERNAL_UNIQUE_NAME(name) INTERNAL_UNIQUE_NAME_LINE(name, __COUNTER__)
 
 //#define INTERNAL_GET_TYPE(TARGET) typename std::invoke_result_t<typename
-//std::decay<decltype(std::function(TARGET))>::type>
+// std::decay<decltype(std::function(TARGET))>::type>
 #define INTERNAL_GET_TYPE_REF(TARGET) typename TARGET&
 #define INTERNAL_GET_TYPE_MOVE(TARGET) typename TARGET&&
 #define INTERNAL_GET_TYPE(TARGET, REUSE)                                                                               \
@@ -118,14 +120,14 @@ namespace benchmarks::details
 		double time(size_t percentile)
 		{
 			percentile   = std::max<size_t>(std::min<size_t>(100, percentile), 0);
-			size_t index = ((double)(results.size() - 1) / 100.0) * (double)percentile;
+			size_t index = (size_t)(((double)(results.size() - 1) / 100.0) * (double)percentile);
 			return results[index];
 		}
 
 		template <typename... size_t>
-		void log(spdlog::logger& logger, size_t... percentiles)
+		void log(spdlog::logger& logger, std::string& description, size_t... percentiles)
 		{
-			std::string format{"    {} iterations [ "};
+			std::string format{description + "\n    {} iterations [ "};
 			(format.append(std::to_string(percentiles) + "% {}ms | "), ...);
 			format.resize(format.size() - 2);
 			format.append(" ]");
@@ -141,7 +143,7 @@ namespace benchmarks::details
 	class handler
 	{
 	  public:
-		void run(spdlog::logger& logger);
+		void run(spdlog::logger& logger, bool multithreaded = false);
 
 		void add(proxy_base* proxy) { m_Functions.emplace_back(proxy); }
 
@@ -169,16 +171,15 @@ namespace benchmarks::details
 		{
 			using type = typename std::decay<T>::type;
 			type* x	= nullptr;
-			logger.info(description);
 			if constexpr(std::is_same_v<T, type&>)
 			{
 				runner b{func, iterations, x, true};
-				b.log(logger, 0, 25, 50, 80, 95, 98, 100);
+				b.log(logger, description, 0, 25, 50, 80, 95, 98, 100);
 			}
 			else
 			{
 				runner b{func, iterations, x};
-				b.log(logger, 0, 25, 50, 80, 95, 98, 100);
+				b.log(logger, description, 0, 25, 50, 80, 95, 98, 100);
 			}
 		}
 
@@ -203,8 +204,7 @@ namespace benchmarks::details
 		void operator()(spdlog::logger& logger, size_t iterations) override
 		{
 			runner b{func, iterations};
-			logger.info(description);
-			b.log(logger, 0, 25, 50, 80, 95, 98, 100);
+			b.log(logger, description, 0, 25, 50, 80, 95, 98, 100);
 		}
 
 		std::function<void()> func;
@@ -212,11 +212,25 @@ namespace benchmarks::details
 	};
 
 
-	void handler::run(spdlog::logger& logger)
+	void handler::run(spdlog::logger& logger, bool multithreaded)
 	{
-		for(auto& fn : m_Functions)
+		if(multithreaded)
 		{
-			fn->operator()(logger, 100);
+			std::vector<std::future<void>> benchmarks;
+			for(auto& fn : m_Functions)
+			{
+				benchmarks.emplace_back(
+					std::async(std::launch::async, &proxy_base::operator(), fn, std::ref(logger), 100));
+			}
+
+			for(auto& future : benchmarks) future.wait();
+		}
+		else
+		{
+			for(auto& fn : m_Functions)
+			{
+				fn->operator()(logger, 100);
+			}
 		}
 	}
 } // namespace benchmarks::details
