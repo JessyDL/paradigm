@@ -217,8 +217,8 @@ namespace psl::async
 		virtual ~task() = default;
 		std::future<R> future() noexcept { return m_Promise.get_future(); }
 
-		void operator()() override 
-		{ 
+		void operator()() override
+		{
 			if constexpr(std::is_same<R, void>::value)
 			{
 				std::apply(m_Invocable, m_Arguments);
@@ -226,7 +226,7 @@ namespace psl::async
 			}
 			else
 			{
-				m_Promise.set_value(std::move(std::apply(m_Invocable, m_Arguments))); 
+				m_Promise.set_value(std::move(std::apply(m_Invocable, m_Arguments)));
 			}
 		}
 
@@ -477,7 +477,7 @@ namespace psl::async
 		///
 		/// Sometimes tasks might access shared resources, or mutate global state
 		/// yet have no clear "dependency" on one another.
-		/// This method forces these tasks to run sequential and disallows the 
+		/// This method forces these tasks to run sequential and disallows the
 		/// others to run when one of them is running.
 		void enforce_sequential(std::vector<token_t> tokens) noexcept;
 

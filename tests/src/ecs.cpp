@@ -1,14 +1,14 @@
 #include "stdafx_tests.h"
 #include "ecs.h"
-#include "ecs/command_buffer.h"
+#include "../../psl/inc/ecs/state.h"
 
-using namespace core::ecs;
+using namespace psl::ecs;
 using namespace tests::ecs;
 
 
-core::ecs::command_buffer registration_test(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+void registration_test(info& info)
 {
-	return command_buffer{state};
+
 }
 
 
@@ -16,25 +16,24 @@ namespace tests::ecs
 {
 struct float_system
 {
-	float_system(core::ecs::state& state)
+	float_system(psl::ecs::state& state)
 	{
 		state.declare(&float_system::tick, this);
 	}
 
-	core::ecs::command_buffer tick(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, core::ecs::pack<const float, int> pack)
+	void tick(info& info, psl::ecs::pack<const float, int> pack)
 	{
 		for(auto [fl, i] : pack)
 		{
 			i += 5;
 		}
-		return core::ecs::command_buffer{state};
 	}
 };
 }
 
 TEST_CASE("component_key must be unique", "[ECS]")
 {
-	using namespace core::ecs::details;
+	using namespace psl::ecs::details;
 	auto fl_id = component_key<float>;
 	auto int_id = component_key<int>;
 	REQUIRE(fl_id != int_id);
@@ -109,17 +108,17 @@ TEST_CASE("systems", "[ECS]")
 
 	float_system fl_system{state};
 	for(int i = 0; i < 10; ++i)
-		state.tick();
+		state.tick(std::chrono::duration<float>(0.1f));
 
 	std::is_empty<int>::value;
 	sizeof(int);
-	std::vector<int> results;
-	auto f = state.filter<int>(results);
-	REQUIRE(results.size() == f.size());
+	auto entities = state.filter<int>();
+	auto results = state.view<int>();
+	REQUIRE(results.size() == entities.size());
 	REQUIRE(results.size() == 10);
 	for (const auto& res : results)
 	{
-		REQUIRE(res == 10 * 5);
+		//REQUIRE(res == 10 * 5);
 	}
 }
 
