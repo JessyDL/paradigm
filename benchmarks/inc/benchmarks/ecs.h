@@ -58,7 +58,7 @@ struct mock_data_trivial_system
 };
 
 
-BENCHMARK("Constructing 1000000 entities", mock_data<>)
+BENCHMARK("Constructing 1.000.000 entities", mock_data<>)
 {
 	for(std::uint64_t i = 0; i < 1000000L; i++)
 	{
@@ -66,15 +66,15 @@ BENCHMARK("Constructing 1000000 entities", mock_data<>)
 	}
 }
 
-BENCHMARK("Constructing 1000000 entities at once", mock_data<>) { data.state.create(1000000L); }
+BENCHMARK("Constructing 1.000.000 entities at once", mock_data<>) { data.state.create(1000000L); }
 
 
-BENCHMARK("Constructing 1000000 entities /w one component at once", mock_data<>)
+BENCHMARK("Constructing 1.000.000 entities /w one component at once", mock_data<>)
 {
 	data.state.create<position>(1000000L);
 }
 
-BENCHMARK("Destroying 1000000 entities", mock_data<1000000L>)
+BENCHMARK("Destroying 1.000.000 entities", mock_data<1000000L>)
 {
 	for(std::uint32_t i = 0; i < 1000000L; i++)
 	{
@@ -82,34 +82,34 @@ BENCHMARK("Destroying 1000000 entities", mock_data<1000000L>)
 	}
 }
 
-BENCHMARK("Destroying 1000000 entities at once", mock_data<1000000L>)
+BENCHMARK("Destroying 1.000.000 entities at once", mock_data<1000000L>)
 {
 	data.state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
 }
 
-BENCHMARK("Destroying 999999 entities out of 1000000 at once", mock_data<1000000L>)
+BENCHMARK("Destroying 999.999 entities out of 1000000 at once", mock_data<1000000L>)
 {
 	data.state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 999999u}});
 }
 
-BENCHMARK("Removing 1000000 components from 1000000 entities", mock_data_position<1000000L>)
+BENCHMARK("Removing 1.000.000 components from 1.000.000 entities", mock_data_position<1000000L>)
 {
 	data.state.remove_components(data.entities);
 }
 
-BENCHMARK("Removing 1000000 components from 1000001 entities", mock_data_position_rotation<1000001L>)
+BENCHMARK("Removing 1.000.000 components from 1.000.001 entities", mock_data_position_rotation<1000001L>)
 {
 	data.entities.resize(data.entities.size() - 1);
 	data.state.remove_components(data.entities);
 }
 
-BENCHMARK("Iterating over 1000000 entities that have one component", mock_data_position_rotation<1000000L>, true)
+BENCHMARK("Iterating over 1.000.000 entities that have one component", mock_data_position_rotation<1000000L>, true)
 {
 	auto view = data.state.view<position>();
 	std::for_each(std::begin(view), std::end(view), [](position& e) { e.x = 5; });
 }
 
-BENCHMARK("Iterating over 1000000 entities that have one const component", mock_data_position_rotation<1000000L>, true)
+BENCHMARK("Iterating over 1.000.000 entities that have one const component", mock_data_position_rotation<1000000L>, true)
 {
 	auto view	= data.state.view<position>();
 	size_t count = 0;
@@ -151,7 +151,7 @@ BENCHMARK("Running a trivial system that moves components around", mock_data_tri
 }
 
 
-BENCHMARK("Looping 1000 times creating 1000 entities and deleting a random number of entities", mock_data<>)
+BENCHMARK("Looping 1.000 times creating 1.000 entities and deleting a random number of entities", mock_data<>)
 {
 	for(int i = 0; i < 1000; i++)
 	{
