@@ -91,7 +91,13 @@ namespace psl::ecs
 
 
 		template <typename... Ts>
-		bool has_components(psl::array_view<entity> entities) const noexcept;
+		bool has_components(psl::array_view<entity> entities) const noexcept
+		{
+			for(const auto& cInfo : m_Components)
+			{
+				return std::all_of(std::begin(entities), std::end(entities), [&cInfo](entity e) { return cInfo->has_component(e);});
+			}
+		}
 
 		template <typename T, typename... Ts>
 		bool is_owned_by(entity e, const T& component, const Ts&... components) const noexcept;

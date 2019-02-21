@@ -3,6 +3,7 @@
 #include "array_view.h"
 #include "../entity.h"
 #include "sparse_array.h"
+#include "memory/sparse_array.h"
 
 
 namespace psl
@@ -49,7 +50,7 @@ namespace psl::ecs::details
 	{
 	  public:
 		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)){};
-		psl::sparse_array<T, entity>& entity_data() { return m_Entities; };
+		psl::memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
 
 		void add(psl::array_view<entity> entities) override
 		{
@@ -80,7 +81,7 @@ namespace psl::ecs::details
 		bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
 
 	  private:
-		psl::sparse_array<T, entity> m_Entities{};
+		psl::memory::sparse_array<T, entity> m_Entities{};
 	};
 
 	template <typename T>

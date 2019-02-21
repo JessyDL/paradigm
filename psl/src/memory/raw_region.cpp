@@ -15,6 +15,14 @@ using namespace memory;
 
 raw_region::raw_region(uint64_t size)
 {
+	if(size == 0)
+	{
+		m_Base = nullptr;
+		m_Size = 0;
+		m_PageSize = 0;
+		return;
+	}
+
 #if defined(PLATFORM_WINDOWS)
 		SYSTEM_INFO sSysInfo;         // Useful information about the system
 		GetSystemInfo(&sSysInfo);     // Initialize the structure.
@@ -51,6 +59,8 @@ raw_region::raw_region(uint64_t size)
 
 raw_region::~raw_region()
 {
+	if(m_Size == 0)
+		return;
 #ifdef PLATFORM_WINDOWS
 	VirtualFree(
 		m_Base,       // Base address of block

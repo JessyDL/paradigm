@@ -1,8 +1,9 @@
 #pragma once
 #include "vector.h"
 #include <array_view.h>
+#include "raw_region.h"
 
-namespace psl
+namespace psl::memory
 {
 	/// \brief container type that is fast to iterate, but has non-continuous interface
 	template <typename T, typename Key = size_t, Key chunks_size = 4096>
@@ -90,15 +91,15 @@ namespace psl
 		using const_reference   = const value_type&;
 		using iterator_category = std::random_access_iterator_tag;
 
-		sparse_array() noexcept					   = default;
+		sparse_array() noexcept					  : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) {};
 		~sparse_array()							   = default;
-		sparse_array(const sparse_array& other) noexcept : m_Dense(other.m_Dense), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
-		sparse_array(sparse_array&& other) noexcept : m_Dense(std::move(other.m_Dense)), m_Reverse(std::move(other.m_Reverse)), m_Sparse(std::move(other.m_Sparse)) {};
+		sparse_array(const sparse_array& other) noexcept : m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
+		sparse_array(sparse_array&& other) noexcept : m_DenseData(std::move(other.m_DenseData)), m_Reverse(std::move(other.m_Reverse)), m_Sparse(std::move(other.m_Sparse)) {};
 		sparse_array& operator=(const sparse_array& other) noexcept
 		{
 			if(this != &other)
 			{
-				m_Dense = other.m_Dense;
+				m_DenseData = other.m_DenseData;
 				m_Reverse = other.m_Reverse;
 				m_Sparse = other.m_Sparse;
 			}
@@ -108,20 +109,34 @@ namespace psl
 		{
 			if(this != &other)
 			{
-				m_Dense = std::move(other.m_Dense);
+				m_DenseData = std::move(other.m_DenseData);
 				m_Reverse = std::move(other.m_Reverse);
 				m_Sparse = std::move(other.m_Sparse);
 			}
 			return *this;
 		}
-		size_type size() const noexcept { return std::size(m_Dense); }
+		size_type size() const noexcept { return m_Reverse.size(); }
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
-		iterator begin() noexcept { return iterator{m_Dense.data(), m_Reverse.data()}; };
+		iterator begin() noexcept { return iterator{(T*)m_DenseData.data(), m_Reverse.data()}; };
 		iterator end() noexcept
 		{
-			return iterator{m_Dense.data() + m_Dense.size(), m_Reverse.data() + m_Reverse.size()};
+			return iterator{(T*)m_DenseData.data() + m_Reverse.size(), m_Reverse.data() + m_Reverse.size()};
 		};
+
+		void grow()
+		{
+			if(m_DenseData.size() != m_Reverse.capacity() * sizeof(T))
+			{
+				auto new_capacity = std::max(m_Reverse.capacity(), m_DenseData.size() * 2 / sizeof(T));
+
+				::memory::raw_region reg(new_capacity * sizeof(T));
+				std::memcpy(reg.data(), m_DenseData.data(), m_DenseData.size());
+				m_DenseData = std::move(reg);
+
+				m_Reverse.reserve(m_DenseData.size() / sizeof(T));
+			}
+		}
 
 		reference operator[](index_type index)
 		{
@@ -130,11 +145,12 @@ namespace psl
 
 			if(!has(index))
 			{
-				chunk[sub_index] = (index_type)m_Dense.size();
+				chunk[sub_index] = (index_type)m_Reverse.size();
+
 				m_Reverse.emplace_back(index);
-				m_Dense.emplace_back(value_type{});
+				grow();
 			}
-			return m_Dense[chunk[sub_index]];
+			return (T*)m_DenseData.data() + chunk[sub_index];
 		}
 
 		reference at(index_type index)
@@ -144,11 +160,11 @@ namespace psl
 
 			if(!has(index))
 			{
-				chunk[sub_index] = (index_type)m_Dense.size();
+				chunk[sub_index] = (index_type)m_Reverse.size();
 				m_Reverse.emplace_back(index);
-				m_Dense.emplace_back(value_type{});
+				grow();
 			}
-			return m_Dense[chunk[sub_index]];
+			return (T*)m_DenseData.data() + chunk[sub_index];
 		}
 
 		void resize(index_type size)
@@ -168,16 +184,17 @@ namespace psl
 		{
 			m_Reverse.emplace_back(index);
 			auto& chunk = chunk_for(index);
-			chunk[index] = (index_type)m_Dense.size();
-			m_Dense.emplace_back();
+			chunk[index] = (index_type)m_Reverse.size() - 1;
+			grow();
 		}
 		void insert(index_type index, const_reference value)
 		{
 			m_Reverse.emplace_back(index);
 			auto& chunk = chunk_for(index);
 
-			chunk[index] = (index_type)m_Dense.size();
-			m_Dense.push_back(value);
+			chunk[index] = (index_type)m_Reverse.size() -1;
+			grow();
+			*((T*)m_DenseData.data() + chunk[index]) = value;
 		}
 
 		template<typename ItF, typename ItL>
@@ -208,9 +225,10 @@ namespace psl
 			{
 				for(auto x = first_index; x < chunks_size; ++x)
 				{
-					m_Sparse[i][x] = (index_type)m_Dense.size();
+					m_Sparse[i][x] = (index_type)m_Reverse.size();
 					m_Reverse.emplace_back(index++);
-					m_Dense.emplace_back((*it));
+					grow();
+					*((T*)m_DenseData.data() + m_Reverse.size() - 1) = *it;
 					it = std::next(it);
 				}
 				first_index = 0;
@@ -218,9 +236,9 @@ namespace psl
 
 			for(auto x = 0u; x < last_index; ++x)
 			{
-				m_Sparse[last_index][x] = (index_type)m_Dense.size();
+				m_Sparse[last_index][x] = (index_type)m_Reverse.size();
 				m_Reverse.emplace_back(index++);
-				m_Dense.emplace_back((*it));
+				*((T*)m_DenseData.data() + m_Reverse.size() - 1) = *it;
 				it = std::next(it);
 			}
 		}
@@ -230,8 +248,9 @@ namespace psl
 			m_Reverse.emplace_back(index);
 			auto& chunk = chunk_for(index);
 
-			chunk[index] = (index_type)m_Dense.size();
-			m_Dense.emplace_back(std::forward<value_type>(value));
+			chunk[index] = (index_type)m_Reverse.size() -1;
+
+			*((T*)m_DenseData.data() + m_Reverse.size() - 1) = value;
 		}
 
 		constexpr bool has(index_type index) const noexcept
@@ -254,9 +273,9 @@ namespace psl
 			return false;
 		}
 
-		constexpr bool empty() const noexcept { return std::empty(m_Dense); };
+		constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
 
-		void* data() noexcept { return m_Dense.data(); };
+		void* data() noexcept { return m_DenseData.data(); };
 
 		void erase(index_type index) noexcept
 		{
@@ -268,9 +287,9 @@ namespace psl
 				const auto dense_index = m_Sparse[chunk_index][sparse_index];
 				m_Sparse[chunk_index][sparse_index] = std::numeric_limits<index_type>::max();
 
-				if(dense_index != m_Dense.size() - 1)
+				if(dense_index != m_Reverse.size() - 1)
 				{
-					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense)));
+					std::swap(*((T*)m_DenseData.data() + dense_index), *((T*)m_DenseData.data() + m_Reverse.size() - 1));
 					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse)));
 
 					sparse_index = m_Reverse[dense_index];
@@ -278,7 +297,6 @@ namespace psl
 					m_Sparse[chunk_index][index] = dense_index;
 				}
 
-				m_Dense.pop_back();
 				m_Reverse.pop_back();
 			}
 		}
@@ -297,9 +315,8 @@ namespace psl
 				return;
 			}
 
-			if(last - first == m_Dense.size() && std::all_of(&first, &last, [this](index_type i) { return has(i); }))
+			if(last - first == m_Reverse.size() && std::all_of(&first, &last, [this](index_type i) { return has(i); }))
 			{
-				m_Dense.clear();
 				m_Reverse.clear();
 				m_Sparse.clear();
 				return;
@@ -330,9 +347,9 @@ namespace psl
 					//	continue;
 					++count;
 					m_Sparse[i][x] = std::numeric_limits<index_type>::max();
-					if(std::size(m_Dense) - dense_index == count)
+					if(std::size(m_Reverse) - dense_index == count)
 						continue;
-					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense), count));
+					std::swap(*((T*)m_DenseData.data() + dense_index), *((T*)m_DenseData.data() + m_Reverse.size() - count));
 					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
 
 					const auto new_index = m_Reverse[dense_index];
@@ -355,9 +372,9 @@ namespace psl
 					//	continue;
 					++count;
 					m_Sparse[last_chunk][x] = std::numeric_limits<index_type>::max();
-					if(std::size(m_Dense) - dense_index == count)
+					if(std::size(m_Reverse) - dense_index == count)
 						continue;
-					std::iter_swap(std::next(std::begin(m_Dense), dense_index), std::prev(std::end(m_Dense), count));
+					std::swap(*((T*)m_DenseData.data() + dense_index), *((T*)m_DenseData.data() + m_Reverse.size() - count));
 					std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
 
 					const auto new_index = m_Reverse[dense_index];
@@ -371,12 +388,12 @@ namespace psl
 				}
 			}
 
-			m_Dense.resize(m_Dense.size() - count);
+
 			m_Reverse.resize(m_Reverse.size() - count);
 		}
 
 		psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
-		psl::array_view<value_type> dense() const noexcept { return m_Dense; }
+		psl::array_view<value_type> dense() const noexcept { return psl::array_view<value_type>{(T*)m_DenseData.data(), (T*)m_DenseData.data() + m_Reverse.size() }; }
 	  private:
 		  __forceinline psl::array<index_type>& chunk_for(index_type& index)
 		{
@@ -416,8 +433,8 @@ namespace psl
 			}
 		}
 
-		psl::array<value_type> m_Dense;
 		psl::array<index_type> m_Reverse;
+		::memory::raw_region m_DenseData;
 		psl::array<psl::array<index_type>> m_Sparse;
 	};
 } // namespace psl
