@@ -290,7 +290,8 @@ namespace psl::ecs
 				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
 			}
-			else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
+			else
+			//else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
 			{
 				using tuple_type = typename psl::templates::func_traits<T>::arguments_t;
 				static_assert(std::tuple_size<tuple_type>::value == 1,
@@ -312,11 +313,11 @@ namespace psl::ecs
 									   }
 								   });
 			}
-			else
+			/*else
 			{
 				static_assert(psl::templates::always_false<T>::value,
 							  "could not figure out if the template type was an invocable or a component prototype");
-			}
+			}*/
 		}
 
 		template <typename T>
@@ -364,7 +365,7 @@ namespace psl::ecs
 				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
 			}
-			else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
+			else
 			{
 				using tuple_type = typename psl::templates::func_traits<T>::arguments_t;
 				static_assert(std::tuple_size<tuple_type>::value == 1,
@@ -385,11 +386,11 @@ namespace psl::ecs
 									   }
 								   });
 			}
-			else
+			/*else
 			{
 				static_assert(psl::templates::always_false<T>::value,
 							  "could not figure out if the template type was an invocable or a component prototype");
-			}
+			}*/
 		}
 
 		template <typename T>
