@@ -2,13 +2,13 @@
 ![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.1.82.1-red.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
 
 # Paradigm Engine
-Paradigm Engine is a Vulkan first modern graphics rendering engine written in C++17. It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice. C# bindings will be provided as well as example projects showcasing simple gameplay.
+Paradigm Engine is a Vulkan first (and currently only) modern graphics rendering engine written in C++17. It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice. C# bindings will be provided; as well as an example projects showcasing simple gameplay.
 
 Some of the key reasons why this engine exists:
 - Showcasing an approach to serialization in C++ that does not rely on external compilers or macro magic.
-- Stepping away from the heavy handedness that most engines demand in the structure of your project, and the structure of your code. 
-- Small binary so that the engine can be part of the source history, making it easier to keep large teams on the correct version.
-- Stepping away from common old rendering engine designs that are still widely used but that are no longer required for modern graphics API's and bring needless constraints on the end project.
+- Building a renderer that is fully integrated with a multithreaded ECS.
+- A focus on small binary size, for ease of distribution in a team.
+- Trying out new rendering engine designs that are more suited, and enabled by, modern graphics API's.
 - Flexible testbed for those who want to quickly prototype/validate something.
 - A trivial binding point so you can insert the language of your choice for your logic/extensions.
 - Minimize globals and service locator patterns that are present in many engines out there and instead use dependency injection.
