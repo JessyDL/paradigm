@@ -21,6 +21,9 @@ namespace psl::ecs
 
 	struct info
 	{
+		info(const state& state, std::chrono::duration<float> dTime,
+			 std::chrono::duration<float> rTime) : state(state), dTime(dTime), rTime(rTime) {};
+
 		const state& state;
 		std::chrono::duration<float> dTime;
 		std::chrono::duration<float> rTime;

@@ -154,6 +154,13 @@ namespace psl
 			return m_Dense[chunk[sub_index]];
 		}
 
+		const_reference at(index_type index) const noexcept
+		{
+			index_type sparse_index, chunk_index;
+			chunk_info_for(index, sparse_index, chunk_index);
+			return m_Dense[m_Sparse[chunk_index][sparse_index]];
+		}
+
 		void resize(index_type size)
 		{
 			index_type chunk_index;
@@ -301,7 +308,9 @@ namespace psl
 				return;
 			}
 
-			if(last - first == m_Dense.size() && std::all_of(&first, &last, [this](index_type i) { return has(i); }))
+			assert(std::all_of(&first, &last, [this](index_type i) { return has(i); }));
+
+			if(last - first == m_Dense.size())
 			{
 				m_Dense.clear();
 				m_Reverse.clear();

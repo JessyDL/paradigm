@@ -153,7 +153,7 @@ namespace psl::memory
 				m_Reverse.emplace_back(index);
 				grow();
 			}
-			return (T*)m_DenseData.data() + chunk[sub_index];
+			return *((T*)m_DenseData.data() + chunk[sub_index]);
 		}
 
 		reference at(index_type index)
@@ -167,7 +167,14 @@ namespace psl::memory
 				m_Reverse.emplace_back(index);
 				grow();
 			}
-			return (T*)m_DenseData.data() + chunk[sub_index];
+			return *((T*)m_DenseData.data() + chunk[sub_index]);
+		}
+
+		const_reference at(index_type index) const noexcept
+		{
+			index_type sparse_index, chunk_index;
+			chunk_info_for(index, sparse_index, chunk_index);
+			return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
 		}
 
 		void resize(index_type size)
@@ -320,7 +327,9 @@ namespace psl::memory
 				return;
 			}
 
-			if(last - first == m_Reverse.size() && std::all_of(&first, &last, [this](index_type i) { return has(i); }))
+			assert(std::all_of(&first, &last, [this](index_type i) { return has(i); }));
+
+			if(last - first == m_Reverse.size())
 			{
 				m_Reverse.clear();
 				m_Sparse.clear();

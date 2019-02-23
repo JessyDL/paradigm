@@ -16,6 +16,7 @@
 #include "task.h"
 #include "template_utils.h"
 #include <functional>
+#include "memory/raw_region.h"
 
 namespace psl::async
 {
@@ -76,6 +77,12 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
 
+		template <typename T>
+		T& get(entity entity)
+		{
+			auto cInfo = get_component_typed_info<T>();
+			return cInfo->entity_data()[entity];
+		}
 
 		template <typename... Ts>
 		bool has_components(psl::array_view<entity> entities) const noexcept
@@ -177,25 +184,23 @@ namespace psl::ecs
 		void destroy(psl::array_view<entity> entities) noexcept;
 		void destroy(entity entity) noexcept;
 
-		template <typename... Ts>
+		template <typename T, typename... Ts>
 		psl::array<entity> filter() const noexcept
 		{
-			std::optional<psl::array<entity>> entities{std::nullopt};
-			(void(entities = filter_impl(psl::templates::proxy_type<Ts>{}, entities)), ...);
-
-			return (entities) ? entities.value() : psl::array<entity>{};
+			psl::array<entity> storage(filter_seed(psl::templates::proxy_type<T>{}));
+			auto begin = std::begin(storage);
+			auto end   = std::end(storage);
+			if constexpr(sizeof...(Ts) == 0)
+			{
+				return storage;
+			}
+			else
+			{
+				(void(end = filter_remove(psl::templates::proxy_type<Ts>{}, begin, end)), ...);
+				storage.erase(end, std::end(storage));
+				return storage;
+			}
 		}
-
-
-		template <typename... Ts>
-		psl::array<entity> filter(psl::array_view<entity> entities) const noexcept
-		{
-			psl::array<entity> result{entities};
-			(void(result = filter_impl(psl::templates::proxy_type<Ts>{}, result)), ...);
-
-			return result;
-		}
-
 		template <typename... Ts>
 		void set(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept;
 
@@ -207,7 +212,7 @@ namespace psl::ecs
 		void reset(psl::array_view<entity> entities) noexcept;
 
 		template <typename T>
-		psl::array_view<entity> entities()
+		psl::array_view<entity> entities() const noexcept
 		{
 			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
 				constexpr auto key{details::key_for<T>()};
@@ -259,7 +264,17 @@ namespace psl::ecs
 		void fill_in(details::component_key_t key, psl::array_view<entity> entities,
 					 psl::array_view<std::uintptr_t>& data);
 
+		size_t prepare_bindings(psl::array_view<entity> entities, void* cache,
+								details::dependency_pack& dep_pack) const noexcept;
+		size_t prepare_data(psl::array_view<entity> entities, void* cache,
+							details::component_key_t id) const noexcept;
+
+		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+							std::uintptr_t cache_offset, details::system_information& information);
+
 		psl::array_view<entity> entities_for(details::component_key_t key) const noexcept;
+		psl::array_view<entity> entities_added_for(details::component_key_t key) const noexcept;
+		psl::array_view<entity> entities_removed_for(details::component_key_t key) const noexcept;
 
 		template <typename T>
 		void create_storage()
@@ -273,8 +288,20 @@ namespace psl::ecs
 			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());
 		}
 
-		details::component_info* get_component_info(details::component_key_t key, size_t size);
+		details::component_info* get_component_info(details::component_key_t key) noexcept;
+		const details::component_info* get_component_info(details::component_key_t key) const noexcept;
 
+		psl::array<const details::component_info*>
+		get_component_info(psl::array_view<details::component_key_t> keys) const noexcept;
+		template <typename T>
+		details::component_info_typed<T>* get_component_typed_info()
+		{
+			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
+				constexpr auto key{details::key_for<T>()};
+				return cInfo->id() == key;
+			});
+			return ((details::component_info_typed<T>*)(it->operator->()));
+		}
 		//------------------------------------------------------------
 		// add_component
 		//------------------------------------------------------------
@@ -290,8 +317,9 @@ namespace psl::ecs
 				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
 			}
-			else
-			//else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
+			else // todo wait till deduction guides are resolved on libc++
+				 // https://bugs.llvm.org/show_bug.cgi?id=39606
+			// else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
 			{
 				using tuple_type = typename psl::templates::func_traits<T>::arguments_t;
 				static_assert(std::tuple_size<tuple_type>::value == 1,
@@ -449,56 +477,127 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// filter
 		//------------------------------------------------------------
-
 		template <typename T>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<T>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<T>, psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 		{
-			return filter_impl(psl::templates::proxy_type<psl::ecs::filter<T>>(), entities);
+			return filter_remove(details::key_for<T>(), begin, end);
 		}
 
 		template <typename T>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<psl::ecs::filter<T>>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<psl::ecs::filter<T>>,
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 		{
-			return filter_impl(details::key_for<T>(), entities);
+			return filter_remove(details::key_for<T>(), begin, end);
 		}
 		template <typename T>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<psl::ecs::on_add<T>>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<psl::ecs::on_add<T>>,
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 		{
-			return filter_impl(details::key_for<T>(), m_Changes[m_Tick % 2].added_components, entities);
+			return filter_remove_on_add(details::key_for<T>(), begin, end);
 		}
 		template <typename T>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<psl::ecs::on_remove<T>>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<psl::ecs::on_remove<T>>,
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 		{
-			return filter_impl(details::key_for<T>(), m_Changes[m_Tick % 2].removed_components, entities);
+			return filter_remove_on_remove(details::key_for<T>(), begin, end);
 		}
 		template <typename T>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<psl::ecs::except<T>>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<psl::ecs::except<T>>,
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 		{
-			return filter_except_impl(psl::templates::proxy_type<psl::ecs::filter<T>>(), entities);
+			return filter_remove_except(details::key_for<T>(), begin, end);
 		}
 		template <typename... Ts>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<psl::ecs::on_break<Ts...>>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
-		{}
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<psl::ecs::on_break<Ts...>>,
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
+		{
+			return filter_remove_on_break(to_keys<Ts...>(), begin, end);
+		}
+
 		template <typename... Ts>
-		psl::array<entity> filter_impl(psl::templates::proxy_type<psl::ecs::on_combine<Ts...>>,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept
-		{}
+		psl::array<entity>::iterator filter_remove(psl::templates::proxy_type<psl::ecs::on_combine<Ts...>>,
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
+		{
+			return filter_remove_on_combine(to_keys<Ts...>(), begin, end);
+		}
 
-		psl::array<entity> filter_impl(details::component_key_t key,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept;
-		psl::array<entity> filter_except_impl(details::component_key_t key,
-											  std::optional<psl::array_view<entity>> entities = std::nullopt) const
-			noexcept;
+		psl::array<entity>::iterator filter_remove(details::component_key_t key, psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept;
+		psl::array<entity>::iterator filter_remove_on_add(details::component_key_t key,
+														  psl::array<entity>::iterator& begin,
+														  psl::array<entity>::iterator& end) const noexcept;
+		psl::array<entity>::iterator filter_remove_on_remove(details::component_key_t key,
+															 psl::array<entity>::iterator& begin,
+															 psl::array<entity>::iterator& end) const noexcept;
+		psl::array<entity>::iterator filter_remove_except(details::component_key_t key,
+														  psl::array<entity>::iterator& begin,
+														  psl::array<entity>::iterator& end) const noexcept;
+		psl::array<entity>::iterator filter_remove_on_break(psl::array<details::component_key_t> keys,
+															psl::array<entity>::iterator& begin,
+															psl::array<entity>::iterator& end) const noexcept;
+		psl::array<entity>::iterator filter_remove_on_combine(psl::array<details::component_key_t> keys,
+															  psl::array<entity>::iterator& begin,
+															  psl::array<entity>::iterator& end) const noexcept;
 
-		psl::array<entity> filter_impl(details::component_key_t key,
-									   const psl::bytell_map<details::component_key_t, psl::array<entity>>& map,
-									   std::optional<psl::array_view<entity>> entities = std::nullopt) const noexcept;
+		template <typename T>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<T>) const noexcept
+		{
+			return filter_seed(details::key_for<T>());
+		}
+
+		template <typename T>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<psl::ecs::filter<T>>) const noexcept
+		{
+			return filter_seed(details::key_for<T>());
+		}
+		template <typename T>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<psl::ecs::on_add<T>>) const noexcept
+		{
+			return filter_seed_on_add(details::key_for<T>());
+		}
+		template <typename T>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<psl::ecs::on_remove<T>>) const noexcept
+		{
+			return filter_seed_on_remove(details::key_for<T>());
+		}
+		template <typename T>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<psl::ecs::except<T>>) const noexcept
+		{
+			static_assert(psl::templates::always_false_v<T>,
+						  "you cannot start with a negative selector, this is unsupported for now");
+		}
+		template <typename... Ts>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<psl::ecs::on_break<Ts...>>) const noexcept
+		{
+			return filter_seed_on_break(to_keys<Ts...>());
+		}
+
+		template <typename... Ts>
+		psl::array<entity> filter_seed(psl::templates::proxy_type<psl::ecs::on_combine<Ts...>>) const noexcept
+		{
+			return filter_seed_on_combine(to_keys<Ts...>());
+		}
+
+		psl::array<entity> filter_seed(details::component_key_t key) const noexcept;
+		psl::array<entity> filter_seed_on_add(details::component_key_t key) const noexcept;
+		psl::array<entity> filter_seed_on_remove(details::component_key_t key) const noexcept;
+		psl::array<entity> filter_seed_on_break(psl::array<details::component_key_t> keys) const noexcept;
+		psl::array<entity> filter_seed_on_combine(psl::array<details::component_key_t> keys) const noexcept;
+
+		psl::array<entity> filter(details::dependency_pack& packs);
+		template <typename... Ts>
+		constexpr psl::array<details::component_key_t> to_keys() const noexcept
+		{
+			return psl::array<details::component_key_t>{details::key_for<Ts>()...};
+		}
+
 		//------------------------------------------------------------
 		// set
 		//------------------------------------------------------------
@@ -519,8 +618,7 @@ namespace psl::ecs
 		{};
 
 		template <typename... Ts>
-		struct get_packs<psl::ecs::info&, Ts...>
-			: public get_packs<Ts...>
+		struct get_packs<psl::ecs::info&, Ts...> : public get_packs<Ts...>
 		{};
 
 		template <typename Fn, typename T = void>
@@ -534,14 +632,11 @@ namespace psl::ecs
 														  psl::templates::type_container<pack_t>{});
 			};
 
-			std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)>
-				system_tick;
+			std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)> system_tick;
 
 			if constexpr(std::is_member_function_pointer<Fn>::value)
 			{
-				system_tick = [fn,
-							   ptr](psl::ecs::info& info,
-									std::vector<details::dependency_pack> packs) -> void {
+				system_tick = [fn, ptr](psl::ecs::info& info, std::vector<details::dependency_pack> packs) -> void {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
@@ -554,8 +649,7 @@ namespace psl::ecs
 			}
 			else
 			{
-				system_tick = [fn](psl::ecs::info& info,
-								   std::vector<details::dependency_pack> packs) -> void {
+				system_tick = [fn](psl::ecs::info& info, std::vector<details::dependency_pack> packs) -> void {
 					using pack_t = typename get_packs<function_args>::type;
 
 					auto tuple_argument_list = std::tuple_cat(
@@ -569,26 +663,15 @@ namespace psl::ecs
 			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick));
 		}
 
-
-		struct difference_set
-		{
-			psl::bytell_map<details::component_key_t, psl::array<std::pair<entity, entity>>> added_components;
-			psl::bytell_map<details::component_key_t, psl::array<std::pair<entity, entity>>> removed_components;
-
-
-			psl::bytell_map<entity, details::entity_info> destroyed_data;
-		};
-
+		::memory::raw_region m_Cache{1024 * 1024 * 32};
 		psl::array<entity> m_Entities;
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		std::vector<details::system_information> m_SystemInformations;
 
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
-		psl::static_array<difference_set, 2> m_Changes;
 		entity m_Next;
 		size_t m_Orphans{0};
 		size_t m_Tick{0};
-		size_t m_ChangeSetTick{0};
 	};
 } // namespace psl::ecs

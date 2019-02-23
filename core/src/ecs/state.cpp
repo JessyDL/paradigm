@@ -40,7 +40,7 @@ state::~state() { delete(m_Scheduler); }
 void state::destroy_immediate(psl::array_view<entity> entities) noexcept
 {
 	PROFILE_SCOPE(core::profiler)
-		if(entities.size() == 0) return;
+	if(entities.size() == 0) return;
 
 	psl::bytell_map<component_key_t, std::vector<entity>> erased_entities;
 	psl::bytell_map<component_key_t, std::vector<uint64_t>> erased_ids;
@@ -49,7 +49,7 @@ void state::destroy_immediate(psl::array_view<entity> entities) noexcept
 	{
 		if(auto eMapIt = m_EntityMap.find(e); eMapIt != std::end(m_EntityMap))
 		{
-			for(const auto&[type, index] : eMapIt->second.zip())
+			for(const auto& [type, index] : eMapIt->second.zip())
 			{
 				erased_entities[type].emplace_back(e);
 				erased_ids[type].emplace_back(index);
@@ -68,9 +68,9 @@ void state::destroy_immediate(psl::array_view<entity> entities) noexcept
 			if(c.second.size() > 64)
 			{
 				std::sort(std::begin(c.second), std::end(c.second));
-				auto index = std::begin(c.second);
+				auto index		 = std::begin(c.second);
 				auto range_start = index;
-				const auto end = std::prev(std::end(c.second), 1);
+				const auto end   = std::prev(std::end(c.second), 1);
 				while(index != end)
 				{
 					auto next = std::next(index, 1);
@@ -97,10 +97,9 @@ void state::destroy_immediate(psl::array_view<entity> entities) noexcept
 		if(const auto& cMapIt = m_Components.find(c.first); cMapIt != std::end(m_Components))
 		{
 			std::sort(std::begin(c.second), std::end(c.second));
-			auto ib = std::begin(c.second);
+			auto ib   = std::begin(c.second);
 			auto iter = std::remove_if(std::begin(cMapIt->second.entities), std::end(cMapIt->second.entities),
-									   [&ib, &c](entity x) -> bool
-									   {
+									   [&ib, &c](entity x) -> bool {
 										   while(ib != std::end(c.second) && *ib < x) ++ib;
 										   return (ib != std::end(c.second) && *ib == x);
 									   });
@@ -141,7 +140,8 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	}
 
 
-	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities), std::begin(entities), std::end(entities));
+	m_StateChange[(m_Tick + 1) % 2].removed_entities.insert(std::end(m_StateChange[(m_Tick + 1) % 2].removed_entities),
+															std::begin(entities), std::end(entities));
 }
 
 void state::destroy(entity e) noexcept { destroy(psl::array_view<entity>{&e, &e + 1}); }
@@ -154,9 +154,9 @@ size_t state::prepare_data(psl::array_view<entity> entities, memory::raw_region&
 
 	for(const auto& e : entities)
 	{
-		auto eMapIt  = m_EntityMap.find(e);
-		auto index = eMapIt->second.unsafe_index(id);
-		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + element_size * index);
+		auto eMapIt = m_EntityMap.find(e);
+		auto index  = eMapIt->second.unsafe_index(id);
+		void* loc   = (void*)((std::uintptr_t)mem_pair->second.region.data() + element_size * index);
 		std::memcpy((void*)cache_offset, loc, element_size);
 		cache_offset += element_size;
 	}
@@ -381,26 +381,25 @@ void state::tick(std::chrono::duration<float> dTime)
 
 		// for(auto i = 0; i < cmds.size(); ++i) execute_command_buffer(cmds[i]);
 	}
-/*
-	for(auto&[key, entities] : m_StateChange[(m_Tick+1) % 2].removed_components)
-	{
-		if(entities.size() == 0) continue;
-		std::vector<entity> erased_entities;
-		auto compIt = m_Components.find(key);
-		if(compIt == std::end(m_Components)) continue;
-		std::sort(std::begin(entities), std::end(entities));
-		std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities),
-							  std::end(compIt->second.entities), std::back_inserter(erased_entities));
-		entities = erased_entities;
-		std::vector<entity> remaining_entities;
-		std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities),
-							std::begin(erased_entities), std::end(erased_entities),
-							std::back_inserter(remaining_entities));
-		compIt->second.entities = remaining_entities;
-	}*/
+	/*
+		for(auto&[key, entities] : m_StateChange[(m_Tick+1) % 2].removed_components)
+		{
+			if(entities.size() == 0) continue;
+			std::vector<entity> erased_entities;
+			auto compIt = m_Components.find(key);
+			if(compIt == std::end(m_Components)) continue;
+			std::sort(std::begin(entities), std::end(entities));
+			std::set_intersection(std::begin(entities), std::end(entities), std::begin(compIt->second.entities),
+								  std::end(compIt->second.entities), std::back_inserter(erased_entities));
+			entities = erased_entities;
+			std::vector<entity> remaining_entities;
+			std::set_difference(std::begin(compIt->second.entities), std::end(compIt->second.entities),
+								std::begin(erased_entities), std::end(erased_entities),
+								std::back_inserter(remaining_entities));
+			compIt->second.entities = remaining_entities;
+		}*/
 	destroy_immediate(m_StateChange[m_Tick % 2].removed_entities);
-	for(const auto&[key, entities] : m_StateChange[m_Tick % 2].removed_components)
-		destroy_immediate(key, entities);
+	for(const auto& [key, entities] : m_StateChange[m_Tick % 2].removed_components) destroy_immediate(key, entities);
 	m_StateChange[m_Tick % 2].clear();
 }
 
@@ -412,9 +411,9 @@ void state::set(psl::array_view<entity> entities, void* data, size_t size, compo
 	std::uintptr_t data_loc = (std::uintptr_t)data;
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
-		auto eMapIt  = m_EntityMap.find(e);
-		auto index = eMapIt->second.unsafe_index(id);
-		void* loc  = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
+		auto eMapIt = m_EntityMap.find(e);
+		auto index  = eMapIt->second.unsafe_index(id);
+		void* loc   = (void*)((std::uintptr_t)mem_pair->second.region.data() + size * index);
 		std::memcpy(loc, (void*)data_loc, size);
 		data_loc += size;
 	}
@@ -436,7 +435,7 @@ std::vector<entity> state::dynamic_filter(psl::array_view<component_key_t> keys,
 	if(pre_selection)
 	{
 		v_intersection.reserve(std::min(pre_selection.value().size(), first_selection.entities.size()));
-		
+
 		std::set_intersection(std::begin(first_selection.entities), std::end(first_selection.entities),
 							  std::begin(pre_selection.value()), std::end(pre_selection.value()),
 							  std::back_inserter(v_intersection));
@@ -498,16 +497,15 @@ state::dynamic_filter(psl::array_view<component_key_t> keys,
 }
 
 
-std::vector<entity>
-state::dynamic_filter_dead(psl::array_view<component_key_t> keys,
-					  std::optional<psl::array_view<entity>> pre_selection) const noexcept
+std::vector<entity> state::dynamic_filter_dead(psl::array_view<component_key_t> keys,
+											   std::optional<psl::array_view<entity>> pre_selection) const noexcept
 {
 	PROFILE_SCOPE(core::profiler)
 
-		for(const auto& key : keys)
-		{
-			if(m_Components.find(key) == std::end(m_Components)) return {};
-		}
+	for(const auto& key : keys)
+	{
+		if(m_Components.find(key) == std::end(m_Components)) return {};
+	}
 
 	const auto& first_selection = m_Components.at(keys[0]);
 
@@ -516,15 +514,14 @@ state::dynamic_filter_dead(psl::array_view<component_key_t> keys,
 	{
 		std::vector<entity> entities;
 
-		std::merge(std::begin(first_selection.entities), std::end(first_selection.entities), 
-				   std::begin(first_selection.removed_entities), std::end(first_selection.removed_entities), 
+		std::merge(std::begin(first_selection.entities), std::end(first_selection.entities),
+				   std::begin(first_selection.removed_entities), std::end(first_selection.removed_entities),
 				   std::back_inserter(entities));
 
 		v_intersection.reserve(std::min(pre_selection.value().size(), entities.size()));
 
-		std::set_intersection(std::begin(entities), std::end(entities),
-							  std::begin(pre_selection.value()), std::end(pre_selection.value()),
-							  std::back_inserter(v_intersection));
+		std::set_intersection(std::begin(entities), std::end(entities), std::begin(pre_selection.value()),
+							  std::end(pre_selection.value()), std::back_inserter(v_intersection));
 	}
 	else
 	{
@@ -542,9 +539,8 @@ state::dynamic_filter_dead(psl::array_view<component_key_t> keys,
 
 		std::vector<entity> entities;
 
-		std::merge(std::begin(it.entities), std::end(it.entities),
-				   std::begin(it.removed_entities), std::end(it.removed_entities),
-				   std::back_inserter(entities));
+		std::merge(std::begin(it.entities), std::end(it.entities), std::begin(it.removed_entities),
+				   std::end(it.removed_entities), std::back_inserter(entities));
 
 		std::set_intersection(v_intersection.begin(), v_intersection.end(), std::begin(entities), std::end(entities),
 							  std::back_inserter(intermediate));
@@ -566,8 +562,8 @@ void state::fill_in(psl::array_view<entity> entities, component_key_t int_id, vo
 	for(const auto& [i, e] : psl::enumerate(entities))
 	{
 		auto eMapIt = m_EntityMap.find(e);
-		auto index = eMapIt->second.unsafe_index(int_id);
-		void* loc  = (void*)(data + size * index);
+		auto index  = eMapIt->second.unsafe_index(int_id);
+		void* loc   = (void*)(data + size * index);
 		std::memcpy((void*)((std::uintptr_t)out + (i * size)), loc, size);
 	}
 }
@@ -636,10 +632,9 @@ void state::execute_command_buffer(command_buffer& cmds)
 		const auto& named_key{key};
 		const auto& named_cInfo{cInfo};
 		copy_components(key, cInfo.entities, cInfo.size, [&named_key, &named_cInfo, &entityMap](entity e) {
-			auto eIt = entityMap.find(e);
-			auto cIt = std::find_if(
-				std::begin(eIt->second.components), std::end(eIt->second.components),
-				[&named_key](component_key_t key) { return named_key == key; });
+			auto eIt   = entityMap.find(e);
+			auto cIt   = std::find_if(std::begin(eIt->second.components), std::end(eIt->second.components),
+									  [&named_key](component_key_t key) { return named_key == key; });
 			auto index = std::distance(std::begin(eIt->second.components), cIt);
 			return ((std::uintptr_t)named_cInfo.region.data() + (named_cInfo.size * eIt->second.indices[index]));
 		});
@@ -666,8 +661,7 @@ void state::reset(psl::array_view<entity> entities) noexcept
 	for(auto e : entities)
 	{
 		auto eIt = m_EntityMap.find(e);
-		if(eIt == std::end(m_EntityMap))
-			continue;
+		if(eIt == std::end(m_EntityMap)) continue;
 
 
 		for(const auto& key : eIt->second.components)
@@ -675,6 +669,5 @@ void state::reset(psl::array_view<entity> entities) noexcept
 			removed[key].emplace_back(e);
 		}
 	}
-	for(const auto& [key, es] : removed)
-		remove_component(key, es);
+	for(const auto& [key, es] : removed) remove_component(key, es);
 }

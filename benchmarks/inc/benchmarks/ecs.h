@@ -4,6 +4,8 @@
 
 #include "../../psl/inc/ecs/state.h"
 
+using namespace psl::ecs;
+
 struct position
 {
 	std::uint64_t x;
@@ -22,6 +24,17 @@ struct rotation
 	std::uint64_t x;
 	std::uint64_t y;
 };
+
+struct health
+{
+	float value;
+};
+
+struct lifetime
+{
+	int value;
+};
+
 
 template <size_t C = 0, typename... Ts>
 struct mock_data
@@ -56,6 +69,11 @@ struct mock_data_trivial_system
 	psl::array<psl::ecs::entity> entities;
 	psl::ecs::state state;
 };
+
+template<size_t C>
+using full_mock_data = mock_data<C, position, rotation, velocity, health, lifetime>;
+
+
 
 
 BENCHMARK("Constructing 1.000.000 entities", mock_data<>)
@@ -150,6 +168,46 @@ BENCHMARK("Running a trivial system that moves components around", mock_data_tri
 	data.state.tick(std::chrono::duration<float>(0.1f));
 }
 
+BENCHMARK("filter 1.000.000 filter<T>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<position>();
+}
+
+BENCHMARK("filter 1.000.000 on_add<T>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<on_add<position>>();
+}
+
+BENCHMARK("filter  1.000.000 on_combine<T, U>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<on_combine<velocity, position>>();
+}
+
+BENCHMARK("filter 1.000.000 filter<T, U>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<position, velocity>();
+}
+
+BENCHMARK("filter 1.000.000 on_add<T, U>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<on_add<position>, on_add<velocity>>();
+}
+
+BENCHMARK("filter  1.000.000 on_combine<T, U, V>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<on_combine<velocity, position, rotation>>();
+}
+
+BENCHMARK("filter 1.000.000 filter<T, U, V>", mock_data_trivial_system<1000000>)
+{
+	data.state.filter<position, velocity, rotation>();
+}
+
+BENCHMARK("filter 1.000.000 filter<T, U, V, X, Y>", full_mock_data<1000000>)
+{
+	data.state.filter<position, velocity, rotation, lifetime, health>();
+}
+
 
 BENCHMARK("Looping 1.000 times creating 1.000 entities and deleting a random number of entities", mock_data<>)
 {
@@ -157,8 +215,10 @@ BENCHMARK("Looping 1.000 times creating 1.000 entities and deleting a random num
 	{
 		data.state.create<position>(1000);
 		psl::array<psl::ecs::entity> range{data.state.entities<position>()};
-		std::for_each(std::begin(range), std::end(range), [&data, i](auto e) {
-			if((e + i) % 2 == 0) data.state.destroy(e);
-		});
+		std::for_each(std::begin(range), std::end(range), [&data, i](auto e)
+					  {
+						  if((e + i) % 2 == 0) data.state.destroy(e);
+					  });
+		data.state.tick(std::chrono::duration<float>(0.1f));
 	}
 }
