@@ -1,7 +1,7 @@
 #include "ecs/state.h"
 #include "task.h"
 #include <numeric>
-
+#include "unique_ptr.h"
 using namespace psl::ecs;
 
 using psl::ecs::details::component_key_t;
@@ -9,7 +9,7 @@ using psl::ecs::details::entity_info;
 
 
 state::state(size_t workers)
-	: m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers}))
+	: m_Scheduler(new psl::async::scheduler(1/*(workers == 0) ? std::nullopt : std::optional{workers}*/))
 {}
 
 std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source, size_t count)
@@ -42,28 +42,28 @@ std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::de
 	return res;
 }
 
+std::vector< psl::unique_ptr<info>> info_buffer;
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
-	std::function<void(state&, std::vector<details::dependency_pack>)> write_data = [](state& state, std::vector<details::dependency_pack> dep_packs) {
-		for(const auto& dep_pack : dep_packs)
-		{
-			for(auto& binding : dep_pack.m_RWBindings)
+	std::function<void(state&, std::vector<details::dependency_pack>)> write_data =
+		[](state& state, std::vector<details::dependency_pack> dep_packs) {
+			for(const auto& dep_pack : dep_packs)
 			{
-				const size_t size   = dep_pack.m_Sizes.at(binding.first);
-				std::uintptr_t data = (std::uintptr_t)binding.second.data();
-				state.set(dep_pack.m_Entities, binding.first, (void*)data);
+				for(auto& binding : dep_pack.m_RWBindings)
+				{
+					const size_t size   = dep_pack.m_Sizes.at(binding.first);
+					std::uintptr_t data = (std::uintptr_t)binding.second.data();
+					state.set(dep_pack.m_Entities, binding.first, (void*)data);
+				}
 			}
-		}
-	};
+		};
 
-	info info{*this, dTime, rTime};
 
 	auto pack = information.create_pack();
 	bool has_partial =
 		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
-
-	std::vector<command_buffer> commands;
+	has_partial = false;
 	if(has_partial && information.threading() == threading::par)
 	{
 		for(auto& dep_pack : pack)
@@ -84,24 +84,30 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 		std::vector<std::future<void>> future_commands;
 
+		auto index = info_buffer.size();
+		for(size_t i = 0; i < m_Scheduler->workers(); ++i) info_buffer.emplace_back(new info(*this, dTime, rTime));
+
+		auto infoBuffer = std::next(std::begin(info_buffer), index);
+
 		for(auto& mPack : multi_pack)
 		{
 
-			auto t1 = m_Scheduler->schedule(information.system(), info, mPack);
+			auto t1 = m_Scheduler->schedule(information.system(), **infoBuffer, mPack);
 
 			auto t2 = m_Scheduler->schedule(write_data, *this, mPack);
 
 			m_Scheduler->dependency(t2.first, t1.first);
 
 			future_commands.emplace_back(std::move(t1.second));
+			infoBuffer = std::next(infoBuffer);
 		}
 
 		m_Scheduler->execute().wait();
+
 		for(auto& fCommands : future_commands)
 		{
 			if(!fCommands.valid()) fCommands.wait();
 
-			// execute_command_buffer(cmd);
 			// commands.emplace_back(fCommands.get());
 		}
 	}
@@ -119,11 +125,10 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
-
-		information.operator()(info, pack);
+		info_buffer.emplace_back(new info(*this, dTime, rTime));
+		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
 		write_data(*this, pack);
-		// execute_command_buffer(info.command_buffer);
 	}
 }
 void state::tick(std::chrono::duration<float> dTime)
@@ -134,6 +139,13 @@ void state::tick(std::chrono::duration<float> dTime)
 	{
 		prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
 	}
+
+
+	for(auto& info : info_buffer)
+	{
+		execute_command_buffer(*info);
+	}
+	info_buffer.clear();
 
 	// purge;
 	for(auto& cInfo : m_Components) cInfo->unlock_and_purge();
@@ -212,7 +224,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities().size();
+	auto offset = cInfo->entities(true).size();
 	cInfo->add(entities);
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
@@ -227,7 +239,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities().size();
+	auto offset = cInfo->entities(true).size();
 	cInfo->add(entities);
 	for(const auto& id_range : entities)
 	{
@@ -256,7 +268,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities().size();
+	auto offset = cInfo->entities(true).size();
 	cInfo->add(entities);
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
@@ -271,7 +283,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities().size();
+	auto offset = cInfo->entities(true).size();
 
 	cInfo->add(entities);
 	for(auto e : entities)
@@ -604,4 +616,43 @@ void state::set(psl::array_view<entity> entities, details::component_key_t key, 
 	const auto& cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 	cInfo->copy_from(entities, data);
+}
+
+
+void state::execute_command_buffer(info& info)
+{
+	auto& buffer = info.command_buffer;
+
+	psl::sparse_array<entity> remapped_entities;
+	if(buffer.m_Entities.size() > 0)
+	{
+		psl::array<entity> added_entities;
+		std::set_difference(std::begin(buffer.m_Entities), std::end(m_Entities), std::begin(buffer.m_DestroyedEntities),
+							std::end(buffer.m_DestroyedEntities), std::back_inserter(added_entities));
+
+
+		for(auto e : added_entities)
+		{
+			remapped_entities[e] = create();
+		}
+	}
+	for(auto& component_src : buffer.m_Components)
+	{
+		if(!component_src->changes())
+			continue;
+		auto component_dst = get_component_info(component_src->id());
+		if(component_dst == nullptr)
+		{
+			m_Components.emplace_back(component_src->create_storage(remapped_entities));
+		}
+		else
+		{
+			component_src->merge_into(component_dst, remapped_entities);
+		}
+	}
+	for(auto e : buffer.m_DestroyedEntities)
+	{
+		if(e < buffer.m_First) destroy(e);
+	}
+
 }

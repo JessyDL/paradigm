@@ -6,18 +6,21 @@ using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
 drawcall::drawcall(handle<core::gfx::material> material, const std::vector<handle<geometry>>& geometry) noexcept
-	: m_Material(material), m_Geometry(geometry)
-{}
+	: m_Material(material)
+{
+	for(auto& g : geometry)
+		m_Geometry.emplace_back(g, 1);
+}
 
 
 bool drawcall::add(handle<geometry> geometry) noexcept
 {
 	if(std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
-					[&geometry](const handle<core::gfx::geometry>& geomHandle) {
-		   return geomHandle.ID() == geometry.ID();
+					[&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
+		   return geomHandle.first.ID() == geometry.ID();
 	   }) == std::end(m_Geometry))
 	{
-		m_Geometry.push_back(geometry);
+		m_Geometry.emplace_back(std::make_pair(geometry, size_t{1}));
 		return true;
 	}
 	return false;
@@ -26,11 +29,14 @@ bool drawcall::remove(core::resource::handle<core::gfx::geometry> geometry) noex
 {
 	if(auto it = std::find_if(
 		   std::begin(m_Geometry), std::end(m_Geometry),
-		   [&geometry](const handle<core::gfx::geometry>& geomHandle) {
-		   return geomHandle.ID() == geometry.ID();
+		   [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
+		   return geomHandle.first.ID() == geometry.ID();
 	   }); it != std::end(m_Geometry))
 	{
-		m_Geometry.erase(it);
+		it->second -= 1;
+		if(it->second == 0)
+			m_Geometry.erase(it);
+
 		return true;
 	}
 	return false;
@@ -39,10 +45,12 @@ bool drawcall::remove(const UID& geometry) noexcept
 {
 	if(auto it = std::find_if(
 		   std::begin(m_Geometry), std::end(m_Geometry),
-		   [&geometry](const handle<core::gfx::geometry>& geomHandle) { return geomHandle.ID() == geometry; });
+		   [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) { return geomHandle.first.ID() == geometry; });
 	   it != std::end(m_Geometry))
 	{
-		m_Geometry.erase(it);
+		it->second -= 1;
+		if(it->second == 0)
+			m_Geometry.erase(it);
 		return true;
 	}
 	return false;

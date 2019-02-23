@@ -17,6 +17,7 @@
 #include "template_utils.h"
 #include <functional>
 #include "memory/raw_region.h"
+#include "entity.h"
 
 namespace psl::async
 {
@@ -25,10 +26,6 @@ namespace psl::async
 
 namespace psl::ecs
 {
-
-	template <typename T>
-	struct empty
-	{};
 
 	class state final
 	{
@@ -257,6 +254,9 @@ namespace psl::ecs
 			declare_impl(threading, std::forward<Fn>(fn), ptr);
 		}
 
+		size_t capacity() const noexcept { return m_Entities.size(); }
+		size_t count() const noexcept {return m_Entities.size() - m_Orphans; };
+
 	  private:
 		//------------------------------------------------------------
 		// helpers
@@ -275,6 +275,8 @@ namespace psl::ecs
 		psl::array_view<entity> entities_for(details::component_key_t key) const noexcept;
 		psl::array_view<entity> entities_added_for(details::component_key_t key) const noexcept;
 		psl::array_view<entity> entities_removed_for(details::component_key_t key) const noexcept;
+
+		void execute_command_buffer(info& info);
 
 		template <typename T>
 		void create_storage()

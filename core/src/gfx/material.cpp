@@ -22,8 +22,8 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 				   core::resource::handle<core::gfx::buffer> materialBuffer,
 				   core::resource::handle<core::gfx::buffer> instanceBuffer)
-	: m_UID(packet.get<UID>()), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data), m_MaterialBuffer(materialBuffer),
-	  m_InstanceBuffer(instanceBuffer)
+	: m_UID(packet.get<UID>()), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
+	  m_MaterialBuffer(materialBuffer), m_InstanceBuffer(instanceBuffer)
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& ID = m_UID;
@@ -36,13 +36,13 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 		auto shader_handle = cache.find<core::gfx::shader>(stage.shader());
 		if(!shader_handle)
 		{
-			core::gfx::log->warn("gfx::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.", utility::to_string(ID), utility::to_string(stage.shader()));
+			core::gfx::log->warn("gfx::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
+								 utility::to_string(ID), utility::to_string(stage.shader()));
 
-			
+
 			core::gfx::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
 			shader_handle = create<core::gfx::shader>(cache, stage.shader());
-			if(!shader_handle.load(context))
-				return;
+			if(!shader_handle.load(context)) return;
 		}
 		m_Shaders.push_back(shader_handle);
 
@@ -52,12 +52,12 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 			for(const auto& vBinding : shader_handle->meta()->instance_bindings())
 			{
 				instance_element& iData = elements.emplace_back();
-				iData.slot = vBinding.binding_slot();
-				iData.size_of_element = vBinding.size();
-				iData.name = vBinding.buffer();
+				iData.slot				= vBinding.binding_slot();
+				iData.size_of_element   = vBinding.size();
+				iData.name				= vBinding.buffer();
 			}
 			// todo this hard coded value should be resolved
-			m_InstanceData = instance_data(std::move(elements), 1024*32);
+			m_InstanceData = instance_data(std::move(elements), 1024 * 32);
 		}
 		// now we validate the shader, and store all the bound resource handles
 		for(const auto& binding : stage.bindings())
@@ -72,7 +72,11 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				}
 				else
 				{
-					core::gfx::log->error("gfx::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource cache.", utility::to_string(ID), utility::to_string(binding.sampler()), utility::to_string(stage.shader()));
+					core::gfx::log->error(
+						"gfx::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
+						"cache.",
+						utility::to_string(ID), utility::to_string(binding.sampler()),
+						utility::to_string(stage.shader()));
 					return;
 				}
 				if(auto texture_handle = cache.find<core::gfx::texture>(binding.texture()); texture_handle)
@@ -81,7 +85,11 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 				}
 				else
 				{
-					core::gfx::log->error("gfx::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource cache.", utility::to_string(ID), utility::to_string(binding.texture()), utility::to_string(stage.shader()));
+					core::gfx::log->error(
+						"gfx::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
+						"cache.",
+						utility::to_string(ID), utility::to_string(binding.texture()),
+						utility::to_string(stage.shader()));
 					return;
 				}
 			}
@@ -102,13 +110,21 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 					}
 					else
 					{
-						core::gfx::log->error("gfx::material [{0}] declares resource of the type [{1}], but we detected a resource of the type [{2}] instead in shader [{3}]", utility::to_string(ID), vk::to_string(binding.descriptor()), vk::to_string(buffer_handle->data()->usage()), utility::to_string(stage.shader()));
+						core::gfx::log->error(
+							"gfx::material [{0}] declares resource of the type [{1}], but we detected a resource of "
+							"the type [{2}] instead in shader [{3}]",
+							utility::to_string(ID), vk::to_string(binding.descriptor()),
+							vk::to_string(buffer_handle->data()->usage()), utility::to_string(stage.shader()));
 						return;
 					}
 				}
 				else
 				{
-					core::gfx::log->error("gfx::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource cache.", utility::to_string(ID), utility::to_string(binding.buffer()), utility::to_string(stage.shader()));
+					core::gfx::log->error(
+						"gfx::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource "
+						"cache.",
+						utility::to_string(ID), utility::to_string(binding.buffer()),
+						utility::to_string(stage.shader()));
 					return;
 				}
 			}
@@ -122,10 +138,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 	m_IsValid = true;
 };
 
-material::~material()
-{
-	m_InstanceData.remove_all(m_InstanceBuffer);
-}
+material::~material() { m_InstanceData.remove_all(m_InstanceBuffer); }
 
 core::resource::handle<core::data::material> material::data() const { return m_Data; }
 const std::vector<core::resource::handle<core::gfx::shader>>& material::shaders() const { return m_Shaders; }
@@ -186,8 +199,7 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 
 	// Bind descriptor sets describing shader binding points
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Bound->vkLayout(), 0, 1,
-								 m_Bound->vkDescriptorSet(), 0,
-								 nullptr);
+								 m_Bound->vkDescriptorSet(), 0, nullptr);
 
 	return true;
 }
@@ -207,8 +219,7 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 
 	// Bind descriptor sets describing shader binding points
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Bound->vkLayout(), 0, 1,
-								 m_Bound->vkDescriptorSet(), 0,
-								 nullptr);
+								 m_Bound->vkDescriptorSet(), 0, nullptr);
 
 	// todo: material data is written here.
 
@@ -220,7 +231,7 @@ bool material::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::
 	PROFILE_SCOPE(core::profiler)
 	if(auto iDataIt = m_InstanceData.instance(geometry.ID()); iDataIt)
 	{
-		auto& iData = iDataIt.value().get();		
+		auto& iData = iDataIt.value().get();
 
 		for(const auto& b : iData.segments)
 		{
@@ -234,26 +245,27 @@ bool material::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::
 
 
 uint32_t material::instances(const core::resource::handle<core::gfx::geometry> geometry) const
-{ 
-	return m_InstanceData.has_data()? m_InstanceData.size(geometry.ID()) : 1u;
+{
+	return m_InstanceData.has_data() ? m_InstanceData.size(geometry.ID()) : 1u;
 }
 
 
-bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding, const void* data,
-		 size_t size)
+bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding,
+				   const void* data, size_t size)
 {
 	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_InstanceData.instance(geometry); it)
 	{
 		auto& instance_obj = it.value().get();
-		if(!instance_obj.id_generator.IsID(id))
-			return false;
+		if(!instance_obj.id_generator.IsID(id)) return false;
 
 		for(const auto& element : instance_obj.segments)
 		{
 			if(element.slot == binding)
 			{
-				m_InstanceBuffer->commit( { core::gfx::buffer::commit_instruction{(void*)data, size, element.segment, memory::range{element.size_of_element * id, element.size_of_element * (id + 1) }}});
+				m_InstanceBuffer->commit({core::gfx::buffer::commit_instruction{
+					(void*)data, size, element.segment,
+					memory::range{element.size_of_element * id, element.size_of_element * (id + 1)}}});
 				return true;
 			}
 		}
@@ -262,21 +274,22 @@ bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uin
 }
 
 
-bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id_first, uint32_t binding, const void* data,
-		 size_t size, size_t count)
+bool material::set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id_first, uint32_t binding,
+				   const void* data, size_t size, size_t count)
 {
 	PROFILE_SCOPE(core::profiler)
 	auto opt = m_InstanceData.instance(geometry);
-	if(!opt)
-		return false;
+	if(!opt) return false;
 
 	auto& instance_obj = opt.value().get();
-	
+
 	for(const auto& element : instance_obj.segments)
 	{
 		if(element.slot == binding)
 		{
-			m_InstanceBuffer->commit({core::gfx::buffer::commit_instruction{(void*)data, size * count, element.segment, memory::range{element.size_of_element * id_first, element.size_of_element * (id_first + count) }}});
+			m_InstanceBuffer->commit({core::gfx::buffer::commit_instruction{
+				(void*)data, size * count, element.segment,
+				memory::range{element.size_of_element * id_first, element.size_of_element * (id_first + count)}}});
 			return true;
 		}
 	}
@@ -307,12 +320,13 @@ std::optional<uint32_t> material::instance_data::add(core::resource::handle<core
 		it = m_Instance.emplace(uid, instance_object{m_Capacity, elements.size()}).first;
 		for(auto elementIt : elements)
 		{
-			auto& data = it->second.segments.emplace_back();
-			data.slot = elementIt.slot;
+			auto& data			 = it->second.segments.emplace_back();
+			data.slot			 = elementIt.slot;
 			data.size_of_element = elementIt.size_of_element;
 			if(auto segm = buffer->reserve(elementIt.size_of_element * m_Capacity); !segm)
 			{
-				core::gfx::log->error("available buffer size: {0} while trying to allocate {1}", buffer->free_size(), elementIt.size_of_element * m_Capacity);
+				core::gfx::log->error("available buffer size: {0} while trying to allocate {1}", buffer->free_size(),
+									  elementIt.size_of_element * m_Capacity);
 				auto available = buffer->data()->region().allocator()->available();
 				for(const auto& av : available)
 				{
@@ -323,7 +337,6 @@ std::optional<uint32_t> material::instance_data::add(core::resource::handle<core
 			{
 				data.segment = segm.value();
 			}
-
 		}
 	}
 
@@ -357,7 +370,8 @@ bool material::instance_data::remove(core::resource::handle<core::gfx::buffer> b
 	return false;
 }
 
-material::optional_ref<const material::instance_element> material::instance_data::has_element(psl::string_view name) const noexcept
+material::optional_ref<const material::instance_element>
+material::instance_data::has_element(psl::string_view name) const noexcept
 {
 	if(auto it = std::find_if(std::begin(elements), std::end(elements),
 							  [&name](const instance_element& element) { return element.name == name; });
@@ -367,7 +381,8 @@ material::optional_ref<const material::instance_element> material::instance_data
 	}
 	return std::nullopt;
 }
-material::optional_ref<const material::instance_element> material::instance_data::has_element(uint32_t slot) const noexcept
+material::optional_ref<const material::instance_element> material::instance_data::has_element(uint32_t slot) const
+	noexcept
 {
 	if(auto it = std::find_if(std::begin(elements), std::end(elements),
 							  [&slot](const instance_element& element) { return element.slot == slot; });
@@ -381,8 +396,7 @@ material::optional_ref<const material::instance_element> material::instance_data
 material::optional_ref<material::instance_object> material::instance_data::instance(const UID& uid) noexcept
 {
 	auto it = m_Instance.find(uid);
-	if(it != std::end(m_Instance))
-		return it->second;
+	if(it != std::end(m_Instance)) return it->second;
 	return std::nullopt;
 }
 
@@ -404,7 +418,6 @@ bool material::instance_data::remove_all(core::resource::handle<core::gfx::buffe
 		{
 			buffer->deallocate(segment.segment);
 		}
-
 	}
 	m_Instance.clear();
 	return true;

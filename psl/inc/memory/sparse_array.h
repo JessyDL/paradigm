@@ -175,6 +175,8 @@ namespace memory
 		{
 			index_type sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
+			assert_debug_break(m_Sparse.size() > chunk_index && m_Sparse[chunk_index].size() > 0 &&
+							   m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max());
 			return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
 		}
 
@@ -288,6 +290,7 @@ namespace memory
 		constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
 
 		void* data() noexcept { return m_DenseData.data(); };
+		const void* data() const noexcept { return m_DenseData.data(); };
 
 		void erase(index_type index) noexcept
 		{
@@ -466,4 +469,4 @@ namespace memory
 		::memory::raw_region m_DenseData;
 		psl::array<psl::array<index_type>> m_Sparse;
 	};
-} // namespace psl::memory
+} // namespace memory

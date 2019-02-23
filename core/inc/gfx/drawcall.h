@@ -41,6 +41,6 @@ namespace core::gfx
 		core::resource::handle<core::gfx::material> material() const noexcept;
 	  private:
 		core::resource::handle<core::gfx::material> m_Material;
-		std::vector<core::resource::handle<core::gfx::geometry>> m_Geometry;
+		std::vector<std::pair<core::resource::handle<core::gfx::geometry>, size_t>> m_Geometry;
 	};
 }

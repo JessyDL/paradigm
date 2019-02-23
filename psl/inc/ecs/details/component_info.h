@@ -47,6 +47,12 @@ namespace psl::ecs::details
 				m_AssociatedEntities.insert(e);
 			}
 		}
+		void add(entity entity)
+		{
+			add_impl(entity);
+			m_Added[m_LockState].insert(entity);
+			m_AssociatedEntities.insert(entity);
+		}
 		void add(psl::array_view<std::pair<entity, entity>> entities)
 		{
 			add_impl(entities);
@@ -84,25 +90,18 @@ namespace psl::ecs::details
 		}
 		void destroy(entity entity) noexcept
 		{
+			if(!m_AssociatedEntities.has(entity))
+				return;
 			m_AssociatedEntities.erase(entity);
 			m_Removed[m_LockState].insert(entity);
 		}
-		virtual void* data() noexcept							 = 0;
-		bool has_component(entity entity) const noexcept
-		{
-			return m_AssociatedEntities.has(entity);
-		}
-		bool has_added(entity entity) const noexcept
-		{
-			return m_Added[0].has(entity);
-		}
-		bool has_removed(entity entity) const noexcept
-		{
-			return m_Removed[0].has(entity);
-		}
+		virtual void* data() noexcept = 0;
+		bool has_component(entity entity) const noexcept { return m_AssociatedEntities.has(entity); }
+		bool has_added(entity entity) const noexcept { return m_Added[0].has(entity); }
+		bool has_removed(entity entity) const noexcept { return m_Removed[0].has(entity); }
 		psl::array_view<entity> entities(bool include_removed = false) const noexcept
 		{
-			return (include_removed)? entities_impl(): m_AssociatedEntities.indices();
+			return (include_removed) ? entities_impl() : m_AssociatedEntities.indices();
 		}
 
 		void purge() noexcept
@@ -130,11 +129,13 @@ namespace psl::ecs::details
 		}
 
 		virtual size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept { return 0; };
-		virtual void copy_from(psl::array_view<entity> entities, void* source) noexcept { };
+		virtual void copy_from(psl::array_view<entity> entities, void* source) noexcept {};
 
-		inline size_t component_size() const noexcept {return m_Size;};
+		inline size_t component_size() const noexcept { return m_Size; };
+
 	  protected:
 		virtual void purge_impl() noexcept										   = 0;
+		virtual void add_impl(entity entity)									   = 0;
 		virtual void add_impl(psl::array_view<entity> entities)					   = 0;
 		virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities) = 0;
 		virtual psl::array_view<entity> entities_impl() const noexcept			   = 0;
@@ -153,12 +154,12 @@ namespace psl::ecs::details
 	{
 	  public:
 		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)){};
-		memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
+		psl::sparse_array<T, entity>& entity_data() { return m_Entities; };
 
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		//bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
+		// bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
 
 		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
 		{
@@ -186,6 +187,10 @@ namespace psl::ecs::details
 			m_Entities.reserve(m_Entities.size() + entities.size());
 			std::for_each(std::begin(entities), std::end(entities), [this](auto e) { m_Entities.insert(e); });
 		}
+		void add_impl(entity entity) override
+		{
+			m_Entities.insert(entity);
+		}
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
 		{
 			auto count = std::accumulate(
@@ -205,7 +210,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		memory::sparse_array<T, entity> m_Entities{};
+		psl::sparse_array<T, entity> m_Entities{};
 	};
 
 	template <typename T>
@@ -218,13 +223,17 @@ namespace psl::ecs::details
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		//bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
+		// bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
 
 	  protected:
 		psl::array_view<entity> entities_impl() const noexcept override { return m_Entities.indices(); }
 		void add_impl(psl::array_view<entity> entities) override
 		{
 			for(auto e : entities) m_Entities.insert(e);
+		}
+		void add_impl(entity entity) override
+		{
+			 m_Entities.insert(entity);
 		}
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
 		{

@@ -21,7 +21,7 @@ namespace core::ecs::systems
 				dead_entities.emplace_back(entity);
 		}
 
-		//info.command_buffer.add_component<dead_tag>(dead_entities);
-		//info.command_buffer.remove_component<components::lifetime>(dead_entities);
+		info.command_buffer.add_components<dead_tag>(dead_entities);
+		info.command_buffer.remove_components<components::lifetime>(dead_entities);
 	};
 }

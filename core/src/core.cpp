@@ -183,21 +183,28 @@ namespace core::systems
 
 	class renderer
 	{
-		uint32_t lock(uint32_t v)
-		{
-			mutex.lock();
-			return v;
-		}
-
 	  public:
 		explicit renderer(cache* cache)
-			: m_Cache(cache), deviceIndex(lock(0)), m_Thread(&core::systems::renderer::main, this)
+			: m_Cache(cache), deviceIndex(0)
 		{}
 		~renderer();
 		renderer(renderer&& other) = delete;
 		renderer& operator=(renderer&& other) = delete;
 		renderer(const renderer& other)		  = delete;
 		renderer& operator=(const renderer& other) = delete;
+
+		void start()
+		{
+			m_Thread = std::thread(&core::systems::renderer::main, this);
+		}
+		void lock()
+		{
+			mutex.lock();
+		}
+		void unlock()
+		{
+			mutex.unlock();
+		}
 
 		core::systems::renderer_view& create_view(handle<surface> surface);
 		cache& get_cache() { return *m_Cache; }
@@ -255,7 +262,6 @@ namespace core::systems
 		}
 		if(m_Thread.joinable())
 		{
-
 			m_Thread.join();
 		}
 		for(auto& view : m_Views) delete(view);
@@ -264,16 +270,7 @@ namespace core::systems
 	}
 	void renderer::main()
 	{
-		psl::string8_tstream ss;
-		ss << m_Thread.get_id();
 		// Utility::OS::RegisterThisThread("RenderThread " + ss.str());
-		m_Context = create<context>(*m_Cache);
-		if(!m_Context.load(APPLICATION_FULL_NAME, deviceIndex))
-		{
-			LOG_FATAL << "Could not create graphics API surface to use for drawing.";
-			return throw std::runtime_error("no vulkan context could be created");
-		}
-		mutex.unlock();
 		while(!m_ForceClose)
 		{
 			mutex.lock();
@@ -293,6 +290,12 @@ namespace core::systems
 	renderer_view& renderer::create_view(handle<surface> surface)
 	{
 		mutex.lock();
+		m_Context = create<context>(*m_Cache);
+		if(!m_Context.load(APPLICATION_FULL_NAME, deviceIndex))
+		{
+			throw std::runtime_error("no vulkan context could be created");
+		}
+
 		auto& view = *m_Views.emplace_back(new renderer_view(this, surface, m_Context));
 		mutex.unlock();
 		return view;
@@ -311,25 +314,26 @@ namespace core::systems
 
 core::systems::renderer* init(size_t views = 1)
 {
-	psl::string libraryPath{utility::application::path::library + _T("resources.metalib"_sv)};
+	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
-	cache* cache = new core::resource::cache(psl::meta::library{psl::from_string8_t(libraryPath)}, 1024u * 1024u * 20u,
-											 4u, new memory::default_allocator());
+	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
+	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
 
-	auto window_data = create_shared<data::window>(*cache, UID::convert("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"));
+	auto window_data = create_shared<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data.load();
 
-	auto rend = new core::systems::renderer{cache};
+	auto rend = new core::systems::renderer{&cache};
 	for(auto i = 0u; i < views; ++i)
 	{
-		auto window_handle = create<surface>(*cache);
+		auto window_handle = create<surface>(cache);
 		if(!window_handle.load(window_data))
 		{
-			LOG_FATAL << "Could not create a OS surface to draw on.";
+			//LOG_FATAL << "Could not create a OS surface to draw on.";
 			throw std::runtime_error("no OS surface could be created");
 		}
 		rend->create_view(window_handle);
 	}
+	rend->start();
 	return rend;
 }
 
@@ -339,7 +343,7 @@ int main()
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
-	Utility::Logger::Init("Main");
+	setup_loggers();
 	// Utility::OS::RegisterThisThread("Main");
 
 	std::vector<core::systems::renderer*> renderers;
@@ -351,6 +355,7 @@ int main()
 	{
 		for(auto i = 0u; i < renderers.size(); i)
 		{
+			renderers[i]->lock();
 			for(auto& view : renderers[i]->views())
 			{
 				auto& surf = view->current_surface();
@@ -371,6 +376,7 @@ int main()
 			{
 				++i;
 			}
+			renderers[i]->unlock();
 		}
 		++frameCount;
 	}
@@ -402,10 +408,10 @@ int main()
 
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
-	cache cache{psl::meta::library{psl::from_string8_t(libraryPath)}, 1024u * 1024u * 20u, 4u,
-				new memory::default_allocator()};
+	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
+	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
 
-	auto window_data = create<data::window>(cache, UID::convert("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"));
+	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data.load();
 
 	auto window_handle = create<surface>(cache);
@@ -800,7 +806,7 @@ int entry()
 						ECSState.filter<core::ecs::components::renderable>().size());
 
 		ECSState.create(
-			(iterations > 0) ? 400 : (std::rand() % 100 == 0) ? 1 : 0,
+			(iterations > 0) ? 250 : (std::rand() % 100 == 0) ? 1 : 0,
 			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable)
 			{
 				renderable ={(std::rand() % 2 == 0) ? material : material2,

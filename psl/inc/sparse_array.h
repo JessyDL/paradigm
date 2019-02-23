@@ -158,6 +158,7 @@ namespace psl
 		{
 			index_type sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
+			assert_debug_break(m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max());
 			return m_Dense[m_Sparse[chunk_index][sparse_index]];
 		}
 

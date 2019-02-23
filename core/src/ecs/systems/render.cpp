@@ -52,13 +52,13 @@ void render::tick_draws(info& info,
 			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
 		}
 
-		for(auto [transform, renderable] : broken_renderables)
+		/*for(auto [transform, renderable] : broken_renderables)
 		{
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}
-		}
+		}*/
 
 		m_Pass.add(m_DrawGroup);
 		m_Pass.build();

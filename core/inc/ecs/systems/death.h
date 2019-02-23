@@ -8,6 +8,6 @@ namespace core::ecs::systems
 		(psl::ecs::info& info,
 		 psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, psl::ecs::on_add<core::ecs::components::dead_tag>> dead_pack)
 	{
-		//info.command_buffer.destroy(dead_pack.get<core::ecs::entity>());
+		info.command_buffer.destroy(dead_pack.get<psl::ecs::entity>());
 	};
 }

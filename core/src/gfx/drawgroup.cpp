@@ -33,7 +33,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<frameb
 				material->bind_pipeline(cmdBuffer, framebuffer, index);
 			}
 
-			for(auto& geometryHandle : drawCall.m_Geometry)
+			for(auto& [geometryHandle, count] : drawCall.m_Geometry)
 			{
 				uint32_t instance_n = material->instances(geometryHandle);
 				if(instance_n == 0 || !geometryHandle->compatible(material)) continue;
@@ -70,7 +70,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapch
 				material->bind_pipeline(cmdBuffer, swapchain, index);
 			}
 
-			for(auto& geometryHandle : drawCall.m_Geometry)
+			for(auto&[geometryHandle, count] : drawCall.m_Geometry)
 			{
 				uint32_t instance_n = material->instances(geometryHandle);
 				if(instance_n == 0 || !geometryHandle->compatible(material)) continue;
@@ -84,7 +84,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapch
 	}
 }
 
-const drawlayer& drawgroup::layer(const psl::string& layer, uint32_t priority) noexcept 
+const drawlayer& drawgroup::layer(const psl::string& layer, uint32_t priority) noexcept
 {
 	auto it = std::find_if(std::begin(m_Group), std::end(m_Group), [&layer](const auto& element)
 						   {

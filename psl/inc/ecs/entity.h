@@ -4,6 +4,11 @@
 
 namespace psl::ecs
 {
+	/// \brief tag type to circumvent constructing an object in the backing data
+	template <typename T>
+	struct empty
+	{};
+
 	/// ----------------------------------------------------------------------------------------------
 	/// Entity
 	/// ----------------------------------------------------------------------------------------------
