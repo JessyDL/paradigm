@@ -89,17 +89,17 @@ API examples, tutorials, and best practices guide will be written at a later tim
 
 # Tests
 ### building
-You can compile the tests by setting `cmake_params "-DTESTS=ON"` in `build.sh` or alternatively setting the value directly in CMake.
+Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
+
+When using the `build.sh` script, you can set this value like this `-cmake_params "-DPE_MODE=LIB"`. `LIB` is the default value for this project.
 
 Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
-
-*warning* you cannot mix `-DPARADIGM_CORE_EXECUTABLE` and `-DTESTS`, this will fail.
 
 # Future
 ### Language
 This project will keep up with the latest C++ language improvements till atleast C++2a, as we require some of the newer features to create safer and easier to reason about interfaces for, amongst other things, serialization. After C++2a we will freeze the language to that version and keep it stable.
 ### Graphics Backends
-After we have both the editor project and the rendering engine going, we will look towards supporting all available Vulkan platforms first, and then after implement GLeS 3.0. Don't expect this to happen anytime soon though, a long way from there still.
+After we have both the editor project and the rendering engine going, we will look towards supporting all available Vulkan platforms first, and then after implement GLeS 3.0+. Don't expect this to happen anytime soon though, a long way from there still.
 
 # Extras
 ### Statically bind Vulkan
@@ -107,6 +107,9 @@ If you wish to statically bind vulkan, you can use the flag `-VULKAN_STATIC` in 
 Note that depending on the platform, static binding is impossible (like Android).
 ### Build as executable
 If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPARADIGM_CORE_EXECUTABLE` as a `-cmake_param` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
+
+### Benchmarks
+Rudimentary benchmarks (heavily WIP) have been added to the project, you can enable this by setting the cmake value `PE_MODE` to *anything but* `EXE`, and toggling on `PE_BENCHMARKS`.
 
 # License
 This project is dual-licensed under commercial and open source licenses. Licensed under GNU AGPLv3 for free usage, and licensed under a commercial license you can purchase or request for commercial usage.
