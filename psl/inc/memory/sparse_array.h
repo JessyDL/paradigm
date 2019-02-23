@@ -3,7 +3,7 @@
 #include <array_view.h>
 #include "raw_region.h"
 
-namespace psl::memory
+namespace memory
 {
 	/// \brief container type that is fast to iterate, but has non-continuous interface
 	template <typename T, typename Key = size_t, Key chunks_size = 4096>
@@ -129,7 +129,7 @@ namespace psl::memory
 
 		void grow()
 		{
-			if(m_DenseData.size() != m_Reverse.capacity() * sizeof(T))
+			if(m_DenseData.size() < m_Reverse.capacity() * sizeof(T))
 			{
 				auto new_capacity = std::max(m_Reverse.capacity(), m_DenseData.size() * 2 / sizeof(T));
 
@@ -138,6 +138,7 @@ namespace psl::memory
 				m_DenseData = std::move(reg);
 
 				m_Reverse.reserve(m_DenseData.size() / sizeof(T));
+				assert_debug_break(m_Reverse.capacity() * sizeof(T) <= m_DenseData.size());
 			}
 		}
 

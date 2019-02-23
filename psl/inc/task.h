@@ -434,6 +434,20 @@ namespace psl::async
 			}
 		}
 
+		template <typename Fn, typename... Args>
+		[[nodiscard]] auto schedule(std::function<Fn> function, Args&&... arguments)
+		{
+			using fn_t = Fn;
+			using return_t = typename std::invoke_result_t<decltype(function), Args...>;
+			using task_t = task<return_t, Args&&...>;
+
+			auto ret = m_TaskList.emplace(
+				m_TokenGenerator++,
+				description{new task_t{function, std::forward<Args>(arguments)...}});
+			task_t& task{*(task_t*)(ret.first->second.task)};
+			return std::pair{ret.first->first, task.future()};
+		}
+
 		/*template <typename Fn, typename T, typename... Args>
 		[[nodiscard]] typename std::enable_if<
 			std::is_member_function_pointer<Fn>::value,

@@ -59,6 +59,8 @@ TEST_CASE("filtering", "[ECS]")
 
 		auto f = state.filter<float, bool, int, char, std::byte>();
 		REQUIRE(f == e_list1);
+		REQUIRE(state.filter<float>().size() == state.filter<on_add<float>>().size());
+		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, bool>>().size());
 	}
 
 	SECTION("500 are given two component types and 100 are given 3 component types where 2 overlap")
@@ -84,6 +86,16 @@ TEST_CASE("filtering", "[ECS]")
 		REQUIRE(f == combination);
 		f = state.filter<char>();
 		REQUIRE(f == combination);
+	}
+
+	SECTION("filtering components that are non-contiguous")
+	{
+		state.create(500, float{}, bool{});
+		state.destroy(1200);
+		state.create(3, float{}, bool{});
+
+		REQUIRE(state.filter<float>().size() == state.filter<on_add<float>>().size());
+		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, bool>>().size());
 	}
 }
 

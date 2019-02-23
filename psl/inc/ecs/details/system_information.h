@@ -1,6 +1,7 @@
 #pragma once
 #include <functional>
 #include "component_key.h"
+#include "../command_buffer.h"
 #include "template_utils.h"
 #include "array_view.h"
 #include "../pack.h"
@@ -22,9 +23,10 @@ namespace psl::ecs
 	struct info
 	{
 		info(const state& state, std::chrono::duration<float> dTime,
-			 std::chrono::duration<float> rTime) : state(state), dTime(dTime), rTime(rTime) {};
+			 std::chrono::duration<float> rTime) : state(state), dTime(dTime), rTime(rTime), command_buffer(state) {};
 
 		const state& state;
+		command_buffer command_buffer;
 		std::chrono::duration<float> dTime;
 		std::chrono::duration<float> rTime;
 	};
@@ -120,6 +122,9 @@ namespace psl::ecs::details
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{},
 				   typename pack_t::except_t{}, except);
 
+			std::sort(std::begin(filters), std::end(filters));
+			filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
+
 			if constexpr(std::is_same<psl::ecs::partial, typename pack_t::policy_t>::value)
 			{
 				m_IsPartial = true;
@@ -162,7 +167,30 @@ namespace psl::ecs::details
 		}
 
 		size_t entities() const noexcept { return m_Entities.size(); }
-		dependency_pack slice(size_t begin, size_t end) const noexcept;
+		dependency_pack slice(size_t begin, size_t end) const noexcept
+		{
+			dependency_pack cpy{*this};
+
+			cpy.m_Entities = cpy.m_Entities.slice(begin, end);
+
+			for(auto& binding : cpy.m_RBindings)
+			{
+				auto size = cpy.m_Sizes[binding.first];
+
+				std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
+				std::uintptr_t end_mem = (std::uintptr_t)binding.second.data() + (end * size);
+				binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
+			}
+			for(auto& binding : cpy.m_RWBindings)
+			{
+				auto size = cpy.m_Sizes[binding.first];
+				// binding.second = binding.second.slice(size * begin, size * end);
+				std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
+				std::uintptr_t end_mem = (std::uintptr_t)binding.second.data() + (end * size);
+				binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
+			}
+			return cpy;
+		}
 
 	  private:
 		template <typename T>
@@ -243,6 +271,8 @@ namespace psl::ecs::details
 		{
 			std::invoke(m_System, info, packs);
 		}
+
+		system_invocable_type& system() { return m_System;};
 
 		psl::ecs::threading threading() const noexcept { return m_Threading; };
 	  private:

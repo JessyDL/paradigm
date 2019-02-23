@@ -378,7 +378,16 @@ namespace utility::templates
 	//struct func_traits : public func_traits<decltype(&decltype(std::function(std::declval<T>()))::operator()) >
 	struct func_traits : public func_traits<decltype(&T::operator()) >
 	{};
-
+	template <typename T>
+	struct func_traits<std::function<T>>	:	public func_traits<T>
+	{
+	};
+	template <typename T>
+	struct func_traits<std::function<T>&> : public func_traits<T>
+	{};
+	template <typename T>
+	struct func_traits<const std::function<T>& > : public func_traits<T>
+	{};
 	template <typename C, typename Ret, typename... Args>
 	struct func_traits<Ret(C::*)(Args...)>
 	{

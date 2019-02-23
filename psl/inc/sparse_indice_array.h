@@ -26,8 +26,8 @@ namespace psl
 
 		T& operator[](const T& index)
 		{
-			auto chunk_index   = index;
-			auto& chunk		   = chunk_for(chunk_index);
+			auto chunk_index		   = index;
+			auto& chunk				   = chunk_for(chunk_index);
 			chunk[(size_t)chunk_index] = (T)m_Reverse.size();
 			m_Reverse.emplace_back(index);
 			return chunk[(size_t)chunk_index];
@@ -35,8 +35,8 @@ namespace psl
 
 		T& at(const T& index)
 		{
-			auto chunk_index   = index;
-			auto& chunk		   = chunk_for(chunk_index);
+			auto chunk_index		   = index;
+			auto& chunk				   = chunk_for(chunk_index);
 			chunk[(size_t)chunk_index] = (T)m_Reverse.size();
 			m_Reverse.emplace_back(index);
 			return chunk[(size_t)chunk_index];
@@ -105,7 +105,8 @@ namespace psl
 		{
 			T element_index, chunk_index;
 			chunk_info_for(index, element_index, chunk_index);
-			return m_Sparse[chunk_index][element_index] != std::numeric_limits<T>::max();
+			return m_Sparse.size() > chunk_index && m_Sparse[chunk_index].size() > 0 &&
+				   m_Sparse[chunk_index][element_index] != std::numeric_limits<T>::max();
 		}
 
 		void reserve(size_t capacity) { m_Reverse.reserve(capacity); }

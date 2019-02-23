@@ -591,6 +591,10 @@ namespace psl::ecs
 		psl::array<entity> filter_seed_on_break(psl::array<details::component_key_t> keys) const noexcept;
 		psl::array<entity> filter_seed_on_combine(psl::array<details::component_key_t> keys) const noexcept;
 
+
+		bool filter_seed_best(psl::array_view<details::component_key_t> filters, psl::array_view<details::component_key_t> added, psl::array_view<details::component_key_t> removed, psl::array_view<entity>& out, details::component_key_t& selected) const noexcept;
+		bool filter_seed_best(const details::dependency_pack& pack, psl::array_view<entity>& out, details::component_key_t& selected) const noexcept;
+
 		psl::array<entity> filter(details::dependency_pack& packs);
 		template <typename... Ts>
 		constexpr psl::array<details::component_key_t> to_keys() const noexcept

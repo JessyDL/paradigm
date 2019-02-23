@@ -22,6 +22,7 @@ inc/memory/range.h
 inc/memory/region.h
 inc/memory/raw_region.h
 inc/memory/segment.h
+inc/memory/sparse_array.h
 inc/ustring.h
 inc/evoke.h
 inc/platform_def.h
@@ -45,6 +46,7 @@ inc/unordered_map.h
 inc/flat_map.h
 inc/bytell_map.h
 inc/sparse_array.h
+inc/sparse_indice_array.h
 inc/unique_ptr.h
 
 inc/math/math.hpp
@@ -62,7 +64,9 @@ inc/ecs/entity.h
 inc/ecs/state.h
 inc/ecs/pack.h
 inc/ecs/selectors.h
+inc/ecs/command_buffer.h
 inc/ecs/details/component_info.h
 inc/ecs/details/component_key.h
 inc/ecs/details/entity_info.h
+inc/ecs/details/system_information.h
 )

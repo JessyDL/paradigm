@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs/ecs.hpp"
+#include "ecs/state.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/input_tag.h"
 #include "systems/input.h"
@@ -11,13 +11,13 @@ namespace core::ecs::systems
 		friend class core::systems::input;
 
 	public:
-		fly(core::ecs::state& state, core::systems::input& inputSystem);
+		fly(psl::ecs::state& state, core::systems::input& inputSystem);
 		~fly();
 
 
 	private:
-		core::ecs::command_buffer tick(const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-				  core::ecs::pack<core::ecs::components::transform, core::ecs::filter<core::ecs::components::input_tag>> movables);
+		void tick(psl::ecs::info& info,
+				  psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables);
 
 		void on_key_pressed(core::systems::input::keycode keyCode);
 		void on_key_released(core::systems::input::keycode keyCode);

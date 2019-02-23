@@ -68,7 +68,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 
 
 #define assert_debug_break(condition) \
-if(condition)	\
+if(!(condition))	\
 {							\
 	debug_break();			\
 }							\

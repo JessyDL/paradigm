@@ -20,4 +20,6 @@ src/profiling/profiler.cpp
 
 src/ecs/state.cpp
 src/ecs/details/component_info.cpp
+
+src/ecs/command_buffer.cpp
 )

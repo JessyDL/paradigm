@@ -12,18 +12,47 @@ state::state(size_t workers)
 	: m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers}))
 {}
 
+std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source, size_t count)
+{
+	std::vector<std::vector<details::dependency_pack>> res;
+
+	bool can_split = std::any_of(std::begin(source), std::end(source), [count](const auto& dep_pack) {
+		return dep_pack.allow_partial() && dep_pack.entities() > count;
+	});
+	count		   = (can_split) ? count : 1;
+	res.resize(count);
+	for(auto& dep_pack : source)
+	{
+		if(dep_pack.allow_partial() && dep_pack.entities() > count)
+		{
+			auto batch_size = dep_pack.entities() / count;
+			size_t processed{0};
+			for(auto i = 0; i < count - 1; ++i)
+			{
+				res[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
+				processed += batch_size;
+			}
+			res[res.size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
+		}
+		else
+		{
+			for(auto i = 0; i < count; ++i) res[i].emplace_back(dep_pack);
+		}
+	}
+	return res;
+}
 
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
-	auto write_data = [](state& state, std::vector<details::dependency_pack> dep_packs) {
+	std::function<void(state&, std::vector<details::dependency_pack>)> write_data = [](state& state, std::vector<details::dependency_pack> dep_packs) {
 		for(const auto& dep_pack : dep_packs)
 		{
 			for(auto& binding : dep_pack.m_RWBindings)
 			{
 				const size_t size   = dep_pack.m_Sizes.at(binding.first);
 				std::uintptr_t data = (std::uintptr_t)binding.second.data();
-				state.set(dep_pack.m_Entities, binding.first,(void*)data);
+				state.set(dep_pack.m_Entities, binding.first, (void*)data);
 			}
 		}
 	};
@@ -35,50 +64,48 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
 
 	std::vector<command_buffer> commands;
-	// if(has_partial && system.threading == threading::par)
-	//{
-	//	for(auto& dep_pack : pack)
-	//	{
-	//		core::profiler.scope_begin("filtering");
-	//		auto entities = filter(dep_pack);
-	//		core::profiler.scope_end();
-	//		if(entities.size() == 0) continue;
-	//		core::profiler.scope_begin("copy");
-	//		std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-	//		dep_pack.m_Entities = psl::array_view<core::ecs::entity>(
-	//			(entity*)cache_offset, (entity*)(cache_offset + sizeof(entity) * entities.size()));
+	if(has_partial && information.threading() == threading::par)
+	{
+		for(auto& dep_pack : pack)
+		{
+			auto entities = filter(dep_pack);
+			if(entities.size() == 0) continue;
 
-	//		cache_offset += sizeof(entity) * entities.size();
+			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
+			dep_pack.m_Entities = psl::array_view<entity>((entity*)cache_offset,
+														  (entity*)(cache_offset + sizeof(entity) * entities.size()));
 
-	//		cache_offset += prepare_bindings(entities, cache, cache_offset, dep_pack);
-	//		core::profiler.scope_end();
-	//	}
+			cache_offset += sizeof(entity) * entities.size();
 
-	//	auto multi_pack = slice(pack, m_Scheduler->workers());
+			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
+		}
 
-	//	std::vector<std::future<command_buffer>> future_commands;
+		auto multi_pack = slice(pack, m_Scheduler->workers());
 
-	//	for(auto& mPack : multi_pack)
-	//	{
-	//		auto t1 = m_Scheduler->schedule(system.invocable, *this, dTime, rTime, mPack);
+		std::vector<std::future<void>> future_commands;
 
-	//		auto t2 = m_Scheduler->schedule(write_data, *this, mPack);
+		for(auto& mPack : multi_pack)
+		{
 
-	//		m_Scheduler->dependency(t2.first, t1.first);
+			auto t1 = m_Scheduler->schedule(information.system(), info, mPack);
 
-	//		future_commands.emplace_back(std::move(t1.second));
-	//	}
+			auto t2 = m_Scheduler->schedule(write_data, *this, mPack);
 
-	//	m_Scheduler->execute().wait();
-	//	for(auto& fCommands : future_commands)
-	//	{
-	//		if(!fCommands.valid()) fCommands.wait();
-	//		auto cmd = fCommands.get();
-	//		execute_command_buffer(cmd);
-	//		// commands.emplace_back(fCommands.get());
-	//	}
-	//}
-	// else
+			m_Scheduler->dependency(t2.first, t1.first);
+
+			future_commands.emplace_back(std::move(t1.second));
+		}
+
+		m_Scheduler->execute().wait();
+		for(auto& fCommands : future_commands)
+		{
+			if(!fCommands.valid()) fCommands.wait();
+
+			// execute_command_buffer(cmd);
+			// commands.emplace_back(fCommands.get());
+		}
+	}
+	else
 	{
 		for(auto& dep_pack : pack)
 		{
@@ -96,7 +123,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		information.operator()(info, pack);
 
 		write_data(*this, pack);
-		//execute_command_buffer(info.cmd);
+		// execute_command_buffer(info.command_buffer);
 	}
 }
 void state::tick(std::chrono::duration<float> dTime)
@@ -140,8 +167,8 @@ const details::component_info* state::get_component_info(details::component_key_
 	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
 						   [key](const auto& cInfo) { return cInfo->id() == key; });
 
-	assert(it != std::end(m_Components));
-	return it->operator->();
+
+	return (it != std::end(m_Components)) ? it->operator->() : nullptr;
 }
 
 details::component_info* state::get_component_info(details::component_key_t key) noexcept
@@ -149,8 +176,7 @@ details::component_info* state::get_component_info(details::component_key_t key)
 	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
 						   [key](const auto& cInfo) { return cInfo->id() == key; });
 
-	assert(it != std::end(m_Components));
-	return it->operator->();
+	return (it != std::end(m_Components)) ? it->operator->() : nullptr;
 }
 
 
@@ -158,14 +184,16 @@ psl::array<const details::component_info*>
 state::get_component_info(psl::array_view<details::component_key_t> keys) const noexcept
 {
 	psl::array<const details::component_info*> res{};
+	size_t count = keys.size();
 	for(const auto& cInfo : m_Components)
 	{
 		if(auto it = std::find(std::begin(keys), std::end(keys), cInfo->id()); it != std::end(keys))
 		{
 			res.push_back(cInfo.operator->());
+			--count;
 		}
 	}
-	return res;
+	return (count == 0) ? res : psl::array<const details::component_info*>{};
 }
 // empty construction
 void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
@@ -182,13 +210,13 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 {
 	assert(size != 0);
 	auto cInfo = get_component_info(key);
+	assert(cInfo != nullptr);
 
+	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
-	for(const auto& id_range : entities)
-	{
-		auto location = (std::uintptr_t)cInfo->data() + (id_range.first * size);
-		std::invoke(invocable, location, id_range.second - id_range.first);
-	}
+
+	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
+	std::invoke(invocable, location, entities.size());
 }
 
 // prototype based construction
@@ -197,6 +225,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 {
 	assert(size != 0);
 	auto cInfo = get_component_info(key);
+	assert(cInfo != nullptr);
 
 	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
@@ -214,6 +243,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
 {
 	auto cInfo = get_component_info(key);
+	assert(cInfo != nullptr);
 
 	cInfo->add(entities);
 }
@@ -224,13 +254,13 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 {
 	assert(size != 0);
 	auto cInfo = get_component_info(key);
+	assert(cInfo != nullptr);
 
+	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
-	for(auto e : entities)
-	{
-		auto location = (std::uintptr_t)cInfo->data() + (e * size);
-		std::invoke(invocable, location, 1);
-	}
+
+	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
+	std::invoke(invocable, location, entities.size());
 }
 
 // prototype based construction
@@ -239,6 +269,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 {
 	assert(size != 0);
 	auto cInfo = get_component_info(key);
+	assert(cInfo != nullptr);
 
 	auto offset = cInfo->entities().size();
 
@@ -328,7 +359,8 @@ psl::array<entity>::iterator state::filter_remove(details::component_key_t key, 
 												  psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
+	return (cInfo == nullptr) ? begin
+							  : std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
 }
 
 psl::array<entity>::iterator state::filter_remove_on_add(details::component_key_t key,
@@ -336,27 +368,36 @@ psl::array<entity>::iterator state::filter_remove_on_add(details::component_key_
 														 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_added(e); });
+	return (cInfo == nullptr) ? begin : std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_added(e); });
 }
 psl::array<entity>::iterator state::filter_remove_on_remove(details::component_key_t key,
 															psl::array<entity>::iterator& begin,
 															psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_removed(e); });
+	return (cInfo == nullptr) ? begin
+							  : std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_removed(e); });
 }
 psl::array<entity>::iterator state::filter_remove_except(details::component_key_t key,
 														 psl::array<entity>::iterator& begin,
 														 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return std::remove_if(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
+	return (cInfo == nullptr) ? begin
+							  : std::remove_if(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
 psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::component_key_t> keys,
 														   psl::array<entity>::iterator& begin,
 														   psl::array<entity>::iterator& end) const noexcept
 {
-	return end;
+	auto cInfos = get_component_info(keys);
+
+	return (cInfos.size() == 0) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
+		return !std::any_of(std::begin(cInfos), std::end(cInfos),
+							[e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
+			   !std::all_of(std::begin(cInfos), std::end(cInfos),
+							[e](const details::component_info* cInfo) { return cInfo->has_component(e); });
+	});
 }
 
 psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details::component_key_t> keys,
@@ -365,7 +406,7 @@ psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details:
 {
 	auto cInfos = get_component_info(keys);
 
-	return std::remove_if(begin, end, [cInfos](entity e) {
+	return (cInfos.size() == 0) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
 		return !std::any_of(std::begin(cInfos), std::end(cInfos),
 							[e](const details::component_info* cInfo) { return cInfo->has_added(e); }) ||
 			   !std::all_of(std::begin(cInfos), std::end(cInfos),
@@ -376,92 +417,182 @@ psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details:
 psl::array<entity> state::filter_seed(details::component_key_t key) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return psl::array<entity>{cInfo->entities()};
+	return (cInfo == nullptr) ? psl::array<entity>{} : psl::array<entity>{cInfo->entities()};
 }
 
 psl::array<entity> state::filter_seed_on_add(details::component_key_t key) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return psl::array<entity>{cInfo->added_entities()};
+	return (cInfo == nullptr) ? psl::array<entity>{} : psl::array<entity>{cInfo->added_entities()};
 }
 
 psl::array<entity> state::filter_seed_on_remove(details::component_key_t key) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return psl::array<entity>{cInfo->removed_entities()};
+	return (cInfo == nullptr) ? psl::array<entity>{} : psl::array<entity>{cInfo->removed_entities()};
 }
 
 psl::array<entity> state::filter_seed_on_break(psl::array<details::component_key_t> keys) const noexcept
 {
-	return {};
+	auto cInfos = get_component_info(keys);
+	if(cInfos.size() == 0) return psl::array<entity>{};
+	psl::array<entity> storage{cInfos[0]->entities()};
+	auto begin = std::begin(storage);
+	auto end   = std::end(storage);
+	end		   = std::remove_if(begin, end, [cInfos](entity e) {
+		   return !std::any_of(std::begin(cInfos), std::end(cInfos),
+							   [e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
+				  !std::all_of(std::begin(cInfos), std::end(cInfos),
+							   [e](const details::component_info* cInfo) { return cInfo->has_component(e); });
+	});
+	storage.erase(end, std::end(storage));
+	return storage;
 }
 
 psl::array<entity> state::filter_seed_on_combine(psl::array<details::component_key_t> keys) const noexcept
 {
 	auto cInfos = get_component_info(keys);
+	if(cInfos.size() == 0) return psl::array<entity>{};
 	psl::array<entity> storage{cInfos[0]->entities()};
 	auto begin = std::begin(storage);
-	auto end = std::end(storage);
-	end = std::remove_if(begin, end, [cInfos](entity e)
-						 {
-							 return !std::any_of(std::begin(cInfos), std::end(cInfos),
-												 [e](const details::component_info* cInfo) { return cInfo->has_added(e); }) ||
-								 !std::all_of(std::begin(cInfos), std::end(cInfos),
-											  [e](const details::component_info* cInfo) { return cInfo->has_component(e); });
-						 });
+	auto end   = std::end(storage);
+	end		   = std::remove_if(begin, end, [cInfos](entity e) {
+		   return !std::any_of(std::begin(cInfos), std::end(cInfos),
+							   [e](const details::component_info* cInfo) { return cInfo->has_added(e); }) ||
+				  !std::all_of(std::begin(cInfos), std::end(cInfos),
+							   [e](const details::component_info* cInfo) { return cInfo->has_component(e); });
+	});
 	storage.erase(end, std::end(storage));
 	return storage;
 }
 
+bool state::filter_seed_best(psl::array_view<details::component_key_t> filters,
+							 psl::array_view<details::component_key_t> added,
+							 psl::array_view<details::component_key_t> removed, psl::array_view<entity>& out,
+							 details::component_key_t& selected) const noexcept
+{
+	size_t count{std::numeric_limits<size_t>::max()};
+
+	auto selection = [this, &count, &selected, &out](details::component_key_t key) {
+		const auto& cInfo = get_component_info(key);
+		if(cInfo == nullptr)
+		{
+			count = 0;
+			return;
+		}
+		if(cInfo->entities().size() < count)
+		{
+			out		 = cInfo->entities();
+			count	= out.size();
+			selected = cInfo->id();
+		}
+	};
+
+	auto selection_add = [this, &count, &selected, &out](details::component_key_t key) {
+		const auto& cInfo = get_component_info(key);
+		if(cInfo == nullptr)
+		{
+			count = 0;
+			return;
+		}
+		if(cInfo->added_entities().size() < count)
+		{
+			out		 = cInfo->added_entities();
+			count	= out.size();
+			selected = cInfo->id();
+		}
+	};
+
+	auto selection_remove = [this, &count, &selected, &out](details::component_key_t key) {
+		const auto& cInfo = get_component_info(key);
+		if(cInfo == nullptr)
+		{
+			count = 0;
+			return;
+		}
+		if(cInfo->removed_entities().size() < count)
+		{
+			out		 = cInfo->removed_entities();
+			count	= out.size();
+			selected = cInfo->id();
+		}
+	};
+	std::for_each(std::begin(filters), std::end(filters), selection);
+	std::for_each(std::begin(added), std::end(added), selection_add);
+	std::for_each(std::begin(removed), std::end(removed), selection_remove);
+
+	return count != std::numeric_limits<size_t>::max() && count != 0;
+}
+bool state::filter_seed_best(const details::dependency_pack& pack, psl::array_view<entity>& out,
+							 details::component_key_t& selected) const noexcept
+{
+	psl::array<details::component_key_t> added{pack.on_add};
+	added.insert(std::end(added), std::begin(pack.on_combine), std::end(pack.on_combine));
+	psl::array<details::component_key_t> removed{pack.on_remove};
+	removed.insert(std::end(removed), std::begin(pack.on_break), std::end(pack.on_break));
+	return filter_seed_best(pack.filters, added, removed, out, selected);
+}
+
 psl::array<entity> state::filter(details::dependency_pack& pack)
 {
-	auto result {filter_seed(pack.filters[0])};
+	psl::array_view<entity> best_pack{};
+	details::component_key_t best_key;
+	if(!filter_seed_best(pack, best_pack, best_key)) return psl::array<entity>{};
+	psl::array<entity> result{best_pack};
 	auto begin = std::begin(result);
-	auto end = std::end(result);
+	auto end   = std::end(result);
+	std::unordered_set<details::component_key_t> processed{best_key};
 	for(auto filter : pack.on_remove)
 	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
 		end = filter_remove_on_remove(filter, begin, end);
 	}
-	end = filter_remove_on_break(pack.on_break, begin, end);
-	for(auto filter : pack.filters)
-	{
-		end = filter_remove(filter, begin, end);
-	}
+	if(pack.on_break.size() > 0) end = filter_remove_on_break(pack.on_break, begin, end);
 	for(auto filter : pack.on_add)
 	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
 		end = filter_remove_on_add(filter, begin, end);
 	}
-	end = filter_remove_on_combine(pack.on_combine, begin, end);
+	if(pack.on_combine.size() > 0) end = filter_remove_on_combine(pack.on_combine, begin, end);
+	for(auto filter : pack.filters)
+	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
+		end = filter_remove(filter, begin, end);
+	}
 	for(auto filter : pack.except)
 	{
 		end = filter_remove_except(filter, begin, end);
 	}
+	result.erase(end, std::end(result));
 	return result;
 }
 
-size_t state::prepare_data(psl::array_view<entity> entities, void* cache,
-						   component_key_t id) const noexcept
+size_t state::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
 {
 	const auto& cInfo = get_component_info(id);
+	assert_debug_break(cInfo != nullptr);
 	return cInfo->copy_to(entities, cache);
 }
 
-size_t state::prepare_bindings(psl::array_view<entity> entities, void* cache,
-							   details::dependency_pack& dep_pack) const noexcept
+size_t state::prepare_bindings(psl::array_view<entity> entities, void* cache, details::dependency_pack& dep_pack) const
+	noexcept
 {
 	size_t offset_start = (std::uintptr_t)cache;
 	for(auto& binding : dep_pack.m_RBindings)
 	{
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		auto write_size = prepare_data(entities, cache, binding.first);
-		cache = (void*)((std::uintptr_t)cache + write_size);
+		auto write_size			  = prepare_data(entities, cache, binding.first);
+		cache					  = (void*)((std::uintptr_t)cache + write_size);
 		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
 	}
 	for(auto& binding : dep_pack.m_RWBindings)
 	{
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		auto write_size = prepare_data(entities, cache, binding.first);
-		cache = (void*)((std::uintptr_t)cache + write_size);
+		auto write_size			  = prepare_data(entities, cache, binding.first);
+		cache					  = (void*)((std::uintptr_t)cache + write_size);
 		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
 	}
 	return (std::uintptr_t)cache - offset_start;
@@ -469,6 +600,8 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, void* cache,
 
 void state::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
 {
+	if(entities.size() == 0) return;
 	const auto& cInfo = get_component_info(key);
+	assert(cInfo != nullptr);
 	cInfo->copy_from(entities, data);
 }

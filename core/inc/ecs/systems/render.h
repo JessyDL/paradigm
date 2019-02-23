@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs/ecs.hpp"
+#include "ecs/state.h"
 #include "gfx/pass.h"
 #include "systems/resource.h"
 #include "gfx/drawgroup.h"
@@ -29,7 +29,7 @@ namespace core::ecs::systems
 	{
 		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
 							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
-		
+
 	  public:
 		struct framedata
 		{
@@ -47,7 +47,7 @@ namespace core::ecs::systems
 			psl::vec4 viewDir;
 		};
 
-		render(core::ecs::state& state, core::resource::handle<core::gfx::context> context,
+		render(psl::ecs::state& state, core::resource::handle<core::gfx::context> context,
 			   core::resource::handle<core::gfx::swapchain> swapchain,
 			   core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer);
 		~render() = default;
@@ -58,16 +58,14 @@ namespace core::ecs::systems
 		render& operator=(render&&) = delete;
 
 	  private:
-		core::ecs::command_buffer tick_cameras(
-			const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-			core::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
-		core::ecs::command_buffer tick_draws(
-			const core::ecs::state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-			core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
-							core::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
+		void tick_cameras(psl::ecs::info& info,
+			psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
+		void tick_draws(psl::ecs::info& info,
+			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
+							psl::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
 				renderables,
-			core::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
-							core::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
+			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
+							psl::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
 				broken_renderables);
 		void update_buffer(size_t index, const core::ecs::components::transform& transform,
 						   const core::ecs::components::camera& camera);

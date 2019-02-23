@@ -1,20 +1,17 @@
 #pragma once
+#include "ecs/state.h"
 #include "gfx/material.h"
 #include "vk/geometry.h"
-#include "ecs/pack.h"
 #include "systems/resource.h"
-#include "ecs/command_buffer.h"
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
 #include "bytell_map.h"
 
 namespace core::ecs::systems
 {
-	auto geometry_instance = 
-		[](const core::ecs::state& state, 
-		   std::chrono::duration<float> dTime, 
-		   std::chrono::duration<float> rTime, 
-		   core::ecs::pack<const core::ecs::components::renderable, const core::ecs::components::transform>
+	auto geometry_instance =
+		[](psl::ecs::info& info,
+		   psl::ecs::pack<const core::ecs::components::renderable, const core::ecs::components::transform>
 								geometry_pack)
 	{
 		using namespace core::resource;
@@ -87,8 +84,6 @@ namespace core::ecs::systems
 					materialHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
 			}
 		}
-
-		return core::ecs::command_buffer{state};
 	};
 
 } // namespace core::ecs::systems

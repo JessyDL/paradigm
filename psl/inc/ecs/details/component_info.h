@@ -112,8 +112,8 @@ namespace psl::ecs::details
 		}
 		component_key_t id() const noexcept;
 
-		psl::array_view<entity> added_entities() const noexcept { return m_Added[m_LockState].indices(); };
-		psl::array_view<entity> removed_entities() const noexcept { return m_Removed[m_LockState].indices(); };
+		psl::array_view<entity> added_entities() const noexcept { return m_Added[0].indices(); };
+		psl::array_view<entity> removed_entities() const noexcept { return m_Removed[0].indices(); };
 
 		void lock() noexcept { m_LockState = 1; }
 		void unlock() noexcept { m_LockState = 0; }
@@ -153,7 +153,7 @@ namespace psl::ecs::details
 	{
 	  public:
 		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)){};
-		psl::memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
+		memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
 
 
 		void* data() noexcept override { return m_Entities.data(); }
@@ -205,7 +205,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		psl::memory::sparse_array<T, entity> m_Entities{};
+		memory::sparse_array<T, entity> m_Entities{};
 	};
 
 	template <typename T>
