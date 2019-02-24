@@ -94,8 +94,7 @@ namespace psl::ecs::details
 		}
 		void destroy(entity entity) noexcept
 		{
-			if(!m_AssociatedEntities.has(entity))
-				return;
+			if(!m_AssociatedEntities.has(entity)) return;
 			m_AssociatedEntities.erase(entity);
 			m_Removed[m_LockState].insert(entity);
 		}
@@ -103,7 +102,7 @@ namespace psl::ecs::details
 		bool has_component(entity entity) const noexcept { return m_AssociatedEntities.has(entity); }
 		bool has_added(entity entity) const noexcept { return m_Added[0].has(entity); }
 		bool has_removed(entity entity) const noexcept { return m_Removed[0].has(entity); }
-		virtual bool has_storage_for(entity entity) const noexcept  = 0;
+		virtual bool has_storage_for(entity entity) const noexcept = 0;
 		psl::array_view<entity> entities(bool include_removed = false) const noexcept
 		{
 			return (include_removed) ? entities_impl() : m_AssociatedEntities.indices();
@@ -159,7 +158,7 @@ namespace psl::ecs::details
 	{
 	  public:
 		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)){};
-		psl::sparse_array<T, entity>& entity_data() { return m_Entities; };
+		memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
 
 
 		void* data() noexcept override { return m_Entities.data(); }
@@ -192,10 +191,7 @@ namespace psl::ecs::details
 			m_Entities.reserve(m_Entities.size() + entities.size());
 			std::for_each(std::begin(entities), std::end(entities), [this](auto e) { m_Entities.insert(e); });
 		}
-		void add_impl(entity entity) override
-		{
-			m_Entities.insert(entity);
-		}
+		void add_impl(entity entity) override { m_Entities.insert(entity); }
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
 		{
 			auto count = std::accumulate(
@@ -215,7 +211,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		psl::sparse_array<T, entity> m_Entities{};
+		memory::sparse_array<T, entity> m_Entities{};
 	};
 
 	template <typename T>
@@ -223,7 +219,6 @@ namespace psl::ecs::details
 	{
 	  public:
 		component_info_typed() : component_info(details::key_for<T>(), 0){};
-		psl::sparse_array<T, entity>& entity_data() { throw std::runtime_error("there is no data to a tag type"); };
 
 
 		void* data() noexcept override { return m_Entities.data(); }
@@ -236,10 +231,7 @@ namespace psl::ecs::details
 		{
 			for(auto e : entities) m_Entities.insert(e);
 		}
-		void add_impl(entity entity) override
-		{
-			 m_Entities.insert(entity);
-		}
+		void add_impl(entity entity) override { m_Entities.insert(entity); }
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
 		{
 			for(auto range : entities)
@@ -254,7 +246,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		psl::sparse_array<int, entity> m_Entities{};
+		  memory::sparse_array<int, entity> m_Entities{};
 	};
 } // namespace psl::ecs::details
 

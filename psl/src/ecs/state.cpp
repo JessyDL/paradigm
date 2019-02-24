@@ -143,7 +143,7 @@ void state::tick(std::chrono::duration<float> dTime)
 	if(m_LockOrphans > 0)
 	{
 		m_Entities[m_LockHead] = m_Next;
-		m_Next = m_LockNext;
+		m_Next				   = m_LockNext;
 		m_Orphans += m_LockOrphans;
 		m_LockOrphans = 0;
 	}
@@ -158,27 +158,6 @@ void state::tick(std::chrono::duration<float> dTime)
 	for(auto& cInfo : m_Components) cInfo->unlock_and_purge();
 
 	++m_Tick;
-}
-
-psl::array_view<entity> state::entities_for(details::component_key_t key) const noexcept
-{
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-	return (it != std::end(m_Components)) ? (*it)->entities() : psl::array_view<entity>{};
-}
-
-psl::array_view<entity> state::entities_added_for(details::component_key_t key) const noexcept
-{
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-	return (it != std::end(m_Components)) ? (*it)->added_entities() : psl::array_view<entity>{};
-}
-
-psl::array_view<entity> state::entities_removed_for(details::component_key_t key) const noexcept
-{
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-	return (it != std::end(m_Components)) ? (*it)->removed_entities() : psl::array_view<entity>{};
 }
 
 const details::component_info* state::get_component_info(details::component_key_t key) const noexcept
@@ -417,10 +396,11 @@ psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::c
 	auto cInfos = get_component_info(keys);
 
 	return (cInfos.size() == 0) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
-		return !std::any_of(std::begin(cInfos), std::end(cInfos),
-							[e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
-			   !std::all_of(std::begin(cInfos), std::end(cInfos),
-							[e](const details::component_info* cInfo) { return cInfo->has_component(e) || cInfo->has_removed(e); });
+		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
+			return cInfo->has_removed(e);
+		}) || !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
+			return cInfo->has_component(e) || cInfo->has_removed(e);
+		});
 	});
 }
 
@@ -574,8 +554,7 @@ psl::array<entity> state::filter(details::dependency_pack& pack)
 	}
 	if(pack.on_break.size() > 0)
 	{
-		for(auto filter : pack.on_break)
-			processed.insert(filter);
+		for(auto filter : pack.on_break) processed.insert(filter);
 		end = filter_remove_on_break(pack.on_break, begin, end);
 	}
 	for(auto filter : pack.on_add)

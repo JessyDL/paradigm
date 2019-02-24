@@ -186,8 +186,8 @@ namespace psl::ecs
 				auto removed{removed_entities()};
 				for(auto e : removed)
 				{
-					//assert_debug_break(dst->has_component(e));
-					if(e < m_First && dst->has_component(e)) dst->destroy(e);
+					assert_debug_break(dst->has_component(e));
+					if(e < m_First) dst->destroy(e);
 				}
 			}
 

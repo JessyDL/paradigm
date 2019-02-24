@@ -272,9 +272,6 @@ namespace psl::ecs
 		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 							std::uintptr_t cache_offset, details::system_information& information);
 
-		psl::array_view<entity> entities_for(details::component_key_t key) const noexcept;
-		psl::array_view<entity> entities_added_for(details::component_key_t key) const noexcept;
-		psl::array_view<entity> entities_removed_for(details::component_key_t key) const noexcept;
 
 		void execute_command_buffer(info& info);
 

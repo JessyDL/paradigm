@@ -52,34 +52,34 @@ TEST_CASE("filtering", "[ECS]")
 	SECTION("only the first 100 are given all components")
 	{
 		state.add_components<float>(e_list1);
-		state.add_components<bool>(e_list1);
+		state.add_components<size_t>(e_list1);
 		state.add_components<int>(e_list1);
 		state.add_components<char>(e_list1);
 		state.add_components<std::byte>(e_list1);
 
-		auto f = state.filter<float, bool, int, char, std::byte>();
+		auto f = state.filter<float, size_t, int, char, std::byte>();
 		REQUIRE(f == e_list1);
 		REQUIRE(state.filter<float>().size() == state.filter<on_add<float>>().size());
-		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, bool>>().size());
+		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, size_t>>().size());
 	}
 
 	SECTION("500 are given two component types and 100 are given 3 component types where 2 overlap")
 	{
 		state.add_components<int>(e_list1);
 		state.add_components<char>(e_list1);
-		state.add_components<bool>(e_list1);
+		state.add_components<size_t>(e_list1);
 
 		state.add_components<char>(e_list3);
-		state.add_components<bool>(e_list3);
+		state.add_components<size_t>(e_list3);
 
 
-		auto f = state.filter<float, bool, int, char, std::byte>();
+		auto f = state.filter<float, size_t, int, char, std::byte>();
 		REQUIRE(f.size() == 0);
 
-		f = state.filter<bool, int, char>();
+		f = state.filter<size_t, int, char>();
 		REQUIRE(f == e_list1);
 
-		f								= state.filter<bool, char>();
+		f								= state.filter<size_t, char>();
 		std::vector<entity> combination = e_list1;
 		combination.reserve(e_list1.size() + e_list3.size());
 		combination.insert(std::end(combination), std::begin(e_list3), std::end(e_list3));
@@ -90,12 +90,12 @@ TEST_CASE("filtering", "[ECS]")
 
 	SECTION("filtering components that are non-contiguous")
 	{
-		state.create(500, float{}, bool{});
+		state.create(500, float{}, size_t{});
 		state.destroy(1200);
-		state.create(3, float{}, bool{});
+		state.create(3, float{}, size_t{});
 
 		REQUIRE(state.filter<float>().size() == state.filter<on_add<float>>().size());
-		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, bool>>().size());
+		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, size_t>>().size());
 	}
 }
 
@@ -110,11 +110,11 @@ TEST_CASE("initializing components", "[ECS]")
 	state state;
 
 	size_t count {0};
-	state.create(50, [&count](position& i) { i = {++count, 0}; }, float{5.0f}, psl::ecs::empty<bool>());
+	state.create(50, [&count](position& i) { i = {++count, 0}; }, float{5.0f}, psl::ecs::empty<size_t>());
 
 	REQUIRE(state.view<position>().size() == 50);
 	REQUIRE(state.view<float>().size() == 50);
-	REQUIRE(state.view<bool>().size() == 50);
+	REQUIRE(state.view<size_t>().size() == 50);
 
 	count = {0};
 	size_t check{0};

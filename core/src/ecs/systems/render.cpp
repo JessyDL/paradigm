@@ -28,8 +28,7 @@ render::render(state& state, handle<context> context, handle<swapchain> swapchai
 	state.declare(threading::seq, &render::tick_draws, this);
 }
 
-void render::tick_cameras(psl::ecs::info& info,
-						  pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras)
+void render::tick_cameras(psl::ecs::info& info, pack<const camera, const transform> cameras)
 {
 	if(!m_Surface->open() || !m_Swapchain->is_ready()) return;
 	size_t i = 0;
@@ -39,7 +38,6 @@ void render::tick_cameras(psl::ecs::info& info,
 	}
 }
 
-size_t count {0};
 void render::tick_draws(info& info,
 						pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
 						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
@@ -51,7 +49,6 @@ void render::tick_draws(info& info,
 		for(auto [transform, renderable] : renderables)
 		{
 			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
-			++count;
 		}
 
 		for(auto [transform, renderable] : broken_renderables)
@@ -59,10 +56,7 @@ void render::tick_draws(info& info,
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
-
 			}
-			--count;
-			assert_debug_break(count != 0);
 		}
 
 		m_Pass.add(m_DrawGroup);
@@ -100,7 +94,7 @@ void render::update_buffer(size_t index, const transform& transform, const core:
 
 		fdata.VP  = fdata.clipMatrix * fdata.projectionMatrix * fdata.viewMatrix;
 		fdata.WVP = fdata.VP * fdata.modelMatrix;
-		std::vector< core::gfx::buffer::commit_instruction> instructions;
+		std::vector<core::gfx::buffer::commit_instruction> instructions;
 		instructions.emplace_back(&fdata, fdatasegment[index]);
 		m_Buffer->commit(instructions);
 	}
