@@ -676,6 +676,11 @@ namespace psl::ecs
 
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
+		size_t m_LockState {0};
+		entity m_LockHead;
+		entity m_LockNext;
+		size_t m_LockOrphans;
+
 		entity m_Next;
 		size_t m_Orphans{0};
 		size_t m_Tick{0};

@@ -122,27 +122,6 @@ void command_buffer::remove_component(details::component_key_t key, psl::array_v
 	(*it)->destroy(entities);
 }
 
-
-void command_buffer::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcept
-{
-	auto count = std::accumulate(std::begin(entities), std::end(entities), entity{0},
-								 [](entity sum, const auto& range) { return sum + (range.second - range.first); });
-	for(auto& cInfo : m_Components)
-	{
-		cInfo->destroy(entities);
-	}
-	m_Orphans += count;
-
-	for(auto range : entities)
-	{
-		for(auto e = range.first; e < range.second; ++e)
-		{
-			m_Entities[e] = m_Next;
-			m_Next = e;
-		}
-	}
-}
-
 // consider an alias feature
 // ie: alias transform = position, rotation, scale components
 void command_buffer::destroy(psl::array_view<entity> entities) noexcept
@@ -151,12 +130,15 @@ void command_buffer::destroy(psl::array_view<entity> entities) noexcept
 	{
 		cInfo->destroy(entities);
 	}*/
-	m_DestroyedEntities.insert(std::end(m_DestroyedEntities), std::begin(entities), std::end(entities));
+	//m_DestroyedEntities.insert(std::end(m_DestroyedEntities), std::begin(entities), std::end(entities));
 
 	for(auto e : entities)
 	{
 		if(e < m_First)
+		{
+			m_DestroyedEntities.emplace_back(e);
 			continue;
+		}
 		++m_Orphans;
 		m_Entities[e] = m_Next;
 		m_Next = e;

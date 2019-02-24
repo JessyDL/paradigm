@@ -39,6 +39,7 @@ void render::tick_cameras(psl::ecs::info& info,
 	}
 }
 
+size_t count {0};
 void render::tick_draws(info& info,
 						pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
 						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
@@ -50,15 +51,19 @@ void render::tick_draws(info& info,
 		for(auto [transform, renderable] : renderables)
 		{
 			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
+			++count;
 		}
 
-		/*for(auto [transform, renderable] : broken_renderables)
+		for(auto [transform, renderable] : broken_renderables)
 		{
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
+
 			}
-		}*/
+			--count;
+			assert_debug_break(count != 0);
+		}
 
 		m_Pass.add(m_DrawGroup);
 		m_Pass.build();

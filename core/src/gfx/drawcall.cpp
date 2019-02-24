@@ -15,13 +15,17 @@ drawcall::drawcall(handle<core::gfx::material> material, const std::vector<handl
 
 bool drawcall::add(handle<geometry> geometry) noexcept
 {
-	if(std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
+	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
 					[&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
 		   return geomHandle.first.ID() == geometry.ID();
-	   }) == std::end(m_Geometry))
+	   }); it == std::end(m_Geometry))
 	{
 		m_Geometry.emplace_back(std::make_pair(geometry, size_t{1}));
 		return true;
+	}
+	else
+	{
+		it->second += 1;
 	}
 	return false;
 }

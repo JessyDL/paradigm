@@ -69,7 +69,7 @@ namespace psl::ecs
 						if(e < m_First)
 						{
 							m_Removed.insert(e);
-							return;
+							continue;
 						}
 						--m_Count;
 					}
@@ -84,7 +84,7 @@ namespace psl::ecs
 					if(e < m_First)
 					{
 						m_Removed.insert(e);
-						return;
+						continue;
 					}
 					--m_Count;
 				}
@@ -147,6 +147,7 @@ namespace psl::ecs
 			{
 				// assert(m_ModifiedEntities.size() == 0);
 				auto target = new details::component_info_typed<T>();
+				target->lock();
 
 				for(auto e : m_Entities.indices())
 				{
@@ -229,7 +230,7 @@ namespace psl::ecs
 			{
 				// assert(m_ModifiedEntities.size() == 0);
 				auto target = new details::component_info_typed<T>();
-
+				target->lock();
 				for(auto e : m_Entities.indices())
 				{
 					target->add(remapped_entities[e]);
@@ -396,7 +397,6 @@ namespace psl::ecs
 			return entities;
 		}
 
-		void destroy(psl::array_view<std::pair<entity, entity>> entities) noexcept;
 		void destroy(psl::array_view<entity> entities) noexcept;
 		void destroy(entity entity) noexcept;
 

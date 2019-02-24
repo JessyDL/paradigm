@@ -7,6 +7,7 @@
 #include "memory/sparse_array.h"
 #include "sparse_indice_array.h"
 #include <numeric>
+#include "assertions.h"
 
 namespace psl
 {
@@ -43,6 +44,7 @@ namespace psl::ecs::details
 			auto& added = m_Added[m_LockState];
 			for(auto e : entities)
 			{
+				assert_debug_break(!has_component(e) && !has_removed(e));
 				added.insert(e);
 				m_AssociatedEntities.insert(e);
 			}
@@ -50,6 +52,7 @@ namespace psl::ecs::details
 		void add(entity entity)
 		{
 			add_impl(entity);
+			assert_debug_break(!has_component(entity) && !has_removed(entity));
 			m_Added[m_LockState].insert(entity);
 			m_AssociatedEntities.insert(entity);
 		}
@@ -61,6 +64,7 @@ namespace psl::ecs::details
 			{
 				for(auto e = range.first; e < range.second; ++e)
 				{
+					assert_debug_break(!has_component(e) && !has_removed(e));
 					added.insert(e);
 					m_AssociatedEntities.insert(e);
 				}
@@ -99,6 +103,7 @@ namespace psl::ecs::details
 		bool has_component(entity entity) const noexcept { return m_AssociatedEntities.has(entity); }
 		bool has_added(entity entity) const noexcept { return m_Added[0].has(entity); }
 		bool has_removed(entity entity) const noexcept { return m_Removed[0].has(entity); }
+		virtual bool has_storage_for(entity entity) const noexcept  = 0;
 		psl::array_view<entity> entities(bool include_removed = false) const noexcept
 		{
 			return (include_removed) ? entities_impl() : m_AssociatedEntities.indices();
@@ -159,7 +164,7 @@ namespace psl::ecs::details
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		// bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
+		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity); }
 
 		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
 		{
@@ -223,7 +228,7 @@ namespace psl::ecs::details
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		// bool has_component(entity entity) const noexcept override { return m_Entities.has(entity); }
+		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity); }
 
 	  protected:
 		psl::array_view<entity> entities_impl() const noexcept override { return m_Entities.indices(); }

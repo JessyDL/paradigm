@@ -184,27 +184,16 @@ namespace core::systems
 	class renderer
 	{
 	  public:
-		explicit renderer(cache* cache)
-			: m_Cache(cache), deviceIndex(0)
-		{}
+		explicit renderer(cache* cache) : m_Cache(cache), deviceIndex(0) {}
 		~renderer();
 		renderer(renderer&& other) = delete;
 		renderer& operator=(renderer&& other) = delete;
 		renderer(const renderer& other)		  = delete;
 		renderer& operator=(const renderer& other) = delete;
 
-		void start()
-		{
-			m_Thread = std::thread(&core::systems::renderer::main, this);
-		}
-		void lock()
-		{
-			mutex.lock();
-		}
-		void unlock()
-		{
-			mutex.unlock();
-		}
+		void start() { m_Thread = std::thread(&core::systems::renderer::main, this); }
+		void lock() { mutex.lock(); }
+		void unlock() { mutex.unlock(); }
 
 		core::systems::renderer_view& create_view(handle<surface> surface);
 		cache& get_cache() { return *m_Cache; }
@@ -328,7 +317,7 @@ core::systems::renderer* init(size_t views = 1)
 		auto window_handle = create<surface>(cache);
 		if(!window_handle.load(window_data))
 		{
-			//LOG_FATAL << "Could not create a OS surface to draw on.";
+			// LOG_FATAL << "Could not create a OS surface to draw on.";
 			throw std::runtime_error("no OS surface could be created");
 		}
 		rend->create_view(window_handle);
@@ -587,10 +576,10 @@ int entry()
 	frameBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
 						 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 						 resource_region
-						 .create_region(sizeof(core::ecs::systems::render::framedata) * 128,
-										context_handle->properties().limits.minUniformBufferOffsetAlignment,
-										new memory::default_allocator(true))
-						 .value());
+							 .create_region(sizeof(core::ecs::systems::render::framedata) * 128,
+											context_handle->properties().limits.minUniformBufferOffsetAlignment,
+											new memory::default_allocator(true))
+							 .value());
 	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 	// memory::default_allocator(true)});
 	auto frameBuffer = create<gfx::buffer>(cache);
@@ -603,7 +592,7 @@ int entry()
 	// - then we create the vulkan buffer resource to interface with the GPU
 	auto geomBufferData = create<data::buffer>(cache);
 	geomBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer |
-						vk::BufferUsageFlagBits::eTransferDst,
+							vk::BufferUsageFlagBits::eTransferDst,
 						vk::MemoryPropertyFlagBits::eDeviceLocal,
 						memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
 	auto geomBuffer = create<gfx::buffer>(cache);
@@ -617,23 +606,23 @@ int entry()
 	auto& positionstream =
 		geomData->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
 	core::stream colorstream{core::stream::type::vec3};
-	auto& colors = colorstream.as_vec3().value().get();
-	const float range = 1.0f;
+	auto& colors			  = colorstream.as_vec3().value().get();
+	const float range		  = 1.0f;
 	const bool inverse_colors = false;
 	for(auto i = 0; i < positionstream.size(); ++i)
 	{
 		if(inverse_colors)
 		{
-			float red = std::max(-range, std::min(range, positionstream[i][0])) / range;
+			float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
 			float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-			float blue = std::max(-range, std::min(range, positionstream[i][2])) / range;
+			float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
 			colors.emplace_back(psl::vec3(red, green, blue));
 		}
 		else
 		{
-			float red = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+			float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
 			float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-			float blue = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+			float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
 			colors.emplace_back(psl::vec3(red, green, blue));
 		}
 	}
@@ -656,23 +645,23 @@ int entry()
 		auto& positionstream =
 			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
 		core::stream colorstream{core::stream::type::vec3};
-		auto& colors = colorstream.as_vec3().value().get();
-		const float range = 1.0f;
+		auto& colors			  = colorstream.as_vec3().value().get();
+		const float range		  = 1.0f;
 		const bool inverse_colors = false;
 		for(auto i = 0; i < positionstream.size(); ++i)
 		{
 			if(inverse_colors)
 			{
-				float red = std::max(-range, std::min(range, positionstream[i][0])) / range;
+				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
 				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-				float blue = std::max(-range, std::min(range, positionstream[i][2])) / range;
+				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
 				colors.emplace_back(psl::vec3(red, green, blue));
 			}
 			else
 			{
-				float red = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
 				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-				float blue = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
 				colors.emplace_back(psl::vec3(red, green, blue));
 			}
 		}
@@ -779,8 +768,6 @@ int entry()
 
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
-	auto eCam = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
-								psl::ecs::empty<core::ecs::components::input_tag>{});
 
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
@@ -792,8 +779,27 @@ int entry()
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-	size_t iterations = 256;
+
+	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
+								psl::ecs::empty<core::ecs::components::input_tag>{});
+	size_t iterations = 25600;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
+
+	ECSState.create(
+		(iterations > 0) ? 250 : (std::rand() % 100 == 0) ? 0 : 0,
+		[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
+			renderable = {(std::rand() % 2 == 0) ? material : material2,
+						  geometryHandles[std::rand() % geometryHandles.size()], 0u};
+		},
+		psl::ecs::empty<core::ecs::components::transform>{},
+		[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
+		[&size_steps](core::ecs::components::velocity& target) {
+			target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
+					  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
+		});
+
 	while(surface_handle->tick())
 	{
 		core::profiler.next_frame();
@@ -805,42 +811,37 @@ int entry()
 		core::log->info("ECS has {} renderables alive right now",
 						ECSState.filter<core::ecs::components::renderable>().size());
 
+
 		ECSState.create(
-			(iterations > 0) ? 250 : (std::rand() % 100 == 0) ? 1 : 0,
-			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable)
-			{
-				renderable ={(std::rand() % 2 == 0) ? material : material2,
-														 geometryHandles[std::rand() % geometryHandles.size()], 0u};
+			(iterations > 0) ? 550 + std::rand() % 550 : (std::rand() % 100 == 0) ? 0 : 0,
+			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
+				renderable = {(std::rand() % 2 == 0) ? material : material2,
+							  geometryHandles[std::rand() % geometryHandles.size()], 0u};
 			},
 			psl::ecs::empty<core::ecs::components::transform>{},
-				[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
-				[&size_steps](core::ecs::components::velocity& target)
-			{
-				target = {
-					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-					((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
+			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
+			[&size_steps](core::ecs::components::velocity& target) {
+				target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+														 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+														 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
+						  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 			});
+
 
 		if(iterations > 0)
 		{
-			if(ECSState.filter<core::ecs::components::attractor>().size() < 2)
+			if(ECSState.filter<core::ecs::components::attractor>().size() < 6)
 			{
 				ECSState.create(
 					2,
-					[](core::ecs::components::lifetime& target)
-					{
+					[](core::ecs::components::lifetime& target) {
 						target = {5.0f + ((std::rand() % 50) / 50.0f) * 5.0f};
 					},
-					[&size_steps](core::ecs::components::attractor& target)
-					{
-						target = {(float)(std::rand() % size_steps) / size_steps * 3 +
-																	0.5f,
-																(float)(std::rand() % size_steps) / size_steps * 80};
+					[&size_steps](core::ecs::components::attractor& target) {
+						target = {(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f,
+								  (float)(std::rand() % size_steps) / size_steps * 80};
 					},
-						[&area_granularity, &area, &size_steps](core::ecs::components::transform& target)
-					{
+					[&area_granularity, &area, &size_steps](core::ecs::components::transform& target) {
 						target = {
 							psl::vec3(
 								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
@@ -852,8 +853,7 @@ int entry()
 
 							psl::vec3((float)(std::rand() % size_steps) / size_steps,
 									  (float)(std::rand() % size_steps) / size_steps,
-									  (float)(std::rand() % size_steps) / size_steps)
-	};
+									  (float)(std::rand() % size_steps) / size_steps)};
 					});
 			}
 			--iterations;

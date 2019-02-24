@@ -9,7 +9,7 @@ using psl::ecs::details::entity_info;
 
 
 state::state(size_t workers)
-	: m_Scheduler(new psl::async::scheduler(1/*(workers == 0) ? std::nullopt : std::optional{workers}*/))
+	: m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers}))
 {}
 
 std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source, size_t count)
@@ -42,7 +42,7 @@ std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::de
 	return res;
 }
 
-std::vector< psl::unique_ptr<info>> info_buffer;
+std::vector<psl::unique_ptr<info>> info_buffer;
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
@@ -63,7 +63,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	auto pack = information.create_pack();
 	bool has_partial =
 		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
-	has_partial = false;
+
 	if(has_partial && information.threading() == threading::par)
 	{
 		for(auto& dep_pack : pack)
@@ -140,6 +140,13 @@ void state::tick(std::chrono::duration<float> dTime)
 		prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
 	}
 
+	if(m_LockOrphans > 0)
+	{
+		m_Entities[m_LockHead] = m_Next;
+		m_Next = m_LockNext;
+		m_Orphans += m_LockOrphans;
+		m_LockOrphans = 0;
+	}
 
 	for(auto& info : info_buffer)
 	{
@@ -321,15 +328,17 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 	{
 		cInfo->destroy(entities);
 	}
-	m_Orphans += count;
+
+	if(m_LockOrphans == 0) m_LockHead = entities[0].first;
 
 	for(auto range : entities)
 	{
 		for(auto e = range.first; e < range.second; ++e)
 		{
-			m_Entities[e] = m_Next;
-			m_Next		  = e;
+			m_Entities[e] = m_LockNext;
+			m_LockNext	= e;
 		}
+		m_LockOrphans += range.second - range.first;
 	}
 }
 
@@ -337,16 +346,18 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 // ie: alias transform = position, rotation, scale components
 void state::destroy(psl::array_view<entity> entities) noexcept
 {
+	if(entities.size() == 0) return;
+
 	for(auto& cInfo : m_Components)
 	{
 		cInfo->destroy(entities);
 	}
-
-	m_Orphans += entities.size();
+	if(m_LockOrphans == 0) m_LockHead = entities[0];
+	m_LockOrphans += entities.size();
 	for(auto e : entities)
 	{
-		m_Entities[e] = m_Next;
-		m_Next		  = e;
+		m_Entities[e] = m_LockNext;
+		m_LockNext	= e;
 	}
 }
 
@@ -356,10 +367,11 @@ void state::destroy(entity entity) noexcept
 	{
 		cInfo->destroy(entity);
 	}
-	m_Entities[entity] = m_Next;
-	m_Next			   = entity;
+	if(m_LockOrphans == 0) m_LockHead = entity;
 
-	++m_Orphans;
+	m_LockOrphans += 1;
+	m_Entities[entity] = m_LockNext;
+	m_LockNext		   = entity;
 }
 
 
@@ -408,7 +420,7 @@ psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::c
 		return !std::any_of(std::begin(cInfos), std::end(cInfos),
 							[e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
 			   !std::all_of(std::begin(cInfos), std::end(cInfos),
-							[e](const details::component_info* cInfo) { return cInfo->has_component(e); });
+							[e](const details::component_info* cInfo) { return cInfo->has_component(e) || cInfo->has_removed(e); });
 	});
 }
 
@@ -560,7 +572,12 @@ psl::array<entity> state::filter(details::dependency_pack& pack)
 		processed.emplace(filter);
 		end = filter_remove_on_remove(filter, begin, end);
 	}
-	if(pack.on_break.size() > 0) end = filter_remove_on_break(pack.on_break, begin, end);
+	if(pack.on_break.size() > 0)
+	{
+		for(auto filter : pack.on_break)
+			processed.insert(filter);
+		end = filter_remove_on_break(pack.on_break, begin, end);
+	}
 	for(auto filter : pack.on_add)
 	{
 		if(processed.find(filter) != std::end(processed)) continue;
@@ -638,8 +655,7 @@ void state::execute_command_buffer(info& info)
 	}
 	for(auto& component_src : buffer.m_Components)
 	{
-		if(!component_src->changes())
-			continue;
+		if(!component_src->changes()) continue;
 		auto component_dst = get_component_info(component_src->id());
 		if(component_dst == nullptr)
 		{
@@ -654,5 +670,4 @@ void state::execute_command_buffer(info& info)
 	{
 		if(e < buffer.m_First) destroy(e);
 	}
-
 }
