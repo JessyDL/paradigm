@@ -43,15 +43,6 @@ matrix:
             - doxygen-latex
             - graphviz
             - python3
-      deploy:
-        provider: pages
-        skip-cleanup: true
-        github-token: $GH_REPO_TOKEN  
-        local_dir: tools/docs/html
-        keep-history: true
-        name: Travis-CI
-        on:
-          branch: develop
     - name: "Linux CLang 6.0 Unit Tests"
       env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_MODE=LIB" UTESTS=true CMAKE_VERSION="3.13.2" BADGE=linux-tests
       addons: *clang60

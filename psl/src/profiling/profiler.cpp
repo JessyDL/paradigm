@@ -217,7 +217,7 @@ psl::string profiler::to_string() const
 			else
 			{
 				name = frame_data.m_IDMap.at(scope.name);
-				
+
 			}
 			size_t bufferSize = scope.depth * 2 + 20 - durationStr.size() - percentageStr.size();
 			res += psl::string(scope.depth * 2, ' ') + percentageStr + " - " + durationStr + psl::string(std::max(bufferSize, (size_t)2), ' ') + name + "\n";

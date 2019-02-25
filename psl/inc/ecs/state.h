@@ -184,6 +184,7 @@ namespace psl::ecs
 		template <typename T, typename... Ts>
 		psl::array<entity> filter() const noexcept
 		{
+			// todo implement the filter_seed_best here
 			psl::array<entity> storage(filter_seed(psl::templates::proxy_type<T>{}));
 			auto begin = std::begin(storage);
 			auto end   = std::end(storage);

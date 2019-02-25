@@ -61,6 +61,7 @@ TEST_CASE("filtering", "[ECS]")
 		REQUIRE(f == e_list1);
 		REQUIRE(state.filter<float>().size() == state.filter<on_add<float>>().size());
 		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, size_t>>().size());
+		REQUIRE(state.filter<on_remove<float>>().size() == state.filter<on_break<float, size_t>>().size());
 	}
 
 	SECTION("500 are given two component types and 100 are given 3 component types where 2 overlap")
@@ -94,8 +95,9 @@ TEST_CASE("filtering", "[ECS]")
 		state.destroy(1200);
 		state.create(3, float{}, size_t{});
 
-		REQUIRE(state.filter<float>().size() == state.filter<on_add<float>>().size());
+		REQUIRE(state.filter<float>().size() + 1 == state.filter<on_add<float>>().size());
 		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, size_t>>().size());
+		REQUIRE(state.filter<on_remove<float>>().size() == state.filter<on_break<float, size_t>>().size());
 	}
 }
 

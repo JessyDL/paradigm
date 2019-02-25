@@ -440,14 +440,14 @@ psl::array<entity> state::filter_seed_on_break(psl::array<details::component_key
 {
 	auto cInfos = get_component_info(keys);
 	if(cInfos.size() == 0) return psl::array<entity>{};
-	psl::array<entity> storage{cInfos[0]->entities()};
+	psl::array<entity> storage{cInfos[0]->entities(true)};
 	auto begin = std::begin(storage);
 	auto end   = std::end(storage);
 	end		   = std::remove_if(begin, end, [cInfos](entity e) {
-		   return !std::any_of(std::begin(cInfos), std::end(cInfos),
+		   return std::none_of(std::begin(cInfos), std::end(cInfos),
 							   [e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
-				  !std::all_of(std::begin(cInfos), std::end(cInfos),
-							   [e](const details::component_info* cInfo) { return cInfo->has_component(e); });
+				  std::any_of(std::begin(cInfos), std::end(cInfos),
+							   [e](const details::component_info* cInfo) { return !(cInfo->has_component(e) || cInfo->has_removed(e)); });
 	});
 	storage.erase(end, std::end(storage));
 	return storage;
