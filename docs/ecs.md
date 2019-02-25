@@ -2,7 +2,8 @@
 ## Introduction
 The ECS (Entity Component System) present in `paradigm engine`is a pure ECS design, this means that data and logic are completely separate. This aids in easily parallelizing systems, as well as keeping data in a more cache friendly way.
 This by itself doesn't sound great, and more often than not creates a very confusing API, so this ECS is written with not only performance in mind, but easy of use for the end user. Hopefully after this short introduction & examples you will have enough of an idea of how the ECS works.
-|  | |
+
+|  |  |
 |--|--|
 | `entities` | an ID of type `uint32_t` |
 | `components` | are required to satisfy the requirements of [`standard_layout`](https://en.cppreference.com/w/cpp/types/is_standard_layout), [`trivially_destructible`](https://en.cppreference.com/w/cpp/types/is_trivially_destructible), and [`trivially_copyable`](https://en.cppreference.com/w/cpp/types/is_trivially_copyable). It is easiest of all to see them as a superset of POD types, with exception that you can provide a custom constructor, as long as they are `default` initializable. |
