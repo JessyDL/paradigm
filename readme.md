@@ -1,4 +1,5 @@
 ﻿
+
 ![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.1.82.1-red.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
 
 # Paradigm Engine
@@ -87,6 +88,7 @@ The following external libraries may be used in one, or many of the sub projects
 A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
 API examples, tutorials, and best practices guide will be written at a later time. For the time being, you can look at the example projects provided in the examples section.
 
+You can also find further documentation in the `docs` directory, such as information on how to use the [Entity Component System](https://github.com/JessyDL/paradigm/docs/ecs.md).
 # Tests
 ### building
 Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
