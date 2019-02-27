@@ -360,7 +360,7 @@ namespace psl::ecs
 		}
 
 		template <typename T>
-		void add_component(psl::array_view<std::pair<entity, entity>> entities, psl::ecs::empty<T>&& prototype)
+		void add_component(psl::array_view<std::pair<entity, entity>> entities, psl::ecs::empty<T>& prototype)
 		{
 			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
@@ -433,7 +433,7 @@ namespace psl::ecs
 		}
 
 		template <typename T>
-		void add_component(psl::array_view<entity> entities, psl::ecs::empty<T>&& prototype)
+		void add_component(psl::array_view<entity> entities, psl::ecs::empty<T>& prototype)
 		{
 			create_storage<T>();
 
