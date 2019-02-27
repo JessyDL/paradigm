@@ -602,7 +602,11 @@ namespace psl::ecs
 		psl::array<entity> filter_seed_on_break(psl::array<details::component_key_t> keys) const noexcept;
 		psl::array<entity> filter_seed_on_combine(psl::array<details::component_key_t> keys) const noexcept;
 
+		// convert dependency pack into instructions
+		psl::array<std::pair<details::instruction, psl::array<details::component_key_t>>> to_instructions(const details::dependency_pack& pack) const noexcept;
 
+		// find the best seed instruction, and reorder the remaining ones
+		psl::array<entity> filter_seed(psl::array<std::pair<details::instruction, psl::array<details::component_key_t>>>& instructions) const noexcept;
 		psl::array<std::pair<details::instruction, details::component_key_t>>::const_iterator
 			smallest_entity_list(const psl::array<std::pair<details::instruction, details::component_key_t>>& filters)  const noexcept;
 
@@ -615,7 +619,7 @@ namespace psl::ecs
 
 		psl::array<entity> filter(details::dependency_pack& packs);
 		template <typename... Ts>
-		constexpr psl::array<details::component_key_t> to_keys() const noexcept
+		psl::array<details::component_key_t> to_keys() const noexcept
 		{
 			return psl::array<details::component_key_t>{details::key_for<Ts>()...};
 		}
