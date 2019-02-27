@@ -9,6 +9,8 @@
 #include "sparse_indice_array.h"
 #include "memory/sparse_array.h"
 #include "sparse_array.h"
+#include "template_utils.h"
+
 namespace psl::ecs
 {
 	class state;
