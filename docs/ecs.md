@@ -227,16 +227,17 @@ auto attractor_system =
 state.declare(psl::ecs::threading::seq, attractor_system );
 ```
 
+A variation on the previous that allows you to run it concurrently in a multi threaded context. Note that the `attractor` pack is still marked as `whole`. This is needed because the velocities that we will be adjusting need to know about *
 ```cpp
 auto attractor_system = 
 [](psl::ecs::info& info,
    pack<whole, const attractor, filter<position>> attractors, 
-   pack<whole, velocity> velocities)
+   pack<partial, velocity> velocities)
 { /* change velocity based on attractor force & distance */ };
 
-state.declare(psl::ecs::threading::seq, attractor_system );
+state.declare(psl::ecs::threading::par, attractor_system );
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTk2NjAyNTMzMSwtMTE4ODQyMTU3NiwxNz
+eyJoaXN0b3J5IjpbMTAxNzA5MzUyOSwtMTE4ODQyMTU3NiwxNz
 Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
