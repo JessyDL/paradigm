@@ -218,9 +218,13 @@ A system, that has a pack that gets all `attractor`'s that also have a `position
 
 
 ```cpp
-auto attractor_system = [](
+auto attractor_system = 
+[](psl::ecs::info& info,
+   pack<whole, const attractor, filter<position>> attractors, 
+   pack<whole, velocity> velocities)
+{ /*
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMjEwMjE1MjEwNywtMTE4ODQyMTU3NiwxNz
+eyJoaXN0b3J5IjpbMTY0MTkwNzE1MSwtMTE4ODQyMTU3NiwxNz
 Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
