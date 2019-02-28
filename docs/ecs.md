@@ -187,8 +187,13 @@ Next table is a reference chart of what the different combinations result in. `N
 | **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
 
 ### examples
-A single threaded system that filters on all entities that have a `position` component/
+A single threaded system that filters on all entities that have a `position` component.
+```cpp
+auto move_system = 
+[](psl::ecs::info& info, pack<position> positions) 
+{ /* do things */};
+```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbOTgxMDUyODY5LDE3NjY2MzU3MjEsMTAzNT
-A1ODMyXX0=
+eyJoaXN0b3J5IjpbMTM0MzUwNjg4MiwxNzY2NjM1NzIxLDEwMz
+UwNTgzMl19
 -->
