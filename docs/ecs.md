@@ -185,7 +185,10 @@ Next table is a reference chart of what the different combinations result in. `N
 | -- | -- | -- |
 | **pack<whole,...>** | single thread, invoked once per frame | equivalent to threading::sequential
 | **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
+
+### examples
+A single threaded system that filters on all entities that have a `position` component/
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTMzMTE0ODU4NCwxNzY2NjM1NzIxLDEwMz
-UwNTgzMl19
+eyJoaXN0b3J5IjpbOTgxMDUyODY5LDE3NjY2MzU3MjEsMTAzNT
+A1ODMyXX0=
 -->
