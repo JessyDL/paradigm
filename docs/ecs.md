@@ -187,7 +187,7 @@ Next table is a reference chart of what the different combinations result in. `N
 | **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
 
 ### examples
-A single threaded system that filters on all entities that have a `position` component.
+A single threaded system that filters on all entities that have a `position` component. Note 
 ```cpp
 auto move_system = 
 [](psl::ecs::info& info, pack<position> positions) 
@@ -214,8 +214,9 @@ state.declare(psl::ecs::threading::par, move_system);
 ```
 
 **multi-pack systems**
-A single threaded system, that has a pack that gets all `attractor`'s that also have a `position` and a pack that gets all `velocity` components to write to.
+A single threaded system, that has a pack that gets all `attractor`'s that also have a `position` componnt and a pack that gets all `velocity` components to write to.
 
+We don't require the position component's data in the first pack, which is why we wrap it in a filter instruction instead.
 
 ```cpp
 auto attractor_system = 
@@ -227,7 +228,7 @@ auto attractor_system =
 state.declare(psl::ecs::threading::seq, attractor_system );
 ```
 
-A variation on the previous that allows you to run it concurrently in a multi threaded context. Note that the `attractor` pack is still marked as `whole`. This is needed because the velocities that we will be adjusting need to know about *
+A variation on the previous that allows you to run it concurrently in a multi threaded context. Note that the `attractor` pack is still marked as `whole`. This is needed because the velocities that we will be adjusting need to know about *all* attractors in the scene.
 ```cpp
 auto attractor_system = 
 [](psl::ecs::info& info,
@@ -238,6 +239,6 @@ auto attractor_system =
 state.declare(psl::ecs::threading::par, attractor_system );
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTAxNzA5MzUyOSwtMTE4ODQyMTU3NiwxNz
+eyJoaXN0b3J5IjpbMTk4ODg3MzEyNCwtMTE4ODQyMTU3NiwxNz
 Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
