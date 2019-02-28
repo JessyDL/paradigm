@@ -214,7 +214,7 @@ state.declare(psl::ecs::threading::par, move_system);
 ```
 
 **multi-pack systems**
-A system, that has a pack that gets all `attractor`'s that also have a `position` and a pack that gets all `velocity` components to write to.
+A single threaded system, that has a pack that gets all `attractor`'s that also have a `position` and a pack that gets all `velocity` components to write to.
 
 
 ```cpp
@@ -222,9 +222,21 @@ auto attractor_system =
 [](psl::ecs::info& info,
    pack<whole, const attractor, filter<position>> attractors, 
    pack<whole, velocity> velocities)
-{ /*
+{ /* change velocity based on attractor force & distance */ };
+
+state.declare(psl::ecs::threading::seq, attractor_system );
+```
+
+```cpp
+auto attractor_system = 
+[](psl::ecs::info& info,
+   pack<whole, const attractor, filter<position>> attractors, 
+   pack<whole, velocity> velocities)
+{ /* change velocity based on attractor force & distance */ };
+
+state.declare(psl::ecs::threading::seq, attractor_system );
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTY0MTkwNzE1MSwtMTE4ODQyMTU3NiwxNz
+eyJoaXN0b3J5IjpbLTk2NjAyNTMzMSwtMTE4ODQyMTU3NiwxNz
 Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
