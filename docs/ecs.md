@@ -160,3 +160,31 @@ You can also circumvent needing to call `add_components` completely, and pass th
     
     auto entities = state.create<health>(100);
 ```
+
+### remove_components
+Removing components is quite trivial. You can either call `.remove_components<Ts...>(entities)` on a `state` to remove select component types on a range of entities, or call `.destroy(entities)` to remove all components (and return the given entities back to the pool as an orphan).
+Note that removing components will keep the actual component data around till the end of the next invocation of `.tick(dTime)`. This is for systems (and filtering instructions), that operate on removed components (the `on_break` and `on_remove` filtering instructions). For this reason, you cannot remove and add the same component in the same tick as of now, but this might change in the future.
+
+## Systems
+The ECS takes a hands-off approach in dictating *how* systems should look as long as you supply an invocable function/method/object that satisfies the signature of `(psl::ecs::info& info, /* your filter instructions using the ecs::pack<> interface*/)`.
+The filtering operations will be interpreted from this signature.
+
+The first parameter is required (and required to always be the first parameter in a system). It contains a `const& ecs::state`, an `ecs::command_buffer`, the deltaTime of the frame, and the realTime of the ECS.
+
+Because every system can be multithreaded, only a read-only view can be acquired of the `state`. If another concurrent thread would mutate the `state`, it could lead into all sorts of undefined, but very dangerous, behaviour.
+
+You can guarantee your system is single threaded when you declare it to the `ecs::state` by tagging it with `threading::sequential` (default) instead of `threading::parallel`; or that it is single context by requiring all `pack<>` objects to be `ecs::whole`(default) instead of `ecs::partial`.
+
+### multithreading
+By default systems take the safest (but least performant) road, this means your system will run single context with no partial packs. This is equivalent to running your code on one core in one go.
+There are 2 elements that affect how your code runs, and how parallelize-able it is. Those are the `ecs::threading` values you can set on a system when you declare it to the `ecs::state`, and the `ecs::partial`/`ecs::whole` you can set as the ***first*** template argument on a `ecs::pack<>`.
+
+Next table is a handy chart of what the different combinations result in. `N` is the amount of workers assigned to the `state`. Because multiple `pack<>` objects can be in a method signature, the following chart's second row is true if *at least* one partial pack is present. 
+
+| | threading::sequential| threading::parallel|
+| -- | -- | -- |
+| **pack<whole,...>** | single thread, invoked once per frame | equivalent to threading::sequential
+| **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbMTAzNTA1ODMyXX0=
+-->
