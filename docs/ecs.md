@@ -167,7 +167,7 @@ Note that removing components will keep the actual component data around till th
 
 ## Systems
 The ECS takes a hands-off approach in dictating *how* systems should look as long as you supply an invocable function/method/object that satisfies the signature of `(psl::ecs::info& info, /* your filter instructions using the ecs::pack<> interface*/)`.
-The filtering operations will be interpreted from this signature.
+The filtering operations will be interpreted from this signature. See subsequent examples section for detailed examples of this in practice.
 
 The first parameter is required (and required to always be the first parameter in a system). It contains a `const& ecs::state`, an `ecs::command_buffer`, the deltaTime of the frame, and the realTime of the ECS.
 
@@ -186,5 +186,6 @@ Next table is a reference chart of what the different combinations result in. `N
 | **pack<whole,...>** | single thread, invoked once per frame | equivalent to threading::sequential
 | **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTc2NjYzNTcyMSwxMDM1MDU4MzJdfQ==
+eyJoaXN0b3J5IjpbLTMzMTE0ODU4NCwxNzY2NjM1NzIxLDEwMz
+UwNTgzMl19
 -->
