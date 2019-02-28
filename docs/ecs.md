@@ -199,13 +199,20 @@ state.declare(psl::ecs::threading::seq, move_system);
 A multi-context system, which never runs concurrently (i.e. no invocation of the system runs at the same time on *any* worker).
 ```cpp
 auto move_system = 
-[](psl::ecs::info& info, pack<whole, position> positions) 
+[](psl::ecs::info& info, pack<partial, position> positions) 
 { /* do things */};
 
 state.declare(threading::seq, move_system);
 ```
-A multi-context, true multi threaded system
+A multi-context, true multi threaded version:
+```cpp
+auto move_system = 
+[](psl::ecs::info& info, pack<partial, position> positions) 
+{ /* do things */};
+
+state.declare(psl::ecs::threading::par, move_system);
+```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTQxNzQ5MjgyMSwxNzY2NjM1NzIxLDEwMz
-UwNTgzMl19
+eyJoaXN0b3J5IjpbLTExODg0MjE1NzYsMTc2NjYzNTcyMSwxMD
+M1MDU4MzJdfQ==
 -->
