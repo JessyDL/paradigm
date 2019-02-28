@@ -88,7 +88,7 @@ The following external libraries may be used in one, or many of the sub projects
 A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
 API examples, tutorials, and best practices guide will be written at a later time. For the time being, you can look at the example projects provided in the examples section.
 
-You can also find further documentation in the `docs` directory, such as information on how to use the [Entity Component System](https://github.com/JessyDL/paradigm/docs/ecs.md).
+You can also find further documentation in the `docs` directory, such as information on how to use the [Entity Component System](https://github.com/JessyDL/paradigm/blob/develop/docs/ecs.md).
 # Tests
 ### building
 Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
@@ -125,3 +125,6 @@ This license (and its setup) only applies to the current major version of this s
 Of course you may continue to use any version of this project you currently have licensed/have a license for, without needing to change your license as long as you do not pull new updates from major versions you do not have a license for.
 
 This license, and its setup applies to all sub-projects in this repository unless explicitly stated otherwise.
+<!--stackedit_data:
+eyJoaXN0b3J5IjpbNjcwNDg4NDQyXX0=
+-->
