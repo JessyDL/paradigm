@@ -216,7 +216,7 @@ state.declare(psl::ecs::threading::par, move_system);
 **multi-pack systems**
 A single threaded system, that has a pack that gets all `attractor`'s that also have a `position` componnt and a pack that gets all `velocity` components to write to.
 
-We don't require the position component's data in the first pack, which is why we wrap it in a filter instruction instead.
+We don't require the position component's data in the first pack, which is why we wrap it in a filter instruction instead. As well as we will only *read* from the attractor, so we add `const` to the type declaration.
 
 ```cpp
 auto attractor_system = 
@@ -239,6 +239,6 @@ auto attractor_system =
 state.declare(psl::ecs::threading::par, attractor_system );
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTU2Mjg5NjcxNCwtMTE4ODQyMTU3NiwxNz
+eyJoaXN0b3J5IjpbLTg4NjMwOTI3NSwtMTE4ODQyMTU3NiwxNz
 Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
