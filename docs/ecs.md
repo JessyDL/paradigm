@@ -154,7 +154,7 @@ In this example you will see, in order, a default initialization, a template ini
 }
 ```
 **Extra**
-You can also circumvent needing to call `add_components` completely, and pass these examples into the `create` method directly. The next example will create 100 entities, and immediately add a health component to all of them. The same rules and methods apply like the previous examples, so you can also initialize them with a template or predicate!
+You can also circumvent needing to call `add_components` completely, and pass these examples into the `create` method directly. The next example will create 100 entities, and immediately add a health component to all of them. The same rules and methods apply like the previous examples, so you can also initialize them with a template or invocable!
 ```cpp
     ecs::state state{};
     
@@ -238,7 +238,3 @@ auto attractor_system =
 
 state.declare(psl::ecs::threading::par, attractor_system );
 ```
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbLTg4NjMwOTI3NSwtMTE4ODQyMTU3NiwxNz
-Y2NjM1NzIxLDEwMzUwNTgzMl19
--->
