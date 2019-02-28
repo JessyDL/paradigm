@@ -212,7 +212,10 @@ auto move_system =
 
 state.declare(psl::ecs::threading::par, move_system);
 ```
+
+**multi-pack systems**
+A system, that gets all `attractor`'s and al
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTE4OTU2NjQxNDMsLTExODg0MjE1NzYsMT
-c2NjYzNTcyMSwxMDM1MDU4MzJdfQ==
+eyJoaXN0b3J5IjpbLTEyNTIyNTU0OSwtMTE4ODQyMTU3NiwxNz
+Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
