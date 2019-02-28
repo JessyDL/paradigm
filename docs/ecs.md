@@ -179,12 +179,12 @@ You can guarantee your system is single threaded when you declare it to the `ecs
 By default systems take the safest (but least performant) road, this means your system will run single context with no partial packs. This is equivalent to running your code on one core in one go.
 There are 2 elements that affect how your code runs, and how parallelize-able it is. Those are the `ecs::threading` values you can set on a system when you declare it to the `ecs::state`, and the `ecs::partial`/`ecs::whole` you can set as the ***first*** template argument on a `ecs::pack<>`.
 
-Next table is a handy chart of what the different combinations result in. `N` is the amount of workers assigned to the `state`. Because multiple `pack<>` objects can be in a method signature, the following chart's second row is true if *at least* one partial pack is present. 
+Next table is a reference chart of what the different combinations result in. `N` is the amount of workers assigned to the `state`. Because multiple `pack<>` objects can be in a method signature, the following chart's second row is true if *at least* one partial pack is present. 
 
 | | threading::sequential| threading::parallel|
 | -- | -- | -- |
 | **pack<whole,...>** | single thread, invoked once per frame | equivalent to threading::sequential
 | **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTAzNTA1ODMyXX0=
+eyJoaXN0b3J5IjpbMTc2NjYzNTcyMSwxMDM1MDU4MzJdfQ==
 -->
