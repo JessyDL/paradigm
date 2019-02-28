@@ -196,7 +196,7 @@ auto move_system =
 state.declare(psl::ecs::threading::seq, move_system);
 ```
 
-A multi-context system, which never runs concurrently (i.e. no invocation of the system runs at the same time on *any* worker). What happens here is when the system gets invoked, the pack will contain N elements, where N is equal to the total size of all position components in the ECS, divided by the amount of workers.
+Next is a multi-context system, which never runs concurrently (i.e. no invocation of the system runs at the same time on *any* worker). What happens here is when the system gets invoked, the pack will contain 'N' elements, where 'N' is equal to the total size of all position components in the ECS, divided by the amount of workers available.
 ```cpp
 auto move_system = 
 [](psl::ecs::info& info, pack<partial, position> positions) 
@@ -204,7 +204,7 @@ auto move_system =
 
 state.declare(threading::seq, move_system);
 ```
-Lastly a multi-context, true multi threaded version. It will 
+Lastly a multi-context, true multi threaded version. It will contain equal amounts of data in the positions pack as the last example, but now multiple threads *might* be running this code at the same time.
 ```cpp
 auto move_system = 
 [](psl::ecs::info& info, pack<partial, position> positions) 
@@ -213,6 +213,6 @@ auto move_system =
 state.declare(psl::ecs::threading::par, move_system);
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbNzY1NTY3MTM4LC0xMTg4NDIxNTc2LDE3Nj
-Y2MzU3MjEsMTAzNTA1ODMyXX0=
+eyJoaXN0b3J5IjpbLTE4OTU2NjQxNDMsLTExODg0MjE1NzYsMT
+c2NjYzNTcyMSwxMDM1MDU4MzJdfQ==
 -->
