@@ -192,8 +192,12 @@ A single threaded system that filters on all entities that have a `position` com
 auto move_system = 
 [](psl::ecs::info& info, pack<position> positions) 
 { /* do things */};
+
+state.declare(psl::ecs::threading::seq, move_system);
 ```
+
+
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbMTM0MzUwNjg4MiwxNzY2NjM1NzIxLDEwMz
+eyJoaXN0b3J5IjpbLTQ1NDY1OTEwOSwxNzY2NjM1NzIxLDEwMz
 UwNTgzMl19
 -->
