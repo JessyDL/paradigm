@@ -204,7 +204,7 @@ auto move_system =
 
 state.declare(threading::seq, move_system);
 ```
-A multi-context, true multi threaded version:
+ multi-context, true multi threaded version:
 ```cpp
 auto move_system = 
 [](psl::ecs::info& info, pack<partial, position> positions) 
@@ -213,6 +213,6 @@ auto move_system =
 state.declare(psl::ecs::threading::par, move_system);
 ```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTExODg0MjE1NzYsMTc2NjYzNTcyMSwxMD
-M1MDU4MzJdfQ==
+eyJoaXN0b3J5IjpbLTE2MDg0ODcwNTEsLTExODg0MjE1NzYsMT
+c2NjYzNTcyMSwxMDM1MDU4MzJdfQ==
 -->
