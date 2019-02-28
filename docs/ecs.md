@@ -214,8 +214,13 @@ state.declare(psl::ecs::threading::par, move_system);
 ```
 
 **multi-pack systems**
-A system, that gets all `attractor`'s and al
+A system, that has a pack that gets all `attractor`'s that also have a `position` and a pack that gets all `velocity` components to write to.
+
+
+```cpp
+auto attractor_system = [](
+```
 <!--stackedit_data:
-eyJoaXN0b3J5IjpbLTEyNTIyNTU0OSwtMTE4ODQyMTU3NiwxNz
+eyJoaXN0b3J5IjpbMjEwMjE1MjEwNywtMTE4ODQyMTU3NiwxNz
 Y2NjM1NzIxLDEwMzUwNTgzMl19
 -->
