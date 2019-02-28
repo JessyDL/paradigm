@@ -15,7 +15,7 @@ namespace psl::meta
 {
 	class library;
 	class file;
-}
+} // namespace psl::meta
 namespace core::data
 {
 	/// \brief Describes a collection of resources that can be used to initialize a core::gfx::material
@@ -34,15 +34,15 @@ namespace core::data
 			friend class psl::serialization::accessor;
 
 		  public:
-			  /// \param[in] enabled is the blendstate active (true) or not (false).
-			  /// \param[in] binding the binding location of the blend state.
-			  /// \param[in] srcColorBlend the operation to apply to the RGB components when loading.
-			  /// \param[in] dstColorBlend the operation to apply to the RGB components with our newly created color data.
-			  /// \param[in] colorBlendOp the blend operation to apply to the RGB components.
-			  /// \param[in] srcAlphaBlend the operation to apply to the A component when loading.
-			  /// \param[in] dstAlphaBlend the operation to apply to the A component with our newly created alpha data.
-			  /// \param[in] alphaBlendOp the blend operation to apply to the A component.
-			  /// \param[in] colorFlags the color component masking flags to use.
+			/// \param[in] enabled is the blendstate active (true) or not (false).
+			/// \param[in] binding the binding location of the blend state.
+			/// \param[in] srcColorBlend the operation to apply to the RGB components when loading.
+			/// \param[in] dstColorBlend the operation to apply to the RGB components with our newly created color data.
+			/// \param[in] colorBlendOp the blend operation to apply to the RGB components.
+			/// \param[in] srcAlphaBlend the operation to apply to the A component when loading.
+			/// \param[in] dstAlphaBlend the operation to apply to the A component with our newly created alpha data.
+			/// \param[in] alphaBlendOp the blend operation to apply to the A component.
+			/// \param[in] colorFlags the color component masking flags to use.
 			blendstate(bool enabled, uint32_t binding, vk::BlendFactor srcColorBlend, vk::BlendFactor dstColorBlend,
 					   vk::BlendOp colorBlendOp, vk::BlendFactor srcAlphaBlend, vk::BlendFactor dstAlphaBlend,
 					   vk::BlendOp alphaBlendOp,
@@ -94,14 +94,16 @@ namespace core::data
 				vk::BlendFactor::eOne};
 			psl::serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_DST", 15)> m_ColorBlendFactorDst{
 				vk::BlendFactor::eZero};
-			psl::serialization::property<vk::BlendOp, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{vk::BlendOp::eAdd};
+			psl::serialization::property<vk::BlendOp, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{
+				vk::BlendOp::eAdd};
 
 
 			psl::serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_SRC", 15)> m_AlphaBlendFactorSrc{
 				vk::BlendFactor::eOne};
 			psl::serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_DST", 15)> m_AlphaBlendFactorDst{
 				vk::BlendFactor::eZero};
-			psl::serialization::property<vk::BlendOp, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{vk::BlendOp::eAdd};
+			psl::serialization::property<vk::BlendOp, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{
+				vk::BlendOp::eAdd};
 
 			psl::serialization::property<vk::ColorComponentFlags, const_str("COMPONENT_FLAGS", 15)> m_ColorComponents{
 				vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG | vk::ColorComponentFlagBits::eB |
@@ -165,6 +167,7 @@ namespace core::data
 						s << uid;
 					}
 					break;
+					default: break;
 					}
 				}
 				else
@@ -223,11 +226,13 @@ namespace core::data
 						}
 					}
 					break;
+					default: break;
 					}
 				}
 			}
 
-			psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding; // the slot in the shader to bind to
+			psl::serialization::property<uint32_t, const_str("BINDING", 7)>
+				m_Binding; // the slot in the shader to bind to
 			psl::serialization::property<vk::DescriptorType, const_str("DESCRIPTOR", 10)> m_Description;
 			psl::UID m_UID;
 			psl::UID m_SamplerUID; // in case of texture binding
@@ -327,7 +332,8 @@ namespace core::data
 		psl::serialization::property<std::vector<stage>, const_str("STAGES", 6)> m_Stage;
 		psl::serialization::property<std::vector<blendstate>, const_str("BLEND_STATES", 12)> m_BlendStates;
 		psl::serialization::property<std::vector<psl::string8_t>, const_str("DEFINES", 7)> m_Defines;
-		psl::serialization::property<vk::CullModeFlagBits, const_str("CULLING", 7)> m_Culling{vk::CullModeFlagBits::eBack};
+		psl::serialization::property<vk::CullModeFlagBits, const_str("CULLING", 7)> m_Culling{
+			vk::CullModeFlagBits::eBack};
 
 		psl::serialization::property<vk::CompareOp, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
 			vk::CompareOp::eLessOrEqual};
