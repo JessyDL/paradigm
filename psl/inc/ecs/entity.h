@@ -9,6 +9,29 @@ namespace psl::ecs
 	struct empty
 	{};
 
+	namespace details
+	{
+		template<typename T>
+		struct is_empty_container : std::false_type
+		{};
+
+		template<typename T>
+		struct is_empty_container<psl::ecs::empty<T>>	:	std::true_type
+		{};
+
+		template<typename T>
+		struct empty_container
+		{
+			using type = void;
+		};
+
+		template<typename T>
+		struct empty_container<psl::ecs::empty<T>>
+		{
+			using type = T;
+		};
+	}
+
 	/// ----------------------------------------------------------------------------------------------
 	/// Entity
 	/// ----------------------------------------------------------------------------------------------

@@ -319,7 +319,21 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<std::pair<entity, entity>> entities, T&& prototype)
 		{
-			if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
+			if constexpr (psl::ecs::details::is_empty_container<T>::value)
+			{
+				using type = typename psl::ecs::details::empty_container<T>::type;
+				create_storage<type>();
+				if constexpr(std::is_trivially_constructible_v<type>)
+				{
+					add_component_impl(details::key_for<type>(), entities, (std::is_empty<type>::value) ? 0 : sizeof(type));
+				}
+				else
+				{
+					type v{};
+					add_component_impl(details::key_for<type>(), entities, sizeof(type), &v);
+				}
+			}
+			else if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
 				std::is_trivially_destructible<T>::value)
 			{
 				static_assert(!std::is_empty_v<T>,
@@ -360,36 +374,6 @@ namespace psl::ecs
 		}
 
 		template <typename T>
-		void add_component(psl::array_view<std::pair<entity, entity>> entities, psl::ecs::empty<T>	 prototype)
-		{
-			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
-			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-			else
-			{
-				T v{};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
-			}
-		}
-
-		template <typename T>
-		void add_component(psl::array_view<std::pair<entity, entity>> entities, const psl::ecs::empty<T>& prototype)
-		{
-			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
-			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-			else
-			{
-				T v{};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
-			}
-		}
-
-		template <typename T>
 		void add_component(psl::array_view<std::pair<entity, entity>> entities)
 		{
 			create_storage<T>();
@@ -407,8 +391,21 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& prototype)
 		{
-
-			if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
+			if constexpr (psl::ecs::details::is_empty_container<T>::value)
+			{
+				using type = typename psl::ecs::details::empty_container<T>::type;
+				create_storage<type>();
+				if constexpr(std::is_trivially_constructible_v<type>)
+				{
+					add_component_impl(details::key_for<type>(), entities, (std::is_empty<type>::value) ? 0 : sizeof(type));
+				}
+				else
+				{
+					type v{};
+					add_component_impl(details::key_for<type>(), entities, sizeof(type), &v);
+				}
+			}
+			else if constexpr (std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
 				std::is_trivially_destructible<T>::value)
 			{
 				static_assert(!std::is_empty_v<T>,
@@ -447,35 +444,6 @@ namespace psl::ecs
 			}*/
 		}
 
-		template <typename T>
-		void add_component(psl::array_view<entity> entities, psl::ecs::empty<T> prototype)
-		{
-			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
-			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-			else
-			{
-				T v{};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
-			}
-		}
-
-		template <typename T>
-		void add_component(psl::array_view<entity> entities, const psl::ecs::empty<T>& prototype)
-		{
-			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
-			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-			else
-			{
-				T v{};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
-			}
-		}
 		template <typename T>
 		void add_component(psl::array_view<entity> entities)
 		{
