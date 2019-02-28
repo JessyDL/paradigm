@@ -1,13 +1,16 @@
+
 # ECS
 ## Introduction
 The ECS (Entity Component System) present in `paradigm engine`is a pure ECS design, this means that data and logic are completely separate. This aids in easily parallelizing systems, as well as keeping data in a more cache friendly way.
-This by itself doesn't sound great, and more often than not creates a very confusing API, so this ECS is written with not only performance in mind, but easy of use for the end user. Hopefully after this short introduction & examples you will have enough of an idea of how the ECS works.
+This by itself doesn't sound great, and more often than not creates a very confusing API, so this ECS is written with not only performance in mind, but easy of use for the end user. Because of this, the ECS takes the road of "safety over performance" as a default, and allows you to opt-in to the more performant methods.
+
+Hopefully after this short introduction & examples you will have enough of an idea of how the ECS works. If not, you can see the `core::ecs` namespace for how the ECS is used by the library.
 
 |  |  |
 |--|--|
 | `entities` | an ID of type `uint32_t` |
-| `components` | are required to satisfy the requirements of [`standard_layout`](https://en.cppreference.com/w/cpp/types/is_standard_layout), [`trivially_destructible`](https://en.cppreference.com/w/cpp/types/is_trivially_destructible), and [`trivially_copyable`](https://en.cppreference.com/w/cpp/types/is_trivially_copyable). It is easiest of all to see them as a superset of POD types, with exception that you can provide a custom constructor, as long as they are `default` initializable. |
-| `systems` | any invocable (lambda, function or method), that satisfies the required signature |
+| `components` | are required to satisfy the requirements of [`standard_layout`](https://en.cppreference.com/w/cpp/types/is_standard_layout), [`trivially_destructible`](https://en.cppreference.com/w/cpp/types/is_trivially_destructible), and [`trivially_copyable`](https://en.cppreference.com/w/cpp/types/is_trivially_copyable). It is easiest of all to see them as a superset of POD types, with exception that you can provide a custom constructor, as long as they supply at least a `default` initializable constructor (no parameters). |
+| `systems` | any invocable (lambda, function or method), that satisfies the required signature (see the *Systems* section) |
 
 ## concepts
 ### state
@@ -76,14 +79,21 @@ auto destroy_drawcall_system =
     /* interface with the graphics API */ 
 };
 ```
+## entities
+### creating entities
+Entities can be created both inside systems, as well as outside of systems, by calling the `.create(N)` method on a `ecs::state` object (where `N` is the amount to create).
+When creating entities outside of a system, they are immediately visible to all filtering operations, etc... but when creating them inside of a system invoked by the `ecs::state`, they will only be visible when the `command_buffer` for that system has been processed, which is only guaranteed to be so *by the end of the tick*.
 
+### destroying entities
+Similarly to creating, but instead of passing the amount to create to the `.destroy(N)` method of a `ecs::state` object, you instead pass which entities you wish to destroy (either singular, or wrapped in an `array_view<entity>`).
+Destroying entities does ***not*** clear the memory as you call destroy, but instead clears it *at the end of  the next invocation of `.tick()` of an `ecs::state` object*. This is because there are filtering operations available on components that return true for when a component is removed or a combination is broken.
 ### creating components
 For performance reasons it's always better to add components on many entities all at once, instead of doing them one by one. The API reflects this suggestion by only exposing a signature for a container of `entities`.
 
 You will also notice that the signatures are templated. The expected template type is the `component` you wish to add to those entities.
 
 Furthermore, there are 4 ways to initialize components:
-	- empty initialization
+	- empty (no) initialization
 	- default initialization
 	- based on a "template/prototype"
 	- invocable factory
@@ -165,6 +175,45 @@ You can also circumvent needing to call `add_components` completely, and pass th
 Removing components is quite trivial. You can either call `.remove_components<Ts...>(entities)` on a `state` to remove select component types on a range of entities, or call `.destroy(entities)` to remove all components (and return the given entities back to the pool as an orphan).
 Note that removing components will keep the actual component data around till the end of the next invocation of `.tick(dTime)`. This is for systems (and filtering instructions), that operate on removed components (the `on_break` and `on_remove` filtering instructions). For this reason, you cannot remove and add the same component in the same tick as of now, but this might change in the future.
 
+## Packs
+The `ecs::pack<>` type is both a view into the component data, as well as a set of filtering instructions of what requirements the entities are supposed to have. This might seem like an odd combination, but simplifies systems, as well as makes clear the constraints of the data a variable will be working with.
+
+The `pack<>` type also (optionally) accepts an instruction on the divisibility of this data (either `pack<whole, ...>` or `pack<partial, ...>`). This is mostly important the state in knowing if this pack makes the system parallelizable or not, and to what degree. If neither `whole` or `partial` is supplied, then `whole` is assumed implicitly.
+
+### read-only and read-write data
+You define in the signature if you are going to be only reading from the component, or also will be writing to it, by adding `const` to the component type.
+As an example, the following is the signature of a read-only view of position components:
+```cpp
+pack<const position> all_positions;
+```
+
+Read only data is faster to create than read-write data, so keep that in mind.
+
+### Iterating
+There are several ways of iterating through a pack, the traditional indexing operator is provided, but this gets you back a tuple of the contained data types at the given index.
+
+The easiest way of iterating through a pack is to use structured bindings like in the following example, note that iterating through a pack this way will automatically return references (and const references) depending on if the type was declared const or not.
+```cpp
+pack<const position, rotation, const lifetime> example_pack;
+for(auto [pos, rot, life] : example_pack)
+{
+    pos = {}; // error pos is const&
+    rot = {}; // success! rot is a reference
+    life -= 1.0f; // error life is const&
+}
+```
+
+std::get<> also works, and will return you an `array_view<T>` for any given type of T.
+```cpp
+pack<const position, rotation, const lifetime> example_pack;
+auto positions = std::get<const position>(example_pack);
+auto rotations = std::get<rotation>(example_pack);
+// error! 'lifetime' needs to be 'const lifetime'!
+auto lifetimes = std::get<lifetime>(example_pack);
+```
+### partial and whole packs
+`partial` and `whole` are identifiers to designate if a pack is divisible or not. These are important for the `ecs::state` to know if this pack can be divided onto multiple contexts or not. The **Systems** section will explain more about this.
+
 ## Systems
 The ECS takes a hands-off approach in dictating *how* systems should look as long as you supply an invocable function/method/object that satisfies the signature of `(psl::ecs::info& info, /* your filter instructions using the ecs::pack<> interface*/)`.
 The filtering operations will be interpreted from this signature. See subsequent examples section for detailed examples of this in practice.
@@ -214,7 +263,7 @@ state.declare(psl::ecs::threading::par, move_system);
 ```
 
 **multi-pack systems**
-A single threaded system, that has a pack that gets all `attractor`'s that also have a `position` componnt and a pack that gets all `velocity` components to write to.
+A single threaded system, that has a pack that gets all `attractor`'s that also have a `position` component and a pack that gets all `velocity` components to write to.
 
 We don't require the position component's data in the first pack, which is why we wrap it in a filter instruction instead. As well as we will only *read* from the attractor, so we add `const` to the type declaration.
 
