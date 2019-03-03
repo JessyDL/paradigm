@@ -45,7 +45,7 @@ namespace core::data
 				template <typename S>
 				void serialize(S& serializer)
 				{
-					serializer << m_SampleCountFlags << m_LoadOp << m_StoreOp << m_StencilLoadOp << m_StencilStoreOp << m_InitialLayout << m_FinalLayout;
+					serializer << m_SampleCountFlags << m_LoadOp << m_StoreOp << m_StencilLoadOp << m_StencilStoreOp << m_InitialLayout << m_FinalLayout << m_Format;
 				}
 				static constexpr const char serialization_name[12]{"DESCRIPTION"};
 				psl::serialization::property<vk::SampleCountFlagBits, const_str("SAMPLE_COUNT_FLAGS", 18)> m_SampleCountFlags;
@@ -55,6 +55,7 @@ namespace core::data
 				psl::serialization::property<vk::AttachmentStoreOp, const_str("STENCIl_STORE_OP", 16)> m_StencilStoreOp;
 				psl::serialization::property<vk::ImageLayout, const_str("INITIAL_LAYOUT", 14)> m_InitialLayout;
 				psl::serialization::property<vk::ImageLayout, const_str("FINAL_LAYOUT", 12)> m_FinalLayout;
+				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
 
 			};
 			/// \brief constructs an attachment based on the given texture and values.
@@ -117,12 +118,11 @@ namespace core::data
 		/// \param[in] width the width of the attachment in pixels.
 		/// \param[in] height the height of the attachment in pixels.
 		/// \param[in] layerCount the depth layers of the attachment.
-		/// \param[in] format the format of the image on the GPU.
 		/// \param[in] usage signifies how the image will be used.
 		/// \param[in] clearValue the value to clear the image with at the start of rendering.
 		/// \param[in] descr how the image load op's etc... will be handled.
 		/// \see core::data::framebuffer::attachment
-		const psl::UID& add(uint32_t width, uint32_t height, uint32_t layerCount, vk::Format format, vk::ImageUsageFlags usage, vk::ClearValue clearValue, vk::AttachmentDescription descr);
+		const psl::UID& add(uint32_t width, uint32_t height, uint32_t layerCount, vk::ImageUsageFlags usage, vk::ClearValue clearValue, vk::AttachmentDescription descr);
 
 		/// \brief removes the attachment that is using this psl::UID for its texture.
 		/// \param[in] uid the psl::UID to search for
