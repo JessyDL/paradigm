@@ -49,6 +49,24 @@ namespace psl
 		{
 			return *m_Ptr;
 		}
+
+		unique_ptr<T>& operator=(T* other) noexcept
+		{
+			delete(m_Ptr);
+			m_Ptr = other;
+			return *this;
+		}
+
+		void reset() noexcept
+		{
+			delete(m_Ptr);
+			m_Ptr = nullptr;
+		}
+
+		void release() noexcept
+		{
+			m_Ptr = nullptr;
+		}
 	  private:
 		T* m_Ptr{nullptr};
 	};
