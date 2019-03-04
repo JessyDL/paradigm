@@ -57,6 +57,10 @@ namespace core::gfx
 		/// \param[in] index the index to return the attachments for.
 		std::vector<attachment> attachments(uint32_t index = 0u) const noexcept;
 
+		/// \returns all color attachments for a specific index
+		/// \param[in] index the index to return the attachments for.
+		std::vector<attachment> color_attachments(uint32_t index = 0u) const noexcept;
+
 		/// \returns the sampler resource associated with this framebuffer.
 		core::resource::handle<core::gfx::sampler> sampler() const noexcept;
 		/// \returns the data used to create this framebuffer

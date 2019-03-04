@@ -34,7 +34,7 @@ core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& 
 	}
 
 	auto pipelineHandle = create<pipeline>(m_Cache);
-	pipelineHandle.load(m_Context, data, m_PipelineCache, framebuffer->render_pass(), (uint32_t)framebuffer->attachments().size());
+	pipelineHandle.load(m_Context, data, m_PipelineCache, framebuffer->render_pass(), (uint32_t)framebuffer->color_attachments().size());
 	m_Pipelines[key] = pipelineHandle;
 
 	return pipelineHandle;

@@ -16,7 +16,7 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 	: m_Context(context), m_Data(deep_copy, data) // , m_Data(copy(cache, data))
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
-	m_Textures.resize(m_Framebuffers.size() * m_Data->attachments().size());
+	m_Textures.reserve(m_Framebuffers.size() * m_Data->attachments().size());
 	size_t index = 0u;
 	for(const auto& attach : m_Data->attachments())
 	{
@@ -30,8 +30,8 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 
 	// now we create the renderpass that describes the framebuffer
 	std::vector<vk::AttachmentDescription> attachmentDescriptions;
-	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::begin(attachmentDescriptions), [](const auto& binding)
-	{	return binding.description; });
+	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(attachmentDescriptions),
+				   [](const auto& binding) { return binding.description; });
 
 	// Collect attachment references
 	std::vector<vk::AttachmentReference> colorReferences;
@@ -46,7 +46,7 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 		if(utility::vulkan::is_depthstencil(binding.description.format))
 		{
 			// Only one depth attachment allowed
-			//assert(!hasDepth);
+			// assert(!hasDepth);
 			depthReference.attachment = attachmentIndex;
 			depthReference.layout	 = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 			hasDepth				  = true;
@@ -106,7 +106,7 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 	// pre-allocate attachmentviews, and fill in all the data in the FBCI
 	// we will override the views in the upcoming loop, where the device also will create the FBOs
 	std::vector<vk::ImageView> attachmentViews;
-	attachmentViews.resize(m_Data->framebuffers());
+	attachmentViews.resize(m_Bindings.size());
 
 	vk::FramebufferCreateInfo framebufferInfo;
 	framebufferInfo.renderPass		= m_RenderPass;
@@ -147,11 +147,13 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	auto meta = res.value();
 
 	binding& binding		   = m_Bindings.emplace_back();
+	binding.index			   = index;
 	binding.description		   = description;
 	binding.description.format = meta->format();
 	for(auto i = index; i < index + count; ++i)
 	{
 		auto texture = core::resource::create<core::gfx::texture>(cache, uid);
+		if(texture.resource_state() != core::resource::state::LOADED) texture.load(m_Context);
 		m_Textures.push_back(texture);
 		attachment& attachment		= binding.attachments.emplace_back();
 		attachment.view				= texture->view();
@@ -169,8 +171,23 @@ std::vector<framebuffer::attachment> framebuffer::attachments(uint32_t index) co
 	if(index >= m_Bindings.size()) return {};
 
 	std::vector<framebuffer::attachment> res;
-	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::begin(res), [index](const auto& binding)
-	{ return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0]; });
+	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
+		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
+	});
+	return res;
+}
+
+std::vector<framebuffer::attachment> framebuffer::color_attachments(uint32_t index) const noexcept
+{
+	if(index >= m_Bindings.size()) return {};
+
+	std::vector<framebuffer::attachment> res;
+	auto bindings{ m_Bindings };
+	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) { return utility::vulkan::is_depthstencil(binding.description.format); });
+	std::transform(std::begin(bindings), end, std::back_inserter(res), [index](const auto& binding) {
+		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
+	});
+
 	return res;
 }
 core::resource::handle<core::gfx::sampler> framebuffer::sampler() const noexcept { return m_Sampler; }

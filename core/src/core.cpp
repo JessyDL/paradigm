@@ -59,6 +59,10 @@
 #include "ecs/systems/death.h"
 #include "ecs/systems/attractor.h"
 #include "ecs/systems/movement.h"
+#include "ecs/systems/gpu_camera.h"
+
+#include "data/framebuffer.h"
+#include "vk/framebuffer.h"
 
 using namespace core;
 using namespace core::resource;
@@ -572,19 +576,19 @@ int entry()
 	stagingBuffer.load(context_handle, stagingBufferData);
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto frameBufferData = create<data::buffer>(cache);
-	frameBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
+	auto frameCamBufferData = create<data::buffer>(cache);
+	frameCamBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
 						 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 						 resource_region
-							 .create_region(sizeof(core::ecs::systems::render::framedata) * 128,
+							 .create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
 											context_handle->properties().limits.minUniformBufferOffsetAlignment,
 											new memory::default_allocator(true))
 							 .value());
 	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 	// memory::default_allocator(true)});
-	auto frameBuffer = create<gfx::buffer>(cache);
-	frameBuffer.load(context_handle, frameBufferData);
-	cache.library().set(frameBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
+	auto frameCamBuffer = create<gfx::buffer>(cache);
+	frameCamBuffer.load(context_handle, frameCamBufferData);
+	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
 	// create the buffers to store the model in
 	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
@@ -750,6 +754,7 @@ int entry()
 	auto material2 = create<gfx::material>(cache);
 	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
 
+
 	// create the ecs
 	using psl::ecs::state;
 
@@ -770,7 +775,7 @@ int entry()
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
+	core::ecs::systems::gpu_camera gpu_camera_system{ ECSState, surface_handle, frameCamBuffer };
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
@@ -780,13 +785,81 @@ int entry()
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
 
+	// create post processing pass
+	auto postProcess = create<gfx::framebuffer>(cache);
+	{
+		auto postProcessData = create<data::framebuffer>(cache);
+		postProcessData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
+
+		// color attachment
+		{
+			vk::AttachmentDescription descr;
+			descr.format = vk::Format::eR8G8B8A8Unorm;
+			descr.samples = vk::SampleCountFlagBits::e1;
+			descr.loadOp = vk::AttachmentLoadOp::eClear;
+			descr.storeOp = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout = vk::ImageLayout::eUndefined;
+			descr.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+
+			postProcessData->add(surface_handle->data().width(), surface_handle->data().height(), 1, vk::ImageUsageFlagBits::eColorAttachment, vk::ClearColorValue(std::array<float, 4>{ { 1.0f, 1.0f, 0.0f, 1.0f } }), descr);
+		}
+
+		// depth attachment
+		{
+			vk::AttachmentDescription descr;
+			if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
+			{
+				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
+			}
+			descr.samples = vk::SampleCountFlagBits::e1;
+			descr.loadOp = vk::AttachmentLoadOp::eClear;
+			descr.storeOp = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout = vk::ImageLayout::eUndefined;
+			descr.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+			postProcessData->add(surface_handle->data().width(), surface_handle->data().height(), 1, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
+		}
+
+		{
+			auto ppsamplerData = create<data::sampler>(cache);
+			ppsamplerData.load();
+			ppsamplerData->mipmaps(false);
+			auto ppsamplerHandle = create<gfx::sampler>(cache);
+			ppsamplerHandle.load(context_handle, ppsamplerData);
+			postProcessData->set(ppsamplerHandle);
+		}
+
+		postProcess.load(context_handle, postProcessData);
+
+		auto ppMatData = create<data::material>(cache);
+		ppMatData.load();
+
+		data::material::stage vertexStage{};
+		//vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
+
+		std::vector<data::material::stage> stages;
+
+
+		//ppMatData->stages()
+	}
+
+	core::ecs::systems::render render_system2{ECSState, context_handle, postProcess};
+	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle};
+
+	render_system.pass().depends_on(render_system2.pass());
+	//render_system2.pass().depends_on(render_system.pass());
+
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 	size_t iterations = 25600;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 
 	ECSState.create(
-		(iterations > 0) ? 250 : (std::rand() % 100 == 0) ? 0 : 0,
+		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
 		[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
 			renderable = {(std::rand() % 2 == 0) ? material : material2,
 						  geometryHandles[std::rand() % geometryHandles.size()], 0u};
@@ -811,9 +884,13 @@ int entry()
 		core::log->info("ECS has {} renderables alive right now",
 						ECSState.filter<core::ecs::components::renderable>().size());
 
+		// todo make overarching system
+		render_system2.pass().present();
+		render_system.pass().present();
+
 
 		ECSState.create(
-			(iterations > 0) ? 550 + std::rand() % 550 : (std::rand() % 100 == 0) ? 0 : 0,
+			(iterations > 0) ? 5 + std::rand() % 5 : (std::rand() % 100 == 0) ? 0 : 0,
 			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
 				renderable = {(std::rand() % 2 == 0) ? material : material2,
 							  geometryHandles[std::rand() % geometryHandles.size()], 0u};

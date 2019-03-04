@@ -106,7 +106,7 @@ bool pass::build()
 	else
 	{
 		const auto& attachments = m_Framebuffer->data()->attachments();
-		std::transform(std::begin(attachments), std::end(attachments), std::begin(clearValues), [](const auto& attach) {return attach.clear_value();});
+		std::transform(std::begin(attachments), std::end(attachments), std::back_inserter(clearValues), [](const auto& attach) {return attach.clear_value();});
 	}
 	bool success = false;
 	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i)
@@ -239,7 +239,8 @@ void pass::prepare()
 {
 	if(m_UsingSwap)
 	{
-		if(m_Swapchain->next(m_PresentComplete, m_CurrentBuffer)) build();
+		m_Swapchain->next(m_PresentComplete, m_CurrentBuffer);
+		//if(m_Swapchain->next(m_PresentComplete, m_CurrentBuffer)) build();
 	}
 	else
 	{
@@ -260,7 +261,7 @@ void pass::present()
 			LOG_ERROR("Failed to reset fence");
 	}
 
-	std::vector<vk::Semaphore> semaphores;
+	std::vector<vk::Semaphore> semaphores{ m_WaitFor };
 	std::vector<vk::PipelineStageFlags> stageFlags;
 
 	if(m_UsingSwap)
@@ -317,3 +318,9 @@ void pass::remove(const core::gfx::drawgroup& group) noexcept
 }
 
 void pass::clear() noexcept { m_AllGroups.clear(); }
+
+
+void pass::depends_on(pass& pass) noexcept
+{
+	m_WaitFor.emplace_back(pass.m_RenderComplete);
+}

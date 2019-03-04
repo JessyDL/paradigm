@@ -58,6 +58,9 @@ namespace core::data
 				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
 
 			};
+
+			attachment() = default;
+
 			/// \brief constructs an attachment based on the given texture and values.
 			///
 			/// \note that the texture should be valid (not pointing to a non-texture),

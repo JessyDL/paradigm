@@ -72,6 +72,9 @@ namespace core::gfx
 		/// \brief add an additional drawgroup to be included in this pass' draw instructions.
 		void add(core::gfx::drawgroup& group) noexcept;
 
+		/// \brief makes the current pass wait for the given pass to complete
+		void depends_on(pass& pass) noexcept;
+
 		/// \brief removes an existing drawgroup from this pass' draw instructions.
 		void remove(const core::gfx::drawgroup& group) noexcept;
 
@@ -90,6 +93,7 @@ namespace core::gfx
 		const bool m_UsingSwap;
 		std::vector<core::gfx::drawgroup> m_AllGroups;
 
+		std::vector<vk::Semaphore> m_WaitFor;
 		vk::Semaphore m_PresentComplete;
 		vk::Semaphore m_RenderComplete;
 		std::vector<vk::Fence> m_WaitFences;

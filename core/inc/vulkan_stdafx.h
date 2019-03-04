@@ -59,7 +59,7 @@
 #ifdef DEBUG
 #define VULKAN_ENABLE_VALIDATION true
 #else
-#define VULKAN_ENABLE_VALIDATION false
+#define VULKAN_ENABLE_VALIDATION true
 #endif
 
 
@@ -76,6 +76,20 @@ namespace utility
 		static vk::Flags<BitType, MaskType> from_string(psl::string8::view str)
 		{
 			return (BitType)converter<MaskType>::from_string(str);
+		}
+	};
+
+	template<>
+	struct converter<vk::ClearValue>
+	{
+		static psl::string8_t to_string(const vk::ClearValue& value)
+		{
+			return "";
+		}
+
+		static vk::ClearValue from_string(psl::string8::view str)
+		{
+			return vk::ClearValue{ vk::ClearColorValue{} };
 		}
 	};
 } // namespace utility
