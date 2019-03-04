@@ -63,6 +63,7 @@
 
 #include "data/framebuffer.h"
 #include "vk/framebuffer.h"
+#include "gfx/render_graph.h"
 
 using namespace core;
 using namespace core::resource;
@@ -754,7 +755,8 @@ int entry()
 	auto material2 = create<gfx::material>(cache);
 	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
 
-
+	core::gfx::render_graph renderGraph{};
+	auto& swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
 	// create the ecs
 	using psl::ecs::state;
 
@@ -774,6 +776,7 @@ int entry()
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
+	core::ecs::systems::render render_system{ECSState, swapchain_pass};
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::gpu_camera gpu_camera_system{ ECSState, surface_handle, frameCamBuffer };
 
@@ -847,10 +850,10 @@ int entry()
 		//ppMatData->stages()
 	}
 
-	core::ecs::systems::render render_system2{ECSState, context_handle, postProcess};
-	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle};
+	auto& post_pass = renderGraph.create_pass(context_handle, postProcess);
+	core::ecs::systems::render render_system2{ECSState, post_pass};
 
-	render_system.pass().depends_on(render_system2.pass());
+	renderGraph.add_dependency(post_pass, swapchain_pass);
 	//render_system2.pass().depends_on(render_system.pass());
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
@@ -884,9 +887,7 @@ int entry()
 		core::log->info("ECS has {} renderables alive right now",
 						ECSState.filter<core::ecs::components::renderable>().size());
 
-		// todo make overarching system
-		render_system2.pass().present();
-		render_system.pass().present();
+		renderGraph.present();
 
 
 		ECSState.create(
@@ -936,6 +937,8 @@ int entry()
 			--iterations;
 		}
 	}
+
+	context_handle->device().waitIdle();
 
 	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
 								   core::profiler.to_string());

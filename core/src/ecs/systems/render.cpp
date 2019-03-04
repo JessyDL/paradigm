@@ -2,10 +2,6 @@
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
 #include "ecs/components/camera.h"
-#include "vk/swapchain.h"
-#include "vk/framebuffer.h"
-#include "vk/context.h"
-#include "os/surface.h"
 #include "gfx/material.h"
 #include "vk/geometry.h"
 
@@ -19,20 +15,15 @@ using namespace psl::ecs;
 using namespace core::ecs::systems;
 using namespace core::ecs::components;
 using namespace psl;
+
 using std::chrono::duration;
 
-render::render(state& state, handle<context> context, handle<swapchain> swapchain)
-	: m_Pass(context, swapchain)
+render::render(state& state, core::gfx::pass& pass)
+	: m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }
 
-
-render::render(state& state, handle<context> context, handle<framebuffer> framebuffer)
-	: m_Pass(context, framebuffer)
-{
-	state.declare(threading::seq, &render::tick_draws, this);
-}
 void render::tick_draws(info& info,
 						pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
 						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
@@ -55,8 +46,5 @@ void render::tick_draws(info& info,
 		}
 
 		m_Pass.add(m_DrawGroup);
-		m_Pass.build();
 	}
-	m_Pass.prepare();
-	//m_Pass.present();
 }
