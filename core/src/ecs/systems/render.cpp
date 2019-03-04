@@ -3,6 +3,7 @@
 #include "ecs/components/renderable.h"
 #include "ecs/components/camera.h"
 #include "gfx/material.h"
+#include "data/material.h"
 #include "vk/geometry.h"
 
 #include "vk/buffer.h"
@@ -18,8 +19,7 @@ using namespace psl;
 
 using std::chrono::duration;
 
-render::render(state& state, core::gfx::pass& pass)
-	: m_Pass(pass)
+render::render(state& state, core::gfx::pass& pass) : m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }
@@ -34,6 +34,12 @@ void render::tick_draws(info& info,
 		auto res			= renderables.get<const transform>();
 		for(auto [transform, renderable] : renderables)
 		{
+			if(!std::any_of(std::begin(m_RenderRanges), std::end(m_RenderRanges),
+							[priority = renderable.material.handle()->data()->render_priority()](
+								const std::pair<int, int>& range) {
+								return range.first <= priority && priority <= range.second;
+							}))
+				continue;
 			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
 		}
 
@@ -41,10 +47,26 @@ void render::tick_draws(info& info,
 		{
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
+				if(!std::any_of(std::begin(m_RenderRanges), std::end(m_RenderRanges),
+								[priority = renderable.material.handle()->data()->render_priority()](
+									const std::pair<int, int>& range) {
+									return range.first <= priority && priority <= range.second;
+								}))
+					continue;
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}
 		}
 
 		m_Pass.add(m_DrawGroup);
 	}
+}
+
+void render::add_render_range(int begin, int end)
+{
+	m_RenderRanges.emplace_back(std::make_pair(begin, end));
+}
+
+void render::remove_render_range(int begin, int end)
+{
+	throw std::runtime_error("not implemented");
 }

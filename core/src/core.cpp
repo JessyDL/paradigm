@@ -721,6 +721,7 @@ int entry()
 	auto matData = create<data::material>(cache);
 	matData.load();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+	matData->render_priority(2000);
 	auto stages = matData->stages();
 	for(auto& stage : stages)
 	{
@@ -777,6 +778,7 @@ int entry()
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
 	core::ecs::systems::render render_system{ECSState, swapchain_pass};
+	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::gpu_camera gpu_camera_system{ ECSState, surface_handle, frameCamBuffer };
 
@@ -852,6 +854,7 @@ int entry()
 
 	auto& post_pass = renderGraph.create_pass(context_handle, postProcess);
 	core::ecs::systems::render render_system2{ECSState, post_pass};
+	render_system2.add_render_range(1000, 1999);
 
 	renderGraph.add_dependency(post_pass, swapchain_pass);
 	//render_system2.pass().depends_on(render_system.pass());
