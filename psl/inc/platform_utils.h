@@ -314,7 +314,7 @@ namespace utility::platform
 					if(!std::filesystem::is_directory(i->path()))
 					{
 					#ifdef UNICODE
-						auto filename = utility::string::replace_all(psl::from_platform_string(i->path().generic_wstring()), "\\", seperator);
+						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 					#else
 						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 					#endif
@@ -329,7 +329,7 @@ namespace utility::platform
 					if(!std::filesystem::is_directory(i->path()))
 					{
 					#ifdef UNICODE
-						auto filename = utility::string::replace_all(psl::from_platform_string(i->path().generic_wstring()), "\\", seperator);
+						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 					#else
 						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 					#endif

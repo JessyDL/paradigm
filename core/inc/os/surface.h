@@ -160,7 +160,7 @@ namespace core::os
 #if defined(SURFACE_WIN32)
 		HINSTANCE win32_instance = NULL;
 		HWND win32_window		  = NULL;
-		psl::platform_string win32_class_name;
+		psl::pstring_t win32_class_name;
 		static uint64_t win32_class_id_counter;
 		// void TranslateInputMessage(MSG *msg);
 #elif defined(SURFACE_XCB)

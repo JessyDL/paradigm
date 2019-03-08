@@ -894,7 +894,7 @@ int entry()
 
 
 		ECSState.create(
-			(iterations > 0) ? 5 + std::rand() % 5 : (std::rand() % 100 == 0) ? 0 : 0,
+			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
 			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
 				renderable = {(std::rand() % 2 == 0) ? material : material2,
 							  geometryHandles[std::rand() % geometryHandles.size()], 0u};

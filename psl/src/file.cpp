@@ -32,7 +32,7 @@ file::file(psl::string_view filename, mode mode, method method, std::optional<si
 		method_flags = CREATE_ALWAYS;
 		break;
 	}
-	m_File = CreateFile(psl::to_platform_string(filename).data(), file_flags, 0, NULL, method_flags, FILE_ATTRIBUTE_NORMAL, NULL);
+	m_File = CreateFile(psl::to_pstring(filename).data(), file_flags, 0, NULL, method_flags, FILE_ATTRIBUTE_NORMAL, NULL);
 	if (m_File == INVALID_HANDLE_VALUE)
 	{
 		m_File = {};
