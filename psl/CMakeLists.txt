@@ -15,20 +15,24 @@ if(NOT skarupke_POPULATED)
   FetchContent_Populate(skarupke)
 endif()
 
-FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 5.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(fmt)
 if(NOT fmt_POPULATED)
 	message(STATUS "fetching fmt...")
 	FetchContent_Populate(fmt)
+	set(FMT_INSTALL ON)
+	add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR})
 	message(STATUS "fmt fetched")
 endif()
 
-SET(SPDLOG_FMT_EXTERNAL ON)
-FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(spdlog GIT_REPOSITORY https://github.com/gabime/spdlog.git GIT_TAG v1.3.1 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
 	message(STATUS "fetching spdlog...")
 	FetchContent_Populate(spdlog)
+	SET(SPDLOG_FMT_EXTERNAL ON)
+	set(fmt_DIR ${CMAKE_MODULE_PATH})
+	add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
 	message(STATUS "spdlog fetched")
 endif()
 
@@ -66,7 +70,7 @@ if(PE_PCH AND NOT MSVC)
 	set_property(TARGET ${PROJECT_PSL_PCH} PROPERTY FOLDER "PCH")
 endif()
 
-include(inc.txt)
+include(inc.txt) 
 include(src.txt)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
@@ -84,7 +88,6 @@ target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
 		${utf8cpp_SOURCE_DIR}/source
-		${spdlog_SOURCE_DIR}/include
 		${rangev_SOURCE_DIR}/include
 		${skarupke_SOURCE_DIR}/
 )
@@ -96,9 +99,9 @@ target_include_directories(${LOCAL_PROJECT}
 endif()
 
 if(LINUX)
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC libc++experimental.a ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt spdlog libc++experimental.a ${CMAKE_THREAD_LIBS_INIT})
 else()
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt spdlog ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
