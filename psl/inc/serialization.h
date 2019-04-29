@@ -265,7 +265,7 @@ namespace psl::serialization
 
 
 		// defined local copy in case the target uses a private serialization name
-#ifdef _MSC_VER
+#ifdef false
 		template <typename T, typename = void>
 		struct has_name : std::false_type
 		{};

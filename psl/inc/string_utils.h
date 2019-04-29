@@ -31,13 +31,11 @@ namespace utility
 		/// \brief transforms the input value to a psl::string8_t containing the hex characters.
 		/// \param[in] value the value to transform
 		/// \returns a string containing the hex value.
-		template< typename T >
+		template <typename T>
 		inline static psl::string8_t to_hex(const T& value)
 		{
 			psl::string8::stream stream;
-			stream << "0x"
-				<< std::setfill('0') << std::setw(sizeof(T) * 2)
-				<< std::hex << value;
+			stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << value;
 			return stream.str();
 		}
 
@@ -47,8 +45,8 @@ namespace utility
 		return std::setw(sizeof(T) * 2) + 2;
 		}*/
 
-		template<typename TOut, typename TIn>
-		inline TOut lexical_cast(const TIn &in)
+		template <typename TOut, typename TIn>
+		inline TOut lexical_cast(const TIn& in)
 		{
 			// though this needs the 0x prefix so it knows it is hex
 			// unsigned int x = lexical_cast<unsigned int>("0xdeadbeef");
@@ -63,7 +61,7 @@ namespace utility
 		/// \tparam T the type to convert the output to.
 		/// \param[in] str the string containing the hex value.
 		/// \returns an object of type T that has been constructed using the hex value.
-		template<typename T>
+		template <typename T>
 		inline static T from_hex(const psl::string8_t& str)
 		{
 			return lexical_cast<T>(str);
@@ -73,7 +71,7 @@ namespace utility
 		/// \tparam T the type to convert the output to.
 		/// \param[in] str the string containing the hex value.
 		/// \returns an object of type T that has been constructed using the hex value.
-		template<typename T>
+		template <typename T>
 		inline static T from_hex(const psl::string16_t& str)
 		{
 			return lexical_cast<T>(str);
@@ -83,7 +81,7 @@ namespace utility
 		/// \tparam T the type to convert the output to.
 		/// \param[in] str the string containing the hex value.
 		/// \returns an object of type T that has been constructed using the hex value.
-		template<typename T>
+		template <typename T>
 		inline static T from_hex(const psl::string32_t& str)
 		{
 			return lexical_cast<T>(str);
@@ -122,7 +120,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string8_t& to_upper(psl::string8_t &str)
+		inline static psl::string8_t& to_upper(psl::string8_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 			return str;
@@ -131,7 +129,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string16_t& to_upper(psl::string16_t &str)
+		inline static psl::string16_t& to_upper(psl::string16_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 			return str;
@@ -140,7 +138,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string32_t& to_upper(psl::string32_t &str)
+		inline static psl::string32_t& to_upper(psl::string32_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 			return str;
@@ -176,11 +174,11 @@ namespace utility
 			return result;
 		}
 
-		
+
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string8_t& to_lower(psl::string8_t &str)
+		inline static psl::string8_t& to_lower(psl::string8_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 			return str;
@@ -189,7 +187,7 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string16_t& to_lower(psl::string16_t &str)
+		inline static psl::string16_t& to_lower(psl::string16_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 			return str;
@@ -198,15 +196,17 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string32_t& to_lower(psl::string32_t &str)
+		inline static psl::string32_t& to_lower(psl::string32_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 			return str;
 		}
 
-		inline static std::vector<psl::string8::view> &split(psl::string8::view s, psl::string8::view delimiter, std::vector<psl::string8::view> &inout, bool ignore_consecutive = false)
+		inline static std::vector<psl::string8::view>& split(psl::string8::view s, psl::string8::view delimiter,
+															 std::vector<psl::string8::view>& inout,
+															 bool ignore_consecutive = false)
 		{
-			size_t pos = 0u;
+			size_t pos  = 0u;
 			size_t prev = 0u;
 			if(ignore_consecutive)
 			{
@@ -215,13 +215,13 @@ namespace utility
 					inout.emplace_back(s.substr(prev, pos - prev));
 					do
 					{
-					pos += delimiter.length();
+						pos += delimiter.length();
 					} while(s.substr(pos, delimiter.length()) == delimiter);
 					prev = pos;
 				}
 			}
 			else
-			{			
+			{
 				while((pos = s.find(delimiter, pos)) != psl::string8::view::npos)
 				{
 					inout.emplace_back(s.substr(prev, pos - prev));
@@ -233,16 +233,18 @@ namespace utility
 			inout.emplace_back(s.substr(prev, pos - prev));
 			return inout;
 		}
-		inline static std::vector<psl::string8::view> split(psl::string8::view s, psl::string8::view delimiter, bool ignore_consecutive = true)
+		inline static std::vector<psl::string8::view> split(psl::string8::view s, psl::string8::view delimiter,
+															bool ignore_consecutive = true)
 		{
 			std::vector<psl::string8::view> res;
 			split(s, delimiter, res, ignore_consecutive);
 			return res;
 		}
 
-		inline static std::vector<psl::string16::view> &split(psl::string16::view s, psl::string16::view delimiter, std::vector<psl::string16::view> &inout)
+		inline static std::vector<psl::string16::view>& split(psl::string16::view s, psl::string16::view delimiter,
+															  std::vector<psl::string16::view>& inout)
 		{
-			size_t pos = 0u;
+			size_t pos  = 0u;
 			size_t prev = 0u;
 			while((pos = s.find(delimiter, pos)) != psl::string16::view::npos)
 			{
@@ -262,9 +264,10 @@ namespace utility
 		}
 
 
-		inline static std::vector<psl::string32::view> &split(psl::string32::view s, psl::string32::view delimiter, std::vector<psl::string32::view> &inout)
+		inline static std::vector<psl::string32::view>& split(psl::string32::view s, psl::string32::view delimiter,
+															  std::vector<psl::string32::view>& inout)
 		{
-			size_t pos = 0u;
+			size_t pos  = 0u;
 			size_t prev = 0u;
 			while((pos = s.find(delimiter, pos)) != psl::string32::view::npos)
 			{
@@ -286,36 +289,24 @@ namespace utility
 		inline static size_t size(const std::vector<psl::string8::view>& values)
 		{
 			using type = size_t;
-			type chars = std::accumulate(
-				std::begin(values), std::end(values), type(0), [](type total, const psl::string8::view &s)
-				{
-					return total + s.length();
-				}
-			);
+			type chars = std::accumulate(std::begin(values), std::end(values), type(0),
+										 [](type total, const psl::string8::view& s) { return total + s.length(); });
 			return chars;
 		}
 
 		inline static size_t size(const std::vector<psl::string16::view>& values)
 		{
 			using type = size_t;
-			type chars = std::accumulate(
-				std::begin(values), std::end(values), type(0), [](type total, const psl::string16::view &s)
-				{
-					return total + s.length();
-				}
-			);
+			type chars = std::accumulate(std::begin(values), std::end(values), type(0),
+										 [](type total, const psl::string16::view& s) { return total + s.length(); });
 			return chars;
 		}
 
 		inline static size_t size(const std::vector<psl::string32::view>& values)
 		{
 			using type = size_t;
-			type chars = std::accumulate(
-				std::begin(values), std::end(values), type(0), [](type total, const psl::string32::view &s)
-				{
-					return total + s.length();
-				}
-			);
+			type chars = std::accumulate(std::begin(values), std::end(values), type(0),
+										 [](type total, const psl::string32::view& s) { return total + s.length(); });
 			return chars;
 		}
 
@@ -327,7 +318,8 @@ namespace utility
 			{
 				while(str.substr(pos + consecutive.size(), consecutive.size()) == consecutive)
 				{
-					str.erase(std::begin(str) + pos + consecutive.size(), std::begin(str) + pos + consecutive.size() * 2);
+					str.erase(std::begin(str) + pos + consecutive.size(),
+							  std::begin(str) + pos + consecutive.size() * 2);
 				}
 			}
 			return str;
@@ -341,7 +333,8 @@ namespace utility
 			{
 				while(str.substr(pos + consecutive.size(), consecutive.size()) == consecutive)
 				{
-					str.erase(std::begin(str) + pos + consecutive.size(), std::begin(str) + pos + consecutive.size() * 2);
+					str.erase(std::begin(str) + pos + consecutive.size(),
+							  std::begin(str) + pos + consecutive.size() * 2);
 				}
 			}
 			return str;
@@ -350,7 +343,7 @@ namespace utility
 
 		static size_t count(psl::string8::view s, psl::string8::view search)
 		{
-			size_t occurrences = 0u;
+			size_t occurrences					= 0u;
 			psl::string8::view::size_type start = 0;
 
 			while((start = s.find(search, start)) != psl::string8::view::npos)
@@ -361,10 +354,10 @@ namespace utility
 
 			return occurrences;
 		}
-		
+
 		static size_t count(psl::string16::view s, psl::string16::view search)
 		{
-			size_t occurrences = 0u;
+			size_t occurrences					 = 0u;
 			psl::string16::view::size_type start = 0;
 
 			while((start = s.find(search, start)) != psl::string16::view::npos)
@@ -378,7 +371,7 @@ namespace utility
 
 		static size_t count(psl::string32::view s, psl::string32::view search)
 		{
-			size_t occurrences = 0u;
+			size_t occurrences					 = 0u;
 			psl::string32::view::size_type start = 0;
 
 			while((start = s.find(search, start)) != psl::string32::view::npos)
@@ -394,8 +387,7 @@ namespace utility
 		inline static bool replace(psl::string8_t& str, psl::string8::view from, psl::string8::view to)
 		{
 			size_t start_pos = str.find(from);
-			if(start_pos == psl::string8_t::npos)
-				return false;
+			if(start_pos == psl::string8_t::npos) return false;
 			str.replace(start_pos, from.length(), to);
 			return true;
 		}
@@ -403,26 +395,23 @@ namespace utility
 		inline static bool replace(psl::string16_t& str, psl::string16::view from, psl::string16::view to)
 		{
 			size_t start_pos = str.find(from);
-			if(start_pos == psl::string16_t::npos)
-				return false;
+			if(start_pos == psl::string16_t::npos) return false;
 			str.replace(start_pos, from.length(), to);
 			return true;
 		}
 		inline static bool replace(psl::string32_t& str, psl::string32::view from, psl::string32::view to)
 		{
 			size_t start_pos = str.find(from);
-			if(start_pos == psl::string32_t::npos)
-				return false;
+			if(start_pos == psl::string32_t::npos) return false;
 			str.replace(start_pos, from.length(), to);
 			return true;
 		}
 
 		inline static bool replace_all(psl::string8_t& str, psl::string8::view from, psl::string8::view to)
 		{
-			if(from.empty())
-				return false;
+			if(from.empty()) return false;
 			size_t start_pos = 0;
-			bool success = false;
+			bool success	 = false;
 			while((start_pos = str.find(from, start_pos)) != psl::string8_t::npos)
 			{
 				success = true;
@@ -441,10 +430,9 @@ namespace utility
 
 		inline static bool replace_all(psl::string16_t& str, psl::string16::view from, psl::string16::view to)
 		{
-			if(from.empty())
-				return false;
+			if(from.empty()) return false;
 			size_t start_pos = 0;
-			bool success = false;
+			bool success	 = false;
 			while((start_pos = str.find(from, start_pos)) != psl::string16_t::npos)
 			{
 				success = true;
@@ -454,7 +442,8 @@ namespace utility
 			return success;
 		}
 
-		inline static psl::string16_t replace_all(psl::string16::view str, psl::string16::view from, psl::string16::view to)
+		inline static psl::string16_t replace_all(psl::string16::view str, psl::string16::view from,
+												  psl::string16::view to)
 		{
 			psl::string16_t res{str};
 			replace_all(res, from, to);
@@ -463,10 +452,9 @@ namespace utility
 
 		inline static bool replace_all(psl::string32_t& str, psl::string32::view from, psl::string32::view to)
 		{
-			if(from.empty())
-				return false;
+			if(from.empty()) return false;
 			size_t start_pos = 0;
-			bool success = false;
+			bool success	 = false;
 			while((start_pos = str.find(from, start_pos)) != psl::string32_t::npos)
 			{
 				success = true;
@@ -476,17 +464,18 @@ namespace utility
 			return success;
 		}
 
-		inline static psl::string32_t replace_all(psl::string32::view str, psl::string32::view from, psl::string32::view to)
+		inline static psl::string32_t replace_all(psl::string32::view str, psl::string32::view from,
+												  psl::string32::view to)
 		{
 			psl::string32_t res{str};
 			replace_all(res, from, to);
 			return res;
 		}
-		
+
 		inline static size_t remove_all(psl::string8_t& str, psl::string8::view pattern)
 		{
 			size_t start_pos = 0;
-			size_t count = 0;
+			size_t count	 = 0;
 			while((start_pos = str.find(pattern, start_pos)) != psl::string8::view::npos)
 			{
 				++count;
@@ -495,9 +484,10 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string8_t& str, psl::string8::view pattern, size_t startOffset, size_t &endOffset)
+		inline static size_t remove_all(psl::string8_t& str, psl::string8::view pattern, size_t startOffset,
+										size_t& endOffset)
 		{
-			size_t count = 0;
+			size_t count	 = 0;
 			size_t start_pos = startOffset;
 			while((start_pos = str.find(pattern, start_pos)) != psl::string8_t::npos && start_pos < endOffset)
 			{
@@ -509,7 +499,8 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string8_t& str, const std::vector<psl::string8::view>& patterns, size_t startOffset, size_t &endOffset)
+		inline static size_t remove_all(psl::string8_t& str, const std::vector<psl::string8::view>& patterns,
+										size_t startOffset, size_t& endOffset)
 		{
 			size_t count = 0;
 			for(const auto& pattern : patterns)
@@ -522,7 +513,7 @@ namespace utility
 		inline static size_t remove_all(psl::string16_t& str, psl::string16::view pattern)
 		{
 			size_t start_pos = 0;
-			size_t count = 0;
+			size_t count	 = 0;
 			while((start_pos = str.find(pattern, start_pos)) != psl::string16::view::npos)
 			{
 				++count;
@@ -531,9 +522,10 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string16_t& str, psl::string16::view pattern, size_t startOffset, size_t &endOffset)
+		inline static size_t remove_all(psl::string16_t& str, psl::string16::view pattern, size_t startOffset,
+										size_t& endOffset)
 		{
-			size_t count = 0;
+			size_t count	 = 0;
 			size_t start_pos = startOffset;
 			while((start_pos = str.find(pattern, start_pos)) != psl::string16_t::npos && start_pos < endOffset)
 			{
@@ -545,7 +537,8 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string16_t& str, const std::vector<psl::string16::view>& patterns, size_t startOffset, size_t &endOffset)
+		inline static size_t remove_all(psl::string16_t& str, const std::vector<psl::string16::view>& patterns,
+										size_t startOffset, size_t& endOffset)
 		{
 			size_t count = 0;
 			for(const auto& pattern : patterns)
@@ -559,7 +552,7 @@ namespace utility
 		inline static size_t remove_all(psl::string32_t& str, psl::string32::view pattern)
 		{
 			size_t start_pos = 0;
-			size_t count = 0;
+			size_t count	 = 0;
 			while((start_pos = str.find(pattern, start_pos)) != psl::string32::view::npos)
 			{
 				++count;
@@ -568,9 +561,10 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string32_t& str, psl::string32::view pattern, size_t startOffset, size_t &endOffset)
+		inline static size_t remove_all(psl::string32_t& str, psl::string32::view pattern, size_t startOffset,
+										size_t& endOffset)
 		{
-			size_t count = 0;
+			size_t count	 = 0;
 			size_t start_pos = startOffset;
 			while((start_pos = str.find(pattern, start_pos)) != psl::string32_t::npos && start_pos < endOffset)
 			{
@@ -582,7 +576,8 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string32_t& str, const std::vector<psl::string32::view>& patterns, size_t startOffset, size_t &endOffset)
+		inline static size_t remove_all(psl::string32_t& str, const std::vector<psl::string32::view>& patterns,
+										size_t startOffset, size_t& endOffset)
 		{
 			size_t count = 0;
 			for(const auto& pattern : patterns)
@@ -591,7 +586,6 @@ namespace utility
 			}
 			return count;
 		}
-
 
 
 		static std::vector<size_t> locations(psl::string8::view s, psl::string8::view search)
@@ -635,102 +629,101 @@ namespace utility
 
 			return occurenceLocations;
 		}
-		
 
-		[[nodiscard]] static psl::string_view::size_type rfind_first_of(psl::string_view source, psl::string_view tokens,
-																				  const psl::string_view::size_type offset = psl::string_view::npos)
+
+		[[nodiscard]] static psl::string_view::size_type
+		rfind_first_of(psl::string_view source, psl::string_view tokens,
+					   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
-			size_t i = (offset == psl::string_view::npos)?source.size():offset;
-			do
+			size_t i = std::min(offset, source.size());
+			while(i != 0)
 			{
 				--i;
-				if(std::find(std::begin(tokens), std::end(tokens), source[i]) != std::end(tokens))
-					return i;
-			} while(i > 0);
+				if(std::find(std::begin(tokens), std::end(tokens), source[i]) != std::end(tokens)) return i;
+			}
 			return psl::string_view::npos;
 		}
 
-		[[nodiscard]] static psl::string_view::size_type rfind_first_of(psl::string_view source, psl::char_t token,
-																				  const psl::string_view::size_type offset = psl::string_view::npos)
+		[[nodiscard]] static psl::string_view::size_type
+		rfind_first_of(psl::string_view source, psl::char_t token,
+					   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
-			size_t i = (offset == psl::string_view::npos) ? source.size() : offset;
-			do
+			size_t i = std::min(offset, source.size());
+			while(i != 0)
 			{
 				--i;
-				if(token == source[i])
-					return i;
-			} while(i > 0);
-			return psl::string_view::npos;
-		}
-
-
-		[[nodiscard]] static psl::string_view::size_type rfind_first_not_of(psl::string_view source, psl::string_view tokens,
-																					  const psl::string_view::size_type offset = psl::string_view::npos)
-		{
-			size_t i = (offset == psl::string_view::npos) ? source.size() : offset;
-			do
-			{
-				--i;
-				if(std::find(std::begin(tokens), std::end(tokens), source[i]) == std::end(tokens))
-					return i;
-				
-			} while(i > 0);
-			return psl::string_view::npos;
-		}
-
-		[[nodiscard]] static psl::string_view::size_type rfind_first_not_of(psl::string_view source, psl::char_t token,
-																					  const psl::string_view::size_type offset = psl::string_view::npos)
-		{
-			size_t i = (offset == psl::string_view::npos) ? source.size() : offset;
-			do
-			{
-				--i;
-				if(token != source[i])
-					return i;
-			} while(i > 0);
+				if(token == source[i]) return i;
+			}
 			return psl::string_view::npos;
 		}
 
 
-		template<typename ... Args>
-		inline static psl::string8_t format(const psl::string8_t& target, Args ... args)
+		[[nodiscard]] static psl::string_view::size_type
+		rfind_first_not_of(psl::string_view source, psl::string_view tokens,
+						   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
-			size_t size = snprintf(nullptr, 0, target.c_str(), args ...) + 1; // Extra space for '\0'
+			size_t i = std::min(offset, source.size());
+
+			while(i != 0)
+			{
+				--i;
+				if(std::find(std::begin(tokens), std::end(tokens), source[i]) == std::end(tokens)) return i + 1;
+			}
+			return psl::string_view::npos;
+		}
+
+		[[nodiscard]] static psl::string_view::size_type
+		rfind_first_not_of(psl::string_view source, psl::char_t token,
+						   const psl::string_view::size_type offset = psl::string_view::npos)
+		{
+			size_t i = std::min(offset, source.size());
+
+			while(i != 0)
+			{
+				--i;
+				if(token != source[i]) return i + 1;
+			}
+			return psl::string_view::npos;
+		}
+
+
+		template <typename... Args>
+		inline static psl::string8_t format(const psl::string8_t& target, Args... args)
+		{
+			size_t size = snprintf(nullptr, 0, target.c_str(), args...) + 1; // Extra space for '\0'
 			std::unique_ptr<psl::string8::char_t[]> buf(new psl::string8::char_t[size]);
-			snprintf(buf.get(), size, target.c_str(), args ...);
+			snprintf(buf.get(), size, target.c_str(), args...);
 			return psl::string8_t(buf.get(), buf.get() + size - 1); // We don't want the '\0' inside
 		}
-	}
+	} // namespace string
 
 	namespace details
 	{
-		template<typename X, typename SFINEA = void>
+		template <typename X, typename SFINEA = void>
 		struct member_function_to_string : std::false_type
 		{};
 
-		template<typename X>
-		struct member_function_to_string<X,
-			std::void_t<decltype(std::declval<X &>().to_string())>
-		> : std::true_type
+		template <typename X>
+		struct member_function_to_string<X, std::void_t<decltype(std::declval<X&>().to_string())>> : std::true_type
 		{};
 
-		template<typename X, typename SFINEA = void>
+		template <typename X, typename SFINEA = void>
 		struct member_function_from_string : std::false_type
 		{};
 
-		template<typename X>
-		struct member_function_from_string<X,
-			std::void_t<decltype(std::declval<X &>().from_string(std::declval<psl::string8::view>()))>
-		> : std::true_type
+		template <typename X>
+		struct member_function_from_string<
+			X, std::void_t<decltype(std::declval<X&>().from_string(std::declval<psl::string8::view>()))>>
+			: std::true_type
 		{};
-	}
-	template<typename X>
+	} // namespace details
+	template <typename X>
 	struct converter
 	{
-		template < typename Y = X >
+		template <typename Y = X>
 		static typename std::enable_if_t<!std::is_enum<Y>::value, psl::string8_t> to_string(const X& x)
 		{
-			if constexpr(std::is_convertible < X, psl::string8_t>::value)
+			if constexpr(std::is_convertible<X, psl::string8_t>::value)
 			{
 				return x;
 			}
@@ -740,34 +733,39 @@ namespace utility
 			}
 			else
 			{
-				static_assert(utility::templates::always_false_v<X>, "no conversion possible from the given type, please write a converter specialization, or a publically accessible to_string() method.");
+				static_assert(utility::templates::always_false_v<X>,
+							  "no conversion possible from the given type, please write a converter specialization, or "
+							  "a publically accessible to_string() method.");
 			}
 		}
 
 
-		template < typename Y = X >
+		template <typename Y = X>
 		static typename std::enable_if_t<std::is_enum<Y>::value, psl::string8_t> to_string(const X& x)
-		{			
-			return converter<typename std::underlying_type<X>::type>::to_string(static_cast<typename std::underlying_type<X>::type>(x));			
+		{
+			return converter<typename std::underlying_type<X>::type>::to_string(
+				static_cast<typename std::underlying_type<X>::type>(x));
 		}
 
-		template < typename Y = X >
+		template <typename Y = X>
 		static typename std::enable_if_t<!std::is_enum<Y>::value, X> from_string(psl::string8::view str)
 		{
-			if constexpr(std::is_convertible <X, psl::string8_t>::value)
+			if constexpr(std::is_convertible<X, psl::string8_t>::value)
 			{
 				return psl::string8_t(str);
 			}
 			else
 			{
-				static_assert(utility::templates::always_false_v<X>, "no conversion possible from the given type, please write a converter specialization, or a publically accessible from_string(string_view) method.");
+				static_assert(utility::templates::always_false_v<X>,
+							  "no conversion possible from the given type, please write a converter specialization, or "
+							  "a publically accessible from_string(string_view) method.");
 			}
 		}
 
-		template < typename Y = X >
+		template <typename Y = X>
 		static typename std::enable_if_t<!std::is_enum<Y>::value, void> from_string(X& x, psl::string8::view str)
 		{
-			if constexpr(std::is_convertible <psl::string8_t, X>::value)
+			if constexpr(std::is_convertible<psl::string8_t, X>::value)
 			{
 				x = str;
 			}
@@ -777,11 +775,13 @@ namespace utility
 			}
 			else
 			{
-				static_assert(utility::templates::always_false_v<X>, "no conversion possible from the given type, please write a converter specialization, or a publically accessible from_string(string_view) method.");
+				static_assert(utility::templates::always_false_v<X>,
+							  "no conversion possible from the given type, please write a converter specialization, or "
+							  "a publically accessible from_string(string_view) method.");
 			}
 		}
 
-		template < typename Y = X >
+		template <typename Y = X>
 		static typename std::enable_if_t<std::is_enum<Y>::value, X> from_string(psl::string8::view str)
 		{
 			using enum_type = typename std::underlying_type<X>::type;
@@ -789,100 +789,61 @@ namespace utility
 		}
 	};
 
-	template<>
+	template <>
 	struct converter<psl::string8_t>
 	{
-		using value_t = psl::string8_t;
-		using view_t = psl::string8::view;
+		using value_t	= psl::string8_t;
+		using view_t	 = psl::string8::view;
 		using encoding_t = psl::string8_t;
 
-		static encoding_t to_string(const value_t& x)
-		{
-			return x;
-		}
+		static encoding_t to_string(const value_t& x) { return x; }
 
-		static value_t from_string(view_t str)
-		{
-			return value_t(str);
-		}
+		static value_t from_string(view_t str) { return value_t(str); }
 
-		static void from_string(value_t& out, view_t str)
-		{
-			out = str;
-		}
-		
-		static bool is_valid(view_t str)
-		{
-			return true;
-		}
+		static void from_string(value_t& out, view_t str) { out = str; }
+
+		static bool is_valid(view_t str) { return true; }
 	};
 
-	template<>
+	template <>
 	struct converter<psl::string16_t>
 	{
-		using value_t = psl::string16_t;
-		using view_t = psl::string8::view;
+		using value_t	= psl::string16_t;
+		using view_t	 = psl::string8::view;
 		using encoding_t = psl::string8_t;
 
-		static encoding_t to_string(const value_t& x)
-		{
-			return psl::string16::to_string8_t(x);
-		}
+		static encoding_t to_string(const value_t& x) { return psl::string16::to_string8_t(x); }
 
-		static value_t from_string(view_t str)
-		{
-			return psl::string16::from_string8_t(psl::string8_t{str});
-		}
+		static value_t from_string(view_t str) { return psl::string16::from_string8_t(psl::string8_t{str}); }
 
-		static void from_string(value_t& out, view_t str)
-		{
-			out = psl::string16::from_string8_t(psl::string8_t{str});
-		}
+		static void from_string(value_t& out, view_t str) { out = psl::string16::from_string8_t(psl::string8_t{str}); }
 
-		static bool is_valid(view_t str)
-		{
-			return true;
-		}
+		static bool is_valid(view_t str) { return true; }
 	};
-	
-	template<size_t N>
+
+	template <size_t N>
 	struct converter<char[N]>
 	{
-		using value_t = char[N];
-		using view_t = psl::string8::view;
+		using value_t	= char[N];
+		using view_t	 = psl::string8::view;
 		using encoding_t = psl::string8_t;
 
-		static encoding_t to_string(const value_t& x)
-		{
-			return x;
-		}
+		static encoding_t to_string(const value_t& x) { return x; }
 
-		static encoding_t from_string(view_t str)
-		{
-			return encoding_t(str);
-		}
+		static encoding_t from_string(view_t str) { return encoding_t(str); }
 
-		static void from_string(value_t& out, view_t str)
-		{
-			out = from_string(str);
-		}
+		static void from_string(value_t& out, view_t str) { out = from_string(str); }
 
-		static bool is_valid(view_t str)
-		{
-			return true;
-		}
+		static bool is_valid(view_t str) { return true; }
 	};
-	template<>
+	template <>
 	struct converter<bool>
 	{
-		static psl::string8_t to_string(const bool& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const bool& x) { return std::to_string(x); }
 
 		static bool from_string(psl::string8::view str)
 		{
-			psl::string8_t v{ str };
+			psl::string8_t v{str};
 			v = utility::string::to_lower(v);
 			return v == "1" || v == "t" || v == "true";
 		}
@@ -894,246 +855,182 @@ namespace utility
 		}
 	};
 
-	template<size_t N>
+	template <size_t N>
 	struct converter<std::bitset<N>>
 	{
-		using value_t = std::bitset<N>;
-		using view_t = psl::string8::view;
+		using value_t	= std::bitset<N>;
+		using view_t	 = psl::string8::view;
 		using encoding_t = psl::string8_t;
 
-		static encoding_t to_string(const value_t& x)
-		{
-			return x.to_string();
-		}
+		static encoding_t to_string(const value_t& x) { return x.to_string(); }
 
-		static value_t from_string(view_t str)
-		{
-			return value_t(encoding_t(str));
-		}
+		static value_t from_string(view_t str) { return value_t(encoding_t(str)); }
 
-		static void from_string(value_t& out, view_t str)
-		{
-			out = from_string(str);
-		}
-		
-		static bool is_valid(view_t str)
-		{
-			return str.find_first_not_of("0123456789") == view_t::npos;
-		}
+		static void from_string(value_t& out, view_t str) { out = from_string(str); }
+
+		static bool is_valid(view_t str) { return str.find_first_not_of("0123456789") == view_t::npos; }
 	};
 
 
-	template<>
+	template <>
 	struct converter<float>
 	{
-		static psl::string8_t to_string(const float& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const float& x) { return std::to_string(x); }
 
-		static float from_string(psl::string8::view str)
-		{
-			return std::stof(psl::string8_t(str));
-		}
+		static float from_string(psl::string8::view str) { return std::stof(psl::string8_t(str)); }
 	};
 
-	template<>
+	template <>
 	struct converter<double>
 	{
-		static psl::string8_t to_string(const double& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const double& x) { return std::to_string(x); }
 
-		static double from_string(psl::string8::view str)
-		{
-			return std::stod(psl::string8_t(str));
-		}
+		static double from_string(psl::string8::view str) { return std::stod(psl::string8_t(str)); }
 	};
 
-	template<>
+	template <>
 	struct converter<uint64_t>
 	{
-		static psl::string8_t to_string(const uint64_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const uint64_t& x) { return std::to_string(x); }
 
-		static uint64_t from_string(psl::string8::view str)
-		{
-			return std::stoull(psl::string8_t(str));
-		}
+		static uint64_t from_string(psl::string8::view str) { return std::stoull(psl::string8_t(str)); }
 		static uint64_t from_string(uint64_t& target, psl::string8::view str)
 		{
 			target = std::stoull(psl::string8_t(str));
 			return target;
 		}
 	};
-	template<>
+	template <>
 	struct converter<uint32_t>
 	{
-		static psl::string8_t to_string(const uint32_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const uint32_t& x) { return std::to_string(x); }
 
-		static uint32_t from_string(psl::string8::view str)
-		{
-			return std::stoul(psl::string8_t(str));
-		}
+		static uint32_t from_string(psl::string8::view str) { return std::stoul(psl::string8_t(str)); }
 	};
-	template<>
+	template <>
 	struct converter<uint16_t>
 	{
-		static psl::string8_t to_string(const uint16_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const uint16_t& x) { return std::to_string(x); }
 
-		static uint16_t from_string(psl::string8::view str)
-		{
-			return (uint16_t)std::stoul(psl::string8_t(str));
-		}
+		static uint16_t from_string(psl::string8::view str) { return (uint16_t)std::stoul(psl::string8_t(str)); }
 	};
 
-	template<>
+	template <>
 	struct converter<uint8_t>
 	{
-		static psl::string8_t to_string(const uint8_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const uint8_t& x) { return std::to_string(x); }
 
-		static uint8_t from_string(psl::string8::view str)
-		{
-			return (uint8_t)std::stoul(psl::string8_t(str));
-		}
+		static uint8_t from_string(psl::string8::view str) { return (uint8_t)std::stoul(psl::string8_t(str)); }
 	};
 
-	template<>
+	template <>
 	struct converter<int8_t>
 	{
-		static psl::string8_t to_string(const int8_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const int8_t& x) { return std::to_string(x); }
 
 		static int8_t from_string(psl::string8::view str)
 		{
 			int8_t x;
-		#if __has_include(<charconv>)
+#if __has_include(<charconv>)
 			std::from_chars(str.data(), str.data() + str.size(), x);
-		#else
+#else
 			return std::stoi(psl::string8_t(str));
-		#endif
+#endif
 			return x;
 		}
 	};
 
-	template<>
+	template <>
 	struct converter<int16_t>
 	{
-		static psl::string8_t to_string(const int16_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const int16_t& x) { return std::to_string(x); }
 
 		static int16_t from_string(psl::string8::view str)
 		{
 			int16_t x;
-		#if __has_include(<charconv>)
+#if __has_include(<charconv>)
 			std::from_chars(str.data(), str.data() + str.size(), x);
-		#else
+#else
 			return std::stoi(psl::string8_t(str));
-		#endif
+#endif
 			return x;
 		}
 	};
 
-	template<>
+	template <>
 	struct converter<int32_t>
 	{
-		static psl::string8_t to_string(const int32_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const int32_t& x) { return std::to_string(x); }
 
 		static int32_t from_string(psl::string8::view str)
 		{
 			int32_t x;
-		#if __has_include(<charconv>)
+#if __has_include(<charconv>)
 			std::from_chars(str.data(), str.data() + str.size(), x);
-		#else
+#else
 			return std::stoi(psl::string8_t(str));
-		#endif
+#endif
 			return x;
 		}
-
 	};
-	template<>
+	template <>
 	struct converter<int64_t>
 	{
-		static psl::string8_t to_string(const int64_t& x)
-		{
-			return std::to_string(x);
-		}
+		static psl::string8_t to_string(const int64_t& x) { return std::to_string(x); }
 
-		static int64_t from_string(psl::string8::view str)
-		{
-			return (int64_t)std::stoll(psl::string8_t(str));
-		}
+		static int64_t from_string(psl::string8::view str) { return (int64_t)std::stoll(psl::string8_t(str)); }
 	};
 	// short hand version that calls the converter for you
-	template<typename T>
+	template <typename T>
 	static T from_string(psl::string8::view str)
 	{
-	#ifndef CONVERTER_NOEXCEPT
+#ifndef CONVERTER_NOEXCEPT
 		try
 		{
-	#endif
-		return utility::converter<T>::from_string(str);
-	#ifndef CONVERTER_NOEXCEPT
+#endif
+			return utility::converter<T>::from_string(str);
+#ifndef CONVERTER_NOEXCEPT
 		}
 		catch(...)
 		{
 			return T{};
 		}
-	#endif
+#endif
 	}
 
 
-	template<typename T>
+	template <typename T>
 	static bool from_string(psl::string8::view str, T& out)
 	{
-	#ifndef CONVERTER_NOEXCEPT
+#ifndef CONVERTER_NOEXCEPT
 		try
 		{
-		#endif
+#endif
 			utility::converter<T>::from_string(out, str);
 			return true;
-		#ifndef CONVERTER_NOEXCEPT
+#ifndef CONVERTER_NOEXCEPT
 		}
 		catch(...)
 		{
 			return false;
 		}
-	#endif
+#endif
 	}
 
-	template<typename T>
+	template <typename T>
 	static psl::string8_t to_string(const T& target)
 	{
-	#ifndef CONVERTER_NOEXCEPT
+#ifndef CONVERTER_NOEXCEPT
 		try
 		{
-		#endif
+#endif
 			return utility::converter<T>::to_string(target);
-		#ifndef CONVERTER_NOEXCEPT
+#ifndef CONVERTER_NOEXCEPT
 		}
 		catch(...)
 		{
 			return {};
 		}
-	#endif
+#endif
 	}
-}
+} // namespace utility
