@@ -15,7 +15,7 @@ if(NOT skarupke_POPULATED)
   FetchContent_Populate(skarupke)
 endif()
 
-FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(fmt GIT_REPOSITORY https://github.com/fmtlib/fmt.git GIT_TAG 5.3.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(fmt)
 if(NOT fmt_POPULATED)
 	message(STATUS "fetching fmt...")
@@ -30,9 +30,9 @@ FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
 	message(STATUS "fetching spdlog...")
 	FetchContent_Populate(spdlog)
-	SET(SPDLOG_FMT_EXTERNAL ON)
-	set(fmt_DIR ${CMAKE_MODULE_PATH})
-	add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
+	#SET(SPDLOG_FMT_EXTERNAL ON)
+	#set(fmt_DIR ${CMAKE_MODULE_PATH})
+	#add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
 	message(STATUS "spdlog fetched")
 endif()
 
@@ -90,7 +90,10 @@ target_include_directories(${LOCAL_PROJECT}
 		${utf8cpp_SOURCE_DIR}/source
 		${rangev_SOURCE_DIR}/include
 		${skarupke_SOURCE_DIR}/
+		${spdlog_SOURCE_DIR}/include
 )
+target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
+
 if(USE_RANGEV)
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
@@ -99,9 +102,9 @@ target_include_directories(${LOCAL_PROJECT}
 endif()
 
 if(LINUX)
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt spdlog libc++experimental.a ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt libc++experimental.a ${CMAKE_THREAD_LIBS_INIT})
 else()
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt spdlog ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT})
 endif()
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
