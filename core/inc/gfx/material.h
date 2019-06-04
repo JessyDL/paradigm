@@ -3,6 +3,7 @@
 #include <optional>
 #include "systems/resource.h"
 #include "vulkan_stdafx.h"
+#include "gfx/details/instance.h"
 
 namespace core::data
 {
@@ -212,6 +213,10 @@ namespace core::gfx
 			return false;
 		};
 
+		psl::array_view<core::gfx::details::instance::element> instance_elements() const noexcept
+		{
+			return m_InstanceElements;
+		}
 	  private:
 		bool set(const core::resource::tag<core::gfx::geometry>& geometry, uint32_t id, uint32_t binding, const void* data,
 				 size_t size);
@@ -249,6 +254,7 @@ namespace core::gfx
 		std::unordered_map<psl::UID, core::resource::handle<core::gfx::pipeline>> m_Pipeline;
 		core::resource::handle<core::gfx::pipeline> m_Bound;
 
+		psl::array<core::gfx::details::instance::element> m_InstanceElements;
 		instance_data m_InstanceData;
 		/* m_MaterialData*/
 

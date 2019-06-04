@@ -32,8 +32,8 @@ namespace core::ecs::systems
 		render& operator=(const render&) = delete;
 		render& operator=(render&&) = delete;
 
-		void add_render_range(int begin, int end);
-		void remove_render_range(int begin, int end);
+		void add_render_range(uint32_t begin, uint32_t end);
+		void remove_render_range(uint32_t begin, uint32_t end);
 	  private:
 		void tick_draws(psl::ecs::info& info,
 			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
@@ -46,6 +46,6 @@ namespace core::ecs::systems
 		core::gfx::pass& m_Pass;
 
 		core::gfx::drawgroup m_DrawGroup{};
-		psl::array<std::pair<int, int>> m_RenderRanges;
+		psl::array<std::pair<uint32_t, uint32_t>> m_RenderRanges;
 	};
 } // namespace core::ecs::systems

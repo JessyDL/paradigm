@@ -80,7 +80,7 @@ const std::vector<material::blendstate>& material::blend_states() const { return
 const std::vector<psl::string8_t>& material::defines() const { return m_Defines.value; }
 vk::CullModeFlagBits material::cull_mode() const { return m_Culling.value; }
 vk::CompareOp material::depth_compare_op() const { return m_DepthCompareOp.value; }
-int material::render_priority() const { return m_RenderOrder.value; }
+uint32_t material::render_layer() const { return m_RenderLayer.value; }
 bool material::depth_test() const { return m_DepthTest.value; }
 bool material::depth_write() const { return m_DepthWrite.value; }
 bool material::wireframe() const { return m_Wireframe.value; }
@@ -90,7 +90,7 @@ void material::blend_states(const std::vector<blendstate>& values) { m_BlendStat
 void material::defines(const std::vector<psl::string8_t>& values) { m_Defines.value = values; }
 void material::cull_mode(vk::CullModeFlagBits value) { m_Culling.value = value; }
 void material::depth_compare_op(vk::CompareOp value) { m_DepthCompareOp.value = value; }
-void material::render_priority(int value) { m_RenderOrder.value = value; }
+void material::render_layer(uint32_t value) { m_RenderLayer.value = value; }
 void material::depth_test(bool value) { m_DepthTest.value = value; }
 void material::depth_write(bool value) { m_DepthWrite.value = value; }
 void material::wireframe(bool value) { m_Wireframe.value = value; }

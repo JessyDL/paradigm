@@ -27,6 +27,7 @@
 #include "vk/buffer.h"
 #include "vk/geometry.h"
 #include "gfx/material.h"
+#include "gfx/bundle.h"
 #include "gfx/pipeline_cache.h"
 #include "meta/shader.h"
 
@@ -533,6 +534,17 @@ int android_entry()
 
 #endif
 
+auto scaleSystem =
+	[](psl::ecs::info& info,
+	   psl::ecs::pack<psl::ecs::partial, core::ecs::components::transform, const core::ecs::components::lifetime>
+		   pack) {
+		for(auto [transform, lifetime] : pack)
+		{
+			auto remaining = std::min(0.5f, lifetime.value) * 2.0f;
+			transform.scale *= remaining;
+		}
+	};
+
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -579,12 +591,12 @@ int entry()
 	// create the buffer that we'll use for storing the WVP for the shaders;
 	auto frameCamBufferData = create<data::buffer>(cache);
 	frameCamBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
-						 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						 resource_region
-							 .create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
-											context_handle->properties().limits.minUniformBufferOffsetAlignment,
-											new memory::default_allocator(true))
-							 .value());
+							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+							resource_region
+								.create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
+											   context_handle->properties().limits.minUniformBufferOffsetAlignment,
+											   new memory::default_allocator(true))
+								.value());
 	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 	// memory::default_allocator(true)});
 	auto frameCamBuffer = create<gfx::buffer>(cache);
@@ -721,7 +733,7 @@ int entry()
 	auto matData = create<data::material>(cache);
 	matData.load();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	matData->render_priority(2000);
+	matData->render_layer(2000);
 	auto stages = matData->stages();
 	for(auto& stage : stages)
 	{
@@ -746,6 +758,7 @@ int entry()
 		// binding.texture()
 	}
 	matData2->stages(stages);
+	matData2->render_layer(2000);
 	psl::serialization::serializer s;
 	s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
 													  utility::application::path::get_path() + "material_example.mat");
@@ -755,6 +768,25 @@ int entry()
 
 	auto material2 = create<gfx::material>(cache);
 	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
+
+
+	auto mat_bundle = create<gfx::bundle>(cache);
+	mat_bundle.load(geomBuffer);
+	mat_bundle->set(material, 2000);
+	mat_bundle->set(material2, 2000);
+
+	// load depth pass material
+	/*{
+		auto vertDepthShaderMeta =
+			cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
+		auto fragDepthShaderMeta =
+			cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
+
+		matData = create<data::material>(cache);
+		matData.load();
+		matData->from_shaders(cache.library(), {vertDepthShaderMeta, fragDepthShaderMeta});
+	
+	}*/
 
 	core::gfx::render_graph renderGraph{};
 	auto& swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
@@ -780,8 +812,9 @@ int entry()
 	core::ecs::systems::render render_system{ECSState, swapchain_pass};
 	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	core::ecs::systems::gpu_camera gpu_camera_system{ ECSState, surface_handle, frameCamBuffer };
+	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer};
 
+	ECSState.declare(psl::ecs::threading::par, scaleSystem);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
@@ -789,26 +822,122 @@ int entry()
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-
-	// create post processing pass
-	auto postProcess = create<gfx::framebuffer>(cache);
+	// create depth pass
+	auto depthPass = create<gfx::framebuffer>(cache);
 	{
-		auto postProcessData = create<data::framebuffer>(cache);
-		postProcessData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
+		auto data = create<data::framebuffer>(cache);
+		data.load(surface_handle->data().width(), surface_handle->data().height(), 1);
 
-		// color attachment
 		{
 			vk::AttachmentDescription descr;
-			descr.format = vk::Format::eR8G8B8A8Unorm;
-			descr.samples = vk::SampleCountFlagBits::e1;
-			descr.loadOp = vk::AttachmentLoadOp::eClear;
-			descr.storeOp = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+			if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
+			{
+				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
+			}
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
 			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout = vk::ImageLayout::eUndefined;
-			descr.finalLayout = vk::ImageLayout::eColorAttachmentOptimal;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-			postProcessData->add(surface_handle->data().width(), surface_handle->data().height(), 1, vk::ImageUsageFlagBits::eColorAttachment, vk::ClearColorValue(std::array<float, 4>{ { 1.0f, 1.0f, 0.0f, 1.0f } }), descr);
+			data->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+					  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
+		}
+
+		{
+			auto ppsamplerData = create<data::sampler>(cache);
+			ppsamplerData.load();
+			ppsamplerData->mipmaps(false);
+			auto ppsamplerHandle = create<gfx::sampler>(cache);
+			ppsamplerHandle.load(context_handle, ppsamplerData);
+			data->set(ppsamplerHandle);
+		}
+
+		depthPass.load(context_handle, data);
+
+		auto ppMatData = create<data::material>(cache);
+		ppMatData.load();
+
+		data::material::stage vertexStage{};
+		// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
+
+		std::vector<data::material::stage> stages;
+	}
+
+	// create post processing pass
+	auto deferredFramebuffer = create<gfx::framebuffer>(cache);
+	{
+		auto deferredData = create<data::framebuffer>(cache);
+		deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
+
+		// position
+		{
+			vk::AttachmentDescription descr;
+			descr.format		 = vk::Format::eR16G16B16A16Sfloat;
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+							  vk::ImageUsageFlagBits::eColorAttachment,
+							  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
+		}
+
+		// normal
+		{
+			vk::AttachmentDescription descr;
+			descr.format		 = vk::Format::eR16G16B16A16Sfloat;
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+							  vk::ImageUsageFlagBits::eColorAttachment,
+							  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
+		}
+
+		// albedo
+		{
+			vk::AttachmentDescription descr;
+			descr.format		 = vk::Format::eR8G8B8A8Srgb;
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+							  vk::ImageUsageFlagBits::eColorAttachment,
+							  vk::ClearColorValue(std::array<float, 4>{{1.0f, 1.0f, 0.0f, 1.0f}}), descr);
+		}
+
+		// accumulation
+		{
+			vk::AttachmentDescription descr;
+			descr.format		 = vk::Format::eR8G8B8A8Srgb;
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+							  vk::ImageUsageFlagBits::eColorAttachment,
+							  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 0.0f}}), descr);
 		}
 
 		// depth attachment
@@ -818,15 +947,17 @@ int entry()
 			{
 				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
 			}
-			descr.samples = vk::SampleCountFlagBits::e1;
-			descr.loadOp = vk::AttachmentLoadOp::eClear;
-			descr.storeOp = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp = vk::AttachmentLoadOp::eDontCare;
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
 			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout = vk::ImageLayout::eUndefined;
-			descr.finalLayout = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-			postProcessData->add(surface_handle->data().width(), surface_handle->data().height(), 1, vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
+			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+							  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
+							  descr);
 		}
 
 		{
@@ -835,29 +966,30 @@ int entry()
 			ppsamplerData->mipmaps(false);
 			auto ppsamplerHandle = create<gfx::sampler>(cache);
 			ppsamplerHandle.load(context_handle, ppsamplerData);
-			postProcessData->set(ppsamplerHandle);
+			deferredData->set(ppsamplerHandle);
 		}
 
-		postProcess.load(context_handle, postProcessData);
+		deferredFramebuffer.load(context_handle, deferredData);
 
 		auto ppMatData = create<data::material>(cache);
 		ppMatData.load();
 
 		data::material::stage vertexStage{};
-		//vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
+		// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
 
 		std::vector<data::material::stage> stages;
 
 
-		//ppMatData->stages()
+		// ppMatData->stages()
 	}
 
-	auto& post_pass = renderGraph.create_pass(context_handle, postProcess);
-	core::ecs::systems::render render_system2{ECSState, post_pass};
-	render_system2.add_render_range(1000, 1999);
+	auto& shadow_pass = renderGraph.create_pass(context_handle, depthPass);
+	core::ecs::systems::render render_system2{ECSState, shadow_pass};
+	render_system2.add_render_range(1000, 7999);
 
-	renderGraph.add_dependency(post_pass, swapchain_pass);
-	//render_system2.pass().depends_on(render_system.pass());
+	renderGraph.add_dependency(shadow_pass, swapchain_pass);
+
+	// render_system2.pass().depends_on(render_system.pass());
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});

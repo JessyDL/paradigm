@@ -36,20 +36,21 @@ namespace core::resource
 	class handle;
 
 
-	template<typename T>
+	template <typename T>
 	class tag
 	{
-	public:
-		tag(const psl::UID& uid) : m_UID(uid) {};
-		~tag() = default;
+	  public:
+		tag(const psl::UID& uid) : m_UID(uid){};
+		~tag()			= default;
 		tag(const tag&) = default;
-		tag(tag&&) = default;
+		tag(tag&&)		= default;
 		tag& operator=(const tag&) = default;
 		tag& operator=(tag&&) = default;
 
-		operator const psl::UID&() const noexcept{return m_UID;};
-		const psl::UID& uid() const noexcept { return m_UID;};
-	private:
+		operator const psl::UID&() const noexcept { return m_UID; };
+		const psl::UID& uid() const noexcept { return m_UID; };
+
+	  private:
 		psl::UID m_UID{};
 	};
 
@@ -114,7 +115,7 @@ namespace core::resource
 			const psl::UID& uid() const noexcept { return m_UID; }
 
 		  private:
-			  psl::UID m_UID;
+			psl::UID m_UID;
 		};
 
 
@@ -471,7 +472,7 @@ namespace core::resource
 		const details::vtable& container<T>::m_vTable = details::vtable_for<container<T>>;
 	} // namespace details
 
-	template<typename T>
+	template <typename T>
 	class indirect_handle;
 
 	/// \brief wraps around a resource for sharing and management purposes.
@@ -491,7 +492,7 @@ namespace core::resource
 		handle()
 			: m_Cache(nullptr), uid(psl::UID::invalid_uid), resource_uid(uid){
 
-													   };
+															};
 
 		handle(cache& cache)
 			: m_Cache(&cache), uid(cache.library().create().first),
@@ -524,8 +525,8 @@ namespace core::resource
 		/// \details special form of the constructor that will create a detached clone of the handle you use as the
 		/// source. this will create a new resource, that branches off from the current state the other resource is in.
 		/// it invokes the copy constructor of the contained type, and so if it is not present, this will not compile.
-		template <typename... Args, typename = typename std::enable_if<
-										std::is_constructible<T, const T&, const psl::UID&, cache&, Args...>::value>::type>
+		template <typename... Args, typename = typename std::enable_if<std::is_constructible<
+										T, const T&, const psl::UID&, cache&, Args...>::value>::type>
 		handle(deep_copy_t, const handle& other, Args&&... args)
 			: m_Cache(other.m_Cache), uid(psl::UID::generate()),
 			  resource_uid((other.m_Cache->library().is_physical_file(other.resource_uid)) ? other.resource_uid : uid),
@@ -543,7 +544,7 @@ namespace core::resource
 		};
 		handle(const handle& other) = default;
 		handle& operator=(const handle& other) = default;
-		handle(handle&& other) = default;
+		handle(handle&& other)				   = default;
 		handle& operator=(handle&& other) = default;
 
 		operator const T&() const
@@ -556,24 +557,15 @@ namespace core::resource
 			throw std::runtime_error("tried to derefence a missing, or not loaded resource");
 		}
 
-		operator tag<T>() const
-		{
-			return tag<T>(uid);
-		}
+		operator tag<T>() const { return tag<T>(uid); }
 
 		/// \returns true of the handle has a valid, loaded object.
 		operator bool() const { return uid && (m_Container) && m_Container->m_State == state::LOADED; }
 
 		state resource_state() const noexcept { return (!m_Container) ? state::INVALID : m_Container->m_State; }
 
-		bool operator==(const handle& other)
-		{
-			return other.uid == uid;
-		}
-		bool operator!=(const handle& other)
-		{
-			return other.uid != uid;
-		}
+		bool operator==(const handle& other) { return other.uid == uid; }
+		bool operator!=(const handle& other) { return other.uid != uid; }
 		/// \returns true if the resource is loaded
 		/// \brief loads the resource with the given arguments.
 		/// \details loads the resource with the given arguments. In case
@@ -615,7 +607,8 @@ namespace core::resource
 							{
 								psl::serialization::serializer s;
 								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()), cont);
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
+																						 cont);
 							}
 						}
 						m_Container->m_State = state::LOADED;
@@ -643,7 +636,8 @@ namespace core::resource
 							{
 								psl::serialization::serializer s;
 								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()), cont);
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
+																						 cont);
 							}
 						}
 						m_Container->m_State = state::LOADED;
@@ -672,7 +666,8 @@ namespace core::resource
 							{
 								psl::serialization::serializer s;
 								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()), cont);
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
+																						 cont);
 							}
 						}
 						m_Container->m_State = state::LOADED;
@@ -732,13 +727,14 @@ namespace core::resource
 		const psl::UID& RUID() const noexcept { return resource_uid; }
 
 		template <typename... Args>
-		typename std::enable_if<std::is_constructible<T, const T&, const psl::UID&, cache&, Args...>::value, handle<T>>::type
+		typename std::enable_if<std::is_constructible<T, const T&, const psl::UID&, cache&, Args...>::value,
+								handle<T>>::type
 		copy(cache& cache, Args&&... args) const
 		{
 			PROFILE_SCOPE(core::profiler)
-			auto res =
-				(m_Cache->library().is_physical_file(resource_uid) ? handle<T>(cache, psl::UID::generate(), resource_uid)
-																   : handle<T>(cache));
+			auto res = (m_Cache->library().is_physical_file(resource_uid)
+							? handle<T>(cache, psl::UID::generate(), resource_uid)
+							: handle<T>(cache));
 
 			if(m_Container && m_Container->has_value())
 			{
@@ -750,12 +746,13 @@ namespace core::resource
 			return res;
 		}
 
-
+		const resource::cache& cache() const noexcept { return *m_Cache; };
+		resource::cache& cache() noexcept { return *m_Cache; };
 	  private:
-		cache* m_Cache;
-		psl::UID uid;		  // my actual UID
+		resource::cache* m_Cache;
+		psl::UID uid;		   // my actual UID
 		psl::UID resource_uid; // the disk based resource I'm based on, this can be the same like my actual uid if I'm a
-						  // shared resource, or it can be the same if I'm not a physical file.
+							   // shared resource, or it can be the same if I'm not a physical file.
 		std::shared_ptr<details::container<T>> m_Container;
 	};
 
@@ -800,9 +797,9 @@ namespace core::resource
 		return handle<T>(cache, base.RUID());
 	}
 
-	/// \details this will create a disconnected copy based on the source handle. This means that, for example, when the source
-	/// gets destroyed, this copy will keep existing, and when changes happen to either the source or copy, the changes
-	/// will not be applied to the other.
+	/// \details this will create a disconnected copy based on the source handle. This means that, for example, when the
+	/// source gets destroyed, this copy will keep existing, and when changes happen to either the source or copy, the
+	/// changes will not be applied to the other.
 	template <typename T, typename... Args>
 	static handle<T> copy(cache& cache, const handle<T>& source, Args&&... args)
 	{
@@ -812,62 +809,32 @@ namespace core::resource
 		return source.copy(cache, std::forward<Args>(args)...);
 	}
 
-	template<typename T>
+	template <typename T>
 	class indirect_handle
 	{
-	public:
+	  public:
 		indirect_handle() = default;
-		indirect_handle(const psl::UID& uid, cache* cache)  : m_Cache(cache), m_UID(uid) {};
-		indirect_handle(const handle<T>& handle) : m_Cache(handle.m_Cache), m_UID(handle.uid) {};
+		indirect_handle(const psl::UID& uid, cache* cache) : m_Cache(cache), m_UID(uid){};
+		indirect_handle(const handle<T>& handle) : m_Cache(handle.m_Cache), m_UID(handle.uid){};
 
-		operator const core::resource::handle<T>() const noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
-		operator core::resource::handle<T>() noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
-		operator const T&() const noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
-		operator T&() noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
+		operator const core::resource::handle<T>() const noexcept { return m_Cache->find<T>(m_UID); }
+		operator core::resource::handle<T>() noexcept { return m_Cache->find<T>(m_UID); }
+		operator const T&() const noexcept { return m_Cache->find<T>(m_UID); }
+		operator T&() noexcept { return m_Cache->find<T>(m_UID); }
 
-		operator const psl::UID&() const noexcept
-		{
-			return m_UID;
-		}
+		operator const psl::UID&() const noexcept { return m_UID; }
 
-		operator psl::UID() noexcept
-		{
-			return m_UID;
-		}
-		operator tag<T>() const
-		{
-			return tag<T>(m_UID);
-		}
+		operator psl::UID() noexcept { return m_UID; }
+		operator tag<T>() const { return tag<T>(m_UID); }
 
-		core::resource::handle<T> handle() const noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
+		core::resource::handle<T> handle() const noexcept { return m_Cache->find<T>(m_UID); }
 
-		const T& operator->() const noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
+		const T& operator->() const noexcept { return m_Cache->find<T>(m_UID); }
 
-		T& operator->() noexcept
-		{
-			return m_Cache->find<T>(m_UID);
-		}
+		T& operator->() noexcept { return m_Cache->find<T>(m_UID); }
 
 
-	private:
+	  private:
 		cache* m_Cache{nullptr};
 		psl::UID m_UID{};
 	};

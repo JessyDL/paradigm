@@ -35,8 +35,8 @@ void render::tick_draws(info& info,
 		for(auto [transform, renderable] : renderables)
 		{
 			if(!std::any_of(std::begin(m_RenderRanges), std::end(m_RenderRanges),
-							[priority = renderable.material.handle()->data()->render_priority()](
-								const std::pair<int, int>& range) {
+							[priority = renderable.material.handle()->data()->render_layer()](
+								const std::pair<uint32_t, uint32_t>& range) {
 								return range.first <= priority && priority <= range.second;
 							}))
 				continue;
@@ -48,8 +48,8 @@ void render::tick_draws(info& info,
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
 			{
 				if(!std::any_of(std::begin(m_RenderRanges), std::end(m_RenderRanges),
-								[priority = renderable.material.handle()->data()->render_priority()](
-									const std::pair<int, int>& range) {
+								[priority = renderable.material.handle()->data()->render_layer()](
+									const std::pair<uint32_t, uint32_t>& range) {
 									return range.first <= priority && priority <= range.second;
 								}))
 					continue;
@@ -61,12 +61,10 @@ void render::tick_draws(info& info,
 	}
 }
 
-void render::add_render_range(int begin, int end)
-{
+void render::add_render_range(uint32_t begin, uint32_t end) {
 	m_RenderRanges.emplace_back(std::make_pair(begin, end));
 }
 
-void render::remove_render_range(int begin, int end)
-{
+void render::remove_render_range(uint32_t begin, uint32_t end) {
 	throw std::runtime_error("not implemented");
 }

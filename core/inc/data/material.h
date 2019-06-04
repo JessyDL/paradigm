@@ -293,7 +293,7 @@ namespace core::data
 		const std::vector<psl::string8_t>& defines() const;
 		vk::CullModeFlagBits cull_mode() const;
 		vk::CompareOp depth_compare_op() const;
-		int render_priority() const;
+		uint32_t render_layer() const;
 		bool depth_test() const;
 		bool depth_write() const;
 		bool wireframe() const;
@@ -303,7 +303,7 @@ namespace core::data
 		void defines(const std::vector<psl::string8_t>& values);
 		void cull_mode(vk::CullModeFlagBits value);
 		void depth_compare_op(vk::CompareOp value);
-		void render_priority(int value);
+		void render_layer(uint32_t value);
 		void depth_test(bool value);
 		void depth_write(bool value);
 		void wireframe(bool value);
@@ -324,7 +324,7 @@ namespace core::data
 		{
 
 			serializer << m_Stage << m_Defines << m_Culling << m_DepthTest << m_DepthWrite << m_DepthCompareOp
-					   << m_BlendStates << m_RenderOrder << m_Wireframe;
+					   << m_BlendStates << m_RenderLayer << m_Wireframe;
 		}
 
 		static constexpr const char serialization_name[9]{"MATERIAL"};
@@ -337,7 +337,7 @@ namespace core::data
 
 		psl::serialization::property<vk::CompareOp, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
 			vk::CompareOp::eLessOrEqual};
-		psl::serialization::property<int, const_str("PRIORITY", 8)> m_RenderOrder{0};
+		psl::serialization::property<uint32_t, const_str("RENDER_LAYER", 12)> m_RenderLayer{0};
 		psl::serialization::property<bool, const_str("DEPTH_TEST", 10)> m_DepthTest{true};
 		psl::serialization::property<bool, const_str("DEPTH_WRITE", 11)> m_DepthWrite{true};
 		psl::serialization::property<bool, const_str("WIREFRAME_MODE", 14)> m_Wireframe{false};
