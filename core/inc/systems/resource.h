@@ -482,10 +482,10 @@ namespace core::resource
 	template <typename T>
 	class handle final
 	{
-		friend class cache;
+		friend class resource::cache;
 
 		friend class indirect_handle<T>;
-		handle(cache& cache, const psl::UID& uid, std::shared_ptr<details::container<T>>& container)
+		handle(resource::cache& cache, const psl::UID& uid, std::shared_ptr<details::container<T>>& container)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(container){};
 
 	  public:
@@ -494,7 +494,7 @@ namespace core::resource
 
 															};
 
-		handle(cache& cache)
+		handle(resource::cache& cache)
 			: m_Cache(&cache), uid(cache.library().create().first),
 			  m_Container(std::make_shared<details::container<T>>()), resource_uid(uid)
 		{
@@ -504,7 +504,7 @@ namespace core::resource
 		};
 
 		/// \note only used in the scenario of "create_shared"
-		handle(cache& cache, const psl::UID& uid)
+		handle(resource::cache& cache, const psl::UID& uid)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(std::make_shared<details::container<T>>())
 		{
 			PROFILE_SCOPE(core::profiler)
@@ -513,7 +513,7 @@ namespace core::resource
 						 m_Container->m_State, m_Container->m_vTable);
 		};
 
-		handle(cache& cache, const psl::UID& uid, const psl::UID& resource)
+		handle(resource::cache& cache, const psl::UID& uid, const psl::UID& resource)
 			: m_Cache(&cache), uid(uid), resource_uid(resource), m_Container(std::make_shared<details::container<T>>())
 		{
 			PROFILE_SCOPE(core::profiler)
@@ -526,7 +526,7 @@ namespace core::resource
 		/// source. this will create a new resource, that branches off from the current state the other resource is in.
 		/// it invokes the copy constructor of the contained type, and so if it is not present, this will not compile.
 		template <typename... Args, typename = typename std::enable_if<std::is_constructible<
-										T, const T&, const psl::UID&, cache&, Args...>::value>::type>
+										T, const T&, const psl::UID&, resource::cache&, Args...>::value>::type>
 		handle(deep_copy_t, const handle& other, Args&&... args)
 			: m_Cache(other.m_Cache), uid(psl::UID::generate()),
 			  resource_uid((other.m_Cache->library().is_physical_file(other.resource_uid)) ? other.resource_uid : uid),
@@ -621,36 +621,8 @@ namespace core::resource
 
 				return m_Container->m_State == state::LOADED;
 			}
-			else if constexpr(std::is_constructible<T, const psl::UID&, cache&, Args...>::value)
-			{
-				if(!uid) return false;
-
-				if(m_Container->m_State == state::NOT_LOADED || m_Container->m_State == state::UNLOADED)
-				{
-					m_Container->m_State = state::LOADING;
-					if(m_Container->set(uid, *m_Cache, std::forward<Args>(args)...))
-					{
-						if constexpr(psl::serialization::details::is_collection<T>::value)
-						{
-							if(auto result = m_Cache->library().load(resource_uid); result)
-							{
-								psl::serialization::serializer s;
-								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
-																						 cont);
-							}
-						}
-						m_Container->m_State = state::LOADED;
-					}
-					else
-					{
-						m_Container->m_State = state::INVALID;
-					}
-				}
-
-				return m_Container->m_State == state::LOADED;
-			}
-			else if constexpr(std::is_constructible<T, const psl::UID&, cache&, psl::meta::file*, Args...>::value)
+			else if constexpr(std::is_constructible<T, const psl::UID&, resource::cache&, psl::meta::file*,
+													Args...>::value)
 			{
 				if(!uid) return false;
 
@@ -680,8 +652,38 @@ namespace core::resource
 
 				return m_Container->m_State == state::LOADED;
 			}
+			else if constexpr(std::is_constructible<T, const psl::UID&, resource::cache&, Args...>::value)
+			{
+				if(!uid) return false;
+
+				if(m_Container->m_State == state::NOT_LOADED || m_Container->m_State == state::UNLOADED)
+				{
+					m_Container->m_State = state::LOADING;
+					if(m_Container->set(uid, *m_Cache, std::forward<Args>(args)...))
+					{
+						if constexpr(psl::serialization::details::is_collection<T>::value)
+						{
+							if(auto result = m_Cache->library().load(resource_uid); result)
+							{
+								psl::serialization::serializer s;
+								psl::format::container cont{result.value()};
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
+																						 cont);
+							}
+						}
+						m_Container->m_State = state::LOADED;
+					}
+					else
+					{
+						m_Container->m_State = state::INVALID;
+					}
+				}
+
+				return m_Container->m_State == state::LOADED;
+			}
 			else
 			{
+				static_assert(std::is_destructible_v<T>, "no destructor was provided, one should be provided");
 				static_assert(
 					utility::templates::always_false_v<T>,
 					"there was no suitable constructor for the given type that would accept these arguments.");
@@ -727,9 +729,9 @@ namespace core::resource
 		const psl::UID& RUID() const noexcept { return resource_uid; }
 
 		template <typename... Args>
-		typename std::enable_if<std::is_constructible<T, const T&, const psl::UID&, cache&, Args...>::value,
+		typename std::enable_if<std::is_constructible<T, const T&, const psl::UID&, resource::cache&, Args...>::value,
 								handle<T>>::type
-		copy(cache& cache, Args&&... args) const
+		copy(resource::cache& cache, Args&&... args) const
 		{
 			PROFILE_SCOPE(core::profiler)
 			auto res = (m_Cache->library().is_physical_file(resource_uid)
