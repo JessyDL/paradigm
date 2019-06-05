@@ -764,10 +764,10 @@ int entry()
 													  utility::application::path::get_path() + "material_example.mat");
 
 	auto material = create<gfx::material>(cache);
-	material.load(context_handle, matData, pipeline_cache, matBuffer, geomBuffer);
+	material.load(context_handle, matData, pipeline_cache, matBuffer);
 
 	auto material2 = create<gfx::material>(cache);
-	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
+	material2.load(context_handle, matData2, pipeline_cache, matBuffer);
 
 
 	auto mat_bundle = create<gfx::bundle>(cache);
