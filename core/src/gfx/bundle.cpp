@@ -2,12 +2,15 @@
 #include "gfx/bundle.h"
 #include "gfx/material.h"
 #include "data/material.h"
+#include "vk/buffer.h"
 
 using namespace core::gfx;
 using namespace core::resource;
 using namespace psl;
 using namespace core::gfx::details::instance;
 
+bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer)
+	: m_UID(uid), m_Cache(cache), m_InstanceData(buffer){};
 
 // ------------------------------------------------------------------------------------------------------------
 // material API
@@ -84,7 +87,11 @@ bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::ha
 {
 	if(!m_Bound) return false;
 
-	// todo write binding instance data here
+
+	for(const auto& b : m_InstanceData.bindings(m_Bound, geometry))
+	{
+		cmdBuffer.bindVertexBuffers(b.first, 1, &m_InstanceData.buffer()->gpu_buffer(), &b.second);
+	}
 
 	return true;
 }

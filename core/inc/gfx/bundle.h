@@ -6,14 +6,15 @@
 
 namespace core::gfx
 {
+	class buffer;
+
 	class bundle final
 	{
 
 	  public:
-		bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer)
-			: m_UID(uid), m_Cache(cache), m_InstanceData(buffer){};
+		bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer);
 
-		~bundle()				  = delete;
+		~bundle()				  = default;
 		bundle(const bundle&)	 = delete;
 		bundle(bundle&&) noexcept = delete;
 		bundle& operator=(const bundle&) = delete;

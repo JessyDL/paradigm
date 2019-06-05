@@ -8,9 +8,11 @@
 
 using namespace core::gfx;
 using namespace core::gfx::details::instance;
+using namespace core::resource;
 
 constexpr uint32_t default_capacity = 8;
 
+data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)
 {
 	if(m_Bindings.find(material.ID()) != std::end(m_Bindings)) return;
@@ -23,34 +25,28 @@ void data::add(core::resource::handle<material> material)
 
 		auto shader_handle = material.cache().find<core::gfx::shader>(stage.shader());
 
-		size_t max = 0;
+		data.reserve(shader_handle->meta()->instance_bindings().size());
 		for(const auto& vBinding : shader_handle->meta()->instance_bindings())
 		{
-			max = std::max(max, (size_t)vBinding.binding_slot() + 1);
-		}
-		data.resize(max);
-		for(const auto& vBinding : shader_handle->meta()->instance_bindings())
-		{
-			data[vBinding.binding_slot()] = binding{vBinding.buffer(), vBinding.size()};
+			data.emplace_back(binding{binding::header{vBinding.buffer(), vBinding.size()}, vBinding.binding_slot()});
 		}
 	}
 
 	for(const auto& d : data)
 	{
-		if(d.size_of_element == 0) continue;
-
 		auto it = std::find_if(std::begin(m_UniqueBindings), std::end(m_UniqueBindings),
-							   [&d](const auto& pair) { return pair.first == d; });
+							   [&d](const auto& pair) { return pair.first == d.description; });
 		if(it == std::end(m_UniqueBindings))
 		{
-			m_UniqueBindings.emplace_back(std::pair<binding, uint32_t>{d, 0});
+			m_UniqueBindings.emplace_back(std::pair<binding::header, uint32_t>{d.description, 0});
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
-				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() * d.size_of_element);
+				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() * d.description.size_of_element);
 				if(!res) core::gfx::log->error("could not allocate");
 
 				obj.data.emplace_back(res.value());
+				obj.description.emplace_back(d.description);
 			}
 		}
 		else
@@ -63,12 +59,13 @@ uint32_t data::add(core::resource::tag<core::gfx::geometry> uid)
 	auto it = m_InstanceData.find(uid.uid());
 	if(it == std::end(m_InstanceData))
 	{
-		it = m_InstanceData.emplace(object{uid, default_capacity}).first;
+		it = m_InstanceData.emplace(uid, object{uid, default_capacity}).first;
 		for(const auto& b : m_UniqueBindings)
 		{
 			auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
 			if(!res) core::gfx::log->error("could not allocate");
 			it->second.data.emplace_back(res.value());
+			it->second.description.emplace_back(b.first);
 		}
 	}
 
@@ -94,28 +91,7 @@ uint32_t data::add(core::resource::tag<core::gfx::geometry> uid)
 }
 
 
-void data::remove(core::resource::handle<material> material)
-{
-	for(const auto& stage : material->data()->stages())
-	{
-		auto shader_handle = material.cache().find<core::gfx::shader>(stage.shader());
-		for(const auto& vBinding : shader_handle->meta()->instance_bindings())
-		{
-			if(auto it = m_Bindings.find(binding{vBinding.buffer(), vBinding.size(), stage.shader_stage()});
-			   it != std::end(m_Bindings))
-			{
-				it->second -= 1;
-				if(it->second == 0)
-				{
-					for(auto& [uid, instance_object] : m_InstanceData)
-					{
-						if(instance_object. == it->first.name &&
-					}
-				}
-			}
-		}
-	}
-}
+void data::remove(core::resource::handle<material> material) {}
 
 
 uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcept
@@ -125,4 +101,30 @@ uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcep
 		return it->second.id_generator.size();
 	}
 	return 0;
+}
+
+
+psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> material, tag<geometry> geometry) const
+	noexcept
+{
+	psl::array<std::pair<size_t, std::uintptr_t>> result{};
+	if(auto matIt = m_Bindings.find(material); matIt != std::end(m_Bindings))
+	{
+		if(auto geomIt = m_InstanceData.find(geometry); geomIt != std::end(m_InstanceData))
+		{
+			size_t count = {0};
+			for(const auto& binding : matIt->second)
+			{
+				auto it = std::find_if(
+					std::begin(geomIt->second.description), std::end(geomIt->second.description),
+					[& bDescr = binding.description](const binding::header& descr) { return descr == bDescr; });
+
+				auto index	= std::distance(std::begin(geomIt->second.description), it);
+				auto& segment = *std::next(std::begin(geomIt->second.data));
+
+				result.emplace_back(binding.slot, segment.range().begin);
+			}
+		}
+	}
+	return result;
 }
