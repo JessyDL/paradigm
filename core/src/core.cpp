@@ -773,7 +773,10 @@ int entry()
 	auto mat_bundle = create<gfx::bundle>(cache);
 	mat_bundle.load(geomBuffer);
 	mat_bundle->set(material, 2000);
-	mat_bundle->set(material2, 2000);
+
+	auto mat_bundle2 = create<gfx::bundle>(cache);
+	mat_bundle2.load(geomBuffer);
+	mat_bundle2->set(material2, 2000);
 
 	// load depth pass material
 	/*{
@@ -998,9 +1001,9 @@ int entry()
 
 	ECSState.create(
 		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
-		[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
-			renderable = {(std::rand() % 2 == 0) ? material : material2,
-						  geometryHandles[std::rand() % geometryHandles.size()], 0u};
+		[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
+			renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
+						  geometryHandles[std::rand() % geometryHandles.size()]};
 		},
 		psl::ecs::empty<core::ecs::components::transform>{},
 		[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
@@ -1027,9 +1030,9 @@ int entry()
 
 		ECSState.create(
 			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
-			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
-				renderable = {(std::rand() % 2 == 0) ? material : material2,
-							  geometryHandles[std::rand() % geometryHandles.size()], 0u};
+			[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
+				renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
+							  geometryHandles[std::rand() % geometryHandles.size()]};
 			},
 			psl::ecs::empty<core::ecs::components::transform>{},
 			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },

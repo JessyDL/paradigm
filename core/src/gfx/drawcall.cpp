@@ -5,8 +5,8 @@
 using namespace psl;
 using namespace core::gfx;
 using namespace core::resource;
-drawcall::drawcall(handle<core::gfx::material> material, const std::vector<handle<geometry>>& geometry) noexcept
-	: m_Material(material)
+drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<geometry>>& geometry) noexcept
+	: m_Bundle(bundle)
 {
 	for(auto& g : geometry)
 		m_Geometry.emplace_back(g, 1);
@@ -59,6 +59,5 @@ bool drawcall::remove(const UID& geometry) noexcept
 	}
 	return false;
 }
-void drawcall::material(handle<core::gfx::material> material) noexcept {
-	m_Material = material; }
-core::resource::handle<core::gfx::material> drawcall::material() const noexcept { return m_Material;}
+void drawcall::bundle(handle<core::gfx::bundle> bundle) noexcept { m_Bundle = bundle; }
+core::resource::handle<core::gfx::bundle> drawcall::bundle() const noexcept { return m_Bundle; }

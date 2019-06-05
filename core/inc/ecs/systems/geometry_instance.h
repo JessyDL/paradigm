@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs/state.h"
-#include "gfx/material.h"
+#include "gfx/bundle.h"
 #include "vk/geometry.h"
 #include "systems/resource.h"
 #include "ecs/components/renderable.h"
@@ -26,7 +26,7 @@ namespace core::ecs::systems
 		profiler->scope_begin("release_all");
 		for(auto[renderable, transform] : geometry_pack)
 		{
-			renderable.material.handle()->release_all();
+			renderable.bundle.handle()->release_all();
 		}
 		profiler->scope_end();
 
@@ -35,7 +35,7 @@ namespace core::ecs::systems
 		for(size_t i = 0; i < geometry_pack.size(); ++i)
 		{
 			auto& renderer = std::get<const renderable&>(geometry_pack[i]);
-			UniqueCombinations[renderer.material][renderer.geometry].emplace_back(i);
+			UniqueCombinations[renderer.bundle][renderer.geometry].emplace_back(i);
 		}
 
 		profiler->scope_begin("create_all");
@@ -50,7 +50,7 @@ namespace core::ecs::systems
 
 				modelMats.clear();
 				auto& renderer = std::get<const renderable&>(geometry_pack[uniqueIndex.second[0]]);
-				auto materialHandle = renderer.material.handle();
+				auto materialHandle = renderer.bundle.handle();
 				auto geometryHandle = renderer.geometry.handle();
 
 				auto instanceID = materialHandle->instantiate(geometryHandle);

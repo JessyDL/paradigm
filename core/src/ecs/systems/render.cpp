@@ -30,41 +30,29 @@ void render::tick_draws(info& info,
 {
 	{
 		m_Pass.clear();
-		auto& default_layer = m_DrawGroup.layer("default", 0);
-		auto res			= renderables.get<const transform>();
-		for(auto [transform, renderable] : renderables)
-		{
-			if(!std::any_of(std::begin(m_RenderRanges), std::end(m_RenderRanges),
-							[priority = renderable.material.handle()->data()->render_layer()](
-								const std::pair<uint32_t, uint32_t>& range) {
-								return range.first <= priority && priority <= range.second;
-							}))
-				continue;
-			m_DrawGroup.add(default_layer, renderable.material).add(renderable.geometry);
-		}
 
-		for(auto [transform, renderable] : broken_renderables)
+		// for each RenderRange, create a drawgroup. assign all bundles to that group
+		for(auto renderRange : m_RenderRanges)
 		{
-			if(auto dCall = m_DrawGroup.get(default_layer, renderable.material))
+			auto& default_layer = m_DrawGroup.layer("default", renderRange.first, renderRange.second);
+			auto res			= renderables.get<const transform>();
+			for(auto [transform, renderable] : renderables)
 			{
-				if(!std::any_of(std::begin(m_RenderRanges), std::end(m_RenderRanges),
-								[priority = renderable.material.handle()->data()->render_layer()](
-									const std::pair<uint32_t, uint32_t>& range) {
-									return range.first <= priority && priority <= range.second;
-								}))
-					continue;
-				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
+				m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
+			}
+
+			for(auto [transform, renderable] : broken_renderables)
+			{
+				if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle))
+				{
+					dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
+				}
 			}
 		}
-
 		m_Pass.add(m_DrawGroup);
 	}
 }
 
-void render::add_render_range(uint32_t begin, uint32_t end) {
-	m_RenderRanges.emplace_back(std::make_pair(begin, end));
-}
+void render::add_render_range(uint32_t begin, uint32_t end) { m_RenderRanges.emplace_back(std::make_pair(begin, end)); }
 
-void render::remove_render_range(uint32_t begin, uint32_t end) {
-	throw std::runtime_error("not implemented");
-}
+void render::remove_render_range(uint32_t begin, uint32_t end) { throw std::runtime_error("not implemented"); }

@@ -55,12 +55,23 @@ void bundle::set(handle<material> material, std::optional<uint32_t> render_layer
 // ------------------------------------------------------------------------------------------------------------
 // render API
 // ------------------------------------------------------------------------------------------------------------
-bool bundle::bind_material(uint32_t renderlayer) noexcept 
+
+psl::array<uint32_t> bundle::materialIndices(uint32_t begin, uint32_t end) const noexcept
+{
+	psl::array<uint32_t> indices{};
+	for(auto layer : m_Layers)
+	{
+		if(layer >= begin && layer < end) indices.emplace_back(layer);
+	}
+	return indices;
+}
+
+bool bundle::bind_material(uint32_t renderlayer) noexcept
 {
 	m_Bound = {};
 	if(auto it = std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer); it != std::end(m_Layers))
 	{
-		auto index = std::distance(std::begin(m_Layers), std::prev(it));
+		auto index = std::distance(std::begin(m_Layers), it);
 		m_Bound	= m_Materials[index];
 		return true;
 	}
@@ -83,7 +94,7 @@ bool bundle::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<s
 	return true;
 }
 
-bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry) 
+bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry)
 {
 	if(!m_Bound) return false;
 
@@ -113,15 +124,14 @@ std::optional<uint32_t> bundle::instantiate(core::resource::tag<core::gfx::geome
 uint32_t bundle::size(tag<geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }
 bool bundle::has(tag<geometry> geometry) const noexcept { return size(geometry) > 0; }
 
-bool bundle::release(tag<geometry> geometry, uint32_t id) noexcept
-{ return m_InstanceData.erase(geometry, id); }
+bool bundle::release(tag<geometry> geometry, uint32_t id) noexcept { return m_InstanceData.erase(geometry, id); }
 
 bool bundle::release_all() noexcept { return m_InstanceData.clear(); };
 
-bool bundle::set(tag<geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element, const void* data, size_t size, size_t count)
+bool bundle::set(tag<geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
+				 const void* data, size_t size, size_t count)
 {
 	m_InstanceData.buffer()->commit({core::gfx::buffer::commit_instruction{
-		(void*)data, size * count, segment,
-		memory::range{size_of_element * id, size_of_element * (id + count)}}});
+		(void*)data, size * count, segment, memory::range{size_of_element * id, size_of_element * (id + count)}}});
 	return true;
 }

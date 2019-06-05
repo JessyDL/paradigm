@@ -125,7 +125,7 @@ psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> mater
 					[& bDescr = binding.description](const binding::header& descr) { return descr == bDescr; });
 
 				auto index	= std::distance(std::begin(geomIt->second.description), it);
-				auto& segment = *std::next(std::begin(geomIt->second.data));
+				auto& segment = *std::next(std::begin(geomIt->second.data), index);
 
 				result.emplace_back(binding.slot, segment.range().begin);
 			}

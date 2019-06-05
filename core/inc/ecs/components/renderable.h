@@ -3,7 +3,7 @@
 
 namespace core::gfx
 {
-	class material;
+	class bundle;
 	class geometry;
 }
 namespace core::ecs::components
@@ -11,13 +11,11 @@ namespace core::ecs::components
 	struct renderable
 	{
 		renderable() = default;
-		renderable(const core::resource::indirect_handle<core::gfx::material>& material, 
-				   const core::resource::indirect_handle<core::gfx::geometry>& geometry, 
-				   uint32_t layer) noexcept 
-			: material(material), geometry(geometry), layer(layer) {};
+		renderable(const core::resource::indirect_handle<core::gfx::bundle>& bundle, 
+				   const core::resource::indirect_handle<core::gfx::geometry>& geometry) noexcept 
+			: bundle(bundle), geometry(geometry){};
 
-		core::resource::indirect_handle<core::gfx::material> material{};
+		core::resource::indirect_handle<core::gfx::bundle> bundle{};
 		core::resource::indirect_handle<core::gfx::geometry> geometry{};
-		uint32_t layer{0};
 	};
 }

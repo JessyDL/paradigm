@@ -1,6 +1,6 @@
 #pragma once
 #include <vector>
-#include "gfx/material.h"
+#include "gfx/bundle.h"
 #include "vk/geometry.h"
 
 namespace core::resource
@@ -18,14 +18,14 @@ namespace psl
 namespace core::gfx
 {
 	class geometry;
-	class material;
+	class bundle;
 
 	class drawcall
 	{
 		friend class drawgroup;
 
 	  public:
-		drawcall(core::resource::handle<core::gfx::material> material,
+		drawcall(core::resource::handle<core::gfx::bundle> bundle,
 				 const std::vector<core::resource::handle<core::gfx::geometry>>& geometry = {}) noexcept;
 		~drawcall()				  = default;
 		drawcall(const drawcall&) = default;
@@ -37,10 +37,10 @@ namespace core::gfx
 		bool remove(core::resource::handle<core::gfx::geometry> geometry) noexcept;
 		bool remove(const psl::UID& geometry) noexcept;
 
-		void material(core::resource::handle<core::gfx::material> material) noexcept;
-		core::resource::handle<core::gfx::material> material() const noexcept;
+		void bundle(core::resource::handle<core::gfx::bundle> bundle) noexcept;
+		core::resource::handle<core::gfx::bundle> bundle() const noexcept;
 	  private:
-		core::resource::handle<core::gfx::material> m_Material;
+		core::resource::handle<core::gfx::bundle> m_Bundle;
 		std::vector<std::pair<core::resource::handle<core::gfx::geometry>, size_t>> m_Geometry;
 	};
 }

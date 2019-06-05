@@ -33,7 +33,7 @@ namespace core::gfx
 		// ------------------------------------------------------------------------------------------------------------
 		// render API
 		// ------------------------------------------------------------------------------------------------------------
-
+		psl::array<uint32_t> materialIndices(uint32_t begin, uint32_t end) const noexcept;
 		bool bind_material(uint32_t renderlayer) noexcept;
 
 		/// \brief prepares the material for rendering by binding the pipeline.
@@ -62,6 +62,7 @@ namespace core::gfx
 		/// \warning You have to call bind_pipeline before this.
 		bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry);
 
+		core::resource::handle<core::gfx::material> bound() const noexcept { return m_Bound; };
 		// ------------------------------------------------------------------------------------------------------------
 		// instance data API
 		// ------------------------------------------------------------------------------------------------------------
@@ -78,7 +79,7 @@ namespace core::gfx
 
 		template <typename T>
 		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, psl::string_view name,
-				 psl::array_view<T> values)
+				 const psl::array<T>& values)
 		{
 			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
 			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
@@ -88,13 +89,12 @@ namespace core::gfx
 				core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid());
 				return false;
 			}
-			return set(geometry, id, res.value().first, res.value().second(), values.data(), sizeof(T), values.size());
+			return set(geometry, id, res.value().first, res.value().second, values.data(), sizeof(T), values.size());
 		}
 
 	  private:
 		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment,
-				 uint32_t size_of_element, const void* data,
-				 size_t size, size_t count = 1);
+				 uint32_t size_of_element, const void* data, size_t size, size_t count = 1);
 
 		// ------------------------------------------------------------------------------------------------------------
 		// member variables

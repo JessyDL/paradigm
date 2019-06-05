@@ -159,6 +159,7 @@ namespace core::gfx
 		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
 						   uint32_t drawIndex);
 
+		private:
 		/// \brief prepares the material for rendering by binding the geometry's instance data.
 		/// \warning only call this in the context of recording the draw call, *after* you called bind_pipeline().
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
