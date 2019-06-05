@@ -113,13 +113,15 @@ std::optional<uint32_t> bundle::instantiate(core::resource::tag<core::gfx::geome
 uint32_t bundle::size(tag<geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }
 bool bundle::has(tag<geometry> geometry) const noexcept { return size(geometry) > 0; }
 
-bool bundle::bind(uint32_t layer, vk::CommandBuffer cmdBuffer, tag<geometry> geometry) const noexcept { return false; }
+bool bundle::release(tag<geometry> geometry, uint32_t id) noexcept
+{ return m_InstanceData.erase(geometry, id); }
 
-bool bundle::release(tag<geometry> geometry, uint32_t id) noexcept { return false; }
+bool bundle::release_all() noexcept { return m_InstanceData.clear(); };
 
-bool bundle::release_all() noexcept { return false; };
-
-bool bundle::set(tag<geometry> geometry, uint32_t id, uint32_t binding, const void* data, size_t size, size_t count)
+bool bundle::set(tag<geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element, const void* data, size_t size, size_t count)
 {
-	return false;
+	m_InstanceData.buffer()->commit({core::gfx::buffer::commit_instruction{
+		(void*)data, size * count, segment,
+		memory::range{size_of_element * id, size_of_element * (id + count)}}});
+	return true;
 }

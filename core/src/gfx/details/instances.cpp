@@ -50,7 +50,12 @@ void data::add(core::resource::handle<material> material)
 			}
 		}
 		else
+		{
+			if(it->first.size_of_element != d.description.size_of_element)
+				core::gfx::log->error(
+					"clash in material binding slots, names are unique and should be all the same size");
 			it->second += 1;
+		}
 	}
 }
 
@@ -127,4 +132,61 @@ psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> mater
 		}
 	}
 	return result;
+}
+
+
+bool data::has_element(tag<geometry> geometry, psl::string_view name) const noexcept
+{
+	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
+	{
+		return std::find_if(std::begin(it->second.description), std::end(it->second.description),
+							[&name](const auto& descr) { return descr.name == name; }) !=
+			   std::end(it->second.description);
+	}
+	return false;
+}
+
+std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> geometry, psl::string_view name) const
+	noexcept
+{
+	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
+	{
+		auto descrIt = std::find_if(std::begin(it->second.description), std::end(it->second.description),
+									[&name](const auto& descr) { return descr.name == name; });
+		if(descrIt != std::end(it->second.description))
+		{
+			auto index = std::distance(std::begin(it->second.description), descrIt);
+
+			return std::pair{*std::next(std::begin(it->second.data), index), descrIt->size_of_element};
+		}
+	}
+	return std::nullopt;
+}
+
+
+bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept
+{
+	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
+	{
+		it->second.id_generator.destroy(id);
+		return true;
+	}
+	return false;
+}
+bool data::clear(core::resource::tag<core::gfx::geometry> geometry) noexcept
+{
+	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
+	{
+		it->second.id_generator = psl::generator<uint32_t>{it->second.id_generator.capacity()};
+		return true;
+	}
+	return false;
+}
+bool data::clear() noexcept
+{
+	for(auto& [uid, obj] : m_InstanceData)
+	{
+		obj.id_generator = psl::generator<uint32_t>{obj.id_generator.capacity()};
+	}
+	return true;
 }

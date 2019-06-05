@@ -18,7 +18,7 @@ namespace core::gfx
 	class buffer;
 	class material;
 	class geometry;
-}
+} // namespace core::gfx
 
 namespace core::gfx::details::instance
 {
@@ -28,7 +28,7 @@ namespace core::gfx::details::instance
 		{
 			bool operator==(const header& b) const noexcept
 			{
-				return size_of_element == b.size_of_element && name == b.name;
+				return /*size_of_element == b.size_of_element && */ name == b.name;
 			}
 			psl::string name{};
 			uint32_t size_of_element{0};
@@ -72,7 +72,7 @@ namespace std
 		std::size_t operator()(const core::gfx::details::instance::binding::header& s) const noexcept
 		{
 			std::size_t seed = std::hash<psl::string>{}(s.name);
-			seed ^= (uint64_t)s.size_of_element + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			// seed ^= (uint64_t)s.size_of_element + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			return seed;
 		}
 	};
@@ -99,15 +99,20 @@ namespace core::gfx::details::instance
 
 		void remove(core::resource::handle<material> material);
 
-		bool has_element(psl::string_view name) const noexcept { return false; };
-		bool has_element(uint32_t binding) const noexcept { return false; };
 
+		bool has_element(core::resource::tag<core::gfx::geometry> geometry, psl::string_view name) const noexcept;
+		std::optional<std::pair<memory::segment, uint32_t>> segment(core::resource::tag<core::gfx::geometry> geometry,
+																	psl::string_view name) const noexcept;
 		uint32_t count(core::resource::tag<core::gfx::geometry> uid) const noexcept;
 
 		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<material> material,
 															   core::resource::tag<geometry> geometry) const noexcept;
 
 		core::resource::handle<core::gfx::buffer> buffer() const noexcept { return m_InstanceBuffer; }
+
+		bool erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
+		bool clear(core::resource::tag<core::gfx::geometry> geometry) noexcept;
+		bool clear() noexcept;
 
 	  private:
 		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;

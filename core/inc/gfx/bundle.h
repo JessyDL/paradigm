@@ -73,8 +73,6 @@ namespace core::gfx
 
 		uint32_t size(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
 		bool has(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		bool bind(uint32_t layer, vk::CommandBuffer cmdBuffer, core::resource::tag<core::gfx::geometry> geometry) const
-			noexcept;
 		bool release(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
 		bool release_all() noexcept;
 
@@ -84,16 +82,18 @@ namespace core::gfx
 		{
 			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
 			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
-			if(auto res = m_InstanceData.has_element(name); res)
+			auto res = m_InstanceData.segment(geometry, name);
+			if(!res)
 			{
-				return set(geometry, id, res.value().get().slot, values.data(), sizeof(T), values.size());
+				core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid());
+				return false;
 			}
-			core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid());
-			return false;
+			return set(geometry, id, res.value().first, res.value().second(), values.data(), sizeof(T), values.size());
 		}
 
 	  private:
-		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, uint32_t binding, const void* data,
+		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment,
+				 uint32_t size_of_element, const void* data,
 				 size_t size, size_t count = 1);
 
 		// ------------------------------------------------------------------------------------------------------------
