@@ -23,6 +23,8 @@ inc/gfx/material.h
 inc/gfx/pass.h
 inc/gfx/render_graph.h
 inc/gfx/pipeline_cache.h
+inc/gfx/bundle.h
+inc/gfx/details/instance.h
 
 inc/meta/shader.h
 inc/meta/texture.h

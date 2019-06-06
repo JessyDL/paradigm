@@ -17,6 +17,8 @@ src/gfx/material.cpp
 src/gfx/pass.cpp
 src/gfx/render_graph.cpp
 src/gfx/pipeline_cache.cpp
+src/gfx/bundle.cpp
+src/gfx/details/instance.cpp
 
 src/meta/shader.cpp
 src/meta/texture.cpp
