@@ -71,6 +71,192 @@ using namespace core::resource;
 using namespace core::gfx;
 using namespace core::os;
 
+using namespace psl::ecs;
+using namespace core::ecs::components;
+
+namespace core::ecs::components
+{
+	struct directional_shadow_caster_t
+	{};
+
+	struct direction_light
+	{
+		psl::vec4 color{1};
+	};
+} // namespace core::ecs::components
+
+namespace core::ecs::systems
+{
+	class lighting_system
+	{
+
+	  public:
+		lighting_system(psl::ecs::state& state, cache& cache, memory::region& resource_region, core::gfx::render_graph& renderGraph,
+						core::gfx::pass& pass, handle<context> context, handle<surface> surface)
+			: m_Cache(cache), m_State(state), m_RenderGraph(renderGraph), m_DependsPass(pass), m_Context(context),
+			  m_Surface(surface)
+		{
+			state.declare(&lighting_system::create_dir, this);
+
+			auto bufferData = create<data::buffer>(cache);
+			bufferData.load(
+				vk::BufferUsageFlagBits::eUniformBuffer,
+				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+				resource_region
+								.create_region(sizeof(direction_light) * 1024,
+								   m_Context->properties().limits.minUniformBufferOffsetAlignment,
+								   new memory::default_allocator(true))
+					.value());
+			// memory::region{sizeof(framedata)*128,
+			// context_handle->properties().limits.minUniformBufferOffsetAlignment, new
+			// memory::default_allocator(true)});
+			m_LightDataBuffer = create<gfx::buffer>(cache);
+			m_LightDataBuffer.load(m_Context, bufferData);
+			cache.library().set(m_LightDataBuffer.ID(), "GLOBAL_LIGHT_DATA");
+
+			m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
+		};
+
+		void create_dir(info& info,
+						pack<directional_shadow_caster_t, on_combine<directional_shadow_caster_t, transform>> pack)
+		{
+			// create depth pass
+			auto depthPass = create<gfx::framebuffer>(m_Cache);
+			{
+				auto data = create<data::framebuffer>(m_Cache);
+				data.load(m_Surface->data().width(), m_Surface->data().height(), 1);
+
+				{
+					vk::AttachmentDescription descr;
+					if(utility::vulkan::supported_depthformat(m_Context->physical_device(), &descr.format) != VK_TRUE)
+					{
+						LOG_FATAL("Could not find a suitable depth stencil buffer format.");
+					}
+					descr.samples		 = vk::SampleCountFlagBits::e1;
+					descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+					descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+					descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+					descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+					descr.initialLayout  = vk::ImageLayout::eUndefined;
+					descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+					data->add(m_Surface->data().width(), m_Surface->data().height(), 1,
+							  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
+							  descr);
+				}
+
+				{
+					auto ppsamplerData = create<data::sampler>(m_Cache);
+					ppsamplerData.load();
+					ppsamplerData->mipmaps(false);
+					auto ppsamplerHandle = create<gfx::sampler>(m_Cache);
+					ppsamplerHandle.load(m_Context, ppsamplerData);
+					data->set(ppsamplerHandle);
+				}
+
+				depthPass.load(m_Context, data);
+
+				auto ppMatData = create<data::material>(m_Cache);
+				ppMatData.load();
+
+				data::material::stage vertexStage{};
+				// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
+
+				std::vector<data::material::stage> stages;
+			}
+
+			auto& shadow_pass = m_RenderGraph.create_pass(m_Context, depthPass);
+			core::ecs::systems::render render_system{m_State, shadow_pass};
+			render_system.add_render_range(1000, 1500);
+
+			m_RenderGraph.add_dependency(shadow_pass, m_DependsPass);
+		};
+		void remove_dir(info& info,
+						pack<directional_shadow_caster_t, on_break<directional_shadow_caster_t, transform>> pack){};
+
+		void update_buffers(info& info, pack<direction_light> p){
+			// interface with GPU for sync actual light data such as color, etc..
+
+			std::vector<core::gfx::buffer::commit_instruction> instructions;
+			instructions.emplace_back((void*)&p.begin().get<0>(), sizeof(direction_light) * p.size(), m_LightSegment);
+			m_LightDataBuffer->commit(instructions);
+		};
+
+	  private:
+		cache& m_Cache;
+		core::gfx::render_graph& m_RenderGraph;
+		core::gfx::pass& m_DependsPass;
+		psl::ecs::state& m_State;
+		handle<context> m_Context;
+		handle<surface> m_Surface;
+		handle<buffer> m_LightDataBuffer;
+		memory::segment m_LightSegment;
+	};
+
+} // namespace core::ecs::systems
+
+handle<material> setup_example_material(resource::cache& cache, handle<context> context_handle,
+										handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer,
+										const psl::UID& texture)
+{
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
+
+	auto textureHandle = create<gfx::texture>(cache, texture);
+	textureHandle.load(context_handle);
+
+	// create the sampler
+	auto samplerData = create<data::sampler>(cache);
+	samplerData.load();
+	auto samplerHandle = create<gfx::sampler>(cache);
+	samplerHandle.load(context_handle, samplerData);
+
+	// load the example material
+	auto matData = create<data::material>(cache);
+	matData.load();
+	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+
+	auto stages = matData->stages();
+	for(auto& stage : stages)
+	{
+		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+
+		auto bindings = stage.bindings();
+		bindings[0].texture(textureHandle.RUID());
+		bindings[0].sampler(samplerHandle.RUID());
+		stage.bindings(bindings);
+		// binding.texture()
+	}
+	matData->stages(stages);
+
+	auto material = create<gfx::material>(cache);
+	material.load(context_handle, matData, pipeline_cache, matBuffer);
+
+
+	// psl::serialization::serializer s;
+	// s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
+	//												  utility::application::path::get_path() + "material_example.mat");
+
+	return material;
+}
+
+handle<material> setup_depth_material(resource::cache& cache, handle<context> context_handle,
+									  handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer)
+{
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
+
+
+	auto matData = create<data::material>(cache);
+
+	matData.load();
+	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+
+	auto material = create<gfx::material>(cache);
+	material.load(context_handle, matData, pipeline_cache, matBuffer);
+	return material;
+}
+
 #ifndef PLATFORM_ANDROID
 void setup_loggers()
 {
@@ -584,7 +770,7 @@ int entry()
 	auto stagingBufferData = create<data::buffer>(cache);
 	stagingBufferData.load(vk::BufferUsageFlagBits::eTransferSrc,
 						   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						   memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+						   memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto stagingBuffer = create<gfx::buffer>(cache);
 	stagingBuffer.load(context_handle, stagingBufferData);
 
@@ -611,7 +797,7 @@ int entry()
 	geomBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer |
 							vk::BufferUsageFlagBits::eTransferDst,
 						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto geomBuffer = create<gfx::buffer>(cache);
 	geomBuffer.load(context_handle, geomBufferData, stagingBuffer);
 
@@ -699,8 +885,6 @@ int entry()
 		if(surface_handle) surface_handle->terminate();
 		return -1;
 	}
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
 	// create the material buffer and instance buffer
 	auto matBufferData = create<data::buffer>(cache);
@@ -712,72 +896,31 @@ int entry()
 	auto matBuffer = create<gfx::buffer>(cache);
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
 
-	// create the texture
-	auto textureHandle = create<gfx::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
-	textureHandle.load(context_handle);
-
-	auto textureHandle2 = create<gfx::texture>(cache, "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
-	textureHandle2.load(context_handle);
-
-	// create the sampler
-	auto samplerData = create<data::sampler>(cache);
-	samplerData.load();
-	auto samplerHandle = create<gfx::sampler>(cache);
-	samplerHandle.load(context_handle, samplerData);
-
 	// create a pipeline cache
 	auto pipeline_cache = create<core::gfx::pipeline_cache>(cache);
 	pipeline_cache.load(context_handle);
 
-	// load the example material
-	auto matData = create<data::material>(cache);
-	matData.load();
-	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	matData->render_layer(2000);
-	auto stages = matData->stages();
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+	auto material		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
+											 "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
+	auto material2		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
+											 "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
+	auto depth_material = setup_depth_material(cache, context_handle, pipeline_cache, matBuffer);
 
-		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle.RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-		// binding.texture()
-	}
-	matData->stages(stages);
-	auto matData2 = resource::copy<data::material>(cache, matData);
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
-
-		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle2.RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-		// binding.texture()
-	}
-	matData2->stages(stages);
-	matData2->render_layer(2000);
-	psl::serialization::serializer s;
-	s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
-													  utility::application::path::get_path() + "material_example.mat");
-
-	auto material = create<gfx::material>(cache);
-	material.load(context_handle, matData, pipeline_cache, matBuffer);
-
-	auto material2 = create<gfx::material>(cache);
-	material2.load(context_handle, matData2, pipeline_cache, matBuffer);
-
+	auto instanceBufferData = create<data::buffer>(cache);
+	instanceBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+							vk::MemoryPropertyFlagBits::eDeviceLocal,
+							memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+	auto instanceBuffer = create<gfx::buffer>(cache);
+	instanceBuffer.load(context_handle, instanceBufferData, stagingBuffer);
 
 	auto mat_bundle = create<gfx::bundle>(cache);
-	mat_bundle.load(geomBuffer);
+	mat_bundle.load(instanceBuffer);
 	mat_bundle->set(material, 2000);
 
 	auto mat_bundle2 = create<gfx::bundle>(cache);
-	mat_bundle2.load(geomBuffer);
+	mat_bundle2.load(instanceBuffer);
 	mat_bundle2->set(material2, 2000);
-	mat_bundle2->set(material2, 1000);
+	mat_bundle2->set(depth_material, 1000);
 
 	// load depth pass material
 	/*{
@@ -789,7 +932,7 @@ int entry()
 		matData = create<data::material>(cache);
 		matData.load();
 		matData->from_shaders(cache.library(), {vertDepthShaderMeta, fragDepthShaderMeta});
-	
+	
 	}*/
 
 	core::gfx::render_graph renderGraph{};
