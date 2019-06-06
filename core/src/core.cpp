@@ -777,6 +777,7 @@ int entry()
 	auto mat_bundle2 = create<gfx::bundle>(cache);
 	mat_bundle2.load(geomBuffer);
 	mat_bundle2->set(material2, 2000);
+	mat_bundle2->set(material2, 1000);
 
 	// load depth pass material
 	/*{
@@ -988,7 +989,7 @@ int entry()
 
 	auto& shadow_pass = renderGraph.create_pass(context_handle, depthPass);
 	core::ecs::systems::render render_system2{ECSState, shadow_pass};
-	render_system2.add_render_range(1000, 7999);
+	render_system2.add_render_range(1000, 1500);
 
 	renderGraph.add_dependency(shadow_pass, swapchain_pass);
 

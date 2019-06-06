@@ -34,7 +34,8 @@ void render::tick_draws(info& info,
 		// for each RenderRange, create a drawgroup. assign all bundles to that group
 		for(auto renderRange : m_RenderRanges)
 		{
-			auto& default_layer = m_DrawGroup.layer("default", renderRange.first, renderRange.second);
+			auto& default_layer =
+				m_DrawGroup.layer("default", renderRange.first, renderRange.second - renderRange.first);
 			auto res			= renderables.get<const transform>();
 			for(auto [transform, renderable] : renderables)
 			{
