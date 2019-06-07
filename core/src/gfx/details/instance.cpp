@@ -42,7 +42,7 @@ void data::add(core::resource::handle<material> material)
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
-				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() * d.description.size_of_element);
+				auto res = m_InstanceBuffer->reserve(vk::DeviceSize(obj.id_generator.capacity()) * d.description.size_of_element);
 				if(!res) core::gfx::log->error("could not allocate");
 
 				obj.data.emplace_back(res.value());
@@ -67,7 +67,8 @@ uint32_t data::add(core::resource::tag<core::gfx::geometry> uid)
 		it = m_InstanceData.emplace(uid, object{uid, default_capacity}).first;
 		for(const auto& b : m_UniqueBindings)
 		{
-			auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
+			auto res =
+				m_InstanceBuffer->reserve(vk::DeviceSize{it->second.id_generator.capacity()} * b.first.size_of_element);
 			if(!res) core::gfx::log->error("could not allocate");
 			it->second.data.emplace_back(res.value());
 			it->second.description.emplace_back(b.first);
@@ -169,6 +170,13 @@ bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id)
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
 		it->second.id_generator.destroy(id);
+
+		if(it->second.id_generator.size() == 0)
+		{
+			for(auto& segment : it->second.data) m_InstanceBuffer->deallocate(segment);
+
+			m_InstanceData.erase(it);
+		}
 		return true;
 	}
 	return false;
@@ -177,7 +185,9 @@ bool data::clear(core::resource::tag<core::gfx::geometry> geometry) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
-		it->second.id_generator = psl::generator<uint32_t>{it->second.id_generator.capacity()};
+		for(auto& segment : it->second.data) m_InstanceBuffer->deallocate(segment);
+
+		m_InstanceData.erase(it);
 		return true;
 	}
 	return false;
@@ -186,7 +196,8 @@ bool data::clear() noexcept
 {
 	for(auto& [uid, obj] : m_InstanceData)
 	{
-		obj.id_generator = psl::generator<uint32_t>{obj.id_generator.capacity()};
+		for(auto& segment : obj.data) m_InstanceBuffer->deallocate(segment);
 	}
+	m_InstanceData.clear();
 	return true;
 }
