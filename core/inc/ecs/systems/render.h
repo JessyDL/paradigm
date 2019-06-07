@@ -5,6 +5,7 @@
 #include "gfx/drawgroup.h"
 #include "math/vec.h"
 #include "math/matrix.h"
+#include "view_ptr.h"
 
 namespace core::gfx
 {
@@ -23,7 +24,7 @@ namespace core::ecs::systems
 	class render
 	{
 	  public:
-		  render(psl::ecs::state& state, core::gfx::pass& pass);
+		render(psl::ecs::state& state, psl::view_ptr<core::gfx::pass> pass);
 
 		~render() = default;
 
@@ -43,7 +44,7 @@ namespace core::ecs::systems
 							psl::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
 				broken_renderables);
 
-		core::gfx::pass& m_Pass;
+		psl::view_ptr<core::gfx::pass> m_Pass;
 
 		core::gfx::drawgroup m_DrawGroup{};
 		psl::array<std::pair<uint32_t, uint32_t>> m_RenderRanges;

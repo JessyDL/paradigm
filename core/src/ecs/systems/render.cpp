@@ -19,7 +19,7 @@ using namespace psl;
 
 using std::chrono::duration;
 
-render::render(state& state, core::gfx::pass& pass) : m_Pass(pass)
+render::render(state& state, psl::view_ptr<core::gfx::pass> pass) : m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }
@@ -29,7 +29,7 @@ void render::tick_draws(info& info,
 						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
 {
 	{
-		m_Pass.clear();
+		m_Pass->clear();
 
 		// for each RenderRange, create a drawgroup. assign all bundles to that group
 		for(auto renderRange : m_RenderRanges)
@@ -50,7 +50,7 @@ void render::tick_draws(info& info,
 				}
 			}
 		}
-		m_Pass.add(m_DrawGroup);
+		m_Pass->add(m_DrawGroup);
 	}
 }
 

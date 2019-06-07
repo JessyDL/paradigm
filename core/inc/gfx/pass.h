@@ -3,6 +3,7 @@
 #include "systems/resource.h"
 #include <vector>
 #include "vulkan_stdafx.h"
+#include "view_ptr.h"
 
 namespace core::gfx
 {
@@ -73,7 +74,7 @@ namespace core::gfx
 		void add(core::gfx::drawgroup& group) noexcept;
 
 		/// \brief makes the current pass wait for the given pass to complete
-		void depends_on(pass& pass) noexcept;
+		void depends_on(psl::view_ptr<pass> pass) noexcept;
 
 		/// \brief removes an existing drawgroup from this pass' draw instructions.
 		void remove(const core::gfx::drawgroup& group) noexcept;

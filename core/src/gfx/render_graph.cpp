@@ -8,19 +8,19 @@ using namespace core::gfx;
 using core::resource::handle;
 
 
-pass& render_graph::create_pass(handle<context> context, handle<swapchain> swapchain)
+psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<swapchain> swapchain)
 {
 	auto& element = m_Passes.emplace_back();
 	element.pass = new pass(context, swapchain);
 
-	return *element.pass;
+	return psl::view_ptr<pass>{element.pass};
 }
-pass& render_graph::create_pass(handle<context> context, handle<framebuffer> framebuffer)
+psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<framebuffer> framebuffer)
 {
 	auto& element = m_Passes.emplace_back();
 	element.pass = new pass(context, framebuffer);
 
-	return *element.pass;
+	return psl::view_ptr<pass>{element.pass};
 }
 
 void render_graph::present()
@@ -44,15 +44,15 @@ void render_graph::present()
 	it_final->pass->present();
 }
 
-bool render_graph::add_dependency(core::gfx::pass& root, core::gfx::pass& child) noexcept
+bool render_graph::add_dependency(psl::view_ptr<core::gfx::pass> root, psl::view_ptr<core::gfx::pass> child) noexcept
 {
-	auto it_root = std::find_if(std::begin(m_Passes), std::end(m_Passes), [&root](const graph_element& element) { return &element.pass.get() == &root; });
-	auto it_child = std::find_if(std::begin(m_Passes), std::end(m_Passes),  [&child](const graph_element& element) { return &element.pass.get() == &child; });
+	auto it_root = std::find_if(std::begin(m_Passes), std::end(m_Passes), [&root](const graph_element& element) { return &element.pass.get() == root; });
+	auto it_child = std::find_if(std::begin(m_Passes), std::end(m_Passes),  [&child](const graph_element& element) { return &element.pass.get() == child; });
 
 	if (it_root != std::end(m_Passes) && it_child != std::end(m_Passes))
 	{
-		it_child->dependencies.emplace_back(&child);
-		it_child->pass->depends_on(*(it_root->pass));
+		it_child->dependencies.emplace_back(child);
+		it_child->pass->depends_on(it_root->pass);
 		return true;
 	}
 	return false;

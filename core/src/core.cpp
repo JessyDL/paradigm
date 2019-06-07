@@ -91,22 +91,23 @@ namespace core::ecs::systems
 	{
 
 	  public:
-		lighting_system(psl::ecs::state& state, cache& cache, memory::region& resource_region, core::gfx::render_graph& renderGraph,
-						core::gfx::pass& pass, handle<context> context, handle<surface> surface)
+		lighting_system(psl::ecs::state& state, cache& cache, memory::region& resource_region,
+						core::gfx::render_graph& renderGraph, psl::view_ptr<core::gfx::pass> pass,
+						handle<context> context,
+						handle<surface> surface)
 			: m_Cache(cache), m_State(state), m_RenderGraph(renderGraph), m_DependsPass(pass), m_Context(context),
 			  m_Surface(surface)
 		{
 			state.declare(&lighting_system::create_dir, this);
 
 			auto bufferData = create<data::buffer>(cache);
-			bufferData.load(
-				vk::BufferUsageFlagBits::eUniformBuffer,
-				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-				resource_region
+			bufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
+							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+							resource_region
 								.create_region(sizeof(direction_light) * 1024,
-								   m_Context->properties().limits.minUniformBufferOffsetAlignment,
-								   new memory::default_allocator(true))
-					.value());
+											   m_Context->properties().limits.minUniformBufferOffsetAlignment,
+											   new memory::default_allocator(true))
+								.value());
 			// memory::region{sizeof(framedata)*128,
 			// context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 			// memory::default_allocator(true)});
@@ -117,8 +118,7 @@ namespace core::ecs::systems
 			m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 		};
 
-		void create_dir(info& info,
-						pack<directional_shadow_caster_t, on_combine<directional_shadow_caster_t, transform>> pack)
+		void create_dir(info& info, pack<entity, on_combine<directional_shadow_caster_t, transform>> pack)
 		{
 			// create depth pass
 			auto depthPass = create<gfx::framebuffer>(m_Cache);
@@ -155,26 +155,22 @@ namespace core::ecs::systems
 				}
 
 				depthPass.load(m_Context, data);
-
-				auto ppMatData = create<data::material>(m_Cache);
-				ppMatData.load();
-
-				data::material::stage vertexStage{};
-				// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
-
-				std::vector<data::material::stage> stages;
 			}
 
-			auto& shadow_pass = m_RenderGraph.create_pass(m_Context, depthPass);
-			core::ecs::systems::render render_system{m_State, shadow_pass};
+			m_Passes[pack.get<entity>().begin()] = m_RenderGraph.create_pass(m_Context, depthPass);
+			core::ecs::systems::render render_system{m_State, m_Passes[pack.get<entity>().begin()]};
 			render_system.add_render_range(1000, 1500);
 
-			m_RenderGraph.add_dependency(shadow_pass, m_DependsPass);
+			m_RenderGraph.add_dependency(m_Passes[pack.get<entity>().begin()], m_DependsPass);
 		};
 		void remove_dir(info& info,
-						pack<directional_shadow_caster_t, on_break<directional_shadow_caster_t, transform>> pack){};
+						pack<directional_shadow_caster_t, on_break<directional_shadow_caster_t, transform>> pack)
+		{
+			//m_RenderGraph.remove_pass(m_Passes[pack.get<entity>().begin()]);
+		};
 
-		void update_buffers(info& info, pack<direction_light> p){
+		void update_buffers(info& info, pack<direction_light> p)
+		{
 			// interface with GPU for sync actual light data such as color, etc..
 
 			std::vector<core::gfx::buffer::commit_instruction> instructions;
@@ -185,13 +181,16 @@ namespace core::ecs::systems
 	  private:
 		cache& m_Cache;
 		core::gfx::render_graph& m_RenderGraph;
-		core::gfx::pass& m_DependsPass;
+		psl::view_ptr<core::gfx::pass> m_DependsPass;
 		psl::ecs::state& m_State;
 		handle<context> m_Context;
 		handle<surface> m_Surface;
 		handle<buffer> m_LightDataBuffer;
 		memory::segment m_LightSegment;
-	};
+
+		std::unordered_map<entity, psl::view_ptr<core::gfx::pass>> m_Passes;
+	
+};
 
 } // namespace core::ecs::systems
 
@@ -731,6 +730,7 @@ auto scaleSystem =
 		}
 	};
 
+
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -932,11 +932,21 @@ int entry()
 		matData = create<data::material>(cache);
 		matData.load();
 		matData->from_shaders(cache.library(), {vertDepthShaderMeta, fragDepthShaderMeta});
-	
+
+
+
+
+
+
+
+
+
+
+
 	}*/
 
 	core::gfx::render_graph renderGraph{};
-	auto& swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
+	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
 	// create the ecs
 	using psl::ecs::state;
 
@@ -1130,7 +1140,7 @@ int entry()
 		// ppMatData->stages()
 	}
 
-	auto& shadow_pass = renderGraph.create_pass(context_handle, depthPass);
+	auto shadow_pass = renderGraph.create_pass(context_handle, depthPass);
 	core::ecs::systems::render render_system2{ECSState, shadow_pass};
 	render_system2.add_render_range(1000, 1500);
 

@@ -320,7 +320,6 @@ void pass::remove(const core::gfx::drawgroup& group) noexcept
 void pass::clear() noexcept { m_AllGroups.clear(); }
 
 
-void pass::depends_on(pass& pass) noexcept
-{
-	m_WaitFor.emplace_back(pass.m_RenderComplete);
+void pass::depends_on(psl::view_ptr<pass> pass) noexcept {
+	m_WaitFor.emplace_back(pass->m_RenderComplete);
 }
