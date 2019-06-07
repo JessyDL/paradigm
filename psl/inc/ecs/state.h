@@ -10,7 +10,6 @@
 #include "details/component_info.h"
 #include "details/system_information.h"
 #include "unique_ptr.h"
-#include "bytell_map.h"
 #include "array.h"
 #include <chrono>
 #include "task.h"
@@ -243,27 +242,27 @@ namespace psl::ecs
 		}
 
 		template <typename Fn>
-		void declare(Fn&& fn)
+		void declare(Fn&& fn, bool seedWithExisting = false)
 		{
-			declare_impl(threading::sequential, std::forward<Fn>(fn));
+			declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
 		}
 
 
 		template <typename Fn>
-		void declare(threading threading, Fn&& fn)
+		void declare(threading threading, Fn&& fn, bool seedWithExisting = false)
 		{
-			declare_impl(threading, std::forward<Fn>(fn));
+			declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
 		}
 
 		template <typename Fn, typename T>
-		void declare(Fn&& fn, T* ptr)
+		void declare(Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr);
+			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting);
 		}
 		template <typename Fn, typename T>
-		void declare(threading threading, Fn&& fn, T* ptr)
+		void declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			declare_impl(threading, std::forward<Fn>(fn), ptr);
+			declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting);
 		}
 
 		size_t capacity() const noexcept { return m_Entities.size(); }
@@ -647,14 +646,14 @@ namespace psl::ecs
 		{};
 
 		template <typename Fn, typename T = void>
-		void declare_impl(threading threading, Fn&& fn, T* ptr = nullptr)
+		void declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
 
 			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-			std::function<std::vector<details::dependency_pack>()> pack_generator = []() {
+			std::function<std::vector<details::dependency_pack>(bool)> pack_generator = [](bool seedWithPrevious = false) {
 				using pack_t = typename get_packs<function_args>::type;
 				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
-														  psl::templates::type_container<pack_t>{});
+														  psl::templates::type_container<pack_t>{}, seedWithPrevious);
 			};
 
 			std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)> system_tick;
@@ -685,7 +684,8 @@ namespace psl::ecs
 					std::apply(fn, std::move(tuple_argument_list));
 				};
 			}
-			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick));
+			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
+											  seedWithExisting);
 		}
 
 		::memory::raw_region m_Cache{1024 * 1024 * 32};
