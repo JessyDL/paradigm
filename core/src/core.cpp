@@ -66,6 +66,8 @@
 #include "vk/framebuffer.h"
 #include "gfx/render_graph.h"
 
+#include "ecs/systems/lighting.h"
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -73,126 +75,6 @@ using namespace core::os;
 
 using namespace psl::ecs;
 using namespace core::ecs::components;
-
-namespace core::ecs::components
-{
-	struct directional_shadow_caster_t
-	{};
-
-	struct direction_light
-	{
-		psl::vec4 color{1};
-	};
-} // namespace core::ecs::components
-
-namespace core::ecs::systems
-{
-	class lighting_system
-	{
-
-	  public:
-		lighting_system(psl::ecs::state& state, cache& cache, memory::region& resource_region,
-						core::gfx::render_graph& renderGraph, psl::view_ptr<core::gfx::pass> pass,
-						handle<context> context,
-						handle<surface> surface)
-			: m_Cache(cache), m_State(state), m_RenderGraph(renderGraph), m_DependsPass(pass), m_Context(context),
-			  m_Surface(surface)
-		{
-			state.declare(&lighting_system::create_dir, this);
-
-			auto bufferData = create<data::buffer>(cache);
-			bufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
-							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-							resource_region
-								.create_region(sizeof(direction_light) * 1024,
-											   m_Context->properties().limits.minUniformBufferOffsetAlignment,
-											   new memory::default_allocator(true))
-								.value());
-			// memory::region{sizeof(framedata)*128,
-			// context_handle->properties().limits.minUniformBufferOffsetAlignment, new
-			// memory::default_allocator(true)});
-			m_LightDataBuffer = create<gfx::buffer>(cache);
-			m_LightDataBuffer.load(m_Context, bufferData);
-			cache.library().set(m_LightDataBuffer.ID(), "GLOBAL_LIGHT_DATA");
-
-			m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
-		};
-
-		void create_dir(info& info, pack<entity, on_combine<directional_shadow_caster_t, transform>> pack)
-		{
-			// create depth pass
-			auto depthPass = create<gfx::framebuffer>(m_Cache);
-			{
-				auto data = create<data::framebuffer>(m_Cache);
-				data.load(m_Surface->data().width(), m_Surface->data().height(), 1);
-
-				{
-					vk::AttachmentDescription descr;
-					if(utility::vulkan::supported_depthformat(m_Context->physical_device(), &descr.format) != VK_TRUE)
-					{
-						LOG_FATAL("Could not find a suitable depth stencil buffer format.");
-					}
-					descr.samples		 = vk::SampleCountFlagBits::e1;
-					descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-					descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-					descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-					descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-					descr.initialLayout  = vk::ImageLayout::eUndefined;
-					descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-					data->add(m_Surface->data().width(), m_Surface->data().height(), 1,
-							  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
-							  descr);
-				}
-
-				{
-					auto ppsamplerData = create<data::sampler>(m_Cache);
-					ppsamplerData.load();
-					ppsamplerData->mipmaps(false);
-					auto ppsamplerHandle = create<gfx::sampler>(m_Cache);
-					ppsamplerHandle.load(m_Context, ppsamplerData);
-					data->set(ppsamplerHandle);
-				}
-
-				depthPass.load(m_Context, data);
-			}
-
-			m_Passes[pack.get<entity>().begin()] = m_RenderGraph.create_pass(m_Context, depthPass);
-			core::ecs::systems::render render_system{m_State, m_Passes[pack.get<entity>().begin()]};
-			render_system.add_render_range(1000, 1500);
-
-			m_RenderGraph.add_dependency(m_Passes[pack.get<entity>().begin()], m_DependsPass);
-		};
-		void remove_dir(info& info,
-						pack<directional_shadow_caster_t, on_break<directional_shadow_caster_t, transform>> pack)
-		{
-			//m_RenderGraph.remove_pass(m_Passes[pack.get<entity>().begin()]);
-		};
-
-		void update_buffers(info& info, pack<direction_light> p)
-		{
-			// interface with GPU for sync actual light data such as color, etc..
-
-			std::vector<core::gfx::buffer::commit_instruction> instructions;
-			instructions.emplace_back((void*)&p.begin().get<0>(), sizeof(direction_light) * p.size(), m_LightSegment);
-			m_LightDataBuffer->commit(instructions);
-		};
-
-	  private:
-		cache& m_Cache;
-		core::gfx::render_graph& m_RenderGraph;
-		psl::view_ptr<core::gfx::pass> m_DependsPass;
-		psl::ecs::state& m_State;
-		handle<context> m_Context;
-		handle<surface> m_Surface;
-		handle<buffer> m_LightDataBuffer;
-		memory::segment m_LightSegment;
-
-		std::unordered_map<entity, psl::view_ptr<core::gfx::pass>> m_Passes;
-	
-};
-
-} // namespace core::ecs::systems
 
 handle<material> setup_example_material(resource::cache& cache, handle<context> context_handle,
 										handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer,
@@ -979,174 +861,129 @@ int entry()
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-	// create depth pass
-	auto depthPass = create<gfx::framebuffer>(cache);
-	{
-		auto data = create<data::framebuffer>(cache);
-		data.load(surface_handle->data().width(), surface_handle->data().height(), 1);
+	core::ecs::systems::lighting_system lighting{psl::view_ptr(&ECSState), psl::view_ptr(&cache),
+												 resource_region,
+												 psl::view_ptr(&renderGraph),
+												 swapchain_pass, context_handle, surface_handle};
 
-		{
-			vk::AttachmentDescription descr;
-			if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
-			{
-				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
-			}
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-			data->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-					  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
-		}
-
-		{
-			auto ppsamplerData = create<data::sampler>(cache);
-			ppsamplerData.load();
-			ppsamplerData->mipmaps(false);
-			auto ppsamplerHandle = create<gfx::sampler>(cache);
-			ppsamplerHandle.load(context_handle, ppsamplerData);
-			data->set(ppsamplerHandle);
-		}
-
-		depthPass.load(context_handle, data);
-
-		auto ppMatData = create<data::material>(cache);
-		ppMatData.load();
-
-		data::material::stage vertexStage{};
-		// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
-
-		std::vector<data::material::stage> stages;
-	}
 
 	// create post processing pass
-	auto deferredFramebuffer = create<gfx::framebuffer>(cache);
-	{
-		auto deferredData = create<data::framebuffer>(cache);
-		deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
+	//auto deferredFramebuffer = create<gfx::framebuffer>(cache);
+	//{
+	//	auto deferredData = create<data::framebuffer>(cache);
+	//	deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
 
-		// position
-		{
-			vk::AttachmentDescription descr;
-			descr.format		 = vk::Format::eR16G16B16A16Sfloat;
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+	//	// position
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR16G16B16A16Sfloat;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
 
-			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-							  vk::ImageUsageFlagBits::eColorAttachment,
-							  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
-		}
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
+	//	}
 
-		// normal
-		{
-			vk::AttachmentDescription descr;
-			descr.format		 = vk::Format::eR16G16B16A16Sfloat;
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+	//	// normal
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR16G16B16A16Sfloat;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
 
-			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-							  vk::ImageUsageFlagBits::eColorAttachment,
-							  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
-		}
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
+	//	}
 
-		// albedo
-		{
-			vk::AttachmentDescription descr;
-			descr.format		 = vk::Format::eR8G8B8A8Srgb;
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+	//	// albedo
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR8G8B8A8Srgb;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
 
-			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-							  vk::ImageUsageFlagBits::eColorAttachment,
-							  vk::ClearColorValue(std::array<float, 4>{{1.0f, 1.0f, 0.0f, 1.0f}}), descr);
-		}
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{1.0f, 1.0f, 0.0f, 1.0f}}), descr);
+	//	}
 
-		// accumulation
-		{
-			vk::AttachmentDescription descr;
-			descr.format		 = vk::Format::eR8G8B8A8Srgb;
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+	//	// accumulation
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR8G8B8A8Srgb;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
 
-			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-							  vk::ImageUsageFlagBits::eColorAttachment,
-							  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 0.0f}}), descr);
-		}
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 0.0f}}), descr);
+	//	}
 
-		// depth attachment
-		{
-			vk::AttachmentDescription descr;
-			if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
-			{
-				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
-			}
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	//	// depth attachment
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
+	//		{
+	//			LOG_FATAL("Could not find a suitable depth stencil buffer format.");
+	//		}
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-			deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-							  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
-							  descr);
-		}
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
+	//						  descr);
+	//	}
 
-		{
-			auto ppsamplerData = create<data::sampler>(cache);
-			ppsamplerData.load();
-			ppsamplerData->mipmaps(false);
-			auto ppsamplerHandle = create<gfx::sampler>(cache);
-			ppsamplerHandle.load(context_handle, ppsamplerData);
-			deferredData->set(ppsamplerHandle);
-		}
+	//	{
+	//		auto ppsamplerData = create<data::sampler>(cache);
+	//		ppsamplerData.load();
+	//		ppsamplerData->mipmaps(false);
+	//		auto ppsamplerHandle = create<gfx::sampler>(cache);
+	//		ppsamplerHandle.load(context_handle, ppsamplerData);
+	//		deferredData->set(ppsamplerHandle);
+	//	}
 
-		deferredFramebuffer.load(context_handle, deferredData);
+	//	deferredFramebuffer.load(context_handle, deferredData);
 
-		auto ppMatData = create<data::material>(cache);
-		ppMatData.load();
+	//	auto ppMatData = create<data::material>(cache);
+	//	ppMatData.load();
 
-		data::material::stage vertexStage{};
-		// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
+	//	data::material::stage vertexStage{};
+	//	// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
 
-		std::vector<data::material::stage> stages;
+	//	std::vector<data::material::stage> stages;
 
 
-		// ppMatData->stages()
-	}
+	//	// ppMatData->stages()
+	//}
 
-	auto shadow_pass = renderGraph.create_pass(context_handle, depthPass);
-	core::ecs::systems::render render_system2{ECSState, shadow_pass};
-	render_system2.add_render_range(1000, 1500);
-
-	renderGraph.add_dependency(shadow_pass, swapchain_pass);
-
-	// render_system2.pass().depends_on(render_system.pass());
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
@@ -1227,6 +1064,12 @@ int entry()
 					});
 			}
 			--iterations;
+		}
+
+		if(iterations == 25590)
+		{
+			ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
+							psl::ecs::empty<core::ecs::components::directional_shadow_caster_t>{});
 		}
 	}
 

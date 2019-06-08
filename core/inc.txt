@@ -42,6 +42,7 @@ inc/ecs/systems/geometry_instance.h
 inc/ecs/systems/attractor.h
 inc/ecs/systems/movement.h
 inc/ecs/systems/gpu_camera.h
+inc/ecs/systems/lighting.h
 
 inc/ecs/components/camera.h
 inc/ecs/components/transform.h
