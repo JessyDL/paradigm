@@ -6,6 +6,10 @@ namespace psl
 	template <typename T>
 	class unique_ptr;
 
+	/// \brief a non-owning 'smart' pointer type
+	///
+	/// \details A wrapper object that can contain a pointer to either null, or any type.
+	/// It will not do any operations on the pointer that would imply ownership (such as cleaning up).
 	template <typename T>
 	class view_ptr
 	{
