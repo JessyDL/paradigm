@@ -2,6 +2,7 @@
 #include "systems/resource.h"
 #include "unique_ptr.h"
 #include "view_ptr.h"
+#include "array_view.h"
 
 namespace core::gfx
 {
@@ -15,7 +16,8 @@ namespace core::gfx
 		struct graph_element
 		{
 			psl::unique_ptr<core::gfx::pass> pass;
-			psl::array<core::gfx::pass*> dependencies;
+			psl::array<psl::view_ptr<core::gfx::pass>> connected_by;
+			psl::array<psl::view_ptr<core::gfx::pass>> connects_to;
 		};
 
 	  public:
@@ -24,12 +26,18 @@ namespace core::gfx
 		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::gfx::context> context,
 												   core::resource::handle<core::gfx::framebuffer> framebuffer);
 
-		bool add_dependency(psl::view_ptr<core::gfx::pass> root, psl::view_ptr<core::gfx::pass> child) noexcept;
+		bool connect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
+		bool disconnect(psl::view_ptr<pass> pass) noexcept;
+		bool disconnect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
 
+		bool erase(psl::view_ptr<pass> pass) noexcept;
 		void present();
 
 	  private:
+		void rebuild() noexcept;
 		psl::array<graph_element> m_Passes;
 		psl::array<psl::array<graph_element*>> m_Graph;
+
+		bool m_Rebuild{false};
 	};
 } // namespace core::gfx

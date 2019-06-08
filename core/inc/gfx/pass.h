@@ -74,13 +74,17 @@ namespace core::gfx
 		void add(core::gfx::drawgroup& group) noexcept;
 
 		/// \brief makes the current pass wait for the given pass to complete
-		void depends_on(psl::view_ptr<pass> pass) noexcept;
+		void connect(psl::view_ptr<pass> pass) noexcept;
+
+		void disconnect(psl::view_ptr<pass> pass) noexcept;
 
 		/// \brief removes an existing drawgroup from this pass' draw instructions.
 		void remove(const core::gfx::drawgroup& group) noexcept;
 
 		/// \brief removes all drawgroups from this pass' draw instructions.
 		void clear() noexcept;
+
+		bool is_swapchain() const noexcept;
 	  private:
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
 		/// \param[in] size the amount of fences to create.
