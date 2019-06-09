@@ -6,6 +6,71 @@
 namespace psl
 {
 	template <typename... Ts>
+	class tuple_ref
+	{
+	  public:
+		tuple_ref(const std::tuple<Ts&...>& data) : data(&std::get<Ts&>(data)...){};
+
+		template <typename... Ys>
+		tuple_ref(Ys&&... data) : data(&std::forward<Ys>(data)...){};
+		~tuple_ref()
+		{
+			if(m_Internal)
+			{
+				(delete(std::get<Ts*>(data)), ...);
+			}
+		}
+		tuple_ref(const tuple_ref& other) noexcept : data(*std::get<Ts*>(other.data)...){};
+		tuple_ref(tuple_ref&& other) noexcept : data(new Ts(*std::get<Ts*>(other.data))...), m_Internal(true){};
+		tuple_ref& operator=(const tuple_ref& other) noexcept
+		{
+			if(this != &other)
+			{
+				(void(*std::get<Ts*>(data) = *(std::get<Ts*>(other.data))), ...);
+			}
+			return *this;
+		};
+		tuple_ref& operator=(tuple_ref&& other) noexcept
+		{
+			if(this != &other)
+			{
+				(void(*std::get<Ts*>(data) = std::move(*std::get<Ts*>(other.data))), ...);
+			}
+			return *this;
+		};
+
+		template <size_t N>
+		auto& get() noexcept
+		{
+			return *std::get<N>(data);
+		}
+
+		template <typename T>
+		T& get() noexcept
+		{
+			return *std::get<T*>(data);
+		}
+
+		template <size_t N>
+		const auto& get() const noexcept
+		{
+			return *std::get<N>(data);
+		}
+
+		template <typename T>
+		const T& get() const noexcept
+		{
+			return *std::get<T*>(data);
+		}
+
+		operator std::tuple<Ts&...>&() noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
+		operator const std::tuple<Ts&...>&() const noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
+
+	  private:
+		std::tuple<Ts*...> data;
+		bool m_Internal{false};
+	};
+	template <typename... Ts>
 	class pack_view
 	{
 	  public:
@@ -53,7 +118,7 @@ namespace psl
 		  public:
 			iterator(const value_type& data) : data(data){};
 			template <typename = std::enable_if_t<std::conditional<!std::is_same<std::tuple<>, range_t>::value>>>
-				 iterator(const range_t& range) : iterator(iterator_begin(range)){};
+			iterator(const range_t& range) : iterator(iterator_begin(range)){};
 			~iterator() = default;
 			iterator(const iterator& other) noexcept : data(other.data){};
 			iterator(iterator&& other) noexcept : data(std::move(other.data)){};
