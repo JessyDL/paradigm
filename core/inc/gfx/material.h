@@ -117,12 +117,11 @@ namespace core::gfx
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::buffer>>> m_Buffers;
 
 		core::resource::handle<core::gfx::buffer> m_MaterialBuffer;
+		memory::segment m_MaterialData;
 
 		// psl::UID maps to the psl::UID of a framebuffer or a swapchain
 		std::unordered_map<psl::UID, core::resource::handle<core::gfx::pipeline>> m_Pipeline;
 		core::resource::handle<core::gfx::pipeline> m_Bound;
-
-		/* m_MaterialData*/
 
 		// value to indicate if this material can actually be used or not
 		bool m_IsValid{true};

@@ -83,7 +83,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 			case vk::DescriptorType::eUniformBuffer:
 			case vk::DescriptorType::eStorageBuffer:
 			{
-
+				//if(binding.buffer() == "MATERIAL_DATA") continue;
 				if(auto buffer_handle = cache.find<core::gfx::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.resource_state() == core::resource::state::LOADED)
 				{

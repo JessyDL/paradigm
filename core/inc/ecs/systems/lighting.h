@@ -48,7 +48,7 @@ namespace core::ecs::systems
 		~lighting_system() = default;
 
 		void create_dir(psl::ecs::info& info,
-			psl::ecs::pack<psl::ecs::entity, psl::ecs::on_combine<core::ecs::components::directional_shadow_caster_t,
+			psl::ecs::pack<psl::ecs::entity, core::ecs::components::light, psl::ecs::on_combine<core::ecs::components::light,
 																  core::ecs::components::transform>>
 				pack);
 

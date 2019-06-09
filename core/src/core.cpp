@@ -861,14 +861,13 @@ int entry()
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-	core::ecs::systems::lighting_system lighting{psl::view_ptr(&ECSState), psl::view_ptr(&cache),
-												 resource_region,
-												 psl::view_ptr(&renderGraph),
-												 swapchain_pass, context_handle, surface_handle};
+	core::ecs::systems::lighting_system lighting{
+		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
+		swapchain_pass,			  context_handle,		 surface_handle};
 
 
 	// create post processing pass
-	//auto deferredFramebuffer = create<gfx::framebuffer>(cache);
+	// auto deferredFramebuffer = create<gfx::framebuffer>(cache);
 	//{
 	//	auto deferredData = create<data::framebuffer>(cache);
 	//	deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
@@ -1066,10 +1065,16 @@ int entry()
 			--iterations;
 		}
 
+
 		if(iterations == 25590)
 		{
-			ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
-							psl::ecs::empty<core::ecs::components::directional_shadow_caster_t>{});
+			ECSState.create(10,
+							[](ecs::components::light& var) {
+								var = ecs::components::light{psl::vec3{1.0f, 1.0f, 1.0f}, 1.0f,
+															 ecs::components::light::type::DIRECTIONAL,
+															 std::rand() % 2 == 0};
+							},
+							core::ecs::components::transform{});
 		}
 	}
 

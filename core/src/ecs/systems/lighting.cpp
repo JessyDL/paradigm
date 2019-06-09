@@ -35,7 +35,7 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 	bufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
 					vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 					resource_region
-						.create_region(sizeof(direction_light) * 1024,
+						.create_region(sizeof(light) * 1024,
 									   m_Context->properties().limits.minUniformBufferOffsetAlignment,
 									   new memory::default_allocator(true))
 						.value());
@@ -48,11 +48,12 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 }
 
 
-void lighting_system::create_dir(info& info, pack<entity, on_combine<directional_shadow_caster_t, transform>> pack)
+void lighting_system::create_dir(info& info, pack<entity, light, on_combine<light, transform>> pack)
 {
 	// create depth pass
-	for(auto [e] : pack)
+	for(auto [e, light] : pack)
 	{
+		if(!light.shadows) continue;
 		auto depthPass = create<gfx::framebuffer>(*m_Cache);
 		{
 			auto data = create<data::framebuffer>(*m_Cache);

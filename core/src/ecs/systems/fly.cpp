@@ -39,7 +39,7 @@ void fly::tick(
 		vec3 accDirectionVec{0};
 		auto direction = transform.rotation * vec3::forward;
 		auto up		   = vec3::up;
-		// m_Transform.position(m_Transform.position() + (m_MoveVector * dTime.count()));
+		// m_transform.position(m_transform.position() + (m_MoveVector * dTime.count()));
 		if(m_Moving[0])
 		{
 			accDirectionVec += direction;
