@@ -79,10 +79,10 @@ namespace psl
 		operator value_type&() noexcept { return data; }
 		operator const value_type&() const noexcept { return data; }
 
-		operator std::tuple<Ts*...>() const noexcept
+		/*operator std::tuple<Ts*...>() const noexcept
 		{
 			return std::tuple<Ts*...>{&std::get<Ts&>(data) ...};
-		}
+		}*/
 
 		template <size_t N>
 		auto& get() noexcept
@@ -146,7 +146,7 @@ namespace std
 	template <typename... Ts>
 	inline void swap(psl::tuple_ref<Ts...>& lhs, psl::tuple_ref<Ts...>& rhs) noexcept
 	{
-		(void(std::swap(std::get<Ts&>(lhs.data), std::get<Ts&>(rhs.data))), ...);
+		(void(std::swap(std::get<Ts&>(lhs.data), (std::get<Ts&>(rhs.data)))), ...);
 	}
 
 	//template <typename... Ts>
@@ -325,7 +325,7 @@ namespace psl
 
 			auto& operator*() noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
 
-			const auto& operator*() const noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
+			const auto& operator*() const noexcept { return *reinterpret_cast<const psl::tuple_ref<Ts...>*>(&data); }
 
 			template <typename T>
 			T& get()
@@ -344,7 +344,7 @@ namespace psl
 			}
 
 			operator psl::tuple_ref<Ts...>&() noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
-			operator const psl::tuple_ref<Ts...>&() const noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
+			operator const psl::tuple_ref<Ts...>&() const noexcept { return *reinterpret_cast<const psl::tuple_ref<Ts...>*>(&data); }
 
 		  private:
 			internal_type data;

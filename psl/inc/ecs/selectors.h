@@ -66,7 +66,6 @@ namespace psl::ecs
 	{};
 
 
-
 	/// \brief tag allows you to filter on sets of components
 	///
 	/// When you just want to create a generic filtering behaviour, without getting the components
@@ -77,6 +76,13 @@ namespace psl::ecs
 	struct filter
 	{};
 
+	template <typename Pred, typename... Ts>
+	struct on_condition
+	{};
+
+	template <typename Pred, typename... Ts>
+	struct order_by
+	{};
 
 	namespace details
 	{
@@ -108,6 +114,9 @@ namespace psl::ecs
 		struct is_selector<on_combine<Ts...>> : std::true_type
 		{};
 
+		template <typename Pred, typename... Ts>
+		struct is_selector<on_condition<Pred, Ts...>> : std::true_type
+		{};
 
 		template <typename T>
 		struct is_exception : std::false_type
@@ -177,10 +186,46 @@ namespace psl::ecs
 			using type = std::tuple<Ts...>;
 		};
 
+		template <typename Pred, typename... Ts>
+		struct extract_conditional
+		{
+			using type = std::tuple<>;
+		};
+
+		template <typename Pred, typename... Ts>
+		struct extract_conditional<on_condition<Pred, Ts...>>
+		{
+			using type = std::tuple<std::pair<Pred, std::tuple<Ts...>>>;
+		};
+
+		template <typename Pred, typename... Ts>
+		struct extract_orderby
+		{
+			using type		= std::tuple<>;
+		};
+
+		template <typename Pred, typename... Ts>
+		struct extract_orderby<order_by<Pred, Ts...>>
+		{
+			using type = std::tuple<std::pair<Pred, std::tuple<Ts...>>>;
+		};
+
 		template <typename T>
 		struct extract_physical
 		{
 			using type = std::tuple<T>;
+		};
+
+		template <typename Pred, typename... Ts>
+		struct extract_physical<on_condition<Pred, Ts...>>
+		{
+			using type = std::tuple<>;
+		};
+
+		template <typename Pred, typename... Ts>
+		struct extract_physical<order_by<Pred, Ts...>>
+		{
+			using type = std::tuple<>;
 		};
 
 		template <typename... Ts>
@@ -287,6 +332,20 @@ namespace psl::ecs
 			using type = std::tuple<Ts...>;
 		};
 
+		
+		template <typename Pred, typename... Ts>
+		struct decode_type<order_by<Pred, Ts...>>
+		{
+			using type = std::tuple<>;
+		};
+
+		
+		template <typename Pred, typename... Ts>
+		struct decode_type<on_condition<Pred, Ts...>>
+		{
+			using type = std::tuple<>;
+		};
+
 		template <typename... Ts>
 		struct typelist_to_tuple
 		{
@@ -341,6 +400,18 @@ namespace psl::ecs
 		struct typelist_to_except_pack
 		{
 			using type = decltype(std::tuple_cat(std::declval<typename details::extract_except<Ts>::type>()...));
+		};
+
+		template <typename... Ts>
+		struct typelist_to_conditional_pack
+		{
+			using type = decltype(std::tuple_cat(std::declval<typename details::extract_conditional<Ts>::type>()...));
+		};
+
+		template <typename... Ts>
+		struct typelist_to_orderby_pack
+		{
+			using type = decltype(std::tuple_cat(std::declval<typename details::extract_orderby<Ts>::type>()...));
 		};
 
 		template <typename... Ts>

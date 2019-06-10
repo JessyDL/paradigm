@@ -601,9 +601,15 @@ int android_entry()
 
 #endif
 
+struct lifetime_test
+{
+	bool operator()(const core::ecs::components::lifetime& value) const noexcept { return value.value > 0.5f; }
+};
+
 auto scaleSystem =
 	[](psl::ecs::info& info,
-	   psl::ecs::pack<psl::ecs::partial, core::ecs::components::transform, const core::ecs::components::lifetime>
+	   psl::ecs::pack<psl::ecs::partial, core::ecs::components::transform, const core::ecs::components::lifetime,
+					  psl::ecs::on_condition<lifetime_test, core::ecs::components::lifetime>>
 		   pack) {
 		for(auto [transform, lifetime] : pack)
 		{

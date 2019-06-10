@@ -84,6 +84,24 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
 
+		template <typename Pred, typename... Ts>
+		void order_by(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		{
+			std::sort(begin, end, [this, pred = Pred{}](entity lhs, entity rhs) -> bool {
+				int res{0};
+				(void(res += pred(this->get<Ts>(lhs), this->get<Ts>(rhs))), ...);
+				return res > 0;
+			});
+		}
+
+		template <typename Pred, typename T>
+		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		{
+			return std::remove_if(begin, end, [this, pred = Pred{}](entity lhs) -> bool 
+			{
+				return pred(this->get<T>(lhs));
+			});
+		}
 		template <typename T>
 		T& get(entity entity)
 		{
@@ -650,7 +668,8 @@ namespace psl::ecs
 		{
 
 			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-			std::function<std::vector<details::dependency_pack>(bool)> pack_generator = [](bool seedWithPrevious = false) {
+			std::function<std::vector<details::dependency_pack>(bool)> pack_generator = [](bool seedWithPrevious =
+																							   false) {
 				using pack_t = typename get_packs<function_args>::type;
 				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
 														  psl::templates::type_container<pack_t>{}, seedWithPrevious);
@@ -704,4 +723,25 @@ namespace psl::ecs
 		size_t m_Orphans{0};
 		size_t m_Tick{0};
 	};
+
+	namespace details
+	{
+		template <typename Pred, typename... Ts>
+		void dependency_pack::select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>)
+		{
+			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
+				state.order_by < Pred, Ts...>(begin, end);
+			};
+		}
+
+		template <typename Pred, typename... Ts>
+		void dependency_pack::select_condition_impl(std::pair<Pred, std::tuple<Ts...>>)
+		{
+			on_condition.push_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+									  psl::ecs::state& state) -> psl::array<entity>::iterator {
+				return state.on_condition<Pred, Ts...>(begin, end);
+			});
+		}
+
+	} // namespace details
 } // namespace psl::ecs

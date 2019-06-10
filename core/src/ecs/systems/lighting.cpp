@@ -47,9 +47,11 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 	m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 }
 
-
 void lighting_system::create_dir(info& info, pack<entity, light, on_combine<light, transform>> pack)
 {
+	if(pack.size() == 0) return;
+	//insertion_sort(std::begin(pack), std::end(pack), sort_impl<light_sort, light>{});
+
 	// create depth pass
 	for(auto [e, light] : pack)
 	{

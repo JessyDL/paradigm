@@ -835,7 +835,7 @@ namespace core::resource
 
 		T& operator->() noexcept { return m_Cache->find<T>(m_UID); }
 
-
+		const psl::UID& uid() const noexcept { return m_UID; };
 	  private:
 		cache* m_Cache{nullptr};
 		psl::UID m_UID{};

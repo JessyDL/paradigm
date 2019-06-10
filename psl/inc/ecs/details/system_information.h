@@ -34,6 +34,30 @@ namespace psl::ecs
 
 namespace psl::ecs::details
 {
+	template <typename T, typename Fn>
+	void insertion_sort(T&& first, T&& last, Fn&& pred)
+	{
+		/*for(auto it = std::next(first); it != last; ++it)
+		{
+			auto curr = it;
+			while(curr != first && std::invoke(pred, *it, *std::prev(curr)))
+			{
+				curr = std::prev(curr);
+			}
+			std::swap(*curr, *it);
+		}*/
+	}
+
+	template <typename Sorter, typename... Ts>
+	struct sorting
+	{
+		template <typename... Ys>
+		bool operator()(const psl::tuple_ref<Ys...>& lhs, const psl::tuple_ref<Ys...>& rhs) const noexcept
+		{
+			return false;
+		}
+	};
+
 	/// \brief describes a set of dependencies for a given system
 	///
 	/// systems can have various dependencies, for example a movement system could have
@@ -72,6 +96,26 @@ namespace psl::ecs::details
 			(select_impl<typename std::tuple_element<Is, T>::type>(target), ...);
 		}
 
+		template <typename Pred, typename... Ts>
+		void select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>);
+
+		
+		template <typename Pred, typename... Ts>
+		void select_condition_impl(std::pair<Pred, std::tuple<Ts...>>);
+
+
+		template <typename... Ts>
+		void select_ordering(std::tuple<Ts...>)
+		{
+			(select_ordering_impl(Ts{}), ...);
+		}
+
+		template <typename... Ts>
+		void select_condition(std::tuple<Ts...>)
+		{
+			(select_condition_impl(Ts{}), ...);
+		}
+
 		template <typename T>
 		psl::array_view<T> fill_in(psl::templates::type_container<psl::array_view<T>>)
 		{
@@ -102,10 +146,13 @@ namespace psl::ecs::details
 				fill_in(psl::templates::type_container<typename std::tuple_element<Is, range_t>::type>())...)};
 		}
 
+
 	  public:
 		template <typename T>
 		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
 		{
+			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
+			};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>>{},
 									  psl::templates::type_container<T>{});
@@ -118,10 +165,13 @@ namespace psl::ecs::details
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value>{},
 				   typename pack_t::break_t{}, on_break);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value>{},
-				   typename pack_t::combine_t{}, (seedWithPrevious)?filters:on_combine);
+				   typename pack_t::combine_t{}, (seedWithPrevious) ? filters : on_combine);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{},
 				   typename pack_t::except_t{}, except);
+			select_ordering(typename pack_t::order_by_t{});
+			select_condition(typename pack_t::conditional_t{});
 
+			static_assert(std::tuple_size<typename pack_t::order_by_t>::value < 2);
 
 			std::sort(std::begin(filters), std::end(filters));
 			filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
@@ -224,6 +274,13 @@ namespace psl::ecs::details
 		std::vector<component_key_t> except;
 		std::vector<component_key_t> on_combine;
 		std::vector<component_key_t> on_break;
+
+		std::vector<std::function<psl::array<entity>::iterator(psl::array<entity>::iterator,
+															   psl::array<entity>::iterator, psl::ecs::state&)>>
+			on_condition;
+		
+		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, psl::ecs::state&)>
+			orderby;
 		bool m_IsPartial = false;
 	};
 
