@@ -106,12 +106,12 @@ namespace psl::ecs
 			return m_Pack.template get<N>();
 		}
 
-		auto operator[](size_t index) const noexcept -> decltype(*std::declval<typename pack_t::iterator>())
+		auto operator[](size_t index) const noexcept
 		{
 			return m_Pack[index];
 		}
 
-		auto operator[](size_t index) noexcept -> decltype(*std::declval<typename pack_t::iterator>())
+		auto operator[](size_t index) noexcept
 		{
 			return m_Pack[index];
 		}

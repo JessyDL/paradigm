@@ -2,6 +2,23 @@
 #include <iterator>
 #include "array_view.h"
 #include "template_utils.h"
+#include <type_traits>
+
+namespace psl
+{
+	template <typename... Ts>
+	class tuple_ref;
+}
+
+namespace std
+{
+
+	template <typename... Ts>
+	void swap(psl::tuple_ref<Ts...>&, psl::tuple_ref<Ts...>&) noexcept;
+
+	/*template <typename... Ts>
+	void swap(psl::tuple_ref<Ts...>, psl::tuple_ref<Ts...>) noexcept;*/
+}
 
 namespace psl
 {
@@ -9,67 +26,141 @@ namespace psl
 	class tuple_ref
 	{
 	  public:
-		tuple_ref(const std::tuple<Ts&...>& data) : data(&std::get<Ts&>(data)...){};
+		using value_type = std::tuple<Ts&...>;
+		tuple_ref(std::tuple<std::vector<Ts>...>& values, size_t index)
+			: data(std::get<std::vector<Ts>>(values)[index]...)
+		{}
 
 		template <typename... Ys>
-		tuple_ref(Ys&&... data) : data(&std::forward<Ys>(data)...){};
-		~tuple_ref()
-		{
-			if(m_Internal)
-			{
-				(delete(std::get<Ts*>(data)), ...);
-			}
-		}
-		tuple_ref(const tuple_ref& other) noexcept : data(*std::get<Ts*>(other.data)...){};
-		tuple_ref(tuple_ref&& other) noexcept : data(new Ts(*std::get<Ts*>(other.data))...), m_Internal(true){};
-		tuple_ref& operator=(const tuple_ref& other) noexcept
+		tuple_ref(std::tuple<psl::array_view<Ys>...>& values, size_t index)
+			: data(std::get<psl::array_view<Ys>>(values)[index]...)
+		{}
+
+		template <typename... Ys>
+		tuple_ref(const std::tuple<typename psl::array_view<Ys>::iterator...>& values)
+			: data(*std::get<typename psl::array_view<Ys>::iterator>(values)...)
+		{}
+
+		template <typename... Ys>
+		tuple_ref(std::tuple<std::reference_wrapper<Ys>...>& values)
+			: data(std::get<std::reference_wrapper<Ys>>(values)...)
+		{}
+
+		template <typename... Ys>
+		tuple_ref(std::tuple<Ys*...>& values)
+			: data(*std::get<Ys*>(values)...)
+		{}
+
+		template <typename... Ys>
+		tuple_ref(std::tuple<Ys*...>* values) : data(*std::get<Ys*>(*values)...)
+		{}
+
+		tuple_ref(Ts&... values) : data(values...) {}
+
+		tuple_ref(const tuple_ref& other) : data(other.data){};
+		tuple_ref(tuple_ref&& other) noexcept : data(other.data){};
+		tuple_ref& operator=(const tuple_ref& other)
 		{
 			if(this != &other)
 			{
-				(void(*std::get<Ts*>(data) = *(std::get<Ts*>(other.data))), ...);
+				data = other.data;
 			}
 			return *this;
-		};
+		}
 		tuple_ref& operator=(tuple_ref&& other) noexcept
 		{
 			if(this != &other)
 			{
-				(void(*std::get<Ts*>(data) = std::move(*std::get<Ts*>(other.data))), ...);
+				data = other.data;
 			}
 			return *this;
-		};
+		}
+
+		operator value_type&() noexcept { return data; }
+		operator const value_type&() const noexcept { return data; }
+
+		operator std::tuple<Ts*...>() const noexcept
+		{
+			return std::tuple<Ts*...>{&std::get<Ts&>(data) ...};
+		}
 
 		template <size_t N>
 		auto& get() noexcept
 		{
-			return *std::get<N>(data);
+			return std::get<N>(data);
 		}
 
 		template <typename T>
-		T& get() noexcept
+		auto get() noexcept -> std::remove_reference_t<T>&
 		{
-			return *std::get<T*>(data);
+			using type = std::remove_reference_t<T>;
+			return std::get<type&>(data);
 		}
 
 		template <size_t N>
 		const auto& get() const noexcept
 		{
-			return *std::get<N>(data);
+			return std::get<N>(data);
 		}
 
 		template <typename T>
-		const T& get() const noexcept
+		auto get() const noexcept -> const std::remove_reference_t<T>&
 		{
-			return *std::get<T*>(data);
+			using type = std::remove_reference_t<T>;
+			return std::get<type&>(data);
 		}
 
-		operator std::tuple<Ts&...>&() noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
-		operator const std::tuple<Ts&...>&() const noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
+		friend void std::swap(psl::tuple_ref<Ts...>&, psl::tuple_ref<Ts...>&) noexcept;
+		//friend void std::swap(psl::tuple_ref<Ts...>, psl::tuple_ref<Ts...>) noexcept;
 
-	  private:
-		std::tuple<Ts*...> data;
-		bool m_Internal{false};
+		value_type data;
 	};
+} // namespace psl
+
+namespace std
+{
+
+	template <size_t N, typename... Ts>
+	struct tuple_element<N, psl::tuple_ref<Ts...>>
+		: public std::tuple_element<N, typename psl::tuple_ref<Ts...>::value_type>
+	{};
+
+	template <typename... Ts>
+	struct tuple_size<psl::tuple_ref<Ts...>> : public std::tuple_size<typename psl::tuple_ref<Ts...>::value_type>
+	{};
+
+
+	template <size_t N, typename... Ts>
+	auto& get(const psl::tuple_ref<Ts...>& value)
+	{
+		return std::get<N>(value.data);
+	}
+
+	template <typename T, typename... Ts>
+	auto& get(const psl::tuple_ref<Ts...>& value)
+	{
+		using type = std::remove_reference_t<T>;
+		return std::get<type&>(value.data);
+	}
+
+	template <typename... Ts>
+	inline void swap(psl::tuple_ref<Ts...>& lhs, psl::tuple_ref<Ts...>& rhs) noexcept
+	{
+		(void(std::swap(std::get<Ts&>(lhs.data), std::get<Ts&>(rhs.data))), ...);
+	}
+
+	//template <typename... Ts>
+	//inline void swap(psl::tuple_ref<Ts...> lhs, psl::tuple_ref<Ts...> rhs) noexcept
+	//{
+	//	(void(std::swap(std::get<Ts&>(lhs.data), std::get<Ts&>(rhs.data))), ...);
+	//}
+
+} // namespace std
+
+
+namespace psl
+{
+
 	template <typename... Ts>
 	class pack_view
 	{
@@ -77,14 +168,14 @@ namespace psl
 		using range_t = std::tuple<psl::array_view<Ts>...>;
 
 	  private:
-		static std::tuple<Ts&...> iterator_begin(const range_t& t, size_t index = 0)
+		static psl::tuple_ref<Ts...> iterator_begin(const range_t& t, size_t index = 0)
 		{
-			return std::make_tuple(std::next(std::begin(std::get<psl::array_view<Ts>>(t)), index)...);
+			return psl::tuple_ref<Ts...>(*std::next(std::begin(std::get<psl::array_view<Ts>>(t)), index)...);
 		}
 
-		static std::tuple<Ts&...> iterator_end(const range_t& t, size_t index = 0)
+		static psl::tuple_ref<Ts...> iterator_end(const range_t& t, size_t index = 0)
 		{
-			return std::make_tuple(std::prev(std::end(std::get<psl::array_view<Ts>>(t)), index)...);
+			return psl::tuple_ref<Ts...>(*std::prev(std::end(std::get<psl::array_view<Ts>>(t)), index)...);
 		}
 
 
@@ -93,8 +184,9 @@ namespace psl
 		{
 		  public:
 			using self_type		  = iterator;
-			using value_type	  = std::tuple<std::reference_wrapper<Ts>...>;
-			using reference		  = std::tuple<Ts&...>&;
+			using internal_type   = std::tuple<Ts*...>;
+			using value_type	  = psl::tuple_ref<Ts...>;
+			using reference		  = value_type&;
 			using const_reference = const reference;
 			using pointer		  = value_type*;
 
@@ -102,23 +194,25 @@ namespace psl
 			using iterator_category = std::random_access_iterator_tag;
 
 		  private:
-			template <typename T>
-			void advance_tuple_element(std::reference_wrapper<T>& target, std::intptr_t count)
+			/*template <typename T>
+			void advance_tuple_element(std::reference_wrapper<T>* target, std::intptr_t count)
 			{
 				using type = std::remove_const_t<T>;
 				target	 = *((type*)&target.get() + count);
-			}
+			}*/
 
 			void advance_tuple(std::uintptr_t count)
 			{
-				(advance_tuple_element(std::get<std::reference_wrapper<Ts>>(data), count), ...);
+				(void(std::get<Ts*>(data) += count), ...);
 			}
 
 
 		  public:
-			iterator(const value_type& data) : data(data){};
-			template <typename = std::enable_if_t<std::conditional<!std::is_same<std::tuple<>, range_t>::value>>>
-			iterator(const range_t& range) : iterator(iterator_begin(range)){};
+			//iterator(const value_type& data) : data(data){};
+			//template <typename = std::enable_if_t<std::conditional<!std::is_same<std::tuple<>, range_t>::value>>>
+			//iterator(const range_t& range) : iterator(iterator_begin(range)){};
+
+			iterator(const psl::tuple_ref<Ts...>& data) : data(&std::get<Ts>(data)...){};
 			~iterator() = default;
 			iterator(const iterator& other) noexcept : data(other.data){};
 			iterator(iterator&& other) noexcept : data(std::move(other.data)){};
@@ -193,68 +287,67 @@ namespace psl
 
 			difference_type operator-(const iterator& offset) const
 			{
-				return difference_type{&std::get<0>(data).get() - &std::get<0>(offset.data).get()};
+				return difference_type{std::get<0>(data) - std::get<0>(offset.data)};
 			}
 
 			difference_type operator+(const iterator& offset) const
 			{
-				return difference_type{&std::get<0>(data).get() + &std::get<0>(offset.data).get()};
+				return difference_type{std::get<0>(data) + std::get<0>(offset.data)};
 			}
 
 
 			bool operator!=(const iterator& other) const noexcept
 			{
-				return &std::get<0>(data).get() != &std::get<0>(other.data).get();
+				return std::get<0>(data) != std::get<0>(other.data);
 			}
 
 			bool operator==(const iterator& other) const noexcept
 			{
-				return &std::get<0>(data).get() == &std::get<0>(other.data).get();
+				return std::get<0>(data) == std::get<0>(other.data);
 			}
 
 			bool operator<(const iterator& other) const noexcept
 			{
-				return &std::get<0>(data).get() < &std::get<0>(other.data).get();
+				return std::get<0>(data) < std::get<0>(other.data);
 			}
 			bool operator<=(const iterator& other) const noexcept
 			{
-				return &std::get<0>(data).get() <= &std::get<0>(other.data).get();
+				return std::get<0>(data) <= std::get<0>(other.data);
 			}
 			bool operator>(const iterator& other) const noexcept
 			{
-				return &std::get<0>(data).get() > &std::get<0>(other.data).get();
+				return std::get<0>(data) > std::get<0>(other.data);
 			}
 			bool operator>=(const iterator& other) const noexcept
 			{
-				return &std::get<0>(data).get() >= &std::get<0>(other.data).get();
+				return std::get<0>(data) >= std::get<0>(other.data);
 			}
 
-			reference operator*() noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
+			auto& operator*() noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
 
-			const_reference operator*() const noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
+			const auto& operator*() const noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
 
 			template <typename T>
 			T& get()
 			{
-				static_assert(
-					::utility::templates::template tuple_contains_type<std::reference_wrapper<T>, value_type>::value,
+				static_assert(::utility::templates::template tuple_contains_type<T*, internal_type>::value,
 					"the requested component type does not exist in the pack");
-				return std::get<T&>(*reinterpret_cast<std::tuple<Ts&...>*>(&data));
+				return std::get<T>(psl::tuple_ref<Ts...>(data));
 			}
 
 			template <size_t N>
-			auto get() const noexcept -> decltype(std::get<N>(std::declval<value_type>()))
+			auto get() const noexcept -> decltype(std::get<N>(std::declval<internal_type>()))
 			{
-				static_assert(N < std::tuple_size<value_type>::value,
+				static_assert(N < std::tuple_size<internal_type>::value,
 							  "you requested a component outside of the range of the pack");
-				return std::get<N>(*reinterpret_cast<std::tuple<Ts&...>*>(&data));
+				return std::get<N>(psl::tuple_ref<Ts...>(data));
 			}
 
-			operator reference() noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
-			operator const_reference() const noexcept { return *reinterpret_cast<std::tuple<Ts&...>*>(&data); }
+			operator psl::tuple_ref<Ts...>&() noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
+			operator const psl::tuple_ref<Ts...>&() const noexcept { return *reinterpret_cast<psl::tuple_ref<Ts...>*>(&data); }
 
 		  private:
-			value_type data;
+			internal_type data;
 		};
 
 		pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...))
@@ -279,16 +372,16 @@ namespace psl
 			return std::get<N>(m_Pack);
 		}
 
-		typename iterator::const_reference operator[](size_t index) const noexcept
+		typename auto operator[](size_t index) const noexcept
 		{
 			auto x{iterator_begin(m_Pack, index)};
-			return *iterator{x};
+			return *iterator(x);
 		}
 
-		typename iterator::reference operator[](size_t index) noexcept
+		typename auto operator[](size_t index) noexcept
 		{
 			auto x{iterator_begin(m_Pack, index)};
-			return *iterator{x};
+			return *iterator(x);
 		}
 
 		iterator begin() const noexcept { return iterator{iterator_begin(m_Pack)}; }
@@ -312,4 +405,37 @@ namespace psl
 		return psl::pack_view<Ts...>{pack.get<Ts>()...};
 	}
 
+
+	template <typename... Ts>
+	void swap(psl::tuple_ref<Ts...>& lhs, psl::tuple_ref<Ts...>& rhs) noexcept
+	{
+		(void(std::swap(std::get<Ts&>(lhs.data), std::get<Ts&>(rhs.data))), ...);
+	}
+
+	/*template <typename... Ts>
+	void swap(psl::tuple_ref<Ts...> lhs, psl::tuple_ref<Ts...> rhs) noexcept
+	{
+		(void(std::swap(std::get<Ts&>(lhs.data), std::get<Ts&>(rhs.data))), ...);
+	}*/
 } // namespace psl
+
+
+
+
+// namespace std
+//{
+//
+//	template <typename... Ts>
+//	void iter_swap(typename psl::pack_view<Ts...>::iterator& lhs,
+//				   typename psl::pack_view<Ts...>::iterator& rhs) noexcept
+//	{
+//		std::swap(*lhs, *rhs);
+//	}
+//
+//	template <typename... Ts>
+//	void iter_swap(typename psl::pack_view<Ts...>::iterator&& lhs, typename psl::pack_view<Ts...>::iterator&& rhs)
+//noexcept
+//	{
+//		std::swap(*lhs, *rhs);
+//	}
+//} // namespace std
