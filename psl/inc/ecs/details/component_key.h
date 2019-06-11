@@ -11,8 +11,9 @@ namespace psl::ecs::details
 	template <typename T>
 	constexpr const std::uintptr_t* component_key() noexcept
 	{
-		static_assert(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
-					  std::is_trivially_destructible<T>::value);
+		static_assert(std::is_trivially_copyable<T>::value);
+		static_assert(std::is_standard_layout<T>::value);
+		static_assert(std::is_trivially_destructible<T>::value);
 		return &component_key_var<T>;
 	}
 

@@ -22,8 +22,8 @@ namespace psl::ecs
 
 	struct info
 	{
-		info(const state& state, std::chrono::duration<float> dTime,
-			 std::chrono::duration<float> rTime) : state(state), dTime(dTime), rTime(rTime), command_buffer(state) {};
+		info(const state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
+			: state(state), dTime(dTime), rTime(rTime), command_buffer(state){};
 
 		const state& state;
 		command_buffer command_buffer;
@@ -34,6 +34,30 @@ namespace psl::ecs
 
 namespace psl::ecs::details
 {
+	template <typename T, typename Fn>
+	void insertion_sort(T&& first, T&& last, Fn&& pred)
+	{
+		/*for(auto it = std::next(first); it != last; ++it)
+		{
+			auto curr = it;
+			while(curr != first && std::invoke(pred, *it, *std::prev(curr)))
+			{
+				curr = std::prev(curr);
+			}
+			std::swap(*curr, *it);
+		}*/
+	}
+
+	template <typename Sorter, typename... Ts>
+	struct sorting
+	{
+		template <typename... Ys>
+		bool operator()(const psl::tuple_ref<Ys...>& lhs, const psl::tuple_ref<Ys...>& rhs) const noexcept
+		{
+			return false;
+		}
+	};
+
 	/// \brief describes a set of dependencies for a given system
 	///
 	/// systems can have various dependencies, for example a movement system could have
@@ -72,6 +96,26 @@ namespace psl::ecs::details
 			(select_impl<typename std::tuple_element<Is, T>::type>(target), ...);
 		}
 
+		template <typename Pred, typename... Ts>
+		void select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>);
+
+		
+		template <typename Pred, typename... Ts>
+		void select_condition_impl(std::pair<Pred, std::tuple<Ts...>>);
+
+
+		template <typename... Ts>
+		void select_ordering(std::tuple<Ts...>)
+		{
+			(select_ordering_impl(Ts{}), ...);
+		}
+
+		template <typename... Ts>
+		void select_condition(std::tuple<Ts...>)
+		{
+			(select_condition_impl(Ts{}), ...);
+		}
+
 		template <typename T>
 		psl::array_view<T> fill_in(psl::templates::type_container<psl::array_view<T>>)
 		{
@@ -102,25 +146,32 @@ namespace psl::ecs::details
 				fill_in(psl::templates::type_container<typename std::tuple_element<Is, range_t>::type>())...)};
 		}
 
+
 	  public:
 		template <typename T>
-		dependency_pack(psl::templates::type_container<T>)
+		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
 		{
+			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
+			};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>>{},
 									  psl::templates::type_container<T>{});
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value>{},
 				   typename pack_t::filter_t{}, filters);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::add_t>::value>{}, typename pack_t::add_t{},
-				   on_add);
+				   (seedWithPrevious) ? filters : on_add);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_t>::value>{},
 				   typename pack_t::remove_t{}, on_remove);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value>{},
 				   typename pack_t::break_t{}, on_break);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value>{},
-				   typename pack_t::combine_t{}, on_combine);
+				   typename pack_t::combine_t{}, (seedWithPrevious) ? filters : on_combine);
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value>{},
 				   typename pack_t::except_t{}, except);
+			select_ordering(typename pack_t::order_by_t{});
+			select_condition(typename pack_t::conditional_t{});
+
+			static_assert(std::tuple_size<typename pack_t::order_by_t>::value < 2);
 
 			std::sort(std::begin(filters), std::end(filters));
 			filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
@@ -178,7 +229,7 @@ namespace psl::ecs::details
 				auto size = cpy.m_Sizes[binding.first];
 
 				std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
-				std::uintptr_t end_mem = (std::uintptr_t)binding.second.data() + (end * size);
+				std::uintptr_t end_mem   = (std::uintptr_t)binding.second.data() + (end * size);
 				binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
 			}
 			for(auto& binding : cpy.m_RWBindings)
@@ -186,7 +237,7 @@ namespace psl::ecs::details
 				auto size = cpy.m_Sizes[binding.first];
 				// binding.second = binding.second.slice(size * begin, size * end);
 				std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
-				std::uintptr_t end_mem = (std::uintptr_t)binding.second.data() + (end * size);
+				std::uintptr_t end_mem   = (std::uintptr_t)binding.second.data() + (end * size);
 				binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
 			}
 			return cpy;
@@ -223,17 +274,25 @@ namespace psl::ecs::details
 		std::vector<component_key_t> except;
 		std::vector<component_key_t> on_combine;
 		std::vector<component_key_t> on_break;
+
+		std::vector<std::function<psl::array<entity>::iterator(psl::array<entity>::iterator,
+															   psl::array<entity>::iterator, psl::ecs::state&)>>
+			on_condition;
+		
+		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, psl::ecs::state&)>
+			orderby;
 		bool m_IsPartial = false;
 	};
 
 	template <std::size_t... Is, typename T>
 	std::vector<dependency_pack> expand_to_dependency_pack(std::index_sequence<Is...>,
-														   psl::templates::type_container<T>)
+														   psl::templates::type_container<T>,
+														   bool seedWithPrevious = false)
 	{
 		std::vector<dependency_pack> res;
 		(std::invoke([&]() {
-			 res.emplace_back(
-				 dependency_pack(psl::templates::type_container<typename std::tuple_element<Is, T>::type>{}));
+			 res.emplace_back(dependency_pack(
+				 psl::templates::type_container<typename std::tuple_element<Is, T>::type>{}, seedWithPrevious));
 		 }),
 		 ...);
 		return res;
@@ -253,31 +312,35 @@ namespace psl::ecs::details
 	class system_information final
 	{
 	  public:
-		using pack_generator_type   = std::function<std::vector<details::dependency_pack>()>;
+		using pack_generator_type   = std::function<std::vector<details::dependency_pack>(bool)>;
 		using system_invocable_type = std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)>;
 		system_information()		= default;
 		system_information(psl::ecs::threading threading, pack_generator_type&& generator,
-						   system_invocable_type&& invocable)
-			: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)){};
+						   system_invocable_type&& invocable, bool seedWithExisting = false)
+			: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)),
+			  m_SeedWithExisting(seedWithExisting){};
 		~system_information()						  = default;
 		system_information(const system_information&) = default;
 		system_information(system_information&&)	  = default;
 		system_information& operator=(const system_information&) = default;
 		system_information& operator=(system_information&&) = default;
 
-		std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator); }
+		std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator, m_SeedWithExisting); }
 
 		void operator()(psl::ecs::info& info, std::vector<details::dependency_pack> packs)
 		{
+			m_SeedWithExisting = false;
 			std::invoke(m_System, info, packs);
 		}
 
-		system_invocable_type& system() { return m_System;};
+		system_invocable_type& system() { return m_System; };
 
 		psl::ecs::threading threading() const noexcept { return m_Threading; };
+
 	  private:
 		psl::ecs::threading m_Threading = threading::sequential;
 		pack_generator_type m_PackGenerator;
 		system_invocable_type m_System;
+		bool m_SeedWithExisting{false};
 	};
 } // namespace psl::ecs::details

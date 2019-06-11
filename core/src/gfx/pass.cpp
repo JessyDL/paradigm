@@ -57,7 +57,7 @@ pass::pass(handle<context> context, handle<swapchain> swapchain)
 
 	create_fences(m_Swapchain->framebuffers().size());
 
-	//build();
+	// build();
 }
 
 pass::~pass()
@@ -106,7 +106,8 @@ bool pass::build()
 	else
 	{
 		const auto& attachments = m_Framebuffer->data()->attachments();
-		std::transform(std::begin(attachments), std::end(attachments), std::begin(clearValues), [](const auto& attach) {return attach.clear_value();});
+		std::transform(std::begin(attachments), std::end(attachments), std::back_inserter(clearValues),
+					   [](const auto& attach) { return attach.clear_value(); });
 	}
 	bool success = false;
 	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i)
@@ -147,26 +148,26 @@ bool pass::build()
 
 			// Update dynamic viewport state
 			vk::Viewport viewport;
-			viewport.height = (float)renderPassBeginInfo.renderArea.extent.height;
-			viewport.width = (float)renderPassBeginInfo.renderArea.extent.width;
+			viewport.height   = (float)renderPassBeginInfo.renderArea.extent.height;
+			viewport.width	= (float)renderPassBeginInfo.renderArea.extent.width;
 			viewport.minDepth = (float)0.0f;
 			viewport.maxDepth = (float)1.0f;
 			m_DrawCommandBuffers[i].setViewport(0, 1, &viewport);
 
 			// Update dynamic scissor state
 			vk::Rect2D scissor;
-			scissor.extent.width = renderPassBeginInfo.renderArea.extent.width;
+			scissor.extent.width  = renderPassBeginInfo.renderArea.extent.width;
 			scissor.extent.height = renderPassBeginInfo.renderArea.extent.height;
-			scissor.offset.x = 0;
-			scissor.offset.y = 0;
+			scissor.offset.x	  = 0;
+			scissor.offset.y	  = 0;
 			m_DrawCommandBuffers[i].setScissor(0, 1, &scissor);
 
 			m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
-													m_DepthBias.components[2]);
+												 m_DepthBias.components[2]);
 
 			for(auto& group : m_AllGroups) group.build(m_DrawCommandBuffers[i], m_Swapchain, i);
 
-			m_DrawCommandBuffers[i].endRenderPass();			
+			m_DrawCommandBuffers[i].endRenderPass();
 		}
 		else
 		{
@@ -195,9 +196,9 @@ bool pass::build()
 				m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
 													 m_DepthBias.components[2]);
 
-			
+
 				for(auto& group : m_AllGroups) group.build(m_DrawCommandBuffers[i], m_Framebuffer, i);
-						
+
 
 				m_DrawCommandBuffers[i].endRenderPass();
 			}
@@ -239,7 +240,8 @@ void pass::prepare()
 {
 	if(m_UsingSwap)
 	{
-		if(m_Swapchain->next(m_PresentComplete, m_CurrentBuffer)) build();
+		m_Swapchain->next(m_PresentComplete, m_CurrentBuffer);
+		// if(m_Swapchain->next(m_PresentComplete, m_CurrentBuffer)) build();
 	}
 	else
 	{
@@ -260,7 +262,7 @@ void pass::present()
 			LOG_ERROR("Failed to reset fence");
 	}
 
-	std::vector<vk::Semaphore> semaphores;
+	std::vector<vk::Semaphore> semaphores{m_WaitFor};
 	std::vector<vk::PipelineStageFlags> stageFlags;
 
 	if(m_UsingSwap)
@@ -303,6 +305,8 @@ void pass::present()
 	++m_FrameCount;
 }
 
+bool pass::is_swapchain() const noexcept { return m_UsingSwap; }
+
 
 void pass::bias(const core::gfx::depth_bias& bias) noexcept { m_DepthBias = bias; }
 core::gfx::depth_bias pass::bias() const noexcept { return m_DepthBias; }
@@ -317,3 +321,11 @@ void pass::remove(const core::gfx::drawgroup& group) noexcept
 }
 
 void pass::clear() noexcept { m_AllGroups.clear(); }
+
+
+void pass::connect(psl::view_ptr<pass> pass) noexcept { m_WaitFor.emplace_back(pass->m_RenderComplete); }
+
+void pass::disconnect(psl::view_ptr<pass> pass) noexcept
+{
+	m_WaitFor.erase(std::find(std::begin(m_WaitFor), std::end(m_WaitFor), pass->m_RenderComplete), std::end(m_WaitFor));
+}

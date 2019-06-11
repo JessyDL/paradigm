@@ -30,40 +30,46 @@ namespace psl::ecs
 		template <typename... Ys>
 		struct type_pack
 		{
-			using pack_t	= typename details::typelist_to_pack_view<Ys...>::type;
-			using filter_t  = typename details::typelist_to_pack<Ys...>::type;
-			using combine_t = typename details::typelist_to_combine_pack<Ys...>::type;
-			using break_t   = typename details::typelist_to_break_pack<Ys...>::type;
-			using add_t		= typename details::typelist_to_add_pack<Ys...>::type;
-			using remove_t  = typename details::typelist_to_remove_pack<Ys...>::type;
-			using except_t  = typename details::typelist_to_except_pack<Ys...>::type;
-			using policy_t  = psl::ecs::full;
+			using pack_t		= typename details::typelist_to_pack_view<Ys...>::type;
+			using filter_t		= typename details::typelist_to_pack<Ys...>::type;
+			using combine_t		= typename details::typelist_to_combine_pack<Ys...>::type;
+			using break_t		= typename details::typelist_to_break_pack<Ys...>::type;
+			using add_t			= typename details::typelist_to_add_pack<Ys...>::type;
+			using remove_t		= typename details::typelist_to_remove_pack<Ys...>::type;
+			using except_t		= typename details::typelist_to_except_pack<Ys...>::type;
+			using conditional_t = typename details::typelist_to_conditional_pack<Ys...>::type;
+			using order_by_t	= typename details::typelist_to_orderby_pack<Ys...>::type;
+			using policy_t		= psl::ecs::full;
 		};
 
 		template <typename... Ys>
 		struct type_pack<psl::ecs::full, Ys...>
 		{
-			using pack_t	= typename details::typelist_to_pack_view<Ys...>::type;
-			using filter_t  = typename details::typelist_to_pack<Ys...>::type;
-			using combine_t = typename details::typelist_to_combine_pack<Ys...>::type;
-			using break_t   = typename details::typelist_to_break_pack<Ys...>::type;
-			using add_t		= typename details::typelist_to_add_pack<Ys...>::type;
-			using remove_t  = typename details::typelist_to_remove_pack<Ys...>::type;
-			using except_t  = typename details::typelist_to_except_pack<Ys...>::type;
-			using policy_t  = psl::ecs::full;
+			using pack_t		= typename details::typelist_to_pack_view<Ys...>::type;
+			using filter_t		= typename details::typelist_to_pack<Ys...>::type;
+			using combine_t		= typename details::typelist_to_combine_pack<Ys...>::type;
+			using break_t		= typename details::typelist_to_break_pack<Ys...>::type;
+			using add_t			= typename details::typelist_to_add_pack<Ys...>::type;
+			using remove_t		= typename details::typelist_to_remove_pack<Ys...>::type;
+			using except_t		= typename details::typelist_to_except_pack<Ys...>::type;
+			using conditional_t = typename details::typelist_to_conditional_pack<Ys...>::type;
+			using order_by_t	= typename details::typelist_to_orderby_pack<Ys...>::type;
+			using policy_t		= psl::ecs::full;
 		};
 
 		template <typename... Ys>
 		struct type_pack<psl::ecs::partial, Ys...>
 		{
-			using pack_t	= typename details::typelist_to_pack_view<Ys...>::type;
-			using filter_t  = typename details::typelist_to_pack<Ys...>::type;
-			using combine_t = typename details::typelist_to_combine_pack<Ys...>::type;
-			using break_t   = typename details::typelist_to_break_pack<Ys...>::type;
-			using add_t		= typename details::typelist_to_add_pack<Ys...>::type;
-			using remove_t  = typename details::typelist_to_remove_pack<Ys...>::type;
-			using except_t  = typename details::typelist_to_except_pack<Ys...>::type;
-			using policy_t  = psl::ecs::partial;
+			using pack_t		= typename details::typelist_to_pack_view<Ys...>::type;
+			using filter_t		= typename details::typelist_to_pack<Ys...>::type;
+			using combine_t		= typename details::typelist_to_combine_pack<Ys...>::type;
+			using break_t		= typename details::typelist_to_break_pack<Ys...>::type;
+			using add_t			= typename details::typelist_to_add_pack<Ys...>::type;
+			using remove_t		= typename details::typelist_to_remove_pack<Ys...>::type;
+			using except_t		= typename details::typelist_to_except_pack<Ys...>::type;
+			using conditional_t = typename details::typelist_to_conditional_pack<Ys...>::type;
+			using order_by_t	= typename details::typelist_to_orderby_pack<Ys...>::type;
+			using policy_t		= psl::ecs::partial;
 		};
 
 
@@ -78,15 +84,18 @@ namespace psl::ecs
 	  public:
 		static constexpr bool has_entities{std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
 
-		using pack_t	= typename type_pack<Ts...>::pack_t;
-		using filter_t  = typename type_pack<Ts...>::filter_t;
-		using combine_t = typename type_pack<Ts...>::combine_t;
-		using break_t   = typename type_pack<Ts...>::break_t;
-		using add_t		= typename type_pack<Ts...>::add_t;
-		using remove_t  = typename type_pack<Ts...>::remove_t;
-		using except_t  = typename type_pack<Ts...>::except_t;
-		using policy_t  = typename type_pack<Ts...>::policy_t;
+		using pack_t		= typename type_pack<Ts...>::pack_t;
+		using filter_t		= typename type_pack<Ts...>::filter_t;
+		using combine_t		= typename type_pack<Ts...>::combine_t;
+		using break_t		= typename type_pack<Ts...>::break_t;
+		using add_t			= typename type_pack<Ts...>::add_t;
+		using remove_t		= typename type_pack<Ts...>::remove_t;
+		using except_t		= typename type_pack<Ts...>::except_t;
+		using conditional_t = typename type_pack<Ts...>::conditional_t;
+		using order_by_t	= typename type_pack<Ts...>::order_by_t;
+		using policy_t		= typename type_pack<Ts...>::policy_t;
 
+		static_assert(std::tuple_size<order_by_t>::value <= 1, "multiple order_by statements make no sense");
 	  public:
 		pack() : m_Pack() { check_policy<Ts...>(); };
 
@@ -106,10 +115,9 @@ namespace psl::ecs
 			return m_Pack.template get<N>();
 		}
 
-		auto operator[](size_t index) const noexcept -> decltype(std::declval<typename pack_t::iterator>().operator*())
-		{
-			return m_Pack[index];
-		}
+		auto operator[](size_t index) const noexcept { return m_Pack[index]; }
+
+		auto operator[](size_t index) noexcept { return m_Pack[index]; }
 
 		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Pack); }
 

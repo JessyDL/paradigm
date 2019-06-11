@@ -3,6 +3,7 @@
 #include "systems/resource.h"
 #include <vector>
 #include "vulkan_stdafx.h"
+#include "view_ptr.h"
 
 namespace core::gfx
 {
@@ -72,11 +73,18 @@ namespace core::gfx
 		/// \brief add an additional drawgroup to be included in this pass' draw instructions.
 		void add(core::gfx::drawgroup& group) noexcept;
 
+		/// \brief makes the current pass wait for the given pass to complete
+		void connect(psl::view_ptr<pass> pass) noexcept;
+
+		void disconnect(psl::view_ptr<pass> pass) noexcept;
+
 		/// \brief removes an existing drawgroup from this pass' draw instructions.
 		void remove(const core::gfx::drawgroup& group) noexcept;
 
 		/// \brief removes all drawgroups from this pass' draw instructions.
 		void clear() noexcept;
+
+		bool is_swapchain() const noexcept;
 	  private:
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
 		/// \param[in] size the amount of fences to create.
@@ -90,6 +98,7 @@ namespace core::gfx
 		const bool m_UsingSwap;
 		std::vector<core::gfx::drawgroup> m_AllGroups;
 
+		std::vector<vk::Semaphore> m_WaitFor;
 		vk::Semaphore m_PresentComplete;
 		vk::Semaphore m_RenderComplete;
 		std::vector<vk::Fence> m_WaitFences;

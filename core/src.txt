@@ -15,7 +15,10 @@ src/gfx/drawcall.cpp
 src/gfx/drawgroup.cpp
 src/gfx/material.cpp
 src/gfx/pass.cpp
+src/gfx/render_graph.cpp
 src/gfx/pipeline_cache.cpp
+src/gfx/bundle.cpp
+src/gfx/details/instance.cpp
 
 src/meta/shader.cpp
 src/meta/texture.cpp
@@ -44,4 +47,6 @@ src/vk/texture.cpp
 
 src/ecs/systems/fly.cpp
 src/ecs/systems/render.cpp
+src/ecs/systems/gpu_camera.cpp
+src/ecs/systems/lighting.cpp
 )

@@ -27,6 +27,7 @@
 #include "vk/buffer.h"
 #include "vk/geometry.h"
 #include "gfx/material.h"
+#include "gfx/bundle.h"
 #include "gfx/pipeline_cache.h"
 #include "meta/shader.h"
 
@@ -59,11 +60,83 @@
 #include "ecs/systems/death.h"
 #include "ecs/systems/attractor.h"
 #include "ecs/systems/movement.h"
+#include "ecs/systems/gpu_camera.h"
+
+#include "data/framebuffer.h"
+#include "vk/framebuffer.h"
+#include "gfx/render_graph.h"
+
+#include "ecs/systems/lighting.h"
 
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
 using namespace core::os;
+
+using namespace psl::ecs;
+using namespace core::ecs::components;
+
+handle<material> setup_example_material(resource::cache& cache, handle<context> context_handle,
+										handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer,
+										const psl::UID& texture)
+{
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
+
+	auto textureHandle = create<gfx::texture>(cache, texture);
+	textureHandle.load(context_handle);
+
+	// create the sampler
+	auto samplerData = create<data::sampler>(cache);
+	samplerData.load();
+	auto samplerHandle = create<gfx::sampler>(cache);
+	samplerHandle.load(context_handle, samplerData);
+
+	// load the example material
+	auto matData = create<data::material>(cache);
+	matData.load();
+	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+
+	auto stages = matData->stages();
+	for(auto& stage : stages)
+	{
+		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+
+		auto bindings = stage.bindings();
+		bindings[0].texture(textureHandle.RUID());
+		bindings[0].sampler(samplerHandle.RUID());
+		stage.bindings(bindings);
+		// binding.texture()
+	}
+	matData->stages(stages);
+
+	auto material = create<gfx::material>(cache);
+	material.load(context_handle, matData, pipeline_cache, matBuffer);
+
+
+	// psl::serialization::serializer s;
+	// s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
+	//												  utility::application::path::get_path() + "material_example.mat");
+
+	return material;
+}
+
+handle<material> setup_depth_material(resource::cache& cache, handle<context> context_handle,
+									  handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer)
+{
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
+
+
+	auto matData = create<data::material>(cache);
+
+	matData.load();
+	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+
+	auto material = create<gfx::material>(cache);
+	material.load(context_handle, matData, pipeline_cache, matBuffer);
+	return material;
+}
 
 #ifndef PLATFORM_ANDROID
 void setup_loggers()
@@ -528,6 +601,24 @@ int android_entry()
 
 #endif
 
+struct lifetime_test
+{
+	bool operator()(const core::ecs::components::lifetime& value) const noexcept { return value.value > 0.5f; }
+};
+
+auto scaleSystem =
+	[](psl::ecs::info& info,
+	   psl::ecs::pack<psl::ecs::partial, core::ecs::components::transform, const core::ecs::components::lifetime,
+					  psl::ecs::on_condition<lifetime_test, core::ecs::components::lifetime>>
+		   pack) {
+		for(auto [transform, lifetime] : pack)
+		{
+			auto remaining = std::min(0.5f, lifetime.value) * 2.0f;
+			transform.scale *= remaining;
+		}
+	};
+
+
 int entry()
 {
 #ifdef PLATFORM_WINDOWS
@@ -567,24 +658,24 @@ int entry()
 	auto stagingBufferData = create<data::buffer>(cache);
 	stagingBufferData.load(vk::BufferUsageFlagBits::eTransferSrc,
 						   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						   memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+						   memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto stagingBuffer = create<gfx::buffer>(cache);
 	stagingBuffer.load(context_handle, stagingBufferData);
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto frameBufferData = create<data::buffer>(cache);
-	frameBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
-						 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-						 resource_region
-							 .create_region(sizeof(core::ecs::systems::render::framedata) * 128,
-											context_handle->properties().limits.minUniformBufferOffsetAlignment,
-											new memory::default_allocator(true))
-							 .value());
+	auto frameCamBufferData = create<data::buffer>(cache);
+	frameCamBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
+							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+							resource_region
+								.create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
+											   context_handle->properties().limits.minUniformBufferOffsetAlignment,
+											   new memory::default_allocator(true))
+								.value());
 	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 	// memory::default_allocator(true)});
-	auto frameBuffer = create<gfx::buffer>(cache);
-	frameBuffer.load(context_handle, frameBufferData);
-	cache.library().set(frameBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
+	auto frameCamBuffer = create<gfx::buffer>(cache);
+	frameCamBuffer.load(context_handle, frameCamBufferData);
+	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
 	// create the buffers to store the model in
 	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
@@ -594,7 +685,7 @@ int entry()
 	geomBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer |
 							vk::BufferUsageFlagBits::eTransferDst,
 						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto geomBuffer = create<gfx::buffer>(cache);
 	geomBuffer.load(context_handle, geomBufferData, stagingBuffer);
 
@@ -682,8 +773,6 @@ int entry()
 		if(surface_handle) surface_handle->terminate();
 		return -1;
 	}
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
 	// create the material buffer and instance buffer
 	auto matBufferData = create<data::buffer>(cache);
@@ -695,61 +784,57 @@ int entry()
 	auto matBuffer = create<gfx::buffer>(cache);
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
 
-	// create the texture
-	auto textureHandle = create<gfx::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
-	textureHandle.load(context_handle);
-
-	auto textureHandle2 = create<gfx::texture>(cache, "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
-	textureHandle2.load(context_handle);
-
-	// create the sampler
-	auto samplerData = create<data::sampler>(cache);
-	samplerData.load();
-	auto samplerHandle = create<gfx::sampler>(cache);
-	samplerHandle.load(context_handle, samplerData);
-
 	// create a pipeline cache
 	auto pipeline_cache = create<core::gfx::pipeline_cache>(cache);
 	pipeline_cache.load(context_handle);
 
-	// load the example material
-	auto matData = create<data::material>(cache);
-	matData.load();
-	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	auto stages = matData->stages();
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+	auto material		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
+											 "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
+	auto material2		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
+											 "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
+	auto depth_material = setup_depth_material(cache, context_handle, pipeline_cache, matBuffer);
 
-		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle.RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-		// binding.texture()
-	}
-	matData->stages(stages);
-	auto matData2 = resource::copy<data::material>(cache, matData);
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+	auto instanceBufferData = create<data::buffer>(cache);
+	instanceBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+							vk::MemoryPropertyFlagBits::eDeviceLocal,
+							memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+	auto instanceBuffer = create<gfx::buffer>(cache);
+	instanceBuffer.load(context_handle, instanceBufferData, stagingBuffer);
 
-		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle2.RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-		// binding.texture()
-	}
-	matData2->stages(stages);
-	psl::serialization::serializer s;
-	s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
-													  utility::application::path::get_path() + "material_example.mat");
+	auto mat_bundle = create<gfx::bundle>(cache);
+	mat_bundle.load(instanceBuffer);
+	mat_bundle->set(material, 2000);
 
-	auto material = create<gfx::material>(cache);
-	material.load(context_handle, matData, pipeline_cache, matBuffer, geomBuffer);
+	auto mat_bundle2 = create<gfx::bundle>(cache);
+	mat_bundle2.load(instanceBuffer);
+	mat_bundle2->set(material2, 2000);
+	mat_bundle2->set(depth_material, 1000);
 
-	auto material2 = create<gfx::material>(cache);
-	material2.load(context_handle, matData2, pipeline_cache, matBuffer, geomBuffer);
+	// load depth pass material
+	/*{
+		auto vertDepthShaderMeta =
+			cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
+		auto fragDepthShaderMeta =
+			cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
+		matData = create<data::material>(cache);
+		matData.load();
+		matData->from_shaders(cache.library(), {vertDepthShaderMeta, fragDepthShaderMeta});
+
+
+
+
+
+
+
+
+
+
+
+	}*/
+
+	core::gfx::render_graph renderGraph{};
+	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
 	// create the ecs
 	using psl::ecs::state;
 
@@ -769,15 +854,140 @@ int entry()
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
+	core::ecs::systems::render render_system{ECSState, swapchain_pass};
+	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	core::ecs::systems::render render_system{ECSState, context_handle, swapchain_handle, surface_handle, frameBuffer};
+	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer};
 
+	ECSState.declare(psl::ecs::threading::par, scaleSystem);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
+
+	core::ecs::systems::lighting_system lighting{
+		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
+		swapchain_pass,			  context_handle,		 surface_handle};
+
+
+	// create post processing pass
+	// auto deferredFramebuffer = create<gfx::framebuffer>(cache);
+	//{
+	//	auto deferredData = create<data::framebuffer>(cache);
+	//	deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
+
+	//	// position
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR16G16B16A16Sfloat;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
+	//	}
+
+	//	// normal
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR16G16B16A16Sfloat;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
+	//	}
+
+	//	// albedo
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR8G8B8A8Srgb;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{1.0f, 1.0f, 0.0f, 1.0f}}), descr);
+	//	}
+
+	//	// accumulation
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		descr.format		 = vk::Format::eR8G8B8A8Srgb;
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
+
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eColorAttachment,
+	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 0.0f}}), descr);
+	//	}
+
+	//	// depth attachment
+	//	{
+	//		vk::AttachmentDescription descr;
+	//		if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
+	//		{
+	//			LOG_FATAL("Could not find a suitable depth stencil buffer format.");
+	//		}
+	//		descr.samples		 = vk::SampleCountFlagBits::e1;
+	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
+	//		descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
+
+	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
+	//						  descr);
+	//	}
+
+	//	{
+	//		auto ppsamplerData = create<data::sampler>(cache);
+	//		ppsamplerData.load();
+	//		ppsamplerData->mipmaps(false);
+	//		auto ppsamplerHandle = create<gfx::sampler>(cache);
+	//		ppsamplerHandle.load(context_handle, ppsamplerData);
+	//		deferredData->set(ppsamplerHandle);
+	//	}
+
+	//	deferredFramebuffer.load(context_handle, deferredData);
+
+	//	auto ppMatData = create<data::material>(cache);
+	//	ppMatData.load();
+
+	//	data::material::stage vertexStage{};
+	//	// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
+
+	//	std::vector<data::material::stage> stages;
+
+
+	//	// ppMatData->stages()
+	//}
 
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
@@ -786,10 +996,10 @@ int entry()
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 
 	ECSState.create(
-		(iterations > 0) ? 250 : (std::rand() % 100 == 0) ? 0 : 0,
-		[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
-			renderable = {(std::rand() % 2 == 0) ? material : material2,
-						  geometryHandles[std::rand() % geometryHandles.size()], 0u};
+		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
+		[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
+			renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
+						  geometryHandles[std::rand() % geometryHandles.size()]};
 		},
 		psl::ecs::empty<core::ecs::components::transform>{},
 		[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
@@ -811,12 +1021,14 @@ int entry()
 		core::log->info("ECS has {} renderables alive right now",
 						ECSState.filter<core::ecs::components::renderable>().size());
 
+		renderGraph.present();
+
 
 		ECSState.create(
-			(iterations > 0) ? 550 + std::rand() % 550 : (std::rand() % 100 == 0) ? 0 : 0,
-			[&material, &geometryHandles, &material2](core::ecs::components::renderable& renderable) {
-				renderable = {(std::rand() % 2 == 0) ? material : material2,
-							  geometryHandles[std::rand() % geometryHandles.size()], 0u};
+			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
+			[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
+				renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
+							  geometryHandles[std::rand() % geometryHandles.size()]};
 			},
 			psl::ecs::empty<core::ecs::components::transform>{},
 			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
@@ -858,7 +1070,21 @@ int entry()
 			}
 			--iterations;
 		}
+
+
+		if(iterations == 25590)
+		{
+			ECSState.create(10,
+							[](ecs::components::light& var) {
+								var = ecs::components::light{psl::vec3{1.0f, 1.0f, 1.0f}, 1.0f,
+															 ecs::components::light::type::DIRECTIONAL,
+															 std::rand() % 2 == 0};
+							},
+							core::ecs::components::transform{});
+		}
 	}
+
+	context_handle->device().waitIdle();
 
 	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
 								   core::profiler.to_string());

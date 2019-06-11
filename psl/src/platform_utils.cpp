@@ -134,7 +134,7 @@ bool utility::platform::directory::exists(psl::string_view absolutePath)
 {
 	auto platform_path = to_platform(absolutePath);
 #ifdef PLATFORM_WINDOWS
-	std::wstring str{psl::to_platform_string(platform_path)};
+	std::wstring str{psl::to_pstring(platform_path)};
 	auto ftyp = GetFileAttributes(str.c_str());
 	if(ftyp == INVALID_FILE_ATTRIBUTES) return false; // something is wrong with your path!
 
@@ -153,7 +153,7 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 {
 	psl::string path = to_platform(absolutePath);
 #ifdef PLATFORM_WINDOWS
-	std::wstring str{psl::to_platform_string(absolutePath)};
+	std::wstring str{psl::to_pstring(absolutePath)};
 	bool succes = (CreateDirectory(str.c_str(), NULL) != 0);
 	if(succes) return true;
 

@@ -655,7 +655,7 @@ psl::array<entity> state::filter_seed(
 
 psl::array<entity> state::filter(details::dependency_pack& pack)
 {
-	//auto instructions{to_instructions(pack)};
+	// auto instructions{to_instructions(pack)};
 
 	details::instruction instruction;
 	psl::array_view<entity> best_pack{};
@@ -694,6 +694,13 @@ psl::array<entity> state::filter(details::dependency_pack& pack)
 		end = filter_remove_except(filter, begin, end);
 	}
 	result.erase(end, std::end(result));
+	for(auto conditional : pack.on_condition)
+	{
+		result.erase(std::invoke(conditional, std::begin(result), std::end(result), *this), std::end(result));
+	}
+
+	std::invoke(pack.orderby, std::begin(result), std::end(result), *this);
+
 	return result;
 }
 

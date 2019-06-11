@@ -10,7 +10,6 @@
 #include "details/component_info.h"
 #include "details/system_information.h"
 #include "unique_ptr.h"
-#include "bytell_map.h"
 #include "array.h"
 #include <chrono>
 #include "task.h"
@@ -85,6 +84,24 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
 
+		template <typename Pred, typename... Ts>
+		void order_by(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		{
+			std::sort(begin, end, [this, pred = Pred{}](entity lhs, entity rhs) -> bool {
+				int res{0};
+				(void(res += pred(this->get<Ts>(lhs), this->get<Ts>(rhs))), ...);
+				return res > 0;
+			});
+		}
+
+		template <typename Pred, typename T>
+		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		{
+			return std::remove_if(begin, end, [this, pred = Pred{}](entity lhs) -> bool 
+			{
+				return pred(this->get<T>(lhs));
+			});
+		}
 		template <typename T>
 		T& get(entity entity)
 		{
@@ -243,27 +260,27 @@ namespace psl::ecs
 		}
 
 		template <typename Fn>
-		void declare(Fn&& fn)
+		void declare(Fn&& fn, bool seedWithExisting = false)
 		{
-			declare_impl(threading::sequential, std::forward<Fn>(fn));
+			declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
 		}
 
 
 		template <typename Fn>
-		void declare(threading threading, Fn&& fn)
+		void declare(threading threading, Fn&& fn, bool seedWithExisting = false)
 		{
-			declare_impl(threading, std::forward<Fn>(fn));
+			declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
 		}
 
 		template <typename Fn, typename T>
-		void declare(Fn&& fn, T* ptr)
+		void declare(Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr);
+			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting);
 		}
 		template <typename Fn, typename T>
-		void declare(threading threading, Fn&& fn, T* ptr)
+		void declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			declare_impl(threading, std::forward<Fn>(fn), ptr);
+			declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting);
 		}
 
 		size_t capacity() const noexcept { return m_Entities.size(); }
@@ -647,14 +664,15 @@ namespace psl::ecs
 		{};
 
 		template <typename Fn, typename T = void>
-		void declare_impl(threading threading, Fn&& fn, T* ptr = nullptr)
+		void declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
 
 			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-			std::function<std::vector<details::dependency_pack>()> pack_generator = []() {
+			std::function<std::vector<details::dependency_pack>(bool)> pack_generator = [](bool seedWithPrevious =
+																							   false) {
 				using pack_t = typename get_packs<function_args>::type;
 				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
-														  psl::templates::type_container<pack_t>{});
+														  psl::templates::type_container<pack_t>{}, seedWithPrevious);
 			};
 
 			std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)> system_tick;
@@ -685,7 +703,8 @@ namespace psl::ecs
 					std::apply(fn, std::move(tuple_argument_list));
 				};
 			}
-			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick));
+			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
+											  seedWithExisting);
 		}
 
 		::memory::raw_region m_Cache{1024 * 1024 * 32};
@@ -704,4 +723,25 @@ namespace psl::ecs
 		size_t m_Orphans{0};
 		size_t m_Tick{0};
 	};
+
+	namespace details
+	{
+		template <typename Pred, typename... Ts>
+		void dependency_pack::select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>)
+		{
+			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
+				state.order_by < Pred, Ts...>(begin, end);
+			};
+		}
+
+		template <typename Pred, typename... Ts>
+		void dependency_pack::select_condition_impl(std::pair<Pred, std::tuple<Ts...>>)
+		{
+			on_condition.push_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+									  psl::ecs::state& state) -> psl::array<entity>::iterator {
+				return state.on_condition<Pred, Ts...>(begin, end);
+			});
+		}
+
+	} // namespace details
 } // namespace psl::ecs

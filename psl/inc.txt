@@ -48,6 +48,7 @@ inc/bytell_map.h
 inc/sparse_array.h
 inc/sparse_indice_array.h
 inc/unique_ptr.h
+inc/view_ptr.h
 
 inc/math/math.hpp
 inc/math/vec.h

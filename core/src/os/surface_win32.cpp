@@ -94,7 +94,7 @@ bool surface::init_surface()
 	AdjustWindowRectEx(&wr, style, FALSE, ex_style);
 	win32_window = CreateWindowEx(0,
 								   win32_class_name.c_str(),						// class name
-								   psl::to_platform_string(m_Data->name()).c_str(), // app name
+								   psl::to_pstring(m_Data->name()).c_str(), // app name
 								   style,											// window style
 								   0, 0,											// x/y coords
 								   wr.right - wr.left,								// width

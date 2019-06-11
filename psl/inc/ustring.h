@@ -14,56 +14,73 @@
 
 //#include <codecvt>
 // seeing the standard omits this for LLVM specific reasons (ridiculous..)
-// see: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3512.html (Modifications to the rest of the standard library)
+// see: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3512.html (Modifications to the rest of the standard
+// library)
 
 #ifdef UNICODE
-#define __T(x)      L ## x
+#define __T(x) L##x
 #else
-#define __T(x)      x
+#define __T(x) x
 #endif
 
-#define _T(x)       __T(x)
-#define _TEXT(x)    __T(x)
+#define _T(x) __T(x)
+#define _TEXT(x) __T(x)
 
 using namespace std::string_literals;
 
 /// \brief paradigm standard library
-/// 
-/// contains various utilities and constructs to aid you. In this you'll find constructs that allow event signalling, dealing
-/// with UTF encoded strings, etc...
+///
+/// contains various utilities and constructs to aid you. In this you'll find constructs that allow event signalling,
+/// dealing with UTF encoded strings, etc...
 namespace psl
 {
 	/// \brief UTF-8 class namespace that contains the typedefs for the string objects, as well as helper methods.
 	namespace string8
 	{
-		using char_t = char;
-		using view = std::basic_string_view<char_t>;
-		using stream = std::basic_stringstream<char_t>;
-		using ostream = std::basic_ostream<char_t>;
+		using char_t   = char;
+		using view	 = std::basic_string_view<char_t>;
+		using stream   = std::basic_stringstream<char_t>;
+		using ostream  = std::basic_ostream<char_t>;
 		using ofstream = std::basic_ofstream<char_t>;
-		using istream = std::basic_istream<char_t>;
+		using istream  = std::basic_istream<char_t>;
 		using ifstream = std::basic_ifstream<char_t>;
-		using fstream = std::basic_fstream<char_t>;
+		using fstream  = std::basic_fstream<char_t>;
 	} // namespace string8
 
 	/// \brief UTF-16 class namespace that contains the typedefs for the string objects, as well as helper methods.
 	namespace string16
 	{
-		using char_t = char16_t;
-		using view = std::basic_string_view<char_t>;
-		using stream = std::basic_stringstream<char_t>;
-		using ostream = std::basic_ostream<char_t>;
+		using char_t   = char16_t;
+		using view	 = std::basic_string_view<char_t>;
+		using stream   = std::basic_stringstream<char_t>;
+		using ostream  = std::basic_ostream<char_t>;
 		using ofstream = std::basic_ofstream<char_t>;
-		using istream = std::basic_istream<char_t>;
+		using istream  = std::basic_istream<char_t>;
 		using ifstream = std::basic_ifstream<char_t>;
-		using fstream = std::basic_fstream<char_t>;
+		using fstream  = std::basic_fstream<char_t>;
 
 	} // namespace string16
 
 	/// \brief UTF-32 class namespace that contains the typedefs for the string objects, as well as helper methods.
 	namespace string32
 	{
-		using char_t = char32_t;
+		using char_t   = char32_t;
+		using view	 = std::basic_string_view<char_t>;
+		using stream   = std::basic_stringstream<char_t>;
+		using ostream  = std::basic_ostream<char_t>;
+		using ofstream = std::basic_ofstream<char_t>;
+		using istream  = std::basic_istream<char_t>;
+		using ifstream = std::basic_ifstream<char_t>;
+		using fstream  = std::basic_fstream<char_t>;
+	} // namespace string32
+
+	namespace platform
+	{
+	#if defined(UNICODE)
+		using char_t = wchar_t;
+	#else
+		using char_t = char;
+	#endif
 		using view = std::basic_string_view<char_t>;
 		using stream = std::basic_stringstream<char_t>;
 		using ostream = std::basic_ostream<char_t>;
@@ -73,35 +90,37 @@ namespace psl
 		using fstream = std::basic_fstream<char_t>;
 	}
 
-	using string8_t = std::basic_string<string8::char_t, std::char_traits<string8::char_t>>;
+	using string8_t  = std::basic_string<string8::char_t, std::char_traits<string8::char_t>>;
 	using string16_t = std::basic_string<string16::char_t, std::char_traits<string16::char_t>>;
 	using string32_t = std::basic_string<string32::char_t, std::char_traits<string32::char_t>>;
 
+	/// \brief platform conditional string type, turns into char or wchar depending on the platform and compile options
+	using pstring_t = std::basic_string<platform::char_t, std::char_traits<platform::char_t>>;
 #if defined(STRING_16_BIT)
 	static constexpr size_t uchar_size{sizeof(string16::char_t)};
-	using string = string16_t;
-	using char_t = string16::char_t;
-	using string_view = string16::view;
+	using string	   = string16_t;
+	using char_t	   = string16::char_t;
+	using string_view  = string16::view;
 	using stringstream = string16::stream;
-	using ostream = string16::ostream;
-	using ofstream = string16::ofstream;
-	using istream = string16::istream;
-	using ifstream = string16::ifstream;
-	using fstream = string16::fstream;
+	using ostream	  = string16::ostream;
+	using ofstream	 = string16::ofstream;
+	using istream	  = string16::istream;
+	using ifstream	 = string16::ifstream;
+	using fstream	  = string16::fstream;
 #else
-	#if !defined(STRING_8_BIT)
-		#define STRING_8_BIT
-	#endif
+#if !defined(STRING_8_BIT)
+#define STRING_8_BIT
+#endif
 	static constexpr size_t uchar_size{sizeof(string8::char_t)};
-	using string = string8_t;
-	using char_t = string8::char_t;
-	using string_view = string8::view;
+	using string	   = string8_t;
+	using char_t	   = string8::char_t;
+	using string_view  = string8::view;
 	using stringstream = string8::stream;
-	using ostream = string8::ostream;
-	using ofstream = string8::ofstream;
-	using istream = string8::istream;
-	using ifstream = string8::ifstream;
-	using fstream = string8::fstream;
+	using ostream	  = string8::ostream;
+	using ofstream	 = string8::ofstream;
+	using istream	  = string8::istream;
+	using ifstream	 = string8::ifstream;
+	using fstream	  = string8::fstream;
 #endif
 	namespace string8
 	{
@@ -133,7 +152,7 @@ namespace psl
 			return from_string16_t(psl::string16_t(s));
 		}
 
-		
+
 		/// \brief converts a wstring into a UTF-8 string.
 		///
 		/// when the wstring is already 8bit, this turns into a no-op.
@@ -154,7 +173,7 @@ namespace psl
 		static decltype(std::cerr)& cerr = std::cerr;
 		/// \brief alias for std::clor, prefer this version
 		static decltype(std::clog)& clog = std::clog;
-	}
+	} // namespace string8
 
 	namespace string16
 	{
@@ -181,10 +200,7 @@ namespace psl
 		/// \brief converts a UTF-8 string into a UTF-16 string.
 		/// \param[in] s UTF-8 encoded string to convert.
 		/// \returns a psl::string16_t based on the input UTF-8 string.
-		inline static psl::string16_t from_string8_t(psl::string8::view s)
-		{
-			return from_string8_t(psl::string8_t(s));
-		}
+		inline static psl::string16_t from_string8_t(psl::string8::view s) { return from_string8_t(psl::string8_t(s)); }
 
 		/// \brief alias for std::wcin, prefer this version
 		static decltype(std::wcin)& cin = std::wcin;
@@ -194,7 +210,7 @@ namespace psl
 		static decltype(std::wcerr)& cerr = std::wcerr;
 		/// \brief alias for std::wclog, prefer this version
 		static decltype(std::wclog)& clog = std::wclog;
-	}
+	} // namespace string16
 
 #if defined(STRING_16_BIT)
 	inline static psl::string8_t to_string8_t(const psl::string& s)
@@ -207,15 +223,9 @@ namespace psl
 		return (std::wstring_convert<std::codecvt_utf8<char_t>, char_t>{}).from_bytes(s);
 	}
 
-	inline static psl::string8_t to_string8_t(psl::string_view s)
-	{
-		return to_string8_t(psl::string(s));
-	}
+	inline static psl::string8_t to_string8_t(psl::string_view s) { return to_string8_t(psl::string(s)); }
 
-	inline static psl::string from_string8_t(psl::string8::view s)
-	{
-		return from_string8_t(psl::string8_t(s));
-	}
+	inline static psl::string from_string8_t(psl::string8::view s) { return from_string8_t(psl::string8_t(s)); }
 
 	inline static psl::ustring_t to_wstring(const psl::string& s)
 	{
@@ -263,10 +273,7 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
 	/// \returns a psl::string8_t based on the input psl::string.
-	inline static psl::string8_t to_string8_t(psl::string_view s)
-	{
-		return psl::string(std::begin(s), std::end(s));
-	}
+	inline static psl::string8_t to_string8_t(psl::string_view s) { return psl::string(std::begin(s), std::end(s)); }
 
 	/// \brief converts a UTF-8 string into a psl::string
 	///
@@ -279,81 +286,120 @@ namespace psl
 		return psl::string8_t(std::begin(s), std::end(s));
 	}
 
-#ifdef UNICODE
-	using platform_char_t = wchar_t;
-	using platform_string = std::wstring;
-	using pchar_t = wchar_t;
-	using pstring		  = std::wstring;
 
-	/// \brief converts a psl::string int a std::wstring
+	/// \brief converts a psl::string8_t int a psl::pstring
 	///
-	/// converts a psl::string int a std::wstring, depending on the bit-size (8 or 16) of psl::string
+	/// converts a psl::string8_t into a psl::pstring, depending on the bit-size (8 or 16) of psl::string
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
-	/// \returns a std::wstring based on the input psl::string.
-	inline static std::wstring to_platform_string(const psl::string& s)
+	/// \returns a psl::pstring_t based on the input psl::string.
+	inline static psl::pstring_t to_pstring(const psl::string8_t& s)
 	{
-		std::wstring res;
+	#if defined(UNICODE)
+		psl::pstring_t res;
 		utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
+	#else
+		psl::pstring_t res(s.begin(), s.end());
+	#endif
 		return res;
 	}
 
-	/// \brief converts a psl::string int a std::wstring
+	/// \brief converts a psl::string int a psl::pstring
 	///
-	/// converts a psl::string int a std::wstring, depending on the bit-size (8 or 16) of psl::string
+	/// converts a psl::string into a psl::pstring, depending on the bit-size (8 or 16) of psl::string
+	/// this turns into a no-op.
+	/// \param[in] s string to convert.
+	/// \returns a psl::pstring_t based on the input psl::string.
+	inline static psl::pstring_t to_pstring(psl::string8::view s)
+	{
+	#if defined(UNICODE)
+		psl::pstring_t res;
+		utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
+	#else
+		psl::pstring_t res(s.begin(), s.end());
+	#endif
+		return res;
+	}
+
+
+	/// \brief converts a psl::string int a psl::pstring
+	///
+	/// converts a psl::string into a psl::pstring, depending on the bit-size (8 or 16) of psl::string
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
 	/// \returns a std::wstring based on the input psl::string.
-	inline static std::wstring to_platform_string(psl::string_view s)
+	inline static psl::pstring_t to_pstring(const psl::string16_t& s)
 	{
-		std::wstring res;
-		utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
+	#if defined(UNICODE)
+		psl::pstring_t res(s.begin(), s.end());
+	#else
+		psl::pstring_t res;
+		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
+	#endif
+		return res;
+	}
+
+	/// \brief converts a psl::string int a psl::pstring
+	///
+	/// converts a psl::string into a psl::pstring, depending on the bit-size (8 or 16) of psl::string
+	/// this turns into a no-op.
+	/// \param[in] s string to convert.
+	/// \returns a std::wstring based on the input psl::string.
+	inline static psl::pstring_t to_pstring(psl::string16::view s)
+	{
+	#if defined(UNICODE)
+		psl::pstring_t res(s.begin(), s.end());
+	#else
+		psl::pstring_t res;
+		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
+	#endif
+		return res;
+	}
+	
+	/// \brief converts a std::string int a psl::string
+	///
+	/// converts a std::string into a psl::string, depending on the bit-size (8 or 16) of psl::string
+	/// this turns into a no-op.
+	/// \param[in] s wstring to convert.
+	/// \returns a psl::string based on the input std::wstring.
+	inline static psl::string8_t to_string8_t(psl::platform::view s)
+	{
+	#if defined(UNICODE)
+		psl::string8_t res;
+		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
+	#else
+		psl::string8_t res(s.begin(), s.end());
+	#endif
 		return res;
 	}
 
 	/// \brief converts a std::wstring int a psl::string
 	///
-	/// converts a std::wstring int a psl::string, depending on the bit-size (8 or 16) of psl::string
+	/// converts a std::wstring into a psl::string, depending on the bit-size (8 or 16) of psl::string
 	/// this turns into a no-op.
 	/// \param[in] s wstring to convert.
 	/// \returns a psl::string based on the input std::wstring.
-	inline static psl::string from_platform_string(const std::wstring& s)
+	inline static psl::string8_t to_string8_t(const psl::pstring_t& s)
 	{
-		psl::string res;
+	#if defined(UNICODE)
+		psl::string8_t res;
 		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
+	#else
+		psl::string8_t res(s.begin(), s.end());
+	#endif
 		return res;
 	}
 
-	/// \brief converts a std::wstring int a psl::string
-	///
-	/// converts a std::wstring int a psl::string, depending on the bit-size (8 or 16) of psl::string
-	/// this turns into a no-op.
-	/// \param[in] s wstring to convert.
-	/// \returns a psl::string based on the input std::wstring.
-	inline static psl::string from_platform_string(std::wstring_view s)
-	{
-		psl::string res;
-		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-		return res;
-	}
-#else
-	using platform_char_t = char;
-	using platform_string = std::string;
-	using pchar_t = char;
-	using pstring = std::string;
-
-
-#endif
 
 
 #endif
 #ifdef UNICODE
-	static decltype(std::wcin)& cin = std::wcin;
+	static decltype(std::wcin)& cin   = std::wcin;
 	static decltype(std::wcout)& cout = std::wcout;
 	static decltype(std::wcerr)& cerr = std::wcerr;
 	static decltype(std::wclog)& clog = std::wclog;
 #else
-	static decltype(std::cin)& cin = std::cin;
+	static decltype(std::cin)& cin   = std::cin;
 	static decltype(std::cout)& cout = std::cout;
 	static decltype(std::cerr)& cerr = std::cerr;
 	static decltype(std::clog)& clog = std::clog;
@@ -366,18 +412,18 @@ namespace psl
 	/// \returns the location on success, or a nullptr on failure.
 	static void* memset(char_t* _Dst, char_t _Val, size_t _Size)
 	{
-		#if defined(PLATFORM_WINDOWS)
-			if constexpr(sizeof(char_t) == sizeof(wchar_t))
-			{
-				return std::wmemset((wchar_t*)_Dst, _Val, _Size);
-			}
-			else
-			{
-				return std::memset(_Dst, _Val, _Size);
-			}
-		#elif defined(PLATFORM_LINUX)
+#if defined(PLATFORM_WINDOWS)
+		if constexpr(sizeof(char_t) == sizeof(wchar_t))
+		{
+			return std::wmemset((wchar_t*)_Dst, _Val, _Size);
+		}
+		else
+		{
 			return std::memset(_Dst, _Val, _Size);
-		#endif
+		}
+#elif defined(PLATFORM_LINUX)
+		return std::memset(_Dst, _Val, _Size);
+#endif
 		return nullptr;
 	}
 
@@ -389,18 +435,18 @@ namespace psl
 	/// requirements of the platform you call it on.
 	static FILE* popen(const char_t* _Command, const char_t* _Mode)
 	{
-		#if defined(PLATFORM_WINDOWS)
-			if constexpr(sizeof(char_t) == sizeof(wchar_t))
-			{
-				return _wpopen((const wchar_t*)_Command, (const wchar_t*)_Mode);
-			}
-			else
-			{
-				return _popen((const char*)_Command, (const char*)_Mode);
-			}
-		#elif defined(PLATFORM_LINUX)
-			//return popen((const char*)_Command, (const char*)_Mode);
-		#endif
+#if defined(PLATFORM_WINDOWS)
+		if constexpr(sizeof(char_t) == sizeof(wchar_t))
+		{
+			return _wpopen((const wchar_t*)_Command, (const wchar_t*)_Mode);
+		}
+		else
+		{
+			return _popen((const char*)_Command, (const char*)_Mode);
+		}
+#elif defined(PLATFORM_LINUX)
+		// return popen((const char*)_Command, (const char*)_Mode);
+#endif
 		return nullptr;
 	}
 
@@ -411,11 +457,11 @@ namespace psl
 	/// requirements of the platform you call it on.
 	static int pclose(FILE* _Stream)
 	{
-	#if defined(PLATFORM_WINDOWS)
+#if defined(PLATFORM_WINDOWS)
 		return _pclose(_Stream);
-	#elif defined(PLATFORM_LINUX)
-		//return pclose(_Stream);
-	#endif
+#elif defined(PLATFORM_LINUX)
+		// return pclose(_Stream);
+#endif
 		return 0;
 	}
 
@@ -443,7 +489,7 @@ namespace psl
 	{
 		if constexpr(sizeof(char_t) == sizeof(wchar_t))
 		{
-			return std::wcslen((const wchar_t*)_Str);		
+			return std::wcslen((const wchar_t*)_Str);
 		}
 		else
 		{
@@ -455,7 +501,7 @@ namespace psl
 	/// \param[in] _Stream pointer to a FILE object that identifies an output stream.
 	/// \param[in] _Format text you wish to write to the stream, with optional formatting instructions.
 	/// \param[in] args stream of variables you wish to send to forward to fprintf, the behaviour is unchanged.
-	template<typename... Args>
+	template <typename... Args>
 	static void fprintf(FILE* const _Stream, char_t const* _Format, Args&&... args)
 	{
 		if constexpr(sizeof(char_t) == sizeof(wchar_t))
@@ -471,19 +517,19 @@ namespace psl
 	/// \brief wrapper around printf that changes behaviour depending on the size of psl::char_t.
 	/// \param[in] _Format text you wish to write to the stream, with optional formatting instructions.
 	/// \param[in] args stream of variables you wish to send to forward to fprintf, the behaviour is unchanged.
-	template<typename... Args>
+	template <typename... Args>
 	static void printf(char_t const* _Format, Args&&... args)
 	{
 		if constexpr(sizeof(char_t) == sizeof(wchar_t))
 		{
-			::wprintf( (const wchar_t*)_Format, std::forward<Args>(args)...);
+			::wprintf((const wchar_t*)_Format, std::forward<Args>(args)...);
 		}
 		else
 		{
 			::printf((const char*)_Format, std::forward<Args>(args)...);
 		}
 	}
-}
+} // namespace psl
 
 /// \brief helper operator that allows you to create a new psl::string8_t from adding it to a string_view
 static psl::string8_t operator+(const psl::string8_t& a, psl::string8::view b)

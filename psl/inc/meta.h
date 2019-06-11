@@ -341,7 +341,7 @@ namespace std
 	template <>
 	struct hash<psl::UID>
 	{
-		size_t operator()(const psl::UID& x) const
+		size_t operator()(const psl::UID& x) const noexcept
 		{
 			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
 			return half[0] ^ half[1];

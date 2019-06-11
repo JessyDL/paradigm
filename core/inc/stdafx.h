@@ -66,8 +66,12 @@
 
 #endif
 
+#ifdef RELEASE
 #ifdef assert
 #undef assert
+
+#define assert ()
+#endif
 #endif
 
 #define STRINGIZE_HELPER(x) #x

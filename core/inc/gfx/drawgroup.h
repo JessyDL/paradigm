@@ -9,7 +9,7 @@
 
 namespace core::gfx
 {
-	class material;
+	class bundle;
 	class geometry;
 	class drawgroup;
 	class framebuffer;
@@ -31,7 +31,7 @@ namespace core::gfx
 		drawgroup& operator=(const drawgroup&) = default;
 		drawgroup& operator=(drawgroup&&) = default;
 
-		const drawlayer& layer(const psl::string& layer, uint32_t priority) noexcept;
+		const drawlayer& layer(const psl::string& layer, uint32_t priority, uint32_t extent) noexcept;
 		bool contains(const psl::string& layer) const noexcept;
 		std::optional<std::reference_wrapper<const drawlayer>> get(const psl::string& layer) const noexcept;
 		bool priority(drawlayer& layer, uint32_t priority) noexcept;
@@ -42,11 +42,12 @@ namespace core::gfx
 		bool remove(core::resource::indirect_handle<core::gfx::swapchain> swapchain);
 		bool remove(core::resource::indirect_handle<core::gfx::framebuffer> framebuffer);
 
-		drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::material> material) noexcept;
-		std::optional<std::reference_wrapper<drawcall>> get(const drawlayer& layer, core::resource::handle<core::gfx::material> material) noexcept;
+		drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::bundle> bundle) noexcept;
+		std::optional<std::reference_wrapper<drawcall>> get(const drawlayer& layer,
+															core::resource::handle<core::gfx::bundle> bundle) noexcept;
 
-		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index, std::optional<core::resource::handle<core::gfx::material>> replacement = std::nullopt);
-		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index, std::optional<core::resource::handle<core::gfx::material>> replacement = std::nullopt);
+		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index);
+		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index);
 		//bool remove(const drawlayer& layer);
 		//bool remove(const drawcall& call);
 		//bool remove(const drawlayer& layer, const drawcall& call);

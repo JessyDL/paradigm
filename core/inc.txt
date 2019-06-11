@@ -21,7 +21,10 @@ inc/gfx/drawgroup.h
 inc/gfx/drawlayer.h
 inc/gfx/material.h
 inc/gfx/pass.h
+inc/gfx/render_graph.h
 inc/gfx/pipeline_cache.h
+inc/gfx/bundle.h
+inc/gfx/details/instance.h
 
 inc/meta/shader.h
 inc/meta/texture.h
@@ -38,6 +41,8 @@ inc/ecs/systems/render.h
 inc/ecs/systems/geometry_instance.h
 inc/ecs/systems/attractor.h
 inc/ecs/systems/movement.h
+inc/ecs/systems/gpu_camera.h
+inc/ecs/systems/lighting.h
 
 inc/ecs/components/camera.h
 inc/ecs/components/transform.h

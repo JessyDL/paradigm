@@ -13,7 +13,7 @@ framebuffer::framebuffer(const framebuffer& other, const UID& uid, core::resourc
 	  m_Sampler(other.m_Sampler), m_Attachments(other.m_Attachments)
 {}
 
-const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount, vk::Format format,
+const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount,
 							vk::ImageUsageFlags usage, vk::ClearValue clearValue, vk::AttachmentDescription descr)
 {
 	vk::ImageAspectFlags aspectMask;
@@ -26,21 +26,21 @@ const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount
 	// Depth (and/or stencil) attachment
 	if(usage & vk::ImageUsageFlagBits::eDepthStencilAttachment)
 	{
-		if(utility::vulkan::has_depth(format))
+		if(utility::vulkan::has_depth(descr.format))
 		{
 			aspectMask = vk::ImageAspectFlagBits::eDepth;
 		}
-		if(utility::vulkan::has_stencil(format))
+		if(utility::vulkan::has_stencil(descr.format))
 		{
 			aspectMask = aspectMask | vk::ImageAspectFlagBits::eStencil;
 		}
 	}
-	auto[UID, texture] = m_Cache.library().create<core::meta::texture>();
+	auto [UID, texture] = m_Cache.library().create<core::meta::texture>();
 	texture.width(width);
 	texture.height(height);
 	texture.depth(layerCount);
 	texture.aspect_mask(aspectMask);
-	texture.format(format);
+	texture.format(descr.format);
 	texture.image_type(vk::ImageViewType::e2D);
 	texture.mip_levels(1);
 	texture.usage(usage);
@@ -86,7 +86,7 @@ vk::AttachmentDescription framebuffer::attachment::vkDescription() const { retur
 framebuffer::attachment::description::description(vk::AttachmentDescription descr)
 	: m_SampleCountFlags(descr.samples), m_LoadOp(descr.loadOp), m_StoreOp(descr.storeOp),
 	  m_StencilLoadOp(descr.stencilLoadOp), m_StencilStoreOp(descr.stencilStoreOp),
-	  m_InitialLayout(descr.initialLayout), m_FinalLayout(descr.finalLayout)
+	  m_InitialLayout(descr.initialLayout), m_FinalLayout(descr.finalLayout), m_Format(descr.format)
 {}
 vk::AttachmentDescription framebuffer::attachment::description::vkDescription() const
 {
@@ -98,5 +98,6 @@ vk::AttachmentDescription framebuffer::attachment::description::vkDescription() 
 	descr.stencilStoreOp = m_StencilStoreOp.value;
 	descr.initialLayout  = m_InitialLayout.value;
 	descr.finalLayout	= m_FinalLayout.value;
+	descr.format		 = m_Format.value;
 	return descr;
 }

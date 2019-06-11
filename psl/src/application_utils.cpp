@@ -19,7 +19,7 @@ psl::string utility::application::path::get_path()
 	wchar_t dest[MAX_PATH];
 	GetModuleFileName(NULL, dest, MAX_PATH);
 	PathRemoveFileSpec(dest);
-	return psl::from_platform_string(std::wstring_view{dest}) + "\\";
+	return psl::to_string8_t(psl::platform::view{dest}) + "\\";
 #elif defined PLATFORM_LINUX
 	char result[PATH_MAX];
 	ssize_t count = readlink("/proc/self/exe", result, PATH_MAX);

@@ -5,17 +5,13 @@
 #include "gfx/drawgroup.h"
 #include "math/vec.h"
 #include "math/matrix.h"
+#include "view_ptr.h"
 
 namespace core::gfx
 {
-	class context;
-	class swapchain;
 	class buffer;
 } // namespace core::gfx
-namespace core::os
-{
-	class surface;
-}
+
 namespace core::ecs::components
 {
 	struct transform;
@@ -27,29 +23,9 @@ namespace core::ecs::systems
 {
 	class render
 	{
-		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
-							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
-
 	  public:
-		struct framedata
-		{
-			psl::mat4x4 clipMatrix;
-			psl::mat4x4 projectionMatrix;
-			psl::mat4x4 modelMatrix;
-			psl::mat4x4 viewMatrix;
-			psl::mat4x4 WVP;
-			psl::mat4x4 VP;
-			psl::vec4 ScreenParams;
-			psl::vec4 GameTimer;
-			psl::vec4 Parameters;
-			psl::vec4 FogColor;
-			psl::vec4 viewPos;
-			psl::vec4 viewDir;
-		};
+		render(psl::ecs::state& state, psl::view_ptr<core::gfx::pass> pass);
 
-		render(psl::ecs::state& state, core::resource::handle<core::gfx::context> context,
-			   core::resource::handle<core::gfx::swapchain> swapchain,
-			   core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer);
 		~render() = default;
 
 		render(const render&) = delete;
@@ -57,9 +33,9 @@ namespace core::ecs::systems
 		render& operator=(const render&) = delete;
 		render& operator=(render&&) = delete;
 
+		void add_render_range(uint32_t begin, uint32_t end);
+		void remove_render_range(uint32_t begin, uint32_t end);
 	  private:
-		void tick_cameras(psl::ecs::info& info,
-			psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
 		void tick_draws(psl::ecs::info& info,
 			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
 							psl::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
@@ -67,15 +43,10 @@ namespace core::ecs::systems
 			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
 							psl::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
 				broken_renderables);
-		void update_buffer(size_t index, const core::ecs::components::transform& transform,
-						   const core::ecs::components::camera& camera);
 
-		core::gfx::pass m_Pass;
-		core::resource::handle<core::gfx::swapchain> m_Swapchain;
-		core::resource::handle<core::os::surface> m_Surface;
+		psl::view_ptr<core::gfx::pass> m_Pass;
 
-		std::vector<memory::segment> fdatasegment;
-		core::resource::handle<core::gfx::buffer> m_Buffer;
 		core::gfx::drawgroup m_DrawGroup{};
+		psl::array<std::pair<uint32_t, uint32_t>> m_RenderRanges;
 	};
 } // namespace core::ecs::systems
