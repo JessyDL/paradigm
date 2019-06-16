@@ -37,9 +37,9 @@ namespace core::ecs::components
 		bool shadows;
 		union
 		{
-			light::directional directional;
-			light::point point;
-			light::spot spot;
+			light::directional uDirection;
+			light::point uPoint;
+			light::spot uSpot;
 		};
 	};
 } // namespace core::ecs::components

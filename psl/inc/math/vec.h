@@ -3,7 +3,9 @@
 #include <utility>
 #include "template_utils.h"
 #include <algorithm>
-
+#include <cstddef>
+#include <cstring> // std::mem*
+#include <cmath> // std::sqrt, etc..
 namespace psl
 {
 	template <typename precision_t, size_t dimensions>

@@ -10,6 +10,7 @@
 #endif
 #include "assertions.h"
 #include "logging.h"
+#include <cstddef> // std::byte
 using namespace memory;
 
 

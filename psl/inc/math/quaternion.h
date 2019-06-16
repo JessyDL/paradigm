@@ -1,4 +1,6 @@
 #pragma once
+#include <cstddef>
+#include <cmath> // std::sqrt, etc..
 
 namespace psl
 {

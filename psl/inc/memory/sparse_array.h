@@ -2,6 +2,7 @@
 #include "vector.h"
 #include <array_view.h>
 #include "raw_region.h"
+#include <cstring>
 
 namespace memory
 {

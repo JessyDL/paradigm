@@ -42,7 +42,8 @@ void data::add(core::resource::handle<material> material)
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
-				auto res = m_InstanceBuffer->reserve(vk::DeviceSize(obj.id_generator.capacity()) * d.description.size_of_element);
+				auto res = m_InstanceBuffer->reserve(vk::DeviceSize(obj.id_generator.capacity()) *
+													 d.description.size_of_element);
 				if(!res) core::gfx::log->error("could not allocate");
 
 				obj.data.emplace_back(res.value());
@@ -59,12 +60,13 @@ void data::add(core::resource::handle<material> material)
 	}
 }
 
-uint32_t data::add(core::resource::tag<core::gfx::geometry> uid)
+std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry> uid, uint32_t count)
 {
 	auto it = m_InstanceData.find(uid.uid());
 	if(it == std::end(m_InstanceData))
 	{
-		it = m_InstanceData.emplace(uid, object{uid, default_capacity}).first;
+		auto size{(count > default_capacity) ? count << 2 : default_capacity};
+		it = m_InstanceData.emplace(uid, object{uid, size}).first;
 		for(const auto& b : m_UniqueBindings)
 		{
 			auto res =
@@ -75,10 +77,11 @@ uint32_t data::add(core::resource::tag<core::gfx::geometry> uid)
 		}
 	}
 
-	if(it->second.id_generator.available() == 0)
+	if(it->second.id_generator.available() < count)
 	{
-		auto size = it->second.id_generator.size();
-		if(!it->second.id_generator.resize(it->second.id_generator.size() * 2))
+		auto size	 = it->second.id_generator.size();
+		auto new_size = (it->second.id_generator.available() + count) << 2;
+		if(!it->second.id_generator.resize(new_size))
 			core::gfx::log->error("could not increase the id_generator size");
 		else
 		{
@@ -93,7 +96,7 @@ uint32_t data::add(core::resource::tag<core::gfx::geometry> uid)
 		}
 	}
 
-	return it->second.id_generator.create();
+	return it->second.id_generator.create_multi(count);
 }
 
 

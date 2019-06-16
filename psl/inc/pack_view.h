@@ -187,7 +187,7 @@ namespace psl
 			using internal_type   = std::tuple<Ts*...>;
 			using value_type	  = psl::tuple_ref<Ts...>;
 			using reference		  = value_type&;
-			using const_reference = const reference;
+			using const_reference = reference;
 			using pointer		  = value_type*;
 
 			using difference_type   = std::ptrdiff_t;
@@ -372,13 +372,13 @@ namespace psl
 			return std::get<N>(m_Pack);
 		}
 
-		typename auto operator[](size_t index) const noexcept
+		auto operator[](size_t index) const noexcept
 		{
 			auto x{iterator_begin(m_Pack, index)};
 			return *iterator(x);
 		}
 
-		typename auto operator[](size_t index) noexcept
+		auto operator[](size_t index) noexcept
 		{
 			auto x{iterator_begin(m_Pack, index)};
 			return *iterator(x);
@@ -402,7 +402,7 @@ namespace psl
 	template <typename... Ts, typename T>
 	psl::pack_view<Ts...> make_pack(const T& pack)
 	{
-		return psl::pack_view<Ts...>{pack.get<Ts>()...};
+		return psl::pack_view<Ts...>{pack.template get<Ts>()...};
 	}
 
 

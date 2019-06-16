@@ -179,7 +179,8 @@ namespace psl::ecs::details
 		{
 			for(auto e : entities)
 			{
-				std::memcpy((void*)&m_Entities[e], source, sizeof(T));
+				if(std::memcmp((void*)&m_Entities[e], source, sizeof(T)) != 0)
+					std::memcpy((void*)&m_Entities[e], source, sizeof(T));
 				source = (void*)((T*)source + 1);
 			}
 		};

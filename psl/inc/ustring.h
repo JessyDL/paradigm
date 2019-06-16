@@ -11,6 +11,7 @@
 #include <istream>
 #include <iostream>
 #include <fstream>
+#include <cstring>
 
 //#include <codecvt>
 // seeing the standard omits this for LLVM specific reasons (ridiculous..)

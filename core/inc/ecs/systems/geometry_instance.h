@@ -16,8 +16,13 @@ namespace core::ecs::systems
 			int operator()(const core::ecs::components::renderable& lhs,
 						   const core::ecs::components::renderable& rhs) const noexcept
 			{
-				return lhs.bundle.uid() > rhs.bundle.uid() ? 1 : lhs.bundle.uid() == rhs.bundle.uid() ? 0 : -1;
+				return lhs.bundle.uid() > rhs.bundle.uid() ? 2 : lhs.bundle.uid() < rhs.bundle.uid() ? -2 : lhs.geometry.uid() > rhs.geometry.uid()? 1 : lhs.geometry.uid() == rhs.geometry.uid()? 0: -1;
 			}
+		};
+		struct geometry_instance
+		{
+			size_t startIndex;
+			size_t count;
 		};
 	} // namespace details
 
@@ -36,15 +41,62 @@ namespace core::ecs::systems
 			using namespace core::ecs::components;
 			using namespace psl::math;
 
-
+			size_t uniqueInstructions{0};
 			profiler->scope_begin("release_all");
 			for(auto [renderable, transform] : geometry_pack)
 			{
 				renderable.bundle.handle()->release_all();
 			}
 			profiler->scope_end();
+			
+			profiler->scope_begin("mapping");
+			psl::bytell_map<psl::UID, psl::bytell_map<psl::UID, details::geometry_instance>> UniqueCombinations;
 
-			psl::bytell_map<psl::UID, psl::bytell_map<psl::UID, std::vector<size_t>>> UniqueCombinations;
+			for(uint32_t i = 0; i < (uint32_t)geometry_pack.size(); ++i)
+			{
+				const auto& renderer = std::get<const renderable>(geometry_pack[i]);
+				if(UniqueCombinations[renderer.bundle].find(renderer.geometry) == std::end(UniqueCombinations[renderer.bundle]))
+					UniqueCombinations[renderer.bundle].emplace(renderer.geometry, details::geometry_instance{i, 0});
+				UniqueCombinations[renderer.bundle][renderer.geometry].count += 1;
+			}
+			profiler->scope_end();
+
+			profiler->scope_begin("create_all");
+			std::vector<psl::mat4x4> modelMats;
+			for(const auto& unique_bundle : UniqueCombinations)
+			{
+				modelMats.clear();
+
+				for (const auto& [geometryUID, geometryData] : unique_bundle.second)
+				{
+					const auto& renderer =
+					std::get<const renderable>(geometry_pack[geometryData.startIndex]);
+					auto bundleHandle   = renderer.bundle.handle();
+					auto geometryHandle = renderer.geometry.handle();
+					
+					auto instancesID = bundleHandle->instantiate(geometryHandle, (uint32_t)geometryData.count);
+
+					size_t indicesCompleted = 0;
+					for(auto [startIndex, endIndex] : instancesID)
+					{
+						for (auto i = indicesCompleted; i < endIndex; ++i, ++indicesCompleted)
+						{
+							const auto& transform =
+								std::get<const core::ecs::components::transform>(geometry_pack[i + geometryData.startIndex]);
+							const psl::mat4x4 translationMat = translate(transform.position);
+							const psl::mat4x4 rotationMat	= to_matrix(transform.rotation);
+							const psl::mat4x4 scaleMat		 = scale(transform.scale);
+							modelMats.emplace_back(translationMat * rotationMat * scaleMat);
+						}
+
+						bundleHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
+					
+						modelMats.clear();
+					}
+				}
+
+			}
+			/*psl::bytell_map<psl::UID, psl::bytell_map<psl::UID, std::vector<size_t>>> UniqueCombinations;
 
 			for(size_t i = 0; i < geometry_pack.size(); ++i)
 			{
@@ -66,9 +118,9 @@ namespace core::ecs::systems
 					auto materialHandle = renderer.bundle.handle();
 					auto geometryHandle = renderer.geometry.handle();
 
-					auto instanceID = materialHandle->instantiate(geometryHandle);
+					auto instanceID = materialHandle->instantiate(geometryHandle)[0].first;
 
-					uint32_t startIndex = instanceID.value();
+					uint32_t startIndex = instanceID;
 					uint32_t indexCount = 0u;
 
 					{
@@ -84,13 +136,13 @@ namespace core::ecs::systems
 
 					for(auto i = std::next(std::begin(uniqueIndex.second)); i != std::end(uniqueIndex.second); ++i)
 					{
-						if(instanceID = materialHandle->instantiate(geometryHandle); instanceID)
+						if(instanceID = materialHandle->instantiate(geometryHandle)[0].first; instanceID)
 						{
-							if((instanceID.value() - indexCount != startIndex))
+							if((instanceID - indexCount != startIndex))
 							{
 								materialHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
 								modelMats.clear();
-								startIndex = instanceID.value();
+								startIndex = instanceID;
 								indexCount = 0;
 							}
 
@@ -109,7 +161,10 @@ namespace core::ecs::systems
 				}
 				profiler->scope_end();
 			}
+			*/
 			profiler->scope_end();
+
+			core::log->info("this frame we ran {} unique instructions", uniqueInstructions);
 		};
 
 } // namespace core::ecs::systems

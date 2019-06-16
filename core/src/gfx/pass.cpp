@@ -226,7 +226,8 @@ void pass::destroy_fences()
 {
 	for(auto& fence : m_WaitFences)
 	{
-		if(!utility::vulkan::check(m_Context->device().waitForFences(1, &fence, VK_TRUE, UINT_MAX)))
+		if(!utility::vulkan::check(
+			   m_Context->device().waitForFences(1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
 			LOG_ERROR("Failed to wait for fence");
 
 		if(!utility::vulkan::check(m_Context->device().resetFences(1, &fence))) LOG_ERROR("Failed to reset fence");
@@ -255,7 +256,7 @@ void pass::present()
 	if(m_WaitFences.size() > 0)
 	{
 		if(!utility::vulkan::check(
-			   m_Context->device().waitForFences(1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, UINT_MAX)))
+			   m_Context->device().waitForFences(1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, std::numeric_limits<uint64_t>::max())))
 			LOG_ERROR("Failed to wait for fence");
 
 		if(!utility::vulkan::check(m_Context->device().resetFences(1, &m_WaitFences[m_CurrentBuffer])))

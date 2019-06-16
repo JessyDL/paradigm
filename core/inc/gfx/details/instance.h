@@ -95,7 +95,8 @@ namespace core::gfx::details::instance
 	  public:
 		data(core::resource::handle<core::gfx::buffer> buffer) noexcept;
 		void add(core::resource::handle<material> material);
-		uint32_t add(core::resource::tag<core::gfx::geometry> uid);
+		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry> uid,
+													   uint32_t count = 1);
 
 		void remove(core::resource::handle<material> material);
 

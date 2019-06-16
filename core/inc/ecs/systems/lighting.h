@@ -5,6 +5,7 @@
 #include "ecs/components/transform.h"
 #include "ecs/components/lighting.h"
 #include "systems/resource.h"
+#include "ecs/systems/render.h"
 
 namespace core::gfx
 {
@@ -35,7 +36,7 @@ namespace memory
 
 namespace core::ecs::systems
 {
-	class render;
+//	class render;
 
 	class lighting_system
 	{

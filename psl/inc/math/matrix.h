@@ -2,6 +2,8 @@
 #include "vec.h"
 #include <algorithm>
 #include "template_utils.h"
+#include <cstddef>
+#include <cstring> // std::mem*
 
 namespace psl
 {

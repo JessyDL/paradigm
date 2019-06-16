@@ -16,9 +16,7 @@ namespace psl
 	  public:
 		using element_type	= T;
 		using pointer		  = T*;
-		using const_pointer   = const pointer;
 		using reference		  = T&;
-		using const_reference = const reference;
 
 		constexpr view_ptr() noexcept = default;
 		constexpr explicit view_ptr(pointer value) noexcept : m_Value(value) {}

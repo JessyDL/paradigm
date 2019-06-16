@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include <optional>
 #include "range.h"
+#include "assertions.h"
+#include <cstring>
 
 namespace memory
 {

@@ -1017,12 +1017,15 @@ int entry()
 		std::chrono::duration<float> elapsed =
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		last_tick = current_time;
+		core::profiler.scope_begin("system tick");
 		ECSState.tick(elapsed);
-		core::log->info("ECS has {} renderables alive right now",
-						ECSState.filter<core::ecs::components::renderable>().size());
+		core::profiler.scope_end();
 
+		core::profiler.scope_begin("presenting");
 		renderGraph.present();
+		core::profiler.scope_end();
 
+		core::profiler.scope_begin("creating entities");
 
 		ECSState.create(
 			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
@@ -1070,9 +1073,9 @@ int entry()
 			}
 			--iterations;
 		}
+		core::profiler.scope_end();
 
-
-		if(iterations == 25590)
+		/*if(iterations == 25590)
 		{
 			ECSState.create(10,
 							[](ecs::components::light& var) {
@@ -1081,7 +1084,7 @@ int entry()
 															 std::rand() % 2 == 0};
 							},
 							core::ecs::components::transform{});
-		}
+		}*/
 	}
 
 	context_handle->device().waitIdle();
