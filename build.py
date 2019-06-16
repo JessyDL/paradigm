@@ -118,20 +118,25 @@ if args.clean == 'all' or args.clean == 'project':
 working_dir = os.getcwd()
 os.chdir(project_dir)
 
+
+cmakeExe="cmake"
+if(sys.platform.startswith('win')):
+    cmakeExe="cmake.exe"
+
 retCode = 0
 if not os.path.exists(os.path.join(project_dir, "CMakeFiles")):
     vk_static = "OFF"
     print("generating project files")
     if args.vk_static:
         vk_static = "ON"
-    cmakeCmd = ["cmake", "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_ROOT="+args.vk_root, "-DVK_STATIC="+vk_static, "-DCMAKE_BUILD_TYPE="+args.build_config]
+    cmakeCmd = [cmakeExe, "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_ROOT="+args.vk_root, "-DVK_STATIC="+vk_static, "-DCMAKE_BUILD_TYPE="+args.build_config]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     cmakeCmd = cmakeCmd + [ "-H"+ args.root_dir, "-B"+project_dir]
     retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
 elif args.cmake_update:
     print("updating project files")
-    cmakeCmd = ["cmake", r".", "-DCMAKE_BUILD_TYPE="+args.build_config]
+    cmakeCmd = [cmakeExe, r".", "-DCMAKE_BUILD_TYPE="+args.build_config]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
@@ -139,7 +144,7 @@ elif args.cmake_update:
 
 if args.build and retCode == 0:
     print("building now...")
-    cmakeCmd = ["cmake", "--build", r".", "--config", args.build_config]
+    cmakeCmd = [cmakeExe, "--build", r".", "--config", args.build_config]
     retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
 	
 os.chdir(working_dir)
