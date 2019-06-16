@@ -31,18 +31,20 @@ To use `assembler` on Windows, Bash on Ubuntu on Windows should be installed.
 [CMake ]( http://cmake.org/) 3.11 or higher is required on all platforms.
 
 ### Creating the project files
-You can build the libraries using the provided build.sh file that can be invoked, or by invoking cmake directly. The build.sh just helps you to set up a workspace and sets some critical defines that will be used in the build process.
+You can build the libraries using the provided build.sh file that can be invoked, or by invoking cmake directly. The build.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
 
-So far only MSVC (2017) and CLang (6.0.0) are supported compilers. The project will likely incorrectly generate for other compilers.
+So far only MSVC (2019), and CLang (6.0.0) with LLVM 7 - 8 and libc++ are supported. The project will likely incorrectly generate for other compilers/setups.
 
-#### build.sh
-The build script accepts settings preceding with the `-` character, and values follow after the `=` character, for example to set the Vulkan version you can write `-VULKAN_VERSION="1.1.82.1"`. Some values are flags, and don't need a value after them such as the CLEAN_CMAKE parameter that can be invoked by writing `-c`.
-To see all possible arguments, check the start of the build script, where all options are declared.
+If lost, the docker folder contains a setup environment for both linux (ubuntu), as well as windows. You can see all dependencies your platform needs right there.
+
+#### build.py
+The build script is a helper script to set everything up quick and easy. It will generate a solution in the `/project_file/{generator}/{architecture}/` folder by default, and when building it will output to `/builds/{generator}/{architecture}/`.
+You can tweak various settings and values, you'll find them at the top of the `build.py` file.
 #### cmake
-The less easy way, but perhaps better and easier to integrate. The values that are required to be set can be seen in the cmake invocation in build.sh, but will be repeated here:
+The less easy way, but perhaps better and easier to integrate. The values that are required to be set can be seen in the cmake invocation in build.py, but will be repeated here:
 -DBUILD_DIRECTORY="path/to/where/to/build/to" (not to be confused with where the project files will be)
 -DVULKAN_ROOT: path to install location of the vulkan SDK (excluding the version part).
--DVULKAN_VERSION: string based value that is a 1-1 match with a installed vulkan SDK instance.
+-DVULKAN_VERSION: string based value that is a 1-1 match with an installed vulkan SDK instance.
 
 ## Examples
 Following are some examples that showcase various usages of this project, click the image to go to the repository.
@@ -83,6 +85,8 @@ The following external libraries may be used in one, or many of the sub projects
 - `volk` dynamic bindings for vulkan
 - `Vulkan-hpp` generated C++ like headers for Vulkan
 - `Catch2` when compiling the tests, Catch2 will be pulled in.
+- `spdlog` used for logging
+- `fmt` modern formatting library for C++
 
 # Documentation
 A reference documentation is available at [https://jessydl.github.io/paradigm/](https://jessydl.github.io/paradigm/).
@@ -93,7 +97,7 @@ You can also find further documentation in the `docs` directory, such as informa
 ### building
 Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
 
-When using the `build.sh` script, you can set this value like this `-cmake_params "-DPE_MODE=LIB"`. `LIB` is the default value for this project.
+When using the `build.py` script, you can set this value like this `--cmake_params "-DPE_MODE=LIB"`. `LIB` is the default value for this project.
 
 Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
 
@@ -105,10 +109,10 @@ After we have both the editor project and the rendering engine going, we will lo
 
 # Extras
 ### Statically bind Vulkan
-If you wish to statically bind vulkan, you can use the flag `-VULKAN_STATIC` in the `build.sh` script, or alternatively invoke `cmake` directly with the `-DVULKAN_STATIC=true` flag. 
+If you wish to statically bind vulkan, you can use the flag `--vk_static` in the `build.py` script, or alternatively invoke `cmake` directly with the `-DVK_STATIC=true` flag. 
 Note that depending on the platform, static binding is impossible (like Android).
 ### Build as executable
-If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPARADIGM_CORE_EXECUTABLE` as a `-cmake_param` in the `build.sh` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
+If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPE_MODE=EXE` as a `--cmake_param` in the `build.py` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
 
 ### Benchmarks
 Rudimentary benchmarks (heavily WIP) have been added to the project, you can enable this by setting the cmake value `PE_MODE` to *anything but* `EXE`, and toggling on `PE_BENCHMARKS`.
@@ -125,6 +129,3 @@ This license (and its setup) only applies to the current major version of this s
 Of course you may continue to use any version of this project you currently have licensed/have a license for, without needing to change your license as long as you do not pull new updates from major versions you do not have a license for.
 
 This license, and its setup applies to all sub-projects in this repository unless explicitly stated otherwise.
-<!--stackedit_data:
-eyJoaXN0b3J5IjpbNjcwNDg4NDQyXX0=
--->

@@ -21,7 +21,7 @@ matrix:
     # Clang on Linux
     ##########################################################################
       name: "Linux CLang 6.0 Release"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true CMAKE_VERSION="3.13.2" BADGE=linux
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="release_80" BUILD_NAME="Linux CLang 6.0 Release" EXTRA_CMAKE_PARAMS="-DPE_MODE=EXE" UTESTS=false DOXGEN=true CMAKE_VERSION="3.13.2" BADGE=linux
       addons: &clang60
         apt:
           sources:
@@ -44,7 +44,7 @@ matrix:
             - graphviz
             - python3
     - name: "Linux CLang 6.0 Unit Tests"
-      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="master" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_MODE=LIB" UTESTS=true CMAKE_VERSION="3.13.2" BADGE=linux-tests
+      env: VK_VERSION="1.1.82.1" COMPILER=clang++-6.0 BUILD_TYPE=Release LLVM_VERSION_TAG="release_80" BUILD_NAME="Linux CLang 6.0 Unit Tests" EXTRA_CMAKE_PARAMS="-DPE_MODE=LIB" UTESTS=true CMAKE_VERSION="3.13.2" BADGE=linux-tests
       addons: *clang60
     - os: windows
       filter_secrets: false 

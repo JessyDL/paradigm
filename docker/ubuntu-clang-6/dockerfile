@@ -5,7 +5,7 @@ ENV	CMAKE_PATCH="3"
 ENV	VK_VERSION="1.1.82.1"
 ENV CLANG_VERSION="6.0"
 ENV LLVM_INSTALL="/llvm/install"
-ENV LLVM_VERSION_TAG="master"
+ENV LLVM_VERSION_TAG="release_80"
 ENV EXTRA_CMAKE_PARAMS="-DPE_MODE=LIB"
 ENV DOXGEN=false
 ENV CORE_COUNT=12
@@ -64,10 +64,10 @@ ENV PATH=${PATH}:/cmake/cmake-${CMAKE_VERSION}.${CMAKE_PATCH}-Linux-x86_64/bin
 WORKDIR /
 RUN LLVM_BASE=llvm && \
   LLVM_INSTALL=/${LLVM_BASE}/install && \
-	git clone --depth=1 https://github.com/llvm-mirror/llvm.git ${LLVM_BASE} && \
+	git clone https://github.com/llvm-mirror/llvm.git ${LLVM_BASE} && \
 	mkdir -p ${LLVM_BASE}/build ${LLVM_BASE}/projects && \
-	git clone --depth=1 https://github.com/llvm-mirror/libcxx.git ${LLVM_BASE}/projects/libcxx && \
-	git clone --depth=1 https://github.com/llvm-mirror/libcxxabi.git ${LLVM_BASE}/projects/libcxxabi && \
+	git clone https://github.com/llvm-mirror/libcxx.git ${LLVM_BASE}/projects/libcxx && \
+	git clone https://github.com/llvm-mirror/libcxxabi.git ${LLVM_BASE}/projects/libcxxabi && \
 	mkdir -p "${LLVM_INSTALL}" && \
 	cd ${LLVM_BASE} && \
 	git checkout $LLVM_VERSION_TAG && \
