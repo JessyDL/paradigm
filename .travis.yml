@@ -175,11 +175,11 @@ install:
 script:  
   - |
     if [[ "${TRAVIS_OS_NAME}" == "linux" ]]; then    
-      bash build.sh -VK_VERSION ${VK_VERSION} -COMPILER CLang -G Make -VK_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+      python3 build.py --vk_version ${VK_VERSION} --compiler CLang --generator Make --vk_root $TRAVIS_BUILD_DIR/../VulkanSDK --build_config ${BUILD_TYPE} --cmake_params="${EXTRA_CMAKE_PARAMS}
       cd $TRAVIS_BUILD_DIR/project_files/make/x64/
       make -j2    
     else
-      bash build.sh -VK_VERSION ${VK_VERSION} -VK_ROOT $TRAVIS_BUILD_DIR/../VulkanSDK -cmake_params "${EXTRA_CMAKE_PARAMS} -DCMAKE_BUILD_TYPE=$BUILD_TYPE"
+      python3 build.py --vk_version ${VK_VERSION} --vk_root $TRAVIS_BUILD_DIR/../VulkanSDK --build_config ${BUILD_TYPE} --cmake_params="${EXTRA_CMAKE_PARAMS}
       cd $TRAVIS_BUILD_DIR/project_files/msvc/x64-VC++/
       cmake --build . --config $BUILD_TYPE -j 2
     fi
