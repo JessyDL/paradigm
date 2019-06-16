@@ -15,7 +15,7 @@ namespace psl
 			typedef iterator self_type;
 			using value_type		= typename std::remove_reference<T>::type;
 			using reference			= value_type&;
-			using const_reference   = const reference;
+			using const_reference   = reference;
 			using pointer			= value_type*;
 			using difference_type   = std::ptrdiff_t;
 			using iterator_category = std::random_access_iterator_tag;

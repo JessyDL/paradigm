@@ -29,12 +29,13 @@ namespace psl::ecs
 	{
 		enum class instruction
 		{
-			FILTER  = 0,
-			ADD		= 1,
-			REMOVE  = 2,
-			BREAK   = 3,
-			COMBINE = 4,
-			EXCEPT  = 5
+			FILTER	= 0,
+			ADD		  = 1,
+			REMOVE	= 2,
+			BREAK	 = 3,
+			COMBINE   = 4,
+			EXCEPT	= 5,
+			CONDITION = 6
 		};
 	}
 	class state final
@@ -97,10 +98,8 @@ namespace psl::ecs
 		template <typename Pred, typename T>
 		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
 		{
-			return std::remove_if(begin, end, [this, pred = Pred{}](entity lhs) -> bool 
-			{
-				return pred(this->get<T>(lhs));
-			});
+			return std::remove_if(begin, end,
+								  [this, pred = Pred{}](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
 		}
 		template <typename T>
 		T& get(entity entity)
@@ -730,7 +729,7 @@ namespace psl::ecs
 		void dependency_pack::select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>)
 		{
 			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
-				state.order_by < Pred, Ts...>(begin, end);
+				state.order_by<Pred, Ts...>(begin, end);
 			};
 		}
 

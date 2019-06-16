@@ -70,7 +70,8 @@ namespace core::gfx
 		/// \brief returns the instance count currently used for the given piece of geometry.
 		/// \param[in] geometry the geometry to check.
 		uint32_t instances(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		std::optional<uint32_t> instantiate(core::resource::tag<core::gfx::geometry> geometry);
+		std::vector<std::pair<uint32_t, uint32_t>> instantiate(core::resource::tag<core::gfx::geometry> geometry,
+															   uint32_t count = 1);
 
 		uint32_t size(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
 		bool has(core::resource::tag<core::gfx::geometry> geometry) const noexcept;

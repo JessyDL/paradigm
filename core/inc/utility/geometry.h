@@ -3,6 +3,8 @@
 #include "data/geometry.h"
 #include "math/math.hpp"
 #include <vector>
+#include <cmath>
+#include <cstdlib>
 
 /// \brief various geometry and geometry related operation utilities.
 namespace utility::geometry

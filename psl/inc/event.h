@@ -2,6 +2,7 @@
 #include <functional>
 #include <vector>
 #include "delegate.h"
+#include <cstring> // std::mem*
 
 namespace internals
 {

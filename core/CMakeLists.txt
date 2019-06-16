@@ -56,9 +56,11 @@ else()
 endif()
 
 
-if(PE_MODE STREQUAL "EXE")
+if(${PE_MODE} STREQUAL "EXE")
+	message("Core as executable")
 	add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
 else()
+	message("Core as library")
 	add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
 endif()	
 

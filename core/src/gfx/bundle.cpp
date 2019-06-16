@@ -116,9 +116,10 @@ uint32_t bundle::instances(core::resource::tag<core::gfx::geometry> geometry) co
 	return m_InstanceData.count(geometry);
 }
 
-std::optional<uint32_t> bundle::instantiate(core::resource::tag<core::gfx::geometry> geometry)
+std::vector<std::pair<uint32_t, uint32_t>> bundle::instantiate(core::resource::tag<core::gfx::geometry> geometry,
+															   uint32_t count)
 {
-	return m_InstanceData.add(geometry);
+	return m_InstanceData.add(geometry, count);
 }
 
 uint32_t bundle::size(tag<geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }

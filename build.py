@@ -39,7 +39,7 @@ parser.add_argument("--vk_version", const="1.1.82.1", default="1.1.82.1", nargs=
                     help="vulkan version to use", dest="vk_version")
 parser.add_argument("--vk_root", const="auto", default="auto", nargs='?',
                     help="root directory for vulkan", dest="vk_root")
-parser.add_argument("--build_config", const="default", default="default", nargs='?',
+parser.add_argument("--build_config", const="Release", default="Release", nargs='?',
                     help="build configuration to use when the build flag is true", dest="build_config")
 parser.add_argument("--vk_static", action='store_true',dest="vk_static", help="when this flag is set, vulkan will statically bind")
 parser.add_argument("-u", "--update", action='store_true', dest="cmake_update")
@@ -124,14 +124,14 @@ if not os.path.exists(os.path.join(project_dir, "CMakeFiles")):
     print("generating project files")
     if args.vk_static:
         vk_static = "ON"
-    cmakeCmd = ["cmake.exe", "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_ROOT="+args.vk_root, "-DVK_STATIC="+vk_static]
+    cmakeCmd = ["cmake", "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_ROOT="+args.vk_root, "-DVK_STATIC="+vk_static, "-DCMAKE_BUILD_TYPE="+args.build_config]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     cmakeCmd = cmakeCmd + [ "-H"+ args.root_dir, "-B"+project_dir]
     retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
 elif args.cmake_update:
     print("updating project files")
-    cmakeCmd = ["cmake.exe", r"."]
+    cmakeCmd = ["cmake", r".", "-DCMAKE_BUILD_TYPE="+args.build_config]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
@@ -139,7 +139,7 @@ elif args.cmake_update:
 
 if args.build and retCode == 0:
     print("building now...")
-    cmakeCmd = ["cmake.exe", "--build", r".", "--config", args.build_config]
+    cmakeCmd = ["cmake", "--build", r".", "--config", args.build_config]
     retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
 	
 os.chdir(working_dir)
