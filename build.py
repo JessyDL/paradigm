@@ -132,20 +132,24 @@ if not os.path.exists(os.path.join(project_dir, "CMakeFiles")):
     cmakeCmd = [cmakeExe, "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_ROOT="+args.vk_root, "-DVK_STATIC="+vk_static, "-DCMAKE_BUILD_TYPE="+args.build_config]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
+    print("invoking cmake")
     cmakeCmd = cmakeCmd + [ "-H"+ args.root_dir, "-B"+project_dir]
-    retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
+    retCode = subprocess.check_call(cmakeCmd, shell=False)
+    print("returncode ", retCode)
 elif args.cmake_update:
     print("updating project files")
     cmakeCmd = [cmakeExe, r".", "-DCMAKE_BUILD_TYPE="+args.build_config]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
-    retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
+    retCode = subprocess.check_call(cmakeCmd, shell=False)
+    print("returncode ", retCode)
 	
 
 if args.build and retCode == 0:
     print("building now...")
     cmakeCmd = [cmakeExe, "--build", r".", "--config", args.build_config]
-    retCode = subprocess.check_call(cmakeCmd, shell=sys.platform.startswith('win'))
+    retCode = subprocess.check_call(cmakeCmd, shell=False)
+    print("returncode ", retCode)
 	
 os.chdir(working_dir)
 
