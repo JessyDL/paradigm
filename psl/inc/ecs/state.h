@@ -17,6 +17,7 @@
 #include <functional>
 #include "memory/raw_region.h"
 #include "entity.h"
+#include <execution>
 
 namespace psl::async
 {
@@ -85,15 +86,64 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
 
-		template <typename Pred, typename... Ts>
+		template <typename Pred, typename T>
 		void order_by(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		{
+			order_by<Pred, T>(std::execution::seq, begin, end);
+		}
+		template <typename Pred, typename T>
+		void order_by(std::execution::sequenced_policy, psl::array<entity>::iterator begin,
+					  psl::array<entity>::iterator end) const noexcept
 		{
 			std::sort(begin, end, [this, pred = Pred{}](entity lhs, entity rhs) -> bool {
 				int res{0};
-				(void(res += pred(this->get<Ts>(lhs), this->get<Ts>(rhs))), ...);
+				res += std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
 				return res > 0;
 			});
 		}
+
+
+	  private:
+		template <typename Pred, typename T>
+		void order_by(std::execution::parallel_policy, psl::array<entity>::iterator begin,
+					  psl::array<entity>::iterator end, size_t max) const noexcept
+		{
+			auto size = std::distance(begin, end);
+
+			if(size <= max)
+			{
+				order_by<Pred, T>(std::execution::seq, begin, end);
+			}
+			else
+			{
+				auto middle = std::next(begin, size / 2);
+				auto future = std::async([&]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
+
+				order_by<Pred, T>(std::execution::par, middle, end, max);
+
+				future.wait();
+				std::inplace_merge(begin, middle, end, [this, pred = Pred{}](entity lhs, entity rhs) -> bool {
+					int res{0};
+					res += std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+					return res > 0;
+				});
+			}
+		}
+
+	  public:
+		template <typename Pred, typename T>
+		void order_by(std::execution::parallel_policy, psl::array<entity>::iterator begin,
+					  psl::array<entity>::iterator end) const noexcept
+		{
+			auto size = std::distance(begin, end);
+			auto thread_size =
+				std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % 2048u));
+			size /= thread_size;
+
+
+			order_by<Pred, T>(std::execution::par, begin, end, size);
+		}
+
 
 		template <typename Pred, typename T>
 		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
@@ -103,6 +153,13 @@ namespace psl::ecs
 		}
 		template <typename T>
 		T& get(entity entity)
+		{
+			auto cInfo = get_component_typed_info<T>();
+			return cInfo->entity_data()[entity];
+		}
+
+		template <typename T>
+		const T& get(entity entity) const noexcept
 		{
 			auto cInfo = get_component_typed_info<T>();
 			return cInfo->entity_data()[entity];
@@ -283,7 +340,21 @@ namespace psl::ecs
 		}
 
 		size_t capacity() const noexcept { return m_Entities.size(); }
-		size_t count() const noexcept { return m_Entities.size() - m_Orphans; };
+
+		template <typename... Ts>
+		size_t count() const noexcept
+		{
+			if constexpr(sizeof...(Ts) == 0)
+			{
+				return m_Entities.size() - m_Orphans;
+			}
+			else
+			{
+				return count(to_keys<Ts...>());
+			}
+		}
+
+		size_t count(psl::array_view<details::component_key_t> keys) const noexcept;
 
 	  private:
 		//------------------------------------------------------------
@@ -320,7 +391,7 @@ namespace psl::ecs
 		psl::array<const details::component_info*>
 		get_component_info(psl::array_view<details::component_key_t> keys) const noexcept;
 		template <typename T>
-		details::component_info_typed<T>* get_component_typed_info()
+		details::component_info_typed<T>* get_component_typed_info() const noexcept
 		{
 			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
 				constexpr auto key{details::key_for<T>()};
@@ -728,8 +799,9 @@ namespace psl::ecs
 		template <typename Pred, typename... Ts>
 		void dependency_pack::select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>)
 		{
+			static_assert(sizeof...(Ts) == 1, "due to a bug in MSVC we cannot have deeper nested template packs");
 			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
-				state.order_by<Pred, Ts...>(begin, end);
+				state.order_by<Pred, Ts...>(std::execution::par, begin, end);
 			};
 		}
 

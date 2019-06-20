@@ -7,6 +7,8 @@ using namespace psl::ecs;
 using psl::ecs::details::component_key_t;
 using psl::ecs::details::entity_info;
 
+constexpr size_t min_thread_entities = 2048;
+
 
 state::state(size_t workers)
 	: m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers}))
@@ -17,7 +19,7 @@ std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::de
 	std::vector<std::vector<details::dependency_pack>> res;
 
 	bool can_split = std::any_of(std::begin(source), std::end(source), [count](const auto& dep_pack) {
-		return dep_pack.allow_partial() && dep_pack.entities() > count;
+		return dep_pack.allow_partial() && dep_pack.entities() > min_thread_entities;
 	});
 	count		   = (can_split) ? count : 1;
 	res.resize(count);
@@ -89,6 +91,8 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 		auto infoBuffer = std::next(std::begin(info_buffer), index);
 
+		auto last_pack{std::move(*std::prev(std::end(multi_pack)))};
+		multi_pack.resize(multi_pack.size() - 1);
 		for(auto& mPack : multi_pack)
 		{
 
@@ -101,14 +105,25 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 			future_commands.emplace_back(std::move(t1.second));
 			infoBuffer = std::next(infoBuffer);
 		}
+		std::future<void> execution;
 
-		m_Scheduler->execute().wait();
+		if(multi_pack.size() > 0)
+			execution = m_Scheduler->execute();
 
-		for(auto& fCommands : future_commands)
 		{
-			if(!fCommands.valid()) fCommands.wait();
+			std::invoke(information.system(), **infoBuffer, last_pack);
+			std::invoke(write_data, *this, last_pack);
+		}
 
-			// commands.emplace_back(fCommands.get());
+		if(multi_pack.size() > 0)
+		{
+			execution.wait();
+			for(auto& fCommands : future_commands)
+			{
+				if(!fCommands.valid()) fCommands.wait();
+
+				// commands.emplace_back(fCommands.get());
+			}
 		}
 	}
 	else
@@ -774,5 +789,16 @@ void state::execute_command_buffer(info& info)
 	for(auto e : buffer.m_DestroyedEntities)
 	{
 		if(e < buffer.m_First) destroy(e);
+	}
+}
+
+
+size_t state::count(psl::array_view<details::component_key_t> keys) const noexcept
+{
+	for(auto& key : keys)
+	{
+
+		auto cInfo = get_component_info(key);
+		return cInfo->size();
 	}
 }

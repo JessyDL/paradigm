@@ -1012,10 +1012,13 @@ int entry()
 
 	while(surface_handle->tick())
 	{
+		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
 		core::profiler.next_frame();
 		auto current_time = std::chrono::high_resolution_clock::now();
 		std::chrono::duration<float> elapsed =
 			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
+
+		core::log->info("dTime {}ms", elapsed.count());
 		last_tick = current_time;
 		core::profiler.scope_begin("system tick");
 		ECSState.tick(elapsed);

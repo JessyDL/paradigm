@@ -136,7 +136,10 @@ namespace psl::ecs::details
 		virtual void copy_from(psl::array_view<entity> entities, void* source) noexcept {};
 
 		inline size_t component_size() const noexcept { return m_Size; };
-
+		size_t size(bool include_removed = false) const noexcept
+		{
+			return (include_removed) ? entities_impl().size() : m_AssociatedEntities.indices().size();
+		}
 	  protected:
 		virtual void purge_impl() noexcept										   = 0;
 		virtual void add_impl(entity entity)									   = 0;
