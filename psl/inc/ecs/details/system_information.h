@@ -151,7 +151,8 @@ namespace psl::ecs::details
 		template <typename T>
 		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
 		{
-			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
+			orderby		 = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+						  const psl::ecs::state& state) {
 			};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>>{},
@@ -185,9 +186,9 @@ namespace psl::ecs::details
 
 		~dependency_pack() noexcept					  = default;
 		dependency_pack(const dependency_pack& other) = default;
-		dependency_pack(dependency_pack&& other)	  = default;
+		dependency_pack(dependency_pack&& other) noexcept	  = default;
 		dependency_pack& operator=(const dependency_pack&) = default;
-		dependency_pack& operator=(dependency_pack&&) = default;
+		dependency_pack& operator=(dependency_pack&&) noexcept = default;
 
 
 		template <typename... Ts>
@@ -276,10 +277,10 @@ namespace psl::ecs::details
 		std::vector<component_key_t> on_break;
 
 		std::vector<std::function<psl::array<entity>::iterator(psl::array<entity>::iterator,
-															   psl::array<entity>::iterator, psl::ecs::state&)>>
+															   psl::array<entity>::iterator, const psl::ecs::state&)>>
 			on_condition;
 		
-		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, psl::ecs::state&)>
+		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state&)>
 			orderby;
 		bool m_IsPartial = false;
 	};

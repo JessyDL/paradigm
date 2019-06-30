@@ -1,5 +1,5 @@
 #pragma once
-#include "vector.h"
+#include "array.h"
 #include <array_view.h>
 #include "raw_region.h"
 #include <cstring>

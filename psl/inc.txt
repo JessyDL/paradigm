@@ -40,7 +40,7 @@ inc/pack_view.h
 inc/monads.h
 
 inc/unordered_map.h
-inc/vector.h
+inc/static_array.h
 inc/array.h
 inc/unordered_map.h
 inc/flat_map.h
@@ -49,6 +49,9 @@ inc/sparse_array.h
 inc/sparse_indice_array.h
 inc/unique_ptr.h
 inc/view_ptr.h
+inc/collections/static_ring_array.h
+inc/collections/ring_array.h
+inc/collections/spmc.h
 
 inc/math/math.hpp
 inc/math/vec.h

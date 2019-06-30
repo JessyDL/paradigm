@@ -1,7 +1,7 @@
 #pragma once
 #include "component_key.h"
 #include "array_view.h"
-#include "array.h"
+#include "static_array.h"
 #include "../entity.h"
 #include "sparse_array.h"
 #include "memory/sparse_array.h"

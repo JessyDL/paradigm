@@ -1,5 +1,5 @@
 #pragma once
-#include "vector.h"
+#include "array.h"
 #include "systems/resource.h"
 #include "gfx/material.h"
 #include "gfx/details/instance.h"

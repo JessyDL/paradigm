@@ -4,13 +4,13 @@
 #include "pack.h"
 #include "command_buffer.h"
 #include "IDGenerator.h"
-#include "vector.h"
+#include "array.h"
 #include "details/component_key.h"
 #include "details/entity_info.h"
 #include "details/component_info.h"
 #include "details/system_information.h"
 #include "unique_ptr.h"
-#include "array.h"
+#include "static_array.h"
 #include <chrono>
 #include "task.h"
 #include "template_utils.h"
@@ -146,7 +146,7 @@ namespace psl::ecs
 
 
 		template <typename Pred, typename T>
-		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end) const noexcept
 		{
 			return std::remove_if(begin, end,
 								  [this, pred = Pred{}](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
@@ -702,8 +702,10 @@ namespace psl::ecs
 							  details::component_key_t& selected) const noexcept;
 		bool filter_seed_best(const details::dependency_pack& pack, psl::array_view<entity>& out,
 							  details::component_key_t& selected, details::instruction& instruction) const noexcept;
-
-		psl::array<entity> filter(details::dependency_pack& packs);
+		psl::array<entity> initial_filter(const details::dependency_pack& pack) const noexcept;
+		psl::array<entity> filter(details::dependency_pack& packs) const noexcept;
+		psl::array<entity>::iterator filter(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+								  const details::dependency_pack& pack) const noexcept;
 		template <typename... Ts>
 		psl::array<details::component_key_t> to_keys() const noexcept
 		{
@@ -800,7 +802,8 @@ namespace psl::ecs
 		void dependency_pack::select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>)
 		{
 			static_assert(sizeof...(Ts) == 1, "due to a bug in MSVC we cannot have deeper nested template packs");
-			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, psl::ecs::state& state) {
+			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+						 const psl::ecs::state& state) {
 				state.order_by<Pred, Ts...>(std::execution::par, begin, end);
 			};
 		}
@@ -809,7 +812,7 @@ namespace psl::ecs
 		void dependency_pack::select_condition_impl(std::pair<Pred, std::tuple<Ts...>>)
 		{
 			on_condition.push_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-									  psl::ecs::state& state) -> psl::array<entity>::iterator {
+									  const psl::ecs::state& state) -> psl::array<entity>::iterator {
 				return state.on_condition<Pred, Ts...>(begin, end);
 			});
 		}

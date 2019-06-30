@@ -11,10 +11,7 @@
 #undef far
 #endif
 
-constexpr std::size_t operator "" _sz(unsigned long long n)
-{
-	return n;
-}
+constexpr std::size_t operator"" _sz(unsigned long long n) { return n; }
 
 namespace psl
 {
@@ -99,7 +96,8 @@ namespace psl::math
 	}
 
 	template <typename precision_t, size_t dimensions>
-	constexpr static precision_t distance(const tvec<precision_t, dimensions>& vec1, const tvec<precision_t, dimensions>& vec2) noexcept
+	constexpr static precision_t distance(const tvec<precision_t, dimensions>& vec1,
+										  const tvec<precision_t, dimensions>& vec2) noexcept
 	{
 		return psl::math::magnitude(vec1 - vec2);
 	}
@@ -109,6 +107,62 @@ namespace psl::math
 	constexpr static precision_t floor(precision_t value) noexcept
 	{
 		return std::floor(value);
+	}
+
+	template <typename precision_t, typename precision_N_t>
+	constexpr static long double log_n(precision_N_t N, precision_t value) noexcept
+	{
+		static_assert(std::is_convertible<precision_N_t, long double>::value,
+					  "requires to be convertible to 'long double'");
+		static_assert(std::is_convertible<precision_t, long double>::value,
+					  "requires to be convertible to 'long double'");
+		return std::log((long double)value) / std::log((long double)N);
+	}
+
+	template <typename precision_t, typename precision_N_t>
+	constexpr static precision_t next_pow_of(precision_N_t N, precision_t value) noexcept
+	{
+		// static_assert(std::is_unsigned<precision_t>::value, "requires unsigned type");
+		static_assert(std::is_convertible<precision_t, long double>::value,
+					  "requires to be convertible to 'long double'");
+
+		return std::pow<precision_t>(N, (precision_t)std::ceil(log_n(N, value)));
+	}
+
+	/// \brief round to nearest multiple of N
+	/// \param[in] N the multiple to round to
+	/// \param[in] value the value to round
+	template <typename precision_t>
+	constexpr static precision_t round_to(precision_t N, precision_t value) noexcept
+	{
+		constexpr auto remainder = value % N;
+		constexpr auto extra	 = N - remainder;
+		if(extra < remainder)
+		{
+			return value + extra;
+		}
+		return value - remainder;
+	}
+
+
+	/// \brief ceil to nearest multiple of N
+	/// \param[in] N the multiple to ceil to
+	/// \param[in] value the value to ceil
+	template <typename precision_t>
+	constexpr static precision_t ceil_to(precision_t N, precision_t value) noexcept
+	{
+		constexpr auto remainder = value % N;
+		return value + (N - remainder);
+	}
+
+	/// \brief floor to nearest multiple of N
+	/// \param[in] N the multiple to floor to
+	/// \param[in] value the value to floor
+	template <typename precision_t>
+	constexpr static precision_t floor_to(precision_t N, precision_t value) noexcept
+	{
+		constexpr auto remainder = value % N;
+		return value - remainder;
 	}
 } // namespace psl::math
 
@@ -131,9 +185,7 @@ namespace psl::math
 		precision_t cp = cos(pitch);
 		precision_t sp = sin(pitch);
 
-		return tquat<precision_t>{cy * cr * cp + sy * sr * sp, 
-								  cy * cr * sp + sy * sr * cp, 
-								  cy * sr * cp - sy * cr * sp,
+		return tquat<precision_t>{cy * cr * cp + sy * sr * sp, cy * cr * sp + sy * sr * cp, cy * sr * cp - sy * cr * sp,
 								  sy * cr * cp - cy * sr * sp};
 	}
 	template <typename precision_t>
@@ -219,7 +271,8 @@ namespace psl::math
 
 
 	template <typename precision_t>
-	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tmat<precision_t, 4, 4>& mat, const psl::tvec<precision_t, 3>& vec) noexcept
+	constexpr static psl::tmat<precision_t, 4, 4> scale(const psl::tmat<precision_t, 4, 4>& mat,
+														const psl::tvec<precision_t, 3>& vec) noexcept
 	{
 		psl::tmat<precision_t, 4, 4> res{};
 		res.row(0, mat.row(0) * vec[0]);
@@ -242,10 +295,11 @@ namespace psl::math
 	}
 
 	template <typename precision_t>
-	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& mat, const psl::tvec<precision_t, 3>& vec) noexcept
+	constexpr static psl::tmat<precision_t, 4, 4> translate(const psl::tmat<precision_t, 4, 4>& mat,
+															const psl::tvec<precision_t, 3>& vec) noexcept
 	{
 		psl::tmat<precision_t, 4, 4> res{mat};
-		res.row(3, mat.row(0)* vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
+		res.row(3, mat.row(0) * vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
 		return res;
 	}
 
@@ -254,12 +308,13 @@ namespace psl::math
 	{
 		const psl::tmat<precision_t, 4, 4> mat{1};
 		psl::tmat<precision_t, 4, 4> res{mat};
-		res.row(3, mat.row(0)* vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
+		res.row(3, mat.row(0) * vec[0] + mat.row(1) * vec[1] + mat.row(2) * vec[2] + mat.row(3));
 		return res;
 	}
 
 	template <typename precision_t>
-	constexpr static psl::tmat<precision_t, 4, 4> rotate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec, precision_t angle) noexcept
+	constexpr static psl::tmat<precision_t, 4, 4>
+	rotate(const psl::tmat<precision_t, 4, 4>& tmat, const psl::tvec<precision_t, 3>& tvec, precision_t angle) noexcept
 	{
 		constexpr precision_t a = angle;
 		constexpr precision_t c = cos(a);
@@ -317,7 +372,7 @@ namespace psl::math
 		return res;
 	};
 
-	template<typename precision_t>
+	template <typename precision_t>
 	static constexpr tquat<precision_t> to_quat(tmat<precision_t, 3, 3> const& mat) noexcept
 	{
 		precision_t fourXSquaredMinus1 = mat[{0, 0}] - mat[{1, 1}] - mat[{2, 2}];
@@ -325,45 +380,52 @@ namespace psl::math
 		precision_t fourZSquaredMinus1 = mat[{2, 2}] - mat[{0, 0}] - mat[{1, 1}];
 		precision_t fourWSquaredMinus1 = mat[{0, 0}] + mat[{1, 1}] + mat[{2, 2}];
 
-		int biggestIndex = 0;
+		int biggestIndex					 = 0;
 		precision_t fourBiggestSquaredMinus1 = fourWSquaredMinus1;
 		if(fourXSquaredMinus1 > fourBiggestSquaredMinus1)
 		{
 			fourBiggestSquaredMinus1 = fourXSquaredMinus1;
-			biggestIndex = 1;
+			biggestIndex			 = 1;
 		}
 		if(fourYSquaredMinus1 > fourBiggestSquaredMinus1)
 		{
 			fourBiggestSquaredMinus1 = fourYSquaredMinus1;
-			biggestIndex = 2;
+			biggestIndex			 = 2;
 		}
 		if(fourZSquaredMinus1 > fourBiggestSquaredMinus1)
 		{
 			fourBiggestSquaredMinus1 = fourZSquaredMinus1;
-			biggestIndex = 3;
+			biggestIndex			 = 3;
 		}
 
-		precision_t biggestVal = std::sqrt(fourBiggestSquaredMinus1 + static_cast<precision_t>(1)) * static_cast<precision_t>(0.5);
+		precision_t biggestVal =
+			std::sqrt(fourBiggestSquaredMinus1 + static_cast<precision_t>(1)) * static_cast<precision_t>(0.5);
 		precision_t mult = static_cast<precision_t>(0.25) / biggestVal;
 
 		switch(biggestIndex)
 		{
-			case 0:
-			return tquat<precision_t>((mat[{1, 2}] - mat[{2, 1}]) * mult, (mat[{2, 0}] - mat[{0, 2}]) * mult, (mat[{0, 1}] - mat[{1, 0}]) * mult, biggestVal);
-			case 1:
-			return tquat<precision_t>(biggestVal, (mat[{0, 1}] + mat[{1, 0}]) * mult, (mat[{2, 0}] + mat[{0, 2}]) * mult, (mat[{1, 2}] - mat[{2, 1}]) * mult);
-			case 2:
-			return tquat<precision_t>((mat[{0, 1}] + mat[{1, 0}]) * mult, biggestVal, (mat[{1, 2}] + mat[{2, 1}]) * mult, (mat[{2, 0}] - mat[{0, 2}]) * mult);
-			case 3:
-			return tquat<precision_t>((mat[{2, 0}] + mat[{0, 2}]) * mult, (mat[{1, 2}] + mat[{2, 1}]) * mult, biggestVal, (mat[{0, 1}] - mat[{1, 0}]) * mult);
-			default: // Silence a -Wswitch-default warning in GCC. Should never actually get here. Assert is just for sanity.
+		case 0:
+			return tquat<precision_t>((mat[{1, 2}] - mat[{2, 1}]) * mult, (mat[{2, 0}] - mat[{0, 2}]) * mult,
+									  (mat[{0, 1}] - mat[{1, 0}]) * mult, biggestVal);
+		case 1:
+			return tquat<precision_t>(biggestVal, (mat[{0, 1}] + mat[{1, 0}]) * mult,
+									  (mat[{2, 0}] + mat[{0, 2}]) * mult, (mat[{1, 2}] - mat[{2, 1}]) * mult);
+		case 2:
+			return tquat<precision_t>((mat[{0, 1}] + mat[{1, 0}]) * mult, biggestVal,
+									  (mat[{1, 2}] + mat[{2, 1}]) * mult, (mat[{2, 0}] - mat[{0, 2}]) * mult);
+		case 3:
+			return tquat<precision_t>((mat[{2, 0}] + mat[{0, 2}]) * mult, (mat[{1, 2}] + mat[{2, 1}]) * mult,
+									  biggestVal, (mat[{0, 1}] - mat[{1, 0}]) * mult);
+		default
+			: // Silence a -Wswitch-default warning in GCC. Should never actually get here. Assert is just for sanity.
 			assert(false);
 			return tquat<precision_t>(0, 0, 0, 1);
 		}
 	}
 
-	template<typename precision_t>
-	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& direction, const tvec<precision_t, 3>& up) noexcept
+	template <typename precision_t>
+	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& direction,
+												  const tvec<precision_t, 3>& up) noexcept
 	{
 		psl::tmat<precision_t, 3, 3> mat;
 
@@ -373,30 +435,33 @@ namespace psl::math
 
 		return to_quat(mat);
 	}
-	template<typename precision_t>
-	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& origin, const tvec<precision_t, 3>& target, const tvec<precision_t, 3>& up) noexcept
+	template <typename precision_t>
+	constexpr static tquat<precision_t> look_at_q(const tvec<precision_t, 3>& origin,
+												  const tvec<precision_t, 3>& target,
+												  const tvec<precision_t, 3>& up) noexcept
 	{
 		return look_at_q(normalize(origin - target), up);
 	}
 
 
-	template<typename precision_t>
+	template <typename precision_t>
 	constexpr static precision_t mix(const precision_t& x, const precision_t& y, precision_t a) noexcept
 	{
 		return (x + a * (y - x));
 	}
 
-	template<typename element1_t, typename element2_t, typename precision_t, size_t N>
-	constexpr static std::array<element1_t, N> mix(const std::array<element1_t, N>& x, const std::array<element2_t, N>& y, precision_t a) noexcept
+	template <typename element1_t, typename element2_t, typename precision_t, size_t N>
+	constexpr static std::array<element1_t, N> mix(const std::array<element1_t, N>& x,
+												   const std::array<element2_t, N>& y, precision_t a) noexcept
 	{
 		std::array<element1_t, N> result;
-		for(auto i = 0; i < N; ++i)
-			result[i] = (x[i] + a * (y[i] - x[i]));
+		for(auto i = 0; i < N; ++i) result[i] = (x[i] + a * (y[i] - x[i]));
 		return result;
 	}
 
-	template<typename element1_t, typename element2_t, typename precision_t, size_t N>
-	constexpr static std::array<element1_t, N> mix(const psl::tvec<element1_t, N>& x, const psl::tvec<element2_t, N>& y, precision_t a) noexcept
+	template <typename element1_t, typename element2_t, typename precision_t, size_t N>
+	constexpr static std::array<element1_t, N> mix(const psl::tvec<element1_t, N>& x, const psl::tvec<element2_t, N>& y,
+												   precision_t a) noexcept
 	{
 		return mix(x.value, y.value, a);
 	}

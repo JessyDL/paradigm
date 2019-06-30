@@ -22,6 +22,31 @@
       </ArrayItems>
     </Expand>
   </Type>
+
+  <Type Name="psl::static_ring_array&lt;*,*&gt;">
+    <DisplayString>{{ size = {m_Count} }}</DisplayString>
+    <Expand>
+      <Item Name="[size]">m_Count</Item>
+      <Item Name="[capacity]">$T2</Item>
+      <IndexListItems>
+        <Size>m_Count</Size>
+        <ValueNode>(m_Data[($i + (m_Begin - m_Data))% $T2])</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
+
+
+  <Type Name="psl::ring_array&lt;*&gt;">
+    <DisplayString>{{ size = {m_Count} }}</DisplayString>
+    <Expand>
+      <Item Name="[size]">m_Count</Item>
+      <Item Name="[capacity]">m_Capacity</Item>
+      <IndexListItems>
+        <Size>m_Count</Size>
+        <ValueNode>(m_Data[($i + (m_Begin - m_Data))% m_Capacity])</ValueNode>
+      </IndexListItems>
+    </Expand>
+  </Type>
   
   <Type Name="memory::range">
     <DisplayString>{{ size = {end - begin} }}</DisplayString>

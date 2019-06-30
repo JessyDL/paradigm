@@ -1,6 +1,6 @@
 #pragma once
 #include "component_key.h"
-#include "vector.h"
+#include "array.h"
 #include "pack_view.h"
 
 

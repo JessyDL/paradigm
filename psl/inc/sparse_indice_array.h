@@ -1,6 +1,6 @@
 #pragma once
-#include "vector.h"
 #include "array.h"
+#include "static_array.h"
 #include <array_view.h>
 
 namespace psl
