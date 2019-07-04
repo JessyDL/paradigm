@@ -1,6 +1,9 @@
 #pragma once
 #include "math/math.hpp"
 
+#undef near
+#undef far
+
 namespace core::ecs::components
 {
 	struct camera
