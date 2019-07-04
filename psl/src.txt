@@ -10,7 +10,6 @@ src/memory/range.cpp
 src/memory/raw_region.cpp
 src/memory/region.cpp
 src/memory/segment.cpp
-src/task.cpp
 src/format.cpp
 src/serialization.cpp
 src/library.cpp
@@ -20,6 +19,8 @@ src/profiling/profiler.cpp
 
 src/ecs/state.cpp
 src/ecs/details/component_info.cpp
-
 src/ecs/command_buffer.cpp
+
+src/async/scheduler.cpp
+src/async/token.cpp
 )
