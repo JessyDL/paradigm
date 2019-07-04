@@ -8,48 +8,7 @@
 namespace psl::spmc
 {
 	template <typename T>
-	class producer;
-
-
-	/// \brief provides multithread safe access into a psl::spmc::producer
-	///
-	/// \details This is the object to pass to the consumer threads, they have a minimal multithread safe API
-	/// into the SPMC deque. The consumer is limited to viewing the state of the producer, and popping items from the
-	/// front (if any are left).
-	template <typename T>
-	class consumer final
-	{
-		friend class producer<T>;
-		consumer(psl::view_ptr<producer<T>> producer) : m_Producer(producer){};
-
-	  public:
-		consumer()  = delete;
-		~consumer() = default;
-
-		consumer(const consumer& other)		= default;
-		consumer(consumer&& other) noexcept = default;
-		consumer& operator=(const consumer& other) = default;
-		consumer& operator=(consumer&& other) noexcept = default;
-
-		/// \brief Tries to pop an element from the front of the producer thread's deque.
-		///
-		/// \details If any items are left on the producer's deque, then this method will pop an item off of the front.
-		/// Otherwise it will return a nullopt;
-		auto pop() noexcept;
-
-		/// \Returns the current count of all elements in the producer.
-		/// \warning The result here doesn't mean there will be/won't be an item on the deque by the time you invoke
-		/// pop.
-		auto size() const noexcept;
-
-		/// \Returns the current count of all elements in the producer.
-		/// \warning The result here doesn't mean there will be/won't be an item on the deque by the time you invoke
-		/// pop.
-		auto ssize() const noexcept;
-
-	  private:
-		psl::view_ptr<producer<T>> m_Producer;
-	};
+	class consumer;
 
 	/// \brief SPMC based on Chase-Lev deque
 	///
@@ -74,12 +33,15 @@ namespace psl::spmc
 		  public:
 			buffer(size_t capacity) : m_Data(psl::math::next_pow_of(2, std::max<size_t>(32u, capacity))){};
 			~buffer() {}
-			void set(size_t index, T&& value) noexcept
+			void set(int64_t index, T&& value) noexcept
 			{
-				m_Data[(index - m_Offset) & (m_Data.size() - 1)] = std::forward<T>(value);
+				m_Data[((index - static_cast<int64_t>(m_Offset)) & (m_Data.ssize() - 1))] = std::forward<T>(value);
 			}
 
-			auto at(size_t index) const noexcept { return m_Data[(index - m_Offset) & (m_Data.size() - 1)]; }
+			auto at(int64_t index) const noexcept
+			{
+				return m_Data[(index - static_cast<int64_t>(m_Offset)) & (m_Data.ssize() - 1)];
+			}
 
 			/// \brief Returns a logical continuation buffer based on this buffer
 			///
@@ -87,7 +49,7 @@ namespace psl::spmc
 			/// next logical power of 2 that can also contain the begin-end items.
 			buffer* copy(size_t begin, size_t end, size_t capacity = 0)
 			{
-				capacity = psl::math::next_pow_of(2, std::max(capacity, (end - begin) + 1));
+				capacity = std::max<size_t>(1024, psl::math::next_pow_of(2, std::max(capacity, (end - begin) + 1)));
 
 				buffer* ptr   = new buffer(capacity);
 				ptr->m_Offset = begin;
@@ -99,7 +61,7 @@ namespace psl::spmc
 			}
 
 			/// \returns Max continuous range of items in the buffer.
-			size_t capacity() const noexcept { return m_Data.size(); };
+			size_t capacity() const noexcept { return m_Data.capacity(); };
 
 		  private:
 			ring_array<T> m_Data;
@@ -127,10 +89,7 @@ namespace psl::spmc
 		producer& operator=(producer&& other) noexcept = default;
 
 		/// \Returns a consumer that is linked to the current producer, to be used in other threads.
-		::psl::spmc::consumer<T> consumer() noexcept
-		{
-			return ::psl::spmc::consumer<T>(psl::view_ptr<producer<T>>{this});
-		};
+		::psl::spmc::consumer<T> consumer() noexcept;
 
 		bool empty() const noexcept
 		{
@@ -184,7 +143,7 @@ namespace psl::spmc
 			int64_t begin = m_Begin.load(std::memory_order_acquire);
 			auto cont	 = m_Data.load(std::memory_order_relaxed);
 
-			if((int64_t)cont->capacity() - 1 < (end - begin))
+			if(static_cast<int64_t>(cont->capacity()) < (end - begin) + 1)
 			{
 				auto newCont = cont->copy(begin, end);
 				std::swap(newCont, cont);
@@ -211,7 +170,7 @@ namespace psl::spmc
 			std::atomic_thread_fence(std::memory_order_seq_cst);
 			int64_t begin = m_Begin.load(std::memory_order_relaxed);
 
-			std::optional<T> res{};
+			std::optional<T> res{std::nullopt};
 
 			if(begin <= end)
 			{
@@ -233,8 +192,8 @@ namespace psl::spmc
 			return res;
 		}
 
-		void clear() noexcept 
-		{ 
+		void clear() noexcept
+		{
 			auto end = m_End.load(std::memory_order_relaxed);
 			m_Begin.store(end, std::memory_order_seq_cst);
 		}
@@ -250,11 +209,12 @@ namespace psl::spmc
 			std::atomic_thread_fence(std::memory_order_seq_cst);
 			int64_t end = m_End.load(std::memory_order_acquire);
 
-			std::optional<T> res;
+			std::optional<T> res{std::nullopt};
 
 			if(begin < end)
 			{
-				res = m_Data.load(std::memory_order_consume)->at(begin);
+				auto data = m_Data.load(std::memory_order_consume);
+				res		  = data->at(begin);
 
 				if(!m_Begin.compare_exchange_strong(begin, begin + 1, std::memory_order_seq_cst,
 													std::memory_order_relaxed))
@@ -273,19 +233,8 @@ namespace psl::spmc
 	};
 
 	template <typename T>
-	auto consumer<T>::pop() noexcept
+	::psl::spmc::consumer<T> producer<T>::consumer() noexcept
 	{
-		return m_Producer->steal();
-	}
-
-	template <typename T>
-	auto consumer<T>::size() const noexcept
-	{
-		return m_Producer->size();
-	}
-	template <typename T>
-	auto consumer<T>::ssize() const noexcept
-	{
-		return m_Producer->ssize();
-	}
+		return ::psl::spmc::consumer<T>(psl::view_ptr<producer<T>>{this});
+	};
 } // namespace psl::spmc

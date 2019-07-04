@@ -112,9 +112,7 @@ namespace psl
 		};
 
 
-		ring_array(size_t size = 4)
-			: m_Data(new T[size]), m_Begin(m_Data), m_Count(0), m_Capacity(size)
-		{}
+		ring_array(size_t size = 4) : m_Data(new T[size]), m_Begin(m_Data), m_Count(0), m_Capacity(size) {}
 
 		~ring_array() { delete[](m_Data); }
 
@@ -240,6 +238,8 @@ namespace psl
 		const T& operator[](size_t index) const noexcept { return *(m_Data + offset_of(index)); }
 		const T& at(size_t index) const noexcept { return *(m_Data + offset_of(index)); }
 
+		const T& at(int64_t index) const noexcept { return *(m_Data + offset_of(index)); }
+
 		void push_back(T&& value)
 		{
 			if(m_Count == m_Capacity)
@@ -252,7 +252,7 @@ namespace psl
 		}
 
 		template <typename... Ts>
-		void emplace_back(Ts&& ... args)
+		void emplace_back(Ts&&... args)
 		{
 			if(m_Count == m_Capacity)
 			{
@@ -300,14 +300,14 @@ namespace psl
 		{
 			if(m_Count == 0) throw std::runtime_error("no elements to pop_back");
 
-			//back().~T();
+			// back().~T();
 			--m_Count;
 		}
 
 		void pop_front()
 		{
 			if(m_Count == 0) throw std::runtime_error("no elements to pop_front");
-			//front().~T();
+			// front().~T();
 			++m_Begin;
 			--m_Count;
 		}
@@ -316,6 +316,7 @@ namespace psl
 		T& front() { return *m_Begin; };
 
 		size_t size() const noexcept { return m_Count; }
+		int64_t ssize() const noexcept { return static_cast<int64_t>(m_Count); }
 		size_t capacity() const noexcept { return m_Capacity; }
 
 
@@ -323,8 +324,12 @@ namespace psl
 		iterator end() noexcept { return iterator{m_Data, end_of(), m_Capacity, m_Count}; }
 
 	  private:
-		inline auto offset_of(size_t index) const noexcept { return (start_of() + index) % m_Capacity; }
-		inline size_t start_of() const noexcept { return (size_t)(m_Begin - m_Data); }
+		inline auto offset_of(size_t index) const noexcept { return (start_of() + index) & (m_Capacity - 1); }
+		inline auto offset_of(int64_t index) const noexcept
+		{
+			return (static_cast<int64_t>(start_of()) + index) & (m_Capacity - 1);
+		}
+		inline size_t start_of() const noexcept { return static_cast<size_t>(m_Begin - m_Data); }
 		inline size_t end_of() const noexcept { return offset_of(m_Count); }
 		inline size_t last_of() const noexcept { return offset_of(m_Count - 1); }
 

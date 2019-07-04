@@ -1,5 +1,4 @@
 #include "ecs/state.h"
-#include "task.h"
 #include <numeric>
 #include "unique_ptr.h"
 using namespace psl::ecs;
@@ -14,33 +13,70 @@ state::state(size_t workers)
 	: m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers}))
 {}
 
-std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source, size_t count)
-{
-	std::vector<std::vector<details::dependency_pack>> res;
 
-	bool can_split = std::any_of(std::begin(source), std::end(source), [count](const auto& dep_pack) {
-		return dep_pack.allow_partial() && dep_pack.entities() > min_thread_entities;
-	});
-	count		   = (can_split) ? count : 1;
-	res.resize(count);
+std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source,
+														 size_t workers = std::numeric_limits<size_t>::max())
+{
+	std::vector<std::vector<details::dependency_pack>> packs;
+
+	if(source.size() == 0) return packs;
+
+	auto [smallest_batch, largest_batch] =
+		std::minmax_element(std::begin(source), std::end(source),
+							[](const auto& lhs, const auto& rhs) { return lhs.entities() < rhs.entities(); });
+	workers			 = std::min<size_t>(workers, std::thread::hardware_concurrency());
+	auto max_workers = std::max<size_t>(1u, std::min(workers, largest_batch->entities() % min_thread_entities));
+
+	// To guard having systems run with concurrent packs that have no data in them.
+	// Doing so would seem counter-intuitive to users
+	while((float)smallest_batch->entities() / (float)max_workers < 1.0f && max_workers > 1)
+	{
+		--max_workers;
+	}
+	workers = max_workers;
+
+	packs.resize(workers);
 	for(auto& dep_pack : source)
 	{
-		if(dep_pack.allow_partial() && dep_pack.entities() > count)
+		if(dep_pack.allow_partial())
 		{
-			auto batch_size = dep_pack.entities() / count;
+			auto batch_size = dep_pack.entities() / workers;
 			size_t processed{0};
-			for(auto i = 0; i < count - 1; ++i)
+			for(auto i = 0; i < workers - 1; ++i)
 			{
-				res[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
+				packs[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
 				processed += batch_size;
 			}
-			res[res.size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
+			packs[packs.size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
 		}
-		else
+		else // if packs cannot be split, then emplace the 'full' data
 		{
-			for(auto i = 0; i < count; ++i) res[i].emplace_back(dep_pack);
+			for(auto i = 0; i < workers; ++i) packs[i].emplace_back(dep_pack);
 		}
 	}
+	return packs;
+}
+
+psl::array<psl::array<entity>> slice(psl::array_view<entity> source,
+									 size_t workers = std::numeric_limits<size_t>::max())
+{
+	psl::array<psl::array<entity>> res;
+
+	workers = std::min<size_t>(workers, std::thread::hardware_concurrency());
+	workers = std::max<size_t>(1u, std::min(workers, source.size() % min_thread_entities));
+
+	res.reserve(workers);
+
+	auto current = std::begin(source);
+	for(auto i = 0u; i < workers - 1; ++i)
+	{
+		auto next = std::next(current, source.size() / workers);
+
+		res.emplace_back(current, next);
+		current = next;
+	}
+
+	res.emplace_back(current, std::end(source));
 	return res;
 }
 
@@ -61,10 +97,53 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 			}
 		};
 
+	/*auto seed_task = [this, &information]()
+	{
+		auto pack = information.create_pack();
+		bool has_partial = std::any_of(std::begin(pack), std::end(pack),
+									   [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+
+		for(auto& dep_pack : pack)
+		{
+			auto entities = initial_filter(dep_pack);
+			if(entities.size() == 0) continue;
+		}
+	};*/
 
 	auto pack = information.create_pack();
+	// auto shared_pack = std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
 	bool has_partial =
 		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+
+	// doesn't do anythign other than keeping the state alive
+	// auto [cleanup_token, cleanup_future] = m_Scheduler->schedule([&shared_pack]() {});
+
+	// for(auto& dep_pack : *shared_pack)
+	//{
+	//	auto entities = initial_filter(dep_pack);
+	//	if(entities.size() == 0) continue;
+
+	//	auto divided_entities = slice(entities);
+	//	for(auto& e : divided_entities)
+	//	{
+	//		auto filter_func = [this, &e, &dep_pack]() noexcept
+	//		{
+	//			return filter(std::begin(e), std::end(e), dep_pack);
+	//		};
+
+	//		m_Scheduler->schedule(filter_func);
+	//	}
+	//}
+
+	//// fire one system task or N system tasks
+	// if(has_partial && information.threading() == threading::par)
+	//{
+	//
+	//}
+	// else
+	//{
+	//
+	//}
 
 	if(has_partial && information.threading() == threading::par)
 	{
@@ -72,12 +151,6 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		{
 			auto entities = filter(dep_pack);
 			if(entities.size() == 0) continue;
-
-			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-			dep_pack.m_Entities = psl::array_view<entity>((entity*)cache_offset,
-														  (entity*)(cache_offset + sizeof(entity) * entities.size()));
-
-			cache_offset += sizeof(entity) * entities.size();
 
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
@@ -91,33 +164,24 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 		auto infoBuffer = std::next(std::begin(info_buffer), index);
 
-		auto last_pack{std::move(*std::prev(std::end(multi_pack)))};
-		multi_pack.resize(multi_pack.size() - 1);
 		for(auto& mPack : multi_pack)
 		{
 
-			auto t1 = m_Scheduler->schedule(information.system(), **infoBuffer, mPack);
+			auto t1 = m_Scheduler->schedule(
+				[fn = information.system(), infoBuffer, mPack]() { return std::invoke(fn, **infoBuffer, mPack); });
 
-			auto t2 = m_Scheduler->schedule(write_data, *this, mPack);
+			auto t2 =
+				m_Scheduler->schedule([write_data, this, mPack]() { return std::invoke(write_data, *this, mPack); });
 
-			m_Scheduler->dependency(t2.first, t1.first);
+			t2.first.after(t1.first);
 
 			future_commands.emplace_back(std::move(t1.second));
 			infoBuffer = std::next(infoBuffer);
 		}
-		std::future<void> execution;
-
-		if(multi_pack.size() > 0)
-			execution = m_Scheduler->execute();
-
-		{
-			std::invoke(information.system(), **infoBuffer, last_pack);
-			std::invoke(write_data, *this, last_pack);
-		}
+		m_Scheduler->execute();
 
 		if(multi_pack.size() > 0)
 		{
-			execution.wait();
 			for(auto& fCommands : future_commands)
 			{
 				if(!fCommands.valid()) fCommands.wait();
@@ -132,11 +196,6 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		{
 			auto entities = filter(dep_pack);
 			if(entities.size() == 0) continue;
-			std::memcpy((void*)cache_offset, entities.data(), sizeof(entity) * entities.size());
-			dep_pack.m_Entities = psl::array_view<entity>((entity*)cache_offset,
-														  (entity*)(cache_offset + sizeof(entity) * entities.size()));
-
-			cache_offset += sizeof(entity) * entities.size();
 
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
@@ -581,6 +640,31 @@ state::smallest_entity_list(const std::vector<std::pair<details::instruction, de
 
 	return result;
 }
+psl::array<entity> state::initial_filter(const details::dependency_pack& pack) const noexcept
+{
+	psl::array<std::pair<details::instruction, details::component_key_t>> instructions;
+	for(const auto& filter : pack.filters) instructions.emplace_back(details::instruction::FILTER, filter);
+	for(const auto& filter : pack.on_add) instructions.emplace_back(details::instruction::ADD, filter);
+	for(const auto& filter : pack.on_remove) instructions.emplace_back(details::instruction::REMOVE, filter);
+	for(const auto& filter : pack.on_combine) instructions.emplace_back(details::instruction::COMBINE, filter);
+	for(const auto& filter : pack.on_break) instructions.emplace_back(details::instruction::BREAK, filter);
+	// for(const auto& filter : pack.except) instructions.emplace_back(details::instruction::EXCEPT, filter);
+
+	if(auto it = smallest_entity_list(instructions); it != std::end(instructions))
+	{
+		const auto& cInfo = get_component_info(it->second);
+		switch(it->first)
+		{
+		// case details::instruction::EXCEPT:
+		case details::instruction::FILTER: return psl::array<entity>{cInfo->entities()}; break;
+		case details::instruction::ADD:
+		case details::instruction::COMBINE: return psl::array<entity>{cInfo->added_entities()}; break;
+		case details::instruction::REMOVE: return psl::array<entity>{cInfo->removed_entities()}; break;
+		case details::instruction::BREAK: return psl::array<entity>{cInfo->entities(true)}; break;
+		}
+	}
+	return {};
+}
 
 bool state::filter_seed_best(const details::dependency_pack& pack, psl::array_view<entity>& out,
 							 details::component_key_t& selected, details::instruction& instruction) const noexcept
@@ -668,7 +752,46 @@ psl::array<entity> state::filter_seed(
 	return {};
 }
 
-psl::array<entity> state::filter(details::dependency_pack& pack)
+
+psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+										   const details::dependency_pack& pack) const noexcept
+{
+	for(auto filter : pack.on_remove)
+	{
+		end = filter_remove_on_remove(filter, begin, end);
+	}
+	if(pack.on_break.size() > 0)
+	{
+		end = filter_remove_on_break(pack.on_break, begin, end);
+	}
+	for(auto filter : pack.on_add)
+	{
+		end = filter_remove_on_add(filter, begin, end);
+	}
+	if(pack.on_combine.size() > 0)
+	{
+		end = filter_remove_on_combine(pack.on_combine, begin, end);
+	}
+	for(auto filter : pack.filters)
+	{
+		end = filter_remove(filter, begin, end);
+	}
+
+	for(auto filter : pack.except)
+	{
+		end = filter_remove_except(filter, begin, end);
+	}
+	for(const auto& conditional : pack.on_condition)
+	{
+		end = std::invoke(conditional, begin, end, *this);
+	}
+
+	// std::invoke(pack.orderby, begin, end, *this);
+
+	return end;
+}
+
+psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 {
 	// auto instructions{to_instructions(pack)};
 
@@ -708,14 +831,15 @@ psl::array<entity> state::filter(details::dependency_pack& pack)
 	{
 		end = filter_remove_except(filter, begin, end);
 	}
-	result.erase(end, std::end(result));
-	for(auto conditional : pack.on_condition)
+
+	for(const auto& conditional : pack.on_condition)
 	{
-		result.erase(std::invoke(conditional, std::begin(result), std::end(result), *this), std::end(result));
+		end = std::invoke(conditional, begin, end, *this);
 	}
 
-	std::invoke(pack.orderby, std::begin(result), std::end(result), *this);
+	std::invoke(pack.orderby, begin, end, *this);
 
+	result.erase(end, std::end(result));
 	return result;
 }
 
@@ -730,6 +854,14 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, void* cache, de
 	noexcept
 {
 	size_t offset_start = (std::uintptr_t)cache;
+
+	std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
+	dep_pack.m_Entities =
+		psl::array_view<entity>((entity*)cache, (entity*)((std::uintptr_t)cache + (sizeof(entity) * entities.size())));
+
+	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
+
+
 	for(auto& binding : dep_pack.m_RBindings)
 	{
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
@@ -801,4 +933,5 @@ size_t state::count(psl::array_view<details::component_key_t> keys) const noexce
 		auto cInfo = get_component_info(key);
 		return cInfo->size();
 	}
+	return 0;
 }

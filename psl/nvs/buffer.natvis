@@ -127,4 +127,30 @@
   <Type Name="psl::UID">
     <DisplayString>{*(dummy::hex_dummy_high*)(&amp;GUID[0])}{*(dummy::hex_dummy_low*)(&amp;GUID[0])}{*(dummy::hex_dummy_high*)(&amp;GUID[1])}{*(dummy::hex_dummy_low*)(&amp;GUID[1])}{*(dummy::hex_dummy_high*)(&amp;GUID[2])}{*(dummy::hex_dummy_low*)(&amp;GUID[2])}{*(dummy::hex_dummy_high*)(&amp;GUID[3])}{*(dummy::hex_dummy_low*)(&amp;GUID[3])}-{*(dummy::hex_dummy_high*)(&amp;GUID[4])}{*(dummy::hex_dummy_low*)(&amp;GUID[4])}{*(dummy::hex_dummy_high*)(&amp;GUID[5])}{*(dummy::hex_dummy_low*)(&amp;GUID[5])}-{*(dummy::hex_dummy_high*)(&amp;GUID[6])}{*(dummy::hex_dummy_low*)(&amp;GUID[6])}{*(dummy::hex_dummy_high*)(&amp;GUID[7])}{*(dummy::hex_dummy_low*)(&amp;GUID[7])}-{*(dummy::hex_dummy_high*)(&amp;GUID[8])}{*(dummy::hex_dummy_low*)(&amp;GUID[8])}{*(dummy::hex_dummy_high*)(&amp;GUID[9])}{*(dummy::hex_dummy_low*)(&amp;GUID[9])}-{*(dummy::hex_dummy_high*)(&amp;GUID[10])}{*(dummy::hex_dummy_low*)(&amp;GUID[10])}{*(dummy::hex_dummy_high*)(&amp;GUID[11])}{*(dummy::hex_dummy_low*)(&amp;GUID[11])}{*(dummy::hex_dummy_high*)(&amp;GUID[12])}{*(dummy::hex_dummy_low*)(&amp;GUID[12])}{*(dummy::hex_dummy_high*)(&amp;GUID[13])}{*(dummy::hex_dummy_low*)(&amp;GUID[13])}{*(dummy::hex_dummy_high*)(&amp;GUID[14])}{*(dummy::hex_dummy_low*)(&amp;GUID[14])}{*(dummy::hex_dummy_high*)(&amp;GUID[15])}{*(dummy::hex_dummy_low*)(&amp;GUID[15])}</DisplayString>
   </Type>
+
+  <Type Name="psl::view_ptr&lt;*&gt;">
+    <DisplayString Condition="m_Value == 0">empty</DisplayString>
+    <DisplayString>{*m_Value}</DisplayString>
+    <Expand>
+      <ExpandedItem>m_Value</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="psl::async::details::packet">
+    <DisplayString>{ m_Token }</DisplayString>
+    <Expand>
+      <ExpandedItem>m_Token</ExpandedItem>
+      <Item Name="[heuristic]">m_Heuristic</Item>
+      <Item Name="[finished]">m_Done</Item>
+      <Item Name="[description]">m_Description</Item>
+      <Item Name="[task]">m_Task</Item>
+    </Expand>
+  </Type>
+  <Type Name="psl::async::token">
+    <DisplayString>token = { m_Token }</DisplayString>
+    <Expand>
+      <Item Name="[token]">m_Token</Item>
+      <Item Name="[scheduler]">m_Scheduler</Item>
+    </Expand>
+  </Type>
 </AutoVisualizer>

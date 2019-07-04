@@ -126,7 +126,7 @@ namespace psl::math
 		static_assert(std::is_convertible<precision_t, long double>::value,
 					  "requires to be convertible to 'long double'");
 
-		return std::pow<precision_t>(N, (precision_t)std::ceil(log_n(N, value)));
+		return static_cast<precision_t>(std::pow<precision_t>(N, static_cast<precision_t>(std::ceil(log_n(N, value)))));
 	}
 
 	/// \brief round to nearest multiple of N

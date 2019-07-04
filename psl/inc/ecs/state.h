@@ -12,7 +12,7 @@
 #include "unique_ptr.h"
 #include "static_array.h"
 #include <chrono>
-#include "task.h"
+#include "async/async.hpp"
 #include "template_utils.h"
 #include <functional>
 #include "memory/raw_region.h"
@@ -110,7 +110,7 @@ namespace psl::ecs
 		{
 			auto size = std::distance(begin, end);
 
-			if(size <= max)
+			if(size <= static_cast<decltype(size)>(max))
 			{
 				order_by<Pred, T>(std::execution::seq, begin, end);
 			}

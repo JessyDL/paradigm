@@ -4,7 +4,7 @@
 
 using namespace psl::ecs;
 
-command_buffer::command_buffer(const state& state) : m_State(&state), m_First(state.capacity()) {};
+command_buffer::command_buffer(const state& state) : m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
 
 
 details::command_buffer_component_info* command_buffer::get_command_buffer_component_info(details::component_key_t key) noexcept

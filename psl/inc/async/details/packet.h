@@ -6,7 +6,7 @@
 #include "task.h"
 #include "../token.h"
 
-namespace psl::async2::details
+namespace psl::async::details
 {
 	struct packet
 	{

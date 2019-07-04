@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 
-namespace psl::async2
+namespace psl::async
 {
 
 	enum class barrier_type : uint8_t
