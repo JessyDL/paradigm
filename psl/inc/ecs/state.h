@@ -117,7 +117,7 @@ namespace psl::ecs
 			else
 			{
 				auto middle = std::next(begin, size / 2);
-				auto future = std::async([&]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
+				auto future = std::async([this, &begin, &middle, &max]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
 
 				order_by<Pred, T>(std::execution::par, middle, end, max);
 

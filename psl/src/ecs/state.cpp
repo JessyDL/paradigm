@@ -110,99 +110,185 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 		}
 	};*/
 
-	auto pack = information.create_pack();
-	// auto shared_pack = std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
-	bool has_partial =
-		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
-
-	// doesn't do anythign other than keeping the state alive
-	// auto [cleanup_token, cleanup_future] = m_Scheduler->schedule([&shared_pack]() {});
-
-	// for(auto& dep_pack : *shared_pack)
-	//{
-	//	auto entities = initial_filter(dep_pack);
-	//	if(entities.size() == 0) continue;
-
-	//	auto divided_entities = slice(entities);
-	//	for(auto& e : divided_entities)
-	//	{
-	//		auto filter_func = [this, &e, &dep_pack]() noexcept
-	//		{
-	//			return filter(std::begin(e), std::end(e), dep_pack);
-	//		};
-
-	//		m_Scheduler->schedule(filter_func);
-	//	}
-	//}
-
-	//// fire one system task or N system tasks
-	// if(has_partial && information.threading() == threading::par)
-	//{
-	//
-	//}
-	// else
-	//{
-	//
-	//}
-
-	if(has_partial && information.threading() == threading::par)
+	if(false)
 	{
-		for(auto& dep_pack : pack)
+		auto shared_pack =
+			std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
+		bool has_partial = std::any_of(std::begin(*shared_pack), std::end(*shared_pack),
+									   [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+
+		// doesn't do anything other than keeping the state alive
+		auto cleanup_token = m_Scheduler->schedule([&shared_pack]() {});
+
+		for(auto& dep_pack : *shared_pack)
 		{
-			auto entities = filter(dep_pack);
+			auto entities = initial_filter(dep_pack);
 			if(entities.size() == 0) continue;
 
-			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
-		}
+			auto divided_entities = slice(entities);
 
-		auto multi_pack = slice(pack, m_Scheduler->workers());
+			auto [merged_entities_token, merged_entities_future] =
+				m_Scheduler->schedule<std::shared_future>([&divided_entities]() {
+					psl::array<entity> res;
+					res.reserve(std::accumulate(std::begin(divided_entities), std::end(divided_entities),
+												static_cast<size_t>(0),
+												[](size_t sum, const auto& range) { return sum + range.size(); }));
 
-		std::vector<std::future<void>> future_commands;
+					for(auto& e : divided_entities)
+					{
+						res.insert(std::end(res), std::begin(e), std::end(e));
+					}
+					return res;
+				});
 
-		auto index = info_buffer.size();
-		for(size_t i = 0; i < m_Scheduler->workers(); ++i) info_buffer.emplace_back(new info(*this, dTime, rTime));
-
-		auto infoBuffer = std::next(std::begin(info_buffer), index);
-
-		for(auto& mPack : multi_pack)
-		{
-
-			auto t1 = m_Scheduler->schedule(
-				[fn = information.system(), infoBuffer, mPack]() { return std::invoke(fn, **infoBuffer, mPack); });
-
-			auto t2 =
-				m_Scheduler->schedule([write_data, this, mPack]() { return std::invoke(write_data, *this, mPack); });
-
-			t2.first.after(t1.first);
-
-			future_commands.emplace_back(std::move(t1.second));
-			infoBuffer = std::next(infoBuffer);
-		}
-		m_Scheduler->execute();
-
-		if(multi_pack.size() > 0)
-		{
-			for(auto& fCommands : future_commands)
+			for(auto& e : divided_entities)
 			{
-				if(!fCommands.valid()) fCommands.wait();
+				auto filter_func = [this, &e, &dep_pack]() noexcept
+				{
+					auto end = filter(std::begin(e), std::end(e), dep_pack);
+					e.erase(end, std::end(e));
+				};
 
-				// commands.emplace_back(fCommands.get());
+				merged_entities_token.after(m_Scheduler->schedule(filter_func));
 			}
+
+			for(auto i = 0; i < m_Scheduler->workers(); ++i)
+			{
+				// auto copy_to_cache = [this, &merged_entities_future, cache_offset, &dep_pack, i, min_pack_size = 512,
+				//					  max_workers = m_Scheduler->workers()]() mutable
+				//{
+				//	const auto& merged_entities{merged_entities_future.get()};
+
+				//	auto remainder = min_pack_size - (merged_entities.size() % min_pack_size);
+				//	max_workers = std::min<size_t>(max_workers, (merged_entities.size() + remainder) / min_pack_size);
+				//	if(i >= max_workers) return;
+
+				//	auto count = merged_entities.size() / max_workers;
+				//	auto begin = (count)*i;
+				//	auto end   = count * (i + 1);
+				//	if(i == max_workers - 1) end = merged_entities.size();
+
+				//	// calculate cache offsets;
+
+				//	psl::array_view<entity> entities{std::next(std::begin(merged_entities), begin),
+				//									 std::next(std::begin(merged_entities), end)};
+				//	// prepare_bindings(entities, (void*)cache_offset, dep_pack);
+
+				//	void* cache = (void*)cache_offset;
+
+				//	size_t offset_start = (std::uintptr_t)cache_offset;
+
+				//	std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
+
+
+				//	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
+
+
+				//	for(auto& binding : dep_pack.m_RBindings)
+				//	{
+				//		std::uintptr_t data_begin = (std::uintptr_t)cache;
+				//		auto write_size			  = prepare_data(entities, cache, binding.first);
+				//		cache					  = (void*)((std::uintptr_t)cache + write_size);
+				//		// binding.second =
+				//		//	psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
+				//	}
+				//	for(auto& binding : dep_pack.m_RWBindings)
+				//	{
+				//		std::uintptr_t data_begin = (std::uintptr_t)cache;
+				//		auto write_size			  = prepare_data(entities, cache, binding.first);
+				//		cache					  = (void*)((std::uintptr_t)cache + write_size);
+				//		// binding.second =
+				//		//	psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
+				//	}
+				//	return (std::uintptr_t)cache - offset_start;
+				//};
+			}
+
+			auto prepare_binds = [&merged_entities_future, &dep_pack, cache_offset]() mutable {
+				const auto& entities{merged_entities_future.get()};
+				dep_pack.m_Entities = psl::array_view<entity>(
+					(entity*)cache_offset, (entity*)(cache_offset + (sizeof(entity) * entities.size())));
+
+				cache_offset += (sizeof(entity) * entities.size());
+
+				for(auto& binding : dep_pack.m_RBindings)
+				{
+					auto write_size = dep_pack.size_of(binding.first) * entities.size();
+					binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_offset,
+																	  (std::uintptr_t*)(cache_offset + write_size));
+					cache_offset += write_size;
+				}
+				for(auto& binding : dep_pack.m_RWBindings)
+				{
+					auto write_size = dep_pack.size_of(binding.first) * entities.size();
+					binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_offset,
+																	  (std::uintptr_t*)(cache_offset + write_size));
+					cache_offset += write_size;
+				}
+			};
 		}
+
+		// fire one system task or N system tasks
+		if(has_partial && information.threading() == threading::par)
+		{
+		}
+		else
+		{}
 	}
 	else
 	{
-		for(auto& dep_pack : pack)
+		auto pack		 = information.create_pack();
+		bool has_partial = std::any_of(std::begin(pack), std::end(pack),
+									   [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+
+		if(has_partial && information.threading() == threading::par)
 		{
-			auto entities = filter(dep_pack);
-			if(entities.size() == 0) continue;
+			for(auto& dep_pack : pack)
+			{
+				auto entities = filter(dep_pack);
+				if(entities.size() == 0) continue;
 
-			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
+				cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
+			}
+
+			auto multi_pack = slice(pack, m_Scheduler->workers());
+
+			// std::vector<std::future<void>> future_commands;
+
+			auto index = info_buffer.size();
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i) info_buffer.emplace_back(new info(*this, dTime, rTime));
+
+			auto infoBuffer = std::next(std::begin(info_buffer), index);
+
+			for(auto& mPack : multi_pack)
+			{
+				auto t1 = m_Scheduler->schedule([& fn = information.system(), infoBuffer, mPack]() mutable {
+					return std::invoke(fn, infoBuffer->get(), mPack);
+				});
+				auto t2 = m_Scheduler->schedule(
+					[&write_data, this, mPack = mPack]() { return std::invoke(write_data, *this, mPack); });
+
+				t2.after(t1);
+
+				// future_commands.emplace_back(std::move(t1));
+				infoBuffer = std::next(infoBuffer);
+			}
+			m_Scheduler->execute();
 		}
-		info_buffer.emplace_back(new info(*this, dTime, rTime));
-		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
+		else
+		{
+			for(auto& dep_pack : pack)
+			{
+				auto entities = filter(dep_pack);
+				if(entities.size() == 0) continue;
 
-		write_data(*this, pack);
+				cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
+			}
+			info_buffer.emplace_back(new info(*this, dTime, rTime));
+			information.operator()(*info_buffer[info_buffer.size() - 1], pack);
+
+			write_data(*this, pack);
+		}
 	}
 }
 void state::tick(std::chrono::duration<float> dTime)

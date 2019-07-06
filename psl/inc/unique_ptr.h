@@ -67,6 +67,8 @@ namespace psl
 		{
 			m_Ptr = nullptr;
 		}
+
+		operator bool() const noexcept { return m_Ptr != nullptr; }
 	  private:
 		T* m_Ptr{nullptr};
 	};

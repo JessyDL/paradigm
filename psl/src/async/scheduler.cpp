@@ -104,10 +104,7 @@ scheduler::scheduler(std::optional<size_t> workers) noexcept
 	}
 }
 
-scheduler::~scheduler() 
-{
-
-}
+scheduler::~scheduler() {}
 
 void scheduler::execute()
 {
@@ -127,6 +124,8 @@ void scheduler::execute()
 		});
 	};
 
+	// make sure no proxy objects exist
+	//assert(std::none_of(std::begin(m_Invocables), std::end(m_Invocables), [](const auto& ptr) { return ptr == nullptr; }) == true);
 
 	psl::array<barrier> barriers{};
 	psl::array<size_t> done{};
@@ -160,9 +159,9 @@ void scheduler::execute()
 
 	while(inflight.size() > 0)
 	{
-		assert_debug_break(std::unique(std::begin(inflight), std::end(inflight),
-									   [](const auto& lhs, const auto& rhs) { return *lhs == *rhs; }) ==
-							   std::end(inflight));
+		assert_debug_break(std::unique(std::begin(inflight), std::end(inflight), [](const auto& lhs, const auto& rhs) {
+							   return *lhs == *rhs;
+						   }) == std::end(inflight));
 		if(auto item = m_Tasks.pop(); item)
 		{
 			auto task = item.value();
@@ -224,7 +223,7 @@ void scheduler::execute()
 	}
 	for(auto& thread : m_Workerthreads) thread->pause();
 
-	assert_debug_break(m_Invocables.size() == done.size());	// check if all tasks are done
+	assert_debug_break(m_Invocables.size() == done.size()); // check if all tasks are done
 	m_TokenOffset += m_Invocables.size();
 	m_Invocables.clear();
 }

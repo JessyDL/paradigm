@@ -12,18 +12,33 @@ namespace psl::async::details
 	};
 
 
-	template <typename R, typename Storage = std::function<void(std::promise<R>&)>, typename Future = std::future<R>>
+	template <typename R, typename Storage = std::function<void()>, typename Future = std::future<R>>
 	class task final : public task_base
 	{
+		using Actual_Storage = typename std::remove_reference<Storage>::type;
 	  public:
-		task(Storage&& invocable) : m_Invocable(std::move(invocable)){};
+		task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)){};
 		virtual ~task() = default;
 		Future future() noexcept { return m_Promise.get_future(); }
 
-		void operator()() override { std::invoke(m_Invocable, std::ref(m_Promise)); }
+		void operator()() override { m_Promise.set_value(std::move(std::invoke(m_Invocable))); }
 
 	  private:
-		Storage m_Invocable;
+		Actual_Storage m_Invocable;
 		std::promise<R> m_Promise;
+	};
+
+	template <typename R, typename Storage>
+	class task<R, Storage, void> final : public task_base
+	{
+		using Actual_Storage = typename std::remove_reference<Storage>::type;
+	  public:
+		task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)){};
+		virtual ~task() = default;
+
+		void operator()() override { std::invoke(m_Invocable); }
+
+	  private:
+		Actual_Storage m_Invocable;
 	};
 } // namespace psl::async::details

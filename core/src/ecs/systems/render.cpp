@@ -5,7 +5,6 @@
 #include "gfx/material.h"
 #include "data/material.h"
 #include "vk/geometry.h"
-
 #include "vk/buffer.h"
 
 using core::resource::handle;
@@ -23,35 +22,31 @@ render::render(state& state, psl::view_ptr<core::gfx::pass> pass) : m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }
-
 void render::tick_draws(info& info,
 						pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
 						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
 {
+	m_Pass->clear();
+
+	// for each RenderRange, create a drawgroup. assign all bundles to that group
+	for(auto renderRange : m_RenderRanges)
 	{
-		m_Pass->clear();
-
-		// for each RenderRange, create a drawgroup. assign all bundles to that group
-		for(auto renderRange : m_RenderRanges)
+		auto& default_layer = m_DrawGroup.layer("default", renderRange.first, renderRange.second - renderRange.first);
+		auto res			= renderables.get<const transform>();
+		for(auto [transform, renderable] : renderables)
 		{
-			auto& default_layer =
-				m_DrawGroup.layer("default", renderRange.first, renderRange.second - renderRange.first);
-			auto res			= renderables.get<const transform>();
-			for(auto [transform, renderable] : renderables)
-			{
-				m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
-			}
+			m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
+		}
 
-			for(auto [transform, renderable] : broken_renderables)
+		for(auto [transform, renderable] : broken_renderables)
+		{
+			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle))
 			{
-				if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle))
-				{
-					dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
-				}
+				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}
 		}
-		m_Pass->add(m_DrawGroup);
 	}
+	m_Pass->add(m_DrawGroup);
 }
 
 void render::add_render_range(uint32_t begin, uint32_t end) { m_RenderRanges.emplace_back(std::make_pair(begin, end)); }

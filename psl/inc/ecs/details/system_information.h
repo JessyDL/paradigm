@@ -99,7 +99,7 @@ namespace psl::ecs::details
 		template <typename Pred, typename... Ts>
 		void select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>);
 
-		
+
 		template <typename Pred, typename... Ts>
 		void select_condition_impl(std::pair<Pred, std::tuple<Ts...>>);
 
@@ -152,8 +152,7 @@ namespace psl::ecs::details
 		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
 		{
 			orderby		 = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-						  const psl::ecs::state& state) {
-			};
+						  const psl::ecs::state& state) {};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>>{},
 									  psl::templates::type_container<T>{});
@@ -184,9 +183,9 @@ namespace psl::ecs::details
 		};
 
 
-		~dependency_pack() noexcept					  = default;
-		dependency_pack(const dependency_pack& other) = default;
-		dependency_pack(dependency_pack&& other) noexcept	  = default;
+		~dependency_pack() noexcept						  = default;
+		dependency_pack(const dependency_pack& other)	 = default;
+		dependency_pack(dependency_pack&& other) noexcept = default;
 		dependency_pack& operator=(const dependency_pack&) = default;
 		dependency_pack& operator=(dependency_pack&&) noexcept = default;
 
@@ -216,6 +215,18 @@ namespace psl::ecs::details
 				res += m_Sizes.at(binding.first);
 			}
 			return res;
+		}
+
+		template <typename T>
+		size_t size_of() const noexcept
+		{
+			constexpr component_key_t int_id = details::key_for<T>();
+			return m_Sizes.at(int_id);
+		}
+
+		size_t size_of(component_key_t key) const noexcept
+		{
+			return m_Sizes.at(key);
 		}
 
 		size_t entities() const noexcept { return m_Entities.size(); }
@@ -279,9 +290,8 @@ namespace psl::ecs::details
 		std::vector<std::function<psl::array<entity>::iterator(psl::array<entity>::iterator,
 															   psl::array<entity>::iterator, const psl::ecs::state&)>>
 			on_condition;
-		
-		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state&)>
-			orderby;
+
+		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state&)> orderby;
 		bool m_IsPartial = false;
 	};
 
