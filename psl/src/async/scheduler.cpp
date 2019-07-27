@@ -253,9 +253,17 @@ void scheduler::barriers(token token, psl::array<std::future<barrier>>&& barrier
 {
 	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(std::move(barriers));
 }
+void scheduler::barriers(token token, std::future<barrier>&& barrier)
+{
+	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(std::move(barrier));
+}
 void scheduler::barriers(token token, const psl::array<std::shared_future<barrier>>& barriers)
 {
 	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(barriers);
+}
+void scheduler::barriers(token token, std::shared_future<barrier>& barrier)
+{
+	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(barrier);
 }
 
 void scheduler::consecutive(token target, psl::array<token> tokens)

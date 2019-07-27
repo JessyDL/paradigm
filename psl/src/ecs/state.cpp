@@ -6,12 +6,10 @@ using namespace psl::ecs;
 using psl::ecs::details::component_key_t;
 using psl::ecs::details::entity_info;
 
-constexpr size_t min_thread_entities = 2048;
+constexpr size_t min_thread_entities = 1;
 
 
-state::state(size_t workers)
-	: m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers}))
-{}
+state::state(size_t workers) : m_Scheduler(new psl::async::scheduler((workers == 0) ? 1 : std::optional{workers})) {}
 
 
 std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source,
@@ -57,6 +55,50 @@ std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::de
 	return packs;
 }
 
+std::shared_ptr<std::vector<std::vector<details::dependency_pack>>>
+shared_slice(std::vector<details::dependency_pack>& source, size_t workers = std::numeric_limits<size_t>::max())
+{
+	std::shared_ptr<std::vector<std::vector<details::dependency_pack>>> shared_packs =
+		std::make_shared<std::vector<std::vector<details::dependency_pack>>>();
+
+	if(source.size() == 0) return shared_packs;
+
+	auto [smallest_batch, largest_batch] =
+		std::minmax_element(std::begin(source), std::end(source),
+							[](const auto& lhs, const auto& rhs) { return lhs.entities() < rhs.entities(); });
+	workers			 = std::min<size_t>(workers, std::thread::hardware_concurrency());
+	auto max_workers = std::max<size_t>(1u, std::min(workers, largest_batch->entities() % min_thread_entities));
+
+	// To guard having systems run with concurrent packs that have no data in them.
+	// Doing so would seem counter-intuitive to users
+	while((float)smallest_batch->entities() / (float)max_workers < 1.0f && max_workers > 1)
+	{
+		--max_workers;
+	}
+	workers = max_workers;
+
+	shared_packs->resize(workers);
+	for(auto& dep_pack : source)
+	{
+		if(dep_pack.allow_partial())
+		{
+			auto batch_size = dep_pack.entities() / workers;
+			size_t processed{0};
+			for(auto i = 0; i < workers - 1; ++i)
+			{
+				(*shared_packs)[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
+				processed += batch_size;
+			}
+			(*shared_packs)[shared_packs->size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
+		}
+		else // if packs cannot be split, then emplace the 'full' data
+		{
+			for(auto i = 0; i < workers; ++i) (*shared_packs)[i].emplace_back(dep_pack);
+		}
+	}
+	return shared_packs;
+}
+
 psl::array<psl::array<entity>> slice(psl::array_view<entity> source,
 									 size_t workers = std::numeric_limits<size_t>::max())
 {
@@ -96,144 +138,330 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 				}
 			}
 		};
-
-	/*auto seed_task = [this, &information]()
-	{
-		auto pack = information.create_pack();
-		bool has_partial = std::any_of(std::begin(pack), std::end(pack),
-									   [](const auto& dep_pack) { return dep_pack.allow_partial(); });
-
-		for(auto& dep_pack : pack)
-		{
-			auto entities = initial_filter(dep_pack);
-			if(entities.size() == 0) continue;
-		}
-	};*/
-
-	if(false)
 	{
 		auto shared_pack =
 			std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
-		bool has_partial = std::any_of(std::begin(*shared_pack), std::end(*shared_pack),
-									   [](const auto& dep_pack) { return dep_pack.allow_partial(); });
-
-		// doesn't do anything other than keeping the state alive
-		auto cleanup_token = m_Scheduler->schedule([&shared_pack]() {});
-
+		auto dep_pack_it = std::begin(*shared_pack);
 		for(auto& dep_pack : *shared_pack)
 		{
-			auto entities = initial_filter(dep_pack);
-			if(entities.size() == 0) continue;
+			async::token merged_entities_token = m_Scheduler->proxy();
+			// 1) do an initial filtering and split the results in N packets
+			auto [prepare_token, prepare_future] = m_Scheduler->schedule<std::shared_future>(
+				[this, dep_pack]() -> psl::array<entity> { return initial_filter(dep_pack); });
 
-			auto divided_entities = slice(entities);
+			psl::array<std::shared_future<psl::array<entity>>> filtered_ends;
+			// 2) for N workers, give them a packet each to work with and filter those packets.
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
+			{
+				auto [filter_token, filter_future] = m_Scheduler->schedule<std::shared_future>([
+					this, prepare_future = prepare_future, dep_pack, i, min_pack_size = min_thread_entities,
+					max_workers = m_Scheduler->workers()
+				]() mutable noexcept {
+					const psl::array<entity>& all_entities = prepare_future.get();
+					auto remainder						   = min_pack_size - (all_entities.size() % min_pack_size);
+					max_workers							   = std::max<size_t>(
+						   1, std::min<size_t>(max_workers, (all_entities.size() + remainder) / min_pack_size));
+					if(i >= max_workers) return psl::array<entity>{};
 
-			auto [merged_entities_token, merged_entities_future] =
-				m_Scheduler->schedule<std::shared_future>([&divided_entities]() {
+					auto count = all_entities.size() / max_workers;
+					auto begin = (count)*i;
+					auto end   = count * (i + 1);
+					if(i == max_workers - 1) end = all_entities.size();
+					count = end - begin;
+
+					psl::array<entity> entities{std::next(std::begin(all_entities), begin),
+												std::next(std::begin(all_entities), end)};
+					std::sort(std::begin(entities), std::end(entities));
+					entities.erase(filter(std::begin(entities), std::end(entities), dep_pack), std::end(entities));
+					return entities;
+				});
+
+				filter_token.after(prepare_token);
+				merged_entities_token.after(filter_token);
+				filtered_ends.emplace_back(filter_future);
+			}
+
+			// 3) we merge the results into one giant array which we'll evenly split amongst the workers
+			auto merged_entities_future = m_Scheduler->substitute<std::shared_future>(
+				merged_entities_token, [filtered_entities = filtered_ends]() mutable -> psl::array<entity> {
 					psl::array<entity> res;
-					res.reserve(std::accumulate(std::begin(divided_entities), std::end(divided_entities),
-												static_cast<size_t>(0),
-												[](size_t sum, const auto& range) { return sum + range.size(); }));
-
-					for(auto& e : divided_entities)
+					for(auto& future : filtered_entities)
 					{
+						auto e		= future.get();
+						auto middle = std::size(res);
 						res.insert(std::end(res), std::begin(e), std::end(e));
+						std::inplace_merge(std::begin(res), std::next(std::begin(res), middle), std::end(res));
 					}
 					return res;
 				});
 
-			for(auto& e : divided_entities)
-			{
-				auto filter_func = [this, &e, &dep_pack]() noexcept
-				{
-					auto end = filter(std::begin(e), std::end(e), dep_pack);
-					e.erase(end, std::end(e));
-				};
+			m_Scheduler->execute();
 
-				merged_entities_token.after(m_Scheduler->schedule(filter_func));
+			auto initial = initial_filter(dep_pack);
+			auto copy	= initial;
+			copy.erase(filter(std::begin(copy), std::end(copy), dep_pack), std::end(copy));
+			auto entities = filter(dep_pack);
+			std::sort(std::begin(entities), std::end(entities));
+			auto other_entities = merged_entities_future.get();
+			assert_debug_break(std::equal(std::begin(entities), std::end(entities), std::begin(other_entities),
+										  std::end(other_entities)));
+			entities = filter(dep_pack);
+			copy = initial;
+			copy.erase(filter(std::begin(copy), std::end(copy), dep_pack), std::end(copy));
+		}
+	}
+
+	if(false)
+	{
+		// we make a reference counted vector of dependency packs that will be used by subsequent tasks
+		auto shared_pack =
+			std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
+
+		psl::array<std::shared_future<std::uintptr_t>> write_sizes;
+		psl::array<async::token> write_sizes_tokens{};
+		psl::array<async::token> bindings_tasks{};
+		psl::array<async::token> write_to_state_tokens{};
+		auto dep_pack_it = std::begin(*shared_pack);
+		for(auto& dep_pack : *shared_pack)
+		{
+			async::token merged_entities_token = m_Scheduler->proxy();
+			// 1) do an initial filtering and split the results in N packets
+			auto [prepare_token, prepare_future] = m_Scheduler->schedule<std::shared_future>(
+				[this, dep_pack]() -> psl::array<entity> { return initial_filter(dep_pack); });
+
+			psl::array<std::future<psl::array<entity>>> filtered_ends;
+			// 2) for N workers, give them a packet each to work with and filter those packets.
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
+			{
+				auto [filter_token, filter_future] = m_Scheduler->schedule([
+					this, prepare_future = prepare_future, dep_pack, i, min_pack_size = min_thread_entities,
+					max_workers = m_Scheduler->workers()
+				]() mutable noexcept {
+					const psl::array<entity>& all_entities = prepare_future.get();
+					auto remainder						   = min_pack_size - (all_entities.size() % min_pack_size);
+					max_workers							   = std::max<size_t>(
+						   1, std::min<size_t>(max_workers, (all_entities.size() + remainder) / min_pack_size));
+					if(i >= max_workers) return psl::array<entity>{};
+
+					auto count = all_entities.size() / max_workers;
+					auto begin = (count)*i;
+					auto end   = count * (i + 1);
+					if(i == max_workers - 1) end = all_entities.size();
+					count = end - begin;
+
+					psl::array<entity> entities{std::next(std::begin(all_entities), begin),
+												std::next(std::begin(all_entities), end)};
+					std::sort(std::begin(entities), std::end(entities));
+					entities.erase(filter(std::begin(entities), std::end(entities), dep_pack), std::end(entities));
+					return entities;
+				});
+
+				filter_token.after(prepare_token);
+				merged_entities_token.after(filter_token);
+				filtered_ends.emplace_back(std::move(filter_future));
 			}
 
-			for(auto i = 0; i < m_Scheduler->workers(); ++i)
+			// 3) we merge the results into one giant array which we'll evenly split amongst the workers
+			auto merged_entities_future = m_Scheduler->substitute<std::shared_future>(
+				merged_entities_token, [filtered_entities = std::move(filtered_ends)]() mutable -> psl::array<entity> {
+					psl::array<entity> res;
+					for(auto& future : filtered_entities)
+					{
+						auto&& e	= future.get();
+						auto middle = std::size(res);
+						res.insert(std::end(res), std::begin(e), std::end(e));
+						std::inplace_merge(std::begin(res), std::next(std::begin(res), middle), std::end(res));
+					}
+					return res;
+				});
+
+
+			struct split_workload
 			{
-				// auto copy_to_cache = [this, &merged_entities_future, cache_offset, &dep_pack, i, min_pack_size = 512,
-				//					  max_workers = m_Scheduler->workers()]() mutable
-				//{
-				//	const auto& merged_entities{merged_entities_future.get()};
+				psl::array<entity> entities{};
+				size_t offset{0};
+				size_t total{0};
+			};
+			psl::array<async::token> copy_tasks;
+			psl::array<std::shared_future<split_workload>> split_workloads{};
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
+			{
+				// 4) we split the entities and then apply the order_by operation
+				auto [split_token, split_future] = m_Scheduler->schedule<std::shared_future>(
+					[this, merged_entities_future = merged_entities_future, dep_pack, i,
+					 min_pack_size	 = min_thread_entities,
+					 scheduler_workers = m_Scheduler->workers()]() mutable -> split_workload {
+						// we don't edit the values, so this is not UB
+						psl::array<entity>& merged_entities{
+							const_cast<psl::array<entity>&>(merged_entities_future.get())};
 
-				//	auto remainder = min_pack_size - (merged_entities.size() % min_pack_size);
-				//	max_workers = std::min<size_t>(max_workers, (merged_entities.size() + remainder) / min_pack_size);
-				//	if(i >= max_workers) return;
+						auto remainder = min_pack_size - (merged_entities.size() % min_pack_size);
+						auto max_workers =
+							std::max<size_t>(1, std::min<size_t>(scheduler_workers,
+																 (merged_entities.size() + remainder) / min_pack_size));
+						if(i >= max_workers) return {{}, merged_entities.size(), merged_entities.size()};
 
-				//	auto count = merged_entities.size() / max_workers;
-				//	auto begin = (count)*i;
-				//	auto end   = count * (i + 1);
-				//	if(i == max_workers - 1) end = merged_entities.size();
+						auto count = merged_entities.size() / max_workers;
+						auto begin = (count)*i;
+						auto end   = count * (i + 1);
+						if(i == max_workers - 1) end = merged_entities.size();
+						count = end - begin;
 
-				//	// calculate cache offsets;
+						psl::array<entity> entities(std::next(std::begin(merged_entities), begin),
+													std::next(std::begin(merged_entities), end));
 
-				//	psl::array_view<entity> entities{std::next(std::begin(merged_entities), begin),
-				//									 std::next(std::begin(merged_entities), end)};
-				//	// prepare_bindings(entities, (void*)cache_offset, dep_pack);
+						std::invoke(dep_pack.orderby, std::begin(entities), std::end(entities), *this);
+						return {entities, begin, merged_entities.size()};
+					});
 
-				//	void* cache = (void*)cache_offset;
+				split_workloads.emplace_back(split_future);
+				// 5) for N workers, copy data to the cache
+				copy_tasks.emplace_back(m_Scheduler->schedule(
+					[this, split_workload = split_future, cache_offset, write_sizes = write_sizes, dep_pack, i,
+					 min_pack_size = min_thread_entities, scheduler_workers = m_Scheduler->workers()]() {
+						// we don't edit the values, so this is not UB
+						const auto& workload = split_workload.get();
+						psl::array_view<entity> entities(workload.entities);
+						auto cache_location = cache_offset;
+						for(const auto& write_size : write_sizes)
+						{
+							cache_location += write_size.get();
+						}
 
-				//	size_t offset_start = (std::uintptr_t)cache_offset;
+						void* cache = (void*)(cache_location + (sizeof(entity) * workload.offset));
+						std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
+						cache = (void*)(cache_location + (sizeof(entity) * workload.total));
 
-				//	std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
+						for(const auto& binding : dep_pack.m_RBindings)
+						{
+							auto written = prepare_data(
+								entities,
+								(void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.offset)),
+								binding.first);
 
-
-				//	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
-
-
-				//	for(auto& binding : dep_pack.m_RBindings)
-				//	{
-				//		std::uintptr_t data_begin = (std::uintptr_t)cache;
-				//		auto write_size			  = prepare_data(entities, cache, binding.first);
-				//		cache					  = (void*)((std::uintptr_t)cache + write_size);
-				//		// binding.second =
-				//		//	psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
-				//	}
-				//	for(auto& binding : dep_pack.m_RWBindings)
-				//	{
-				//		std::uintptr_t data_begin = (std::uintptr_t)cache;
-				//		auto write_size			  = prepare_data(entities, cache, binding.first);
-				//		cache					  = (void*)((std::uintptr_t)cache + write_size);
-				//		// binding.second =
-				//		//	psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
-				//	}
-				//	return (std::uintptr_t)cache - offset_start;
-				//};
+							assert_debug_break(written == entities.size() * dep_pack.size_of(binding.first));
+							cache = (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.total));
+						}
+						for(const auto& binding : dep_pack.m_RWBindings)
+						{
+							auto written = prepare_data(
+								entities,
+								(void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.offset)),
+								binding.first);
+							assert_debug_break(written == entities.size() * dep_pack.size_of(binding.first));
+							cache = (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.total));
+						}
+					}));
+				copy_tasks[copy_tasks.size() - 1].after(split_token);
+				split_token.after(merged_entities_token);
+				copy_tasks[copy_tasks.size() - 1].after(write_sizes_tokens);
 			}
 
-			auto prepare_binds = [&merged_entities_future, &dep_pack, cache_offset]() mutable {
-				const auto& entities{merged_entities_future.get()};
-				dep_pack.m_Entities = psl::array_view<entity>(
-					(entity*)cache_offset, (entity*)(cache_offset + (sizeof(entity) * entities.size())));
+			bindings_tasks.emplace_back(m_Scheduler->schedule([merged_entities_future = merged_entities_future,
+															   dep_pack_it, cache_offset, write_sizes = write_sizes]() {
+				auto count = merged_entities_future.get().size();
 
-				cache_offset += (sizeof(entity) * entities.size());
+				auto cache_location = cache_offset;
+				for(const auto& write_size : write_sizes) cache_location += write_size.get();
+				auto& dep_pack		= *dep_pack_it;
+				dep_pack.m_Entities = psl::array_view<entity>((entity*)cache_location,
+															  (entity*)(cache_location + (sizeof(entity) * count)));
+
+				cache_location += (sizeof(entity) * count);
 
 				for(auto& binding : dep_pack.m_RBindings)
 				{
-					auto write_size = dep_pack.size_of(binding.first) * entities.size();
-					binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_offset,
-																	  (std::uintptr_t*)(cache_offset + write_size));
-					cache_offset += write_size;
+					auto write_size = dep_pack.size_of(binding.first) * count;
+					binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_location,
+																	  (std::uintptr_t*)(cache_location + write_size));
+					cache_location += write_size;
 				}
 				for(auto& binding : dep_pack.m_RWBindings)
 				{
-					auto write_size = dep_pack.size_of(binding.first) * entities.size();
-					binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_offset,
-																	  (std::uintptr_t*)(cache_offset + write_size));
-					cache_offset += write_size;
+					auto write_size = dep_pack.size_of(binding.first) * count;
+					binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_location,
+																	  (std::uintptr_t*)(cache_location + write_size));
+					cache_location += write_size;
 				}
-			};
+			}));
+
+			bindings_tasks[bindings_tasks.size() - 1].after(copy_tasks);
+
+			auto [write_size_token, write_size_future] = m_Scheduler->schedule<std::shared_future>(
+				[merged_entities_future = merged_entities_future, dep_pack, cache_offset]() {
+					auto count = merged_entities_future.get().size();
+					return (sizeof(entity) + dep_pack.size_per_element()) * count;
+				});
+			write_size_token.after(bindings_tasks);
+			write_sizes.emplace_back(write_size_future);
+			write_sizes_tokens.emplace_back(write_size_token);
+
+
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
+			{
+				// copy from cache to the state
+				write_to_state_tokens.emplace_back(m_Scheduler->schedule(
+					[this, i, split_workloads = split_workloads, dep_pack_it,
+					 min_pack_size = min_thread_entities, max_workers = m_Scheduler->workers()]() mutable -> void {
+
+						const auto& workload  = split_workloads[i].get();
+
+							psl::array_view<entity> entities(workload.entities);
+
+							const auto& dep_pack = *dep_pack_it;
+							for(auto& binding : dep_pack.m_RWBindings)
+							{
+								const size_t size   = dep_pack.m_Sizes.at(binding.first);
+								std::uintptr_t data = (std::uintptr_t)binding.second.data() + (workload.offset * size);
+								auto written		= set(entities, binding.first, (void*)data);
+								assert_debug_break(written == entities.size() * size);
+							}
+					}));
+			}
+
+			dep_pack_it = std::next(dep_pack_it);
 		}
 
+		psl::array<async::token> system_tasks;
+
 		// fire one system task or N system tasks
-		if(has_partial && information.threading() == threading::par)
+		if(std::any_of(std::begin(*shared_pack), std::end(*shared_pack),
+					   [](const auto& dep_pack) { return dep_pack.allow_partial(); }) &&
+		   information.threading() == threading::par)
 		{
+			auto [multi_token, multi_pack] =
+				m_Scheduler->schedule<std::shared_future>([shared_pack, max_workers = m_Scheduler->workers()]() {
+					return shared_slice(*shared_pack, max_workers);
+				});
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
+			{
+				info_buffer.emplace_back(new info(*this, dTime, rTime));
+				system_tasks.emplace_back(
+					m_Scheduler->schedule([& info = *info_buffer[info_buffer.size() - 1], &information, multi_pack, i] {
+						auto shared_multi_pack = multi_pack.get();
+						if(i >= shared_multi_pack->size()) return;
+						std::invoke(information, info, (*shared_multi_pack)[i]);
+					}));
+			}
+			multi_token.after(bindings_tasks);
+			for(auto& system_task : system_tasks) system_task.after(multi_token);
+			for(auto& write_to_state : write_to_state_tokens) write_to_state.after(system_tasks);
 		}
 		else
-		{}
+		{
+			info_buffer.emplace_back(new info(*this, dTime, rTime));
+			system_tasks.emplace_back(
+				m_Scheduler->schedule([& info = *info_buffer[info_buffer.size() - 1], &information, shared_pack] {
+					std::invoke(information, info, *shared_pack);
+				}));
+
+			for(auto& system_task : system_tasks) system_task.after(bindings_tasks);
+
+			for(auto& write_to_state : write_to_state_tokens) write_to_state.after(system_tasks);
+		}
+
+
+		m_Scheduler->execute();
 	}
 	else
 	{
@@ -842,8 +1070,11 @@ psl::array<entity> state::filter_seed(
 psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
 										   const details::dependency_pack& pack) const noexcept
 {
+	std::unordered_set<details::component_key_t> processed{};
 	for(auto filter : pack.on_remove)
 	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
 		end = filter_remove_on_remove(filter, begin, end);
 	}
 	if(pack.on_break.size() > 0)
@@ -852,6 +1083,8 @@ psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, p
 	}
 	for(auto filter : pack.on_add)
 	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
 		end = filter_remove_on_add(filter, begin, end);
 	}
 	if(pack.on_combine.size() > 0)
@@ -860,11 +1093,15 @@ psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, p
 	}
 	for(auto filter : pack.filters)
 	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
 		end = filter_remove(filter, begin, end);
 	}
 
 	for(auto filter : pack.except)
 	{
+		if(processed.find(filter) != std::end(processed)) continue;
+		processed.emplace(filter);
 		end = filter_remove_except(filter, begin, end);
 	}
 	for(const auto& conditional : pack.on_condition)
@@ -931,6 +1168,7 @@ psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 
 size_t state::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
 {
+	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(id);
 	assert_debug_break(cInfo != nullptr);
 	return cInfo->copy_to(entities, cache);
@@ -965,12 +1203,12 @@ size_t state::prepare_bindings(psl::array_view<entity> entities, void* cache, de
 	return (std::uintptr_t)cache - offset_start;
 }
 
-void state::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
+size_t state::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
 {
-	if(entities.size() == 0) return;
+	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
-	cInfo->copy_from(entities, data);
+	return cInfo->copy_from(entities, data);
 }
 
 

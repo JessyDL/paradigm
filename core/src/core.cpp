@@ -1142,7 +1142,11 @@ void android_main(android_app* application)
 	android_entry();
 }
 #elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
-int main() { return entry(); }
+int main()
+{
+	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
+	return entry();
+}
 #endif
 
 #endif

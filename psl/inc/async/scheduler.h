@@ -74,7 +74,9 @@ namespace psl::async
 
 		void barriers(token token, const psl::array<barrier>& barriers);
 		void barriers(token token, psl::array<std::future<barrier>>&& barriers);
+		void barriers(token token, std::future<barrier>&& barrier);
 		void barriers(token token, const psl::array<std::shared_future<barrier>>& barriers);
+		void barriers(token token, std::shared_future<barrier>& barrier);
 		void consecutive(token target, psl::array<token> tokens);
 
 		size_t workers() const noexcept { return m_Workers; };

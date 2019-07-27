@@ -151,6 +151,7 @@
     <Expand>
       <Item Name="[token]">m_Token</Item>
       <Item Name="[scheduler]">m_Scheduler</Item>
+      <Item Name="[description]"> m_Scheduler.m_Value->m_Invocables[m_Token - m_Scheduler.m_Value->m_TokenOffset].m_Description</Item>
     </Expand>
   </Type>
 </AutoVisualizer>

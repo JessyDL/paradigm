@@ -18,19 +18,8 @@ namespace psl::async::details
 		description()					= default;
 		description(const description&) = delete;
 		description& operator=(const description&) = delete;
-		description(description&& other) noexcept
-			: m_Barriers(std::move(other.m_Barriers)), m_Blocking(std::move(other.m_Blocking))
-		{}
-
-		description& operator=(description&& other) noexcept
-		{
-			if(this != &other)
-			{
-				m_Barriers = std::move(other.m_Barriers);
-				m_Blocking = std::move(other.m_Blocking);
-			}
-			return *this;
-		}
+		description(description&& other) noexcept  = default;
+		description& operator=(description&& other) noexcept = default;
 
 		void blockers(token token) { m_Blockers.emplace_back(token); }
 		void blockers(const psl::array<token>& tokens)

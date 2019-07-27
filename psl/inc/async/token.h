@@ -16,37 +16,23 @@ namespace psl::async
 	  public:
 		token() noexcept = default;
 		~token()		 = default;
-		token(const token& other) : m_Token(other.m_Token), m_Scheduler(other.m_Scheduler){};
-		token(token&& other) noexcept : m_Token(other.m_Token), m_Scheduler(std::move(other.m_Scheduler)){};
-		token& operator=(const token& other)
-		{
-			if(this != &other)
-			{
-				m_Token		= other.m_Token;
-				m_Scheduler = other.m_Scheduler;
-			}
-			return *this;
-		}
-		token& operator=(token&& other) noexcept
-		{
-			if(this != &other)
-			{
-				m_Token		= other.m_Token;
-				m_Scheduler = std::move(other.m_Scheduler);
-			}
-			return *this;
-		}
+		token(const token& other)	 = default;
+		token(token&& other) noexcept = default;
+		token& operator=(const token& other) = default;
+		token& operator=(token&& other) noexcept = default;
 
 		operator size_t() const noexcept { return m_Token; }
 
-		void after(token other) noexcept;
-		void after(psl::array<token> others) noexcept;
-		void before(token other) noexcept;
-		void before(psl::array<token> others) noexcept;
+		void after(const token& other) noexcept;
+		void after(const psl::array<token>& others) noexcept;
+		void before(const token& other) noexcept;
+		void before(const psl::array<token>& others) noexcept;
 
 		void barriers(const psl::array<barrier>& barriers);
 		void barriers(psl::array<std::future<barrier>>&& barriers);
+		void barriers(std::future<barrier>&& barrier);
 		void barriers(const psl::array<std::shared_future<barrier>>& barriers);
+		void barriers(std::shared_future<barrier>& barrier);
 		void consecutive(psl::array<token> others);
 
 	  private:

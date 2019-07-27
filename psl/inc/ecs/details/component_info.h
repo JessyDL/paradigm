@@ -15,6 +15,8 @@ namespace psl
 	class pack_view;
 }
 
+static psl::ecs::details::component_key_t attractor_key;
+
 namespace psl::ecs::details
 {
 	/// \brief implementation detail that stores the component information
@@ -133,7 +135,7 @@ namespace psl::ecs::details
 		}
 
 		virtual size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept { return 0; };
-		virtual void copy_from(psl::array_view<entity> entities, void* source) noexcept {};
+		virtual size_t copy_from(psl::array_view<entity> entities, void* source) noexcept { return 0; };
 
 		inline size_t component_size() const noexcept { return m_Size; };
 		size_t size(bool include_removed = false) const noexcept
@@ -178,7 +180,7 @@ namespace psl::ecs::details
 			}
 			return entities.size() * sizeof(T);
 		}
-		void copy_from(psl::array_view<entity> entities, void* source) noexcept override
+		size_t copy_from(psl::array_view<entity> entities, void* source) noexcept override
 		{
 			for(auto e : entities)
 			{
@@ -186,6 +188,7 @@ namespace psl::ecs::details
 					std::memcpy((void*)&m_Entities[e], source, sizeof(T));
 				source = (void*)((T*)source + 1);
 			}
+			return sizeof(T) * entities.size();
 		};
 
 	  protected:

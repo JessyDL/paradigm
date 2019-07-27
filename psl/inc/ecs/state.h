@@ -1,3 +1,4 @@
+
 #pragma once
 #include "entity.h"
 #include "selectors.h"
@@ -715,7 +716,7 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// set
 		//------------------------------------------------------------
-		void set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept;
+		size_t set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept;
 
 
 		//------------------------------------------------------------
