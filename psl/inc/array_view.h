@@ -1,7 +1,7 @@
 #pragma once
 #include <iterator>
-#include <vector>
-#include <array>
+#include "array.h"
+#include "static_array.h"
 
 namespace psl
 {
@@ -41,6 +41,8 @@ namespace psl
 				}
 				return *this;
 			};
+
+			//iterator(std::vector<T>::iterator it) : it(&(*it)){};
 
 			iterator& operator++()
 			{
