@@ -9,12 +9,16 @@ namespace core::data
 {
 	class material;
 }
+namespace core::ivk
+{
+	class context;
+	class shader;
+}
+
 namespace core::gfx
 {
 	class pipeline;
 	class pipeline_cache;
-	class context;
-	class shader;
 	class texture;
 	class sampler;
 	class buffer;
@@ -36,7 +40,7 @@ namespace core::gfx
 
 		template <typename... Ts>
 		using packet = core::resource::packet<Ts...>;
-		
+
 	  public:
 		using resource_dependency = packet<dependency<core::data::material, true>, psl::UID, core::resource::cache>;
 
@@ -48,11 +52,11 @@ namespace core::gfx
 		/// \param[in] pipeline_cache the pipeline_cache this instance can request a pipeline from.
 		/// \param[in] materialBuffer a GPU buffer that can be used by this instance to upload data to (if needed).
 		/// \param[in] instanceBuffer a GPU buffer that can be used to upload instance data to, if there is any.
-		material(resource_dependency packet, core::resource::handle<core::gfx::context> context,
+		material(resource_dependency packet, core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 				 core::resource::handle<core::gfx::buffer> materialBuffer);
-		material()				  = delete;
+		material() = delete;
 		~material();
 		material(const material&) = delete;
 		material(material&&)	  = delete;
@@ -64,7 +68,7 @@ namespace core::gfx
 		/// runtime gfx::material.
 		core::resource::handle<core::data::material> data() const;
 		/// \brief returns all the shaders that are being used right now by this material.
-		const std::vector<core::resource::handle<core::gfx::shader>>& shaders() const;
+		const std::vector<core::resource::handle<core::ivk::shader>>& shaders() const;
 		/// \brief returns all currently used textures and their binding slots.
 		const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>>& textures() const;
 		/// \brief returns all currently used samplers and their binding slots.
@@ -90,7 +94,7 @@ namespace core::gfx
 		/// \param[in] drawIndex the index to be set in the push constant.
 		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
 						   uint32_t drawIndex);
-		
+
 	  private:
 		/// \returns the pipeline this material instance uses for the given framebuffer.
 		/// \details tries to find, and return a core::gfx::pipeline that can satisfy the
@@ -105,11 +109,11 @@ namespace core::gfx
 		core::resource::handle<pipeline> get(core::resource::handle<swapchain> swapchain);
 
 		psl::UID m_UID;
-		core::resource::handle<core::gfx::context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::handle<core::gfx::pipeline_cache> m_PipelineCache;
 		core::resource::handle<core::data::material> m_Data;
 
-		std::vector<core::resource::handle<core::gfx::shader>> m_Shaders;
+		std::vector<core::resource::handle<core::ivk::shader>> m_Shaders;
 
 		// a combination of binding slot + resource
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>> m_Textures;

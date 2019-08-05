@@ -1,66 +1,91 @@
 SET(INC 
-inc/stdafx.h
-inc/conversion_utils.h
-inc/header_info.h
-inc/logging.h
-inc/stdb_truetype.h
-inc/targetver.h
-inc/vulkan_stdafx.h
+stdafx.h
+conversion_utils.h
+header_info.h
+logging.h
+stdb_truetype.h
+targetver.h
+vulkan_stdafx.h
+defines.h
 
-inc/data/application.h
-inc/data/buffer.h
-inc/data/framebuffer.h
-inc/data/geometry.h
-inc/data/material.h
-inc/data/sampler.h
-inc/data/stream.h
-inc/data/window.h
+data/application.h
+data/buffer.h
+data/framebuffer.h
+data/geometry.h
+data/material.h
+data/sampler.h
+data/stream.h
+data/window.h
 
-inc/gfx/drawcall.h
-inc/gfx/drawgroup.h
-inc/gfx/drawlayer.h
-inc/gfx/material.h
-inc/gfx/pass.h
-inc/gfx/render_graph.h
-inc/gfx/pipeline_cache.h
-inc/gfx/bundle.h
-inc/gfx/details/instance.h
+gfx/context.h
+gfx/shader.h
+gfx/drawcall.h
+gfx/drawgroup.h
+gfx/drawlayer.h
+gfx/material.h
+gfx/pass.h
+gfx/render_graph.h
+gfx/pipeline_cache.h
+gfx/bundle.h
+gfx/types.h
+gfx/details/instance.h
 
-inc/meta/shader.h
-inc/meta/texture.h
+meta/shader.h
+meta/texture.h
 
-inc/os/surface.h
+os/surface.h
 
-inc/systems/input.h
-inc/systems/resource.h
+systems/input.h
+systems/resource.h
 
-inc/ecs/systems/fly.h
-inc/ecs/systems/death.h
-inc/ecs/systems/lifetime.h
-inc/ecs/systems/render.h
-inc/ecs/systems/geometry_instance.h
-inc/ecs/systems/attractor.h
-inc/ecs/systems/movement.h
-inc/ecs/systems/gpu_camera.h
-inc/ecs/systems/lighting.h
+ecs/systems/fly.h
+ecs/systems/death.h
+ecs/systems/lifetime.h
+ecs/systems/render.h
+ecs/systems/geometry_instance.h
+ecs/systems/attractor.h
+ecs/systems/movement.h
+ecs/systems/gpu_camera.h
+ecs/systems/lighting.h
 
-inc/ecs/components/camera.h
-inc/ecs/components/transform.h
-inc/ecs/components/renderable.h
-inc/ecs/components/input_tag.h
-inc/ecs/components/dead_tag.h
-inc/ecs/components/lifetime.h
-inc/ecs/components/velocity.h
+ecs/components/camera.h
+ecs/components/transform.h
+ecs/components/renderable.h
+ecs/components/input_tag.h
+ecs/components/dead_tag.h
+ecs/components/lifetime.h
+ecs/components/velocity.h
 
-inc/utility/geometry.h
+utility/geometry.h
 
-inc/vk/buffer.h
-inc/vk/context.h
-inc/vk/framebuffer.h
-inc/vk/geometry.h
-inc/vk/pipeline.h
-inc/vk/sampler.h
-inc/vk/shader.h
-inc/vk/swapchain.h
-inc/vk/texture.h
+vk/buffer.h
+vk/context.h
+vk/framebuffer.h
+vk/geometry.h
+vk/pipeline.h
+vk/sampler.h
+vk/shader.h
+vk/swapchain.h
+vk/texture.h
+
 )
+
+
+list(TRANSFORM INC PREPEND inc/)
+
+SET(FWD
+
+gfx/context.h
+gfx/shader.h)
+
+list(TRANSFORM FWD PREPEND inc/fwd/)
+
+# include files for the GLES API
+if(${PE_GLES})
+	set(INC_GLES
+	context.h
+	shader.h
+	)
+
+	list(TRANSFORM INC_GLES PREPEND inc/gles/)
+endif()

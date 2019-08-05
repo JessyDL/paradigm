@@ -9,10 +9,11 @@
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 
 pipeline_cache::pipeline_cache(const UID& uid, core::resource::cache& cache,
-							   core::resource::handle<core::gfx::context> context)
+							   core::resource::handle<core::ivk::context> context)
 	: m_Context(context), m_Cache(cache)
 {
 	::vk::PipelineCacheCreateInfo pcci;

@@ -7,12 +7,13 @@
 
 using namespace psl;
 using namespace core;
+using namespace core::ivk;
 using namespace core::gfx;
 using namespace core::os;
 using namespace core::resource;
 
 swapchain::swapchain(const UID& uid, cache& cache, handle<core::os::surface> surface,
-					 handle<core::gfx::context> context, bool use_depth)
+					 handle<core::ivk::context> context, bool use_depth)
 	: m_OSSurface(surface), m_Context(context), m_Cache(cache), m_DepthTextureHandle(create<texture>(cache)),
 	m_UseDepth(use_depth), m_SurfaceFormat{}
 {

@@ -8,10 +8,14 @@ namespace core::os
 }
 namespace core::gfx
 {
-	class context;
 	class texture;
 	class framebuffer;
 } // namespace core::gfx
+
+namespace core::ivk
+{
+	class context;
+}
 
 namespace core::data
 {
@@ -32,15 +36,15 @@ namespace core::gfx
 
 	  public:
 		swapchain(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::os::surface> surface,
-				  core::resource::handle<core::gfx::context> context, bool use_depth = true);
+				  core::resource::handle<core::ivk::context> context, bool use_depth = true);
 		~swapchain();
 
 		/// \returns true in case it managed to get the next image in the swapchain from the driver.
 		/// \param[in, out] presentComplete the semaphore to flag once ready.
 		/// \param[out] out_image_index the image index of the next image in the swapchain.
 		/// \details when invoking this method it will request the next image in the swapchain, and return.
-		/// the semaphore will be flaged once the resource is ready on the GPU. (and so should be used as a sync point before using
-		/// the image in the swapchain.
+		/// the semaphore will be flaged once the resource is ready on the GPU. (and so should be used as a sync point
+		/// before using the image in the swapchain.
 		bool next(vk::Semaphore presentComplete, uint32_t& out_image_index);
 
 		/// \returns success in case presenting went well.
@@ -108,7 +112,7 @@ namespace core::gfx
 		void apply_resize();
 
 		core::resource::handle<core::os::surface> m_OSSurface;
-		core::resource::handle<core::gfx::context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 
 		vk::SurfaceKHR m_Surface;
 		vk::SurfaceCapabilitiesKHR m_SurfaceCapabilities;

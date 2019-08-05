@@ -24,7 +24,7 @@ using namespace psl::ecs;
 lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view_ptr<core::resource::cache> cache,
 								 memory::region& resource_region, psl::view_ptr<core::gfx::render_graph> renderGraph,
 								 psl::view_ptr<core::gfx::pass> pass,
-								 core::resource::handle<core::gfx::context> context,
+								 core::resource::handle<core::ivk::context> context,
 								 core::resource::handle<core::os::surface> surface) noexcept
 	: m_Cache(cache), m_RenderGraph(renderGraph), m_DependsPass(pass), m_State(state), m_Context(context),
 	  m_Surface(surface)

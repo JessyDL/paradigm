@@ -703,6 +703,16 @@ namespace core::resource
 			return (m_Container && m_Container->has_value()) ? m_Container->resource() : nullptr;
 		}
 
+		T& value() 
+		{
+			if(m_Container && m_Container->has_value())
+			{
+				return *(m_Container->resource());
+			}
+
+			throw std::runtime_error("tried to derefence a missing, or not loaded resource");			
+		}
+
 		/// \returns true on success.
 		/// \param[in] force forcibly unload regardless of dependencies.
 		/// \details >ill try to unload the resource. In case that this is the last handle to the resource, it will
@@ -750,6 +760,7 @@ namespace core::resource
 
 		const resource::cache& cache() const noexcept { return *m_Cache; };
 		resource::cache& cache() noexcept { return *m_Cache; };
+
 	  private:
 		resource::cache* m_Cache;
 		psl::UID uid;		   // my actual UID
@@ -836,6 +847,7 @@ namespace core::resource
 		T& operator->() noexcept { return m_Cache->find<T>(m_UID); }
 
 		const psl::UID& uid() const noexcept { return m_UID; };
+
 	  private:
 		cache* m_Cache{nullptr};
 		psl::UID m_UID{};

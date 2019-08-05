@@ -5,9 +5,9 @@
 #include "stdafx.h"
 #ifdef CORE_EXECUTABLE
 #include "header_info.h"
-#include "data/window.h" // application data
-#include "os/surface.h"  // the OS surface to draw one
-#include "vk/context.h"  // the vulkan context
+#include "data/window.h"  // application data
+#include "os/surface.h"   // the OS surface to draw one
+#include "vk/context.h"   // the vulkan context
 //#include "systems\resource.h" // resource system
 #include "vk/swapchain.h" // the gfx swapchain which we'll use as our backbuffer
 #include "gfx/pass.h"
@@ -68,15 +68,21 @@
 
 #include "ecs/systems/lighting.h"
 
+
+
+#include "gles/context.h" // the glescontext
+#include "gles/shader.h" // the glescontext
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::os;
 
 using namespace psl::ecs;
 using namespace core::ecs::components;
 
-handle<material> setup_example_material(resource::cache& cache, handle<context> context_handle,
+handle<material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
 										handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer,
 										const psl::UID& texture)
 {
@@ -121,7 +127,7 @@ handle<material> setup_example_material(resource::cache& cache, handle<context> 
 	return material;
 }
 
-handle<material> setup_depth_material(resource::cache& cache, handle<context> context_handle,
+handle<material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
 									  handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
@@ -642,7 +648,7 @@ int entry()
 		return -1;
 	}
 
-	auto context_handle = create<context>(cache);
+	auto context_handle = create<core::ivk::context>(cache);
 	if(!context_handle.load(APPLICATION_FULL_NAME, 0))
 	{
 		core::log->critical("Could not create graphics API surface to use for drawing.");
@@ -1142,10 +1148,133 @@ void android_main(android_app* application)
 	android_entry();
 }
 #elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
+
+#include "glad/glad_wgl.h"
+
+int gles()
+{
+#ifdef PLATFORM_WINDOWS
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+	setup_loggers();
+
+	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
+
+	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
+	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
+
+	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
+	window_data.load();
+
+	auto surface_handle = create<surface>(cache);
+	if(!surface_handle.load(window_data))
+	{
+		core::log->critical("Could not create a OS surface to draw on.");
+		return -1;
+	}
+
+	auto context_handle = create<core::igles::context>(cache);
+	context_handle.load(APPLICATION_FULL_NAME);
+
+	context_handle->enable(surface_handle);
+
+	core::resource::handle<core::igles::shader> vShader;
+	core::resource::handle<core::igles::shader> fShader;
+
+	{
+		auto [uid, shader] = cache.library().create<core::meta::shader>(
+			"attribute vec4 vPosition;    \n"
+			"void main()                  \n"
+			"{                            \n"
+			"   gl_Position = vPosition;  \n"
+			"}                            \n");
+		shader.stage(vk::ShaderStageFlagBits::eVertex);
+
+		vShader = core::resource::create<core::igles::shader>(cache, uid);
+		vShader.load();
+	}
+
+	{
+		auto [uid, shader] = cache.library().create<core::meta::shader>(
+			"precision mediump float;\n"
+			"void main()                                  \n"
+			"{                                            \n"
+			"  gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );\n"
+			"}                                            \n");
+		shader.stage(vk::ShaderStageFlagBits::eFragment);
+
+		
+		fShader = core::resource::create<core::igles::shader>(cache, uid);
+		fShader.load();
+	}
+
+	GLuint programObject;
+	GLint linked;
+
+	// Create the program object
+	programObject = glCreateProgram();
+
+	if(programObject == 0) return 1;
+
+	glAttachShader(programObject, vShader->id());
+	glAttachShader(programObject, fShader->id());
+
+	// Bind vPosition to attribute 0
+	glBindAttribLocation(programObject, 0, "vPosition");
+
+	// Link the program
+	glLinkProgram(programObject);
+
+	// Check the link status
+	glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
+
+	if(!linked)
+	{
+		GLint infoLen = 0;
+
+		glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
+
+		if(infoLen > 1)
+		{
+			char* infoLog = (char*)malloc(sizeof(char) * infoLen);
+
+			glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
+
+			free(infoLog);
+		}
+
+		glDeleteProgram(programObject);
+		return 1;
+	}
+
+	GLfloat vVertices[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+
+	while(surface_handle->tick())
+	{
+		/* Render here */
+		glClear(GL_COLOR_BUFFER_BIT);
+		glClearColor(0.2f, 0.5f, 0.6f, 1.0f);
+
+		glUseProgram(programObject);
+
+		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
+		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+		glEnableVertexAttribArray(0);
+		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glFinish();
+		context_handle->swapbuffers(surface_handle);
+	}
+
+
+	return 0;
+}
+
 int main()
 {
 	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
-	return entry();
+	return gles();
 }
 #endif
 

@@ -5,9 +5,14 @@
 #include "vulkan_stdafx.h"
 #include "view_ptr.h"
 
-namespace core::gfx
+
+namespace core::ivk
 {
 	class context;
+}
+
+namespace core::gfx
+{
 	class framebuffer;
 	class swapchain;
 	class drawgroup;
@@ -33,19 +38,20 @@ namespace core::gfx
 	/// A pass is a collection of drawcalls, grouped into sets of drawgroups, and a target framebuffer or swapchain.
 	/// This describes a full pipeline (synced) to get something into a set of rendertargets and to either use it in
 	/// subsequent passes, or present it to a core::gfx::surface.
-	/// Passes also make sure that they don't create race conditions with other passes that have been assigned as its dependencies.
+	/// Passes also make sure that they don't create race conditions with other passes that have been assigned as its
+	/// dependencies.
 	class pass
 	{
 	  public:
-		  /// \brief creates a pass that targets a framebuffer.
-		  /// \param[in] context the valid and loaded context to bind this pass to.
-		  /// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
-		pass(core::resource::handle<core::gfx::context> context,
+		/// \brief creates a pass that targets a framebuffer.
+		/// \param[in] context the valid and loaded context to bind this pass to.
+		/// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
+		pass(core::resource::handle<core::ivk::context> context,
 			 core::resource::handle<core::gfx::framebuffer> framebuffer);
 		/// \brief creates a pass that targets a swapchain image set.
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] swapchain the valid and loaded swapchain that this pass will output to.
-		pass(core::resource::handle<core::gfx::context> context,
+		pass(core::resource::handle<core::ivk::context> context,
 			 core::resource::handle<core::gfx::swapchain> swapchain);
 		~pass();
 		pass(const pass&) = delete;
@@ -53,7 +59,8 @@ namespace core::gfx
 		pass& operator=(const pass&) = delete;
 		pass& operator=(pass&&) = delete;
 
-		/// \brief prepares the pass for presenting (i.e. it does some basic housekeeping such as fetching the swapchain image if any)
+		/// \brief prepares the pass for presenting (i.e. it does some basic housekeeping such as fetching the swapchain
+		/// image if any)
 		void prepare();
 
 		/// \brief submits the recorded instructions to the GPU, handling the dependencies accordingly.
@@ -85,6 +92,7 @@ namespace core::gfx
 		void clear() noexcept;
 
 		bool is_swapchain() const noexcept;
+
 	  private:
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
 		/// \param[in] size the amount of fences to create.
@@ -92,7 +100,7 @@ namespace core::gfx
 		/// \brief cleans up the created vk::Fence's of the core::gfx::pass::create_fences() method.
 		void destroy_fences();
 
-		core::resource::handle<core::gfx::context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::handle<core::gfx::framebuffer> m_Framebuffer;
 		core::resource::handle<core::gfx::swapchain> m_Swapchain;
 		const bool m_UsingSwap;

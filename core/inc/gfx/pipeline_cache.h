@@ -2,9 +2,12 @@
 #include "systems/resource.h"
 #include "vulkan_stdafx.h"
 
-namespace core::gfx
+namespace core::ivk
 {
 	class context;
+}
+namespace core::gfx
+{
 	class pipeline;
 	class framebuffer;
 	class swapchain;
@@ -91,7 +94,7 @@ namespace core::gfx
 	{
 	  public:
 		pipeline_cache(const psl::UID& uid, core::resource::cache& cache,
-					   core::resource::handle<core::gfx::context> context);
+					   core::resource::handle<core::ivk::context> context);
 		~pipeline_cache();
 		pipeline_cache(const pipeline_cache&) = delete;
 		pipeline_cache(pipeline_cache&&)	  = delete;
@@ -103,18 +106,20 @@ namespace core::gfx
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] framebuffer the framebuffer that will be bound to.
-		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid, core::resource::handle<core::data::material> data,
+		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid,
+														core::resource::handle<core::data::material> data,
 														core::resource::handle<framebuffer> framebuffer);
 		/// \brief allows you to get a pipeline that satisfy the material requirements and is bound to the given
 		/// swapchain.
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] swapchain the swapchain that will be bound to.
-		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid, core::resource::handle<core::data::material> data,
+		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid,
+														core::resource::handle<core::data::material> data,
 														core::resource::handle<swapchain> swapchain);
 
 	  private:
-		core::resource::handle<core::gfx::context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::cache& m_Cache;
 		vk::PipelineCache m_PipelineCache;
 

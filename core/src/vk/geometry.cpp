@@ -11,8 +11,9 @@
 using namespace psl;
 using namespace core::resource;
 using namespace core::gfx;
+using namespace core::ivk;
 
-geometry::geometry(const UID& uid, cache& cache, handle<context> context,
+geometry::geometry(const UID& uid, cache& cache, handle<core::ivk::context> context,
 				   core::resource::handle<core::data::geometry> data,
 				   core::resource::handle<core::gfx::buffer> geometryBuffer,
 				   core::resource::handle<core::gfx::buffer> indicesBuffer)

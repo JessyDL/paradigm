@@ -111,7 +111,7 @@ namespace core::resource
 {
 	class cache;
 }
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief encapsulated a graphics context.
 	///

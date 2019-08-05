@@ -195,7 +195,9 @@ size_t library::size() const { return m_MetaData.size(); }
 std::optional<psl::string8::view> library::load(const UID& uid)
 {
 	auto it = m_MetaData.find(uid);
-	if(it == std::end(m_MetaData) || it->second.flags[0] != true) return {};
+	if(it == std::end(m_MetaData)) return {};
+
+	if(it->second.flags[0] != true || it->second.file_data.size() > 0) return it->second.file_data;
 
 	if(auto res = utility::platform::file::read(psl::from_string8_t(m_LibraryFolder) +
 												utility::platform::directory::seperator +
@@ -215,4 +217,13 @@ bool library::unload(const UID& uid)
 
 	it->second.file_data = {};
 	return true;
+}
+
+
+void library::replace_content(psl::UID uid, psl::string8_t content) noexcept 
+{
+	if(auto it = m_MetaData.find(uid); it != std::end(m_MetaData))
+	{
+		it->second.file_data = std::move(content);
+	}
 }

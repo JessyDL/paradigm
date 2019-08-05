@@ -15,10 +15,11 @@
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-material::material(resource_dependency packet, handle<core::gfx::context> context, handle<core::data::material> data,
+material::material(resource_dependency packet, handle<core::ivk::context> context, handle<core::data::material> data,
 				   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 				   core::resource::handle<core::gfx::buffer> materialBuffer)
 	: m_UID(packet.get<UID>()), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
@@ -32,7 +33,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 	for(const auto& stage : m_Data->stages())
 	{
 		// todo: decide if shaders should be loaded when materials get constructed or not
-		auto shader_handle = cache.find<core::gfx::shader>(stage.shader());
+		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
 		if(!shader_handle)
 		{
 			core::gfx::log->warn("gfx::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
@@ -40,7 +41,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 
 
 			core::gfx::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
-			shader_handle = create<core::gfx::shader>(cache, stage.shader());
+			shader_handle = create<core::ivk::shader>(cache, stage.shader());
 			if(!shader_handle.load(context)) return;
 		}
 		m_Shaders.push_back(shader_handle);
@@ -127,7 +128,7 @@ material::material(resource_dependency packet, handle<core::gfx::context> contex
 material::~material() {}
 
 core::resource::handle<core::data::material> material::data() const { return m_Data; }
-const std::vector<core::resource::handle<core::gfx::shader>>& material::shaders() const { return m_Shaders; }
+const std::vector<core::resource::handle<core::ivk::shader>>& material::shaders() const { return m_Shaders; }
 const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>>& material::textures() const
 {
 	return m_Textures;

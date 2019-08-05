@@ -12,6 +12,7 @@
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 
 
@@ -97,7 +98,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 }
 
 
-pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
+pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
 				   core::resource::handle<core::data::material> data, vk::PipelineCache& pipelineCache,
 				   vk::RenderPass renderPass, uint32_t attachmentCount)
 	: m_Context(context), m_PipelineCache(pipelineCache), m_Cache(cache)
@@ -291,7 +292,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 	for(auto& stage : data->stages())
 	{
-		auto shader_handle = cache.find<core::gfx::shader>(stage.shader());
+		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
 		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load(m_Context)) &&
 		   shader_handle->pipeline())
 		{
@@ -348,7 +349,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 {
 	for(const auto& stage : data.stages())
 	{
-		auto shader_handle = cache.find<core::gfx::shader>(stage.shader());
+		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
 		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load(m_Context)) &&
 		   shader_handle->pipeline())
 		{

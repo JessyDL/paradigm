@@ -5,7 +5,6 @@
 
 namespace core::gfx
 {
-	class context;
 	class swapchain;
 	class buffer;
 	class pass;

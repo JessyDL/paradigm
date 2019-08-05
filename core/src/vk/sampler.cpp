@@ -5,6 +5,7 @@
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 

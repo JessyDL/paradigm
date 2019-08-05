@@ -1,6 +1,6 @@
 #include "gfx/render_graph.h"
 #include "gfx/pass.h"
-#include "vk/context.h"
+#include "gfx/context.h"
 #include "vk/swapchain.h"
 #include "vk/framebuffer.h"
 
@@ -8,14 +8,14 @@ using namespace core::gfx;
 using core::resource::handle;
 
 
-psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<swapchain> swapchain)
+psl::view_ptr<pass> render_graph::create_pass(handle<core::ivk::context> context, handle<swapchain> swapchain)
 {
 	auto& element = m_Passes.emplace_back();
 	element.pass  = new pass(context, swapchain);
 
 	return psl::view_ptr<pass>{element.pass};
 }
-psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<framebuffer> framebuffer)
+psl::view_ptr<pass> render_graph::create_pass(handle<core::ivk::context> context, handle<framebuffer> framebuffer)
 {
 	auto& element = m_Passes.emplace_back();
 	element.pass  = new pass(context, framebuffer);

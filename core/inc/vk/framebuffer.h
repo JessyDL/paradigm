@@ -7,11 +7,15 @@ namespace core::data
 {
 	class framebuffer;
 }
+namespace core::ivk
+{
+	class context;
+}
+
 namespace core::gfx
 {
 	class texture;
 	class sampler;
-	class context;
 
 	/// \brief describes a set of images to use as rendertargets
 	///
@@ -19,10 +23,10 @@ namespace core::gfx
 	/// than just rendering into the backbuffer (swapchain), and to do that you will need
 	/// to describe a set of images to the driver that you will use as render targets.
 	/// the framebuffer class is just that, and allows you to bundle together images to do
-	/// postprocessing, or shadowmapping, etc... 
+	/// postprocessing, or shadowmapping, etc...
 	class framebuffer final
 	{
-	public:
+	  public:
 		/// \brief describes a single attachment in a framebuffer.
 		struct attachment
 		{
@@ -46,9 +50,11 @@ namespace core::gfx
 			uint32_t index;
 		};
 
-		framebuffer(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::framebuffer> data);
+		framebuffer(const psl::UID& uid, core::resource::cache& cache,
+					core::resource::handle<core::ivk::context> context,
+					core::resource::handle<core::data::framebuffer> data);
 		framebuffer(const framebuffer&) = delete;
-		framebuffer(framebuffer&&) = delete;
+		framebuffer(framebuffer&&)		= delete;
 		framebuffer& operator=(const framebuffer&) = delete;
 		framebuffer& operator=(framebuffer&&) = delete;
 		~framebuffer();
@@ -71,16 +77,18 @@ namespace core::gfx
 		const std::vector<vk::Framebuffer>& framebuffers() const noexcept;
 		/// \returns the image descriptor.
 		vk::DescriptorImageInfo descriptor() const noexcept;
-	private:
-		bool add(core::resource::cache& cache, const psl::UID& uid, vk::AttachmentDescription description, size_t index, size_t count);
+
+	  private:
+		bool add(core::resource::cache& cache, const psl::UID& uid, vk::AttachmentDescription description, size_t index,
+				 size_t count);
 
 		std::vector<core::resource::handle<core::gfx::texture>> m_Textures;
 		std::vector<binding> m_Bindings;
 		core::resource::handle<core::gfx::sampler> m_Sampler;
 		core::resource::handle<core::data::framebuffer> m_Data;
-		core::resource::handle<core::gfx::context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 		vk::RenderPass m_RenderPass;
 		std::vector<vk::Framebuffer> m_Framebuffers;
 		vk::DescriptorImageInfo m_Descriptor;
 	};
-}
+} // namespace core::gfx

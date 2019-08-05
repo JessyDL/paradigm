@@ -4,10 +4,14 @@
 #include "view_ptr.h"
 #include "array_view.h"
 
+namespace core::ivk
+{
+	class context;
+}
+
 namespace core::gfx
 {
 	class pass;
-	class context;
 	class framebuffer;
 	class swapchain;
 
@@ -21,9 +25,9 @@ namespace core::gfx
 		};
 
 	  public:
-		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::gfx::context> context,
+		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::ivk::context> context,
 												   core::resource::handle<core::gfx::swapchain> swapchain);
-		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::gfx::context> context,
+		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::ivk::context> context,
 												   core::resource::handle<core::gfx::framebuffer> framebuffer);
 
 		bool connect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;

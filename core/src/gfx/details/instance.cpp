@@ -7,6 +7,7 @@
 #include "vk/buffer.h"
 
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
@@ -23,7 +24,7 @@ void data::add(core::resource::handle<material> material)
 	{
 		if(stage.shader_stage() != vk::ShaderStageFlagBits::eVertex) continue;
 
-		auto shader_handle = material.cache().find<core::gfx::shader>(stage.shader());
+		auto shader_handle = material.cache().find<core::ivk::shader>(stage.shader());
 
 		data.reserve(shader_handle->meta()->instance_bindings().size());
 		for(const auto& vBinding : shader_handle->meta()->instance_bindings())

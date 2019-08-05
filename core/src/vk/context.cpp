@@ -11,7 +11,7 @@
 #endif
 
 using namespace psl;
-using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::os;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,

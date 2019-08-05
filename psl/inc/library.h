@@ -109,6 +109,12 @@ namespace psl::meta
 			return create<MF>(psl::UID::generate());
 		}
 
+		template <typename MF = file>
+		std::pair<const psl::UID&, MF&> create(psl::string8_t content)
+		{
+			return create<MF>(psl::UID::generate(), std::move(content));
+		}
+
 		/// \brief creates a new entry with the given psl::UID and a given type that is either, or derived of meta::file.
 		/// \param[in] uid The psl::UID that should be associated with this entry.
 		/// \warning giving an already present psl::UID will result in an error log, and you will be given back the instance that is already present.
@@ -123,6 +129,23 @@ namespace psl::meta
 			auto pair = m_MetaData.emplace(uid, std::make_unique<MF>(uid));
 			pair.first->second.data.get()->m_ID = pair.first->first;
 			return std::pair<const psl::UID&, MF&>(pair.first->first, *(static_cast<MF*>(pair.first->second.data.get())));
+		}
+
+		template <typename MF = file>
+		std::pair<const psl::UID&, MF&> create(psl::UID&& uid, psl::string8_t content)
+		{
+			if(m_MetaData.find(uid) != m_MetaData.end())
+			{
+				LOG_ERROR(
+					"Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
+				return std::pair<const psl::UID&, MF&>(m_MetaData.find(uid)->first,
+													   *(static_cast<MF*>(m_MetaData.find(uid)->second.data.get())));
+			}
+			auto pair							= m_MetaData.emplace(uid, std::make_unique<MF>(uid));
+			pair.first->second.data.get()->m_ID = pair.first->first;
+			pair.first->second.file_data		= std::move(content);
+			return std::pair<const psl::UID&, MF&>(pair.first->first,
+												   *(static_cast<MF*>(pair.first->second.data.get())));
 		}
 
 		/// \brief serializes the given psl::UID to disk in case it is present, and an on-disk file.
@@ -258,6 +281,8 @@ namespace psl::meta
 		/// \brief returns the count of psl::UID's present in the meta::library.
 		/// \returns the amount of unique psl::UID's in the current meta::library.
 		size_t size() const;
+
+		void replace_content(psl::UID uid, psl::string8_t content) noexcept;
 	private:
 		struct UIDData
 		{
@@ -268,7 +293,7 @@ namespace psl::meta
 			std::unique_ptr<file> data;
 			std::unordered_set<psl::UID> referencing;
 			std::unordered_set<psl::UID> referencedBy;
-			psl::string8_t file_data;
+			psl::string8_t file_data{};
 
 			// In case this is a file on disk, this defaults to the disk location, otherwise it's set from code.
 			psl::string8_t readableName;

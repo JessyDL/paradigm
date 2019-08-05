@@ -98,7 +98,7 @@ namespace core::data
 
 		/// \brief call this to enable or disable anisotropic filtering.
 		/// \param[in] value set to true to enable anisotropic filtering.
-		/// \note if the current core::gfx::context doesn't support anisotropic filtering, 
+		/// \note if the current core::ivk::context doesn't support anisotropic filtering, 
 		/// then this value will be ingored upstream (core::gfx::sampler).
 		void anisotropic_filtering(bool value);
 
