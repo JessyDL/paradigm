@@ -40,7 +40,7 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 									   new memory::default_allocator(true))
 						.value());
 
-	m_LightDataBuffer = create<gfx::buffer>(*cache);
+	m_LightDataBuffer = create<ivk::buffer>(*cache);
 	m_LightDataBuffer.load(m_Context, bufferData);
 	cache->library().set(m_LightDataBuffer.ID(), "GLOBAL_LIGHT_DATA");
 

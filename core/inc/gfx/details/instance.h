@@ -15,11 +15,11 @@ namespace std
 
 namespace core::gfx
 {
-	class buffer;
 	class material;
 } // namespace core::gfx
 namespace core::ivk
 {
+	class buffer;
 	class geometry;
 }
 
@@ -96,7 +96,7 @@ namespace core::gfx::details::instance
 	class data final
 	{
 	  public:
-		data(core::resource::handle<core::gfx::buffer> buffer) noexcept;
+		data(core::resource::handle<core::ivk::buffer> buffer) noexcept;
 		void add(core::resource::handle<core::gfx::material> material);
 		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::ivk::geometry> uid,
 													   uint32_t count = 1);
@@ -112,7 +112,7 @@ namespace core::gfx::details::instance
 		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<core::gfx::material> material,
 															   core::resource::tag<core::ivk::geometry> geometry) const noexcept;
 
-		core::resource::handle<core::gfx::buffer> buffer() const noexcept { return m_InstanceBuffer; }
+		core::resource::handle<core::ivk::buffer> buffer() const noexcept { return m_InstanceBuffer; }
 
 		bool erase(core::resource::tag<core::ivk::geometry> geometry, uint32_t id) noexcept;
 		bool clear(core::resource::tag<core::ivk::geometry> geometry) noexcept;
@@ -123,6 +123,6 @@ namespace core::gfx::details::instance
 		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
 		std::unordered_map<psl::UID, object> m_InstanceData;
 
-		core::resource::handle<core::gfx::buffer> m_InstanceBuffer;
+		core::resource::handle<core::ivk::buffer> m_InstanceBuffer;
 	};
 } // namespace core::gfx::details::instance

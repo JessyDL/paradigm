@@ -14,13 +14,13 @@ namespace core::data
 
 namespace core::gfx
 {
-	class buffer;
 	class material;
 } // namespace core::gfx
 
 namespace core::ivk
 {
 	class context;
+	class buffer;
 
 	/// \brief describes the driver visible concept of geometry.
 	class geometry
@@ -39,8 +39,8 @@ namespace core::ivk
 		/// \param[in] indicesBuffer the buffer that the indices data will be uploaded to.
 		geometry(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::geometry> data,
-				 core::resource::handle<core::gfx::buffer> geometryBuffer,
-				 core::resource::handle<core::gfx::buffer> indicesBuffer);
+				 core::resource::handle<core::ivk::buffer> geometryBuffer,
+				 core::resource::handle<core::ivk::buffer> indicesBuffer);
 		~geometry();
 		geometry(const geometry&) = delete;
 		geometry(geometry&&)	  = delete;
@@ -64,8 +64,8 @@ namespace core::ivk
 	  private:
 		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::handle<core::data::geometry> m_Data;
-		core::resource::handle<core::gfx::buffer> m_GeometryBuffer;
-		core::resource::handle<core::gfx::buffer> m_IndicesBuffer;
+		core::resource::handle<core::ivk::buffer> m_GeometryBuffer;
+		core::resource::handle<core::ivk::buffer> m_IndicesBuffer;
 		memory::segment m_IndicesSegment;
 		memory::range m_IndicesSubRange;
 		std::vector<binding> m_Bindings;

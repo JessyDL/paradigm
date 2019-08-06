@@ -10,7 +10,7 @@ using namespace core::resource;
 using namespace psl;
 using namespace core::gfx::details::instance;
 
-bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer)
+bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::buffer> buffer)
 	: m_UID(uid), m_Cache(cache), m_InstanceData(buffer){};
 
 // ------------------------------------------------------------------------------------------------------------
@@ -133,7 +133,7 @@ bool bundle::release_all() noexcept { return m_InstanceData.clear(); };
 bool bundle::set(tag<geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
 				 const void* data, size_t size, size_t count)
 {
-	m_InstanceData.buffer()->commit({core::gfx::buffer::commit_instruction{
+	m_InstanceData.buffer()->commit({core::ivk::buffer::commit_instruction{
 		(void*)data, size * count, segment, memory::range{size_of_element * id, size_of_element * (id + count)}}});
 	return true;
 }

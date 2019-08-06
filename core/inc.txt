@@ -19,6 +19,9 @@ data/window.h
 
 gfx/context.h
 gfx/shader.h
+gfx/buffer.h
+gfx/geometry.h
+
 gfx/drawcall.h
 gfx/drawgroup.h
 gfx/drawlayer.h
@@ -81,7 +84,10 @@ SET(FWD
 
 resource/resource.h
 gfx/context.h
-gfx/shader.h)
+gfx/shader.h
+gfx/geometry.h
+gfx/buffer.h
+)
 
 list(TRANSFORM FWD PREPEND inc/fwd/)
 
@@ -90,6 +96,7 @@ if(${PE_GLES})
 	set(INC_GLES
 	context.h
 	shader.h
+	geometry.h	
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)

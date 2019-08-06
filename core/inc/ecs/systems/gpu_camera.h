@@ -6,12 +6,15 @@
 namespace core::gfx
 {
 	class swapchain;
-	class buffer;
 	class pass;
 } // namespace core::gfx
 namespace core::os
 {
 	class surface;
+}
+namespace core::ivk
+{
+	class buffer;
 }
 namespace core::ecs::components
 {
@@ -25,16 +28,17 @@ namespace psl::ecs
 	class state;
 	struct info;
 
-	template<typename... Ts>
+	template <typename... Ts>
 	class pack;
-}
+} // namespace psl::ecs
 namespace core::ecs::systems
 {
 	class gpu_camera
 	{
 
 		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
-			+0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
+							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
+
 	  public:
 		struct framedata
 		{
@@ -52,16 +56,17 @@ namespace core::ecs::systems
 			psl::vec4 viewDir;
 		};
 
-		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer);
+		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface,
+				   core::resource::handle<core::ivk::buffer> buffer);
 		void tick(psl::ecs::info& info,
-			psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
+				  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
 
 	  private:
-		  void update_buffer(size_t index, const core::ecs::components::transform& transform,
-			  const core::ecs::components::camera& camera);
+		void update_buffer(size_t index, const core::ecs::components::transform& transform,
+						   const core::ecs::components::camera& camera);
 
 		core::resource::handle<core::os::surface> m_Surface;
-		core::resource::handle<core::gfx::buffer> m_Buffer;
+		core::resource::handle<core::ivk::buffer> m_Buffer;
 		std::vector<memory::segment> fdatasegment;
 	};
 

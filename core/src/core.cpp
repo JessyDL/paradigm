@@ -83,7 +83,7 @@ using namespace psl::ecs;
 using namespace core::ecs::components;
 
 handle<core::gfx::material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-										handle<pipeline_cache> pipeline_cache, handle<core::gfx::buffer> matBuffer,
+										handle<pipeline_cache> pipeline_cache, handle<core::ivk::buffer> matBuffer,
 										const psl::UID& texture)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
@@ -128,7 +128,7 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 }
 
 handle<core::gfx::material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-									  handle<pipeline_cache> pipeline_cache, handle<core::gfx::buffer> matBuffer)
+									  handle<pipeline_cache> pipeline_cache, handle<core::ivk::buffer> matBuffer)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
@@ -665,7 +665,7 @@ int entry()
 	stagingBufferData.load(vk::BufferUsageFlagBits::eTransferSrc,
 						   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 						   memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto stagingBuffer = create<gfx::buffer>(cache);
+	auto stagingBuffer = create<ivk::buffer>(cache);
 	stagingBuffer.load(context_handle, stagingBufferData);
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
@@ -679,7 +679,7 @@ int entry()
 								.value());
 	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 	// memory::default_allocator(true)});
-	auto frameCamBuffer = create<gfx::buffer>(cache);
+	auto frameCamBuffer = create<ivk::buffer>(cache);
 	frameCamBuffer.load(context_handle, frameCamBufferData);
 	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
@@ -692,7 +692,7 @@ int entry()
 							vk::BufferUsageFlagBits::eTransferDst,
 						vk::MemoryPropertyFlagBits::eDeviceLocal,
 						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto geomBuffer = create<gfx::buffer>(cache);
+	auto geomBuffer = create<ivk::buffer>(cache);
 	geomBuffer.load(context_handle, geomBufferData, stagingBuffer);
 
 	// load the example model
@@ -787,7 +787,7 @@ int entry()
 					   memory::region{1024 * 1024 * 32,
 									  context_handle->properties().limits.minStorageBufferOffsetAlignment,
 									  new memory::default_allocator(false)});
-	auto matBuffer = create<gfx::buffer>(cache);
+	auto matBuffer = create<ivk::buffer>(cache);
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
 
 	// create a pipeline cache
@@ -804,7 +804,7 @@ int entry()
 	instanceBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
 							vk::MemoryPropertyFlagBits::eDeviceLocal,
 							memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
-	auto instanceBuffer = create<gfx::buffer>(cache);
+	auto instanceBuffer = create<ivk::buffer>(cache);
 	instanceBuffer.load(context_handle, instanceBufferData, stagingBuffer);
 
 	auto mat_bundle = create<gfx::bundle>(cache);
@@ -1248,8 +1248,22 @@ int gles()
 		return 1;
 	}
 
-	GLfloat vVertices[] = {0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f};
+	std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
+	std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
+	GLuint vbo, ibo;
+	glGenBuffers(1, &vbo);
+	glGenBuffers(1, &ibo);
 
+	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	glBufferData(GL_ARRAY_BUFFER, sizeof(decltype(vVertices.at(0))) * vVertices.size(), vVertices.data(),
+				 GL_STATIC_DRAW);
+	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(decltype(vIndices.at(0))) * vIndices.size(), vIndices.data(), GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+	auto mPositionHandle = glGetAttribLocation(programObject, "vPosition");
 	while(surface_handle->tick())
 	{
 		/* Render here */
@@ -1259,9 +1273,23 @@ int gles()
 		glUseProgram(programObject);
 
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
-		glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-		glEnableVertexAttribArray(0);
-		glDrawArrays(GL_TRIANGLES, 0, 3);
+
+		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glVertexAttribPointer(mPositionHandle, 3, GL_FLOAT, false, 0, 0); // <----- 0, because "vbo" is bound
+		glEnableVertexAttribArray(mPositionHandle);
+
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		glDrawElements(GL_TRIANGLES, vIndices.size(), GL_UNSIGNED_INT,
+					   0); // <----- 0, because "ibo" is bound
+
+		glDisableVertexAttribArray(mPositionHandle);
+		glBindBuffer(GL_ARRAY_BUFFER, 0);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+
+		//
+		//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+		//glEnableVertexAttribArray(0);
+		//glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		glFinish();
 		context_handle->swapbuffers(surface_handle);
@@ -1274,7 +1302,7 @@ int gles()
 int main()
 {
 	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
-	return entry();
+	return gles();
 }
 #endif
 

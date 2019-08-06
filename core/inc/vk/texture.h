@@ -15,12 +15,11 @@ namespace gli
 namespace core::ivk
 {
 	class context;
+	class buffer;
 }
 
 namespace core::gfx
 {
-	class buffer;
-
 	/// \brief a texture resource used for rendering, either as target, or as input resource.
 	///
 	/// textures are vital in a graphics application, and this class abstracts 2D, 3D, etc..
@@ -31,7 +30,7 @@ namespace core::gfx
 	  public:
 		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
 				core::resource::handle<core::ivk::context> context,
-				core::resource::handle<core::gfx::buffer> stagingBuffer);
+				core::resource::handle<core::ivk::buffer> stagingBuffer);
 		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
 				core::resource::handle<core::ivk::context> context);
 		~texture();
@@ -60,7 +59,7 @@ namespace core::gfx
 		void load_cube();
 
 		gli::texture* m_TextureData;
-		core::resource::handle<core::gfx::buffer> m_StagingBuffer;
+		core::resource::handle<core::ivk::buffer> m_StagingBuffer;
 		vk::Image m_Image;
 		vk::ImageView m_View;
 		vk::DeviceMemory m_DeviceMemory;

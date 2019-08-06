@@ -15,7 +15,7 @@ namespace core::ivk
 	class context;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief maps a memory region and interfaces with the driver for read/writes
 	///
@@ -39,7 +39,7 @@ namespace core::gfx
 		/// will be duplicated and accessible for read access through the core::data::buffer handle directly.
 		buffer(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
 			   core::resource::handle<core::data::buffer> buffer_data,
-			   std::optional<core::resource::handle<core::gfx::buffer>> staging_buffer = std::nullopt);
+			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer = std::nullopt);
 		~buffer();
 		buffer(const buffer&) = delete;
 		buffer(buffer&&)	  = delete;
@@ -183,7 +183,7 @@ namespace core::gfx
 		vk::CommandBuffer m_CommandBuffer;
 
 		core::resource::handle<core::data::buffer> m_BufferDataHandle;
-		core::resource::handle<core::gfx::buffer> m_StagingBuffer;
+		core::resource::handle<core::ivk::buffer> m_StagingBuffer;
 		core::resource::cache& m_Cache;
 
 		psl::UID m_UID;

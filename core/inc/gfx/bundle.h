@@ -17,7 +17,7 @@ namespace core::gfx
 	{
 
 	  public:
-		bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer);
+		bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::buffer> buffer);
 
 		~bundle()				  = default;
 		bundle(const bundle&)	 = delete;

@@ -13,7 +13,7 @@ using namespace core::resource;
 
 constexpr uint32_t default_capacity = 8;
 
-data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
+data::data(core::resource::handle<core::ivk::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)
 {
 	if(m_Bindings.find(material.ID()) != std::end(m_Bindings)) return;

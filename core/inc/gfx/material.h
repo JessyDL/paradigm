@@ -14,6 +14,7 @@ namespace core::ivk
 	class context;
 	class shader;
 	class geometry;
+	class buffer;
 }
 
 namespace core::gfx
@@ -22,7 +23,6 @@ namespace core::gfx
 	class pipeline_cache;
 	class texture;
 	class sampler;
-	class buffer;
 	class framebuffer;
 	class swapchain;
 
@@ -48,7 +48,7 @@ namespace core::gfx
 		material(psl::UID uid, core::resource::cache& cache , core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
-				 core::resource::handle<core::gfx::buffer> materialBuffer);
+				 core::resource::handle<core::ivk::buffer> materialBuffer);
 		material() = delete;
 		~material();
 		material(const material&) = delete;
@@ -69,7 +69,7 @@ namespace core::gfx
 		/// \brief returns all currently used buffers and their binding slots.
 		/// \note the buffers could be anything, they could be uniform buffer objects, or maybe shader storage buffer
 		/// objects.
-		const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::buffer>>>& buffers() const;
+		const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>>& buffers() const;
 
 		/// \brief prepares the material for rendering by binding the pipeline.
 		/// \warning only call this in the context of recording the draw call.
@@ -111,9 +111,9 @@ namespace core::gfx
 		// a combination of binding slot + resource
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>> m_Textures;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::sampler>>> m_Samplers;
-		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::buffer>>> m_Buffers;
+		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>> m_Buffers;
 
-		core::resource::handle<core::gfx::buffer> m_MaterialBuffer;
+		core::resource::handle<core::ivk::buffer> m_MaterialBuffer;
 		memory::segment m_MaterialData;
 
 		// psl::UID maps to the psl::UID of a framebuffer or a swapchain

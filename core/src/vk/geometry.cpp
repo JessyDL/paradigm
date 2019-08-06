@@ -16,8 +16,8 @@ using namespace core::ivk;
 
 geometry::geometry(const UID& uid, cache& cache, handle<core::ivk::context> context,
 				   core::resource::handle<core::data::geometry> data,
-				   core::resource::handle<core::gfx::buffer> geometryBuffer,
-				   core::resource::handle<core::gfx::buffer> indicesBuffer)
+				   core::resource::handle<core::ivk::buffer> geometryBuffer,
+				   core::resource::handle<core::ivk::buffer> indicesBuffer)
 	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(uid)
 {
 	std::vector<vk::DeviceSize> sizeRequests;

@@ -64,7 +64,7 @@ namespace core::ecs::systems
 		psl::view_ptr<psl::ecs::state> m_State;
 		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::handle<core::os::surface> m_Surface;
-		core::resource::handle<core::gfx::buffer> m_LightDataBuffer;
+		core::resource::handle<core::ivk::buffer> m_LightDataBuffer;
 		memory::segment m_LightSegment;
 
 		std::unordered_map<psl::ecs::entity, psl::view_ptr<core::gfx::pass>> m_Passes;

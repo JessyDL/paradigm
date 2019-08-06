@@ -390,7 +390,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				case vk::DescriptorType::eStorageBuffer:
 				case vk::DescriptorType::eUniformBuffer:
 				{
-					auto buffer_handle = cache.find<core::gfx::buffer>(binding.buffer());
+					auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
 					if(buffer_handle.resource_state() == core::resource::state::LOADED)
 					{
 						vk::BufferUsageFlagBits usage = (binding.descriptor() == vk::DescriptorType::eUniformBuffer)

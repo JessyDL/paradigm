@@ -28,6 +28,7 @@
 #endif
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 
 texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
@@ -37,7 +38,7 @@ texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* 
 
 }
 texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
-				 handle<core::ivk::context> context, core::resource::handle<core::gfx::buffer> stagingBuffer)
+				 handle<core::ivk::context> context, core::resource::handle<core::ivk::buffer> stagingBuffer)
 	:
 	m_Cache(cache), m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)), m_StagingBuffer(stagingBuffer)
 {
@@ -239,7 +240,7 @@ void texture::load_2D()
 			tempBuffer.load(vk::BufferUsageFlagBits::eTransferSrc,
 								   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 								   memory::region{m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
-			stagingBuffer = create<gfx::buffer>(m_Cache);
+			stagingBuffer = create<ivk::buffer>(m_Cache);
 			stagingBuffer.load(m_Context, tempBuffer);
 		}
 		if(!stagingBuffer)

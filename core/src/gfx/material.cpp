@@ -22,7 +22,7 @@ using namespace core;
 material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk::context> context,
 				   handle<core::data::material> data,
 				   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
-				   core::resource::handle<core::gfx::buffer> materialBuffer)
+				   core::resource::handle<core::ivk::buffer> materialBuffer)
 	: m_UID(std::move(uid)), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
 	  m_MaterialBuffer(materialBuffer)
 {
@@ -85,7 +85,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 			case vk::DescriptorType::eStorageBuffer:
 			{
 				//if(binding.buffer() == "MATERIAL_DATA") continue;
-				if(auto buffer_handle = cache.find<core::gfx::buffer>(binding.buffer());
+				if(auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.resource_state() == core::resource::state::LOADED)
 				{
 					vk::BufferUsageFlagBits usage = (binding.descriptor() == vk::DescriptorType::eUniformBuffer)
@@ -137,7 +137,7 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::sampler>
 {
 	return m_Samplers;
 }
-const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::buffer>>>& material::buffers() const
+const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>>& material::buffers() const
 {
 	return m_Buffers;
 }

@@ -14,9 +14,9 @@ using namespace core::resource;
 static const size_t max_size_set{65535};
 
 buffer::buffer(const UID& uid, cache& cache, handle<context> context, handle<data::buffer> buffer_data,
-			   std::optional<core::resource::handle<core::gfx::buffer>> staging_buffer)
+			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer)
 	: m_Context(context), m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(uid),
-	  m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::gfx::buffer>{}))
+	  m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::ivk::buffer>{}))
 {
 	PROFILE_SCOPE(core::profiler)
 	core::ivk::log->info("creating an ivk::buffer of {0} bytes size.", m_BufferDataHandle->size());
@@ -185,7 +185,7 @@ bool buffer::commit(std::vector<commit_instruction> instructions)
 		if(!stagingBuffer)
 		{
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
-			stagingBuffer = core::resource::create<core::gfx::buffer>(m_Cache);
+			stagingBuffer = core::resource::create<core::ivk::buffer>(m_Cache);
 			auto buffer_data = core::resource::create<core::data::buffer>(m_Cache);
 
 			memory::region temp_region{totalSize, 4, new memory::default_allocator(false)};
@@ -311,7 +311,7 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		{
 			// make a local staging buffer, this is hardly efficient. todo find better way.
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
-			auto staging	 = core::resource::create<core::gfx::buffer>(m_Cache);
+			auto staging	 = core::resource::create<core::ivk::buffer>(m_Cache);
 			auto buffer_data = core::resource::create<core::data::buffer>(m_Cache);
 
 			memory::region temp_region{size * 2, 4, new memory::default_allocator(true)};
