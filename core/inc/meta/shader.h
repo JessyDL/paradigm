@@ -123,7 +123,7 @@ namespace core::meta
 				/// \details in core::data::geometry you will see some information about tags,
 				/// these tags can be set here to identify the binding points of the geometry data in the shader
 				/// i.e. what is the position binding, uv binding, etc..
-				/// \see core::data::geometry core::gfx::geometry
+				/// \see core::data::geometry core::ivk::geometry
 				/// \param[in] value the new psl::UID or TAG
 				void buffer(psl::string8_t value);
 				/// \brief sets the collection of attributes that make up this binding.

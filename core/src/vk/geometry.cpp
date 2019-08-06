@@ -7,6 +7,7 @@
 #include "data/material.h"
 #include "vk/shader.h"
 #include "meta/shader.h"
+#include "systems/resource.h"
 
 using namespace psl;
 using namespace core::resource;

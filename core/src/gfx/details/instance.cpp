@@ -61,7 +61,7 @@ void data::add(core::resource::handle<material> material)
 	}
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry> uid, uint32_t count)
+std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::ivk::geometry> uid, uint32_t count)
 {
 	auto it = m_InstanceData.find(uid.uid());
 	if(it == std::end(m_InstanceData))
@@ -104,7 +104,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 void data::remove(core::resource::handle<material> material) {}
 
 
-uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcept
+uint32_t data::count(core::resource::tag<core::ivk::geometry> uid) const noexcept
 {
 	if(auto it = m_InstanceData.find(uid.uid()); it != std::end(m_InstanceData))
 	{
@@ -169,7 +169,7 @@ std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> 
 }
 
 
-bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept
+bool data::erase(core::resource::tag<core::ivk::geometry> geometry, uint32_t id) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
@@ -185,7 +185,7 @@ bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id)
 	}
 	return false;
 }
-bool data::clear(core::resource::tag<core::gfx::geometry> geometry) noexcept
+bool data::clear(core::resource::tag<core::ivk::geometry> geometry) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{

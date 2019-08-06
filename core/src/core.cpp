@@ -82,8 +82,8 @@ using namespace core::os;
 using namespace psl::ecs;
 using namespace core::ecs::components;
 
-handle<material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-										handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer,
+handle<core::gfx::material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
+										handle<pipeline_cache> pipeline_cache, handle<core::gfx::buffer> matBuffer,
 										const psl::UID& texture)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
@@ -116,7 +116,7 @@ handle<material> setup_example_material(resource::cache& cache, handle<core::ivk
 	}
 	matData->stages(stages);
 
-	auto material = create<gfx::material>(cache);
+	auto material = create<core::gfx::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer);
 
 
@@ -127,8 +127,8 @@ handle<material> setup_example_material(resource::cache& cache, handle<core::ivk
 	return material;
 }
 
-handle<material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-									  handle<pipeline_cache> pipeline_cache, handle<buffer> matBuffer)
+handle<core::gfx::material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
+									  handle<pipeline_cache> pipeline_cache, handle<core::gfx::buffer> matBuffer)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
@@ -725,11 +725,11 @@ int entry()
 	}
 
 	geomData->vertices(core::data::geometry::constants::COLOR, colorstream);
-	auto geometry = create<gfx::geometry>(cache);
+	auto geometry = create<ivk::geometry>(cache);
 	geometry.load(context_handle, geomData, geomBuffer, geomBuffer);
 
 	std::vector<resource::handle<data::geometry>> geometryDataHandles;
-	std::vector<resource::handle<gfx::geometry>> geometryHandles;
+	std::vector<resource::handle<ivk::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
 	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
@@ -765,7 +765,7 @@ int entry()
 
 		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
 
-		geometryHandles.emplace_back(create<gfx::geometry>(cache));
+		geometryHandles.emplace_back(create<ivk::geometry>(cache));
 		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, geomBuffer, geomBuffer);
 	}
 

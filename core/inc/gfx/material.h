@@ -13,6 +13,7 @@ namespace core::ivk
 {
 	class context;
 	class shader;
+	class geometry;
 }
 
 namespace core::gfx
@@ -24,7 +25,6 @@ namespace core::gfx
 	class buffer;
 	class framebuffer;
 	class swapchain;
-	class geometry;
 
 	/// \brief class that creates a bindable collection of resources that can be used in conjuction with a surface to
 	/// render.
@@ -32,7 +32,7 @@ namespace core::gfx
 	/// The material class is a container of various resources that can, together, describe what should
 	/// happen to a surface in the render pipeline on the GPU, and what is all needed.
 	/// The material class also can contain instance data and will manage this for you.
-	/// Together with a core::gfx::geometry, this describes all the resources you need to render something on screen.
+	/// Together with a core::ivk::geometry, this describes all the resources you need to render something on screen.
 	class material final
 	{
 		template <typename T, bool use_custom_uid = false>

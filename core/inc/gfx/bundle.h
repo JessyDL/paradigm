@@ -4,6 +4,11 @@
 #include "gfx/material.h"
 #include "gfx/details/instance.h"
 
+namespace core::ivk
+{
+	class geometry;
+}
+
 namespace core::gfx
 {
 	class buffer;
@@ -60,7 +65,7 @@ namespace core::gfx
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
 		/// \param[in] geometry the geometry that will be bound.
 		/// \warning You have to call bind_pipeline before this.
-		bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry);
+		bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry> geometry);
 
 		core::resource::handle<core::gfx::material> bound() const noexcept { return m_Bound; };
 		// ------------------------------------------------------------------------------------------------------------
@@ -69,17 +74,17 @@ namespace core::gfx
 	  public:
 		/// \brief returns the instance count currently used for the given piece of geometry.
 		/// \param[in] geometry the geometry to check.
-		uint32_t instances(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		std::vector<std::pair<uint32_t, uint32_t>> instantiate(core::resource::tag<core::gfx::geometry> geometry,
+		uint32_t instances(core::resource::tag<core::ivk::geometry> geometry) const noexcept;
+		std::vector<std::pair<uint32_t, uint32_t>> instantiate(core::resource::tag<core::ivk::geometry> geometry,
 															   uint32_t count = 1);
 
-		uint32_t size(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		bool has(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		bool release(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
+		uint32_t size(core::resource::tag<core::ivk::geometry> geometry) const noexcept;
+		bool has(core::resource::tag<core::ivk::geometry> geometry) const noexcept;
+		bool release(core::resource::tag<core::ivk::geometry> geometry, uint32_t id) noexcept;
 		bool release_all() noexcept;
 
 		template <typename T>
-		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, psl::string_view name,
+		bool set(core::resource::tag<core::ivk::geometry> geometry, uint32_t id, psl::string_view name,
 				 const psl::array<T>& values)
 		{
 			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
@@ -94,7 +99,7 @@ namespace core::gfx
 		}
 
 	  private:
-		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment,
+		bool set(core::resource::tag<core::ivk::geometry> geometry, uint32_t id, memory::segment segment,
 				 uint32_t size_of_element, const void* data, size_t size, size_t count = 1);
 
 		// ------------------------------------------------------------------------------------------------------------

@@ -4,6 +4,7 @@
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<geometry>>& geometry) noexcept
 	: m_Bundle(bundle)
@@ -16,7 +17,7 @@ drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<ge
 bool drawcall::add(handle<geometry> geometry) noexcept
 {
 	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
-					[&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
+					[&geometry](const std::pair<handle<core::ivk::geometry>, size_t>& geomHandle) {
 		   return geomHandle.first.ID() == geometry.ID();
 	   }); it == std::end(m_Geometry))
 	{
@@ -29,11 +30,11 @@ bool drawcall::add(handle<geometry> geometry) noexcept
 	}
 	return false;
 }
-bool drawcall::remove(core::resource::handle<core::gfx::geometry> geometry) noexcept
+bool drawcall::remove(core::resource::handle<core::ivk::geometry> geometry) noexcept
 {
 	if(auto it = std::find_if(
 		   std::begin(m_Geometry), std::end(m_Geometry),
-		   [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
+		   [&geometry](const std::pair<handle<core::ivk::geometry>, size_t>& geomHandle) {
 		   return geomHandle.first.ID() == geometry.ID();
 	   }); it != std::end(m_Geometry))
 	{
@@ -49,7 +50,7 @@ bool drawcall::remove(const UID& geometry) noexcept
 {
 	if(auto it = std::find_if(
 		   std::begin(m_Geometry), std::end(m_Geometry),
-		   [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) { return geomHandle.first.ID() == geometry; });
+		   [&geometry](const std::pair<handle<core::ivk::geometry>, size_t>& geomHandle) { return geomHandle.first.ID() == geometry; });
 	   it != std::end(m_Geometry))
 	{
 		it->second -= 1;

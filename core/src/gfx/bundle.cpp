@@ -5,6 +5,7 @@
 #include "vk/buffer.h"
 
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 using namespace psl;
 using namespace core::gfx::details::instance;
@@ -94,7 +95,7 @@ bool bundle::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<s
 	return true;
 }
 
-bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry)
+bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry> geometry)
 {
 	if(!m_Bound) return false;
 
@@ -111,12 +112,12 @@ bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::ha
 // instance data API
 // ------------------------------------------------------------------------------------------------------------
 
-uint32_t bundle::instances(core::resource::tag<core::gfx::geometry> geometry) const noexcept
+uint32_t bundle::instances(core::resource::tag<core::ivk::geometry> geometry) const noexcept
 {
 	return m_InstanceData.count(geometry);
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> bundle::instantiate(core::resource::tag<core::gfx::geometry> geometry,
+std::vector<std::pair<uint32_t, uint32_t>> bundle::instantiate(core::resource::tag<core::ivk::geometry> geometry,
 															   uint32_t count)
 {
 	return m_InstanceData.add(geometry, count);

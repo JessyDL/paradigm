@@ -4,7 +4,7 @@
 #include "memory/range.h"
 #include "memory/segment.h"
 #include <vector>
-#include "../fwd/gfx/context.h"
+#include "fwd/gfx/context.h"
 
 namespace core::data
 {
@@ -12,15 +12,15 @@ namespace core::data
 	class material;
 } // namespace core::data
 
-namespace core::ivk
-{
-	class context;
-}
-
 namespace core::gfx
 {
 	class buffer;
 	class material;
+} // namespace core::gfx
+
+namespace core::ivk
+{
+	class context;
 
 	/// \brief describes the driver visible concept of geometry.
 	class geometry
@@ -71,4 +71,4 @@ namespace core::gfx
 		std::vector<binding> m_Bindings;
 		const psl::UID& m_UID;
 	};
-} // namespace core::gfx
+} // namespace core::ivk
