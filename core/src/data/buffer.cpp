@@ -1,5 +1,6 @@
 ﻿#include "data/buffer.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
+#include "logging.h"
 using namespace psl;
 using namespace core::data;
 

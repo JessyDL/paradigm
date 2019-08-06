@@ -1,8 +1,9 @@
 #include "gles/shader.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "meta/shader.h"
 #include "gfx/types.h"
 #include "gfx/stdafx.h"
+#include "logging.h"
 
 using namespace psl;
 using namespace core::igles;

@@ -4,7 +4,7 @@
 #include "ecs/entity.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/lighting.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "ecs/systems/render.h"
 
 namespace core::ivk

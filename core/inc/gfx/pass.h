@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "math/vec.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include <vector>
 #include "vulkan_stdafx.h"
 #include "view_ptr.h"

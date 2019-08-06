@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "ustring.h"
 #include "meta.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include <optional>
 #include "vulkan_stdafx.h"
 

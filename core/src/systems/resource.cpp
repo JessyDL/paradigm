@@ -1,4 +1,4 @@
-﻿#include "systems/resource.h"
+﻿#include "resource/resource.hpp"
 #include "profiling/profiler.h"
 #include "logging.h"
 #include "assertions.h"

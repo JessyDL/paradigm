@@ -9,7 +9,6 @@
 
 using core::resource::handle;
 using namespace core::gfx;
-using namespace core::os;
 using namespace core;
 using namespace psl::ecs;
 using namespace core::ecs::systems;

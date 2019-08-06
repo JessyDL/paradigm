@@ -1,6 +1,6 @@
 ﻿#include "vk/context.h"
 #include "os/surface.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "meta.h"
 #include "logging.h"
 

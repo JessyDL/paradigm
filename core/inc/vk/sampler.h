@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "vulkan_stdafx.h"
 #include <vector>
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 namespace core::data
 {

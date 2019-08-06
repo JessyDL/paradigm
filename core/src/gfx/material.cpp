@@ -1,4 +1,4 @@
-﻿
+﻿#include "logging.h"
 #include "vk/context.h"
 #include "gfx/material.h"
 #include "data/material.h"
@@ -19,15 +19,15 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-material::material(resource_dependency packet, handle<core::ivk::context> context, handle<core::data::material> data,
+material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk::context> context,
+				   handle<core::data::material> data,
 				   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 				   core::resource::handle<core::gfx::buffer> materialBuffer)
-	: m_UID(packet.get<UID>()), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
+	: m_UID(std::move(uid)), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
 	  m_MaterialBuffer(materialBuffer)
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& ID = m_UID;
-	auto& cache	= packet.get<core::resource::cache>();
 	m_IsValid	  = false;
 
 	for(const auto& stage : m_Data->stages())

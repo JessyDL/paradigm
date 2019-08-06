@@ -4,7 +4,7 @@
 #include "gfx/drawlayer.h"
 #include <map>
 #include <vector>
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 
 namespace core::gfx

@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "vulkan_stdafx.h"
 
 namespace core::ivk

@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "meta.h"
 #include "data/window.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 #if defined(SURFACE_WIN32)
 #include <Windows.h>

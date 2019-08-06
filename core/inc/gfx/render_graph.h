@@ -1,5 +1,5 @@
 #pragma once
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "unique_ptr.h"
 #include "view_ptr.h"
 #include "array_view.h"

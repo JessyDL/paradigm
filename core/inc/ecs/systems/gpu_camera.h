@@ -1,5 +1,5 @@
 #pragma once
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "math/math.hpp"
 
 

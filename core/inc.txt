@@ -36,7 +36,11 @@ meta/texture.h
 os/surface.h
 
 systems/input.h
-systems/resource.h
+
+resource/resource.hpp
+resource/cache.h
+resource/handle.h
+resource/tag.h
 
 ecs/systems/fly.h
 ecs/systems/death.h
@@ -75,6 +79,7 @@ list(TRANSFORM INC PREPEND inc/)
 
 SET(FWD
 
+resource/resource.h
 gfx/context.h
 gfx/shader.h)
 

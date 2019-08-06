@@ -1,6 +1,6 @@
 #include "gfx/drawcall.h"
 #include <algorithm>
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 using namespace psl;
 using namespace core::gfx;

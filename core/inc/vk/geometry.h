@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "vulkan_stdafx.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "memory/range.h"
 #include "memory/segment.h"
 #include <vector>

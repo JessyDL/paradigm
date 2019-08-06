@@ -47,7 +47,7 @@
 #include "meta.h"
 #include "library.h"
 #include "serialization.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "math/math.hpp"
 #include "conversion_utils.h"
 

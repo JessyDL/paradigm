@@ -1,5 +1,5 @@
 ﻿#include "data/geometry.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 using namespace psl;
 using namespace core::data;

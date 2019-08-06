@@ -1,5 +1,5 @@
 ﻿#include "data/sampler.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 using namespace psl;
 using namespace core::data;
 using namespace core::resource;

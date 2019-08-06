@@ -1,6 +1,6 @@
 #pragma once
 #include "array.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "gfx/material.h"
 #include "gfx/details/instance.h"
 

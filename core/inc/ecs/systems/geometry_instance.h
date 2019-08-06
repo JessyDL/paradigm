@@ -2,7 +2,7 @@
 #include "ecs/state.h"
 #include "gfx/bundle.h"
 #include "vk/geometry.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
 #include "bytell_map.h"

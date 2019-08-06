@@ -1,5 +1,5 @@
 ﻿#include "meta/texture.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 using namespace core::meta;
 using namespace psl::serialization;

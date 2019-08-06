@@ -1,4 +1,4 @@
-﻿
+﻿#include "logging.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
 #include "vk/context.h"

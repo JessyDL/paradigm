@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "IDGenerator.h"
 #include <optional>
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "vulkan_stdafx.h"
 #include "gfx/details/instance.h"
 
@@ -35,14 +35,7 @@ namespace core::gfx
 	/// Together with a core::ivk::geometry, this describes all the resources you need to render something on screen.
 	class material final
 	{
-		template <typename T, bool use_custom_uid = false>
-		using dependency = core::resource::dependency<T, use_custom_uid>;
-
-		template <typename... Ts>
-		using packet = core::resource::packet<Ts...>;
-
 	  public:
-		using resource_dependency = packet<dependency<core::data::material, true>, psl::UID, core::resource::cache>;
 
 		/// \brief the constructor that will create and bind the necesary resources to create a valid pipeline.
 		/// \param[in] packet resource packet containing the data that is needed from the resource system.
@@ -52,7 +45,7 @@ namespace core::gfx
 		/// \param[in] pipeline_cache the pipeline_cache this instance can request a pipeline from.
 		/// \param[in] materialBuffer a GPU buffer that can be used by this instance to upload data to (if needed).
 		/// \param[in] instanceBuffer a GPU buffer that can be used to upload instance data to, if there is any.
-		material(resource_dependency packet, core::resource::handle<core::ivk::context> context,
+		material(psl::UID uid, core::resource::cache& cache , core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 				 core::resource::handle<core::gfx::buffer> materialBuffer);

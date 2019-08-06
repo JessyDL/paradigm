@@ -2,7 +2,7 @@
 #include <vector>
 #include "gfx/bundle.h"
 #include "vk/geometry.h"
-#include "fwd/systems/resource.h"
+#include "fwd/resource/resource.h"
 
 namespace core::ivk
 {

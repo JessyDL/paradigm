@@ -1,6 +1,6 @@
 #pragma once
 #include "ustring.h"
-#include "fwd/systems/resource.h"
+#include "fwd/resource/resource.h"
 #include "glad/glad_wgl.h"
 
 namespace core::igles
@@ -16,8 +16,8 @@ namespace core::igles
 		shader& operator=(shader&&) = delete;
 
 		GLuint id() const noexcept;
-	  private:
 
-		  GLuint m_Shader{std::numeric_limits<GLuint>::max()};
+	  private:
+		GLuint m_Shader{std::numeric_limits<GLuint>::max()};
 	};
 } // namespace core::igles

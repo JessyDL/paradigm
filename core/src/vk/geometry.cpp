@@ -1,4 +1,4 @@
-﻿
+﻿#include "logging.h"
 #include "vk/geometry.h"
 #include "data/geometry.h"
 #include "vk/buffer.h"
@@ -7,7 +7,7 @@
 #include "data/material.h"
 #include "vk/shader.h"
 #include "meta/shader.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 using namespace psl;
 using namespace core::resource;

@@ -2,7 +2,7 @@
 #include "serialization.h"
 #include "vulkan_stdafx.h"
 #include "meta.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 
 namespace core::gfx

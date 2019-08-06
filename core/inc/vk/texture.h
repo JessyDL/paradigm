@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "vulkan_stdafx.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include <unordered_map>
 namespace core::meta
 {
