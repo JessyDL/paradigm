@@ -1271,7 +1271,7 @@ int gles()
 	auto indexBuffer = create<igles::buffer>(cache);
 	indexBuffer.load(indexBufferData);
 
-	/*std::vector<resource::handle<data::geometry>> geometryDataHandles;
+	std::vector<resource::handle<data::geometry>> geometryDataHandles;
 	std::vector<resource::handle<igles::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
 	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
@@ -1282,9 +1282,9 @@ int gles()
 	for(auto& handle : geometryDataHandles)
 	{
 		handle.load();
-		geometryHandles.emplace_back(create<ivk::geometry>(cache));
-		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, vertexBuffer);
-	}*/
+		geometryHandles.emplace_back(create<igles::geometry>(cache));
+		geometryHandles[geometryHandles.size() - 1].load(handle, vertexBuffer, indexBuffer);
+	}
 
 	auto geometry = utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2);
 	//auto geometry  = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
@@ -1323,23 +1323,8 @@ int gles()
 		glUseProgram(programObject);
 
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
-		glCullFace(GL_FRONT);
-		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer->id());
-		glVertexAttribPointer(mPositionHandle, 3, GL_FLOAT, false, 0, 0); // <----- 0, because "vbo" is bound
-		glEnableVertexAttribArray(mPositionHandle);
-
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer->id());
-		glDrawElements(GL_TRIANGLES, vIndices.size(), GL_UNSIGNED_INT,
-					   0); // <----- 0, because "ibo" is bound
-
-		glDisableVertexAttribArray(mPositionHandle);
-		glBindBuffer(GL_ARRAY_BUFFER, 0);
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-
-		//
-		// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-		// glEnableVertexAttribArray(0);
-		// glDrawArrays(GL_TRIANGLES, 0, 3);
+		
+		geometryHandles[std::rand() % geometryHandles.size()]->bind();
 
 		glFinish();
 		context_handle->swapbuffers(surface_handle);
@@ -1352,7 +1337,7 @@ int gles()
 int main()
 {
 	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
-	//return gles();
+	return gles();
 	return entry();
 }
 #endif
