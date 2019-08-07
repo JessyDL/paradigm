@@ -107,7 +107,7 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 	auto stages = matData->stages();
 	for(auto& stage : stages)
 	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eFragment) continue;
+		if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
 
 		auto bindings = stage.bindings();
 		bindings[0].texture(textureHandle.RUID());
@@ -1191,7 +1191,7 @@ int gles()
 			"{                            \n"
 			"   gl_Position = vPosition;  \n"
 			"}                            \n");
-		shader.stage(vk::ShaderStageFlagBits::eVertex);
+		shader.stage(core::gfx::shader_stage::vertex);
 
 		vShader = core::resource::create<core::igles::shader>(cache, uid);
 		vShader.load();
@@ -1204,7 +1204,7 @@ int gles()
 			"{                                            \n"
 			"  gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );\n"
 			"}                                            \n");
-		shader.stage(vk::ShaderStageFlagBits::eFragment);
+		shader.stage(core::gfx::shader_stage::fragment);
 
 
 		fShader = core::resource::create<core::igles::shader>(cache, uid);
@@ -1223,7 +1223,7 @@ int gles()
 	glAttachShader(programObject, fShader->id());
 
 	// Bind vPosition to attribute 0
-	glBindAttribLocation(programObject, 0, "vPosition");
+	//glBindAttribLocation(programObject, 0, "vPosition");
 
 	// Link the program
 	glLinkProgram(programObject);

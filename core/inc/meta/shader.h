@@ -4,6 +4,7 @@
 #include "vulkan_stdafx.h"
 #include "ustring.h"
 #include <vector>
+#include "gfx/types.h"
 
 namespace core::meta
 {
@@ -84,7 +85,8 @@ namespace core::meta
 			/// \brief generic shader binding descriptor. describes the type and location of a vertex binding resource.
 			///
 			/// shaders can have various bindings such as textures, UBO's, SSBO's, Dynamic UBO's, etc...
-			/// this class describes the type and either the psl::UID, or the tag that points to a resource in the runtime.
+			/// this class describes the type and either the psl::UID, or the tag that points to a resource in the
+			/// runtime.
 			class binding
 			{
 				friend class psl::serialization::accessor;
@@ -342,7 +344,7 @@ namespace core::meta
 			/// \note the binding location of the element sent to this method will be used to decide the match.
 			/// \param[in] value the instance element to update, or emplace.
 			/// \deprecated prefer using the sub_elements(value) method.
-			[[deprecated("prefer using the sub_elements(value) method")] ]void set(instance::element value);
+			[[deprecated("prefer using the sub_elements(value) method")]] void set(instance::element value);
 			/// \brief tries to erase the instance element at the given binding.
 			/// \note the binding location of the element sent to this method will be used to decide the match.
 			/// \param[in] value the instance element to find and erase.
@@ -376,12 +378,12 @@ namespace core::meta
 		~shader() = default;
 
 		/// \returns the shader stage of this SPIR-V module (i.e. vertex, fragment, compute, etc..)
-		vk::ShaderStageFlags stage() const noexcept;
+		gfx::shader_stage stage() const noexcept;
 		/// \brief sets the stage of this SPIR-V module to the given value.
 		/// \warning it is assumed this stage flag is the actual stage flag, otherwise binding the
 		/// shader will fail during creation.
 		/// \param[in] value the stage to expect.
-		void stage(vk::ShaderStageFlags value);
+		void stage(gfx::shader_stage value) noexcept;
 
 		/// \returns the collection of vertex bindings that this shader might have.
 		const std::vector<vertex::binding>& vertex_bindings() const noexcept;
@@ -397,7 +399,7 @@ namespace core::meta
 		void descriptors(const std::vector<descriptor>& value);
 
 		/// \brief tries to emplace, or overwrite (if sharing a binding location) a descriptor at the given binding
-		/// slot. 
+		/// slot.
 		/// \param[in] value the descriptor to try to emplace.
 		/// \deprecated prefer using descriptors(value) method
 		[[deprecated("prefer using descriptors(value) method")]] void set(descriptor value);
@@ -421,6 +423,7 @@ namespace core::meta
 
 		std::vector<vertex::binding> instance_bindings() const noexcept;
 		std::optional<descriptor> material_data() const noexcept;
+
 	  private:
 		/// \brief method that will be invoked by the serialization system.
 		/// \tparam S the type of the serializer/deserializer
@@ -429,16 +432,27 @@ namespace core::meta
 		void serialize(S& s)
 		{
 			psl::meta::file::serialize(s);
+			const uint32_t current_version = 1;
+			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+			s << version;
 
-			s << m_Stage << m_VertexBindings << m_Descriptors;
+			switch (version)
+			{
+			case current_version: s << m_Stage << m_VertexBindings << m_Descriptors; break;
+			case 0: psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
+				s << stage;
+				m_Stage.value = gfx::to_shader_stage(stage.value);
+				s << m_VertexBindings << m_Descriptors;
+			}
 		}
 
-		psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
+
+		psl::serialization::property<gfx::shader_stage, const_str("STAGE", 5)> m_Stage;
 		psl::serialization::property<std::vector<vertex::binding>, const_str("VERTEX_BINDINGS", 15)> m_VertexBindings;
 		psl::serialization::property<std::vector<descriptor>, const_str("DESCRIPTORS", 11)> m_Descriptors;
 
-		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64 ID
-		/// of this type on.
+		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64
+		/// ID of this type on.
 		static constexpr const char polymorphic_name[12]{"SHADER_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
 		virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }

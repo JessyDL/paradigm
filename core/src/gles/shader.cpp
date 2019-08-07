@@ -21,7 +21,7 @@ shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::fil
 		return;
 	}
 
-	auto gl_stage = gfx::to_gles(gfx::to_shader_stage(meta->stage()));
+	auto gl_stage = gfx::to_gles(meta->stage());
 
 	GLuint shader;
 	GLint compiled;

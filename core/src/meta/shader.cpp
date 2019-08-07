@@ -196,11 +196,11 @@ bool shader::descriptor::erase(instance::element value)
 
 // shader
 
-vk::ShaderStageFlags shader::stage() const noexcept { return m_Stage.value; }
+core::gfx::shader_stage shader::stage() const noexcept { return m_Stage.value; }
 const std::vector<shader::vertex::binding>& shader::vertex_bindings() const noexcept { return m_VertexBindings.value; }
 const std::vector<shader::descriptor>& shader::descriptors() const noexcept { return m_Descriptors.value; }
 
-void shader::stage(vk::ShaderStageFlags value) { m_Stage.value = value; }
+void shader::stage(core::gfx::shader_stage value) noexcept { m_Stage.value = value; }
 void shader::vertex_bindings(const std::vector<shader::vertex::binding>& value) { m_VertexBindings.value = value; }
 void shader::descriptors(const std::vector<descriptor>& value) { m_Descriptors.value = value; }
 

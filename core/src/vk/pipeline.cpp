@@ -9,6 +9,7 @@
 #include "vk/sampler.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
+#include "gfx/types.h"
 
 using namespace psl;
 using namespace core::gfx;
@@ -36,7 +37,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			{
 				vk::DescriptorSetLayoutBinding setLayoutBinding;
 				setLayoutBinding.descriptorType = binding.descriptor();
-				setLayoutBinding.stageFlags		= shader_handle->stage();
+				setLayoutBinding.stageFlags		= core::gfx::to_vk(shader_handle->stage());
 				setLayoutBinding.binding		= binding.binding_slot();
 				// Default value in all examples
 				setLayoutBinding.descriptorCount	= 1;
@@ -49,7 +50,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			case vk::DescriptorType::eUniformBuffer:
 			{
 				layoutBinding.push_back(utility::vulkan::defaults::descriptor_setlayout_binding(
-					binding.descriptor(), shader_handle->stage(), binding.binding_slot()));
+					binding.descriptor(), core::gfx::to_vk(shader_handle->stage()), binding.binding_slot()));
 			}
 			break;
 			default: throw new std::runtime_error("this should not be reached");
@@ -72,7 +73,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			return false;
 		}
 
-		if(shader_handle->stage() ==
+		if(core::gfx::to_vk(shader_handle->stage()) ==
 		   vk::ShaderStageFlagBits::eVertex) // TODO: check if possible on fragment shader etc..
 		{
 			for(auto& vertexBinding : shader_handle->vertex_bindings())

@@ -48,11 +48,11 @@ void material::binding::texture(const UID& value, psl::string_view tag) { m_UID 
 void material::binding::sampler(const UID& value, psl::string_view tag) { m_SamplerUID = value; m_SamplerUIDTag = tag; }
 void material::binding::buffer(const UID& value, psl::string_view tag) { m_Buffer = value; m_BufferTag = tag;}
 // stage
-const vk::ShaderStageFlags material::stage::shader_stage() const { return m_Stage.value; }
-const UID& material::stage::shader() const { return m_Shader.value; }
-const std::vector<material::binding>& material::stage::bindings() const { return m_Bindings.value; }
+core::gfx::shader_stage material::stage::shader_stage() const noexcept { return m_Stage.value; }
+const UID& material::stage::shader() const noexcept { return m_Shader.value; }
+const std::vector<material::binding>& material::stage::bindings() const noexcept { return m_Bindings.value; }
 
-void material::stage::shader(vk::ShaderStageFlags stage, const UID& value)
+void material::stage::shader(core::gfx::shader_stage stage, const UID& value) noexcept
 {
 	m_Stage.value  = stage;
 	m_Shader.value = value;

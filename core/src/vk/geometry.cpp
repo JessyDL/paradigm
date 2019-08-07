@@ -108,7 +108,7 @@ bool geometry::compatible(const core::gfx::material& material) const noexcept
 {
 	for(const auto& shader : material.shaders())
 	{
-		if(shader->meta()->stage() == vk::ShaderStageFlagBits::eVertex)
+		if(shader->meta()->stage() == core::gfx::shader_stage::vertex)
 		{
 			for(const auto& vBinding : shader->meta()->vertex_bindings())
 			{
@@ -141,7 +141,7 @@ void geometry::bind(vk::CommandBuffer& buffer, const core::gfx::material& materi
 	for(const auto& shader: material.shaders())
 	{
 		const auto& meta = shader->meta();
-		if(meta->stage() == vk::ShaderStageFlagBits::eVertex) // TODO: check if possible on fragment shader etc..
+		if(meta->stage() == core::gfx::shader_stage::vertex) // TODO: check if possible on fragment shader etc..
 		{
 			for(auto& vBinding : meta->vertex_bindings())
 			{

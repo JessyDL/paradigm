@@ -2,6 +2,7 @@
 #include "serialization.h"
 #include "vulkan_stdafx.h"
 #include "meta.h"
+#include "gfx/types.h"
 
 namespace core::resource
 {
@@ -257,11 +258,11 @@ namespace core::data
 			stage& operator=(const stage&) = default;
 			stage& operator=(stage&&) = default;
 
-			const vk::ShaderStageFlags shader_stage() const;
-			const psl::UID& shader() const;
-			const std::vector<binding>& bindings() const;
+			gfx::shader_stage shader_stage() const noexcept;
+			const psl::UID& shader() const noexcept;
+			const std::vector<binding>& bindings() const noexcept;
 
-			void shader(vk::ShaderStageFlags stage, const psl::UID& value);
+			void shader(gfx::shader_stage stage, const psl::UID& value) noexcept;
 			void bindings(const std::vector<binding>& value);
 
 			void set(const binding& value);
@@ -271,9 +272,21 @@ namespace core::data
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Stage << m_Shader << m_Bindings;
+				const uint32_t current_version = 1;
+				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+				s << version;
+
+				switch(version)
+				{
+				case current_version: s << m_Stage << m_Shader << m_Bindings; break;
+				case 0:
+					psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
+					s << stage;
+					m_Stage.value = gfx::to_shader_stage(stage.value);
+					s << m_Shader << m_Bindings;
+				}
 			}
-			psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> m_Stage;
+			psl::serialization::property<gfx::shader_stage, const_str("STAGE", 5)> m_Stage;
 			psl::serialization::property<psl::UID, const_str("SHADER", 6)> m_Shader;
 			psl::serialization::property<std::vector<binding>, const_str("BINDINGS", 8)> m_Bindings;
 			static constexpr const char serialization_name[15]{"MATERIAL_STAGE"};
