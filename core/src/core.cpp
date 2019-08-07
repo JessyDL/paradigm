@@ -629,11 +629,6 @@ auto scaleSystem =
 
 int entry()
 {
-#ifdef PLATFORM_WINDOWS
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
-	setup_loggers();
 
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
@@ -1155,16 +1150,10 @@ void android_main(android_app* application)
 
 int gles()
 {
-#ifdef PLATFORM_WINDOWS
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
-	setup_loggers();
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache
-	{psl::meta::library{psl::to_string8_t(libraryPath), {{"gles"}}}, resource_region.allocator()};
+	cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{"gles"}}}, resource_region.allocator()};
 
 	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data.load();
@@ -1184,7 +1173,7 @@ int gles()
 	core::resource::handle<core::igles::shader> vShader;
 	core::resource::handle<core::igles::shader> fShader;
 
-	{
+	/*{
 		auto [uid, shader] = cache.library().create<core::meta::shader>(
 			"attribute vec4 vPosition;    \n"
 			"void main()                  \n"
@@ -1209,8 +1198,21 @@ int gles()
 
 		fShader = core::resource::create<core::igles::shader>(cache, uid);
 		fShader.load();
-	}
+	}*/
 
+	// get a vertex and fragment shader that can be combined, we only need the meta
+	if(!cache.library().contains("f889c133-1ec0-44ea-9209-251cd236f887"_uid) ||
+	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
+	{
+		core::log->critical(
+			"Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
+		if(surface_handle) surface_handle->terminate();
+		return -1;
+	}
+	vShader = core::resource::create<core::igles::shader>(cache, "f889c133-1ec0-44ea-9209-251cd236f887"_uid);
+	vShader.load();
+	fShader = core::resource::create<core::igles::shader>(cache, "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid);
+	fShader.load();
 	GLuint programObject;
 	GLint linked;
 
@@ -1282,6 +1284,32 @@ int gles()
 	for(auto& handle : geometryDataHandles)
 	{
 		handle.load();
+		auto& positionstream =
+			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
+		core::stream colorstream{core::stream::type::vec3};
+		auto& colors			  = colorstream.as_vec3().value().get();
+		const float range		  = 1.0f;
+		const bool inverse_colors = false;
+		for(auto i = 0; i < positionstream.size(); ++i)
+		{
+			if(inverse_colors)
+			{
+				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
+				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
+				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
+				colors.emplace_back(psl::vec3(255.0f, green, blue));
+			}
+			else
+			{
+				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
+				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+				colors.emplace_back(psl::vec3(255.0f, green, blue));
+			}
+		}
+
+		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
+
 		geometryHandles.emplace_back(create<igles::geometry>(cache));
 		geometryHandles[geometryHandles.size() - 1].load(handle, vertexBuffer, indexBuffer);
 	}
@@ -1308,6 +1336,19 @@ int gles()
 
 int main()
 {
+#ifdef PLATFORM_WINDOWS
+	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
+	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
+#endif
+
+#ifdef _MSC_VER
+	{ // here to trick the compiler into generating these types to get UUID natvis support
+		dummy::hex_dummy_high hex_dummy_high{};
+		dummy::hex_dummy_low hex_dummy_lowy{};
+	}
+#endif
+
+	setup_loggers();
 	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
 	return gles();
 	return entry();

@@ -107,6 +107,7 @@
 
   <Type Name="dummy::hex_dummy_high">
     <DisplayString Condition="((c >> 4) == 0x00)">0</DisplayString>
+    <DisplayString Condition="((c >> 4) == 0x00)">0</DisplayString>
     <DisplayString Condition="((c >> 4) == 0x01)">1</DisplayString>
     <DisplayString Condition="((c >> 4) == 0x02)">2</DisplayString>
     <DisplayString Condition="((c >> 4) == 0x03)">3</DisplayString>
