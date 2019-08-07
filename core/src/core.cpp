@@ -1250,26 +1250,24 @@ int gles()
 		return 1;
 	}
 
-	std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
-	std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
+	//std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
+	// std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
 
 	// create the buffers to store the model in
 	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
 	// a copy on the CPU
 	// - then we create the vulkan buffer resource to interface with the GPU
 	auto vertexBufferData = create<data::buffer>(cache);
-	vertexBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer |
-							vk::BufferUsageFlagBits::eTransferDst,
-						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	vertexBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+						  vk::MemoryPropertyFlagBits::eDeviceLocal,
+						  memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto vertexBuffer = create<igles::buffer>(cache);
 	vertexBuffer.load(vertexBufferData);
 
 	auto indexBufferData = create<data::buffer>(cache);
-	indexBufferData.load(vk::BufferUsageFlagBits::eIndexBuffer |
-							vk::BufferUsageFlagBits::eTransferDst,
-						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	indexBufferData.load(vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+						 vk::MemoryPropertyFlagBits::eDeviceLocal,
+						 memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto indexBuffer = create<igles::buffer>(cache);
 	indexBuffer.load(indexBufferData);
 
@@ -1288,16 +1286,22 @@ int gles()
 		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, vertexBuffer);
 	}*/
 
+	auto geometry = utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2);
+	//auto geometry  = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
+	//auto geometry = utility::geometry::create_quad(cache, 0.1f, 0.1f, 0.1f, 0.1f);
+	geometry.load();
+	auto vVertices = geometry->vertices().value().get().as_single().value().get();
+	auto vIndices  = geometry->indices();
 	vertexBuffer->set(vVertices.data(), {{0, 0, sizeof(decltype(vVertices.at(0))) * vVertices.size()}});
 	indexBuffer->set(vIndices.data(), {{0, 0, sizeof(decltype(vIndices.at(0))) * vIndices.size()}});
 
 	/*auto vbo_data = core::resource::create<core::data::buffer>(cache);
 	vbo_data.load(vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, );
 	vbo_data->*/
-	//auto vbo_handle = resource::create<core::igles::buffer>(cache);
-//	vbo_handle.load() GLuint vbo, ibo;
-	//glGenBuffers(1, &vbo);
-	//glGenBuffers(1, &ibo);
+	// auto vbo_handle = resource::create<core::igles::buffer>(cache);
+	//	vbo_handle.load() GLuint vbo, ibo;
+	// glGenBuffers(1, &vbo);
+	// glGenBuffers(1, &ibo);
 
 	/*glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(decltype(vVertices.at(0))) * vVertices.size(), vVertices.data(),
@@ -1319,7 +1323,7 @@ int gles()
 		glUseProgram(programObject);
 
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
-
+		glCullFace(GL_FRONT);
 		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer->id());
 		glVertexAttribPointer(mPositionHandle, 3, GL_FLOAT, false, 0, 0); // <----- 0, because "vbo" is bound
 		glEnableVertexAttribArray(mPositionHandle);
