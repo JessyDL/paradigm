@@ -22,7 +22,7 @@ shader::vertex::binding::~binding() {}
 
 uint32_t shader::vertex::binding::binding_slot() const noexcept { return m_Binding.value; }
 uint32_t shader::vertex::binding::size() const noexcept { return m_Size.value; }
-vk::VertexInputRate shader::vertex::binding::input_rate() const noexcept { return m_InputRate.value; }
+core::gfx::vertex_input_rate shader::vertex::binding::input_rate() const noexcept { return m_InputRate.value; }
 psl::string8_t shader::vertex::binding::buffer() const noexcept { return m_Buffer.value; }
 const std::vector<shader::vertex::attribute>& shader::vertex::binding::attributes() const noexcept
 {
@@ -31,7 +31,7 @@ const std::vector<shader::vertex::attribute>& shader::vertex::binding::attribute
 
 void shader::vertex::binding::binding_slot(uint32_t value) { m_Binding.value = value; }
 void shader::vertex::binding::size(uint32_t value) { m_Size.value = value; }
-void shader::vertex::binding::input_rate(vk::VertexInputRate value) { m_InputRate.value = value; }
+void shader::vertex::binding::input_rate(core::gfx::vertex_input_rate value) { m_InputRate.value = value; }
 void shader::vertex::binding::buffer(psl::string8_t value) { m_Buffer.value = value; }
 void shader::vertex::binding::attributes(const std::vector<shader::vertex::attribute>& value)
 {

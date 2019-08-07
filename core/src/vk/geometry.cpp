@@ -112,7 +112,7 @@ bool geometry::compatible(const core::gfx::material& material) const noexcept
 		{
 			for(const auto& vBinding : shader->meta()->vertex_bindings())
 			{
-				if(vBinding.input_rate() != vk::VertexInputRate::eVertex) continue;
+				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
 				for(const auto& b : m_Bindings)
 				{
@@ -145,7 +145,7 @@ void geometry::bind(vk::CommandBuffer& buffer, const core::gfx::material& materi
 		{
 			for(auto& vBinding : meta->vertex_bindings())
 			{
-				if(vBinding.input_rate() != vk::VertexInputRate::eVertex) continue;
+				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
 				for(const auto& b : m_Bindings)
 				{

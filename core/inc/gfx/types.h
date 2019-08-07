@@ -91,6 +91,42 @@ namespace core::gfx
 	}
 
 #endif
+	enum class vertex_input_rate : uint8_t
+	{
+		vertex   = 0,
+		instance = 1
+	};
+
+	inline vk::VertexInputRate to_vk(vertex_input_rate value) noexcept
+	{
+		switch(value)
+		{
+		case vertex_input_rate::vertex: return vk::VertexInputRate::eVertex; break;
+		case vertex_input_rate::instance: return vk::VertexInputRate::eInstance; break;
+		}
+		assert(false);
+		return vk::VertexInputRate::eVertex;
+	}
+
+	inline vertex_input_rate to_vertex_input_rate(vk::VertexInputRate value) noexcept
+	{
+		switch(value)
+		{
+		case vk::VertexInputRate::eVertex: return vertex_input_rate::vertex; break;
+		case vk::VertexInputRate::eInstance: return vertex_input_rate::instance; break;
+		}
+		assert(false);
+		return vertex_input_rate::vertex;
+	}
+
+#ifdef PE_GLES
+	inline GLint to_gles(vertex_input_rate value) noexcept
+	{
+		return static_cast<std::underlying_type_t<vertex_input_rate>>(value);
+	}
+
+	inline vertex_input_rate to_vertex_input_rate(GLint value) noexcept { return vertex_input_rate(value); }
+#endif
 	enum class memory_write_frequency
 	{
 		per_frame,

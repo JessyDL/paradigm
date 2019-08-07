@@ -104,7 +104,7 @@ namespace core::meta
 				/// \returns the size in bytes of the binding
 				uint32_t size() const noexcept;
 				/// \returns the set input rate (per-vertex or per-instance) of this binding.
-				vk::VertexInputRate input_rate() const noexcept;
+				core::gfx::vertex_input_rate input_rate() const noexcept;
 				/// \returns the buffer this binding is bound to.
 				/// \note this can either be a psl::UID, or a TAG
 				psl::string8_t buffer() const noexcept;
@@ -120,7 +120,7 @@ namespace core::meta
 				void size(uint32_t value);
 				/// \brief sets the expected input rate of the binding (i.e. should we offset per-vertex, or
 				/// per-instance in the data) \param[in] value the new input rate.
-				void input_rate(vk::VertexInputRate value);
+				void input_rate(core::gfx::vertex_input_rate value);
 				/// \brief sets the psl::UID, or TAG that will suggest where to find the data to bind.
 				/// \details in core::data::geometry you will see some information about tags,
 				/// these tags can be set here to identify the binding points of the geometry data in the shader
@@ -154,7 +154,8 @@ namespace core::meta
 				static constexpr const char serialization_name[15]{"VERTEX_BINDING"};
 				psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
 				psl::serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
-				psl::serialization::property<vk::VertexInputRate, const_str("INPUT_RATE", 10)> m_InputRate;
+				psl::serialization::property<core::gfx::vertex_input_rate, const_str("INPUT_RATE", 10)> m_InputRate{
+					core::gfx::vertex_input_rate::vertex};
 				psl::serialization::property<psl::string8_t, const_str("BUFFER", 6)> m_Buffer;
 				psl::serialization::property<std::vector<attribute>, const_str("ATTRIBUTES", 10)> m_Attributes;
 			};

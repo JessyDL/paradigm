@@ -81,7 +81,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 				vk::VertexInputBindingDescription& vkVertexBinding = vertexBindingDescriptions.emplace_back();
 				vkVertexBinding.binding							   = vertexBinding.binding_slot();
 				vkVertexBinding.stride							   = vertexBinding.size();
-				vkVertexBinding.inputRate						   = vertexBinding.input_rate();
+				vkVertexBinding.inputRate						   = core::gfx::to_vk(vertexBinding.input_rate());
 
 				for(auto& vertexAttribute : vertexBinding.attributes())
 				{
