@@ -638,7 +638,7 @@ int entry()
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
+	cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{"vulkan"}}}, resource_region.allocator()};
 
 	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data.load();
@@ -1160,11 +1160,11 @@ int gles()
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
 	setup_loggers();
-
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache{psl::meta::library{psl::to_string8_t(libraryPath)}, resource_region.allocator()};
+	cache cache
+	{psl::meta::library{psl::to_string8_t(libraryPath), {{"gles"}}}, resource_region.allocator()};
 
 	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data.load();
@@ -1223,7 +1223,7 @@ int gles()
 	glAttachShader(programObject, fShader->id());
 
 	// Bind vPosition to attribute 0
-	//glBindAttribLocation(programObject, 0, "vPosition");
+	// glBindAttribLocation(programObject, 0, "vPosition");
 
 	// Link the program
 	glLinkProgram(programObject);
@@ -1250,7 +1250,7 @@ int gles()
 		return 1;
 	}
 
-	//std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
+	// std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
 	// std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
 
 	// create the buffers to store the model in
@@ -1286,34 +1286,6 @@ int gles()
 		geometryHandles[geometryHandles.size() - 1].load(handle, vertexBuffer, indexBuffer);
 	}
 
-	auto geometry = utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2);
-	//auto geometry  = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
-	//auto geometry = utility::geometry::create_quad(cache, 0.1f, 0.1f, 0.1f, 0.1f);
-	geometry.load();
-	auto vVertices = geometry->vertices().value().get().as_single().value().get();
-	auto vIndices  = geometry->indices();
-	vertexBuffer->set(vVertices.data(), {{0, 0, sizeof(decltype(vVertices.at(0))) * vVertices.size()}});
-	indexBuffer->set(vIndices.data(), {{0, 0, sizeof(decltype(vIndices.at(0))) * vIndices.size()}});
-
-	/*auto vbo_data = core::resource::create<core::data::buffer>(cache);
-	vbo_data.load(vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, );
-	vbo_data->*/
-	// auto vbo_handle = resource::create<core::igles::buffer>(cache);
-	//	vbo_handle.load() GLuint vbo, ibo;
-	// glGenBuffers(1, &vbo);
-	// glGenBuffers(1, &ibo);
-
-	/*glBindBuffer(GL_ARRAY_BUFFER, vbo);
-	glBufferData(GL_ARRAY_BUFFER, sizeof(decltype(vVertices.at(0))) * vVertices.size(), vVertices.data(),
-				 GL_STATIC_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(decltype(vIndices.at(0))) * vIndices.size(), vIndices.data(),
-				 GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);*/
-
-	auto mPositionHandle = glGetAttribLocation(programObject, "vPosition");
 	while(surface_handle->tick())
 	{
 		/* Render here */
@@ -1323,7 +1295,7 @@ int gles()
 		glUseProgram(programObject);
 
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
-		
+
 		geometryHandles[std::rand() % geometryHandles.size()]->bind();
 
 		glFinish();
