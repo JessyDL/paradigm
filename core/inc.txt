@@ -97,6 +97,7 @@ if(${PE_GLES})
 	context.h
 	shader.h
 	geometry.h	
+	buffer.h	
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)
