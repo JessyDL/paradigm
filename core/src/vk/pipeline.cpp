@@ -88,7 +88,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 					vk::VertexInputAttributeDescription& vkVertexAttribute = vertexAttributeDescriptions.emplace_back();
 					vkVertexAttribute.binding							   = vkVertexBinding.binding;
 					vkVertexAttribute.location							   = vertexAttribute.location();
-					vkVertexAttribute.format							   = vertexAttribute.format();
+					vkVertexAttribute.format							   = core::gfx::to_vk(vertexAttribute.format());
 					vkVertexAttribute.offset							   = vertexAttribute.offset();
 				}
 			}

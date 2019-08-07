@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "serialization.h"
-#include "vulkan_stdafx.h"
+#include "gfx/types.h"
 namespace psl
 {
 	struct UID;
@@ -41,11 +41,11 @@ namespace core::data
 
 		/// \brief returns the mode for mipmap texture lookups.
 		/// \returns the mode for mipmap texture lookups.
-		vk::SamplerMipmapMode mip_mode() const;
+		core::gfx::sampler_mipmap_mode mip_mode() const;
 
 		/// \brief sets the mode for mipmap texture lookups.
 		/// \param[in] value the mode to change to.
-		void mip_mode(vk::SamplerMipmapMode value);
+		void mip_mode(core::gfx::sampler_mipmap_mode value);
 
 		/// \brief returns the minimal mipmap LOD this instance has set.
 		/// \returns the minimal mipmap LOD this instance has set.
@@ -57,7 +57,7 @@ namespace core::data
 
 		/// \brief returns the max mipmap LOD this instance has set.
 		/// \returns the max mipmap LOD this instance has set.
-		/// \todo this value is currently ignored in core::gfx::sampler.
+		/// \todo this value is currently ignored in core::core::gfx::sampler.
 		float mip_maxlod() const;
 		/// \brief sets the minimal mipmap max LOD for this instance.
 		/// \param[in] value the value to set.
@@ -65,32 +65,32 @@ namespace core::data
 
 		/// \brief returns how this instances deals with texture tiling in the U-axis.
 		/// \returns how this instances deals with texture tiling in the U-axis.
-		vk::SamplerAddressMode addressU() const;
+		core::gfx::sampler_address_mode addressU() const;
 		/// \brief sets how this instance should deal with texture tiling in the U-axis.
 		/// \param[in] value the mode to set this instance to.
-		void addressU(vk::SamplerAddressMode value);
+		void addressU(core::gfx::sampler_address_mode value);
 
 		/// \brief returns how this instances deals with texture tiling in the V-axis.
 		/// \returns how this instances deals with texture tiling in the V-axis.
-		vk::SamplerAddressMode addressV() const;
+		core::gfx::sampler_address_mode addressV() const;
 		/// \brief sets how this instance should deal with texture tiling in the V-axis.
 		/// \param[in] value the mode to set this instance to.
-		void addressV(vk::SamplerAddressMode value);
+		void addressV(core::gfx::sampler_address_mode value);
 
 		/// \brief returns how this instances deals with texture tiling in the W-axis.
 		/// \returns how this instances deals with texture tiling in the W-axis.
-		vk::SamplerAddressMode addressW() const;
+		core::gfx::sampler_address_mode addressW() const;
 		/// \brief sets how this instance should deal with texture tiling in the W-axis.
 		/// \param[in] value the mode to set this instance to.
-		void addressW(vk::SamplerAddressMode value);
+		void addressW(core::gfx::sampler_address_mode value);
 
 		/// \brief returns the border color that will be used during texture lookups.
 		/// \returns the border color that will be used during texture lookups.
-		vk::BorderColor border_color() const;
+		core::gfx::border_color border_color() const;
 
 		/// \brief sets the border color that should be used during texture lookups.
 		/// \param[in] value the new border color value.
-		void border_color(vk::BorderColor value);
+		void border_color(core::gfx::border_color value);
 
 		/// \brief returns if anisotropic filtering is enabled.
 		/// \returns if anisotropic filtering is enabled.
@@ -99,7 +99,7 @@ namespace core::data
 		/// \brief call this to enable or disable anisotropic filtering.
 		/// \param[in] value set to true to enable anisotropic filtering.
 		/// \note if the current core::ivk::context doesn't support anisotropic filtering, 
-		/// then this value will be ingored upstream (core::gfx::sampler).
+		/// then this value will be ingored upstream (core::core::gfx::sampler).
 		void anisotropic_filtering(bool value);
 
 		/// \brief returns the max anistropic value for this instance.
@@ -118,26 +118,26 @@ namespace core::data
 
 		/// \brief returns what compare op would be used if compare_mode() is true.
 		/// \returns what compare op would be used if compare_mode() is true.
-		vk::CompareOp compare_op() const;
+		core::gfx::compare_op compare_op() const;
 		/// \brief sets the compare op to a new value.
 		/// \param[in] value the new compare op to use.
 		/// \note compare_op() will only be used if compare_mode() is true. You can still set this value regardless however.
-		void compare_op(vk::CompareOp value);
+		void compare_op(core::gfx::compare_op value);
 
 		/// \brief returns the filtering mode to use when dealing with minification.
 		/// \returns the filtering mode to use when dealing with minification.
-		vk::Filter filter_min() const;
+		core::gfx::filter filter_min() const;
 		
 		/// \brief sets the filtering mode to use when dealing with minification.
 		/// \param[in] value the new filter mode to use.
-		void filter_min(vk::Filter value);
+		void filter_min(core::gfx::filter value);
 
 		/// \brief returns the filtering mode to use when dealing with magnification.
 		/// \returns the filtering mode to use when dealing with magnification.
-		vk::Filter filter_max() const;
+		core::gfx::filter filter_max() const;
 		/// \brief sets the filtering mode to use when dealing with magnification.
 		/// \param[in] value the new filter mode to use.
-		void filter_max(vk::Filter value);
+		void filter_max(core::gfx::filter value);
 
 		/// \brief returns if the coordinates for this sampler will be normalized or not.
 		/// \returns if the coordinates for this sampler will be normalized or not.
@@ -164,24 +164,29 @@ namespace core::data
 		static constexpr const char serialization_name[8]{"SAMPLER"};
 
 		psl::serialization::property<bool, const_str("MIPMAPS", 7)>						m_MipMapped = true;
-		psl::serialization::property<vk::SamplerMipmapMode, const_str("MIP_MODE", 8)>	m_MipMapMode = vk::SamplerMipmapMode::eNearest;
+		psl::serialization::property<core::gfx::sampler_mipmap_mode, const_str("MIP_MODE", 8)> m_MipMapMode =
+			core::gfx::sampler_mipmap_mode::nearest;
 		psl::serialization::property<float, const_str("MIP_BIAS", 8)>					m_MipLodBias = 0.0f;
 		psl::serialization::property<float, const_str("MIP_MIN", 7)>						m_MinLod = 0.0f;
 		psl::serialization::property<float, const_str("MIP_MAX", 7)>						m_MaxLod = 0.0f;
 
-		psl::serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_U",9)>	m_AddressModeU = vk::SamplerAddressMode::eRepeat;
-		psl::serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_V", 9)>	m_AddressModeV = vk::SamplerAddressMode::eRepeat;
-		psl::serialization::property<vk::SamplerAddressMode, const_str("ADDRESS_W", 9)>	m_AddressModeW = vk::SamplerAddressMode::eRepeat;
-		psl::serialization::property<vk::BorderColor, const_str("BORDER_COLOR", 12)>		m_BorderColor = vk::BorderColor::eFloatTransparentBlack;
+		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_U", 9)> m_AddressModeU =
+			core::gfx::sampler_address_mode::repeat;
+		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_V", 9)> m_AddressModeV =
+			core::gfx::sampler_address_mode::repeat;
+		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_W", 9)> m_AddressModeW =
+			core::gfx::sampler_address_mode::repeat;
+		psl::serialization::property<core::gfx::border_color, const_str("BORDER_COLOR", 12)> m_BorderColor =
+			core::gfx::border_color::float_transparent_black;
 
 		psl::serialization::property<bool, const_str("ANISOTROPY",10)>					m_AnisotropyEnable = true;
 		psl::serialization::property<float, const_str("MAX_ANISO", 9)>					m_MaxAnisotropy = 2.0f;
 
 		psl::serialization::property<bool, const_str("COMPARE", 7)>						m_CompareEnable = false;
-		psl::serialization::property<vk::CompareOp, const_str("COMPARE_OPERATION", 17)>	m_CompareOp = vk::CompareOp::eNever;
+		psl::serialization::property<core::gfx::compare_op, const_str("COMPARE_OPERATION", 17)>	m_CompareOp = core::gfx::compare_op::never;
 
-		psl::serialization::property<vk::Filter, const_str("FILTER_MIN", 10)>			m_MinFilter = vk::Filter::eLinear;
-		psl::serialization::property<vk::Filter, const_str("FILTER_MAX", 10)>			m_MaxFilter = vk::Filter::eLinear;
+		psl::serialization::property<core::gfx::filter, const_str("FILTER_MIN", 10)> m_MinFilter = core::gfx::filter::linear;
+		psl::serialization::property<core::gfx::filter, const_str("FILTER_MAX", 10)> m_MaxFilter = core::gfx::filter::linear;
 
 		psl::serialization::property<bool, const_str("NORMALIZED_COORDINATES",22)>		m_NormalizedCoordinates = true;
 	};

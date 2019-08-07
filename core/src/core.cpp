@@ -1352,7 +1352,8 @@ int gles()
 int main()
 {
 	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
-	return gles();
+	//return gles();
+	return entry();
 }
 #endif
 

@@ -1,6 +1,5 @@
 #include "gles/buffer.h"
 #include "data/buffer.h"
-#include "gfx/types.h"
 
 using namespace core::igles;
 using namespace core::gfx;

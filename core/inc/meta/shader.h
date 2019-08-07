@@ -53,10 +53,10 @@ namespace core::meta
 				///
 				/// the format is what will be checked to see if you can bind the external resource
 				/// to this binding spot.
-				vk::Format format() const noexcept;
+				core::gfx::format format() const noexcept;
 				/// \brief sets the format of this attribute.
 				/// \param[in] value the format of this attribute.
-				void format(vk::Format value);
+				void format(core::gfx::format value);
 
 				/// \brief returns the offset in bytes starting from the binding location.
 				/// \returns the offset in bytes starting from the binding location.
@@ -73,12 +73,24 @@ namespace core::meta
 				template <typename S>
 				void serialize(S& s)
 				{
-					s << m_Location << m_Format << m_Offset;
+					const uint32_t current_version = 1;
+					psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+					s << version;
+
+					switch(version)
+					{
+					case current_version: s << m_Location << m_Format << m_Offset; break;
+					case 0:
+						psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
+						s << format;
+						m_Format.value = gfx::to_format(format.value);
+						s << m_Location << m_Offset;
+					}
 				}
 				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[17]{"VERTEX_ATTRIBUTE"};
 				psl::serialization::property<uint32_t, const_str("LOCATION", 8)> m_Location;
-				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
+				psl::serialization::property<core::gfx::format, const_str("FORMAT", 6)> m_Format;
 				psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;
 			};
 
@@ -200,7 +212,7 @@ namespace core::meta
 				/// \details This is mostly for debugging purposes, it holds no other significance.
 				psl::string8::view name() const noexcept;
 				/// \returns the format that maps 1:1 to this element.
-				vk::Format format() const noexcept;
+				core::gfx::format format() const noexcept;
 				/// \returns the offset in bytes where this element lives in respect to the parent.
 				uint32_t offset() const noexcept;
 				/// \returns the default value (if any, otherwise defaulted) to fill in this element's data
@@ -212,7 +224,7 @@ namespace core::meta
 				void name(psl::string8::view value);
 				/// \brief format to bind this element to.
 				/// \param[in] value the format that bests describes this element.
-				void format(vk::Format value);
+				void format(core::gfx::format value);
 				/// \brief the offset from the parent in bytes.
 				/// \param[in] value the offset from the parent structure start this element starts at.
 				void offset(uint32_t value);
@@ -233,12 +245,26 @@ namespace core::meta
 				template <typename S>
 				void serialize(S& s)
 				{
+					const uint32_t current_version = 1;
+					psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+					s << version;
+
+					switch(version)
+					{
+					case current_version: s << m_Name << m_Format << m_Offset << m_Default; break;
+					case 0:
+						psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
+						s << format;
+						m_Format.value = gfx::to_format(format.value);
+						s << m_Name << m_Offset << m_Default;
+					}
+
 					s << m_Name << m_Format << m_Offset << m_Default;
 				}
 				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[24]{"SHADER_INSTANCE_ELEMENT"};
 				psl::serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
-				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
+				psl::serialization::property<core::gfx::format, const_str("FORMAT", 6)> m_Format;
 				psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;
 				psl::serialization::property<std::vector<uint8_t>, const_str("DEFAULT", 7)> m_Default;
 			};

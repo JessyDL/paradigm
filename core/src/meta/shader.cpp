@@ -10,11 +10,11 @@ shader::vertex::attribute::attribute() {}
 shader::vertex::attribute::~attribute() {}
 
 uint32_t shader::vertex::attribute::location() const noexcept { return m_Location.value; }
-vk::Format shader::vertex::attribute::format() const noexcept { return m_Format.value; }
+core::gfx::format shader::vertex::attribute::format() const noexcept { return m_Format.value; }
 uint32_t shader::vertex::attribute::offset() const noexcept { return m_Offset.value; }
 
 void shader::vertex::attribute::location(uint32_t value) { m_Location.value = value; }
-void shader::vertex::attribute::format(vk::Format value) { m_Format.value = value; }
+void shader::vertex::attribute::format(core::gfx::format value) { m_Format.value = value; }
 void shader::vertex::attribute::offset(uint32_t value) { m_Offset.value = value; }
 // vertex binding
 shader::vertex::binding::binding() {}
@@ -125,12 +125,12 @@ shader::instance::element::element() {}
 shader::instance::element::~element() {}
 
 psl::string8::view shader::instance::element::name() const noexcept { return m_Name.value; }
-vk::Format shader::instance::element::format() const noexcept { return m_Format.value; }
+core::gfx::format shader::instance::element::format() const noexcept { return m_Format.value; }
 uint32_t shader::instance::element::offset() const noexcept { return m_Offset.value; }
 const std::vector<uint8_t>& shader::instance::element::default_value() const noexcept { return m_Default.value; }
 
 void shader::instance::element::name(psl::string8::view value) { m_Name.value = value; }
-void shader::instance::element::format(vk::Format value) { m_Format.value = value; }
+void shader::instance::element::format(core::gfx::format value) { m_Format.value = value; }
 void shader::instance::element::offset(uint32_t value) { m_Offset.value = value; }
 void shader::instance::element::default_value(const std::vector<uint8_t>& value) { m_Default.value = value; }
 
