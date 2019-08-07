@@ -5,9 +5,9 @@
 #include "stdafx.h"
 #ifdef CORE_EXECUTABLE
 #include "header_info.h"
-#include "data/window.h"  // application data
-#include "os/surface.h"   // the OS surface to draw one
-#include "vk/context.h"   // the vulkan context
+#include "data/window.h" // application data
+#include "os/surface.h"  // the OS surface to draw one
+#include "vk/context.h"  // the vulkan context
 //#include "systems\resource.h" // resource system
 #include "vk/swapchain.h" // the gfx swapchain which we'll use as our backbuffer
 #include "gfx/pass.h"
@@ -69,9 +69,10 @@
 #include "ecs/systems/lighting.h"
 
 
-
-#include "gles/context.h" // the glescontext
-#include "gles/shader.h" // the glescontext
+#include "gles/context.h"
+#include "gles/shader.h"
+#include "gles/buffer.h"
+#include "gles/geometry.h"
 
 using namespace core;
 using namespace core::resource;
@@ -83,8 +84,8 @@ using namespace psl::ecs;
 using namespace core::ecs::components;
 
 handle<core::gfx::material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-										handle<pipeline_cache> pipeline_cache, handle<core::ivk::buffer> matBuffer,
-										const psl::UID& texture)
+												   handle<pipeline_cache> pipeline_cache,
+												   handle<core::ivk::buffer> matBuffer, const psl::UID& texture)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
@@ -128,7 +129,8 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 }
 
 handle<core::gfx::material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-									  handle<pipeline_cache> pipeline_cache, handle<core::ivk::buffer> matBuffer)
+												 handle<pipeline_cache> pipeline_cache,
+												 handle<core::ivk::buffer> matBuffer)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
@@ -1204,7 +1206,7 @@ int gles()
 			"}                                            \n");
 		shader.stage(vk::ShaderStageFlagBits::eFragment);
 
-		
+
 		fShader = core::resource::create<core::igles::shader>(cache, uid);
 		fShader.load();
 	}
@@ -1250,18 +1252,62 @@ int gles()
 
 	std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
 	std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
-	GLuint vbo, ibo;
-	glGenBuffers(1, &vbo);
-	glGenBuffers(1, &ibo);
 
-	glBindBuffer(GL_ARRAY_BUFFER, vbo);
+	// create the buffers to store the model in
+	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
+	// a copy on the CPU
+	// - then we create the vulkan buffer resource to interface with the GPU
+	auto vertexBufferData = create<data::buffer>(cache);
+	vertexBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer |
+							vk::BufferUsageFlagBits::eTransferDst,
+						vk::MemoryPropertyFlagBits::eDeviceLocal,
+						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	auto vertexBuffer = create<igles::buffer>(cache);
+	vertexBuffer.load(vertexBufferData);
+
+	auto indexBufferData = create<data::buffer>(cache);
+	indexBufferData.load(vk::BufferUsageFlagBits::eIndexBuffer |
+							vk::BufferUsageFlagBits::eTransferDst,
+						vk::MemoryPropertyFlagBits::eDeviceLocal,
+						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	auto indexBuffer = create<igles::buffer>(cache);
+	indexBuffer.load(indexBufferData);
+
+	/*std::vector<resource::handle<data::geometry>> geometryDataHandles;
+	std::vector<resource::handle<igles::geometry>> geometryHandles;
+	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
+	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
+	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
+	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
+	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
+	for(auto& handle : geometryDataHandles)
+	{
+		handle.load();
+		geometryHandles.emplace_back(create<ivk::geometry>(cache));
+		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, vertexBuffer);
+	}*/
+
+	vertexBuffer->set(vVertices.data(), {{0, 0, sizeof(decltype(vVertices.at(0))) * vVertices.size()}});
+	indexBuffer->set(vIndices.data(), {{0, 0, sizeof(decltype(vIndices.at(0))) * vIndices.size()}});
+
+	/*auto vbo_data = core::resource::create<core::data::buffer>(cache);
+	vbo_data.load(vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, );
+	vbo_data->*/
+	//auto vbo_handle = resource::create<core::igles::buffer>(cache);
+//	vbo_handle.load() GLuint vbo, ibo;
+	//glGenBuffers(1, &vbo);
+	//glGenBuffers(1, &ibo);
+
+	/*glBindBuffer(GL_ARRAY_BUFFER, vbo);
 	glBufferData(GL_ARRAY_BUFFER, sizeof(decltype(vVertices.at(0))) * vVertices.size(), vVertices.data(),
 				 GL_STATIC_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(decltype(vIndices.at(0))) * vIndices.size(), vIndices.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(decltype(vIndices.at(0))) * vIndices.size(), vIndices.data(),
+				 GL_STATIC_DRAW);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);*/
 
 	auto mPositionHandle = glGetAttribLocation(programObject, "vPosition");
 	while(surface_handle->tick())
@@ -1274,11 +1320,11 @@ int gles()
 
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
 
-		glBindBuffer(GL_ARRAY_BUFFER, vbo);
+		glBindBuffer(GL_ARRAY_BUFFER, vertexBuffer->id());
 		glVertexAttribPointer(mPositionHandle, 3, GL_FLOAT, false, 0, 0); // <----- 0, because "vbo" is bound
 		glEnableVertexAttribArray(mPositionHandle);
 
-		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, ibo);
+		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, indexBuffer->id());
 		glDrawElements(GL_TRIANGLES, vIndices.size(), GL_UNSIGNED_INT,
 					   0); // <----- 0, because "ibo" is bound
 
@@ -1287,9 +1333,9 @@ int gles()
 		glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 
 		//
-		//glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
-		//glEnableVertexAttribArray(0);
-		//glDrawArrays(GL_TRIANGLES, 0, 3);
+		// glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, vVertices);
+		// glEnableVertexAttribArray(0);
+		// glDrawArrays(GL_TRIANGLES, 0, 3);
 
 		glFinish();
 		context_handle->swapbuffers(surface_handle);

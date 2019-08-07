@@ -5,14 +5,14 @@ namespace core::gfx
 {
 	enum class shader_stage : uint8_t
 	{
-		vertex				   = 1 << 1,
-		tesselation_control	= 1 << 2,
-		tesselation_evaluation = 1 << 3,
-		geometry			   = 1 << 4,
-		fragment			   = 1 << 5,
-		compute				   = 1 << 6
+		vertex				   = 1 << 0,
+		tesselation_control	= 1 << 1,
+		tesselation_evaluation = 1 << 2,
+		geometry			   = 1 << 3,
+		fragment			   = 1 << 4,
+		compute				   = 1 << 5
 	};
-	
+
 	inline vk::ShaderStageFlags to_vk(shader_stage stage) noexcept
 	{
 		using vk_type  = std::underlying_type_t<vk::ShaderStageFlagBits>;
@@ -91,4 +91,150 @@ namespace core::gfx
 	}
 
 #endif
+	enum class memory_write_frequency
+	{
+		per_frame,
+		sometimes,
+		almost_never
+	};
+	struct memory_copy
+	{
+		size_t source_offset;	  // offset in the source location
+		size_t destination_offset; // offset in the destination location
+		size_t size;			   // size of the copy instruction
+	};
+	enum class memory_type
+	{
+		transfer_source		  = 1 << 0,
+		transfer_destination  = 1 << 1,
+		uniform_texel_buffer  = 1 << 2,
+		storage_texel_buffer  = 1 << 3,
+		uniform_buffer		  = 1 << 4,
+		storage_buffer		  = 1 << 5,
+		index_buffer		  = 1 << 6,
+		vertex_buffer		  = 1 << 7,
+		indirect_buffer		  = 1 << 8,
+		conditional_rendering = 1 << 9
+	};
+
+	inline vk::BufferUsageFlags to_vk(memory_type memory) noexcept
+	{
+		using vk_type  = std::underlying_type_t<vk::BufferUsageFlagBits>;
+		using gfx_type = std::underlying_type_t<memory_type>;
+
+		vk_type destination{0};
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::transfer_source)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eTransferSrc)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::transfer_destination)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eTransferDst)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_texel_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eUniformTexelBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::storage_texel_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eStorageTexelBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eUniformBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::storage_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eStorageBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::index_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eIndexBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::vertex_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eVertexBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::indirect_buffer)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eIndirectBuffer)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::conditional_rendering)
+						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eConditionalRenderingEXT)
+						   : 0;
+		return vk::BufferUsageFlags{vk::BufferUsageFlagBits{destination}};
+	}
+
+	inline memory_type to_memory_type(vk::BufferUsageFlags flags) noexcept
+	{
+		using gfx_type = std::underlying_type_t<memory_type>;
+
+		gfx_type res{0};
+		res += (flags & vk::BufferUsageFlagBits::eConditionalRenderingEXT)
+				   ? static_cast<gfx_type>(memory_type::conditional_rendering)
+				   : 0;
+		res +=
+			(flags & vk::BufferUsageFlagBits::eTransferSrc) ? static_cast<gfx_type>(memory_type::transfer_source) : 0;
+		res += (flags & vk::BufferUsageFlagBits::eTransferDst)
+				   ? static_cast<gfx_type>(memory_type::transfer_destination)
+				   : 0;
+
+		res += (flags & vk::BufferUsageFlagBits::eUniformTexelBuffer)
+				   ? static_cast<gfx_type>(memory_type::uniform_texel_buffer)
+				   : 0;
+
+		res += (flags & vk::BufferUsageFlagBits::eStorageTexelBuffer)
+				   ? static_cast<gfx_type>(memory_type::storage_texel_buffer)
+				   : 0;
+
+		res +=
+			(flags & vk::BufferUsageFlagBits::eUniformBuffer) ? static_cast<gfx_type>(memory_type::uniform_buffer) : 0;
+
+		res +=
+			(flags & vk::BufferUsageFlagBits::eStorageBuffer) ? static_cast<gfx_type>(memory_type::storage_buffer) : 0;
+
+		res += (flags & vk::BufferUsageFlagBits::eIndexBuffer) ? static_cast<gfx_type>(memory_type::index_buffer) : 0;
+
+		res += (flags & vk::BufferUsageFlagBits::eVertexBuffer) ? static_cast<gfx_type>(memory_type::vertex_buffer) : 0;
+
+		res += (flags & vk::BufferUsageFlagBits::eIndirectBuffer) ? static_cast<gfx_type>(memory_type::indirect_buffer)
+																  : 0;
+
+		return memory_type{res};
+	}
+
+#ifdef PE_GLES
+	/// \warning gles does not have a concept of transfer_source/transfer_destination, all buffers are "valid" as either
+	inline decltype(GL_ARRAY_BUFFER) to_gles(memory_type memory) noexcept
+	{
+		using gfx_type = std::underlying_type_t<memory_type>;
+
+		if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_texel_buffer))
+		{
+			return GL_TEXTURE_BUFFER;
+		}
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::conditional_rendering))
+		{
+			assert(false);
+			// not implemented
+		}
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::index_buffer))
+		{
+			return GL_ELEMENT_ARRAY_BUFFER;
+		}
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::vertex_buffer))
+		{
+			return GL_ARRAY_BUFFER;
+		}
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::storage_buffer))
+		{
+			return GL_SHADER_STORAGE_BUFFER;
+		}
+
+		assert(false);
+		return -1;
+	}
+#endif
+
+	enum class memory_property
+	{
+		device_local,
+		host_visible,
+		host_cached,
+		lazily_allocated,
+		protected_memory
+	};
+
+
 } // namespace core::gfx

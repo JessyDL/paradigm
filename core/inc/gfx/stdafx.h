@@ -2,5 +2,5 @@
 
 #include "vulkan_stdafx.h"
 #ifdef PE_GLES
-#include "glad/glad_wgl.h"
+#include "glad/glad.h"
 #endif
