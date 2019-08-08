@@ -3,7 +3,7 @@
 #include "meta.h"
 #include "resource/resource.hpp"
 #include <optional>
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 
 namespace core::meta
 {

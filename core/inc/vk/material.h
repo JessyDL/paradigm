@@ -2,7 +2,7 @@
 #include "IDGenerator.h"
 #include <optional>
 #include "resource/resource.hpp"
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include "gfx/details/instance.h"
 
 namespace core::data

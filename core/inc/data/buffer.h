@@ -2,7 +2,7 @@
 #include "serialization.h"
 #include <vector>
 #include <optional>
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include "memory/region.h"
 #include "memory/segment.h"
 #include "gfx/types.h"

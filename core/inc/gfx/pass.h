@@ -2,7 +2,7 @@
 #include "math/vec.h"
 #include "resource/resource.hpp"
 #include <vector>
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include "view_ptr.h"
 
 

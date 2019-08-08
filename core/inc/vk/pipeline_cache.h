@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "resource/resource.hpp"
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 
 namespace core::ivk
 {

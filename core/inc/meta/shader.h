@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "library.h"
 #include "serialization.h"
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include "ustring.h"
 #include <vector>
 #include "gfx/types.h"

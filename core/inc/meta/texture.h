@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "serialization.h"
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include "library.h"
 #include "meta.h"
 

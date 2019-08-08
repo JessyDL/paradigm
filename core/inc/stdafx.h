@@ -22,7 +22,7 @@
 #include "string_utils.h"
 
 
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 
 #include <vector>
 #include <optional>
