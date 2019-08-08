@@ -1379,7 +1379,6 @@ int main()
 #endif
 
 	setup_loggers();
-	attractor_key = psl::ecs::details::key_for<core::ecs::components::dead_tag>();
 	return gles();
 	return entry();
 }
