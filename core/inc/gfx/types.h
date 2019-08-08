@@ -3,6 +3,77 @@
 
 namespace core::gfx
 {
+	template <typename T>
+	class enum_flag
+	{
+	  public:
+		using value_type = std::underlying_type_t<T>;
+		enum_flag(T value) : m_Enum(static_cast<value_type>(value)){};
+		enum_flag(value_type value) : m_Enum(value){};
+
+		~enum_flag()				= default;
+		enum_flag(const enum_flag&) = default;
+		enum_flag(enum_flag&&)		= default;
+		enum_flag& operator=(const enum_flag&) = default;
+		enum_flag& operator=(enum_flag&&) = default;
+
+		enum_flag& operator|=(enum_flag const& rhs) noexcept
+		{
+			m_Enum |= rhs.m_Enum;
+			return *this;
+		}
+
+		enum_flag& operator&=(enum_flag const& rhs) noexcept
+		{
+			m_Enum &= rhs.m_Enum;
+			return *this;
+		}
+
+		enum_flag& operator^=(enum_flag const& rhs) noexcept
+		{
+			m_Enum ^= rhs.m_Enum;
+			return *this;
+		}
+
+		enum_flag operator|(enum_flag const& rhs) const noexcept
+		{
+			enum_flag result(*this);
+			result |= rhs;
+			return result;
+		}
+
+		enum_flag operator&(enum_flag const& rhs) const noexcept
+		{
+			enum_flag result(*this);
+			result &= rhs;
+			return result;
+		}
+
+		enum_flag operator^(enum_flag const& rhs) const noexcept
+		{
+			enum_flag<T> result(*this);
+			result ^= rhs;
+			return result;
+		}
+		bool operator==(enum_flag const& rhs) const noexcept { return m_Enum == rhs.m_Enum; }
+		bool operator!=(enum_flag const& rhs) const noexcept { return m_Enum != rhs.m_Enum; }
+
+		enum_flag& operator|=(T const& rhs) noexcept { return *this |= static_cast<value_type>(rhs); }
+		enum_flag& operator&=(T const& rhs) noexcept { return *this &= static_cast<value_type>(rhs); }
+		enum_flag& operator^=(T const& rhs) noexcept { return *this ^= static_cast<value_type>(rhs); }
+		enum_flag operator|(T const& rhs) const noexcept { return *this | static_cast<value_type>(rhs); }
+		enum_flag operator&(T const& rhs) const noexcept { return *this & static_cast<value_type>(rhs); }
+		enum_flag operator^(T const& rhs) const noexcept { return *this ^ static_cast<value_type>(rhs); }
+		bool operator==(T const& rhs) const noexcept { return m_Enum == static_cast<value_type>(rhs); }
+		bool operator!=(T const& rhs) const noexcept { return m_Enum != static_cast<value_type>(rhs); }
+
+		operator T() const noexcept { return T{m_Enum}; }
+		explicit operator value_type() const noexcept { return m_Enum; }
+
+	  private:
+		value_type m_Enum;
+	};
+
 	enum class shader_stage : uint8_t
 	{
 		vertex				   = 1 << 0,
@@ -276,6 +347,129 @@ namespace core::gfx
 		lazily_allocated,
 		protected_memory
 	};
+
+	enum class image_type
+	{
+		planar_1D  = 0,
+		planar_2D  = 1,
+		planar_3D  = 2,
+		cube_2D	= 3,
+		array_1D   = 4,
+		array_2D   = 5,
+		array_cube = 6
+	};
+
+#ifdef PE_VULKAN
+	inline vk::ImageViewType to_vk(image_type value) noexcept
+	{
+		switch(value)
+		{
+		case image_type::planar_1D: return vk::ImageViewType::e1D; break;
+		case image_type::planar_2D: return vk::ImageViewType::e2D; break;
+		case image_type::planar_3D: return vk::ImageViewType::e3D; break;
+		case image_type::cube_2D: return vk::ImageViewType::eCube; break;
+		case image_type::array_1D: return vk::ImageViewType::e1DArray; break;
+		case image_type::array_2D: return vk::ImageViewType::e2DArray; break;
+		case image_type::array_cube: return vk::ImageViewType::eCubeArray; break;
+		}
+
+		assert(false);
+		return vk::ImageViewType::e1D;
+	}
+
+	inline image_type to_image_type(vk::ImageViewType value) noexcept
+	{
+		switch(value)
+		{
+		case vk::ImageViewType::e1D: return image_type::planar_1D; break;
+		case vk::ImageViewType::e2D: return image_type::planar_2D; break;
+		case vk::ImageViewType::e3D: return image_type::planar_3D; break;
+		case vk::ImageViewType::eCube: return image_type::cube_2D; break;
+		case vk::ImageViewType::e1DArray: return image_type::array_1D; break;
+		case vk::ImageViewType::e2DArray: return image_type::array_2D; break;
+		case vk::ImageViewType::eCubeArray: return image_type::array_cube; break;
+		}
+
+		assert(false);
+		return image_type::planar_1D;
+	}
+
+	inline vk::ImageType to_type(image_type value) noexcept
+	{
+
+		switch(value)
+		{
+		case image_type::planar_1D: return vk::ImageType::e1D; break;
+		case image_type::planar_2D: return vk::ImageType::e2D; break;
+		case image_type::planar_3D: return vk::ImageType::e3D; break;
+		case image_type::cube_2D: return vk::ImageType::e2D; break;
+		case image_type::array_1D: return vk::ImageType::e1D; break;
+		case image_type::array_2D: return vk::ImageType::e2D; break;
+		case image_type::array_cube: return vk::ImageType::e2D; break;
+		}
+
+		assert(false);
+		return vk::ImageType::e1D;
+	}
+#endif
+
+	enum class image_aspect
+	{
+		color   = 1 << 0,
+		depth   = 1 << 1,
+		stencil = 1 << 2
+	};
+
+	using image_aspect_flags = enum_flag<image_aspect>;
+
+	inline image_aspect operator|(image_aspect bit0, image_aspect bit1) { return (image_aspect_flags(bit0) | bit1); }
+#ifdef PE_VULKAN
+	inline vk::ImageAspectFlags to_vk(image_aspect value) noexcept
+	{
+		return vk::ImageAspectFlags{vk::ImageAspectFlagBits{static_cast<std::underlying_type_t<image_aspect>>(value)}};
+	}
+
+	inline image_aspect to_image_aspect(vk::ImageAspectFlags value) noexcept
+	{
+		auto underlaying = static_cast<VkImageAspectFlags>(value);
+		return image_aspect{0};
+		// return
+		// image_aspect{static_cast<std::underlying_type_t<VkImageAspectFlags>>(static_cast<VkImageAspectFlags>(value))};
+	}
+
+#endif
+
+	enum class image_usage
+	{
+		transfer_source			= 1 << 0,
+		transfer_destination	= 1 << 1,
+		sampled					= 1 << 2,
+		storage					= 1 << 3,
+		color_attachment		= 1 << 4,
+		dept_stencil_attachment = 1 << 5,
+		transient_attachment	= 1 << 6,
+		input_attachment		= 1 << 7
+	};
+
+	using image_usage_flags = enum_flag<image_usage>;
+
+	inline image_usage operator|(image_usage bit0, image_usage bit1) { return image_usage_flags(bit0) | bit1; }
+
+#ifdef PE_VULKAN
+	inline vk::ImageUsageFlags to_vk(image_usage value) noexcept
+	{
+		return vk::ImageUsageFlags{vk::ImageUsageFlagBits{static_cast<std::underlying_type_t<image_usage>>(value)}};
+	}
+
+	inline image_usage to_image_usage(vk::ImageUsageFlags value) noexcept
+	{
+		auto underlaying = static_cast<VkImageUsageFlags>(value);
+		return image_usage{0};
+		// return image_usage{
+		//	static_cast<std::underlying_type_t<VkImageUsageFlags>>(static_cast<VkImageUsageFlags>(value))};
+	}
+
+#endif
 
 	// based on https://github.com/KhronosGroup/KTX-Specification/blob/master/formats.json
 	enum class format
@@ -581,6 +775,7 @@ namespace core::gfx
 		case VK_FORMAT_PVRTC1_4BPP_SRGB_BLOCK_IMG: return format::pvrtc1_4bpp_srgb_block_img; break;
 		case VK_FORMAT_PVRTC2_2BPP_SRGB_BLOCK_IMG: return format::pvrtc2_2bpp_srgb_block_img; break;
 		case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG: return format::pvrtc2_4bpp_srgb_block_img; break;
+		case VK_FORMAT_UNDEFINED: return format::undefined; break;
 		default: assert(false);
 		}
 		return format::undefined;
@@ -590,6 +785,7 @@ namespace core::gfx
 		VkFormat result = VK_FORMAT_UNDEFINED;
 		switch(value)
 		{
+		case format::undefined: result = VK_FORMAT_UNDEFINED; break;
 		case format::r4g4_unorm_pack8: result = VK_FORMAT_R4G4_UNORM_PACK8; break;
 		case format::r4g4b4a4_unorm_pack16: result = VK_FORMAT_R4G4B4A4_UNORM_PACK16; break;
 		case format::b4g4r4a4_unorm_pack16: result = VK_FORMAT_B4G4R4A4_UNORM_PACK16; break;
@@ -743,8 +939,13 @@ namespace core::gfx
 #ifdef PE_GLES
 	inline bool to_gles(format value, GLint& internalFormat, GLint& format, GLint& type) noexcept
 	{
+		internalFormat = -1;
 		switch(value)
 		{
+		case format::undefined: internalFormat = 0; 
+			format							   = 0;
+			type							   = 0;
+			break;
 		case format::b4g4r4a4_unorm_pack16:
 			internalFormat = GL_RGBA4;
 			format		   = GL_RGBA;

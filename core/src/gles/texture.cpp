@@ -45,7 +45,7 @@ texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::f
 		m_TextureData = new gli::texture(texture);
 		switch(m_Meta->image_type())
 		{
-		case vk::ImageViewType::e2D: load_2D(); break;
+		case gfx::image_type::planar_2D: load_2D(); break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
 		default: debug_break();
 		}
@@ -55,7 +55,7 @@ texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::f
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
-		case vk::ImageViewType::e2D: create_2D(); break;
+		case gfx::image_type::planar_2D: create_2D(); break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
 		default: debug_break();
 		}

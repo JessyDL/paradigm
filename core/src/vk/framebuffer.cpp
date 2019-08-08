@@ -149,7 +149,7 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	binding& binding		   = m_Bindings.emplace_back();
 	binding.index			   = index;
 	binding.description		   = description;
-	binding.description.format = meta->format();
+	binding.description.format = gfx::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)
 	{
 		auto texture = core::resource::create<core::ivk::texture>(cache, uid);

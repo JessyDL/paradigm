@@ -55,7 +55,7 @@ texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* 
 		m_TextureData = new gli::texture(gli::load(result.value().data(), result.value().size()));
 		switch(m_Meta->image_type())
 		{
-		case vk::ImageViewType::e2D: load_2D(); break;
+		case gfx::image_type::planar_2D: load_2D(); break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
 		default: debug_break();
 		}
@@ -65,7 +65,7 @@ texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* 
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
-		case vk::ImageViewType::e2D: create_2D(); break;
+		case gfx::image_type::planar_2D: create_2D(); break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
 		default: debug_break();
 		}
@@ -122,17 +122,17 @@ void texture::create_2D()
 
 	m_MipLevels = m_Meta->mip_levels();
 	vk::FormatProperties formatProperties;
-	if(m_Meta->format() == vk::Format::eUndefined)
+	if(m_Meta->format() == gfx::format::undefined)
 	{
 		LOG_ERROR("Undefined format property in: ", utility::to_string(m_Meta->ID()));
 	}
-	m_Context->physical_device().getFormatProperties(m_Meta->format(), &formatProperties);
+	m_Context->physical_device().getFormatProperties(to_vk(m_Meta->format()), &formatProperties);
 
 	// Create optimal tiled target image
 	vk::ImageCreateInfo imageCreateInfo;
 	imageCreateInfo.pNext		  = NULL;
 	imageCreateInfo.imageType	 = (vk::ImageType)m_Meta->image_type();
-	imageCreateInfo.format		  = m_Meta->format();
+	imageCreateInfo.format		  = to_vk(m_Meta->format());
 	imageCreateInfo.mipLevels	 = m_MipLevels;
 	imageCreateInfo.arrayLayers   = 1;
 	imageCreateInfo.samples		  = vk::SampleCountFlagBits::e1;
@@ -141,7 +141,7 @@ void texture::create_2D()
 	imageCreateInfo.sharingMode   = vk::SharingMode::eExclusive;
 	imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 	imageCreateInfo.extent		  = vk::Extent3D{m_Meta->width(), m_Meta->height(), m_Meta->depth()};
-	imageCreateInfo.usage		  = m_Meta->usage();
+	imageCreateInfo.usage		  = to_vk(m_Meta->usage());
 
 	utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
 
@@ -167,11 +167,11 @@ void texture::create_2D()
 	// information and sub resource ranges
 	vk::ImageViewCreateInfo view;
 	view.image		= nullptr;
-	view.viewType   = m_Meta->image_type();
-	view.format		= m_Meta->format();
+	view.viewType   = to_vk(m_Meta->image_type());
+	view.format		= to_vk(m_Meta->format());
 	view.components = vk::ComponentMapping();
 	view.subresourceRange.aspectMask =
-		(utility::vulkan::has_depth(m_Meta->format())) ? vk::ImageAspectFlagBits::eDepth : m_Meta->aspect_mask();
+		(utility::vulkan::has_depth(view.format)) ? vk::ImageAspectFlagBits::eDepth : to_vk(m_Meta->aspect_mask());
 	view.subresourceRange.baseMipLevel   = 0;
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount	 = m_Meta->layers();
@@ -207,11 +207,11 @@ void texture::load_2D()
 	vk::FormatProperties formatProperties;
 
 	// todo we can map gli::format to the vulkan mappings.
-	if(m_Meta->format() == vk::Format::eUndefined)
+	if(m_Meta->format() == gfx::format::undefined)
 	{
 		LOG_ERROR("Undefined format property in: ", m_Meta->ID().to_string());
 	}
-	m_Context->physical_device().getFormatProperties(m_Meta->format(), &formatProperties);
+	m_Context->physical_device().getFormatProperties(to_vk(m_Meta->format()), &formatProperties);
 
 	// Only use linear tiling if requested (and supported by the device)
 	// Support for linear tiling is mostly limited, so prefer to use
@@ -293,7 +293,7 @@ void texture::load_2D()
 		vk::ImageCreateInfo imageCreateInfo;
 		imageCreateInfo.pNext		  = NULL;
 		imageCreateInfo.imageType	 = (vk::ImageType)m_Meta->image_type();
-		imageCreateInfo.format		  = m_Meta->format();
+		imageCreateInfo.format		  = to_vk(m_Meta->format());
 		imageCreateInfo.mipLevels	 = m_MipLevels;
 		imageCreateInfo.arrayLayers   = 1;
 		imageCreateInfo.samples		  = vk::SampleCountFlagBits::e1;
@@ -302,7 +302,7 @@ void texture::load_2D()
 		imageCreateInfo.sharingMode   = vk::SharingMode::eExclusive;
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 		imageCreateInfo.extent		  = vk::Extent3D{m_Meta->width(), m_Meta->height(), m_Meta->depth()};
-		imageCreateInfo.usage		  = m_Meta->usage();
+		imageCreateInfo.usage		  = to_vk(m_Meta->usage());
 
 		utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
 
@@ -353,10 +353,10 @@ void texture::load_2D()
 	// information and sub resource ranges
 	vk::ImageViewCreateInfo view;
 	view.image							 = nullptr;
-	view.viewType						 = m_Meta->image_type();
-	view.format							 = m_Meta->format();
+	view.viewType						 = to_vk(m_Meta->image_type());
+	view.format							 = to_vk(m_Meta->format());
 	view.components						 = vk::ComponentMapping();
-	view.subresourceRange.aspectMask	 = m_Meta->aspect_mask();
+	view.subresourceRange.aspectMask	 = to_vk(m_Meta->aspect_mask());
 	view.subresourceRange.baseMipLevel   = 0;
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount	 = m_Meta->layers();

@@ -377,10 +377,10 @@ void swapchain::init_depthstencil()
 	metaData.height(m_OSSurface->data().height());
 	metaData.depth(1);
 	metaData.mip_levels(1);
-	metaData.image_type(vk::ImageViewType::e2D);
-	metaData.format(depthFormat);
-	metaData.usage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc);
-	metaData.aspect_mask(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil);
+	metaData.image_type(gfx::image_type::planar_2D);
+	metaData.format(to_format(depthFormat));
+	metaData.usage(core::gfx::image_usage::dept_stencil_attachment | core::gfx::image_usage::transfer_source);		
+	metaData.aspect_mask(core::gfx::image_aspect::depth | core::gfx::image_aspect::stencil);
 
 	m_DepthTextureHandle = core::resource::create<core::ivk::texture>(m_Cache, metaUID);
 	m_DepthTextureHandle.load(m_Context);
@@ -403,7 +403,7 @@ void swapchain::init_renderpass()
 	attachments[0].finalLayout	= vk::ImageLayout::ePresentSrcKHR;
 
 	// Depth attachment
-	attachments[1].format		  = m_DepthTextureHandle->meta().format();
+	attachments[1].format		  = core::gfx::to_vk(m_DepthTextureHandle->meta().format());
 	attachments[1].samples		  = vk::SampleCountFlagBits::e1;
 	attachments[1].loadOp		  = vk::AttachmentLoadOp::eClear;
 	attachments[1].storeOp		  = vk::AttachmentStoreOp::eStore;

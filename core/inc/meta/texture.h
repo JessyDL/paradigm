@@ -3,6 +3,7 @@
 #include "vk/stdafx.h"
 #include "library.h"
 #include "meta.h"
+#include "gfx/types.h"
 
 namespace core::resource
 {
@@ -70,33 +71,33 @@ namespace core::meta
 		void layers(uint32_t layers);
 
 		/// \returns the format that the texture is in.
-		vk::Format format() const noexcept;
+		core::gfx::format format() const noexcept;
 		/// \brief the format of the texture resource.
 		/// \param[in] format the expected format.
 		/// \warning invalid formats will, in best case lead to render artifacts, and in worst cause segmentation fault
 		/// for reading outside of the memory that was expected to be present for the given format.
-		void format(vk::Format format);
+		void format(core::gfx::format format);
 
 		/// \returns the type of texture this is (2D, 3D, etc..).
-		vk::ImageViewType image_type() const noexcept;
+		core::gfx::image_type image_type() const noexcept;
 		/// \brief sets the type of texture (2D, 3D, 2DArray, etc...).
 		/// \param[in] type the type of image to expect.
-		void image_type(vk::ImageViewType type);
+		void image_type(core::gfx::image_type type);
 
 		/// \returns the expected usage of this texture
 		/// \note this can be changed, it is a suggestion.
-		vk::ImageUsageFlags usage() const noexcept;
+		core::gfx::image_usage usage() const noexcept;
 		/// \brief suggests the usage flags of this texture.
 		/// \param[in] usage the usage flags to expect.
-		void usage(vk::ImageUsageFlags usage);
+		void usage(core::gfx::image_usage usage);
 
 		/// \returns what type of aspects to expect (color, depth, stencil, etc..)
 		/// \note this can be changed, it is a suggestion.
-		vk::ImageAspectFlags aspect_mask() const noexcept;
+		core::gfx::image_aspect aspect_mask() const noexcept;
 		/// \brief suggests the aspect masks this texture exists out of.
 		/// \note invalid aspect masks lead to undefined behaviour.
 		/// \param[in] aspect the aspect mask flag to expect.
-		void aspect_mask(vk::ImageAspectFlags aspect);
+		void aspect_mask(core::gfx::image_aspect aspect);
 
 	  private:
 		/// \brief method that will be invoked by the serialization system.
@@ -106,8 +107,30 @@ namespace core::meta
 		void serialize(S& s)
 		{
 			psl::meta::file::serialize(s);
-			s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
-			  << m_UsageFlags << m_AspectMask;
+
+			const uint32_t current_version = 1;
+			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+			s << version;
+
+			switch(version)
+			{
+			case current_version:
+				s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
+				  << m_UsageFlags << m_AspectMask;
+				break;
+			case 0:
+				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
+				psl::serialization::property<vk::ImageViewType, const_str("IMAGE_TYPE", 10)> imageType;
+				psl::serialization::property<vk::ImageUsageFlags, const_str("USAGE", 5)> usageFlags;
+				psl::serialization::property<vk::ImageAspectFlags, const_str("ASPECT_MASK", 11)> aspectMask;
+				s << format << imageType << usageFlags<< aspectMask;
+				m_Format.value = gfx::to_format(format.value);
+				m_ImageType.value  = gfx::to_image_type(imageType.value);
+				m_UsageFlags.value = gfx::to_image_usage(usageFlags.value);
+				m_AspectMask.value = gfx::to_image_aspect(aspectMask.value);
+
+				s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount;
+			}
 		}
 		/// \brief validates this texture
 		bool validate() const noexcept;
@@ -116,16 +139,17 @@ namespace core::meta
 		psl::serialization::property<uint32_t, const_str("DEPTH", 5)> m_Depth{1u};
 		psl::serialization::property<uint32_t, const_str("MIP_LEVELS", 10)> m_MipLevels{1u};
 		psl::serialization::property<uint32_t, const_str("LAYERS", 6)> m_LayerCount{1u};
-		psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format{vk::Format::eUndefined};
-		psl::serialization::property<vk::ImageViewType, const_str("IMAGE_TYPE", 10)> m_ImageType{vk::ImageViewType::e2D};
-		psl::serialization::property<vk::ImageUsageFlags, const_str("USAGE", 5)> m_UsageFlags{
-			vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled};
-		psl::serialization::property<vk::ImageAspectFlags, const_str("ASPECT_MASK", 11)> m_AspectMask{
-			vk::ImageAspectFlagBits::eColor};
+		psl::serialization::property<core::gfx::format, const_str("FORMAT", 6)> m_Format{core::gfx::format::undefined};
+		psl::serialization::property<core::gfx::image_type, const_str("IMAGE_TYPE", 10)> m_ImageType{
+			core::gfx::image_type::planar_2D};
+		psl::serialization::property<core::gfx::image_usage, const_str("USAGE", 5)> m_UsageFlags{
+			core::gfx::image_usage::transfer_destination | core::gfx::image_usage::sampled};
+		psl::serialization::property<core::gfx::image_aspect, const_str("ASPECT_MASK", 11)> m_AspectMask{
+			core::gfx::image_aspect::color};
 
 
-		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64 ID
-		/// of this type on.
+		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64
+		/// ID of this type on.
 		static constexpr const char polymorphic_name[13]{"TEXTURE_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
 		virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }

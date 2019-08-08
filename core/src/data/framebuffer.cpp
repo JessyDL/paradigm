@@ -39,11 +39,11 @@ const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount
 	texture.width(width);
 	texture.height(height);
 	texture.depth(layerCount);
-	texture.aspect_mask(aspectMask);
-	texture.format(descr.format);
-	texture.image_type(vk::ImageViewType::e2D);
+	texture.aspect_mask(gfx::to_image_aspect(aspectMask));
+	texture.format(gfx::to_format(descr.format));
+	texture.image_type(core::gfx::image_type::planar_2D);
 	texture.mip_levels(1);
-	texture.usage(usage);
+	texture.usage(core::gfx::to_image_usage(usage));
 
 	m_Attachments.value.emplace_back(UID, clearValue, descr);
 

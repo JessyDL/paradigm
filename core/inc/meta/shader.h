@@ -258,8 +258,6 @@ namespace core::meta
 						m_Format.value = gfx::to_format(format.value);
 						s << m_Name << m_Offset << m_Default;
 					}
-
-					s << m_Name << m_Format << m_Offset << m_Default;
 				}
 				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[24]{"SHADER_INSTANCE_ELEMENT"};

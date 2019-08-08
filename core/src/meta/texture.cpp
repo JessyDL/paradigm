@@ -22,22 +22,22 @@ void texture::mip_levels(uint32_t mip_levels) { m_MipLevels.value = mip_levels; 
 uint32_t texture::layers() const noexcept { return m_LayerCount.value; }
 void texture::layers(uint32_t layers) { m_LayerCount.value = layers; }
 
-vk::Format texture::format() const noexcept { return m_Format.value; }
-void texture::format(vk::Format format) { m_Format.value = format; }
+core::gfx::format texture::format() const noexcept { return m_Format.value; }
+void texture::format(core::gfx::format format) { m_Format.value = format; }
 
-vk::ImageViewType texture::image_type() const noexcept { return m_ImageType.value; }
-void texture::image_type(vk::ImageViewType type) { m_ImageType.value = type; }
+core::gfx::image_type texture::image_type() const noexcept { return m_ImageType.value; }
+void texture::image_type(core::gfx::image_type type) { m_ImageType.value = type; }
 
-vk::ImageUsageFlags texture::usage() const noexcept { return m_UsageFlags.value; }
-void texture::usage(vk::ImageUsageFlags usage) { m_UsageFlags.value = usage; }
+core::gfx::image_usage texture::usage() const noexcept { return m_UsageFlags.value; }
+void texture::usage(core::gfx::image_usage usage) { m_UsageFlags.value = usage; }
 
-vk::ImageAspectFlags texture::aspect_mask() const noexcept { return m_AspectMask.value; }
-void texture::aspect_mask(vk::ImageAspectFlags aspect) { m_AspectMask.value = aspect; }
+core::gfx::image_aspect texture::aspect_mask() const noexcept { return m_AspectMask.value; }
+void texture::aspect_mask(core::gfx::image_aspect aspect) { m_AspectMask.value = aspect; }
 
 bool texture::validate() const noexcept
 {
 	bool valid = true;
-	if(m_Format == vk::Format::eUndefined)
+	if(m_Format == core::gfx::format::undefined || !core::gfx::is_texture_format(m_Format.value))
 	{
 		valid = false;
 		LOG_ERROR("undefined format detected in: ", this->ID());
