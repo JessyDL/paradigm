@@ -12,7 +12,7 @@ using namespace core::resource;
 shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile) : m_Shader{0}
 {
 	auto meta = cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr);
-
+	m_Meta		= meta;
 	auto result = cache.library().load(meta->ID());
 	if(!result)
 	{

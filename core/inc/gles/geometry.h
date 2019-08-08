@@ -13,6 +13,7 @@ namespace core::data
 namespace core::igles
 {
 	class buffer;
+	class material;
 
 	class geometry
 	{
@@ -31,9 +32,9 @@ namespace core::igles
 		/// \returns wether this geometry can be combined with the given material (i.e. it has
 		/// all the required channels that the material needs).
 		/// \param[in] material the material to check against.
-		//bool compatible(const core::ivk::material& material) const noexcept;
+		// bool compatible(const core::ivk::material& material) const noexcept;
 
-		void bind();
+		void bind(const core::igles::material& material);
 
 	  private:
 		memory::segment m_IndicesSegment;
@@ -41,6 +42,6 @@ namespace core::igles
 		core::resource::handle<core::igles::buffer> m_GeometryBuffer;
 		core::resource::handle<core::igles::buffer> m_IndicesBuffer;
 
-		psl::array <binding> m_Bindings;
+		psl::array<binding> m_Bindings;
 	};
 } // namespace core::igles

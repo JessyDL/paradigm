@@ -75,6 +75,7 @@
 #include "gles/geometry.h"
 #include "gles/texture.h"
 #include "gles/sampler.h"
+#include "gles/material.h"
 
 using namespace core;
 using namespace core::resource;
@@ -1186,36 +1187,6 @@ int gles()
 
 	context_handle->enable(surface_handle);
 
-	core::resource::handle<core::igles::shader> vShader;
-	core::resource::handle<core::igles::shader> fShader;
-
-	/*{
-		auto [uid, shader] = cache.library().create<core::meta::shader>(
-			"attribute vec4 vPosition;    \n"
-			"void main()                  \n"
-			"{                            \n"
-			"   gl_Position = vPosition;  \n"
-			"}                            \n");
-		shader.stage(core::gfx::shader_stage::vertex);
-
-		vShader = core::resource::create<core::igles::shader>(cache, uid);
-		vShader.load();
-	}
-
-	{
-		auto [uid, shader] = cache.library().create<core::meta::shader>(
-			"precision mediump float;\n"
-			"void main()                                  \n"
-			"{                                            \n"
-			"  gl_FragColor = vec4 ( 1.0, 0.0, 0.0, 1.0 );\n"
-			"}                                            \n");
-		shader.stage(core::gfx::shader_stage::fragment);
-
-
-		fShader = core::resource::create<core::igles::shader>(cache, uid);
-		fShader.load();
-	}*/
-
 	// get a vertex and fragment shader that can be combined, we only need the meta
 	if(!cache.library().contains("f889c133-1ec0-44ea-9209-251cd236f887"_uid) ||
 	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
@@ -1225,58 +1196,16 @@ int gles()
 		if(surface_handle) surface_handle->terminate();
 		return -1;
 	}
-	vShader = core::resource::create<core::igles::shader>(cache, "f889c133-1ec0-44ea-9209-251cd236f887"_uid);
-	vShader.load();
-	fShader = core::resource::create<core::igles::shader>(cache, "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid);
-	fShader.load();
-	GLuint programObject;
-	GLint linked;
-
-	// Create the program object
-	programObject = glCreateProgram();
-
-	if(programObject == 0) return 1;
-
-	glAttachShader(programObject, vShader->id());
-	glAttachShader(programObject, fShader->id());
-
-	// Bind vPosition to attribute 0
-	// glBindAttribLocation(programObject, 0, "vPosition");
-
-	// Link the program
-	glLinkProgram(programObject);
-
-	// Check the link status
-	glGetProgramiv(programObject, GL_LINK_STATUS, &linked);
-
-	if(!linked)
-	{
-		GLint infoLen = 0;
-
-		glGetProgramiv(programObject, GL_INFO_LOG_LENGTH, &infoLen);
-
-		if(infoLen > 1)
-		{
-			char* infoLog = (char*)malloc(sizeof(char) * infoLen);
-
-			glGetProgramInfoLog(programObject, infoLen, NULL, infoLog);
-
-			free(infoLog);
-		}
-
-		glDeleteProgram(programObject);
-		return 1;
-	}
-
-	auto texture = core::resource::create<core::igles::texture>(cache, "68040b49-ceac-4eab-8f12-957a7b5a1da3"_uid);
-	texture.load();
-
-
-	// create the sampler
-	auto samplerData = create<data::sampler>(cache);
-	samplerData.load();
-	auto samplerHandle = create<igles::sampler>(cache);
-	samplerHandle.load(samplerData);
+	   
+	auto matBufferData = create<data::buffer>(cache);
+	int align		   = 4;
+	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &align);
+	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+					   vk::MemoryPropertyFlagBits::eDeviceLocal,
+					   memory::region{1024 * 1024 * 32, static_cast<uint64_t>(align),
+									  new memory::default_allocator(false)});
+	auto matBuffer = create<igles::buffer>(cache);
+	matBuffer.load(matBufferData);
 
 	// std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
 	// std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
@@ -1340,6 +1269,39 @@ int gles()
 		geometryHandles[geometryHandles.size() - 1].load(handle, vertexBuffer, indexBuffer);
 	}
 
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("f889c133-1ec0-44ea-9209-251cd236f887"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
+
+	auto textureHandle = create<igles::texture>(cache, "68040b49-ceac-4eab-8f12-957a7b5a1da3"_uid);
+	textureHandle.load();
+
+	// create the sampler
+	auto samplerData = create<data::sampler>(cache);
+	samplerData.load();
+	auto samplerHandle = create<igles::sampler>(cache);
+	samplerHandle.load(samplerData);
+
+	// load the example material
+	auto matData = create<data::material>(cache);
+	matData.load();
+	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+
+	auto stages = matData->stages();
+	for(auto& stage : stages)
+	{
+		if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
+
+		auto bindings = stage.bindings();
+		bindings[0].texture(textureHandle.RUID());
+		bindings[0].sampler(samplerHandle.RUID());
+		stage.bindings(bindings);
+		// binding.texture()
+	}
+	matData->stages(stages);
+
+	auto material = create<core::igles::material>(cache);
+	material.load(matData, matBuffer);
+
 
 	while(surface_handle->tick())
 	{
@@ -1347,17 +1309,22 @@ int gles()
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClearColor(0.2f, 0.5f, 0.6f, 1.0f);
 
-		glUseProgram(programObject);
-		auto error = glGetError();
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, texture->id());
-		glBindSampler(0, samplerHandle->id());
-		// glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
-		error = glGetError();
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
 
+		material->bind();
+
+		//glUseProgram(programObject);
+		//auto error = glGetError();
+		//glActiveTexture(GL_TEXTURE1);
+		//glBindTexture(GL_TEXTURE_2D, texture->id());
+		//glBindSampler(1, samplerHandle->id());
+		//auto loc = glGetUniformLocation(programObject, "GSampler");
+		//// glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
+		//error = glGetError();
+		
+
 		// geometryHandles[std::rand() % geometryHandles.size()]->bind();
-		geometryHandles[2]->bind();
+		geometryHandles[2]->bind(material);
 		glFinish();
 		context_handle->swapbuffers(surface_handle);
 	}
@@ -1382,7 +1349,7 @@ int main()
 
 	setup_loggers();
 	return gles();
-	return entry();
+	//return entry();
 }
 #endif
 

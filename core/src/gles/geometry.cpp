@@ -1,7 +1,10 @@
 #include "gles/geometry.h"
 #include "resource/resource.hpp"
 #include "gles/buffer.h"
+#include "gles/material.h"
 #include "data/geometry.h"
+#include "meta/shader.h"
+#include "gles/shader.h"
 #include "array.h"
 #include "glad/glad_wgl.h"
 
@@ -93,37 +96,35 @@ geometry::~geometry()
 	if(m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
 }
 
-void geometry::bind()
+void geometry::bind(const core::igles::material& material)
 {
 	auto error = glGetError();
 	glBindBuffer(GL_ARRAY_BUFFER, m_GeometryBuffer->id());
+	std::vector<int> activeSlots{};
 
-	for(const auto& binding : m_Bindings)
+	for(const auto& shader : material.shaders())
 	{
-		if(binding.name == core::data::geometry::constants::POSITION)
+		const auto& meta = shader->meta();
+		if(meta->stage() == core::gfx::shader_stage::vertex) // TODO: check if possible on fragment shader etc..
 		{
-			// this is a temporary hack
-			glVertexAttribPointer(
-				0, 3, GL_FLOAT, false, 0,
-				(void*)(binding.segment.range().begin + binding.sub_range.begin)); // <----- 0, because "vbo" is bound
+			for(auto& vBinding : meta->vertex_bindings())
+			{
+				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
-			error = glGetError();
-			glEnableVertexAttribArray(0);
-		}
-		else if(binding.name == core::data::geometry::constants::COLOR)
-		{
-			glVertexAttribPointer(
-				1, 3, GL_FLOAT, false, 0,
-				(void*)(binding.segment.range().begin + binding.sub_range.begin)); // <----- 0, because "vbo" is bound
-			glEnableVertexAttribArray(1);
-		
-		}
-		else if(binding.name == core::data::geometry::constants::TEX)
-		{
-			glVertexAttribPointer(
-				2, 2, GL_FLOAT, true, 0,
-				(void*)(binding.segment.range().begin + binding.sub_range.begin)); // <----- 0, because "vbo" is bound
-			glEnableVertexAttribArray(2);
+				for(const auto& b : m_Bindings)
+				{
+					if(psl::to_string8_t(b.name) == vBinding.buffer())
+					{
+						auto offset = uint64_t{b.segment.range().begin + b.sub_range.begin};
+
+						// todo we need type information here
+						glVertexAttribPointer(vBinding.binding_slot(), vBinding.size() / sizeof(GL_FLOAT), GL_FLOAT, false, 0,
+											  (void*)offset);
+						glEnableVertexAttribArray(vBinding.binding_slot());
+						activeSlots.emplace_back(vBinding.binding_slot());
+					}
+				}
+			}
 		}
 	}
 
@@ -133,20 +134,9 @@ void geometry::bind()
 	glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
 				   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
 
-	for(const auto& binding : m_Bindings)
+	for(auto binding : activeSlots)
 	{
-		if(binding.name == core::data::geometry::constants::POSITION)
-		{
-			glDisableVertexAttribArray(0);
-		}
-		else if(binding.name == core::data::geometry::constants::COLOR)
-		{
-			glDisableVertexAttribArray(1);
-		}
-		else if(binding.name == core::data::geometry::constants::TEX)
-		{
-			glDisableVertexAttribArray(2);
-		}
+		glDisableVertexAttribArray(binding);
 	}
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

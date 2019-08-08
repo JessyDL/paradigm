@@ -3,6 +3,10 @@
 #include "fwd/resource/resource.h"
 #include "glad/glad_wgl.h"
 
+namespace core::meta
+{
+	class shader;
+}
 namespace core::igles
 {
 	class shader
@@ -16,8 +20,9 @@ namespace core::igles
 		shader& operator=(shader&&) = delete;
 
 		GLuint id() const noexcept;
-
+		core::meta::shader* meta() const noexcept { return m_Meta; }
 	  private:
 		GLuint m_Shader{std::numeric_limits<GLuint>::max()};
+		core::meta::shader* m_Meta;
 	};
 } // namespace core::igles

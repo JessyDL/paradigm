@@ -62,6 +62,8 @@ namespace core::igles
 		/// you copy over the resources to a new, smaller buffer. Check copy_from() for that.
 		bool deallocate(memory::segment& segment);
 
+		const core::data::buffer& data() const noexcept { return m_BufferDataHandle; }
+
 	  private:
 		GLuint m_Buffer;
 		GLint m_BufferType;
