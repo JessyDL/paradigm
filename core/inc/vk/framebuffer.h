@@ -14,7 +14,7 @@ namespace core::ivk
 	class sampler;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief describes a set of images to use as rendertargets
 	///

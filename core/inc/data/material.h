@@ -19,7 +19,7 @@ namespace psl::meta
 } // namespace psl::meta
 namespace core::data
 {
-	/// \brief Describes a collection of resources that can be used to initialize a core::gfx::material
+	/// \brief Describes a collection of resources that can be used to initialize a core::ivk::material
 	///
 	/// Material data describes a collection of textures, buffers, shaders, override parameters for these shaders,
 	/// blend operations (such as opaque or transparent), render order offsets, and generic options of how this material

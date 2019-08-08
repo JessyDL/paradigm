@@ -5,13 +5,10 @@
 namespace core::ivk
 {
 	class context;
-}
-namespace core::gfx
-{
 	class pipeline;
 	class framebuffer;
 	class swapchain;
-} // namespace core::gfx
+} // namespace core::ivk
 
 namespace core::data
 {
@@ -24,15 +21,15 @@ namespace psl
 }
 
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief the pipeline key creates a hash of the important elements of a vk::Pipeline
 	///
 	/// when you want to store, and lookup pipelines based on their properties, then pipeline_key
 	/// is the way to go. the pipeline key allows you to calculate a hash based on the identifying
 	/// properties that make it unique (for the GPU), and easily retrieve it.
-	/// to see this being used, check core::gfx::pipeline_cache.
-	/// \see core::gfx::pipeline_cache
+	/// to see this being used, check core::ivk::pipeline_cache.
+	/// \see core::ivk::pipeline_cache
 	struct pipeline_key
 	{
 		pipeline_key() = default;
@@ -62,14 +59,14 @@ namespace core::gfx
 		const vk::RenderPass renderPass;
 		psl::UID uid;
 	};
-} // namespace core::gfx
+} // namespace core::ivk
 
 namespace std
 {
 	template <>
-	struct hash<core::gfx::pipeline_key>
+	struct hash<core::ivk::pipeline_key>
 	{
-		std::size_t operator()(core::gfx::pipeline_key const& s) const noexcept
+		std::size_t operator()(core::ivk::pipeline_key const& s) const noexcept
 		{
 			std::size_t seed = std::hash<psl::UID>{}(s.uid);
 			for(auto& i : s.descriptors)
@@ -83,7 +80,7 @@ namespace std
 	};
 } // namespace std
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief the pipeline cache allows sharing of pipelines between various materials.
 	///
@@ -106,25 +103,25 @@ namespace core::gfx
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] framebuffer the framebuffer that will be bound to.
-		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid,
+		core::resource::handle<core::ivk::pipeline> get(const psl::UID& uid,
 														core::resource::handle<core::data::material> data,
-														core::resource::handle<framebuffer> framebuffer);
+														core::resource::handle<core::ivk::framebuffer> framebuffer);
 		/// \brief allows you to get a pipeline that satisfy the material requirements and is bound to the given
 		/// swapchain.
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] swapchain the swapchain that will be bound to.
-		core::resource::handle<core::gfx::pipeline> get(const psl::UID& uid,
+		core::resource::handle<core::ivk::pipeline> get(const psl::UID& uid,
 														core::resource::handle<core::data::material> data,
-														core::resource::handle<swapchain> swapchain);
+														core::resource::handle<core::ivk::swapchain> swapchain);
 
 	  private:
 		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::cache& m_Cache;
 		vk::PipelineCache m_PipelineCache;
 
-		// std::vector<core::resource::handle<core::gfx::pipeline>> m_Pipelines;
+		// std::vector<core::resource::handle<core::ivk::pipeline>> m_Pipelines;
 
-		std::unordered_map<pipeline_key, core::resource::handle<core::gfx::pipeline>> m_Pipelines;
+		std::unordered_map<pipeline_key, core::resource::handle<core::ivk::pipeline>> m_Pipelines;
 	};
-} // namespace core::gfx
+} // namespace core::ivk

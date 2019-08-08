@@ -1,4 +1,4 @@
-﻿#include "gfx/pipeline_cache.h"
+﻿#include "vk/pipeline_cache.h"
 #include "vk/context.h"
 #include "data/material.h"
 #include "vk/framebuffer.h"
@@ -19,14 +19,14 @@ pipeline_cache::pipeline_cache(const UID& uid, core::resource::cache& cache,
 	::vk::PipelineCacheCreateInfo pcci;
 	if(!utility::vulkan::check(m_Context->device().createPipelineCache(&pcci, nullptr, &m_PipelineCache)))
 	{
-		core::gfx::log->error("could not create a gfx::pipeline_cache");
+		core::gfx::log->error("could not create a ivk::pipeline_cache");
 	}
 }
 
 pipeline_cache::~pipeline_cache() { m_Context->device().destroyPipelineCache(m_PipelineCache); }
 
 // todo: actually generate a hash for these items
-core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<framebuffer> framebuffer)
+core::resource::handle<core::ivk::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<framebuffer> framebuffer)
 {
 	pipeline_key key(uid, data, framebuffer->render_pass());
 	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))
@@ -41,7 +41,7 @@ core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& 
 	return pipelineHandle;
 }
 
-core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<swapchain> swapchain)
+core::resource::handle<core::ivk::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<swapchain> swapchain)
 {
 	pipeline_key key(uid, data, swapchain->renderpass());
 	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))

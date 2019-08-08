@@ -273,7 +273,7 @@ namespace core::resource
 	}
 
 	/// \details will either find the resource with the given UID, and return that, or create a new one using that UID.
-	/// this function should be used for resources that might be shared (like gfx::material), co-owned in disconnected
+	/// this function should be used for resources that might be shared (like ivk::material), co-owned in disconnected
 	/// systems, or read-only.
 	///
 	/// The resulting resource keeps the UID you create it with, meaning it can be found again using this function.

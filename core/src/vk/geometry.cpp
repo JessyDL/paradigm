@@ -3,7 +3,7 @@
 #include "data/geometry.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
 #include "vk/shader.h"
 #include "meta/shader.h"
@@ -104,7 +104,7 @@ geometry::~geometry()
 }
 
 
-bool geometry::compatible(const core::gfx::material& material) const noexcept
+bool geometry::compatible(const core::ivk::material& material) const noexcept
 {
 	for(const auto& shader : material.shaders())
 	{
@@ -135,7 +135,7 @@ bool geometry::compatible(const core::gfx::material& material) const noexcept
 	return true;
 }
 
-void geometry::bind(vk::CommandBuffer& buffer, const core::gfx::material& material) const noexcept
+void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& material) const noexcept
 {
 
 	for(const auto& shader: material.shaders())

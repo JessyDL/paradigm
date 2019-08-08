@@ -51,7 +51,7 @@ bool surface::resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-void surface::register_swapchain(core::resource::handle<core::gfx::swapchain> swapchain)
+void surface::register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain)
 {
 	m_Swapchains.push_back(swapchain);
 }

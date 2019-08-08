@@ -13,10 +13,8 @@ data/window.cpp
 
 gfx/drawcall.cpp
 gfx/drawgroup.cpp
-gfx/material.cpp
 gfx/pass.cpp
 gfx/render_graph.cpp
-gfx/pipeline_cache.cpp
 gfx/bundle.cpp
 gfx/details/instance.cpp
 
@@ -55,6 +53,8 @@ if(${PE_VULKAN})
 	shader.cpp
 	swapchain.cpp
 	texture.cpp
+	material.cpp
+	pipeline_cache.cpp
 	)
 
 	list(TRANSFORM SRC_VULKAN PREPEND src/vk/)

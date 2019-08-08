@@ -1,7 +1,7 @@
 #pragma once
 #include "array.h"
 #include "resource/resource.hpp"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "gfx/details/instance.h"
 
 namespace core::ivk
@@ -28,10 +28,10 @@ namespace core::gfx
 		// material API
 		// ------------------------------------------------------------------------------------------------------------
 	  public:
-		std::optional<core::resource::handle<core::gfx::material>> get(uint32_t renderlayer) const noexcept;
+		std::optional<core::resource::handle<core::ivk::material>> get(uint32_t renderlayer) const noexcept;
 		bool has(uint32_t renderlayer) const noexcept;
 
-		void set(core::resource::handle<core::gfx::material> material,
+		void set(core::resource::handle<core::ivk::material> material,
 				 std::optional<uint32_t> render_layer_override = std::nullopt);
 
 
@@ -48,7 +48,7 @@ namespace core::gfx
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \todo drawindex is a temporary hack to support instancing. a generic solution should be sought after.
 		/// \warning You have to call bind_material before this.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer,
+		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
 						   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the pipeline.
@@ -57,7 +57,7 @@ namespace core::gfx
 		/// \param[in] swapchain the swapchain the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \warning You have to call bind_material before this.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
+		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
 						   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the geometry's instance data.
@@ -67,7 +67,7 @@ namespace core::gfx
 		/// \warning You have to call bind_pipeline before this.
 		bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry> geometry);
 
-		core::resource::handle<core::gfx::material> bound() const noexcept { return m_Bound; };
+		core::resource::handle<core::ivk::material> bound() const noexcept { return m_Bound; };
 		// ------------------------------------------------------------------------------------------------------------
 		// instance data API
 		// ------------------------------------------------------------------------------------------------------------
@@ -108,11 +108,11 @@ namespace core::gfx
 	  private:
 		details::instance::data m_InstanceData;
 
-		psl::array<core::resource::handle<core::gfx::material>> m_Materials;
+		psl::array<core::resource::handle<core::ivk::material>> m_Materials;
 		psl::array<uint32_t> m_Layers;
 		psl::UID m_UID;
 		core::resource::cache& m_Cache;
 
-		core::resource::handle<core::gfx::material> m_Bound;
+		core::resource::handle<core::ivk::material> m_Bound;
 	};
 } // namespace core::gfx

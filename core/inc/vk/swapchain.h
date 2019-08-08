@@ -6,15 +6,12 @@ namespace core::os
 {
 	class surface;
 }
-namespace core::gfx
-{
-	class framebuffer;
-} // namespace core::gfx
 
 namespace core::ivk
 {
 	class texture;
 	class context;
+	class framebuffer;
 }
 
 namespace core::data
@@ -22,11 +19,11 @@ namespace core::data
 	class framebuffer;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief describes a framebuffer that is specially handled and created by the driver
 	///
-	/// swpachains can be considered special core::gfx::framebuffer's, with some special
+	/// swpachains can be considered special core::ivk::framebuffer's, with some special
 	/// pecularities. For example, unlike framebuffer's, you have to request the next image
 	/// from the driver for a swapchain, and there are many more restrictions on both format
 	/// and size imposed on swapchains.

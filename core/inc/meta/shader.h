@@ -361,7 +361,7 @@ namespace core::meta
 			void name(psl::string8::view value);
 			/// \brief sets the type of resource the shader module expects.
 			/// \param[in] value the new backing type that says what the shader module uses.
-			/// \warning this needs to be accurate, or core::gfx::pipeline will fail to be bound to this shader module.
+			/// \warning this needs to be accurate, or core::ivk::pipeline will fail to be bound to this shader module.
 			void type(vk::DescriptorType value);
 			/// \brief sets the collection of sub-elements (1 to N) that make up this resource.
 			/// \param[in] value the new set of instance elements of this descriptor

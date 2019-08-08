@@ -1,6 +1,6 @@
 ﻿
 #include "gfx/drawgroup.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "vk/geometry.h"
 #include "data/geometry.h"
 #include "vk/pipeline.h"
@@ -11,7 +11,8 @@
 
 using namespace core::gfx;
 
-void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index)
+void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
+					  uint32_t index)
 {
 	PROFILE_SCOPE(core::profiler)
 
@@ -45,7 +46,7 @@ void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<frameb
 }
 
 
-void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index)
+void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain, uint32_t index)
 {
 	PROFILE_SCOPE(core::profiler)
 

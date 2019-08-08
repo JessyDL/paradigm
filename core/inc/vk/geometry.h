@@ -12,15 +12,11 @@ namespace core::data
 	class material;
 } // namespace core::data
 
-namespace core::gfx
-{
-	class material;
-} // namespace core::gfx
-
 namespace core::ivk
 {
 	class context;
 	class buffer;
+	class material;
 
 	/// \brief describes the driver visible concept of geometry.
 	class geometry
@@ -50,13 +46,13 @@ namespace core::ivk
 		/// \returns wether this geometry can be combined with the given material (i.e. it has
 		/// all the required channels that the material needs).
 		/// \param[in] material the material to check against.
-		bool compatible(const core::gfx::material& material) const noexcept;
+		bool compatible(const core::ivk::material& material) const noexcept;
 
 		/// \brief binds the geometry to the given material for rendering.
 		/// \param[in] buffer the command buffer to upload the commands to.
 		/// \param[in] material the material to bind with.
 		/// \warning only invoke this method in the context of recording draw instructions.
-		void bind(vk::CommandBuffer& buffer, const core::gfx::material& material) const noexcept;
+		void bind(vk::CommandBuffer& buffer, const core::ivk::material& material) const noexcept;
 
 		/// \returns the geometry data used by this instance.
 		core::resource::handle<core::data::geometry> data() const noexcept { return m_Data; };

@@ -9,12 +9,12 @@
 namespace core::ivk
 {
 	class context;
+	class framebuffer;
+	class swapchain;
 }
 
 namespace core::gfx
 {
-	class framebuffer;
-	class swapchain;
 	class drawgroup;
 	struct depth_bias
 	{
@@ -47,12 +47,12 @@ namespace core::gfx
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
 		pass(core::resource::handle<core::ivk::context> context,
-			 core::resource::handle<core::gfx::framebuffer> framebuffer);
+			 core::resource::handle<core::ivk::framebuffer> framebuffer);
 		/// \brief creates a pass that targets a swapchain image set.
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] swapchain the valid and loaded swapchain that this pass will output to.
 		pass(core::resource::handle<core::ivk::context> context,
-			 core::resource::handle<core::gfx::swapchain> swapchain);
+			 core::resource::handle<core::ivk::swapchain> swapchain);
 		~pass();
 		pass(const pass&) = delete;
 		pass(pass&&)	  = delete;
@@ -101,8 +101,8 @@ namespace core::gfx
 		void destroy_fences();
 
 		core::resource::handle<core::ivk::context> m_Context;
-		core::resource::handle<core::gfx::framebuffer> m_Framebuffer;
-		core::resource::handle<core::gfx::swapchain> m_Swapchain;
+		core::resource::handle<core::ivk::framebuffer> m_Framebuffer;
+		core::resource::handle<core::ivk::swapchain> m_Swapchain;
 		const bool m_UsingSwap;
 		std::vector<core::gfx::drawgroup> m_AllGroups;
 

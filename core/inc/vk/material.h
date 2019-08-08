@@ -17,14 +17,14 @@ namespace core::ivk
 	class buffer;
 	class texture;
 	class sampler;
-}
-
-namespace core::gfx
-{
 	class pipeline;
 	class pipeline_cache;
 	class framebuffer;
 	class swapchain;
+}
+
+namespace core::ivk
+{
 
 	/// \brief class that creates a bindable collection of resources that can be used in conjuction with a surface to
 	/// render.
@@ -47,7 +47,7 @@ namespace core::gfx
 		/// \param[in] instanceBuffer a GPU buffer that can be used to upload instance data to, if there is any.
 		material(psl::UID uid, core::resource::cache& cache , core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data,
-				 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
+				 core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
 				 core::resource::handle<core::ivk::buffer> materialBuffer);
 		material() = delete;
 		~material();
@@ -58,7 +58,7 @@ namespace core::gfx
 
 		/// \brief returns a handle to the material data used to construct this object.
 		/// \note when editing the material or the data after construction, this value will be out of sync with the
-		/// runtime gfx::material.
+		/// runtime ivk::material.
 		core::resource::handle<core::data::material> data() const;
 		/// \brief returns all the shaders that are being used right now by this material.
 		const std::vector<core::resource::handle<core::ivk::shader>>& shaders() const;
@@ -77,7 +77,7 @@ namespace core::gfx
 		/// \param[in] framebuffer the framebuffer the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \todo drawindex is a temporary hack to support instancing. a generic solution should be sought after.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer,
+		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
 						   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the pipeline.
@@ -85,25 +85,25 @@ namespace core::gfx
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
 		/// \param[in] swapchain the swapchain the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
+		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
 						   uint32_t drawIndex);
 
 	  private:
 		/// \returns the pipeline this material instance uses for the given framebuffer.
-		/// \details tries to find, and return a core::gfx::pipeline that can satisfy the
+		/// \details tries to find, and return a core::ivk::pipeline that can satisfy the
 		/// requirements of this material. In case none is present, then one will be created instead.
 		/// \param[in] framebuffer the framebuffer to bind to.
-		core::resource::handle<pipeline> get(core::resource::handle<framebuffer> framebuffer);
+		core::resource::handle<core::ivk::pipeline> get(core::resource::handle<core::ivk::framebuffer> framebuffer);
 
 		/// \returns the pipeline this material instance uses for the given framebuffer.
-		/// \details tries to find, and return a core::gfx::pipeline that can satisfy the
+		/// \details tries to find, and return a core::ivk::pipeline that can satisfy the
 		/// requirements of this material. In case none is present, then one will be created instead.
 		/// \param[in] swapchain the swapchain to bind to.
-		core::resource::handle<pipeline> get(core::resource::handle<swapchain> swapchain);
+		core::resource::handle<core::ivk::pipeline> get(core::resource::handle<core::ivk::swapchain> swapchain);
 
 		psl::UID m_UID;
 		core::resource::handle<core::ivk::context> m_Context;
-		core::resource::handle<core::gfx::pipeline_cache> m_PipelineCache;
+		core::resource::handle<core::ivk::pipeline_cache> m_PipelineCache;
 		core::resource::handle<core::data::material> m_Data;
 
 		std::vector<core::resource::handle<core::ivk::shader>> m_Shaders;
@@ -117,8 +117,8 @@ namespace core::gfx
 		memory::segment m_MaterialData;
 
 		// psl::UID maps to the psl::UID of a framebuffer or a swapchain
-		std::unordered_map<psl::UID, core::resource::handle<core::gfx::pipeline>> m_Pipeline;
-		core::resource::handle<core::gfx::pipeline> m_Bound;
+		std::unordered_map<psl::UID, core::resource::handle<core::ivk::pipeline>> m_Pipeline;
+		core::resource::handle<core::ivk::pipeline> m_Bound;
 
 		// value to indicate if this material can actually be used or not
 		bool m_IsValid{true};

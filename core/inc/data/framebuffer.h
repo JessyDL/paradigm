@@ -89,7 +89,7 @@ namespace core::data
 			/// Sometimes you don't need a render attachment to have a unique instance per framebuffer entry (for example depth testing/texture in a double buffer scenario).
 			/// in this case you can set this render attachment to be "shared", a flag that will tell the implementation that rather than creating a new instance for when the
 			/// framebuffer count is larger than 1, it should instead reuse the current one.
-			/// \see core::gfx::framebuffer for the application of this flag.
+			/// \see core::ivk::framebuffer for the application of this flag.
 			/// \returns true if this attachment is duplicated (true) or not (false).
 			bool shared() const;
 		private:
@@ -107,7 +107,7 @@ namespace core::data
 
 		/// \brief basic constructor that sets up the rough outlines of an instance
 		/// \note you will still need to set up attachments, etc.. later on. The constructor makes a "valid" instance in the sense
-		/// that manipulating it will not cause undefined behaviour, but you cannot create a core::gfx::framebuffer just yet with this
+		/// that manipulating it will not cause undefined behaviour, but you cannot create a core::ivk::framebuffer just yet with this
 		/// after calling the constructor.
 		/// \param[in] uid the resouce system assigned psl::UID.
 		/// \param[in] cache signifies in which cache I will be constructed in.

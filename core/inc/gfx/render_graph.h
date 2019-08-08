@@ -7,13 +7,13 @@
 namespace core::ivk
 {
 	class context;
+	class framebuffer;
+	class swapchain;
 }
 
 namespace core::gfx
 {
 	class pass;
-	class framebuffer;
-	class swapchain;
 
 	class render_graph
 	{
@@ -26,9 +26,9 @@ namespace core::gfx
 
 	  public:
 		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::ivk::context> context,
-												   core::resource::handle<core::gfx::swapchain> swapchain);
+												   core::resource::handle<core::ivk::swapchain> swapchain);
 		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::ivk::context> context,
-												   core::resource::handle<core::gfx::framebuffer> framebuffer);
+												   core::resource::handle<core::ivk::framebuffer> framebuffer);
 
 		bool connect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
 		bool disconnect(psl::view_ptr<pass> pass) noexcept;

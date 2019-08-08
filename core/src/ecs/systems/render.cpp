@@ -2,7 +2,7 @@
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
 #include "ecs/components/camera.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
 #include "vk/geometry.h"
 #include "vk/buffer.h"

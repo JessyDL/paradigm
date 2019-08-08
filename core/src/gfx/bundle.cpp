@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "gfx/bundle.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
 #include "vk/buffer.h"
 
@@ -17,7 +17,7 @@ bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource
 // material API
 // ------------------------------------------------------------------------------------------------------------
 
-std::optional<core::resource::handle<core::gfx::material>> bundle::get(uint32_t renderlayer) const noexcept
+std::optional<core::resource::handle<core::ivk::material>> bundle::get(uint32_t renderlayer) const noexcept
 {
 	if(auto it = std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer); it != std::end(m_Layers))
 	{

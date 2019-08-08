@@ -11,7 +11,7 @@ namespace core::ivk
 {
 	class context;
 }
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief encapsulated the concept of a graphics pipeline on the GPU
 	class pipeline

@@ -31,7 +31,7 @@ namespace core::igles
 		/// \returns wether this geometry can be combined with the given material (i.e. it has
 		/// all the required channels that the material needs).
 		/// \param[in] material the material to check against.
-		//bool compatible(const core::gfx::material& material) const noexcept;
+		//bool compatible(const core::ivk::material& material) const noexcept;
 
 		void bind();
 

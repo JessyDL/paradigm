@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "gfx/details/instance.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
 #include "vk/shader.h"
 #include "meta/shader.h"

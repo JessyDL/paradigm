@@ -56,7 +56,7 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 	for(auto [e, light] : pack)
 	{
 		if(!light.shadows) continue;
-		auto depthPass = create<gfx::framebuffer>(*m_Cache);
+		auto depthPass = create<ivk::framebuffer>(*m_Cache);
 		{
 			auto data = create<data::framebuffer>(*m_Cache);
 			data.load(m_Surface->data().width(), m_Surface->data().height(), 1);

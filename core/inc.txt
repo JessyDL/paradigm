@@ -27,10 +27,8 @@ gfx/sampler.h
 gfx/drawcall.h
 gfx/drawgroup.h
 gfx/drawlayer.h
-gfx/material.h
 gfx/pass.h
 gfx/render_graph.h
-gfx/pipeline_cache.h
 gfx/bundle.h
 gfx/types.h
 gfx/details/instance.h
@@ -96,6 +94,8 @@ if(${PE_VULKAN})
 	shader.h
 	swapchain.h
 	texture.h
+	material.h
+	pipeline_cache.h
 	)
 
 	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)

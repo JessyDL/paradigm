@@ -10,7 +10,7 @@ using namespace core::gfx;
 using namespace core::ivk;
 
 
-pass::pass(handle<core::ivk::context> context, handle<framebuffer> framebuffer)
+pass::pass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> framebuffer)
 	: m_Context(context), m_Framebuffer(framebuffer), m_UsingSwap(false)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
@@ -35,7 +35,7 @@ pass::pass(handle<core::ivk::context> context, handle<framebuffer> framebuffer)
 	build();
 }
 
-pass::pass(handle<core::ivk::context> context, handle<swapchain> swapchain)
+pass::pass(handle<core::ivk::context> context, handle<core::ivk::swapchain> swapchain)
 	: m_Context(context), m_Swapchain(swapchain), m_UsingSwap(true)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;

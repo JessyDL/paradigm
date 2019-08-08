@@ -26,9 +26,9 @@
 #include "data/material.h"
 #include "vk/buffer.h"
 #include "vk/geometry.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "gfx/bundle.h"
-#include "gfx/pipeline_cache.h"
+#include "vk/pipeline_cache.h"
 #include "meta/shader.h"
 
 // hello texture
@@ -85,7 +85,7 @@ using namespace core::os;
 using namespace psl::ecs;
 using namespace core::ecs::components;
 
-handle<core::gfx::material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
+handle<core::ivk::material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
 												   handle<pipeline_cache> pipeline_cache,
 												   handle<core::ivk::buffer> matBuffer, const psl::UID& texture)
 {
@@ -119,7 +119,7 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 	}
 	matData->stages(stages);
 
-	auto material = create<core::gfx::material>(cache);
+	auto material = create<core::ivk::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer);
 
 
@@ -130,7 +130,7 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 	return material;
 }
 
-handle<core::gfx::material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
+handle<core::ivk::material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
 												 handle<pipeline_cache> pipeline_cache,
 												 handle<core::ivk::buffer> matBuffer)
 {
@@ -143,7 +143,7 @@ handle<core::gfx::material> setup_depth_material(resource::cache& cache, handle<
 	matData.load();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
-	auto material = create<gfx::material>(cache);
+	auto material = create<ivk::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer);
 	return material;
 }
@@ -666,7 +666,7 @@ int entry()
 		return -1;
 	}
 
-	auto swapchain_handle = create<swapchain>(cache);
+	auto swapchain_handle = create<core::ivk::swapchain>(cache);
 	swapchain_handle.load(surface_handle, context_handle);
 	surface_handle->register_swapchain(swapchain_handle);
 	context_handle->device().waitIdle();
@@ -802,7 +802,7 @@ int entry()
 	matBuffer.load(context_handle, matBufferData, stagingBuffer);
 
 	// create a pipeline cache
-	auto pipeline_cache = create<core::gfx::pipeline_cache>(cache);
+	auto pipeline_cache = create<core::ivk::pipeline_cache>(cache);
 	pipeline_cache.load(context_handle);
 
 	auto material		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
@@ -890,7 +890,7 @@ int entry()
 
 
 	// create post processing pass
-	// auto deferredFramebuffer = create<gfx::framebuffer>(cache);
+	// auto deferredFramebuffer = create<ivk::framebuffer>(cache);
 	//{
 	//	auto deferredData = create<data::framebuffer>(cache);
 	//	deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);

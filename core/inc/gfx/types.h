@@ -1477,6 +1477,7 @@ namespace core::gfx
 	}
 #endif
 
+	/// \brief these signify the binding type in the shader
 	enum class binding_type
 	{
 		sampler,
@@ -1491,4 +1492,24 @@ namespace core::gfx
 		storage_buffer_dynamic,
 		input_attachment
 	};
+
+#ifdef PE_VULKAN
+	inline vk::DescriptorType to_vk(binding_type value) noexcept
+	{
+		switch(value)
+		{
+		case binding_type::sampler: return vk::DescriptorType::eSampler; break;
+		case binding_type::combined_image_sampler: return vk::DescriptorType::eCombinedImageSampler; break;
+		case binding_type::sampled_image: return vk::DescriptorType::eSampledImage; break;
+		case binding_type::storage_image: return vk::DescriptorType::eStorageImage; break;
+		case binding_type::uniform_texel_buffer: return vk::DescriptorType::eUniformTexelBuffer; break;
+		case binding_type::storage_texel_buffer: return vk::DescriptorType::eStorageTexelBuffer; break;
+		case binding_type::uniform_buffer: return vk::DescriptorType::eUniformBuffer; break;
+		case binding_type::storage_buffer: return vk::DescriptorType::eStorageBuffer; break;
+		case binding_type::uniform_buffer_dynamic: return vk::DescriptorType::eUniformBufferDynamic; break;
+		case binding_type::storage_buffer_dynamic: return vk::DescriptorType::eStorageBufferDynamic; break;
+		case binding_type::input_attachment: return vk::DescriptorType::eInputAttachment; break;
+		}
+	}
+#endif
 } // namespace core::gfx

@@ -21,7 +21,7 @@ namespace core::ivk
 	///
 	/// handles loading a SPIR-V object from a source (disk, or otherwise).
 	/// and subsequently uploads it to the driver to be validated.
-	/// a couple of shaders together with a core::gfx::pipeline and core::ivk::geometry is all that's
+	/// a couple of shaders together with a core::ivk::pipeline and core::ivk::geometry is all that's
 	/// needed to render an object on screen.
 	class shader
 	{

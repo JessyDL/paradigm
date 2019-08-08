@@ -1,8 +1,8 @@
 ﻿#include "logging.h"
 #include "vk/context.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
-#include "gfx/pipeline_cache.h"
+#include "vk/pipeline_cache.h"
 #include "meta/shader.h"
 #include "vk/shader.h"
 #include "vk/buffer.h"
@@ -21,7 +21,7 @@ using namespace core;
 
 material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk::context> context,
 				   handle<core::data::material> data,
-				   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
+				   core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
 				   core::resource::handle<core::ivk::buffer> materialBuffer)
 	: m_UID(std::move(uid)), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
 	  m_MaterialBuffer(materialBuffer)
@@ -36,7 +36,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
 		if(!shader_handle)
 		{
-			core::gfx::log->warn("gfx::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
+			core::gfx::log->warn("ivk::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
 								 utility::to_string(ID), utility::to_string(stage.shader()));
 
 
@@ -60,7 +60,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 				else
 				{
 					core::gfx::log->error(
-						"gfx::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
+						"ivk::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
 						"cache.",
 						utility::to_string(ID), utility::to_string(binding.sampler()),
 						utility::to_string(stage.shader()));
@@ -73,7 +73,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 				else
 				{
 					core::gfx::log->error(
-						"gfx::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
+						"ivk::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
 						"cache.",
 						utility::to_string(ID), utility::to_string(binding.texture()),
 						utility::to_string(stage.shader()));
@@ -98,7 +98,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 					else
 					{
 						core::gfx::log->error(
-							"gfx::material [{0}] declares resource of the type [{1}], but we detected a resource of "
+							"ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
 							"the type [{2}] instead in shader [{3}]",
 							utility::to_string(ID), vk::to_string(binding.descriptor()),
 							vk::to_string(buffer_handle->data()->usage()), utility::to_string(stage.shader()));
@@ -108,7 +108,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 				else
 				{
 					core::gfx::log->error(
-						"gfx::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource "
+						"ivk::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource "
 						"cache.",
 						utility::to_string(ID), utility::to_string(binding.buffer()),
 						utility::to_string(stage.shader()));

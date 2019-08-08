@@ -41,7 +41,7 @@ namespace core::data
 	/// All streams (except the index buffer stream) should have equally as many entries as the position buffer stream has.
 	/// The index buffer stream should not reffer to positions larger than the size of the position buffer stream.
 	/// \note these data streams can be anything, as long as atleast a position buffer and a index buffer is present. It's up to you to make sure your
-	/// geometry object has all the required streams to correctly bind it to a core::gfx::material.
+	/// geometry object has all the required streams to correctly bind it to a core::ivk::material.
 	/// \todo write an example of a custom stream.
 	/// \todo support numbered streams (i.e. UV0, UV1, etc..).
 	class geometry

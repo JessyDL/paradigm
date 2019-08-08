@@ -214,8 +214,8 @@ namespace psl::meta
 
 		/// \brief gets a list of all psl::UID's the given psl::UID might be referencing.
 		///
-		/// as an example, a core::gfx::material could be referencing a core::ivk::texture, this means that
-		/// if you call this method using the core::gfx::material's psl::UID, then you will get a list back that
+		/// as an example, a core::ivk::material could be referencing a core::ivk::texture, this means that
+		/// if you call this method using the core::ivk::material's psl::UID, then you will get a list back that
 		/// atleast contains the core::ivk::texture psl::UID.
 		/// \param[in] uid the psl::UID to find all references for.
 		/// \returns a list of all psl::UID's the given psl::UID is referencing.
@@ -224,9 +224,9 @@ namespace psl::meta
 
 		/// \brief gets a list of all psl::UID's the given psl::UID might be referenced by.
 		///
-		/// as an example, a core::ivk::texture could be referenced by a core::gfx::material, this means that
+		/// as an example, a core::ivk::texture could be referenced by a core::ivk::material, this means that
 		/// if you call this method using the core::ivk::texture's psl::UID, then you will get a list back that
-		/// atleast contains the core::gfx::material psl::UID.
+		/// atleast contains the core::ivk::material psl::UID.
 		/// \param[in] uid the psl::UID for which to find all psl::UID's that might be referencing this psl::UID.
 		/// \returns a list of all psl::UID's the given psl::UID is being referenced by.
 		/// \note will return an empty list in case the given psl::UID is not present in the meta::library.
