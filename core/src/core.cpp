@@ -234,6 +234,7 @@ void setup_loggers()
 	spdlog::register_logger(gfx_logger);
 	core::gfx::log = gfx_logger;
 
+#ifdef PE_VULKAN
 	sinks.clear();
 	sinks.push_back(mainlogger);
 	// sinks.push_back(outlogger);
@@ -242,7 +243,8 @@ void setup_loggers()
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
 	spdlog::register_logger(ivk_logger);
 	core::ivk::log = ivk_logger;
-
+#endif
+#ifdef PE_GLES
 	sinks.clear();
 	sinks.push_back(mainlogger);
 	// sinks.push_back(outlogger);
@@ -250,8 +252,8 @@ void setup_loggers()
 
 	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
 	spdlog::register_logger(igles_logger);
-	core::ivk::log = igles_logger;
-
+	core::igles::log = igles_logger;
+#endif
 	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 #else
@@ -1269,7 +1271,7 @@ int gles()
 	auto texture = core::resource::create<core::igles::texture>(cache, "68040b49-ceac-4eab-8f12-957a7b5a1da3"_uid);
 	texture.load();
 
-	
+
 	// create the sampler
 	auto samplerData = create<data::sampler>(cache);
 	samplerData.load();
@@ -1350,11 +1352,11 @@ int gles()
 		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture->id());
 		glBindSampler(0, samplerHandle->id());
-		//glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
+		// glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
 		error = glGetError();
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
 
-		//geometryHandles[std::rand() % geometryHandles.size()]->bind();
+		// geometryHandles[std::rand() % geometryHandles.size()]->bind();
 		geometryHandles[2]->bind();
 		glFinish();
 		context_handle->swapbuffers(surface_handle);

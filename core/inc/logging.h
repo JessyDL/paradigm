@@ -11,14 +11,18 @@ namespace core
 	{
 		extern std::shared_ptr<spdlog::logger> log;
 	}
+#ifdef PE_VULKAN
 	namespace ivk
 	{
 		extern std::shared_ptr<spdlog::logger> log;
 	}
+#endif
+#ifdef PE_GLES
 	namespace igles
 	{
 		extern std::shared_ptr<spdlog::logger> log;
 	}
+#endif
 	namespace data
 	{
 		extern std::shared_ptr<spdlog::logger> log;
@@ -33,4 +37,4 @@ namespace core
 	}
 
 	extern psl::profiling::profiler profiler;
-}
+} // namespace core
