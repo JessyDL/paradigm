@@ -992,20 +992,20 @@ namespace core::gfx
 			format		   = GL_RGBA;
 			type		   = GL_UNSIGNED_SHORT_4_4_4_4;
 			break;
-		case format::r4g4b4a4_unorm_pack16: assert(false); break;
+		case format::r4g4b4a4_unorm_pack16: break;
 		case format::b5g6r5_unorm_pack16:
 			internalFormat = GL_RGB565;
 			format		   = GL_RGB;
 			type		   = GL_UNSIGNED_SHORT_5_6_5;
 			break;
-		case format::r5g6b5_unorm_pack16: assert(false); break;
+		case format::r5g6b5_unorm_pack16: break;
 		case format::a1r5g5b5_unorm_pack16:
 			internalFormat = GL_RGB5_A1;
 			format		   = GL_RGBA;
 			type		   = GL_UNSIGNED_SHORT_5_5_5_1;
 			break;
 		case format::r5g5b5a1_unorm_pack16:
-		case format::b5g5r5a1_unorm_pack16: assert(false); break;
+		case format::b5g5r5a1_unorm_pack16: break;
 		case format::r8_unorm:
 			internalFormat = GL_R8;
 			format		   = GL_RED;
@@ -1026,7 +1026,7 @@ namespace core::gfx
 			format		   = GL_RED_INTEGER;
 			type		   = GL_BYTE;
 			break;
-		case format::r8_srgb: assert(false); break;
+		case format::r8_srgb: break;
 		case format::r8g8_unorm:
 			internalFormat = GL_RG8;
 			format		   = GL_RG;
@@ -1047,7 +1047,7 @@ namespace core::gfx
 			format		   = GL_RG_INTEGER;
 			type		   = GL_BYTE;
 			break;
-		case format::r8g8_srgb: assert(false); break;
+		case format::r8g8_srgb: break;
 
 		case format::r8g8b8_unorm:
 			internalFormat = GL_RGB8;
@@ -1078,7 +1078,7 @@ namespace core::gfx
 		case format::b8g8r8_snorm:
 		case format::b8g8r8_uint:
 		case format::b8g8r8_sint:
-		case format::b8g8r8_srgb: assert(false); break;
+		case format::b8g8r8_srgb: break;
 
 		case format::r8g8b8a8_unorm:
 			internalFormat = GL_RGBA8;
@@ -1115,7 +1115,7 @@ namespace core::gfx
 		case format::a2b10g10r10_unorm_pack32:
 		case format::a2b10g10r10_uint_pack32:
 		case format::r16_unorm:
-		case format::r16_snorm: assert(false); break;
+		case format::r16_snorm: break;
 
 		case format::r16_uint:
 			internalFormat = GL_R16UI;
@@ -1133,7 +1133,7 @@ namespace core::gfx
 			type		   = GL_HALF_FLOAT;
 			break;
 		case format::r16g16_unorm:
-		case format::r16g16_snorm: assert(false); break;
+		case format::r16g16_snorm: break;
 
 		case format::r16g16_uint:
 			internalFormat = GL_RG16UI;
@@ -1151,7 +1151,7 @@ namespace core::gfx
 			type		   = GL_HALF_FLOAT;
 			break;
 		case format::r16g16b16_unorm:
-		case format::r16g16b16_snorm: assert(false); break;
+		case format::r16g16b16_snorm: break;
 
 		case format::r16g16b16_uint:
 			internalFormat = GL_RGB16UI;
@@ -1169,7 +1169,7 @@ namespace core::gfx
 			type		   = GL_HALF_FLOAT;
 			break;
 		case format::r16g16b16a16_unorm:
-		case format::r16g16b16a16_snorm: assert(false); break;
+		case format::r16g16b16a16_snorm: break;
 
 		case format::r16g16b16a16_uint:
 			internalFormat = GL_RGBA16UI;
@@ -1284,8 +1284,90 @@ namespace core::gfx
 		case format::d32_sfloat_s8_uint:
 			internalFormat = GL_DEPTH32F_STENCIL8;
 			format		   = GL_DEPTH_STENCIL;
-			type		   = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
+			type		   = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;			
 			break;
+#ifdef GL_EXT_texture_compression_s3tc
+		case format::bc1_rgb_unorm_block:
+			internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
+			format		   = GL_RGB;
+			type		   = 0;
+			break;
+		case format::bc1_rgb_srgb_block:
+			internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			format		   = GL_RGB;
+			type		   = 0;
+			break;
+		case format::bc1_rgba_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc1_rgba_srgb_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc2_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc2_srgb_block:
+			internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			format		   = GL_RGB;
+			type		   = 0;
+			break;
+		case format::bc3_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc3_srgb_block:
+			internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
+			format		   = GL_RGB;
+			type		   = 0;
+			break;
+		case format::bc4_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc4_snorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc5_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc5_snorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc6h_ufloat_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc6h_sfloat_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc7_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc7_srgb_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+#else
 		case format::bc1_rgb_unorm_block:
 		case format::bc1_rgb_srgb_block:
 		case format::bc1_rgba_unorm_block:
@@ -1301,7 +1383,8 @@ namespace core::gfx
 		case format::bc6h_ufloat_block:
 		case format::bc6h_sfloat_block:
 		case format::bc7_unorm_block:
-		case format::bc7_srgb_block: assert(false); break;
+		case format::bc7_srgb_block: break;
+#endif
 		case format::etc2_r8g8b8_unorm_block:
 			internalFormat = GL_COMPRESSED_RGB8_ETC2;
 			format		   = 0;
@@ -1500,7 +1583,7 @@ namespace core::gfx
 		case format::pvrtc1_2bpp_srgb_block_img:
 		case format::pvrtc1_4bpp_srgb_block_img:
 		case format::pvrtc2_2bpp_srgb_block_img:
-		case format::pvrtc2_4bpp_srgb_block_img: assert(false); break;
+		case format::pvrtc2_4bpp_srgb_block_img: break;
 #else
 		case format::pvrtc1_2bpp_unorm_block_img:
 			internalFormat = GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG;
@@ -1543,7 +1626,6 @@ namespace core::gfx
 			type		   = 0;
 			break;
 #endif
-		default: assert(false);
 		}
 
 		return internalFormat != -1;
@@ -1805,7 +1887,7 @@ namespace core::gfx
 			return vk::DescriptorType{0};
 		}
 
-		inline binding_type to_binding_type(vk::DescriptorType value) noexcept 
+		inline binding_type to_binding_type(vk::DescriptorType value) noexcept
 		{
 			switch(value)
 			{

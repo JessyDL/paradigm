@@ -79,6 +79,14 @@ void texture::load_2D()
 		debug_break();
 	}
 
+	GLint internalFormat, format, type;
+
+	if(!gfx::to_gles(m_Meta->format(), internalFormat, format, type))
+	{
+		core::igles::log->error("unsupported format detected: {}",
+								static_cast<std::underlying_type_t<gfx::format>>(m_Meta->format()));
+	}
+
 	if(m_Meta->width() != (uint32_t)(*m_Texture2DData)[0].extent().x)
 		m_Meta->width((uint32_t)(*m_Texture2DData)[0].extent().x);
 
@@ -98,16 +106,25 @@ void texture::load_2D()
 
 	// gli::gl::format const Format = core::gfx::to_gles(m_Meta->format());
 
-	glTexStorage2D(GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), GL_RGBA8, m_Meta->width(),
+	glTexStorage2D(GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), internalFormat, m_Meta->width(),
 				   m_Meta->height());
+
 	for(std::size_t Level = 0; Level < m_Texture2DData->levels(); ++Level)
 	{
 		auto extent = m_Texture2DData->extent(Level);
-		glTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y, GL_RGBA, GL_UNSIGNED_BYTE,
-						m_Texture2DData->data(0, 0, Level));
-		/*glCompressedTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y, GL_RGBA,
-								  static_cast<GLsizei>(m_Texture2DData->size(Level)),
-								  m_Texture2DData->data(0, 0, Level));*/
+		if(type != 0)
+		{
+
+			glTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y, format, type,
+							m_Texture2DData->data(0, 0, Level));
+		}
+		else
+		{
+			auto size = static_cast<GLsizei>(m_Texture2DData->size(Level));
+			glCompressedTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y,
+									  internalFormat, size,
+									  m_Texture2DData->data(0, 0, Level));
+		}
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 }

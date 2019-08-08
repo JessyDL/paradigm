@@ -1272,7 +1272,7 @@ int gles()
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("f889c133-1ec0-44ea-9209-251cd236f887"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
-	auto textureHandle = create<igles::texture>(cache, "68040b49-ceac-4eab-8f12-957a7b5a1da3"_uid);
+	auto textureHandle = create<igles::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
 	textureHandle.load();
 
 	// create the sampler
