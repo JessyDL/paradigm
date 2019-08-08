@@ -8,12 +8,12 @@ namespace core::os
 }
 namespace core::gfx
 {
-	class texture;
 	class framebuffer;
 } // namespace core::gfx
 
 namespace core::ivk
 {
+	class texture;
 	class context;
 }
 
@@ -135,7 +135,7 @@ namespace core::gfx
 		uint32_t m_CurrentImage = 0;
 
 		core::resource::cache& m_Cache;
-		core::resource::handle<core::gfx::texture> m_DepthTextureHandle;
+		core::resource::handle<core::ivk::texture> m_DepthTextureHandle;
 
 		const bool m_UseDepth;
 		vk::ClearColorValue m_ClearColor{std::array<float, 4>{0.25f, 0.4f, 0.95f, 1.0f}};

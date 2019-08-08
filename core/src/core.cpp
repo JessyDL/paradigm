@@ -91,7 +91,7 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
 
-	auto textureHandle = create<gfx::texture>(cache, texture);
+	auto textureHandle = create<ivk::texture>(cache, texture);
 	textureHandle.load(context_handle);
 
 	// create the sampler

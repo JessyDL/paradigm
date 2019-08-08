@@ -18,7 +18,7 @@ namespace core::ivk
 	class buffer;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief a texture resource used for rendering, either as target, or as input resource.
 	///

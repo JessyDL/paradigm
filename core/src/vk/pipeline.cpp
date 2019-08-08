@@ -360,7 +360,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				{
 				case vk::DescriptorType::eCombinedImageSampler:
 				{
-					auto tex_handle = cache.find<core::gfx::texture>(binding.texture());
+					auto tex_handle = cache.find<core::ivk::texture>(binding.texture());
 
 					if(tex_handle.resource_state() != core::resource::state::LOADED)
 					{
@@ -471,7 +471,7 @@ bool pipeline::update(uint32_t bindingLocation, const UID& textureMeta, const UI
 			{
 			case vk::DescriptorType::eCombinedImageSampler:
 			{
-				auto tex_handle = m_Cache.find<core::gfx::texture>(textureMeta);
+				auto tex_handle = m_Cache.find<core::ivk::texture>(textureMeta);
 
 				if(tex_handle.resource_state() != core::resource::state::LOADED)
 				{

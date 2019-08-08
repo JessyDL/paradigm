@@ -15,13 +15,13 @@ namespace core::ivk
 	class shader;
 	class geometry;
 	class buffer;
+	class texture;
 }
 
 namespace core::gfx
 {
 	class pipeline;
 	class pipeline_cache;
-	class texture;
 	class sampler;
 	class framebuffer;
 	class swapchain;
@@ -63,7 +63,7 @@ namespace core::gfx
 		/// \brief returns all the shaders that are being used right now by this material.
 		const std::vector<core::resource::handle<core::ivk::shader>>& shaders() const;
 		/// \brief returns all currently used textures and their binding slots.
-		const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>>& textures() const;
+		const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>>>& textures() const;
 		/// \brief returns all currently used samplers and their binding slots.
 		const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::sampler>>>& samplers() const;
 		/// \brief returns all currently used buffers and their binding slots.
@@ -109,7 +109,7 @@ namespace core::gfx
 		std::vector<core::resource::handle<core::ivk::shader>> m_Shaders;
 
 		// a combination of binding slot + resource
-		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>> m_Textures;
+		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>>> m_Textures;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::sampler>>> m_Samplers;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>> m_Buffers;
 

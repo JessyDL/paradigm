@@ -153,7 +153,7 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	binding.description.format = meta->format();
 	for(auto i = index; i < index + count; ++i)
 	{
-		auto texture = core::resource::create<core::gfx::texture>(cache, uid);
+		auto texture = core::resource::create<core::ivk::texture>(cache, uid);
 		if(texture.resource_state() != core::resource::state::LOADED) texture.load(m_Context);
 		m_Textures.push_back(texture);
 		attachment& attachment		= binding.attachments.emplace_back();

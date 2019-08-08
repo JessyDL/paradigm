@@ -105,9 +105,9 @@ namespace utility::geometry
 		auto& uvs	  = uvStream.as_vec2().value().get();
 
 		vertices.emplace_back(psl::vec3{right, top, 0.0f});
-		vertices.emplace_back(psl::vec3{-left, top, 0.0f});
-		vertices.emplace_back(psl::vec3{-left, -bottom, 0.0f});
-		vertices.emplace_back(psl::vec3{right, -bottom, 0.0f});
+		vertices.emplace_back(psl::vec3{left, top, 0.0f});
+		vertices.emplace_back(psl::vec3{left, bottom, 0.0f});
+		vertices.emplace_back(psl::vec3{right, bottom, 0.0f});
 
 		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
 		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});

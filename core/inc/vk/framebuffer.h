@@ -9,12 +9,12 @@ namespace core::data
 }
 namespace core::ivk
 {
+	class texture;
 	class context;
 }
 
 namespace core::gfx
 {
-	class texture;
 	class sampler;
 
 	/// \brief describes a set of images to use as rendertargets
@@ -82,7 +82,7 @@ namespace core::gfx
 		bool add(core::resource::cache& cache, const psl::UID& uid, vk::AttachmentDescription description, size_t index,
 				 size_t count);
 
-		std::vector<core::resource::handle<core::gfx::texture>> m_Textures;
+		std::vector<core::resource::handle<core::ivk::texture>> m_Textures;
 		std::vector<binding> m_Bindings;
 		core::resource::handle<core::gfx::sampler> m_Sampler;
 		core::resource::handle<core::data::framebuffer> m_Data;

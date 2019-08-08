@@ -22,7 +22,7 @@ namespace core::data
 	public:
 		/// \brief describes a single rendertarget in a framebuffer.
 		///
-		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the core::gfx::texture.
+		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the core::ivk::texture.
 		/// You should take caution when calling methods that manipulate the contained resources for this reason.
 		class attachment final
 		{
@@ -65,7 +65,7 @@ namespace core::data
 			///
 			/// \note that the texture should be valid (not pointing to a non-texture),
 			/// otherwise you might run into issues further down.
-			/// \param[in] texture a psl::UID pointing to a valid (known or constructed), core::gfx::texture object.
+			/// \param[in] texture a psl::UID pointing to a valid (known or constructed), core::ivk::texture object.
 			/// \param[in] clear_col the clear value to assign to this render texture.
 			/// \param[in] descr the attachment description that will be used to construct the core::data::framebuffer::attachment::description.
 			/// \param[in] shared value indicating if this render attachment is shared within this framebuffer (see core::data::framebuffer::attachment::shared() for more info).

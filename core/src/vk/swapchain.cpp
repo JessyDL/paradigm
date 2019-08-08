@@ -382,7 +382,7 @@ void swapchain::init_depthstencil()
 	metaData.usage(vk::ImageUsageFlagBits::eDepthStencilAttachment | vk::ImageUsageFlagBits::eTransferSrc);
 	metaData.aspect_mask(vk::ImageAspectFlagBits::eDepth | vk::ImageAspectFlagBits::eStencil);
 
-	m_DepthTextureHandle = core::resource::create<core::gfx::texture>(m_Cache, metaUID);
+	m_DepthTextureHandle = core::resource::create<core::ivk::texture>(m_Cache, metaUID);
 	m_DepthTextureHandle.load(m_Context);
 }
 

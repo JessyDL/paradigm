@@ -66,7 +66,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 						utility::to_string(stage.shader()));
 					return;
 				}
-				if(auto texture_handle = cache.find<core::gfx::texture>(binding.texture()); texture_handle)
+				if(auto texture_handle = cache.find<core::ivk::texture>(binding.texture()); texture_handle)
 				{
 					m_Textures.push_back(std::make_pair(binding.binding_slot(), texture_handle));
 				}
@@ -129,7 +129,7 @@ material::~material() {}
 
 core::resource::handle<core::data::material> material::data() const { return m_Data; }
 const std::vector<core::resource::handle<core::ivk::shader>>& material::shaders() const { return m_Shaders; }
-const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::texture>>>& material::textures() const
+const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>>>& material::textures() const
 {
 	return m_Textures;
 }
