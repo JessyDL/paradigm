@@ -22,7 +22,7 @@
 #include "string_utils.h"
 
 
-#include "vk/stdafx.h"
+#include "gfx/stdafx.h"
 
 #include <vector>
 #include <optional>
