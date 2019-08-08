@@ -15,10 +15,15 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using geometry = std::variant<core::ivk::geometry
+	using geometry = std::variant<
+#ifdef PE_VULKAN
+		core::ivk::geometry
 #ifdef PE_GLES
-								 ,
-								 core::igles::geometry
+		,
 #endif
-								 >;
+#endif
+#ifdef PE_GLES
+		core::igles::geometry
+#endif
+		>;
 } // namespace core::gfx

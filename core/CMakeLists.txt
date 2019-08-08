@@ -13,9 +13,8 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/fwd" PREFIX "fwd" FILES ${FWD
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_GLES}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC_GLES}) 
-if(${PE_GLES})
-
-endif()
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_VULKAN}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC_VULKAN}) 
 
 if(VS_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
@@ -66,10 +65,10 @@ SET(GLES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/src/glad.c ${CMAKE_C
 
 if(${PE_MODE} STREQUAL "EXE")
 	message("Core as executable")
-	add_executable(${LOCAL_PROJECT} ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${NATVIS} ${GLES_FILES})
+	add_executable(${LOCAL_PROJECT} ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${GLES_FILES})
 else()
 	message("Core as library")
-	add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${NATVIS} ${GLES_FILES})
+	add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${GLES_FILES})
 endif()	
 
 if(${VULKAN_STATIC})	

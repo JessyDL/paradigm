@@ -15,10 +15,15 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using context = std::variant<core::ivk::context
+	using context = std::variant<
+#ifdef PE_VULKAN
+		core::ivk::context
 #ifdef PE_GLES
-								 ,
-								 core::igles::context
+		,
 #endif
-								 >;
+#endif
+#ifdef PE_GLES
+		core::igles::context
+#endif
+		>;
 } // namespace core::gfx

@@ -21,6 +21,8 @@ gfx/context.h
 gfx/shader.h
 gfx/buffer.h
 gfx/geometry.h
+gfx/texture.h
+gfx/sampler.h
 
 gfx/drawcall.h
 gfx/drawgroup.h
@@ -64,17 +66,6 @@ ecs/components/lifetime.h
 ecs/components/velocity.h
 
 utility/geometry.h
-
-vk/buffer.h
-vk/context.h
-vk/framebuffer.h
-vk/geometry.h
-vk/pipeline.h
-vk/sampler.h
-vk/shader.h
-vk/swapchain.h
-vk/texture.h
-
 )
 
 
@@ -87,9 +78,28 @@ gfx/context.h
 gfx/shader.h
 gfx/geometry.h
 gfx/buffer.h
+gfx/texture.h
+gfx/sampler.h
 )
 
 list(TRANSFORM FWD PREPEND inc/fwd/)
+
+# include files for the Vulkan API
+if(${PE_VULKAN})
+	set(INC_VULKAN
+	buffer.h
+	context.h
+	framebuffer.h
+	geometry.h
+	pipeline.h
+	sampler.h
+	shader.h
+	swapchain.h
+	texture.h
+	)
+
+	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
+endif()
 
 # include files for the GLES API
 if(${PE_GLES})
@@ -97,7 +107,11 @@ if(${PE_GLES})
 	context.h
 	shader.h
 	geometry.h	
-	buffer.h	
+	buffer.h
+	texture.h
+	sampler.h
+	program.h
+	program_cache.h
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)

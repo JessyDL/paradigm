@@ -13,6 +13,7 @@ namespace core::gfx
 		compute				   = 1 << 5
 	};
 
+#ifdef PE_VULKAN
 	inline vk::ShaderStageFlags to_vk(shader_stage stage) noexcept
 	{
 		using vk_type  = std::underlying_type_t<vk::ShaderStageFlagBits>;
@@ -59,6 +60,7 @@ namespace core::gfx
 		return shader_stage{res};
 	}
 
+#endif
 #ifdef PE_GLES
 	inline decltype(GL_VERTEX_SHADER) to_gles(shader_stage stage) noexcept
 	{
@@ -97,6 +99,7 @@ namespace core::gfx
 		instance = 1
 	};
 
+#ifdef PE_VULKAN
 	inline vk::VertexInputRate to_vk(vertex_input_rate value) noexcept
 	{
 		switch(value)
@@ -118,7 +121,7 @@ namespace core::gfx
 		assert(false);
 		return vertex_input_rate::vertex;
 	}
-
+#endif
 #ifdef PE_GLES
 	inline GLint to_gles(vertex_input_rate value) noexcept
 	{
@@ -153,6 +156,7 @@ namespace core::gfx
 		conditional_rendering = 1 << 9
 	};
 
+#ifdef PE_VULKAN
 	inline vk::BufferUsageFlags to_vk(memory_type memory) noexcept
 	{
 		using vk_type  = std::underlying_type_t<vk::BufferUsageFlagBits>;
@@ -229,6 +233,7 @@ namespace core::gfx
 
 		return memory_type{res};
 	}
+#endif
 
 #ifdef PE_GLES
 	/// \warning gles does not have a concept of transfer_source/transfer_destination, all buffers are "valid" as either
@@ -427,6 +432,7 @@ namespace core::gfx
 		return static_cast<std::underlying_type_t<format>>(value) < 1000;
 	}
 
+#ifdef PE_VULKAN
 	inline format to_format(vk::Format value) noexcept
 	{
 		switch(static_cast<VkFormat>(value))
@@ -733,7 +739,7 @@ namespace core::gfx
 
 		return vk::Format{result};
 	}
-
+#endif
 #ifdef PE_GLES
 	inline bool to_gles(format value, GLint& internalFormat, GLint& format, GLint& type) noexcept
 	{
@@ -1308,11 +1314,12 @@ namespace core::gfx
 		linear  = 1
 	};
 
+#ifdef PE_VULKAN
 	inline vk::SamplerMipmapMode to_vk(sampler_mipmap_mode value) noexcept
 	{
 		return vk::SamplerMipmapMode(static_cast<std::underlying_type_t<sampler_mipmap_mode>>(value));
 	}
-
+#endif
 	enum class sampler_address_mode
 	{
 		repeat				 = 0,
@@ -1322,12 +1329,13 @@ namespace core::gfx
 		mirror_clamp_to_edge = 4
 	};
 
+#ifdef PE_VULKAN
 
 	inline vk::SamplerAddressMode to_vk(sampler_address_mode value) noexcept
 	{
 		return vk::SamplerAddressMode(static_cast<std::underlying_type_t<sampler_address_mode>>(value));
 	}
-
+#endif
 #ifdef PE_GLES
 	inline GLuint to_gles(sampler_address_mode value) noexcept
 	{
@@ -1359,11 +1367,13 @@ namespace core::gfx
 		int_opaque_white		= 5
 	};
 
+#ifdef PE_VULKAN
 
 	inline vk::BorderColor to_vk(border_color value) noexcept
 	{
 		return vk::BorderColor(static_cast<std::underlying_type_t<border_color>>(value));
 	}
+#endif
 
 #ifdef PE_GLES
 	inline void to_gles(border_color value, GLint sampler) noexcept
@@ -1411,12 +1421,12 @@ namespace core::gfx
 
 	};
 
-
+#ifdef PE_VULKAN
 	inline vk::CompareOp to_vk(compare_op value) noexcept
 	{
 		return vk::CompareOp(static_cast<std::underlying_type_t<compare_op>>(value));
 	}
-
+#endif
 #ifdef PE_GLES
 	inline GLuint to_gles(compare_op value) noexcept
 	{
@@ -1430,7 +1440,6 @@ namespace core::gfx
 		case compare_op::not_equal: return GL_NOTEQUAL; break;
 		case compare_op::greater_equal: return GL_GEQUAL; break;
 		case compare_op::always: return GL_ALWAYS; break;
-
 		}
 		assert(false);
 		return GL_NEVER;
@@ -1444,12 +1453,12 @@ namespace core::gfx
 		cubic   = 2
 	};
 
-
+#ifdef PE_VULKAN
 	inline vk::Filter to_vk(filter value) noexcept
 	{
 		return vk::Filter(static_cast<std::underlying_type_t<filter>>(value));
 	}
-
+#endif
 #ifdef PE_GLES
 	inline GLuint to_gles(filter value) noexcept
 	{
@@ -1467,4 +1476,19 @@ namespace core::gfx
 		return GL_LINEAR;
 	}
 #endif
+
+	enum class binding_type
+	{
+		sampler,
+		combined_image_sampler,
+		sampled_image,
+		storage_image,
+		uniform_texel_buffer,
+		storage_texel_buffer,
+		uniform_buffer,
+		storage_buffer,
+		uniform_buffer_dynamic,
+		storage_buffer_dynamic,
+		input_attachment
+	};
 } // namespace core::gfx

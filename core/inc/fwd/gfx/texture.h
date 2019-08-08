@@ -15,10 +15,15 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using texture = std::variant<core::ivk::texture
+	using texture = std::variant<
+#ifdef PE_VULKAN
+		core::ivk::texture
 #ifdef PE_GLES
-								 ,
-								 core::igles::texture
+		,
 #endif
-								 >;
+#endif
+#ifdef PE_GLES
+		core::igles::texture
+#endif
+		>;
 } // namespace core::gfx

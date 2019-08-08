@@ -15,10 +15,15 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using buffer = std::variant<core::ivk::buffer
+	using buffer = std::variant<
+#ifdef PE_VULKAN
+		core::ivk::buffer
 #ifdef PE_GLES
-								 ,
-								 core::igles::buffer
+		,
 #endif
-								 >;
+#endif
+#ifdef PE_GLES
+		core::igles::buffer
+#endif
+		>;
 } // namespace core::gfx

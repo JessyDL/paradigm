@@ -35,16 +35,6 @@ systems/input_win32.cpp
 systems/input_xcb.cpp
 systems/resource.cpp
 
-vk/buffer.cpp
-vk/context.cpp
-vk/framebuffer.cpp
-vk/geometry.cpp
-vk/pipeline.cpp
-vk/sampler.cpp
-vk/shader.cpp
-vk/swapchain.cpp
-vk/texture.cpp
-
 ecs/systems/fly.cpp
 ecs/systems/render.cpp
 ecs/systems/gpu_camera.cpp
@@ -53,12 +43,31 @@ ecs/systems/lighting.cpp
 
 list(TRANSFORM SRC PREPEND src/)
 
+# include files for the Vulkan API
+if(${PE_VULKAN})
+	set(SRC_VULKAN
+	buffer.cpp
+	context.cpp
+	framebuffer.cpp
+	geometry.cpp
+	pipeline.cpp
+	sampler.cpp
+	shader.cpp
+	swapchain.cpp
+	texture.cpp
+	)
+
+	list(TRANSFORM SRC_VULKAN PREPEND src/vk/)
+endif()
+
 if(${PE_GLES})
 	set(SRC_GLES
 	context.cpp
 	shader.cpp
 	geometry.cpp
 	buffer.cpp
+	texture.cpp
+	sampler.cpp
 	)
 	list(TRANSFORM SRC_GLES PREPEND src/gles/)
 endif()

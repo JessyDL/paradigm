@@ -15,9 +15,15 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using shader = std::variant<core::ivk::shader
+	using shader = std::variant<
+#ifdef PE_VULKAN
+		core::ivk::shader
 #ifdef PE_GLES
-		, core::igles::shader
-	#endif
-	>;
+		,
+#endif
+#endif
+#ifdef PE_GLES
+		core::igles::shader
+#endif
+		>;
 } // namespace core::gfx

@@ -15,10 +15,16 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using sampler = std::variant<core::ivk::sampler
+	using sampler = std::variant<
+#ifdef PE_VULKAN
+		core::ivk::sampler
 #ifdef PE_GLES
-								,
-								 core::igles::sampler
+		,
 #endif
-								>;
+#endif
+#ifdef PE_GLES
+		core::igles::sampler
+#endif
+
+		>;
 } // namespace core::gfx

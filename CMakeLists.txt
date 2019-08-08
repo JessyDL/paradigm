@@ -31,6 +31,7 @@ set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the v
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 OPTION(PE_GLES "controls OpenGL ES support" ON)
+OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
 
 include(FindXCB)
 include(FindWayland)
@@ -70,6 +71,10 @@ endif()
 
 list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
 
+# experimental early support for not supporting vulkan
+if(${PE_VULKAN})
+	list(APPEND PE_DEFINES -DPE_VULKAN)
+endif()
 if(${PE_INSTRUCTION_SET} STREQUAL "SSE")	
 	list(APPEND PE_DEFINES -DINSTRUCTION_SET=1)
 elseif(${PE_INSTRUCTION_SET} STREQUAL "AVX")	
