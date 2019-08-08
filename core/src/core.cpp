@@ -74,6 +74,7 @@
 #include "gles/buffer.h"
 #include "gles/geometry.h"
 #include "gles/texture.h"
+#include "gles/sampler.h"
 
 using namespace core;
 using namespace core::resource;
@@ -97,7 +98,7 @@ handle<core::gfx::material> setup_example_material(resource::cache& cache, handl
 	// create the sampler
 	auto samplerData = create<data::sampler>(cache);
 	samplerData.load();
-	auto samplerHandle = create<gfx::sampler>(cache);
+	auto samplerHandle = create<ivk::sampler>(cache);
 	samplerHandle.load(context_handle, samplerData);
 
 	// load the example material
@@ -986,7 +987,7 @@ int entry()
 	//		auto ppsamplerData = create<data::sampler>(cache);
 	//		ppsamplerData.load();
 	//		ppsamplerData->mipmaps(false);
-	//		auto ppsamplerHandle = create<gfx::sampler>(cache);
+	//		auto ppsamplerHandle = create<ivk::sampler>(cache);
 	//		ppsamplerHandle.load(context_handle, ppsamplerData);
 	//		deferredData->set(ppsamplerHandle);
 	//	}
@@ -1267,6 +1268,14 @@ int gles()
 
 	auto texture = core::resource::create<core::igles::texture>(cache, "68040b49-ceac-4eab-8f12-957a7b5a1da3"_uid);
 	texture.load();
+
+	
+	// create the sampler
+	auto samplerData = create<data::sampler>(cache);
+	samplerData.load();
+	auto samplerHandle = create<igles::sampler>(cache);
+	samplerHandle.load(samplerData);
+
 	// std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
 	// std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
 
@@ -1338,10 +1347,9 @@ int gles()
 
 		glUseProgram(programObject);
 		auto error = glGetError();
-		glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
+		glActiveTexture(GL_TEXTURE0);
 		glBindTexture(GL_TEXTURE_2D, texture->id());
-		//glBindSampler()
-		error = glGetError();
+		glBindSampler(0, samplerHandle->id());
 		//glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
 		error = glGetError();
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());

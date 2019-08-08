@@ -11,7 +11,7 @@ namespace core::resource
 }
 namespace core::data
 {
-	/// \brief describes the data to build a core::gfx::sampler instance
+	/// \brief describes the data to build a core::ivk::sampler instance
 	class sampler final
 	{
 		friend class psl::serialization::accessor;
@@ -57,7 +57,7 @@ namespace core::data
 
 		/// \brief returns the max mipmap LOD this instance has set.
 		/// \returns the max mipmap LOD this instance has set.
-		/// \todo this value is currently ignored in core::core::gfx::sampler.
+		/// \todo this value is currently ignored in core::core::ivk::sampler.
 		float mip_maxlod() const;
 		/// \brief sets the minimal mipmap max LOD for this instance.
 		/// \param[in] value the value to set.
@@ -99,7 +99,7 @@ namespace core::data
 		/// \brief call this to enable or disable anisotropic filtering.
 		/// \param[in] value set to true to enable anisotropic filtering.
 		/// \note if the current core::ivk::context doesn't support anisotropic filtering, 
-		/// then this value will be ingored upstream (core::core::gfx::sampler).
+		/// then this value will be ingored upstream (core::core::ivk::sampler).
 		void anisotropic_filtering(bool value);
 
 		/// \brief returns the max anistropic value for this instance.

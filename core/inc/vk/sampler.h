@@ -13,7 +13,7 @@ namespace core::ivk
 	class context;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief sampler object for texture filtering and lookups
 	///

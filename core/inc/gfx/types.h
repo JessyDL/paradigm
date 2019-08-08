@@ -1328,6 +1328,27 @@ namespace core::gfx
 		return vk::SamplerAddressMode(static_cast<std::underlying_type_t<sampler_address_mode>>(value));
 	}
 
+#ifdef PE_GLES
+	inline GLuint to_gles(sampler_address_mode value) noexcept
+	{
+		switch(value)
+		{
+		case sampler_address_mode::repeat: return GL_REPEAT; break;
+		case sampler_address_mode::mirrored_repeat: return GL_MIRRORED_REPEAT; break;
+		case sampler_address_mode::clamp_to_edge: return GL_CLAMP_TO_EDGE; break;
+		case sampler_address_mode::clamp_to_border: return GL_CLAMP_TO_BORDER; break;
+#ifdef GL_EXT_texture_mirror_clamp
+		case sampler_address_mode::mirror_clamp_to_edge: return GL_MIRROR_CLAMP_TO_EDGE_EXT; break;
+#else
+		case sampler_address_mode::mirror_clamp_to_edge: return GL_REPEAT; break;
+#endif
+		}
+
+		assert(false);
+		return GL_REPEAT;
+	}
+#endif
+
 	enum class border_color
 	{
 		float_transparent_black = 0,
@@ -1343,6 +1364,40 @@ namespace core::gfx
 	{
 		return vk::BorderColor(static_cast<std::underlying_type_t<border_color>>(value));
 	}
+
+#ifdef PE_GLES
+	inline void to_gles(border_color value, GLint sampler) noexcept
+	{
+		float fvalues[]{0.0f, 0.0f, 0.0f, 0.0f};
+		int ivalues[]{0, 0, 0, 0};
+		switch(value)
+		{
+		case border_color::float_transparent_black:
+			glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, fvalues);
+			break;
+		case border_color::int_transparent_black:
+			glSamplerParameterIiv(sampler, GL_TEXTURE_BORDER_COLOR, ivalues);
+			break;
+		case border_color::float_opaque_black:
+			fvalues[3] = 1.0f;
+			glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, fvalues);
+			break;
+		case border_color::int_opaque_black:
+			ivalues[3] = 1;
+			glSamplerParameterIiv(sampler, GL_TEXTURE_BORDER_COLOR, ivalues);
+			break;
+		case border_color::float_opaque_white:
+			std::fill(std::begin(fvalues), std::end(fvalues), 1.0f);
+			glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, fvalues);
+			break;
+		case border_color::int_opaque_white:
+			std::fill(std::begin(ivalues), std::end(ivalues), 1);
+			glSamplerParameterIiv(sampler, GL_TEXTURE_BORDER_COLOR, ivalues);
+			break;
+		}
+	}
+#endif
+
 	enum class compare_op
 	{
 		never		  = 0,
@@ -1362,6 +1417,26 @@ namespace core::gfx
 		return vk::CompareOp(static_cast<std::underlying_type_t<compare_op>>(value));
 	}
 
+#ifdef PE_GLES
+	inline GLuint to_gles(compare_op value) noexcept
+	{
+		switch(value)
+		{
+		case compare_op::never: return GL_NEVER; break;
+		case compare_op::less: return GL_LESS; break;
+		case compare_op::equal: return GL_EQUAL; break;
+		case compare_op::less_equal: return GL_LEQUAL; break;
+		case compare_op::greater: return GL_GREATER; break;
+		case compare_op::not_equal: return GL_NOTEQUAL; break;
+		case compare_op::greater_equal: return GL_GEQUAL; break;
+		case compare_op::always: return GL_ALWAYS; break;
+
+		}
+		assert(false);
+		return GL_NEVER;
+	}
+#endif
+
 	enum class filter
 	{
 		nearest = 0,
@@ -1374,4 +1449,22 @@ namespace core::gfx
 	{
 		return vk::Filter(static_cast<std::underlying_type_t<filter>>(value));
 	}
+
+#ifdef PE_GLES
+	inline GLuint to_gles(filter value) noexcept
+	{
+		switch(value)
+		{
+		case filter::nearest: return GL_NEAREST; break;
+		case filter::linear: return GL_LINEAR; break;
+#ifdef GL_IMG_texture_filter_cubic
+		case filter::cubic: return CUBIC_IMG; break;
+#else
+		case filter::cubic: return GL_LINEAR; break;
+#endif
+		}
+		assert(false);
+		return GL_LINEAR;
+	}
+#endif
 } // namespace core::gfx

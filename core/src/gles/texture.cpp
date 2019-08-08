@@ -41,8 +41,8 @@ texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::f
 	{
 		auto result = cache.library().load(m_Meta->ID());
 		if(!result) goto fail;
-		auto texture   = gli::flip(gli::load(result.value().data(), result.value().size()));
-		m_TextureData  = new gli::texture(texture);
+		auto texture  = gli::flip(gli::load(result.value().data(), result.value().size()));
+		m_TextureData = new gli::texture(texture);
 		switch(m_Meta->image_type())
 		{
 		case vk::ImageViewType::e2D: load_2D(); break;
@@ -64,7 +64,11 @@ fail:
 	return;
 }
 
-texture::~texture() {}
+texture::~texture()
+{
+	delete(m_TextureData);
+	glDeleteTextures(1, &m_Texture);
+}
 
 void texture::load_2D()
 {
@@ -91,14 +95,9 @@ void texture::load_2D()
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);
 
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
 
-	
-	//gli::gl::format const Format = core::gfx::to_gles(m_Meta->format());
-	
+	// gli::gl::format const Format = core::gfx::to_gles(m_Meta->format());
+
 	glTexStorage2D(GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), GL_RGBA8, m_Meta->width(),
 				   m_Meta->height());
 	for(std::size_t Level = 0; Level < m_Texture2DData->levels(); ++Level)
@@ -113,7 +112,4 @@ void texture::load_2D()
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void texture::create_2D() 
-{
-
-}
+void texture::create_2D() {}

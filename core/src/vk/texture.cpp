@@ -104,9 +104,9 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 		return *(it->second);
 	}
 
-	auto samplerHandle = m_Cache.find<core::gfx::sampler>(sampler);
+	auto samplerHandle = m_Cache.find<core::ivk::sampler>(sampler);
 	if(!samplerHandle)
-		samplerHandle = core::resource::create<core::gfx::sampler>(m_Cache, sampler);
+		samplerHandle = core::resource::create<core::ivk::sampler>(m_Cache, sampler);
 
 	vk::DescriptorImageInfo* descriptor = new vk::DescriptorImageInfo();
 	descriptor->sampler					= samplerHandle->get(mip_levels());

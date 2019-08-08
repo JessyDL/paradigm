@@ -26,7 +26,7 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 		index += m_Framebuffers.size();
 	}
 
-	m_Sampler = core::resource::create_shared<core::gfx::sampler>(cache, m_Data);
+	m_Sampler = core::resource::create_shared<core::ivk::sampler>(cache, m_Data);
 	// m_Sampler.load(); // todo: this should not be working
 
 	// now we create the renderpass that describes the framebuffer
@@ -191,7 +191,7 @@ std::vector<framebuffer::attachment> framebuffer::color_attachments(uint32_t ind
 
 	return res;
 }
-core::resource::handle<core::gfx::sampler> framebuffer::sampler() const noexcept { return m_Sampler; }
+core::resource::handle<core::ivk::sampler> framebuffer::sampler() const noexcept { return m_Sampler; }
 core::resource::handle<core::data::framebuffer> framebuffer::data() const noexcept { return m_Data; }
 vk::RenderPass framebuffer::render_pass() const noexcept { return m_RenderPass; }
 const std::vector<vk::Framebuffer>& framebuffer::framebuffers() const noexcept { return m_Framebuffers; }

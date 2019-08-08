@@ -60,7 +60,7 @@ bool framebuffer::remove(const UID& uid)
 	return true;
 }
 
-void framebuffer::set(core::resource::handle<core::gfx::sampler> sampler) { m_Sampler.value = sampler.ID(); }
+void framebuffer::set(core::resource::handle<core::ivk::sampler> sampler) { m_Sampler.value = sampler.ID(); }
 
 
 const std::vector<framebuffer::attachment>& framebuffer::attachments() const { return m_Attachments.value; }

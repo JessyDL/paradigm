@@ -11,12 +11,11 @@ namespace core::ivk
 {
 	class texture;
 	class context;
+	class sampler;
 }
 
 namespace core::gfx
 {
-	class sampler;
-
 	/// \brief describes a set of images to use as rendertargets
 	///
 	/// in many graphics applications you will need to use more advanced techniques
@@ -68,7 +67,7 @@ namespace core::gfx
 		std::vector<attachment> color_attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns the sampler resource associated with this framebuffer.
-		core::resource::handle<core::gfx::sampler> sampler() const noexcept;
+		core::resource::handle<core::ivk::sampler> sampler() const noexcept;
 		/// \returns the data used to create this framebuffer
 		core::resource::handle<core::data::framebuffer> data() const noexcept;
 		/// \returns the renderpass this framebuffer created and manages.
@@ -84,7 +83,7 @@ namespace core::gfx
 
 		std::vector<core::resource::handle<core::ivk::texture>> m_Textures;
 		std::vector<binding> m_Bindings;
-		core::resource::handle<core::gfx::sampler> m_Sampler;
+		core::resource::handle<core::ivk::sampler> m_Sampler;
 		core::resource::handle<core::data::framebuffer> m_Data;
 		core::resource::handle<core::ivk::context> m_Context;
 		vk::RenderPass m_RenderPass;

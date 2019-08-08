@@ -83,7 +83,7 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 				auto ppsamplerData = create<data::sampler>(*m_Cache);
 				ppsamplerData.load();
 				ppsamplerData->mipmaps(false);
-				auto ppsamplerHandle = create<gfx::sampler>(*m_Cache);
+				auto ppsamplerHandle = create<ivk::sampler>(*m_Cache);
 				ppsamplerHandle.load(m_Context, ppsamplerData);
 				data->set(ppsamplerHandle);
 			}

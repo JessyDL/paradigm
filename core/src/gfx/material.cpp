@@ -53,7 +53,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 			{
 			case vk::DescriptorType::eCombinedImageSampler:
 			{
-				if(auto sampler_handle = cache.find<core::gfx::sampler>(binding.sampler()); sampler_handle)
+				if(auto sampler_handle = cache.find<core::ivk::sampler>(binding.sampler()); sampler_handle)
 				{
 					m_Samplers.push_back(std::make_pair(binding.binding_slot(), sampler_handle));
 				}
@@ -133,7 +133,7 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>
 {
 	return m_Textures;
 }
-const std::vector<std::pair<uint32_t, core::resource::handle<core::gfx::sampler>>>& material::samplers() const
+const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::sampler>>>& material::samplers() const
 {
 	return m_Samplers;
 }
