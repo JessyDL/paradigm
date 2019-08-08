@@ -155,7 +155,7 @@ std::vector<uint8_t> shader::descriptor::default_value() const noexcept
 	}
 	return res;
 }
-vk::DescriptorType shader::descriptor::type() const noexcept { return m_Type.value; }
+core::gfx::binding_type shader::descriptor::type() const noexcept { return m_Type.value; }
 const std::vector<shader::instance::element>& shader::descriptor::sub_elements() const noexcept
 {
 	return m_SubElements.value;
@@ -164,7 +164,7 @@ const std::vector<shader::instance::element>& shader::descriptor::sub_elements()
 void shader::descriptor::binding(uint32_t value) { m_Binding.value = value; }
 void shader::descriptor::size(uint32_t value) { m_Size.value = value; }
 void shader::descriptor::name(psl::string8::view value) { m_Name.value = value; }
-void shader::descriptor::type(vk::DescriptorType value) { m_Type.value = value; }
+void shader::descriptor::type(core::gfx::binding_type value) { m_Type.value = value; }
 void shader::descriptor::sub_elements(const std::vector<shader::instance::element>& value)
 {
 	m_SubElements.value = value;

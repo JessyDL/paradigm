@@ -51,7 +51,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 		{
 			switch(binding.descriptor())
 			{
-			case vk::DescriptorType::eCombinedImageSampler:
+			case core::gfx::binding_type::combined_image_sampler:
 			{
 				if(auto sampler_handle = cache.find<core::ivk::sampler>(binding.sampler()); sampler_handle)
 				{
@@ -81,14 +81,14 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 				}
 			}
 			break;
-			case vk::DescriptorType::eUniformBuffer:
-			case vk::DescriptorType::eStorageBuffer:
+			case core::gfx::binding_type::uniform_buffer:
+			case core::gfx::binding_type::storage_buffer:
 			{
 				//if(binding.buffer() == "MATERIAL_DATA") continue;
 				if(auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.resource_state() == core::resource::state::LOADED)
 				{
-					vk::BufferUsageFlagBits usage = (binding.descriptor() == vk::DescriptorType::eUniformBuffer)
+					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 														? vk::BufferUsageFlagBits::eUniformBuffer
 														: vk::BufferUsageFlagBits::eStorageBuffer;
 					if(buffer_handle->data()->usage() & usage)
@@ -100,7 +100,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 						core::gfx::log->error(
 							"ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
 							"the type [{2}] instead in shader [{3}]",
-							utility::to_string(ID), vk::to_string(binding.descriptor()),
+							utility::to_string(ID), vk::to_string(conversion::to_vk(binding.descriptor())),
 							vk::to_string(buffer_handle->data()->usage()), utility::to_string(stage.shader()));
 						return;
 					}

@@ -63,7 +63,7 @@ std::vector<std::pair<vk::DescriptorType, uint32_t>> fill_in_descriptors(core::r
 	{
 		for(const auto& shader_descriptor : stage.bindings())
 		{
-			descriptors.emplace_back(std::make_pair(shader_descriptor.descriptor(), shader_descriptor.binding_slot()));
+			descriptors.emplace_back(std::make_pair(conversion::to_vk(shader_descriptor.descriptor()), shader_descriptor.binding_slot()));
 		}
 	}
 	return descriptors;

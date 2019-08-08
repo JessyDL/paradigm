@@ -28,7 +28,7 @@ sampler::sampler(const psl::UID& uid, cache& cache, handle<data::sampler> sample
 	glSamplerParameterf(m_Sampler, GL_TEXTURE_MIN_LOD, sampler_data->mip_minlod());
 	glSamplerParameterf(m_Sampler, GL_TEXTURE_MAX_LOD, sampler_data->mip_maxlod());
 
-	glSamplerParameteri(m_Sampler, GL_TEXTURE_COMPARE_FUNC, to_gles(sampler_data->compare_op()));
+	glSamplerParameteri(m_Sampler, GL_TEXTURE_COMPARE_FUNC, core::gfx::conversion::to_gles(sampler_data->compare_op()));
 	// todo find GL_TEXTURE_LOD_BIAS equivalent GLES
 	// todo figure out use case for GL_TEXTURE_COMPARE_MODE
 }

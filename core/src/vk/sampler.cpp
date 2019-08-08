@@ -25,7 +25,7 @@ sampler::sampler(const UID& uid, cache& cache, handle<context> context, handle<d
 		sampler.addressModeW  = to_vk(m_Data->addressW());
 		sampler.mipLodBias	= m_Data->mip_bias();
 		sampler.compareEnable = m_Data->compare_mode();
-		sampler.compareOp	 = to_vk(m_Data->compare_op());
+		sampler.compareOp	 = conversion::to_vk(m_Data->compare_op());
 		sampler.minLod		  = m_Data->mip_minlod();
 		sampler.maxLod		  = (m_Data->mipmaps()) ? i : 1.0f; // todo: figure this out more correctly;
 		// Enable anisotropic filtering

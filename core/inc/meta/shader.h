@@ -342,7 +342,7 @@ namespace core::meta
 			/// \returns the name (optional) that can aid in giving the user information.
 			psl::string8::view name() const noexcept;
 			/// \returns the type of resource this descriptor uses in the shader module.
-			vk::DescriptorType type() const noexcept;
+			core::gfx::binding_type type() const noexcept;
 			/// \returns the set of elements that make up this descriptor resource.
 			const std::vector<instance::element>& sub_elements() const noexcept;
 
@@ -360,7 +360,7 @@ namespace core::meta
 			/// \brief sets the type of resource the shader module expects.
 			/// \param[in] value the new backing type that says what the shader module uses.
 			/// \warning this needs to be accurate, or core::ivk::pipeline will fail to be bound to this shader module.
-			void type(vk::DescriptorType value);
+			void type(core::gfx::binding_type value);
 			/// \brief sets the collection of sub-elements (1 to N) that make up this resource.
 			/// \param[in] value the new set of instance elements of this descriptor
 			void sub_elements(const std::vector<instance::element>& value);
@@ -383,7 +383,21 @@ namespace core::meta
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Binding << m_Name << m_Size << m_Type << m_SubElements;
+				s << m_Binding << m_Name << m_Size << m_SubElements;
+
+				const uint32_t current_version = 1;
+				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+				s << version;
+
+				switch(version)
+				{
+				case current_version: s << m_Type; break;
+				case 0:
+					psl::serialization::property<vk::DescriptorType, const_str("TYPE", 4)> type;
+					s << type;
+					m_Type.value = core::gfx::conversion::to_binding_type(type.value);
+					break;
+				}
 			}
 
 			/// \brief the serialization name for the psl::format::node
@@ -392,7 +406,7 @@ namespace core::meta
 			psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
 			psl::serialization::property<uint32_t, const_str("SIZE", 4)> m_Size;
 			psl::serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
-			psl::serialization::property<vk::DescriptorType, const_str("TYPE", 4)> m_Type;
+			psl::serialization::property<core::gfx::binding_type, const_str("TYPE", 4)> m_Type;
 			psl::serialization::property<std::vector<instance::element>, const_str("SUB_ELEMENTS", 12)> m_SubElements;
 		};
 
@@ -461,10 +475,11 @@ namespace core::meta
 			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
 			s << version;
 
-			switch (version)
+			switch(version)
 			{
 			case current_version: s << m_Stage << m_VertexBindings << m_Descriptors; break;
-			case 0: psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
+			case 0:
+				psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
 				s << stage;
 				m_Stage.value = gfx::to_shader_stage(stage.value);
 				s << m_VertexBindings << m_Descriptors;

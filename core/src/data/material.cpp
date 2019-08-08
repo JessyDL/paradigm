@@ -18,32 +18,32 @@ material ::~material() {}
 // blendstate
 bool material::blendstate::enabled() const { return m_Enabled.value; }
 uint32_t material::blendstate::binding() const { return m_Binding.value; }
-vk::BlendFactor material::blendstate::color_blend_src() const { return m_ColorBlendFactorSrc.value; }
-vk::BlendFactor material::blendstate::color_blend_dst() const { return m_ColorBlendFactorDst.value; }
-vk::BlendOp material::blendstate::color_blend_op() const { return m_ColorBlendOp.value; }
-vk::BlendFactor material::blendstate::alpha_blend_src() const { return m_AlphaBlendFactorSrc.value; }
-vk::BlendFactor material::blendstate::alpha_blend_dst() const { return m_AlphaBlendFactorDst.value; }
-vk::BlendOp material::blendstate::alpha_blend_op() const { return m_AlphaBlendOp.value; }
-vk::ColorComponentFlags material::blendstate::color_components() const { return m_ColorComponents.value; }
+core::gfx::blend_factor material::blendstate::color_blend_src() const { return m_ColorBlendFactorSrc.value; }
+core::gfx::blend_factor material::blendstate::color_blend_dst() const { return m_ColorBlendFactorDst.value; }
+core::gfx::blend_op material::blendstate::color_blend_op() const { return m_ColorBlendOp.value; }
+core::gfx::blend_factor material::blendstate::alpha_blend_src() const { return m_AlphaBlendFactorSrc.value; }
+core::gfx::blend_factor material::blendstate::alpha_blend_dst() const { return m_AlphaBlendFactorDst.value; }
+core::gfx::blend_op material::blendstate::alpha_blend_op() const { return m_AlphaBlendOp.value; }
+core::gfx::component_bits material::blendstate::color_components() const { return m_ColorComponents.value; }
 
 void material::blendstate::enabled(bool value) { m_Enabled.value = value; }
 void material::blendstate::binding(uint32_t value) { m_Binding.value = value; }
-void material::blendstate::color_blend_src(vk::BlendFactor value) { m_ColorBlendFactorSrc.value = value; }
-void material::blendstate::color_blend_dst(vk::BlendFactor value) { m_ColorBlendFactorDst.value = value; }
-void material::blendstate::color_blend_op(vk::BlendOp value) { m_ColorBlendOp.value = value; }
-void material::blendstate::alpha_blend_src(vk::BlendFactor value) { m_AlphaBlendFactorSrc.value = value; }
-void material::blendstate::alpha_blend_dst(vk::BlendFactor value) { m_AlphaBlendFactorDst.value = value; }
-void material::blendstate::alpha_blend_op(vk::BlendOp value) { m_AlphaBlendOp.value = value; }
-void material::blendstate::color_components(vk::ColorComponentFlags value) { m_ColorComponents.value = value; }
+void material::blendstate::color_blend_src(core::gfx::blend_factor value) { m_ColorBlendFactorSrc.value = value; }
+void material::blendstate::color_blend_dst(core::gfx::blend_factor value) { m_ColorBlendFactorDst.value = value; }
+void material::blendstate::color_blend_op(core::gfx::blend_op value) { m_ColorBlendOp.value = value; }
+void material::blendstate::alpha_blend_src(core::gfx::blend_factor value) { m_AlphaBlendFactorSrc.value = value; }
+void material::blendstate::alpha_blend_dst(core::gfx::blend_factor value) { m_AlphaBlendFactorDst.value = value; }
+void material::blendstate::alpha_blend_op(core::gfx::blend_op value) { m_AlphaBlendOp.value = value; }
+void material::blendstate::color_components(core::gfx::component_bits value) { m_ColorComponents.value = value; }
 // binding
 uint32_t material::binding::binding_slot() const { return m_Binding.value; }
-vk::DescriptorType material::binding::descriptor() const { return m_Description.value; }
+core::gfx::binding_type material::binding::descriptor() const { return m_Description.value; }
 const UID& material::binding::texture() const { return m_UID; }
 const UID& material::binding::sampler() const { return m_SamplerUID; }
 const UID& material::binding::buffer() const { return m_Buffer; }
 
 void material::binding::binding_slot(uint32_t value) { m_Binding.value = value; }
-void material::binding::descriptor(vk::DescriptorType value) { m_Description.value = value; }
+void material::binding::descriptor(core::gfx::binding_type value) { m_Description.value = value; }
 void material::binding::texture(const UID& value, psl::string_view tag) { m_UID = value; m_UIDTag = tag; }
 void material::binding::sampler(const UID& value, psl::string_view tag) { m_SamplerUID = value; m_SamplerUIDTag = tag; }
 void material::binding::buffer(const UID& value, psl::string_view tag) { m_Buffer = value; m_BufferTag = tag;}
@@ -78,8 +78,8 @@ void material::stage::erase(const binding& value)
 const std::vector<material::stage>& material::stages() const { return m_Stage.value; }
 const std::vector<material::blendstate>& material::blend_states() const { return m_BlendStates.value; }
 const std::vector<psl::string8_t>& material::defines() const { return m_Defines.value; }
-vk::CullModeFlagBits material::cull_mode() const { return m_Culling.value; }
-vk::CompareOp material::depth_compare_op() const { return m_DepthCompareOp.value; }
+core::gfx::cullmode material::cull_mode() const { return m_Culling.value; }
+core::gfx::compare_op material::depth_compare_op() const { return m_DepthCompareOp.value; }
 uint32_t material::render_layer() const { return m_RenderLayer.value; }
 bool material::depth_test() const { return m_DepthTest.value; }
 bool material::depth_write() const { return m_DepthWrite.value; }
@@ -88,8 +88,8 @@ bool material::wireframe() const { return m_Wireframe.value; }
 void material::stages(const std::vector<stage>& values) { m_Stage.value = values; }
 void material::blend_states(const std::vector<blendstate>& values) { m_BlendStates.value = values; }
 void material::defines(const std::vector<psl::string8_t>& values) { m_Defines.value = values; }
-void material::cull_mode(vk::CullModeFlagBits value) { m_Culling.value = value; }
-void material::depth_compare_op(vk::CompareOp value) { m_DepthCompareOp.value = value; }
+void material::cull_mode(core::gfx::cullmode value) { m_Culling.value = value; }
+void material::depth_compare_op(core::gfx::compare_op value) { m_DepthCompareOp.value = value; }
 void material::render_layer(uint32_t value) { m_RenderLayer.value = value; }
 void material::depth_test(bool value) { m_DepthTest.value = value; }
 void material::depth_write(bool value) { m_DepthWrite.value = value; }
@@ -175,10 +175,10 @@ void material::from_shaders(psl::meta::library& library, std::vector<core::meta:
 			binding.descriptor(descr.type());
 			switch(binding.descriptor())
 			{
-				case vk::DescriptorType::eStorageBuffer:
-				case vk::DescriptorType::eStorageBufferDynamic:
-				case vk::DescriptorType::eUniformBuffer:
-				case vk::DescriptorType::eUniformBufferDynamic:
+			case core::gfx::binding_type::storage_buffer:
+			case core::gfx::binding_type::storage_buffer_dynamic:
+			case core::gfx::binding_type::uniform_buffer:
+			case core::gfx::binding_type::uniform_buffer_dynamic:
 				if(auto uid = UID::from_string(psl::string(descr.name())); uid)
 				{
 					binding.buffer(uid);
@@ -190,7 +190,7 @@ void material::from_shaders(psl::meta::library& library, std::vector<core::meta:
 						binding.buffer(res.value(), descr.name());
 				}
 				break;
-				case vk::DescriptorType::eCombinedImageSampler:
+			case core::gfx::binding_type::combined_image_sampler:
 
 				break;
 

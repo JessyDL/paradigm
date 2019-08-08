@@ -420,9 +420,12 @@ namespace core::gfx
 		stencil = 1 << 2
 	};
 
-	using image_aspect_flags = enum_flag<image_aspect>;
 
-	inline image_aspect operator|(image_aspect bit0, image_aspect bit1) { return (image_aspect_flags(bit0) | bit1); }
+	inline image_aspect operator|(image_aspect bit0, image_aspect bit1)
+	{
+		using image_aspect_flags = enum_flag<image_aspect>;
+		return (image_aspect_flags(bit0) | bit1);
+	}
 #ifdef PE_VULKAN
 	inline vk::ImageAspectFlags to_vk(image_aspect value) noexcept
 	{
@@ -431,10 +434,7 @@ namespace core::gfx
 
 	inline image_aspect to_image_aspect(vk::ImageAspectFlags value) noexcept
 	{
-		auto underlaying = static_cast<VkImageAspectFlags>(value);
-		return image_aspect{0};
-		// return
-		// image_aspect{static_cast<std::underlying_type_t<VkImageAspectFlags>>(static_cast<VkImageAspectFlags>(value))};
+		return image_aspect(static_cast<VkImageAspectFlags>(value));
 	}
 
 #endif
@@ -451,9 +451,12 @@ namespace core::gfx
 		input_attachment		= 1 << 7
 	};
 
-	using image_usage_flags = enum_flag<image_usage>;
 
-	inline image_usage operator|(image_usage bit0, image_usage bit1) { return image_usage_flags(bit0) | bit1; }
+	inline image_usage operator|(image_usage bit0, image_usage bit1)
+	{
+		using image_usage_flags = enum_flag<image_usage>;
+		return image_usage_flags(bit0) | bit1;
+	}
 
 #ifdef PE_VULKAN
 	inline vk::ImageUsageFlags to_vk(image_usage value) noexcept
@@ -463,13 +466,50 @@ namespace core::gfx
 
 	inline image_usage to_image_usage(vk::ImageUsageFlags value) noexcept
 	{
-		auto underlaying = static_cast<VkImageUsageFlags>(value);
-		return image_usage{0};
-		// return image_usage{
-		//	static_cast<std::underlying_type_t<VkImageUsageFlags>>(static_cast<VkImageUsageFlags>(value))};
+		return image_usage(static_cast<VkImageUsageFlags>(value));
 	}
 
 #endif
+
+	enum class component_bits
+	{
+		r = 1 << 0,
+		g = 1 << 1,
+		b = 1 << 2,
+		a = 1 << 3,
+		x = r,
+		y = g,
+		z = b,
+		w = a
+	};
+
+	inline component_bits operator|(component_bits bit0, component_bits bit1)
+	{
+		using component_bit_flags = enum_flag<component_bits>;
+		return component_bit_flags(bit0) | bit1;
+	}
+
+	namespace conversion
+	{
+#ifdef PE_VULKAN
+		inline vk::ColorComponentFlags to_vk(component_bits value) noexcept
+		{
+			return vk::ColorComponentFlags{
+				vk::ColorComponentFlagBits{static_cast<std::underlying_type_t<component_bits>>(value)}};
+		}
+		inline component_bits to_component_bits(vk::ColorComponentFlags value) noexcept
+		{
+			return component_bits(static_cast<VkColorComponentFlags>(value));
+		}
+
+
+#endif
+
+#ifdef PE_GLES
+
+#endif
+	} // namespace conversion
+
 
 	// based on https://github.com/KhronosGroup/KTX-Specification/blob/master/formats.json
 	enum class format
@@ -942,9 +982,10 @@ namespace core::gfx
 		internalFormat = -1;
 		switch(value)
 		{
-		case format::undefined: internalFormat = 0; 
-			format							   = 0;
-			type							   = 0;
+		case format::undefined:
+			internalFormat = 0;
+			format		   = 0;
+			type		   = 0;
 			break;
 		case format::b4g4r4a4_unorm_pack16:
 			internalFormat = GL_RGBA4;
@@ -1609,6 +1650,45 @@ namespace core::gfx
 	}
 #endif
 
+	enum class cullmode
+	{
+		none  = 0,
+		front = 1,
+		back  = 2,
+		all   = 3
+	};
+
+	namespace conversion
+	{
+#ifdef PE_VULKAN
+		inline vk::CullModeFlags to_vk(cullmode value) noexcept
+		{
+			return vk::CullModeFlags(static_cast<std::underlying_type_t<cullmode>>(value));
+		}
+
+		inline cullmode to_cullmode(vk::CullModeFlags value) noexcept
+		{
+			return cullmode(static_cast<VkCullModeFlags>(value));
+		}
+
+#endif
+#ifdef PE_GLES
+		inline GLuint to_gles(cullmode value) noexcept
+		{
+			switch(value)
+			{
+			case cullmode::none: return GL_NONE; break;
+			case cullmode::front: return GL_FRONT; break;
+			case cullmode::back: return GL_BACK; break;
+			case cullmode::all: return GL_FRONT_AND_BACK; break;
+			}
+			assert(false);
+			return GL_BACK;
+		}
+#endif
+	} // namespace conversion
+
+
 	enum class compare_op
 	{
 		never		  = 0,
@@ -1621,31 +1701,39 @@ namespace core::gfx
 		always		  = 7
 
 	};
-
-#ifdef PE_VULKAN
-	inline vk::CompareOp to_vk(compare_op value) noexcept
+	namespace conversion
 	{
-		return vk::CompareOp(static_cast<std::underlying_type_t<compare_op>>(value));
-	}
+#ifdef PE_VULKAN
+		inline vk::CompareOp to_vk(compare_op value) noexcept
+		{
+			return vk::CompareOp(static_cast<std::underlying_type_t<compare_op>>(value));
+		}
+
+		inline compare_op to_compare_op(vk::CompareOp value) noexcept
+		{
+			return compare_op(static_cast<std::underlying_type_t<vk::CompareOp>>(value));
+		}
 #endif
 #ifdef PE_GLES
-	inline GLuint to_gles(compare_op value) noexcept
-	{
-		switch(value)
+		inline GLuint to_gles(compare_op value) noexcept
 		{
-		case compare_op::never: return GL_NEVER; break;
-		case compare_op::less: return GL_LESS; break;
-		case compare_op::equal: return GL_EQUAL; break;
-		case compare_op::less_equal: return GL_LEQUAL; break;
-		case compare_op::greater: return GL_GREATER; break;
-		case compare_op::not_equal: return GL_NOTEQUAL; break;
-		case compare_op::greater_equal: return GL_GEQUAL; break;
-		case compare_op::always: return GL_ALWAYS; break;
+			switch(value)
+			{
+			case compare_op::never: return GL_NEVER; break;
+			case compare_op::less: return GL_LESS; break;
+			case compare_op::equal: return GL_EQUAL; break;
+			case compare_op::less_equal: return GL_LEQUAL; break;
+			case compare_op::greater: return GL_GREATER; break;
+			case compare_op::not_equal: return GL_NOTEQUAL; break;
+			case compare_op::greater_equal: return GL_GEQUAL; break;
+			case compare_op::always: return GL_ALWAYS; break;
+			}
+			assert(false);
+			return GL_NEVER;
 		}
-		assert(false);
-		return GL_NEVER;
-	}
 #endif
+
+	} // namespace conversion
 
 	enum class filter
 	{
@@ -1694,23 +1782,147 @@ namespace core::gfx
 		input_attachment
 	};
 
-#ifdef PE_VULKAN
-	inline vk::DescriptorType to_vk(binding_type value) noexcept
+	namespace conversion
 	{
-		switch(value)
+#ifdef PE_VULKAN
+		inline vk::DescriptorType to_vk(binding_type value) noexcept
 		{
-		case binding_type::sampler: return vk::DescriptorType::eSampler; break;
-		case binding_type::combined_image_sampler: return vk::DescriptorType::eCombinedImageSampler; break;
-		case binding_type::sampled_image: return vk::DescriptorType::eSampledImage; break;
-		case binding_type::storage_image: return vk::DescriptorType::eStorageImage; break;
-		case binding_type::uniform_texel_buffer: return vk::DescriptorType::eUniformTexelBuffer; break;
-		case binding_type::storage_texel_buffer: return vk::DescriptorType::eStorageTexelBuffer; break;
-		case binding_type::uniform_buffer: return vk::DescriptorType::eUniformBuffer; break;
-		case binding_type::storage_buffer: return vk::DescriptorType::eStorageBuffer; break;
-		case binding_type::uniform_buffer_dynamic: return vk::DescriptorType::eUniformBufferDynamic; break;
-		case binding_type::storage_buffer_dynamic: return vk::DescriptorType::eStorageBufferDynamic; break;
-		case binding_type::input_attachment: return vk::DescriptorType::eInputAttachment; break;
+			switch(value)
+			{
+			case binding_type::sampler: return vk::DescriptorType::eSampler; break;
+			case binding_type::combined_image_sampler: return vk::DescriptorType::eCombinedImageSampler; break;
+			case binding_type::sampled_image: return vk::DescriptorType::eSampledImage; break;
+			case binding_type::storage_image: return vk::DescriptorType::eStorageImage; break;
+			case binding_type::uniform_texel_buffer: return vk::DescriptorType::eUniformTexelBuffer; break;
+			case binding_type::storage_texel_buffer: return vk::DescriptorType::eStorageTexelBuffer; break;
+			case binding_type::uniform_buffer: return vk::DescriptorType::eUniformBuffer; break;
+			case binding_type::storage_buffer: return vk::DescriptorType::eStorageBuffer; break;
+			case binding_type::uniform_buffer_dynamic: return vk::DescriptorType::eUniformBufferDynamic; break;
+			case binding_type::storage_buffer_dynamic: return vk::DescriptorType::eStorageBufferDynamic; break;
+			case binding_type::input_attachment: return vk::DescriptorType::eInputAttachment; break;
+			}
+			assert(false);
+			return vk::DescriptorType{0};
 		}
-	}
+
+		inline binding_type to_binding_type(vk::DescriptorType value) noexcept 
+		{
+			switch(value)
+			{
+			case vk::DescriptorType::eSampler: return binding_type::sampler; break;
+			case vk::DescriptorType::eCombinedImageSampler: return binding_type::combined_image_sampler; break;
+			case vk::DescriptorType::eSampledImage: return binding_type::sampled_image; break;
+			case vk::DescriptorType::eStorageImage: return binding_type::storage_image; break;
+			case vk::DescriptorType::eUniformTexelBuffer: return binding_type::uniform_texel_buffer; break;
+			case vk::DescriptorType::eStorageTexelBuffer: return binding_type::storage_texel_buffer; break;
+			case vk::DescriptorType::eUniformBuffer: return binding_type::uniform_buffer; break;
+			case vk::DescriptorType::eStorageBuffer: return binding_type::storage_buffer; break;
+			case vk::DescriptorType::eUniformBufferDynamic: return binding_type::uniform_buffer_dynamic; break;
+			case vk::DescriptorType::eStorageBufferDynamic: return binding_type::storage_buffer_dynamic; break;
+			case vk::DescriptorType::eInputAttachment: return binding_type::input_attachment; break;
+			}
+			assert(false);
+			return binding_type{0};
+		}
 #endif
+	} // namespace conversion
+	enum class blend_op
+	{
+		add				 = 0,
+		subtract		 = 1,
+		reverse_subtract = 2,
+		min				 = 3,
+		max				 = 4
+	};
+
+	namespace conversion
+	{
+#ifdef PE_VULKAN
+		inline vk::BlendOp to_vk(blend_op value) noexcept
+		{
+			return vk::BlendOp{static_cast<std::underlying_type_t<blend_op>>(value)};
+		}
+
+		inline blend_op to_blend_op(vk::BlendOp value) noexcept
+		{
+			return blend_op(static_cast<std::underlying_type_t<vk::BlendOp>>(value));
+		}
+#endif
+
+#ifdef PE_GLES
+		inline GLuint to_gles(blend_op value) noexcept
+		{
+			switch(value)
+			{
+			case blend_op::add: return GL_FUNC_ADD; break;
+			case blend_op::subtract: return GL_FUNC_SUBTRACT; break;
+			case blend_op::reverse_subtract: return GL_FUNC_REVERSE_SUBTRACT; break;
+			case blend_op::min: return GL_MIN; break;
+			case blend_op::max: return GL_MAX; break;
+			}
+			assert(false);
+			return GL_FUNC_ADD;
+		}
+#endif
+	} // namespace conversion
+
+	enum class blend_factor
+	{
+		zero						= 0,
+		one							= 1,
+		source_color				= 2,
+		one_minus_source_color		= 3,
+		dst_color					= 4,
+		one_minus_destination_color = 5,
+		source_alpha				= 6,
+		one_minus_source_alpha		= 7,
+		dst_alpha					= 8,
+		one_minus_destination_alpha = 9,
+		constant_color				= 10,
+		one_minus_constant_color	= 11,
+		constant_alpha				= 12,
+		one_minus_constant_alpha	= 13,
+		source_alpha_saturate		= 14,
+	};
+
+	namespace conversion
+	{
+#ifdef PE_VULKAN
+		inline vk::BlendFactor to_vk(blend_factor value) noexcept
+		{
+			return vk::BlendFactor{static_cast<std::underlying_type_t<blend_factor>>(value)};
+		}
+
+		inline blend_factor to_blend_factor(vk::BlendFactor value) noexcept
+		{
+			return blend_factor(static_cast<std::underlying_type_t<vk::BlendFactor>>(value));
+		}
+#endif
+
+#ifdef PE_GLES
+		inline GLuint to_gles(blend_factor value) noexcept
+		{
+			switch(value)
+			{
+			case blend_factor::zero: return GL_ZERO; break;
+			case blend_factor::one: return GL_ONE; break;
+			case blend_factor::source_color: return GL_SRC_COLOR; break;
+			case blend_factor::one_minus_source_color: return GL_ONE_MINUS_SRC_COLOR; break;
+			case blend_factor::dst_color: return GL_DST_COLOR; break;
+			case blend_factor::one_minus_destination_color: return GL_ONE_MINUS_DST_COLOR; break;
+			case blend_factor::source_alpha: return GL_SRC_ALPHA; break;
+			case blend_factor::one_minus_source_alpha: return GL_ONE_MINUS_SRC_ALPHA; break;
+			case blend_factor::dst_alpha: return GL_DST_ALPHA; break;
+			case blend_factor::one_minus_destination_alpha: return GL_ONE_MINUS_DST_ALPHA; break;
+			case blend_factor::constant_color: return GL_CONSTANT_COLOR; break;
+			case blend_factor::one_minus_constant_color: return GL_ONE_MINUS_CONSTANT_COLOR; break;
+			case blend_factor::constant_alpha: return GL_CONSTANT_ALPHA; break;
+			case blend_factor::one_minus_constant_alpha: return GL_ONE_MINUS_CONSTANT_ALPHA; break;
+			case blend_factor::source_alpha_saturate: return GL_SRC_ALPHA_SATURATE; break;
+			}
+			assert(false);
+			return GL_FUNC_ADD;
+		}
+#endif
+	} // namespace conversion
 } // namespace core::gfx
