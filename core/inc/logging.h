@@ -15,6 +15,10 @@ namespace core
 	{
 		extern std::shared_ptr<spdlog::logger> log;
 	}
+	namespace igles
+	{
+		extern std::shared_ptr<spdlog::logger> log;
+	}
 	namespace data
 	{
 		extern std::shared_ptr<spdlog::logger> log;

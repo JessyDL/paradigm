@@ -1,0 +1,119 @@
+#include "gles/texture.h"
+#include "logging.h"
+#include "meta/texture.h"
+#include "glad/glad_wgl.h"
+#ifdef fseek
+#define cached_fseek fseek
+#define cached_fclose fclose
+#define cached_fwrite fwrite
+#define cached_fread fread
+#define cached_ftell ftell
+#undef fseek
+#undef fclose
+#undef fwrite
+#undef fread
+#undef ftell
+#endif
+#include "gli/gli.hpp"
+#ifdef cached_fseek
+#define fseek cached_fseek
+#define fclose cached_fclose
+#define fwrite cached_fwrite
+#define fread cached_fread
+#define ftell cached_ftell
+#endif
+
+using namespace core::resource;
+using namespace core::igles;
+
+texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile)
+	: m_Cache(cache), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr))
+{
+	if(!m_Meta)
+	{
+		core::igles::log->error(
+			"texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
+			utility::to_string(metaFile->ID()));
+		return;
+	}
+
+	if(cache.library().is_physical_file(m_Meta->ID()))
+	{
+		auto result = cache.library().load(m_Meta->ID());
+		if(!result) goto fail;
+		auto texture   = gli::flip(gli::load(result.value().data(), result.value().size()));
+		m_TextureData  = new gli::texture(texture);
+		switch(m_Meta->image_type())
+		{
+		case vk::ImageViewType::e2D: load_2D(); break;
+		// case vk::ImageViewType::eCube: load_cube(); break;
+		default: debug_break();
+		}
+	}
+	else
+	{
+		// this is a generated file;
+		switch(m_Meta->image_type())
+		{
+		case vk::ImageViewType::e2D: create_2D(); break;
+		// case vk::ImageViewType::eCube: load_cube(); break;
+		default: debug_break();
+		}
+	}
+fail:
+	return;
+}
+
+texture::~texture() {}
+
+void texture::load_2D()
+{
+	gli::texture2d* m_Texture2DData = (gli::texture2d*)m_TextureData;
+	if(m_Texture2DData->empty())
+	{
+		LOG_ERROR("Empty texture");
+		debug_break();
+	}
+
+	if(m_Meta->width() != (uint32_t)(*m_Texture2DData)[0].extent().x)
+		m_Meta->width((uint32_t)(*m_Texture2DData)[0].extent().x);
+
+	if(m_Meta->height() != (uint32_t)(*m_Texture2DData)[0].extent().y)
+		m_Meta->height((uint32_t)(*m_Texture2DData)[0].extent().y);
+
+	if(m_Meta->depth() != (uint32_t)(*m_Texture2DData)[0].extent().z)
+		m_Meta->depth((uint32_t)(*m_Texture2DData)[0].extent().z);
+
+	m_MipLevels = (uint32_t)m_Texture2DData->levels();
+	m_Meta->mip_levels(m_MipLevels);
+
+
+	glGenTextures(1, &m_Texture);
+	glBindTexture(GL_TEXTURE_2D, m_Texture);
+
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	
+	//gli::gl::format const Format = core::gfx::to_gles(m_Meta->format());
+	
+	glTexStorage2D(GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), GL_RGBA8, m_Meta->width(),
+				   m_Meta->height());
+	for(std::size_t Level = 0; Level < m_Texture2DData->levels(); ++Level)
+	{
+		auto extent = m_Texture2DData->extent(Level);
+		glTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y, GL_RGBA, GL_UNSIGNED_BYTE,
+						m_Texture2DData->data(0, 0, Level));
+		/*glCompressedTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y, GL_RGBA,
+								  static_cast<GLsizei>(m_Texture2DData->size(Level)),
+								  m_Texture2DData->data(0, 0, Level));*/
+	}
+	glBindTexture(GL_TEXTURE_2D, 0);
+}
+
+void texture::create_2D() 
+{
+
+}

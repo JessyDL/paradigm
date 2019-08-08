@@ -15,7 +15,7 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using context = std::variant<core::ivk::shader
+	using shader = std::variant<core::ivk::shader
 #ifdef PE_GLES
 		, core::igles::shader
 	#endif

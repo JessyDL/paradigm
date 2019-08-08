@@ -5,20 +5,20 @@
 #ifdef PE_GLES
 namespace core::igles
 {
-	class buffer;
+	class texture;
 }
 #endif
 
 namespace core::ivk
 {
-	class buffer;
+	class texture;
 }
 namespace core::gfx
 {
-	using buffer = std::variant<core::ivk::buffer
+	using texture = std::variant<core::ivk::texture
 #ifdef PE_GLES
 								 ,
-								 core::igles::buffer
+								 core::igles::texture
 #endif
 								 >;
 } // namespace core::gfx

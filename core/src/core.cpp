@@ -73,6 +73,7 @@
 #include "gles/shader.h"
 #include "gles/buffer.h"
 #include "gles/geometry.h"
+#include "gles/texture.h"
 
 using namespace core;
 using namespace core::resource;
@@ -168,6 +169,9 @@ void setup_loggers()
 	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "ivk.log", true);
 
+	auto igleslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+		utility::application::path::get_path() + sub_path + "igles.log", true);
+
 	auto gfxlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "gfx.log", true);
 
@@ -237,6 +241,15 @@ void setup_loggers()
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
 	spdlog::register_logger(ivk_logger);
 	core::ivk::log = ivk_logger;
+
+	sinks.clear();
+	sinks.push_back(mainlogger);
+	// sinks.push_back(outlogger);
+	sinks.push_back(igleslogger);
+
+	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
+	spdlog::register_logger(igles_logger);
+	core::ivk::log = igles_logger;
 
 	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
@@ -1252,6 +1265,8 @@ int gles()
 		return 1;
 	}
 
+	auto texture = core::resource::create<core::igles::texture>(cache, "68040b49-ceac-4eab-8f12-957a7b5a1da3"_uid);
+	texture.load();
 	// std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
 	// std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
 
@@ -1277,7 +1292,7 @@ int gles()
 	std::vector<resource::handle<igles::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
 	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
 	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
 	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
 	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
@@ -1314,6 +1329,7 @@ int gles()
 		geometryHandles[geometryHandles.size() - 1].load(handle, vertexBuffer, indexBuffer);
 	}
 
+
 	while(surface_handle->tick())
 	{
 		/* Render here */
@@ -1321,11 +1337,17 @@ int gles()
 		glClearColor(0.2f, 0.5f, 0.6f, 1.0f);
 
 		glUseProgram(programObject);
-
+		auto error = glGetError();
+		glActiveTexture(GL_TEXTURE0); // activate the texture unit first before binding texture
+		glBindTexture(GL_TEXTURE_2D, texture->id());
+		//glBindSampler()
+		error = glGetError();
+		//glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
+		error = glGetError();
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
 
-		geometryHandles[std::rand() % geometryHandles.size()]->bind();
-
+		//geometryHandles[std::rand() % geometryHandles.size()]->bind();
+		geometryHandles[2]->bind();
 		glFinish();
 		context_handle->swapbuffers(surface_handle);
 	}

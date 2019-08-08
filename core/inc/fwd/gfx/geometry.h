@@ -15,7 +15,7 @@ namespace core::ivk
 }
 namespace core::gfx
 {
-	using context = std::variant<core::ivk::geometry
+	using geometry = std::variant<core::ivk::geometry
 #ifdef PE_GLES
 								 ,
 								 core::igles::geometry

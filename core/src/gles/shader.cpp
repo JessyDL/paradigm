@@ -9,7 +9,7 @@ using namespace psl;
 using namespace core::igles;
 using namespace core::resource;
 
-shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile)
+shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile) : m_Shader{0}
 {
 	auto meta = cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr);
 
@@ -60,8 +60,8 @@ shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::fil
 		core::ivk::log->error("could not compile igles::shader [{0}] from resource UID [{1}] with message: {2}",
 							  uid.to_string(), meta->ID().to_string(), infoLen);
 	}
-
-	m_Shader = shader;
+	else
+		m_Shader = shader;
 }
 
 shader::~shader() { glDeleteShader(m_Shader); }
