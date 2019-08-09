@@ -10,7 +10,9 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-buffer::buffer(const psl::UID& uid, cache& cache, handle<context> context, handle<data::buffer> data) : m_Handle(cache)
+buffer::buffer(const psl::UID& uid, cache& cache, psl::meta::file* meta, handle<context> context,
+			   handle<data::buffer> data)
+	: m_Handle(cache, uid, (meta)?meta->ID(): uid)
 {
 	switch(context->backend())
 	{

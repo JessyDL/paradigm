@@ -81,6 +81,7 @@
 #include "gfx/context.h"
 #include "gfx/buffer.h"
 #include "gfx/geometry.h"
+#include "gfx/texture.h"
 
 #include "resource/variant_handle.h"
 
@@ -701,10 +702,15 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 			core::resource::handle<core::os::surface> surface_handle,
 	core::resource::handle<core::gfx::context> gfx_context_handle,
 	core::resource::handle<core::gfx::buffer> gfx_matBuffer,
-	std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles)
+			std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles,
+			psl::array<core::resource::handle<core::gfx::texture>> textures)
 {
 	auto context_handle = gfx_context_handle->resource().get<core::ivk::context>();
 	auto matBuffer		= gfx_matBuffer->resource().get<core::ivk::buffer>();
+	auto frameCamBuffer =
+		cache.find<core::gfx::buffer>(cache.library().find("GLOBAL_WORLD_VIEW_PROJECTION_MATRIX").value())
+			->resource()
+			.get<core::ivk::buffer>();
 
 	
 	auto swapchain_handle = create<core::ivk::swapchain>(cache);
@@ -719,30 +725,13 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 	auto stagingBuffer = create<ivk::buffer>(cache);
 	stagingBuffer.load(context_handle, stagingBufferData);
 
-	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto frameCamBufferData = create<data::buffer>(cache);
-	frameCamBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
-							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-							resource_region
-								.create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
-											   context_handle->properties().limits.minUniformBufferOffsetAlignment,
-											   new memory::default_allocator(true))
-								.value());
-	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
-	// memory::default_allocator(true)});
-	auto frameCamBuffer = create<ivk::buffer>(cache);
-	frameCamBuffer.load(context_handle, frameCamBufferData);
-	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
-
-
+	
 	// create a pipeline cache
 	auto pipeline_cache = create<core::ivk::pipeline_cache>(cache);
 	pipeline_cache.load(context_handle);
 
-	auto material		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
-											 "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
-	auto material2		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer,
-											 "7f24e25c-8b94-4da4-8a31-493815889698"_uid);
+	auto material		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer, textures[0].RUID());
+	auto material2		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer, textures[1].RUID());
 	auto depth_material = setup_depth_material(cache, context_handle, pipeline_cache, matBuffer);
 
 	auto instanceBufferData = create<data::buffer>(cache);
@@ -907,15 +896,13 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 void gles(core::resource::cache& cache, core::resource::handle<core::os::surface> surface_handle,
 		  core::resource::handle<core::gfx::context> context_handle,
 		  core::resource::handle<core::gfx::buffer> matBuffer,
-		  std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles)
+		  std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles,
+		  psl::array<core::resource::handle<core::gfx::texture>> textures)
 {
 
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("f889c133-1ec0-44ea-9209-251cd236f887"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
-
-	auto textureHandle = create<igles::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
-	textureHandle.load();
-
+	
 	// create the sampler
 	auto samplerData = create<data::sampler>(cache);
 	samplerData.load();
@@ -933,7 +920,7 @@ void gles(core::resource::cache& cache, core::resource::handle<core::os::surface
 		if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
 
 		auto bindings = stage.bindings();
-		bindings[0].texture(textureHandle.RUID());
+		bindings[0].texture(textures[0].RUID());
 		bindings[0].sampler(samplerHandle.RUID());
 		stage.bindings(bindings);
 	}
@@ -998,21 +985,27 @@ int entry(gfx::graphics_backend backend)
 		return -1;
 	}
 
-	auto matBufferData = create<data::buffer>(cache);
-	int align		   = 4;
+	auto matBufferData		 = create<data::buffer>(cache);
+	int storage_buffer_align = 4;
+	int uniform_buffer_align = 4;
 	switch(backend)
 	{
-	case graphics_backend::gles: glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &align); break;
+	case graphics_backend::gles: glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &storage_buffer_align); 
+		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &uniform_buffer_align);
+		break;
 	case graphics_backend::vulkan:
-		align =
+		storage_buffer_align =
 			context_handle->resource().get<core ::ivk::context>()->properties().limits.minStorageBufferOffsetAlignment;
+		uniform_buffer_align =
+			context_handle->resource().get<core ::ivk::context>()->properties().limits.minUniformBufferOffsetAlignment;
 		break;
 	}
 
 	matBufferData.load(
 		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
 		vk::MemoryPropertyFlagBits::eDeviceLocal,
-		memory::region{1024 * 1024 * 32, static_cast<uint64_t>(align), new memory::default_allocator(false)});
+					   memory::region{1024 * 1024 * 32, static_cast<uint64_t>(storage_buffer_align),
+									  new memory::default_allocator(false)});
 	auto matBuffer = create<gfx::buffer>(cache);
 	matBuffer.load(context_handle, matBufferData);
 
@@ -1077,12 +1070,34 @@ int entry(gfx::graphics_backend backend)
 
 	// still todo
 
+	psl::array<core::resource::handle<core::gfx::texture>> textures;
+	textures.emplace_back(create<core::gfx::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid));
+	textures.emplace_back(create<core::gfx::texture>(cache, "7f24e25c-8b94-4da4-8a31-493815889698"_uid));
+
+	for(auto& texture : textures) texture.load(context_handle);
+
+	// create the buffer that we'll use for storing the WVP for the shaders;
+	auto frameCamBufferData = create<data::buffer>(cache);
+	frameCamBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
+							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+							resource_region
+								.create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
+											   uniform_buffer_align,
+											   new memory::default_allocator(true))
+								.value());
+	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
+	// memory::default_allocator(true)});
+	auto frameCamBuffer = create<gfx::buffer>(cache);
+	frameCamBuffer.load(context_handle, frameCamBufferData);
+	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
 	switch(backend)
 	{
-	case graphics_backend::gles: gles(cache, surface_handle, context_handle, matBuffer, geometryHandles); break;
+	case graphics_backend::gles:
+		gles(cache, surface_handle, context_handle, matBuffer, geometryHandles, textures);
+		break;
 	case graphics_backend::vulkan:
-		vulkan(resource_region, cache, surface_handle, context_handle, matBuffer, geometryHandles);
+		vulkan(resource_region, cache, surface_handle, context_handle, matBuffer, geometryHandles, textures);
 		break;
 	}
 	return 0;

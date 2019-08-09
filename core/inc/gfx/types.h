@@ -333,6 +333,10 @@ namespace core::gfx
 		{
 			return GL_SHADER_STORAGE_BUFFER;
 		}
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_buffer))
+		{
+			return GL_UNIFORM_BUFFER;
+		}
 
 		assert(false);
 		return -1;

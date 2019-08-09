@@ -33,7 +33,7 @@ namespace core::gfx
 #endif
 			>;
 	  public:
-		buffer(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context,
+		buffer(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* meta, core::resource::handle<core::gfx::context> context,
 			   core::resource::handle<core::data::buffer> data);
 
 		~buffer();

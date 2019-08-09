@@ -59,7 +59,7 @@
 #ifdef DEBUG
 #define VULKAN_ENABLE_VALIDATION true
 #else
-#define VULKAN_ENABLE_VALIDATION false
+#define VULKAN_ENABLE_VALIDATION true
 #endif
 
 
