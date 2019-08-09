@@ -52,6 +52,7 @@ texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::f
 	}
 	else
 	{
+		
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
@@ -103,9 +104,6 @@ void texture::load_2D()
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);
 
-
-	// gli::gl::format const Format = core::gfx::to_gles(m_Meta->format());
-
 	glTexStorage2D(GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), internalFormat, m_Meta->width(),
 				   m_Meta->height());
 
@@ -122,11 +120,16 @@ void texture::load_2D()
 		{
 			auto size = static_cast<GLsizei>(m_Texture2DData->size(Level));
 			glCompressedTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y,
-									  internalFormat, size,
-									  m_Texture2DData->data(0, 0, Level));
+									  internalFormat, size, m_Texture2DData->data(0, 0, Level));
 		}
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void texture::create_2D() {}
+void texture::create_2D() 
+{
+	glGenTextures(1, &m_Texture);
+	glBindTexture(GL_TEXTURE_2D, m_Texture);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_Meta->width(), m_Meta->height(), 0, GL_RGBA, GL_FLOAT, nullptr);
+}

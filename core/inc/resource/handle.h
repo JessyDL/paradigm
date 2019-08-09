@@ -14,10 +14,18 @@ namespace core::resource
 	class handle final
 	{
 		friend class resource::cache;
-
+		friend class handle;
 		friend class indirect_handle<T>;
 		handle(resource::cache& cache, const psl::UID& uid, std::shared_ptr<details::container<T>>& container)
 			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(container){};
+
+
+		void registrate() 
+		{
+			PROFILE_SCOPE(core::profiler)
+			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
+						 m_Container->m_State, m_Container->m_vTable);
+		}
 
 	  public:
 		handle()
@@ -29,9 +37,7 @@ namespace core::resource
 			: m_Cache(&cache), uid(cache.library().create().first),
 			  m_Container(std::make_shared<details::container<T>>()), resource_uid(uid)
 		{
-			PROFILE_SCOPE(core::profiler)
-			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
-						 m_Container->m_State, m_Container->m_vTable);
+			registrate();
 		};
 
 		/// \note only used in the scenario of "create_shared"
@@ -106,8 +112,7 @@ namespace core::resource
 		bool load(Args&&... args)
 		{
 			PROFILE_SCOPE(core::profiler)
-			if constexpr(std::is_constructible<T, const psl::UID&, resource::cache&, psl::meta::file*,
-													Args...>::value)
+			if constexpr(std::is_constructible<T, const psl::UID&, resource::cache&, psl::meta::file*, Args...>::value)
 			{
 				if(!uid) return false;
 
@@ -145,6 +150,35 @@ namespace core::resource
 				{
 					m_Container->m_State = state::LOADING;
 					if(m_Container->set(uid, *m_Cache, std::forward<Args>(args)...))
+					{
+						if constexpr(psl::serialization::details::is_collection<T>::value)
+						{
+							if(auto result = m_Cache->library().load(resource_uid); result)
+							{
+								psl::serialization::serializer s;
+								psl::format::container cont{result.value()};
+								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
+																						 cont);
+							}
+						}
+						m_Container->m_State = state::LOADED;
+					}
+					else
+					{
+						m_Container->m_State = state::INVALID;
+					}
+				}
+
+				return m_Container->m_State == state::LOADED;
+			}
+			else if constexpr(std::is_constructible<T, Args...>::value)
+			{
+				if(!uid) return false;
+
+				if(m_Container->m_State == state::NOT_LOADED || m_Container->m_State == state::UNLOADED)
+				{
+					m_Container->m_State = state::LOADING;
+					if(m_Container->set(*m_Cache, std::forward<Args>(args)...))
 					{
 						if constexpr(psl::serialization::details::is_collection<T>::value)
 						{
@@ -246,7 +280,7 @@ namespace core::resource
 		const resource::cache& cache() const noexcept { return *m_Cache; };
 		resource::cache& cache() noexcept { return *m_Cache; };
 
-	  private:
+	  protected:
 		resource::cache* m_Cache;
 		psl::UID uid;		   // my actual UID
 		psl::UID resource_uid; // the disk based resource I'm based on, this can be the same like my actual uid if I'm a
@@ -337,4 +371,6 @@ namespace core::resource
 		cache* m_Cache{nullptr};
 		psl::UID m_UID{};
 	};
-}
+} // namespace core::resource
+
+#include "variant_handle.h"

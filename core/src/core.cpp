@@ -77,6 +77,13 @@
 #include "gles/sampler.h"
 #include "gles/material.h"
 
+
+#include "gfx/context.h"
+#include "gfx/buffer.h"
+#include "gfx/geometry.h"
+
+#include "resource/variant_handle.h"
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -644,35 +651,65 @@ auto scaleSystem =
 	};
 
 
-int entry()
+#if defined(PLATFORM_ANDROID)
+static bool initialized = false;
+
+// todo deal with this extern
+android_app* platform::specifics::android_application;
+
+void handleAppCommand(android_app* app, int32_t cmd)
 {
-
-	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
-
-	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{"vulkan"}}}, resource_region.allocator()};
-
-	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-	window_data.load();
-
-	auto surface_handle = create<surface>(cache);
-	if(!surface_handle.load(window_data))
+	switch(cmd)
 	{
-		core::log->critical("Could not create a OS surface to draw on.");
-		return -1;
+	case APP_CMD_INIT_WINDOW: initialized = true; break;
+	}
+}
+
+int32_t handleAppInput(struct android_app* app, AInputEvent* event) {}
+
+void android_main(android_app* application)
+{
+	application->onAppCmd = handleAppCommand;
+	// Screen density
+	AConfiguration* config = AConfiguration_new();
+	AConfiguration_fromAssetManager(config, application->activity->assetManager);
+	// vks::android::screenDensity = AConfiguration_getDensity(config);
+	AConfiguration_delete(config);
+
+	while(!initialized)
+	{
+		int ident;
+		int events;
+		struct android_poll_source* source;
+		bool destroy = false;
+
+		while((ident = ALooper_pollAll(0, NULL, &events, (void**)&source)) >= 0)
+		{
+			if(source != NULL)
+			{
+				source->process(application, source);
+			}
+		}
 	}
 
-	auto context_handle = create<core::ivk::context>(cache);
-	if(!context_handle.load(APPLICATION_FULL_NAME, 0))
-	{
-		core::log->critical("Could not create graphics API surface to use for drawing.");
-		return -1;
-	}
+	platform::specifics::android_application = application;
+	android_entry();
+}
+#elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
 
+void vulkan(memory::region& resource_region, core::resource::cache& cache,
+			core::resource::handle<core::os::surface> surface_handle,
+	core::resource::handle<core::gfx::context> gfx_context_handle,
+	core::resource::handle<core::gfx::buffer> gfx_matBuffer,
+	std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles)
+{
+	auto context_handle = gfx_context_handle->resource().get<core::ivk::context>();
+	auto matBuffer		= gfx_matBuffer->resource().get<core::ivk::buffer>();
+
+	
 	auto swapchain_handle = create<core::ivk::swapchain>(cache);
 	swapchain_handle.load(surface_handle, context_handle);
 	surface_handle->register_swapchain(swapchain_handle);
-	context_handle->device().waitIdle();
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	auto stagingBufferData = create<data::buffer>(cache);
@@ -697,112 +734,6 @@ int entry()
 	frameCamBuffer.load(context_handle, frameCamBufferData);
 	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
-	// create the buffers to store the model in
-	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
-	// a copy on the CPU
-	// - then we create the vulkan buffer resource to interface with the GPU
-	auto geomBufferData = create<data::buffer>(cache);
-	geomBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eIndexBuffer |
-							vk::BufferUsageFlagBits::eTransferDst,
-						vk::MemoryPropertyFlagBits::eDeviceLocal,
-						memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto geomBuffer = create<ivk::buffer>(cache);
-	geomBuffer.load(context_handle, geomBufferData, stagingBuffer);
-
-	// load the example model
-	// auto geomData = create<data::geometry>(cache, UID::convert("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"));
-	// auto geomData = utility::geometry::create_box(cache, psl::vec3::one);
-	auto geomData = utility::geometry::create_icosphere(cache, psl::vec3::one, 0);
-	geomData.load();
-	auto& positionstream =
-		geomData->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
-	core::stream colorstream{core::stream::type::vec3};
-	auto& colors			  = colorstream.as_vec3().value().get();
-	const float range		  = 1.0f;
-	const bool inverse_colors = false;
-	for(auto i = 0; i < positionstream.size(); ++i)
-	{
-		if(inverse_colors)
-		{
-			float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
-			float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-			float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
-			colors.emplace_back(psl::vec3(red, green, blue));
-		}
-		else
-		{
-			float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
-			float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-			float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
-			colors.emplace_back(psl::vec3(red, green, blue));
-		}
-	}
-
-	geomData->vertices(core::data::geometry::constants::COLOR, colorstream);
-	auto geometry = create<ivk::geometry>(cache);
-	geometry.load(context_handle, geomData, geomBuffer, geomBuffer);
-
-	std::vector<resource::handle<data::geometry>> geometryDataHandles;
-	std::vector<resource::handle<ivk::geometry>> geometryHandles;
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
-	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1.0f, 1.0f, 1.0f, 1.0f));
-	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
-	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
-	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
-	for(auto& handle : geometryDataHandles)
-	{
-		handle.load();
-		auto& positionstream =
-			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
-		core::stream colorstream{core::stream::type::vec3};
-		auto& colors			  = colorstream.as_vec3().value().get();
-		const float range		  = 1.0f;
-		const bool inverse_colors = false;
-		for(auto i = 0; i < positionstream.size(); ++i)
-		{
-			if(inverse_colors)
-			{
-				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
-				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
-				colors.emplace_back(psl::vec3(red, green, blue));
-			}
-			else
-			{
-				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
-				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
-				colors.emplace_back(psl::vec3(red, green, blue));
-			}
-		}
-
-		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
-
-		geometryHandles.emplace_back(create<ivk::geometry>(cache));
-		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, geomBuffer, geomBuffer);
-	}
-
-
-	// get a vertex and fragment shader that can be combined, we only need the meta
-	if(!cache.library().contains("3982b466-58fe-4918-8735-fc6cc45378b0"_uid) ||
-	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
-	{
-		core::log->critical(
-			"Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
-		if(surface_handle) surface_handle->terminate();
-		return -1;
-	}
-
-	// create the material buffer and instance buffer
-	auto matBufferData = create<data::buffer>(cache);
-	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-					   vk::MemoryPropertyFlagBits::eDeviceLocal,
-					   memory::region{1024 * 1024 * 32,
-									  context_handle->properties().limits.minStorageBufferOffsetAlignment,
-									  new memory::default_allocator(false)});
-	auto matBuffer = create<ivk::buffer>(cache);
-	matBuffer.load(context_handle, matBufferData, stagingBuffer);
 
 	// create a pipeline cache
 	auto pipeline_cache = create<core::ivk::pipeline_cache>(cache);
@@ -829,30 +760,7 @@ int entry()
 	mat_bundle2.load(instanceBuffer);
 	mat_bundle2->set(material2, 2000);
 	mat_bundle2->set(depth_material, 1000);
-
-	// load depth pass material
-	/*{
-		auto vertDepthShaderMeta =
-			cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-		auto fragDepthShaderMeta =
-			cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
-
-		matData = create<data::material>(cache);
-		matData.load();
-		matData->from_shaders(cache.library(), {vertDepthShaderMeta, fragDepthShaderMeta});
-
-
-
-
-
-
-
-
-
-
-
-	}*/
-
+	
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
 	// create the ecs
@@ -890,126 +798,7 @@ int entry()
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
 		swapchain_pass,			  context_handle,		 surface_handle};
-
-
-	// create post processing pass
-	// auto deferredFramebuffer = create<ivk::framebuffer>(cache);
-	//{
-	//	auto deferredData = create<data::framebuffer>(cache);
-	//	deferredData.load(surface_handle->data().width(), surface_handle->data().height(), 1);
-
-	//	// position
-	//	{
-	//		vk::AttachmentDescription descr;
-	//		descr.format		 = vk::Format::eR16G16B16A16Sfloat;
-	//		descr.samples		 = vk::SampleCountFlagBits::e1;
-	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
-	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
-
-	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-	//						  vk::ImageUsageFlagBits::eColorAttachment,
-	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
-	//	}
-
-	//	// normal
-	//	{
-	//		vk::AttachmentDescription descr;
-	//		descr.format		 = vk::Format::eR16G16B16A16Sfloat;
-	//		descr.samples		 = vk::SampleCountFlagBits::e1;
-	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
-	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
-
-	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-	//						  vk::ImageUsageFlagBits::eColorAttachment,
-	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 1.0f}}), descr);
-	//	}
-
-	//	// albedo
-	//	{
-	//		vk::AttachmentDescription descr;
-	//		descr.format		 = vk::Format::eR8G8B8A8Srgb;
-	//		descr.samples		 = vk::SampleCountFlagBits::e1;
-	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
-	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
-
-	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-	//						  vk::ImageUsageFlagBits::eColorAttachment,
-	//						  vk::ClearColorValue(std::array<float, 4>{{1.0f, 1.0f, 0.0f, 1.0f}}), descr);
-	//	}
-
-	//	// accumulation
-	//	{
-	//		vk::AttachmentDescription descr;
-	//		descr.format		 = vk::Format::eR8G8B8A8Srgb;
-	//		descr.samples		 = vk::SampleCountFlagBits::e1;
-	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
-	//		descr.finalLayout	= vk::ImageLayout::eColorAttachmentOptimal;
-
-	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-	//						  vk::ImageUsageFlagBits::eColorAttachment,
-	//						  vk::ClearColorValue(std::array<float, 4>{{0.0f, 0.0f, 0.0f, 0.0f}}), descr);
-	//	}
-
-	//	// depth attachment
-	//	{
-	//		vk::AttachmentDescription descr;
-	//		if(utility::vulkan::supported_depthformat(context_handle->physical_device(), &descr.format) != VK_TRUE)
-	//		{
-	//			LOG_FATAL("Could not find a suitable depth stencil buffer format.");
-	//		}
-	//		descr.samples		 = vk::SampleCountFlagBits::e1;
-	//		descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-	//		descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-	//		descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-	//		descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-	//		descr.initialLayout  = vk::ImageLayout::eUndefined;
-	//		descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-	//		deferredData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-	//						  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0),
-	//						  descr);
-	//	}
-
-	//	{
-	//		auto ppsamplerData = create<data::sampler>(cache);
-	//		ppsamplerData.load();
-	//		ppsamplerData->mipmaps(false);
-	//		auto ppsamplerHandle = create<ivk::sampler>(cache);
-	//		ppsamplerHandle.load(context_handle, ppsamplerData);
-	//		deferredData->set(ppsamplerHandle);
-	//	}
-
-	//	deferredFramebuffer.load(context_handle, deferredData);
-
-	//	auto ppMatData = create<data::material>(cache);
-	//	ppMatData.load();
-
-	//	data::material::stage vertexStage{};
-	//	// vertexStage.shader(vk::ShaderStageFlagBits::eVertex, ""_uid);
-
-	//	std::vector<data::material::stage> stages;
-
-
-	//	// ppMatData->stages()
-	//}
-
-
+	
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 	size_t iterations = 25600;
@@ -1019,7 +808,7 @@ int entry()
 		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
 		[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
 			renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
-						  geometryHandles[std::rand() % geometryHandles.size()]};
+						  geometryHandles[std::rand() % geometryHandles.size()]->resource().get<core::ivk::geometry>()};
 		},
 		psl::ecs::empty<core::ecs::components::transform>{},
 		[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
@@ -1054,7 +843,7 @@ int entry()
 			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
 			[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
 				renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
-							  geometryHandles[std::rand() % geometryHandles.size()]};
+							  geometryHandles[std::rand() % geometryHandles.size()]->resource().get<core::ivk::geometry>()};
 			},
 			psl::ecs::empty<core::ecs::components::transform>{},
 			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
@@ -1111,163 +900,15 @@ int entry()
 	}
 
 	context_handle->device().waitIdle();
-
-	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
-								   core::profiler.to_string());
-	return 0;
 }
-
-static bool initialized = false;
-#if defined(PLATFORM_ANDROID)
-
-// todo deal with this extern
-android_app* platform::specifics::android_application;
-
-void handleAppCommand(android_app* app, int32_t cmd)
-{
-	switch(cmd)
-	{
-	case APP_CMD_INIT_WINDOW: initialized = true; break;
-	}
-}
-
-int32_t handleAppInput(struct android_app* app, AInputEvent* event) {}
-
-void android_main(android_app* application)
-{
-	application->onAppCmd = handleAppCommand;
-	// Screen density
-	AConfiguration* config = AConfiguration_new();
-	AConfiguration_fromAssetManager(config, application->activity->assetManager);
-	// vks::android::screenDensity = AConfiguration_getDensity(config);
-	AConfiguration_delete(config);
-
-	while(!initialized)
-	{
-		int ident;
-		int events;
-		struct android_poll_source* source;
-		bool destroy = false;
-
-		while((ident = ALooper_pollAll(0, NULL, &events, (void**)&source)) >= 0)
-		{
-			if(source != NULL)
-			{
-				source->process(application, source);
-			}
-		}
-	}
-
-	platform::specifics::android_application = application;
-	android_entry();
-}
-#elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
 
 #include "glad/glad_wgl.h"
 
-int gles()
+void gles(core::resource::cache& cache, core::resource::handle<core::os::surface> surface_handle,
+		  core::resource::handle<core::gfx::context> context_handle,
+		  core::resource::handle<core::gfx::buffer> matBuffer,
+		  std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles)
 {
-	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
-
-	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{"gles"}}}, resource_region.allocator()};
-
-	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-	window_data.load();
-
-	auto surface_handle = create<surface>(cache);
-	if(!surface_handle.load(window_data))
-	{
-		core::log->critical("Could not create a OS surface to draw on.");
-		return -1;
-	}
-
-	auto context_handle = create<core::igles::context>(cache);
-	context_handle.load(APPLICATION_FULL_NAME);
-
-	context_handle->enable(surface_handle);
-
-	// get a vertex and fragment shader that can be combined, we only need the meta
-	if(!cache.library().contains("f889c133-1ec0-44ea-9209-251cd236f887"_uid) ||
-	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
-	{
-		core::log->critical(
-			"Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
-		if(surface_handle) surface_handle->terminate();
-		return -1;
-	}
-	   
-	auto matBufferData = create<data::buffer>(cache);
-	int align		   = 4;
-	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &align);
-	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-					   vk::MemoryPropertyFlagBits::eDeviceLocal,
-					   memory::region{1024 * 1024 * 32, static_cast<uint64_t>(align),
-									  new memory::default_allocator(false)});
-	auto matBuffer = create<igles::buffer>(cache);
-	matBuffer.load(matBufferData);
-
-	// std::vector<GLuint> vIndices{0, 1, 2, 3, 2, 1};
-	// std::vector<GLfloat> vVertices{0.0f, 0.5f, 0.0f, -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 1.0f, 1.0f, 0.0f};
-
-	// create the buffers to store the model in
-	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
-	// a copy on the CPU
-	// - then we create the vulkan buffer resource to interface with the GPU
-	auto vertexBufferData = create<data::buffer>(cache);
-	vertexBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-						  vk::MemoryPropertyFlagBits::eDeviceLocal,
-						  memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto vertexBuffer = create<igles::buffer>(cache);
-	vertexBuffer.load(vertexBufferData);
-
-	auto indexBufferData = create<data::buffer>(cache);
-	indexBufferData.load(vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-						 vk::MemoryPropertyFlagBits::eDeviceLocal,
-						 memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto indexBuffer = create<igles::buffer>(cache);
-	indexBuffer.load(indexBufferData);
-
-	std::vector<resource::handle<data::geometry>> geometryDataHandles;
-	std::vector<resource::handle<igles::geometry>> geometryHandles;
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
-	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
-	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
-	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
-	for(auto& handle : geometryDataHandles)
-	{
-		handle.load();
-		auto& positionstream =
-			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
-		core::stream colorstream{core::stream::type::vec3};
-		auto& colors			  = colorstream.as_vec3().value().get();
-		const float range		  = 1.0f;
-		const bool inverse_colors = false;
-		for(auto i = 0; i < positionstream.size(); ++i)
-		{
-			if(inverse_colors)
-			{
-				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
-				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
-				colors.emplace_back(psl::vec3(255.0f, green, blue));
-			}
-			else
-			{
-				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
-				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
-				colors.emplace_back(psl::vec3(255.0f, green, blue));
-			}
-		}
-
-		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
-
-		geometryHandles.emplace_back(create<igles::geometry>(cache));
-		geometryHandles[geometryHandles.size() - 1].load(handle, vertexBuffer, indexBuffer);
-	}
 
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("f889c133-1ec0-44ea-9209-251cd236f887"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
@@ -1295,12 +936,11 @@ int gles()
 		bindings[0].texture(textureHandle.RUID());
 		bindings[0].sampler(samplerHandle.RUID());
 		stage.bindings(bindings);
-		// binding.texture()
 	}
 	matData->stages(stages);
 
 	auto material = create<core::igles::material>(cache);
-	material.load(matData, matBuffer);
+	material.load(matData, matBuffer->resource().get<core::igles::buffer>());
 
 
 	while(surface_handle->tick())
@@ -1313,23 +953,138 @@ int gles()
 
 		material->bind();
 
-		//glUseProgram(programObject);
-		//auto error = glGetError();
-		//glActiveTexture(GL_TEXTURE1);
-		//glBindTexture(GL_TEXTURE_2D, texture->id());
-		//glBindSampler(1, samplerHandle->id());
-		//auto loc = glGetUniformLocation(programObject, "GSampler");
-		//// glUniform1i(glGetUniformLocation(programObject, "GSampler"), texture->id()); // set it manually
-		//error = glGetError();
-		
-
-		// geometryHandles[std::rand() % geometryHandles.size()]->bind();
-		geometryHandles[2]->bind(material);
+		geometryHandles[2]->resource().get<core::igles::geometry>()->bind(material);
+		// geometryHandles[std::rand() % geometryHandles.size()]->bind(material);
 		glFinish();
-		context_handle->swapbuffers(surface_handle);
+		context_handle->resource().get<core::igles::context>()->swapbuffers(surface_handle);
+	}
+}
+
+int entry(gfx::graphics_backend backend)
+{
+	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
+
+	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
+	psl::string8_t environment = "";
+	switch(backend)
+	{
+	case graphics_backend::gles: environment = "gles"; break;
+	case graphics_backend::vulkan: environment = "vulkan"; break;
+	}
+	cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
+
+	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
+	window_data.load();
+
+	auto surface_handle = create<surface>(cache);
+	if(!surface_handle.load(window_data))
+	{
+		core::log->critical("Could not create a OS surface to draw on.");
+		return -1;
 	}
 
+	auto context_handle = create<core::gfx::context>(cache);
+	context_handle.load(backend, APPLICATION_FULL_NAME);
 
+	context_handle->target_surface(surface_handle.value());
+
+	// get a vertex and fragment shader that can be combined, we only need the meta
+	if(!cache.library().contains("f889c133-1ec0-44ea-9209-251cd236f887"_uid) ||
+	   !cache.library().contains("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid))
+	{
+		core::log->critical(
+			"Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
+		if(surface_handle) surface_handle->terminate();
+		return -1;
+	}
+
+	auto matBufferData = create<data::buffer>(cache);
+	int align		   = 4;
+	switch(backend)
+	{
+	case graphics_backend::gles: glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &align); break;
+	case graphics_backend::vulkan:
+		align =
+			context_handle->resource().get<core ::ivk::context>()->properties().limits.minStorageBufferOffsetAlignment;
+		break;
+	}
+
+	matBufferData.load(
+		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		memory::region{1024 * 1024 * 32, static_cast<uint64_t>(align), new memory::default_allocator(false)});
+	auto matBuffer = create<gfx::buffer>(cache);
+	matBuffer.load(context_handle, matBufferData);
+
+	// create the buffers to store the model in
+	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to have
+	// a copy on the CPU
+	// - then we create the vulkan buffer resource to interface with the GPU
+	auto vertexBufferData = create<data::buffer>(cache);
+	vertexBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+						  vk::MemoryPropertyFlagBits::eDeviceLocal,
+						  memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	auto vertexBuffer = create<gfx::buffer>(cache);
+	vertexBuffer.load(context_handle, vertexBufferData);
+
+	auto indexBufferData = create<data::buffer>(cache);
+	indexBufferData.load(vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
+						 vk::MemoryPropertyFlagBits::eDeviceLocal,
+						 memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	auto indexBuffer = create<gfx::buffer>(cache);
+	indexBuffer.load(context_handle, indexBufferData);
+
+	std::vector<resource::handle<data::geometry>> geometryDataHandles;
+	std::vector<resource::handle<gfx::geometry>> geometryHandles;
+	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
+	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
+	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
+	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
+	for(auto& handle : geometryDataHandles)
+	{
+		handle.load();
+		auto& positionstream =
+			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
+		core::stream colorstream{core::stream::type::vec3};
+		auto& colors			  = colorstream.as_vec3().value().get();
+		const float range		  = 1.0f;
+		const bool inverse_colors = false;
+		for(auto i = 0; i < positionstream.size(); ++i)
+		{
+			if(inverse_colors)
+			{
+				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
+				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
+				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
+				colors.emplace_back(psl::vec3(red, green, blue));
+			}
+			else
+			{
+				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
+				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
+				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
+				colors.emplace_back(psl::vec3(red, green, blue));
+			}
+		}
+
+		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
+
+		geometryHandles.emplace_back(create<gfx::geometry>(cache));
+		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, vertexBuffer, indexBuffer);
+	}
+
+	// still todo
+
+
+	switch(backend)
+	{
+	case graphics_backend::gles: gles(cache, surface_handle, context_handle, matBuffer, geometryHandles); break;
+	case graphics_backend::vulkan:
+		vulkan(resource_region, cache, surface_handle, context_handle, matBuffer, geometryHandles);
+		break;
+	}
 	return 0;
 }
 
@@ -1348,8 +1103,8 @@ int main()
 #endif
 
 	setup_loggers();
-	return gles();
-	//return entry();
+
+	return entry(graphics_backend::gles);
 }
 #endif
 

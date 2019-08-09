@@ -35,9 +35,9 @@ context::~context()
 	ReleaseDC(hwnd, target);
 }
 
-void context::enable(core::resource::handle<core::os::surface> surface)
+void context::enable(const core::os::surface& surface)
 {
-	hwnd   = surface->surface_handle();
+	hwnd   = surface.surface_handle();
 	target = GetDC(hwnd);
 
 
@@ -75,11 +75,11 @@ void context::enable(core::resource::handle<core::os::surface> surface)
 	version = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
 
 
-	if(surface->data().buffering() != core::gfx::buffering::SINGLE)
+	if(surface.data().buffering() != core::gfx::buffering::SINGLE)
 	{
 
 #ifdef GL_EXT_swap_control_tear
-		if(surface->data().buffering() == core::gfx::buffering::triple)
+		if(surface.data().buffering() == core::gfx::buffering::triple)
 		{
 			if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(-1);
 		}

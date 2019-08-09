@@ -129,7 +129,10 @@ namespace core::resource
 		void reg(uint64_t id, const psl::UID& uid, std::shared_ptr<void> container, state& state,
 				 const details::vtable& vtable)
 		{
-			m_Handles[uid].emplace_back(id, container, state, vtable);
+			auto& vec = m_Handles[uid];
+			if(std::find_if(std::begin(vec), std::end(vec), [id](const auto& data) {
+				return data.id == id;}) == std::end(vec))
+				vec.emplace_back(id, container, state, vtable);
 		}
 
 		psl::meta::library m_Library;
