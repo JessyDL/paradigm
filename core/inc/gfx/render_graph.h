@@ -9,32 +9,32 @@ namespace core::ivk
 	class context;
 	class framebuffer;
 	class swapchain;
+	class pass;
 }
 
 namespace core::gfx
 {
-	class pass;
 
 	class render_graph
 	{
 		struct graph_element
 		{
-			psl::unique_ptr<core::gfx::pass> pass;
-			psl::array<psl::view_ptr<core::gfx::pass>> connected_by;
-			psl::array<psl::view_ptr<core::gfx::pass>> connects_to;
+			psl::unique_ptr<core::ivk::pass> pass;
+			psl::array<psl::view_ptr<core::ivk::pass>> connected_by;
+			psl::array<psl::view_ptr<core::ivk::pass>> connects_to;
 		};
 
 	  public:
-		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::ivk::context> context,
+		psl::view_ptr<core::ivk::pass> create_pass(core::resource::handle<core::ivk::context> context,
 												   core::resource::handle<core::ivk::swapchain> swapchain);
-		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::ivk::context> context,
+		psl::view_ptr<core::ivk::pass> create_pass(core::resource::handle<core::ivk::context> context,
 												   core::resource::handle<core::ivk::framebuffer> framebuffer);
 
-		bool connect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
-		bool disconnect(psl::view_ptr<pass> pass) noexcept;
-		bool disconnect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
+		bool connect(psl::view_ptr<core::ivk::pass> child, psl::view_ptr<core::ivk::pass> root) noexcept;
+		bool disconnect(psl::view_ptr<core::ivk::pass> pass) noexcept;
+		bool disconnect(psl::view_ptr<core::ivk::pass> child, psl::view_ptr<core::ivk::pass> root) noexcept;
 
-		bool erase(psl::view_ptr<pass> pass) noexcept;
+		bool erase(psl::view_ptr<core::ivk::pass> pass) noexcept;
 		void present();
 
 	  private:

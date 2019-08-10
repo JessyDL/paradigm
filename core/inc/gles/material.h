@@ -9,6 +9,7 @@ namespace core::igles
 {
 	class buffer;
 	class program;
+	class program_cache;
 	class texture;
 	class sampler;
 	class shader;
@@ -17,6 +18,7 @@ namespace core::igles
 	{
 	  public:
 		material(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::data::material> data,
+				 core::resource::handle<core::igles::program_cache> program_cache,
 				 core::resource::handle<core::igles::buffer> materialBuffer);
 		~material() = default;
 

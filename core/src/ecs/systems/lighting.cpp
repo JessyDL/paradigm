@@ -2,7 +2,7 @@
 #include "ecs/systems/lighting.h"
 #include "ecs/state.h"
 #include "memory/region.h"
-#include "gfx/pass.h"
+#include "vk/pass.h"
 #include "vk/context.h"
 #include "os/surface.h"
 #include "gfx/render_graph.h"
@@ -23,7 +23,7 @@ using namespace psl::ecs;
 
 lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view_ptr<core::resource::cache> cache,
 								 memory::region& resource_region, psl::view_ptr<core::gfx::render_graph> renderGraph,
-								 psl::view_ptr<core::gfx::pass> pass,
+								 psl::view_ptr<core::ivk::pass> pass,
 								 core::resource::handle<core::ivk::context> context,
 								 core::resource::handle<core::os::surface> surface) noexcept
 	: m_Cache(cache), m_RenderGraph(renderGraph), m_DependsPass(pass), m_State(state), m_Context(context),

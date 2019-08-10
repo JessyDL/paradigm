@@ -10,7 +10,7 @@
 #include "vk/context.h"  // the vulkan context
 //#include "systems\resource.h" // resource system
 #include "vk/swapchain.h" // the gfx swapchain which we'll use as our backbuffer
-#include "gfx/pass.h"
+#include "vk/pass.h"
 
 #include "spdlog/spdlog.h"
 //#include "spdlog/async.h"
@@ -86,6 +86,8 @@
 #include "gfx/texture.h"
 #include "gfx/swapchain.h"
 #include "gfx/sampler.h"
+#include "gfx/pipeline_cache.h"
+#include "gfx/material.h"
 
 #include "resource/variant_handle.h"
 
@@ -98,20 +100,20 @@ using namespace core::os;
 using namespace psl::ecs;
 using namespace core::ecs::components;
 
-handle<core::ivk::material> setup_example_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-												   handle<pipeline_cache> pipeline_cache,
-												   handle<core::ivk::buffer> matBuffer, const psl::UID& texture)
+handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<core::gfx::context> context_handle,
+											   handle<core::gfx::pipeline_cache> pipeline_cache,
+											   handle<core::gfx::buffer> matBuffer, psl::UID vert, psl::UID frag,
+											   const psl::UID& texture)
 {
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
-
-	auto textureHandle = create<ivk::texture>(cache, texture);
+	auto vertShaderMeta = cache.library().get<core::meta::shader>(vert).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>(frag).value();
+	auto textureHandle  = create<gfx::texture>(cache, texture);
 	textureHandle.load(context_handle);
 
 	// create the sampler
 	auto samplerData = create<data::sampler>(cache);
 	samplerData.load();
-	auto samplerHandle = create<ivk::sampler>(cache);
+	auto samplerHandle = create<gfx::sampler>(cache);
 	samplerHandle.load(context_handle, samplerData);
 
 	// load the example material
@@ -132,21 +134,16 @@ handle<core::ivk::material> setup_example_material(resource::cache& cache, handl
 	}
 	matData->stages(stages);
 
-	auto material = create<core::ivk::material>(cache);
+	auto material = create<core::gfx::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer);
-
-
-	// psl::serialization::serializer s;
-	// s.serialize<psl::serialization::encode_to_format>(*(data::material*)matData.cvalue(),
-	//												  utility::application::path::get_path() + "material_example.mat");
 
 	return material;
 }
 
 
-handle<core::ivk::material> setup_depth_material(resource::cache& cache, handle<core::ivk::context> context_handle,
-												 handle<pipeline_cache> pipeline_cache,
-												 handle<core::ivk::buffer> matBuffer)
+handle<core::gfx::material> setup_gfx_depth_material(resource::cache& cache, handle<core::gfx::context> context_handle,
+													 handle<core::gfx::pipeline_cache> pipeline_cache,
+													 handle<core::gfx::buffer> matBuffer)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
@@ -157,7 +154,7 @@ handle<core::ivk::material> setup_depth_material(resource::cache& cache, handle<
 	matData.load();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
-	auto material = create<ivk::material>(cache);
+	auto material = create<gfx::material>(cache);
 	material.load(context_handle, matData, pipeline_cache, matBuffer);
 	return material;
 }
@@ -707,21 +704,18 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 			core::resource::handle<core::os::surface> surface_handle,
 			core::resource::handle<core::gfx::context> gfx_context_handle,
 			core::resource::handle<core::gfx::swapchain> gfx_swapchain_handle,
-	core::resource::handle<core::gfx::buffer> gfx_matBuffer,
+			core::resource::handle<core::gfx::buffer> gfx_matBuffer,
 			std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles,
-			psl::array<core::resource::handle<core::gfx::texture>> textures,
-			core::resource::handle<core::ivk::sampler> samplerHandle)
+			psl::array<core::resource::handle<core::gfx::material>> materials)
 {
-	auto context_handle = gfx_context_handle->resource().get<core::ivk::context>();
+	auto context_handle   = gfx_context_handle->resource().get<core::ivk::context>();
 	auto swapchain_handle = gfx_swapchain_handle->resource().get<core::ivk::swapchain>();
-	auto matBuffer		= gfx_matBuffer->resource().get<core::ivk::buffer>();
+	auto matBuffer		  = gfx_matBuffer->resource().get<core::ivk::buffer>();
 	auto frameCamBuffer =
 		cache.find<core::gfx::buffer>(cache.library().find("GLOBAL_WORLD_VIEW_PROJECTION_MATRIX").value())
 			->resource()
 			.get<core::ivk::buffer>();
 
-	
-	
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	auto stagingBufferData = create<data::buffer>(cache);
@@ -732,13 +726,9 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 	stagingBuffer.load(context_handle, stagingBufferData);
 
 	
-	// create a pipeline cache
-	auto pipeline_cache = create<core::ivk::pipeline_cache>(cache);
-	pipeline_cache.load(context_handle);
-
-	auto material		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer, textures[0].RUID());
-	auto material2		= setup_example_material(cache, context_handle, pipeline_cache, matBuffer, textures[1].RUID());
-	auto depth_material = setup_depth_material(cache, context_handle, pipeline_cache, matBuffer);
+	auto material		= materials[0]->resource().get<core::ivk::material>();
+	auto material2		= materials[1]->resource().get<core::ivk::material>();
+	auto depth_material = materials[2]->resource().get<core::ivk::material>();
 
 	auto instanceBufferData = create<data::buffer>(cache);
 	instanceBufferData.load(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
@@ -755,7 +745,7 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 	mat_bundle2.load(instanceBuffer);
 	mat_bundle2->set(material2, 2000);
 	mat_bundle2->set(depth_material, 1000);
-	
+
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
 	// create the ecs
@@ -793,7 +783,7 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
 		swapchain_pass,			  context_handle,		 surface_handle};
-	
+
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 	size_t iterations = 25600;
@@ -837,8 +827,9 @@ void vulkan(memory::region& resource_region, core::resource::cache& cache,
 		ECSState.create(
 			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
 			[&mat_bundle, &geometryHandles, &mat_bundle2](core::ecs::components::renderable& renderable) {
-				renderable = {(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
-							  geometryHandles[std::rand() % geometryHandles.size()]->resource().get<core::ivk::geometry>()};
+				renderable = {
+					(std::rand() % 2 == 0) ? mat_bundle : mat_bundle2,
+					geometryHandles[std::rand() % geometryHandles.size()]->resource().get<core::ivk::geometry>()};
 			},
 			psl::ecs::empty<core::ecs::components::transform>{},
 			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
@@ -904,33 +895,9 @@ void gles(core::resource::cache& cache, core::resource::handle<core::os::surface
 		  core::resource::handle<core::gfx::swapchain> swapchain_handle,
 		  core::resource::handle<core::gfx::buffer> matBuffer,
 		  std::vector<core::resource::handle<core::gfx::geometry>> geometryHandles,
-		  psl::array<core::resource::handle<core::gfx::texture>> textures,
-	core::resource::handle<core::igles::sampler> samplerHandle)
+		  psl::array<core::resource::handle<core::gfx::material>> materials)
 {
-
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("f889c133-1ec0-44ea-9209-251cd236f887"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("4429d63a-9867-468f-a03f-cf56fee3c82e"_uid).value();
-	
-
-	// load the example material
-	auto matData = create<data::material>(cache);
-	matData.load();
-	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-
-	auto stages = matData->stages();
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
-
-		auto bindings = stage.bindings();
-		bindings[0].texture(textures[0].RUID());
-		bindings[0].sampler(samplerHandle.RUID());
-		stage.bindings(bindings);
-	}
-	matData->stages(stages);
-
-	auto material = create<core::igles::material>(cache);
-	material.load(matData, matBuffer->resource().get<core::igles::buffer>());
+	auto material = materials[0]->resource().get<core::igles::material>();
 
 
 	while(surface_handle->tick())
@@ -941,7 +908,7 @@ void gles(core::resource::cache& cache, core::resource::handle<core::os::surface
 
 		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
 
-		material->bind();
+		materials[std::rand() % 2]->resource().get<core::igles::material>()->bind();
 
 		geometryHandles[2]->resource().get<core::igles::geometry>()->bind(material);
 		// geometryHandles[std::rand() % geometryHandles.size()]->bind(material);
@@ -991,13 +958,12 @@ int entry(gfx::graphics_backend backend)
 		return -1;
 	}
 
-	auto matBufferData		 = create<data::buffer>(cache);
+	auto matBufferData		  = create<data::buffer>(cache);
 	auto storage_buffer_align = core::gfx::limits::storage_buffer_offset_alignment(context_handle);
 	auto uniform_buffer_align = core::gfx::limits::uniform_buffer_offset_alignment(context_handle);
 
-	matBufferData.load(
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal,
+	matBufferData.load(vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
+					   vk::MemoryPropertyFlagBits::eDeviceLocal,
 					   memory::region{1024 * 1024 * 32, static_cast<uint64_t>(storage_buffer_align),
 									  new memory::default_allocator(false)});
 	auto matBuffer = create<gfx::buffer>(cache);
@@ -1061,30 +1027,14 @@ int entry(gfx::graphics_backend backend)
 		geometryHandles.emplace_back(create<gfx::geometry>(cache));
 		geometryHandles[geometryHandles.size() - 1].load(context_handle, handle, vertexBuffer, indexBuffer);
 	}
-
-	// still todo
-
-	psl::array<core::resource::handle<core::gfx::texture>> textures;
-	textures.emplace_back(create<core::gfx::texture>(cache, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid));
-	textures.emplace_back(create<core::gfx::texture>(cache, "7f24e25c-8b94-4da4-8a31-493815889698"_uid));
-
-	for(auto& texture : textures) texture.load(context_handle);
-
-	
-	// create the sampler
-	auto samplerData = create<data::sampler>(cache);
-	samplerData.load();
-	auto samplerHandle = create<gfx::sampler>(cache);
-	samplerHandle.load(context_handle, samplerData);
-
+		   	 
 	// create the buffer that we'll use for storing the WVP for the shaders;
 	auto frameCamBufferData = create<data::buffer>(cache);
 	frameCamBufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
 							vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 							resource_region
 								.create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
-											   uniform_buffer_align,
-											   new memory::default_allocator(true))
+											   uniform_buffer_align, new memory::default_allocator(true))
 								.value());
 	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
 	// memory::default_allocator(true)});
@@ -1093,15 +1043,39 @@ int entry(gfx::graphics_backend backend)
 	cache.library().set(frameCamBuffer.ID(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
 
+	// create a pipeline cache
+	auto pipeline_cache = create<core::gfx::pipeline_cache>(cache);
+	pipeline_cache.load(context_handle);
+
+	psl::array<core::resource::handle<core::gfx::material>> materials;
 	switch(backend)
 	{
 	case graphics_backend::gles:
-		gles(cache, surface_handle, context_handle, swapchain_handle, matBuffer, geometryHandles, textures,
-			 samplerHandle->resource().get<core::igles::sampler>());
+		materials.emplace_back(setup_gfx_material(
+			cache, context_handle, pipeline_cache, matBuffer, "f889c133-1ec0-44ea-9209-251cd236f887"_uid,
+			"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid));
+		materials.emplace_back(setup_gfx_material(
+			cache, context_handle, pipeline_cache, matBuffer, "f889c133-1ec0-44ea-9209-251cd236f887"_uid,
+			"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "7f24e25c-8b94-4da4-8a31-493815889698"_uid));
+		break;
+	case graphics_backend::vulkan: 
+		materials.emplace_back(setup_gfx_material(
+				cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+				"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid));
+		materials.emplace_back(setup_gfx_material(
+			cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+			"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "7f24e25c-8b94-4da4-8a31-493815889698"_uid));
+		materials.emplace_back(setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer));
+		break;
+	}
+	switch(backend)
+	{
+	case graphics_backend::gles:
+		gles(cache, surface_handle, context_handle, swapchain_handle, matBuffer, geometryHandles, materials);
 		break;
 	case graphics_backend::vulkan:
 		vulkan(resource_region, cache, surface_handle, context_handle, swapchain_handle, matBuffer, geometryHandles,
-			   textures, samplerHandle->resource().get<core::ivk::sampler>());
+			   materials);
 		break;
 	}
 	return 0;
@@ -1123,7 +1097,8 @@ int main()
 
 	setup_loggers();
 
-	return entry(graphics_backend::gles);
+	entry(graphics_backend::gles);
+	return entry(graphics_backend::vulkan);
 }
 #endif
 

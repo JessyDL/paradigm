@@ -4,6 +4,7 @@
 #include "gles/buffer.h"
 #include "meta/shader.h"
 #include "gles/program.h"
+#include "gles/program_cache.h"
 #include "gles/sampler.h"
 #include "gles/shader.h"
 #include "gles/texture.h"
@@ -14,7 +15,8 @@ using namespace core::igles;
 using namespace core::resource;
 namespace data = core::data;
 
-material::material(const psl::UID& uid, cache& cache, handle<data::material> data, handle<buffer> matBuffer)
+material::material(const psl::UID& uid, cache& cache, handle<data::material> data,
+				   core::resource::handle<core::igles::program_cache> program_cache, handle<buffer> matBuffer)
 {
 	for(auto& stage : data->stages())
 	{
@@ -113,8 +115,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 		}
 	}
 
-	m_Program = create<program>(cache);
-	m_Program.load(data);
+	m_Program = program_cache->get(uid, data);
 }
 
 void material::bind()

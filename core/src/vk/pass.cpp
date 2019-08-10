@@ -1,4 +1,4 @@
-﻿#include "gfx/pass.h"
+﻿#include "vk/pass.h"
 #include "vk/context.h"
 #include "vk/framebuffer.h"
 #include "data/framebuffer.h"
@@ -309,8 +309,8 @@ void pass::present()
 bool pass::is_swapchain() const noexcept { return m_UsingSwap; }
 
 
-void pass::bias(const core::gfx::depth_bias& bias) noexcept { m_DepthBias = bias; }
-core::gfx::depth_bias pass::bias() const noexcept { return m_DepthBias; }
+void pass::bias(const core::ivk::depth_bias& bias) noexcept { m_DepthBias = bias; }
+core::ivk::depth_bias pass::bias() const noexcept { return m_DepthBias; }
 
 void pass::add(core::gfx::drawgroup& group) noexcept { m_AllGroups.push_back(group); }
 void pass::remove(const core::gfx::drawgroup& group) noexcept

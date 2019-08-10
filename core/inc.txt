@@ -17,20 +17,24 @@ data/stream.h
 data/window.h
 
 gfx/stdafx.h
+gfx/limits.h
+gfx/types.h
+
 gfx/context.h
 gfx/shader.h
 gfx/buffer.h
 gfx/geometry.h
 gfx/texture.h
 gfx/sampler.h
+gfx/material.h
+gfx/swapchain.h
+gfx/pipeline_cache.h
 
 gfx/drawcall.h
 gfx/drawgroup.h
 gfx/drawlayer.h
-gfx/pass.h
 gfx/render_graph.h
 gfx/bundle.h
-gfx/types.h
 gfx/details/instance.h
 
 meta/shader.h
@@ -97,6 +101,7 @@ if(${PE_VULKAN})
 	texture.h
 	material.h
 	pipeline_cache.h
+	pass.h
 	)
 
 	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
@@ -105,14 +110,16 @@ endif()
 # include files for the GLES API
 if(${PE_GLES})
 	set(INC_GLES
-	context.h
-	shader.h
-	geometry.h	
 	buffer.h
-	texture.h
-	sampler.h
+	context.h
+	geometry.h	
+	material.h
 	program.h
 	program_cache.h
+	sampler.h
+	shader.h
+	swapchain.h
+	texture.h
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)

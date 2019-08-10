@@ -1,10 +1,11 @@
 #include "gfx/render_graph.h"
-#include "gfx/pass.h"
+#include "vk/pass.h"
 #include "gfx/context.h"
 #include "vk/swapchain.h"
 #include "vk/framebuffer.h"
 
 using namespace core::gfx;
+using namespace core::ivk;
 using core::resource::handle;
 
 

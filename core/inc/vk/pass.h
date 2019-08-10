@@ -5,17 +5,20 @@
 #include "vk/stdafx.h"
 #include "view_ptr.h"
 
+namespace core::gfx
+{
+	class drawgroup;
+}
 
 namespace core::ivk
 {
 	class context;
 	class framebuffer;
 	class swapchain;
-}
+} // namespace core::ivk
 
-namespace core::gfx
+namespace core::ivk
 {
-	class drawgroup;
 	struct depth_bias
 	{
 		union
@@ -67,11 +70,11 @@ namespace core::gfx
 		void present();
 
 		/// \brief set the depth bias on the current pass.
-		void bias(const core::gfx::depth_bias& bias) noexcept;
+		void bias(const core::ivk::depth_bias& bias) noexcept;
 
 		/// \brief returns the current dept bias on this instance.
 		/// \returns the current dept bias on this instance.
-		core::gfx::depth_bias bias() const noexcept;
+		core::ivk::depth_bias bias() const noexcept;
 
 		/// \brief build, and records the draw, and other instructions associated with this pass.
 		/// \returns true on success, false if submitting the instructions to the GPU failed.
@@ -97,7 +100,7 @@ namespace core::gfx
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
 		/// \param[in] size the amount of fences to create.
 		void create_fences(const size_t size = 1u);
-		/// \brief cleans up the created vk::Fence's of the core::gfx::pass::create_fences() method.
+		/// \brief cleans up the created vk::Fence's of the core::ivk::pass::create_fences() method.
 		void destroy_fences();
 
 		core::resource::handle<core::ivk::context> m_Context;
@@ -117,11 +120,11 @@ namespace core::gfx
 		uint64_t m_FrameCount{0u};
 		uint64_t m_LastBuildFrame{0};
 
-		core::gfx::depth_bias m_DepthBias;
+		core::ivk::depth_bias m_DepthBias;
 
 		// Contains command buffers and semaphores to be presented to the queue
 		vk::SubmitInfo m_SubmitInfo;
 		/** @brief Pipeline stages used to wait at for graphics queue submissions */
 		vk::PipelineStageFlags m_SubmitPipelineStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
 	};
-} // namespace core::gfx
+} // namespace core::ivk

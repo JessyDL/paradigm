@@ -4,7 +4,7 @@
 #include "vk/buffer.h"
 #include "os/surface.h"
 #include "ecs/state.h"
-#include "gfx/pass.h"
+#include "vk/pass.h"
 
 using namespace core::ecs::systems;
 using namespace psl;
