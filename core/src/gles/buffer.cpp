@@ -1,12 +1,14 @@
 #include "gles/buffer.h"
 #include "data/buffer.h"
+#include "logging.h"
 
 using namespace core::igles;
 using namespace core::gfx;
+using namespace core;
 
 buffer::buffer(const psl::UID& uid, core::resource::cache& cache,
 			   core::resource::handle<core::data::buffer> buffer_data)
-	: m_BufferDataHandle(buffer_data)
+	: m_BufferDataHandle(buffer_data), m_UID(uid)
 {
 	glGenBuffers(1, &m_Buffer);
 	m_BufferType = to_gles(to_memory_type(buffer_data->usage()));
@@ -68,8 +70,7 @@ std::optional<memory::segment> buffer::allocate(size_t size) { return m_BufferDa
 std::vector<std::pair<memory::segment, memory::range>> buffer::allocate(psl::array<size_t> sizes, bool optimize)
 {
 	PROFILE_SCOPE(core::profiler)
-	size_t totalSize =
-		std::accumulate(std::next(std::begin(sizes)), std::end(sizes), sizes[0],
+	size_t totalSize = std::accumulate(std::next(std::begin(sizes)), std::end(sizes), sizes[0],
 									   [](size_t sum, const size_t& element) { return sum + element; });
 	std::vector<std::pair<memory::segment, memory::range>> result;
 
@@ -120,3 +121,28 @@ failure:
 }
 
 bool buffer::deallocate(memory::segment& segment) { return m_BufferDataHandle->deallocate(segment); }
+
+bool buffer::copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges)
+{
+	auto totalsize = std::accumulate(ranges.begin(), ranges.end(), 0,
+									 [&](int sum, const gfx::memory_copy& region) { return sum + (int)region.size; });
+
+	core::igles::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
+						   utility::to_string(other.m_UID), utility::to_string(m_UID), totalsize, ranges.size());
+
+	for(const auto& region : ranges)
+	{
+		core::igles::log->info("srcOffset | dstOffset | size : {0} | {1} | {2}", region.source_offset,
+							   region.destination_offset, region.size);
+	}
+
+	glBindBuffer(GL_COPY_READ_BUFFER, other.m_Buffer);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
+	for(const auto& region : ranges)
+	{
+		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, region.source_offset,
+							region.destination_offset, region.size);
+	}
+
+	return true;
+}

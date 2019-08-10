@@ -357,7 +357,7 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 //	return map((void*)(sub.begin + (std::uintptr_t)region.data()), sub.size(), 0);
 //}
 
-bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::vector<vk::BufferCopy>& copyRegions)
+bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& copyRegions)
 {
 	PROFILE_SCOPE(core::profiler)
 	core::profiler.scope_begin("prepare", this);
@@ -368,7 +368,7 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 									 [&](int sum, const vk::BufferCopy& region) { return sum + (int)region.size; });
 
 	core::ivk::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
-		utility::to_string(other->m_UID), utility::to_string(m_UID), totalsize, copyRegions.size());
+		utility::to_string(other.m_UID), utility::to_string(m_UID), totalsize, copyRegions.size());
 
 	for(const auto& region : copyRegions)
 	{
@@ -383,7 +383,7 @@ bool buffer::copy_from(const core::resource::handle<buffer>& other, const std::v
 	// Note that the staging buffer must not be deleted before the copies
 	// have been submitted and executed
 	utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
-	m_CommandBuffer.copyBuffer(other->m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
+	m_CommandBuffer.copyBuffer(other.m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
 	m_CommandBuffer.end();
 
 	// Submit copies to the queue

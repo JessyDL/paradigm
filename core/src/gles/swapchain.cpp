@@ -13,6 +13,7 @@ swapchain::swapchain(const psl::UID& uid, core::resource::cache& cache,
 	: m_Surface(surface), m_Context(context)
 {
 	context->enable(surface);
+	glViewport(0, 0, surface->data().width(), surface->data().height());
 }
 
 swapchain::~swapchain() {}

@@ -29,6 +29,8 @@ gfx/sampler.h
 gfx/material.h
 gfx/swapchain.h
 gfx/pipeline_cache.h
+gfx/pass.h
+gfx/framebuffer.h
 
 gfx/drawcall.h
 gfx/drawgroup.h
@@ -120,6 +122,8 @@ if(${PE_GLES})
 	shader.h
 	swapchain.h
 	texture.h
+	framebuffer.h
+	pass.h
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)

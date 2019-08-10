@@ -6,7 +6,7 @@ using namespace psl;
 using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
-drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<geometry>>& geometry) noexcept
+drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<core::ivk::geometry>>& geometry) noexcept
 	: m_Bundle(bundle)
 {
 	for(auto& g : geometry)
@@ -14,7 +14,7 @@ drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<ge
 }
 
 
-bool drawcall::add(handle<geometry> geometry) noexcept
+bool drawcall::add(handle<core::ivk::geometry> geometry) noexcept
 {
 	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
 					[&geometry](const std::pair<handle<core::ivk::geometry>, size_t>& geomHandle) {

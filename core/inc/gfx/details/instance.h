@@ -1,9 +1,9 @@
 #pragma once
 #include "array.h"
 #include "resource/resource.hpp"
-#include "vk/material.h"
 #include "meta.h"
 #include "sparse_array.h"
+#include "IDGenerator.h"
 
 namespace std
 {
@@ -13,7 +13,7 @@ namespace std
 #endif
 } // namespace std
 
-namespace core::ivk
+namespace core::gfx
 {
 	class buffer;
 	class geometry;
@@ -93,26 +93,28 @@ namespace core::gfx::details::instance
 	class data final
 	{
 	  public:
-		data(core::resource::handle<core::ivk::buffer> buffer) noexcept;
-		void add(core::resource::handle<core::ivk::material> material);
-		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::ivk::geometry> uid,
+		data() = default;
+		data(core::resource::handle<core::gfx::buffer> buffer) noexcept;
+		void add(core::resource::handle<core::gfx::material> material);
+		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry> uid,
 													   uint32_t count = 1);
 
-		void remove(core::resource::handle<core::ivk::material> material);
+		void remove(core::resource::handle<core::gfx::material> material);
 
 
-		bool has_element(core::resource::tag<core::ivk::geometry> geometry, psl::string_view name) const noexcept;
-		std::optional<std::pair<memory::segment, uint32_t>> segment(core::resource::tag<core::ivk::geometry> geometry,
+		bool has_element(core::resource::tag<core::gfx::geometry> geometry, psl::string_view name) const noexcept;
+		std::optional<std::pair<memory::segment, uint32_t>> segment(core::resource::tag<core::gfx::geometry> geometry,
 																	psl::string_view name) const noexcept;
-		uint32_t count(core::resource::tag<core::ivk::geometry> uid) const noexcept;
+		uint32_t count(core::resource::tag<core::gfx::geometry> uid) const noexcept;
 
-		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<core::ivk::material> material,
-															   core::resource::tag<core::ivk::geometry> geometry) const noexcept;
+		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<core::gfx::material> material,
+															   core::resource::tag<core::gfx::geometry> geometry) const
+			noexcept;
 
-		core::resource::handle<core::ivk::buffer> buffer() const noexcept { return m_InstanceBuffer; }
+		core::resource::handle<core::gfx::buffer> buffer() const noexcept { return m_InstanceBuffer; }
 
-		bool erase(core::resource::tag<core::ivk::geometry> geometry, uint32_t id) noexcept;
-		bool clear(core::resource::tag<core::ivk::geometry> geometry) noexcept;
+		bool erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
+		bool clear(core::resource::tag<core::gfx::geometry> geometry) noexcept;
 		bool clear() noexcept;
 
 	  private:
@@ -120,6 +122,6 @@ namespace core::gfx::details::instance
 		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
 		std::unordered_map<psl::UID, object> m_InstanceData;
 
-		core::resource::handle<core::ivk::buffer> m_InstanceBuffer;
+		core::resource::handle<core::gfx::buffer> m_InstanceBuffer;
 	};
 } // namespace core::gfx::details::instance

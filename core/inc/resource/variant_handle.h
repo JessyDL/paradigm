@@ -54,9 +54,7 @@ namespace core::resource
 		handle(handle<T> _handle)
 			: m_Key(details::key_for<T>()), m_Cache(_handle.m_Cache), uid(_handle.uid),
 			  resource_uid(_handle.resource_uid), m_Container(_handle.m_Container)
-		{
-		
-		}
+		{}
 		handle(resource::cache& cache) : m_Cache(&cache), uid(cache.library().create().first), resource_uid(uid){};
 		handle(resource::cache& cache, psl::UID uid, psl::UID resource_uid)
 			: m_Cache(&cache), uid(uid), resource_uid(resource_uid){};
@@ -96,6 +94,26 @@ namespace core::resource
 			return v;
 		}
 
+		template <typename T>
+		const T& value() const
+		{
+			if(auto res = std::get_if<std::shared_ptr<details::container<T>>>(&m_Container)) return *(*res)->resource();
+			throw std::runtime_error("incorrect cast");
+		}
+
+		template <typename T>
+		T& value()
+		{
+			if(auto res = std::get_if<std::shared_ptr<details::container<T>>>(&m_Container)) return *(*res)->resource();
+			throw std::runtime_error("incorrect cast");
+		}
+
+		template <typename T>
+		bool contains() const noexcept
+		{
+			return m_Key == details::key_for<T>();
+		}
+
 		operator tag<resource_type>() const { return tag<resource_type>(uid); }
 
 		/// \returns true of the handle has a valid, loaded object.
@@ -127,17 +145,6 @@ namespace core::resource
 				m_Container);
 			m_Key = nullptr;
 			return res;
-		}
-
-		auto operator-> ()
-		{
-			return std::visit(
-				[](auto&& container) {
-					using type = typename details::get_container_type<
-						std::remove_const_t<std::remove_cv_t<std::decay_t<decltype(container)>>>>::type;
-					return container->resource();
-				},
-				m_Container);
 		}
 
 	  private:

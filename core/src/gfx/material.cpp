@@ -32,3 +32,15 @@ material::material(const psl::UID& uid, core::resource::cache& cache, psl::meta:
 		break;
 	}
 }
+
+const core::data::material& material::data() const noexcept
+{
+	if(m_Handle.contains<igles::material>())
+	{
+		return m_Handle.value<igles::material>().data();
+	}
+	else
+	{
+		return m_Handle.value<ivk::material>().data();
+	}
+}

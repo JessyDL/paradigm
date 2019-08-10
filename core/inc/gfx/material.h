@@ -54,6 +54,7 @@ namespace core::gfx
 
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
+		const core::data::material& data() const noexcept;
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

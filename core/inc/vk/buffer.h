@@ -134,7 +134,7 @@ namespace core::ivk
 		/// \param[in] other the buffer to copy from into this instance.
 		/// \param[in] copyRegions the batch of copy instructions.
 		/// \returns true in case the instructions were successfully uploaded to the GPU.
-		bool copy_from(const core::resource::handle<buffer>& other, const std::vector<vk::BufferCopy>& copyRegions);
+		bool copy_from(const buffer& other, const std::vector<vk::BufferCopy>& copyRegions);
 
 		// bool set(const void* data, vk::DeviceSize size, std::optional<vk::DeviceSize> dstOffset = {},
 		// std::optional<vk::DeviceSize> srcOffset = {});

@@ -19,6 +19,8 @@ gfx/pipeline_cache.cpp
 gfx/sampler.cpp
 gfx/swapchain.cpp
 gfx/texture.cpp
+gfx/framebuffer.cpp
+gfx/pass.cpp
 
 gfx/drawcall.cpp
 gfx/drawgroup.cpp
@@ -81,6 +83,8 @@ if(${PE_GLES})
 	shader.cpp
 	swapchain.cpp
 	texture.cpp
+	framebuffer.cpp
+	pass.cpp
 	)
 	list(TRANSFORM SRC_GLES PREPEND src/gles/)
 endif()

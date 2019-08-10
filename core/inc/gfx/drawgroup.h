@@ -6,12 +6,18 @@
 #include <vector>
 #include "resource/resource.hpp"
 
+#ifdef PE_VULKAN
 namespace core::ivk
 {
-	class framebuffer;
-	class swapchain;
-	class geometry;
+	class pass;
 }
+#endif
+#ifdef PE_GLES
+namespace core::igles
+{
+	class pass;
+}
+#endif
 
 namespace core::gfx
 {
@@ -26,6 +32,12 @@ namespace core::gfx
 	/// which will be used by the render to order and output them.
 	class drawgroup
 	{
+#ifdef PE_VULKAN
+		friend class core::ivk::pass;
+#endif
+#ifdef PE_GLES
+		friend class core::igles::pass;
+#endif
 	  public:
 		drawgroup()					= default;
 		~drawgroup()				= default;
@@ -39,26 +51,15 @@ namespace core::gfx
 		std::optional<std::reference_wrapper<const drawlayer>> get(const psl::string& layer) const noexcept;
 		bool priority(drawlayer& layer, uint32_t priority) noexcept;
 
-		bool add(core::resource::indirect_handle<core::ivk::swapchain> swapchain);
-		bool add(core::resource::indirect_handle<core::ivk::framebuffer> framebuffer);
-
-		bool remove(core::resource::indirect_handle<core::ivk::swapchain> swapchain);
-		bool remove(core::resource::indirect_handle<core::ivk::framebuffer> framebuffer);
-
 		drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::bundle> bundle) noexcept;
 		std::optional<std::reference_wrapper<drawcall>> get(const drawlayer& layer,
 															core::resource::handle<core::gfx::bundle> bundle) noexcept;
 
-		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
-				   uint32_t index);
-		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain, uint32_t index);
 		// bool remove(const drawlayer& layer);
 		// bool remove(const drawcall& call);
 		// bool remove(const drawlayer& layer, const drawcall& call);
 
 	  private:
 		std::map<drawlayer, std::vector<drawcall>> m_Group;
-		core::resource::handle<core::ivk::swapchain> m_Swapchain;
-		std::vector<core::resource::handle<core::ivk::framebuffer>> m_Framebuffers;
 	};
 } // namespace core::gfx

@@ -11,7 +11,7 @@ using namespace psl;
 using namespace core::gfx::details::instance;
 
 bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::buffer> buffer)
-	: m_UID(uid), m_Cache(cache), m_InstanceData(buffer){};
+	: m_UID(uid), m_Cache(cache) /*,m_InstanceData(buffer)*/ {};
 
 // ------------------------------------------------------------------------------------------------------------
 // material API
@@ -32,7 +32,7 @@ bool bundle::has(uint32_t renderlayer) const noexcept
 	return std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer) != std::end(m_Layers);
 }
 
-void bundle::set(handle<material> material, std::optional<uint32_t> render_layer_override)
+void bundle::set(handle<core::ivk::material> material, std::optional<uint32_t> render_layer_override)
 {
 	uint32_t layer = render_layer_override.value_or(material->data()->render_layer());
 	size_t index{};
@@ -40,8 +40,8 @@ void bundle::set(handle<material> material, std::optional<uint32_t> render_layer
 	   it != std::begin(m_Layers) && *std::prev(it) == layer)
 	{
 		index = std::distance(std::begin(m_Layers), std::prev(it));
-		m_InstanceData.add(material);
-		m_InstanceData.remove(m_Materials[index]);
+		// m_InstanceData.add(material);
+		// m_InstanceData.remove(m_Materials[index]);
 		m_Materials[index] = material;
 	}
 	else
@@ -49,7 +49,7 @@ void bundle::set(handle<material> material, std::optional<uint32_t> render_layer
 		index = std::distance(std::begin(m_Layers), it);
 		m_Layers.insert(it, layer);
 		m_Materials.insert(std::next(std::begin(m_Materials), index), material);
-		m_InstanceData.add(material);
+		// m_InstanceData.add(material);
 	}
 }
 
@@ -100,10 +100,10 @@ bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::ha
 	if(!m_Bound) return false;
 
 
-	for(const auto& b : m_InstanceData.bindings(m_Bound, geometry))
+	/*for(const auto& b : m_InstanceData.bindings(m_Bound, geometry))
 	{
 		cmdBuffer.bindVertexBuffers(b.first, 1, &m_InstanceData.buffer()->gpu_buffer(), &b.second);
-	}
+	}*/
 
 	return true;
 }
@@ -114,26 +114,31 @@ bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::ha
 
 uint32_t bundle::instances(core::resource::tag<core::ivk::geometry> geometry) const noexcept
 {
-	return m_InstanceData.count(geometry);
+	// return m_InstanceData.count(geometry);
+	return 0;
 }
 
 std::vector<std::pair<uint32_t, uint32_t>> bundle::instantiate(core::resource::tag<core::ivk::geometry> geometry,
 															   uint32_t count)
 {
-	return m_InstanceData.add(geometry, count);
+	// return m_InstanceData.add(geometry, count);
+	return {};
 }
 
-uint32_t bundle::size(tag<geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }
-bool bundle::has(tag<geometry> geometry) const noexcept { return size(geometry) > 0; }
+uint32_t bundle::size(tag<core::ivk::geometry> geometry) const noexcept { return /*m_InstanceData.count(geometry)*/ 0; }
+bool bundle::has(tag<core::ivk::geometry> geometry) const noexcept { return size(geometry) > 0; }
 
-bool bundle::release(tag<geometry> geometry, uint32_t id) noexcept { return m_InstanceData.erase(geometry, id); }
+bool bundle::release(tag<core::ivk::geometry> geometry, uint32_t id) noexcept
+{
+	return /*m_InstanceData.erase(geometry, id)*/ false;
+}
 
 bool bundle::release_all() noexcept { return m_InstanceData.clear(); };
 
-bool bundle::set(tag<geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
+bool bundle::set(tag<core::ivk::geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
 				 const void* data, size_t size, size_t count)
 {
-	m_InstanceData.buffer()->commit({core::ivk::buffer::commit_instruction{
-		(void*)data, size * count, segment, memory::range{size_of_element * id, size_of_element * (id + count)}}});
+	// m_InstanceData.buffer()->commit({core::ivk::buffer::commit_instruction{
+	//	(void*)data, size * count, segment, memory::range{size_of_element * id, size_of_element * (id + count)}}});
 	return true;
 }

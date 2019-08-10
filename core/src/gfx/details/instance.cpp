@@ -1,31 +1,30 @@
 #include "stdafx.h"
 #include "gfx/details/instance.h"
-#include "vk/material.h"
+#include "gfx/material.h"
 #include "data/material.h"
-#include "vk/shader.h"
+#include "gfx/shader.h"
 #include "meta/shader.h"
-#include "vk/buffer.h"
+#include "gfx/buffer.h"
 #include "gfx/types.h"
 
 using namespace core::gfx;
-using namespace core::ivk;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
 constexpr uint32_t default_capacity = 8;
 
-data::data(core::resource::handle<core::ivk::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
+data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)
 {
 	if(m_Bindings.find(material.ID()) != std::end(m_Bindings)) return;
 
 	auto& data = m_Bindings[material.ID()];
 
-	for(const auto& stage : material->data()->stages())
+	for(const auto& stage : material->data().stages())
 	{
 		if(stage.shader_stage() != core::gfx::shader_stage::vertex) continue;
 
-		auto shader_handle = material.cache().find<core::ivk::shader>(stage.shader());
+		auto shader_handle = material.cache().find<core::gfx::shader>(stage.shader());
 
 		data.reserve(shader_handle->meta()->instance_bindings().size());
 		for(const auto& vBinding : shader_handle->meta()->instance_bindings())
@@ -44,7 +43,7 @@ void data::add(core::resource::handle<material> material)
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
-				auto res = m_InstanceBuffer->reserve(vk::DeviceSize(obj.id_generator.capacity()) *
+				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() *
 													 d.description.size_of_element);
 				if(!res) core::gfx::log->error("could not allocate");
 
@@ -62,7 +61,7 @@ void data::add(core::resource::handle<material> material)
 	}
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::ivk::geometry> uid, uint32_t count)
+std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry> uid, uint32_t count)
 {
 	auto it = m_InstanceData.find(uid.uid());
 	if(it == std::end(m_InstanceData))
@@ -72,7 +71,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::i
 		for(const auto& b : m_UniqueBindings)
 		{
 			auto res =
-				m_InstanceBuffer->reserve(vk::DeviceSize{it->second.id_generator.capacity()} * b.first.size_of_element);
+				m_InstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
 			if(!res) core::gfx::log->error("could not allocate");
 			it->second.data.emplace_back(res.value());
 			it->second.description.emplace_back(b.first);
@@ -91,7 +90,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::i
 			{
 				auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
 				if(!res) core::gfx::log->error("could not allocate");
-				m_InstanceBuffer->copy_from(m_InstanceBuffer, {vk::BufferCopy{d.range().begin, d.range().end}});
+				m_InstanceBuffer->copy_from(m_InstanceBuffer, {core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
 				std::swap(d, res.value());
 				m_InstanceBuffer->deallocate(res.value());
 			}
@@ -105,7 +104,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::i
 void data::remove(core::resource::handle<material> material) {}
 
 
-uint32_t data::count(core::resource::tag<core::ivk::geometry> uid) const noexcept
+uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcept
 {
 	if(auto it = m_InstanceData.find(uid.uid()); it != std::end(m_InstanceData))
 	{
@@ -170,7 +169,7 @@ std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> 
 }
 
 
-bool data::erase(core::resource::tag<core::ivk::geometry> geometry, uint32_t id) noexcept
+bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
@@ -186,7 +185,7 @@ bool data::erase(core::resource::tag<core::ivk::geometry> geometry, uint32_t id)
 	}
 	return false;
 }
-bool data::clear(core::resource::tag<core::ivk::geometry> geometry) noexcept
+bool data::clear(core::resource::tag<core::gfx::geometry> geometry) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{

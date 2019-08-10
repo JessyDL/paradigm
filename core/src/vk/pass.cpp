@@ -4,6 +4,8 @@
 #include "data/framebuffer.h"
 #include "vk/swapchain.h"
 #include "gfx/drawgroup.h"
+#include "vk/geometry.h"
+#include "data/geometry.h"
 
 using namespace core::resource;
 using namespace core::gfx;
@@ -165,7 +167,7 @@ bool pass::build()
 			m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
 												 m_DepthBias.components[2]);
 
-			for(auto& group : m_AllGroups) group.build(m_DrawCommandBuffers[i], m_Swapchain, i);
+			for(auto& group : m_AllGroups) build_drawgroup(group, m_DrawCommandBuffers[i], m_Swapchain, i);
 
 			m_DrawCommandBuffers[i].endRenderPass();
 		}
@@ -197,7 +199,7 @@ bool pass::build()
 													 m_DepthBias.components[2]);
 
 
-				for(auto& group : m_AllGroups) group.build(m_DrawCommandBuffers[i], m_Framebuffer, i);
+				for(auto& group : m_AllGroups) build_drawgroup(group, m_DrawCommandBuffers[i], m_Framebuffer, i);
 
 
 				m_DrawCommandBuffers[i].endRenderPass();
@@ -255,8 +257,8 @@ void pass::present()
 {
 	if(m_WaitFences.size() > 0)
 	{
-		if(!utility::vulkan::check(
-			   m_Context->device().waitForFences(1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, std::numeric_limits<uint64_t>::max())))
+		if(!utility::vulkan::check(m_Context->device().waitForFences(1, &m_WaitFences[m_CurrentBuffer], VK_TRUE,
+																	 std::numeric_limits<uint64_t>::max())))
 			LOG_ERROR("Failed to wait for fence");
 
 		if(!utility::vulkan::check(m_Context->device().resetFences(1, &m_WaitFences[m_CurrentBuffer])))
@@ -329,4 +331,69 @@ void pass::connect(psl::view_ptr<pass> pass) noexcept { m_WaitFor.emplace_back(p
 void pass::disconnect(psl::view_ptr<pass> pass) noexcept
 {
 	m_WaitFor.erase(std::find(std::begin(m_WaitFor), std::end(m_WaitFor), pass->m_RenderComplete), std::end(m_WaitFor));
+}
+
+void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
+						   core::resource::handle<core::ivk::framebuffer> framebuffer,
+	uint32_t index)
+{
+	for(auto& drawLayer : group.m_Group)
+	{
+		for(auto& drawCall : drawLayer.second)
+		{
+			if(drawCall.m_Geometry.size() == 0) continue;
+			auto bundle = drawCall.m_Bundle;
+
+			auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
+
+			for(auto index : matIndices)
+			{
+				bundle->bind_material(index);
+				bundle->bind_pipeline(cmdBuffer, framebuffer, index);
+				auto mat{bundle->bound()};
+				for(auto& [geometryHandle, count] : drawCall.m_Geometry)
+				{
+					uint32_t instance_n = bundle->instances(geometryHandle);
+					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
+
+					geometryHandle->bind(cmdBuffer, mat);
+					bundle->bind_geometry(cmdBuffer, geometryHandle);
+
+					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
+				}
+			}
+		}
+	}
+}
+
+void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
+						   core::resource::handle<core::ivk::swapchain> swapchain, uint32_t index)
+{
+	for(auto& drawLayer : group.m_Group)
+	{
+		for(auto& drawCall : drawLayer.second)
+		{
+			if(drawCall.m_Geometry.size() == 0) continue;
+			auto bundle = drawCall.m_Bundle;
+
+			auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
+
+			for(auto index : matIndices)
+			{
+				bundle->bind_material(index);
+				bundle->bind_pipeline(cmdBuffer, swapchain, index);
+				auto mat{bundle->bound()};
+				for(auto& [geometryHandle, count] : drawCall.m_Geometry)
+				{
+					uint32_t instance_n = bundle->instances(geometryHandle);
+					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
+
+					geometryHandle->bind(cmdBuffer, mat);
+					bundle->bind_geometry(cmdBuffer, geometryHandle);
+
+					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
+				}
+			}
+		}
+	}
 }

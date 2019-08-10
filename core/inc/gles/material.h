@@ -30,9 +30,12 @@ namespace core::igles
 		void bind();
 
 		const std::vector<core::resource::handle<core::igles::shader>>& shaders() const noexcept;
+
+		const core::data::material& data() const noexcept;
 	  private:
 		core::resource::handle<program> m_Program;
 
+		core::resource::handle<core::data::material> m_Data;
 		std::vector<core::resource::handle<core::igles::shader>> m_Shaders;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::igles::texture>>> m_Textures;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::igles::sampler>>> m_Samplers;

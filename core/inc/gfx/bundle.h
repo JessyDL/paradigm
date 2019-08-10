@@ -1,18 +1,24 @@
 #pragma once
 #include "array.h"
 #include "resource/resource.hpp"
-#include "vk/material.h"
 #include "gfx/details/instance.h"
 
 namespace core::ivk
 {
 	class geometry;
+	class buffer;
+	class material;
+	class framebuffer;
+	class swapchain;
+} // namespace core::ivk
+
+namespace vk
+{
+	class CommandBuffer;
 }
 
 namespace core::gfx
 {
-	class buffer;
-
 	class bundle final
 	{
 
@@ -89,7 +95,7 @@ namespace core::gfx
 		{
 			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
 			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
-			auto res = m_InstanceData.segment(geometry, name);
+			auto res = m_InstanceData.segment(*(core::resource::tag<core::gfx::geometry>*)(&geometry), name);
 			if(!res)
 			{
 				core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid());
@@ -106,7 +112,7 @@ namespace core::gfx
 		// member variables
 		// ------------------------------------------------------------------------------------------------------------
 	  private:
-		details::instance::data m_InstanceData;
+		core::gfx::details::instance::data m_InstanceData;
 
 		psl::array<core::resource::handle<core::ivk::material>> m_Materials;
 		psl::array<uint32_t> m_Layers;

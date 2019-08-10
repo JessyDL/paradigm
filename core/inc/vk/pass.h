@@ -97,6 +97,12 @@ namespace core::ivk
 		bool is_swapchain() const noexcept;
 
 	  private:
+		void build_drawgroup(core::gfx::drawgroup& group, vk::CommandBuffer cmdBuffer,
+							 core::resource::handle<core::ivk::framebuffer> framebuffer,
+							 uint32_t index);
+		void build_drawgroup(core::gfx::drawgroup& group, vk::CommandBuffer cmdBuffer,
+							 core::resource::handle<core::ivk::swapchain> swapchain,
+							 uint32_t index);
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
 		/// \param[in] size the amount of fences to create.
 		void create_fences(const size_t size = 1u);

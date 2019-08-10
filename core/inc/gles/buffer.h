@@ -64,9 +64,11 @@ namespace core::igles
 
 		const core::data::buffer& data() const noexcept { return m_BufferDataHandle; }
 
+		bool copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges);
 	  private:
 		GLuint m_Buffer;
 		GLint m_BufferType;
 		core::resource::handle<core::data::buffer> m_BufferDataHandle;
+		psl::UID m_UID;
 	};
 } // namespace core::igles

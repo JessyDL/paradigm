@@ -77,6 +77,8 @@
 #include "gles/sampler.h"
 #include "gles/material.h"
 #include "gles/swapchain.h"
+#include "gles/pass.h"
+#include "gles/framebuffer.h"
 
 
 #include "gfx/limits.h"
@@ -88,6 +90,8 @@
 #include "gfx/sampler.h"
 #include "gfx/pipeline_cache.h"
 #include "gfx/material.h"
+#include "gfx/pass.h"
+#include "gfx/framebuffer.h"
 
 #include "resource/variant_handle.h"
 
@@ -906,7 +910,6 @@ void gles(core::resource::cache& cache, core::resource::handle<core::os::surface
 		glClear(GL_COLOR_BUFFER_BIT);
 		glClearColor(0.2f, 0.5f, 0.6f, 1.0f);
 
-		glViewport(0, 0, surface_handle->data().width(), surface_handle->data().height());
 
 		materials[std::rand() % 2]->resource().get<core::igles::material>()->bind();
 

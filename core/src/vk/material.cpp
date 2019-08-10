@@ -14,7 +14,6 @@
 #include "vk/pipeline.h"
 
 using namespace psl;
-using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
@@ -100,7 +99,7 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 						core::gfx::log->error(
 							"ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
 							"the type [{2}] instead in shader [{3}]",
-							utility::to_string(ID), vk::to_string(conversion::to_vk(binding.descriptor())),
+							utility::to_string(ID), vk::to_string(gfx::conversion::to_vk(binding.descriptor())),
 							vk::to_string(buffer_handle->data()->usage()), utility::to_string(stage.shader()));
 						return;
 					}

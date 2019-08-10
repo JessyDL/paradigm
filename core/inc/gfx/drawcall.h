@@ -8,7 +8,18 @@ namespace core::ivk
 {
 	class geometry;
 }
-
+#ifdef PE_VULKAN
+namespace core::ivk
+{
+	class pass;
+}
+#endif
+#ifdef PE_GLES
+namespace core::igles
+{
+	class pass;
+}
+#endif
 namespace core::gfx
 {
 	class bundle;
@@ -16,6 +27,12 @@ namespace core::gfx
 	class drawcall
 	{
 		friend class drawgroup;
+#ifdef PE_VULKAN
+		friend class core::ivk::pass;
+#endif
+#ifdef PE_GLES
+		friend class core::igles::pass;
+#endif
 
 	  public:
 		drawcall(core::resource::handle<core::gfx::bundle> bundle,

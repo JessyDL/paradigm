@@ -17,6 +17,7 @@ namespace data = core::data;
 
 material::material(const psl::UID& uid, cache& cache, handle<data::material> data,
 				   core::resource::handle<core::igles::program_cache> program_cache, handle<buffer> matBuffer)
+	: m_Data(data)
 {
 	for(auto& stage : data->stages())
 	{
@@ -134,3 +135,5 @@ void material::bind()
 }
 
 const std::vector<core::resource::handle<core::igles::shader>>& material::shaders() const noexcept { return m_Shaders; }
+
+const core::data::material& material::data() const noexcept { return m_Data; }
