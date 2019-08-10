@@ -1,5 +1,12 @@
 #include "gfx/context.h"
 
+#ifdef PE_VULKAN
+#include "vk/context.h"
+#endif
+#ifdef PE_GLES
+#include "gles/context.h"
+#endif
+
 using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
@@ -9,8 +16,12 @@ context::context(const psl::UID& uid, cache& cache, graphics_backend backend, co
 {
 	switch(backend)
 	{
+#ifdef PE_VULKAN
 	case graphics_backend::vulkan: m_Handle.load<core::ivk::context>(name); break;
+#endif
+#ifdef PE_GLES
 	case graphics_backend::gles: m_Handle.load<core::igles::context>(name); break;
+#endif
 	}
 }
 

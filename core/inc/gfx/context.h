@@ -3,11 +3,21 @@
 #include "resource/resource.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/context.h"
+namespace core::ivk
+{
+	class context;
+}
 #endif
 #ifdef PE_GLES
-#include "gles/context.h"
+namespace core::igles
+{
+	class context;
+}
 #endif
+namespace core::os
+{
+	class surface;
+}
 
 #include <variant>
 
@@ -35,7 +45,7 @@ namespace core::gfx
 	  public:
 		context(const psl::UID& uid, core::resource::cache& cache, graphics_backend backend,
 				const psl::string8_t& name);
-		
+
 		~context() = default;
 
 		context(const context& other)	 = delete;
@@ -47,7 +57,8 @@ namespace core::gfx
 
 		void target_surface(const core::os::surface& surface);
 
-		core::resource::handle<value_type> resource() noexcept { return m_Handle; };
+		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
+
 	  private:
 		graphics_backend m_Backend;
 		core::resource::handle<value_type> m_Handle;
