@@ -23,6 +23,20 @@ buffer::buffer(const psl::UID& uid, cache& cache, psl::meta::file* meta, handle<
 	}
 }
 
+buffer::buffer(const psl::UID& uid, cache& cache, psl::meta::file* meta, handle<context> context,
+			   handle<data::buffer> data, handle<buffer> staging)
+	: m_Handle(cache, uid, (meta) ? meta->ID() : uid)
+{
+	switch(context->backend())
+	{
+	case graphics_backend::vulkan:
+		m_Handle.load<core::ivk::buffer>(context->resource().get<core::ivk::context>(), data,
+										 staging->resource().get<core::ivk::buffer>());
+		break;
+	case graphics_backend::gles: m_Handle.load<core::igles::buffer>(data); break;
+	}
+}
+
 buffer::~buffer() {}
 
 
@@ -90,5 +104,17 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 
 		return m_Handle.value<core::ivk::buffer>().copy_from(other.resource().value<core::ivk::buffer>(),
 															 buffer_ranges);
+	}
+}
+
+bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
+{
+	if(m_Handle.contains<core::igles::buffer>())
+	{
+		return m_Handle.value<core::igles::buffer>().commit(instructions);
+	}
+	else
+	{
+		return m_Handle.value<core::ivk::buffer>().commit(instructions);
 	}
 }

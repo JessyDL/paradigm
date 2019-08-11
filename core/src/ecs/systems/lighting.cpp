@@ -2,18 +2,18 @@
 #include "ecs/systems/lighting.h"
 #include "ecs/state.h"
 #include "memory/region.h"
-#include "vk/pass.h"
-#include "vk/context.h"
+#include "gfx/pass.h"
+#include "gfx/context.h"
 #include "os/surface.h"
 #include "gfx/render_graph.h"
 #include "ecs/systems/render.h"
 #include "data/buffer.h"
-#include "vk/buffer.h"
+#include "gfx/buffer.h"
 #include "data/framebuffer.h"
 #include "vk/framebuffer.h"
 #include "data/sampler.h"
-#include "vk/sampler.h"
-
+#include "gfx/sampler.h"
+#include "gfx/limits.h"
 
 using namespace core::ecs::systems;
 using namespace core;
@@ -23,8 +23,8 @@ using namespace psl::ecs;
 
 lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view_ptr<core::resource::cache> cache,
 								 memory::region& resource_region, psl::view_ptr<core::gfx::render_graph> renderGraph,
-								 psl::view_ptr<core::ivk::pass> pass,
-								 core::resource::handle<core::ivk::context> context,
+								 psl::view_ptr<core::gfx::pass> pass,
+								 core::resource::handle<core::gfx::context> context,
 								 core::resource::handle<core::os::surface> surface) noexcept
 	: m_Cache(cache), m_RenderGraph(renderGraph), m_DependsPass(pass), m_State(state), m_Context(context),
 	  m_Surface(surface)
@@ -36,15 +36,15 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 					vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 					resource_region
 						.create_region(sizeof(light) * 1024,
-									   m_Context->properties().limits.minUniformBufferOffsetAlignment,
+									   core::gfx::limits::uniform_buffer_offset_alignment(m_Context),
 									   new memory::default_allocator(true))
 						.value());
 
-	m_LightDataBuffer = create<ivk::buffer>(*cache);
+	m_LightDataBuffer = create<gfx::buffer>(*cache);
 	m_LightDataBuffer.load(m_Context, bufferData);
 	cache->library().set(m_LightDataBuffer.ID(), "GLOBAL_LIGHT_DATA");
-
-	m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
+	assert(false);
+	//m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 }
 
 void lighting_system::create_dir(info& info, pack<entity, light, on_combine<light, transform>> pack)
@@ -53,10 +53,10 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 	//insertion_sort(std::begin(pack), std::end(pack), sort_impl<light_sort, light>{});
 
 	// create depth pass
-	for(auto [e, light] : pack)
+	/*for(auto [e, light] : pack)
 	{
 		if(!light.shadows) continue;
-		auto depthPass = create<ivk::framebuffer>(*m_Cache);
+		auto depthPass = create<gfx::framebuffer>(*m_Cache);
 		{
 			auto data = create<data::framebuffer>(*m_Cache);
 			data.load(m_Surface->data().width(), m_Surface->data().height(), 1);
@@ -83,7 +83,7 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 				auto ppsamplerData = create<data::sampler>(*m_Cache);
 				ppsamplerData.load();
 				ppsamplerData->mipmaps(false);
-				auto ppsamplerHandle = create<ivk::sampler>(*m_Cache);
+				auto ppsamplerHandle = create<gfx::sampler>(*m_Cache);
 				ppsamplerHandle.load(m_Context, ppsamplerData);
 				data->set(ppsamplerHandle);
 			}
@@ -96,5 +96,5 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 		m_Systems[e]->add_render_range(1000, 1500);
 
 		m_RenderGraph->connect(m_Passes[e], m_DependsPass);
-	}
+	}*/
 };

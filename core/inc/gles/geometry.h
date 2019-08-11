@@ -34,7 +34,7 @@ namespace core::igles
 		/// \param[in] material the material to check against.
 		// bool compatible(const core::ivk::material& material) const noexcept;
 
-		void bind(const core::igles::material& material);
+		void bind(const core::igles::material& material, uint32_t instanceCount = 0);
 
 	  private:
 		memory::segment m_IndicesSegment;

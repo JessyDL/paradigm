@@ -24,10 +24,10 @@ void data::add(core::resource::handle<material> material)
 	{
 		if(stage.shader_stage() != core::gfx::shader_stage::vertex) continue;
 
-		auto shader_handle = material.cache().find<core::gfx::shader>(stage.shader());
+		core::meta::shader* meta = material.cache().library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 
-		data.reserve(shader_handle->meta()->instance_bindings().size());
-		for(const auto& vBinding : shader_handle->meta()->instance_bindings())
+		data.reserve(meta->instance_bindings().size());
+		for(const auto& vBinding : meta->instance_bindings())
 		{
 			data.emplace_back(binding{binding::header{vBinding.buffer(), vBinding.size()}, vBinding.binding_slot()});
 		}

@@ -167,7 +167,7 @@ failure:
 	return {};
 }
 
-bool buffer::commit(std::vector<commit_instruction> instructions)
+bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 {
 	PROFILE_SCOPE(core::profiler)
 	vk::DeviceSize totalSize =
@@ -266,20 +266,20 @@ bool buffer::commit(std::vector<commit_instruction> instructions)
 	else
 	{
 		//core::ivk::log->info("mapping {0} regions into an ivk::buffer from CPU.", instructions.size());
-		for(auto& alloc_segm : instructions)
+		for(auto& instruction : instructions)
 		{
-			std::uintptr_t offset = alloc_segm.segment.range().begin -
-				(std::uintptr_t)m_BufferDataHandle->region().data() + alloc_segm.sub_range.value_or(memory::range{}).begin;
+			std::uintptr_t offset = instruction.segment.range().begin -
+				(std::uintptr_t)m_BufferDataHandle->region().data() + instruction.sub_range.value_or(memory::range{}).begin;
 
-			auto tuple = m_Context->device().mapMemory(m_Memory, offset, alloc_segm.size);
+			auto tuple = m_Context->device().mapMemory(m_Memory, offset, instruction.size);
 			if(!utility::vulkan::check(tuple.result))
 			{
 				return false;
 			}
-			memcpy(tuple.value, (void*)alloc_segm.source, alloc_segm.size);
+			memcpy(tuple.value, (void*)instruction.source, instruction.size);
 			if(m_BufferDataHandle->region().allocator()->is_physically_backed())
 			{
-				memcpy((void*)alloc_segm.segment.range().begin, (void*)alloc_segm.source, alloc_segm.size);
+				memcpy((void*)instruction.segment.range().begin, (void*)instruction.source, instruction.size);
 			}
 			m_Context->device().unmapMemory(m_Memory);
 		}

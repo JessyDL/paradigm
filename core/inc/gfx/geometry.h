@@ -39,7 +39,7 @@ namespace core::gfx
 		geometry& operator=(const geometry&) = delete;
 		geometry& operator=(geometry&&) = delete;
 
-		core::resource::handle<value_type> resource() noexcept { return m_Handle; };
+		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

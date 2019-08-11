@@ -6,23 +6,44 @@
 
 namespace core::resource
 {
+	using resource_key_t = const std::uintptr_t* (*)();
 	namespace details
 	{
+		template <typename T, typename Y>
+		struct is_resource_alias : std::false_type
+		{};
+
+		// added to trick the compiler to not throw away the results at compile time
+		template <typename T>
+		constexpr const std::uintptr_t resource_key_var{0u};
+
+		template <typename T>
+		constexpr const std::uintptr_t* resource_key() noexcept
+		{
+			return &resource_key_var<T>;
+		}
+
+		template <typename T>
+		constexpr resource_key_t key_for()
+		{
+			return resource_key<typename std::decay<T>::type>;
+		};
+
 		template <typename T>
 		class container;
-		
+
 		struct vtable
 		{
 			void (*clear)(void* this_);
-			const uint64_t& (*ID)(void* this_);
+			/*resource_key_t (*ID)(void* this_);*/
 		};
 
 
 		template <typename T>
-		details::vtable const vtable_for = {[](void* this_) { static_cast<T*>(this_)->clear(); },
+		details::vtable const vtable_for = {[](void* this_) { static_cast<T*>(this_)->clear(); }/*,
 
-											[](void* this_) -> const uint64_t& { return static_cast<T*>(this_)->id; }};
-	}
+											[](void* this_) -> resource_key_t { return T::id(); }*/};
+	} // namespace details
 	/// \brief represents a container of resources and their UID mappings
 	///
 	/// The resource cache is a specialized container that can handle lifetime and ID mapping
@@ -41,11 +62,11 @@ namespace core::resource
 
 		struct entry
 		{
-			entry(uint64_t id, std::shared_ptr<void> container, state& state, const details::vtable& table)
+			entry(resource_key_t id, std::shared_ptr<void> container, state& state, const details::vtable& table)
 				: id(id), container(container), state(state), m_Table(table){};
 			entry(const entry& other)
 				: id(other.id), container(other.container), state(other.state), m_Table(other.m_Table){};
-			const uint64_t id;
+			resource_key_t id;
 			state& state;
 			std::shared_ptr<void> container;
 			const details::vtable& m_Table;
@@ -83,16 +104,17 @@ namespace core::resource
 
 			for(auto& e : it->second)
 			{
-				if(e.id == details::container<T>::id)
+				if(e.id == details::container<T>::id())
 					return handle<T>(*this, uid, *((std::shared_ptr<details::container<T>>*)(&e.container)));
 			}
+
 			return handle<T>(*this, psl::UID::invalid_uid);
 		}
 
 	  private:
 		template <typename T>
 		friend handle<T> core::resource::create_shared(cache& cache, const psl::UID& uid);
-		std::optional<entry* const> get(const psl::UID& uid, uint64_t ID)
+		std::optional<entry* const> get(const psl::UID& uid, resource_key_t ID)
 		{
 			const auto& it = m_Handles.find(uid);
 			if(it == std::end(m_Handles)) return {};
@@ -114,7 +136,7 @@ namespace core::resource
 
 			for(auto& e : it->second)
 			{
-				if(e.id == details::container<T>::id && (e.container.use_count() == 1 || force) &&
+				if(e.id == details::container<T>::id() && (e.container.use_count() == 1 || force) &&
 				   e.state == state::LOADED)
 				{
 					e.state = state::UNLOADING;
@@ -126,20 +148,21 @@ namespace core::resource
 			return false;
 		}
 
-		void reg(uint64_t id, const psl::UID& uid, std::shared_ptr<void> container, state& state,
+		void reg(resource_key_t id, const psl::UID& uid, std::shared_ptr<void> container, state& state,
 				 const details::vtable& vtable)
 		{
 			auto& vec = m_Handles[uid];
-			if(std::find_if(std::begin(vec), std::end(vec), [id](const auto& data) {
-				return data.id == id;}) == std::end(vec))
+			if(std::find_if(std::begin(vec), std::end(vec), [id](const auto& data) { return data.id == id; }) ==
+			   std::end(vec))
+			{
 				vec.emplace_back(id, container, state, vtable);
+			}
 		}
 
 		psl::meta::library m_Library;
 		// memory::region m_Region;
 		memory::allocator_base* m_Allocator;
 		std::unordered_map<psl::UID, std::vector<entry>> m_Handles;
-		static uint64_t m_ID;
 	};
 
 	namespace details
@@ -224,7 +247,7 @@ namespace core::resource
 				}
 			}
 
-			static const uint64_t id;
+			static resource_key_t id() noexcept { return details::key_for<T>(); }
 
 		  private:
 			template <typename... Args>
@@ -261,9 +284,6 @@ namespace core::resource
 			static const details::vtable& m_vTable;
 		};
 
-
-		template <typename T>
-		const uint64_t container<T>::id{cache::m_ID++};
 
 		template <typename T>
 		const details::vtable& container<T>::m_vTable = details::vtable_for<container<T>>;

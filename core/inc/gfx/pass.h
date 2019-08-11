@@ -1,7 +1,7 @@
 #pragma once
 #include "resource/resource.hpp"
 #include <variant>
-
+#include "view_ptr.h"
 #ifdef PE_GLES
 namespace core::igles
 {
@@ -20,6 +20,7 @@ namespace core::gfx
 	class context;
 	class framebuffer;
 	class swapchain;
+	class drawgroup;
 
 	class pass
 	{
@@ -43,6 +44,18 @@ namespace core::gfx
 		pass(pass&& other) noexcept = delete;
 		pass& operator=(const pass& other) = delete;
 		pass& operator=(pass&& other) noexcept = delete;
+
+		bool is_swapchain() const noexcept;
+
+		
+		void clear();
+		void prepare();
+		bool build();
+		void present();
+
+		bool connect(psl::view_ptr<core::gfx::pass> child) noexcept;
+		bool disconnect(psl::view_ptr<core::gfx::pass> child) noexcept;
+		void add(core::gfx::drawgroup& group) noexcept;
 
 		value_type resource() const noexcept { return m_Handle; };
 

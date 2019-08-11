@@ -65,6 +65,8 @@ namespace core::igles
 		const core::data::buffer& data() const noexcept { return m_BufferDataHandle; }
 
 		bool copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges);
+
+		bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
 	  private:
 		GLuint m_Buffer;
 		GLint m_BufferType;

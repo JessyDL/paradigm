@@ -23,7 +23,7 @@ namespace core::resource
 		void registrate() 
 		{
 			PROFILE_SCOPE(core::profiler)
-			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
+			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
 		}
 
@@ -46,7 +46,7 @@ namespace core::resource
 		{
 			PROFILE_SCOPE(core::profiler)
 			// todo need to subscribe to the library, somehow figure out what type of meta type I use
-			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
+			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
 		};
 
@@ -55,7 +55,7 @@ namespace core::resource
 		{
 			PROFILE_SCOPE(core::profiler)
 			// todo need to subscribe to the library, somehow figure out what type of meta type I use
-			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
+			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
 		};
 
@@ -70,7 +70,7 @@ namespace core::resource
 			  m_Container(std::make_shared<details::container<T>>())
 		{
 			PROFILE_SCOPE(core::profiler)
-			m_Cache->reg(details::container<T>::id, resource_uid, (std::shared_ptr<void>)(m_Container),
+			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
 						 m_Container->m_State, m_Container->m_vTable);
 
 			if(other.m_Container && other.m_Container->has_value())

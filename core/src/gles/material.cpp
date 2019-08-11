@@ -132,6 +132,11 @@ void material::bind()
 		glBindTexture(GL_TEXTURE_2D, m_Textures[i].second->id());
 		glBindSampler(binding, m_Samplers[i].second->id());
 	}
+
+	for(auto& buffer : m_Buffers)
+	{
+		glBindBufferBase(GL_UNIFORM_BUFFER, buffer.first, buffer.second->id());
+	}
 }
 
 const std::vector<core::resource::handle<core::igles::shader>>& material::shaders() const noexcept { return m_Shaders; }

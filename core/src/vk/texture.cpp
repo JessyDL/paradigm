@@ -252,7 +252,7 @@ void texture::load_2D()
 		if(auto segmentOpt = stagingBuffer->reserve((vk::DeviceSize)m_Texture2DData->size()); segmentOpt)
 		{
 			segment = segmentOpt.value();
-			buffer::commit_instruction instr;
+			gfx::commit_instruction instr;
 			instr.segment = segment;
 			instr.size = (vk::DeviceSize)m_Texture2DData->size();
 			instr.source = (std::uintptr_t)m_Texture2DData->data();

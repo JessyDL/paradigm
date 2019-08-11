@@ -40,6 +40,9 @@ namespace core::gfx
 		buffer(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* meta,
 			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data);
 
+		buffer(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* meta,
+			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data,
+			   core::resource::handle<core::gfx::buffer> staging);
 		~buffer();
 
 		buffer(const buffer& other)		= delete;
@@ -57,6 +60,8 @@ namespace core::gfx
 		bool deallocate(memory::segment& segment);
 
 		bool copy_from(const buffer& other, psl::array<core::gfx::memory_copy> ranges);
+		bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
+
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

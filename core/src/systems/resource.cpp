@@ -6,8 +6,6 @@
 
 using namespace core::resource;
 
-uint64_t cache::m_ID{0};
-
 
 
 cache::cache(psl::meta::library&& library, memory::allocator_base* allocator)

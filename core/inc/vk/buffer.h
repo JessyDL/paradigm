@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "vk/stdafx.h"
+#include "gfx/types.h"
 #include "resource/resource.hpp"
 #include <optional>
 #include "memory/segment.h"
@@ -72,39 +72,7 @@ namespace core::ivk
 		[[nodiscard]] std::vector<std::pair<memory::segment, memory::range>> reserve(std::vector<vk::DeviceSize> sizes,
 																					 bool optimize = false);
 
-		/// \brief description of a memory commit instruction. Tries to offer some safer mechanisms.
-		struct commit_instruction
-		{
-
-			/// \brief automatically construct the information from the type information of the source.
-			/// \tparam T the type you wish to commit in this instruction.
-			/// \param[in] source the source we will copy from.
-			/// \param[in] segment the memory::segment we will copy to.
-			/// \param[in] sub_range optional sub_range offset in the memory::segment, where a sub_range.begin() is
-			/// equal to the head of the segment. \warning make sure the source outlives the commit instruction.
-			template <typename T>
-			commit_instruction(T* source, memory::segment segment,
-							   std::optional<memory::range> sub_range = std::nullopt)
-				: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)){};
-			commit_instruction(){};
-
-			commit_instruction(void* source, size_t size, memory::segment segment,
-							   std::optional<memory::range> sub_range = std::nullopt)
-				: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(size){};
-			/// \brief target segment in the buffer
-			memory::segment segment{};
-			/// \brief possible sub range within the segment.
-			///
-			/// this is local offsets from the point of view of the segment
-			/// (i.e. the sub_range.begin && sub_range.end can never be bigger than the segment.size() )
-			std::optional<memory::range> sub_range;
-
-			/// \brief source to copy from
-			std::uintptr_t source{0};
-
-			/// \brief sizeof source
-			vk::DeviceSize size{0};
-		};
+		
 
 		/// \brief tries to find the appropriate method to update the buffer with the commit instructions.
 		///
@@ -115,7 +83,7 @@ namespace core::ivk
 		/// you wish to send to the GPU in this batch. \returns success if the instruction has been sent. \note this
 		/// method will try to figure out the best way to send this set of instructions to the GPU, possibly merging
 		/// instructions together.
-		bool commit(std::vector<commit_instruction> instructions);
+		bool commit(std::vector<core::gfx::commit_instruction> instructions);
 
 		/// \brief marks the specific region of memory available again.
 		///

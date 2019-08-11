@@ -1,5 +1,8 @@
 #pragma once
 #include "gfx/stdafx.h"
+#include <optional>
+#include "memory/range.h"
+#include "memory/segment.h"
 
 namespace core::gfx
 {
@@ -72,6 +75,39 @@ namespace core::gfx
 
 	  private:
 		value_type m_Enum;
+	};
+
+	/// \brief description of a memory commit instruction. Tries to offer some safer mechanisms.
+	struct commit_instruction
+	{
+
+		/// \brief automatically construct the information from the type information of the source.
+		/// \tparam T the type you wish to commit in this instruction.
+		/// \param[in] source the source we will copy from.
+		/// \param[in] segment the memory::segment we will copy to.
+		/// \param[in] sub_range optional sub_range offset in the memory::segment, where a sub_range.begin() is
+		/// equal to the head of the segment. \warning make sure the source outlives the commit instruction.
+		template <typename T>
+		commit_instruction(T* source, memory::segment segment, std::optional<memory::range> sub_range = std::nullopt)
+			: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)){};
+		commit_instruction(){};
+
+		commit_instruction(void* source, size_t size, memory::segment segment,
+						   std::optional<memory::range> sub_range = std::nullopt)
+			: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(size){};
+		/// \brief target segment in the buffer
+		memory::segment segment{};
+		/// \brief possible sub range within the segment.
+		///
+		/// this is local offsets from the point of view of the segment
+		/// (i.e. the sub_range.begin && sub_range.end can never be bigger than the segment.size() )
+		std::optional<memory::range> sub_range;
+
+		/// \brief source to copy from
+		std::uintptr_t source{0};
+
+		/// \brief sizeof source
+		uint64_t size{0};
 	};
 
 	enum class shader_stage : uint8_t
@@ -307,7 +343,8 @@ namespace core::gfx
 #endif
 
 #ifdef PE_GLES
-	/// \warning gles does not have a concept of transfer_source/transfer_destination, all buffers are "valid" as either
+	/// \warning gles does not have a concept of transfer_source/transfer_destination, all buffers are "valid" as
+	/// either
 	inline decltype(GL_ARRAY_BUFFER) to_gles(memory_type memory) noexcept
 	{
 		using gfx_type = std::underlying_type_t<memory_type>;
@@ -981,7 +1018,7 @@ namespace core::gfx
 	}
 #endif
 #ifdef PE_GLES
-	inline bool to_gles(format value, GLint& internalFormat, GLint& format, GLint& type) noexcept
+	inline bool to_gles(format value, GLint & internalFormat, GLint & format, GLint & type) noexcept
 	{
 		internalFormat = -1;
 		switch(value)
@@ -1288,7 +1325,7 @@ namespace core::gfx
 		case format::d32_sfloat_s8_uint:
 			internalFormat = GL_DEPTH32F_STENCIL8;
 			format		   = GL_DEPTH_STENCIL;
-			type		   = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;			
+			type		   = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 			break;
 #ifdef GL_EXT_texture_compression_s3tc
 		case format::bc1_rgb_unorm_block:

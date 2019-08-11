@@ -39,15 +39,16 @@ buffer::~buffer() { glDeleteBuffers(1, &m_Buffer); }
 
 bool buffer::set(const void* data, std::vector<core::gfx::memory_copy> commands)
 {
-	glBindBuffer(m_BufferType, m_Buffer);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
 	for(auto command : commands)
 	{
 		// glBufferSubData(m_BufferType, command.destination_offset, command.size,
 		//				(void*)((std::uintptr_t)data + command.source_offset));
-		auto ptr = glMapBufferRange(m_BufferType, command.destination_offset, command.size, GL_MAP_WRITE_BIT);
+		auto ptr = glMapBufferRange(GL_COPY_WRITE_BUFFER, command.destination_offset, command.size, GL_MAP_WRITE_BIT);
 		memcpy(ptr, (void*)((std::uintptr_t)data + command.source_offset), command.size);
+		glUnmapBuffer(GL_COPY_WRITE_BUFFER);
 	}
-	glUnmapBuffer(m_BufferType);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 	return true;
 }
 
@@ -140,9 +141,29 @@ bool buffer::copy_from(const buffer& other, const psl::array<core::gfx::memory_c
 	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
 	for(const auto& region : ranges)
 	{
-		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, region.source_offset,
-							region.destination_offset, region.size);
+		glCopyBufferSubData(GL_COPY_READ_BUFFER, GL_COPY_WRITE_BUFFER, region.source_offset, region.destination_offset,
+							region.size);
 	}
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 
+	return true;
+}
+
+
+bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
+{
+	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
+	for(const auto& instruction : instructions)
+	{
+		std::uintptr_t offset = instruction.segment.range().begin -
+								(std::uintptr_t)m_BufferDataHandle->region().data() +
+								instruction.sub_range.value_or(memory::range{}).begin;
+
+		auto ptr = glMapBufferRange(GL_COPY_WRITE_BUFFER, offset, instruction.size, GL_MAP_WRITE_BIT);
+		memcpy(ptr, (void*)(instruction.source), instruction.size);
+		glUnmapBuffer(GL_COPY_WRITE_BUFFER);		
+	}
+	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 	return true;
 }

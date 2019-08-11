@@ -4,8 +4,13 @@
 #include "data/framebuffer.h"
 #include "vk/swapchain.h"
 #include "gfx/drawgroup.h"
+#include "gfx/geometry.h"
+#include "gfx/material.h"
+#include "gfx/buffer.h"
 #include "vk/geometry.h"
+#include "vk/material.h"
 #include "data/geometry.h"
+#include "gfx/details/instance.h"
 
 using namespace core::resource;
 using namespace core::gfx;
@@ -349,15 +354,27 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 			for(auto index : matIndices)
 			{
 				bundle->bind_material(index);
-				bundle->bind_pipeline(cmdBuffer, framebuffer, index);
-				auto mat{bundle->bound()};
-				for(auto& [geometryHandle, count] : drawCall.m_Geometry)
+				auto gfxmat{bundle->bound()};
+				auto mat{gfxmat->resource().get<core::ivk::material>()};
+
+				mat->bind_pipeline(cmdBuffer, framebuffer, index);
+				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
-					uint32_t instance_n = bundle->instances(geometryHandle);
+					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
+					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
 
 					geometryHandle->bind(cmdBuffer, mat);
-					bundle->bind_geometry(cmdBuffer, geometryHandle);
+					
+					//bundle->bind_geometry(cmdBuffer, geometryHandle);
+
+					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
+					{
+						cmdBuffer.bindVertexBuffers(
+							b.first, 1,
+							&bundle->m_InstanceData.buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
+							&b.second);
+					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
 				}
@@ -381,15 +398,25 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 			for(auto index : matIndices)
 			{
 				bundle->bind_material(index);
-				bundle->bind_pipeline(cmdBuffer, swapchain, index);
-				auto mat{bundle->bound()};
-				for(auto& [geometryHandle, count] : drawCall.m_Geometry)
+				auto gfxmat{bundle->bound()};
+				auto mat{gfxmat->resource().get<core::ivk::material>()};
+
+				mat->bind_pipeline(cmdBuffer, swapchain, index);
+				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
-					uint32_t instance_n = bundle->instances(geometryHandle);
+					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
+					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
 
 					geometryHandle->bind(cmdBuffer, mat);
-					bundle->bind_geometry(cmdBuffer, geometryHandle);
+
+					//bundle->bind_geometry(cmdBuffer, geometryHandle);
+
+					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
+					{
+						cmdBuffer.bindVertexBuffers(
+							b.first, 1, &bundle->m_InstanceData.buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(), &b.second);
+					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
 				}

@@ -16,6 +16,7 @@ using namespace core::resource;
 
 shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
 			   core::resource::handle<core::gfx::context> context)
+	: m_Handle(cache, uid, (metaFile)?metaFile->ID():uid)
 {
 	switch(context->backend())
 	{

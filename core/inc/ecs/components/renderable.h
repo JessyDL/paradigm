@@ -1,14 +1,10 @@
 #pragma once
 #include "math/math.hpp"
 
-namespace core::ivk
-{
-	class geometry;
-}
-
 namespace core::gfx
 {
 	class bundle;
+	class geometry;
 }
 namespace core::ecs::components
 {
@@ -16,10 +12,10 @@ namespace core::ecs::components
 	{
 		renderable() = default;
 		renderable(const core::resource::indirect_handle<core::gfx::bundle>& bundle,
-				   const core::resource::indirect_handle<core::ivk::geometry>& geometry) noexcept
+				   const core::resource::indirect_handle<core::gfx::geometry>& geometry) noexcept
 			: bundle(bundle), geometry(geometry){};
 
 		core::resource::indirect_handle<core::gfx::bundle> bundle{};
-		core::resource::indirect_handle<core::ivk::geometry> geometry{};
+		core::resource::indirect_handle<core::gfx::geometry> geometry{};
 	};
 } // namespace core::ecs::components

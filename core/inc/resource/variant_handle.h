@@ -6,24 +6,8 @@
 
 namespace core::resource
 {
-	using resource_key_t = const std::uintptr_t* (*)();
 	namespace details
 	{
-		// added to trick the compiler to not throw away the results at compile time
-		template <typename T>
-		constexpr const std::uintptr_t resource_key_var{0u};
-
-		template <typename T>
-		constexpr const std::uintptr_t* resource_key() noexcept
-		{
-			return &resource_key_var<T>;
-		}
-
-		template <typename T>
-		constexpr resource_key_t key_for()
-		{
-			return resource_key<typename std::decay<T>::type>;
-		};
 
 		template <typename T>
 		struct get_container_type

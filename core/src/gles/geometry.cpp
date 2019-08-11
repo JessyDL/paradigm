@@ -96,7 +96,7 @@ geometry::~geometry()
 	if(m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
 }
 
-void geometry::bind(const core::igles::material& material)
+void geometry::bind(const core::igles::material& material, uint32_t instanceCount)
 {
 	auto error = glGetError();
 	glBindBuffer(GL_ARRAY_BUFFER, m_GeometryBuffer->id());
@@ -118,8 +118,8 @@ void geometry::bind(const core::igles::material& material)
 						auto offset = uint64_t{b.segment.range().begin + b.sub_range.begin};
 
 						// todo we need type information here
-						glVertexAttribPointer(vBinding.binding_slot(), vBinding.size() / sizeof(GL_FLOAT), GL_FLOAT, false, 0,
-											  (void*)offset);
+						glVertexAttribPointer(vBinding.binding_slot(), vBinding.size() / sizeof(GL_FLOAT), GL_FLOAT,
+											  false, 0, (void*)offset);
 						glEnableVertexAttribArray(vBinding.binding_slot());
 						activeSlots.emplace_back(vBinding.binding_slot());
 					}
@@ -131,8 +131,12 @@ void geometry::bind(const core::igles::material& material)
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());
 	auto indices = m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t);
-	glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-				   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+	if(instanceCount == 0)
+		glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
+					   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+	else
+		glDrawElementsInstanced(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
+								(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
 
 	for(auto binding : activeSlots)
 	{

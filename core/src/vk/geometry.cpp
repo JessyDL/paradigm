@@ -8,7 +8,7 @@
 #include "vk/shader.h"
 #include "meta/shader.h"
 #include "resource/resource.hpp"
-
+#include "gfx/types.h"
 using namespace psl;
 using namespace core::resource;
 using namespace core;
@@ -33,7 +33,7 @@ geometry::geometry(const UID& uid, cache& cache, handle<core::ivk::context> cont
 	}
 
 	auto segments = m_GeometryBuffer->reserve(sizeRequests, true);
-	std::vector<buffer::commit_instruction> instructions;
+	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
 	for(const auto& stream : m_Data->vertex_streams())
 	{
@@ -63,7 +63,7 @@ geometry::geometry(const UID& uid, cache& cache, handle<core::ivk::context> cont
 			// todo error condition could not allocate segment
 			exit(1);
 		}
-		buffer::commit_instruction instr;
+		gfx::commit_instruction instr;
 		instr.size = m_IndicesSegment.range().size();
 		instr.source = (std::uintptr_t)m_Data->indices().data();
 		instr.segment = m_IndicesSegment;

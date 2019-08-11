@@ -499,6 +499,7 @@ context::context(const UID& uid, core::resource::cache& cache, psl::string8::vie
 
 context::~context()
 {
+	m_Device.waitIdle();
 	deinit_descriptor_pool();
 	deinit_command_pool();
 	deinit_device();

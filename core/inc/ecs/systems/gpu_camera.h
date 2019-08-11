@@ -5,17 +5,13 @@
 
 namespace core::gfx
 {
-	class swapchain;
-	class pass;
+	class buffer;
 } // namespace core::gfx
 namespace core::os
 {
 	class surface;
 }
-namespace core::ivk
-{
-	class buffer;
-}
+
 namespace core::ecs::components
 {
 	struct transform;
@@ -57,7 +53,7 @@ namespace core::ecs::systems
 		};
 
 		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface,
-				   core::resource::handle<core::ivk::buffer> buffer);
+				   core::resource::handle<core::gfx::buffer> buffer);
 		void tick(psl::ecs::info& info,
 				  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
 
@@ -66,7 +62,7 @@ namespace core::ecs::systems
 						   const core::ecs::components::camera& camera);
 
 		core::resource::handle<core::os::surface> m_Surface;
-		core::resource::handle<core::ivk::buffer> m_Buffer;
+		core::resource::handle<core::gfx::buffer> m_Buffer;
 		std::vector<memory::segment> fdatasegment;
 	};
 

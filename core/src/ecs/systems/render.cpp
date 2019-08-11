@@ -1,11 +1,9 @@
 #include "ecs/systems/render.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
-#include "ecs/components/camera.h"
-#include "vk/material.h"
-#include "data/material.h"
-#include "vk/geometry.h"
-#include "vk/buffer.h"
+#include "gfx/geometry.h"
+#include "gfx/bundle.h"
+#include "gfx/pass.h"
 
 using core::resource::handle;
 using namespace core::gfx;
@@ -17,7 +15,7 @@ using namespace psl;
 
 using std::chrono::duration;
 
-render::render(state& state, psl::view_ptr<core::ivk::pass> pass) : m_Pass(pass)
+render::render(state& state, psl::view_ptr<core::gfx::pass> pass) : m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }

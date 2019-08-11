@@ -37,6 +37,11 @@ namespace core::gfx
 			core::igles::shader
 #endif
 			>;
+
+		friend class core::resource::cache;
+		
+		template<typename T>
+		shader(T handle) : m_Handle(handle){};
 	  public:
 		shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
 			   core::resource::handle<core::gfx::context> context);
