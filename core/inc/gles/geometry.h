@@ -5,6 +5,7 @@
 #include "array.h"
 #include "ustring.h"
 #include "resource/handle.h"
+#include <unordered_map>
 
 namespace core::data
 {
@@ -34,7 +35,11 @@ namespace core::igles
 		/// \param[in] material the material to check against.
 		// bool compatible(const core::ivk::material& material) const noexcept;
 
-		void bind(const core::igles::material& material, uint32_t instanceCount = 0);
+		void create_vao(core::resource::handle<core::igles::material> material,
+						core::resource::handle<core::igles::buffer> instanceBuffer,
+						psl::array<std::pair<size_t, size_t>> bindings);
+
+		void bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount = 0);
 
 	  private:
 		memory::segment m_IndicesSegment;
@@ -42,6 +47,7 @@ namespace core::igles
 		core::resource::handle<core::igles::buffer> m_GeometryBuffer;
 		core::resource::handle<core::igles::buffer> m_IndicesBuffer;
 
+		std::unordered_map<psl::UID, unsigned int> m_VAOs;
 		psl::array<binding> m_Bindings;
 	};
 } // namespace core::igles

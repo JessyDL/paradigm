@@ -96,13 +96,38 @@ geometry::~geometry()
 	if(m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
 }
 
-void geometry::bind(const core::igles::material& material, uint32_t instanceCount)
+void geometry::create_vao(core::resource::handle<core::igles::material> material,
+						  core::resource::handle<core::igles::buffer> instanceBuffer,
+						  psl::array<std::pair<size_t, size_t>> bindings)
 {
-	auto error = glGetError();
+	if(auto it = m_VAOs.find(material.ID()); it != std::end(m_VAOs))
+	{
+		return;
+	}
+
+	GLuint vao;
+	glGenVertexArrays(1, &vao);
+	glBindVertexArray(vao);
+
+	auto instance_buffer = instanceBuffer->id();
+	glBindBuffer(GL_ARRAY_BUFFER, instance_buffer);
+
+	for(auto binding : bindings)
+	{
+		for(int index = 0; index < 4; ++index)
+		{
+
+			glEnableVertexAttribArray(binding.first + index);
+			auto offset = binding.second + (index * sizeof(float) * 4);
+			glVertexAttribPointer(binding.first + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4,
+								  (void*)(offset));
+			glVertexAttribDivisor(binding.first + index, 1);
+		}
+	}
+
 	glBindBuffer(GL_ARRAY_BUFFER, m_GeometryBuffer->id());
 	std::vector<int> activeSlots{};
-
-	for(const auto& shader : material.shaders())
+	for(const auto& shader : material->shaders())
 	{
 		const auto& meta = shader->meta();
 		if(meta->stage() == core::gfx::shader_stage::vertex) // TODO: check if possible on fragment shader etc..
@@ -127,6 +152,14 @@ void geometry::bind(const core::igles::material& material, uint32_t instanceCoun
 			}
 		}
 	}
+	m_VAOs[material.ID()] = vao;
+}
+
+void geometry::bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount)
+{
+	auto error = glGetError();
+
+	glBindVertexArray(m_VAOs[material.ID()]);
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());
@@ -138,10 +171,6 @@ void geometry::bind(const core::igles::material& material, uint32_t instanceCoun
 		glDrawElementsInstanced(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
 								(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
 
-	for(auto binding : activeSlots)
-	{
-		glDisableVertexAttribArray(binding);
-	}
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
+
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 };

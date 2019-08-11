@@ -24,17 +24,3 @@ context::context(const psl::UID& uid, cache& cache, graphics_backend backend, co
 #endif
 	}
 }
-
-
-void context::target_surface(const core::os::surface& surface)
-{
-#ifdef PE_GLES
-	switch(m_Backend)
-	{
-	case graphics_backend::gles:
-		auto handle = m_Handle.get<core::igles::context>();
-		handle->enable(surface);
-		break;
-	}
-#endif
-}

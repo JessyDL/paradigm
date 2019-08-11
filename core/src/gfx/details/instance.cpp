@@ -11,7 +11,7 @@ using namespace core::gfx;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
-constexpr uint32_t default_capacity = 8;
+constexpr uint32_t default_capacity = 32000;
 
 data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)

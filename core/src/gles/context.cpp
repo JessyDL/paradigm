@@ -3,6 +3,7 @@
 #include <Windows.h>
 #include "os/surface.h"
 #include "glad/glad_wgl.h"
+#include "logging.h"
 
 HDC target;
 HWND hwnd;
@@ -35,6 +36,31 @@ context::~context()
 	ReleaseDC(hwnd, target);
 }
 
+void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
+								const GLchar* message, const void* userParam)
+{
+	switch(severity)
+	{
+	case GL_DEBUG_SEVERITY_NOTIFICATION:
+		core::igles::log->info("{0} - {1}: {2} at {3}", type, id, message, source);
+		break;
+	case GL_DEBUG_SEVERITY_LOW:
+	case GL_DEBUG_SEVERITY_MEDIUM:
+		if(type == GL_DEBUG_TYPE_ERROR)
+			core::igles::log->error("{0} - {1}: {2} at {3}", type, id, message, source);
+		else
+			core::igles::log->warn("{0} - {1}: {2} at {3}", type, id, message, source);
+		break;
+	case GL_DEBUG_SEVERITY_HIGH:
+		if(type == GL_DEBUG_TYPE_ERROR)
+			core::igles::log->critical("{0} - {1}: {2} at {3}", type, id, message, source);
+		else
+			core::igles::log->error("{0} - {1}: {2} at {3}", type, id, message, source);
+		break;
+	}
+	core::igles::log->flush();
+}
+
 void context::enable(const core::os::surface& surface)
 {
 	hwnd   = surface.surface_handle();
@@ -62,9 +88,18 @@ void context::enable(const core::os::surface& surface)
 		return;
 	}
 
+	int attriblist[] = {WGL_CONTEXT_MAJOR_VERSION_ARB,
+						3,
+						WGL_CONTEXT_MINOR_VERSION_ARB,
+						2,
+						WGL_CONTEXT_FLAGS_ARB,
+						WGL_CONTEXT_DEBUG_BIT_ARB | WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+						WGL_CONTEXT_PROFILE_MASK_ARB,
+						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
+						0};
+	// rc = wglCreateContext(target); // Rendering Contex
 	rc = wglCreateContext(target); // Rendering Contex
 	if(!wglMakeCurrent(target, rc)) return;
-
 
 	int version = gladLoadWGL(target);
 	if(!version)
@@ -72,8 +107,30 @@ void context::enable(const core::os::surface& surface)
 		printf("Unable to load OpenGL\n");
 		return;
 	}
-	version = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	version	= gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	auto error = glGetError();
+	if(PE_GLES)
+	{
+		wglMakeCurrent(NULL, NULL);
+		wglDeleteContext(rc);
 
+		rc = wglCreateContextAttribsARB(target, 0, attriblist);
+		if(!wglMakeCurrent(target, rc)) return;
+		version = gladLoadWGL(target);
+		if(!version)
+		{
+			printf("Unable to load OpenGL\n");
+			return;
+		}
+		version = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+		error   = glGetError();
+	}
+	auto glversion = glGetString(GL_VERSION);
+
+	glEnable(GL_DEBUG_OUTPUT);
+	glDebugMessageCallback(MessageCallback, 0);
+	GLuint unusedIds = 0;
+	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, true);
 
 	if(surface.data().buffering() != core::gfx::buffering::SINGLE)
 	{

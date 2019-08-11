@@ -54,9 +54,7 @@ namespace core::gfx
 		context& operator=(context&& other) noexcept = delete;
 
 		graphics_backend backend() const noexcept { return m_Backend; }
-
-		void target_surface(const core::os::surface& surface);
-
+		
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
 	  private:

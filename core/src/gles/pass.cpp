@@ -17,11 +17,8 @@ using namespace core::resource;
 pass::pass(handle<swapchain> swapchain) : m_Swapchain(swapchain) {}
 
 
-void pass::clear()
-{
-	m_Swapchain->clear();
-}
-void pass::prepare() {}
+void pass::clear() { m_DrawGroups.clear(); }
+void pass::prepare() { m_Swapchain->clear(); }
 bool pass::build() { return true; }
 void pass::present()
 {
@@ -50,27 +47,39 @@ void pass::present()
 						uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 						if(instance_n == 0 /*|| !geometryHandle->compatible(mat)*/) continue;
 
-						for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
-						{
-							auto buffer = bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer>()->id();
-							glBindBuffer(GL_ARRAY_BUFFER, buffer);
-							for(int i = 0; i < 4; ++i)
-							{
+						geometryHandle->create_vao(
+							mat, bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer>(),
+							bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle));
+						// for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
+						//{
+						//	auto buffer = bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer>()->id();
+						//	glBindBuffer(GL_ARRAY_BUFFER, buffer);
+						//	glEnableVertexAttribArray(b.first);
+						//	glEnableVertexAttribArray(b.first + 1);
+						//	glEnableVertexAttribArray(b.first + 2);
+						//	glEnableVertexAttribArray(b.first + 3);
+						//	for(int i = 0; i < 4; ++i)
+						//	{
+						//		glGetError();
+						//		auto offset = b.second + (i * sizeof(float) * 4);
+						//		//glVertexAttribPointer(b.first + i, 4, GL_FLOAT, GL_FALSE, 16 * sizeof(float),
+						//		//					  (void*)(offset));
 
-								glEnableVertexAttribArray(b.first + i);
-								glVertexAttribPointer(b.first +i , 4, GL_FLOAT, GL_FALSE, 16 * sizeof(GL_FLOAT),
-													  (void*)(b.second + (i * sizeof(GL_FLOAT) * 4)));
-								glVertexAttribDivisor(b.first +i , 1);
-							}
-							glBindBuffer(GL_ARRAY_BUFFER, 0);
-						}
+						//		glVertexAttribPointer(b.first, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4,
+						//							  (void*)(0));
+						//		glGetError();
+						//		glVertexAttribDivisor(b.first + i, 1);
+						//		glGetError();
+						//	}
+						//	glBindBuffer(GL_ARRAY_BUFFER, 0);
+						//}
 
 						geometryHandle->bind(mat, instance_n);
 
-						for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
+						/*for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						{
 							glDisableVertexAttribArray(b.first);
-						}
+						}*/
 					}
 				}
 			}

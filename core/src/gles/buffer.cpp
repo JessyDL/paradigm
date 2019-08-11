@@ -10,8 +10,10 @@ buffer::buffer(const psl::UID& uid, core::resource::cache& cache,
 			   core::resource::handle<core::data::buffer> buffer_data)
 	: m_BufferDataHandle(buffer_data), m_UID(uid)
 {
-	glGenBuffers(1, &m_Buffer);
 	m_BufferType = to_gles(to_memory_type(buffer_data->usage()));
+
+
+	glGenBuffers(1, &m_Buffer);
 	glBindBuffer(m_BufferType, m_Buffer);
 
 	auto draw_type = GL_STREAM_DRAW;
@@ -24,6 +26,7 @@ buffer::buffer(const psl::UID& uid, core::resource::cache& cache,
 
 	// we pre-allocate a buffer, but don't feed it data yet.
 	glBufferData(m_BufferType, buffer_data->size(), nullptr, draw_type);
+	auto error = glGetError();
 	std::vector<core::gfx::memory_copy> commands;
 	for(const auto& segment : buffer_data->segments())
 	{
@@ -31,6 +34,7 @@ buffer::buffer(const psl::UID& uid, core::resource::cache& cache,
 			core::gfx::memory_copy{segment.range().begin, segment.range().begin, segment.range().size()});
 	}
 	set(buffer_data->region().data(), commands);
+	error = glGetError();
 	glBindBuffer(m_BufferType, 0);
 }
 
@@ -40,13 +44,16 @@ buffer::~buffer() { glDeleteBuffers(1, &m_Buffer); }
 bool buffer::set(const void* data, std::vector<core::gfx::memory_copy> commands)
 {
 	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
+	auto error = glGetError();
 	for(auto command : commands)
 	{
 		// glBufferSubData(m_BufferType, command.destination_offset, command.size,
 		//				(void*)((std::uintptr_t)data + command.source_offset));
 		auto ptr = glMapBufferRange(GL_COPY_WRITE_BUFFER, command.destination_offset, command.size, GL_MAP_WRITE_BIT);
 		memcpy(ptr, (void*)((std::uintptr_t)data + command.source_offset), command.size);
+		error = glGetError();
 		glUnmapBuffer(GL_COPY_WRITE_BUFFER);
+		error = glGetError();
 	}
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 	return true;
@@ -55,13 +62,16 @@ bool buffer::set(const void* data, std::vector<core::gfx::memory_copy> commands)
 bool buffer::set(std::vector<core::gfx::memory_copy> commands)
 {
 	glBindBuffer(m_BufferType, m_Buffer);
+	auto error = glGetError();
 	for(auto command : commands)
 	{
 		// glBufferSubData(m_BufferType, command.destination_offset, command.size,
 		//				(void*)((std::uintptr_t)data + command.source_offset));
 		auto ptr = glMapBufferRange(m_BufferType, command.destination_offset, command.size, GL_MAP_WRITE_BIT);
+		error	= glGetError();
 		memcpy(ptr, (void*)(command.source_offset), command.size);
 		glUnmapBuffer(m_BufferType);
+		error = glGetError();
 	}
 	glBindBuffer(m_BufferType, 0);
 	return true;
@@ -154,6 +164,7 @@ bool buffer::copy_from(const buffer& other, const psl::array<core::gfx::memory_c
 bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
 {
 	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
+	auto error = glGetError();
 	for(const auto& instruction : instructions)
 	{
 		std::uintptr_t offset = instruction.segment.range().begin -
@@ -161,8 +172,10 @@ bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instruction
 								instruction.sub_range.value_or(memory::range{}).begin;
 
 		auto ptr = glMapBufferRange(GL_COPY_WRITE_BUFFER, offset, instruction.size, GL_MAP_WRITE_BIT);
+		error	= glGetError();
 		memcpy(ptr, (void*)(instruction.source), instruction.size);
-		glUnmapBuffer(GL_COPY_WRITE_BUFFER);		
+		glUnmapBuffer(GL_COPY_WRITE_BUFFER);
+		error = glGetError();
 	}
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 	return true;

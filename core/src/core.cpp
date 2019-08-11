@@ -731,8 +731,6 @@ int entry(gfx::graphics_backend backend)
 	auto context_handle = create<core::gfx::context>(cache);
 	context_handle.load(backend, APPLICATION_FULL_NAME);
 
-	context_handle->target_surface(surface_handle.value());
-
 	auto swapchain_handle = create<core::gfx::swapchain>(cache);
 	swapchain_handle.load(surface_handle, context_handle);
 
@@ -1043,7 +1041,7 @@ int main()
 
 	setup_loggers();
 	//std::thread vk_thread(entry, graphics_backend::gles);
-	//std::thread gl_thread(entry, graphics_backend::vulkan);
+	std::thread gl_thread(entry, graphics_backend::vulkan);
 	entry(graphics_backend::gles);
 	return entry(graphics_backend::vulkan);
 }

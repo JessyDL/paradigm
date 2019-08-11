@@ -10,6 +10,7 @@
 #include "gles/texture.h"
 
 #include "logging.h"
+#include "glad/glad_wgl.h"
 
 using namespace core::igles;
 using namespace core::resource;
@@ -35,17 +36,25 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 		}
 
 		m_Shaders.emplace_back(shader_handle);
+	}
 
+	m_Program = program_cache->get(uid, data);
+
+	for(auto& stage : data->stages())
+	{
+		auto meta = cache.library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 		// now we validate the shader, and store all the bound resource handles
+		auto index = 0;
 		for(const auto& binding : stage.bindings())
 		{
 			switch(binding.descriptor())
 			{
 			case core::gfx::binding_type::combined_image_sampler:
 			{
+				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].sub_elements()[0].name().data());
 				if(auto sampler_handle = cache.find<core::igles::sampler>(binding.sampler()); sampler_handle)
 				{
-					m_Samplers.push_back(std::make_pair(binding.binding_slot(), sampler_handle));
+					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
 				}
 				else
 				{
@@ -59,7 +68,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 				}
 				if(auto texture_handle = cache.find<core::igles::texture>(binding.texture()); texture_handle)
 				{
-					m_Textures.push_back(std::make_pair(binding.binding_slot(), texture_handle));
+					m_Textures.push_back(std::make_pair(binding_slot, texture_handle));
 				}
 				else
 				{
@@ -77,6 +86,9 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 			case core::gfx::binding_type::storage_buffer:
 			{
 				// if(binding.buffer() == "MATERIAL_DATA") continue;
+				auto binding_slot = glGetUniformBlockIndex(m_Program->id(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
+				glUniformBlockBinding(m_Program->id(), binding_slot, 1);
+				binding_slot = 1;
 				if(auto buffer_handle = cache.find<core::igles::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.resource_state() == core::resource::state::LOADED)
 				{
@@ -85,7 +97,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 														: vk::BufferUsageFlagBits::eStorageBuffer;
 					if(buffer_handle->data().usage() & usage)
 					{
-						m_Buffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle));
+						m_Buffers.push_back(std::make_pair(binding_slot, buffer_handle));
 					}
 					else
 					{
@@ -113,16 +125,16 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 
 			default: throw new std::runtime_error("This should not be reached"); return;
 			}
+			++index;
 		}
 	}
-
-	m_Program = program_cache->get(uid, data);
 }
 
 void material::bind()
 {
 	if(!m_Program) return;
 	glUseProgram(m_Program->id());
+	auto error = glGetError();
 
 	for(auto i = 0; i < m_Textures.size(); ++i)
 	{
@@ -131,11 +143,14 @@ void material::bind()
 		glActiveTexture(GL_TEXTURE0 + binding);
 		glBindTexture(GL_TEXTURE_2D, m_Textures[i].second->id());
 		glBindSampler(binding, m_Samplers[i].second->id());
+		error = glGetError();
 	}
 
 	for(auto& buffer : m_Buffers)
 	{
+		glBindBuffer(GL_UNIFORM_BUFFER, buffer.second->id());
 		glBindBufferBase(GL_UNIFORM_BUFFER, buffer.first, buffer.second->id());
+		error = glGetError();
 	}
 }
 
