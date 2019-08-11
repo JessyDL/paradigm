@@ -23,6 +23,7 @@ namespace core::igles
 		swapchain& operator=(swapchain&& other) noexcept = default;
 
 		bool present();
+		void clear();
 		/*/// returns the amount of images in the swapchain
 		uint32_t size() const noexcept;
 
@@ -54,6 +55,10 @@ namespace core::igles
 		bool is_ready() const noexcept;*/
 
 	  private:
+		psl::vec4 m_ClearColor{0.25f, 0.4f, 0.95f, 1.0f};
+		float m_ClearDepth{1.0f};
+		uint32_t m_ClearStencil{0};
+		bool m_UseDepth{false};
 		core::resource::handle<core::os::surface> m_Surface;
 		core::resource::handle<core::igles::context> m_Context;
 	};

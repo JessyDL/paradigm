@@ -4,6 +4,8 @@
 #include "memory/region.h"
 #include "profiling/profiler.h"
 
+#define DEBUG_CORE_RESOURCE
+
 namespace core::resource
 {
 	using resource_key_t = const std::uintptr_t* (*)();
@@ -35,12 +37,19 @@ namespace core::resource
 		struct vtable
 		{
 			void (*clear)(void* this_);
+#ifdef DEBUG_CORE_RESOURCE
+			const char* (*type_name)(void* this_) noexcept;
+			#endif
 			/*resource_key_t (*ID)(void* this_);*/
 		};
 
 
 		template <typename T>
-		details::vtable const vtable_for = {[](void* this_) { static_cast<T*>(this_)->clear(); }/*,
+		details::vtable const vtable_for = {[](void* this_) { static_cast<T*>(this_)->clear(); }
+			#ifdef DEBUG_CORE_RESOURCE
+			, [](void* this_) noexcept { return T::type_name(); }
+			#endif
+			/*,
 
 											[](void* this_) -> resource_key_t { return T::id(); }*/};
 	} // namespace details
@@ -246,6 +255,10 @@ namespace core::resource
 					LOG_INFO("(container destroy end)");
 				}
 			}
+
+#ifdef DEBUG_CORE_RESOURCE
+			static const char* type_name() noexcept { return typeid(T).name(); }
+#endif
 
 			static resource_key_t id() noexcept { return details::key_for<T>(); }
 

@@ -19,13 +19,13 @@ pass::pass(handle<swapchain> swapchain) : m_Swapchain(swapchain) {}
 
 void pass::clear()
 {
-	glClear(GL_COLOR_BUFFER_BIT);
-	glClearColor(0.2f, 0.5f, 0.6f, 1.0f);
+	m_Swapchain->clear();
 }
 void pass::prepare() {}
 bool pass::build() { return true; }
 void pass::present()
 {
+	glFinish();
 	for(const auto& group : m_DrawGroups)
 	{
 		for(auto& drawLayer : group.m_Group)

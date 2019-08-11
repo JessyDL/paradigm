@@ -38,7 +38,7 @@ namespace core::gfx
 	  public:
 		pass(core::resource::handle<context> context, core::resource::handle<framebuffer> framebuffer);
 		pass(core::resource::handle<context> context, core::resource::handle<swapchain> swapchain);
-		~pass() = default;
+		~pass();
 
 		pass(const pass& other)		= delete;
 		pass(pass&& other) noexcept = delete;

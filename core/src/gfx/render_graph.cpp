@@ -25,11 +25,7 @@ psl::view_ptr<pass> render_graph::create_pass(handle<core::gfx::context> context
 	return psl::view_ptr<pass>{element.pass};
 }
 
-void render_graph::rebuild() noexcept 
-{
-	m_Rebuild = false;
-
-}
+void render_graph::rebuild() noexcept { m_Rebuild = false; }
 
 void render_graph::present()
 {
@@ -44,7 +40,7 @@ void render_graph::present()
 	if(std::distance(std::begin(m_Passes), it_final) != m_Passes.size() - 1)
 		std::iter_swap(it_final, std::prev(std::end(m_Passes)));
 
-	
+
 	for(auto& node : m_Passes)
 	{
 		node.pass->prepare();

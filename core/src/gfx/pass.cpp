@@ -41,6 +41,20 @@ pass::pass(handle<core::gfx::context> context, handle<core::gfx::swapchain> swap
 	}
 }
 
+pass::~pass() 
+{
+	if(m_Handle.index() == 0)
+	{
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		delete(ptr);
+	}
+	else
+	{
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		delete(ptr);
+	}
+}
+
 
 bool pass::is_swapchain() const noexcept
 {

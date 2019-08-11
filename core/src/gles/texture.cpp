@@ -23,6 +23,8 @@
 #define ftell cached_ftell
 #endif
 
+
+
 using namespace core::resource;
 using namespace core::igles;
 
@@ -41,8 +43,7 @@ texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::f
 	{
 		auto result = cache.library().load(m_Meta->ID());
 		if(!result) goto fail;
-		auto texture  = gli::flip(gli::load(result.value().data(), result.value().size()));
-		m_TextureData = new gli::texture(texture);
+		m_TextureData = new gli::texture(gli::load(result.value().data(), result.value().size()));
 		switch(m_Meta->image_type())
 		{
 		case gfx::image_type::planar_2D: load_2D(); break;
