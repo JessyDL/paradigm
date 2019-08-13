@@ -13,7 +13,8 @@ using namespace psl::math;
 #undef far
 
 
-gpu_camera::gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer)	:	m_Surface(surface), m_Buffer(buffer)
+gpu_camera::gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer, core::gfx::graphics_backend backend)
+	: m_Surface(surface), m_Buffer(buffer), m_Backend(backend)
 {
 	state.declare(psl::ecs::threading::seq, &gpu_camera::tick, this);
 }
@@ -50,7 +51,10 @@ void gpu_camera::update_buffer(size_t index, const core::ecs::components::transf
 		fdata.projectionMatrix = math::perspective_projection(
 			math::radians(camera.fov), (float)m_Surface->data().width() / (float)m_Surface->data().height(),
 			camera.near, camera.far);
-		fdata.projectionMatrix.at<1, 1>() = -fdata.projectionMatrix.at<1, 1>();  
+
+		if(m_Backend == core::gfx::graphics_backend::gles)
+			fdata.projectionMatrix.at<1, 1>() = -fdata.projectionMatrix.at<1, 1>();
+
 		fdata.clipMatrix = clip;
 
 		fdata.viewMatrix  = math::look_at(position, position + direction, up);

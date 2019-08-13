@@ -15,6 +15,11 @@ swapchain::swapchain(const psl::UID& uid, core::resource::cache& cache,
 	// todo support srgb;
 	context->enable(surface);
 	glViewport(0, 0, static_cast<GLsizei>(surface->data().width()), static_cast<GLsizei>(surface->data().height()));
+	if(m_UseDepth)
+	{
+		glEnable(GL_DEPTH_TEST);
+		glDepthFunc(GL_LESS);
+	}
 }
 
 swapchain::~swapchain() {}

@@ -119,7 +119,7 @@ namespace psl::meta
 		/// \param[in] uid The psl::UID that should be associated with this entry.
 		/// \warning giving an already present psl::UID will result in an error log, and you will be given back the instance that is already present.
 		template<typename MF = file>
-		std::pair<const psl::UID&, MF&> create(psl::UID&& uid)
+		std::pair<const psl::UID&, MF&> create(const psl::UID& uid)
 		{
 			if (m_MetaData.find(uid) != m_MetaData.end())
 			{
@@ -132,7 +132,7 @@ namespace psl::meta
 		}
 
 		template <typename MF = file>
-		std::pair<const psl::UID&, MF&> create(psl::UID&& uid, psl::string8_t content)
+		std::pair<const psl::UID&, MF&> create(const psl::UID& uid, psl::string8_t content)
 		{
 			if(m_MetaData.find(uid) != m_MetaData.end())
 			{

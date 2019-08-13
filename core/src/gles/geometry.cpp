@@ -6,7 +6,7 @@
 #include "meta/shader.h"
 #include "gles/shader.h"
 #include "array.h"
-#include "glad/glad_wgl.h"
+#include "logging.h"
 
 using namespace core::igles;
 using namespace core::resource;
@@ -15,7 +15,7 @@ using gData = core::data::geometry;
 
 geometry::geometry(psl::UID uid, cache& cache, handle<gData> data, handle<buffer> vertexBuffer,
 				   handle<buffer> indexBuffer)
-	: m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
+	: m_UID(uid), m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
 {
 	psl::array<size_t> sizeRequests;
 	sizeRequests.reserve(data->vertex_streams().size() + ((vertexBuffer == indexBuffer) ? 1 : 0));
@@ -116,7 +116,6 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 	{
 		for(int index = 0; index < 4; ++index)
 		{
-
 			glEnableVertexAttribArray(binding.first + index);
 			auto offset = binding.second + (index * sizeof(float) * 4);
 			glVertexAttribPointer(binding.first + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4,
@@ -174,3 +173,35 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 };
+
+bool geometry::compatible(const core::igles::material& material) const noexcept
+{
+	for(const auto& shader : material.shaders())
+	{
+		if(shader->meta()->stage() == core::gfx::shader_stage::vertex)
+		{
+			for(const auto& vBinding : shader->meta()->vertex_bindings())
+			{
+				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
+
+				for(const auto& b : m_Bindings)
+				{
+					if(psl::to_string8_t(b.name) == vBinding.buffer())
+					{
+						goto success;
+					}
+				}
+				goto error;
+
+			success:
+				continue;
+
+			error:
+				core::igles::log->error("missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", vBinding.buffer(),
+									  utility::to_string(m_UID));
+				return false;
+			}
+		}
+	}
+	return true;
+}

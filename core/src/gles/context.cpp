@@ -56,9 +56,9 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
 			core::igles::log->critical("{0} - {1}: {2} at {3}", type, id, message, source);
 		else
 			core::igles::log->error("{0} - {1}: {2} at {3}", type, id, message, source);
+		core::igles::log->flush();
 		break;
 	}
-	core::igles::log->flush();
 }
 
 void context::enable(const core::os::surface& surface)
@@ -77,7 +77,7 @@ void context::enable(const core::os::surface& surface)
 	pfd.cAlphaBits = 8;
 	pfd.cDepthBits = 24;
 
-	const int pfdid = ChoosePixelFormat(target, &pfd);
+	int pfdid = ChoosePixelFormat(target, &pfd);
 	if(pfdid == 0)
 	{
 		return;
@@ -93,7 +93,10 @@ void context::enable(const core::os::surface& surface)
 						WGL_CONTEXT_MINOR_VERSION_ARB,
 						2,
 						WGL_CONTEXT_FLAGS_ARB,
-						WGL_CONTEXT_DEBUG_BIT_ARB | WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+		#ifdef DEBUG
+						WGL_CONTEXT_DEBUG_BIT_ARB |
+#endif
+		WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
 						0};
@@ -114,6 +117,17 @@ void context::enable(const core::os::surface& surface)
 		wglMakeCurrent(NULL, NULL);
 		wglDeleteContext(rc);
 
+		//pfdid = wglChoosePixelFormatEXT(target, &pfd);
+		/*if(pfdid == 0)
+		{
+			return;
+		}
+
+		if(SetPixelFormat(target, pfdid, &pfd) == false)
+		{
+			return;
+		}*/
+
 		rc = wglCreateContextAttribsARB(target, 0, attriblist);
 		if(!wglMakeCurrent(target, rc)) return;
 		version = gladLoadWGL(target);
@@ -127,10 +141,12 @@ void context::enable(const core::os::surface& surface)
 	}
 	auto glversion = glGetString(GL_VERSION);
 
+#ifdef DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
 	GLuint unusedIds = 0;
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, true);
+#endif
 
 	if(surface.data().buffering() != core::gfx::buffering::SINGLE)
 	{

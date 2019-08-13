@@ -40,8 +40,9 @@ namespace core::igles
 						psl::array<std::pair<size_t, size_t>> bindings);
 
 		void bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount = 0);
-
+		bool compatible(const core::igles::material& material) const noexcept;
 	  private:
+		psl::UID m_UID;
 		memory::segment m_IndicesSegment;
 		memory::range m_IndicesSubRange;
 		core::resource::handle<core::igles::buffer> m_GeometryBuffer;

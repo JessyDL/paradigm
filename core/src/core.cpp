@@ -906,7 +906,8 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::systems::render render_system{ECSState, swapchain_pass};
 	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer};
+	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer,
+													 context_handle->backend()};
 
 	ECSState.declare(psl::ecs::threading::par, scaleSystem);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
@@ -961,7 +962,7 @@ int entry(gfx::graphics_backend backend)
 		core::profiler.scope_begin("creating entities");
 
 		ECSState.create(
-			(iterations > 0) ? 5 + std::rand() % 15 : (std::rand() % 100 == 0) ? 0 : 0,
+			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
 			[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
 				renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
 							  geometryHandles[std::rand() % geometryHandles.size()]};
@@ -1023,14 +1024,59 @@ int entry(gfx::graphics_backend backend)
 	return 0;
 }
 
+#include "resource/c2.h"
 
 
+struct temp1
+{
+	int x;
+	void set(int x) { this->x = x; }
+};
+
+struct temp2
+{
+	using meta_type = core::meta::shader;
+	int x;
+	void set(int x) { this->x = x; }
+};
+
+struct temp3
+{
+	using alias_type = r2::alias<temp1, temp2>;
+
+	temp3(r2::handle<r2::alias<temp1, temp2>>& alias_handle) : handle(alias_handle){};
+
+	temp3() = default;
+	temp3(r2::cache& cache, const psl::UID& uid, bool v, int x)
+	{
+		if(v)
+			handle.set(cache.create_using<temp1>(uid, x));
+		else
+			handle.set(cache.create_using<temp2>(uid, x));
+	}
+	temp3(r2::cache& cache, const psl::UID& uid, int x)
+	{
+		handle.set(cache.create_using<temp1>(uid, x));
+		handle.set(cache.create_using<temp2>(uid, x));
+	}
+
+	~temp3(){};
+
+	void set(int x)
+	{
+		handle.visit_all([](auto& handle, int x) { handle.set(x); }, x);
+		handle.visit<temp1,temp2>([](auto& handle, int x) { handle.set(x); }, x);
+	}
+
+	r2::handle<r2::alias<temp1, temp2>> handle;
+};
 int main()
 {
 #ifdef PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
+	setup_loggers();
 
 #ifdef _MSC_VER
 	{ // here to trick the compiler into generating these types to get UUID natvis support
@@ -1038,11 +1084,54 @@ int main()
 		dummy::hex_dummy_low hex_dummy_lowy{};
 	}
 #endif
+	auto backend			   = graphics_backend::gles;
+	psl::string8_t environment = "";
+	switch(backend)
+	{
+	case graphics_backend::gles: environment = "gles"; break;
+	case graphics_backend::vulkan: environment = "vulkan"; break;
+	}
+	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
+	r2::cache temp_cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}};
 
-	setup_loggers();
-	//std::thread vk_thread(entry, graphics_backend::gles);
-	std::thread gl_thread(entry, graphics_backend::vulkan);
+	auto handle1 = temp_cache.create<temp1>(5);
+	auto handle2 = temp_cache.create<temp2>(5);
+	auto handle1b = temp_cache.create_using<temp2>(handle1.resource_metadata()->uid, 15);
+	auto handle3 = temp_cache.create<temp3>(true, 10);
+	{
+		auto handle4 = temp_cache.find<temp3>(handle1.resource_metadata()->uid);
+		assert(handle4.resource_metadata()->uid == handle1.resource_metadata()->uid);
+		assert(handle1.resource_metadata()->reference_count ==
+			   2); // 2 exist, one in the parent scope, and one contained in handle4
+		assert(handle4.resource_metadata()->reference_count == 1); // 1 exists in the local scope
+		assert(handle4->handle.get<0>().resource_metadata() == handle1.resource_metadata());
+
+		auto handle5 = temp_cache.find<temp1>(handle3.resource_metadata()->uid);
+		assert(handle5.resource_metadata()->uid == handle3.resource_metadata()->uid);
+		assert(handle5.resource_metadata()->reference_count ==
+			   2); // 2 exists, one in the local scope, and one contained in handle3
+		assert(handle3.resource_metadata()->reference_count == 1); // 1 exists in the local scope
+	}
+	assert(handle1.resource_metadata()->reference_count ==
+		   2); // 2 exists, one in the local scope, and one contained in 'temp3' which exists in the cache.
+	temp_cache.free();
+	assert(handle1.resource_metadata()->reference_count == 1); // 1 exists, one in the local scope
+	assert(handle3.resource_metadata()->reference_count == 1);
+	auto res = handle2.meta();
+
+	auto handle6 = temp_cache.instantiate<core::igles::texture>("7f24e25c-8b94-4da4-8a31-493815889698"_uid);
+	auto handle7 = temp_cache.create<temp3>(10);
+	handle7->set(9);
+
+	static_assert(core::r2::details::is_valid_alias<temp3, temp3::alias_type>::value);
+	// cache.create<temp>();
+	sizeof(void*);
+	sizeof(core::r2::handle<temp1>);
+	// std::thread vk_thread(entry, graphics_backend::gles);
+	// std::thread gl_thread(entry, graphics_backend::vulkan);
+	std::srand(0);
 	entry(graphics_backend::gles);
+	std::srand(0);
 	return entry(graphics_backend::vulkan);
 }
 #endif

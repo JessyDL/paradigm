@@ -1,6 +1,7 @@
 #pragma once
 #include "resource/resource.hpp"
 #include "math/math.hpp"
+#include "gfx/context.h"
 
 
 namespace core::gfx
@@ -53,7 +54,7 @@ namespace core::ecs::systems
 		};
 
 		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface,
-				   core::resource::handle<core::gfx::buffer> buffer);
+				   core::resource::handle<core::gfx::buffer> buffer, core::gfx::graphics_backend backend);
 		void tick(psl::ecs::info& info,
 				  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
 
@@ -64,6 +65,7 @@ namespace core::ecs::systems
 		core::resource::handle<core::os::surface> m_Surface;
 		core::resource::handle<core::gfx::buffer> m_Buffer;
 		std::vector<memory::segment> fdatasegment;
+		core::gfx::graphics_backend m_Backend;
 	};
 
 } // namespace core::ecs::systems
