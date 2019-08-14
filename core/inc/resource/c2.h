@@ -6,6 +6,8 @@
 #include "logging.h"
 #include "serialization.h"
 #include "static_array.h"
+#include "view_ptr.h"
+#include "unique_ptr.h"
 
 /*
 resource requirements:
@@ -129,6 +131,14 @@ namespace core::r2
 		{
 			return {key_for<Ts>()...};
 		}
+
+		template <typename T, typename Y>
+		struct alias_has_type : std::false_type
+		{};
+
+		template <typename T, typename... Ts>
+		struct alias_has_type<T, alias<Ts...>> : std::disjunction<std::is_same<T, Ts>...>
+		{};
 	} // namespace details
 
 	enum class type
@@ -190,8 +200,8 @@ namespace core::r2
 		};
 		struct entry
 		{
-			psl::array<description*> descriptions;
-			psl::meta::file* metaFile;
+			psl::array<psl::unique_ptr<description>> descriptions;
+			psl::view_ptr<psl::meta::file> metaFile; // owned by the library
 		};
 
 	  public:
@@ -240,7 +250,7 @@ namespace core::r2
 				T* resource			 = nullptr;
 				if constexpr(std::is_constructible_v<T, r2::cache&, const metadata&, meta_type*, decltype(values)...>)
 					resource =
-						new T{cache, descr.metaData, (meta_type*)metaFile, std::forward<decltype(values)>(values)...};
+						new T{cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...};
 				else if constexpr(std::is_constructible_v<T, r2::cache&, psl::UID, decltype(values)...>)
 					resource = new T{cache, descr.metaData.uid, std::forward<decltype(values)>(values)...};
 				else
@@ -322,34 +332,23 @@ namespace core::r2
 				if(entry->metaData.type == key) return {entry->resource, this, &entry->metaData, it->second.metaFile};
 			}
 
+			// assemble all child types, and create an alias parent from them
 			if constexpr(details::alias_type<T>::value)
 			{
 				using alias_t			  = typename details::alias_type<T>::alias_t;
 				constexpr auto alias_keys = details::keys_for((alias_t*)(nullptr));
 
 				psl::array<description*> eligable;
-				std::copy_if(std::begin(it->second.descriptions), std::end(it->second.descriptions),
-							 std::back_inserter(eligable), [&alias_keys](description* descr) {
-								 return std::find(std::begin(alias_keys), std::end(alias_keys), descr->metaData.type) !=
-										std::end(alias_keys);
-							 });
+				psl::transform_if(
+					std::begin(it->second.descriptions), std::end(it->second.descriptions),
+					std::back_inserter(eligable),
+					[&alias_keys](psl::unique_ptr<description>& descr) {
+						return std::find(std::begin(alias_keys), std::end(alias_keys), descr->metaData.type) !=
+							   std::end(alias_keys);
+					},
+					[](psl::unique_ptr<description>& descr) -> description* { return &descr.get(); });
 
 				if(eligable.size() == 0) return {};
-
-
-				/*for(auto& entry : it->second.descriptions)
-				{
-					if(std::find(std::begin(alias_keys), std::end(alias_keys), entry->metaData.type) !=
-					   std::end(alias_keys))
-					{
-						
-						handle<std::tuple_element_t<0, alias_t>> handle(entry->resource, this, &entry->metaData,
-																		it->second.metaFile);
-
-						result.set()
-						return create_using<T>(entry->metaData.uid, handle);
-					}
-				}*/
 
 				alias_t result{eligable, this, it->second.metaFile};
 				return create_using<T>(uid, result);
@@ -387,6 +386,18 @@ namespace core::r2
 						 " objects");
 			} while(bErased); // keep looping as long as items are present
 
+
+			for(auto it = std::begin(m_Cache); it != std::end(m_Cache);)
+			{
+				if(std::all_of(std::begin(it->second.descriptions), std::end(it->second.descriptions),
+							   [](const auto& it) { return it->metaData.state == state::unloaded; }))
+				{
+					m_Library.unload(it->first);
+					it = m_Cache.erase(it);
+				}
+				else
+					++it;
+			}
 
 			if(bLeaks && clear_all)
 			{
@@ -428,11 +439,23 @@ namespace core::r2
 	template <typename T>
 	class handle
 	{
-		friend class cache;
+	  public:
 		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
 		using meta_type  = typename details::meta_type<value_type>::type;
 		using alias_type = typename details::template alias_type<value_type>::type;
 
+	  private:
+		friend class cache;
+
+		template <typename Y>
+		friend class handle;
+
+		handle(void* resource, cache* cache, metadata* metaData, psl::meta::file* meta) noexcept
+			: m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
+			  m_MetaFile(reinterpret_cast<meta_type*>(meta))
+		{
+			m_MetaData->reference_count += 1;
+		};
 
 	  public:
 		handle() = default;
@@ -445,11 +468,21 @@ namespace core::r2
 			if(m_MetaData) m_MetaData->reference_count -= 1;
 		};
 
-		handle(void* resource, cache* cache, metadata* metaData, psl::meta::file* meta) noexcept
-			: m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
-			  m_MetaFile(reinterpret_cast<meta_type*>(meta))
+		template <typename... Ts>
+		handle(const handle<alias<Ts...>>& other) noexcept : handle::handle(other.get<T>()){};
+
+
+		template <typename Y,
+				  typename = std::enable_if_t<details::alias_has_type<T, typename handle<Y>::alias_type>::value>>
+		handle(const handle<Y>& other) noexcept
 		{
-			m_MetaData->reference_count += 1;
+			if(!other) return;
+			handle<T> res = other.m_Cache->find<T>(other.uid());
+			m_Resource	= res.m_Resource;
+			m_Cache		  = res.m_Cache;
+			m_MetaData	= res.m_MetaData;
+			m_MetaFile	= res.m_MetaFile;
+			if(m_MetaData) m_MetaData->reference_count += 1;
 		};
 
 		handle(const handle& other) noexcept
@@ -489,15 +522,22 @@ namespace core::r2
 			return *this;
 		};
 
+
 		inline state state() const noexcept { return m_MetaData ? m_MetaData->state : state::invalid; }
 
-		inline value_type& value()
+		inline value_type& value() noexcept
 		{
 			assert(state() == state::loaded);
 			return *m_Resource;
 		}
 
-		inline bool try_get(value_type& out) noexcept
+		inline const value_type& value() const noexcept
+		{
+			assert(state() == state::loaded);
+			return *m_Resource;
+		}
+
+		inline bool try_get(value_type& out) const noexcept
 		{
 			if(state() == state::loaded)
 			{
@@ -507,14 +547,21 @@ namespace core::r2
 			return false;
 		}
 
-		operator bool() const noexcept { return state() == state::loaded; }
+		inline operator bool() const noexcept { return state() == state::loaded; }
 
-		meta_type* meta() const noexcept { return m_MetaFile; }
-		metadata const* resource_metadata() const noexcept { return m_MetaData; }
-		cache* cache() const noexcept { return m_Cache; }
+		inline meta_type* meta() const noexcept { return m_MetaFile; }
+		inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
+		inline cache* cache() const noexcept { return m_Cache; }
 
-		value_type const* operator->() const { return m_Resource; }
-		value_type* operator->() { return m_Resource; }
+		inline value_type const* operator->() const { return m_Resource; }
+		inline value_type* operator->() { return m_Resource; }
+
+		inline psl::UID uid() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+		inline const psl::UID& uid() noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+
+
+		operator const psl::UID&() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+		operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
 
 	  private:
 		value_type* m_Resource{nullptr};
@@ -526,22 +573,23 @@ namespace core::r2
 	template <typename... Ts>
 	class handle<alias<Ts...>>
 	{
-	  public:
-		using value_type = std::tuple<handle<Ts>...>;
+		friend class cache;
 
 		template <size_t... indices>
 		void internal_set(psl::array<cache::description*> descriptions, psl::meta::file* meta,
 						  std::index_sequence<indices...>)
 		{
-			([&descriptions, this, meta](psl::array<cache::description*>::iterator it) 
-				{
-				if(it != std::end(descriptions))
-				{
-					std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>>{
-						(*it)->resource, m_Cache, &(*it)->metaData, meta};
-				}
-				}(std::find_if(std::begin(descriptions),  std::end(descriptions), [key = details::key_for<std::tuple_element_t<indices, std::tuple<Ts...>>>()](cache::description* descr){
-				return descr->metaData.type == key;})), ...);
+			(
+				[&descriptions, this, meta](psl::array<cache::description*>::iterator it) {
+					if(it != std::end(descriptions))
+					{
+						std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>>{
+							(*it)->resource, m_Cache, &(*it)->metaData, meta};
+					}
+				}(std::find_if(std::begin(descriptions), std::end(descriptions),
+							   [key = details::key_for<std::tuple_element_t<indices, std::tuple<Ts...>>>()](
+								   cache::description* descr) { return descr->metaData.type == key; })),
+				...);
 		}
 
 		handle(psl::array<cache::description*> descriptions, cache* cache, psl::meta::file* meta) noexcept
@@ -549,10 +597,37 @@ namespace core::r2
 		{
 			internal_set(descriptions, meta, std::make_index_sequence<sizeof...(Ts)>());
 		}
-		handle(handle& data) : m_Resource(data.m_Resource) {}
+
+	  public:
+		using value_type = std::tuple<handle<Ts>...>;
 
 		handle()  = default;
 		~handle() = default;
+
+		handle(const handle& other)		= default;
+		handle(handle&& other) noexcept = default;
+		handle& operator=(const handle& other) = default;
+		handle& operator=(handle&& other) noexcept = default;
+
+		template <typename T>
+		handle& operator<<(handle<T>& data)
+		{
+			std::get<handle<T>>(m_Resource) = data;
+			return *this;
+		}
+		template <typename T>
+		handle& operator<<(handle<T> data)
+		{
+			std::get<handle<T>>(m_Resource) = data;
+			return *this;
+		}
+
+		template <typename T>
+		void unset() noexcept
+		{
+			std::get<handle<T>>(m_Resource) = {};
+			return *this;
+		}
 
 		template <typename T>
 		void set(handle<T> data)
@@ -566,13 +641,13 @@ namespace core::r2
 		}
 
 		template <size_t I>
-		auto get()
+		auto get() const noexcept
 		{
 			return std::get<I>(m_Resource);
 		}
 
 		template <typename T>
-		auto get()
+		auto get() const noexcept
 		{
 			return std::get<handle<T>>(m_Resource);
 		}
@@ -582,10 +657,16 @@ namespace core::r2
 		{
 			(
 				[&fn](auto& handle, auto&&... values) {
-					if(handle) std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
+					if constexpr(std::is_invocable_v<Fn, size_t, decltype(handle.value()), decltype(values)...>)
+					{
+						if(handle) std::invoke(fn, indices, handle.value(), std::forward<decltype(values)>(values)...);
+					}
+					else
+					{
+						if(handle) std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
+					}
 				}(std::get<indices>(m_Resource), std::forward<Args>(args)...),
 				...);
-			//(void(std::invoke(fn, std::get<indices>(m_Resource), std::forward<Args>(args)...)), ...);
 		}
 
 		template <typename Fn, typename... Args>
@@ -594,6 +675,7 @@ namespace core::r2
 			visit_all_impl(std::make_index_sequence<sizeof...(Ts)>(), std::forward<Fn>(fn),
 						   std::forward<Args>(args)...);
 		}
+
 
 		template <typename... Ts, typename Fn, typename... Args>
 		void visit(Fn&& fn, Args&&... args)
@@ -605,6 +687,7 @@ namespace core::r2
 				...);
 		}
 
+	  private:
 		value_type m_Resource;
 		core::r2::cache* m_Cache{nullptr};
 	};
