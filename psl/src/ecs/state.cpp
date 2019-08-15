@@ -124,7 +124,7 @@ psl::array<psl::array<entity>> slice(psl::array_view<entity> source,
 }
 
 
-std::vector<psl::unique_ptr<info>> info_buffer;
+
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
