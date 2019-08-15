@@ -4,6 +4,7 @@
 #include "meta.h"
 #include "sparse_array.h"
 #include "IDGenerator.h"
+#include "memory/segment.h"
 
 namespace std
 {

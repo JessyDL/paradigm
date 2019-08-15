@@ -15,7 +15,7 @@ namespace core::igles
 	class buffer
 	{
 	  public:
-		buffer(const psl::UID& uid, core::resource::cache& cache,
+		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 			   core::resource::handle<core::data::buffer> buffer_data);
 
 		~buffer();
@@ -62,7 +62,7 @@ namespace core::igles
 		/// you copy over the resources to a new, smaller buffer. Check copy_from() for that.
 		bool deallocate(memory::segment& segment);
 
-		const core::data::buffer& data() const noexcept { return m_BufferDataHandle; }
+		const core::data::buffer& data() const noexcept { return m_BufferDataHandle.value(); }
 
 		bool copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges);
 

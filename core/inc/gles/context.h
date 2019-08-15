@@ -13,7 +13,8 @@ namespace core::igles
 	class context
 	{
 	  public:
-		context(const psl::UID &uid, core::resource::cache &cache, psl::string8::view name);
+		context(core::resource::cache &cache, const core::resource::metadata &metaData, psl::meta::file *metaFile,
+				psl::string8::view name);
 		~context();
 		context(const context &) = delete;
 		context(context &&)		 = delete;

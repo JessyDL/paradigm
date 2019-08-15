@@ -6,17 +6,8 @@
 #include "memory/region.h"
 #include "memory/segment.h"
 #include "gfx/types.h"
+#include "fwd/resource/resource.h"
 
-namespace psl
-{
-	struct UID;
-}
-
-
-namespace core::resource
-{
-	class cache;
-}
 /// \brief contains all data types that can be serialized to/from disk.
 namespace core::data
 {
@@ -40,17 +31,18 @@ namespace core::data
 		/// \param[in] memoryPropertyFlags what are the properties of the memory (i.e. where does it live)
 		/// \param[in] memory_region what is the owning region of this memory. Note that this parameter also will
 		/// dictate the size and alignment of the resource.
-		buffer(const psl::UID& uid, core::resource::cache& cache, vk::BufferUsageFlags usage,
-			   vk::MemoryPropertyFlags memoryPropertyFlags, memory::region&& memory_region);
+		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   vk::BufferUsageFlags usage,
+			   vk::MemoryPropertyFlags memoryPropertyFlags, memory::region&& memory_region) noexcept;
 
 		~buffer();
 
 		buffer(const buffer&) = delete;
-		buffer(buffer&& other)
+		/*buffer(buffer&& other)
 			: m_Region(std::move(other.m_Region)), m_Segments(std::move(other.m_Segments)), m_Usage(other.m_Usage),
 			  m_MemoryPropertyFlags(other.m_MemoryPropertyFlags){
 
-			  };
+			  };*/
 		buffer& operator=(const buffer&) = delete;
 		buffer& operator=(buffer&&) = delete;
 

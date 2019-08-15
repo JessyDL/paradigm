@@ -14,19 +14,20 @@
 using namespace core::resource;
 using namespace core::gfx;
 
-material::material(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+material::material(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				   core::resource::handle<context> context_handle, core::resource::handle<core::data::material> data,
 				   core::resource::handle<pipeline_cache> pipeline_cache, core::resource::handle<buffer> materialBuffer)
-	: m_Handle(cache, uid, (metaFile) ? metaFile->ID() : uid)
 {
 	switch(context_handle->backend())
 	{
 	case graphics_backend::gles:
-		m_Handle.load<core::igles::material>(data, pipeline_cache->resource().get<core::igles::program_cache>(),
+		m_Handle << cache.create_using<core::igles::material>(metaData.uid,
+			data, pipeline_cache->resource().get<core::igles::program_cache>(),
 											 materialBuffer->resource().get<core::igles::buffer>());
 		break;
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::material>(context_handle->resource().get<core::ivk::context>(), data,
+		m_Handle << cache.create_using<core::ivk::material>(metaData.uid, context_handle->resource().get<core::ivk::context>(), data,
 											 pipeline_cache->resource().get<core::ivk::pipeline_cache>(),
 											 materialBuffer->resource().get<core::ivk::buffer>());
 		break;
@@ -41,6 +42,6 @@ const core::data::material& material::data() const noexcept
 	}
 	else
 	{
-		return m_Handle.value<ivk::material>().data();
+		return m_Handle.value<ivk::material>().data().value();
 	}
 }

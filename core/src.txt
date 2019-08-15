@@ -41,7 +41,6 @@ os/surface_xcb.cpp
 systems/input.cpp
 systems/input_win32.cpp
 systems/input_xcb.cpp
-systems/resource.cpp
 
 ecs/systems/fly.cpp
 ecs/systems/render.cpp

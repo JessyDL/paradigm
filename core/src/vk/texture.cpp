@@ -31,20 +31,22 @@ using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
 
-texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
-				 handle<core::ivk::context> context)
-	: texture(uid, cache, metaFile, context, {})
-{
 
-}
-texture::texture(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+				 handle<core::ivk::context> context)
+	: texture(cache, metaData, metaFile, context, {})
+{}
+texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
 				 handle<core::ivk::context> context, core::resource::handle<core::ivk::buffer> stagingBuffer)
-	:
-	m_Cache(cache), m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)), m_StagingBuffer(stagingBuffer)
+	: m_Cache(cache), m_Context(context),
+	  m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)),
+	  m_StagingBuffer(stagingBuffer)
 {
 	if(!m_Meta)
 	{
-		core::ivk::log->error("ivk::texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?", utility::to_string(metaFile->ID()));
+		core::ivk::log->error(
+			"ivk::texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
+			utility::to_string(metaFile->ID()));
 		return;
 	}
 	// AddReference(m_Context);
@@ -105,8 +107,7 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 	}
 
 	auto samplerHandle = m_Cache.find<core::ivk::sampler>(sampler);
-	if(!samplerHandle)
-		samplerHandle = core::resource::create<core::ivk::sampler>(m_Cache, sampler);
+	assert(samplerHandle);
 
 	vk::DescriptorImageInfo* descriptor = new vk::DescriptorImageInfo();
 	descriptor->sampler					= samplerHandle->get(mip_levels());
@@ -235,13 +236,13 @@ void texture::load_2D()
 		auto stagingBuffer = m_StagingBuffer;
 		if(!m_StagingBuffer)
 		{
-			core::ivk::log->warn("missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
-			auto tempBuffer = core::resource::create<core::data::buffer>(m_Cache);
-			tempBuffer.load(vk::BufferUsageFlagBits::eTransferSrc,
-								   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-								   memory::region{m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
-			stagingBuffer = create<ivk::buffer>(m_Cache);
-			stagingBuffer.load(m_Context, tempBuffer);
+			core::ivk::log->warn(
+				"missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
+			auto tempBuffer = m_Cache.create<core::data::buffer>(
+				vk::BufferUsageFlagBits::eTransferSrc,
+				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+				memory::region{m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
+			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
 		}
 		if(!stagingBuffer)
 		{
@@ -254,8 +255,8 @@ void texture::load_2D()
 			segment = segmentOpt.value();
 			gfx::commit_instruction instr;
 			instr.segment = segment;
-			instr.size = (vk::DeviceSize)m_Texture2DData->size();
-			instr.source = (std::uintptr_t)m_Texture2DData->data();
+			instr.size	= (vk::DeviceSize)m_Texture2DData->size();
+			instr.source  = (std::uintptr_t)m_Texture2DData->data();
 			if(!stagingBuffer->commit({instr}))
 			{
 				core::ivk::log->error("could not commit an ivk::texture in a staging buffer");
@@ -266,7 +267,7 @@ void texture::load_2D()
 			core::ivk::log->error("could not allocate a segment in the staging buffer for an ivk::texture");
 			return;
 		}
-		//stagingBuffer->map(m_Texture2DData->data(), (vk::DeviceSize)m_Texture2DData->size(), 0);
+		// stagingBuffer->map(m_Texture2DData->data(), (vk::DeviceSize)m_Texture2DData->size(), 0);
 
 		// Setup buffer copy regions for each mip level
 		std::vector<vk::BufferImageCopy> bufferCopyRegions;

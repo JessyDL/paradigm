@@ -23,7 +23,8 @@ namespace core::ivk
 	class sampler final
 	{
 	  public:
-		sampler(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
+		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				core::resource::handle<core::ivk::context> context,
 				core::resource::handle<core::data::sampler> sampler_data);
 		~sampler();
 

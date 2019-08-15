@@ -1,19 +1,6 @@
 #pragma once
+#include "fwd/gfx/material.h"
 #include "resource/resource.hpp"
-#include <variant>
-
-#ifdef PE_VULKAN
-namespace core::ivk
-{
-	class material;
-}
-#endif
-#ifdef PE_GLES
-namespace core::igles
-{
-	class material;
-}
-#endif
 
 namespace core::data
 {
@@ -28,7 +15,8 @@ namespace core::gfx
 
 	class material
 	{
-		using value_type = std::variant<
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::material
 #ifdef PE_GLES
@@ -39,8 +27,10 @@ namespace core::gfx
 			core::igles::material
 #endif
 			>;
-	  public:
-		material(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<context> context_handle,
+		using value_type = alias_type;
+		material(core::resource::handle<value_type>& handle);
+		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<context> context_handle,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<pipeline_cache> pipeline_cache, core::resource::handle<buffer> materialBuffer);
 

@@ -31,18 +31,16 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 {
 	state->declare(&lighting_system::create_dir, this);
 
-	auto bufferData = create<data::buffer>(*cache);
-	bufferData.load(vk::BufferUsageFlagBits::eUniformBuffer,
+	auto bufferData = cache->create<data::buffer>(vk::BufferUsageFlagBits::eUniformBuffer,
 					vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 					resource_region
 						.create_region(sizeof(light) * 1024,
-									   core::gfx::limits::uniform_buffer_offset_alignment(m_Context),
+									   core::gfx::limits::uniform_buffer_offset_alignment(m_Context.value()),
 									   new memory::default_allocator(true))
 						.value());
 
-	m_LightDataBuffer = create<gfx::buffer>(*cache);
-	m_LightDataBuffer.load(m_Context, bufferData);
-	cache->library().set(m_LightDataBuffer.ID(), "GLOBAL_LIGHT_DATA");
+	m_LightDataBuffer = cache->create<gfx::buffer>(m_Context, bufferData);
+	cache->library().set(m_LightDataBuffer, "GLOBAL_LIGHT_DATA");
 	assert(false);
 	//m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 }

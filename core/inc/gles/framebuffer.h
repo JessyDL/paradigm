@@ -3,5 +3,7 @@
 namespace core::igles
 {
 	class framebuffer
-	{};
+	{
+	  public:
+	};
 }

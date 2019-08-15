@@ -6,6 +6,7 @@
 #include "meta/shader.h"
 #include "gfx/buffer.h"
 #include "gfx/types.h"
+#include "resource/resource.hpp"
 
 using namespace core::gfx;
 using namespace core::gfx::details::instance;
@@ -16,15 +17,15 @@ constexpr uint32_t default_capacity = 32000;
 data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)
 {
-	if(m_Bindings.find(material.ID()) != std::end(m_Bindings)) return;
+	if(m_Bindings.find(material) != std::end(m_Bindings)) return;
 
-	auto& data = m_Bindings[material.ID()];
+	auto& data = m_Bindings[material];
 
 	for(const auto& stage : material->data().stages())
 	{
 		if(stage.shader_stage() != core::gfx::shader_stage::vertex) continue;
 
-		core::meta::shader* meta = material.cache().library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
+		core::meta::shader* meta = material.cache()->library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 
 		data.reserve(meta->instance_bindings().size());
 		for(const auto& vBinding : meta->instance_bindings())
@@ -90,7 +91,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 			{
 				auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
 				if(!res) core::gfx::log->error("could not allocate");
-				m_InstanceBuffer->copy_from(m_InstanceBuffer, {core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
+				m_InstanceBuffer->copy_from(m_InstanceBuffer.value(), {core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
 				std::swap(d, res.value());
 				m_InstanceBuffer->deallocate(res.value());
 			}

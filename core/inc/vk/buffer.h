@@ -37,7 +37,8 @@ namespace core::ivk
 		/// allignment is incorrect, a suitable warning (and potential override) will be supplied.
 		/// If the supplied buffer_data is non-virtual (i.e. backed by real memory location), then the resource
 		/// will be duplicated and accessible for read access through the core::data::buffer handle directly.
-		buffer(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
+		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   core::resource::handle<core::ivk::context> context,
 			   core::resource::handle<core::data::buffer> buffer_data,
 			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer = std::nullopt);
 		~buffer();

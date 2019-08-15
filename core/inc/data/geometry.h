@@ -5,16 +5,8 @@
 #include "ustring.h"
 #include <unordered_map>
 #include <vector>
+#include "fwd/resource/resource.h"
 
-namespace psl
-{
-	struct UID;
-}
-
-namespace core::resource
-{
-	class cache;
-}
 /*
 #define GEOMETRY_VERTEX_POSITION "GEOMETRY_VERTEX_POSITION"
 #define GEOMETRY_VERTEX_COLOR "GEOMETRY_VERTEX_COLOR"
@@ -73,9 +65,8 @@ namespace core::data
 			static constexpr psl::string_view BONES = "GEOMETRY_BONES";
 		};
 		geometry() = default;
-		geometry(const psl::UID& uid,
-				 core::resource::cache& cache);
-		~geometry();
+		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept;
+		~geometry() = default;
 		geometry(const geometry&) = delete;
 		geometry(geometry&&) = delete;
 		geometry& operator=(const geometry&) = delete;

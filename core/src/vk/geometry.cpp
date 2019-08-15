@@ -14,11 +14,12 @@ using namespace core::resource;
 using namespace core;
 using namespace core::ivk;
 
-geometry::geometry(const UID& uid, cache& cache, handle<core::ivk::context> context,
+geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   handle<core::ivk::context> context,
 				   core::resource::handle<core::data::geometry> data,
 				   core::resource::handle<core::ivk::buffer> geometryBuffer,
 				   core::resource::handle<core::ivk::buffer> indicesBuffer)
-	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(uid)
+	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
 {
 	std::vector<vk::DeviceSize> sizeRequests;
 	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer)?1:0));

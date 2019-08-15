@@ -5,8 +5,7 @@ using namespace core::data;
 using namespace core::resource;
 using namespace core;
 
-sampler::sampler(const UID& uid, cache& cache)
-{
+sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept{
 
 }
 

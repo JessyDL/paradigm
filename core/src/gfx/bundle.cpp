@@ -12,8 +12,9 @@ using namespace core::resource;
 using namespace psl;
 using namespace core::gfx::details::instance;
 
-bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer)
-	: m_UID(uid), m_Cache(cache), m_InstanceData(buffer){};
+bundle::bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::buffer> buffer)
+	: m_UID(metaData.uid), m_Cache(cache), m_InstanceData(buffer){};
 
 // ------------------------------------------------------------------------------------------------------------
 // material API

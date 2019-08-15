@@ -10,7 +10,7 @@ namespace core::igles
 	class sampler
 	{
 	  public:
-		sampler(const psl::UID& uid, core::resource::cache& cache,
+		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				core::resource::handle<core::data::sampler> sampler_data);
 		~sampler();
 

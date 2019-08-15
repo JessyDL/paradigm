@@ -1,6 +1,7 @@
 ﻿#pragma once
-#include "resource/resource.hpp"
+#include "resource/handle.h"
 #include "vk/stdafx.h"
+#include "fwd/vk/texture.h"
 
 namespace core::os
 {
@@ -32,7 +33,8 @@ namespace core::ivk
 		friend class core::os::surface;
 
 	  public:
-		swapchain(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::os::surface> surface,
+		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				  core::resource::handle<core::os::surface> surface,
 				  core::resource::handle<core::ivk::context> context, bool use_depth = true);
 		~swapchain();
 
@@ -108,7 +110,7 @@ namespace core::ivk
 		void resize();
 		void apply_resize();
 
-		core::resource::handle<core::os::surface> m_OSSurface;
+		core::os::surface* m_OSSurface;
 		core::resource::handle<core::ivk::context> m_Context;
 
 		vk::SurfaceKHR m_Surface;

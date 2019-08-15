@@ -90,7 +90,8 @@ namespace core::ivk
 	class pipeline_cache
 	{
 	  public:
-		pipeline_cache(const psl::UID& uid, core::resource::cache& cache,
+		pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
 					   core::resource::handle<core::ivk::context> context);
 		~pipeline_cache();
 		pipeline_cache(const pipeline_cache&) = delete;

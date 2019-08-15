@@ -14,15 +14,15 @@ using namespace core::gfx;
 using namespace core::resource;
 
 
-shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+shader::shader(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+shader::shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context)
-	: m_Handle(cache, uid, (metaFile)?metaFile->ID():uid)
 {
 	switch(context->backend())
 	{
-	case graphics_backend::gles: m_Handle.load<core::igles::shader>(); break;
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::shader>(metaData.uid); break;
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::shader>(context->resource().get<core::ivk::context>());
+		m_Handle << cache.create_using<core::ivk::shader>(metaData.uid, context->resource().get<core::ivk::context>());
 		break;
 	}
 }

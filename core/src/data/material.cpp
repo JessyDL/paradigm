@@ -5,14 +5,14 @@
 using namespace psl;
 using namespace core::data;
 
-material::material(const UID& uid, core::resource::cache& cache) {}
-material::material(const material& other, const UID& uid, core::resource::cache& cache) 
-	: m_Stage(other.m_Stage), m_BlendStates(other.m_BlendStates), m_Defines(other.m_Defines),
-	m_Culling(other.m_Culling), m_DepthCompareOp(other.m_DepthCompareOp), m_DepthTest(other.m_DepthTest),
-	m_DepthWrite(other.m_DepthWrite), m_Wireframe(other.m_Wireframe)
-{
-
-};
+material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept {}
+//material::material(const material& other, const UID& uid, core::resource::cache& cache) 
+//	: m_Stage(other.m_Stage), m_BlendStates(other.m_BlendStates), m_Defines(other.m_Defines),
+//	m_Culling(other.m_Culling), m_DepthCompareOp(other.m_DepthCompareOp), m_DepthTest(other.m_DepthTest),
+//	m_DepthWrite(other.m_DepthWrite), m_Wireframe(other.m_Wireframe)
+//{
+//
+//};
 material ::~material() {}
 
 // blendstate
@@ -138,7 +138,7 @@ void material::undefine(psl::string8::view value)
 	if(it == std::end(m_Defines.value)) m_Defines.value.erase(it);
 }
 
-void material::from_shaders(psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas)
+void material::from_shaders(const psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas)
 {
 	std::vector<stage>& stages = m_Stage.value;
 	for(auto shader : shaderMetas)

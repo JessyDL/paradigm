@@ -13,9 +13,10 @@ using namespace core::resource;
 
 using gData = core::data::geometry;
 
-geometry::geometry(psl::UID uid, cache& cache, handle<gData> data, handle<buffer> vertexBuffer,
+geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   handle<gData> data, handle<buffer> vertexBuffer,
 				   handle<buffer> indexBuffer)
-	: m_UID(uid), m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
+	: m_UID(metaData.uid), m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
 {
 	psl::array<size_t> sizeRequests;
 	sizeRequests.reserve(data->vertex_streams().size() + ((vertexBuffer == indexBuffer) ? 1 : 0));
@@ -100,7 +101,7 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 						  core::resource::handle<core::igles::buffer> instanceBuffer,
 						  psl::array<std::pair<size_t, size_t>> bindings)
 {
-	if(auto it = m_VAOs.find(material.ID()); it != std::end(m_VAOs))
+	if(auto it = m_VAOs.find(material); it != std::end(m_VAOs))
 	{
 		return;
 	}
@@ -151,14 +152,14 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 			}
 		}
 	}
-	m_VAOs[material.ID()] = vao;
+	m_VAOs[material] = vao;
 }
 
 void geometry::bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount)
 {
 	auto error = glGetError();
 
-	glBindVertexArray(m_VAOs[material.ID()]);
+	glBindVertexArray(m_VAOs[material]);
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());

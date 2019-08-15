@@ -2,6 +2,10 @@
 #include "array.h"
 #include "resource/resource.hpp"
 #include "gfx/details/instance.h"
+#include "fwd/gfx/bundle.h"
+#include "fwd/gfx/buffer.h"
+#include "fwd/gfx/geometry.h"
+#include "fwd/gfx/material.h"
 
 namespace core::ivk
 {
@@ -22,17 +26,14 @@ namespace vk
 
 namespace core::gfx
 {
-	class material;
-	class geometry;
-	class buffer;
-
 	class bundle final
 	{
 		friend class core::ivk::pass;
 		friend class core::igles::pass;
 
 	  public:
-		bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer);
+		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::buffer> buffer);
 
 		~bundle()				  = default;
 		bundle(const bundle&)	 = delete;

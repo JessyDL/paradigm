@@ -2,6 +2,8 @@
 #include <vector>
 #include "gfx/bundle.h"
 #include "fwd/resource/resource.h"
+#include "fwd/gfx/bundle.h"
+#include "fwd/gfx/geometry.h"
 
 #ifdef PE_VULKAN
 namespace core::ivk
@@ -17,9 +19,6 @@ namespace core::igles
 #endif
 namespace core::gfx
 {
-	class bundle;
-	class geometry;
-
 	class drawcall
 	{
 		friend class drawgroup;

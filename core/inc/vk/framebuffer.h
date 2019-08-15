@@ -49,7 +49,7 @@ namespace core::ivk
 			uint32_t index;
 		};
 
-		framebuffer(const psl::UID& uid, core::resource::cache& cache,
+		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 					core::resource::handle<core::ivk::context> context,
 					core::resource::handle<core::data::framebuffer> data);
 		framebuffer(const framebuffer&) = delete;

@@ -9,14 +9,15 @@ using namespace psl;
 using namespace core::igles;
 using namespace core::resource;
 
-shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile) : m_Shader{0}
+shader::shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile)
+	: m_Shader{0}
 {
 	auto meta = cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr);
 	m_Meta		= meta;
 	auto result = cache.library().load(meta->ID());
 	if(!result)
 	{
-		core::ivk::log->error("could not load igles::shader [{0}] from resource UID [{1}]", uid.to_string(),
+		core::ivk::log->error("could not load igles::shader [{0}] from resource UID [{1}]", metaData.uid.to_string(),
 							  meta->ID().to_string());
 		return;
 	}
@@ -58,7 +59,7 @@ shader::shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::fil
 
 
 		core::ivk::log->error("could not compile igles::shader [{0}] from resource UID [{1}] with message: {2}",
-							  uid.to_string(), meta->ID().to_string(), infoLen);
+							  metaData.resource_uid.to_string(), meta->ID().to_string(), infoLen);
 	}
 	else
 		m_Shader = shader;

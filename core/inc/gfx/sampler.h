@@ -1,24 +1,12 @@
 #pragma once
 #include <variant>
 #include "resource/resource.hpp"
-
-#ifdef PE_GLES
-namespace core::igles
-{
-	class sampler;
-}
-#endif
-
-namespace core::ivk
-{
-	class sampler;
-}
+#include "fwd/gfx/sampler.h"
 
 namespace core::data
 {
 	class sampler;
 }
-
 
 namespace core::gfx
 {
@@ -26,7 +14,8 @@ namespace core::gfx
 
 	class sampler
 	{
-		using value_type = std::variant<
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::sampler
 #ifdef PE_GLES
@@ -36,10 +25,10 @@ namespace core::gfx
 #ifdef PE_GLES
 			core::igles::sampler
 #endif
-
 			>;
-	  public:
-		sampler(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		using value_type = alias_type;
+		sampler(core::resource::handle<value_type>& handle);
+		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				core::resource::handle<core::gfx::context> context,
 				core::resource::handle<core::data::sampler> sampler_data);
 		~sampler() = default;

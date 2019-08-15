@@ -1,32 +1,20 @@
 #pragma once
-#include <variant>
 #include "resource/resource.hpp"
+#include "fwd/gfx/shader.h"
 
-#ifdef PE_GLES
-namespace core::igles
-{
-	class shader;
-}
-#endif
-
-#ifdef PE_VULKAN
-namespace core::ivk
-{
-	class shader;
-}
-#endif
-
-namespace core::meta
-{
-	class shader;
-}
 namespace core::gfx
 {
 	class context;
 
 	class shader
 	{
-		using value_type = std::variant<
+		friend class core::resource::cache;
+		
+		template<typename T>
+		shader(T handle) : m_Handle(handle){};
+
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::shader
 #ifdef PE_GLES
@@ -37,13 +25,9 @@ namespace core::gfx
 			core::igles::shader
 #endif
 			>;
-
-		friend class core::resource::cache;
-		
-		template<typename T>
-		shader(T handle) : m_Handle(handle){};
-	  public:
-		shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		using value_type = alias_type;
+		shader(core::resource::handle<value_type>& handle);
+		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context);
 		~shader() = default;
 

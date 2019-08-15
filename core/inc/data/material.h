@@ -3,20 +3,19 @@
 #include "vk/stdafx.h"
 #include "meta.h"
 #include "gfx/types.h"
+#include "fwd/resource/resource.h"
 
-namespace core::resource
-{
-	class cache;
-}
+
 namespace core::meta
 {
 	class shader;
 }
+
 namespace psl::meta
 {
 	class library;
-	class file;
-} // namespace psl::meta
+}
+
 namespace core::data
 {
 	/// \brief Describes a collection of resources that can be used to initialize a core::ivk::material
@@ -186,7 +185,7 @@ namespace core::data
 				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
 				s << version;
 
-				switch (version)
+				switch(version)
 				{
 				case current_version: s << m_Description; break;
 				case 0:
@@ -348,8 +347,9 @@ namespace core::data
 			static constexpr const char serialization_name[15]{"MATERIAL_STAGE"};
 		};
 
-		material(const psl::UID& uid, core::resource::cache& cache);
-		material(const material& other, const psl::UID& uid, core::resource::cache& cache);
+		material(core::resource::cache& cache, const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile) noexcept;
+		// material(const material& other, const psl::UID& uid, core::resource::cache& cache);
 		~material();
 
 		material(const material&) = delete;
@@ -385,7 +385,7 @@ namespace core::data
 		void erase(const blendstate& value);
 		void undefine(psl::string8::view value);
 
-		void from_shaders(psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas);
+		void from_shaders(const psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas);
 
 	  private:
 		template <typename S>

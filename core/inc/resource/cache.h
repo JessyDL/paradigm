@@ -1,20 +1,39 @@
 #pragma once
 #include "fwd/resource/resource.h"
+#include <cstdint>	 // uintptr_t
+#include <type_traits> // std::remove_const/etc
+#include "meta.h"
 #include "library.h"
-#include "memory/region.h"
+//#include "memory/region.h"
 #include "profiling/profiler.h"
+#include "logging.h"
+#include "serialization.h"
+#include "static_array.h"
+#include "view_ptr.h"
+#include "unique_ptr.h"
 
 #define DEBUG_CORE_RESOURCE
+
+
+namespace psl
+{
+	template <class InputIt, class OutputIt, class Pred, class Fct>
+	void transform_if(InputIt first, InputIt last, OutputIt dest, Pred pred, Fct transform)
+	{
+		while(first != last)
+		{
+			if(pred(*first)) *dest++ = transform(*first);
+
+			++first;
+		}
+	}
+} // namespace psl
 
 namespace core::resource
 {
 	using resource_key_t = const std::uintptr_t* (*)();
 	namespace details
 	{
-		template <typename T, typename Y>
-		struct is_resource_alias : std::false_type
-		{};
-
 		// added to trick the compiler to not throw away the results at compile time
 		template <typename T>
 		constexpr const std::uintptr_t resource_key_var{0u};
@@ -34,25 +53,46 @@ namespace core::resource
 		template <typename T>
 		class container;
 
-		struct vtable
+		template <typename C, typename T>
+		struct is_valid_alias : std::false_type
+		{};
+
+		template <typename C, typename... Ts>
+		struct is_valid_alias<C, alias<Ts...>>
 		{
-			void (*clear)(void* this_);
-#ifdef DEBUG_CORE_RESOURCE
-			const char* (*type_name)(void* this_) noexcept;
-			#endif
-			/*resource_key_t (*ID)(void* this_);*/
+			static const bool value{std::is_constructible_v<C, handle<alias<Ts...>>&>};
+		};
+
+		template <typename T, typename SFINAE = void>
+		struct alias_type : std::false_type
+		{
+			using type = void;
 		};
 
 
 		template <typename T>
-		details::vtable const vtable_for = {[](void* this_) { static_cast<T*>(this_)->clear(); }
-			#ifdef DEBUG_CORE_RESOURCE
-			, [](void* this_) noexcept { return T::type_name(); }
-			#endif
-			/*,
+		struct alias_type<T, std::void_t<typename T::alias_type>> : std::true_type
+		{
+			using type	= typename T::alias_type;
+			using alias_t = handle<type>;
+		};
 
-											[](void* this_) -> resource_key_t { return T::id(); }*/};
+		template <typename... Ts>
+		constexpr psl::static_array<resource_key_t, sizeof...(Ts)> keys_for(handle<alias<Ts...>>*)
+		{
+			return {key_for<Ts>()...};
+		}
+
+		template <typename T, typename Y>
+		struct alias_has_type : std::false_type
+		{};
+
+		template <typename T, typename... Ts>
+		struct alias_has_type<T, alias<Ts...>> : std::disjunction<std::is_same<T, Ts>...>
+		{};
 	} // namespace details
+
+
 	/// \brief represents a container of resources and their UID mappings
 	///
 	/// The resource cache is a specialized container that can handle lifetime and ID mapping
@@ -62,243 +102,372 @@ namespace core::resource
 	/// shared psl::meta::library instance. Libraries can be shared between caches, but remember that
 	/// neither the psl::meta::library nor core::resource::cache are thread-safe by themselves.
 	/// \todo check multi-cache
-	class cache final
+	struct metadata
 	{
-		template <typename T>
-		friend class handle;
-		template <typename T>
-		friend class details::container;
+		psl::UID uid;
+		psl::UID resource_uid;
+		resource_key_t type;
+		state state;
+		size_t reference_count;
+		bool strong_type;
+	};
 
+	class cache
+	{
+	  public:
+		struct description
+		{
+			metadata metaData;
+			void* resource{nullptr};
+			size_t age{0};
+		};
 		struct entry
 		{
-			entry(resource_key_t id, std::shared_ptr<void> container, state& state, const details::vtable& table)
-				: id(id), container(container), state(state), m_Table(table){};
-			entry(const entry& other)
-				: id(other.id), container(other.container), state(other.state), m_Table(other.m_Table){};
-			resource_key_t id;
-			state& state;
-			std::shared_ptr<void> container;
-			const details::vtable& m_Table;
+			psl::array<psl::unique_ptr<description>> descriptions;
+			psl::view_ptr<psl::meta::file> metaFile; // owned by the library
 		};
 
 	  public:
-		/*cache(psl::meta::library&& library, size_t size, size_t alignment,
-			  memory::allocator_base* allocator = new memory::default_allocator(true))
-			: m_Library(std::move(library)), m_Region(size, alignment, allocator)
+		cache(psl::meta::library library) : m_Library(std::move(library)){};
+		~cache() { free(true); };
+
+		cache(const cache& other)	 = delete;
+		cache(cache&& other) noexcept = default;
+		cache& operator=(const cache& other) = delete;
+		cache& operator=(cache&& other) noexcept = default;
+
+		template <typename T, typename... Args>
+		handle<T> instantiate(const psl::UID& resource_uid, Args&&... args)
 		{
-			LOG_INFO("creating cache");
-		};
-*/
-		cache(psl::meta::library&& library, memory::allocator_base* allocator);
-
-		cache(const cache&) = delete;
-		cache(cache&&)		= delete;
-		cache& operator=(const cache&) = delete;
-		cache& operator=(cache&&) = delete;
-
-		~cache();
-
-		void free(bool recursive = true);
-
-
-		// const memory::region& region() const { return m_Region; };
-		psl::meta::library& library() { return m_Library; };
-		memory::allocator_base* allocator() const { return m_Allocator; };
-
-		template <typename T>
-		handle<T> find(const psl::UID& uid)
+			return instantiate_using<T>(psl::UID::generate(), resource_uid, std::forward<Args>(args)...);
+		}
+		template <typename T, typename... Args>
+		handle<T> instantiate_using(const psl::UID& uid, const psl::UID& resource_uid, Args&&... args)
 		{
-			auto it = m_Handles.find(uid);
-			if(it == m_Handles.end()) return handle<T>(*this, psl::UID::invalid_uid);
-
-			for(auto& e : it->second)
+			using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
+			using meta_type	= typename resource_traits<T>::meta_type;
+			constexpr auto key = details::key_for<value_type>();
+			if(auto it = m_Deleters.find(key); it == std::end(m_Deleters))
 			{
-				if(e.id == details::container<T>::id())
-					return handle<T>(*this, uid, *((std::shared_ptr<details::container<T>>*)(&e.container)));
+				m_Deleters[key]  = [](void* resource) { delete((T*)(resource)); };
+				m_TypeNames[key] = typeid(T).name();
+			}
+			auto& data = m_Cache[uid];
+			m_RemappedResource[resource_uid] = uid;
+
+			auto& descr = *data.descriptions.emplace_back(
+				new description{metadata{uid, resource_uid, key, state::initial, 0u,
+										 std::is_same_v<typename details::alias_type<value_type>::type, void>},
+								nullptr, m_AgeCounter++});
+
+			if(data.metaFile == nullptr)
+			{
+				if(auto optMetaFile = m_Library.get<meta_type>(resource_uid); optMetaFile)
+					data.metaFile = static_cast<psl::meta::file*>(optMetaFile.value());
+				else
+				{
+					core::log->error("could not load");
+					descr.metaData.state = state::missing;
+					return {nullptr, this, &descr.metaData, nullptr};
+				}
 			}
 
-			return handle<T>(*this, psl::UID::invalid_uid);
+			auto task = [&descr, &cache = *this, &library = m_Library, metaFile = data.metaFile](auto&&... values) {
+				descr.metaData.state = state::loading;
+				T* resource			 = nullptr;
+				resource =
+					new T(cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...);
+				if constexpr(psl::serialization::details::is_collection<T>::value)
+				{
+					if(auto result = library.load(descr.metaData.resource_uid); result)
+					{
+						psl::serialization::serializer s;
+						psl::format::container cont{result.value()};
+						s.deserialize<psl::serialization::decode_from_format, T>(*resource, cont);
+					}
+					else
+					{
+						core::log->error("could not load");
+						descr.metaData.state = state::missing;
+						return;
+					}
+				}
+				descr.resource		 = (void*)resource;
+				descr.metaData.state = state::loaded;
+			};
+			std::invoke(task, std::forward<Args>(args)...);
+
+			return {descr.resource, this, &descr.metaData, data.metaFile};
 		}
 
-	  private:
-		template <typename T>
-		friend handle<T> core::resource::create_shared(cache& cache, const psl::UID& uid);
-		std::optional<entry* const> get(const psl::UID& uid, resource_key_t ID)
+		template <typename T, typename... Args>
+		handle<T> create(Args&&... args)
 		{
-			const auto& it = m_Handles.find(uid);
-			if(it == std::end(m_Handles)) return {};
-			for(auto& c : it->second)
+			return create_using<T>(psl::UID::generate(), std::forward<Args>(args)...);
+		}
+
+
+		template <typename T, typename... Args>
+		handle<T> create_using(const psl::UID& uid, Args&&... args)
+		{
+			using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
+			using meta_type	= typename resource_traits<T>::meta_type;
+			constexpr auto key = details::key_for<value_type>();
+			if(auto it = m_Deleters.find(key); it == std::end(m_Deleters))
 			{
-				if(c.id == ID) return &c;
+				m_Deleters[key]  = [](void* resource) { delete((T*)(resource)); };
+				m_TypeNames[key] = typeid(T).name();
 			}
 
+			auto& data = m_Cache[uid];
+			if(data.metaFile == nullptr)
+			{
+				data.metaFile = static_cast<psl::meta::file*>(&m_Library.create<meta_type>(uid).second);
+			}
+
+
+			auto& descr = *data.descriptions.emplace_back(
+				new description{metadata{uid, psl::UID::invalid_uid, details::key_for<value_type>(), state::initial, 0u,
+										 std::is_same_v<details::alias_type<value_type>::type, void>},
+								nullptr, m_AgeCounter++});
+
+
+			auto task = [&descr, &cache = *this, metaFile = data.metaFile](auto&&... values) {
+				descr.metaData.state = state::loading;
+				T* resource			 = nullptr;
+
+				resource =
+					new T(cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...);
+				descr.resource		 = (void*)resource;
+				descr.metaData.state = state::loaded;
+			};
+			std::invoke(task, std::forward<Args>(args)...);
+
+			return {descr.resource, this, &descr.metaData, data.metaFile};
+		}
+		template <typename T, typename... Args>
+		handle<T> create_using(std::unique_ptr<typename resource_traits<T>::meta_type> metaData, Args&&... args)
+		{
+			using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
+			using meta_type	= typename resource_traits<T>::meta_type;
+			constexpr auto key = details::key_for<value_type>();
+			if(auto it = m_Deleters.find(key); it == std::end(m_Deleters))
+			{
+				m_Deleters[key]  = [](void* resource) { delete((T*)(resource)); };
+				m_TypeNames[key] = typeid(T).name();
+			}
+			psl::UID uid = psl::UID::generate();
+			auto pair	= m_Library.add(uid, std::move(metaData));
+
+			auto& data	= m_Cache[uid];
+			data.metaFile = &pair.second;
+
+			auto& descr = *data.descriptions.emplace_back(
+				new description{metadata{uid, psl::UID::invalid_uid, details::key_for<value_type>(), state::initial, 0u,
+										 std::is_same_v<details::alias_type<value_type>::type, void>},
+								nullptr, m_AgeCounter++});
+
+
+			auto task = [&descr, &cache = *this, metaFile = data.metaFile](auto&&... values) {
+				descr.metaData.state = state::loading;
+				T* resource			 = nullptr;
+
+				resource			 = new T(cache, descr.metaData, reinterpret_cast<meta_type*>(metaFile.get()),
+								 std::forward<decltype(values)>(values)...);
+				descr.resource		 = (void*)resource;
+				descr.metaData.state = state::loaded;
+			};
+			std::invoke(task, std::forward<Args>(args)...);
+
+			return {descr.resource, this, &descr.metaData, data.metaFile};
+		}
+
+
+		template <typename T, typename... Args>
+		handle<T> find(const psl::UID& uid) noexcept
+		{
+			using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
+			auto it = m_Cache.find(uid);
+			if(it == std::end(m_Cache))
+			{
+				auto resIt = m_RemappedResource.find(uid);
+				if(resIt == std::end(m_RemappedResource)) return {};
+				it = m_Cache.find(resIt->second);
+				if(it == std::end(m_Cache)) return {};
+			}
+
+			constexpr auto key = details::key_for<T>();
+			for(auto& entry : it->second.descriptions)
+			{
+				if(entry->metaData.type == key) return {entry->resource, this, &entry->metaData, it->second.metaFile};
+			}
+
+			using alias_t = typename details::alias_type<value_type>::type;
+			// assemble all child types, and create an alias parent from them
+			if constexpr(!std::is_same_v<alias_t, void>)
+			{
+				constexpr auto alias_keys = details::keys_for((alias_t*)(nullptr));
+
+				psl::array<description*> eligable;
+				psl::transform_if(
+					std::begin(it->second.descriptions), std::end(it->second.descriptions),
+					std::back_inserter(eligable),
+					[&alias_keys](psl::unique_ptr<description>& descr) {
+						return std::find(std::begin(alias_keys), std::end(alias_keys), descr->metaData.type) !=
+							   std::end(alias_keys);
+					},
+					[](psl::unique_ptr<description>& descr) -> description* { return &descr.get(); });
+
+				if(eligable.size() == 0) return {};
+
+				alias_t result{eligable, this, it->second.metaFile};
+				return create_using<T>(uid, result);
+			}
 			return {};
 		}
 
-
-		template <typename T>
-		bool reset(const psl::UID& uid, bool force = false)
+		template <typename T, typename... Args>
+		handle<T> find_resource(const psl::UID& uid) noexcept
 		{
-			PROFILE_SCOPE(core::profiler)
-			auto it = m_Handles.find(uid);
-			if(it == m_Handles.end()) return false;
+			using value_type = std::remove_cv_t<std::remove_const_t<T>>;
+			auto resIt		 = m_RemappedResource.find(uid);
+			if(resIt == std::end(m_RemappedResource)) return {};
+			auto it = m_Cache.find(resIt->second);
+			if(it == std::end(m_Cache)) return {};
 
-			for(auto& e : it->second)
+			constexpr auto key = details::key_for<T>();
+			for(auto& entry : it->second.descriptions)
 			{
-				if(e.id == details::container<T>::id() && (e.container.use_count() == 1 || force) &&
-				   e.state == state::LOADED)
-				{
-					e.state = state::UNLOADING;
-					e.m_Table.clear(e.container.get());
-					e.state = state::UNLOADED;
-					return true;
-				}
+				if(entry->metaData.type == key) return {entry->resource, this, &entry->metaData, it->second.metaFile};
 			}
-			return false;
+
+			using alias_t = typename details::alias_type<value_type>::type;
+			// assemble all child types, and create an alias parent from them
+			if constexpr(!std::is_same_v<alias_t, void>)
+			{
+				constexpr auto alias_keys = details::keys_for((alias_t*)(nullptr));
+
+				psl::array<description*> eligable;
+				psl::transform_if(
+					std::begin(it->second.descriptions), std::end(it->second.descriptions),
+					std::back_inserter(eligable),
+					[&alias_keys](psl::unique_ptr<description>& descr) {
+						return std::find(std::begin(alias_keys), std::end(alias_keys), descr->metaData.type) !=
+							   std::end(alias_keys);
+					},
+					[](psl::unique_ptr<description>& descr) -> description* { return &descr.get(); });
+
+				if(eligable.size() == 0) return {};
+
+				alias_t result{eligable, this, it->second.metaFile};
+				return create_using<T>(uid, result);
+			}
+			return {};
 		}
 
-		void reg(resource_key_t id, const psl::UID& uid, std::shared_ptr<void> container, state& state,
-				 const details::vtable& vtable)
+		void free(bool clear_all = false)
 		{
-			auto& vec = m_Handles[uid];
-			if(std::find_if(std::begin(vec), std::end(vec), [id](const auto& data) { return data.id == id; }) ==
-			   std::end(vec))
+			LOG_INFO("destroying cache start");
+			bool bErased	 = false;
+			size_t iteration = 0u;
+			bool bLeaks		 = false;
+			do
 			{
-				vec.emplace_back(id, container, state, vtable);
-			}
-		}
-
-		psl::meta::library m_Library;
-		// memory::region m_Region;
-		memory::allocator_base* m_Allocator;
-		std::unordered_map<psl::UID, std::vector<entry>> m_Handles;
-	};
-
-	namespace details
-	{
-		template <typename T>
-		class container
-		{
-			friend class handle<T>;
-
-		  public:
-			container() = default;
-			~container() { clear(); }
-
-			bool has_value() const { return m_Resource && segment; }
-
-			template <typename... Args>
-			bool set(psl::UID& uid, cache& cache, Args&&... args)
-			{
-				if(m_Resource && segment) // already set
-					return false;
-
-				if(auto region = cache.allocator()->allocate(sizeof(T)); region)
+				bErased		 = false;
+				bLeaks		 = false;
+				size_t count = 0u;
+				for(auto& pair : m_Cache)
 				{
-
-#ifdef DBG_NEW
-#undef new
-#endif
-					m_Resource = std::unique_ptr<T>(new((char*)(region.value().range().begin))
-														T(uid, cache, std::forward<Args>(args)...));
-					allocator  = cache.allocator();
-					segment	= region.value();
-#ifdef DBG_NEW
-#define new DBG_NEW
-#endif
-					return true;
+					for(auto& it : pair.second.descriptions)
+					{
+						bLeaks |= it->metaData.state == state::loaded;
+						if(it->metaData.reference_count == 0 && it->metaData.state == state::loaded)
+						{
+							it->metaData.state = state::unloading;
+							std::invoke(m_Deleters[it->metaData.type], it->resource);
+							it->metaData.state = state::unloaded;
+							bErased			   = true;
+							++count;
+						}
+					}
 				}
+				LOG_INFO("iteration ", utility::to_string(iteration++), " destroyed ", utility::to_string(count),
+						 " objects");
+			} while(bErased); // keep looping as long as items are present
 
-				return false;
-			}
 
-			template <typename... Args>
-			bool set(cache& cache, Args&&... args)
+			for(auto it = std::begin(m_Cache); it != std::end(m_Cache);)
 			{
-				if(m_Resource && segment) // already set
-					return false;
-
-				PROFILE_SCOPE(core::profiler)
-				if(auto region = cache.allocator()->allocate(sizeof(T)); region)
+				it->second.descriptions.erase(
+					std::remove_if(std::begin(it->second.descriptions), std::end(it->second.descriptions),
+								   [](const auto& it) { return it->metaData.state == state::unloaded; }),
+					std::end(it->second.descriptions));
+				if(it->second.descriptions.size() == 0)
 				{
-
-#ifdef DBG_NEW
-#undef new
-#endif
-					m_Resource =
-						std::unique_ptr<T>(new((char*)(region.value().range().begin)) T(std::forward<Args>(args)...));
-					allocator = cache.allocator();
-					segment   = region.value();
-#ifdef DBG_NEW
-#define new DBG_NEW
-#endif
-					return true;
+					m_Library.unload(it->first);
+					it = m_Cache.erase(it);
 				}
-
-				return false;
+				else
+					++it;
 			}
 
-			T* resource() { return m_Resource.get(); }
-			void clear()
+			if(bLeaks && clear_all)
 			{
-				if(m_Resource && segment)
-				{
-					PROFILE_SCOPE(core::profiler)
-					LOG_INFO("(container destroy start)");
-					auto ptr = m_Resource.get();
-					ptr->T::~T();
-					m_Resource.release();
-					allocator->deallocate(segment.value());
-					m_Resource = nullptr;
-					segment	= {};
-					allocator  = nullptr;
-					LOG_INFO("(container destroy end)");
-				}
-			}
+				LOG_WARNING("leaks detected!");
 
 #ifdef DEBUG_CORE_RESOURCE
-			static const char* type_name() noexcept { return typeid(T).name(); }
+				size_t oldest = std::numeric_limits<size_t>::max();
+				description* oldest_descr{nullptr};
+				psl::UID oldest_uid;
 #endif
-
-			static resource_key_t id() noexcept { return details::key_for<T>(); }
-
-		  private:
-			template <typename... Args>
-			bool copy_set(const T& source, psl::UID& uid, cache& cache, Args&&... args)
-			{
-				if(m_Resource && segment) // already set
-					return false;
-				PROFILE_SCOPE(core::profiler)
-
-				if(auto region = cache.allocator()->allocate(sizeof(T)); region)
+				for(auto& pair : m_Cache)
 				{
+					for(auto& it : pair.second.descriptions)
+					{
+#ifdef DEBUG_CORE_RESOURCE
+						if(it->age < oldest)
+						{
+							oldest_descr = &it.get();
+							oldest_uid   = pair.first;
+							oldest		 = it->age;
+						}
+#endif
+						if(it->metaData.state == state::loaded)
+						{
+#ifdef DEBUG_CORE_RESOURCE
 
-#ifdef DBG_NEW
-#undef new
+							core::log->warn("\ttype {0} uid {1} age {2}", m_TypeNames[it->metaData.type],
+											utility::to_string(pair.first), it->age);
+#else
+							core::log->warn("\ttype {0} uid {1}", utility::to_string((std::uintptr_t)(it.id)),
+											utility::to_string(pair.first));
 #endif
-					m_Resource = std::unique_ptr<T>(new((char*)(region.value().range().begin))
-														T(source, uid, cache, std::forward<Args>(args)...));
-					allocator  = cache.allocator();
-					segment	= region.value();
-#ifdef DBG_NEW
-#define new DBG_NEW
-#endif
-					return true;
+						}
+					}
 				}
 
-				return false;
+#ifdef DEBUG_CORE_RESOURCE
+				if(oldest_descr)
+				{
+					core::log->warn("possible source: type {0} uid {1}", m_TypeNames[oldest_descr->metaData.type],
+									utility::to_string(oldest_uid));
+				}
+#endif
 			}
+			core::log->flush();
 
-			state m_State{state::NOT_LOADED};
-			std::unique_ptr<T> m_Resource = nullptr;
-			memory::allocator_base* allocator{nullptr};
-			std::optional<memory::segment> segment;
+			LOG_INFO("destroying cache end");
+		}
 
-			static const details::vtable& m_vTable;
-		};
+		const psl::meta::library& library() const noexcept { return m_Library; }
+		psl::meta::library& library() noexcept { return m_Library; }
 
-
-		template <typename T>
-		const details::vtable& container<T>::m_vTable = details::vtable_for<container<T>>;
-	} // namespace details
+	  private:
+		size_t m_AgeCounter{0};
+		psl::meta::library m_Library;
+		std::unordered_map<psl::UID, entry> m_Cache{};
+		std::unordered_map<psl::UID, psl::UID> m_RemappedResource{};
+		std::unordered_map<resource_key_t, psl::string8_t> m_TypeNames;
+		std::unordered_map<resource_key_t, std::function<void(void*)>> m_Deleters;
+	};
 } // namespace core::resource

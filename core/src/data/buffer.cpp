@@ -4,8 +4,9 @@
 using namespace psl;
 using namespace core::data;
 
-buffer::buffer(const UID& uid, core::resource::cache& cache, vk::BufferUsageFlags usage,
-			   vk::MemoryPropertyFlags memoryPropertyFlags, memory::region&& memory_region)
+buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memoryPropertyFlags,
+			   memory::region&& memory_region) noexcept
 	: m_Region(std::move(memory_region)), m_Usage(usage), m_MemoryPropertyFlags(memoryPropertyFlags)
 {}
 

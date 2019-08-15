@@ -18,11 +18,11 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk::context> context,
-				   handle<core::data::material> data,
+material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   handle<core::ivk::context> context, handle<core::data::material> data,
 				   core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
 				   core::resource::handle<core::ivk::buffer> materialBuffer)
-	: m_UID(std::move(uid)), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
+	: m_UID(metaData.uid), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
 	  m_MaterialBuffer(materialBuffer)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -40,8 +40,12 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 
 
 			core::gfx::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
-			shader_handle = create<core::ivk::shader>(cache, stage.shader());
-			if(!shader_handle.load(context)) return;
+			shader_handle = cache.instantiate<core::ivk::shader>(stage.shader(), context);
+			if(!shader_handle)
+			{
+				core::ivk::log->error("failed to load shader [{0}]", utility::to_string(stage.shader()));
+				return;
+			}
 		}
 		m_Shaders.push_back(shader_handle);
 
@@ -83,9 +87,9 @@ material::material(psl::UID uid, core::resource::cache& cache, handle<core::ivk:
 			case core::gfx::binding_type::uniform_buffer:
 			case core::gfx::binding_type::storage_buffer:
 			{
-				//if(binding.buffer() == "MATERIAL_DATA") continue;
+				// if(binding.buffer() == "MATERIAL_DATA") continue;
 				if(auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
-				   buffer_handle && buffer_handle.resource_state() == core::resource::state::LOADED)
+				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
 					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 														? vk::BufferUsageFlagBits::eUniformBuffer
@@ -145,10 +149,10 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>
 core::resource::handle<pipeline> material::get(core::resource::handle<framebuffer> framebuffer)
 {
 	PROFILE_SCOPE(core::profiler)
-	if(auto it = m_Pipeline.find(framebuffer.ID()); it == std::end(m_Pipeline))
+	if(auto it = m_Pipeline.find(framebuffer); it == std::end(m_Pipeline))
 	{
-		m_Pipeline[framebuffer.ID()] = m_PipelineCache->get(m_UID, m_Data, framebuffer);
-		return m_Pipeline[framebuffer.ID()];
+		m_Pipeline[framebuffer] = m_PipelineCache->get(m_UID, m_Data, framebuffer);
+		return m_Pipeline[framebuffer];
 	}
 	else
 	{
@@ -159,10 +163,10 @@ core::resource::handle<pipeline> material::get(core::resource::handle<framebuffe
 core::resource::handle<pipeline> material::get(core::resource::handle<swapchain> swapchain)
 {
 	PROFILE_SCOPE(core::profiler)
-	if(auto it = m_Pipeline.find(swapchain.ID()); it == std::end(m_Pipeline))
+	if(auto it = m_Pipeline.find(swapchain); it == std::end(m_Pipeline))
 	{
-		m_Pipeline[swapchain.ID()] = m_PipelineCache->get(m_UID, m_Data, swapchain);
-		return m_Pipeline[swapchain.ID()];
+		m_Pipeline[swapchain] = m_PipelineCache->get(m_UID, m_Data, swapchain);
+		return m_Pipeline[swapchain];
 	}
 	else
 	{

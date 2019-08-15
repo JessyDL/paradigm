@@ -2,17 +2,14 @@
 #include "serialization.h"
 #include "vk/stdafx.h"
 #include "meta.h"
-#include "resource/resource.hpp"
+#include "fwd/resource/resource.h"
 
 
 namespace core::ivk
 {
 	class sampler;
 }
-namespace core::resource
-{
-	class cache;
-}
+
 namespace core::data
 {
 	/// \brief container class that describes the data to create a set of rendertargets.
@@ -114,8 +111,9 @@ namespace core::data
 		/// \param[in] width the width in pixels of this framebuffer.
 		/// \param[in] height the height in pixels of this framebuffer.
 		/// \param[in] layers the amount of layers this framebuffer will have (often referred to as the framebuffer count in the documentation).
-		framebuffer(const psl::UID& uid, core::resource::cache& cache, uint32_t width, uint32_t height, uint32_t layers = 1u);
-		framebuffer(const framebuffer& other, const psl::UID& uid, core::resource::cache& cache);
+		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+					uint32_t width, uint32_t height, uint32_t layers = 1u) noexcept;
+		//framebuffer(const framebuffer& other, const psl::UID& uid, core::resource::cache& cache);
 
 		/// \brief adds a core::data::framebuffer::attachment to the current framebuffer.
 		/// \param[in] width the width of the attachment in pixels.
@@ -167,6 +165,6 @@ namespace core::data
 		psl::serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width;
 		psl::serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height;
 		psl::serialization::property<uint32_t, const_str("FRAMEBUFFER COUNT", 17)> m_Count;
-		core::resource::cache& m_Cache;
+		core::resource::cache* m_Cache;
 	};
 }

@@ -5,15 +5,7 @@
 #include "memory/segment.h"
 #include "memory/range.h"
 #include <optional>
-
-#ifdef PE_VULKAN
-#include "vk/buffer.h"
-#endif
-#ifdef PE_GLES
-#include "gles/buffer.h"
-#endif
-
-#include <variant>
+#include "gfx/types.h"
 
 namespace core::data
 {
@@ -25,7 +17,8 @@ namespace core::gfx
 	class context;
 	class buffer
 	{
-		using value_type = std::variant<
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::buffer
 #ifdef PE_GLES
@@ -36,11 +29,12 @@ namespace core::gfx
 			core::igles::buffer
 #endif
 			>;
-	  public:
-		buffer(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* meta,
+		using value_type = alias_type;
+		buffer(core::resource::handle<value_type>& handle);
+		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data);
 
-		buffer(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* meta,
+		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data,
 			   core::resource::handle<core::gfx::buffer> staging);
 		~buffer();

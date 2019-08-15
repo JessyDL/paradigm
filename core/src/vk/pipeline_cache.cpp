@@ -12,7 +12,8 @@ using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
 
-pipeline_cache::pipeline_cache(const UID& uid, core::resource::cache& cache,
+pipeline_cache::pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+							   psl::meta::file* metaFile,
 							   core::resource::handle<core::ivk::context> context)
 	: m_Context(context), m_Cache(cache)
 {
@@ -34,8 +35,7 @@ core::resource::handle<core::ivk::pipeline> pipeline_cache::get(const psl::UID& 
 		return it->second;
 	}
 
-	auto pipelineHandle = create<pipeline>(m_Cache);
-	pipelineHandle.load(m_Context, data, m_PipelineCache, framebuffer->render_pass(), (uint32_t)framebuffer->color_attachments().size());
+	auto pipelineHandle = m_Cache.create<pipeline>(m_Context, data, m_PipelineCache, framebuffer->render_pass(), (uint32_t)framebuffer->color_attachments().size());
 	m_Pipelines[key] = pipelineHandle;
 
 	return pipelineHandle;
@@ -49,8 +49,7 @@ core::resource::handle<core::ivk::pipeline> pipeline_cache::get(const psl::UID& 
 		return it->second;
 	}
 
-	auto pipelineHandle = create<pipeline>(m_Cache);
-	pipelineHandle.load(m_Context, data, m_PipelineCache, swapchain->renderpass(), 1);
+	auto pipelineHandle = m_Cache.create<pipeline>(m_Context, data, m_PipelineCache, swapchain->renderpass(), 1);
 	m_Pipelines[key] = pipelineHandle;
 
 	return pipelineHandle;

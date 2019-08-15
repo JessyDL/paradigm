@@ -1,13 +1,8 @@
 #pragma once
+#include "fwd/gles/texture.h"
 #include "resource/resource.hpp"
 #include "gfx/types.h"
-#include "resource/c2.h"
-#include "meta/texture.h"
 
-namespace core::meta
-{
-	class texture;
-}
 namespace gli
 {
 	class texture;
@@ -17,13 +12,7 @@ namespace core::igles
 	class texture
 	{
 	  public:
-		using meta_type = core::meta::texture;
-
-		texture(core::r2::cache& cache, const core::r2::metadata& metaData, meta_type* metaFile) : m_Cache(*(core::resource::cache*)(nullptr))
-		{
-			m_Meta = metaFile;
-		};
-		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile);
+		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile);
 		~texture();
 
 		texture(const texture& other)	 = delete;

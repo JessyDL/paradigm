@@ -33,7 +33,8 @@ namespace core::ivk
 		/// \param[in] data the geometry source data for this instance.
 		/// \param[in] geometryBuffer the buffer that the mesh data will be uploaded to.
 		/// \param[in] indicesBuffer the buffer that the indices data will be uploaded to.
-		geometry(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
+		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::geometry> data,
 				 core::resource::handle<core::ivk::buffer> geometryBuffer,
 				 core::resource::handle<core::ivk::buffer> indicesBuffer);

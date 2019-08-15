@@ -12,8 +12,9 @@ using namespace core::resource;
 using namespace core;
 
 
-framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, handle<data::framebuffer> data)
-	: m_Context(context), m_Data(deep_copy, data) // , m_Data(copy(cache, data))
+framebuffer::framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData,
+						 psl::meta::file* metaFile, handle<context> context, handle<data::framebuffer> data)
+	: m_Context(context), m_Data(data) // , m_Data(copy(cache, data))
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
 	m_Textures.reserve(m_Framebuffers.size() * m_Data->attachments().size());
@@ -25,7 +26,12 @@ framebuffer::framebuffer(const UID& uid, cache& cache, handle<context> context, 
 		index += m_Framebuffers.size();
 	}
 
-	m_Sampler = core::resource::create_shared<core::ivk::sampler>(cache, m_Data);
+	m_Sampler = cache.find<core::ivk::sampler>(m_Data->sampler().value());
+	if(!m_Sampler)
+	{
+		core::ivk::log->error("could not load sampler {0} for framebuffer {1}", m_Sampler.uid(), metaData.uid);
+		assert(false);
+	}
 	// m_Sampler.load(); // todo: this should not be working
 
 	// now we create the renderpass that describes the framebuffer
@@ -152,8 +158,9 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	binding.description.format = gfx::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)
 	{
-		auto texture = core::resource::create<core::ivk::texture>(cache, uid);
-		if(texture.resource_state() != core::resource::state::LOADED) texture.load(m_Context);
+		auto texture = cache.find<core::ivk::texture>(uid);
+		if(texture.state() != core::resource::state::loaded)
+			texture = cache.create_using<core::ivk::texture>(uid, m_Context);
 		m_Textures.push_back(texture);
 		attachment& attachment		= binding.attachments.emplace_back();
 		attachment.view				= texture->view();
@@ -182,8 +189,10 @@ std::vector<framebuffer::attachment> framebuffer::color_attachments(uint32_t ind
 	if(index >= m_Bindings.size()) return {};
 
 	std::vector<framebuffer::attachment> res;
-	auto bindings{ m_Bindings };
-	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) { return utility::vulkan::is_depthstencil(binding.description.format); });
+	auto bindings{m_Bindings};
+	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
+		return utility::vulkan::is_depthstencil(binding.description.format);
+	});
 	std::transform(std::begin(bindings), end, std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
 	});

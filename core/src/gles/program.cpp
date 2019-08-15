@@ -4,11 +4,13 @@
 #include "data/material.h"
 #include "logging.h"
 #include "gles/shader.h"
+#include "meta/shader.h"
 
 using namespace core::igles;
 using namespace core::resource;
 
-program::program(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::data::material> data)
+program::program(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<core::data::material> data)
 {
 	GLint linked;
 
@@ -16,13 +18,15 @@ program::program(const psl::UID& uid, core::resource::cache& cache, core::resour
 	for(auto& stage : data->stages())
 	{
 		auto shader_handle = cache.find<core::igles::shader>(stage.shader());
-		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load()) &&
+		if(!shader_handle) shader_handle = cache.create_using<core::igles::shader>(stage.shader());
+		if((shader_handle.state() == core::resource::state::loaded) &&
 		   shader_handle->id() != 0)
 		{
 			shaderStages.push_back(shader_handle->id());
 		}
 		else
 		{
+
 			core::igles::log->error("could not load the shader used in the creation of a pipeline");
 			return;
 		}

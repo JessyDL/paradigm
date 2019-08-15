@@ -28,7 +28,7 @@
 using namespace core::resource;
 using namespace core::igles;
 
-texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile)
+texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile)
 	: m_Cache(cache), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr))
 {
 	if(!m_Meta)

@@ -17,7 +17,8 @@ namespace core::igles
 	class material
 	{
 	  public:
-		material(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::data::material> data,
+		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::igles::program_cache> program_cache,
 				 core::resource::handle<core::igles::buffer> materialBuffer);
 		~material() = default;

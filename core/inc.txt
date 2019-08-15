@@ -19,6 +19,7 @@ data/window.h
 gfx/stdafx.h
 gfx/limits.h
 gfx/types.h
+gfx/types2.h
 
 gfx/context.h
 gfx/shader.h
@@ -84,6 +85,17 @@ gfx/geometry.h
 gfx/buffer.h
 gfx/texture.h
 gfx/sampler.h
+gfx/bundle.h
+gfx/framebuffer.h
+gfx/material.h
+gfx/pipeline_cache.h
+gfx/swapchain.h
+
+gles/shader.h
+gles/texture.h
+
+vk/shader.h
+vk/texture.h
 )
 
 list(TRANSFORM FWD PREPEND inc/fwd/)

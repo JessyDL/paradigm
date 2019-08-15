@@ -9,7 +9,8 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-sampler::sampler(const UID& uid, cache& cache, handle<context> context, handle<data::sampler> sampler_data)
+sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile, handle<context> context,
+				 handle<data::sampler> sampler_data)
 	: m_Data(sampler_data), m_Context(context), m_Samplers{}
 {
 	size_t iterationCount = (m_Data->mipmaps()) ? 14 : 1; // 14 == 8096 // todo: this is a hack
@@ -51,4 +52,4 @@ const vk::Sampler& sampler::get(size_t mip) const noexcept
 	return m_Samplers[mip];
 }
 
-const core::data::sampler& sampler::data() const noexcept { return *(m_Data.cvalue()); }
+const core::data::sampler& sampler::data() const noexcept { return m_Data.value(); }

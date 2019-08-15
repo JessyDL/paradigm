@@ -6,371 +6,386 @@
 
 namespace core::resource
 {
+	template <typename T>
+	class weak_handle;
+
 	/// \brief wraps around a resource for sharing and management purposes.
 	///
 	/// resource handles are used to manage the lifetime of resources, and tracking
 	/// dependencies (i.e. who uses what). It is supposed to be used with a core::resource::cache.
 	template <typename T>
-	class handle final
-	{
-		friend class resource::cache;
-		friend class handle;
-		friend class indirect_handle<T>;
-		handle(resource::cache& cache, const psl::UID& uid, std::shared_ptr<details::container<T>>& container)
-			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(container){};
-
-
-		void registrate() 
-		{
-			PROFILE_SCOPE(core::profiler)
-			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
-						 m_Container->m_State, m_Container->m_vTable);
-		}
-
-	  public:
-		handle()
-			: m_Cache(nullptr), uid(psl::UID::invalid_uid), resource_uid(uid){
-
-															};
-
-		handle(resource::cache& cache)
-			: m_Cache(&cache), uid(cache.library().create().first),
-			  m_Container(std::make_shared<details::container<T>>()), resource_uid(uid)
-		{
-			registrate();
-		};
-
-		/// \note only used in the scenario of "create_shared"
-		handle(resource::cache& cache, const psl::UID& uid)
-			: m_Cache(&cache), uid(uid), resource_uid(uid), m_Container(std::make_shared<details::container<T>>())
-		{
-			PROFILE_SCOPE(core::profiler)
-			// todo need to subscribe to the library, somehow figure out what type of meta type I use
-			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
-						 m_Container->m_State, m_Container->m_vTable);
-		};
-
-		handle(resource::cache& cache, const psl::UID& uid, const psl::UID& resource)
-			: m_Cache(&cache), uid(uid), resource_uid(resource), m_Container(std::make_shared<details::container<T>>())
-		{
-			PROFILE_SCOPE(core::profiler)
-			// todo need to subscribe to the library, somehow figure out what type of meta type I use
-			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
-						 m_Container->m_State, m_Container->m_vTable);
-		};
-
-		/// \details special form of the constructor that will create a detached clone of the handle you use as the
-		/// source. this will create a new resource, that branches off from the current state the other resource is in.
-		/// it invokes the copy constructor of the contained type, and so if it is not present, this will not compile.
-		template <typename... Args, typename = typename std::enable_if<std::is_constructible<
-										T, const T&, const psl::UID&, resource::cache&, Args...>::value>::type>
-		handle(deep_copy_t, const handle& other, Args&&... args)
-			: m_Cache(other.m_Cache), uid(psl::UID::generate()),
-			  resource_uid((other.m_Cache->library().is_physical_file(other.resource_uid)) ? other.resource_uid : uid),
-			  m_Container(std::make_shared<details::container<T>>())
-		{
-			PROFILE_SCOPE(core::profiler)
-			m_Cache->reg(details::key_for<T>(), resource_uid, (std::shared_ptr<void>)(m_Container),
-						 m_Container->m_State, m_Container->m_vTable);
-
-			if(other.m_Container && other.m_Container->has_value())
-			{
-				m_Container->copy_set(*other.m_Container->resource(), uid, *m_Cache, std::forward<Args>(args)...);
-				m_Container->m_State = other.m_Container->m_State;
-			}
-		};
-		handle(const handle& other) = default;
-		handle& operator=(const handle& other) = default;
-		handle(handle&& other)				   = default;
-		handle& operator=(handle&& other) = default;
-
-		operator const T&() const
-		{
-			if(m_Container && m_Container->has_value())
-			{
-				return *(m_Container->resource());
-			}
-
-			throw std::runtime_error("tried to derefence a missing, or not loaded resource");
-		}
-
-		operator tag<T>() const { return tag<T>(uid); }
-
-		/// \returns true of the handle has a valid, loaded object.
-		operator bool() const { return uid && (m_Container) && m_Container->m_State == state::LOADED; }
-
-		state resource_state() const noexcept { return (!m_Container) ? state::INVALID : m_Container->m_State; }
-
-		bool operator==(const handle& other) { return other.uid == uid; }
-		bool operator!=(const handle& other) { return other.uid != uid; }
-		/// \returns true if the resource is loaded
-		/// \brief loads the resource with the given arguments.
-		/// \details loads the resource with the given arguments. In case
-		/// the resource already exists, the arguments are ignored and the already
-		/// loaded resource is returned instead.
-		template <typename... Args>
-		bool load(Args&&... args)
-		{
-			PROFILE_SCOPE(core::profiler)
-			if constexpr(std::is_constructible<T, const psl::UID&, resource::cache&, psl::meta::file*, Args...>::value)
-			{
-				if(!uid) return false;
-
-				if(m_Container->m_State == state::NOT_LOADED || m_Container->m_State == state::UNLOADED)
-				{
-					m_Container->m_State = state::LOADING;
-					auto metaPtr		 = m_Cache->library().get(resource_uid);
-					if(metaPtr && m_Container->set(uid, *m_Cache, metaPtr.value(), std::forward<Args>(args)...))
-					{
-						if constexpr(psl::serialization::details::is_collection<T>::value)
-						{
-							if(auto result = m_Cache->library().load(resource_uid); result)
-							{
-								psl::serialization::serializer s;
-								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
-																						 cont);
-							}
-						}
-						m_Container->m_State = state::LOADED;
-					}
-					else
-					{
-						m_Container->m_State = state::INVALID;
-					}
-				}
-
-				return m_Container->m_State == state::LOADED;
-			}
-			else if constexpr(std::is_constructible<T, const psl::UID&, resource::cache&, Args...>::value)
-			{
-				if(!uid) return false;
-
-				if(m_Container->m_State == state::NOT_LOADED || m_Container->m_State == state::UNLOADED)
-				{
-					m_Container->m_State = state::LOADING;
-					if(m_Container->set(uid, *m_Cache, std::forward<Args>(args)...))
-					{
-						if constexpr(psl::serialization::details::is_collection<T>::value)
-						{
-							if(auto result = m_Cache->library().load(resource_uid); result)
-							{
-								psl::serialization::serializer s;
-								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
-																						 cont);
-							}
-						}
-						m_Container->m_State = state::LOADED;
-					}
-					else
-					{
-						m_Container->m_State = state::INVALID;
-					}
-				}
-
-				return m_Container->m_State == state::LOADED;
-			}
-			else if constexpr(std::is_constructible<T, Args...>::value)
-			{
-				if(!uid) return false;
-
-				if(m_Container->m_State == state::NOT_LOADED || m_Container->m_State == state::UNLOADED)
-				{
-					m_Container->m_State = state::LOADING;
-					if(m_Container->set(*m_Cache, std::forward<Args>(args)...))
-					{
-						if constexpr(psl::serialization::details::is_collection<T>::value)
-						{
-							if(auto result = m_Cache->library().load(resource_uid); result)
-							{
-								psl::serialization::serializer s;
-								psl::format::container cont{result.value()};
-								s.deserialize<psl::serialization::decode_from_format, T>(*(m_Container->resource()),
-																						 cont);
-							}
-						}
-						m_Container->m_State = state::LOADED;
-					}
-					else
-					{
-						m_Container->m_State = state::INVALID;
-					}
-				}
-
-				return m_Container->m_State == state::LOADED;
-			}
-			else
-			{
-				static_assert(std::is_destructible_v<T>, "no destructor was provided, one should be provided");
-				static_assert(
-					utility::templates::always_false_v<T>,
-					"there was no suitable constructor for the given type that would accept these arguments.");
-			}
-		}
-
-		T* operator->() { return (m_Container && m_Container->has_value()) ? m_Container->resource() : nullptr; }
-
-
-		const T* operator->() const
-		{
-			return (m_Container && m_Container->has_value()) ? m_Container->resource() : nullptr;
-		}
-
-		const T* cvalue() const
-		{
-			return (m_Container && m_Container->has_value()) ? m_Container->resource() : nullptr;
-		}
-
-		T& value()
-		{
-			if(m_Container && m_Container->has_value())
-			{
-				return *(m_Container->resource());
-			}
-
-			throw std::runtime_error("tried to derefence a missing, or not loaded resource");
-		}
-
-		/// \returns true on success.
-		/// \param[in] force forcibly unload regardless of dependencies.
-		/// \details >ill try to unload the resource. In case that this is the last handle to the resource, it will
-		/// clean itself up and return success, otherwise it will fail and return false. It will also fail when the
-		/// resource is not yet loaded, and it will _not_ unload when it finally is loaded, you'll have to call this
-		/// again. \warning Regardless of success, the handle will become invalid.
-		bool unload(bool force = false)
-		{
-			PROFILE_SCOPE(core::profiler)
-			m_Container.reset();
-			return m_Cache->reset<T>(resource_uid, force);
-		}
-
-		/// \returns the UID assigned to the handle
-		const psl::UID& ID() const noexcept { return uid; }
-
-		/// \returns the resource UID, this is shared between all handles of different types that are based on the same
-		/// resource.
-		/// \note multiple handles (different UID's) can point to the same RUID. Simple example is a
-		/// handle<TextFile> and handle<Shader> could point to the same file on disk, but are very much different
-		/// resources. The same is true for handles of the same type.
-		/// \note the ID() and RUID() are the same for generated resources, as then the "Resource UID" is considered
-		/// the memory location of the handle.
-		const psl::UID& RUID() const noexcept { return resource_uid; }
-
-		template <typename... Args>
-		typename std::enable_if<std::is_constructible<T, const T&, const psl::UID&, resource::cache&, Args...>::value,
-								handle<T>>::type
-		copy(resource::cache& cache, Args&&... args) const
-		{
-			PROFILE_SCOPE(core::profiler)
-			auto res = (m_Cache->library().is_physical_file(resource_uid)
-							? handle<T>(cache, psl::UID::generate(), resource_uid)
-							: handle<T>(cache));
-
-			if(m_Container && m_Container->has_value())
-			{
-				res.m_Container->copy_set(*m_Container->resource(), res.uid, cache, std::forward<Args>(args)...);
-				res.m_Container->m_State = m_Container->m_State;
-			}
-
-
-			return res;
-		}
-
-		const resource::cache& cache() const noexcept { return *m_Cache; };
-		resource::cache& cache() noexcept { return *m_Cache; };
-
-	  protected:
-		resource::cache* m_Cache;
-		psl::UID uid;		   // my actual UID
-		psl::UID resource_uid; // the disk based resource I'm based on, this can be the same like my actual uid if I'm a
-							   // shared resource, or it can be the same if I'm not a physical file.
-		std::shared_ptr<details::container<T>> m_Container;
-	};
-
-	template <typename T>
-	static handle<T> create(cache& cache)
-	{
-		PROFILE_SCOPE_STATIC(core::profiler)
-		return handle<T>(cache);
-	}
-
-	/// \brief creates a new resource based on the given UID resource.
-	///
-	/// if this resource is disk-based it might speed up loading due to using the already cached value (todo)
-	/// The resulting resource has a new UID.
-	template <typename T>
-	static handle<T> create(cache& cache, const psl::UID& uid)
-	{
-		PROFILE_SCOPE_STATIC(core::profiler)
-		return handle<T>{cache, psl::UID::generate(), uid};
-	}
-
-	/// \details will either find the resource with the given UID, and return that, or create a new one using that UID.
-	/// this function should be used for resources that might be shared (like ivk::material), co-owned in disconnected
-	/// systems, or read-only.
-	///
-	/// The resulting resource keeps the UID you create it with, meaning it can be found again using this function.
-	template <typename T>
-	static handle<T> create_shared(cache& cache, const psl::UID& uid)
-	{
-		PROFILE_SCOPE_STATIC(core::profiler)
-		auto res = cache.find<T>(uid);
-		if(res) return res;
-		return handle<T>(cache, uid);
-	}
-
-	template <typename T, typename Y>
-	static handle<T> create_shared(cache& cache, const core::resource::handle<Y>& base)
-	{
-		PROFILE_SCOPE_STATIC(core::profiler)
-		auto res = cache.find<T>(base.RUID());
-		if(res) return res;
-		return handle<T>(cache, base.RUID());
-	}
-
-	/// \details this will create a disconnected copy based on the source handle. This means that, for example, when the
-	/// source gets destroyed, this copy will keep existing, and when changes happen to either the source or copy, the
-	/// changes will not be applied to the other.
-	template <typename T, typename... Args>
-	static handle<T> copy(cache& cache, const handle<T>& source, Args&&... args)
-	{
-		PROFILE_SCOPE_STATIC(core::profiler)
-		static_assert(std::is_constructible<T, const T&, const psl::UID&, resource::cache&, Args...>::value,
-					  "lacking a 'copy' constructor on T, cannot create a new handle with the given source.");
-		return source.copy(cache, std::forward<Args>(args)...);
-	}
-
-	template <typename T>
-	class indirect_handle
+	class handle
 	{
 	  public:
-		indirect_handle() = default;
-		indirect_handle(const psl::UID& uid, cache* cache) : m_Cache(cache), m_UID(uid){};
-		indirect_handle(const handle<T>& handle) : m_Cache(handle.m_Cache), m_UID(handle.uid){};
-
-		operator const core::resource::handle<T>() const noexcept { return m_Cache->find<T>(m_UID); }
-		operator core::resource::handle<T>() noexcept { return m_Cache->find<T>(m_UID); }
-		operator const T&() const noexcept { return m_Cache->find<T>(m_UID); }
-		operator T&() noexcept { return m_Cache->find<T>(m_UID); }
-
-		operator const psl::UID&() const noexcept { return m_UID; }
-
-		operator psl::UID() noexcept { return m_UID; }
-		operator tag<T>() const { return tag<T>(m_UID); }
-
-		core::resource::handle<T> handle() const noexcept { return m_Cache->find<T>(m_UID); }
-
-		const T& operator->() const noexcept { return m_Cache->find<T>(m_UID); }
-
-		T& operator->() noexcept { return m_Cache->find<T>(m_UID); }
-
-		const psl::UID& uid() const noexcept { return m_UID; };
+		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
+		// using meta_type  = typename details::meta_type<value_type>::type;
+		using meta_type  = typename resource_traits<value_type>::meta_type;
+		using alias_type = typename details::alias_type<value_type>::type;
 
 	  private:
-		cache* m_Cache{nullptr};
-		psl::UID m_UID{};
+		friend class cache;
+		friend class weak_handle<T>;
+		template <typename Y>
+		friend class handle;
+
+		handle(void* resource, cache* cache, metadata* metaData, psl::meta::file* meta) noexcept
+			: m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
+			  m_MetaFile(reinterpret_cast<meta_type*>(meta))
+		{
+			m_MetaData->reference_count += 1;
+		};
+
+	  public:
+		handle() = default;
+		~handle()
+		{
+			if constexpr(!std::is_same_v<alias_type, void>)
+			{
+				static_assert(details::is_valid_alias<value_type, alias_type>::value);
+			}
+			if(m_MetaData)
+			{
+				assert_debug_break(m_MetaData->reference_count != 0);
+				m_MetaData->reference_count -= 1;
+			}
+		};
+
+		template <typename... Ts>
+		handle(const handle<alias<Ts...>>& other) noexcept : handle::handle(other.get<T>()){};
+
+
+		template <typename Y, typename = std::enable_if_t<
+								  details::alias_has_type<T, typename details::alias_type<value_type>::type>::value>>
+		handle(const handle<Y>& other) noexcept
+		{
+			if(!other) return;
+			handle<T> res = other.m_Cache->find<T>(other.uid());
+			m_Resource	= res.m_Resource;
+			m_Cache		  = res.m_Cache;
+			m_MetaData	= res.m_MetaData;
+			m_MetaFile	= res.m_MetaFile;
+			if(m_MetaData) m_MetaData->reference_count += 1;
+		};
+
+		handle(const handle& other) noexcept
+			: m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
+			  m_MetaFile(other.m_MetaFile)
+		{
+			if(m_MetaData) m_MetaData->reference_count += 1;
+		};
+
+		handle(handle&& other) noexcept
+			: m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
+			  m_MetaFile(other.m_MetaFile)
+		{
+			other.m_MetaData = nullptr;
+		};
+		handle& operator=(const handle& other)
+		{
+			if(this != &other)
+			{
+				if(m_MetaData) m_MetaData->reference_count -= 1;
+				m_Resource = other.m_Resource;
+				m_Cache	= other.m_Cache;
+				m_MetaData = other.m_MetaData;
+				m_MetaFile = other.m_MetaFile;
+				if(m_MetaData) m_MetaData->reference_count += 1;
+			}
+			return *this;
+		};
+		handle& operator=(handle&& other) noexcept
+		{
+			if(this != &other)
+			{
+				if(m_MetaData) m_MetaData->reference_count -= 1;
+				m_Resource = other.m_Resource;
+				m_Cache	= other.m_Cache;
+				m_MetaData = other.m_MetaData;
+				m_MetaFile = other.m_MetaFile;
+				if(m_MetaData) m_MetaData->reference_count += 1;
+			}
+			return *this;
+		};
+
+
+		inline state state() const noexcept { return m_MetaData ? m_MetaData->state : state::invalid; }
+
+		inline value_type& value() noexcept
+		{
+			assert(state() == state::loaded);
+			return *m_Resource;
+		}
+
+		inline const value_type& value() const noexcept
+		{
+			assert(state() == state::loaded);
+			return *m_Resource;
+		}
+
+		inline bool try_get(value_type& out) const noexcept
+		{
+			if(state() == state::loaded)
+			{
+				out = *m_Resource;
+				return true;
+			}
+			return false;
+		}
+
+		template<typename Y>
+		bool operator==(const handle<Y>& other) const noexcept
+		{
+			return uid() == other.uid();
+		}
+		template <typename Y>
+		bool operator!=(const handle<Y>& other) const noexcept
+		{
+			return uid() != other.uid();
+		}
+
+		template <typename Y>
+		bool operator==(const weak_handle<Y>& other) const noexcept
+		{
+			return uid() == other.uid();
+		}
+		template <typename Y>
+		bool operator!=(const weak_handle<Y>& other) const noexcept
+		{
+			return uid() != other.uid();
+		}
+
+		inline operator bool() const noexcept { return state() == state::loaded; }
+
+		inline meta_type* meta() const noexcept { return m_MetaFile; }
+		inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
+		inline cache* cache() const noexcept { return m_Cache; }
+
+		inline value_type const* operator->() const { return m_Resource; }
+		inline value_type* operator->() { return m_Resource; }
+
+		inline psl::UID uid() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+		inline const psl::UID& uid() noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+
+
+		operator const psl::UID&() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+		operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
+		operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
+
+	  private:
+		value_type* m_Resource{nullptr};
+		core::resource::cache* m_Cache{nullptr};
+		metadata* m_MetaData{nullptr};
+		meta_type* m_MetaFile{nullptr};
+	};
+
+	template <typename... Ts>
+	class handle<alias<Ts...>>
+	{
+		friend class cache;
+
+		template <size_t... indices>
+		void internal_set(psl::array<cache::description*> descriptions, psl::meta::file* meta,
+						  std::index_sequence<indices...>)
+		{
+			(
+				[&descriptions, this, meta](psl::array<cache::description*>::iterator it) {
+					if(it != std::end(descriptions))
+					{
+						std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>>{
+							(*it)->resource, m_Cache, &(*it)->metaData, meta};
+					}
+				}(std::find_if(std::begin(descriptions), std::end(descriptions),
+							   [key = details::key_for<std::tuple_element_t<indices, std::tuple<Ts...>>>()](
+								   cache::description* descr) { return descr->metaData.type == key; })),
+				...);
+		}
+
+		handle(psl::array<cache::description*> descriptions, cache* cache, psl::meta::file* meta) noexcept
+			: m_Cache(cache)
+		{
+			internal_set(descriptions, meta, std::make_index_sequence<sizeof...(Ts)>());
+		}
+
+	  public:
+		using value_type = std::tuple<handle<Ts>...>;
+
+		handle() = default;
+		~handle(){};
+
+		handle(const handle& other)		= default;
+		handle(handle&& other) noexcept = default;
+		handle& operator=(const handle& other) = default;
+		handle& operator=(handle&& other) noexcept = default;
+
+		template <typename T>
+		handle& operator<<(handle<T>& data)
+		{
+			std::get<handle<T>>(m_Resource) = data;
+			return *this;
+		}
+		template <typename T>
+		handle& operator<<(handle<T> data)
+		{
+			std::get<handle<T>>(m_Resource) = data;
+			return *this;
+		}
+
+		template <typename T>
+		void unset() noexcept
+		{
+			std::get<handle<T>>(m_Resource) = {};
+			return *this;
+		}
+
+		template <typename T>
+		void set(handle<T> data)
+		{
+			std::get<handle<T>>(m_Resource) = data;
+		}
+		template <typename T>
+		void set(handle<T>& data)
+		{
+			std::get<handle<T>>(m_Resource) = data;
+		}
+
+		template <size_t I>
+		auto get() const noexcept
+		{
+			return std::get<I>(m_Resource);
+		}
+
+		template <typename T>
+		auto get() const noexcept
+		{
+			return std::get<handle<T>>(m_Resource);
+		}
+
+		template <typename T>
+		constexpr bool contains() const noexcept
+		{
+			return std::get<handle<T>>(m_Resource);
+		}
+
+		template <typename T>
+		T& value() noexcept
+		{
+			return std::get<handle<T>>(m_Resource).value();
+		}
+		template <typename T>
+		const T& value() const noexcept
+		{
+			return std::get<handle<T>>(m_Resource).value();
+		}
+
+		template <typename Fn, typename... Args, size_t... indices>
+		void visit_all_impl(std::index_sequence<indices...>, Fn&& fn, Args&&... args)
+		{
+			(
+				[&fn](auto& handle, auto&&... values) {
+					if constexpr(std::is_invocable_v<Fn, size_t, decltype(handle.value()), decltype(values)...>)
+					{
+						if(handle) std::invoke(fn, indices, handle.value(), std::forward<decltype(values)>(values)...);
+					}
+					else
+					{
+						if(handle) std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
+					}
+				}(std::get<indices>(m_Resource), std::forward<Args>(args)...),
+				...);
+		}
+
+		template <typename Fn, typename... Args>
+		void visit_all(Fn&& fn, Args&&... args)
+		{
+			visit_all_impl(std::make_index_sequence<sizeof...(Ts)>(), std::forward<Fn>(fn),
+						   std::forward<Args>(args)...);
+		}
+
+
+		template <typename... Ts, typename Fn, typename... Args>
+		void visit(Fn&& fn, Args&&... args)
+		{
+			(
+				[&fn](auto& handle, auto&&... args) {
+					if(handle) std::invoke(fn, handle.value(), std::forward<decltype(args)>(args)...);
+				}(std::get<handle<Ts>>(m_Resource), std::forward<Args>(args)...),
+				...);
+		}
+
+	  private:
+		value_type m_Resource;
+		core::resource::cache* m_Cache{nullptr};
+	};
+
+	template <typename T>
+	class weak_handle final
+	{
+	  public:
+		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
+		using meta_type  = typename resource_traits<value_type>::meta_type;
+
+		weak_handle(const handle<T>& handle)
+			: m_Resource(handle.m_Resource), m_Cache(handle.m_Cache), m_MetaData(handle.m_MetaData),
+			  m_MetaFile(handle.m_MetaFile){};
+
+		weak_handle()						= default;
+		weak_handle(const weak_handle&)		= default;
+		weak_handle(weak_handle&&) noexcept = default;
+		weak_handle& operator=(const weak_handle&) = default;
+		weak_handle& operator=(weak_handle&&) noexcept = default;
+
+		template <typename Y>
+		bool operator==(const handle<Y>& other) const noexcept
+		{
+			return uid() == other.uid();
+		}
+		template <typename Y>
+		bool operator!=(const handle<Y>& other) const noexcept
+		{
+			return uid() != other.uid();
+		}
+
+		template <typename Y>
+		bool operator==(const weak_handle<Y>& other) const noexcept
+		{
+			return uid() == other.uid();
+		}
+		template <typename Y>
+		bool operator!=(const weak_handle<Y>& other) const noexcept
+		{
+			return uid() != other.uid();
+		}
+		
+		inline state state() const noexcept { return m_MetaData ? m_MetaData->state : state::invalid; }
+		inline operator bool() const noexcept { return state() == state::loaded; }
+
+		inline value_type const* operator->() const { return m_Resource; }
+		inline value_type* operator->() { return m_Resource; }
+
+		value_type& value() noexcept { return *m_Resource; };
+		const value_type& value() const noexcept { return *m_Resource; };
+
+		inline psl::UID uid() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+		inline const psl::UID& uid() noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+
+		inline meta_type* meta() const noexcept { return m_MetaFile; }
+		inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
+		inline cache* cache() const noexcept { return m_Cache; }
+
+		operator const psl::UID&() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+		operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
+		operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
+
+		handle<T> make_shared() const noexcept 
+		{ 
+			assert(*this);
+			return handle<T>((void*)m_Resource, m_Cache, m_MetaData, (psl::meta::file*)m_MetaFile);
+		}
+
+	  private:
+		value_type* m_Resource{nullptr};
+		core::resource::cache* m_Cache{nullptr};
+		metadata* m_MetaData{nullptr};
+		meta_type* m_MetaFile{nullptr};
 	};
 } // namespace core::resource
-
-#include "variant_handle.h"

@@ -13,19 +13,22 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-geometry::geometry(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
+geometry::geometry(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   core::resource::handle<context> context,
 				   core::resource::handle<core::data::geometry> data, core::resource::handle<buffer> geometryBuffer,
 				   core::resource::handle<buffer> indicesBuffer)
-	: m_Handle(cache)
 {
 	switch(context->backend())
 	{
 	case graphics_backend::gles:
-		m_Handle.load<core::igles::geometry>(data, geometryBuffer->resource().get<core::igles::buffer>(),
+		m_Handle << cache.create_using<core::igles::geometry>(metaData.uid, data,
+															  geometryBuffer->resource().get<core::igles::buffer>(),
 											 indicesBuffer->resource().get<core::igles::buffer>());
 		break;
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::geometry>(context->resource().get<core::ivk::context>(), data,
+		m_Handle << cache.create_using<core::ivk::geometry>(metaData.uid, context->resource().get<core::ivk::context>(),
+															data,
 										   geometryBuffer->resource().get<core::ivk::buffer>(),
 										   indicesBuffer->resource().get<core::ivk::buffer>());
 		break;

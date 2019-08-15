@@ -13,9 +13,10 @@ using namespace core::resource;
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html
 static const size_t max_size_set{65535};
 
-buffer::buffer(const UID& uid, cache& cache, handle<context> context, handle<data::buffer> buffer_data,
+buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   handle<context> context, handle<data::buffer> buffer_data,
 			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer)
-	: m_Context(context), m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(uid),
+	: m_Context(context), m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(metaData.uid),
 	  m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::ivk::buffer>{}))
 {
 	PROFILE_SCOPE(core::profiler)
@@ -31,7 +32,7 @@ buffer::buffer(const UID& uid, cache& cache, handle<context> context, handle<dat
 		core::ivk::log->warn(
 			"trying to create an ivk::buffer [UID: {0} ] with incorrect alignment, alignment is: {1}, but should be: "
 			"{2}",
-			uid.to_string(), alignment, m_Context->properties().limits.minUniformBufferOffsetAlignment);
+			m_UID.to_string(), alignment, m_Context->properties().limits.minUniformBufferOffsetAlignment);
 	}
 	else if(type & vk::BufferUsageFlagBits::eStorageBuffer &&
 			alignment != m_Context->properties().limits.minStorageBufferOffsetAlignment)
@@ -39,7 +40,7 @@ buffer::buffer(const UID& uid, cache& cache, handle<context> context, handle<dat
 		core::ivk::log->warn(
 			"trying to create an ivk::buffer [UID: {0} ] with incorrect alignment, alignment is: {1}, but should be: "
 			"{2}",
-			uid.to_string(), alignment, m_Context->properties().limits.minStorageBufferOffsetAlignment);
+			m_UID.to_string(), alignment, m_Context->properties().limits.minStorageBufferOffsetAlignment);
 	}
 
 	vk::MemoryAllocateInfo memAllocInfo;
@@ -185,14 +186,13 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 		if(!stagingBuffer)
 		{
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
-			stagingBuffer = core::resource::create<core::ivk::buffer>(m_Cache);
-			auto buffer_data = core::resource::create<core::data::buffer>(m_Cache);
-
 			memory::region temp_region{totalSize, 4, new memory::default_allocator(false)};
-			buffer_data.load(vk::BufferUsageFlagBits::eTransferSrc,
-							 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
-							 std::move(temp_region));
-			stagingBuffer.load(m_Context, buffer_data);
+			auto buffer_data = m_Cache.create<core::data::buffer>(vk::BufferUsageFlagBits::eTransferSrc,
+																  vk::MemoryPropertyFlagBits::eHostVisible |
+																	  vk::MemoryPropertyFlagBits::eHostCoherent,
+																  std::move(temp_region));
+
+			stagingBuffer = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
 		}
 		if(!stagingBuffer)
 		{
@@ -255,7 +255,7 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
 			debug_break();
 		m_Context->device().unmapMemory(stagingBuffer->m_Memory);
-		auto res = copy_from(stagingBuffer, copyRegions);
+		auto res = copy_from(stagingBuffer.value(), copyRegions);
 		for(auto segm : stagingSegments)
 		{
 			if(segm.second.begin == 0)
@@ -305,20 +305,17 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		if(m_StagingBuffer)
 		{
 			m_StagingBuffer->map(data, size, 0);
-			return copy_from(m_StagingBuffer, {vk::BufferCopy{0u, offset, size}});
+			return copy_from(m_StagingBuffer.value(), {vk::BufferCopy{0u, offset, size}});
 		}
 		else
 		{
 			// make a local staging buffer, this is hardly efficient. todo find better way.
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
-			auto staging	 = core::resource::create<core::ivk::buffer>(m_Cache);
-			auto buffer_data = core::resource::create<core::data::buffer>(m_Cache);
-
 			memory::region temp_region{size * 2, 4, new memory::default_allocator(true)};
-			buffer_data.load(vk::BufferUsageFlagBits::eTransferSrc,
+			auto buffer_data = m_Cache.create<core::data::buffer>(vk::BufferUsageFlagBits::eTransferSrc,
 							 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
 							 std::move(temp_region));
-			staging.load(m_Context, buffer_data);
+			auto staging = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
 
 			auto tuple = m_Context->device().mapMemory(staging->m_Memory, 0, size);
 			if(!utility::vulkan::check(tuple.result))
@@ -328,7 +325,7 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			memcpy(tuple.value, data, size);
 			m_Context->device().unmapMemory(staging->m_Memory);
 
-			return copy_from(staging, {vk::BufferCopy{0u, offset, size}});
+			return copy_from(staging.value(), {vk::BufferCopy{0u, offset, size}});
 		}
 	}
 	else

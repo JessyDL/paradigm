@@ -5,8 +5,7 @@ using namespace psl;
 using namespace core::data;
 using namespace core::resource;
 
-geometry::geometry(const UID& uid, core::resource::cache& cache) {}
-geometry::~geometry() {}
+geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept {}
 
 
 std::optional<std::reference_wrapper<const core::stream>> 

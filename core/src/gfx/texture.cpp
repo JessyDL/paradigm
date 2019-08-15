@@ -1,5 +1,6 @@
 #include "gfx/texture.h"
 #include "gfx/context.h"
+#include "meta/texture.h"
 
 #ifdef PE_VULKAN
 #include "vk/texture.h"
@@ -12,16 +13,17 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-texture::texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+texture::texture(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData,
+				 core::meta::texture* metaFile,
 				 core::resource::handle<core::gfx::context> context)
-	: m_Handle(cache, uid, metaFile->ID())
 {
 	switch (context->backend())
 	{
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::texture>(context->resource().get<core::ivk::context>());
+		m_Handle << cache.create_using<core::ivk::texture>(metaData.uid, context->resource().get<core::ivk::context>());
 		break;
-	case graphics_backend::gles: m_Handle.load<core::igles::texture>(); break;
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::texture>(metaData.uid); break;
 	}
 }
 

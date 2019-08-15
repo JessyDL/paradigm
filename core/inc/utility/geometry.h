@@ -63,7 +63,7 @@ namespace utility::geometry
 	/// \note it is expected this is valid geometry data, only minimal to no data validation is done.
 	static bool generate_tangents(core::resource::handle<core::data::geometry> geometry_data)
 	{
-		if(geometry_data.resource_state() != core::resource::state::LOADED) return false;
+		if(geometry_data.state() != core::resource::state::loaded) return false;
 
 		auto posStreamOpt = geometry_data->vertices(core::data::geometry::constants::POSITION);
 		auto uvStreamOpt  = geometry_data->vertices(core::data::geometry::constants::TEX);
@@ -119,8 +119,7 @@ namespace utility::geometry
 		uvs.emplace_back(psl::vec2{0.0f, 0.0f});
 		uvs.emplace_back(psl::vec2{1.0f, 0.0f});
 
-		auto boxGeomData = core::resource::create<core::data::geometry>(cache);
-		boxGeomData.load();
+		auto boxGeomData = cache.create<core::data::geometry>();
 
 		boxGeomData->vertices(core::data::geometry::constants::POSITION, vertStream);
 		boxGeomData->vertices(core::data::geometry::constants::NORMAL, normStream);
@@ -188,8 +187,7 @@ namespace utility::geometry
 		}
 
 
-		auto boxGeomData = core::resource::create<core::data::geometry>(cache);
-		boxGeomData.load();
+		auto boxGeomData = cache.create<core::data::geometry>();
 
 		boxGeomData->vertices(core::data::geometry::constants::POSITION, vertStream);
 		boxGeomData->vertices(core::data::geometry::constants::NORMAL, normStream);
@@ -274,8 +272,7 @@ namespace utility::geometry
 
 		};
 
-		auto boxGeomData = core::resource::create<core::data::geometry>(cache);
-		boxGeomData.load();
+		auto boxGeomData = cache.create<core::data::geometry>();
 
 		core::stream vertStream{core::stream::type::vec3};
 		core::stream normStream{core::stream::type::vec3};
@@ -382,8 +379,7 @@ namespace utility::geometry
 			}
 		}
 
-		auto boxGeomData = core::resource::create<core::data::geometry>(cache);
-		boxGeomData.load();
+		auto boxGeomData = cache.create<core::data::geometry>();
 
 		core::stream vertStream{core::stream::type::vec3};
 		core::stream normStream{core::stream::type::vec3};
@@ -587,8 +583,7 @@ namespace utility::geometry
 		}
 		*/
 
-		auto geomData = core::resource::create<core::data::geometry>(cache);
-		geomData.load();
+		auto geomData = cache.create<core::data::geometry>();
 
 		core::stream vertStream{core::stream::type::vec3};
 		core::stream normStream{core::stream::type::vec3};
@@ -746,8 +741,7 @@ namespace utility::geometry
 			}
 		}
 
-		auto geomData = core::resource::create<core::data::geometry>(cache);
-		geomData.load();
+		auto geomData = cache.create<core::data::geometry>();
 
 		core::stream vertStream{core::stream::type::vec3};
 		core::stream normStream{core::stream::type::vec3};
@@ -1059,8 +1053,7 @@ namespace utility::geometry
 		}
 
 
-		auto geomData = core::resource::create<core::data::geometry>(cache);
-		geomData.load();
+		auto geomData = cache.create<core::data::geometry>();
 
 		core::stream vertStream{core::stream::type::vec3};
 		core::stream normStream{core::stream::type::vec3};

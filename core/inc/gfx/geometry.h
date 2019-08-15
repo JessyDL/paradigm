@@ -2,13 +2,10 @@
 #include "fwd/gfx/geometry.h"
 #include "resource/resource.hpp"
 
-
-#ifdef PE_VULKAN
-#include "vk/geometry.h"
-#endif
-#ifdef PE_GLES
-#include "gles/geometry.h"
-#endif
+namespace core::data
+{
+	class geometry;
+}
 
 namespace core::gfx
 {
@@ -17,7 +14,8 @@ namespace core::gfx
 
 	class geometry
 	{
-		using value_type = std::variant<
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::geometry
 #ifdef PE_GLES
@@ -28,11 +26,11 @@ namespace core::gfx
 			core::igles::geometry
 #endif
 			>;
-	  public:
-		geometry(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
-				 core::resource::handle<core::data::geometry> data,
-				 core::resource::handle<buffer> geometryBuffer,
-				 core::resource::handle<buffer> indicesBuffer);
+		using value_type = alias_type;
+		geometry(core::resource::handle<value_type>& handle);
+		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<context> context, core::resource::handle<core::data::geometry> data,
+				 core::resource::handle<buffer> geometryBuffer, core::resource::handle<buffer> indicesBuffer);
 		~geometry();
 		geometry(const geometry&) = delete;
 		geometry(geometry&&)	  = delete;
@@ -40,6 +38,7 @@ namespace core::gfx
 		geometry& operator=(geometry&&) = delete;
 
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
+
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

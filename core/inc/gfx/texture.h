@@ -1,26 +1,14 @@
 #pragma once
+#include "fwd/gfx/texture.h"
 #include "resource/resource.hpp"
-
-
-#ifdef PE_VULKAN
-namespace core::ivk
-{
-	class texture;
-}
-#endif
-#ifdef PE_GLES
-namespace core::igles
-{
-	class texture;
-}
-#endif
 
 namespace core::gfx
 {
 	class context;
 	class texture
 	{
-		using value_type = std::variant<
+	  public:
+		using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::texture
 #ifdef PE_GLES
@@ -31,8 +19,11 @@ namespace core::gfx
 			core::igles::texture
 #endif
 			>;
-	  public:
-		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		using value_type = alias_type;
+		using meta_type = core::meta::texture;
+		texture(core::resource::handle<value_type>& handle);
+		texture(core::resource::cache& cache, const core::resource::metadata& metaData,
+				core::meta::texture* metaFile,
 				core::resource::handle<core::gfx::context> context);
 
 		~texture();
@@ -47,4 +38,4 @@ namespace core::gfx
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};
-} // namespace core::gfx
+} // namespace core::gf

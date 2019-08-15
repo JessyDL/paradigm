@@ -7,6 +7,7 @@
 #include "gfx/geometry.h"
 #include "gfx/material.h"
 #include "gfx/buffer.h"
+#include "vk/buffer.h"
 #include "vk/geometry.h"
 #include "vk/material.h"
 #include "data/geometry.h"
@@ -362,9 +363,9 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 				{
 					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
 					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
-					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
+					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
-					geometryHandle->bind(cmdBuffer, mat);
+					geometryHandle->bind(cmdBuffer, mat.value());
 					
 					//bundle->bind_geometry(cmdBuffer, geometryHandle);
 
@@ -406,9 +407,9 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 				{
 					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
 					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
-					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
+					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
-					geometryHandle->bind(cmdBuffer, mat);
+					geometryHandle->bind(cmdBuffer, mat.value());
 
 					//bundle->bind_geometry(cmdBuffer, geometryHandle);
 

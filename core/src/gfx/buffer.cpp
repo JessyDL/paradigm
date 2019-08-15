@@ -10,30 +10,32 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-buffer::buffer(const psl::UID& uid, cache& cache, psl::meta::file* meta, handle<context> context,
+buffer::buffer(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   handle<context> context,
 			   handle<data::buffer> data)
-	: m_Handle(cache, uid, (meta) ? meta->ID() : uid)
 {
 	switch(context->backend())
 	{
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::buffer>(context->resource().get<core::ivk::context>(), data);
+		m_Handle << cache.create_using<core::ivk::buffer>(metaData.uid, context->resource().get<core::ivk::context>(),
+														  data);
 		break;
-	case graphics_backend::gles: m_Handle.load<core::igles::buffer>(data); break;
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data); break;
 	}
 }
 
-buffer::buffer(const psl::UID& uid, cache& cache, psl::meta::file* meta, handle<context> context,
+buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   handle<context> context,
 			   handle<data::buffer> data, handle<buffer> staging)
-	: m_Handle(cache, uid, (meta) ? meta->ID() : uid)
 {
 	switch(context->backend())
 	{
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::buffer>(context->resource().get<core::ivk::context>(), data,
+		m_Handle << cache.create_using<core::ivk::buffer>(metaData.uid, context->resource().get<core::ivk::context>(), data,
 										 staging->resource().get<core::ivk::buffer>());
 		break;
-	case graphics_backend::gles: m_Handle.load<core::igles::buffer>(data); break;
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data); break;
 	}
 }
 
@@ -48,7 +50,7 @@ const core::data::buffer& buffer::data() const noexcept
 	}
 	else
 	{
-		return m_Handle.value<ivk::buffer>().data();
+		return m_Handle.value<ivk::buffer>().data().value();
 	}
 }
 

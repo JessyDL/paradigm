@@ -1,19 +1,6 @@
 #pragma once
+#include "fwd/gfx/framebuffer.h"
 #include "resource/resource.hpp"
-#include <variant>
-
-#ifdef PE_GLES
-namespace core::igles
-{
-	class framebuffer;
-}
-#endif
-#ifdef PE_VULKAN
-namespace core::ivk
-{
-	class framebuffer;
-}
-#endif
 
 namespace core::data
 {
@@ -26,7 +13,8 @@ namespace core::gfx
 
 	class framebuffer
 	{
-		using value_type = std::variant<
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::framebuffer
 #ifdef PE_GLES
@@ -37,8 +25,9 @@ namespace core::gfx
 			core::igles::framebuffer
 #endif
 			>;
-	  public:
-		framebuffer(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		using value_type = alias_type;
+		framebuffer(core::resource::handle<value_type>& handle);
+		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 					core::resource::handle<core::gfx::context> context, core::resource::handle<data::framebuffer> data);
 		~framebuffer() = default;
 

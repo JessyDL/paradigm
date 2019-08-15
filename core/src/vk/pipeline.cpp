@@ -17,7 +17,8 @@ using namespace core::ivk;
 using namespace core::resource;
 
 
-bool decode(core::resource::cache& cache, const core::data::material& data,
+bool decode(core::resource::cache& cache,
+			const core::data::material& data,
 			std::vector<vk::DescriptorSetLayoutBinding>& layoutBinding)
 {
 	for(auto& stage : data.stages())
@@ -100,13 +101,14 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 }
 
 
-pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
+pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   core::resource::handle<core::ivk::context> context,
 				   core::resource::handle<core::data::material> data, vk::PipelineCache& pipelineCache,
 				   vk::RenderPass renderPass, uint32_t attachmentCount)
 	: m_Context(context), m_PipelineCache(pipelineCache), m_Cache(cache)
 {
 	std::vector<vk::DescriptorSetLayoutBinding> layoutBinding;
-	if(!decode(cache, *data.cvalue(), layoutBinding))
+	if(!decode(cache, data.value(), layoutBinding))
 	{
 		LOG_ERROR("fatal error happened during the creation of a pipeline");
 		m_IsValid = false;
@@ -125,7 +127,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	vk::PipelineVertexInputStateCreateInfo VertexInputState;
 	std::vector<vk::VertexInputBindingDescription> vertexBindingDescriptions;
 	std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescriptions;
-	if(!decode(cache, *data.cvalue(), vertexBindingDescriptions, vertexAttributeDescriptions))
+	if(!decode(cache, data.value(), vertexBindingDescriptions, vertexAttributeDescriptions))
 	{
 		LOG_ERROR("fatal error happened during the creation of a pipeline");
 		m_IsValid = false;
@@ -145,7 +147,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	pPipelineLayoutCreateInfo.pSetLayouts	= &m_DescriptorSetLayout;
 
 	// todo: this should be removed in favour of a generic check for push_constants in the shader meta
-	for(const auto& stage : data.cvalue()->stages())
+	for(const auto& stage : data.value().stages())
 	{
 		for(auto& binding : stage.bindings())
 		{
@@ -295,7 +297,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	for(auto& stage : data->stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load(m_Context)) &&
+		if((shader_handle.state() == core::resource::state::loaded) &&
 		   shader_handle->pipeline())
 		{
 			shaderStages.push_back(shader_handle->pipeline().value());
@@ -337,7 +339,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	utility::vulkan::check(m_Context->device().allocateDescriptorSets(&allocInfo, &m_DescriptorSet));
 
 
-	update(m_Cache, data, m_DescriptorSet);
+	update(m_Cache, data.value(), m_DescriptorSet);
 }
 
 pipeline::~pipeline()
@@ -352,7 +354,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 	for(const auto& stage : data.stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load(m_Context)) &&
+		if((shader_handle.state() == core::resource::state::loaded) &&
 		   shader_handle->pipeline())
 		{
 			for(const auto& binding : stage.bindings())
@@ -363,11 +365,11 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				{
 					auto tex_handle = cache.find<core::ivk::texture>(binding.texture());
 
-					if(tex_handle.resource_state() != core::resource::state::LOADED)
+					if(tex_handle.state() != core::resource::state::loaded)
 					{
-						tex_handle.load(m_Context);
+						tex_handle = cache.create_using<core::ivk::texture>(binding.texture(), m_Context);
 
-						if(tex_handle.resource_state() != core::resource::state::LOADED)
+						if(tex_handle.state() != core::resource::state::loaded)
 						{
 							LOG_ERROR("could not load the texture ", utility::to_string(binding.texture()),
 									  " when updating the pipeline");
@@ -393,7 +395,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				case core::gfx::binding_type::uniform_buffer:
 				{
 					auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
-					if(buffer_handle.resource_state() == core::resource::state::LOADED)
+					if(buffer_handle.state() == core::resource::state::loaded)
 					{
 						vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 															? vk::BufferUsageFlagBits::eUniformBuffer
@@ -474,11 +476,11 @@ bool pipeline::update(uint32_t bindingLocation, const UID& textureMeta, const UI
 			{
 				auto tex_handle = m_Cache.find<core::ivk::texture>(textureMeta);
 
-				if(tex_handle.resource_state() != core::resource::state::LOADED)
+				if(tex_handle.state() != core::resource::state::loaded)
 				{
-					tex_handle.load(m_Context);
+					tex_handle = m_Cache.create_using<core::ivk::texture>(textureMeta, m_Context);
 
-					if(tex_handle.resource_state() != core::resource::state::LOADED)
+					if(tex_handle.state() != core::resource::state::loaded)
 					{
 						LOG_ERROR("could not load the texture ", utility::to_string(textureMeta),
 								  " when updating the pipeline");

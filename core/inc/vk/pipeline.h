@@ -17,7 +17,8 @@ namespace core::ivk
 	class pipeline
 	{
 	  public:
-		pipeline(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
+		pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data, vk::PipelineCache& pipelineCache,
 				 vk::RenderPass renderPass, uint32_t attachmentCount);
 		~pipeline();

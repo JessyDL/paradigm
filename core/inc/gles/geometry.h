@@ -26,7 +26,8 @@ namespace core::igles
 		};
 
 	  public:
-		geometry(psl::UID uid, core::resource::cache& cache, core::resource::handle<core::data::geometry> data,
+		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<core::data::geometry> data,
 				 core::resource::handle<core::igles::buffer> vertexBuffer,
 				 core::resource::handle<core::igles::buffer> indexBuffer);
 		~geometry();

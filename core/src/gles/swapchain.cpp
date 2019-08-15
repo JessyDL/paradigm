@@ -7,13 +7,13 @@ using namespace core::igles;
 using namespace core;
 using namespace core::resource;
 
-swapchain::swapchain(const psl::UID& uid, core::resource::cache& cache,
+swapchain::swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 					 core::resource::handle<core::os::surface> surface,
 					 core::resource::handle<core::igles::context> context, bool use_depth)
 	: m_Surface(surface), m_Context(context), m_UseDepth(use_depth)
 {
 	// todo support srgb;
-	context->enable(surface);
+	context->enable(surface.value());
 	glViewport(0, 0, static_cast<GLsizei>(surface->data().width()), static_cast<GLsizei>(surface->data().height()));
 	if(m_UseDepth)
 	{

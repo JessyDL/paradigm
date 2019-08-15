@@ -1,6 +1,6 @@
 #pragma once
 #include "math/vec.h"
-#include "resource/resource.hpp"
+#include "resource/handle.h"
 
 namespace core::os
 {
@@ -13,7 +13,8 @@ namespace core::igles
 	class swapchain
 	{
 	  public:
-		swapchain(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::os::surface> surface,
+		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				  core::resource::handle<core::os::surface> surface,
 				  core::resource::handle<core::igles::context> context, bool use_depth = true);
 		~swapchain();
 

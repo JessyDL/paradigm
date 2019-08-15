@@ -2,7 +2,7 @@
 #include "resource/resource.hpp"
 #include "math/math.hpp"
 #include "gfx/context.h"
-
+#include "memory/segment.h"
 
 namespace core::gfx
 {

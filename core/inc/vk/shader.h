@@ -1,14 +1,10 @@
 ﻿#pragma once
 #include "ustring.h"
-#include "meta.h"
 #include "resource/resource.hpp"
 #include <optional>
 #include "vk/stdafx.h"
+#include "fwd/vk/shader.h"
 
-namespace core::meta
-{
-	class shader;
-}
 
 namespace core::ivk
 {
@@ -36,9 +32,10 @@ namespace core::ivk
 			bool operator==(const specialization& other) const { return name == other.name; }
 			bool operator!=(const specialization& other) const { return name != other.name; }
 		};
-		shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context);
-		shader(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::ivk::context> context,
+		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
+			   core::resource::handle<core::ivk::context> context,
 			   const std::vector<specialization> specializations);
 		~shader();
 		shader(const shader&) = delete;

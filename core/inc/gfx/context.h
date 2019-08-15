@@ -1,19 +1,8 @@
 #pragma once
 #include "fwd/gfx/context.h"
 #include "resource/resource.hpp"
+#include "types2.h"
 
-#ifdef PE_VULKAN
-namespace core::ivk
-{
-	class context;
-}
-#endif
-#ifdef PE_GLES
-namespace core::igles
-{
-	class context;
-}
-#endif
 namespace core::os
 {
 	class surface;
@@ -22,16 +11,10 @@ namespace core::os
 #include <variant>
 
 namespace core::gfx
-{
-	enum class graphics_backend
+{	class context
 	{
-		vulkan = 1 << 0,
-		gles   = 1 << 1
-	};
-
-	class context
-	{
-		using value_type = std::variant<
+	  public:
+		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::context
 #ifdef PE_GLES
@@ -42,11 +25,13 @@ namespace core::gfx
 			core::igles::context
 #endif
 			>;
-	  public:
-		context(const psl::UID& uid, core::resource::cache& cache, graphics_backend backend,
+		using value_type = alias_type;
+		context(core::resource::handle<value_type>& handle);
+		context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				graphics_backend backend,
 				const psl::string8_t& name);
 
-		~context() = default;
+		~context(){};
 
 		context(const context& other)	 = delete;
 		context(context&& other) noexcept = delete;

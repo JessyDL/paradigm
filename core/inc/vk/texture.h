@@ -2,10 +2,11 @@
 #include "vk/stdafx.h"
 #include "resource/resource.hpp"
 #include <unordered_map>
-namespace core::meta
-{
-	class texture;
-}
+#include "fwd/vk/texture.h"
+//namespace core::meta
+//{
+//	class texture;
+//}
 
 namespace gli
 {
@@ -28,11 +29,11 @@ namespace core::ivk
 	class texture
 	{
 	  public:
-		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+				core::resource::handle<core::ivk::context> context);
+		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
 				core::resource::handle<core::ivk::context> context,
 				core::resource::handle<core::ivk::buffer> stagingBuffer);
-		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
-				core::resource::handle<core::ivk::context> context);
 		~texture();
 
 		/// \returns the vk::Image associated with this instance.

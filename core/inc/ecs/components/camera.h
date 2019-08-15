@@ -16,7 +16,7 @@ namespace core::ecs::components
 		float fov{60};
 		float near{0.1f};
 		float far{240.0f};
-		core::resource::indirect_handle<core::ivk::pass> pass;
+		//core::resource::weak_handle<core::ivk::pass> pass;
 		std::array<uint32_t, 16> layers{0};
 	};
 } // namespace core::ecs::components

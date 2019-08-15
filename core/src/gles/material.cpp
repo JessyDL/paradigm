@@ -16,7 +16,8 @@ using namespace core::igles;
 using namespace core::resource;
 namespace data = core::data;
 
-material::material(const psl::UID& uid, cache& cache, handle<data::material> data,
+material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   handle<data::material> data,
 				   core::resource::handle<core::igles::program_cache> program_cache, handle<buffer> matBuffer)
 	: m_Data(data)
 {
@@ -27,18 +28,22 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 		{
 			core::igles::log->warn(
 				"igles::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-				utility::to_string(uid), utility::to_string(stage.shader()));
+				utility::to_string(metaData.uid), utility::to_string(stage.shader()));
 
 
 			core::igles::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
-			shader_handle = create<core::igles::shader>(cache, stage.shader());
-			if(!shader_handle.load()) return;
+			shader_handle = cache.instantiate<core::igles::shader>(stage.shader());
+			if(!shader_handle)
+			{
+				core::igles::log->error("failed to load shader [{0}]", utility::to_string(stage.shader()));
+				return;
+			}
 		}
 
 		m_Shaders.emplace_back(shader_handle);
 	}
 
-	m_Program = program_cache->get(uid, data);
+	m_Program = program_cache->get(metaData.uid, data);
 
 	for(auto& stage : data->stages())
 	{
@@ -62,7 +67,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 						"igles::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the "
 						"resource "
 						"cache.",
-						utility::to_string(uid), utility::to_string(binding.sampler()),
+						utility::to_string(metaData.uid), utility::to_string(binding.sampler()),
 						utility::to_string(stage.shader()));
 					return;
 				}
@@ -76,7 +81,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 						"igles::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
 						"resource "
 						"cache.",
-						utility::to_string(uid), utility::to_string(binding.texture()),
+						utility::to_string(metaData.uid), utility::to_string(binding.texture()),
 						utility::to_string(stage.shader()));
 					return;
 				}
@@ -90,7 +95,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 				glUniformBlockBinding(m_Program->id(), binding_slot, 1);
 				binding_slot = 1;
 				if(auto buffer_handle = cache.find<core::igles::buffer>(binding.buffer());
-				   buffer_handle && buffer_handle.resource_state() == core::resource::state::LOADED)
+				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
 					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 														? vk::BufferUsageFlagBits::eUniformBuffer
@@ -104,7 +109,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 						core::igles::log->error(
 							"igles::material [{0}] declares resource of the type [{1}], but we detected a resource of "
 							"the type [{2}] instead in shader [{3}]",
-							utility::to_string(uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
+							utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
 							vk::to_string(buffer_handle->data()->usage())*/
 							"", "", utility::to_string(stage.shader()));
 						return;
@@ -116,7 +121,7 @@ material::material(const psl::UID& uid, cache& cache, handle<data::material> dat
 						"igles::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
 						"resource "
 						"cache.",
-						utility::to_string(uid), utility::to_string(binding.buffer()),
+						utility::to_string(metaData.uid), utility::to_string(binding.buffer()),
 						utility::to_string(stage.shader()));
 					return;
 				}
@@ -156,4 +161,4 @@ void material::bind()
 
 const std::vector<core::resource::handle<core::igles::shader>>& material::shaders() const noexcept { return m_Shaders; }
 
-const core::data::material& material::data() const noexcept { return m_Data; }
+const core::data::material& material::data() const noexcept { return m_Data.value(); }

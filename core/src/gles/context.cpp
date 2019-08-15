@@ -24,7 +24,9 @@ void* glGetProcAddress(const char* name)
 	return p;
 }
 
-context::context(const psl::UID& uid, core::resource::cache& cache, psl::string8::view name) {}
+context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 psl::string8::view name)
+{}
 
 context::~context()
 {

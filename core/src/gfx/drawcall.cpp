@@ -19,7 +19,7 @@ bool drawcall::add(handle<core::gfx::geometry> geometry) noexcept
 {
 	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
 							  [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
-								  return geomHandle.first.ID() == geometry.ID();
+								  return geomHandle.first == geometry;
 							  });
 	   it == std::end(m_Geometry))
 	{
@@ -36,7 +36,7 @@ bool drawcall::remove(core::resource::handle<core::gfx::geometry> geometry) noex
 {
 	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
 							  [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
-								  return geomHandle.first.ID() == geometry.ID();
+								  return geomHandle.first == geometry;
 							  });
 	   it != std::end(m_Geometry))
 	{
@@ -51,7 +51,7 @@ bool drawcall::remove(const UID& geometry) noexcept
 {
 	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
 							  [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
-								  return geomHandle.first.ID() == geometry;
+								  return geomHandle.first == geometry;
 							  });
 	   it != std::end(m_Geometry))
 	{

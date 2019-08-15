@@ -13,7 +13,8 @@ namespace core::igles
 	class program_cache
 	{
 	  public:
-		program_cache(const psl::UID& uid, core::resource::cache& cache);
+		program_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+					  psl::meta::file* metaFile);
 		~program_cache() = default;
 
 		program_cache(const program_cache& other)	 = delete;

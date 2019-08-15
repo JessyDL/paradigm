@@ -12,15 +12,16 @@ using namespace core::resource;
 using namespace core::gfx;
 using namespace core;
 
-pipeline_cache::pipeline_cache(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+pipeline_cache::pipeline_cache(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+pipeline_cache::pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+							   psl::meta::file* metaFile,
 							   core::resource::handle<core::gfx::context> context)
-	: m_Handle(cache, uid, (metaFile) ? metaFile->ID() : uid)
 {
 	switch(context->backend())
 	{
-	case graphics_backend::gles: m_Handle.load<core::igles::program_cache>(); break;
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::program_cache>(metaData.uid); break;
 	case graphics_backend::vulkan:
-		m_Handle.load<core::ivk::pipeline_cache>(context->resource().get<core::ivk::context>());
+		m_Handle << cache.create_using<core::ivk::pipeline_cache>(metaData.uid, context->resource().get<core::ivk::context>());
 		break;
 	}
 }

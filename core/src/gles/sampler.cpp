@@ -7,7 +7,8 @@ using namespace core::resource;
 using namespace core::igles;
 namespace data = core::data;
 
-sampler::sampler(const psl::UID& uid, cache& cache, handle<data::sampler> sampler_data)
+sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 handle<data::sampler> sampler_data)
 {
 	size_t iterationCount = (sampler_data->mipmaps()) ? 14 : 1; // 14 == 8096 // todo: this is a hack
 

@@ -1,18 +1,16 @@
 #pragma once
 #include "ustring.h"
 #include "fwd/resource/resource.h"
-#include "glad/glad_wgl.h"
+#include "fwd/gles/shader.h"
+#include "gfx/types.h"
 
-namespace core::meta
-{
-	class shader;
-}
 namespace core::igles
 {
 	class shader
 	{
 	  public:
-		shader(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile);
+
+		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile);
 		~shader();
 		shader(const shader&) = delete;
 		shader(shader&&)	  = delete;

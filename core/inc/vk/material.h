@@ -45,7 +45,8 @@ namespace core::ivk
 		/// \param[in] pipeline_cache the pipeline_cache this instance can request a pipeline from.
 		/// \param[in] materialBuffer a GPU buffer that can be used by this instance to upload data to (if needed).
 		/// \param[in] instanceBuffer a GPU buffer that can be used to upload instance data to, if there is any.
-		material(psl::UID uid, core::resource::cache& cache , core::resource::handle<core::ivk::context> context,
+		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
 				 core::resource::handle<core::ivk::buffer> materialBuffer);

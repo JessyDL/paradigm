@@ -1,27 +1,16 @@
 #pragma once
 #include <variant>
 #include "resource/resource.hpp"
+#include "fwd/gfx/pipeline_cache.h"
 
-#ifdef PE_VULKAN
-namespace core::ivk
-{
-	class pipeline_cache;
-}
-#endif
-
-#ifdef PE_GLES
-namespace core::igles
-{
-	class program_cache;
-} // namespace core::igles
-#endif
 namespace core::gfx
 {
 	class context;
 
 	class pipeline_cache
 	{
-		using value_type = std::variant<
+	  public:
+		using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::pipeline_cache
 #ifdef PE_GLES
@@ -32,8 +21,10 @@ namespace core::gfx
 			core::igles::program_cache
 #endif
 			>;
-	  public:
-		pipeline_cache(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile,
+		using value_type = alias_type;
+		pipeline_cache(core::resource::handle<value_type>& handle);
+		pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
 					   core::resource::handle<core::gfx::context> context);
 		~pipeline_cache() = default;
 

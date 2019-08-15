@@ -6,9 +6,9 @@ using namespace core::igles;
 using namespace core::gfx;
 using namespace core;
 
-buffer::buffer(const psl::UID& uid, core::resource::cache& cache,
+buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 			   core::resource::handle<core::data::buffer> buffer_data)
-	: m_BufferDataHandle(buffer_data), m_UID(uid)
+	: m_BufferDataHandle(buffer_data), m_UID(metaData.uid)
 {
 	m_BufferType = to_gles(to_memory_type(buffer_data->usage()));
 
@@ -164,7 +164,6 @@ bool buffer::copy_from(const buffer& other, const psl::array<core::gfx::memory_c
 bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
 {
 	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
-	auto error = glGetError();
 	for(const auto& instruction : instructions)
 	{
 		std::uintptr_t offset = instruction.segment.range().begin -
@@ -172,10 +171,8 @@ bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instruction
 								instruction.sub_range.value_or(memory::range{}).begin;
 
 		auto ptr = glMapBufferRange(GL_COPY_WRITE_BUFFER, offset, instruction.size, GL_MAP_WRITE_BIT);
-		error	= glGetError();
 		memcpy(ptr, (void*)(instruction.source), instruction.size);
 		glUnmapBuffer(GL_COPY_WRITE_BUFFER);
-		error = glGetError();
 	}
 	glBindBuffer(GL_COPY_WRITE_BUFFER, 0);
 	return true;

@@ -1,14 +1,9 @@
 ﻿#pragma once
 #include "serialization.h"
 #include "gfx/types.h"
-namespace psl
-{
-	struct UID;
-}
-namespace core::resource
-{
-	class cache;
-}
+#include "fwd/resource/resource.h"
+
+
 namespace core::data
 {
 	/// \brief describes the data to build a core::ivk::sampler instance
@@ -16,7 +11,7 @@ namespace core::data
 	{
 		friend class psl::serialization::accessor;
 	public:
-		sampler(const psl::UID& uid, core::resource::cache& cache);
+		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept;
 		~sampler() = default;
 		sampler(const sampler& other) = delete;
 		sampler(sampler&& other) = delete;

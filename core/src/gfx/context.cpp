@@ -11,16 +11,18 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-context::context(const psl::UID& uid, cache& cache, graphics_backend backend, const psl::string8_t& name)
-	: m_Backend(backend), m_Handle(cache)
+context::context(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 graphics_backend backend, const psl::string8_t& name)
+	: m_Backend(backend)
 {
 	switch(backend)
 	{
 #ifdef PE_VULKAN
-	case graphics_backend::vulkan: m_Handle.load<core::ivk::context>(name); break;
+	case graphics_backend::vulkan: m_Handle << cache.create_using<core::ivk::context>(metaData.uid, name); break;
 #endif
 #ifdef PE_GLES
-	case graphics_backend::gles: m_Handle.load<core::igles::context>(name); break;
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::context>(metaData.uid, name); break;
 #endif
 	}
 }
