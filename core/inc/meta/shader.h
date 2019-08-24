@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "psl/library.h"
 #include "psl/serialization.h"
-#include "vk/stdafx.h"
 #include "psl/ustring.h"
 #include <vector>
 #include "gfx/types.h"
+#include "vk/conversion.h"
 
 namespace core::meta
 {
@@ -83,7 +83,7 @@ namespace core::meta
 					case 0:
 						psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
 						s << format;
-						m_Format.value = gfx::to_format(format.value);
+						m_Format.value = core::gfx::conversion::to_format(format.value);
 						s << m_Location << m_Offset;
 					}
 				}
@@ -255,7 +255,7 @@ namespace core::meta
 					case 0:
 						psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
 						s << format;
-						m_Format.value = gfx::to_format(format.value);
+						m_Format.value = core::gfx::conversion::to_format(format.value);
 						s << m_Name << m_Offset << m_Default;
 					}
 				}
@@ -481,7 +481,7 @@ namespace core::meta
 			case 0:
 				psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
 				s << stage;
-				m_Stage.value = gfx::to_shader_stage(stage.value);
+				m_Stage.value = core::gfx::conversion::to_shader_stage(stage.value);
 				s << m_VertexBindings << m_Descriptors;
 			}
 		}

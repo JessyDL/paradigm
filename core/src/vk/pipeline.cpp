@@ -9,7 +9,7 @@
 #include "vk/sampler.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
-#include "gfx/types.h"
+#include "vk/conversion.h"
 
 using namespace psl;
 using namespace core::gfx;
@@ -17,8 +17,7 @@ using namespace core::ivk;
 using namespace core::resource;
 
 
-bool decode(core::resource::cache& cache,
-			const core::data::material& data,
+bool decode(core::resource::cache& cache, const core::data::material& data,
 			std::vector<vk::DescriptorSetLayoutBinding>& layoutBinding)
 {
 	for(auto& stage : data.stages())
@@ -38,7 +37,7 @@ bool decode(core::resource::cache& cache,
 			{
 				vk::DescriptorSetLayoutBinding setLayoutBinding;
 				setLayoutBinding.descriptorType = conversion::to_vk(binding.descriptor());
-				setLayoutBinding.stageFlags		= core::gfx::to_vk(shader_handle->stage());
+				setLayoutBinding.stageFlags		= conversion::to_vk(shader_handle->stage());
 				setLayoutBinding.binding		= binding.binding_slot();
 				// Default value in all examples
 				setLayoutBinding.descriptorCount	= 1;
@@ -51,7 +50,7 @@ bool decode(core::resource::cache& cache,
 			case core::gfx::binding_type::uniform_buffer:
 			{
 				layoutBinding.push_back(utility::vulkan::defaults::descriptor_setlayout_binding(
-					conversion::to_vk(binding.descriptor()), core::gfx::to_vk(shader_handle->stage()),
+					conversion::to_vk(binding.descriptor()), conversion::to_vk(shader_handle->stage()),
 					binding.binding_slot()));
 			}
 			break;
@@ -75,7 +74,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			return false;
 		}
 
-		if(core::gfx::to_vk(shader_handle->stage()) ==
+		if(conversion::to_vk(shader_handle->stage()) ==
 		   vk::ShaderStageFlagBits::eVertex) // TODO: check if possible on fragment shader etc..
 		{
 			for(auto& vertexBinding : shader_handle->vertex_bindings())
@@ -83,15 +82,15 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 				vk::VertexInputBindingDescription& vkVertexBinding = vertexBindingDescriptions.emplace_back();
 				vkVertexBinding.binding							   = vertexBinding.binding_slot();
 				vkVertexBinding.stride							   = vertexBinding.size();
-				vkVertexBinding.inputRate						   = core::gfx::to_vk(vertexBinding.input_rate());
+				vkVertexBinding.inputRate						   = conversion::to_vk(vertexBinding.input_rate());
 
 				for(auto& vertexAttribute : vertexBinding.attributes())
 				{
 					vk::VertexInputAttributeDescription& vkVertexAttribute = vertexAttributeDescriptions.emplace_back();
 					vkVertexAttribute.binding							   = vkVertexBinding.binding;
 					vkVertexAttribute.location							   = vertexAttribute.location();
-					vkVertexAttribute.format							   = core::gfx::to_vk(vertexAttribute.format());
-					vkVertexAttribute.offset							   = vertexAttribute.offset();
+					vkVertexAttribute.format = conversion::to_vk(vertexAttribute.format());
+					vkVertexAttribute.offset = vertexAttribute.offset();
 				}
 			}
 			break;
@@ -297,8 +296,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	for(auto& stage : data->stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.state() == core::resource::state::loaded) &&
-		   shader_handle->pipeline())
+		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
 		{
 			shaderStages.push_back(shader_handle->pipeline().value());
 		}
@@ -354,8 +352,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 	for(const auto& stage : data.stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.state() == core::resource::state::loaded) &&
-		   shader_handle->pipeline())
+		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
 		{
 			for(const auto& binding : stage.bindings())
 			{
@@ -397,9 +394,10 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 					auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
 					if(buffer_handle.state() == core::resource::state::loaded)
 					{
-						vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
-															? vk::BufferUsageFlagBits::eUniformBuffer
-															: vk::BufferUsageFlagBits::eStorageBuffer;
+						vk::BufferUsageFlagBits usage =
+							(binding.descriptor() == core::gfx::binding_type::uniform_buffer)
+								? vk::BufferUsageFlagBits::eUniformBuffer
+								: vk::BufferUsageFlagBits::eStorageBuffer;
 						if(!(buffer_handle->data()->usage() & usage))
 						{
 							LOG_ERROR("The actual buffer's usage is not compatible with the buffer type ",
@@ -410,11 +408,13 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 						}
 
 						m_DescriptorSets.push_back(utility::vulkan::defaults::write_descriptor_set(
-							set, conversion::to_vk(binding.descriptor()), binding.binding_slot(), &buffer_handle->buffer_info()));
+							set, conversion::to_vk(binding.descriptor()), binding.binding_slot(),
+							&buffer_handle->buffer_info()));
 					}
 					else
 					{
-						LOG_ERROR("Tried to use the unloaded ", vk::to_string(conversion::to_vk(binding.descriptor())), " in a pipeline");
+						LOG_ERROR("Tried to use the unloaded ", vk::to_string(conversion::to_vk(binding.descriptor())),
+								  " in a pipeline");
 						LOG_ERROR("Shader: ", utility::to_string(stage.shader()));
 						m_IsValid = false;
 						return false;

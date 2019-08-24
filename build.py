@@ -64,6 +64,7 @@ parser.add_argument("-u", "--update", action='store_true', dest="cmake_update")
 parser.add_argument("-v", "--verbose", action='store_true', dest="verbose")
 parser.add_argument("-b", "--build", action='store_true', help="build the target as well", dest="build")
 parser.add_argument("--cmake_params", action='store', type=str, nargs='*',dest="cmake_params")
+parser.add_argument("--graphics", action='store', default="vulkan, gles", type=str, nargs='+',choices=['vulkan','gles','molten'],dest="graphics")
 args = parser.parse_args()
 
 if args.verbose:
@@ -127,20 +128,31 @@ if(sys.platform.startswith('win')):
 
 retCode = 0
 if not os.path.exists(os.path.join(project_dir, "CMakeFiles")):
-    vk_static = "OFF"
     print("generating project files")
-    if args.vk_static:
-        vk_static = "ON"
-    cmakeCmd = [cmakeExe, "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_STATIC="+vk_static, "-DCMAKE_BUILD_TYPE="+args.build_config]
+    cmakeCmd = [cmakeExe, "-G", cmake_generator, \
+		 "-DPE_BUILD_DIR="+build_dir, \
+		 "-DVK_VERSION="+args.vk_version, \
+		 "-DVK_STATIC="+("ON" if args.vk_static else "OFF"), \
+		 "-DCMAKE_BUILD_TYPE="+args.build_config, \
+		 "-DPE_VULKAN="+("ON" if "vulkan" in args.graphics else "OFF"), \
+		 "-DPE_GLES="+("ON" if "gles" in args.graphics else "OFF"), \
+		 "-DPE_MOLTEN="+("ON" if "molten" in args.graphics else "OFF")]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     print("invoking cmake")
+    if args.verbose:
+        print("using arguments: ", cmakeCmd)
     cmakeCmd = cmakeCmd + [ "-H"+ args.root_dir, "-B"+project_dir]
     retCode = subprocess.check_call(cmakeCmd, shell=False)
     print("returncode ", retCode)
 elif args.cmake_update:
     print("updating project files")
-    cmakeCmd = [cmakeExe, r".", "-DCMAKE_BUILD_TYPE="+args.build_config]
+    cmakeCmd = [cmakeExe, r".", \
+		 "-DVK_VERSION="+args.vk_version, \
+		 "-DCMAKE_BUILD_TYPE="+args.build_config, \
+		 "-DPE_VULKAN="+("ON" if "vulkan" in args.graphics else "OFF"), \
+		 "-DPE_GLES="+("ON" if "gles" in args.graphics else "OFF"), \
+		 "-DPE_MOLTEN="+("ON" if "molten" in args.graphics else "OFF")]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     retCode = subprocess.check_call(cmakeCmd, shell=False)

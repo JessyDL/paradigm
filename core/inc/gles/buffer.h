@@ -3,6 +3,7 @@
 #include "psl/memory/segment.h"
 #include <optional>
 #include "gfx/types.h"
+#include "gles/types.h"
 #include "psl/array.h"
 
 namespace core::data

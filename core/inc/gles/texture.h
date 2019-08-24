@@ -1,7 +1,8 @@
 #pragma once
 #include "fwd/gles/texture.h"
-#include "resource/resource.hpp"
-#include "gfx/types.h"
+#include "fwd/resource/resource.h"
+#include <stdint.h>
+#include "gles/types.h"
 
 namespace gli
 {

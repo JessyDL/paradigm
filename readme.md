@@ -31,7 +31,7 @@ To use `assembler` on Windows, Bash on Ubuntu on Windows should be installed.
 [CMake ]( http://cmake.org/) 3.11 or higher is required on all platforms.
 
 ### Creating the project files
-You can build the libraries using the provided build.sh file that can be invoked, or by invoking cmake directly. The build.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
+You can build the libraries using the provided build.py file that can be invoked, or by invoking cmake directly. The build.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
 
 So far only MSVC (2019), and CLang (6.0.0) with LLVM 7 - 8 and libc++ are supported. The project will likely incorrectly generate for other compilers/setups.
 
@@ -42,10 +42,10 @@ The build script is a helper script to set everything up quick and easy. It will
 You can tweak various settings and values, you'll find them at the top of the `build.py` file.
 #### cmake
 The less easy way, but perhaps better and easier to integrate. The values that are required to be set can be seen in the cmake invocation in build.py, but will be repeated here:
--DBUILD_DIRECTORY="path/to/where/to/build/to" (not to be confused with where the project files will be)
--DVULKAN_ROOT: path to install location of the vulkan SDK (excluding the version part).
--DVULKAN_VERSION: string based value that is a 1-1 match with an installed vulkan SDK instance.
-
+-`DBUILD_DIRECTORY="path/to/where/to/build/to"` (not to be confused with where the project files will be)
+-`DVK_VERSION`: string based value that is a 1-1 match with an available tag in the [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers) repository. These will be downloaded and used.
+-`DPE_VULKAN` toggle value to enable/disable vulkan backend. (default ON)
+-`DPE_GLES` toggle value to enable/disable gles backend (default ON)
 ## Examples
 Following are some examples that showcase various usages of this project, click the image to go to the repository.
 
@@ -97,7 +97,7 @@ You can also find further documentation in the `docs` directory, such as informa
 ### building
 Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
 
-When using the `build.py` script, you can set this value like this `--cmake_params "-DPE_MODE=LIB"`. `LIB` is the default value for this project.
+When using the `build.py` script, you can set this value like this `--cmake_params="-DPE_MODE=LIB"`. `LIB` is the default value for this project.
 
 Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
 

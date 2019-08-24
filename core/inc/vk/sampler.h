@@ -1,5 +1,5 @@
 ﻿#pragma once
-#include "vk/stdafx.h"
+#include "vk/ivk.h"
 #include <vector>
 #include "resource/resource.hpp"
 

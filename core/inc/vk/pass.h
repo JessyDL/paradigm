@@ -2,7 +2,7 @@
 #include "psl/math/vec.h"
 #include "resource/resource.hpp"
 #include <vector>
-#include "vk/stdafx.h"
+#include "vk/ivk.h"
 #include "psl/view_ptr.h"
 
 namespace core::gfx

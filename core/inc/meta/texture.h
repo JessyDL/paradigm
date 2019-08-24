@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "psl/serialization.h"
-#include "vk/stdafx.h"
 #include "psl/library.h"
 #include "psl/meta.h"
 #include "gfx/types.h"
+#include "vk/conversion.h"
 
 namespace core::resource
 {
@@ -124,10 +124,10 @@ namespace core::meta
 				psl::serialization::property<vk::ImageUsageFlags, const_str("USAGE", 5)> usageFlags;
 				psl::serialization::property<vk::ImageAspectFlags, const_str("ASPECT_MASK", 11)> aspectMask;
 				s << format << imageType << usageFlags<< aspectMask;
-				m_Format.value = gfx::to_format(format.value);
-				m_ImageType.value  = gfx::to_image_type(imageType.value);
-				m_UsageFlags.value = gfx::to_image_usage(usageFlags.value);
-				m_AspectMask.value = gfx::to_image_aspect(aspectMask.value);
+				m_Format.value	 = gfx::conversion::to_format(format.value);
+				m_ImageType.value  = gfx::conversion::to_image_type(imageType.value);
+				m_UsageFlags.value = gfx::conversion::to_image_usage(usageFlags.value);
+				m_AspectMask.value = gfx::conversion::to_image_aspect(aspectMask.value);
 
 				s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount;
 			}

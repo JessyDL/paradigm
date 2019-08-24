@@ -103,7 +103,7 @@ list(TRANSFORM FWD PREPEND inc/fwd/)
 # include files for the Vulkan API
 if(${PE_VULKAN})
 	set(INC_VULKAN
-	stdafx.h
+	ivk.h
 	buffer.h
 	context.h
 	framebuffer.h
@@ -116,6 +116,7 @@ if(${PE_VULKAN})
 	material.h
 	pipeline_cache.h
 	pass.h
+	conversion.h
 	)
 
 	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
@@ -124,6 +125,7 @@ endif()
 # include files for the GLES API
 if(${PE_GLES})
 	set(INC_GLES
+	igles.h
 	buffer.h
 	context.h
 	geometry.h	
@@ -136,6 +138,8 @@ if(${PE_GLES})
 	texture.h
 	framebuffer.h
 	pass.h
+	conversion.h
+	types.h
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)

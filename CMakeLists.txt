@@ -31,6 +31,7 @@ set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 OPTION(PE_GLES "controls OpenGL ES support" ON)
 OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
+OPTION(PE_MOLTEN "controls Vulkan support (experimental - not done)" OFF)
 
 include(FindXCB)
 include(FindWayland)
@@ -63,6 +64,7 @@ if(PE_MODE STREQUAL "EXE")
 endif()
 
 if(PE_GLES)
+	message("enabling GLES")
 	list(APPEND PE_DEFINES -DPE_GLES)
 endif()
 
@@ -71,7 +73,12 @@ list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
 
 # experimental early support for not supporting vulkan
 if(PE_VULKAN)
+	message("enabling VULKAN")
 	list(APPEND PE_DEFINES -DPE_VULKAN)
+endif()
+
+if(PE_MOLTEN)
+	message("transforming graphics API calls to metal using Molten")
 endif()
 
 if(PE_INSTRUCTION_SET STREQUAL "SSE")	
@@ -91,6 +98,8 @@ endif()
 
 if(NOT VK_STATIC AND NOT PE_SOURCE_ONLY)	
 	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES;-DVK_DYNAMIC_DISPATCH_VOLK)
+elseif(VK_STATIC)
+	list(APPEND PE_DEFINES -DVK_STATIC)
 endif()
 
 ###############################################################################

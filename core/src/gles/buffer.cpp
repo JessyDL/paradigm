@@ -1,9 +1,12 @@
 #include "gles/buffer.h"
 #include "data/buffer.h"
+#include "gles/conversion.h"
+#include "vk/conversion.h"
 #include "logging.h"
 
 using namespace core::igles;
 using namespace core::gfx;
+using namespace core::gfx::conversion;
 using namespace core;
 
 buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,

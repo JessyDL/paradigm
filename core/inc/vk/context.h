@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <optional>
-#include "vk/stdafx.h"
+#include "vk/ivk.h"
 #include "fwd/resource/resource.h"
 
 

@@ -2,7 +2,7 @@
 #include "psl/ustring.h"
 #include "fwd/resource/resource.h"
 #include "fwd/gles/shader.h"
-#include "gfx/types.h"
+#include "gles/types.h"
 
 namespace core::igles
 {

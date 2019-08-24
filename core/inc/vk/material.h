@@ -2,7 +2,7 @@
 #include "psl/IDGenerator.h"
 #include <optional>
 #include "resource/resource.hpp"
-#include "vk/stdafx.h"
+#include "vk/ivk.h"
 #include "gfx/details/instance.h"
 
 namespace core::data

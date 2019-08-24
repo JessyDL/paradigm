@@ -1,7 +1,9 @@
 #include "gles/texture.h"
 #include "logging.h"
 #include "meta/texture.h"
-#include "glad/glad_wgl.h"
+#include "gles/igles.h"
+#include "gles/conversion.h"
+#include "resource/resource.hpp"
 #ifdef fseek
 #define cached_fseek fseek
 #define cached_fclose fclose
@@ -83,7 +85,7 @@ void texture::load_2D()
 
 	GLint internalFormat, format, type;
 
-	if(!gfx::to_gles(m_Meta->format(), internalFormat, format, type))
+	if(!gfx::conversion::to_gles(m_Meta->format(), internalFormat, format, type))
 	{
 		core::igles::log->error("unsupported format detected: {}",
 								static_cast<std::underlying_type_t<gfx::format>>(m_Meta->format()));

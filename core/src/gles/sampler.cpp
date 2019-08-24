@@ -2,9 +2,12 @@
 #include "data/sampler.h"
 #include "resource/resource.hpp"
 #include "gfx/types.h"
+#include "gles/igles.h"
+#include "gles/conversion.h"
 
 using namespace core::resource;
 using namespace core::igles;
+using namespace core::gfx::conversion;
 namespace data = core::data;
 
 sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,

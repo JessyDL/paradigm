@@ -1,9 +1,8 @@
 ﻿#pragma once
 #include "psl/serialization.h"
-#include "vk/stdafx.h"
 #include "psl/meta.h"
 #include "fwd/resource/resource.h"
-
+#include "vk/ivk.h"
 
 namespace core::ivk
 {

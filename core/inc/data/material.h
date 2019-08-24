@@ -1,10 +1,9 @@
 ﻿#pragma once
 #include "psl/serialization.h"
-#include "vk/stdafx.h"
 #include "psl/meta.h"
 #include "gfx/types.h"
 #include "fwd/resource/resource.h"
-
+#include "vk/conversion.h"
 
 namespace core::meta
 {
@@ -337,7 +336,7 @@ namespace core::data
 				case 0:
 					psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
 					s << stage;
-					m_Stage.value = gfx::to_shader_stage(stage.value);
+					m_Stage.value = core::gfx::conversion::to_shader_stage(stage.value);
 					s << m_Shader << m_Bindings;
 				}
 			}

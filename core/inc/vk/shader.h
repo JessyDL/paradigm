@@ -2,7 +2,7 @@
 #include "psl/ustring.h"
 #include "resource/resource.hpp"
 #include <optional>
-#include "vk/stdafx.h"
+#include "vk/ivk.h"
 #include "fwd/vk/shader.h"
 
 
