@@ -19,7 +19,7 @@ namespace psl
 		using reference	= T&;
 
 		constexpr view_ptr() noexcept = default;
-		constexpr explicit view_ptr(pointer value) noexcept : m_Value(value) {}
+		constexpr view_ptr(pointer value) noexcept : m_Value(value) {}
 
 		template <typename T2>
 		constexpr view_ptr(const psl::unique_ptr<T2>& value) noexcept : m_Value(&value.get())

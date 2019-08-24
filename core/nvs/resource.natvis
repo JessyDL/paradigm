@@ -4,7 +4,7 @@
     <DisplayString>{{ state = {m_Container->m_State} }}</DisplayString>
     <Expand>
       <Item Name="[resource]" Condition="m_Container != nullptr">*m_Container->m_Resource</Item>
-      <Item Name="[resource]" Condition="m_Container == nullptr">nullptr</Item>
+      <Item Name="[resource]" Condition="m_Container == nullptr">"nullptr"</Item>
       <Item Name="[UID]">uid</Item>
       <Item Name="[RUID]">resource_uid</Item>
       <Item Name="[cache]">m_Cache</Item>

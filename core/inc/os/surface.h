@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "meta.h"
 #include "data/window.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 #if defined(SURFACE_WIN32)
 #include <Windows.h>
@@ -20,7 +20,7 @@ namespace core::systems
 {
 	class input;
 }
-namespace core::gfx
+namespace core::ivk
 {
 	class swapchain;
 }
@@ -33,9 +33,9 @@ namespace core::os
 	class surface
 	{
 	  public:
-		surface(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<data::window> data);
-		surface(const surface& other, const psl::UID& uid, core::resource::cache& cache,
+		surface(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				core::resource::handle<data::window> data);
+
 		~surface();
 		surface(const surface&) = delete;
 		surface(surface&&)		= delete;
@@ -90,7 +90,7 @@ namespace core::os
 
 		/// \brief this method will be called by the swapchain class, so that the surface knows who to notify of resize events, etc..
 		/// \todo can we hide this?
-		void register_swapchain(core::resource::handle<core::gfx::swapchain> swapchain);
+		void register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain);
 #if defined(SURFACE_WIN32)
 		HINSTANCE surface_instance() const { return win32_instance; };
 		HWND surface_handle() const { return win32_window; };
@@ -150,7 +150,7 @@ namespace core::os
 #endif
 
 		core::resource::handle<data::window> m_Data;
-		std::vector<core::resource::handle<core::gfx::swapchain>> m_Swapchains;
+		std::vector<core::resource::handle<core::ivk::swapchain>> m_Swapchains;
 		bool m_Focused{false};
 		bool m_Open{false};
 		bool m_IndicatorClipped{false};

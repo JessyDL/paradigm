@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include <optional>
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
+#include "fwd/resource/resource.h"
 
 
 namespace core::ivk
@@ -111,7 +112,7 @@ namespace core::resource
 {
 	class cache;
 }
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief encapsulated a graphics context.
 	///
@@ -125,7 +126,8 @@ namespace core::gfx
 		template <typename T>
 		using optional_ref = std::optional<std::reference_wrapper<T>>;
 
-		context(const psl::UID &uid, core::resource::cache &cache, psl::string8::view name, uint32_t deviceIndex = 0u);
+		context(core::resource::cache &cache, const core::resource::metadata &metaData, psl::meta::file *metaFile,
+				psl::string8::view name, uint32_t deviceIndex = 0u);
 		~context();
 		context(const context &) = delete;
 		context(context &&)		 = delete;

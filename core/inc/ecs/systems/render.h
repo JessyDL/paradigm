@@ -1,7 +1,6 @@
 #pragma once
 #include "ecs/state.h"
-#include "gfx/pass.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "gfx/drawgroup.h"
 #include "math/vec.h"
 #include "math/matrix.h"
@@ -10,6 +9,7 @@
 namespace core::gfx
 {
 	class buffer;
+	class pass;
 } // namespace core::gfx
 
 namespace core::ecs::components

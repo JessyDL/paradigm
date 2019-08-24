@@ -780,6 +780,7 @@ namespace psl::ecs
 											  seedWithExisting);
 		}
 
+		std::vector<psl::unique_ptr<info>> info_buffer;
 		::memory::raw_region m_Cache{1024 * 1024 * 32};
 		psl::array<entity> m_Entities;
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;

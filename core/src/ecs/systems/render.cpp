@@ -1,15 +1,12 @@
 #include "ecs/systems/render.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
-#include "ecs/components/camera.h"
-#include "gfx/material.h"
-#include "data/material.h"
-#include "vk/geometry.h"
-#include "vk/buffer.h"
+#include "gfx/geometry.h"
+#include "gfx/bundle.h"
+#include "gfx/pass.h"
 
 using core::resource::handle;
 using namespace core::gfx;
-using namespace core::os;
 using namespace core;
 using namespace psl::ecs;
 using namespace core::ecs::systems;
@@ -35,12 +32,12 @@ void render::tick_draws(info& info,
 		auto res			= renderables.get<const transform>();
 		for(auto [transform, renderable] : renderables)
 		{
-			m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
+			m_DrawGroup.add(default_layer, renderable.bundle.make_shared()).add(renderable.geometry.make_shared());
 		}
 
 		for(auto [transform, renderable] : broken_renderables)
 		{
-			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle))
+			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle.make_shared()))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}

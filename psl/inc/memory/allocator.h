@@ -43,6 +43,7 @@ namespace memory
 		bool owns(const memory::segment& segment) const noexcept;
 
 		void compact();
+
 	protected:
 		bool commit(const range& range);
 		memory::range get_range() const;

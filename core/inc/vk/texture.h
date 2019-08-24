@@ -1,22 +1,26 @@
 ﻿#pragma once
-#include "vulkan_stdafx.h"
-#include "systems/resource.h"
+#include "vk/stdafx.h"
+#include "resource/resource.hpp"
 #include <unordered_map>
-namespace core::meta
-{
-	class texture;
-}
+#include "fwd/vk/texture.h"
+//namespace core::meta
+//{
+//	class texture;
+//}
 
 namespace gli
 {
 	class texture;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	class context;
 	class buffer;
+}
 
+namespace core::ivk
+{
 	/// \brief a texture resource used for rendering, either as target, or as input resource.
 	///
 	/// textures are vital in a graphics application, and this class abstracts 2D, 3D, etc..
@@ -24,13 +28,16 @@ namespace core::gfx
 	/// directly.
 	class texture
 	{
-	public:
-		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context, core::resource::handle<core::gfx::buffer> stagingBuffer);
-		texture(const psl::UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context);
+	  public:
+		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+				core::resource::handle<core::ivk::context> context);
+		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+				core::resource::handle<core::ivk::context> context,
+				core::resource::handle<core::ivk::buffer> stagingBuffer);
 		~texture();
 
 		/// \returns the vk::Image associated with this instance.
-		const vk::Image &image() const noexcept;
+		const vk::Image& image() const noexcept;
 		/// \returns the view into the vk::Image of this instance.
 		const vk::ImageView& view() const noexcept;
 		/// \returns the layout specifications.
@@ -45,15 +52,15 @@ namespace core::gfx
 		uint32_t mip_levels() const noexcept;
 		/// \returns a descriptor image info for the given sampler, if none are present one is generated.
 		/// \note these are maintained by the texture object itself and will live as long as the texture does.
-		vk::DescriptorImageInfo& descriptor(const psl::UID &sampler);
+		vk::DescriptorImageInfo& descriptor(const psl::UID& sampler);
 
-	private:
+	  private:
 		void load_2D();
 		void create_2D();
 		void load_cube();
 
-		gli::texture * m_TextureData;
-		core::resource::handle<core::gfx::buffer> m_StagingBuffer;
+		gli::texture* m_TextureData;
+		core::resource::handle<core::ivk::buffer> m_StagingBuffer;
 		vk::Image m_Image;
 		vk::ImageView m_View;
 		vk::DeviceMemory m_DeviceMemory;
@@ -62,9 +69,9 @@ namespace core::gfx
 		uint32_t m_MipLevels;
 
 		core::resource::cache& m_Cache;
-		core::resource::handle<core::gfx::context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 		core::meta::texture* m_Meta;
 
 		std::unordered_map<psl::UID, vk::DescriptorImageInfo*> m_Descriptors;
 	};
-}
+} // namespace core::gfx

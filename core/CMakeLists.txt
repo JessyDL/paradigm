@@ -9,7 +9,12 @@ include(FetchContent)
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/fwd" PREFIX "fwd" FILES ${FWD}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_GLES}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC_GLES}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_VULKAN}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC_VULKAN}) 
 
 if(VS_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
@@ -21,10 +26,11 @@ link_libraries(${WSI_LIB})
 FetchContent_Declare(gli GIT_REPOSITORY https://github.com/g-truc/gli.git GIT_TAG 0.8.2.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(gli)
 if(NOT gli_POPULATED)
-	message(STATUS "fetching gli...")
+	message(STATUS "fetching g-truc/gli...")
 	FetchContent_Populate(gli)
-	message(STATUS "gli fetched")
+	message(STATUS "g-truc/gli fetched")
 endif()
+
 
 if(${VULKAN_STATIC})		
 	link_directories(${VULKAN_LIB_PATH})
@@ -55,13 +61,14 @@ else()
 	endif()	
 endif()
 
+SET(GLES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/src/glad.c ${CMAKE_CURRENT_SOURCE_DIR}/../external/wgl/src/glad_wgl.c)
 
 if(${PE_MODE} STREQUAL "EXE")
 	message("Core as executable")
-	add_executable(${LOCAL_PROJECT} ${SRC} ${INC} ${NATVIS})
+	add_executable(${LOCAL_PROJECT} ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${GLES_FILES})
 else()
 	message("Core as library")
-	add_library(${LOCAL_PROJECT} STATIC ${SRC} ${INC} ${NATVIS})
+	add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${GLES_FILES})
 endif()	
 
 if(${VULKAN_STATIC})	
@@ -79,6 +86,8 @@ target_include_directories(${LOCAL_PROJECT}
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${VULKAN_INC_PATH}
 		${volk_SOURCE_DIR}
+		${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include
+		${CMAKE_CURRENT_SOURCE_DIR}/../external/wgl/include
 	PRIVATE
 		${gli_SOURCE_DIR}
 		${gli_SOURCE_DIR}/external/glm

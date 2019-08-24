@@ -4,14 +4,14 @@
 #include "ecs/entity.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/lighting.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "ecs/systems/render.h"
 
 namespace core::gfx
 {
+	class context;
 	class render_graph;
 	class pass;
-	class context;
 	class buffer;
 } // namespace core::gfx
 
@@ -36,7 +36,7 @@ namespace memory
 
 namespace core::ecs::systems
 {
-//	class render;
+	//	class render;
 
 	class lighting_system
 	{
@@ -48,10 +48,11 @@ namespace core::ecs::systems
 
 		~lighting_system() = default;
 
-		void create_dir(psl::ecs::info& info,
-			psl::ecs::pack<psl::ecs::entity, core::ecs::components::light, psl::ecs::on_combine<core::ecs::components::light,
-																  core::ecs::components::transform>>
-				pack);
+		void
+		create_dir(psl::ecs::info& info,
+				   psl::ecs::pack<psl::ecs::entity, core::ecs::components::light,
+								  psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>>
+					   pack);
 
 	  private:
 		psl::view_ptr<core::resource::cache> m_Cache;

@@ -1,16 +1,20 @@
 #include "stdafx.h"
 #include "gfx/bundle.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
-#include "vk/buffer.h"
+#include "gfx/buffer.h"
+#include "gfx/material.h"
+#include "gfx/geometry.h"
 
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 using namespace psl;
 using namespace core::gfx::details::instance;
 
-bundle::bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer)
-	: m_UID(uid), m_Cache(cache), m_InstanceData(buffer){};
+bundle::bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::buffer> buffer)
+	: m_UID(metaData.uid), m_Cache(cache), m_InstanceData(buffer){};
 
 // ------------------------------------------------------------------------------------------------------------
 // material API
@@ -31,9 +35,9 @@ bool bundle::has(uint32_t renderlayer) const noexcept
 	return std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer) != std::end(m_Layers);
 }
 
-void bundle::set(handle<material> material, std::optional<uint32_t> render_layer_override)
+void bundle::set(handle<core::gfx::material> material, std::optional<uint32_t> render_layer_override)
 {
-	uint32_t layer = render_layer_override.value_or(material->data()->render_layer());
+	uint32_t layer = render_layer_override.value_or(material->data().render_layer());
 	size_t index{};
 	if(auto it = std::upper_bound(std::begin(m_Layers), std::end(m_Layers), layer);
 	   it != std::begin(m_Layers) && *std::prev(it) == layer)
@@ -77,36 +81,6 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept
 	}
 	return false;
 }
-bool bundle::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer,
-						   uint32_t drawIndex)
-{
-	if(!m_Bound) return false;
-
-	m_Bound->bind_pipeline(cmdBuffer, framebuffer, drawIndex);
-	return true;
-}
-
-bool bundle::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t drawIndex)
-{
-	if(!m_Bound) return false;
-
-	m_Bound->bind_pipeline(cmdBuffer, swapchain, drawIndex);
-	return true;
-}
-
-bool bundle::bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry)
-{
-	if(!m_Bound) return false;
-
-
-	for(const auto& b : m_InstanceData.bindings(m_Bound, geometry))
-	{
-		cmdBuffer.bindVertexBuffers(b.first, 1, &m_InstanceData.buffer()->gpu_buffer(), &b.second);
-	}
-
-	return true;
-}
-
 // ------------------------------------------------------------------------------------------------------------
 // instance data API
 // ------------------------------------------------------------------------------------------------------------
@@ -122,17 +96,19 @@ std::vector<std::pair<uint32_t, uint32_t>> bundle::instantiate(core::resource::t
 	return m_InstanceData.add(geometry, count);
 }
 
-uint32_t bundle::size(tag<geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }
-bool bundle::has(tag<geometry> geometry) const noexcept { return size(geometry) > 0; }
+uint32_t bundle::size(tag<core::gfx::geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }
+bool bundle::has(tag<core::gfx::geometry> geometry) const noexcept { return size(geometry) > 0; }
 
-bool bundle::release(tag<geometry> geometry, uint32_t id) noexcept { return m_InstanceData.erase(geometry, id); }
+bool bundle::release(tag<core::gfx::geometry> geometry, uint32_t id) noexcept
+{
+	return m_InstanceData.erase(geometry, id);
+}
 
 bool bundle::release_all() noexcept { return m_InstanceData.clear(); };
 
-bool bundle::set(tag<geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
+bool bundle::set(tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
 				 const void* data, size_t size, size_t count)
 {
-	m_InstanceData.buffer()->commit({core::gfx::buffer::commit_instruction{
+	return m_InstanceData.buffer()->commit({core::gfx::commit_instruction{
 		(void*)data, size * count, segment, memory::range{size_of_element * id, size_of_element * (id + count)}}});
-	return true;
 }

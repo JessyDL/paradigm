@@ -1,28 +1,30 @@
 ﻿#pragma once
-#include "systems/resource.h"
-#include "vulkan_stdafx.h"
+#include "resource/handle.h"
+#include "vk/stdafx.h"
+#include "fwd/vk/texture.h"
 
 namespace core::os
 {
 	class surface;
 }
-namespace core::gfx
+
+namespace core::ivk
 {
-	class context;
 	class texture;
+	class context;
 	class framebuffer;
-} // namespace core::gfx
+}
 
 namespace core::data
 {
 	class framebuffer;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	/// \brief describes a framebuffer that is specially handled and created by the driver
 	///
-	/// swpachains can be considered special core::gfx::framebuffer's, with some special
+	/// swpachains can be considered special core::ivk::framebuffer's, with some special
 	/// pecularities. For example, unlike framebuffer's, you have to request the next image
 	/// from the driver for a swapchain, and there are many more restrictions on both format
 	/// and size imposed on swapchains.
@@ -31,16 +33,17 @@ namespace core::gfx
 		friend class core::os::surface;
 
 	  public:
-		swapchain(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::os::surface> surface,
-				  core::resource::handle<core::gfx::context> context, bool use_depth = true);
+		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				  core::resource::handle<core::os::surface> surface,
+				  core::resource::handle<core::ivk::context> context, bool use_depth = true);
 		~swapchain();
 
 		/// \returns true in case it managed to get the next image in the swapchain from the driver.
 		/// \param[in, out] presentComplete the semaphore to flag once ready.
 		/// \param[out] out_image_index the image index of the next image in the swapchain.
 		/// \details when invoking this method it will request the next image in the swapchain, and return.
-		/// the semaphore will be flaged once the resource is ready on the GPU. (and so should be used as a sync point before using
-		/// the image in the swapchain.
+		/// the semaphore will be flaged once the resource is ready on the GPU. (and so should be used as a sync point
+		/// before using the image in the swapchain.
 		bool next(vk::Semaphore presentComplete, uint32_t& out_image_index);
 
 		/// \returns success in case presenting went well.
@@ -107,8 +110,8 @@ namespace core::gfx
 		void resize();
 		void apply_resize();
 
-		core::resource::handle<core::os::surface> m_OSSurface;
-		core::resource::handle<core::gfx::context> m_Context;
+		core::os::surface* m_OSSurface;
+		core::resource::handle<core::ivk::context> m_Context;
 
 		vk::SurfaceKHR m_Surface;
 		vk::SurfaceCapabilitiesKHR m_SurfaceCapabilities;
@@ -131,7 +134,7 @@ namespace core::gfx
 		uint32_t m_CurrentImage = 0;
 
 		core::resource::cache& m_Cache;
-		core::resource::handle<core::gfx::texture> m_DepthTextureHandle;
+		core::resource::handle<core::ivk::texture> m_DepthTextureHandle;
 
 		const bool m_UseDepth;
 		vk::ClearColorValue m_ClearColor{std::array<float, 4>{0.25f, 0.4f, 0.95f, 1.0f}};

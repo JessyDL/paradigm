@@ -2,7 +2,7 @@
 #include "ecs/state.h"
 #include "gfx/bundle.h"
 #include "vk/geometry.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
 #include "bytell_map.h"
@@ -45,7 +45,7 @@ namespace core::ecs::systems
 			profiler->scope_begin("release_all");
 			for(auto [renderable, transform] : geometry_pack)
 			{
-				renderable.bundle.handle()->release_all();
+				renderable.bundle.make_shared()->release_all();
 			}
 			profiler->scope_end();
 			
@@ -71,8 +71,8 @@ namespace core::ecs::systems
 				{
 					const auto& renderer =
 					std::get<const renderable>(geometry_pack[geometryData.startIndex]);
-					auto bundleHandle   = renderer.bundle.handle();
-					auto geometryHandle = renderer.geometry.handle();
+					auto bundleHandle   = renderer.bundle;
+					auto geometryHandle = renderer.geometry;
 					
 					auto instancesID = bundleHandle->instantiate(geometryHandle, (uint32_t)geometryData.count);
 

@@ -1,18 +1,39 @@
 #pragma once
 #include "array.h"
-#include "systems/resource.h"
-#include "gfx/material.h"
+#include "resource/resource.hpp"
 #include "gfx/details/instance.h"
+#include "fwd/gfx/bundle.h"
+#include "fwd/gfx/buffer.h"
+#include "fwd/gfx/geometry.h"
+#include "fwd/gfx/material.h"
+
+namespace core::ivk
+{
+	class geometry;
+	class framebuffer;
+	class swapchain;
+	class pass;
+} // namespace core::ivk
+
+namespace core::igles
+{
+	class pass;
+}
+namespace vk
+{
+	class CommandBuffer;
+}
 
 namespace core::gfx
 {
-	class buffer;
-
 	class bundle final
 	{
+		friend class core::ivk::pass;
+		friend class core::igles::pass;
 
 	  public:
-		bundle(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::buffer> buffer);
+		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::buffer> buffer);
 
 		~bundle()				  = default;
 		bundle(const bundle&)	 = delete;
@@ -43,8 +64,8 @@ namespace core::gfx
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \todo drawindex is a temporary hack to support instancing. a generic solution should be sought after.
 		/// \warning You have to call bind_material before this.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer,
-						   uint32_t drawIndex);
+		//bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
+		//				   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the pipeline.
 		/// \warning only call this in the context of recording the draw call.
@@ -52,15 +73,15 @@ namespace core::gfx
 		/// \param[in] swapchain the swapchain the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \warning You have to call bind_material before this.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
-						   uint32_t drawIndex);
+		//bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
+		//				   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the geometry's instance data.
 		/// \warning only call this in the context of recording the draw call, *after* you called bind_pipeline().
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
 		/// \param[in] geometry the geometry that will be bound.
 		/// \warning You have to call bind_pipeline before this.
-		bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::gfx::geometry> geometry);
+		//bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry> geometry);
 
 		core::resource::handle<core::gfx::material> bound() const noexcept { return m_Bound; };
 		// ------------------------------------------------------------------------------------------------------------
@@ -101,7 +122,7 @@ namespace core::gfx
 		// member variables
 		// ------------------------------------------------------------------------------------------------------------
 	  private:
-		details::instance::data m_InstanceData;
+		core::gfx::details::instance::data m_InstanceData;
 
 		psl::array<core::resource::handle<core::gfx::material>> m_Materials;
 		psl::array<uint32_t> m_Layers;

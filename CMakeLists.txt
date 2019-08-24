@@ -30,6 +30,8 @@ OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
 set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
+OPTION(PE_GLES "controls OpenGL ES support" ON)
+OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
 
 include(FindXCB)
 include(FindWayland)
@@ -62,8 +64,17 @@ if(${PE_MODE} STREQUAL "EXE")
 	list(APPEND PE_DEFINES -DCORE_EXECUTABLE)
 endif()
 
+if(${PE_GLES})
+	list(APPEND PE_DEFINES -DPE_GLES)
+endif()
+
+
 list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
 
+# experimental early support for not supporting vulkan
+if(${PE_VULKAN})
+	list(APPEND PE_DEFINES -DPE_VULKAN)
+endif()
 if(${PE_INSTRUCTION_SET} STREQUAL "SSE")	
 	list(APPEND PE_DEFINES -DINSTRUCTION_SET=1)
 elseif(${PE_INSTRUCTION_SET} STREQUAL "AVX")	
@@ -148,6 +159,11 @@ set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
 list(APPEND PE_COMPILER_FEATURES cxx_std_17)
 
+if(${PE_GLES})		
+		find_package(OpenGL REQUIRED)
+		list(APPEND PE_DL_LIBS ${OPENGL_LIBRARIES})
+endif()
+
 if(MSVC) # we currently make no distinction for CLang (todo)
 	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)
@@ -156,6 +172,8 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	else()
 		list(APPEND PE_COMPILE_OPTIONS /W3)
 	endif()
+	
+	
 	
 	list(APPEND PE_COMPILE_OPTIONS_EXE
 							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>

@@ -1,9 +1,19 @@
-﻿#pragma once
-#include "math/vec.h"
-#include "systems/resource.h"
-#include <vector>
-#include "vulkan_stdafx.h"
+#pragma once
+#include "resource/resource.hpp"
+#include <variant>
 #include "view_ptr.h"
+#ifdef PE_GLES
+namespace core::igles
+{
+	class pass;
+}
+#endif
+#ifdef PE_VULKAN
+namespace core::ivk
+{
+	class pass;
+}
+#endif
 
 namespace core::gfx
 {
@@ -11,109 +21,45 @@ namespace core::gfx
 	class framebuffer;
 	class swapchain;
 	class drawgroup;
-	struct depth_bias
-	{
-		union
-		{
-			union
-			{
-				float constantFactor;
-				float clamp;
-				float slopeFactor;
-			};
-			psl::vec3 bias;
-			float components[3];
-		};
 
-		depth_bias() : bias(psl::vec3::zero){};
-	};
-
-	/// \brief a pass describes a start-to-finish sequence of commands to render into a set of rendertargets.
-	///
-	/// A pass is a collection of drawcalls, grouped into sets of drawgroups, and a target framebuffer or swapchain.
-	/// This describes a full pipeline (synced) to get something into a set of rendertargets and to either use it in
-	/// subsequent passes, or present it to a core::gfx::surface.
-	/// Passes also make sure that they don't create race conditions with other passes that have been assigned as its dependencies.
 	class pass
 	{
+		using value_type = std::variant<
+#ifdef PE_VULKAN
+			core::ivk::pass*
+#ifdef PE_GLES
+			,
+#endif
+#endif
+#ifdef PE_GLES
+			core::igles::pass*
+#endif
+			>;
 	  public:
-		  /// \brief creates a pass that targets a framebuffer.
-		  /// \param[in] context the valid and loaded context to bind this pass to.
-		  /// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
-		pass(core::resource::handle<core::gfx::context> context,
-			 core::resource::handle<core::gfx::framebuffer> framebuffer);
-		/// \brief creates a pass that targets a swapchain image set.
-		/// \param[in] context the valid and loaded context to bind this pass to.
-		/// \param[in] swapchain the valid and loaded swapchain that this pass will output to.
-		pass(core::resource::handle<core::gfx::context> context,
-			 core::resource::handle<core::gfx::swapchain> swapchain);
+		pass(core::resource::handle<context> context, core::resource::handle<framebuffer> framebuffer);
+		pass(core::resource::handle<context> context, core::resource::handle<swapchain> swapchain);
 		~pass();
-		pass(const pass&) = delete;
-		pass(pass&&)	  = delete;
-		pass& operator=(const pass&) = delete;
-		pass& operator=(pass&&) = delete;
 
-		/// \brief prepares the pass for presenting (i.e. it does some basic housekeeping such as fetching the swapchain image if any)
-		void prepare();
-
-		/// \brief submits the recorded instructions to the GPU, handling the dependencies accordingly.
-		void present();
-
-		/// \brief set the depth bias on the current pass.
-		void bias(const core::gfx::depth_bias& bias) noexcept;
-
-		/// \brief returns the current dept bias on this instance.
-		/// \returns the current dept bias on this instance.
-		core::gfx::depth_bias bias() const noexcept;
-
-		/// \brief build, and records the draw, and other instructions associated with this pass.
-		/// \returns true on success, false if submitting the instructions to the GPU failed.
-		bool build();
-
-		/// \brief add an additional drawgroup to be included in this pass' draw instructions.
-		void add(core::gfx::drawgroup& group) noexcept;
-
-		/// \brief makes the current pass wait for the given pass to complete
-		void connect(psl::view_ptr<pass> pass) noexcept;
-
-		void disconnect(psl::view_ptr<pass> pass) noexcept;
-
-		/// \brief removes an existing drawgroup from this pass' draw instructions.
-		void remove(const core::gfx::drawgroup& group) noexcept;
-
-		/// \brief removes all drawgroups from this pass' draw instructions.
-		void clear() noexcept;
+		pass(const pass& other)		= delete;
+		pass(pass&& other) noexcept = delete;
+		pass& operator=(const pass& other) = delete;
+		pass& operator=(pass&& other) noexcept = delete;
 
 		bool is_swapchain() const noexcept;
+
+		
+		void clear();
+		void prepare();
+		bool build();
+		void present();
+
+		bool connect(psl::view_ptr<core::gfx::pass> child) noexcept;
+		bool disconnect(psl::view_ptr<core::gfx::pass> child) noexcept;
+		void add(core::gfx::drawgroup& group) noexcept;
+
+		value_type resource() const noexcept { return m_Handle; };
+
 	  private:
-		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
-		/// \param[in] size the amount of fences to create.
-		void create_fences(const size_t size = 1u);
-		/// \brief cleans up the created vk::Fence's of the core::gfx::pass::create_fences() method.
-		void destroy_fences();
-
-		core::resource::handle<core::gfx::context> m_Context;
-		core::resource::handle<core::gfx::framebuffer> m_Framebuffer;
-		core::resource::handle<core::gfx::swapchain> m_Swapchain;
-		const bool m_UsingSwap;
-		std::vector<core::gfx::drawgroup> m_AllGroups;
-
-		std::vector<vk::Semaphore> m_WaitFor;
-		vk::Semaphore m_PresentComplete;
-		vk::Semaphore m_RenderComplete;
-		std::vector<vk::Fence> m_WaitFences;
-
-		std::vector<vk::CommandBuffer> m_DrawCommandBuffers;
-		uint32_t m_Buffers;
-		uint32_t m_CurrentBuffer;
-		uint64_t m_FrameCount{0u};
-		uint64_t m_LastBuildFrame{0};
-
-		core::gfx::depth_bias m_DepthBias;
-
-		// Contains command buffers and semaphores to be presented to the queue
-		vk::SubmitInfo m_SubmitInfo;
-		/** @brief Pipeline stages used to wait at for graphics queue submissions */
-		vk::PipelineStageFlags m_SubmitPipelineStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+		value_type m_Handle;
 	};
 } // namespace core::gfx

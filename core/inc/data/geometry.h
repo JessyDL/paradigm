@@ -5,16 +5,8 @@
 #include "ustring.h"
 #include <unordered_map>
 #include <vector>
+#include "fwd/resource/resource.h"
 
-namespace psl
-{
-	struct UID;
-}
-
-namespace core::resource
-{
-	class cache;
-}
 /*
 #define GEOMETRY_VERTEX_POSITION "GEOMETRY_VERTEX_POSITION"
 #define GEOMETRY_VERTEX_COLOR "GEOMETRY_VERTEX_COLOR"
@@ -41,7 +33,7 @@ namespace core::data
 	/// All streams (except the index buffer stream) should have equally as many entries as the position buffer stream has.
 	/// The index buffer stream should not reffer to positions larger than the size of the position buffer stream.
 	/// \note these data streams can be anything, as long as atleast a position buffer and a index buffer is present. It's up to you to make sure your
-	/// geometry object has all the required streams to correctly bind it to a core::gfx::material.
+	/// geometry object has all the required streams to correctly bind it to a core::ivk::material.
 	/// \todo write an example of a custom stream.
 	/// \todo support numbered streams (i.e. UV0, UV1, etc..).
 	class geometry
@@ -73,9 +65,8 @@ namespace core::data
 			static constexpr psl::string_view BONES = "GEOMETRY_BONES";
 		};
 		geometry() = default;
-		geometry(const psl::UID& uid,
-				 core::resource::cache& cache);
-		~geometry();
+		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept;
+		~geometry() = default;
 		geometry(const geometry&) = delete;
 		geometry(geometry&&) = delete;
 		geometry& operator=(const geometry&) = delete;

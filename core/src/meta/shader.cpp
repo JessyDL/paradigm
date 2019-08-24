@@ -10,11 +10,11 @@ shader::vertex::attribute::attribute() {}
 shader::vertex::attribute::~attribute() {}
 
 uint32_t shader::vertex::attribute::location() const noexcept { return m_Location.value; }
-vk::Format shader::vertex::attribute::format() const noexcept { return m_Format.value; }
+core::gfx::format shader::vertex::attribute::format() const noexcept { return m_Format.value; }
 uint32_t shader::vertex::attribute::offset() const noexcept { return m_Offset.value; }
 
 void shader::vertex::attribute::location(uint32_t value) { m_Location.value = value; }
-void shader::vertex::attribute::format(vk::Format value) { m_Format.value = value; }
+void shader::vertex::attribute::format(core::gfx::format value) { m_Format.value = value; }
 void shader::vertex::attribute::offset(uint32_t value) { m_Offset.value = value; }
 // vertex binding
 shader::vertex::binding::binding() {}
@@ -22,7 +22,7 @@ shader::vertex::binding::~binding() {}
 
 uint32_t shader::vertex::binding::binding_slot() const noexcept { return m_Binding.value; }
 uint32_t shader::vertex::binding::size() const noexcept { return m_Size.value; }
-vk::VertexInputRate shader::vertex::binding::input_rate() const noexcept { return m_InputRate.value; }
+core::gfx::vertex_input_rate shader::vertex::binding::input_rate() const noexcept { return m_InputRate.value; }
 psl::string8_t shader::vertex::binding::buffer() const noexcept { return m_Buffer.value; }
 const std::vector<shader::vertex::attribute>& shader::vertex::binding::attributes() const noexcept
 {
@@ -31,7 +31,7 @@ const std::vector<shader::vertex::attribute>& shader::vertex::binding::attribute
 
 void shader::vertex::binding::binding_slot(uint32_t value) { m_Binding.value = value; }
 void shader::vertex::binding::size(uint32_t value) { m_Size.value = value; }
-void shader::vertex::binding::input_rate(vk::VertexInputRate value) { m_InputRate.value = value; }
+void shader::vertex::binding::input_rate(core::gfx::vertex_input_rate value) { m_InputRate.value = value; }
 void shader::vertex::binding::buffer(psl::string8_t value) { m_Buffer.value = value; }
 void shader::vertex::binding::attributes(const std::vector<shader::vertex::attribute>& value)
 {
@@ -125,12 +125,12 @@ shader::instance::element::element() {}
 shader::instance::element::~element() {}
 
 psl::string8::view shader::instance::element::name() const noexcept { return m_Name.value; }
-vk::Format shader::instance::element::format() const noexcept { return m_Format.value; }
+core::gfx::format shader::instance::element::format() const noexcept { return m_Format.value; }
 uint32_t shader::instance::element::offset() const noexcept { return m_Offset.value; }
 const std::vector<uint8_t>& shader::instance::element::default_value() const noexcept { return m_Default.value; }
 
 void shader::instance::element::name(psl::string8::view value) { m_Name.value = value; }
-void shader::instance::element::format(vk::Format value) { m_Format.value = value; }
+void shader::instance::element::format(core::gfx::format value) { m_Format.value = value; }
 void shader::instance::element::offset(uint32_t value) { m_Offset.value = value; }
 void shader::instance::element::default_value(const std::vector<uint8_t>& value) { m_Default.value = value; }
 
@@ -155,7 +155,7 @@ std::vector<uint8_t> shader::descriptor::default_value() const noexcept
 	}
 	return res;
 }
-vk::DescriptorType shader::descriptor::type() const noexcept { return m_Type.value; }
+core::gfx::binding_type shader::descriptor::type() const noexcept { return m_Type.value; }
 const std::vector<shader::instance::element>& shader::descriptor::sub_elements() const noexcept
 {
 	return m_SubElements.value;
@@ -164,7 +164,7 @@ const std::vector<shader::instance::element>& shader::descriptor::sub_elements()
 void shader::descriptor::binding(uint32_t value) { m_Binding.value = value; }
 void shader::descriptor::size(uint32_t value) { m_Size.value = value; }
 void shader::descriptor::name(psl::string8::view value) { m_Name.value = value; }
-void shader::descriptor::type(vk::DescriptorType value) { m_Type.value = value; }
+void shader::descriptor::type(core::gfx::binding_type value) { m_Type.value = value; }
 void shader::descriptor::sub_elements(const std::vector<shader::instance::element>& value)
 {
 	m_SubElements.value = value;
@@ -196,11 +196,11 @@ bool shader::descriptor::erase(instance::element value)
 
 // shader
 
-vk::ShaderStageFlags shader::stage() const noexcept { return m_Stage.value; }
+core::gfx::shader_stage shader::stage() const noexcept { return m_Stage.value; }
 const std::vector<shader::vertex::binding>& shader::vertex_bindings() const noexcept { return m_VertexBindings.value; }
 const std::vector<shader::descriptor>& shader::descriptors() const noexcept { return m_Descriptors.value; }
 
-void shader::stage(vk::ShaderStageFlags value) { m_Stage.value = value; }
+void shader::stage(core::gfx::shader_stage value) noexcept { m_Stage.value = value; }
 void shader::vertex_bindings(const std::vector<shader::vertex::binding>& value) { m_VertexBindings.value = value; }
 void shader::descriptors(const std::vector<descriptor>& value) { m_Descriptors.value = value; }
 

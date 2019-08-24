@@ -1,332 +1,167 @@
-﻿
 #include "gfx/pass.h"
-#include "vk/context.h"
-#include "vk/framebuffer.h"
-#include "data/framebuffer.h"
-#include "vk/swapchain.h"
+#include "gfx/context.h"
+#include "gfx/framebuffer.h"
+#include "gfx/swapchain.h"
 #include "gfx/drawgroup.h"
+
+#ifdef PE_GLES
+#include "gles/pass.h"
+#endif
+#ifdef PE_VULKAN
+#include "vk/pass.h"
+#endif
 
 using namespace core::resource;
 using namespace core::gfx;
+using namespace core;
 
-
-pass::pass(handle<context> context, handle<framebuffer> framebuffer)
-	: m_Context(context), m_Framebuffer(framebuffer), m_UsingSwap(false)
+pass::pass(handle<core::gfx::context> context, handle<core::gfx::framebuffer> framebuffer)
 {
-	vk::SemaphoreCreateInfo semaphoreCreateInfo;
-	semaphoreCreateInfo.pNext = NULL;
-
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_PresentComplete));
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_RenderComplete));
-
-	m_DrawCommandBuffers.resize(m_Framebuffer->framebuffers().size());
-
-	// Set up submit info structure
-	// Semaphores will stay the same during application lifetime
-
-	m_SubmitInfo.pWaitDstStageMask	= &m_SubmitPipelineStages;
-	m_SubmitInfo.waitSemaphoreCount   = 1;
-	m_SubmitInfo.pWaitSemaphores	  = &m_PresentComplete;
-	m_SubmitInfo.signalSemaphoreCount = 1;
-	m_SubmitInfo.pSignalSemaphores	= &m_RenderComplete;
-
-	create_fences(m_Framebuffer->framebuffers().size());
-
-	build();
-}
-
-pass::pass(handle<context> context, handle<swapchain> swapchain)
-	: m_Context(context), m_Swapchain(swapchain), m_UsingSwap(true)
-{
-	vk::SemaphoreCreateInfo semaphoreCreateInfo;
-	semaphoreCreateInfo.pNext = NULL;
-
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_PresentComplete));
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_RenderComplete));
-
-	m_DrawCommandBuffers.resize(m_Swapchain->framebuffers().size());
-
-	// Set up submit info structure
-	// Semaphores will stay the same during application lifetime
-
-	m_SubmitInfo.pWaitDstStageMask	= &m_SubmitPipelineStages;
-	m_SubmitInfo.waitSemaphoreCount   = 1;
-	m_SubmitInfo.pWaitSemaphores	  = &m_PresentComplete;
-	m_SubmitInfo.signalSemaphoreCount = 1;
-	m_SubmitInfo.pSignalSemaphores	= &m_RenderComplete;
-
-	create_fences(m_Swapchain->framebuffers().size());
-
-	// build();
-}
-
-pass::~pass()
-{
-	destroy_fences();
-	m_Context->device().destroySemaphore(m_PresentComplete);
-	m_Context->device().destroySemaphore(m_RenderComplete);
-}
-bool pass::build()
-{
-	LOG_INFO("Rebuilding Command Buffers");
-	m_LastBuildFrame = m_FrameCount;
-
-	m_Context->device().waitIdle();
-	m_Context->device().freeCommandBuffers(m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(),
-										   m_DrawCommandBuffers.data());
-
-	m_Buffers = (uint32_t)m_DrawCommandBuffers.size();
-
-	vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
-	cmdBufAllocateInfo.commandPool		  = m_Context->command_pool();
-	cmdBufAllocateInfo.commandBufferCount = (uint32_t)m_DrawCommandBuffers.size(); // one for each image
-	cmdBufAllocateInfo.level			  = vk::CommandBufferLevel::ePrimary;
-
-	if(!utility::vulkan::check(
-		   m_Context->device().allocateCommandBuffers(&cmdBufAllocateInfo, m_DrawCommandBuffers.data())))
-		throw new std::runtime_error("Critical issue");
-
-	vk::CommandBufferBeginInfo cmdBufInfo;
-	cmdBufInfo.pNext = NULL;
-
-	std::vector<vk::ClearValue> clearValues;
-
-	if(m_UsingSwap)
+	switch(context->backend())
 	{
-		clearValues.reserve(1 + (size_t)m_Swapchain->has_depth());
-		for(auto i = 0; i < 1; ++i)
-		{
-			clearValues.emplace_back(m_Swapchain->clear_color());
-		}
-		if(m_Swapchain->has_depth())
-		{
-			clearValues.emplace_back(m_Swapchain->clear_depth());
-		}
+	case graphics_backend::gles: break;
+	case graphics_backend::vulkan:
+		m_Handle = new core::ivk::pass(context->resource().get<core::ivk::context>(),
+									   framebuffer->resource().get<core::ivk::framebuffer>());
+		break;
+	}
+}
+
+pass::pass(handle<core::gfx::context> context, handle<core::gfx::swapchain> swapchain)
+{
+	switch(context->backend())
+	{
+	case graphics_backend::gles:
+		m_Handle = new core::igles::pass(swapchain->resource().get<core::igles::swapchain>());
+		break;
+	case graphics_backend::vulkan:
+		m_Handle = new core::ivk::pass(context->resource().get<core::ivk::context>(),
+									   swapchain->resource().get<core::ivk::swapchain>());
+		break;
+	}
+}
+
+pass::~pass() 
+{
+	if(m_Handle.index() == 0)
+	{
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		delete(ptr);
 	}
 	else
 	{
-		const auto& attachments = m_Framebuffer->data()->attachments();
-		std::transform(std::begin(attachments), std::end(attachments), std::back_inserter(clearValues),
-					   [](const auto& attach) { return attach.clear_value(); });
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		delete(ptr);
 	}
-	bool success = false;
-	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i)
-	{
-
-		m_Context->device().waitIdle();
-		if(!utility::vulkan::check(m_DrawCommandBuffers[i].begin(cmdBufInfo)))
-			throw new std::runtime_error("Critical issue");
-
-		const std::vector<vk::Framebuffer>& framebuffers =
-			(m_UsingSwap) ? m_Swapchain->framebuffers() : m_Framebuffer->framebuffers();
-
-
-		vk::RenderPassBeginInfo renderPassBeginInfo;
-
-		if(m_UsingSwap)
-		{
-			renderPassBeginInfo.renderPass				 = m_Swapchain->renderpass();
-			renderPassBeginInfo.renderArea.extent.width  = m_Swapchain->width();
-			renderPassBeginInfo.renderArea.extent.height = m_Swapchain->height();
-		}
-		else
-		{
-			renderPassBeginInfo.renderPass				 = m_Framebuffer->render_pass();
-			renderPassBeginInfo.renderArea.extent.width  = m_Framebuffer->data()->width();
-			renderPassBeginInfo.renderArea.extent.height = m_Framebuffer->data()->height();
-		}
-
-		renderPassBeginInfo.renderArea.offset.x = 0;
-		renderPassBeginInfo.renderArea.offset.y = 0;
-		renderPassBeginInfo.clearValueCount		= (uint32_t)clearValues.size();
-		renderPassBeginInfo.pClearValues		= clearValues.data();
-		if(m_UsingSwap)
-		{
-			renderPassBeginInfo.framebuffer = framebuffers[i];
-
-			m_DrawCommandBuffers[i].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-
-			// Update dynamic viewport state
-			vk::Viewport viewport;
-			viewport.height   = (float)renderPassBeginInfo.renderArea.extent.height;
-			viewport.width	= (float)renderPassBeginInfo.renderArea.extent.width;
-			viewport.minDepth = (float)0.0f;
-			viewport.maxDepth = (float)1.0f;
-			m_DrawCommandBuffers[i].setViewport(0, 1, &viewport);
-
-			// Update dynamic scissor state
-			vk::Rect2D scissor;
-			scissor.extent.width  = renderPassBeginInfo.renderArea.extent.width;
-			scissor.extent.height = renderPassBeginInfo.renderArea.extent.height;
-			scissor.offset.x	  = 0;
-			scissor.offset.y	  = 0;
-			m_DrawCommandBuffers[i].setScissor(0, 1, &scissor);
-
-			m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
-												 m_DepthBias.components[2]);
-
-			for(auto& group : m_AllGroups) group.build(m_DrawCommandBuffers[i], m_Swapchain, i);
-
-			m_DrawCommandBuffers[i].endRenderPass();
-		}
-		else
-		{
-			for(const auto& framebuffer : framebuffers)
-			{
-				renderPassBeginInfo.framebuffer = framebuffer;
-
-				m_DrawCommandBuffers[i].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
-
-				// Update dynamic viewport state
-				vk::Viewport viewport;
-				viewport.height   = (float)renderPassBeginInfo.renderArea.extent.height;
-				viewport.width	= (float)renderPassBeginInfo.renderArea.extent.width;
-				viewport.minDepth = (float)0.0f;
-				viewport.maxDepth = (float)1.0f;
-				m_DrawCommandBuffers[i].setViewport(0, 1, &viewport);
-
-				// Update dynamic scissor state
-				vk::Rect2D scissor;
-				scissor.extent.width  = renderPassBeginInfo.renderArea.extent.width;
-				scissor.extent.height = renderPassBeginInfo.renderArea.extent.height;
-				scissor.offset.x	  = 0;
-				scissor.offset.y	  = 0;
-				m_DrawCommandBuffers[i].setScissor(0, 1, &scissor);
-
-				m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
-													 m_DepthBias.components[2]);
-
-
-				for(auto& group : m_AllGroups) group.build(m_DrawCommandBuffers[i], m_Framebuffer, i);
-
-
-				m_DrawCommandBuffers[i].endRenderPass();
-			}
-		}
-
-		success |= utility::vulkan::check(m_DrawCommandBuffers[i].end());
-	}
-
-	return success;
 }
 
-void pass::create_fences(const size_t size)
+
+bool pass::is_swapchain() const noexcept
 {
-	if(m_WaitFences.size() > 0) destroy_fences();
-
-	for(auto i = 0; i < size; ++i)
+	if(m_Handle.index() == 0)
 	{
-		vk::FenceCreateInfo fCI;
-		fCI.flags = vk::FenceCreateFlagBits::eSignaled;
-		m_WaitFences.push_back(m_Context->device().createFence(fCI, nullptr).value);
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		return ptr->is_swapchain();
+	}
+	else
+	{
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		return ptr->is_swapchain();
 	}
 }
 
-void pass::destroy_fences()
-{
-	for(auto& fence : m_WaitFences)
-	{
-		if(!utility::vulkan::check(
-			   m_Context->device().waitForFences(1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
-			LOG_ERROR("Failed to wait for fence");
-
-		if(!utility::vulkan::check(m_Context->device().resetFences(1, &fence))) LOG_ERROR("Failed to reset fence");
-
-		m_Context->device().destroyFence(fence, nullptr);
-	}
-	m_WaitFences.clear();
-}
 
 void pass::prepare()
 {
-	if(m_UsingSwap)
+	if(m_Handle.index() == 0)
 	{
-		m_Swapchain->next(m_PresentComplete, m_CurrentBuffer);
-		// if(m_Swapchain->next(m_PresentComplete, m_CurrentBuffer)) build();
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		return ptr->prepare();
 	}
 	else
 	{
-		m_CurrentBuffer = 0u;
-		// todo verify if this behaviour is correct, should we build here too?
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		return ptr->prepare();
+	}
+}
+bool pass::build()
+{
+	if(m_Handle.index() == 0)
+	{
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		return ptr->build();
+	}
+	else
+	{
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		return ptr->build();
 	}
 }
 
+
+void pass::clear()
+{
+	if(m_Handle.index() == 0)
+	{
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		ptr->clear();
+	}
+	else
+	{
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		ptr->clear();
+	}
+}
 void pass::present()
 {
-	if(m_WaitFences.size() > 0)
+	if(m_Handle.index() == 0)
 	{
-		if(!utility::vulkan::check(
-			   m_Context->device().waitForFences(1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, std::numeric_limits<uint64_t>::max())))
-			LOG_ERROR("Failed to wait for fence");
-
-		if(!utility::vulkan::check(m_Context->device().resetFences(1, &m_WaitFences[m_CurrentBuffer])))
-			LOG_ERROR("Failed to reset fence");
-	}
-
-	std::vector<vk::Semaphore> semaphores{m_WaitFor};
-	std::vector<vk::PipelineStageFlags> stageFlags;
-
-	if(m_UsingSwap)
-	{
-		semaphores.push_back(m_PresentComplete);
-	}
-
-	if(semaphores.size() == 0)
-	{
-		m_SubmitInfo.pWaitSemaphores	= VK_NULL_HANDLE;
-		m_SubmitInfo.waitSemaphoreCount = 0;
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		ptr->present();
 	}
 	else
 	{
-		m_SubmitInfo.waitSemaphoreCount = (uint32_t)semaphores.size();
-		m_SubmitInfo.pWaitSemaphores	= semaphores.data();
-
-		for(auto i = 0; i < semaphores.size(); ++i) stageFlags.push_back(m_SubmitPipelineStages);
-
-		m_SubmitInfo.pWaitDstStageMask = stageFlags.data();
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		ptr->present();
 	}
+}
 
-	// Signal ready with offscreen semaphore
-	m_SubmitInfo.pSignalSemaphores = &m_RenderComplete;
+bool pass::connect(psl::view_ptr<pass> child) noexcept
+{
+	if(child->m_Handle.index() != m_Handle.index()) return false;
 
-	m_SubmitInfo.pCommandBuffers	= &m_DrawCommandBuffers[m_CurrentBuffer];
-	m_SubmitInfo.commandBufferCount = 1;
-
-
-	if(m_WaitFences.size() > 0)
-		utility::vulkan::check(m_Context->queue().submit(1, &m_SubmitInfo, m_WaitFences[m_CurrentBuffer]));
-	else
-		utility::vulkan::check(m_Context->queue().submit(1, &m_SubmitInfo, nullptr));
-
-	if(m_UsingSwap)
+	if(m_Handle.index() == 0)
 	{
-		utility::vulkan::check(m_Swapchain->present(m_RenderComplete));
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		ptr->connect(psl::view_ptr<core::ivk::pass>(std::get<core::ivk::pass*>(child->m_Handle)));
+		return true;
 	}
+	return false;
+}
+bool pass::disconnect(psl::view_ptr<pass> child) noexcept
+{
+	if(child->m_Handle.index() != m_Handle.index()) return false;
 
-	++m_FrameCount;
+	if(m_Handle.index() == 0)
+	{
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		ptr->disconnect(psl::view_ptr<core::ivk::pass>(std::get<core::ivk::pass*>(child->m_Handle)));
+		return true;
+	}
+	return false;
 }
 
-bool pass::is_swapchain() const noexcept { return m_UsingSwap; }
 
-
-void pass::bias(const core::gfx::depth_bias& bias) noexcept { m_DepthBias = bias; }
-core::gfx::depth_bias pass::bias() const noexcept { return m_DepthBias; }
-
-void pass::add(core::gfx::drawgroup& group) noexcept { m_AllGroups.push_back(group); }
-void pass::remove(const core::gfx::drawgroup& group) noexcept
+void pass::add(core::gfx::drawgroup& group) noexcept
 {
-	m_AllGroups.erase(
-		std::remove_if(std::begin(m_AllGroups), std::end(m_AllGroups),
-					   [&group](const std::reference_wrapper<drawgroup>& element) { return &group == &element.get(); }),
-		std::end(m_AllGroups));
-}
-
-void pass::clear() noexcept { m_AllGroups.clear(); }
-
-
-void pass::connect(psl::view_ptr<pass> pass) noexcept { m_WaitFor.emplace_back(pass->m_RenderComplete); }
-
-void pass::disconnect(psl::view_ptr<pass> pass) noexcept
-{
-	m_WaitFor.erase(std::find(std::begin(m_WaitFor), std::end(m_WaitFor), pass->m_RenderComplete), std::end(m_WaitFor));
+	if(m_Handle.index() == 0)
+	{
+		auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		ptr->add(group);
+	}
+	else
+	{
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		ptr->add(group);
+	}
 }

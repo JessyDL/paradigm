@@ -1,20 +1,22 @@
 ﻿#include "vk/shader.h"
 #include "meta/shader.h"
 #include "vk/context.h"
-
+#include "logging.h"
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-shader::shader(const UID& uid, core::resource::cache& cache, psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context)
-	: m_Context(context), m_Cache(cache), m_UID(uid),
+shader::shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile
+	, core::resource::handle<core::ivk::context> context)
+	: m_Context(context), m_Cache(cache), m_UID(metaData.uid),
 	  m_Meta(cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr))
 {
 	if(m_Meta == nullptr)
 	{
-		core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", uid.to_string());
+		core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", m_UID.to_string());
 		return;
 	}
 	core::meta::shader& meta = *m_Meta;
@@ -23,7 +25,8 @@ shader::shader(const UID& uid, core::resource::cache& cache, psl::meta::file* me
 		auto result = cache.library().load(meta.ID());
 		if(!result)
 		{
-			core::ivk::log->error("could not load ivk::shader [{0}] from resource UID [{1}]", uid.to_string(), meta.ID().to_string());
+			core::ivk::log->error("could not load ivk::shader [{0}] from resource UID [{1}]", m_UID.to_string(),
+								  meta.ID().to_string());
 		}
 
 		vk::ShaderModuleCreateInfo moduleCreateInfo;
@@ -35,7 +38,8 @@ shader::shader(const UID& uid, core::resource::cache& cache, psl::meta::file* me
 		auto & [spec, pipe] = m_Specializations.emplace_back();
 		pipe.stage			= vk::ShaderStageFlagBits((uint32_t)meta.stage());
 
-		core::ivk::log->info("creating ivk::shader [{0}] using resource uid [{1}] with shader stage [{2}]", uid.to_string(), meta.ID().to_string(), vk::to_string(pipe.stage));
+		core::ivk::log->info("creating ivk::shader [{0}] using resource uid [{1}] with shader stage [{2}]",
+							 m_UID.to_string(), meta.ID().to_string(), vk::to_string(pipe.stage));
 		
 		spec.name  = "main";
 		pipe.pName = spec.name.data();
@@ -45,17 +49,18 @@ shader::shader(const UID& uid, core::resource::cache& cache, psl::meta::file* me
 		}
 	}
 }
-shader::shader(const UID& uid, core::resource::cache& cache, core::resource::handle<core::gfx::context> context,
+shader::shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
+			   core::resource::handle<core::ivk::context> context,
 			   const std::vector<specialization> specializations)
-	: m_Context(context), m_Cache(cache), m_UID(uid)
+	: m_Context(context), m_Cache(cache), m_UID(metaData.uid)
 {
-	if(cache.library().is_physical_file(uid))
+	if(cache.library().is_physical_file(m_UID))
 	{
-		core::meta::shader& meta = *cache.library().get<core::meta::shader>(uid).value();
-		auto result = cache.library().load(uid);
+		core::meta::shader& meta = *metaFile;
+		auto result				 = cache.library().load(m_UID);
 		if(!result)
 		{
-			core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", uid.to_string());
+			core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", m_UID.to_string());
 		}
 
 		vk::ShaderModuleCreateInfo moduleCreateInfo;
@@ -72,7 +77,8 @@ shader::shader(const UID& uid, core::resource::cache& cache, core::resource::han
 
 			pipe.stage = vk::ShaderStageFlagBits((uint32_t)meta.stage());
 
-			core::ivk::log->info("creating ivk::shader [{0}] using resource uid [{1}] with shader stage [{2}]", uid.to_string(), meta.ID().to_string(), vk::to_string(pipe.stage));
+			core::ivk::log->info("creating ivk::shader [{0}] using resource uid [{1}] with shader stage [{2}]",
+								 m_UID.to_string(), meta.ID().to_string(), vk::to_string(pipe.stage));
 
 			if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module)))
 			{

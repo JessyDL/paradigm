@@ -1,9 +1,10 @@
 #pragma once
 #include "array.h"
-#include "systems/resource.h"
-#include "gfx/material.h"
+#include "resource/resource.hpp"
 #include "meta.h"
 #include "sparse_array.h"
+#include "IDGenerator.h"
+#include "memory/segment.h"
 
 namespace std
 {
@@ -16,9 +17,9 @@ namespace std
 namespace core::gfx
 {
 	class buffer;
-	class material;
 	class geometry;
-} // namespace core::gfx
+	class material;
+}
 
 namespace core::gfx::details::instance
 {
@@ -93,12 +94,13 @@ namespace core::gfx::details::instance
 	class data final
 	{
 	  public:
+		data() = default;
 		data(core::resource::handle<core::gfx::buffer> buffer) noexcept;
-		void add(core::resource::handle<material> material);
+		void add(core::resource::handle<core::gfx::material> material);
 		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry> uid,
 													   uint32_t count = 1);
 
-		void remove(core::resource::handle<material> material);
+		void remove(core::resource::handle<core::gfx::material> material);
 
 
 		bool has_element(core::resource::tag<core::gfx::geometry> geometry, psl::string_view name) const noexcept;
@@ -106,8 +108,9 @@ namespace core::gfx::details::instance
 																	psl::string_view name) const noexcept;
 		uint32_t count(core::resource::tag<core::gfx::geometry> uid) const noexcept;
 
-		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<material> material,
-															   core::resource::tag<geometry> geometry) const noexcept;
+		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<core::gfx::material> material,
+															   core::resource::tag<core::gfx::geometry> geometry) const
+			noexcept;
 
 		core::resource::handle<core::gfx::buffer> buffer() const noexcept { return m_InstanceBuffer; }
 

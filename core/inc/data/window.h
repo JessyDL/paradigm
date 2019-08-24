@@ -1,16 +1,7 @@
 ﻿#pragma once
 #include <cstdint>
 #include "serialization.h"
-
-namespace core::resource
-{
-	class cache;
-}
-
-namespace psl
-{
-	struct UID;
-}
+#include "fwd/resource/resource.h"
 
 namespace core::gfx
 {
@@ -41,13 +32,12 @@ namespace core::data
 		friend class psl::serialization::accessor;
 
 	  public:
-		window(const psl::UID& uid, core::resource::cache& cache);
-		window(const window& other, const psl::UID& uid, core::resource::cache& cache, psl::string8::view name) noexcept;
+		window(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept;
 		~window() = default;
 		window(uint32_t width = 800, uint32_t height = 600,
 			   core::gfx::surface_mode mode   = core::gfx::surface_mode::WINDOWED,
 			   core::gfx::buffering buffering = core::gfx::buffering::SINGLE,
-			   psl::string8::view name		  = "Paradigm Engine");
+			   psl::string8::view name		  = "Paradigm Engine") noexcept;
 		window(const window& other) = delete;
 		window(window&& other)		= delete;
 		window& operator=(const window& other) = delete;

@@ -1,21 +1,23 @@
 #include "gfx/render_graph.h"
 #include "gfx/pass.h"
-#include "vk/context.h"
-#include "vk/swapchain.h"
-#include "vk/framebuffer.h"
+#include "gfx/context.h"
+#include "gfx/swapchain.h"
+#include "gfx/framebuffer.h"
 
 using namespace core::gfx;
 using core::resource::handle;
 
 
-psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<swapchain> swapchain)
+psl::view_ptr<pass> render_graph::create_pass(handle<core::gfx::context> context,
+											  handle<core::gfx::swapchain> swapchain)
 {
 	auto& element = m_Passes.emplace_back();
 	element.pass  = new pass(context, swapchain);
 
 	return psl::view_ptr<pass>{element.pass};
 }
-psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<framebuffer> framebuffer)
+psl::view_ptr<pass> render_graph::create_pass(handle<core::gfx::context> context,
+											  handle<core::gfx::framebuffer> framebuffer)
 {
 	auto& element = m_Passes.emplace_back();
 	element.pass  = new pass(context, framebuffer);
@@ -23,11 +25,7 @@ psl::view_ptr<pass> render_graph::create_pass(handle<context> context, handle<fr
 	return psl::view_ptr<pass>{element.pass};
 }
 
-void render_graph::rebuild() noexcept 
-{
-	m_Rebuild = false;
-
-}
+void render_graph::rebuild() noexcept { m_Rebuild = false; }
 
 void render_graph::present()
 {
@@ -42,7 +40,7 @@ void render_graph::present()
 	if(std::distance(std::begin(m_Passes), it_final) != m_Passes.size() - 1)
 		std::iter_swap(it_final, std::prev(std::end(m_Passes)));
 
-	
+
 	for(auto& node : m_Passes)
 	{
 		node.pass->prepare();

@@ -1,52 +1,89 @@
 SET(SRC 
-src/core.cpp
-src/logging.cpp
-src/stdafx.cpp
+core.cpp
+logging.cpp
+stdafx.cpp
 
-src/data/application.cpp
-src/data/buffer.cpp
-src/data/framebuffer.cpp
-src/data/geometry.cpp
-src/data/material.cpp
-src/data/sampler.cpp
-src/data/window.cpp
+data/application.cpp
+data/buffer.cpp
+data/framebuffer.cpp
+data/geometry.cpp
+data/material.cpp
+data/sampler.cpp
+data/window.cpp
 
-src/gfx/drawcall.cpp
-src/gfx/drawgroup.cpp
-src/gfx/material.cpp
-src/gfx/pass.cpp
-src/gfx/render_graph.cpp
-src/gfx/pipeline_cache.cpp
-src/gfx/bundle.cpp
-src/gfx/details/instance.cpp
+gfx/buffer.cpp
+gfx/context.cpp
+gfx/geometry.cpp
+gfx/material.cpp
+gfx/pipeline_cache.cpp
+gfx/sampler.cpp
+gfx/swapchain.cpp
+gfx/texture.cpp
+gfx/framebuffer.cpp
+gfx/pass.cpp
 
-src/meta/shader.cpp
-src/meta/texture.cpp
+gfx/drawcall.cpp
+gfx/drawgroup.cpp
+gfx/render_graph.cpp
+gfx/bundle.cpp
+gfx/details/instance.cpp
 
-src/os/surface.cpp
-src/os/surface_android.cpp
-src/os/surface_d2d.cpp
-src/os/surface_wayland.cpp
-src/os/surface_win32.cpp
-src/os/surface_xcb.cpp
+meta/shader.cpp
+meta/texture.cpp
 
-src/systems/input.cpp
-src/systems/input_win32.cpp
-src/systems/input_xcb.cpp
-src/systems/resource.cpp
+os/surface.cpp
+os/surface_android.cpp
+os/surface_d2d.cpp
+os/surface_wayland.cpp
+os/surface_win32.cpp
+os/surface_xcb.cpp
 
-src/vk/buffer.cpp
-src/vk/context.cpp
-src/vk/framebuffer.cpp
-src/vk/geometry.cpp
-src/vk/pipeline.cpp
-src/vk/sampler.cpp
-src/vk/shader.cpp
-src/vk/swapchain.cpp
-src/vk/texture.cpp
+systems/input.cpp
+systems/input_win32.cpp
+systems/input_xcb.cpp
 
-src/ecs/systems/fly.cpp
-src/ecs/systems/render.cpp
-src/ecs/systems/gpu_camera.cpp
-src/ecs/systems/lighting.cpp
+ecs/systems/fly.cpp
+ecs/systems/render.cpp
+ecs/systems/gpu_camera.cpp
+ecs/systems/lighting.cpp
 )
+
+list(TRANSFORM SRC PREPEND src/)
+
+# include files for the Vulkan API
+if(${PE_VULKAN})
+	set(SRC_VULKAN
+	buffer.cpp
+	context.cpp
+	framebuffer.cpp
+	geometry.cpp
+	material.cpp
+	pass.cpp
+	pipeline.cpp
+	pipeline_cache.cpp
+	sampler.cpp
+	shader.cpp
+	swapchain.cpp
+	texture.cpp
+	)
+
+	list(TRANSFORM SRC_VULKAN PREPEND src/vk/)
+endif()
+
+if(${PE_GLES})
+	set(SRC_GLES
+	buffer.cpp
+	context.cpp
+	geometry.cpp
+	material.cpp
+	program.cpp
+	program_cache.cpp
+	sampler.cpp
+	shader.cpp
+	swapchain.cpp
+	texture.cpp
+	framebuffer.cpp
+	pass.cpp
+	)
+	list(TRANSFORM SRC_GLES PREPEND src/gles/)
+endif()

@@ -7,18 +7,13 @@ using namespace psl;
 using namespace core::os;
 using namespace core;
 
-surface::surface(const UID& uid, core::resource::cache& cache, core::resource::handle<data::window> data)
-	: m_Data(data), m_InputSystem(new core::systems::input())
-{
-	init_surface();
-}
-
-surface::surface(const surface& other, const UID& uid, core::resource::cache& cache,
+surface::surface(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				 core::resource::handle<data::window> data)
 	: m_Data(data), m_InputSystem(new core::systems::input())
 {
 	init_surface();
 }
+
 surface::~surface()
 {
 	deinit_surface();
@@ -51,11 +46,11 @@ bool surface::resize(uint32_t width, uint32_t height)
 	return true;
 }
 
-void surface::register_swapchain(core::resource::handle<core::gfx::swapchain> swapchain)
+void surface::register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain)
 {
 	m_Swapchains.push_back(swapchain);
 }
 
-const data::window& surface::data() const { return *m_Data.cvalue(); }
+const data::window& surface::data() const { return m_Data.value(); }
 
 core::systems::input& surface::input() const noexcept { return *m_InputSystem; }

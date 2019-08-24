@@ -1,17 +1,18 @@
 ﻿#include "data/framebuffer.h"
 #include "meta/texture.h"
-
+#include "resource/resource.hpp"
 using namespace psl;
 using namespace core::data;
 
-framebuffer::framebuffer(const UID& uid, core::resource::cache& cache, uint32_t width, uint32_t height, uint32_t layers)
-	: m_Width(width), m_Height(height), m_Cache(cache), m_Count(std::max(layers, 1u))
+framebuffer::framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData,
+						 psl::meta::file* metaFile, uint32_t width, uint32_t height, uint32_t layers) noexcept
+	: m_Width(width), m_Height(height), m_Cache(&cache), m_Count(std::max(layers, 1u))
 {}
 
-framebuffer::framebuffer(const framebuffer& other, const UID& uid, core::resource::cache& cache)
-	: m_Width(other.m_Width), m_Height(other.m_Height), m_Cache(other.m_Cache), m_Count(other.m_Count),
-	  m_Sampler(other.m_Sampler), m_Attachments(other.m_Attachments)
-{}
+//framebuffer::framebuffer(const framebuffer& other, const UID& uid, core::resource::cache& cache)
+//	: m_Width(other.m_Width), m_Height(other.m_Height), m_Cache(other.m_Cache), m_Count(other.m_Count),
+//	  m_Sampler(other.m_Sampler), m_Attachments(other.m_Attachments)
+//{}
 
 const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount,
 							vk::ImageUsageFlags usage, vk::ClearValue clearValue, vk::AttachmentDescription descr)
@@ -35,15 +36,15 @@ const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount
 			aspectMask = aspectMask | vk::ImageAspectFlagBits::eStencil;
 		}
 	}
-	auto [UID, texture] = m_Cache.library().create<core::meta::texture>();
+	auto [UID, texture] = m_Cache->library().create<core::meta::texture>();
 	texture.width(width);
 	texture.height(height);
 	texture.depth(layerCount);
-	texture.aspect_mask(aspectMask);
-	texture.format(descr.format);
-	texture.image_type(vk::ImageViewType::e2D);
+	texture.aspect_mask(gfx::to_image_aspect(aspectMask));
+	texture.format(gfx::to_format(descr.format));
+	texture.image_type(core::gfx::image_type::planar_2D);
 	texture.mip_levels(1);
-	texture.usage(usage);
+	texture.usage(core::gfx::to_image_usage(usage));
 
 	m_Attachments.value.emplace_back(UID, clearValue, descr);
 
@@ -60,7 +61,7 @@ bool framebuffer::remove(const UID& uid)
 	return true;
 }
 
-void framebuffer::set(core::resource::handle<core::gfx::sampler> sampler) { m_Sampler.value = sampler.ID(); }
+void framebuffer::set(core::resource::handle<core::ivk::sampler> sampler) { m_Sampler.value = sampler; }
 
 
 const std::vector<framebuffer::attachment>& framebuffer::attachments() const { return m_Attachments.value; }

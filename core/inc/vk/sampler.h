@@ -1,17 +1,20 @@
 ﻿#pragma once
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include <vector>
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
 namespace core::data
 {
 	class sampler;
 }
 
-namespace core::gfx
+namespace core::ivk
 {
 	class context;
+}
 
+namespace core::ivk
+{
 	/// \brief sampler object for texture filtering and lookups
 	///
 	/// In Vulkan textures are accessed by samplers, this separates all the sampling information from the texture data.
@@ -20,7 +23,8 @@ namespace core::gfx
 	class sampler final
 	{
 	  public:
-		sampler(const psl::UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
+		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				core::resource::handle<core::ivk::context> context,
 				core::resource::handle<core::data::sampler> sampler_data);
 		~sampler();
 
@@ -35,7 +39,7 @@ namespace core::gfx
 
 	  private:
 		core::resource::handle<core::data::sampler> m_Data;
-		core::resource::handle<context> m_Context;
+		core::resource::handle<core::ivk::context> m_Context;
 
 		std::vector<vk::Sampler> m_Samplers;
 	};

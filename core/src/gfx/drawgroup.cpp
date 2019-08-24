@@ -1,6 +1,6 @@
 ﻿
 #include "gfx/drawgroup.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "vk/geometry.h"
 #include "data/geometry.h"
 #include "vk/pipeline.h"
@@ -11,72 +11,6 @@
 
 using namespace core::gfx;
 
-void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index)
-{
-	PROFILE_SCOPE(core::profiler)
-
-	for(auto& drawLayer : m_Group)
-	{
-		for(auto& drawCall : drawLayer.second)
-		{
-			if(drawCall.m_Geometry.size() == 0) continue;
-			auto bundle = drawCall.m_Bundle;
-
-			auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
-
-			for(auto index : matIndices)
-			{
-				bundle->bind_material(index);
-				bundle->bind_pipeline(cmdBuffer, framebuffer, index);
-				auto mat{bundle->bound()};
-				for(auto& [geometryHandle, count] : drawCall.m_Geometry)
-				{
-					uint32_t instance_n = bundle->instances(geometryHandle);
-					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
-
-					geometryHandle->bind(cmdBuffer, mat);
-					bundle->bind_geometry(cmdBuffer, geometryHandle);
-
-					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
-				}
-			}
-		}
-	}
-}
-
-
-void drawgroup::build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index)
-{
-	PROFILE_SCOPE(core::profiler)
-
-	for(auto& drawLayer : m_Group)
-	{
-		for(auto& drawCall : drawLayer.second)
-		{
-			if(drawCall.m_Geometry.size() == 0) continue;
-			auto bundle = drawCall.m_Bundle;
-
-			auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
-
-			for(auto index : matIndices)
-			{
-				bundle->bind_material(index);
-				bundle->bind_pipeline(cmdBuffer, swapchain, index);
-				auto mat{bundle->bound()};
-				for(auto& [geometryHandle, count] : drawCall.m_Geometry)
-				{
-					uint32_t instance_n = bundle->instances(geometryHandle);
-					if(instance_n == 0 || !geometryHandle->compatible(mat)) continue;
-
-					geometryHandle->bind(cmdBuffer, mat);
-					bundle->bind_geometry(cmdBuffer, geometryHandle);
-
-					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
-				}
-			}
-		}
-	}
-}
 
 const drawlayer& drawgroup::layer(const psl::string& layer, uint32_t priority, uint32_t extent) noexcept
 {

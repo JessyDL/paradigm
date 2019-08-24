@@ -1,74 +1,27 @@
-﻿#include "gfx/pipeline_cache.h"
-#include "vk/context.h"
-#include "data/material.h"
-#include "vk/framebuffer.h"
-#include "vk/swapchain.h"
-#include "vk/pipeline.h"
-#include "meta.h"
-#include "logging.h"
+#include "gfx/pipeline_cache.h"
+#include "gfx/context.h"
 
-using namespace psl;
-using namespace core::gfx;
+#ifdef PE_GLES
+#include "gles/program_cache.h"
+#endif
+#ifdef PE_VULKAN
+#include "vk/pipeline_cache.h"
+#endif
+
 using namespace core::resource;
+using namespace core::gfx;
+using namespace core;
 
-pipeline_cache::pipeline_cache(const UID& uid, core::resource::cache& cache,
+pipeline_cache::pipeline_cache(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+pipeline_cache::pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+							   psl::meta::file* metaFile,
 							   core::resource::handle<core::gfx::context> context)
-	: m_Context(context), m_Cache(cache)
 {
-	::vk::PipelineCacheCreateInfo pcci;
-	if(!utility::vulkan::check(m_Context->device().createPipelineCache(&pcci, nullptr, &m_PipelineCache)))
+	switch(context->backend())
 	{
-		core::gfx::log->error("could not create a gfx::pipeline_cache");
+	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::program_cache>(metaData.uid); break;
+	case graphics_backend::vulkan:
+		m_Handle << cache.create_using<core::ivk::pipeline_cache>(metaData.uid, context->resource().get<core::ivk::context>());
+		break;
 	}
-}
-
-pipeline_cache::~pipeline_cache() { m_Context->device().destroyPipelineCache(m_PipelineCache); }
-
-// todo: actually generate a hash for these items
-core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<framebuffer> framebuffer)
-{
-	pipeline_key key(uid, data, framebuffer->render_pass());
-	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))
-	{
-		return it->second;
-	}
-
-	auto pipelineHandle = create<pipeline>(m_Cache);
-	pipelineHandle.load(m_Context, data, m_PipelineCache, framebuffer->render_pass(), (uint32_t)framebuffer->color_attachments().size());
-	m_Pipelines[key] = pipelineHandle;
-
-	return pipelineHandle;
-}
-
-core::resource::handle<core::gfx::pipeline> pipeline_cache::get(const psl::UID& uid, handle<core::data::material> data, core::resource::handle<swapchain> swapchain)
-{
-	pipeline_key key(uid, data, swapchain->renderpass());
-	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))
-	{
-		return it->second;
-	}
-
-	auto pipelineHandle = create<pipeline>(m_Cache);
-	pipelineHandle.load(m_Context, data, m_PipelineCache, swapchain->renderpass(), 1);
-	m_Pipelines[key] = pipelineHandle;
-
-	return pipelineHandle;
-}
-
-std::vector<std::pair<vk::DescriptorType, uint32_t>> fill_in_descriptors(core::resource::handle<core::data::material> data, vk::RenderPass pass)
-{
-	std::vector<std::pair<vk::DescriptorType, uint32_t>> descriptors;
-	for(const auto& stage : data->stages())
-	{
-		for(const auto& shader_descriptor : stage.bindings())
-		{
-			descriptors.emplace_back(std::make_pair(shader_descriptor.descriptor(), shader_descriptor.binding_slot()));
-		}
-	}
-	return descriptors;
-}
-
-pipeline_key::pipeline_key(const psl::UID& uid, core::resource::handle<core::data::material> data, vk::RenderPass pass)	:	 uid(uid), renderPass(pass), descriptors(fill_in_descriptors(data, pass))
-{
-	
 }

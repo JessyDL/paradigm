@@ -6,7 +6,7 @@ using namespace psl::serialization;
 using namespace psl;
 const uint64_t file::polymorphic_identity{register_polymorphic<file>()};
 
-library::library(psl::string8::view lib)
+library::library(psl::string8::view lib, std::vector<psl::string8_t> environment)
 {
 	m_LibraryLocation = utility::platform::directory::to_platform(lib);
 	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(utility::platform::directory::seperator));
@@ -29,6 +29,20 @@ library::library(psl::string8::view lib)
 			auto uid			= utility::converter<UID>::from_string(meta);
 			size_t startPath	= line.find("METAPATH=") + 9;
 			size_t endPath		= line.find("]", startPath);
+
+			size_t startEnv = line.find("[ENV=");
+			size_t endEnv   = line.find("]", startEnv);
+
+			if(startEnv != psl::string8_t::npos &&
+			   std::find_if(std::begin(environment), std::end(environment),
+							[env = utility::string::split(line.substr(startEnv +5, endEnv - (startEnv +5)), ";")](const psl::string8_t& expected) 
+			{
+								return std::find(std::begin(env), std::end(env), expected) != std::end(env);
+							}) ==
+				   std::end(environment))
+			{
+				continue;
+			}
 
 			psl::string8_t metapath  = line.substr(startPath, endPath - startPath);
 			psl::string8_t filepath  = metapath.substr(0, metapath.size() - (META_EXTENSION.size() + 1));
@@ -195,7 +209,9 @@ size_t library::size() const { return m_MetaData.size(); }
 std::optional<psl::string8::view> library::load(const UID& uid)
 {
 	auto it = m_MetaData.find(uid);
-	if(it == std::end(m_MetaData) || it->second.flags[0] != true) return {};
+	if(it == std::end(m_MetaData)) return {};
+
+	if(it->second.flags[0] != true || it->second.file_data.size() > 0) return it->second.file_data;
 
 	if(auto res = utility::platform::file::read(psl::from_string8_t(m_LibraryFolder) +
 												utility::platform::directory::seperator +
@@ -215,4 +231,13 @@ bool library::unload(const UID& uid)
 
 	it->second.file_data = {};
 	return true;
+}
+
+
+void library::replace_content(psl::UID uid, psl::string8_t content) noexcept
+{
+	if(auto it = m_MetaData.find(uid); it != std::end(m_MetaData))
+	{
+		it->second.file_data = std::move(content);
+	}
 }

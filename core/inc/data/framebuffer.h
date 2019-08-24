@@ -1,18 +1,15 @@
 ﻿#pragma once
 #include "serialization.h"
-#include "vulkan_stdafx.h"
+#include "vk/stdafx.h"
 #include "meta.h"
-#include "systems/resource.h"
+#include "fwd/resource/resource.h"
 
 
-namespace core::gfx
+namespace core::ivk
 {
 	class sampler;
 }
-namespace core::resource
-{
-	class cache;
-}
+
 namespace core::data
 {
 	/// \brief container class that describes the data to create a set of rendertargets.
@@ -22,7 +19,7 @@ namespace core::data
 	public:
 		/// \brief describes a single rendertarget in a framebuffer.
 		///
-		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the core::gfx::texture.
+		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the core::ivk::texture.
 		/// You should take caution when calling methods that manipulate the contained resources for this reason.
 		class attachment final
 		{
@@ -65,7 +62,7 @@ namespace core::data
 			///
 			/// \note that the texture should be valid (not pointing to a non-texture),
 			/// otherwise you might run into issues further down.
-			/// \param[in] texture a psl::UID pointing to a valid (known or constructed), core::gfx::texture object.
+			/// \param[in] texture a psl::UID pointing to a valid (known or constructed), core::ivk::texture object.
 			/// \param[in] clear_col the clear value to assign to this render texture.
 			/// \param[in] descr the attachment description that will be used to construct the core::data::framebuffer::attachment::description.
 			/// \param[in] shared value indicating if this render attachment is shared within this framebuffer (see core::data::framebuffer::attachment::shared() for more info).
@@ -89,7 +86,7 @@ namespace core::data
 			/// Sometimes you don't need a render attachment to have a unique instance per framebuffer entry (for example depth testing/texture in a double buffer scenario).
 			/// in this case you can set this render attachment to be "shared", a flag that will tell the implementation that rather than creating a new instance for when the
 			/// framebuffer count is larger than 1, it should instead reuse the current one.
-			/// \see core::gfx::framebuffer for the application of this flag.
+			/// \see core::ivk::framebuffer for the application of this flag.
 			/// \returns true if this attachment is duplicated (true) or not (false).
 			bool shared() const;
 		private:
@@ -107,15 +104,16 @@ namespace core::data
 
 		/// \brief basic constructor that sets up the rough outlines of an instance
 		/// \note you will still need to set up attachments, etc.. later on. The constructor makes a "valid" instance in the sense
-		/// that manipulating it will not cause undefined behaviour, but you cannot create a core::gfx::framebuffer just yet with this
+		/// that manipulating it will not cause undefined behaviour, but you cannot create a core::ivk::framebuffer just yet with this
 		/// after calling the constructor.
 		/// \param[in] uid the resouce system assigned psl::UID.
 		/// \param[in] cache signifies in which cache I will be constructed in.
 		/// \param[in] width the width in pixels of this framebuffer.
 		/// \param[in] height the height in pixels of this framebuffer.
 		/// \param[in] layers the amount of layers this framebuffer will have (often referred to as the framebuffer count in the documentation).
-		framebuffer(const psl::UID& uid, core::resource::cache& cache, uint32_t width, uint32_t height, uint32_t layers = 1u);
-		framebuffer(const framebuffer& other, const psl::UID& uid, core::resource::cache& cache);
+		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+					uint32_t width, uint32_t height, uint32_t layers = 1u) noexcept;
+		//framebuffer(const framebuffer& other, const psl::UID& uid, core::resource::cache& cache);
 
 		/// \brief adds a core::data::framebuffer::attachment to the current framebuffer.
 		/// \param[in] width the width of the attachment in pixels.
@@ -136,7 +134,7 @@ namespace core::data
 		/// \param[in] sampler a valid sampler resource
 		/// \note the sampler does not need to be loaded, we will only store the psl::UID, but if the framebuffer is used for rendering, and
 		/// the sampler is invalid, then what follows is undefined behaviour.
-		void set(core::resource::handle<core::gfx::sampler> sampler);
+		void set(core::resource::handle<core::ivk::sampler> sampler);
 
 		/// \brief gets all attachments currently assigned to this framebuffer.
 		/// \returns all attachments currently assigned to this framebuffer.
@@ -167,6 +165,6 @@ namespace core::data
 		psl::serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width;
 		psl::serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height;
 		psl::serialization::property<uint32_t, const_str("FRAMEBUFFER COUNT", 17)> m_Count;
-		core::resource::cache& m_Cache;
+		core::resource::cache* m_Cache;
 	};
 }

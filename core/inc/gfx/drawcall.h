@@ -1,28 +1,33 @@
 #pragma once
 #include <vector>
 #include "gfx/bundle.h"
-#include "vk/geometry.h"
+#include "fwd/resource/resource.h"
+#include "fwd/gfx/bundle.h"
+#include "fwd/gfx/geometry.h"
 
-namespace core::resource
+#ifdef PE_VULKAN
+namespace core::ivk
 {
-	template<typename T>
-	class handle;
+	class pass;
 }
-
-
-namespace psl
+#endif
+#ifdef PE_GLES
+namespace core::igles
 {
-	struct UID;
+	class pass;
 }
-
+#endif
 namespace core::gfx
 {
-	class geometry;
-	class bundle;
-
 	class drawcall
 	{
 		friend class drawgroup;
+#ifdef PE_VULKAN
+		friend class core::ivk::pass;
+#endif
+#ifdef PE_GLES
+		friend class core::igles::pass;
+#endif
 
 	  public:
 		drawcall(core::resource::handle<core::gfx::bundle> bundle,
@@ -39,8 +44,9 @@ namespace core::gfx
 
 		void bundle(core::resource::handle<core::gfx::bundle> bundle) noexcept;
 		core::resource::handle<core::gfx::bundle> bundle() const noexcept;
+
 	  private:
 		core::resource::handle<core::gfx::bundle> m_Bundle;
 		std::vector<std::pair<core::resource::handle<core::gfx::geometry>, size_t>> m_Geometry;
 	};
-}
+} // namespace core::gfx

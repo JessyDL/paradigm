@@ -1,10 +1,9 @@
 #include "ecs/systems/gpu_camera.h"
 #include "ecs/components/camera.h"
 #include "ecs/components/transform.h"
-#include "vk/buffer.h"
+#include "gfx/buffer.h"
 #include "os/surface.h"
 #include "ecs/state.h"
-#include "gfx/pass.h"
 
 using namespace core::ecs::systems;
 using namespace psl;
@@ -14,7 +13,8 @@ using namespace psl::math;
 #undef far
 
 
-gpu_camera::gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer)	:	m_Surface(surface), m_Buffer(buffer)
+gpu_camera::gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::buffer> buffer, core::gfx::graphics_backend backend)
+	: m_Surface(surface), m_Buffer(buffer), m_Backend(backend)
 {
 	state.declare(psl::ecs::threading::seq, &gpu_camera::tick, this);
 }
@@ -51,6 +51,10 @@ void gpu_camera::update_buffer(size_t index, const core::ecs::components::transf
 		fdata.projectionMatrix = math::perspective_projection(
 			math::radians(camera.fov), (float)m_Surface->data().width() / (float)m_Surface->data().height(),
 			camera.near, camera.far);
+
+		if(m_Backend == core::gfx::graphics_backend::gles)
+			fdata.projectionMatrix.at<1, 1>() = -fdata.projectionMatrix.at<1, 1>();
+
 		fdata.clipMatrix = clip;
 
 		fdata.viewMatrix  = math::look_at(position, position + direction, up);
@@ -60,7 +64,7 @@ void gpu_camera::update_buffer(size_t index, const core::ecs::components::transf
 
 		fdata.VP  = fdata.clipMatrix * fdata.projectionMatrix * fdata.viewMatrix;
 		fdata.WVP = fdata.VP * fdata.modelMatrix;
-		std::vector<core::gfx::buffer::commit_instruction> instructions;
+		std::vector<core::gfx::commit_instruction> instructions;
 		instructions.emplace_back(&fdata, fdatasegment[index]);
 		m_Buffer->commit(instructions);
 	}

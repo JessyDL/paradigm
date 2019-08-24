@@ -47,7 +47,7 @@
 #define VK_FLAGS_NONE 0
 #endif
 
-//#define GAMMA_RENDERING
+#define GAMMA_RENDERING
 #ifndef GAMMA_RENDERING
 #define SURFACE_FORMAT vk::Format::eB8G8R8A8Srgb
 #define SURFACE_COLORSPACE vk::ColorSpaceKHR::eSrgbNonlinear
@@ -59,7 +59,7 @@
 #ifdef DEBUG
 #define VULKAN_ENABLE_VALIDATION true
 #else
-#define VULKAN_ENABLE_VALIDATION false
+#define VULKAN_ENABLE_VALIDATION true
 #endif
 
 

@@ -1,6 +1,6 @@
 ﻿#include "vk/context.h"
 #include "os/surface.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "meta.h"
 #include "logging.h"
 
@@ -11,7 +11,7 @@
 #endif
 
 using namespace psl;
-using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::os;
 
 VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
@@ -86,7 +86,8 @@ struct VKAPIVersion
 	const uint32_t patch;
 };
 
-context::context(const UID& uid, core::resource::cache& cache, psl::string8::view name, uint32_t deviceIndex)
+context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				 psl::string8::view name, uint32_t deviceIndex)
 	: m_DeviceIndex(deviceIndex)
 {
 #if defined(VK_DYNAMIC_DISPATCH_VOLK)
@@ -499,6 +500,7 @@ context::context(const UID& uid, core::resource::cache& cache, psl::string8::vie
 
 context::~context()
 {
+	m_Device.waitIdle();
 	deinit_descriptor_pool();
 	deinit_command_pool();
 	deinit_device();

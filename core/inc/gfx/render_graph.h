@@ -1,15 +1,19 @@
 #pragma once
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "unique_ptr.h"
 #include "view_ptr.h"
 #include "array_view.h"
 
 namespace core::gfx
 {
-	class pass;
 	class context;
 	class framebuffer;
 	class swapchain;
+	class pass;
+}
+
+namespace core::gfx
+{
 
 	class render_graph
 	{
@@ -26,11 +30,11 @@ namespace core::gfx
 		psl::view_ptr<core::gfx::pass> create_pass(core::resource::handle<core::gfx::context> context,
 												   core::resource::handle<core::gfx::framebuffer> framebuffer);
 
-		bool connect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
-		bool disconnect(psl::view_ptr<pass> pass) noexcept;
-		bool disconnect(psl::view_ptr<pass> child, psl::view_ptr<pass> root) noexcept;
+		bool connect(psl::view_ptr<core::gfx::pass> child, psl::view_ptr<core::gfx::pass> root) noexcept;
+		bool disconnect(psl::view_ptr<core::gfx::pass> pass) noexcept;
+		bool disconnect(psl::view_ptr<core::gfx::pass> child, psl::view_ptr<core::gfx::pass> root) noexcept;
 
-		bool erase(psl::view_ptr<pass> pass) noexcept;
+		bool erase(psl::view_ptr<core::gfx::pass> pass) noexcept;
 		void present();
 
 	  private:

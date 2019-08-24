@@ -1,22 +1,25 @@
-﻿
+﻿#include "logging.h"
 #include "vk/geometry.h"
 #include "data/geometry.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
-#include "gfx/material.h"
+#include "vk/material.h"
 #include "data/material.h"
 #include "vk/shader.h"
 #include "meta/shader.h"
-
+#include "resource/resource.hpp"
+#include "gfx/types.h"
 using namespace psl;
 using namespace core::resource;
-using namespace core::gfx;
+using namespace core;
+using namespace core::ivk;
 
-geometry::geometry(const UID& uid, cache& cache, handle<context> context,
+geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   handle<core::ivk::context> context,
 				   core::resource::handle<core::data::geometry> data,
-				   core::resource::handle<core::gfx::buffer> geometryBuffer,
-				   core::resource::handle<core::gfx::buffer> indicesBuffer)
-	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(uid)
+				   core::resource::handle<core::ivk::buffer> geometryBuffer,
+				   core::resource::handle<core::ivk::buffer> indicesBuffer)
+	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
 {
 	std::vector<vk::DeviceSize> sizeRequests;
 	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer)?1:0));
@@ -31,7 +34,7 @@ geometry::geometry(const UID& uid, cache& cache, handle<context> context,
 	}
 
 	auto segments = m_GeometryBuffer->reserve(sizeRequests, true);
-	std::vector<buffer::commit_instruction> instructions;
+	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
 	for(const auto& stream : m_Data->vertex_streams())
 	{
@@ -61,7 +64,7 @@ geometry::geometry(const UID& uid, cache& cache, handle<context> context,
 			// todo error condition could not allocate segment
 			exit(1);
 		}
-		buffer::commit_instruction instr;
+		gfx::commit_instruction instr;
 		instr.size = m_IndicesSegment.range().size();
 		instr.source = (std::uintptr_t)m_Data->indices().data();
 		instr.segment = m_IndicesSegment;
@@ -102,15 +105,15 @@ geometry::~geometry()
 }
 
 
-bool geometry::compatible(const core::gfx::material& material) const noexcept
+bool geometry::compatible(const core::ivk::material& material) const noexcept
 {
 	for(const auto& shader : material.shaders())
 	{
-		if(shader->meta()->stage() == vk::ShaderStageFlagBits::eVertex)
+		if(shader->meta()->stage() == core::gfx::shader_stage::vertex)
 		{
 			for(const auto& vBinding : shader->meta()->vertex_bindings())
 			{
-				if(vBinding.input_rate() != vk::VertexInputRate::eVertex) continue;
+				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
 				for(const auto& b : m_Bindings)
 				{
@@ -133,17 +136,17 @@ bool geometry::compatible(const core::gfx::material& material) const noexcept
 	return true;
 }
 
-void geometry::bind(vk::CommandBuffer& buffer, const core::gfx::material& material) const noexcept
+void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& material) const noexcept
 {
 
 	for(const auto& shader: material.shaders())
 	{
 		const auto& meta = shader->meta();
-		if(meta->stage() == vk::ShaderStageFlagBits::eVertex) // TODO: check if possible on fragment shader etc..
+		if(meta->stage() == core::gfx::shader_stage::vertex) // TODO: check if possible on fragment shader etc..
 		{
 			for(auto& vBinding : meta->vertex_bindings())
 			{
-				if(vBinding.input_rate() != vk::VertexInputRate::eVertex) continue;
+				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
 				for(const auto& b : m_Bindings)
 				{

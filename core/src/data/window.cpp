@@ -1,5 +1,5 @@
 ﻿#include "data/window.h"
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 #include "meta.h"
 
 using namespace psl;
@@ -7,21 +7,14 @@ using namespace core::data;
 using namespace core::gfx;
 
 
-window::window(const UID& uid, core::resource::cache& cache)
+window::window(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept
 	: window::window()
 {
 
 }
 
-
-window::window(const window& other, const UID& uid, core::resource::cache& cache, psl::string8::view name) noexcept
-	: m_Width(other.m_Width), m_Height(other.m_Height), m_WindowMode(other.m_WindowMode),
-	  m_Buffering(other.m_Buffering), m_Name(name)
-{
-
-}
-
-window::window(uint32_t width, uint32_t height, surface_mode mode, core::gfx::buffering buffering, psl::string8::view name)
+window::window(uint32_t width, uint32_t height, surface_mode mode, core::gfx::buffering buffering,
+			   psl::string8::view name) noexcept
 	: m_Width(width), m_Height(height), m_WindowMode(mode), m_Buffering(buffering), m_Name(name)
 {
 

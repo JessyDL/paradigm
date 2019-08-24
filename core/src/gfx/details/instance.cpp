@@ -2,31 +2,33 @@
 #include "gfx/details/instance.h"
 #include "gfx/material.h"
 #include "data/material.h"
-#include "vk/shader.h"
+#include "gfx/shader.h"
 #include "meta/shader.h"
-#include "vk/buffer.h"
+#include "gfx/buffer.h"
+#include "gfx/types.h"
+#include "resource/resource.hpp"
 
 using namespace core::gfx;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
-constexpr uint32_t default_capacity = 8;
+constexpr uint32_t default_capacity = 32000;
 
 data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)
 {
-	if(m_Bindings.find(material.ID()) != std::end(m_Bindings)) return;
+	if(m_Bindings.find(material) != std::end(m_Bindings)) return;
 
-	auto& data = m_Bindings[material.ID()];
+	auto& data = m_Bindings[material];
 
-	for(const auto& stage : material->data()->stages())
+	for(const auto& stage : material->data().stages())
 	{
-		if(stage.shader_stage() != vk::ShaderStageFlagBits::eVertex) continue;
+		if(stage.shader_stage() != core::gfx::shader_stage::vertex) continue;
 
-		auto shader_handle = material.cache().find<core::gfx::shader>(stage.shader());
+		core::meta::shader* meta = material.cache()->library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 
-		data.reserve(shader_handle->meta()->instance_bindings().size());
-		for(const auto& vBinding : shader_handle->meta()->instance_bindings())
+		data.reserve(meta->instance_bindings().size());
+		for(const auto& vBinding : meta->instance_bindings())
 		{
 			data.emplace_back(binding{binding::header{vBinding.buffer(), vBinding.size()}, vBinding.binding_slot()});
 		}
@@ -42,7 +44,7 @@ void data::add(core::resource::handle<material> material)
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
-				auto res = m_InstanceBuffer->reserve(vk::DeviceSize(obj.id_generator.capacity()) *
+				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() *
 													 d.description.size_of_element);
 				if(!res) core::gfx::log->error("could not allocate");
 
@@ -70,7 +72,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 		for(const auto& b : m_UniqueBindings)
 		{
 			auto res =
-				m_InstanceBuffer->reserve(vk::DeviceSize{it->second.id_generator.capacity()} * b.first.size_of_element);
+				m_InstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
 			if(!res) core::gfx::log->error("could not allocate");
 			it->second.data.emplace_back(res.value());
 			it->second.description.emplace_back(b.first);
@@ -89,7 +91,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 			{
 				auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
 				if(!res) core::gfx::log->error("could not allocate");
-				m_InstanceBuffer->copy_from(m_InstanceBuffer, {vk::BufferCopy{d.range().begin, d.range().end}});
+				m_InstanceBuffer->copy_from(m_InstanceBuffer.value(), {core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
 				std::swap(d, res.value());
 				m_InstanceBuffer->deallocate(res.value());
 			}

@@ -15,8 +15,6 @@ namespace psl
 	class pack_view;
 }
 
-static psl::ecs::details::component_key_t attractor_key;
-
 namespace psl::ecs::details
 {
 	/// \brief implementation detail that stores the component information

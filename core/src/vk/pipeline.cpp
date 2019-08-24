@@ -9,13 +9,16 @@
 #include "vk/sampler.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
+#include "gfx/types.h"
 
 using namespace psl;
 using namespace core::gfx;
+using namespace core::ivk;
 using namespace core::resource;
 
 
-bool decode(core::resource::cache& cache, const core::data::material& data,
+bool decode(core::resource::cache& cache,
+			const core::data::material& data,
 			std::vector<vk::DescriptorSetLayoutBinding>& layoutBinding)
 {
 	for(auto& stage : data.stages())
@@ -31,11 +34,11 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 		{
 			switch(binding.descriptor())
 			{
-			case vk::DescriptorType::eCombinedImageSampler:
+			case core::gfx::binding_type::combined_image_sampler:
 			{
 				vk::DescriptorSetLayoutBinding setLayoutBinding;
-				setLayoutBinding.descriptorType = binding.descriptor();
-				setLayoutBinding.stageFlags		= shader_handle->stage();
+				setLayoutBinding.descriptorType = conversion::to_vk(binding.descriptor());
+				setLayoutBinding.stageFlags		= core::gfx::to_vk(shader_handle->stage());
 				setLayoutBinding.binding		= binding.binding_slot();
 				// Default value in all examples
 				setLayoutBinding.descriptorCount	= 1;
@@ -44,11 +47,12 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 				layoutBinding.push_back(setLayoutBinding);
 			}
 			break;
-			case vk::DescriptorType::eStorageBuffer:
-			case vk::DescriptorType::eUniformBuffer:
+			case core::gfx::binding_type::storage_buffer:
+			case core::gfx::binding_type::uniform_buffer:
 			{
 				layoutBinding.push_back(utility::vulkan::defaults::descriptor_setlayout_binding(
-					binding.descriptor(), shader_handle->stage(), binding.binding_slot()));
+					conversion::to_vk(binding.descriptor()), core::gfx::to_vk(shader_handle->stage()),
+					binding.binding_slot()));
 			}
 			break;
 			default: throw new std::runtime_error("this should not be reached");
@@ -71,7 +75,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			return false;
 		}
 
-		if(shader_handle->stage() ==
+		if(core::gfx::to_vk(shader_handle->stage()) ==
 		   vk::ShaderStageFlagBits::eVertex) // TODO: check if possible on fragment shader etc..
 		{
 			for(auto& vertexBinding : shader_handle->vertex_bindings())
@@ -79,14 +83,14 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 				vk::VertexInputBindingDescription& vkVertexBinding = vertexBindingDescriptions.emplace_back();
 				vkVertexBinding.binding							   = vertexBinding.binding_slot();
 				vkVertexBinding.stride							   = vertexBinding.size();
-				vkVertexBinding.inputRate						   = vertexBinding.input_rate();
+				vkVertexBinding.inputRate						   = core::gfx::to_vk(vertexBinding.input_rate());
 
 				for(auto& vertexAttribute : vertexBinding.attributes())
 				{
 					vk::VertexInputAttributeDescription& vkVertexAttribute = vertexAttributeDescriptions.emplace_back();
 					vkVertexAttribute.binding							   = vkVertexBinding.binding;
 					vkVertexAttribute.location							   = vertexAttribute.location();
-					vkVertexAttribute.format							   = vertexAttribute.format();
+					vkVertexAttribute.format							   = core::gfx::to_vk(vertexAttribute.format());
 					vkVertexAttribute.offset							   = vertexAttribute.offset();
 				}
 			}
@@ -97,13 +101,14 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 }
 
 
-pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource::handle<context> context,
+pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+				   core::resource::handle<core::ivk::context> context,
 				   core::resource::handle<core::data::material> data, vk::PipelineCache& pipelineCache,
 				   vk::RenderPass renderPass, uint32_t attachmentCount)
 	: m_Context(context), m_PipelineCache(pipelineCache), m_Cache(cache)
 {
 	std::vector<vk::DescriptorSetLayoutBinding> layoutBinding;
-	if(!decode(cache, *data.cvalue(), layoutBinding))
+	if(!decode(cache, data.value(), layoutBinding))
 	{
 		LOG_ERROR("fatal error happened during the creation of a pipeline");
 		m_IsValid = false;
@@ -122,7 +127,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	vk::PipelineVertexInputStateCreateInfo VertexInputState;
 	std::vector<vk::VertexInputBindingDescription> vertexBindingDescriptions;
 	std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescriptions;
-	if(!decode(cache, *data.cvalue(), vertexBindingDescriptions, vertexAttributeDescriptions))
+	if(!decode(cache, data.value(), vertexBindingDescriptions, vertexAttributeDescriptions))
 	{
 		LOG_ERROR("fatal error happened during the creation of a pipeline");
 		m_IsValid = false;
@@ -142,11 +147,11 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	pPipelineLayoutCreateInfo.pSetLayouts	= &m_DescriptorSetLayout;
 
 	// todo: this should be removed in favour of a generic check for push_constants in the shader meta
-	for(const auto& stage : data.cvalue()->stages())
+	for(const auto& stage : data.value().stages())
 	{
 		for(auto& binding : stage.bindings())
 		{
-			if(binding.descriptor() == vk::DescriptorType::eUniformBuffer)
+			if(binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 			{
 				// todo: this is a hardcoded setup, brittle and needs to be removed
 				if(cache.library().has_tag(binding.buffer(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX"))
@@ -189,7 +194,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	// Rasterization state
 	vk::PipelineRasterizationStateCreateInfo rasterizationState;
 	rasterizationState.polygonMode			   = (data->wireframe()) ? vk::PolygonMode::eLine : vk::PolygonMode::eFill;
-	rasterizationState.cullMode				   = data->cull_mode();
+	rasterizationState.cullMode				   = conversion::to_vk(data->cull_mode());
 	rasterizationState.frontFace			   = vk::FrontFace::eCounterClockwise;
 	rasterizationState.depthClampEnable		   = VK_FALSE;
 	rasterizationState.rasterizerDiscardEnable = VK_FALSE;
@@ -210,16 +215,16 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	for(size_t i = 0; i < std::min(blendState.size(), (size_t)attachmentCount); ++i)
 	{
 		blendAttachmentState[i].blendEnable	= blendState[i].enabled();
-		blendAttachmentState[i].colorWriteMask = blendState[i].color_components();
+		blendAttachmentState[i].colorWriteMask = conversion::to_vk(blendState[i].color_components());
 		if(blendAttachmentState[i].blendEnable)
 		{
-			blendAttachmentState[i].srcColorBlendFactor = blendState[i].color_blend_src();
-			blendAttachmentState[i].dstColorBlendFactor = blendState[i].color_blend_dst();
-			blendAttachmentState[i].colorBlendOp		= blendState[i].color_blend_op();
+			blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(blendState[i].color_blend_src());
+			blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(blendState[i].color_blend_dst());
+			blendAttachmentState[i].colorBlendOp		= conversion::to_vk(blendState[i].color_blend_op());
 
-			blendAttachmentState[i].srcAlphaBlendFactor = blendState[i].alpha_blend_src();
-			blendAttachmentState[i].dstAlphaBlendFactor = blendState[i].alpha_blend_dst();
-			blendAttachmentState[i].alphaBlendOp		= blendState[i].alpha_blend_op();
+			blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_src());
+			blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_dst());
+			blendAttachmentState[i].alphaBlendOp		= conversion::to_vk(blendState[i].alpha_blend_op());
 		}
 	}
 
@@ -228,16 +233,16 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	for(size_t i = blendState.size(); i < attachmentCount; ++i)
 	{
 		blendAttachmentState[i].blendEnable	= def_state.enabled();
-		blendAttachmentState[i].colorWriteMask = def_state.color_components();
+		blendAttachmentState[i].colorWriteMask = conversion::to_vk(def_state.color_components());
 		if(blendAttachmentState[i].blendEnable)
 		{
-			blendAttachmentState[i].srcColorBlendFactor = def_state.color_blend_src();
-			blendAttachmentState[i].dstColorBlendFactor = def_state.color_blend_dst();
-			blendAttachmentState[i].colorBlendOp		= def_state.color_blend_op();
+			blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(def_state.color_blend_src());
+			blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(def_state.color_blend_dst());
+			blendAttachmentState[i].colorBlendOp		= conversion::to_vk(def_state.color_blend_op());
 
-			blendAttachmentState[i].srcAlphaBlendFactor = def_state.alpha_blend_src();
-			blendAttachmentState[i].dstAlphaBlendFactor = def_state.alpha_blend_dst();
-			blendAttachmentState[i].alphaBlendOp		= def_state.alpha_blend_op();
+			blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_src());
+			blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_dst());
+			blendAttachmentState[i].alphaBlendOp		= conversion::to_vk(def_state.alpha_blend_op());
 		}
 	}
 	colorBlendState.attachmentCount = attachmentCount;
@@ -291,8 +296,8 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
 	for(auto& stage : data->stages())
 	{
-		auto shader_handle = cache.find<core::gfx::shader>(stage.shader());
-		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load(m_Context)) &&
+		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
+		if((shader_handle.state() == core::resource::state::loaded) &&
 		   shader_handle->pipeline())
 		{
 			shaderStages.push_back(shader_handle->pipeline().value());
@@ -334,7 +339,7 @@ pipeline::pipeline(const UID& uid, core::resource::cache& cache, core::resource:
 	utility::vulkan::check(m_Context->device().allocateDescriptorSets(&allocInfo, &m_DescriptorSet));
 
 
-	update(m_Cache, data, m_DescriptorSet);
+	update(m_Cache, data.value(), m_DescriptorSet);
 }
 
 pipeline::~pipeline()
@@ -348,23 +353,23 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 {
 	for(const auto& stage : data.stages())
 	{
-		auto shader_handle = cache.find<core::gfx::shader>(stage.shader());
-		if((shader_handle.resource_state() == core::resource::state::LOADED || shader_handle.load(m_Context)) &&
+		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
+		if((shader_handle.state() == core::resource::state::loaded) &&
 		   shader_handle->pipeline())
 		{
 			for(const auto& binding : stage.bindings())
 			{
 				switch(binding.descriptor())
 				{
-				case vk::DescriptorType::eCombinedImageSampler:
+				case core::gfx::binding_type::combined_image_sampler:
 				{
-					auto tex_handle = cache.find<core::gfx::texture>(binding.texture());
+					auto tex_handle = cache.find<core::ivk::texture>(binding.texture());
 
-					if(tex_handle.resource_state() != core::resource::state::LOADED)
+					if(tex_handle.state() != core::resource::state::loaded)
 					{
-						tex_handle.load(m_Context);
+						tex_handle = cache.create_using<core::ivk::texture>(binding.texture(), m_Context);
 
-						if(tex_handle.resource_state() != core::resource::state::LOADED)
+						if(tex_handle.state() != core::resource::state::loaded)
 						{
 							LOG_ERROR("could not load the texture ", utility::to_string(binding.texture()),
 									  " when updating the pipeline");
@@ -386,13 +391,13 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 					m_DescriptorSets.push_back(writeDescriptorSet);
 				}
 				break;
-				case vk::DescriptorType::eStorageBuffer:
-				case vk::DescriptorType::eUniformBuffer:
+				case core::gfx::binding_type::storage_buffer:
+				case core::gfx::binding_type::uniform_buffer:
 				{
-					auto buffer_handle = cache.find<core::gfx::buffer>(binding.buffer());
-					if(buffer_handle.resource_state() == core::resource::state::LOADED)
+					auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
+					if(buffer_handle.state() == core::resource::state::loaded)
 					{
-						vk::BufferUsageFlagBits usage = (binding.descriptor() == vk::DescriptorType::eUniformBuffer)
+						vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 															? vk::BufferUsageFlagBits::eUniformBuffer
 															: vk::BufferUsageFlagBits::eStorageBuffer;
 						if(!(buffer_handle->data()->usage() & usage))
@@ -405,11 +410,11 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 						}
 
 						m_DescriptorSets.push_back(utility::vulkan::defaults::write_descriptor_set(
-							set, binding.descriptor(), binding.binding_slot(), &buffer_handle->buffer_info()));
+							set, conversion::to_vk(binding.descriptor()), binding.binding_slot(), &buffer_handle->buffer_info()));
 					}
 					else
 					{
-						LOG_ERROR("Tried to use the unloaded ", vk::to_string(binding.descriptor()), " in a pipeline");
+						LOG_ERROR("Tried to use the unloaded ", vk::to_string(conversion::to_vk(binding.descriptor())), " in a pipeline");
 						LOG_ERROR("Shader: ", utility::to_string(stage.shader()));
 						m_IsValid = false;
 						return false;
@@ -469,13 +474,13 @@ bool pipeline::update(uint32_t bindingLocation, const UID& textureMeta, const UI
 			{
 			case vk::DescriptorType::eCombinedImageSampler:
 			{
-				auto tex_handle = m_Cache.find<core::gfx::texture>(textureMeta);
+				auto tex_handle = m_Cache.find<core::ivk::texture>(textureMeta);
 
-				if(tex_handle.resource_state() != core::resource::state::LOADED)
+				if(tex_handle.state() != core::resource::state::loaded)
 				{
-					tex_handle.load(m_Context);
+					tex_handle = m_Cache.create_using<core::ivk::texture>(textureMeta, m_Context);
 
-					if(tex_handle.resource_state() != core::resource::state::LOADED)
+					if(tex_handle.state() != core::resource::state::loaded)
 					{
 						LOG_ERROR("could not load the texture ", utility::to_string(textureMeta),
 								  " when updating the pipeline");
@@ -525,7 +530,7 @@ bool pipeline::update(uint32_t bindingLocation, vk::DeviceSize offset, vk::Devic
 			}
 			break;
 			default:
-				LOG_ERROR( "The descriptor type [" + vk::to_string((vk::DescriptorType)set.descriptorType) +
+				LOG_ERROR("The descriptor type [" + vk::to_string((vk::DescriptorType)set.descriptorType) +
 						  "] is not a buffer.");
 				return false;
 			}
@@ -538,13 +543,14 @@ bool pipeline::update(uint32_t bindingLocation, vk::DeviceSize offset, vk::Devic
 
 bool pipeline::get(uint32_t bindingLocation, vk::WriteDescriptorSet& out)
 {
-	if(auto it = std::find_if(std::begin(m_DescriptorSets), std::end(m_DescriptorSets), [bindingLocation](const auto& set)
-	{ return set.dstBinding == bindingLocation; }); it != std::end(m_DescriptorSets))
+	if(auto it = std::find_if(std::begin(m_DescriptorSets), std::end(m_DescriptorSets),
+							  [bindingLocation](const auto& set) { return set.dstBinding == bindingLocation; });
+	   it != std::end(m_DescriptorSets))
 	{
 		out = *it;
 		return true;
 	}
-	
+
 	LOG_ERROR("Could not find the binding location in the pipeline");
 	return false;
 }

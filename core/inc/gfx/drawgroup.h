@@ -4,16 +4,25 @@
 #include "gfx/drawlayer.h"
 #include <map>
 #include <vector>
-#include "systems/resource.h"
+#include "resource/resource.hpp"
 
+#ifdef PE_VULKAN
+namespace core::ivk
+{
+	class pass;
+}
+#endif
+#ifdef PE_GLES
+namespace core::igles
+{
+	class pass;
+}
+#endif
 
 namespace core::gfx
 {
 	class bundle;
-	class geometry;
 	class drawgroup;
-	class framebuffer;
-	class swapchain;
 	class drawcall;
 
 	/// \brief a collection of draw instructions to be recorded and sent to the GPU.
@@ -23,11 +32,17 @@ namespace core::gfx
 	/// which will be used by the render to order and output them.
 	class drawgroup
 	{
-	public:
-		drawgroup() = default;
-		~drawgroup() = default;
+#ifdef PE_VULKAN
+		friend class core::ivk::pass;
+#endif
+#ifdef PE_GLES
+		friend class core::igles::pass;
+#endif
+	  public:
+		drawgroup()					= default;
+		~drawgroup()				= default;
 		drawgroup(const drawgroup&) = default;
-		drawgroup(drawgroup&&) = default;
+		drawgroup(drawgroup&&)		= default;
 		drawgroup& operator=(const drawgroup&) = default;
 		drawgroup& operator=(drawgroup&&) = default;
 
@@ -36,25 +51,15 @@ namespace core::gfx
 		std::optional<std::reference_wrapper<const drawlayer>> get(const psl::string& layer) const noexcept;
 		bool priority(drawlayer& layer, uint32_t priority) noexcept;
 
-		bool add(core::resource::indirect_handle<core::gfx::swapchain> swapchain);
-		bool add(core::resource::indirect_handle<core::gfx::framebuffer> framebuffer);
-
-		bool remove(core::resource::indirect_handle<core::gfx::swapchain> swapchain);
-		bool remove(core::resource::indirect_handle<core::gfx::framebuffer> framebuffer);
-
 		drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::bundle> bundle) noexcept;
 		std::optional<std::reference_wrapper<drawcall>> get(const drawlayer& layer,
 															core::resource::handle<core::gfx::bundle> bundle) noexcept;
 
-		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer, uint32_t index);
-		void build(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain, uint32_t index);
-		//bool remove(const drawlayer& layer);
-		//bool remove(const drawcall& call);
-		//bool remove(const drawlayer& layer, const drawcall& call);
+		// bool remove(const drawlayer& layer);
+		// bool remove(const drawcall& call);
+		// bool remove(const drawlayer& layer, const drawcall& call);
 
-	private:
+	  private:
 		std::map<drawlayer, std::vector<drawcall>> m_Group;
-		core::resource::handle<core::gfx::swapchain> m_Swapchain;
-		std::vector<core::resource::handle<core::gfx::framebuffer>> m_Framebuffers;
 	};
-}
+} // namespace core::gfx
