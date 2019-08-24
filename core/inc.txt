@@ -19,7 +19,6 @@ data/window.h
 gfx/stdafx.h
 gfx/limits.h
 gfx/types.h
-gfx/types2.h
 
 gfx/context.h
 gfx/shader.h

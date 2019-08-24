@@ -5,6 +5,12 @@
 
 namespace core::gfx
 {
+	enum class graphics_backend
+	{
+		vulkan = 1 << 0,
+		gles   = 1 << 1
+	};
+
 	template <typename T>
 	class enum_flag
 	{

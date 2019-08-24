@@ -12,7 +12,7 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 
 #include "gfx/limits.h"
-#include "gfx/types2.h"
+#include "gfx/types.h"
 #include "utility/geometry.h"
 
 #include "data/window.h" // application data
