@@ -398,7 +398,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 							(binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 								? vk::BufferUsageFlagBits::eUniformBuffer
 								: vk::BufferUsageFlagBits::eStorageBuffer;
-						if(!(buffer_handle->data()->usage() & usage))
+						if(!(conversion::to_vk(buffer_handle->data()->usage()) & usage))
 						{
 							LOG_ERROR("The actual buffer's usage is not compatible with the buffer type ",
 									  vk::to_string(usage));

@@ -1,7 +1,6 @@
 #include "gles/buffer.h"
 #include "data/buffer.h"
 #include "gles/conversion.h"
-#include "vk/conversion.h"
 #include "logging.h"
 
 using namespace core::igles;
@@ -13,7 +12,7 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 			   core::resource::handle<core::data::buffer> buffer_data)
 	: m_BufferDataHandle(buffer_data), m_UID(metaData.uid)
 {
-	m_BufferType = to_gles(to_memory_type(buffer_data->usage()));
+	m_BufferType = to_gles(buffer_data->usage());
 
 
 	glGenBuffers(1, &m_Buffer);

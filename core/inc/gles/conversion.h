@@ -42,32 +42,32 @@ namespace core::gfx::conversion
 	inline vertex_input_rate to_vertex_input_rate(GLint value) noexcept { return vertex_input_rate(value); }
 	/// \warning gles does not have a concept of transfer_source/transfer_destination, all buffers are "valid" as
 	/// either
-	inline decltype(GL_ARRAY_BUFFER) to_gles(memory_type memory) noexcept
+	inline decltype(GL_ARRAY_BUFFER) to_gles(memory_usage memory) noexcept
 	{
-		using gfx_type = std::underlying_type_t<memory_type>;
+		using gfx_type = std::underlying_type_t<memory_usage>;
 
-		if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_texel_buffer))
+		if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_texel_buffer))
 		{
 			return GL_TEXTURE_BUFFER;
 		}
-		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::conditional_rendering))
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::conditional_rendering))
 		{
 			assert(false);
 			// not implemented
 		}
-		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::index_buffer))
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::index_buffer))
 		{
 			return GL_ELEMENT_ARRAY_BUFFER;
 		}
-		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::vertex_buffer))
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::vertex_buffer))
 		{
 			return GL_ARRAY_BUFFER;
 		}
-		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::storage_buffer))
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::storage_buffer))
 		{
 			return GL_SHADER_STORAGE_BUFFER;
 		}
-		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_buffer))
+		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_buffer))
 		{
 			return GL_UNIFORM_BUFFER;
 		}

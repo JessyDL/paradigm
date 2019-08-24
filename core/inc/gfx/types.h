@@ -143,7 +143,7 @@ namespace core::gfx
 		size_t destination_offset; // offset in the destination location
 		size_t size;			   // size of the copy instruction
 	};
-	enum class memory_type
+	enum class memory_usage
 	{
 		transfer_source		  = 1 << 0,
 		transfer_destination  = 1 << 1,
@@ -157,15 +157,34 @@ namespace core::gfx
 		conditional_rendering = 1 << 9
 	};
 
+	inline memory_usage operator|(memory_usage bit0, memory_usage bit1)
+	{
+		using type = enum_flag<memory_usage>;
+		return type(bit0) | bit1;
+	}
+
 	enum class memory_property
 	{
-		device_local,
-		host_visible,
-		host_cached,
-		lazily_allocated,
-		protected_memory
+		device_local	 = 1 << 0,
+		host_visible	 = 1 << 1,
+		host_coherent	= 1 << 2,
+		host_cached		 = 1 << 3,
+		lazily_allocated = 1 << 4,
+		protected_memory = 1 << 5,
 	};
 
+
+	inline memory_property operator|(memory_property bit0, memory_property bit1)
+	{
+		using type = enum_flag<memory_property>;
+		return type(bit0) | bit1;
+	}
+
+	inline bool operator&(memory_property bit0, memory_property bit1)
+	{
+		using type = enum_flag<memory_property>;
+		return (type(bit0) & bit1) == bit1;
+	}
 	enum class image_type
 	{
 		planar_1D  = 0,

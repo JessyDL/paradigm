@@ -5,8 +5,8 @@
 #include "psl/memory/region.h"
 #include "psl/memory/segment.h"
 #include "gfx/types.h"
-#include "gfx/stdafx.h"
 #include "fwd/resource/resource.h"
+#include "vk/conversion.h"
 
 /// \brief contains all data types that can be serialized to/from disk.
 namespace core::data
@@ -15,7 +15,7 @@ namespace core::data
 	///
 	/// core::data::buffer is a data container for anything that will be uploaded to the GPU. This means that this can
 	/// not contain any complex types (such as indirections). core::data::buffer can be incorrectly set up when giving
-	/// incompatible memory::region bundled with vk::BufferUsageFlags. \note the memory::region you pass to this object
+	/// incompatible memory::region bundled with core::gfx::memory_usage. \note the memory::region you pass to this object
 	/// will also dictate the **size** and **alignment** requirements of this specific resource on the GPU. \todo figure
 	/// out a way around incompatible core::data::buffer setups, perhaps by using structs to construct the class.
 	/// \author Jessy De Lannoit
@@ -32,8 +32,8 @@ namespace core::data
 		/// \param[in] memory_region what is the owning region of this memory. Note that this parameter also will
 		/// dictate the size and alignment of the resource.
 		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   vk::BufferUsageFlags usage,
-			   vk::MemoryPropertyFlags memoryPropertyFlags, memory::region&& memory_region) noexcept;
+			   core::gfx::memory_usage usage, core::gfx::memory_property memoryPropertyFlags,
+			   memory::region&& memory_region) noexcept;
 
 		~buffer();
 
@@ -49,11 +49,11 @@ namespace core::data
 		/// \returns the total size in the memory::region that this buffer occupies.
 		size_t size() const;
 
-		/// \returns the vk::BufferUsageFlags of this instance, showing the type of resource this is for the GPU
-		vk::BufferUsageFlags usage() const;
+		/// \returns the core::gfx::memory_usage of this instance, showing the type of resource this is for the GPU
+		core::gfx::memory_usage usage() const;
 
-		/// \returns the vk::MemoryPropertyFlags, so you know where the data lives.
-		vk::MemoryPropertyFlags memoryPropertyFlags() const;
+		/// \returns the core::gfx::memory_property, so you know where the data lives.
+		core::gfx::memory_property memoryPropertyFlags() const;
 
 		/// \returns the associated memory::region, where the data lives.
 		/// \note the data can exist "virtually" as well, for example in the case this is a pure GPU resource.
@@ -84,7 +84,24 @@ namespace core::data
 		template <typename S>
 		void serialize(S& serializer)
 		{
-			serializer << m_Usage << m_MemoryPropertyFlags << m_Transient << m_WriteFrequency;
+			const uint32_t current_version = 1;
+			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
+			serializer << version;
+			switch(version)
+			{
+			case current_version:
+				serializer << m_Usage << m_MemoryPropertyFlags << m_Transient << m_WriteFrequency;
+				break;
+			case 0:
+				psl::serialization::property<vk::BufferUsageFlags, const_str("USAGE", 5)> usage;
+				psl::serialization::property<vk::MemoryPropertyFlags, const_str("PROPERTIES", 10)>
+					memoryPropertyFlags;
+				
+				serializer << usage << memoryPropertyFlags << m_Transient << m_WriteFrequency;
+				m_Usage.value = core::gfx::conversion::to_memory_usage(usage.value);
+				m_MemoryPropertyFlags.value = core::gfx::conversion::to_memory_property(memoryPropertyFlags.value);
+				break;
+			}
 			if constexpr(psl::serialization::details::is_encoder<S>::value)
 			{
 				psl::serialization::property<size_t, const_str("SIZE", 4)> size{m_Region.size()};
@@ -126,7 +143,7 @@ namespace core::data
 			false}; // is the buffer short lived (true) or not (false)
 		psl::serialization::property<core::gfx::memory_write_frequency, const_str("WRITE FREQUENCY", 15)> m_WriteFrequency{
 				core::gfx::memory_write_frequency::per_frame}; // is the buffer's data changing frequently (false) or not (true)
-		psl::serialization::property<vk::BufferUsageFlags, const_str("USAGE", 5)> m_Usage;
-		psl::serialization::property<vk::MemoryPropertyFlags, const_str("PROPERTIES", 10)> m_MemoryPropertyFlags;
+		psl::serialization::property<core::gfx::memory_usage, const_str("USAGE", 5)> m_Usage;
+		psl::serialization::property<core::gfx::memory_property, const_str("PROPERTIES", 10)> m_MemoryPropertyFlags;
 	};
 } // namespace core::data

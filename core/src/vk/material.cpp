@@ -94,7 +94,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 														? vk::BufferUsageFlagBits::eUniformBuffer
 														: vk::BufferUsageFlagBits::eStorageBuffer;
-					if(buffer_handle->data()->usage() & usage)
+					if(core::gfx::conversion::to_vk(buffer_handle->data()->usage()) & usage)
 					{
 						m_Buffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle));
 					}
@@ -104,7 +104,8 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 							"ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
 							"the type [{2}] instead in shader [{3}]",
 							utility::to_string(ID), vk::to_string(gfx::conversion::to_vk(binding.descriptor())),
-							vk::to_string(buffer_handle->data()->usage()), utility::to_string(stage.shader()));
+							vk::to_string(core::gfx::conversion::to_vk(buffer_handle->data()->usage())),
+							utility::to_string(stage.shader()));
 						return;
 					}
 				}

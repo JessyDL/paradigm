@@ -598,12 +598,12 @@ int android_entry()
 
 #endif
 
- struct lifetime_test
+struct lifetime_test
 {
 	bool operator()(const core::ecs::components::lifetime& value) const noexcept { return value.value > 0.5f; }
 };
 
- auto scaleSystem =
+auto scaleSystem =
 	[](psl::ecs::info& info,
 	   psl::ecs::pack<psl::ecs::partial, core::ecs::components::transform, const core::ecs::components::lifetime,
 					  psl::ecs::on_condition<lifetime_test, core::ecs::components::lifetime>>
@@ -704,8 +704,8 @@ int entry(gfx::graphics_backend backend)
 	auto uniform_buffer_align = core::gfx::limits::uniform_buffer_offset_alignment(context_handle.value());
 
 	auto matBufferData = cache.create<core::data::buffer>(
-		vk::BufferUsageFlagBits::eStorageBuffer | vk::BufferUsageFlagBits::eTransferDst,
-		vk::MemoryPropertyFlagBits::eDeviceLocal,
+		core::gfx::memory_usage::storage_buffer | core::gfx::memory_usage::transfer_destination,
+		core::gfx::memory_property::device_local,
 		memory::region{1024 * 1024 * 32, static_cast<uint64_t>(storage_buffer_align),
 					   new memory::default_allocator(false)});
 	auto matBuffer = cache.create<core::gfx::buffer>(context_handle, matBufferData);
@@ -714,16 +714,16 @@ int entry(gfx::graphics_backend backend)
 	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to
 	//   have a copy on the CPU
 	// - then we create the vulkan buffer resource to interface with the GPU
-	auto vertexBufferData =
-		cache.create<data::buffer>(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-								   vk::MemoryPropertyFlagBits::eDeviceLocal,
-								   memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	auto vertexBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
+		core::gfx::memory_property::device_local,
+		memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto vertexBuffer = cache.create<gfx::buffer>(context_handle, vertexBufferData);
 
-	auto indexBufferData =
-		cache.create<data::buffer>(vk::BufferUsageFlagBits::eIndexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-								   vk::MemoryPropertyFlagBits::eDeviceLocal,
-								   memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
+	auto indexBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
+		core::gfx::memory_property::device_local,
+		memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData);
 
 	std::vector<resource::handle<data::geometry>> geometryDataHandles;
@@ -767,8 +767,8 @@ int entry(gfx::graphics_backend backend)
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
 	auto frameCamBufferData =
-		cache.create<data::buffer>(vk::BufferUsageFlagBits::eUniformBuffer,
-								   vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+		cache.create<data::buffer>(core::gfx::memory_usage::uniform_buffer,
+								   core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 								   resource_region
 									   .create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
 													  uniform_buffer_align, new memory::default_allocator(true))
@@ -803,17 +803,17 @@ int entry(gfx::graphics_backend backend)
 	if(backend == graphics_backend::vulkan)
 	{
 		auto stagingBufferData = cache.create<data::buffer>(
-			vk::BufferUsageFlagBits::eTransferSrc,
-			vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+			core::gfx::memory_usage::transfer_source,
+			core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 			memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
 		stagingBuffer = cache.create<gfx::buffer>(context_handle, stagingBufferData);
 	}
 
 
-	auto instanceBufferData =
-		cache.create<data::buffer>(vk::BufferUsageFlagBits::eVertexBuffer | vk::BufferUsageFlagBits::eTransferDst,
-								   vk::MemoryPropertyFlagBits::eDeviceLocal,
-								   memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+	auto instanceBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
+		core::gfx::memory_property::device_local,
+		memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
 	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
@@ -827,51 +827,51 @@ int entry(gfx::graphics_backend backend)
 		bundles[1]->set(materials[2], 1000);
 	}
 
-	 core::gfx::render_graph renderGraph{};
-	 auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
+	core::gfx::render_graph renderGraph{};
+	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
 	// create the ecs
-	 using psl::ecs::state;
+	using psl::ecs::state;
 
-	 state ECSState{};
+	state ECSState{};
 
-	 using namespace core::ecs::components;
+	using namespace core::ecs::components;
 
-	 const size_t area			  = 128;
-	 const size_t area_granularity = 128;
-	 const size_t size_steps		  = 24;
+	const size_t area			  = 128;
+	const size_t area_granularity = 128;
+	const size_t size_steps		  = 24;
 
 
-	 utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
+	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
 								   core::profiler.to_string());
 
 
-	 core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
-	 camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
+	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
+	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
-	 core::ecs::systems::render render_system{ECSState, swapchain_pass};
-	 render_system.add_render_range(2000, 3000);
-	 core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	 core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer,
+	core::ecs::systems::render render_system{ECSState, swapchain_pass};
+	render_system.add_render_range(2000, 3000);
+	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
+	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer,
 													 context_handle->backend()};
 
-	 ECSState.declare(psl::ecs::threading::par, scaleSystem);
-	 ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
-	 ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
-	 ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
+	ECSState.declare(psl::ecs::threading::par, scaleSystem);
+	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
+	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
+	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
 
-	 ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
-	 ECSState.declare(core::ecs::systems::geometry_instance);
+	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
+	ECSState.declare(core::ecs::systems::geometry_instance);
 
 	/*core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
 		swapchain_pass,			  context_handle,		 surface_handle};*/
 
-	 auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
+	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
-	 size_t iterations = 25600;
-	 std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
+	size_t iterations = 25600;
+	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 
-	 ECSState.create(
+	ECSState.create(
 		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
 		[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
 			renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
@@ -886,7 +886,7 @@ int entry(gfx::graphics_backend backend)
 					  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 		});
 
-	 while(surface_handle->tick())
+	while(surface_handle->tick())
 	{
 		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
 		core::profiler.next_frame();
@@ -985,11 +985,11 @@ int main()
 #endif
 
 	// std::thread vk_thread(entry, graphics_backend::gles);
-	//std::thread gl_thread(entry, graphics_backend::vulkan);
+	// std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
 	entry(graphics_backend::gles);
-	//gl_thread.join();
-	//return 0;
+	// gl_thread.join();
+	// return 0;
 	std::srand(0);
 	return entry(graphics_backend::vulkan);
 }

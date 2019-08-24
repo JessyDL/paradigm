@@ -70,82 +70,140 @@ namespace core::gfx::conversion
 		assert(false);
 		return vertex_input_rate::vertex;
 	}
-	inline vk::BufferUsageFlags to_vk(memory_type memory) noexcept
+	inline vk::BufferUsageFlags to_vk(memory_usage memory) noexcept
 	{
 		using vk_type  = std::underlying_type_t<vk::BufferUsageFlagBits>;
-		using gfx_type = std::underlying_type_t<memory_type>;
+		using gfx_type = std::underlying_type_t<memory_usage>;
 
 		vk_type destination{0};
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::transfer_source)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::transfer_source)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eTransferSrc)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::transfer_destination)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::transfer_destination)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eTransferDst)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_texel_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_texel_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eUniformTexelBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::storage_texel_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::storage_texel_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eStorageTexelBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::uniform_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eUniformBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::storage_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::storage_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eStorageBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::index_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::index_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eIndexBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::vertex_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::vertex_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eVertexBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::indirect_buffer)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::indirect_buffer)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eIndirectBuffer)
 						   : 0;
-		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_type::conditional_rendering)
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::conditional_rendering)
 						   ? static_cast<vk_type>(vk::BufferUsageFlagBits::eConditionalRenderingEXT)
 						   : 0;
 		return vk::BufferUsageFlags{vk::BufferUsageFlagBits{destination}};
 	}
 
-	inline memory_type to_memory_type(vk::BufferUsageFlags flags) noexcept
+	inline memory_usage to_memory_usage(vk::BufferUsageFlags flags) noexcept
 	{
-		using gfx_type = std::underlying_type_t<memory_type>;
+		using gfx_type = std::underlying_type_t<memory_usage>;
 
 		gfx_type res{0};
 		res += (flags & vk::BufferUsageFlagBits::eConditionalRenderingEXT)
-				   ? static_cast<gfx_type>(memory_type::conditional_rendering)
+				   ? static_cast<gfx_type>(memory_usage::conditional_rendering)
 				   : 0;
 		res +=
-			(flags & vk::BufferUsageFlagBits::eTransferSrc) ? static_cast<gfx_type>(memory_type::transfer_source) : 0;
+			(flags & vk::BufferUsageFlagBits::eTransferSrc) ? static_cast<gfx_type>(memory_usage::transfer_source) : 0;
 		res += (flags & vk::BufferUsageFlagBits::eTransferDst)
-				   ? static_cast<gfx_type>(memory_type::transfer_destination)
+				   ? static_cast<gfx_type>(memory_usage::transfer_destination)
 				   : 0;
 
 		res += (flags & vk::BufferUsageFlagBits::eUniformTexelBuffer)
-				   ? static_cast<gfx_type>(memory_type::uniform_texel_buffer)
+				   ? static_cast<gfx_type>(memory_usage::uniform_texel_buffer)
 				   : 0;
 
 		res += (flags & vk::BufferUsageFlagBits::eStorageTexelBuffer)
-				   ? static_cast<gfx_type>(memory_type::storage_texel_buffer)
+				   ? static_cast<gfx_type>(memory_usage::storage_texel_buffer)
 				   : 0;
 
 		res +=
-			(flags & vk::BufferUsageFlagBits::eUniformBuffer) ? static_cast<gfx_type>(memory_type::uniform_buffer) : 0;
+			(flags & vk::BufferUsageFlagBits::eUniformBuffer) ? static_cast<gfx_type>(memory_usage::uniform_buffer) : 0;
 
 		res +=
-			(flags & vk::BufferUsageFlagBits::eStorageBuffer) ? static_cast<gfx_type>(memory_type::storage_buffer) : 0;
+			(flags & vk::BufferUsageFlagBits::eStorageBuffer) ? static_cast<gfx_type>(memory_usage::storage_buffer) : 0;
 
-		res += (flags & vk::BufferUsageFlagBits::eIndexBuffer) ? static_cast<gfx_type>(memory_type::index_buffer) : 0;
+		res += (flags & vk::BufferUsageFlagBits::eIndexBuffer) ? static_cast<gfx_type>(memory_usage::index_buffer) : 0;
 
-		res += (flags & vk::BufferUsageFlagBits::eVertexBuffer) ? static_cast<gfx_type>(memory_type::vertex_buffer) : 0;
+		res += (flags & vk::BufferUsageFlagBits::eVertexBuffer) ? static_cast<gfx_type>(memory_usage::vertex_buffer) : 0;
 
-		res += (flags & vk::BufferUsageFlagBits::eIndirectBuffer) ? static_cast<gfx_type>(memory_type::indirect_buffer)
+		res += (flags & vk::BufferUsageFlagBits::eIndirectBuffer) ? static_cast<gfx_type>(memory_usage::indirect_buffer)
 																  : 0;
 
-		return memory_type{res};
+		return memory_usage{res};
 	}
+
+	
+	inline vk::MemoryPropertyFlags to_vk(memory_property memory) noexcept
+	{
+		using vk_type  = std::underlying_type_t<vk::MemoryPropertyFlagBits>;
+		using gfx_type = std::underlying_type_t<memory_property>;
+
+		vk_type destination{0};
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_property::device_local)
+						   ? static_cast<vk_type>(vk::MemoryPropertyFlagBits::eDeviceLocal)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_property::host_cached)
+						   ? static_cast<vk_type>(vk::MemoryPropertyFlagBits::eHostCached)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_property::host_visible)
+						   ? static_cast<vk_type>(vk::MemoryPropertyFlagBits::eHostVisible)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_property::lazily_allocated)
+						   ? static_cast<vk_type>(vk::MemoryPropertyFlagBits::eLazilyAllocated)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_property::protected_memory)
+						   ? static_cast<vk_type>(vk::MemoryPropertyFlagBits::eProtected)
+						   : 0;
+		destination += static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_property::host_coherent)
+						   ? static_cast<vk_type>(vk::MemoryPropertyFlagBits::eHostCoherent)
+						   : 0;
+		return vk::MemoryPropertyFlags{vk::MemoryPropertyFlagBits{destination}};
+	}
+
+	inline memory_property to_memory_property(vk::MemoryPropertyFlags flags) noexcept
+	{
+		using gfx_type = std::underlying_type_t<memory_property>;
+
+		gfx_type res{0};
+		res += (flags & vk::MemoryPropertyFlagBits::eDeviceLocal) ? static_cast<gfx_type>(memory_property::device_local)
+				   : 0;
+		res +=
+			(flags & vk::MemoryPropertyFlagBits::eHostCached) ? static_cast<gfx_type>(memory_property::host_cached)
+																 : 0;
+		res += (flags & vk::MemoryPropertyFlagBits::eHostVisible) ? static_cast<gfx_type>(memory_property::host_visible)
+				   : 0;
+
+		res += (flags & vk::MemoryPropertyFlagBits::eLazilyAllocated)
+				   ? static_cast<gfx_type>(memory_property::lazily_allocated)
+				   : 0;
+
+		res += (flags & vk::MemoryPropertyFlagBits::eProtected)
+				   ? static_cast<gfx_type>(memory_property::protected_memory)
+				   : 0;
+
+		res += (flags & vk::MemoryPropertyFlagBits::eHostCoherent)
+				   ? static_cast<gfx_type>(memory_property::host_coherent)
+																   : 0;
+
+
+		return memory_property{res};
+	}
+
 
 	inline vk::ImageViewType to_vk(image_type value) noexcept
 	{

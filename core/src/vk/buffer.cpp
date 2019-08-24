@@ -24,7 +24,7 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 	vk::MemoryRequirements memReqs;
 	auto& region   = m_BufferDataHandle->region();
 	auto alignment = region.alignment();
-	auto type	  = m_BufferDataHandle->usage();
+	auto type	  = conversion::to_vk(m_BufferDataHandle->usage());
 
 	if(type & vk::BufferUsageFlagBits::eUniformBuffer &&
 	   alignment != m_Context->properties().limits.minUniformBufferOffsetAlignment)
@@ -51,7 +51,7 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 	// Vertex buffer
 	vk::BufferCreateInfo bufCreateInfo;
 	bufCreateInfo.pNext = NULL;
-	bufCreateInfo.usage = m_BufferDataHandle->usage();
+	bufCreateInfo.usage = type;
 	bufCreateInfo.size  = m_BufferDataHandle->size();
 	bufCreateInfo.flags = vk::BufferCreateFlagBits();
 
@@ -59,7 +59,7 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 
 	memReqs = m_Context->device().getBufferMemoryRequirements(m_Buffer), memAllocInfo.allocationSize = memReqs.size;
 
-	m_Context->memory_type(memReqs.memoryTypeBits, m_BufferDataHandle->memoryPropertyFlags(),
+	m_Context->memory_type(memReqs.memoryTypeBits, core::gfx::conversion::to_vk(m_BufferDataHandle->memoryPropertyFlags()),
 						   &memAllocInfo.memoryTypeIndex);
 	utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_Memory));
 
@@ -80,8 +80,8 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 		}
 	}
 
-	if(m_BufferDataHandle->memoryPropertyFlags() == vk::MemoryPropertyFlagBits::eDeviceLocal ||
-	   m_BufferDataHandle->usage() & vk::BufferUsageFlagBits::eTransferDst)
+	if(conversion::to_vk(m_BufferDataHandle->memoryPropertyFlags()) == vk::MemoryPropertyFlagBits::eDeviceLocal ||
+	   conversion::to_vk(m_BufferDataHandle->usage()) & vk::BufferUsageFlagBits::eTransferDst)
 	{
 		vk::CommandBufferAllocateInfo cmdBufInfo;
 		cmdBufInfo.commandPool = m_Context->command_pool();
@@ -100,7 +100,7 @@ buffer::~buffer()
 	m_Context->device().destroyBuffer(m_Buffer, nullptr);
 	m_Context->device().freeMemory(m_Memory, nullptr);
 	m_Context->device().destroyFence(m_BufferCompleted);
-	if(m_BufferDataHandle->memoryPropertyFlags() == vk::MemoryPropertyFlagBits::eDeviceLocal)
+	if(conversion::to_vk(m_BufferDataHandle->memoryPropertyFlags()) == vk::MemoryPropertyFlagBits::eDeviceLocal)
 	{
 		m_Context->device().freeCommandBuffers(m_Context->command_pool(), 1, &m_CommandBuffer);
 	}
@@ -175,7 +175,7 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 		std::accumulate(std::next(std::begin(instructions)), std::end(instructions), std::begin(instructions)->size,
 						[](vk::DeviceSize sum, const commit_instruction& element) { return sum + element.size; });
 
-	if(m_BufferDataHandle->memoryPropertyFlags() & vk::MemoryPropertyFlagBits::eDeviceLocal)
+	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::device_local)
 	{
 		std::vector<vk::DeviceSize> sizeRequests;
 		sizeRequests.reserve(instructions.size());
@@ -187,9 +187,9 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 		{
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
 			memory::region temp_region{totalSize, 4, new memory::default_allocator(false)};
-			auto buffer_data = m_Cache.create<core::data::buffer>(vk::BufferUsageFlagBits::eTransferSrc,
-																  vk::MemoryPropertyFlagBits::eHostVisible |
-																	  vk::MemoryPropertyFlagBits::eHostCoherent,
+			auto buffer_data = m_Cache.create<core::data::buffer>(core::gfx::memory_usage::transfer_source,
+																  core::gfx::memory_property::host_visible |
+																	  core::gfx::memory_property::host_coherent,
 																  std::move(temp_region));
 
 			stagingBuffer = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
@@ -300,7 +300,7 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		return false;
 	}
 
-	if(m_BufferDataHandle->memoryPropertyFlags() == vk::MemoryPropertyFlagBits::eDeviceLocal)
+	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::device_local)
 	{
 		if(m_StagingBuffer)
 		{
@@ -312,8 +312,9 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			// make a local staging buffer, this is hardly efficient. todo find better way.
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
 			memory::region temp_region{size * 2, 4, new memory::default_allocator(true)};
-			auto buffer_data = m_Cache.create<core::data::buffer>(vk::BufferUsageFlagBits::eTransferSrc,
-							 vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+			auto buffer_data = m_Cache.create<core::data::buffer>(core::gfx::memory_usage::transfer_source,
+																  core::gfx::memory_property::host_visible |
+																	  core::gfx::memory_property::host_coherent,
 							 std::move(temp_region));
 			auto staging = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
 
@@ -394,7 +395,7 @@ bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& c
 	queue.waitIdle();
 	core::profiler.scope_end(this);
 
-	if(m_BufferDataHandle->memoryPropertyFlags() == vk::MemoryPropertyFlagBits::eHostVisible)
+	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::host_visible)
 	{
 		core::profiler.scope_begin("replicate to host", this);
 		// TODO this really needs to be per region..

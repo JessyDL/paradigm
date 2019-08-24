@@ -100,7 +100,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 														? vk::BufferUsageFlagBits::eUniformBuffer
 														: vk::BufferUsageFlagBits::eStorageBuffer;
-					if(buffer_handle->data().usage() & usage)
+					if(gfx::conversion::to_vk(buffer_handle->data().usage()) & usage)
 					{
 						m_Buffers.push_back(std::make_pair(binding_slot, buffer_handle));
 					}

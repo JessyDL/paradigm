@@ -240,8 +240,8 @@ void texture::load_2D()
 			core::ivk::log->warn(
 				"missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
 			auto tempBuffer = m_Cache.create<core::data::buffer>(
-				vk::BufferUsageFlagBits::eTransferSrc,
-				vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+				core::gfx::memory_usage::transfer_source,
+				core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 				memory::region{m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
 			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
 		}

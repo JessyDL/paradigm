@@ -31,8 +31,7 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 {
 	state->declare(&lighting_system::create_dir, this);
 
-	auto bufferData = cache->create<data::buffer>(vk::BufferUsageFlagBits::eUniformBuffer,
-					vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+	auto bufferData = cache->create<data::buffer>(gfx::memory_usage::uniform_buffer, gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
 					resource_region
 						.create_region(sizeof(light) * 1024,
 									   core::gfx::limits::uniform_buffer_offset_alignment(m_Context.value()),

@@ -5,7 +5,7 @@ using namespace psl;
 using namespace core::data;
 
 buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   vk::BufferUsageFlags usage, vk::MemoryPropertyFlags memoryPropertyFlags,
+			   core::gfx::memory_usage usage, core::gfx::memory_property memoryPropertyFlags,
 			   memory::region&& memory_region) noexcept
 	: m_Region(std::move(memory_region)), m_Usage(usage), m_MemoryPropertyFlags(memoryPropertyFlags)
 {}
@@ -53,8 +53,8 @@ size_t buffer::size() const
 	// return std::accumulate(std::begin(m_Segments), std::end(m_Segments), (size_t)0u,
 	//					   [](size_t sum, const memory::segment& segment) { return sum + segment.range().size(); });
 }
-vk::BufferUsageFlags buffer::usage() const { return m_Usage.value; }
-vk::MemoryPropertyFlags buffer::memoryPropertyFlags() const { return m_MemoryPropertyFlags.value; }
+core::gfx::memory_usage buffer::usage() const { return m_Usage.value; }
+core::gfx::memory_property buffer::memoryPropertyFlags() const { return m_MemoryPropertyFlags.value; }
 const memory::region& buffer::region() const { return m_Region; }
 const std::vector<memory::segment>& buffer::segments() const { return m_Segments; };
 
