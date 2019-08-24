@@ -74,16 +74,69 @@ if(PE_VULKAN)
 	endif()
 endif()
 
-SET(GLES_FILES ${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/src/glad.c ${CMAKE_CURRENT_SOURCE_DIR}/../external/wgl/src/glad_wgl.c)
-
+if(PE_GLES)
+	FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.32 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+	FetchContent_GetProperties(glad)
+	if(NOT glad_POPULATED)
+		message(STATUS "fetching Dav1dde/glad...")
+		FetchContent_Populate(glad)
+		
+		find_package(PythonInterp REQUIRED)
+		
+		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
+			list(APPEND GL_SOURCES
+				"${GL_INCLUDE_DIRS}/src/glad.c"
+				"${GL_INCLUDE_DIRS}/include/glad/glad.h"
+			)
+			
+		EXECUTE_PROCESS(
+			COMMAND ${PYTHON_EXECUTABLE} -m glad
+				--profile=core
+				--out-path=${GL_INCLUDE_DIRS}
+				--api=gles2=3.2
+				--generator=c
+				--extensions=GL_EXT_sRGB,GL_EXT_texture_buffer,GL_EXT_texture_compression_s3tc,GL_EXT_texture_compression_s3tc_srgb,GL_EXT_texture_filter_anisotropic,GL_EXT_texture_filter_minmax,GL_KHR_debug
+				--spec=gl
+				--reproducible
+			WORKING_DIRECTORY ${glad_SOURCE_DIR}
+		)		
+		
+			list(APPEND GL_SOURCES
+				"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
+				"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
+			)
+			
+		EXECUTE_PROCESS(
+			COMMAND ${PYTHON_EXECUTABLE} -m glad
+				--out-path=${GL_INCLUDE_DIRS}
+				--api=wgl=1.0
+				--generator=c
+				--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
+				--spec=wgl
+				--omit-khrplatform
+				--reproducible
+			WORKING_DIRECTORY ${glad_SOURCE_DIR}
+		)
+		
+			set_source_files_properties(${GL_SOURCES} PROPERTIES GENERATED TRUE)
+			add_library(gl ${GL_SOURCES})
+			
+			target_include_directories(gl
+					PUBLIC
+							${GL_INCLUDE_DIRS}/include)
+		message(STATUS "Dav1dde/glad fetched")
+	endif()
+endif()
 if(PE_MODE STREQUAL "EXE")
 	message("Core as executable")
-	add_executable(${LOCAL_PROJECT} ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${GLES_FILES})
+	add_executable(${LOCAL_PROJECT} ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
 else()
 	message("Core as library")
-	add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${GLES_FILES})
+	add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
 endif()	
-
+if(PE_GLES)	
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC gl)
+endif()
 if(VK_STATIC AND PE_VULKAN)	
 	if(WIN32)
 		set(vk_lib_name "vulkan-1")
@@ -104,8 +157,6 @@ target_include_directories(${LOCAL_PROJECT}
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${vulkan_SOURCE_DIR}/include
 		${volk_SOURCE_DIR}
-		${CMAKE_CURRENT_SOURCE_DIR}/../external/glad/include
-		${CMAKE_CURRENT_SOURCE_DIR}/../external/wgl/include
 	PRIVATE
 		${gli_SOURCE_DIR}
 		${gli_SOURCE_DIR}/external/glm
