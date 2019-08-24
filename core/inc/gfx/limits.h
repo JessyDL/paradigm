@@ -3,6 +3,7 @@
 #include "stdafx.h"
 #ifdef PE_VULKAN
 #include "vk/context.h"
+#include "vk/conversion.h"
 #endif
 
 namespace core::gfx::limits
@@ -51,5 +52,31 @@ namespace core::gfx::limits
 #endif
 		}
 		return 0;
+	}
+
+	inline core::gfx::format supported_depthformat(const core::gfx::context& context)
+	{
+
+		switch(context.backend())
+		{
+		case graphics_backend::gles:
+		{
+#ifdef PE_GLES
+			return core::gfx::format::d32_sfloat;
+		}
+		break;
+#endif
+#ifdef PE_VULKAN
+		case graphics_backend::vulkan:
+		{
+			vk::Format format;
+			if(utility::vulkan::supported_depthformat(context.resource().get<core::ivk::context>()->physical_device(),
+													  &format))
+				return core::gfx::conversion::to_format(format);
+		}
+		break;
+#endif
+		}
+		return core::gfx::format::undefined;
 	}
 } // namespace core::gfx::limits

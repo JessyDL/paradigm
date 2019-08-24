@@ -68,6 +68,7 @@ namespace core::igles
 		bool copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges);
 
 		bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
+		size_t free_size() const noexcept;
 	  private:
 		GLuint m_Buffer;
 		GLint m_BufferType;

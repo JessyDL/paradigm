@@ -12,8 +12,7 @@ using namespace core::resource;
 
 buffer::buffer(core::resource::handle<value_type>& handle) : m_Handle(handle){};
 buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   handle<context> context,
-			   handle<data::buffer> data)
+			   handle<context> context, handle<data::buffer> data)
 {
 	switch(context->backend())
 	{
@@ -26,14 +25,13 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 }
 
 buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   handle<context> context,
-			   handle<data::buffer> data, handle<buffer> staging)
+			   handle<context> context, handle<data::buffer> data, handle<buffer> staging)
 {
 	switch(context->backend())
 	{
 	case graphics_backend::vulkan:
-		m_Handle << cache.create_using<core::ivk::buffer>(metaData.uid, context->resource().get<core::ivk::context>(), data,
-										 staging->resource().get<core::ivk::buffer>());
+		m_Handle << cache.create_using<core::ivk::buffer>(metaData.uid, context->resource().get<core::ivk::context>(),
+														  data, staging->resource().get<core::ivk::buffer>());
 		break;
 	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data); break;
 	}
@@ -119,4 +117,14 @@ bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instruction
 	{
 		return m_Handle.value<core::ivk::buffer>().commit(instructions);
 	}
+}
+
+size_t buffer::free_size() const noexcept
+{
+	size_t available = std::numeric_limits<size_t>::max();
+	if(m_Handle.contains<core::igles::buffer>())
+		available = std::min(available, m_Handle.value<core::igles::buffer>().free_size());
+	if(m_Handle.contains<core::ivk::buffer>())
+		available = std::min(available, m_Handle.value<core::ivk::buffer>().free_size());
+	return available;
 }

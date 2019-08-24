@@ -4,7 +4,7 @@
 #include "fwd/resource/resource.h"
 #include "vk/ivk.h"
 
-namespace core::ivk
+namespace core::gfx
 {
 	class sampler;
 }
@@ -133,7 +133,7 @@ namespace core::data
 		/// \param[in] sampler a valid sampler resource
 		/// \note the sampler does not need to be loaded, we will only store the psl::UID, but if the framebuffer is used for rendering, and
 		/// the sampler is invalid, then what follows is undefined behaviour.
-		void set(core::resource::handle<core::ivk::sampler> sampler);
+		void set(core::resource::handle<core::gfx::sampler> sampler);
 
 		/// \brief gets all attachments currently assigned to this framebuffer.
 		/// \returns all attachments currently assigned to this framebuffer.

@@ -56,6 +56,7 @@ namespace core::gfx
 		bool copy_from(const buffer& other, psl::array<core::gfx::memory_copy> ranges);
 		bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
 
+		size_t free_size() const noexcept;
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

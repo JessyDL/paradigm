@@ -10,7 +10,7 @@
 #include "data/buffer.h"
 #include "gfx/buffer.h"
 #include "data/framebuffer.h"
-#include "vk/framebuffer.h"
+#include "gfx/framebuffer.h"
 #include "data/sampler.h"
 #include "gfx/sampler.h"
 #include "gfx/limits.h"
@@ -31,67 +31,64 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 {
 	state->declare(&lighting_system::create_dir, this);
 
-	auto bufferData = cache->create<data::buffer>(gfx::memory_usage::uniform_buffer, gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
-					resource_region
-						.create_region(sizeof(light) * 1024,
-									   core::gfx::limits::uniform_buffer_offset_alignment(m_Context.value()),
-									   new memory::default_allocator(true))
-						.value());
+	auto bufferData = cache->create<data::buffer>(
+		gfx::memory_usage::uniform_buffer, gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
+		resource_region
+			.create_region(sizeof(light) * 1024, core::gfx::limits::uniform_buffer_offset_alignment(m_Context.value()),
+						   new memory::default_allocator(true))
+			.value());
 
 	m_LightDataBuffer = cache->create<gfx::buffer>(m_Context, bufferData);
 	cache->library().set(m_LightDataBuffer, "GLOBAL_LIGHT_DATA");
-	assert(false);
-	//m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
+	m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 }
 
 void lighting_system::create_dir(info& info, pack<entity, light, on_combine<light, transform>> pack)
 {
 	if(pack.size() == 0) return;
-	//insertion_sort(std::begin(pack), std::end(pack), sort_impl<light_sort, light>{});
+	// insertion_sort(std::begin(pack), std::end(pack), sort_impl<light_sort, light>{});
 
 	// create depth pass
-	/*for(auto [e, light] : pack)
+	for(auto [e, light] : pack)
 	{
 		if(!light.shadows) continue;
-		auto depthPass = create<gfx::framebuffer>(*m_Cache);
+
+		auto fbdata = m_Cache->create<data::framebuffer>(m_Surface->data().width(), m_Surface->data().height(), 1);
+
 		{
-			auto data = create<data::framebuffer>(*m_Cache);
-			data.load(m_Surface->data().width(), m_Surface->data().height(), 1);
-
+			vk::AttachmentDescription descr;
+			if(auto format = core::gfx::limits::supported_depthformat(m_Context.value());
+			   format == core::gfx::format::undefined)
 			{
-				vk::AttachmentDescription descr;
-				if(utility::vulkan::supported_depthformat(m_Context->physical_device(), &descr.format) != VK_TRUE)
-				{
-					LOG_FATAL("Could not find a suitable depth stencil buffer format.");
-				}
-				descr.samples		 = vk::SampleCountFlagBits::e1;
-				descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-				descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-				descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-				descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-				descr.initialLayout  = vk::ImageLayout::eUndefined;
-				descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
-
-				data->add(m_Surface->data().width(), m_Surface->data().height(), 1,
-						  vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
+				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
 			}
+			else
+				descr.format = core::gfx::conversion::to_vk(format);
+			descr.samples		 = vk::SampleCountFlagBits::e1;
+			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
+			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
+			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
+			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
+			descr.initialLayout  = vk::ImageLayout::eUndefined;
+			descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
-			{
-				auto ppsamplerData = create<data::sampler>(*m_Cache);
-				ppsamplerData.load();
-				ppsamplerData->mipmaps(false);
-				auto ppsamplerHandle = create<gfx::sampler>(*m_Cache);
-				ppsamplerHandle.load(m_Context, ppsamplerData);
-				data->set(ppsamplerHandle);
-			}
-
-			depthPass.load(m_Context, data);
+			fbdata->add(m_Surface->data().width(), m_Surface->data().height(), 1,
+						vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
 		}
+
+		{
+			auto ppsamplerData = m_Cache->create<data::sampler>();
+			ppsamplerData->mipmaps(false);
+			auto ppsamplerHandle = m_Cache->create<gfx::sampler>(m_Context, ppsamplerData);
+			fbdata->set(ppsamplerHandle);
+		}
+
+		auto depthPass = m_Cache->create<gfx::framebuffer>(m_Context, fbdata);
 
 		m_Passes[e]  = m_RenderGraph->create_pass(m_Context, depthPass);
 		m_Systems[e] = new core::ecs::systems::render{*m_State, m_Passes[e]};
 		m_Systems[e]->add_render_range(1000, 1500);
 
 		m_RenderGraph->connect(m_Passes[e], m_DependsPass);
-	}*/
+	}
 };

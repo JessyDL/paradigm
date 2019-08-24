@@ -58,7 +58,7 @@
 #include "ecs/systems/death.h"
 #include "ecs/systems/attractor.h"
 #include "ecs/systems/movement.h"
-//#include "ecs/systems/lighting.h"
+#include "ecs/systems/lighting.h"
 
 using namespace core;
 using namespace core::resource;
@@ -862,9 +862,9 @@ int entry(gfx::graphics_backend backend)
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-	/*core::ecs::systems::lighting_system lighting{
+	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
-		swapchain_pass,			  context_handle,		 surface_handle};*/
+		swapchain_pass,			  context_handle,		 surface_handle};
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
@@ -885,6 +885,9 @@ int entry(gfx::graphics_backend backend)
 													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
 					  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 		});
+
+	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
+					core::ecs::components::light{{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
 
 	while(surface_handle->tick())
 	{

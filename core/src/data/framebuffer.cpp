@@ -2,6 +2,7 @@
 #include "meta/texture.h"
 #include "resource/resource.hpp"
 #include "vk/conversion.h"
+#include "gfx/sampler.h"
 
 using namespace psl;
 using namespace core::data;
@@ -64,7 +65,7 @@ bool framebuffer::remove(const UID& uid)
 	return true;
 }
 
-void framebuffer::set(core::resource::handle<core::ivk::sampler> sampler) { m_Sampler.value = sampler; }
+void framebuffer::set(core::resource::handle<core::gfx::sampler> sampler) { m_Sampler.value = sampler; }
 
 
 const std::vector<framebuffer::attachment>& framebuffer::attachments() const { return m_Attachments.value; }
