@@ -1,8 +1,8 @@
 #pragma once
 #include "resource/resource.hpp"
-#include "math/math.hpp"
+#include "psl/math/math.hpp"
 #include "gfx/context.h"
-#include "memory/segment.h"
+#include "psl/memory/segment.h"
 
 namespace core::gfx
 {

@@ -5,7 +5,7 @@
 #include "vk/sampler.h"
 #include "data/framebuffer.h"
 #include "meta/texture.h"
-
+#include "vk/conversion.h"
 using namespace psl;
 using namespace core::ivk;
 using namespace core::resource;
@@ -161,7 +161,7 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	binding& binding		   = m_Bindings.emplace_back();
 	binding.index			   = index;
 	binding.description		   = description;
-	binding.description.format = gfx::to_vk(meta->format());
+	binding.description.format = gfx::conversion::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)
 	{
 		m_Textures.push_back(texture);

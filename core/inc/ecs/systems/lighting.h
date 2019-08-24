@@ -1,7 +1,7 @@
 #pragma once
-#include "view_ptr.h"
-#include "ecs/selectors.h"
-#include "ecs/entity.h"
+#include "psl/view_ptr.h"
+#include "psl/ecs/selectors.h"
+#include "psl/ecs/entity.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/lighting.h"
 #include "resource/resource.hpp"

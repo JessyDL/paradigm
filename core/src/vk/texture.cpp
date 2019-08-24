@@ -1,11 +1,12 @@
 ﻿#include "logging.h"
-#include "stdafx_psl.h"
+#include "psl/stdafx_psl.h"
 #include "vk/texture.h"
 #include "meta/texture.h"
 #include "vk/context.h"
 #include "vk/buffer.h"
 #include "data/buffer.h"
 #include "vk/sampler.h"
+#include "vk/conversion.h"
 #ifdef fseek
 #define cached_fseek fseek
 #define cached_fclose fclose
@@ -27,7 +28,7 @@
 #define ftell cached_ftell
 #endif
 using namespace psl;
-using namespace core::gfx;
+using namespace core::gfx::conversion;
 using namespace core::ivk;
 using namespace core::resource;
 

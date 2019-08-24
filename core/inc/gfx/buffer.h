@@ -1,9 +1,9 @@
 #pragma once
 #include "fwd/gfx/buffer.h"
 #include "resource/resource.hpp"
-#include "array.h"
-#include "memory/segment.h"
-#include "memory/range.h"
+#include "psl/array.h"
+#include "psl/memory/segment.h"
+#include "psl/memory/range.h"
 #include <optional>
 #include "gfx/types.h"
 

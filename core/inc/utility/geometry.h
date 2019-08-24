@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data/geometry.h"
-#include "math/math.hpp"
+#include "psl/math/math.hpp"
 #include <vector>
 #include <cmath>
 #include <cstdlib>

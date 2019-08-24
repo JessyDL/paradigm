@@ -2,15 +2,15 @@
 #include "fwd/resource/resource.h"
 #include <cstdint>	 // uintptr_t
 #include <type_traits> // std::remove_const/etc
-#include "meta.h"
-#include "library.h"
-//#include "memory/region.h"
-#include "profiling/profiler.h"
+#include "psl/meta.h"
+#include "psl/library.h"
+//#include "psl/memory/region.h"
+#include "psl/profiling/profiler.h"
 #include "logging.h"
-#include "serialization.h"
-#include "static_array.h"
-#include "view_ptr.h"
-#include "unique_ptr.h"
+#include "psl/serialization.h"
+#include "psl/static_array.h"
+#include "psl/view_ptr.h"
+#include "psl/unique_ptr.h"
 
 #define DEBUG_CORE_RESOURCE
 

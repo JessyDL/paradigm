@@ -1,5 +1,5 @@
-﻿#include "memory/segment.h"
-#include "memory/range.h"
+﻿#include "psl/memory/segment.h"
+#include "psl/memory/range.h"
 
 using namespace memory;
 static memory::range def_range{0u, 0u};

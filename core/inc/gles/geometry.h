@@ -1,9 +1,9 @@
 #pragma once
 #include "fwd/resource/resource.h"
-#include "memory/range.h"
-#include "memory/segment.h"
-#include "array.h"
-#include "ustring.h"
+#include "psl/memory/range.h"
+#include "psl/memory/segment.h"
+#include "psl/array.h"
+#include "psl/ustring.h"
 #include "resource/handle.h"
 #include <unordered_map>
 

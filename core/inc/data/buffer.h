@@ -1,11 +1,11 @@
 ﻿#pragma once
-#include "serialization.h"
+#include "psl/serialization.h"
 #include <vector>
 #include <optional>
-#include "vk/stdafx.h"
-#include "memory/region.h"
-#include "memory/segment.h"
+#include "psl/memory/region.h"
+#include "psl/memory/segment.h"
 #include "gfx/types.h"
+#include "gfx/stdafx.h"
 #include "fwd/resource/resource.h"
 
 /// \brief contains all data types that can be serialized to/from disk.

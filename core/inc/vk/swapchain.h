@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "resource/handle.h"
-#include "vk/stdafx.h"
+#include "vk/ivk.h"
 #include "fwd/vk/texture.h"
 
 namespace core::os

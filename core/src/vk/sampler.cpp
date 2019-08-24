@@ -2,9 +2,10 @@
 #include "vk/context.h"
 #include "vk/sampler.h"
 #include "data/sampler.h"
+#include "vk/conversion.h"
 
 using namespace psl;
-using namespace core::gfx;
+using namespace core::gfx::conversion;
 using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
@@ -26,7 +27,7 @@ sampler::sampler(core::resource::cache& cache, const core::resource::metadata& m
 		sampler.addressModeW  = to_vk(m_Data->addressW());
 		sampler.mipLodBias	= m_Data->mip_bias();
 		sampler.compareEnable = m_Data->compare_mode();
-		sampler.compareOp	 = conversion::to_vk(m_Data->compare_op());
+		sampler.compareOp	 = to_vk(m_Data->compare_op());
 		sampler.minLod		  = m_Data->mip_minlod();
 		sampler.maxLod		  = (m_Data->mipmaps()) ? i : 1.0f; // todo: figure this out more correctly;
 		// Enable anisotropic filtering

@@ -5,8 +5,9 @@
 #include "data/geometry.h"
 #include "meta/shader.h"
 #include "gles/shader.h"
-#include "array.h"
+#include "psl/array.h"
 #include "logging.h"
+#include "gles/igles.h"
 
 using namespace core::igles;
 using namespace core::resource;

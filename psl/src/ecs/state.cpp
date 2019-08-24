@@ -1,7 +1,7 @@
-#include "ecs/state.h"
+#include "psl/ecs/state.h"
 #include <numeric>
-#include "unique_ptr.h"
-//#include "async/algorithm.h"
+#include "psl/unique_ptr.h"
+//#include "psl/async/algorithm.h"
 using namespace psl::ecs;
 
 using psl::ecs::details::component_key_t;

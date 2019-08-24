@@ -27,11 +27,11 @@ set_property(CACHE PE_MODE PROPERTY STRINGS LIB EXE, LIB_NO_TESTS)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_ANALYZE "enables static analyzers for the given platform" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
-set(VK_ROOT "" CACHE PATH "The location root of your vulkan SDK (excluding the version folder)")
 set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 OPTION(PE_GLES "controls OpenGL ES support" ON)
 OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
+OPTION(PE_MOLTEN "controls Vulkan support (experimental - not done)" OFF)
 
 include(FindXCB)
 include(FindWayland)
@@ -52,19 +52,19 @@ set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where
 set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
 OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check 'compile options' section in the CMakelists.txt file)" TRUE)
 
-if(${PE_PCH})
+if(PE_PCH)
 	include(cotire)
 endif()
-include(vulkan)
 include(assimp)
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(${PE_MODE} STREQUAL "EXE")
+if(PE_MODE STREQUAL "EXE")
 	list(APPEND PE_DEFINES -DCORE_EXECUTABLE)
 endif()
 
-if(${PE_GLES})
+if(PE_GLES)
+	message("enabling GLES")
 	list(APPEND PE_DEFINES -DPE_GLES)
 endif()
 
@@ -72,25 +72,34 @@ endif()
 list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
 
 # experimental early support for not supporting vulkan
-if(${PE_VULKAN})
+if(PE_VULKAN)
+	message("enabling VULKAN")
 	list(APPEND PE_DEFINES -DPE_VULKAN)
 endif()
-if(${PE_INSTRUCTION_SET} STREQUAL "SSE")	
+
+if(PE_MOLTEN)
+	message("transforming graphics API calls to metal using Molten")
+endif()
+
+if(PE_INSTRUCTION_SET STREQUAL "SSE")	
 	list(APPEND PE_DEFINES -DINSTRUCTION_SET=1)
-elseif(${PE_INSTRUCTION_SET} STREQUAL "AVX")	
+elseif(PE_INSTRUCTION_SET STREQUAL "AVX")	
 	list(APPEND PE_DEFINES -DINSTRUCTION_SET=2)
-elseif(${PE_INSTRUCTION_SET} STREQUAL "AVX2")	
+elseif(PE_INSTRUCTION_SET STREQUAL "AVX2")	
 	list(APPEND PE_DEFINES -DINSTRUCTION_SET=3)
 else()
 	list(APPEND PE_DEFINES -DINSTRUCTION_SET=0)
 endif()
 
-if(${PE_PROFILER})
+if(PE_PROFILER)
 	list(APPEND PE_DEFINES -DPE_PROFILER)
 endif()
 
-if(NOT ${VK_STATIC} AND NOT ${PE_SOURCE_ONLY})	
+
+if(NOT VK_STATIC AND NOT PE_SOURCE_ONLY)	
 	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES;-DVK_DYNAMIC_DISPATCH_VOLK)
+elseif(VK_STATIC)
+	list(APPEND PE_DEFINES -DVK_STATIC)
 endif()
 
 ###############################################################################
@@ -127,7 +136,7 @@ foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
 	file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
 endforeach()
 
-if(${PE_ANALYZE})
+if(PE_ANALYZE)
 	if(MSVC)
 	
 	else()
@@ -148,7 +157,7 @@ if(${PE_ANALYZE})
 	
 endif()
 
-if(${PE_VERBOSE} AND NOT MSVC)
+if(PE_VERBOSE AND NOT MSVC)
 	set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
 endif()
 ###############################################################################
@@ -159,7 +168,7 @@ set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
 list(APPEND PE_COMPILER_FEATURES cxx_std_17)
 
-if(${PE_GLES})		
+if(PE_GLES)		
 		find_package(OpenGL REQUIRED)
 		list(APPEND PE_DL_LIBS ${OPENGL_LIBRARIES})
 endif()
@@ -167,7 +176,7 @@ endif()
 if(MSVC) # we currently make no distinction for CLang (todo)
 	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)
-	if(${PE_VERBOSE})
+	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS /W4 /w14640 /w14242 /w14254 /wd4100)	
 	else()
 		list(APPEND PE_COMPILE_OPTIONS /W3)
@@ -190,7 +199,7 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 										$<$<CONFIG:RelWithDebInfo>:    /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental>
 										$<$<CONFIG:RelNoOptimization>: /INCREMENTAL /OPT:NOREF /OPT:NOICF>)
 else()
-	if(${PE_VERBOSE})
+	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
 	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-g)
@@ -262,17 +271,15 @@ endif()
 
 add_definitions(${PE_DEFINES})
 
-if(NOT ${PE_SOURCE_ONLY})
-	setup_vulkan("${VK_ROOT}" "${VK_VERSION}" VULKAN_INC_PATH VULKAN_LIB_PATH VULKAN_LIB_NAME)
-	
+if(NOT PE_SOURCE_ONLY)	
 	add_subdirectory(psl)
 	add_subdirectory(core)
-	if(${PE_MODE} STREQUAL "LIB")
+	if(PE_MODE STREQUAL "LIB")
 		enable_testing()
 		add_subdirectory(tests)
 	endif()
 	
-	if(${PE_BENCHMARKS})
+	if(PE_BENCHMARKS)
 		add_subdirectory(benchmarks)	
 	endif()
 

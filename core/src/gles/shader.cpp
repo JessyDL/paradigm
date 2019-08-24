@@ -4,6 +4,7 @@
 #include "gfx/types.h"
 #include "gfx/stdafx.h"
 #include "logging.h"
+#include "gles/conversion.h"
 
 using namespace psl;
 using namespace core::igles;
@@ -22,7 +23,7 @@ shader::shader(core::resource::cache& cache, const core::resource::metadata& met
 		return;
 	}
 
-	auto gl_stage = gfx::to_gles(meta->stage());
+	auto gl_stage = gfx::conversion::to_gles(meta->stage());
 
 	GLuint shader;
 	GLint compiled;

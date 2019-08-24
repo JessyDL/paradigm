@@ -1,8 +1,8 @@
 #pragma once
 #include "resource/resource.hpp"
-#include "unique_ptr.h"
-#include "view_ptr.h"
-#include "array_view.h"
+#include "psl/unique_ptr.h"
+#include "psl/view_ptr.h"
+#include "psl/array_view.h"
 
 namespace core::gfx
 {

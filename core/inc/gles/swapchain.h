@@ -1,5 +1,5 @@
 #pragma once
-#include "math/vec.h"
+#include "psl/math/vec.h"
 #include "resource/handle.h"
 
 namespace core::os

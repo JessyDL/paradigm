@@ -5,6 +5,7 @@
 #include "logging.h"
 #include "gles/shader.h"
 #include "meta/shader.h"
+#include "gles/igles.h"
 
 using namespace core::igles;
 using namespace core::resource;

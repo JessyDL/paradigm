@@ -1,5 +1,5 @@
 #pragma once
-#include "array.h"
+#include "psl/array.h"
 #include "resource/resource.hpp"
 #include "gfx/details/instance.h"
 #include "fwd/gfx/bundle.h"

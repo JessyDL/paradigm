@@ -1,11 +1,11 @@
 #pragma once
-#include "ecs/state.h"
+#include "psl/ecs/state.h"
 #include "gfx/bundle.h"
 #include "vk/geometry.h"
 #include "resource/resource.hpp"
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
-#include "bytell_map.h"
+#include "psl/bytell_map.h"
 
 namespace core::ecs::systems
 {

@@ -1,8 +1,11 @@
 ﻿#include "data/framebuffer.h"
 #include "meta/texture.h"
 #include "resource/resource.hpp"
+#include "vk/conversion.h"
+
 using namespace psl;
 using namespace core::data;
+using namespace core::gfx;
 
 framebuffer::framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData,
 						 psl::meta::file* metaFile, uint32_t width, uint32_t height, uint32_t layers) noexcept
@@ -40,11 +43,11 @@ const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount
 	texture.width(width);
 	texture.height(height);
 	texture.depth(layerCount);
-	texture.aspect_mask(gfx::to_image_aspect(aspectMask));
-	texture.format(gfx::to_format(descr.format));
+	texture.aspect_mask(conversion::to_image_aspect(aspectMask));
+	texture.format(conversion::to_format(descr.format));
 	texture.image_type(core::gfx::image_type::planar_2D);
 	texture.mip_levels(1);
-	texture.usage(core::gfx::to_image_usage(usage));
+	texture.usage(conversion::to_image_usage(usage));
 
 	m_Attachments.value.emplace_back(UID, clearValue, descr);
 

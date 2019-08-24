@@ -10,16 +10,16 @@
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
 #include "targetver.h"
-#include "stdafx_psl.h"
+#include "psl/stdafx_psl.h"
 
-#include "platform_def.h"
+#include "psl/platform_def.h"
 
 #include <stdio.h>
 #include "logging.h"
 
 
-#include "ustring.h"
-#include "string_utils.h"
+#include "psl/ustring.h"
+#include "psl/string_utils.h"
 
 
 #include "gfx/stdafx.h"
@@ -32,8 +32,8 @@
 #include <string>
 #include <array>
 #include <memory>
-#include "array_view.h"
-#include "enumerate.h"
+#include "psl/array_view.h"
+#include "psl/enumerate.h"
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
@@ -42,13 +42,13 @@
 #endif
 
 
-#include "application_utils.h"
+#include "psl/application_utils.h"
 
-#include "meta.h"
-#include "library.h"
-#include "serialization.h"
+#include "psl/meta.h"
+#include "psl/library.h"
+#include "psl/serialization.h"
 #include "resource/resource.hpp"
-#include "math/math.hpp"
+#include "psl/math/math.hpp"
 #include "conversion_utils.h"
 
 #include "data/stream.h"

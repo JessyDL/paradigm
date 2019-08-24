@@ -1,6 +1,6 @@
-#include "ecs/command_buffer.h"
-#include "ecs/state.h"
-#include "assertions.h"
+#include "psl/ecs/command_buffer.h"
+#include "psl/ecs/state.h"
+#include "psl/assertions.h"
 
 using namespace psl::ecs;
 

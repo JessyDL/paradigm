@@ -1,9 +1,10 @@
 #pragma once
 #include "resource/resource.hpp"
-#include "memory/segment.h"
+#include "psl/memory/segment.h"
 #include <optional>
 #include "gfx/types.h"
-#include "array.h"
+#include "gles/types.h"
+#include "psl/array.h"
 
 namespace core::data
 {

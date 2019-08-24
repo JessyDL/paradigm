@@ -4,7 +4,7 @@
 #include "vk/framebuffer.h"
 #include "vk/swapchain.h"
 #include "vk/pipeline.h"
-#include "meta.h"
+#include "psl/meta.h"
 #include "logging.h"
 
 using namespace psl;

@@ -1,5 +1,5 @@
 #pragma once
-#include "math/math.hpp"
+#include "psl/math/math.hpp"
 
 namespace core::gfx
 {

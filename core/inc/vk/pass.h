@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "math/vec.h"
+#include "psl/math/vec.h"
 #include "resource/resource.hpp"
 #include <vector>
-#include "vk/stdafx.h"
-#include "view_ptr.h"
+#include "vk/ivk.h"
+#include "psl/view_ptr.h"
 
 namespace core::gfx
 {

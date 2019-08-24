@@ -8,6 +8,26 @@ import subprocess
 import functools
 print = functools.partial(print, flush=True)
 
+def onerror(func, path, exc_info):
+    """
+    Error handler for ``shutil.rmtree``.
+
+    If the error is due to an access error (read only file)
+    it attempts to add write permission and then retries.
+
+    If the error is for another reason it re-raises the error.
+    
+    Usage : ``shutil.rmtree(path, onerror=onerror)``
+    """
+    import stat
+    if not os.access(path, os.W_OK):
+        # Is the error an access error ?
+        os.chmod(path, stat.S_IWUSR)
+        func(path)
+    else:
+        print(path)
+        raise
+
 class bcolors:
     HEADER = '\033[95m'
     BLUE = '\033[94m'
@@ -35,10 +55,8 @@ parser.add_argument("--build_dir", const="builds", default="builds", nargs='?',
                     help="Override for the build directory, this is relative to the root", dest="build_dir")
 parser.add_argument("--project_dir", const="project_files", default="project_files", nargs='?', 
                     help="Override for the project files directory, this is relative to the root", dest="project_dir")
-parser.add_argument("--vk_version", const="1.1.82.1", default="1.1.82.1", nargs='?', 
+parser.add_argument("--vulkan", const="1.1.108", default="1.1.108", nargs='?', 
                     help="vulkan version to use", dest="vk_version")
-parser.add_argument("--vk_root", const="auto", default="auto", nargs='?',
-                    help="root directory for vulkan", dest="vk_root")
 parser.add_argument("--build_config", const="Release", default="Release", nargs='?',
                     help="build configuration to use when the build flag is true", dest="build_config")
 parser.add_argument("--vk_static", action='store_true',dest="vk_static", help="when this flag is set, vulkan will statically bind")
@@ -46,6 +64,7 @@ parser.add_argument("-u", "--update", action='store_true', dest="cmake_update")
 parser.add_argument("-v", "--verbose", action='store_true', dest="verbose")
 parser.add_argument("-b", "--build", action='store_true', help="build the target as well", dest="build")
 parser.add_argument("--cmake_params", action='store', type=str, nargs='*',dest="cmake_params")
+parser.add_argument("--graphics", action='store', default="vulkan, gles", type=str, nargs='+',choices=['vulkan','gles','molten'],dest="graphics")
 args = parser.parse_args()
 
 if args.verbose:
@@ -67,23 +86,6 @@ elif args.generator == 'make':
 		
 args.compiler = args.compiler.lower
 
-if args.vk_root == 'auto':
-    if platform.system() == 'Windows':
-	      args.vk_root = 'C:/VulkanSDK'
-    elif platform.system() == 'Linux':
-        args.ck_root = '/VulkanSDK/'
-    else:
-        raise Exception("could not determine the OS")
-		
-if not os.path.isdir(args.vk_root):
-    print("ERROR: vulkan root directory '{0}' could not be found, please set '--vk_root'".format(args.vk_root))
-    raise Exception("InvalidVulkanDirectory")
-
-vk_dir = args.vk_root + os.path.sep + args.vk_version
-if not os.path.isdir(vk_dir):
-    print("ERROR: vulkan version '{0}' could not be found at '{1}', please set '--vk_version'".format(args.vk_version, vk_dir))
-    raise Exception("InvalidVulkanVersion")
-
 project_dir = os.path.join(args.root_dir, args.project_dir, args.generator, args.architecture)
 build_dir = os.path.join(args.root_dir, args.build_dir, args.generator, args.architecture)
 
@@ -100,7 +102,7 @@ if args.clean == 'all' or args.clean == 'build':
         try:
             if os.path.isfile(file_path):
                 os.unlink(file_path)
-            elif os.path.isdir(file_path): shutil.rmtree(file_path)
+            elif os.path.isdir(file_path): shutil.rmtree(file_path, onerror=onerror)
         except Exception as e:
             print(e)
 						
@@ -111,9 +113,10 @@ if args.clean == 'all' or args.clean == 'project':
         try:
             if os.path.isfile(file_path):
                 os.unlink(file_path)
-            elif os.path.isdir(file_path): shutil.rmtree(file_path)
+            elif os.path.isdir(file_path): shutil.rmtree(file_path, onerror=onerror)
         except Exception as e:
             print(e)
+            raise
 
 working_dir = os.getcwd()
 os.chdir(project_dir)
@@ -125,20 +128,31 @@ if(sys.platform.startswith('win')):
 
 retCode = 0
 if not os.path.exists(os.path.join(project_dir, "CMakeFiles")):
-    vk_static = "OFF"
     print("generating project files")
-    if args.vk_static:
-        vk_static = "ON"
-    cmakeCmd = [cmakeExe, "-G", cmake_generator, "-DPE_BUILD_DIR="+build_dir, "-DVK_VERSION="+args.vk_version, "-DVK_ROOT="+args.vk_root, "-DVK_STATIC="+vk_static, "-DCMAKE_BUILD_TYPE="+args.build_config]
+    cmakeCmd = [cmakeExe, "-G", cmake_generator, \
+		 "-DPE_BUILD_DIR="+build_dir, \
+		 "-DVK_VERSION="+args.vk_version, \
+		 "-DVK_STATIC="+("ON" if args.vk_static else "OFF"), \
+		 "-DCMAKE_BUILD_TYPE="+args.build_config, \
+		 "-DPE_VULKAN="+("ON" if "vulkan" in args.graphics else "OFF"), \
+		 "-DPE_GLES="+("ON" if "gles" in args.graphics else "OFF"), \
+		 "-DPE_MOLTEN="+("ON" if "molten" in args.graphics else "OFF")]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     print("invoking cmake")
+    if args.verbose:
+        print("using arguments: ", cmakeCmd)
     cmakeCmd = cmakeCmd + [ "-H"+ args.root_dir, "-B"+project_dir]
     retCode = subprocess.check_call(cmakeCmd, shell=False)
     print("returncode ", retCode)
 elif args.cmake_update:
     print("updating project files")
-    cmakeCmd = [cmakeExe, r".", "-DCMAKE_BUILD_TYPE="+args.build_config]
+    cmakeCmd = [cmakeExe, r".", \
+		 "-DVK_VERSION="+args.vk_version, \
+		 "-DCMAKE_BUILD_TYPE="+args.build_config, \
+		 "-DPE_VULKAN="+("ON" if "vulkan" in args.graphics else "OFF"), \
+		 "-DPE_GLES="+("ON" if "gles" in args.graphics else "OFF"), \
+		 "-DPE_MOLTEN="+("ON" if "molten" in args.graphics else "OFF")]
     if args.cmake_params:
         cmakeCmd = cmakeCmd + args.cmake_params
     retCode = subprocess.check_call(cmakeCmd, shell=False)
