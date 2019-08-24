@@ -1,6 +1,6 @@
-#include "async/scheduler.h"
-#include "view_ptr.h"
-#include "collections/spmc/consumer.h"
+#include "psl/async/scheduler.h"
+#include "psl/view_ptr.h"
+#include "psl/collections/spmc/consumer.h"
 
 using namespace psl::async;
 

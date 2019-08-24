@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "ustring.h"
-#include "string_utils.h"
+#include "psl/ustring.h"
+#include "psl/string_utils.h"
 #include <vector>
-#include "math/matrix.h"
-#include "math/vec.h"
-#include "math/quaternion.h"
+#include "psl/math/matrix.h"
+#include "psl/math/vec.h"
+#include "psl/math/quaternion.h"
 
 
 namespace psl::serialization::converters

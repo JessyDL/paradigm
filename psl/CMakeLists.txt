@@ -88,7 +88,7 @@ endif()
 include(inc.txt) 
 include(src.txt)
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/psl" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 
 
 if(VS_USE_NATVIS)	

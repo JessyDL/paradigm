@@ -1,8 +1,8 @@
 #pragma once
 #include "gfx/stdafx.h"
 #include <optional>
-#include "memory/range.h"
-#include "memory/segment.h"
+#include "psl/memory/range.h"
+#include "psl/memory/segment.h"
 
 namespace core::gfx
 {

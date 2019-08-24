@@ -1,6 +1,6 @@
 #pragma once
-#include "ecs/state.h"
-#include "ecs/command_buffer.h"
+#include "psl/ecs/state.h"
+#include "psl/ecs/command_buffer.h"
 #include "ecs/components/lifetime.h"
 #include "ecs/components/dead_tag.h"
 

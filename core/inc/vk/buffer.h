@@ -2,7 +2,7 @@
 #include "gfx/types.h"
 #include "resource/resource.hpp"
 #include <optional>
-#include "memory/segment.h"
+#include "psl/memory/segment.h"
 
 
 namespace core::data

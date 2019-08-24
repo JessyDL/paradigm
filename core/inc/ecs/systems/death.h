@@ -1,5 +1,5 @@
 #pragma once
-#include "ecs/state.h"
+#include "psl/ecs/state.h"
 #include "ecs/components/dead_tag.h"
 
 namespace core::ecs::systems

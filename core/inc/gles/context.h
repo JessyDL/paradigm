@@ -1,6 +1,6 @@
 #pragma once
 #include <cstdint>
-#include "ustring.h"
+#include "psl/ustring.h"
 #include "fwd/resource/resource.h"
 
 namespace core::os

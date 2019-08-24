@@ -1,9 +1,9 @@
 #pragma once
 
-#include "ecs/state.h"
+#include "psl/ecs/state.h"
 #include "ecs/components/velocity.h"
 #include "ecs/components/transform.h"
-#include "math/math.hpp"
+#include "psl/math/math.hpp"
 #include <chrono>
 
 namespace core::ecs::components

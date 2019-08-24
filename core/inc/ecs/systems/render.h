@@ -1,10 +1,10 @@
 #pragma once
-#include "ecs/state.h"
+#include "psl/ecs/state.h"
 #include "resource/resource.hpp"
 #include "gfx/drawgroup.h"
-#include "math/vec.h"
-#include "math/matrix.h"
-#include "view_ptr.h"
+#include "psl/math/vec.h"
+#include "psl/math/matrix.h"
+#include "psl/view_ptr.h"
 
 namespace core::gfx
 {

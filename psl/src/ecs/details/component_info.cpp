@@ -1,8 +1,8 @@
-#include "ecs/details/component_info.h"
-#include "ecs/entity.h"
-#include "memory/raw_region.h"
+#include "psl/ecs/details/component_info.h"
+#include "psl/ecs/entity.h"
+#include "psl/memory/raw_region.h"
 #include <algorithm>
-#include "pack_view.h"
+#include "psl/pack_view.h"
 #include <numeric>
 
 using namespace psl::ecs;

@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include <cstdint>
-#include "serialization.h"
+#include "psl/serialization.h"
 #include "fwd/resource/resource.h"
 
 namespace core::gfx

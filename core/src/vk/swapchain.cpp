@@ -13,10 +13,9 @@ using namespace core::os;
 using namespace core::resource;
 
 swapchain::swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-					 handle<core::os::surface> surface,
-					 handle<core::ivk::context> context, bool use_depth)
+					 handle<core::os::surface> surface, handle<core::ivk::context> context, bool use_depth)
 	: m_OSSurface(&surface.value()), m_Context(context), m_Cache(cache), m_DepthTextureHandle(),
-	m_UseDepth(use_depth), m_SurfaceFormat{}
+	  m_UseDepth(use_depth), m_SurfaceFormat{}
 {
 #ifdef SURFACE_WIN32
 	vk::Win32SurfaceCreateInfoKHR createInfo;
@@ -37,8 +36,8 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 #elif defined(PLATFORM_ANDROID)
 	vk::AndroidSurfaceCreateInfoKHR createInfo;
 	core::ivk::log->info("creating android swapchain");
-	auto android_app = platform::specifics::android_application;
-	auto window = android_app->window;
+	auto android_app  = platform::specifics::android_application;
+	auto window		  = android_app->window;
 	createInfo.window = window;
 	utility::vulkan::check(m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_D2D)
@@ -281,7 +280,8 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous)
 
 	utility::vulkan::check(m_Context->device().createSwapchainKHR(&createInfo, nullptr, &m_Swapchain));
 
-	utility::vulkan::check(m_Context->device().getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, nullptr));
+	utility::vulkan::check(
+		m_Context->device().getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, (vk::Image*)nullptr));
 	if(m_SwapchainImageCount <= 0) LOG_FATAL("We received no swapchain images.");
 }
 
@@ -374,21 +374,23 @@ void swapchain::init_depthstencil()
 
 	using meta_type = typename resource_traits<core::ivk::texture>::meta_type;
 	std::unique_ptr<meta_type> metaData{std::make_unique<meta_type>()};
-	//auto [metaUID, metaData] = m_Cache.library().create<meta::texture>();
-	//m_Cache.library().set(metaUID, "SCDepthStencil");
+	// auto [metaUID, metaData] = m_Cache.library().create<meta::texture>();
+	// m_Cache.library().set(metaUID, "SCDepthStencil");
 	metaData->width(m_OSSurface->data().width());
 	metaData->height(m_OSSurface->data().height());
 	metaData->depth(1);
 	metaData->mip_levels(1);
 	metaData->image_type(gfx::image_type::planar_2D);
 	metaData->format(to_format(depthFormat));
-	metaData->usage(core::gfx::image_usage::dept_stencil_attachment | core::gfx::image_usage::transfer_source);		
+	metaData->usage(core::gfx::image_usage::dept_stencil_attachment | core::gfx::image_usage::transfer_source);
 	metaData->aspect_mask(core::gfx::image_aspect::depth | core::gfx::image_aspect::stencil);
 	m_DepthTextureHandle = m_Cache.create_using<core::ivk::texture>(std::move(metaData), m_Context);
 	m_Cache.library().set(m_DepthTextureHandle, "SCDepthStencil");
 }
 
-void swapchain::deinit_depthstencil() { /*m_DepthTextureHandle.unload();*/ }
+void swapchain::deinit_depthstencil()
+{ /*m_DepthTextureHandle.unload();*/
+}
 
 void swapchain::init_renderpass()
 {
@@ -612,7 +614,4 @@ const vk::ClearColorValue swapchain::clear_color() const noexcept { return m_Cle
 const vk::ClearDepthStencilValue swapchain::clear_depth() const noexcept { return m_ClearDepth; }
 bool swapchain::has_depth() const noexcept { return m_UseDepth; }
 
-void swapchain::clear_color(vk::ClearColorValue color) noexcept
-{
-	m_ClearColor = color;
-}
+void swapchain::clear_color(vk::ClearColorValue color) noexcept { m_ClearColor = color; }

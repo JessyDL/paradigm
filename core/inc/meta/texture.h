@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "serialization.h"
+#include "psl/serialization.h"
 #include "vk/stdafx.h"
-#include "library.h"
-#include "meta.h"
+#include "psl/library.h"
+#include "psl/meta.h"
 #include "gfx/types.h"
 
 namespace core::resource

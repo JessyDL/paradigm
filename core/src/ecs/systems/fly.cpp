@@ -1,5 +1,5 @@
 #include "ecs/systems/fly.h"
-#include "ecs/command_buffer.h"
+#include "psl/ecs/command_buffer.h"
 
 using namespace core::ecs::systems;
 using namespace core::ecs::components;

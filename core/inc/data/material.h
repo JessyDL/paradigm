@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "serialization.h"
+#include "psl/serialization.h"
 #include "vk/stdafx.h"
-#include "meta.h"
+#include "psl/meta.h"
 #include "gfx/types.h"
 #include "fwd/resource/resource.h"
 

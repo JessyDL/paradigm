@@ -41,7 +41,7 @@
 #include "gfx/render_graph.h"
 #include "gfx/bundle.h"
 
-#include "ecs/state.h"
+#include "psl/ecs/state.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/camera.h"
 #include "ecs/components/input_tag.h"
@@ -989,7 +989,7 @@ int main()
 	std::srand(0);
 	entry(graphics_backend::gles);
 	//gl_thread.join();
-	return 0;
+	//return 0;
 	std::srand(0);
 	return entry(graphics_backend::vulkan);
 }

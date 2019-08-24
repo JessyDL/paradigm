@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include "vk/stdafx.h"
 #include "resource/resource.hpp"
-#include "memory/range.h"
-#include "memory/segment.h"
+#include "psl/memory/range.h"
+#include "psl/memory/segment.h"
 #include <vector>
 #include "fwd/gfx/context.h"
 

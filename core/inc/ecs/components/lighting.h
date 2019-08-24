@@ -1,5 +1,5 @@
 #pragma once
-#include "math/vec.h"
+#include "psl/math/vec.h"
 
 namespace core::ecs::components
 {
