@@ -985,9 +985,11 @@ int main()
 #endif
 
 	// std::thread vk_thread(entry, graphics_backend::gles);
-	// std::thread gl_thread(entry, graphics_backend::vulkan);
+	//std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
 	entry(graphics_backend::gles);
+	//gl_thread.join();
+	return 0;
 	std::srand(0);
 	return entry(graphics_backend::vulkan);
 }

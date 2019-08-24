@@ -1018,7 +1018,7 @@ namespace core::gfx
 	}
 #endif
 #ifdef PE_GLES
-	inline bool to_gles(format value, GLint & internalFormat, GLint & format, GLint & type) noexcept
+	inline bool to_gles(format value, GLint& internalFormat, GLint& format, GLint& type) noexcept
 	{
 		internalFormat = -1;
 		switch(value)
@@ -2048,4 +2048,25 @@ namespace core::gfx
 		}
 #endif
 	} // namespace conversion
+
+	inline bool has_depth(core::gfx::format format)
+	{
+		static std::vector<core::gfx::format> formats = {
+			core::gfx::format::d16_unorm,  core::gfx::format::x8_d24_unorm_pack32, core::gfx::format::d24_unorm_s8_uint,
+			core::gfx::format::d32_sfloat, core::gfx::format::d32_sfloat_s8_uint,
+		};
+		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
+	}
+
+	inline bool has_stencil(core::gfx::format format)
+	{
+		static std::vector<core::gfx::format> formats = {
+			core::gfx::format::s8_uint,
+			core::gfx::format::d24_unorm_s8_uint,
+			core::gfx::format::d32_sfloat_s8_uint,
+		};
+		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
+	}
+
+	inline bool is_depthstencil(core::gfx::format format) { return (has_depth(format) || has_stencil(format)); }
 } // namespace core::gfx

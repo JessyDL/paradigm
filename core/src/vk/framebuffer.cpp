@@ -150,6 +150,12 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	auto res = cache.library().get<core::meta::texture>(uid);
 	if(!res) return false;
 
+
+	auto texture = cache.find<core::ivk::texture>(uid);
+	if(texture.state() != core::resource::state::loaded)
+		texture = cache.create_using<core::ivk::texture>(uid, m_Context);
+	if(!texture) return false;
+
 	auto meta = res.value();
 
 	binding& binding		   = m_Bindings.emplace_back();
@@ -158,9 +164,6 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	binding.description.format = gfx::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)
 	{
-		auto texture = cache.find<core::ivk::texture>(uid);
-		if(texture.state() != core::resource::state::loaded)
-			texture = cache.create_using<core::ivk::texture>(uid, m_Context);
 		m_Textures.push_back(texture);
 		attachment& attachment		= binding.attachments.emplace_back();
 		attachment.view				= texture->view();

@@ -21,7 +21,9 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 {
 	switch(context->backend())
 	{
-	case graphics_backend::gles: break;
+	case graphics_backend::gles:
+		m_Handle << cache.create_using<core::igles::framebuffer>(metaData.uid, data);
+		break;
 	case graphics_backend::vulkan:
 		m_Handle << cache.create_using<core::ivk::framebuffer>(metaData.uid, context->resource().get<core::ivk::context>(), data);
 		break;

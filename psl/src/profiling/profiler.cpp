@@ -62,7 +62,12 @@ void profiler::frame_info::clear()
 	IDCounter = 0;
 	m_Stack   = 0;
 }
-void profiler::frame_info::end() { duration = m_Timer.elapsed<std::chrono::microseconds>(); }
+void profiler::frame_info::end()
+{
+#ifdef PE_PROFILER
+	duration = m_Timer.elapsed<std::chrono::microseconds>();
+#endif 
+}
 
 profiler::profiler(size_t buffer_size)
 {
@@ -98,7 +103,9 @@ volatile profiler::scoped_block profiler::scope(const psl::string& name, void* t
 
 volatile profiler::scoped_block profiler::scope(void* target) noexcept
 {
+#ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].push((std::uintptr_t)target);
+#endif
 	return {*this};
 }
 
