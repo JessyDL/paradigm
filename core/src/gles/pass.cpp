@@ -1,5 +1,6 @@
 #include "gles/pass.h"
 #include "gles/swapchain.h"
+#include "gles/framebuffer.h"
 #include "gles/material.h"
 #include "gles/geometry.h"
 #include "gles/buffer.h"
@@ -15,14 +16,22 @@ using namespace core::igles;
 using namespace core::resource;
 
 pass::pass(handle<swapchain> swapchain) : m_Swapchain(swapchain) {}
+pass::pass(handle<framebuffer> framebuffer) : m_Framebuffer(framebuffer) {}
 
 
 void pass::clear() { m_DrawGroups.clear(); }
-void pass::prepare() { m_Swapchain->clear(); }
+void pass::prepare()
+{
+	if(m_Swapchain) m_Swapchain->clear();
+}
 bool pass::build() { return true; }
 void pass::present()
 {
 	glFinish();
+	if(m_Framebuffer)
+	{
+	
+	}
 	for(const auto& group : m_DrawGroups)
 	{
 		for(auto& drawLayer : group.m_Group)
@@ -86,7 +95,7 @@ void pass::present()
 		}
 	}
 	glFinish();
-	m_Swapchain->present();
+	if(m_Swapchain) m_Swapchain->present();
 }
 
 void pass::add(core::gfx::drawgroup& group) noexcept { m_DrawGroups.push_back(group); }

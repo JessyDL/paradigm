@@ -28,7 +28,7 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 		if(texture.state() != core::resource::state::loaded)
 			texture = cache.create_using<core::igles::texture>(attach.texture());
 
-		assert_debug_break(attach.shared());
+		assert_debug_break(!attach.shared());
 
 		auto count				   = attach.shared() ? 1u : m_Framebuffers.size();
 		binding& binding		   = m_Bindings.emplace_back();

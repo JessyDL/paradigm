@@ -19,7 +19,9 @@ pass::pass(handle<core::gfx::context> context, handle<core::gfx::framebuffer> fr
 {
 	switch(context->backend())
 	{
-	case graphics_backend::gles: break;
+	case graphics_backend::gles:
+		m_Handle = new core::igles::pass(framebuffer->resource().get<core::igles::framebuffer>());
+		break;
 	case graphics_backend::vulkan:
 		m_Handle = new core::ivk::pass(context->resource().get<core::ivk::context>(),
 									   framebuffer->resource().get<core::ivk::framebuffer>());
