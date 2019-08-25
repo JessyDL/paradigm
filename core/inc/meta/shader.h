@@ -4,7 +4,6 @@
 #include "psl/ustring.h"
 #include <vector>
 #include "gfx/types.h"
-#include "vk/conversion.h"
 
 namespace core::meta
 {
@@ -73,19 +72,7 @@ namespace core::meta
 				template <typename S>
 				void serialize(S& s)
 				{
-					const uint32_t current_version = 1;
-					psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-					s << version;
-
-					switch(version)
-					{
-					case current_version: s << m_Location << m_Format << m_Offset; break;
-					case 0:
-						psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
-						s << format;
-						m_Format.value = core::gfx::conversion::to_format(format.value);
-						s << m_Location << m_Offset;
-					}
+					s << m_Location << m_Format << m_Offset;
 				}
 				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[17]{"VERTEX_ATTRIBUTE"};
@@ -245,19 +232,7 @@ namespace core::meta
 				template <typename S>
 				void serialize(S& s)
 				{
-					const uint32_t current_version = 1;
-					psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-					s << version;
-
-					switch(version)
-					{
-					case current_version: s << m_Name << m_Format << m_Offset << m_Default; break;
-					case 0:
-						psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
-						s << format;
-						m_Format.value = core::gfx::conversion::to_format(format.value);
-						s << m_Name << m_Offset << m_Default;
-					}
+					s << m_Name << m_Format << m_Offset << m_Default;
 				}
 				/// \brief the serialization name for the psl::format::node
 				static constexpr const char serialization_name[24]{"SHADER_INSTANCE_ELEMENT"};
@@ -383,21 +358,7 @@ namespace core::meta
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Binding << m_Name << m_Size << m_SubElements;
-
-				const uint32_t current_version = 1;
-				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-				s << version;
-
-				switch(version)
-				{
-				case current_version: s << m_Type; break;
-				case 0:
-					psl::serialization::property<vk::DescriptorType, const_str("TYPE", 4)> type;
-					s << type;
-					m_Type.value = core::gfx::conversion::to_binding_type(type.value);
-					break;
-				}
+				s << m_Binding << m_Name << m_Size << m_SubElements << m_Type;
 			}
 
 			/// \brief the serialization name for the psl::format::node
@@ -471,19 +432,7 @@ namespace core::meta
 		void serialize(S& s)
 		{
 			psl::meta::file::serialize(s);
-			const uint32_t current_version = 1;
-			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-			s << version;
-
-			switch(version)
-			{
-			case current_version: s << m_Stage << m_VertexBindings << m_Descriptors; break;
-			case 0:
-				psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
-				s << stage;
-				m_Stage.value = core::gfx::conversion::to_shader_stage(stage.value);
-				s << m_VertexBindings << m_Descriptors;
-			}
+			s << m_Stage << m_VertexBindings << m_Descriptors;
 		}
 
 
