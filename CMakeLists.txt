@@ -52,11 +52,6 @@ set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where
 set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
 OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check 'compile options' section in the CMakelists.txt file)" TRUE)
 
-if(PE_PCH)
-	include(cotire)
-endif()
-include(assimp)
-
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 if(PE_MODE STREQUAL "EXE")
