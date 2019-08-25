@@ -112,13 +112,13 @@ namespace core::resource
 
 		inline value_type& value() noexcept
 		{
-			assert(state() == state::loaded);
+			assert_debug_break(state() == state::loaded);
 			return *m_Resource;
 		}
 
 		inline const value_type& value() const noexcept
 		{
-			assert(state() == state::loaded);
+			assert_debug_break(state() == state::loaded);
 			return *m_Resource;
 		}
 

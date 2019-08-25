@@ -521,7 +521,7 @@ namespace utility::vulkan::defaults
 
 namespace utility::vulkan
 {
-	inline static bool check(const vk::Result& value)
+	inline bool check(const vk::Result& value)
 	{
 		if(value != vk::Result::eSuccess)
 		{
@@ -533,7 +533,7 @@ namespace utility::vulkan
 		return true;
 	}
 
-	static bool check(const VkResult& value)
+	inline bool check(const VkResult& value)
 	{
 		if(value != VkResult::VK_SUCCESS)
 		{
@@ -544,7 +544,7 @@ namespace utility::vulkan
 		return true;
 	}
 
-	static vk::CommandBuffer create_cmd_buffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
+	inline vk::CommandBuffer create_cmd_buffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
 											   bool begin, uint32_t bufferCount)
 	{
 		vk::CommandBuffer cmdBuffer;
@@ -566,7 +566,7 @@ namespace utility::vulkan
 		return cmdBuffer;
 	}
 
-	static vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice,
+	inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice,
 											std::vector<vk::Format> depthFormats, vk::Format* depthFormat)
 	{
 		for(auto format : depthFormats)
@@ -584,7 +584,7 @@ namespace utility::vulkan
 		return false;
 	}
 
-	static vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice, vk::Format* depthFormat)
+	inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice, vk::Format* depthFormat)
 	{
 		// Since all depth formats may be optional, we need to find a suitable depth format to use
 		// Start with the highest precision packed format
@@ -599,7 +599,7 @@ namespace utility::vulkan
 	// an image and put it into an active command buffer
 	// See chapter 11.4 "Image Layout" for details
 
-	static void set_image_layout(vk::CommandBuffer cmdbuffer, vk::Image image, vk::ImageAspectFlags aspectMask,
+	inline void set_image_layout(vk::CommandBuffer cmdbuffer, vk::Image image, vk::ImageAspectFlags aspectMask,
 								 vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout,
 								 vk::ImageSubresourceRange subresourceRange, vk::PipelineStageFlags srcStageMask,
 								 vk::PipelineStageFlags dstStageMask)
@@ -712,7 +712,7 @@ namespace utility::vulkan
 								  &imageMemoryBarrier);
 	}
 
-	static void set_image_layout(vk::CommandBuffer& cmdbuffer, vk::Image& image, const vk::ImageLayout& oldImageLayout,
+	inline void set_image_layout(vk::CommandBuffer& cmdbuffer, vk::Image& image, const vk::ImageLayout& oldImageLayout,
 								 const vk::ImageLayout& newImageLayout, vk::ImageSubresourceRange& subresourceRange)
 	{
 		set_image_layout(cmdbuffer, image, vk::ImageAspectFlagBits::eColor, oldImageLayout, newImageLayout,
@@ -722,7 +722,7 @@ namespace utility::vulkan
 	}
 
 
-	static vk::CommandBuffer CreateCommandBuffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
+	inline vk::CommandBuffer CreateCommandBuffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
 												 bool begin, uint32_t bufferCount)
 	{
 		vk::CommandBuffer cmdBuffer;
@@ -748,7 +748,7 @@ namespace utility::vulkan
 	/**
 	 * @brief Returns true if the attachment has a depth component
 	 */
-	static bool has_depth(vk::Format format)
+	inline bool has_depth(vk::Format format)
 	{
 		static std::vector<vk::Format> formats = {
 			vk::Format::eD16Unorm,		 vk::Format::eX8D24UnormPack32, vk::Format::eD32Sfloat,
@@ -760,7 +760,7 @@ namespace utility::vulkan
 	/**
 	 * @brief Returns true if the attachment has a stencil component
 	 */
-	static bool has_stencil(vk::Format format)
+	inline bool has_stencil(vk::Format format)
 	{
 		static std::vector<vk::Format> formats = {
 			vk::Format::eS8Uint,
@@ -773,5 +773,5 @@ namespace utility::vulkan
 	/**
 	 * @brief Returns true if the attachment is a depth and/or stencil attachment
 	 */
-	static bool is_depthstencil(vk::Format format) { return (has_depth(format) || has_stencil(format)); }
+	inline bool is_depthstencil(vk::Format format) { return (has_depth(format) || has_stencil(format)); }
 } // namespace utility::vulkan

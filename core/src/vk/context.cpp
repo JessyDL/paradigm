@@ -35,7 +35,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 	return false; // always return false
 }
 
-inline static psl::string8_t size_denotation(size_t size)
+inline psl::string8_t size_denotation(size_t size)
 {
 	static const std::vector<psl::string8::view> SUFFIXES{{"B", "KB", "MB", "GB", "TB", "PB"}};
 	size_t suffixIndex = 0;

@@ -32,7 +32,7 @@ namespace utility
 		/// \param[in] value the value to transform
 		/// \returns a string containing the hex value.
 		template <typename T>
-		inline static psl::string8_t to_hex(const T& value)
+		inline psl::string8_t to_hex(const T& value)
 		{
 			psl::string8::stream stream;
 			stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << value;
@@ -40,7 +40,7 @@ namespace utility
 		}
 
 		/*template<typename T>
-		inline static size_t SizeofTypeInHex()
+		inline size_t SizeofTypeInHex()
 		{
 		return std::setw(sizeof(T) * 2) + 2;
 		}*/
@@ -62,7 +62,7 @@ namespace utility
 		/// \param[in] str the string containing the hex value.
 		/// \returns an object of type T that has been constructed using the hex value.
 		template <typename T>
-		inline static T from_hex(const psl::string8_t& str)
+		inline T from_hex(const psl::string8_t& str)
 		{
 			return lexical_cast<T>(str);
 		}
@@ -72,7 +72,7 @@ namespace utility
 		/// \param[in] str the string containing the hex value.
 		/// \returns an object of type T that has been constructed using the hex value.
 		template <typename T>
-		inline static T from_hex(const psl::string16_t& str)
+		inline T from_hex(const psl::string16_t& str)
 		{
 			return lexical_cast<T>(str);
 		}
@@ -82,7 +82,7 @@ namespace utility
 		/// \param[in] str the string containing the hex value.
 		/// \returns an object of type T that has been constructed using the hex value.
 		template <typename T>
-		inline static T from_hex(const psl::string32_t& str)
+		inline T from_hex(const psl::string32_t& str)
 		{
 			return lexical_cast<T>(str);
 		}
@@ -90,7 +90,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string8_t to_upper(psl::string8::view str)
+		inline psl::string8_t to_upper(psl::string8::view str)
 		{
 			psl::string8_t result{str};
 			std::transform(result.begin(), result.end(), result.begin(), ::toupper);
@@ -100,7 +100,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string16_t to_upper(psl::string16::view str)
+		inline psl::string16_t to_upper(psl::string16::view str)
 		{
 			psl::string16_t result{str};
 			std::transform(result.begin(), result.end(), result.begin(), ::toupper);
@@ -110,7 +110,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string32_t to_upper(psl::string32::view str)
+		inline psl::string32_t to_upper(psl::string32::view str)
 		{
 			psl::string32_t result{str};
 			std::transform(result.begin(), result.end(), result.begin(), ::toupper);
@@ -120,7 +120,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string8_t& to_upper(psl::string8_t& str)
+		inline psl::string8_t& to_upper(psl::string8_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 			return str;
@@ -129,7 +129,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string16_t& to_upper(psl::string16_t& str)
+		inline psl::string16_t& to_upper(psl::string16_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 			return str;
@@ -138,7 +138,7 @@ namespace utility
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string32_t& to_upper(psl::string32_t& str)
+		inline psl::string32_t& to_upper(psl::string32_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::toupper);
 			return str;
@@ -147,7 +147,7 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string8_t to_lower(psl::string8::view str)
+		inline psl::string8_t to_lower(psl::string8::view str)
 		{
 			psl::string8_t result{str};
 			std::transform(result.begin(), result.end(), result.begin(), ::tolower);
@@ -157,7 +157,7 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string16_t to_lower(psl::string16::view str)
+		inline psl::string16_t to_lower(psl::string16::view str)
 		{
 			psl::string16_t result{str};
 			std::transform(result.begin(), result.end(), result.begin(), ::tolower);
@@ -167,7 +167,7 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string32_t to_lower(psl::string32::view str)
+		inline psl::string32_t to_lower(psl::string32::view str)
 		{
 			psl::string32_t result{str};
 			std::transform(result.begin(), result.end(), result.begin(), ::tolower);
@@ -178,7 +178,7 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string8_t& to_lower(psl::string8_t& str)
+		inline psl::string8_t& to_lower(psl::string8_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 			return str;
@@ -187,7 +187,7 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string16_t& to_lower(psl::string16_t& str)
+		inline psl::string16_t& to_lower(psl::string16_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 			return str;
@@ -196,13 +196,13 @@ namespace utility
 		/// \brief convert the given input string to lowercase letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.
-		inline static psl::string32_t& to_lower(psl::string32_t& str)
+		inline psl::string32_t& to_lower(psl::string32_t& str)
 		{
 			std::transform(str.begin(), str.end(), str.begin(), ::tolower);
 			return str;
 		}
 
-		inline static std::vector<psl::string8::view>& split(psl::string8::view s, psl::string8::view delimiter,
+		inline std::vector<psl::string8::view>& split(psl::string8::view s, psl::string8::view delimiter,
 															 std::vector<psl::string8::view>& inout,
 															 bool ignore_consecutive = false)
 		{
@@ -233,7 +233,7 @@ namespace utility
 			inout.emplace_back(s.substr(prev, pos - prev));
 			return inout;
 		}
-		inline static std::vector<psl::string8::view> split(psl::string8::view s, psl::string8::view delimiter,
+		inline std::vector<psl::string8::view> split(psl::string8::view s, psl::string8::view delimiter,
 															bool ignore_consecutive = true)
 		{
 			std::vector<psl::string8::view> res;
@@ -241,7 +241,7 @@ namespace utility
 			return res;
 		}
 
-		inline static std::vector<psl::string16::view>& split(psl::string16::view s, psl::string16::view delimiter,
+		inline std::vector<psl::string16::view>& split(psl::string16::view s, psl::string16::view delimiter,
 															  std::vector<psl::string16::view>& inout)
 		{
 			size_t pos  = 0u;
@@ -256,7 +256,7 @@ namespace utility
 			inout.emplace_back(s.substr(prev, pos - prev));
 			return inout;
 		}
-		inline static std::vector<psl::string16::view> split(psl::string16::view s, psl::string16::view delimiter)
+		inline std::vector<psl::string16::view> split(psl::string16::view s, psl::string16::view delimiter)
 		{
 			std::vector<psl::string16::view> res;
 			split(s, delimiter, res);
@@ -264,7 +264,7 @@ namespace utility
 		}
 
 
-		inline static std::vector<psl::string32::view>& split(psl::string32::view s, psl::string32::view delimiter,
+		inline std::vector<psl::string32::view>& split(psl::string32::view s, psl::string32::view delimiter,
 															  std::vector<psl::string32::view>& inout)
 		{
 			size_t pos  = 0u;
@@ -279,14 +279,14 @@ namespace utility
 			inout.emplace_back(s.substr(prev, pos - prev));
 			return inout;
 		}
-		inline static std::vector<psl::string32::view> split(psl::string32::view s, psl::string32::view delimiter)
+		inline std::vector<psl::string32::view> split(psl::string32::view s, psl::string32::view delimiter)
 		{
 			std::vector<psl::string32::view> res;
 			split(s, delimiter, res);
 			return res;
 		}
 
-		inline static size_t size(const std::vector<psl::string8::view>& values)
+		inline size_t size(const std::vector<psl::string8::view>& values)
 		{
 			using type = size_t;
 			type chars = std::accumulate(std::begin(values), std::end(values), type(0),
@@ -294,7 +294,7 @@ namespace utility
 			return chars;
 		}
 
-		inline static size_t size(const std::vector<psl::string16::view>& values)
+		inline size_t size(const std::vector<psl::string16::view>& values)
 		{
 			using type = size_t;
 			type chars = std::accumulate(std::begin(values), std::end(values), type(0),
@@ -302,7 +302,7 @@ namespace utility
 			return chars;
 		}
 
-		inline static size_t size(const std::vector<psl::string32::view>& values)
+		inline size_t size(const std::vector<psl::string32::view>& values)
 		{
 			using type = size_t;
 			type chars = std::accumulate(std::begin(values), std::end(values), type(0),
@@ -311,7 +311,7 @@ namespace utility
 		}
 
 
-		inline static psl::string16_t& erase_consecutive(psl::string16_t& str, psl::string16::view consecutive)
+		inline psl::string16_t& erase_consecutive(psl::string16_t& str, psl::string16::view consecutive)
 		{
 			size_t pos = 0;
 			while((pos = str.find(consecutive)) != psl::string16::view::npos)
@@ -326,7 +326,7 @@ namespace utility
 		}
 
 
-		inline static psl::string32_t& erase_consecutive(psl::string32_t& str, psl::string32::view consecutive)
+		inline psl::string32_t& erase_consecutive(psl::string32_t& str, psl::string32::view consecutive)
 		{
 			size_t pos = 0;
 			while((pos = str.find(consecutive)) != psl::string32::view::npos)
@@ -341,7 +341,7 @@ namespace utility
 		}
 
 
-		static size_t count(psl::string8::view s, psl::string8::view search)
+		inline size_t count(psl::string8::view s, psl::string8::view search)
 		{
 			size_t occurrences					= 0u;
 			psl::string8::view::size_type start = 0;
@@ -355,7 +355,7 @@ namespace utility
 			return occurrences;
 		}
 
-		static size_t count(psl::string16::view s, psl::string16::view search)
+		inline size_t count(psl::string16::view s, psl::string16::view search)
 		{
 			size_t occurrences					 = 0u;
 			psl::string16::view::size_type start = 0;
@@ -369,7 +369,7 @@ namespace utility
 			return occurrences;
 		}
 
-		static size_t count(psl::string32::view s, psl::string32::view search)
+		inline size_t count(psl::string32::view s, psl::string32::view search)
 		{
 			size_t occurrences					 = 0u;
 			psl::string32::view::size_type start = 0;
@@ -384,7 +384,7 @@ namespace utility
 		}
 
 
-		inline static bool replace(psl::string8_t& str, psl::string8::view from, psl::string8::view to)
+		inline bool replace(psl::string8_t& str, psl::string8::view from, psl::string8::view to)
 		{
 			size_t start_pos = str.find(from);
 			if(start_pos == psl::string8_t::npos) return false;
@@ -392,14 +392,14 @@ namespace utility
 			return true;
 		}
 
-		inline static bool replace(psl::string16_t& str, psl::string16::view from, psl::string16::view to)
+		inline bool replace(psl::string16_t& str, psl::string16::view from, psl::string16::view to)
 		{
 			size_t start_pos = str.find(from);
 			if(start_pos == psl::string16_t::npos) return false;
 			str.replace(start_pos, from.length(), to);
 			return true;
 		}
-		inline static bool replace(psl::string32_t& str, psl::string32::view from, psl::string32::view to)
+		inline bool replace(psl::string32_t& str, psl::string32::view from, psl::string32::view to)
 		{
 			size_t start_pos = str.find(from);
 			if(start_pos == psl::string32_t::npos) return false;
@@ -407,7 +407,7 @@ namespace utility
 			return true;
 		}
 
-		inline static bool replace_all(psl::string8_t& str, psl::string8::view from, psl::string8::view to)
+		inline bool replace_all(psl::string8_t& str, psl::string8::view from, psl::string8::view to)
 		{
 			if(from.empty()) return false;
 			size_t start_pos = 0;
@@ -421,14 +421,14 @@ namespace utility
 			return success;
 		}
 
-		inline static psl::string8_t replace_all(psl::string8::view str, psl::string8::view from, psl::string8::view to)
+		inline psl::string8_t replace_all(psl::string8::view str, psl::string8::view from, psl::string8::view to)
 		{
 			psl::string8_t res{str};
 			replace_all(res, from, to);
 			return res;
 		}
 
-		inline static bool replace_all(psl::string16_t& str, psl::string16::view from, psl::string16::view to)
+		inline bool replace_all(psl::string16_t& str, psl::string16::view from, psl::string16::view to)
 		{
 			if(from.empty()) return false;
 			size_t start_pos = 0;
@@ -442,7 +442,7 @@ namespace utility
 			return success;
 		}
 
-		inline static psl::string16_t replace_all(psl::string16::view str, psl::string16::view from,
+		inline psl::string16_t replace_all(psl::string16::view str, psl::string16::view from,
 												  psl::string16::view to)
 		{
 			psl::string16_t res{str};
@@ -450,7 +450,7 @@ namespace utility
 			return res;
 		}
 
-		inline static bool replace_all(psl::string32_t& str, psl::string32::view from, psl::string32::view to)
+		inline bool replace_all(psl::string32_t& str, psl::string32::view from, psl::string32::view to)
 		{
 			if(from.empty()) return false;
 			size_t start_pos = 0;
@@ -464,7 +464,7 @@ namespace utility
 			return success;
 		}
 
-		inline static psl::string32_t replace_all(psl::string32::view str, psl::string32::view from,
+		inline psl::string32_t replace_all(psl::string32::view str, psl::string32::view from,
 												  psl::string32::view to)
 		{
 			psl::string32_t res{str};
@@ -472,7 +472,7 @@ namespace utility
 			return res;
 		}
 
-		inline static size_t remove_all(psl::string8_t& str, psl::string8::view pattern)
+		inline size_t remove_all(psl::string8_t& str, psl::string8::view pattern)
 		{
 			size_t start_pos = 0;
 			size_t count	 = 0;
@@ -484,7 +484,7 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string8_t& str, psl::string8::view pattern, size_t startOffset,
+		inline size_t remove_all(psl::string8_t& str, psl::string8::view pattern, size_t startOffset,
 										size_t& endOffset)
 		{
 			size_t count	 = 0;
@@ -499,7 +499,7 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string8_t& str, const std::vector<psl::string8::view>& patterns,
+		inline size_t remove_all(psl::string8_t& str, const std::vector<psl::string8::view>& patterns,
 										size_t startOffset, size_t& endOffset)
 		{
 			size_t count = 0;
@@ -510,7 +510,7 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string16_t& str, psl::string16::view pattern)
+		inline size_t remove_all(psl::string16_t& str, psl::string16::view pattern)
 		{
 			size_t start_pos = 0;
 			size_t count	 = 0;
@@ -522,7 +522,7 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string16_t& str, psl::string16::view pattern, size_t startOffset,
+		inline size_t remove_all(psl::string16_t& str, psl::string16::view pattern, size_t startOffset,
 										size_t& endOffset)
 		{
 			size_t count	 = 0;
@@ -537,7 +537,7 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string16_t& str, const std::vector<psl::string16::view>& patterns,
+		inline size_t remove_all(psl::string16_t& str, const std::vector<psl::string16::view>& patterns,
 										size_t startOffset, size_t& endOffset)
 		{
 			size_t count = 0;
@@ -549,7 +549,7 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string32_t& str, psl::string32::view pattern)
+		inline size_t remove_all(psl::string32_t& str, psl::string32::view pattern)
 		{
 			size_t start_pos = 0;
 			size_t count	 = 0;
@@ -561,7 +561,7 @@ namespace utility
 			return count;
 		}
 
-		inline static size_t remove_all(psl::string32_t& str, psl::string32::view pattern, size_t startOffset,
+		inline size_t remove_all(psl::string32_t& str, psl::string32::view pattern, size_t startOffset,
 										size_t& endOffset)
 		{
 			size_t count	 = 0;
@@ -576,7 +576,7 @@ namespace utility
 		}
 
 
-		inline static size_t remove_all(psl::string32_t& str, const std::vector<psl::string32::view>& patterns,
+		inline size_t remove_all(psl::string32_t& str, const std::vector<psl::string32::view>& patterns,
 										size_t startOffset, size_t& endOffset)
 		{
 			size_t count = 0;
@@ -588,7 +588,7 @@ namespace utility
 		}
 
 
-		static std::vector<size_t> locations(psl::string8::view s, psl::string8::view search)
+		inline std::vector<size_t> locations(psl::string8::view s, psl::string8::view search)
 		{
 			std::vector<size_t> occurenceLocations;
 			psl::string8::view::size_type start = 0;
@@ -602,7 +602,7 @@ namespace utility
 			return occurenceLocations;
 		}
 
-		static std::vector<size_t> locations(psl::string16::view s, psl::string16::view search)
+		inline std::vector<size_t> locations(psl::string16::view s, psl::string16::view search)
 		{
 			std::vector<size_t> occurenceLocations;
 			psl::string16::view::size_type start = 0;
@@ -616,7 +616,7 @@ namespace utility
 			return occurenceLocations;
 		}
 
-		static std::vector<size_t> locations(psl::string32::view s, psl::string32::view search)
+		inline std::vector<size_t> locations(psl::string32::view s, psl::string32::view search)
 		{
 			std::vector<size_t> occurenceLocations;
 			psl::string32::view::size_type start = 0;
@@ -631,7 +631,7 @@ namespace utility
 		}
 
 
-		[[nodiscard]] static psl::string_view::size_type
+		[[nodiscard]] inline psl::string_view::size_type
 		rfind_first_of(psl::string_view source, psl::string_view tokens,
 					   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
@@ -644,7 +644,7 @@ namespace utility
 			return psl::string_view::npos;
 		}
 
-		[[nodiscard]] static psl::string_view::size_type
+		[[nodiscard]] inline psl::string_view::size_type
 		rfind_first_of(psl::string_view source, psl::char_t token,
 					   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
@@ -658,7 +658,7 @@ namespace utility
 		}
 
 
-		[[nodiscard]] static psl::string_view::size_type
+		[[nodiscard]] inline psl::string_view::size_type
 		rfind_first_not_of(psl::string_view source, psl::string_view tokens,
 						   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
@@ -672,7 +672,7 @@ namespace utility
 			return psl::string_view::npos;
 		}
 
-		[[nodiscard]] static psl::string_view::size_type
+		[[nodiscard]] inline psl::string_view::size_type
 		rfind_first_not_of(psl::string_view source, psl::char_t token,
 						   const psl::string_view::size_type offset = psl::string_view::npos)
 		{
@@ -688,7 +688,7 @@ namespace utility
 
 
 		template <typename... Args>
-		inline static psl::string8_t format(const psl::string8_t& target, Args... args)
+		inline psl::string8_t format(const psl::string8_t& target, Args... args)
 		{
 			size_t size = snprintf(nullptr, 0, target.c_str(), args...) + 1; // Extra space for '\0'
 			std::unique_ptr<psl::string8::char_t[]> buf(new psl::string8::char_t[size]);
