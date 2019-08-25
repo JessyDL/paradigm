@@ -27,7 +27,9 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 			size_t end			= line.find("]", start);
 			psl::string8_t meta = line.substr(start, end - start);
 			auto uid			= utility::converter<UID>::from_string(meta);
-			size_t startPath	= line.find("METAPATH=") + 9;
+			size_t startFilePath = line.find("PATH=") + 5;
+			size_t endFilePath   = line.find("]", startFilePath);
+			size_t startPath	 = line.find("METAPATH=", endFilePath) + 9;
 			size_t endPath		= line.find("]", startPath);
 
 			size_t startEnv = line.find("[ENV=");
@@ -45,7 +47,7 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 			}
 
 			psl::string8_t metapath  = line.substr(startPath, endPath - startPath);
-			psl::string8_t filepath  = metapath.substr(0, metapath.size() - (META_EXTENSION.size() + 1));
+			psl::string8_t filepath  = line.substr(startFilePath, endFilePath - startFilePath);
 			psl::string8_t extension = filepath.substr(filepath.find_last_of('.') + 1);
 
 			file* metaPtr = nullptr;
