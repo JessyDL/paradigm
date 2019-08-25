@@ -75,7 +75,7 @@ if(PE_VULKAN)
 endif()
 
 if(PE_GLES)
-	FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.32 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+	FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.33 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 	FetchContent_GetProperties(glad)
 	if(NOT glad_POPULATED)
 		message(STATUS "fetching Dav1dde/glad...")
