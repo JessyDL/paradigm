@@ -41,20 +41,15 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 
 const core::data::material& material::data() const noexcept
 {
-	if(m_Handle.contains<igles::material>())
-	{
 #ifdef PE_GLES
-		return m_Handle.value<igles::material>().data();
-#else
-		assert(false);
-#endif
-	}
-	else
 	{
-#ifdef PE_VULKAN
-		return m_Handle.value<ivk::material>().data().value();
-#else
-		assert(false);
-#endif
+		return m_Handle.value<igles::material>().data();
 	}
+#endif
+#ifdef PE_VULKAN
+	if(m_Handle.contains<ivk::material>())
+	{
+		return m_Handle.value<ivk::material>().data().value();
+	}
+#endif
 }

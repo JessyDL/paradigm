@@ -54,97 +54,80 @@ buffer::~buffer() {}
 
 const core::data::buffer& buffer::data() const noexcept
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<igles::buffer>())
 	{
-#ifdef PE_GLES
 		return m_Handle.value<igles::buffer>().data();
-#else
-		assert(false)
-#endif
 	}
-	else
-	{
+#endif
 #ifdef PE_VULKAN
+	if(m_Handle.contains<ivk::buffer>())
+	{
 		return m_Handle.value<ivk::buffer>().data().value();
-#else
-		assert(false)
-#endif
+		;
 	}
+#endif
 }
 
 
 [[nodiscard]] std::optional<memory::segment> buffer::reserve(uint64_t size)
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<core::igles::buffer>())
 	{
-#ifdef PE_GLES
 		return m_Handle.value<core::igles::buffer>().allocate(size);
-#else
-		assert(false)
-#endif
 	}
-	else
-	{
+#endif
 #ifdef PE_VULKAN
+	if(m_Handle.contains<core::ivk::buffer>())
+	{
 		return m_Handle.value<core::ivk::buffer>().reserve(size);
-#else
-		assert(false)
-#endif
 	}
+#endif
 }
 [[nodiscard]] psl::array<std::pair<memory::segment, memory::range>> buffer::reserve(psl::array<uint64_t> sizes,
 																					bool optimize)
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<core::igles::buffer>())
 	{
-#ifdef PE_GLES
 		return m_Handle.value<core::igles::buffer>().allocate(sizes, optimize);
-#else
-		assert(false)
-#endif
 	}
-	else
-	{
+#endif
 #ifdef PE_VULKAN
+	if(m_Handle.contains<core::ivk::buffer>())
+	{
 		return m_Handle.value<core::ivk::buffer>().reserve(sizes, optimize);
-#else
-		assert(false)
-#endif
 	}
+#endif
 }
 
 bool buffer::deallocate(memory::segment& segment)
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<core::igles::buffer>())
 	{
-#ifdef PE_GLES
 		return m_Handle.value<core::igles::buffer>().deallocate(segment);
-#else
-		assert(false)
-#endif
 	}
-	else
-	{
+#endif
 #ifdef PE_VULKAN
+	if(m_Handle.contains<core::ivk::buffer>())
+	{
 		return m_Handle.value<core::ivk::buffer>().deallocate(segment);
-#else
-		assert(false)
-#endif
 	}
+#endif
 }
 bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> ranges)
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<core::igles::buffer>())
 	{
-#ifdef PE_GLES
 		return m_Handle.value<core::igles::buffer>().copy_from(other.resource().value<core::igles::buffer>(), ranges);
-#else
-		assert(false)
-#endif
 	}
-	else
-	{
+#endif
 #ifdef PE_VULKAN
+	if(m_Handle.contains<core::ivk::buffer>())
+	{
 		psl::array<vk::BufferCopy> buffer_ranges;
 		std::transform(std::begin(ranges), std::end(ranges), std::back_inserter(buffer_ranges),
 					   [](const gfx::memory_copy& range) {
@@ -153,30 +136,24 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 
 		return m_Handle.value<core::ivk::buffer>().copy_from(other.resource().value<core::ivk::buffer>(),
 															 buffer_ranges);
-#else
-		assert(false)
-#endif
 	}
+#endif
 }
 
 bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<core::igles::buffer>())
 	{
-#ifdef PE_GLES
 		return m_Handle.value<core::igles::buffer>().commit(instructions);
-#else
-		assert(false)
-#endif
 	}
-	else
-	{
+#endif
 #ifdef PE_VULKAN
+	if(m_Handle.contains<core::ivk::buffer>())
+	{
 		return m_Handle.value<core::ivk::buffer>().commit(instructions);
-#else
-		assert(false)
-#endif
 	}
+#endif
 }
 
 size_t buffer::free_size() const noexcept
