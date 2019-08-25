@@ -1,12 +1,6 @@
 ﻿
 #include "gfx/drawgroup.h"
-#include "vk/material.h"
-#include "vk/geometry.h"
 #include "data/geometry.h"
-#include "vk/pipeline.h"
-#include "vk/framebuffer.h"
-#include "vk/swapchain.h"
-#include "vk/buffer.h"
 #include "logging.h"
 
 using namespace core::gfx;

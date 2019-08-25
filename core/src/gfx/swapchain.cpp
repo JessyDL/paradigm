@@ -20,6 +20,7 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 {
 	switch(context->backend())
 	{
+#ifdef PE_GLES
 	case graphics_backend::gles:
 	{
 		//auto igles_context = context->resource().get<core::igles::context>();
@@ -27,11 +28,14 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 			metaData.uid, surface, context->resource().get<core::igles::context>(), use_depth);
 	}
 	break;
+#endif
+#ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_Handle << cache.create_using<core::ivk::swapchain>(metaData.uid, surface,
 															 context->resource().get<core::ivk::context>(), use_depth);
 		surface->register_swapchain(m_Handle.get<core::ivk::swapchain>());
 		break;
+#endif
 	}
 
 }

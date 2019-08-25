@@ -21,17 +21,21 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 {
 	switch(context->backend())
 	{
+#ifdef PE_GLES
 	case graphics_backend::gles:
 		m_Handle << cache.create_using<core::igles::geometry>(metaData.uid, data,
 															  geometryBuffer->resource().get<core::igles::buffer>(),
 											 indicesBuffer->resource().get<core::igles::buffer>());
 		break;
+#endif
+#ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_Handle << cache.create_using<core::ivk::geometry>(metaData.uid, context->resource().get<core::ivk::context>(),
 															data,
 										   geometryBuffer->resource().get<core::ivk::buffer>(),
 										   indicesBuffer->resource().get<core::ivk::buffer>());
 		break;
+#endif
 	}
 }
 

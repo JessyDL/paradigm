@@ -1,6 +1,5 @@
 #include "stdafx.h"
 #include "gfx/bundle.h"
-#include "vk/material.h"
 #include "data/material.h"
 #include "gfx/buffer.h"
 #include "gfx/material.h"

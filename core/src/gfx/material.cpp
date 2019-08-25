@@ -21,16 +21,21 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 {
 	switch(context_handle->backend())
 	{
+#ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle << cache.create_using<core::igles::material>(metaData.uid,
-			data, pipeline_cache->resource().get<core::igles::program_cache>(),
-											 materialBuffer->resource().get<core::igles::buffer>());
+		m_Handle << cache.create_using<core::igles::material>(
+			metaData.uid, data, pipeline_cache->resource().get<core::igles::program_cache>(),
+			materialBuffer->resource().get<core::igles::buffer>());
 		break;
+#endif
+#ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle << cache.create_using<core::ivk::material>(metaData.uid, context_handle->resource().get<core::ivk::context>(), data,
-											 pipeline_cache->resource().get<core::ivk::pipeline_cache>(),
-											 materialBuffer->resource().get<core::ivk::buffer>());
+		m_Handle << cache.create_using<core::ivk::material>(metaData.uid,
+															context_handle->resource().get<core::ivk::context>(), data,
+															pipeline_cache->resource().get<core::ivk::pipeline_cache>(),
+															materialBuffer->resource().get<core::ivk::buffer>());
 		break;
+#endif
 	}
 }
 
@@ -38,10 +43,18 @@ const core::data::material& material::data() const noexcept
 {
 	if(m_Handle.contains<igles::material>())
 	{
+#ifdef PE_GLES
 		return m_Handle.value<igles::material>().data();
+#else
+		assert(false);
+#endif
 	}
 	else
 	{
+#ifdef PE_VULKAN
 		return m_Handle.value<ivk::material>().data().value();
+#else
+		assert(false);
+#endif
 	}
 }

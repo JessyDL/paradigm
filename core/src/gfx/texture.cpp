@@ -20,10 +20,14 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 {
 	switch (context->backend())
 	{
+#ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_Handle << cache.create_using<core::ivk::texture>(metaData.uid, context->resource().get<core::ivk::context>());
 		break;
+#endif
+#ifdef PE_GLES
 	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::texture>(metaData.uid); break;
+#endif
 	}
 }
 
