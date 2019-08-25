@@ -12,9 +12,9 @@ namespace core::gfx::limits
 	{
 		switch(context.backend())
 		{
+#ifdef PE_GLES
 		case graphics_backend::gles:
 		{
-#ifdef PE_GLES
 			int gl_align = 4;
 			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &gl_align);
 			return static_cast<uint64_t>(gl_align);
@@ -35,9 +35,9 @@ namespace core::gfx::limits
 	{
 		switch(context.backend())
 		{
+#ifdef PE_GLES
 		case graphics_backend::gles:
 		{
-#ifdef PE_GLES
 			int gl_align = 4;
 			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &gl_align);
 			return static_cast<uint64_t>(gl_align);
@@ -59,9 +59,9 @@ namespace core::gfx::limits
 
 		switch(context.backend())
 		{
+#ifdef PE_GLES
 		case graphics_backend::gles:
 		{
-#ifdef PE_GLES
 			return core::gfx::format::d32_sfloat;
 		}
 		break;
