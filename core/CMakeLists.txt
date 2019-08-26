@@ -8,6 +8,9 @@ include(src.txt)
 include(FetchContent)
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 
+SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0)
+find_package(PythonInterp REQUIRED)
+
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/fwd" PREFIX "fwd" FILES ${FWD}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC})
@@ -44,8 +47,8 @@ if(NOT gli_POPULATED)
 endif()
 
 if(PE_VULKAN)
-	if(VK_STATIC)		
-		#link_directories(${vulkan_SOURCE_DIR}/install)
+	if(VK_STATIC)
+	
 	else()	
 		FetchContent_Declare(volk GIT_REPOSITORY https://github.com/zeux/volk.git GIT_PROGRESS TRUE)
 		FetchContent_GetProperties(volk)
@@ -54,11 +57,7 @@ if(PE_VULKAN)
 			FetchContent_Populate(volk)
 			
 			message(STATUS "generating dynamic lib for vulkan")
-			set(PY_RES 0)
-			EXECUTE_PROCESS(WORKING_DIRECTORY "${volk_SOURCE_DIR}" RESULT_VARIABLE PY_RES COMMAND python3 "generate.py" ${vulkan_SOURCE_DIR}/registry/vk.xml)
-			if(NOT ${PY_RES} EQUAL 0)
-				EXECUTE_PROCESS(WORKING_DIRECTORY "${volk_SOURCE_DIR}" RESULT_VARIABLE PY_RES COMMAND python "generate.py" ${vulkan_SOURCE_DIR}/registry/vk.xml)
-			endif()
+			EXECUTE_PROCESS(WORKING_DIRECTORY "${volk_SOURCE_DIR}" COMMAND ${PYTHON_EXECUTABLE} "generate.py" ${vulkan_SOURCE_DIR}/registry/vk.xml)
 			message(STATUS "generated dynamic lib")
 			
 			set_source_files_properties("${volk_SOURCE_DIR}/volk.c" PROPERTIES LANGUAGE CXX )
@@ -81,7 +80,6 @@ if(PE_GLES)
 		message(STATUS "fetching Dav1dde/glad...")
 		FetchContent_Populate(glad)
 		
-		find_package(PythonInterp REQUIRED)
 		
 		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
 			list(APPEND GL_SOURCES

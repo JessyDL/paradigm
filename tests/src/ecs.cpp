@@ -1,6 +1,6 @@
 #include "stdafx_tests.h"
 #include "ecs.h"
-#include "../../psl/inc/ecs/state.h"
+#include "psl/ecs/state.h"
 
 using namespace psl::ecs;
 using namespace tests::ecs;

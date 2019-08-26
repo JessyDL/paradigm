@@ -8,6 +8,9 @@ include(FetchContent)
 include(inc.txt)
 include(src.txt)
 
+SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0)
+find_package(PythonInterp REQUIRED)
+
 FetchContent_Declare(
   catch
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
@@ -16,10 +19,11 @@ FetchContent_Declare(
 
 FetchContent_GetProperties(catch)
 if(NOT catch_POPULATED)
+  message(STATUS "fetching catchorg/Catch2...")
   FetchContent_Populate(catch)
-	EXECUTE_PROCESS(WORKING_DIRECTORY "${catch_SOURCE_DIR}/scripts" COMMAND python "generateSingleHeader.py")  
+  EXECUTE_PROCESS(WORKING_DIRECTORY "${catch_SOURCE_DIR}/scripts" COMMAND ${PYTHON_EXECUTABLE} "generateSingleHeader.py")  
   add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR} EXCLUDE_FROM_ALL)
-
+  message(STATUS "catchorg/Catch2 fetched")
 endif()
 
 include(${catch_SOURCE_DIR}/contrib/Catch.cmake)

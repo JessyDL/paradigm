@@ -1,6 +1,6 @@
 #include "stdafx_tests.h"
 #include "task_test.h"
-#include "task.h"
+#include "psl/async/scheduler.h"
 #include <chrono>
 
 namespace async = psl::async;
@@ -87,7 +87,7 @@ TEST_CASE("free-floating tasks", "[async]")
 	}
 
 
-	auto future = scheduler.execute();
+	scheduler.execute();
 
 	REQUIRE(std::accumulate(std::begin(results), std::end(results), 0, [](int sum, std::future<int>& value) { return sum + value.get();}) == iteration_count * 5);
 }
@@ -96,18 +96,15 @@ TEST_CASE("free-floating tasks", "[async]")
 TEST_CASE("tasks with inter-task-dependencies", "[async]")
 {
 	async::scheduler scheduler;
-	size_t iteration_count = 1024;
-
-	std::vector<bool> trigger_check{};
-	trigger_check.resize(iteration_count);
+	std::array<std::atomic_bool, 1024> trigger_check;
 	std::fill(std::begin(trigger_check), std::end(trigger_check), false);
-	std::vector<std::pair<psl::async::token_t, std::future<int>>> results;
-	for(size_t i = 0; i < iteration_count; ++i)
+	std::vector<std::pair<psl::async::token, std::future<int>>> results;
+	for(size_t i = 0; i < trigger_check.size(); ++i)
 	{
 		std::optional<size_t> verify_index = std::nullopt;
 		if(i > 0)
 			verify_index = std::rand() % i;
-		results.emplace_back(scheduler.schedule([verify_index, &trigger_check, i]()
+		results.emplace_back(scheduler.schedule([verify_index, &trigger_check, i]() mutable
 												{
 													if(verify_index && !trigger_check[verify_index.value()])
 														return 10;
@@ -117,14 +114,17 @@ TEST_CASE("tasks with inter-task-dependencies", "[async]")
 
 		if(verify_index)
 		{
-			scheduler.dependency(results[results.size() - 1].first, results[verify_index.value()].first);
+			results[results.size() - 1].first.after(results[verify_index.value()].first);
 		}
 	}
 
 
-	auto future = scheduler.execute();
+	scheduler.execute();
 
-	REQUIRE(std::accumulate(std::begin(results), std::end(results), 0, [](int sum, std::pair<psl::async::token_t, std::future<int>>& value) { return sum + value.second.get(); }) == iteration_count * 5);
+	REQUIRE(std::accumulate(std::begin(results), std::end(results), 0,
+							[](int sum, std::pair<psl::async::token, std::future<int>>& value) {
+								return sum + value.second.get();
+							}) == trigger_check.size() * 5);
 }
 
 TEST_CASE("tasks with inter-memory-dependencies", "[async]")
@@ -153,13 +153,13 @@ TEST_CASE("tasks with inter-memory-dependencies", "[async]")
 			(std::uintptr_t)shared_values.data() + ((i % shared_output.size()) + 1) * sizeof(uint64_t)};
 		async::barrier write_barrier{(std::uintptr_t)shared_output.data() + (i % shared_values.size()) * sizeof(uint64_t),
 			(std::uintptr_t)shared_output.data() + ((i % shared_values.size()) + 1) * sizeof(uint64_t),
-			async::barrier_type::READ_WRITE};
+			async::barrier_type::WRITE};
 
-		scheduler.dependency(pair.first, {read_barrier, write_barrier});
+		pair.first.barriers({read_barrier, write_barrier});
 		results.emplace_back(std::move(pair.second));
 	}
 
-	auto future = scheduler.execute(async::launch::immediate);
-	future.wait();
+	scheduler.execute();
+
 	REQUIRE(std::accumulate(std::begin(results), std::end(results), uint64_t{0}, [](uint64_t sum, std::future<uint64_t>& value) { return sum + value.get(); }) == (iteration_count / shared_output.size()) * calculated_value);
 }
