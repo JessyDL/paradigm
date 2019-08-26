@@ -19,5 +19,9 @@ jobs:
       run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics vulkan
     - name: build
       run: |
-        cd project_files/*/*
+        cd project_files
+        ls
+        cd Visual Studio 16 2019
+        ls
+        cd x64
         cmake -–build . –-config Release
