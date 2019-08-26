@@ -3,6 +3,10 @@ name: build-test
 on: [push]
 
 jobs:
+  strategy:
+    matrix:
+      graphics: [vulkan, vulkan gles]
+      
   windows:
     name: build windows
     runs-on: windows-latest
@@ -12,7 +16,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: initialize
-      run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics vulkan
+    - name: initialize: ${{ matrix.graphics }}
+      run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics ${{ matrix.graphics }}
     - name: compile
       run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
