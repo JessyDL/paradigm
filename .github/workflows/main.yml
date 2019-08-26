@@ -1,0 +1,24 @@
+name: paradigm
+
+on: [push]
+    
+jobs:      
+  windows:    
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, vulkan gles]
+    name: windows
+    runs-on: windows-latest
+    steps:
+    - uses: actions/checkout@v1
+    - name: setup dependencies
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: initialize
+      run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics ${{ matrix.graphics }}
+    - name: compile
+      run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
+    - name: test
+      run: cd "project_files/Visual Studio 16 2019/x64" && ctest
