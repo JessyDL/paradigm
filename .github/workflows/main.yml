@@ -1,13 +1,12 @@
 name: build-test
 
 on: [push]
-
-jobs:
-  strategy:
-    matrix:
-      graphics: [vulkan, vulkan gles]
-      
-  windows:
+    
+jobs:      
+  windows:    
+    strategy:
+      matrix:
+        graphics: [vulkan, vulkan gles]
     name: build windows
     runs-on: windows-latest
     steps:
