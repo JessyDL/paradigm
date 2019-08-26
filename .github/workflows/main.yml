@@ -16,7 +16,7 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: initialize: ${{ matrix.graphics }}
+    - name: initialize using backends ${{ matrix.graphics }}
       run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics ${{ matrix.graphics }}
     - name: compile
       run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
