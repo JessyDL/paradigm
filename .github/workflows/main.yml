@@ -1,17 +1,14 @@
-name: CI
+name: build-test
 
 on: [push]
 
 jobs:
     build:
-
-    runs-on: windows-latest
-    
+    runs-on: windows-2019
     steps:
     - uses: actions/checkout@v1
     - name: initialize
-      run: python3 build.py --cmake_params="-DPE_MODE=LIB"
-        
+      run: python3 build.py --cmake_params="-DPE_MODE=LIB"        
     - name: build
       run: |
         cd project_files/*/*
