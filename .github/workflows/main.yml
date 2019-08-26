@@ -3,9 +3,8 @@ name: build-test
 on: [push]
 
 jobs:
-  Windows:
+  windows:
     name: build windows
-    build:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
