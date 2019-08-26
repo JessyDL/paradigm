@@ -3,8 +3,10 @@ name: build-test
 on: [push]
 
 jobs:
+  Windows:
+    name: build windows
     build:
-    runs-on: windows-2019
+    runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
     - name: initialize
@@ -13,3 +15,4 @@ jobs:
       run: |
         cd project_files/*/*
         cmake -–build . –config Release
+        
