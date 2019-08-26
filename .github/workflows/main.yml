@@ -1,4 +1,4 @@
-name: build-test
+name: paradigm
 
 on: [push]
     
@@ -7,7 +7,7 @@ jobs:
     strategy:
       matrix:
         graphics: [vulkan, vulkan gles]
-    name: build windows
+    name: windows
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
@@ -15,7 +15,9 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
-    - name: initialize using backends ${{ matrix.graphics }}
+    - name: initialize
       run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics ${{ matrix.graphics }}
     - name: compile
       run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
+    - name: test
+      run: ctest "project_files/Visual Studio 16 2019/x64"
