@@ -17,8 +17,8 @@ using namespace core::resource;
 namespace data = core::data;
 
 material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<data::material> data,
-				   core::resource::handle<core::igles::program_cache> program_cache, handle<buffer> matBuffer)
+				   handle<data::material> data, core::resource::handle<core::igles::program_cache> program_cache,
+				   handle<buffer> matBuffer)
 	: m_Data(data)
 {
 	for(auto& stage : data->stages())
@@ -56,7 +56,8 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			{
 			case core::gfx::binding_type::combined_image_sampler:
 			{
-				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].sub_elements()[0].name().data());
+				auto binding_slot =
+					glGetUniformLocation(m_Program->id(), meta->descriptors()[index].sub_elements()[0].name().data());
 				if(auto sampler_handle = cache.find<core::igles::sampler>(binding.sampler()); sampler_handle)
 				{
 					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
@@ -91,12 +92,14 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			case core::gfx::binding_type::storage_buffer:
 			{
 				// if(binding.buffer() == "MATERIAL_DATA") continue;
-				auto binding_slot = glGetUniformBlockIndex(m_Program->id(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
-				glUniformBlockBinding(m_Program->id(), binding_slot, 1);
-				binding_slot = 1;
+				
 				if(auto buffer_handle = cache.find<core::igles::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
+					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), buffer_handle.meta()->tags()[0].data());
+					glUniformBlockBinding(m_Program->id(), binding_slot, 1);
+					binding_slot				  = 1;
+
 					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 														? vk::BufferUsageFlagBits::eUniformBuffer
 														: vk::BufferUsageFlagBits::eStorageBuffer;

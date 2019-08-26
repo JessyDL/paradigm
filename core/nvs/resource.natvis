@@ -1,21 +1,47 @@
 <?xml version="1.0" encoding="utf-8"?> 
 <AutoVisualizer xmlns="http://schemas.microsoft.com/vstudio/debugger/natvis/2010">
   <Type Name="core::resource::handle&lt;*&gt;">
-    <DisplayString>{{ state = {m_Container->m_State} }}</DisplayString>
+    <DisplayString> {m_MetaData->state} {m_MetaData->uid}</DisplayString>
     <Expand>
-      <Item Name="[resource]" Condition="m_Container != nullptr">*m_Container->m_Resource</Item>
-      <Item Name="[resource]" Condition="m_Container == nullptr">"nullptr"</Item>
-      <Item Name="[UID]">uid</Item>
-      <Item Name="[RUID]">resource_uid</Item>
+      <Item Name="[UID]" Condition="m_Resource != nullptr">m_MetaData->uid</Item>
+      <Item Name="[resource]" Condition="m_Resource != nullptr">*m_Resource</Item>
+      <Item Name="[resource]" Condition="m_Resource == nullptr">"nullptr"</Item>
+      <Item Name="[meta]">m_MetaFile</Item>
       <Item Name="[cache]">m_Cache</Item>
     </Expand>
   </Type>
 
-  <Type Name="core::resource::indirect_handle&lt;*&gt;">
-    <DisplayString>{{ UID = {m_UID} }}</DisplayString>
+  <Type Name="core::resource::weak_handle&lt;*&gt;">
+    <DisplayString> {m_MetaData->state} {m_MetaData->uid}</DisplayString>
     <Expand>
-      <Item Name="[UID]">m_UID</Item>
+      <Item Name="[UID]" Condition="m_Resource != nullptr">m_MetaData->uid</Item>
+      <Item Name="[resource]" Condition="m_Resource != nullptr">*m_Resource</Item>
+      <Item Name="[resource]" Condition="m_Resource == nullptr">"nullptr"</Item>
+      <Item Name="[meta]">m_MetaFile</Item>
       <Item Name="[cache]">m_Cache</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="psl::meta::file">
+    <DisplayString>{m_ID}</DisplayString>
+    <Expand>
+      <Item Name="UID">m_ID</Item>
+      <Item Name="Tags">m_Tags</Item>
+    </Expand>
+  </Type>
+
+  <Type Name="psl::template_string&lt;*&gt;">
+    <DisplayString>{internal_buffer}</DisplayString>
+    <Expand>
+      <Item Name="[name]">internal_buffer</Item>
+    </Expand>
+  </Type>
+  
+  <Type Name="psl::serialization::property&lt;*&gt;">
+    <DisplayString>{value}</DisplayString>
+    <Expand>
+      <Item Name="[ID]">ID</Item>
+      <ExpandedItem>value</ExpandedItem>
     </Expand>
   </Type>
 </AutoVisualizer>
