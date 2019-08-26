@@ -1,0 +1,18 @@
+name: CI
+
+on: [push]
+
+jobs:
+	  build:
+
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v1
+    - name: initialize
+      run: python3 build.py --cmake_params="-DPE_MODE=LIB"
+        
+    - name: build
+      run: |
+        cd project_files/*/*
+        cmake -–build . –config Release
