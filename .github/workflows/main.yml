@@ -20,4 +20,4 @@ jobs:
     - name: build
       run: |
         cd project_files/*/*
-        cmake -–build . –config Release
+        cmake -–build . –-config Release
