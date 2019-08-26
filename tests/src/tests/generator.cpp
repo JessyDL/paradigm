@@ -1,6 +1,6 @@
 #include "stdafx_tests.h"
 #include "tests/generator.h"
-#include "IDGenerator.h"
+#include "psl/IDGenerator.h"
 
 TEST_CASE("psl::generator", "[psl]")
 {
