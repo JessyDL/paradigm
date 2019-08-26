@@ -5,6 +5,7 @@ on: [push]
 jobs:      
   windows:    
     strategy:
+      fail-fast: false
       matrix:
         graphics: [vulkan, vulkan gles]
     name: windows
@@ -20,4 +21,4 @@ jobs:
     - name: compile
       run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
     - name: test
-      run: ctest "project_files/Visual Studio 16 2019/x64"
+      run: cd "project_files/Visual Studio 16 2019/x64" && ctest
