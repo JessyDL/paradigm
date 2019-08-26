@@ -8,6 +8,13 @@ jobs:
     runs-on: windows-latest
     steps:
     - uses: actions/checkout@v1
+    - name: setup dependencies
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: install dependencies
+      run: |
+        python -m pip install --upgrade pip
     - name: initialize
       run: python3 build.py --cmake_params="-DPE_MODE=LIB"        
     - name: build
