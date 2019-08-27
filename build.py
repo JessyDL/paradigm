@@ -69,16 +69,16 @@ class Paradigm(object):
 
     def parse(self, parser):
         args, remaining_argv = parser.parse_known_args()
-        args.generator = args.generator.lower()
-        if args.generator == 'auto':
+        generator = args.generator.lower()
+        if generator == 'auto':
             args.generator = 'msvc'
-
-        if args.generator == "msvc":
-            if args.architecture == 'x64':
+        
+        if generator == "msvc":
+            if architecture == 'x64':
                 args.generator = "Visual Studio 16 2019"
-            elif args.architecture == 'arm':
+            elif architecture == 'arm':
                 args.generator = "Visual Studio 16 2019"
-        elif args.generator == 'make':
+        elif generator == 'make':
             args.generator = "Unix Makefiles"
                 
         args.compiler = args.compiler.lower
