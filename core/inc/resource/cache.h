@@ -132,9 +132,9 @@ namespace core::resource
 		~cache() { free(true); };
 
 		cache(const cache& other)	 = delete;
-		cache(cache&& other) noexcept = default;
+		cache(cache&& other) = default;
 		cache& operator=(const cache& other) = delete;
-		cache& operator=(cache&& other) noexcept = default;
+		cache& operator=(cache&& other) = default;
 
 		template <typename T, typename... Args>
 		handle<T> instantiate(const psl::UID& resource_uid, Args&&... args)
@@ -228,7 +228,7 @@ namespace core::resource
 
 			auto& descr = *data.descriptions.emplace_back(
 				new description{metadata{uid, psl::UID::invalid_uid, details::key_for<value_type>(), state::initial, 0u,
-										 std::is_same_v<details::alias_type<value_type>::type, void>},
+										 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 								nullptr, m_AgeCounter++});
 
 
@@ -264,7 +264,7 @@ namespace core::resource
 
 			auto& descr = *data.descriptions.emplace_back(
 				new description{metadata{uid, psl::UID::invalid_uid, details::key_for<value_type>(), state::initial, 0u,
-										 std::is_same_v<details::alias_type<value_type>::type, void>},
+										 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 								nullptr, m_AgeCounter++});
 
 

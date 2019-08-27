@@ -110,7 +110,7 @@ namespace psl
 			return std::get<type&>(data);
 		}
 
-		friend void std::swap(psl::tuple_ref<Ts...>&, psl::tuple_ref<Ts...>&) noexcept;
+		//friend void std::swap(tuple_ref&, tuple_ref&) noexcept;
 		//friend void std::swap(psl::tuple_ref<Ts...>, psl::tuple_ref<Ts...>) noexcept;
 
 		value_type data;

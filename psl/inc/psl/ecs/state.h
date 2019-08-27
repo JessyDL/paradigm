@@ -18,7 +18,27 @@
 #include <functional>
 #include "psl/memory/raw_region.h"
 #include "entity.h"
+#if __has_include(<execution>)
 #include <execution>
+#else
+namespace std::execution
+{
+	class sequenced_policy
+	{};
+
+	inline constexpr sequenced_policy seq{};
+
+	class parallel_policy
+	{};
+
+	inline constexpr parallel_policy par{};
+
+	class parallel_unsequenced_policy
+	{};
+
+	inline constexpr parallel_unsequenced_policy par_unseq{};
+} // namespace std::execution
+#endif
 
 namespace psl::async
 {
@@ -118,7 +138,8 @@ namespace psl::ecs
 			else
 			{
 				auto middle = std::next(begin, size / 2);
-				auto future = std::async([this, &begin, &middle, &max]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
+				auto future = std::async(
+					[this, &begin, &middle, &max]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
 
 				order_by<Pred, T>(std::execution::par, middle, end, max);
 
@@ -147,7 +168,8 @@ namespace psl::ecs
 
 
 		template <typename Pred, typename T>
-		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end) const noexcept
+		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin,
+												  psl::array<entity>::iterator end) const noexcept
 		{
 			return std::remove_if(begin, end,
 								  [this, pred = Pred{}](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
@@ -706,7 +728,7 @@ namespace psl::ecs
 		psl::array<entity> initial_filter(const details::dependency_pack& pack) const noexcept;
 		psl::array<entity> filter(details::dependency_pack& packs) const noexcept;
 		psl::array<entity>::iterator filter(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-								  const details::dependency_pack& pack) const noexcept;
+											const details::dependency_pack& pack) const noexcept;
 		template <typename... Ts>
 		psl::array<details::component_key_t> to_keys() const noexcept
 		{

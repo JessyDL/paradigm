@@ -115,15 +115,15 @@ namespace core::data
 					serializer << colorBlendFactorSrc << colorBlendFactorDst << colorBlendOp << alphaBlendFactorSrc
 							   << alphaBlendFactorDst << alphaBlendOp << colorComponents;
 
-					m_ColorBlendFactorSrc.value = conversion::to_blend_factor(colorBlendFactorSrc.value);
-					m_ColorBlendFactorDst.value = conversion::to_blend_factor(colorBlendFactorDst.value);
-					m_ColorBlendOp.value		= conversion::to_blend_op(colorBlendOp.value);
+					m_ColorBlendFactorSrc.value = gfx::conversion::to_blend_factor(colorBlendFactorSrc.value);
+					m_ColorBlendFactorDst.value = gfx::conversion::to_blend_factor(colorBlendFactorDst.value);
+					m_ColorBlendOp.value		= gfx::conversion::to_blend_op(colorBlendOp.value);
 
-					m_AlphaBlendFactorSrc.value = conversion::to_blend_factor(alphaBlendFactorSrc.value);
-					m_AlphaBlendFactorDst.value = conversion::to_blend_factor(alphaBlendFactorDst.value);
-					m_AlphaBlendOp.value		= conversion::to_blend_op(alphaBlendOp.value);
+					m_AlphaBlendFactorSrc.value = gfx::conversion::to_blend_factor(alphaBlendFactorSrc.value);
+					m_AlphaBlendFactorDst.value = gfx::conversion::to_blend_factor(alphaBlendFactorDst.value);
+					m_AlphaBlendOp.value		= gfx::conversion::to_blend_op(alphaBlendOp.value);
 
-					m_ColorComponents.value = conversion::to_component_bits(colorComponents.value);
+					m_ColorComponents.value = gfx::conversion::to_component_bits(colorComponents.value);
 					break;
 				}
 			}
@@ -191,7 +191,7 @@ namespace core::data
 					psl::serialization::property<vk::DescriptorType, const_str("DESCRIPTOR", 10)> description;
 					s << description;
 
-					m_Description.value = conversion::to_binding_type(description.value);
+					m_Description.value = gfx::conversion::to_binding_type(description.value);
 					break;
 				}
 
@@ -411,8 +411,8 @@ namespace core::data
 
 				serializer << culling << depthCompareOp;
 
-				m_Culling.value		   = conversion::to_cullmode(culling.value);
-				m_DepthCompareOp.value = conversion::to_compare_op(depthCompareOp.value);
+				m_Culling.value		   = gfx::conversion::to_cullmode(culling.value);
+				m_DepthCompareOp.value = gfx::conversion::to_compare_op(depthCompareOp.value);
 				serializer << m_Stage << m_Defines << m_DepthTest << m_DepthWrite << m_BlendStates << m_RenderLayer
 						   << m_Wireframe;
 			}

@@ -198,10 +198,7 @@ else()
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
 	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-g)
-	list(APPEND PE_DL_LIBS c++fs)
-	if (PE_PLATFORM STREQUAL "LINUX")
-		list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
-	endif()
+	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
 	
 	
 	list(APPEND PE_COMPILE_OPTIONS
@@ -209,9 +206,12 @@ else()
 							$<$<CONFIG:Release>:           -fomit-frame-pointer;-ffunction-sections;-fdata-sections>)
 							
 	# Add colors to ninja builds
-	if (UNIX AND CMAKE_GENERATOR STREQUAL "Ninja")
-		list(APPEND PE_COMPILE_OPTIONS -fcolor-diagnostics)
+	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
+		add_compile_options (-fdiagnostics-color=always)
+	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+		add_compile_options (-fcolor-diagnostics)
 	endif()
+	
 	if (APPLE)
 		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g")
 		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")

@@ -20,9 +20,9 @@ namespace psl::async::details
 			m_Thread.join();
 		}
 		worker(const worker& other) : m_Consumer(other.m_Consumer){};
-		worker(worker&&) noexcept = default;
+		worker(worker&&) = default;
 		worker& operator=(const worker&) = default;
-		worker& operator=(worker&&) noexcept = default;
+		worker& operator=(worker&&) = default;
 		void start()
 		{
 			m_Done.store(false, std::memory_order_relaxed);
