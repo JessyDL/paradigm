@@ -30,6 +30,9 @@ RUN apt-get update && \
 	apt-get install libx11-dev -y \
 	libx11-xcb-dev \
 	libxrandr-dev
+
+#opengl dependencies
+RUN apt install -y mesa-common-dev libgl1-mesa-dev libgles2-mesa-dev
 	
 #paradigm toolset dependencies
 RUN apt-get update && apt-get install python3 -y
