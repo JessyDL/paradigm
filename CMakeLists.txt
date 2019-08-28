@@ -197,9 +197,8 @@ else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
-	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-g)
-	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++)
-	
+	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++;-fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-g)
+	list(APPEND PE_DL_LIBS c++fs)
 	
 	list(APPEND PE_COMPILE_OPTIONS
 							$<$<CONFIG:Debug>:             -gdwarf-2>
