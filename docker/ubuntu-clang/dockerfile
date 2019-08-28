@@ -52,26 +52,6 @@ RUN mkdir /cmake && \
 	tar xf cmake-${CMAKE_VERSION}.${CMAKE_PATCH}-Linux-x86_64.tar.gz
 	
 ENV PATH=${PATH}:/cmake/cmake-${CMAKE_VERSION}.${CMAKE_PATCH}-Linux-x86_64/bin
-
-CMD [ "/bin/bash" ]
-WORKDIR /
-	
-RUN apt-get update && \
-  apt-get install -y rsync \
-	clang-tools-${CLANG_VERSION} \
-	clang-format-${CLANG_VERSION} \
-	clang-tidy-${CLANG_VERSION} \
-	iwyu \
-	cppcheck
-	
-COPY scripts /
-RUN chmod +x /install.sh && \
-	chmod +x /clone.sh  && \
-	chmod +x /clone_local.sh  && \
-	chmod +x /copy.sh
-	
-RUN fromdos clone.sh && fromdos install.sh && fromdos clone_local.sh && fromdos copy.sh
-	
 ENV py=python3
 ENV python=python3
 ENV CXX=clang++-8
