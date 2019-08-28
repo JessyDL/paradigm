@@ -71,7 +71,7 @@ namespace psl::spmc
 	  public:
 		producer(int64_t capacity = 1024)
 		{
-			capacity = psl::math::next_pow_of(2, std::max(capacity, 1024i64));
+			capacity = psl::math::next_pow_of(2, std::max(capacity, (int64_t)1024));
 			m_Begin.store(0, std::memory_order_relaxed);
 			m_End.store(0, std::memory_order_relaxed);
 			auto cont = new buffer(capacity);
@@ -84,9 +84,9 @@ namespace psl::spmc
 		}
 
 		producer(const producer& other)		= delete;
-		producer(producer&& other) noexcept = default;
+		producer(producer&& other) = default;
 		producer& operator=(const producer& other) = delete;
-		producer& operator=(producer&& other) noexcept = default;
+		producer& operator=(producer&& other) = default;
 
 		/// \Returns a consumer that is linked to the current producer, to be used in other threads.
 		::psl::spmc::consumer<T> consumer() noexcept;

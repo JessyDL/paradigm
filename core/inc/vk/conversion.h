@@ -593,7 +593,7 @@ namespace core::gfx::conversion
 		default: assert(false);
 		}
 
-		return vk::Format{result};
+		return (vk::Format)result;
 	}
 	inline vk::SamplerMipmapMode to_vk(sampler_mipmap_mode value) noexcept
 	{

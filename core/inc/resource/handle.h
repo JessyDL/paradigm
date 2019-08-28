@@ -51,15 +51,15 @@ namespace core::resource
 		};
 
 		template <typename... Ts>
-		handle(const handle<alias<Ts...>>& other) noexcept : handle::handle(other.get<T>()){};
+		handle(const handle<alias<Ts...>>& other) noexcept : handle::handle(other.template get<T>()){};
 
 
-		template <typename Y, typename = std::enable_if_t<
-								  details::alias_has_type<T, typename details::alias_type<value_type>::type>::value>>
+		template <typename Y>
 		handle(const handle<Y>& other) noexcept
 		{
+			static_assert(details::alias_has_type<T, typename details::alias_type<value_type>::type>::value, "type must be an alias");
 			if(!other) return;
-			handle<T> res = other.m_Cache->find<T>(other.uid());
+			handle<T> res = other.m_Cache->template find<T>(other.uid());
 			m_Resource	= res.m_Resource;
 			m_Cache		  = res.m_Cache;
 			m_MetaData	= res.m_MetaData;
@@ -302,13 +302,13 @@ namespace core::resource
 		}
 
 
-		template <typename... Ts, typename Fn, typename... Args>
+		template <typename... T1s, typename Fn, typename... Args>
 		void visit(Fn&& fn, Args&&... args)
 		{
 			(
 				[&fn](auto& handle, auto&&... args) {
 					if(handle) std::invoke(fn, handle.value(), std::forward<decltype(args)>(args)...);
-				}(std::get<handle<Ts>>(m_Resource), std::forward<Args>(args)...),
+				}(std::get<handle<T1s>>(m_Resource), std::forward<Args>(args)...),
 				...);
 		}
 

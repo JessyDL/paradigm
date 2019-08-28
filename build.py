@@ -39,12 +39,11 @@ class bcolors:
     UNDERLINE = '\033[4m'
         
 class Paradigm(object):
+    has_generated = True
     def initialize(self, directory = os.path.dirname(os.path.realpath(__file__))):
         build_arguments = ArgumentParser(description='Generate build files for the current project.')
         build_arguments.add_argument("-g", "--generator", const="auto", default="auto", nargs='?',
-                            help="Set the generator for the project (MSVC, Make, or Ninja)", dest="generator")
-        build_arguments.add_argument("-c", "--compiler", const="auto", default="auto", nargs='?',
-                            help="Set the compiler for the project (MSVC or CLang)", dest="compiler")
+                            help="Set the generator for the project", dest="generator")
         build_arguments.add_argument("--arch", const="x64", default="x64", nargs='?', 
                             help="Architecture type to generate for", dest="architecture")
         build_arguments.add_argument("--clean", const="all", default="", nargs='?', 
@@ -69,25 +68,25 @@ class Paradigm(object):
 
     def parse(self, parser):
         args, remaining_argv = parser.parse_known_args()
-        args.generator = args.generator.lower()
-        if args.generator == 'auto':
-            args.generator = 'msvc'
-
-        if args.generator == "msvc":
+        generator = args.generator.lower()
+        if generator == 'auto':
+            generator = 'msvc'
+        
+        if generator == "msvc":
             if args.architecture == 'x64':
                 args.generator = "Visual Studio 16 2019"
             elif args.architecture == 'arm':
                 args.generator = "Visual Studio 16 2019"
-        elif args.generator == 'make':
+        elif generator == 'make':
             args.generator = "Unix Makefiles"
                 
-        args.compiler = args.compiler.lower
 
         args.project_dir = os.path.join(args.root_dir, args.project_dir, args.generator, args.architecture)
         args.build_dir = os.path.join(args.root_dir, args.build_dir, args.generator, args.architecture)
 
         if not os.path.exists(args.project_dir):
             os.makedirs(args.project_dir)
+            self.has_generated = False
 
         if not os.path.exists(args.build_dir):
             os.makedirs(args.build_dir)
@@ -122,7 +121,8 @@ class Paradigm(object):
             
         cmakeCmd = []
         
-        if not os.path.exists(os.path.join(args.project_dir, "CMakeFiles")):
+        if not os.path.exists(os.path.join(args.project_dir, "CMakeFiles")) or not self.has_generated:
+            args.cmake_update = False
             cmakeCmd = [cmakeExe, "-G", args.generator, \
                  "-DPE_BUILD_DIR="+args.build_dir, \
                  "-DVK_VERSION="+args.vk_version, \
@@ -155,12 +155,14 @@ class Paradigm(object):
         cmakeCmd = [cmakeExe, "--build", r".", "--config", args.build_config]
         return cmakeCmd
         
-    def build(self, directory, generate_cmd, build_cmd=""):
+    def build(self, directory, generate_cmd="", build_cmd=""):
         working_dir = os.getcwd()
         os.chdir(directory)
-
-        print("setting up project files")        
-        retCode = subprocess.check_call(generate_cmd, shell=False)            
+        
+        retCode = 0
+        if generate_cmd:
+            print("setting up project files")        
+            retCode = subprocess.check_call(generate_cmd, shell=False)            
 
         if build_cmd and retCode == 0:
             print("building now...")
@@ -178,7 +180,7 @@ class Paradigm(object):
         args, remaining_argv = self.parse(build_arguments)
         generate_cmd = self.generate_command(args)
         build_cmd=""
-        if(args.verbose):
+        if(args.build):
             build_cmd = self.build_command(args)
         
         self.build(args.project_dir, generate_cmd, build_cmd)
