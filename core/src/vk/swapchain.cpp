@@ -532,7 +532,7 @@ bool swapchain::next(vk::Semaphore presentComplete, uint32_t& out_image_index)
 	}
 	else if(result != vk::Result::eSuccess)
 	{
-		std::cerr << "Invalid acquire result: " << vk::to_string(result);
+		core::ivk::log->error("Invalid acquire result: {}", vk::to_string(result));
 	}
 
 	m_CurrentImage  = resultValue.value;

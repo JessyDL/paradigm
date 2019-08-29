@@ -4,6 +4,7 @@ import sys
 import platform
 import shutil
 import subprocess
+import patch
 
 import functools
 print = functools.partial(print, flush=True)
@@ -64,6 +65,7 @@ class Paradigm(object):
         build_arguments.add_argument("-b", "--build", action='store_true', help="build the target as well", dest="build")
         build_arguments.add_argument("--cmake_params", action='store', type=str, nargs='*',dest="cmake_params")
         build_arguments.add_argument("--graphics", action='store', default="vulkan, gles", type=str, nargs='+',choices=['vulkan','gles','molten'],dest="graphics")
+        build_arguments.add_argument("--nopatch", action='store_true', dest="nopatch")
         return build_arguments
 
     def parse(self, parser):
@@ -155,7 +157,7 @@ class Paradigm(object):
         cmakeCmd = [cmakeExe, "--build", r".", "--config", args.build_config]
         return cmakeCmd
         
-    def build(self, directory, generate_cmd="", build_cmd=""):
+    def build(self, nopatch, directory, generate_cmd="", build_cmd=""):
         working_dir = os.getcwd()
         os.chdir(directory)
         
@@ -163,7 +165,9 @@ class Paradigm(object):
         if generate_cmd:
             print("setting up project files")        
             retCode = subprocess.check_call(generate_cmd, shell=False)            
-
+            if not nopatch:
+                patch.patch(directory)
+                
         if build_cmd and retCode == 0:
             print("building now...")
             retCode = subprocess.check_call(build_cmd, shell=False)
@@ -183,7 +187,7 @@ class Paradigm(object):
         if(args.build):
             build_cmd = self.build_command(args)
         
-        self.build(args.project_dir, generate_cmd, build_cmd)
+        self.build(args.nopatch, args.project_dir, generate_cmd, build_cmd)
 
 def main():
     p = Paradigm()

@@ -12,6 +12,7 @@
 #include "vk/swapchain.h"
 #include "vk/framebuffer.h"
 #include "vk/pipeline.h"
+#include "vk/conversion.h"
 
 using namespace psl;
 using namespace core::ivk;

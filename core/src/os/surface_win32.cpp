@@ -3,6 +3,7 @@
 #include "systems/input.h"
 #include "psl/assertions.h"
 #include <cassert>
+#include <Windows.h>
 
 using namespace core::os;
 using namespace core;

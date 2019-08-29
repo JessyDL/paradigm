@@ -10,11 +10,6 @@
 #include "psl/platform_def.h"
 #include "psl/ustring.h"
 
-#ifdef PLATFORM_WINDOWS
-#define WIN32_LEAN_AND_MEAN
-#include <windows.h>
-#endif
-
 #ifdef PLATFORM_ANDROID
 #include <android/log.h>
 #include <android_native_app_glue.h>

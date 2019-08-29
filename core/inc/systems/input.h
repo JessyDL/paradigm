@@ -4,7 +4,10 @@
 #if defined(SURFACE_XCB)
 #include <xcb/xcb.h>
 #elif defined(SURFACE_WIN32)
-#include <Windows.h>
+#ifndef _WINDEF_
+struct HWND__; // Forward or never
+typedef HWND__* HWND;
+#endif
 #endif
 
 namespace core::os
@@ -639,7 +642,8 @@ namespace core::systems
 	  private:
 #if defined(SURFACE_WIN32)
 		void tick();
-		static LRESULT CALLBACK win_event_handler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam);
+		static __int64 __stdcall win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam,
+														__int64 lParam);
 #elif defined(SURFACE_XCB)
 		void tick(core::os::surface* const surface, xcb_connection_t* _xcb_connection,
 				  xcb_intern_atom_reply_t& delete_wm);

@@ -10,6 +10,7 @@
 #include "vk/buffer.h"
 #include "vk/geometry.h"
 #include "vk/material.h"
+#include "vk/conversion.h"
 #include "data/geometry.h"
 #include "gfx/details/instance.h"
 
@@ -115,7 +116,7 @@ bool pass::build()
 	{
 		const auto& attachments = m_Framebuffer->data()->attachments();
 		std::transform(std::begin(attachments), std::end(attachments), std::back_inserter(clearValues),
-					   [](const auto& attach) { return attach.clear_value(); });
+					   [](const auto& attach) { return core::gfx::conversion::to_vk(attach.clear_value()); });
 	}
 	bool success = false;
 	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i)

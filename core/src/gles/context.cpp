@@ -1,5 +1,4 @@
 #include "gles/context.h"
-#define WIN32_LEAN_AND_MEAN
 #include <Windows.h>
 #include "os/surface.h"
 #include "glad/glad_wgl.h"

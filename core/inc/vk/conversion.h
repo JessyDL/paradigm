@@ -139,7 +139,8 @@ namespace core::gfx::conversion
 
 		res += (flags & vk::BufferUsageFlagBits::eIndexBuffer) ? static_cast<gfx_type>(memory_usage::index_buffer) : 0;
 
-		res += (flags & vk::BufferUsageFlagBits::eVertexBuffer) ? static_cast<gfx_type>(memory_usage::vertex_buffer) : 0;
+		res +=
+			(flags & vk::BufferUsageFlagBits::eVertexBuffer) ? static_cast<gfx_type>(memory_usage::vertex_buffer) : 0;
 
 		res += (flags & vk::BufferUsageFlagBits::eIndirectBuffer) ? static_cast<gfx_type>(memory_usage::indirect_buffer)
 																  : 0;
@@ -147,7 +148,7 @@ namespace core::gfx::conversion
 		return memory_usage{res};
 	}
 
-	
+
 	inline vk::MemoryPropertyFlags to_vk(memory_property memory) noexcept
 	{
 		using vk_type  = std::underlying_type_t<vk::MemoryPropertyFlagBits>;
@@ -181,12 +182,11 @@ namespace core::gfx::conversion
 
 		gfx_type res{0};
 		res += (flags & vk::MemoryPropertyFlagBits::eDeviceLocal) ? static_cast<gfx_type>(memory_property::device_local)
-				   : 0;
+																  : 0;
 		res +=
-			(flags & vk::MemoryPropertyFlagBits::eHostCached) ? static_cast<gfx_type>(memory_property::host_cached)
-																 : 0;
+			(flags & vk::MemoryPropertyFlagBits::eHostCached) ? static_cast<gfx_type>(memory_property::host_cached) : 0;
 		res += (flags & vk::MemoryPropertyFlagBits::eHostVisible) ? static_cast<gfx_type>(memory_property::host_visible)
-				   : 0;
+																  : 0;
 
 		res += (flags & vk::MemoryPropertyFlagBits::eLazilyAllocated)
 				   ? static_cast<gfx_type>(memory_property::lazily_allocated)
@@ -198,7 +198,7 @@ namespace core::gfx::conversion
 
 		res += (flags & vk::MemoryPropertyFlagBits::eHostCoherent)
 				   ? static_cast<gfx_type>(memory_property::host_coherent)
-																   : 0;
+				   : 0;
 
 
 		return memory_property{res};
@@ -693,5 +693,96 @@ namespace core::gfx::conversion
 	inline blend_factor to_blend_factor(vk::BlendFactor value) noexcept
 	{
 		return blend_factor(static_cast<std::underlying_type_t<vk::BlendFactor>>(value));
+	}
+
+	inline vk::AttachmentLoadOp to_vk(core::gfx::attachment::load_op value) noexcept
+	{
+		using vk_etype  = vk::AttachmentLoadOp;
+		using vk_type   = std::underlying_type_t<vk_etype>;
+		using gfx_etype = core::gfx::attachment::load_op;
+		using gfx_type  = std::underlying_type_t<gfx_etype>;
+		static_assert(static_cast<vk_type>(vk_etype::eLoad) == static_cast<gfx_type>(gfx_etype::load));
+		static_assert(static_cast<vk_type>(vk_etype::eClear) == static_cast<gfx_type>(gfx_etype::clear));
+		static_assert(static_cast<vk_type>(vk_etype::eDontCare) == static_cast<gfx_type>(gfx_etype::dont_care));
+
+		return vk_etype{static_cast<gfx_type>(value)};
+	}
+
+	inline vk::AttachmentStoreOp to_vk(core::gfx::attachment::store_op value) noexcept
+	{
+		switch(value)
+		{
+		case core::gfx::attachment::store_op::store: return vk::AttachmentStoreOp::eStore; break;
+		case core::gfx::attachment::store_op::dont_care: return vk::AttachmentStoreOp::eDontCare; break;
+		}
+
+		assert(false);
+		return vk::AttachmentStoreOp{0};
+	}
+
+	inline vk::ImageLayout to_vk(core::gfx::image::layout layout) noexcept
+	{
+		using vk_etype  = vk::ImageLayout;
+		using vk_type   = std::underlying_type_t<vk_etype>;
+		using gfx_etype = core::gfx::image::layout;
+		using gfx_type  = std::underlying_type_t<gfx_etype>;
+		static_assert(static_cast<vk_type>(vk_etype::eUndefined) == static_cast<gfx_type>(gfx_etype::undefined));
+		static_assert(static_cast<vk_type>(vk_etype::eGeneral) == static_cast<gfx_type>(gfx_etype::general));
+		static_assert(static_cast<vk_type>(vk_etype::eColorAttachmentOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::color_attachment_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::eDepthStencilAttachmentOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::depth_stencil_attachment_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::eDepthStencilReadOnlyOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::depth_stencil_read_only_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::eShaderReadOnlyOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::shader_read_only_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::eTransferSrcOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::transfer_source_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::eTransferDstOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::transfer_destination_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::ePreinitialized) ==
+					  static_cast<gfx_type>(gfx_etype::preinitialized));
+		static_assert(static_cast<vk_type>(vk_etype::eDepthReadOnlyStencilAttachmentOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::depth_read_only_stencil_attachment_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::eDepthAttachmentStencilReadOnlyOptimal) ==
+					  static_cast<gfx_type>(gfx_etype::depth_attachment_stencil_read_only_optimal));
+		static_assert(static_cast<vk_type>(vk_etype::ePresentSrcKHR) ==
+					  static_cast<gfx_type>(gfx_etype::present_src_khr));
+		static_assert(static_cast<vk_type>(vk_etype::eSharedPresentKHR) ==
+					  static_cast<gfx_type>(gfx_etype::shared_present_khr));
+		static_assert(static_cast<vk_type>(vk_etype::eShadingRateOptimalNV) ==
+					  static_cast<gfx_type>(gfx_etype::shading_rate_optimal_nv));
+		static_assert(static_cast<vk_type>(vk_etype::eFragmentDensityMapOptimalEXT) ==
+					  static_cast<gfx_type>(gfx_etype::fragment_density_map_optimal_ext));
+
+		return vk_etype{static_cast<gfx_type>(layout)};
+	}
+
+	inline vk::AttachmentDescription to_vk(const core::gfx::attachment& attachment) noexcept
+	{
+		return {vk::AttachmentDescriptionFlagBits::eMayAlias,
+				to_vk(attachment.format),
+				vk::SampleCountFlagBits{attachment.sample_bits},
+				to_vk(attachment.image_load),
+				to_vk(attachment.image_store),
+				to_vk(attachment.stencil_load),
+				to_vk(attachment.stencil_store),
+				to_vk(attachment.initial),
+				to_vk(attachment.final)};
+	}
+
+	inline vk::ClearValue to_vk(const core::gfx::clear_value& clear_value) noexcept
+	{
+		return std::visit(
+			[](const auto& value) -> vk::ClearValue {
+				using type = std::decay_t<decltype(value)>;
+				if constexpr(std::is_same_v<type, depth_stencil>)
+				{
+					return vk::ClearDepthStencilValue(value.depth, value.stencil);
+				}
+				else
+					return vk::ClearColorValue(value);
+			},
+			clear_value);
 	}
 } // namespace core::gfx::conversion

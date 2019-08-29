@@ -767,8 +767,13 @@ namespace utility::geometry
 
 	static core::resource::handle<core::data::geometry> create_icosphere(core::resource::cache& cache, psl::vec3 scale = psl::vec3::one, size_t subdivisions = 2)
 	{
+		core::stream vertStream{core::stream::type::vec3};
+		core::stream normStream{core::stream::type::vec3};
+		core::stream uvStream{core::stream::type::vec2};
+
 		scale *= 0.5f;
-		std::vector<psl::vec3> vertices;
+		std::vector<psl::vec3>& vertices = vertStream.as_vec3().value();
+		vertices.reserve(1024);
 		std::unordered_map<uint64_t, uint32_t> middlePointIndexCache;
 
 		auto get_middle_point = [](uint32_t p1, uint32_t p2, std::vector<psl::vec3> &vertices, std::unordered_map<uint64_t, uint32_t> &cache)
@@ -880,13 +885,13 @@ namespace utility::geometry
 			faces = faces2;
 		}
 
-		std::vector<psl::vec3> res_positions(vertices.size());
-		std::vector<psl::vec2> res_uvs(vertices.size());
+		std::vector<psl::vec2>& res_uvs = uvStream.as_vec2().value();
+		res_uvs.resize(vertices.size());
 
 		for(int i = 0; i < vertices.size(); ++i)
 		{
 			res_uvs[i] = psl::vec2(atan2(vertices[i][2], vertices[i][0]) / 3.14159265359f / 2, acos(vertices[i][1]) / 3.14159265359f);
-			res_positions[i] = vertices[i] * scale;
+			vertices[i] *= scale;
 		}
 
 		std::vector<uint32_t > tempIndices;
@@ -932,7 +937,7 @@ namespace utility::geometry
 				if(it == visited.end())
 				{
 					A[0] += 1;
-					res_positions.emplace_back(res_positions[a]);
+					vertices.emplace_back(vertices[a]);
 					res_uvs.emplace_back(A);
 					verticeIndex++;
 					visited[a] = verticeIndex;
@@ -951,7 +956,7 @@ namespace utility::geometry
 				if(it == visited.end())
 				{
 					B[0] += 1;
-					res_positions.emplace_back(res_positions[b]);
+					vertices.emplace_back(vertices[b]);
 					res_uvs.emplace_back(B);
 					verticeIndex++;
 					visited[b] = verticeIndex;
@@ -970,7 +975,7 @@ namespace utility::geometry
 				if(it == visited.end())
 				{
 					C[0] += 1;
-					res_positions.emplace_back(res_positions[c]);
+					vertices.emplace_back(vertices[c]);
 					res_uvs.emplace_back(C);
 					verticeIndex++;
 					visited[c] = verticeIndex;
@@ -989,26 +994,26 @@ namespace utility::geometry
 
 		float min = 1, max = -1;
 		uint32_t northIndex{0}, southIndex{0};
-		for(uint32_t i = 0; i < res_positions.size(); ++i)
+		for(uint32_t i = 0; i < vertices.size(); ++i)
 		{
-			if(res_positions[i][1] < min)
+			if(vertices[i][1] < min)
 			{
 				northIndex = i;
-				min = res_positions[i][1];
+				min = vertices[i][1];
 			}
-			if(res_positions[i][1] > max)
+			if(vertices[i][1] > max)
 			{
 				southIndex = i;
-				max = res_positions[i][1];
+				max = vertices[i][1];
 			}
 		}
 
-		auto north = res_positions[northIndex];
+		auto north = vertices[northIndex];
 		auto north_uv = res_uvs[northIndex];
-		auto south = res_positions[southIndex];
+		auto south = vertices[southIndex];
 		auto south_uv = res_uvs[southIndex];
 
-		verticeIndex = (uint32_t)res_positions.size() - 1;
+		verticeIndex = (uint32_t)vertices.size() - 1;
 		for(int i = 0; i < faces.size(); ++i)
 		{
 			if(faces[i].v1 == northIndex)
@@ -1020,7 +1025,7 @@ namespace utility::geometry
 				newNorth[0] = (B[0] + C[0]) / 2;
 				verticeIndex++;
 
-				res_positions.emplace_back(north);
+				vertices.emplace_back(north);
 				res_uvs.emplace_back(newNorth);
 
 				faces[i].v1 = verticeIndex;
@@ -1033,7 +1038,7 @@ namespace utility::geometry
 				auto newSouth = south_uv;
 				newSouth[0] = (B[0] + C[0]) / 2;
 				verticeIndex++;
-				res_positions.emplace_back(south);
+				vertices.emplace_back(south);
 				res_uvs.emplace_back(newSouth);
 				faces[i].v1 = verticeIndex;
 			}
@@ -1046,26 +1051,15 @@ namespace utility::geometry
 			indices.push_back(faces[i].v2);
 			indices.push_back(faces[i].v3);
 		}
-		std::vector<psl::vec3> res_normals(res_positions.size());
-		for(int i = 0; i < res_positions.size(); ++i)
+		std::vector<psl::vec3>& res_normals = normStream.as_vec3().value();		
+		res_normals.resize(vertices.size());
+		for(int i = 0; i < vertices.size(); ++i)
 		{
-			res_normals[i] = psl::math::normalize(res_positions[i]);
+			res_normals[i] = psl::math::normalize(vertices[i]);
 		}
 
 
 		auto geomData = cache.create<core::data::geometry>();
-
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
-
-		vertStream.as_vec3().value().get().resize(res_positions.size());
-		memcpy(vertStream.data(), res_positions.data(), sizeof(psl::vec3) * res_positions.size());
-		normStream.as_vec3().value().get().resize(res_normals.size());
-		memcpy(normStream.data(), res_normals.data(), sizeof(psl::vec3) * res_normals.size());
-		uvStream.as_vec2().value().get().resize(res_uvs.size());
-		memcpy(uvStream.data(), res_uvs.data(), sizeof(psl::vec2) * res_uvs.size());
-
 		geomData->vertices(core::data::geometry::constants::POSITION, vertStream);
 		geomData->vertices(core::data::geometry::constants::NORMAL, normStream);
 		geomData->vertices(core::data::geometry::constants::TEX, uvStream);

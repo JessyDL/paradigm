@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "gfx/details/instance.h"
 #include "gfx/material.h"
 #include "data/material.h"

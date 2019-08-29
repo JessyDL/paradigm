@@ -14,6 +14,7 @@ src/format.cpp
 src/serialization.cpp
 src/library.cpp
 src/meta.cpp
+src/ustring.cpp
 
 src/profiling/profiler.cpp
 

@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "gfx/bundle.h"
 #include "data/material.h"
 #include "gfx/buffer.h"

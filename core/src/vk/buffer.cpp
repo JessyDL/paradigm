@@ -2,6 +2,7 @@
 #include "vk/buffer.h"
 #include "data/buffer.h"
 #include "vk/context.h"
+#include "vk/conversion.h"
 
 using namespace psl;
 using namespace core;

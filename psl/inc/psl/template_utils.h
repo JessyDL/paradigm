@@ -2,9 +2,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <type_traits>
-#include <variant>
 #include <functional>
 #include "psl/assertions.h"
+
+namespace std
+{
+	template <class _Ty>
+	struct variant_size;
+}
 
 namespace utility::templates
 {
@@ -105,7 +110,7 @@ namespace utility::templates
 	void match(VariantType&& variant, Funcs... funcs)
 	{
 		using VT = std::remove_reference_t<VariantType>;
-		static_assert(sizeof...(funcs) == std::variant_size_v<VT>,
+		static_assert(sizeof...(funcs) == std::variant_size<VT>::value,
 					  "Number of functions must match number of variant types");
 		match_detail::match<0>(std::forward<VariantType>(variant), funcs...);
 	}

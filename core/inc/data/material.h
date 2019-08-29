@@ -3,7 +3,6 @@
 #include "psl/meta.h"
 #include "gfx/types.h"
 #include "fwd/resource/resource.h"
-#include "vk/conversion.h"
 
 namespace core::meta
 {
@@ -84,48 +83,8 @@ namespace core::data
 			template <typename S>
 			void serialize(S& serializer)
 			{
-				const uint32_t current_version = 1;
-				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-				serializer << version;
-
-				switch(version)
-				{
-				case current_version:
-					serializer << m_Binding << m_Enabled << m_ColorBlendFactorSrc << m_ColorBlendFactorDst
-							   << m_ColorBlendOp << m_AlphaBlendFactorSrc << m_AlphaBlendFactorDst << m_AlphaBlendOp
-							   << m_ColorComponents;
-					break;
-				case 0:
-					psl::serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_SRC", 15)> colorBlendFactorSrc{
-						vk::BlendFactor::eOne};
-					psl::serialization::property<vk::BlendFactor, const_str("COLOR_BLEND_DST", 15)> colorBlendFactorDst{
-						vk::BlendFactor::eZero};
-					psl::serialization::property<vk::BlendOp, const_str("COLOR_BLEND_OP", 14)> colorBlendOp{
-						vk::BlendOp::eAdd};
-					psl::serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_SRC", 15)> alphaBlendFactorSrc{
-						vk::BlendFactor::eOne};
-					psl::serialization::property<vk::BlendFactor, const_str("ALPHA_BLEND_DST", 15)> alphaBlendFactorDst{
-						vk::BlendFactor::eZero};
-					psl::serialization::property<vk::BlendOp, const_str("ALPHA_BLEND_OP", 14)> alphaBlendOp{
-						vk::BlendOp::eAdd};
-					psl::serialization::property<vk::ColorComponentFlags, const_str("COMPONENT_FLAGS", 15)>
-						colorComponents{vk::ColorComponentFlagBits::eR | vk::ColorComponentFlagBits::eG |
-										vk::ColorComponentFlagBits::eB | vk::ColorComponentFlagBits::eA};
-					serializer << m_Binding << m_Enabled;
-					serializer << colorBlendFactorSrc << colorBlendFactorDst << colorBlendOp << alphaBlendFactorSrc
-							   << alphaBlendFactorDst << alphaBlendOp << colorComponents;
-
-					m_ColorBlendFactorSrc.value = gfx::conversion::to_blend_factor(colorBlendFactorSrc.value);
-					m_ColorBlendFactorDst.value = gfx::conversion::to_blend_factor(colorBlendFactorDst.value);
-					m_ColorBlendOp.value		= gfx::conversion::to_blend_op(colorBlendOp.value);
-
-					m_AlphaBlendFactorSrc.value = gfx::conversion::to_blend_factor(alphaBlendFactorSrc.value);
-					m_AlphaBlendFactorDst.value = gfx::conversion::to_blend_factor(alphaBlendFactorDst.value);
-					m_AlphaBlendOp.value		= gfx::conversion::to_blend_op(alphaBlendOp.value);
-
-					m_ColorComponents.value = gfx::conversion::to_component_bits(colorComponents.value);
-					break;
-				}
+				serializer << m_Binding << m_Enabled << m_ColorBlendFactorSrc << m_ColorBlendFactorDst << m_ColorBlendOp
+						   << m_AlphaBlendFactorSrc << m_AlphaBlendFactorDst << m_AlphaBlendOp << m_ColorComponents;
 			}
 			static constexpr const char serialization_name[12]{"BLEND_STATE"};
 			psl::serialization::property<bool, const_str("ENABLED", 7)> m_Enabled{false};
@@ -178,22 +137,7 @@ namespace core::data
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Binding;
-
-				const uint32_t current_version = 1;
-				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-				s << version;
-
-				switch(version)
-				{
-				case current_version: s << m_Description; break;
-				case 0:
-					psl::serialization::property<vk::DescriptorType, const_str("DESCRIPTOR", 10)> description;
-					s << description;
-
-					m_Description.value = gfx::conversion::to_binding_type(description.value);
-					break;
-				}
+				s << m_Binding << m_Description;
 
 				if constexpr(psl::serialization::details::is_decoder<S>::value)
 				{
@@ -326,19 +270,7 @@ namespace core::data
 			template <typename S>
 			void serialize(S& s)
 			{
-				const uint32_t current_version = 1;
-				psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-				s << version;
-
-				switch(version)
-				{
-				case current_version: s << m_Stage << m_Shader << m_Bindings; break;
-				case 0:
-					psl::serialization::property<vk::ShaderStageFlags, const_str("STAGE", 5)> stage;
-					s << stage;
-					m_Stage.value = core::gfx::conversion::to_shader_stage(stage.value);
-					s << m_Shader << m_Bindings;
-				}
+				s << m_Stage << m_Shader << m_Bindings;
 			}
 			psl::serialization::property<gfx::shader_stage, const_str("STAGE", 5)> m_Stage;
 			psl::serialization::property<psl::UID, const_str("SHADER", 6)> m_Shader;
@@ -390,32 +322,8 @@ namespace core::data
 		template <typename S>
 		void serialize(S& serializer)
 		{
-			const uint32_t current_version = 1;
-			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-			serializer << version;
-
-			switch(version)
-			{
-			case current_version:
-				serializer << m_Stage << m_Defines << m_Culling << m_DepthTest << m_DepthWrite << m_DepthCompareOp
-						   << m_BlendStates << m_RenderLayer << m_Wireframe;
-				break;
-			case 0:
-				break;
-
-				psl::serialization::property<vk::CullModeFlagBits, const_str("CULLING", 7)> culling{
-					vk::CullModeFlagBits::eBack};
-
-				psl::serialization::property<vk::CompareOp, const_str("DEPTH_COMPARE", 13)> depthCompareOp{
-					vk::CompareOp::eLessOrEqual};
-
-				serializer << culling << depthCompareOp;
-
-				m_Culling.value		   = gfx::conversion::to_cullmode(culling.value);
-				m_DepthCompareOp.value = gfx::conversion::to_compare_op(depthCompareOp.value);
-				serializer << m_Stage << m_Defines << m_DepthTest << m_DepthWrite << m_BlendStates << m_RenderLayer
-						   << m_Wireframe;
-			}
+			serializer << m_Stage << m_Defines << m_Culling << m_DepthTest << m_DepthWrite << m_DepthCompareOp
+					   << m_BlendStates << m_RenderLayer << m_Wireframe;
 		}
 
 		static constexpr const char serialization_name[9]{"MATERIAL"};

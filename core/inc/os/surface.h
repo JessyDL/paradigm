@@ -4,7 +4,12 @@
 #include "resource/resource.hpp"
 
 #if defined(SURFACE_WIN32)
-#include <Windows.h>
+#ifndef _WINDEF_
+struct HWND__; // Forward or never
+typedef HWND__* HWND;
+struct HINSTANCE__;
+typedef HINSTANCE__* HINSTANCE;
+#endif
 #elif defined(SURFACE_XCB)
 #include <xcb/xcb.h>
 #elif defined(SURFACE_WAYLAND)

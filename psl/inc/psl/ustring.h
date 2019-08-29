@@ -1,15 +1,13 @@
 ﻿#pragma once
 #include "psl/platform_def.h"
 
-#include "utf8.h"
-
 #ifdef WIN32
 #else
 #include <stdio.h>
 #endif
-#include <string>
-#include <istream>
-#include <iostream>
+//#include <string>
+//#include <istream>
+//#include <iostream>
 #include <fstream>
 #include <cstring>
 
@@ -129,27 +127,17 @@ namespace psl
 		/// \brief converts a UTF-8 string into a UTF-16 string.
 		/// \param[in] s UTF-8 encoded string to convert.
 		/// \returns a psl::string16_t based on the input UTF-8 string.
-		inline psl::string16_t to_string16_t(const psl::string8_t& s)
-		{
-			psl::string16_t res;
-			utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
-			return res;
-		}
+		psl::string16_t to_string16_t(const psl::string8_t& s);
 
 		/// \brief converts a UTF-16 string into a UTF-8 string.
 		/// \param[in] s UTF-16 encoded string to convert.
 		/// \returns a psl::string8_t based on the input UTF-16 string.
-		inline psl::string8_t from_string16_t(const psl::string16_t& s)
-		{
-			psl::string8_t res;
-			utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-			return res;
-		}
+		psl::string8_t from_string16_t(const psl::string16_t& s);
 
 		/// \brief converts a UTF-16 string into a UTF-8 string.
 		/// \param[in] s UTF-16 encoded string to convert.
 		/// \returns a psl::string8_t based on the input UTF-16 string.
-		inline psl::string8_t from_string16_t(psl::string16::view s) { return from_string16_t(psl::string16_t(s)); }
+		psl::string8_t from_string16_t(psl::string16::view s);
 
 
 		/// \brief converts a wstring into a UTF-8 string.
@@ -157,21 +145,16 @@ namespace psl
 		/// when the wstring is already 8bit, this turns into a no-op.
 		/// \param[in] s wstring to convert.
 		/// \returns a psl::string8_t based on the input wstring.
-		inline psl::string8_t from_wstring(const std::wstring& s)
-		{
-			psl::string8_t res;
-			utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-			return res;
-		}
+		psl::string8_t from_wstring(const std::wstring& s);
 
-		/// \brief alias for std::cin, prefer this version
+		/*/// \brief alias for std::cin, prefer this version
 		static decltype(std::cin)& cin = std::cin;
 		/// \brief alias for std::cout, prefer this version
 		static decltype(std::cout)& cout = std::cout;
 		/// \brief alias for std::cerr, prefer this version
 		static decltype(std::cerr)& cerr = std::cerr;
 		/// \brief alias for std::clor, prefer this version
-		static decltype(std::clog)& clog = std::clog;
+		static decltype(std::clog)& clog = std::clog;*/
 	} // namespace string8
 
 	namespace string16
@@ -179,36 +162,26 @@ namespace psl
 		/// \brief converts a UTF-16 string into a UTF-8 string.
 		/// \param[in] s UTF-16 encoded string to convert.
 		/// \returns a psl::string8_t based on the input UTF-16 string.
-		inline psl::string8_t to_string8_t(const psl::string16_t& s)
-		{
-			psl::string8_t res;
-			utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-			return res;
-		}
+		psl::string8_t to_string8_t(const psl::string16_t& s);
 
 		/// \brief converts a UTF-8 string into a UTF-16 string.
 		/// \param[in] s UTF-8 encoded string to convert.
 		/// \returns a psl::string16_t based on the input UTF-8 string.
-		inline psl::string16_t from_string8_t(const psl::string8_t& s)
-		{
-			psl::string16_t res;
-			utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
-			return res;
-		}
+		psl::string16_t from_string8_t(const psl::string8_t& s);
 
 		/// \brief converts a UTF-8 string into a UTF-16 string.
 		/// \param[in] s UTF-8 encoded string to convert.
 		/// \returns a psl::string16_t based on the input UTF-8 string.
-		inline psl::string16_t from_string8_t(psl::string8::view s) { return from_string8_t(psl::string8_t(s)); }
+		psl::string16_t from_string8_t(psl::string8::view s);
 
-		/// \brief alias for std::wcin, prefer this version
+		/*/// \brief alias for std::wcin, prefer this version
 		static decltype(std::wcin)& cin = std::wcin;
 		/// \brief alias for std::wcout, prefer this version
 		static decltype(std::wcout)& cout = std::wcout;
 		/// \brief alias for std::wcerr, prefer this version
 		static decltype(std::wcerr)& cerr = std::wcerr;
 		/// \brief alias for std::wclog, prefer this version
-		static decltype(std::wclog)& clog = std::wclog;
+		static decltype(std::wclog)& clog = std::wclog;*/
 	} // namespace string16
 
 #if defined(STRING_16_BIT)
@@ -283,16 +256,7 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
 	/// \returns a psl::pstring_t based on the input psl::string.
-	inline psl::pstring_t to_pstring(const psl::string8_t& s)
-	{
-#if defined(UNICODE)
-		psl::pstring_t res;
-		utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
-#else
-		psl::pstring_t res(s.begin(), s.end());
-#endif
-		return res;
-	}
+	psl::pstring_t to_pstring(const psl::string8_t& s);
 
 	/// \brief converts a psl::string int a psl::pstring
 	///
@@ -300,16 +264,7 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
 	/// \returns a psl::pstring_t based on the input psl::string.
-	inline psl::pstring_t to_pstring(psl::string8::view s)
-	{
-#if defined(UNICODE)
-		psl::pstring_t res;
-		utf8::utf8to16(s.begin(), s.end(), back_inserter(res));
-#else
-		psl::pstring_t res(s.begin(), s.end());
-#endif
-		return res;
-	}
+	psl::pstring_t to_pstring(psl::string8::view s);
 
 
 	/// \brief converts a psl::string int a psl::pstring
@@ -318,16 +273,7 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
 	/// \returns a std::wstring based on the input psl::string.
-	inline psl::pstring_t to_pstring(const psl::string16_t& s)
-	{
-#if defined(UNICODE)
-		psl::pstring_t res(s.begin(), s.end());
-#else
-		psl::pstring_t res;
-		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-#endif
-		return res;
-	}
+	psl::pstring_t to_pstring(const psl::string16_t& s);
 
 	/// \brief converts a psl::string int a psl::pstring
 	///
@@ -335,16 +281,7 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s string to convert.
 	/// \returns a std::wstring based on the input psl::string.
-	inline psl::pstring_t to_pstring(psl::string16::view s)
-	{
-#if defined(UNICODE)
-		psl::pstring_t res(s.begin(), s.end());
-#else
-		psl::pstring_t res;
-		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-#endif
-		return res;
-	}
+	psl::pstring_t to_pstring(psl::string16::view s);
 
 #if defined(UNICODE)
 	/// \brief converts a std::string int a psl::string
@@ -353,12 +290,7 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s wstring to convert.
 	/// \returns a psl::string based on the input std::wstring.
-	inline psl::string8_t to_string8_t(psl::platform::view s)
-	{
-		psl::string8_t res;
-		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-		return res;
-	}
+	psl::string8_t to_string8_t(psl::platform::view s);
 
 	/// \brief converts a std::wstring int a psl::string
 	///
@@ -366,27 +298,22 @@ namespace psl
 	/// this turns into a no-op.
 	/// \param[in] s wstring to convert.
 	/// \returns a psl::string based on the input std::wstring.
-	inline psl::string8_t to_string8_t(const psl::pstring_t& s)
-	{
-		psl::string8_t res;
-		utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
-		return res;
-	}
+	psl::string8_t to_string8_t(const psl::pstring_t& s);
 #endif
 
 
 #endif
-#ifdef UNICODE
-	static decltype(std::wcin)& cin   = std::wcin;
-	static decltype(std::wcout)& cout = std::wcout;
-	static decltype(std::wcerr)& cerr = std::wcerr;
-	static decltype(std::wclog)& clog = std::wclog;
-#else
-	static decltype(std::cin)& cin = std::cin;
-	static decltype(std::cout)& cout = std::cout;
-	static decltype(std::cerr)& cerr = std::cerr;
-	static decltype(std::clog)& clog = std::clog;
-#endif
+//#ifdef UNICODE
+//	static decltype(std::wcin)& cin   = std::wcin;
+//	static decltype(std::wcout)& cout = std::wcout;
+//	static decltype(std::wcerr)& cerr = std::wcerr;
+//	static decltype(std::wclog)& clog = std::wclog;
+//#else
+//	static decltype(std::cin)& cin = std::cin;
+//	static decltype(std::cout)& cout = std::cout;
+//	static decltype(std::cerr)& cerr = std::cerr;
+//	static decltype(std::clog)& clog = std::clog;
+//#endif
 
 	/// \brief std::memset wrapper that auto-converts to std::wmemset when wchar == psl::char_t
 	/// \param[in] _Dst destination location of what to memset

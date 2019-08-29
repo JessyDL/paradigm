@@ -3,7 +3,6 @@
 #include "psl/library.h"
 #include "psl/meta.h"
 #include "gfx/types.h"
-#include "vk/conversion.h"
 
 namespace core::resource
 {
@@ -107,30 +106,11 @@ namespace core::meta
 		void serialize(S& s)
 		{
 			psl::meta::file::serialize(s);
+			
+			s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
+			  << m_UsageFlags << m_AspectMask;
 
-			const uint32_t current_version = 1;
-			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-			s << version;
-
-			switch(version)
-			{
-			case current_version:
-				s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
-				  << m_UsageFlags << m_AspectMask;
-				break;
-			case 0:
-				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> format;
-				psl::serialization::property<vk::ImageViewType, const_str("IMAGE_TYPE", 10)> imageType;
-				psl::serialization::property<vk::ImageUsageFlags, const_str("USAGE", 5)> usageFlags;
-				psl::serialization::property<vk::ImageAspectFlags, const_str("ASPECT_MASK", 11)> aspectMask;
-				s << format << imageType << usageFlags<< aspectMask;
-				m_Format.value	 = gfx::conversion::to_format(format.value);
-				m_ImageType.value  = gfx::conversion::to_image_type(imageType.value);
-				m_UsageFlags.value = gfx::conversion::to_image_usage(usageFlags.value);
-				m_AspectMask.value = gfx::conversion::to_image_aspect(aspectMask.value);
-
-				s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount;
-			}
+			assert((uint32_t)m_Format.value <= 97 || (uint32_t)m_Format.value >= 120);
 		}
 		/// \brief validates this texture
 		bool validate() const noexcept;

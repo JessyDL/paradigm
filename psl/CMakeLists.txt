@@ -35,8 +35,11 @@ FetchContent_GetProperties(fmt)
 if(NOT fmt_POPULATED)
 	message(STATUS "fetching fmt...")
 	FetchContent_Populate(fmt)
-	set(FMT_INSTALL ON)
+	set(ORIG ${BUILD_SHARED_LIBS})
+	set(BUILD_SHARED_LIBS ON)
+	#set(FMT_INSTALL ON)
 	add_subdirectory(${fmt_SOURCE_DIR} ${fmt_BINARY_DIR})
+	set(BUILD_SHARED_LIBS ${ORIG})
 	message(STATUS "fmt fetched")
 endif()
 
@@ -45,9 +48,9 @@ FetchContent_GetProperties(spdlog)
 if(NOT spdlog_POPULATED)
 	message(STATUS "fetching spdlog...")
 	FetchContent_Populate(spdlog)
-	#SET(SPDLOG_FMT_EXTERNAL ON)
+	SET(SPDLOG_FMT_EXTERNAL ON)
 	#set(fmt_DIR ${CMAKE_MODULE_PATH})
-	#add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
+	add_subdirectory(${spdlog_SOURCE_DIR} ${spdlog_BINARY_DIR})
 	message(STATUS "spdlog fetched")
 endif()
 
@@ -105,7 +108,6 @@ target_include_directories(${LOCAL_PROJECT}
 		${utf8cpp_SOURCE_DIR}/source
 		${rangev_SOURCE_DIR}/include
 		${skarupke_SOURCE_DIR}/
-		${spdlog_SOURCE_DIR}/include
 		${async_SOURCE_DIR}/inc
 )
 target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
@@ -118,9 +120,9 @@ target_include_directories(${LOCAL_PROJECT}
 endif()
 
 if(LINUX)
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt libc++experimental.a ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt libc++experimental.a ${CMAKE_THREAD_LIBS_INIT} spdlog)
 else()
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT})
+	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog)
 endif()
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")

@@ -2,7 +2,7 @@
 #include "psl/serialization.h"
 #include "psl/meta.h"
 #include "fwd/resource/resource.h"
-#include "vk/ivk.h"
+#include "gfx/types.h"
 
 namespace core::gfx
 {
@@ -18,7 +18,7 @@ namespace core::data
 	public:
 		/// \brief describes a single rendertarget in a framebuffer.
 		///
-		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the core::ivk::texture.
+		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the core::gfx::texture.
 		/// You should take caution when calling methods that manipulate the contained resources for this reason.
 		class attachment final
 		{
@@ -32,11 +32,11 @@ namespace core::data
 			public:
 				/// \brief defaulted constructor
 				description() = default;
-				/// \brief construction based on a vk::AttachmentDescription.
-				description(vk::AttachmentDescription descr);
-				/// \brief returns a vk::AttachmentDescription based on the internal settings.
-				/// \returns a vk::AttachmentDescription based on the internal settings.
-				vk::AttachmentDescription vkDescription() const;
+				/// \brief construction based on a core::gfx::attachment.
+				description(core::gfx::attachment descr) noexcept;
+				/// \brief returns a core::gfx::attachment based on the internal settings.
+				/// \returns a core::gfx::attachment based on the internal settings.
+				operator core::gfx::attachment() const noexcept;
 			private:
 				template <typename S>
 				void serialize(S& serializer)
@@ -44,14 +44,16 @@ namespace core::data
 					serializer << m_SampleCountFlags << m_LoadOp << m_StoreOp << m_StencilLoadOp << m_StencilStoreOp << m_InitialLayout << m_FinalLayout << m_Format;
 				}
 				static constexpr const char serialization_name[12]{"DESCRIPTION"};
-				psl::serialization::property<vk::SampleCountFlagBits, const_str("SAMPLE_COUNT_FLAGS", 18)> m_SampleCountFlags;
-				psl::serialization::property<vk::AttachmentLoadOp, const_str("LOAD_OP", 7)> m_LoadOp;
-				psl::serialization::property<vk::AttachmentStoreOp, const_str("STORE_OP", 8)> m_StoreOp;
-				psl::serialization::property<vk::AttachmentLoadOp, const_str("STENCIl_LOAD_OP", 15)> m_StencilLoadOp;
-				psl::serialization::property<vk::AttachmentStoreOp, const_str("STENCIl_STORE_OP", 16)> m_StencilStoreOp;
-				psl::serialization::property<vk::ImageLayout, const_str("INITIAL_LAYOUT", 14)> m_InitialLayout;
-				psl::serialization::property<vk::ImageLayout, const_str("FINAL_LAYOUT", 12)> m_FinalLayout;
-				psl::serialization::property<vk::Format, const_str("FORMAT", 6)> m_Format;
+				psl::serialization::property<uint8_t, const_str("SAMPLE_COUNT_BITS", 17)> m_SampleCountFlags;
+				psl::serialization::property<core::gfx::attachment::load_op, const_str("LOAD_OP", 7)> m_LoadOp;
+				psl::serialization::property<core::gfx::attachment::store_op, const_str("STORE_OP", 8)> m_StoreOp;
+				psl::serialization::property<core::gfx::attachment::load_op, const_str("STENCIl_LOAD_OP", 15)>
+					m_StencilLoadOp;
+				psl::serialization::property<core::gfx::attachment::store_op, const_str("STENCIl_STORE_OP", 16)>
+					m_StencilStoreOp;
+				psl::serialization::property<core::gfx::image::layout, const_str("INITIAL_LAYOUT", 14)> m_InitialLayout;
+				psl::serialization::property<core::gfx::image::layout, const_str("FINAL_LAYOUT", 12)> m_FinalLayout;
+				psl::serialization::property<core::gfx::format, const_str("FORMAT", 6)> m_Format;
 
 			};
 
@@ -65,7 +67,8 @@ namespace core::data
 			/// \param[in] clear_col the clear value to assign to this render texture.
 			/// \param[in] descr the attachment description that will be used to construct the core::data::framebuffer::attachment::description.
 			/// \param[in] shared value indicating if this render attachment is shared within this framebuffer (see core::data::framebuffer::attachment::shared() for more info).
-			attachment(const psl::UID& texture, const vk::ClearValue& clear_col, vk::AttachmentDescription descr, bool shared = false);
+			attachment(const psl::UID& texture, const core::gfx::clear_value& clear_col, core::gfx::attachment descr,
+					   bool shared = false);
 
 			/// \brief returns the psl::UID assigned to this render attachment.
 			/// \returns the psl::UID assigned to this render attachment.
@@ -74,11 +77,11 @@ namespace core::data
 
 			/// \brief returns the clear value assigned to this attachment.
 			/// \returns the clear value assigned to this attachment.
-			const vk::ClearValue& clear_value() const;
+			const core::gfx::clear_value& clear_value() const;
 
-			/// \brief returns a vk::AttachmentDescription based on the internal settings. This is a passthrough method to the core::data::framebuffer::attachment::description instance.
-			/// \returns a vk::AttachmentDescription based on the internal settings.
-			vk::AttachmentDescription vkDescription() const;
+			/// \brief returns a core::gfx::attachment based on the internal settings. This is a passthrough method to the core::data::framebuffer::attachment::description instance.
+			/// \returns a core::gfx::attachment based on the internal settings.
+			operator core::gfx::attachment() const noexcept;
 
 			/// \brief signifies if this specific attachment duplicated when the framebuffer's image count is larger than 1.
 			///
@@ -92,11 +95,11 @@ namespace core::data
 			template <typename S>
 			void serialize(S& serializer)
 			{
-				serializer << m_Texture << m_ClearValue << m_Shared;
+				serializer << m_Texture /*<< m_ClearValue*/ << m_Shared;
 			}
 
 			psl::serialization::property<psl::UID, const_str("TEXTURE UID", 11)> m_Texture;
-			psl::serialization::property<vk::ClearValue, const_str("CLEAR VALUE", 11)> m_ClearValue;
+			psl::serialization::property<core::gfx::clear_value, const_str("CLEAR VALUE", 11)> m_ClearValue;
 			psl::serialization::property<description, const_str("DESCRIPTION", 11)> m_Description;
 			psl::serialization::property<bool, const_str("SHARED", 6)> m_Shared;
 		};
@@ -122,7 +125,7 @@ namespace core::data
 		/// \param[in] clearValue the value to clear the image with at the start of rendering.
 		/// \param[in] descr how the image load op's etc... will be handled.
 		/// \see core::data::framebuffer::attachment
-		const psl::UID& add(uint32_t width, uint32_t height, uint32_t layerCount, vk::ImageUsageFlags usage, vk::ClearValue clearValue, vk::AttachmentDescription descr);
+		const psl::UID& add(uint32_t width, uint32_t height, uint32_t layerCount, core::gfx::image::usage usage, core::gfx::clear_value clearValue, core::gfx::attachment descr);
 
 		/// \brief removes the attachment that is using this psl::UID for its texture.
 		/// \param[in] uid the psl::UID to search for
@@ -137,7 +140,7 @@ namespace core::data
 
 		/// \brief gets all attachments currently assigned to this framebuffer.
 		/// \returns all attachments currently assigned to this framebuffer.
-		const std::vector<attachment>& attachments() const;
+		const std::vector<attachment>& attachments() const { return m_Attachments.value; };
 
 		/// \brief returns the framebuffer count (layers).
 		/// \returns the framebuffer count (layers).

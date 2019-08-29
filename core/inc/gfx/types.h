@@ -2,6 +2,8 @@
 #include <optional>
 #include "psl/memory/range.h"
 #include "psl/memory/segment.h"
+#include "psl/math/vec.h"
+#include <variant>
 
 namespace core::gfx
 {
@@ -163,6 +165,12 @@ namespace core::gfx
 		return type(bit0) | bit1;
 	}
 
+	inline bool operator&(memory_usage bit0, memory_usage bit1)
+	{
+		using type = enum_flag<memory_usage>;
+		return (type(bit0) & bit1) == bit1;
+	}
+
 	enum class memory_property
 	{
 		device_local	 = 1 << 0,
@@ -227,6 +235,12 @@ namespace core::gfx
 	{
 		using image_usage_flags = enum_flag<image_usage>;
 		return image_usage_flags(bit0) | bit1;
+	}
+
+	inline bool operator&(image_usage bit0, image_usage bit1)
+	{
+		using type = enum_flag<image_usage>;
+		return (type(bit0) & bit1) == bit1;
 	}
 
 	enum class component_bits
@@ -470,6 +484,13 @@ namespace core::gfx
 		storage_buffer_dynamic,
 		input_attachment
 	};
+
+	inline bool operator&(binding_type bit0, binding_type bit1)
+	{
+		using type = enum_flag<binding_type>;
+		return (type(bit0) & bit1) == bit1;
+	}
+
 	enum class blend_op
 	{
 		add				 = 0,
@@ -518,4 +539,61 @@ namespace core::gfx
 	}
 
 	inline bool is_depthstencil(core::gfx::format format) { return (has_depth(format) || has_stencil(format)); }
+
+	namespace image
+	{
+		enum class layout
+		{
+			undefined								   = 0,
+			general									   = 1,
+			color_attachment_optimal				   = 2,
+			depth_stencil_attachment_optimal		   = 3,
+			depth_stencil_read_only_optimal			   = 4,
+			shader_read_only_optimal				   = 5,
+			transfer_source_optimal					   = 6,
+			transfer_destination_optimal			   = 7,
+			preinitialized							   = 8,
+			depth_read_only_stencil_attachment_optimal = 1000117000,
+			depth_attachment_stencil_read_only_optimal = 1000117001,
+			present_src_khr							   = 1000001002,
+			shared_present_khr						   = 1000111000,
+			shading_rate_optimal_nv					   = 1000164003,
+			fragment_density_map_optimal_ext		   = 1000218000
+		};
+
+		using usage = image_usage;
+	} // namespace image
+
+	struct attachment
+	{
+		enum class load_op : uint8_t
+		{
+			load	  = 0,
+			clear	 = 1,
+			dont_care = 2
+		};
+
+		enum class store_op : uint8_t
+		{
+			store	 = (uint8_t)load_op::load,
+			dont_care = (uint8_t)load_op::dont_care
+		};
+
+		format format;
+		uint8_t sample_bits;
+		load_op image_load;
+		store_op image_store;
+		load_op stencil_load;
+		store_op stencil_store;
+		image::layout initial;
+		image::layout final;
+	};
+
+	struct depth_stencil
+	{
+		float depth;
+		uint32_t stencil;
+	};
+
+	using clear_value = std::variant<psl::vec4, psl::ivec4, psl::tvec<uint32_t, 4>, depth_stencil>;
 } // namespace core::gfx

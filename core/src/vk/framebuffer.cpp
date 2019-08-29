@@ -21,7 +21,7 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 	size_t index = 0u;
 	for(const auto& attach : m_Data->attachments())
 	{
-		if(!add(cache, attach.texture(), attach.vkDescription(), index, (attach.shared()) ? 1u : m_Framebuffers.size()))
+		if(!add(cache, attach.texture(), gfx::conversion::to_vk(attach), index, (attach.shared()) ? 1u : m_Framebuffers.size()))
 			throw std::runtime_error("");
 		index += m_Framebuffers.size();
 	}

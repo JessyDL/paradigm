@@ -2,6 +2,7 @@
 #include "systems/input.h"
 #include "os/surface.h"
 #include "logging.h"
+#include <Windows.h>
 
 // https://chromium.googlesource.com/chromium/src/+/master/ui/events/keycodes/dom/keycode_converter_data.inc
 // https://handmade.network/forums/t/2011-keyboard_inputs_-_scancodes,_raw_input,_text_input,_key_names/2
@@ -36,7 +37,7 @@ const uint8_t WIN_NATIVE_TO_HID[256] = {
 	255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
 
-LRESULT CALLBACK input::win_event_handler(HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
+__int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam, __int64 lParam)
 {
 	core::os::surface* surface = reinterpret_cast<core::os::surface*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 	if(surface != nullptr)

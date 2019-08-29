@@ -100,10 +100,10 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 					glUniformBlockBinding(m_Program->id(), binding_slot, 1);
 					binding_slot				  = 1;
 
-					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
-														? vk::BufferUsageFlagBits::eUniformBuffer
-														: vk::BufferUsageFlagBits::eStorageBuffer;
-					if(gfx::conversion::to_vk(buffer_handle->data().usage()) & usage)
+					auto usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
+									 ? core::gfx::memory_usage::uniform_buffer
+									 : core::gfx::memory_usage::storage_buffer;
+					if(buffer_handle->data().usage() & usage)
 					{
 						m_Buffers.push_back(std::make_pair(binding_slot, buffer_handle));
 					}

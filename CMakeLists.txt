@@ -176,7 +176,7 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	else()
 		list(APPEND PE_COMPILE_OPTIONS /W3)
 	endif()
-	
+	list(APPEND PE_DEFINES -DWIN32_LEAN_AND_MEAN)
 	
 	
 	list(APPEND PE_COMPILE_OPTIONS_EXE

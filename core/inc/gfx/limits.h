@@ -1,9 +1,11 @@
 #pragma once
 #include "context.h"
-#include "stdafx.h"
 #ifdef PE_VULKAN
 #include "vk/context.h"
 #include "vk/conversion.h"
+#endif
+#ifdef PE_GLES
+#include "gles/igles.h"
 #endif
 
 namespace core::gfx::limits

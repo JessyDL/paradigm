@@ -6,7 +6,6 @@
 #include "psl/memory/segment.h"
 #include "gfx/types.h"
 #include "fwd/resource/resource.h"
-#include "vk/conversion.h"
 
 /// \brief contains all data types that can be serialized to/from disk.
 namespace core::data
@@ -84,24 +83,8 @@ namespace core::data
 		template <typename S>
 		void serialize(S& serializer)
 		{
-			const uint32_t current_version = 1;
-			psl::serialization::property<uint32_t, const_str("VERSION", 7)> version{0};
-			serializer << version;
-			switch(version)
-			{
-			case current_version:
-				serializer << m_Usage << m_MemoryPropertyFlags << m_Transient << m_WriteFrequency;
-				break;
-			case 0:
-				psl::serialization::property<vk::BufferUsageFlags, const_str("USAGE", 5)> usage;
-				psl::serialization::property<vk::MemoryPropertyFlags, const_str("PROPERTIES", 10)>
-					memoryPropertyFlags;
-				
-				serializer << usage << memoryPropertyFlags << m_Transient << m_WriteFrequency;
-				m_Usage.value = core::gfx::conversion::to_memory_usage(usage.value);
-				m_MemoryPropertyFlags.value = core::gfx::conversion::to_memory_property(memoryPropertyFlags.value);
-				break;
-			}
+			serializer << m_Usage << m_MemoryPropertyFlags << m_Transient << m_WriteFrequency;
+
 			if constexpr(psl::serialization::details::is_encoder<S>::value)
 			{
 				psl::serialization::property<size_t, const_str("SIZE", 4)> size{m_Region.size()};

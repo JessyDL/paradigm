@@ -2,7 +2,13 @@
 // core.cpp : Defines the entry point for the console application.
 //
 
-#include "stdafx.h"
+#define _CRT_SECURE_NO_WARNINGS
+#define _CRT_DISABLE_PERFCRIT_LOCKS
+//#include <Windows.h>
+//#include "stdafx.h"
+#include "psl/library.h"
+#include "psl/application_utils.h"
+#include "resource/resource.hpp"
 #ifdef CORE_EXECUTABLE
 #include "header_info.h"
 

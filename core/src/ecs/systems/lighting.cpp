@@ -1,4 +1,3 @@
-#include "stdafx.h"
 #include "ecs/systems/lighting.h"
 #include "psl/ecs/state.h"
 #include "psl/memory/region.h"
@@ -56,24 +55,24 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 		auto fbdata = m_Cache->create<data::framebuffer>(m_Surface->data().width(), m_Surface->data().height(), 1);
 
 		{
-			vk::AttachmentDescription descr;
+			core::gfx::attachment descr;
 			if(auto format = core::gfx::limits::supported_depthformat(m_Context.value());
 			   format == core::gfx::format::undefined)
 			{
 				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
 			}
 			else
-				descr.format = core::gfx::conversion::to_vk(format);
-			descr.samples		 = vk::SampleCountFlagBits::e1;
-			descr.loadOp		 = vk::AttachmentLoadOp::eClear;
-			descr.storeOp		 = vk::AttachmentStoreOp::eDontCare;
-			descr.stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
-			descr.stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
-			descr.initialLayout  = vk::ImageLayout::eUndefined;
-			descr.finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
+				descr.format = format;
+			descr.sample_bits   = 1;
+			descr.image_load	= core::gfx::attachment::load_op::clear;
+			descr.image_store   = core::gfx::attachment::store_op::dont_care;
+			descr.stencil_load  = core::gfx::attachment::load_op::dont_care;
+			descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+			descr.initial		= core::gfx::image::layout::undefined;
+			descr.final			= core::gfx::image::layout::depth_stencil_attachment_optimal;
 
 			fbdata->add(m_Surface->data().width(), m_Surface->data().height(), 1,
-						vk::ImageUsageFlagBits::eDepthStencilAttachment, vk::ClearDepthStencilValue(1.0f, 0), descr);
+						core::gfx::image::usage::dept_stencil_attachment, core::gfx::depth_stencil{1.0f, 0}, descr);
 		}
 
 		{
