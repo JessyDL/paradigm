@@ -116,7 +116,6 @@ if(PE_GLES)
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
 		)
 		
-			set_source_files_properties(${GL_SOURCES} PROPERTIES GENERATED TRUE)
 			add_library(gl ${GL_SOURCES})
 			
 			target_include_directories(gl
@@ -170,44 +169,9 @@ set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(${LOCAL_PROJECT} PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
 if(MSVC)
-	target_compile_options(${LOCAL_PROJECT} PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
+	target_compile_options(${LOCAL_PROJECT} PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3 /Fo[$(IntDir)%(Directory)])
 endif()
-if(PE_PCH AND NOT MSVC)
-	set(PROJECT_CORE_PCH core_pch CACHE INTERNAL "")
-	set(LOCAL_PCH_PROJECT ${PROJECT_CORE_PCH})
-	project(${LOCAL_PCH_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
-	add_custom_target(${PROJECT_CORE_PCH} DEPENDS stdafx.h.pch)
-
-	get_target_property(dirs ${LOCAL_PROJECT} INCLUDE_DIRECTORIES)
-	foreach(dir ${dirs})
-	  list(APPEND INCLUDE_DIRS_LOCAL_PROJECT -I${dir} ) 
-	endforeach()
-	list(APPEND INCLUDE_DIRS_LOCAL_PROJECT "-I${CMAKE_SOURCE_DIR}/psl/inc") 
-	list(APPEND INCLUDE_DIRS_LOCAL_PROJECT "-I${spdlog_SOURCE_DIR}/include") 
-	list(APPEND INCLUDE_DIRS_LOCAL_PROJECT "-I${utf8cpp_SOURCE_DIR}/source ") 
-	message(STATUS ${INCLUDE_DIRS_LOCAL_PROJECT})
-
-	set_property(TARGET ${LOCAL_PCH_PROJECT} PROPERTY FOLDER "PCH")
-
-	add_custom_command(OUTPUT stdafx.h.pch
-							COMMAND ${CMAKE_CXX_COMPILER} -x c++-header ${CMAKE_CURRENT_SOURCE_DIR}/inc/stdafx.h -Xclang -emit-pch -o stdafx.h.pch ${PE_COMPILE_OPTIONS} -I${utf8cpp_SOURCE_DIR}/source ${INCLUDE_DIRS_LOCAL_PROJECT} -I${CMAKE_CURRENT_SOURCE_DIR}/inc -DPLATFORM_LINUX -DPLATFORM_X64 ${PE_DEFINES}
-							DEPENDS  ${CMAKE_CURRENT_SOURCE_DIR}/inc/stdafx.h
-							IMPLICIT_DEPENDS  CXX ${CMAKE_CURRENT_SOURCE_DIR}/inc/stdafx.h
-							WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}
-							VERBATIM)
-							
-	add_dependencies(${LOCAL_PCH_PROJECT} ${PROJECT_PSL_PCH})
-	add_dependencies(${LOCAL_PROJECT} ${LOCAL_PCH_PROJECT})
-	target_compile_options(${LOCAL_PROJECT} PUBLIC -include-pch ${CMAKE_CURRENT_BINARY_DIR}/stdafx.h.pch)
-endif()
-
-
-if(PE_PCH AND MSVC)
-	set_target_properties(${LOCAL_PROJECT} PROPERTIES COTIRE_CXX_PREFIX_HEADER_INIT "inc/stdafx.h")
-	cotire(${LOCAL_PROJECT})
-endif()
-
 
 if(MSVC)
-	set_property(SOURCE "src/core.cpp" APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
+	#set_property(SOURCE "src/core.cpp" APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif()

@@ -1,7 +1,6 @@
 SET(SRC 
 core.cpp
 logging.cpp
-stdafx.cpp
 
 data/application.cpp
 data/buffer.cpp

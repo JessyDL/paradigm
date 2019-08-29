@@ -68,6 +68,10 @@ class File(object):
     def patch_wincolorh(self):
         self.content = re.sub("#include <wincon.h>", "typedef void *HANDLE;\ntypedef unsigned short WORD;\n", self.content)
 
+    @patch_file("core/core.vcxproj")
+    def patch_msvc(self):
+        self.content = re.sub(r'<ObjectFileName>.*</ObjectFileName>', r'<ObjectFileName>$(IntDir)%(Directory)</ObjectFileName>', self.content)
+        
 def patch(root):
     files = []
 
@@ -78,6 +82,12 @@ def patch(root):
     for f in files:
         fObj = File(f.replace('\\', '/'))
         fObj.patch()
+
+def patch_msvc(root):
+    root += "/core/core.vcxproj"
+    
+    fObj = File(root.replace('\\', '/'))
+    fObj.patch()
     
 def main():
     patch(sys.argv[1] + "/_deps/")

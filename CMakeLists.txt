@@ -174,7 +174,7 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS /W4 /w14640 /w14242 /w14254 /wd4100)	
 	else()
-		list(APPEND PE_COMPILE_OPTIONS /W3)
+		#list(APPEND PE_COMPILE_OPTIONS /W3)
 	endif()
 	list(APPEND PE_DEFINES -DWIN32_LEAN_AND_MEAN)
 	

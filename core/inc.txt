@@ -1,5 +1,4 @@
 SET(INC 
-stdafx.h
 conversion_utils.h
 header_info.h
 logging.h
