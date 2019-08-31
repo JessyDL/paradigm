@@ -79,14 +79,12 @@ if(PE_GLES)
 	if(NOT glad_POPULATED)
 		message(STATUS "fetching Dav1dde/glad...")
 		FetchContent_Populate(glad)
-		
-		
 		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
-			list(APPEND GL_SOURCES
-				"${GL_INCLUDE_DIRS}/src/glad.c"
-				"${GL_INCLUDE_DIRS}/include/glad/glad.h"
-			)
-			
+		
+		list(APPEND GL_SOURCES
+			"${GL_INCLUDE_DIRS}/src/glad.c"
+			"${GL_INCLUDE_DIRS}/include/glad/glad.h"
+		)
 		EXECUTE_PROCESS(
 			COMMAND ${PYTHON_EXECUTABLE} -m glad
 				--profile=core
@@ -99,10 +97,10 @@ if(PE_GLES)
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
 		)		
 		
-			list(APPEND GL_SOURCES
-				"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
-				"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
-			)
+		list(APPEND GL_SOURCES
+			"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
+			"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
+		)
 			
 		EXECUTE_PROCESS(
 			COMMAND ${PYTHON_EXECUTABLE} -m glad
@@ -115,12 +113,11 @@ if(PE_GLES)
 				--reproducible
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
 		)
+		add_library(gl ${GL_SOURCES})
+		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)		
+		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
+		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" "${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
 		
-			add_library(gl ${GL_SOURCES})
-			
-			target_include_directories(gl
-					PUBLIC
-							${GL_INCLUDE_DIRS}/include)
 		message(STATUS "Dav1dde/glad fetched")
 	endif()
 endif()

@@ -1,5 +1,6 @@
 ﻿#pragma once
 #include "psl/format.h"
+#include "psl/ustring.h"
 #include "psl/string_utils.h"
 #include "psl/platform_utils.h"
 #include "binary_utils.h"
@@ -203,11 +204,6 @@ namespace psl::serialization
 
 	class encode_to_format;
 	class decode_from_format;
-	template <typename CODEC>
-	struct vtable
-	{
-		void (*serialize)(void* this_, CODEC& s);
-	};
 
 	struct polymorphic_base
 	{
@@ -240,9 +236,10 @@ namespace psl::serialization
 	struct polymorphic_data
 	{
 		uint64_t id;
-		vtable<encode_to_format> const* encoder;
-		vtable<decode_from_format> const* decoder;
+		std::function<void(void*, encode_to_format&)> encode;
+		std::function<void(void*, decode_from_format&)> decode;
 		invocable_wrapper_base* factory;
+
 
 		std::vector<std::pair<psl::string8_t, uint64_t>> derived;
 		~polymorphic_data() { delete(factory); };
@@ -443,7 +440,8 @@ namespace psl::serialization
 
 		template <typename S, typename T>
 		struct member_function_serialize<
-			S, T, std::void_t<decltype(::psl::serialization::accessor::serialize(std::declval<S&>(), std::declval<T&>()))>>
+			S, T,
+			std::void_t<decltype(::psl::serialization::accessor::serialize(std::declval<S&>(), std::declval<T&>()))>>
 			: std::true_type
 		{};
 
@@ -868,72 +866,7 @@ namespace psl::serialization
 		};
 
 	} // namespace details
-
-
-	template <typename T, typename CODEC>
-	vtable<CODEC> const vtable_for = {[](void* this_, CODEC& s) {
-		accessor::serialize_directly<CODEC, T>(s, *static_cast<T*>(this_));
-		// static_assert(false, "use of undefined codec");
-	}};
-
-	/// \brief contains the polymorphic lambda constructor for your polymorphic type
-	///
-	/// This will be used by the deserializer to create the correct type for the format node.
-	/// All polymorphic types are internally mapped to an ID (generated from a name you give).
-	/// These values are saved in the format, and on deserialization are used to figure out how
-	/// to construct the object in the format.
-	/// Aside from the fact you need to register your polymorphic types (once), there should be no further
-	/// interaction with this class.
-	template <typename T>
-	class polymorphic final : public polymorphic_base
-	{
-	  public:
-		polymorphic()
-		{
-			if(accessor::polymorphic_data().find(ID) != accessor::polymorphic_data().end())
-			{
-				LOG_FATAL("Encountered duplicate Polymorphic ID in the serialization: ", ID);
-				exit(-1);
-			}
-
-
-			static polymorphic_data data;
-
-			data.id = ID;
-			auto lambda{[]() { return new T(); }};
-			data.factory = new invocable_wrapper<decltype(lambda)>(std::forward<decltype(lambda)>(lambda));
-
-			data.encoder					 = &vtable_for<T, psl::serialization::encode_to_format>;
-			data.decoder					 = &vtable_for<T, psl::serialization::decode_from_format>;
-			accessor::polymorphic_data()[ID] = &data;
-		}
-
-		virtual ~polymorphic(){};
-		uint64_t PolymorphicID() const override { return accessor::id<T>(); };
-		static constexpr uint64_t ID{accessor::id<T>()};
-	};
-
-	template <typename Base, typename... Rest>
-	static const void notify_base(psl::string8_t name, uint64_t ID)
-	{
-		accessor::polymorphic_data()[accessor::id<Base>()]->derived.emplace_back(name, ID);
-		if constexpr(sizeof...(Rest) > 0)
-		{
-			notify_base<Rest...>(name, ID);
-		}
-	}
-
-	template <typename T, typename... Base>
-	static const uint64_t register_polymorphic()
-	{
-		static psl::serialization::polymorphic<T> polymorphic_container;
-		if constexpr(sizeof...(Base) > 0)
-		{
-			notify_base<Base...>(accessor::name<T>(), accessor::id<T>());
-		}
-		return accessor::id<T>();
-	}
-
+	
 
 	/// \brief wrapper class to signify a data member can be serialized and deserialized.
 	///
@@ -977,7 +910,7 @@ namespace psl::serialization
 		using property_base::operator&=;
 
 		/*! @fn psl::serialization::property<T, char...>::value @copydoc psl::serialization::details::property<T>::value
-		*
+		 *
 		 */
 
 #ifdef _MSC_VER
@@ -1297,6 +1230,7 @@ namespace psl::serialization
 	template <typename T, char... Char>
 	const psl::template_string<Char...> property<ptr<T>, Char...>::m_Name{};
 
+
 	class decode_from_format : decoder
 	{
 		using codec_t	 = decode_from_format;
@@ -1561,9 +1495,9 @@ namespace psl::serialization
 					size = value_opt.value_or(0);
 				}
 
-				size_t begin		= m_Container.index_of(m_CollectionStack.top()->get()) + 1u;
-				size_t end			= begin + size;
-				//size_t actual_index = 0;
+				size_t begin = m_Container.index_of(m_CollectionStack.top()->get()) + 1u;
+				size_t end   = begin + size;
+				// size_t actual_index = 0;
 
 				static_assert(details::is_keyed_range<T>::value, "never seen");
 
@@ -1829,15 +1763,76 @@ namespace psl::serialization
 		std::unordered_map<std::uintptr_t, psl::format::handle*> m_ReferenceMap;
 		std::unordered_map<std::uintptr_t, psl::format::handle*> m_ToBeResolvedReferenceMap;
 	};
+
+	static psl::serialization::property<psl::string8_t, const_str("POLYMORPHIC_ID", 14)> p;
+
+	/// \brief contains the polymorphic lambda constructor for your polymorphic type
+	///
+	/// This will be used by the deserializer to create the correct type for the format node.
+	/// All polymorphic types are internally mapped to an ID (generated from a name you give).
+	/// These values are saved in the format, and on deserialization are used to figure out how
+	/// to construct the object in the format.
+	/// Aside from the fact you need to register your polymorphic types (once), there should be no further
+	/// interaction with this class.
 	template <typename T>
-	vtable<encode_to_format> const vtable_for<T, encode_to_format> = {[](void* this_, encode_to_format& s) {
-		T* t = static_cast<T*>(this_);
-		psl::serialization::property<psl::string8_t, const_str("POLYMORPHIC_ID", 14)> p{
-			utility::to_string(accessor::polymorphic_id(t))};
-		s.parse(p);
-		accessor::serialize_directly<encode_to_format, T>(s, *t);
-		// t->serialize(s);
-	}};
+	class polymorphic final : public polymorphic_base
+	{
+
+	  public:
+		polymorphic()
+		{
+			if(accessor::polymorphic_data().find(ID) != accessor::polymorphic_data().end())
+			{
+				LOG_FATAL("Encountered duplicate Polymorphic ID in the serialization: ", ID);
+				exit(-1);
+			}
+
+
+			static polymorphic_data data;
+
+			data.id = ID;
+			auto lambda{[]() { return new T(); }};
+			data.factory = new invocable_wrapper<decltype(lambda)>(std::forward<decltype(lambda)>(lambda));
+
+			data.encode = [](void* this_, encode_to_format& s) {
+				T* t	= static_cast<T*>(this_);
+				p.value = utility::to_string(accessor::polymorphic_id(t));
+				s.parse(p);
+				accessor::serialize_directly<encode_to_format, T>(s, *t);
+				// t->serialize(s);
+			};
+			data.decode = [](void* this_, decode_from_format& s) {
+				accessor::serialize_directly<decode_from_format, T>(s, *static_cast<T*>(this_));
+				// static_assert(false, "use of undefined codec");
+			};
+			accessor::polymorphic_data()[ID] = &data;
+		}
+
+		virtual ~polymorphic(){};
+		uint64_t PolymorphicID() const override { return accessor::id<T>(); };
+		static constexpr uint64_t ID{accessor::id<T>()};
+	};
+
+	template <typename Base, typename... Rest>
+	static const void notify_base(psl::string8_t name, uint64_t ID)
+	{
+		accessor::polymorphic_data()[accessor::id<Base>()]->derived.emplace_back(name, ID);
+		if constexpr(sizeof...(Rest) > 0)
+		{
+			notify_base<Rest...>(name, ID);
+		}
+	}
+
+	template <typename T, typename... Base>
+	static const uint64_t register_polymorphic()
+	{
+		static psl::serialization::polymorphic<T> polymorphic_container;
+		if constexpr(sizeof...(Base) > 0)
+		{
+			notify_base<Base...>(accessor::name<T>(), accessor::id<T>());
+		}
+		return accessor::id<T>();
+	}
 	class serializer
 	{
 		template <typename T, typename Encoder>
@@ -1940,7 +1935,8 @@ namespace psl::serialization
 					{
 						target = (T*)((*it->second)());
 					}
-					else if(auto poly_it = accessor::polymorphic_data().find(id); poly_it != accessor::polymorphic_data().end())
+					else if(auto poly_it = accessor::polymorphic_data().find(id);
+							poly_it != accessor::polymorphic_data().end())
 					{
 						target = (T*)((*poly_it->second->factory)());
 					}
@@ -2027,11 +2023,11 @@ namespace psl::serialization
 			auto id = polymorphic_id(obj);
 			if constexpr(details::is_encoder<S>::value)
 			{
-				polymorphic_data()[id]->encoder->serialize(&obj, s);
+				polymorphic_data()[id]->encode(&obj, s);
 			}
 			else if constexpr(details::is_decoder<S>::value)
 			{
-				polymorphic_data()[id]->decoder->serialize(&obj, s);
+				polymorphic_data()[id]->decode(&obj, s);
 			}
 		}
 		else
@@ -2039,4 +2035,4 @@ namespace psl::serialization
 			obj.serialize(s);
 		}
 	}
-} // namespace serialization
+} // namespace psl::serialization

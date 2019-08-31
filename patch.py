@@ -81,17 +81,17 @@ class File(object):
               r'''#define BACKGROUND_INTENSITY 0x0080\n'''
               r'''#define WIN_OVERRIDE\n'''
               r'''#endif\n''', self.content)
-            self.content += r'''\n#ifdef WIN_OVERRIDE\n''' \
-              r'''#undef FOREGROUND_BLUE\n''' \
-              r'''#undef FOREGROUND_GREEN\n''' \
-              r'''#undef FOREGROUND_RED\n''' \
-              r'''#undef FOREGROUND_INTENSITY\n''' \
-              r'''#undef BACKGROUND_BLUE\n''' \
-              r'''#undef BACKGROUND_GREEN\n''' \
-              r'''#undef BACKGROUND_RED\n''' \
-              r'''#undef BACKGROUND_INTENSITY\n''' \
-              r'''#undef WIN_OVERRIDE\n''' \
-              r'''#endif\n'''
+            self.content += "\n#ifdef WIN_OVERRIDE\n" \
+              "#undef FOREGROUND_BLUE\n" \
+              "#undef FOREGROUND_GREEN\n" \
+              "#undef FOREGROUND_RED\n" \
+              "#undef FOREGROUND_INTENSITY\n" \
+              "#undef BACKGROUND_BLUE\n" \
+              "#undef BACKGROUND_GREEN\n" \
+              "#undef BACKGROUND_RED\n" \
+              "#undef BACKGROUND_INTENSITY\n" \
+              "#undef WIN_OVERRIDE\n" \
+              "#endif\n"
 
     @patch_file("core/core.vcxproj")
     def patch_msvc(self):
