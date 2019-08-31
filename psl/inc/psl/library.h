@@ -101,9 +101,9 @@ namespace psl::meta
 		~library();
 
 		library(const library& other) = delete;
-		library(library&& other)	  = default;
+		library(library&& other)	noexcept  = default;
 		library& operator=(const library& other) = delete;
-		library& operator=(library&& other) = delete;
+		library& operator=(library&& other) noexcept = default;
 
 		/// \brief creates a new entry with a unique psl::UID and a given type that is either, or derived of meta::file.
 		template <typename MF = file>

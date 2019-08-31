@@ -4,12 +4,7 @@
 #include <type_traits>
 #include <functional>
 #include "psl/assertions.h"
-
-namespace std
-{
-	template <class _Ty>
-	struct variant_size;
-}
+#include <variant>
 
 namespace utility::templates
 {
