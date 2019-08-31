@@ -72,7 +72,7 @@ class Paradigm(object):
         args, remaining_argv = parser.parse_known_args()
         generator = args.generator.lower()
         if generator == 'auto':
-            if platform.system().lower() == "windows"
+            if platform.system().lower() == "windows":
                 generator = 'msvc'
             else if subprocess.check_call(["ninja", "--version"], shell=False) != 0:
                 args.generator = Ninja
