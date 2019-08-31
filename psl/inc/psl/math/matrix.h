@@ -40,11 +40,13 @@ namespace psl
 		}
 		constexpr precision_t& operator[](size_t index) noexcept { return value[index]; }
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
-		constexpr precision_t& operator[](std::array<size_t, 2> index) noexcept
+
+
+		constexpr precision_t& operator[](const size_t (&index)[2]) noexcept
 		{
 			return value[index[0] * columns_n + index[1]];
 		}
-		constexpr const precision_t& operator[](std::array<size_t, 2> index) const noexcept
+		constexpr const precision_t& operator[](const size_t (&index)[2]) const noexcept
 		{
 			return value[index[0] * columns_n + index[1]];
 		}

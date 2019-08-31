@@ -185,7 +185,7 @@ namespace psl::ecs::details
 
 		~dependency_pack() noexcept						  = default;
 		dependency_pack(const dependency_pack& other)	 = default;
-		dependency_pack(dependency_pack&& other) noexcept = default;
+		dependency_pack(dependency_pack&& other) = default;
 		dependency_pack& operator=(const dependency_pack&) = default;
 		dependency_pack& operator=(dependency_pack&&) noexcept = default;
 
