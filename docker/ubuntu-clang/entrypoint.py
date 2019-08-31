@@ -65,10 +65,7 @@ class Project(object):
     def build(self):
         working_dir = os.getcwd()
         os.chdir(self.location)
-        module = importlib.import_module("paradigm.build")
-        Paradigm = module.Paradigm
-        para = Paradigm()
-        para(self.rest)
+        subprocess.check_call(["python3", "build.py"] + self.rest, shell=False)
         os.chdir(working_dir)
         
 def main():

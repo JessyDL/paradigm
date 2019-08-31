@@ -62,7 +62,7 @@ class File(object):
     @patch_file("src/spdlog.cpp")
     def patch_spdlogcpp(self):
         if not re.search(r'#include <Windows.h>', self.content):
-            self.content = "#include <Windows.h>\n" + self.content
+            self.content = "#ifdef _WIN32\n#include <Windows.h>\n#endif\n" + self.content
 
     @patch_file("include/spdlog/sinks/wincolor_sink.h")
     def patch_wincolorh(self):
