@@ -169,7 +169,7 @@ set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(${LOCAL_PROJECT} PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
 if(MSVC)
-	target_compile_options(${LOCAL_PROJECT} PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3 /Fo[$(IntDir)%(Directory)])
+	target_compile_options(${LOCAL_PROJECT} PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
 endif()
 
 if(MSVC)

@@ -174,7 +174,7 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS /W4 /w14640 /w14242 /w14254 /wd4100)	
 	else()
-		#list(APPEND PE_COMPILE_OPTIONS /W3)
+		list(APPEND PE_COMPILE_OPTIONS /W3)
 	endif()
 	list(APPEND PE_DEFINES -DWIN32_LEAN_AND_MEAN)
 	
@@ -189,10 +189,11 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy-;/Zi>
 							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/Zo;/Z7>
 							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
-	set(CMAKE_EXE_LINKER_FLAGS_$<$<CONFIG:Debug>:             /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF>
-										$<$<CONFIG:Release>:           /INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG>
-										$<$<CONFIG:RelWithDebInfo>:    /INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental>
-										$<$<CONFIG:RelNoOptimization>: /INCREMENTAL /OPT:NOREF /OPT:NOICF>)
+							
+	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF")
+	SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "/INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG")
+	SET(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental")
+	SET(CMAKE_EXE_LINKER_FLAGS_RELNOOPTIMIZATION "/INCREMENTAL /OPT:NOREF /OPT:NOICF")
 else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	

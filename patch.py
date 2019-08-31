@@ -66,13 +66,43 @@ class File(object):
 
     @patch_file("include/spdlog/sinks/wincolor_sink.h")
     def patch_wincolorh(self):
-        self.content = re.sub("#include <wincon.h>", "typedef void *HANDLE;\ntypedef unsigned short WORD;\n", self.content)
+        if re.search("#include <wincon.h>", self.content):
+            self.content = re.sub("#include <wincon.h>",  \
+              r'''typedef unsigned short WORD;\n'''
+              r'''typedef void* HANDLE;\n'''
+              r'''#ifndef FOREGROUND_BLUE\n'''
+              r'''#define FOREGROUND_BLUE      0x0001\n'''
+              r'''#define FOREGROUND_GREEN     0x0002\n'''
+              r'''#define FOREGROUND_RED       0x0004\n'''
+              r'''#define FOREGROUND_INTENSITY 0x0008\n'''
+              r'''#define BACKGROUND_BLUE      0x0010\n'''
+              r'''#define BACKGROUND_GREEN     0x0020\n'''
+              r'''#define BACKGROUND_RED       0x0040\n'''
+              r'''#define BACKGROUND_INTENSITY 0x0080\n'''
+              r'''#define WIN_OVERRIDE\n'''
+              r'''#endif\n''', self.content)
+            self.content += r'''\n#ifdef WIN_OVERRIDE\n'''
+              r'''#undef FOREGROUND_BLUE\n'''
+              r'''#undef FOREGROUND_GREEN\n'''
+              r'''#undef FOREGROUND_RED\n'''
+              r'''#undef FOREGROUND_INTENSITY\n'''
+              r'''#undef BACKGROUND_BLUE\n'''
+              r'''#undef BACKGROUND_GREEN\n'''
+              r'''#undef BACKGROUND_RED\n'''
+              r'''#undef BACKGROUND_INTENSITY\n'''
+              r'''#undef WIN_OVERRIDE\n'''
+              r'''#endif\n'''
 
     @patch_file("core/core.vcxproj")
     def patch_msvc(self):
         self.content = re.sub(r'<ObjectFileName>.*</ObjectFileName>', r'<ObjectFileName>$(IntDir)%(Directory)</ObjectFileName>', self.content)
         
 def patch(root):
+    patch_includes(root)
+    patch_msvc()
+    
+def patch_includes(root):
+    root = root.replace('\\', '/') + "/_deps/"
     files = []
 
     for r, d, f in os.walk(root):
@@ -84,12 +114,14 @@ def patch(root):
         fObj.patch()
 
 def patch_msvc(root):
-    root += "/core/core.vcxproj"
+    root = root.replace('\\', '/')
     
-    fObj = File(root.replace('\\', '/'))
+    fObj = File(root + "/core/core.vcxproj")
     fObj.patch()
     
+    
+    
 def main():
-    patch(sys.argv[1] + "/_deps/")
+    patch(sys.argv[1])
 
 if __name__ == "__main__":main()

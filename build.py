@@ -72,8 +72,13 @@ class Paradigm(object):
         args, remaining_argv = parser.parse_known_args()
         generator = args.generator.lower()
         if generator == 'auto':
-            generator = 'msvc'
-        
+            if platform.system().lower() == "windows"
+                generator = 'msvc'
+            else if subprocess.check_call(["ninja", "--version"], shell=False) != 0:
+                args.generator = Ninja
+            else:
+                args.generator = Unix Makefiles
+                
         if generator == "msvc":
             if args.architecture == 'x64':
                 args.generator = "Visual Studio 16 2019"
@@ -163,11 +168,11 @@ class Paradigm(object):
         
         retCode = 0
         if generate_cmd:
-            print("setting up project files")        
-            retCode = subprocess.check_call(generate_cmd, shell=False)            
+            print("setting up project files")
+            retCode = subprocess.check_call(generate_cmd, shell=False)
             if not nopatch:
-                patch.patch(directory+"/_deps/")
-                patch.patch_msvc(directory)
+                patch.patch(directory)
+                
         if build_cmd and retCode == 0:
             print("building now...")
             retCode = subprocess.check_call(build_cmd, shell=False)
