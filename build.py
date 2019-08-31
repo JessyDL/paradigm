@@ -70,14 +70,17 @@ class Paradigm(object):
 
     def parse(self, parser):
         args, remaining_argv = parser.parse_known_args()
+        return self.prepare(args)
+        
+    def prepare(self, args):
         generator = args.generator.lower()
         if generator == 'auto':
             if platform.system().lower() == "windows":
                 generator = 'msvc'
-            else if subprocess.check_call(["ninja", "--version"], shell=False) != 0:
-                args.generator = Ninja
+            elif subprocess.check_call(["ninja", "--version"], shell=False) == 0:
+                args.generator = "Ninja"
             else:
-                args.generator = Unix Makefiles
+                args.generator = "Unix Makefiles"
                 
         if generator == "msvc":
             if args.architecture == 'x64':
@@ -106,7 +109,7 @@ class Paradigm(object):
 
         if args.verbose:
             print(args)
-        return args, remaining_argv
+        return args
 
     def clean(self, directory):
         print("cleaning: {0}".format(directory))
@@ -184,9 +187,13 @@ class Paradigm(object):
         else:
             print(bcolors.FAIL + "failed building the project" + bcolors.NC)
     
-    def __call__(self):
-        build_arguments = self.initialize()
-        args, remaining_argv = self.parse(build_arguments)
+    def __call__(self, args=[]):
+        if not args:
+            args = self.parse(self.initialize())
+        else:
+            args, remaining_argv = self.initialize().parse_known_args(args)
+            args = self.prepare(args)
+            
         generate_cmd = self.generate_command(args)
         build_cmd=""
         if(args.build):

@@ -81,16 +81,16 @@ class File(object):
               r'''#define BACKGROUND_INTENSITY 0x0080\n'''
               r'''#define WIN_OVERRIDE\n'''
               r'''#endif\n''', self.content)
-            self.content += r'''\n#ifdef WIN_OVERRIDE\n'''
-              r'''#undef FOREGROUND_BLUE\n'''
-              r'''#undef FOREGROUND_GREEN\n'''
-              r'''#undef FOREGROUND_RED\n'''
-              r'''#undef FOREGROUND_INTENSITY\n'''
-              r'''#undef BACKGROUND_BLUE\n'''
-              r'''#undef BACKGROUND_GREEN\n'''
-              r'''#undef BACKGROUND_RED\n'''
-              r'''#undef BACKGROUND_INTENSITY\n'''
-              r'''#undef WIN_OVERRIDE\n'''
+            self.content += r'''\n#ifdef WIN_OVERRIDE\n''' \
+              r'''#undef FOREGROUND_BLUE\n''' \
+              r'''#undef FOREGROUND_GREEN\n''' \
+              r'''#undef FOREGROUND_RED\n''' \
+              r'''#undef FOREGROUND_INTENSITY\n''' \
+              r'''#undef BACKGROUND_BLUE\n''' \
+              r'''#undef BACKGROUND_GREEN\n''' \
+              r'''#undef BACKGROUND_RED\n''' \
+              r'''#undef BACKGROUND_INTENSITY\n''' \
+              r'''#undef WIN_OVERRIDE\n''' \
               r'''#endif\n'''
 
     @patch_file("core/core.vcxproj")
@@ -99,7 +99,7 @@ class File(object):
         
 def patch(root):
     patch_includes(root)
-    patch_msvc()
+    patch_msvc(root)
     
 def patch_includes(root):
     root = root.replace('\\', '/') + "/_deps/"

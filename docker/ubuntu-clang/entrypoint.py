@@ -2,6 +2,7 @@ import shutil
 import os
 import subprocess
 import importlib
+import argparse
 
 def onerror(func, path, exc_info):
     """
@@ -35,11 +36,24 @@ def getClasses(directory):
     return classes
 
 class Project(object):
-    def __init__(self, location="/paradigm", url="https://github.com/JessyDL/paradigm.git", branch="develop"):
-        self.location = location
-        self.url = url
-        self.branch = branch
+    def __init__(self):    
+        parser = argparse.ArgumentParser(description='')
+        parser.add_argument("--branch", default="develop", nargs=None,
+                            help="set the branch of the repo", dest="branch")
+        parser.add_argument("--destination", default="/paradigm", nargs=None,
+                            help="set the location where the repo will be constructed", dest="location")
+        parser.add_argument("--remote", default="https://github.com/JessyDL/paradigm.git", nargs=None,
+                            help="set the source of the repot", dest="remote")
+        self.args, self.rest = parser.parse_known_args()
+        self.location = self.args.location
+        self.url = self.args.remote
+        self.branch = self.args.branch
         
+    def initialize(self):
+        build_arguments = ArgumentParser(description='Generate build files for the current project.')
+        build_arguments.add_argument("-g", "--generator", const="auto", default="auto", nargs='?',
+                            help="Set the generator for the project", dest="generator")
+                            
     def clone(self):
         if os.path.exists(self.location):
             shutil.rmtree(self.location, onerror=onerror)
@@ -54,7 +68,7 @@ class Project(object):
         module = importlib.import_module("paradigm.build")
         Paradigm = module.Paradigm
         para = Paradigm()
-        para()
+        para(self.rest)
         os.chdir(working_dir)
         
 def main():
