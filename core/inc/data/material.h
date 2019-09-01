@@ -45,10 +45,10 @@ namespace core::data
 					   core::gfx::blend_factor dstColorBlend, core::gfx::blend_op colorBlendOp,
 					   core::gfx::blend_factor srcAlphaBlend, core::gfx::blend_factor dstAlphaBlend,
 					   core::gfx::blend_op alphaBlendOp,
-					   core::gfx::component_bits colorFlags = {core::gfx::component_bits::r |
+					   core::gfx::component_bits colorFlags = (core::gfx::component_bits::r |
 															   core::gfx::component_bits::g |
 															   core::gfx::component_bits::b |
-															   core::gfx::component_bits::a})
+															   core::gfx::component_bits::a))
 				: m_Enabled(enabled), m_Binding(binding), m_ColorBlendFactorSrc(srcColorBlend),
 				  m_ColorBlendFactorDst(dstColorBlend), m_AlphaBlendFactorSrc(srcAlphaBlend),
 				  m_AlphaBlendFactorDst(dstAlphaBlend), m_ColorComponents(colorFlags){};

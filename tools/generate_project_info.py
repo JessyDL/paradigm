@@ -16,9 +16,12 @@ def run_command(command = []):
     return data
     
 def generate_header():
-    version = run_command(["git", "tag", "-l", "--sort=-v:refname"]).split('\n')[0]
+    version = run_command(["git", "tag", "-l", "--sort=-v:refname"])
+    print(version)
+    version = version.split('\n')[0]
+    print(version)
     major, minor, patch = version.split('.')
-    sha1 = run_command(["git", "rev-parse",  "HEAD"]).rstrip()
+    sha1 = run_command(["git", "rev-parse", "HEAD"]).rstrip()
     
     filepath = os.path.dirname(os.path.realpath(__file__)) +"/../core/inc/paradigm.hpp"
     fObj = open(filepath, 'w+')
@@ -33,8 +36,3 @@ def generate_header():
     fObj.write("constexpr static psl::string8::view APPLICATION_FULL_NAME {\"Paradigm Engine "+ version + "." +sha1+"\"};\n")
     fObj.truncate()
     fObj.close()
-    
-def main():
-    generate_header()
-    
-if __name__ == "__main__":main()

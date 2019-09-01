@@ -9,7 +9,7 @@ namespace psl::async::details
 	struct worker
 	{
 	  public:
-		worker() = default;
+		worker() = delete;
 		worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer) : m_Consumer(std::move(consumer)){};
 		~worker()
 		{
@@ -20,9 +20,9 @@ namespace psl::async::details
 			m_Thread.join();
 		}
 		worker(const worker& other) : m_Consumer(other.m_Consumer){};
-		worker(worker&&) = default;
-		worker& operator=(const worker&) = default;
-		worker& operator=(worker&&) = default;
+		worker(worker&&) = delete;
+		worker& operator=(const worker&) = delete;
+		worker& operator=(worker&&) = delete;
 		void start()
 		{
 			m_Done.store(false, std::memory_order_relaxed);

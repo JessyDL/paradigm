@@ -24,17 +24,6 @@ def onerror(func, path, exc_info):
         print(path)
         raise
         
-def getClasses(directory):
-    classes = {}
-    oldcwd = os.getcwd()
-    os.chdir(directory)   # change working directory so we know import will work
-    for filename in os.listdir(directory):
-        if filename.endswith(".py"):
-            modname = filename[:-3]
-            classes[modname] = getattr(__import__(modname), modname)
-    os.setcwd(oldcwd)
-    return classes
-
 class Project(object):
     def __init__(self):    
         parser = argparse.ArgumentParser(description='')

@@ -12,7 +12,7 @@ def main():
         target()
     elif args.run == "test":
         target = test.Tester()
-        target()
+        target(remaining_argv)
     elif args.run == "prepare":
         generate_project_info.generate_header()
 

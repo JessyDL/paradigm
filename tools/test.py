@@ -39,11 +39,14 @@ class bcolors:
     BOLD = '\033[1m'
     UNDERLINE = '\033[4m'
         
-class Tester(object):
-    def initialize(self):
+class Tester(object):        
+    def initialize(self, parser = []):
         args = ArgumentParser(description='Generate build files for the current project.')
         args.add_argument("--platform", "-t", "--target", action='store', type=str, nargs=None,choices=['ubuntu','windows'],dest="platform")
-        return args.parse_known_args()
+        if not parser:
+            return args.parse_known_args()
+        else:
+            return args.parse_known_args(parser)
         
     def test(self, args, remaining, directory = os.path.dirname(os.path.realpath(__file__))+"/../"):
         if args.platform == "ubuntu":
@@ -51,9 +54,10 @@ class Tester(object):
         else:
             image = "windows-vcpp"
         print("booting up docker image '", image, "'...")
+        print("\t with arguments: ", *remaining)
         if subprocess.check_call(["docker", "run", "--rm", "--mount", "type=bind,source="+directory+",destination=/paradigm_local_git/,readonly", "--name=temp", image, "--remote", "file:////paradigm_local_git", "--build"] + remaining, shell=False) != 0:
             return
     
-    def __call__(self):
-        args, remaining = self.initialize()
+    def __call__(self, parser = []):
+        args, remaining = self.initialize(parser)
         self.test(args, remaining)

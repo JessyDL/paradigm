@@ -117,6 +117,7 @@ namespace psl::meta
 				m_LibraryLocation = std::move(other.m_LibraryLocation);
 				m_Environment	 = std::move(other.m_Environment);
 			}
+			return *this;
 		};
 
 		/// \brief creates a new entry with a unique psl::UID and a given type that is either, or derived of meta::file.
