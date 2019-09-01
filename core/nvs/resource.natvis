@@ -7,6 +7,8 @@
       <Item Name="[resource]" Condition="m_Resource != nullptr">*m_Resource</Item>
       <Item Name="[resource]" Condition="m_Resource == nullptr">"nullptr"</Item>
       <Item Name="[meta]">m_MetaFile</Item>
+      <Item Name="[metadata info (memory)]" Condition="m_Resource != nullptr  &amp;&amp; m_MetaData->resource_uid.GUID._Elems[0] == 0">m_Cache->m_Library.m_MetaData.find(m_MetaData->uid)->second</Item>
+      <Item Name="[metadata info (disk)]" Condition="m_Resource != nullptr &amp;&amp; m_MetaData->resource_uid.GUID._Elems[0] != 0">m_Cache->m_Library.m_MetaData.find(m_MetaData->resource_uid)->second</Item>
       <Item Name="[cache]">m_Cache</Item>
     </Expand>
   </Type>
