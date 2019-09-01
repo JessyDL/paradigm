@@ -5,3 +5,4 @@ tests/common/build/
 docker/cache/
 project_files/
 __pycache__
+core/inc/paradigm.hpp

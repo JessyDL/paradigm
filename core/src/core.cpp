@@ -10,7 +10,7 @@
 #include "psl/application_utils.h"
 #include "resource/resource.hpp"
 #ifdef CORE_EXECUTABLE
-#include "header_info.h"
+#include "paradigm.hpp"
 
 #include "spdlog/spdlog.h"
 //#include "spdlog/async.h"
@@ -65,6 +65,8 @@
 #include "ecs/systems/attractor.h"
 #include "ecs/systems/movement.h"
 #include "ecs/systems/lighting.h"
+
+#include "stdb_truetype.h"
 
 using namespace core;
 using namespace core::resource;
@@ -692,7 +694,7 @@ int entry(gfx::graphics_backend backend)
 		return -1;
 	}
 
-	auto context_handle = cache.create<core::gfx::context>(backend, APPLICATION_FULL_NAME);
+	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t{APPLICATION_FULL_NAME});
 
 	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle);
 

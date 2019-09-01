@@ -161,6 +161,13 @@ if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})
 endif()
 
+add_custom_target(
+	generate_header ALL
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_project_info.py
+	COMMENT "Generating headers for Paradigm"
+)
+add_dependencies(${LOCAL_PROJECT} generate_header)
+
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})

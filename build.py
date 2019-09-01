@@ -4,7 +4,7 @@ import sys
 import platform
 import shutil
 import subprocess
-import patch
+from tools import patch
 
 import functools
 print = functools.partial(print, flush=True)

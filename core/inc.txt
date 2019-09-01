@@ -1,6 +1,5 @@
 SET(INC 
 conversion_utils.h
-header_info.h
 logging.h
 stdb_truetype.h
 targetver.h
