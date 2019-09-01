@@ -115,8 +115,8 @@ handle<core::gfx::material> setup_gfx_depth_material(resource::cache& cache, han
 													 handle<core::gfx::pipeline_cache> pipeline_cache,
 													 handle<core::gfx::buffer> matBuffer)
 {
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("404e5c7e-665b-e7c8-35c5-0f92854dd48e"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("c7405fe0-232a-7464-5388-86c3f76fffaa"_uid).value();
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("34439c38-a576-74ad-bf08-8b9e4f888a91"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("5c492d53-d380-d7da-26d0-de1f6a37a795"_uid).value();
 
 
 	auto matData = cache.create<data::material>();
@@ -797,12 +797,7 @@ int entry(gfx::graphics_backend backend)
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "7f24e25c-8b94-4da4-8a31-493815889698"_uid));
 
-	switch(backend)
-	{
-	case graphics_backend::vulkan:
-		materials.emplace_back(setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer));
-		break;
-	}
+	materials.emplace_back(setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer));
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	core::resource::handle<gfx::buffer> stagingBuffer{};
@@ -828,10 +823,7 @@ int entry(gfx::graphics_backend backend)
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
 	bundles[1]->set(materials[1], 2000);
-	if(backend == graphics_backend::vulkan)
-	{
-		bundles[1]->set(materials[2], 1000);
-	}
+	bundles[1]->set(materials[2], 1000);
 
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
@@ -868,9 +860,9 @@ int entry(gfx::graphics_backend backend)
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	ECSState.declare(core::ecs::systems::geometry_instance);
 
-	/*core::ecs::systems::lighting_system lighting{
+	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
-		swapchain_pass,			  context_handle,		 surface_handle};*/
+		swapchain_pass,			  context_handle,		 surface_handle};
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});

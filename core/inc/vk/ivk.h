@@ -773,5 +773,5 @@ namespace utility::vulkan
 	/**
 	 * @brief Returns true if the attachment is a depth and/or stencil attachment
 	 */
-	inline bool is_depthstencil(vk::Format format) { return (has_depth(format) || has_stencil(format)); }
+	inline bool is_depthstencil(vk::Format format) { return (has_depth(format) && has_stencil(format)); }
 } // namespace utility::vulkan

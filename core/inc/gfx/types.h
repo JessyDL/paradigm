@@ -538,7 +538,7 @@ namespace core::gfx
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
 
-	inline bool is_depthstencil(core::gfx::format format) { return (has_depth(format) || has_stencil(format)); }
+	inline bool is_depthstencil(core::gfx::format format) { return (has_depth(format) && has_stencil(format)); }
 
 	namespace image
 	{

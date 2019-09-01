@@ -134,5 +134,9 @@ void texture::create_2D()
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);
 
-	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA32F, m_Meta->width(), m_Meta->height(), 0, GL_RGBA, GL_FLOAT, nullptr);
+	GLint internalFormat, format, type;
+	gfx::conversion::to_gles(m_Meta->format(), internalFormat, format, type);
+
+	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_Meta->width(), m_Meta->height(), 0, format, type, nullptr);
+	glBindTexture(GL_TEXTURE_2D, 0);
 }

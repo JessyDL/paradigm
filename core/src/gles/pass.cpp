@@ -22,16 +22,24 @@ pass::pass(handle<framebuffer> framebuffer) : m_Framebuffer(framebuffer) {}
 void pass::clear() { m_DrawGroups.clear(); }
 void pass::prepare()
 {
+	if(m_Framebuffer)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
+		glClear(GL_DEPTH_BUFFER_BIT);
+		glClearDepthf(1.0f);
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
 	if(m_Swapchain) m_Swapchain->clear();
 }
 bool pass::build() { return true; }
 void pass::present()
 {
-	glFinish();
+	glGetError();
 	if(m_Framebuffer)
 	{
-	
+		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
 	}
+	glGetError();
 	for(const auto& group : m_DrawGroups)
 	{
 		for(auto& drawLayer : group.m_Group)
@@ -54,7 +62,7 @@ void pass::present()
 					{
 						auto geometryHandle = gfxGeometryHandle->resource().get<core::igles::geometry>();
 						uint32_t instance_n = bundle->instances(gfxGeometryHandle);
-						if(instance_n == 0 /*|| !geometryHandle->compatible(mat)*/) continue;
+						if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
 						geometryHandle->create_vao(
 							mat, bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer>(),
@@ -84,6 +92,7 @@ void pass::present()
 						//}
 
 						geometryHandle->bind(mat, instance_n);
+						glGetError();
 
 						/*for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						{
@@ -94,8 +103,14 @@ void pass::present()
 			}
 		}
 	}
-	glFinish();
+
+	if(m_Framebuffer)
+	{
+		glBindFramebuffer(GL_FRAMEBUFFER, 0);
+	}
+
 	if(m_Swapchain) m_Swapchain->present();
+	glGetError();
 }
 
 void pass::add(core::gfx::drawgroup& group) noexcept { m_DrawGroups.push_back(group); }

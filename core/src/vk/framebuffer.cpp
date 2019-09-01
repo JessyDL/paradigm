@@ -49,7 +49,8 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 
 	for(auto& binding : m_Bindings)
 	{
-		if(utility::vulkan::is_depthstencil(binding.description.format))
+		if(utility::vulkan::has_depth(binding.description.format) ||
+		   utility::vulkan::has_stencil(binding.description.format))
 		{
 			// Only one depth attachment allowed
 			// assert(!hasDepth);
@@ -194,7 +195,8 @@ std::vector<framebuffer::attachment> framebuffer::color_attachments(uint32_t ind
 	std::vector<framebuffer::attachment> res;
 	auto bindings{m_Bindings};
 	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
-		return utility::vulkan::is_depthstencil(binding.description.format);
+		return utility::vulkan::has_depth(binding.description.format) ||
+			   utility::vulkan::has_stencil(binding.description.format);
 	});
 	std::transform(std::begin(bindings), end, std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];

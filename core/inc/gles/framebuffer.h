@@ -40,6 +40,20 @@ namespace core::igles
 		framebuffer& operator=(const framebuffer& other) = delete;
 		framebuffer& operator=(framebuffer&& other) noexcept = delete;
 
+		/// \returns all attachments for a specific index
+		/// \param[in] index the index to return the attachments for.
+		std::vector<attachment> attachments(uint32_t index = 0u) const noexcept;
+
+		/// \returns all color attachments for a specific index
+		/// \param[in] index the index to return the attachments for.
+		std::vector<attachment> color_attachments(uint32_t index = 0u) const noexcept;
+
+		/// \returns the sampler resource associated with this framebuffer.
+		core::resource::handle<core::igles::sampler> sampler() const noexcept;
+		/// \returns the data used to create this framebuffer
+		core::resource::handle<core::data::framebuffer> data() const noexcept;
+
+		const std::vector<unsigned int>& framebuffers() const noexcept;
 	  private:
 		std::vector<core::resource::handle<core::igles::texture>> m_Textures;
 		std::vector<binding> m_Bindings;

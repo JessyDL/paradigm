@@ -94,7 +94,7 @@ void context::enable(const core::os::surface& surface)
 						WGL_CONTEXT_MINOR_VERSION_ARB,
 						2,
 						WGL_CONTEXT_FLAGS_ARB,
-		#ifdef DEBUG
+		#ifdef _DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif
 		WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
@@ -142,7 +142,7 @@ void context::enable(const core::os::surface& surface)
 	}
 	auto glversion = glGetString(GL_VERSION);
 
-#ifdef DEBUG
+#ifdef _DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
 	GLuint unusedIds = 0;
