@@ -4,7 +4,7 @@ import sys
 import platform
 import shutil
 import subprocess
-from tools import patch
+from . import patch
 
 import functools
 print = functools.partial(print, flush=True)
@@ -41,7 +41,7 @@ class bcolors:
         
 class Paradigm(object):
     has_generated = True
-    def initialize(self, directory = os.path.dirname(os.path.realpath(__file__))):
+    def initialize(self, directory = os.path.dirname(os.path.realpath(__file__))+"/../"):
         build_arguments = ArgumentParser(description='Generate build files for the current project.')
         build_arguments.add_argument("-g", "--generator", const="auto", default="auto", nargs='?',
                             help="Set the generator for the project", dest="generator")
@@ -200,9 +200,3 @@ class Paradigm(object):
             build_cmd = self.build_command(args)
         
         self.build(args.nopatch, args.project_dir, generate_cmd, build_cmd)
-
-def main():
-    p = Paradigm()
-    p()
-
-if __name__ == "__main__":main()

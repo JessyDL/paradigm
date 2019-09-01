@@ -4,7 +4,7 @@ import sys
 import platform
 import shutil
 import subprocess
-import patch
+from . import patch
 
 import functools
 print = functools.partial(print, flush=True)
@@ -57,10 +57,3 @@ class Tester(object):
     def __call__(self):
         args, remaining = self.initialize()
         self.test(args, remaining)
-
-    
-def main():
-    test = Tester()
-    test()
-
-if __name__ == "__main__":main()

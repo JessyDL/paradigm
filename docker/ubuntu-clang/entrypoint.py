@@ -65,7 +65,7 @@ class Project(object):
     def build(self):
         working_dir = os.getcwd()
         os.chdir(self.location)
-        subprocess.check_call(["python3", "build.py"] + self.rest, shell=False)
+        subprocess.check_call(["python3", "paradigm.py", "--run", "build"] + self.rest, shell=False)
         os.chdir(working_dir)
         
 def main():

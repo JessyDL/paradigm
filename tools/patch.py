@@ -118,9 +118,3 @@ def patch_msvc(root):
     
     fObj = File(root + "/core/core.vcxproj")
     fObj.patch()
-
-    
-def main():
-    patch(sys.argv[1])    
-    
-if __name__ == "__main__":main()

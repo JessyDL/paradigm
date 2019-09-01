@@ -163,7 +163,7 @@ endif()
 
 add_custom_target(
 	generate_header ALL
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_SOURCE_DIR}/tools/generate_project_info.py
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	COMMENT "Generating headers for Paradigm"
 )
 add_dependencies(${LOCAL_PROJECT} generate_header)
