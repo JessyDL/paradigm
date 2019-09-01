@@ -101,9 +101,23 @@ namespace psl::meta
 		~library();
 
 		library(const library& other) = delete;
-		library(library&& other)	noexcept  = default;
+		library(library&& other) noexcept
+			: m_TagMap(std::move(other.m_TagMap)), m_MetaData(std::move(other.m_MetaData)),
+			  m_LibraryFile(std::move(other.m_LibraryFile)), m_LibraryFolder(std::move(other.m_LibraryFolder)),
+			  m_LibraryLocation(std::move(other.m_LibraryLocation)), m_Environment(std::move(other.m_Environment)){};
 		library& operator=(const library& other) = delete;
-		library& operator=(library&& other) noexcept = default;
+		library& operator						 =(library&& other) noexcept
+		{
+			if(this != &other)
+			{
+				m_TagMap		  = std::move(other.m_TagMap);
+				m_MetaData		  = std::move(other.m_MetaData);
+				m_LibraryFile	 = std::move(other.m_LibraryFile);
+				m_LibraryFolder   = std::move(other.m_LibraryFolder);
+				m_LibraryLocation = std::move(other.m_LibraryLocation);
+				m_Environment	 = std::move(other.m_Environment);
+			}
+		};
 
 		/// \brief creates a new entry with a unique psl::UID and a given type that is either, or derived of meta::file.
 		template <typename MF = file>
