@@ -27,19 +27,21 @@ For more detailed description about the engine itself, go to the readme of the `
 | ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | Vulkan/GLES|
 ## Building
 ### Prerequisites
-To use `assembler` on Windows, Bash on Ubuntu on Windows should be installed.
+Python 3+
 [CMake ]( http://cmake.org/) 3.11 or higher is required on all platforms.
 
 ### Creating the project files
-You can build the libraries using the provided build.py file that can be invoked, or by invoking cmake directly. The build.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
+You can build the libraries using the provided paradigm.py file that can be invoked, or by invoking cmake directly. The paradigm.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
 
 So far only MSVC (2019), and CLang (6.0.0) with LLVM 7 - 8 and libc++ are supported. The project will likely incorrectly generate for other compilers/setups.
 
 If lost, the docker folder contains a setup environment for both linux (ubuntu), as well as windows. You can see all dependencies your platform needs right there.
 
-#### build.py
-The build script is a helper script to set everything up quick and easy. It will generate a solution in the `/project_file/{generator}/{architecture}/` folder by default, and when building it will output to `/builds/{generator}/{architecture}/`.
-You can tweak various settings and values, you'll find them at the top of the `build.py` file.
+#### paradigm.py
+The paradigm script is a helper script that can invoke, amongst others, the builder script (tools/build.py). Invoke the builder script using `--run build`, this will set everything up quick and easy. It will generate a solution in the `/project_file/{generator}/{architecture}/` folder by default, and when building it will output to `/builds/{generator}/{architecture}/`.
+You can tweak various settings and values, you'll find them at the top of the `tools/build.py` file.
+
+As an example running `py paradigm.py --run build --graphics vulkan gles --generator Ninja --cmake_params="-DPE_MODE=EXE"` will set up the project as an executable, with all available graphics backends, using the Ninja build tool.
 #### cmake
 The less easy way, but perhaps better and easier to integrate. The values that are required to be set can be seen in the cmake invocation in build.py, but will be repeated here:
 -`DBUILD_DIRECTORY="path/to/where/to/build/to"` (not to be confused with where the project files will be)
@@ -97,7 +99,7 @@ You can also find further documentation in the `docs` directory, such as informa
 ### building
 Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
 
-When using the `build.py` script, you can set this value like this `--cmake_params="-DPE_MODE=LIB"`. `LIB` is the default value for this project.
+When using the `paradigm.py` or `tools/build.py` script, you can set this value like this `--cmake_params="-DPE_MODE=LIB"`. `LIB` is the default value for this project.
 
 Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
 
@@ -108,14 +110,15 @@ This project will keep up with the latest C++ language improvements till atleast
 After we have both the editor project and the rendering engine going, we will look towards supporting all available Vulkan platforms first, and then after implement GLeS 3.0+. Don't expect this to happen anytime soon though, a long way from there still.
 
 # Extras
-### Statically bind Vulkan
-If you wish to statically bind vulkan, you can use the flag `--vk_static` in the `build.py` script, or alternatively invoke `cmake` directly with the `-DVK_STATIC=true` flag. 
-Note that depending on the platform, static binding is impossible (like Android).
 ### Build as executable
 If you wish to build the engine, not as a library, but instead as an executable, you can enable this behaviour by passing `-DPE_MODE=EXE` as a `--cmake_param` in the `build.py` script, or directly in your cmake invocation. This will set the `CORE_EXECUTABLE` define in the compiler, and will trigger the `core` project to be built as an executable instead of being a library.
 
 ### Benchmarks
 Rudimentary benchmarks (heavily WIP) have been added to the project, you can enable this by setting the cmake value `PE_MODE` to *anything but* `EXE`, and toggling on `PE_BENCHMARKS`.
+
+### Docker
+Docker images are provided for ubuntu (clang 8.0) and windows (server 2019).
+The entrypoint is a python script (`tools/test.py`) which accepts the arguments `--remote`,`--branch`, and `--destination`. These map to the git command options for git clone (destination being the optional destination folder). By default these are set to this repo on github.com to the develop branch. Any remaining arguments given to docker are then piped directly into the `build.py` to build the project.
 
 # License
 This project is dual-licensed under commercial and open source licenses. Licensed under GNU AGPLv3 for free usage, and licensed under a commercial license you can purchase or request for commercial usage.
