@@ -32,7 +32,6 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 		core::ivk::log->error("could not load sampler {0} for framebuffer {1}", m_Sampler.uid(), metaData.uid);
 		assert(false);
 	}
-	// m_Sampler.load(); // todo: this should not be working
 
 	// now we create the renderpass that describes the framebuffer
 	std::vector<vk::AttachmentDescription> attachmentDescriptions;

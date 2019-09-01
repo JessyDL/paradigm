@@ -32,7 +32,6 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 
 	for(const auto& stage : m_Data->stages())
 	{
-		// todo: decide if shaders should be loaded when materials get constructed or not
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
 		if(!shader_handle)
 		{
@@ -147,7 +146,6 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>
 	return m_Buffers;
 }
 
-// todo
 core::resource::handle<pipeline> material::get(core::resource::handle<framebuffer> framebuffer)
 {
 	PROFILE_SCOPE(core::profiler)

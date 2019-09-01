@@ -39,7 +39,6 @@ void pass::present()
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
 	}
-	glGetError();
 	for(const auto& group : m_DrawGroups)
 	{
 		for(auto& drawLayer : group.m_Group)
@@ -92,7 +91,6 @@ void pass::present()
 						//}
 
 						geometryHandle->bind(mat, instance_n);
-						glGetError();
 
 						/*for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						{
