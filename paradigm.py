@@ -1,5 +1,6 @@
 from tools import build
 from tools import test
+from tools import generate_project_info
 from argparse import ArgumentParser
 
 def main():
