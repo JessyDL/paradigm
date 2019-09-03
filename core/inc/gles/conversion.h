@@ -730,6 +730,314 @@ namespace core::gfx::conversion
 		return internalFormat != -1;
 	}
 
+	inline core::gfx::format to_format(GLint internalFormat, GLint format, GLint type) noexcept
+	{
+		switch(format)
+		{
+		case GL_UNSIGNED_BYTE:
+		{
+			switch(format)
+			{
+			case GL_RED: return format::r8_unorm;
+			case GL_RG: return core::gfx::format::r8g8_unorm;
+			case GL_RGB: return core::gfx::format::r8g8b8_unorm;
+			// case GL_BGR: return core::gfx::format::b8g8r8_unorm;
+			case GL_RGBA: return core::gfx::format::r8g8b8a8_unorm;
+			// case GL_BGRA: return core::gfx::format::b8g8r8a8_unorm;
+			case GL_RED_INTEGER: return core::gfx::format::r8_uint;
+			case GL_RG_INTEGER: return core::gfx::format::r8g8_uint;
+			case GL_RGB_INTEGER: return core::gfx::format::r8g8b8_uint;
+			// case GL_BGR_INTEGER: return core::gfx::format::b8g8r8_uint;
+			case GL_RGBA_INTEGER: return core::gfx::format::r8g8b8a8_uint;
+			// case GL_BGRA_INTEGER: return core::gfx::format::b8g8r8a8_uint;
+			case GL_STENCIL_INDEX: return core::gfx::format::s8_uint;
+			case GL_DEPTH_COMPONENT: return core::gfx::format::undefined;
+			case GL_DEPTH_STENCIL: return core::gfx::format::undefined;
+			}
+			break;
+		}
+		case GL_BYTE:
+		{
+			switch(format)
+			{
+			case GL_RED: return core::gfx::format::r8_snorm;
+			case GL_RG: return core::gfx::format::r8g8_snorm;
+			case GL_RGB: return core::gfx::format::r8g8b8_snorm;
+			// case GL_BGR: return core::gfx::format::b8g8r8_snorm;
+			case GL_RGBA: return core::gfx::format::r8g8b8a8_snorm;
+			// case GL_BGRA: return core::gfx::format::b8g8r8a8_snorm;
+			case GL_RED_INTEGER: return core::gfx::format::r8_sint;
+			case GL_RG_INTEGER: return core::gfx::format::r8g8_sint;
+			case GL_RGB_INTEGER: return core::gfx::format::r8g8b8_sint;
+			// case GL_BGR_INTEGER: return core::gfx::format::b8g8r8_sint;
+			case GL_RGBA_INTEGER: return core::gfx::format::r8g8b8a8_sint;
+			// case GL_BGRA_INTEGER: return core::gfx::format::b8g8r8a8_sint;
+			case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+			case GL_DEPTH_COMPONENT: return core::gfx::format::undefined;
+			case GL_DEPTH_STENCIL: return core::gfx::format::undefined;
+			}
+			break;
+		}
+
+		//
+		// 16 bits per component
+		//
+		case GL_UNSIGNED_SHORT:
+		{
+			switch(format)
+			{
+			case GL_RED: return core::gfx::format::r16_unorm;
+			case GL_RG: return core::gfx::format::r16g16_unorm;
+			case GL_RGB: return core::gfx::format::r16g16b16_unorm;
+			// case GL_BGR: return core::gfx::format::undefined;
+			case GL_RGBA: return core::gfx::format::r16g16b16a16_unorm;
+			// case GL_BGRA: return core::gfx::format::undefined;
+			case GL_RED_INTEGER: return core::gfx::format::r16_uint;
+			case GL_RG_INTEGER: return core::gfx::format::r16g16_uint;
+			case GL_RGB_INTEGER: return core::gfx::format::r16g16b16_uint;
+			// case GL_BGR_INTEGER: return core::gfx::format::undefined;
+			case GL_RGBA_INTEGER: return core::gfx::format::r16g16b16a16_uint;
+			// case GL_BGRA_INTEGER: return core::gfx::format::undefined;
+			case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+			case GL_DEPTH_COMPONENT:
+				return core::gfx::format::d16_unorm;
+				// case GL_DEPTH_STENCIL: return core::gfx::format::d16_unorm_s8_uint;
+			}
+			break;
+		}
+		case GL_SHORT:
+		{
+			switch(format)
+			{
+			case GL_RED: return core::gfx::format::r16_snorm;
+			case GL_RG: return core::gfx::format::r16g16_snorm;
+			case GL_RGB: return core::gfx::format::r16g16b16_snorm;
+			// case GL_BGR: return core::gfx::format::undefined;
+			case GL_RGBA: return core::gfx::format::r16g16b16a16_snorm;
+			// case GL_BGRA: return core::gfx::format::undefined;
+			case GL_RED_INTEGER: return core::gfx::format::r16_sint;
+			case GL_RG_INTEGER: return core::gfx::format::r16g16_sint;
+			case GL_RGB_INTEGER: return core::gfx::format::r16g16b16_sint;
+			// case GL_BGR_INTEGER: return core::gfx::format::undefined;
+			case GL_RGBA_INTEGER: return core::gfx::format::r16g16b16a16_sint;
+			// case GL_BGRA_INTEGER: return core::gfx::format::undefined;
+			case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+			case GL_DEPTH_COMPONENT: return core::gfx::format::undefined;
+			case GL_DEPTH_STENCIL: return core::gfx::format::undefined;
+			}
+			break;
+		}
+		case GL_HALF_FLOAT:
+			// case GL_HALF_FLOAT_OES:
+			{
+				switch(format)
+				{
+				case GL_RED: return core::gfx::format::r16_sfloat;
+				case GL_RG: return core::gfx::format::r16g16_sfloat;
+				case GL_RGB: return core::gfx::format::r16g16b16_sfloat;
+				// case GL_BGR: return core::gfx::format::undefined;
+				case GL_RGBA: return core::gfx::format::r16g16b16a16_sfloat;
+				// case GL_BGRA: return core::gfx::format::undefined;
+				case GL_RED_INTEGER: return core::gfx::format::undefined;
+				case GL_RG_INTEGER: return core::gfx::format::undefined;
+				case GL_RGB_INTEGER: return core::gfx::format::undefined;
+				// case GL_BGR_INTEGER: return core::gfx::format::undefined;
+				case GL_RGBA_INTEGER: return core::gfx::format::undefined;
+				// case GL_BGRA_INTEGER: return core::gfx::format::undefined;
+				case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+				case GL_DEPTH_COMPONENT: return core::gfx::format::undefined;
+				case GL_DEPTH_STENCIL: return core::gfx::format::undefined;
+				}
+				break;
+			}
+
+		//
+		// 32 bits per component
+		//
+		case GL_UNSIGNED_INT:
+		{
+			switch(format)
+			{
+			case GL_RED: return core::gfx::format::r32_uint;
+			case GL_RG: return core::gfx::format::r32g32_uint;
+			case GL_RGB: return core::gfx::format::r32g32b32_uint;
+			// case GL_BGR: return core::gfx::format::undefined;
+			case GL_RGBA: return core::gfx::format::r32g32b32a32_uint;
+			// case GL_BGRA: return core::gfx::format::undefined;
+			case GL_RED_INTEGER: return core::gfx::format::r32_uint;
+			case GL_RG_INTEGER: return core::gfx::format::r32g32_uint;
+			case GL_RGB_INTEGER: return core::gfx::format::r32g32b32_uint;
+			// case GL_BGR_INTEGER: return core::gfx::format::undefined;
+			case GL_RGBA_INTEGER: return core::gfx::format::r32g32b32a32_uint;
+			// case GL_BGRA_INTEGER: return core::gfx::format::undefined;
+			case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+			case GL_DEPTH_COMPONENT: return core::gfx::format::x8_d24_unorm_pack32;
+			case GL_DEPTH_STENCIL: return core::gfx::format::d24_unorm_s8_uint;
+			}
+			break;
+		}
+		case GL_INT:
+		{
+			switch(format)
+			{
+			case GL_RED: return core::gfx::format::r32_sint;
+			case GL_RG: return core::gfx::format::r32g32_sint;
+			case GL_RGB: return core::gfx::format::r32g32b32_sint;
+			// case GL_BGR: return core::gfx::format::undefined;
+			case GL_RGBA: return core::gfx::format::r32g32b32a32_sint;
+			// case GL_BGRA: return core::gfx::format::undefined;
+			case GL_RED_INTEGER: return core::gfx::format::r32_sint;
+			case GL_RG_INTEGER: return core::gfx::format::r32g32_sint;
+			case GL_RGB_INTEGER: return core::gfx::format::r32g32b32_sint;
+			// case GL_BGR_INTEGER: return core::gfx::format::undefined;
+			case GL_RGBA_INTEGER: return core::gfx::format::r32g32b32a32_sint;
+			// case GL_BGRA_INTEGER: return core::gfx::format::undefined;
+			case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+			case GL_DEPTH_COMPONENT: return core::gfx::format::undefined;
+			case GL_DEPTH_STENCIL: return core::gfx::format::undefined;
+			}
+			break;
+		}
+		case GL_FLOAT:
+		{
+			switch(format)
+			{
+			case GL_RED: return core::gfx::format::r32_sfloat;
+			case GL_RG: return core::gfx::format::r32g32_sfloat;
+			case GL_RGB: return core::gfx::format::r32g32b32_sfloat;
+			// case GL_BGR: return core::gfx::format::undefined;
+			case GL_RGBA: return core::gfx::format::r32g32b32a32_sfloat;
+			// case GL_BGRA: return core::gfx::format::undefined;
+			case GL_RED_INTEGER: return core::gfx::format::undefined;
+			case GL_RG_INTEGER: return core::gfx::format::undefined;
+			case GL_RGB_INTEGER: return core::gfx::format::undefined;
+			// case GL_BGR_INTEGER: return core::gfx::format::undefined;
+			case GL_RGBA_INTEGER: return core::gfx::format::undefined;
+			// case GL_BGRA_INTEGER: return core::gfx::format::undefined;
+			case GL_STENCIL_INDEX: return core::gfx::format::undefined;
+			case GL_DEPTH_COMPONENT: return core::gfx::format::d32_sfloat;
+			case GL_DEPTH_STENCIL: return core::gfx::format::d32_sfloat_s8_uint;
+			}
+			break;
+		}
+
+		// case GL_UNSIGNED_BYTE_3_3_2: assert(format == GL_RGB || format == GL_RGB_INTEGER); return
+		// core::gfx::format::undefined; case GL_UNSIGNED_BYTE_2_3_3_REV: 	assert(format == GL_BGR || format ==
+		// GL_BGR_INTEGER);
+		//	return core::gfx::format::undefined;
+		case GL_UNSIGNED_SHORT_5_6_5:
+			assert(format == GL_RGB || format == GL_RGB_INTEGER);
+			return core::gfx::format::r5g6b5_unorm_pack16;
+		// case GL_UNSIGNED_SHORT_5_6_5_REV:
+		//	assert(format == GL_BGR || format == GL_BGR_INTEGER);
+		//	return core::gfx::format::b5g6r5_unorm_pack16;
+		case GL_UNSIGNED_SHORT_4_4_4_4:
+			assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
+				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/);
+			return core::gfx::format::r4g4b4a4_unorm_pack16;
+		// case GL_UNSIGNED_SHORT_4_4_4_4_REV:
+		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	return core::gfx::format::b4g4r4a4_unorm_pack16;
+		case GL_UNSIGNED_SHORT_5_5_5_1:
+			assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
+				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/);
+			return core::gfx::format::r5g5b5a1_unorm_pack16;
+		// case GL_UNSIGNED_SHORT_1_5_5_5_REV:
+		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	return core::gfx::format::a1r5g5b5_unorm_pack16;
+		// case GL_UNSIGNED_INT_8_8_8_8:
+		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	return (format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER) ? core::gfx::format::r8g8b8a8_uint
+		//																   : core::gfx::format::r8g8b8a8_unorm;
+		// case GL_UNSIGNED_INT_8_8_8_8_REV:
+		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	return (format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER) ? core::gfx::format::a8b8g8r8_uint_pack32
+		//																   : core::gfx::format::a8b8g8r8_unorm_pack32;
+		// case GL_UNSIGNED_INT_10_10_10_2:
+		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	return (format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER)
+		//			   ? core::gfx::format::a2r10g10b10_uint_pack32
+		//			   : core::gfx::format::a2r10g10b10_unorm_pack32;
+		case GL_UNSIGNED_INT_2_10_10_10_REV:
+			assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
+				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/);
+			return (format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/)
+					   ? core::gfx::format::a2b10g10r10_uint_pack32
+					   : core::gfx::format::a2b10g10r10_unorm_pack32;
+		case GL_UNSIGNED_INT_10F_11F_11F_REV:
+			assert(format == GL_RGB /*|| format == GL_BGR*/);
+			return core::gfx::format::b10g11r11_ufloat_pack32;
+		case GL_UNSIGNED_INT_5_9_9_9_REV:
+			assert(format == GL_RGB /*|| format == GL_BGR*/);
+			return core::gfx::format::e5b9g9r9_ufloat_pack32;
+		case GL_UNSIGNED_INT_24_8: assert(format == GL_DEPTH_STENCIL); return core::gfx::format::d24_unorm_s8_uint;
+		case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
+			assert(format == GL_DEPTH_STENCIL);
+			return core::gfx::format::d32_sfloat_s8_uint;
+
+#ifdef GL_EXT_texture_compression_s3tc
+#else
+		case format::bc1_rgb_unorm_block:
+		case format::bc1_rgb_srgb_block:
+		case format::bc1_rgba_unorm_block:
+		case format::bc1_rgba_srgb_block:
+		case format::bc2_unorm_block:
+		case format::bc2_srgb_block:
+		case format::bc3_unorm_block:
+		case format::bc3_srgb_block:
+		case format::bc4_unorm_block:
+		case format::bc4_snorm_block:
+		case format::bc5_unorm_block:
+		case format::bc5_snorm_block:
+		case format::bc6h_ufloat_block:
+		case format::bc6h_sfloat_block:
+		case format::bc7_unorm_block:
+		case format::bc7_srgb_block: return core::gfx::format::undefined; break;
+#endif
+		case GL_COMPRESSED_RGB8_ETC2: return format::etc2_r8g8b8_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ETC2: return format::etc2_r8g8b8_srgb_block; break;
+		case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2: format::etc2_r8g8b8a1_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_PUNCHTHROUGH_ALPHA1_ETC2: format::etc2_r8g8b8a1_srgb_block; break;
+		case GL_COMPRESSED_RGBA8_ETC2_EAC: format::etc2_r8g8b8a8_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ETC2_EAC: return format::etc2_r8g8b8a8_srgb_block; break;
+		case GL_COMPRESSED_R11_EAC: return format::eac_r11_unorm_block; break;
+		case GL_COMPRESSED_SIGNED_R11_EAC: return format::eac_r11_snorm_block; break;
+		case GL_COMPRESSED_RG11_EAC: return format::eac_r11g11_unorm_block; break;
+		case GL_COMPRESSED_SIGNED_RG11_EAC: return format::eac_r11g11_snorm_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_4x4: return format::astc_4x4_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4: return format::astc_4x4_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_5x4: return format::astc_5x4_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4: return format::astc_5x4_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_5x5: return format::astc_5x5_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5: return format::astc_5x5_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_6x5: return format::astc_6x5_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5: return format::astc_6x5_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_6x6: return format::astc_6x6_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6: return format::astc_6x6_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_8x5: return format::astc_8x5_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5: return format::astc_8x5_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_8x6: return format::astc_8x6_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6: return format::astc_8x6_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_8x8: return format::astc_8x8_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8: return format::astc_8x8_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_10x5: return format::astc_10x5_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5: return format::astc_10x5_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_10x6: return format::astc_10x6_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6: return format::astc_10x6_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_10x8: return format::astc_10x8_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8: return format::astc_10x8_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_10x10: return format::astc_10x10_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10: return format::astc_10x10_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_12x10: return format::astc_12x10_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10: return format::astc_12x10_srgb_block; break;
+		case GL_COMPRESSED_RGBA_ASTC_12x12: return format::astc_12x12_unorm_block; break;
+		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12: return format::astc_12x12_srgb_block; break;
+		}
+
+
+		return format::undefined;
+	}
+
 	inline GLuint to_gles(sampler_address_mode value) noexcept
 	{
 		switch(value)
