@@ -385,7 +385,6 @@ namespace core::gfx::conversion
 			format		   = GL_DEPTH_STENCIL;
 			type		   = GL_FLOAT_32_UNSIGNED_INT_24_8_REV;
 			break;
-#ifdef GL_EXT_texture_compression_s3tc
 		case format::bc1_rgb_unorm_block:
 			internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
 			format		   = GL_RGB;
@@ -402,88 +401,70 @@ namespace core::gfx::conversion
 			type		   = 0;
 			break;
 		case format::bc1_rgba_srgb_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
+			internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
 			format		   = GL_RGBA;
 			type		   = 0;
 			break;
 		case format::bc2_unorm_block:
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
+			type		   = 0;
+			break;
+		case format::bc2_srgb_block:
+			internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
+			format		   = GL_RGB;
+			type		   = 0;
+			break;
+		case format::bc3_unorm_block:
 			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
 			format		   = GL_RGBA;
 			type		   = 0;
 			break;
-		case format::bc2_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-			format		   = GL_RGB;
-			type		   = 0;
-			break;
-		case format::bc3_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
-			type		   = 0;
-			break;
 		case format::bc3_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-			format		   = GL_RGB;
+			internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
+			format		   = GL_RGBA;
 			type		   = 0;
 			break;
 		case format::bc4_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_RED_RGTC1;
+			format		   = GL_RED;
 			type		   = 0;
 			break;
 		case format::bc4_snorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_SIGNED_RED_RGTC1;
+			format		   = GL_RED;
 			type		   = 0;
 			break;
 		case format::bc5_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_RG_RGTC2;
+			format		   = GL_RG;
 			type		   = 0;
 			break;
 		case format::bc5_snorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_SIGNED_RG_RGTC2;
+			format		   = GL_RG;
 			type		   = 0;
 			break;
 		case format::bc6h_ufloat_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
+			format		   = GL_RGB;
 			type		   = 0;
 			break;
 		case format::bc6h_sfloat_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB;
+			format		   = GL_RGB;
 			type		   = 0;
 			break;
 		case format::bc7_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
 			format		   = GL_RGBA;
 			type		   = 0;
 			break;
 		case format::bc7_srgb_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
 			format		   = GL_RGBA;
 			type		   = 0;
 			break;
-#else
-		case format::bc1_rgb_unorm_block:
-		case format::bc1_rgb_srgb_block:
-		case format::bc1_rgba_unorm_block:
-		case format::bc1_rgba_srgb_block:
-		case format::bc2_unorm_block:
-		case format::bc2_srgb_block:
-		case format::bc3_unorm_block:
-		case format::bc3_srgb_block:
-		case format::bc4_unorm_block:
-		case format::bc4_snorm_block:
-		case format::bc5_unorm_block:
-		case format::bc5_snorm_block:
-		case format::bc6h_ufloat_block:
-		case format::bc6h_sfloat_block:
-		case format::bc7_unorm_block:
-		case format::bc7_srgb_block: break;
-#endif
 		case format::etc2_r8g8b8_unorm_block:
 			internalFormat = GL_COMPRESSED_RGB8_ETC2;
 			format		   = 0;
@@ -674,16 +655,6 @@ namespace core::gfx::conversion
 			format		   = 0;
 			type		   = 0;
 			break;
-#ifndef GL_IMG_texture_compression_pvrtc
-		case format::pvrtc1_2bpp_unorm_block_img:
-		case format::pvrtc1_4bpp_unorm_block_img:
-		case format::pvrtc2_2bpp_unorm_block_img:
-		case format::pvrtc2_4bpp_unorm_block_img:
-		case format::pvrtc1_2bpp_srgb_block_img:
-		case format::pvrtc1_4bpp_srgb_block_img:
-		case format::pvrtc2_2bpp_srgb_block_img:
-		case format::pvrtc2_4bpp_srgb_block_img: break;
-#else
 		case format::pvrtc1_2bpp_unorm_block_img:
 			internalFormat = GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG;
 			format		   = 0;
@@ -724,7 +695,6 @@ namespace core::gfx::conversion
 			format		   = 0;
 			type		   = 0;
 			break;
-#endif
 		}
 
 		return internalFormat != -1;
@@ -732,7 +702,7 @@ namespace core::gfx::conversion
 
 	inline core::gfx::format to_format(GLint internalFormat, GLint format, GLint type) noexcept
 	{
-		switch(format)
+		switch(type)
 		{
 		case GL_UNSIGNED_BYTE:
 		{
@@ -974,26 +944,25 @@ namespace core::gfx::conversion
 		case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
 			assert(format == GL_DEPTH_STENCIL);
 			return core::gfx::format::d32_sfloat_s8_uint;
-
-#ifdef GL_EXT_texture_compression_s3tc
-#else
-		case format::bc1_rgb_unorm_block:
-		case format::bc1_rgb_srgb_block:
-		case format::bc1_rgba_unorm_block:
-		case format::bc1_rgba_srgb_block:
-		case format::bc2_unorm_block:
-		case format::bc2_srgb_block:
-		case format::bc3_unorm_block:
-		case format::bc3_srgb_block:
-		case format::bc4_unorm_block:
-		case format::bc4_snorm_block:
-		case format::bc5_unorm_block:
-		case format::bc5_snorm_block:
-		case format::bc6h_ufloat_block:
-		case format::bc6h_sfloat_block:
-		case format::bc7_unorm_block:
-		case format::bc7_srgb_block: return core::gfx::format::undefined; break;
-#endif
+		}
+		switch(internalFormat)
+		{
+		case GL_COMPRESSED_RGB_S3TC_DXT1_EXT: return format::bc1_rgb_unorm_block; break;
+		case GL_COMPRESSED_SRGB_S3TC_DXT1_EXT: return format::bc1_rgb_srgb_block; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT1_EXT: return format::bc1_rgba_unorm_block; break;
+		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT: return format::bc1_rgba_srgb_block; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT5_EXT: return format::bc2_unorm_block; break;
+		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: return format::bc2_srgb_block; break;
+		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT: return format::bc3_unorm_block; break;
+		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: return format::bc3_srgb_block; break;
+		case GL_COMPRESSED_RED_RGTC1: return format::bc4_unorm_block; break;
+		case GL_COMPRESSED_SIGNED_RED_RGTC1: return format::bc4_snorm_block; break;
+		case GL_COMPRESSED_RG_RGTC2: return format::bc5_unorm_block; break;
+		case GL_COMPRESSED_SIGNED_RG_RGTC2: return format::bc5_snorm_block; break;
+		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB: return format::bc6h_ufloat_block; break;
+		case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB: return format::bc6h_sfloat_block; break;
+		case GL_COMPRESSED_RGBA_BPTC_UNORM_ARB: return format::bc7_unorm_block; break;
+		case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: return format::bc7_srgb_block; break;
 		case GL_COMPRESSED_RGB8_ETC2: return format::etc2_r8g8b8_unorm_block; break;
 		case GL_COMPRESSED_SRGB8_ETC2: return format::etc2_r8g8b8_srgb_block; break;
 		case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2: format::etc2_r8g8b8a1_unorm_block; break;
@@ -1032,6 +1001,14 @@ namespace core::gfx::conversion
 		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10: return format::astc_12x10_srgb_block; break;
 		case GL_COMPRESSED_RGBA_ASTC_12x12: return format::astc_12x12_unorm_block; break;
 		case GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12: return format::astc_12x12_srgb_block; break;
+		case GL_COMPRESSED_RGBA_PVRTC_2BPPV1_IMG: return format::pvrtc1_2bpp_unorm_block_img; break;
+		case GL_COMPRESSED_RGBA_PVRTC_4BPPV1_IMG: return format::pvrtc1_4bpp_unorm_block_img; break;
+		case GL_COMPRESSED_RGBA_PVRTC_2BPPV2_IMG: return format::pvrtc2_2bpp_unorm_block_img; break;
+		case GL_COMPRESSED_RGBA_PVRTC_4BPPV2_IMG: return format::pvrtc2_4bpp_unorm_block_img;
+		case GL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV1_EXT: return format::pvrtc1_2bpp_srgb_block_img; break;
+		case GL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV1_EXT: return format::pvrtc1_4bpp_srgb_block_img; break;
+		case GL_COMPRESSED_SRGB_ALPHA_PVRTC_2BPPV2_IMG: return format::pvrtc2_2bpp_srgb_block_img; break;
+		case GL_COMPRESSED_SRGB_ALPHA_PVRTC_4BPPV2_IMG: return format::pvrtc2_4bpp_srgb_block_img; break;
 		}
 
 

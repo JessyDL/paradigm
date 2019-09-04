@@ -7,15 +7,15 @@
 #include <cctype>
 #include <clocale>
 #ifndef PLATFORM_ANDROID
-	#if __has_include(<filesystem>)
-	#include <filesystem>
-	#else
-	#include <experimental/filesystem>
-	namespace std::filesystem
-	{
-		using namespace experimental::filesystem;
-	}
-	#endif
+#if __has_include(<filesystem>)
+#include <filesystem>
+#else
+#include <experimental/filesystem>
+namespace std::filesystem
+{
+	using namespace experimental::filesystem;
+}
+#endif
 #endif
 #include <optional>
 #include <unordered_map>
@@ -29,7 +29,7 @@ namespace utility
 	/// \brief contains some debug information, such as trace information, as well as utilities to debug.
 	class debug
 	{
-		public:
+	  public:
 		/// \brief contains the structure of a trace
 		struct trace_info
 		{
@@ -40,48 +40,41 @@ namespace utility
 		};
 
 		/// \brief method to get trace information of the current callstack.
-		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the callstack).
-		/// \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the current information, while 255 would likely get you to the root).
-		/// \returns an std::vector containing a struct of trace_info of the current callstack (excluding this method).
+		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the
+		/// callstack). \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the
+		/// current information, while 255 would likely get you to the root). \returns an std::vector containing a
+		/// struct of trace_info of the current callstack (excluding this method).
 		static std::vector<trace_info> trace(size_t offset = 0u, size_t depth = 255u);
 
 
 		/// \brief method to get raw trace information of the current callstack.
-		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the callstack).
-		/// \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the current information, while 255 would likely get you to the root).
-		/// \returns an std::vector containing void pointers pointing to the address of the current callstack (excluding this method).
+		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the
+		/// callstack). \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the
+		/// current information, while 255 would likely get you to the root). \returns an std::vector containing void
+		/// pointers pointing to the address of the current callstack (excluding this method).
 		static std::vector<void*> raw_trace(size_t offset = 0u, size_t depth = 255u);
 
 		static utility::debug::trace_info demangle(void* target);
 		/// \brief helper method to give a name to a specific thread.
 		/// \param[in] id thread::id that will be named.
 		/// \param[in] name the name to assign to the given thread::id.
-		static void register_thread(const std::thread::id &id, const psl::string8_t &name)
+		static void register_thread(const std::thread::id& id, const psl::string8_t& name)
 		{
 			m_ThreadMap.insert(std::pair<std::thread::id, psl::string8_t>(id, name));
 		}
 
 		/// \brief helper method to name the current (this) thread.
 		/// \param[in] name the name to assign to std::this_thread.
-		static void register_thread(const psl::string8_t& name)
-		{
-			register_thread(std::this_thread::get_id(), name);
-		}
+		static void register_thread(const psl::string8_t& name) { register_thread(std::this_thread::get_id(), name); }
 
 		/// \brief gets the name of the given thread::id.
 		/// \param[in] id the id of the thread to look up.
 		/// \returns the name (if any) that is assigned to the given thread::id.
-		static const psl::string8_t thread_name(const std::thread::id &id)
-		{
-			return m_ThreadMap[id];
-		}
+		static const psl::string8_t thread_name(const std::thread::id& id) { return m_ThreadMap[id]; }
 
 		/// \brief gets the name of the current (this) thread.
 		/// \returns the name (if any) that is assigned to the current thread.
-		static const psl::string8_t thread_name()
-		{
-			return thread_name(std::this_thread::get_id());
-		}
+		static const psl::string8_t thread_name() { return thread_name(std::this_thread::get_id()); }
 
 		/// \brief helper method to extract just the class from a trace.
 		/// \param[in] fullFuncName the signature of the trace.
@@ -95,7 +88,7 @@ namespace utility
 				return fullFuncNameStr;
 			}
 			psl::string8_t newName = fullFuncNameStr.substr(0, pos - 1);
-			pos = newName.find_last_of("::");
+			pos					   = newName.find_last_of("::");
 			if(pos == psl::string8_t::npos)
 			{
 				return newName;
@@ -113,26 +106,27 @@ namespace utility
 			}
 			return fullFuncNameStr.substr(0, pos - 1);
 		}
-	private:
+
+	  private:
 		static std::unordered_map<std::thread::id, psl::string8_t> m_ThreadMap;
 	};
-}
+} // namespace utility
 
 namespace utility::platform
 {
 	/// \brief helper class that contains directory specific I/O manipulation methods and platform utilities.
 	class directory
 	{
-	public:
+	  public:
 		/// \brief the seperator character that all commands will be assumed to use, and all platform specific commands
 		/// will be translated to/from
 		static constexpr psl::string_view seperator = "/";
-	#ifdef PLATFORM_WINDOWS
+#ifdef PLATFORM_WINDOWS
 		/// \brief the platform specific seperator for the current platform (i.e. the one the platform by default uses)
 		static constexpr psl::string_view seperator_platform = "\\";
-	#else
+#else
 		static constexpr psl::string_view seperator_platform = "/";
-	#endif
+#endif
 		/// \brief identifier that signifies the "current location" symbol in a file path.
 		static constexpr psl::string_view current_symbol = ".";
 
@@ -158,17 +152,17 @@ namespace utility::platform
 			if(auto find = path.find(":\\\\"); find == 1u)
 			{
 				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir = "/mnt/" + psl::string(1, drive) + seperator + path.substr(4u);
+				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(4u);
 			}
 			else if(find = path.find(":\\"); find == 1u)
 			{
 				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
+				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
 			}
 			else if(find = path.find(":/"); find == 1u)
 			{
 				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
+				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
 			}
 			else
 			{
@@ -231,20 +225,17 @@ namespace utility::platform
 		/// \returns a string that *should* work on the current platform, and satisfies the requirements.
 		static psl::string to_platform(psl::string_view path)
 		{
-		#ifdef PLATFORM_WINDOWS
+#ifdef PLATFORM_WINDOWS
 			return to_windows(path);
-		#else
+#else
 			return to_unix(path);
-		#endif
+#endif
 		}
 
-		/// \brief translates the given path to the default path encoding that is used across this application as the standard.
-		/// \param[in] path the path to translate.
-		/// \returns a string that is translated to the application-wide standard encoding (unix).
-		static psl::string to_generic(psl::string_view path)
-		{
-			return to_unix(path);
-		}
+		/// \brief translates the given path to the default path encoding that is used across this application as the
+		/// standard. \param[in] path the path to translate. \returns a string that is translated to the
+		/// application-wide standard encoding (unix).
+		static psl::string to_generic(psl::string_view path) { return to_unix(path); }
 
 		/// \brief checks if the given path is a directory.
 		/// \param[in] path the path to check.
@@ -252,20 +243,17 @@ namespace utility::platform
 		/// \todo android platform always returns false. Check if there is a way around this or redesign this.
 		static bool is_directory(psl::string_view path)
 		{
-		#ifdef PLATFORM_ANDROID
+#ifdef PLATFORM_ANDROID
 			return false;
-		#else
+#else
 			return std::filesystem::is_directory(to_platform(path));
-		#endif
+#endif
 		}
 
 		/// \brief sanitizes the seperators into the application wide standard one.
 		/// \param[in] path the path to sanitize.
 		/// \returns the transformed input path.
-		static psl::string sanitize(psl::string_view path)
-		{
-			return utility::string::replace_all(path, "\\", "/");
-		}
+		static psl::string sanitize(psl::string_view path) { return utility::string::replace_all(path, "\\", "/"); }
 
 		/// \brief tries to erase/delete the given item this path points to.
 		///
@@ -275,11 +263,11 @@ namespace utility::platform
 		/// \todo android platform always fails this, is it possible this is not always the case?
 		inline static bool erase(psl::string_view path)
 		{
-		#ifdef PLATFORM_ANDROID
+#ifdef PLATFORM_ANDROID
 			return false;
-		#else
+#else
 			return std::filesystem::remove(directory::to_platform(path));
-		#endif
+#endif
 		}
 		/// \brief checks if the given path (absolute) points to a directory or not.
 		/// \param[in] absolutePath the path to check.
@@ -288,23 +276,24 @@ namespace utility::platform
 
 		/// \brief creates a directory that satisfies this path.
 		/// \param[in] absolutePath the path to create the directory at.
-		/// \param[in] recursive should we make all non-existing parent directories as well (true) or fail (false) when the path to the given directory does not exist?
-		/// \returns true if the path is now fully valid and the directory exists.
+		/// \param[in] recursive should we make all non-existing parent directories as well (true) or fail (false) when
+		/// the path to the given directory does not exist? \returns true if the path is now fully valid and the
+		/// directory exists.
 		static bool create(psl::string_view absolutePath, bool recursive = false);
 
 		/// \brief gets all files in the target directory, no folders.
 		///
-		/// gets all files in the target directory exluding the sub-directories. It however can recursively walk the 
+		/// gets all files in the target directory exluding the sub-directories. It however can recursively walk the
 		/// sub-directories when needed, it will only return their contained items though.
 		/// \param[in] target_directory the directory to run a search from.
 		/// \param[in] recursive should we also search the sub-directories (true), or not (false).
-		/// \returns a container of elements of the type psl::string, of all found items, that are transformed to the generic path format.
-		/// \todo on android no search is run.
+		/// \returns a container of elements of the type psl::string, of all found items, that are transformed to the
+		/// generic path format. \todo on android no search is run.
 		static std::vector<psl::string> all_files(psl::string_view target_directory, bool recursive)
 		{
-		#ifdef PLATFORM_ANDROID
+#ifdef PLATFORM_ANDROID
 			return {};
-		#else
+#else
 			auto folder = to_platform(target_directory);
 			std::vector<psl::string> names;
 			if(recursive)
@@ -313,11 +302,12 @@ namespace utility::platform
 				{
 					if(!std::filesystem::is_directory(i->path()))
 					{
-					#ifdef UNICODE
-						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
-					#else
+#ifdef UNICODE
+						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()),
+																	 "\\", seperator);
+#else
 						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
-					#endif
+#endif
 						names.push_back(filename);
 					}
 				}
@@ -328,17 +318,18 @@ namespace utility::platform
 				{
 					if(!std::filesystem::is_directory(i->path()))
 					{
-					#ifdef UNICODE
-						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
-					#else
+#ifdef UNICODE
+						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()),
+																	 "\\", seperator);
+#else
 						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
-					#endif
+#endif
 						names.push_back(filename);
 					}
 				}
 			}
 			return names;
-		#endif
+#endif
 		}
 	};
 
@@ -347,18 +338,17 @@ namespace utility::platform
 	{
 		/// \brief checks if the given path points to a file or not.
 		///
-		/// checks if the given path points to a file or not. This path can be relative to the current working directory, 
-		/// usually the app root is the working directory, or an absolute path.
-		/// \param[in] filename the path to the file to check.
-		/// \returns true in case the target is indeed a file, otherwise in all scenarios it returns false.
-		/// \todo android lacks an implementation.
+		/// checks if the given path points to a file or not. This path can be relative to the current working
+		/// directory, usually the app root is the working directory, or an absolute path. \param[in] filename the path
+		/// to the file to check. \returns true in case the target is indeed a file, otherwise in all scenarios it
+		/// returns false. \todo android lacks an implementation.
 		inline static bool exists(psl::string_view filename)
 		{
-		#ifdef PLATFORM_ANDROID
+#ifdef PLATFORM_ANDROID
 			return false;
-		#else
+#else
 			return std::filesystem::exists(directory::to_platform(filename));
-		#endif
+#endif
 		}
 
 		/// \brief erases the file ath the given path.
@@ -367,20 +357,22 @@ namespace utility::platform
 		/// \todo android lacks an implementation.
 		inline static bool erase(psl::string_view filename)
 		{
-		#ifdef PLATFORM_ANDROID
+#ifdef PLATFORM_ANDROID
 			return false;
-		#else
+#else
 			return std::filesystem::remove(directory::to_platform(filename));
-		#endif
+#endif
 		}
 
 		/// \brief reads the given filepath's contents into a psl::char_t container.
 		/// \param[in] filename the path to the file.
 		/// \param[in, out] out the output container to read into.
 		/// \returns true on successfuly reading the file. This can be false in case something went wrong.
-		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the interaction with
-		/// the filesystem. Please verify that your target platform actually supports this function for the file you wish to load.
-		static bool read(psl::string_view filename, std::vector<psl::char_t> &out)
+		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
+		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
+		/// the file you wish to load.
+		static bool read(psl::string_view filename, std::vector<psl::char_t>& out,
+						 size_t count = std::numeric_limits<size_t>::max())
 		{
 			psl::string file_name = directory::to_platform(filename);
 			psl::ifstream file(file_name, std::ios::binary | std::ios::ate);
@@ -389,7 +381,7 @@ namespace utility::platform
 				psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
 				return false;
 			}
-			size_t size = file.tellg();
+			size_t size = std::min(static_cast<size_t>(file.tellg()), count);
 			file.seekg(0u, std::ios::beg);
 			out.resize(size);
 			file.read(&out[0], size);
@@ -404,7 +396,7 @@ namespace utility::platform
 		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
 		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 		/// the file you wish to load.
-		static bool read(psl::string_view filename, psl::string &out)
+		static bool read(psl::string_view filename, psl::string& out, size_t count = std::numeric_limits<size_t>::max())
 		{
 			psl::string file_name = directory::to_platform(filename);
 			std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
@@ -413,7 +405,7 @@ namespace utility::platform
 				psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
 				return false;
 			}
-			size_t size = file.tellg();
+			size_t size = std::min(static_cast<size_t>(file.tellg()), count);
 			file.seekg(0u, std::ios::beg);
 			out.resize(size);
 			file.read(&out[0], size);
@@ -427,11 +419,11 @@ namespace utility::platform
 		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
 		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 		/// the file you wish to load.
-		static std::optional<psl::string> read(psl::string_view filename)
+		static std::optional<psl::string> read(psl::string_view filename,
+											   size_t count = std::numeric_limits<size_t>::max())
 		{
 			psl::string res;
-			if(!read(filename, res))
-				return std::nullopt;
+			if(!read(filename, res, count)) return std::nullopt;
 			return res;
 		}
 
@@ -462,43 +454,34 @@ namespace utility::platform
 			output.close();
 			return true;
 		}
-		
+
 		/// \brief transforms the given path to the unix format.
 		/// \param[in] path the path to transform.
 		/// \returns the transformed path.
-		static psl::string to_unix(psl::string_view path)
-		{
-			return directory::to_unix(path);
-		}
+		static psl::string to_unix(psl::string_view path) { return directory::to_unix(path); }
 
 		/// \brief transforms the given path to the windows format.
 		/// \param[in] path the path to transform.
 		/// \returns the transformed path.
-		static psl::string to_windows(psl::string_view path)
-		{
-			return directory::to_windows(path);
-		}
+		static psl::string to_windows(psl::string_view path) { return directory::to_windows(path); }
 
 		/// \brief transforms the given path to the current platforms format.
 		/// \param[in] path the path to transform.
 		/// \returns the transformed path.
 		static psl::string to_platform(psl::string_view path)
 		{
-		#ifdef PLATFORM_WINDOWS
+#ifdef PLATFORM_WINDOWS
 			return to_windows(path);
-		#else
+#else
 			return to_unix(path);
-		#endif
+#endif
 		}
 
 		/// \brief transforms the given path to the application wide standard format.
 		/// \param[in] path the path to transform.
 		/// \returns the transformed path.
-		static psl::string to_generic(psl::string_view path)
-		{
-			return to_unix(path);
-		}
-	};
+		static psl::string to_generic(psl::string_view path) { return to_unix(path); }
+	}; // namespace file
 
 	/// \brief platform specific utility that can freeze the console running on the current thread.
 	static void cmd_prompt_presskeytocontinue()
@@ -520,7 +503,7 @@ namespace utility::platform
 	/// \brief OS specific utility functions
 	class os
 	{
-	public:
+	  public:
 		static std::vector<unsigned int> to_virtual_keycode(const psl::string8_t& key);
 	};
-}
+} // namespace utility::platform
