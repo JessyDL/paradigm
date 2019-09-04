@@ -57,6 +57,6 @@ ENV python=python3
 ENV CXX=clang++-8
 ENV CC=clang-8
 
-ADD  entrypoint.py .
+ADD  ./entrypoint.py ./
 ENTRYPOINT ["python3", "entrypoint.py"]
 CMD [""]
