@@ -17,7 +17,7 @@ jobs:
       with:
         python-version: 3.7
     - name: initialize
-      run: python build.py --cmake_params="-DPE_MODE=LIB" --graphics ${{ matrix.graphics }}
+      run: python paradigm.py --run build --graphics ${{ matrix.graphics }}
     - name: compile
       run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
     - name: test
