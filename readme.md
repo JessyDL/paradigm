@@ -1,6 +1,6 @@
-﻿
 
-![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.1.82.1-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
+
+![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.1.108.0-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
 
 # Paradigm Engine
 Paradigm Engine is a Vulkan first modern graphics rendering engine written in C++17 with support for GLES (3.2). It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice. C# bindings will be provided; as well as an example projects showcasing simple gameplay.
@@ -17,14 +17,14 @@ Some of the key reasons why this engine exists:
 
 For more detailed description about the engine itself, go to the readme of the `core` project, which is in the folder of the same name. Similarly all sub-projects that make up the engine all have their own readme's describing their intent, structure, status and dependencies. This readme is just to give a larger oversight over the entire project.
 ## Status
-| Architecture| Status        | Unit Tests | Backend|
-| :-------------|:-------------| -----:|---:|
-| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| ![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?logo=github&style=for-the-badge)| ![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?label=tests&logo=github&style=for-the-badge) | Vulkan/GLES |
-| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  ![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?logo=github&style=for-the-badge) | ![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?label=tests&logo=github&style=for-the-badge)| Vulkan/GLES |
-| ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK/GLES|
-| ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | MoltenVK/GLES|
-| ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | Vulkan/GLES|
-| ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | Vulkan/GLES|
+| Architecture| Status        | Unit Tests | Vulkan| GLeS| Metal|
+:-------------|:-------------| -----:|:---:|:---:|:---:
+| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions)| [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?label=tests&logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions) | 1.1.118.0| 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions) | [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?label=tests&logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions)|  1.1.118.0| -| - |
+| ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | -| -| - |
+| ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - |  -| -| - |
+| ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | 1.1.118.0| 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | 1.1.118.0| 3.1 - 3.2| - |
 ## Building
 ### Prerequisites
 Python 3+
