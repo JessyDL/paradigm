@@ -25,7 +25,7 @@ namespace core::igles
 
 	  private:
 		void load_2D();
-		void create_2D();
+		void create_2D(void* data = nullptr);
 		void load_cube();
 
 

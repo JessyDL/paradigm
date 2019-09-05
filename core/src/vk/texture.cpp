@@ -64,10 +64,13 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 	}
 	else
 	{
+		auto result = cache.library().load(m_Meta->ID());
+		auto data   = (result && !result.value().empty()) ? (void*)result.value().data() : nullptr;
+
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
-		case gfx::image_type::planar_2D: create_2D(); break;
+		case gfx::image_type::planar_2D: create_2D(data); break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
 		default: debug_break();
 		}
@@ -118,7 +121,7 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 	return *descriptor;
 }
 
-void texture::create_2D()
+void texture::create_2D(void* data)
 {
 
 	m_MipLevels = m_Meta->mip_levels();
@@ -128,6 +131,55 @@ void texture::create_2D()
 		LOG_ERROR("Undefined format property in: ", utility::to_string(m_Meta->ID()));
 	}
 	m_Context->physical_device().getFormatProperties(to_vk(m_Meta->format()), &formatProperties);
+
+	auto stagingBuffer = m_StagingBuffer;
+	vk::BufferImageCopy bufferCopyRegion;
+	if(data != nullptr)
+	{
+		auto size = m_Meta->width() * m_Meta->height();
+		if(!m_StagingBuffer)
+		{
+			core::ivk::log->warn(
+				"missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
+			auto tempBuffer = m_Cache.create<core::data::buffer>(
+				core::gfx::memory_usage::transfer_source,
+				core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+				memory::region{size + 1024, 4, new memory::default_allocator(false)});
+			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
+		}
+		if(!stagingBuffer)
+		{
+			core::ivk::log->error("could not create a staging buffer in ivk::texture");
+			return;
+		}
+		memory::segment segment;
+		if(auto segmentOpt = stagingBuffer->reserve((vk::DeviceSize)size); segmentOpt)
+		{
+			segment = segmentOpt.value();
+			gfx::commit_instruction instr;
+			instr.segment = segment;
+			instr.size	= (vk::DeviceSize)size;
+			instr.source  = (std::uintptr_t)data;
+			if(!stagingBuffer->commit({instr}))
+			{
+				core::ivk::log->error("could not commit an ivk::texture in a staging buffer");
+			}
+		}
+		else
+		{
+			core::ivk::log->error("could not allocate a segment in the staging buffer for an ivk::texture");
+			return;
+		}
+
+		bufferCopyRegion.imageSubresource.aspectMask	 = vk::ImageAspectFlagBits::eColor;
+		bufferCopyRegion.imageSubresource.mipLevel		 = 0;
+		bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+		bufferCopyRegion.imageSubresource.layerCount	 = m_Meta->layers();
+		bufferCopyRegion.imageExtent.width				 = m_Meta->width();
+		bufferCopyRegion.imageExtent.height				 = m_Meta->height();
+		bufferCopyRegion.imageExtent.depth				 = 1;
+		bufferCopyRegion.bufferOffset					 = 0;
+	}
 
 	// Create optimal tiled target image
 	vk::ImageCreateInfo imageCreateInfo;
@@ -162,7 +214,35 @@ void texture::create_2D()
 	utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
 	m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
 
-	// Create image view
+	if(data != nullptr)
+	{
+		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(m_Context->device(), m_Context->command_pool(),
+																	   vk::CommandBufferLevel::ePrimary, true, 1);
+
+		vk::ImageSubresourceRange subresourceRange;
+		subresourceRange.aspectMask   = vk::ImageAspectFlagBits::eColor;
+		subresourceRange.baseMipLevel = 0;
+		subresourceRange.levelCount   = m_MipLevels;
+		subresourceRange.layerCount   = m_Meta->layers();
+		// Image barrier for optimal image (target)
+		// Optimal image will be used as destination for the copy
+		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eUndefined,
+										  vk::ImageLayout::eTransferDstOptimal, subresourceRange);
+
+		// Copy mip levels from staging buffer
+		copyCmd.copyBufferToImage(stagingBuffer->gpu_buffer(), m_Image, vk::ImageLayout::eTransferDstOptimal,
+								  (uint32_t)1, &bufferCopyRegion);
+
+		// Change texture image layout to shader read after all mip levels have been copied
+		m_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+
+		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eTransferDstOptimal, m_ImageLayout,
+										  subresourceRange);
+
+		m_Context->flush(copyCmd, true);
+	}
+
+	// Create image view	
 	// Textures are not directly accessed by the shaders and
 	// are abstracted by image views containing additional
 	// information and sub resource ranges
