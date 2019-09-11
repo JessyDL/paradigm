@@ -614,7 +614,8 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 			// std::vector<std::future<void>> future_commands;
 
 			auto index = info_buffer.size();
-			for(size_t i = 0; i < m_Scheduler->workers(); ++i) info_buffer.emplace_back(new info(*this, dTime, rTime));
+			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
+				info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
 
 			auto infoBuffer = std::next(std::begin(info_buffer), index);
 
@@ -642,7 +643,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 				cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 			}
-			info_buffer.emplace_back(new info(*this, dTime, rTime));
+			info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
 			information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
 			write_data(*this, pack);
@@ -1350,7 +1351,8 @@ void state::execute_command_buffer(info& info)
 	if(buffer.m_Entities.size() > 0)
 	{
 		psl::array<entity> added_entities;
-		std::set_difference(std::begin(buffer.m_Entities), std::end(m_Entities), std::begin(buffer.m_DestroyedEntities),
+		std::set_difference(std::begin(buffer.m_Entities), std::end(buffer.m_Entities),
+							std::begin(buffer.m_DestroyedEntities),
 							std::end(buffer.m_DestroyedEntities), std::back_inserter(added_entities));
 
 

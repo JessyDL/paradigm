@@ -8,6 +8,7 @@
 #include "gles/sampler.h"
 #include "gles/shader.h"
 #include "gles/texture.h"
+#include "gles/conversion.h"
 
 #include "logging.h"
 #include "glad/glad_wgl.h"
@@ -92,13 +93,13 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			case core::gfx::binding_type::storage_buffer:
 			{
 				// if(binding.buffer() == "MATERIAL_DATA") continue;
-				
+
 				if(auto buffer_handle = cache.find<core::igles::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
 					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), buffer_handle.meta()->tags()[0].data());
 					glUniformBlockBinding(m_Program->id(), binding_slot, 1);
-					binding_slot				  = 1;
+					binding_slot = 1;
 
 					auto usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 									 ? core::gfx::memory_usage::uniform_buffer
@@ -142,8 +143,10 @@ void material::bind()
 {
 	if(!m_Program) return;
 	glUseProgram(m_Program->id());
-	auto error = glGetError();
-
+	auto blend_states = m_Data->blend_states();
+	using namespace core::gfx::conversion;
+	assert(blend_states.size() == m_Textures.size());
+	
 	for(auto i = 0; i < m_Textures.size(); ++i)
 	{
 		auto binding = m_Textures[i].first;
@@ -151,15 +154,20 @@ void material::bind()
 		glActiveTexture(GL_TEXTURE0 + binding);
 		glBindTexture(GL_TEXTURE_2D, m_Textures[i].second->id());
 		glBindSampler(binding, m_Samplers[i].second->id());
-		error = glGetError();
+
+		glBlendEquationSeparate(to_gles(blend_states[binding].color_blend_op()),
+								to_gles(blend_states[binding].alpha_blend_op()));
+		glBlendFuncSeparate(
+			to_gles(blend_states[binding].color_blend_src()), to_gles(blend_states[binding].color_blend_dst()),
+			to_gles(blend_states[binding].alpha_blend_src()), to_gles(blend_states[binding].alpha_blend_dst()));
 	}
 
 	for(auto& buffer : m_Buffers)
 	{
 		glBindBuffer(GL_UNIFORM_BUFFER, buffer.second->id());
 		glBindBufferBase(GL_UNIFORM_BUFFER, buffer.first, buffer.second->id());
-		error = glGetError();
 	}
+	glGetError();
 }
 
 const std::vector<core::resource::handle<core::igles::shader>>& material::shaders() const noexcept { return m_Shaders; }

@@ -164,6 +164,8 @@ void context::enable(const core::os::surface& surface)
 #else
 		if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(1);
 #endif
+		
+		glEnable(GL_BLEND);
 	}
 }
 

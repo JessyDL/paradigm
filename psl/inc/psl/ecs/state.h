@@ -201,7 +201,7 @@ namespace psl::ecs
 		template <typename T, typename... Ts>
 		bool is_owned_by(entity e, const T& component, const Ts&... components) const noexcept;
 
-		entity create()
+		[[maybe_unused]] entity create()
 		{
 			if(m_Orphans > 0)
 			{
@@ -221,7 +221,7 @@ namespace psl::ecs
 		}
 
 		template <typename... Ts>
-		psl::array<entity> create(entity count)
+		[[maybe_unused]] psl::array<entity> create(entity count)
 		{
 			psl::array<entity> entities;
 			const auto recycled = std::min<entity>(count, (entity)m_Orphans);
@@ -255,7 +255,7 @@ namespace psl::ecs
 		}
 
 		template <typename... Ts>
-		psl::array<entity> create(entity count, Ts&&... prototype)
+		[[maybe_unused]] psl::array<entity> create(entity count, Ts&&... prototype)
 		{
 			psl::array<entity> entities;
 			const auto recycled = std::min<entity>(count, (entity)m_Orphans);
@@ -803,7 +803,7 @@ namespace psl::ecs
 		}
 
 		std::vector<psl::unique_ptr<info>> info_buffer;
-		::memory::raw_region m_Cache{1024 * 1024 * 32};
+		::memory::raw_region m_Cache{1024 * 1024 * 256};
 		psl::array<entity> m_Entities;
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		std::vector<details::system_information> m_SystemInformations;

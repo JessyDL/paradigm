@@ -1,5 +1,7 @@
 #pragma once
 #include "igles.h"
+#define GL_ENABLE_ALL_DEFINES
+#include "details/definitions.h"
 #include "gfx/types.h"
 
 namespace core::gfx::conversion
@@ -81,30 +83,21 @@ namespace core::gfx::conversion
 		internalFormat = -1;
 		switch(value)
 		{
-		case format::undefined:
-			internalFormat = 0;
-			format		   = 0;
-			type		   = 0;
-			break;
-		case format::b4g4r4a4_unorm_pack16:
+		case format::r4g4b4a4_unorm_pack16:
 			internalFormat = GL_RGBA4;
 			format		   = GL_RGBA;
 			type		   = GL_UNSIGNED_SHORT_4_4_4_4;
 			break;
-		case format::r4g4b4a4_unorm_pack16: break;
-		case format::b5g6r5_unorm_pack16:
+		case format::r5g6b5_unorm_pack16:
 			internalFormat = GL_RGB565;
 			format		   = GL_RGB;
 			type		   = GL_UNSIGNED_SHORT_5_6_5;
 			break;
-		case format::r5g6b5_unorm_pack16: break;
-		case format::a1r5g5b5_unorm_pack16:
+		case format::r5g5b5a1_unorm_pack16:
 			internalFormat = GL_RGB5_A1;
 			format		   = GL_RGBA;
 			type		   = GL_UNSIGNED_SHORT_5_5_5_1;
 			break;
-		case format::r5g5b5a1_unorm_pack16:
-		case format::b5g5r5a1_unorm_pack16: break;
 		case format::r8_unorm:
 			internalFormat = GL_R8;
 			format		   = GL_RED;
@@ -125,7 +118,11 @@ namespace core::gfx::conversion
 			format		   = GL_RED_INTEGER;
 			type		   = GL_BYTE;
 			break;
-		case format::r8_srgb: break;
+		case format::r8_srgb:
+			internalFormat = GL_SR8_EXT;
+			format		   = GL_RED;
+			type		   = GL_UNSIGNED_BYTE;
+			break;
 		case format::r8g8_unorm:
 			internalFormat = GL_RG8;
 			format		   = GL_RG;
@@ -146,8 +143,11 @@ namespace core::gfx::conversion
 			format		   = GL_RG_INTEGER;
 			type		   = GL_BYTE;
 			break;
-		case format::r8g8_srgb: break;
-
+		case format::r8g8_srgb:
+			internalFormat = GL_SRG8_EXT;
+			format		   = GL_RG;
+			type		   = GL_UNSIGNED_BYTE;
+			break;
 		case format::r8g8b8_unorm:
 			internalFormat = GL_RGB8;
 			format		   = GL_RGB;
@@ -173,12 +173,6 @@ namespace core::gfx::conversion
 			format		   = GL_RGB;
 			type		   = GL_UNSIGNED_BYTE;
 			break;
-		case format::b8g8r8_unorm:
-		case format::b8g8r8_snorm:
-		case format::b8g8r8_uint:
-		case format::b8g8r8_sint:
-		case format::b8g8r8_srgb: break;
-
 		case format::r8g8b8a8_unorm:
 			internalFormat = GL_RGBA8;
 			format		   = GL_RGBA;
@@ -204,18 +198,26 @@ namespace core::gfx::conversion
 			format		   = GL_RGBA;
 			type		   = GL_UNSIGNED_BYTE;
 			break;
-		case format::b8g8r8a8_unorm:
-		case format::b8g8r8a8_snorm:
-		case format::b8g8r8a8_uint:
-		case format::b8g8r8a8_sint:
-		case format::b8g8r8a8_srgb:
-		case format::a2r10g10b10_unorm_pack32:
-		case format::a2r10g10b10_uint_pack32:
 		case format::a2b10g10r10_unorm_pack32:
+			internalFormat = GL_RGB10_A2;
+			format		   = GL_RGBA;
+			type		   = GL_UNSIGNED_INT_2_10_10_10_REV;
+			break;
 		case format::a2b10g10r10_uint_pack32:
-		case format::r16_unorm:
-		case format::r16_snorm: break;
-
+			internalFormat = GL_RGB10_A2UI;
+			format		   = GL_RGBA_INTEGER;
+			type		   = GL_UNSIGNED_INT_2_10_10_10_REV;
+			break;
+		/*case format::r16_unorm:
+			internalFormat = GL_R16;
+			format		   = GL_RED;
+			type		   = GL_UNSIGNED_SHORT;
+			break;
+		case format::r16_snorm:
+			internalFormat = GL_R16_SNORM;
+			format		   = GL_RED;
+			type		   = GL_SHORT;
+			break;*/
 		case format::r16_uint:
 			internalFormat = GL_R16UI;
 			format		   = GL_RED_INTEGER;
@@ -231,9 +233,16 @@ namespace core::gfx::conversion
 			format		   = GL_RED;
 			type		   = GL_HALF_FLOAT;
 			break;
-		case format::r16g16_unorm:
-		case format::r16g16_snorm: break;
-
+		/*case format::r16g16_unorm:
+			internalFormat = GL_RG16;
+			format		   = GL_RG;
+			type		   = GL_UNSIGNED_SHORT;
+			break;
+		case format::r16g16_snorm:
+			internalFormat = GL_RG16_SNORM;
+			format		   = GL_RG;
+			type		   = GL_SHORT;
+			break;*/
 		case format::r16g16_uint:
 			internalFormat = GL_RG16UI;
 			format		   = GL_RG_INTEGER;
@@ -249,9 +258,16 @@ namespace core::gfx::conversion
 			format		   = GL_RG;
 			type		   = GL_HALF_FLOAT;
 			break;
-		case format::r16g16b16_unorm:
-		case format::r16g16b16_snorm: break;
-
+		/*case format::r16g16b16_unorm:
+			internalFormat = GL_RGB16;
+			format		   = GL_RGB;
+			type		   = GL_UNSIGNED_SHORT;
+			break;
+		case format::r16g16b16_snorm:
+			internalFormat = GL_RGB16_SNORM;
+			format		   = GL_RGB;
+			type		   = GL_SHORT;
+			break;*/
 		case format::r16g16b16_uint:
 			internalFormat = GL_RGB16UI;
 			format		   = GL_RGB_INTEGER;
@@ -267,9 +283,16 @@ namespace core::gfx::conversion
 			format		   = GL_RGB;
 			type		   = GL_HALF_FLOAT;
 			break;
-		case format::r16g16b16a16_unorm:
-		case format::r16g16b16a16_snorm: break;
-
+		/*case format::r16g16b16a16_unorm:
+			internalFormat = GL_RGBA16;
+			format		   = GL_RGBA;
+			type		   = GL_UNSIGNED_SHORT;
+			break;
+		case format::r16g16b16a16_snorm:
+			internalFormat = GL_RGBA16_SNORM;
+			format		   = GL_RGBA;
+			type		   = GL_SHORT;
+			break;*/
 		case format::r16g16b16a16_uint:
 			internalFormat = GL_RGBA16UI;
 			format		   = GL_RGBA_INTEGER;
@@ -387,84 +410,84 @@ namespace core::gfx::conversion
 			break;
 		case format::bc1_rgb_unorm_block:
 			internalFormat = GL_COMPRESSED_RGB_S3TC_DXT1_EXT;
-			format		   = GL_RGB;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc1_rgb_srgb_block:
 			internalFormat = GL_COMPRESSED_SRGB_S3TC_DXT1_EXT;
-			format		   = GL_RGB;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc1_rgba_unorm_block:
 			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT1_EXT;
-			format		   = GL_RGBA;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc1_rgba_srgb_block:
 			internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT1_EXT;
-			format		   = GL_RGBA;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc2_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc2_srgb_block:
 			internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT;
-			format		   = GL_RGB;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc3_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT3_EXT;
-			format		   = GL_RGBA;
+			internalFormat = GL_COMPRESSED_RGBA_S3TC_DXT5_EXT;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc3_srgb_block:
 			internalFormat = GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT;
-			format		   = GL_RGBA;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc4_unorm_block:
-			internalFormat = GL_COMPRESSED_RED_RGTC1;
-			format		   = GL_RED;
+			internalFormat = GL_COMPRESSED_RED_RGTC1_EXT;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc4_snorm_block:
-			internalFormat = GL_COMPRESSED_SIGNED_RED_RGTC1;
-			format		   = GL_RED;
+			internalFormat = GL_COMPRESSED_SIGNED_RED_RGTC1_EXT;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc5_unorm_block:
-			internalFormat = GL_COMPRESSED_RG_RGTC2;
-			format		   = GL_RG;
+			internalFormat = GL_COMPRESSED_RED_GREEN_RGTC2_EXT;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc5_snorm_block:
-			internalFormat = GL_COMPRESSED_SIGNED_RG_RGTC2;
-			format		   = GL_RG;
+			internalFormat = GL_COMPRESSED_SIGNED_RED_GREEN_RGTC2_EXT;
+			format		   = 0;
 			type		   = 0;
 			break;
-		case format::bc6h_ufloat_block:
+		/*case format::bc6h_ufloat_block:
 			internalFormat = GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB;
-			format		   = GL_RGB;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc6h_sfloat_block:
 			internalFormat = GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB;
-			format		   = GL_RGB;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc7_unorm_block:
 			internalFormat = GL_COMPRESSED_RGBA_BPTC_UNORM_ARB;
-			format		   = GL_RGBA;
+			format		   = 0;
 			type		   = 0;
 			break;
 		case format::bc7_srgb_block:
 			internalFormat = GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB;
-			format		   = GL_RGBA;
+			format		   = 0;
 			type		   = 0;
-			break;
+			break;*/
 		case format::etc2_r8g8b8_unorm_block:
 			internalFormat = GL_COMPRESSED_RGB8_ETC2;
 			format		   = 0;
@@ -516,142 +539,142 @@ namespace core::gfx::conversion
 			type		   = 0;
 			break;
 		case format::astc_4x4_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_4x4;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_4x4_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_4x4_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_4x4_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_5x4_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_5x4;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_5x4_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_5x4_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x4_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_5x5_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_5x5;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_5x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_5x5_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_5x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_6x5_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_6x5;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_6x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_6x5_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_6x6_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_6x6;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_6x6_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_6x6_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_6x6_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_8x5_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_8x5;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_8x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_8x5_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_8x6_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_8x6;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_8x6_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_8x6_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x6_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_8x8_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_8x8;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_8x8_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_8x8_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_8x8_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x5_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x5;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x5_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x5_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x6_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x6;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x6_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x6_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x6_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x8_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x8;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x8_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x8_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x8_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x10_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x10;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_10x10_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_10x10_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_10x10_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_12x10_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_12x10;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_12x10_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_12x10_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x10_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_12x12_unorm_block:
-			internalFormat = GL_COMPRESSED_RGBA_ASTC_12x12;
+			internalFormat = GL_COMPRESSED_RGBA_ASTC_12x12_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
 		case format::astc_12x12_srgb_block:
-			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12;
+			internalFormat = GL_COMPRESSED_SRGB8_ALPHA8_ASTC_12x12_KHR;
 			format		   = 0;
 			type		   = 0;
 			break;
@@ -696,7 +719,6 @@ namespace core::gfx::conversion
 			type		   = 0;
 			break;
 		}
-
 		return internalFormat != -1;
 	}
 
@@ -955,14 +977,14 @@ namespace core::gfx::conversion
 		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT3_EXT: return format::bc2_srgb_block; break;
 		case GL_COMPRESSED_RGBA_S3TC_DXT3_EXT: return format::bc3_unorm_block; break;
 		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: return format::bc3_srgb_block; break;
-		case GL_COMPRESSED_RED_RGTC1: return format::bc4_unorm_block; break;
-		case GL_COMPRESSED_SIGNED_RED_RGTC1: return format::bc4_snorm_block; break;
-		case GL_COMPRESSED_RG_RGTC2: return format::bc5_unorm_block; break;
-		case GL_COMPRESSED_SIGNED_RG_RGTC2: return format::bc5_snorm_block; break;
-		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_ARB: return format::bc6h_ufloat_block; break;
-		case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_ARB: return format::bc6h_sfloat_block; break;
-		case GL_COMPRESSED_RGBA_BPTC_UNORM_ARB: return format::bc7_unorm_block; break;
-		case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_ARB: return format::bc7_srgb_block; break;
+		case GL_COMPRESSED_RED_RGTC1_EXT: return format::bc4_unorm_block; break;
+		case GL_COMPRESSED_SIGNED_RED_RGTC1_EXT: return format::bc4_snorm_block; break;
+		//case GL_COMPRESSED_RG_RGTC2_EXT: return format::bc5_unorm_block; break;
+		//case GL_COMPRESSED_SIGNED_RG_RGTC2_EXT: return format::bc5_snorm_block; break;
+		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT: return format::bc6h_ufloat_block; break;
+		case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_EXT: return format::bc6h_sfloat_block; break;
+		case GL_COMPRESSED_RGBA_BPTC_UNORM_EXT: return format::bc7_unorm_block; break;
+		case GL_COMPRESSED_SRGB_ALPHA_BPTC_UNORM_EXT: return format::bc7_srgb_block; break;
 		case GL_COMPRESSED_RGB8_ETC2: return format::etc2_r8g8b8_unorm_block; break;
 		case GL_COMPRESSED_SRGB8_ETC2: return format::etc2_r8g8b8_srgb_block; break;
 		case GL_COMPRESSED_RGB8_PUNCHTHROUGH_ALPHA1_ETC2: format::etc2_r8g8b8a1_unorm_block; break;

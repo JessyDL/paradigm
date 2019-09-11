@@ -79,6 +79,9 @@ namespace core::data
 		/// \param[in] value the mode to set this instance to.
 		void addressW(core::gfx::sampler_address_mode value);
 
+		void address(core::gfx::sampler_address_mode value) noexcept;
+		void address(core::gfx::sampler_address_mode u, core::gfx::sampler_address_mode v,
+					 core::gfx::sampler_address_mode w) noexcept;
 		/// \brief returns the border color that will be used during texture lookups.
 		/// \returns the border color that will be used during texture lookups.
 		core::gfx::border_color border_color() const;
@@ -163,7 +166,7 @@ namespace core::data
 			core::gfx::sampler_mipmap_mode::nearest;
 		psl::serialization::property<float, const_str("MIP_BIAS", 8)>					m_MipLodBias = 0.0f;
 		psl::serialization::property<float, const_str("MIP_MIN", 7)>						m_MinLod = 0.0f;
-		psl::serialization::property<float, const_str("MIP_MAX", 7)>						m_MaxLod = 0.0f;
+		psl::serialization::property<float, const_str("MIP_MAX", 7)>						m_MaxLod = 14.0f;
 
 		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_U", 9)> m_AddressModeU =
 			core::gfx::sampler_address_mode::repeat;
@@ -175,7 +178,7 @@ namespace core::data
 			core::gfx::border_color::float_transparent_black;
 
 		psl::serialization::property<bool, const_str("ANISOTROPY",10)>					m_AnisotropyEnable = true;
-		psl::serialization::property<float, const_str("MAX_ANISO", 9)>					m_MaxAnisotropy = 2.0f;
+		psl::serialization::property<float, const_str("MAX_ANISO", 9)>					m_MaxAnisotropy = 8.0f;
 
 		psl::serialization::property<bool, const_str("COMPARE", 7)>						m_CompareEnable = false;
 		psl::serialization::property<core::gfx::compare_op, const_str("COMPARE_OPERATION", 17)>	m_CompareOp = core::gfx::compare_op::never;

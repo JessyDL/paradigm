@@ -22,13 +22,14 @@ namespace psl::ecs
 
 	struct info
 	{
-		info(const state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime)
-			: state(state), dTime(dTime), rTime(rTime), command_buffer(state){};
+		info(const state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, size_t frame) noexcept
+			: state(state), dTime(dTime), rTime(rTime), command_buffer(state), tick(tick){};
 
 		const state& state;
 		command_buffer command_buffer;
 		std::chrono::duration<float> dTime;
 		std::chrono::duration<float> rTime;
+		size_t tick;
 	};
 } // namespace psl::ecs
 

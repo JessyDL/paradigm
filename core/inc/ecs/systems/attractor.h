@@ -20,10 +20,12 @@ namespace core::ecs::components
 namespace core::ecs::systems
 {
 	auto attractor =
-		[](psl::ecs::info& info, psl::ecs::pack<psl::ecs::partial, const core::ecs::components::transform, core::ecs::components::velocity>
+		[](psl::ecs::info& info,
+		   psl::ecs::pack<psl::ecs::partial, const core::ecs::components::transform, core::ecs::components::velocity,
+						  psl::ecs::filter<core::ecs::components::dynamic_tag>>
 			   movables,
 		   psl::ecs::pack<psl::ecs::full, const core::ecs::components::transform,
-						   const core::ecs::components::attractor>
+						  const core::ecs::components::attractor>
 			   attractors) {
 			using namespace psl::math;
 

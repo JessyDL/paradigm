@@ -52,6 +52,7 @@ namespace core::data
 				: m_Enabled(enabled), m_Binding(binding), m_ColorBlendFactorSrc(srcColorBlend),
 				  m_ColorBlendFactorDst(dstColorBlend), m_AlphaBlendFactorSrc(srcAlphaBlend),
 				  m_AlphaBlendFactorDst(dstAlphaBlend), m_ColorComponents(colorFlags){};
+			blendstate(uint32_t binding) : m_Enabled(false), m_Binding(binding){};
 			blendstate(){};
 			~blendstate()				  = default;
 			blendstate(const blendstate&) = default;
