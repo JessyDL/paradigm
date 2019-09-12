@@ -18,8 +18,10 @@ sampler::sampler(core::resource::cache& cache, const core::resource::metadata& m
 	glGenSamplers(1, &m_Sampler);
 
 	// todo: MIN and MAG filter have no mipmapmode equivalent in GLES
-	glSamplerParameteri(m_Sampler, GL_TEXTURE_MIN_FILTER, to_gles(sampler_data->filter_min()));
-	glSamplerParameteri(m_Sampler, GL_TEXTURE_MAG_FILTER, to_gles(sampler_data->filter_max()));
+	glSamplerParameteri(m_Sampler, GL_TEXTURE_MIN_FILTER,
+						to_gles(sampler_data->filter_min(), sampler_data->mip_mode()));
+	glSamplerParameteri(m_Sampler, GL_TEXTURE_MAG_FILTER,
+						to_gles(sampler_data->filter_max(), sampler_data->mip_mode()));
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_WRAP_S, to_gles(sampler_data->addressU()));
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_WRAP_T, to_gles(sampler_data->addressV()));
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_WRAP_R, to_gles(sampler_data->addressW()));

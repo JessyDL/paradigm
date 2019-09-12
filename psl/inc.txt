@@ -83,6 +83,8 @@ async/token.h
 async/details/description.h
 async/details/packet.h
 async/details/task.h
+
+noise/perlin.h
 )
 
 list(TRANSFORM INC PREPEND inc/psl/)

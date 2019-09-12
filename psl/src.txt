@@ -24,4 +24,6 @@ src/ecs/command_buffer.cpp
 
 src/async/scheduler.cpp
 src/async/token.cpp
+
+src/noise/perlin.cpp
 )
