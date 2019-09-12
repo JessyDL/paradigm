@@ -1,25 +1,12 @@
 #pragma once
 #include "entity.h"
 #include "selectors.h"
+#include "details/selectors.h"
 
 
 namespace psl::ecs
 {
 	class state;
-
-	/// \brief allows packs to exist in a partial state
-	///
-	/// Special tag type that signifies that a pack can be split
-	/// up into smaller sub-packs by the scheduler when ticking systems
-	struct partial
-	{};
-
-	/// \brief requires a pack to be whole when filled in
-	///
-	/// Certain packs require their data to be fully available to the system.
-	/// Using this tag you can guarantee this is the case.
-	struct full
-	{};
 
 	/// \brief an iterable container to work with components and entities.
 	template <typename... Ts>

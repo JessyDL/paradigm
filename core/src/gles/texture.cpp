@@ -26,7 +26,6 @@
 #endif
 
 
-
 using namespace core::resource;
 using namespace core::igles;
 
@@ -55,11 +54,13 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 	}
 	else
 	{
-		
+		auto result = cache.library().load(m_Meta->ID());
+		auto data   = (result && !result.value().empty()) ? (void*)result.value().data() : nullptr;
+
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
-		case gfx::image_type::planar_2D: create_2D(); break;
+		case gfx::image_type::planar_2D: create_2D(data); break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
 		default: debug_break();
 		}
@@ -129,14 +130,37 @@ void texture::load_2D()
 	glBindTexture(GL_TEXTURE_2D, 0);
 }
 
-void texture::create_2D() 
+#include <malloc.h>
+
+void texture::create_2D(void* data)
 {
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);
 
 	GLint internalFormat, format, type;
 	gfx::conversion::to_gles(m_Meta->format(), internalFormat, format, type);
+	auto pixel_storage = gfx::packing_size(m_Meta->format());
+	if(data != nullptr && pixel_storage != 4)
+	{
+		glPixelStorei(GL_UNPACK_ALIGNMENT, pixel_storage);
+	}
 
-	glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, m_Meta->width(), m_Meta->height(), 0, format, type, nullptr);
+	glTexStorage2D(GL_TEXTURE_2D, 1, internalFormat, m_Meta->width(), m_Meta->height());
+
+	if(data != nullptr)
+	{
+		if(type != 0)
+		{
+			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_Meta->width(), m_Meta->height(), format, type, data);
+		}
+		else
+		{
+			assert_debug_break(false);
+		}
+
+		if(pixel_storage != 4) glPixelStorei(GL_UNPACK_ALIGNMENT, 4);
+	}
+
 	glBindTexture(GL_TEXTURE_2D, 0);
+	glGetError();
 }

@@ -155,4 +155,22 @@
       <Item Name="[description]"> m_Scheduler.m_Value->m_Invocables[m_Token - m_Scheduler.m_Value->m_TokenOffset].m_Description</Item>
     </Expand>
   </Type>
+
+  <Type Name="psl::tvec&lt;*,*&gt;">
+    <Expand>
+      <ExpandedItem>value</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="psl::tquat&lt;*&gt;">
+    <Expand>
+      <ExpandedItem>value</ExpandedItem>
+    </Expand>
+  </Type>
+
+  <Type Name="psl::tmat&lt;*,*,*&gt;">
+    <Expand>
+      <ExpandedItem>value</ExpandedItem>
+    </Expand>
+  </Type>
 </AutoVisualizer>

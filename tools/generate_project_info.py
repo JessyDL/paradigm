@@ -36,7 +36,7 @@ def all_authors():
     list(sorted(authors.items()))
     return authors.keys()
     
-def generate_header():
+def generate_header(force = False):
     version = run_command(["git", "tag", "-l", "--sort=-v:refname"])
     version = version.split('\n')[0]
     major, minor, patch = version.split('.')
@@ -45,6 +45,14 @@ def generate_header():
     utc_timestamp = datetime.utcfromtimestamp(int(unix_timestamp)).strftime('%Y-%m-%d %H:%M:%S')
     filepath = os.path.dirname(os.path.realpath(__file__)) +"/../core/inc/paradigm.hpp"
     authors = all_authors()
+    if os.path.exists(filepath) and not force:
+        fObj = open(filepath, 'r')
+        content = fObj.read()
+        if content.find("#define VERSION_SHA1 " + sha1):
+            print("header file up to date")
+            return
+        print("header file out of date, updating...")
+        fObj.close()
     fObj = open(filepath, 'w+')
     fObj.write("// generated header file don't edit.\n")
     fObj.write("#pragma once\n#include \"psl/ustring.h\"\n")
@@ -67,3 +75,6 @@ def generate_header():
     fObj.write("\n}};")
     fObj.truncate()
     fObj.close()
+
+if __name__ == "__main__":
+    generate_header()

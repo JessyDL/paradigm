@@ -3,6 +3,7 @@
 #include "resource/resource.hpp"
 #include "psl/meta.h"
 #include "logging.h"
+#include "paradigm.hpp"
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
@@ -26,8 +27,14 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 	{
 	case VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT: core::ivk::log->info(message.c_str()); break;
 	case VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT: core::ivk::log->warn(message.c_str()); break;
-	case VK_DEBUG_REPORT_WARNING_BIT_EXT: core::ivk::log->warn(message.c_str()); core::ivk::log->flush();break;
-	case VK_DEBUG_REPORT_ERROR_BIT_EXT: core::ivk::log->error(message.c_str()); core::ivk::log->flush(); break;
+	case VK_DEBUG_REPORT_WARNING_BIT_EXT:
+		core::ivk::log->warn(message.c_str());
+		core::ivk::log->flush();
+		break;
+	case VK_DEBUG_REPORT_ERROR_BIT_EXT:
+		core::ivk::log->error(message.c_str());
+		core::ivk::log->flush();
+		break;
 	case VK_DEBUG_REPORT_DEBUG_BIT_EXT: core::ivk::log->debug(message.c_str()); break;
 	case VK_DEBUG_REPORT_INFORMATION_BIT_EXT:
 	default: core::ivk::log->info(message.c_str()); break;
@@ -94,10 +101,10 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	if(volkInitialize() != VkResult::VK_SUCCESS)
 	{
 		core::ivk::log->critical("could not initialize volk, exiting now");
-		exit(1);	
+		exit(1);
 	}
 #endif
-	
+
 	uint32_t extensionCount = 0;
 	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
 	std::vector<VkExtensionProperties> extensions(extensionCount);
@@ -130,9 +137,12 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 
 	vk::ApplicationInfo appInfo;
 	appInfo.pApplicationName = name.data();
-	appInfo.pEngineName		 = "Paradigm Engine";
-	appInfo.engineVersion	= 0;
-	appInfo.apiVersion		 = VK_MAKE_VERSION(1, 1, 82);
+	appInfo.pEngineName		 = APPLICATION_NAME.data();
+	assert_debug_break(VERSION_MAJOR < std::pow(2, 10));
+	assert_debug_break(VERSION_MINOR < std::pow(2, 10));
+	assert_debug_break(VERSION_PATCH < std::pow(2, 12));
+	appInfo.engineVersion = (((VERSION_MAJOR) << 22) | ((VERSION_MINOR) << 12) | (VERSION_PATCH));
+	appInfo.apiVersion	= VK_VERSION_LATEST_PATCH;
 
 	vk::InstanceCreateInfo instanceCI;
 	instanceCI.pApplicationInfo = &appInfo;
@@ -508,7 +518,7 @@ context::~context()
 	m_Instance.destroy();
 #if defined(VK_DYNAMIC_DISPATCH_VOLK)
 	// todo: get rid of volk that doesn't even clean its own memory..
-	//volkFree();
+	// volkFree();
 #endif
 	core::ivk::log->info("vulkan context destroyed");
 }
@@ -520,7 +530,7 @@ void context::init_debug()
 		PFN_vkCreateDebugReportCallbackEXT fnp_vkCreateDebugReportCallbackEXT =
 			reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
 				vkGetInstanceProcAddr(m_Instance, "vkCreateDebugReportCallbackEXT"));
-		//PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
+		// PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
 		//	reinterpret_cast<PFN_vkDebugReportMessageEXT>(vkGetInstanceProcAddr(m_Instance, "vkDebugReportMessageEXT"));
 
 		VkDebugReportCallbackCreateInfoEXT callbackCreateInfo;
@@ -557,7 +567,7 @@ bool context::queue_index(vk::QueueFlags flag, vk::Queue& queue, uint32_t& queue
 {
 	// Find a queue that supports graphics operations
 	std::vector<vk::QueueFamilyProperties> queueProps = m_PhysicalDevice.getQueueFamilyProperties();
-	std::optional<uint32_t> secondBest								  = std::nullopt;
+	std::optional<uint32_t> secondBest				  = std::nullopt;
 	for(queueIndex = 0; queueIndex < queueProps.size(); queueIndex++)
 	{
 		if(queueProps[queueIndex].queueFlags & flag) secondBest = queueIndex;
@@ -634,7 +644,7 @@ void context::init_device()
 
 
 	m_PhysicalDeviceProperties = m_PhysicalDevice.getProperties();
-	
+
 	m_PhysicalDeviceFeatures		 = m_PhysicalDevice.getFeatures();
 	m_PhysicalDeviceMemoryProperties = m_PhysicalDevice.getMemoryProperties();
 

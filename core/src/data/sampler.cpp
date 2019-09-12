@@ -1,13 +1,14 @@
 ﻿#include "data/sampler.h"
 #include "resource/resource.hpp"
+#include <fmt\compile.h>
 using namespace psl;
 using namespace core::data;
 using namespace core::resource;
 using namespace core;
 
-sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept{
-
-}
+sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile) noexcept
+{}
 
 
 bool sampler::mipmaps() const { return m_MipMapped.value; }
@@ -33,6 +34,21 @@ void sampler::addressV(gfx::sampler_address_mode value) { m_AddressModeV.value =
 
 gfx::sampler_address_mode sampler::addressW() const { return m_AddressModeW.value; }
 void sampler::addressW(gfx::sampler_address_mode value) { m_AddressModeW.value = value; }
+
+void sampler::address(core::gfx::sampler_address_mode value) noexcept
+{
+	m_AddressModeU.value = value;
+	m_AddressModeV.value = value;
+	m_AddressModeW.value = value;
+}
+
+void sampler::address(core::gfx::sampler_address_mode u, core::gfx::sampler_address_mode v,
+					  core::gfx::sampler_address_mode w) noexcept
+{
+	m_AddressModeU.value = u;
+	m_AddressModeV.value = v;
+	m_AddressModeW.value = w;
+}
 
 gfx::border_color sampler::border_color() const { return m_BorderColor.value; }
 void sampler::border_color(gfx::border_color value) { m_BorderColor.value = value; }

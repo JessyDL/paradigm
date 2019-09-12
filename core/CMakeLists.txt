@@ -157,16 +157,21 @@ target_include_directories(${LOCAL_PROJECT}
 		${WSI_INC}
 )
 
+# add_custom_command(
+	# COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
+	# COMMENT "Generating headers for Paradigm"
+	# OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/inc/paradigm.hpp
+	# DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py ${CMAKE_CURRENT_SOURCE_DIR}/../.git/ORIG_HEAD
+# )
+add_custom_command(TARGET ${LOCAL_PROJECT} PRE_BUILD
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
+	COMMENT "Generating headers for Paradigm")
+
+
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})
 endif()
-
-add_custom_target(
-	generate_header ALL
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
-	COMMENT "Generating headers for Paradigm"
-)
-add_dependencies(${LOCAL_PROJECT} generate_header)
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 

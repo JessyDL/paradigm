@@ -56,7 +56,7 @@ namespace core::ivk
 
 	  private:
 		void load_2D();
-		void create_2D();
+		void create_2D(void* data = nullptr);
 		void load_cube();
 
 		gli::texture* m_TextureData;

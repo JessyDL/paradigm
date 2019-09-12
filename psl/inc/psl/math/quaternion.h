@@ -1,6 +1,7 @@
 #pragma once
 #include <cstddef>
 #include <cmath> // std::sqrt, etc..
+#include "psl/static_array.h"
 
 namespace psl
 {
@@ -19,7 +20,7 @@ namespace psl
 			: value({std::move(x), std::move(y), std::move(z), std::move(w)}){};
 		constexpr tquat(const precision_t& value) noexcept : value({value, value, value, value}){};
 
-		constexpr tquat(const std::array<precision_t, 3>& vec, const precision_t& w) noexcept
+		constexpr tquat(const psl::static_array<precision_t, 3>& vec, const precision_t& w) noexcept
 			: value({vec[0], vec[1], vec[2], w})
 		{};
 		// ---------------------------------------------
@@ -50,7 +51,7 @@ namespace psl
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		std::array<precision_t, 4> value;
+		psl::static_array<precision_t, 4> value;
 	};
 
 	using quat	= tquat<float>;
