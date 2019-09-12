@@ -45,6 +45,7 @@ ecs/systems/fly.cpp
 ecs/systems/render.cpp
 ecs/systems/gpu_camera.cpp
 ecs/systems/lighting.cpp
+ecs/systems/text.cpp
 )
 
 list(TRANSFORM SRC PREPEND src/)

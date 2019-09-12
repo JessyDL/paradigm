@@ -58,6 +58,7 @@ ecs/systems/attractor.h
 ecs/systems/movement.h
 ecs/systems/gpu_camera.h
 ecs/systems/lighting.h
+ecs/systems/text.h
 
 ecs/components/camera.h
 ecs/components/transform.h
@@ -66,6 +67,7 @@ ecs/components/input_tag.h
 ecs/components/dead_tag.h
 ecs/components/lifetime.h
 ecs/components/velocity.h
+ecs/components/text.h
 
 utility/geometry.h
 )
