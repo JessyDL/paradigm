@@ -82,7 +82,62 @@ namespace psl::math
 		return quat * vec;
 	}
 
+	template <typename precision_t>
+	constexpr inline precision_t fade(precision_t t) noexcept
+	{
+		return t * t * t * (t * (t * precision_t{6} - precision_t{15}) + precision_t{10});
+	}
 
+	template <typename hash_t, typename precision_t>
+	constexpr inline precision_t grad(hash_t hash, precision_t x, precision_t y, precision_t z)
+	{
+		hash_t h = hash & 15;
+		// Convert lower 4 bits of hash into 12 gradient directions
+		precision_t u = h < 8 ? x : y, v = h < 4 ? y : h == 12 || h == 14 ? x : z;
+		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+	}
+
+	template <typename hash_t, typename precision_t>
+	constexpr inline precision_t grad(hash_t hash, precision_t x, precision_t y)
+	{
+		hash_t h = hash & 15;
+		// Convert lower 4 bits of hash into 12 gradient directions
+		precision_t u = h < 8 ? x : y, v = h < 4 ? y : h == 12 || h == 14 ? x : 1.0f;
+		return ((h & 1) == 0 ? u : -u) + ((h & 2) == 0 ? v : -v);
+	}
+
+	template <typename precision_t>
+	constexpr inline precision_t lerp(precision_t t, precision_t a, precision_t b) noexcept
+	{
+		return a + t * (b - a);
+	}
+	template <typename precision_t>
+	constexpr inline psl::tvec<precision_t, 1> lerp(precision_t t, psl::tvec<precision_t, 1> a,
+													   psl::tvec<precision_t, 1> b) noexcept
+	{
+		return a + t * (b - a);
+	}
+
+	template <typename precision_t>
+	constexpr inline psl::tvec<precision_t, 2> lerp(precision_t t, psl::tvec<precision_t, 2> a,
+													psl::tvec<precision_t, 2> b) noexcept
+	{
+		return {lerp(t, a[0], b[0]), lerp(t, a[1], b[1])};
+	}
+
+	template <typename precision_t>
+	constexpr inline psl::tvec<precision_t, 3> lerp(precision_t t, psl::tvec<precision_t, 3> a,
+													psl::tvec<precision_t, 3> b) noexcept
+	{
+		return {lerp(t, a[0], b[0]), lerp(t, a[1], b[1]), lerp(t, a[2], b[2])};
+	}
+
+	template <typename precision_t>
+	constexpr inline psl::tvec<precision_t, 4> lerp(precision_t t, psl::tvec<precision_t, 4> a,
+													psl::tvec<precision_t, 4> b) noexcept
+	{
+		return {lerp(t, a[0], b[0]), lerp(t, a[1], b[1]), lerp(t, a[2], b[2]), lerp(t, a[3], b[3])};
+	}
 	template <typename precision_t>
 	constexpr static precision_t saturate(precision_t value) noexcept
 	{
@@ -107,6 +162,30 @@ namespace psl::math
 	constexpr static precision_t floor(precision_t value) noexcept
 	{
 		return std::floor(value);
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tvec<precision_t, 1> floor(psl::tvec<precision_t, 1> value) noexcept
+	{
+		return std::floor(value);
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tvec<precision_t, 2> floor(psl::tvec<precision_t, 2> value) noexcept
+	{
+		return {floor(value[0]), floor(value[1])};
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tvec<precision_t, 3> floor(psl::tvec<precision_t, 3> value) noexcept
+	{
+		return {floor(value[0]), floor(value[1]), floor(value[2])};
+	}
+
+	template <typename precision_t>
+	constexpr static psl::tvec<precision_t, 4> floor(psl::tvec<precision_t, 4> value) noexcept
+	{
+		return {floor(value[0]), floor(value[1]), floor(value[2]), floor(value[3])};
 	}
 
 	template <typename precision_t, typename precision_N_t>
@@ -164,6 +243,8 @@ namespace psl::math
 		constexpr auto remainder = value % N;
 		return value - remainder;
 	}
+
+
 } // namespace psl::math
 
 
