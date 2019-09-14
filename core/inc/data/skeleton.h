@@ -2,6 +2,7 @@
 #include "fwd/resource/resource.h"
 #include "psl/serialization.h"
 #include "psl/array.h"
+#include "psl/array_view.h"
 #include "psl/math/matrix.h"
 #include "geometry.h"
 
@@ -26,6 +27,18 @@ namespace core::data
 			bone& operator=(const bone& other) = delete;
 			bone& operator=(bone&& other) noexcept = delete;
 			size_t size() const noexcept;
+
+			psl::string_view name() const noexcept;
+			void name(psl::string name) noexcept;
+
+			const psl::mat4x4& inverse_bindpose() const noexcept;
+			void inverse_bindpose(psl::mat4x4 value) noexcept;
+
+			psl::array_view<index_size_t> weight_ids() const noexcept;
+			void weight_ids(psl::array<index_size_t> value) noexcept;
+
+			psl::array_view<float> weights() const noexcept;
+			void weights(psl::array<float> value) noexcept;
 		  private:
 			/// \brief serialization method to be used by the serializer when writing this container to the disk.
 			/// \param[in] serializer the serialization object, consult the serialization namespace for more
@@ -60,6 +73,8 @@ namespace core::data
 		bool has_bones() const noexcept;
 		size_t size() const noexcept;
 
+		const psl::array<bone>& bones() const noexcept;
+		void bones(psl::array<bone> bones) noexcept;
 	  private:
 		/// \brief serialization method to be used by the serializer when writing this container to the disk.
 		/// \param[in] serializer the serialization object, consult the serialization namespace for more information.
