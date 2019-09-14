@@ -99,14 +99,9 @@ class File(object):
     @patch_file("core/core.vcxproj")
     def patch_msvc(self):
         self.content = re.sub(r'(<ObjectFileName.*?>)(.*?)(</ObjectFileName>)', r'\1$(IntDir)%(Directory)\3', self.content)
-        
+
 def patch(root):
-    patch_includes(root)
-    patch_msvc(root)
-    
-def patch_includes(root):
-    root = root.replace('\\', '/') + "/_deps/"
-    root = root.replace('//', '/')
+    root = root.replace('\\', '/')
     files = []
 
     for r, d, f in os.walk(root):
@@ -116,13 +111,6 @@ def patch_includes(root):
     for f in files:
         fObj = File(f.replace('\\', '/'))
         fObj.patch()
-
-def patch_msvc(root):
-    root = root.replace('\\', '/')
-    root = root.replace('//', '/')
-    
-    fObj = File(root + "/core/core.vcxproj")
-    fObj.patch()
     
 if __name__ == "__main__":
     if len(sys.argv) > 1:
