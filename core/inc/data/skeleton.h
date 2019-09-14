@@ -25,8 +25,21 @@ namespace core::data
 			bone(bone&& other) noexcept = delete;
 			bone& operator=(const bone& other) = delete;
 			bone& operator=(bone&& other) noexcept = delete;
-			size_t size() const noexcept; // return m_WeightIDs.size()
+			size_t size() const noexcept;
 		  private:
+			/// \brief serialization method to be used by the serializer when writing this container to the disk.
+			/// \param[in] serializer the serialization object, consult the serialization namespace for more
+			/// information.
+			template <typename S>
+			void serialize(S& serializer)
+			{
+				serializer << m_Name << m_InverseBindPoseMatrix << m_WeightIDs << m_WeighValue;
+			};
+
+			/// \brief serialization name to be used by the serializer when writing and reading this container to and
+			/// from disk.
+			static constexpr const char serialization_name[5]{"BONE"};
+
 			prop<psl::mat4x4, const_str("INV_BIND_POSE", 13)> m_InverseBindPoseMatrix;
 			prop<psl::array<index_size_t>, const_str("WEIGHT_ID", 9)> m_WeightIDs; // vertex id for the given weight
 			prop<psl::array<float>, const_str("WEIGHT_VALUE", 12)>
@@ -48,6 +61,17 @@ namespace core::data
 		size_t size() const noexcept;
 
 	  private:
+		/// \brief serialization method to be used by the serializer when writing this container to the disk.
+		/// \param[in] serializer the serialization object, consult the serialization namespace for more information.
+		template <typename S>
+		void serialize(S& serializer)
+		{
+			serializer << m_Bones;
+		};
+
+		/// \brief serialization name to be used by the serializer when writing and reading this container to and from
+		/// disk.
+		static constexpr const char serialization_name[9]{"SKELETON"};
 		prop<psl::array<bone>, const_str("BONES", 5)> m_Bones;
 	};
 } // namespace core::data

@@ -284,3 +284,12 @@ if(NOT PE_SOURCE_ONLY)
 else()
 	message("did not compile the project by request")
 endif()
+
+SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0)
+find_package(PythonInterp REQUIRED)
+
+message("Patching files in ${CMAKE_BINARY_DIR}")
+EXECUTE_PROCESS(
+			COMMAND ${PYTHON_EXECUTABLE} tools/patch.py ${CMAKE_BINARY_DIR}
+			WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+		)
