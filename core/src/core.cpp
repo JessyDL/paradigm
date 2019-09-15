@@ -65,8 +65,9 @@
 #include "ecs/systems/attractor.h"
 #include "ecs/systems/movement.h"
 #include "ecs/systems/lighting.h"
+#include "ecs/systems/text.h"
 
-#include "stdb_truetype.h"
+#include "psl/noise/perlin.h"
 
 using namespace core;
 using namespace core::resource;
@@ -106,7 +107,7 @@ handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<co
 		// binding.texture()
 	}
 	matData->stages(stages);
-
+	matData->blend_states({core::data::material::blendstate(0)});
 	auto material = cache.create<core::gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
 
 	return material;
@@ -117,8 +118,8 @@ handle<core::gfx::material> setup_gfx_depth_material(resource::cache& cache, han
 													 handle<core::gfx::pipeline_cache> pipeline_cache,
 													 handle<core::gfx::buffer> matBuffer)
 {
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("34439c38-a576-74ad-bf08-8b9e4f888a91"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("5c492d53-d380-d7da-26d0-de1f6a37a795"_uid).value();
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("ae4990d1-afa1-3443-3780-53ba7e667880"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("764e7814-ce91-34ea-1a1f-1cd8d49a82b9"_uid).value();
 
 
 	auto matData = cache.create<data::material>();
@@ -623,7 +624,6 @@ auto scaleSystem =
 		}
 	};
 
-
 #if defined(PLATFORM_ANDROID)
 static bool initialized = false;
 
@@ -670,6 +670,14 @@ void android_main(android_app* application)
 }
 #elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
 
+struct character_data
+{
+	// uint32_t size;
+	int32_t height;
+	int32_t width;
+	psl::ivec4 bounds;
+};
+
 int entry(gfx::graphics_backend backend)
 {
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
@@ -686,7 +694,7 @@ int entry(gfx::graphics_backend backend)
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
 
 	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-
+	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
 	auto surface_handle = cache.create<core::os::surface>(window_data);
 	if(!surface_handle)
 	{
@@ -694,7 +702,7 @@ int entry(gfx::graphics_backend backend)
 		return -1;
 	}
 
-	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t{APPLICATION_FULL_NAME});
+	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t{APPLICATION_NAME});
 
 	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle);
 
@@ -714,7 +722,7 @@ int entry(gfx::graphics_backend backend)
 	auto matBufferData = cache.create<core::data::buffer>(
 		core::gfx::memory_usage::storage_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 32, static_cast<uint64_t>(storage_buffer_align),
+		memory::region{1024 * 1024 * 128, static_cast<uint64_t>(storage_buffer_align),
 					   new memory::default_allocator(false)});
 	auto matBuffer = cache.create<core::gfx::buffer>(context_handle, matBufferData);
 
@@ -791,15 +799,22 @@ int entry(gfx::graphics_backend backend)
 	auto pipeline_cache = cache.create<core::gfx::pipeline_cache>(context_handle);
 
 	psl::array<core::resource::handle<core::gfx::material>> materials;
+	core::resource::handle<core::gfx::material> depth_material =
+		setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer);
 
 	materials.emplace_back(
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
-						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid));
+						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e14da8e3-1e03-a635-7889-a1b0f27f36bb"_uid));
 	materials.emplace_back(
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
-						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "7f24e25c-8b94-4da4-8a31-493815889698"_uid));
+						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3b47e2f3-1faa-f668-65d6-4aa32d04dab4"_uid));
+	materials.emplace_back(
+		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "fb47fd91-8bd8-ba29-928f-9666404a399f"_uid));
+	materials.emplace_back(
+		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
 
-	materials.emplace_back(setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer));
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	core::resource::handle<gfx::buffer> stagingBuffer{};
@@ -816,7 +831,7 @@ int entry(gfx::graphics_backend backend)
 	auto instanceBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+		memory::region{1024 * 1024 * 512, 4, new memory::default_allocator(false)});
 	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
@@ -825,7 +840,13 @@ int entry(gfx::graphics_backend backend)
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
 	bundles[1]->set(materials[1], 2000);
-	bundles[1]->set(materials[2], 1000);
+	bundles[1]->set(depth_material, 1000);
+
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
+	bundles[2]->set(materials[2], 2000);
+
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
+	bundles[3]->set(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
@@ -860,23 +881,28 @@ int entry(gfx::graphics_backend backend)
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
-	ECSState.declare(core::ecs::systems::geometry_instance);
+	// ECSState.declare(core::ecs::systems::geometry_instance);
+	ECSState.declare(core::ecs::systems::static_geometry_instance);
 
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
 		swapchain_pass,			  context_handle,		 surface_handle};
+
+	core::ecs::systems::text text{ECSState,	cache,		   context_handle, vertexBuffer,
+								  indexBuffer, pipeline_cache, matBuffer,	  instanceBuffer};
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 	size_t iterations = 25600;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 
-	ECSState.create(
+	/*ECSState.create(
 		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
 		[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
 			renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
 						  geometryHandles[std::rand() % geometryHandles.size()]};
 		},
+		psl::ecs::empty<core::ecs::components::dynamic_tag>{},
 		psl::ecs::empty<core::ecs::components::transform>{},
 		[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
 		[&size_steps](core::ecs::components::velocity& target) {
@@ -884,10 +910,71 @@ int entry(gfx::graphics_backend backend)
 													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
 													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
 					  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
-		});
+		});*/
 
 	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
 					core::ecs::components::light{{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
+
+	auto index  = 0;
+	auto index2 = 0;
+	auto size_x = 700;
+	auto size_y = 700;
+
+	psl::noise::perlin noise{};
+
+	std::array<int, 4> matusage{0};
+
+	ECSState.create(
+		size_x * size_y,
+		[&bundles, &geometryHandles, &index2, size_x, size_y, &noise,
+		 &matusage](core::ecs::components::renderable& renderable) {
+			auto x = index2 % size_x;
+			auto y = (index2 + (size_x - x)) / size_y;
+
+			auto grass = static_cast<int>(std::roundf(static_cast<float>(noise.noise(
+				psl::vec2{static_cast<float>(x) / size_x * 7.75f, static_cast<float>(y) / size_y * 8.25f}, 8))));
+
+			auto height = static_cast<float>(
+				noise.noise(psl::vec2{static_cast<float>(x) / size_x, static_cast<float>(y) / size_y}, 32));
+
+			auto rock_offset = height * 2.0f - 0.5f;
+			auto rock =
+				static_cast<float>(noise.noise(
+					psl::vec2{static_cast<float>(x) / size_x * -6, static_cast<float>(y) / size_y * -4.5f}, 32)) +
+				rock_offset;
+			height	= height * 80;
+			int index = 0;
+			index	 = (grass == 0) ? 1 : 2;
+			if(rock >= 1.0f)
+			{
+				index = 3;
+			}
+			if(height <= 15.0f) index = 0;
+
+			++matusage[index];
+			renderable = {bundles[index], geometryHandles[4]};
+			++index2;
+		},
+		[&index, size_x, size_y, &noise](core::ecs::components::transform& value) {
+			auto x = index % size_x;
+			auto y = (index + (size_x - x)) / size_y;
+
+			auto height = static_cast<float>(
+				noise.noise(psl::vec2{static_cast<float>(x) / size_x, static_cast<float>(y) / size_y}, 32));
+
+			height = std::max(height, 15.0f / 80.0f);
+			height	= (std::pow(height + 1.0f, 3) - 1.0f) * 30.0f;
+
+			value.position = {static_cast<float>(x), height, static_cast<float>(y)};
+			value.scale	= {1};
+			value.rotation = psl::quat::identity;
+			++index;
+		});
+
+	std::string str{};
+	str.append("material 0: " + std::to_string(matusage[0]) + " material 1: " + std::to_string(matusage[1]) +
+			   " material 2: " + std::to_string(matusage[2]) + " material 3: " + std::to_string(matusage[3]));
+	ECSState.create(1, core::ecs::components::text{str.data()});
 
 	while(surface_handle->tick())
 	{
@@ -909,12 +996,13 @@ int entry(gfx::graphics_backend backend)
 
 		core::profiler.scope_begin("creating entities");
 
-		ECSState.create(
+		/*ECSState.create(
 			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
 			[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
 				renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
 							  geometryHandles[std::rand() % geometryHandles.size()]};
 			},
+			psl::ecs::empty<core::ecs::components::dynamic_tag> {},
 			psl::ecs::empty<core::ecs::components::transform>{},
 			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
 			[&size_steps](core::ecs::components::velocity& target) {
@@ -954,7 +1042,7 @@ int entry(gfx::graphics_backend backend)
 					});
 			}
 			--iterations;
-		}
+		}*/
 		core::profiler.scope_end();
 
 		/*if(iterations == 25590)

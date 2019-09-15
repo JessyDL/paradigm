@@ -979,8 +979,8 @@ namespace core::gfx::conversion
 		case GL_COMPRESSED_SRGB_ALPHA_S3TC_DXT5_EXT: return format::bc3_srgb_block; break;
 		case GL_COMPRESSED_RED_RGTC1_EXT: return format::bc4_unorm_block; break;
 		case GL_COMPRESSED_SIGNED_RED_RGTC1_EXT: return format::bc4_snorm_block; break;
-		//case GL_COMPRESSED_RG_RGTC2_EXT: return format::bc5_unorm_block; break;
-		//case GL_COMPRESSED_SIGNED_RG_RGTC2_EXT: return format::bc5_snorm_block; break;
+		// case GL_COMPRESSED_RG_RGTC2_EXT: return format::bc5_unorm_block; break;
+		// case GL_COMPRESSED_SIGNED_RG_RGTC2_EXT: return format::bc5_snorm_block; break;
 		case GL_COMPRESSED_RGB_BPTC_UNSIGNED_FLOAT_EXT: return format::bc6h_ufloat_block; break;
 		case GL_COMPRESSED_RGB_BPTC_SIGNED_FLOAT_EXT: return format::bc6h_sfloat_block; break;
 		case GL_COMPRESSED_RGBA_BPTC_UNORM_EXT: return format::bc7_unorm_block; break;
@@ -1117,12 +1117,22 @@ namespace core::gfx::conversion
 		return GL_NEVER;
 	}
 
-	inline GLuint to_gles(filter value) noexcept
+	inline GLuint to_gles(filter value, sampler_mipmap_mode mode) noexcept
 	{
 		switch(value)
 		{
-		case filter::nearest: return GL_NEAREST; break;
-		case filter::linear: return GL_LINEAR; break;
+		case filter::nearest:
+			switch(mode)
+			{
+			case sampler_mipmap_mode::linear: return GL_NEAREST_MIPMAP_LINEAR;
+			case sampler_mipmap_mode::nearest: return GL_NEAREST_MIPMAP_NEAREST;
+			}
+		case filter::linear:
+			switch(mode)
+			{
+			case sampler_mipmap_mode::linear: return GL_LINEAR_MIPMAP_LINEAR;
+			case sampler_mipmap_mode::nearest: return GL_LINEAR_MIPMAP_NEAREST;
+			}
 #ifdef GL_IMG_texture_filter_cubic
 		case filter::cubic: return CUBIC_IMG; break;
 #else
