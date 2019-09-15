@@ -5,11 +5,14 @@
 #include "psl/array_view.h"
 #include "psl/math/matrix.h"
 #include "geometry.h"
+#include "conversion_utils.h"
 
 namespace core::data
 {
 	class skeleton
 	{
+		friend class psl::serialization::accessor;
+
 		template <typename T, char... Char>
 		using prop = psl::serialization::property<T, Char...>;
 
@@ -18,14 +21,15 @@ namespace core::data
 	  public:
 		class bone
 		{
+			friend class psl::serialization::accessor;
 		  public:
 			bone()  = default;
 			~bone() = default;
 
-			bone(const bone& other)		= delete;
-			bone(bone&& other) noexcept = delete;
-			bone& operator=(const bone& other) = delete;
-			bone& operator=(bone&& other) noexcept = delete;
+			bone(const bone& other)		= default;
+			bone(bone&& other) noexcept = default;
+			bone& operator=(const bone& other) = default;
+			bone& operator=(bone&& other) noexcept = default;
 			size_t size() const noexcept;
 
 			psl::string_view name() const noexcept;
