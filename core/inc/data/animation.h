@@ -28,7 +28,6 @@ namespace core::data
 		template <typename S>
 		void serialize(S& serializer)
 		{
-			friend class psl::serialization::accessor;
 			serializer << m_Name << m_Duration << m_Fps;
 		};
 
