@@ -18,7 +18,7 @@ shader::shader(core::resource::cache& cache, const core::resource::metadata& met
 	auto result = cache.library().load(meta->ID());
 	if(!result)
 	{
-		core::ivk::log->error("could not load igles::shader [{0}] from resource UID [{1}]", metaData.uid.to_string(),
+		core::igles::log->error("could not load igles::shader [{0}] from resource UID [{1}]", metaData.uid.to_string(),
 							  meta->ID().to_string());
 		return;
 	}
@@ -59,7 +59,7 @@ shader::shader(core::resource::cache& cache, const core::resource::metadata& met
 		glDeleteShader(shader);
 
 
-		core::ivk::log->error("could not compile igles::shader [{0}] from resource UID [{1}] with message: {2}",
+		core::igles::log->error("could not compile igles::shader [{0}] from resource UID [{1}] with message: {2}",
 							  metaData.resource_uid.to_string(), meta->ID().to_string(), infoLen);
 	}
 	else
