@@ -2,9 +2,11 @@
 
 #ifdef PE_VULKAN
 #include "vk/context.h"
+#include "vk/conversion.h"
 #endif
 #ifdef PE_GLES
 #include "gles/context.h"
+#include "gles/igles.h"
 #endif
 
 using namespace core;
@@ -19,10 +21,63 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	switch(backend)
 	{
 #ifdef PE_VULKAN
-	case graphics_backend::vulkan: m_Handle << cache.create_using<core::ivk::context>(metaData.uid, name); break;
+	case graphics_backend::vulkan:
+	{
+		m_Handle << cache.create_using<core::ivk::context>(metaData.uid, name);
+		auto vkLimits							 = m_Handle.get<core::ivk::context>()->properties().limits;
+		m_Limits.storage_buffer_offset_alignment = vkLimits.minStorageBufferOffsetAlignment;
+		m_Limits.uniform_buffer_offset_alignment = vkLimits.minUniformBufferOffsetAlignment;
+		vk::Format format;
+		if(utility::vulkan::supported_depthformat(m_Handle.get<core::ivk::context>()->physical_device(), &format))
+			m_Limits.supported_depthformat = core::gfx::conversion::to_format(format);
+		else
+			m_Limits.supported_depthformat = core::gfx::format::undefined;
+
+		m_Limits.compute_worgroup_count[0] = vkLimits.maxComputeWorkGroupCount[0];
+		m_Limits.compute_worgroup_count[1] = vkLimits.maxComputeWorkGroupCount[1];
+		m_Limits.compute_worgroup_count[2] = vkLimits.maxComputeWorkGroupCount[2];
+
+		m_Limits.compute_worgroup_size[0] = vkLimits.maxComputeWorkGroupSize[0];
+		m_Limits.compute_worgroup_size[1] = vkLimits.maxComputeWorkGroupSize[1];
+		m_Limits.compute_worgroup_size[2] = vkLimits.maxComputeWorkGroupSize[2];
+
+		m_Limits.compute_worgroup_invocations = vkLimits.maxComputeWorkGroupInvocations;
+	}
+	break;
 #endif
 #ifdef PE_GLES
-	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::context>(metaData.uid, name); break;
+	case graphics_backend::gles:
+	{
+		m_Handle << cache.create_using<core::igles::context>(metaData.uid, name);
+
+		GLint value;
+		glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &value);
+		m_Limits.storage_buffer_offset_alignment = value;
+		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &value);
+		m_Limits.uniform_buffer_offset_alignment = value;
+		m_Limits.supported_depthformat			 = core::gfx::format::d32_sfloat;
+
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &value);
+		m_Limits.compute_worgroup_count[0] = value;
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &value);
+		m_Limits.compute_worgroup_count[1] = value;
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &value);
+		m_Limits.compute_worgroup_count[2] = value;
+
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &value);
+		m_Limits.compute_worgroup_size[0] = value;
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &value);
+		m_Limits.compute_worgroup_size[1] = value;
+		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &value);
+		m_Limits.compute_worgroup_size[2] = value;
+
+		glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &value);
+		m_Limits.compute_worgroup_invocations = value;
+	}
+	break;
 #endif
 	}
 }
+
+
+const core::gfx::limits& context::limits() const noexcept { return m_Limits; }

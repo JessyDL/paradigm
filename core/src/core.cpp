@@ -716,8 +716,8 @@ int entry(gfx::graphics_backend backend)
 		return -1;
 	}
 
-	auto storage_buffer_align = core::gfx::limits::storage_buffer_offset_alignment(context_handle.value());
-	auto uniform_buffer_align = core::gfx::limits::uniform_buffer_offset_alignment(context_handle.value());
+	auto storage_buffer_align = context_handle->limits().storage_buffer_offset_alignment;
+	auto uniform_buffer_align = context_handle->limits().uniform_buffer_offset_alignment;
 
 	auto matBufferData = cache.create<core::data::buffer>(
 		core::gfx::memory_usage::storage_buffer | core::gfx::memory_usage::transfer_destination,

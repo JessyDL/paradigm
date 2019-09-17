@@ -2,6 +2,7 @@
 #include "fwd/gfx/context.h"
 #include "resource/resource.hpp"
 #include "types.h"
+#include "limits.h"
 
 namespace core::os
 {
@@ -11,10 +12,11 @@ namespace core::os
 #include <variant>
 
 namespace core::gfx
-{	class context
+{
+	class context
 	{
 	  public:
-		  using alias_type = core::resource::alias<
+		using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::context
 #ifdef PE_GLES
@@ -28,8 +30,7 @@ namespace core::gfx
 		using value_type = alias_type;
 		context(core::resource::handle<value_type>& handle);
 		context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				graphics_backend backend,
-				const psl::string8_t& name);
+				graphics_backend backend, const psl::string8_t& name);
 
 		~context(){};
 
@@ -39,11 +40,13 @@ namespace core::gfx
 		context& operator=(context&& other) noexcept = delete;
 
 		graphics_backend backend() const noexcept { return m_Backend; }
-		
+
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
+		const core::gfx::limits& limits() const noexcept;
 	  private:
 		graphics_backend m_Backend;
 		core::resource::handle<value_type> m_Handle;
+		core::gfx::limits m_Limits;
 	};
 } // namespace core::gfx

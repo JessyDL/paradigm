@@ -32,8 +32,7 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 
 	auto bufferData = cache->create<data::buffer>(
 		gfx::memory_usage::uniform_buffer, gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
-		resource_region
-			.create_region(sizeof(light) * 1024, core::gfx::limits::uniform_buffer_offset_alignment(m_Context.value()),
+		resource_region.create_region(sizeof(light) * 1024, m_Context->limits().uniform_buffer_offset_alignment,
 						   new memory::default_allocator(true))
 			.value());
 
@@ -56,7 +55,7 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 
 		{
 			core::gfx::attachment descr;
-			if(auto format = core::gfx::limits::supported_depthformat(m_Context.value());
+			if(auto format = m_Context->limits().supported_depthformat;
 			   format == core::gfx::format::undefined)
 			{
 				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
