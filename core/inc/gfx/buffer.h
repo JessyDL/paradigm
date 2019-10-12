@@ -46,7 +46,7 @@ namespace core::gfx
 
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
-		const core::data::buffer& data() const noexcept;
+		const core::data::buffer& data() const;
 
 		[[nodiscard]] std::optional<memory::segment> reserve(uint64_t size);
 		[[nodiscard]] psl::array<std::pair<memory::segment, memory::range>> reserve(psl::array<uint64_t> sizes,

@@ -26,6 +26,10 @@ namespace vk
 
 namespace core::gfx
 {
+	namespace constants
+	{
+		static constexpr psl::string_view INSTANCE_MODELMATRIX = "INSTANCE_TRANSFORM";
+	}
 	class bundle final
 	{
 		friend class core::ivk::pass;
@@ -64,7 +68,7 @@ namespace core::gfx
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \todo drawindex is a temporary hack to support instancing. a generic solution should be sought after.
 		/// \warning You have to call bind_material before this.
-		//bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
+		// bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
 		//				   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the pipeline.
@@ -73,7 +77,7 @@ namespace core::gfx
 		/// \param[in] swapchain the swapchain the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \warning You have to call bind_material before this.
-		//bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
+		// bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
 		//				   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the geometry's instance data.
@@ -81,7 +85,7 @@ namespace core::gfx
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
 		/// \param[in] geometry the geometry that will be bound.
 		/// \warning You have to call bind_pipeline before this.
-		//bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry> geometry);
+		// bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry> geometry);
 
 		core::resource::handle<core::gfx::material> bound() const noexcept { return m_Bound; };
 		// ------------------------------------------------------------------------------------------------------------

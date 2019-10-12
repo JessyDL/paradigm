@@ -49,30 +49,7 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	case graphics_backend::gles:
 	{
 		m_Handle << cache.create_using<core::igles::context>(metaData.uid, name);
-
-		GLint value;
-		glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &value);
-		m_Limits.storage_buffer_offset_alignment = value;
-		glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &value);
-		m_Limits.uniform_buffer_offset_alignment = value;
-		m_Limits.supported_depthformat			 = core::gfx::format::d32_sfloat;
-
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &value);
-		m_Limits.compute_worgroup_count[0] = value;
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 1, &value);
-		m_Limits.compute_worgroup_count[1] = value;
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 2, &value);
-		m_Limits.compute_worgroup_count[2] = value;
-
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 0, &value);
-		m_Limits.compute_worgroup_size[0] = value;
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 1, &value);
-		m_Limits.compute_worgroup_size[1] = value;
-		glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_SIZE, 2, &value);
-		m_Limits.compute_worgroup_size[2] = value;
-
-		glGetIntegerv(GL_MAX_COMPUTE_WORK_GROUP_INVOCATIONS, &value);
-		m_Limits.compute_worgroup_invocations = value;
+		m_Limits = m_Handle.get<core::igles::context>()->limits();
 	}
 	break;
 #endif

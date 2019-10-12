@@ -39,7 +39,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 	}
 }
 
-const core::data::material& material::data() const noexcept
+const core::data::material& material::data() const
 {
 #ifdef PE_GLES
 	if(m_Handle.contains<igles::material>())
@@ -53,4 +53,5 @@ const core::data::material& material::data() const noexcept
 		return m_Handle.value<ivk::material>().data().value();
 	}
 #endif
+	throw std::logic_error("core::gfx::material has no API specific material associated with it");
 }

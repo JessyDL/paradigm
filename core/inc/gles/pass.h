@@ -1,6 +1,7 @@
 #pragma once
 #include "resource/resource.hpp"
 #include "gfx/drawgroup.h"
+#include "gfx/computecall.h"
 
 namespace core::igles
 {
@@ -27,9 +28,12 @@ namespace core::igles
 		bool is_swapchain() const noexcept { return true; }
 		void add(core::gfx::drawgroup& group) noexcept;
 
+		void add(psl::array_view<core::gfx::computecall> compute);
+		void add(const core::gfx::computecall& compute);
 	  private:
 		core::resource::handle<swapchain> m_Swapchain;
 		core::resource::handle<framebuffer> m_Framebuffer;
+		psl::array<core::gfx::computecall> m_Compute;
 		psl::array<core::gfx::drawgroup> m_DrawGroups;
 	};
 } // namespace core::igles

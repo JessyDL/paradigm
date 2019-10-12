@@ -6,14 +6,9 @@ using namespace psl;
 using namespace core::data;
 using namespace core::gfx;
 
-
-window::window(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept
-	: window::window()
-{
-
-}
-
-window::window(uint32_t width, uint32_t height, surface_mode mode, core::gfx::buffering buffering,
+window::window(core::resource::cache& cache, const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile, uint32_t width, uint32_t height, surface_mode mode,
+			   core::gfx::buffering buffering,
 			   psl::string8::view name) noexcept
 	: m_Width(width), m_Height(height), m_WindowMode(mode), m_Buffering(buffering), m_Name(name)
 {

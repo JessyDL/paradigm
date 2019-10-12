@@ -57,8 +57,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			{
 			case core::gfx::binding_type::combined_image_sampler:
 			{
-				auto binding_slot =
-					glGetUniformLocation(m_Program->id(), meta->descriptors()[index].sub_elements()[0].name().data());
+				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
 				if(auto sampler_handle = cache.find<core::igles::sampler>(binding.sampler()); sampler_handle)
 				{
 					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
@@ -146,7 +145,7 @@ void material::bind()
 	auto blend_states = m_Data->blend_states();
 	using namespace core::gfx::conversion;
 	assert(blend_states.size() == m_Textures.size());
-	
+
 	for(auto i = 0; i < m_Textures.size(); ++i)
 	{
 		auto binding = m_Textures[i].first;

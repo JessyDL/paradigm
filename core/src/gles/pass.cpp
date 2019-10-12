@@ -4,6 +4,7 @@
 #include "gles/material.h"
 #include "gles/geometry.h"
 #include "gles/buffer.h"
+#include "gles/compute.h"
 #include "gfx/drawgroup.h"
 #include "gfx/drawlayer.h"
 #include "gfx/drawcall.h"
@@ -29,6 +30,11 @@ void pass::prepare()
 		glClearDepthf(1.0f);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
+
+	std::function<void()> v = [](){};
+
+	double x = 1;
+	float y = x;
 	if(m_Swapchain) m_Swapchain->clear();
 }
 bool pass::build() { return true; }
@@ -38,6 +44,11 @@ void pass::present()
 	if(m_Framebuffer)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
+	}
+	for(auto& compute : m_Compute)
+	{
+		compute.dispatch();
+		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
 	}
 	for(const auto& group : m_DrawGroups)
 	{
@@ -112,3 +123,13 @@ void pass::present()
 }
 
 void pass::add(core::gfx::drawgroup& group) noexcept { m_DrawGroups.push_back(group); }
+
+
+void pass::add(psl::array_view<core::gfx::computecall> compute)
+{
+	m_Compute.insert(std::end(m_Compute), std::begin(compute), std::end(compute));
+}
+void pass::add(const core::gfx::computecall& compute)
+{
+	m_Compute.emplace_back(compute);
+}

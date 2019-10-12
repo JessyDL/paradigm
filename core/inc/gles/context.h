@@ -2,7 +2,7 @@
 #include <cstdint>
 #include "psl/ustring.h"
 #include "fwd/resource/resource.h"
-
+#include "gfx/limits.h"
 namespace core::os
 {
 	class surface;
@@ -24,6 +24,8 @@ namespace core::igles
 		void enable(const core::os::surface &surface);
 		bool swapbuffers(core::resource::handle<core::os::surface> surface);
 
+		const core::gfx::limits &limits() const noexcept { return m_Limits; }
 	  private:
+		core::gfx::limits m_Limits;
 	};
 } // namespace core::igles

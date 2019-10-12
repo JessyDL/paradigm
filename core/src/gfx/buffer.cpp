@@ -52,7 +52,7 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 buffer::~buffer() {}
 
 
-const core::data::buffer& buffer::data() const noexcept
+const core::data::buffer& buffer::data() const
 {
 #ifdef PE_GLES
 	if(m_Handle.contains<igles::buffer>())
@@ -67,6 +67,7 @@ const core::data::buffer& buffer::data() const noexcept
 		;
 	}
 #endif
+	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
 }
 
 
@@ -84,6 +85,7 @@ const core::data::buffer& buffer::data() const noexcept
 		return m_Handle.value<core::ivk::buffer>().reserve(size);
 	}
 #endif
+	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
 }
 [[nodiscard]] psl::array<std::pair<memory::segment, memory::range>> buffer::reserve(psl::array<uint64_t> sizes,
 																					bool optimize)
@@ -100,6 +102,7 @@ const core::data::buffer& buffer::data() const noexcept
 		return m_Handle.value<core::ivk::buffer>().reserve(sizes, optimize);
 	}
 #endif
+	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
 }
 
 bool buffer::deallocate(memory::segment& segment)
@@ -116,6 +119,7 @@ bool buffer::deallocate(memory::segment& segment)
 		return m_Handle.value<core::ivk::buffer>().deallocate(segment);
 	}
 #endif
+	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
 }
 bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> ranges)
 {
@@ -138,6 +142,7 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 															 buffer_ranges);
 	}
 #endif
+	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
 }
 
 bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
@@ -154,6 +159,7 @@ bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instruction
 		return m_Handle.value<core::ivk::buffer>().commit(instructions);
 	}
 #endif
+	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
 }
 
 size_t buffer::free_size() const noexcept

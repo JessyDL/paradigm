@@ -1,6 +1,6 @@
 #pragma once
 #include "types.h"
-
+#include "psl/static_array.h"
 namespace core::gfx
 {
 	struct limits

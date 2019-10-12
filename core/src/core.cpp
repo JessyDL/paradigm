@@ -12,11 +12,12 @@
 #ifdef CORE_EXECUTABLE
 #include "paradigm.hpp"
 
-#include "spdlog/spdlog.h"
-//#include "spdlog/async.h"
+#include "logging.h"
 #include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/stdout_color_sinks.h"
-
+#include "spdlog/sinks/dist_sink.h"
+#ifdef _MSC_VER
+#include "spdlog/sinks/msvc_sink.h"
+#endif
 #include "gfx/limits.h"
 #include "gfx/types.h"
 #include "utility/geometry.h"
@@ -43,8 +44,10 @@
 #include "gfx/pass.h"
 #include "gfx/framebuffer.h"
 #include "gfx/shader.h"
+#include "gfx/compute.h"
 
 #include "gfx/render_graph.h"
+#include "gfx/computecall.h"
 #include "gfx/bundle.h"
 
 #include "psl/ecs/state.h"
@@ -75,6 +78,25 @@ using namespace core::gfx;
 
 using namespace psl::ecs;
 using namespace core::ecs::components;
+
+handle<core::gfx::compute> create_compute(resource::cache& cache, handle<core::gfx::context> context_handle,
+										  handle<core::gfx::pipeline_cache> pipeline_cache, const psl::UID& shader,
+										  const psl::UID& texture)
+{
+	auto meta = cache.library().get<core::meta::shader>(shader).value();
+	auto data = cache.create<data::material>();
+	data->from_shaders(cache.library(), {meta});
+	auto stages = data->stages();
+	for(auto& stage : stages)
+	{
+		auto bindings = stage.bindings();
+		bindings[0].texture(texture);
+		stage.bindings(bindings);
+	}
+	data->stages(stages);
+	return cache.instantiate<core::gfx::compute>("594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, context_handle, data,
+												 pipeline_cache);
+}
 
 handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<core::gfx::context> context_handle,
 											   handle<core::gfx::pipeline_cache> pipeline_cache,
@@ -144,10 +166,19 @@ void setup_loggers()
 	if(!utility::platform::file::exists(utility::application::path::get_path() + sub_path + "main.log"))
 		utility::platform::file::write(utility::application::path::get_path() + sub_path + "main.log", "");
 	std::vector<spdlog::sink_ptr> sinks;
-	auto mainlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-		utility::application::path::get_path() + sub_path + "main.log", true);
+
+	auto mainlogger = std::make_shared<spdlog::sinks::dist_sink_mt>();
+	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+		utility::application::path::get_path() + sub_path + "main.log", true));
+	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+		utility::application::path::get_path() + "logs/latest.log", true));
+#ifdef _MSC_VER
+	mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
+#else
 	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	outlogger->set_level(spdlog::level::level_enum::warn);
+	mainlogger->add_sink(outlogger);
+#endif
 
 	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "ivk.log", true);
@@ -167,12 +198,10 @@ void setup_loggers()
 	auto datalogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "data.log", true);
 
-
 	auto corelogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 		utility::application::path::get_path() + sub_path + "core.log", true);
 
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(corelogger);
 
 	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
@@ -182,7 +211,6 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(systemslogger);
 
 	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
@@ -191,7 +219,6 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(oslogger);
 
 	auto os_logger = std::make_shared<spdlog::logger>("os", begin(sinks), end(sinks));
@@ -200,7 +227,6 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(datalogger);
 
 	auto data_logger = std::make_shared<spdlog::logger>("data", begin(sinks), end(sinks));
@@ -209,7 +235,6 @@ void setup_loggers()
 
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(gfxlogger);
 
 	auto gfx_logger = std::make_shared<spdlog::logger>("gfx", begin(sinks), end(sinks));
@@ -219,7 +244,6 @@ void setup_loggers()
 #ifdef PE_VULKAN
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(ivklogger);
 
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
@@ -229,14 +253,13 @@ void setup_loggers()
 #ifdef PE_GLES
 	sinks.clear();
 	sinks.push_back(mainlogger);
-	// sinks.push_back(outlogger);
 	sinks.push_back(igleslogger);
 
 	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
 	spdlog::register_logger(igles_logger);
 	core::igles::log = igles_logger;
 #endif
-	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
+	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 #else
 #include "spdlog/sinks/android_sink.h"
@@ -752,30 +775,15 @@ int entry(gfx::graphics_backend backend)
 	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
 	for(auto& handle : geometryDataHandles)
 	{
-		auto& positionstream =
-			handle->vertices(core::data::geometry::constants::POSITION).value().get().as_vec3().value().get();
 		core::stream colorstream{core::stream::type::vec3};
 		auto& colors			  = colorstream.as_vec3().value().get();
-		const float range		  = 1.0f;
-		const bool inverse_colors = false;
-		for(auto i = 0; i < positionstream.size(); ++i)
-		{
-			if(inverse_colors)
-			{
-				float red   = std::max(-range, std::min(range, positionstream[i][0])) / range;
-				float green = std::max(-range, std::min(range, positionstream[i][1])) / range;
-				float blue  = std::max(-range, std::min(range, positionstream[i][2])) / range;
-				colors.emplace_back(psl::vec3(red, green, blue));
-			}
-			else
-			{
-				float red   = (std::max(-range, std::min(range, positionstream[i][0])) + range) / (range * 2);
-				float green = (std::max(-range, std::min(range, positionstream[i][1])) + range) / (range * 2);
-				float blue  = (std::max(-range, std::min(range, positionstream[i][2])) + range) / (range * 2);
-				colors.emplace_back(psl::vec3(red, green, blue));
-			}
-		}
+		auto& normalStream =
+			handle->vertices(core::data::geometry::constants::NORMAL).value().get().as_vec3().value().get();
+		colors.resize(normalStream.size());
+		std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
 
+		std::for_each(std::begin(colors), std::end(colors),
+					  [](auto& color) { color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f; });
 		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
 
 		geometryHandles.emplace_back(cache.create<gfx::geometry>(context_handle, handle, vertexBuffer, indexBuffer));
@@ -850,6 +858,21 @@ int entry(gfx::graphics_backend backend)
 
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
+
+	{
+		psl::UID compute_texture_uid;
+		std::unique_ptr<core::meta::texture> texture = std::make_unique<core::meta::texture>();
+		texture->width(512);
+		texture->height(512);
+		texture->format(core::gfx::format::r8g8b8a8_unorm);
+		auto handle			= cache.create_using<core::gfx::texture>(std::move(texture), context_handle);
+		compute_texture_uid = handle.meta()->ID();
+
+		auto compute_handle = create_compute(cache, context_handle, pipeline_cache,
+											 "594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, compute_texture_uid);
+
+		swapchain_pass->add(core::gfx::computecall{compute_handle});
+	}
 	// create the ecs
 	using psl::ecs::state;
 
@@ -917,9 +940,13 @@ int entry(gfx::graphics_backend backend)
 
 	auto index  = 0;
 	auto index2 = 0;
+#ifdef _DEBUG
+	auto size_x = 100;
+	auto size_y = 100;
+#else
 	auto size_x = 700;
 	auto size_y = 700;
-
+#endif
 	psl::noise::perlin noise{};
 
 	std::array<int, 4> matusage{0};
@@ -963,7 +990,7 @@ int entry(gfx::graphics_backend backend)
 				noise.noise(psl::vec2{static_cast<float>(x) / size_x, static_cast<float>(y) / size_y}, 32));
 
 			height = std::max(height, 15.0f / 80.0f);
-			height	= (std::pow(height + 1.0f, 3) - 1.0f) * 30.0f;
+			height = (std::pow(height + 1.0f, 3) - 1.0f) * 30.0f;
 
 			value.position = {static_cast<float>(x), height, static_cast<float>(y)};
 			value.scale	= {1};
@@ -976,16 +1003,13 @@ int entry(gfx::graphics_backend backend)
 			   " material 2: " + std::to_string(matusage[2]) + " material 3: " + std::to_string(matusage[3]));
 	ECSState.create(1, core::ecs::components::text{str.data()});
 
+	size_t frame{0};
+	std::chrono::duration<float> elapsed{};
 	while(surface_handle->tick())
 	{
+		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
 		core::profiler.next_frame();
-		auto current_time = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> elapsed =
-			std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
-
-		core::log->info("dTime {}ms", elapsed.count());
-		last_tick = current_time;
 		core::profiler.scope_begin("system tick");
 		ECSState.tick(elapsed);
 		core::profiler.scope_end();
@@ -1055,6 +1079,12 @@ int entry(gfx::graphics_backend backend)
 							},
 							core::ecs::components::transform{});
 		}*/
+
+		auto current_time = std::chrono::high_resolution_clock::now();
+		elapsed			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
+
+		last_tick = current_time;
+		core::log->info("---- FRAME {0} END   ---- duration {1} ms", frame++, elapsed.count() * 1000);
 	}
 
 	return 0;
@@ -1078,7 +1108,7 @@ int main()
 	// std::thread vk_thread(entry, graphics_backend::gles);
 	// std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
-	entry(graphics_backend::gles);
+	return entry(graphics_backend::gles);
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);

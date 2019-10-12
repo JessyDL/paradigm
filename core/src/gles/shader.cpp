@@ -64,6 +64,8 @@ shader::shader(core::resource::cache& cache, const core::resource::metadata& met
 	}
 	else
 		m_Shader = shader;
+
+	glGetError();
 }
 
 shader::~shader() { glDeleteShader(m_Shader); }

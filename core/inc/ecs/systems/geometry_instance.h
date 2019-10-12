@@ -41,7 +41,6 @@ namespace core::ecs::systems
 			using namespace core::ecs::components;
 			using namespace psl::math;
 
-			size_t uniqueInstructions{0};
 			profiler->scope_begin("release_all");
 			for(auto [renderable, transform] : geometry_pack)
 			{
@@ -89,7 +88,7 @@ namespace core::ecs::systems
 							modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 						}
 
-						bundleHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
+						bundleHandle->set(geometryHandle, startIndex, psl::string{core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats);
 					
 						modelMats.clear();
 					}
@@ -97,8 +96,6 @@ namespace core::ecs::systems
 
 			}
 			profiler->scope_end();
-
-			core::log->info("this frame we ran {} unique instructions", uniqueInstructions);
 		};
 
 	auto static_geometry_instance =
@@ -118,7 +115,6 @@ namespace core::ecs::systems
 			using namespace core::ecs::components;
 			using namespace psl::math;
 
-			size_t uniqueInstructions{0};
 			profiler->scope_begin("release_all");
 			for(auto [renderable, transform] : geometry_pack)
 			{
@@ -166,7 +162,7 @@ namespace core::ecs::systems
 							modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 						}
 
-						bundleHandle->set(geometryHandle, startIndex, "INSTANCE_TRANSFORM", modelMats);
+						bundleHandle->set(geometryHandle, startIndex, psl::string{core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats);
 					
 						modelMats.clear();
 					}
@@ -174,7 +170,5 @@ namespace core::ecs::systems
 
 			}
 			profiler->scope_end();
-
-			core::log->info("this frame we ran {} unique instructions", uniqueInstructions);
 		};
 } // namespace core::ecs::systems

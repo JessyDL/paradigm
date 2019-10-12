@@ -9,22 +9,26 @@
 #include "meta/shader.h"
 #include "resource/resource.hpp"
 #include "gfx/types.h"
+
 using namespace psl;
 using namespace core::resource;
 using namespace core;
 using namespace core::ivk;
 
+constexpr const vk::IndexType INDEX_TYPE =
+	sizeof(core::data::geometry::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
+
 geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<core::ivk::context> context,
-				   core::resource::handle<core::data::geometry> data,
+				   handle<core::ivk::context> context, core::resource::handle<core::data::geometry> data,
 				   core::resource::handle<core::ivk::buffer> geometryBuffer,
 				   core::resource::handle<core::ivk::buffer> indicesBuffer)
-	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
+	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer),
+	  m_UID(metaData.uid)
 {
 	std::vector<vk::DeviceSize> sizeRequests;
-	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer)?1:0));
-	std::for_each(std::begin(m_Data->vertex_streams()), std::end(m_Data->vertex_streams()), [&sizeRequests](const std::pair<psl::string, core::stream>& element)
-				  {
+	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
+	std::for_each(std::begin(m_Data->vertex_streams()), std::end(m_Data->vertex_streams()),
+				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
 					  sizeRequests.emplace_back((uint32_t)element.second.bytesize());
 				  });
 
@@ -38,25 +42,26 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 	size_t i = 0;
 	for(const auto& stream : m_Data->vertex_streams())
 	{
-		auto& instr = instructions.emplace_back();
-		instr.size = stream.second.bytesize();
-		instr.source = (std::uintptr_t)(stream.second.cdata());
+		auto& instr   = instructions.emplace_back();
+		instr.size	= stream.second.bytesize();
+		instr.source  = (std::uintptr_t)(stream.second.cdata());
 		instr.segment = segments[i].first;
-		if(segments[i].first.range() != segments[i].second)
-			instr.sub_range = segments[i].second;
+		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 
-		auto& b = m_Bindings.emplace_back();
-		b.name = stream.first;
-		b.segment = segments[i].first;
+		auto& b		= m_Bindings.emplace_back();
+		b.name		= stream.first;
+		b.segment   = segments[i].first;
 		b.sub_range = segments[i].second;
 		++i;
 	}
 
 	if(m_GeometryBuffer != m_IndicesBuffer)
 	{
-		if(auto indiceSegment = m_IndicesBuffer->reserve((uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t))); indiceSegment)
+		if(auto indiceSegment = m_IndicesBuffer->reserve(
+			   (uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+		   indiceSegment)
 		{
-			m_IndicesSegment = indiceSegment.value();
+			m_IndicesSegment  = indiceSegment.value();
 			m_IndicesSubRange = memory::range{0, m_IndicesSegment.range().size()};
 		}
 		else
@@ -65,72 +70,67 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 			exit(1);
 		}
 		gfx::commit_instruction instr;
-		instr.size = m_IndicesSegment.range().size();
-		instr.source = (std::uintptr_t)m_Data->indices().data();
+		instr.size	= m_IndicesSegment.range().size();
+		instr.source  = (std::uintptr_t)m_Data->indices().data();
 		instr.segment = m_IndicesSegment;
 		m_IndicesBuffer->commit({instr});
 	}
 	else
 	{
-		i = segments.size() - 1;
-		auto& instr = instructions.emplace_back();
-		instr.size = segments[i].second.size();
-		instr.source = (std::uintptr_t)m_Data->indices().data();
+		i			  = segments.size() - 1;
+		auto& instr   = instructions.emplace_back();
+		instr.size	= segments[i].second.size();
+		instr.source  = (std::uintptr_t)m_Data->indices().data();
 		instr.segment = segments[i].first;
-		if(segments[i].first.range() != segments[i].second)
-			instr.sub_range = segments[i].second;
+		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 
-		m_IndicesSegment = segments[i].first;
+		m_IndicesSegment  = segments[i].first;
 		m_IndicesSubRange = segments[i].second;
 	}
 
 	m_GeometryBuffer->commit(instructions);
 }
 
-geometry::~geometry() 
+geometry::~geometry()
 {
-	if(!m_GeometryBuffer)
-		return;
+	if(!m_GeometryBuffer) return;
 
 	for(auto& binding : m_Bindings)
 	{
-		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this binding has a shared 
-		// memory::segment and we should only clear the first one who coincidentally starts at begin 0
-		if(binding.sub_range.begin == 0)
-			m_GeometryBuffer->deallocate(binding.segment);
+		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
+		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
+		// begin 0
+		if(binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
 	}
 	// same as the earlier comment for geometry buffer
-	if(m_IndicesSubRange.begin == 0)
-		m_IndicesBuffer->deallocate(m_IndicesSegment);
+	if(m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
 }
 
 
 bool geometry::compatible(const core::ivk::material& material) const noexcept
 {
-	for(const auto& shader : material.shaders())
+	for(const auto& stage : material.data()->stages())
 	{
-		if(shader->meta()->stage() == core::gfx::shader_stage::vertex)
+		for(const auto& attribute : stage.attributes())
 		{
-			for(const auto& vBinding : shader->meta()->vertex_bindings())
+			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
+
+			for(const auto& b : m_Bindings)
 			{
-				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
-
-				for(const auto& b : m_Bindings)
+				if(psl::to_string8_t(b.name) == attribute.tag())
 				{
-					if(psl::to_string8_t(b.name) == vBinding.buffer())
-					{
-						goto success;
-					}
+					goto success;
 				}
-				goto error;
-
-				success:
-				continue;
-
-			error:
-				core::gfx::log->error( "missing ATTRIBUTE [{0}] in GEOMETRY [{1}]" , vBinding.buffer(), utility::to_string(m_UID));
-				return false;
 			}
+			goto error;
+
+		success:
+			continue;
+
+		error:
+			core::ivk::log->error("missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(),
+								  utility::to_string(m_UID));
+			return false;
 		}
 	}
 	return true;
@@ -138,27 +138,22 @@ bool geometry::compatible(const core::ivk::material& material) const noexcept
 
 void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& material) const noexcept
 {
-
-	for(const auto& shader: material.shaders())
+	for(const auto& stage : material.data()->stages())
 	{
-		const auto& meta = shader->meta();
-		if(meta->stage() == core::gfx::shader_stage::vertex) // TODO: check if possible on fragment shader etc..
+		for(const auto& attribute : stage.attributes())
 		{
-			for(auto& vBinding : meta->vertex_bindings())
-			{
-				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
+			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
-				for(const auto& b : m_Bindings)
-				{
-					if(psl::to_string8_t(b.name) == vBinding.buffer())
-					{
-						auto offset = vk::DeviceSize{b.segment.range().begin + b.sub_range.begin};
-						buffer.bindVertexBuffers(vBinding.binding_slot(), 1, &m_GeometryBuffer->gpu_buffer(), &offset);
-					}
-				}
-			}
+			auto binding = std::find_if(
+				std::begin(m_Bindings), std::end(m_Bindings), [tag = attribute.tag()](const auto& binding) noexcept {
+					return binding.name == tag.data();
+				});
+
+			auto offset = vk::DeviceSize{binding->segment.range().begin + binding->sub_range.begin};
+			buffer.bindVertexBuffers(attribute.location(), 1, &m_GeometryBuffer->gpu_buffer(), &offset);
 		}
 	}
 
-	buffer.bindIndexBuffer(m_IndicesBuffer->gpu_buffer(), m_IndicesSegment.range().begin + m_IndicesSubRange.begin, vk::IndexType::eUint32);
+	buffer.bindIndexBuffer(m_IndicesBuffer->gpu_buffer(), m_IndicesSegment.range().begin + m_IndicesSubRange.begin,
+						   INDEX_TYPE);
 }

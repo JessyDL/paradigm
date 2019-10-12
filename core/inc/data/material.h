@@ -1,6 +1,8 @@
 ﻿#pragma once
 #include "psl/serialization.h"
 #include "psl/meta.h"
+#include "psl/array.h"
+#include "psl/array_view.h"
 #include "gfx/types.h"
 #include "fwd/resource/resource.h"
 
@@ -16,6 +18,8 @@ namespace psl::meta
 
 namespace core::data
 {
+	template <typename T, char... Char>
+	using sprop = psl::serialization::property<T, Char...>;
 	/// \brief Describes a collection of resources that can be used to initialize a core::ivk::material
 	///
 	/// Material data describes a collection of textures, buffers, shaders, override parameters for these shaders,
@@ -88,26 +92,100 @@ namespace core::data
 						   << m_AlphaBlendFactorSrc << m_AlphaBlendFactorDst << m_AlphaBlendOp << m_ColorComponents;
 			}
 			static constexpr const char serialization_name[12]{"BLEND_STATE"};
-			psl::serialization::property<bool, const_str("ENABLED", 7)> m_Enabled{false};
-			psl::serialization::property<uint32_t, const_str("BINDING", 7)> m_Binding;
-			psl::serialization::property<core::gfx::blend_factor, const_str("COLOR_BLEND_SRC", 15)>
-				m_ColorBlendFactorSrc{core::gfx::blend_factor::one};
-			psl::serialization::property<core::gfx::blend_factor, const_str("COLOR_BLEND_DST", 15)>
-				m_ColorBlendFactorDst{core::gfx::blend_factor::zero};
-			psl::serialization::property<core::gfx::blend_op, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{
-				core::gfx::blend_op::add};
+			sprop<bool, const_str("ENABLED", 7)> m_Enabled{false};
+			sprop<uint32_t, const_str("BINDING", 7)> m_Binding;
+			sprop<core::gfx::blend_factor, const_str("COLOR_BLEND_SRC", 15)> m_ColorBlendFactorSrc{
+				core::gfx::blend_factor::one};
+			sprop<core::gfx::blend_factor, const_str("COLOR_BLEND_DST", 15)> m_ColorBlendFactorDst{
+				core::gfx::blend_factor::zero};
+			sprop<core::gfx::blend_op, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{core::gfx::blend_op::add};
 
 
-			psl::serialization::property<core::gfx::blend_factor, const_str("ALPHA_BLEND_SRC", 15)>
-				m_AlphaBlendFactorSrc{core::gfx::blend_factor::one};
-			psl::serialization::property<core::gfx::blend_factor, const_str("ALPHA_BLEND_DST", 15)>
-				m_AlphaBlendFactorDst{core::gfx::blend_factor::zero};
-			psl::serialization::property<core::gfx::blend_op, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{
-				core::gfx::blend_op::add};
+			sprop<core::gfx::blend_factor, const_str("ALPHA_BLEND_SRC", 15)> m_AlphaBlendFactorSrc{
+				core::gfx::blend_factor::one};
+			sprop<core::gfx::blend_factor, const_str("ALPHA_BLEND_DST", 15)> m_AlphaBlendFactorDst{
+				core::gfx::blend_factor::zero};
+			sprop<core::gfx::blend_op, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{core::gfx::blend_op::add};
 
-			psl::serialization::property<core::gfx::component_bits, const_str("COMPONENT_FLAGS", 15)> m_ColorComponents{
+			sprop<core::gfx::component_bits, const_str("COMPONENT_FLAGS", 15)> m_ColorComponents{
 				core::gfx::component_bits::r | core::gfx::component_bits::g | core::gfx::component_bits::b |
 				core::gfx::component_bits::a};
+		};
+
+		class attribute
+		{
+			friend class psl::serialization::accessor;
+
+		  public:
+			uint32_t location() const noexcept;
+			void location(uint32_t value) noexcept;
+
+			/// \brief returns the UID of the resource attached to this attribute
+			/// \warning can return an invalid UID in case the resource was not present in the meta library
+			/// when this attribute was loaded, in that case use the tag to find it.
+			const psl::UID& buffer() const noexcept;
+			void buffer(psl::UID value) noexcept;
+
+			psl::string_view tag() const noexcept;
+			void tag(psl::string8_t value) noexcept;
+
+			/// \warning this is only valid/used when the attribute is attached to a vertex shader
+			const std::optional<core::gfx::vertex_input_rate>& input_rate() const noexcept;
+			void input_rate(core::gfx::vertex_input_rate value) noexcept;
+
+		  private:
+			static constexpr const char serialization_name[10]{"ATTRIBUTE"};
+
+			template <typename S>
+			void serialize(S& s)
+			{
+				s << m_Location;
+
+				if constexpr(psl::serialization::details::is_decoder<S>::value)
+				{
+					sprop<int32_t, const_str("INPUT_RATE", 10)> input_rate{-1};
+					sprop<psl::string8_t, const_str("TAG", 3)> tag;
+					sprop<psl::UID, const_str("BUFFER", 6)> buffer;
+					s << input_rate << tag << buffer;
+					if(input_rate.value != -1) m_InputRate = (core::gfx::vertex_input_rate)input_rate.value;
+
+					if(tag.value.size() > 0)
+					{
+						m_Tag = tag.value;
+					}
+					else
+					{
+						m_Buffer = buffer.value;
+					}
+				}
+				else
+				{
+					if(m_InputRate)
+					{
+						sprop<core::gfx::vertex_input_rate, const_str("INPUT_RATE", 10)> input_rate{
+							m_InputRate.value()};
+						s << input_rate;
+					}
+					if(m_Tag.size() > 0)
+					{
+						sprop<psl::string8_t, const_str("TAG", 3)> tag{m_Tag};
+						s << tag;
+					}
+					else
+					{
+						sprop<psl::UID, const_str("BUFFER", 6)> buffer{m_Buffer};
+						s << buffer;
+					}
+				}
+			}
+
+			sprop<uint32_t, const_str("LOCATION", 8)> m_Location;
+
+			// if the attribute is in a vertex shader, then this will be set.
+			std::optional<core::gfx::vertex_input_rate> m_InputRate;
+
+			psl::UID m_Buffer;
+			psl::string8_t m_Tag;
 		};
 
 		class binding
@@ -148,22 +226,22 @@ namespace core::data
 					case core::gfx::binding_type::combined_image_sampler:
 					{
 
-						psl::serialization::property<psl::string, const_str("TEXTURE", 7)> uid{};
+						sprop<psl::string, const_str("TEXTURE", 7)> uid{};
 						s << uid;
 
-						psl::serialization::property<psl::string, const_str("SAMPLER", 7)> sampler{};
+						sprop<psl::string, const_str("SAMPLER", 7)> sampler{};
 						s << sampler;
 					}
 					break;
 					case core::gfx::binding_type::uniform_buffer:
 					{
-						psl::serialization::property<psl::string, const_str("UBO", 3)> uid{};
+						sprop<psl::string, const_str("UBO", 3)> uid{};
 						s << uid;
 					}
 					break;
 					case core::gfx::binding_type::storage_buffer:
 					{
-						psl::serialization::property<psl::string, const_str("SSBO", 4)> uid{};
+						sprop<psl::string, const_str("SSBO", 4)> uid{};
 						s << uid;
 					}
 					break;
@@ -178,22 +256,22 @@ namespace core::data
 					{
 						if(m_UIDTag.size() > 0)
 						{
-							psl::serialization::property<psl::string, const_str("TEXTURE", 7)> uid{m_UIDTag};
+							sprop<psl::string, const_str("TEXTURE", 7)> uid{m_UIDTag};
 							s << uid;
 						}
 						else
 						{
-							psl::serialization::property<psl::UID, const_str("TEXTURE", 7)> uid{m_UID};
+							sprop<psl::UID, const_str("TEXTURE", 7)> uid{m_UID};
 							s << uid;
 						}
 						if(m_SamplerUIDTag.size() > 0)
 						{
-							psl::serialization::property<psl::string, const_str("SAMPLER", 7)> sampler{m_SamplerUIDTag};
+							sprop<psl::string, const_str("SAMPLER", 7)> sampler{m_SamplerUIDTag};
 							s << sampler;
 						}
 						else
 						{
-							psl::serialization::property<psl::UID, const_str("SAMPLER", 7)> sampler{m_SamplerUID};
+							sprop<psl::UID, const_str("SAMPLER", 7)> sampler{m_SamplerUID};
 							s << sampler;
 						}
 					}
@@ -202,12 +280,12 @@ namespace core::data
 					{
 						if(m_BufferTag.size() > 0)
 						{
-							psl::serialization::property<psl::string, const_str("UBO", 3)> uid{m_BufferTag};
+							sprop<psl::string, const_str("UBO", 3)> uid{m_BufferTag};
 							s << uid;
 						}
 						else
 						{
-							psl::serialization::property<psl::UID, const_str("UBO", 3)> uid{m_Buffer};
+							sprop<psl::UID, const_str("UBO", 3)> uid{m_Buffer};
 							s << uid;
 						}
 					}
@@ -216,12 +294,12 @@ namespace core::data
 					{
 						if(m_BufferTag.size() > 0)
 						{
-							psl::serialization::property<psl::string, const_str("SSBO", 4)> uid{m_BufferTag};
+							sprop<psl::string, const_str("SSBO", 4)> uid{m_BufferTag};
 							s << uid;
 						}
 						else
 						{
-							psl::serialization::property<psl::UID, const_str("SSBO", 4)> uid{m_Buffer};
+							sprop<psl::UID, const_str("SSBO", 4)> uid{m_Buffer};
 							s << uid;
 						}
 					}
@@ -231,9 +309,8 @@ namespace core::data
 				}
 			}
 
-			psl::serialization::property<uint32_t, const_str("BINDING", 7)>
-				m_Binding; // the slot in the shader to bind to
-			psl::serialization::property<core::gfx::binding_type, const_str("DESCRIPTOR", 10)> m_Description;
+			sprop<uint32_t, const_str("BINDING", 7)> m_Binding; // the slot in the shader to bind to
+			sprop<core::gfx::binding_type, const_str("DESCRIPTOR", 10)> m_Description;
 			psl::UID m_UID;
 			psl::UID m_SamplerUID; // in case of texture binding
 			psl::UID m_Buffer;
@@ -259,10 +336,11 @@ namespace core::data
 
 			gfx::shader_stage shader_stage() const noexcept;
 			const psl::UID& shader() const noexcept;
-			const std::vector<binding>& bindings() const noexcept;
-
 			void shader(gfx::shader_stage stage, const psl::UID& value) noexcept;
-			void bindings(const std::vector<binding>& value);
+			const psl::array<binding>& bindings() const noexcept;
+			void bindings(psl::array<binding> value) noexcept;
+			const psl::array<attribute>& attributes() const noexcept;
+			void attributes(psl::array<attribute> value) noexcept;
 
 			void set(const binding& value);
 			void erase(const binding& value);
@@ -271,11 +349,12 @@ namespace core::data
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Stage << m_Shader << m_Bindings;
+				s << m_Stage << m_Shader << m_Attributes << m_Bindings;
 			}
-			psl::serialization::property<gfx::shader_stage, const_str("STAGE", 5)> m_Stage;
-			psl::serialization::property<psl::UID, const_str("SHADER", 6)> m_Shader;
-			psl::serialization::property<std::vector<binding>, const_str("BINDINGS", 8)> m_Bindings;
+			sprop<gfx::shader_stage, const_str("STAGE", 5)> m_Stage;
+			sprop<psl::UID, const_str("SHADER", 6)> m_Shader;
+			sprop<psl::array<attribute>, const_str("ATTRIBUTES", 10)> m_Attributes;
+			sprop<psl::array<binding>, const_str("BINDINGS", 8)> m_Bindings;
 			static constexpr const char serialization_name[15]{"MATERIAL_STAGE"};
 		};
 
@@ -289,9 +368,9 @@ namespace core::data
 		material& operator=(const material&) = delete;
 		material& operator=(material&&) = delete;
 
-		const std::vector<stage>& stages() const;
-		const std::vector<blendstate>& blend_states() const;
-		const std::vector<psl::string8_t>& defines() const;
+		const psl::array<stage>& stages() const;
+		const psl::array<blendstate>& blend_states() const;
+		const psl::array<psl::string8_t>& defines() const;
 		core::gfx::cullmode cull_mode() const;
 		core::gfx::compare_op depth_compare_op() const;
 		uint32_t render_layer() const;
@@ -299,9 +378,9 @@ namespace core::data
 		bool depth_write() const;
 		bool wireframe() const;
 
-		void stages(const std::vector<stage>& values);
-		void blend_states(const std::vector<blendstate>& values);
-		void defines(const std::vector<psl::string8_t>& values);
+		void stages(const psl::array<stage>& values);
+		void blend_states(const psl::array<blendstate>& values);
+		void defines(const psl::array<psl::string8_t>& values);
 		void cull_mode(core::gfx::cullmode value);
 		void depth_compare_op(core::gfx::compare_op value);
 		void render_layer(uint32_t value);
@@ -317,7 +396,7 @@ namespace core::data
 		void erase(const blendstate& value);
 		void undefine(psl::string8::view value);
 
-		void from_shaders(const psl::meta::library& library, std::vector<core::meta::shader*> shaderMetas);
+		void from_shaders(const psl::meta::library& library, psl::array<core::meta::shader*> shaderMetas);
 
 	  private:
 		template <typename S>
@@ -329,16 +408,16 @@ namespace core::data
 
 		static constexpr const char serialization_name[9]{"MATERIAL"};
 
-		psl::serialization::property<std::vector<stage>, const_str("STAGES", 6)> m_Stage;
-		psl::serialization::property<std::vector<blendstate>, const_str("BLEND_STATES", 12)> m_BlendStates;
-		psl::serialization::property<std::vector<psl::string8_t>, const_str("DEFINES", 7)> m_Defines;
-		psl::serialization::property<core::gfx::cullmode, const_str("CULLING", 7)> m_Culling{core::gfx::cullmode::back};
+		sprop<psl::array<stage>, const_str("STAGES", 6)> m_Stage;
+		sprop<psl::array<blendstate>, const_str("BLEND_STATES", 12)> m_BlendStates;
+		sprop<psl::array<psl::string8_t>, const_str("DEFINES", 7)> m_Defines;
+		sprop<core::gfx::cullmode, const_str("CULLING", 7)> m_Culling{core::gfx::cullmode::back};
 
-		psl::serialization::property<core::gfx::compare_op, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
+		sprop<core::gfx::compare_op, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
 			core::gfx::compare_op::less_equal};
-		psl::serialization::property<uint32_t, const_str("RENDER_LAYER", 12)> m_RenderLayer{0};
-		psl::serialization::property<bool, const_str("DEPTH_TEST", 10)> m_DepthTest{true};
-		psl::serialization::property<bool, const_str("DEPTH_WRITE", 11)> m_DepthWrite{true};
-		psl::serialization::property<bool, const_str("WIREFRAME_MODE", 14)> m_Wireframe{false};
+		sprop<uint32_t, const_str("RENDER_LAYER", 12)> m_RenderLayer{0};
+		sprop<bool, const_str("DEPTH_TEST", 10)> m_DepthTest{true};
+		sprop<bool, const_str("DEPTH_WRITE", 11)> m_DepthWrite{true};
+		sprop<bool, const_str("WIREFRAME_MODE", 14)> m_Wireframe{false};
 	};
 } // namespace core::data

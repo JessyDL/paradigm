@@ -3,6 +3,7 @@
 #include "gfx/framebuffer.h"
 #include "gfx/swapchain.h"
 #include "gfx/drawgroup.h"
+#include "gfx/computecall.h"
 
 #ifdef PE_GLES
 #include "gles/pass.h"
@@ -234,6 +235,28 @@ void pass::add(core::gfx::drawgroup& group) noexcept
 #ifdef PE_GLES
 		auto ptr = std::get<core::igles::pass*>(m_Handle);
 		ptr->add(group);
+#else
+		assert(false);
+#endif
+	}
+}
+
+void pass::add(const core::gfx::computecall& call) noexcept
+{
+	if(m_Handle.index() == 0)
+	{
+#ifdef PE_VULKAN
+		//auto ptr = std::get<core::ivk::pass*>(m_Handle);
+		//ptr->add(call);
+#else
+		assert(false);
+#endif
+	}
+	else
+	{
+#ifdef PE_GLES
+		auto ptr = std::get<core::igles::pass*>(m_Handle);
+		ptr->add(call);
 #else
 		assert(false);
 #endif

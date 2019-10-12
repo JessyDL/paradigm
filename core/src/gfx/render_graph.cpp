@@ -29,10 +29,6 @@ void render_graph::rebuild() noexcept { m_Rebuild = false; }
 
 void render_graph::present()
 {
-	if(m_Rebuild)
-	{
-	}
-
 	// todo: we have a failed assumption here till the implementation is done;
 	auto it_final = std::find_if(std::begin(m_Passes), std::end(m_Passes),
 								 [](const graph_element& element) { return element.pass->is_swapchain(); });
@@ -40,11 +36,17 @@ void render_graph::present()
 	if(std::distance(std::begin(m_Passes), it_final) != m_Passes.size() - 1)
 		std::iter_swap(it_final, std::prev(std::end(m_Passes)));
 
+	if(m_Rebuild)
+	{
+		for(auto& node : m_Passes)
+		{
+			node.pass->prepare();
+			node.pass->build();
+		}
+	}
 
 	for(auto& node : m_Passes)
 	{
-		node.pass->prepare();
-		node.pass->build();
 		node.pass->present();
 	}
 }

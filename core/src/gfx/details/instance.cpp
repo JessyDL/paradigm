@@ -24,12 +24,20 @@ void data::add(core::resource::handle<material> material)
 	{
 		if(stage.shader_stage() != core::gfx::shader_stage::vertex) continue;
 
-		core::meta::shader* meta = material.cache()->library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
+		core::meta::shader* meta =
+			material.cache()->library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 
-		data.reserve(meta->instance_bindings().size());
-		for(const auto& vBinding : meta->instance_bindings())
+		for(const auto& attribute : stage.attributes())
 		{
-			data.emplace_back(binding{binding::header{vBinding.buffer(), vBinding.size()}, vBinding.binding_slot()});
+			if(attribute.input_rate().value_or(vertex_input_rate::vertex) != vertex_input_rate::instance) continue;
+
+			auto shader_attribute = std::find_if(
+				std::begin(meta->inputs()), std::end(meta->inputs()),
+				[location = attribute.location()](const auto& attribute) { return attribute.location() == location; });
+
+			data.emplace_back(
+				binding{binding::header{psl::string{attribute.tag()}, static_cast<uint32_t>(shader_attribute->size())},
+						attribute.location()});
 		}
 	}
 
@@ -43,8 +51,7 @@ void data::add(core::resource::handle<material> material)
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
-				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() *
-													 d.description.size_of_element);
+				auto res = m_InstanceBuffer->reserve(obj.id_generator.capacity() * d.description.size_of_element);
 				if(!res) core::gfx::log->error("could not allocate");
 
 				obj.data.emplace_back(res.value());
@@ -70,8 +77,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 		it = m_InstanceData.emplace(uid, object{uid, size}).first;
 		for(const auto& b : m_UniqueBindings)
 		{
-			auto res =
-				m_InstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
+			auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
 			if(!res) core::gfx::log->error("could not allocate");
 			it->second.data.emplace_back(res.value());
 			it->second.description.emplace_back(b.first);
@@ -90,7 +96,9 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 			{
 				auto res = m_InstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
 				if(!res) core::gfx::log->error("could not allocate");
-				m_InstanceBuffer->copy_from(m_InstanceBuffer.value(), {core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
+				m_InstanceBuffer->copy_from(
+					m_InstanceBuffer.value(),
+					{core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
 				std::swap(d, res.value());
 				m_InstanceBuffer->deallocate(res.value());
 			}

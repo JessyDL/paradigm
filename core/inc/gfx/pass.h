@@ -21,6 +21,7 @@ namespace core::gfx
 	class framebuffer;
 	class swapchain;
 	class drawgroup;
+	class computecall;
 
 	class pass
 	{
@@ -56,6 +57,7 @@ namespace core::gfx
 		bool connect(psl::view_ptr<core::gfx::pass> child) noexcept;
 		bool disconnect(psl::view_ptr<core::gfx::pass> child) noexcept;
 		void add(core::gfx::drawgroup& group) noexcept;
+		void add(const core::gfx::computecall& call) noexcept;
 
 		value_type resource() const noexcept { return m_Handle; };
 
