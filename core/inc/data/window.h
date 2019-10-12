@@ -32,12 +32,12 @@ namespace core::data
 		friend class psl::serialization::accessor;
 
 	  public:
-		window(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept;
-		~window() = default;
-		window(uint32_t width = 800, uint32_t height = 600,
+		window(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			   uint32_t width = 800, uint32_t height = 600,
 			   core::gfx::surface_mode mode   = core::gfx::surface_mode::WINDOWED,
 			   core::gfx::buffering buffering = core::gfx::buffering::SINGLE,
 			   psl::string8::view name		  = "Paradigm Engine") noexcept;
+		~window()					= default;
 		window(const window& other) = delete;
 		window(window&& other)		= delete;
 		window& operator=(const window& other) = delete;
