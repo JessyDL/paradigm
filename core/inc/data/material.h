@@ -36,6 +36,43 @@ namespace core::data
 			friend class psl::serialization::accessor;
 
 		  public:
+			static const blendstate opaque(uint32_t binding) { return blendstate(binding); }
+			static const blendstate transparent(uint32_t binding)
+			{
+				using namespace core::gfx;
+				return blendstate(true, binding, blend_factor::source_alpha, blend_factor::one_minus_source_alpha,
+								  blend_op::add, blend_factor::one, blend_factor::zero, blend_op::add);
+			}
+			static const blendstate pre_multiplied_transparent(uint32_t binding)
+			{
+				using namespace core::gfx;
+				return blendstate(true, binding, blend_factor::one, blend_factor::one_minus_source_alpha, blend_op::add,
+								  blend_factor::one, blend_factor::zero, blend_op::add);
+			}
+			static const blendstate additive(uint32_t binding)
+			{
+				using namespace core::gfx;
+				return blendstate(true, binding, blend_factor::one, blend_factor::one, blend_op::add, blend_factor::one,
+								  blend_factor::zero, blend_op::add);
+			}
+			static const blendstate soft_additive(uint32_t binding)
+			{
+				using namespace core::gfx;
+				return blendstate(true, binding, blend_factor::one_minus_destination_color, blend_factor::one,
+								  blend_op::add, blend_factor::one, blend_factor::zero, blend_op::add);
+			}
+			static const blendstate multiplicative(uint32_t binding)
+			{
+				using namespace core::gfx;
+				return blendstate(true, binding, blend_factor::dst_color, blend_factor::zero, blend_op::add,
+								  blend_factor::one, blend_factor::zero, blend_op::add);
+			}
+			static const blendstate double_multiplicative(uint32_t binding)
+			{
+				using namespace core::gfx;
+				return blendstate(true, binding, blend_factor::dst_color, blend_factor::source_color, blend_op::add,
+								  blend_factor::one, blend_factor::zero, blend_op::add);
+			}
 			/// \param[in] enabled is the blendstate active (true) or not (false).
 			/// \param[in] binding the binding location of the blend state.
 			/// \param[in] srcColorBlend the operation to apply to the RGB components when loading.

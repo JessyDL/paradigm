@@ -38,6 +38,11 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 	}
 
 	auto segments = m_GeometryBuffer->reserve(sizeRequests, true);
+	if (segments.size() == 0)
+	{
+		core::ivk::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
+		exit(1);
+	}
 	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
 	for(const auto& stream : m_Data->vertex_streams())
@@ -66,6 +71,7 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 		}
 		else
 		{
+			core::igles::log->critical("index buffer was out of memory");
 			// todo error condition could not allocate segment
 			exit(1);
 		}

@@ -33,7 +33,11 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 	}
 
 	auto segments = vertexBuffer->allocate(sizeRequests, true);
-
+	if (segments.size() == 0)
+	{
+		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
+		exit(1);
+	}
 	std::vector<core::gfx::memory_copy> instructions;
 	auto current_segment = std::begin(segments);
 	for(const auto& stream : data->vertex_streams())
@@ -61,6 +65,7 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 		}
 		else
 		{
+			core::igles::log->critical("index buffer was out of memory");
 			// todo error condition could not allocate segment
 			exit(1);
 		}
@@ -87,6 +92,8 @@ geometry::~geometry()
 {
 	if(!m_GeometryBuffer) return;
 
+	for (auto& [uid, vao] : m_VAOs)
+		glDeleteVertexArrays(1, &vao);
 	for(auto& binding : m_Bindings)
 	{
 		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
@@ -102,13 +109,17 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 						  core::resource::handle<core::igles::buffer> instanceBuffer,
 						  psl::array<std::pair<size_t, size_t>> bindings)
 {
+	GLuint vao;
+	// todo this is not correct
+	// issue: when a material gets their instance bindings updated, the VAO doesn't know
 	if(auto it = m_VAOs.find(material); it != std::end(m_VAOs))
 	{
-		return;
+		vao = it->second;
 	}
-
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
+	else
+	{
+		glGenVertexArrays(1, &vao);
+	}
 	glBindVertexArray(vao);
 
 	auto instance_buffer = instanceBuffer->id();
@@ -155,7 +166,6 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 	}
 	m_VAOs[material] = vao;
 }
-
 void geometry::bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount)
 {
 	auto error = glGetError();
@@ -165,12 +175,16 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());
 	auto indices = m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t);
-	if(instanceCount == 0)
-		glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-					   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+	if (instanceCount == 0)
+	{
+		glDrawElements(material->data().wireframe()? GL_LINES : GL_TRIANGLES, indices, GL_UNSIGNED_INT,
+			(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+	}
 	else
-		glDrawElementsInstanced(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-								(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
+	{
+		glDrawElementsInstanced(material->data().wireframe() ? GL_LINES : GL_TRIANGLES, indices, GL_UNSIGNED_INT,
+			(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
+	}
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);

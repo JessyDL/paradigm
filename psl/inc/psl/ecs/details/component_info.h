@@ -140,12 +140,16 @@ namespace psl::ecs::details
 		{
 			return (include_removed) ? entities_impl().size() : m_AssociatedEntities.indices().size();
 		}
+
+		void set(entity entity, void* data) noexcept { set_impl(entity, data); }
+
 	  protected:
 		virtual void purge_impl() noexcept										   = 0;
 		virtual void add_impl(entity entity)									   = 0;
 		virtual void add_impl(psl::array_view<entity> entities)					   = 0;
 		virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities) = 0;
 		virtual psl::array_view<entity> entities_impl() const noexcept			   = 0;
+		virtual void set_impl(entity entity, void* data) noexcept				   = 0;
 
 	  private:
 		size_t m_LockState{0};
@@ -190,6 +194,10 @@ namespace psl::ecs::details
 		};
 
 	  protected:
+		  void set_impl(entity entity, void* data) noexcept
+		  {
+			  m_Entities[entity] = *(T*)data;
+		  }
 		psl::array_view<entity> entities_impl() const noexcept override { return m_Entities.indices(); }
 		void add_impl(psl::array_view<entity> entities) override
 		{
@@ -231,6 +239,9 @@ namespace psl::ecs::details
 		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity); }
 
 	  protected:
+		  void set_impl(entity entity, void* data) noexcept
+		  {
+		  };
 		psl::array_view<entity> entities_impl() const noexcept override { return m_Entities.indices(); }
 		void add_impl(psl::array_view<entity> entities) override
 		{
@@ -251,7 +262,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		  memory::sparse_array<int, entity> m_Entities{};
+		memory::sparse_array<int, entity> m_Entities{};
 	};
 } // namespace psl::ecs::details
 

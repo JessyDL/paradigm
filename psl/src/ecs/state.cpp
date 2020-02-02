@@ -124,7 +124,6 @@ psl::array<psl::array<entity>> slice(psl::array_view<entity> source,
 }
 
 
-
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
@@ -151,8 +150,8 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	//	for(auto& dep_pack : *shared_pack)
 	//	{
 	//		// 1) do an initial filtering and split the results in N packets
-	//		auto task_initial_filter = [this](details::dependency_pack dep_pack) -> std::tuple<details::dependency_pack, psl::array<entity>> {
-	//			return std::tuple{dep_pack, initial_filter(dep_pack)};
+	//		auto task_initial_filter = [this](details::dependency_pack dep_pack) -> std::tuple<details::dependency_pack,
+	//psl::array<entity>> { 			return std::tuple{dep_pack, initial_filter(dep_pack)};
 	//		};
 
 	//		// 2) for N workers, give them a packet each to work with and filter those packets.
@@ -191,9 +190,8 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	//			8);
 
 	//		// 3) we merge the results into one giant array which we'll evenly split amongst the workers
-	//		auto task_merge_filter = [](details::dependency_pack dep_pack, std::vector<psl::array<entity>> entity_packs) {
-	//			psl::array<entity> res;
-	//			for(auto& entities : entity_packs)
+	//		auto task_merge_filter = [](details::dependency_pack dep_pack, std::vector<psl::array<entity>> entity_packs)
+	//{ 			psl::array<entity> res; 			for(auto& entities : entity_packs)
 	//			{
 	//				auto middle = std::size(res);
 	//				res.insert(std::end(res), std::begin(entities), std::end(entities));
@@ -342,7 +340,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	////	}
 	////}
 
-	//if(false)
+	// if(false)
 	//{
 	//	// we make a reference counted vector of dependency packs that will be used by subsequent tasks
 	//	auto shared_pack =
@@ -593,65 +591,66 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 	//	m_Scheduler->execute();
 	//}
-	//else
+	// else
 	//{
-		auto pack		 = information.create_pack();
-		bool has_partial = std::any_of(std::begin(pack), std::end(pack),
-									   [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+	auto pack = information.create_pack();
+	bool has_partial =
+		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
 
-		if(has_partial && information.threading() == threading::par)
+	if(has_partial && information.threading() == threading::par)
+	{
+		for(auto& dep_pack : pack)
 		{
-			for(auto& dep_pack : pack)
-			{
-				auto entities = filter(dep_pack);
-				if(entities.size() == 0) continue;
+			auto entities = filter(dep_pack);
+			if(entities.size() == 0) continue;
 
-				cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
-			}
-
-			auto multi_pack = slice(pack, m_Scheduler->workers());
-
-			// std::vector<std::future<void>> future_commands;
-
-			auto index = info_buffer.size();
-			for(size_t i = 0; i < m_Scheduler->workers(); ++i)
-				info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
-
-			auto infoBuffer = std::next(std::begin(info_buffer), index);
-
-			for(auto& mPack : multi_pack)
-			{
-				auto t1 = m_Scheduler->schedule([& fn = information.system(), infoBuffer, mPack]() mutable {
-					return std::invoke(fn, infoBuffer->get(), mPack);
-				});
-				auto t2 = m_Scheduler->schedule(
-					[&write_data, this, mPack = mPack]() { return std::invoke(write_data, *this, mPack); });
-
-				t2.after(t1);
-
-				// future_commands.emplace_back(std::move(t1));
-				infoBuffer = std::next(infoBuffer);
-			}
-			m_Scheduler->execute();
+			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
-		else
-		{
-			for(auto& dep_pack : pack)
-			{
-				auto entities = filter(dep_pack);
-				if(entities.size() == 0) continue;
 
-				cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
-			}
+		auto multi_pack = slice(pack, m_Scheduler->workers());
+
+		// std::vector<std::future<void>> future_commands;
+
+		auto index = info_buffer.size();
+		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
 			info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
-			information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
-			write_data(*this, pack);
+		auto infoBuffer = std::next(std::begin(info_buffer), index);
+
+		for(auto& mPack : multi_pack)
+		{
+			auto t1 = m_Scheduler->schedule([& fn = information.system(), infoBuffer, mPack]() mutable {
+				return std::invoke(fn, infoBuffer->get(), mPack);
+			});
+			auto t2 = m_Scheduler->schedule(
+				[&write_data, this, mPack = mPack]() { return std::invoke(write_data, *this, mPack); });
+
+			t2.after(t1);
+
+			// future_commands.emplace_back(std::move(t1));
+			infoBuffer = std::next(infoBuffer);
 		}
+		m_Scheduler->execute();
+	}
+	else
+	{
+		for(auto& dep_pack : pack)
+		{
+			auto entities = filter(dep_pack);
+			if(entities.size() == 0) continue;
+
+			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
+		}
+		info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
+		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
+
+		write_data(*this, pack);
+	}
 	//}
 }
 void state::tick(std::chrono::duration<float> dTime)
 {
+	m_LockState = 1;
 	for(auto& cInfo : m_Components) cInfo->lock();
 	// tick systems;
 	for(auto& system : m_SystemInformations)
@@ -677,6 +676,13 @@ void state::tick(std::chrono::duration<float> dTime)
 	for(auto& cInfo : m_Components) cInfo->unlock_and_purge();
 
 	++m_Tick;
+
+	if(m_NewSystemInformations.size() > 0)
+	{
+		for(auto& system : m_NewSystemInformations) m_SystemInformations.emplace_back(std::move(system));
+		m_NewSystemInformations.clear();
+	}
+	m_LockState = 0;
 }
 
 const details::component_info* state::get_component_info(details::component_key_t key) const noexcept
@@ -905,8 +911,7 @@ psl::array<entity>::iterator state::filter_remove_except(details::component_key_
 														 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? begin
-							  : std::remove_if(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
+	return (cInfo == nullptr) ? end : std::remove_if(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
 psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::component_key_t> keys,
 														   psl::array<entity>::iterator& begin,
@@ -914,13 +919,22 @@ psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::c
 {
 	auto cInfos = get_component_info(keys);
 
-	return (cInfos.size() == 0) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
-		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
-			return cInfo->has_removed(e);
-		}) || !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
-			return cInfo->has_component(e) || cInfo->has_removed(e);
+	return (cInfos.size() == 0) ? begin : 
+		// for every entity, remove if...
+		std::remove_if(begin, end, [&cInfos](entity e) 
+		{
+			return 
+				// any of them have not had an entity removed
+				!std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) 
+				{
+					return cInfo->has_removed(e);
+				}) || 
+				// or all of them do not have a component, or had the entity removed
+				!std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) 
+					{
+						return cInfo->has_component(e) || cInfo->has_removed(e);
+			});
 		});
-	});
 }
 
 psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details::component_key_t> keys,
@@ -1062,11 +1076,13 @@ state::smallest_entity_list(const std::vector<std::pair<details::instruction, de
 		const auto& cInfo = get_component_info(it->second);
 		if(cInfo == nullptr)
 		{
+			if(it->first == details::instruction::EXCEPT) continue;
+
 			return std::end(filters);
 		}
 		switch(it->first)
 		{
-		case details::instruction::EXCEPT:
+		// case details::instruction::EXCEPT:
 		case details::instruction::FILTER:
 			if(cInfo->entities().size() < count) result = it;
 			break;
@@ -1120,7 +1136,7 @@ bool state::filter_seed_best(const details::dependency_pack& pack, psl::array_vi
 	for(const auto& filter : pack.on_remove) instructions.emplace_back(details::instruction::REMOVE, filter);
 	for(const auto& filter : pack.on_combine) instructions.emplace_back(details::instruction::COMBINE, filter);
 	for(const auto& filter : pack.on_break) instructions.emplace_back(details::instruction::BREAK, filter);
-	for(const auto& filter : pack.except) instructions.emplace_back(details::instruction::EXCEPT, filter);
+	// for(const auto& filter : pack.except) instructions.emplace_back(details::instruction::EXCEPT, filter);
 
 	auto it = smallest_entity_list(instructions);
 	if(it == std::end(instructions)) return false;
@@ -1248,11 +1264,13 @@ psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, p
 psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 {
 	// auto instructions{to_instructions(pack)};
-
 	details::instruction instruction;
 	psl::array_view<entity> best_pack{};
 	details::component_key_t best_key;
-	if(!filter_seed_best(pack, best_pack, best_key, instruction)) return psl::array<entity>{};
+	if(!filter_seed_best(pack, best_pack, best_key, instruction))
+	{
+		return psl::array<entity>{};
+	}
 	psl::array<entity> result{best_pack};
 	auto begin = std::begin(result);
 	auto end   = std::end(result);
@@ -1352,8 +1370,8 @@ void state::execute_command_buffer(info& info)
 	{
 		psl::array<entity> added_entities;
 		std::set_difference(std::begin(buffer.m_Entities), std::end(buffer.m_Entities),
-							std::begin(buffer.m_DestroyedEntities),
-							std::end(buffer.m_DestroyedEntities), std::back_inserter(added_entities));
+							std::begin(buffer.m_DestroyedEntities), std::end(buffer.m_DestroyedEntities),
+							std::back_inserter(added_entities));
 
 
 		for(auto e : added_entities)
@@ -1387,7 +1405,7 @@ size_t state::count(psl::array_view<details::component_key_t> keys) const noexce
 	{
 
 		auto cInfo = get_component_info(key);
-		return cInfo->size();
+		return cInfo ? cInfo->size() : 0;
 	}
 	return 0;
 }

@@ -12,12 +12,12 @@ namespace core::ivk
 	class geometry;
 	class framebuffer;
 	class swapchain;
-	class pass;
+	class drawpass;
 } // namespace core::ivk
 
 namespace core::igles
 {
-	class pass;
+	class drawpass;
 }
 namespace vk
 {
@@ -32,8 +32,8 @@ namespace core::gfx
 	}
 	class bundle final
 	{
-		friend class core::ivk::pass;
-		friend class core::igles::pass;
+		friend class core::ivk::drawpass;
+		friend class core::igles::drawpass;
 
 	  public:
 		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,

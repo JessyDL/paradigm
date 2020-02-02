@@ -19,6 +19,9 @@ gfx/limits.h
 gfx/types.h
 
 gfx/context.h
+gfx/compute.h
+gfx/computecall.h
+gfx/computepass.h
 gfx/shader.h
 gfx/buffer.h
 gfx/geometry.h
@@ -27,7 +30,7 @@ gfx/sampler.h
 gfx/material.h
 gfx/swapchain.h
 gfx/pipeline_cache.h
-gfx/pass.h
+gfx/drawpass.h
 gfx/framebuffer.h
 
 gfx/drawcall.h
@@ -59,6 +62,7 @@ ecs/systems/movement.h
 ecs/systems/gpu_camera.h
 ecs/systems/lighting.h
 ecs/systems/text.h
+ecs/systems/debug/grid.h
 
 ecs/components/camera.h
 ecs/components/transform.h
@@ -107,8 +111,9 @@ if(${PE_VULKAN})
 	texture.h
 	material.h
 	pipeline_cache.h
-	pass.h
+	drawpass.h
 	conversion.h
+	computepass.h
 	)
 
 	list(APPEND FWD 
@@ -134,10 +139,11 @@ if(${PE_GLES})
 	swapchain.h
 	texture.h
 	framebuffer.h
-	pass.h
+	drawpass.h
 	conversion.h
 	types.h
 	compute.h
+	computepass.h
 	)
 
 	list(APPEND FWD 

@@ -12,6 +12,9 @@ data/window.cpp
 
 gfx/buffer.cpp
 gfx/context.cpp
+gfx/compute.cpp
+gfx/computecall.cpp
+gfx/computepass.cpp
 gfx/geometry.cpp
 gfx/material.cpp
 gfx/pipeline_cache.cpp
@@ -19,7 +22,7 @@ gfx/sampler.cpp
 gfx/swapchain.cpp
 gfx/texture.cpp
 gfx/framebuffer.cpp
-gfx/pass.cpp
+gfx/drawpass.cpp
 
 gfx/drawcall.cpp
 gfx/drawgroup.cpp
@@ -46,6 +49,8 @@ ecs/systems/render.cpp
 ecs/systems/gpu_camera.cpp
 ecs/systems/lighting.cpp
 ecs/systems/text.cpp
+ecs/systems/geometry_instancing.cpp
+ecs/systems/debug/grid.cpp
 )
 
 list(TRANSFORM SRC PREPEND src/)
@@ -58,13 +63,14 @@ if(${PE_VULKAN})
 	framebuffer.cpp
 	geometry.cpp
 	material.cpp
-	pass.cpp
+	drawpass.cpp
 	pipeline.cpp
 	pipeline_cache.cpp
 	sampler.cpp
 	shader.cpp
 	swapchain.cpp
 	texture.cpp
+	computepass.cpp
 	)
 
 	list(TRANSFORM SRC_VULKAN PREPEND src/vk/)
@@ -83,8 +89,9 @@ if(${PE_GLES})
 	swapchain.cpp
 	texture.cpp
 	framebuffer.cpp
-	pass.cpp
+	drawpass.cpp
 	compute.cpp
+	computepass.cpp
 	)
 	list(TRANSFORM SRC_GLES PREPEND src/gles/)
 endif()

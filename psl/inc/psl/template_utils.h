@@ -8,6 +8,9 @@
 
 namespace utility::templates
 {
+	template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
+	template<class... Ts> overloaded(Ts...)->overloaded<Ts...>;
+
 	template <size_t N, class T>
 	constexpr std::array<T, N> make_array(const T& v) noexcept
 	{

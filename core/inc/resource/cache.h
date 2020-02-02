@@ -176,7 +176,7 @@ namespace core::resource
 				descr.metaData.state = state::loading;
 				T* resource			 = nullptr;
 				resource =
-					new T(cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...);
+					new T(cache, descr.metaData, (meta_type*)&metaFile.get(), std::forward<decltype(values)>(values)...);
 				if constexpr(psl::serialization::details::is_collection<T>::value)
 				{
 					if(auto result = library.load(descr.metaData.resource_uid); result)
@@ -237,7 +237,7 @@ namespace core::resource
 				T* resource			 = nullptr;
 
 				resource =
-					new T(cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...);
+					new T(cache, descr.metaData, (meta_type*)&metaFile.get(), std::forward<decltype(values)>(values)...);
 				descr.resource		 = (void*)resource;
 				descr.metaData.state = state::loaded;
 			};
@@ -272,7 +272,7 @@ namespace core::resource
 				descr.metaData.state = state::loading;
 				T* resource			 = nullptr;
 
-				resource			 = new T(cache, descr.metaData, reinterpret_cast<meta_type*>(metaFile.get()),
+				resource			 = new T(cache, descr.metaData, reinterpret_cast<meta_type*>(&metaFile.get()),
 								 std::forward<decltype(values)>(values)...);
 				descr.resource		 = (void*)resource;
 				descr.metaData.state = state::loaded;

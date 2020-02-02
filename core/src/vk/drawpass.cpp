@@ -1,4 +1,4 @@
-﻿#include "vk/pass.h"
+﻿#include "vk/drawpass.h"
 #include "vk/context.h"
 #include "vk/framebuffer.h"
 #include "data/framebuffer.h"
@@ -19,7 +19,7 @@ using namespace core::gfx;
 using namespace core::ivk;
 
 
-pass::pass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> framebuffer)
+drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> framebuffer)
 	: m_Context(context), m_Framebuffer(framebuffer), m_UsingSwap(false)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
@@ -44,7 +44,7 @@ pass::pass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> fr
 	build();
 }
 
-pass::pass(handle<core::ivk::context> context, handle<core::ivk::swapchain> swapchain)
+drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapchain> swapchain)
 	: m_Context(context), m_Swapchain(swapchain), m_UsingSwap(true)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
@@ -69,13 +69,13 @@ pass::pass(handle<core::ivk::context> context, handle<core::ivk::swapchain> swap
 	// build();
 }
 
-pass::~pass()
+drawpass::~drawpass()
 {
 	destroy_fences();
 	m_Context->device().destroySemaphore(m_PresentComplete);
 	m_Context->device().destroySemaphore(m_RenderComplete);
 }
-bool pass::build()
+bool drawpass::build()
 {
 	LOG_INFO("Rebuilding Command Buffers");
 	m_LastBuildFrame = m_FrameCount;
@@ -219,7 +219,7 @@ bool pass::build()
 	return success;
 }
 
-void pass::create_fences(const size_t size)
+void drawpass::create_fences(const size_t size)
 {
 	if(m_WaitFences.size() > 0) destroy_fences();
 
@@ -231,7 +231,7 @@ void pass::create_fences(const size_t size)
 	}
 }
 
-void pass::destroy_fences()
+void drawpass::destroy_fences()
 {
 	for(auto& fence : m_WaitFences)
 	{
@@ -246,7 +246,7 @@ void pass::destroy_fences()
 	m_WaitFences.clear();
 }
 
-void pass::prepare()
+void drawpass::prepare()
 {
 	if(m_UsingSwap)
 	{
@@ -260,7 +260,7 @@ void pass::prepare()
 	}
 }
 
-void pass::present()
+void drawpass::present()
 {
 	if(m_WaitFences.size() > 0)
 	{
@@ -315,14 +315,14 @@ void pass::present()
 	++m_FrameCount;
 }
 
-bool pass::is_swapchain() const noexcept { return m_UsingSwap; }
+bool drawpass::is_swapchain() const noexcept { return m_UsingSwap; }
 
 
-void pass::bias(const core::ivk::depth_bias& bias) noexcept { m_DepthBias = bias; }
-core::ivk::depth_bias pass::bias() const noexcept { return m_DepthBias; }
+void drawpass::bias(const core::ivk::depth_bias& bias) noexcept { m_DepthBias = bias; }
+core::ivk::depth_bias drawpass::bias() const noexcept { return m_DepthBias; }
 
-void pass::add(core::gfx::drawgroup& group) noexcept { m_AllGroups.push_back(group); }
-void pass::remove(const core::gfx::drawgroup& group) noexcept
+void drawpass::add(core::gfx::drawgroup& group) noexcept { m_AllGroups.push_back(group); }
+void drawpass::remove(const core::gfx::drawgroup& group) noexcept
 {
 	m_AllGroups.erase(
 		std::remove_if(std::begin(m_AllGroups), std::end(m_AllGroups),
@@ -330,32 +330,35 @@ void pass::remove(const core::gfx::drawgroup& group) noexcept
 		std::end(m_AllGroups));
 }
 
-void pass::clear() noexcept { m_AllGroups.clear(); }
+void drawpass::clear() noexcept { m_AllGroups.clear(); }
 
 
-void pass::connect(psl::view_ptr<pass> pass) noexcept { m_WaitFor.emplace_back(pass->m_RenderComplete); }
+void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept { m_WaitFor.emplace_back(pass->m_RenderComplete); }
 
-void pass::disconnect(psl::view_ptr<pass> pass) noexcept
+void drawpass::disconnect(psl::view_ptr<drawpass> pass) noexcept
 {
 	m_WaitFor.erase(std::find(std::begin(m_WaitFor), std::end(m_WaitFor), pass->m_RenderComplete), std::end(m_WaitFor));
 }
 
-void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
-						   core::resource::handle<core::ivk::framebuffer> framebuffer,
-	uint32_t index)
+void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
+							   core::resource::handle<core::ivk::framebuffer> framebuffer, uint32_t index)
 {
 	for(auto& drawLayer : group.m_Group)
 	{
+		psl::array<uint32_t> render_indices;
 		for(auto& drawCall : drawLayer.second)
 		{
-			if(drawCall.m_Geometry.size() == 0) continue;
-			auto bundle = drawCall.m_Bundle;
-
 			auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
-
-			for(auto index : matIndices)
+			render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
+		}
+		std::sort(std::begin(render_indices), std::end(render_indices));
+		for(auto renderLayer : render_indices)
+		{
+			for(auto& drawCall : drawLayer.second)
 			{
-				bundle->bind_material(index);
+				if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
+				auto bundle = drawCall.m_Bundle;
+				bundle->bind_material(renderLayer);
 				auto gfxmat{bundle->bound()};
 				auto mat{gfxmat->resource().get<core::ivk::material>()};
 
@@ -367,8 +370,8 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
 					geometryHandle->bind(cmdBuffer, mat.value());
-					
-					//bundle->bind_geometry(cmdBuffer, geometryHandle);
+
+					// bundle->bind_geometry(cmdBuffer, geometryHandle);
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 					{
@@ -385,21 +388,25 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 	}
 }
 
-void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
-						   core::resource::handle<core::ivk::swapchain> swapchain, uint32_t index)
+void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
+							   core::resource::handle<core::ivk::swapchain> swapchain, uint32_t index)
 {
 	for(auto& drawLayer : group.m_Group)
 	{
+		psl::array<uint32_t> render_indices;
 		for(auto& drawCall : drawLayer.second)
 		{
-			if(drawCall.m_Geometry.size() == 0) continue;
-			auto bundle = drawCall.m_Bundle;
-
 			auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
-
-			for(auto index : matIndices)
+			render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
+		}
+		std::sort(std::begin(render_indices), std::end(render_indices));
+		for(auto renderLayer : render_indices)
+		{
+			for(auto& drawCall : drawLayer.second)
 			{
-				bundle->bind_material(index);
+				if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
+				auto bundle = drawCall.m_Bundle;
+				bundle->bind_material(renderLayer);
 				auto gfxmat{bundle->bound()};
 				auto mat{gfxmat->resource().get<core::ivk::material>()};
 
@@ -412,12 +419,14 @@ void pass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 
 					geometryHandle->bind(cmdBuffer, mat.value());
 
-					//bundle->bind_geometry(cmdBuffer, geometryHandle);
+					// bundle->bind_geometry(cmdBuffer, geometryHandle);
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 					{
 						cmdBuffer.bindVertexBuffers(
-							b.first, 1, &bundle->m_InstanceData.buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(), &b.second);
+							b.first, 1,
+							&bundle->m_InstanceData.buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
+							&b.second);
 					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);

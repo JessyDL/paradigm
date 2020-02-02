@@ -41,14 +41,15 @@
 #include "gfx/sampler.h"
 #include "gfx/pipeline_cache.h"
 #include "gfx/material.h"
-#include "gfx/pass.h"
 #include "gfx/framebuffer.h"
 #include "gfx/shader.h"
 #include "gfx/compute.h"
 
+#include "gfx/bundle.h"
 #include "gfx/render_graph.h"
 #include "gfx/computecall.h"
-#include "gfx/bundle.h"
+#include "gfx/drawpass.h"
+#include "gfx/computepass.h"
 
 #include "psl/ecs/state.h"
 #include "ecs/components/transform.h"
@@ -71,6 +72,8 @@
 #include "ecs/systems/text.h"
 
 #include "psl/noise/perlin.h"
+//#include "ecs/systems/worldgen.h"
+#include "ecs/systems/debug/grid.h"
 
 using namespace core;
 using namespace core::resource;
@@ -130,6 +133,7 @@ handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<co
 	}
 	matData->stages(stages);
 	matData->blend_states({core::data::material::blendstate(0)});
+	//matData->wireframe(true);
 	auto material = cache.create<core::gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
 
 	return material;
@@ -701,6 +705,25 @@ struct character_data
 	psl::ivec4 bounds;
 };
 
+
+auto calculate(const psl::array<uint8_t>& visibility, psl::ivec3 direction,
+			   std::function<psl::ivec3(int)> to_3dcoordinate, std::function<int(psl::ivec3)> from_3dcoordinate)
+{
+	psl::array<uint8_t> occlusion;
+	occlusion.resize(visibility.size());
+	std::for_each(std::execution::par_unseq, std::begin(occlusion), std::end(occlusion),
+				  [&visibility, base = occlusion.data(), &to_3dcoordinate, &direction, &from_3dcoordinate](auto& out) {
+					  auto index  = static_cast<int>(&out - base);
+					  auto target = from_3dcoordinate(to_3dcoordinate(index) + direction);
+
+					  out = (visibility[index] && !(target < 0 || target >= visibility.size() || visibility[target]));
+					  // out = (visibility[index] && !(target >= 0 && target < visibility.size() &&
+					  // visibility[target])); if (visibility[index] && (target < 0 || target >= visibility.size()))
+					  //	  out = 1; // boundary
+				  });
+	return occlusion;
+}
+
 int entry(gfx::graphics_backend backend)
 {
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
@@ -749,6 +772,17 @@ int entry(gfx::graphics_backend backend)
 					   new memory::default_allocator(false)});
 	auto matBuffer = cache.create<core::gfx::buffer>(context_handle, matBufferData);
 
+	// create a staging buffer, this is allows for more advantagous resource access for the GPU
+	core::resource::handle<gfx::buffer> stagingBuffer{};
+	if(backend == graphics_backend::vulkan)
+	{
+		auto stagingBufferData = cache.create<data::buffer>(
+			core::gfx::memory_usage::transfer_source,
+			core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+			memory::region{(size_t)1024 * 1024 * 1024, 4, new memory::default_allocator(false)});
+		stagingBuffer = cache.create<gfx::buffer>(context_handle, stagingBufferData);
+	}
+
 	// create the buffers to store the model in
 	// - memory region which we'll use to track the allocations, this is supposed to be virtual as we don't care to
 	//   have a copy on the CPU
@@ -756,15 +790,20 @@ int entry(gfx::graphics_backend backend)
 	auto vertexBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto vertexBuffer = cache.create<gfx::buffer>(context_handle, vertexBufferData);
+		memory::region{(size_t)1024 * 1024 * 1536, 4, new memory::default_allocator(false)});
+	auto vertexBuffer = cache.create<gfx::buffer>(context_handle, vertexBufferData, stagingBuffer);
 
 	auto indexBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData);
+		memory::region{1024 * 1024 * 256, 4, new memory::default_allocator(false)});
+	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData, stagingBuffer);
 
+	auto instanceBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
+		core::gfx::memory_property::device_local,
+		memory::region{(uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false)});
+	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
 	std::vector<resource::handle<data::geometry>> geometryDataHandles;
 	std::vector<resource::handle<gfx::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
@@ -773,19 +812,69 @@ int entry(gfx::graphics_backend backend)
 	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
 	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
 	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
+	// up
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::back * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::up * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::forward * 90.0f),
+							  core::data::geometry::constants::NORMAL);
+	auto up_plane_index = geometryDataHandles.size() - 1;
+	// down
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::forward * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::down * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::back * 90.0f), core::data::geometry::constants::NORMAL);
+	auto down_plane_index = geometryDataHandles.size() - 1;
+	// left
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::down * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::left * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::up * 90.0f), core::data::geometry::constants::NORMAL);
+	auto left_plane_index = geometryDataHandles.size() - 1;
+	// right
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::up * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::right * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::down * 90.0f), core::data::geometry::constants::NORMAL);
+	auto right_plane_index = geometryDataHandles.size() - 1;
+	// forward
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::forward * 0.5f);
+	auto forward_plane_index = geometryDataHandles.size() - 1;
+	// back
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::left * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::back * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::right * 90.0f), core::data::geometry::constants::NORMAL);
+	auto back_plane_index = geometryDataHandles.size() - 1;
 	for(auto& handle : geometryDataHandles)
 	{
 		core::stream colorstream{core::stream::type::vec3};
-		auto& colors			  = colorstream.as_vec3().value().get();
+		auto& colors = colorstream.as_vec3().value().get();
 		auto& normalStream =
 			handle->vertices(core::data::geometry::constants::NORMAL).value().get().as_vec3().value().get();
 		colors.resize(normalStream.size());
 		std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
 
-		std::for_each(std::begin(colors), std::end(colors),
-					  [](auto& color) { color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f; });
+		std::for_each(std::begin(colors), std::end(colors), [](auto& color) {
+			color =
+				(psl::math::dot(psl::math::normalize(color), psl::math::normalize(psl::vec3(145, 170, 35))) + 1.0f) *
+				0.5f;
+			// color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f;
+		});
 		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
-
+		handle->erase(core::data::geometry::constants::TANGENT);
+		handle->erase(core::data::geometry::constants::NORMAL);
 		geometryHandles.emplace_back(cache.create<gfx::geometry>(context_handle, handle, vertexBuffer, indexBuffer));
 	}
 
@@ -810,54 +899,42 @@ int entry(gfx::graphics_backend backend)
 	core::resource::handle<core::gfx::material> depth_material =
 		setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer);
 
+	// water
 	materials.emplace_back(
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e14da8e3-1e03-a635-7889-a1b0f27f36bb"_uid));
+
+	// grass
 	materials.emplace_back(
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3b47e2f3-1faa-f668-65d6-4aa32d04dab4"_uid));
+
+	// dirt
 	materials.emplace_back(
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "fb47fd91-8bd8-ba29-928f-9666404a399f"_uid));
+
+	// rock
 	materials.emplace_back(
 		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
 
-
-	// create a staging buffer, this is allows for more advantagous resource access for the GPU
-	core::resource::handle<gfx::buffer> stagingBuffer{};
-	if(backend == graphics_backend::vulkan)
-	{
-		auto stagingBufferData = cache.create<data::buffer>(
-			core::gfx::memory_usage::transfer_source,
-			core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-			memory::region{1024 * 1024 * 32, 4, new memory::default_allocator(false)});
-		stagingBuffer = cache.create<gfx::buffer>(context_handle, stagingBufferData);
-	}
-
-
-	auto instanceBufferData = cache.create<data::buffer>(
-		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
-		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 512, 4, new memory::default_allocator(false)});
-	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
-
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[0]->set(materials[0], 2000);
+	/*bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
+	bundles[bundles.size() - 1]->set(materials[0], 2000);
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[1]->set(materials[1], 2000);
-	bundles[1]->set(depth_material, 1000);
+	bundles[bundles.size() - 1]->set(materials[1], 2000);
+	bundles[bundles.size() -1]->set(depth_material, 1000);
+	*/
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
+	bundles[bundles.size() - 1]->set(materials[2], 2000);
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[2]->set(materials[2], 2000);
-
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[3]->set(materials[3], 2000);
+	bundles[bundles.size() - 1]->set(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
-	auto swapchain_pass = renderGraph.create_pass(context_handle, swapchain_handle);
+	auto swapchain_pass = renderGraph.create_drawpass(context_handle, swapchain_handle);
 
 	{
 		psl::UID compute_texture_uid;
@@ -871,7 +948,12 @@ int entry(gfx::graphics_backend backend)
 		auto compute_handle = create_compute(cache, context_handle, pipeline_cache,
 											 "594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, compute_texture_uid);
 
-		swapchain_pass->add(core::gfx::computecall{compute_handle});
+		if (context_handle->backend() == core::gfx::graphics_backend::gles)
+		{
+			auto compute_pass = renderGraph.create_computepass(context_handle);
+			compute_pass->add(core::gfx::computecall{ compute_handle });
+			renderGraph.connect(compute_pass, swapchain_pass);
+		}
 	}
 	// create the ecs
 	using psl::ecs::state;
@@ -892,6 +974,7 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::components::transform camTrans{psl::vec3{40, 15, 150}};
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
+
 	core::ecs::systems::render render_system{ECSState, swapchain_pass};
 	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
@@ -905,7 +988,7 @@ int entry(gfx::graphics_backend backend)
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	// ECSState.declare(core::ecs::systems::geometry_instance);
-	ECSState.declare(core::ecs::systems::static_geometry_instance);
+	core::ecs::systems::geometry_instancing geometry_instancing_system{ ECSState };
 
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
@@ -916,6 +999,8 @@ int entry(gfx::graphics_backend backend)
 
 	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
+
+	//core::ecs::systems::debug::grid grid_system{ ECSState, eCam[0], cache, context_handle, vertexBuffer, indexBuffer, pipeline_cache, matBuffer, instanceBuffer , core::ecs::systems::chunk::SIZE , static_cast<psl::vec3>(core::ecs::systems::chunk::SIZE)  * 0.5f};
 	size_t iterations = 25600;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 
@@ -937,66 +1022,9 @@ int entry(gfx::graphics_backend backend)
 
 	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
 					core::ecs::components::light{{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
-
-	auto index  = 0;
-	auto index2 = 0;
-#ifdef _DEBUG
-	auto size_x = 100;
-	auto size_y = 100;
-#else
-	auto size_x = 700;
-	auto size_y = 700;
-#endif
-	psl::noise::perlin noise{};
-
+	
 	std::array<int, 4> matusage{0};
-
-	ECSState.create(
-		size_x * size_y,
-		[&bundles, &geometryHandles, &index2, size_x, size_y, &noise,
-		 &matusage](core::ecs::components::renderable& renderable) {
-			auto x = index2 % size_x;
-			auto y = (index2 + (size_x - x)) / size_y;
-
-			auto grass = static_cast<int>(std::roundf(static_cast<float>(noise.noise(
-				psl::vec2{static_cast<float>(x) / size_x * 7.75f, static_cast<float>(y) / size_y * 8.25f}, 8))));
-
-			auto height = static_cast<float>(
-				noise.noise(psl::vec2{static_cast<float>(x) / size_x, static_cast<float>(y) / size_y}, 32));
-
-			auto rock_offset = height * 2.0f - 0.5f;
-			auto rock =
-				static_cast<float>(noise.noise(
-					psl::vec2{static_cast<float>(x) / size_x * -6, static_cast<float>(y) / size_y * -4.5f}, 32)) +
-				rock_offset;
-			height	= height * 80;
-			int index = 0;
-			index	 = (grass == 0) ? 1 : 2;
-			if(rock >= 1.0f)
-			{
-				index = 3;
-			}
-			if(height <= 15.0f) index = 0;
-
-			++matusage[index];
-			renderable = {bundles[index], geometryHandles[4]};
-			++index2;
-		},
-		[&index, size_x, size_y, &noise](core::ecs::components::transform& value) {
-			auto x = index % size_x;
-			auto y = (index + (size_x - x)) / size_y;
-
-			auto height = static_cast<float>(
-				noise.noise(psl::vec2{static_cast<float>(x) / size_x, static_cast<float>(y) / size_y}, 32));
-
-			height = std::max(height, 15.0f / 80.0f);
-			height = (std::pow(height + 1.0f, 3) - 1.0f) * 30.0f;
-
-			value.position = {static_cast<float>(x), height, static_cast<float>(y)};
-			value.scale	= {1};
-			value.rotation = psl::quat::identity;
-			++index;
-		});
+	//core::ecs::systems::worldgen worldgen_system{ cache,		context_handle, vertexBuffer, indexBuffer, bundles[1] };
 
 	std::string str{};
 	str.append("material 0: " + std::to_string(matusage[0]) + " material 1: " + std::to_string(matusage[1]) +
@@ -1010,6 +1038,7 @@ int entry(gfx::graphics_backend backend)
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
 		core::profiler.next_frame();
+		//worldgen_system.tick(ECSState, ECSState.get<core::ecs::components::transform>(eCam[0]).position);
 		core::profiler.scope_begin("system tick");
 		ECSState.tick(elapsed);
 		core::profiler.scope_end();

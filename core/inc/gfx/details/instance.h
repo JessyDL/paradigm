@@ -119,9 +119,9 @@ namespace core::gfx::details::instance
 		bool clear() noexcept;
 
 	  private:
-		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;
+		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings; // <material, bindings[]>
 		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
-		std::unordered_map<psl::UID, object> m_InstanceData;
+		std::unordered_map<psl::UID, object> m_InstanceData; // <geometry, object>
 
 		core::resource::handle<core::gfx::buffer> m_InstanceBuffer;
 	};

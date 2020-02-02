@@ -39,11 +39,9 @@ bool buffer::deallocate(memory::segment& segment)
 		m_Segments.erase(std::prev(std::end(m_Segments)), std::end(m_Segments));
 		return true;
 	}
-	else
-	{
-		core::data::log->warn("tried to erase a range {0} - {1} that was not present in the buffer", range.begin,
+	
+	core::data::log->warn("tried to erase a range {0} - {1} that was not present in the buffer", range.begin,
 							  range.end);
-	}
 	return false;
 }
 

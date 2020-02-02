@@ -188,6 +188,24 @@ namespace psl::math
 		return {floor(value[0]), floor(value[1]), floor(value[2]), floor(value[3])};
 	}
 
+	template <typename precision_t>
+	constexpr static precision_t exp(precision_t value) noexcept
+	{
+		return std::exp(value);
+	}
+
+	template <typename precision_t>
+	constexpr static precision_t fract(precision_t value) noexcept
+	{
+		return value - floor(value);
+	}
+
+	template <typename precision_t>
+	constexpr static auto log(precision_t value) noexcept
+	{
+		return std::log(value);
+	}
+
 	template <typename precision_t, typename precision_N_t>
 	constexpr static long double log_n(precision_N_t N, precision_t value) noexcept
 	{
@@ -195,8 +213,9 @@ namespace psl::math
 					  "requires to be convertible to 'long double'");
 		static_assert(std::is_convertible<precision_t, long double>::value,
 					  "requires to be convertible to 'long double'");
-		return std::log((long double)value) / std::log((long double)N);
+		return log((long double)value) / log((long double)N);
 	}
+
 
 	template <typename precision_t, typename precision_N_t>
 	constexpr static precision_t next_pow_of(precision_N_t N, precision_t value) noexcept
@@ -244,6 +263,50 @@ namespace psl::math
 		return value - remainder;
 	}
 
+	template<typename precision_t>
+	constexpr static precision_t min(const precision_t& left, const precision_t& right) noexcept
+	{
+		return std::min(left, right);
+	}
+
+	template<typename precision_t, size_t N>
+	constexpr static tvec<precision_t, N> min(const tvec<precision_t, N>& left, const tvec<precision_t, N>& right) noexcept
+	{
+		tvec<precision_t, N> res;
+		for (auto i = 0; i < N; ++i)
+			res[i] = min<precision_t>(left[i], right[i]);
+		return res;
+	}
+
+	template<typename precision_t>
+	constexpr static precision_t max(const precision_t& left, const precision_t& right) noexcept
+	{
+		return std::max(left, right);
+	}
+
+	template<typename precision_t, size_t N>
+	constexpr static tvec<precision_t, N> max(const tvec<precision_t, N>& left, const tvec<precision_t, N>& right) noexcept
+	{
+		tvec<precision_t, N> res;
+		for (auto i = 0; i < N; ++i)
+			res[i] = max<precision_t>(left[i], right[i]);
+		return res;
+	}
+
+	template<typename precision_t>
+	constexpr static precision_t abs(const precision_t& value) noexcept
+	{
+		return std::abs(value);
+	}
+
+	template<typename precision_t, size_t N>
+	constexpr static tvec<precision_t, N> abs(const tvec<precision_t, N>& value) noexcept
+	{
+		tvec<precision_t, N> res;
+		for (auto i = 0; i < N; ++i)
+			res[i] = abs<precision_t>(value[i]);
+		return res;
+	}
 
 } // namespace psl::math
 
@@ -528,23 +591,21 @@ namespace psl::math
 	template <typename precision_t>
 	constexpr static precision_t mix(const precision_t& x, const precision_t& y, precision_t a) noexcept
 	{
-		return (x + a * (y - x));
+		return lerp(a, x, y);
 	}
 
-	template <typename element1_t, typename element2_t, typename precision_t, size_t N>
-	constexpr static std::array<element1_t, N> mix(const std::array<element1_t, N>& x,
+	template <typename element1_t, typename element2_t, typename precision_t, typename return_t = element1_t, size_t N>
+	constexpr static psl::tvec<return_t, N> mix(const std::array<element1_t, N>& x,
 												   const std::array<element2_t, N>& y, precision_t a) noexcept
 	{
-		std::array<element1_t, N> result;
-		for(auto i = 0; i < N; ++i) result[i] = (x[i] + a * (y[i] - x[i]));
-		return result;
+		return lerp(a, x, y);
 	}
 
-	template <typename element1_t, typename element2_t, typename precision_t, size_t N>
-	constexpr static std::array<element1_t, N> mix(const psl::tvec<element1_t, N>& x, const psl::tvec<element2_t, N>& y,
+	template <typename element1_t, typename element2_t, typename precision_t, typename return_t = element1_t, size_t N>
+	constexpr static psl::tvec<return_t, N> mix(const psl::tvec<element1_t, N>& x, const psl::tvec<element2_t, N>& y,
 												   precision_t a) noexcept
 	{
-		return mix(x.value, y.value, a);
+		return lerp(a, x, y);
 	}
 
 } // namespace psl::math

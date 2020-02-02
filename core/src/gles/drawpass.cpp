@@ -1,4 +1,4 @@
-#include "gles/pass.h"
+#include "gles/drawpass.h"
 #include "gles/swapchain.h"
 #include "gles/framebuffer.h"
 #include "gles/material.h"
@@ -12,16 +12,19 @@
 #include "gfx/geometry.h"
 #include "gfx/buffer.h"
 #include "glad/glad_wgl.h"
+#include "data/material.h"
+#include "gles/conversion.h"
+#include "gles/computepass.h"
 
 using namespace core::igles;
 using namespace core::resource;
 
-pass::pass(handle<swapchain> swapchain) : m_Swapchain(swapchain) {}
-pass::pass(handle<framebuffer> framebuffer) : m_Framebuffer(framebuffer) {}
+drawpass::drawpass(handle<swapchain> swapchain) : m_Swapchain(swapchain) {}
+drawpass::drawpass(handle<framebuffer> framebuffer) : m_Framebuffer(framebuffer) {}
 
 
-void pass::clear() { m_DrawGroups.clear(); }
-void pass::prepare()
+void drawpass::clear() { m_DrawGroups.clear(); }
+void drawpass::prepare()
 {
 	if(m_Framebuffer)
 	{
@@ -30,40 +33,41 @@ void pass::prepare()
 		glClearDepthf(1.0f);
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
-
-	std::function<void()> v = [](){};
-
-	double x = 1;
-	float y = x;
 	if(m_Swapchain) m_Swapchain->clear();
 }
-bool pass::build() { return true; }
-void pass::present()
+bool drawpass::build() { return true; }
+void drawpass::present()
 {
 	glGetError();
 	if(m_Framebuffer)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
 	}
-	for(auto& compute : m_Compute)
+	for(auto& barrier : m_MemoryBarriers)
 	{
-		compute.dispatch();
-		glMemoryBarrier(GL_SHADER_IMAGE_ACCESS_BARRIER_BIT);
+		glMemoryBarrier(barrier.barrier);
 	}
+
 	for(const auto& group : m_DrawGroups)
 	{
 		for(auto& drawLayer : group.m_Group)
 		{
+			// todo: draw call sorting should be done ahead of time in the "build" pass.
+			psl::array<uint32_t> render_indices;
 			for(auto& drawCall : drawLayer.second)
 			{
-				if(drawCall.m_Geometry.size() == 0) continue;
-				auto bundle = drawCall.m_Bundle;
-
 				auto matIndices = drawCall.m_Bundle->materialIndices(drawLayer.first.begin(), drawLayer.first.end());
-
-				for(auto index : matIndices)
+				render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
+			}
+			std::sort(std::begin(render_indices), std::end(render_indices));
+			for(auto renderLayer : render_indices)
+			{
+				for(auto& drawCall : drawLayer.second)
 				{
-					bundle->bind_material(index);
+					if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
+					auto bundle = drawCall.m_Bundle;
+
+					bundle->bind_material(renderLayer);
 					auto gfxmat{bundle->bound()};
 					auto mat{gfxmat->resource().get<core::igles::material>()};
 
@@ -112,7 +116,15 @@ void pass::present()
 			}
 		}
 	}
-
+	glEnable(GL_DEPTH_TEST);
+	glCullFace(GL_FRONT);
+	glEnable(GL_CULL_FACE);
+	glDepthMask(true);
+	using namespace core::gfx::conversion;
+	auto blend_state = core::data::material::blendstate::opaque(0);
+	glBlendEquationSeparate(to_gles(blend_state.color_blend_op()), to_gles(blend_state.alpha_blend_op()));
+	glBlendFuncSeparate(to_gles(blend_state.color_blend_src()), to_gles(blend_state.color_blend_dst()),
+						to_gles(blend_state.alpha_blend_src()), to_gles(blend_state.alpha_blend_dst()));
 	if(m_Framebuffer)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
@@ -122,14 +134,33 @@ void pass::present()
 	glGetError();
 }
 
-void pass::add(core::gfx::drawgroup& group) noexcept { m_DrawGroups.push_back(group); }
+void drawpass::add(core::gfx::drawgroup& group) noexcept { m_DrawGroups.push_back(group); }
 
-
-void pass::add(psl::array_view<core::gfx::computecall> compute)
+void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept {};
+void drawpass::disconnect(psl::view_ptr<drawpass> pass) noexcept {};
+void drawpass::connect(psl::view_ptr<computepass> pass) noexcept
 {
-	m_Compute.insert(std::end(m_Compute), std::begin(compute), std::end(compute));
-}
-void pass::add(const core::gfx::computecall& compute)
+	for (const auto& barrier : pass->memory_barriers())
+	{
+		if (auto it = std::find_if(std::begin(m_MemoryBarriers), std::end(m_MemoryBarriers),
+			[&barrier](auto&& item) { return barrier == item.barrier; });
+			it != std::end(m_MemoryBarriers))
+			it->usage += 1;
+		else
+			m_MemoryBarriers.emplace_back(drawpass::memory_barrier_t{ barrier, 1 });
+	}
+};
+void drawpass::disconnect(psl::view_ptr<computepass> pass) noexcept 
 {
-	m_Compute.emplace_back(compute);
-}
+	for (const auto& barrier : pass->memory_barriers())
+	{
+		if (auto it = std::find_if(std::begin(m_MemoryBarriers), std::end(m_MemoryBarriers),
+			[&barrier](auto&& item) { return barrier == item.barrier; });
+			it != std::end(m_MemoryBarriers))
+		{
+			it->usage -= 1;
+			if (it->usage == 0)
+				m_MemoryBarriers.erase(it);
+		}
+	}
+};

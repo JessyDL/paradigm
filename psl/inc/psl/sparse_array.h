@@ -245,6 +245,58 @@ namespace psl
 			m_Dense.emplace_back(std::forward<value_type>(value));
 		}
 
+		constexpr value_type* try_get(index_type index) noexcept
+		{
+			if(index < capacity())
+			{
+				index_type chunk_index;
+				if constexpr(is_power_of_two)
+				{
+					chunk_index = (index - (index & mod_val)) / chunks_size;
+					index		= index & mod_val;
+				}
+				else
+				{
+					chunk_index = (index - (index % mod_val)) / chunks_size;
+					index		= index % mod_val;
+				}
+				auto dense_index = (m_Sparse[chunk_index].size() > 0) ? m_Sparse[chunk_index][index]
+																	  : std::numeric_limits<index_type>::max();
+
+				if (dense_index == std::numeric_limits<index_type>::max())
+					return nullptr;
+				else
+					return &m_Dense[dense_index];
+			}
+			return nullptr;
+		}
+
+		constexpr value_type const* try_get(index_type index) const noexcept
+		{
+			if (index < capacity())
+			{
+				index_type chunk_index;
+				if constexpr (is_power_of_two)
+				{
+					chunk_index = (index - (index & mod_val)) / chunks_size;
+					index = index & mod_val;
+				}
+				else
+				{
+					chunk_index = (index - (index % mod_val)) / chunks_size;
+					index = index % mod_val;
+				}
+				auto dense_index = (m_Sparse[chunk_index].size() > 0) ? m_Sparse[chunk_index][index]
+					: std::numeric_limits<index_type>::max();
+
+				if (dense_index == std::numeric_limits<index_type>::max())
+					return nullptr;
+				else
+					return &m_Dense[dense_index];
+			}
+			return nullptr;
+		}
+
 		constexpr bool has(index_type index) const noexcept
 		{
 			if(index < capacity())
@@ -398,6 +450,12 @@ namespace psl
 			m_Dense.reserve(capacity);
 		}
 
+		void clear()
+		{
+			m_Dense.clear();
+			m_Reverse.clear();
+			m_Sparse.clear();
+		}
 
 		psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
 		psl::array_view<value_type> dense() const noexcept { return m_Dense; }

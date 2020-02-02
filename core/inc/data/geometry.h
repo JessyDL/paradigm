@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <vector>
 #include "fwd/resource/resource.h"
+#include "psl/array_view.h"
 
 /*
 #define GEOMETRY_VERTEX_POSITION "GEOMETRY_VERTEX_POSITION"
@@ -21,6 +22,12 @@
 /// \brief hard defined max bone weights that geometry can use
 /// \todo implement a more robust system for this.
 #define MAX_BONE_WEIGHTS 4
+
+namespace psl
+{
+	template<typename T>
+	class array_view;
+}
 
 
 namespace core::data
@@ -80,13 +87,18 @@ namespace core::data
 		/// \warning be sure that the stream has the correct amount of vertices as is expected by the index buffer. As you might be
 		/// replacing/resizing the internal model data, we cannot error check this condition for you here.
 		void vertices(const psl::string_view name, const core::stream& stream);
+		template<typename T>
+		void vertices(const psl::string_view name, psl::array<T> stream)
+		{
+			m_VertexStreams.value[psl::string{ name }] = core::stream(std::move(stream));
+		}
 		/// \brief gets all indices that are currently assigned to this model data.
 		/// \returns all indices that are currently assigned to this model data.
 		const std::vector<index_size_t>& indices() const;
 		/// \brief sets the indices.
 		/// \warning be sure to check that the indices do not reffer to out of index locations in the position buffer. Seeing you might be
 		/// replacing/resizing the model data, we cannot error check this condition for you here.
-		void indices(const std::vector<index_size_t>& indices);
+		void indices(psl::array_view<index_size_t> indices);
 
 		/// \brief returns all the streams of data and their keys.
 		/// \returns all the streams of data and their keys.
@@ -94,8 +106,26 @@ namespace core::data
 
 		/// \brief helper method to check for validity of the model data in its current state.
 		/// \returns true if the data passes all checks.
-		bool is_valid() const;
-		
+		bool is_valid() const noexcept;
+
+		index_size_t vertex_count() const noexcept;
+		index_size_t index_count() const noexcept;
+		index_size_t triangles() const noexcept;
+		size_t bytesize() const noexcept;
+		size_t elements() const noexcept;
+
+		/// \brief erases the given stream if found
+		bool erase(psl::string_view name) noexcept;
+
+		template<typename F>
+		bool transform(psl::string_view name, F&& transformation)
+		{
+			if (auto it = m_VertexStreams.value.find(psl::string(name)); it != std::end(m_VertexStreams.value))
+			{
+				return it->second.transform(std::forward<F>(transformation));
+			}
+			return false;
+		}
 	  private:
 
 		/// \brief serialization method to be used by the serializer when writing this container to the disk.

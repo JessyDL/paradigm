@@ -144,7 +144,13 @@ void material::bind()
 	glUseProgram(m_Program->id());
 	auto blend_states = m_Data->blend_states();
 	using namespace core::gfx::conversion;
-	assert(blend_states.size() == m_Textures.size());
+
+	if(m_Textures.size() == 0 && blend_states.size() > 0)
+	{
+		glBlendEquationSeparate(to_gles(blend_states[0].color_blend_op()), to_gles(blend_states[0].alpha_blend_op()));
+		glBlendFuncSeparate(to_gles(blend_states[0].color_blend_src()), to_gles(blend_states[0].color_blend_dst()),
+							to_gles(blend_states[0].alpha_blend_src()), to_gles(blend_states[0].alpha_blend_dst()));
+	}
 
 	for(auto i = 0; i < m_Textures.size(); ++i)
 	{
@@ -166,6 +172,30 @@ void material::bind()
 		glBindBuffer(GL_UNIFORM_BUFFER, buffer.second->id());
 		glBindBufferBase(GL_UNIFORM_BUFFER, buffer.first, buffer.second->id());
 	}
+
+	switch(m_Data->cull_mode())
+	{
+	case core::gfx::cullmode::front:
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT);
+		break;
+	case core::gfx::cullmode::back:
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		break;
+	case core::gfx::cullmode::all:
+		glEnable(GL_CULL_FACE);
+		glCullFace(GL_FRONT_AND_BACK);
+		break;
+	case core::gfx::cullmode::none: glDisable(GL_CULL_FACE); break;
+	}
+
+	glDepthMask(m_Data->depth_write());
+	if(m_Data->depth_test())
+		glEnable(GL_DEPTH_TEST);
+	else
+		glDisable(GL_DEPTH_TEST);
+
 	glGetError();
 }
 

@@ -41,7 +41,7 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cAlphaBits = 8;
-	pfd.cDepthBits = 24;
+	pfd.cDepthBits = 32;
 
 	int pfdid = ChoosePixelFormat(target, &pfd);
 	if(pfdid == 0)
@@ -172,7 +172,7 @@ void context::enable(const core::os::surface& surface)
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cAlphaBits = 8;
-	pfd.cDepthBits = 24;
+	pfd.cDepthBits = 32;
 
 	int pfdid = ChoosePixelFormat(target, &pfd);
 	if(pfdid == 0)
@@ -260,7 +260,9 @@ void context::enable(const core::os::surface& surface)
 		if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(1);
 #endif
 
-		glEnable(GL_BLEND);
+		glEnable(GL_BLEND); 
+		glEnable(GL_CULL_FACE);
+		glLineWidth(2.0);
 	}
 }
 

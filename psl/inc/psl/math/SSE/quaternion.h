@@ -1,6 +1,6 @@
 #pragma once
 #if INSTRUCTION_SET == 1
-#include "math/quaternion.h"
+#include "psl/math/quaternion.h"
 #include <xmmintrin.h>
 namespace psl
 {

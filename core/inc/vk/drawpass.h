@@ -43,24 +43,24 @@ namespace core::ivk
 	/// subsequent passes, or present it to a core::gfx::surface.
 	/// Passes also make sure that they don't create race conditions with other passes that have been assigned as its
 	/// dependencies.
-	class pass
+	class drawpass
 	{
 	  public:
 		/// \brief creates a pass that targets a framebuffer.
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
-		pass(core::resource::handle<core::ivk::context> context,
+		drawpass(core::resource::handle<core::ivk::context> context,
 			 core::resource::handle<core::ivk::framebuffer> framebuffer);
 		/// \brief creates a pass that targets a swapchain image set.
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] swapchain the valid and loaded swapchain that this pass will output to.
-		pass(core::resource::handle<core::ivk::context> context,
+		drawpass(core::resource::handle<core::ivk::context> context,
 			 core::resource::handle<core::ivk::swapchain> swapchain);
-		~pass();
-		pass(const pass&) = delete;
-		pass(pass&&)	  = delete;
-		pass& operator=(const pass&) = delete;
-		pass& operator=(pass&&) = delete;
+		~drawpass();
+		drawpass(const drawpass&) = delete;
+		drawpass(drawpass&&)	  = delete;
+		drawpass& operator=(const drawpass&) = delete;
+		drawpass& operator=(drawpass&&) = delete;
 
 		/// \brief prepares the pass for presenting (i.e. it does some basic housekeeping such as fetching the swapchain
 		/// image if any)
@@ -84,9 +84,9 @@ namespace core::ivk
 		void add(core::gfx::drawgroup& group) noexcept;
 
 		/// \brief makes the current pass wait for the given pass to complete
-		void connect(psl::view_ptr<pass> pass) noexcept;
+		void connect(psl::view_ptr<drawpass> pass) noexcept;
 
-		void disconnect(psl::view_ptr<pass> pass) noexcept;
+		void disconnect(psl::view_ptr<drawpass> pass) noexcept;
 
 		/// \brief removes an existing drawgroup from this pass' draw instructions.
 		void remove(const core::gfx::drawgroup& group) noexcept;

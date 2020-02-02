@@ -52,7 +52,7 @@ program::program(core::resource::cache& cache, const core::resource::metadata& m
 				shader_uids += stage.shader().to_string();
 				shader_uids += ", ";
 			});
-		shader_uids.resize(shader_uids.size() - 2);
+		shader_uids.resize(std::max<size_t>(2, shader_uids.size()) - 2);
 		if(infoLen > 1)
 		{
 			char* infoLog = (char*)malloc(sizeof(char) * infoLen);
