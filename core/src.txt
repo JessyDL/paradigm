@@ -49,7 +49,7 @@ ecs/systems/render.cpp
 ecs/systems/gpu_camera.cpp
 ecs/systems/lighting.cpp
 ecs/systems/text.cpp
-ecs/systems/geometry_instancing.cpp
+ecs/systems/geometry_instance.cpp
 ecs/systems/debug/grid.cpp
 )
 
