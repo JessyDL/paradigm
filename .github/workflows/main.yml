@@ -21,4 +21,4 @@ jobs:
     - name: compile
       run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
     - name: test
-      run: cd "project_files/Visual Studio 16 2019/x64" && ctest
+      run: cd "project_files/Visual Studio 16 2019/x64"; ctest

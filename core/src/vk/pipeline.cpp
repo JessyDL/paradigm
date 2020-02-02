@@ -74,28 +74,36 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			return false;
 		}
 
-		if(conversion::to_vk(shader_handle->stage()) ==
-		   vk::ShaderStageFlagBits::eVertex) // TODO: check if possible on fragment shader etc..
-		{
-			for(auto& vertexBinding : shader_handle->vertex_bindings())
-			{
-				vk::VertexInputBindingDescription& vkVertexBinding = vertexBindingDescriptions.emplace_back();
-				vkVertexBinding.binding							   = vertexBinding.binding_slot();
-				vkVertexBinding.stride							   = vertexBinding.size();
-				vkVertexBinding.inputRate						   = conversion::to_vk(vertexBinding.input_rate());
+		if(stage.shader_stage() != core::gfx::shader_stage::vertex &&
+		   stage.shader_stage() != core::gfx::shader_stage::compute)
+			continue;
 
-				for(auto& vertexAttribute : vertexBinding.attributes())
-				{
-					vk::VertexInputAttributeDescription& vkVertexAttribute = vertexAttributeDescriptions.emplace_back();
-					vkVertexAttribute.binding							   = vkVertexBinding.binding;
-					vkVertexAttribute.location							   = vertexAttribute.location();
-					vkVertexAttribute.format = conversion::to_vk(vertexAttribute.format());
-					vkVertexAttribute.offset = vertexAttribute.offset();
-				}
+		for(auto& attribute : shader_handle->inputs())
+		{
+			vk::VertexInputBindingDescription& vkVertexBinding = vertexBindingDescriptions.emplace_back();
+			vkVertexBinding.binding							   = attribute.location();
+			vkVertexBinding.stride							   = attribute.size();
+
+			auto input_rate = std::find_if(
+				std::begin(stage.attributes()),
+				std::end(stage.attributes()), [location = attribute.location()](const auto& attribute) noexcept {
+					return location == attribute.location();
+				});
+
+			vkVertexBinding.inputRate =
+				conversion::to_vk(input_rate->input_rate().value_or(core::gfx::vertex_input_rate::vertex));
+
+			for(auto i = 0; i < attribute.count(); ++i)
+			{
+				vk::VertexInputAttributeDescription& vkVertexAttribute = vertexAttributeDescriptions.emplace_back();
+				vkVertexAttribute.binding							   = vkVertexBinding.binding;
+				vkVertexAttribute.location							   = vkVertexBinding.binding + i;
+				vkVertexAttribute.format							   = conversion::to_vk(attribute.format());
+				vkVertexAttribute.offset							   = attribute.stride() * i;
 			}
-			break;
 		}
 	}
+
 	return true;
 }
 

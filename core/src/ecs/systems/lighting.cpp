@@ -1,7 +1,7 @@
 #include "ecs/systems/lighting.h"
 #include "psl/ecs/state.h"
 #include "psl/memory/region.h"
-#include "gfx/pass.h"
+#include "gfx/drawpass.h"
 #include "gfx/context.h"
 #include "os/surface.h"
 #include "gfx/render_graph.h"
@@ -22,7 +22,7 @@ using namespace psl::ecs;
 
 lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view_ptr<core::resource::cache> cache,
 								 memory::region& resource_region, psl::view_ptr<core::gfx::render_graph> renderGraph,
-								 psl::view_ptr<core::gfx::pass> pass,
+								 psl::view_ptr<core::gfx::drawpass> pass,
 								 core::resource::handle<core::gfx::context> context,
 								 core::resource::handle<core::os::surface> surface) noexcept
 	: m_Cache(cache), m_RenderGraph(renderGraph), m_DependsPass(pass), m_State(state), m_Context(context),
@@ -32,8 +32,7 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 
 	auto bufferData = cache->create<data::buffer>(
 		gfx::memory_usage::uniform_buffer, gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
-		resource_region
-			.create_region(sizeof(light) * 1024, core::gfx::limits::uniform_buffer_offset_alignment(m_Context.value()),
+		resource_region.create_region(sizeof(light) * 1024, m_Context->limits().uniform_buffer_offset_alignment,
 						   new memory::default_allocator(true))
 			.value());
 
@@ -56,7 +55,7 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 
 		{
 			core::gfx::attachment descr;
-			if(auto format = core::gfx::limits::supported_depthformat(m_Context.value());
+			if(auto format = m_Context->limits().supported_depthformat;
 			   format == core::gfx::format::undefined)
 			{
 				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
@@ -84,10 +83,10 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 
 		auto depthPass = m_Cache->create<gfx::framebuffer>(m_Context, fbdata);
 
-		m_Passes[e]  = m_RenderGraph->create_pass(m_Context, depthPass);
-		m_Systems[e] = new core::ecs::systems::render{*m_State, m_Passes[e]};
+		auto pass  = m_RenderGraph->create_drawpass(m_Context, depthPass);
+		m_Systems[e] = new core::ecs::systems::render{*m_State, pass };
 		m_Systems[e]->add_render_range(1000, 1500);
 
-		m_RenderGraph->connect(m_Passes[e], m_DependsPass);
+		m_RenderGraph->connect(pass, m_DependsPass);
 	}
 };

@@ -1,84 +1,35 @@
 #pragma once
-#include "context.h"
-#ifdef PE_VULKAN
-#include "vk/context.h"
-#include "vk/conversion.h"
-#endif
-#ifdef PE_GLES
-#include "gles/igles.h"
-#endif
-
-namespace core::gfx::limits
+#include "types.h"
+#include "psl/static_array.h"
+namespace core::gfx
 {
-	inline uint64_t storage_buffer_offset_alignment(const core::gfx::context& context)
+	struct limits
 	{
-		switch(context.backend())
-		{
-#ifdef PE_GLES
-		case graphics_backend::gles:
-		{
-			int gl_align = 4;
-			glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &gl_align);
-			return static_cast<uint64_t>(gl_align);
-		}
-		break;
-#endif
-#ifdef PE_VULKAN
-		case graphics_backend::vulkan:
-			return static_cast<uint64_t>(
-				context.resource().get<core::ivk::context>()->properties().limits.minStorageBufferOffsetAlignment);
-			break;
-#endif
-		}
-		return 0;
-	}
+		uint64_t storage_buffer_offset_alignment;
+		uint64_t uniform_buffer_offset_alignment;
+		core::gfx::format supported_depthformat;
 
-	inline uint64_t uniform_buffer_offset_alignment(const core::gfx::context& context)
+		std::array<uint32_t, 3> compute_worgroup_size;
+		std::array<uint32_t, 3> compute_worgroup_count;
+		uint32_t compute_worgroup_invocations;
+	};
+
+	constexpr inline limits min(const limits& l, const limits& r) noexcept
 	{
-		switch(context.backend())
-		{
-#ifdef PE_GLES
-		case graphics_backend::gles:
-		{
-			int gl_align = 4;
-			glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &gl_align);
-			return static_cast<uint64_t>(gl_align);
-		}
-		break;
-#endif
-#ifdef PE_VULKAN
-		case graphics_backend::vulkan:
-			return static_cast<uint64_t>(
-				context.resource().get<core::ivk::context>()->properties().limits.minUniformBufferOffsetAlignment);
-			break;
-#endif
-		}
-		return 0;
-	}
+		limits limit{};
+		limit.storage_buffer_offset_alignment =
+			std::min(l.storage_buffer_offset_alignment, r.storage_buffer_offset_alignment);
 
-	inline core::gfx::format supported_depthformat(const core::gfx::context& context)
-	{
+		limit.uniform_buffer_offset_alignment =
+			std::min(l.uniform_buffer_offset_alignment, r.uniform_buffer_offset_alignment);
 
-		switch(context.backend())
+		for(int i = 0; i < l.compute_worgroup_size.size(); ++i)
 		{
-#ifdef PE_GLES
-		case graphics_backend::gles:
-		{
-			return core::gfx::format::d32_sfloat;
+			limit.compute_worgroup_size[i]  = std::min(l.compute_worgroup_size[i], r.compute_worgroup_size[i]);
+			limit.compute_worgroup_count[i] = std::min(l.compute_worgroup_count[i], r.compute_worgroup_count[i]);
 		}
-		break;
-#endif
-#ifdef PE_VULKAN
-		case graphics_backend::vulkan:
-		{
-			vk::Format format;
-			if(utility::vulkan::supported_depthformat(context.resource().get<core::ivk::context>()->physical_device(),
-													  &format))
-				return core::gfx::conversion::to_format(format);
-		}
-		break;
-#endif
-		}
-		return core::gfx::format::undefined;
+		limit.compute_worgroup_invocations = std::min(l.compute_worgroup_invocations, r.compute_worgroup_invocations);
+
+		return limit;
 	}
-} // namespace core::gfx::limits
+} // namespace core::gfx

@@ -176,7 +176,10 @@ namespace psl::ecs::details
 
 			std::sort(std::begin(filters), std::end(filters));
 			filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
-
+			std::sort(std::begin(except), std::end(except));
+			auto cpy = filters;
+			filters.clear();
+			std::set_difference(std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
 			if constexpr(std::is_same<psl::ecs::partial, typename pack_t::policy_t>::value)
 			{
 				m_IsPartial = true;

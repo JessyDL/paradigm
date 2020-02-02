@@ -3,7 +3,8 @@
 #include "ecs/components/renderable.h"
 #include "gfx/geometry.h"
 #include "gfx/bundle.h"
-#include "gfx/pass.h"
+#include "gfx/drawpass.h"
+#include "gfx/render_graph.h"
 
 using core::resource::handle;
 using namespace core::gfx;
@@ -15,7 +16,7 @@ using namespace psl;
 
 using std::chrono::duration;
 
-render::render(state& state, psl::view_ptr<core::gfx::pass> pass) : m_Pass(pass)
+render::render(state& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }
@@ -23,6 +24,8 @@ void render::tick_draws(info& info,
 						pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
 						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
 {
+	if(!renderables.size() && !broken_renderables.size()) return;
+	m_Pass->dirty(true);
 	m_Pass->clear();
 
 	// for each RenderRange, create a drawgroup. assign all bundles to that group
@@ -32,11 +35,13 @@ void render::tick_draws(info& info,
 		auto res			= renderables.get<const transform>();
 		for(auto [transform, renderable] : renderables)
 		{
-			m_DrawGroup.add(default_layer, renderable.bundle.make_shared()).add(renderable.geometry.make_shared());
+			if(renderable.bundle)
+				m_DrawGroup.add(default_layer, renderable.bundle.make_shared()).add(renderable.geometry.make_shared());
 		}
 
 		for(auto [transform, renderable] : broken_renderables)
 		{
+			if(!renderable.bundle) continue;
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle.make_shared()))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());

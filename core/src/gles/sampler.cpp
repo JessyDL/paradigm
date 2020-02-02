@@ -21,7 +21,7 @@ sampler::sampler(core::resource::cache& cache, const core::resource::metadata& m
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_MIN_FILTER,
 						to_gles(sampler_data->filter_min(), sampler_data->mip_mode()));
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_MAG_FILTER,
-						to_gles(sampler_data->filter_max(), sampler_data->mip_mode()));
+						(sampler_data->filter_max() == core::gfx::filter::linear)?GL_LINEAR:GL_NEAREST);
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_WRAP_S, to_gles(sampler_data->addressU()));
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_WRAP_T, to_gles(sampler_data->addressV()));
 	glSamplerParameteri(m_Sampler, GL_TEXTURE_WRAP_R, to_gles(sampler_data->addressW()));
@@ -46,6 +46,7 @@ sampler::sampler(core::resource::cache& cache, const core::resource::metadata& m
 	}
 	// todo find GL_TEXTURE_LOD_BIAS equivalent GLES
 	// todo figure out use case for GL_TEXTURE_COMPARE_MODE
+	glGetError();
 }
 
 sampler::~sampler() { glDeleteSamplers(1, &m_Sampler); }

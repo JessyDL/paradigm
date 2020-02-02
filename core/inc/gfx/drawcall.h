@@ -8,13 +8,13 @@
 #ifdef PE_VULKAN
 namespace core::ivk
 {
-	class pass;
+	class drawpass;
 }
 #endif
 #ifdef PE_GLES
 namespace core::igles
 {
-	class pass;
+	class drawpass;
 }
 #endif
 namespace core::gfx
@@ -23,10 +23,10 @@ namespace core::gfx
 	{
 		friend class drawgroup;
 #ifdef PE_VULKAN
-		friend class core::ivk::pass;
+		friend class core::ivk::drawpass;
 #endif
 #ifdef PE_GLES
-		friend class core::igles::pass;
+		friend class core::igles::drawpass;
 #endif
 
 	  public:

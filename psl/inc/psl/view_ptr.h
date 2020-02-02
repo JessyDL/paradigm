@@ -46,7 +46,7 @@ namespace psl
 			return *this;
 		};
 
-		constexpr pointer get() const noexcept { return m_Value; }
+		constexpr reference get() const noexcept { return *m_Value; }
 
 		constexpr reference operator*() const noexcept
 		{
@@ -81,7 +81,7 @@ namespace psl
 	template <typename T1, typename T2>
 	constexpr bool operator==(view_ptr<T1> p1, view_ptr<T2> p2) noexcept
 	{
-		return p1.get() == p2.get();
+		return &p1.get() == &p2.get();
 	}
 
 	template <typename T1, typename T2>
@@ -132,7 +132,7 @@ namespace std
 	template <class T>
 	struct hash<::psl::view_ptr<T>>
 	{
-		size_t operator()(::psl::view_ptr<T> p) const noexcept { return std::hash<T*>()(p.get()); }
+		size_t operator()(::psl::view_ptr<T> p) const noexcept { return std::hash<T*>()(&p.get()); }
 	};
 
 } // namespace std

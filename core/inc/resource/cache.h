@@ -131,8 +131,8 @@ namespace core::resource
 		cache(psl::meta::library library) : m_Library(std::move(library)){};
 		~cache() { free(true); };
 
-		cache(const cache& other)	 = delete;
-		cache(cache&& other) = default;
+		cache(const cache& other) = delete;
+		cache(cache&& other)	  = default;
 		cache& operator=(const cache& other) = delete;
 		cache& operator=(cache&& other) = default;
 
@@ -152,7 +152,7 @@ namespace core::resource
 				m_Deleters[key]  = [](void* resource) { delete((T*)(resource)); };
 				m_TypeNames[key] = typeid(T).name();
 			}
-			auto& data = m_Cache[uid];
+			auto& data						 = m_Cache[uid];
 			m_RemappedResource[resource_uid] = uid;
 
 			auto& descr = *data.descriptions.emplace_back(
@@ -176,7 +176,7 @@ namespace core::resource
 				descr.metaData.state = state::loading;
 				T* resource			 = nullptr;
 				resource =
-					new T(cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...);
+					new T(cache, descr.metaData, (meta_type*)&metaFile.get(), std::forward<decltype(values)>(values)...);
 				if constexpr(psl::serialization::details::is_collection<T>::value)
 				{
 					if(auto result = library.load(descr.metaData.resource_uid); result)
@@ -237,7 +237,7 @@ namespace core::resource
 				T* resource			 = nullptr;
 
 				resource =
-					new T(cache, descr.metaData, (meta_type*)metaFile.get(), std::forward<decltype(values)>(values)...);
+					new T(cache, descr.metaData, (meta_type*)&metaFile.get(), std::forward<decltype(values)>(values)...);
 				descr.resource		 = (void*)resource;
 				descr.metaData.state = state::loaded;
 			};
@@ -272,7 +272,7 @@ namespace core::resource
 				descr.metaData.state = state::loading;
 				T* resource			 = nullptr;
 
-				resource			 = new T(cache, descr.metaData, reinterpret_cast<meta_type*>(metaFile.get()),
+				resource			 = new T(cache, descr.metaData, reinterpret_cast<meta_type*>(&metaFile.get()),
 								 std::forward<decltype(values)>(values)...);
 				descr.resource		 = (void*)resource;
 				descr.metaData.state = state::loaded;
@@ -286,8 +286,8 @@ namespace core::resource
 		template <typename T, typename... Args>
 		handle<T> find(const psl::UID& uid) noexcept
 		{
-			using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
-			auto it = m_Cache.find(uid);
+			using value_type = std::remove_cv_t<std::remove_const_t<T>>;
+			auto it			 = m_Cache.find(uid);
 			if(it == std::end(m_Cache))
 			{
 				auto resIt = m_RemappedResource.find(uid);
@@ -363,6 +363,19 @@ namespace core::resource
 				return create_using<T>(uid, result);
 			}
 			return {};
+		}
+
+		template <typename T>
+		bool free(resource::handle<T>& target)
+		{
+			if(target.m_MetaData->reference_count <= 1 && target.m_MetaData->state == state::loaded)
+			{
+				target.m_MetaData->state = state::unloading;
+				std::invoke(m_Deleters[target.m_MetaData->type], target.m_Resource);
+				target.m_MetaData->state = state::unloaded;
+				return true;
+			}
+			return false;
 		}
 
 		void free(bool clear_all = false)

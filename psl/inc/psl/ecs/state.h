@@ -191,11 +191,16 @@ namespace psl::ecs
 		template <typename... Ts>
 		bool has_components(psl::array_view<entity> entities) const noexcept
 		{
-			for(const auto& cInfo : m_Components)
+			auto cInfos = get_component_info(to_keys<Ts...>());
+			if (cInfos.size() == sizeof...(Ts))
 			{
-				return std::all_of(std::begin(entities), std::end(entities),
-								   [&cInfo](entity e) { return cInfo->has_component(e); });
+				for (const auto& cInfo : cInfos)
+				{
+					return std::all_of(std::begin(entities), std::end(entities),
+						[&cInfo](entity e) { return cInfo && cInfo->has_component(e); });
+				}
 			}
+			return sizeof...(Ts) == 0;
 		}
 
 		template <typename T, typename... Ts>
@@ -798,7 +803,11 @@ namespace psl::ecs
 					std::apply(fn, std::move(tuple_argument_list));
 				};
 			}
-			m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
+			if(m_LockState)
+				m_NewSystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
+					seedWithExisting);
+			else
+				m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
 											  seedWithExisting);
 		}
 
@@ -807,6 +816,7 @@ namespace psl::ecs
 		psl::array<entity> m_Entities;
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		std::vector<details::system_information> m_SystemInformations;
+		std::vector<details::system_information> m_NewSystemInformations;
 
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 

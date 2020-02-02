@@ -39,7 +39,7 @@ namespace core::ecs::systems
 						info.dTime.count();
 					const auto direction = normalize(attrTransform.position - movTrans.position) * attractor.force;
 
-					movVel.direction = mix<float, float, float, 3>(movVel.direction, direction, mag);
+					movVel.direction = mix(movVel.direction, direction, mag);
 				}
 			}
 		};

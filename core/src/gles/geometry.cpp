@@ -2,6 +2,7 @@
 #include "resource/resource.hpp"
 #include "gles/buffer.h"
 #include "gles/material.h"
+#include "data/material.h"
 #include "data/geometry.h"
 #include "meta/shader.h"
 #include "gles/shader.h"
@@ -15,8 +16,7 @@ using namespace core::resource;
 using gData = core::data::geometry;
 
 geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<gData> data, handle<buffer> vertexBuffer,
-				   handle<buffer> indexBuffer)
+				   handle<gData> data, handle<buffer> vertexBuffer, handle<buffer> indexBuffer)
 	: m_UID(metaData.uid), m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
 {
 	psl::array<size_t> sizeRequests;
@@ -33,7 +33,11 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 	}
 
 	auto segments = vertexBuffer->allocate(sizeRequests, true);
-
+	if (segments.size() == 0)
+	{
+		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
+		exit(1);
+	}
 	std::vector<core::gfx::memory_copy> instructions;
 	auto current_segment = std::begin(segments);
 	for(const auto& stream : data->vertex_streams())
@@ -61,6 +65,7 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 		}
 		else
 		{
+			core::igles::log->critical("index buffer was out of memory");
 			// todo error condition could not allocate segment
 			exit(1);
 		}
@@ -87,6 +92,8 @@ geometry::~geometry()
 {
 	if(!m_GeometryBuffer) return;
 
+	for (auto& [uid, vao] : m_VAOs)
+		glDeleteVertexArrays(1, &vao);
 	for(auto& binding : m_Bindings)
 	{
 		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
@@ -102,13 +109,17 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 						  core::resource::handle<core::igles::buffer> instanceBuffer,
 						  psl::array<std::pair<size_t, size_t>> bindings)
 {
+	GLuint vao;
+	// todo this is not correct
+	// issue: when a material gets their instance bindings updated, the VAO doesn't know
 	if(auto it = m_VAOs.find(material); it != std::end(m_VAOs))
 	{
-		return;
+		vao = it->second;
 	}
-
-	GLuint vao;
-	glGenVertexArrays(1, &vao);
+	else
+	{
+		glGenVertexArrays(1, &vao);
+	}
 	glBindVertexArray(vao);
 
 	auto instance_buffer = instanceBuffer->id();
@@ -128,34 +139,33 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_GeometryBuffer->id());
 	std::vector<int> activeSlots{};
-	for(const auto& shader : material->shaders())
-	{
-		const auto& meta = shader->meta();
-		if(meta->stage() == core::gfx::shader_stage::vertex) // TODO: check if possible on fragment shader etc..
+
+	for(const auto& stage : material->data().stages())
+	{		
+		auto meta_it = std::find_if(std::begin(material->shaders()), std::end(material->shaders()),
+									[uid = stage.shader()](const auto& shader) { return shader->meta()->ID() == uid; });
+
+		for(const auto& attribute : stage.attributes())
 		{
-			for(auto& vBinding : meta->vertex_bindings())
+			for(const auto& b : m_Bindings)
 			{
-				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
-
-				for(const auto& b : m_Bindings)
+				if(psl::to_string8_t(b.name) == attribute.tag())
 				{
-					if(psl::to_string8_t(b.name) == vBinding.buffer())
-					{
-						auto offset = uint64_t{b.segment.range().begin + b.sub_range.begin};
+					auto offset = uint64_t{b.segment.range().begin + b.sub_range.begin};
 
-						// todo we need type information here
-						glVertexAttribPointer(vBinding.binding_slot(), vBinding.size() / sizeof(GL_FLOAT), GL_FLOAT,
-											  false, 0, (void*)offset);
-						glEnableVertexAttribArray(vBinding.binding_slot());
-						activeSlots.emplace_back(vBinding.binding_slot());
-					}
+					auto input = std::find_if(std::begin(meta_it->meta()->inputs()), std::end(meta_it->meta()->inputs()),
+						[location = attribute.location()](const auto& input) { return location == input.location(); });
+					// todo we need type information here
+					glVertexAttribPointer(attribute.location(), input->size() / sizeof(GL_FLOAT), GL_FLOAT, false,
+										  0, (void*)offset);
+					glEnableVertexAttribArray(attribute.location());
+					activeSlots.emplace_back(attribute.location());
 				}
 			}
 		}
 	}
 	m_VAOs[material] = vao;
 }
-
 void geometry::bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount)
 {
 	auto error = glGetError();
@@ -165,12 +175,16 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());
 	auto indices = m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t);
-	if(instanceCount == 0)
-		glDrawElements(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-					   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+	if (instanceCount == 0)
+	{
+		glDrawElements(material->data().wireframe()? GL_LINES : GL_TRIANGLES, indices, GL_UNSIGNED_INT,
+			(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+	}
 	else
-		glDrawElementsInstanced(GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-								(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
+	{
+		glDrawElementsInstanced(material->data().wireframe() ? GL_LINES : GL_TRIANGLES, indices, GL_UNSIGNED_INT,
+			(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
+	}
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -178,31 +192,28 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 
 bool geometry::compatible(const core::igles::material& material) const noexcept
 {
-	for(const auto& shader : material.shaders())
+	for(const auto& stage : material.data().stages())
 	{
-		if(shader->meta()->stage() == core::gfx::shader_stage::vertex)
+		for(const auto& attribute : stage.attributes())
 		{
-			for(const auto& vBinding : shader->meta()->vertex_bindings())
+			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
+
+			for(const auto& b : m_Bindings)
 			{
-				if(vBinding.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
-
-				for(const auto& b : m_Bindings)
+				if(psl::to_string8_t(b.name) == attribute.tag())
 				{
-					if(psl::to_string8_t(b.name) == vBinding.buffer())
-					{
-						goto success;
-					}
+					goto success;
 				}
-				goto error;
-
-			success:
-				continue;
-
-			error:
-				core::igles::log->error("missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", vBinding.buffer(),
-									  utility::to_string(m_UID));
-				return false;
 			}
+			goto error;
+
+		success:
+			continue;
+
+		error:
+			core::igles::log->error("missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(),
+									utility::to_string(m_UID));
+			return false;
 		}
 	}
 	return true;

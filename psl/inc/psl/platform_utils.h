@@ -44,7 +44,8 @@ namespace utility
 		/// callstack). \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the
 		/// current information, while 255 would likely get you to the root). \returns an std::vector containing a
 		/// struct of trace_info of the current callstack (excluding this method).
-		static std::vector<trace_info> trace(size_t offset = 0u, size_t depth = 255u);
+		static std::vector<trace_info> trace(size_t offset = 0u, size_t depth = 255u,
+											 std::optional<std::thread::id> id = std::nullopt);
 
 
 		/// \brief method to get raw trace information of the current callstack.

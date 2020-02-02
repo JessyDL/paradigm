@@ -3,7 +3,7 @@
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
-#include "spdlog/spdlog.h" 
+#include "psl/logging.h" 
 
 using namespace utility::os;
 

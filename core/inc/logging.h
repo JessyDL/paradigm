@@ -1,5 +1,5 @@
 #pragma once
-#include "spdlog/spdlog.h"
+#include "psl/logging.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <memory>
 #include "psl/profiling/profiler.h"

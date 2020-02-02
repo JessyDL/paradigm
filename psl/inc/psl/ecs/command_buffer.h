@@ -155,15 +155,22 @@ namespace psl::ecs
 				{
 					target->add(remapped_entities[e]);
 				}
-				std::memcpy(target->data(), m_Entities.data(), sizeof(T) * m_Entities.size());
+				auto offset = (std::intptr_t)target->data();
+				std::memcpy((void*)offset, m_Entities.data(), sizeof(T)* m_Entities.size());
+				for (auto e : m_ModifiedEntities.indices())
+				{
+					target->add(e);
+				}
+				offset = (std::intptr_t)target->data() + sizeof(T) * m_Entities.size();
+				std::memcpy((void*)offset, m_ModifiedEntities.data(), sizeof(T) * m_ModifiedEntities.size());
 				return target;
 			}
 
 			void merge_into(details::component_info* dst, psl::sparse_array<entity>& remapped_entities) const override
 			{
+				auto offset = dst->entities(true).size();
 				if(m_Entities.size() > 0)
 				{
-					auto offset = dst->entities(true).size();
 					for(auto e : m_Entities.indices())
 					{
 						if(!remapped_entities.has(e))
@@ -174,15 +181,19 @@ namespace psl::ecs
 					}
 
 				}
-				auto dst_typed = (details::component_info_typed<T>*)dst;
-
-				auto& data{dst_typed->entity_data()};
 
 				for(auto e : m_ModifiedEntities.indices())
 				{
-					if(!data.has(e)) data.insert(e);
-
-					data[e] = m_ModifiedEntities.at(e);
+					if (!dst->has_component(e))
+					{
+						dst->add(e);
+						std::memcpy((void*)((T*)dst->data() + offset), (void*)&m_ModifiedEntities.at(e), sizeof(T));
+						offset += 1;
+					}
+					else
+					{
+						dst->set(e, (void*)&m_ModifiedEntities.at(e));
+					}
 				}
 
 				auto removed{removed_entities()};

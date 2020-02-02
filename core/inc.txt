@@ -19,6 +19,9 @@ gfx/limits.h
 gfx/types.h
 
 gfx/context.h
+gfx/compute.h
+gfx/computecall.h
+gfx/computepass.h
 gfx/shader.h
 gfx/buffer.h
 gfx/geometry.h
@@ -27,7 +30,7 @@ gfx/sampler.h
 gfx/material.h
 gfx/swapchain.h
 gfx/pipeline_cache.h
-gfx/pass.h
+gfx/drawpass.h
 gfx/framebuffer.h
 
 gfx/drawcall.h
@@ -59,6 +62,7 @@ ecs/systems/movement.h
 ecs/systems/gpu_camera.h
 ecs/systems/lighting.h
 ecs/systems/text.h
+ecs/systems/debug/grid.h
 
 ecs/components/camera.h
 ecs/components/transform.h
@@ -89,15 +93,8 @@ gfx/framebuffer.h
 gfx/material.h
 gfx/pipeline_cache.h
 gfx/swapchain.h
-
-gles/shader.h
-gles/texture.h
-
-vk/shader.h
-vk/texture.h
 )
 
-list(TRANSFORM FWD PREPEND inc/fwd/)
 
 # include files for the Vulkan API
 if(${PE_VULKAN})
@@ -114,10 +111,16 @@ if(${PE_VULKAN})
 	texture.h
 	material.h
 	pipeline_cache.h
-	pass.h
+	drawpass.h
 	conversion.h
+	computepass.h
 	)
 
+	list(APPEND FWD 
+
+	vk/shader.h
+	vk/texture.h
+	)
 	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
 endif()
 
@@ -136,10 +139,21 @@ if(${PE_GLES})
 	swapchain.h
 	texture.h
 	framebuffer.h
-	pass.h
+	drawpass.h
 	conversion.h
 	types.h
+	compute.h
+	computepass.h
+	)
+
+	list(APPEND FWD 
+
+	gles/shader.h
+	gles/texture.h
+	gles/compute.h
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)
 endif()
+
+list(TRANSFORM FWD PREPEND inc/fwd/)

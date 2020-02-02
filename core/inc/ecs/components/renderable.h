@@ -18,4 +18,6 @@ namespace core::ecs::components
 		core::resource::weak_handle<core::gfx::bundle> bundle{};
 		core::resource::weak_handle<core::gfx::geometry> geometry{};
 	};
+
+	struct dont_render_tag {};
 } // namespace core::ecs::components

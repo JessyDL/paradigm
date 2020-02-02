@@ -2,7 +2,7 @@
 #include "psl/serialization.h"
 #include "psl/math/vec.h"
 #include "psl/math/matrix.h"
-#include <vector>
+#include "psl/array.h"
 
 namespace core
 {
@@ -29,6 +29,28 @@ namespace core
 		};
 		stream(type type = type::single) : m_Type(type) {}
 
+		template<typename T>
+		stream(psl::array<T> data) : m_Data(std::move(*(psl::array<float>*)(&data)))
+		{
+			using namespace psl;
+			if constexpr (std::is_same_v<float, T>)
+				m_Type = (type::single);
+			else if constexpr (std::is_same_v<vec2, T>)
+				m_Type = (type::vec2);
+			else if constexpr (std::is_same_v<vec3, T>)
+				m_Type = (type::vec3);
+			else if constexpr (std::is_same_v<vec4, T>)
+				m_Type = (type::vec4);
+			else if constexpr (std::is_same_v<mat2x2, T>)
+				m_Type = (type::mat2);
+			else if constexpr (std::is_same_v<mat3x3, T>)
+				m_Type = (type::mat3x3);
+			else if constexpr (std::is_same_v<mat4x4, T>)
+				m_Type = (type::mat4x4);
+			else
+				static_assert(utility::templates::always_false_v<T>);
+		}
+
 		/// \brief returns the pointer to the head of the memory stream.
 		/// \returns the pointer to the head of the memory stream.
 		void* data() { return m_Data.value.data(); }
@@ -41,7 +63,7 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<float>>> as_single()
+		std::optional<std::reference_wrapper<psl::array<float>>> as_single()
 		{
 			if(m_Type == type::single)
 			{
@@ -54,11 +76,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<psl::vec2>>> as_vec2()
+		std::optional<std::reference_wrapper<psl::array<psl::vec2>>> as_vec2()
 		{
 			if(m_Type == type::vec2)
 			{
-				return *(std::vector<psl::vec2>*)&m_Data.value;
+				return *(psl::array<psl::vec2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -66,11 +88,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<psl::vec3>>> as_vec3()
+		std::optional<std::reference_wrapper<psl::array<psl::vec3>>> as_vec3()
 		{
 			if(m_Type == type::vec3)
 			{
-				return *(std::vector<psl::vec3>*)&m_Data.value;
+				return *(psl::array<psl::vec3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -78,11 +100,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<psl::vec4>>> as_vec4()
+		std::optional<std::reference_wrapper<psl::array<psl::vec4>>> as_vec4()
 		{
 			if(m_Type == type::vec4)
 			{
-				return *(std::vector<psl::vec4>*)&m_Data.value;
+				return *(psl::array<psl::vec4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -91,11 +113,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<psl::mat2x2>>> as_mat2()
+		std::optional<std::reference_wrapper<psl::array<psl::mat2x2>>> as_mat2()
 		{
 			if(m_Type == type::mat2)
 			{
-				return *(std::vector<psl::mat2x2>*)&m_Data.value;
+				return *(psl::array<psl::mat2x2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -103,11 +125,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<psl::mat3x3>>> as_mat3()
+		std::optional<std::reference_wrapper<psl::array<psl::mat3x3>>> as_mat3()
 		{
 			if(m_Type == type::mat3x3)
 			{
-				return *(std::vector<psl::mat3x3>*)&m_Data.value;
+				return *(psl::array<psl::mat3x3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -115,11 +137,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<std::vector<psl::mat4x4>>> as_mat4()
+		std::optional<std::reference_wrapper<psl::array<psl::mat4x4>>> as_mat4()
 		{
 			if(m_Type == type::mat4x4)
 			{
-				return *(std::vector<psl::mat4x4>*)&m_Data.value;
+				return *(psl::array<psl::mat4x4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -128,17 +150,17 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<float>>> as_single() const { return m_Data.value; }
+		std::optional<std::reference_wrapper<const psl::array<float>>> as_single() const { return m_Data.value; }
 
 		/// \brief returns the type safe variant of the stream as a reference.
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<psl::vec2>>> as_vec2() const
+		std::optional<std::reference_wrapper<const psl::array<psl::vec2>>> as_vec2() const
 		{
 			if(m_Type == type::vec2)
 			{
-				return *(std::vector<psl::vec2>*)&m_Data.value;
+				return *(psl::array<psl::vec2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -146,11 +168,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<psl::vec3>>> as_vec3() const
+		std::optional<std::reference_wrapper<const psl::array<psl::vec3>>> as_vec3() const
 		{
 			if(m_Type == type::vec3)
 			{
-				return *(std::vector<psl::vec3>*)&m_Data.value;
+				return *(psl::array<psl::vec3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -158,11 +180,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<psl::vec4>>> as_vec4() const
+		std::optional<std::reference_wrapper<const psl::array<psl::vec4>>> as_vec4() const
 		{
 			if(m_Type == type::vec4)
 			{
-				return *(std::vector<psl::vec4>*)&m_Data.value;
+				return *(psl::array<psl::vec4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -170,11 +192,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<psl::mat2x2>>> as_mat2() const
+		std::optional<std::reference_wrapper<const psl::array<psl::mat2x2>>> as_mat2() const
 		{
 			if(m_Type == type::mat2)
 			{
-				return *(std::vector<psl::mat2x2>*)&m_Data.value;
+				return *(psl::array<psl::mat2x2>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -182,11 +204,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<psl::mat3x3>>> as_mat3() const
+		std::optional<std::reference_wrapper<const psl::array<psl::mat3x3>>> as_mat3() const
 		{
 			if(m_Type == type::mat3x3)
 			{
-				return *(std::vector<psl::mat3x3>*)&m_Data.value;
+				return *(psl::array<psl::mat3x3>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -194,11 +216,11 @@ namespace core
 		///
 		/// if the stream is of the correct type, it will return a valid vector, otherwise a std::nullopt
 		/// \returns either a valid stream (on success) or a std::nullopt (on failure).
-		std::optional<std::reference_wrapper<const std::vector<psl::mat4x4>>> as_mat4() const
+		std::optional<std::reference_wrapper<const psl::array<psl::mat4x4>>> as_mat4() const
 		{
 			if(m_Type == type::mat4x4)
 			{
-				return *(std::vector<psl::mat4x4>*)&m_Data.value;
+				return *(psl::array<psl::mat4x4>*)&m_Data.value;
 			}
 			return std::nullopt;
 		}
@@ -208,48 +230,136 @@ namespace core
 		/// element. for example if the stream contains vec2 data, one element is equal to 2 floats, and so the size()
 		/// would be 2 if there were 4 floats present. similarly if the stream contained vec3 data, one element would be
 		/// equivalent to 3 floats, and so a size() of 4 would be equal to 12 floats. \returns the element count.
-		size_t size() const
+		size_t size() const { return m_Data.value.size() / elements(); }
+
+		void resize(size_t count) noexcept { m_Data.value.resize(count * elements()); }
+
+		void reserve(size_t count) noexcept { m_Data.value.reserve(count * elements()); }
+
+		/// \brief returns the total size of the memory stream in bytes.
+		/// \returns the total size of the memory stream in bytes.
+		size_t bytesize() const { return m_Data.value.size() * sizeof(float); }
+
+		size_t elements() const noexcept
 		{
 			switch(m_Type.value)
 			{
 			case type::single:
 			{
-				return m_Data.value.size();
+				return 1;
 			}
 			break;
 			case type::vec2:
 			{
-				return m_Data.value.size() / 2;
+				return 2;
 			}
 			break;
 			case type::vec3:
 			{
-				return m_Data.value.size() / 3;
+				return 3;
 			}
 			break;
 			case type::mat2:
 			case type::vec4:
 			{
-				return m_Data.value.size() / 4;
+				return 4;
 			}
 			break;
 			case type::mat3x3:
 			{
-				return m_Data.value.size() / 9;
+				return 9;
 			}
 			break;
 			case type::mat4x4:
 			{
-				return m_Data.value.size() / 16;
+				return 16;
 			}
 			break;
 			}
-			return 0u;
+			assert(false && "unknown sized stream");
+			return 0;
 		}
 
-		/// \brief returns the total size of the memory stream in bytes.
-		/// \returns the total size of the memory stream in bytes.
-		size_t bytesize() const { return m_Data.value.size() * sizeof(float); }
+		template <typename T>
+		bool is()
+		{
+			switch(m_Type.value)
+			{
+			case type::single: return std::is_same_v<T, float>; break;
+			case type::vec2: return std::is_same_v<T, psl::vec2>; break;
+			case type::vec3: return std::is_same_v<T, psl::vec3>; break;
+			case type::mat2: return std::is_same_v<T, psl::mat2x2>; break;
+			case type::vec4: return std::is_same_v<T, psl::vec4>; break;
+			case type::mat3x3: return std::is_same_v<T, psl::mat3x3>; break;
+			case type::mat4x4: return std::is_same_v<T, psl::mat4x4>; break;
+			}
+			return false;
+		}
+
+		template <typename F>
+		bool transform(F&& transformation)
+		{
+			switch(m_Type.value)
+			{
+			case type::single:
+				if constexpr(std::is_invocable_v<F, float&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<float>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			case type::vec2:
+				if constexpr(std::is_invocable_v<F, psl::vec2&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<psl::vec2>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			case type::vec3:
+				if constexpr(std::is_invocable_v<F, psl::vec3&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<psl::vec3>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			case type::mat2:
+				if constexpr(std::is_invocable_v<F, psl::mat2x2&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<psl::mat2x2>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			case type::vec4:
+				if constexpr(std::is_invocable_v<F, psl::vec4&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<psl::vec4>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			case type::mat3x3:
+				if constexpr(std::is_invocable_v<F, psl::mat3x3&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<psl::mat3x3>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			case type::mat4x4:
+				if constexpr(std::is_invocable_v<F, psl::mat4x4&>)
+				{
+					auto& data = *reinterpret_cast<typename psl::array<psl::mat4x4>*>(&m_Data.value);
+					std::for_each(std::begin(data), std::end(data), transformation);
+					return true;
+				}
+				break;
+			}
+			return false;
+		}
 
 	  private:
 		template <typename S>
@@ -261,7 +371,7 @@ namespace core
 
 		static constexpr const char serialization_name[12]{"CORE_STREAM"};
 
-		psl::serialization::property<std::vector<float>, const_str("DATA", 4)> m_Data;
+		psl::serialization::property<psl::array<float>, const_str("DATA", 4)> m_Data;
 		psl::serialization::property<type, const_str("TYPE", 4)> m_Type;
 	};
 } // namespace core

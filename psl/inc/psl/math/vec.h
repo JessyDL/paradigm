@@ -5,15 +5,16 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstring> // std::mem*
-#include <cmath> // std::sqrt, etc..
+#include <cmath>   // std::sqrt, etc..
+#include "psl/static_array.h"
 namespace psl
 {
 	template <typename precision_t, size_t dimensions>
 	struct tvec
 	{
-		static constexpr size_t dimensions_n{ dimensions };
-		using tvec_t = tvec<precision_t, dimensions>;
-		using container_t = std::array<precision_t, dimensions>;
+		static constexpr size_t dimensions_n{dimensions};
+		using tvec_t	  = tvec<precision_t, dimensions>;
+		using container_t = psl::static_array<precision_t, dimensions>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -49,27 +50,48 @@ namespace psl
 
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
-		template<size_t index>
+		template <size_t index>
 		constexpr precision_t& at() noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
-		template<size_t index>
+		template <size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
+		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
+		operator tvec<Y, dimensions>() const noexcept
+		{
+			tvec<Y, dimensions> res{};
+			for(auto i = 0; i < dimensions; ++i) res[i] = static_cast<Y>(value[i]);
+			return res;
+		}
+
+		constexpr tvec operator%=(const tvec& other) noexcept
+		{
+			for (auto i = 0; i < dimensions; ++i) value[i] %= other.value[i];
+			return *this;
+		}
+
+		constexpr tvec operator%(const tvec& other) const noexcept
+		{
+			tvec res{ *this };
+			res %= other;
+			return res;
+		}
+
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
 
-		template<size_t new_size>
-		tvec<precision_t, new_size> resize()
+		template <size_t new_size>
+		tvec<precision_t, new_size> resize() const noexcept
 		{
-			if constexpr (new_size == dimensions_n)
+			if constexpr(new_size == dimensions_n)
 			{
 				return *this;
 			}
@@ -78,6 +100,7 @@ namespace psl
 				tvec<precision_t, new_size> res{};
 				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+				return res;
 			}
 		}
 
@@ -87,8 +110,8 @@ namespace psl
 	template <typename precision_t>
 	struct tvec<precision_t, 1>
 	{
-		static constexpr size_t dimensions_n{ 1 };
-		using tvec_t = tvec<precision_t, 1>;
+		static constexpr size_t dimensions_n{1};
+		using tvec_t	  = tvec<precision_t, 1>;
 		using container_t = precision_t;
 
 		const static tvec_t zero;
@@ -121,26 +144,45 @@ namespace psl
 
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
-		template<size_t index>
+		template <size_t index>
 		constexpr precision_t& at() noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
-		template<size_t index>
+		template <size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
+		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
+		operator tvec<Y, 1>() const noexcept
+		{
+			return {static_cast<Y>(value[0])};
+		}
+
+		constexpr tvec operator%=(const tvec& other) noexcept
+		{
+			value %= other.value;
+			return *this;
+		}
+
+		constexpr tvec operator%(const tvec& other) const noexcept
+		{
+			tvec res{ *this };
+			res %= other;
+			return res;
+		}
+
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		template<size_t new_size>
-		tvec<precision_t, new_size> resize()
+		template <size_t new_size>
+		tvec<precision_t, new_size> resize() const noexcept
 		{
-			if constexpr (new_size == dimensions_n)
+			if constexpr(new_size == dimensions_n)
 			{
 				return *this;
 			}
@@ -149,6 +191,7 @@ namespace psl
 				tvec<precision_t, new_size> res{};
 				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+				return res;
 			}
 		}
 
@@ -158,9 +201,9 @@ namespace psl
 	template <typename precision_t>
 	struct tvec<precision_t, 2>
 	{
-		static constexpr size_t dimensions_n{ 2 };
-		using tvec_t = tvec<precision_t, 2>;
-		using container_t = std::array<precision_t, 2>;
+		static constexpr size_t dimensions_n{2};
+		using tvec_t	  = tvec<precision_t, 2>;
+		using container_t = psl::static_array<precision_t, 2>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -198,26 +241,46 @@ namespace psl
 
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
-		template<size_t index>
+		template <size_t index>
 		constexpr precision_t& at() noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
-		template<size_t index>
+		template <size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
+		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
+		operator tvec<Y, 2>() const noexcept
+		{
+			return {static_cast<Y>(value[0]), static_cast<Y>(value[1])};
+		}
+
+		constexpr tvec operator%=(const tvec& other) noexcept
+		{
+			value[0] %= other.value[0];
+			value[1] %= other.value[1];
+			return *this;
+		}
+
+		constexpr tvec operator%(const tvec& other) const noexcept
+		{
+			tvec res{ *this };
+			res %= other;
+			return res;
+		}
+
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		template<size_t new_size>
-		tvec<precision_t, new_size> resize()
+		template <size_t new_size>
+		tvec<precision_t, new_size> resize() const noexcept
 		{
-			if constexpr (new_size == dimensions_n)
+			if constexpr(new_size == dimensions_n)
 			{
 				return *this;
 			}
@@ -226,6 +289,7 @@ namespace psl
 				tvec<precision_t, new_size> res{};
 				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+				return res;
 			}
 		}
 		container_t value;
@@ -234,9 +298,9 @@ namespace psl
 	template <typename precision_t>
 	struct tvec<precision_t, 3>
 	{
-		static constexpr size_t dimensions_n{ 3 };
-		using tvec_t = tvec<precision_t, 3>;
-		using container_t = std::array<precision_t, 3>;
+		static constexpr size_t dimensions_n{3};
+		using tvec_t	  = tvec<precision_t, 3>;
+		using container_t = psl::static_array<precision_t, 3>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -255,7 +319,8 @@ namespace psl
 			: value({std::move(x), std::move(y), std::move(z)}){};
 		constexpr tvec(const precision_t& value) noexcept : value({value, value, value}){};
 
-		constexpr tvec(const tvec<precision_t, 2>& v2, const precision_t& value) noexcept : value({v2[0], v2[1], value}) {};
+		constexpr tvec(const tvec<precision_t, 2>& v2, const precision_t& value) noexcept
+			: value({v2[0], v2[1], value}){};
 
 		// ---------------------------------------------
 		// getters
@@ -287,26 +352,47 @@ namespace psl
 
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
-		template<size_t index>
+		template <size_t index>
 		constexpr precision_t& at() noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
-		template<size_t index>
+		template <size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
+		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
+		operator tvec<Y, 3>() const noexcept
+		{
+			return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2])};
+		}
+
+		constexpr tvec operator%=(const tvec& other) noexcept
+		{
+			value[0] %= other.value[0];
+			value[1] %= other.value[1];
+			value[2] %= other.value[2];
+			return *this;
+		}
+
+		constexpr tvec operator%(const tvec& other) const noexcept
+		{
+			tvec res{ *this };
+			res %= other;
+			return res;
+		}
+
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		template<size_t new_size>
-		tvec<precision_t, new_size> resize()
+		template <size_t new_size>
+		tvec<precision_t, new_size> resize() const noexcept
 		{
-			if constexpr (new_size == dimensions_n)
+			if constexpr(new_size == dimensions_n)
 			{
 				return *this;
 			}
@@ -315,6 +401,7 @@ namespace psl
 				tvec<precision_t, new_size> res{};
 				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+				return res;
 			}
 		}
 		container_t value;
@@ -324,9 +411,9 @@ namespace psl
 	template <typename precision_t>
 	struct alignas(16) tvec<precision_t, 4>
 	{
-		static constexpr size_t dimensions_n{ 4 };
-		using tvec_t = tvec<precision_t, 4>;
-		using container_t = std::array<precision_t, 4>;
+		static constexpr size_t dimensions_n{4};
+		using tvec_t	  = tvec<precision_t, 4>;
+		using container_t = psl::static_array<precision_t, 4>;
 
 		const static tvec_t zero;
 		const static tvec_t one;
@@ -348,15 +435,16 @@ namespace psl
 			: value({std::move(x), std::move(y), std::move(z), std::move(w)}){};
 		constexpr tvec(const precision_t& value) noexcept : value({value, value, value, value}){};
 
-		constexpr tvec(const tvec<precision_t, 2>& a, const tvec<precision_t, 2>& b) noexcept : value({a[0], a[1], b[0], b[1]}) {};
-		constexpr tvec(const tvec<precision_t, 3>& v3, const precision_t& value) noexcept : value({v3[0], v3[1], v3[2], value}) {};
+		constexpr tvec(const tvec<precision_t, 2>& a, const tvec<precision_t, 2>& b) noexcept
+			: value({a[0], a[1], b[0], b[1]}){};
+		constexpr tvec(const tvec<precision_t, 3>& v3, const precision_t& value) noexcept
+			: value({v3[0], v3[1], v3[2], value}){};
 
-		template<typename src_precision_t>
-		constexpr tvec(std::array<src_precision_t,dimensions_n>&& arr) noexcept
-			: value({std::move(arr)}){};
+		template <typename src_precision_t>
+		constexpr tvec(psl::static_array<src_precision_t, dimensions_n>&& arr) noexcept : value({std::move(arr)}){};
 
-		template<typename src_precision_t>
-		constexpr tvec(const std::array<src_precision_t,dimensions_n>& value) noexcept : value({value}){};
+		template <typename src_precision_t>
+		constexpr tvec(const psl::static_array<src_precision_t, dimensions_n>& value) noexcept : value({value}){};
 
 		// ---------------------------------------------
 		// getters
@@ -390,27 +478,49 @@ namespace psl
 
 		constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
-		template<size_t index>
+		template <size_t index>
 		constexpr precision_t& at() noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
-		template<size_t index>
+		template <size_t index>
 		constexpr const precision_t& at() const noexcept
 		{
 			static_assert(index < dimensions_n, "out of range");
 			return value.at(index);
 		}
 
+		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
+		operator tvec<Y, 4>() const noexcept
+		{
+			return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2]),
+					static_cast<Y>(value[3])};
+		}
+
+		constexpr tvec operator%=(const tvec& other) noexcept
+		{
+			value[0] %= other.value[0];
+			value[1] %= other.value[1];
+			value[2] %= other.value[2];
+			value[3] %= other.value[3];
+			return *this;
+		}
+
+		constexpr tvec operator%(const tvec& other) const noexcept
+		{
+			tvec res{ *this };
+			res %= other;
+			return res;
+		}
 
 		// ---------------------------------------------
 		// members
 		// ---------------------------------------------
-		template<size_t new_size>
-		tvec<precision_t, new_size> resize()
+		template <size_t new_size>
+		tvec<precision_t, new_size> resize() const noexcept
 		{
-			if constexpr (new_size == dimensions_n)
+			if constexpr(new_size == dimensions_n)
 			{
 				return *this;
 			}
@@ -419,6 +529,7 @@ namespace psl
 				tvec<precision_t, new_size> res{};
 				constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 				std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
+				return res;
 			}
 		}
 
@@ -447,78 +558,80 @@ namespace psl
 	using vec4_sz = psl::tvec<size_t, 4>;
 
 
-	template<typename precision_t, size_t dimensions>
-	const tvec<precision_t, dimensions>  tvec<precision_t, dimensions>::zero{ 0 };
-	template<typename precision_t, size_t dimensions>
-	const tvec<precision_t, dimensions>  tvec<precision_t, dimensions>::one{ 1 };
-	template<typename precision_t, size_t dimensions>
-	const tvec<precision_t, dimensions>  tvec<precision_t, dimensions>::infinity{ std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t, size_t dimensions>
-	const tvec<precision_t, dimensions>  tvec<precision_t, dimensions>::negative_infinity{ -std::numeric_limits<precision_t>::infinity() };
+	template <typename precision_t, size_t dimensions>
+	const tvec<precision_t, dimensions> tvec<precision_t, dimensions>::zero{0};
+	template <typename precision_t, size_t dimensions>
+	const tvec<precision_t, dimensions> tvec<precision_t, dimensions>::one{1};
+	template <typename precision_t, size_t dimensions>
+	const tvec<precision_t, dimensions> tvec<precision_t, dimensions>::infinity{
+		std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t, size_t dimensions>
+	const tvec<precision_t, dimensions> tvec<precision_t, dimensions>::negative_infinity{
+		-std::numeric_limits<precision_t>::infinity()};
 
 
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::zero{ 0 };
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::one{ 1 };
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::infinity{ std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::negative_infinity{ -std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::up{ 0,1 };
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::down{ 0,-1};
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::left{ -1, 0 };
-	template<typename precision_t>
-	const tvec<precision_t, 2>  tvec<precision_t, 2>::right{ 1,0};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::zero{0};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::one{1};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::infinity{std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::negative_infinity{-std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::up{0, 1};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::down{0, -1};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::left{-1, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 2> tvec<precision_t, 2>::right{1, 0};
 
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::zero{ 0 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::one{ 1 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::infinity{ std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::negative_infinity{ -std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::up{ 0,1,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::down{ 0,-1,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::left{ -1, 0, 0 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::right{ 1,0,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::forward{ 0,0,1 };
-	template<typename precision_t>
-	const tvec<precision_t, 3>  tvec<precision_t, 3>::back{ 0,0,-1 };
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::zero{0};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::one{1};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::infinity{std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::negative_infinity{-std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::up{0, 1, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::down{0, -1, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::left{-1, 0, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::right{1, 0, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::forward{0, 0, 1};
+	template <typename precision_t>
+	const tvec<precision_t, 3> tvec<precision_t, 3>::back{0, 0, -1};
 
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::zero{ 0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::one{ 1 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::infinity{ std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::negative_infinity{ -std::numeric_limits<precision_t>::infinity() };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::up{ 0,1,0, 0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::down{ 0,-1,0,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::left{ -1, 0, 0,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::right{ 1,0,0,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::forward{ 0,0,1,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::back{ 0,0,-1,0 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::position{ 0,0,0,1 };
-	template<typename precision_t>
-	const tvec<precision_t, 4>  tvec<precision_t, 4>::direction{ 0 };
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::zero{0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::one{1};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::infinity{std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::negative_infinity{-std::numeric_limits<precision_t>::infinity()};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::up{0, 1, 0, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::down{0, -1, 0, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::left{-1, 0, 0, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::right{1, 0, 0, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::forward{0, 0, 1, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::back{0, 0, -1, 0};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::position{0, 0, 0, 1};
+	template <typename precision_t>
+	const tvec<precision_t, 4> tvec<precision_t, 4>::direction{0};
 } // namespace psl
 
 
@@ -544,8 +657,7 @@ namespace psl
 	constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other.value[0] == 0)
-			throw std::runtime_exception("division by 0");
+		if(other.value[0] == 0) throw std::runtime_exception("division by 0");
 #endif
 		owner.value /= other.value;
 		return owner;
@@ -560,8 +672,7 @@ namespace psl
 	constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const precision_t& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other.value[0] == 0)
-			throw std::runtime_exception("division by 0");
+		if(other.value[0] == 0) throw std::runtime_exception("division by 0");
 #endif
 		owner.value /= other;
 		return owner;
@@ -575,7 +686,7 @@ namespace psl
 
 	template <typename precision_t>
 	constexpr tvec<precision_t, 1> operator+(const tvec<precision_t, 1>& left,
-		const tvec<precision_t, 1>& right) noexcept
+											 const tvec<precision_t, 1>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value += right.value;
@@ -583,7 +694,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left,
-		const tvec<precision_t, 1>& right) noexcept
+											 const tvec<precision_t, 1>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value *= right.value;
@@ -591,23 +702,21 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left,
-		const tvec<precision_t, 1>& right) noexcept
+											 const tvec<precision_t, 1>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value /= right.value;
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value *= right;
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value /= right;
@@ -615,7 +724,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 1> operator-(const tvec<precision_t, 1>& left,
-		const tvec<precision_t, 1>& right) noexcept
+											 const tvec<precision_t, 1>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value -= right.value;
@@ -623,15 +732,13 @@ namespace psl
 	}
 
 	template <typename precision_t>
-	constexpr bool operator==(const tvec<precision_t, 1>& left,
-		const tvec<precision_t, 1>& right) noexcept
+	constexpr bool operator==(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
 	{
 		return left[0] == right[0];
 	}
 
 	template <typename precision_t>
-	constexpr bool operator!=(const tvec<precision_t, 1>& left,
-		const tvec<precision_t, 1>& right) noexcept
+	constexpr bool operator!=(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
 	{
 		return left[0] != right[0];
 	}
@@ -658,8 +765,7 @@ namespace psl
 	constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other.value[0] == 0 || other.value[1] == 0)
-			throw std::runtime_exception("division by 0");
+		if(other.value[0] == 0 || other.value[1] == 0) throw std::runtime_exception("division by 0");
 #endif
 		owner.value[0] /= other.value[0];
 		owner.value[1] /= other.value[1];
@@ -676,8 +782,7 @@ namespace psl
 	constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const precision_t& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other.value[0] == 0 || other.value[1] == 0)
-			throw std::runtime_exception("division by 0");
+		if(other.value[0] == 0 || other.value[1] == 0) throw std::runtime_exception("division by 0");
 #endif
 		owner.value[0] /= other;
 		owner.value[1] /= other;
@@ -693,7 +798,7 @@ namespace psl
 
 	template <typename precision_t>
 	constexpr tvec<precision_t, 2> operator+(const tvec<precision_t, 2>& left,
-		const tvec<precision_t, 2>& right) noexcept
+											 const tvec<precision_t, 2>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] += right.value[0];
@@ -702,7 +807,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left,
-		const tvec<precision_t, 2>& right) noexcept
+											 const tvec<precision_t, 2>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] *= right.value[0];
@@ -711,7 +816,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left,
-		const tvec<precision_t, 2>& right) noexcept
+											 const tvec<precision_t, 2>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] /= right.value[0];
@@ -719,8 +824,7 @@ namespace psl
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] *= right;
@@ -728,8 +832,7 @@ namespace psl
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] /= right;
@@ -738,7 +841,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 2> operator-(const tvec<precision_t, 2>& left,
-		const tvec<precision_t, 2>& right) noexcept
+											 const tvec<precision_t, 2>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] -= right.value[0];
@@ -747,19 +850,15 @@ namespace psl
 	}
 
 	template <typename precision_t>
-	constexpr bool operator==(const tvec<precision_t, 2>& left,
-		const tvec<precision_t, 2>& right) noexcept
+	constexpr bool operator==(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
 	{
-		return left[0] == right[0] &&
-			left[1] == right[1];
+		return left[0] == right[0] && left[1] == right[1];
 	}
 
 	template <typename precision_t>
-	constexpr bool operator!=(const tvec<precision_t, 2>& left,
-		const tvec<precision_t, 2>& right) noexcept
+	constexpr bool operator!=(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
 	{
-		return left[0] != right[0] ||
-			left[1] != right[1];
+		return left[0] != right[0] || left[1] != right[1];
 	}
 
 	// ---------------------------------------------
@@ -786,7 +885,7 @@ namespace psl
 	constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
+		if(other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
 			throw std::runtime_exception("division by 0");
 #endif
 		owner.value[0] /= other.value[0];
@@ -807,7 +906,7 @@ namespace psl
 	constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const precision_t& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
+		if(other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
 			throw std::runtime_exception("division by 0");
 #endif
 		owner.value[0] /= other;
@@ -827,7 +926,7 @@ namespace psl
 
 	template <typename precision_t>
 	constexpr tvec<precision_t, 3> operator+(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+											 const tvec<precision_t, 3>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] += right.value[0];
@@ -837,7 +936,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+											 const tvec<precision_t, 3>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] *= right.value[0];
@@ -847,7 +946,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+											 const tvec<precision_t, 3>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] /= right.value[0];
@@ -857,8 +956,7 @@ namespace psl
 	}
 
 	template <typename precision_t>
-	constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] *= right;
@@ -867,8 +965,7 @@ namespace psl
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] /= right;
@@ -879,7 +976,7 @@ namespace psl
 
 	template <typename precision_t>
 	constexpr tvec<precision_t, 3> operator-(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+											 const tvec<precision_t, 3>& right) noexcept
 	{
 		auto cpy = left;
 		cpy.value[0] -= right.value[0];
@@ -889,27 +986,21 @@ namespace psl
 	}
 
 	template <typename precision_t>
-	constexpr bool operator==(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+	constexpr bool operator==(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
 	{
-		return left[0] == right[0] &&
-			left[1] == right[1] &&
-			left[2] == right[2];
+		return left[0] == right[0] && left[1] == right[1] && left[2] == right[2];
 	}
 
 	template <typename precision_t>
-	constexpr bool operator!=(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+	constexpr bool operator!=(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
 	{
-		return left[0] != right[0] ||
-			left[1] != right[1] ||
-			left[2] != right[2];
+		return left[0] != right[0] || left[1] != right[1] || left[2] != right[2];
 	}
 
 	// ---------------------------------------------
 	// operators tvec<precision_t, 4>
 	// ---------------------------------------------
-	
+
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4>& operator*=(tvec<precision_t, 4>& owner, const precision_t& other) noexcept
 	{
@@ -931,7 +1022,7 @@ namespace psl
 
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4> operator+(const tvec<precision_t, 4>& left,
-		const tvec<precision_t, 4>& right) noexcept
+											 const tvec<precision_t, 4>& right) noexcept
 	{
 		auto cpy = left;
 		cpy += right;
@@ -939,7 +1030,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left,
-		const tvec<precision_t, 4>& right) noexcept
+											 const tvec<precision_t, 4>& right) noexcept
 	{
 		auto cpy = left;
 		cpy *= right;
@@ -947,23 +1038,21 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left,
-		const tvec<precision_t, 4>& right) noexcept
+											 const tvec<precision_t, 4>& right) noexcept
 	{
 		auto cpy = left;
 		cpy /= right;
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy *= right;
 		return cpy;
 	}
 	template <typename precision_t>
-	constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left,
-		const precision_t& right) noexcept
+	constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left, const precision_t& right) noexcept
 	{
 		auto cpy = left;
 		cpy /= right;
@@ -971,7 +1060,7 @@ namespace psl
 	}
 	template <typename precision_t>
 	constexpr tvec<precision_t, 4> operator-(const tvec<precision_t, 4>& left,
-		const tvec<precision_t, 4>& right) noexcept
+											 const tvec<precision_t, 4>& right) noexcept
 	{
 		auto cpy = left;
 		cpy -= right;
@@ -980,23 +1069,15 @@ namespace psl
 
 
 	template <typename precision_t>
-	constexpr bool operator==(const tvec<precision_t, 4>& left,
-		const tvec<precision_t, 4>& right) noexcept
+	constexpr bool operator==(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
 	{
-		return left[0] == right[0] &&
-			left[1] == right[1] &&
-			left[2] == right[2] &&
-			left[3] == right[3];
+		return left[0] == right[0] && left[1] == right[1] && left[2] == right[2] && left[3] == right[3];
 	}
 
 	template <typename precision_t>
-	constexpr bool operator!=(const tvec<precision_t, 4>& left,
-		const tvec<precision_t, 4>& right) noexcept
+	constexpr bool operator!=(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
 	{
-		return left[0] != right[0] ||
-			left[1] != right[1] ||
-			left[2] != right[2] ||
-			left[3] != right[3];
+		return left[0] != right[0] || left[1] != right[1] || left[2] != right[2] || left[3] != right[3];
 	}
 
 	// ---------------------------------------------
@@ -1004,7 +1085,7 @@ namespace psl
 	// ---------------------------------------------
 
 	template <typename precision_t, size_t dimensions>
-	constexpr tvec<precision_t, dimensions> operator- (const tvec<precision_t, dimensions>& owner) noexcept
+	constexpr tvec<precision_t, dimensions> operator-(const tvec<precision_t, dimensions>& owner) noexcept
 	{
 		auto cpy = owner;
 		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] = -cpy.value[i];
@@ -1012,28 +1093,27 @@ namespace psl
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator+=(tvec<precision_t, dimensions>& owner,
-		const tvec<precision_t, dimensions>& other) noexcept
+														const tvec<precision_t, dimensions>& other) noexcept
 	{
-		for (size_t i = 0; i < dimensions; ++i) owner.value[i] += other.value[i];
+		for(size_t i = 0; i < dimensions; ++i) owner.value[i] += other.value[i];
 		return owner;
 	}
 
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator*=(tvec<precision_t, dimensions>& owner,
-		const tvec<precision_t, dimensions>& other) noexcept
+														const tvec<precision_t, dimensions>& other) noexcept
 	{
-		for (size_t i = 0; i < dimensions; ++i) owner.value[i] *= other.value[i];
+		for(size_t i = 0; i < dimensions; ++i) owner.value[i] *= other.value[i];
 		return owner;
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator/=(tvec<precision_t, dimensions>& owner,
-		const tvec<precision_t, dimensions>& other) noexcept
+														const tvec<precision_t, dimensions>& other) noexcept
 	{
-		for (size_t i = 0; i < dimensions; ++i)
+		for(size_t i = 0; i < dimensions; ++i)
 		{
 #ifdef MATH_DIV_ZERO_CHECK
-			if (other.value[i] == 0)
-				throw std::runtime_exception("division by 0");
+			if(other.value[i] == 0) throw std::runtime_exception("division by 0");
 #endif
 			owner.value[i] /= other.value[i];
 		}
@@ -1041,20 +1121,19 @@ namespace psl
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator*=(tvec<precision_t, dimensions>& owner,
-		const precision_t& other) noexcept
+														const precision_t& other) noexcept
 	{
-		for (size_t i = 0; i < dimensions; ++i) owner.value[i] *= other;
+		for(size_t i = 0; i < dimensions; ++i) owner.value[i] *= other;
 		return owner;
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator/=(tvec<precision_t, dimensions>& owner,
-		const precision_t& other) noexcept
+														const precision_t& other) noexcept
 	{
 #ifdef MATH_DIV_ZERO_CHECK
-		if (other == 0)
-			throw std::runtime_exception("division by 0");
+		if(other == 0) throw std::runtime_exception("division by 0");
 #endif
-		for (size_t i = 0; i < dimensions; ++i)
+		for(size_t i = 0; i < dimensions; ++i)
 		{
 			owner.value[i] /= other;
 		}
@@ -1062,62 +1141,61 @@ namespace psl
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions>& operator-=(tvec<precision_t, dimensions>& owner,
-		const tvec<precision_t, dimensions>& other) noexcept
+														const tvec<precision_t, dimensions>& other) noexcept
 	{
-		for (size_t i = 0; i < dimensions; ++i) owner.value[i] -= other.value[i];
+		for(size_t i = 0; i < dimensions; ++i) owner.value[i] -= other.value[i];
 		return owner;
 	}
 
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions> operator+(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+													  const tvec<precision_t, dimensions>& right) noexcept
 	{
 		auto cpy = left;
-		for (size_t i = 0; i < dimensions; ++i) cpy.value[i] += right.value[i];
+		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] += right.value[i];
 		return cpy;
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions> operator*(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+													  const tvec<precision_t, dimensions>& right) noexcept
 	{
 		auto cpy = left;
-		for (size_t i = 0; i < dimensions; ++i) cpy.value[i] *= right.value[i];
+		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] *= right.value[i];
 		return cpy;
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions> operator/(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+													  const tvec<precision_t, dimensions>& right) noexcept
 	{
 		auto cpy = left;
-		for (size_t i = 0; i < dimensions; ++i) cpy.value[i] /= right.value[i];
+		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] /= right.value[i];
 		return cpy;
 	}
 	template <typename precision_t, size_t dimensions>
 	constexpr tvec<precision_t, dimensions> operator-(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+													  const tvec<precision_t, dimensions>& right) noexcept
 	{
 		auto cpy = left;
-		for (size_t i = 0; i < dimensions; ++i) cpy.value[i] -= right.value[i];
+		for(size_t i = 0; i < dimensions; ++i) cpy.value[i] -= right.value[i];
 		return cpy;
 	}
 
 
-
 	template <typename precision_t, size_t dimensions>
 	constexpr bool operator==(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+							  const tvec<precision_t, dimensions>& right) noexcept
 	{
 		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) == 0;
 	}
 
 	template <typename precision_t, size_t dimensions>
 	constexpr bool operator!=(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+							  const tvec<precision_t, dimensions>& right) noexcept
 	{
 		return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) != 0;
 	}
 
-}
+} // namespace psl
 namespace psl::math
 {
 	// ---------------------------------------------
@@ -1125,11 +1203,26 @@ namespace psl::math
 	// ---------------------------------------------
 	template <typename precision_t, size_t dimensions>
 	constexpr static precision_t dot(const tvec<precision_t, dimensions>& left,
-		const tvec<precision_t, dimensions>& right) noexcept
+									 const tvec<precision_t, dimensions>& right) noexcept
 	{
 		precision_t res = precision_t{0};
-		for (size_t i = 0; i < dimensions; ++i)
-			res += left[i] * right[i];
+		for(size_t i = 0; i < dimensions; ++i) res += left[i] * right[i];
+		return res;
+	}
+
+	template <typename precision_t, size_t dimensions>
+	constexpr static precision_t compound(const tvec<precision_t, dimensions>& vec) noexcept
+	{
+		precision_t res = precision_t{ vec[0] };
+		for (size_t i = 1; i < dimensions; ++i) res += vec[i];
+		return res;
+	}
+
+	template <typename precision_t, size_t dimensions>
+	constexpr static precision_t compound_mul(const tvec<precision_t, dimensions>& vec) noexcept
+	{
+		precision_t res = precision_t{ vec[0] };
+		for (size_t i = 1; i < dimensions; ++i) res *= vec[i];
 		return res;
 	}
 
@@ -1137,8 +1230,7 @@ namespace psl::math
 	constexpr static precision_t square_magnitude(const tvec<precision_t, dimensions>& vec) noexcept
 	{
 		precision_t res = precision_t{0};
-		for (size_t i = 0; i < dimensions; ++i)
-			res += vec[i] * vec[i];
+		for(size_t i = 0; i < dimensions; ++i) res += vec[i] * vec[i];
 		return res;
 	}
 
@@ -1146,15 +1238,21 @@ namespace psl::math
 	constexpr static precision_t magnitude(const tvec<precision_t, dimensions>& vec) noexcept
 	{
 		precision_t res = precision_t{0};
-		for (size_t i = 0; i < dimensions; ++i)
-			res += vec[i] * vec[i];
+		for(size_t i = 0; i < dimensions; ++i) res += vec[i] * vec[i];
 		return std::sqrt(res);
 	}
+
+	template <typename precision_t, size_t dimensions>
+	constexpr static precision_t length(const tvec<precision_t, dimensions>& vec) noexcept
+	{
+		return std::sqrt(dot(vec, vec));
+	}
+
 	template <typename precision_t, size_t dimensions>
 	constexpr static tvec<precision_t, dimensions> sqrt(const tvec<precision_t, dimensions>& vec) noexcept
 	{
 		tvec<precision_t, dimensions> res{};
-		for (size_t i = 0; i < dimensions; ++i)
+		for(size_t i = 0; i < dimensions; ++i)
 		{
 			res[i] = std::sqrt(vec[i]);
 		}
@@ -1162,14 +1260,15 @@ namespace psl::math
 	}
 
 	template <typename precision_t, size_t dimensions>
-	constexpr static tvec<precision_t, dimensions> pow(const tvec<precision_t, dimensions>& vec, precision_t pow_value = precision_t{ 2 }) noexcept
+	constexpr static tvec<precision_t, dimensions> pow(const tvec<precision_t, dimensions>& vec,
+													   precision_t pow_value = precision_t{2}) noexcept
 	{
 		tvec<precision_t, dimensions> res{};
-		for (size_t i = 0; i < dimensions; ++i)
+		for(size_t i = 0; i < dimensions; ++i)
 		{
 			res[i] = std::pow(vec[i], pow_value);
 		}
-		return res;
+		return res;{}
 	}
 
 	template <typename precision_t, size_t dimensions>
@@ -1180,18 +1279,12 @@ namespace psl::math
 
 	template <typename precision_t>
 	constexpr static tvec<precision_t, 3> cross(const tvec<precision_t, 3>& left,
-		const tvec<precision_t, 3>& right) noexcept
+												const tvec<precision_t, 3>& right) noexcept
 	{
-		return tvec<precision_t, 3>
-		{
-			left[1] * right[2] - left[2]*right[1],
-			left[2] * right[0] - left[0]*right[2],
-			left[0] * right[1] - left[1]*right[0]
-		};
+		return tvec<precision_t, 3>{left[1] * right[2] - left[2] * right[1], left[2] * right[0] - left[0] * right[2],
+									left[0] * right[1] - left[1] * right[0]};
 	}
-
-
-} // namespace psl
+} // namespace psl::math
 
 #include "psl/math/AVX2/vec.h"
 #include "psl/math/AVX/vec.h"

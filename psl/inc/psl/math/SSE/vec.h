@@ -1,6 +1,6 @@
 #pragma once
 #if INSTRUCTION_SET == 1
-#include "math/vec.h"
+#include "psl/math/vec.h"
 #include <xmmintrin.h>
 namespace psl
 {
