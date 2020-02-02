@@ -71,7 +71,7 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 		}
 		else
 		{
-			core::igles::log->critical("index buffer was out of memory");
+			core::ivk::log->critical("index buffer was out of memory");
 			// todo error condition could not allocate segment
 			exit(1);
 		}
