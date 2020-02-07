@@ -111,8 +111,12 @@ TEST_CASE("filtering", "[ECS]")
 	{
 		state.create(500, float{}, size_t{});
 		state.destroy(1200);
-		state.create(3, float{}, size_t{});
+		auto entities = state.create(3, float{}, size_t{});
 
+		REQUIRE(entities.size() == 3);
+		REQUIRE(entities[0] == 1500);
+		REQUIRE(entities[1] == 1501);
+		REQUIRE(entities[2] == 1502);
 		REQUIRE(state.filter<float>().size() + 1 == state.filter<on_add<float>>().size());
 		REQUIRE(state.filter<float>().size() == state.filter<on_combine<float, size_t>>().size());
 		REQUIRE(state.filter<on_remove<float>>().size() == state.filter<on_break<float, size_t>>().size());

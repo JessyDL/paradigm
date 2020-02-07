@@ -223,20 +223,15 @@ namespace psl::ecs
 
 		[[maybe_unused]] entity create()
 		{
-			if(m_Orphans > 0)
+			if(m_Orphans.size() > 0)
 			{
-				--m_Orphans;
-				const auto orphan		   = m_Next;
-				m_Next					   = m_Entities[(size_t)m_Next];
-				m_Entities[(size_t)orphan] = orphan;
-				return orphan;
+				auto entity = m_Orphans.back();
+				m_Orphans.pop_back();
+				return entity;
 			}
 			else
 			{
-				// we do this to protect ourselves from 1 entity loops
-				if(m_Entities.size() + 1 >= m_Entities.capacity()) m_Entities.reserve(m_Entities.size() * 2 + 1);
-
-				return m_Entities.emplace_back((entity)m_Entities.size());
+				return m_Entities++;
 			}
 		}
 
@@ -244,28 +239,15 @@ namespace psl::ecs
 		[[maybe_unused]] psl::array<entity> create(entity count)
 		{
 			psl::array<entity> entities;
-			const auto recycled = std::min<entity>(count, (entity)m_Orphans);
-			m_Orphans -= recycled;
+			entities.reserve(count);
+			const auto recycled = std::min<entity>(count, (entity)m_Orphans.size());
 			const auto remainder = count - recycled;
 
-			entities.reserve(recycled + remainder);
-			// we do this to protect ourselves from 1 entity loops
-			if(m_Entities.size() + remainder >= m_Entities.capacity())
-				m_Entities.reserve(m_Entities.size() * 2 + remainder);
-
-			for(size_t i = 0; i < recycled; ++i)
-			{
-				const auto orphan = m_Next;
-				entities.emplace_back(orphan);
-				m_Next					   = m_Entities[(size_t)m_Next];
-				m_Entities[(size_t)orphan] = orphan;
-			}
-
-			for(size_t i = 0; i < remainder; ++i)
-			{
-				entities.emplace_back((entity)m_Entities.size());
-				m_Entities.emplace_back((entity)m_Entities.size());
-			}
+			std::reverse_copy(std::begin(m_Orphans), std::end(m_Orphans), std::back_inserter(entities));
+			m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
+			entities.resize(count);
+			std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
+			m_Entities += remainder;
 
 			if constexpr(sizeof...(Ts) > 0)
 			{
@@ -278,27 +260,16 @@ namespace psl::ecs
 		[[maybe_unused]] psl::array<entity> create(entity count, Ts&&... prototype)
 		{
 			psl::array<entity> entities;
-			const auto recycled = std::min<entity>(count, (entity)m_Orphans);
-			m_Orphans -= recycled;
+			entities.reserve(count);
+			const auto recycled = std::min<entity>(count, static_cast<entity>(m_Orphans.size()));
 			const auto remainder = count - recycled;
 
-			entities.reserve(recycled + remainder);
-			// we do this to protect ourselves from 1 entity loops
-			if(m_Entities.size() + remainder >= m_Entities.capacity())
-				m_Entities.reserve(m_Entities.size() * 2 + remainder);
-			for(size_t i = 0; i < recycled; ++i)
-			{
-				auto orphan = m_Next;
-				entities.emplace_back(orphan);
-				m_Next					   = m_Entities[(size_t)m_Next];
-				m_Entities[(size_t)orphan] = orphan;
-			}
+			std::reverse_copy(std::begin(m_Orphans), std::end(m_Orphans), std::back_inserter(entities));
+			m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
+			entities.resize(count);
+			std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
+			m_Entities += remainder;
 
-			for(size_t i = 0; i < remainder; ++i)
-			{
-				entities.emplace_back((entity)m_Entities.size());
-				m_Entities.emplace_back((entity)m_Entities.size());
-			}
 			add_components(entities, std::forward<Ts>(prototype)...);
 
 			return entities;
@@ -433,14 +404,14 @@ namespace psl::ecs
 			}
 		}
 
-		size_t capacity() const noexcept { return m_Entities.size(); }
+		size_t capacity() const noexcept { return m_Entities; }
 
 		template <typename... Ts>
 		size_t count() const noexcept
 		{
 			if constexpr(sizeof...(Ts) == 0)
 			{
-				return m_Entities.size() - m_Orphans;
+				return m_Entities - m_Orphans.size();
 			}
 			else
 			{
@@ -885,7 +856,8 @@ namespace psl::ecs
 
 		std::vector<psl::unique_ptr<info>> info_buffer;
 		::memory::raw_region m_Cache{1024 * 1024 * 256};
-		psl::array<entity> m_Entities;
+		psl::array<entity> m_Orphans{};
+		psl::array<entity> m_ToBeOrphans{};
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		std::vector<details::system_information> m_SystemInformations;
 		std::vector<details::system_information> m_NewSystemInformations;
@@ -894,12 +866,8 @@ namespace psl::ecs
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
 		size_t m_LockState{0};
-		entity m_LockHead;
-		entity m_LockNext;
-		size_t m_LockOrphans;
 
-		entity m_Next;
-		size_t m_Orphans{0};
+		entity m_Entities;
 		size_t m_Tick{0};
 		size_t m_SystemCounter{0};
 	};

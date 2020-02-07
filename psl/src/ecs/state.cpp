@@ -658,13 +658,8 @@ void state::tick(std::chrono::duration<float> dTime)
 		prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
 	}
 
-	if(m_LockOrphans > 0)
-	{
-		m_Entities[m_LockHead] = m_Next;
-		m_Next				   = m_LockNext;
-		m_Orphans += m_LockOrphans;
-		m_LockOrphans = 0;
-	}
+	m_Orphans.insert(std::end(m_Orphans), std::begin(m_ToBeOrphans), std::end(m_ToBeOrphans));
+	m_ToBeOrphans.clear();
 
 	for (auto& cInfo : m_Components) cInfo->unlock_and_purge();
 
@@ -843,16 +838,13 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 		cInfo->destroy(entities);
 	}
 
-	if(m_LockOrphans == 0) m_LockHead = entities[0].first;
-
+	m_ToBeOrphans.reserve(count);
 	for(auto range : entities)
 	{
 		for(auto e = range.first; e < range.second; ++e)
 		{
-			m_Entities[e] = m_LockNext;
-			m_LockNext	= e;
+			m_ToBeOrphans.emplace_back(e);
 		}
-		m_LockOrphans += range.second - range.first;
 	}
 }
 
@@ -866,13 +858,8 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	{
 		cInfo->destroy(entities);
 	}
-	if(m_LockOrphans == 0) m_LockHead = entities[0];
-	m_LockOrphans += entities.size();
-	for(auto e : entities)
-	{
-		m_Entities[e] = m_LockNext;
-		m_LockNext	= e;
-	}
+
+	m_ToBeOrphans.insert(std::end(m_ToBeOrphans), std::begin(entities), std::end(entities));
 }
 
 void state::destroy(entity entity) noexcept
@@ -881,11 +868,7 @@ void state::destroy(entity entity) noexcept
 	{
 		cInfo->destroy(entity);
 	}
-	if(m_LockOrphans == 0) m_LockHead = entity;
-
-	m_LockOrphans += 1;
-	m_Entities[entity] = m_LockNext;
-	m_LockNext		   = entity;
+	m_ToBeOrphans.emplace_back(entity);
 }
 
 
@@ -1423,14 +1406,11 @@ size_t state::count(psl::array_view<details::component_key_t> keys) const noexce
 void state::clear() noexcept
 {
 	m_Components.clear();
-	m_Entities.clear();
-	m_Orphans = 0;
-	m_Next = 0;
+	m_Entities = 0;
+	m_Orphans.clear();
+	m_ToBeOrphans.clear();
 	m_SystemInformations.clear();
 	m_NewSystemInformations.clear();
 
 	m_LockState = 0;
-	m_LockHead = 0;
-	m_LockNext = 0;
-	m_LockOrphans = 0;
 }
