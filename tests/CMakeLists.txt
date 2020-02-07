@@ -21,12 +21,11 @@ FetchContent_GetProperties(catch)
 if(NOT catch_POPULATED)
   message(STATUS "fetching catchorg/Catch2...")
   FetchContent_Populate(catch)
-  EXECUTE_PROCESS(WORKING_DIRECTORY "${catch_SOURCE_DIR}/scripts" COMMAND ${PYTHON_EXECUTABLE} "generateSingleHeader.py")  
-  add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR} EXCLUDE_FROM_ALL)
+  #EXECUTE_PROCESS(WORKING_DIRECTORY "${catch_SOURCE_DIR}/scripts" COMMAND ${PYTHON_EXECUTABLE} "generateSingleHeader.py")  
+  add_subdirectory(${catch_SOURCE_DIR} ${catch_BINARY_DIR})
   message(STATUS "catchorg/Catch2 fetched")
 endif()
 
-include(${catch_SOURCE_DIR}/contrib/Catch.cmake)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 
@@ -50,4 +49,5 @@ target_include_directories(${LOCAL_PROJECT}
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
 target_compile_options(${LOCAL_PROJECT} PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
 
+include(${catch_SOURCE_DIR}/contrib/Catch.cmake)
 catch_discover_tests(${LOCAL_PROJECT})

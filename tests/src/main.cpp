@@ -2,7 +2,6 @@
 //
 
 #define CATCH_CONFIG_RUNNER
-#include <catch2/catch.hpp>
 #include "stdafx_tests.h"
 
 #ifdef PLATFORM_WINDOWS
