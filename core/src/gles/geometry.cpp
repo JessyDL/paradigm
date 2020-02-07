@@ -19,73 +19,7 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 				   handle<gData> data, handle<buffer> vertexBuffer, handle<buffer> indexBuffer)
 	: m_UID(metaData.uid), m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
 {
-	psl::array<size_t> sizeRequests;
-	sizeRequests.reserve(data->vertex_streams().size() + ((vertexBuffer == indexBuffer) ? 1 : 0));
-	std::for_each(std::begin(data->vertex_streams()), std::end(data->vertex_streams()),
-				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
-					  sizeRequests.emplace_back(element.second.bytesize());
-				  });
-	auto error = glGetError();
-
-	if(vertexBuffer == indexBuffer)
-	{
-		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
-	}
-
-	auto segments = vertexBuffer->allocate(sizeRequests, true);
-	if (segments.size() == 0)
-	{
-		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
-		exit(1);
-	}
-	std::vector<core::gfx::memory_copy> instructions;
-	auto current_segment = std::begin(segments);
-	for(const auto& stream : data->vertex_streams())
-	{
-		auto& instr				 = instructions.emplace_back();
-		instr.size				 = stream.second.bytesize();
-		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
-		instr.source_offset		 = (std::uintptr_t)(stream.second.cdata());
-
-		auto& b			= m_Bindings.emplace_back();
-		b.name			= stream.first;
-		b.segment		= current_segment->first;
-		b.sub_range		= current_segment->second;
-		current_segment = std::next(current_segment);
-	}
-
-	if(vertexBuffer != indexBuffer)
-	{
-		if(auto indiceSegment =
-			   indexBuffer->allocate(data->indices().size() * sizeof(core::data::geometry::index_size_t));
-		   indiceSegment)
-		{
-			m_IndicesSegment  = indiceSegment.value();
-			m_IndicesSubRange = memory::range{0, m_IndicesSegment.range().size()};
-		}
-		else
-		{
-			core::igles::log->critical("index buffer was out of memory");
-			// todo error condition could not allocate segment
-			exit(1);
-		}
-
-		indexBuffer->set({{(size_t)data->indices().data(), m_IndicesSegment.range().begin,
-						   data->indices().size() * sizeof(core::data::geometry::index_size_t)}});
-	}
-	else
-	{
-		auto& instr				 = instructions.emplace_back();
-		instr.size				 = data->indices().size() * sizeof(decltype(data->indices().at(0)));
-		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
-		instr.source_offset		 = (std::uintptr_t)(data->indices().data());
-
-		m_IndicesSegment  = current_segment->first;
-		m_IndicesSubRange = current_segment->second;
-	}
-
-	vertexBuffer->set(instructions);
-	error = glGetError();
+	recreate(data);
 }
 
 geometry::~geometry()
@@ -102,7 +36,103 @@ geometry::~geometry()
 		if(binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
 	}
 	// same as the earlier comment for geometry buffer
-	if(m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+}
+
+void geometry::clear()
+{
+	for (auto& [uid, vao] : m_VAOs)
+		glDeleteVertexArrays(1, &vao);
+	for (auto& binding : m_Bindings)
+	{
+		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
+		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
+		// begin 0
+		if (binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
+	}
+	// same as the earlier comment for geometry buffer
+	if (m_IndicesBuffer && m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+}
+void geometry::recreate(core::resource::handle<core::data::geometry> data)
+{
+
+	psl::array<size_t> sizeRequests;
+	sizeRequests.reserve(data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
+	std::for_each(std::begin(data->vertex_streams()), std::end(data->vertex_streams()),
+		[&sizeRequests](const std::pair<psl::string, core::stream>& element) {
+			sizeRequests.emplace_back(element.second.bytesize());
+		});
+	auto error = glGetError();
+
+	if (m_GeometryBuffer == m_IndicesBuffer)
+	{
+		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+	}
+
+	auto segments = m_GeometryBuffer->allocate(sizeRequests, true);
+	if (segments.size() == 0)
+	{
+		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
+		exit(1);
+	}
+	std::vector<core::gfx::memory_copy> instructions;
+	auto current_segment = std::begin(segments);
+	for (const auto& stream : data->vertex_streams())
+	{
+		auto& instr = instructions.emplace_back();
+		instr.size = stream.second.bytesize();
+		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
+		instr.source_offset = (std::uintptr_t)(stream.second.cdata());
+
+		auto& b = m_Bindings.emplace_back();
+		b.name = stream.first;
+		b.segment = current_segment->first;
+		b.sub_range = current_segment->second;
+		current_segment = std::next(current_segment);
+	}
+
+	if (m_GeometryBuffer != m_IndicesBuffer)
+	{
+		if (auto indiceSegment =
+			m_IndicesBuffer->allocate(data->indices().size() * sizeof(core::data::geometry::index_size_t));
+			indiceSegment)
+		{
+			m_IndicesSegment = indiceSegment.value();
+			m_IndicesSubRange = memory::range{ 0, m_IndicesSegment.range().size() };
+		}
+		else
+		{
+			core::igles::log->critical("index buffer was out of memory");
+			// todo error condition could not allocate segment
+			exit(1);
+		}
+
+		m_IndicesBuffer->set({ {(size_t)data->indices().data(), m_IndicesSegment.range().begin,
+						   data->indices().size() * sizeof(core::data::geometry::index_size_t)} });
+	}
+	else
+	{
+		auto& instr = instructions.emplace_back();
+		instr.size = data->indices().size() * sizeof(decltype(data->indices().at(0)));
+		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
+		instr.source_offset = (std::uintptr_t)(data->indices().data());
+
+		m_IndicesSegment = current_segment->first;
+		m_IndicesSubRange = current_segment->second;
+	}
+
+	m_GeometryBuffer->set(instructions);
+	error = glGetError();
+}
+void geometry::recreate(core::resource::handle<core::data::geometry> data,
+	core::resource::handle<core::igles::buffer> vertexBuffer,
+	core::resource::handle<core::igles::buffer> indexBuffer)
+{
+	clear();
+	m_GeometryBuffer = vertexBuffer;
+	m_IndicesBuffer = indexBuffer;
+
+	recreate(data);
 }
 
 void geometry::create_vao(core::resource::handle<core::igles::material> material,

@@ -30,6 +30,9 @@ namespace core::resource
 	template <typename T>
 	class handle;
 
+	template <typename T>
+	class weak_handle;
+
 	template <typename... Ts>
 	struct alias;
 

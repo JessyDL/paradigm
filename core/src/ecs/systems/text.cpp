@@ -55,8 +55,8 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 		stbtt_aligned_quad aligned_quad{};
 		stbtt_GetBakedQuad(&c, width, height, 0, &xoff, &yoff, &aligned_quad, 1);
 
-		character_data.emplace_back(
-			character_t{psl::vec4{aligned_quad.s0, aligned_quad.t0, aligned_quad.s1, aligned_quad.t1},
+		character_data.emplace_back(character_t{
+			psl::vec4{aligned_quad.s0, aligned_quad.t0, aligned_quad.s1, aligned_quad.t1},
 			psl::vec4{aligned_quad.x0, aligned_quad.y0, aligned_quad.x1, aligned_quad.y1} / character_height,
 			psl::vec2{xoff, yoff} / character_height});
 	}
@@ -80,6 +80,7 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 
 	m_FontTexture = cache.create_using<core::gfx::texture>(res.first, context);
 
+	state.declare(&text::update_dynamic, this, true);
 	state.declare(&text::add, this, true);
 	state.declare(&text::remove, this, true);
 
@@ -87,7 +88,7 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 	auto samplerData = cache.create<data::sampler>();
 	samplerData->address(core::gfx::sampler_address_mode::repeat);
 	samplerData->mipmaps(false);
-	//samplerData->filter_max(core::gfx::filter::nearest);
+	// samplerData->filter_max(core::gfx::filter::nearest);
 	auto samplerHandle = cache.create<gfx::sampler>(m_Context, samplerData);
 
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
@@ -157,7 +158,7 @@ core::resource::handle<core::data::geometry> text::create_text(psl::string_view 
 		uvs.emplace_back(psl::vec2{data.uv[2], data.uv[1]});
 		uvs.emplace_back(psl::vec2{data.uv[0], data.uv[1]});
 
-		right += data.offset.x();
+		right += data.offset.x;
 	}
 
 	auto geomData = m_Cache.create<core::data::geometry>();
@@ -185,18 +186,40 @@ core::resource::handle<core::data::geometry> text::create_text(psl::string_view 
 	return geomData;
 }
 
-void text::add(info& info, pack<partial, entity, comp::text, on_add<comp::text>> pack)
+
+void text::update_dynamic(info& info,
+						  pack<partial, entity, comp::text, comp::renderable, psl::ecs::filter<comp::dynamic_tag>> pack)
 {
-	auto bundle = m_Bundle;
-	for(auto [e, text] : pack)
+	for(auto [e, text, renderer] : pack)
 	{
-		auto geomData   = create_text(text.value);
-		auto geomHandle = m_Cache.create<gfx::geometry>(m_Context, geomData, m_VertexBuffer, m_IndexBuffer);
-		info.command_buffer.create(1, comp::transform{}, [&geomHandle, &bundle](comp::renderable& renderer) {
-			renderer.geometry = geomHandle;
-			renderer.bundle   = bundle;
-		});
+		renderer.geometry->recreate(create_text(text.value));
 	}
 }
 
-void text::remove(info& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack) {}
+void text::add(info& info, pack<partial, entity, comp::text, on_add<comp::text>> pack)
+{
+
+	psl::array<entity> ents;
+	ents.resize(1);
+	for(auto [e, text] : pack)
+	{
+		ents[0] = e;
+		auto geomData   = create_text(text.value);
+		auto geomHandle = m_Cache.create<gfx::geometry>(m_Context, geomData, m_VertexBuffer, m_IndexBuffer);
+		/*info.command_buffer.create(1, comp::transform{},
+			[&geomHandle, &bundle](comp::renderable& renderer) {
+				renderer.geometry = geomHandle;
+				renderer.bundle = bundle;
+			});*/
+		info.command_buffer.add_components(ents, comp::transform{},
+										   [&geomHandle, &bundle = m_Bundle](comp::renderable& renderer) {
+											   renderer.geometry = geomHandle;
+											   renderer.bundle   = bundle;
+										   });
+	}
+}
+
+void text::remove(info& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack)
+{
+	info.command_buffer.remove_components<comp::transform, comp::renderable, comp::dynamic_tag>(pack.get<entity>());
+}

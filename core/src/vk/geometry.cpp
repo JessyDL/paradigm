@@ -25,14 +25,40 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer),
 	  m_UID(metaData.uid)
 {
+	recreate(m_Data);
+}
+
+geometry::~geometry()
+{
+	if(!m_GeometryBuffer) return;
+
+	clear();
+}
+
+void geometry::clear()
+{
+	for (auto& binding : m_Bindings)
+	{
+		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
+		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
+		// begin 0
+		if (binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
+	}
+	m_Bindings.clear();
+	// same as the earlier comment for geometry buffer
+	if (m_IndicesBuffer && m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+}
+void geometry::recreate(core::resource::handle<core::data::geometry> data)
+{
+	clear();
 	std::vector<vk::DeviceSize> sizeRequests;
 	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
 	std::for_each(std::begin(m_Data->vertex_streams()), std::end(m_Data->vertex_streams()),
-				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
-					  sizeRequests.emplace_back((uint32_t)element.second.bytesize());
-				  });
+		[&sizeRequests](const std::pair<psl::string, core::stream>& element) {
+			sizeRequests.emplace_back((uint32_t)element.second.bytesize());
+		});
 
-	if(m_GeometryBuffer == m_IndicesBuffer)
+	if (m_GeometryBuffer == m_IndicesBuffer)
 	{
 		sizeRequests.emplace_back((uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t)));
 	}
@@ -45,29 +71,29 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 	}
 	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
-	for(const auto& stream : m_Data->vertex_streams())
+	for (const auto& stream : m_Data->vertex_streams())
 	{
-		auto& instr   = instructions.emplace_back();
-		instr.size	= stream.second.bytesize();
-		instr.source  = (std::uintptr_t)(stream.second.cdata());
+		auto& instr = instructions.emplace_back();
+		instr.size = stream.second.bytesize();
+		instr.source = (std::uintptr_t)(stream.second.cdata());
 		instr.segment = segments[i].first;
-		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
+		if (segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 
-		auto& b		= m_Bindings.emplace_back();
-		b.name		= stream.first;
-		b.segment   = segments[i].first;
+		auto& b = m_Bindings.emplace_back();
+		b.name = stream.first;
+		b.segment = segments[i].first;
 		b.sub_range = segments[i].second;
 		++i;
 	}
 
-	if(m_GeometryBuffer != m_IndicesBuffer)
+	if (m_GeometryBuffer != m_IndicesBuffer)
 	{
-		if(auto indiceSegment = m_IndicesBuffer->reserve(
-			   (uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t)));
-		   indiceSegment)
+		if (auto indiceSegment = m_IndicesBuffer->reserve(
+			(uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+			indiceSegment)
 		{
-			m_IndicesSegment  = indiceSegment.value();
-			m_IndicesSubRange = memory::range{0, m_IndicesSegment.range().size()};
+			m_IndicesSegment = indiceSegment.value();
+			m_IndicesSubRange = memory::range{ 0, m_IndicesSegment.range().size() };
 		}
 		else
 		{
@@ -76,40 +102,37 @@ geometry::geometry(core::resource::cache& cache, const core::resource::metadata&
 			exit(1);
 		}
 		gfx::commit_instruction instr;
-		instr.size	= m_IndicesSegment.range().size();
-		instr.source  = (std::uintptr_t)m_Data->indices().data();
+		instr.size = m_IndicesSegment.range().size();
+		instr.source = (std::uintptr_t)m_Data->indices().data();
 		instr.segment = m_IndicesSegment;
-		m_IndicesBuffer->commit({instr});
+		m_IndicesBuffer->commit({ instr });
 	}
 	else
 	{
-		i			  = segments.size() - 1;
-		auto& instr   = instructions.emplace_back();
-		instr.size	= segments[i].second.size();
-		instr.source  = (std::uintptr_t)m_Data->indices().data();
+		i = segments.size() - 1;
+		auto& instr = instructions.emplace_back();
+		instr.size = segments[i].second.size();
+		instr.source = (std::uintptr_t)m_Data->indices().data();
 		instr.segment = segments[i].first;
-		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
+		if (segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 
-		m_IndicesSegment  = segments[i].first;
+		m_IndicesSegment = segments[i].first;
 		m_IndicesSubRange = segments[i].second;
 	}
 
 	m_GeometryBuffer->commit(instructions);
 }
-
-geometry::~geometry()
+void geometry::recreate(core::resource::handle<core::data::geometry> data,
+	core::resource::handle<core::ivk::buffer> geometryBuffer,
+	core::resource::handle<core::ivk::buffer> indicesBuffer)
 {
-	if(!m_GeometryBuffer) return;
+	clear();
 
-	for(auto& binding : m_Bindings)
-	{
-		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
-		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
-		// begin 0
-		if(binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
-	}
-	// same as the earlier comment for geometry buffer
-	if(m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+	m_Data = data;
+	m_GeometryBuffer = geometryBuffer;
+	m_IndicesBuffer = indicesBuffer;
+
+	recreate(m_Data);	
 }
 
 

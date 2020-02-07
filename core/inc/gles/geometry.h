@@ -31,6 +31,11 @@ namespace core::igles
 				 core::resource::handle<core::igles::buffer> vertexBuffer,
 				 core::resource::handle<core::igles::buffer> indexBuffer);
 		~geometry();
+
+		void recreate(core::resource::handle<core::data::geometry> data);
+		void recreate(core::resource::handle<core::data::geometry> data,
+			core::resource::handle<core::igles::buffer> vertexBuffer,
+			core::resource::handle<core::igles::buffer> indexBuffer);
 		/// \returns wether this geometry can be combined with the given material (i.e. it has
 		/// all the required channels that the material needs).
 		/// \param[in] material the material to check against.
@@ -43,6 +48,7 @@ namespace core::igles
 		void bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount = 0);
 		bool compatible(const core::igles::material& material) const noexcept;
 	  private:
+		  void clear();
 		psl::UID m_UID;
 		memory::segment m_IndicesSegment;
 		memory::range m_IndicesSubRange;

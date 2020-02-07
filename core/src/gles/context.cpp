@@ -262,7 +262,7 @@ void context::enable(const core::os::surface& surface)
 
 		glEnable(GL_BLEND); 
 		glEnable(GL_CULL_FACE);
-		glLineWidth(2.0);
+		//glLineWidth(2.0);
 	}
 }
 

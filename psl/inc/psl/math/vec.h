@@ -10,6 +10,148 @@
 namespace psl
 {
 	template <typename precision_t, size_t dimensions>
+	struct tvec;
+
+	namespace details
+	{
+		template <typename T, size_t... N>
+		struct accessor
+		{
+			using return_t = std::conditional_t<sizeof...(N) == 1, T, tvec<T, sizeof...(N)>>;
+			template <size_t... N2>
+			constexpr tvec<T, sizeof...(N)> operator+(const accessor<T, N2...>& rhs) const noexcept
+			{
+				static_assert(sizeof...(N) == sizeof...(N2),
+							  "right hand side does not have the same indices like the left");
+				tvec<T, sizeof...(N)> res = rhs;
+				size_t i				  = 0;
+				(void(res[i++] += *((&m_First) + N)), ...);
+				return res;
+			}
+
+			constexpr tvec<T, sizeof...(N)> operator+(const tvec<T, sizeof...(N)>& rhs) const noexcept
+			{
+				auto res = rhs;
+				size_t i = 0;
+				(void(res[i++] += *((&m_First) + N)), ...);
+				return res;
+			}
+
+			constexpr operator return_t() const noexcept
+			{
+				return_t res;
+				if constexpr (sizeof...(N) == 1)
+				{
+					(void(res = *((&m_First) + N)), ...);
+				}
+				else
+				{
+					size_t i = 0;
+					(void(res[i++] = *((&m_First) + N)), ...);
+				}
+				return res;
+			}
+
+			/*constexpr operator tvec<T, sizeof...(N)>() noexcept
+			{
+				tvec<T, sizeof...(N)> res;
+				size_t i = 0;
+				(void(res[i++] = *((&m_First) + N)), ...);
+				return res;
+			}*/
+
+		  private:
+			T m_First;
+		};
+	} // namespace details
+
+#define ACCESSOR_IMPL(type, name, ...) ::psl::details::accessor<type, __VA_ARGS__> name;
+
+#define ACCESSOR_1D_IMPL(type, name, index) ACCESSOR_IMPL(type, name, index)
+
+#define ACCESOR_2D_SHUFFLE(type, name1, name2, index1, index2)                                                         \
+	ACCESSOR_IMPL(type, ##name1##name2, index1, index2)                                                                \
+	ACCESSOR_IMPL(type, ##name2##name1, index2, index1)
+
+#define ACCESOR_3D_SHUFFLE(type, name1, name2, index1, index2)                                                         \
+	ACCESSOR_IMPL(type, ##name1##name1##name2, index1, index1, index2)                                                 \
+	ACCESSOR_IMPL(type, ##name1##name2##name1, index1, index2, index1)                                                 \
+	ACCESSOR_IMPL(type, ##name1##name2##name2, index1, index2, index2)                                                 \
+	ACCESSOR_IMPL(type, ##name2##name1##name1, index2, index1, index1)                                                 \
+	ACCESSOR_IMPL(type, ##name2##name2##name1, index2, index2, index1)                                                 \
+	ACCESSOR_IMPL(type, ##name2##name1##name2, index2, index1, index2)
+
+
+#define ACCESOR_4D_SHUFFLE3(type, name1, name2, index1, index2)                                                        \
+	ACCESSOR_IMPL(type, ##name1##name1##name1##name2, index1, index1, index1, index2)                                  \
+	ACCESSOR_IMPL(type, ##name1##name1##name2##name1, index1, index1, index2, index1)                                  \
+	ACCESSOR_IMPL(type, ##name1##name2##name1##name1, index1, index2, index1, index1)                                  \
+	ACCESSOR_IMPL(type, ##name2##name1##name1##name1, index2, index1, index1, index1)                                  \
+	ACCESSOR_IMPL(type, ##name1##name2##name2##name1, index1, index2, index2, index1)                                  \
+	ACCESSOR_IMPL(type, ##name1##name2##name1##name2, index1, index2, index1, index2)                                  \
+	ACCESSOR_IMPL(type, ##name1##name1##name2##name2, index1, index1, index2, index2)
+
+
+#define ACCESOR_4D_SHUFFLE2(type, name1, name2, index1, index2)                                                        \
+	ACCESOR_4D_SHUFFLE3(type, name1, name2, index1, index2)                                                            \
+	ACCESOR_4D_SHUFFLE3(type, name2, name1, index2, index1)
+
+#define ACCESOR_4D_SHUFFLE1(type, name1, name2, name3, index1, index2, index3)                                         \
+	ACCESOR_4D_SHUFFLE2(type, name1, name2, index1, index2)                                                            \
+	ACCESOR_4D_SHUFFLE2(type, name1, name3, index1, index3)                                                            \
+	ACCESOR_4D_SHUFFLE2(type, name2, name3, index2, index3)
+
+
+#define ACCESOR_4D_SHUFFLE(type, name1, name2, name3, name4, index1, index2, index3, index4)                           \
+	ACCESOR_4D_SHUFFLE1(type, name1, name2, name3, index1, index2, index3)                                             \
+	ACCESOR_4D_SHUFFLE1(type, name1, name2, name3, index1, index2, index3)
+
+#define ACCESSOR_2D_IMPL(type, name, index) ACCESSOR_IMPL(type, ##name##name, index, index)
+
+#define ACCESSOR_3D_IMPL(type, name, index) ACCESSOR_IMPL(type, ##name##name##name, index, index, index)
+#define ACCESSOR_4D_IMPL(type, name, index) ACCESSOR_IMPL(type, ##name##name##name##name, index, index, index, index)
+
+#define ACCESSOR_1D(type) ACCESSOR_1D_IMPL(type, x, 0)
+
+#define ACCESSOR_2D(type)                                                                                              \
+	ACCESSOR_1D_IMPL(type, x, 0)                                                                                       \
+	ACCESSOR_1D_IMPL(type, y, 1)                                                                                       \
+	ACCESSOR_2D_IMPL(type, x, 0)                                                                                       \
+	ACCESSOR_2D_IMPL(type, y, 1)                                                                                       \
+	ACCESOR_2D_SHUFFLE(type, x, y, 0, 1)
+
+#define ACCESSOR_3D(type)                                                                                              \
+	ACCESSOR_2D(type)                                                                                                  \
+	ACCESSOR_1D_IMPL(type, z, 2)                                                                                       \
+	ACCESSOR_2D_IMPL(type, z, 1)                                                                                       \
+	ACCESOR_2D_SHUFFLE(type, x, z, 0, 2)                                                                               \
+	ACCESOR_2D_SHUFFLE(type, y, z, 1, 2)                                                                               \
+                                                                                                                       \
+	ACCESSOR_3D_IMPL(type, x, 0)                                                                                       \
+	ACCESSOR_3D_IMPL(type, y, 1)                                                                                       \
+	ACCESSOR_3D_IMPL(type, z, 2)                                                                                       \
+	ACCESOR_3D_SHUFFLE(type, x, y, 0, 1)                                                                               \
+	ACCESOR_3D_SHUFFLE(type, x, z, 0, 2)                                                                               \
+	ACCESOR_3D_SHUFFLE(type, y, z, 1, 2)
+
+#define ACCESSOR_4D(type)                                                                                              \
+	ACCESSOR_3D(type)                                                                                                  \
+	ACCESSOR_1D_IMPL(type, w, 3)                                                                                       \
+	ACCESSOR_2D_IMPL(type, w, 3)                                                                                       \
+	ACCESSOR_3D_IMPL(type, w, 3)                                                                                       \
+	ACCESOR_2D_SHUFFLE(type, x, w, 0, 3)                                                                               \
+	ACCESOR_2D_SHUFFLE(type, y, w, 1, 3)                                                                               \
+	ACCESOR_2D_SHUFFLE(type, z, w, 2, 3)                                                                               \
+	ACCESOR_3D_SHUFFLE(type, x, w, 0, 3)                                                                               \
+	ACCESOR_3D_SHUFFLE(type, y, w, 1, 3)                                                                               \
+	ACCESOR_3D_SHUFFLE(type, z, w, 2, 3)                                                                               \
+                                                                                                                       \
+	ACCESSOR_4D_IMPL(type, x, 0)                                                                                       \
+	ACCESSOR_4D_IMPL(type, y, 1)                                                                                       \
+	ACCESSOR_4D_IMPL(type, z, 2)                                                                                       \
+	ACCESSOR_4D_IMPL(type, w, 3)
+
+	template <typename precision_t, size_t dimensions>
 	struct tvec
 	{
 		static constexpr size_t dimensions_n{dimensions};
@@ -73,13 +215,13 @@ namespace psl
 
 		constexpr tvec operator%=(const tvec& other) noexcept
 		{
-			for (auto i = 0; i < dimensions; ++i) value[i] %= other.value[i];
+			for(auto i = 0; i < dimensions; ++i) value[i] %= other.value[i];
 			return *this;
 		}
 
 		constexpr tvec operator%(const tvec& other) const noexcept
 		{
-			tvec res{ *this };
+			tvec res{*this};
 			res %= other;
 			return res;
 		}
@@ -171,7 +313,7 @@ namespace psl
 
 		constexpr tvec operator%(const tvec& other) const noexcept
 		{
-			tvec res{ *this };
+			tvec res{*this};
 			res %= other;
 			return res;
 		}
@@ -216,16 +358,19 @@ namespace psl
 
 		constexpr tvec() noexcept = default;
 		constexpr tvec(const precision_t& x, const precision_t& y) noexcept : value({x, y}){};
-		constexpr tvec(precision_t&& x, precision_t&& y) noexcept : value({std::move(x), std::move(y)}){};
+
+		// template <typename precision_t2>
+		// constexpr tvec(precision_t2&& x, precision_t2&& y) noexcept
+		//	: value({std::forward<precision_t2>(x), std::forward<precision_t2>(y)}){};
 		constexpr tvec(const precision_t& value) noexcept : value({value, value}){};
 
 		// ---------------------------------------------
 		// getters
 		// ---------------------------------------------
-		constexpr precision_t& x() noexcept { return value[0]; }
+		/*constexpr precision_t& x() noexcept { return value[0]; }
 		constexpr const precision_t& x() const noexcept { return value[0]; }
 		constexpr precision_t& y() noexcept { return value[1]; }
-		constexpr const precision_t& y() const noexcept { return value[1]; }
+		constexpr const precision_t& y() const noexcept { return value[1]; }*/
 
 		// ---------------------------------------------
 		// operators
@@ -269,7 +414,7 @@ namespace psl
 
 		constexpr tvec operator%(const tvec& other) const noexcept
 		{
-			tvec res{ *this };
+			tvec res{*this};
 			res %= other;
 			return res;
 		}
@@ -292,7 +437,11 @@ namespace psl
 				return res;
 			}
 		}
-		container_t value;
+		union
+		{
+			container_t value;
+			ACCESSOR_2D(precision_t)
+		};
 	};
 
 	template <typename precision_t>
@@ -325,12 +474,12 @@ namespace psl
 		// ---------------------------------------------
 		// getters
 		// ---------------------------------------------
-		constexpr precision_t& x() noexcept { return value[0]; }
+		/*constexpr precision_t& x() noexcept { return value[0]; }
 		constexpr const precision_t& x() const noexcept { return value[0]; }
 		constexpr precision_t& y() noexcept { return value[1]; }
 		constexpr const precision_t& y() const noexcept { return value[1]; }
 		constexpr precision_t& z() noexcept { return value[2]; }
-		constexpr const precision_t& z() const noexcept { return value[2]; }
+		constexpr const precision_t& z() const noexcept { return value[2]; }*/
 
 		// ---------------------------------------------
 		// operators
@@ -381,7 +530,7 @@ namespace psl
 
 		constexpr tvec operator%(const tvec& other) const noexcept
 		{
-			tvec res{ *this };
+			tvec res{*this};
 			res %= other;
 			return res;
 		}
@@ -404,7 +553,11 @@ namespace psl
 				return res;
 			}
 		}
-		container_t value;
+		union
+		{
+			container_t value;
+			ACCESSOR_3D(precision_t)
+		};
 	};
 
 	// todo alignas should be handled more gracefully
@@ -449,14 +602,14 @@ namespace psl
 		// ---------------------------------------------
 		// getters
 		// ---------------------------------------------
-		constexpr precision_t& x() noexcept { return value[0]; }
+		/*constexpr precision_t& x() noexcept { return value[0]; }
 		constexpr const precision_t& x() const noexcept { return value[0]; }
 		constexpr precision_t& y() noexcept { return value[1]; }
 		constexpr const precision_t& y() const noexcept { return value[1]; }
 		constexpr precision_t& z() noexcept { return value[2]; }
 		constexpr const precision_t& z() const noexcept { return value[2]; }
 		constexpr precision_t& w() noexcept { return value[3]; }
-		constexpr const precision_t& w() const noexcept { return value[3]; }
+		constexpr const precision_t& w() const noexcept { return value[3]; }*/
 
 		// ---------------------------------------------
 		// operators
@@ -509,7 +662,7 @@ namespace psl
 
 		constexpr tvec operator%(const tvec& other) const noexcept
 		{
-			tvec res{ *this };
+			tvec res{*this};
 			res %= other;
 			return res;
 		}
@@ -533,7 +686,11 @@ namespace psl
 			}
 		}
 
-		container_t value;
+		union
+		{
+			container_t value;
+			ACCESSOR_4D(precision_t)
+		};
 	};
 
 
@@ -1213,16 +1370,16 @@ namespace psl::math
 	template <typename precision_t, size_t dimensions>
 	constexpr static precision_t compound(const tvec<precision_t, dimensions>& vec) noexcept
 	{
-		precision_t res = precision_t{ vec[0] };
-		for (size_t i = 1; i < dimensions; ++i) res += vec[i];
+		precision_t res = precision_t{vec[0]};
+		for(size_t i = 1; i < dimensions; ++i) res += vec[i];
 		return res;
 	}
 
 	template <typename precision_t, size_t dimensions>
 	constexpr static precision_t compound_mul(const tvec<precision_t, dimensions>& vec) noexcept
 	{
-		precision_t res = precision_t{ vec[0] };
-		for (size_t i = 1; i < dimensions; ++i) res *= vec[i];
+		precision_t res = precision_t{vec[0]};
+		for(size_t i = 1; i < dimensions; ++i) res *= vec[i];
 		return res;
 	}
 
@@ -1268,7 +1425,8 @@ namespace psl::math
 		{
 			res[i] = std::pow(vec[i], pow_value);
 		}
-		return res;{}
+		return res;
+		{}
 	}
 
 	template <typename precision_t, size_t dimensions>

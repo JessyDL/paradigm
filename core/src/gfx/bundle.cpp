@@ -89,7 +89,7 @@ uint32_t bundle::instances(core::resource::tag<core::gfx::geometry> geometry) co
 }
 
 std::vector<std::pair<uint32_t, uint32_t>> bundle::instantiate(core::resource::tag<core::gfx::geometry> geometry,
-															   uint32_t count)
+															   uint32_t count, geometry_type type)
 {
 	return m_InstanceData.add(geometry, count);
 }
@@ -102,7 +102,7 @@ bool bundle::release(tag<core::gfx::geometry> geometry, uint32_t id) noexcept
 	return m_InstanceData.erase(geometry, id);
 }
 
-bool bundle::release_all() noexcept { return m_InstanceData.clear(); };
+bool bundle::release_all(std::optional<geometry_type> type) noexcept { return m_InstanceData.clear(); };
 
 bool bundle::set(tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
 				 const void* data, size_t size, size_t count)

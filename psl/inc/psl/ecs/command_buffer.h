@@ -37,6 +37,7 @@ namespace psl::ecs
 				m_Changes = entities.size() > 0;
 				add_impl(entities);
 				auto& added = m_Added;
+				m_Added.reserve(std::max(m_Added.capacity(), m_Added.size() + entities.size()));
 				for(auto e : entities)
 				{
 					if(e < m_First) continue;
@@ -51,6 +52,7 @@ namespace psl::ecs
 				auto& added = m_Added;
 				for(auto range : entities)
 				{
+					m_Added.reserve(std::max(m_Added.capacity(), m_Added.size() + (range.second - range.first)));
 					for(auto e = range.first; e < range.second; ++e)
 					{
 						if(e < m_First) continue;
@@ -65,6 +67,7 @@ namespace psl::ecs
 				auto& removed = m_Removed;
 				for(auto range : entities)
 				{
+					m_Removed.reserve(std::max(m_Removed.capacity(), m_Removed.size() + (range.second - range.first)));
 
 					for(auto e = range.first; e < range.second; ++e)
 					{
@@ -81,6 +84,7 @@ namespace psl::ecs
 			{
 				m_Changes	 = entities.size() > 0;
 				auto& removed = m_Removed;
+				m_Removed.reserve(std::max(m_Removed.capacity(), m_Removed.size() + entities.size()));
 				for(auto e : entities)
 				{
 					if(e < m_First)
@@ -143,7 +147,7 @@ namespace psl::ecs
 			memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
 
 
-			void* data() noexcept override { return m_Entities.data(); }
+			void* data() noexcept override { return m_ModifiedEntities.data(); }
 
 			details::component_info* create_storage(psl::sparse_array<entity>& remapped_entities) const override
 			{
@@ -226,8 +230,8 @@ namespace psl::ecs
 			}
 
 		  private:
-			memory::sparse_array<T, entity> m_ModifiedEntities{};
-			memory::sparse_array<T, entity> m_Entities{};
+			memory::sparse_array<T, entity> m_ModifiedEntities{};	// modified pre-existing entities
+			memory::sparse_array<T, entity> m_Entities{};			// newly created entities that need to be merged
 		};
 
 		template <typename T>

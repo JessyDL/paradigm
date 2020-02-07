@@ -320,6 +320,7 @@ namespace core::resource
 	template <typename T>
 	class weak_handle final
 	{
+		friend class cache;
 	  public:
 		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
 		using meta_type  = typename resource_traits<value_type>::meta_type;

@@ -378,6 +378,19 @@ namespace core::resource
 			return false;
 		}
 
+		template <typename T>
+		bool free(resource::weak_handle<T>& target)
+		{
+			if (target.m_MetaData->reference_count <= 1 && target.m_MetaData->state == state::loaded)
+			{
+				target.m_MetaData->state = state::unloading;
+				std::invoke(m_Deleters[target.m_MetaData->type], target.m_Resource);
+				target.m_MetaData->state = state::unloaded;
+				return true;
+			}
+			return false;
+		}
+
 		void free(bool clear_all = false)
 		{
 			LOG_INFO("destroying cache start");

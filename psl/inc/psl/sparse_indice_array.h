@@ -26,6 +26,15 @@ namespace psl
 
 		T& operator[](const T& index)
 		{
+			if (index < m_Offset)
+			{
+				auto aligned_index = chunk_aligned_index(index);
+				if (m_Offset != OFFSET_START)
+				{
+					pad_front((m_Offset - aligned_index) / chunks_size);
+				}
+				m_Offset = aligned_index;
+			}
 			auto chunk_index		   = index;
 			auto& chunk				   = chunk_for(chunk_index);
 			chunk[(size_t)chunk_index] = (T)m_Reverse.size();
@@ -35,6 +44,15 @@ namespace psl
 
 		T& at(const T& index)
 		{
+			if (index < m_Offset)
+			{
+				auto aligned_index = chunk_aligned_index(index);
+				if (m_Offset != OFFSET_START)
+				{
+					pad_front((m_Offset - aligned_index) / chunks_size);
+				}
+				m_Offset = aligned_index;
+			}
 			auto chunk_index		   = index;
 			auto& chunk				   = chunk_for(chunk_index);
 			chunk[(size_t)chunk_index] = (T)m_Reverse.size();
@@ -57,6 +75,15 @@ namespace psl
 		}
 		void insert(const T& index)
 		{
+			if (index < m_Offset)
+			{
+				auto aligned_index = chunk_aligned_index(index);
+				if (m_Offset != OFFSET_START)
+				{
+					pad_front((m_Offset - aligned_index) / chunks_size);
+				}
+				m_Offset = aligned_index;
+			}
 			auto chunk_index   = index;
 			auto& chunk		   = chunk_for(chunk_index);
 			chunk[chunk_index] = (T)m_Reverse.size();
@@ -65,6 +92,15 @@ namespace psl
 
 		void emplace(T&& index)
 		{
+			if(index < m_Offset)
+			{
+				auto aligned_index = chunk_aligned_index(index);
+				if(m_Offset != OFFSET_START)
+				{
+					pad_front((m_Offset - aligned_index) / chunks_size);
+				}
+				m_Offset = aligned_index;
+			}
 			auto chunk_index   = index;
 			auto& chunk		   = chunk_for(chunk_index);
 			chunk[chunk_index] = m_Reverse.size();
@@ -99,6 +135,7 @@ namespace psl
 		{
 			m_Reverse.clear();
 			m_Sparse.clear();
+			m_Offset = OFFSET_START;
 		}
 
 		bool has(const T& index) const noexcept
@@ -114,18 +151,35 @@ namespace psl
 		psl::array_view<T> indices() const noexcept { return m_Reverse; }
 
 	  private:
+		  void pad_front(size_t count) {
+			  m_Sparse.resize(m_Sparse.size() + count);
+			  std::rotate(std::rbegin(m_Sparse), std::rbegin(m_Sparse) + count, std::rend(m_Sparse));
+		  }
+		  static constexpr T chunk_aligned_index(const T& index)  { return index - (index & mod_val); }
+		inline constexpr T chunk_index_for(const T& index) const noexcept
+		{
+			if constexpr(is_power_of_two)
+			{
+				return chunk_aligned_index(index) / chunks_size;
+			}
+			else
+			{
+				return chunk_aligned_index(index) / chunks_size;
+			}
+		}
 		inline psl::array<T>& chunk_for(T& index)
 		{
+			index -= m_Offset;
 			if(index >= capacity()) resize(index + 1);
 			T chunk_index;
 			if constexpr(is_power_of_two)
 			{
-				chunk_index = (index - (index & mod_val)) / chunks_size;
+				chunk_index = chunk_aligned_index(index) / chunks_size;
 				index		= index & mod_val;
 			}
 			else
 			{
-				chunk_index = (index - (index % mod_val)) / chunks_size;
+				chunk_index = chunk_aligned_index(index) / chunks_size;
 				index		= index % mod_val;
 			}
 			auto& chunk = m_Sparse[chunk_index];
@@ -140,19 +194,21 @@ namespace psl
 
 		inline void chunk_info_for(T index, T& element_index, T& chunk_index) const noexcept
 		{
+			index -= m_Offset;
 			if constexpr(is_power_of_two)
 			{
-				chunk_index   = (index - (index & mod_val)) / chunks_size;
+				chunk_index	  = (index - (index & mod_val)) / chunks_size;
 				element_index = index & mod_val;
 			}
 			else
 			{
-				chunk_index   = (index - (index % mod_val)) / chunks_size;
+				chunk_index	  = (index - (index % mod_val)) / chunks_size;
 				element_index = index % mod_val;
 			}
 		}
+		static const T OFFSET_START{ chunk_aligned_index(std::numeric_limits<T>::max()) };
 
-
+		T m_Offset{ OFFSET_START };
 		psl::array<T> m_Reverse;
 		psl::array<psl::array<T>> m_Sparse;
 	};

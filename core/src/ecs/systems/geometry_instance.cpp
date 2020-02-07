@@ -17,7 +17,7 @@ geometry_instancing::geometry_instancing(psl::ecs::state& state)
 {
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_add, this);
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_remove, this);
-	state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
+	//state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
 }
 
 void geometry_instancing::dynamic_system(
@@ -67,10 +67,11 @@ void geometry_instancing::dynamic_system(
 			size_t indicesCompleted = 0;
 			for (auto [startIndex, endIndex] : instancesID)
 			{
-				for (auto i = indicesCompleted; i < endIndex; ++i, ++indicesCompleted)
+				auto range = endIndex - startIndex;
+				for (auto i = 0; i < range; ++i, ++indicesCompleted)
 				{
 					const auto& transform =
-						std::get<const core::ecs::components::transform>(geometry_pack[i + geometryData.startIndex]);
+						std::get<const core::ecs::components::transform>(geometry_pack[indicesCompleted + geometryData.startIndex]);
 					const psl::mat4x4 translationMat = translate(transform.position);
 					const psl::mat4x4 rotationMat = to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat = scale(transform.scale);
@@ -127,19 +128,18 @@ void geometry_instancing::static_add(
 			uint32_t indicesCompleted = 0;
 			for(auto [startIndex, endIndex] : instancesID)
 			{
-				for(auto i = indicesCompleted; i < endIndex; ++i, ++indicesCompleted)
+				for(auto i = startIndex; i < endIndex; ++i, ++indicesCompleted)
 				{
 					const auto& transform =
-						std::get<const core::ecs::components::transform>(geometry_pack[i + geometryData.startIndex]);
+						std::get<const core::ecs::components::transform>(geometry_pack[indicesCompleted + geometryData.startIndex]);
 					const psl::mat4x4 translationMat = translate(transform.position);
 					const psl::mat4x4 rotationMat	= to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat		 = scale(transform.scale);
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 
-					eIds[0] = std::get<entity>(geometry_pack[i + geometryData.startIndex]);
-					info.command_buffer.add_components<instance_id>(eIds, instance_id{startIndex + i});
+					eIds[0] = std::get<entity>(geometry_pack[indicesCompleted + geometryData.startIndex]);
+					info.command_buffer.add_components<instance_id>(eIds, instance_id{i});
 				}
-
 				bundleHandle->set(geometryHandle, startIndex, psl::string{core::gfx::constants::INSTANCE_MODELMATRIX},
 								  modelMats);
 

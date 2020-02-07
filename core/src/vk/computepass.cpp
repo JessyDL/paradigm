@@ -9,7 +9,10 @@ void computepass::clear() {}
 void computepass::prepare() {}
 bool computepass::build() { return true; }
 void computepass::present() {
-	core::ivk::log->debug("todo: need to implement compute for vulkan");
+	for (auto& compute : m_Compute)
+	{
+		compute.dispatch();
+	}
 }
 
 void computepass::add(psl::array_view<computecall> compute)

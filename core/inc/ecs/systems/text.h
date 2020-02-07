@@ -24,6 +24,12 @@ namespace psl::ecs
 	template <typename... Ts>
 	class pack;
 } // namespace psl::ecs
+
+namespace core::ecs::components
+{
+	struct renderable;
+	struct dynamic_tag;
+}
 namespace core::ecs::systems
 {
 	class text
@@ -51,6 +57,11 @@ namespace core::ecs::systems
 
 
 	  private:
+		void update_dynamic(
+			psl::ecs::info& info,
+			psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, core::ecs::components::text,
+						   core::ecs::components::renderable, psl::ecs::filter<core::ecs::components::dynamic_tag>>
+				pack);
 		void add(psl::ecs::info& info, psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, core::ecs::components::text,
 													  psl::ecs::on_add<core::ecs::components::text>>
 										   pack);

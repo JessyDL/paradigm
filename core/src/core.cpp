@@ -133,7 +133,7 @@ handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<co
 	}
 	matData->stages(stages);
 	matData->blend_states({core::data::material::blendstate(0)});
-	//matData->wireframe(true);
+	// matData->wireframe(true);
 	auto material = cache.create<core::gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
 
 	return material;
@@ -634,23 +634,6 @@ int android_entry()
 
 #endif
 
-struct lifetime_test
-{
-	bool operator()(const core::ecs::components::lifetime& value) const noexcept { return value.value > 0.5f; }
-};
-
-auto scaleSystem =
-	[](psl::ecs::info& info,
-	   psl::ecs::pack<psl::ecs::partial, core::ecs::components::transform, const core::ecs::components::lifetime,
-					  psl::ecs::on_condition<lifetime_test, core::ecs::components::lifetime>>
-		   pack) {
-		for(auto [transform, lifetime] : pack)
-		{
-			auto remaining = std::min(0.5f, lifetime.value) * 2.0f;
-			transform.scale *= remaining;
-		}
-	};
-
 #if defined(PLATFORM_ANDROID)
 static bool initialized = false;
 
@@ -920,13 +903,13 @@ int entry(gfx::graphics_backend backend)
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
-	/*bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
 	bundles[bundles.size() - 1]->set(materials[0], 2000);
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
 	bundles[bundles.size() - 1]->set(materials[1], 2000);
-	bundles[bundles.size() -1]->set(depth_material, 1000);
-	*/
+	bundles[bundles.size() - 1]->set(depth_material, 1000);
+
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
 	bundles[bundles.size() - 1]->set(materials[2], 2000);
 
@@ -948,10 +931,10 @@ int entry(gfx::graphics_backend backend)
 		auto compute_handle = create_compute(cache, context_handle, pipeline_cache,
 											 "594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, compute_texture_uid);
 
-		if (context_handle->backend() == core::gfx::graphics_backend::gles)
+		if(context_handle->backend() == core::gfx::graphics_backend::gles)
 		{
 			auto compute_pass = renderGraph.create_computepass(context_handle);
-			compute_pass->add(core::gfx::computecall{ compute_handle });
+			compute_pass->add(core::gfx::computecall{compute_handle});
 			renderGraph.connect(compute_pass, swapchain_pass);
 		}
 	}
@@ -981,14 +964,13 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer,
 													 context_handle->backend()};
 
-	ECSState.declare(psl::ecs::threading::par, scaleSystem);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
-	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
+	//ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	// ECSState.declare(core::ecs::systems::geometry_instance);
-	core::ecs::systems::geometry_instancing geometry_instancing_system{ ECSState };
+	core::ecs::systems::geometry_instancing geometry_instancing_system{ECSState};
 
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
@@ -997,12 +979,21 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::systems::text text{ECSState,	cache,		   context_handle, vertexBuffer,
 								  indexBuffer, pipeline_cache, matBuffer,	  instanceBuffer};
 
-	auto eCam		  = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
+	auto eCam = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 
-	//core::ecs::systems::debug::grid grid_system{ ECSState, eCam[0], cache, context_handle, vertexBuffer, indexBuffer, pipeline_cache, matBuffer, instanceBuffer , core::ecs::systems::chunk::SIZE , static_cast<psl::vec3>(core::ecs::systems::chunk::SIZE)  * 0.5f};
-	size_t iterations = 25600;
+	// core::ecs::systems::debug::grid grid_system{ ECSState, eCam[0], cache, context_handle, vertexBuffer, indexBuffer,
+	// pipeline_cache, matBuffer, instanceBuffer , core::ecs::systems::chunk::SIZE ,
+	// static_cast<psl::vec3>(core::ecs::systems::chunk::SIZE)  * 0.5f};
+	size_t iterations										 = 25600;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
+
+	ECSState.create(
+		1,
+		[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
+			renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
+						  geometryHandles[std::rand() % geometryHandles.size()]};
+		}, psl::ecs::empty<core::ecs::components::transform>{});
 
 	/*ECSState.create(
 		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
@@ -1022,23 +1013,29 @@ int entry(gfx::graphics_backend backend)
 
 	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
 					core::ecs::components::light{{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
-	
-	std::array<int, 4> matusage{0};
-	//core::ecs::systems::worldgen worldgen_system{ cache,		context_handle, vertexBuffer, indexBuffer, bundles[1] };
 
-	std::string str{};
-	str.append("material 0: " + std::to_string(matusage[0]) + " material 1: " + std::to_string(matusage[1]) +
-			   " material 2: " + std::to_string(matusage[2]) + " material 3: " + std::to_string(matusage[3]));
-	ECSState.create(1, core::ecs::components::text{str.data()});
+	std::array<int, 4> matusage{0};
+	// core::ecs::systems::worldgen worldgen_system{ cache,		context_handle, vertexBuffer, indexBuffer, bundles[1] };
+
+	std::string str{"dsff"};
+	auto textEntity = ECSState.create(1, core::ecs::components::text{str.data()}, psl::ecs::empty<core::ecs::components::dynamic_tag>());
 
 	size_t frame{0};
 	std::chrono::duration<float> elapsed{};
+
+#ifdef _DEBUG
+	size_t count = 1;
+	size_t swing = 0;
+#else
+	size_t count = 500;
+	size_t swing = 150;
+#endif
 	while(surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
 		core::profiler.next_frame();
-		//worldgen_system.tick(ECSState, ECSState.get<core::ecs::components::transform>(eCam[0]).position);
+		// worldgen_system.tick(ECSState, ECSState.get<core::ecs::components::transform>(eCam[0]).position);
 		core::profiler.scope_begin("system tick");
 		ECSState.tick(elapsed);
 		core::profiler.scope_end();
@@ -1049,14 +1046,20 @@ int entry(gfx::graphics_backend backend)
 
 		core::profiler.scope_begin("creating entities");
 
-		/*ECSState.create(
-			(iterations > 0) ? 500 + std::rand() % 150 : (std::rand() % 100 == 0) ? 0 : 0,
-			[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
-				renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
+
+		str = "material 0: " + std::to_string(matusage[0]) + " material 1: " + std::to_string(matusage[1]) +
+			" material 2: " + std::to_string(matusage[2]) + " material 3: " + std::to_string(matusage[3]);
+		ECSState.set_component(textEntity, core::ecs::components::text{ str.data() });
+
+		ECSState.create(
+			(iterations > 0) ? count + std::rand() % (swing + 1) : 0,
+			[&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
+				auto matIndex = (std::rand() % 2 == 0);
+				matusage[matIndex] += 1;
+				renderable = { bundles[matIndex],
 							  geometryHandles[std::rand() % geometryHandles.size()]};
 			},
-			psl::ecs::empty<core::ecs::components::dynamic_tag> {},
-			psl::ecs::empty<core::ecs::components::transform>{},
+			psl::ecs::empty<core::ecs::components::dynamic_tag>{}, psl::ecs::empty<core::ecs::components::transform>{},
 			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
 			[&size_steps](core::ecs::components::velocity& target) {
 				target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
@@ -1068,7 +1071,7 @@ int entry(gfx::graphics_backend backend)
 
 		if(iterations > 0)
 		{
-			if(ECSState.filter<core::ecs::components::attractor>().size() < 6)
+			if(ECSState.filter<core::ecs::components::attractor>().size() < 1)
 			{
 				ECSState.create(
 					2,
@@ -1095,7 +1098,7 @@ int entry(gfx::graphics_backend backend)
 					});
 			}
 			--iterations;
-		}*/
+		}
 		core::profiler.scope_end();
 
 		/*if(iterations == 25590)
@@ -1134,10 +1137,12 @@ int main()
 	}
 #endif
 
+	psl::vec4 v{ 0.f,1.f,2.f,3.f };
+	//auto res{ v.xy + v.zy + v.zz };
 	// std::thread vk_thread(entry, graphics_backend::gles);
 	// std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
-	return entry(graphics_backend::gles);
+	//return entry(graphics_backend::gles);
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);

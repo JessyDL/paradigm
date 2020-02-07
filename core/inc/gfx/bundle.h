@@ -26,6 +26,11 @@ namespace vk
 
 namespace core::gfx
 {
+	enum class geometry_type
+	{
+		STATIC	= 0,
+		DYNAMIC = 1
+	};
 	namespace constants
 	{
 		static constexpr psl::string_view INSTANCE_MODELMATRIX = "INSTANCE_TRANSFORM";
@@ -35,12 +40,17 @@ namespace core::gfx
 		friend class core::ivk::drawpass;
 		friend class core::igles::drawpass;
 
+		/*
+			Uses a simple allocate front/back mechanism for handling static (front) and dynamic (back) items. This helps
+		   in mitigating stalls and useless uploads to the GPU.
+		*/
+
 	  public:
 		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 			   core::resource::handle<core::gfx::buffer> buffer);
 
 		~bundle()				  = default;
-		bundle(const bundle&)	 = delete;
+		bundle(const bundle&)	  = delete;
 		bundle(bundle&&) noexcept = delete;
 		bundle& operator=(const bundle&) = delete;
 		bundle& operator=(bundle&&) noexcept = delete;
@@ -93,16 +103,37 @@ namespace core::gfx
 		// ------------------------------------------------------------------------------------------------------------
 	  public:
 		/// \brief returns the instance count currently used for the given piece of geometry.
-		/// \param[in] geometry the geometry to check.
+		/// \param[in] geometry UID to check
 		uint32_t instances(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
 		std::vector<std::pair<uint32_t, uint32_t>> instantiate(core::resource::tag<core::gfx::geometry> geometry,
-															   uint32_t count = 1);
+															   uint32_t count	  = 1,
+															   geometry_type type = geometry_type::STATIC);
 
+		/// \brief returns how many instances are currently active for the given geometry.
+		/// \param[in] geometry UID to check
 		uint32_t size(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		bool has(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
-		bool release(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
-		bool release_all() noexcept;
 
+		/// \brief returns if there are *any* active instances for the given geometry.
+		/// \param[in] geometry UID to check
+		bool has(core::resource::tag<core::gfx::geometry> geometry) const noexcept;
+
+		/// \brief release the instance associated with the given ID and geometry
+		/// \param[in] geometry target UID
+		/// \param[in] id instance ID
+		/// \returns true in case the instance was successfully transitioned from active to deactivated.
+		bool release(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
+
+		/// \brief release all instance data.
+		/// \param[in] type optionally target only static or dynamic data
+		bool release_all(std::optional<geometry_type> type = {}) noexcept;
+
+		/// \brief set instance data for the given instance (and range)
+		/// \param[in] geometry target UID
+		/// \param[in] id first instance ID
+		/// \param[in] name name of the buffer (present in the shader)
+		/// \param[in] values the values to set, where the size + id indicates the end of the range
+		/// \returns true if the geometry was found, all instances were present, and the upload dispatched. The upload
+		/// is async.
 		template <typename T>
 		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, psl::string_view name,
 				 const psl::array<T>& values)

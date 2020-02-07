@@ -34,8 +34,7 @@ namespace core::ivk
 		/// \param[in] geometryBuffer the buffer that the mesh data will be uploaded to.
 		/// \param[in] indicesBuffer the buffer that the indices data will be uploaded to.
 		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 core::resource::handle<core::ivk::context> context,
-				 core::resource::handle<core::data::geometry> data,
+				 core::resource::handle<core::ivk::context> context, core::resource::handle<core::data::geometry> data,
 				 core::resource::handle<core::ivk::buffer> geometryBuffer,
 				 core::resource::handle<core::ivk::buffer> indicesBuffer);
 		~geometry();
@@ -44,6 +43,10 @@ namespace core::ivk
 		geometry& operator=(const geometry&) = delete;
 		geometry& operator=(geometry&&) = delete;
 
+		void recreate(core::resource::handle<core::data::geometry> data);
+		void recreate(core::resource::handle<core::data::geometry> data,
+					  core::resource::handle<core::ivk::buffer> geometryBuffer,
+					  core::resource::handle<core::ivk::buffer> indicesBuffer);
 		/// \returns wether this geometry can be combined with the given material (i.e. it has
 		/// all the required channels that the material needs).
 		/// \param[in] material the material to check against.
@@ -59,6 +62,7 @@ namespace core::ivk
 		core::resource::handle<core::data::geometry> data() const noexcept { return m_Data; };
 
 	  private:
+		  void clear();
 		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::handle<core::data::geometry> m_Data;
 		core::resource::handle<core::ivk::buffer> m_GeometryBuffer;

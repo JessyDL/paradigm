@@ -14,10 +14,13 @@ namespace core::ecs::systems
 	{
 		struct renderer_sort
 		{
-			int operator()(const core::ecs::components::renderable& lhs,
+			inline bool operator()(const core::ecs::components::renderable& lhs,
 				const core::ecs::components::renderable& rhs) const noexcept
 			{
-				return lhs.bundle.uid() > rhs.bundle.uid() ? 2 : lhs.bundle.uid() < rhs.bundle.uid() ? -2 : lhs.geometry.uid() > rhs.geometry.uid() ? 1 : lhs.geometry.uid() == rhs.geometry.uid() ? 0 : -1;
+				if (lhs.bundle.uid() != rhs.bundle.uid())
+					return lhs.bundle.uid() < rhs.bundle.uid();
+				else
+					return lhs.geometry.uid() < rhs.geometry.uid();
 			}
 		};
 		struct geometry_instance

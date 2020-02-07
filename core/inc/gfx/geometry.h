@@ -39,6 +39,10 @@ namespace core::gfx
 
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
+		void recreate(core::resource::handle<core::data::geometry> data);
+		void recreate(core::resource::handle<core::data::geometry> data,
+			core::resource::handle<core::gfx::buffer> geometryBuffer,
+			core::resource::handle<core::gfx::buffer> indicesBuffer);
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

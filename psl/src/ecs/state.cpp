@@ -666,6 +666,8 @@ void state::tick(std::chrono::duration<float> dTime)
 		m_LockOrphans = 0;
 	}
 
+	for (auto& cInfo : m_Components) cInfo->unlock_and_purge();
+
 	for(auto& info : info_buffer)
 	{
 		execute_command_buffer(*info);
@@ -673,7 +675,6 @@ void state::tick(std::chrono::duration<float> dTime)
 	info_buffer.clear();
 
 	// purge;
-	for(auto& cInfo : m_Components) cInfo->unlock_and_purge();
 
 	++m_Tick;
 
@@ -681,6 +682,15 @@ void state::tick(std::chrono::duration<float> dTime)
 	{
 		for(auto& system : m_NewSystemInformations) m_SystemInformations.emplace_back(std::move(system));
 		m_NewSystemInformations.clear();
+	}
+
+	if (m_ToRevoke.size() > 0)
+	{
+		for (auto id : m_ToRevoke)
+		{
+			revoke(id);
+		}
+		m_ToRevoke.clear();
 	}
 	m_LockState = 0;
 }
@@ -1408,4 +1418,19 @@ size_t state::count(psl::array_view<details::component_key_t> keys) const noexce
 		return cInfo ? cInfo->size() : 0;
 	}
 	return 0;
+}
+
+void state::clear() noexcept
+{
+	m_Components.clear();
+	m_Entities.clear();
+	m_Orphans = 0;
+	m_Next = 0;
+	m_SystemInformations.clear();
+	m_NewSystemInformations.clear();
+
+	m_LockState = 0;
+	m_LockHead = 0;
+	m_LockNext = 0;
+	m_LockOrphans = 0;
 }

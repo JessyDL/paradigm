@@ -22,7 +22,8 @@ namespace psl::ecs
 
 	struct info
 	{
-		info(const state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime, size_t frame) noexcept
+		info(const state& state, std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
+			 size_t frame) noexcept
 			: state(state), dTime(dTime), rTime(rTime), command_buffer(state), tick(tick){};
 
 		const state& state;
@@ -141,7 +142,7 @@ namespace psl::ecs::details
 		{
 			using pack_t	  = T;
 			using pack_view_t = typename pack_t::pack_t;
-			using range_t	 = typename pack_t::pack_t::range_t;
+			using range_t	  = typename pack_t::pack_t::range_t;
 
 			return T{pack_view_t(
 				fill_in(psl::templates::type_container<typename std::tuple_element<Is, range_t>::type>())...)};
@@ -179,7 +180,8 @@ namespace psl::ecs::details
 			std::sort(std::begin(except), std::end(except));
 			auto cpy = filters;
 			filters.clear();
-			std::set_difference(std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
+			std::set_difference(std::begin(cpy), std::end(cpy), std::begin(except), std::end(except),
+								std::back_inserter(filters));
 			if constexpr(std::is_same<psl::ecs::partial, typename pack_t::policy_t>::value)
 			{
 				m_IsPartial = true;
@@ -187,9 +189,9 @@ namespace psl::ecs::details
 		};
 
 
-		~dependency_pack() noexcept						  = default;
-		dependency_pack(const dependency_pack& other)	 = default;
-		dependency_pack(dependency_pack&& other) = default;
+		~dependency_pack() noexcept					  = default;
+		dependency_pack(const dependency_pack& other) = default;
+		dependency_pack(dependency_pack&& other)	  = default;
 		dependency_pack& operator=(const dependency_pack&) = default;
 		dependency_pack& operator=(dependency_pack&&) noexcept = default;
 
@@ -228,10 +230,7 @@ namespace psl::ecs::details
 			return m_Sizes.at(int_id);
 		}
 
-		size_t size_of(component_key_t key) const noexcept
-		{
-			return m_Sizes.at(key);
-		}
+		size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
 
 		size_t entities() const noexcept { return m_Entities.size(); }
 		dependency_pack slice(size_t begin, size_t end) const noexcept
@@ -245,7 +244,7 @@ namespace psl::ecs::details
 				auto size = cpy.m_Sizes[binding.first];
 
 				std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
-				std::uintptr_t end_mem   = (std::uintptr_t)binding.second.data() + (end * size);
+				std::uintptr_t end_mem	 = (std::uintptr_t)binding.second.data() + (end * size);
 				binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
 			}
 			for(auto& binding : cpy.m_RWBindings)
@@ -253,7 +252,7 @@ namespace psl::ecs::details
 				auto size = cpy.m_Sizes[binding.first];
 				// binding.second = binding.second.slice(size * begin, size * end);
 				std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
-				std::uintptr_t end_mem   = (std::uintptr_t)binding.second.data() + (end * size);
+				std::uintptr_t end_mem	 = (std::uintptr_t)binding.second.data() + (end * size);
 				binding.second = psl::array_view<std::uintptr_t>{(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
 			}
 			return cpy;
@@ -323,17 +322,29 @@ namespace psl::ecs::details
 			psl::templates::type_container<
 				typename std::remove_reference<decltype(std::get<Is>(std::declval<std::tuple<Ts...>>()))>::type>{})...};
 	}
+	class system_information;
+	class system_token
+	{
+		friend class system_information;
+		constexpr system_token(size_t id) noexcept : id(id){};
 
+	  public:
+		constexpr bool operator==(const system_token& other) const noexcept { return other.id == id; }
+		constexpr bool operator!=(const system_token& other) const noexcept { return other.id != id; }
+
+	  private:
+		size_t id{};
+	};
 	class system_information final
 	{
 	  public:
-		using pack_generator_type   = std::function<std::vector<details::dependency_pack>(bool)>;
+		using pack_generator_type	= std::function<std::vector<details::dependency_pack>(bool)>;
 		using system_invocable_type = std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)>;
 		system_information()		= default;
 		system_information(psl::ecs::threading threading, pack_generator_type&& generator,
-						   system_invocable_type&& invocable, bool seedWithExisting = false)
+						   system_invocable_type&& invocable, size_t id, bool seedWithExisting = false)
 			: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)),
-			  m_SeedWithExisting(seedWithExisting){};
+			  m_SeedWithExisting(seedWithExisting), m_ID(id) {};
 		~system_information()						  = default;
 		system_information(const system_information&) = default;
 		system_information(system_information&&)	  = default;
@@ -352,10 +363,13 @@ namespace psl::ecs::details
 
 		psl::ecs::threading threading() const noexcept { return m_Threading; };
 
+		system_token id() const noexcept { return m_ID; }
+
 	  private:
 		psl::ecs::threading m_Threading = threading::sequential;
 		pack_generator_type m_PackGenerator;
 		system_invocable_type m_System;
 		bool m_SeedWithExisting{false};
+		system_token m_ID{0};
 	};
 } // namespace psl::ecs::details

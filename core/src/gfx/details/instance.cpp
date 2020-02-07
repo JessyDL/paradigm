@@ -11,7 +11,7 @@ using namespace core::gfx;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
-constexpr uint32_t default_capacity = 32;
+constexpr uint32_t default_capacity = 64000;
 
 data::data(core::resource::handle<core::gfx::buffer> buffer) noexcept : m_InstanceBuffer(buffer) {}
 void data::add(core::resource::handle<material> material)
@@ -89,7 +89,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 		auto size	 = it->second.id_generator.size();
 		auto new_size = (it->second.id_generator.available() + count) << 2;
 		if(!it->second.id_generator.resize(new_size))
-			core::gfx::log->error("could not increase the id_generator size");
+			core::gfx::log->error("could not increase the id_generator size from {} to {}", size, new_size);
 		else
 		{
 			for(auto& d : it->second.data)

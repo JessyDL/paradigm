@@ -51,12 +51,12 @@ namespace psl::ecs
 	{
 		enum class instruction
 		{
-			FILTER	= 0,
+			FILTER	  = 0,
 			ADD		  = 1,
-			REMOVE	= 2,
-			BREAK	 = 3,
-			COMBINE   = 4,
-			EXCEPT	= 5,
+			REMOVE	  = 2,
+			BREAK	  = 3,
+			COMBINE	  = 4,
+			EXCEPT	  = 5,
 			CONDITION = 6
 		};
 	}
@@ -116,10 +116,9 @@ namespace psl::ecs
 		void order_by(std::execution::sequenced_policy, psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end) const noexcept
 		{
-			std::sort(begin, end, [this, pred = Pred{}](entity lhs, entity rhs) -> bool {
-				int res{0};
-				res += std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
-				return res > 0;
+			const auto pred = Pred{};
+			std::sort(std::execution::seq, begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
+				return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
 			});
 		}
 
@@ -130,6 +129,11 @@ namespace psl::ecs
 					  psl::array<entity>::iterator end, size_t max) const noexcept
 		{
 			auto size = std::distance(begin, end);
+			/*const auto pred = Pred{};
+			std::sort(std::execution::par_unseq, begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
+				return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+			});
+			return;*/
 
 			if(size <= static_cast<decltype(size)>(max))
 			{
@@ -143,23 +147,24 @@ namespace psl::ecs
 
 				order_by<Pred, T>(std::execution::par, middle, end, max);
 
+				const auto pred = Pred{};
 				future.wait();
-				std::inplace_merge(begin, middle, end, [this, pred = Pred{}](entity lhs, entity rhs) -> bool {
-					int res{0};
-					res += std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
-					return res > 0;
-				});
+				std::inplace_merge(std::execution::par_unseq, begin, middle, end,
+								   [this, &pred](entity lhs, entity rhs) -> bool {
+									   return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+								   });
 			}
 		}
 
 	  public:
+		void clear() noexcept;
 		template <typename Pred, typename T>
 		void order_by(std::execution::parallel_policy, psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end) const noexcept
 		{
 			auto size = std::distance(begin, end);
 			auto thread_size =
-				std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % 2048u));
+				std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % 1024u));
 			size /= thread_size;
 
 
@@ -171,9 +176,19 @@ namespace psl::ecs
 		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin,
 												  psl::array<entity>::iterator end) const noexcept
 		{
-			return std::remove_if(begin, end,
-								  [this, pred = Pred{}](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
+			auto pred = Pred{};
+			return std::remove_if(std::execution::par_unseq, begin, end,
+								  [this, &pred](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
 		}
+
+		template <typename T, typename Pred>
+		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+												  Pred&& pred) const noexcept
+		{
+			return std::remove_if(std::execution::par_unseq, begin, end,
+								  [this, &pred](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
+		}
+
 		template <typename T>
 		T& get(entity entity)
 		{
@@ -192,12 +207,12 @@ namespace psl::ecs
 		bool has_components(psl::array_view<entity> entities) const noexcept
 		{
 			auto cInfos = get_component_info(to_keys<Ts...>());
-			if (cInfos.size() == sizeof...(Ts))
+			if(cInfos.size() == sizeof...(Ts))
 			{
-				for (const auto& cInfo : cInfos)
+				for(const auto& cInfo : cInfos)
 				{
 					return std::all_of(std::begin(entities), std::end(entities),
-						[&cInfo](entity e) { return cInfo && cInfo->has_component(e); });
+									   [&cInfo](entity e) { return cInfo && cInfo->has_component(e); });
 				}
 			}
 			return sizeof...(Ts) == 0;
@@ -315,6 +330,23 @@ namespace psl::ecs
 		void set(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept;
 
 		template <typename... Ts>
+		void set_components(psl::array_view<entity> entities, Ts&&... data) noexcept
+		{
+			(set_component(entities, std::forward<Ts>(data)), ...);
+		}
+
+		template <typename T>
+		void set_component(psl::array_view<entity> entities, T&& data) noexcept
+		{
+			constexpr auto key = details::key_for<T>();
+			auto cInfo		   = get_component_info(key);
+			for(auto e : entities)
+			{
+				cInfo->set(e, &data);
+			}
+		}
+
+		template <typename... Ts>
 		void set_or_create(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept;
 
 		void tick(std::chrono::duration<float> dTime);
@@ -343,28 +375,62 @@ namespace psl::ecs
 					   : psl::array_view<T>{};
 		}
 
-		template <typename Fn>
-		void declare(Fn&& fn, bool seedWithExisting = false)
+		/// \brief returns the amount of active systems
+		size_t systems() const noexcept
 		{
-			declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
+			return m_SystemInformations.size() - m_ToRevoke.size();
+		}
+
+		template <typename Fn>
+		auto declare(Fn&& fn, bool seedWithExisting = false)
+		{
+			return declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
 		}
 
 
 		template <typename Fn>
-		void declare(threading threading, Fn&& fn, bool seedWithExisting = false)
+		auto declare(threading threading, Fn&& fn, bool seedWithExisting = false)
 		{
-			declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
+			return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
 		}
 
 		template <typename Fn, typename T>
-		void declare(Fn&& fn, T* ptr, bool seedWithExisting = false)
+		auto declare(Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting);
+			return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting);
 		}
 		template <typename Fn, typename T>
-		void declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
+		auto declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting);
+			return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting);
+		}
+
+		bool revoke(details::system_token id) noexcept
+		{
+			if(m_LockState)
+			{
+				if(auto it = std::find_if(std::begin(m_SystemInformations), std::end(m_SystemInformations),
+										  [&id](const auto& system) { return system.id() == id; });
+				   it != std::end(m_SystemInformations) &&
+					// and we make sure we don't "double delete"
+				   std::find(std::begin(m_ToRevoke), std::end(m_ToRevoke), id) == std::end(m_ToRevoke))
+				{
+					m_ToRevoke.emplace_back(id);
+					return true;
+				}
+				return false;
+			}
+			else
+			{
+				if(auto it = std::find_if(std::begin(m_SystemInformations), std::end(m_SystemInformations),
+										  [&id](const auto& system) { return system.id() == id; });
+				   it != std::end(m_SystemInformations))
+				{
+					m_SystemInformations.erase(it);
+					return true;
+				}
+				return false;
+			}
 		}
 
 		size_t capacity() const noexcept { return m_Entities.size(); }
@@ -764,7 +830,7 @@ namespace psl::ecs
 		{};
 
 		template <typename Fn, typename T = void>
-		void declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
+		auto declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
 
 			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
@@ -804,11 +870,17 @@ namespace psl::ecs
 				};
 			}
 			if(m_LockState)
+			{
 				m_NewSystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
-					seedWithExisting);
+													 ++m_SystemCounter, seedWithExisting);
+				return m_NewSystemInformations[m_NewSystemInformations.size() - 1].id();
+			}
 			else
+			{
 				m_SystemInformations.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
-											  seedWithExisting);
+												  ++m_SystemCounter, seedWithExisting);
+				return m_SystemInformations[m_SystemInformations.size() - 1].id();
+			}
 		}
 
 		std::vector<psl::unique_ptr<info>> info_buffer;
@@ -817,6 +889,7 @@ namespace psl::ecs
 		psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		std::vector<details::system_information> m_SystemInformations;
 		std::vector<details::system_information> m_NewSystemInformations;
+		psl::array<details::system_token> m_ToRevoke;
 
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
@@ -828,6 +901,7 @@ namespace psl::ecs
 		entity m_Next;
 		size_t m_Orphans{0};
 		size_t m_Tick{0};
+		size_t m_SystemCounter{0};
 	};
 
 	namespace details

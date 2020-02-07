@@ -92,7 +92,7 @@ namespace memory
 		using const_reference   = const value_type&;
 		using iterator_category = std::random_access_iterator_tag;
 
-		sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)){};
+		sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) { reserve(1024); };
 		~sparse_array() = default;
 		sparse_array(const sparse_array& other) noexcept
 			: m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse){};
@@ -319,6 +319,12 @@ namespace memory
 			}
 		}
 
+		void clear() noexcept
+		{
+			m_Reverse.clear();
+			m_Sparse.clear();
+			reserve(1024);
+		}
 		void erase(index_type first, index_type last) noexcept
 		{
 			if(m_Sparse.size() == 0) return;
@@ -336,8 +342,7 @@ namespace memory
 
 			if(last - first == m_Reverse.size())
 			{
-				m_Reverse.clear();
-				m_Sparse.clear();
+				clear();
 				return;
 			}
 			auto first_index = first;
