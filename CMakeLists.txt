@@ -31,7 +31,7 @@ set(VK_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 OPTION(PE_GLES "controls OpenGL ES support" ON)
 OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
-OPTION(PE_MOLTEN "controls Vulkan support (experimental - not done)" OFF)
+OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
 
 include(FindXCB)
 include(FindWayland)
