@@ -9,7 +9,7 @@
 #include "psl/library.h"
 #include "psl/application_utils.h"
 #include "resource/resource.hpp"
-#ifdef CORE_EXECUTABLE
+
 #include "paradigm.hpp"
 
 #include "logging.h"
@@ -1150,5 +1150,4 @@ int main()
 }
 #endif
 
-#endif
 #endif

@@ -17,7 +17,7 @@ geometry_instancing::geometry_instancing(psl::ecs::state& state)
 {
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_add, this);
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_remove, this);
-	//state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
+	state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
 }
 
 void geometry_instancing::dynamic_system(

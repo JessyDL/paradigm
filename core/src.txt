@@ -1,5 +1,4 @@
 SET(SRC 
-core.cpp
 logging.cpp
 
 data/application.cpp
