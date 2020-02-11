@@ -8,7 +8,8 @@
 #include "psl/sparse_indice_array.h"
 #include <numeric>
 #include "psl/assertions.h"
-
+#include "../details/staged_sparse_array.h"
+#include <functional>
 namespace psl
 {
 	template <typename... Ts>
@@ -38,99 +39,27 @@ namespace psl::ecs::details
 
 		bool is_tag() const noexcept;
 
-		void add(psl::array_view<entity> entities)
-		{
-			add_impl(entities);
-			auto& added = m_Added[m_LockState];
-			for(auto e : entities)
-			{
-				assert_debug_break(!has_component(e) && !has_removed(e));
-				added.insert(e);
-				m_AssociatedEntities.insert(e);
-			}
-		}
-		void add(entity entity)
-		{
-			add_impl(entity);
-			assert_debug_break(!has_component(entity) && !has_removed(entity));
-			m_Added[m_LockState].insert(entity);
-			m_AssociatedEntities.insert(entity);
-		}
-		void add(psl::array_view<std::pair<entity, entity>> entities)
-		{
-			add_impl(entities);
-			auto& added = m_Added[m_LockState];
-			for(auto range : entities)
-			{
-				for(auto e = range.first; e < range.second; ++e)
-				{
-					assert_debug_break(!has_component(e) && !has_removed(e));
-					added.insert(e);
-					m_AssociatedEntities.insert(e);
-				}
-			}
-		}
-		void destroy(psl::array_view<std::pair<entity, entity>> entities)
-		{
-			auto& removed = m_Removed[m_LockState];
-			for(auto range : entities)
-			{
-
-				for(auto e = range.first; e < range.second; ++e)
-				{
-					removed.insert(e);
-					m_AssociatedEntities.erase(e);
-				}
-			}
-		};
-		void destroy(psl::array_view<entity> entities) noexcept
-		{
-			auto& removed = m_Removed[m_LockState];
-			for(auto e : entities)
-			{
-				removed.insert(e);
-				m_AssociatedEntities.erase(e);
-			}
-		}
-		void destroy(entity entity) noexcept
-		{
-			if(!m_AssociatedEntities.has(entity)) return;
-			m_AssociatedEntities.erase(entity);
-			m_Removed[m_LockState].insert(entity);
-		}
+		void add(psl::array_view<entity> entities) { add_impl(entities); }
+		void add(entity entity) { add_impl(entity); }
+		void add(psl::array_view<std::pair<entity, entity>> entities) { add_impl(entities); }
+		void destroy(psl::array_view<std::pair<entity, entity>> entities) { remove_impl(entities); };
+		void destroy(psl::array_view<entity> entities) noexcept { remove_impl(entities); }
+		void destroy(entity entity) noexcept { remove_impl(entity); }
 		virtual void* data() noexcept = 0;
-		bool has_component(entity entity) const noexcept { return m_AssociatedEntities.has(entity); }
-		bool has_added(entity entity) const noexcept { return m_Added[0].has(entity); }
-		bool has_removed(entity entity) const noexcept { return m_Removed[0].has(entity); }
+		bool has_component(entity entity) const noexcept { return has_impl(entity, 0, 1); }
+		bool has_added(entity entity) const noexcept { return has_impl(entity, 1, 1); }
+		bool has_removed(entity entity) const noexcept { return has_impl(entity, 2, 2); }
 		virtual bool has_storage_for(entity entity) const noexcept = 0;
 		psl::array_view<entity> entities(bool include_removed = false) const noexcept
 		{
-			return (include_removed) ? entities_impl() : m_AssociatedEntities.indices();
+			return entities_impl(0, (include_removed) ? 2 : 1);
 		}
 
-		void purge() noexcept
-		{
-			purge_impl();
-			m_Removed[m_LockState].clear();
-		}
+		void purge() noexcept { purge_impl(); }
 		component_key_t id() const noexcept;
 
-		psl::array_view<entity> added_entities() const noexcept { return m_Added[0].indices(); };
-		psl::array_view<entity> removed_entities() const noexcept { return m_Removed[0].indices(); };
-
-		void lock() noexcept { m_LockState = 1; }
-		void unlock() noexcept { m_LockState = 0; }
-
-		void unlock_and_purge()
-		{
-			m_LockState = 0;
-			purge();
-
-			std::swap(m_Added[0], m_Added[1]);
-			std::swap(m_Removed[0], m_Removed[1]);
-			m_Added[1].clear();
-			m_Removed[1].clear();
-		}
+		psl::array_view<entity> added_entities() const noexcept { return entities_impl(1, 1); };
+		psl::array_view<entity> removed_entities() const noexcept { return entities_impl(2, 2); };
 
 		virtual size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept { return 0; };
 		virtual size_t copy_from(psl::array_view<entity> entities, void* source) noexcept { return 0; };
@@ -138,24 +67,31 @@ namespace psl::ecs::details
 		inline size_t component_size() const noexcept { return m_Size; };
 		size_t size(bool include_removed = false) const noexcept
 		{
-			return (include_removed) ? entities_impl().size() : m_AssociatedEntities.indices().size();
+			return entities_impl(0, (include_removed) ? 2 : 1).size();
 		}
 
 		void set(entity entity, void* data) noexcept { set_impl(entity, data); }
 
+		virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
+		virtual bool merge(const component_info& other) noexcept												= 0;
+
 	  protected:
-		virtual void purge_impl() noexcept										   = 0;
-		virtual void add_impl(entity entity)									   = 0;
-		virtual void add_impl(psl::array_view<entity> entities)					   = 0;
-		virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities) = 0;
-		virtual psl::array_view<entity> entities_impl() const noexcept			   = 0;
-		virtual void set_impl(entity entity, void* data) noexcept				   = 0;
+		virtual void purge_impl() noexcept																 = 0;
+		virtual void add_impl(entity entity)															 = 0;
+		virtual void add_impl(psl::array_view<entity> entities)											 = 0;
+		virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities)						 = 0;
+		virtual psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept = 0;
+		virtual void set_impl(entity entity, void* data) noexcept										 = 0;
+		virtual void remove_impl(entity entity)															 = 0;
+		virtual void remove_impl(psl::array_view<entity> entities)										 = 0;
+		virtual void remove_impl(psl::array_view<std::pair<entity, entity>> entities)					 = 0;
+		virtual bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept			 = 0;
 
 	  private:
-		size_t m_LockState{0};
-		psl::sparse_indice_array<entity> m_AssociatedEntities;
-		psl::static_array<psl::sparse_indice_array<entity>, 2> m_Removed;
-		psl::static_array<psl::sparse_indice_array<entity>, 2> m_Added;
+		// size_t m_LockState{0};
+		// psl::sparse_indice_array<entity> m_AssociatedEntities;
+		// psl::sparse_indice_array<entity> m_Removed;
+		// psl::sparse_indice_array<entity> m_Added;
 		component_key_t m_ID;
 		size_t m_Size;
 	};
@@ -165,43 +101,61 @@ namespace psl::ecs::details
 	{
 	  public:
 		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)){};
-		memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
+		auto& entity_data() noexcept { return m_Entities; };
 
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity); }
+		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
 
 		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
 		{
+			T* dest = (T*)destination;
 			for(auto e : entities)
 			{
-				std::memcpy(destination, (void*)&(m_Entities.at(e)), sizeof(T));
-
-				destination = (void*)((T*)destination + 1);
+				std::memcpy(dest, (T*)&(m_Entities.at(e, 0, 2)), sizeof(T));
+				++dest;
 			}
 			return entities.size() * sizeof(T);
 		}
 		size_t copy_from(psl::array_view<entity> entities, void* source) noexcept override
 		{
+			T* src = (T*)source;
 			for(auto e : entities)
 			{
-				if(std::memcmp((void*)&m_Entities[e], source, sizeof(T)) != 0)
-					std::memcpy((void*)&m_Entities[e], source, sizeof(T));
-				source = (void*)((T*)source + 1);
+				// if(std::memcmp((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T)) != 0)
+				std::memcpy((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T));
+				++src;
 			}
 			return sizeof(T) * entities.size();
 		};
 
+		void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept override
+		{
+			m_Entities.remap(mapping, pred);
+		}
+		bool merge(const component_info& other) noexcept override
+		{
+			if(other.id() != id()) return false;
+
+			component_info_typed<T>* other_ptr = (component_info_typed<T>*)(&other);
+			m_Entities.merge(other_ptr->m_Entities);
+			return true;
+		}
+
+		void set(entity e, const T& data) noexcept
+		{
+			m_Entities.at(e, 0, 2) = data;
+		}
 	  protected:
-		  void set_impl(entity entity, void* data) noexcept
-		  {
-			  m_Entities[entity] = *(T*)data;
-		  }
-		psl::array_view<entity> entities_impl() const noexcept override { return m_Entities.indices(); }
+		void set_impl(entity entity, void* data) noexcept { m_Entities.at(entity, 0, 2) = *(T*)data; }
+		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
+		{
+			return m_Entities.indices(startStage, endStage);
+		}
 		void add_impl(psl::array_view<entity> entities) override
 		{
-			m_Entities.reserve(m_Entities.size() + entities.size());
+			m_Entities.reserve(m_Entities.size(0, 2) + entities.size());
 			std::for_each(std::begin(entities), std::end(entities), [this](auto e) { m_Entities.insert(e); });
 		}
 		void add_impl(entity entity) override { m_Entities.insert(entity); }
@@ -211,20 +165,33 @@ namespace psl::ecs::details
 				std::begin(entities), std::end(entities), size_t{0},
 				[](size_t sum, const std::pair<entity, entity>& r) { return sum + (r.second - r.first); });
 
-			m_Entities.reserve(m_Entities.size() + count);
+			m_Entities.reserve(m_Entities.size(0, 2) + count);
 			for(auto range : entities)
 			{
 				for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
 			}
 		}
-		void purge_impl() noexcept override
+		void purge_impl() noexcept override { m_Entities.promote(); }
+
+		void remove_impl(entity entity) override { m_Entities.erase(entity); }
+		void remove_impl(psl::array_view<entity> entities) override
 		{
-			auto entities{removed_entities()};
-			std::for_each(std::begin(entities), std::end(entities), [this](auto e) { m_Entities.erase(e); });
+			for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(entities[i]);
+		}
+		void remove_impl(psl::array_view<std::pair<entity, entity>> entities) override
+		{
+			for(auto range : entities)
+			{
+				for(auto i = range.first; i < range.second; ++i) m_Entities.erase(i);
+			}
+		}
+		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
+		{
+			return m_Entities.has(entity, startStage, endStage);
 		}
 
 	  private:
-		memory::sparse_array<T, entity> m_Entities{};
+		details::staged_sparse_array<T, entity> m_Entities;
 	};
 
 	template <typename T>
@@ -236,33 +203,66 @@ namespace psl::ecs::details
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity); }
+		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
 
+		void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept override
+		{
+			m_Entities.remap(mapping, pred);
+		}
+
+		bool merge(const component_info& other) noexcept override
+		{
+			if (other.id() != id()) return false;
+
+			component_info_typed<T>* other_ptr = (component_info_typed<T>*)(&other);
+			m_Entities.merge(other_ptr->m_Entities);
+			return true;
+		}
 	  protected:
-		  void set_impl(entity entity, void* data) noexcept
-		  {
-		  };
-		psl::array_view<entity> entities_impl() const noexcept override { return m_Entities.indices(); }
+		void set_impl(entity entity, void* data) noexcept {};
+		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
+		{
+			return m_Entities.indices(startStage, endStage);
+		}
 		void add_impl(psl::array_view<entity> entities) override
 		{
+			m_Entities.reserve(m_Entities.size(0, 2) + entities.size());
 			for(auto e : entities) m_Entities.insert(e);
 		}
 		void add_impl(entity entity) override { m_Entities.insert(entity); }
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
 		{
+			auto count = std::accumulate(
+				std::begin(entities), std::end(entities), size_t{0},
+				[](size_t sum, const std::pair<entity, entity>& r) { return sum + (r.second - r.first); });
+
+			m_Entities.reserve(m_Entities.size(0, 2) + count);
 			for(auto range : entities)
 			{
 				for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
 			}
 		}
-		void purge_impl() noexcept override
+		void purge_impl() noexcept override { m_Entities.promote(); }
+
+		void remove_impl(entity entity) override { m_Entities.erase(entity); }
+		void remove_impl(psl::array_view<entity> entities) override
 		{
-			auto entities{removed_entities()};
-			for(auto e : entities) m_Entities.erase(e);
+			for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(entities[i]);
+		}
+		void remove_impl(psl::array_view<std::pair<entity, entity>> entities) override
+		{
+			for(auto range : entities)
+			{
+				for(auto i = range.first; i < range.second; ++i) m_Entities.erase(i);
+			}
+		}
+		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
+		{
+			return m_Entities.has(entity, startStage, endStage);
 		}
 
 	  private:
-		memory::sparse_array<int, entity> m_Entities{};
+		details::staged_sparse_array<uint8_t, entity> m_Entities;
 	};
 } // namespace psl::ecs::details
 

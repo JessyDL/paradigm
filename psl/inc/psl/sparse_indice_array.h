@@ -90,6 +90,28 @@ namespace psl
 			m_Reverse.emplace_back(index);
 		}
 
+		bool try_insert(const T& index)
+		{
+			if (index < m_Offset)
+			{
+				auto aligned_index = chunk_aligned_index(index);
+				if (m_Offset != OFFSET_START)
+				{
+					pad_front((m_Offset - aligned_index) / chunks_size);
+				}
+				m_Offset = aligned_index;
+			}
+			auto chunk_index = index;
+			auto& chunk = chunk_for(chunk_index);
+			if (chunk[chunk_index] == std::numeric_limits<T>::max())
+			{
+				chunk[chunk_index] = (T)m_Reverse.size();
+				m_Reverse.emplace_back(index);
+				return true;
+			}
+			return false;
+		}
+
 		void emplace(T&& index)
 		{
 			if(index < m_Offset)

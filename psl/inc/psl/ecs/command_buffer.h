@@ -15,285 +15,6 @@ namespace psl::ecs
 {
 	class state;
 
-	namespace details
-	{
-		class command_buffer_component_info
-		{
-		  public:
-			command_buffer_component_info() = default;
-			command_buffer_component_info(entity first, component_key_t id, size_t size)
-				: m_First(first), m_ID(id), m_Size(size){};
-
-			command_buffer_component_info(const command_buffer_component_info& other) = delete;
-			command_buffer_component_info(command_buffer_component_info&& other)	  = default;
-			virtual ~command_buffer_component_info()								  = default;
-			command_buffer_component_info& operator=(const command_buffer_component_info& other) = delete;
-			command_buffer_component_info& operator=(command_buffer_component_info&& other) = default;
-
-			bool is_tag() const noexcept { return m_Size == 0; };
-
-			void add(psl::array_view<entity> entities)
-			{
-				m_Changes = entities.size() > 0;
-				add_impl(entities);
-				auto& added = m_Added;
-				m_Added.reserve(std::max(m_Added.capacity(), m_Added.size() + entities.size()));
-				for(auto e : entities)
-				{
-					if(e < m_First) continue;
-					added.insert(e);
-					++m_Count;
-				}
-			}
-			void add(psl::array_view<std::pair<entity, entity>> entities)
-			{
-				m_Changes = true;
-				add_impl(entities);
-				auto& added = m_Added;
-				for(auto range : entities)
-				{
-					m_Added.reserve(std::max(m_Added.capacity(), m_Added.size() + (range.second - range.first)));
-					for(auto e = range.first; e < range.second; ++e)
-					{
-						if(e < m_First) continue;
-						added.insert(e);
-						++m_Count;
-					}
-				}
-			}
-			void destroy(psl::array_view<std::pair<entity, entity>> entities)
-			{
-				m_Changes	 = true;
-				auto& removed = m_Removed;
-				for(auto range : entities)
-				{
-					m_Removed.reserve(std::max(m_Removed.capacity(), m_Removed.size() + (range.second - range.first)));
-
-					for(auto e = range.first; e < range.second; ++e)
-					{
-						if(e < m_First)
-						{
-							m_Removed.insert(e);
-							continue;
-						}
-						--m_Count;
-					}
-				}
-			};
-			void destroy(psl::array_view<entity> entities) noexcept
-			{
-				m_Changes	 = entities.size() > 0;
-				auto& removed = m_Removed;
-				m_Removed.reserve(std::max(m_Removed.capacity(), m_Removed.size() + entities.size()));
-				for(auto e : entities)
-				{
-					if(e < m_First)
-					{
-						m_Removed.insert(e);
-						continue;
-					}
-					--m_Count;
-				}
-			}
-			void destroy(entity entity) noexcept
-			{
-				m_Changes = true;
-				if(entity < m_First)
-				{
-					m_Removed.insert(entity);
-					return;
-				}
-				--m_Count;
-			}
-			virtual void* data() noexcept = 0;
-
-
-			size_t count() const noexcept { return m_Count; };
-			bool changes() const noexcept { return m_Changes; };
-			component_key_t id() const noexcept { return m_ID; };
-
-			psl::array_view<entity> added_entities() const noexcept { return m_Added.indices(); };
-			psl::array_view<entity> removed_entities() const noexcept { return m_Removed.indices(); };
-
-
-			inline size_t component_size() const noexcept { return m_Size; };
-
-			virtual details::component_info* create_storage(psl::sparse_array<entity>& remapped_entities) const = 0;
-			virtual void merge_into(details::component_info* dst,
-									psl::sparse_array<entity>& remapped_entities) const							= 0;
-
-		  protected:
-			virtual void add_impl(psl::array_view<entity> entities)					   = 0;
-			virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities) = 0;
-
-			// state const * m_State;
-			entity m_First;
-
-		  private:
-			size_t m_Count{0};
-			psl::sparse_indice_array<entity> m_Removed;
-			psl::sparse_indice_array<entity> m_Added;
-			bool m_Changes = false;
-			component_key_t m_ID;
-			size_t m_Size;
-		};
-
-		template <typename T, bool tag_type = std::is_empty<T>::value>
-		class command_buffer_component_info_typed final : public command_buffer_component_info
-		{
-		  public:
-			command_buffer_component_info_typed(entity first)
-				: command_buffer_component_info(first, details::key_for<T>(), sizeof(T)){};
-			memory::sparse_array<T, entity>& entity_data() { return m_Entities; };
-
-
-			void* data() noexcept override { return m_ModifiedEntities.data(); }
-
-			details::component_info* create_storage(psl::sparse_array<entity>& remapped_entities) const override
-			{
-				// assert(m_ModifiedEntities.size() == 0);
-				auto target = new details::component_info_typed<T>();
-				target->lock();
-
-				for(auto e : m_Entities.indices())
-				{
-					target->add(remapped_entities[e]);
-				}
-				auto offset = (std::intptr_t)target->data();
-				std::memcpy((void*)offset, m_Entities.data(), sizeof(T)* m_Entities.size());
-				for (auto e : m_ModifiedEntities.indices())
-				{
-					target->add(e);
-				}
-				offset = (std::intptr_t)target->data() + sizeof(T) * m_Entities.size();
-				std::memcpy((void*)offset, m_ModifiedEntities.data(), sizeof(T) * m_ModifiedEntities.size());
-				return target;
-			}
-
-			void merge_into(details::component_info* dst, psl::sparse_array<entity>& remapped_entities) const override
-			{
-				auto offset = dst->entities(true).size();
-				if(m_Entities.size() > 0)
-				{
-					for(auto e : m_Entities.indices())
-					{
-						if(!remapped_entities.has(e))
-							continue;
-						dst->add(remapped_entities[e]);
-						std::memcpy((void*)((T*)dst->data() + offset), (void*)&m_Entities.at(e), sizeof(T));
-						offset += 1;
-					}
-
-				}
-
-				for(auto e : m_ModifiedEntities.indices())
-				{
-					if (!dst->has_component(e))
-					{
-						dst->add(e);
-						std::memcpy((void*)((T*)dst->data() + offset), (void*)&m_ModifiedEntities.at(e), sizeof(T));
-						offset += 1;
-					}
-					else
-					{
-						dst->set(e, (void*)&m_ModifiedEntities.at(e));
-					}
-				}
-
-				auto removed{removed_entities()};
-				for(auto e : removed)
-				{
-					assert_debug_break(dst->has_component(e));
-					if(e < m_First) dst->destroy(e);
-				}
-			}
-
-		  protected:
-			void add_impl(psl::array_view<entity> entities) override
-			{
-				m_Entities.reserve(m_Entities.size() + entities.size());
-				std::for_each(std::begin(entities), std::end(entities),
-							  [this](auto e) { (e < m_First) ? m_ModifiedEntities.insert(e) : m_Entities.insert(e); });
-			}
-			void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
-			{
-				auto count = std::accumulate(
-					std::begin(entities), std::end(entities), size_t{0},
-					[](size_t sum, const std::pair<entity, entity>& r) { return sum + (r.second - r.first); });
-
-				m_Entities.reserve(m_Entities.size() + count);
-				for(auto range : entities)
-				{
-					for(auto e = range.first; e < range.second; ++e)
-						(e < m_First) ? m_ModifiedEntities.insert(e) : m_Entities.insert(e);
-				}
-			}
-
-		  private:
-			memory::sparse_array<T, entity> m_ModifiedEntities{};	// modified pre-existing entities
-			memory::sparse_array<T, entity> m_Entities{};			// newly created entities that need to be merged
-		};
-
-		template <typename T>
-		class command_buffer_component_info_typed<T, true> final : public command_buffer_component_info
-		{
-		  public:
-			command_buffer_component_info_typed(entity first)
-				: command_buffer_component_info(first, details::key_for<T>(), 0){};
-
-			void* data() noexcept override { return nullptr; }
-
-			details::component_info* create_storage(psl::sparse_array<entity>& remapped_entities) const override
-			{
-				// assert(m_ModifiedEntities.size() == 0);
-				auto target = new details::component_info_typed<T>();
-				target->lock();
-				for(auto e : m_Entities.indices())
-				{
-					target->add(remapped_entities[e]);
-				}
-
-				for(auto e : m_ModifiedEntities.indices()) target->add(e);
-				return target;
-			}
-
-			void merge_into(details::component_info* dst, psl::sparse_array<entity>& remapped_entities) const override
-			{
-				auto offset = dst->entities(true).size();
-				for(auto e : m_Entities.indices()) dst->add(remapped_entities[e]);
-
-				for(auto e : m_ModifiedEntities.indices())
-				{
-					assert_debug_break(!dst->has_component(e));
-					dst->add(e);
-				}
-				auto removed{removed_entities()};
-				for(auto e : removed)
-				{
-					if(e < m_First) dst->destroy(e);
-				}
-			}
-
-		  protected:
-			void add_impl(psl::array_view<entity> entities) override
-			{
-				for(auto e : entities) (e < m_First) ? m_ModifiedEntities.insert(e) : m_Entities.insert(e);
-			}
-			void add_impl(psl::array_view<std::pair<entity, entity>> entities) override
-			{
-				for(auto range : entities)
-				{
-					for(auto e = range.first; e < range.second; ++e)
-						(e < m_First) ? m_ModifiedEntities.insert(e) : m_Entities.insert(e);
-				}
-			}
-
-		  private:
-			psl::sparse_indice_array<entity> m_ModifiedEntities{};
-			psl::sparse_indice_array<entity> m_Entities{};
-		};
-	} // namespace details
-
 	class command_buffer
 	{
 		friend class state;
@@ -307,6 +28,15 @@ namespace psl::ecs
 			if(entities.size() == 0) return;
 			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
 			(add_component<Ts>(entities), ...);
+		}
+
+
+		template <typename... Ts>
+		void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data)
+		{
+			if(entities.size() == 0) return;
+			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
+			(add_component<Ts>(entities, data), ...);
 		}
 
 		template <typename... Ts>
@@ -431,11 +161,11 @@ namespace psl::ecs
 
 			constexpr auto key = details::key_for<T>();
 			if(it == std::end(m_Components))
-				m_Components.emplace_back(new details::command_buffer_component_info_typed<T>(m_First));
+				m_Components.emplace_back(new details::component_info_typed<T>());
 		}
 
-		details::command_buffer_component_info*
-		get_command_buffer_component_info(details::component_key_t key) noexcept;
+		details::component_info*
+		get_component_info(details::component_key_t key) noexcept;
 
 		//------------------------------------------------------------
 		// add_component
@@ -587,6 +317,17 @@ namespace psl::ecs
 			}
 		}
 
+		template <typename T>
+		void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
+		{
+			assert(entities.size() == data.size());
+			create_storage<T>();
+			static_assert(!std::is_empty_v<T>,
+						  "no need to pass an array of tag types through, it's a waste of computing and memory");
+
+			add_component_impl(details::key_for<T>(), entities, sizeof(T), data.data(), false);
+		}
+
 		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
 								size_t size);
 		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
@@ -599,7 +340,7 @@ namespace psl::ecs
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
 								std::function<void(std::uintptr_t, size_t)> invocable);
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
-								void* prototype);
+								void* prototype, bool repeat = true);
 
 		//------------------------------------------------------------
 		// remove_component
@@ -609,7 +350,7 @@ namespace psl::ecs
 		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
 
 		state const* m_State;
-		psl::array<psl::unique_ptr<details::command_buffer_component_info>> m_Components;
+		psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		entity m_First;
 		psl::array<entity> m_Entities;
 

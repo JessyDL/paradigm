@@ -1,3 +1,4 @@
+
 #include "psl/ecs/state.h"
 #include <numeric>
 #include "psl/unique_ptr.h"
@@ -133,466 +134,13 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 			{
 				for(auto& binding : dep_pack.m_RWBindings)
 				{
-					const size_t size   = dep_pack.m_Sizes.at(binding.first);
+					const size_t size	= dep_pack.m_Sizes.at(binding.first);
 					std::uintptr_t data = (std::uintptr_t)binding.second.data();
 					state.set(dep_pack.m_Entities, binding.first, (void*)data);
 				}
 			}
 		};
 
-	//{
-	//	using namespace ::async;
-
-	//	auto shared_pack =
-	//		std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
-	//	auto dep_pack_it = std::begin(*shared_pack);
-	//	// parallel_for(*shared_pack, chain)
-	//	for(auto& dep_pack : *shared_pack)
-	//	{
-	//		// 1) do an initial filtering and split the results in N packets
-	//		auto task_initial_filter = [this](details::dependency_pack dep_pack) -> std::tuple<details::dependency_pack,
-	//psl::array<entity>> { 			return std::tuple{dep_pack, initial_filter(dep_pack)};
-	//		};
-
-	//		// 2) for N workers, give them a packet each to work with and filter those packets.
-	//		auto task_filter = parallel_n(
-	//			[this, min_pack_size = min_thread_entities](invocation invocation, details::dependency_pack dep_pack,
-	//														psl::array_view<entity> entities) {
-	//				auto remainder = min_pack_size - (entities.size() % min_pack_size);
-	//				if(min_pack_size == 1) remainder = 0;
-	//				auto max_workers = invocation.count;
-	//				max_workers		 = std::max<size_t>(
-	//					 1, std::min<size_t>(max_workers, (entities.size() + remainder) / min_pack_size));
-
-	//				if(invocation.index >= max_workers) return std::tuple{dep_pack, psl::array<entity>{}};
-	//				auto count = entities.size() / max_workers;
-
-	//				auto begin = (count)*invocation.index;
-	//				auto end   = count * (invocation.index + 1);
-
-	//				if(invocation.index == max_workers - 1) end = entities.size();
-	//				count = end - begin;
-
-	//				auto result = psl::array<entity>{};
-
-	//				result.insert(std::end(result), std::next(std::begin(entities), begin),
-	//							  std::next(std::begin(entities), end));
-
-	//				auto begin_it = std::begin(result);
-	//				auto end_it   = std::end(result);
-
-	//				std::sort(begin_it, end_it);
-	//				end_it = filter(begin_it, end_it, dep_pack);
-	//				result.erase(end_it, std::end(result));
-
-	//				return std::tuple{dep_pack, result};
-	//			},
-	//			8);
-
-	//		// 3) we merge the results into one giant array which we'll evenly split amongst the workers
-	//		auto task_merge_filter = [](details::dependency_pack dep_pack, std::vector<psl::array<entity>> entity_packs)
-	//{ 			psl::array<entity> res; 			for(auto& entities : entity_packs)
-	//			{
-	//				auto middle = std::size(res);
-	//				res.insert(std::end(res), std::begin(entities), std::end(entities));
-	//				std::inplace_merge(std::begin(res), std::next(std::begin(res), middle), std::end(res));
-	//			}
-	//			return std::tuple{dep_pack, res};
-	//		};
-
-	//		// 4) we split the entities and then apply the order_by operation
-	//		auto task_order_entities = parallel_n(
-	//			then(
-	//				[this, min_pack_size = min_thread_entities](invocation invocation,
-	//															details::dependency_pack dep_pack,
-	//															psl::array_view<entity> merged_entities) {
-	//					auto remainder = min_pack_size - (merged_entities.size() % min_pack_size);
-	//					if(min_pack_size == 1) remainder = 0;
-	//					auto max_workers =
-	//						std::max<size_t>(1, std::min<size_t>(invocation.count,
-	//															 (merged_entities.size() + remainder) / min_pack_size));
-	//					if(invocation.index >= max_workers)
-	//						return std::tuple<details::dependency_pack, size_t, psl::array<entity>, size_t>{
-	//							dep_pack, 0, {}, merged_entities.size()};
-
-	//					auto count = merged_entities.size() / max_workers;
-	//					auto begin = (count)*invocation.index;
-	//					auto end   = count * (invocation.index + 1);
-	//					if(invocation.index == max_workers - 1) end = merged_entities.size();
-	//					count = end - begin;
-
-	//					psl::array<entity> entities(std::next(std::begin(merged_entities), begin),
-	//												std::next(std::begin(merged_entities), end));
-
-	//					std::invoke(dep_pack.orderby, std::begin(entities), std::end(entities), *this);
-	//					return std::tuple{dep_pack, begin, entities, merged_entities.size()};
-	//				},
-
-	//				[this, cache_offset](details::dependency_pack dep_pack, size_t offset,
-	//									 psl::array_view<entity> entities, size_t total) {
-	//					if(entities.size() == 0) return;
-	//					auto cache_location = cache_offset;
-	//					/*for(const auto& write_size : write_sizes)
-	//					{
-	//						cache_location += write_size.get();
-	//					}*/
-
-	//					void* cache = (void*)(cache_location + (sizeof(entity) * offset));
-	//					std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
-	//					cache = (void*)(cache_location + (sizeof(entity) * total));
-
-	//					for(const auto& binding : dep_pack.m_RBindings)
-	//					{
-	//						auto written = prepare_data(
-	//							entities, (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * offset)),
-	//							binding.first);
-
-	//						assert_debug_break(written == entities.size() * dep_pack.size_of(binding.first));
-	//						cache = (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * total));
-	//					}
-	//					for(const auto& binding : dep_pack.m_RWBindings)
-	//					{
-	//						auto written = prepare_data(
-	//							entities, (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * offset)),
-	//							binding.first);
-	//						assert_debug_break(written == entities.size() * dep_pack.size_of(binding.first));
-	//						cache = (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * total));
-	//					}
-	//				}),
-	//			8);
-
-	//		auto chain = then(task_initial_filter, [](auto... values) {});
-
-	//		compute(chain, dep_pack);
-	//	}
-	//}
-
-	////{
-	////	auto shared_pack =
-	////		std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
-	////	auto dep_pack_it = std::begin(*shared_pack);
-	////	for(auto& dep_pack : *shared_pack)
-	////	{
-	////		async::token merged_entities_token = m_Scheduler->proxy();
-	////		// 1) do an initial filtering and split the results in N packets
-	////		auto [prepare_token, prepare_future] = m_Scheduler->schedule<std::shared_future>(
-	////			[this, dep_pack]() -> psl::array<entity> { return initial_filter(dep_pack); });
-
-	////		psl::array<std::shared_future<psl::array<entity>>> filtered_ends;
-	////		// 2) for N workers, give them a packet each to work with and filter those packets.
-	////		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
-	////		{
-	////			auto [filter_token, filter_future] = m_Scheduler->schedule<std::shared_future>([
-	////				this, prepare_future = prepare_future, dep_pack, i, min_pack_size = min_thread_entities,
-	////				max_workers = m_Scheduler->workers()
-	////			]() mutable noexcept {
-	////				const psl::array<entity>& all_entities = prepare_future.get();
-	////				auto remainder						   = min_pack_size - (all_entities.size() % min_pack_size);
-	////				max_workers							   = std::max<size_t>(
-	////					   1, std::min<size_t>(max_workers, (all_entities.size() + remainder) / min_pack_size));
-	////				if(i >= max_workers) return psl::array<entity>{};
-
-	////				auto count = all_entities.size() / max_workers;
-	////				auto begin = (count)*i;
-	////				auto end   = count * (i + 1);
-	////				if(i == max_workers - 1) end = all_entities.size();
-	////				count = end - begin;
-
-	////				psl::array<entity> entities{std::next(std::begin(all_entities), begin),
-	////											std::next(std::begin(all_entities), end)};
-	////				std::sort(std::begin(entities), std::end(entities));
-	////				entities.erase(filter(std::begin(entities), std::end(entities), dep_pack), std::end(entities));
-	////				return entities;
-	////			});
-
-	////			filter_token.after(prepare_token);
-	////			merged_entities_token.after(filter_token);
-	////			filtered_ends.emplace_back(filter_future);
-	////		}
-
-	////		// 3) we merge the results into one giant array which we'll evenly split amongst the workers
-	////		auto merged_entities_future = m_Scheduler->substitute<std::shared_future>(
-	////			merged_entities_token, [filtered_entities = filtered_ends]() mutable -> psl::array<entity> {
-	////				psl::array<entity> res;
-	////				for(auto& future : filtered_entities)
-	////				{
-	////					auto e		= future.get();
-	////					auto middle = std::size(res);
-	////					res.insert(std::end(res), std::begin(e), std::end(e));
-	////					std::inplace_merge(std::begin(res), std::next(std::begin(res), middle), std::end(res));
-	////				}
-	////				return res;
-	////			});
-
-	////		m_Scheduler->execute();
-
-	////		auto initial = initial_filter(dep_pack);
-	////		auto copy	= initial;
-	////		copy.erase(filter(std::begin(copy), std::end(copy), dep_pack), std::end(copy));
-	////		auto entities = filter(dep_pack);
-	////		std::sort(std::begin(entities), std::end(entities));
-	////		auto other_entities = merged_entities_future.get();
-	////		assert_debug_break(std::equal(std::begin(entities), std::end(entities), std::begin(other_entities),
-	////									  std::end(other_entities)));
-	////		entities = filter(dep_pack);
-	////		copy = initial;
-	////		copy.erase(filter(std::begin(copy), std::end(copy), dep_pack), std::end(copy));
-	////	}
-	////}
-
-	// if(false)
-	//{
-	//	// we make a reference counted vector of dependency packs that will be used by subsequent tasks
-	//	auto shared_pack =
-	//		std::make_shared<std::vector<details::dependency_pack>>(std::move(information.create_pack()));
-
-	//	psl::array<std::shared_future<std::uintptr_t>> write_sizes;
-	//	psl::array<async::token> write_sizes_tokens{};
-	//	psl::array<async::token> bindings_tasks{};
-	//	psl::array<async::token> write_to_state_tokens{};
-	//	auto dep_pack_it = std::begin(*shared_pack);
-	//	for(auto& dep_pack : *shared_pack)
-	//	{
-	//		async::token merged_entities_token = m_Scheduler->proxy();
-	//		// 1) do an initial filtering and split the results in N packets
-	//		auto [prepare_token, prepare_future] = m_Scheduler->schedule<std::shared_future>(
-	//			[this, dep_pack]() -> psl::array<entity> { return initial_filter(dep_pack); });
-
-	//		psl::array<std::future<psl::array<entity>>> filtered_ends;
-	//		// 2) for N workers, give them a packet each to work with and filter those packets.
-	//		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
-	//		{
-	//			auto [filter_token, filter_future] = m_Scheduler->schedule([
-	//				this, prepare_future = prepare_future, dep_pack, i, min_pack_size = min_thread_entities,
-	//				max_workers = m_Scheduler->workers()
-	//			]() mutable noexcept {
-	//				const psl::array<entity>& all_entities = prepare_future.get();
-	//				auto remainder						   = min_pack_size - (all_entities.size() % min_pack_size);
-	//				max_workers							   = std::max<size_t>(
-	//					   1, std::min<size_t>(max_workers, (all_entities.size() + remainder) / min_pack_size));
-	//				if(i >= max_workers) return psl::array<entity>{};
-
-	//				auto count = all_entities.size() / max_workers;
-	//				auto begin = (count)*i;
-	//				auto end   = count * (i + 1);
-	//				if(i == max_workers - 1) end = all_entities.size();
-	//				count = end - begin;
-
-	//				psl::array<entity> entities{std::next(std::begin(all_entities), begin),
-	//											std::next(std::begin(all_entities), end)};
-	//				std::sort(std::begin(entities), std::end(entities));
-	//				entities.erase(filter(std::begin(entities), std::end(entities), dep_pack), std::end(entities));
-	//				return entities;
-	//			});
-
-	//			filter_token.after(prepare_token);
-	//			merged_entities_token.after(filter_token);
-	//			filtered_ends.emplace_back(std::move(filter_future));
-	//		}
-
-	//		// 3) we merge the results into one giant array which we'll evenly split amongst the workers
-	//		auto merged_entities_future = m_Scheduler->substitute<std::shared_future>(
-	//			merged_entities_token, [filtered_entities = std::move(filtered_ends)]() mutable -> psl::array<entity> {
-	//				psl::array<entity> res;
-	//				for(auto& future : filtered_entities)
-	//				{
-	//					auto&& e	= future.get();
-	//					auto middle = std::size(res);
-	//					res.insert(std::end(res), std::begin(e), std::end(e));
-	//					std::inplace_merge(std::begin(res), std::next(std::begin(res), middle), std::end(res));
-	//				}
-	//				return res;
-	//			});
-
-
-	//		struct split_workload
-	//		{
-	//			psl::array<entity> entities{};
-	//			size_t offset{0};
-	//			size_t total{0};
-	//		};
-	//		psl::array<async::token> copy_tasks;
-	//		psl::array<std::shared_future<split_workload>> split_workloads{};
-	//		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
-	//		{
-	//			// 4) we split the entities and then apply the order_by operation
-	//			auto [split_token, split_future] = m_Scheduler->schedule<std::shared_future>(
-	//				[this, merged_entities_future = merged_entities_future, dep_pack, i,
-	//				 min_pack_size	 = min_thread_entities,
-	//				 scheduler_workers = m_Scheduler->workers()]() mutable -> split_workload {
-	//					// we don't edit the values, so this is not UB
-	//					psl::array<entity>& merged_entities{
-	//						const_cast<psl::array<entity>&>(merged_entities_future.get())};
-
-	//					auto remainder = min_pack_size - (merged_entities.size() % min_pack_size);
-	//					auto max_workers =
-	//						std::max<size_t>(1, std::min<size_t>(scheduler_workers,
-	//															 (merged_entities.size() + remainder) / min_pack_size));
-	//					if(i >= max_workers) return {{}, merged_entities.size(), merged_entities.size()};
-
-	//					auto count = merged_entities.size() / max_workers;
-	//					auto begin = (count)*i;
-	//					auto end   = count * (i + 1);
-	//					if(i == max_workers - 1) end = merged_entities.size();
-	//					count = end - begin;
-
-	//					psl::array<entity> entities(std::next(std::begin(merged_entities), begin),
-	//												std::next(std::begin(merged_entities), end));
-
-	//					std::invoke(dep_pack.orderby, std::begin(entities), std::end(entities), *this);
-	//					return {entities, begin, merged_entities.size()};
-	//				});
-
-	//			split_workloads.emplace_back(split_future);
-	//			// 5) for N workers, copy data to the cache
-	//			copy_tasks.emplace_back(m_Scheduler->schedule(
-	//				[this, split_workload = split_future, cache_offset, write_sizes = write_sizes, dep_pack, i,
-	//				 min_pack_size = min_thread_entities, scheduler_workers = m_Scheduler->workers()]() {
-	//					// we don't edit the values, so this is not UB
-	//					const auto& workload = split_workload.get();
-	//					psl::array_view<entity> entities(workload.entities);
-	//					auto cache_location = cache_offset;
-	//					for(const auto& write_size : write_sizes)
-	//					{
-	//						cache_location += write_size.get();
-	//					}
-
-	//					void* cache = (void*)(cache_location + (sizeof(entity) * workload.offset));
-	//					std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
-	//					cache = (void*)(cache_location + (sizeof(entity) * workload.total));
-
-	//					for(const auto& binding : dep_pack.m_RBindings)
-	//					{
-	//						auto written = prepare_data(
-	//							entities,
-	//							(void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.offset)),
-	//							binding.first);
-
-	//						assert_debug_break(written == entities.size() * dep_pack.size_of(binding.first));
-	//						cache = (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.total));
-	//					}
-	//					for(const auto& binding : dep_pack.m_RWBindings)
-	//					{
-	//						auto written = prepare_data(
-	//							entities,
-	//							(void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.offset)),
-	//							binding.first);
-	//						assert_debug_break(written == entities.size() * dep_pack.size_of(binding.first));
-	//						cache = (void*)((std::uintptr_t)cache + (dep_pack.size_of(binding.first) * workload.total));
-	//					}
-	//				}));
-	//			copy_tasks[copy_tasks.size() - 1].after(split_token);
-	//			split_token.after(merged_entities_token);
-	//			copy_tasks[copy_tasks.size() - 1].after(write_sizes_tokens);
-	//		}
-
-	//		bindings_tasks.emplace_back(m_Scheduler->schedule([merged_entities_future = merged_entities_future,
-	//														   dep_pack_it, cache_offset, write_sizes = write_sizes]() {
-	//			auto count = merged_entities_future.get().size();
-
-	//			auto cache_location = cache_offset;
-	//			for(const auto& write_size : write_sizes) cache_location += write_size.get();
-	//			auto& dep_pack		= *dep_pack_it;
-	//			dep_pack.m_Entities = psl::array_view<entity>((entity*)cache_location,
-	//														  (entity*)(cache_location + (sizeof(entity) * count)));
-
-	//			cache_location += (sizeof(entity) * count);
-
-	//			for(auto& binding : dep_pack.m_RBindings)
-	//			{
-	//				auto write_size = dep_pack.size_of(binding.first) * count;
-	//				binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_location,
-	//																  (std::uintptr_t*)(cache_location + write_size));
-	//				cache_location += write_size;
-	//			}
-	//			for(auto& binding : dep_pack.m_RWBindings)
-	//			{
-	//				auto write_size = dep_pack.size_of(binding.first) * count;
-	//				binding.second  = psl::array_view<std::uintptr_t>((std::uintptr_t*)cache_location,
-	//																  (std::uintptr_t*)(cache_location + write_size));
-	//				cache_location += write_size;
-	//			}
-	//		}));
-
-	//		bindings_tasks[bindings_tasks.size() - 1].after(copy_tasks);
-
-	//		auto [write_size_token, write_size_future] = m_Scheduler->schedule<std::shared_future>(
-	//			[merged_entities_future = merged_entities_future, dep_pack, cache_offset]() {
-	//				auto count = merged_entities_future.get().size();
-	//				return (sizeof(entity) + dep_pack.size_per_element()) * count;
-	//			});
-	//		write_size_token.after(bindings_tasks);
-	//		write_sizes.emplace_back(write_size_future);
-	//		write_sizes_tokens.emplace_back(write_size_token);
-
-
-	//		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
-	//		{
-	//			// copy from cache to the state
-	//			write_to_state_tokens.emplace_back(m_Scheduler->schedule(
-	//				[this, i, split_workloads = split_workloads, dep_pack_it, min_pack_size = min_thread_entities,
-	//				 max_workers = m_Scheduler->workers()]() mutable -> void {
-	//					const auto& workload = split_workloads[i].get();
-
-	//					psl::array_view<entity> entities(workload.entities);
-
-	//					const auto& dep_pack = *dep_pack_it;
-	//					for(auto& binding : dep_pack.m_RWBindings)
-	//					{
-	//						const size_t size   = dep_pack.m_Sizes.at(binding.first);
-	//						std::uintptr_t data = (std::uintptr_t)binding.second.data() + (workload.offset * size);
-	//						auto written		= set(entities, binding.first, (void*)data);
-	//						assert_debug_break(written == entities.size() * size);
-	//					}
-	//				}));
-	//		}
-
-	//		dep_pack_it = std::next(dep_pack_it);
-	//	}
-
-	//	psl::array<async::token> system_tasks;
-
-	//	// fire one system task or N system tasks
-	//	if(std::any_of(std::begin(*shared_pack), std::end(*shared_pack),
-	//				   [](const auto& dep_pack) { return dep_pack.allow_partial(); }) &&
-	//	   information.threading() == threading::par)
-	//	{
-	//		auto [multi_token, multi_pack] =
-	//			m_Scheduler->schedule<std::shared_future>([shared_pack, max_workers = m_Scheduler->workers()]() {
-	//				return shared_slice(*shared_pack, max_workers);
-	//			});
-	//		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
-	//		{
-	//			info_buffer.emplace_back(new info(*this, dTime, rTime));
-	//			system_tasks.emplace_back(
-	//				m_Scheduler->schedule([& info = *info_buffer[info_buffer.size() - 1], &information, multi_pack, i] {
-	//					auto shared_multi_pack = multi_pack.get();
-	//					if(i >= shared_multi_pack->size()) return;
-	//					std::invoke(information, info, (*shared_multi_pack)[i]);
-	//				}));
-	//		}
-	//		multi_token.after(bindings_tasks);
-	//		for(auto& system_task : system_tasks) system_task.after(multi_token);
-	//		for(auto& write_to_state : write_to_state_tokens) write_to_state.after(system_tasks);
-	//	}
-	//	else
-	//	{
-	//		info_buffer.emplace_back(new info(*this, dTime, rTime));
-	//		system_tasks.emplace_back(
-	//			m_Scheduler->schedule([& info = *info_buffer[info_buffer.size() - 1], &information, shared_pack] {
-	//				std::invoke(information, info, *shared_pack);
-	//			}));
-
-	//		for(auto& system_task : system_tasks) system_task.after(bindings_tasks);
-
-	//		for(auto& write_to_state : write_to_state_tokens) write_to_state.after(system_tasks);
-	//	}
-
-
-	//	m_Scheduler->execute();
-	//}
-	// else
-	//{
 	auto pack = information.create_pack();
 	bool has_partial =
 		std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
@@ -648,10 +196,22 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	}
 	//}
 }
+
+
 void state::tick(std::chrono::duration<float> dTime)
 {
-	m_LockState = 1;
-	for(auto& cInfo : m_Components) cInfo->lock();
+	m_LockState			   = 1;
+	auto modified_entities = psl::array<entity>{m_ModifiedEntities.indices()};
+	std::sort(std::begin(modified_entities), std::end(modified_entities));
+
+	// apply filterings
+	for(auto& filter_data : m_Filters)
+	{
+		filter(filter_data, modified_entities);
+	}
+
+	m_ModifiedEntities.clear();
+
 	// tick systems;
 	for(auto& system : m_SystemInformations)
 	{
@@ -661,7 +221,7 @@ void state::tick(std::chrono::duration<float> dTime)
 	m_Orphans.insert(std::end(m_Orphans), std::begin(m_ToBeOrphans), std::end(m_ToBeOrphans));
 	m_ToBeOrphans.clear();
 
-	for (auto& cInfo : m_Components) cInfo->unlock_and_purge();
+	for(auto& [key, cInfo] : m_Components) cInfo->purge();
 
 	for(auto& info : info_buffer)
 	{
@@ -670,7 +230,6 @@ void state::tick(std::chrono::duration<float> dTime)
 	info_buffer.clear();
 
 	// purge;
-
 	++m_Tick;
 
 	if(m_NewSystemInformations.size() > 0)
@@ -679,9 +238,9 @@ void state::tick(std::chrono::duration<float> dTime)
 		m_NewSystemInformations.clear();
 	}
 
-	if (m_ToRevoke.size() > 0)
+	if(m_ToRevoke.size() > 0)
 	{
-		for (auto id : m_ToRevoke)
+		for(auto id : m_ToRevoke)
 		{
 			revoke(id);
 		}
@@ -692,19 +251,18 @@ void state::tick(std::chrono::duration<float> dTime)
 
 const details::component_info* state::get_component_info(details::component_key_t key) const noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-
-
-	return (it != std::end(m_Components)) ? it->operator->() : nullptr;
+	if(auto it = m_Components.find(key); it != std::end(m_Components))
+		return &it->second.get();
+	else
+		return nullptr;
 }
 
 details::component_info* state::get_component_info(details::component_key_t key) noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-
-	return (it != std::end(m_Components)) ? it->operator->() : nullptr;
+	if(auto it = m_Components.find(key); it != std::end(m_Components))
+		return &it->second.get();
+	else
+		return nullptr;
 }
 
 
@@ -713,15 +271,16 @@ state::get_component_info(psl::array_view<details::component_key_t> keys) const 
 {
 	psl::array<const details::component_info*> res{};
 	size_t count = keys.size();
-	for(const auto& cInfo : m_Components)
+	for(const auto& [key, cInfo] : m_Components)
 	{
-		if(auto it = std::find(std::begin(keys), std::end(keys), cInfo->id()); it != std::end(keys))
+		if(count == 0) break;
+		if(auto it = std::find(std::begin(keys), std::end(keys), key); it != std::end(keys))
 		{
-			res.push_back(cInfo.operator->());
+			res.push_back(&cInfo.get());
 			--count;
 		}
 	}
-	return (count == 0) ? res : psl::array<const details::component_info*>{};
+	return res;
 }
 // empty construction
 void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
@@ -730,6 +289,10 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 	auto cInfo = get_component_info(key);
 
 	cInfo->add(entities);
+	for(auto range : entities)
+	{
+		for(auto e = range.first; e < range.second; ++e) m_ModifiedEntities.try_insert(e);
+	}
 }
 
 // invocable based construction
@@ -740,11 +303,16 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities(true).size();
+	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
 	std::invoke(invocable, location, entities.size());
+
+	for(auto range : entities)
+	{
+		for(auto e = range.first; e < range.second; ++e) m_ModifiedEntities.try_insert(e);
+	}
 }
 
 // prototype based construction
@@ -755,13 +323,14 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<std
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities(true).size();
+	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
 	for(const auto& id_range : entities)
 	{
 		for(auto i = id_range.first; i < id_range.second; ++i)
 		{
 			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			m_ModifiedEntities.try_insert(i);
 		}
 	}
 }
@@ -774,6 +343,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 	assert(cInfo != nullptr);
 
 	cInfo->add(entities);
+	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 
 // invocable based construction
@@ -784,48 +354,60 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities(true).size();
+	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
 	std::invoke(invocable, location, entities.size());
+	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 
 // prototype based construction
 void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
-							   void* prototype)
+							   void* prototype, bool repeat)
 {
 	assert(size != 0);
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->entities(true).size();
+	auto offset = cInfo->entities().size();
 
 	cInfo->add(entities);
-	for(auto e : entities)
+	if(repeat)
 	{
-		std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+		for(auto e : entities)
+		{
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			m_ModifiedEntities.try_insert(e);
+		}
+	}
+	else
+	{
+		for(auto e : entities)
+		{
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			m_ModifiedEntities.try_insert(e);
+			prototype = (void*)((std::uintptr_t)prototype + size);
+		}
 	}
 }
 
 
 void state::remove_component(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities) noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-	assert(it != std::end(m_Components));
-	(*it)->destroy(entities);
+	m_Components[key]->destroy(entities);
+
+	for(auto range : entities)
+	{
+		for(auto e = range.first; e < range.second; ++e) m_ModifiedEntities.try_insert(e);
+	}
 }
 
 
 void state::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
 {
-	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
-						   [key](const auto& cInfo) { return cInfo->id() == key; });
-	assert(it != std::end(m_Components));
-
-
-	(*it)->destroy(entities);
+	m_Components[key]->destroy(entities);
+	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 
 
@@ -833,7 +415,7 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 {
 	auto count = std::accumulate(std::begin(entities), std::end(entities), entity{0},
 								 [](entity sum, const auto& range) { return sum + (range.second - range.first); });
-	for(auto& cInfo : m_Components)
+	for(auto& [key, cInfo] : m_Components)
 	{
 		cInfo->destroy(entities);
 	}
@@ -844,6 +426,7 @@ void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcep
 		for(auto e = range.first; e < range.second; ++e)
 		{
 			m_ToBeOrphans.emplace_back(e);
+			m_ModifiedEntities.try_insert(e);
 		}
 	}
 }
@@ -854,21 +437,23 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 {
 	if(entities.size() == 0) return;
 
-	for(auto& cInfo : m_Components)
+	for(auto& [key, cInfo] : m_Components)
 	{
 		cInfo->destroy(entities);
 	}
 
 	m_ToBeOrphans.insert(std::end(m_ToBeOrphans), std::begin(entities), std::end(entities));
+	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 
 void state::destroy(entity entity) noexcept
 {
-	for(auto& cInfo : m_Components)
+	for(auto& [key, cInfo] : m_Components)
 	{
 		cInfo->destroy(entity);
 	}
 	m_ToBeOrphans.emplace_back(entity);
+	m_ModifiedEntities.try_insert(entity);
 }
 
 
@@ -881,7 +466,7 @@ psl::array<entity>::iterator state::filter_remove(details::component_key_t key, 
 {
 	auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin
-							  : std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
+							  : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
 
 psl::array<entity>::iterator state::filter_remove_on_add(details::component_key_t key,
@@ -889,22 +474,22 @@ psl::array<entity>::iterator state::filter_remove_on_add(details::component_key_
 														 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? begin : std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_added(e); });
+	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_added(e); });
 }
 psl::array<entity>::iterator state::filter_remove_on_remove(details::component_key_t key,
 															psl::array<entity>::iterator& begin,
 															psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? begin
-							  : std::remove_if(begin, end, [cInfo](entity e) { return !cInfo->has_removed(e); });
+	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_removed(e); });
 }
 psl::array<entity>::iterator state::filter_remove_except(details::component_key_t key,
 														 psl::array<entity>::iterator& begin,
 														 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? end : std::remove_if(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
+	return (cInfo == nullptr) ? end
+							  : std::partition(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
 }
 psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::component_key_t> keys,
 														   psl::array<entity>::iterator& begin,
@@ -912,22 +497,18 @@ psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::c
 {
 	auto cInfos = get_component_info(keys);
 
-	return (cInfos.size() == 0) ? begin : 
-		// for every entity, remove if...
-		std::remove_if(begin, end, [&cInfos](entity e) 
-		{
-			return 
-				// any of them have not had an entity removed
-				!std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) 
-				{
-					return cInfo->has_removed(e);
-				}) || 
-				// or all of them do not have a component, or had the entity removed
-				!std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) 
-					{
-						return cInfo->has_component(e) || cInfo->has_removed(e);
-			});
-		});
+	return (cInfos.size() != keys.size()) ? begin :
+										  // for every entity, remove if...
+			   std::partition(begin, end, [&cInfos](entity e) {
+				   return
+					   // any of them have not had an entity removed
+					   !(!std::any_of(std::begin(cInfos), std::end(cInfos),
+									  [e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
+						 // or all of them do not have a component, or had the entity removed
+						 !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
+							 return cInfo->has_component(e) || cInfo->has_removed(e);
+						 }));
+			   });
 }
 
 psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details::component_key_t> keys,
@@ -936,7 +517,7 @@ psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details:
 {
 	auto cInfos = get_component_info(keys);
 
-	return (cInfos.size() == 0) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
+	return (cInfos.size() != keys.size()) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
 		return !std::any_of(std::begin(cInfos), std::end(cInfos),
 							[e](const details::component_info* cInfo) { return cInfo->has_added(e); }) ||
 			   !std::all_of(std::begin(cInfos), std::end(cInfos),
@@ -976,7 +557,7 @@ psl::array<entity> state::filter_seed_on_break(psl::array<details::component_key
 				  std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
 					  return !(cInfo->has_component(e) || cInfo->has_removed(e));
 				  });
-	});
+	   });
 	storage.erase(end, std::end(storage));
 	return storage;
 }
@@ -993,7 +574,7 @@ psl::array<entity> state::filter_seed_on_combine(psl::array<details::component_k
 							   [e](const details::component_info* cInfo) { return cInfo->has_added(e); }) ||
 				  !std::all_of(std::begin(cInfos), std::end(cInfos),
 							   [e](const details::component_info* cInfo) { return cInfo->has_component(e); });
-	});
+	   });
 	storage.erase(end, std::end(storage));
 	return storage;
 }
@@ -1015,7 +596,7 @@ bool state::filter_seed_best(psl::array_view<details::component_key_t> filters,
 		if(cInfo->entities().size() < count)
 		{
 			out		 = cInfo->entities(all_entities);
-			count	= out.size();
+			count	 = out.size();
 			selected = cInfo->id();
 		}
 	};
@@ -1030,7 +611,7 @@ bool state::filter_seed_best(psl::array_view<details::component_key_t> filters,
 		if(cInfo->added_entities().size() < count)
 		{
 			out		 = cInfo->added_entities();
-			count	= out.size();
+			count	 = out.size();
 			selected = cInfo->id();
 		}
 	};
@@ -1045,7 +626,7 @@ bool state::filter_seed_best(psl::array_view<details::component_key_t> filters,
 		if(cInfo->removed_entities().size() < count)
 		{
 			out		 = cInfo->removed_entities();
-			count	= out.size();
+			count	 = out.size();
 			selected = cInfo->id();
 		}
 	};
@@ -1062,7 +643,7 @@ psl::array<std::pair<details::instruction, details::component_key_t>>::const_ite
 state::smallest_entity_list(const std::vector<std::pair<details::instruction, details::component_key_t>>& filters) const
 	noexcept
 {
-	auto result  = std::end(filters);
+	auto result	 = std::end(filters);
 	size_t count = std::numeric_limits<size_t>::max();
 	for(auto it = std::begin(filters); it != std::end(filters); it = std::next(it))
 	{
@@ -1256,56 +837,109 @@ psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, p
 
 psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 {
-	// auto instructions{to_instructions(pack)};
-	details::instruction instruction;
-	psl::array_view<entity> best_pack{};
-	details::component_key_t best_key;
-	if(!filter_seed_best(pack, best_pack, best_key, instruction))
-	{
-		return psl::array<entity>{};
-	}
-	psl::array<entity> result{best_pack};
-	auto begin = std::begin(result);
-	auto end   = std::end(result);
-	std::unordered_set<details::component_key_t> processed{best_key};
-	for(auto filter : pack.on_remove)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove_on_remove(filter, begin, end);
-	}
-	if(pack.on_break.size() > 0)
-	{
-		for(auto filter : pack.on_break) processed.insert(filter);
-		end = filter_remove_on_break(pack.on_break, begin, end);
-	}
-	for(auto filter : pack.on_add)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove_on_add(filter, begin, end);
-	}
-	if(pack.on_combine.size() > 0) end = filter_remove_on_combine(pack.on_combine, begin, end);
-	for(auto filter : pack.filters)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove(filter, begin, end);
-	}
-	for(auto filter : pack.except)
-	{
-		end = filter_remove_except(filter, begin, end);
-	}
+	details::filter_group group{pack.filters, pack.on_add, pack.on_remove, pack.except, pack.on_combine, pack.on_break};
 
-	for(const auto& conditional : pack.on_condition)
+	for(const auto& filter_data : m_Filters)
 	{
-		end = std::invoke(conditional, begin, end, *this);
+		if(filter_data.group.is_superset_of(group) && group.is_superset_of(filter_data.group))
+		{
+			auto entities = filter_data.entities;
+			auto begin	  = std::begin(entities);
+			auto end	  = std::end(entities);
+
+			for(const auto& conditional : pack.on_condition)
+			{
+				end = std::invoke(conditional, begin, end, *this);
+			}
+
+			std::invoke(pack.orderby, begin, end, *this);
+
+			entities.erase(end, std::end(entities));
+
+			assert_debug_break(
+				std::all_of(std::begin(pack.filters), std::end(pack.filters), [this, &entities](auto filter) {
+					auto cInfo = get_component_info(filter);
+					return std::all_of(std::begin(entities), std::end(entities),
+									   [filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
+				}));
+			return entities;
+		}
 	}
+	return {};
+}
 
-	std::invoke(pack.orderby, begin, end, *this);
+void state::filter(filter_data& data, psl::array_view<entity> source) noexcept
+{
+	if(source.size() == 0)
+	{
+		if(data.group.clear_every_frame())
+		{
+			data.entities.clear();
+		}
+	}
+	else
+	{
+		psl::array<entity> result{source};
+		auto begin = std::begin(result);
+		auto end   = std::end(result);
 
-	result.erase(end, std::end(result));
-	return result;
+		for(auto filter : data.group.on_remove)
+		{
+			end = filter_remove_on_remove(filter, begin, end);
+		}
+		if(data.group.on_break.size() > 0)
+		{
+			end = filter_remove_on_break(data.group.on_break, begin, end);
+		}
+		for(auto filter : data.group.on_add)
+		{
+			end = filter_remove_on_add(filter, begin, end);
+		}
+		if(data.group.on_combine.size() > 0) end = filter_remove_on_combine(data.group.on_combine, begin, end);
+
+
+		for(auto filter : data.group.filters)
+		{
+			end = filter_remove(filter, begin, end);
+		}
+		for(auto filter : data.group.except)
+		{
+			end = filter_remove_except(filter, begin, end);
+		}
+
+		for(auto filter : data.group.filters)
+		{
+			auto info = get_component_info(filter);
+			assert_debug_break(std::all_of(begin, end, [this, &info](entity e) { return info->has_storage_for(e); }));
+		}
+
+		std::sort(begin, end);
+		if(data.group.clear_every_frame())
+		{
+			result.erase(end, std::end(result));
+			data.entities = std::move(result);
+		}
+		else
+		{
+			std::sort(end, std::end(result));
+
+			psl::array<entity> new_target;
+			std::set_difference(std::begin(data.entities), std::end(data.entities), end, std::end(result),
+								std::back_inserter(new_target));
+
+			auto size = std::size(new_target);
+			new_target.insert(std::end(new_target), begin, end);
+			std::inplace_merge(std::begin(new_target), std::next(std::begin(new_target), size), std::end(new_target));
+			data.entities = std::move(new_target);
+		}
+	}
+	assert_debug_break(std::unique(std::begin(data.entities), std::end(data.entities)) == std::end(data.entities));
+	assert_debug_break(
+		std::all_of(std::begin(data.group.on_combine), std::end(data.group.on_combine), [this, &data](auto filter) {
+			auto cInfo = get_component_info(filter);
+			return std::all_of(std::begin(data.entities), std::end(data.entities),
+							   [filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
+		}));
 }
 
 size_t state::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
@@ -1313,6 +947,8 @@ size_t state::prepare_data(psl::array_view<entity> entities, void* cache, compon
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(id);
 	assert_debug_break(cInfo != nullptr);
+	assert_debug_break(
+		std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }));
 	return cInfo->copy_to(entities, cache);
 }
 
@@ -1374,21 +1010,26 @@ void state::execute_command_buffer(info& info)
 	}
 	for(auto& component_src : buffer.m_Components)
 	{
-		if(!component_src->changes()) continue;
+		if(!component_src->entities(true).size() == 0) continue;
 		auto component_dst = get_component_info(component_src->id());
+
+		component_src->remap(remapped_entities, [first = buffer.m_First](entity e) -> bool { return e >= first; });
 		if(component_dst == nullptr)
 		{
-			m_Components.emplace_back(component_src->create_storage(remapped_entities));
+			for(auto e : component_src->entities(true)) m_ModifiedEntities.try_insert(e);
+			m_Components[component_src->id()] = std::move(component_src);
 		}
 		else
 		{
-			component_src->merge_into(component_dst, remapped_entities);
+			component_dst->merge(*component_src);
+			for(auto e : component_src->entities(true)) m_ModifiedEntities.try_insert(e);
 		}
 	}
-	for(auto e : buffer.m_DestroyedEntities)
-	{
-		if(e < buffer.m_First) destroy(e);
-	}
+	auto destroyed_entities = buffer.m_DestroyedEntities;
+	auto mid				= std::partition(std::begin(destroyed_entities), std::end(destroyed_entities),
+								 [first = buffer.m_First](auto e) { return e >= first; });
+	if(mid != std::end(destroyed_entities))
+		destroy(psl::array_view<entity>{&*mid, static_cast<size_t>(std::distance(mid, std::end(destroyed_entities)))});
 }
 
 
@@ -1396,7 +1037,6 @@ size_t state::count(psl::array_view<details::component_key_t> keys) const noexce
 {
 	for(auto& key : keys)
 	{
-
 		auto cInfo = get_component_info(key);
 		return cInfo ? cInfo->size() : 0;
 	}
@@ -1411,6 +1051,6 @@ void state::clear() noexcept
 	m_ToBeOrphans.clear();
 	m_SystemInformations.clear();
 	m_NewSystemInformations.clear();
-
+	m_Filters.clear();
 	m_LockState = 0;
 }

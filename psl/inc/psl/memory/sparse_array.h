@@ -196,18 +196,22 @@ namespace memory
 		}
 		void insert(index_type index)
 		{
+			const auto should_grow = m_Reverse.capacity() == m_Reverse.size();
 			m_Reverse.emplace_back(index);
 			auto& chunk  = chunk_for(index);
 			chunk[index] = (index_type)m_Reverse.size() - 1;
-			grow();
+			if(should_grow)
+				grow();
 		}
 		void insert(index_type index, const_reference value)
 		{
+			const auto should_grow = m_Reverse.capacity() == m_Reverse.size();
 			m_Reverse.emplace_back(index);
 			auto& chunk = chunk_for(index);
 
 			chunk[index] = (index_type)m_Reverse.size() - 1;
-			grow();
+			if (should_grow)
+				grow();
 			*((T*)m_DenseData.data() + chunk[index]) = value;
 		}
 
@@ -439,8 +443,9 @@ namespace memory
 			index_type chunk_index;
 			if constexpr(is_power_of_two)
 			{
-				chunk_index = (index - (index & mod_val)) / chunks_size;
-				index		= index & mod_val;
+				const auto element_index = index & (mod_val);
+				chunk_index = (index - element_index) / chunks_size;
+				index = element_index;
 			}
 			else
 			{
@@ -461,8 +466,8 @@ namespace memory
 		{
 			if constexpr(is_power_of_two)
 			{
-				chunk_index   = (index - (index & mod_val)) / chunks_size;
-				element_index = index & mod_val;
+				element_index = index & (mod_val);
+				chunk_index = (index - element_index) / chunks_size;
 			}
 			else
 			{

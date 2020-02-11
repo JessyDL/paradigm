@@ -7,7 +7,7 @@ using namespace psl::ecs;
 command_buffer::command_buffer(const state& state) : m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
 
 
-details::command_buffer_component_info* command_buffer::get_command_buffer_component_info(details::component_key_t key) noexcept
+details::component_info* command_buffer::get_component_info(details::component_key_t key) noexcept
 {
 	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
 						   [key](const auto& cInfo) { return cInfo->id() == key; });
@@ -20,7 +20,7 @@ details::command_buffer_component_info* command_buffer::get_command_buffer_compo
 void command_buffer::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
 							   size_t size)
 {
-	auto cInfo = get_command_buffer_component_info(key);
+	auto cInfo = get_component_info(key);
 
 	cInfo->add(entities);
 }
@@ -31,10 +31,10 @@ void command_buffer::add_component_impl(details::component_key_t key, psl::array
 							   size_t size, std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	assert(size != 0);
-	auto cInfo = get_command_buffer_component_info(key);
+	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->count();
+	auto offset = cInfo->size();
 	cInfo->add(entities);
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
@@ -46,10 +46,10 @@ void command_buffer::add_component_impl(details::component_key_t key, psl::array
 							   size_t size, void* prototype)
 {
 	assert(size != 0);
-	auto cInfo = get_command_buffer_component_info(key);
+	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->count();
+	auto offset = cInfo->size();
 	cInfo->add(entities);
 	for(const auto& id_range : entities)
 	{
@@ -64,7 +64,7 @@ void command_buffer::add_component_impl(details::component_key_t key, psl::array
 // empty construction
 void command_buffer::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
 {
-	auto cInfo = get_command_buffer_component_info(key);
+	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
 	cInfo->add(entities);
@@ -75,10 +75,10 @@ void command_buffer::add_component_impl(details::component_key_t key, psl::array
 							   std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	assert(size != 0);
-	auto cInfo = get_command_buffer_component_info(key);
+	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->count();
+	auto offset = cInfo->size();
 	cInfo->add(entities);
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
@@ -87,18 +87,29 @@ void command_buffer::add_component_impl(details::component_key_t key, psl::array
 
 // prototype based construction
 void command_buffer::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
-							   void* prototype)
+							   void* prototype, bool repeat)
 {
 	assert(size != 0);
-	auto cInfo = get_command_buffer_component_info(key);
+	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
 
-	auto offset = cInfo->count();
+	auto offset = cInfo->size();
 
 	cInfo->add(entities);
-	for(auto e : entities)
+	if (repeat)
 	{
-		std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+		for (auto e : entities)
+		{
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+		}
+	}
+	else
+	{
+		for (auto e : entities)
+		{
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			prototype = (void*)((std::uintptr_t)prototype + size);
+		}
 	}
 }
 
@@ -108,6 +119,7 @@ void command_buffer::remove_component(details::component_key_t key, psl::array_v
 	auto it = std::find_if(std::begin(m_Components), std::end(m_Components),
 						   [key](const auto& cInfo) { return cInfo->id() == key; });
 	assert(it != std::end(m_Components));
+	(*it)->add(entities);
 	(*it)->destroy(entities);
 }
 
@@ -119,6 +131,7 @@ void command_buffer::remove_component(details::component_key_t key, psl::array_v
 	assert(it != std::end(m_Components));
 
 
+	(*it)->add(entities);
 	(*it)->destroy(entities);
 }
 

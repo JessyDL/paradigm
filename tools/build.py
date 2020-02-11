@@ -171,9 +171,10 @@ class Paradigm(object):
         
         retCode = 0
         if generate_cmd:
-            print("setting up project files")
+            print("setting up project files...")
             retCode = subprocess.check_call(generate_cmd, shell=False)
             if not nopatch:
+                print("patching project files...")
                 patch.patch(directory)
                 
         if build_cmd and retCode == 0:

@@ -20,12 +20,14 @@ geometry_instancing::geometry_instancing(psl::ecs::state& state)
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
 }
 
+
 void geometry_instancing::dynamic_system(
 	info& info,
 	pack<const renderable, const transform, const dynamic_tag, except<dont_render_tag>,
 		 order_by<renderer_sort, renderable>>
 		geometry_pack)
 {
+	// todo clean up in case the last renderable from a dynamic object is despawned. The instance will not be released
 	// todo this will trash static instances as well
 	core::profiler.scope_begin("release_all");
 	for (auto [renderable, transform, tag] : geometry_pack)
@@ -44,7 +46,9 @@ void geometry_instancing::dynamic_system(
 		if (!renderer.bundle)
 			continue;
 		if (UniqueCombinations[renderer.bundle].find(renderer.geometry) == std::end(UniqueCombinations[renderer.bundle]))
+		{
 			UniqueCombinations[renderer.bundle].emplace(renderer.geometry, geometry_instance{ i, 0 });
+		}
 		UniqueCombinations[renderer.bundle][renderer.geometry].count += 1;
 	}
 	core::profiler.scope_end();

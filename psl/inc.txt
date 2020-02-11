@@ -69,12 +69,14 @@ profiling/profiler.h
 ecs/entity.h
 ecs/state.h
 ecs/pack.h
+ecs/filtering.h
 ecs/selectors.h
 ecs/command_buffer.h
 ecs/details/component_info.h
 ecs/details/component_key.h
 ecs/details/entity_info.h
 ecs/details/system_information.h
+ecs/details/staged_sparse_array.h
 
 async/async.hpp
 async/barrier.h

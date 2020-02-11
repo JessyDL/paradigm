@@ -72,7 +72,6 @@
 #include "ecs/systems/text.h"
 
 #include "psl/noise/perlin.h"
-//#include "ecs/systems/worldgen.h"
 #include "ecs/systems/debug/grid.h"
 
 using namespace core;
@@ -108,7 +107,7 @@ handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<co
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>(vert).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>(frag).value();
-	auto textureHandle  = cache.instantiate<gfx::texture>(texture, context_handle);
+	auto textureHandle	= cache.instantiate<gfx::texture>(texture, context_handle);
 
 	assert(textureHandle);
 	// create the sampler
@@ -271,10 +270,10 @@ void setup_loggers()
 {
 	core::log		   = spdlog::android_logger_mt("main");
 	core::systems::log = spdlog::android_logger_mt("systems");
-	core::os::log	  = spdlog::android_logger_mt("os");
-	core::data::log	= spdlog::android_logger_mt("data");
-	core::gfx::log	 = spdlog::android_logger_mt("gfx");
-	core::ivk::log	 = spdlog::android_logger_mt("ivk");
+	core::os::log	   = spdlog::android_logger_mt("os");
+	core::data::log	   = spdlog::android_logger_mt("data");
+	core::gfx::log	   = spdlog::android_logger_mt("gfx");
+	core::ivk::log	   = spdlog::android_logger_mt("ivk");
 	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 
@@ -680,33 +679,6 @@ void android_main(android_app* application)
 }
 #elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
 
-struct character_data
-{
-	// uint32_t size;
-	int32_t height;
-	int32_t width;
-	psl::ivec4 bounds;
-};
-
-
-auto calculate(const psl::array<uint8_t>& visibility, psl::ivec3 direction,
-			   std::function<psl::ivec3(int)> to_3dcoordinate, std::function<int(psl::ivec3)> from_3dcoordinate)
-{
-	psl::array<uint8_t> occlusion;
-	occlusion.resize(visibility.size());
-	std::for_each(std::execution::par_unseq, std::begin(occlusion), std::end(occlusion),
-				  [&visibility, base = occlusion.data(), &to_3dcoordinate, &direction, &from_3dcoordinate](auto& out) {
-					  auto index  = static_cast<int>(&out - base);
-					  auto target = from_3dcoordinate(to_3dcoordinate(index) + direction);
-
-					  out = (visibility[index] && !(target < 0 || target >= visibility.size() || visibility[target]));
-					  // out = (visibility[index] && !(target >= 0 && target < visibility.size() &&
-					  // visibility[target])); if (visibility[index] && (target < 0 || target >= visibility.size()))
-					  //	  out = 1; // boundary
-				  });
-	return occlusion;
-}
-
 int entry(gfx::graphics_backend backend)
 {
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
@@ -869,8 +841,7 @@ int entry(gfx::graphics_backend backend)
 									   .create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
 													  uniform_buffer_align, new memory::default_allocator(true))
 									   .value());
-	// memory::region{sizeof(framedata)*128, context_handle->properties().limits.minUniformBufferOffsetAlignment, new
-	// memory::default_allocator(true)});
+
 	auto frameCamBuffer = cache.create<gfx::buffer>(context_handle, frameCamBufferData);
 	cache.library().set(frameCamBuffer, "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
 
@@ -948,7 +919,8 @@ int entry(gfx::graphics_backend backend)
 	const size_t area			  = 128;
 	const size_t area_granularity = 128;
 	const size_t size_steps		  = 24;
-
+	const float timeScale = 1.f;
+	const size_t spawnInterval = (size_t)((float)100 * (1.f/timeScale));
 
 	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
 								   core::profiler.to_string());
@@ -965,79 +937,67 @@ int entry(gfx::graphics_backend backend)
 													 context_handle->backend()};
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
-	//ECSState.declare(psl::ecs::threading::par, core::ecs::systems::death);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
+	/*ECSState.declare(psl::ecs::threading::par, [](info& info, pack<transform, const lifetime> pack) {
+		for(auto [transf, life] : pack)
+		{
+			auto remainder = std::min(life.value * 2.0f, 1.0f);
+			transf.scale *= remainder;
+		}
+	});*/
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
-	// ECSState.declare(core::ecs::systems::geometry_instance);
 	core::ecs::systems::geometry_instancing geometry_instancing_system{ECSState};
 
-	core::ecs::systems::lighting_system lighting{
+	/*core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
-		swapchain_pass,			  context_handle,		 surface_handle};
+		swapchain_pass,			  context_handle,		 surface_handle};*/
 
-	core::ecs::systems::text text{ECSState,	cache,		   context_handle, vertexBuffer,
-								  indexBuffer, pipeline_cache, matBuffer,	  instanceBuffer};
+	core::ecs::systems::text text{ECSState,	   cache,		   context_handle, vertexBuffer,
+								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer};
 
 	auto eCam = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 
-	// core::ecs::systems::debug::grid grid_system{ ECSState, eCam[0], cache, context_handle, vertexBuffer, indexBuffer,
-	// pipeline_cache, matBuffer, instanceBuffer , core::ecs::systems::chunk::SIZE ,
-	// static_cast<psl::vec3>(core::ecs::systems::chunk::SIZE)  * 0.5f};
 	size_t iterations										 = 25600;
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
-
-	ECSState.create(
+	std::chrono::high_resolution_clock::time_point next_spawn = std::chrono::high_resolution_clock::now();
+	/*ECSState.create(
 		1,
 		[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
 			renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
 						  geometryHandles[std::rand() % geometryHandles.size()]};
-		}, psl::ecs::empty<core::ecs::components::transform>{});
-
-	/*ECSState.create(
-		(iterations > 0) ? 5 : (std::rand() % 100 == 0) ? 0 : 0,
-		[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
-			renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
-						  geometryHandles[std::rand() % geometryHandles.size()]};
 		},
-		psl::ecs::empty<core::ecs::components::dynamic_tag>{},
-		psl::ecs::empty<core::ecs::components::transform>{},
-		[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
-		[&size_steps](core::ecs::components::velocity& target) {
-			target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-													 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-					  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
-		});*/
+		psl::ecs::empty<core::ecs::components::transform>{});*/
+
 
 	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
 					core::ecs::components::light{{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
 
 	std::array<int, 4> matusage{0};
-	// core::ecs::systems::worldgen worldgen_system{ cache,		context_handle, vertexBuffer, indexBuffer, bundles[1] };
 
 	std::string str{"dsff"};
-	auto textEntity = ECSState.create(1, core::ecs::components::text{str.data()}, psl::ecs::empty<core::ecs::components::dynamic_tag>());
+	auto textEntity = ECSState.create(1, core::ecs::components::text{str.data()},
+									  psl::ecs::empty<core::ecs::components::dynamic_tag>());
 
 	size_t frame{0};
 	std::chrono::duration<float> elapsed{};
 
 #ifdef _DEBUG
-	size_t count = 1;
+	size_t count = 5;
 	size_t swing = 0;
 #else
-	size_t count = 500;
-	size_t swing = 150;
+	size_t count = 750;
+	size_t swing = 100;
 #endif
 	while(surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
 		core::profiler.next_frame();
-		// worldgen_system.tick(ECSState, ECSState.get<core::ecs::components::transform>(eCam[0]).position);
+
 		core::profiler.scope_begin("system tick");
-		ECSState.tick(elapsed);
+		ECSState.tick(elapsed * timeScale);
 		core::profiler.scope_end();
 
 		core::profiler.scope_begin("presenting");
@@ -1048,73 +1008,65 @@ int entry(gfx::graphics_backend backend)
 
 
 		str = "material 0: " + std::to_string(matusage[0]) + " material 1: " + std::to_string(matusage[1]) +
-			" material 2: " + std::to_string(matusage[2]) + " material 3: " + std::to_string(matusage[3]);
-		ECSState.set_component(textEntity, core::ecs::components::text{ str.data() });
+			  " material 2: " + std::to_string(matusage[2]) + " material 3: " + std::to_string(matusage[3]);
+		ECSState.set_component(textEntity, core::ecs::components::text{str.data()});
 
-		ECSState.create(
-			(iterations > 0) ? count + std::rand() % (swing + 1) : 0,
-			[&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
-				auto matIndex = (std::rand() % 2 == 0);
-				matusage[matIndex] += 1;
-				renderable = { bundles[matIndex],
-							  geometryHandles[std::rand() % geometryHandles.size()]};
-			},
-			psl::ecs::empty<core::ecs::components::dynamic_tag>{}, psl::ecs::empty<core::ecs::components::transform>{},
-			[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
-			[&size_steps](core::ecs::components::velocity& target) {
-				target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-														 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-														 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-						  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
-			});
-
-
-		if(iterations > 0)
-		{
-			if(ECSState.filter<core::ecs::components::attractor>().size() < 1)
-			{
-				ECSState.create(
-					2,
-					[](core::ecs::components::lifetime& target) {
-						target = {5.0f + ((std::rand() % 50) / 50.0f) * 5.0f};
-					},
-					[&size_steps](core::ecs::components::attractor& target) {
-						target = {(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f,
-								  (float)(std::rand() % size_steps) / size_steps * 80};
-					},
-					[&area_granularity, &area, &size_steps](core::ecs::components::transform& target) {
-						target = {
-							psl::vec3(
-								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-									(area / 2.0f),
-								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-									(area / 2.0f),
-								(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-									(area / 2.0f)),
-
-							psl::vec3((float)(std::rand() % size_steps) / size_steps,
-									  (float)(std::rand() % size_steps) / size_steps,
-									  (float)(std::rand() % size_steps) / size_steps)};
-					});
-			}
-			--iterations;
-		}
 		core::profiler.scope_end();
-
-		/*if(iterations == 25590)
-		{
-			ECSState.create(10,
-							[](ecs::components::light& var) {
-								var = ecs::components::light{psl::vec3{1.0f, 1.0f, 1.0f}, 1.0f,
-															 ecs::components::light::type::DIRECTIONAL,
-															 std::rand() % 2 == 0};
-							},
-							core::ecs::components::transform{});
-		}*/
 
 		auto current_time = std::chrono::high_resolution_clock::now();
 		elapsed			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 
+		//while (current_time >= next_spawn)
+		{
+			next_spawn += std::chrono::milliseconds(spawnInterval);
+			ECSState.create(
+				(iterations > 0) ? count + std::rand() % (swing + 1) : 0,
+				[&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
+					auto matIndex = (std::rand() % 2 == 0);
+					matusage[matIndex] += 1;
+					renderable = { bundles[matIndex], geometryHandles[/*std::rand() % geometryHandles.size()*/0] };
+				},
+				psl::ecs::empty<core::ecs::components::dynamic_tag>{}, psl::ecs::empty<core::ecs::components::transform>{},
+					[](core::ecs::components::lifetime& target) { target = { 0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
+					[&size_steps](core::ecs::components::velocity& target) {
+					target = { psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+															 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+															 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
+							  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f };
+				});
+
+
+			if (iterations > 0)
+			{
+				if (ECSState.filter<core::ecs::components::attractor>().size() < 1)
+				{
+					ECSState.create(
+						2,
+						[](core::ecs::components::lifetime& target) {
+							target = { 5.0f + ((std::rand() % 50) / 50.0f) * 5.0f };
+						},
+						[&size_steps](core::ecs::components::attractor& target) {
+							target = { (float)(std::rand() % size_steps) / size_steps * 3 + 0.5f,
+									  (float)(std::rand() % size_steps) / size_steps * 80 };
+						},
+							[&area_granularity, &area, &size_steps](core::ecs::components::transform& target) {
+							target = {
+								psl::vec3(
+									(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+										(area / 2.0f),
+									(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+										(area / 2.0f),
+									(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
+										(area / 2.0f)),
+
+								psl::vec3((float)(std::rand() % size_steps) / size_steps,
+										  (float)(std::rand() % size_steps) / size_steps,
+										  (float)(std::rand() % size_steps) / size_steps) };
+						});
+				}
+				--iterations;
+			}
+		}
 		last_tick = current_time;
 		core::log->info("---- FRAME {0} END   ---- duration {1} ms", frame++, elapsed.count() * 1000);
 	}
@@ -1137,12 +1089,12 @@ int main()
 	}
 #endif
 
-	psl::vec4 v{ 0.f,1.f,2.f,3.f };
-	//auto res{ v.xy + v.zy + v.zz };
+	psl::vec4 v{0.f, 1.f, 2.f, 3.f};
+	// auto res{ v.xy + v.zy + v.zz };
 	// std::thread vk_thread(entry, graphics_backend::gles);
 	// std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
-	//return entry(graphics_backend::gles);
+	return entry(graphics_backend::gles);
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);

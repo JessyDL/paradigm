@@ -18,6 +18,7 @@
 #include <functional>
 #include "psl/memory/raw_region.h"
 #include "entity.h"
+#include "filtering.h"
 #if __has_include(<execution>)
 #include <execution>
 #else
@@ -62,6 +63,12 @@ namespace psl::ecs
 	}
 	class state final
 	{
+
+		struct filter_data
+		{
+			psl::array<entity> entities;
+			details::filter_group group;
+		};
 	  public:
 		state(size_t workers = 0);
 		~state()			= default;
@@ -74,6 +81,12 @@ namespace psl::ecs
 		void add_components(psl::array_view<entity> entities)
 		{
 			(add_component<Ts>(entities), ...);
+		}
+
+		template <typename... Ts>
+		void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data)
+		{
+			(add_component<Ts>(entities, data), ...);
 		}
 		template <typename... Ts>
 		void add_components(psl::array_view<entity> entities, Ts&&... prototype)
@@ -192,15 +205,17 @@ namespace psl::ecs
 		template <typename T>
 		T& get(entity entity)
 		{
+			// todo this should support filtering
 			auto cInfo = get_component_typed_info<T>();
-			return cInfo->entity_data()[entity];
+			return cInfo->entity_data().at(entity, 0, 2);
 		}
 
 		template <typename T>
 		const T& get(entity entity) const noexcept
 		{
+			// todo this should support filtering
 			auto cInfo = get_component_typed_info<T>();
-			return cInfo->entity_data()[entity];
+			return cInfo->entity_data().at(entity, 0, 2);
 		}
 
 		template <typename... Ts>
@@ -240,10 +255,11 @@ namespace psl::ecs
 		{
 			psl::array<entity> entities;
 			entities.reserve(count);
-			const auto recycled = std::min<entity>(count, (entity)m_Orphans.size());
+			const auto recycled	 = std::min<entity>(count, (entity)m_Orphans.size());
 			const auto remainder = count - recycled;
 
-			std::reverse_copy(std::begin(m_Orphans), std::end(m_Orphans), std::back_inserter(entities));
+			std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans),
+							  std::back_inserter(entities));
 			m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
 			entities.resize(count);
 			std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
@@ -261,10 +277,11 @@ namespace psl::ecs
 		{
 			psl::array<entity> entities;
 			entities.reserve(count);
-			const auto recycled = std::min<entity>(count, static_cast<entity>(m_Orphans.size()));
+			const auto recycled	 = std::min<entity>(count, static_cast<entity>(m_Orphans.size()));
 			const auto remainder = count - recycled;
 
-			std::reverse_copy(std::begin(m_Orphans), std::end(m_Orphans), std::back_inserter(entities));
+			std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans),
+							  std::back_inserter(entities));
 			m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
 			entities.resize(count);
 			std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
@@ -327,30 +344,29 @@ namespace psl::ecs
 		template <typename T>
 		psl::array_view<entity> entities() const noexcept
 		{
-			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
-				constexpr auto key{details::key_for<T>()};
-				return cInfo->id() == key;
-			});
-			return (it != std::end(m_Components)) ? (*it)->entities() : psl::array_view<entity>{};
+			constexpr auto key{details::key_for<T>()};
+			if(auto it = m_Components.find(key); it != std::end(m_Components)) return it->second->entities();
+			return {};
 		}
 
 		template <typename T>
 		psl::array_view<T> view()
 		{
-			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
+			constexpr auto key{details::key_for<T>()};
+			if(auto it = m_Components.find(key); it != std::end(m_Components))
+				return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense(0, 1);
+			return {};
+			/*auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
 				constexpr auto key{details::key_for<T>()};
 				return cInfo->id() == key;
 			});
 			return (it != std::end(m_Components))
-					   ? ((details::component_info_typed<T>*)(it->operator->()))->entity_data().dense()
-					   : psl::array_view<T>{};
+					   ? ((details::component_info_typed<T>*)(it->operator->()))->entity_data().dense(0,1)
+					   : psl::array_view<T>{};*/
 		}
 
 		/// \brief returns the amount of active systems
-		size_t systems() const noexcept
-		{
-			return m_SystemInformations.size() - m_ToRevoke.size();
-		}
+		size_t systems() const noexcept { return m_SystemInformations.size() - m_ToRevoke.size(); }
 
 		template <typename Fn>
 		auto declare(Fn&& fn, bool seedWithExisting = false)
@@ -383,7 +399,7 @@ namespace psl::ecs
 				if(auto it = std::find_if(std::begin(m_SystemInformations), std::end(m_SystemInformations),
 										  [&id](const auto& system) { return system.id() == id; });
 				   it != std::end(m_SystemInformations) &&
-					// and we make sure we don't "double delete"
+				   // and we make sure we don't "double delete"
 				   std::find(std::begin(m_ToRevoke), std::end(m_ToRevoke), id) == std::end(m_ToRevoke))
 				{
 					m_ToRevoke.emplace_back(id);
@@ -441,13 +457,16 @@ namespace psl::ecs
 		template <typename T>
 		void create_storage()
 		{
-			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
+			constexpr auto key = details::key_for<T>();
+			if(auto it = m_Components.find(key); it == std::end(m_Components))
+				m_Components.emplace(key, new details::component_info_typed<T>());
+
+			/*auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
 				constexpr auto key = details::key_for<T>();
 				return (key == cInfo->id());
 			});
 
-			constexpr auto key = details::key_for<T>();
-			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());
+			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());*/
 		}
 
 		details::component_info* get_component_info(details::component_key_t key) noexcept;
@@ -458,11 +477,15 @@ namespace psl::ecs
 		template <typename T>
 		details::component_info_typed<T>* get_component_typed_info() const noexcept
 		{
+			constexpr auto key{details::key_for<T>()};
+			return (details::component_info_typed<T>*)&m_Components.at(key).get();
+			/*if (it = m_Components.find(key); it != std::end(m_Components))
+
 			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
 				constexpr auto key{details::key_for<T>()};
 				return cInfo->id() == key;
 			});
-			return ((details::component_info_typed<T>*)(it->operator->()));
+			return ((details::component_info_typed<T>*)(it->operator->()));*/
 		}
 		//------------------------------------------------------------
 		// add_component
@@ -610,6 +633,17 @@ namespace psl::ecs
 			}
 		}
 
+		template <typename T>
+		void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
+		{
+			assert(entities.size() == data.size());
+			create_storage<T>();
+			static_assert(!std::is_empty_v<T>,
+				"no need to pass an array of tag types through, it's a waste of computing and memory");
+
+			add_component_impl(details::key_for<T>(), entities, sizeof(T), data.data(), false);
+		}
+
 		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
 								size_t size);
 		void add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
@@ -622,7 +656,7 @@ namespace psl::ecs
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
 								std::function<void(std::uintptr_t, size_t)> invocable);
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
-								void* prototype);
+								void* prototype, bool repeat = true);
 
 		//------------------------------------------------------------
 		// remove_component
@@ -768,7 +802,8 @@ namespace psl::ecs
 		bool filter_seed_best(const details::dependency_pack& pack, psl::array_view<entity>& out,
 							  details::component_key_t& selected, details::instruction& instruction) const noexcept;
 		psl::array<entity> initial_filter(const details::dependency_pack& pack) const noexcept;
-		psl::array<entity> filter(details::dependency_pack& packs) const noexcept;
+		psl::array<entity> filter(details::dependency_pack& pack) const noexcept;
+		void filter(filter_data& data, psl::array_view<entity> source) noexcept;
 		psl::array<entity>::iterator filter(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
 											const details::dependency_pack& pack) const noexcept;
 		template <typename... Ts>
@@ -800,14 +835,27 @@ namespace psl::ecs
 		struct get_packs<psl::ecs::info&, Ts...> : public get_packs<Ts...>
 		{};
 
+		void add_filter_group(details::filter_group& group)
+		{
+			for (const auto& filter_data : m_Filters)
+			{
+				if (filter_data.group.is_superset_of(group) && group.is_superset_of(filter_data.group))
+				{
+					return;
+				}
+			}
+			m_Filters.emplace_back(filter_data{ {}, group });
+		}
+
 		template <typename Fn, typename T = void>
 		auto declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
 
 			using function_args = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
+			using pack_t		= typename get_packs<function_args>::type;
+			auto groups			= details::make_filter_group(psl::templates::type_container<pack_t>{});
 			std::function<std::vector<details::dependency_pack>(bool)> pack_generator = [](bool seedWithPrevious =
 																							   false) {
-				using pack_t = typename get_packs<function_args>::type;
 				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
 														  psl::templates::type_container<pack_t>{}, seedWithPrevious);
 			};
@@ -817,8 +865,6 @@ namespace psl::ecs
 			if constexpr(std::is_member_function_pointer<Fn>::value)
 			{
 				system_tick = [fn, ptr](psl::ecs::info& info, std::vector<details::dependency_pack> packs) -> void {
-					using pack_t = typename get_packs<function_args>::type;
-
 					auto tuple_argument_list = std::tuple_cat(
 						std::tuple<T*, psl::ecs::info&>(ptr, info),
 						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
@@ -830,8 +876,6 @@ namespace psl::ecs
 			else
 			{
 				system_tick = [fn](psl::ecs::info& info, std::vector<details::dependency_pack> packs) -> void {
-					using pack_t = typename get_packs<function_args>::type;
-
 					auto tuple_argument_list = std::tuple_cat(
 						std::tuple<psl::ecs::info&>(info),
 						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
@@ -839,6 +883,15 @@ namespace psl::ecs
 
 					std::apply(fn, std::move(tuple_argument_list));
 				};
+			}
+			if constexpr (std::is_same_v < details::filter_group, decltype(groups)>)
+			{
+				add_filter_group(groups);
+			}
+			else
+			{
+				for (auto& group : groups)
+					add_filter_group( group);
 			}
 			if(m_LockState)
 			{
@@ -858,10 +911,14 @@ namespace psl::ecs
 		::memory::raw_region m_Cache{1024 * 1024 * 256};
 		psl::array<entity> m_Orphans{};
 		psl::array<entity> m_ToBeOrphans{};
-		psl::array<psl::unique_ptr<details::component_info>> m_Components;
+		std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_info>> m_Components;
+		// psl::array<psl::unique_ptr<details::component_info>> m_Components;
 		std::vector<details::system_information> m_SystemInformations;
 		std::vector<details::system_information> m_NewSystemInformations;
 		psl::array<details::system_token> m_ToRevoke;
+		psl::array<filter_data> m_Filters;
+		psl::sparse_indice_array<entity> m_ModifiedEntities;
+		
 
 		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
 
