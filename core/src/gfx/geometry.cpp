@@ -41,21 +41,26 @@ geometry::~geometry() {}
 
 void geometry::recreate(core::resource::handle<core::data::geometry> data)
 {
+#ifdef PE_GLES
 	if (m_Handle.contains<igles::geometry>())
 	{
 		m_Handle.value<igles::geometry>().recreate(data);
 	}
 
+#endif
+#ifdef PE_VULKAN
 	if (m_Handle.contains<ivk::geometry>())
 	{
 		m_Handle.value<ivk::geometry>().recreate(data);
 	}
+#endif
 }
 
 void geometry::recreate(core::resource::handle<core::data::geometry> data,
 						core::resource::handle<core::gfx::buffer> geometryBuffer,
 						core::resource::handle<core::gfx::buffer> indicesBuffer)
 {
+#ifdef PE_GLES
 	if(m_Handle.contains<igles::geometry>() && geometryBuffer->resource().contains<igles::buffer>() &&
 	   indicesBuffer->resource().contains<igles::buffer>())
 	{
@@ -63,10 +68,13 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 												   indicesBuffer->resource().get<core::igles::buffer>());
 	}
 
+#endif
+#ifdef PE_VULKAN
 	if(m_Handle.contains<ivk::geometry>() && geometryBuffer->resource().contains<ivk::buffer>() &&
 	   indicesBuffer->resource().contains<ivk::buffer>())
 	{
 		m_Handle.value<ivk::geometry>().recreate(data, geometryBuffer->resource().get<core::ivk::buffer>(),
 												 indicesBuffer->resource().get<core::ivk::buffer>());
 	}
+#endif
 }
