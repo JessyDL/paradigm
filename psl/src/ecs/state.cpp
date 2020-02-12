@@ -11,7 +11,10 @@ using psl::ecs::details::entity_info;
 constexpr size_t min_thread_entities = 1;
 
 
-state::state(size_t workers) : m_Scheduler(new psl::async::scheduler((workers == 0) ? 1 : std::optional{workers})) {}
+state::state(size_t workers, size_t cache_size) : m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers})), m_Cache(cache_size)
+{
+	m_ModifiedEntities.reserve(65536);
+}
 
 
 std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source,

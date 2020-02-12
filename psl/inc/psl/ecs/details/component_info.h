@@ -156,7 +156,8 @@ namespace psl::ecs::details
 		void add_impl(psl::array_view<entity> entities) override
 		{
 			m_Entities.reserve(m_Entities.size(0, 2) + entities.size());
-			std::for_each(std::begin(entities), std::end(entities), [this](auto e) { m_Entities.insert(e); });
+			for(size_t i = 0; i < entities.size(); ++i)
+				m_Entities.insert(entities[i]);
 		}
 		void add_impl(entity entity) override { m_Entities.insert(entity); }
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities) override

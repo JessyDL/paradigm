@@ -23,6 +23,7 @@ namespace psl::ecs::details
 	{
 		using value_t = T;
 		using index_t = Key;
+		using chunk_t = psl::static_array<index_t, chunks_size>;
 
 		static constexpr bool is_power_of_two{chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
 		static constexpr index_t mod_val{(is_power_of_two) ? chunks_size - 1 : chunks_size};
@@ -62,7 +63,7 @@ namespace psl::ecs::details
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
 			assert(has(index));
-			return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
+			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 		reference at(index_t index) { return this->operator[](index); }
 
@@ -72,13 +73,13 @@ namespace psl::ecs::details
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
 			assert(has(index, startIndex, endIndex));
-			return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
+			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 		reference at(index_t index, size_t startIndex, size_t endIndex) {
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
 			assert(has(index, startIndex, endIndex));
-			return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
+			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
 		void reserve(size_t capacity)
@@ -142,10 +143,13 @@ namespace psl::ecs::details
 					chunk_index = (index - (index % mod_val)) / chunks_size;
 					index		= index % mod_val;
 				}
-				return m_Sparse[chunk_index].size() > 0 &&
-					   m_Sparse[chunk_index][index] != std::numeric_limits<index_t>::max() &&
-					   m_Sparse[chunk_index][index] >= m_StageStart[startStage] &&
-					   m_Sparse[chunk_index][index] < m_StageStart[endStage + 1];
+				if (m_Sparse[chunk_index])
+				{
+					const auto& chunk = get_chunk_from_index(chunk_index);
+					return chunk[index] != std::numeric_limits<index_t>::max() &&
+						chunk[index] >= m_StageStart[startStage] &&
+						chunk[index] < m_StageStart[endStage + 1];
+				}
 			}
 			return false;
 		}
@@ -287,7 +291,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		auto insert_impl(psl::array<index_t>& chunk, index_t offset, index_t user_index)
+		auto insert_impl(chunk_t& chunk, index_t offset, index_t user_index)
 		{
 			for (auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
 			{
@@ -308,7 +312,7 @@ namespace psl::ecs::details
 			m_StageSize[1] += 1;
 		}
 
-		auto erase_impl(psl::array<index_t>& chunk, index_t offset, index_t user_index)
+		auto erase_impl(chunk_t& chunk, index_t offset, index_t user_index)
 		{
 			auto orig_value = this->operator[](user_index);
 			auto reverse_index = chunk[offset];
@@ -364,29 +368,94 @@ namespace psl::ecs::details
 			}
 		}
 
-		inline psl::array<index_t>& chunk_for(index_t& index) noexcept
+		inline chunk_t& chunk_for(index_t& index) noexcept
 		{
 			if(index >= capacity()) resize(index + 1);
+
+			if (index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+			{
+				if constexpr (is_power_of_two)
+				{
+					index = index & (mod_val);
+				}
+				else
+				{
+					index = index % mod_val;
+				}
+				return *m_CachedChunk;
+			}
 			index_t chunk_index;
 			if constexpr(is_power_of_two)
 			{
 				const auto element_index = index & (mod_val);
 				chunk_index				 = (index - element_index) / chunks_size;
+				m_CachedChunkUserIndex = index - element_index;
 				index					 = element_index;
 			}
 			else
 			{
-				chunk_index = (index - (index % mod_val)) / chunks_size;
-				index		= index % mod_val;
+				const auto element_index = index % mod_val;
+				chunk_index = (index - element_index) / chunks_size;
+				m_CachedChunkUserIndex = index - element_index;
+				index		= element_index;
 			}
-			auto& chunk = m_Sparse[chunk_index];
-			if(chunk.size() == 0)
+			std::optional<chunk_t>& chunk = m_Sparse[chunk_index];
+			if(!chunk)
 			{
-				chunk.resize(chunks_size);
-				std::fill(std::begin(chunk), std::end(chunk), std::numeric_limits<index_t>::max());
+				chunk = chunk_t{};
+				//chunk.resize(chunks_size);
+				std::fill(std::begin(chunk.value()), std::end(chunk.value()), std::numeric_limits<index_t>::max());
 			}
+			m_CachedChunk = &chunk.value();
+			return chunk.value();
+		}
 
-			return chunk;
+		inline const chunk_t& get_chunk_from_user_index(index_t index) const noexcept
+		{
+			if (index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+				return *m_CachedChunk;
+			m_CachedChunkUserIndex = index;
+			index_t chunk_index;
+			if constexpr (is_power_of_two)
+			{
+				const auto element_index = index & (mod_val);
+				chunk_index = (index - element_index) / chunks_size;
+			}
+			else
+			{
+				chunk_index = (index - (index % mod_val)) / chunks_size;
+			}
+			m_CachedChunk = &m_Sparse[chunk_index].value();
+			return *m_CachedChunk;
+		}
+		inline chunk_t& get_chunk_from_user_index(index_t index) noexcept
+		{
+			if (index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+				return *m_CachedChunk;
+			m_CachedChunkUserIndex = index;
+			index_t chunk_index;
+			if constexpr (is_power_of_two)
+			{
+				const auto element_index = index & (mod_val);
+				chunk_index = (index - element_index) / chunks_size;
+			}
+			else
+			{
+				chunk_index = (index - (index % mod_val)) / chunks_size;
+			}
+			m_CachedChunk = &m_Sparse[chunk_index].value();
+			return *m_CachedChunk;
+		}
+
+		inline const chunk_t& get_chunk_from_index(index_t index) const noexcept
+		{
+			return m_Sparse[index].value();
+		}
+
+
+		inline chunk_t& get_chunk_from_index(index_t index) noexcept
+		{
+			return m_Sparse[index].value();
 		}
 
 		inline void chunk_info_for(index_t index, index_t& element_index, index_t& chunk_index) const noexcept
@@ -405,10 +474,12 @@ namespace psl::ecs::details
 
 		psl::array<index_t> m_Reverse;
 		::memory::raw_region m_DenseData;
-		psl::array<psl::array<index_t>> m_Sparse;
+		psl::array<std::optional<chunk_t>> m_Sparse;
 
 		// sizes for each stage, this means stage 1 starts at std::begin() + m_Stage0
 		psl::static_array<index_t, 4> m_StageStart{0, 0, 0, 0};
 		psl::static_array<index_t, 3> m_StageSize{0, 0, 0};
+		mutable chunk_t* m_CachedChunk;
+		mutable index_t m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 	};
 } // namespace psl::ecs::details

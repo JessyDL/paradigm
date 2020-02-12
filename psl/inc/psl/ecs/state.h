@@ -70,7 +70,7 @@ namespace psl::ecs
 			details::filter_group group;
 		};
 	  public:
-		state(size_t workers = 0);
+		state(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256);
 		~state()			= default;
 		state(const state&) = delete;
 		state(state&&)		= default;
@@ -455,18 +455,11 @@ namespace psl::ecs
 		void execute_command_buffer(info& info);
 
 		template <typename T>
-		void create_storage()
+		inline void create_storage() const noexcept
 		{
 			constexpr auto key = details::key_for<T>();
 			if(auto it = m_Components.find(key); it == std::end(m_Components))
 				m_Components.emplace(key, new details::component_info_typed<T>());
-
-			/*auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
-				constexpr auto key = details::key_for<T>();
-				return (key == cInfo->id());
-			});
-
-			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());*/
 		}
 
 		details::component_info* get_component_info(details::component_key_t key) noexcept;
@@ -907,24 +900,23 @@ namespace psl::ecs
 			}
 		}
 
-		std::vector<psl::unique_ptr<info>> info_buffer;
+		std::vector<psl::unique_ptr<info>> info_buffer{};
 		::memory::raw_region m_Cache{1024 * 1024 * 256};
 		psl::array<entity> m_Orphans{};
 		psl::array<entity> m_ToBeOrphans{};
-		std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_info>> m_Components;
-		// psl::array<psl::unique_ptr<details::component_info>> m_Components;
-		std::vector<details::system_information> m_SystemInformations;
-		std::vector<details::system_information> m_NewSystemInformations;
-		psl::array<details::system_token> m_ToRevoke;
-		psl::array<filter_data> m_Filters;
-		psl::sparse_indice_array<entity> m_ModifiedEntities;
+		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_info>> m_Components{};
+		std::vector<details::system_information> m_SystemInformations{};
+		std::vector<details::system_information> m_NewSystemInformations{};
+		psl::array<details::system_token> m_ToRevoke{};
+		psl::array<filter_data> m_Filters{};
+		psl::sparse_indice_array<entity> m_ModifiedEntities{};
 		
 
-		psl::unique_ptr<psl::async::scheduler> m_Scheduler;
+		psl::unique_ptr<psl::async::scheduler> m_Scheduler{nullptr};
 
 		size_t m_LockState{0};
 
-		entity m_Entities;
+		entity m_Entities{ 0 };
 		size_t m_Tick{0};
 		size_t m_SystemCounter{0};
 	};

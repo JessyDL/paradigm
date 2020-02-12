@@ -1,0 +1,4 @@
+SET(SRC 
+src/main.cpp
+
+)

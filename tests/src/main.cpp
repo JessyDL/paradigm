@@ -42,7 +42,7 @@ void setup_loggers()
 
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
 	spdlog::register_logger(ivk_logger);
-	core::ivk::log = ivk_logger;
+	core::ivk::log = ivk_logger; 
 }
 
 int main(int argc, char* argv[])
