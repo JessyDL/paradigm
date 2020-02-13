@@ -72,6 +72,7 @@ drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapcha
 drawpass::~drawpass()
 {
 	destroy_fences();
+	// todo using VK 1.2 use vkWaitSemaphores here
 	m_Context->device().destroySemaphore(m_PresentComplete);
 	m_Context->device().destroySemaphore(m_RenderComplete);
 }
@@ -298,6 +299,7 @@ void drawpass::present()
 	// Signal ready with offscreen semaphore
 	m_SubmitInfo.pSignalSemaphores = &m_RenderComplete;
 
+	assert(m_DrawCommandBuffers[m_CurrentBuffer]);
 	m_SubmitInfo.pCommandBuffers	= &m_DrawCommandBuffers[m_CurrentBuffer];
 	m_SubmitInfo.commandBufferCount = 1;
 

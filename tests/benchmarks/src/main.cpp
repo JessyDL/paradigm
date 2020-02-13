@@ -50,8 +50,9 @@ void entity_creation_with_destruction(benchmark::State& gState)
 		gState.PauseTiming();
 		state.clear();
 		gState.ResumeTiming();
-		state.create(eCount);
-		state.destroy({{std::pair{static_cast<ecs::entity>(0), eHalfCount}}});
+		auto ents = state.create(eCount);
+		ents.erase(std::next(std::begin(ents), eHalfCount), std::end(ents));
+		state.destroy(ents);
 		state.create(eHalfCount);
 	}
 }
@@ -115,10 +116,13 @@ class filtering_fixture : public ::benchmark::Fixture
 
 		auto entities = state.create(eCount);
 
-		state.add_components<float>({{std::pair{0, eCount}}});
-		state.add_components<char>({{std::pair{char_beg, char_end}}});
+		state.add_components<float>(psl::array<entity>{std::begin(entities), std::next(std::begin(entities), eCount)});
+		state.add_components<char>(
+			psl::array<entity>{std::next(std::begin(entities), char_beg), std::next(std::begin(entities), char_end)});
 
-		state.add_components({{std::pair{int_beg, int_end}}}, [](int& i) { i = std::rand() % 1000; });
+		state.add_components(
+			psl::array<entity>{std::next(std::begin(entities), int_beg), std::next(std::begin(entities), int_end)},
+			[](int& i) { i = std::rand() % 1000; });
 	}
 
 	void filter() { state.filter<Ts...>(); }
@@ -202,10 +206,16 @@ BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_on_condition)
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_int)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_float)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_int)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
-BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_int_float)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
-BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_float_int_char)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_int_float)
+	->Unit(benchmark::kMicrosecond)
+	->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_float_int_char)
+	->Unit(benchmark::kMicrosecond)
+	->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_order_by)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
-BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
+	->Unit(benchmark::kMicrosecond)
+	->DenseRange(0, 3);
 
 #endif
 #ifdef BENCHMARK_SYSTEMS
@@ -225,7 +235,7 @@ auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt
 	return copy;
 }
 
-template <typename ...Ts>
+template <typename... Ts>
 void run_system(benchmark::State& gState, state& state, const std::vector<entity>& count)
 {
 	assert(count.size() == 5);

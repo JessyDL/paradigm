@@ -32,7 +32,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 		core::ivk::log->flush();
 		break;
 	case VK_DEBUG_REPORT_ERROR_BIT_EXT:
-		core::ivk::log->error(message.c_str());
+			core::ivk::log->error(message.c_str());
 		core::ivk::log->flush();
 		break;
 	case VK_DEBUG_REPORT_DEBUG_BIT_EXT: core::ivk::log->debug(message.c_str()); break;

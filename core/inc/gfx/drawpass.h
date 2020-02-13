@@ -67,6 +67,6 @@ namespace core::gfx
 		bool dirty() const noexcept { return m_Dirty; }
 	  private:
 		value_type m_Handle;
-		bool m_Dirty{false};
+		bool m_Dirty{true};
 	};
 } // namespace core::gfx

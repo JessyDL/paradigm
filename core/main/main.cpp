@@ -949,9 +949,9 @@ int entry(gfx::graphics_backend backend)
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	core::ecs::systems::geometry_instancing geometry_instancing_system{ECSState};
 
-	/*core::ecs::systems::lighting_system lighting{
+	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
-		swapchain_pass,			  context_handle,		 surface_handle};*/
+		swapchain_pass,			  context_handle,		 surface_handle};
 
 	core::ecs::systems::text text{ECSState,	   cache,		   context_handle, vertexBuffer,
 								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer};
@@ -1012,6 +1012,8 @@ int entry(gfx::graphics_backend backend)
 		ECSState.set_component(textEntity, core::ecs::components::text{str.data()});
 
 		core::profiler.scope_end();
+
+		//static_assert(psl::ecs::details::key_for<float>() != psl::ecs::details::key_for<lifetime>());
 
 		auto current_time = std::chrono::high_resolution_clock::now();
 		elapsed			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
@@ -1094,7 +1096,7 @@ int main()
 	// std::thread vk_thread(entry, graphics_backend::gles);
 	// std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
-	return entry(graphics_backend::gles);
+	entry(graphics_backend::gles);
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);

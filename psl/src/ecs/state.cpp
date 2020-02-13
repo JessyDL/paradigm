@@ -11,16 +11,16 @@ using psl::ecs::details::entity_info;
 constexpr size_t min_thread_entities = 1;
 
 
-state::state(size_t workers, size_t cache_size) : m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{workers})), m_Cache(cache_size)
+state::state(size_t workers, size_t cache_size) : m_Cache(cache_size), m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional{ workers }))
 {
 	m_ModifiedEntities.reserve(65536);
 }
 
 
-std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::dependency_pack>& source,
+psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::dependency_pack>& source,
 														 size_t workers = std::numeric_limits<size_t>::max())
 {
-	std::vector<std::vector<details::dependency_pack>> packs;
+	psl::array<psl::array<details::dependency_pack>> packs;
 
 	if(source.size() == 0) return packs;
 
@@ -63,8 +63,8 @@ std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::de
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
-	std::function<void(state&, std::vector<details::dependency_pack>)> write_data =
-		[](state& state, std::vector<details::dependency_pack> dep_packs) {
+	std::function<void(state&, psl::array<details::dependency_pack>)> write_data =
+		[](state& state, psl::array<details::dependency_pack> dep_packs) {
 			for(const auto& dep_pack : dep_packs)
 			{
 				for(auto& binding : dep_pack.m_RWBindings)
@@ -92,7 +92,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 		auto multi_pack = slice(pack, m_Scheduler->workers());
 
-		// std::vector<std::future<void>> future_commands;
+		// psl::array<std::future<void>> future_commands;
 
 		auto index = info_buffer.size();
 		for(size_t i = 0; i < m_Scheduler->workers(); ++i)
@@ -129,7 +129,6 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 
 		write_data(*this, pack);
 	}
-	//}
 }
 
 
@@ -217,62 +216,9 @@ state::get_component_info(psl::array_view<details::component_key_t> keys) const 
 	}
 	return res;
 }
-// empty construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
-							   size_t size)
-{
-	auto cInfo = get_component_info(key);
-
-	cInfo->add(entities);
-	for(auto range : entities)
-	{
-		for(auto e = range.first; e < range.second; ++e) m_ModifiedEntities.try_insert(e);
-	}
-}
-
-// invocable based construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
-							   size_t size, std::function<void(std::uintptr_t, size_t)> invocable)
-{
-	assert(size != 0);
-	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
-
-	auto offset = cInfo->entities().size();
-	cInfo->add(entities);
-
-	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
-	std::invoke(invocable, location, entities.size());
-
-	for(auto range : entities)
-	{
-		for(auto e = range.first; e < range.second; ++e) m_ModifiedEntities.try_insert(e);
-	}
-}
-
-// prototype based construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities,
-							   size_t size, void* prototype)
-{
-	assert(size != 0);
-	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
-
-	auto offset = cInfo->entities().size();
-	cInfo->add(entities);
-	for(const auto& id_range : entities)
-	{
-		for(auto i = id_range.first; i < id_range.second; ++i)
-		{
-			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
-			m_ModifiedEntities.try_insert(i);
-		}
-	}
-}
-
 
 // empty construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
+void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
 {
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
@@ -282,28 +228,30 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 }
 
 // invocable based construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
+void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities,
 							   std::function<void(std::uintptr_t, size_t)> invocable)
 {
-	assert(size != 0);
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
+	const auto component_size = cInfo->component_size();
+	assert(component_size != 0);
 
 	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
 
-	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
+	auto location = (std::uintptr_t)cInfo->data() + (offset * component_size);
 	std::invoke(invocable, location, entities.size());
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 
 // prototype based construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size,
+void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities,
 							   void* prototype, bool repeat)
 {
-	assert(size != 0);
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
+	const auto component_size = cInfo->component_size();
+	assert(component_size != 0);
 
 	auto offset = cInfo->entities().size();
 
@@ -312,7 +260,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 	{
 		for(auto e : entities)
 		{
-			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * component_size), prototype, component_size);
 			m_ModifiedEntities.try_insert(e);
 		}
 	}
@@ -320,21 +268,10 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 	{
 		for(auto e : entities)
 		{
-			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * component_size), prototype, component_size);
 			m_ModifiedEntities.try_insert(e);
-			prototype = (void*)((std::uintptr_t)prototype + size);
+			prototype = (void*)((std::uintptr_t)prototype + component_size);
 		}
-	}
-}
-
-
-void state::remove_component(details::component_key_t key, psl::array_view<std::pair<entity, entity>> entities) noexcept
-{
-	m_Components[key]->destroy(entities);
-
-	for(auto range : entities)
-	{
-		for(auto e = range.first; e < range.second; ++e) m_ModifiedEntities.try_insert(e);
 	}
 }
 
@@ -343,27 +280,6 @@ void state::remove_component(details::component_key_t key, psl::array_view<entit
 {
 	m_Components[key]->destroy(entities);
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
-}
-
-
-void state::destroy(psl::array_view<std::pair<entity, entity>> entities) noexcept
-{
-	auto count = std::accumulate(std::begin(entities), std::end(entities), entity{0},
-								 [](entity sum, const auto& range) { return sum + (range.second - range.first); });
-	for(auto& [key, cInfo] : m_Components)
-	{
-		cInfo->destroy(entities);
-	}
-
-	m_ToBeOrphans.reserve(count);
-	for(auto range : entities)
-	{
-		for(auto e = range.first; e < range.second; ++e)
-		{
-			m_ToBeOrphans.emplace_back(e);
-			m_ModifiedEntities.try_insert(e);
-		}
-	}
 }
 
 // consider an alias feature
@@ -391,12 +307,7 @@ void state::destroy(entity entity) noexcept
 	m_ModifiedEntities.try_insert(entity);
 }
 
-
-void state::fill_in(details::component_key_t key, psl::array_view<entity> entities,
-					psl::array_view<std::uintptr_t>& data)
-{}
-
-psl::array<entity>::iterator state::filter_remove(details::component_key_t key, psl::array<entity>::iterator& begin,
+psl::array<entity>::iterator state::filter_op(details::component_key_t key, psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
@@ -404,21 +315,21 @@ psl::array<entity>::iterator state::filter_remove(details::component_key_t key, 
 							  : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
 
-psl::array<entity>::iterator state::filter_remove_on_add(details::component_key_t key,
+psl::array<entity>::iterator state::on_add_op(details::component_key_t key,
 														 psl::array<entity>::iterator& begin,
 														 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_added(e); });
 }
-psl::array<entity>::iterator state::filter_remove_on_remove(details::component_key_t key,
+psl::array<entity>::iterator state::on_remove_op(details::component_key_t key,
 															psl::array<entity>::iterator& begin,
 															psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_removed(e); });
 }
-psl::array<entity>::iterator state::filter_remove_except(details::component_key_t key,
+psl::array<entity>::iterator state::on_except_op(details::component_key_t key,
 														 psl::array<entity>::iterator& begin,
 														 psl::array<entity>::iterator& end) const noexcept
 {
@@ -426,7 +337,7 @@ psl::array<entity>::iterator state::filter_remove_except(details::component_key_
 	return (cInfo == nullptr) ? end
 							  : std::partition(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
 }
-psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::component_key_t> keys,
+psl::array<entity>::iterator state::on_break_op(psl::array<details::component_key_t> keys,
 														   psl::array<entity>::iterator& begin,
 														   psl::array<entity>::iterator& end) const noexcept
 {
@@ -446,7 +357,7 @@ psl::array<entity>::iterator state::filter_remove_on_break(psl::array<details::c
 			   });
 }
 
-psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details::component_key_t> keys,
+psl::array<entity>::iterator state::on_combine_op(psl::array<details::component_key_t> keys,
 															 psl::array<entity>::iterator& begin,
 															 psl::array<entity>::iterator& end) const noexcept
 {
@@ -460,350 +371,144 @@ psl::array<entity>::iterator state::filter_remove_on_combine(psl::array<details:
 	});
 }
 
-psl::array<entity> state::filter_seed(details::component_key_t key) const noexcept
-{
-	assert(key != details::key_for<entity>());
-	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? psl::array<entity>{} : psl::array<entity>{cInfo->entities()};
-}
-
-psl::array<entity> state::filter_seed_on_add(details::component_key_t key) const noexcept
-{
-	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? psl::array<entity>{} : psl::array<entity>{cInfo->added_entities()};
-}
-
-psl::array<entity> state::filter_seed_on_remove(details::component_key_t key) const noexcept
-{
-	auto cInfo = get_component_info(key);
-	return (cInfo == nullptr) ? psl::array<entity>{} : psl::array<entity>{cInfo->removed_entities()};
-}
-
-psl::array<entity> state::filter_seed_on_break(psl::array<details::component_key_t> keys) const noexcept
-{
-	auto cInfos = get_component_info(keys);
-	if(cInfos.size() == 0) return psl::array<entity>{};
-	psl::array<entity> storage{cInfos[0]->entities(true)};
-	auto begin = std::begin(storage);
-	auto end   = std::end(storage);
-	end		   = std::remove_if(begin, end, [cInfos](entity e) {
-		   return std::none_of(std::begin(cInfos), std::end(cInfos),
-							   [e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
-				  std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
-					  return !(cInfo->has_component(e) || cInfo->has_removed(e));
-				  });
-	   });
-	storage.erase(end, std::end(storage));
-	return storage;
-}
-
-psl::array<entity> state::filter_seed_on_combine(psl::array<details::component_key_t> keys) const noexcept
-{
-	auto cInfos = get_component_info(keys);
-	if(cInfos.size() == 0) return psl::array<entity>{};
-	psl::array<entity> storage{cInfos[0]->entities()};
-	auto begin = std::begin(storage);
-	auto end   = std::end(storage);
-	end		   = std::remove_if(begin, end, [cInfos](entity e) {
-		   return !std::any_of(std::begin(cInfos), std::end(cInfos),
-							   [e](const details::component_info* cInfo) { return cInfo->has_added(e); }) ||
-				  !std::all_of(std::begin(cInfos), std::end(cInfos),
-							   [e](const details::component_info* cInfo) { return cInfo->has_component(e); });
-	   });
-	storage.erase(end, std::end(storage));
-	return storage;
-}
-
-bool state::filter_seed_best(psl::array_view<details::component_key_t> filters,
-							 psl::array_view<details::component_key_t> added,
-							 psl::array_view<details::component_key_t> removed, psl::array_view<entity>& out,
-							 details::component_key_t& selected) const noexcept
-{
-	size_t count{std::numeric_limits<size_t>::max()};
-
-	auto selection = [this, &count, &selected, &out, all_entities = removed.size() > 0](details::component_key_t key) {
-		const auto& cInfo = get_component_info(key);
-		if(cInfo == nullptr)
-		{
-			count = 0;
-			return;
-		}
-		if(cInfo->entities().size() < count)
-		{
-			out		 = cInfo->entities(all_entities);
-			count	 = out.size();
-			selected = cInfo->id();
-		}
-	};
-
-	auto selection_add = [this, &count, &selected, &out](details::component_key_t key) {
-		const auto& cInfo = get_component_info(key);
-		if(cInfo == nullptr)
-		{
-			count = 0;
-			return;
-		}
-		if(cInfo->added_entities().size() < count)
-		{
-			out		 = cInfo->added_entities();
-			count	 = out.size();
-			selected = cInfo->id();
-		}
-	};
-
-	auto selection_remove = [this, &count, &selected, &out](details::component_key_t key) {
-		const auto& cInfo = get_component_info(key);
-		if(cInfo == nullptr)
-		{
-			count = 0;
-			return;
-		}
-		if(cInfo->removed_entities().size() < count)
-		{
-			out		 = cInfo->removed_entities();
-			count	 = out.size();
-			selected = cInfo->id();
-		}
-	};
-
-
-	std::for_each(std::begin(filters), std::end(filters), selection);
-	std::for_each(std::begin(added), std::end(added), selection_add);
-	std::for_each(std::begin(removed), std::end(removed), selection_remove);
-
-	return count != std::numeric_limits<size_t>::max() && count != 0;
-}
-
-psl::array<std::pair<details::instruction, details::component_key_t>>::const_iterator
-state::smallest_entity_list(const std::vector<std::pair<details::instruction, details::component_key_t>>& filters) const
-	noexcept
-{
-	auto result	 = std::end(filters);
-	size_t count = std::numeric_limits<size_t>::max();
-	for(auto it = std::begin(filters); it != std::end(filters); it = std::next(it))
-	{
-		const auto& cInfo = get_component_info(it->second);
-		if(cInfo == nullptr)
-		{
-			if(it->first == details::instruction::EXCEPT) continue;
-
-			return std::end(filters);
-		}
-		switch(it->first)
-		{
-		// case details::instruction::EXCEPT:
-		case details::instruction::FILTER:
-			if(cInfo->entities().size() < count) result = it;
-			break;
-		case details::instruction::ADD:
-		case details::instruction::COMBINE:
-			if(cInfo->added_entities().size() < count) result = it;
-			break;
-		case details::instruction::REMOVE:
-			if(cInfo->removed_entities().size() < count) result = it;
-			break;
-		case details::instruction::BREAK:
-			if(cInfo->entities(true).size() < count) result = it;
-			break;
-		}
-	}
-
-	return result;
-}
-psl::array<entity> state::initial_filter(const details::dependency_pack& pack) const noexcept
-{
-	psl::array<std::pair<details::instruction, details::component_key_t>> instructions;
-	for(const auto& filter : pack.filters) instructions.emplace_back(details::instruction::FILTER, filter);
-	for(const auto& filter : pack.on_add) instructions.emplace_back(details::instruction::ADD, filter);
-	for(const auto& filter : pack.on_remove) instructions.emplace_back(details::instruction::REMOVE, filter);
-	for(const auto& filter : pack.on_combine) instructions.emplace_back(details::instruction::COMBINE, filter);
-	for(const auto& filter : pack.on_break) instructions.emplace_back(details::instruction::BREAK, filter);
-	// for(const auto& filter : pack.except) instructions.emplace_back(details::instruction::EXCEPT, filter);
-
-	if(auto it = smallest_entity_list(instructions); it != std::end(instructions))
-	{
-		const auto& cInfo = get_component_info(it->second);
-		switch(it->first)
-		{
-		// case details::instruction::EXCEPT:
-		case details::instruction::FILTER: return psl::array<entity>{cInfo->entities()}; break;
-		case details::instruction::ADD:
-		case details::instruction::COMBINE: return psl::array<entity>{cInfo->added_entities()}; break;
-		case details::instruction::REMOVE: return psl::array<entity>{cInfo->removed_entities()}; break;
-		case details::instruction::BREAK: return psl::array<entity>{cInfo->entities(true)}; break;
-		}
-	}
-	return {};
-}
-
-bool state::filter_seed_best(const details::dependency_pack& pack, psl::array_view<entity>& out,
-							 details::component_key_t& selected, details::instruction& instruction) const noexcept
-{
-	psl::array<std::pair<details::instruction, details::component_key_t>> instructions;
-	for(const auto& filter : pack.filters) instructions.emplace_back(details::instruction::FILTER, filter);
-	for(const auto& filter : pack.on_add) instructions.emplace_back(details::instruction::ADD, filter);
-	for(const auto& filter : pack.on_remove) instructions.emplace_back(details::instruction::REMOVE, filter);
-	for(const auto& filter : pack.on_combine) instructions.emplace_back(details::instruction::COMBINE, filter);
-	for(const auto& filter : pack.on_break) instructions.emplace_back(details::instruction::BREAK, filter);
-	// for(const auto& filter : pack.except) instructions.emplace_back(details::instruction::EXCEPT, filter);
-
-	auto it = smallest_entity_list(instructions);
-	if(it == std::end(instructions)) return false;
-	instruction		  = it->first;
-	const auto& cInfo = get_component_info(it->second);
-	switch(it->first)
-	{
-	case details::instruction::EXCEPT:
-	case details::instruction::FILTER: out = cInfo->entities(); break;
-	case details::instruction::ADD:
-	case details::instruction::COMBINE: out = cInfo->added_entities(); break;
-	case details::instruction::REMOVE: out = cInfo->removed_entities(); break;
-	case details::instruction::BREAK: out = cInfo->entities(true); break;
-	}
-	selected = it->second;
-
-	return true;
-}
-
-psl::array<std::pair<details::instruction, psl::array<details::component_key_t>>>
-state::to_instructions(const details::dependency_pack& pack) const noexcept
-{
-	using details::instruction;
-	psl::array<std::pair<details::instruction, psl::array<details::component_key_t>>> res;
-	for(const auto& filter : pack.filters)
-		res.emplace_back(instruction::FILTER, psl::array<details::component_key_t>{filter});
-
-	for(const auto& filter : pack.on_add)
-		res.emplace_back(instruction::ADD, psl::array<details::component_key_t>{filter});
-
-	for(const auto& filter : pack.on_remove)
-		res.emplace_back(instruction::REMOVE, psl::array<details::component_key_t>{filter});
-
-
-	for(const auto& filter : pack.except)
-		res.emplace_back(instruction::EXCEPT, psl::array<details::component_key_t>{filter});
-	res.emplace_back(instruction::COMBINE, pack.on_combine);
-	res.emplace_back(instruction::BREAK, pack.on_break);
-
-	return res;
-}
-
-psl::array<entity> state::filter_seed(
-	psl::array<std::pair<details::instruction, psl::array<details::component_key_t>>>& instructions) const noexcept
-{
-	/*std::sort(std::begin(instructions), std::end(instructions),
-			  [this](const std::pair<details::instruction, psl::array<details::component_key_t>>& instruction) {
-				  switch(instruction.first)
-				  {
-				  case details::instruction::FILTER:
-				  {
-					  const auto& cInfo = get_component_info(instruction.second[0]);
-					  return cInfo->entities().size();
-				  }
-				  break;
-				  case details::instruction::ADD:
-				  {
-					  const auto& cInfo = get_component_info(instruction.second[0]);
-					  return cInfo->added_entities().size();
-				  }
-				  break;
-				  case details::instruction::REMOVE:
-				  {
-					  const auto& cInfo = get_component_info(instruction.second[0]);
-					  return cInfo->removed_entities().size();
-				  }
-				  break;
-				  case details::instruction::EXCEPT:
-				  case details::instruction::BREAK:
-				  case details::instruction::COMBINE: return std::numeric_limits<size_t>::max(); break;
-				  }
-			  });*/
-
-	return {};
-}
-
-
-psl::array<entity>::iterator state::filter(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-										   const details::dependency_pack& pack) const noexcept
-{
-	std::unordered_set<details::component_key_t> processed{};
-	for(auto filter : pack.on_remove)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove_on_remove(filter, begin, end);
-	}
-	if(pack.on_break.size() > 0)
-	{
-		end = filter_remove_on_break(pack.on_break, begin, end);
-	}
-	for(auto filter : pack.on_add)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove_on_add(filter, begin, end);
-	}
-	if(pack.on_combine.size() > 0)
-	{
-		end = filter_remove_on_combine(pack.on_combine, begin, end);
-	}
-	for(auto filter : pack.filters)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove(filter, begin, end);
-	}
-
-	for(auto filter : pack.except)
-	{
-		if(processed.find(filter) != std::end(processed)) continue;
-		processed.emplace(filter);
-		end = filter_remove_except(filter, begin, end);
-	}
-	for(const auto& conditional : pack.on_condition)
-	{
-		end = std::invoke(conditional, begin, end, *this);
-	}
-
-	// std::invoke(pack.orderby, begin, end, *this);
-
-	return end;
-}
-
 psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 {
 	details::filter_group group{pack.filters, pack.on_add, pack.on_remove, pack.except, pack.on_combine, pack.on_break};
 
-	for(const auto& filter_data : m_Filters)
+	auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&group](const filter_data& data) { return data.group == group; });
+	assert(it != std::end(m_Filters));
+
+	auto entities = it->entities;
+	auto begin = std::begin(entities);
+	auto end = std::end(entities);
+
+	for (const auto& conditional : pack.on_condition)
 	{
-		if(filter_data.group.is_superset_of(group) && group.is_superset_of(filter_data.group))
-		{
-			auto entities = filter_data.entities;
-			auto begin	  = std::begin(entities);
-			auto end	  = std::end(entities);
-
-			for(const auto& conditional : pack.on_condition)
-			{
-				end = std::invoke(conditional, begin, end, *this);
-			}
-
-			std::invoke(pack.orderby, begin, end, *this);
-
-			entities.erase(end, std::end(entities));
-
-			assert_debug_break(
-				std::all_of(std::begin(pack.filters), std::end(pack.filters), [this, &entities](auto filter) {
-					auto cInfo = get_component_info(filter);
-					return std::all_of(std::begin(entities), std::end(entities),
-									   [filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
-				}));
-			return entities;
-		}
+		end = std::invoke(conditional, begin, end, *this);
 	}
-	return {};
+
+	std::invoke(pack.orderby, begin, end, *this);
+
+	entities.erase(end, std::end(entities));
+
+	assert_debug_break(
+		std::all_of(std::begin(pack.filters), std::end(pack.filters), [this, &entities](auto filter) {
+			auto cInfo = get_component_info(filter);
+			return std::all_of(std::begin(entities), std::end(entities),
+				[filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
+			}));
+	return entities;
 }
 
-void state::filter(filter_data& data, psl::array_view<entity> source) noexcept
+void state::filter(filter_data& data) const noexcept
+{
+	std::optional<psl::array_view<entity>> source;
+
+	for (auto filter : data.group.on_remove)
+	{
+		auto cInfo = get_component_info(filter);
+		if (!cInfo)
+		{
+			data.entities = {};
+			return;
+		}
+		if (!source || cInfo->removed_entities().size() < source.value().size())
+		{
+			source = cInfo->removed_entities();
+		}
+	}
+	for (auto filter : data.group.on_break)
+	{
+		auto cInfo = get_component_info(filter);
+		if (!cInfo)
+		{
+			data.entities = {};
+			return;
+		}
+		if (!source || cInfo->entities(true).size() < source.value().size())
+		{
+			source = cInfo->entities(true);
+		}
+	}
+	for (auto filter : data.group.on_add)
+	{
+		auto cInfo = get_component_info(filter);
+		if (!cInfo)
+		{
+			data.entities = {};
+			return;
+		}
+		if (!source || cInfo->added_entities().size() < source.value().size())
+		{
+			source = cInfo->added_entities();
+		}
+	}
+	for (auto filter : data.group.on_combine)
+	{
+		auto cInfo = get_component_info(filter);
+		if (!cInfo)
+		{
+			data.entities = {};
+			return;
+		}
+		if (!source || cInfo->entities().size() < source.value().size())
+		{
+			source = cInfo->entities();
+		}
+	}
+
+	for (auto filter : data.group.filters)
+	{
+		auto cInfo = get_component_info(filter);
+		if (!cInfo)
+		{
+			data.entities = {};
+			return;
+		}
+		if (!source || cInfo->entities().size() < source.value().size())
+		{
+			source = cInfo->entities();
+		}
+	}
+
+	if (source)
+	{
+		psl::array<entity> result{ source.value() };
+		auto begin = std::begin(result);
+		auto end = std::end(result);
+
+		for (auto filter : data.group.on_remove)
+		{
+			end = on_remove_op(filter, begin, end);
+		}
+		if (data.group.on_break.size() > 0)
+		{
+			end = on_break_op(data.group.on_break, begin, end);
+		}
+		for (auto filter : data.group.on_add)
+		{
+			end = on_add_op(filter, begin, end);
+		}
+		if (data.group.on_combine.size() > 0) end = on_combine_op(data.group.on_combine, begin, end);
+
+
+		for (auto filter : data.group.filters)
+		{
+			end = filter_op(filter, begin, end);
+		}
+		for (auto filter : data.group.except)
+		{
+			end = on_except_op(filter, begin, end);
+		}
+
+		// todo support order_by and on_condition
+
+		data.entities = { begin, end };
+		return;
+	}
+}
+
+void state::filter(filter_data& data, psl::array_view<entity> source) const noexcept
 {
 	if(source.size() == 0)
 	{
@@ -820,33 +525,29 @@ void state::filter(filter_data& data, psl::array_view<entity> source) noexcept
 
 		for(auto filter : data.group.on_remove)
 		{
-			end = filter_remove_on_remove(filter, begin, end);
+			end = on_remove_op(filter, begin, end);
 		}
 		if(data.group.on_break.size() > 0)
 		{
-			end = filter_remove_on_break(data.group.on_break, begin, end);
+			end = on_break_op(data.group.on_break, begin, end);
 		}
 		for(auto filter : data.group.on_add)
 		{
-			end = filter_remove_on_add(filter, begin, end);
+			end = on_add_op(filter, begin, end);
 		}
-		if(data.group.on_combine.size() > 0) end = filter_remove_on_combine(data.group.on_combine, begin, end);
+		if(data.group.on_combine.size() > 0) end = on_combine_op(data.group.on_combine, begin, end);
 
 
 		for(auto filter : data.group.filters)
 		{
-			end = filter_remove(filter, begin, end);
+			end = filter_op(filter, begin, end);
 		}
 		for(auto filter : data.group.except)
 		{
-			end = filter_remove_except(filter, begin, end);
+			end = on_except_op(filter, begin, end);
 		}
 
-		for(auto filter : data.group.filters)
-		{
-			auto info = get_component_info(filter);
-			assert_debug_break(std::all_of(begin, end, [this, &info](entity e) { return info->has_storage_for(e); }));
-		}
+		// todo support order_by and on_condition
 
 		std::sort(begin, end);
 		if(data.group.clear_every_frame())

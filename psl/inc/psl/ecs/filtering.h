@@ -175,6 +175,22 @@ namespace psl::ecs
 				return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0;
 			}
 
+			bool operator==(const filter_group& other) const noexcept
+			{
+				return std::equal(std::begin(filters), std::end(filters), std::begin(other.filters),
+								  std::end(other.filters)) &&
+					   std::equal(std::begin(on_add), std::end(on_add), std::begin(other.on_add),
+								  std::end(other.on_add)) &&
+					   std::equal(std::begin(on_remove), std::end(on_remove), std::begin(other.on_remove),
+								  std::end(other.on_remove)) &&
+					   std::equal(std::begin(except), std::end(except), std::begin(other.except),
+								  std::end(other.except)) &&
+					   std::equal(std::begin(on_combine), std::end(on_combine), std::begin(other.on_combine),
+								  std::end(other.on_combine)) &&
+					   std::equal(std::begin(on_break), std::end(on_break), std::begin(other.on_break),
+								  std::end(other.on_break));
+			}
+
 		  private:
 			friend class ::psl::ecs::state;
 			using component_key_t = psl::ecs::details::component_key_t;

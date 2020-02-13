@@ -51,6 +51,6 @@ namespace core::gfx
 		psl::array<graph_element> m_Passes;
 		psl::array<psl::array<graph_element*>> m_Graph;
 
-		bool m_Rebuild{false};
+		bool m_Rebuild{true};
 	};
 } // namespace core::gfx

@@ -67,16 +67,27 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #endif
 
 #if !defined(NDEBUG) || (NDEBUG == 0)
-#define assert_debug_break(condition) \
-if(!(condition))	\
-{							\
-	debug_break();			\
-}							
+#define assert_debug_break(condition)                                                                                  \
+	if(!(condition))                                                                                                   \
+	{                                                                                                                  \
+		debug_break();                                                                                                 \
+	}
 #else
 #define assert_debug_break(condition)
 #endif
 
+#ifdef assert
+#undef assert
+#ifdef NDEBUG
 
+#define assert(expression) ((void)0)
+
+#else
+
+#define assert(expression) (void)((!!(expression)) || (debug_break(), 0))
+
+#endif
+#endif
 
 
 #if !defined(NDEBUG) || (NDEBUG == 0)

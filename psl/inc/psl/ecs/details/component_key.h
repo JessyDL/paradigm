@@ -1,7 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <type_traits>
-
+#include "../selectors.h"
 namespace psl::ecs::details
 {
 	// added to trick the compiler to not throw away the results at compile time
@@ -23,6 +23,7 @@ namespace psl::ecs::details
 	template <typename T>
 	constexpr component_key_t key_for()
 	{
-		return component_key<typename std::decay<T>::type>;
+		using type = typename std::decay<T>::type;
+		return component_key<type>;
 	};
 } // namespace psl::ecs::details
