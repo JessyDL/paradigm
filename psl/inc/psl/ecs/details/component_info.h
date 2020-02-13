@@ -202,7 +202,7 @@ namespace psl::ecs::details
 		component_info_typed() : component_info(details::key_for<T>(), 0){};
 
 
-		void* data() noexcept override { return m_Entities.data(); }
+		void* data() noexcept override { return nullptr; }
 
 		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
 
@@ -263,7 +263,7 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		details::staged_sparse_array<uint8_t, entity> m_Entities;
+		details::staged_sparse_array<void, entity> m_Entities;
 	};
 } // namespace psl::ecs::details
 

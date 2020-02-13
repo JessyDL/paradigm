@@ -444,7 +444,7 @@ TEST_CASE("systems", "[ECS]")
 			expected += new_count;
 		});
 
-		while(expected <= 10'000) state.tick(std::chrono::duration<float>(0.1f));
+		while(expected <= 1'000) state.tick(std::chrono::duration<float>(0.1f));
 	}
 
 	SECTION("continuous addition from external")
@@ -467,7 +467,7 @@ TEST_CASE("systems", "[ECS]")
 			}
 		});
 
-		while(expected <= 10'000)
+		while(expected <= 1'000)
 		{
 			state.tick(std::chrono::duration<float>(0.1f));
 

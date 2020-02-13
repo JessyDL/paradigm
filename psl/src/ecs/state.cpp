@@ -60,74 +60,6 @@ std::vector<std::vector<details::dependency_pack>> slice(std::vector<details::de
 	return packs;
 }
 
-std::shared_ptr<std::vector<std::vector<details::dependency_pack>>>
-shared_slice(std::vector<details::dependency_pack>& source, size_t workers = std::numeric_limits<size_t>::max())
-{
-	std::shared_ptr<std::vector<std::vector<details::dependency_pack>>> shared_packs =
-		std::make_shared<std::vector<std::vector<details::dependency_pack>>>();
-
-	if(source.size() == 0) return shared_packs;
-
-	auto [smallest_batch, largest_batch] =
-		std::minmax_element(std::begin(source), std::end(source),
-							[](const auto& lhs, const auto& rhs) { return lhs.entities() < rhs.entities(); });
-	workers			 = std::min<size_t>(workers, std::thread::hardware_concurrency());
-	auto max_workers = std::max<size_t>(1u, std::min(workers, largest_batch->entities() % min_thread_entities));
-
-	// To guard having systems run with concurrent packs that have no data in them.
-	// Doing so would seem counter-intuitive to users
-	while((float)smallest_batch->entities() / (float)max_workers < 1.0f && max_workers > 1)
-	{
-		--max_workers;
-	}
-	workers = max_workers;
-
-	shared_packs->resize(workers);
-	for(auto& dep_pack : source)
-	{
-		if(dep_pack.allow_partial())
-		{
-			auto batch_size = dep_pack.entities() / workers;
-			size_t processed{0};
-			for(auto i = 0; i < workers - 1; ++i)
-			{
-				(*shared_packs)[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
-				processed += batch_size;
-			}
-			(*shared_packs)[shared_packs->size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
-		}
-		else // if packs cannot be split, then emplace the 'full' data
-		{
-			for(auto i = 0; i < workers; ++i) (*shared_packs)[i].emplace_back(dep_pack);
-		}
-	}
-	return shared_packs;
-}
-
-psl::array<psl::array<entity>> slice(psl::array_view<entity> source,
-									 size_t workers = std::numeric_limits<size_t>::max())
-{
-	psl::array<psl::array<entity>> res;
-
-	workers = std::min<size_t>(workers, std::thread::hardware_concurrency());
-	workers = std::max<size_t>(1u, std::min(workers, source.size() % min_thread_entities));
-
-	res.reserve(workers);
-
-	auto current = std::begin(source);
-	for(auto i = 0u; i < workers - 1; ++i)
-	{
-		auto next = std::next(current, source.size() / workers);
-
-		res.emplace_back(current, next);
-		current = next;
-	}
-
-	res.emplace_back(current, std::end(source));
-	return res;
-}
-
-
 void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset, details::system_information& information)
 {
@@ -1013,7 +945,7 @@ void state::execute_command_buffer(info& info)
 	}
 	for(auto& component_src : buffer.m_Components)
 	{
-		if(!component_src->entities(true).size() == 0) continue;
+		if(component_src->entities(true).size() == 0) continue;
 		auto component_dst = get_component_info(component_src->id());
 
 		component_src->remap(remapped_entities, [first = buffer.m_First](entity e) -> bool { return e >= first; });
