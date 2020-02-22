@@ -11,6 +11,11 @@
 #undef major
 #endif
 
+#ifdef VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
+VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
+static vk::DynamicLoader dl;
+#endif
+
 using namespace psl;
 using namespace core::ivk;
 using namespace core::os;
@@ -32,7 +37,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 		core::ivk::log->flush();
 		break;
 	case VK_DEBUG_REPORT_ERROR_BIT_EXT:
-			core::ivk::log->error(message.c_str());
+		core::ivk::log->error(message.c_str());
 		core::ivk::log->flush();
 		break;
 	case VK_DEBUG_REPORT_DEBUG_BIT_EXT: core::ivk::log->debug(message.c_str()); break;
@@ -92,40 +97,37 @@ struct VKAPIVersion
 	const uint32_t minor;
 	const uint32_t patch;
 };
-
 context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				 psl::string8::view name, uint32_t deviceIndex)
 	: m_DeviceIndex(deviceIndex)
 {
-#if defined(VK_DYNAMIC_DISPATCH_VOLK)
-	if(volkInitialize() != VkResult::VK_SUCCESS)
-	{
-		core::ivk::log->critical("could not initialize volk, exiting now");
-		exit(1);
-	}
+#ifndef VK_STATIC
+	// todo load library ourselves, not through the vulkan dynamic loader solution
+	//HMODULE module = LoadLibraryA("vulkan-1.dll");
+	//if (!module)
+	//	throw std::runtime_error("no vulkan library detected");
+
+	PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =
+		dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+	VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 #endif
 
 	uint32_t extensionCount = 0;
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, nullptr);
-	std::vector<VkExtensionProperties> extensions(extensionCount);
-	vkEnumerateInstanceExtensionProperties(nullptr, &extensionCount, extensions.data());
-
-	for(const auto& ext : extensions)
+	auto extensions			= vk::enumerateInstanceExtensionProperties();
+	for(const auto& ext : extensions.value)
 	{
 		core::ivk::log->info("instance extension: {}", psl::string(&ext.extensionName[0]));
 	}
 	uint32_t instanceCount = 0;
-	vkEnumerateInstanceLayerProperties(&instanceCount, nullptr);
-	std::vector<VkLayerProperties> instances(instanceCount);
-	vkEnumerateInstanceLayerProperties(&instanceCount, instances.data());
+	auto instances		   = vk::enumerateInstanceLayerProperties();
 
-	for(const auto& inst : instances)
+	for(const auto& inst : instances.value)
 	{
 		core::ivk::log->info("instance layer: {}", psl::string(&inst.layerName[0]));
 	}
 	if(m_Validated)
 	{
-		m_InstanceLayerList.push_back("VK_LAYER_LUNARG_standard_validation");
+		m_InstanceLayerList.push_back("VK_LAYER_KHRONOS_validation");
 		m_InstanceExtensionList.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	}
 
@@ -134,7 +136,6 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 
 	m_InstanceExtensionList.push_back(VK_SURFACE_EXTENSION_NAME);
 
-
 	vk::ApplicationInfo appInfo;
 	appInfo.pApplicationName = name.data();
 	appInfo.pEngineName		 = APPLICATION_NAME.data();
@@ -142,7 +143,7 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	assert_debug_break(VERSION_MINOR < std::pow(2, 10));
 	assert_debug_break(VERSION_PATCH < std::pow(2, 12));
 	appInfo.engineVersion = (((VERSION_MAJOR) << 22) | ((VERSION_MINOR) << 12) | (VERSION_PATCH));
-	appInfo.apiVersion	= VK_VERSION_LATEST_PATCH;
+	appInfo.apiVersion	  = VK_VERSION_LATEST_PATCH;
 
 	vk::InstanceCreateInfo instanceCI;
 	instanceCI.pApplicationInfo = &appInfo;
@@ -163,11 +164,8 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 		core::ivk::log->critical("Could not create a Vulkan instance.");
 		std::exit(-1);
 	}
-#if defined(VK_DYNAMIC_DISPATCH_VOLK)
-	volkLoadInstance(m_Instance);
+	VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Instance);
 
-	VKAPIVersion volkinstance_version{volkGetInstanceVersion()};
-#endif
 	init_debug();
 	init_device();
 
@@ -516,37 +514,24 @@ context::~context()
 	deinit_device();
 	deinit_debug();
 	m_Instance.destroy();
-#if defined(VK_DYNAMIC_DISPATCH_VOLK)
-	// todo: get rid of volk that doesn't even clean its own memory..
-	// volkFree();
-#endif
+
 	core::ivk::log->info("vulkan context destroyed");
 }
 
 void context::init_debug()
 {
-	if(m_Validated)
+	if (m_Validated)
 	{
-		PFN_vkCreateDebugReportCallbackEXT fnp_vkCreateDebugReportCallbackEXT =
-			reinterpret_cast<PFN_vkCreateDebugReportCallbackEXT>(
-				vkGetInstanceProcAddr(m_Instance, "vkCreateDebugReportCallbackEXT"));
-		// PFN_vkDebugReportMessageEXT vkDebugReportMessageEXT =
-		//	reinterpret_cast<PFN_vkDebugReportMessageEXT>(vkGetInstanceProcAddr(m_Instance, "vkDebugReportMessageEXT"));
+		vk::DebugReportCallbackCreateInfoEXT callbackCreateInfo{};
+		callbackCreateInfo.flags = vk::DebugReportFlagBitsEXT::eInformation | vk::DebugReportFlagBitsEXT::eWarning |
+			vk::DebugReportFlagBitsEXT::ePerformanceWarning | vk::DebugReportFlagBitsEXT ::eError|
+			vk::DebugReportFlagBitsEXT::eDebug;
 
-		VkDebugReportCallbackCreateInfoEXT callbackCreateInfo;
-		callbackCreateInfo.sType = VK_STRUCTURE_TYPE_DEBUG_REPORT_CREATE_INFO_EXT;
-		callbackCreateInfo.pNext = nullptr;
-
-		callbackCreateInfo.flags = VK_DEBUG_REPORT_INFORMATION_BIT_EXT | VK_DEBUG_REPORT_WARNING_BIT_EXT |
-								   VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT | VK_DEBUG_REPORT_ERROR_BIT_EXT |
-								   VK_DEBUG_REPORT_DEBUG_BIT_EXT;
-		// VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT;
 		callbackCreateInfo.pfnCallback = &VulkanDebugCB;
-		callbackCreateInfo.pUserData   = nullptr;
 
-		/* Register the callback */
-		utility::vulkan::check(
-			fnp_vkCreateDebugReportCallbackEXT(m_Instance, &callbackCreateInfo, nullptr, &m_DebugReport));
+		vk::Result success;
+		std::tie(success, m_DebugReport) = m_Instance.createDebugReportCallbackEXT(callbackCreateInfo);
+		utility::vulkan::check(success);
 	}
 }
 
@@ -554,11 +539,7 @@ void context::deinit_debug()
 {
 	if(m_Validated)
 	{
-		PFN_vkDestroyDebugReportCallbackEXT fnp_vkDestroyDebugReportCallbackEXT =
-			reinterpret_cast<PFN_vkDestroyDebugReportCallbackEXT>(
-				vkGetInstanceProcAddr(m_Instance, "vkDestroyDebugReportCallbackEXT"));
-
-		if(fnp_vkDestroyDebugReportCallbackEXT) fnp_vkDestroyDebugReportCallbackEXT(m_Instance, m_DebugReport, nullptr);
+		m_Instance.destroyDebugReportCallbackEXT(m_DebugReport);
 	}
 }
 
@@ -623,20 +604,15 @@ void context::init_device()
 {
 	select_physical_device(m_Instance.enumeratePhysicalDevices().value);
 
-	uint32_t extensionCount;
-	vkEnumerateDeviceExtensionProperties((VkPhysicalDevice)m_PhysicalDevice, nullptr, &extensionCount, nullptr);
-	std::vector<VkExtensionProperties> extensions{extensionCount};
-	vkEnumerateDeviceExtensionProperties((VkPhysicalDevice)m_PhysicalDevice, nullptr, &extensionCount,
-										 extensions.data());
+	std::vector<vk::ExtensionProperties> extensions{m_PhysicalDevice.enumerateDeviceExtensionProperties().value};
+
 	for(const auto& ext : extensions)
 	{
 		core::ivk::log->info("device extension: {}", psl::string(&ext.extensionName[0]));
 	}
 
-	uint32_t layersCount;
-	vkEnumerateDeviceLayerProperties((VkPhysicalDevice)m_PhysicalDevice, &layersCount, nullptr);
-	std::vector<VkLayerProperties> layers{layersCount};
-	vkEnumerateDeviceLayerProperties((VkPhysicalDevice)m_PhysicalDevice, &layersCount, layers.data());
+	std::vector<vk::LayerProperties> layers{m_PhysicalDevice.enumerateDeviceLayerProperties().value};
+
 	for(const auto& lyr : layers)
 	{
 		core::ivk::log->info("device layer: {}", psl::string(&lyr.layerName[0]));
@@ -698,8 +674,8 @@ void context::init_device()
 		m_Device.getQueue(m_TransferQueueIndex, 0, &m_TransferQueue);
 	}
 
-#if defined(VK_DYNAMIC_DISPATCH_VOLK)
-	volkLoadDevice(m_Device);
+#if !defined(VK_STATIC)
+	VULKAN_HPP_DEFAULT_DISPATCHER.init(m_Device);
 #endif
 }
 
@@ -711,15 +687,15 @@ vk::Result context::create_device(vk::DeviceQueueCreateInfo* requestedQueues, ui
 	vk::DeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.pNext				  = NULL;
 	deviceCreateInfo.queueCreateInfoCount = queueSize;
-	deviceCreateInfo.pQueueCreateInfos	= requestedQueues;
-	deviceCreateInfo.pEnabledFeatures	 = &m_PhysicalDeviceFeatures;
+	deviceCreateInfo.pQueueCreateInfos	  = requestedQueues;
+	deviceCreateInfo.pEnabledFeatures	  = &m_PhysicalDeviceFeatures;
 
-	deviceCreateInfo.enabledExtensionCount   = (uint32_t)m_DeviceExtensionList.size();
+	deviceCreateInfo.enabledExtensionCount	 = (uint32_t)m_DeviceExtensionList.size();
 	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensionList.data();
 
 	if(m_Validated)
 	{
-		deviceCreateInfo.enabledLayerCount   = (uint32_t)m_DeviceLayerList.size();
+		deviceCreateInfo.enabledLayerCount	 = (uint32_t)m_DeviceLayerList.size();
 		deviceCreateInfo.ppEnabledLayerNames = m_DeviceLayerList.data();
 	}
 
@@ -818,7 +794,7 @@ void context::flush(vk::CommandBuffer commandBuffer, bool free)
 
 	vk::SubmitInfo submitInfo;
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers	= &commandBuffer;
+	submitInfo.pCommandBuffers	  = &commandBuffer;
 
 	vk::FenceCreateInfo fenceCreateInfo = {};
 	fenceCreateInfo.flags				= vk::FenceCreateFlagBits(0u);

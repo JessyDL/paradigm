@@ -60,6 +60,7 @@ void drawpass::present()
 				render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
 			}
 			std::sort(std::begin(render_indices), std::end(render_indices));
+			render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)), std::end(render_indices));
 			for(auto renderLayer : render_indices)
 			{
 				for(auto& drawCall : drawLayer.second)

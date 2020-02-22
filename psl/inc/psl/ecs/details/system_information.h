@@ -36,30 +36,6 @@ namespace psl::ecs
 
 namespace psl::ecs::details
 {
-	template <typename T, typename Fn>
-	void insertion_sort(T&& first, T&& last, Fn&& pred)
-	{
-		/*for(auto it = std::next(first); it != last; ++it)
-		{
-			auto curr = it;
-			while(curr != first && std::invoke(pred, *it, *std::prev(curr)))
-			{
-				curr = std::prev(curr);
-			}
-			std::swap(*curr, *it);
-		}*/
-	}
-
-	template <typename Sorter, typename... Ts>
-	struct sorting
-	{
-		template <typename... Ys>
-		bool operator()(const psl::tuple_ref<Ys...>& lhs, const psl::tuple_ref<Ys...>& rhs) const noexcept
-		{
-			return false;
-		}
-	};
-
 	/// \brief describes a set of dependencies for a given system
 	///
 	/// systems can have various dependencies, for example a movement system could have

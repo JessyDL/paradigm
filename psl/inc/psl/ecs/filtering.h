@@ -4,12 +4,72 @@
 #include "psl/array.h"
 #include "psl/template_utils.h"
 #include "psl/ecs/pack.h"
+#include <execution>
 
 namespace psl::ecs
 {
 	class state;
 	namespace details
 	{
+		// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
+		class transform_group
+		{
+			using ordering_pred_t	 = void(psl::array<entity>::iterator, psl::array<entity>::iterator,
+											const psl::ecs::state&);
+			using conditional_pred_t = psl::array<entity>::iterator(psl::array<entity>::iterator,
+																	psl::array<entity>::iterator,
+																	const psl::ecs::state&);
+			template <typename T>
+			constexpr void selector(psl::templates::type_container<T>) noexcept
+			{}
+
+			template <typename Pred, typename... Ts>
+			constexpr void selector(psl::templates::type_container<order_by<Pred, Ts...>>) noexcept
+			{
+				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+							  const psl::ecs::state& state) {
+					state.order_by<Pred, Ts...>(std::execution::par, begin, end);
+				};
+			}
+
+			template <typename Pred, typename... Ts>
+			constexpr void selector(psl::templates::type_container<on_condition<Pred, Ts...>>) noexcept
+			{
+				on_condition.emplace_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+											 const psl::ecs::state& state) -> psl::array<entity>::iterator {
+					return state.on_condition<Pred, Ts...>(begin, end);
+				});
+			}
+
+		  public:
+			template <typename... Ts>
+			transform_group(psl::templates::type_container<Ts>...)
+			{
+				(void(selector(psl::templates::type_container<Ts>())), ...);
+			};
+			~transform_group() = default;
+
+			transform_group(const transform_group& other)	  = default;
+			transform_group(transform_group&& other) noexcept = default;
+			transform_group& operator=(const transform_group& other) = default;
+			transform_group& operator=(transform_group&& other) noexcept = default;
+
+			psl::array<entity>::iterator transform(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+						   const state& state) const noexcept
+			{
+				for(const auto& condition : on_condition) end = condition(begin, end, state);
+
+				order_by(begin, end, state);
+				return end;
+			}
+
+		  private:
+			std::function<ordering_pred_t> order_by;
+
+			psl::array<std::function<conditional_pred_t>> on_condition;
+		};
+
+
 		class filter_group
 		{
 			template <typename T>
@@ -57,8 +117,8 @@ namespace psl::ecs
 				(void(on_remove.emplace_back(details::key_for<Ts>())), ...);
 			}
 
-			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<order_by<Ts...>>) noexcept
+			template <typename Pred, typename... Ts>
+			constexpr void selector(psl::templates::type_container<order_by<Pred, Ts...>>) noexcept
 			{}
 
 			template <typename... Ts>
@@ -209,26 +269,6 @@ namespace psl::ecs
 			return filter_group{psl::templates::type_container<Ts>{}...};
 		}
 
-		// template <typename... Ts>
-		// auto make_filter_group(std::tuple<Ts...>)
-		//{
-		//	if constexpr (sizeof...(Ts) == 0)
-		//	{
-
-		//	}
-		//	if constexpr(sizeof...(Ts) == 1)
-		//	{
-		//		//return filter_group{ psl::templates::type_container<Ts...>{} };
-		//		return make_filter_group(psl::templates::type_container<Ts>{}...);
-		//	}
-		//	else
-		//	{
-		//		psl::array<filter_group> groups;
-		//		(void(groups.emplace_back(make_filter_group(psl::templates::type_container<Ts>{}))), ...);
-		//		return groups;
-		//	}
-		//}
-
 		template <typename T>
 		auto make_filter_group(T)
 		{
@@ -246,6 +286,33 @@ namespace psl::ecs
 			{
 				psl::array<filter_group> groups;
 				(void(groups.emplace_back(make_filter_group(psl::templates::type_container<Ts>{}))), ...);
+				return groups;
+			}
+		}
+
+		template <typename... Ts>
+		filter_group make_transform_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
+		{
+			return transform_group{ psl::templates::type_container<Ts>{}... };
+		}
+
+		template <typename T>
+		auto make_transform_group(T)
+		{
+			static_assert(false);
+		}
+
+		template <typename... Ts>
+		auto make_transform_group(psl::templates::type_container<std::tuple<Ts...>>)
+		{
+			if constexpr (sizeof...(Ts) == 1)
+			{
+				return make_transform_group(psl::templates::type_container<Ts>{}...);
+			}
+			else
+			{
+				psl::array<transform_group> groups;
+				(void(groups.emplace_back(make_transform_group(psl::templates::type_container<Ts>{}))), ...);
 				return groups;
 			}
 		}

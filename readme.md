@@ -1,6 +1,6 @@
 
 
-![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.1.108.0-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
+![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.2-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
 
 # Paradigm Engine
 Paradigm Engine is a Vulkan first modern graphics rendering engine written in C++17 with support for GLES (3.2). It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice. C# bindings will be provided; as well as an example projects showcasing simple gameplay.
@@ -19,12 +19,12 @@ For more detailed description about the engine itself, go to the readme of the `
 ## Status
 | Architecture| Status        | Unit Tests | Vulkan| GLeS| Metal|
 :-------------|:-------------| -----:|:---:|:---:|:---:
-| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions)| [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?label=tests&logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions) | 1.1.118.0| 3.1 - 3.2| - |
-| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions) | [![github actions](https://shields-staging-pr-3898.herokuapp.com/github/actions/jessydl/paradigm/paradigm?label=tests&logo=github&style=for-the-badge)](https://github.com/JessyDL/paradigm/actions)|  1.1.118.0| -| - |
+| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions)| [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions) | 1.2 | 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions) | [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions)|  1.2 | -| - |
 | ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | -| -| - |
 | ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - |  -| -| - |
-| ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | 1.1.118.0| 3.1 - 3.2| - |
-| ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | 1.1.118.0| 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | 1.2| 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | 1.2| 3.1 - 3.2| - |
 ## Building
 ### Prerequisites
 Python 3+
@@ -33,7 +33,7 @@ Python 3+
 ### Creating the project files
 You can build the libraries using the provided paradigm.py file that can be invoked, or by invoking cmake directly. The paradigm.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
 
-So far only MSVC (2019), and CLang (6.0.0) with LLVM 7 - 8 and libc++ are supported. The project will likely incorrectly generate for other compilers/setups.
+So far only MSVC (2019), and CLang (6.0.0) with LLVM 7 - 8 and libc++ are supported. The project will *likely* incorrectly generate for other compilers/setups.
 
 If lost, the docker folder contains a setup environment for both linux (ubuntu), as well as windows. You can see all dependencies your platform needs right there.
 
@@ -41,7 +41,7 @@ If lost, the docker folder contains a setup environment for both linux (ubuntu),
 The paradigm script is a helper script that can invoke, amongst others, the builder script (tools/build.py). Invoke the builder script using `--run build`, this will set everything up quick and easy. It will generate a solution in the `/project_file/{generator}/{architecture}/` folder by default, and when building it will output to `/builds/{generator}/{architecture}/`.
 You can tweak various settings and values, you'll find them at the top of the `tools/build.py` file.
 
-As an example running `py paradigm.py --run build --graphics vulkan gles --generator Ninja --cmake_params="-DPE_MODE=EXE"` will set up the project as an executable, with all available graphics backends, using the Ninja build tool.
+As an example running `py paradigm.py --run build --graphics vulkan gles --generator Ninja` will set up the project as an executable, with all available graphics backends, using the Ninja build tool.
 #### cmake
 The less easy way, but perhaps better and easier to integrate. The values that are required to be set can be seen in the cmake invocation in build.py, but will be repeated here:
 -`DBUILD_DIRECTORY="path/to/where/to/build/to"` (not to be confused with where the project files will be)
@@ -84,7 +84,6 @@ You can find internal and (public) release builds in the tags on this repo.
 The following external libraries may be used in one, or many of the sub projects. The specific project readme's will describe their dependencies in more detail so you can always verify which project uses what.
 - `GLI` image loading and saving
 - `GLM` mathematics library used only by `GLI`
-- `volk` dynamic bindings for vulkan
 - `Vulkan-hpp` generated C++ like headers for Vulkan
 - `Catch2` when compiling the tests, Catch2 will be pulled in.
 - `spdlog` used for logging

@@ -88,7 +88,7 @@ endif()
 
 
 if(NOT VK_STATIC AND NOT PE_SOURCE_ONLY)	
-	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES;-DVK_DYNAMIC_DISPATCH_VOLK)
+	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES)
 elseif(VK_STATIC)
 	list(APPEND PE_DEFINES -DVK_STATIC)
 endif()
@@ -164,6 +164,8 @@ if(PE_GLES)
 		list(APPEND PE_DL_LIBS ${OPENGL_LIBRARIES})
 endif()
 
+set(CXX_EXTENSIONS OFF)
+
 if(MSVC) # we currently make no distinction for CLang (todo)
 	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)
@@ -188,13 +190,13 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 							
 	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF")
 	SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "/INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG")
-	SET(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF /LTCG:incremental")
+	SET(CMAKE_EXE_LINKER_FLAGS_RELWITHDEBINFO "/INCREMENTAL /DEBUG /OPT:REF /OPT:NOICF /LTCG:incremental")
 	SET(CMAKE_EXE_LINKER_FLAGS_RELNOOPTIMIZATION "/INCREMENTAL /OPT:NOREF /OPT:NOICF")
 else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
-	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++;-fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-std=c++1z;-g)
+	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++;-fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g)
 	list(APPEND PE_DL_LIBS c++fs)
 	
 	list(APPEND PE_COMPILE_OPTIONS

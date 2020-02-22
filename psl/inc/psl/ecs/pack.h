@@ -102,13 +102,13 @@ namespace psl::ecs
 			return m_Pack.template get<N>();
 		}
 
-		auto operator[](size_t index) const noexcept { return m_Pack[index]; }
+		auto operator[](size_t index) const noexcept { return m_Pack.unpack(index); }
 
-		auto operator[](size_t index) noexcept { return m_Pack[index]; }
+		auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
 
-		auto begin() const noexcept -> typename pack_t::iterator { return std::begin(m_Pack); }
+		auto begin() const noexcept -> typename pack_t::unpack_iterator { return m_Pack.unpack_begin(); }
 
-		auto end() const noexcept -> typename pack_t::iterator { return std::end(m_Pack); }
+		auto end() const noexcept -> typename pack_t::unpack_iterator { return m_Pack.unpack_end(); }
 		constexpr size_t size() const noexcept { return m_Pack.size(); }
 
 	  private:

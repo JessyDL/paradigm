@@ -26,7 +26,7 @@ namespace core::ivk
 		struct specialization
 		{
 			psl::string8_t name;
-			specialization() : name(u8"main"){};
+			specialization() : name("main") {};
 			specialization(const specialization& other) : name(other.name) {}
 
 			bool operator==(const specialization& other) const { return name == other.name; }

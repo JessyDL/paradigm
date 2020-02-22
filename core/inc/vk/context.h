@@ -243,7 +243,7 @@ namespace core::ivk
 		vk::Queue m_Queue		  = nullptr;
 		vk::Queue m_TransferQueue = nullptr;
 
-		VkDebugReportCallbackEXT m_DebugReport;
+		vk::DebugReportCallbackEXT m_DebugReport;
 		// VkDebugReportCallbackCreateInfoEXT debugCBCI;
 
 

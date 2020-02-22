@@ -42,7 +42,7 @@ void geometry_instancing::dynamic_system(
 
 	for (uint32_t i = 0; i < (uint32_t)geometry_pack.size(); ++i)
 	{
-		const auto& renderer = std::get<const renderable>(geometry_pack[i]);
+		const auto& renderer = std::get<const renderable&>(geometry_pack[i]);
 		if (!renderer.bundle)
 			continue;
 		if (UniqueCombinations[renderer.bundle].find(renderer.geometry) == std::end(UniqueCombinations[renderer.bundle]))
@@ -62,7 +62,7 @@ void geometry_instancing::dynamic_system(
 		for (const auto& [geometryUID, geometryData] : unique_bundle.second)
 		{
 			const auto& renderer =
-				std::get<const renderable>(geometry_pack[geometryData.startIndex]);
+				std::get<const renderable&>(geometry_pack[geometryData.startIndex]);
 			auto bundleHandle = renderer.bundle;
 			auto geometryHandle = renderer.geometry;
 
@@ -75,7 +75,7 @@ void geometry_instancing::dynamic_system(
 				for (auto i = 0; i < range; ++i, ++indicesCompleted)
 				{
 					const auto& transform =
-						std::get<const core::ecs::components::transform>(geometry_pack[indicesCompleted + geometryData.startIndex]);
+						std::get<const core::ecs::components::transform&>(geometry_pack[indicesCompleted + geometryData.startIndex]);
 					const psl::mat4x4 translationMat = translate(transform.position);
 					const psl::mat4x4 rotationMat = to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat = scale(transform.scale);
@@ -105,7 +105,7 @@ void geometry_instancing::static_add(
 
 	for(uint32_t i = 0; i < (uint32_t)geometry_pack.size(); ++i)
 	{
-		const auto& renderer = std::get<const renderable>(geometry_pack[i]);
+		const auto& renderer = std::get<const renderable&>(geometry_pack[i]);
 		if(!renderer.bundle) continue;
 		if(UniqueCombinations[renderer.bundle].find(renderer.geometry) == std::end(UniqueCombinations[renderer.bundle]))
 			UniqueCombinations[renderer.bundle].emplace(renderer.geometry, geometry_instance{i, 0});
@@ -123,7 +123,7 @@ void geometry_instancing::static_add(
 
 		for(const auto& [geometryUID, geometryData] : unique_bundle.second)
 		{
-			const auto& renderer = std::get<const renderable>(geometry_pack[geometryData.startIndex]);
+			const auto& renderer = std::get<const renderable&>(geometry_pack[geometryData.startIndex]);
 			auto bundleHandle	= renderer.bundle;
 			auto geometryHandle  = renderer.geometry;
 
@@ -135,13 +135,13 @@ void geometry_instancing::static_add(
 				for(auto i = startIndex; i < endIndex; ++i, ++indicesCompleted)
 				{
 					const auto& transform =
-						std::get<const core::ecs::components::transform>(geometry_pack[indicesCompleted + geometryData.startIndex]);
+						std::get<const core::ecs::components::transform&>(geometry_pack[indicesCompleted + geometryData.startIndex]);
 					const psl::mat4x4 translationMat = translate(transform.position);
 					const psl::mat4x4 rotationMat	= to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat		 = scale(transform.scale);
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 
-					eIds[0] = std::get<entity>(geometry_pack[indicesCompleted + geometryData.startIndex]);
+					eIds[0] = std::get<entity&>(geometry_pack[indicesCompleted + geometryData.startIndex]);
 					info.command_buffer.add_components<instance_id>(eIds, instance_id{i});
 				}
 				bundleHandle->set(geometryHandle, startIndex, psl::string{core::gfx::constants::INSTANCE_MODELMATRIX},

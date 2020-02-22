@@ -131,7 +131,6 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	}
 }
 
-
 void state::tick(std::chrono::duration<float> dTime)
 {
 	m_LockState			   = 1;
@@ -139,9 +138,9 @@ void state::tick(std::chrono::duration<float> dTime)
 	std::sort(std::begin(modified_entities), std::end(modified_entities));
 
 	// apply filterings
-	for(auto& filter_data : m_Filters)
+	for(auto& filter_result : m_Filters)
 	{
-		filter(filter_data, modified_entities);
+		filter(filter_result, modified_entities);
 	}
 
 	m_ModifiedEntities.clear();
@@ -307,6 +306,14 @@ void state::destroy(entity entity) noexcept
 	m_ModifiedEntities.try_insert(entity);
 }
 
+void state::reset(psl::array_view<entity> entities) noexcept
+{
+	for (auto& [key, cInfo] : m_Components)
+	{
+		cInfo->destroy(entities);
+	}
+}
+
 psl::array<entity>::iterator state::filter_op(details::component_key_t key, psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept
 {
@@ -375,8 +382,11 @@ psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 {
 	details::filter_group group{pack.filters, pack.on_add, pack.on_remove, pack.except, pack.on_combine, pack.on_break};
 
-	auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&group](const filter_data& data) { return data.group == group; });
-	assert(it != std::end(m_Filters));
+	auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&group](const filter_result& data) { return data.group == group; });
+
+	// todo this is a bug
+	if (it == std::end(m_Filters))
+		return {};
 
 	auto entities = it->entities;
 	auto begin = std::begin(entities);
@@ -400,7 +410,7 @@ psl::array<entity> state::filter(details::dependency_pack& pack) const noexcept
 	return entities;
 }
 
-void state::filter(filter_data& data) const noexcept
+void state::filter(filter_result& data) const noexcept
 {
 	std::optional<psl::array_view<entity>> source;
 
@@ -508,7 +518,7 @@ void state::filter(filter_data& data) const noexcept
 	}
 }
 
-void state::filter(filter_data& data, psl::array_view<entity> source) const noexcept
+void state::filter(filter_result& data, psl::array_view<entity> source) const noexcept
 {
 	if(source.size() == 0)
 	{
@@ -669,7 +679,7 @@ void state::execute_command_buffer(info& info)
 }
 
 
-size_t state::count(psl::array_view<details::component_key_t> keys) const noexcept
+size_t state::size(psl::array_view<details::component_key_t> keys) const noexcept
 {
 	for(auto& key : keys)
 	{

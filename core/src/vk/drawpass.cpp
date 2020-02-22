@@ -72,7 +72,25 @@ drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapcha
 drawpass::~drawpass()
 {
 	destroy_fences();
-	// todo using VK 1.2 use vkWaitSemaphores here
+
+	/*{
+		vk::SemaphoreWaitInfo waitInfo{};
+		waitInfo.pSemaphores = &m_PresentComplete;
+		waitInfo.semaphoreCount = 1;
+
+		m_Context->device().waitSemaphores(waitInfo, std::numeric_limits<uint64_t>::max());
+	}
+	{
+		vk::SemaphoreWaitInfo waitInfo{};
+		waitInfo.pSemaphores = &m_RenderComplete;
+		waitInfo.semaphoreCount = 1;
+
+		m_Context->device().waitSemaphores(waitInfo, std::numeric_limits<uint64_t>::max());
+	}*/
+
+	m_Context->device().freeCommandBuffers(m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(),
+		m_DrawCommandBuffers.data());
+
 	m_Context->device().destroySemaphore(m_PresentComplete);
 	m_Context->device().destroySemaphore(m_RenderComplete);
 }
@@ -234,14 +252,13 @@ void drawpass::create_fences(const size_t size)
 
 void drawpass::destroy_fences()
 {
+	if (!utility::vulkan::check(
+		m_Context->device().waitForFences(m_WaitFences.size(), m_WaitFences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max())))
+		LOG_ERROR("Failed to wait for fence");
+
+	if (!utility::vulkan::check(m_Context->device().resetFences(m_WaitFences.size(), m_WaitFences.data()))) LOG_ERROR("Failed to reset fence");
 	for(auto& fence : m_WaitFences)
 	{
-		if(!utility::vulkan::check(
-			   m_Context->device().waitForFences(1, &fence, VK_TRUE, std::numeric_limits<uint64_t>::max())))
-			LOG_ERROR("Failed to wait for fence");
-
-		if(!utility::vulkan::check(m_Context->device().resetFences(1, &fence))) LOG_ERROR("Failed to reset fence");
-
 		m_Context->device().destroyFence(fence, nullptr);
 	}
 	m_WaitFences.clear();
@@ -354,6 +371,7 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 			render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
 		}
 		std::sort(std::begin(render_indices), std::end(render_indices));
+		render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)), std::end(render_indices));
 		for(auto renderLayer : render_indices)
 		{
 			for(auto& drawCall : drawLayer.second)
@@ -402,6 +420,7 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 			render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
 		}
 		std::sort(std::begin(render_indices), std::end(render_indices));
+		render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)), std::end(render_indices));
 		for(auto renderLayer : render_indices)
 		{
 			for(auto& drawCall : drawLayer.second)

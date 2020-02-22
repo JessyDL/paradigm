@@ -48,28 +48,29 @@ namespace psl::async
 
 namespace psl::ecs
 {
-	namespace details
-	{
-		enum class instruction
-		{
-			FILTER	  = 0,
-			ADD		  = 1,
-			REMOVE	  = 2,
-			BREAK	  = 3,
-			COMBINE	  = 4,
-			EXCEPT	  = 5,
-			CONDITION = 6
-		};
-	}
-
 	class state final
 	{
 
-		struct filter_data
+		struct filter_result
 		{
+			bool operator==(const filter_result& other) const noexcept
+			{
+				return group == other.group;
+			}
+			psl::array<entity> entities;
+			details::filter_group group;
+		};
+
+		struct transform_result
+		{
+			bool operator==(const transform_result& other) const noexcept
+			{
+				return group == other.group && filter == other.filter;
+			}
 			psl::array<entity> entities;
 			psl::array<entity> indices; // used in case there is an order_by
-			details::filter_group group;
+			std::shared_ptr<filter_result> filter;
+			std::shared_ptr<details::transform_group> group;
 		};
 
 	  public:
@@ -129,12 +130,6 @@ namespace psl::ecs
 					  psl::array<entity>::iterator end, size_t max) const noexcept
 		{
 			auto size = std::distance(begin, end);
-			/*const auto pred = Pred{};
-			std::sort(std::execution::par_unseq, begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
-				return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
-			});
-			return;*/
-
 			if(size <= static_cast<decltype(size)>(max))
 			{
 				order_by<Pred, T>(std::execution::seq, begin, end);
@@ -211,17 +206,14 @@ namespace psl::ecs
 			auto cInfos = get_component_info(to_keys<Ts...>());
 			if(cInfos.size() == sizeof...(Ts))
 			{
-				for(const auto& cInfo : cInfos)
-				{
-					return std::all_of(std::begin(entities), std::end(entities),
-									   [&cInfo](entity e) { return cInfo && cInfo->has_component(e); });
-				}
+				return std::all_of(std::begin(cInfos), std::end(cInfos), [&entities](const auto& cInfo) 
+					{
+						return cInfo && std::all_of(std::begin(entities), std::end(entities),
+							[&cInfo](entity e) { return cInfo->has_component(e); });
+					});
 			}
 			return sizeof...(Ts) == 0;
 		}
-
-		template <typename T, typename... Ts>
-		bool is_owned_by(entity e, const T& component, const Ts&... components) const noexcept;
 
 		[[maybe_unused]] entity create()
 		{
@@ -305,15 +297,14 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::array<entity> filter() const noexcept
 		{
-			// todo implement the filter_seed_best here
 			auto filter_group = details::make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>>{});
 
-			auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_data& data)
+			auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data)
 				{
 					return data.group == filter_group;
 				});
 
-			filter_data data{ {}, {}, filter_group };
+			filter_result data{ {}, filter_group };
 			if (it != std::end(m_Filters))
 			{
 				auto modified = psl::array<entity>{ m_ModifiedEntities.indices() };
@@ -329,7 +320,10 @@ namespace psl::ecs
 			}
 		}
 		template <typename... Ts>
-		void set(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept;
+		void set_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept
+		{
+			(set_component(entities, std::forward<Ts>(data)), ...);
+		}
 
 		template <typename... Ts>
 		void set_components(psl::array_view<entity> entities, Ts&&... data) noexcept
@@ -348,8 +342,19 @@ namespace psl::ecs
 			}
 		}
 
-		template <typename... Ts>
-		void set_or_create(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept;
+		template <typename T>
+		void set_component(psl::array_view<entity> entities, psl::array_view<T> data) noexcept
+		{
+			assert(entities.size() == data.size());
+			constexpr auto key = details::key_for<T>();
+			auto cInfo = get_component_info(key);
+			auto d = std::begin(data);
+			for (auto e : entities)
+			{
+				cInfo->set(e, *d);
+				d = std::next(d);
+			}
+		}
 
 		void tick(std::chrono::duration<float> dTime);
 
@@ -370,13 +375,6 @@ namespace psl::ecs
 			if(auto it = m_Components.find(key); it != std::end(m_Components))
 				return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense(0, 1);
 			return {};
-			/*auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
-				constexpr auto key{details::key_for<T>()};
-				return cInfo->id() == key;
-			});
-			return (it != std::end(m_Components))
-					   ? ((details::component_info_typed<T>*)(it->operator->()))->entity_data().dense(0,1)
-					   : psl::array_view<T>{};*/
 		}
 
 		/// \brief returns the amount of active systems
@@ -437,19 +435,20 @@ namespace psl::ecs
 		size_t capacity() const noexcept { return m_Entities; }
 
 		template <typename... Ts>
-		size_t count() const noexcept
+		size_t size() const noexcept
 		{
+			// todo implement filtering?
 			if constexpr(sizeof...(Ts) == 0)
 			{
 				return m_Entities - m_Orphans.size();
 			}
 			else
 			{
-				return count(to_keys<Ts...>());
+				return size(to_keys<Ts...>());
 			}
 		}
 
-		size_t count(psl::array_view<details::component_key_t> keys) const noexcept;
+		size_t size(psl::array_view<details::component_key_t> keys) const noexcept;
 
 	  private:
 		//------------------------------------------------------------
@@ -657,8 +656,8 @@ namespace psl::ecs
 															  psl::array<entity>::iterator& end) const noexcept;
 		
 		psl::array<entity> filter(details::dependency_pack& pack) const noexcept;
-		void filter(filter_data& data, psl::array_view<entity> source) const noexcept;
-		void filter(filter_data& data) const noexcept;
+		void filter(filter_result& data, psl::array_view<entity> source) const noexcept;
+		void filter(filter_result& data) const noexcept;
 
 		template <typename... Ts>
 		psl::array<details::component_key_t> to_keys() const noexcept
@@ -691,8 +690,8 @@ namespace psl::ecs
 
 		void add_filter_group(details::filter_group& group)
 		{
-			if(auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&group](const filter_data& data) { return data.group == group; }); it == std::end(m_Filters))
-				m_Filters.emplace_back(filter_data{ {}, {}, group });
+			if(auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&group](const filter_result& data) { return data.group == group; }); it == std::end(m_Filters))
+				m_Filters.emplace_back(filter_result{ {}, group });
 		}
 
 		template <typename Fn, typename T = void>
@@ -758,7 +757,8 @@ namespace psl::ecs
 		psl::array<psl::unique_ptr<info>> info_buffer{};
 		psl::array<entity> m_Orphans{};
 		psl::array<entity> m_ToBeOrphans{};
-		mutable psl::array<filter_data> m_Filters{};
+		mutable psl::array<filter_result> m_Filters{};
+		mutable psl::array<transform_result> m_Transformations{};
 		psl::array<details::system_information> m_SystemInformations{};
 
 		psl::array<details::system_token> m_ToRevoke{};

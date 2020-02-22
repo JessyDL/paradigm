@@ -60,16 +60,6 @@ if(NOT utf8cpp_POPULATED)
 	message(STATUS "utf8cpp fetched")
 endif()
 
-if(USE_RANGEV)
-	FetchContent_Declare(rangev GIT_REPOSITORY https://github.com/ericniebler/range-v3.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-	FetchContent_GetProperties(rangev)
-	if(NOT rangev_POPULATED)
-		message(STATUS "fetching range-v3...")
-		FetchContent_Populate(rangev)
-		message(STATUS "range-v3 fetched")
-	endif()
-endif()
-
 if(PE_PCH AND NOT MSVC)
 	set(PROJECT_PSL_PCH psl_pch CACHE INTERNAL "")
 	set(LOCAL_PCH_PROJECT ${PROJECT_PSL_PCH})
@@ -104,18 +94,10 @@ target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
 		${utf8cpp_SOURCE_DIR}/source
-		${rangev_SOURCE_DIR}/include
 		${skarupke_SOURCE_DIR}/
 		${async_SOURCE_DIR}/inc
 )
 target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
-
-if(USE_RANGEV)
-target_include_directories(${LOCAL_PROJECT}
-    PUBLIC 
-		${rangev_SOURCE_DIR}/include
-)
-endif()
 
 if(LINUX)
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt libc++experimental.a ${CMAKE_THREAD_LIBS_INIT} spdlog)

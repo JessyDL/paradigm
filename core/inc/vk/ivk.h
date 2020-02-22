@@ -23,17 +23,13 @@
 #endif
 
 #define VK_VERSION_LATEST_MAJOR 1
-#define VK_VERSION_LATEST_MINOR 1
+#define VK_VERSION_LATEST_MINOR 2
 #define VULKAN_HPP_NO_SMART_HANDLE
 
-#ifndef VK_STATIC
-#include "volk.h"
-#endif
-
-#include "vulkan/vulkan.hpp"
+#include <vulkan/vulkan.hpp>
 
 #define VK_VERSION_LATEST_PATCH VK_HEADER_VERSION
-#define VK_API_VERSION_LATEST VK_MAKE_VERSION(VK_VERSION_LATEST_MAJOR, VK_VERSION_LATEST_MINOR, VK_VERSION_LATEST_PATCH)
+#define VK_API_VERSION_LATEST VK_API_VERSION_1_2
 
 #include "psl/ustring.h"
 #include <assert.h>
@@ -599,24 +595,18 @@ namespace utility::vulkan
 	// an image and put it into an active command buffer
 	// See chapter 11.4 "Image Layout" for details
 
-	inline void set_image_layout(vk::CommandBuffer cmdbuffer, vk::Image image, vk::ImageAspectFlags aspectMask,
-								 vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout,
-								 vk::ImageSubresourceRange subresourceRange, vk::PipelineStageFlags srcStageMask,
-								 vk::PipelineStageFlags dstStageMask)
+	inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout)
 	{
-		// Create an image barrier object
-		vk::ImageMemoryBarrier imageMemoryBarrier;
-		imageMemoryBarrier.setPNext(nullptr);
-		imageMemoryBarrier.oldLayout		= oldImageLayout;
-		imageMemoryBarrier.newLayout		= newImageLayout;
-		imageMemoryBarrier.image			= image;
-		imageMemoryBarrier.subresourceRange = subresourceRange;
+		vk::ImageMemoryBarrier imageMemoryBarrier{};
+		imageMemoryBarrier.oldLayout = oldImageLayout;
+		imageMemoryBarrier.newLayout = newImageLayout;
 
 		// Source layouts (old)
 		// Source access mask controls actions that have to be finished on the old layout
 		// before it will be transitioned to the new layout
-		switch(oldImageLayout)
+		switch (oldImageLayout)
 		{
+		case vk::ImageLayout::eGeneral:
 		case vk::ImageLayout::eUndefined:
 			// Image layout is undefined (or does not matter)
 			// Only valid as initial layout
@@ -665,7 +655,7 @@ namespace utility::vulkan
 
 		// Target layouts (new)
 		// Destination access mask controls the dependency for the new image layout
-		switch(newImageLayout)
+		switch (newImageLayout)
 		{
 		case vk::ImageLayout::eTransferDstOptimal:
 			// Image will be used as a transfer destination
@@ -697,7 +687,7 @@ namespace utility::vulkan
 		case vk::ImageLayout::eShaderReadOnlyOptimal:
 			// Image will be read in a shader (sampler, input attachment)
 			// Make sure any writes to the image have been finished
-			if(imageMemoryBarrier.srcAccessMask == (vk::AccessFlagBits)0)
+			if (imageMemoryBarrier.srcAccessMask == (vk::AccessFlagBits)0)
 			{
 				imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
 			}
@@ -706,6 +696,19 @@ namespace utility::vulkan
 		default: throw std::runtime_error("unhandled format");
 		}
 
+		return imageMemoryBarrier;
+	}
+
+	inline void set_image_layout(vk::CommandBuffer cmdbuffer, vk::Image image,
+								 vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout,
+								 vk::ImageSubresourceRange subresourceRange, vk::PipelineStageFlags srcStageMask,
+								 vk::PipelineStageFlags dstStageMask)
+	{
+		// Create an image barrier object
+		vk::ImageMemoryBarrier imageMemoryBarrier = image_memory_barrier_for(oldImageLayout, newImageLayout);
+		imageMemoryBarrier.setPNext(nullptr);
+		imageMemoryBarrier.image			= image;
+		imageMemoryBarrier.subresourceRange = subresourceRange;		
 
 		// Put barrier inside setup command buffer
 		cmdbuffer.pipelineBarrier(srcStageMask, dstStageMask, (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
@@ -715,7 +718,7 @@ namespace utility::vulkan
 	inline void set_image_layout(vk::CommandBuffer& cmdbuffer, vk::Image& image, const vk::ImageLayout& oldImageLayout,
 								 const vk::ImageLayout& newImageLayout, vk::ImageSubresourceRange& subresourceRange)
 	{
-		set_image_layout(cmdbuffer, image, vk::ImageAspectFlagBits::eColor, oldImageLayout, newImageLayout,
+		set_image_layout(cmdbuffer, image, oldImageLayout, newImageLayout,
 						 subresourceRange, vk::PipelineStageFlagBits::eAllCommands,
 						 vk::PipelineStageFlagBits::eAllCommands);
 		return;

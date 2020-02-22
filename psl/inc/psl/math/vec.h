@@ -64,7 +64,6 @@ namespace psl
 			T m_First;
 		};
 	} // namespace details
-
 #define ACCESSOR_IMPL(type, name, ...) ::psl::details::accessor<type, __VA_ARGS__> name;
 
 #define ACCESSOR_1D_IMPL(type, name, index) ACCESSOR_IMPL(type, name, index)
@@ -151,6 +150,9 @@ namespace psl
 	ACCESSOR_4D_IMPL(type, z, 2)                                                                                       \
 	ACCESSOR_4D_IMPL(type, w, 3)
 
+
+#pragma warning(push)
+#pragma warning(disable : 5103)
 	template <typename precision_t, size_t dimensions>
 	struct tvec
 	{
@@ -693,6 +695,7 @@ namespace psl
 		};
 	};
 
+#pragma warning(pop)
 
 	using vec1 = psl::tvec<float, 1>;
 	using vec2 = psl::tvec<float, 2>;
@@ -1353,6 +1356,7 @@ namespace psl
 	}
 
 } // namespace psl
+
 namespace psl::math
 {
 	// ---------------------------------------------

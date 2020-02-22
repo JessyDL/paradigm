@@ -65,7 +65,7 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 	else
 	{
 		auto result = cache.library().load(m_Meta->ID());
-		auto data   = (result && !result.value().empty()) ? (void*)result.value().data() : nullptr;
+		auto data	= (result && !result.value().empty()) ? (void*)result.value().data() : nullptr;
 
 		// this is a generated file;
 		switch(m_Meta->image_type())
@@ -115,7 +115,7 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 	vk::DescriptorImageInfo* descriptor = new vk::DescriptorImageInfo();
 	descriptor->sampler					= samplerHandle->get(mip_levels());
 	descriptor->imageView				= view();
-	descriptor->imageLayout				= vk::ImageLayout::eGeneral;
+	descriptor->imageLayout				= m_ImageLayout;
 
 	m_Descriptors[sampler] = descriptor;
 	return *descriptor;
@@ -158,7 +158,7 @@ void texture::create_2D(void* data)
 			segment = segmentOpt.value();
 			gfx::commit_instruction instr;
 			instr.segment = segment;
-			instr.size	= (vk::DeviceSize)size;
+			instr.size	  = (vk::DeviceSize)size;
 			instr.source  = (std::uintptr_t)data;
 			if(!stagingBuffer->commit({instr}))
 			{
@@ -184,14 +184,14 @@ void texture::create_2D(void* data)
 	// Create optimal tiled target image
 	vk::ImageCreateInfo imageCreateInfo;
 	imageCreateInfo.pNext		  = NULL;
-	imageCreateInfo.imageType	 = (vk::ImageType)m_Meta->image_type();
+	imageCreateInfo.imageType	  = (vk::ImageType)m_Meta->image_type();
 	imageCreateInfo.format		  = to_vk(m_Meta->format());
-	imageCreateInfo.mipLevels	 = m_MipLevels;
-	imageCreateInfo.arrayLayers   = 1;
+	imageCreateInfo.mipLevels	  = m_MipLevels;
+	imageCreateInfo.arrayLayers	  = 1;
 	imageCreateInfo.samples		  = vk::SampleCountFlagBits::e1;
 	imageCreateInfo.tiling		  = vk::ImageTiling::eOptimal;
 	imageCreateInfo.usage		  = vk::ImageUsageFlagBits::eSampled;
-	imageCreateInfo.sharingMode   = vk::SharingMode::eExclusive;
+	imageCreateInfo.sharingMode	  = vk::SharingMode::eExclusive;
 	imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 	imageCreateInfo.extent		  = vk::Extent3D{m_Meta->width(), m_Meta->height(), m_Meta->depth()};
 	imageCreateInfo.usage		  = to_vk(m_Meta->usage());
@@ -203,7 +203,7 @@ void texture::create_2D(void* data)
 	vk::MemoryRequirements memReqs;
 	vk::MemoryAllocateInfo memAllocInfo;
 	memAllocInfo.pNext			 = NULL;
-	memAllocInfo.allocationSize  = 0;
+	memAllocInfo.allocationSize	 = 0;
 	memAllocInfo.memoryTypeIndex = 0;
 	m_Context->device().getImageMemoryRequirements(m_Image, &memReqs);
 
@@ -220,10 +220,10 @@ void texture::create_2D(void* data)
 																	   vk::CommandBufferLevel::ePrimary, true, 1);
 
 		vk::ImageSubresourceRange subresourceRange;
-		subresourceRange.aspectMask   = vk::ImageAspectFlagBits::eColor;
+		subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
 		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount   = m_MipLevels;
-		subresourceRange.layerCount   = m_Meta->layers();
+		subresourceRange.levelCount	  = m_MipLevels;
+		subresourceRange.layerCount	  = m_Meta->layers();
 		// Image barrier for optimal image (target)
 		// Optimal image will be used as destination for the copy
 		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eUndefined,
@@ -242,18 +242,18 @@ void texture::create_2D(void* data)
 		m_Context->flush(copyCmd, true);
 	}
 
-	// Create image view	
+	// Create image view
 	// Textures are not directly accessed by the shaders and
 	// are abstracted by image views containing additional
 	// information and sub resource ranges
 	vk::ImageViewCreateInfo view;
 	view.image		= nullptr;
-	view.viewType   = to_vk(m_Meta->image_type());
+	view.viewType	= to_vk(m_Meta->image_type());
 	view.format		= to_vk(m_Meta->format());
 	view.components = vk::ComponentMapping();
 	view.subresourceRange.aspectMask =
 		(utility::vulkan::has_depth(view.format)) ? vk::ImageAspectFlagBits::eDepth : to_vk(m_Meta->aspect_mask());
-	view.subresourceRange.baseMipLevel   = 0;
+	view.subresourceRange.baseMipLevel	 = 0;
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount	 = m_Meta->layers();
 	// Linear tiling usually won't support mip maps
@@ -335,7 +335,7 @@ void texture::load_2D()
 			segment = segmentOpt.value();
 			gfx::commit_instruction instr;
 			instr.segment = segment;
-			instr.size	= (vk::DeviceSize)m_Texture2DData->size();
+			instr.size	  = (vk::DeviceSize)m_Texture2DData->size();
 			instr.source  = (std::uintptr_t)m_Texture2DData->data();
 			if(!stagingBuffer->commit({instr}))
 			{
@@ -373,14 +373,14 @@ void texture::load_2D()
 		// Create optimal tiled target image
 		vk::ImageCreateInfo imageCreateInfo;
 		imageCreateInfo.pNext		  = NULL;
-		imageCreateInfo.imageType	 = (vk::ImageType)m_Meta->image_type();
+		imageCreateInfo.imageType	  = (vk::ImageType)m_Meta->image_type();
 		imageCreateInfo.format		  = to_vk(m_Meta->format());
-		imageCreateInfo.mipLevels	 = m_MipLevels;
-		imageCreateInfo.arrayLayers   = 1;
+		imageCreateInfo.mipLevels	  = m_MipLevels;
+		imageCreateInfo.arrayLayers	  = 1;
 		imageCreateInfo.samples		  = vk::SampleCountFlagBits::e1;
 		imageCreateInfo.tiling		  = vk::ImageTiling::eOptimal;
 		imageCreateInfo.usage		  = vk::ImageUsageFlagBits::eSampled;
-		imageCreateInfo.sharingMode   = vk::SharingMode::eExclusive;
+		imageCreateInfo.sharingMode	  = vk::SharingMode::eExclusive;
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
 		imageCreateInfo.extent		  = vk::Extent3D{m_Meta->width(), m_Meta->height(), m_Meta->depth()};
 		imageCreateInfo.usage		  = to_vk(m_Meta->usage());
@@ -390,7 +390,7 @@ void texture::load_2D()
 		vk::MemoryRequirements memReqs;
 		vk::MemoryAllocateInfo memAllocInfo;
 		memAllocInfo.pNext			 = NULL;
-		memAllocInfo.allocationSize  = 0;
+		memAllocInfo.allocationSize	 = 0;
 		memAllocInfo.memoryTypeIndex = 0;
 		m_Context->device().getImageMemoryRequirements(m_Image, &memReqs);
 
@@ -405,14 +405,27 @@ void texture::load_2D()
 																	   vk::CommandBufferLevel::ePrimary, true, 1);
 
 		vk::ImageSubresourceRange subresourceRange;
-		subresourceRange.aspectMask   = vk::ImageAspectFlagBits::eColor;
+		subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
 		subresourceRange.baseMipLevel = 0;
-		subresourceRange.levelCount   = m_MipLevels;
-		subresourceRange.layerCount   = m_Meta->layers();
+		subresourceRange.levelCount	  = m_MipLevels;
+		subresourceRange.layerCount	  = m_Meta->layers();
 		// Image barrier for optimal image (target)
 		// Optimal image will be used as destination for the copy
-		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eUndefined,
-										  vk::ImageLayout::eTransferDstOptimal, subresourceRange);
+		{
+			auto barrier				= utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eUndefined,
+																		vk::ImageLayout::eTransferDstOptimal);
+			barrier.image				= m_Image;
+			barrier.subresourceRange	= subresourceRange;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			core::ivk::log->info("transitioning image {} from {} to {} in pipeline stage {} to {}", meta().ID().to_string(),
+								  vk::to_string(barrier.srcAccessMask), vk::to_string(barrier.dstAccessMask),
+								  vk::to_string(vk::PipelineStageFlagBits::eHost),
+								  vk::to_string(vk::PipelineStageFlagBits::eTransfer));
+			copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer,
+									(vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1, &barrier);
+		}
 
 		// Copy mip levels from staging buffer
 		copyCmd.copyBufferToImage(stagingBuffer->gpu_buffer(), m_Image, vk::ImageLayout::eTransferDstOptimal,
@@ -421,8 +434,22 @@ void texture::load_2D()
 		// Change texture image layout to shader read after all mip levels have been copied
 		m_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eTransferDstOptimal, m_ImageLayout,
-										  subresourceRange);
+
+		{
+			auto barrier =
+				utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eTransferDstOptimal, m_ImageLayout);
+			barrier.image				= m_Image;
+			barrier.subresourceRange	= subresourceRange;
+			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
+
+			core::ivk::log->info("transitioning image {} from {} to {} in pipeline stage {} to {}", meta().ID().to_string(),
+								  vk::to_string(barrier.srcAccessMask), vk::to_string(barrier.dstAccessMask),
+								  vk::to_string(vk::PipelineStageFlagBits::eTransfer),
+								  vk::to_string(vk::PipelineStageFlagBits::eFragmentShader));
+			copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
+									(vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1, &barrier);
+		}
 
 		m_Context->flush(copyCmd, true);
 	}
@@ -438,7 +465,7 @@ void texture::load_2D()
 	view.format							 = to_vk(m_Meta->format());
 	view.components						 = vk::ComponentMapping();
 	view.subresourceRange.aspectMask	 = to_vk(m_Meta->aspect_mask());
-	view.subresourceRange.baseMipLevel   = 0;
+	view.subresourceRange.baseMipLevel	 = 0;
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount	 = m_Meta->layers();
 	// Linear tiling usually won't support mip maps

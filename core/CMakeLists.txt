@@ -46,33 +46,6 @@ if(NOT gli_POPULATED)
 	message(STATUS "g-truc/gli fetched")
 endif()
 
-if(PE_VULKAN)
-	if(VK_STATIC)
-	
-	else()	
-		FetchContent_Declare(volk GIT_REPOSITORY https://github.com/zeux/volk.git GIT_PROGRESS TRUE)
-		FetchContent_GetProperties(volk)
-		if(NOT volk_POPULATED) 
-			message(STATUS "fetching volk...")
-			FetchContent_Populate(volk)
-			
-			message(STATUS "generating dynamic lib for vulkan")
-			EXECUTE_PROCESS(WORKING_DIRECTORY "${volk_SOURCE_DIR}" COMMAND ${PYTHON_EXECUTABLE} "generate.py" ${vulkan_SOURCE_DIR}/registry/vk.xml)
-			message(STATUS "generated dynamic lib")
-			
-			set_source_files_properties("${volk_SOURCE_DIR}/volk.c" PROPERTIES LANGUAGE CXX )
-			
-			project(volk_proj VERSION 1.0.0 LANGUAGES CXX)
-			add_library(volk_proj STATIC ${volk_SOURCE_DIR}/volk.h ${volk_SOURCE_DIR}/volk.c)
-			target_compile_options(volk_proj PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB})
-			target_compile_features(volk_proj PRIVATE ${PE_COMPILER_FEATURES})
-			set_target_properties(volk_proj PROPERTIES LINKER_LANGUAGE CXX)
-			target_include_directories(volk_proj PUBLIC ${vulkan_SOURCE_DIR}/include)
-			message(STATUS "volk fetched")
-		endif()	
-	endif()
-endif()
-
 if(PE_GLES)
 	FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.33 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 	FetchContent_GetProperties(glad)
@@ -138,26 +111,19 @@ if(VK_STATIC AND PE_VULKAN)
 else()
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 		${PROJECT_PSL} 
-		${PROJECT_INTERCEPT} ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS} volk_proj)
+		${PROJECT_INTERCEPT} ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS})
 endif()
 
 target_include_directories(${LOCAL_PROJECT}
 	PUBLIC 
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${vulkan_SOURCE_DIR}/include
-		${volk_SOURCE_DIR}
 	PRIVATE
 		${gli_SOURCE_DIR}
 		${gli_SOURCE_DIR}/external/glm
 		${WSI_INC}
 )
 
-# add_custom_command(
-	# COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
-	# COMMENT "Generating headers for Paradigm"
-	# OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/inc/paradigm.hpp
-	# DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py ${CMAKE_CURRENT_SOURCE_DIR}/../.git/ORIG_HEAD
-# )
 add_custom_command(TARGET ${LOCAL_PROJECT} PRE_BUILD
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
@@ -174,10 +140,6 @@ target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(${LOCAL_PROJECT} PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
 if(MSVC)
 	target_compile_options(${LOCAL_PROJECT} PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
-endif()
-
-if(MSVC)
-	#set_property(SOURCE "src/core.cpp" APPEND_STRING PROPERTY COMPILE_FLAGS " /bigobj ")
 endif()
 
 if(PE_MAKE_EXE)

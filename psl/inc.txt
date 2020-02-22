@@ -1,5 +1,6 @@
 SET(INC 
 stdafx_psl.h
+algorithm.h
 application_utils.h
 formatted_string_buffer.h
 string_utils.h
