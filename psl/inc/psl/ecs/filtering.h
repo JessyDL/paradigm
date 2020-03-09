@@ -63,6 +63,11 @@ namespace psl::ecs
 				return end;
 			}
 
+			operator bool() const noexcept
+			{
+				return order_by || on_condition.size() > 0;
+			}
+
 		  private:
 			std::function<ordering_pred_t> order_by;
 
@@ -264,7 +269,7 @@ namespace psl::ecs
 		};
 
 		template <typename... Ts>
-		filter_group make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
+		auto make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
 		{
 			return filter_group{psl::templates::type_container<Ts>{}...};
 		}
@@ -291,7 +296,7 @@ namespace psl::ecs
 		}
 
 		template <typename... Ts>
-		filter_group make_transform_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
+		auto make_transform_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
 		{
 			return transform_group{ psl::templates::type_container<Ts>{}... };
 		}

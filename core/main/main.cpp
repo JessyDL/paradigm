@@ -754,11 +754,16 @@ int entry(gfx::graphics_backend backend)
 		memory::region{1024 * 1024 * 256, 4, new memory::default_allocator(false)});
 	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData, stagingBuffer);
 
+	auto dynamicInstanceBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::vertex_buffer,
+		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+		memory::region{ (uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false) });
+
 	auto instanceBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
 		memory::region{(uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false)});
-	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
+	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, dynamicInstanceBufferData);
 	std::vector<resource::handle<data::geometry>> geometryDataHandles;
 	std::vector<resource::handle<gfx::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
@@ -938,13 +943,13 @@ int entry(gfx::graphics_backend backend)
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
-	/*ECSState.declare(psl::ecs::threading::par, [](info& info, pack<transform, const lifetime> pack) {
+	ECSState.declare(psl::ecs::threading::par, [](info& info, pack<transform, const lifetime> pack) {
 		for(auto [transf, life] : pack)
 		{
 			auto remainder = std::min(life.value * 2.0f, 1.0f);
 			transf.scale *= remainder;
 		}
-	});*/
+	});
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::attractor);
 	core::ecs::systems::geometry_instancing geometry_instancing_system{ECSState};
@@ -952,10 +957,10 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
 		swapchain_pass,			  context_handle,		 surface_handle};
-
-	core::ecs::systems::text text{ECSState,	   cache,		   context_handle, vertexBuffer,
-								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer};
-
+	
+	/*core::ecs::systems::text text{ECSState,	   cache,		   context_handle, vertexBuffer,
+								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer};*/
+								  
 	auto eCam = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 
@@ -993,7 +998,7 @@ int entry(gfx::graphics_backend backend)
 	while(surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
-		core::log->info("There are {} renderables alive right now", ECSState.count<renderable>());
+		core::log->info("There are {} renderables alive right now", ECSState.size<renderable>());
 		core::profiler.next_frame();
 
 		core::profiler.scope_begin("system tick");

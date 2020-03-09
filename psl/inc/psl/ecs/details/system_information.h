@@ -6,6 +6,7 @@
 #include "psl/array_view.h"
 #include "../pack.h"
 #include <chrono>
+#include "psl/ecs/filtering.h"
 
 namespace psl::ecs
 {
@@ -318,17 +319,20 @@ namespace psl::ecs::details
 		using system_invocable_type = std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)>;
 		system_information()		= default;
 		system_information(psl::ecs::threading threading, pack_generator_type&& generator,
-						   system_invocable_type&& invocable, size_t id, bool seedWithExisting = false)
+						   system_invocable_type&& invocable,
+						   psl::array<std::shared_ptr<details::filter_group>> filters,
+						   psl::array<std::shared_ptr<details::transform_group>> transforms, size_t id,
+						   bool seedWithExisting = false)
 			: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)),
-			  m_SeedWithExisting(seedWithExisting), m_ID(id) {};
+			  m_Filters(filters), m_Transforms(transforms), m_SeedWithExisting(seedWithExisting), m_ID(id){};
 		~system_information()						  = default;
 		system_information(const system_information&) = default;
 		system_information(system_information&&)	  = default;
 		system_information& operator=(const system_information&) = default;
 		system_information& operator=(system_information&&) = default;
 
-		std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator, m_SeedWithExisting); }
-
+		std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator, false); }
+		bool seed_with_previous() const noexcept { return m_SeedWithExisting; };
 		void operator()(psl::ecs::info& info, std::vector<details::dependency_pack> packs)
 		{
 			m_SeedWithExisting = false;
@@ -341,10 +345,20 @@ namespace psl::ecs::details
 
 		system_token id() const noexcept { return m_ID; }
 
+		auto filters() const noexcept
+		{
+			return m_Filters;
+		}
+		auto transforms() const noexcept
+		{
+			return m_Transforms;
+		}
 	  private:
 		psl::ecs::threading m_Threading = threading::sequential;
 		pack_generator_type m_PackGenerator;
 		system_invocable_type m_System;
+		psl::array<std::shared_ptr<details::filter_group>> m_Filters{};
+		psl::array<std::shared_ptr<details::transform_group>> m_Transforms{};
 		bool m_SeedWithExisting{false};
 		system_token m_ID{0};
 	};

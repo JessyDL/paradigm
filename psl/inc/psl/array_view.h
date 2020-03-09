@@ -143,6 +143,21 @@ namespace psl
 			: first((count > 0) ? std::addressof(*first) : nullptr),
 			  last((count > 0) ? (pointer)((std::uintptr_t)std::addressof(*first) + count * sizeof(T)) : nullptr){};
 
+		template <typename IT>
+		array_view(IT first, IT last)
+		{
+			if (first == last)
+			{
+				this->first = nullptr;
+				this->last = nullptr;
+			}
+			else
+			{
+				this->first = std::addressof(*first);
+				this->last = std::addressof(*std::prev(last)) + 1;
+			}
+		};
+
 
 		array_view(const std::vector<value_type>& container)
 			: first((pointer)container.data()), last((pointer)container.data() + container.size()){};
@@ -161,7 +176,7 @@ namespace psl
 
 		const_reference operator[](size_t index) const { return *(first + index); }
 
-		operator array_view<const value_type>&() const noexcept { return *(array_view<const T>*)(this); }
+		operator array_view<const value_type>& () const noexcept { return *(array_view<const T>*)(this); }
 
 
 		explicit operator std::vector<value_type>() const noexcept { return std::vector<value_type>{first, last}; }
@@ -182,4 +197,11 @@ namespace psl
 		pointer first;
 		pointer last;
 	};
+
+	template <typename IT>
+	array_view(IT first, IT last)->array_view<typename std::iterator_traits<IT>::value_type>;
+
+
+	template <typename IT>
+	array_view(IT first, size_t count)->array_view<typename std::iterator_traits<IT>::value_type>;
 } // namespace psl

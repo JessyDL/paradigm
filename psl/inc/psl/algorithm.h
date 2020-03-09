@@ -124,6 +124,43 @@ namespace psl
 		}
 	}
 
+	template <class InputIt1, class InputIt2, class Compare>
+	InputIt1 inplace_set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2,
+							Compare comp)
+	{
+		using std::rotate, std::next, std::prev;
+
+		while(first1 != last1)
+		{
+			if (first2 == last2)
+			{
+				return last1;
+			}
+
+			if(comp(*first1, *first2))
+			{
+				first1 = next(first1);
+			}
+			else
+			{
+				if(!comp(*first2, *first1))
+				{
+					rotate(first1, next(first1), last1);
+					last1 = prev(last1);
+				}
+				++first2;
+			}
+		}
+		return last1;
+	}
+
+	template<class InputIt1, class InputIt2>
+	InputIt1 inplace_set_difference(InputIt1 first1, InputIt1 last1,
+		InputIt2 first2, InputIt2 last2)
+	{
+		return inplace_set_difference(first1, last1, first2, last2, std::less<typename std::iterator_traits<InputIt1>::value_type>());
+	}
+
 	// template <typename It, typename Pred>
 	// void sort(const It first, const It last, Pred&& pred)
 	//{

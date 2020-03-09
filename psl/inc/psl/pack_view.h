@@ -23,17 +23,56 @@ namespace psl
 				return data;
 			}*/
 
-			/*std::tuple<Ts&...> operator*() const noexcept
+
+		private:
+			template<typename... Ys, size_t... indices>
+			static void swap_internal(tuple_wrap<Ys...>& a, tuple_wrap<Ys...>& b, std::integer_sequence<size_t, indices...> indices_sequence)
 			{
-				return std::tuple<Ts&...>{(std::get<std::reference_wrapper<Ts>>(data)).get()...};
-			}*/
+				using std::swap;
+
+				(swap(*std::get<indices>(a.data), *std::get<indices>(b.data)), ...);
+			}
+
+			template<size_t... indices>
+			std::tuple<Ts...> as_values(std::integer_sequence<size_t, indices...> indices_sequence) const noexcept
+			{
+				return std::tuple<Ts...>{*std::get<indices>(data)...};
+			}
+		public:
+
+			std::tuple<Ts...> operator*() const noexcept
+			{
+				return as_values(std::index_sequence_for<Ts...>{});
+			}
+			template<typename T>
+			const T& get() const noexcept
+			{
+				return *std::get<T*>(data);
+			}
+
+			template<typename T>
+			T& get() noexcept
+			{
+				return *std::get<T*>(data);
+			}
+
+			template<size_t I>
+			const auto& get() const noexcept
+			{
+				return *std::get<I>(data);
+			}
+
+
+			template<size_t I>
+			auto& get() noexcept
+			{
+				return *std::get<I>(data);
+			}
 
 			template<typename... Ys>
 			friend void swap(tuple_wrap<Ys...>& a, tuple_wrap<Ys...>& b)
 			{
-				using std::swap;
-
-				(swap(*std::get<Ys*>(a.data), *std::get<Ys*>(b.data)), ...);
+				swap_internal(a, b, std::index_sequence_for<Ts...>{});
 			}
 			std::tuple<Ts*...> data;
 		};
@@ -47,24 +86,49 @@ namespace psl
 		using range_t = std::tuple<psl::array_view<Ts>...>;
 
 	  private:
+		  template<typename T, T... indices>
+		  static std::tuple<std::reference_wrapper<Ts>...> iterator_begin(const range_t& t, size_t index, std::integer_sequence<T, indices...> indices_sequence)
+		  {
+			  return std::tuple<std::reference_wrapper<Ts>...>((*std::next(std::begin(std::get<indices>(t)), index))...);
+		  }
+
+		  template<typename T, T... indices>
+		  static std::tuple<std::reference_wrapper<Ts>...> iterator_end(const range_t& t, size_t index, std::integer_sequence<T, indices...> indices_sequence)
+		  {
+			  return std::tuple<std::reference_wrapper<Ts>...>((*std::prev(std::end(std::get<indices>(t)), index))...);
+		  }
+
+		  template<typename T, T... indices>
+		  static std::tuple<std::reference_wrapper<Ts>...> unpack_iterator_begin(const range_t& t, size_t index, std::integer_sequence<T, indices...> indices_sequence)
+		  {
+			  return std::tuple<std::reference_wrapper<Ts>...>((*std::next(std::begin(std::get<indices>(t)), index))...);
+		  }
+
+		  template<typename T, T... indices>
+		  static std::tuple<std::reference_wrapper<Ts>...> unpack_iterator_end(const range_t& t, size_t index, std::integer_sequence<T, indices...> indices_sequence)
+		  {
+			  return std::tuple<std::reference_wrapper<Ts>...>((*std::prev(std::end(std::get<indices>(t)), index))...);
+		  }
+
+
 		static std::tuple<std::reference_wrapper<Ts>...> iterator_begin(const range_t& t, size_t index = 0)
 		{
-			return std::tuple<std::reference_wrapper<Ts>...>((*std::next(std::begin(std::get<psl::array_view<Ts>>(t)), index))...);
+			return iterator_begin(t, index, std::index_sequence_for<Ts...>{});
 		}
 
 		static std::tuple<std::reference_wrapper<Ts>...> iterator_end(const range_t& t, size_t index = 0)
 		{
-			return std::tuple<std::reference_wrapper<Ts>...>((*std::prev(std::end(std::get<psl::array_view<Ts>>(t)), index))...);
+			return iterator_end(t, index, std::index_sequence_for<Ts...>{});
 		}
 
 		static std::tuple<std::reference_wrapper<Ts>...> unpack_iterator_begin(const range_t& t, size_t index = 0)
 		{
-			return std::tuple<std::reference_wrapper<Ts>...>((*std::next(std::begin(std::get<psl::array_view<Ts>>(t)), index))...);
+			return unpack_iterator_begin(t, index, std::index_sequence_for<Ts...>{});
 		}
 
 		static std::tuple<std::reference_wrapper<Ts>...> unpack_iterator_end(const range_t& t, size_t index = 0)
 		{
-			return std::tuple<std::reference_wrapper<Ts>...>((*std::prev(std::end(std::get<psl::array_view<Ts>>(t)), index))...);
+			return unpack_iterator_end(t, index, std::index_sequence_for<Ts...>{});
 		}
 
 	  public:
@@ -259,18 +323,32 @@ namespace psl
 				target	 = *((type*)&target.get() + count);
 			}*/
 
-			void advance_tuple(std::uintptr_t count)
+
+			template<typename T, T... indices>
+			void advance_tuple(std::uintptr_t count, std::integer_sequence<T, indices...> indices_sequence)
 			{
-				(void(std::get<Ts*>(data.data) += count), ...);
+				(void(std::get<indices>(data.data) += count), ...);
 			}
 
+			void advance_tuple(std::uintptr_t count)
+			{
+				advance_tuple(count, std::index_sequence_for<Ts...>{});
+			}
 
+			template<typename T, T... indices>
+				void initialize(const std::tuple<std::reference_wrapper<Ts>...>& data, std::integer_sequence<T, indices...> indices_sequence)
+			{
+				this->data.data = std::make_tuple(&std::get<indices>(data).get()...);
+			}
 		  public:
 			//iterator(const value_type& data) : data(data){};
 			//template <typename = std::enable_if_t<std::conditional<!std::is_same<std::tuple<>, range_t>::value>>>
 			//iterator(const range_t& range) : iterator(iterator_begin(range)){};
 
-			iterator(const std::tuple<std::reference_wrapper<Ts>...>& data) : data(&std::get<std::reference_wrapper<Ts>>(data).get()...){};
+			iterator(const std::tuple<std::reference_wrapper<Ts>...>& data)
+			{
+				initialize(data, std::index_sequence_for<Ts...>{});
+			};
 			~iterator() = default;
 			iterator(const iterator& other) noexcept : data(other.data){};
 			iterator(iterator&& other) noexcept : data(std::move(other.data)){};
@@ -410,7 +488,15 @@ namespace psl
 		};
 
 		pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...))
-		{}
+		{
+#ifdef assert
+			auto test = [](size_t size1, size_t size2)
+			{
+				//assert_debug_break(size1 == size2);
+			}; 
+			(test(views.size(), size()), ...);
+#endif
+		}
 		// pack_view() = default;
 
 		range_t view() { return m_Pack; }
@@ -468,6 +554,12 @@ namespace psl
 	psl::pack_view<Ts...> zip(psl::array_view<Ts>... range)
 	{
 		return psl::pack_view<Ts...>(range...);
+	}
+
+	template <typename... Ts>
+	auto zip(Ts... range)
+	{
+		return psl::pack_view(psl::array_view{ begin(range), end(range) }...);
 	}
 
 	template <typename... Ts, typename T>
