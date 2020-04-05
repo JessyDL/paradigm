@@ -379,7 +379,7 @@ namespace core::resource
 
 		handle<T> make_shared() const noexcept 
 		{ 
-			assert(*this);
+			assert_debug_break(*this);
 			return handle<T>((void*)m_Resource, m_Cache, m_MetaData, (psl::meta::file*)m_MetaFile);
 		}
 

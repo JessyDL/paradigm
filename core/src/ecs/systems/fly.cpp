@@ -165,7 +165,7 @@ void fly::on_key_released(core::systems::input::keycode keyCode)
 
 void fly::on_mouse_move(core::systems::input::mouse_delta delta)
 {
-	if(!m_AllowRotating) return;
+	//if(!m_AllowRotating) return;
 	m_MouseTargetX += delta.x;
 	m_MouseTargetY += delta.y;
 }
@@ -178,12 +178,12 @@ void fly::on_scroll(core::systems::input::scroll_delta delta)
 
 void fly::on_mouse_pressed(core::systems::input::mousecode mCode)
 {
-	if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = true;
+	//if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = true;
 }
 
 void fly::on_mouse_released(core::systems::input::mousecode mCode)
 {
-	if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = false;
+	//if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = false;
 }
 
 void fly::pitch_to(float degrees)

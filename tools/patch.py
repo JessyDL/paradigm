@@ -116,5 +116,8 @@ def patch_includes(root):
 def patch_msvc(root):
     root = root.replace('\\', '/')
     
-    fObj = File(root + "/core/core.vcxproj")
+    if os.path.isfile(root + "/core/core.vcxproj"):
+        fObj = File(root + "/core/core.vcxproj")
+    else:
+        fObj = File(root + "/paradigm/core/core.vcxproj")
     fObj.patch()

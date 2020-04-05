@@ -8,7 +8,7 @@
 using namespace core::os;
 using namespace core;
 
-uint64_t surface::win32_class_id_counter {0};
+uint64_t surface::win32_class_id_counter{0};
 
 bool surface::init_surface()
 {
@@ -19,23 +19,23 @@ bool surface::init_surface()
 	int width  = m_Data->width();
 	int height = m_Data->height();
 
-	win32_instance   = GetModuleHandle(nullptr);
+	win32_instance	 = GetModuleHandle(nullptr);
 	win32_class_name = std::to_wstring(win32_class_id_counter);
 	win32_class_id_counter++;
 
-	int screenWidth  = GetSystemMetrics(SM_CXSCREEN);
+	int screenWidth	 = GetSystemMetrics(SM_CXSCREEN);
 	int screenHeight = GetSystemMetrics(SM_CYSCREEN);
 	// Initialize the window class structure:
 	win_class.cbSize		= sizeof(WNDCLASSEX);
 	win_class.style			= CS_HREDRAW | CS_VREDRAW | CS_OWNDC;
-	win_class.lpfnWndProc   = core::systems::input::win_event_handler;
+	win_class.lpfnWndProc	= core::systems::input::win_event_handler;
 	win_class.cbClsExtra	= 0;
 	win_class.cbWndExtra	= 0;
 	win_class.hInstance		= win32_instance; // hInstance
 	win_class.hIcon			= NULL;
 	win_class.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	win_class.hbrBackground = (HBRUSH)COLOR_WINDOW;
-	win_class.lpszMenuName  = NULL;
+	win_class.lpszMenuName	= NULL;
 	win_class.lpszClassName = win32_class_name.c_str();
 	win_class.hIconSm		= NULL;
 	// Register window class:
@@ -55,7 +55,7 @@ bool surface::init_surface()
 		dmScreenSettings.dmPelsWidth  = width;
 		dmScreenSettings.dmPelsHeight = height;
 		dmScreenSettings.dmBitsPerPel = 32;
-		dmScreenSettings.dmFields	 = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
+		dmScreenSettings.dmFields	  = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
 		if((width != screenWidth) && (height != screenHeight))
 		{
@@ -80,7 +80,7 @@ bool surface::init_surface()
 	if(fullscreen)
 	{
 		ex_style = WS_EX_APPWINDOW;
-		style	= WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
+		style	 = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 	}
 	else
 	{
@@ -94,16 +94,16 @@ bool surface::init_surface()
 	RECT wr = {0, 0, LONG(width), LONG(height)};
 	AdjustWindowRectEx(&wr, style, FALSE, ex_style);
 	win32_window = CreateWindowEx(0,
-								   win32_class_name.c_str(),						// class name
-								   psl::to_pstring(m_Data->name()).c_str(), // app name
-								   style,											// window style
-								   0, 0,											// x/y coords
-								   wr.right - wr.left,								// width
-								   wr.bottom - wr.top,								// height
-								   NULL,											// handle to parent
-								   NULL,											// handle to menu
-								   win32_instance,									// hInstance
-								   NULL);											// no extra parameters
+								  win32_class_name.c_str(),				   // class name
+								  psl::to_pstring(m_Data->name()).c_str(), // app name
+								  style,								   // window style
+								  0, 0,									   // x/y coords
+								  wr.right - wr.left,					   // width
+								  wr.bottom - wr.top,					   // height
+								  NULL,									   // handle to parent
+								  NULL,									   // handle to menu
+								  win32_instance,						   // hInstance
+								  NULL);								   // no extra parameters
 	if(!win32_window)
 	{
 		// It didn't work, so try to give a useful error:
@@ -127,13 +127,13 @@ bool surface::init_surface()
 	RAWINPUTDEVICE Rid[2];
 
 	Rid[0].usUsagePage = 0x01;
-	Rid[0].usUsage	 = 0x02;
-	Rid[0].dwFlags	 = 0; // adds HID mouse and also ignores legacy mouse messages
+	Rid[0].usUsage	   = 0x02;
+	Rid[0].dwFlags	   = 0; // adds HID mouse and also ignores legacy mouse messages
 	Rid[0].hwndTarget  = NULL;
 
 	Rid[1].usUsagePage = 0x01;
-	Rid[1].usUsage	 = 0x06;
-	Rid[1].dwFlags	 = 0; // adds HID keyboard and also ignores legacy keyboard messages
+	Rid[1].usUsage	   = 0x06;
+	Rid[1].dwFlags	   = 0; // adds HID keyboard and also ignores legacy keyboard messages
 	Rid[1].hwndTarget  = NULL;
 
 	if(RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
@@ -168,9 +168,18 @@ void surface::focus(bool value)
 		// SetCapture(_win32_window);
 		if(m_IndicatorClipped)
 		{
-			RECT rect;
-			GetWindowRect(win32_window, &rect);
-			ClipCursor(&rect);
+			RECT crect;
+			GetClientRect(win32_window, &crect);
+			POINT lt = { crect.left, crect.top }; // Practicaly both are 0
+			ClientToScreen(win32_window, &lt);
+			POINT rb = { crect.right, crect.bottom };
+			ClientToScreen(win32_window, &rb);
+
+			crect.left = lt.x;
+			crect.top = lt.y;
+			crect.right = rb.x;
+			crect.bottom = rb.y;
+			ClipCursor(&crect);
 		}
 		if(!m_IndicatorVisible) ShowCursor(false);
 
@@ -198,4 +207,31 @@ void surface::focus(bool value)
 void surface::update_surface() { m_InputSystem->tick(); }
 
 void surface::resize_surface() {}
+
+
+void surface::trap_cursor(bool state) noexcept
+{
+	if(m_IndicatorClipped == state) return;
+	m_IndicatorClipped = state;
+	if(m_IndicatorClipped)
+	{
+		RECT crect;
+		GetClientRect(win32_window, &crect);
+		POINT lt = { crect.left, crect.top }; // Practicaly both are 0
+		ClientToScreen(win32_window, &lt);
+		POINT rb = { crect.right, crect.bottom };
+		ClientToScreen(win32_window, &rb);
+
+		crect.left = lt.x;
+		crect.top = lt.y;
+		crect.right = rb.x;
+		crect.bottom = rb.y;
+		ClipCursor(&crect);
+	}
+	else
+	{
+		ClipCursor(NULL);
+	}
+}
+bool surface::is_cursor_trapped() const noexcept { return m_IndicatorVisible; }
 #endif

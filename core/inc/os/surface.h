@@ -96,6 +96,9 @@ namespace core::os
 		/// \brief this method will be called by the swapchain class, so that the surface knows who to notify of resize events, etc..
 		/// \todo can we hide this?
 		void register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain);
+
+		void trap_cursor(bool state) noexcept;
+		bool is_cursor_trapped() const noexcept;
 #if defined(SURFACE_WIN32)
 		HINSTANCE surface_instance() const { return win32_instance; };
 		HWND surface_handle() const { return win32_window; };

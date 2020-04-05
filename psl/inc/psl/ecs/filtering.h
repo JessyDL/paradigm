@@ -59,7 +59,8 @@ namespace psl::ecs
 			{
 				for(const auto& condition : on_condition) end = condition(begin, end, state);
 
-				order_by(begin, end, state);
+				if(order_by)
+					order_by(begin, end, state);
 				return end;
 			}
 

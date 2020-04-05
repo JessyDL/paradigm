@@ -17,7 +17,21 @@ namespace psl
 		template <typename T, size_t... N>
 		struct accessor
 		{
-			using return_t = std::conditional_t<sizeof...(N) == 1, T, tvec<T, sizeof...(N)>>;
+		private:
+			constexpr static bool single_element = sizeof...(N) == 1;
+
+			template<size_t Nx, size_t ... Ny>
+			inline const T& get_first() const noexcept
+			{
+				return *((&m_First) + Nx);
+			}
+			template<size_t Nx, size_t ... Ny>
+			inline T& get_first() noexcept
+			{
+				return *((&m_First) + Nx);
+			}
+		public:
+			using return_t = std::conditional_t<single_element, T, tvec<T, sizeof...(N)>>;
 			template <size_t... N2>
 			constexpr tvec<T, sizeof...(N)> operator+(const accessor<T, N2...>& rhs) const noexcept
 			{
@@ -35,6 +49,12 @@ namespace psl
 				size_t i = 0;
 				(void(res[i++] += *((&m_First) + N)), ...);
 				return res;
+			}
+
+			template<typename X = return_t>
+			std::enable_if_t<single_element, X> operator+(const return_t& rhs) const noexcept
+			{
+				return get_first<N...>() + rhs;
 			}
 
 			constexpr operator return_t() const noexcept

@@ -153,8 +153,8 @@ namespace psl
 			}
 			else
 			{
-				this->first = std::addressof(*first);
-				this->last = std::addressof(*std::prev(last)) + 1;
+				this->first = const_cast<pointer>(std::addressof(*first));
+				this->last = const_cast<pointer>(std::addressof(*std::prev(last)) + 1);
 			}
 		};
 
