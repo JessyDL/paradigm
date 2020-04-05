@@ -23,21 +23,22 @@ namespace psl::ecs
 			constexpr void selector(psl::templates::type_container<T>) noexcept
 			{}
 
-			template <typename Pred, typename... Ts>
-			constexpr void selector(psl::templates::type_container<order_by<Pred, Ts...>>) noexcept
+			template <typename Pred, typename T>
+			constexpr void selector(psl::templates::type_container<order_by<Pred, T>>) noexcept
 			{
 				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
 							  const psl::ecs::state& state) {
-					state.order_by<Pred, Ts...>(std::execution::par, begin, end);
+					state.order_by<Pred, T>(std::execution::par, begin, end);
 				};
 			}
 
-			template <typename Pred, typename... Ts>
-			constexpr void selector(psl::templates::type_container<on_condition<Pred, Ts...>>) noexcept
+
+			template <typename Pred, typename T>
+			constexpr void selector(psl::templates::type_container<on_condition<Pred, T>>) noexcept
 			{
 				on_condition.emplace_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-											 const psl::ecs::state& state) -> psl::array<entity>::iterator {
-					return state.on_condition<Pred, Ts...>(begin, end);
+					const psl::ecs::state& state)->psl::array<entity>::iterator{
+						return state.on_condition<Pred, T>(begin, end);
 				});
 			}
 

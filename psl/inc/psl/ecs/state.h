@@ -107,7 +107,7 @@ namespace psl::ecs
 		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
 
 		template <typename Pred, typename T>
-		void order_by(psl::array<entity>::iterator begin, psl::array<entity>::iterator end)
+		void order_by(psl::array<entity>::iterator begin, psl::array<entity>::iterator end) const noexcept
 		{
 			order_by<Pred, T>(std::execution::seq, begin, end);
 		}

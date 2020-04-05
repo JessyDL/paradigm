@@ -52,7 +52,7 @@ if(NOT spdlog_POPULATED)
 	message(STATUS "spdlog fetched")
 endif()
 
-FetchContent_Declare(utf8cpp GIT_REPOSITORY https://github.com/nemtrif/utfcpp.git GIT_TAG v2.3.6 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+FetchContent_Declare(utf8cpp GIT_REPOSITORY https://github.com/nemtrif/utfcpp.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(utf8cpp)
 if(NOT utf8cpp_POPULATED)
 	message(STATUS "fetching utf8cpp...")
