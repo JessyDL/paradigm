@@ -113,7 +113,7 @@ namespace psl::math
 	}
 	template <typename precision_t>
 	constexpr inline psl::tvec<precision_t, 1> lerp(precision_t t, psl::tvec<precision_t, 1> a,
-													   psl::tvec<precision_t, 1> b) noexcept
+													psl::tvec<precision_t, 1> b) noexcept
 	{
 		return a + t * (b - a);
 	}
@@ -263,48 +263,63 @@ namespace psl::math
 		return value - remainder;
 	}
 
-	template<typename precision_t>
-	constexpr static precision_t min(const precision_t& left, const precision_t& right) noexcept
+	template <typename precision_t>
+	constexpr static inline precision_t min(const precision_t& left, const precision_t& right) noexcept
 	{
 		return std::min(left, right);
 	}
 
-	template<typename precision_t, size_t N>
-	constexpr static tvec<precision_t, N> min(const tvec<precision_t, N>& left, const tvec<precision_t, N>& right) noexcept
+	template <typename precision_t, size_t N>
+	constexpr static inline tvec<precision_t, N> min(const tvec<precision_t, N>& left,
+													 const tvec<precision_t, N>& right) noexcept
 	{
 		tvec<precision_t, N> res;
-		for (auto i = 0; i < N; ++i)
-			res[i] = min<precision_t>(left[i], right[i]);
+		for(auto i = 0; i < N; ++i) res[i] = min<precision_t>(left[i], right[i]);
 		return res;
 	}
 
-	template<typename precision_t>
-	constexpr static precision_t max(const precision_t& left, const precision_t& right) noexcept
+	template <typename precision_t>
+	constexpr static inline precision_t max(const precision_t& left, const precision_t& right) noexcept
 	{
 		return std::max(left, right);
 	}
 
-	template<typename precision_t, size_t N>
-	constexpr static tvec<precision_t, N> max(const tvec<precision_t, N>& left, const tvec<precision_t, N>& right) noexcept
+	template <typename precision_t, size_t N>
+	constexpr static inline tvec<precision_t, N> max(const tvec<precision_t, N>& left,
+													 const tvec<precision_t, N>& right) noexcept
 	{
 		tvec<precision_t, N> res;
-		for (auto i = 0; i < N; ++i)
-			res[i] = max<precision_t>(left[i], right[i]);
+		for(auto i = 0; i < N; ++i) res[i] = max<precision_t>(left[i], right[i]);
 		return res;
 	}
 
-	template<typename precision_t>
-	constexpr static precision_t abs(const precision_t& value) noexcept
+	template <typename precision_t>
+	constexpr static inline precision_t abs(const precision_t& value) noexcept
 	{
 		return std::abs(value);
 	}
 
-	template<typename precision_t, size_t N>
-	constexpr static tvec<precision_t, N> abs(const tvec<precision_t, N>& value) noexcept
+	template <typename precision_t, size_t N>
+	constexpr static inline tvec<precision_t, N> abs(const tvec<precision_t, N>& value) noexcept
 	{
 		tvec<precision_t, N> res;
-		for (auto i = 0; i < N; ++i)
-			res[i] = abs<precision_t>(value[i]);
+		for(auto i = 0; i < N; ++i) res[i] = abs<precision_t>(value[i]);
+		return res;
+	}
+
+	template <typename precision_t>
+	constexpr static inline precision_t difference(const precision_t& lhs, const precision_t& rhs) noexcept
+	{
+		return (lhs < rhs) ? abs<precision_t>(rhs - lhs) : abs<precision_t>(lhs - rhs);
+	}
+
+	template <typename precision_t, size_t N>
+	constexpr static inline tvec<precision_t, N> difference(const tvec<precision_t, N>& lhs,
+															const tvec<precision_t, N>& rhs) noexcept
+	{
+		tvec<precision_t, N> res;
+		for(auto i = 0; i < N; ++i)
+			res[i] = difference<precision_t>(lhs[i], rhs[i]);
 		return res;
 	}
 
@@ -342,10 +357,10 @@ namespace psl::math
 	constexpr static tvec<precision_t, 3> to_euler(const tquat<precision_t>& q) noexcept
 	{
 		tvec<precision_t, 3> res;
-		precision_t sqw  = q[3] * q[3];
-		precision_t sqx  = q[0] * q[0];
-		precision_t sqy  = q[1] * q[1];
-		precision_t sqz  = q[2] * q[2];
+		precision_t sqw	 = q[3] * q[3];
+		precision_t sqx	 = q[0] * q[0];
+		precision_t sqy	 = q[1] * q[1];
+		precision_t sqz	 = q[2] * q[2];
 		precision_t unit = sqx + sqy + sqz + sqw; // if normalised is one, otherwise is correction factor
 		precision_t test = q[0] * q[1] + q[2] * q[3];
 		if(test > precision_t{100} / precision_t{201} * unit)
@@ -595,15 +610,15 @@ namespace psl::math
 	}
 
 	template <typename element1_t, typename element2_t, typename precision_t, typename return_t = element1_t, size_t N>
-	constexpr static psl::tvec<return_t, N> mix(const std::array<element1_t, N>& x,
-												   const std::array<element2_t, N>& y, precision_t a) noexcept
+	constexpr static psl::tvec<return_t, N> mix(const std::array<element1_t, N>& x, const std::array<element2_t, N>& y,
+												precision_t a) noexcept
 	{
 		return lerp(a, x, y);
 	}
 
 	template <typename element1_t, typename element2_t, typename precision_t, typename return_t = element1_t, size_t N>
 	constexpr static psl::tvec<return_t, N> mix(const psl::tvec<element1_t, N>& x, const psl::tvec<element2_t, N>& y,
-												   precision_t a) noexcept
+												precision_t a) noexcept
 	{
 		return lerp(a, x, y);
 	}
