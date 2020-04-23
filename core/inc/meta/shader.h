@@ -19,6 +19,50 @@ namespace core::meta
 		friend class psl::serialization::accessor;
 
 	  public:
+		class member
+		{
+			friend class psl::serialization::accessor;
+
+		  public:
+			psl::string_view name() const noexcept { return m_Name.value; }
+			void name(psl::string value) noexcept { m_Name.value = value; }
+
+			uint32_t offset() const noexcept { return m_Offset.value; }
+			void offset(uint32_t value) noexcept { m_Offset.value = value; }
+
+			uint32_t count() const noexcept { return m_Count.value; }
+			void count(uint32_t value) noexcept { m_Count.value = value; }
+
+			uint32_t stride() const noexcept { return m_Stride.value; }
+			void stride(uint32_t value) noexcept { m_Stride.value = value; }
+
+			size_t size() const noexcept { return m_Size.value; }
+			void size(size_t value) noexcept { m_Size.value = value; }
+
+			psl::array_view<member> members() const noexcept { return m_Members.value; }
+			void members(psl::array<member> value) noexcept { m_Members.value = std::move(value); }
+
+			/// \brief returns true if this is an unconstrained/unsized array
+			inline bool is_unconstrained() const noexcept { return is_array() && m_Count.value == 0; }
+
+			inline bool is_array() const noexcept { return m_Members.value.size() > 0; }
+
+		  private:
+			template <typename S>
+			void serialize(S& s)
+			{
+				s << m_Name << m_Offset << m_Count << m_Stride << m_Size << m_Members;
+			}
+
+			static constexpr const char serialization_name[7]{"MEMBER"};
+			psl::serialization::property<psl::string, const_str("NAME", 4)> m_Name;	  // name of the element
+			psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;  // location of the element
+			psl::serialization::property<uint32_t, const_str("COUNT", 5)> m_Count{1}; // how many elements
+			psl::serialization::property<uint32_t, const_str("STRIDE", 6)> m_Stride;  // size per element
+			psl::serialization::property<size_t, const_str("SIZE", 4)> m_Size;		  // size of the element
+			psl::serialization::property<psl::array<member>, const_str("MEMBERS", 7)>
+				m_Members; // sub-elements (if array)
+		};
 		class attribute
 		{
 			friend class psl::serialization::accessor;
@@ -62,8 +106,8 @@ namespace core::meta
 		  public:
 			enum class dependency
 			{
-				in	= 1 << 0,
-				out   = 1 << 1,
+				in	  = 1 << 0,
+				out	  = 1 << 1,
 				inout = in + out
 			};
 
@@ -85,11 +129,21 @@ namespace core::meta
 			core::gfx::binding_type type() const noexcept { return m_Type.value; }
 			void type(core::gfx::binding_type value) { m_Type.value = value; }
 
+			psl::array_view<member> members() const noexcept { return m_Members.value; }
+			void members(psl::array<member> value) noexcept { m_Members.value = value; }
+
+
+			size_t size() const noexcept
+			{
+				return std::accumulate(std::begin(m_Members.value), std::end(m_Members.value), size_t{0},
+									   [](auto sum, const auto& member) { return sum + member.size(); });
+			}
+
 		  private:
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Name << m_Type << m_Set << m_Binding << m_Dependency;
+				s << m_Name << m_Type << m_Set << m_Binding << m_Dependency << m_Members;
 			}
 			static constexpr const char serialization_name[11]{"DESCRIPTOR"};
 			psl::serialization::property<psl::string, const_str("NAME", 4)> m_Name;
@@ -97,6 +151,7 @@ namespace core::meta
 			psl::serialization::property<uint32_t, const_str("SET", 3)> m_Set;
 			psl::serialization::property<core::gfx::binding_type, const_str("TYPE", 4)> m_Type;
 			psl::serialization::property<dependency, const_str("DEPENDENCY", 10)> m_Dependency;
+			psl::serialization::property<psl::array<member>, const_str("MEMBERS", 7)> m_Members;
 		};
 
 		shader() = default;

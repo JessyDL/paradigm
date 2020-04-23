@@ -1435,6 +1435,8 @@ namespace psl::serialization
 				if(m_CollectionStack.size() > 0)
 				{
 					auto& collection = m_Container.find(m_CollectionStack.top()->get(), name);
+					if (!collection.exists())
+						return;
 					m_CollectionStack.push(&collection);
 					auto value_opt{collection.get().as_collection()};
 					size = value_opt.value_or(0);
@@ -1442,6 +1444,8 @@ namespace psl::serialization
 				else
 				{
 					auto& collection = m_Container.find(name);
+					if (!collection.exists())
+						return;
 					m_CollectionStack.push(&collection);
 					auto value_opt{collection.get().as_collection()};
 					size = value_opt.value_or(0);
