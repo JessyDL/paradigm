@@ -8,6 +8,51 @@
 
 namespace utility::templates
 {
+	namespace details
+	{
+		template<size_t first, size_t second, size_t... remainder>
+		static constexpr size_t max_impl() noexcept
+		{
+			constexpr auto val = (first > second) ? first : second;
+			if constexpr (sizeof...(remainder) > 0)
+			{
+				return details::max_impl<val, remainder...>();
+			}
+			else return val;
+		}
+
+		template<size_t first, size_t second, size_t... remainder>
+		static constexpr size_t min_impl() noexcept
+		{
+			constexpr auto val = (first < second) ? first : second;
+			if constexpr (sizeof...(remainder) > 0)
+			{
+				return details::min_impl<val, remainder...>();
+			}
+			else return val;
+		}
+	}
+
+	template<size_t first, size_t... remainder>
+	static constexpr size_t max() noexcept
+	{
+		if constexpr (sizeof...(remainder) > 0)
+		{
+			return details::max_impl<first, remainder...>();
+		}
+		else return first;
+	}
+
+	template<size_t first, size_t... remainder>
+	static constexpr size_t min() noexcept
+	{
+		if constexpr (sizeof...(remainder) > 0)
+		{
+			return details::min_impl<first, remainder...>();
+		}
+		else return first;
+	}
+
 	template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };
 	template<class... Ts> overloaded(Ts...)->overloaded<Ts...>;
 

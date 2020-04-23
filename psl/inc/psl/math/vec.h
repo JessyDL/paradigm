@@ -14,74 +14,53 @@ namespace psl
 
 	namespace details
 	{
-		template <typename T, size_t... N>
+		template <typename T, size_t... index>
 		struct accessor
 		{
-		private:
-			constexpr static bool single_element = sizeof...(N) == 1;
+			static constexpr size_t length = sizeof...(index);
+			static constexpr bool is_single_accessor = length == 1;
 
-			template<size_t Nx, size_t ... Ny>
-			inline const T& get_first() const noexcept
+			inline operator std::conditional_t<is_single_accessor, T&, tvec<T, length>>() noexcept
 			{
-				return *((&m_First) + Nx);
-			}
-			template<size_t Nx, size_t ... Ny>
-			inline T& get_first() noexcept
-			{
-				return *((&m_First) + Nx);
-			}
-		public:
-			using return_t = std::conditional_t<single_element, T, tvec<T, sizeof...(N)>>;
-			template <size_t... N2>
-			constexpr tvec<T, sizeof...(N)> operator+(const accessor<T, N2...>& rhs) const noexcept
-			{
-				static_assert(sizeof...(N) == sizeof...(N2),
-							  "right hand side does not have the same indices like the left");
-				tvec<T, sizeof...(N)> res = rhs;
-				size_t i				  = 0;
-				(void(res[i++] += *((&m_First) + N)), ...);
-				return res;
-			}
-
-			constexpr tvec<T, sizeof...(N)> operator+(const tvec<T, sizeof...(N)>& rhs) const noexcept
-			{
-				auto res = rhs;
-				size_t i = 0;
-				(void(res[i++] += *((&m_First) + N)), ...);
-				return res;
-			}
-
-			template<typename X = return_t>
-			std::enable_if_t<single_element, X> operator+(const return_t& rhs) const noexcept
-			{
-				return get_first<N...>() + rhs;
-			}
-
-			constexpr operator return_t() const noexcept
-			{
-				return_t res;
-				if constexpr (sizeof...(N) == 1)
+				if constexpr (length > 1)
 				{
-					(void(res = *((&m_First) + N)), ...);
+					return tvec<T, length>{data[index]...};
 				}
 				else
 				{
-					size_t i = 0;
-					(void(res[i++] = *((&m_First) + N)), ...);
+					return { data[index]... };
 				}
-				return res;
 			}
 
-			/*constexpr operator tvec<T, sizeof...(N)>() noexcept
+			inline operator std::conditional_t<is_single_accessor, const T&, tvec<T, length>>() const noexcept
 			{
-				tvec<T, sizeof...(N)> res;
-				size_t i = 0;
-				(void(res[i++] = *((&m_First) + N)), ...);
-				return res;
-			}*/
+				if constexpr (length > 1)
+				{
+					return tvec<T, length>{data[index]...};
+				}
+				else
+				{
+					return { data[index]... };
+				}
+			}
 
-		  private:
-			T m_First;
+			inline tvec<T, length> operator=(const tvec<T, length>& other) noexcept
+			{
+				if constexpr (length > 1)
+				{
+					auto it = std::begin(other.data);
+					(void(data.at(index) = *it++), ...);
+				}
+				else
+				{
+					data.at(index...) = other;
+				}
+
+				return { data[index]... };
+			}
+
+			static constexpr size_t max_elements = utility::templates::max<index...>() + 1;
+			psl::static_array<T, max_elements> data;
 		};
 	} // namespace details
 #define ACCESSOR_IMPL(type, name, ...) ::psl::details::accessor<type, __VA_ARGS__> name;
