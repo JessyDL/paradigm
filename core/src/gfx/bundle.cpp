@@ -11,8 +11,8 @@ using namespace psl;
 using namespace core::gfx::details::instance;
 
 bundle::bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::buffer> buffer)
-	: m_UID(metaData.uid), m_Cache(cache), m_InstanceData(buffer){};
+	core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::buffer> materialBuffer)
+	: m_UID(metaData.uid), m_Cache(cache), m_InstanceData(vertexBuffer, materialBuffer){};
 
 // ------------------------------------------------------------------------------------------------------------
 // material API
@@ -33,7 +33,7 @@ bool bundle::has(uint32_t renderlayer) const noexcept
 	return std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer) != std::end(m_Layers);
 }
 
-void bundle::set(handle<core::gfx::material> material, std::optional<uint32_t> render_layer_override)
+void bundle::set_material(handle<core::gfx::material> material, std::optional<uint32_t> render_layer_override)
 {
 	uint32_t layer = render_layer_override.value_or(material->data().render_layer());
 	size_t index{};
@@ -74,7 +74,10 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept
 	if(auto it = std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer); it != std::end(m_Layers))
 	{
 		auto index = std::distance(std::begin(m_Layers), it);
-		m_Bound	= m_Materials[index];
+		m_Bound	   = m_Materials[index];
+		auto opt = m_InstanceData.material_instance(m_Bound);
+		if (opt)
+			m_Bound->bind_instance_data(opt.value().first, opt.value().second);
 		return true;
 	}
 	return false;
@@ -107,6 +110,12 @@ bool bundle::release_all(std::optional<geometry_type> type) noexcept { return m_
 bool bundle::set(tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment, uint32_t size_of_element,
 				 const void* data, size_t size, size_t count)
 {
-	return m_InstanceData.buffer()->commit({core::gfx::commit_instruction{
+	return m_InstanceData.vertex_buffer()->commit({core::gfx::commit_instruction{
 		(void*)data, size * count, segment, memory::range{size_of_element * id, size_of_element * (id + count)}}});
+}
+
+
+bool bundle::set(tag<core::gfx::material> material, const void* data, size_t size, size_t offset)
+{
+	return m_InstanceData.set(material, data, size, offset);
 }

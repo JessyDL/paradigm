@@ -4,6 +4,8 @@
 #include "psl/meta.h"
 #include "logging.h"
 #include "paradigm.hpp"
+#include "gfx/limits.h"
+#include "vk/conversion.h"
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
@@ -103,8 +105,8 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 {
 #ifndef VK_STATIC
 	// todo load library ourselves, not through the vulkan dynamic loader solution
-	//HMODULE module = LoadLibraryA("vulkan-1.dll");
-	//if (!module)
+	// HMODULE module = LoadLibraryA("vulkan-1.dll");
+	// if (!module)
 	//	throw std::runtime_error("no vulkan library detected");
 
 	PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =
@@ -504,6 +506,26 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 			// forgot this one
 			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers);
 	}
+
+
+	m_Limits.storage_buffer_offset_alignment = m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+	m_Limits.uniform_buffer_offset_alignment = m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+	m_Limits.minMemoryMapAlignment			 = m_PhysicalDeviceProperties.limits.minMemoryMapAlignment;
+	vk::Format format;
+	if(utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))
+		m_Limits.supported_depthformat = core::gfx::conversion::to_format(format);
+	else
+		m_Limits.supported_depthformat = core::gfx::format::undefined;
+
+	m_Limits.compute_worgroup_count[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[0];
+	m_Limits.compute_worgroup_count[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[1];
+	m_Limits.compute_worgroup_count[2] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[2];
+
+	m_Limits.compute_worgroup_size[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+	m_Limits.compute_worgroup_size[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[1];
+	m_Limits.compute_worgroup_size[2] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[2];
+
+	m_Limits.compute_worgroup_invocations = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupInvocations;
 }
 
 context::~context()
@@ -520,12 +542,12 @@ context::~context()
 
 void context::init_debug()
 {
-	if (m_Validated)
+	if(m_Validated)
 	{
 		vk::DebugReportCallbackCreateInfoEXT callbackCreateInfo{};
 		callbackCreateInfo.flags = vk::DebugReportFlagBitsEXT::eInformation | vk::DebugReportFlagBitsEXT::eWarning |
-			vk::DebugReportFlagBitsEXT::ePerformanceWarning | vk::DebugReportFlagBitsEXT ::eError|
-			vk::DebugReportFlagBitsEXT::eDebug;
+								   vk::DebugReportFlagBitsEXT::ePerformanceWarning |
+								   vk::DebugReportFlagBitsEXT ::eError | vk::DebugReportFlagBitsEXT::eDebug;
 
 		callbackCreateInfo.pfnCallback = &VulkanDebugCB;
 

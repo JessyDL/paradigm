@@ -35,19 +35,29 @@ namespace core::gfx
 	{
 		static constexpr psl::string_view INSTANCE_MODELMATRIX = "INSTANCE_TRANSFORM";
 	}
+
+	/// \detail
+	/// Bundles acts as a collection of core::gfx::materials, which are associated with a specific renderID (ordered
+	/// from lowest to highest). These renderID's are what core::gfx::drawpass will use to decide which materials to
+	/// bind for the current pass when rendering the associated geometry.
+	///
+	/// Aside from that, bundles also contain the abstraction of instance data associated with a material-geometry
+	/// combination. This allows geometry to share instance related data (such as positions, or colors) across different
+	/// 'core::gfx::material's and different 'core::gfx::pass'es. As example sharing instance position data between the
+	/// depth-only prepass, and normal render pass.
 	class bundle final
 	{
 		friend class core::ivk::drawpass;
 		friend class core::igles::drawpass;
 
 		/*
-			Uses a simple allocate front/back mechanism for handling static (front) and dynamic (back) items. This helps
-		   in mitigating stalls and useless uploads to the GPU.
+		todo: Uses a simple allocate front/back mechanism for handling static (front) and dynamic (back) items. This
+		helps in mitigating stalls and useless uploads to the GPU.
 		*/
 
 	  public:
 		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::buffer> buffer);
+			   core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::buffer> materialBuffer);
 
 		~bundle()				  = default;
 		bundle(const bundle&)	  = delete;
@@ -61,8 +71,11 @@ namespace core::gfx
 		std::optional<core::resource::handle<core::gfx::material>> get(uint32_t renderlayer) const noexcept;
 		bool has(uint32_t renderlayer) const noexcept;
 
-		void set(core::resource::handle<core::gfx::material> material,
-				 std::optional<uint32_t> render_layer_override = std::nullopt);
+		/// \brief assigns a material to the bundle, with optional render_layer
+		/// \details Assigns a material to this bundle. If no render_layer_override is provided, the materials default
+		/// value will be used instead.
+		void set_material(core::resource::handle<core::gfx::material> material,
+						  std::optional<uint32_t> render_layer_override = std::nullopt);
 
 
 		// ------------------------------------------------------------------------------------------------------------
@@ -149,9 +162,32 @@ namespace core::gfx
 			return set(geometry, id, res.value().first, res.value().second, values.data(), sizeof(T), values.size());
 		}
 
+		template <typename T>
+		bool set(core::resource::tag<core::gfx::material> material, const T& value, size_t offset = 0)
+		{
+			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
+			static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
+			return set(material, &value, sizeof(T), offset);
+		}
+
+		template <typename T>
+		bool set(core::resource::tag<core::gfx::material> material, psl::string_view name, const T& value)
+		{
+			auto offset = m_InstanceData.offset_of(material, name);
+			if(!offset)
+			{
+				core::gfx::log->error("The element name {} was not found in the material {} data", name,
+									  material.uid());
+				return false;
+			}
+			return set(material, value, offset);
+		}
+
 	  private:
 		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment,
 				 uint32_t size_of_element, const void* data, size_t size, size_t count = 1);
+
+		bool set(core::resource::tag<core::gfx::material> material, const void* data, size_t size, size_t offset);
 
 		// ------------------------------------------------------------------------------------------------------------
 		// member variables
@@ -165,5 +201,6 @@ namespace core::gfx
 		core::resource::cache& m_Cache;
 
 		core::resource::handle<core::gfx::material> m_Bound;
+		core::resource::handle<core::gfx::buffer> m_MaterialBuffer;
 	};
 } // namespace core::gfx

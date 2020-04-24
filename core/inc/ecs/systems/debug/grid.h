@@ -35,7 +35,7 @@ namespace core::ecs::systems::debug
 			 core::resource::handle<core::gfx::buffer> indexBuffer,
 			 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 			 core::resource::handle<core::gfx::buffer> materialBuffer,
-			 core::resource::handle<core::gfx::buffer> instanceBuffer, psl::vec3 scale = psl::vec3::one * 64.0f, psl::vec3 offset = psl::vec3::zero);
+			core::resource::handle<core::gfx::buffer> instanceVertexBuffer, core::resource::handle<core::gfx::buffer> instanceMaterialBuffer, psl::vec3 scale = psl::vec3::one * 64.0f, psl::vec3 offset = psl::vec3::zero);
 		~grid() = default;
 
 		grid(const grid& other)		= delete;

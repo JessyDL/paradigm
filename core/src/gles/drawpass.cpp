@@ -80,7 +80,7 @@ void drawpass::present()
 						if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
 						geometryHandle->create_vao(
-							mat, bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer>(),
+							mat, bundle->m_InstanceData.vertex_buffer()->resource().get<core::igles::buffer>(),
 							bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle));
 						// for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						//{

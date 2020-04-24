@@ -3,6 +3,7 @@
 #include "os/surface.h"
 #include "glad/glad_wgl.h"
 #include "logging.h"
+#include "gfx/limits.h"
 
 HDC target;
 HWND hwnd;
@@ -73,17 +74,20 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	int version = gladLoadWGL(target);
 	if(!version)
 	{
-		printf("Unable to load OpenGL\n");
+		core::igles::log->critical("could not create a context. failed to load fnpointers.");
 		return;
 	}
 	version	= gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
 	auto error = glGetError();
 
 	GLint value{};
+
 	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &value);
 	m_Limits.storage_buffer_offset_alignment = value;
 	glGetIntegerv(GL_UNIFORM_BUFFER_OFFSET_ALIGNMENT, &value);
 	m_Limits.uniform_buffer_offset_alignment = value;
+	glGetIntegerv(GL_MIN_MAP_BUFFER_ALIGNMENT, &value);
+	m_Limits.minMemoryMapAlignment = value;
 	m_Limits.supported_depthformat			 = core::gfx::format::d32_sfloat;
 
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &value);

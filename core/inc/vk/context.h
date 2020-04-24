@@ -2,7 +2,7 @@
 #include <optional>
 #include "vk/ivk.h"
 #include "fwd/resource/resource.h"
-
+#include "gfx/limits.h"
 
 namespace core::ivk
 {
@@ -148,6 +148,8 @@ namespace core::ivk
 		/// \returns the available memory (type) properties for the physical device
 		const vk::PhysicalDeviceMemoryProperties &memory_properties() const noexcept;
 
+		const core::gfx::limits& limits() const noexcept { return m_Limits; };
+
 		/// \returns the command_pool that commands can be enqueued on.
 		const vk::CommandPool &command_pool() const noexcept;
 		const vk::CommandPool &transfer_command_pool() const noexcept;
@@ -246,7 +248,7 @@ namespace core::ivk
 		vk::DebugReportCallbackEXT m_DebugReport;
 		// VkDebugReportCallbackCreateInfoEXT debugCBCI;
 
-
+		core::gfx::limits m_Limits;
 		struct Memory
 		{
 			vk::DeviceSize maxMemory;
@@ -257,4 +259,4 @@ namespace core::ivk
 		Memory m_HostMemory;
 		uint32_t m_DeviceIndex;
 	};
-} // namespace core::gfx
+} // namespace core::ivk

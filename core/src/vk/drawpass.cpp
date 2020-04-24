@@ -1,4 +1,5 @@
-﻿#include "vk/drawpass.h"
+﻿
+#include "vk/drawpass.h"
 #include "vk/context.h"
 #include "vk/framebuffer.h"
 #include "data/framebuffer.h"
@@ -382,7 +383,8 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 				auto gfxmat{bundle->bound()};
 				auto mat{gfxmat->resource().get<core::ivk::material>()};
 
-				mat->bind_pipeline(cmdBuffer, framebuffer, index);
+				if (!mat->bind_pipeline(cmdBuffer, framebuffer, index))
+					continue;
 				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
 					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
@@ -397,7 +399,7 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 					{
 						cmdBuffer.bindVertexBuffers(
 							b.first, 1,
-							&bundle->m_InstanceData.buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
+							&bundle->m_InstanceData.vertex_buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
 							&b.second);
 					}
 
@@ -431,7 +433,8 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 				auto gfxmat{bundle->bound()};
 				auto mat{gfxmat->resource().get<core::ivk::material>()};
 
-				mat->bind_pipeline(cmdBuffer, swapchain, index);
+				if (!mat->bind_pipeline(cmdBuffer, swapchain, index))
+					continue;
 				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
 					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
@@ -446,7 +449,7 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 					{
 						cmdBuffer.bindVertexBuffers(
 							b.first, 1,
-							&bundle->m_InstanceData.buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
+							&bundle->m_InstanceData.vertex_buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
 							&b.second);
 					}
 

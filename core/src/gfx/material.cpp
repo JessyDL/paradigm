@@ -3,6 +3,7 @@
 #include "gfx/pipeline_cache.h"
 #include "gfx/buffer.h"
 #include "gfx/context.h"
+#include "psl/memory/segment.h"
 
 #ifdef PE_GLES
 #include "gles/material.h"
@@ -51,6 +52,25 @@ const core::data::material& material::data() const
 	if(m_Handle.contains<ivk::material>())
 	{
 		return m_Handle.value<ivk::material>().data().value();
+	}
+#endif
+	throw std::logic_error("core::gfx::material has no API specific material associated with it");
+}
+
+void material::bind_instance_data(core::resource::handle<core::gfx::buffer> buffer, memory::segment segment)
+{
+#ifdef PE_GLES
+	if (m_Handle.contains<igles::material>())
+	{
+		m_Handle.value<igles::material>().bind_instance_data(buffer->resource().get<core::igles::buffer>(), segment);
+		return;
+	}
+#endif
+#ifdef PE_VULKAN
+	if (m_Handle.contains<ivk::material>())
+	{
+		m_Handle.value<ivk::material>().bind_material_instance_data(buffer->resource().get<core::ivk::buffer>(), segment);
+		return;
 	}
 #endif
 	throw std::logic_error("core::gfx::material has no API specific material associated with it");

@@ -14,6 +14,8 @@
 #include "vk/pipeline.h"
 #include "vk/conversion.h"
 
+#include "psl/memory/segment.h"
+
 using namespace psl;
 using namespace core::ivk;
 using namespace core::resource;
@@ -28,7 +30,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& ID = m_UID;
-	m_IsValid	  = false;
+	m_IsValid	   = false;
 
 	for(const auto& stage : m_Data->stages())
 	{
@@ -87,7 +89,6 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			case core::gfx::binding_type::uniform_buffer:
 			case core::gfx::binding_type::storage_buffer:
 			{
-				// if(binding.buffer() == "MATERIAL_DATA") continue;
 				if(auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
@@ -121,7 +122,9 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			}
 			break;
 
-			default: throw new std::runtime_error("This should not be reached"); return;
+			default:
+				throw new std::runtime_error("This should not be reached");
+				return;
 			}
 		}
 	}
@@ -184,6 +187,14 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 		cmdBuffer.pushConstants(m_Bound->vkLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &drawIndex);
 	}
 
+	if(!m_Bound->is_complete())
+	{
+		core::ivk::log->error(
+			"tried to bind an incomplete or invalid pipeline, please inspect the logs around material {}",
+			m_UID.to_string());
+		return false;
+	}
+
 	// Bind the rendering pipeline (including the shaders)
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Bound->vkPipeline());
 
@@ -204,6 +215,14 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 		cmdBuffer.pushConstants(m_Bound->vkLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &drawIndex);
 	}
 
+	if(!m_Bound->is_complete())
+	{
+		core::ivk::log->error(
+			"tried to bind an incomplete or invalid pipeline, please inspect the logs around material {}",
+			m_UID.to_string());
+		return false;
+	}
+
 	// Bind the rendering pipeline (including the shaders)
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Bound->vkPipeline());
 
@@ -214,4 +233,10 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 	// todo: material data is written here.
 
 	return true;
+}
+
+void material::bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment)
+{
+	assert(segment.range().size() <= m_MaterialBuffer->data()->size());
+	m_MaterialBuffer->copy_from(buffer.value(), {vk::BufferCopy{segment.range().begin, 0, segment.range().size()}});
 }

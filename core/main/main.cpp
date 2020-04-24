@@ -759,11 +759,21 @@ int entry(gfx::graphics_backend backend)
 		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 		memory::region{ (uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false) });
 
+	// instance buffer for vertex data, these are unique per streamed instance of a geometry in a shader
 	auto instanceBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{(uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false)});
-	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, dynamicInstanceBufferData);
+		memory::region{ (uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false) });
+	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
+
+	// instance buffer for material data, these are shared over all instances of a given material bind (over all
+	// instances in the invocation)
+	auto instanceMaterialBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::uniform_buffer | core::gfx::memory_usage::transfer_destination,
+		core::gfx::memory_property::device_local,
+		memory::region{ (uint64_t)1024 * 1024 * 8, uniform_buffer_align, new memory::default_allocator(false) });
+	auto instanceMaterialBuffer = cache.create<gfx::buffer>(context_handle, instanceMaterialBufferData, stagingBuffer);
+
 	std::vector<resource::handle<data::geometry>> geometryDataHandles;
 	std::vector<resource::handle<gfx::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
@@ -879,18 +889,18 @@ int entry(gfx::graphics_backend backend)
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[bundles.size() - 1]->set(materials[0], 2000);
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles[bundles.size() - 1]->set_material(materials[0], 2000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[bundles.size() - 1]->set(materials[1], 2000);
-	bundles[bundles.size() - 1]->set(depth_material, 1000);
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles[bundles.size() - 1]->set_material(materials[1], 2000);
+	bundles[bundles.size() - 1]->set_material(depth_material, 1000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[bundles.size() - 1]->set(materials[2], 2000);
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles[bundles.size() - 1]->set_material(materials[2], 2000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer));
-	bundles[bundles.size() - 1]->set(materials[3], 2000);
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles[bundles.size() - 1]->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_drawpass(context_handle, swapchain_handle);
@@ -959,7 +969,7 @@ int entry(gfx::graphics_backend backend)
 		swapchain_pass,			  context_handle,		 surface_handle};
 	
 	/*core::ecs::systems::text text{ECSState,	   cache,		   context_handle, vertexBuffer,
-								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer};*/
+								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer, instanceMaterialBuffer};*/
 								  
 	auto eCam = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});

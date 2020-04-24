@@ -9,6 +9,12 @@ namespace core::data
 {
 	class material;
 }
+
+namespace memory
+{
+	class segment;
+}
+
 namespace core::ivk
 {
 	class context;
@@ -89,6 +95,7 @@ namespace core::ivk
 		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
 						   uint32_t drawIndex);
 
+		void bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment);
 	  private:
 		/// \returns the pipeline this material instance uses for the given framebuffer.
 		/// \details tries to find, and return a core::ivk::pipeline that can satisfy the
@@ -115,7 +122,6 @@ namespace core::ivk
 		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>> m_Buffers;
 
 		core::resource::handle<core::ivk::buffer> m_MaterialBuffer;
-		memory::segment m_MaterialData;
 
 		// psl::UID maps to the psl::UID of a framebuffer or a swapchain
 		std::unordered_map<psl::UID, core::resource::handle<core::ivk::pipeline>> m_Pipeline;

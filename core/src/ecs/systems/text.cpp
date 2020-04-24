@@ -32,7 +32,8 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 		   core::resource::handle<core::gfx::buffer> indexBuffer,
 		   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 		   core::resource::handle<core::gfx::buffer> materialBuffer,
-		   core::resource::handle<core::gfx::buffer> instanceBuffer)
+	core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
+	core::resource::handle<core::gfx::buffer> materialInstanceBuffer)
 	: m_Cache(cache), m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context)
 {
 	psl::static_array<stbtt_bakedchar, 96> char_data{0};
@@ -117,8 +118,8 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 
 	auto material = m_Cache.create<core::gfx::material>(m_Context, matData, pipeline_cache, materialBuffer);
 
-	m_Bundle = m_Cache.create<gfx::bundle>(instanceBuffer);
-	m_Bundle->set(material, 2000);
+	m_Bundle = m_Cache.create<gfx::bundle>(vertexInstanceBuffer, materialInstanceBuffer);
+	m_Bundle->set_material(material, 2000);
 }
 
 core::resource::handle<core::data::geometry> text::create_text(psl::string_view text)

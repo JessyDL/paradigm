@@ -2,9 +2,15 @@
 #include "fwd/gfx/material.h"
 #include "resource/resource.hpp"
 
+
 namespace core::data
 {
 	class material;
+}
+
+namespace memory
+{
+	class segment;
 }
 
 namespace core::gfx
@@ -45,6 +51,7 @@ namespace core::gfx
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
 		const core::data::material& data() const;
+		void bind_instance_data(core::resource::handle<core::gfx::buffer> buffer, memory::segment segment);
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

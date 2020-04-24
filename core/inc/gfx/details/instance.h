@@ -5,6 +5,7 @@
 #include "psl/sparse_array.h"
 #include "psl/IDGenerator.h"
 #include "psl/memory/segment.h"
+#include "meta/shader.h"
 
 namespace std
 {
@@ -19,7 +20,7 @@ namespace core::gfx
 	class buffer;
 	class geometry;
 	class material;
-}
+} // namespace core::gfx
 
 namespace core::gfx::details::instance
 {
@@ -91,11 +92,23 @@ namespace std
 
 namespace core::gfx::details::instance
 {
+	/// \brief handles instance data associated to materials/geometry combinations
+	/// \details Manages instance data related to materials-geometry, both the geometry specific data (such as instance
+	/// position, etc...), as well as material-wide instance data (shared with all drawcalls using this specific
+	/// instance set). The latter could be visualised as all pieces of foliage sharing the same "wind intensity" value.
+	/// This is not to be confused as "global data", such as all pieces of geometry knowing about "fog", it is still
+	/// duplicated over every instance of a bundle.
 	class data final
 	{
+		struct material_instance_data
+		{
+			core::meta::shader::descriptor descriptor;
+			size_t size;
+			memory::segment segment;
+		};
 	  public:
 		data() = default;
-		data(core::resource::handle<core::gfx::buffer> buffer) noexcept;
+		data(core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::buffer> materialBuffer) noexcept;
 		void add(core::resource::handle<core::gfx::material> material);
 		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry> uid,
 													   uint32_t count = 1);
@@ -112,17 +125,31 @@ namespace core::gfx::details::instance
 															   core::resource::tag<core::gfx::geometry> geometry) const
 			noexcept;
 
-		core::resource::handle<core::gfx::buffer> buffer() const noexcept { return m_InstanceBuffer; }
+		core::resource::handle<core::gfx::buffer> vertex_buffer() const noexcept { return m_VertexInstanceBuffer; }
+		core::resource::handle<core::gfx::buffer> material_buffer() const noexcept { return m_MaterialInstanceBuffer; }
 
 		bool erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
 		bool clear(core::resource::tag<core::gfx::geometry> geometry) noexcept;
 		bool clear() noexcept;
 
-	  private:
-		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings; // <material, bindings[]>
-		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
-		std::unordered_map<psl::UID, object> m_InstanceData; // <geometry, object>
+		bool set(core::resource::tag<core::gfx::material> material, const void* data, size_t size,
+				 size_t offset) noexcept;
 
-		core::resource::handle<core::gfx::buffer> m_InstanceBuffer;
+		/// \returns the offset of the material data's member.
+		/// \remark nested declarations (like struct within binding), must be seperated by a '.', so that the chain is
+		/// respected and looks like this "data.player.rotation". \remark array based declarations must be indexed with
+		/// the bracket operator '[i]', otherwise it will default to '[0]' implicitly.
+		size_t offset_of(core::resource::tag<core::gfx::material> material, psl::string_view name) const noexcept;
+
+		std::optional<std::pair<core::resource::handle<core::gfx::buffer>, memory::segment>>
+			material_instance(core::resource::tag<core::gfx::material> material) const noexcept;
+	  private:
+		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;	   // <material, bindings[]>
+		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
+		std::unordered_map<psl::UID, object> m_InstanceData;			   // <geometry, object>
+		std::unordered_map<psl::UID, material_instance_data> m_MaterialInstanceData{};
+		psl::array<size_t> m_MaterialDataSizes{};
+		core::resource::handle<core::gfx::buffer> m_VertexInstanceBuffer;
+		core::resource::handle<core::gfx::buffer> m_MaterialInstanceBuffer;
 	};
 } // namespace core::gfx::details::instance

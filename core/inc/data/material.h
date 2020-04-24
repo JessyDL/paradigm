@@ -30,6 +30,10 @@ namespace core::data
 		friend class psl::serialization::accessor;
 
 	  public:
+		/// \brief special identifier to mark buffers that are instanciable data
+		/// \detail this type of buffer has data that is unique per instanciated material
+		static constexpr psl::string_view MATERIAL_DATA = "MaterialData";
+
 		/// \brief describes the blend operation (source/destination) per color component in the render operation.
 		class blendstate
 		{
@@ -282,7 +286,8 @@ namespace core::data
 						s << uid;
 					}
 					break;
-					default: break;
+					default:
+						break;
 					}
 				}
 				else
@@ -341,7 +346,8 @@ namespace core::data
 						}
 					}
 					break;
-					default: break;
+					default:
+						break;
 					}
 				}
 			}

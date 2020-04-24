@@ -31,7 +31,8 @@ using namespace core::gfx;
 grid::grid(state& state, entity target, resource::cache& cache, resource::handle<context> context,
 		   resource::handle<buffer> vertexBuffer, resource::handle<buffer> indexBuffer,
 		   resource::handle<pipeline_cache> pipeline_cache, resource::handle<buffer> materialBuffer,
-		   resource::handle<buffer> instanceBuffer, psl::vec3 scale, psl::vec3 offset)
+		   resource::handle<buffer> instanceVertexBuffer, resource::handle<buffer> instanceMaterialBuffer,
+		   psl::vec3 scale, psl::vec3 offset)
 	: m_Target(target), m_Scale(scale), m_Offset(offset)
 {
 	// create geometry
@@ -64,14 +65,14 @@ grid::grid(state& state, entity target, resource::cache& cache, resource::handle
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("cb4b4d45-bde8-cba7-b732-b59babc8c1bc"_uid).value();
 
 	// load the example material
-	//auto matData = cache.create<data::material>();
-	//matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	//matData->blend_states({core::data::material::blendstate::additive(0)});
-	//matData->depth_test(true);
-	//matData->depth_write(false);
-	//matData->cull_mode(cullmode::front);
+	// auto matData = cache.create<data::material>();
+	// matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+	// matData->blend_states({core::data::material::blendstate::additive(0)});
+	// matData->depth_test(true);
+	// matData->depth_write(false);
+	// matData->cull_mode(cullmode::front);
 	//// matData->wireframe(true);
-	//auto material1 = cache.create<core::gfx::material>(context, matData, pipeline_cache, materialBuffer);
+	// auto material1 = cache.create<core::gfx::material>(context, matData, pipeline_cache, materialBuffer);
 
 	auto matData2 = cache.create<data::material>();
 	matData2->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
@@ -82,11 +83,12 @@ grid::grid(state& state, entity target, resource::cache& cache, resource::handle
 	matData2->wireframe(true);
 	auto material2 = cache.create<core::gfx::material>(context, matData2, pipeline_cache, materialBuffer);
 
-	m_Bundle = cache.create<gfx::bundle>(instanceBuffer);
-	//m_Bundle->set(material1, 2500);
-	m_Bundle->set(material2, 2501);
+	m_Bundle = cache.create<gfx::bundle>(instanceVertexBuffer, instanceMaterialBuffer);
+	// m_Bundle->set_material(material1, 2500);
+	m_Bundle->set_material(material2, 2501);
 	// create entity
-	m_Entity = state.create(1, renderable{ m_Bundle, m_Geometry }, transform{}, empty<grid::tag>{}, empty<dynamic_tag>{})[0];
+	m_Entity =
+		state.create(1, renderable{m_Bundle, m_Geometry}, transform{}, empty<grid::tag>{}, empty<dynamic_tag>{})[0];
 	state.declare(&grid::tick, this);
 }
 
@@ -101,8 +103,8 @@ void grid::tick(info& info, pack<entity, const transform, psl::ecs::filter<camer
 		auto pos = tr.position;
 
 		pos = static_cast<psl::ivec3>(pos) - (static_cast<psl::ivec3>(pos) % static_cast<psl::ivec3>(m_Scale));
-		
-		for (auto [target] : grid_pack)
+
+		for(auto [target] : grid_pack)
 		{
 			target.position = pos;
 		}

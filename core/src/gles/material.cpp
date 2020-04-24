@@ -13,6 +13,10 @@
 #include "logging.h"
 #include "glad/glad_wgl.h"
 
+#include "gfx/details/instance.h"
+
+#include "psl/memory/segment.h"
+
 using namespace core::igles;
 using namespace core::resource;
 namespace data = core::data;
@@ -20,7 +24,7 @@ namespace data = core::data;
 material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				   handle<data::material> data, core::resource::handle<core::igles::program_cache> program_cache,
 				   handle<buffer> matBuffer)
-	: m_Data(data)
+	: m_Data(data), m_MaterialBuffer(matBuffer)
 {
 	for(auto& stage : data->stages())
 	{
@@ -91,21 +95,24 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			case core::gfx::binding_type::uniform_buffer:
 			case core::gfx::binding_type::storage_buffer:
 			{
-				// if(binding.buffer() == "MATERIAL_DATA") continue;
+
+				auto descriptor = std::find_if(std::begin(meta->descriptors()), std::end(meta->descriptors()),
+											   [&binding](const core::meta::shader::descriptor& descriptor) {
+												   return descriptor.binding() == binding.binding_slot();
+											   });
 
 				if(auto buffer_handle = cache.find<core::igles::buffer>(binding.buffer());
 				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
-					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), buffer_handle.meta()->tags()[0].data());
-					glUniformBlockBinding(m_Program->id(), binding_slot, 1);
-					binding_slot = 1;
+					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), descriptor->name().data());
+					glUniformBlockBinding(m_Program->id(), binding_slot, binding.binding_slot());
 
 					auto usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 									 ? core::gfx::memory_usage::uniform_buffer
 									 : core::gfx::memory_usage::storage_buffer;
 					if(buffer_handle->data().usage() & usage)
 					{
-						m_Buffers.push_back(std::make_pair(binding_slot, buffer_handle));
+						m_Buffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle));
 					}
 					else
 					{
@@ -131,7 +138,9 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			}
 			break;
 
-			default: throw new std::runtime_error("This should not be reached"); return;
+			default:
+				throw new std::runtime_error("This should not be reached");
+				return;
 			}
 			++index;
 		}
@@ -169,10 +178,9 @@ void material::bind()
 
 	for(auto& buffer : m_Buffers)
 	{
-		glBindBuffer(GL_UNIFORM_BUFFER, buffer.second->id());
 		glBindBufferBase(GL_UNIFORM_BUFFER, buffer.first, buffer.second->id());
 	}
-
+	
 	switch(m_Data->cull_mode())
 	{
 	case core::gfx::cullmode::front:
@@ -187,7 +195,9 @@ void material::bind()
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT_AND_BACK);
 		break;
-	case core::gfx::cullmode::none: glDisable(GL_CULL_FACE); break;
+	case core::gfx::cullmode::none:
+		glDisable(GL_CULL_FACE);
+		break;
 	}
 
 	glDepthMask(m_Data->depth_write());
@@ -202,3 +212,9 @@ void material::bind()
 const std::vector<core::resource::handle<core::igles::shader>>& material::shaders() const noexcept { return m_Shaders; }
 
 const core::data::material& material::data() const noexcept { return m_Data.value(); }
+
+void material::bind_instance_data(core::resource::handle<core::igles::buffer> buffer, memory::segment segment)
+{
+	m_MaterialBuffer->copy_from(buffer.value(),
+								{core::gfx::memory_copy{segment.range().begin, 0, segment.range().size()}});
+}

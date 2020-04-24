@@ -47,6 +47,5 @@ namespace core::gfx
 	  private:
 		graphics_backend m_Backend;
 		core::resource::handle<value_type> m_Handle;
-		core::gfx::limits m_Limits;
 	};
 } // namespace core::gfx
