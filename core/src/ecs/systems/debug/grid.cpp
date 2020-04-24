@@ -76,7 +76,7 @@ grid::grid(state& state, entity target, resource::cache& cache, resource::handle
 
 	auto matData2 = cache.create<data::material>();
 	matData2->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	matData2->blend_states({core::data::material::blendstate::additive(0)});
+	matData2->blend_states({core::data::material::blendstate::soft_additive(0)});
 	matData2->depth_test(true);
 	matData2->depth_write(false);
 	matData2->cull_mode(cullmode::front);
@@ -86,6 +86,7 @@ grid::grid(state& state, entity target, resource::cache& cache, resource::handle
 	m_Bundle = cache.create<gfx::bundle>(instanceVertexBuffer, instanceMaterialBuffer);
 	// m_Bundle->set_material(material1, 2500);
 	m_Bundle->set_material(material2, 2501);
+	m_Bundle->set(material2, "color", psl::vec4{ 0.3f,0.45f,1.f,1.f } * 0.25f);
 	// create entity
 	m_Entity =
 		state.create(1, renderable{m_Bundle, m_Geometry}, transform{}, empty<grid::tag>{}, empty<dynamic_tag>{})[0];

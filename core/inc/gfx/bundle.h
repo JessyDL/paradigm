@@ -174,7 +174,7 @@ namespace core::gfx
 		bool set(core::resource::tag<core::gfx::material> material, psl::string_view name, const T& value)
 		{
 			auto offset = m_InstanceData.offset_of(material, name);
-			if(!offset)
+			if(offset == std::numeric_limits<decltype(offset)>::max())
 			{
 				core::gfx::log->error("The element name {} was not found in the material {} data", name,
 									  material.uid());
