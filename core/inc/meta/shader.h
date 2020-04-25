@@ -36,8 +36,8 @@ namespace core::meta
 			uint32_t stride() const noexcept { return m_Stride.value; }
 			void stride(uint32_t value) noexcept { m_Stride.value = value; }
 
-			size_t size() const noexcept { return m_Size.value; }
-			void size(size_t value) noexcept { m_Size.value = value; }
+			size_t size() const noexcept { return (size_t)stride() * count(); }
+			// void size(size_t value) noexcept { m_Size.value = value; }
 
 			psl::array_view<member> members() const noexcept { return m_Members.value; }
 			void members(psl::array<member> value) noexcept { m_Members.value = std::move(value); }
@@ -51,15 +51,15 @@ namespace core::meta
 			template <typename S>
 			void serialize(S& s)
 			{
-				s << m_Name << m_Offset << m_Count << m_Stride << m_Size << m_Members;
+				s << m_Name << m_Offset << m_Count << m_Stride << m_Members;
 			}
 
 			static constexpr const char serialization_name[7]{"MEMBER"};
-			psl::serialization::property<psl::string, const_str("NAME", 4)> m_Name;	  // name of the element
-			psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset;  // location of the element
-			psl::serialization::property<uint32_t, const_str("COUNT", 5)> m_Count{1}; // how many elements
-			psl::serialization::property<uint32_t, const_str("STRIDE", 6)> m_Stride;  // size per element
-			psl::serialization::property<size_t, const_str("SIZE", 4)> m_Size;		  // size of the element
+			psl::serialization::property<psl::string, const_str("NAME", 4)> m_Name;	 // name of the element
+			psl::serialization::property<uint32_t, const_str("OFFSET", 6)> m_Offset; // location of the element
+			psl::serialization::property<uint32_t, const_str("COUNT", 5)> m_Count{
+				1}; // how many elements, f.e. for a vec4 this is 1, but for mat4x4 this is 4
+			psl::serialization::property<uint32_t, const_str("STRIDE", 6)> m_Stride; // size per element
 			psl::serialization::property<psl::array<member>, const_str("MEMBERS", 7)>
 				m_Members; // sub-elements (if array)
 		};
