@@ -338,6 +338,20 @@ namespace utility
 			return str;
 		}
 
+		inline size_t contains(psl::string8::view s, psl::string8::view search)
+		{
+			return s.find(search) != psl::string8::view::npos;
+		}
+
+		inline size_t contains(psl::string16::view s, psl::string16::view search)
+		{
+			return s.find(search) != psl::string16::view::npos;
+		}
+
+		inline size_t contains(psl::string32::view s, psl::string32::view search)
+		{
+			return s.find(search) != psl::string32::view::npos;
+		}
 
 		inline size_t count(psl::string8::view s, psl::string8::view search)
 		{
