@@ -51,7 +51,7 @@ namespace core::gfx
 		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
 		const core::data::material& data() const;
-		void bind_instance_data(core::resource::handle<core::gfx::buffer> buffer, memory::segment segment);
+		bool bind_instance_data(uint32_t slot, uint32_t offset);
 	  private:
 		core::resource::handle<value_type> m_Handle;
 	};

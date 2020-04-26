@@ -96,7 +96,7 @@ namespace core::ivk
 		vk::PipelineCache& m_PipelineCache;
 
 		std::vector<vk::WriteDescriptorSet> m_DescriptorSets;
-		std::vector<vk::DescriptorBufferInfo*> m_TrackedBufferInfos;
+		std::vector<std::unique_ptr<vk::DescriptorBufferInfo>> m_TrackedBufferInfos;
 		core::resource::cache& m_Cache;
 		bool m_HasPushConstants{false};
 		bool m_IsValid{true};

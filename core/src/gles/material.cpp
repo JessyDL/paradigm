@@ -14,6 +14,7 @@
 #include "glad/glad_wgl.h"
 
 #include "gfx/details/instance.h"
+#include "gfx/buffer.h"
 
 #include "psl/memory/segment.h"
 
@@ -22,9 +23,8 @@ using namespace core::resource;
 namespace data = core::data;
 
 material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<data::material> data, core::resource::handle<core::igles::program_cache> program_cache,
-				   handle<buffer> matBuffer)
-	: m_Data(data), m_MaterialBuffer(matBuffer)
+				   handle<data::material> data, core::resource::handle<core::igles::program_cache> program_cache)
+	: m_Data(data)
 {
 	for(auto& stage : data->stages())
 	{
@@ -92,27 +92,29 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				}
 			}
 			break;
+			case core::gfx::binding_type::uniform_buffer_dynamic:
+			case core::gfx::binding_type::storage_buffer_dynamic:
 			case core::gfx::binding_type::uniform_buffer:
 			case core::gfx::binding_type::storage_buffer:
 			{
-
 				auto descriptor = std::find_if(std::begin(meta->descriptors()), std::end(meta->descriptors()),
 											   [&binding](const core::meta::shader::descriptor& descriptor) {
 												   return descriptor.binding() == binding.binding_slot();
 											   });
 
-				if(auto buffer_handle = cache.find<core::igles::buffer>(binding.buffer());
+				if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
 				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
 				{
 					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), descriptor->name().data());
 					glUniformBlockBinding(m_Program->id(), binding_slot, binding.binding_slot());
 
-					auto usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
+
+					auto usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer || binding.descriptor() == core::gfx::binding_type::uniform_buffer_dynamic)
 									 ? core::gfx::memory_usage::uniform_buffer
 									 : core::gfx::memory_usage::storage_buffer;
-					if(buffer_handle->data().usage() & usage)
+					if(buffer_handle->buffer->data().usage() & usage)
 					{
-						m_Buffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle));
+						m_Buffers.emplace_back(buffer_binding{ buffer_handle->buffer->resource().get<core::igles::buffer>(), binding.binding_slot(), 0, static_cast<uint32_t>(descriptor->size()) });
 					}
 					else
 					{
@@ -178,7 +180,10 @@ void material::bind()
 
 	for(auto& buffer : m_Buffers)
 	{
-		glBindBufferBase(GL_UNIFORM_BUFFER, buffer.first, buffer.second->id());
+		if(buffer.offset == 0)
+			glBindBufferBase(GL_UNIFORM_BUFFER, buffer.slot, buffer.buffer->id());
+		else
+			glBindBufferRange(GL_UNIFORM_BUFFER, buffer.slot, buffer.buffer->id(), buffer.offset, buffer.size);
 	}
 	
 	switch(m_Data->cull_mode())
@@ -213,8 +218,16 @@ const std::vector<core::resource::handle<core::igles::shader>>& material::shader
 
 const core::data::material& material::data() const noexcept { return m_Data.value(); }
 
-void material::bind_instance_data(core::resource::handle<core::igles::buffer> buffer, memory::segment segment)
+bool material::bind_instance_data(uint32_t slot, uint32_t offset)
 {
-	m_MaterialBuffer->copy_from(buffer.value(),
-								{core::gfx::memory_copy{segment.range().begin, 0, segment.range().size()}});
+	for (auto& buffer : m_Buffers)
+	{
+		if (buffer.slot == slot)
+		{
+			buffer.offset = offset;
+			return true;
+		}
+	}
+	core::igles::log->error("the requested binding slot {} was not found in the material", slot);
+	return false;
 }

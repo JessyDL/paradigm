@@ -11,11 +11,21 @@
 #include "data/buffer.h"
 #include "vk/conversion.h"
 
+#include "gfx/buffer.h"
+
 using namespace psl;
 using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
 
+inline size_t get_aligned(const core::ivk::context& context, vk::DescriptorType flags, size_t value)
+{
+	auto alignment = (vk::DescriptorType::eUniformBuffer == flags || vk::DescriptorType::eUniformBufferDynamic == flags)
+						 ? context.limits().uniform.alignment
+						 : context.limits().storage.alignment;
+	auto remainder = value % alignment;
+	return (remainder) ? value + (alignment - remainder) : value;
+}
 
 bool decode(core::resource::cache& cache, const core::data::material& data,
 			std::vector<vk::DescriptorSetLayoutBinding>& layoutBinding)
@@ -33,7 +43,8 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 		{
 			switch(binding.descriptor())
 			{
-			case core::gfx::binding_type::combined_image_sampler: {
+			case core::gfx::binding_type::combined_image_sampler:
+			{
 				vk::DescriptorSetLayoutBinding setLayoutBinding;
 				setLayoutBinding.descriptorType = conversion::to_vk(binding.descriptor());
 				setLayoutBinding.stageFlags		= conversion::to_vk(shader_handle->stage());
@@ -45,14 +56,18 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 				layoutBinding.push_back(setLayoutBinding);
 			}
 			break;
+			case core::gfx::binding_type::uniform_buffer_dynamic:
+			case core::gfx::binding_type::storage_buffer_dynamic:
 			case core::gfx::binding_type::storage_buffer:
-			case core::gfx::binding_type::uniform_buffer: {
+			case core::gfx::binding_type::uniform_buffer:
+			{
 				layoutBinding.push_back(utility::vulkan::defaults::descriptor_setlayout_binding(
 					conversion::to_vk(binding.descriptor()), conversion::to_vk(shader_handle->stage()),
 					binding.binding_slot()));
 			}
 			break;
-			default: throw new std::runtime_error("this should not be reached");
+			default:
+				throw new std::runtime_error("this should not be reached");
 			}
 		}
 	}
@@ -150,6 +165,8 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	pPipelineLayoutCreateInfo.setLayoutCount = 1;
 	pPipelineLayoutCreateInfo.pSetLayouts	 = &m_DescriptorSetLayout;
 
+	psl::string_view global = "GLOBAL_";
+
 	// todo: this should be removed in favour of a generic check for push_constants in the shader meta
 	for(const auto& stage : data.value().stages())
 	{
@@ -158,7 +175,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 			if(binding.descriptor() == core::gfx::binding_type::uniform_buffer)
 			{
 				// todo: this is a hardcoded setup, brittle and needs to be removed
-				if(cache.library().has_tag(binding.buffer(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX"))
+				/*if(cache.library().has_tag(binding.buffer(), "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX"))
 				{
 					vk::PushConstantRange pushConstantRange;
 					pushConstantRange.offset = 0;
@@ -169,7 +186,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 					pPipelineLayoutCreateInfo.pPushConstantRanges	 = &pushConstantRange;
 					m_HasPushConstants								 = true;
 					break;
-				}
+				}*/
 			}
 		}
 	}
@@ -352,6 +369,17 @@ pipeline::~pipeline()
 	m_Context->device().destroyDescriptorSetLayout(m_DescriptorSetLayout, nullptr);
 }
 
+inline size_t get_range(const core::ivk::context& context, const core::meta::shader& shader,
+						const core::data::material::binding& binding, size_t fallback)
+{
+	auto it =
+		std::find_if(std::begin(shader.descriptors()), std::end(shader.descriptors()),
+					 [&binding](const auto& descriptor) { return descriptor.binding() == binding.binding_slot(); });
+	if(it != std::end(shader.descriptors())) fallback = it->size();
+
+	return get_aligned(context, conversion::to_vk(binding.descriptor()), fallback);
+}
+
 bool pipeline::update(core::resource::cache& cache, const core::data::material& data, vk::DescriptorSet set)
 {
 	m_IsComplete = true;
@@ -364,7 +392,8 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 			{
 				switch(binding.descriptor())
 				{
-				case core::gfx::binding_type::combined_image_sampler: {
+				case core::gfx::binding_type::combined_image_sampler:
+				{
 					auto tex_handle = cache.find<core::ivk::texture>(binding.texture());
 
 					if(tex_handle.state() != core::resource::state::loaded)
@@ -394,19 +423,23 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				}
 				break;
 				case core::gfx::binding_type::storage_buffer:
-				case core::gfx::binding_type::uniform_buffer: {
+				case core::gfx::binding_type::uniform_buffer:
+				case core::gfx::binding_type::storage_buffer_dynamic:
+				case core::gfx::binding_type::uniform_buffer_dynamic:
+				{
 					auto& writeDescriptorSet		  = m_DescriptorSets.emplace_back();
 					writeDescriptorSet.pNext		  = NULL;
 					writeDescriptorSet.dstSet		  = set;
 					writeDescriptorSet.descriptorType = conversion::to_vk(binding.descriptor());
 					writeDescriptorSet.dstBinding	  = binding.binding_slot();
 					writeDescriptorSet.pImageInfo	  = nullptr;
-					writeDescriptorSet.pBufferInfo	  = m_TrackedBufferInfos.emplace_back(new vk::DescriptorBufferInfo());
+					writeDescriptorSet.pBufferInfo =
+						m_TrackedBufferInfos.emplace_back(std::make_unique<vk::DescriptorBufferInfo>()).get();
 
 					// todo: investigate using this
 					writeDescriptorSet.descriptorCount = 1;
 
-					auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
+					auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
 					if(!buffer_handle)
 					{
 						core::ivk::log->warn("Tried to use the missing buffer {} in a pipeline in shader {}",
@@ -418,10 +451,11 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 					else if(buffer_handle.state() == core::resource::state::loaded)
 					{
 						vk::BufferUsageFlagBits usage =
-							(binding.descriptor() == core::gfx::binding_type::uniform_buffer)
+							(binding.descriptor() == core::gfx::binding_type::uniform_buffer ||
+							 binding.descriptor() == core::gfx::binding_type::uniform_buffer_dynamic)
 								? vk::BufferUsageFlagBits::eUniformBuffer
 								: vk::BufferUsageFlagBits::eStorageBuffer;
-						if(!(conversion::to_vk(buffer_handle->data()->usage()) & usage))
+						if(!(conversion::to_vk(buffer_handle->buffer->data().usage()) & usage))
 						{
 							LOG_ERROR("The actual buffer's usage is not compatible with the buffer type ",
 									  vk::to_string(usage));
@@ -429,10 +463,12 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 							m_IsComplete = false;
 						}
 
-						auto bufferInfo = m_TrackedBufferInfos[m_TrackedBufferInfos.size() -1];
-						bufferInfo->buffer			   = buffer_handle->gpu_buffer();
-						bufferInfo->offset			   = 0;
-						bufferInfo->range			   = buffer_handle->data()->size();
+						auto& bufferInfo   = m_TrackedBufferInfos[m_TrackedBufferInfos.size() - 1];
+						bufferInfo->buffer = buffer_handle->buffer->resource().get<core::ivk::buffer>()->gpu_buffer();
+						bufferInfo->offset = 0;
+						// todo this lookup can be improved
+						bufferInfo->range = get_range(m_Context.value(), *shader_handle.meta(), binding,
+													  buffer_handle->buffer->data().size());
 					}
 					else
 					{
@@ -495,7 +531,8 @@ bool pipeline::update(uint32_t bindingLocation, const UID& textureMeta, const UI
 		{
 			switch(set.descriptorType)
 			{
-			case vk::DescriptorType::eCombinedImageSampler: {
+			case vk::DescriptorType::eCombinedImageSampler:
+			{
 				auto tex_handle = m_Cache.find<core::ivk::texture>(textureMeta);
 
 				if(tex_handle.state() != core::resource::state::loaded)
@@ -538,20 +575,23 @@ bool pipeline::update(uint32_t bindingLocation, vk::DeviceSize offset, vk::Devic
 			switch(set.descriptorType)
 			{
 			case vk::DescriptorType::eStorageBuffer:
-			case vk::DescriptorType::eUniformBuffer: {
-				vk::DescriptorBufferInfo* bufferInfo = new vk::DescriptorBufferInfo();
-				auto oldbuffer = set.pBufferInfo;
+			case vk::DescriptorType::eUniformBuffer:
+			case vk::DescriptorType::eUniformBufferDynamic:
+			case vk::DescriptorType::eStorageBufferDynamic:
+			{
+				auto bufferInfo = std::make_unique<vk::DescriptorBufferInfo>();
+				auto oldbuffer	= set.pBufferInfo;
 
-				bufferInfo->buffer					 = set.pBufferInfo->buffer;
-				bufferInfo->offset					 = offset;
-				bufferInfo->range					 = range;
-				set.pBufferInfo						 = &*bufferInfo;
-				
+				bufferInfo->buffer = set.pBufferInfo->buffer;
+				bufferInfo->offset = offset;
+				bufferInfo->range  = get_aligned(m_Context.value(), set.descriptorType, range);
+				set.pBufferInfo	   = bufferInfo.get();
+
 				m_Context->device().updateDescriptorSets(static_cast<uint32_t>(m_DescriptorSets.size()),
 														 m_DescriptorSets.data(), 0, nullptr);
 
-				*std::find(std::begin(m_TrackedBufferInfos), std::end(m_TrackedBufferInfos), oldbuffer) = bufferInfo;
-				delete(oldbuffer);
+				*std::find_if(std::begin(m_TrackedBufferInfos), std::end(m_TrackedBufferInfos),
+							  [oldbuffer](const auto& ptr) { return oldbuffer == ptr.get(); }) = std::move(bufferInfo);
 				return true;
 			}
 			break;
@@ -567,8 +607,8 @@ bool pipeline::update(uint32_t bindingLocation, vk::DeviceSize offset, vk::Devic
 	return false;
 }
 
-bool pipeline::unsafe_update(uint32_t bindingLocation, core::resource::handle<core::ivk::buffer> buffer, vk::DeviceSize offset,
-					  vk::DeviceSize range)
+bool pipeline::unsafe_update(uint32_t bindingLocation, core::resource::handle<core::ivk::buffer> buffer,
+							 vk::DeviceSize offset, vk::DeviceSize range)
 {
 	for(auto& set : m_DescriptorSets)
 	{
@@ -577,23 +617,25 @@ bool pipeline::unsafe_update(uint32_t bindingLocation, core::resource::handle<co
 			switch(set.descriptorType)
 			{
 			case vk::DescriptorType::eStorageBuffer:
-			case vk::DescriptorType::eUniformBuffer: {
-				vk::DescriptorBufferInfo* bufferInfo = new vk::DescriptorBufferInfo();
-				auto oldbuffer = set.pBufferInfo;
+			case vk::DescriptorType::eUniformBuffer:
+			case vk::DescriptorType::eUniformBufferDynamic:
+			case vk::DescriptorType::eStorageBufferDynamic:
+			{
+				auto bufferInfo = std::make_unique<vk::DescriptorBufferInfo>();
+				auto oldbuffer	= set.pBufferInfo;
 
 				bufferInfo->buffer = buffer->buffer_info().buffer;
 				bufferInfo->offset = offset;
-				bufferInfo->range  = range;
-				set.pBufferInfo	   = &*bufferInfo;
+				bufferInfo->range  = get_aligned(m_Context.value(), set.descriptorType, range);
+				set.pBufferInfo	   = bufferInfo.get();
 				m_Context->device().updateDescriptorSets(static_cast<uint32_t>(m_DescriptorSets.size()),
 														 m_DescriptorSets.data(), 0, nullptr);
 
 
-				*std::find(std::begin(m_TrackedBufferInfos), std::end(m_TrackedBufferInfos), oldbuffer) = bufferInfo;
-				delete(oldbuffer);
+				*std::find_if(std::begin(m_TrackedBufferInfos), std::end(m_TrackedBufferInfos),
+							  [oldbuffer](const auto& ptr) { return oldbuffer == ptr.get(); }) = std::move(bufferInfo);
 
-				if(!m_IsComplete)
-					completeness_check();
+				if(!m_IsComplete) completeness_check();
 				return true;
 			}
 			}
@@ -622,9 +664,9 @@ bool pipeline::has_pushconstants() const noexcept { return m_HasPushConstants; }
 bool pipeline::completeness_check() noexcept
 {
 	m_IsComplete = true;
-	for (const auto& set : m_DescriptorSets)
+	for(const auto& set : m_DescriptorSets)
 	{
-		if (set.pBufferInfo == nullptr && set.pImageInfo == nullptr && set.pTexelBufferView == nullptr)
+		if(set.pBufferInfo == nullptr && set.pImageInfo == nullptr && set.pTexelBufferView == nullptr)
 		{
 			m_IsComplete = false;
 			return false;

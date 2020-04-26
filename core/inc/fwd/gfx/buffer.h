@@ -5,6 +5,7 @@
 namespace core::gfx
 {
 	class buffer;
+	struct shader_buffer_binding;
 } // namespace core::gfx
 
 #ifdef PE_VULKAN

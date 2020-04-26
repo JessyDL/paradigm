@@ -27,7 +27,9 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 		break;
 #endif
 #ifdef PE_GLES
-	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data); break;
+	case graphics_backend::gles:
+		m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data);
+		break;
 #endif
 	}
 }
@@ -44,7 +46,9 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 		break;
 #endif
 #ifdef PE_GLES
-	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data); break;
+	case graphics_backend::gles:
+		m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data);
+		break;
 #endif
 	}
 }
@@ -174,4 +178,24 @@ size_t buffer::free_size() const noexcept
 		available = std::min(available, m_Handle.value<core::ivk::buffer>().free_size());
 #endif
 	return available;
+}
+
+auto align_to(size_t value, size_t alignment)
+{
+	auto remainder = value % alignment;
+	return (remainder) ? value + (alignment - remainder) : value;
+};
+
+shader_buffer_binding::shader_buffer_binding(core::resource::cache& cache, const core::resource::metadata& metaData,
+											 psl::meta::file* metaFile,
+											 core::resource::handle<core::gfx::buffer> buffer, size_t size,
+											 size_t alignment)
+	: buffer(buffer), segment(buffer->reserve(size).value()),
+	  region(segment.range().size(), align_to(alignment, buffer->data().region().alignment()),
+			 new memory::default_allocator(false))
+{}
+
+shader_buffer_binding::~shader_buffer_binding()
+{
+	buffer->deallocate(segment);
 }

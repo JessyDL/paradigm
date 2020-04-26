@@ -25,8 +25,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 #ifdef PE_GLES
 	case graphics_backend::gles:
 		m_Handle << cache.create_using<core::igles::material>(
-			metaData.uid, data, pipeline_cache->resource().get<core::igles::program_cache>(),
-			materialBuffer->resource().get<core::igles::buffer>());
+			metaData.uid, data, pipeline_cache->resource().get<core::igles::program_cache>());
 		break;
 #endif
 #ifdef PE_VULKAN
@@ -57,20 +56,18 @@ const core::data::material& material::data() const
 	throw std::logic_error("core::gfx::material has no API specific material associated with it");
 }
 
-void material::bind_instance_data(core::resource::handle<core::gfx::buffer> buffer, memory::segment segment)
+bool material::bind_instance_data(uint32_t slot, uint32_t offset)
 {
 #ifdef PE_GLES
 	if (m_Handle.contains<igles::material>())
 	{
-		m_Handle.value<igles::material>().bind_instance_data(buffer->resource().get<core::igles::buffer>(), segment);
-		return;
+		return m_Handle.value<igles::material>().bind_instance_data(slot, offset);
 	}
 #endif
 #ifdef PE_VULKAN
 	if (m_Handle.contains<ivk::material>())
 	{
-		m_Handle.value<ivk::material>().bind_material_instance_data(buffer->resource().get<core::ivk::buffer>(), segment);
-		return;
+		return m_Handle.value<ivk::material>().bind_instance_data(slot, offset);
 	}
 #endif
 	throw std::logic_error("core::gfx::material has no API specific material associated with it");

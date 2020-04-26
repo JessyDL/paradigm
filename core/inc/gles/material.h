@@ -22,11 +22,17 @@ namespace core::igles
 
 	class material
 	{
+		struct buffer_binding
+		{
+			core::resource::handle<core::igles::buffer> buffer;
+			uint32_t slot;
+			uint32_t offset{ 0 };
+			uint32_t size{ 0 };
+		};
 	  public:
 		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				 core::resource::handle<core::data::material> data,
-				 core::resource::handle<core::igles::program_cache> program_cache,
-				 core::resource::handle<core::igles::buffer> materialBuffer);
+				 core::resource::handle<core::igles::program_cache> program_cache);
 		~material() = default;
 
 		material(const material& other)		= delete;
@@ -39,7 +45,7 @@ namespace core::igles
 		const std::vector<core::resource::handle<core::igles::shader>>& shaders() const noexcept;
 
 		const core::data::material& data() const noexcept;
-		void bind_instance_data(core::resource::handle<core::igles::buffer> buffer, memory::segment segment);
+		bool bind_instance_data(uint32_t binding, uint32_t offset);
 
 	  private:
 		core::resource::handle<program> m_Program;
@@ -48,9 +54,8 @@ namespace core::igles
 		std::vector<core::resource::handle<core::igles::shader>> m_Shaders;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::igles::texture>>> m_Textures;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::igles::sampler>>> m_Samplers;
-		std::vector<std::pair<uint32_t, core::resource::handle<core::igles::buffer>>> m_Buffers;
+		std::vector<buffer_binding> m_Buffers;
 
-		core::resource::handle<core::igles::buffer> m_MaterialBuffer;
 		//std::optional<std::tuple<uint32_t, core::resource::handle<core::igles::buffer>, memory::segment>> m_MaterialInstanceData{ std::nullopt };
 	};
 } // namespace core::igles

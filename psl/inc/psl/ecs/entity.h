@@ -1,6 +1,7 @@
 #pragma once
 #include <cstdint>
 #include <type_traits>
+#include "psl/array.h"
 
 namespace psl::ecs
 {
@@ -27,6 +28,16 @@ namespace psl::ecs
 
 		template<typename T>
 		struct empty_container<psl::ecs::empty<T>>
+		{
+			using type = T;
+		};
+
+		template<typename T>
+		struct is_range_t : std::false_type
+		{};
+
+		template<typename T>
+		struct is_range_t<psl::array<T>> : std::true_type
 		{
 			using type = T;
 		};

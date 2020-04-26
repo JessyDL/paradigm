@@ -1,4 +1,5 @@
-﻿#include "vk/context.h"
+﻿
+#include "vk/context.h"
 #include "os/surface.h"
 #include "resource/resource.hpp"
 #include "psl/meta.h"
@@ -32,8 +33,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 	message.append("]");
 	switch(flags)
 	{
-	case VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT: core::ivk::log->info(message.c_str()); break;
-	case VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT: core::ivk::log->warn(message.c_str()); break;
+	case VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT:
+		core::ivk::log->info(message.c_str());
+		break;
+	case VK_DEBUG_REPORT_PERFORMANCE_WARNING_BIT_EXT:
+		core::ivk::log->warn(message.c_str());
+		break;
 	case VK_DEBUG_REPORT_WARNING_BIT_EXT:
 		core::ivk::log->warn(message.c_str());
 		core::ivk::log->flush();
@@ -42,9 +47,13 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 		core::ivk::log->error(message.c_str());
 		core::ivk::log->flush();
 		break;
-	case VK_DEBUG_REPORT_DEBUG_BIT_EXT: core::ivk::log->debug(message.c_str()); break;
+	case VK_DEBUG_REPORT_DEBUG_BIT_EXT:
+		core::ivk::log->debug(message.c_str());
+		break;
 	case VK_DEBUG_REPORT_INFORMATION_BIT_EXT:
-	default: core::ivk::log->info(message.c_str()); break;
+	default:
+		core::ivk::log->info(message.c_str());
+		break;
 	}
 	return false; // always return false
 }
@@ -185,13 +194,26 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	psl::string8_t vendor;
 	switch(m_PhysicalDeviceProperties.vendorID)
 	{
-	case 0x1002: vendor = "AMD"; break;
-	case 0x1010: vendor = "ImgTec"; break;
-	case 0x10DE: vendor = "NVidia"; break;
-	case 0x13B5: vendor = "ARM"; break;
-	case 0x5143: vendor = "Qualcomm"; break;
-	case 0x8086: vendor = "Intel"; break;
-	default: vendor = "Unknown";
+	case 0x1002:
+		vendor = "AMD";
+		break;
+	case 0x1010:
+		vendor = "ImgTec";
+		break;
+	case 0x10DE:
+		vendor = "NVidia";
+		break;
+	case 0x13B5:
+		vendor = "ARM";
+		break;
+	case 0x5143:
+		vendor = "Qualcomm";
+		break;
+	case 0x8086:
+		vendor = "Intel";
+		break;
+	default:
+		vendor = "Unknown";
 	}
 	core::ivk::log->info("Vendor:         {}", vendor);
 	core::ivk::log->info("Device Name:    {}", m_PhysicalDeviceProperties.deviceName);
@@ -507,25 +529,28 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers);
 	}
 
+	m_Limits.uniform.alignment	 = m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
+	m_Limits.uniform.size		 = m_PhysicalDeviceProperties.limits.maxUniformBufferRange;
+	m_Limits.storage.alignment	 = m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
+	m_Limits.storage.size		 = m_PhysicalDeviceProperties.limits.maxStorageBufferRange;
+	m_Limits.memorymap.alignment = m_PhysicalDeviceProperties.limits.minMemoryMapAlignment;
+	m_Limits.memorymap.size		 = std::numeric_limits<uint64_t>::max();
 
-	m_Limits.storage_buffer_offset_alignment = m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
-	m_Limits.uniform_buffer_offset_alignment = m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-	m_Limits.minMemoryMapAlignment			 = m_PhysicalDeviceProperties.limits.minMemoryMapAlignment;
 	vk::Format format;
 	if(utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))
 		m_Limits.supported_depthformat = core::gfx::conversion::to_format(format);
 	else
 		m_Limits.supported_depthformat = core::gfx::format::undefined;
 
-	m_Limits.compute_worgroup_count[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[0];
-	m_Limits.compute_worgroup_count[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[1];
-	m_Limits.compute_worgroup_count[2] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[2];
+	m_Limits.compute.workgroup.count[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[0];
+	m_Limits.compute.workgroup.count[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[1];
+	m_Limits.compute.workgroup.count[2] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[2];
 
-	m_Limits.compute_worgroup_size[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
-	m_Limits.compute_worgroup_size[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[1];
-	m_Limits.compute_worgroup_size[2] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[2];
+	m_Limits.compute.workgroup.size[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[0];
+	m_Limits.compute.workgroup.size[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[1];
+	m_Limits.compute.workgroup.size[2] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[2];
 
-	m_Limits.compute_worgroup_invocations = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupInvocations;
+	m_Limits.compute.workgroup.invocations = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupInvocations;
 }
 
 context::~context()

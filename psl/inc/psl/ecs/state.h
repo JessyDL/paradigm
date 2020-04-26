@@ -487,9 +487,10 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, T&& prototype)
 		{
-			if constexpr(psl::ecs::details::is_empty_container<T>::value)
+			using true_type = std::remove_const_t<std::remove_reference_t<T>>;
+			if constexpr(psl::ecs::details::is_empty_container<true_type>::value)
 			{
-				using type = typename psl::ecs::details::empty_container<T>::type;
+				using type = typename psl::ecs::details::empty_container<true_type>::type;
 				create_storage<type>();
 				if constexpr(std::is_trivially_constructible_v<type>)
 				{
@@ -532,6 +533,12 @@ namespace psl::ecs
 
 				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, &prototype);
+			}
+			else if constexpr (details::is_range_t<true_type>::value)
+			{
+				using type = typename psl::ecs::details::is_range_t<true_type>::type;
+				create_storage<type>();
+				add_component_impl(details::key_for<type>(), entities, prototype.data(), false);
 			}
 			else
 			{

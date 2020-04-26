@@ -68,7 +68,8 @@ void drawpass::present()
 					if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
 					auto bundle = drawCall.m_Bundle;
 
-					bundle->bind_material(renderLayer);
+					if (!bundle->bind_material(renderLayer))
+						continue;
 					auto gfxmat{bundle->bound()};
 					auto mat{gfxmat->resource().get<core::igles::material>()};
 

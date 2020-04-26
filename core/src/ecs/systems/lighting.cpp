@@ -32,7 +32,7 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view
 
 	auto bufferData = cache->create<data::buffer>(
 		gfx::memory_usage::uniform_buffer, gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
-		resource_region.create_region(sizeof(light) * 1024, m_Context->limits().uniform_buffer_offset_alignment,
+		resource_region.create_region(sizeof(light) * 1024, m_Context->limits().uniform.alignment,
 						   new memory::default_allocator(true))
 			.value());
 

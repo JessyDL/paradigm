@@ -33,7 +33,7 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 		   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 		   core::resource::handle<core::gfx::buffer> materialBuffer,
 	core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
-	core::resource::handle<core::gfx::buffer> materialInstanceBuffer)
+	core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer)
 	: m_Cache(cache), m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context)
 {
 	psl::static_array<stbtt_bakedchar, 96> char_data{0};

@@ -67,17 +67,15 @@ namespace core::ivk
 		/// \note when editing the material or the data after construction, this value will be out of sync with the
 		/// runtime ivk::material.
 		core::resource::handle<core::data::material> data() const;
+	private:
 		/// \brief returns all the shaders that are being used right now by this material.
 		const std::vector<core::resource::handle<core::ivk::shader>>& shaders() const;
 		/// \brief returns all currently used textures and their binding slots.
 		const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>>>& textures() const;
 		/// \brief returns all currently used samplers and their binding slots.
 		const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::sampler>>>& samplers() const;
-		/// \brief returns all currently used buffers and their binding slots.
-		/// \note the buffers could be anything, they could be uniform buffer objects, or maybe shader storage buffer
-		/// objects.
-		const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>>& buffers() const;
 
+	public:
 		/// \brief prepares the material for rendering by binding the pipeline.
 		/// \warning only call this in the context of recording the draw call.
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
@@ -96,6 +94,7 @@ namespace core::ivk
 						   uint32_t drawIndex);
 
 		void bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment);
+		bool bind_instance_data(uint32_t binding, uint32_t offset);
 	  private:
 		/// \returns the pipeline this material instance uses for the given framebuffer.
 		/// \details tries to find, and return a core::ivk::pipeline that can satisfy the
@@ -119,8 +118,12 @@ namespace core::ivk
 		// a combination of binding slot + resource
 		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>>> m_Textures;
 		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::sampler>>> m_Samplers;
-		std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>> m_Buffers;
 
+		std::vector<uint32_t> m_DynamicOffsets;
+		std::vector<uint32_t> m_DynamicOffsetsIndices;
+
+		uint32_t m_MaterialBufferBinding{ 0 };
+		memory::segment m_MaterialBufferRange;
 		core::resource::handle<core::ivk::buffer> m_MaterialBuffer;
 
 		// psl::UID maps to the psl::UID of a framebuffer or a swapchain

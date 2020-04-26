@@ -8,6 +8,7 @@
 #include "resource/resource.hpp"
 #include "gfx/limits.h"
 #include "data/buffer.h"
+#include "gfx/buffer.h"
 
 using namespace core::gfx;
 using namespace core::gfx::details::instance;
@@ -16,9 +17,17 @@ using namespace core::resource;
 constexpr uint32_t default_capacity = 32;
 
 data::data(core::resource::handle<core::gfx::buffer> vertexBuffer,
-		   core::resource::handle<core::gfx::buffer> materialBuffer) noexcept
+		   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept
 	: m_VertexInstanceBuffer(vertexBuffer), m_MaterialInstanceBuffer(materialBuffer)
 {}
+
+data::~data()
+{
+	for (auto& it : m_MaterialInstanceData)
+	{
+		m_MaterialInstanceBuffer->region.deallocate(it.second.segment);
+	}
+}
 void data::add(core::resource::handle<material> material)
 {
 	if(m_Bindings.find(material) != std::end(m_Bindings)) return;
@@ -47,7 +56,7 @@ void data::add(core::resource::handle<material> material)
 			if(descriptor.name() == core::data::material::MATERIAL_DATA)
 			{
 				m_MaterialDataSizes.emplace_back(align_to(descriptor.size(), alignment_requirement));
-				auto segment = m_MaterialInstanceBuffer->reserve(descriptor.size());
+				auto segment = m_MaterialInstanceBuffer->region.allocate(descriptor.size());
 				if(!segment)
 				{
 					core::gfx::log->critical("could not allocate a segment for the material instance data {}",
@@ -149,7 +158,15 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 }
 
 
-void data::remove(core::resource::handle<material> material) {}
+bool data::remove(core::resource::handle<material> material) noexcept
+{
+	auto it = m_MaterialInstanceData.find(material);
+	if (it == std::end(m_MaterialInstanceData)) return false;
+
+	auto segment = it->second.segment;
+	m_MaterialInstanceData.erase(it);
+	return m_MaterialInstanceBuffer->region.deallocate(it->second.segment);
+}
 
 
 uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcept
@@ -296,15 +313,16 @@ bool data::set(core::resource::tag<core::gfx::material> material, const void* da
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
 
-	return m_MaterialInstanceBuffer->commit(
+	return m_MaterialInstanceBuffer->buffer->commit(
 		{core::gfx::commit_instruction{(void*)data, size, it->second.segment, memory::range{offset, offset + size}}});
 }
-std::optional<std::pair<core::resource::handle<core::gfx::buffer>, memory::segment>>
-data::material_instance(core::resource::tag<core::gfx::material> material) const noexcept
+
+bool data::bind_material(core::resource::handle<core::gfx::material> material)
 {
 	auto it = m_MaterialInstanceData.find(material);
-	if(it == std::end(m_MaterialInstanceData)) return std::nullopt;
+	if (it == std::end(m_MaterialInstanceData)) return false;
 
-	return std::pair<core::resource::handle<core::gfx::buffer>, memory::segment>{m_MaterialInstanceBuffer,
-																				 it->second.segment};
+	return material->bind_instance_data(it->second.descriptor.binding(), it->second.segment.range().begin);
 }
+
+core::resource::handle<core::gfx::buffer> data::material_buffer() const noexcept { return m_MaterialInstanceBuffer->buffer; }

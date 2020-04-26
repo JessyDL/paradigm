@@ -11,7 +11,8 @@ using namespace psl;
 using namespace core::gfx::details::instance;
 
 bundle::bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-	core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::buffer> materialBuffer)
+			   core::resource::handle<core::gfx::buffer> vertexBuffer,
+			   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer)
 	: m_UID(metaData.uid), m_Cache(cache), m_InstanceData(vertexBuffer, materialBuffer){};
 
 // ------------------------------------------------------------------------------------------------------------
@@ -75,10 +76,12 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept
 	{
 		auto index = std::distance(std::begin(m_Layers), it);
 		m_Bound	   = m_Materials[index];
-		auto opt = m_InstanceData.material_instance(m_Bound);
-		if (opt)
-			m_Bound->bind_instance_data(opt.value().first, opt.value().second);
-		return true;
+		if(m_InstanceData.bind_material(m_Bound)) return true;
+
+		core::gfx::log->error(
+			"could not bind the material {} due to an issue updating a binding offset, inspect prior log for more info",
+			m_Bound.uid().to_string());
+		m_Bound = {};
 	}
 	return false;
 }

@@ -7,35 +7,51 @@ namespace core::gfx
 {
 	struct limits
 	{
-		uint64_t storage_buffer_offset_alignment;
-		uint64_t uniform_buffer_offset_alignment;
-		uint64_t minMemoryMapAlignment;
-		core::gfx::format supported_depthformat;
+		struct buffer
+		{
+			uint64_t alignment;
+			uint64_t size;
+		};
 
-		std::array<uint32_t, 3> compute_worgroup_size;
-		std::array<uint32_t, 3> compute_worgroup_count;
-		uint32_t compute_worgroup_invocations;
+		buffer uniform;
+		buffer storage;
+		buffer memorymap;
+
+		struct
+		{
+			struct
+			{
+				std::array<uint32_t, 3> size;
+				std::array<uint32_t, 3> count;
+				uint32_t invocations;
+			} workgroup;
+		} compute;
+
+		core::gfx::format supported_depthformat;
+	};
+
+	constexpr inline limits::buffer min(const limits::buffer& l, const limits::buffer& r) noexcept
+	{
+		limits::buffer limit{};
+		limit.alignment = std::lcm(l.alignment, r.alignment);
+		limit.size = std::min(l.size, r.size);
+		return limit;
 	};
 
 	constexpr inline limits min(const limits& l, const limits& r) noexcept
 	{
 		limits limit{};
 
-		limit.storage_buffer_offset_alignment =
-			std::lcm(l.storage_buffer_offset_alignment, r.storage_buffer_offset_alignment);
+		limit.storage = min(l.storage, r.storage);
+		limit.uniform = min(l.uniform, r.uniform);
+		limit.memorymap = min(l.memorymap, r.memorymap);
 
-		limit.uniform_buffer_offset_alignment =
-			std::lcm(l.uniform_buffer_offset_alignment, r.uniform_buffer_offset_alignment);
-
-		limit.minMemoryMapAlignment =
-			std::lcm(l.minMemoryMapAlignment, r.minMemoryMapAlignment);
-
-		for(int i = 0; i < l.compute_worgroup_size.size(); ++i)
+		for(int i = 0; i < l.compute.workgroup.size.size(); ++i)
 		{
-			limit.compute_worgroup_size[i]  = std::min(l.compute_worgroup_size[i], r.compute_worgroup_size[i]);
-			limit.compute_worgroup_count[i] = std::min(l.compute_worgroup_count[i], r.compute_worgroup_count[i]);
+			limit.compute.workgroup.size[i]  = std::min(l.compute.workgroup.size[i], r.compute.workgroup.size[i]);
+			limit.compute.workgroup.count[i] = std::min(l.compute.workgroup.count[i], r.compute.workgroup.count[i]);
 		}
-		limit.compute_worgroup_invocations = std::min(l.compute_worgroup_invocations, r.compute_worgroup_invocations);
+		limit.compute.workgroup.invocations = std::min(l.compute.workgroup.invocations, r.compute.workgroup.invocations);
 
 		return limit;
 	}

@@ -7,6 +7,7 @@
 namespace core::gfx
 {
 	class buffer;
+	struct shader_buffer_binding;
 } // namespace core::gfx
 namespace core::os
 {
@@ -54,7 +55,7 @@ namespace core::ecs::systems
 		};
 
 		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface,
-				   core::resource::handle<core::gfx::buffer> buffer, core::gfx::graphics_backend backend);
+				   core::resource::handle<core::gfx::shader_buffer_binding> binding, core::gfx::graphics_backend backend);
 		void tick(psl::ecs::info& info,
 				  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
 
@@ -63,8 +64,8 @@ namespace core::ecs::systems
 						   const core::ecs::components::camera& camera);
 
 		core::resource::handle<core::os::surface> m_Surface;
-		core::resource::handle<core::gfx::buffer> m_Buffer;
-		std::vector<memory::segment> fdatasegment;
+		core::resource::handle<core::gfx::shader_buffer_binding> m_Binding;
+		size_t m_Max{0};
 		core::gfx::graphics_backend m_Backend;
 	};
 

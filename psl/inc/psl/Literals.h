@@ -40,3 +40,33 @@ constexpr long double operator"" _deg_to_rad(long double deg)
 {
 	return deg * 3.141592 / 180;
 }
+
+constexpr size_t operator ""_gb(unsigned long long value)
+{
+	return value * 1073741824;
+}
+
+constexpr size_t operator ""_gbit(unsigned long long value)
+{
+	return value * 8589934592;
+}
+
+constexpr size_t operator ""_mb(unsigned long long value)
+{
+	return value * 1048576;
+}
+
+constexpr size_t operator ""_mbit(unsigned long long value)
+{
+	return value * 8388608;
+}
+
+constexpr size_t operator ""_kb(unsigned long long value)
+{
+	return value * 1024;
+}
+
+constexpr size_t operator ""_kbit(unsigned long long value)
+{
+	return value * 8192;
+}

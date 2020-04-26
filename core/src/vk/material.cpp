@@ -14,7 +14,7 @@
 #include "vk/pipeline.h"
 #include "vk/conversion.h"
 
-#include "psl/memory/segment.h"
+#include "gfx/buffer.h"
 
 using namespace psl;
 using namespace core::ivk;
@@ -31,6 +31,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 	PROFILE_SCOPE(core::profiler)
 	const auto& ID = m_UID;
 	m_IsValid	   = false;
+
 
 	for(const auto& stage : m_Data->stages())
 	{
@@ -86,26 +87,26 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				}
 			}
 			break;
+			case core::gfx::binding_type::uniform_buffer_dynamic:
+			case core::gfx::binding_type::storage_buffer_dynamic:
+				m_DynamicOffsets.emplace_back(0);
+				m_DynamicOffsetsIndices.emplace_back(binding.binding_slot());
 			case core::gfx::binding_type::uniform_buffer:
 			case core::gfx::binding_type::storage_buffer:
 			{
-				if(auto buffer_handle = cache.find<core::ivk::buffer>(binding.buffer());
-				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
+				if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
+				   buffer_handle && buffer_handle->buffer.state() == core::resource::state::loaded)
 				{
-					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
+					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer || binding.descriptor() == core::gfx::binding_type::uniform_buffer_dynamic)
 														? vk::BufferUsageFlagBits::eUniformBuffer
 														: vk::BufferUsageFlagBits::eStorageBuffer;
-					if(core::gfx::conversion::to_vk(buffer_handle->data()->usage()) & usage)
-					{
-						m_Buffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle));
-					}
-					else
+					if(!(core::gfx::conversion::to_vk(buffer_handle->buffer->data().usage()) & usage))
 					{
 						core::gfx::log->error(
 							"ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
 							"the type [{2}] instead in shader [{3}]",
 							utility::to_string(ID), vk::to_string(gfx::conversion::to_vk(binding.descriptor())),
-							vk::to_string(core::gfx::conversion::to_vk(buffer_handle->data()->usage())),
+							vk::to_string(core::gfx::conversion::to_vk(buffer_handle->buffer->data().usage())),
 							utility::to_string(stage.shader()));
 						return;
 					}
@@ -123,11 +124,13 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			break;
 
 			default:
-				throw new std::runtime_error("This should not be reached");
+				throw std::runtime_error("This should not be reached");
 				return;
 			}
 		}
 	}
+
+	std::sort(std::begin(m_DynamicOffsetsIndices), std::end(m_DynamicOffsetsIndices));
 
 	m_IsValid = true;
 };
@@ -143,10 +146,6 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::texture>
 const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::sampler>>>& material::samplers() const
 {
 	return m_Samplers;
-}
-const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::buffer>>>& material::buffers() const
-{
-	return m_Buffers;
 }
 
 core::resource::handle<pipeline> material::get(core::resource::handle<framebuffer> framebuffer)
@@ -187,6 +186,11 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 		cmdBuffer.pushConstants(m_Bound->vkLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &drawIndex);
 	}
 
+	if (m_MaterialBufferRange.range().size() > 0)
+	{
+		m_Bound->update(m_MaterialBufferBinding, m_MaterialBufferRange.range().begin, m_MaterialBufferRange.range().size());
+	}
+
 	if(!m_Bound->is_complete())
 	{
 		core::ivk::log->error(
@@ -200,7 +204,7 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 
 	// Bind descriptor sets describing shader binding points
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Bound->vkLayout(), 0, 1,
-								 m_Bound->vkDescriptorSet(), 0, nullptr);
+		m_Bound->vkDescriptorSet(), m_DynamicOffsets.size(), m_DynamicOffsets.data());
 
 	return true;
 }
@@ -226,17 +230,28 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 	// Bind the rendering pipeline (including the shaders)
 	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Bound->vkPipeline());
 
+
 	// Bind descriptor sets describing shader binding points
 	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Bound->vkLayout(), 0, 1,
-								 m_Bound->vkDescriptorSet(), 0, nullptr);
-
-	// todo: material data is written here.
+								 m_Bound->vkDescriptorSet(), m_DynamicOffsets.size(), m_DynamicOffsets.data());
 
 	return true;
 }
 
 void material::bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment)
 {
-	assert(segment.range().size() <= m_MaterialBuffer->data()->size());
-	m_MaterialBuffer->copy_from(buffer.value(), {vk::BufferCopy{segment.range().begin, 0, segment.range().size()}});
+	//assert(segment.range().size() <= m_MaterialBuffer->data()->size());
+	m_MaterialBufferRange = segment;
+	//m_MaterialBuffer->copy_from(buffer.value(), {vk::BufferCopy{segment.range().begin, 0, segment.range().size()}});
+}
+bool material::bind_instance_data(uint32_t binding, uint32_t offset)
+{
+	auto it = std::find(std::begin(m_DynamicOffsetsIndices), std::end(m_DynamicOffsetsIndices), binding);
+	if (it == std::end(m_DynamicOffsetsIndices))
+	{
+		core::igles::log->error("the requested binding slot {} was not found in the material", binding);
+		return false;
+	}
+
+	m_DynamicOffsets[std::distance(std::begin(m_DynamicOffsetsIndices), it)] = offset;
 }

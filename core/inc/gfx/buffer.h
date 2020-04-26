@@ -2,6 +2,7 @@
 #include "fwd/gfx/buffer.h"
 #include "resource/resource.hpp"
 #include "psl/array.h"
+#include "psl/memory/region.h"
 #include "psl/memory/segment.h"
 #include "psl/memory/range.h"
 #include <optional>
@@ -18,7 +19,7 @@ namespace core::gfx
 	class buffer
 	{
 	  public:
-		  using alias_type = core::resource::alias<
+		using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
 			core::ivk::buffer
 #ifdef PE_GLES
@@ -57,7 +58,19 @@ namespace core::gfx
 		bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
 
 		size_t free_size() const noexcept;
+
 	  private:
 		core::resource::handle<value_type> m_Handle;
+	};
+
+	struct shader_buffer_binding
+	{
+		shader_buffer_binding(core::resource::cache& cache, const core::resource::metadata& metaData,
+			psl::meta::file* metaFile, core::resource::handle<buffer> buffer, size_t size,
+			size_t alignment = 4);
+		~shader_buffer_binding();
+		core::resource::handle<buffer> buffer;
+		memory::segment segment;
+		memory::region region;
 	};
 } // namespace core::gfx

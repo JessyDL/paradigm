@@ -48,7 +48,7 @@ namespace core::ecs::systems
 			 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 			 core::resource::handle<core::gfx::buffer> materialBuffer,
 			core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
-			core::resource::handle<core::gfx::buffer> materialInstanceBuffer);
+			core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer);
 		~text() = default;
 
 		text(const text& other)		= delete;

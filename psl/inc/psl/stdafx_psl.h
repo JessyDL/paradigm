@@ -47,3 +47,5 @@ namespace platform::specifics
 #include "psl/enumerate.h"
 #include "psl/array_view.h"
 #include "psl/pack_view.h"
+
+#include "psl/literals.h"

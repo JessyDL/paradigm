@@ -57,7 +57,7 @@ namespace core::gfx
 
 	  public:
 		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::buffer> materialBuffer);
+			   core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer);
 
 		~bundle()				  = default;
 		bundle(const bundle&)	  = delete;
@@ -177,10 +177,31 @@ namespace core::gfx
 			if(offset == std::numeric_limits<decltype(offset)>::max())
 			{
 				core::gfx::log->error("The element name {} was not found in the material {} data", name,
-									  material.uid());
+									  material.uid().to_string());
 				return false;
 			}
 			return set(material, value, offset);
+		}
+
+		template <typename T>
+		bool set(psl::string_view name, const T& value)
+		{
+			size_t count = 0;
+			for (const auto& material : m_Materials)
+			{
+				auto offset = m_InstanceData.offset_of(material, name);
+				if (offset != std::numeric_limits<decltype(offset)>::max())
+				{
+					count += set(material, value, offset)?1:0;
+				}
+			}
+
+			if (count == 0)
+			{
+				core::gfx::log->error("The element name {} was not found in any of the {} materials", name,
+					m_Materials.size());
+			}
+			return count;
 		}
 
 	  private:

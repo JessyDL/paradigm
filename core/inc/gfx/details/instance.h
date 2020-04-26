@@ -18,6 +18,7 @@ namespace std
 namespace core::gfx
 {
 	class buffer;
+	struct shader_buffer_binding;
 	class geometry;
 	class material;
 } // namespace core::gfx
@@ -107,13 +108,14 @@ namespace core::gfx::details::instance
 			memory::segment segment;
 		};
 	  public:
-		data() = default;
-		data(core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::buffer> materialBuffer) noexcept;
+		  data() = default;
+		  ~data();
+		data(core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept;
 		void add(core::resource::handle<core::gfx::material> material);
 		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry> uid,
 													   uint32_t count = 1);
 
-		void remove(core::resource::handle<core::gfx::material> material);
+		bool remove(core::resource::handle<core::gfx::material> material) noexcept;
 
 
 		bool has_element(core::resource::tag<core::gfx::geometry> geometry, psl::string_view name) const noexcept;
@@ -126,7 +128,7 @@ namespace core::gfx::details::instance
 			noexcept;
 
 		core::resource::handle<core::gfx::buffer> vertex_buffer() const noexcept { return m_VertexInstanceBuffer; }
-		core::resource::handle<core::gfx::buffer> material_buffer() const noexcept { return m_MaterialInstanceBuffer; }
+		core::resource::handle<core::gfx::buffer> material_buffer() const noexcept;
 
 		bool erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept;
 		bool clear(core::resource::tag<core::gfx::geometry> geometry) noexcept;
@@ -141,8 +143,8 @@ namespace core::gfx::details::instance
 		/// the bracket operator '[i]', otherwise it will default to '[0]' implicitly.
 		size_t offset_of(core::resource::tag<core::gfx::material> material, psl::string_view name) const noexcept;
 
-		std::optional<std::pair<core::resource::handle<core::gfx::buffer>, memory::segment>>
-			material_instance(core::resource::tag<core::gfx::material> material) const noexcept;
+
+		bool bind_material(core::resource::handle<core::gfx::material> material);
 	  private:
 		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;	   // <material, bindings[]>
 		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
@@ -150,6 +152,6 @@ namespace core::gfx::details::instance
 		std::unordered_map<psl::UID, material_instance_data> m_MaterialInstanceData{};
 		psl::array<size_t> m_MaterialDataSizes{};
 		core::resource::handle<core::gfx::buffer> m_VertexInstanceBuffer;
-		core::resource::handle<core::gfx::buffer> m_MaterialInstanceBuffer;
+		core::resource::handle<core::gfx::shader_buffer_binding> m_MaterialInstanceBuffer;
 	};
 } // namespace core::gfx::details::instance
