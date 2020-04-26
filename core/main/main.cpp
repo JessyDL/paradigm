@@ -71,8 +71,7 @@
 #include "ecs/systems/lighting.h"
 #include "ecs/systems/text.h"
 
-#include "psl/noise/perlin.h"
-#include "ecs/systems/debug/grid.h"
+#include "psl/literals.h"
 
 using namespace core;
 using namespace core::resource;
@@ -683,7 +682,7 @@ int entry(gfx::graphics_backend backend)
 {
 	psl::string libraryPath{utility::application::path::library + "resources.metalib"};
 
-	memory::region resource_region{1024u * 1024u * 20u, 4u, new memory::default_allocator()};
+	memory::region resource_region{20_mb, 4u, new memory::default_allocator()};
 	psl::string8_t environment = "";
 	switch(backend)
 	{
@@ -717,15 +716,9 @@ int entry(gfx::graphics_backend backend)
 		return -1;
 	}
 
-	auto storage_buffer_align = context_handle->limits().storage_buffer_offset_alignment;
-	auto uniform_buffer_align = context_handle->limits().uniform_buffer_offset_alignment;
-
-	auto matBufferData = cache.create<core::data::buffer>(
-		core::gfx::memory_usage::storage_buffer | core::gfx::memory_usage::transfer_destination,
-		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 128, static_cast<uint64_t>(storage_buffer_align),
-					   new memory::default_allocator(false)});
-	auto matBuffer = cache.create<core::gfx::buffer>(context_handle, matBufferData);
+	auto storage_buffer_align = context_handle->limits().storage.alignment;
+	auto uniform_buffer_align = context_handle->limits().uniform.alignment;
+	auto mapped_buffer_align = context_handle->limits().memorymap.alignment;
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	core::resource::handle<gfx::buffer> stagingBuffer{};
@@ -734,7 +727,7 @@ int entry(gfx::graphics_backend backend)
 		auto stagingBufferData = cache.create<data::buffer>(
 			core::gfx::memory_usage::transfer_source,
 			core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-			memory::region{(size_t)1024 * 1024 * 1024, 4, new memory::default_allocator(false)});
+			memory::region{(size_t)128_mb, 4, new memory::default_allocator(false)});
 		stagingBuffer = cache.create<gfx::buffer>(context_handle, stagingBufferData);
 	}
 
@@ -745,25 +738,25 @@ int entry(gfx::graphics_backend backend)
 	auto vertexBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{(size_t)1024 * 1024 * 1536, 4, new memory::default_allocator(false)});
+		memory::region{256_mb, 4, new memory::default_allocator(false)});
 	auto vertexBuffer = cache.create<gfx::buffer>(context_handle, vertexBufferData, stagingBuffer);
 
 	auto indexBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{1024 * 1024 * 256, 4, new memory::default_allocator(false)});
+		memory::region{128_mb, 4, new memory::default_allocator(false)});
 	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData, stagingBuffer);
 
 	auto dynamicInstanceBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer,
 		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-		memory::region{ (uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false) });
+		memory::region{ 128_mb, 4, new memory::default_allocator(false) });
 
 	// instance buffer for vertex data, these are unique per streamed instance of a geometry in a shader
 	auto instanceBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{ (uint64_t)1024 * 1024 * 128, 4, new memory::default_allocator(false) });
+		memory::region{ 128_mb, 4, new memory::default_allocator(false) });
 	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
 
 	// instance buffer for material data, these are shared over all instances of a given material bind (over all
@@ -771,8 +764,10 @@ int entry(gfx::graphics_backend backend)
 	auto instanceMaterialBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::uniform_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{ (uint64_t)1024 * 1024 * 8, uniform_buffer_align, new memory::default_allocator(false) });
+		memory::region{ 8_mb, uniform_buffer_align, new memory::default_allocator(false) });
 	auto instanceMaterialBuffer = cache.create<gfx::buffer>(context_handle, instanceMaterialBufferData, stagingBuffer);
+	auto intanceMaterialBinding = cache.create<gfx::shader_buffer_binding>(instanceMaterialBuffer, 8_mb);
+	cache.library().set(intanceMaterialBinding.uid(), core::data::material::MATERIAL_DATA);
 
 	std::vector<resource::handle<data::geometry>> geometryDataHandles;
 	std::vector<resource::handle<gfx::geometry>> geometryHandles;
@@ -849,16 +844,17 @@ int entry(gfx::graphics_backend backend)
 	}
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto frameCamBufferData =
+	auto globalShaderBufferData =
 		cache.create<data::buffer>(core::gfx::memory_usage::uniform_buffer,
-								   core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-								   resource_region
-									   .create_region(sizeof(core::ecs::systems::gpu_camera::framedata) * 128,
-													  uniform_buffer_align, new memory::default_allocator(true))
-									   .value());
+			core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+			resource_region
+			.create_region(1_mb,
+				uniform_buffer_align, new memory::default_allocator(true))
+			.value());
 
-	auto frameCamBuffer = cache.create<gfx::buffer>(context_handle, frameCamBufferData);
-	cache.library().set(frameCamBuffer, "GLOBAL_WORLD_VIEW_PROJECTION_MATRIX");
+	auto globalShaderBuffer = cache.create<gfx::buffer>(context_handle, globalShaderBufferData);
+	auto frameCamBufferBinding = cache.create<gfx::shader_buffer_binding>(globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
+	cache.library().set(frameCamBufferBinding, "GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX");
 
 
 	// create a pipeline cache
@@ -866,40 +862,40 @@ int entry(gfx::graphics_backend backend)
 
 	psl::array<core::resource::handle<core::gfx::material>> materials;
 	core::resource::handle<core::gfx::material> depth_material =
-		setup_gfx_depth_material(cache, context_handle, pipeline_cache, matBuffer);
+		setup_gfx_depth_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer);
 
 	// water
 	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e14da8e3-1e03-a635-7889-a1b0f27f36bb"_uid));
 
 	// grass
 	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3b47e2f3-1faa-f668-65d6-4aa32d04dab4"_uid));
 
 	// dirt
 	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "fb47fd91-8bd8-ba29-928f-9666404a399f"_uid));
 
 	// rock
 	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, matBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
 						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
 	bundles[bundles.size() - 1]->set_material(materials[0], 2000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
 	bundles[bundles.size() - 1]->set_material(materials[1], 2000);
 	bundles[bundles.size() - 1]->set_material(depth_material, 1000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
 	bundles[bundles.size() - 1]->set_material(materials[2], 2000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, instanceMaterialBuffer));
+	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
 	bundles[bundles.size() - 1]->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
@@ -948,7 +944,7 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::systems::render render_system{ECSState, swapchain_pass};
 	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
-	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBuffer,
+	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBufferBinding,
 													 context_handle->backend()};
 
 	ECSState.declare(psl::ecs::threading::par, core::ecs::systems::movement);
