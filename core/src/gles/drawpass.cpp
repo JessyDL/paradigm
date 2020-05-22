@@ -127,12 +127,16 @@ void drawpass::present()
 	glBlendEquationSeparate(to_gles(blend_state.color_blend_op()), to_gles(blend_state.alpha_blend_op()));
 	glBlendFuncSeparate(to_gles(blend_state.color_blend_src()), to_gles(blend_state.color_blend_dst()),
 						to_gles(blend_state.alpha_blend_src()), to_gles(blend_state.alpha_blend_dst()));
+
 	if(m_Framebuffer)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	if(m_Swapchain) m_Swapchain->present();
+	if (m_Swapchain) {
+		m_Swapchain->present();
+		glFinish();
+	}
 	glGetError();
 }
 

@@ -34,6 +34,7 @@ namespace core::gfx
 	namespace constants
 	{
 		static constexpr psl::string_view INSTANCE_MODELMATRIX = "INSTANCE_TRANSFORM";
+		static constexpr psl::string_view INSTANCE_LEGACY_MODELMATRIX = "iModelMat";
 	}
 
 	/// \detail

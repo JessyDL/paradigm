@@ -57,8 +57,9 @@ void render_graph::present()
 						  element.pass);
 	});
 
-	if(std::distance(std::begin(m_Passes), it_final) != m_Passes.size() - 1)
+	if(it_final != std::prev(std::end(m_Passes)))
 		std::iter_swap(it_final, std::prev(std::end(m_Passes)));
+
 
 	for(auto& node : m_Passes)
 	{

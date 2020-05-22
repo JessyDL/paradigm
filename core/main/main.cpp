@@ -886,17 +886,18 @@ int entry(gfx::graphics_backend backend)
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles[bundles.size() - 1]->set_material(materials[0], 2000);
+	bundles.back()->set_material(materials[0], 2000);
+	bundles.back()->set_material(depth_material, 1000);
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles[bundles.size() - 1]->set_material(materials[1], 2000);
-	bundles[bundles.size() - 1]->set_material(depth_material, 1000);
+	bundles.back()->set_material(materials[1], 2000);
+	bundles.back()->set_material(depth_material, 1000);
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles[bundles.size() - 1]->set_material(materials[2], 2000);
+	bundles.back()->set_material(materials[2], 2000);
 
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles[bundles.size() - 1]->set_material(materials[3], 2000);
+	bundles.back()->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
 	auto swapchain_pass = renderGraph.create_drawpass(context_handle, swapchain_handle);
@@ -1102,16 +1103,12 @@ int main()
 	}
 #endif
 
-	psl::vec4 v{0.f, 1.f, 2.f, 3.f};
-	// auto res{ v.xy + v.zy + v.zz };
-	// std::thread vk_thread(entry, graphics_backend::gles);
-	// std::thread gl_thread(entry, graphics_backend::vulkan);
 	std::srand(0);
 	entry(graphics_backend::gles);
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);
-	return entry(graphics_backend::vulkan);
+	//return entry(graphics_backend::vulkan);
 }
 #endif
 

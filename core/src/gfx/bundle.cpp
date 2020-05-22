@@ -76,7 +76,7 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept
 	{
 		auto index = std::distance(std::begin(m_Layers), it);
 		m_Bound	   = m_Materials[index];
-		if(m_InstanceData.bind_material(m_Bound)) return true;
+		if(!m_InstanceData.has_data(m_Bound) || m_InstanceData.bind_material(m_Bound)) return true;
 
 		core::gfx::log->error(
 			"could not bind the material {} due to an issue updating a binding offset, inspect prior log for more info",

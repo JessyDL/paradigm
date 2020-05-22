@@ -144,7 +144,16 @@ namespace core::gfx::details::instance
 		size_t offset_of(core::resource::tag<core::gfx::material> material, psl::string_view name) const noexcept;
 
 
+		/**
+		* \brief bind the given material's instance data (if present).
+		* \returns true if there was instance data found, otherwise propogates lower failure.
+		*/
 		bool bind_material(core::resource::handle<core::gfx::material> material);
+
+		/*
+		* \brief returns true if the material has instance data.
+		*/
+		bool has_data(core::resource::handle<core::gfx::material> material) const noexcept;
 	  private:
 		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;	   // <material, bindings[]>
 		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count

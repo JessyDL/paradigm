@@ -326,3 +326,7 @@ bool data::bind_material(core::resource::handle<core::gfx::material> material)
 }
 
 core::resource::handle<core::gfx::buffer> data::material_buffer() const noexcept { return m_MaterialInstanceBuffer->buffer; }
+bool data::has_data(core::resource::handle<core::gfx::material> material) const noexcept
+{
+	return m_MaterialInstanceData.find(material) != std::end(m_MaterialInstanceData);
+}

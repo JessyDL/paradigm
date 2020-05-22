@@ -223,7 +223,7 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 				if(input.name() == "iNorm") attribute.tag(psl::string{core::data::geometry::constants::NORMAL});
 				if(input.name() == "iCol") attribute.tag(psl::string{core::data::geometry::constants::COLOR});
 				if(input.name() == "iTex") attribute.tag(psl::string{core::data::geometry::constants::TEX});
-				if(input.name() == core::gfx::constants::INSTANCE_MODELMATRIX)
+				if(input.name() == core::gfx::constants::INSTANCE_MODELMATRIX || input.name() == core::gfx::constants::INSTANCE_LEGACY_MODELMATRIX)
 				{
 					attribute.tag(psl::string{core::gfx::constants::INSTANCE_MODELMATRIX});
 					attribute.input_rate(core::gfx::vertex_input_rate::instance);
