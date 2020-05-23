@@ -199,14 +199,7 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 		return false;
 	}
 
-	// Bind the rendering pipeline (including the shaders)
-	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Bound->vkPipeline());
-
-	// Bind descriptor sets describing shader binding points
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Bound->vkLayout(), 0, 1,
-		m_Bound->vkDescriptorSet(), m_DynamicOffsets.size(), m_DynamicOffsets.data());
-
-	return true;
+	return m_Bound->bind(cmdBuffer, m_DynamicOffsets);
 }
 
 bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
@@ -227,15 +220,8 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 		return false;
 	}
 
-	// Bind the rendering pipeline (including the shaders)
-	cmdBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, m_Bound->vkPipeline());
 
-
-	// Bind descriptor sets describing shader binding points
-	cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, m_Bound->vkLayout(), 0, 1,
-								 m_Bound->vkDescriptorSet(), m_DynamicOffsets.size(), m_DynamicOffsets.data());
-
-	return true;
+	return m_Bound->bind(cmdBuffer, m_DynamicOffsets);
 }
 
 void material::bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment)

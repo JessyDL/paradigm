@@ -2,6 +2,8 @@
 
 #include "resource/resource.hpp"
 #include <vector>
+#include "psl/array_view.h"
+
 namespace core::data
 {
 	class material;
@@ -21,9 +23,18 @@ namespace core::ivk
 	class pipeline
 	{
 	  public:
+		  /// \brief creates a graphics pipeline
+		  /// \warn this constructor will error-out when it detects you trying to create a compute pipeline instead
 		pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				 core::resource::handle<core::ivk::context> context, core::resource::handle<core::data::material> data,
 				 vk::PipelineCache& pipelineCache, vk::RenderPass renderPass, uint32_t attachmentCount);
+
+		/// \brief creates a compute pipeline
+		  /// \warn this constructor will error-out when it detects you trying to create a graphics pipeline instead
+		pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+			core::resource::handle<core::ivk::context> context, core::resource::handle<core::data::material> data,
+			vk::PipelineCache& pipelineCache);
+
 		~pipeline();
 		pipeline(const pipeline&) = delete;
 		pipeline(pipeline&&)	  = delete;
@@ -84,6 +95,8 @@ namespace core::ivk
 		/// \copydoc is_valid()
 		inline operator bool() const noexcept { return is_valid(); }
 
+		bool bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamicOffsets = {});
+
 	  private:
 		 bool completeness_check() noexcept;
 		bool update(core::resource::cache& cache, const core::data::material& data, vk::DescriptorSet set);
@@ -94,6 +107,7 @@ namespace core::ivk
 		vk::PipelineLayout m_PipelineLayout;
 		vk::Pipeline m_Pipeline;
 		vk::PipelineCache& m_PipelineCache;
+		vk::PipelineBindPoint m_BindPoint{ vk::PipelineBindPoint::eGraphics };
 
 		std::vector<vk::WriteDescriptorSet> m_DescriptorSets;
 		std::vector<std::unique_ptr<vk::DescriptorBufferInfo>> m_TrackedBufferInfos;

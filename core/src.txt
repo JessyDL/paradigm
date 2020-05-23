@@ -58,18 +58,19 @@ list(TRANSFORM SRC PREPEND src/)
 if(${PE_VULKAN})
 	set(SRC_VULKAN
 	buffer.cpp
+	compute.cpp
+	computepass.cpp
 	context.cpp
+	drawpass.cpp
 	framebuffer.cpp
 	geometry.cpp
 	material.cpp
-	drawpass.cpp
 	pipeline.cpp
 	pipeline_cache.cpp
 	sampler.cpp
 	shader.cpp
 	swapchain.cpp
 	texture.cpp
-	computepass.cpp
 	)
 
 	list(TRANSFORM SRC_VULKAN PREPEND src/vk/)

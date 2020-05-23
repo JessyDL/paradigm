@@ -540,6 +540,12 @@ namespace utility::vulkan
 		return true;
 	}
 
+	template<typename T>
+	inline bool check(const vk::ResultValue<T>& value)
+	{
+		return check(value.result);
+	}
+
 	inline vk::CommandBuffer create_cmd_buffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
 											   bool begin, uint32_t bufferCount)
 	{

@@ -105,7 +105,7 @@ bool decode(core::resource::cache& cache, const core::data::material& data,
 			vkVertexBinding.inputRate =
 				conversion::to_vk(input_rate->input_rate().value_or(core::gfx::vertex_input_rate::vertex));
 
-			for(auto i = 0; i < attribute.count(); ++i)
+			for(uint32_t i = 0; i < static_cast<uint32_t>(attribute.count()); ++i)
 			{
 				vk::VertexInputAttributeDescription& vkVertexAttribute = vertexAttributeDescriptions.emplace_back();
 				vkVertexAttribute.binding							   = vkVertexBinding.binding;
@@ -129,7 +129,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	std::vector<vk::DescriptorSetLayoutBinding> layoutBinding;
 	if(!decode(cache, data.value(), layoutBinding))
 	{
-		LOG_ERROR("fatal error happened during the creation of a pipeline");
+		core::ivk::log->error("fatal error happened during the creation of pipeline {}", metaData.uid.to_string());
 		m_IsValid = false;
 		return;
 	}
@@ -148,7 +148,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	std::vector<vk::VertexInputAttributeDescription> vertexAttributeDescriptions;
 	if(!decode(cache, data.value(), vertexBindingDescriptions, vertexAttributeDescriptions))
 	{
-		LOG_ERROR("fatal error happened during the creation of a pipeline");
+		core::ivk::log->error("fatal error happened during the creation of pipeline {}", metaData.uid.to_string());
 		m_IsValid = false;
 		return;
 	}
@@ -170,6 +170,9 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	// todo: this should be removed in favour of a generic check for push_constants in the shader meta
 	for(const auto& stage : data.value().stages())
 	{
+		if (stage.shader_stage() == core::gfx::shader_stage::compute)
+			m_BindPoint = vk::PipelineBindPoint::eCompute;
+
 		for(auto& binding : stage.bindings())
 		{
 			if(binding.descriptor() == core::gfx::binding_type::uniform_buffer)
@@ -195,162 +198,189 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	if(!utility::vulkan::check(
 		   m_Context->device().createPipelineLayout(&pPipelineLayoutCreateInfo, nullptr, &m_PipelineLayout)))
 	{
-		LOG_ERROR("fatal error happened during the creation of a pipeline");
+		core::ivk::log->error("fatal error happened during the creation of a pipeline");
 		m_IsValid = false;
 		return;
 	}
 
-	vk::GraphicsPipelineCreateInfo pipelineCreateInfo;
-	// The layout used for this pipeline
-	pipelineCreateInfo.layout = m_PipelineLayout;
-	// Renderpass this pipeline is attached to
-	pipelineCreateInfo.renderPass = renderPass;
-
-	// Vertex input state
-	// Describes the topoloy used with this pipeline
-	vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState;
-	// This pipeline renders vertex data as triangle lists
-	inputAssemblyState.topology = vk::PrimitiveTopology::eTriangleList;
-
-	// Rasterization state
-	vk::PipelineRasterizationStateCreateInfo rasterizationState;
-	rasterizationState.polygonMode			   = (data->wireframe()) ? vk::PolygonMode::eLine : vk::PolygonMode::eFill;
-	rasterizationState.cullMode				   = conversion::to_vk(data->cull_mode());
-	rasterizationState.frontFace			   = vk::FrontFace::eCounterClockwise;
-	rasterizationState.depthClampEnable		   = VK_FALSE;
-	rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-	rasterizationState.depthBiasEnable		   = VK_FALSE;
-	rasterizationState.lineWidth			   = 1.0f;
-
-	// Color blend state
-	// Describes blend modes and color masks
-	vk::PipelineColorBlendStateCreateInfo colorBlendState;
-
-	// One blend attachment state
-	// Blending is not used in this example
-	std::vector<vk::PipelineColorBlendAttachmentState> blendAttachmentState;
-	blendAttachmentState.resize(attachmentCount);
-
-	const auto& blendState = data->blend_states();
-
-	for(size_t i = 0; i < std::min(blendState.size(), (size_t)attachmentCount); ++i)
-	{
-		blendAttachmentState[i].blendEnable	   = blendState[i].enabled();
-		blendAttachmentState[i].colorWriteMask = conversion::to_vk(blendState[i].color_components());
-		if(blendAttachmentState[i].blendEnable)
-		{
-			blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(blendState[i].color_blend_src());
-			blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(blendState[i].color_blend_dst());
-			blendAttachmentState[i].colorBlendOp		= conversion::to_vk(blendState[i].color_blend_op());
-
-			blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_src());
-			blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_dst());
-			blendAttachmentState[i].alphaBlendOp		= conversion::to_vk(blendState[i].alpha_blend_op());
-		}
-	}
-
-	// fill in the remaining with the default blend state;
-	core::data::material::blendstate def_state;
-	for(size_t i = blendState.size(); i < attachmentCount; ++i)
-	{
-		blendAttachmentState[i].blendEnable	   = def_state.enabled();
-		blendAttachmentState[i].colorWriteMask = conversion::to_vk(def_state.color_components());
-		if(blendAttachmentState[i].blendEnable)
-		{
-			blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(def_state.color_blend_src());
-			blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(def_state.color_blend_dst());
-			blendAttachmentState[i].colorBlendOp		= conversion::to_vk(def_state.color_blend_op());
-
-			blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_src());
-			blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_dst());
-			blendAttachmentState[i].alphaBlendOp		= conversion::to_vk(def_state.alpha_blend_op());
-		}
-	}
-	colorBlendState.attachmentCount = attachmentCount;
-	colorBlendState.pAttachments	= blendAttachmentState.data();
-
-	// Viewport state
-	vk::PipelineViewportStateCreateInfo viewportState;
-	// One viewport
-	viewportState.viewportCount = 1;
-	// One scissor rectangle
-	viewportState.scissorCount = 1;
-
-	// Enable dynamic states
-	// Describes the dynamic states to be used with this pipeline
-	// Dynamic states can be set even after the pipeline has been created
-	// So there is no need to create new pipelines just for changing
-	// a viewport's dimensions or a scissor box
-	// The dynamic state properties themselves are stored in the command buffer
-	std::vector<vk::DynamicState> dynamicStateEnables;
-	dynamicStateEnables.push_back(vk::DynamicState::eViewport);
-	dynamicStateEnables.push_back(vk::DynamicState::eScissor);
-	dynamicStateEnables.push_back(vk::DynamicState::eDepthBias);
-
-	vk::PipelineDynamicStateCreateInfo dynamicState;
-	dynamicState.pDynamicStates	   = dynamicStateEnables.data();
-	dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
-
-	// Depth and stencil state
-	// Describes depth and stenctil test and compare ops
-	vk::PipelineDepthStencilStateCreateInfo depthStencilState;
-	// Basic depth compare setup with depth writes and depth test enabled
-	// No stencil used
-	depthStencilState.depthTestEnable		= data->depth_test();
-	depthStencilState.depthWriteEnable		= data->depth_write();
-	depthStencilState.depthCompareOp		= vk::CompareOp::eLessOrEqual;
-	depthStencilState.depthBoundsTestEnable = VK_FALSE;
-	depthStencilState.back.failOp			= vk::StencilOp::eKeep;
-	depthStencilState.back.passOp			= vk::StencilOp::eKeep;
-	depthStencilState.back.compareOp		= vk::CompareOp::eAlways;
-	depthStencilState.stencilTestEnable		= VK_FALSE;
-	depthStencilState.front					= depthStencilState.back;
-
-	// Multi sampling state
-	vk::PipelineMultisampleStateCreateInfo multisampleState;
-	multisampleState.pSampleMask = NULL;
-	// todo: deal with multi sampling
-	multisampleState.rasterizationSamples = vk::SampleCountFlagBits::e1;
 
 	// Load shaders
 	// Shaders are loaded from the SPIR-V format, which can be generated from glsl
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-	for(auto& stage : data->stages())
+	for (auto& stage : data->stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
+		if ((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
 		{
 			shaderStages.push_back(shader_handle->pipeline().value());
 		}
 		else
 		{
-			LOG_ERROR("could not load the shader used in the creation of a pipeline");
+			core::ivk::log->error("could not load the shader used in the creation of a pipeline");
 			m_IsValid = false;
 			return;
 		}
 	}
 
-	// Assign states
-	// Assign pipeline state create information
-	pipelineCreateInfo.stageCount		   = (uint32_t)shaderStages.size();
-	pipelineCreateInfo.pStages			   = shaderStages.data();
-	pipelineCreateInfo.pVertexInputState   = &VertexInputState;
-	pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
-	pipelineCreateInfo.pRasterizationState = &rasterizationState;
-	pipelineCreateInfo.pColorBlendState	   = &colorBlendState;
-	pipelineCreateInfo.pMultisampleState   = &multisampleState;
-	pipelineCreateInfo.pViewportState	   = &viewportState;
-	pipelineCreateInfo.pDepthStencilState  = &depthStencilState;
-	pipelineCreateInfo.renderPass		   = renderPass;
-	pipelineCreateInfo.pDynamicState	   = &dynamicState;
+	core::ivk::log->info("creating a pipeline layout with a {} bindpoint", ((m_BindPoint == vk::PipelineBindPoint::eCompute) ? "compute": "graphics"));
 
-	// Create rendering pipeline
-	if(!utility::vulkan::check(
-		   m_Context->device().createGraphicsPipelines(m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline)))
+	if (m_BindPoint == vk::PipelineBindPoint::eCompute)
 	{
-		debug_break();
-	}
+		assert(shaderStages.size() == 1 && "expecting only a single compute in the shader stages");
 
+		vk::ComputePipelineCreateInfo pipelineCreateInfo{};
+		pipelineCreateInfo.layout = m_PipelineLayout;
+		pipelineCreateInfo.stage = shaderStages[0];
+
+		if (auto pipeline = 
+			m_Context->device().createComputePipeline(m_PipelineCache, pipelineCreateInfo); utility::vulkan::check(pipeline))
+		{
+			m_Pipeline = pipeline.value;
+		}
+		else
+		{
+			core::ivk::log->error("failed to create a compute pipeline");
+			m_IsValid = false;
+			return;
+		}
+	}
+	else
+	{
+		vk::GraphicsPipelineCreateInfo pipelineCreateInfo{};
+		// The layout used for this pipeline
+		pipelineCreateInfo.layout = m_PipelineLayout;
+		// Renderpass this pipeline is attached to
+		pipelineCreateInfo.renderPass = renderPass;
+
+		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
+		pipelineCreateInfo.pStages = shaderStages.data();
+
+		// Vertex input state
+		// Describes the topoloy used with this pipeline
+		vk::PipelineInputAssemblyStateCreateInfo inputAssemblyState;
+		// This pipeline renders vertex data as triangle lists
+		inputAssemblyState.topology = vk::PrimitiveTopology::eTriangleList;
+
+		// Rasterization state
+		vk::PipelineRasterizationStateCreateInfo rasterizationState;
+		rasterizationState.polygonMode = (data->wireframe()) ? vk::PolygonMode::eLine : vk::PolygonMode::eFill;
+		rasterizationState.cullMode = conversion::to_vk(data->cull_mode());
+		rasterizationState.frontFace = vk::FrontFace::eCounterClockwise;
+		rasterizationState.depthClampEnable = VK_FALSE;
+		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
+		rasterizationState.depthBiasEnable = VK_FALSE;
+		rasterizationState.lineWidth = 1.0f;
+
+		// Color blend state
+		// Describes blend modes and color masks
+		vk::PipelineColorBlendStateCreateInfo colorBlendState;
+
+		// One blend attachment state
+		// Blending is not used in this example
+		std::vector<vk::PipelineColorBlendAttachmentState> blendAttachmentState;
+		blendAttachmentState.resize(attachmentCount);
+
+		const auto& blendState = data->blend_states();
+
+		for (size_t i = 0; i < std::min(blendState.size(), (size_t)attachmentCount); ++i)
+		{
+			blendAttachmentState[i].blendEnable = blendState[i].enabled();
+			blendAttachmentState[i].colorWriteMask = conversion::to_vk(blendState[i].color_components());
+			if (blendAttachmentState[i].blendEnable)
+			{
+				blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(blendState[i].color_blend_src());
+				blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(blendState[i].color_blend_dst());
+				blendAttachmentState[i].colorBlendOp = conversion::to_vk(blendState[i].color_blend_op());
+
+				blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_src());
+				blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_dst());
+				blendAttachmentState[i].alphaBlendOp = conversion::to_vk(blendState[i].alpha_blend_op());
+			}
+		}
+
+		// fill in the remaining with the default blend state;
+		core::data::material::blendstate def_state;
+		for (size_t i = blendState.size(); i < attachmentCount; ++i)
+		{
+			blendAttachmentState[i].blendEnable = def_state.enabled();
+			blendAttachmentState[i].colorWriteMask = conversion::to_vk(def_state.color_components());
+			if (blendAttachmentState[i].blendEnable)
+			{
+				blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(def_state.color_blend_src());
+				blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(def_state.color_blend_dst());
+				blendAttachmentState[i].colorBlendOp = conversion::to_vk(def_state.color_blend_op());
+
+				blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_src());
+				blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_dst());
+				blendAttachmentState[i].alphaBlendOp = conversion::to_vk(def_state.alpha_blend_op());
+			}
+		}
+		colorBlendState.attachmentCount = attachmentCount;
+		colorBlendState.pAttachments = blendAttachmentState.data();
+
+		// Viewport state
+		vk::PipelineViewportStateCreateInfo viewportState;
+		// One viewport
+		viewportState.viewportCount = 1;
+		// One scissor rectangle
+		viewportState.scissorCount = 1;
+
+		// Enable dynamic states
+		// Describes the dynamic states to be used with this pipeline
+		// Dynamic states can be set even after the pipeline has been created
+		// So there is no need to create new pipelines just for changing
+		// a viewport's dimensions or a scissor box
+		// The dynamic state properties themselves are stored in the command buffer
+		std::vector<vk::DynamicState> dynamicStateEnables;
+		dynamicStateEnables.push_back(vk::DynamicState::eViewport);
+		dynamicStateEnables.push_back(vk::DynamicState::eScissor);
+		dynamicStateEnables.push_back(vk::DynamicState::eDepthBias);
+
+		vk::PipelineDynamicStateCreateInfo dynamicState;
+		dynamicState.pDynamicStates = dynamicStateEnables.data();
+		dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
+
+		// Depth and stencil state
+		// Describes depth and stenctil test and compare ops
+		vk::PipelineDepthStencilStateCreateInfo depthStencilState;
+		// Basic depth compare setup with depth writes and depth test enabled
+		// No stencil used
+		depthStencilState.depthTestEnable = data->depth_test();
+		depthStencilState.depthWriteEnable = data->depth_write();
+		depthStencilState.depthCompareOp = vk::CompareOp::eLessOrEqual;
+		depthStencilState.depthBoundsTestEnable = VK_FALSE;
+		depthStencilState.back.failOp = vk::StencilOp::eKeep;
+		depthStencilState.back.passOp = vk::StencilOp::eKeep;
+		depthStencilState.back.compareOp = vk::CompareOp::eAlways;
+		depthStencilState.stencilTestEnable = VK_FALSE;
+		depthStencilState.front = depthStencilState.back;
+
+		// Multi sampling state
+		vk::PipelineMultisampleStateCreateInfo multisampleState;
+		multisampleState.pSampleMask = NULL;
+		// todo: deal with multi sampling
+		multisampleState.rasterizationSamples = vk::SampleCountFlagBits::e1;
+
+
+		// Assign states
+		// Assign pipeline state create information
+		pipelineCreateInfo.pVertexInputState = &VertexInputState;
+		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
+		pipelineCreateInfo.pRasterizationState = &rasterizationState;
+		pipelineCreateInfo.pColorBlendState = &colorBlendState;
+		pipelineCreateInfo.pMultisampleState = &multisampleState;
+		pipelineCreateInfo.pViewportState = &viewportState;
+		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
+		pipelineCreateInfo.renderPass = renderPass;
+		pipelineCreateInfo.pDynamicState = &dynamicState;
+
+		// Create rendering pipeline
+		if (!utility::vulkan::check(
+			m_Context->device().createGraphicsPipelines(m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline)))
+		{
+			debug_break();
+		}
+	}
 	vk::DescriptorSetAllocateInfo allocInfo;
 	allocInfo.descriptorSetCount = 1;
 	allocInfo.pSetLayouts		 = &m_DescriptorSetLayout;
@@ -672,5 +702,14 @@ bool pipeline::completeness_check() noexcept
 			return false;
 		}
 	}
+	return true;
+}
+
+
+bool pipeline::bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamicOffsets)
+{
+	buffer.bindPipeline(m_BindPoint, m_Pipeline);
+	buffer.bindDescriptorSets(m_BindPoint, m_PipelineLayout, 0, 1,& m_DescriptorSet, dynamicOffsets.size(), dynamicOffsets.data());
+
 	return true;
 }

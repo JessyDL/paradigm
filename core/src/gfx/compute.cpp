@@ -7,7 +7,7 @@
 #include "gles/compute.h"
 #endif
 #ifdef PE_VULKAN
-//#include "vk/compute.h"
+#include "vk/compute.h"
 #endif
 using namespace core::gfx;
 using namespace core::resource;
@@ -43,6 +43,12 @@ void compute::dispatch(const psl::static_array<uint32_t, 3>& size)
 	if(m_Handle.contains<igles::compute>())
 	{
 		m_Handle.value<igles::compute>().dispatch(size[0], size[1], size[2]);
+	}
+#endif
+#ifdef PE_VULKAN
+	if (m_Handle.contains<ivk::compute>())
+	{
+		m_Handle.value<ivk::compute>().dispatch(size[0], size[1], size[2]);
 	}
 #endif
 }

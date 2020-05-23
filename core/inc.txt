@@ -101,25 +101,27 @@ if(${PE_VULKAN})
 	set(INC_VULKAN
 	ivk.h
 	buffer.h
+	compute.h
+	computepass.h
 	context.h
+	conversion.h
+	drawpass.h
 	framebuffer.h
 	geometry.h
+	material.h
 	pipeline.h
+	pipeline_cache.h
 	sampler.h
 	shader.h
 	swapchain.h
 	texture.h
-	material.h
-	pipeline_cache.h
-	drawpass.h
-	conversion.h
-	computepass.h
 	)
 
 	list(APPEND FWD 
 
 	vk/shader.h
 	vk/texture.h
+	vk/buffer.h
 	)
 	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
 endif()
