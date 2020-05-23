@@ -73,6 +73,8 @@
 
 #include "psl/literals.h"
 
+#include "data/framebuffer.h"
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -900,7 +902,58 @@ int entry(gfx::graphics_backend backend)
 	bundles.back()->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
+	auto frameBufferData = cache.create<core::data::framebuffer>(surface_handle->data().width(), surface_handle->data().height(), 1);
+
+	{	// render target
+		core::gfx::attachment descr{};
+		descr.format = core::gfx::format::r32g32b32a32_sfloat;
+		descr.sample_bits = 1;
+		descr.image_load = core::gfx::attachment::load_op::clear;
+		descr.image_store = core::gfx::attachment::store_op::store;
+		descr.stencil_load = core::gfx::attachment::load_op::dont_care;
+		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+		descr.initial = core::gfx::image::layout::undefined;
+		descr.final = core::gfx::image::layout::color_attachment_optimal;
+
+		frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+			core::gfx::image::usage::color_attachment, core::gfx::clear_value(psl::ivec4{ 0 }), descr);
+
+	}
+
+	{	// depth-stencil target
+		core::gfx::attachment descr{}; 
+		if (auto format = context_handle->limits().supported_depthformat;
+			format == core::gfx::format::undefined)
+		{
+			core::log->error("Could not find a suitable depth stencil buffer format.");
+		}
+		else
+			descr.format = format;
+		descr.sample_bits = 1;
+		descr.image_load = core::gfx::attachment::load_op::clear;
+		descr.image_store = core::gfx::attachment::store_op::dont_care;
+		descr.stencil_load = core::gfx::attachment::load_op::dont_care;
+		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+		descr.initial = core::gfx::image::layout::undefined;
+		descr.final = core::gfx::image::layout::depth_stencil_attachment_optimal;
+
+		frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+			core::gfx::image::usage::dept_stencil_attachment, core::gfx::depth_stencil{ 1.0f, 0 }, descr);
+	}
+
+	{
+		auto ppsamplerData = cache.create<data::sampler>();
+		ppsamplerData->mipmaps(false);
+		auto ppsamplerHandle = cache.create<gfx::sampler>(context_handle, ppsamplerData);
+		frameBufferData->set(ppsamplerHandle);
+	}
+
+	auto geometryFBO = cache.create<core::gfx::framebuffer>(context_handle, frameBufferData);
+
+	auto geometry_pass = renderGraph.create_drawpass(context_handle, geometryFBO);
 	auto swapchain_pass = renderGraph.create_drawpass(context_handle, swapchain_handle);
+
+	renderGraph.connect(geometry_pass, swapchain_pass);
 
 	{
 		psl::UID compute_texture_uid;
@@ -942,7 +995,7 @@ int entry(gfx::graphics_backend backend)
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
 
-	core::ecs::systems::render render_system{ECSState, swapchain_pass};
+	core::ecs::systems::render render_system{ECSState, geometry_pass };
 	render_system.add_render_range(2000, 3000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBufferBinding,

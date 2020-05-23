@@ -16,6 +16,8 @@
 #include "gles/conversion.h"
 #include "gles/computepass.h"
 
+#include "data/framebuffer.h"
+
 using namespace core::igles;
 using namespace core::resource;
 
@@ -29,8 +31,72 @@ void drawpass::prepare()
 	if(m_Framebuffer)
 	{
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
-		glClear(GL_DEPTH_BUFFER_BIT);
-		glClearDepthf(1.0f);
+
+		unsigned int index{0};
+		for(const auto& attachment : m_Framebuffer->data()->attachments())
+		{
+			auto gfx_attachment = attachment.operator core::gfx::attachment();
+
+			auto format		 = gfx_attachment.format;
+			auto clear_value = attachment.clear_value();
+
+			bool stencil = core::gfx::has_stencil(format);
+			bool depth = core::gfx::has_depth(format);
+			bool depth_stencil = depth && stencil;
+
+			if(depth || stencil)
+			{
+				stencil = stencil && gfx_attachment.stencil_load == core::gfx::attachment::load_op::clear;
+				depth = depth && gfx_attachment.image_load == core::gfx::attachment::load_op::clear;
+
+				if (depth_stencil)
+				{
+					std::visit(utility::templates::overloaded{
+								   [](const core::gfx::depth_stencil& dstencil) { glClearBufferfi(GL_DEPTH_STENCIL, 0, dstencil.depth, static_cast<int>(dstencil.stencil)); },
+								   [](const psl::vec4& color) {}, [](const psl::ivec4& color) {},
+								   [](const psl::tvec<uint32_t, 4>& color) {
+
+								   } },
+						clear_value);
+				}
+				else if(depth)
+				{
+					std::visit(utility::templates::overloaded{
+								   [](const core::gfx::depth_stencil& dstencil) { glClearBufferfv(GL_DEPTH, 0, &dstencil.depth); },
+								   [](const psl::vec4& color) {}, [](const psl::ivec4& color) {},
+								   [](const psl::tvec<uint32_t, 4>& color) {
+
+								   } },
+						clear_value);
+				}
+				else if (stencil)
+				{
+					std::visit(utility::templates::overloaded{
+								   [](const core::gfx::depth_stencil& dstencil) { glClearBufferiv(GL_STENCIL, 0, reinterpret_cast<const int*>(&dstencil.stencil)); },
+								   [](const psl::vec4& color) {}, [](const psl::ivec4& color) {},
+								   [](const psl::tvec<uint32_t, 4>& color) {
+
+								   } },
+						clear_value);
+
+				}
+			}
+			else
+			{
+				if (gfx_attachment.image_load == core::gfx::attachment::load_op::clear)
+				{
+					std::visit(
+						utility::templates::overloaded{
+							[&](const core::gfx::depth_stencil& dstencil) {},
+							[&](const psl::vec4& color) { glClearBufferfv(GL_COLOR, index, &color[0]); },
+							[&](const psl::ivec4& color) { glClearBufferiv(GL_COLOR, index, &color[0]); },
+							[&](const psl::tvec<uint32_t, 4>& color) { glClearBufferuiv(GL_COLOR, index, &color[0]); } },
+							clear_value);
+				}
+				++index;
+			}
+		}
+
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 	if(m_Swapchain) m_Swapchain->clear();
@@ -60,7 +126,8 @@ void drawpass::present()
 				render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
 			}
 			std::sort(std::begin(render_indices), std::end(render_indices));
-			render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)), std::end(render_indices));
+			render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)),
+								 std::end(render_indices));
 			for(auto renderLayer : render_indices)
 			{
 				for(auto& drawCall : drawLayer.second)
@@ -68,8 +135,7 @@ void drawpass::present()
 					if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
 					auto bundle = drawCall.m_Bundle;
 
-					if (!bundle->bind_material(renderLayer))
-						continue;
+					if(!bundle->bind_material(renderLayer)) continue;
 					auto gfxmat{bundle->bound()};
 					auto mat{gfxmat->resource().get<core::igles::material>()};
 
@@ -133,7 +199,8 @@ void drawpass::present()
 		glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	}
 
-	if (m_Swapchain) {
+	if(m_Swapchain)
+	{
 		m_Swapchain->present();
 		glFinish();
 	}
@@ -146,27 +213,26 @@ void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept {};
 void drawpass::disconnect(psl::view_ptr<drawpass> pass) noexcept {};
 void drawpass::connect(psl::view_ptr<computepass> pass) noexcept
 {
-	for (const auto& barrier : pass->memory_barriers())
+	for(const auto& barrier : pass->memory_barriers())
 	{
-		if (auto it = std::find_if(std::begin(m_MemoryBarriers), std::end(m_MemoryBarriers),
-			[&barrier](auto&& item) { return barrier == item.barrier; });
-			it != std::end(m_MemoryBarriers))
+		if(auto it = std::find_if(std::begin(m_MemoryBarriers), std::end(m_MemoryBarriers),
+								  [&barrier](auto&& item) { return barrier == item.barrier; });
+		   it != std::end(m_MemoryBarriers))
 			it->usage += 1;
 		else
-			m_MemoryBarriers.emplace_back(drawpass::memory_barrier_t{ barrier, 1 });
+			m_MemoryBarriers.emplace_back(drawpass::memory_barrier_t{barrier, 1});
 	}
 };
-void drawpass::disconnect(psl::view_ptr<computepass> pass) noexcept 
+void drawpass::disconnect(psl::view_ptr<computepass> pass) noexcept
 {
-	for (const auto& barrier : pass->memory_barriers())
+	for(const auto& barrier : pass->memory_barriers())
 	{
-		if (auto it = std::find_if(std::begin(m_MemoryBarriers), std::end(m_MemoryBarriers),
-			[&barrier](auto&& item) { return barrier == item.barrier; });
-			it != std::end(m_MemoryBarriers))
+		if(auto it = std::find_if(std::begin(m_MemoryBarriers), std::end(m_MemoryBarriers),
+								  [&barrier](auto&& item) { return barrier == item.barrier; });
+		   it != std::end(m_MemoryBarriers))
 		{
 			it->usage -= 1;
-			if (it->usage == 0)
-				m_MemoryBarriers.erase(it);
+			if(it->usage == 0) m_MemoryBarriers.erase(it);
 		}
 	}
 };

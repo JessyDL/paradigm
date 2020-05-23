@@ -58,7 +58,7 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 			if(auto format = m_Context->limits().supported_depthformat;
 			   format == core::gfx::format::undefined)
 			{
-				LOG_FATAL("Could not find a suitable depth stencil buffer format.");
+				core::log->error("Could not find a suitable depth stencil buffer format.");
 			}
 			else
 				descr.format = format;
