@@ -235,7 +235,7 @@ bool material::bind_instance_data(uint32_t binding, uint32_t offset)
 	auto it = std::find(std::begin(m_DynamicOffsetsIndices), std::end(m_DynamicOffsetsIndices), binding);
 	if (it == std::end(m_DynamicOffsetsIndices))
 	{
-		core::igles::log->error("the requested binding slot {} was not found in the material", binding);
+		core::ivk::log->error("the requested binding slot {} was not found in the material", binding);
 		return false;
 	}
 
