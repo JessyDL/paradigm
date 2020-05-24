@@ -247,7 +247,7 @@ void texture::create_2D(void* data)
 	// are abstracted by image views containing additional
 	// information and sub resource ranges
 	vk::ImageViewCreateInfo view;
-	view.image		= nullptr;
+	view.image		= m_Image;
 	view.viewType	= to_vk(m_Meta->image_type());
 	view.format		= to_vk(m_Meta->format());
 	view.components = vk::ComponentMapping();
@@ -260,7 +260,7 @@ void texture::create_2D(void* data)
 	// Only set mip map count if optimal tiling is used
 	view.subresourceRange.levelCount = m_MipLevels;
 	m_SubresourceRange				 = view.subresourceRange;
-	view.image						 = m_Image;
+
 	utility::vulkan::check(m_Context->device().createImageView(&view, nullptr, &m_View));
 }
 

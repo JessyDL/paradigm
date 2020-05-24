@@ -923,10 +923,10 @@ int entry(gfx::graphics_backend backend)
 		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
 		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
 		descr.initial		= core::gfx::image::layout::undefined;
-		descr.final			= core::gfx::image::layout::color_attachment_optimal;
+		descr.final			= core::gfx::image::layout::general;
 
 		frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-							 core::gfx::image::usage::color_attachment, core::gfx::clear_value(psl::ivec4{0}), descr);
+							 core::gfx::image::usage::color_attachment | core::gfx::image::usage::sampled, core::gfx::clear_value(psl::ivec4{0}), descr);
 	}
 
 	//{ // depth-stencil target
@@ -966,6 +966,7 @@ int entry(gfx::graphics_backend backend)
 		setup_gfx_material_data(cache, context_handle, "3146a409-84f9-a628-32ad-03c7284fb6ad"_uid,
 								"ca45f61d-de1e-d1b6-86f6-9e7d7a7ea8b3"_uid, geometryFBO->texture(0).meta().ID());
 	post_effect_data->blend_states({core::data::material::blendstate::transparent(0)});
+	post_effect_data->cull_mode(core::gfx::cullmode::none);
 	auto post_effect_material =
 		cache.create<core::gfx::material>(context_handle, post_effect_data, pipeline_cache, instanceMaterialBuffer);
 	post_effect_bundle->set_material(post_effect_material, 5000);
@@ -1163,6 +1164,7 @@ int entry(gfx::graphics_backend backend)
 		last_tick = current_time;
 		core::log->info("---- FRAME {0} END   ---- duration {1} ms", frame++, elapsed.count() * 1000);
 	}
+	context_handle->wait_idle();
 
 	return 0;
 }
@@ -1187,7 +1189,7 @@ int main()
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);
-	// return entry(graphics_backend::vulkan);
+	return entry(graphics_backend::vulkan);
 }
 #endif
 

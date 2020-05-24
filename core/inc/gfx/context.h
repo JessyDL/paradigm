@@ -46,7 +46,7 @@ namespace core::gfx
 			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
 #endif
 		};
-
+		void wait_idle();
 	private:
 		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
 #ifdef PE_VULKAN

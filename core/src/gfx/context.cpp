@@ -56,3 +56,17 @@ const core::gfx::limits& context::limits() const noexcept
 #endif
 	throw std::runtime_error("no context was loaded");
 }
+
+void context::wait_idle()
+{
+#ifdef PE_VULKAN
+	if (m_VKHandle)
+	{
+		m_VKHandle->device().waitIdle();
+		return;
+	}
+#endif
+#ifdef PE_GLES
+
+#endif
+}

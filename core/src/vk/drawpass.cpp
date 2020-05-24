@@ -93,6 +93,8 @@ drawpass::~drawpass()
 		m_DrawCommandBuffers.data());
 
 	m_Context->device().destroySemaphore(m_PresentComplete);
+
+	/* todo: this can cause a validation error when deleted during-inflight */
 	m_Context->device().destroySemaphore(m_RenderComplete);
 }
 bool drawpass::build()
@@ -353,7 +355,10 @@ void drawpass::remove(const core::gfx::drawgroup& group) noexcept
 void drawpass::clear() noexcept { m_AllGroups.clear(); }
 
 
-void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept { m_WaitFor.emplace_back(pass->m_RenderComplete); }
+void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept 
+{ 
+	m_WaitFor.emplace_back(pass->m_RenderComplete); 
+}
 
 void drawpass::disconnect(psl::view_ptr<drawpass> pass) noexcept
 {
