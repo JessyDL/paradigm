@@ -21,8 +21,8 @@ render::render(state& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass(p
 	state.declare(threading::seq, &render::tick_draws, this);
 }
 void render::tick_draws(info& info,
-						pack<const transform, const renderable, on_combine<transform, renderable>> renderables,
-						pack<const transform, const renderable, on_break<transform, renderable>> broken_renderables)
+						pack<const renderable, on_add<renderable>> renderables,
+						pack<const renderable, on_remove<renderable>> broken_renderables)
 {
 	if(!renderables.size() && !broken_renderables.size()) return;
 	m_Pass->dirty(true);
@@ -32,14 +32,13 @@ void render::tick_draws(info& info,
 	for(auto renderRange : m_RenderRanges)
 	{
 		auto& default_layer = m_DrawGroup.layer("default", renderRange.first, renderRange.second - renderRange.first);
-		auto res			= renderables.get<const transform>();
-		for(auto [transform, renderable] : renderables)
+		for(auto [renderable] : renderables)
 		{
 			if(renderable.bundle)
 				m_DrawGroup.add(default_layer, renderable.bundle.make_shared()).add(renderable.geometry.make_shared());
 		}
 
-		for(auto [transform, renderable] : broken_renderables)
+		for(auto [renderable] : broken_renderables)
 		{
 			if(!renderable.bundle) continue;
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle.make_shared()))

@@ -13,18 +13,26 @@ using namespace core::resource;
 using namespace core::gfx;
 using namespace core;
 
-computepass::computepass(handle<core::gfx::context> context)
+#ifdef PE_VULKAN
+computepass::computepass(core::ivk::computepass* handle) : m_Backend(graphics_backend::vulkan), m_VKHandle(handle) {}
+#endif
+#ifdef PE_GLES
+computepass::computepass(core::igles::computepass* handle) : m_Backend(graphics_backend::gles), m_GLESHandle(handle) {}
+#endif
+
+
+computepass::computepass(handle<core::gfx::context> context) : m_Backend(context->backend())
 {
-	switch (context->backend())
+	switch(m_Backend)
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle = new core::igles::computepass();
+		m_GLESHandle = new core::igles::computepass();
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle = new core::ivk::computepass();
+		m_VKHandle = new core::ivk::computepass();
 		break;
 #endif
 	}
@@ -32,90 +40,102 @@ computepass::computepass(handle<core::gfx::context> context)
 
 computepass::~computepass()
 {
-	std::visit(utility::templates::overloaded{ [](auto&& pass) {return delete(pass); } }, m_Handle);
+#ifdef PE_GLES
+	delete(m_GLESHandle);
+#endif
+#ifdef PE_VULKAN
+	delete(m_VKHandle);
+#endif
 }
 
 
 void computepass::prepare()
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->prepare(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) m_GLESHandle->prepare();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) m_VKHandle->prepare();
+#endif
 }
 bool computepass::build(bool force)
 {
-	if (!m_Dirty && !force) return true;
+	if(!m_Dirty && !force) return true;
 
 	m_Dirty = false;
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->build(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) m_GLESHandle->build();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) m_VKHandle->build();
+#endif
 }
 
 
 void computepass::clear()
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->clear(); } }, m_Handle);
+#ifdef PE_GLES
+	if (m_GLESHandle) m_GLESHandle->clear();
+#endif
+#ifdef PE_VULKAN
+	if (m_VKHandle) m_VKHandle->clear();
+#endif
 }
 void computepass::present()
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->present(); } }, m_Handle);
+#ifdef PE_GLES
+	if (m_GLESHandle) m_GLESHandle->present();
+#endif
+#ifdef PE_VULKAN
+	if (m_VKHandle) m_VKHandle->present();
+#endif
 }
 
 
 bool computepass::connect(psl::view_ptr<computepass> child) noexcept
 {
-	if (child->m_Handle.index() != m_Handle.index()) return false;
-
-	if (m_Handle.index() == 0)
-	{
 #ifdef PE_VULKAN
-		auto ptr = std::get<core::ivk::computepass*>(m_Handle);
-		ptr->connect(psl::view_ptr<core::ivk::computepass>(std::get<core::ivk::computepass*>(child->m_Handle)));
-		return true;
-#else
-		assert(false);
-#endif
-	}
-	else
+	if (m_VKHandle)
 	{
-#ifdef PE_GLES
-		auto ptr = std::get<core::igles::computepass*>(m_Handle);
-		ptr->connect(psl::view_ptr<core::igles::computepass>(std::get<core::igles::computepass*>(child->m_Handle)));
+		m_VKHandle->connect(child->m_VKHandle);
 		return true;
-#else
-		assert(false);
-#endif
-
 	}
+#endif
+#ifdef PE_GLES
+	if (m_VKHandle)
+	{
+		m_GLESHandle->connect(child->m_GLESHandle);
+		return true;
+}
+#endif
 	return false;
 }
 bool computepass::disconnect(psl::view_ptr<computepass> child) noexcept
 {
-	if (child->m_Handle.index() != m_Handle.index()) return false;
-
-	if (m_Handle.index() == 0)
-	{
 #ifdef PE_VULKAN
-		auto ptr = std::get<core::ivk::computepass*>(m_Handle);
-		ptr->disconnect(psl::view_ptr<core::ivk::computepass>(std::get<core::ivk::computepass*>(child->m_Handle)));
-		return true;
-#else
-		assert(false);
-#endif
-	}
-	else
+	if (m_VKHandle)
 	{
-#ifdef PE_GLES
-		auto ptr = std::get<core::igles::computepass*>(m_Handle);
-		ptr->disconnect(psl::view_ptr<core::igles::computepass>(std::get<core::igles::computepass*>(child->m_Handle)));
+		m_VKHandle->disconnect(child->m_VKHandle);
 		return true;
-#else
-		assert(false);
-#endif
-
 	}
+#endif
+#ifdef PE_GLES
+	if (m_VKHandle)
+	{
+		m_GLESHandle->disconnect(child->m_GLESHandle);
+		return true;
+}
+#endif
 	return false;
 }
 
 
 void computepass::add(const core::gfx::computecall& call) noexcept
 {
-	return std::visit(utility::templates::overloaded{ [&call](auto&& pass) {pass->add(call); } }, m_Handle);
+#ifdef PE_GLES
+	if (m_GLESHandle) m_GLESHandle->add(call);
+#endif
+#ifdef PE_VULKAN
+	if (m_VKHandle) m_VKHandle->add(call);
+#endif
 }

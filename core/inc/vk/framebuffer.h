@@ -26,14 +26,7 @@ namespace core::ivk
 	class framebuffer final
 	{
 	  public:
-		/// \brief describes a single attachment in a framebuffer.
-		struct attachment
-		{
-			vk::Image image;
-			vk::DeviceMemory memory;
-			vk::ImageView view;
-			vk::ImageSubresourceRange subresourceRange;
-		};
+		  using texture_handle = core::resource::handle<core::ivk::texture>;
 
 		/// \brief describes a single binding point (can be many) in a framebuffer.
 		///
@@ -44,7 +37,7 @@ namespace core::ivk
 		/// the same attachment.
 		struct binding
 		{
-			std::vector<attachment> attachments;
+			std::vector<texture_handle> attachments;
 			vk::AttachmentDescription description;
 			uint32_t index;
 		};
@@ -60,11 +53,11 @@ namespace core::ivk
 
 		/// \returns all attachments for a specific index
 		/// \param[in] index the index to return the attachments for.
-		std::vector<attachment> attachments(uint32_t index = 0u) const noexcept;
+		std::vector<texture_handle> attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns all color attachments for a specific index
 		/// \param[in] index the index to return the attachments for.
-		std::vector<attachment> color_attachments(uint32_t index = 0u) const noexcept;
+		std::vector<texture_handle> color_attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns the sampler resource associated with this framebuffer.
 		core::resource::handle<core::ivk::sampler> sampler() const noexcept;
@@ -81,7 +74,6 @@ namespace core::ivk
 		bool add(core::resource::cache& cache, const psl::UID& uid, vk::AttachmentDescription description, size_t index,
 				 size_t count);
 
-		std::vector<core::resource::handle<core::ivk::texture>> m_Textures;
 		std::vector<binding> m_Bindings;
 		core::resource::handle<core::ivk::sampler> m_Sampler;
 		core::resource::handle<core::data::framebuffer> m_Data;

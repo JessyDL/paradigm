@@ -2,6 +2,7 @@
 #include "resource/resource.hpp"
 #include <variant>
 #include "psl/view_ptr.h"
+#include "gfx/types.h"
 #ifdef PE_GLES
 namespace core::igles
 {
@@ -24,20 +25,33 @@ namespace core::gfx
 	class computecall;
 	class computepass;
 
+	class drawpass;
+
+#ifdef PE_VULKAN
+	template<>
+	struct backend_type<drawpass, graphics_backend::vulkan>
+	{
+		using type = core::ivk::drawpass;
+	};
+#endif
+#ifdef PE_GLES
+	template<>
+	struct backend_type<drawpass, graphics_backend::gles>
+	{
+		using type = core::igles::drawpass;
+	};
+#endif
+
 	class drawpass
 	{
-		using value_type = std::variant<
-#ifdef PE_VULKAN
-			core::ivk::drawpass*
-#ifdef PE_GLES
-			,
-#endif
-#endif
-#ifdef PE_GLES
-			core::igles::drawpass*
-#endif
-			>;
 	  public:
+#ifdef PE_VULKAN
+		  explicit drawpass(core::ivk::drawpass* handle);
+#endif
+#ifdef PE_GLES
+		  explicit drawpass(core::igles::drawpass* handle);
+#endif
+
 		drawpass(core::resource::handle<context> context, core::resource::handle<framebuffer> framebuffer);
 		drawpass(core::resource::handle<context> context, core::resource::handle<swapchain> swapchain);
 		~drawpass();
@@ -61,12 +75,27 @@ namespace core::gfx
 		bool disconnect(psl::view_ptr<core::gfx::computepass> child) noexcept { return true; };
 		void add(core::gfx::drawgroup& group) noexcept;
 
-		value_type resource() const noexcept { return m_Handle; };
-
 		void dirty(bool value) noexcept { m_Dirty = value; }
 		bool dirty() const noexcept { return m_Dirty; }
-	  private:
-		value_type m_Handle;
+		template <core::gfx::graphics_backend backend>
+		backend_type_t<drawpass, backend>* resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
+
+	private:
+		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+#ifdef PE_VULKAN
+		core::ivk::drawpass* m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::igles::drawpass* m_GLESHandle;
+#endif
 		bool m_Dirty{true};
 	};
 } // namespace core::gfx

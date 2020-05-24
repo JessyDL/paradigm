@@ -10,23 +10,14 @@ namespace core::gfx
 	{
 		friend class core::resource::cache;
 		
-		template<typename T>
-		shader(T handle) : m_Handle(handle){};
-
 	  public:
-		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
-			core::ivk::shader
-#ifdef PE_GLES
-			,
-#endif
+		  explicit shader(core::resource::handle<core::ivk::shader>& handle);
 #endif
 #ifdef PE_GLES
-			core::igles::shader
+		  explicit shader(core::resource::handle<core::igles::shader>& handle);
 #endif
-			>;
-		using value_type = alias_type;
-		shader(core::resource::handle<value_type>& handle);
+
 		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context);
 		~shader() = default;
@@ -37,11 +28,27 @@ namespace core::gfx
 		shader& operator=(shader&& other) noexcept = default;
 
 
-		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
+		template <core::gfx::graphics_backend backend>
+		core::resource::handle<backend_type_t<shader, backend>> resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
 
 		core::meta::shader* meta() const noexcept;
 
 	  private:
-		core::resource::handle<value_type> m_Handle;
+		  core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+#ifdef PE_VULKAN
+		  core::resource::handle<core::ivk::shader> m_VKHandle;
+#endif
+#ifdef PE_GLES
+		  core::resource::handle<core::igles::shader> m_GLESHandle;
+#endif
+
 	};
 } // namespace core::gfx

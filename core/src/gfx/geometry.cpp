@@ -13,25 +13,36 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-geometry::geometry(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+#ifdef PE_VULKAN
+geometry::geometry(core::resource::handle<core::ivk::geometry>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+{}
+#endif
+#ifdef PE_GLES
+geometry::geometry(core::resource::handle<core::igles::geometry>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+{}
+#endif
+
 geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				   core::resource::handle<context> context, core::resource::handle<core::data::geometry> data,
 				   core::resource::handle<buffer> geometryBuffer, core::resource::handle<buffer> indicesBuffer)
+	: m_Backend(context->backend())
 {
-	switch(context->backend())
+	switch(m_Backend)
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle << cache.create_using<core::igles::geometry>(metaData.uid, data,
-															  geometryBuffer->resource().get<core::igles::buffer>(),
-															  indicesBuffer->resource().get<core::igles::buffer>());
+		m_GLESHandle = cache.create_using<core::igles::geometry>(metaData.uid, data,
+																 geometryBuffer->resource<graphics_backend::gles>(),
+																 indicesBuffer->resource<graphics_backend::gles>());
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle << cache.create_using<core::ivk::geometry>(metaData.uid, context->resource().get<core::ivk::context>(),
-															data, geometryBuffer->resource().get<core::ivk::buffer>(),
-															indicesBuffer->resource().get<core::ivk::buffer>());
+		m_VKHandle = cache.create_using<core::ivk::geometry>(
+			metaData.uid, context->resource<graphics_backend::vulkan>(), data,
+			geometryBuffer->resource<graphics_backend::vulkan>(), indicesBuffer->resource<graphics_backend::vulkan>());
 		break;
 #endif
 	}
@@ -42,16 +53,16 @@ geometry::~geometry() {}
 void geometry::recreate(core::resource::handle<core::data::geometry> data)
 {
 #ifdef PE_GLES
-	if (m_Handle.contains<igles::geometry>())
+	if(m_GLESHandle)
 	{
-		m_Handle.value<igles::geometry>().recreate(data);
+		m_GLESHandle->recreate(data);
 	}
 
 #endif
 #ifdef PE_VULKAN
-	if (m_Handle.contains<ivk::geometry>())
+	if(m_VKHandle)
 	{
-		m_Handle.value<ivk::geometry>().recreate(data);
+		m_VKHandle->recreate(data);
 	}
 #endif
 }
@@ -61,20 +72,20 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 						core::resource::handle<core::gfx::buffer> indicesBuffer)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<igles::geometry>() && geometryBuffer->resource().contains<igles::buffer>() &&
-	   indicesBuffer->resource().contains<igles::buffer>())
+	if(m_GLESHandle && geometryBuffer->resource<graphics_backend::gles>() &&
+	   indicesBuffer->resource<graphics_backend::gles>())
 	{
-		m_Handle.value<igles::geometry>().recreate(data, geometryBuffer->resource().get<core::igles::buffer>(),
-												   indicesBuffer->resource().get<core::igles::buffer>());
+		m_GLESHandle->recreate(data, geometryBuffer->resource<graphics_backend::gles>(),
+							   indicesBuffer->resource<graphics_backend::gles>());
 	}
 
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<ivk::geometry>() && geometryBuffer->resource().contains<ivk::buffer>() &&
-	   indicesBuffer->resource().contains<ivk::buffer>())
+	if(m_VKHandle && geometryBuffer->resource<graphics_backend::vulkan>() &&
+	   indicesBuffer->resource<graphics_backend::vulkan>())
 	{
-		m_Handle.value<ivk::geometry>().recreate(data, geometryBuffer->resource().get<core::ivk::buffer>(),
-												 indicesBuffer->resource().get<core::ivk::buffer>());
+		m_VKHandle->recreate(data, geometryBuffer->resource<graphics_backend::vulkan>(),
+							 indicesBuffer->resource<graphics_backend::vulkan>());
 	}
 #endif
 }

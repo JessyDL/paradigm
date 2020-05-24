@@ -19,19 +19,13 @@ namespace core::gfx
 	class buffer
 	{
 	  public:
-		using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
-			core::ivk::buffer
-#ifdef PE_GLES
-			,
-#endif
+		  explicit buffer(core::resource::handle<core::ivk::buffer>& handle);
 #endif
 #ifdef PE_GLES
-			core::igles::buffer
+		  explicit buffer(core::resource::handle<core::igles::buffer>& handle);
 #endif
-			>;
-		using value_type = alias_type;
-		buffer(core::resource::handle<value_type>& handle);
+
 		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data);
 
@@ -45,7 +39,6 @@ namespace core::gfx
 		buffer& operator=(const buffer& other) = delete;
 		buffer& operator=(buffer&& other) noexcept = delete;
 
-		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
 		const core::data::buffer& data() const;
 
@@ -59,8 +52,25 @@ namespace core::gfx
 
 		size_t free_size() const noexcept;
 
-	  private:
-		core::resource::handle<value_type> m_Handle;
+		template <core::gfx::graphics_backend backend>
+		core::resource::handle<backend_type_t<buffer, backend>> resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
+
+	private:
+		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+#ifdef PE_VULKAN
+		core::resource::handle<core::ivk::buffer> m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::resource::handle<core::igles::buffer> m_GLESHandle;
+#endif
 	};
 
 	struct shader_buffer_binding

@@ -12,7 +12,17 @@
 using namespace core::gfx;
 using namespace core::resource;
 
-compute::compute(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+#ifdef PE_VULKAN
+compute::compute(core::resource::handle<core::ivk::compute>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+{}
+#endif
+#ifdef PE_GLES
+compute::compute(core::resource::handle<core::igles::compute>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+{}
+#endif
+
 compute::compute(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 				 core::resource::handle<context> context_handle, core::resource::handle<core::data::material> data,
 				 core::resource::handle<pipeline_cache> pipeline_cache)
@@ -21,8 +31,8 @@ compute::compute(core::resource::cache& cache, const core::resource::metadata& m
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle << cache.create_using<core::igles::compute>(
-			metaData.uid, data, pipeline_cache->resource().get<core::igles::program_cache>());
+		m_GLESHandle = cache.create_using<core::igles::compute>(
+			metaData.uid, data, pipeline_cache->resource<graphics_backend::gles>());
 		break;
 #endif
 #ifdef PE_VULKAN
@@ -40,15 +50,15 @@ compute::compute(core::resource::cache& cache, const core::resource::metadata& m
 void compute::dispatch(const psl::static_array<uint32_t, 3>& size)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<igles::compute>())
+	if(m_GLESHandle)
 	{
-		m_Handle.value<igles::compute>().dispatch(size[0], size[1], size[2]);
+		m_GLESHandle->dispatch(size[0], size[1], size[2]);
 	}
 #endif
 #ifdef PE_VULKAN
-	if (m_Handle.contains<ivk::compute>())
+	if (m_VKHandle)
 	{
-		m_Handle.value<ivk::compute>().dispatch(size[0], size[1], size[2]);
+		m_VKHandle->dispatch(size[0], size[1], size[2]);
 	}
 #endif
 }

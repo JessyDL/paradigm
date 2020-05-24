@@ -137,17 +137,17 @@ void drawpass::present()
 
 					if(!bundle->bind_material(renderLayer)) continue;
 					auto gfxmat{bundle->bound()};
-					auto mat{gfxmat->resource().get<core::igles::material>()};
+					auto mat{gfxmat->resource< gfx::graphics_backend::gles>()};
 
 					mat->bind();
 					for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 					{
-						auto geometryHandle = gfxGeometryHandle->resource().get<core::igles::geometry>();
+						auto geometryHandle = gfxGeometryHandle->resource< gfx::graphics_backend::gles>();
 						uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 						if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
 						geometryHandle->create_vao(
-							mat, bundle->m_InstanceData.vertex_buffer()->resource().get<core::igles::buffer>(),
+							mat, bundle->m_InstanceData.vertex_buffer()->resource< gfx::graphics_backend::gles>(),
 							bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle));
 						// for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						//{

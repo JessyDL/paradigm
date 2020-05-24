@@ -37,11 +37,11 @@ namespace core::ecs::systems
 		void remove_render_range(uint32_t begin, uint32_t end);
 	  private:
 		void tick_draws(psl::ecs::info& info,
-			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
-							psl::ecs::on_combine<core::ecs::components::transform, core::ecs::components::renderable>>
+			psl::ecs::pack<const core::ecs::components::renderable,
+							psl::ecs::on_add<core::ecs::components::renderable>>
 				renderables,
-			psl::ecs::pack<const core::ecs::components::transform, const core::ecs::components::renderable,
-							psl::ecs::on_break<core::ecs::components::transform, core::ecs::components::renderable>>
+			psl::ecs::pack<const core::ecs::components::renderable,
+							psl::ecs::on_remove<core::ecs::components::renderable>>
 				broken_renderables);
 
 		psl::view_ptr<core::gfx::drawpass> m_Pass;

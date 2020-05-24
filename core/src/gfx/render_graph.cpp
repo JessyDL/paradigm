@@ -8,8 +8,6 @@
 using namespace core::gfx;
 using core::resource::handle;
 
-render_graph::~render_graph(){};
-
 psl::view_ptr<core::gfx::drawpass> render_graph::create_drawpass(handle<core::gfx::context> context,
 																 handle<core::gfx::swapchain> swapchain)
 {

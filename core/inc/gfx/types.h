@@ -9,9 +9,32 @@ namespace core::gfx
 {
 	enum class graphics_backend
 	{
+		undefined = 0,
 		vulkan = 1 << 0,
-		gles   = 1 << 1
+		gles = 1 << 1
 	};
+
+	template<typename T, graphics_backend backend>
+	struct backend_type
+	{
+	};
+
+	template<typename T, graphics_backend backend>
+	using backend_type_t = typename backend_type<T, backend>::type;
+
+	template<graphics_backend backend>
+	constexpr bool is_enabled()
+	{
+		if constexpr (backend == graphics_backend::vulkan)
+		{
+			return PE_VULKAN;
+		}
+		if constexpr (backend == graphics_backend::gles)
+		{
+			return PE_GLES;
+		}
+		return false;
+	}
 
 	template <typename T>
 	class enum_flag

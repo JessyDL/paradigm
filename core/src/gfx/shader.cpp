@@ -14,25 +14,49 @@ using namespace core::gfx;
 using namespace core::resource;
 
 
-shader::shader(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+#ifdef PE_VULKAN
+shader::shader(core::resource::handle<core::ivk::shader>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+{}
+#endif
+#ifdef PE_GLES
+shader::shader(core::resource::handle<core::igles::shader>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+{}
+#endif
+
 shader::shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context)
+	: m_Backend(context->backend())
 {
 	switch(context->backend())
 	{
-	case graphics_backend::gles: m_Handle << cache.create_using<core::igles::shader>(metaData.uid); break;
-	case graphics_backend::vulkan:
-		m_Handle << cache.create_using<core::ivk::shader>(metaData.uid, context->resource().get<core::ivk::context>());
+#ifdef PE_GLES
+	case graphics_backend::gles:
+		m_GLESHandle = cache.create_using<core::igles::shader>(metaData.uid);
 		break;
+#endif
+#ifdef PE_VULKAN
+	case graphics_backend::vulkan:
+		m_VKHandle = cache.create_using<core::ivk::shader>(metaData.uid, context->resource().get<core::ivk::context>());
+		break;
+#endif
 	}
 }
 
 
 core::meta::shader* shader::meta() const noexcept
 {
-	if(m_Handle.contains<core::igles::shader>())
-		return m_Handle.value<core::igles::shader>().meta();
-	else
-		return m_Handle.value<core::ivk::shader>().meta();
-
+	switch(m_Backend)
+	{
+#ifdef PE_GLES
+	case graphics_backend::gles:
+		return m_GLESHandle.meta();
+#endif
+#ifdef PE_VULKAN
+	case graphics_backend::vulkan:
+		return m_VKHandle.meta();
+		break;
+#endif
+	}
 }

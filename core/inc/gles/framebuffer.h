@@ -16,17 +16,14 @@ namespace core::igles
 	{
 
 	  public:
-		struct attachment
-		{
-			unsigned int texture;
-		};
+		using texture_handle = core::resource::handle<core::igles::texture>;
 		struct description
 		{
 			core::gfx::format format;
 		};
 		struct binding
 		{
-			psl::array<attachment> attachments;
+			psl::array<texture_handle> attachments;
 			description description;
 			uint32_t index;
 		};
@@ -35,18 +32,18 @@ namespace core::igles
 					core::resource::handle<core::data::framebuffer> data);
 		~framebuffer();
 
-		framebuffer(const framebuffer& other)	 = delete;
+		framebuffer(const framebuffer& other)	  = delete;
 		framebuffer(framebuffer&& other) noexcept = delete;
 		framebuffer& operator=(const framebuffer& other) = delete;
 		framebuffer& operator=(framebuffer&& other) noexcept = delete;
 
 		/// \returns all attachments for a specific index
 		/// \param[in] index the index to return the attachments for.
-		std::vector<attachment> attachments(uint32_t index = 0u) const noexcept;
+		std::vector<texture_handle> attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns all color attachments for a specific index
 		/// \param[in] index the index to return the attachments for.
-		std::vector<attachment> color_attachments(uint32_t index = 0u) const noexcept;
+		std::vector<texture_handle> color_attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns the sampler resource associated with this framebuffer.
 		core::resource::handle<core::igles::sampler> sampler() const noexcept;
@@ -54,8 +51,8 @@ namespace core::igles
 		core::resource::handle<core::data::framebuffer> data() const noexcept;
 
 		const std::vector<unsigned int>& framebuffers() const noexcept;
+
 	  private:
-		std::vector<core::resource::handle<core::igles::texture>> m_Textures;
 		std::vector<binding> m_Bindings;
 		core::resource::handle<core::igles::sampler> m_Sampler;
 		core::resource::handle<core::data::framebuffer> m_Data;

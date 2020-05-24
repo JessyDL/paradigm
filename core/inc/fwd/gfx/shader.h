@@ -2,12 +2,6 @@
 #include "fwd/resource/resource.h"
 #include "defines.h"
 
-
-namespace core::gfx
-{
-	class shader;
-} // namespace core::gfx
-
 namespace core::meta
 {
 	class shader;
@@ -20,6 +14,27 @@ namespace core::meta
 #ifdef PE_GLES
 #include "fwd/gles/shader.h"
 #endif
+
+namespace core::gfx
+{
+	class shader;
+
+#ifdef PE_VULKAN
+	template<>
+	struct backend_type<shader, graphics_backend::vulkan>
+	{
+		using type = core::ivk::shader;
+	};
+#endif
+#ifdef PE_GLES
+	template<>
+	struct backend_type<shader, graphics_backend::gles>
+	{
+		using type = core::igles::shader;
+	};
+#endif
+} // namespace core::gfx
+
 
 namespace core::resource
 {

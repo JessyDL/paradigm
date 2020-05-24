@@ -164,3 +164,9 @@ void texture::create_2D(void* data)
 	glBindTexture(GL_TEXTURE_2D, 0);
 	glGetError();
 }
+
+
+const core::meta::texture& texture::meta() const noexcept
+{
+	return *m_Meta;
+}

@@ -17,7 +17,6 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 	: m_Context(context), m_Data(data) // , m_Data(copy(cache, data))
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
-	m_Textures.reserve(m_Framebuffers.size() * m_Data->attachments().size());
 	size_t index = 0u;
 	for(const auto& attach : m_Data->attachments())
 	{
@@ -129,8 +128,8 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 
 		for(const auto& binding : m_Bindings)
 		{
-			attachmentViews[binding.index] = binding.attachments[i].view;
-			maxLayers					   = std::max(maxLayers, binding.attachments[i].subresourceRange.layerCount);
+			attachmentViews[binding.index] = binding.attachments[i]->view();
+			maxLayers					   = std::max(maxLayers, binding.attachments[i]->subResourceRange().layerCount);
 		}
 
 		framebufferInfo.layers = maxLayers;
@@ -164,34 +163,34 @@ bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::Attachme
 	binding.description.format = gfx::conversion::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)
 	{
-		m_Textures.push_back(texture);
-		attachment& attachment		= binding.attachments.emplace_back();
+		binding.attachments.push_back(texture);
+		/*attachment& attachment		= binding.attachments.emplace_back();
 		attachment.view				= texture->view();
 		attachment.memory			= texture->memory();
 		attachment.subresourceRange = texture->subResourceRange();
-		attachment.image			= texture->image();
+		attachment.image			= texture->image();*/
 	}
 
 	return true;
 }
 
 
-std::vector<framebuffer::attachment> framebuffer::attachments(uint32_t index) const noexcept
+std::vector<framebuffer::texture_handle> framebuffer::attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::attachment> res;
+	std::vector<framebuffer::texture_handle> res;
 	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
 	});
 	return res;
 }
 
-std::vector<framebuffer::attachment> framebuffer::color_attachments(uint32_t index) const noexcept
+std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::attachment> res;
+	std::vector<framebuffer::texture_handle> res;
 	auto bindings{m_Bindings};
 	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
 		return utility::vulkan::has_depth(binding.description.format) ||

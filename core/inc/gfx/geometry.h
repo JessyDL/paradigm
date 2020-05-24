@@ -15,19 +15,13 @@ namespace core::gfx
 	class geometry
 	{
 	  public:
-		  using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
-			core::ivk::geometry
-#ifdef PE_GLES
-			,
-#endif
+		explicit geometry(core::resource::handle<core::ivk::geometry>& handle);
 #endif
 #ifdef PE_GLES
-			core::igles::geometry
+		explicit geometry(core::resource::handle<core::igles::geometry>& handle);
 #endif
-			>;
-		using value_type = alias_type;
-		geometry(core::resource::handle<value_type>& handle);
+
 		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				 core::resource::handle<context> context, core::resource::handle<core::data::geometry> data,
 				 core::resource::handle<buffer> geometryBuffer, core::resource::handle<buffer> indicesBuffer);
@@ -37,13 +31,29 @@ namespace core::gfx
 		geometry& operator=(const geometry&) = delete;
 		geometry& operator=(geometry&&) = delete;
 
-		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
 
 		void recreate(core::resource::handle<core::data::geometry> data);
 		void recreate(core::resource::handle<core::data::geometry> data,
-			core::resource::handle<core::gfx::buffer> geometryBuffer,
-			core::resource::handle<core::gfx::buffer> indicesBuffer);
+					  core::resource::handle<core::gfx::buffer> geometryBuffer,
+					  core::resource::handle<core::gfx::buffer> indicesBuffer);
+		template <core::gfx::graphics_backend backend>
+		core::resource::handle<backend_type_t<geometry, backend>> resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
+
 	  private:
-		core::resource::handle<value_type> m_Handle;
+		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+#ifdef PE_VULKAN
+		core::resource::handle<core::ivk::geometry> m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::resource::handle<core::igles::geometry> m_GLESHandle;
+#endif
 	};
 } // namespace core::gfx

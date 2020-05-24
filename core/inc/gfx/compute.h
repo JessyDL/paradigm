@@ -2,6 +2,7 @@
 #include "resource/resource.hpp"
 #include "fwd/gfx/compute.h"
 #include "psl/math/vec.h"
+#include "gfx/types.h"
 
 namespace core::data
 {
@@ -12,27 +13,35 @@ namespace core::gfx
 	class context;
 	class pipeline_cache;
 
+	class compute;
+#ifdef PE_VULKAN
+	template<>
+	struct backend_type<compute, graphics_backend::vulkan>
+	{
+		using type = core::ivk::compute;
+	};
+#endif
+#ifdef PE_GLES
+	template<>
+	struct backend_type<compute, graphics_backend::gles>
+	{
+		using type = core::igles::compute;
+	};
+#endif
+
 	class compute
 	{
 		friend class core::resource::cache;
 
-		template <typename T>
-		compute(T handle) : m_Handle(handle){};
-
 	  public:
-		using alias_type = core::resource::alias<
+
 #ifdef PE_VULKAN
-			core::ivk::compute
-#ifdef PE_GLES
-			,
-#endif
+		  explicit compute(core::resource::handle<core::ivk::compute>& handle);
 #endif
 #ifdef PE_GLES
-			core::igles::compute
+		  explicit compute(core::resource::handle<core::igles::compute>& handle);
 #endif
-			>;
-		using value_type = alias_type;
-		compute(core::resource::handle<value_type>& handle);
+
 		compute(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
 				core::resource::handle<context> context_handle, core::resource::handle<core::data::material> data,
 				core::resource::handle<pipeline_cache> pipeline_cache);
@@ -44,12 +53,28 @@ namespace core::gfx
 		compute& operator=(compute&& other) noexcept = default;
 
 
-		core::resource::handle<value_type> resource() const noexcept { return m_Handle; };
-
 		core::meta::shader* meta() const noexcept;
 
 		void dispatch(const psl::static_array<uint32_t, 3>& size);
-	  private:
-		core::resource::handle<value_type> m_Handle;
+
+		template <core::gfx::graphics_backend backend>
+		core::resource::handle<backend_type_t<compute, backend>> resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
+
+	private:
+		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+#ifdef PE_VULKAN
+		core::resource::handle<core::ivk::compute> m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::resource::handle<core::igles::compute> m_GLESHandle;
+#endif
 	};
 } // namespace core::gfx

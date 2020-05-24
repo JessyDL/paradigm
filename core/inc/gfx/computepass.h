@@ -2,6 +2,7 @@
 #include <variant>
 #include "psl/view_ptr.h"
 #include "resource/resource.hpp"
+#include "gfx/types.h"
 
 #ifdef PE_GLES
 namespace core::igles
@@ -21,25 +22,38 @@ namespace core::gfx
 	class drawpass;
 	class computecall;
 
+
+	class computepass;
+
+#ifdef PE_VULKAN
+	template <>
+	struct backend_type<computepass, graphics_backend::vulkan>
+	{
+		using type = core::ivk::computepass;
+	};
+#endif
+#ifdef PE_GLES
+	template <>
+	struct backend_type<computepass, graphics_backend::gles>
+	{
+		using type = core::igles::computepass;
+	};
+#endif
+
 	/// \brief describes a compute stage in the render_graph
 	class computepass
 	{
-		using value_type = std::variant<
-#ifdef PE_VULKAN
-			core::ivk::computepass*
-#ifdef PE_GLES
-			,
-#endif
-#endif
-#ifdef PE_GLES
-			core::igles::computepass*
-#endif
-			>;
 	  public:
+#ifdef PE_VULKAN
+		computepass(core::ivk::computepass* handle);
+#endif
+#ifdef PE_GLES
+		computepass(core::igles::computepass* handle);
+#endif
 		computepass(core::resource::handle<context> context);
 		~computepass();
 
-		computepass(const computepass& other)	 = delete;
+		computepass(const computepass& other)	  = delete;
 		computepass(computepass&& other) noexcept = delete;
 		computepass& operator=(const computepass& other) = delete;
 		computepass& operator=(computepass&& other) noexcept = delete;
@@ -61,7 +75,13 @@ namespace core::gfx
 		bool dirty() const noexcept { return m_Dirty; }
 
 	  private:
-		value_type m_Handle;
+		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+#ifdef PE_VULKAN
+		core::ivk::computepass* m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::igles::computepass* m_GLESHandle;
+#endif
 		bool m_Dirty{false};
 	};
 } // namespace core::gfx

@@ -15,19 +15,14 @@ namespace core::gfx
 	class sampler
 	{
 	  public:
-		  using alias_type = core::resource::alias<
+
 #ifdef PE_VULKAN
-			core::ivk::sampler
-#ifdef PE_GLES
-			,
-#endif
+		  explicit sampler(core::resource::handle<core::ivk::sampler>& handle);
 #endif
 #ifdef PE_GLES
-			core::igles::sampler
+		  explicit sampler(core::resource::handle<core::igles::sampler>& handle);
 #endif
-			>;
-		using value_type = alias_type;
-		sampler(core::resource::handle<value_type>& handle);
+
 		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				core::resource::handle<core::gfx::context> context,
 				core::resource::handle<core::data::sampler> sampler_data);
@@ -38,9 +33,24 @@ namespace core::gfx
 		sampler& operator=(const sampler& other) = delete;
 		sampler& operator=(sampler&& other) noexcept = delete;
 
-		core::resource::handle<value_type> resource() noexcept { return m_Handle; };
+		template <core::gfx::graphics_backend backend>
+		core::resource::handle<backend_type_t<sampler, backend>> resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
 
-	  private:
-		core::resource::handle<value_type> m_Handle;
+	private:
+		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+#ifdef PE_VULKAN
+		core::resource::handle<core::ivk::sampler> m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::resource::handle<core::igles::sampler> m_GLESHandle;
+#endif
 	};
 } // namespace core::gfx

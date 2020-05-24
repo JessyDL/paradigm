@@ -382,13 +382,13 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 				if (!bundle->bind_material(renderLayer))
 					continue;
 				auto gfxmat{bundle->bound()};
-				auto mat{gfxmat->resource().get<core::ivk::material>()};
+				auto mat{gfxmat->resource< gfx::graphics_backend::vulkan>() };
 
 				if (!mat->bind_pipeline(cmdBuffer, framebuffer, index))
 					continue;
 				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
-					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
+					auto geometryHandle = gfxGeometryHandle->resource< gfx::graphics_backend::vulkan>();
 					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
@@ -400,7 +400,7 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 					{
 						cmdBuffer.bindVertexBuffers(
 							b.first, 1,
-							&bundle->m_InstanceData.vertex_buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
+							&bundle->m_InstanceData.vertex_buffer()->resource< gfx::graphics_backend::vulkan>()->gpu_buffer(),
 							&b.second);
 					}
 
@@ -433,13 +433,13 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 				if (!bundle->bind_material(renderLayer))
 					continue;
 				auto gfxmat{bundle->bound()};
-				auto mat{gfxmat->resource().get<core::ivk::material>()};
+				auto mat{gfxmat->resource< gfx::graphics_backend::vulkan>() };
 
 				if (!mat->bind_pipeline(cmdBuffer, swapchain, index))
 					continue;
 				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
-					auto geometryHandle = gfxGeometryHandle->resource().get<core::ivk::geometry>();
+					auto geometryHandle = gfxGeometryHandle->resource< gfx::graphics_backend::vulkan>();
 					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
@@ -451,7 +451,7 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 					{
 						cmdBuffer.bindVertexBuffers(
 							b.first, 1,
-							&bundle->m_InstanceData.vertex_buffer()->resource().get<core::ivk::buffer>()->gpu_buffer(),
+							&bundle->m_InstanceData.vertex_buffer()->resource< gfx::graphics_backend::vulkan>()->gpu_buffer(),
 							&b.second);
 					}
 

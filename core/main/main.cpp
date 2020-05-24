@@ -100,17 +100,18 @@ handle<core::gfx::compute> create_compute(resource::cache& cache, handle<core::g
 	return cache.instantiate<core::gfx::compute>("594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, context_handle, data,
 												 pipeline_cache);
 }
-
-handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<core::gfx::context> context_handle,
-											   handle<core::gfx::pipeline_cache> pipeline_cache,
-											   handle<core::gfx::buffer> matBuffer, psl::UID vert, psl::UID frag,
-											   const psl::UID& texture)
+handle<core::data::material> setup_gfx_material_data(resource::cache& cache, handle<core::gfx::context> context_handle,
+													 psl::UID vert, psl::UID frag, const psl::UID& texture)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>(vert).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>(frag).value();
-	auto textureHandle	= cache.instantiate<gfx::texture>(texture, context_handle);
 
-	assert(textureHandle);
+	if(!cache.contains(texture))
+	{
+		auto textureHandle = cache.instantiate<gfx::texture>(texture, context_handle);
+		assert(textureHandle);
+	}
+
 	// create the sampler
 	auto samplerData   = cache.create<data::sampler>();
 	auto samplerHandle = cache.create<gfx::sampler>(context_handle, samplerData);
@@ -133,7 +134,14 @@ handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<co
 	}
 	matData->stages(stages);
 	matData->blend_states({core::data::material::blendstate(0)});
-	// matData->wireframe(true);
+	return matData;
+}
+handle<core::gfx::material> setup_gfx_material(resource::cache& cache, handle<core::gfx::context> context_handle,
+											   handle<core::gfx::pipeline_cache> pipeline_cache,
+											   handle<core::gfx::buffer> matBuffer, psl::UID vert, psl::UID frag,
+											   const psl::UID& texture)
+{
+	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, texture);
 	auto material = cache.create<core::gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
 
 	return material;
@@ -644,7 +652,9 @@ void handleAppCommand(android_app* app, int32_t cmd)
 {
 	switch(cmd)
 	{
-	case APP_CMD_INIT_WINDOW: initialized = true; break;
+	case APP_CMD_INIT_WINDOW:
+		initialized = true;
+		break;
 	}
 }
 
@@ -688,8 +698,12 @@ int entry(gfx::graphics_backend backend)
 	psl::string8_t environment = "";
 	switch(backend)
 	{
-	case graphics_backend::gles: environment = "gles"; break;
-	case graphics_backend::vulkan: environment = "vulkan"; break;
+	case graphics_backend::gles:
+		environment = "gles";
+		break;
+	case graphics_backend::vulkan:
+		environment = "vulkan";
+		break;
 	}
 
 	cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}};
@@ -720,7 +734,7 @@ int entry(gfx::graphics_backend backend)
 
 	auto storage_buffer_align = context_handle->limits().storage.alignment;
 	auto uniform_buffer_align = context_handle->limits().uniform.alignment;
-	auto mapped_buffer_align = context_handle->limits().memorymap.alignment;
+	auto mapped_buffer_align  = context_handle->limits().memorymap.alignment;
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	core::resource::handle<gfx::buffer> stagingBuffer{};
@@ -739,26 +753,23 @@ int entry(gfx::graphics_backend backend)
 	// - then we create the vulkan buffer resource to interface with the GPU
 	auto vertexBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
-		core::gfx::memory_property::device_local,
-		memory::region{256_mb, 4, new memory::default_allocator(false)});
+		core::gfx::memory_property::device_local, memory::region{256_mb, 4, new memory::default_allocator(false)});
 	auto vertexBuffer = cache.create<gfx::buffer>(context_handle, vertexBufferData, stagingBuffer);
 
 	auto indexBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
-		core::gfx::memory_property::device_local,
-		memory::region{128_mb, 4, new memory::default_allocator(false)});
+		core::gfx::memory_property::device_local, memory::region{128_mb, 4, new memory::default_allocator(false)});
 	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData, stagingBuffer);
 
-	auto dynamicInstanceBufferData = cache.create<data::buffer>(
-		core::gfx::memory_usage::vertex_buffer,
-		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-		memory::region{ 128_mb, 4, new memory::default_allocator(false) });
+	auto dynamicInstanceBufferData =
+		cache.create<data::buffer>(core::gfx::memory_usage::vertex_buffer,
+								   core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+								   memory::region{128_mb, 4, new memory::default_allocator(false)});
 
 	// instance buffer for vertex data, these are unique per streamed instance of a geometry in a shader
 	auto instanceBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
-		core::gfx::memory_property::device_local,
-		memory::region{ 128_mb, 4, new memory::default_allocator(false) });
+		core::gfx::memory_property::device_local, memory::region{128_mb, 4, new memory::default_allocator(false)});
 	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
 
 	// instance buffer for material data, these are shared over all instances of a given material bind (over all
@@ -766,7 +777,7 @@ int entry(gfx::graphics_backend backend)
 	auto instanceMaterialBufferData = cache.create<data::buffer>(
 		core::gfx::memory_usage::uniform_buffer | core::gfx::memory_usage::transfer_destination,
 		core::gfx::memory_property::device_local,
-		memory::region{ 8_mb, uniform_buffer_align, new memory::default_allocator(false) });
+		memory::region{8_mb, uniform_buffer_align, new memory::default_allocator(false)});
 	auto instanceMaterialBuffer = cache.create<gfx::buffer>(context_handle, instanceMaterialBufferData, stagingBuffer);
 	auto intanceMaterialBinding = cache.create<gfx::shader_buffer_binding>(instanceMaterialBuffer, 8_mb);
 	cache.library().set(intanceMaterialBinding.uid(), core::data::material::MATERIAL_DATA);
@@ -775,7 +786,7 @@ int entry(gfx::graphics_backend backend)
 	std::vector<resource::handle<gfx::geometry>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
 	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1, -1, -1, 1));
 	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
 	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
 	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
@@ -846,16 +857,14 @@ int entry(gfx::graphics_backend backend)
 	}
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto globalShaderBufferData =
-		cache.create<data::buffer>(core::gfx::memory_usage::uniform_buffer,
-			core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-			resource_region
-			.create_region(1_mb,
-				uniform_buffer_align, new memory::default_allocator(true))
-			.value());
+	auto globalShaderBufferData = cache.create<data::buffer>(
+		core::gfx::memory_usage::uniform_buffer,
+		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+		resource_region.create_region(1_mb, uniform_buffer_align, new memory::default_allocator(true)).value());
 
-	auto globalShaderBuffer = cache.create<gfx::buffer>(context_handle, globalShaderBufferData);
-	auto frameCamBufferBinding = cache.create<gfx::shader_buffer_binding>(globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
+	auto globalShaderBuffer	   = cache.create<gfx::buffer>(context_handle, globalShaderBufferData);
+	auto frameCamBufferBinding = cache.create<gfx::shader_buffer_binding>(
+		globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
 	cache.library().set(frameCamBufferBinding, "GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX");
 
 
@@ -867,24 +876,24 @@ int entry(gfx::graphics_backend backend)
 		setup_gfx_depth_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer);
 
 	// water
-	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
-						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e14da8e3-1e03-a635-7889-a1b0f27f36bb"_uid));
+	materials.emplace_back(setup_gfx_material(
+		cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e14da8e3-1e03-a635-7889-a1b0f27f36bb"_uid));
 
 	// grass
-	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
-						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3b47e2f3-1faa-f668-65d6-4aa32d04dab4"_uid));
+	materials.emplace_back(setup_gfx_material(
+		cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "3b47e2f3-1faa-f668-65d6-4aa32d04dab4"_uid));
 
 	// dirt
-	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
-						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "fb47fd91-8bd8-ba29-928f-9666404a399f"_uid));
+	materials.emplace_back(setup_gfx_material(
+		cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "fb47fd91-8bd8-ba29-928f-9666404a399f"_uid));
 
 	// rock
-	materials.emplace_back(
-		setup_gfx_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
-						   "4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
+	materials.emplace_back(setup_gfx_material(
+		cache, context_handle, pipeline_cache, instanceMaterialBuffer, "3982b466-58fe-4918-8735-fc6cc45378b0"_uid,
+		"4429d63a-9867-468f-a03f-cf56fee3c82e"_uid, "e848362f-fb4a-408f-2598-3378365d8da1"_uid));
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
@@ -902,44 +911,44 @@ int entry(gfx::graphics_backend backend)
 	bundles.back()->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph{};
-	auto frameBufferData = cache.create<core::data::framebuffer>(surface_handle->data().width(), surface_handle->data().height(), 1);
+	auto frameBufferData =
+		cache.create<core::data::framebuffer>(surface_handle->data().width(), surface_handle->data().height(), 1);
 
-	{	// render target
+	{ // render target
 		core::gfx::attachment descr{};
-		descr.format = core::gfx::format::r32g32b32a32_sfloat;
-		descr.sample_bits = 1;
-		descr.image_load = core::gfx::attachment::load_op::clear;
-		descr.image_store = core::gfx::attachment::store_op::store;
-		descr.stencil_load = core::gfx::attachment::load_op::dont_care;
+		descr.format		= core::gfx::format::r32g32b32a32_sfloat;
+		descr.sample_bits	= 1;
+		descr.image_load	= core::gfx::attachment::load_op::clear;
+		descr.image_store	= core::gfx::attachment::store_op::store;
+		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
 		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
-		descr.initial = core::gfx::image::layout::undefined;
-		descr.final = core::gfx::image::layout::color_attachment_optimal;
+		descr.initial		= core::gfx::image::layout::undefined;
+		descr.final			= core::gfx::image::layout::color_attachment_optimal;
 
 		frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-			core::gfx::image::usage::color_attachment, core::gfx::clear_value(psl::ivec4{ 0 }), descr);
-
+							 core::gfx::image::usage::color_attachment, core::gfx::clear_value(psl::ivec4{0}), descr);
 	}
 
-	{	// depth-stencil target
-		core::gfx::attachment descr{}; 
-		if (auto format = context_handle->limits().supported_depthformat;
-			format == core::gfx::format::undefined)
-		{
-			core::log->error("Could not find a suitable depth stencil buffer format.");
-		}
-		else
-			descr.format = format;
-		descr.sample_bits = 1;
-		descr.image_load = core::gfx::attachment::load_op::clear;
-		descr.image_store = core::gfx::attachment::store_op::dont_care;
-		descr.stencil_load = core::gfx::attachment::load_op::dont_care;
-		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
-		descr.initial = core::gfx::image::layout::undefined;
-		descr.final = core::gfx::image::layout::depth_stencil_attachment_optimal;
+	//{ // depth-stencil target
+	//	core::gfx::attachment descr{};
+	//	if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format::undefined)
+	//	{
+	//		core::log->error("Could not find a suitable depth stencil buffer format.");
+	//	}
+	//	else
+	//		descr.format = format;
+	//	descr.sample_bits	= 1;
+	//	descr.image_load	= core::gfx::attachment::load_op::clear;
+	//	descr.image_store	= core::gfx::attachment::store_op::dont_care;
+	//	descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
+	//	descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+	//	descr.initial		= core::gfx::image::layout::undefined;
+	//	descr.final			= core::gfx::image::layout::depth_stencil_attachment_optimal;
 
-		frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-			core::gfx::image::usage::dept_stencil_attachment, core::gfx::depth_stencil{ 1.0f, 0 }, descr);
-	}
+	//	frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+	//						 core::gfx::image::usage::dept_stencil_attachment, core::gfx::depth_stencil{1.0f, 0},
+	//						 descr);
+	//}
 
 	{
 		auto ppsamplerData = cache.create<data::sampler>();
@@ -950,7 +959,21 @@ int entry(gfx::graphics_backend backend)
 
 	auto geometryFBO = cache.create<core::gfx::framebuffer>(context_handle, frameBufferData);
 
-	auto geometry_pass = renderGraph.create_drawpass(context_handle, geometryFBO);
+	core::resource::handle<core::gfx::bundle> post_effect_bundle =
+		cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
+
+	auto post_effect_data =
+		setup_gfx_material_data(cache, context_handle, "3146a409-84f9-a628-32ad-03c7284fb6ad"_uid,
+								"ca45f61d-de1e-d1b6-86f6-9e7d7a7ea8b3"_uid, geometryFBO->texture(0).meta().ID());
+	post_effect_data->blend_states({core::data::material::blendstate::transparent(0)});
+	auto post_effect_material =
+		cache.create<core::gfx::material>(context_handle, post_effect_data, pipeline_cache, instanceMaterialBuffer);
+	post_effect_bundle->set_material(post_effect_material, 5000);
+
+	// auto fbo_texture = geometryFBO->texture(0);
+
+
+	auto geometry_pass	= renderGraph.create_drawpass(context_handle, geometryFBO);
 	auto swapchain_pass = renderGraph.create_drawpass(context_handle, swapchain_handle);
 
 	renderGraph.connect(geometry_pass, swapchain_pass);
@@ -984,8 +1007,8 @@ int entry(gfx::graphics_backend backend)
 	const size_t area			  = 128;
 	const size_t area_granularity = 128;
 	const size_t size_steps		  = 24;
-	const float timeScale = 1.f;
-	const size_t spawnInterval = (size_t)((float)100 * (1.f/timeScale));
+	const float timeScale		  = 1.f;
+	const size_t spawnInterval	  = (size_t)((float)100 * (1.f / timeScale));
 
 	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
 								   core::profiler.to_string());
@@ -995,8 +1018,10 @@ int entry(gfx::graphics_backend backend)
 	camTrans.rotation = psl::math::look_at_q(camTrans.position, psl::vec3::zero, psl::vec3::up);
 
 
-	core::ecs::systems::render render_system{ECSState, geometry_pass };
+	core::ecs::systems::render render_system{ECSState, geometry_pass};
 	render_system.add_render_range(2000, 3000);
+	core::ecs::systems::render post_render_system{ECSState, swapchain_pass};
+	post_render_system.add_render_range(4000, 6000);
 	core::ecs::systems::fly fly_system{ECSState, surface_handle->input()};
 	core::ecs::systems::gpu_camera gpu_camera_system{ECSState, surface_handle, frameCamBufferBinding,
 													 context_handle->backend()};
@@ -1017,23 +1042,22 @@ int entry(gfx::graphics_backend backend)
 	core::ecs::systems::lighting_system lighting{
 		psl::view_ptr(&ECSState), psl::view_ptr(&cache), resource_region, psl::view_ptr(&renderGraph),
 		swapchain_pass,			  context_handle,		 surface_handle};
-	
+
 	/*core::ecs::systems::text text{ECSState,	   cache,		   context_handle, vertexBuffer,
-								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer, instanceMaterialBuffer};*/
-								  
+								  indexBuffer, pipeline_cache, matBuffer,	   instanceBuffer,
+	   instanceMaterialBuffer};*/
+
 	auto eCam = ECSState.create(1, std::move(camTrans), psl::ecs::empty<core::ecs::components::camera>{},
 								psl::ecs::empty<core::ecs::components::input_tag>{});
 
-	size_t iterations										 = 25600;
-	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
+	size_t iterations										  = 25600;
+	std::chrono::high_resolution_clock::time_point last_tick  = std::chrono::high_resolution_clock::now();
 	std::chrono::high_resolution_clock::time_point next_spawn = std::chrono::high_resolution_clock::now();
-	/*ECSState.create(
-		1,
-		[&bundles, &geometryHandles](core::ecs::components::renderable& renderable) {
-			renderable = {(std::rand() % 2 == 0) ? bundles[0] : bundles[1],
-						  geometryHandles[std::rand() % geometryHandles.size()]};
-		},
-		psl::ecs::empty<core::ecs::components::transform>{});*/
+
+	// fullscreen quad entity
+	ECSState.create(1, [&post_effect_bundle, &geometryHandles](core::ecs::components::renderable& renderable) {
+		renderable = {post_effect_bundle, geometryHandles[2]};
+	});
 
 
 	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},
@@ -1078,12 +1102,12 @@ int entry(gfx::graphics_backend backend)
 
 		core::profiler.scope_end();
 
-		//static_assert(psl::ecs::details::key_for<float>() != psl::ecs::details::key_for<lifetime>());
+		// static_assert(psl::ecs::details::key_for<float>() != psl::ecs::details::key_for<lifetime>());
 
 		auto current_time = std::chrono::high_resolution_clock::now();
 		elapsed			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 
-		//while (current_time >= next_spawn)
+		// while (current_time >= next_spawn)
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
@@ -1091,44 +1115,46 @@ int entry(gfx::graphics_backend backend)
 				[&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 					auto matIndex = (std::rand() % 2 == 0);
 					matusage[matIndex] += 1;
-					renderable = { bundles[matIndex], geometryHandles[/*std::rand() % geometryHandles.size()*/0] };
+					renderable = {bundles[matIndex], geometryHandles[/*std::rand() % geometryHandles.size()*/ 0]};
 				},
-				psl::ecs::empty<core::ecs::components::dynamic_tag>{}, psl::ecs::empty<core::ecs::components::transform>{},
-					[](core::ecs::components::lifetime& target) { target = { 0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
-					[&size_steps](core::ecs::components::velocity& target) {
-					target = { psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-															 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-															 (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-							  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f };
+				psl::ecs::empty<core::ecs::components::dynamic_tag>{},
+				psl::ecs::empty<core::ecs::components::transform>{},
+				[](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
+				[&size_steps](core::ecs::components::velocity& target) {
+					target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f,
+															 (float)(std::rand() % size_steps) / size_steps * 2.0f,
+															 (float)(std::rand() % size_steps) / size_steps * 2.0f)),
+							  ((std::rand() % 5000) / 500.0f) * 8.0f, 1.0f};
 				});
 
 
-			if (iterations > 0)
+			if(iterations > 0)
 			{
-				if (ECSState.filter<core::ecs::components::attractor>().size() < 1)
+				if(ECSState.filter<core::ecs::components::attractor>().size() < 1)
 				{
 					ECSState.create(
 						2,
 						[](core::ecs::components::lifetime& target) {
-							target = { 5.0f + ((std::rand() % 50) / 50.0f) * 5.0f };
+							target = {5.0f + ((std::rand() % 50) / 50.0f) * 5.0f};
 						},
 						[&size_steps](core::ecs::components::attractor& target) {
-							target = { (float)(std::rand() % size_steps) / size_steps * 3 + 0.5f,
-									  (float)(std::rand() % size_steps) / size_steps * 80 };
+							target = {(float)(std::rand() % size_steps) / size_steps * 3 + 0.5f,
+									  (float)(std::rand() % size_steps) / size_steps * 80};
 						},
-							[&area_granularity, &area, &size_steps](core::ecs::components::transform& target) {
-							target = {
-								psl::vec3(
-									(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-										(area / 2.0f),
-									(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-										(area / 2.0f),
-									(float)((float)(std::rand() % (area * area_granularity)) / (float)area_granularity) -
-										(area / 2.0f)),
+						[&area_granularity, &area, &size_steps](core::ecs::components::transform& target) {
+							target = {psl::vec3((float)((float)(std::rand() % (area * area_granularity)) /
+														(float)area_granularity) -
+													(area / 2.0f),
+												(float)((float)(std::rand() % (area * area_granularity)) /
+														(float)area_granularity) -
+													(area / 2.0f),
+												(float)((float)(std::rand() % (area * area_granularity)) /
+														(float)area_granularity) -
+													(area / 2.0f)),
 
-								psl::vec3((float)(std::rand() % size_steps) / size_steps,
-										  (float)(std::rand() % size_steps) / size_steps,
-										  (float)(std::rand() % size_steps) / size_steps) };
+									  psl::vec3((float)(std::rand() % size_steps) / size_steps,
+												(float)(std::rand() % size_steps) / size_steps,
+												(float)(std::rand() % size_steps) / size_steps)};
 						});
 				}
 				--iterations;
@@ -1161,7 +1187,7 @@ int main()
 	// gl_thread.join();
 	// return 0;
 	std::srand(0);
-	//return entry(graphics_backend::vulkan);
+	// return entry(graphics_backend::vulkan);
 }
 #endif
 

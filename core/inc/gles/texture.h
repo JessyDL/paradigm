@@ -23,6 +23,7 @@ namespace core::igles
 
 		GLuint id() const noexcept { return m_Texture; }
 
+		const core::meta::texture& meta() const noexcept;
 	  private:
 		void load_2D();
 		void create_2D(void* data = nullptr);

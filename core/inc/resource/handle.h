@@ -218,13 +218,7 @@ namespace core::resource
 		handle& operator=(handle&& other) noexcept = default;
 
 		template <typename T>
-		handle& operator<<(handle<T>& data)
-		{
-			std::get<handle<T>>(m_Resource) = data;
-			return *this;
-		}
-		template <typename T>
-		handle& operator<<(handle<T> data)
+		handle& operator<<(const handle<T>& data)
 		{
 			std::get<handle<T>>(m_Resource) = data;
 			return *this;
@@ -238,12 +232,7 @@ namespace core::resource
 		}
 
 		template <typename T>
-		void set(handle<T> data)
-		{
-			std::get<handle<T>>(m_Resource) = data;
-		}
-		template <typename T>
-		void set(handle<T>& data)
+		void set(const handle<T>& data)
 		{
 			std::get<handle<T>>(m_Resource) = data;
 		}

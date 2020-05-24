@@ -14,21 +14,31 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-buffer::buffer(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+#ifdef PE_VULKAN
+buffer::buffer(core::resource::handle<core::ivk::buffer>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+{}
+#endif
+#ifdef PE_GLES
+buffer::buffer(core::resource::handle<core::igles::buffer>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+{}
+#endif
+
 buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   handle<context> context, handle<data::buffer> data)
+			   handle<context> context, handle<data::buffer> data) : m_Backend(context->backend())
 {
-	switch(context->backend())
+	switch(m_Backend)
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle << cache.create_using<core::ivk::buffer>(metaData.uid, context->resource().get<core::ivk::context>(),
+		m_VKHandle = cache.create_using<core::ivk::buffer>(metaData.uid, context->resource<graphics_backend::vulkan>(),
 														  data);
 		break;
 #endif
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data);
+		m_GLESHandle = cache.create_using<core::igles::buffer>(metaData.uid, data);
 		break;
 #endif
 	}
@@ -41,13 +51,13 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle << cache.create_using<core::ivk::buffer>(metaData.uid, context->resource().get<core::ivk::context>(),
-														  data, staging->resource().get<core::ivk::buffer>());
+		m_VKHandle = cache.create_using<core::ivk::buffer>(metaData.uid, context->resource<graphics_backend::vulkan>(),
+														  data, staging->resource<graphics_backend::vulkan>());
 		break;
 #endif
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle << cache.create_using<core::igles::buffer>(metaData.uid, data);
+		m_GLESHandle = cache.create_using<core::igles::buffer>(metaData.uid, data);
 		break;
 #endif
 	}
@@ -59,15 +69,15 @@ buffer::~buffer() {}
 const core::data::buffer& buffer::data() const
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<igles::buffer>())
+	if(m_GLESHandle)
 	{
-		return m_Handle.value<igles::buffer>().data();
+		return m_GLESHandle->data();
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<ivk::buffer>())
+	if(m_VKHandle)
 	{
-		return m_Handle.value<ivk::buffer>().data().value();
+		return m_VKHandle->data().value();
 		;
 	}
 #endif
@@ -78,15 +88,15 @@ const core::data::buffer& buffer::data() const
 [[nodiscard]] std::optional<memory::segment> buffer::reserve(uint64_t size)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<core::igles::buffer>())
+	if(m_GLESHandle)
 	{
-		return m_Handle.value<core::igles::buffer>().allocate(size);
+		return m_GLESHandle->allocate(size);
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<core::ivk::buffer>())
+	if(m_VKHandle)
 	{
-		return m_Handle.value<core::ivk::buffer>().reserve(size);
+		return m_VKHandle->reserve(size);
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
@@ -95,15 +105,15 @@ const core::data::buffer& buffer::data() const
 																					bool optimize)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<core::igles::buffer>())
+	if(m_GLESHandle)
 	{
-		return m_Handle.value<core::igles::buffer>().allocate(sizes, optimize);
+		return m_GLESHandle->allocate(sizes, optimize);
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<core::ivk::buffer>())
+	if(m_VKHandle)
 	{
-		return m_Handle.value<core::ivk::buffer>().reserve(sizes, optimize);
+		return m_VKHandle->reserve(sizes, optimize);
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
@@ -112,15 +122,15 @@ const core::data::buffer& buffer::data() const
 bool buffer::deallocate(memory::segment& segment)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<core::igles::buffer>())
+	if(m_GLESHandle)
 	{
-		return m_Handle.value<core::igles::buffer>().deallocate(segment);
+		return m_GLESHandle->deallocate(segment);
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<core::ivk::buffer>())
+	if(m_VKHandle)
 	{
-		return m_Handle.value<core::ivk::buffer>().deallocate(segment);
+		return m_VKHandle->deallocate(segment);
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
@@ -128,13 +138,13 @@ bool buffer::deallocate(memory::segment& segment)
 bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> ranges)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<core::igles::buffer>())
+	if(m_GLESHandle)
 	{
-		return m_Handle.value<core::igles::buffer>().copy_from(other.resource().value<core::igles::buffer>(), ranges);
+		return m_GLESHandle->copy_from(other.resource< graphics_backend::gles>().value(), ranges);
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<core::ivk::buffer>())
+	if(m_VKHandle)
 	{
 		psl::array<vk::BufferCopy> buffer_ranges;
 		std::transform(std::begin(ranges), std::end(ranges), std::back_inserter(buffer_ranges),
@@ -142,7 +152,7 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 						   return vk::BufferCopy{range.source_offset, range.destination_offset, range.size};
 					   });
 
-		return m_Handle.value<core::ivk::buffer>().copy_from(other.resource().value<core::ivk::buffer>(),
+		return m_VKHandle->copy_from(other.resource<graphics_backend::vulkan>().value(),
 															 buffer_ranges);
 	}
 #endif
@@ -152,15 +162,15 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
 {
 #ifdef PE_GLES
-	if(m_Handle.contains<core::igles::buffer>())
+	if(m_GLESHandle)
 	{
-		return m_Handle.value<core::igles::buffer>().commit(instructions);
+		return m_GLESHandle->commit(instructions);
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<core::ivk::buffer>())
+	if(m_VKHandle)
 	{
-		return m_Handle.value<core::ivk::buffer>().commit(instructions);
+		return m_VKHandle->commit(instructions);
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
@@ -170,12 +180,12 @@ size_t buffer::free_size() const noexcept
 {
 	size_t available = std::numeric_limits<size_t>::max();
 #ifdef PE_GLES
-	if(m_Handle.contains<core::igles::buffer>())
-		available = std::min(available, m_Handle.value<core::igles::buffer>().free_size());
+	if(m_GLESHandle)
+		available = std::min(available, m_GLESHandle->free_size());
 #endif
 #ifdef PE_VULKAN
-	if(m_Handle.contains<core::ivk::buffer>())
-		available = std::min(available, m_Handle.value<core::ivk::buffer>().free_size());
+	if(m_VKHandle)
+		available = std::min(available, m_VKHandle->free_size());
 #endif
 	return available;
 }

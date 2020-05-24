@@ -206,7 +206,7 @@ namespace core::gfx
 			std::variant<psl::unique_ptr<core::gfx::drawpass>, psl::unique_ptr<core::gfx::computepass>>;
 
 	  public:
-		~render_graph();
+		~render_graph() = default;
 
 		psl::view_ptr<core::gfx::drawpass> create_drawpass(core::resource::handle<core::gfx::context> context,
 														   core::resource::handle<core::gfx::swapchain> swapchain);

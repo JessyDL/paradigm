@@ -114,7 +114,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 									 : core::gfx::memory_usage::storage_buffer;
 					if(buffer_handle->buffer->data().usage() & usage)
 					{
-						m_Buffers.emplace_back(buffer_binding{ buffer_handle->buffer->resource().get<core::igles::buffer>(), binding.binding_slot(), 0, static_cast<uint32_t>(descriptor->size()) });
+						m_Buffers.emplace_back(buffer_binding{ buffer_handle->buffer->resource< gfx::graphics_backend::gles>(), binding.binding_slot(), 0, static_cast<uint32_t>(descriptor->size()) });
 					}
 					else
 					{

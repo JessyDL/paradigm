@@ -15,33 +15,42 @@ namespace core::gfx
 	class swapchain
 	{
 	  public:
-		using alias_type = core::resource::alias<
 #ifdef PE_VULKAN
-			core::ivk::swapchain
-#ifdef PE_GLES
-			,
-#endif
+		explicit swapchain(core::resource::handle<core::ivk::swapchain>& handle);
 #endif
 #ifdef PE_GLES
-			core::igles::swapchain
+		explicit swapchain(core::resource::handle<core::igles::swapchain>& handle);
 #endif
-			>;
-		using value_type = alias_type;
-		swapchain(core::resource::handle<value_type>& handle);
+
 		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				  core::resource::handle<core::os::surface> surface,
-				  core::resource::handle<core::gfx::context> context, bool use_depth = true);
+				  core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::context> context,
+				  bool use_depth = true);
 
 		~swapchain(){};
 
-		swapchain(const swapchain& other)	 = delete;
+		swapchain(const swapchain& other)	  = delete;
 		swapchain(swapchain&& other) noexcept = delete;
 		swapchain& operator=(const swapchain& other) = delete;
 		swapchain& operator=(swapchain&& other) noexcept = delete;
 
-		core::resource::handle<value_type> resource() noexcept { return m_Handle; };
+		template <core::gfx::graphics_backend backend>
+		core::resource::handle<backend_type_t<swapchain, backend>> resource() const noexcept
+		{
+#ifdef PE_VULKAN
+			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+#endif
+#ifdef PE_GLES
+			if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+#endif
+		};
 
 	  private:
-		core::resource::handle<value_type> m_Handle;
+		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+#ifdef PE_VULKAN
+		core::resource::handle<core::ivk::swapchain> m_VKHandle;
+#endif
+#ifdef PE_GLES
+		core::resource::handle<core::igles::swapchain> m_GLESHandle;
+#endif
 	};
 } // namespace core::gfx

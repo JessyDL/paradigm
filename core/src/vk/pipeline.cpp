@@ -494,7 +494,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 						}
 
 						auto& bufferInfo   = m_TrackedBufferInfos[m_TrackedBufferInfos.size() - 1];
-						bufferInfo->buffer = buffer_handle->buffer->resource().get<core::ivk::buffer>()->gpu_buffer();
+						bufferInfo->buffer = buffer_handle->buffer->resource< gfx::graphics_backend::vulkan>()->gpu_buffer();
 						bufferInfo->offset = 0;
 						// todo this lookup can be improved
 						bufferInfo->range = get_range(m_Context.value(), *shader_handle.meta(), binding,

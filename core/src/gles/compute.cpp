@@ -112,14 +112,14 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 					switch(qualifier)
 					{
 					case core::meta::shader::descriptor::dependency::in:
-						m_InputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource().get<core::igles::buffer>()));
+						m_InputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource<gfx::graphics_backend::gles>()));
 						break;
 					case core::meta::shader::descriptor::dependency::out:
-						m_OutputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource().get<core::igles::buffer>()));
+						m_OutputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource< gfx::graphics_backend::gles>()));
 						break;
 					case core::meta::shader::descriptor::dependency::inout:
-						m_InputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource().get<core::igles::buffer>()));
-						m_OutputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource().get<core::igles::buffer>()));
+						m_InputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource< gfx::graphics_backend::gles>()));
+						m_OutputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource< gfx::graphics_backend::gles>()));
 						break;
 					}
 				}

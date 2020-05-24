@@ -282,6 +282,10 @@ namespace core::resource
 			return {descr.resource, this, &descr.metaData, data.metaFile};
 		}
 
+		bool contains(const psl::UID& uid) const noexcept
+		{
+			return m_Cache.find(uid) != std::end(m_Cache);
+		}
 
 		template <typename T, typename... Args>
 		handle<T> find(const psl::UID& uid) noexcept

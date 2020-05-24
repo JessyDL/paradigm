@@ -13,7 +13,16 @@ using namespace core;
 using namespace core::gfx;
 using namespace core::resource;
 
-context::context(core::resource::handle<value_type>& handle) : m_Handle(handle){};
+#ifdef PE_VULKAN
+context::context(core::resource::handle<core::ivk::context>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+{}
+#endif
+#ifdef PE_GLES
+context::context(core::resource::handle<core::igles::context>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+{}
+#endif
 context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
 				 graphics_backend backend, const psl::string8_t& name)
 	: m_Backend(backend)
@@ -22,13 +31,13 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan: {
-		m_Handle << cache.create_using<core::ivk::context>(metaData.uid, name);
+		m_VKHandle = cache.create_using<core::ivk::context>(metaData.uid, name);
 	}
 	break;
 #endif
 #ifdef PE_GLES
 	case graphics_backend::gles: {
-		m_Handle << cache.create_using<core::igles::context>(metaData.uid, name);
+		m_GLESHandle = cache.create_using<core::igles::context>(metaData.uid, name);
 	}
 	break;
 #endif
@@ -37,8 +46,13 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 
 const core::gfx::limits& context::limits() const noexcept
 {
-	if(m_Handle.contains<core::ivk::context>())
-		return m_Handle.get<core::ivk::context>()->limits();
-	else
-		return m_Handle.get<core::igles::context>()->limits();
+#ifdef PE_VULKAN
+	if (m_VKHandle)
+		return m_VKHandle->limits();
+#endif
+#ifdef PE_GLES
+	if (m_GLESHandle)
+		return m_GLESHandle->limits();
+#endif
+	throw std::runtime_error("no context was loaded");
 }

@@ -157,7 +157,7 @@ namespace core::gfx
 			auto res = m_InstanceData.segment(geometry, name);
 			if(!res)
 			{
-				core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid());
+				core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid().to_string());
 				return false;
 			}
 			return set(geometry, id, res.value().first, res.value().second, values.data(), sizeof(T), values.size());

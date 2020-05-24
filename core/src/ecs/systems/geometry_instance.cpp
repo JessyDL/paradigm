@@ -18,6 +18,8 @@ geometry_instancing::geometry_instancing(psl::ecs::state& state)
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_add, this);
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_remove, this);
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
+	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_geometry_add, this);
+	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_geometry_remove, this);
 }
 
 
@@ -168,4 +170,38 @@ void geometry_instancing::static_remove(info& info,
 
 	info.command_buffer.remove_components<instance_id>(geometry_pack.get<entity>());
 	core::profiler.scope_end();
+}
+
+void geometry_instancing::static_geometry_add(psl::ecs::info& info,
+	psl::ecs::pack<psl::ecs::entity, const core::ecs::components::renderable,
+	psl::ecs::except<core::ecs::components::transform>,
+	psl::ecs::on_add<core::ecs::components::renderable>>
+	pack)
+{
+	psl::array<entity> eIds;
+	eIds.resize(1);
+	for (auto [entity, render] : pack)
+	{
+		auto bundleHandle = render.bundle;
+		auto geometryHandle = render.geometry;
+
+		auto instancesID = bundleHandle->instantiate(geometryHandle, 1);
+		eIds[0] = entity;
+		info.command_buffer.add_components<instance_id>(eIds, instance_id{ instancesID[0].first });
+	}
+}
+
+
+void geometry_instancing::static_geometry_remove(psl::ecs::info& info,
+	psl::ecs::pack<psl::ecs::entity, const core::ecs::components::renderable, const instance_id,
+	psl::ecs::except<core::ecs::components::transform>,
+	psl::ecs::on_remove<core::ecs::components::renderable>>
+	pack)
+{
+	for (auto [entity, renderable, instance_id] : pack)
+	{
+		if (renderable.bundle) renderable.bundle.make_shared()->release(renderable.geometry, instance_id.id);
+	}
+
+	info.command_buffer.remove_components<instance_id>(pack.get<entity>());
 }

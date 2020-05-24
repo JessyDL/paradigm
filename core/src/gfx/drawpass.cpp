@@ -16,39 +16,48 @@ using namespace core::resource;
 using namespace core::gfx;
 using namespace core;
 
+#ifdef PE_VULKAN
+drawpass::drawpass(core::ivk::drawpass* handle) : m_Backend(graphics_backend::vulkan), m_VKHandle(handle) {}
+#endif
+#ifdef PE_GLES
+drawpass::drawpass(core::igles::drawpass* handle) : m_Backend(graphics_backend::gles), m_GLESHandle(handle) {}
+#endif
+
 /// todo: passes cannot describe resources in both API's at the same time, we need to decide if we
 ///	      want  a feature like it, or if we would prefer to keep only one API going
 drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebuffer> framebuffer)
+	: m_Backend(context->backend())
 {
-	switch(context->backend())
+	switch(m_Backend)
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle = new core::igles::drawpass(framebuffer->resource().get<core::igles::framebuffer>());
+		m_GLESHandle = new core::igles::drawpass(framebuffer->resource<graphics_backend::gles>());
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle = new core::ivk::drawpass(context->resource().get<core::ivk::context>(),
-									   framebuffer->resource().get<core::ivk::framebuffer>());
+		m_VKHandle = new core::ivk::drawpass(context->resource<graphics_backend::vulkan>(),
+											 framebuffer->resource<graphics_backend::vulkan>());
 		break;
 #endif
 	}
 }
 
 drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::swapchain> swapchain)
+	: m_Backend(context->backend())
 {
-	switch(context->backend())
+	switch(m_Backend)
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_Handle = new core::igles::drawpass(swapchain->resource().get<core::igles::swapchain>());
+		m_GLESHandle = new core::igles::drawpass(swapchain->resource<graphics_backend::gles>());
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_Handle = new core::ivk::drawpass(context->resource().get<core::ivk::context>(),
-									   swapchain->resource().get<core::ivk::swapchain>());
+		m_VKHandle = new core::ivk::drawpass(context->resource<graphics_backend::vulkan>(),
+											 swapchain->resource<graphics_backend::vulkan>());
 		break;
 #endif
 	}
@@ -56,95 +65,113 @@ drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::swapcha
 
 drawpass::~drawpass()
 {
-	std::visit(utility::templates::overloaded{ [](auto&& pass) {return delete(pass); } }, m_Handle);
+#ifdef PE_GLES
+	delete(m_GLESHandle);
+#endif
+#ifdef PE_VULKAN
+	delete(m_VKHandle);
+#endif
 }
 
 
 bool drawpass::is_swapchain() const noexcept
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->is_swapchain(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) return m_GLESHandle->is_swapchain();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle)return m_VKHandle->is_swapchain();
+#endif
+	return false;
 }
 
 
 void drawpass::prepare()
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->prepare(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) m_GLESHandle->prepare();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) m_VKHandle->prepare();
+#endif
 }
 bool drawpass::build(bool force)
 {
 	if(!m_Dirty && !force) return true;
 
 	m_Dirty = false;
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->build(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) return m_GLESHandle->build();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) return m_VKHandle->build();
+#endif
 }
 
 
 void drawpass::clear()
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->clear(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) m_GLESHandle->clear();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) m_VKHandle->clear();
+#endif
 }
 void drawpass::present()
 {
-	return std::visit(utility::templates::overloaded{ [](auto&& pass) {return pass->present(); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) m_GLESHandle->present();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) m_VKHandle->present();
+#endif
 }
 
 bool drawpass::connect(psl::view_ptr<drawpass> child) noexcept
 {
-	if(child->m_Handle.index() != m_Handle.index()) return false;
-
-	if(m_Handle.index() == 0)
-	{
 #ifdef PE_VULKAN
-		auto ptr = std::get<core::ivk::drawpass*>(m_Handle);
-		ptr->connect(psl::view_ptr<core::ivk::drawpass>(std::get<core::ivk::drawpass*>(child->m_Handle)));
-		return true;
-#else
-		assert(false);
-#endif
-	}
-	else
+	if(m_VKHandle)
 	{
-#ifdef PE_GLES
-		auto ptr = std::get<core::igles::drawpass*>(m_Handle);
-		ptr->connect(psl::view_ptr<core::igles::drawpass>(std::get<core::igles::drawpass*>(child->m_Handle)));
+		m_VKHandle->connect(psl::view_ptr<core::ivk::drawpass>(child->m_VKHandle));
 		return true;
-#else
-		assert(false);
-#endif
-
 	}
+#endif
+#ifdef PE_GLES
+	if(m_VKHandle)
+	{
+		m_GLESHandle->connect(psl::view_ptr<core::igles::drawpass>(child->m_GLESHandle));
+		return true;
+	}
+#endif
 	return false;
 }
 bool drawpass::disconnect(psl::view_ptr<drawpass> child) noexcept
 {
-	if(child->m_Handle.index() != m_Handle.index()) return false;
-
-	if(m_Handle.index() == 0)
-	{
 #ifdef PE_VULKAN
-		auto ptr = std::get<core::ivk::drawpass*>(m_Handle);
-		ptr->disconnect(psl::view_ptr<core::ivk::drawpass>(std::get<core::ivk::drawpass*>(child->m_Handle)));
-		return true;
-#else
-		assert(false);
-#endif
-	}
-	else
+	if (m_VKHandle)
 	{
-#ifdef PE_GLES
-		auto ptr = std::get<core::igles::drawpass*>(m_Handle);
-		ptr->disconnect(psl::view_ptr<core::igles::drawpass>(std::get<core::igles::drawpass*>(child->m_Handle)));
+		m_VKHandle->disconnect(psl::view_ptr<core::ivk::drawpass>(child->m_VKHandle));
 		return true;
-#else
-		assert(false);
-#endif
-
 	}
+#endif
+#ifdef PE_GLES
+	if (m_VKHandle)
+	{
+		m_GLESHandle->disconnect(psl::view_ptr<core::igles::drawpass>(child->m_GLESHandle));
+		return true;
+	}
+#endif
 	return false;
 }
 
 
 void drawpass::add(core::gfx::drawgroup& group) noexcept
 {
-	return std::visit(utility::templates::overloaded{ [&group](auto&& pass) {return pass->add(group); } }, m_Handle);
+#ifdef PE_GLES
+	if(m_GLESHandle) m_GLESHandle->add(group);
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle) m_VKHandle->add(group);
+#endif
 }

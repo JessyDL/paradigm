@@ -17,7 +17,6 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 	: m_Data(data)
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
-	m_Textures.reserve(m_Framebuffers.size() * m_Data->attachments().size());
 
 	if(auto sampler = data->sampler(); sampler)
 	{
@@ -49,9 +48,7 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 		binding.index			   = index;
 		binding.description.format = texture.meta()->format();
 
-		m_Textures.push_back(texture);
-		auto& attachment   = binding.attachments.emplace_back();
-		attachment.texture = texture->id();
+		binding.attachments.push_back(texture);
 
 		index += m_Framebuffers.size();
 	}
@@ -69,7 +66,7 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 									? GL_STENCIL_ATTACHMENT
 									: (core::gfx::has_depth(binding.description.format)) ? GL_DEPTH_ATTACHMENT
 																						 : GL_COLOR_ATTACHMENT0 + i;
-			glFramebufferTexture2D(GL_FRAMEBUFFER, format, GL_TEXTURE_2D, binding.attachments[i].texture, 0);
+			glFramebufferTexture2D(GL_FRAMEBUFFER, format, GL_TEXTURE_2D, binding.attachments[i]->id(), 0);
 		}
 	}
 	auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
@@ -84,22 +81,22 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 
 framebuffer::~framebuffer() { glDeleteFramebuffers(m_Framebuffers.size(), m_Framebuffers.data()); }
 
-std::vector<framebuffer::attachment> framebuffer::attachments(uint32_t index) const noexcept
+std::vector<framebuffer::texture_handle> framebuffer::attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::attachment> res;
+	std::vector<framebuffer::texture_handle> res;
 	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
 	});
 	return res;
 }
 
-std::vector<framebuffer::attachment> framebuffer::color_attachments(uint32_t index) const noexcept
+std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::attachment> res;
+	std::vector<framebuffer::texture_handle> res;
 	auto bindings{m_Bindings};
 	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
 		return gfx::has_depth(binding.description.format) || gfx::has_stencil(binding.description.format);
