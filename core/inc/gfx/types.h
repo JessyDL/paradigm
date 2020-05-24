@@ -25,14 +25,18 @@ namespace core::gfx
 	template<graphics_backend backend>
 	constexpr bool is_enabled()
 	{
+#ifdef PE_VULKAN
 		if constexpr (backend == graphics_backend::vulkan)
 		{
 			return PE_VULKAN;
 		}
+#endif
+#ifdef PE_GLES
 		if constexpr (backend == graphics_backend::gles)
 		{
 			return PE_GLES;
 		}
+#endif
 		return false;
 	}
 
