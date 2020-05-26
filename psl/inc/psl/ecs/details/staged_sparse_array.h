@@ -39,7 +39,11 @@ namespace psl::ecs::details
 		using iterator_category = std::random_access_iterator_tag;
 
 		staged_sparse_array() noexcept : m_Reverse(), m_DenseData((m_Reverse.capacity() + 1) * sizeof(T)){};
-		~staged_sparse_array() = default;
+		~staged_sparse_array()
+		{
+			for (auto it = begin(0); it != end(2); ++it)
+				it->~T();
+		}
 
 		staged_sparse_array(const staged_sparse_array& other)	  = default;
 		staged_sparse_array(staged_sparse_array&& other) noexcept = default;
@@ -164,8 +168,24 @@ namespace psl::ecs::details
 				auto& old_chunk = chunk_for(old_offset);
 				old_chunk[old_offset] += distance;
 			}
-			std::memmove((T*)m_DenseData.data() + m_StageStart[2] + distance, (T*)m_DenseData.data() + m_StageStart[2],
-						 (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
+
+			if constexpr (std::is_trivially_copyable_v<T>)
+			{
+				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + distance, (T*)m_DenseData.data() + m_StageStart[2],
+					(m_Reverse.size() - m_StageStart[2]) * sizeof(T));
+			}
+			else
+			{
+				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + distance, src = (T*)m_DenseData.data() + m_StageStart[2], end = src + (m_Reverse.size() - m_StageStart[2]);
+				if constexpr (std::is_move_assignable_v<T>)
+				{
+					std::move(src, end, dst);
+				}
+				else
+				{
+					std::copy(src, end, dst);
+				}
+			}
 
 
 			auto first_chunk = chunks_size - (index % chunks_size);
@@ -250,6 +270,9 @@ namespace psl::ecs::details
 
 		void promote() noexcept
 		{
+			for (auto it = begin(2); it != end(2); ++it)
+				it->~T();
+
 			for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
 			{
 				auto offset	  = m_Reverse[i];
@@ -272,8 +295,8 @@ namespace psl::ecs::details
 		}
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
-		auto begin(index_t stage = 0) noexcept { return std::next(m_DenseData.data(), m_StageStart[stage]); }
-		auto end(index_t stage = 0) noexcept { return std::next(m_DenseData.data(), m_StageStart[stage + 1]); }
+		auto begin(index_t stage = 0) noexcept { return std::next((T*)m_DenseData.data(), m_StageStart[stage]); }
+		auto end(index_t stage = 0) noexcept { return std::next((T*)m_DenseData.data(), m_StageStart[stage + 1]); }
 
 		const auto cbegin(index_t stage = 0) const noexcept
 		{
@@ -367,9 +390,24 @@ namespace psl::ecs::details
 				auto& old_chunk = chunk_for(old_offset);
 				old_chunk[old_offset] += 1;
 			}
-			std::memmove((T*)m_DenseData.data() + m_StageStart[2] + 1, (T*)m_DenseData.data() + m_StageStart[2],
-						 (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
 
+			if constexpr (std::is_trivially_copyable_v<T>)
+			{
+				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + 1, (T*)m_DenseData.data() + m_StageStart[2],
+							 (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
+			}
+			else
+			{
+				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + 1, end = (T*)m_DenseData.data() + (m_Reverse.size() - m_StageStart[2]), src = (T*)m_DenseData.data() + m_StageStart[2];
+				if constexpr (std::is_move_assignable_v<T>)
+				{
+					std::move(src, end, dst);
+				}
+				else
+				{
+					std::copy(src, end, dst);
+				}
+			}
 			chunk[offset] = static_cast<index_t>(m_StageStart[2]);
 			auto orig_cap = m_Reverse.capacity();
 			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), user_index);
@@ -427,7 +465,42 @@ namespace psl::ecs::details
 				auto new_capacity = std::max(capacity, m_DenseData.size() * 2 / sizeof(T));
 
 				::memory::raw_region reg(new_capacity * sizeof(T));
-				std::memcpy(reg.data(), m_DenseData.data(), m_DenseData.size());
+
+				if constexpr (std::is_trivially_copyable_v<T>)
+				{
+					std::memcpy(reg.data(), m_DenseData.data(), m_DenseData.size());
+				}
+				else
+				{
+					auto src = (T*)m_DenseData.data(), end = src + m_DenseData.size(), dst = (T*)reg.data();
+
+
+					std::move((T*)m_DenseData.data(), (T*)m_DenseData.data() + m_DenseData.size(), (T*)reg.data());
+
+					if constexpr (std::is_move_constructible_v<T>)
+					{
+						for (auto it = src, dst_it = dst; it != end; ++it, ++dst_it)
+						{
+							new (dst_it) T{ std::move(*it) };
+						}
+					}
+					else
+					{
+						for (auto it = src, dst_it = dst; it != end; ++it, ++dst_it)
+						{
+							new (dst_it) T{ *it };
+						}
+					}
+
+					if constexpr (!std::is_trivially_destructible_v<T>)
+					{
+						for (auto it = src; it != end; ++it)
+						{
+							it->~T();
+						}
+					}
+				}
+
 				m_DenseData = std::move(reg);
 
 				m_Reverse.reserve((m_DenseData.size() / sizeof(T)) - 1);

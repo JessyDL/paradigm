@@ -100,17 +100,23 @@ handle<core::gfx::compute> create_compute(resource::cache& cache, handle<core::g
 	return cache.instantiate<core::gfx::compute>("594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, context_handle, data,
 												 pipeline_cache);
 }
+
+void load_texture(resource::cache& cache, handle<core::gfx::context> context_handle, const psl::UID& texture)
+{
+	if (!cache.contains(texture))
+	{
+		auto textureHandle = cache.instantiate<gfx::texture>(texture, context_handle);
+		assert(textureHandle);
+	}
+}
+
 handle<core::data::material> setup_gfx_material_data(resource::cache& cache, handle<core::gfx::context> context_handle,
 													 psl::UID vert, psl::UID frag, const psl::UID& texture)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>(vert).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>(frag).value();
 
-	if(!cache.contains(texture))
-	{
-		auto textureHandle = cache.instantiate<gfx::texture>(texture, context_handle);
-		assert(textureHandle);
-	}
+	load_texture(cache, context_handle, texture);
 
 	// create the sampler
 	auto samplerData   = cache.create<data::sampler>();
@@ -127,8 +133,13 @@ handle<core::data::material> setup_gfx_material_data(resource::cache& cache, han
 		if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
 
 		auto bindings = stage.bindings();
-		bindings[0].texture(texture);
-		bindings[0].sampler(samplerHandle);
+		for (auto& binding : bindings)
+		{
+			if (binding.descriptor() != core::gfx::binding_type::combined_image_sampler)
+				continue;
+			binding.texture(texture);
+			binding.sampler(samplerHandle);
+		}
 		stage.bindings(bindings);
 		// binding.texture()
 	}
@@ -162,6 +173,11 @@ handle<core::gfx::material> setup_gfx_depth_material(resource::cache& cache, han
 
 	auto material = cache.create<gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
 	return material;
+}
+
+void create_ui(psl::ecs::state& state)
+{
+
 }
 
 #ifndef PLATFORM_ANDROID
@@ -787,6 +803,8 @@ int entry(gfx::graphics_backend backend)
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
 	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1, -1, -1, 1));
+	auto fullscreen_quad_index = geometryDataHandles.size() - 1;
+	utility::geometry::set_channel(geometryDataHandles[fullscreen_quad_index], core::data::geometry::constants::COLOR, psl::vec4::one);
 	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
 	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
 	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
@@ -835,26 +853,36 @@ int entry(gfx::graphics_backend backend)
 	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::right * 90.0f), core::data::geometry::constants::NORMAL);
 	auto back_plane_index = geometryDataHandles.size() - 1;
+
+	geometryDataHandles.push_back(utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one , psl::vec2::one * 8.f));
+	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
+
+	geometryDataHandles.push_back(cache.instantiate<core::data::geometry>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
+	auto water_plane_index = geometryDataHandles.size() -1;
 	for(auto& handle : geometryDataHandles)
 	{
-		core::stream colorstream{core::stream::type::vec3};
-		auto& colors = colorstream.as_vec3().value().get();
-		auto& normalStream =
-			handle->vertices(core::data::geometry::constants::NORMAL).value().get().as_vec3().value().get();
-		colors.resize(normalStream.size());
-		std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
+		if (handle != geometryDataHandles[fullscreen_quad_index] && !handle->vertices(core::data::geometry::constants::COLOR))
+		{
+			core::stream colorstream{ core::stream::type::vec3 };
+			auto& colors = colorstream.as_vec3().value().get();
+			auto& normalStream =
+				handle->vertices(core::data::geometry::constants::NORMAL).value().get().as_vec3().value().get();
+			colors.resize(normalStream.size());
+			std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
 
-		std::for_each(std::begin(colors), std::end(colors), [](auto& color) {
-			color =
-				(psl::math::dot(psl::math::normalize(color), psl::math::normalize(psl::vec3(145, 170, 35))) + 1.0f) *
-				0.5f;
-			// color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f;
-		});
-		handle->vertices(core::data::geometry::constants::COLOR, colorstream);
-		handle->erase(core::data::geometry::constants::TANGENT);
-		handle->erase(core::data::geometry::constants::NORMAL);
+			std::for_each(std::begin(colors), std::end(colors), [](auto& color) {
+				color =
+					(psl::math::dot(psl::math::normalize(color), psl::math::normalize(psl::vec3(145, 170, 35))) + 1.0f) *
+					0.5f;
+				// color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f;
+				});
+			handle->vertices(core::data::geometry::constants::COLOR, colorstream);
+			//handle->erase(core::data::geometry::constants::TANGENT);
+			//handle->erase(core::data::geometry::constants::NORMAL);
+		}
 		geometryHandles.emplace_back(cache.create<gfx::geometry>(context_handle, handle, vertexBuffer, indexBuffer));
 	}
+
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
 	auto globalShaderBufferData = cache.create<data::buffer>(
@@ -929,26 +957,26 @@ int entry(gfx::graphics_backend backend)
 							 core::gfx::image::usage::color_attachment | core::gfx::image::usage::sampled, core::gfx::clear_value(psl::ivec4{0}), descr);
 	}
 
-	//{ // depth-stencil target
-	//	core::gfx::attachment descr{};
-	//	if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format::undefined)
-	//	{
-	//		core::log->error("Could not find a suitable depth stencil buffer format.");
-	//	}
-	//	else
-	//		descr.format = format;
-	//	descr.sample_bits	= 1;
-	//	descr.image_load	= core::gfx::attachment::load_op::clear;
-	//	descr.image_store	= core::gfx::attachment::store_op::dont_care;
-	//	descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
-	//	descr.stencil_store = core::gfx::attachment::store_op::dont_care;
-	//	descr.initial		= core::gfx::image::layout::undefined;
-	//	descr.final			= core::gfx::image::layout::depth_stencil_attachment_optimal;
+	{ // depth-stencil target
+		core::gfx::attachment descr{};
+		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format::undefined)
+		{
+			core::log->error("Could not find a suitable depth stencil buffer format.");
+		}
+		else
+			descr.format = format;
+		descr.sample_bits	= 1;
+		descr.image_load	= core::gfx::attachment::load_op::clear;
+		descr.image_store	= core::gfx::attachment::store_op::dont_care;
+		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
+		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+		descr.initial		= core::gfx::image::layout::undefined;
+		descr.final			= core::gfx::image::layout::depth_stencil_attachment_optimal;
 
-	//	frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
-	//						 core::gfx::image::usage::dept_stencil_attachment, core::gfx::depth_stencil{1.0f, 0},
-	//						 descr);
-	//}
+		frameBufferData->add(surface_handle->data().width(), surface_handle->data().height(), 1,
+							 core::gfx::image::usage::dept_stencil_attachment, core::gfx::depth_stencil{1.0f, 0},
+							 descr);
+	}
 
 	{
 		auto ppsamplerData = cache.create<data::sampler>();
@@ -963,14 +991,14 @@ int entry(gfx::graphics_backend backend)
 		cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
 
 	auto post_effect_data =
-		setup_gfx_material_data(cache, context_handle, "3146a409-84f9-a628-32ad-03c7284fb6ad"_uid,
-								"ca45f61d-de1e-d1b6-86f6-9e7d7a7ea8b3"_uid, geometryFBO->texture(0).meta().ID());
+		setup_gfx_material_data(cache, context_handle, "4140907f-46bb-eb98-be15-ddc008671a89"_uid,
+								"5540e94f-4422-0e2d-d874-97f436ec1cb9"_uid, geometryFBO->texture(0).meta().ID());
 	post_effect_data->blend_states({core::data::material::blendstate::transparent(0)});
 	post_effect_data->cull_mode(core::gfx::cullmode::none);
 	auto post_effect_material =
 		cache.create<core::gfx::material>(context_handle, post_effect_data, pipeline_cache, instanceMaterialBuffer);
 	post_effect_bundle->set_material(post_effect_material, 5000);
-
+	post_effect_bundle->set("color", psl::vec4::one);
 	// auto fbo_texture = geometryFBO->texture(0);
 
 
@@ -1056,9 +1084,31 @@ int entry(gfx::graphics_backend backend)
 	std::chrono::high_resolution_clock::time_point next_spawn = std::chrono::high_resolution_clock::now();
 
 	// fullscreen quad entity
-	ECSState.create(1, [&post_effect_bundle, &geometryHandles](core::ecs::components::renderable& renderable) {
-		renderable = {post_effect_bundle, geometryHandles[2]};
-	});
+	ECSState.create(1, [&post_effect_bundle, &geometry = geometryHandles[fullscreen_quad_index]](core::ecs::components::renderable& renderable) {
+		renderable = {post_effect_bundle, geometry };
+		}, core::ecs::components::transform{});
+
+	{
+		load_texture(cache, context_handle, "5ea8ae3d-1ff4-48cc-9c90-d0eb81ba7075"_uid);
+		auto water_material_data = setup_gfx_material_data(cache, context_handle, "b64676ca-7000-08d2-e2ef-48c25742a6bc"_uid, "7246dfbd-29f6-65db-c89e-1b42036b368b"_uid, "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
+		auto stages = water_material_data->stages();
+		auto bindings = stages[1].bindings();
+		bindings[2].texture("5ea8ae3d-1ff4-48cc-9c90-d0eb81ba7075"_uid);
+
+		stages[1].bindings(bindings);
+		water_material_data->stages(stages);
+		water_material_data->cull_mode(core::gfx::cullmode::front);
+		auto water_material =
+			cache.create<core::gfx::material>(context_handle, water_material_data, pipeline_cache, instanceMaterialBuffer);
+
+		bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+		bundles.back()->set_material(water_material, 2000);
+		bundles.back()->set("color", psl::vec4{ 1.f, 1.f, 1.f, 0.5f });
+		bundles.back()->set("lightDir", psl::vec4{ 1.f, 1.f, 1.f, 0.f });
+		ECSState.create(1, [&bundle = bundles.back(), &geometry = geometryHandles[water_plane_index]](core::ecs::components::renderable& renderable) {
+			renderable = { bundle, geometry };
+		}, core::ecs::components::transform{ psl::vec3{}, psl::vec3::one * 1.f });
+	}
 
 
 	ECSState.create(1, psl::ecs::empty<core::ecs::components::transform>{},

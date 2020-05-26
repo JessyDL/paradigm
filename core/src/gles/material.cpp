@@ -49,7 +49,6 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 	}
 
 	m_Program = program_cache->get(metaData.uid, data);
-
 	for(auto& stage : data->stages())
 	{
 		auto meta = cache.library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
@@ -62,6 +61,8 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			case core::gfx::binding_type::combined_image_sampler:
 			{
 				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
+				//assert(binding_slot != -1);
+				
 				if(auto sampler_handle = cache.find<core::igles::sampler>(binding.sampler()); sampler_handle)
 				{
 					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
@@ -147,37 +148,47 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 			++index;
 		}
 	}
+	if (m_Textures.size() > 0)
+	{
+		glUseProgram(m_Program->id());
+		for (const auto& [binding, texture] : m_Textures)
+		{
+			if(binding != std::numeric_limits<uint32_t>::max())
+				glUniform1i(binding, binding);
+		}
+		glUseProgram(0);
+	}
 }
 
 void material::bind()
 {
 	if(!m_Program) return;
 	glUseProgram(m_Program->id());
-	auto blend_states = m_Data->blend_states();
+	const auto& blend_states = m_Data->blend_states();
 	using namespace core::gfx::conversion;
 
-	if(m_Textures.size() == 0 && blend_states.size() > 0)
-	{
-		glBlendEquationSeparate(to_gles(blend_states[0].color_blend_op()), to_gles(blend_states[0].alpha_blend_op()));
-		glBlendFuncSeparate(to_gles(blend_states[0].color_blend_src()), to_gles(blend_states[0].color_blend_dst()),
-							to_gles(blend_states[0].alpha_blend_src()), to_gles(blend_states[0].alpha_blend_dst()));
-	}
 
 	for(auto i = 0; i < m_Textures.size(); ++i)
 	{
 		auto binding = m_Textures[i].first;
 
-		glActiveTexture(GL_TEXTURE0 + binding);
-		glBindTexture(GL_TEXTURE_2D, m_Textures[i].second->id());
-		glBindSampler(binding, m_Samplers[i].second->id());
+		if (binding == std::numeric_limits<uint32_t>::max())
+			continue;
 
-		glBlendEquationSeparate(to_gles(blend_states[binding].color_blend_op()),
-								to_gles(blend_states[binding].alpha_blend_op()));
-		glBlendFuncSeparate(
-			to_gles(blend_states[binding].color_blend_src()), to_gles(blend_states[binding].color_blend_dst()),
-			to_gles(blend_states[binding].alpha_blend_src()), to_gles(blend_states[binding].alpha_blend_dst()));
+		glActiveTexture(GL_TEXTURE0 + binding);
+		auto tex_id = m_Textures[i].second->id();
+		glBindTexture(GL_TEXTURE_2D, tex_id);
+		glBindSampler(binding, m_Samplers[i].second->id());		
 	}
 
+	for (auto i = 0; i < blend_states.size(); ++i)
+	{
+		glBlendEquationSeparatei(i, to_gles(blend_states[i].color_blend_op()),
+			to_gles(blend_states[i].alpha_blend_op()));
+		glBlendFuncSeparatei(i, 
+			to_gles(blend_states[i].color_blend_src()), to_gles(blend_states[i].color_blend_dst()),
+			to_gles(blend_states[i].alpha_blend_src()), to_gles(blend_states[i].alpha_blend_dst()));
+	}
 	for(auto& buffer : m_Buffers)
 	{
 		if(buffer.offset == 0)

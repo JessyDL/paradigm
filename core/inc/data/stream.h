@@ -281,7 +281,7 @@ namespace core
 		}
 
 		template <typename T>
-		bool is()
+		bool is() const noexcept
 		{
 			switch(m_Type.value)
 			{

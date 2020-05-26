@@ -67,7 +67,7 @@ void material::binding::binding_slot(uint32_t value) { m_Binding.value = value; 
 void material::binding::descriptor(core::gfx::binding_type value) { m_Description.value = value; }
 void material::binding::texture(const UID& value, psl::string_view tag)
 {
-	m_UID	= value;
+	m_UID	 = value;
 	m_UIDTag = tag;
 }
 void material::binding::sampler(const UID& value, psl::string_view tag)
@@ -210,6 +210,9 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 
 		psl::string_view instance_designator = "INSTANCE_";
 		psl::array<attribute> attributes;
+
+		using constants = core::data::geometry::constants;
+
 		for(const auto& input : shader->inputs())
 		{
 			attribute& attribute = attributes.emplace_back();
@@ -219,17 +222,27 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 				attribute.input_rate(core::gfx::vertex_input_rate::vertex);
 
 				// todo we should figure out a way to configure these in a clean maner
-				if(input.name() == "iPos") attribute.tag(psl::string{core::data::geometry::constants::POSITION});
-				if(input.name() == "iNorm") attribute.tag(psl::string{core::data::geometry::constants::NORMAL});
-				if(input.name() == "iCol") attribute.tag(psl::string{core::data::geometry::constants::COLOR});
-				if(input.name() == "iTex") attribute.tag(psl::string{core::data::geometry::constants::TEX});
-				if(input.name() == core::gfx::constants::INSTANCE_MODELMATRIX || input.name() == core::gfx::constants::INSTANCE_LEGACY_MODELMATRIX)
+				if(input.name() == "iPos" || input.name() == constants::POSITION)
+					attribute.tag(psl::string{core::data::geometry::constants::POSITION});
+				else if(input.name() == "iNorm" || input.name() == constants::NORMAL)
+					attribute.tag(psl::string{core::data::geometry::constants::NORMAL});
+				else if (input.name() == "iCol" || input.name() == constants::COLOR)
+					attribute.tag(psl::string{ core::data::geometry::constants::COLOR });
+				else if (input.name() == "iTan" || input.name() == constants::TANGENT)
+					attribute.tag(psl::string{ core::data::geometry::constants::TANGENT });
+				else if (input.name() == "iBiTan" || input.name() == constants::BITANGENT)
+					attribute.tag(psl::string{ core::data::geometry::constants::BITANGENT });
+				else if(input.name() == "iTex" || input.name() == constants::TEX)
+					attribute.tag(psl::string{core::data::geometry::constants::TEX});
+				else if(input.name() == core::gfx::constants::INSTANCE_MODELMATRIX ||
+						input.name() == core::gfx::constants::INSTANCE_LEGACY_MODELMATRIX)
 				{
 					attribute.tag(psl::string{core::gfx::constants::INSTANCE_MODELMATRIX});
 					attribute.input_rate(core::gfx::vertex_input_rate::instance);
 				}
 
-				if (input.name().size() >= instance_designator.size() && input.name().substr(0, instance_designator.size()) == instance_designator)
+				if(input.name().size() >= instance_designator.size() &&
+				   input.name().substr(0, instance_designator.size()) == instance_designator)
 				{
 					attribute.input_rate(core::gfx::vertex_input_rate::instance);
 				}
@@ -258,7 +271,8 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 					if(res) binding.buffer(res.value(), descr.name());
 				}
 				break;
-			case core::gfx::binding_type::combined_image_sampler: break;
+			case core::gfx::binding_type::combined_image_sampler:
+				break;
 
 			default:
 			{

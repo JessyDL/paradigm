@@ -104,6 +104,7 @@ void texture::load_2D()
 	m_MipLevels = (uint32_t)m_Texture2DData->levels();
 	m_Meta->mip_levels(m_MipLevels);
 
+	core::igles::log->info("loading texture {} with format {} width {} : height {}", m_Meta->ID().to_string(), m_Meta->format(), m_Meta->width(), m_Meta->height());
 
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);

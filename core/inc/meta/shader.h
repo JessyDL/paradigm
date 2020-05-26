@@ -219,6 +219,8 @@ namespace core::meta
 
 			s << m_Stage << inputs << outputs << m_Descriptors;
 
+			std::sort(std::begin(m_Descriptors.value), std::end(m_Descriptors.value), [](const auto& lhs, const auto& rhs) { return lhs.binding() < rhs.binding();  });
+
 			if(m_Attributes.size() == 0)
 			{
 				m_Attributes.reserve(inputs.value.size() + outputs.value.size());

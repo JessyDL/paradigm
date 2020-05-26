@@ -13,7 +13,6 @@ namespace psl::ecs::details
 	{
 		static_assert(std::is_trivially_copyable<T>::value);
 		static_assert(std::is_standard_layout<T>::value);
-		static_assert(std::is_trivially_destructible<T>::value);
 		return &component_key_var<T>;
 	}
 
