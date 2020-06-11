@@ -31,7 +31,7 @@ namespace psl
 				{
 					first = next(first);
 
-					if(first == last) return first;
+					if(next(first) == last) return last;
 				}
 
 				for(auto i = next(first); i != last; i = next(i))
@@ -53,6 +53,7 @@ namespace psl
 			if(distance(first, last) > 1)
 			{
 				auto pivot = ::psl::sorting::details::partition(first, last, std::forward<Pred>(pred));
+				if (pivot == last) return;
 				quick(first, pivot, std::forward<Pred>(pred));
 				quick(next(pivot), last, std::forward<Pred>(pred));
 			}
