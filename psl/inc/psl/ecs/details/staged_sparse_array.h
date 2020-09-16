@@ -8,6 +8,7 @@
 ///
 /// In general it can be unwieldy and unsafe to use without knowing the internal workings, so avoid using this unless
 /// you know what you need it for and are sure you understand its internals.
+#include <memory> // std::uninitialized_move
 
 #include "../entity.h"
 #include "psl/array.h"
@@ -42,7 +43,7 @@ namespace psl::ecs::details
 		~staged_sparse_array()
 		{
 			for (auto it = begin(0); it != end(2); ++it)
-				it->~T();
+				it->~value_type();
 		}
 
 		staged_sparse_array(const staged_sparse_array& other)	  = default;
@@ -179,11 +180,11 @@ namespace psl::ecs::details
 				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + distance, src = (T*)m_DenseData.data() + m_StageStart[2], end = src + (m_Reverse.size() - m_StageStart[2]);
 				if constexpr (std::is_move_assignable_v<T>)
 				{
-					std::move(src, end, dst);
+					std::uninitialized_move(src, end, dst);
 				}
 				else
 				{
-					std::copy(src, end, dst);
+					std::uninitialized_copy(src, end, dst);
 				}
 			}
 
@@ -271,7 +272,7 @@ namespace psl::ecs::details
 		void promote() noexcept
 		{
 			for (auto it = begin(2); it != end(2); ++it)
-				it->~T();
+				it->~value_type();
 
 			for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
 			{
@@ -398,16 +399,44 @@ namespace psl::ecs::details
 			}
 			else
 			{
-				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + 1, end = (T*)m_DenseData.data() + (m_Reverse.size() - m_StageStart[2]), src = (T*)m_DenseData.data() + m_StageStart[2];
-				if constexpr (std::is_move_assignable_v<T>)
+				auto src = (T*)m_DenseData.data() + m_StageStart[2]; // beginning removed elements;
+				auto src_end = src + m_StageSize[2] - 1;
+
+				auto dst = src + 1;
+
+				if (m_StageSize[2] > 0)
 				{
-					std::move(src, end, dst);
+					if constexpr (std::is_move_constructible_v<T>)
+						std::uninitialized_move(src_end, src_end + 1, src_end + 1);
+					else
+						std::uninitialized_copy(src_end, src_end + 1, src_end + 1);
 				}
-				else
+
+				if (m_StageSize[2] > 1)
 				{
-					std::copy(src, end, dst);
+					std::rotate(src, src + (m_StageSize[2] -1), src_end);
+				}
+
+				if (m_StageSize[2] > 0)
+				{
+					if constexpr (!std::is_trivially_destructible_v<T>)
+						src->~value_type();
 				}
 			}
+
+			if constexpr (!std::is_trivially_constructible_v<T>)
+			{
+#ifdef new
+#define STACK_NEW new
+#undef new
+#endif
+				new (reinterpret_cast<T*>(m_DenseData.data()) + m_StageStart[2]) value_type();
+#ifdef STACK_NEW
+#define new STACK_NEW
+#undef STACK_NEW
+#endif
+			}
+
 			chunk[offset] = static_cast<index_t>(m_StageStart[2]);
 			auto orig_cap = m_Reverse.capacity();
 			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), user_index);
@@ -472,25 +501,12 @@ namespace psl::ecs::details
 				}
 				else
 				{
-					auto src = (T*)m_DenseData.data(), end = src + m_DenseData.size(), dst = (T*)reg.data();
+					auto src = (T*)m_DenseData.data(), end = src + size(0, 2), dst = (T*)reg.data();
 
-
-					std::move((T*)m_DenseData.data(), (T*)m_DenseData.data() + m_DenseData.size(), (T*)reg.data());
-
-					if constexpr (std::is_move_constructible_v<T>)
-					{
-						for (auto it = src, dst_it = dst; it != end; ++it, ++dst_it)
-						{
-							new (dst_it) T{ std::move(*it) };
-						}
-					}
+					if constexpr(std::is_move_constructible_v<T>)
+						std::uninitialized_move(src, end, dst);
 					else
-					{
-						for (auto it = src, dst_it = dst; it != end; ++it, ++dst_it)
-						{
-							new (dst_it) T{ *it };
-						}
-					}
+						std::uninitialized_copy(src, end, dst);
 
 					if constexpr (!std::is_trivially_destructible_v<T>)
 					{

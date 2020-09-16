@@ -1,6 +1,7 @@
 #pragma once
 #include "fwd/resource/resource.h"
 #include "defines.h"
+#include "gfx/types.h"
 
 namespace core::meta
 {

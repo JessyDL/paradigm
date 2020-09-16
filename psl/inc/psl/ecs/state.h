@@ -523,7 +523,7 @@ namespace psl::ecs
 									   }
 								   });
 			}
-			else if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value/* &&
+			else if constexpr(/*std::is_trivially_copyable<T>::value && */std::is_standard_layout<T>::value/* &&
 							  std::is_trivially_destructible<T>::value*/)
 			{
 				static_assert(!std::is_empty_v<T>,

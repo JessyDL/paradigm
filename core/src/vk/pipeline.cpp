@@ -265,7 +265,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 		vk::PipelineRasterizationStateCreateInfo rasterizationState;
 		rasterizationState.polygonMode = (data->wireframe()) ? vk::PolygonMode::eLine : vk::PolygonMode::eFill;
 		rasterizationState.cullMode = conversion::to_vk(data->cull_mode());
-		rasterizationState.frontFace = vk::FrontFace::eCounterClockwise;
+		rasterizationState.frontFace = vk::FrontFace::eCounterClockwise; // default winding
 		rasterizationState.depthClampEnable = VK_FALSE;
 		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
 		rasterizationState.depthBiasEnable = VK_FALSE;

@@ -1,4 +1,6 @@
 #pragma once
+#include <algorithm> // std::all_of
+
 #include "psl/array.h"
 #include "psl/array_view.h"
 

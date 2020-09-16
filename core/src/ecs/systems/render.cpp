@@ -35,13 +35,13 @@ void render::tick_draws(info& info,
 		for(auto [renderable] : renderables)
 		{
 			if(renderable.bundle)
-				m_DrawGroup.add(default_layer, renderable.bundle.make_shared()).add(renderable.geometry.make_shared());
+				m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
 		}
 
 		for(auto [renderable] : broken_renderables)
 		{
 			if(!renderable.bundle) continue;
-			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle.make_shared()))
+			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle))
 			{
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}

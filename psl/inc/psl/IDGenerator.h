@@ -1,4 +1,6 @@
 ﻿#pragma once
+#include <stdexcept> // std::runtime_error
+
 #include <cstdio>  // For printf(). Remove if you don't need the PrintRanges() function (mostly for debugging anyway).
 #include <cstdint> // uint32_t
 #include <cstdlib>

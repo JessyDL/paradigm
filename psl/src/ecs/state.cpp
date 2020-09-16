@@ -142,6 +142,7 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 	}
 	else
 	{
+		bool has_entities = false;
 		for(auto& dep_pack : pack)
 		{
 			psl::array_view<entity> entities;
@@ -161,9 +162,11 @@ void state::prepare_system(std::chrono::duration<float> dTime, std::chrono::dura
 			filter_it = std::next(filter_it);
 			transform_it = std::next(transform_it);
 			if(entities.size() == 0) continue;
-
+			has_entities = true;
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
+		if (!has_entities)
+			return;
 		info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
 		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
@@ -299,26 +302,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 
 	auto offset = cInfo->entities().size();
 
-	cInfo->add(entities);
-	if(repeat)
-	{
-		for(auto e : entities)
-		{
-			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * component_size), prototype,
-						component_size);
-			m_ModifiedEntities.try_insert(e);
-		}
-	}
-	else
-	{
-		for(auto e : entities)
-		{
-			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * component_size), prototype,
-						component_size);
-			m_ModifiedEntities.try_insert(e);
-			prototype = (void*)((std::uintptr_t)prototype + component_size);
-		}
-	}
+	cInfo->add(entities, prototype, repeat);
 }
 
 

@@ -408,24 +408,26 @@ namespace psl::math
 														  const psl::tvec<precision_t, 3>& center,
 														  const psl::tvec<precision_t, 3>& up) noexcept
 	{
-		psl::tvec<precision_t, 3> const f(normalize(center - eye));
-		psl::tvec<precision_t, 3> const s(normalize(cross(f, up)));
-		psl::tvec<precision_t, 3> const u(cross(s, f));
+		psl::tvec<precision_t, 3> const z(normalize(center - eye));
+		psl::tvec<precision_t, 3> const x(normalize(cross(z, up)));
+		psl::tvec<precision_t, 3> const y(cross(x, z));
 
-		psl::tmat<precision_t, 4, 4> res{1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1};
-		res[{0, 0}] = s[0];
-		res[{1, 0}] = s[1];
-		res[{2, 0}] = s[2];
-		res[{0, 1}] = u[0];
-		res[{1, 1}] = u[1];
-		res[{2, 1}] = u[2];
-		res[{0, 2}] = -f[0];
-		res[{1, 2}] = -f[1];
-		res[{2, 2}] = -f[2];
-		res[{3, 0}] = -dot(s, eye);
-		res[{3, 1}] = -dot(u, eye);
-		res[{3, 2}] = dot(f, eye);
+		psl::tmat<precision_t, 4, 4> res{ 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1 };
+		res[{0, 0}] = x[0];
+		res[{1, 0}] = x[1];
+		res[{2, 0}] = x[2];
+		res[{0, 1}] = y[0];
+		res[{1, 1}] = y[1];
+		res[{2, 1}] = y[2];
+		res[{0, 2}] = -z[0];
+		res[{1, 2}] = -z[1];
+		res[{2, 2}] = -z[2];
+		res[{3, 0}] = -dot(x, eye);
+		res[{3, 1}] = -dot(y, eye);
+		res[{3, 2}] = dot(z, eye);
 		return res;
+
+		//return psl::tmat<precision_t, 4, 4> { x[0], y[0], z[0], 0, x[1], y[1], z[1], 0, x[2], y[2], z[2], 0, -dot(x, eye), -dot(y, eye), -dot(z, eye), 1 };
 	}
 
 

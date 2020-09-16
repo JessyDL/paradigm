@@ -52,6 +52,7 @@ namespace core::ecs::systems
 			psl::vec4 FogColor;
 			psl::vec4 viewPos;
 			psl::vec4 viewDir;
+			psl::quat viewDirQuat;
 		};
 
 		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface,

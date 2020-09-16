@@ -38,7 +38,7 @@ shader::shader(core::resource::cache& cache, const core::resource::metadata& met
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle = cache.create_using<core::ivk::shader>(metaData.uid, context->resource().get<core::ivk::context>());
+		m_VKHandle = cache.create_using<core::ivk::shader>(metaData.uid, context->resource<graphics_backend::vulkan>());
 		break;
 #endif
 	}

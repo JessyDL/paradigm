@@ -18,6 +18,7 @@ gfx/geometry.cpp
 gfx/material.cpp
 gfx/pipeline_cache.cpp
 gfx/sampler.cpp
+gfx/shader.cpp
 gfx/swapchain.cpp
 gfx/texture.cpp
 gfx/framebuffer.cpp

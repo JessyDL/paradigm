@@ -775,10 +775,10 @@ void context::init_descriptor_pool()
 {
 	// We need to tell the API the number of max. requested descriptors per type
 	std::vector<vk::DescriptorPoolSize> typeCounts = {
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 24),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 8),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 24),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 24),
+		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64),
+		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 16),
+		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64),
+		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64),
 		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64)};
 	// For additional types you need to add new entries in the type count list
 	// E.g. for two combined image samplers :

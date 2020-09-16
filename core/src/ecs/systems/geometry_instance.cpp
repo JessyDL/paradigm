@@ -25,17 +25,18 @@ geometry_instancing::geometry_instancing(psl::ecs::state& state)
 
 void geometry_instancing::dynamic_system(
 	info& info,
-	pack<const renderable, const transform, const dynamic_tag, except<dont_render_tag>,
+	pack<renderable, const transform, const dynamic_tag, except<dont_render_tag>,
 		 order_by<renderer_sort, renderable>>
 		geometry_pack)
 {
 	// todo clean up in case the last renderable from a dynamic object is despawned. The instance will not be released
 	// todo this will trash static instances as well
+	core::log->warn("todo: instance leak");
 	core::profiler.scope_begin("release_all");
 	for (auto [renderable, transform, tag] : geometry_pack)
 	{
 		if (renderable.bundle)
-			renderable.bundle.make_shared()->release_all();
+			renderable.bundle->release_all();
 	}
 	core::profiler.scope_end();
 
@@ -44,7 +45,7 @@ void geometry_instancing::dynamic_system(
 
 	for (uint32_t i = 0; i < (uint32_t)geometry_pack.size(); ++i)
 	{
-		const auto& renderer = std::get<const renderable&>(geometry_pack[i]);
+		const auto& renderer = std::get<renderable&>(geometry_pack[i]);
 		if (!renderer.bundle)
 			continue;
 		if (UniqueCombinations[renderer.bundle].find(renderer.geometry) == std::end(UniqueCombinations[renderer.bundle]))
@@ -64,7 +65,7 @@ void geometry_instancing::dynamic_system(
 		for (const auto& [geometryUID, geometryData] : unique_bundle.second)
 		{
 			const auto& renderer =
-				std::get<const renderable&>(geometry_pack[geometryData.startIndex]);
+				std::get<renderable&>(geometry_pack[geometryData.startIndex]);
 			auto bundleHandle = renderer.bundle;
 			auto geometryHandle = renderer.geometry;
 
@@ -156,7 +157,7 @@ void geometry_instancing::static_add(
 	core::profiler.scope_end();
 }
 void geometry_instancing::static_remove(info& info,
-										pack<entity, const renderable, const instance_id, psl::ecs::except<dynamic_tag>,
+										pack<entity, renderable, const instance_id, psl::ecs::except<dynamic_tag>,
 											 on_break<const renderable, const transform>>
 											geometry_pack)
 {
@@ -165,7 +166,7 @@ void geometry_instancing::static_remove(info& info,
 	core::profiler.scope_begin("release static geometry");
 	for(auto [entity, renderable, instance_id] : geometry_pack)
 	{
-		if(renderable.bundle) renderable.bundle.make_shared()->release(renderable.geometry, instance_id.id);
+		if(renderable.bundle) renderable.bundle->release(renderable.geometry, instance_id.id);
 	}
 
 	info.command_buffer.remove_components<instance_id>(geometry_pack.get<entity>());
@@ -193,14 +194,14 @@ void geometry_instancing::static_geometry_add(psl::ecs::info& info,
 
 
 void geometry_instancing::static_geometry_remove(psl::ecs::info& info,
-	psl::ecs::pack<psl::ecs::entity, const core::ecs::components::renderable, const instance_id,
+	psl::ecs::pack<psl::ecs::entity, core::ecs::components::renderable, const instance_id,
 	psl::ecs::except<core::ecs::components::transform>,
 	psl::ecs::on_remove<core::ecs::components::renderable>>
 	pack)
 {
 	for (auto [entity, renderable, instance_id] : pack)
 	{
-		if (renderable.bundle) renderable.bundle.make_shared()->release(renderable.geometry, instance_id.id);
+		if (renderable.bundle) renderable.bundle->release(renderable.geometry, instance_id.id);
 	}
 
 	info.command_buffer.remove_components<instance_id>(pack.get<entity>());

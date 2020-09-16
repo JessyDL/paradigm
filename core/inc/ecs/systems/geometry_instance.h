@@ -46,7 +46,7 @@ namespace core::ecs::systems
 	  private:
 		void
 		dynamic_system(psl::ecs::info& info,
-					   psl::ecs::pack<const core::ecs::components::renderable, const core::ecs::components::transform,
+					   psl::ecs::pack<core::ecs::components::renderable, const core::ecs::components::transform,
 									  const core::ecs::components::dynamic_tag,
 									  psl::ecs::except<core::ecs::components::dont_render_tag>,
 									  psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>>
@@ -61,7 +61,7 @@ namespace core::ecs::systems
 				psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>>
 				geometry_pack);
 		void static_remove(psl::ecs::info& info,
-						   psl::ecs::pack<psl::ecs::entity, const core::ecs::components::renderable, const instance_id,
+						   psl::ecs::pack<psl::ecs::entity, core::ecs::components::renderable, const instance_id,
 										  psl::ecs::except<core::ecs::components::dynamic_tag>,
 										  psl::ecs::on_break<const core::ecs::components::renderable,
 															 const core::ecs::components::transform>>
@@ -75,7 +75,7 @@ namespace core::ecs::systems
 
 
 		void static_geometry_remove(psl::ecs::info& info,
-			psl::ecs::pack<psl::ecs::entity, const core::ecs::components::renderable, const instance_id,
+			psl::ecs::pack<psl::ecs::entity, core::ecs::components::renderable, const instance_id,
 			psl::ecs::except<core::ecs::components::transform>,
 			psl::ecs::on_remove<core::ecs::components::renderable>>
 			pack);
