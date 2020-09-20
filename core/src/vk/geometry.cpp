@@ -46,7 +46,7 @@ void geometry::clear()
 	}
 	m_Bindings.clear();
 	// same as the earlier comment for geometry buffer
-	if (m_IndicesBuffer && m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+	if (m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
 }
 void geometry::recreate(core::resource::handle<core::data::geometry> data)
 {
@@ -69,10 +69,13 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 		core::ivk::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
 	}
+	assert(m_Data->vertex_streams().size() > 0);
+	m_Vertices = std::begin(m_Data->vertex_streams())->second.size();
 	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
 	for (const auto& stream : m_Data->vertex_streams())
 	{
+		assert(m_Vertices == stream.second.size());
 		auto& instr = instructions.emplace_back();
 		instr.size = stream.second.bytesize();
 		instr.source = (std::uintptr_t)(stream.second.cdata());
@@ -119,6 +122,8 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 		m_IndicesSegment = segments[i].first;
 		m_IndicesSubRange = segments[i].second;
 	}
+
+	m_Triangles = (m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t)) / 3u;
 
 	m_GeometryBuffer->commit(instructions);
 }
@@ -185,4 +190,18 @@ void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& materi
 
 	buffer.bindIndexBuffer(m_IndicesBuffer->gpu_buffer(), m_IndicesSegment.range().begin + m_IndicesSubRange.begin,
 						   INDEX_TYPE);
+}
+
+
+size_t geometry::vertices() const noexcept
+{
+	return m_Vertices;
+}
+size_t geometry::triangles() const noexcept
+{
+	return m_Vertices;
+}
+size_t geometry::indices() const noexcept
+{
+	return m_Vertices * 3;
 }

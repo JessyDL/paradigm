@@ -61,6 +61,10 @@ namespace core::ivk
 		/// \returns the geometry data used by this instance.
 		core::resource::handle<core::data::geometry> data() const noexcept { return m_Data; };
 
+		size_t vertices() const noexcept;
+		size_t triangles() const noexcept;
+		size_t indices() const noexcept;
+
 	  private:
 		  void clear();
 		core::resource::handle<core::ivk::context> m_Context;
@@ -71,5 +75,7 @@ namespace core::ivk
 		memory::range m_IndicesSubRange;
 		std::vector<binding> m_Bindings;
 		const psl::UID& m_UID;
+		size_t m_Vertices{ 0 };
+		size_t m_Triangles{ 0 };
 	};
 } // namespace core::ivk

@@ -75,10 +75,13 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
 	}
+	assert(data->vertex_streams().size() > 0);
+	m_Vertices = std::begin(data->vertex_streams())->second.size();
 	std::vector<core::gfx::memory_copy> instructions;
 	auto current_segment = std::begin(segments);
 	for (const auto& stream : data->vertex_streams())
 	{
+		assert(m_Vertices == stream.second.size());
 		auto& instr = instructions.emplace_back();
 		instr.size = stream.second.bytesize();
 		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
@@ -120,6 +123,8 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 		m_IndicesSegment = current_segment->first;
 		m_IndicesSubRange = current_segment->second;
 	}
+
+	m_Triangles = (m_IndicesSubRange.size() * sizeof(core::data::geometry::index_size_t)) / 3u;
 
 	m_GeometryBuffer->set(instructions);
 	error = glGetError();
@@ -247,4 +252,18 @@ bool geometry::compatible(const core::igles::material& material) const noexcept
 		}
 	}
 	return true;
+}
+
+
+size_t geometry::vertices() const noexcept
+{
+	return m_Vertices;
+}
+size_t geometry::indices() const noexcept
+{
+	return m_Triangles * 3;
+}
+size_t geometry::triangles() const noexcept
+{
+	return m_Triangles;
 }

@@ -89,3 +89,54 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 	}
 #endif
 }
+
+size_t geometry::triangles() const noexcept
+{
+#ifdef PE_GLES
+	if (m_GLESHandle)
+	{
+		return m_GLESHandle->triangles();
+	}
+#endif
+#ifdef PE_VULKAN
+	if (m_VKHandle)
+	{
+		return m_VKHandle->triangles();
+	}
+#endif
+	return 0u;
+}
+
+size_t geometry::indices() const noexcept
+{
+#ifdef PE_GLES
+	if (m_GLESHandle)
+	{
+		return m_GLESHandle->indices();
+	}
+#endif
+#ifdef PE_VULKAN
+	if (m_VKHandle)
+	{
+		return m_VKHandle->indices();
+	}
+#endif
+	return 0u;
+}
+
+size_t geometry::vertices() const noexcept
+{
+#ifdef PE_GLES
+	if (m_GLESHandle)
+	{
+		return m_GLESHandle->vertices();
+	}
+#endif
+#ifdef PE_VULKAN
+	if (m_VKHandle)
+	{
+		return m_VKHandle->vertices();
+	}
+#endif
+	return 0u;
+}

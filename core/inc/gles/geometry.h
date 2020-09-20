@@ -47,6 +47,12 @@ namespace core::igles
 
 		void bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount = 0);
 		bool compatible(const core::igles::material& material) const noexcept;
+
+
+		size_t vertices() const noexcept;
+		size_t indices() const noexcept;
+		size_t triangles() const noexcept;
+
 	  private:
 		  void clear();
 		psl::UID m_UID;
@@ -57,5 +63,8 @@ namespace core::igles
 
 		std::unordered_map<psl::UID, unsigned int> m_VAOs;
 		psl::array<binding> m_Bindings;
+
+		size_t m_Vertices{ 0 };
+		size_t m_Triangles{ 0 };
 	};
 } // namespace core::igles

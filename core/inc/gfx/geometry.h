@@ -47,6 +47,10 @@ namespace core::gfx
 #endif
 		};
 
+		size_t vertices() const noexcept;
+		size_t indices() const noexcept;
+		size_t triangles() const noexcept;
+
 	  private:
 		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
 #ifdef PE_VULKAN
