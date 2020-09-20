@@ -65,6 +65,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				}
 				else
 				{
+					// todo: add error sampler as fallback when no sampler can be found
 					core::gfx::log->error(
 						"ivk::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
 						"cache.",
@@ -78,6 +79,7 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				}
 				else
 				{
+					// todo: add error texture as fallback when no texture can be found
 					core::gfx::log->error(
 						"ivk::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
 						"cache.",
