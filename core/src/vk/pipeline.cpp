@@ -170,8 +170,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	// todo: this should be removed in favour of a generic check for push_constants in the shader meta
 	for(const auto& stage : data.value().stages())
 	{
-		if (stage.shader_stage() == core::gfx::shader_stage::compute)
-			m_BindPoint = vk::PipelineBindPoint::eCompute;
+		if(stage.shader_stage() == core::gfx::shader_stage::compute) m_BindPoint = vk::PipelineBindPoint::eCompute;
 
 		for(auto& binding : stage.bindings())
 		{
@@ -207,10 +206,10 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 	// Load shaders
 	// Shaders are loaded from the SPIR-V format, which can be generated from glsl
 	std::vector<vk::PipelineShaderStageCreateInfo> shaderStages;
-	for (auto& stage : data->stages())
+	for(auto& stage : data->stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if ((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
+		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
 		{
 			shaderStages.push_back(shader_handle->pipeline().value());
 		}
@@ -222,18 +221,19 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 		}
 	}
 
-	core::ivk::log->info("creating a pipeline layout with a {} bindpoint", ((m_BindPoint == vk::PipelineBindPoint::eCompute) ? "compute": "graphics"));
+	core::ivk::log->info("creating a pipeline layout with a {} bindpoint",
+						 ((m_BindPoint == vk::PipelineBindPoint::eCompute) ? "compute" : "graphics"));
 
-	if (m_BindPoint == vk::PipelineBindPoint::eCompute)
+	if(m_BindPoint == vk::PipelineBindPoint::eCompute)
 	{
 		assert(shaderStages.size() == 1 && "expecting only a single compute in the shader stages");
 
 		vk::ComputePipelineCreateInfo pipelineCreateInfo{};
 		pipelineCreateInfo.layout = m_PipelineLayout;
-		pipelineCreateInfo.stage = shaderStages[0];
+		pipelineCreateInfo.stage  = shaderStages[0];
 
-		if (auto pipeline = 
-			m_Context->device().createComputePipeline(m_PipelineCache, pipelineCreateInfo); utility::vulkan::check(pipeline))
+		if(auto pipeline = m_Context->device().createComputePipeline(m_PipelineCache, pipelineCreateInfo);
+		   utility::vulkan::check(pipeline))
 		{
 			m_Pipeline = pipeline.value;
 		}
@@ -253,7 +253,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 		pipelineCreateInfo.renderPass = renderPass;
 
 		pipelineCreateInfo.stageCount = (uint32_t)shaderStages.size();
-		pipelineCreateInfo.pStages = shaderStages.data();
+		pipelineCreateInfo.pStages	  = shaderStages.data();
 
 		// Vertex input state
 		// Describes the topoloy used with this pipeline
@@ -263,13 +263,13 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 
 		// Rasterization state
 		vk::PipelineRasterizationStateCreateInfo rasterizationState;
-		rasterizationState.polygonMode = (data->wireframe()) ? vk::PolygonMode::eLine : vk::PolygonMode::eFill;
-		rasterizationState.cullMode = conversion::to_vk(data->cull_mode());
-		rasterizationState.frontFace = vk::FrontFace::eCounterClockwise; // default winding
+		rasterizationState.polygonMode		= (data->wireframe()) ? vk::PolygonMode::eLine : vk::PolygonMode::eFill;
+		rasterizationState.cullMode			= conversion::to_vk(data->cull_mode());
+		rasterizationState.frontFace		= vk::FrontFace::eCounterClockwise; // default winding
 		rasterizationState.depthClampEnable = VK_FALSE;
 		rasterizationState.rasterizerDiscardEnable = VK_FALSE;
-		rasterizationState.depthBiasEnable = VK_FALSE;
-		rasterizationState.lineWidth = 1.0f;
+		rasterizationState.depthBiasEnable		   = VK_FALSE;
+		rasterizationState.lineWidth			   = 1.0f;
 
 		// Color blend state
 		// Describes blend modes and color masks
@@ -282,41 +282,41 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 
 		const auto& blendState = data->blend_states();
 
-		for (size_t i = 0; i < std::min(blendState.size(), (size_t)attachmentCount); ++i)
+		for(size_t i = 0; i < std::min(blendState.size(), (size_t)attachmentCount); ++i)
 		{
-			blendAttachmentState[i].blendEnable = blendState[i].enabled();
+			blendAttachmentState[i].blendEnable	   = blendState[i].enabled();
 			blendAttachmentState[i].colorWriteMask = conversion::to_vk(blendState[i].color_components());
-			if (blendAttachmentState[i].blendEnable)
+			if(blendAttachmentState[i].blendEnable)
 			{
 				blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(blendState[i].color_blend_src());
 				blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(blendState[i].color_blend_dst());
-				blendAttachmentState[i].colorBlendOp = conversion::to_vk(blendState[i].color_blend_op());
+				blendAttachmentState[i].colorBlendOp		= conversion::to_vk(blendState[i].color_blend_op());
 
 				blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_src());
 				blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(blendState[i].alpha_blend_dst());
-				blendAttachmentState[i].alphaBlendOp = conversion::to_vk(blendState[i].alpha_blend_op());
+				blendAttachmentState[i].alphaBlendOp		= conversion::to_vk(blendState[i].alpha_blend_op());
 			}
 		}
 
 		// fill in the remaining with the default blend state;
 		core::data::material::blendstate def_state;
-		for (size_t i = blendState.size(); i < attachmentCount; ++i)
+		for(size_t i = blendState.size(); i < attachmentCount; ++i)
 		{
-			blendAttachmentState[i].blendEnable = def_state.enabled();
+			blendAttachmentState[i].blendEnable	   = def_state.enabled();
 			blendAttachmentState[i].colorWriteMask = conversion::to_vk(def_state.color_components());
-			if (blendAttachmentState[i].blendEnable)
+			if(blendAttachmentState[i].blendEnable)
 			{
 				blendAttachmentState[i].srcColorBlendFactor = conversion::to_vk(def_state.color_blend_src());
 				blendAttachmentState[i].dstColorBlendFactor = conversion::to_vk(def_state.color_blend_dst());
-				blendAttachmentState[i].colorBlendOp = conversion::to_vk(def_state.color_blend_op());
+				blendAttachmentState[i].colorBlendOp		= conversion::to_vk(def_state.color_blend_op());
 
 				blendAttachmentState[i].srcAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_src());
 				blendAttachmentState[i].dstAlphaBlendFactor = conversion::to_vk(def_state.alpha_blend_dst());
-				blendAttachmentState[i].alphaBlendOp = conversion::to_vk(def_state.alpha_blend_op());
+				blendAttachmentState[i].alphaBlendOp		= conversion::to_vk(def_state.alpha_blend_op());
 			}
 		}
 		colorBlendState.attachmentCount = attachmentCount;
-		colorBlendState.pAttachments = blendAttachmentState.data();
+		colorBlendState.pAttachments	= blendAttachmentState.data();
 
 		// Viewport state
 		vk::PipelineViewportStateCreateInfo viewportState;
@@ -337,7 +337,7 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 		dynamicStateEnables.push_back(vk::DynamicState::eDepthBias);
 
 		vk::PipelineDynamicStateCreateInfo dynamicState;
-		dynamicState.pDynamicStates = dynamicStateEnables.data();
+		dynamicState.pDynamicStates	   = dynamicStateEnables.data();
 		dynamicState.dynamicStateCount = (uint32_t)dynamicStateEnables.size();
 
 		// Depth and stencil state
@@ -345,15 +345,15 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 		vk::PipelineDepthStencilStateCreateInfo depthStencilState;
 		// Basic depth compare setup with depth writes and depth test enabled
 		// No stencil used
-		depthStencilState.depthTestEnable = data->depth_test();
-		depthStencilState.depthWriteEnable = data->depth_write();
-		depthStencilState.depthCompareOp = vk::CompareOp::eLessOrEqual;
+		depthStencilState.depthTestEnable		= data->depth_test();
+		depthStencilState.depthWriteEnable		= data->depth_write();
+		depthStencilState.depthCompareOp		= vk::CompareOp::eLessOrEqual;
 		depthStencilState.depthBoundsTestEnable = VK_FALSE;
-		depthStencilState.back.failOp = vk::StencilOp::eKeep;
-		depthStencilState.back.passOp = vk::StencilOp::eKeep;
-		depthStencilState.back.compareOp = vk::CompareOp::eAlways;
-		depthStencilState.stencilTestEnable = VK_FALSE;
-		depthStencilState.front = depthStencilState.back;
+		depthStencilState.back.failOp			= vk::StencilOp::eKeep;
+		depthStencilState.back.passOp			= vk::StencilOp::eKeep;
+		depthStencilState.back.compareOp		= vk::CompareOp::eAlways;
+		depthStencilState.stencilTestEnable		= VK_FALSE;
+		depthStencilState.front					= depthStencilState.back;
 
 		// Multi sampling state
 		vk::PipelineMultisampleStateCreateInfo multisampleState;
@@ -364,19 +364,19 @@ pipeline::pipeline(core::resource::cache& cache, const core::resource::metadata&
 
 		// Assign states
 		// Assign pipeline state create information
-		pipelineCreateInfo.pVertexInputState = &VertexInputState;
+		pipelineCreateInfo.pVertexInputState   = &VertexInputState;
 		pipelineCreateInfo.pInputAssemblyState = &inputAssemblyState;
 		pipelineCreateInfo.pRasterizationState = &rasterizationState;
-		pipelineCreateInfo.pColorBlendState = &colorBlendState;
-		pipelineCreateInfo.pMultisampleState = &multisampleState;
-		pipelineCreateInfo.pViewportState = &viewportState;
-		pipelineCreateInfo.pDepthStencilState = &depthStencilState;
-		pipelineCreateInfo.renderPass = renderPass;
-		pipelineCreateInfo.pDynamicState = &dynamicState;
+		pipelineCreateInfo.pColorBlendState	   = &colorBlendState;
+		pipelineCreateInfo.pMultisampleState   = &multisampleState;
+		pipelineCreateInfo.pViewportState	   = &viewportState;
+		pipelineCreateInfo.pDepthStencilState  = &depthStencilState;
+		pipelineCreateInfo.renderPass		   = renderPass;
+		pipelineCreateInfo.pDynamicState	   = &dynamicState;
 
 		// Create rendering pipeline
-		if (!utility::vulkan::check(
-			m_Context->device().createGraphicsPipelines(m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline)))
+		if(!utility::vulkan::check(m_Context->device().createGraphicsPipelines(m_PipelineCache, 1, &pipelineCreateInfo,
+																			   nullptr, &m_Pipeline)))
 		{
 			debug_break();
 		}
@@ -425,6 +425,13 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				case core::gfx::binding_type::combined_image_sampler:
 				{
 					auto tex_handle = cache.find<core::ivk::texture>(binding.texture());
+					if(!binding.texture())
+					{
+						core::ivk::log->error(
+							"Fatal error, tried to load a non-existing UID into the pipeline related to the material");
+						m_IsValid = false;
+						return false;
+					}
 
 					if(tex_handle.state() != core::resource::state::loaded)
 					{
@@ -493,8 +500,9 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 							m_IsComplete = false;
 						}
 
-						auto& bufferInfo   = m_TrackedBufferInfos[m_TrackedBufferInfos.size() - 1];
-						bufferInfo->buffer = buffer_handle->buffer->resource< gfx::graphics_backend::vulkan>()->gpu_buffer();
+						auto& bufferInfo = m_TrackedBufferInfos[m_TrackedBufferInfos.size() - 1];
+						bufferInfo->buffer =
+							buffer_handle->buffer->resource<gfx::graphics_backend::vulkan>()->gpu_buffer();
 						bufferInfo->offset = 0;
 						// todo this lookup can be improved
 						bufferInfo->range = get_range(m_Context.value(), *shader_handle.meta(), binding,
@@ -709,7 +717,8 @@ bool pipeline::completeness_check() noexcept
 bool pipeline::bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamicOffsets)
 {
 	buffer.bindPipeline(m_BindPoint, m_Pipeline);
-	buffer.bindDescriptorSets(m_BindPoint, m_PipelineLayout, 0, 1,& m_DescriptorSet, dynamicOffsets.size(), dynamicOffsets.data());
+	buffer.bindDescriptorSets(m_BindPoint, m_PipelineLayout, 0, 1, &m_DescriptorSet, dynamicOffsets.size(),
+							  dynamicOffsets.data());
 
 	return true;
 }
