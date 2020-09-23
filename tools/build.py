@@ -55,7 +55,7 @@ class Paradigm(object):
                             help="Override for the build directory, this is relative to the root", dest="build_dir")
         build_arguments.add_argument("--project_dir", const="project_files", default="project_files", nargs='?', 
                             help="Override for the project files directory, this is relative to the root", dest="project_dir")
-        build_arguments.add_argument("--vulkan", const="1.2.148.1", default="1.2.148.1", nargs='?', 
+        build_arguments.add_argument("--vulkan", const="1.2.148", default="1.2.148", nargs='?', 
                             help="vulkan version to use", dest="vk_version")
         build_arguments.add_argument("--build_config", const="Release", default="Release", nargs='?',
                             help="build configuration to use when the build flag is true", dest="build_config")
