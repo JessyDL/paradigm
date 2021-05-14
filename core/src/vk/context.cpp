@@ -154,7 +154,7 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	assert_debug_break(VERSION_MINOR < std::pow(2, 10));
 	assert_debug_break(VERSION_PATCH < std::pow(2, 12));
 	appInfo.engineVersion = (((VERSION_MAJOR) << 22) | ((VERSION_MINOR) << 12) | (VERSION_PATCH));
-	appInfo.apiVersion	  = VK_VERSION_LATEST_PATCH;
+	appInfo.apiVersion	  = VK_API_VERSION_LATEST;
 
 	vk::InstanceCreateInfo instanceCI;
 	instanceCI.pApplicationInfo = &appInfo;
@@ -795,8 +795,8 @@ void context::init_descriptor_pool()
 
 void context::deinit_descriptor_pool() { m_Device.destroyDescriptorPool(m_DescriptorPool); }
 
-vk::Bool32 context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties, uint32_t* typeIndex) const
-	noexcept
+vk::Bool32 context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties,
+								uint32_t* typeIndex) const noexcept
 {
 	for(uint32_t i = 0; i < 32; i++)
 	{
