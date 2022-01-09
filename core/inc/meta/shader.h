@@ -30,14 +30,16 @@ namespace core::meta
 			uint32_t offset() const noexcept { return m_Offset.value; }
 			void offset(uint32_t value) noexcept { m_Offset.value = value; }
 
+			// \brief returns unique values present in the member (i.e. vec4 would return count 4)
 			uint32_t count() const noexcept { return m_Count.value; }
 			void count(uint32_t value) noexcept { m_Count.value = value; }
 
+			// \brief returns bytesize between unique member components
 			uint32_t stride() const noexcept { return m_Stride.value; }
 			void stride(uint32_t value) noexcept { m_Stride.value = value; }
 
+			// \brief returns the calculation of stride() * count() of the member
 			size_t size() const noexcept { return (size_t)stride() * count(); }
-			// void size(size_t value) noexcept { m_Size.value = value; }
 
 			psl::array_view<member> members() const noexcept { return m_Members.value; }
 			void members(psl::array<member> value) noexcept { m_Members.value = std::move(value); }
