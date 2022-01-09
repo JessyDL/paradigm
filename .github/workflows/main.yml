@@ -9,7 +9,7 @@ jobs:
       matrix:
         graphics: [vulkan, vulkan gles]
     name: windows
-    runs-on: windows-latest
+    runs-on: windows-2022
     steps:
     - uses: actions/checkout@v1
     - name: setup dependencies
