@@ -1,11 +1,11 @@
 #pragma once
+#include "meta/shader.h"
+#include "psl/IDGenerator.h"
 #include "psl/array.h"
-#include "resource/resource.hpp"
+#include "psl/memory/segment.h"
 #include "psl/meta.h"
 #include "psl/sparse_array.h"
-#include "psl/IDGenerator.h"
-#include "psl/memory/segment.h"
-#include "meta/shader.h"
+#include "resource/resource.hpp"
 
 namespace std
 {
@@ -13,7 +13,7 @@ namespace std
 	template <typename T>
 	struct hash;
 #endif
-} // namespace std
+}	 // namespace std
 
 namespace core::gfx
 {
@@ -21,7 +21,7 @@ namespace core::gfx
 	struct shader_buffer_binding;
 	class geometry;
 	class material;
-} // namespace core::gfx
+}	 // namespace core::gfx
 
 namespace core::gfx::details::instance
 {
@@ -33,8 +33,8 @@ namespace core::gfx::details::instance
 			{
 				return /*size_of_element == b.size_of_element && */ name == b.name;
 			}
-			psl::string name{};
-			uint32_t size_of_element{0};
+			psl::string name {};
+			uint32_t size_of_element {0};
 		};
 
 		bool operator==(const binding& b) const noexcept { return description == b.description; }
@@ -44,17 +44,17 @@ namespace core::gfx::details::instance
 
 	struct object final
 	{
-		object(psl::UID uid) : geometry(uid), id_generator(0){};
-		object(psl::UID uid, uint32_t capacity) : geometry(uid), id_generator(capacity){};
+		object(psl::UID uid) : geometry(uid), id_generator(0) {};
+		object(psl::UID uid, uint32_t capacity) : geometry(uid), id_generator(capacity) {};
 
 		bool operator==(const object& rhs) const noexcept { return rhs.geometry == geometry; }
 
-		const psl::UID geometry; // Defines which geometry this object maps to
+		const psl::UID geometry;	// Defines which geometry this object maps to
 		psl::generator<uint32_t> id_generator;
 		psl::array<binding::header> description;
 		psl::array<memory::segment> data;
 	};
-} // namespace core::gfx::details::instance
+}	 // namespace core::gfx::details::instance
 
 
 namespace std
@@ -64,9 +64,9 @@ namespace std
 	{
 		std::size_t operator()(const core::gfx::details::instance::object& s) const noexcept
 		{
-			return std::hash<psl::UID>{}(s.geometry);
+			return std::hash<psl::UID> {}(s.geometry);
 		}
-		std::size_t operator()(const psl::UID& s) const noexcept { return std::hash<psl::UID>{}(s); }
+		std::size_t operator()(const psl::UID& s) const noexcept { return std::hash<psl::UID> {}(s); }
 	};
 
 	template <>
@@ -74,7 +74,7 @@ namespace std
 	{
 		std::size_t operator()(const core::gfx::details::instance::binding::header& s) const noexcept
 		{
-			std::size_t seed = std::hash<psl::string>{}(s.name);
+			std::size_t seed = std::hash<psl::string> {}(s.name);
 			// seed ^= (uint64_t)s.size_of_element + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			return seed;
 		}
@@ -85,10 +85,10 @@ namespace std
 	{
 		std::size_t operator()(const core::gfx::details::instance::binding& s) const noexcept
 		{
-			return std::hash<core::gfx::details::instance::binding::header>{}(s.description);
+			return std::hash<core::gfx::details::instance::binding::header> {}(s.description);
 		}
 	};
-} // namespace std
+}	 // namespace std
 
 
 namespace core::gfx::details::instance
@@ -107,10 +107,12 @@ namespace core::gfx::details::instance
 			size_t size;
 			memory::segment segment;
 		};
+
 	  public:
-		  data() = default;
-		  ~data();
-		data(core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept;
+		data() = default;
+		~data();
+		data(core::resource::handle<core::gfx::buffer> vertexBuffer,
+			 core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept;
 		void add(core::resource::handle<core::gfx::material> material);
 		std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry> uid,
 													   uint32_t count = 1);
@@ -123,9 +125,9 @@ namespace core::gfx::details::instance
 																	psl::string_view name) const noexcept;
 		uint32_t count(core::resource::tag<core::gfx::geometry> uid) const noexcept;
 
-		psl::array<std::pair<size_t, std::uintptr_t>> bindings(core::resource::tag<core::gfx::material> material,
-															   core::resource::tag<core::gfx::geometry> geometry) const
-			noexcept;
+		psl::array<std::pair<size_t, std::uintptr_t>>
+		bindings(core::resource::tag<core::gfx::material> material,
+				 core::resource::tag<core::gfx::geometry> geometry) const noexcept;
 
 		core::resource::handle<core::gfx::buffer> vertex_buffer() const noexcept { return m_VertexInstanceBuffer; }
 		core::resource::handle<core::gfx::buffer> material_buffer() const noexcept;
@@ -134,8 +136,8 @@ namespace core::gfx::details::instance
 		bool clear(core::resource::tag<core::gfx::geometry> geometry) noexcept;
 		bool clear() noexcept;
 
-		bool set(core::resource::tag<core::gfx::material> material, const void* data, size_t size,
-				 size_t offset) noexcept;
+		bool
+		set(core::resource::tag<core::gfx::material> material, const void* data, size_t size, size_t offset) noexcept;
 
 		/// \returns the offset of the material data's member.
 		/// \remark nested declarations (like struct within binding), must be seperated by a '.', so that the chain is
@@ -145,22 +147,23 @@ namespace core::gfx::details::instance
 
 
 		/**
-		* \brief bind the given material's instance data (if present).
-		* \returns true if there was instance data found, otherwise propogates lower failure.
-		*/
+		 * \brief bind the given material's instance data (if present).
+		 * \returns true if there was instance data found, otherwise propogates lower failure.
+		 */
 		bool bind_material(core::resource::handle<core::gfx::material> material);
 
 		/*
-		* \brief returns true if the material has instance data.
-		*/
+		 * \brief returns true if the material has instance data.
+		 */
 		bool has_data(core::resource::handle<core::gfx::material> material) const noexcept;
+
 	  private:
-		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;	   // <material, bindings[]>
-		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings; // unique binding and usage count
-		std::unordered_map<psl::UID, object> m_InstanceData;			   // <geometry, object>
-		std::unordered_map<psl::UID, material_instance_data> m_MaterialInstanceData{};
-		psl::array<size_t> m_MaterialDataSizes{};
+		std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;		  // <material, bindings[]>
+		psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings;	  // unique binding and usage count
+		std::unordered_map<psl::UID, object> m_InstanceData;				  // <geometry, object>
+		std::unordered_map<psl::UID, material_instance_data> m_MaterialInstanceData {};
+		psl::array<size_t> m_MaterialDataSizes {};
 		core::resource::handle<core::gfx::buffer> m_VertexInstanceBuffer;
 		core::resource::handle<core::gfx::shader_buffer_binding> m_MaterialInstanceBuffer;
 	};
-} // namespace core::gfx::details::instance
+}	 // namespace core::gfx::details::instance

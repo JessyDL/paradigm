@@ -1,11 +1,11 @@
 #pragma once
-#include "fwd/resource/resource.h"
-#include "resource/handle.h"
-#include "fwd/gfx/texture.h"
 #include "fwd/gfx/buffer.h"
 #include "fwd/gfx/compute.h"
-#include "psl/static_array.h"
+#include "fwd/gfx/texture.h"
+#include "fwd/resource/resource.h"
 #include "psl/array.h"
+#include "psl/static_array.h"
+#include "resource/handle.h"
 
 namespace core::gfx
 {
@@ -24,8 +24,9 @@ namespace core::gfx
 					psl::array<core::resource::handle<core::gfx::buffer>> buffers);*/
 
 		void dispatch();
+
 	  private:
-		psl::static_array<uint32_t, 3> m_DispatchSize{512, 512, 1};
+		psl::static_array<uint32_t, 3> m_DispatchSize {512, 512, 1};
 		core::resource::handle<core::gfx::compute> m_Compute;
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

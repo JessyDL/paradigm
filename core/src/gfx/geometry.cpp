@@ -1,6 +1,6 @@
 #include "gfx/geometry.h"
-#include "gfx/context.h"
 #include "gfx/buffer.h"
+#include "gfx/context.h"
 
 #ifdef PE_GLES
 #include "gles/geometry.h"
@@ -14,35 +14,42 @@ using namespace core::gfx;
 using namespace core::resource;
 
 #ifdef PE_VULKAN
-geometry::geometry(core::resource::handle<core::ivk::geometry>& handle)
-	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+geometry::geometry(core::resource::handle<core::ivk::geometry>& handle) :
+	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-geometry::geometry(core::resource::handle<core::igles::geometry>& handle)
-	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+geometry::geometry(core::resource::handle<core::igles::geometry>& handle) :
+	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   core::resource::handle<context> context, core::resource::handle<core::data::geometry> data,
-				   core::resource::handle<buffer> geometryBuffer, core::resource::handle<buffer> indicesBuffer)
-	: m_Backend(context->backend())
+geometry::geometry(core::resource::cache& cache,
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   core::resource::handle<context> context,
+				   core::resource::handle<core::data::geometry> data,
+				   core::resource::handle<buffer> geometryBuffer,
+				   core::resource::handle<buffer> indicesBuffer) :
+	m_Backend(context->backend())
 {
 	switch(m_Backend)
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_GLESHandle = cache.create_using<core::igles::geometry>(metaData.uid, data,
+		m_GLESHandle = cache.create_using<core::igles::geometry>(metaData.uid,
+																 data,
 																 geometryBuffer->resource<graphics_backend::gles>(),
 																 indicesBuffer->resource<graphics_backend::gles>());
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle = cache.create_using<core::ivk::geometry>(
-			metaData.uid, context->resource<graphics_backend::vulkan>(), data,
-			geometryBuffer->resource<graphics_backend::vulkan>(), indicesBuffer->resource<graphics_backend::vulkan>());
+		m_VKHandle = cache.create_using<core::ivk::geometry>(metaData.uid,
+															 context->resource<graphics_backend::vulkan>(),
+															 data,
+															 geometryBuffer->resource<graphics_backend::vulkan>(),
+															 indicesBuffer->resource<graphics_backend::vulkan>());
 		break;
 #endif
 	}
@@ -75,8 +82,8 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 	if(m_GLESHandle && geometryBuffer->resource<graphics_backend::gles>() &&
 	   indicesBuffer->resource<graphics_backend::gles>())
 	{
-		m_GLESHandle->recreate(data, geometryBuffer->resource<graphics_backend::gles>(),
-							   indicesBuffer->resource<graphics_backend::gles>());
+		m_GLESHandle->recreate(
+		  data, geometryBuffer->resource<graphics_backend::gles>(), indicesBuffer->resource<graphics_backend::gles>());
 	}
 
 #endif
@@ -84,7 +91,8 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 	if(m_VKHandle && geometryBuffer->resource<graphics_backend::vulkan>() &&
 	   indicesBuffer->resource<graphics_backend::vulkan>())
 	{
-		m_VKHandle->recreate(data, geometryBuffer->resource<graphics_backend::vulkan>(),
+		m_VKHandle->recreate(data,
+							 geometryBuffer->resource<graphics_backend::vulkan>(),
 							 indicesBuffer->resource<graphics_backend::vulkan>());
 	}
 #endif
@@ -93,13 +101,13 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 size_t geometry::triangles() const noexcept
 {
 #ifdef PE_GLES
-	if (m_GLESHandle)
+	if(m_GLESHandle)
 	{
 		return m_GLESHandle->triangles();
 	}
 #endif
 #ifdef PE_VULKAN
-	if (m_VKHandle)
+	if(m_VKHandle)
 	{
 		return m_VKHandle->triangles();
 	}
@@ -110,13 +118,13 @@ size_t geometry::triangles() const noexcept
 size_t geometry::indices() const noexcept
 {
 #ifdef PE_GLES
-	if (m_GLESHandle)
+	if(m_GLESHandle)
 	{
 		return m_GLESHandle->indices();
 	}
 #endif
 #ifdef PE_VULKAN
-	if (m_VKHandle)
+	if(m_VKHandle)
 	{
 		return m_VKHandle->indices();
 	}
@@ -127,13 +135,13 @@ size_t geometry::indices() const noexcept
 size_t geometry::vertices() const noexcept
 {
 #ifdef PE_GLES
-	if (m_GLESHandle)
+	if(m_GLESHandle)
 	{
 		return m_GLESHandle->vertices();
 	}
 #endif
 #ifdef PE_VULKAN
-	if (m_VKHandle)
+	if(m_VKHandle)
 	{
 		return m_VKHandle->vertices();
 	}

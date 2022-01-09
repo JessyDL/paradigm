@@ -34,4 +34,4 @@ namespace core::gfx
 		using type = core::igles::program_cache;
 	};
 #endif
-} // namespace core::gfx
+}	 // namespace core::gfx

@@ -1,8 +1,8 @@
 #pragma once
 #include "fwd/resource/resource.h"
+#include "psl/array.h"
 #include "psl/memory/range.h"
 #include "psl/memory/segment.h"
-#include "psl/array.h"
 #include "psl/ustring.h"
 #include "resource/handle.h"
 #include <unordered_map>
@@ -26,7 +26,9 @@ namespace core::igles
 		};
 
 	  public:
-		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		geometry(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
 				 core::resource::handle<core::data::geometry> data,
 				 core::resource::handle<core::igles::buffer> vertexBuffer,
 				 core::resource::handle<core::igles::buffer> indexBuffer);
@@ -34,8 +36,8 @@ namespace core::igles
 
 		void recreate(core::resource::handle<core::data::geometry> data);
 		void recreate(core::resource::handle<core::data::geometry> data,
-			core::resource::handle<core::igles::buffer> vertexBuffer,
-			core::resource::handle<core::igles::buffer> indexBuffer);
+					  core::resource::handle<core::igles::buffer> vertexBuffer,
+					  core::resource::handle<core::igles::buffer> indexBuffer);
 		/// \returns wether this geometry can be combined with the given material (i.e. it has
 		/// all the required channels that the material needs).
 		/// \param[in] material the material to check against.
@@ -54,7 +56,7 @@ namespace core::igles
 		size_t triangles() const noexcept;
 
 	  private:
-		  void clear();
+		void clear(bool including_vao = true);
 		psl::UID m_UID;
 		memory::segment m_IndicesSegment;
 		memory::range m_IndicesSubRange;
@@ -64,7 +66,7 @@ namespace core::igles
 		std::unordered_map<psl::UID, unsigned int> m_VAOs;
 		psl::array<binding> m_Bindings;
 
-		size_t m_Vertices{ 0 };
-		size_t m_Triangles{ 0 };
+		size_t m_Vertices {0};
+		size_t m_Triangles {0};
 	};
-} // namespace core::igles
+}	 // namespace core::igles

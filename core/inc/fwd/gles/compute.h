@@ -1,9 +1,9 @@
 #pragma once
-#include "fwd/resource/resource.h"
 #include "defines.h"
+#include "fwd/resource/resource.h"
 
 
 namespace core::igles
 {
 	class compute;
-} // namespace core::igles
+}	 // namespace core::igles

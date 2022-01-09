@@ -15,8 +15,8 @@ namespace psl
 	{
 	  public:
 		using element_type = T;
-		using pointer	  = T*;
-		using reference	= T&;
+		using pointer	   = T*;
+		using reference	   = T&;
 
 		constexpr view_ptr() noexcept = default;
 		constexpr view_ptr(pointer value) noexcept : m_Value(value) {}
@@ -26,7 +26,7 @@ namespace psl
 		{}
 
 		~view_ptr() = default;
-		view_ptr(const view_ptr& other) : m_Value(other.m_Value){};
+		view_ptr(const view_ptr& other) : m_Value(other.m_Value) {};
 		view_ptr(view_ptr&& other) noexcept : m_Value(other.m_Value) { other.m_Value = nullptr; };
 		view_ptr& operator=(const view_ptr& other)
 		{
@@ -75,7 +75,7 @@ namespace psl
 		}
 
 	  private:
-		pointer m_Value{nullptr};
+		pointer m_Value {nullptr};
 	};
 
 	template <typename T1, typename T2>
@@ -113,9 +113,9 @@ namespace psl
 	{
 		return static_cast<bool>(p);
 	}
-} // namespace psl
+}	 // namespace psl
 
-template<typename T>
+template <typename T>
 constexpr static void swap(psl::view_ptr<T>& lhs, psl::view_ptr<T>& rhs) noexcept
 {
 	lhs.swap(rhs);
@@ -135,4 +135,4 @@ namespace std
 		size_t operator()(::psl::view_ptr<T> p) const noexcept { return std::hash<T*>()(&p.get()); }
 	};
 
-} // namespace std
+}	 // namespace std

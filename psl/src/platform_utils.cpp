@@ -135,13 +135,13 @@ bool utility::platform::directory::exists(psl::string_view absolutePath)
 {
 	auto platform_path = to_platform(absolutePath);
 #ifdef PLATFORM_WINDOWS
-	std::wstring str{psl::to_pstring(platform_path)};
+	std::wstring str {psl::to_pstring(platform_path)};
 	auto ftyp = GetFileAttributes(str.c_str());
-	if(ftyp == INVALID_FILE_ATTRIBUTES) return false; // something is wrong with your path!
+	if(ftyp == INVALID_FILE_ATTRIBUTES) return false;	 // something is wrong with your path!
 
-	if(ftyp & FILE_ATTRIBUTE_DIRECTORY) return true; // this is a directory!
+	if(ftyp & FILE_ATTRIBUTE_DIRECTORY) return true;	// this is a directory!
 
-	return false; // this is not a directory!
+	return false;	 // this is not a directory!
 #elif defined(PLATFORM_ANDROID)
 	return false;
 #else
@@ -154,7 +154,7 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 {
 	psl::string path = to_platform(absolutePath);
 #ifdef PLATFORM_WINDOWS
-	std::wstring str{psl::to_pstring(absolutePath)};
+	std::wstring str {psl::to_pstring(absolutePath)};
 	bool succes = (CreateDirectory(str.c_str(), NULL) != 0);
 	if(succes) return true;
 
@@ -164,7 +164,7 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 	if(position < path.size())
 	{
 		psl::string parentFolder = path.substr(0, position);
-		if(create(parentFolder, true)) // recursive attempt at parent directory creation
+		if(create(parentFolder, true))	  // recursive attempt at parent directory creation
 			return (CreateDirectory(str.c_str(), NULL) != 0);
 	}
 	return false;
@@ -181,7 +181,7 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 	if(position < path.size())
 	{
 		psl::string parentFolder = path.substr(0, position);
-		if(create(parentFolder, true)) // recursive attempt at parent directory creation
+		if(create(parentFolder, true))	  // recursive attempt at parent directory creation
 			return std::filesystem::create_directory(path);
 	}
 	return false;
@@ -189,8 +189,8 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 }
 
 
-std::vector<utility::debug::trace_info> utility::debug::trace(size_t offset, size_t depth,
-															  std::optional<std::thread::id> id)
+std::vector<utility::debug::trace_info>
+utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id> id)
 {
 	std::vector<utility::debug::trace_info> res;
 #ifdef PLATFORM_WINDOWS
@@ -200,45 +200,45 @@ std::vector<utility::debug::trace_info> utility::debug::trace(size_t offset, siz
 		SymSetOptions(SYMOPT_LOAD_LINES);
 		return h;
 	});
-	
+
 	DWORD machine = IMAGE_FILE_MACHINE_AMD64;
 
 	HANDLE thread = std::invoke(
-		[](std::optional<std::thread::id> id) -> HANDLE {
-			if(!id || id.value() == std::this_thread::get_id()) return GetCurrentThread();
+	  [](std::optional<std::thread::id> id) -> HANDLE {
+		  if(!id || id.value() == std::this_thread::get_id()) return GetCurrentThread();
 
-			HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
-			THREADENTRY32 te;
-			te.dwSize = sizeof(te);
-			Thread32First(h, &te);
-			if(Thread32First(h, &te))
-			{
-				do
-				{
-					static_assert(sizeof(id.value()) == sizeof(te.th32ThreadID));
-					if(memcmp(&id.value(), &te.th32ThreadID, sizeof(te.th32ThreadID)) == 0)
-					{
-						return OpenThread(THREAD_ALL_ACCESS, false, te.th32ThreadID);
-					}
-					te.dwSize = sizeof(te);
-				} while(Thread32Next(h, &te));
-			}
-			throw std::runtime_error("could not find the requested thread for stracktrace");
-		},
-		id);
+		  HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
+		  THREADENTRY32 te;
+		  te.dwSize = sizeof(te);
+		  Thread32First(h, &te);
+		  if(Thread32First(h, &te))
+		  {
+			  do
+			  {
+				  static_assert(sizeof(id.value()) == sizeof(te.th32ThreadID));
+				  if(memcmp(&id.value(), &te.th32ThreadID, sizeof(te.th32ThreadID)) == 0)
+				  {
+					  return OpenThread(THREAD_ALL_ACCESS, false, te.th32ThreadID);
+				  }
+				  te.dwSize = sizeof(te);
+			  } while(Thread32Next(h, &te));
+		  }
+		  throw std::runtime_error("could not find the requested thread for stracktrace");
+	  },
+	  id);
 
 	CONTEXT context		 = {};
 	context.ContextFlags = CONTEXT_ALL;
-	//RtlCaptureContext(&context);
-	GetThreadContext(thread, &context); 
+	// RtlCaptureContext(&context);
+	GetThreadContext(thread, &context);
 	STACKFRAME frame	   = {};
-	frame.AddrPC.Offset	= context.Rip;
-	frame.AddrPC.Mode	  = AddrModeFlat;
+	frame.AddrPC.Offset	   = context.Rip;
+	frame.AddrPC.Mode	   = AddrModeFlat;
 	frame.AddrFrame.Offset = context.Rbp;
 	frame.AddrFrame.Mode   = AddrModeFlat;
 	frame.AddrStack.Offset = context.Rsp;
 	frame.AddrStack.Mode   = AddrModeFlat;
-	
+
 	for(unsigned int i = 0; i < depth + offset; i++)
 	{
 		if(!StackWalk(machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL))
@@ -247,10 +247,10 @@ std::vector<utility::debug::trace_info> utility::debug::trace(size_t offset, siz
 		if(i < offset) continue;
 		auto& info = res.emplace_back();
 		info.addr  = frame.AddrPC.Offset;
-		info.name		 = {};
-		//DWORD64 moduleBase = SymGetModuleBase(process, frame.AddrPC.Offset);
-		//char moduleBuff[MAX_PATH];
-		//if(moduleBase && GetModuleFileNameA((HINSTANCE)moduleBase, moduleBuff, MAX_PATH))
+		info.name  = {};
+		// DWORD64 moduleBase = SymGetModuleBase(process, frame.AddrPC.Offset);
+		// char moduleBuff[MAX_PATH];
+		// if(moduleBase && GetModuleFileNameA((HINSTANCE)moduleBase, moduleBuff, MAX_PATH))
 		//{
 		//	info.name += moduleBuff;
 		//	info.name += " ";
@@ -259,7 +259,7 @@ std::vector<utility::debug::trace_info> utility::debug::trace(size_t offset, siz
 		char symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 255];
 		PIMAGEHLP_SYMBOL symbol = (PIMAGEHLP_SYMBOL)symbolBuffer;
 		symbol->SizeOfStruct	= (sizeof IMAGEHLP_SYMBOL) + 255;
-		symbol->MaxNameLength   = 254;
+		symbol->MaxNameLength	= 254;
 
 		if(SymGetSymFromAddr(process, frame.AddrPC.Offset, NULL, symbol))
 		{
@@ -309,15 +309,15 @@ utility::debug::trace_info utility::debug::demangle(void* target)
 		IMAGEHLP_SYMBOL64* sPtr;
 		sPtr				= (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
 		sPtr->MaxNameLength = 255;
-		sPtr->SizeOfStruct  = sizeof(IMAGEHLP_SYMBOL64);
-		std::unique_ptr<IMAGEHLP_SYMBOL64> sUPtr{sPtr};
+		sPtr->SizeOfStruct	= sizeof(IMAGEHLP_SYMBOL64);
+		std::unique_ptr<IMAGEHLP_SYMBOL64> sUPtr {sPtr};
 		return sUPtr;
 	});
 	static HANDLE process							 = std::invoke([]() {
 		   HANDLE h = GetCurrentProcess();
 		   SymInitialize(h, NULL, TRUE);
 		   return h;
-	});
+	   });
 
 	SymGetSymFromAddr64(process, (DWORD64)(target), 0, symbol.get());
 	info.name = psl::from_string8_t(psl::string8_t(symbol->Name));

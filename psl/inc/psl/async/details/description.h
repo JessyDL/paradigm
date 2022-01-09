@@ -1,15 +1,15 @@
 #pragma once
 #include "../barrier.h"
-#include "task.h"
-#include "psl/unique_ptr.h"
 #include "psl/array.h"
 #include "psl/array_view.h"
+#include "psl/unique_ptr.h"
+#include "task.h"
 namespace psl::async
 {
 	class scheduler;
 }
 namespace psl::async::details
-	{
+{
 	struct description
 	{
 		friend class ::psl::async::scheduler;
@@ -37,7 +37,9 @@ namespace psl::async::details
 		void dynamic_barriers(std::shared_future<barrier>& barrier) { m_SharedDynamicBarriers.emplace_back(barrier); }
 		void dynamic_barriers(psl::array<std::future<barrier>>&& barriers)
 		{
-			m_DynamicBarriers.insert(std::end(m_DynamicBarriers), std::make_move_iterator(std::begin(barriers)), std::make_move_iterator(std::end(barriers)));
+			m_DynamicBarriers.insert(std::end(m_DynamicBarriers),
+									 std::make_move_iterator(std::begin(barriers)),
+									 std::make_move_iterator(std::end(barriers)));
 			barriers.clear();
 		}
 		void dynamic_barriers(const psl::array<std::shared_future<barrier>>& barriers)
@@ -58,33 +60,39 @@ namespace psl::async::details
 
 		bool dynamic_barriers_ready() const noexcept
 		{
-			return std::all_of(std::begin(m_DynamicBarriers), std::end(m_DynamicBarriers),
+			return std::all_of(std::begin(m_DynamicBarriers),
+							   std::end(m_DynamicBarriers),
 							   [](const std::future<barrier>& barrier) { return barrier.valid(); }) &&
-				   std::all_of(std::begin(m_SharedDynamicBarriers), std::end(m_SharedDynamicBarriers),
+				   std::all_of(std::begin(m_SharedDynamicBarriers),
+							   std::end(m_SharedDynamicBarriers),
 							   [](const std::shared_future<barrier>& barrier) { return barrier.valid(); });
 		}
 
 		void merge_dynamic_barriers()
 		{
-			std::transform(std::begin(m_DynamicBarriers), std::end(m_DynamicBarriers), std::back_inserter(m_Barriers),
+			std::transform(std::begin(m_DynamicBarriers),
+						   std::end(m_DynamicBarriers),
+						   std::back_inserter(m_Barriers),
 						   [](std::future<barrier>& barrier) {
 							   assert_debug_break(barrier.valid());
 							   return barrier.get();
 						   });
 			m_DynamicBarriers.clear();
 
-			std::transform(std::begin(m_SharedDynamicBarriers), std::end(m_SharedDynamicBarriers),
-						   std::back_inserter(m_Barriers), [](std::shared_future<barrier>& barrier) {
+			std::transform(std::begin(m_SharedDynamicBarriers),
+						   std::end(m_SharedDynamicBarriers),
+						   std::back_inserter(m_Barriers),
+						   [](std::shared_future<barrier>& barrier) {
 							   assert_debug_break(barrier.valid());
 							   return barrier.get();
 						   });
 			m_SharedDynamicBarriers.clear();
 		}
 
-		psl::array<barrier> m_Barriers{};								   // what are my memory constraints
-		psl::array<std::future<barrier>> m_DynamicBarriers{};			   // what are my dynamic memory constraints
-		psl::array<std::shared_future<barrier>> m_SharedDynamicBarriers{}; // what are my dynamic memory constraints
-		psl::array<size_t> m_Blocking{};								   // who am I blocking
-		psl::array<size_t> m_Blockers{};								   // who blocks me
+		psl::array<barrier> m_Barriers {};									   // what are my memory constraints
+		psl::array<std::future<barrier>> m_DynamicBarriers {};				   // what are my dynamic memory constraints
+		psl::array<std::shared_future<barrier>> m_SharedDynamicBarriers {};	   // what are my dynamic memory constraints
+		psl::array<size_t> m_Blocking {};									   // who am I blocking
+		psl::array<size_t> m_Blockers {};									   // who blocks me
 	};
-} // namespace psl::async::details
+}	 // namespace psl::async::details

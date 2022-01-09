@@ -1,6 +1,6 @@
 #pragma once
-#include "resource/resource.hpp"
 #include "fwd/gfx/shader.h"
+#include "resource/resource.hpp"
 
 namespace core::gfx
 {
@@ -9,16 +9,18 @@ namespace core::gfx
 	class shader
 	{
 		friend class core::resource::cache;
-		
+
 	  public:
 #ifdef PE_VULKAN
-		  explicit shader(core::resource::handle<core::ivk::shader>& handle);
+		explicit shader(core::resource::handle<core::ivk::shader>& handle);
 #endif
 #ifdef PE_GLES
-		  explicit shader(core::resource::handle<core::igles::shader>& handle);
+		explicit shader(core::resource::handle<core::igles::shader>& handle);
 #endif
 
-		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
+		shader(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context);
 		~shader() = default;
 
@@ -32,23 +34,22 @@ namespace core::gfx
 		core::resource::handle<backend_type_t<shader, backend>> resource() const noexcept
 		{
 #ifdef PE_VULKAN
-			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
 #endif
 #ifdef PE_GLES
-			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+			if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
 #endif
 		};
 
 		core::meta::shader* meta() const noexcept;
 
 	  private:
-		  core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
-		  core::resource::handle<core::ivk::shader> m_VKHandle;
+		core::resource::handle<core::ivk::shader> m_VKHandle;
 #endif
 #ifdef PE_GLES
-		  core::resource::handle<core::igles::shader> m_GLESHandle;
+		core::resource::handle<core::igles::shader> m_GLESHandle;
 #endif
-
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

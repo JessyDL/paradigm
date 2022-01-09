@@ -1,7 +1,7 @@
 ﻿#pragma once
+#include "resource/resource.hpp"
 #include "vk/ivk.h"
 #include <vector>
-#include "resource/resource.hpp"
 
 namespace core::data
 {
@@ -12,7 +12,7 @@ namespace core::ivk
 	class texture;
 	class context;
 	class sampler;
-}
+}	 // namespace core::ivk
 
 namespace core::ivk
 {
@@ -26,7 +26,7 @@ namespace core::ivk
 	class framebuffer final
 	{
 	  public:
-		  using texture_handle = core::resource::handle<core::ivk::texture>;
+		using texture_handle = core::resource::handle<core::ivk::texture>;
 
 		/// \brief describes a single binding point (can be many) in a framebuffer.
 		///
@@ -42,7 +42,9 @@ namespace core::ivk
 			uint32_t index;
 		};
 
-		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		framebuffer(core::resource::cache& cache,
+					const core::resource::metadata& metaData,
+					psl::meta::file* metaFile,
 					core::resource::handle<core::ivk::context> context,
 					core::resource::handle<core::data::framebuffer> data);
 		framebuffer(const framebuffer&) = delete;
@@ -71,7 +73,10 @@ namespace core::ivk
 		vk::DescriptorImageInfo descriptor() const noexcept;
 
 	  private:
-		bool add(core::resource::cache& cache, const psl::UID& uid, vk::AttachmentDescription description, size_t index,
+		bool add(core::resource::cache& cache,
+				 const psl::UID& uid,
+				 vk::AttachmentDescription description,
+				 size_t index,
 				 size_t count);
 
 		std::vector<binding> m_Bindings;
@@ -82,4 +87,4 @@ namespace core::ivk
 		std::vector<vk::Framebuffer> m_Framebuffers;
 		vk::DescriptorImageInfo m_Descriptor;
 	};
-} // namespace core::gfx
+}	 // namespace core::ivk

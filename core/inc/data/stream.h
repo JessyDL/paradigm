@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "psl/serialization.h"
-#include "psl/math/vec.h"
-#include "psl/math/matrix.h"
 #include "psl/array.h"
+#include "psl/math/matrix.h"
+#include "psl/math/vec.h"
+#include "psl/serialization/serializer.hpp"
 
 namespace core
 {
@@ -29,23 +29,23 @@ namespace core
 		};
 		stream(type type = type::single) : m_Type(type) {}
 
-		template<typename T>
+		template <typename T>
 		stream(psl::array<T> data) : m_Data(std::move(*(psl::array<float>*)(&data)))
 		{
 			using namespace psl;
-			if constexpr (std::is_same_v<float, T>)
+			if constexpr(std::is_same_v<float, T>)
 				m_Type = (type::single);
-			else if constexpr (std::is_same_v<vec2, T>)
+			else if constexpr(std::is_same_v<vec2, T>)
 				m_Type = (type::vec2);
-			else if constexpr (std::is_same_v<vec3, T>)
+			else if constexpr(std::is_same_v<vec3, T>)
 				m_Type = (type::vec3);
-			else if constexpr (std::is_same_v<vec4, T>)
+			else if constexpr(std::is_same_v<vec4, T>)
 				m_Type = (type::vec4);
-			else if constexpr (std::is_same_v<mat2x2, T>)
+			else if constexpr(std::is_same_v<mat2x2, T>)
 				m_Type = (type::mat2);
-			else if constexpr (std::is_same_v<mat3x3, T>)
+			else if constexpr(std::is_same_v<mat3x3, T>)
 				m_Type = (type::mat3x3);
-			else if constexpr (std::is_same_v<mat4x4, T>)
+			else if constexpr(std::is_same_v<mat4x4, T>)
 				m_Type = (type::mat4x4);
 			else
 				static_assert(utility::templates::always_false_v<T>);
@@ -285,13 +285,27 @@ namespace core
 		{
 			switch(m_Type.value)
 			{
-			case type::single: return std::is_same_v<T, float>; break;
-			case type::vec2: return std::is_same_v<T, psl::vec2>; break;
-			case type::vec3: return std::is_same_v<T, psl::vec3>; break;
-			case type::mat2: return std::is_same_v<T, psl::mat2x2>; break;
-			case type::vec4: return std::is_same_v<T, psl::vec4>; break;
-			case type::mat3x3: return std::is_same_v<T, psl::mat3x3>; break;
-			case type::mat4x4: return std::is_same_v<T, psl::mat4x4>; break;
+			case type::single:
+				return std::is_same_v<T, float>;
+				break;
+			case type::vec2:
+				return std::is_same_v<T, psl::vec2>;
+				break;
+			case type::vec3:
+				return std::is_same_v<T, psl::vec3>;
+				break;
+			case type::mat2:
+				return std::is_same_v<T, psl::mat2x2>;
+				break;
+			case type::vec4:
+				return std::is_same_v<T, psl::vec4>;
+				break;
+			case type::mat3x3:
+				return std::is_same_v<T, psl::mat3x3>;
+				break;
+			case type::mat4x4:
+				return std::is_same_v<T, psl::mat4x4>;
+				break;
 			}
 			return false;
 		}
@@ -369,9 +383,9 @@ namespace core
 		};
 
 
-		static constexpr const char serialization_name[12]{"CORE_STREAM"};
+		static constexpr const char serialization_name[12] {"CORE_STREAM"};
 
-		psl::serialization::property<psl::array<float>, const_str("DATA", 4)> m_Data;
-		psl::serialization::property<type, const_str("TYPE", 4)> m_Type;
+		psl::serialization::property<"DATA", psl::array<float>> m_Data;
+		psl::serialization::property<"TYPE", type> m_Type;
 	};
-} // namespace core
+}	 // namespace core

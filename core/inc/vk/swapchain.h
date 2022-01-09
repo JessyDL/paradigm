@@ -1,7 +1,7 @@
 ﻿#pragma once
+#include "fwd/vk/texture.h"
 #include "resource/handle.h"
 #include "vk/ivk.h"
-#include "fwd/vk/texture.h"
 
 namespace core::os
 {
@@ -13,7 +13,7 @@ namespace core::ivk
 	class texture;
 	class context;
 	class framebuffer;
-}
+}	 // namespace core::ivk
 
 namespace core::data
 {
@@ -33,9 +33,12 @@ namespace core::ivk
 		friend class core::os::surface;
 
 	  public:
-		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		swapchain(core::resource::cache& cache,
+				  const core::resource::metadata& metaData,
+				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,
-				  core::resource::handle<core::ivk::context> context, bool use_depth = true);
+				  core::resource::handle<core::ivk::context> context,
+				  bool use_depth = true);
 		~swapchain();
 
 		/// \returns true in case it managed to get the next image in the swapchain from the driver.
@@ -137,10 +140,10 @@ namespace core::ivk
 		core::resource::handle<core::ivk::texture> m_DepthTextureHandle;
 
 		const bool m_UseDepth;
-		vk::ClearColorValue m_ClearColor{std::array<float, 4>{0.25f, 0.4f, 0.95f, 1.0f}};
-		vk::ClearDepthStencilValue m_ClearDepth{vk::ClearDepthStencilValue(1.0f, 0U)};
+		vk::ClearColorValue m_ClearColor {std::array<float, 4> {0.25f, 0.4f, 0.95f, 1.0f}};
+		vk::ClearDepthStencilValue m_ClearDepth {vk::ClearDepthStencilValue(1.0f, 0U)};
 
 		bool m_Resizing;
-		bool m_ShouldResize{false};
+		bool m_ShouldResize {false};
 	};
-} // namespace core::gfx
+}	 // namespace core::ivk

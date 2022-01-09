@@ -41,5 +41,5 @@ namespace psl
 		owner.value[3] -= other.value[3];
 		return owner;
 	}
-}
+}	 // namespace psl
 #endif

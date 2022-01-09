@@ -1,6 +1,6 @@
-﻿#include "logging.h"
-#include "vk/buffer.h"
+﻿#include "vk/buffer.h"
 #include "data/buffer.h"
+#include "logging.h"
 #include "vk/context.h"
 #include "vk/conversion.h"
 
@@ -12,62 +12,71 @@ using namespace core::resource;
 
 
 // https://www.khronos.org/registry/vulkan/specs/1.1-extensions/man/html/vkCmdUpdateBuffer.html
-static const size_t max_size_set{65535};
+static const size_t max_size_set {65535};
 
-buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   handle<context> context, handle<data::buffer> buffer_data,
-			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer)
-	: m_Context(context), m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(metaData.uid),
-	  m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::ivk::buffer>{}))
+buffer::buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   handle<context> context,
+			   handle<data::buffer> buffer_data,
+			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer) :
+	m_Context(context),
+	m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(metaData.uid),
+	m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::ivk::buffer> {}))
 {
 	PROFILE_SCOPE(core::profiler)
 	core::ivk::log->info("creating an ivk::buffer of {0} bytes size.", m_BufferDataHandle->size());
 	vk::MemoryRequirements memReqs;
 	auto& region   = m_BufferDataHandle->region();
 	auto alignment = region.alignment();
-	auto type	  = conversion::to_vk(m_BufferDataHandle->usage());
+	auto type	   = conversion::to_vk(m_BufferDataHandle->usage());
 
 	if(type & vk::BufferUsageFlagBits::eUniformBuffer &&
 	   alignment != m_Context->properties().limits.minUniformBufferOffsetAlignment)
 	{
 		core::ivk::log->warn(
-			"trying to create an ivk::buffer [UID: {0} ] with incorrect alignment, alignment is: {1}, but should be: "
-			"{2}",
-			m_UID.to_string(), alignment, m_Context->properties().limits.minUniformBufferOffsetAlignment);
+		  "trying to create an ivk::buffer [UID: {0} ] with incorrect alignment, alignment is: {1}, but should be: "
+		  "{2}",
+		  m_UID.to_string(),
+		  alignment,
+		  m_Context->properties().limits.minUniformBufferOffsetAlignment);
 	}
 	else if(type & vk::BufferUsageFlagBits::eStorageBuffer &&
 			alignment != m_Context->properties().limits.minStorageBufferOffsetAlignment)
 	{
 		core::ivk::log->warn(
-			"trying to create an ivk::buffer [UID: {0} ] with incorrect alignment, alignment is: {1}, but should be: "
-			"{2}",
-			m_UID.to_string(), alignment, m_Context->properties().limits.minStorageBufferOffsetAlignment);
+		  "trying to create an ivk::buffer [UID: {0} ] with incorrect alignment, alignment is: {1}, but should be: "
+		  "{2}",
+		  m_UID.to_string(),
+		  alignment,
+		  m_Context->properties().limits.minStorageBufferOffsetAlignment);
 	}
 
 	vk::MemoryAllocateInfo memAllocInfo;
 	memAllocInfo.pNext			 = NULL;
-	memAllocInfo.allocationSize  = 0;
+	memAllocInfo.allocationSize	 = 0;
 	memAllocInfo.memoryTypeIndex = 0;
 
 	// Vertex buffer
 	vk::BufferCreateInfo bufCreateInfo;
 	bufCreateInfo.pNext = NULL;
 	bufCreateInfo.usage = type;
-	bufCreateInfo.size  = m_BufferDataHandle->size();
+	bufCreateInfo.size	= m_BufferDataHandle->size();
 	bufCreateInfo.flags = vk::BufferCreateFlagBits();
 
 	utility::vulkan::check(m_Context->device().createBuffer(&bufCreateInfo, nullptr, &m_Buffer));
 
 	memReqs = m_Context->device().getBufferMemoryRequirements(m_Buffer), memAllocInfo.allocationSize = memReqs.size;
 
-	m_Context->memory_type(memReqs.memoryTypeBits, core::gfx::conversion::to_vk(m_BufferDataHandle->memoryPropertyFlags()),
+	m_Context->memory_type(memReqs.memoryTypeBits,
+						   core::gfx::conversion::to_vk(m_BufferDataHandle->memoryPropertyFlags()),
 						   &memAllocInfo.memoryTypeIndex);
 	utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_Memory));
 
 	utility::vulkan::check(m_Context->device().bindBufferMemory(m_Buffer, m_Memory, 0));
 	m_Descriptor.buffer = m_Buffer;
 	m_Descriptor.offset = 0;
-	m_Descriptor.range  = m_BufferDataHandle->size();
+	m_Descriptor.range	= m_BufferDataHandle->size();
 
 	vk::FenceCreateInfo fi;
 	fi.flags = vk::FenceCreateFlagBits::eSignaled;
@@ -110,17 +119,20 @@ buffer::~buffer()
 size_t buffer::free_size() const noexcept
 {
 	auto available = m_BufferDataHandle->region().allocator()->available();
-	return std::accumulate(std::next(std::begin(available)), std::end(available), available[0].size(),
-					[](size_t sum, const memory::range& element) { return sum + element.size(); });
+	return std::accumulate(std::next(std::begin(available)),
+						   std::end(available),
+						   available[0].size(),
+						   [](size_t sum, const memory::range& element) { return sum + element.size(); });
 }
 std::optional<memory::segment> buffer::reserve(vk::DeviceSize size) { return m_BufferDataHandle->allocate(size); }
 
 std::vector<std::pair<memory::segment, memory::range>> buffer::reserve(std::vector<vk::DeviceSize> sizes, bool optimize)
 {
 	PROFILE_SCOPE(core::profiler)
-	vk::DeviceSize totalSize =
-		std::accumulate(std::next(std::begin(sizes)), std::end(sizes), sizes[0],
-						[](vk::DeviceSize sum, const vk::DeviceSize& element) { return sum + element; });
+	vk::DeviceSize totalSize = std::accumulate(
+	  std::next(std::begin(sizes)), std::end(sizes), sizes[0], [](vk::DeviceSize sum, const vk::DeviceSize& element) {
+		  return sum + element;
+	  });
 	std::vector<std::pair<memory::segment, memory::range>> result;
 
 	// todo: low priority
@@ -134,8 +146,8 @@ std::vector<std::pair<memory::segment, memory::range>> buffer::reserve(std::vect
 			vk::DeviceSize accOffset = 0u;
 			for(auto i = 0u; i < sizes.size(); ++i)
 			{
-				result[i].first  = segment.value();
-				result[i].second = memory::range{accOffset, accOffset + sizes[i]};
+				result[i].first	 = segment.value();
+				result[i].second = memory::range {accOffset, accOffset + sizes[i]};
 				accOffset += sizes[i];
 			}
 			return result;
@@ -148,9 +160,9 @@ std::vector<std::pair<memory::segment, memory::range>> buffer::reserve(std::vect
 	{
 		if(auto segment = m_BufferDataHandle->allocate(size); segment)
 		{
-			auto& res = result.emplace_back();
-			res.first = segment.value();
-			res.second = memory::range{0, size};
+			auto& res  = result.emplace_back();
+			res.first  = segment.value();
+			res.second = memory::range {0, size};
 		}
 		else
 		{
@@ -173,24 +185,25 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 {
 	PROFILE_SCOPE(core::profiler)
 	vk::DeviceSize totalSize =
-		std::accumulate(std::next(std::begin(instructions)), std::end(instructions), std::begin(instructions)->size,
-						[](vk::DeviceSize sum, const commit_instruction& element) { return sum + element.size; });
+	  std::accumulate(std::next(std::begin(instructions)),
+					  std::end(instructions),
+					  std::begin(instructions)->size,
+					  [](vk::DeviceSize sum, const commit_instruction& element) { return sum + element.size; });
 
 	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::device_local)
 	{
 		std::vector<vk::DeviceSize> sizeRequests;
 		sizeRequests.reserve(instructions.size());
-		for(const auto& instruction : instructions)
-			sizeRequests.emplace_back(instruction.size);
+		for(const auto& instruction : instructions) sizeRequests.emplace_back(instruction.size);
 
 		auto stagingBuffer = m_StagingBuffer;
 		if(!stagingBuffer)
 		{
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
-			memory::region temp_region{totalSize, 4, new memory::default_allocator(false)};
+			memory::region temp_region {totalSize, 4, new memory::default_allocator(false)};
 			auto buffer_data = m_Cache.create<core::data::buffer>(core::gfx::memory_usage::transfer_source,
 																  core::gfx::memory_property::host_visible |
-																	  core::gfx::memory_property::host_coherent,
+																	core::gfx::memory_property::host_coherent,
 																  std::move(temp_region));
 
 			stagingBuffer = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
@@ -208,26 +221,26 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 			return false;
 		}
 
-		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
-			debug_break();
+		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) debug_break();
 
 		// put the data onto the staging buffer && create the copy region instructions
 		std::vector<vk::BufferCopy> copyRegions;
 		copyRegions.reserve(stagingSegments.size());
 
 		auto boundSegment = stagingSegments[0].first;
-		std::uintptr_t offset = boundSegment.range().begin - (std::uintptr_t)stagingBuffer->m_BufferDataHandle->region().data();
+		std::uintptr_t offset =
+		  boundSegment.range().begin - (std::uintptr_t)stagingBuffer->m_BufferDataHandle->region().data();
 		auto tuple = m_Context->device().mapMemory(stagingBuffer->m_Memory, offset, boundSegment.range().size());
 
-		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
-			debug_break();
+		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) debug_break();
 		for(auto i = 0; i < stagingSegments.size(); ++i)
 		{
 			if(stagingSegments[i].first.range() != boundSegment.range())
 			{
 				m_Context->device().unmapMemory(stagingBuffer->m_Memory);
 				boundSegment = stagingSegments[i].first;
-				offset = boundSegment.range().begin - (std::uintptr_t)stagingBuffer->m_BufferDataHandle->region().data();
+				offset =
+				  boundSegment.range().begin - (std::uintptr_t)stagingBuffer->m_BufferDataHandle->region().data();
 				tuple = m_Context->device().mapMemory(stagingBuffer->m_Memory, offset, boundSegment.range().size());
 			}
 
@@ -236,41 +249,51 @@ bool buffer::commit(std::vector<core::gfx::commit_instruction> instructions)
 				return false;
 			}
 
-			memcpy((void*)((std::uintptr_t)tuple.value + stagingSegments[i].second.begin), (void*)(instructions[i].source), instructions[i].size);
+			if(i == 4)
+			{
+				core::log->info("first element: {}", *(float*)(instructions[i].source));
+			}
+
+			memcpy((void*)((std::uintptr_t)tuple.value + stagingSegments[i].second.begin),
+				   (void*)(instructions[i].source),
+				   instructions[i].size);
 
 			if(m_BufferDataHandle->region().allocator()->is_physically_backed())
 			{
-				memcpy((void*)(instructions[i].segment.range().begin + instructions[i].sub_range.value_or(memory::range{}).begin), (void*)(instructions[i].source), instructions[i].size);
+				memcpy((void*)(instructions[i].segment.range().begin +
+							   instructions[i].sub_range.value_or(memory::range {}).begin),
+					   (void*)(instructions[i].source),
+					   instructions[i].size);
 			}
 
 			// todo we can collapse these regions and so invoke less buffercopy commands
 			vk::BufferCopy& copyRegion = copyRegions.emplace_back();
-			copyRegion.srcOffset = offset + stagingSegments[i].second.begin;
-			copyRegion.dstOffset = instructions[i].segment.range().begin + instructions[i].sub_range.value_or(memory::range{}).begin - (std::uintptr_t)m_BufferDataHandle->region().data();
+			copyRegion.srcOffset	   = offset + stagingSegments[i].second.begin;
+			copyRegion.dstOffset	   = instructions[i].segment.range().begin +
+								   instructions[i].sub_range.value_or(memory::range {}).begin -
+								   (std::uintptr_t)m_BufferDataHandle->region().data();
 			copyRegion.size = instructions[i].size;
 
-			if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
-				debug_break();
+			if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) debug_break();
 		}
 
-		if (stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
-			debug_break();
+		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0) debug_break();
 		m_Context->device().unmapMemory(stagingBuffer->m_Memory);
 		auto res = copy_from(stagingBuffer.value(), copyRegions);
 		for(auto segm : stagingSegments)
 		{
-			if(segm.second.begin == 0)
-				stagingBuffer->deallocate(segm.first);
+			if(segm.second.begin == 0) stagingBuffer->deallocate(segm.first);
 		}
 		return res;
 	}
 	else
 	{
-		//core::ivk::log->info("mapping {0} regions into an ivk::buffer from CPU.", instructions.size());
+		// core::ivk::log->info("mapping {0} regions into an ivk::buffer from CPU.", instructions.size());
 		for(auto& instruction : instructions)
 		{
 			std::uintptr_t offset = instruction.segment.range().begin -
-				(std::uintptr_t)m_BufferDataHandle->region().data() + instruction.sub_range.value_or(memory::range{}).begin;
+									(std::uintptr_t)m_BufferDataHandle->region().data() +
+									instruction.sub_range.value_or(memory::range {}).begin;
 
 			auto tuple = m_Context->device().mapMemory(m_Memory, offset, instruction.size);
 			if(!utility::vulkan::check(tuple.result))
@@ -306,18 +329,18 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		if(m_StagingBuffer)
 		{
 			m_StagingBuffer->map(data, size, 0);
-			return copy_from(m_StagingBuffer.value(), {vk::BufferCopy{0u, offset, size}});
+			return copy_from(m_StagingBuffer.value(), {vk::BufferCopy {0u, offset, size}});
 		}
 		else
 		{
 			// make a local staging buffer, this is hardly efficient. todo find better way.
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer.");
-			memory::region temp_region{size * 2, 4, new memory::default_allocator(true)};
+			memory::region temp_region {size * 2, 4, new memory::default_allocator(true)};
 			auto buffer_data = m_Cache.create<core::data::buffer>(core::gfx::memory_usage::transfer_source,
 																  core::gfx::memory_property::host_visible |
-																	  core::gfx::memory_property::host_coherent,
-							 std::move(temp_region));
-			auto staging = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
+																	core::gfx::memory_property::host_coherent,
+																  std::move(temp_region));
+			auto staging	 = m_Cache.create<core::ivk::buffer>(m_Context, buffer_data);
 
 			auto tuple = m_Context->device().mapMemory(staging->m_Memory, 0, size);
 			if(!utility::vulkan::check(tuple.result))
@@ -327,12 +350,12 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			memcpy(tuple.value, data, size);
 			m_Context->device().unmapMemory(staging->m_Memory);
 
-			return copy_from(staging.value(), {vk::BufferCopy{0u, offset, size}});
+			return copy_from(staging.value(), {vk::BufferCopy {0u, offset, size}});
 		}
 	}
 	else
 	{
-		//core::ivk::log->info("mapping ivk::buffer data from CPU.");
+		// core::ivk::log->info("mapping ivk::buffer data from CPU.");
 
 		auto tuple = m_Context->device().mapMemory(m_Memory, offset, size);
 		if(!utility::vulkan::check(tuple.result))
@@ -340,7 +363,7 @@ bool buffer::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			debug_break();
 		}
 		memcpy(tuple.value, data, size);
-		if(m_BufferDataHandle->region().data() != data) // Let's map this to the buffer too.
+		if(m_BufferDataHandle->region().data() != data)	   // Let's map this to the buffer too.
 			memcpy(m_BufferDataHandle->region().data(), data, size);
 
 		m_Context->device().unmapMemory(m_Memory);
@@ -363,16 +386,21 @@ bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& c
 	vk::Queue queue = m_Context->queue();
 	wait_until_ready();
 
-	auto totalsize = std::accumulate(copyRegions.begin(), copyRegions.end(), 0,
-									 [&](int sum, const vk::BufferCopy& region) { return sum + (int)region.size; });
+	auto totalsize =
+	  std::accumulate(copyRegions.begin(), copyRegions.end(), 0, [&](int sum, const vk::BufferCopy& region) {
+		  return sum + (int)region.size;
+	  });
 
 	core::ivk::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
-		utility::to_string(other.m_UID), utility::to_string(m_UID), totalsize, copyRegions.size());
+						 utility::to_string(other.m_UID),
+						 utility::to_string(m_UID),
+						 totalsize,
+						 copyRegions.size());
 
 	for(const auto& region : copyRegions)
 	{
-		core::ivk::log->info("srcOffset | dstOffset | size : {0} | {1} | {2}", region.srcOffset, region.dstOffset,
-			region.size);
+		core::ivk::log->info(
+		  "srcOffset | dstOffset | size : {0} | {1} | {2}", region.srcOffset, region.dstOffset, region.size);
 	}
 
 	vk::CommandBufferBeginInfo cmdBufferBeginInfo;
@@ -388,7 +416,7 @@ bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& c
 	// Submit copies to the queue
 	vk::SubmitInfo copySubmitInfo;
 	copySubmitInfo.commandBufferCount = 1;
-	copySubmitInfo.pCommandBuffers	= &m_CommandBuffer;
+	copySubmitInfo.pCommandBuffers	  = &m_CommandBuffer;
 	m_Context->device().resetFences(m_BufferCompleted);
 	core::profiler.scope_end(this);
 	utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
@@ -406,9 +434,10 @@ bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& c
 		// m_Context->Device().unmapMemory(m_Memory);
 
 		core::ivk::log->info("mapping an ivk::buffer of size {0} to a pool of size {1}",
-			utility::to_string(m_BufferDataHandle->size()), utility::to_string(m_BufferDataHandle->size()));
+							 utility::to_string(m_BufferDataHandle->size()),
+							 utility::to_string(m_BufferDataHandle->size()));
 
-		uint32_t minVal{std::numeric_limits<uint32_t>::max()}, maxVal{std::numeric_limits<uint32_t>::min()};
+		uint32_t minVal {std::numeric_limits<uint32_t>::max()}, maxVal {std::numeric_limits<uint32_t>::min()};
 		for(const auto& region : copyRegions)
 		{
 			minVal = std::min((uint32_t)region.dstOffset, minVal);
@@ -418,8 +447,8 @@ bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& c
 
 		if(maxVal > m_BufferDataHandle->size())
 		{
-			core::ivk::log->error("range exceeds the allocated ivk::buffer size! {src|dst} {0} | {1}",
-								  m_BufferDataHandle->size(), maxVal);
+			core::ivk::log->error(
+			  "range exceeds the allocated ivk::buffer size! {src|dst} {0} | {1}", m_BufferDataHandle->size(), maxVal);
 			debug_break();
 		}
 
@@ -450,7 +479,8 @@ bool buffer::copy_from(const buffer& other, const std::vector<vk::BufferCopy>& c
 }
 
 
-bool buffer::set(const void* data, std::vector<vk::BufferCopy> commands) // maps to the UpdateBuffer of the old version
+bool buffer::set(const void* data,
+				 std::vector<vk::BufferCopy> commands)	  // maps to the UpdateBuffer of the old version
 {
 	PROFILE_SCOPE(core::profiler)
 	if(data == nullptr || commands.size() == 0)
@@ -467,8 +497,8 @@ bool buffer::set(const void* data, std::vector<vk::BufferCopy> commands) // maps
 	if(end == std::begin(commands) || end != std::end(commands))
 	{
 		core::ivk::log->error(((end == std::begin(commands))
-								   ? "after removing all invalid commands, there were no suitable instructions left."
-								   : "several (but not all) commands were invalid."));
+								 ? "after removing all invalid commands, there were no suitable instructions left."
+								 : "several (but not all) commands were invalid."));
 
 		psl::string8_t message = "\n";
 		for(auto it = end; it != std::end(commands); ++it)
@@ -492,19 +522,19 @@ bool buffer::set(const void* data, std::vector<vk::BufferCopy> commands) // maps
 	// now we will do all the seperate commands.
 	for(auto it = std::begin(commands); it != end; ++it)
 	{
-		m_CommandBuffer.updateBuffer(m_Buffer, it->dstOffset, it->size,
-									 (uint32_t*)(static_cast<const char*>(data) + it->srcOffset));
+		m_CommandBuffer.updateBuffer(
+		  m_Buffer, it->dstOffset, it->size, (uint32_t*)(static_cast<const char*>(data) + it->srcOffset));
 	}
 	m_CommandBuffer.end();
 
 	// Submit copies to the queue
 	vk::SubmitInfo copySubmitInfo;
 	copySubmitInfo.commandBufferCount = 1;
-	copySubmitInfo.pCommandBuffers	= &m_CommandBuffer;
+	copySubmitInfo.pCommandBuffers	  = &m_CommandBuffer;
 
 	m_Context->device().resetFences(m_BufferCompleted);
 	utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
-	//queue.waitIdle();
+	// queue.waitIdle();
 	// m_CommandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 
 	return true;

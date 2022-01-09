@@ -1,13 +1,14 @@
 ﻿#include "data/material.h"
-#include "meta/shader.h"
-#include "resource/resource.hpp"
 #include "data/geometry.h"
 #include "gfx/bundle.h"
+#include "meta/shader.h"
+#include "resource/resource.hpp"
 
 using namespace psl;
 using namespace core::data;
 
-material::material(core::resource::cache& cache, const core::resource::metadata& metaData,
+material::material(core::resource::cache& cache,
+				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile) noexcept
 {}
 // material::material(const material& other, const UID& uid, core::resource::cache& cache)
@@ -100,8 +101,9 @@ void material::stage::attributes(psl::array<material::attribute> value) noexcept
 
 void material::stage::set(const binding& value)
 {
-	auto it = std::find_if(std::begin(m_Bindings.value), std::end(m_Bindings.value),
-						   [&value](const binding& element) { return element.binding_slot() == value.binding_slot(); });
+	auto it = std::find_if(std::begin(m_Bindings.value), std::end(m_Bindings.value), [&value](const binding& element) {
+		return element.binding_slot() == value.binding_slot();
+	});
 	if(it == std::end(m_Bindings.value))
 		m_Bindings.value.emplace_back(value);
 	else
@@ -109,8 +111,9 @@ void material::stage::set(const binding& value)
 }
 void material::stage::erase(const binding& value)
 {
-	auto it = std::find_if(std::begin(m_Bindings.value), std::end(m_Bindings.value),
-						   [&value](const binding& element) { return element.binding_slot() == value.binding_slot(); });
+	auto it = std::find_if(std::begin(m_Bindings.value), std::end(m_Bindings.value), [&value](const binding& element) {
+		return element.binding_slot() == value.binding_slot();
+	});
 	if(it != std::end(m_Bindings.value)) m_Bindings.value.erase(it);
 }
 // material
@@ -137,8 +140,9 @@ void material::wireframe(bool value) { m_Wireframe.value = value; }
 
 void material::set(const stage& value)
 {
-	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value),
-						   [&value](const stage& element) { return element.shader_stage() == value.shader_stage(); });
+	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value), [&value](const stage& element) {
+		return element.shader_stage() == value.shader_stage();
+	});
 	if(it == std::end(m_Stage.value))
 		m_Stage.value.emplace_back(value);
 	else
@@ -146,7 +150,8 @@ void material::set(const stage& value)
 }
 void material::set(const blendstate& value)
 {
-	auto it = std::find_if(std::begin(m_BlendStates.value), std::end(m_BlendStates.value),
+	auto it = std::find_if(std::begin(m_BlendStates.value),
+						   std::end(m_BlendStates.value),
 						   [&value](const blendstate& element) { return element.binding() == value.binding(); });
 	if(it == std::end(m_BlendStates.value))
 		m_BlendStates.value.emplace_back(value);
@@ -161,13 +166,15 @@ void material::define(psl::string8::view value)
 
 void material::erase(const stage& value)
 {
-	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value),
-						   [&value](const stage& element) { return element.shader_stage() == value.shader_stage(); });
+	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value), [&value](const stage& element) {
+		return element.shader_stage() == value.shader_stage();
+	});
 	if(it != std::end(m_Stage.value)) m_Stage.value.erase(it);
 }
 void material::erase(const blendstate& value)
 {
-	auto it = std::find_if(std::begin(m_BlendStates.value), std::end(m_BlendStates.value),
+	auto it = std::find_if(std::begin(m_BlendStates.value),
+						   std::end(m_BlendStates.value),
 						   [&value](const blendstate& element) { return element.binding() == value.binding(); });
 	if(it != std::end(m_BlendStates.value)) m_BlendStates.value.erase(it);
 }
@@ -182,8 +189,9 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 	psl::array<stage>& stages = m_Stage.value;
 	for(auto shader : shaderMetas)
 	{
-		auto it = std::find_if(std::begin(stages), std::end(stages),
-							   [&shader](const stage& stage) { return stage.shader_stage() == shader->stage(); });
+		auto it = std::find_if(std::begin(stages), std::end(stages), [&shader](const stage& stage) {
+			return stage.shader_stage() == shader->stage();
+		});
 
 		auto& stage = ((it != std::end(stages)) ? *it : stages.emplace_back());
 
@@ -223,21 +231,21 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 
 				// todo we should figure out a way to configure these in a clean maner
 				if(input.name() == "iPos" || input.name() == constants::POSITION)
-					attribute.tag(psl::string{core::data::geometry::constants::POSITION});
+					attribute.tag(psl::string {core::data::geometry::constants::POSITION});
 				else if(input.name() == "iNorm" || input.name() == constants::NORMAL)
-					attribute.tag(psl::string{core::data::geometry::constants::NORMAL});
-				else if (input.name() == "iCol" || input.name() == constants::COLOR)
-					attribute.tag(psl::string{ core::data::geometry::constants::COLOR });
-				else if (input.name() == "iTan" || input.name() == constants::TANGENT)
-					attribute.tag(psl::string{ core::data::geometry::constants::TANGENT });
-				else if (input.name() == "iBiTan" || input.name() == constants::BITANGENT)
-					attribute.tag(psl::string{ core::data::geometry::constants::BITANGENT });
+					attribute.tag(psl::string {core::data::geometry::constants::NORMAL});
+				else if(input.name() == "iCol" || input.name() == constants::COLOR)
+					attribute.tag(psl::string {core::data::geometry::constants::COLOR});
+				else if(input.name() == "iTan" || input.name() == constants::TANGENT)
+					attribute.tag(psl::string {core::data::geometry::constants::TANGENT});
+				else if(input.name() == "iBiTan" || input.name() == constants::BITANGENT)
+					attribute.tag(psl::string {core::data::geometry::constants::BITANGENT});
 				else if(input.name() == "iTex" || input.name() == constants::TEX)
-					attribute.tag(psl::string{core::data::geometry::constants::TEX});
+					attribute.tag(psl::string {core::data::geometry::constants::TEX});
 				else if(input.name() == core::gfx::constants::INSTANCE_MODELMATRIX ||
 						input.name() == core::gfx::constants::INSTANCE_LEGACY_MODELMATRIX)
 				{
-					attribute.tag(psl::string{core::gfx::constants::INSTANCE_MODELMATRIX});
+					attribute.tag(psl::string {core::gfx::constants::INSTANCE_MODELMATRIX});
 					attribute.input_rate(core::gfx::vertex_input_rate::instance);
 				}
 

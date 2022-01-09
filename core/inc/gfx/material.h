@@ -30,9 +30,13 @@ namespace core::gfx
 #endif
 
 
-		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 core::resource::handle<context> context_handle, core::resource::handle<core::data::material> data,
-				 core::resource::handle<pipeline_cache> pipeline_cache, core::resource::handle<buffer> materialBuffer);
+		material(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 core::resource::handle<context> context_handle,
+				 core::resource::handle<core::data::material> data,
+				 core::resource::handle<pipeline_cache> pipeline_cache,
+				 core::resource::handle<buffer> materialBuffer);
 
 		~material() = default;
 
@@ -56,7 +60,7 @@ namespace core::gfx
 		};
 
 	  private:
-		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::material> m_VKHandle;
 #endif
@@ -64,4 +68,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::material> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

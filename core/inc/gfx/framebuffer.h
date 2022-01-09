@@ -22,8 +22,11 @@ namespace core::gfx
 		explicit framebuffer(core::resource::handle<core::igles::framebuffer>& handle);
 #endif
 
-		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-					core::resource::handle<core::gfx::context> context, core::resource::handle<data::framebuffer> data);
+		framebuffer(core::resource::cache& cache,
+					const core::resource::metadata& metaData,
+					psl::meta::file* metaFile,
+					core::resource::handle<core::gfx::context> context,
+					core::resource::handle<data::framebuffer> data);
 		~framebuffer() = default;
 
 		framebuffer(const framebuffer& other)	  = delete;
@@ -45,7 +48,7 @@ namespace core::gfx
 		texture texture(size_t index) const noexcept;
 
 	  private:
-		core::gfx::graphics_backend m_Backend{0};
+		core::gfx::graphics_backend m_Backend {0};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::framebuffer> m_VKHandle;
 #endif
@@ -53,4 +56,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::framebuffer> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

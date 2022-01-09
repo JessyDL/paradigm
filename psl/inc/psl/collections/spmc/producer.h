@@ -1,9 +1,9 @@
 #pragma once
 #include "psl/collections/ring_array.h"
+#include "psl/math/math.hpp"
 #include "psl/view_ptr.h"
 #include <atomic>
 #include <optional>
-#include "psl/math/math.hpp"
 
 namespace psl::spmc
 {
@@ -31,7 +31,7 @@ namespace psl::spmc
 		struct buffer
 		{
 		  public:
-			buffer(size_t capacity) : m_Data(psl::math::next_pow_of(2, std::max<size_t>(32u, capacity))){};
+			buffer(size_t capacity) : m_Data(psl::math::next_pow_of(2, std::max<size_t>(32u, capacity))) {};
 			~buffer() {}
 			void set(int64_t index, T&& value) noexcept
 			{
@@ -51,7 +51,7 @@ namespace psl::spmc
 			{
 				capacity = std::max<size_t>(1024, psl::math::next_pow_of(2, std::max(capacity, (end - begin) + 1)));
 
-				buffer* ptr   = new buffer(capacity);
+				buffer* ptr	  = new buffer(capacity);
 				ptr->m_Offset = begin;
 				for(size_t i = begin; i != end; ++i)
 				{
@@ -65,7 +65,7 @@ namespace psl::spmc
 
 		  private:
 			ring_array<T> m_Data;
-			size_t m_Offset{0};
+			size_t m_Offset {0};
 		};
 
 	  public:
@@ -83,8 +83,8 @@ namespace psl::spmc
 			delete(m_Data.load());
 		}
 
-		producer(const producer& other)		= delete;
-		producer(producer&& other) = default;
+		producer(const producer& other) = delete;
+		producer(producer&& other)		= default;
 		producer& operator=(const producer& other) = delete;
 		producer& operator=(producer&& other) = default;
 
@@ -120,7 +120,7 @@ namespace psl::spmc
 			size	  = psl::math::next_pow_of(2, size);
 			if(size == (int64_t)cont->capacity()) return;
 
-			auto begin   = m_Begin.load(std::memory_order_relaxed);
+			auto begin	 = m_Begin.load(std::memory_order_relaxed);
 			auto end	 = m_End.load(std::memory_order_relaxed);
 			auto newCont = cont->copy(begin, end);
 			std::swap(newCont, cont);
@@ -139,9 +139,9 @@ namespace psl::spmc
 		/// \todo Implement the backing storage as an atomic<shared_ptr<buffer>> for more logical cleanup flow.
 		void push(T&& value)
 		{
-			int64_t end   = m_End.load(std::memory_order_relaxed);
+			int64_t end	  = m_End.load(std::memory_order_relaxed);
 			int64_t begin = m_Begin.load(std::memory_order_acquire);
-			auto cont	 = m_Data.load(std::memory_order_relaxed);
+			auto cont	  = m_Data.load(std::memory_order_relaxed);
 
 			if(static_cast<int64_t>(cont->capacity()) < (end - begin) + 1)
 			{
@@ -165,20 +165,20 @@ namespace psl::spmc
 		std::optional<T> pop() noexcept
 		{
 			int64_t end = m_End.load(std::memory_order_relaxed) - 1;
-			auto cont   = m_Data.load(std::memory_order_relaxed);
+			auto cont	= m_Data.load(std::memory_order_relaxed);
 			m_End.store(end, std::memory_order_relaxed);
 			std::atomic_thread_fence(std::memory_order_seq_cst);
 			int64_t begin = m_Begin.load(std::memory_order_relaxed);
 
-			std::optional<T> res{std::nullopt};
+			std::optional<T> res {std::nullopt};
 
 			if(begin <= end)
 			{
 				res = cont->at(end);
 				if(begin == end)
 				{
-					if(!m_Begin.compare_exchange_strong(begin, begin + 1, std::memory_order_seq_cst,
-														std::memory_order_relaxed))
+					if(!m_Begin.compare_exchange_strong(
+						 begin, begin + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
 					{
 						res = std::nullopt;
 					}
@@ -209,15 +209,15 @@ namespace psl::spmc
 			std::atomic_thread_fence(std::memory_order_seq_cst);
 			int64_t end = m_End.load(std::memory_order_acquire);
 
-			std::optional<T> res{std::nullopt};
+			std::optional<T> res {std::nullopt};
 
 			if(begin < end)
 			{
 				auto data = m_Data.load(std::memory_order_consume);
 				res		  = data->at(begin);
 
-				if(!m_Begin.compare_exchange_strong(begin, begin + 1, std::memory_order_seq_cst,
-													std::memory_order_relaxed))
+				if(!m_Begin.compare_exchange_strong(
+					 begin, begin + 1, std::memory_order_seq_cst, std::memory_order_relaxed))
 				{
 					return std::nullopt;
 				}
@@ -229,12 +229,12 @@ namespace psl::spmc
 		std::atomic_int64_t m_Begin;
 		std::atomic_int64_t m_End;
 		std::atomic<buffer*> m_Data;
-		buffer* m_Last{nullptr};
+		buffer* m_Last {nullptr};
 	};
 
 	template <typename T>
 	::psl::spmc::consumer<T> producer<T>::consumer() noexcept
 	{
-		return ::psl::spmc::consumer<T>(psl::view_ptr<producer<T>>{this});
+		return ::psl::spmc::consumer<T>(psl::view_ptr<producer<T>> {this});
 	};
-} // namespace psl::spmc
+}	 // namespace psl::spmc

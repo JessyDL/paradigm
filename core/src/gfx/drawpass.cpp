@@ -1,9 +1,9 @@
 #include "gfx/drawpass.h"
+#include "gfx/computecall.h"
 #include "gfx/context.h"
+#include "gfx/drawgroup.h"
 #include "gfx/framebuffer.h"
 #include "gfx/swapchain.h"
-#include "gfx/drawgroup.h"
-#include "gfx/computecall.h"
 
 #ifdef PE_GLES
 #include "gles/drawpass.h"
@@ -25,8 +25,8 @@ drawpass::drawpass(core::igles::drawpass* handle) : m_Backend(graphics_backend::
 
 /// todo: passes cannot describe resources in both API's at the same time, we need to decide if we
 ///	      want  a feature like it, or if we would prefer to keep only one API going
-drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebuffer> framebuffer)
-	: m_Backend(context->backend())
+drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebuffer> framebuffer) :
+	m_Backend(context->backend())
 {
 	switch(m_Backend)
 	{
@@ -44,8 +44,8 @@ drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebu
 	}
 }
 
-drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::swapchain> swapchain)
-	: m_Backend(context->backend())
+drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::swapchain> swapchain) :
+	m_Backend(context->backend())
 {
 	switch(m_Backend)
 	{
@@ -80,7 +80,7 @@ bool drawpass::is_swapchain() const noexcept
 	if(m_GLESHandle) return m_GLESHandle->is_swapchain();
 #endif
 #ifdef PE_VULKAN
-	if(m_VKHandle)return m_VKHandle->is_swapchain();
+	if(m_VKHandle) return m_VKHandle->is_swapchain();
 #endif
 	return false;
 }
@@ -149,14 +149,14 @@ bool drawpass::connect(psl::view_ptr<drawpass> child) noexcept
 bool drawpass::disconnect(psl::view_ptr<drawpass> child) noexcept
 {
 #ifdef PE_VULKAN
-	if (m_VKHandle)
+	if(m_VKHandle)
 	{
 		m_VKHandle->disconnect(psl::view_ptr<core::ivk::drawpass>(child->m_VKHandle));
 		return true;
 	}
 #endif
 #ifdef PE_GLES
-	if (m_VKHandle)
+	if(m_VKHandle)
 	{
 		m_GLESHandle->disconnect(psl::view_ptr<core::igles::drawpass>(child->m_GLESHandle));
 		return true;

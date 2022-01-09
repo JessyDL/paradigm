@@ -8,14 +8,14 @@
 ///
 /// In general it can be unwieldy and unsafe to use without knowing the internal workings, so avoid using this unless
 /// you know what you need it for and are sure you understand its internals.
-#include <memory> // std::uninitialized_move
+#include <memory>	 // std::uninitialized_move
 
 #include "../entity.h"
 #include "psl/array.h"
 #include "psl/array_view.h"
-#include "psl/memory/raw_region.h"
 #include "psl/assertions.h"
-#include "psl/memory/sparse_array.h"
+#include "psl/memory/raw_region.h"
+#include "psl/sparse_array.h"
 
 namespace psl::ecs::details
 {
@@ -26,8 +26,8 @@ namespace psl::ecs::details
 		using index_t = Key;
 		using chunk_t = psl::static_array<index_t, chunks_size>;
 
-		static constexpr bool is_power_of_two{chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
-		static constexpr index_t mod_val{(is_power_of_two) ? chunks_size - 1 : chunks_size};
+		static constexpr bool is_power_of_two {chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
+		static constexpr index_t mod_val {(is_power_of_two) ? chunks_size - 1 : chunks_size};
 
 	  public:
 		using size_type			= typename psl::array<index_t>::size_type;
@@ -39,11 +39,10 @@ namespace psl::ecs::details
 		using const_reference	= const value_type&;
 		using iterator_category = std::random_access_iterator_tag;
 
-		staged_sparse_array() noexcept : m_Reverse(), m_DenseData((m_Reverse.capacity() + 1) * sizeof(T)){};
+		staged_sparse_array() noexcept : m_Reverse(), m_DenseData((m_Reverse.capacity() + 1) * sizeof(T)) {};
 		~staged_sparse_array()
 		{
-			for (auto it = begin(0); it != end(2); ++it)
-				it->~value_type();
+			for(auto it = begin(0); it != end(2); ++it) it->~value_type();
 		}
 
 		staged_sparse_array(const staged_sparse_array& other)	  = default;
@@ -170,15 +169,17 @@ namespace psl::ecs::details
 				old_chunk[old_offset] += distance;
 			}
 
-			if constexpr (std::is_trivially_copyable_v<T>)
+			if constexpr(std::is_trivially_copyable_v<T>)
 			{
-				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + distance, (T*)m_DenseData.data() + m_StageStart[2],
-					(m_Reverse.size() - m_StageStart[2]) * sizeof(T));
+				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + distance,
+							 (T*)m_DenseData.data() + m_StageStart[2],
+							 (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
 			}
 			else
 			{
-				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + distance, src = (T*)m_DenseData.data() + m_StageStart[2], end = src + (m_Reverse.size() - m_StageStart[2]);
-				if constexpr (std::is_move_assignable_v<T>)
+				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + distance,
+					 src = (T*)m_DenseData.data() + m_StageStart[2], end = src + (m_Reverse.size() - m_StageStart[2]);
+				if constexpr(std::is_move_assignable_v<T>)
 				{
 					std::uninitialized_move(src, end, dst);
 				}
@@ -251,28 +252,27 @@ namespace psl::ecs::details
 
 		psl::array_view<index_t> indices(size_t stage = 0) const noexcept
 		{
-			return psl::array_view<index_t>{(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
+			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
 		}
 		psl::array_view<value_t> dense(size_t stage = 0) const noexcept
 		{
-			return psl::array_view<value_t>{(T*)m_DenseData.data() + m_StageStart[stage], m_StageSize[stage]};
+			return psl::array_view<value_t> {(T*)m_DenseData.data() + m_StageStart[stage], m_StageSize[stage]};
 		}
 
 		psl::array_view<index_t> indices(size_t startStage, size_t endStage) const noexcept
 		{
-			return psl::array_view<index_t>{(index_t*)m_Reverse.data() + m_StageStart[startStage],
-											m_StageStart[endStage + 1] - m_StageStart[startStage]};
+			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[startStage],
+											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
 		}
 		psl::array_view<value_t> dense(size_t startStage, size_t endStage) const noexcept
 		{
-			return psl::array_view<value_t>{(T*)m_DenseData.data() + m_StageStart[startStage],
-											m_StageStart[endStage + 1] - m_StageStart[startStage]};
+			return psl::array_view<value_t> {(T*)m_DenseData.data() + m_StageStart[startStage],
+											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
 		}
 
 		void promote() noexcept
 		{
-			for (auto it = begin(2); it != end(2); ++it)
-				it->~value_type();
+			for(auto it = begin(2); it != end(2); ++it) it->~value_type();
 
 			for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
 			{
@@ -366,8 +366,8 @@ namespace psl::ecs::details
 		}
 
 	  private:
-		inline constexpr bool has_impl(index_t chunk_index, index_t offset, size_t startStage = 0,
-									   size_t endStage = 1) const noexcept
+		inline constexpr bool
+		has_impl(index_t chunk_index, index_t offset, size_t startStage = 0, size_t endStage = 1) const noexcept
 		{
 			if(m_Sparse[chunk_index])
 			{
@@ -377,8 +377,8 @@ namespace psl::ecs::details
 			}
 			return false;
 		}
-		inline constexpr bool has_impl(chunk_t& chunk, index_t offset, size_t startStage = 0, size_t endStage = 1) const
-			noexcept
+		inline constexpr bool
+		has_impl(chunk_t& chunk, index_t offset, size_t startStage = 0, size_t endStage = 1) const noexcept
 		{
 			return chunk[offset] != std::numeric_limits<index_t>::max() && chunk[offset] >= m_StageStart[startStage] &&
 				   chunk[offset] < m_StageStart[endStage + 1];
@@ -392,45 +392,45 @@ namespace psl::ecs::details
 				old_chunk[old_offset] += 1;
 			}
 
-			if constexpr (std::is_trivially_copyable_v<T>)
+			if constexpr(std::is_trivially_copyable_v<T>)
 			{
-				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + 1, (T*)m_DenseData.data() + m_StageStart[2],
+				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + 1,
+							 (T*)m_DenseData.data() + m_StageStart[2],
 							 (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
 			}
 			else
 			{
-				auto src = (T*)m_DenseData.data() + m_StageStart[2]; // beginning removed elements;
+				auto src	 = (T*)m_DenseData.data() + m_StageStart[2];	// beginning removed elements;
 				auto src_end = src + m_StageSize[2] - 1;
 
 				auto dst = src + 1;
 
-				if (m_StageSize[2] > 0)
+				if(m_StageSize[2] > 0)
 				{
-					if constexpr (std::is_move_constructible_v<T>)
+					if constexpr(std::is_move_constructible_v<T>)
 						std::uninitialized_move(src_end, src_end + 1, src_end + 1);
 					else
 						std::uninitialized_copy(src_end, src_end + 1, src_end + 1);
 				}
 
-				if (m_StageSize[2] > 1)
+				if(m_StageSize[2] > 1)
 				{
-					std::rotate(src, src + (m_StageSize[2] -1), src_end);
+					std::rotate(src, src + (m_StageSize[2] - 1), src_end);
 				}
 
-				if (m_StageSize[2] > 0)
+				if(m_StageSize[2] > 0)
 				{
-					if constexpr (!std::is_trivially_destructible_v<T>)
-						src->~value_type();
+					if constexpr(!std::is_trivially_destructible_v<T>) src->~value_type();
 				}
 			}
 
-			if constexpr (!std::is_trivially_constructible_v<T>)
+			if constexpr(!std::is_trivially_constructible_v<T>)
 			{
 #ifdef new
 #define STACK_NEW new
 #undef new
 #endif
-				new (reinterpret_cast<T*>(m_DenseData.data()) + m_StageStart[2]) value_type();
+				new(reinterpret_cast<T*>(m_DenseData.data()) + m_StageStart[2]) value_type();
 #ifdef STACK_NEW
 #define new STACK_NEW
 #undef STACK_NEW
@@ -495,7 +495,7 @@ namespace psl::ecs::details
 
 				::memory::raw_region reg(new_capacity * sizeof(T));
 
-				if constexpr (std::is_trivially_copyable_v<T>)
+				if constexpr(std::is_trivially_copyable_v<T>)
 				{
 					std::memcpy(reg.data(), m_DenseData.data(), m_DenseData.size());
 				}
@@ -508,9 +508,9 @@ namespace psl::ecs::details
 					else
 						std::uninitialized_copy(src, end, dst);
 
-					if constexpr (!std::is_trivially_destructible_v<T>)
+					if constexpr(!std::is_trivially_destructible_v<T>)
 					{
-						for (auto it = src; it != end; ++it)
+						for(auto it = src; it != end; ++it)
 						{
 							it->~T();
 						}
@@ -560,7 +560,7 @@ namespace psl::ecs::details
 			std::optional<chunk_t>& chunk = m_Sparse[chunk_index];
 			if(!chunk)
 			{
-				chunk = chunk_t{};
+				chunk = chunk_t {};
 				// chunk.resize(chunks_size);
 				std::fill(std::begin(chunk.value()), std::end(chunk.value()), std::numeric_limits<index_t>::max());
 			}
@@ -627,8 +627,8 @@ namespace psl::ecs::details
 		psl::array<std::optional<chunk_t>> m_Sparse;
 
 		// sizes for each stage, this means stage 1 starts at std::begin() + m_Stage0
-		psl::static_array<index_t, 4> m_StageStart{0, 0, 0, 0};
-		psl::static_array<index_t, 3> m_StageSize{0, 0, 0};
+		psl::static_array<index_t, 4> m_StageStart {0, 0, 0, 0};
+		psl::static_array<index_t, 3> m_StageSize {0, 0, 0};
 		mutable chunk_t* m_CachedChunk;
 		mutable index_t m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 	};
@@ -639,15 +639,15 @@ namespace psl::ecs::details
 		using index_t = Key;
 		using chunk_t = psl::static_array<index_t, chunks_size>;
 
-		static constexpr bool is_power_of_two{chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
-		static constexpr index_t mod_val{(is_power_of_two) ? chunks_size - 1 : chunks_size};
+		static constexpr bool is_power_of_two {chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
+		static constexpr index_t mod_val {(is_power_of_two) ? chunks_size - 1 : chunks_size};
 
 	  public:
 		using size_type			= typename psl::array<index_t>::size_type;
 		using difference_type	= typename psl::array<index_t>::difference_type;
 		using iterator_category = std::random_access_iterator_tag;
 
-		staged_sparse_array() noexcept : m_Reverse(){};
+		staged_sparse_array() noexcept : m_Reverse() {};
 		~staged_sparse_array() = default;
 
 		staged_sparse_array(const staged_sparse_array& other)	  = default;
@@ -746,13 +746,13 @@ namespace psl::ecs::details
 
 		psl::array_view<index_t> indices(size_t stage = 0) const noexcept
 		{
-			return psl::array_view<index_t>{(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
+			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
 		}
 
 		psl::array_view<index_t> indices(size_t startStage, size_t endStage) const noexcept
 		{
-			return psl::array_view<index_t>{(index_t*)m_Reverse.data() + m_StageStart[startStage],
-											m_StageStart[endStage + 1] - m_StageStart[startStage]};
+			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[startStage],
+											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
 		}
 
 		void promote() noexcept
@@ -919,7 +919,7 @@ namespace psl::ecs::details
 			std::optional<chunk_t>& chunk = m_Sparse[chunk_index];
 			if(!chunk)
 			{
-				chunk = chunk_t{};
+				chunk = chunk_t {};
 				// chunk.resize(chunks_size);
 				std::fill(std::begin(chunk.value()), std::end(chunk.value()), std::numeric_limits<index_t>::max());
 			}
@@ -985,9 +985,9 @@ namespace psl::ecs::details
 		psl::array<std::optional<chunk_t>> m_Sparse;
 
 		// sizes for each stage, this means stage 1 starts at std::begin() + m_Stage0
-		psl::static_array<index_t, 4> m_StageStart{0, 0, 0, 0};
-		psl::static_array<index_t, 3> m_StageSize{0, 0, 0};
+		psl::static_array<index_t, 4> m_StageStart {0, 0, 0, 0};
+		psl::static_array<index_t, 3> m_StageSize {0, 0, 0};
 		mutable chunk_t* m_CachedChunk;
 		mutable index_t m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 	};
-} // namespace psl::ecs::details
+}	 // namespace psl::ecs::details

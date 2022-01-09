@@ -1,12 +1,12 @@
 ﻿#pragma once
-#include <stdexcept> // std::runtime_error
+#include <stdexcept>	// std::runtime_error
 
-#include <cstdio>  // For printf(). Remove if you don't need the PrintRanges() function (mostly for debugging anyway).
-#include <cstdint> // uint32_t
+#include <algorithm>
+#include <cstdint>	  // uint32_t
+#include <cstdio>	 // For printf(). Remove if you don't need the PrintRanges() function (mostly for debugging anyway).
 #include <cstdlib>
 #include <cstring>
 #include <vector>
-#include <algorithm>
 #undef max
 #undef min
 
@@ -19,42 +19,42 @@ namespace psl
 		struct range
 		{
 			range() = default;
-			range(T first, T last) : first(first), last(last){};
-			T &begin() noexcept { return first; }
-			T &end() noexcept { return last; }
-			const T &begin() const noexcept { return first; }
-			const T &end() const noexcept { return last; }
+			range(T first, T last) : first(first), last(last) {};
+			T& begin() noexcept { return first; }
+			T& end() noexcept { return last; }
+			const T& begin() const noexcept { return first; }
+			const T& end() const noexcept { return last; }
 
-			bool operator<=(const range &other) const noexcept { return first <= other.first; }
-			bool operator>=(const range &other) const noexcept { return first >= other.first; }
-			bool operator<(const range &other) const noexcept { return first < other.first; }
-			bool operator>(const range &other) const noexcept { return first > other.first; }
-			bool operator==(const range &other) const noexcept { return first == other.first; }
-			bool operator!=(const range &other) const noexcept { return first != other.first; }
-			bool overlaps(const range &other) const noexcept
+			bool operator<=(const range& other) const noexcept { return first <= other.first; }
+			bool operator>=(const range& other) const noexcept { return first >= other.first; }
+			bool operator<(const range& other) const noexcept { return first < other.first; }
+			bool operator>(const range& other) const noexcept { return first > other.first; }
+			bool operator==(const range& other) const noexcept { return first == other.first; }
+			bool operator!=(const range& other) const noexcept { return first != other.first; }
+			bool overlaps(const range& other) const noexcept
 			{
 				return (other.first >= first && other.first < last) || (other.last > first && other.last <= last);
 			}
-			T first{0};
-			T last{0};
+			T first {0};
+			T last {0};
 
 			T size() const noexcept { return last - first; };
 		};
 
-		std::vector<range> m_FreeRanges{}; // Sorted array of ranges of free IDs
-		T m_Max{0};
+		std::vector<range> m_FreeRanges {};	   // Sorted array of ranges of free IDs
+		T m_Max {0};
 
 	  public:
-		explicit generator(T max) : m_FreeRanges({range{0, max}}), m_Max(max) {}
+		explicit generator(T max) : m_FreeRanges({range {0, max}}), m_Max(max) {}
 
-		generator() : generator(std::numeric_limits<T>::max()){};
+		generator() : generator(std::numeric_limits<T>::max()) {};
 
-		generator &operator=(const generator &) = default;
-		generator(const generator &)			= default;
+		generator& operator=(const generator&) = default;
+		generator(const generator&)			   = default;
 
-		generator(generator &&other) : m_FreeRanges(std::move(other.m_FreeRanges)), m_Max(other.m_Max) {}
+		generator(generator&& other) : m_FreeRanges(std::move(other.m_FreeRanges)), m_Max(other.m_Max) {}
 
-		generator &operator=(generator &&other)
+		generator& operator=(generator&& other)
 		{
 			if(this != &other)
 			{
@@ -68,8 +68,8 @@ namespace psl
 		T size() const noexcept { return capacity() - available(); }
 		T available() const noexcept
 		{
-			T acc{0};
-			for(const auto &range : m_FreeRanges)
+			T acc {0};
+			for(const auto& range : m_FreeRanges)
 			{
 				acc += range.size();
 			}
@@ -83,7 +83,7 @@ namespace psl
 			if(m_FreeRanges.size() == 0) throw std::runtime_error("out of available ID's");
 
 			auto i = 0;
-			for(auto &r : m_FreeRanges)
+			for(auto& r : m_FreeRanges)
 			{
 				if(r.size() >= count)
 				{
@@ -102,14 +102,14 @@ namespace psl
 
 		std::vector<std::pair<T, T>> create_multi(T count = 1)
 		{
-			std::vector<std::pair<T, T>> result{};
+			std::vector<std::pair<T, T>> result {};
 			for(auto i = 0; i < m_FreeRanges.size();)
 			{
-				auto &r		 = m_FreeRanges[i];
+				auto& r		 = m_FreeRanges[i];
 				auto consume = std::min(r.size(), count);
 				count -= consume;
 
-				result.emplace_back(std::pair<T, T>{r.first, r.first + consume});
+				result.emplace_back(std::pair<T, T> {r.first, r.first + consume});
 				r.first += consume;
 				if(r.size() == 0)
 					m_FreeRanges.erase(std::next(std::begin(m_FreeRanges), i));
@@ -120,14 +120,14 @@ namespace psl
 			}
 			if(count > 0)
 			{
-				for(auto &r : result) destroy(r.first, r.second - r.first);
+				for(auto& r : result) destroy(r.first, r.second - r.first);
 
 				throw std::runtime_error("out of available ID's");
 			}
 			return result;
 		}
 
-		bool try_create(T &out, T count = 1)
+		bool try_create(T& out, T count = 1)
 		{
 			if(m_FreeRanges.size() == 0 || count == 0)
 			{
@@ -135,7 +135,7 @@ namespace psl
 			}
 
 			auto i = 0;
-			for(auto &r : m_FreeRanges)
+			for(auto& r : m_FreeRanges)
 			{
 				if(r.size() >= count)
 				{
@@ -155,7 +155,7 @@ namespace psl
 		bool destroy(T id, T count = 1)
 		{
 			if(count == 0) return false;
-			range r{id, id + count};
+			range r {id, id + count};
 			auto insert_loc = std::upper_bound(std::begin(m_FreeRanges), std::end(m_FreeRanges), r);
 
 			if((insert_loc != std::begin(m_FreeRanges) && std::prev(insert_loc)->overlaps(r)) ||
@@ -182,7 +182,7 @@ namespace psl
 
 		bool valid(T id, T count = 1) const noexcept
 		{
-			range r{id, id + count};
+			range r {id, id + count};
 			auto insert_loc = std::upper_bound(std::begin(m_FreeRanges), std::end(m_FreeRanges), r);
 			if((insert_loc != std::begin(m_FreeRanges) && std::prev(insert_loc)->overlaps(r)) ||
 			   (insert_loc != std::end(m_FreeRanges) && insert_loc->overlaps(r)))
@@ -195,8 +195,8 @@ namespace psl
 
 		T largest_continuous_range() const noexcept
 		{
-			range r{};
-			for(const auto &range : m_FreeRanges)
+			range r {};
+			for(const auto& range : m_FreeRanges)
 			{
 				if(range.size() > r.size()) r = range;
 			}
@@ -214,7 +214,7 @@ namespace psl
 				}
 				else
 				{
-					m_FreeRanges.emplace_back(range{m_Max, size});
+					m_FreeRanges.emplace_back(range {m_Max, size});
 				}
 				m_Max = size;
 				return true;
@@ -244,16 +244,16 @@ namespace psl
 			T m_Last;
 		};
 
-		Range *m_Ranges{nullptr}; // Sorted array of ranges of free IDs
-		T m_Count;				  // Number of ranges in list
-		T m_Capacity;			  // Total capacity of range list
+		Range* m_Ranges {nullptr};	  // Sorted array of ranges of free IDs
+		T m_Count;					  // Number of ranges in list
+		T m_Capacity;				  // Total capacity of range list
 		T m_MaxID;
 
 	  public:
 		explicit IDGenerator(T max_id)
 		{
 			// Start with a single range, from 0 to max allowed ID (specified)
-			auto newRange = static_cast<Range *>(::malloc(sizeof(Range)));
+			auto newRange = static_cast<Range*>(::malloc(sizeof(Range)));
 			if(newRange == NULL)
 			{
 				// LOG_ERROR << "Memory allocation failed";
@@ -261,36 +261,36 @@ namespace psl
 			}
 			m_Ranges			= newRange;
 			m_Ranges[0].m_First = 0;
-			m_Ranges[0].m_Last  = max_id;
+			m_Ranges[0].m_Last	= max_id;
 			m_Count				= 1;
 			m_Capacity			= 1;
 			m_MaxID				= max_id;
 		}
 
-		IDGenerator() : IDGenerator(std::numeric_limits<T>::max()){};
+		IDGenerator() : IDGenerator(std::numeric_limits<T>::max()) {};
 
 		~IDGenerator()
 		{
 			if(m_Ranges != nullptr) ::free(m_Ranges);
 		}
 
-		IDGenerator &operator=(const IDGenerator &) = default;
-		IDGenerator(const IDGenerator &)			= default;
+		IDGenerator& operator=(const IDGenerator&) = default;
+		IDGenerator(const IDGenerator&)			   = default;
 
-		IDGenerator(IDGenerator &&other)
-			: m_Ranges(other.m_Ranges), m_Count(other.m_Count), m_Capacity(other.m_Capacity), m_MaxID(other.m_MaxID)
+		IDGenerator(IDGenerator&& other) :
+			m_Ranges(other.m_Ranges), m_Count(other.m_Count), m_Capacity(other.m_Capacity), m_MaxID(other.m_MaxID)
 		{
 			other.m_Ranges = nullptr;
 		}
 
-		IDGenerator &operator=(IDGenerator &&other)
+		IDGenerator& operator=(IDGenerator&& other)
 		{
 			if(this != &other)
 			{
 				m_Ranges   = other.m_Ranges;
-				m_Count	= other.m_Count;
+				m_Count	   = other.m_Count;
 				m_Capacity = other.m_Capacity;
-				m_MaxID	= other.m_MaxID;
+				m_MaxID	   = other.m_MaxID;
 
 				other.m_Ranges = nullptr;
 			}
@@ -298,7 +298,7 @@ namespace psl
 		}
 
 		T GetCapacity() const { return m_MaxID; }
-		bool CreateID(T &id)
+		bool CreateID(T& id)
 		{
 			if(m_Ranges[0].m_First <= m_Ranges[0].m_Last)
 			{
@@ -342,7 +342,7 @@ namespace psl
 			return std::make_pair(false, T());
 		}
 
-		bool CreateRangeID(T &id, const T count)
+		bool CreateRangeID(T& id, const T count)
 		{
 			T i = 0;
 			do
@@ -390,7 +390,7 @@ namespace psl
 					if(end_id >= m_Ranges[i].m_First)
 					{
 						if(end_id != m_Ranges[i].m_First)
-							return false; // Overlaps a range of free IDs, thus (at least partially) invalid IDs
+							return false;	 // Overlaps a range of free IDs, thus (at least partially) invalid IDs
 
 						// Neighbor id, check if neighboring previous range too
 						if(i > i0 && id - 1 == m_Ranges[i - 1].m_Last)
@@ -419,7 +419,7 @@ namespace psl
 							// Found our position in the list, insert the deleted range here
 							InsertRange(i);
 							m_Ranges[i].m_First = id;
-							m_Ranges[i].m_Last  = end_id - 1;
+							m_Ranges[i].m_Last	= end_id - 1;
 							return true;
 						}
 					}
@@ -456,7 +456,7 @@ namespace psl
 							// Found our position in the list, insert the deleted range here
 							InsertRange(i + 1);
 							m_Ranges[i + 1].m_First = id;
-							m_Ranges[i + 1].m_Last  = end_id - 1;
+							m_Ranges[i + 1].m_Last	= end_id - 1;
 							return true;
 						}
 					}
@@ -531,7 +531,7 @@ namespace psl
 			return max_count;
 		}
 
-		std::pair<Range *, T> AllRanges() const { return std::make_pair(m_Ranges, m_Count); }
+		std::pair<Range*, T> AllRanges() const { return std::make_pair(m_Ranges, m_Count); }
 
 		void PrintRanges() const
 		{
@@ -564,7 +564,7 @@ namespace psl
 			{
 				m_Capacity += m_Capacity;
 				// m_Ranges = (Range *)realloc(m_Ranges, m_Capacity * sizeof(Range));
-				auto newRange = (Range *)realloc(m_Ranges, m_Capacity * sizeof(Range));
+				auto newRange = (Range*)realloc(m_Ranges, m_Capacity * sizeof(Range));
 				if(newRange == NULL)
 				{
 					// LOG_ERROR << "Memory allocation failed";
@@ -583,4 +583,4 @@ namespace psl
 			::memmove(m_Ranges + index, m_Ranges + index + 1, (m_Count - index) * sizeof(Range));
 		}
 	};
-} // namespace psl
+}	 // namespace psl

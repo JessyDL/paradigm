@@ -11,7 +11,7 @@ include(src.txt)
 FetchContent_Declare(
   catch
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        master
+  GIT_TAG        v2.13.6
 )
 
 FetchContent_GetProperties(catch)

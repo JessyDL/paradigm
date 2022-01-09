@@ -1,7 +1,7 @@
 ﻿#include "psl/profiling/profiler.h"
-#include "psl/string_utils.h"
-#include "psl/platform_utils.h"
 #include "psl/application_utils.h"
+#include "psl/platform_utils.h"
+#include "psl/string_utils.h"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
@@ -11,7 +11,7 @@
 
 using namespace psl::profiling;
 
-profiler::scoped_block::scoped_block(profiler& profiler) noexcept : prf(&profiler){};
+profiler::scoped_block::scoped_block(profiler& profiler) noexcept : prf(&profiler) {};
 profiler::scoped_block::~scoped_block() noexcept
 {
 	if(prf != nullptr) prf->scope_end();
@@ -25,7 +25,7 @@ void profiler::frame_info::push(const psl::string& name) noexcept
 	auto id = IDCounter;
 	if(it == std::end(m_NameMap))
 	{
-		m_NameMap[name]	= IDCounter;
+		m_NameMap[name]	   = IDCounter;
 		m_IDMap[IDCounter] = name;
 		++IDCounter;
 	}
@@ -47,7 +47,8 @@ void profiler::frame_info::push(uint64_t name) noexcept
 
 void profiler::frame_info::pop() noexcept
 {
-	auto it = std::find_if(std::reverse_iterator(std::end(m_Scopes)), std::reverse_iterator(std::begin(m_Scopes)),
+	auto it = std::find_if(std::reverse_iterator(std::end(m_Scopes)),
+						   std::reverse_iterator(std::begin(m_Scopes)),
 						   [this](const auto& sInfo) { return m_Stack == sInfo.depth; });
 
 	it->duration = m_Timer.elapsed<std::chrono::microseconds>() - it->duration;
@@ -60,13 +61,13 @@ void profiler::frame_info::clear()
 	m_NameMap.clear();
 	m_IDMap.clear();
 	IDCounter = 0;
-	m_Stack   = 0;
+	m_Stack	  = 0;
 }
 void profiler::frame_info::end()
 {
 #ifdef PE_PROFILER
 	duration = m_Timer.elapsed<std::chrono::microseconds>();
-#endif 
+#endif
 }
 
 profiler::profiler(size_t buffer_size)
@@ -193,11 +194,11 @@ psl::string profiler::to_string() const
 	i = endIt;
 	do
 	{
-		const auto& frame_data			   = m_Frames[i];
-		std::chrono::microseconds duration = (frame_data.duration.count() == 0)
-												 ? frame_data.m_Timer.elapsed<std::chrono::microseconds>() -
-													   init_timer.elapsed<std::chrono::microseconds>()
-												 : frame_data.duration;
+		const auto& frame_data = m_Frames[i];
+		std::chrono::microseconds duration =
+		  (frame_data.duration.count() == 0)
+			? frame_data.m_Timer.elapsed<std::chrono::microseconds>() - init_timer.elapsed<std::chrono::microseconds>()
+			: frame_data.duration;
 		res += "--------------------------------------------------------------------------------\nframe\n";
 		res += "\t duration: " + utility::converter<decltype(duration.count())>::to_string(duration.count()) + u8"μs\n";
 		res += "\t invocations: " + utility::converter<size_t>::to_string(frame_data.m_Scopes.size()) + "\n";

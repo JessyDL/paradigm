@@ -1,8 +1,8 @@
 #pragma once
 #include "psl/logging.h"
+#include "psl/profiling/profiler.h"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <memory>
-#include "psl/profiling/profiler.h"
 
 namespace core
 {
@@ -37,4 +37,4 @@ namespace core
 	}
 
 	extern psl::profiling::profiler profiler;
-} // namespace core
+}	 // namespace core

@@ -157,7 +157,8 @@ endif()
 
 set(CMAKE_CXX_EXTENSIONS OFF )
 set(CXX_EXTENSIONS OFF )
-list(APPEND PE_COMPILER_FEATURES cxx_std_17)
+set(CMAKE_CXX_STANDARD 20)
+list(APPEND PE_COMPILER_FEATURES cxx_std_20)
 
 if(PE_GLES)		
 		find_package(OpenGL REQUIRED)
@@ -264,7 +265,9 @@ endif()
 
 add_definitions(${PE_DEFINES})
 
-if(NOT PE_SOURCE_ONLY)	
+if(NOT PE_SOURCE_ONLY)
+	add_subdirectory(extern)
+
 	add_subdirectory(psl)
 	add_subdirectory(core)
 	if(PE_TESTS)

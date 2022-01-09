@@ -1,6 +1,6 @@
 #pragma once
-#include "resource/resource.hpp"
 #include "fwd/gfx/swapchain.h"
+#include "resource/resource.hpp"
 #include <variant>
 
 namespace core::os
@@ -22,11 +22,14 @@ namespace core::gfx
 		explicit swapchain(core::resource::handle<core::igles::swapchain>& handle);
 #endif
 
-		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				  core::resource::handle<core::os::surface> surface, core::resource::handle<core::gfx::context> context,
+		swapchain(core::resource::cache& cache,
+				  const core::resource::metadata& metaData,
+				  psl::meta::file* metaFile,
+				  core::resource::handle<core::os::surface> surface,
+				  core::resource::handle<core::gfx::context> context,
 				  bool use_depth = true);
 
-		~swapchain(){};
+		~swapchain() {};
 
 		swapchain(const swapchain& other)	  = delete;
 		swapchain(swapchain&& other) noexcept = delete;
@@ -45,7 +48,7 @@ namespace core::gfx
 		};
 
 	  private:
-		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::swapchain> m_VKHandle;
 #endif
@@ -53,4 +56,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::swapchain> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

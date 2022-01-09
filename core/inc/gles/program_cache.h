@@ -13,11 +13,12 @@ namespace core::igles
 	class program_cache
 	{
 	  public:
-		program_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+		program_cache(core::resource::cache& cache,
+					  const core::resource::metadata& metaData,
 					  psl::meta::file* metaFile);
 		~program_cache() = default;
 
-		program_cache(const program_cache& other)	 = delete;
+		program_cache(const program_cache& other)	  = delete;
 		program_cache(program_cache&& other) noexcept = delete;
 		program_cache& operator=(const program_cache& other) = delete;
 		program_cache& operator=(program_cache&& other) noexcept = delete;
@@ -31,4 +32,4 @@ namespace core::igles
 	  private:
 		core::resource::cache* m_Cache;
 	};
-} // namespace core::igles
+}	 // namespace core::igles

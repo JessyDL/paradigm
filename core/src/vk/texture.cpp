@@ -1,11 +1,11 @@
-﻿#include "logging.h"
-#include "vk/texture.h"
-#include "meta/texture.h"
-#include "vk/context.h"
-#include "vk/buffer.h"
+﻿#include "vk/texture.h"
 #include "data/buffer.h"
-#include "vk/sampler.h"
+#include "logging.h"
+#include "meta/texture.h"
+#include "vk/buffer.h"
+#include "vk/context.h"
 #include "vk/conversion.h"
+#include "vk/sampler.h"
 #ifdef fseek
 #define cached_fseek fseek
 #define cached_fclose fclose
@@ -32,21 +32,26 @@ using namespace core::ivk;
 using namespace core::resource;
 
 
-texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
-				 handle<core::ivk::context> context)
-	: texture(cache, metaData, metaFile, context, {})
+texture::texture(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 core::meta::texture* metaFile,
+				 handle<core::ivk::context> context) :
+	texture(cache, metaData, metaFile, context, {})
 {}
-texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
-				 handle<core::ivk::context> context, core::resource::handle<core::ivk::buffer> stagingBuffer)
-	: m_Cache(cache), m_Context(context),
-	  m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)),
-	  m_StagingBuffer(stagingBuffer)
+texture::texture(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 core::meta::texture* metaFile,
+				 handle<core::ivk::context> context,
+				 core::resource::handle<core::ivk::buffer> stagingBuffer) :
+	m_Cache(cache),
+	m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)),
+	m_StagingBuffer(stagingBuffer)
 {
 	if(!m_Meta)
 	{
 		core::ivk::log->error(
-			"ivk::texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
-			utility::to_string(metaFile->ID()));
+		  "ivk::texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
+		  utility::to_string(metaFile->ID()));
 		return;
 	}
 	// AddReference(m_Context);
@@ -57,9 +62,12 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 		m_TextureData = new gli::texture(gli::load(result.value().data(), result.value().size()));
 		switch(m_Meta->image_type())
 		{
-		case gfx::image_type::planar_2D: load_2D(); break;
+		case gfx::image_type::planar_2D:
+			load_2D();
+			break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
-		default: debug_break();
+		default:
+			debug_break();
 		}
 	}
 	else
@@ -70,9 +78,12 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
-		case gfx::image_type::planar_2D: create_2D(data); break;
+		case gfx::image_type::planar_2D:
+			create_2D(data);
+			break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
-		default: debug_break();
+		default:
+			debug_break();
 		}
 	}
 
@@ -123,7 +134,6 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 
 void texture::create_2D(void* data)
 {
-
 	m_MipLevels = m_Meta->mip_levels();
 	vk::FormatProperties formatProperties;
 	if(m_Meta->format() == gfx::format::undefined)
@@ -140,11 +150,11 @@ void texture::create_2D(void* data)
 		if(!m_StagingBuffer)
 		{
 			core::ivk::log->warn(
-				"missing a staging buffer in ivk::texture, will create one dynamically, but this is inefficient");
+			  "missing a staging buffer in ivk::texture, will create one dynamically, but this is inefficient");
 			auto tempBuffer = m_Cache.create<core::data::buffer>(
-				core::gfx::memory_usage::transfer_source,
-				core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-				memory::region{size + 1024, 4, new memory::default_allocator(false)});
+			  core::gfx::memory_usage::transfer_source,
+			  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+			  memory::region {size + 1024, 4, new memory::default_allocator(false)});
 			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
 		}
 		if(!stagingBuffer)
@@ -193,7 +203,7 @@ void texture::create_2D(void* data)
 	imageCreateInfo.usage		  = vk::ImageUsageFlagBits::eSampled;
 	imageCreateInfo.sharingMode	  = vk::SharingMode::eExclusive;
 	imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
-	imageCreateInfo.extent		  = vk::Extent3D{m_Meta->width(), m_Meta->height(), m_Meta->depth()};
+	imageCreateInfo.extent		  = vk::Extent3D {m_Meta->width(), m_Meta->height(), m_Meta->depth()};
 	imageCreateInfo.usage		  = to_vk(m_Meta->usage());
 
 	utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
@@ -209,15 +219,15 @@ void texture::create_2D(void* data)
 
 	memAllocInfo.allocationSize = memReqs.size;
 	memAllocInfo.memoryTypeIndex =
-		m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+	  m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
 	m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
 
 	if(data != nullptr)
 	{
-		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(m_Context->device(), m_Context->command_pool(),
-																	   vk::CommandBufferLevel::ePrimary, true, 1);
+		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(
+		  m_Context->device(), m_Context->command_pool(), vk::CommandBufferLevel::ePrimary, true, 1);
 
 		vk::ImageSubresourceRange subresourceRange;
 		subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
@@ -226,18 +236,18 @@ void texture::create_2D(void* data)
 		subresourceRange.layerCount	  = m_Meta->layers();
 		// Image barrier for optimal image (target)
 		// Optimal image will be used as destination for the copy
-		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eUndefined,
-										  vk::ImageLayout::eTransferDstOptimal, subresourceRange);
+		utility::vulkan::set_image_layout(
+		  copyCmd, m_Image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, subresourceRange);
 
 		// Copy mip levels from staging buffer
-		copyCmd.copyBufferToImage(stagingBuffer->gpu_buffer(), m_Image, vk::ImageLayout::eTransferDstOptimal,
-								  (uint32_t)1, &bufferCopyRegion);
+		copyCmd.copyBufferToImage(
+		  stagingBuffer->gpu_buffer(), m_Image, vk::ImageLayout::eTransferDstOptimal, (uint32_t)1, &bufferCopyRegion);
 
 		// Change texture image layout to shader read after all mip levels have been copied
 		m_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-		utility::vulkan::set_image_layout(copyCmd, m_Image, vk::ImageLayout::eTransferDstOptimal, m_ImageLayout,
-										  subresourceRange);
+		utility::vulkan::set_image_layout(
+		  copyCmd, m_Image, vk::ImageLayout::eTransferDstOptimal, m_ImageLayout, subresourceRange);
 
 		m_Context->flush(copyCmd, true);
 	}
@@ -252,7 +262,7 @@ void texture::create_2D(void* data)
 	view.format		= to_vk(m_Meta->format());
 	view.components = vk::ComponentMapping();
 	view.subresourceRange.aspectMask =
-		(utility::vulkan::has_depth(view.format)) ? vk::ImageAspectFlagBits::eDepth : to_vk(m_Meta->aspect_mask());
+	  (utility::vulkan::has_depth(view.format)) ? vk::ImageAspectFlagBits::eDepth : to_vk(m_Meta->aspect_mask());
 	view.subresourceRange.baseMipLevel	 = 0;
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount	 = m_Meta->layers();
@@ -317,11 +327,11 @@ void texture::load_2D()
 		if(!m_StagingBuffer)
 		{
 			core::ivk::log->warn(
-				"missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
+			  "missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
 			auto tempBuffer = m_Cache.create<core::data::buffer>(
-				core::gfx::memory_usage::transfer_source,
-				core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-				memory::region{m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
+			  core::gfx::memory_usage::transfer_source,
+			  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+			  memory::region {m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
 			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
 		}
 		if(!stagingBuffer)
@@ -382,7 +392,7 @@ void texture::load_2D()
 		imageCreateInfo.usage		  = vk::ImageUsageFlagBits::eSampled;
 		imageCreateInfo.sharingMode	  = vk::SharingMode::eExclusive;
 		imageCreateInfo.initialLayout = vk::ImageLayout::eUndefined;
-		imageCreateInfo.extent		  = vk::Extent3D{m_Meta->width(), m_Meta->height(), m_Meta->depth()};
+		imageCreateInfo.extent		  = vk::Extent3D {m_Meta->width(), m_Meta->height(), m_Meta->depth()};
 		imageCreateInfo.usage		  = to_vk(m_Meta->usage());
 
 		utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
@@ -396,13 +406,13 @@ void texture::load_2D()
 
 		memAllocInfo.allocationSize = memReqs.size;
 		memAllocInfo.memoryTypeIndex =
-			m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
+		  m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 		utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
 		m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
 
-		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(m_Context->device(), m_Context->command_pool(),
-																	   vk::CommandBufferLevel::ePrimary, true, 1);
+		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(
+		  m_Context->device(), m_Context->command_pool(), vk::CommandBufferLevel::ePrimary, true, 1);
 
 		vk::ImageSubresourceRange subresourceRange;
 		subresourceRange.aspectMask	  = vk::ImageAspectFlagBits::eColor;
@@ -419,17 +429,29 @@ void texture::load_2D()
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-			core::ivk::log->info("transitioning image {} from {} to {} in pipeline stage {} to {}", meta().ID().to_string(),
-								  vk::to_string(barrier.srcAccessMask), vk::to_string(barrier.dstAccessMask),
-								  vk::to_string(vk::PipelineStageFlagBits::eHost),
-								  vk::to_string(vk::PipelineStageFlagBits::eTransfer));
-			copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eHost, vk::PipelineStageFlagBits::eTransfer,
-									(vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1, &barrier);
+			core::ivk::log->info("transitioning image {} from {} to {} in pipeline stage {} to {}",
+								 meta().ID().to_string(),
+								 vk::to_string(barrier.srcAccessMask),
+								 vk::to_string(barrier.dstAccessMask),
+								 vk::to_string(vk::PipelineStageFlagBits::eHost),
+								 vk::to_string(vk::PipelineStageFlagBits::eTransfer));
+			copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eHost,
+									vk::PipelineStageFlagBits::eTransfer,
+									(vk::DependencyFlagBits)0,
+									0,
+									nullptr,
+									0,
+									nullptr,
+									1,
+									&barrier);
 		}
 
 		// Copy mip levels from staging buffer
-		copyCmd.copyBufferToImage(stagingBuffer->gpu_buffer(), m_Image, vk::ImageLayout::eTransferDstOptimal,
-								  (uint32_t)bufferCopyRegions.size(), bufferCopyRegions.data());
+		copyCmd.copyBufferToImage(stagingBuffer->gpu_buffer(),
+								  m_Image,
+								  vk::ImageLayout::eTransferDstOptimal,
+								  (uint32_t)bufferCopyRegions.size(),
+								  bufferCopyRegions.data());
 
 		// Change texture image layout to shader read after all mip levels have been copied
 		m_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
@@ -437,18 +459,27 @@ void texture::load_2D()
 
 		{
 			auto barrier =
-				utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eTransferDstOptimal, m_ImageLayout);
+			  utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eTransferDstOptimal, m_ImageLayout);
 			barrier.image				= m_Image;
 			barrier.subresourceRange	= subresourceRange;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 			barrier.dstQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
 
-			core::ivk::log->info("transitioning image {} from {} to {} in pipeline stage {} to {}", meta().ID().to_string(),
-								  vk::to_string(barrier.srcAccessMask), vk::to_string(barrier.dstAccessMask),
-								  vk::to_string(vk::PipelineStageFlagBits::eTransfer),
-								  vk::to_string(vk::PipelineStageFlagBits::eFragmentShader));
-			copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer, vk::PipelineStageFlagBits::eFragmentShader,
-									(vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1, &barrier);
+			core::ivk::log->info("transitioning image {} from {} to {} in pipeline stage {} to {}",
+								 meta().ID().to_string(),
+								 vk::to_string(barrier.srcAccessMask),
+								 vk::to_string(barrier.dstAccessMask),
+								 vk::to_string(vk::PipelineStageFlagBits::eTransfer),
+								 vk::to_string(vk::PipelineStageFlagBits::eFragmentShader));
+			copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eTransfer,
+									vk::PipelineStageFlagBits::eFragmentShader,
+									(vk::DependencyFlagBits)0,
+									0,
+									nullptr,
+									0,
+									nullptr,
+									1,
+									&barrier);
 		}
 
 		m_Context->flush(copyCmd, true);

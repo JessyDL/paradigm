@@ -1,8 +1,9 @@
 ﻿#pragma once
 
-#include "resource/resource.hpp"
-#include <vector>
 #include "psl/array_view.h"
+#include "resource/resource.hpp"
+#include "vk/ivk.h"
+#include <vector>
 
 namespace core::data
 {
@@ -13,7 +14,7 @@ namespace core::ivk
 {
 	class context;
 	class buffer;
-}
+}	 // namespace core::ivk
 namespace core::ivk
 {
 	/// \brief encapsulated the concept of a graphics pipeline on the GPU
@@ -23,17 +24,25 @@ namespace core::ivk
 	class pipeline
 	{
 	  public:
-		  /// \brief creates a graphics pipeline
-		  /// \warn this constructor will error-out when it detects you trying to create a compute pipeline instead
-		pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 core::resource::handle<core::ivk::context> context, core::resource::handle<core::data::material> data,
-				 vk::PipelineCache& pipelineCache, vk::RenderPass renderPass, uint32_t attachmentCount);
+		/// \brief creates a graphics pipeline
+		/// \warn this constructor will error-out when it detects you trying to create a compute pipeline instead
+		pipeline(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 core::resource::handle<core::ivk::context> context,
+				 core::resource::handle<core::data::material> data,
+				 vk::PipelineCache& pipelineCache,
+				 vk::RenderPass renderPass,
+				 uint32_t attachmentCount);
 
 		/// \brief creates a compute pipeline
-		  /// \warn this constructor will error-out when it detects you trying to create a graphics pipeline instead
-		pipeline(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			core::resource::handle<core::ivk::context> context, core::resource::handle<core::data::material> data,
-			vk::PipelineCache& pipelineCache);
+		/// \warn this constructor will error-out when it detects you trying to create a graphics pipeline instead
+		pipeline(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 core::resource::handle<core::ivk::context> context,
+				 core::resource::handle<core::data::material> data,
+				 vk::PipelineCache& pipelineCache);
 
 		~pipeline();
 		pipeline(const pipeline&) = delete;
@@ -56,7 +65,7 @@ namespace core::ivk
 		bool get(uint32_t bindingLocation, vk::WriteDescriptorSet& out);
 
 		/// \returns if updating that binding location was successful. It has to be a binding point that exists, and is
-		/// of the correct type, otherwise it returns false. 
+		/// of the correct type, otherwise it returns false.
 		/// \param[in] bindingLocation the binding location to update.
 		/// \param[in] descriptor the new information to emplace at the location.
 		bool update(uint32_t bindingLocation, vk::WriteDescriptorSet descriptor);
@@ -81,8 +90,10 @@ namespace core::ivk
 		/// \param[in] buffer the new buffer to bind this descriptorset to.
 		/// \param[in] offset the new offset of the buffer binding.
 		/// \param[in] range the new size of the buffer binding.
-		bool unsafe_update(uint32_t bindingLocation, core::resource::handle<core::ivk::buffer> buffer, vk::DeviceSize offset,
-					vk::DeviceSize range);
+		bool unsafe_update(uint32_t bindingLocation,
+						   core::resource::handle<core::ivk::buffer> buffer,
+						   vk::DeviceSize offset,
+						   vk::DeviceSize range);
 
 		/// \returns if the pipeline's descriptors have been completely filled in
 		/// \warn complete doesn't mean 'correct'. The descriptors can be filled in to point to missing or deleted items
@@ -98,7 +109,7 @@ namespace core::ivk
 		bool bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamicOffsets = {});
 
 	  private:
-		 bool completeness_check() noexcept;
+		bool completeness_check() noexcept;
 		bool update(core::resource::cache& cache, const core::data::material& data, vk::DescriptorSet set);
 		core::resource::handle<core::ivk::context> m_Context;
 
@@ -107,13 +118,13 @@ namespace core::ivk
 		vk::PipelineLayout m_PipelineLayout;
 		vk::Pipeline m_Pipeline;
 		vk::PipelineCache& m_PipelineCache;
-		vk::PipelineBindPoint m_BindPoint{ vk::PipelineBindPoint::eGraphics };
+		vk::PipelineBindPoint m_BindPoint {vk::PipelineBindPoint::eGraphics};
 
 		std::vector<vk::WriteDescriptorSet> m_DescriptorSets;
 		std::vector<std::unique_ptr<vk::DescriptorBufferInfo>> m_TrackedBufferInfos;
 		core::resource::cache& m_Cache;
-		bool m_HasPushConstants{false};
-		bool m_IsValid{true};
-		bool m_IsComplete{true};
+		bool m_HasPushConstants {false};
+		bool m_IsValid {true};
+		bool m_IsComplete {true};
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk

@@ -22,17 +22,17 @@ namespace core::gfx
 
 
 #ifdef PE_VULKAN
-	template<>
+	template <>
 	struct backend_type<swapchain, graphics_backend::vulkan>
 	{
 		using type = core::ivk::swapchain;
 	};
 #endif
 #ifdef PE_GLES
-	template<>
+	template <>
 	struct backend_type<swapchain, graphics_backend::gles>
 	{
 		using type = core::igles::swapchain;
 	};
 #endif
-} // namespace core::gfx
+}	 // namespace core::gfx

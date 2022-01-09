@@ -1,9 +1,9 @@
 #include "gles/context.h"
-#include <Windows.h>
-#include "os/surface.h"
+#include "gfx/limits.h"
 #include "glad/glad_wgl.h"
 #include "logging.h"
-#include "gfx/limits.h"
+#include "os/surface.h"
+#include <Windows.h>
 
 HDC target;
 HWND hwnd;
@@ -24,7 +24,9 @@ void* glGetProcAddress(const char* name)
 	return p;
 }
 
-context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+context::context(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
 				 psl::string8::view name)
 {
 	auto window_data = cache.create<core::data::window>(1, 1);
@@ -36,9 +38,9 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 
 	PIXELFORMATDESCRIPTOR pfd;
 	ZeroMemory(&pfd, sizeof(pfd));
-	pfd.nSize	  = sizeof(pfd);
+	pfd.nSize	   = sizeof(pfd);
 	pfd.nVersion   = 1;
-	pfd.dwFlags	= PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.dwFlags	   = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cAlphaBits = 8;
@@ -63,12 +65,12 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 #ifdef _DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif
-							WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+						  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
 						0};
 	// rc = wglCreateContext(target); // Rendering Contex
-	rc = wglCreateContext(target); // Rendering Contex
+	rc = wglCreateContext(target);	  // Rendering Contex
 	if(!wglMakeCurrent(target, rc)) return;
 
 	int version = gladLoadWGL(target);
@@ -77,10 +79,10 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 		core::igles::log->critical("could not create a context. failed to load fnpointers.");
 		return;
 	}
-	version	= gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	version	   = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
 	auto error = glGetError();
 
-	GLint value{};
+	GLint value {};
 
 	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &value);
 	m_Limits.storage.alignment = value;
@@ -98,8 +100,8 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	// no real requirements, but let's take something
 	m_Limits.memorymap.alignment = 4;
 #endif
-	m_Limits.memorymap.size = std::numeric_limits<uint64_t>::max();
-	m_Limits.supported_depthformat			 = core::gfx::format::d32_sfloat;
+	m_Limits.memorymap.size		   = std::numeric_limits<uint64_t>::max();
+	m_Limits.supported_depthformat = core::gfx::format::d32_sfloat;
 
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &value);
 	m_Limits.compute.workgroup.count[0] = value;
@@ -138,8 +140,13 @@ context::~context()
 
 static std::thread::id main_thread;
 
-void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum severity, GLsizei length,
-								const GLchar* message, const void* userParam)
+void GLAPIENTRY MessageCallback(GLenum source,
+								GLenum type,
+								GLuint id,
+								GLenum severity,
+								GLsizei length,
+								const GLchar* message,
+								const void* userParam)
 {
 	switch(severity)
 	{
@@ -157,7 +164,7 @@ void GLAPIENTRY MessageCallback(GLenum source, GLenum type, GLuint id, GLenum se
 		if(type == GL_DEBUG_TYPE_ERROR)
 		{
 			auto stack = utility::debug::trace(0, 255, main_thread);
-			psl::string traceStr{"--- TRACE ---\n"};
+			psl::string traceStr {"--- TRACE ---\n"};
 			for(const auto& trace : stack)
 			{
 				traceStr.append('\t' + utility::string::to_hex(trace.addr) + "    " + trace.name + '\n');
@@ -181,9 +188,9 @@ void context::enable(const core::os::surface& surface)
 
 	PIXELFORMATDESCRIPTOR pfd;
 	ZeroMemory(&pfd, sizeof(pfd));
-	pfd.nSize	  = sizeof(pfd);
+	pfd.nSize	   = sizeof(pfd);
 	pfd.nVersion   = 1;
-	pfd.dwFlags	= PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
+	pfd.dwFlags	   = PFD_DRAW_TO_WINDOW | PFD_SUPPORT_OPENGL | PFD_DOUBLEBUFFER;
 	pfd.iPixelType = PFD_TYPE_RGBA;
 	pfd.cColorBits = 32;
 	pfd.cAlphaBits = 8;
@@ -208,12 +215,12 @@ void context::enable(const core::os::surface& surface)
 #ifdef _DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif
-							WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
+						  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
 						0};
 	// rc = wglCreateContext(target); // Rendering Contex
-	rc = wglCreateContext(target); // Rendering Contex
+	rc = wglCreateContext(target);	  // Rendering Contex
 	if(!wglMakeCurrent(target, rc)) return;
 
 	int version = gladLoadWGL(target);
@@ -222,7 +229,7 @@ void context::enable(const core::os::surface& surface)
 		printf("Unable to load OpenGL\n");
 		return;
 	}
-	version	= gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	version	   = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
 	auto error = glGetError();
 
 	wglMakeCurrent(NULL, NULL);
@@ -248,7 +255,7 @@ void context::enable(const core::os::surface& surface)
 		return;
 	}
 	version = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
-	error   = glGetError();
+	error	= glGetError();
 
 	auto glversion = glGetString(GL_VERSION);
 
@@ -261,7 +268,6 @@ void context::enable(const core::os::surface& surface)
 
 	if(surface.data().buffering() != core::gfx::buffering::SINGLE)
 	{
-
 #ifdef GL_EXT_swap_control_tear
 		if(surface.data().buffering() == core::gfx::buffering::triple)
 		{
@@ -275,9 +281,9 @@ void context::enable(const core::os::surface& surface)
 		if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(1);
 #endif
 
-		glEnable(GL_BLEND); 
+		glEnable(GL_BLEND);
 		glEnable(GL_CULL_FACE);
-		//glLineWidth(2.0);
+		// glLineWidth(2.0);
 	}
 }
 

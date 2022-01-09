@@ -16,12 +16,12 @@ typedef khronos_float_t GLfloat;
 typedef khronos_float_t GLclampf;
 typedef double GLdouble;
 typedef double GLclampd;
-typedef void *GLeglClientBufferEXT;
-typedef void *GLeglImageOES;
+typedef void* GLeglClientBufferEXT;
+typedef void* GLeglImageOES;
 typedef char GLchar;
 typedef char GLcharARB;
 #ifdef __APPLE__
-typedef void *GLhandleARB;
+typedef void* GLhandleARB;
 #else
 typedef unsigned int GLhandleARB;
 #endif
@@ -36,4 +36,4 @@ typedef khronos_int64_t GLint64;
 typedef khronos_int64_t GLint64EXT;
 typedef khronos_uint64_t GLuint64;
 typedef khronos_uint64_t GLuint64EXT;
-typedef struct __GLsync *GLsync;
+typedef struct __GLsync* GLsync;

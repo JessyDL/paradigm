@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "psl/serialization.h"
-#include "gfx/types.h"
 #include "fwd/resource/resource.h"
+#include "gfx/types.h"
+#include "psl/serialization/serializer.hpp"
 
 
 namespace core::data
@@ -10,11 +10,14 @@ namespace core::data
 	class sampler final
 	{
 		friend class psl::serialization::accessor;
-	public:
-		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile) noexcept;
-		~sampler() = default;
+
+	  public:
+		sampler(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				psl::meta::file* metaFile) noexcept;
+		~sampler()					  = default;
 		sampler(const sampler& other) = delete;
-		sampler(sampler&& other) = delete;
+		sampler(sampler&& other)	  = delete;
 		sampler& operator=(const sampler& other) = delete;
 		sampler& operator=(sampler&& other) = delete;
 
@@ -32,7 +35,7 @@ namespace core::data
 		/// \brief sets the mip bias when sampling mipmaps.
 		/// \param[in] value the bias to apply to mipmap sampling.
 		/// \note mipmaps() should be true for this to have an effect.
-		void  mip_bias(float value);
+		void mip_bias(float value);
 
 		/// \brief returns the mode for mipmap texture lookups.
 		/// \returns the mode for mipmap texture lookups.
@@ -80,7 +83,8 @@ namespace core::data
 		void addressW(core::gfx::sampler_address_mode value);
 
 		void address(core::gfx::sampler_address_mode value) noexcept;
-		void address(core::gfx::sampler_address_mode u, core::gfx::sampler_address_mode v,
+		void address(core::gfx::sampler_address_mode u,
+					 core::gfx::sampler_address_mode v,
 					 core::gfx::sampler_address_mode w) noexcept;
 		/// \brief returns the border color that will be used during texture lookups.
 		/// \returns the border color that will be used during texture lookups.
@@ -96,7 +100,7 @@ namespace core::data
 
 		/// \brief call this to enable or disable anisotropic filtering.
 		/// \param[in] value set to true to enable anisotropic filtering.
-		/// \note if the current core::ivk::context doesn't support anisotropic filtering, 
+		/// \note if the current core::ivk::context doesn't support anisotropic filtering,
 		/// then this value will be ingored upstream (core::core::ivk::sampler).
 		void anisotropic_filtering(bool value);
 
@@ -119,13 +123,14 @@ namespace core::data
 		core::gfx::compare_op compare_op() const;
 		/// \brief sets the compare op to a new value.
 		/// \param[in] value the new compare op to use.
-		/// \note compare_op() will only be used if compare_mode() is true. You can still set this value regardless however.
+		/// \note compare_op() will only be used if compare_mode() is true. You can still set this value regardless
+		/// however.
 		void compare_op(core::gfx::compare_op value);
 
 		/// \brief returns the filtering mode to use when dealing with minification.
 		/// \returns the filtering mode to use when dealing with minification.
 		core::gfx::filter filter_min() const;
-		
+
 		/// \brief sets the filtering mode to use when dealing with minification.
 		/// \param[in] value the new filter mode to use.
 		void filter_min(core::gfx::filter value);
@@ -143,49 +148,48 @@ namespace core::data
 		/// \brief enables or disables coordinate normalization when this sampler is used.
 		/// \param[in] value enables or disables the behaviour.
 		void normalized_coordinates(bool value);
-	private:
+
+	  private:
 		template <typename S>
 		void serialize(S& serializer)
 		{
 			serializer << m_MipMapped;
-			if(m_MipMapped.value)
-				serializer << m_MipMapMode << m_MipLodBias << m_MinLod << m_MaxLod;
+			if(m_MipMapped.value) serializer << m_MipMapMode << m_MipLodBias << m_MinLod << m_MaxLod;
 			serializer << m_AddressModeU << m_AddressModeV << m_AddressModeW << m_BorderColor << m_AnisotropyEnable;
-			if(m_AnisotropyEnable.value)
-				serializer << m_MaxAnisotropy;
+			if(m_AnisotropyEnable.value) serializer << m_MaxAnisotropy;
 			serializer << m_CompareEnable;
-			if(m_CompareEnable.value)
-				serializer << m_CompareOp;
+			if(m_CompareEnable.value) serializer << m_CompareOp;
 			serializer << m_MinFilter << m_MaxFilter << m_NormalizedCoordinates;
 		}
 
-		static constexpr const char serialization_name[8]{"SAMPLER"};
+		static constexpr const char serialization_name[8] {"SAMPLER"};
 
-		psl::serialization::property<bool, const_str("MIPMAPS", 7)>						m_MipMapped = true;
-		psl::serialization::property<core::gfx::sampler_mipmap_mode, const_str("MIP_MODE", 8)> m_MipMapMode =
-			core::gfx::sampler_mipmap_mode::nearest;
-		psl::serialization::property<float, const_str("MIP_BIAS", 8)>					m_MipLodBias = 0.0f;
-		psl::serialization::property<float, const_str("MIP_MIN", 7)>						m_MinLod = 0.0f;
-		psl::serialization::property<float, const_str("MIP_MAX", 7)>						m_MaxLod = 14.0f;
+		psl::serialization::property<"MIPMAPS", bool> m_MipMapped = true;
+		psl::serialization::property<"MIP_MODE", core::gfx::sampler_mipmap_mode> m_MipMapMode =
+		  core::gfx::sampler_mipmap_mode::nearest;
+		psl::serialization::property<"MIP_BIAS", float> m_MipLodBias = 0.0f;
+		psl::serialization::property<"MIP_MIN", float> m_MinLod		 = 0.0f;
+		psl::serialization::property<"MIP_MAX", float> m_MaxLod		 = 14.0f;
 
-		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_U", 9)> m_AddressModeU =
-			core::gfx::sampler_address_mode::repeat;
-		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_V", 9)> m_AddressModeV =
-			core::gfx::sampler_address_mode::repeat;
-		psl::serialization::property<core::gfx::sampler_address_mode, const_str("ADDRESS_W", 9)> m_AddressModeW =
-			core::gfx::sampler_address_mode::repeat;
-		psl::serialization::property<core::gfx::border_color, const_str("BORDER_COLOR", 12)> m_BorderColor =
-			core::gfx::border_color::float_transparent_black;
+		psl::serialization::property<"ADDRESS_U", core::gfx::sampler_address_mode> m_AddressModeU =
+		  core::gfx::sampler_address_mode::repeat;
+		psl::serialization::property<"ADDRESS_V", core::gfx::sampler_address_mode> m_AddressModeV =
+		  core::gfx::sampler_address_mode::repeat;
+		psl::serialization::property<"ADDRESS_W", core::gfx::sampler_address_mode> m_AddressModeW =
+		  core::gfx::sampler_address_mode::repeat;
+		psl::serialization::property<"BORDER_COLOR", core::gfx::border_color> m_BorderColor =
+		  core::gfx::border_color::float_transparent_black;
 
-		psl::serialization::property<bool, const_str("ANISOTROPY",10)>					m_AnisotropyEnable = true;
-		psl::serialization::property<float, const_str("MAX_ANISO", 9)>					m_MaxAnisotropy = 8.0f;
+		psl::serialization::property<"ANISOTROPY", bool> m_AnisotropyEnable = true;
+		psl::serialization::property<"MAX_ANISO", float> m_MaxAnisotropy	= 8.0f;
 
-		psl::serialization::property<bool, const_str("COMPARE", 7)>						m_CompareEnable = false;
-		psl::serialization::property<core::gfx::compare_op, const_str("COMPARE_OPERATION", 17)>	m_CompareOp = core::gfx::compare_op::never;
+		psl::serialization::property<"COMPARE", bool> m_CompareEnable = false;
+		psl::serialization::property<"COMPARE_OPERATION", core::gfx::compare_op> m_CompareOp =
+		  core::gfx::compare_op::never;
 
-		psl::serialization::property<core::gfx::filter, const_str("FILTER_MIN", 10)> m_MinFilter = core::gfx::filter::linear;
-		psl::serialization::property<core::gfx::filter, const_str("FILTER_MAX", 10)> m_MaxFilter = core::gfx::filter::linear;
+		psl::serialization::property<"FILTER_MIN", core::gfx::filter> m_MinFilter = core::gfx::filter::linear;
+		psl::serialization::property<"FILTER_MAX", core::gfx::filter> m_MaxFilter = core::gfx::filter::linear;
 
-		psl::serialization::property<bool, const_str("NORMALIZED_COORDINATES",22)>		m_NormalizedCoordinates = true;
+		psl::serialization::property<"NORMALIZED_COORDINATES", bool> m_NormalizedCoordinates = true;
 	};
-}
+}	 // namespace core::data

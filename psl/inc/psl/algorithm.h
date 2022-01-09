@@ -44,7 +44,7 @@ namespace psl
 				}
 				return first;
 			}
-		} // namespace details
+		}	 // namespace details
 
 		template <typename It, class Pred>
 		void quick(const It first, const It last, Pred&& pred) noexcept
@@ -53,7 +53,7 @@ namespace psl
 			if(distance(first, last) > 1)
 			{
 				auto pivot = ::psl::sorting::details::partition(first, last, std::forward<Pred>(pred));
-				if (pivot == last) return;
+				if(pivot == last) return;
 				quick(first, pivot, std::forward<Pred>(pred));
 				quick(next(pivot), last, std::forward<Pred>(pred));
 			}
@@ -88,7 +88,7 @@ namespace psl
 			insertion(first, last, std::less<typename std::iterator_traits<It>::value_type>());
 		}
 
-	} // namespace sorting
+	}	 // namespace sorting
 	template <typename Sorter, typename It, typename Pred>
 	void sort(Sorter&&, const It first, const It last, Pred&& pred) noexcept
 	{
@@ -126,14 +126,13 @@ namespace psl
 	}
 
 	template <class InputIt1, class InputIt2, class Compare>
-	InputIt1 inplace_set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2,
-							Compare comp)
+	InputIt1 inplace_set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2, Compare comp)
 	{
 		using std::rotate, std::next, std::prev;
 
 		while(first1 != last1)
 		{
-			if (first2 == last2)
+			if(first2 == last2)
 			{
 				return last1;
 			}
@@ -155,11 +154,11 @@ namespace psl
 		return last1;
 	}
 
-	template<class InputIt1, class InputIt2>
-	InputIt1 inplace_set_difference(InputIt1 first1, InputIt1 last1,
-		InputIt2 first2, InputIt2 last2)
+	template <class InputIt1, class InputIt2>
+	InputIt1 inplace_set_difference(InputIt1 first1, InputIt1 last1, InputIt2 first2, InputIt2 last2)
 	{
-		return inplace_set_difference(first1, last1, first2, last2, std::less<typename std::iterator_traits<InputIt1>::value_type>());
+		return inplace_set_difference(
+		  first1, last1, first2, last2, std::less<typename std::iterator_traits<InputIt1>::value_type>());
 	}
 
 	// template <typename It, typename Pred>
@@ -182,4 +181,4 @@ namespace psl
 	//	using std::sort;
 	//	sort(std::forward<Policy>(policy), first, last, std::forward<Pred>(pred));
 	//}
-} // namespace psl
+}	 // namespace psl

@@ -26,11 +26,14 @@ namespace core::igles
 		{
 			core::resource::handle<core::igles::buffer> buffer;
 			uint32_t slot;
-			uint32_t offset{ 0 };
-			uint32_t size{ 0 };
+			uint32_t offset {0};
+			uint32_t size {0};
 		};
+
 	  public:
-		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		material(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::igles::program_cache> program_cache);
 		~material() = default;
@@ -56,6 +59,7 @@ namespace core::igles
 		std::vector<std::pair<uint32_t, core::resource::handle<core::igles::sampler>>> m_Samplers;
 		std::vector<buffer_binding> m_Buffers;
 
-		//std::optional<std::tuple<uint32_t, core::resource::handle<core::igles::buffer>, memory::segment>> m_MaterialInstanceData{ std::nullopt };
+		// std::optional<std::tuple<uint32_t, core::resource::handle<core::igles::buffer>, memory::segment>>
+		// m_MaterialInstanceData{ std::nullopt };
 	};
-} // namespace core::igles
+}	 // namespace core::igles

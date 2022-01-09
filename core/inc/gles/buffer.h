@@ -1,10 +1,10 @@
 #pragma once
-#include "resource/resource.hpp"
-#include "psl/memory/segment.h"
-#include <optional>
 #include "gfx/types.h"
 #include "gles/types.h"
 #include "psl/array.h"
+#include "psl/memory/segment.h"
+#include "resource/resource.hpp"
+#include <optional>
 
 namespace core::data
 {
@@ -16,7 +16,9 @@ namespace core::igles
 	class buffer
 	{
 	  public:
-		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
 			   core::resource::handle<core::data::buffer> buffer_data);
 
 		~buffer();
@@ -52,7 +54,7 @@ namespace core::igles
 		/// optimize signifies if we should we try to collapse multiple memory::segments into one segment if possible,
 		/// avoiding fragmentation and overhead.
 		[[nodiscard]] std::vector<std::pair<memory::segment, memory::range>> allocate(psl::array<size_t> sizes,
-																					 bool optimize = false);
+																					  bool optimize = false);
 
 		/// \brief marks the specific region of memory available again.
 		///
@@ -69,10 +71,11 @@ namespace core::igles
 
 		bool commit(const psl::array<core::gfx::commit_instruction>& instructions);
 		size_t free_size() const noexcept;
+
 	  private:
 		GLuint m_Buffer;
 		GLint m_BufferType;
 		core::resource::handle<core::data::buffer> m_BufferDataHandle;
 		psl::UID m_UID;
 	};
-} // namespace core::igles
+}	 // namespace core::igles

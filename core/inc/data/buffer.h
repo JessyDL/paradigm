@@ -1,11 +1,11 @@
 ﻿#pragma once
-#include "psl/serialization.h"
-#include <vector>
-#include <optional>
+#include "fwd/resource/resource.h"
+#include "gfx/types.h"
 #include "psl/memory/region.h"
 #include "psl/memory/segment.h"
-#include "gfx/types.h"
-#include "fwd/resource/resource.h"
+#include "psl/serialization/serializer.hpp"
+#include <optional>
+#include <vector>
 
 /// \brief contains all data types that can be serialized to/from disk.
 namespace core::data
@@ -14,9 +14,9 @@ namespace core::data
 	///
 	/// core::data::buffer is a data container for anything that will be uploaded to the GPU. This means that this can
 	/// not contain any complex types (such as indirections). core::data::buffer can be incorrectly set up when giving
-	/// incompatible memory::region bundled with core::gfx::memory_usage. \note the memory::region you pass to this object
-	/// will also dictate the **size** and **alignment** requirements of this specific resource on the GPU. \todo figure
-	/// out a way around incompatible core::data::buffer setups, perhaps by using structs to construct the class.
+	/// incompatible memory::region bundled with core::gfx::memory_usage. \note the memory::region you pass to this
+	/// object will also dictate the **size** and **alignment** requirements of this specific resource on the GPU. \todo
+	/// figure out a way around incompatible core::data::buffer setups, perhaps by using structs to construct the class.
 	/// \author Jessy De Lannoit
 	class buffer
 	{
@@ -30,8 +30,11 @@ namespace core::data
 		/// \param[in] memoryPropertyFlags what are the properties of the memory (i.e. where does it live)
 		/// \param[in] memory_region what is the owning region of this memory. Note that this parameter also will
 		/// dictate the size and alignment of the resource.
-		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::gfx::memory_usage usage, core::gfx::memory_property memoryPropertyFlags,
+		buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   core::gfx::memory_usage usage,
+			   core::gfx::memory_property memoryPropertyFlags,
 			   memory::region&& memory_region) noexcept;
 
 		~buffer();
@@ -85,11 +88,11 @@ namespace core::data
 		{
 			serializer << m_Usage << m_MemoryPropertyFlags << m_Transient << m_WriteFrequency;
 
-			if constexpr(psl::serialization::details::is_encoder<S>::value)
+			if constexpr(psl::serialization::details::IsEncoder<S>)
 			{
-				psl::serialization::property<size_t, const_str("SIZE", 4)> size{m_Region.size()};
-				psl::serialization::property<size_t, const_str("ALIGNMENT", 9)> alignment{m_Region.alignment()};
-				psl::serialization::property<std::vector<psl::string8_t>, const_str("DATA", 4)> data{};
+				psl::serialization::property<"SIZE", size_t> size {m_Region.size()};
+				psl::serialization::property<"ALIGNMENT", size_t> alignment {m_Region.alignment()};
+				psl::serialization::property<"DATA", std::vector<psl::string8_t>> data {};
 
 				for(auto it : m_Segments)
 				{
@@ -100,9 +103,9 @@ namespace core::data
 			}
 			else
 			{
-				psl::serialization::property<size_t, const_str("SIZE", 4)> size{0u};
-				psl::serialization::property<size_t, const_str("ALIGNMENT", 9)> alignment{4u};
-				psl::serialization::property<std::vector<psl::string8_t>, const_str("DATA", 4)> data{};
+				psl::serialization::property<"SIZE", size_t> size {0u};
+				psl::serialization::property<"ALIGNMENT", size_t> alignment {4u};
+				psl::serialization::property<"DATA", std::vector<psl::string8_t>> data {};
 
 				serializer << size << alignment << data;
 				for(auto it : data.value)
@@ -118,15 +121,16 @@ namespace core::data
 			}
 		}
 
-		static constexpr const char serialization_name[7]{"BUFFER"};
+		static constexpr const char serialization_name[7] {"BUFFER"};
 
 		memory::region m_Region;
 		std::vector<memory::segment> m_Segments;
-		psl::serialization::property<bool, const_str("TRANSIENT", 9)> m_Transient{
-			false}; // is the buffer short lived (true) or not (false)
-		psl::serialization::property<core::gfx::memory_write_frequency, const_str("WRITE FREQUENCY", 15)> m_WriteFrequency{
-				core::gfx::memory_write_frequency::per_frame}; // is the buffer's data changing frequently (false) or not (true)
-		psl::serialization::property<core::gfx::memory_usage, const_str("USAGE", 5)> m_Usage;
-		psl::serialization::property<core::gfx::memory_property, const_str("PROPERTIES", 10)> m_MemoryPropertyFlags;
+		psl::serialization::property<"TRANSIENT", bool> m_Transient {
+		  false};	 // is the buffer short lived (true) or not (false)
+		psl::serialization::property<"WRITE FREQUENCY", core::gfx::memory_write_frequency> m_WriteFrequency {
+		  core::gfx::memory_write_frequency::per_frame};	// is the buffer's data changing
+															// frequently (false) or not (true)
+		psl::serialization::property<"USAGE", core::gfx::memory_usage> m_Usage;
+		psl::serialization::property<"PROPERTIES", core::gfx::memory_property> m_MemoryPropertyFlags;
 	};
-} // namespace core::data
+}	 // namespace core::data

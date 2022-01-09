@@ -1,20 +1,22 @@
 #include "gles/framebuffer.h"
 #include "glad/glad.h"
 
-#include "gles/texture.h"
+#include "data/framebuffer.h"
 #include "gles/sampler.h"
+#include "gles/texture.h"
 #include "meta/texture.h"
 #include "resource/resource.hpp"
-#include "data/framebuffer.h"
 using namespace core;
 using namespace core::igles;
 using namespace core::resource;
 
 // todo support renderbuffer storage
 
-framebuffer::framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData,
-						 psl::meta::file* metaFile, handle<core::data::framebuffer> data)
-	: m_Data(data)
+framebuffer::framebuffer(core::resource::cache& cache,
+						 const core::resource::metadata& metaData,
+						 psl::meta::file* metaFile,
+						 handle<core::data::framebuffer> data) :
+	m_Data(data)
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
 
@@ -60,20 +62,20 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 		size_t index = 0;
 		for(const auto& binding : m_Bindings)
 		{
-			auto format = (core::gfx::is_depthstencil(binding.description.format))
-							  ? GL_DEPTH_STENCIL_ATTACHMENT
-							  : (core::gfx::has_stencil(binding.description.format))
-									? GL_STENCIL_ATTACHMENT
-									: (core::gfx::has_depth(binding.description.format)) ? GL_DEPTH_ATTACHMENT
-																						 : GL_COLOR_ATTACHMENT0 + i;
+			auto format = (core::gfx::is_depthstencil(binding.description.format)) ? GL_DEPTH_STENCIL_ATTACHMENT
+						  : (core::gfx::has_stencil(binding.description.format))   ? GL_STENCIL_ATTACHMENT
+						  : (core::gfx::has_depth(binding.description.format))	   ? GL_DEPTH_ATTACHMENT
+																				   : GL_COLOR_ATTACHMENT0 + i;
 			glFramebufferTexture2D(GL_FRAMEBUFFER, format, GL_TEXTURE_2D, binding.attachments[i]->id(), 0);
 		}
 	}
 	auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
 	switch(status)
 	{
-	case GL_FRAMEBUFFER_COMPLETE: break;
-	default: core::igles::log->error("Framebuffer generated error: {}", status);
+	case GL_FRAMEBUFFER_COMPLETE:
+		break;
+	default:
+		core::igles::log->error("Framebuffer generated error: {}", status);
 	}
 	glBindFramebuffer(GL_FRAMEBUFFER, 0);
 	glGetError();
@@ -97,7 +99,7 @@ std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t
 	if(index >= m_Bindings.size()) return {};
 
 	std::vector<framebuffer::texture_handle> res;
-	auto bindings{m_Bindings};
+	auto bindings {m_Bindings};
 	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
 		return gfx::has_depth(binding.description.format) || gfx::has_stencil(binding.description.format);
 	});

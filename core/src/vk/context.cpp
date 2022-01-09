@@ -1,11 +1,11 @@
 ﻿
 #include "vk/context.h"
-#include "os/surface.h"
-#include "resource/resource.hpp"
-#include "psl/meta.h"
-#include "logging.h"
-#include "paradigm.hpp"
 #include "gfx/limits.h"
+#include "logging.h"
+#include "os/surface.h"
+#include "paradigm.hpp"
+#include "psl/meta.h"
+#include "resource/resource.hpp"
 #include "vk/conversion.h"
 
 #ifdef PLATFORM_LINUX
@@ -23,11 +23,16 @@ using namespace psl;
 using namespace core::ivk;
 using namespace core::os;
 
-VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebugReportObjectTypeEXT objectType,
-											 uint64_t object, size_t location, int32_t messageCode,
-											 const char* layer_prefix, const char* msg, void* pUserData)
+VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags,
+											 VkDebugReportObjectTypeEXT objectType,
+											 uint64_t object,
+											 size_t location,
+											 int32_t messageCode,
+											 const char* layer_prefix,
+											 const char* msg,
+											 void* pUserData)
 {
-	psl::string message{msg};
+	psl::string message {msg};
 	message.append(" [");
 	message.append(layer_prefix);
 	message.append("]");
@@ -55,12 +60,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags, VkDebu
 		core::ivk::log->info(message.c_str());
 		break;
 	}
-	return false; // always return false
+	return false;	 // always return false
 }
 
 inline psl::string8_t size_denotation(size_t size)
 {
-	static const std::vector<psl::string8::view> SUFFIXES{{"B", "KB", "MB", "GB", "TB", "PB"}};
+	static const std::vector<psl::string8::view> SUFFIXES {{"B", "KB", "MB", "GB", "TB", "PB"}};
 	size_t suffixIndex = 0;
 	while(suffixIndex < SUFFIXES.size() - 1 && size > 1024)
 	{
@@ -76,9 +81,9 @@ inline psl::string8_t size_denotation(size_t size)
 struct VKAPIVersion
 {
   public:
-	explicit VKAPIVersion(uint32_t version)
-		: major((uint32_t)(version) >> 22), minor(((uint32_t)(version) >> 12) & 0x3ff),
-		  patch((uint32_t)(version)&0xfff){};
+	explicit VKAPIVersion(uint32_t version) :
+		major((uint32_t)(version) >> 22), minor(((uint32_t)(version) >> 12) & 0x3ff),
+		patch((uint32_t)(version)&0xfff) {};
 
 	bool operator==(const VKAPIVersion& other) const
 	{
@@ -108,9 +113,12 @@ struct VKAPIVersion
 	const uint32_t minor;
 	const uint32_t patch;
 };
-context::context(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 psl::string8::view name, uint32_t deviceIndex)
-	: m_DeviceIndex(deviceIndex)
+context::context(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 psl::string8::view name,
+				 uint32_t deviceIndex) :
+	m_DeviceIndex(deviceIndex)
 {
 #ifndef VK_STATIC
 	// todo load library ourselves, not through the vulkan dynamic loader solution
@@ -119,7 +127,7 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	//	throw std::runtime_error("no vulkan library detected");
 
 	PFN_vkGetInstanceProcAddr vkGetInstanceProcAddr =
-		dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
+	  dl.getProcAddress<PFN_vkGetInstanceProcAddr>("vkGetInstanceProcAddr");
 	VULKAN_HPP_DEFAULT_DISPATCHER.init(vkGetInstanceProcAddr);
 #endif
 
@@ -187,8 +195,8 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 	core::ivk::log->info("API Version:         {0}.{1}.{2}", apiversion.major, apiversion.minor, apiversion.patch);
 	if(gpuapiversion != apiversion)
 	{
-		core::ivk::log->warn("API Version(Actual): {0}.{1}.{2}", gpuapiversion.major, gpuapiversion.minor,
-							 gpuapiversion.patch);
+		core::ivk::log->warn(
+		  "API Version(Actual): {0}.{1}.{2}", gpuapiversion.major, gpuapiversion.minor, gpuapiversion.patch);
 	}
 	core::ivk::log->info("Driver Version: {}", m_PhysicalDeviceProperties.driverVersion);
 	psl::string8_t vendor;
@@ -260,273 +268,279 @@ context::context(core::resource::cache& cache, const core::resource::metadata& m
 		psl::string information;
 
 		core::ivk::log->info(
-			"\ndevice limits\n"
-			"	textures\n"
-			"		dimension 1D 	{0}\n"
-			"		dimension 2D 	{1}\n"
-			"		dimension 3D 	{2}\n"
-			"		dimension cube 	{3}\n"
-			"		array layers 	{4}\n"
-			"\n"
-			"	buffer\n"
-			"		max texel buffer element 			{5}\n"
-			"		max uniform buffer range 			{6}\n"
-			"		max storage buffer range 			{7}\n"
-			"		memory allocations 					{8}\n"
-			"		sampler allocations 				{9}\n"
-			"		buffer image granularity 			{10}\n"
-			"		sparse address space size			{11}\n"
-			"		host min memory map alignment		{12}\n"
-			"		min texel buffer offset alignment	{13}\n"
-			"		min uniform buffer offset alignment	{14}\n"
-			"		min storage buffer offset alginment	{15}\n"
-			"		min/max texel offset				{16} - {17}\n"
-			"		min/max texel gather offset			{18} - {19}\n"
-			"		min/max interpolation offset		{20} - {21}\n"
-			"		sub pixel interpolation offset bits	{22}\n"
-			"\n"
-			"	descriptor set\n"
-			"		samplers 					{23}\n"
-			"		uniform buffers 			{24}\n"
-			"		uniform buffers (dynamic) 	{25}\n"
-			"		storage buffers				{26}\n"
-			"		storage buffers (dynamic)	{27}\n"
-			"		sampled images				{28}\n"
-			"		storage images				{29}\n"
-			"		input attachments			{30}\n"
-			"\n"
-			"	shader statistics\n"
-			"		push constant size						{31}\n"
-			"		max bound descriptor sets				{32}\n"
-			"		per stage descriptor samplers			{33}\n"
-			"		per stage descriptor storage buffers	{113}\n"
-			"		per stage uniform buffers				{34}\n"
-			"		per stage sampled images				{35}\n"
-			"		per stage storage images				{36}\n"
-			"		per stage input attachments				{37}\n"
-			"		per stage resources						{38}\n"
-			"		sub texel precision bits				{39}\n"
-			"		mipmap precision bits					{40}\n"
-			"		sampler lod bias						{41}\n"
-			"		sampler anisotropy						{42}\n"
-			"\n"
-			"		vertex stage\n"
-			"			input attributes		{43}\n"
-			"			input bindings			{44}\n"
-			"			input attribute offset 	{45}\n"
-			"			input binding stride 	{46}\n"
-			"			output components		{47}\n"
-			"\n"
-			"		tesselation stage\n"
-			"			generation level	{48}\n"
-			"			patch size			{49}\n"
-			"			control per vertex input components	{50}\n"
-			"			control per vertex output components	{51}\n"
-			"			control per patch output components		{52}\n"
-			"			control total output components			{53}\n"
-			"			evaluation input components				{54}\n"
-			"			evaluation output components			{55}\n"
-			"\n"
-			"		geometry stage\n"
-			"			shader invocations		{56}\n"
-			"			input components		{57}\n"
-			"			output components		{58}\n"
-			"			output vertices			{59}\n"
-			"			total output components	{60}\n"
-			"\n"
-			"		fragment stage\n"
-			"			input components 			{61}\n"
-			"			output attachments			{62}\n"
-			"			dual source attachments		{63}\n"
-			"			combined output resources	{64}\n"
-			"\n"
-			"		compute stage\n"
-			"			shared memory size					{65}\n"
-			"			work group count [0] - [1] - [2]	{66} - {67} - {68}\n"
-			"			work group invocations				{69}\n"
-			"			work group size  [0] - [1] - [2]	{70} - {71} - {72}\n"
-			"\n"
-			"	viewports\n"
-			"		count					{73}\n"
-			"		dimensions 	 [0] - [1]	{74} - {75}\n"
-			"		bounds range [0] - [1]	{76} - {77}\n"
-			"		sub pixel bits			{78}\n"
-			"\n"
-			"	framebuffer\n"
-			"		width 					{79}\n"
-			"		height 					{80}\n"
-			"		layers 					{81}\n"
-			"		color sample counts		{82}\n"
-			"		depth sample counts		{83}\n"
-			"		stencil sample counts	{84}\n"
-			"		no attachments sample counts	{85}\n"
-			"		color attachments				{86}\n"
-			"		sub pixel precision bits		{87}\n"
-			"\n"
-			"	sampled images (VK_IMAGE_USAGE_SAMPLED_BITS)\n"
-			"		color sample counts		{88}\n"
-			"		integer sample counts 	{89}\n"
-			"		depth sample counts		{90}\n"
-			"		stencil sample counts	{91}\n"
-			"\n"
-			"	sampled images (VK_IMAGE_USAGE_STORAGE_BIT)\n"
-			"		sample counts	{92}\n"
-			"\n"
-			"	misc\n"
-			"		draw indexed index value	{93}\n"
-			"		draw indirect count			{94}\n"
-			"		sample maskwords (MSAA)		{95}\n"
-			"\n"
-			"		timestamp compute and graphics\n"
-			"			enabled					{96}\n"
-			"			timestamp period		{97}\n"
-			"\n"
-			"		clip distances						{98}\n"
-			"		cull distances						{99}\n"
-			"		combined clip and cull distances	{100}\n"
-			"		discrete queue priorities			{101}\n"
-			"\n"
-			"		point size\n"
-			"			range [0] - [1]		{102} - {103}\n"
-			"			granularity			{104}\n"
-			"\n"
-			"		line width\n"
-			"			range [0] - [1]		{105} - {106}\n"
-			"			granularity			{107}\n"
-			"			strict lines		{108}\n"
-			"\n"
-			"		standard sample locations 				{109}\n"
-			"		optimal buffer copy offset alignment 	{110}\n"
-			"		optimal buffer copy row pitch alignment	{111}\n"
-			"		non coherent atom size					{112}",
-			// texture
-			m_PhysicalDeviceProperties.limits.maxImageDimension1D,
-			m_PhysicalDeviceProperties.limits.maxImageDimension2D,
-			m_PhysicalDeviceProperties.limits.maxImageDimension3D,
-			m_PhysicalDeviceProperties.limits.maxImageDimensionCube,
-			m_PhysicalDeviceProperties.limits.maxImageArrayLayers,
-			// buffer
-			m_PhysicalDeviceProperties.limits.maxTexelBufferElements,
-			m_PhysicalDeviceProperties.limits.maxUniformBufferRange,
-			m_PhysicalDeviceProperties.limits.maxStorageBufferRange,
-			m_PhysicalDeviceProperties.limits.maxMemoryAllocationCount,
-			m_PhysicalDeviceProperties.limits.maxSamplerAllocationCount,
-			m_PhysicalDeviceProperties.limits.bufferImageGranularity,
-			m_PhysicalDeviceProperties.limits.sparseAddressSpaceSize,
-			m_PhysicalDeviceProperties.limits.minMemoryMapAlignment,
-			m_PhysicalDeviceProperties.limits.minTexelBufferOffsetAlignment,
-			m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment,
-			m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment,
-			m_PhysicalDeviceProperties.limits.minTexelOffset, m_PhysicalDeviceProperties.limits.maxTexelOffset,
-			m_PhysicalDeviceProperties.limits.minTexelGatherOffset,
-			m_PhysicalDeviceProperties.limits.maxTexelGatherOffset,
-			m_PhysicalDeviceProperties.limits.minInterpolationOffset,
-			m_PhysicalDeviceProperties.limits.maxInterpolationOffset,
-			m_PhysicalDeviceProperties.limits.subPixelInterpolationOffsetBits,
-			// descriptor set
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetSamplers,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetUniformBuffers,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetUniformBuffersDynamic,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetStorageBuffers,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetStorageBuffersDynamic,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetSampledImages,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetStorageImages,
-			m_PhysicalDeviceProperties.limits.maxDescriptorSetInputAttachments,
-			// shader
-			m_PhysicalDeviceProperties.limits.maxPushConstantsSize,
-			m_PhysicalDeviceProperties.limits.maxBoundDescriptorSets,
-			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorSamplers,
-			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorUniformBuffers,
-			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorSampledImages,
-			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageImages,
-			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorInputAttachments,
-			m_PhysicalDeviceProperties.limits.maxPerStageResources,
-			m_PhysicalDeviceProperties.limits.subTexelPrecisionBits,
-			m_PhysicalDeviceProperties.limits.mipmapPrecisionBits, m_PhysicalDeviceProperties.limits.maxSamplerLodBias,
-			m_PhysicalDeviceProperties.limits.maxSamplerAnisotropy,
-			// shader - vertex stage
-			m_PhysicalDeviceProperties.limits.maxVertexInputAttributes,
-			m_PhysicalDeviceProperties.limits.maxVertexInputBindings,
-			m_PhysicalDeviceProperties.limits.maxVertexInputAttributeOffset,
-			m_PhysicalDeviceProperties.limits.maxVertexInputBindingStride,
-			m_PhysicalDeviceProperties.limits.maxVertexOutputComponents,
-			// shader - tesselation stage
-			m_PhysicalDeviceProperties.limits.maxTessellationGenerationLevel,
-			m_PhysicalDeviceProperties.limits.maxTessellationPatchSize,
-			m_PhysicalDeviceProperties.limits.maxTessellationControlPerVertexInputComponents,
-			m_PhysicalDeviceProperties.limits.maxTessellationControlPerVertexOutputComponents,
-			m_PhysicalDeviceProperties.limits.maxTessellationControlPerPatchOutputComponents,
-			m_PhysicalDeviceProperties.limits.maxTessellationControlTotalOutputComponents,
-			m_PhysicalDeviceProperties.limits.maxTessellationEvaluationInputComponents,
-			m_PhysicalDeviceProperties.limits.maxTessellationEvaluationOutputComponents,
-			// shader - geometry stage
-			m_PhysicalDeviceProperties.limits.maxGeometryShaderInvocations,
-			m_PhysicalDeviceProperties.limits.maxGeometryInputComponents,
-			m_PhysicalDeviceProperties.limits.maxGeometryOutputComponents,
-			m_PhysicalDeviceProperties.limits.maxGeometryOutputVertices,
-			m_PhysicalDeviceProperties.limits.maxGeometryTotalOutputComponents,
-			// shader - fragment stage
-			m_PhysicalDeviceProperties.limits.maxFragmentInputComponents,
-			m_PhysicalDeviceProperties.limits.maxFragmentOutputAttachments,
-			m_PhysicalDeviceProperties.limits.maxFragmentDualSrcAttachments,
-			m_PhysicalDeviceProperties.limits.maxFragmentCombinedOutputResources,
-			// shader - compute stage
-			m_PhysicalDeviceProperties.limits.maxComputeSharedMemorySize,
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[0],
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[1],
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[2],
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupInvocations,
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[0],
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[1],
-			m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[2],
-			// viewports
-			m_PhysicalDeviceProperties.limits.maxViewports, m_PhysicalDeviceProperties.limits.maxViewportDimensions[0],
-			m_PhysicalDeviceProperties.limits.maxViewportDimensions[1],
-			m_PhysicalDeviceProperties.limits.viewportBoundsRange[0],
-			m_PhysicalDeviceProperties.limits.viewportBoundsRange[1],
-			m_PhysicalDeviceProperties.limits.viewportSubPixelBits,
-			// framebuffer
-			m_PhysicalDeviceProperties.limits.maxFramebufferWidth,
-			m_PhysicalDeviceProperties.limits.maxFramebufferHeight,
-			m_PhysicalDeviceProperties.limits.maxFramebufferLayers,
-			m_PhysicalDeviceProperties.limits.framebufferColorSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.framebufferDepthSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.framebufferStencilSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.framebufferNoAttachmentsSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.maxColorAttachments,
-			m_PhysicalDeviceProperties.limits.subPixelPrecisionBits,
-			// sampled images - usage sampled bit
-			m_PhysicalDeviceProperties.limits.sampledImageColorSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.sampledImageIntegerSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.sampledImageDepthSampleCounts.operator unsigned int(),
-			m_PhysicalDeviceProperties.limits.sampledImageStencilSampleCounts.operator unsigned int(),
-			// sampled images - storage sampled bit
-			m_PhysicalDeviceProperties.limits.storageImageSampleCounts.operator unsigned int(),
-			// misc
-			m_PhysicalDeviceProperties.limits.maxDrawIndexedIndexValue,
-			m_PhysicalDeviceProperties.limits.maxDrawIndirectCount,
-			m_PhysicalDeviceProperties.limits.maxSampleMaskWords,
-			// timestamp
-			(m_PhysicalDeviceProperties.limits.timestampComputeAndGraphics) ? true : false,
-			m_PhysicalDeviceProperties.limits.timestampPeriod, m_PhysicalDeviceProperties.limits.maxClipDistances,
-			m_PhysicalDeviceProperties.limits.maxCullDistances,
-			m_PhysicalDeviceProperties.limits.maxCombinedClipAndCullDistances,
-			m_PhysicalDeviceProperties.limits.discreteQueuePriorities,
-			// point size
-			m_PhysicalDeviceProperties.limits.pointSizeRange[0], m_PhysicalDeviceProperties.limits.pointSizeRange[1],
-			m_PhysicalDeviceProperties.limits.pointSizeGranularity,
-			// line width
-			m_PhysicalDeviceProperties.limits.lineWidthRange[0], m_PhysicalDeviceProperties.limits.lineWidthRange[1],
-			m_PhysicalDeviceProperties.limits.lineWidthGranularity,
-			(m_PhysicalDeviceProperties.limits.strictLines) ? true : false,
+		  "\ndevice limits\n"
+		  "	textures\n"
+		  "		dimension 1D 	{0}\n"
+		  "		dimension 2D 	{1}\n"
+		  "		dimension 3D 	{2}\n"
+		  "		dimension cube 	{3}\n"
+		  "		array layers 	{4}\n"
+		  "\n"
+		  "	buffer\n"
+		  "		max texel buffer element 			{5}\n"
+		  "		max uniform buffer range 			{6}\n"
+		  "		max storage buffer range 			{7}\n"
+		  "		memory allocations 					{8}\n"
+		  "		sampler allocations 				{9}\n"
+		  "		buffer image granularity 			{10}\n"
+		  "		sparse address space size			{11}\n"
+		  "		host min memory map alignment		{12}\n"
+		  "		min texel buffer offset alignment	{13}\n"
+		  "		min uniform buffer offset alignment	{14}\n"
+		  "		min storage buffer offset alginment	{15}\n"
+		  "		min/max texel offset				{16} - {17}\n"
+		  "		min/max texel gather offset			{18} - {19}\n"
+		  "		min/max interpolation offset		{20} - {21}\n"
+		  "		sub pixel interpolation offset bits	{22}\n"
+		  "\n"
+		  "	descriptor set\n"
+		  "		samplers 					{23}\n"
+		  "		uniform buffers 			{24}\n"
+		  "		uniform buffers (dynamic) 	{25}\n"
+		  "		storage buffers				{26}\n"
+		  "		storage buffers (dynamic)	{27}\n"
+		  "		sampled images				{28}\n"
+		  "		storage images				{29}\n"
+		  "		input attachments			{30}\n"
+		  "\n"
+		  "	shader statistics\n"
+		  "		push constant size						{31}\n"
+		  "		max bound descriptor sets				{32}\n"
+		  "		per stage descriptor samplers			{33}\n"
+		  "		per stage descriptor storage buffers	{113}\n"
+		  "		per stage uniform buffers				{34}\n"
+		  "		per stage sampled images				{35}\n"
+		  "		per stage storage images				{36}\n"
+		  "		per stage input attachments				{37}\n"
+		  "		per stage resources						{38}\n"
+		  "		sub texel precision bits				{39}\n"
+		  "		mipmap precision bits					{40}\n"
+		  "		sampler lod bias						{41}\n"
+		  "		sampler anisotropy						{42}\n"
+		  "\n"
+		  "		vertex stage\n"
+		  "			input attributes		{43}\n"
+		  "			input bindings			{44}\n"
+		  "			input attribute offset 	{45}\n"
+		  "			input binding stride 	{46}\n"
+		  "			output components		{47}\n"
+		  "\n"
+		  "		tesselation stage\n"
+		  "			generation level	{48}\n"
+		  "			patch size			{49}\n"
+		  "			control per vertex input components	{50}\n"
+		  "			control per vertex output components	{51}\n"
+		  "			control per patch output components		{52}\n"
+		  "			control total output components			{53}\n"
+		  "			evaluation input components				{54}\n"
+		  "			evaluation output components			{55}\n"
+		  "\n"
+		  "		geometry stage\n"
+		  "			shader invocations		{56}\n"
+		  "			input components		{57}\n"
+		  "			output components		{58}\n"
+		  "			output vertices			{59}\n"
+		  "			total output components	{60}\n"
+		  "\n"
+		  "		fragment stage\n"
+		  "			input components 			{61}\n"
+		  "			output attachments			{62}\n"
+		  "			dual source attachments		{63}\n"
+		  "			combined output resources	{64}\n"
+		  "\n"
+		  "		compute stage\n"
+		  "			shared memory size					{65}\n"
+		  "			work group count [0] - [1] - [2]	{66} - {67} - {68}\n"
+		  "			work group invocations				{69}\n"
+		  "			work group size  [0] - [1] - [2]	{70} - {71} - {72}\n"
+		  "\n"
+		  "	viewports\n"
+		  "		count					{73}\n"
+		  "		dimensions 	 [0] - [1]	{74} - {75}\n"
+		  "		bounds range [0] - [1]	{76} - {77}\n"
+		  "		sub pixel bits			{78}\n"
+		  "\n"
+		  "	framebuffer\n"
+		  "		width 					{79}\n"
+		  "		height 					{80}\n"
+		  "		layers 					{81}\n"
+		  "		color sample counts		{82}\n"
+		  "		depth sample counts		{83}\n"
+		  "		stencil sample counts	{84}\n"
+		  "		no attachments sample counts	{85}\n"
+		  "		color attachments				{86}\n"
+		  "		sub pixel precision bits		{87}\n"
+		  "\n"
+		  "	sampled images (VK_IMAGE_USAGE_SAMPLED_BITS)\n"
+		  "		color sample counts		{88}\n"
+		  "		integer sample counts 	{89}\n"
+		  "		depth sample counts		{90}\n"
+		  "		stencil sample counts	{91}\n"
+		  "\n"
+		  "	sampled images (VK_IMAGE_USAGE_STORAGE_BIT)\n"
+		  "		sample counts	{92}\n"
+		  "\n"
+		  "	misc\n"
+		  "		draw indexed index value	{93}\n"
+		  "		draw indirect count			{94}\n"
+		  "		sample maskwords (MSAA)		{95}\n"
+		  "\n"
+		  "		timestamp compute and graphics\n"
+		  "			enabled					{96}\n"
+		  "			timestamp period		{97}\n"
+		  "\n"
+		  "		clip distances						{98}\n"
+		  "		cull distances						{99}\n"
+		  "		combined clip and cull distances	{100}\n"
+		  "		discrete queue priorities			{101}\n"
+		  "\n"
+		  "		point size\n"
+		  "			range [0] - [1]		{102} - {103}\n"
+		  "			granularity			{104}\n"
+		  "\n"
+		  "		line width\n"
+		  "			range [0] - [1]		{105} - {106}\n"
+		  "			granularity			{107}\n"
+		  "			strict lines		{108}\n"
+		  "\n"
+		  "		standard sample locations 				{109}\n"
+		  "		optimal buffer copy offset alignment 	{110}\n"
+		  "		optimal buffer copy row pitch alignment	{111}\n"
+		  "		non coherent atom size					{112}",
+		  // texture
+		  m_PhysicalDeviceProperties.limits.maxImageDimension1D,
+		  m_PhysicalDeviceProperties.limits.maxImageDimension2D,
+		  m_PhysicalDeviceProperties.limits.maxImageDimension3D,
+		  m_PhysicalDeviceProperties.limits.maxImageDimensionCube,
+		  m_PhysicalDeviceProperties.limits.maxImageArrayLayers,
+		  // buffer
+		  m_PhysicalDeviceProperties.limits.maxTexelBufferElements,
+		  m_PhysicalDeviceProperties.limits.maxUniformBufferRange,
+		  m_PhysicalDeviceProperties.limits.maxStorageBufferRange,
+		  m_PhysicalDeviceProperties.limits.maxMemoryAllocationCount,
+		  m_PhysicalDeviceProperties.limits.maxSamplerAllocationCount,
+		  m_PhysicalDeviceProperties.limits.bufferImageGranularity,
+		  m_PhysicalDeviceProperties.limits.sparseAddressSpaceSize,
+		  m_PhysicalDeviceProperties.limits.minMemoryMapAlignment,
+		  m_PhysicalDeviceProperties.limits.minTexelBufferOffsetAlignment,
+		  m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment,
+		  m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment,
+		  m_PhysicalDeviceProperties.limits.minTexelOffset,
+		  m_PhysicalDeviceProperties.limits.maxTexelOffset,
+		  m_PhysicalDeviceProperties.limits.minTexelGatherOffset,
+		  m_PhysicalDeviceProperties.limits.maxTexelGatherOffset,
+		  m_PhysicalDeviceProperties.limits.minInterpolationOffset,
+		  m_PhysicalDeviceProperties.limits.maxInterpolationOffset,
+		  m_PhysicalDeviceProperties.limits.subPixelInterpolationOffsetBits,
+		  // descriptor set
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetSamplers,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetUniformBuffers,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetUniformBuffersDynamic,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetStorageBuffers,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetStorageBuffersDynamic,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetSampledImages,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetStorageImages,
+		  m_PhysicalDeviceProperties.limits.maxDescriptorSetInputAttachments,
+		  // shader
+		  m_PhysicalDeviceProperties.limits.maxPushConstantsSize,
+		  m_PhysicalDeviceProperties.limits.maxBoundDescriptorSets,
+		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorSamplers,
+		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorUniformBuffers,
+		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorSampledImages,
+		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageImages,
+		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorInputAttachments,
+		  m_PhysicalDeviceProperties.limits.maxPerStageResources,
+		  m_PhysicalDeviceProperties.limits.subTexelPrecisionBits,
+		  m_PhysicalDeviceProperties.limits.mipmapPrecisionBits,
+		  m_PhysicalDeviceProperties.limits.maxSamplerLodBias,
+		  m_PhysicalDeviceProperties.limits.maxSamplerAnisotropy,
+		  // shader - vertex stage
+		  m_PhysicalDeviceProperties.limits.maxVertexInputAttributes,
+		  m_PhysicalDeviceProperties.limits.maxVertexInputBindings,
+		  m_PhysicalDeviceProperties.limits.maxVertexInputAttributeOffset,
+		  m_PhysicalDeviceProperties.limits.maxVertexInputBindingStride,
+		  m_PhysicalDeviceProperties.limits.maxVertexOutputComponents,
+		  // shader - tesselation stage
+		  m_PhysicalDeviceProperties.limits.maxTessellationGenerationLevel,
+		  m_PhysicalDeviceProperties.limits.maxTessellationPatchSize,
+		  m_PhysicalDeviceProperties.limits.maxTessellationControlPerVertexInputComponents,
+		  m_PhysicalDeviceProperties.limits.maxTessellationControlPerVertexOutputComponents,
+		  m_PhysicalDeviceProperties.limits.maxTessellationControlPerPatchOutputComponents,
+		  m_PhysicalDeviceProperties.limits.maxTessellationControlTotalOutputComponents,
+		  m_PhysicalDeviceProperties.limits.maxTessellationEvaluationInputComponents,
+		  m_PhysicalDeviceProperties.limits.maxTessellationEvaluationOutputComponents,
+		  // shader - geometry stage
+		  m_PhysicalDeviceProperties.limits.maxGeometryShaderInvocations,
+		  m_PhysicalDeviceProperties.limits.maxGeometryInputComponents,
+		  m_PhysicalDeviceProperties.limits.maxGeometryOutputComponents,
+		  m_PhysicalDeviceProperties.limits.maxGeometryOutputVertices,
+		  m_PhysicalDeviceProperties.limits.maxGeometryTotalOutputComponents,
+		  // shader - fragment stage
+		  m_PhysicalDeviceProperties.limits.maxFragmentInputComponents,
+		  m_PhysicalDeviceProperties.limits.maxFragmentOutputAttachments,
+		  m_PhysicalDeviceProperties.limits.maxFragmentDualSrcAttachments,
+		  m_PhysicalDeviceProperties.limits.maxFragmentCombinedOutputResources,
+		  // shader - compute stage
+		  m_PhysicalDeviceProperties.limits.maxComputeSharedMemorySize,
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[0],
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[1],
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[2],
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupInvocations,
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[0],
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[1],
+		  m_PhysicalDeviceProperties.limits.maxComputeWorkGroupSize[2],
+		  // viewports
+		  m_PhysicalDeviceProperties.limits.maxViewports,
+		  m_PhysicalDeviceProperties.limits.maxViewportDimensions[0],
+		  m_PhysicalDeviceProperties.limits.maxViewportDimensions[1],
+		  m_PhysicalDeviceProperties.limits.viewportBoundsRange[0],
+		  m_PhysicalDeviceProperties.limits.viewportBoundsRange[1],
+		  m_PhysicalDeviceProperties.limits.viewportSubPixelBits,
+		  // framebuffer
+		  m_PhysicalDeviceProperties.limits.maxFramebufferWidth,
+		  m_PhysicalDeviceProperties.limits.maxFramebufferHeight,
+		  m_PhysicalDeviceProperties.limits.maxFramebufferLayers,
+		  m_PhysicalDeviceProperties.limits.framebufferColorSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.framebufferDepthSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.framebufferStencilSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.framebufferNoAttachmentsSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.maxColorAttachments,
+		  m_PhysicalDeviceProperties.limits.subPixelPrecisionBits,
+		  // sampled images - usage sampled bit
+		  m_PhysicalDeviceProperties.limits.sampledImageColorSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.sampledImageIntegerSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.sampledImageDepthSampleCounts.operator unsigned int(),
+		  m_PhysicalDeviceProperties.limits.sampledImageStencilSampleCounts.operator unsigned int(),
+		  // sampled images - storage sampled bit
+		  m_PhysicalDeviceProperties.limits.storageImageSampleCounts.operator unsigned int(),
+		  // misc
+		  m_PhysicalDeviceProperties.limits.maxDrawIndexedIndexValue,
+		  m_PhysicalDeviceProperties.limits.maxDrawIndirectCount,
+		  m_PhysicalDeviceProperties.limits.maxSampleMaskWords,
+		  // timestamp
+		  (m_PhysicalDeviceProperties.limits.timestampComputeAndGraphics) ? true : false,
+		  m_PhysicalDeviceProperties.limits.timestampPeriod,
+		  m_PhysicalDeviceProperties.limits.maxClipDistances,
+		  m_PhysicalDeviceProperties.limits.maxCullDistances,
+		  m_PhysicalDeviceProperties.limits.maxCombinedClipAndCullDistances,
+		  m_PhysicalDeviceProperties.limits.discreteQueuePriorities,
+		  // point size
+		  m_PhysicalDeviceProperties.limits.pointSizeRange[0],
+		  m_PhysicalDeviceProperties.limits.pointSizeRange[1],
+		  m_PhysicalDeviceProperties.limits.pointSizeGranularity,
+		  // line width
+		  m_PhysicalDeviceProperties.limits.lineWidthRange[0],
+		  m_PhysicalDeviceProperties.limits.lineWidthRange[1],
+		  m_PhysicalDeviceProperties.limits.lineWidthGranularity,
+		  (m_PhysicalDeviceProperties.limits.strictLines) ? true : false,
 
-			(m_PhysicalDeviceProperties.limits.standardSampleLocations) ? true : false,
-			m_PhysicalDeviceProperties.limits.optimalBufferCopyOffsetAlignment,
-			m_PhysicalDeviceProperties.limits.optimalBufferCopyRowPitchAlignment,
-			m_PhysicalDeviceProperties.limits.nonCoherentAtomSize,
+		  (m_PhysicalDeviceProperties.limits.standardSampleLocations) ? true : false,
+		  m_PhysicalDeviceProperties.limits.optimalBufferCopyOffsetAlignment,
+		  m_PhysicalDeviceProperties.limits.optimalBufferCopyRowPitchAlignment,
+		  m_PhysicalDeviceProperties.limits.nonCoherentAtomSize,
 
-			// forgot this one
-			m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers);
+		  // forgot this one
+		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers);
 	}
 
 	m_Limits.uniform.alignment	 = m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
@@ -569,7 +583,7 @@ void context::init_debug()
 {
 	if(m_Validated)
 	{
-		vk::DebugReportCallbackCreateInfoEXT callbackCreateInfo{};
+		vk::DebugReportCallbackCreateInfoEXT callbackCreateInfo {};
 		callbackCreateInfo.flags = vk::DebugReportFlagBitsEXT::eInformation | vk::DebugReportFlagBitsEXT::eWarning |
 								   vk::DebugReportFlagBitsEXT::ePerformanceWarning |
 								   vk::DebugReportFlagBitsEXT ::eError | vk::DebugReportFlagBitsEXT::eDebug;
@@ -651,14 +665,14 @@ void context::init_device()
 {
 	select_physical_device(m_Instance.enumeratePhysicalDevices().value);
 
-	std::vector<vk::ExtensionProperties> extensions{m_PhysicalDevice.enumerateDeviceExtensionProperties().value};
+	std::vector<vk::ExtensionProperties> extensions {m_PhysicalDevice.enumerateDeviceExtensionProperties().value};
 
 	for(const auto& ext : extensions)
 	{
 		core::ivk::log->info("device extension: {}", psl::string(&ext.extensionName[0]));
 	}
 
-	std::vector<vk::LayerProperties> layers{m_PhysicalDevice.enumerateDeviceLayerProperties().value};
+	std::vector<vk::LayerProperties> layers {m_PhysicalDevice.enumerateDeviceLayerProperties().value};
 
 	for(const auto& lyr : layers)
 	{
@@ -775,11 +789,11 @@ void context::init_descriptor_pool()
 {
 	// We need to tell the API the number of max. requested descriptors per type
 	std::vector<vk::DescriptorPoolSize> typeCounts = {
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 16),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64),
-		utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64)};
+	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64),
+	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 16),
+	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64),
+	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64),
+	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64)};
 	// For additional types you need to add new entries in the type count list
 	// E.g. for two combined image samplers :
 	// typeCounts[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -788,15 +802,15 @@ void context::init_descriptor_pool()
 	// Create the global descriptor pool
 	// All descriptors used in this example are allocated from this pool
 	vk::DescriptorPoolCreateInfo descriptorPoolInfo =
-		utility::vulkan::defaults::descriptor_pool_ci((uint32_t)typeCounts.size(), typeCounts.data(), 32);
+	  utility::vulkan::defaults::descriptor_pool_ci((uint32_t)typeCounts.size(), typeCounts.data(), 32);
 	descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
 	utility::vulkan::check(m_Device.createDescriptorPool(&descriptorPoolInfo, nullptr, &m_DescriptorPool));
 }
 
 void context::deinit_descriptor_pool() { m_Device.destroyDescriptorPool(m_DescriptorPool); }
 
-vk::Bool32 context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties,
-								uint32_t* typeIndex) const noexcept
+vk::Bool32
+context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties, uint32_t* typeIndex) const noexcept
 {
 	for(uint32_t i = 0; i < 32; i++)
 	{

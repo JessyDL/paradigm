@@ -29,18 +29,32 @@ namespace core::ivk
 {
 	class swapchain;
 }
+
+namespace core::resource2
+{
+	class cache;
+	struct metadata;
+
+	template <typename T>
+	class handle;
+} // namespace core::resource2
 namespace core::os
 {
 	/// \brief primitive object that create a surface we can render on.
 	///
-	/// create a surface we can render on, which, depending on the platform could be 
+	/// create a surface we can render on, which, depending on the platform could be
 	/// anything from a resizeable window to the sole surface we can present on (ex. mobile and console platforms).
 	class surface
 	{
 	  public:
-		surface(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		surface(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				psl::meta::file* metaFile,
 				core::resource::handle<data::window> data);
-
+		surface(core::resource2::cache& cache,
+				const core::resource2::metadata& metaData,
+				const psl::meta::file& metaFile,
+				const core::resource2::handle<data::window>& data) noexcept;
 		~surface();
 		surface(const surface&) = delete;
 		surface(surface&&)		= delete;
@@ -93,8 +107,8 @@ namespace core::os
 		/// across the various platforms.
 		core::systems::input& input() const noexcept;
 
-		/// \brief this method will be called by the swapchain class, so that the surface knows who to notify of resize events, etc..
-		/// \todo can we hide this?
+		/// \brief this method will be called by the swapchain class, so that the surface knows who to notify of resize
+		/// events, etc.. \todo can we hide this?
 		void register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain);
 
 		void trap_cursor(bool state) noexcept;
@@ -114,7 +128,7 @@ namespace core::os
 #error no suitable surface was selected
 #endif
 	  private:
-		  /// \brief platform specific method that initializes the surface and its resources.
+		/// \brief platform specific method that initializes the surface and its resources.
 		bool init_surface();
 		/// \brief platform specific method that deinitializes the surface and its resources.
 		void deinit_surface();
@@ -125,35 +139,57 @@ namespace core::os
 #if defined(SURFACE_XCB)
 		void handle_event(const xcb_generic_event_t* event);
 #elif defined(SURFACE_WAYLAND)
-		static void registryGlobalCb(void *data, struct wl_registry *registry, uint32_t name, const char *interface,
+		static void registryGlobalCb(void *data,
+									 struct wl_registry *registry,
+									 uint32_t name,
+									 const char *interface,
 									 uint32_t version);
 		void registryGlobal(struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version);
 		static void registryGlobalRemoveCb(void *data, struct wl_registry *registry, uint32_t name);
 		static void seatCapabilitiesCb(void *data, wl_seat *seat, uint32_t caps);
 		void seatCapabilities(wl_seat *seat, uint32_t caps);
-		static void pointerEnterCb(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface,
-								   wl_fixed_t sx, wl_fixed_t sy);
+		static void pointerEnterCb(void *data,
+								   struct wl_pointer *pointer,
+								   uint32_t serial,
+								   struct wl_surface *surface,
+								   wl_fixed_t sx,
+								   wl_fixed_t sy);
 		static void pointerLeaveCb(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface);
-		static void pointerMotionCb(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx,
-									wl_fixed_t sy);
+		static void
+		pointerMotionCb(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
 		void pointerMotion(struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-		static void pointerButtonCb(void *data, struct wl_pointer *wl_pointer, uint32_t serial, uint32_t time,
-									uint32_t button, uint32_t state);
-		void pointerButton(struct wl_pointer *wl_pointer, uint32_t serial, uint32_t time, uint32_t button,
-						   uint32_t state);
-		static void pointerAxisCb(void *data, struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis,
-								  wl_fixed_t value);
+		static void pointerButtonCb(void *data,
+									struct wl_pointer *wl_pointer,
+									uint32_t serial,
+									uint32_t time,
+									uint32_t button,
+									uint32_t state);
+		void
+		pointerButton(struct wl_pointer *wl_pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
+		static void
+		pointerAxisCb(void *data, struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
 		void pointerAxis(struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
 		static void keyboardKeymapCb(void *data, struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size);
-		static void keyboardEnterCb(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-									struct wl_surface *surface, struct wl_array *keys);
-		static void keyboardLeaveCb(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-									struct wl_surface *surface);
-		static void keyboardKeyCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, uint32_t time,
-								  uint32_t key, uint32_t state);
+		static void keyboardEnterCb(void *data,
+									struct wl_keyboard *keyboard,
+									uint32_t serial,
+									struct wl_surface *surface,
+									struct wl_array *keys);
+		static void
+		keyboardLeaveCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface);
+		static void keyboardKeyCb(void *data,
+								  struct wl_keyboard *keyboard,
+								  uint32_t serial,
+								  uint32_t time,
+								  uint32_t key,
+								  uint32_t state);
 		void keyboardKey(struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
-		static void keyboardModifiersCb(void *data, struct wl_keyboard *keyboard, uint32_t serial,
-										uint32_t mods_depressed, uint32_t mods_latched, uint32_t mods_locked,
+		static void keyboardModifiersCb(void *data,
+										struct wl_keyboard *keyboard,
+										uint32_t serial,
+										uint32_t mods_depressed,
+										uint32_t mods_latched,
+										uint32_t mods_locked,
 										uint32_t group);
 #endif
 
@@ -167,7 +203,7 @@ namespace core::os
 		core::systems::input* m_InputSystem;
 #if defined(SURFACE_WIN32)
 		HINSTANCE win32_instance = NULL;
-		HWND win32_window		  = NULL;
+		HWND win32_window		 = NULL;
 		psl::pstring_t win32_class_name;
 		static uint64_t win32_class_id_counter;
 		// void TranslateInputMessage(MSG *msg);

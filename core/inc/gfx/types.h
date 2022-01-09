@@ -1,8 +1,8 @@
 #pragma once
-#include <optional>
+#include "psl/math/vec.h"
 #include "psl/memory/range.h"
 #include "psl/memory/segment.h"
-#include "psl/math/vec.h"
+#include <optional>
 #include <variant>
 
 namespace core::gfx
@@ -10,29 +10,28 @@ namespace core::gfx
 	enum class graphics_backend
 	{
 		undefined = 0,
-		vulkan = 1 << 0,
-		gles = 1 << 1
+		vulkan	  = 1 << 0,
+		gles	  = 1 << 1
 	};
 
-	template<typename T, graphics_backend backend>
+	template <typename T, graphics_backend backend>
 	struct backend_type
-	{
-	};
+	{};
 
-	template<typename T, graphics_backend backend>
+	template <typename T, graphics_backend backend>
 	using backend_type_t = typename backend_type<T, backend>::type;
 
-	template<graphics_backend backend>
+	template <graphics_backend backend>
 	constexpr bool is_enabled()
 	{
 #ifdef PE_VULKAN
-		if constexpr (backend == graphics_backend::vulkan)
+		if constexpr(backend == graphics_backend::vulkan)
 		{
 			return PE_VULKAN;
 		}
 #endif
 #ifdef PE_GLES
-		if constexpr (backend == graphics_backend::gles)
+		if constexpr(backend == graphics_backend::gles)
 		{
 			return PE_GLES;
 		}
@@ -45,8 +44,8 @@ namespace core::gfx
 	{
 	  public:
 		using value_type = std::underlying_type_t<T>;
-		enum_flag(T value) : m_Enum(static_cast<value_type>(value)){};
-		enum_flag(value_type value) : m_Enum(value){};
+		enum_flag(T value) : m_Enum(static_cast<value_type>(value)) {};
+		enum_flag(value_type value) : m_Enum(value) {};
 
 		~enum_flag()				= default;
 		enum_flag(const enum_flag&) = default;
@@ -104,7 +103,7 @@ namespace core::gfx
 		bool operator==(T const& rhs) const noexcept { return m_Enum == static_cast<value_type>(rhs); }
 		bool operator!=(T const& rhs) const noexcept { return m_Enum != static_cast<value_type>(rhs); }
 
-		operator T() const noexcept { return T{m_Enum}; }
+		operator T() const noexcept { return T {m_Enum}; }
 		explicit operator value_type() const noexcept { return m_Enum; }
 
 	  private:
@@ -114,7 +113,6 @@ namespace core::gfx
 	/// \brief description of a memory commit instruction. Tries to offer some safer mechanisms.
 	struct commit_instruction
 	{
-
 		/// \brief automatically construct the information from the type information of the source.
 		/// \tparam T the type you wish to commit in this instruction.
 		/// \param[in] source the source we will copy from.
@@ -122,15 +120,18 @@ namespace core::gfx
 		/// \param[in] sub_range optional sub_range offset in the memory::segment, where a sub_range.begin() is
 		/// equal to the head of the segment. \warning make sure the source outlives the commit instruction.
 		template <typename T>
-		commit_instruction(T* source, memory::segment segment, std::optional<memory::range> sub_range = std::nullopt)
-			: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)){};
-		commit_instruction(){};
+		commit_instruction(T* source, memory::segment segment, std::optional<memory::range> sub_range = std::nullopt) :
+			segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)) {};
+		commit_instruction() {};
 
-		commit_instruction(void* source, size_t size, memory::segment segment,
-						   std::optional<memory::range> sub_range = std::nullopt)
-			: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(size){};
+		commit_instruction(void* source,
+						   size_t size,
+						   memory::segment segment,
+						   std::optional<memory::range> sub_range = std::nullopt) :
+			segment(segment),
+			sub_range(sub_range), source((std::uintptr_t)source), size(size) {};
 		/// \brief target segment in the buffer
-		memory::segment segment{};
+		memory::segment segment {};
 		/// \brief possible sub range within the segment.
 		///
 		/// this is local offsets from the point of view of the segment
@@ -138,16 +139,16 @@ namespace core::gfx
 		std::optional<memory::range> sub_range;
 
 		/// \brief source to copy from
-		std::uintptr_t source{0};
+		std::uintptr_t source {0};
 
 		/// \brief sizeof source
-		uint64_t size{0};
+		uint64_t size {0};
 	};
-
+	///*** [format:enum
 	enum class shader_stage : uint8_t
 	{
 		vertex				   = 1 << 0,
-		tesselation_control	= 1 << 1,
+		tesselation_control	   = 1 << 1,
 		tesselation_evaluation = 1 << 2,
 		geometry			   = 1 << 3,
 		fragment			   = 1 << 4,
@@ -156,7 +157,7 @@ namespace core::gfx
 
 	enum class vertex_input_rate : uint8_t
 	{
-		vertex   = 0,
+		vertex	 = 0,
 		instance = 1
 	};
 
@@ -168,9 +169,9 @@ namespace core::gfx
 	};
 	struct memory_copy
 	{
-		size_t source_offset;	  // offset in the source location
-		size_t destination_offset; // offset in the destination location
-		size_t size;			   // size of the copy instruction
+		size_t source_offset;		  // offset in the source location
+		size_t destination_offset;	  // offset in the destination location
+		size_t size;				  // size of the copy instruction
 	};
 	enum class memory_usage
 	{
@@ -202,7 +203,7 @@ namespace core::gfx
 	{
 		device_local	 = 1 << 0,
 		host_visible	 = 1 << 1,
-		host_coherent	= 1 << 2,
+		host_coherent	 = 1 << 2,
 		host_cached		 = 1 << 3,
 		lazily_allocated = 1 << 4,
 		protected_memory = 1 << 5,
@@ -225,7 +226,7 @@ namespace core::gfx
 		planar_1D  = 0,
 		planar_2D  = 1,
 		planar_3D  = 2,
-		cube_2D	= 3,
+		cube_2D	   = 3,
 		array_1D   = 4,
 		array_2D   = 5,
 		array_cube = 6
@@ -233,8 +234,8 @@ namespace core::gfx
 
 	enum class image_aspect
 	{
-		color   = 1 << 0,
-		depth   = 1 << 1,
+		color	= 1 << 0,
+		depth	= 1 << 1,
 		stencil = 1 << 2
 	};
 
@@ -392,9 +393,9 @@ namespace core::gfx
 		bc7_srgb_block				= 96,
 		etc2_r8g8b8_unorm_block		= 97,
 		etc2_r8g8b8_srgb_block		= 98,
-		etc2_r8g8b8a1_unorm_block   = 99,
+		etc2_r8g8b8a1_unorm_block	= 99,
 		etc2_r8g8b8a1_srgb_block	= 100,
-		etc2_r8g8b8a8_unorm_block   = 101,
+		etc2_r8g8b8a8_unorm_block	= 101,
 		etc2_r8g8b8a8_srgb_block	= 102,
 		eac_r11_unorm_block			= 103,
 		eac_r11_snorm_block			= 104,
@@ -432,10 +433,10 @@ namespace core::gfx
 		pvrtc1_4bpp_unorm_block_img = 136,
 		pvrtc2_2bpp_unorm_block_img = 137,
 		pvrtc2_4bpp_unorm_block_img = 138,
-		pvrtc1_2bpp_srgb_block_img  = 139,
-		pvrtc1_4bpp_srgb_block_img  = 140,
-		pvrtc2_2bpp_srgb_block_img  = 141,
-		pvrtc2_4bpp_srgb_block_img  = 142
+		pvrtc1_2bpp_srgb_block_img	= 139,
+		pvrtc1_4bpp_srgb_block_img	= 140,
+		pvrtc2_2bpp_srgb_block_img	= 141,
+		pvrtc2_4bpp_srgb_block_img	= 142
 	};
 
 	inline bool is_texture_format(format value) noexcept
@@ -446,7 +447,7 @@ namespace core::gfx
 	enum class sampler_mipmap_mode
 	{
 		nearest = 0,
-		linear  = 1
+		linear	= 1
 	};
 
 	enum class sampler_address_mode
@@ -460,7 +461,7 @@ namespace core::gfx
 	enum class border_color
 	{
 		float_transparent_black = 0,
-		int_transparent_black   = 1,
+		int_transparent_black	= 1,
 		float_opaque_black		= 2,
 		int_opaque_black		= 3,
 		float_opaque_white		= 4,
@@ -472,7 +473,7 @@ namespace core::gfx
 		none  = 0,
 		front = 1,
 		back  = 2,
-		all   = 3
+		all	  = 3
 	};
 
 
@@ -481,9 +482,9 @@ namespace core::gfx
 		never		  = 0,
 		less		  = 1,
 		equal		  = 2,
-		less_equal	= 3,
+		less_equal	  = 3,
 		greater		  = 4,
-		not_equal	 = 5,
+		not_equal	  = 5,
 		greater_equal = 6,
 		always		  = 7
 
@@ -492,8 +493,8 @@ namespace core::gfx
 	enum class filter
 	{
 		nearest = 0,
-		linear  = 1,
-		cubic   = 2
+		linear	= 1,
+		cubic	= 2
 	};
 
 	/// \brief these signify the binding type in the shader
@@ -549,8 +550,11 @@ namespace core::gfx
 	inline bool has_depth(core::gfx::format format)
 	{
 		static std::vector<core::gfx::format> formats = {
-			core::gfx::format::d16_unorm,  core::gfx::format::x8_d24_unorm_pack32, core::gfx::format::d24_unorm_s8_uint,
-			core::gfx::format::d32_sfloat, core::gfx::format::d32_sfloat_s8_uint,
+		  core::gfx::format::d16_unorm,
+		  core::gfx::format::x8_d24_unorm_pack32,
+		  core::gfx::format::d24_unorm_s8_uint,
+		  core::gfx::format::d32_sfloat,
+		  core::gfx::format::d32_sfloat_s8_uint,
 		};
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
@@ -558,9 +562,9 @@ namespace core::gfx
 	inline bool has_stencil(core::gfx::format format)
 	{
 		static std::vector<core::gfx::format> formats = {
-			core::gfx::format::s8_uint,
-			core::gfx::format::d24_unorm_s8_uint,
-			core::gfx::format::d32_sfloat_s8_uint,
+		  core::gfx::format::s8_uint,
+		  core::gfx::format::d24_unorm_s8_uint,
+		  core::gfx::format::d32_sfloat_s8_uint,
 		};
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
@@ -589,20 +593,20 @@ namespace core::gfx
 		};
 
 		using usage = image_usage;
-	} // namespace image
+	}	 // namespace image
 
 	struct attachment
 	{
 		enum class load_op : uint8_t
 		{
 			load	  = 0,
-			clear	 = 1,
+			clear	  = 1,
 			dont_care = 2
 		};
 
 		enum class store_op : uint8_t
 		{
-			store	 = (uint8_t)load_op::load,
+			store	  = (uint8_t)load_op::load,
 			dont_care = (uint8_t)load_op::dont_care
 		};
 
@@ -628,134 +632,388 @@ namespace core::gfx
 	{
 		switch(value)
 		{
-		case format::r4g4b4a4_unorm_pack16: return 2; break;
-		case format::r5g6b5_unorm_pack16: return 2; break;
-		case format::r5g5b5a1_unorm_pack16: return 2; break;
-		case format::r8_unorm: return 1; break;
-		case format::r8_snorm: return 1; break;
-		case format::r8_uint: return 1; break;
-		case format::r8_sint: return 1; break;
-		case format::r8_srgb: return 1; break;
-		case format::r8g8_unorm: return 1; break;
-		case format::r8g8_snorm: return 1; break;
-		case format::r8g8_uint: return 1; break;
-		case format::r8g8_sint: return 1; break;
-		case format::r8g8_srgb: return 1; break;
-		case format::r8g8b8_unorm: return 1; break;
-		case format::r8g8b8_snorm: return 1; break;
-		case format::r8g8b8_uint: return 1; break;
-		case format::r8g8b8_sint: return 1; break;
-		case format::r8g8b8_srgb: return 1; break;
-		case format::r8g8b8a8_unorm: return 1; break;
-		case format::r8g8b8a8_snorm: return 1; break;
-		case format::r8g8b8a8_uint: return 1; break;
-		case format::r8g8b8a8_sint: return 1; break;
-		case format::r8g8b8a8_srgb: return 1; break;
-		case format::a2b10g10r10_unorm_pack32: return 4; break;
-		case format::a2b10g10r10_uint_pack32: return 4; break;
-		case format::r16_unorm: return 2; break;
-		case format::r16_snorm: return 2; break;
-		case format::r16_uint: return 2; break;
-		case format::r16_sint: return 2; break;
-		case format::r16_sfloat: return 2; break;
-		case format::r16g16_unorm: return 2; break;
-		case format::r16g16_snorm: return 2; break;
-		case format::r16g16_uint: return 2; break;
-		case format::r16g16_sint: return 2; break;
-		case format::r16g16_sfloat: return 2; break;
-		case format::r16g16b16_unorm: return 2; break;
-		case format::r16g16b16_snorm: return 2; break;
-		case format::r16g16b16_uint: return 2; break;
-		case format::r16g16b16_sint: return 2; break;
-		case format::r16g16b16_sfloat: return 2; break;
-		case format::r16g16b16a16_unorm: return 2; break;
-		case format::r16g16b16a16_snorm: return 2; break;
-		case format::r16g16b16a16_uint: return 2; break;
-		case format::r16g16b16a16_sint: return 2; break;
-		case format::r16g16b16a16_sfloat: return 2; break;
-		case format::r32_uint: return 4; break;
-		case format::r32_sint: return 4; break;
-		case format::r32_sfloat: return 4; break;
-		case format::r32g32_uint: return 4; break;
-		case format::r32g32_sint: return 4; break;
-		case format::r32g32_sfloat: return 4; break;
-		case format::r32g32b32_uint: return 4; break;
-		case format::r32g32b32_sint: return 4; break;
-		case format::r32g32b32_sfloat: return 4; break;
-		case format::r32g32b32a32_uint: return 4; break;
-		case format::r32g32b32a32_sint: return 4; break;
-		case format::r32g32b32a32_sfloat: return 4; break;
-		case format::b10g11r11_ufloat_pack32: return 4; break;
-		case format::e5b9g9r9_ufloat_pack32: return 4; break;
-		case format::d16_unorm: return 2; break;
-		case format::x8_d24_unorm_pack32: return 4; break;
-		case format::d32_sfloat: return 4; break;
-		case format::s8_uint: return 1; break;
-		case format::d24_unorm_s8_uint: return 4; break;
-		case format::d32_sfloat_s8_uint: return 4; break;
-		case format::bc1_rgb_unorm_block: return 1; break;
-		case format::bc1_rgb_srgb_block: return 1; break;
-		case format::bc1_rgba_unorm_block: return 1; break;
-		case format::bc1_rgba_srgb_block: return 1; break;
-		case format::bc2_unorm_block: return 1; break;
-		case format::bc2_srgb_block: return 1; break;
-		case format::bc3_unorm_block: return 1; break;
-		case format::bc3_srgb_block: return 1; break;
-		case format::bc4_unorm_block: return 1; break;
-		case format::bc4_snorm_block: return 1; break;
-		case format::bc5_unorm_block: return 1; break;
-		case format::bc5_snorm_block: return 1; break;
-		case format::bc6h_ufloat_block: return 1; break;
-		case format::bc6h_sfloat_block: return 1; break;
-		case format::bc7_unorm_block: return 1; break;
-		case format::bc7_srgb_block: return 1; break;
-		case format::etc2_r8g8b8_unorm_block: return 1; break;
-		case format::etc2_r8g8b8_srgb_block: return 1; break;
-		case format::etc2_r8g8b8a1_unorm_block: return 1; break;
-		case format::etc2_r8g8b8a1_srgb_block: return 1; break;
-		case format::etc2_r8g8b8a8_unorm_block: return 1; break;
-		case format::etc2_r8g8b8a8_srgb_block: return 1; break;
-		case format::eac_r11_unorm_block: return 1; break;
-		case format::eac_r11_snorm_block: return 1; break;
-		case format::eac_r11g11_unorm_block: return 1; break;
-		case format::eac_r11g11_snorm_block: return 1; break;
-		case format::astc_4x4_unorm_block: return 1; break;
-		case format::astc_4x4_srgb_block: return 1; break;
-		case format::astc_5x4_unorm_block: return 1; break;
-		case format::astc_5x4_srgb_block: return 1; break;
-		case format::astc_5x5_unorm_block: return 1; break;
-		case format::astc_5x5_srgb_block: return 1; break;
-		case format::astc_6x5_unorm_block: return 1; break;
-		case format::astc_6x5_srgb_block: return 1; break;
-		case format::astc_6x6_unorm_block: return 1; break;
-		case format::astc_6x6_srgb_block: return 1; break;
-		case format::astc_8x5_unorm_block: return 1; break;
-		case format::astc_8x5_srgb_block: return 1; break;
-		case format::astc_8x6_unorm_block: return 1; break;
-		case format::astc_8x6_srgb_block: return 1; break;
-		case format::astc_8x8_unorm_block: return 1; break;
-		case format::astc_8x8_srgb_block: return 1; break;
-		case format::astc_10x5_unorm_block: return 1; break;
-		case format::astc_10x5_srgb_block: return 1; break;
-		case format::astc_10x6_unorm_block: return 1; break;
-		case format::astc_10x6_srgb_block: return 1; break;
-		case format::astc_10x8_unorm_block: return 1; break;
-		case format::astc_10x8_srgb_block: return 1; break;
-		case format::astc_10x10_unorm_block: return 1; break;
-		case format::astc_10x10_srgb_block: return 1; break;
-		case format::astc_12x10_unorm_block: return 1; break;
-		case format::astc_12x10_srgb_block: return 1; break;
-		case format::astc_12x12_unorm_block: return 1; break;
-		case format::astc_12x12_srgb_block: return 1; break;
-		case format::pvrtc1_2bpp_unorm_block_img: return 1; break;
-		case format::pvrtc1_4bpp_unorm_block_img: return 1; break;
-		case format::pvrtc2_2bpp_unorm_block_img: return 1; break;
-		case format::pvrtc2_4bpp_unorm_block_img: return 1; break;
-		case format::pvrtc1_2bpp_srgb_block_img: return 1; break;
-		case format::pvrtc1_4bpp_srgb_block_img: return 1; break;
-		case format::pvrtc2_2bpp_srgb_block_img: return 1; break;
-		case format::pvrtc2_4bpp_srgb_block_img: return 1; break;
+		case format::r4g4b4a4_unorm_pack16:
+			return 2;
+			break;
+		case format::r5g6b5_unorm_pack16:
+			return 2;
+			break;
+		case format::r5g5b5a1_unorm_pack16:
+			return 2;
+			break;
+		case format::r8_unorm:
+			return 1;
+			break;
+		case format::r8_snorm:
+			return 1;
+			break;
+		case format::r8_uint:
+			return 1;
+			break;
+		case format::r8_sint:
+			return 1;
+			break;
+		case format::r8_srgb:
+			return 1;
+			break;
+		case format::r8g8_unorm:
+			return 1;
+			break;
+		case format::r8g8_snorm:
+			return 1;
+			break;
+		case format::r8g8_uint:
+			return 1;
+			break;
+		case format::r8g8_sint:
+			return 1;
+			break;
+		case format::r8g8_srgb:
+			return 1;
+			break;
+		case format::r8g8b8_unorm:
+			return 1;
+			break;
+		case format::r8g8b8_snorm:
+			return 1;
+			break;
+		case format::r8g8b8_uint:
+			return 1;
+			break;
+		case format::r8g8b8_sint:
+			return 1;
+			break;
+		case format::r8g8b8_srgb:
+			return 1;
+			break;
+		case format::r8g8b8a8_unorm:
+			return 1;
+			break;
+		case format::r8g8b8a8_snorm:
+			return 1;
+			break;
+		case format::r8g8b8a8_uint:
+			return 1;
+			break;
+		case format::r8g8b8a8_sint:
+			return 1;
+			break;
+		case format::r8g8b8a8_srgb:
+			return 1;
+			break;
+		case format::a2b10g10r10_unorm_pack32:
+			return 4;
+			break;
+		case format::a2b10g10r10_uint_pack32:
+			return 4;
+			break;
+		case format::r16_unorm:
+			return 2;
+			break;
+		case format::r16_snorm:
+			return 2;
+			break;
+		case format::r16_uint:
+			return 2;
+			break;
+		case format::r16_sint:
+			return 2;
+			break;
+		case format::r16_sfloat:
+			return 2;
+			break;
+		case format::r16g16_unorm:
+			return 2;
+			break;
+		case format::r16g16_snorm:
+			return 2;
+			break;
+		case format::r16g16_uint:
+			return 2;
+			break;
+		case format::r16g16_sint:
+			return 2;
+			break;
+		case format::r16g16_sfloat:
+			return 2;
+			break;
+		case format::r16g16b16_unorm:
+			return 2;
+			break;
+		case format::r16g16b16_snorm:
+			return 2;
+			break;
+		case format::r16g16b16_uint:
+			return 2;
+			break;
+		case format::r16g16b16_sint:
+			return 2;
+			break;
+		case format::r16g16b16_sfloat:
+			return 2;
+			break;
+		case format::r16g16b16a16_unorm:
+			return 2;
+			break;
+		case format::r16g16b16a16_snorm:
+			return 2;
+			break;
+		case format::r16g16b16a16_uint:
+			return 2;
+			break;
+		case format::r16g16b16a16_sint:
+			return 2;
+			break;
+		case format::r16g16b16a16_sfloat:
+			return 2;
+			break;
+		case format::r32_uint:
+			return 4;
+			break;
+		case format::r32_sint:
+			return 4;
+			break;
+		case format::r32_sfloat:
+			return 4;
+			break;
+		case format::r32g32_uint:
+			return 4;
+			break;
+		case format::r32g32_sint:
+			return 4;
+			break;
+		case format::r32g32_sfloat:
+			return 4;
+			break;
+		case format::r32g32b32_uint:
+			return 4;
+			break;
+		case format::r32g32b32_sint:
+			return 4;
+			break;
+		case format::r32g32b32_sfloat:
+			return 4;
+			break;
+		case format::r32g32b32a32_uint:
+			return 4;
+			break;
+		case format::r32g32b32a32_sint:
+			return 4;
+			break;
+		case format::r32g32b32a32_sfloat:
+			return 4;
+			break;
+		case format::b10g11r11_ufloat_pack32:
+			return 4;
+			break;
+		case format::e5b9g9r9_ufloat_pack32:
+			return 4;
+			break;
+		case format::d16_unorm:
+			return 2;
+			break;
+		case format::x8_d24_unorm_pack32:
+			return 4;
+			break;
+		case format::d32_sfloat:
+			return 4;
+			break;
+		case format::s8_uint:
+			return 1;
+			break;
+		case format::d24_unorm_s8_uint:
+			return 4;
+			break;
+		case format::d32_sfloat_s8_uint:
+			return 4;
+			break;
+		case format::bc1_rgb_unorm_block:
+			return 1;
+			break;
+		case format::bc1_rgb_srgb_block:
+			return 1;
+			break;
+		case format::bc1_rgba_unorm_block:
+			return 1;
+			break;
+		case format::bc1_rgba_srgb_block:
+			return 1;
+			break;
+		case format::bc2_unorm_block:
+			return 1;
+			break;
+		case format::bc2_srgb_block:
+			return 1;
+			break;
+		case format::bc3_unorm_block:
+			return 1;
+			break;
+		case format::bc3_srgb_block:
+			return 1;
+			break;
+		case format::bc4_unorm_block:
+			return 1;
+			break;
+		case format::bc4_snorm_block:
+			return 1;
+			break;
+		case format::bc5_unorm_block:
+			return 1;
+			break;
+		case format::bc5_snorm_block:
+			return 1;
+			break;
+		case format::bc6h_ufloat_block:
+			return 1;
+			break;
+		case format::bc6h_sfloat_block:
+			return 1;
+			break;
+		case format::bc7_unorm_block:
+			return 1;
+			break;
+		case format::bc7_srgb_block:
+			return 1;
+			break;
+		case format::etc2_r8g8b8_unorm_block:
+			return 1;
+			break;
+		case format::etc2_r8g8b8_srgb_block:
+			return 1;
+			break;
+		case format::etc2_r8g8b8a1_unorm_block:
+			return 1;
+			break;
+		case format::etc2_r8g8b8a1_srgb_block:
+			return 1;
+			break;
+		case format::etc2_r8g8b8a8_unorm_block:
+			return 1;
+			break;
+		case format::etc2_r8g8b8a8_srgb_block:
+			return 1;
+			break;
+		case format::eac_r11_unorm_block:
+			return 1;
+			break;
+		case format::eac_r11_snorm_block:
+			return 1;
+			break;
+		case format::eac_r11g11_unorm_block:
+			return 1;
+			break;
+		case format::eac_r11g11_snorm_block:
+			return 1;
+			break;
+		case format::astc_4x4_unorm_block:
+			return 1;
+			break;
+		case format::astc_4x4_srgb_block:
+			return 1;
+			break;
+		case format::astc_5x4_unorm_block:
+			return 1;
+			break;
+		case format::astc_5x4_srgb_block:
+			return 1;
+			break;
+		case format::astc_5x5_unorm_block:
+			return 1;
+			break;
+		case format::astc_5x5_srgb_block:
+			return 1;
+			break;
+		case format::astc_6x5_unorm_block:
+			return 1;
+			break;
+		case format::astc_6x5_srgb_block:
+			return 1;
+			break;
+		case format::astc_6x6_unorm_block:
+			return 1;
+			break;
+		case format::astc_6x6_srgb_block:
+			return 1;
+			break;
+		case format::astc_8x5_unorm_block:
+			return 1;
+			break;
+		case format::astc_8x5_srgb_block:
+			return 1;
+			break;
+		case format::astc_8x6_unorm_block:
+			return 1;
+			break;
+		case format::astc_8x6_srgb_block:
+			return 1;
+			break;
+		case format::astc_8x8_unorm_block:
+			return 1;
+			break;
+		case format::astc_8x8_srgb_block:
+			return 1;
+			break;
+		case format::astc_10x5_unorm_block:
+			return 1;
+			break;
+		case format::astc_10x5_srgb_block:
+			return 1;
+			break;
+		case format::astc_10x6_unorm_block:
+			return 1;
+			break;
+		case format::astc_10x6_srgb_block:
+			return 1;
+			break;
+		case format::astc_10x8_unorm_block:
+			return 1;
+			break;
+		case format::astc_10x8_srgb_block:
+			return 1;
+			break;
+		case format::astc_10x10_unorm_block:
+			return 1;
+			break;
+		case format::astc_10x10_srgb_block:
+			return 1;
+			break;
+		case format::astc_12x10_unorm_block:
+			return 1;
+			break;
+		case format::astc_12x10_srgb_block:
+			return 1;
+			break;
+		case format::astc_12x12_unorm_block:
+			return 1;
+			break;
+		case format::astc_12x12_srgb_block:
+			return 1;
+			break;
+		case format::pvrtc1_2bpp_unorm_block_img:
+			return 1;
+			break;
+		case format::pvrtc1_4bpp_unorm_block_img:
+			return 1;
+			break;
+		case format::pvrtc2_2bpp_unorm_block_img:
+			return 1;
+			break;
+		case format::pvrtc2_4bpp_unorm_block_img:
+			return 1;
+			break;
+		case format::pvrtc1_2bpp_srgb_block_img:
+			return 1;
+			break;
+		case format::pvrtc1_4bpp_srgb_block_img:
+			return 1;
+			break;
+		case format::pvrtc2_2bpp_srgb_block_img:
+			return 1;
+			break;
+		case format::pvrtc2_4bpp_srgb_block_img:
+			return 1;
+			break;
 		}
 		return 0;
 	}
-} // namespace core::gfx
+}	 // namespace core::gfx

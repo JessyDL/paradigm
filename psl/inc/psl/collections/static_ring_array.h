@@ -5,7 +5,7 @@ namespace psl
 {
 	/// \brief a deque-like interface implemented as an std::array<T, N> under the hood
 	///
-	/// \details When you need a deque like 
+	/// \details When you need a deque like
 	template <typename T, size_t N>
 	class static_ring_array
 	{
@@ -13,17 +13,17 @@ namespace psl
 		class iterator
 		{
 		  public:
-			using difference_type   = std::ptrdiff_t;
+			using difference_type	= std::ptrdiff_t;
 			using value_type		= T;
 			using pointer			= value_type*;
 			using reference			= value_type&;
 			using iterator_category = std::random_access_iterator_tag;
 
-			iterator(T* data, size_t begin = 0, size_t index = 0) noexcept
-				: m_Data(data), m_Begin(begin), m_Index(index){};
+			iterator(T* data, size_t begin = 0, size_t index = 0) noexcept :
+				m_Data(data), m_Begin(begin), m_Index(index) {};
 			iterator() noexcept					   = default;
 			iterator(const iterator& rhs) noexcept = default;
-			iterator(iterator&& rhs) noexcept	  = default;
+			iterator(iterator&& rhs) noexcept	   = default;
 			iterator& operator=(const iterator& rhs) noexcept = default;
 			iterator& operator=(iterator&& rhs) noexcept = default;
 			void swap(iterator& iter)
@@ -64,7 +64,7 @@ namespace psl
 			}
 			iterator operator++(int) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				++copy;
 				return copy;
 			}
@@ -75,7 +75,7 @@ namespace psl
 			}
 			iterator operator+(difference_type n) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				copy += n;
 				return copy;
 			}
@@ -86,7 +86,7 @@ namespace psl
 			}
 			iterator operator--(int) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				--copy;
 				return copy;
 			}
@@ -98,7 +98,7 @@ namespace psl
 			}
 			iterator operator-(difference_type n) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				copy -= n;
 				return copy;
 			}
@@ -106,9 +106,9 @@ namespace psl
 		  private:
 			inline size_t offset_of(size_t index) const noexcept { return ((m_Begin + index) % N); };
 
-			pointer m_Data{nullptr};
-			size_t m_Begin{0u};
-			size_t m_Index{0u};
+			pointer m_Data {nullptr};
+			size_t m_Begin {0u};
+			size_t m_Index {0u};
 		};
 
 		static_ring_array() : m_Data((T*)std::malloc(sizeof(T) * N)), m_Begin(m_Data), m_Count(0) {}
@@ -161,8 +161,8 @@ namespace psl
 		size_t capacity() const noexcept { return N; }
 
 
-		iterator begin() { return iterator{m_Data, start_of(), 0}; }
-		iterator end() { return iterator{m_Data, end_of(), m_Count}; }
+		iterator begin() { return iterator {m_Data, start_of(), 0}; }
+		iterator end() { return iterator {m_Data, end_of(), m_Count}; }
 
 	  private:
 		inline auto offset_of(size_t index) const noexcept { return (start_of() + index) % N; }
@@ -174,4 +174,4 @@ namespace psl
 		T* m_Begin;
 		size_t m_Count;
 	};
-} // namespace psl
+}	 // namespace psl

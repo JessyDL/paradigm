@@ -1,7 +1,7 @@
 ﻿#pragma once
+#include "resource/resource.hpp"
 #include "vk/ivk.h"
 #include <vector>
-#include "resource/resource.hpp"
 
 namespace core::data
 {
@@ -23,7 +23,9 @@ namespace core::ivk
 	class sampler final
 	{
 	  public:
-		sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		sampler(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				psl::meta::file* metaFile,
 				core::resource::handle<core::ivk::context> context,
 				core::resource::handle<core::data::sampler> sampler_data);
 		~sampler();
@@ -43,4 +45,4 @@ namespace core::ivk
 
 		std::vector<vk::Sampler> m_Samplers;
 	};
-} // namespace core::gfx
+}	 // namespace core::ivk

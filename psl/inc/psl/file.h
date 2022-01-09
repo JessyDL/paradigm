@@ -6,7 +6,7 @@ namespace utility::os
 {
 	class file
 	{
-	public:
+	  public:
 		enum mode
 		{
 			READ,
@@ -33,32 +33,32 @@ namespace utility::os
 		};
 
 
-		file(psl::string_view filename, mode mode = mode::READ_AND_WRITE, method method = method::OPEN_OR_CREATE, std::optional<size_t> offset = {}, std::optional<size_t> length = {});
+		file(psl::string_view filename,
+			 mode mode					  = mode::READ_AND_WRITE,
+			 method method				  = method::OPEN_OR_CREATE,
+			 std::optional<size_t> offset = {},
+			 std::optional<size_t> length = {});
 		~file();
 
 
-		operator bool() const
-		{
-			return m_Data;
-		}
+		operator bool() const { return m_Data; }
 
 		std::optional<psl::string_view> view() const
 		{
-			if(!m_Data)
-				return {};
-			return psl::string_view{&m_Data[0], m_ContentSize};
+			if(!m_Data) return {};
+			return psl::string_view {&m_Data[0], m_ContentSize};
 		}
 
 		std::optional<psl::char_t*> data() const
 		{
-			if(!m_Data)
-				return {};
+			if(!m_Data) return {};
 			return m_Data;
 		}
-	private:
+
+	  private:
 		bool close();
 
-		psl::char_t* m_Data{nullptr};
+		psl::char_t* m_Data {nullptr};
 		size_t m_Size;
 		size_t m_ContentSize;
 #ifdef PLATFORM_WINDOWS
@@ -67,4 +67,4 @@ namespace utility::os
 		std::optional<void*> m_MapView;
 #endif
 	};
-}
+}	 // namespace utility::os

@@ -15,19 +15,21 @@ using namespace core::resource;
 
 
 #ifdef PE_VULKAN
-shader::shader(core::resource::handle<core::ivk::shader>& handle)
-	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+shader::shader(core::resource::handle<core::ivk::shader>& handle) :
+	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-shader::shader(core::resource::handle<core::igles::shader>& handle)
-	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+shader::shader(core::resource::handle<core::igles::shader>& handle) :
+	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-shader::shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
-			   core::resource::handle<core::gfx::context> context)
-	: m_Backend(context->backend())
+shader::shader(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   core::meta::shader* metaFile,
+			   core::resource::handle<core::gfx::context> context) :
+	m_Backend(context->backend())
 {
 	switch(context->backend())
 	{

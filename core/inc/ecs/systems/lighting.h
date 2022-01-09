@@ -1,11 +1,11 @@
 #pragma once
-#include "psl/view_ptr.h"
-#include "psl/ecs/selectors.h"
-#include "psl/ecs/entity.h"
-#include "ecs/components/transform.h"
 #include "ecs/components/lighting.h"
-#include "resource/resource.hpp"
+#include "ecs/components/transform.h"
 #include "ecs/systems/render.h"
+#include "psl/ecs/entity.h"
+#include "psl/ecs/selectors.h"
+#include "psl/view_ptr.h"
+#include "resource/resource.hpp"
 
 namespace core::gfx
 {
@@ -13,7 +13,7 @@ namespace core::gfx
 	class render_graph;
 	class drawpass;
 	class buffer;
-} // namespace core::gfx
+}	 // namespace core::gfx
 
 namespace core::os
 {
@@ -26,7 +26,7 @@ namespace psl::ecs
 	struct info;
 	template <typename... Ts>
 	class pack;
-} // namespace psl::ecs
+}	 // namespace psl::ecs
 
 namespace memory
 {
@@ -41,18 +41,21 @@ namespace core::ecs::systems
 	class lighting_system
 	{
 	  public:
-		lighting_system(psl::view_ptr<psl::ecs::state> state, psl::view_ptr<core::resource::cache> cache,
-						memory::region& resource_region, psl::view_ptr<core::gfx::render_graph> renderGraph,
-						psl::view_ptr<core::gfx::drawpass> pass, core::resource::handle<core::gfx::context> context,
+		lighting_system(psl::view_ptr<psl::ecs::state> state,
+						psl::view_ptr<core::resource::cache> cache,
+						memory::region& resource_region,
+						psl::view_ptr<core::gfx::render_graph> renderGraph,
+						psl::view_ptr<core::gfx::drawpass> pass,
+						core::resource::handle<core::gfx::context> context,
 						core::resource::handle<core::os::surface> surface) noexcept;
 
 		~lighting_system() = default;
 
-		void
-		create_dir(psl::ecs::info& info,
-				   psl::ecs::pack<psl::ecs::entity, core::ecs::components::light,
-								  psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>>
-					   pack);
+		void create_dir(
+		  psl::ecs::info& info,
+		  psl::ecs::pack<psl::ecs::entity,
+						 core::ecs::components::light,
+						 psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>> pack);
 
 	  private:
 		psl::view_ptr<core::resource::cache> m_Cache;
@@ -64,8 +67,8 @@ namespace core::ecs::systems
 		core::resource::handle<core::gfx::buffer> m_LightDataBuffer;
 		memory::segment m_LightSegment;
 
-		//std::unordered_map<psl::ecs::entity, psl::view_ptr<core::gfx::drawpass>> m_Passes;
+		// std::unordered_map<psl::ecs::entity, psl::view_ptr<core::gfx::drawpass>> m_Passes;
 		std::unordered_map<psl::ecs::entity, psl::unique_ptr<core::ecs::systems::render>> m_Systems;
 	};
 
-} // namespace core::ecs::systems
+}	 // namespace core::ecs::systems

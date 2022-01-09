@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include "psl/serialization.h"
+#include "gfx/types.h"
 #include "psl/library.h"
 #include "psl/meta.h"
-#include "gfx/types.h"
+#include "psl/serialization/serializer.hpp"
 
 namespace core::resource
 {
@@ -25,7 +25,7 @@ namespace core::meta
 
 	  public:
 		texture() = default;
-		explicit texture(const psl::UID& key) noexcept : psl::meta::file(key){};
+		explicit texture(const psl::UID& key) noexcept : psl::meta::file(key) {};
 
 		~texture() = default;
 
@@ -106,7 +106,7 @@ namespace core::meta
 		void serialize(S& s)
 		{
 			psl::meta::file::serialize(s);
-			
+
 			s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
 			  << m_UsageFlags << m_AspectMask;
 
@@ -114,26 +114,26 @@ namespace core::meta
 		}
 		/// \brief validates this texture
 		bool validate() const noexcept;
-		psl::serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width{0u};
-		psl::serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height{0u};
-		psl::serialization::property<uint32_t, const_str("DEPTH", 5)> m_Depth{1u};
-		psl::serialization::property<uint32_t, const_str("MIP_LEVELS", 10)> m_MipLevels{1u};
-		psl::serialization::property<uint32_t, const_str("LAYERS", 6)> m_LayerCount{1u};
-		psl::serialization::property<core::gfx::format, const_str("FORMAT", 6)> m_Format{core::gfx::format::undefined};
-		psl::serialization::property<core::gfx::image_type, const_str("IMAGE_TYPE", 10)> m_ImageType{
-			core::gfx::image_type::planar_2D};
-		psl::serialization::property<core::gfx::image_usage, const_str("USAGE", 5)> m_UsageFlags{
-			core::gfx::image_usage::transfer_destination | core::gfx::image_usage::sampled};
-		psl::serialization::property<core::gfx::image_aspect, const_str("ASPECT_MASK", 11)> m_AspectMask{
-			core::gfx::image_aspect::color};
+		psl::serialization::property<"WIDTH", uint32_t> m_Width {0u};
+		psl::serialization::property<"HEIGHT", uint32_t> m_Height {0u};
+		psl::serialization::property<"DEPTH", uint32_t> m_Depth {1u};
+		psl::serialization::property<"MIP_LEVELS", uint32_t> m_MipLevels {1u};
+		psl::serialization::property<"LAYERS", uint32_t> m_LayerCount {1u};
+		psl::serialization::property<"FORMAT", core::gfx::format> m_Format {core::gfx::format::undefined};
+		psl::serialization::property<"IMAGE_TYPE", core::gfx::image_type> m_ImageType {
+		  core::gfx::image_type::planar_2D};
+		psl::serialization::property<"USAGE", core::gfx::image_usage> m_UsageFlags {
+		  core::gfx::image_usage::transfer_destination | core::gfx::image_usage::sampled};
+		psl::serialization::property<"ASPECT_MASK", core::gfx::image_aspect> m_AspectMask {
+		  core::gfx::image_aspect::color};
 
 
 		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64
 		/// ID of this type on.
-		static constexpr const char polymorphic_name[13]{"TEXTURE_META"};
+		static constexpr const char polymorphic_name[13] {"TEXTURE_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
 		virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }
 		/// \brief the associated unique ID (per type, not instance) for the polymorphic system.
 		static const uint64_t polymorphic_identity;
 	};
-} // namespace core::meta
+}	 // namespace core::meta

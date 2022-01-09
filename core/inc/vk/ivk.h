@@ -31,10 +31,10 @@
 #define VK_VERSION_LATEST_PATCH VK_HEADER_VERSION
 #define VK_API_VERSION_LATEST VK_API_VERSION_1_2
 
+#include "psl/logging.h"
 #include "psl/ustring.h"
 #include <assert.h>
 #include <unordered_map>
-#include "psl/logging.h"
 
 // Set to "true" to use staging buffers for uploading
 // vertex and index data to device local memory
@@ -64,34 +64,30 @@
 
 namespace utility
 {
-	template <typename BitType, typename MaskType>
-	struct converter<vk::Flags<BitType, MaskType>>
+	template <typename BitType>
+	struct converter<vk::Flags<BitType>>
 	{
-		static psl::string8_t to_string(const vk::Flags<BitType, MaskType>& x)
+		static psl::string8_t to_string(const vk::Flags<BitType>& x)
 		{
+			using MaskType = typename vk::Flags<BitType>::MaskType;
 			return converter<MaskType>::to_string((MaskType)(x));
 		}
 
-		static vk::Flags<BitType, MaskType> from_string(psl::string8::view str)
+		static vk::Flags<BitType> from_string(psl::string8::view str)
 		{
+			using MaskType = typename vk::Flags<BitType>::MaskType;
 			return (BitType)converter<MaskType>::from_string(str);
 		}
 	};
 
-	template<>
+	template <>
 	struct converter<vk::ClearValue>
 	{
-		static psl::string8_t to_string(const vk::ClearValue& value)
-		{
-			return "";
-		}
+		static psl::string8_t to_string(const vk::ClearValue& value) { return ""; }
 
-		static vk::ClearValue from_string(psl::string8::view str)
-		{
-			return vk::ClearValue{ vk::ClearColorValue{} };
-		}
+		static vk::ClearValue from_string(psl::string8::view str) { return vk::ClearValue {vk::ClearColorValue {}}; }
 	};
-} // namespace utility
+}	 // namespace utility
 
 
 /// \brief helper namespace that contains handy defaults and constructor helpers for Vulkan objects
@@ -108,8 +104,8 @@ namespace utility::vulkan::defaults
 		return memAllocInfo;
 	}
 
-	inline VkCommandBufferAllocateInfo cmd_buffer_ai(VkCommandPool commandPool, VkCommandBufferLevel level,
-													 uint32_t bufferCount)
+	inline VkCommandBufferAllocateInfo
+	cmd_buffer_ai(VkCommandPool commandPool, VkCommandBufferLevel level, uint32_t bufferCount)
 	{
 		VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
 		commandBufferAllocateInfo.sType						  = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -213,15 +209,15 @@ namespace utility::vulkan::defaults
 		VkViewport viewport = {};
 		viewport.width		= width;
 		viewport.height		= height;
-		viewport.minDepth   = minDepth;
-		viewport.maxDepth   = maxDepth;
+		viewport.minDepth	= minDepth;
+		viewport.maxDepth	= maxDepth;
 		return viewport;
 	}
 
 	inline VkRect2D rect2D(int32_t width, int32_t height, int32_t offsetX, int32_t offsetY)
 	{
 		VkRect2D rect2D		 = {};
-		rect2D.extent.width  = width;
+		rect2D.extent.width	 = width;
 		rect2D.extent.height = height;
 		rect2D.offset.x		 = offsetX;
 		rect2D.offset.y		 = offsetY;
@@ -246,13 +242,13 @@ namespace utility::vulkan::defaults
 		return bufCreateInfo;
 	}
 
-	inline vk::DescriptorPoolCreateInfo descriptor_pool_ci(uint32_t poolSizeCount, vk::DescriptorPoolSize* pPoolSizes,
-														   uint32_t maxSets)
+	inline vk::DescriptorPoolCreateInfo
+	descriptor_pool_ci(uint32_t poolSizeCount, vk::DescriptorPoolSize* pPoolSizes, uint32_t maxSets)
 	{
 		vk::DescriptorPoolCreateInfo descriptorPoolInfo;
 		descriptorPoolInfo.pNext		 = NULL;
 		descriptorPoolInfo.poolSizeCount = poolSizeCount;
-		descriptorPoolInfo.pPoolSizes	= pPoolSizes;
+		descriptorPoolInfo.pPoolSizes	 = pPoolSizes;
 		descriptorPoolInfo.maxSets		 = maxSets;
 		return descriptorPoolInfo;
 	}
@@ -267,7 +263,8 @@ namespace utility::vulkan::defaults
 
 	inline vk::DescriptorSetLayoutBinding descriptor_setlayout_binding(vk::DescriptorType type,
 																	   vk::ShaderStageFlags stageFlags,
-																	   uint32_t binding, uint32_t descriptorCount = 1)
+																	   uint32_t binding,
+																	   uint32_t descriptorCount = 1)
 	{
 		vk::DescriptorSetLayoutBinding setLayoutBinding;
 		setLayoutBinding.descriptorType = type;
@@ -285,7 +282,7 @@ namespace utility::vulkan::defaults
 		VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
 		descriptorSetLayoutCreateInfo.sType		   = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 		descriptorSetLayoutCreateInfo.pNext		   = NULL;
-		descriptorSetLayoutCreateInfo.pBindings	= pBindings;
+		descriptorSetLayoutCreateInfo.pBindings	   = pBindings;
 		descriptorSetLayoutCreateInfo.bindingCount = bindingCount;
 		return descriptorSetLayoutCreateInfo;
 	}
@@ -314,50 +311,54 @@ namespace utility::vulkan::defaults
 		return descriptorSetAllocateInfo;
 	}
 
-	inline vk::DescriptorImageInfo descriptor_image_info(vk::Sampler sampler, vk::ImageView imageView,
-														 vk::ImageLayout imageLayout)
+	inline vk::DescriptorImageInfo
+	descriptor_image_info(vk::Sampler sampler, vk::ImageView imageView, vk::ImageLayout imageLayout)
 	{
 		vk::DescriptorImageInfo descriptorImageInfo;
 		descriptorImageInfo.sampler		= sampler;
-		descriptorImageInfo.imageView   = imageView;
+		descriptorImageInfo.imageView	= imageView;
 		descriptorImageInfo.imageLayout = imageLayout;
 		return descriptorImageInfo;
 	}
 
-	inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet, vk::DescriptorType type,
-													   uint32_t binding, vk::DescriptorBufferInfo* bufferInfo,
+	inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet,
+													   vk::DescriptorType type,
+													   uint32_t binding,
+													   vk::DescriptorBufferInfo* bufferInfo,
 													   uint32_t descriptorCount = 1)
 	{
 		vk::WriteDescriptorSet writeDescriptorSet;
 		writeDescriptorSet.pNext		  = NULL;
 		writeDescriptorSet.dstSet		  = dstSet;
 		writeDescriptorSet.descriptorType = type;
-		writeDescriptorSet.dstBinding	 = binding;
-		writeDescriptorSet.pBufferInfo	= bufferInfo;
-		writeDescriptorSet.pImageInfo	 = nullptr;
+		writeDescriptorSet.dstBinding	  = binding;
+		writeDescriptorSet.pBufferInfo	  = bufferInfo;
+		writeDescriptorSet.pImageInfo	  = nullptr;
 		// Default value in all examples
 		writeDescriptorSet.descriptorCount = descriptorCount;
 		return writeDescriptorSet;
 	}
 
-	inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet, vk::DescriptorType type,
-													   uint32_t binding, vk::DescriptorImageInfo* imageInfo,
+	inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet,
+													   vk::DescriptorType type,
+													   uint32_t binding,
+													   vk::DescriptorImageInfo* imageInfo,
 													   uint32_t descriptorCount = 1)
 	{
 		vk::WriteDescriptorSet writeDescriptorSet;
 		writeDescriptorSet.pNext		  = NULL;
 		writeDescriptorSet.dstSet		  = dstSet;
 		writeDescriptorSet.descriptorType = type;
-		writeDescriptorSet.dstBinding	 = binding;
-		writeDescriptorSet.pImageInfo	 = imageInfo;
+		writeDescriptorSet.dstBinding	  = binding;
+		writeDescriptorSet.pImageInfo	  = imageInfo;
 		// Default value in all examples
 		writeDescriptorSet.descriptorCount = descriptorCount;
-		writeDescriptorSet.pBufferInfo	 = nullptr;
+		writeDescriptorSet.pBufferInfo	   = nullptr;
 		return writeDescriptorSet;
 	}
 
-	inline VkVertexInputBindingDescription vertex_input_binding(uint32_t binding, uint32_t stride,
-																VkVertexInputRate inputRate)
+	inline VkVertexInputBindingDescription
+	vertex_input_binding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate)
 	{
 		VkVertexInputBindingDescription vInputBindDescription = {};
 		vInputBindDescription.binding						  = binding;
@@ -366,8 +367,8 @@ namespace utility::vulkan::defaults
 		return vInputBindDescription;
 	}
 
-	inline VkVertexInputAttributeDescription vertex_input_attr(uint32_t binding, uint32_t location, VkFormat format,
-															   uint32_t offset)
+	inline VkVertexInputAttributeDescription
+	vertex_input_attr(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset)
 	{
 		VkVertexInputAttributeDescription vInputAttribDescription = {};
 		vInputAttribDescription.location						  = location;
@@ -386,26 +387,29 @@ namespace utility::vulkan::defaults
 	}
 
 	inline VkPipelineInputAssemblyStateCreateInfo
-	pipeline_input_asmstate_ci(VkPrimitiveTopology topology, VkPipelineInputAssemblyStateCreateFlags flags,
+	pipeline_input_asmstate_ci(VkPrimitiveTopology topology,
+							   VkPipelineInputAssemblyStateCreateFlags flags,
 							   VkBool32 primitiveRestartEnable)
 	{
 		VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = {};
-		pipelineInputAssemblyStateCreateInfo.sType	= VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+		pipelineInputAssemblyStateCreateInfo.sType	  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 		pipelineInputAssemblyStateCreateInfo.topology = topology;
-		pipelineInputAssemblyStateCreateInfo.flags	= flags;
+		pipelineInputAssemblyStateCreateInfo.flags	  = flags;
 		pipelineInputAssemblyStateCreateInfo.primitiveRestartEnable = primitiveRestartEnable;
 		return pipelineInputAssemblyStateCreateInfo;
 	}
 
 	inline VkPipelineRasterizationStateCreateInfo
-	pipeline_rasterizationstate_ci(VkPolygonMode polygonMode, VkCullModeFlags cullMode, VkFrontFace frontFace,
+	pipeline_rasterizationstate_ci(VkPolygonMode polygonMode,
+								   VkCullModeFlags cullMode,
+								   VkFrontFace frontFace,
 								   VkPipelineRasterizationStateCreateFlags flags)
 	{
 		VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo = {};
 		pipelineRasterizationStateCreateInfo.sType		 = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 		pipelineRasterizationStateCreateInfo.polygonMode = polygonMode;
-		pipelineRasterizationStateCreateInfo.cullMode	= cullMode;
-		pipelineRasterizationStateCreateInfo.frontFace   = frontFace;
+		pipelineRasterizationStateCreateInfo.cullMode	 = cullMode;
+		pipelineRasterizationStateCreateInfo.frontFace	 = frontFace;
 		pipelineRasterizationStateCreateInfo.flags		 = flags;
 		pipelineRasterizationStateCreateInfo.depthClampEnable = VK_TRUE;
 		pipelineRasterizationStateCreateInfo.lineWidth		  = 1.0f;
@@ -428,7 +432,7 @@ namespace utility::vulkan::defaults
 		pipelineColorBlendStateCreateInfo.sType			  = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 		pipelineColorBlendStateCreateInfo.pNext			  = NULL;
 		pipelineColorBlendStateCreateInfo.attachmentCount = attachmentCount;
-		pipelineColorBlendStateCreateInfo.pAttachments	= pAttachments;
+		pipelineColorBlendStateCreateInfo.pAttachments	  = pAttachments;
 		return pipelineColorBlendStateCreateInfo;
 	}
 
@@ -437,16 +441,16 @@ namespace utility::vulkan::defaults
 	{
 		VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo = {};
 		pipelineDepthStencilStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
-		pipelineDepthStencilStateCreateInfo.depthTestEnable  = depthTestEnable;
+		pipelineDepthStencilStateCreateInfo.depthTestEnable	 = depthTestEnable;
 		pipelineDepthStencilStateCreateInfo.depthWriteEnable = depthWriteEnable;
-		pipelineDepthStencilStateCreateInfo.depthCompareOp   = depthCompareOp;
+		pipelineDepthStencilStateCreateInfo.depthCompareOp	 = depthCompareOp;
 		pipelineDepthStencilStateCreateInfo.front			 = pipelineDepthStencilStateCreateInfo.back;
-		pipelineDepthStencilStateCreateInfo.back.compareOp   = VK_COMPARE_OP_ALWAYS;
+		pipelineDepthStencilStateCreateInfo.back.compareOp	 = VK_COMPARE_OP_ALWAYS;
 		return pipelineDepthStencilStateCreateInfo;
 	}
 
-	inline VkPipelineViewportStateCreateInfo pipeline_viewportstate_ci(uint32_t viewportCount, uint32_t scissorCount,
-																	   VkPipelineViewportStateCreateFlags flags)
+	inline VkPipelineViewportStateCreateInfo
+	pipeline_viewportstate_ci(uint32_t viewportCount, uint32_t scissorCount, VkPipelineViewportStateCreateFlags flags)
 	{
 		VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo = {};
 		pipelineViewportStateCreateInfo.sType		  = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -471,7 +475,7 @@ namespace utility::vulkan::defaults
 	{
 		VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo = {};
 		pipelineDynamicStateCreateInfo.sType			 = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
-		pipelineDynamicStateCreateInfo.pDynamicStates	= pDynamicStates;
+		pipelineDynamicStateCreateInfo.pDynamicStates	 = pDynamicStates;
 		pipelineDynamicStateCreateInfo.dynamicStateCount = dynamicStateCount;
 		return pipelineDynamicStateCreateInfo;
 	}
@@ -484,8 +488,8 @@ namespace utility::vulkan::defaults
 		return pipelineTessellationStateCreateInfo;
 	}
 
-	inline VkGraphicsPipelineCreateInfo pipeline_ci(VkPipelineLayout layout, VkRenderPass renderPass,
-													VkPipelineCreateFlags flags)
+	inline VkGraphicsPipelineCreateInfo
+	pipeline_ci(VkPipelineLayout layout, VkRenderPass renderPass, VkPipelineCreateFlags flags)
 	{
 		VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 		pipelineCreateInfo.sType						= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -513,7 +517,7 @@ namespace utility::vulkan::defaults
 		pushConstantRange.size				  = size;
 		return pushConstantRange;
 	}
-} // namespace utility::vulkan::defaults
+}	 // namespace utility::vulkan::defaults
 
 namespace utility::vulkan
 {
@@ -540,14 +544,17 @@ namespace utility::vulkan
 		return true;
 	}
 
-	template<typename T>
+	template <typename T>
 	inline bool check(const vk::ResultValue<T>& value)
 	{
 		return check(value.result);
 	}
 
-	inline vk::CommandBuffer create_cmd_buffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
-											   bool begin, uint32_t bufferCount)
+	inline vk::CommandBuffer create_cmd_buffer(vk::Device device,
+											   vk::CommandPool pool,
+											   vk::CommandBufferLevel level,
+											   bool begin,
+											   uint32_t bufferCount)
 	{
 		vk::CommandBuffer cmdBuffer;
 
@@ -569,7 +576,8 @@ namespace utility::vulkan
 	}
 
 	inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice,
-											std::vector<vk::Format> depthFormats, vk::Format* depthFormat)
+											std::vector<vk::Format> depthFormats,
+											vk::Format* depthFormat)
 	{
 		for(auto format : depthFormats)
 		{
@@ -590,8 +598,10 @@ namespace utility::vulkan
 	{
 		// Since all depth formats may be optional, we need to find a suitable depth format to use
 		// Start with the highest precision packed format
-		std::vector<vk::Format> depthFormats = {vk::Format::eD32SfloatS8Uint, vk::Format::eD32Sfloat,
-												vk::Format::eD24UnormS8Uint, vk::Format::eD16UnormS8Uint,
+		std::vector<vk::Format> depthFormats = {vk::Format::eD32SfloatS8Uint,
+												vk::Format::eD32Sfloat,
+												vk::Format::eD24UnormS8Uint,
+												vk::Format::eD16UnormS8Uint,
 												vk::Format::eD16Unorm};
 
 		return supported_depthformat(physicalDevice, depthFormats, depthFormat);
@@ -601,16 +611,17 @@ namespace utility::vulkan
 	// an image and put it into an active command buffer
 	// See chapter 11.4 "Image Layout" for details
 
-	inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout)
+	inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageLayout,
+														   vk::ImageLayout newImageLayout)
 	{
-		vk::ImageMemoryBarrier imageMemoryBarrier{};
+		vk::ImageMemoryBarrier imageMemoryBarrier {};
 		imageMemoryBarrier.oldLayout = oldImageLayout;
 		imageMemoryBarrier.newLayout = newImageLayout;
 
 		// Source layouts (old)
 		// Source access mask controls actions that have to be finished on the old layout
 		// before it will be transitioned to the new layout
-		switch (oldImageLayout)
+		switch(oldImageLayout)
 		{
 		case vk::ImageLayout::eGeneral:
 		case vk::ImageLayout::eUndefined:
@@ -656,12 +667,13 @@ namespace utility::vulkan
 			// Make sure any shader reads from the image have been finished
 			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eShaderRead;
 			break;
-		default: throw std::runtime_error("unhandled format");
+		default:
+			throw std::runtime_error("unhandled format");
 		}
 
 		// Target layouts (new)
 		// Destination access mask controls the dependency for the new image layout
-		switch (newImageLayout)
+		switch(newImageLayout)
 		{
 		case vk::ImageLayout::eTransferDstOptimal:
 			// Image will be used as a transfer destination
@@ -687,52 +699,66 @@ namespace utility::vulkan
 			// Image layout will be used as a depth/stencil attachment
 			// Make sure any writes to depth/stencil buffer have been finished
 			imageMemoryBarrier.dstAccessMask =
-				imageMemoryBarrier.dstAccessMask | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
+			  imageMemoryBarrier.dstAccessMask | vk::AccessFlagBits::eDepthStencilAttachmentWrite;
 			break;
 
 		case vk::ImageLayout::eShaderReadOnlyOptimal:
 			// Image will be read in a shader (sampler, input attachment)
 			// Make sure any writes to the image have been finished
-			if (imageMemoryBarrier.srcAccessMask == (vk::AccessFlagBits)0)
+			if(imageMemoryBarrier.srcAccessMask == (vk::AccessFlagBits)0)
 			{
 				imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
 			}
 			imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
 			break;
-		default: throw std::runtime_error("unhandled format");
+		default:
+			throw std::runtime_error("unhandled format");
 		}
 
 		return imageMemoryBarrier;
 	}
 
-	inline void set_image_layout(vk::CommandBuffer cmdbuffer, vk::Image image,
-								 vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout,
-								 vk::ImageSubresourceRange subresourceRange, vk::PipelineStageFlags srcStageMask,
+	inline void set_image_layout(vk::CommandBuffer cmdbuffer,
+								 vk::Image image,
+								 vk::ImageLayout oldImageLayout,
+								 vk::ImageLayout newImageLayout,
+								 vk::ImageSubresourceRange subresourceRange,
+								 vk::PipelineStageFlags srcStageMask,
 								 vk::PipelineStageFlags dstStageMask)
 	{
 		// Create an image barrier object
 		vk::ImageMemoryBarrier imageMemoryBarrier = image_memory_barrier_for(oldImageLayout, newImageLayout);
 		imageMemoryBarrier.setPNext(nullptr);
 		imageMemoryBarrier.image			= image;
-		imageMemoryBarrier.subresourceRange = subresourceRange;		
+		imageMemoryBarrier.subresourceRange = subresourceRange;
 
 		// Put barrier inside setup command buffer
-		cmdbuffer.pipelineBarrier(srcStageMask, dstStageMask, (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1,
-								  &imageMemoryBarrier);
+		cmdbuffer.pipelineBarrier(
+		  srcStageMask, dstStageMask, (vk::DependencyFlagBits)0, 0, nullptr, 0, nullptr, 1, &imageMemoryBarrier);
 	}
 
-	inline void set_image_layout(vk::CommandBuffer& cmdbuffer, vk::Image& image, const vk::ImageLayout& oldImageLayout,
-								 const vk::ImageLayout& newImageLayout, vk::ImageSubresourceRange& subresourceRange)
+	inline void set_image_layout(vk::CommandBuffer& cmdbuffer,
+								 vk::Image& image,
+								 const vk::ImageLayout& oldImageLayout,
+								 const vk::ImageLayout& newImageLayout,
+								 vk::ImageSubresourceRange& subresourceRange)
 	{
-		set_image_layout(cmdbuffer, image, oldImageLayout, newImageLayout,
-						 subresourceRange, vk::PipelineStageFlagBits::eAllCommands,
+		set_image_layout(cmdbuffer,
+						 image,
+						 oldImageLayout,
+						 newImageLayout,
+						 subresourceRange,
+						 vk::PipelineStageFlagBits::eAllCommands,
 						 vk::PipelineStageFlagBits::eAllCommands);
 		return;
 	}
 
 
-	inline vk::CommandBuffer CreateCommandBuffer(vk::Device device, vk::CommandPool pool, vk::CommandBufferLevel level,
-												 bool begin, uint32_t bufferCount)
+	inline vk::CommandBuffer CreateCommandBuffer(vk::Device device,
+												 vk::CommandPool pool,
+												 vk::CommandBufferLevel level,
+												 bool begin,
+												 uint32_t bufferCount)
 	{
 		vk::CommandBuffer cmdBuffer;
 
@@ -760,8 +786,12 @@ namespace utility::vulkan
 	inline bool has_depth(vk::Format format)
 	{
 		static std::vector<vk::Format> formats = {
-			vk::Format::eD16Unorm,		 vk::Format::eX8D24UnormPack32, vk::Format::eD32Sfloat,
-			vk::Format::eD16UnormS8Uint, vk::Format::eD24UnormS8Uint,   vk::Format::eD32SfloatS8Uint,
+		  vk::Format::eD16Unorm,
+		  vk::Format::eX8D24UnormPack32,
+		  vk::Format::eD32Sfloat,
+		  vk::Format::eD16UnormS8Uint,
+		  vk::Format::eD24UnormS8Uint,
+		  vk::Format::eD32SfloatS8Uint,
 		};
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
@@ -772,10 +802,10 @@ namespace utility::vulkan
 	inline bool has_stencil(vk::Format format)
 	{
 		static std::vector<vk::Format> formats = {
-			vk::Format::eS8Uint,
-			vk::Format::eD16UnormS8Uint,
-			vk::Format::eD24UnormS8Uint,
-			vk::Format::eD32SfloatS8Uint,
+		  vk::Format::eS8Uint,
+		  vk::Format::eD16UnormS8Uint,
+		  vk::Format::eD24UnormS8Uint,
+		  vk::Format::eD32SfloatS8Uint,
 		};
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
@@ -783,4 +813,4 @@ namespace utility::vulkan
 	 * @brief Returns true if the attachment is a depth and/or stencil attachment
 	 */
 	inline bool is_depthstencil(vk::Format format) { return (has_depth(format) && has_stencil(format)); }
-} // namespace utility::vulkan
+}	 // namespace utility::vulkan

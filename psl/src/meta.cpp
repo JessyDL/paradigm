@@ -3,7 +3,7 @@
 
 using namespace psl;
 
-const UID UID::invalid_uid = PUID{0};
+const UID UID::invalid_uid = PUID {0};
 
 UID::UID(const psl::string8_t& key) : GUID(from_string(key).GUID) {}
 
@@ -18,11 +18,25 @@ const psl::string8_t UID::to_string() const
 {
 	psl::string8_t str;
 	str.resize(37);
-	snprintf(str.data(),str.size(),
-		"%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x", 
-		GUID[0], GUID[1], GUID[2], GUID[3], GUID[4], GUID[5], GUID[6], GUID[7],
-		GUID[8], GUID[9], GUID[10], GUID[11], GUID[12], GUID[13], GUID[14], GUID[15]
-	);
+	snprintf(str.data(),
+			 str.size(),
+			 "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
+			 GUID[0],
+			 GUID[1],
+			 GUID[2],
+			 GUID[3],
+			 GUID[4],
+			 GUID[5],
+			 GUID[6],
+			 GUID[7],
+			 GUID[8],
+			 GUID[9],
+			 GUID[10],
+			 GUID[11],
+			 GUID[12],
+			 GUID[13],
+			 GUID[14],
+			 GUID[15]);
 	str.resize(36);
 	return str;
 }
@@ -32,7 +46,7 @@ UID UID::generate()
 	static std::random_device rd;
 	static std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
-	PUID res{0};
+	PUID res {0};
 	uint64_t* my = reinterpret_cast<uint64_t*>(res.data());
 
 	my[0] = dist(rd);

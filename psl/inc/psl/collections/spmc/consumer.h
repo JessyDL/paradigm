@@ -1,9 +1,9 @@
 #pragma once
 #include "psl/collections/ring_array.h"
+#include "psl/math/math.hpp"
 #include "psl/view_ptr.h"
 #include <atomic>
 #include <optional>
-#include "psl/math/math.hpp"
 
 namespace psl::spmc
 {
@@ -19,10 +19,10 @@ namespace psl::spmc
 	class consumer final
 	{
 		friend class producer<T>;
-		consumer(psl::view_ptr<producer<T>> producer) : m_Producer(producer){};
+		consumer(psl::view_ptr<producer<T>> producer) : m_Producer(producer) {};
 
 	  public:
-		consumer()  = delete;
+		consumer()	= delete;
 		~consumer() = default;
 
 		consumer(const consumer& other)		= default;
@@ -51,4 +51,4 @@ namespace psl::spmc
 		psl::view_ptr<producer<T>> m_Producer;
 	};
 
-} // namespace psl::spmc
+}	 // namespace psl::spmc

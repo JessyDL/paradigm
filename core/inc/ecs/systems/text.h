@@ -1,16 +1,16 @@
 #pragma once
-#include "psl/ecs/entity.h"
-#include "psl/ecs/selectors.h"
 #include "ecs/components/text.h"
-#include "resource/handle.h"
-#include "fwd/gfx/texture.h"
-#include "fwd/gfx/context.h"
 #include "fwd/gfx/buffer.h"
+#include "fwd/gfx/bundle.h"
+#include "fwd/gfx/context.h"
 #include "fwd/gfx/geometry.h"
 #include "fwd/gfx/pipeline_cache.h"
-#include "fwd/gfx/bundle.h"
+#include "fwd/gfx/texture.h"
 #include "psl/array.h"
+#include "psl/ecs/entity.h"
+#include "psl/ecs/selectors.h"
 #include "psl/math/vec.h"
+#include "resource/handle.h"
 
 namespace core::data
 {
@@ -23,13 +23,13 @@ namespace psl::ecs
 
 	template <typename... Ts>
 	class pack;
-} // namespace psl::ecs
+}	 // namespace psl::ecs
 
 namespace core::ecs::components
 {
 	struct renderable;
 	struct dynamic_tag;
-}
+}	 // namespace core::ecs::components
 namespace core::ecs::systems
 {
 	class text
@@ -42,13 +42,15 @@ namespace core::ecs::systems
 		};
 
 	  public:
-		text(psl::ecs::state& state, core::resource::cache& cache, core::resource::handle<core::gfx::context> context,
+		text(psl::ecs::state& state,
+			 core::resource::cache& cache,
+			 core::resource::handle<core::gfx::context> context,
 			 core::resource::handle<core::gfx::buffer> vertexBuffer,
 			 core::resource::handle<core::gfx::buffer> indexBuffer,
 			 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 			 core::resource::handle<core::gfx::buffer> materialBuffer,
-			core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
-			core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer);
+			 core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
+			 core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer);
 		~text() = default;
 
 		text(const text& other)		= delete;
@@ -58,18 +60,22 @@ namespace core::ecs::systems
 
 
 	  private:
-		void update_dynamic(
-			psl::ecs::info& info,
-			psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, core::ecs::components::text,
-						   core::ecs::components::renderable, psl::ecs::filter<core::ecs::components::dynamic_tag>>
-				pack);
-		void add(psl::ecs::info& info, psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, core::ecs::components::text,
-													  psl::ecs::on_add<core::ecs::components::text>>
-										   pack);
+		void update_dynamic(psl::ecs::info& info,
+							psl::ecs::pack<psl::ecs::partial,
+										   psl::ecs::entity,
+										   core::ecs::components::text,
+										   core::ecs::components::renderable,
+										   psl::ecs::filter<core::ecs::components::dynamic_tag>> pack);
+		void add(psl::ecs::info& info,
+				 psl::ecs::pack<psl::ecs::partial,
+								psl::ecs::entity,
+								core::ecs::components::text,
+								psl::ecs::on_add<core::ecs::components::text>> pack);
 		void remove(psl::ecs::info& info,
-					psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, core::ecs::components::text,
-								   psl::ecs::on_remove<core::ecs::components::text>>
-						pack);
+					psl::ecs::pack<psl::ecs::partial,
+								   psl::ecs::entity,
+								   core::ecs::components::text,
+								   psl::ecs::on_remove<core::ecs::components::text>> pack);
 
 		core::resource::handle<core::data::geometry> create_text(psl::string_view text);
 
@@ -81,4 +87,4 @@ namespace core::ecs::systems
 		core::resource::handle<core::gfx::bundle> m_Bundle;
 		core::resource::cache& m_Cache;
 	};
-} // namespace core::ecs::systems
+}	 // namespace core::ecs::systems

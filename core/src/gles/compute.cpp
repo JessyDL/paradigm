@@ -1,15 +1,15 @@
 #include "gles/compute.h"
-#include "resource/resource.hpp"
-#include "gles/igles.h"
-#include "meta/shader.h"
-#include "gles/shader.h"
-#include "gles/program.h"
-#include "gles/conversion.h"
-#include "data/material.h"
 #include "data/buffer.h"
-#include "gles/program_cache.h"
-#include "gles/texture.h"
+#include "data/material.h"
 #include "gles/buffer.h"
+#include "gles/conversion.h"
+#include "gles/igles.h"
+#include "gles/program.h"
+#include "gles/program_cache.h"
+#include "gles/shader.h"
+#include "gles/texture.h"
+#include "meta/shader.h"
+#include "resource/resource.hpp"
 
 #include "gfx/buffer.h"
 
@@ -18,10 +18,12 @@ using namespace core::resource;
 using namespace psl::meta;
 using namespace core::gfx::conversion;
 
-compute::compute(cache& cache, const metadata& metaData, file* metaFile,
+compute::compute(cache& cache,
+				 const metadata& metaData,
+				 file* metaFile,
 				 core::resource::handle<core::data::material> data,
-				 core::resource::handle<core::igles::program_cache> program_cache)
-	: m_Meta(metaFile)
+				 core::resource::handle<core::igles::program_cache> program_cache) :
+	m_Meta(metaFile)
 {
 	assert(data->stages().size() == 1 && data->stages()[0].shader_stage() == core::gfx::shader_stage::compute);
 	auto& stage		   = data->stages()[0];
@@ -29,7 +31,8 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 	if(!shader_handle)
 	{
 		core::igles::log->warn("igles::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-							   utility::to_string(metaData.uid), utility::to_string(stage.shader()));
+							   utility::to_string(metaData.uid),
+							   utility::to_string(stage.shader()));
 
 
 		core::igles::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
@@ -49,12 +52,12 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 	for(const auto& binding : stage.bindings())
 	{
 		auto qualifier =
-			std::find_if(std::begin(shader_handle->meta()->descriptors()),
-						 std::end(shader_handle->meta()->descriptors()),
-						 [location = binding.binding_slot()](const core::meta::shader::descriptor& descriptor) {
-							 return descriptor.binding() == location;
-						 })
-				->qualifier();
+		  std::find_if(std::begin(shader_handle->meta()->descriptors()),
+					   std::end(shader_handle->meta()->descriptors()),
+					   [location = binding.binding_slot()](const core::meta::shader::descriptor& descriptor) {
+						   return descriptor.binding() == location;
+					   })
+			->qualifier();
 		switch(binding.descriptor())
 		{
 		case core::gfx::binding_type::storage_image:
@@ -63,7 +66,7 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 			auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
 			if(auto texture_handle = cache.find<core::igles::texture>(binding.texture()); texture_handle)
 			{
-				switch (qualifier)
+				switch(qualifier)
 				{
 				case core::meta::shader::descriptor::dependency::in:
 					m_InputTextures.push_back(std::make_pair(binding_slot, texture_handle));
@@ -80,11 +83,12 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 			else
 			{
 				core::igles::log->error(
-					"igles::compute [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
-					"resource "
-					"cache.",
-					utility::to_string(metaData.uid), utility::to_string(binding.texture()),
-					utility::to_string(stage.shader()));
+				  "igles::compute [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
+				  "resource "
+				  "cache.",
+				  utility::to_string(metaData.uid),
+				  utility::to_string(binding.texture()),
+				  utility::to_string(stage.shader()));
 				return;
 			}
 		}
@@ -92,10 +96,11 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 		case core::gfx::binding_type::uniform_buffer:
 		case core::gfx::binding_type::storage_buffer:
 		{
-			auto descriptor = std::find_if(std::begin(meta->descriptors()), std::end(meta->descriptors()),
-				[&binding](const core::meta::shader::descriptor& descriptor) {
-					return descriptor.binding() == binding.binding_slot();
-				});
+			auto descriptor = std::find_if(std::begin(meta->descriptors()),
+										   std::end(meta->descriptors()),
+										   [&binding](const core::meta::shader::descriptor& descriptor) {
+											   return descriptor.binding() == binding.binding_slot();
+										   });
 
 			if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
 			   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
@@ -104,50 +109,58 @@ compute::compute(cache& cache, const metadata& metaData, file* metaFile,
 				glUniformBlockBinding(m_Program->id(), binding_slot, binding.binding_slot());
 
 				auto usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer)
-								 ? core::gfx::memory_usage::uniform_buffer
-								 : core::gfx::memory_usage::storage_buffer;
+							   ? core::gfx::memory_usage::uniform_buffer
+							   : core::gfx::memory_usage::storage_buffer;
 				if(buffer_handle->buffer->data().usage() & usage)
 				{
-
 					switch(qualifier)
 					{
 					case core::meta::shader::descriptor::dependency::in:
-						m_InputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource<gfx::graphics_backend::gles>()));
+						m_InputBuffers.push_back(std::make_pair(
+						  binding.binding_slot(), buffer_handle->buffer->resource<gfx::graphics_backend::gles>()));
 						break;
 					case core::meta::shader::descriptor::dependency::out:
-						m_OutputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource< gfx::graphics_backend::gles>()));
+						m_OutputBuffers.push_back(std::make_pair(
+						  binding.binding_slot(), buffer_handle->buffer->resource<gfx::graphics_backend::gles>()));
 						break;
 					case core::meta::shader::descriptor::dependency::inout:
-						m_InputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource< gfx::graphics_backend::gles>()));
-						m_OutputBuffers.push_back(std::make_pair(binding.binding_slot(), buffer_handle->buffer->resource< gfx::graphics_backend::gles>()));
+						m_InputBuffers.push_back(std::make_pair(
+						  binding.binding_slot(), buffer_handle->buffer->resource<gfx::graphics_backend::gles>()));
+						m_OutputBuffers.push_back(std::make_pair(
+						  binding.binding_slot(), buffer_handle->buffer->resource<gfx::graphics_backend::gles>()));
 						break;
 					}
 				}
 				else
 				{
 					core::igles::log->error(
-						"igles::compute [{0}] declares resource of the type [{1}], but we detected a resource of "
-						"the type [{2}] instead in shader [{3}]",
-						utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
-						vk::to_string(buffer_handle->data()->usage())*/
-						"", "", utility::to_string(stage.shader()));
+					  "igles::compute [{0}] declares resource of the type [{1}], but we detected a resource of "
+					  "the type [{2}] instead in shader [{3}]",
+					  utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
+					  vk::to_string(buffer_handle->data()->usage())*/
+					  "",
+					  "",
+					  utility::to_string(stage.shader()));
 					return;
 				}
 			}
 			else
 			{
 				core::igles::log->error(
-					"igles::compute [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
-					"resource "
-					"cache.",
-					utility::to_string(metaData.uid), utility::to_string(binding.buffer()),
-					utility::to_string(stage.shader()));
+				  "igles::compute [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
+				  "resource "
+				  "cache.",
+				  utility::to_string(metaData.uid),
+				  utility::to_string(binding.buffer()),
+				  utility::to_string(stage.shader()));
 				return;
 			}
 		}
 		break;
 
-		default: throw new std::runtime_error("This should not be reached"); return;
+		default:
+			throw new std::runtime_error("This should not be reached");
+			return;
 		}
 		++index;
 	}
@@ -183,14 +196,18 @@ void compute::dispatch(unsigned int num_groups_x, unsigned int num_groups_y, uns
 psl::array<core::resource::handle<core::igles::texture>> compute::textures() const noexcept
 {
 	psl::array<core::resource::handle<core::igles::texture>> out;
-	std::transform(std::begin(m_OutputTextures), std::end(m_OutputTextures), std::back_inserter(out),
+	std::transform(std::begin(m_OutputTextures),
+				   std::end(m_OutputTextures),
+				   std::back_inserter(out),
 				   [](const auto& pair) { return pair.second; });
 	return out;
 }
 psl::array<core::resource::handle<core::igles::buffer>> compute::buffers() const noexcept
 {
 	psl::array<core::resource::handle<core::igles::buffer>> out;
-	std::transform(std::begin(m_OutputBuffers), std::end(m_OutputBuffers), std::back_inserter(out),
+	std::transform(std::begin(m_OutputBuffers),
+				   std::end(m_OutputBuffers),
+				   std::back_inserter(out),
 				   [](const auto& pair) { return pair.second; });
 	return out;
 }

@@ -1,15 +1,15 @@
 #pragma once
+#include "../details/staged_sparse_array.h"
+#include "../entity.h"
 #include "component_key.h"
 #include "psl/array_view.h"
-#include "psl/static_array.h"
-#include "../entity.h"
-#include "psl/sparse_array.h"
-#include "psl/memory/sparse_array.h"
-#include "psl/sparse_indice_array.h"
-#include <numeric>
 #include "psl/assertions.h"
-#include "../details/staged_sparse_array.h"
+#include "psl/memory/sparse_array.h"
+#include "psl/sparse_array.h"
+#include "psl/sparse_indice_array.h"
+#include "psl/static_array.h"
 #include <functional>
+#include <numeric>
 namespace psl
 {
 	template <typename... Ts>
@@ -109,7 +109,7 @@ namespace psl::ecs::details
 	class component_info_typed final : public component_info
 	{
 	  public:
-		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)){};
+		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)) {};
 		auto& entity_data() noexcept { return m_Entities; };
 
 
@@ -207,16 +207,17 @@ namespace psl::ecs::details
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities, void* data, bool repeat) override
 		{
 			auto count = std::accumulate(
-				std::begin(entities), std::end(entities), size_t{0},
-				[](size_t sum, const std::pair<entity, entity>& r) { return sum + (r.second - r.first); });
+			  std::begin(entities), std::end(entities), size_t {0}, [](size_t sum, const std::pair<entity, entity>& r) {
+				  return sum + (r.second - r.first);
+			  });
 
 			m_Entities.reserve(m_Entities.size(0, 2) + count);
 			T* source = (T*)data;
-			if (data == nullptr)
+			if(data == nullptr)
 			{
-				for (auto range : entities)
+				for(auto range : entities)
 				{
-					for (auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
+					for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
 				}
 			}
 			else if(repeat)
@@ -265,7 +266,7 @@ namespace psl::ecs::details
 	class component_info_typed<T, true> final : public component_info
 	{
 	  public:
-		component_info_typed() : component_info(details::key_for<T>(), 0){};
+		component_info_typed() : component_info(details::key_for<T>(), 0) {};
 
 
 		void* data() noexcept override { return nullptr; }
@@ -301,8 +302,9 @@ namespace psl::ecs::details
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities, void* data, bool repeat) override
 		{
 			auto count = std::accumulate(
-				std::begin(entities), std::end(entities), size_t{0},
-				[](size_t sum, const std::pair<entity, entity>& r) { return sum + (r.second - r.first); });
+			  std::begin(entities), std::end(entities), size_t {0}, [](size_t sum, const std::pair<entity, entity>& r) {
+				  return sum + (r.second - r.first);
+			  });
 
 			m_Entities.reserve(m_Entities.size(0, 2) + count);
 			for(auto range : entities)
@@ -332,7 +334,7 @@ namespace psl::ecs::details
 	  private:
 		details::staged_sparse_array<void, entity> m_Entities;
 	};
-} // namespace psl::ecs::details
+}	 // namespace psl::ecs::details
 
 namespace std
 {
@@ -345,4 +347,4 @@ namespace std
 			return (size_t)ci.id();
 		}
 	};
-} // namespace std
+}	 // namespace std

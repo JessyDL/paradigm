@@ -1,16 +1,16 @@
 ﻿#pragma once
-#include "vk/ivk.h"
-#include "resource/resource.hpp"
+#include "fwd/gfx/context.h"
 #include "psl/memory/range.h"
 #include "psl/memory/segment.h"
+#include "resource/resource.hpp"
+#include "vk/ivk.h"
 #include <vector>
-#include "fwd/gfx/context.h"
 
 namespace core::data
 {
 	class geometry;
 	class material;
-} // namespace core::data
+}	 // namespace core::data
 
 namespace core::ivk
 {
@@ -33,8 +33,11 @@ namespace core::ivk
 		/// \param[in] data the geometry source data for this instance.
 		/// \param[in] geometryBuffer the buffer that the mesh data will be uploaded to.
 		/// \param[in] indicesBuffer the buffer that the indices data will be uploaded to.
-		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 core::resource::handle<core::ivk::context> context, core::resource::handle<core::data::geometry> data,
+		geometry(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 core::resource::handle<core::ivk::context> context,
+				 core::resource::handle<core::data::geometry> data,
 				 core::resource::handle<core::ivk::buffer> geometryBuffer,
 				 core::resource::handle<core::ivk::buffer> indicesBuffer);
 		~geometry();
@@ -66,7 +69,7 @@ namespace core::ivk
 		size_t indices() const noexcept;
 
 	  private:
-		  void clear();
+		void clear();
 		core::resource::handle<core::ivk::context> m_Context;
 		core::resource::handle<core::data::geometry> m_Data;
 		core::resource::handle<core::ivk::buffer> m_GeometryBuffer;
@@ -75,7 +78,7 @@ namespace core::ivk
 		memory::range m_IndicesSubRange;
 		std::vector<binding> m_Bindings;
 		const psl::UID& m_UID;
-		size_t m_Vertices{ 0 };
-		size_t m_Triangles{ 0 };
+		size_t m_Vertices {0};
+		size_t m_Triangles {0};
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk

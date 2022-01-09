@@ -22,17 +22,17 @@ namespace core::gfx
 	class sampler;
 
 #ifdef PE_VULKAN
-	template<>
+	template <>
 	struct backend_type<sampler, graphics_backend::vulkan>
 	{
 		using type = core::ivk::sampler;
 	};
 #endif
 #ifdef PE_GLES
-	template<>
+	template <>
 	struct backend_type<sampler, graphics_backend::gles>
 	{
 		using type = core::igles::sampler;
 	};
 #endif
-} // namespace core::gfx
+}	 // namespace core::gfx

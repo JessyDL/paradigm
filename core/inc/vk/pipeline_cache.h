@@ -8,7 +8,7 @@ namespace core::ivk
 	class pipeline;
 	class framebuffer;
 	class swapchain;
-} // namespace core::ivk
+}	 // namespace core::ivk
 
 namespace core::data
 {
@@ -42,14 +42,18 @@ namespace core::ivk
 		{
 			return renderPass.operator VkRenderPass() == other.renderPass.operator VkRenderPass() &&
 				   descriptors.size() == other.descriptors.size() &&
-				   std::equal(std::begin(descriptors), std::end(descriptors), std::begin(other.descriptors),
+				   std::equal(std::begin(descriptors),
+							  std::end(descriptors),
+							  std::begin(other.descriptors),
 							  std::end(other.descriptors));
 		}
 		bool operator!=(const pipeline_key& other) const noexcept
 		{
 			return renderPass.operator VkRenderPass() != other.renderPass.operator VkRenderPass() ||
 				   descriptors.size() != other.descriptors.size() ||
-				   !std::equal(std::begin(descriptors), std::end(descriptors), std::begin(other.descriptors),
+				   !std::equal(std::begin(descriptors),
+							   std::end(descriptors),
+							   std::begin(other.descriptors),
 							   std::end(other.descriptors));
 		}
 
@@ -59,7 +63,7 @@ namespace core::ivk
 		const vk::RenderPass renderPass;
 		psl::UID uid;
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk
 
 namespace std
 {
@@ -68,7 +72,7 @@ namespace std
 	{
 		std::size_t operator()(core::ivk::pipeline_key const& s) const noexcept
 		{
-			std::size_t seed = std::hash<psl::UID>{}(s.uid);
+			std::size_t seed = std::hash<psl::UID> {}(s.uid);
 			for(auto& i : s.descriptors)
 			{
 				seed ^= (uint64_t)i.first + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -78,7 +82,7 @@ namespace std
 			return seed;
 		}
 	};
-} // namespace std
+}	 // namespace std
 
 namespace core::ivk
 {
@@ -90,7 +94,8 @@ namespace core::ivk
 	class pipeline_cache
 	{
 	  public:
-		pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
+		pipeline_cache(core::resource::cache& cache,
+					   const core::resource::metadata& metaData,
 					   psl::meta::file* metaFile,
 					   core::resource::handle<core::ivk::context> context);
 		~pipeline_cache();
@@ -125,4 +130,4 @@ namespace core::ivk
 
 		std::unordered_map<pipeline_key, core::resource::handle<core::ivk::pipeline>> m_Pipelines;
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk

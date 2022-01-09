@@ -93,31 +93,31 @@ namespace utility::geometry
 	/// \param[in] left the extent in the +X axis.
 	/// \param[in] right the extent in the -X axis.
 	/// \returns the handle to the generated geometry data.
-	static core::resource::handle<core::data::geometry> create_quad(core::resource::cache& cache, float top,
-																	float bottom, float left, float right)
+	static core::resource::handle<core::data::geometry>
+	create_quad(core::resource::cache& cache, float top, float bottom, float left, float right)
 	{
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		auto& vertices = vertStream.as_vec3().value().get();
 		auto& normals  = normStream.as_vec3().value().get();
 		auto& uvs	   = uvStream.as_vec2().value().get();
 
-		vertices.emplace_back(psl::vec3{right, top, 0.0f});
-		vertices.emplace_back(psl::vec3{left, top, 0.0f});
-		vertices.emplace_back(psl::vec3{left, bottom, 0.0f});
-		vertices.emplace_back(psl::vec3{right, bottom, 0.0f});
+		vertices.emplace_back(psl::vec3 {right, top, 0.0f});
+		vertices.emplace_back(psl::vec3 {left, top, 0.0f});
+		vertices.emplace_back(psl::vec3 {left, bottom, 0.0f});
+		vertices.emplace_back(psl::vec3 {right, bottom, 0.0f});
 
-		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
-		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
-		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
-		normals.emplace_back(psl::vec3{1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
+		normals.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
 
-		uvs.emplace_back(psl::vec2{1.0f, 1.0f});
-		uvs.emplace_back(psl::vec2{0.0f, 1.0f});
-		uvs.emplace_back(psl::vec2{0.0f, 0.0f});
-		uvs.emplace_back(psl::vec2{1.0f, 0.0f});
+		uvs.emplace_back(psl::vec2 {1.0f, 1.0f});
+		uvs.emplace_back(psl::vec2 {0.0f, 1.0f});
+		uvs.emplace_back(psl::vec2 {0.0f, 0.0f});
+		uvs.emplace_back(psl::vec2 {1.0f, 0.0f});
 
 		auto boxGeomData = cache.create<core::data::geometry>();
 
@@ -125,7 +125,7 @@ namespace utility::geometry
 		boxGeomData->vertices(core::data::geometry::constants::NORMAL, normStream);
 		boxGeomData->vertices(core::data::geometry::constants::TEX, uvStream);
 
-		boxGeomData->indices(std::vector<uint32_t>{0, 1, 2, 2, 3, 0});
+		boxGeomData->indices(std::vector<uint32_t> {0, 1, 2, 2, 3, 0});
 
 		generate_tangents(boxGeomData);
 
@@ -149,9 +149,9 @@ namespace utility::geometry
 																	 psl::ivec2 subdivisions = psl::ivec2(1, 1),
 																	 psl::vec2 uvScale		 = psl::vec2::one)
 	{
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		auto& vertices = vertStream.as_vec3().value().get();
 		auto& normals  = normStream.as_vec3().value().get();
@@ -166,7 +166,8 @@ namespace utility::geometry
 		{
 			for(auto x = 0; x <= subdivisions[0]; x++, i++)
 			{
-				vertices[i] = psl::vec3(((float)x / ((float)subdivisions[0])) * size[0] + offset[0], 0,
+				vertices[i] = psl::vec3(((float)x / ((float)subdivisions[0])) * size[0] + offset[0],
+										0,
 										((float)y / ((float)subdivisions[1])) * size[1] + offset[1]);
 				normals[i]	= psl::vec3::up;
 				uvs[i]		= psl::vec2(((float)x / ((float)subdivisions[0])) * uvScale[0],
@@ -200,15 +201,15 @@ namespace utility::geometry
 		return boxGeomData;
 	}
 
-	static core::resource::handle<core::data::geometry> create_line(core::resource::cache& cache, psl::vec3 pos1,
-																	psl::vec3 pos2)
+	static core::resource::handle<core::data::geometry>
+	create_line(core::resource::cache& cache, psl::vec3 pos1, psl::vec3 pos2)
 	{
-		psl::static_array<psl::vec3, 2> vertices{pos1, pos2};
-		psl::static_array<core::data::geometry::index_size_t, 2> indices{0, 1};
+		psl::static_array<psl::vec3, 2> vertices {pos1, pos2};
+		psl::static_array<core::data::geometry::index_size_t, 2> indices {0, 1};
 
 		auto geomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
+		core::stream vertStream {core::stream::type::vec3};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
@@ -231,22 +232,22 @@ namespace utility::geometry
 		psl::vec3 p1 = psl::vec3(length, -width, height);
 		psl::vec3 p2 = psl::vec3(length, -width, -height);
 		psl::vec3 p3 = psl::vec3(-length, -width, -height);
-		psl::static_array<psl::vec3, 4> vertices{p0, p1, p2, p3};
+		psl::static_array<psl::vec3, 4> vertices {p0, p1, p2, p3};
 
 		psl::vec2 _00(0.f, 0.f);
 		psl::vec2 _10(1.f, 0.f);
 		psl::vec2 _01(0.f, 1.f);
 		psl::vec2 _11(1.f, 1.f);
 
-		psl::static_array<psl::vec2, 4> uvs{_11, _01, _00, _10};
+		psl::static_array<psl::vec2, 4> uvs {_11, _01, _00, _10};
 
 
-		psl::static_array<core::data::geometry::index_size_t, 8> indices{0, 1, 1, 2, 2, 3, 3, 0};
+		psl::static_array<core::data::geometry::index_size_t, 8> indices {0, 1, 1, 2, 2, 3, 3, 0};
 
 		auto geomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
@@ -277,8 +278,15 @@ namespace utility::geometry
 		psl::vec3 p6 = psl::vec3(length, width, -height);
 		psl::vec3 p7 = psl::vec3(-length, width, -height);
 
-		std::vector<psl::vec3> vertices{
-			p0, p1, p2, p3, p4, p5, p6, p7,
+		std::vector<psl::vec3> vertices {
+		  p0,
+		  p1,
+		  p2,
+		  p3,
+		  p4,
+		  p5,
+		  p6,
+		  p7,
 		};
 
 		psl::vec2 _00(0.f, 0.f);
@@ -286,19 +294,25 @@ namespace utility::geometry
 		psl::vec2 _01(0.f, 1.f);
 		psl::vec2 _11(1.f, 1.f);
 
-		std::vector<psl::vec2> uvs{
-			_11, _01, _00, _10, // Bottom
-			_11, _01, _00, _10, // Left
+		std::vector<psl::vec2> uvs {
+		  _11,
+		  _01,
+		  _00,
+		  _10,	  // Bottom
+		  _11,
+		  _01,
+		  _00,
+		  _10,	  // Left
 		};
 
-		std::vector<core::data::geometry::index_size_t> indices{0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6,
-																6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7};
+		std::vector<core::data::geometry::index_size_t> indices {0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6,
+																 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7};
 
 
 		auto geomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
@@ -336,22 +350,22 @@ namespace utility::geometry
 		psl::vec3 p6 = psl::vec3(length, width, -height);
 		psl::vec3 p7 = psl::vec3(-length, width, -height);
 
-		std::vector<psl::vec3> vertices{
-			p0, p1, p2, p3, // Bottom
-			p7, p4, p0, p3, // Left
-			p4, p5, p1, p0, // Front
-			p6, p7, p3, p2, // Back
-			p5, p6, p2, p1, // Right
-			p7, p6, p5, p4	// Top
+		std::vector<psl::vec3> vertices {
+		  p0, p1, p2, p3,	 // Bottom
+		  p7, p4, p0, p3,	 // Left
+		  p4, p5, p1, p0,	 // Front
+		  p6, p7, p3, p2,	 // Back
+		  p5, p6, p2, p1,	 // Right
+		  p7, p6, p5, p4	 // Top
 		};
 
-		std::vector<psl::vec3> normals{
-			psl::vec3::down,	psl::vec3::down,	psl::vec3::down,	psl::vec3::down,	// Bottom
-			psl::vec3::right,	psl::vec3::right,	psl::vec3::right,	psl::vec3::right,	// Right
-			psl::vec3::forward, psl::vec3::forward, psl::vec3::forward, psl::vec3::forward, // Front
-			psl::vec3::back,	psl::vec3::back,	psl::vec3::back,	psl::vec3::back,	// Back
-			psl::vec3::left,	psl::vec3::left,	psl::vec3::left,	psl::vec3::left,	// Left
-			psl::vec3::up,		psl::vec3::up,		psl::vec3::up,		psl::vec3::up		// Top
+		std::vector<psl::vec3> normals {
+		  psl::vec3::down,	  psl::vec3::down,	  psl::vec3::down,	  psl::vec3::down,		 // Bottom
+		  psl::vec3::right,	  psl::vec3::right,	  psl::vec3::right,	  psl::vec3::right,		 // Right
+		  psl::vec3::forward, psl::vec3::forward, psl::vec3::forward, psl::vec3::forward,	 // Front
+		  psl::vec3::back,	  psl::vec3::back,	  psl::vec3::back,	  psl::vec3::back,		 // Back
+		  psl::vec3::left,	  psl::vec3::left,	  psl::vec3::left,	  psl::vec3::left,		 // Left
+		  psl::vec3::up,	  psl::vec3::up,	  psl::vec3::up,	  psl::vec3::up			 // Top
 		};
 
 		psl::vec2 _00(0.f, 0.f);
@@ -359,36 +373,36 @@ namespace utility::geometry
 		psl::vec2 _01(0.f, 1.f);
 		psl::vec2 _11(1.f, 1.f);
 
-		std::vector<psl::vec2> uvs{
-			_11, _01, _00, _10, // Bottom
-			_11, _01, _00, _10, // Left
-			_11, _01, _00, _10, // Front
-			_11, _01, _00, _10, // Back
-			_11, _01, _00, _10, // Right
-			_11, _01, _00, _10, // Top
+		std::vector<psl::vec2> uvs {
+		  _11, _01, _00, _10,	 // Bottom
+		  _11, _01, _00, _10,	 // Left
+		  _11, _01, _00, _10,	 // Front
+		  _11, _01, _00, _10,	 // Back
+		  _11, _01, _00, _10,	 // Right
+		  _11, _01, _00, _10,	 // Top
 		};
 
-		std::vector<uint32_t> triangles{
-			3,		   1,		  0,		 // Bottom
-			3,		   2,		  1,		 // Bottom
-			3 + 4 * 1, 1 + 4 * 1, 0 + 4 * 1, // Left
-			3 + 4 * 1, 2 + 4 * 1, 1 + 4 * 1, // Left
-			3 + 4 * 2, 1 + 4 * 2, 0 + 4 * 2, // Front
-			3 + 4 * 2, 2 + 4 * 2, 1 + 4 * 2, // Front
-			3 + 4 * 3, 1 + 4 * 3, 0 + 4 * 3, // Back
-			3 + 4 * 3, 2 + 4 * 3, 1 + 4 * 3, // Back
-			3 + 4 * 4, 1 + 4 * 4, 0 + 4 * 4, // Right
-			3 + 4 * 4, 2 + 4 * 4, 1 + 4 * 4, // Right
-			3 + 4 * 5, 1 + 4 * 5, 0 + 4 * 5, // Top
-			3 + 4 * 5, 2 + 4 * 5, 1 + 4 * 5, // Top
+		std::vector<uint32_t> triangles {
+		  3,		 1,			0,			  // Bottom
+		  3,		 2,			1,			  // Bottom
+		  3 + 4 * 1, 1 + 4 * 1, 0 + 4 * 1,	  // Left
+		  3 + 4 * 1, 2 + 4 * 1, 1 + 4 * 1,	  // Left
+		  3 + 4 * 2, 1 + 4 * 2, 0 + 4 * 2,	  // Front
+		  3 + 4 * 2, 2 + 4 * 2, 1 + 4 * 2,	  // Front
+		  3 + 4 * 3, 1 + 4 * 3, 0 + 4 * 3,	  // Back
+		  3 + 4 * 3, 2 + 4 * 3, 1 + 4 * 3,	  // Back
+		  3 + 4 * 4, 1 + 4 * 4, 0 + 4 * 4,	  // Right
+		  3 + 4 * 4, 2 + 4 * 4, 1 + 4 * 4,	  // Right
+		  3 + 4 * 5, 1 + 4 * 5, 0 + 4 * 5,	  // Top
+		  3 + 4 * 5, 2 + 4 * 5, 1 + 4 * 5,	  // Top
 
 		};
 
 		auto boxGeomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
@@ -414,14 +428,24 @@ namespace utility::geometry
 		const float step = 1.0f / float(divisions);
 		const psl::vec3 step3(step, step, step);
 
-		static const psl::vec3 origins[6] = {psl::vec3(-1.0, -1.0, -1.0), psl::vec3(1.0, -1.0, -1.0),
-											 psl::vec3(1.0, -1.0, 1.0),	  psl::vec3(-1.0, -1.0, 1.0),
-											 psl::vec3(-1.0, 1.0, -1.0),  psl::vec3(-1.0, -1.0, 1.0)};
-		static const psl::vec3 rights[6]  = {psl::vec3(2.0, 0.0, 0.0),	psl::vec3(0.0, 0.0, 2.0),
-											 psl::vec3(-2.0, 0.0, 0.0), psl::vec3(0.0, 0.0, -2.0),
-											 psl::vec3(2.0, 0.0, 0.0),	psl::vec3(2.0, 0.0, 0.0)};
-		static const psl::vec3 ups[6] = {psl::vec3(0.0, 2.0, 0.0), psl::vec3(0.0, 2.0, 0.0), psl::vec3(0.0, 2.0, 0.0),
-										 psl::vec3(0.0, 2.0, 0.0), psl::vec3(0.0, 0.0, 2.0), psl::vec3(0.0, 0.0, -2.0)};
+		static const psl::vec3 origins[6] = {psl::vec3(-1.0, -1.0, -1.0),
+											 psl::vec3(1.0, -1.0, -1.0),
+											 psl::vec3(1.0, -1.0, 1.0),
+											 psl::vec3(-1.0, -1.0, 1.0),
+											 psl::vec3(-1.0, 1.0, -1.0),
+											 psl::vec3(-1.0, -1.0, 1.0)};
+		static const psl::vec3 rights[6]  = {psl::vec3(2.0, 0.0, 0.0),
+											 psl::vec3(0.0, 0.0, 2.0),
+											 psl::vec3(-2.0, 0.0, 0.0),
+											 psl::vec3(0.0, 0.0, -2.0),
+											 psl::vec3(2.0, 0.0, 0.0),
+											 psl::vec3(2.0, 0.0, 0.0)};
+		static const psl::vec3 ups[6]	  = {psl::vec3(0.0, 2.0, 0.0),
+										 psl::vec3(0.0, 2.0, 0.0),
+										 psl::vec3(0.0, 2.0, 0.0),
+										 psl::vec3(0.0, 2.0, 0.0),
+										 psl::vec3(0.0, 0.0, 2.0),
+										 psl::vec3(0.0, 0.0, -2.0)};
 
 		std::vector<psl::vec3> vertices;
 
@@ -470,9 +494,9 @@ namespace utility::geometry
 
 		auto boxGeomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
@@ -498,9 +522,11 @@ namespace utility::geometry
 		return boxGeomData;
 	}
 
-	static core::resource::handle<core::data::geometry> create_cone(core::resource::cache& cache, float height = 1.0f,
-																	float topRadius = 1.0f, float bottomRadius = 1.0f,
-																	uint32_t sides = 18)
+	static core::resource::handle<core::data::geometry> create_cone(core::resource::cache& cache,
+																	float height	   = 1.0f,
+																	float topRadius	   = 1.0f,
+																	float bottomRadius = 1.0f,
+																	uint32_t sides	   = 18)
 	{
 		auto tempBottom			= bottomRadius;
 		bottomRadius			= topRadius * 0.5f;
@@ -676,9 +702,9 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
@@ -700,7 +726,8 @@ namespace utility::geometry
 
 	static core::resource::handle<core::data::geometry> create_sphere(core::resource::cache& cache,
 																	  psl::vec3 scale	 = psl::vec3::one,
-																	  uint16_t longitude = 24, uint16_t latitude = 16)
+																	  uint16_t longitude = 24,
+																	  uint16_t latitude	 = 16)
 	{
 		std::vector<psl::vec3> vertices = std::vector<psl::vec3>((longitude + 1) * latitude + 2);
 		float _pi						= 3.14159265359f;
@@ -730,7 +757,7 @@ namespace utility::geometry
 		for(auto lat = 0; lat < latitude; lat++)
 			for(auto lon = 0; lon <= longitude; lon++)
 				uvs[lon + lat * (longitude + 1) + 1] =
-					psl::vec2((float)lon / longitude, 1.f - (float)(lat + 1) / (latitude + 1));
+				  psl::vec2((float)lon / longitude, 1.f - (float)(lat + 1) / (latitude + 1));
 
 		auto nbFaces					= vertices.size();
 		auto nbTriangles				= nbFaces * 2;
@@ -782,7 +809,7 @@ namespace utility::geometry
 
 
 		float min = 1, max = -1;
-		uint32_t northIndex{0}, southIndex{0};
+		uint32_t northIndex {0}, southIndex {0};
 		for(i = 0; i < vertices.size(); ++i)
 		{
 			if(res_positions[i][1] < min)
@@ -837,9 +864,9 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry>();
 
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		vertStream.as_vec3().value().get().resize(res_positions.size());
 		memcpy(vertStream.data(), res_positions.data(), sizeof(psl::vec3) * res_positions.size());
@@ -862,16 +889,18 @@ namespace utility::geometry
 	static core::resource::handle<core::data::geometry>
 	create_icosphere(core::resource::cache& cache, psl::vec3 scale = psl::vec3::one, size_t subdivisions = 2)
 	{
-		core::stream vertStream{core::stream::type::vec3};
-		core::stream normStream{core::stream::type::vec3};
-		core::stream uvStream{core::stream::type::vec2};
+		core::stream vertStream {core::stream::type::vec3};
+		core::stream normStream {core::stream::type::vec3};
+		core::stream uvStream {core::stream::type::vec2};
 
 		scale *= 0.5f;
 		std::vector<psl::vec3>& vertices = vertStream.as_vec3().value();
 		vertices.reserve(1024);
 		std::unordered_map<uint64_t, uint32_t> middlePointIndexCache;
 
-		auto get_middle_point = [](uint32_t p1, uint32_t p2, std::vector<psl::vec3>& vertices,
+		auto get_middle_point = [](uint32_t p1,
+								   uint32_t p2,
+								   std::vector<psl::vec3>& vertices,
 								   std::unordered_map<uint64_t, uint32_t>& cache) {
 			// first check if we have it already
 			bool firstIsSmaller	  = p1 < p2;
@@ -889,7 +918,7 @@ namespace utility::geometry
 			psl::vec3 point1 = vertices[p1];
 			psl::vec3 point2 = vertices[p2];
 			psl::vec3 middle =
-				psl::vec3((point1[0] + point2[0]) / 2.f, (point1[1] + point2[1]) / 2.f, (point1[2] + point2[2]) / 2.f);
+			  psl::vec3((point1[0] + point2[0]) / 2.f, (point1[1] + point2[1]) / 2.f, (point1[2] + point2[2]) / 2.f);
 
 			// add vertex makes sure point is on unit sphere
 			uint32_t i = (uint32_t)vertices.size();
@@ -921,7 +950,7 @@ namespace utility::geometry
 
 		struct triangle
 		{
-			triangle(uint32_t v1, uint32_t v2, uint32_t v3) : v1(v1), v2(v2), v3(v3){};
+			triangle(uint32_t v1, uint32_t v2, uint32_t v3) : v1(v1), v2(v2), v3(v3) {};
 			uint32_t v1;
 			uint32_t v2;
 			uint32_t v3;
@@ -1084,7 +1113,7 @@ namespace utility::geometry
 		}
 
 		float min = 1, max = -1;
-		uint32_t northIndex{0}, southIndex{0};
+		uint32_t northIndex {0}, southIndex {0};
 		for(uint32_t i = 0; i < vertices.size(); ++i)
 		{
 			if(vertices[i][1] < min)
@@ -1188,8 +1217,9 @@ namespace utility::geometry
 	static core::resource::handle<core::data::geometry>
 	merge(core::resource::cache& cache, const psl::array<core::resource::handle<core::data::geometry>>& geometry)
 	{
-		if(std::any_of(std::begin(geometry), std::end(geometry),
-					   [](const auto& geom) { return geom.state() != core::resource::state::loaded; }))
+		if(std::any_of(std::begin(geometry), std::end(geometry), [](const auto& geom) {
+			   return geom.state() != core::resource::state::loaded;
+		   }))
 			return {};
 		if(geometry.size() == 1) return copy(cache, geometry[0]);
 		if(geometry.size() == 0) return {};
@@ -1213,12 +1243,13 @@ namespace utility::geometry
 			}
 			auto expected_size = source_vertexcount + geometry[i]->vertex_count();
 			//.erase(std::remove_if(std::begin(streams), std::end(streams), [expected_size](const auto& name, const
-			//auto& stream) { return stream.size() != expected_size; }), std::end(streams));
+			// auto& stream) { return stream.size() != expected_size; }), std::end(streams));
 
 			auto previous_indices_count = static_cast<index_t>(indices.size());
 			indices.insert(std::end(indices), std::begin(geometry[i]->indices()), std::end(geometry[i]->indices()));
 
-			std::for_each(std::next(std::begin(indices), previous_indices_count), std::end(indices),
+			std::for_each(std::next(std::begin(indices), previous_indices_count),
+						  std::end(indices),
 						  [&source_vertexcount](auto& index) { index += source_vertexcount; });
 			source_vertexcount = expected_size;
 		}
@@ -1291,7 +1322,8 @@ namespace utility::geometry
 	}
 
 	inline core::resource::handle<core::data::geometry>
-	rotate(core::resource::handle<core::data::geometry> source, psl::quat rotation,
+	rotate(core::resource::handle<core::data::geometry> source,
+		   psl::quat rotation,
 		   psl::string_view channel = core::data::geometry::constants::POSITION)
 	{
 		assert(source->vertices(channel).has_value());
@@ -1302,7 +1334,8 @@ namespace utility::geometry
 
 	template <typename T>
 	inline core::resource::handle<core::data::geometry>
-	scale(core::resource::handle<core::data::geometry> source, T scale,
+	scale(core::resource::handle<core::data::geometry> source,
+		  T scale,
 		  psl::string_view channel = core::data::geometry::constants::POSITION)
 	{
 		assert(source->vertices(channel).has_value());
@@ -1312,7 +1345,8 @@ namespace utility::geometry
 
 	template <typename T>
 	inline core::resource::handle<core::data::geometry>
-	translate(core::resource::handle<core::data::geometry> source, T translation,
+	translate(core::resource::handle<core::data::geometry> source,
+			  T translation,
 			  psl::string_view channel = core::data::geometry::constants::POSITION)
 	{
 		assert(source->vertices(channel).has_value());
@@ -1330,12 +1364,12 @@ namespace utility::geometry
 	}
 
 	template <typename T>
-	inline core::resource::handle<core::data::geometry> set_channel(core::resource::handle<core::data::geometry> source,
-																	psl::string_view channel, T value)
+	inline core::resource::handle<core::data::geometry>
+	set_channel(core::resource::handle<core::data::geometry> source, psl::string_view channel, T value)
 	{
 		if(source->vertices(channel).has_value())
 		{
-			if (source->vertices(channel)->get().is<T>())
+			if(source->vertices(channel)->get().is<T>())
 			{
 				source->transform(channel, [value](T& old) mutable { old = value; });
 				return source;
@@ -1343,8 +1377,8 @@ namespace utility::geometry
 		}
 
 		psl::array<T> data(source->vertex_count(), value);
-		core::stream stream{std::move(data)};
-		source->vertices(channel, stream);		
+		core::stream stream {std::move(data)};
+		source->vertices(channel, stream);
 		return source;
 	}
-} // namespace utility::geometry
+}	 // namespace utility::geometry

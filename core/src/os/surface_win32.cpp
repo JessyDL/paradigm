@@ -1,18 +1,18 @@
 ﻿#ifdef SURFACE_WIN32
 #include "os/surface.h"
-#include "systems/input.h"
 #include "psl/assertions.h"
-#include <cassert>
+#include "systems/input.h"
 #include <Windows.h>
+#include <cassert>
 
 using namespace core::os;
 using namespace core;
 
-uint64_t surface::win32_class_id_counter{0};
+uint64_t surface::win32_class_id_counter {0};
 
 bool surface::init_surface()
 {
-	WNDCLASSEX win_class{};
+	WNDCLASSEX win_class {};
 	assert(m_Data->width() > 0);
 	assert(m_Data->height() > 0);
 
@@ -31,7 +31,7 @@ bool surface::init_surface()
 	win_class.lpfnWndProc	= core::systems::input::win_event_handler;
 	win_class.cbClsExtra	= 0;
 	win_class.cbWndExtra	= 0;
-	win_class.hInstance		= win32_instance; // hInstance
+	win_class.hInstance		= win32_instance;	 // hInstance
 	win_class.hIcon			= NULL;
 	win_class.hCursor		= LoadCursor(NULL, IDC_ARROW);
 	win_class.hbrBackground = (HBRUSH)COLOR_WINDOW;
@@ -61,7 +61,9 @@ bool surface::init_surface()
 		{
 			if(ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
 			{
-				if(MessageBox(NULL, L"Fullscreen Mode not supported!\n Switch to window mode?", L"Error",
+				if(MessageBox(NULL,
+							  L"Fullscreen Mode not supported!\n Switch to window mode?",
+							  L"Error",
 							  MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
 				{
 					fullscreen = FALSE;
@@ -94,16 +96,17 @@ bool surface::init_surface()
 	RECT wr = {0, 0, LONG(width), LONG(height)};
 	AdjustWindowRectEx(&wr, style, FALSE, ex_style);
 	win32_window = CreateWindowEx(0,
-								  win32_class_name.c_str(),				   // class name
-								  psl::to_pstring(m_Data->name()).c_str(), // app name
-								  style,								   // window style
-								  0, 0,									   // x/y coords
-								  wr.right - wr.left,					   // width
-								  wr.bottom - wr.top,					   // height
-								  NULL,									   // handle to parent
-								  NULL,									   // handle to menu
-								  win32_instance,						   // hInstance
-								  NULL);								   // no extra parameters
+								  win32_class_name.c_str(),					  // class name
+								  psl::to_pstring(m_Data->name()).c_str(),	  // app name
+								  style,									  // window style
+								  0,
+								  0,					 // x/y coords
+								  wr.right - wr.left,	 // width
+								  wr.bottom - wr.top,	 // height
+								  NULL,					 // handle to parent
+								  NULL,					 // handle to menu
+								  win32_instance,		 // hInstance
+								  NULL);				 // no extra parameters
 	if(!win32_window)
 	{
 		// It didn't work, so try to give a useful error:
@@ -128,12 +131,12 @@ bool surface::init_surface()
 
 	Rid[0].usUsagePage = 0x01;
 	Rid[0].usUsage	   = 0x02;
-	Rid[0].dwFlags	   = 0; // adds HID mouse and also ignores legacy mouse messages
+	Rid[0].dwFlags	   = 0;	   // adds HID mouse and also ignores legacy mouse messages
 	Rid[0].hwndTarget  = NULL;
 
 	Rid[1].usUsagePage = 0x01;
 	Rid[1].usUsage	   = 0x06;
-	Rid[1].dwFlags	   = 0; // adds HID keyboard and also ignores legacy keyboard messages
+	Rid[1].dwFlags	   = 0;	   // adds HID keyboard and also ignores legacy keyboard messages
 	Rid[1].hwndTarget  = NULL;
 
 	if(RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
@@ -170,14 +173,14 @@ void surface::focus(bool value)
 		{
 			RECT crect;
 			GetClientRect(win32_window, &crect);
-			POINT lt = { crect.left, crect.top }; // Practicaly both are 0
+			POINT lt = {crect.left, crect.top};	   // Practicaly both are 0
 			ClientToScreen(win32_window, &lt);
-			POINT rb = { crect.right, crect.bottom };
+			POINT rb = {crect.right, crect.bottom};
 			ClientToScreen(win32_window, &rb);
 
-			crect.left = lt.x;
-			crect.top = lt.y;
-			crect.right = rb.x;
+			crect.left	 = lt.x;
+			crect.top	 = lt.y;
+			crect.right	 = rb.x;
 			crect.bottom = rb.y;
 			ClipCursor(&crect);
 		}
@@ -217,14 +220,14 @@ void surface::trap_cursor(bool state) noexcept
 	{
 		RECT crect;
 		GetClientRect(win32_window, &crect);
-		POINT lt = { crect.left, crect.top }; // Practicaly both are 0
+		POINT lt = {crect.left, crect.top};	   // Practicaly both are 0
 		ClientToScreen(win32_window, &lt);
-		POINT rb = { crect.right, crect.bottom };
+		POINT rb = {crect.right, crect.bottom};
 		ClientToScreen(win32_window, &rb);
 
-		crect.left = lt.x;
-		crect.top = lt.y;
-		crect.right = rb.x;
+		crect.left	 = lt.x;
+		crect.top	 = lt.y;
+		crect.right	 = rb.x;
 		crect.bottom = rb.y;
 		ClipCursor(&crect);
 	}

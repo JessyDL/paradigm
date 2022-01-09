@@ -1,9 +1,9 @@
 ﻿#pragma once
+#include "gfx/details/instance.h"
 #include "psl/IDGenerator.h"
-#include <optional>
 #include "resource/resource.hpp"
 #include "vk/ivk.h"
-#include "gfx/details/instance.h"
+#include <optional>
 
 namespace core::data
 {
@@ -27,11 +27,10 @@ namespace core::ivk
 	class pipeline_cache;
 	class framebuffer;
 	class swapchain;
-}
+}	 // namespace core::ivk
 
 namespace core::ivk
 {
-
 	/// \brief class that creates a bindable collection of resources that can be used in conjuction with a surface to
 	/// render.
 	///
@@ -42,7 +41,6 @@ namespace core::ivk
 	class material final
 	{
 	  public:
-
 		/// \brief the constructor that will create and bind the necesary resources to create a valid pipeline.
 		/// \param[in] packet resource packet containing the data that is needed from the resource system.
 		/// \param[in] context a handle to a graphics context (needs to be valid and loaded) which will own the
@@ -51,7 +49,9 @@ namespace core::ivk
 		/// \param[in] pipeline_cache the pipeline_cache this instance can request a pipeline from.
 		/// \param[in] materialBuffer a GPU buffer that can be used by this instance to upload data to (if needed).
 		/// \param[in] instanceBuffer a GPU buffer that can be used to upload instance data to, if there is any.
-		material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		material(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
 				 core::resource::handle<core::ivk::context> context,
 				 core::resource::handle<core::data::material> data,
 				 core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
@@ -67,7 +67,8 @@ namespace core::ivk
 		/// \note when editing the material or the data after construction, this value will be out of sync with the
 		/// runtime ivk::material.
 		core::resource::handle<core::data::material> data() const;
-	private:
+
+	  private:
 		/// \brief returns all the shaders that are being used right now by this material.
 		const std::vector<core::resource::handle<core::ivk::shader>>& shaders() const;
 		/// \brief returns all currently used textures and their binding slots.
@@ -75,14 +76,15 @@ namespace core::ivk
 		/// \brief returns all currently used samplers and their binding slots.
 		const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::sampler>>>& samplers() const;
 
-	public:
+	  public:
 		/// \brief prepares the material for rendering by binding the pipeline.
 		/// \warning only call this in the context of recording the draw call.
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
 		/// \param[in] framebuffer the framebuffer the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
 		/// \todo drawindex is a temporary hack to support instancing. a generic solution should be sought after.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer> framebuffer,
+		bool bind_pipeline(vk::CommandBuffer cmdBuffer,
+						   core::resource::handle<core::ivk::framebuffer> framebuffer,
 						   uint32_t drawIndex);
 
 		/// \brief prepares the material for rendering by binding the pipeline.
@@ -90,11 +92,13 @@ namespace core::ivk
 		/// \param[in] cmdBuffer the command buffer you'll be recording to
 		/// \param[in] swapchain the swapchain the pipeline will be bound to.
 		/// \param[in] drawIndex the index to be set in the push constant.
-		bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
+		bool bind_pipeline(vk::CommandBuffer cmdBuffer,
+						   core::resource::handle<core::ivk::swapchain> swapchain,
 						   uint32_t drawIndex);
 
 		void bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment);
 		bool bind_instance_data(uint32_t binding, uint32_t offset);
+
 	  private:
 		/// \returns the pipeline this material instance uses for the given framebuffer.
 		/// \details tries to find, and return a core::ivk::pipeline that can satisfy the
@@ -122,7 +126,7 @@ namespace core::ivk
 		std::vector<uint32_t> m_DynamicOffsets;
 		std::vector<uint32_t> m_DynamicOffsetsIndices;
 
-		uint32_t m_MaterialBufferBinding{ 0 };
+		uint32_t m_MaterialBufferBinding {0};
 		memory::segment m_MaterialBufferRange;
 		core::resource::handle<core::ivk::buffer> m_MaterialBuffer;
 
@@ -131,6 +135,6 @@ namespace core::ivk
 		core::resource::handle<core::ivk::pipeline> m_Bound;
 
 		// value to indicate if this material can actually be used or not
-		bool m_IsValid{true};
+		bool m_IsValid {true};
 	};
-} // namespace core::gfx
+}	 // namespace core::ivk

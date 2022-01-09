@@ -1,8 +1,8 @@
 #include "gles/texture.h"
+#include "gles/conversion.h"
+#include "gles/igles.h"
 #include "logging.h"
 #include "meta/texture.h"
-#include "gles/igles.h"
-#include "gles/conversion.h"
 #include "resource/resource.hpp"
 #ifdef fseek
 #define cached_fseek fseek
@@ -29,14 +29,17 @@
 using namespace core::resource;
 using namespace core::igles;
 
-texture::texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile)
-	: m_Cache(cache), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr))
+texture::texture(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 core::meta::texture* metaFile) :
+	m_Cache(cache),
+	m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr))
 {
 	if(!m_Meta)
 	{
 		core::igles::log->error(
-			"texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
-			utility::to_string(metaFile->ID()));
+		  "texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
+		  utility::to_string(metaFile->ID()));
 		return;
 	}
 
@@ -47,22 +50,28 @@ texture::texture(core::resource::cache& cache, const core::resource::metadata& m
 		m_TextureData = new gli::texture(gli::load(result.value().data(), result.value().size()));
 		switch(m_Meta->image_type())
 		{
-		case gfx::image_type::planar_2D: load_2D(); break;
+		case gfx::image_type::planar_2D:
+			load_2D();
+			break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
-		default: debug_break();
+		default:
+			debug_break();
 		}
 	}
 	else
 	{
 		auto result = cache.library().load(m_Meta->ID());
-		auto data   = (result && !result.value().empty()) ? (void*)result.value().data() : nullptr;
+		auto data	= (result && !result.value().empty()) ? (void*)result.value().data() : nullptr;
 
 		// this is a generated file;
 		switch(m_Meta->image_type())
 		{
-		case gfx::image_type::planar_2D: create_2D(data); break;
+		case gfx::image_type::planar_2D:
+			create_2D(data);
+			break;
 		// case vk::ImageViewType::eCube: load_cube(); break;
-		default: debug_break();
+		default:
+			debug_break();
 		}
 	}
 fail:
@@ -104,28 +113,45 @@ void texture::load_2D()
 	m_MipLevels = (uint32_t)m_Texture2DData->levels();
 	m_Meta->mip_levels(m_MipLevels);
 
-	core::igles::log->info("loading texture {} with format {} width {} : height {}", m_Meta->ID().to_string(), m_Meta->format(), m_Meta->width(), m_Meta->height());
+	core::igles::log->info("loading texture {} with format {} width {} : height {}",
+						   m_Meta->ID().to_string(),
+						   m_Meta->format(),
+						   m_Meta->width(),
+						   m_Meta->height());
 
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);
 
-	glTexStorage2D(GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), internalFormat, m_Meta->width(),
-				   m_Meta->height());
+	glTexStorage2D(
+	  GL_TEXTURE_2D, static_cast<GLint>(m_Texture2DData->levels()), internalFormat, m_Meta->width(), m_Meta->height());
 
 	for(std::size_t Level = 0; Level < m_Texture2DData->levels(); ++Level)
 	{
 		auto extent = m_Texture2DData->extent(Level);
 		if(type != 0)
 		{
-
-			glTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y, format, type,
+			glTexSubImage2D(GL_TEXTURE_2D,
+							static_cast<GLint>(Level),
+							0,
+							0,
+							extent.x,
+							extent.y,
+							format,
+							type,
 							m_Texture2DData->data(0, 0, Level));
 		}
 		else
 		{
 			auto size = static_cast<GLsizei>(m_Texture2DData->size(Level));
-			glCompressedTexSubImage2D(GL_TEXTURE_2D, static_cast<GLint>(Level), 0, 0, extent.x, extent.y,
-									  internalFormat, size, m_Texture2DData->data(0, 0, Level));
+			glCompressedTexSubImage2D(GL_TEXTURE_2D,
+									  static_cast<GLint>(Level),
+									  0,
+									  0,
+									  extent.x,
+									  extent.y,
+									  internalFormat,
+									  size,
+									  m_Texture2DData->data(0, 0, Level));
 		}
 	}
 	glBindTexture(GL_TEXTURE_2D, 0);
@@ -167,7 +193,4 @@ void texture::create_2D(void* data)
 }
 
 
-const core::meta::texture& texture::meta() const noexcept
-{
-	return *m_Meta;
-}
+const core::meta::texture& texture::meta() const noexcept { return *m_Meta; }

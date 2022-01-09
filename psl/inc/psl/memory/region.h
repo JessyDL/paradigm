@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include <vector>
+#include "allocator.h"
+#include "psl/expected.h"
 #include "psl/platform_def.h"
 #include "range.h"
 #include "segment.h"
-#include "allocator.h"
-#include "psl/expected.h"
+#include <vector>
 
 namespace memory
 {
@@ -25,14 +25,17 @@ namespace memory
 		{
 			RESERVED = 0,
 			COMMITED = 1,
-			DEFERRED = 2, // someone else manages this, likely a sub-region
+			DEFERRED = 2,	 // someone else manages this, likely a sub-region
 			RELEASED = -1
 		};
 
 		/// \brief specialized constructor used for internal usage
 		/// \details we keep this one private as it relies on certain conditions on the size of the
 		/// segment (being aligned to pages, and starting at a page).
-		region(region& parent, memory::segment& segment, uint64_t pageSize, uint64_t alignment,
+		region(region& parent,
+			   memory::segment& segment,
+			   uint64_t pageSize,
+			   uint64_t alignment,
 			   allocator_base* allocator = new default_allocator());
 
 	  public:
@@ -59,7 +62,8 @@ namespace memory
 		/// Creates a sub region of atleast the given size. The region could be bigger depending on
 		/// certain factors such as alignment, etc..
 		/// Destruction/cleanup happens automatically through the destructor of the created region.
-		[[nodiscard]] std::optional<memory::region> create_region(size_t size, std::optional<size_t> alignment,
+		[[nodiscard]] std::optional<memory::region> create_region(size_t size,
+																  std::optional<size_t> alignment,
 																  allocator_base* allocator = new default_allocator());
 
 
@@ -78,7 +82,7 @@ namespace memory
 		template <typename T, typename... Args>
 		std::optional<std::reference_wrapper<T>> create(Args&&... args)
 		{
-			auto seg{allocate(sizeof(T))};
+			auto seg {allocate(sizeof(T))};
 			if(seg)
 			{
 #ifdef DBG_NEW
@@ -88,7 +92,7 @@ namespace memory
 #ifdef DBG_NEW
 #define new DBG_NEW
 #endif
-					return *item;
+				return *item;
 			}
 			return {};
 		}
@@ -96,8 +100,8 @@ namespace memory
 		template <typename T>
 		bool destroy(T& target)
 		{
-			memory::range temp_range{(std::uintptr_t)((void*)(&target)),
-									 (std::uintptr_t)((void*)(&target)) + sizeof(T)};
+			memory::range temp_range {(std::uintptr_t)((void*)(&target)),
+									  (std::uintptr_t)((void*)(&target)) + sizeof(T)};
 			memory::segment seg(temp_range, m_Allocator->is_physically_backed());
 			if(deallocate(seg))
 			{
@@ -122,26 +126,26 @@ namespace memory
 		size_t alignment() const { return m_Alignment; }
 		memory::range range() const
 		{
-			return memory::range{(std::uintptr_t)(m_Base), (std::uintptr_t)(m_Base) + m_Size};
+			return memory::range {(std::uintptr_t)(m_Base), (std::uintptr_t)(m_Base) + m_Size};
 		}
 
 	  private:
 		bool erase_region(memory::region& child);
 
 
-		void* m_Base{nullptr};
-		memory::region* m_Parent{nullptr};
+		void* m_Base {nullptr};
+		memory::region* m_Parent {nullptr};
 		std::vector<memory::region*> m_Children;
 		size_t m_Size;
 		size_t m_Alignment;
 		// this will return true if the region can be allocated onto (i.e. it is backed by real memory)
 		bool commit(const memory::range& range);
-		allocator_base* m_Allocator{nullptr};
+		allocator_base* m_Allocator {nullptr};
 
 #ifdef PLATFORM_WINDOWS
 		std::pair<uint64_t, uint64_t> page_range(const memory::range& range);
 		std::vector<state> m_PageState;
 #endif
-		uint64_t m_PageSize{0u};
+		uint64_t m_PageSize {0u};
 	};
-} // namespace memory
+}	 // namespace memory

@@ -9,31 +9,31 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
-#include "targetver.h"
 #include "psl/stdafx_psl.h"
+#include "targetver.h"
 
 #include "psl/platform_def.h"
 
-#include <stdio.h>
 #include "logging.h"
+#include <stdio.h>
 
 
-#include "psl/ustring.h"
 #include "psl/string_utils.h"
+#include "psl/ustring.h"
 
 
 #include "gfx/stdafx.h"
 
-#include <vector>
-#include <optional>
-#include <map>
-#include <unordered_map>
-#include <unordered_set>
-#include <string>
-#include <array>
-#include <memory>
 #include "psl/array_view.h"
 #include "psl/enumerate.h"
+#include <array>
+#include <map>
+#include <memory>
+#include <optional>
+#include <string>
+#include <unordered_map>
+#include <unordered_set>
+#include <vector>
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
@@ -44,19 +44,19 @@
 
 #include "psl/application_utils.h"
 
-#include "psl/meta.h"
-#include "psl/library.h"
-#include "psl/serialization.h"
-#include "resource/resource.hpp"
-#include "psl/math/math.hpp"
 #include "conversion_utils.h"
+#include "psl/library.h"
+#include "psl/math/math.hpp"
+#include "psl/meta.h"
+#include "psl/serialization/serializer.hpp"
+#include "resource/resource.hpp"
 
 #include "data/stream.h"
 
 #if defined(PLATFORM_WINDOWS)
 #define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
 #include <crtdbg.h>
+#include <stdlib.h>
 
 
 //#ifndef DBG_NEW
@@ -86,7 +86,6 @@
 	__pragma(message("TODO: " #number "\nDescription: " #desc "\n" __FILE__ "(" STRINGIZE(__LINE__) ")"))
 
 
-
 //#ifdef DEBUG
 #include <malloc.h>
 
@@ -94,9 +93,9 @@
 
 #define CHKHEAP() (chk_heap(__FILE__, __LINE__))
 
-static void chk_heap(char *file, int line)
+static void chk_heap(char* file, int line)
 {
-	static const char *lastOkFile = "here";
+	static const char* lastOkFile = "here";
 	static int lastOkLine		  = 0;
 	static int heapOK			  = 1;
 
@@ -136,7 +135,8 @@ return malloc(size);
 /*! \namespace core::gfx \brief namespace that deals with the abstract render objects
 	\note currently this namespace is shared with core::ivk, this will change in the future however.
 */
-/*! \namespace core::ivk \brief deals with all objects that are directly mapped to vulkan objects (i.e. they have internal vulkan concepts in them)
+/*! \namespace core::ivk \brief deals with all objects that are directly mapped to vulkan objects (i.e. they have
+   internal vulkan concepts in them)
 
 */
 
@@ -150,6 +150,7 @@ return malloc(size);
 /*! \namespace core::os \brief specific OS wrappers and resources.
 
 */
-/*! \namespace core::systems \brief contains systems that are responsible for handling certain aspects (audio, input, physics, etc..).
+/*! \namespace core::systems \brief contains systems that are responsible for handling certain aspects (audio, input,
+   physics, etc..).
 
 */

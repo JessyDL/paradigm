@@ -1,9 +1,9 @@
 #pragma once
-#include "selectors.h"
 #include "details/component_key.h"
 #include "psl/array.h"
-#include "psl/template_utils.h"
 #include "psl/ecs/pack.h"
+#include "psl/template_utils.h"
+#include "selectors.h"
 #include <execution>
 
 namespace psl::ecs
@@ -14,7 +14,8 @@ namespace psl::ecs
 		// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
 		class transform_group
 		{
-			using ordering_pred_t	 = void(psl::array<entity>::iterator, psl::array<entity>::iterator,
+			using ordering_pred_t	 = void(psl::array<entity>::iterator,
+											psl::array<entity>::iterator,
 											const psl::ecs::state&);
 			using conditional_pred_t = psl::array<entity>::iterator(psl::array<entity>::iterator,
 																	psl::array<entity>::iterator,
@@ -26,7 +27,8 @@ namespace psl::ecs
 			template <typename Pred, typename T>
 			constexpr void selector(psl::templates::type_container<order_by<Pred, T>>) noexcept
 			{
-				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+				order_by = [](psl::array<entity>::iterator begin,
+							  psl::array<entity>::iterator end,
 							  const psl::ecs::state& state) {
 					state.order_by<Pred, T>(std::execution::par, begin, end);
 				};
@@ -36,9 +38,10 @@ namespace psl::ecs
 			template <typename Pred, typename T>
 			constexpr void selector(psl::templates::type_container<on_condition<Pred, T>>) noexcept
 			{
-				on_condition.emplace_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-					const psl::ecs::state& state)->psl::array<entity>::iterator{
-						return state.on_condition<Pred, T>(begin, end);
+				on_condition.emplace_back([](psl::array<entity>::iterator begin,
+											 psl::array<entity>::iterator end,
+											 const psl::ecs::state& state) -> psl::array<entity>::iterator {
+					return state.on_condition<Pred, T>(begin, end);
 				});
 			}
 
@@ -55,20 +58,17 @@ namespace psl::ecs
 			transform_group& operator=(const transform_group& other) = default;
 			transform_group& operator=(transform_group&& other) noexcept = default;
 
-			psl::array<entity>::iterator transform(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-						   const state& state) const noexcept
+			psl::array<entity>::iterator transform(psl::array<entity>::iterator begin,
+												   psl::array<entity>::iterator end,
+												   const state& state) const noexcept
 			{
 				for(const auto& condition : on_condition) end = condition(begin, end, state);
 
-				if(order_by)
-					order_by(begin, end, state);
+				if(order_by) order_by(begin, end, state);
 				return end;
 			}
 
-			operator bool() const noexcept
-			{
-				return order_by || on_condition.size() > 0;
-			}
+			operator bool() const noexcept { return order_by || on_condition.size() > 0; }
 
 		  private:
 			std::function<ordering_pred_t> order_by;
@@ -133,11 +133,15 @@ namespace psl::ecs
 			{}
 			friend class ::psl::ecs::state;
 			filter_group() = default;
-			filter_group(psl::array<component_key_t> filters_arr, psl::array<component_key_t> on_add_arr,
-						 psl::array<component_key_t> on_remove_arr, psl::array<component_key_t> except_arr,
-						 psl::array<component_key_t> on_combine_arr, psl::array<component_key_t> on_break_arr)
-				: filters(filters_arr), on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr),
-				  on_combine(on_combine_arr), on_break(on_break_arr)
+			filter_group(psl::array<component_key_t> filters_arr,
+						 psl::array<component_key_t> on_add_arr,
+						 psl::array<component_key_t> on_remove_arr,
+						 psl::array<component_key_t> except_arr,
+						 psl::array<component_key_t> on_combine_arr,
+						 psl::array<component_key_t> on_break_arr) :
+				filters(filters_arr),
+				on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr), on_combine(on_combine_arr),
+				on_break(on_break_arr)
 			{
 				std::sort(std::begin(filters), std::end(filters));
 				std::sort(std::begin(on_add), std::end(on_add));
@@ -149,27 +153,36 @@ namespace psl::ecs
 				filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
 				auto cpy = filters;
 				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_add), std::end(on_add),
+				std::set_difference(
+				  std::begin(cpy), std::end(cpy), std::begin(on_add), std::end(on_add), std::back_inserter(filters));
+
+				cpy = filters;
+				filters.clear();
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(on_remove),
+									std::end(on_remove),
 									std::back_inserter(filters));
 
 				cpy = filters;
 				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_remove), std::end(on_remove),
+				std::set_difference(
+				  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
+
+				cpy = filters;
+				filters.clear();
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(on_combine),
+									std::end(on_combine),
 									std::back_inserter(filters));
 
 				cpy = filters;
 				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(except), std::end(except),
-									std::back_inserter(filters));
-
-				cpy = filters;
-				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_combine), std::end(on_combine),
-									std::back_inserter(filters));
-
-				cpy = filters;
-				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_break), std::end(on_break),
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(on_break),
+									std::end(on_break),
 									std::back_inserter(filters));
 			};
 
@@ -189,27 +202,36 @@ namespace psl::ecs
 				filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
 				auto cpy = filters;
 				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_add), std::end(on_add),
+				std::set_difference(
+				  std::begin(cpy), std::end(cpy), std::begin(on_add), std::end(on_add), std::back_inserter(filters));
+
+				cpy = filters;
+				filters.clear();
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(on_remove),
+									std::end(on_remove),
 									std::back_inserter(filters));
 
 				cpy = filters;
 				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_remove), std::end(on_remove),
+				std::set_difference(
+				  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
+
+				cpy = filters;
+				filters.clear();
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(on_combine),
+									std::end(on_combine),
 									std::back_inserter(filters));
 
 				cpy = filters;
 				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(except), std::end(except),
-									std::back_inserter(filters));
-
-				cpy = filters;
-				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_combine), std::end(on_combine),
-									std::back_inserter(filters));
-
-				cpy = filters;
-				filters.clear();
-				std::set_difference(std::begin(cpy), std::end(cpy), std::begin(on_break), std::end(on_break),
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(on_break),
+									std::end(on_break),
 									std::back_inserter(filters));
 			}
 
@@ -217,17 +239,23 @@ namespace psl::ecs
 			// Is this fully containable in the other
 			bool is_subset_of(const filter_group& other) const noexcept
 			{
-				return std::includes(std::begin(other.filters), std::end(other.filters), std::begin(filters),
-									 std::end(filters)) &&
-					   std::includes(std::begin(other.on_add), std::end(other.on_add), std::begin(on_add),
-									 std::end(on_add)) &&
-					   std::includes(std::begin(other.on_remove), std::end(other.on_remove), std::begin(on_remove),
+				return std::includes(
+						 std::begin(other.filters), std::end(other.filters), std::begin(filters), std::end(filters)) &&
+					   std::includes(
+						 std::begin(other.on_add), std::end(other.on_add), std::begin(on_add), std::end(on_add)) &&
+					   std::includes(std::begin(other.on_remove),
+									 std::end(other.on_remove),
+									 std::begin(on_remove),
 									 std::end(on_remove)) &&
-					   std::includes(std::begin(other.except), std::end(other.except), std::begin(except),
-									 std::end(except)) &&
-					   std::includes(std::begin(other.on_combine), std::end(other.on_combine), std::begin(on_combine),
+					   std::includes(
+						 std::begin(other.except), std::end(other.except), std::begin(except), std::end(except)) &&
+					   std::includes(std::begin(other.on_combine),
+									 std::end(other.on_combine),
+									 std::begin(on_combine),
 									 std::end(on_combine)) &&
-					   std::includes(std::begin(other.on_break), std::end(other.on_break), std::begin(on_break),
+					   std::includes(std::begin(other.on_break),
+									 std::end(other.on_break),
+									 std::begin(on_break),
 									 std::end(on_break));
 			}
 
@@ -244,17 +272,23 @@ namespace psl::ecs
 
 			bool operator==(const filter_group& other) const noexcept
 			{
-				return std::equal(std::begin(filters), std::end(filters), std::begin(other.filters),
-								  std::end(other.filters)) &&
-					   std::equal(std::begin(on_add), std::end(on_add), std::begin(other.on_add),
-								  std::end(other.on_add)) &&
-					   std::equal(std::begin(on_remove), std::end(on_remove), std::begin(other.on_remove),
+				return std::equal(
+						 std::begin(filters), std::end(filters), std::begin(other.filters), std::end(other.filters)) &&
+					   std::equal(
+						 std::begin(on_add), std::end(on_add), std::begin(other.on_add), std::end(other.on_add)) &&
+					   std::equal(std::begin(on_remove),
+								  std::end(on_remove),
+								  std::begin(other.on_remove),
 								  std::end(other.on_remove)) &&
-					   std::equal(std::begin(except), std::end(except), std::begin(other.except),
-								  std::end(other.except)) &&
-					   std::equal(std::begin(on_combine), std::end(on_combine), std::begin(other.on_combine),
+					   std::equal(
+						 std::begin(except), std::end(except), std::begin(other.except), std::end(other.except)) &&
+					   std::equal(std::begin(on_combine),
+								  std::end(on_combine),
+								  std::begin(other.on_combine),
 								  std::end(other.on_combine)) &&
-					   std::equal(std::begin(on_break), std::end(on_break), std::begin(other.on_break),
+					   std::equal(std::begin(on_break),
+								  std::end(on_break),
+								  std::begin(other.on_break),
 								  std::end(other.on_break));
 			}
 
@@ -273,7 +307,7 @@ namespace psl::ecs
 		template <typename... Ts>
 		auto make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
 		{
-			return filter_group{psl::templates::type_container<Ts>{}...};
+			return filter_group {psl::templates::type_container<Ts> {}...};
 		}
 
 		template <typename T>
@@ -287,12 +321,12 @@ namespace psl::ecs
 		{
 			if constexpr(sizeof...(Ts) == 1)
 			{
-				return make_filter_group(psl::templates::type_container<Ts>{}...);
+				return make_filter_group(psl::templates::type_container<Ts> {}...);
 			}
 			else
 			{
 				psl::array<filter_group> groups;
-				(void(groups.emplace_back(make_filter_group(psl::templates::type_container<Ts>{}))), ...);
+				(void(groups.emplace_back(make_filter_group(psl::templates::type_container<Ts> {}))), ...);
 				return groups;
 			}
 		}
@@ -300,7 +334,7 @@ namespace psl::ecs
 		template <typename... Ts>
 		auto make_transform_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
 		{
-			return transform_group{ psl::templates::type_container<Ts>{}... };
+			return transform_group {psl::templates::type_container<Ts> {}...};
 		}
 
 		template <typename T>
@@ -312,16 +346,16 @@ namespace psl::ecs
 		template <typename... Ts>
 		auto make_transform_group(psl::templates::type_container<std::tuple<Ts...>>)
 		{
-			if constexpr (sizeof...(Ts) == 1)
+			if constexpr(sizeof...(Ts) == 1)
 			{
-				return make_transform_group(psl::templates::type_container<Ts>{}...);
+				return make_transform_group(psl::templates::type_container<Ts> {}...);
 			}
 			else
 			{
 				psl::array<transform_group> groups;
-				(void(groups.emplace_back(make_transform_group(psl::templates::type_container<Ts>{}))), ...);
+				(void(groups.emplace_back(make_transform_group(psl::templates::type_container<Ts> {}))), ...);
 				return groups;
 			}
 		}
-	} // namespace details
-} // namespace psl::ecs
+	}	 // namespace details
+}	 // namespace psl::ecs

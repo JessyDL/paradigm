@@ -1,12 +1,12 @@
 #include "gfx/buffer.h"
 #include "gfx/context.h"
 #ifdef PE_VULKAN
-#include "vk/context.h"
 #include "vk/buffer.h"
+#include "vk/context.h"
 #endif
 #ifdef PE_GLES
-#include "gles/context.h"
 #include "gles/buffer.h"
+#include "gles/context.h"
 #endif
 #include "data/buffer.h"
 
@@ -15,25 +15,29 @@ using namespace core::gfx;
 using namespace core::resource;
 
 #ifdef PE_VULKAN
-buffer::buffer(core::resource::handle<core::ivk::buffer>& handle)
-	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
+buffer::buffer(core::resource::handle<core::ivk::buffer>& handle) :
+	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-buffer::buffer(core::resource::handle<core::igles::buffer>& handle)
-	: m_Backend(graphics_backend::gles), m_GLESHandle(handle)
+buffer::buffer(core::resource::handle<core::igles::buffer>& handle) :
+	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   handle<context> context, handle<data::buffer> data) : m_Backend(context->backend())
+buffer::buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   handle<context> context,
+			   handle<data::buffer> data) :
+	m_Backend(context->backend())
 {
 	switch(m_Backend)
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle = cache.create_using<core::ivk::buffer>(metaData.uid, context->resource<graphics_backend::vulkan>(),
-														  data);
+		m_VKHandle =
+		  cache.create_using<core::ivk::buffer>(metaData.uid, context->resource<graphics_backend::vulkan>(), data);
 		break;
 #endif
 #ifdef PE_GLES
@@ -44,15 +48,21 @@ buffer::buffer(core::resource::cache& cache, const core::resource::metadata& met
 	}
 }
 
-buffer::buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   handle<context> context, handle<data::buffer> data, handle<buffer> staging)
+buffer::buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   handle<context> context,
+			   handle<data::buffer> data,
+			   handle<buffer> staging)
 {
 	switch(context->backend())
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle = cache.create_using<core::ivk::buffer>(metaData.uid, context->resource<graphics_backend::vulkan>(),
-														  data, staging->resource<graphics_backend::vulkan>());
+		m_VKHandle = cache.create_using<core::ivk::buffer>(metaData.uid,
+														   context->resource<graphics_backend::vulkan>(),
+														   data,
+														   staging->resource<graphics_backend::vulkan>());
 		break;
 #endif
 #ifdef PE_GLES
@@ -140,20 +150,19 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 #ifdef PE_GLES
 	if(m_GLESHandle)
 	{
-		return m_GLESHandle->copy_from(other.resource< graphics_backend::gles>().value(), ranges);
+		return m_GLESHandle->copy_from(other.resource<graphics_backend::gles>().value(), ranges);
 	}
 #endif
 #ifdef PE_VULKAN
 	if(m_VKHandle)
 	{
 		psl::array<vk::BufferCopy> buffer_ranges;
-		std::transform(std::begin(ranges), std::end(ranges), std::back_inserter(buffer_ranges),
-					   [](const gfx::memory_copy& range) {
-						   return vk::BufferCopy{range.source_offset, range.destination_offset, range.size};
-					   });
+		std::transform(
+		  std::begin(ranges), std::end(ranges), std::back_inserter(buffer_ranges), [](const gfx::memory_copy& range) {
+			  return vk::BufferCopy {range.source_offset, range.destination_offset, range.size};
+		  });
 
-		return m_VKHandle->copy_from(other.resource<graphics_backend::vulkan>().value(),
-															 buffer_ranges);
+		return m_VKHandle->copy_from(other.resource<graphics_backend::vulkan>().value(), buffer_ranges);
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
@@ -180,12 +189,10 @@ size_t buffer::free_size() const noexcept
 {
 	size_t available = std::numeric_limits<size_t>::max();
 #ifdef PE_GLES
-	if(m_GLESHandle)
-		available = std::min(available, m_GLESHandle->free_size());
+	if(m_GLESHandle) available = std::min(available, m_GLESHandle->free_size());
 #endif
 #ifdef PE_VULKAN
-	if(m_VKHandle)
-		available = std::min(available, m_VKHandle->free_size());
+	if(m_VKHandle) available = std::min(available, m_VKHandle->free_size());
 #endif
 	return available;
 }
@@ -196,16 +203,16 @@ auto align_to(size_t value, size_t alignment)
 	return (remainder) ? value + (alignment - remainder) : value;
 };
 
-shader_buffer_binding::shader_buffer_binding(core::resource::cache& cache, const core::resource::metadata& metaData,
+shader_buffer_binding::shader_buffer_binding(core::resource::cache& cache,
+											 const core::resource::metadata& metaData,
 											 psl::meta::file* metaFile,
-											 core::resource::handle<core::gfx::buffer> buffer, size_t size,
-											 size_t alignment)
-	: buffer(buffer), segment(buffer->reserve(size).value()),
-	  region(segment.range().size(), align_to(alignment, buffer->data().region().alignment()),
-			 new memory::default_allocator(false))
+											 core::resource::handle<core::gfx::buffer> buffer,
+											 size_t size,
+											 size_t alignment) :
+	buffer(buffer),
+	segment(buffer->reserve(size).value()), region(segment.range().size(),
+												   align_to(alignment, buffer->data().region().alignment()),
+												   new memory::default_allocator(false))
 {}
 
-shader_buffer_binding::~shader_buffer_binding()
-{
-	buffer->deallocate(segment);
-}
+shader_buffer_binding::~shader_buffer_binding() { buffer->deallocate(segment); }

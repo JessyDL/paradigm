@@ -1,11 +1,11 @@
 ﻿#pragma once
 
 #include "psl/platform_def.h"
-#include <vector>
-#include "psl/ustring.h"
 #include "psl/string_utils.h"
+#include "psl/ustring.h"
 #include <cctype>
 #include <clocale>
+#include <vector>
 #ifndef PLATFORM_ANDROID
 #if __has_include(<filesystem>)
 #include <filesystem>
@@ -18,8 +18,8 @@ namespace std::filesystem
 #endif
 #endif
 #include <optional>
-#include <unordered_map>
 #include <thread>
+#include <unordered_map>
 
 
 // https://en.wikipedia.org/wiki/Path_%28computing%29#Representations_of_paths_by_operating_system_and_shell
@@ -44,8 +44,8 @@ namespace utility
 		/// callstack). \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the
 		/// current information, while 255 would likely get you to the root). \returns an std::vector containing a
 		/// struct of trace_info of the current callstack (excluding this method).
-		static std::vector<trace_info> trace(size_t offset = 0u, size_t depth = 255u,
-											 std::optional<std::thread::id> id = std::nullopt);
+		static std::vector<trace_info>
+		trace(size_t offset = 0u, size_t depth = 255u, std::optional<std::thread::id> id = std::nullopt);
 
 
 		/// \brief method to get raw trace information of the current callstack.
@@ -111,7 +111,7 @@ namespace utility
 	  private:
 		static std::unordered_map<std::thread::id, psl::string8_t> m_ThreadMap;
 	};
-} // namespace utility
+}	 // namespace utility
 
 namespace utility::platform
 {
@@ -304,8 +304,8 @@ namespace utility::platform
 					if(!std::filesystem::is_directory(i->path()))
 					{
 #ifdef UNICODE
-						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()),
-																	 "\\", seperator);
+						auto filename =
+						  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
 						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 #endif
@@ -320,8 +320,8 @@ namespace utility::platform
 					if(!std::filesystem::is_directory(i->path()))
 					{
 #ifdef UNICODE
-						auto filename = utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()),
-																	 "\\", seperator);
+						auto filename =
+						  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
 						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 #endif
@@ -372,7 +372,8 @@ namespace utility::platform
 		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
 		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 		/// the file you wish to load.
-		static bool read(psl::string_view filename, std::vector<psl::char_t>& out,
+		static bool read(psl::string_view filename,
+						 std::vector<psl::char_t>& out,
 						 size_t count = std::numeric_limits<size_t>::max())
 		{
 			psl::string file_name = directory::to_platform(filename);
@@ -482,7 +483,7 @@ namespace utility::platform
 		/// \param[in] path the path to transform.
 		/// \returns the transformed path.
 		static psl::string to_generic(psl::string_view path) { return to_unix(path); }
-	}; // namespace file
+	};	  // namespace file
 
 	/// \brief platform specific utility that can freeze the console running on the current thread.
 	static void cmd_prompt_presskeytocontinue()
@@ -507,4 +508,4 @@ namespace utility::platform
 	  public:
 		static std::vector<unsigned int> to_virtual_keycode(const psl::string8_t& key);
 	};
-} // namespace utility::platform
+}	 // namespace utility::platform

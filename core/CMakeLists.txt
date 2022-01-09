@@ -124,6 +124,8 @@ target_include_directories(${LOCAL_PROJECT}
 		${WSI_INC}
 )
 
+target_link_libraries(${LOCAL_PROJECT} PUBLIC cppcoro)
+
 add_custom_command(TARGET ${LOCAL_PROJECT} PRE_BUILD
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/

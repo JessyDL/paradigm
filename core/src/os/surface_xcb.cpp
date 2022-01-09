@@ -1,13 +1,13 @@
 #ifdef SURFACE_XCB
 #include "os/surface.h"
-#include <xcb/xcb.h>
 #include "systems/input.h"
+#include <xcb/xcb.h>
 
 using namespace core::os;
 using namespace core;
 
 
-static inline xcb_intern_atom_reply_t *intern_atom_helper(xcb_connection_t *conn, bool only_if_exists, const char *str)
+static inline xcb_intern_atom_reply_t* intern_atom_helper(xcb_connection_t* conn, bool only_if_exists, const char* str)
 {
 	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(conn, only_if_exists, strlen(str), str);
 	return xcb_intern_atom_reply(conn, cookie, NULL);
@@ -16,7 +16,7 @@ static inline xcb_intern_atom_reply_t *intern_atom_helper(xcb_connection_t *conn
 bool surface::init_surface()
 {
 	// Initialize XCB connection
-	const xcb_setup_t *setup;
+	const xcb_setup_t* setup;
 	xcb_screen_iterator_t iter;
 	int scr;
 
@@ -39,13 +39,13 @@ bool surface::init_surface()
 
 	_xcb_window = xcb_generate_id(_xcb_connection);
 
-	value_mask	= XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
+	value_mask	  = XCB_CW_BACK_PIXEL | XCB_CW_EVENT_MASK;
 	value_list[0] = screen->black_pixel;
 	value_list[1] = XCB_EVENT_MASK_KEY_RELEASE | XCB_EVENT_MASK_KEY_PRESS | XCB_EVENT_MASK_EXPOSURE |
 					XCB_EVENT_MASK_STRUCTURE_NOTIFY | XCB_EVENT_MASK_POINTER_MOTION | XCB_EVENT_MASK_BUTTON_PRESS |
 					XCB_EVENT_MASK_BUTTON_RELEASE;
 
-	auto width  = m_Data->width();
+	auto width	= m_Data->width();
 	auto height = m_Data->height();
 	if(m_Data->mode() == core::gfx::surface_mode::FULLSCREEN)
 	{
@@ -53,28 +53,51 @@ bool surface::init_surface()
 		height = screen->height_in_pixels;
 	}
 
-	xcb_create_window(_xcb_connection, XCB_COPY_FROM_PARENT, _xcb_window, screen->root, 0, 0, width, height, 0,
-					  XCB_WINDOW_CLASS_INPUT_OUTPUT, screen->root_visual, value_mask, value_list);
+	xcb_create_window(_xcb_connection,
+					  XCB_COPY_FROM_PARENT,
+					  _xcb_window,
+					  screen->root,
+					  0,
+					  0,
+					  width,
+					  height,
+					  0,
+					  XCB_WINDOW_CLASS_INPUT_OUTPUT,
+					  screen->root_visual,
+					  value_mask,
+					  value_list);
 
 	/* Magic code that will send notification when window is destroyed */
-	xcb_intern_atom_reply_t *reply = intern_atom_helper(_xcb_connection, true, "WM_PROTOCOLS");
+	xcb_intern_atom_reply_t* reply = intern_atom_helper(_xcb_connection, true, "WM_PROTOCOLS");
 	atom_wm_delete_window		   = intern_atom_helper(_xcb_connection, false, "WM_DELETE_WINDOW");
 
-	xcb_change_property(_xcb_connection, XCB_PROP_MODE_REPLACE, _xcb_window, (*reply).atom, 4, 32, 1,
-						&(*atom_wm_delete_window).atom);
+	xcb_change_property(
+	  _xcb_connection, XCB_PROP_MODE_REPLACE, _xcb_window, (*reply).atom, 4, 32, 1, &(*atom_wm_delete_window).atom);
 
-	xcb_change_property(_xcb_connection, XCB_PROP_MODE_REPLACE, _xcb_window, XCB_ATOM_WM_NAME, XCB_ATOM_STRING, 8,
-						m_Data->name().size(), m_Data->name().data());
+	xcb_change_property(_xcb_connection,
+						XCB_PROP_MODE_REPLACE,
+						_xcb_window,
+						XCB_ATOM_WM_NAME,
+						XCB_ATOM_STRING,
+						8,
+						m_Data->name().size(),
+						m_Data->name().data());
 
 	free(reply);
 
 	if(m_Data->mode() == core::gfx::surface_mode::FULLSCREEN)
 	{
-		xcb_intern_atom_reply_t *atom_wm_state = intern_atom_helper(_xcb_connection, false, "_NET_WM_STATE");
-		xcb_intern_atom_reply_t *atom_wm_fullscreen =
-			intern_atom_helper(_xcb_connection, false, "_NET_WM_STATE_FULLSCREEN");
-		xcb_change_property(_xcb_connection, XCB_PROP_MODE_REPLACE, _xcb_window, atom_wm_state->atom, XCB_ATOM_ATOM, 32,
-							1, &(atom_wm_fullscreen->atom));
+		xcb_intern_atom_reply_t* atom_wm_state = intern_atom_helper(_xcb_connection, false, "_NET_WM_STATE");
+		xcb_intern_atom_reply_t* atom_wm_fullscreen =
+		  intern_atom_helper(_xcb_connection, false, "_NET_WM_STATE_FULLSCREEN");
+		xcb_change_property(_xcb_connection,
+							XCB_PROP_MODE_REPLACE,
+							_xcb_window,
+							atom_wm_state->atom,
+							XCB_ATOM_ATOM,
+							32,
+							1,
+							&(atom_wm_fullscreen->atom));
 		free(atom_wm_fullscreen);
 		free(atom_wm_state);
 	}
@@ -87,7 +110,6 @@ bool surface::init_surface()
 
 void surface::deinit_surface()
 {
-
 	xcb_destroy_window(_xcb_connection, _xcb_window);
 	xcb_disconnect(_xcb_connection);
 }

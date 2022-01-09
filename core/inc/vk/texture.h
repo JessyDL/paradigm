@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "vk/ivk.h"
-#include "resource/resource.hpp"
-#include <unordered_map>
 #include "fwd/vk/texture.h"
-//namespace core::meta
+#include "resource/resource.hpp"
+#include "vk/ivk.h"
+#include <unordered_map>
+// namespace core::meta
 //{
 //	class texture;
 //}
@@ -17,7 +17,7 @@ namespace core::ivk
 {
 	class context;
 	class buffer;
-}
+}	 // namespace core::ivk
 
 namespace core::ivk
 {
@@ -29,9 +29,13 @@ namespace core::ivk
 	class texture
 	{
 	  public:
-		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+		texture(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				core::meta::texture* metaFile,
 				core::resource::handle<core::ivk::context> context);
-		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+		texture(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				core::meta::texture* metaFile,
 				core::resource::handle<core::ivk::context> context,
 				core::resource::handle<core::ivk::buffer> stagingBuffer);
 		~texture();
@@ -64,7 +68,7 @@ namespace core::ivk
 		vk::Image m_Image;
 		vk::ImageView m_View;
 		vk::DeviceMemory m_DeviceMemory;
-		vk::ImageLayout m_ImageLayout{vk::ImageLayout::eGeneral};
+		vk::ImageLayout m_ImageLayout {vk::ImageLayout::eGeneral};
 		vk::ImageSubresourceRange m_SubresourceRange;
 		uint32_t m_MipLevels;
 
@@ -74,4 +78,4 @@ namespace core::ivk
 
 		std::unordered_map<psl::UID, vk::DescriptorImageInfo*> m_Descriptors;
 	};
-} // namespace core::gfx
+}	 // namespace core::ivk

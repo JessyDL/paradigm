@@ -3,16 +3,13 @@
 
 namespace details
 {
-	template<typename F>
+	template <typename F>
 	class monadic_container
 	{
-	public:
-		monadic_container(F&& f) : callable(f){};
+	  public:
+		monadic_container(F&& f) : callable(f) {};
 
-		auto operator()()	-> typename std::invoke_result_t<F>
-		{
-			return std::invoke(callable);
-		}
+		auto operator()() -> typename std::invoke_result_t<F> { return std::invoke(callable); }
 		F callable;
 	};
 
@@ -87,7 +84,7 @@ namespace details
 		{
 			if(m_Return)
 			{
-				monadic_stub sub_stub{true};
+				monadic_stub sub_stub {true};
 				(sub_stub.then(std::forward<Ts>(targets)), ...);
 				m_Return = sub_stub.m_Return;
 			}
@@ -99,7 +96,7 @@ namespace details
 		{
 			if(m_Return)
 			{
-				monadic_stub sub_stub{true};
+				monadic_stub sub_stub {true};
 				m_Return = false;
 				(std::invoke([&]() {
 					 sub_stub.call(std::forward<Ts>(targets));
@@ -115,8 +112,8 @@ namespace details
 		{
 			if(m_Return)
 			{
-				monadic_stub sub_stub{true};
-				size_t success_count{0};
+				monadic_stub sub_stub {true};
+				size_t success_count {0};
 				(std::invoke([&success_count, &sub_stub, &targets]() {
 					 sub_stub.call(std::forward<Ts>(targets));
 					 success_count = ((sub_stub.success()) ? success_count + 1 : success_count);
@@ -133,8 +130,8 @@ namespace details
 		{
 			if(m_Return)
 			{
-				monadic_stub sub_stub{true};
-				size_t success_count{0};
+				monadic_stub sub_stub {true};
+				size_t success_count {0};
 				(std::invoke([&success_count, &sub_stub, &targets]() {
 					 sub_stub.call(std::forward<Ts>(targets));
 					 success_count = ((sub_stub.success()) ? success_count + 1 : success_count);
@@ -194,9 +191,9 @@ namespace details
 			m_Return = target.m_Return;
 		}
 
-		bool m_Return{false};
+		bool m_Return {false};
 	};
-} // namespace details
+}	 // namespace details
 
 template <typename T>
 static ::details::monadic_stub when(T&& target)
@@ -225,16 +222,16 @@ static ::details::monadic_stub when_all(Ts&&... targets)
 	return mon.all(std::forward<Ts>(targets)...);
 }
 
-static ::details::monadic_stub monadic() { return ::details::monadic_stub{}; }
+static ::details::monadic_stub monadic() { return ::details::monadic_stub {}; }
 //
-//template <class T>
-//class monad
+// template <class T>
+// class monad
 //{
 //
 //};
 //
-//template <typename T>
-//struct then_functor final
+// template <typename T>
+// struct then_functor final
 //{
 //	template <class Te>
 //	monad<Te> operator()(monad<Te>& opt)
@@ -254,4 +251,3 @@ static ::details::monadic_stub monadic() { return ::details::monadic_stub{}; }
 //
 //	T m_Callable;
 //};
-

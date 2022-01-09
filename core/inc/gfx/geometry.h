@@ -22,9 +22,13 @@ namespace core::gfx
 		explicit geometry(core::resource::handle<core::igles::geometry>& handle);
 #endif
 
-		geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 core::resource::handle<context> context, core::resource::handle<core::data::geometry> data,
-				 core::resource::handle<buffer> geometryBuffer, core::resource::handle<buffer> indicesBuffer);
+		geometry(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 core::resource::handle<context> context,
+				 core::resource::handle<core::data::geometry> data,
+				 core::resource::handle<buffer> geometryBuffer,
+				 core::resource::handle<buffer> indicesBuffer);
 		~geometry();
 		geometry(const geometry&) = delete;
 		geometry(geometry&&)	  = delete;
@@ -52,7 +56,7 @@ namespace core::gfx
 		size_t triangles() const noexcept;
 
 	  private:
-		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::geometry> m_VKHandle;
 #endif
@@ -60,4 +64,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::geometry> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

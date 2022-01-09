@@ -1,23 +1,23 @@
 #pragma once
-#include "psl/ecs/state.h"
-#include "resource/resource.hpp"
 #include "gfx/drawgroup.h"
-#include "psl/math/vec.h"
+#include "psl/ecs/state.h"
 #include "psl/math/matrix.h"
+#include "psl/math/vec.h"
 #include "psl/view_ptr.h"
+#include "resource/resource.hpp"
 
 namespace core::gfx
 {
 	class buffer;
 	class drawpass;
-} // namespace core::gfx
+}	 // namespace core::gfx
 
 namespace core::ecs::components
 {
 	struct transform;
 	struct renderable;
 	struct camera;
-} // namespace core::ecs::components
+}	 // namespace core::ecs::components
 
 namespace core::ecs::systems
 {
@@ -35,18 +35,17 @@ namespace core::ecs::systems
 
 		void add_render_range(uint32_t begin, uint32_t end);
 		void remove_render_range(uint32_t begin, uint32_t end);
+
 	  private:
 		void tick_draws(psl::ecs::info& info,
-			psl::ecs::pack<const core::ecs::components::renderable,
-							psl::ecs::on_add<core::ecs::components::renderable>>
-				renderables,
-			psl::ecs::pack<const core::ecs::components::renderable,
-							psl::ecs::on_remove<core::ecs::components::renderable>>
-				broken_renderables);
+						psl::ecs::pack<const core::ecs::components::renderable,
+									   psl::ecs::on_add<core::ecs::components::renderable>> renderables,
+						psl::ecs::pack<const core::ecs::components::renderable,
+									   psl::ecs::on_remove<core::ecs::components::renderable>> broken_renderables);
 
 		psl::view_ptr<core::gfx::drawpass> m_Pass;
 
-		core::gfx::drawgroup m_DrawGroup{};
+		core::gfx::drawgroup m_DrawGroup {};
 		psl::array<std::pair<uint32_t, uint32_t>> m_RenderRanges;
 	};
-} // namespace core::ecs::systems
+}	 // namespace core::ecs::systems

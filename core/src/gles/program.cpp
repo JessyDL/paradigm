@@ -1,16 +1,18 @@
 #include "gles/program.h"
-#include "resource/resource.hpp"
-#include "gfx/types.h"
 #include "data/material.h"
-#include "logging.h"
-#include "gles/shader.h"
-#include "meta/shader.h"
+#include "gfx/types.h"
 #include "gles/igles.h"
+#include "gles/shader.h"
+#include "logging.h"
+#include "meta/shader.h"
+#include "resource/resource.hpp"
 
 using namespace core::igles;
 using namespace core::resource;
 
-program::program(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+program::program(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
 				 core::resource::handle<core::data::material> data)
 {
 	GLint linked;
@@ -47,26 +49,25 @@ program::program(core::resource::cache& cache, const core::resource::metadata& m
 		glGetProgramiv(m_Program, GL_INFO_LOG_LENGTH, &infoLen);
 
 		psl::string shader_uids;
-		std::for_each(
-			std::begin(data->stages()), std::end(data->stages()), [&shader_uids](const auto& stage) noexcept {
-				shader_uids += stage.shader().to_string();
-				shader_uids += ", ";
-			});
+		std::for_each(std::begin(data->stages()), std::end(data->stages()), [&shader_uids](const auto& stage) noexcept {
+			shader_uids += stage.shader().to_string();
+			shader_uids += ", ";
+		});
 		shader_uids.resize(std::max<size_t>(2, shader_uids.size()) - 2);
 		if(infoLen > 1)
 		{
 			char* infoLog = (char*)malloc(sizeof(char) * infoLen);
 
 			glGetProgramInfoLog(m_Program, infoLen, NULL, infoLog);
-			core::igles::log->critical("Failed to link program {0} with shaders {1}\n{2}", metaFile->ID().to_string(), shader_uids,
-									   infoLog);
+			core::igles::log->critical(
+			  "Failed to link program {0} with shaders {1}\n{2}", metaFile->ID().to_string(), shader_uids, infoLog);
 
 			free(infoLog);
 		}
 		else
 		{
-			core::igles::log->critical("Failed to link program {0} with shaders {1}", metaFile->ID().to_string(),
-									   shader_uids);
+			core::igles::log->critical(
+			  "Failed to link program {0} with shaders {1}", metaFile->ID().to_string(), shader_uids);
 		}
 
 		glDeleteProgram(m_Program);

@@ -1,26 +1,34 @@
 ﻿
 #include "vk/framebuffer.h"
-#include "vk/context.h"
-#include "vk/texture.h"
-#include "vk/sampler.h"
 #include "data/framebuffer.h"
 #include "meta/texture.h"
+#include "vk/context.h"
 #include "vk/conversion.h"
+#include "vk/sampler.h"
+#include "vk/texture.h"
 using namespace psl;
 using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
 
-framebuffer::framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData,
-						 psl::meta::file* metaFile, handle<context> context, handle<data::framebuffer> data)
-	: m_Context(context), m_Data(data) // , m_Data(copy(cache, data))
+framebuffer::framebuffer(core::resource::cache& cache,
+						 const core::resource::metadata& metaData,
+						 psl::meta::file* metaFile,
+						 handle<context> context,
+						 handle<data::framebuffer> data) :
+	m_Context(context),
+	m_Data(data)	// , m_Data(copy(cache, data))
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
 	size_t index = 0u;
 	for(const auto& attach : m_Data->attachments())
 	{
-		if(!add(cache, attach.texture(), gfx::conversion::to_vk(attach), index, (attach.shared()) ? 1u : m_Framebuffers.size()))
+		if(!add(cache,
+				attach.texture(),
+				gfx::conversion::to_vk(attach),
+				index,
+				(attach.shared()) ? 1u : m_Framebuffers.size()))
 			throw std::runtime_error("");
 		index += m_Framebuffers.size();
 	}
@@ -34,7 +42,9 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 
 	// now we create the renderpass that describes the framebuffer
 	std::vector<vk::AttachmentDescription> attachmentDescriptions;
-	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(attachmentDescriptions),
+	std::transform(std::begin(m_Bindings),
+				   std::end(m_Bindings),
+				   std::back_inserter(attachmentDescriptions),
 				   [](const auto& binding) { return binding.description; });
 
 	// Collect attachment references
@@ -53,7 +63,7 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 			// Only one depth attachment allowed
 			// assert(!hasDepth);
 			depthReference.attachment = attachmentIndex;
-			depthReference.layout	 = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+			depthReference.layout	  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 			hasDepth				  = true;
 		}
 		else
@@ -69,7 +79,7 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 	subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
 	if(hasColor)
 	{
-		subpass.pColorAttachments	= colorReferences.data();
+		subpass.pColorAttachments	 = colorReferences.data();
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
 	}
 	if(hasDepth)
@@ -80,30 +90,30 @@ framebuffer::framebuffer(core::resource::cache& cache, const core::resource::met
 	// Use subpass dependencies for attachment layout transitions
 	std::array<vk::SubpassDependency, 2> dependencies;
 
-	dependencies[0].srcSubpass	= VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass	= 0;
+	dependencies[0].srcSubpass	  = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass	  = 0;
 	dependencies[0].srcStageMask  = vk::PipelineStageFlagBits::eBottomOfPipe;
 	dependencies[0].dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	dependencies[0].srcAccessMask = vk::AccessFlagBits::eMemoryRead;
 	dependencies[0].dstAccessMask =
-		vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	  vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
 	dependencies[0].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
-	dependencies[1].srcSubpass   = 0;
-	dependencies[1].dstSubpass   = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcSubpass	 = 0;
+	dependencies[1].dstSubpass	 = VK_SUBPASS_EXTERNAL;
 	dependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	dependencies[1].dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
 	dependencies[1].srcAccessMask =
-		vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-	dependencies[1].dstAccessMask   = vk::AccessFlagBits::eMemoryRead;
+	  vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	dependencies[1].dstAccessMask	= vk::AccessFlagBits::eMemoryRead;
 	dependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
 	// Create render pass
 	vk::RenderPassCreateInfo renderPassInfo;
-	renderPassInfo.pAttachments	= attachmentDescriptions.data();
+	renderPassInfo.pAttachments	   = attachmentDescriptions.data();
 	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachmentDescriptions.size());
-	renderPassInfo.subpassCount	= 1;
-	renderPassInfo.pSubpasses	  = &subpass;
+	renderPassInfo.subpassCount	   = 1;
+	renderPassInfo.pSubpasses	   = &subpass;
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies   = dependencies.data();
 	utility::vulkan::check(m_Context->device().createRenderPass(&renderPassInfo, nullptr, &m_RenderPass));
@@ -143,7 +153,10 @@ framebuffer::~framebuffer()
 	for(auto& fb : m_Framebuffers) m_Context->device().destroyFramebuffer(fb);
 }
 
-bool framebuffer::add(core::resource::cache& cache, const UID& uid, vk::AttachmentDescription description, size_t index,
+bool framebuffer::add(core::resource::cache& cache,
+					  const UID& uid,
+					  vk::AttachmentDescription description,
+					  size_t index,
 					  size_t count)
 {
 	auto res = cache.library().get<core::meta::texture>(uid);
@@ -191,7 +204,7 @@ std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t
 	if(index >= m_Bindings.size()) return {};
 
 	std::vector<framebuffer::texture_handle> res;
-	auto bindings{m_Bindings};
+	auto bindings {m_Bindings};
 	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
 		return utility::vulkan::has_depth(binding.description.format) ||
 			   utility::vulkan::has_stencil(binding.description.format);

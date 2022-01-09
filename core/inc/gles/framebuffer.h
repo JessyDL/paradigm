@@ -1,7 +1,7 @@
 #pragma once
-#include "resource/handle.h"
 #include "gfx/types.h"
 #include "psl/array.h"
+#include "resource/handle.h"
 
 namespace core::data
 {
@@ -14,7 +14,6 @@ namespace core::igles
 
 	class framebuffer
 	{
-
 	  public:
 		using texture_handle = core::resource::handle<core::igles::texture>;
 		struct description
@@ -28,7 +27,9 @@ namespace core::igles
 			uint32_t index;
 		};
 
-		framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		framebuffer(core::resource::cache& cache,
+					const core::resource::metadata& metaData,
+					psl::meta::file* metaFile,
 					core::resource::handle<core::data::framebuffer> data);
 		~framebuffer();
 
@@ -59,4 +60,4 @@ namespace core::igles
 
 		std::vector<unsigned int> m_Framebuffers;
 	};
-} // namespace core::igles
+}	 // namespace core::igles

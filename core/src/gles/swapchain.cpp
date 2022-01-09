@@ -1,16 +1,20 @@
 #include "gles/swapchain.h"
+#include "glad/glad_wgl.h"
 #include "gles/context.h"
 #include "os/surface.h"
-#include "glad/glad_wgl.h"
 
 using namespace core::igles;
 using namespace core;
 using namespace core::resource;
 
-swapchain::swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+swapchain::swapchain(core::resource::cache& cache,
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile,
 					 core::resource::handle<core::os::surface> surface,
-					 core::resource::handle<core::igles::context> context, bool use_depth)
-	: m_Surface(surface), m_Context(context), m_UseDepth(use_depth)
+					 core::resource::handle<core::igles::context> context,
+					 bool use_depth) :
+	m_Surface(surface),
+	m_Context(context), m_UseDepth(use_depth)
 {
 	// todo support srgb;
 	context->enable(surface.value());

@@ -6,6 +6,6 @@ namespace core::ecs::components
 	{
 		lifetime(float value = 10.0f) : value(value) {};
 
-		float value{};
+		float value {};
 	};
-}
+}	 // namespace core::ecs::components

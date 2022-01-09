@@ -1,12 +1,12 @@
 #pragma once
-#include "fwd/resource/resource.h"
 #include "defines.h"
+#include "fwd/resource/resource.h"
 
 
 namespace core::igles
 {
 	class shader;
-} // namespace core::gfx
+}	 // namespace core::igles
 
 namespace core::meta
 {
@@ -19,4 +19,4 @@ namespace core::resource
 	{
 		using meta_type = core::meta::shader;
 	};
-} // namespace core::resource
+}	 // namespace core::resource

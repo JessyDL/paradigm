@@ -83,7 +83,7 @@ namespace psl::ecs
 	struct order_by
 	{};
 
-	
+
 	/// \brief allows packs to exist in a partial state
 	///
 	/// Special tag type that signifies that a pack can be split
@@ -97,4 +97,4 @@ namespace psl::ecs
 	/// Using this tag you can guarantee this is the case.
 	struct full
 	{};
-} // namespace psl::ecs
+}	 // namespace psl::ecs

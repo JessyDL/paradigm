@@ -8,8 +8,9 @@ using computecall = core::gfx::computecall;
 void computepass::clear() {}
 void computepass::prepare() {}
 bool computepass::build() { return true; }
-void computepass::present() {
-	for (auto& compute : m_Compute)
+void computepass::present()
+{
+	for(auto& compute : m_Compute)
 	{
 		compute.dispatch();
 	}

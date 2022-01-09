@@ -21,20 +21,20 @@ namespace core::gfx
 	class texture;
 
 #ifdef PE_VULKAN
-	template<>
+	template <>
 	struct backend_type<texture, graphics_backend::vulkan>
 	{
 		using type = core::ivk::texture;
 	};
 #endif
 #ifdef PE_GLES
-	template<>
+	template <>
 	struct backend_type<texture, graphics_backend::gles>
 	{
 		using type = core::igles::texture;
 	};
 #endif
-} // namespace core::gfx
+}	 // namespace core::gfx
 
 namespace core::resource
 {
@@ -43,4 +43,4 @@ namespace core::resource
 	{
 		using meta_type = core::meta::texture;
 	};
-} // namespace core::resource
+}	 // namespace core::resource

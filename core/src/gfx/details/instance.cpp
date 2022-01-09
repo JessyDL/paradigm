@@ -1,14 +1,13 @@
 #include "gfx/details/instance.h"
-#include "gfx/material.h"
-#include "data/material.h"
-#include "gfx/shader.h"
-#include "meta/shader.h"
-#include "gfx/buffer.h"
-#include "gfx/types.h"
-#include "resource/resource.hpp"
-#include "gfx/limits.h"
 #include "data/buffer.h"
+#include "data/material.h"
 #include "gfx/buffer.h"
+#include "gfx/limits.h"
+#include "gfx/material.h"
+#include "gfx/shader.h"
+#include "gfx/types.h"
+#include "meta/shader.h"
+#include "resource/resource.hpp"
 
 using namespace core::gfx;
 using namespace core::gfx::details::instance;
@@ -17,13 +16,14 @@ using namespace core::resource;
 constexpr uint32_t default_capacity = 32;
 
 data::data(core::resource::handle<core::gfx::buffer> vertexBuffer,
-		   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept
-	: m_VertexInstanceBuffer(vertexBuffer), m_MaterialInstanceBuffer(materialBuffer)
+		   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept :
+	m_VertexInstanceBuffer(vertexBuffer),
+	m_MaterialInstanceBuffer(materialBuffer)
 {}
 
 data::~data()
 {
-	for (auto& it : m_MaterialInstanceData)
+	for(auto& it : m_MaterialInstanceData)
 	{
 		m_MaterialInstanceBuffer->region.deallocate(it.second.segment);
 	}
@@ -43,7 +43,7 @@ void data::add(core::resource::handle<material> material)
 	for(const auto& stage : material->data().stages())
 	{
 		core::meta::shader* meta =
-			material.cache()->library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
+		  material.cache()->library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 
 		if(!meta)
 		{
@@ -64,7 +64,7 @@ void data::add(core::resource::handle<material> material)
 					return;
 				}
 				m_MaterialInstanceData.emplace(material.uid(),
-											   material_instance_data{descriptor, descriptor.size(), segment.value()});
+											   material_instance_data {descriptor, descriptor.size(), segment.value()});
 			}
 		}
 
@@ -74,16 +74,19 @@ void data::add(core::resource::handle<material> material)
 			if(attribute.input_rate().value_or(vertex_input_rate::vertex) != vertex_input_rate::instance) continue;
 
 			auto shader_attribute = std::find_if(
-				std::begin(meta->inputs()), std::end(meta->inputs()),
-				[location = attribute.location()](const auto& attribute) { return attribute.location() == location; });
+			  std::begin(meta->inputs()),
+			  std::end(meta->inputs()),
+			  [location = attribute.location()](const auto& attribute) { return attribute.location() == location; });
 
 			data.emplace_back(
-				binding{binding::header{psl::string{attribute.tag()}, static_cast<uint32_t>(shader_attribute->size())},
-						attribute.location()});
+			  binding {binding::header {psl::string {attribute.tag()}, static_cast<uint32_t>(shader_attribute->size())},
+					   attribute.location()});
 		}
 	}
 
-	auto accum = std::accumulate(std::begin(m_MaterialDataSizes), std::end(m_MaterialDataSizes), size_t{0},
+	auto accum = std::accumulate(std::begin(m_MaterialDataSizes),
+								 std::end(m_MaterialDataSizes),
+								 size_t {0},
 								 [](auto sum, auto rhs) { return sum + rhs; });
 	if(accum > 0)
 	{
@@ -91,11 +94,12 @@ void data::add(core::resource::handle<material> material)
 	}
 	for(const auto& d : data)
 	{
-		auto it = std::find_if(std::begin(m_UniqueBindings), std::end(m_UniqueBindings),
-							   [&d](const auto& pair) { return pair.first == d.description; });
+		auto it = std::find_if(std::begin(m_UniqueBindings), std::end(m_UniqueBindings), [&d](const auto& pair) {
+			return pair.first == d.description;
+		});
 		if(it == std::end(m_UniqueBindings))
 		{
-			m_UniqueBindings.emplace_back(std::pair<binding::header, uint32_t>{d.description, 0});
+			m_UniqueBindings.emplace_back(std::pair<binding::header, uint32_t> {d.description, 0});
 
 			for(auto& [uid, obj] : m_InstanceData)
 			{
@@ -110,7 +114,7 @@ void data::add(core::resource::handle<material> material)
 		{
 			if(it->first.size_of_element != d.description.size_of_element)
 				core::gfx::log->error(
-					"clash in material binding slots, names are unique and should be all the same size");
+				  "clash in material binding slots, names are unique and should be all the same size");
 			it->second += 1;
 		}
 	}
@@ -121,8 +125,8 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 	auto it = m_InstanceData.find(uid);
 	if(it == std::end(m_InstanceData))
 	{
-		auto size{(count > default_capacity) ? count << 2 : default_capacity};
-		it = m_InstanceData.emplace(uid, object{uid, size}).first;
+		auto size {(count > default_capacity) ? count << 2 : default_capacity};
+		it = m_InstanceData.emplace(uid, object {uid, size}).first;
 		for(const auto& b : m_UniqueBindings)
 		{
 			auto res = m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
@@ -143,11 +147,11 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 			for(auto& d : it->second.data)
 			{
 				auto res =
-					m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
+				  m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
 				if(!res) core::gfx::log->error("could not allocate");
 				m_VertexInstanceBuffer->copy_from(
-					m_VertexInstanceBuffer.value(),
-					{core::gfx::memory_copy{d.range().begin, res.value().range().begin, d.range().size()}});
+				  m_VertexInstanceBuffer.value(),
+				  {core::gfx::memory_copy {d.range().begin, res.value().range().begin, d.range().size()}});
 				std::swap(d, res.value());
 				m_VertexInstanceBuffer->deallocate(res.value());
 			}
@@ -161,7 +165,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 bool data::remove(core::resource::handle<material> material) noexcept
 {
 	auto it = m_MaterialInstanceData.find(material);
-	if (it == std::end(m_MaterialInstanceData)) return false;
+	if(it == std::end(m_MaterialInstanceData)) return false;
 
 	auto segment = it->second.segment;
 	m_MaterialInstanceData.erase(it);
@@ -179,10 +183,10 @@ uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcep
 }
 
 
-psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> material, tag<geometry> geometry) const
-	noexcept
+psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> material,
+															 tag<geometry> geometry) const noexcept
 {
-	psl::array<std::pair<size_t, std::uintptr_t>> result{};
+	psl::array<std::pair<size_t, std::uintptr_t>> result {};
 	if(auto matIt = m_Bindings.find(material); matIt != std::end(m_Bindings))
 	{
 		if(auto geomIt = m_InstanceData.find(geometry); geomIt != std::end(m_InstanceData))
@@ -191,8 +195,9 @@ psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> mater
 			for(const auto& binding : matIt->second)
 			{
 				auto it = std::find_if(
-					std::begin(geomIt->second.description), std::end(geomIt->second.description),
-					[& bDescr = binding.description](const binding::header& descr) { return descr == bDescr; });
+				  std::begin(geomIt->second.description),
+				  std::end(geomIt->second.description),
+				  [&bDescr = binding.description](const binding::header& descr) { return descr == bDescr; });
 
 				auto index	  = std::distance(std::begin(geomIt->second.description), it);
 				auto& segment = *std::next(std::begin(geomIt->second.data), index);
@@ -209,25 +214,27 @@ bool data::has_element(tag<geometry> geometry, psl::string_view name) const noex
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
-		return std::find_if(std::begin(it->second.description), std::end(it->second.description),
+		return std::find_if(std::begin(it->second.description),
+							std::end(it->second.description),
 							[&name](const auto& descr) { return descr.name == name; }) !=
 			   std::end(it->second.description);
 	}
 	return false;
 }
 
-std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> geometry, psl::string_view name) const
-	noexcept
+std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> geometry,
+																  psl::string_view name) const noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
-		auto descrIt = std::find_if(std::begin(it->second.description), std::end(it->second.description),
+		auto descrIt = std::find_if(std::begin(it->second.description),
+									std::end(it->second.description),
 									[&name](const auto& descr) { return descr.name == name; });
 		if(descrIt != std::end(it->second.description))
 		{
 			auto index = std::distance(std::begin(it->second.description), descrIt);
 
-			return std::pair{*std::next(std::begin(it->second.data), index), descrIt->size_of_element};
+			return std::pair {*std::next(std::begin(it->second.data), index), descrIt->size_of_element};
 		}
 	}
 	return std::nullopt;
@@ -277,15 +284,15 @@ size_t data::offset_of(core::resource::tag<core::gfx::material> material, psl::s
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return std::numeric_limits<size_t>::max();
 
-	size_t res{};
+	size_t res {};
 	auto members = it->second.descriptor.members();
-	size_t last_index{0};
+	size_t last_index {0};
 	size_t index = name.find('.');
 	do
 	{
 		res			   = std::numeric_limits<size_t>::max();
 		auto substring = name.substr(last_index, name.find('.') - last_index);
-		if(name[name.size() - 1] == ']') // array
+		if(name[name.size() - 1] == ']')	// array
 		{
 			// auto start = name.rfind('[', last_index + substring.size());
 			// auto index_of_array_str = name.substr(start, name.size() - 1 - start);
@@ -314,18 +321,21 @@ bool data::set(core::resource::tag<core::gfx::material> material, const void* da
 	if(it == std::end(m_MaterialInstanceData)) return false;
 
 	return m_MaterialInstanceBuffer->buffer->commit(
-		{core::gfx::commit_instruction{(void*)data, size, it->second.segment, memory::range{offset, offset + size}}});
+	  {core::gfx::commit_instruction {(void*)data, size, it->second.segment, memory::range {offset, offset + size}}});
 }
 
 bool data::bind_material(core::resource::handle<core::gfx::material> material)
 {
 	auto it = m_MaterialInstanceData.find(material);
-	if (it == std::end(m_MaterialInstanceData)) return false;
+	if(it == std::end(m_MaterialInstanceData)) return false;
 
 	return material->bind_instance_data(it->second.descriptor.binding(), it->second.segment.range().begin);
 }
 
-core::resource::handle<core::gfx::buffer> data::material_buffer() const noexcept { return m_MaterialInstanceBuffer->buffer; }
+core::resource::handle<core::gfx::buffer> data::material_buffer() const noexcept
+{
+	return m_MaterialInstanceBuffer->buffer;
+}
 bool data::has_data(core::resource::handle<core::gfx::material> material) const noexcept
 {
 	return m_MaterialInstanceData.find(material) != std::end(m_MaterialInstanceData);

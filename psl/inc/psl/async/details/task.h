@@ -16,8 +16,9 @@ namespace psl::async::details
 	class task final : public task_base
 	{
 		using Actual_Storage = typename std::remove_reference<Storage>::type;
+
 	  public:
-		task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)){};
+		task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)) {};
 		virtual ~task() = default;
 		Future future() noexcept { return m_Promise.get_future(); }
 
@@ -32,8 +33,9 @@ namespace psl::async::details
 	class task<R, Storage, void> final : public task_base
 	{
 		using Actual_Storage = typename std::remove_reference<Storage>::type;
+
 	  public:
-		task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)){};
+		task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)) {};
 		virtual ~task() = default;
 
 		void operator()() override { std::invoke(m_Invocable); }
@@ -41,4 +43,4 @@ namespace psl::async::details
 	  private:
 		Actual_Storage m_Invocable;
 	};
-} // namespace psl::async::details
+}	 // namespace psl::async::details

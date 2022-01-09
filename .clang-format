@@ -1,19 +1,19 @@
 ---
 Language: Cpp
-Standard: Cpp11
+Standard: c++20
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: true
 AlignOperands: true
 AlignTrailingComments: true
-AllowAllParametersOfDeclarationOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortCaseLabelsOnASingleLine: false
 AllowShortFunctionsOnASingleLine: All
 AllowShortIfStatementsOnASingleLine: true
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: true
-BinPackArguments: true
-BinPackParameters: true
+BinPackArguments: false
+BinPackParameters: false
 BraceWrapping:
   AfterCaseLabel: true
   AfterEnum: true
@@ -32,7 +32,7 @@ BraceWrapping:
 ColumnLimit: 120
 BreakBeforeBraces: Custom
 Cpp11BracedListStyle: true
-DerivePointerAlignment: true
+DerivePointerAlignment: false
 MaxEmptyLinesToKeep: 2
 NamespaceIndentation: All
 SpaceAfterCStyleCast: false
@@ -47,5 +47,22 @@ SpacesInSquareBrackets: false
 IndentWidth: 4
 TabWidth: 4
 UseTab: Always
-SortIncludes: false
+SortIncludes: true
+SpacesBeforeTrailingComments: 4
+SpaceBeforeInheritanceColon: true
+SpaceBeforeCtorInitializerColon: true
+SpaceBeforeCpp11BracedList: true
+SpaceAfterTemplateKeyword: true
+SortUsingDeclarations: true
+PointerAlignment: Left
+KeepEmptyLinesAtTheStartOfBlocks: false
+FixNamespaceComments: true
+ContinuationIndentWidth: 2
+BreakStringLiterals: true
+BreakInheritanceList: AfterColon
+BreakConstructorInitializers: AfterColon
+BreakBeforeTernaryOperators: true
+# EmptyLineBeforeAccessModifier: LogicalBlock
+# IndentRequires: true
+# BreakBeforeConceptDeclarations: true
 ...

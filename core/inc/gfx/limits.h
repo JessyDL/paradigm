@@ -1,6 +1,6 @@
 #pragma once
-#include "types.h"
 #include "psl/static_array.h"
+#include "types.h"
 #include <numeric>
 
 namespace core::gfx
@@ -32,27 +32,28 @@ namespace core::gfx
 
 	constexpr inline limits::buffer min(const limits::buffer& l, const limits::buffer& r) noexcept
 	{
-		limits::buffer limit{};
+		limits::buffer limit {};
 		limit.alignment = std::lcm(l.alignment, r.alignment);
-		limit.size = std::min(l.size, r.size);
+		limit.size		= std::min(l.size, r.size);
 		return limit;
 	};
 
 	constexpr inline limits min(const limits& l, const limits& r) noexcept
 	{
-		limits limit{};
+		limits limit {};
 
-		limit.storage = min(l.storage, r.storage);
-		limit.uniform = min(l.uniform, r.uniform);
+		limit.storage	= min(l.storage, r.storage);
+		limit.uniform	= min(l.uniform, r.uniform);
 		limit.memorymap = min(l.memorymap, r.memorymap);
 
 		for(int i = 0; i < l.compute.workgroup.size.size(); ++i)
 		{
-			limit.compute.workgroup.size[i]  = std::min(l.compute.workgroup.size[i], r.compute.workgroup.size[i]);
+			limit.compute.workgroup.size[i]	 = std::min(l.compute.workgroup.size[i], r.compute.workgroup.size[i]);
 			limit.compute.workgroup.count[i] = std::min(l.compute.workgroup.count[i], r.compute.workgroup.count[i]);
 		}
-		limit.compute.workgroup.invocations = std::min(l.compute.workgroup.invocations, r.compute.workgroup.invocations);
+		limit.compute.workgroup.invocations =
+		  std::min(l.compute.workgroup.invocations, r.compute.workgroup.invocations);
 
 		return limit;
 	}
-} // namespace core::gfx
+}	 // namespace core::gfx

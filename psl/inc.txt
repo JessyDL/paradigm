@@ -31,7 +31,6 @@ expected.h
 platform_utils.h
 file.h
 format.h
-serialization.h
 library.h
 meta.h
 enumerate.h
@@ -88,6 +87,12 @@ async/details/packet.h
 async/details/task.h
 
 noise/perlin.h
+
+serialization/property.hpp
+serialization/serializer.hpp
+
+concepts.hpp
+details/fixed_astring.hpp
 )
 
 list(TRANSFORM INC PREPEND inc/psl/)

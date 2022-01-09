@@ -1,10 +1,10 @@
 ﻿#pragma once
-#include "psl/serialization.h"
-#include "psl/meta.h"
+#include "fwd/resource/resource.h"
+#include "gfx/types.h"
 #include "psl/array.h"
 #include "psl/array_view.h"
-#include "gfx/types.h"
-#include "fwd/resource/resource.h"
+#include "psl/meta.h"
+#include "psl/serialization/serializer.hpp"
 
 namespace core::meta
 {
@@ -18,8 +18,6 @@ namespace psl::meta
 
 namespace core::data
 {
-	template <typename T, char... Char>
-	using sprop = psl::serialization::property<T, Char...>;
 	/// \brief Describes a collection of resources that can be used to initialize a core::ivk::material
 	///
 	/// Material data describes a collection of textures, buffers, shaders, override parameters for these shaders,
@@ -44,38 +42,74 @@ namespace core::data
 			static const blendstate transparent(uint32_t binding)
 			{
 				using namespace core::gfx;
-				return blendstate(true, binding, blend_factor::source_alpha, blend_factor::one_minus_source_alpha,
-								  blend_op::add, blend_factor::one, blend_factor::zero, blend_op::add);
+				return blendstate(true,
+								  binding,
+								  blend_factor::source_alpha,
+								  blend_factor::one_minus_source_alpha,
+								  blend_op::add,
+								  blend_factor::one,
+								  blend_factor::zero,
+								  blend_op::add);
 			}
 			static const blendstate pre_multiplied_transparent(uint32_t binding)
 			{
 				using namespace core::gfx;
-				return blendstate(true, binding, blend_factor::one, blend_factor::one_minus_source_alpha, blend_op::add,
-								  blend_factor::one, blend_factor::zero, blend_op::add);
+				return blendstate(true,
+								  binding,
+								  blend_factor::one,
+								  blend_factor::one_minus_source_alpha,
+								  blend_op::add,
+								  blend_factor::one,
+								  blend_factor::zero,
+								  blend_op::add);
 			}
 			static const blendstate additive(uint32_t binding)
 			{
 				using namespace core::gfx;
-				return blendstate(true, binding, blend_factor::one, blend_factor::one, blend_op::add, blend_factor::one,
-								  blend_factor::zero, blend_op::add);
+				return blendstate(true,
+								  binding,
+								  blend_factor::one,
+								  blend_factor::one,
+								  blend_op::add,
+								  blend_factor::one,
+								  blend_factor::zero,
+								  blend_op::add);
 			}
 			static const blendstate soft_additive(uint32_t binding)
 			{
 				using namespace core::gfx;
-				return blendstate(true, binding, blend_factor::one_minus_destination_color, blend_factor::one,
-								  blend_op::add, blend_factor::one, blend_factor::zero, blend_op::add);
+				return blendstate(true,
+								  binding,
+								  blend_factor::one_minus_destination_color,
+								  blend_factor::one,
+								  blend_op::add,
+								  blend_factor::one,
+								  blend_factor::zero,
+								  blend_op::add);
 			}
 			static const blendstate multiplicative(uint32_t binding)
 			{
 				using namespace core::gfx;
-				return blendstate(true, binding, blend_factor::dst_color, blend_factor::zero, blend_op::add,
-								  blend_factor::one, blend_factor::zero, blend_op::add);
+				return blendstate(true,
+								  binding,
+								  blend_factor::dst_color,
+								  blend_factor::zero,
+								  blend_op::add,
+								  blend_factor::one,
+								  blend_factor::zero,
+								  blend_op::add);
 			}
 			static const blendstate double_multiplicative(uint32_t binding)
 			{
 				using namespace core::gfx;
-				return blendstate(true, binding, blend_factor::dst_color, blend_factor::source_color, blend_op::add,
-								  blend_factor::one, blend_factor::zero, blend_op::add);
+				return blendstate(true,
+								  binding,
+								  blend_factor::dst_color,
+								  blend_factor::source_color,
+								  blend_op::add,
+								  blend_factor::one,
+								  blend_factor::zero,
+								  blend_op::add);
 			}
 			/// \param[in] enabled is the blendstate active (true) or not (false).
 			/// \param[in] binding the binding location of the blend state.
@@ -86,19 +120,24 @@ namespace core::data
 			/// \param[in] dstAlphaBlend the operation to apply to the A component with our newly created alpha data.
 			/// \param[in] alphaBlendOp the blend operation to apply to the A component.
 			/// \param[in] colorFlags the color component masking flags to use.
-			blendstate(bool enabled, uint32_t binding, core::gfx::blend_factor srcColorBlend,
-					   core::gfx::blend_factor dstColorBlend, core::gfx::blend_op colorBlendOp,
-					   core::gfx::blend_factor srcAlphaBlend, core::gfx::blend_factor dstAlphaBlend,
+			blendstate(bool enabled,
+					   uint32_t binding,
+					   core::gfx::blend_factor srcColorBlend,
+					   core::gfx::blend_factor dstColorBlend,
+					   core::gfx::blend_op colorBlendOp,
+					   core::gfx::blend_factor srcAlphaBlend,
+					   core::gfx::blend_factor dstAlphaBlend,
 					   core::gfx::blend_op alphaBlendOp,
 					   core::gfx::component_bits colorFlags = (core::gfx::component_bits::r |
 															   core::gfx::component_bits::g |
 															   core::gfx::component_bits::b |
-															   core::gfx::component_bits::a))
-				: m_Enabled(enabled), m_Binding(binding), m_ColorBlendFactorSrc(srcColorBlend),
-				  m_ColorBlendFactorDst(dstColorBlend), m_AlphaBlendFactorSrc(srcAlphaBlend),
-				  m_AlphaBlendFactorDst(dstAlphaBlend), m_ColorComponents(colorFlags){};
-			blendstate(uint32_t binding) : m_Enabled(false), m_Binding(binding){};
-			blendstate(){};
+															   core::gfx::component_bits::a)) :
+				m_Enabled(enabled),
+				m_Binding(binding), m_ColorBlendFactorSrc(srcColorBlend), m_ColorBlendFactorDst(dstColorBlend),
+				m_AlphaBlendFactorSrc(srcAlphaBlend), m_AlphaBlendFactorDst(dstAlphaBlend),
+				m_ColorComponents(colorFlags) {};
+			blendstate(uint32_t binding) : m_Enabled(false), m_Binding(binding) {};
+			blendstate() {};
 			~blendstate()				  = default;
 			blendstate(const blendstate&) = default;
 			blendstate(blendstate&&)	  = default;
@@ -132,25 +171,27 @@ namespace core::data
 				serializer << m_Binding << m_Enabled << m_ColorBlendFactorSrc << m_ColorBlendFactorDst << m_ColorBlendOp
 						   << m_AlphaBlendFactorSrc << m_AlphaBlendFactorDst << m_AlphaBlendOp << m_ColorComponents;
 			}
-			static constexpr const char serialization_name[12]{"BLEND_STATE"};
-			sprop<bool, const_str("ENABLED", 7)> m_Enabled{false};
-			sprop<uint32_t, const_str("BINDING", 7)> m_Binding;
-			sprop<core::gfx::blend_factor, const_str("COLOR_BLEND_SRC", 15)> m_ColorBlendFactorSrc{
-				core::gfx::blend_factor::one};
-			sprop<core::gfx::blend_factor, const_str("COLOR_BLEND_DST", 15)> m_ColorBlendFactorDst{
-				core::gfx::blend_factor::zero};
-			sprop<core::gfx::blend_op, const_str("COLOR_BLEND_OP", 14)> m_ColorBlendOp{core::gfx::blend_op::add};
+			static constexpr const char serialization_name[12] {"BLEND_STATE"};
+			psl::serialization::property<"ENABLED", bool> m_Enabled {false};
+			psl::serialization::property<"BINDING", uint32_t> m_Binding;
+			psl::serialization::property<"COLOR_BLEND_SRC", core::gfx::blend_factor> m_ColorBlendFactorSrc {
+			  core::gfx::blend_factor::one};
+			psl::serialization::property<"COLOR_BLEND_DST", core::gfx::blend_factor> m_ColorBlendFactorDst {
+			  core::gfx::blend_factor::zero};
+			psl::serialization::property<"COLOR_BLEND_OP", core::gfx::blend_op> m_ColorBlendOp {
+			  core::gfx::blend_op::add};
 
 
-			sprop<core::gfx::blend_factor, const_str("ALPHA_BLEND_SRC", 15)> m_AlphaBlendFactorSrc{
-				core::gfx::blend_factor::one};
-			sprop<core::gfx::blend_factor, const_str("ALPHA_BLEND_DST", 15)> m_AlphaBlendFactorDst{
-				core::gfx::blend_factor::zero};
-			sprop<core::gfx::blend_op, const_str("ALPHA_BLEND_OP", 14)> m_AlphaBlendOp{core::gfx::blend_op::add};
+			psl::serialization::property<"ALPHA_BLEND_SRC", core::gfx::blend_factor> m_AlphaBlendFactorSrc {
+			  core::gfx::blend_factor::one};
+			psl::serialization::property<"ALPHA_BLEND_DST", core::gfx::blend_factor> m_AlphaBlendFactorDst {
+			  core::gfx::blend_factor::zero};
+			psl::serialization::property<"ALPHA_BLEND_OP", core::gfx::blend_op> m_AlphaBlendOp {
+			  core::gfx::blend_op::add};
 
-			sprop<core::gfx::component_bits, const_str("COMPONENT_FLAGS", 15)> m_ColorComponents{
-				core::gfx::component_bits::r | core::gfx::component_bits::g | core::gfx::component_bits::b |
-				core::gfx::component_bits::a};
+			psl::serialization::property<"COMPONENT_FLAGS", core::gfx::component_bits> m_ColorComponents {
+			  core::gfx::component_bits::r | core::gfx::component_bits::g | core::gfx::component_bits::b |
+			  core::gfx::component_bits::a};
 		};
 
 		class attribute
@@ -175,18 +216,18 @@ namespace core::data
 			void input_rate(core::gfx::vertex_input_rate value) noexcept;
 
 		  private:
-			static constexpr const char serialization_name[10]{"ATTRIBUTE"};
+			static constexpr const char serialization_name[10] {"ATTRIBUTE"};
 
 			template <typename S>
 			void serialize(S& s)
 			{
 				s << m_Location;
 
-				if constexpr(psl::serialization::details::is_decoder<S>::value)
+				if constexpr(psl::serialization::details::IsDecoder<S>)
 				{
-					sprop<int32_t, const_str("INPUT_RATE", 10)> input_rate{-1};
-					sprop<psl::string8_t, const_str("TAG", 3)> tag;
-					sprop<psl::UID, const_str("BUFFER", 6)> buffer;
+					psl::serialization::property<"INPUT_RATE", int32_t> input_rate {-1};
+					psl::serialization::property<"TAG", psl::string8_t> tag;
+					psl::serialization::property<"BUFFER", psl::UID> buffer;
 					s << input_rate << tag << buffer;
 					if(input_rate.value != -1) m_InputRate = (core::gfx::vertex_input_rate)input_rate.value;
 
@@ -203,24 +244,24 @@ namespace core::data
 				{
 					if(m_InputRate)
 					{
-						sprop<core::gfx::vertex_input_rate, const_str("INPUT_RATE", 10)> input_rate{
-							m_InputRate.value()};
+						psl::serialization::property<"INPUT_RATE", core::gfx::vertex_input_rate> input_rate {
+						  m_InputRate.value()};
 						s << input_rate;
 					}
 					if(m_Tag.size() > 0)
 					{
-						sprop<psl::string8_t, const_str("TAG", 3)> tag{m_Tag};
+						psl::serialization::property<"TAG", psl::string8_t> tag {m_Tag};
 						s << tag;
 					}
 					else
 					{
-						sprop<psl::UID, const_str("BUFFER", 6)> buffer{m_Buffer};
+						psl::serialization::property<"BUFFER", psl::UID> buffer {m_Buffer};
 						s << buffer;
 					}
 				}
 			}
 
-			sprop<uint32_t, const_str("LOCATION", 8)> m_Location;
+			psl::serialization::property<"LOCATION", uint32_t> m_Location;
 
 			// if the attribute is in a vertex shader, then this will be set.
 			std::optional<core::gfx::vertex_input_rate> m_InputRate;
@@ -259,30 +300,29 @@ namespace core::data
 			{
 				s << m_Binding << m_Description;
 
-				if constexpr(psl::serialization::details::is_decoder<S>::value)
+				if constexpr(psl::serialization::details::IsDecoder<S>)
 				{
 					throw std::runtime_error("we need to solve the design issue of tagged resources");
 					switch(m_Description.value)
 					{
 					case core::gfx::binding_type::combined_image_sampler:
 					{
-
-						sprop<psl::string, const_str("TEXTURE", 7)> uid{};
+						psl::serialization::property<"TEXTURE", psl::string> uid {};
 						s << uid;
 
-						sprop<psl::string, const_str("SAMPLER", 7)> sampler{};
+						psl::serialization::property<"SAMPLER", psl::string> sampler {};
 						s << sampler;
 					}
 					break;
 					case core::gfx::binding_type::uniform_buffer:
 					{
-						sprop<psl::string, const_str("UBO", 3)> uid{};
+						psl::serialization::property<"UBO", psl::string> uid {};
 						s << uid;
 					}
 					break;
 					case core::gfx::binding_type::storage_buffer:
 					{
-						sprop<psl::string, const_str("SSBO", 4)> uid{};
+						psl::serialization::property<"SSBO", psl::string> uid {};
 						s << uid;
 					}
 					break;
@@ -298,22 +338,22 @@ namespace core::data
 					{
 						if(m_UIDTag.size() > 0)
 						{
-							sprop<psl::string, const_str("TEXTURE", 7)> uid{m_UIDTag};
+							psl::serialization::property<"TEXTURE", psl::string> uid {m_UIDTag};
 							s << uid;
 						}
 						else
 						{
-							sprop<psl::UID, const_str("TEXTURE", 7)> uid{m_UID};
+							psl::serialization::property<"TEXTURE", psl::UID> uid {m_UID};
 							s << uid;
 						}
 						if(m_SamplerUIDTag.size() > 0)
 						{
-							sprop<psl::string, const_str("SAMPLER", 7)> sampler{m_SamplerUIDTag};
+							psl::serialization::property<"SAMPLER", psl::string> sampler {m_SamplerUIDTag};
 							s << sampler;
 						}
 						else
 						{
-							sprop<psl::UID, const_str("SAMPLER", 7)> sampler{m_SamplerUID};
+							psl::serialization::property<"SAMPLER", psl::UID> sampler {m_SamplerUID};
 							s << sampler;
 						}
 					}
@@ -322,12 +362,12 @@ namespace core::data
 					{
 						if(m_BufferTag.size() > 0)
 						{
-							sprop<psl::string, const_str("UBO", 3)> uid{m_BufferTag};
+							psl::serialization::property<"UBO", psl::string> uid {m_BufferTag};
 							s << uid;
 						}
 						else
 						{
-							sprop<psl::UID, const_str("UBO", 3)> uid{m_Buffer};
+							psl::serialization::property<"UBO", psl::UID> uid {m_Buffer};
 							s << uid;
 						}
 					}
@@ -336,12 +376,12 @@ namespace core::data
 					{
 						if(m_BufferTag.size() > 0)
 						{
-							sprop<psl::string, const_str("SSBO", 4)> uid{m_BufferTag};
+							psl::serialization::property<"SSBO", psl::string> uid {m_BufferTag};
 							s << uid;
 						}
 						else
 						{
-							sprop<psl::UID, const_str("SSBO", 4)> uid{m_Buffer};
+							psl::serialization::property<"SSBO", psl::UID> uid {m_Buffer};
 							s << uid;
 						}
 					}
@@ -352,17 +392,17 @@ namespace core::data
 				}
 			}
 
-			sprop<uint32_t, const_str("BINDING", 7)> m_Binding; // the slot in the shader to bind to
-			sprop<core::gfx::binding_type, const_str("DESCRIPTOR", 10)> m_Description;
+			psl::serialization::property<"BINDING", uint32_t> m_Binding;	// the slot in the shader to bind to
+			psl::serialization::property<"DESCRIPTOR", core::gfx::binding_type> m_Description;
 			psl::UID m_UID;
-			psl::UID m_SamplerUID; // in case of texture binding
+			psl::UID m_SamplerUID;	  // in case of texture binding
 			psl::UID m_Buffer;
 
 			psl::string m_UIDTag;
 			psl::string m_BufferTag;
 			psl::string m_SamplerUIDTag;
 
-			static constexpr const char serialization_name[17]{"MATERIAL_BINDING"};
+			static constexpr const char serialization_name[17] {"MATERIAL_BINDING"};
 		};
 
 		class stage
@@ -394,14 +434,15 @@ namespace core::data
 			{
 				s << m_Stage << m_Shader << m_Attributes << m_Bindings;
 			}
-			sprop<gfx::shader_stage, const_str("STAGE", 5)> m_Stage;
-			sprop<psl::UID, const_str("SHADER", 6)> m_Shader;
-			sprop<psl::array<attribute>, const_str("ATTRIBUTES", 10)> m_Attributes;
-			sprop<psl::array<binding>, const_str("BINDINGS", 8)> m_Bindings;
-			static constexpr const char serialization_name[15]{"MATERIAL_STAGE"};
+			psl::serialization::property<"STAGE", gfx::shader_stage> m_Stage;
+			psl::serialization::property<"SHADER", psl::UID> m_Shader;
+			psl::serialization::property<"ATTRIBUTES", psl::array<attribute>> m_Attributes;
+			psl::serialization::property<"BINDINGS", psl::array<binding>> m_Bindings;
+			static constexpr const char serialization_name[15] {"MATERIAL_STAGE"};
 		};
 
-		material(core::resource::cache& cache, const core::resource::metadata& metaData,
+		material(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile) noexcept;
 		// material(const material& other, const psl::UID& uid, core::resource::cache& cache);
 		~material();
@@ -449,18 +490,18 @@ namespace core::data
 					   << m_BlendStates << m_RenderLayer << m_Wireframe;
 		}
 
-		static constexpr const char serialization_name[9]{"MATERIAL"};
+		static constexpr const char serialization_name[9] {"MATERIAL"};
 
-		sprop<psl::array<stage>, const_str("STAGES", 6)> m_Stage;
-		sprop<psl::array<blendstate>, const_str("BLEND_STATES", 12)> m_BlendStates;
-		sprop<psl::array<psl::string8_t>, const_str("DEFINES", 7)> m_Defines;
-		sprop<core::gfx::cullmode, const_str("CULLING", 7)> m_Culling{core::gfx::cullmode::back};
+		psl::serialization::property<"STAGES", psl::array<stage>> m_Stage;
+		psl::serialization::property<"BLEND_STATES", psl::array<blendstate>> m_BlendStates;
+		psl::serialization::property<"DEFINES", psl::array<psl::string8_t>> m_Defines;
+		psl::serialization::property<"CULLING", core::gfx::cullmode> m_Culling {core::gfx::cullmode::back};
 
-		sprop<core::gfx::compare_op, const_str("DEPTH_COMPARE", 13)> m_DepthCompareOp{
-			core::gfx::compare_op::less_equal};
-		sprop<uint32_t, const_str("RENDER_LAYER", 12)> m_RenderLayer{0};
-		sprop<bool, const_str("DEPTH_TEST", 10)> m_DepthTest{true};
-		sprop<bool, const_str("DEPTH_WRITE", 11)> m_DepthWrite{true};
-		sprop<bool, const_str("WIREFRAME_MODE", 14)> m_Wireframe{false};
+		psl::serialization::property<"DEPTH_COMPARE", core::gfx::compare_op> m_DepthCompareOp {
+		  core::gfx::compare_op::less_equal};
+		psl::serialization::property<"RENDER_LAYER", uint32_t> m_RenderLayer {0};
+		psl::serialization::property<"DEPTH_TEST", bool> m_DepthTest {true};
+		psl::serialization::property<"DEPTH_WRITE", bool> m_DepthWrite {true};
+		psl::serialization::property<"WIREFRAME_MODE", bool> m_Wireframe {false};
 	};
-} // namespace core::data
+}	 // namespace core::data

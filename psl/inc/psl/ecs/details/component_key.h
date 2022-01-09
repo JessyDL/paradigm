@@ -1,12 +1,12 @@
 #pragma once
+#include "../selectors.h"
 #include <cstdint>
 #include <type_traits>
-#include "../selectors.h"
 namespace psl::ecs::details
 {
 	// added to trick the compiler to not throw away the results at compile time
 	template <typename T>
-	constexpr const std::uintptr_t component_key_var{0u};
+	constexpr const std::uintptr_t component_key_var {0u};
 
 	template <typename T>
 	constexpr const std::uintptr_t* component_key() noexcept
@@ -24,4 +24,4 @@ namespace psl::ecs::details
 		using type = typename std::decay<T>::type;
 		return component_key<type>;
 	};
-} // namespace psl::ecs::details
+}	 // namespace psl::ecs::details

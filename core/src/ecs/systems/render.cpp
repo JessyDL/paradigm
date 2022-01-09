@@ -1,9 +1,9 @@
 #include "ecs/systems/render.h"
-#include "ecs/components/transform.h"
 #include "ecs/components/renderable.h"
-#include "gfx/geometry.h"
+#include "ecs/components/transform.h"
 #include "gfx/bundle.h"
 #include "gfx/drawpass.h"
+#include "gfx/geometry.h"
 #include "gfx/render_graph.h"
 
 using core::resource::handle;
@@ -34,8 +34,7 @@ void render::tick_draws(info& info,
 		auto& default_layer = m_DrawGroup.layer("default", renderRange.first, renderRange.second - renderRange.first);
 		for(auto [renderable] : renderables)
 		{
-			if(renderable.bundle)
-				m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
+			if(renderable.bundle) m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
 		}
 
 		for(auto [renderable] : broken_renderables)

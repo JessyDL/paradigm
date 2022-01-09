@@ -1,7 +1,7 @@
 ﻿
-#include "vk/context.h"
 #include "vk/sampler.h"
 #include "data/sampler.h"
+#include "vk/context.h"
 #include "vk/conversion.h"
 
 using namespace psl;
@@ -10,28 +10,32 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-sampler::sampler(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile, handle<context> context,
-				 handle<data::sampler> sampler_data)
-	: m_Data(sampler_data), m_Context(context), m_Samplers{}
+sampler::sampler(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 handle<context> context,
+				 handle<data::sampler> sampler_data) :
+	m_Data(sampler_data),
+	m_Context(context), m_Samplers {}
 {
-	size_t iterationCount = (m_Data->mipmaps()) ? 14 : 1; // 14 == 8096 // todo: this is a hack
+	size_t iterationCount = (m_Data->mipmaps()) ? 14 : 1;	 // 14 == 8096 // todo: this is a hack
 	m_Samplers.resize(iterationCount);
 	for(size_t i = 0u; i < iterationCount; ++i)
 	{
 		vk::SamplerCreateInfo sampler;
-		sampler.magFilter	 = to_vk(m_Data->filter_max());
-		sampler.minFilter	 = to_vk(m_Data->filter_min());
-		sampler.mipmapMode	= to_vk(m_Data->mip_mode());
+		sampler.magFilter	  = to_vk(m_Data->filter_max());
+		sampler.minFilter	  = to_vk(m_Data->filter_min());
+		sampler.mipmapMode	  = to_vk(m_Data->mip_mode());
 		sampler.addressModeU  = to_vk(m_Data->addressU());
 		sampler.addressModeV  = to_vk(m_Data->addressV());
 		sampler.addressModeW  = to_vk(m_Data->addressW());
-		sampler.mipLodBias	= m_Data->mip_bias();
+		sampler.mipLodBias	  = m_Data->mip_bias();
 		sampler.compareEnable = m_Data->compare_mode();
-		sampler.compareOp	 = to_vk(m_Data->compare_op());
+		sampler.compareOp	  = to_vk(m_Data->compare_op());
 		sampler.minLod		  = m_Data->mip_minlod();
-		sampler.maxLod		  = (m_Data->mipmaps()) ? i : 1.0f; // todo: figure this out more correctly;
+		sampler.maxLod		  = (m_Data->mipmaps()) ? i : 1.0f;	   // todo: figure this out more correctly;
 		// Enable anisotropic filtering
-		sampler.maxAnisotropy	= m_Data->max_anisotropy();
+		sampler.maxAnisotropy	 = m_Data->max_anisotropy();
 		sampler.anisotropyEnable = m_Data->anisotropic_filtering();
 		sampler.borderColor		 = to_vk(m_Data->border_color());
 		utility::vulkan::check(m_Context->device().createSampler(&sampler, nullptr, &m_Samplers[i]));

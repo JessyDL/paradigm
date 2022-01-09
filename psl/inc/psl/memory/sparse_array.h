@@ -2,6 +2,7 @@
 #include "psl/array.h"
 #include "psl/array_view.h"
 #include "raw_region.h"
+#include <algorithm>
 #include <cstring>
 
 namespace memory
@@ -13,31 +14,31 @@ namespace memory
 		using type_t	 = T;
 		using index_type = Key;
 
-		static constexpr bool is_power_of_two{chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
-		static constexpr Key mod_val{(is_power_of_two) ? chunks_size - 1 : chunks_size};
+		static constexpr bool is_power_of_two {chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
+		static constexpr Key mod_val {(is_power_of_two) ? chunks_size - 1 : chunks_size};
 
 	  public:
 		class iterator
 		{
 			friend class sparse_array<T, Key, chunks_size>;
-			iterator(T* value, Key* index) : value(value), dense_index(index){};
+			iterator(T* value, Key* index) : value(value), dense_index(index) {};
 
 		  public:
-			using difference_type   = index_type;
+			using difference_type	= index_type;
 			using value_type		= T;
 			using pointer			= value_type*;
 			using const_pointer		= value_type* const;
 			using reference			= value_type&;
-			using const_reference   = const value_type&;
+			using const_reference	= const value_type&;
 			using iterator_category = std::random_access_iterator_tag;
 
 			iterator() noexcept				   = default;
 			~iterator()						   = default;
 			iterator(const iterator&) noexcept = default;
-			iterator(iterator&&) noexcept	  = default;
+			iterator(iterator&&) noexcept	   = default;
 			iterator& operator=(const iterator&) noexcept = default;
 			iterator& operator							  =(iterator&&) noexcept =
-				delete; // disables mutating the container, todo we might support this but not right now.
+			  delete;	 // disables mutating the container, todo we might support this but not right now.
 
 
 			iterator& operator++() noexcept
@@ -84,27 +85,27 @@ namespace memory
 			index_type* dense_index;
 		};
 		using size_type			= typename psl::array<index_type>::size_type;
-		using difference_type   = typename psl::array<index_type>::difference_type;
+		using difference_type	= typename psl::array<index_type>::difference_type;
 		using value_type		= T;
 		using pointer			= value_type*;
 		using const_pointer		= value_type* const;
 		using reference			= value_type&;
-		using const_reference   = const value_type&;
+		using const_reference	= const value_type&;
 		using iterator_category = std::random_access_iterator_tag;
 
 		sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) { reserve(1024); };
 		~sparse_array() = default;
-		sparse_array(const sparse_array& other) noexcept
-			: m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse){};
-		sparse_array(sparse_array&& other) noexcept
-			: m_DenseData(std::move(other.m_DenseData)), m_Reverse(std::move(other.m_Reverse)),
-			  m_Sparse(std::move(other.m_Sparse)){};
+		sparse_array(const sparse_array& other) noexcept :
+			m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
+		sparse_array(sparse_array&& other) noexcept :
+			m_DenseData(std::move(other.m_DenseData)), m_Reverse(std::move(other.m_Reverse)),
+			m_Sparse(std::move(other.m_Sparse)) {};
 		sparse_array& operator=(const sparse_array& other) noexcept
 		{
 			if(this != &other)
 			{
 				m_DenseData = other.m_DenseData;
-				m_Reverse   = other.m_Reverse;
+				m_Reverse	= other.m_Reverse;
 				m_Sparse	= other.m_Sparse;
 			}
 			return *this;
@@ -114,7 +115,7 @@ namespace memory
 			if(this != &other)
 			{
 				m_DenseData = std::move(other.m_DenseData);
-				m_Reverse   = std::move(other.m_Reverse);
+				m_Reverse	= std::move(other.m_Reverse);
 				m_Sparse	= std::move(other.m_Sparse);
 			}
 			return *this;
@@ -122,10 +123,10 @@ namespace memory
 		size_type size() const noexcept { return m_Reverse.size(); }
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
-		iterator begin() noexcept { return iterator{(T*)m_DenseData.data(), m_Reverse.data()}; };
+		iterator begin() noexcept { return iterator {(T*)m_DenseData.data(), m_Reverse.data()}; };
 		iterator end() noexcept
 		{
-			return iterator{(T*)m_DenseData.data() + m_Reverse.size(), m_Reverse.data() + m_Reverse.size()};
+			return iterator {(T*)m_DenseData.data() + m_Reverse.size(), m_Reverse.data() + m_Reverse.size()};
 		};
 
 		void grow()
@@ -146,7 +147,7 @@ namespace memory
 		reference operator[](index_type index)
 		{
 			auto sub_index = index;
-			auto& chunk	= chunk_for(sub_index);
+			auto& chunk	   = chunk_for(sub_index);
 
 			if(!has(index))
 			{
@@ -161,7 +162,7 @@ namespace memory
 		reference at(index_type index)
 		{
 			auto sub_index = index;
-			auto& chunk	= chunk_for(sub_index);
+			auto& chunk	   = chunk_for(sub_index);
 
 			if(!has(index))
 			{
@@ -198,10 +199,9 @@ namespace memory
 		{
 			const auto should_grow = m_Reverse.capacity() == m_Reverse.size();
 			m_Reverse.emplace_back(index);
-			auto& chunk  = chunk_for(index);
+			auto& chunk	 = chunk_for(index);
 			chunk[index] = (index_type)m_Reverse.size() - 1;
-			if(should_grow)
-				grow();
+			if(should_grow) grow();
 		}
 		void insert(index_type index, const_reference value)
 		{
@@ -210,8 +210,7 @@ namespace memory
 			auto& chunk = chunk_for(index);
 
 			chunk[index] = (index_type)m_Reverse.size() - 1;
-			if (should_grow)
-				grow();
+			if(should_grow) grow();
 			*((T*)m_DenseData.data() + chunk[index]) = value;
 		}
 
@@ -219,8 +218,8 @@ namespace memory
 		void insert(index_type index, ItF&& first, ItL&& last)
 		{
 			auto first_index = index;
-			auto last_index  = (index_type)std::distance(first, last) + index;
-			auto end_index   = last_index;
+			auto last_index	 = (index_type)std::distance(first, last) + index;
+			auto end_index	 = last_index;
 			index_type first_chunk;
 			index_type last_chunk;
 			chunk_info_for(first_index, first_index, first_chunk);
@@ -350,14 +349,14 @@ namespace memory
 				return;
 			}
 			auto first_index = first;
-			auto last_index  = last;
+			auto last_index	 = last;
 			index_type first_chunk;
 			index_type last_chunk;
 			chunk_info_for(first, first_index, first_chunk);
 			chunk_info_for(last, last_index, last_chunk);
 
-			index_type count{0};
-			index_type processed{0};
+			index_type count {0};
+			index_type processed {0};
 
 			auto index = first_index;
 			for(auto i = first_chunk; i < last_chunk; ++i)
@@ -370,7 +369,7 @@ namespace memory
 
 				for(auto x = index; x < chunks_size; ++x)
 				{
-					const auto dense_index{m_Sparse[i][x]};
+					const auto dense_index {m_Sparse[i][x]};
 					// if(dense_index == std::numeric_limits<index_type>::max())
 					//	continue;
 					++count;
@@ -396,7 +395,7 @@ namespace memory
 			{
 				for(auto x = index; x < last_index; ++x)
 				{
-					const auto dense_index{m_Sparse[last_chunk][x]};
+					const auto dense_index {m_Sparse[last_chunk][x]};
 					// if(dense_index == std::numeric_limits<index_type>::max())
 					//	continue;
 					++count;
@@ -433,7 +432,7 @@ namespace memory
 		psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
 		psl::array_view<value_type> dense() const noexcept
 		{
-			return psl::array_view<value_type>{(T*)m_DenseData.data(), (T*)m_DenseData.data() + m_Reverse.size()};
+			return psl::array_view<value_type> {(T*)m_DenseData.data(), (T*)m_DenseData.data() + m_Reverse.size()};
 		}
 
 	  private:
@@ -444,8 +443,8 @@ namespace memory
 			if constexpr(is_power_of_two)
 			{
 				const auto element_index = index & (mod_val);
-				chunk_index = (index - element_index) / chunks_size;
-				index = element_index;
+				chunk_index				 = (index - element_index) / chunks_size;
+				index					 = element_index;
 			}
 			else
 			{
@@ -467,11 +466,11 @@ namespace memory
 			if constexpr(is_power_of_two)
 			{
 				element_index = index & (mod_val);
-				chunk_index = (index - element_index) / chunks_size;
+				chunk_index	  = (index - element_index) / chunks_size;
 			}
 			else
 			{
-				chunk_index   = (index - (index % mod_val)) / chunks_size;
+				chunk_index	  = (index - (index % mod_val)) / chunks_size;
 				element_index = index % mod_val;
 			}
 		}
@@ -480,4 +479,4 @@ namespace memory
 		::memory::raw_region m_DenseData;
 		psl::array<psl::array<index_type>> m_Sparse;
 	};
-} // namespace memory
+}	 // namespace memory

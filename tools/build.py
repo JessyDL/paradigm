@@ -1,5 +1,6 @@
 from argparse import ArgumentParser
-import os 
+import os
+import stat
 import sys
 import platform
 import shutil
@@ -84,15 +85,18 @@ class Paradigm(object):
                 
         if generator == "msvc":
             if args.architecture == 'x64':
-                args.generator = "Visual Studio 16 2019"
+                args.generator = "Visual Studio 17 2022"
             elif args.architecture == 'arm':
-                args.generator = "Visual Studio 16 2019"
+                args.generator = "Visual Studio 17 2022"
         elif generator == 'make':
             args.generator = "Unix Makefiles"
                 
 
         args.project_dir = os.path.join(args.root_dir, args.project_dir, args.generator, args.architecture)
         args.build_dir = os.path.join(args.root_dir, args.build_dir, args.generator, args.architecture)
+
+        if generator.startswith("Visual Studio"):
+            args.generator = args.generator + ' -A ' + args.architecture
 
         if not os.path.exists(args.project_dir):
             os.makedirs(args.project_dir)
@@ -111,16 +115,28 @@ class Paradigm(object):
             print(args)
         return args
 
+    def delete_dir(self, directory, delete_root=True):
+        if os.path.islink(directory) and delete_root:
+            os.rmdir(directory)
+        else:
+            for the_file in os.listdir(directory):
+                file_path = os.path.join(directory, the_file)
+                try:
+                    if os.path.isdir(file_path):
+                        self.delete_dir(file_path)
+                    else:
+                        os.chmod(file_path, stat.S_IWRITE )
+                        os.remove(file_path)
+                except Exception as e:
+                    print(e)
+            if delete_root:
+                os.rmdir(directory)
+
     def clean(self, directory):
-        print("cleaning: {0}".format(directory))
-        for the_file in os.listdir(directory):
-            file_path = os.path.join(directory, the_file)
-            try:
-                if os.path.isfile(file_path):
-                    os.unlink(file_path)
-                elif os.path.isdir(file_path): shutil.rmtree(file_path, onerror=onerror)
-            except Exception as e:
-                print(e)
+        if os.path.exists(directory):
+            print("cleaning: {0}".format(directory))
+            self.delete_dir(directory, False)
+
     def generate_command(self, args):
         working_dir = os.getcwd()
         os.chdir(args.project_dir)
@@ -128,7 +144,13 @@ class Paradigm(object):
         cmakeExe="cmake"
         if(sys.platform.startswith('win')):
             cmakeExe="cmake.exe"
-            
+        
+        try:
+            subprocess.check_call([cmakeExe, "--version"])
+        except:
+            print("Missing dependency, please install cmake and make it visible in the $PATH variable of your terminal")
+            raise
+
         cmakeCmd = []
         
         if not os.path.exists(os.path.join(args.project_dir, "CMakeFiles")) or not self.has_generated:
@@ -161,6 +183,12 @@ class Paradigm(object):
         cmakeExe="cmake"
         if(sys.platform.startswith('win')):
             cmakeExe="cmake.exe"
+
+        try:
+            subprocess.check_call([cmakeExe, "--version"])
+        except:
+            print("Missing dependency, please install cmake and make it visible in the $PATH variable of your terminal")
+            raise
             
         cmakeCmd = [cmakeExe, "--build", r".", "--config", args.build_config]
         return cmakeCmd

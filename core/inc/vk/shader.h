@@ -1,9 +1,9 @@
 ﻿#pragma once
+#include "fwd/vk/shader.h"
 #include "psl/ustring.h"
 #include "resource/resource.hpp"
-#include <optional>
 #include "vk/ivk.h"
-#include "fwd/vk/shader.h"
+#include <optional>
 
 
 namespace core::ivk
@@ -32,9 +32,13 @@ namespace core::ivk
 			bool operator==(const specialization& other) const { return name == other.name; }
 			bool operator!=(const specialization& other) const { return name != other.name; }
 		};
-		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
+		shader(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context);
-		shader(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
+		shader(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context,
 			   const std::vector<specialization> specializations);
 		~shader();
@@ -45,7 +49,8 @@ namespace core::ivk
 
 		/// \returns the pipeline shader stage create info for the given specialization.
 		/// \note will return nothing in case the specialization does not exist.
-		std::optional<vk::PipelineShaderStageCreateInfo> pipeline(const specialization& description = specialization{});
+		std::optional<vk::PipelineShaderStageCreateInfo>
+		pipeline(const specialization& description = specialization {});
 
 		/// \returns the meta data that describes this shader and its binding points.
 		core::meta::shader* meta() const noexcept;
@@ -57,4 +62,4 @@ namespace core::ivk
 		core::meta::shader* m_Meta;
 		const psl::UID m_UID;
 	};
-} // namespace core::gfx
+}	 // namespace core::ivk

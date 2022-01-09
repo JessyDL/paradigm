@@ -15,8 +15,5 @@ void token::barriers(const psl::array<std::shared_future<barrier>>& barriers)
 {
 	m_Scheduler->barriers(*this, barriers);
 }
-void token::barriers(std::shared_future<barrier>& barrier)
-{
-	m_Scheduler->barriers(*this, barrier);
-}
+void token::barriers(std::shared_future<barrier>& barrier) { m_Scheduler->barriers(*this, barrier); }
 void token::consecutive(psl::array<token> others) { m_Scheduler->consecutive(*this, others); }

@@ -13,12 +13,15 @@ namespace core::igles
 	class swapchain
 	{
 	  public:
-		swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		swapchain(core::resource::cache& cache,
+				  const core::resource::metadata& metaData,
+				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,
-				  core::resource::handle<core::igles::context> context, bool use_depth = true);
+				  core::resource::handle<core::igles::context> context,
+				  bool use_depth = true);
 		~swapchain();
 
-		swapchain(const swapchain& other)	 = default;
+		swapchain(const swapchain& other)	  = default;
 		swapchain(swapchain&& other) noexcept = default;
 		swapchain& operator=(const swapchain& other) = default;
 		swapchain& operator=(swapchain&& other) noexcept = default;
@@ -56,11 +59,11 @@ namespace core::igles
 		bool is_ready() const noexcept;*/
 
 	  private:
-		psl::vec4 m_ClearColor{0.25f, 0.4f, 0.95f, 1.0f};
-		float m_ClearDepth{1.0f};
-		uint32_t m_ClearStencil{0};
-		bool m_UseDepth{false};
+		psl::vec4 m_ClearColor {0.25f, 0.4f, 0.95f, 1.0f};
+		float m_ClearDepth {1.0f};
+		uint32_t m_ClearStencil {0};
+		bool m_UseDepth {false};
 		core::resource::handle<core::os::surface> m_Surface;
 		core::resource::handle<core::igles::context> m_Context;
 	};
-} // namespace core::igles
+}	 // namespace core::igles

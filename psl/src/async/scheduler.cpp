@@ -1,6 +1,6 @@
 #include "psl/async/scheduler.h"
-#include "psl/view_ptr.h"
 #include "psl/collections/spmc/consumer.h"
+#include "psl/view_ptr.h"
 
 using namespace psl::async;
 
@@ -10,23 +10,22 @@ namespace psl::async::details
 	{
 	  public:
 		worker() = delete;
-		worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer) : m_Consumer(std::move(consumer)){};
+		worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer) : m_Consumer(std::move(consumer)) {};
 		~worker()
 		{
 			if(!terminated()) resume(), terminate();
 			while(!m_Thread.joinable())
-			{
-			};
+			{};
 			m_Thread.join();
 		}
-		worker(const worker& other) : m_Consumer(other.m_Consumer){};
+		worker(const worker& other) : m_Consumer(other.m_Consumer) {};
 		worker(worker&&) = delete;
 		worker& operator=(const worker&) = delete;
 		worker& operator=(worker&&) = delete;
 		void start()
 		{
 			m_Done.store(false, std::memory_order_relaxed);
-			m_Thread = std::thread{&worker::loop, this};
+			m_Thread = std::thread {&worker::loop, this};
 		}
 		void terminate() { m_Run.store(false, std::memory_order_relaxed); }
 		bool terminated() { return m_Done.load(std::memory_order_relaxed); }
@@ -81,20 +80,20 @@ namespace psl::async::details
 			m_Done.store(true, std::memory_order_relaxed);
 		}
 
-		std::thread m_Thread{};
+		std::thread m_Thread {};
 		psl::spmc::consumer<psl::view_ptr<details::packet>> m_Consumer;
-		std::atomic<bool> m_Run{true};
-		std::atomic<bool> m_Done{false};
+		std::atomic<bool> m_Run {true};
+		std::atomic<bool> m_Done {false};
 
 
-		bool m_Paused{true};
+		bool m_Paused {true};
 		std::condition_variable cv;
 		std::mutex m;
 	};
-} // namespace psl::async::details
+}	 // namespace psl::async::details
 
-scheduler::scheduler(std::optional<size_t> workers) noexcept
-	: m_Workers(workers.value_or(std::thread::hardware_concurrency() - 1))
+scheduler::scheduler(std::optional<size_t> workers) noexcept :
+	m_Workers(workers.value_or(std::thread::hardware_concurrency() - 1))
 {
 	m_Workerthreads.reserve(m_Workers);
 	for(auto i = 0; i < m_Workers; ++i)
@@ -125,16 +124,18 @@ void scheduler::execute()
 	};
 
 	// make sure no proxy objects exist
-	//assert(std::none_of(std::begin(m_Invocables), std::end(m_Invocables), [](const auto& ptr) { return ptr == nullptr; }) == true);
+	// assert(std::none_of(std::begin(m_Invocables), std::end(m_Invocables), [](const auto& ptr) { return ptr ==
+	// nullptr; }) == true);
 
-	psl::array<barrier> barriers{};
-	psl::array<size_t> done{};
+	psl::array<barrier> barriers {};
+	psl::array<size_t> done {};
 
 	psl::array<psl::view_ptr<details::packet>> inflight;
 	psl::array<psl::view_ptr<details::packet>> invocables;
 
-	std::transform(std::begin(m_Invocables), std::end(m_Invocables), std::back_inserter(invocables),
-				   [](auto& packet) { return psl::view_ptr<details::packet>(&packet); });
+	std::transform(std::begin(m_Invocables), std::end(m_Invocables), std::back_inserter(invocables), [](auto& packet) {
+		return psl::view_ptr<details::packet>(&packet);
+	});
 
 	for(auto packet : invocables)
 	{
@@ -144,7 +145,8 @@ void scheduler::execute()
 		{
 			m_Tasks.push(psl::view_ptr<details::packet>(packet));
 			inflight.emplace_back(packet);
-			barriers.insert(std::end(barriers), std::begin(packet->description().barriers()),
+			barriers.insert(std::end(barriers),
+							std::begin(packet->description().barriers()),
 							std::end(packet->description().barriers()));
 		}
 	}
@@ -152,7 +154,10 @@ void scheduler::execute()
 	{
 		auto inv_copy = std::move(invocables);
 		invocables.clear();
-		std::set_difference(std::begin(inv_copy), std::end(inv_copy), std::begin(inflight), std::end(inflight),
+		std::set_difference(std::begin(inv_copy),
+							std::end(inv_copy),
+							std::begin(inflight),
+							std::end(inflight),
 							std::back_inserter(invocables));
 	}
 	for(auto& thread : m_Workerthreads) thread->resume();
@@ -168,14 +173,16 @@ void scheduler::execute()
 			task->operator()();
 		}
 
-		if(auto it = std::stable_partition(std::begin(inflight), std::end(inflight),
+		if(auto it = std::stable_partition(std::begin(inflight),
+										   std::end(inflight),
 										   [](psl::view_ptr<details::packet> packet) { return !packet->is_ready(); });
 		   it != std::end(inflight))
 		{
 			// Add all ready inflight tasks to the done list, and sort the result. Then remove them from the infight.
 			auto done_mid = done.size();
-			std::transform(it, std::end(inflight), std::back_inserter(done),
-						   [](const auto& task) -> size_t { return task->operator size_t(); });
+			std::transform(it, std::end(inflight), std::back_inserter(done), [](const auto& task) -> size_t {
+				return task->operator size_t();
+			});
 
 			std::inplace_merge(std::begin(done), std::next(std::begin(done), done_mid), std::end(done));
 
@@ -187,7 +194,8 @@ void scheduler::execute()
 			barriers.clear();
 			for(auto& packet : inflight)
 			{
-				barriers.insert(std::end(barriers), std::begin(packet->description().barriers()),
+				barriers.insert(std::end(barriers),
+								std::begin(packet->description().barriers()),
 								std::end(packet->description().barriers()));
 			}
 
@@ -200,30 +208,38 @@ void scheduler::execute()
 				else
 					continue;
 
-				if(std::includes(std::begin(done), std::end(done), std::begin(packet->description().blockers()),
+				if(std::includes(std::begin(done),
+								 std::end(done),
+								 std::begin(packet->description().blockers()),
 								 std::end(packet->description().blockers())) &&
 				   compatible(packet->description().barriers(), barriers))
 				{
 					m_Tasks.push(psl::view_ptr<details::packet>(packet));
 					inflight.emplace_back(packet);
 
-					barriers.insert(std::end(barriers), std::begin(packet->description().barriers()),
+					barriers.insert(std::end(barriers),
+									std::begin(packet->description().barriers()),
 									std::end(packet->description().barriers()));
 				}
 			}
 
 			auto inv_copy = std::move(invocables);
 			invocables.clear();
-			std::set_difference(std::begin(inv_copy), std::end(inv_copy), std::next(std::begin(inflight), inflight_mid),
-								std::end(inflight), std::back_inserter(invocables));
+			std::set_difference(std::begin(inv_copy),
+								std::end(inv_copy),
+								std::next(std::begin(inflight), inflight_mid),
+								std::end(inflight),
+								std::back_inserter(invocables));
 
-			std::inplace_merge(std::begin(inflight), std::next(std::begin(inflight), inflight_mid), std::end(inflight),
+			std::inplace_merge(std::begin(inflight),
+							   std::next(std::begin(inflight), inflight_mid),
+							   std::end(inflight),
 							   [](const auto& lhs, const auto& rhs) { return *lhs < *rhs; });
 		}
 	}
 	for(auto& thread : m_Workerthreads) thread->pause();
 
-	assert_debug_break(m_Invocables.size() == done.size()); // check if all tasks are done
+	assert_debug_break(m_Invocables.size() == done.size());	   // check if all tasks are done
 	m_TokenOffset += m_Invocables.size();
 	m_Invocables.clear();
 }

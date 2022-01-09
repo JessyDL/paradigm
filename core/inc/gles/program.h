@@ -11,7 +11,9 @@ namespace core::igles
 	class program
 	{
 	  public:
-		program(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		program(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				psl::meta::file* metaFile,
 				core::resource::handle<core::data::material> data);
 		~program();
 		unsigned int id() const noexcept { return m_Program; }
@@ -19,4 +21,4 @@ namespace core::igles
 	  private:
 		unsigned int m_Program;
 	};
-} // namespace core::igles
+}	 // namespace core::igles

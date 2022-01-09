@@ -1,18 +1,18 @@
 #include "ecs/systems/text.h"
-#include "psl/ecs/state.h"
-#include "psl/ecs/pack.h"
-#include "meta/texture.h"
-#include "gfx/texture.h"
-#include "gfx/context.h"
-#include "gfx/buffer.h"
-#include "gfx/geometry.h"
-#include "gfx/bundle.h"
-#include "gfx/material.h"
-#include "gfx/sampler.h"
-#include "gfx/pipeline_cache.h"
-#include "meta/shader.h"
 #include "data/material.h"
 #include "data/sampler.h"
+#include "gfx/buffer.h"
+#include "gfx/bundle.h"
+#include "gfx/context.h"
+#include "gfx/geometry.h"
+#include "gfx/material.h"
+#include "gfx/pipeline_cache.h"
+#include "gfx/sampler.h"
+#include "gfx/texture.h"
+#include "meta/shader.h"
+#include "meta/texture.h"
+#include "psl/ecs/pack.h"
+#include "psl/ecs/state.h"
 
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
@@ -27,43 +27,52 @@ using namespace psl::ecs;
 using namespace core::resource;
 using namespace core::gfx;
 
-text::text(psl::ecs::state& state, cache& cache, handle<context> context,
+text::text(psl::ecs::state& state,
+		   cache& cache,
+		   handle<context> context,
 		   core::resource::handle<core::gfx::buffer> vertexBuffer,
 		   core::resource::handle<core::gfx::buffer> indexBuffer,
 		   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 		   core::resource::handle<core::gfx::buffer> materialBuffer,
-	core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
-	core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer)
-	: m_Cache(cache), m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context)
+		   core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
+		   core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer) :
+	m_Cache(cache),
+	m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context)
 {
-	psl::static_array<stbtt_bakedchar, 96> char_data{0};
+	psl::static_array<stbtt_bakedchar, 96> char_data {0};
 
-	auto view = cache.library().load("4944d446-7b9f-33b2-c6b7-468530c3afbe"_uid).value_or(psl::string_view{});
+	auto view = cache.library().load("b041e1ff-09a6-dbd3-efae-aa929a7317a2"_uid).value_or(psl::string_view {});
 
 	const int width				   = 1024;
 	const int height			   = 1024;
 	const float character_height   = 164.0f;
 	const int character_gen_offset = 32;
 	psl::array<std::byte> bitmap(width * height);
-	auto stbtt_res = stbtt_BakeFontBitmap((const unsigned char*)view.data(), 0, character_height,
-										  reinterpret_cast<unsigned char*>(bitmap.data()), width, height,
-										  character_gen_offset, static_cast<int>(char_data.size()), char_data.data());
+	auto stbtt_res = stbtt_BakeFontBitmap((const unsigned char*)view.data(),
+										  0,
+										  character_height,
+										  reinterpret_cast<unsigned char*>(bitmap.data()),
+										  width,
+										  height,
+										  character_gen_offset,
+										  static_cast<int>(char_data.size()),
+										  char_data.data());
 	character_data.reserve(char_data.size());
 	for(auto& c : char_data)
 	{
-		float xoff{};
-		float yoff{};
-		stbtt_aligned_quad aligned_quad{};
+		float xoff {};
+		float yoff {};
+		stbtt_aligned_quad aligned_quad {};
 		stbtt_GetBakedQuad(&c, width, height, 0, &xoff, &yoff, &aligned_quad, 1);
 
-		character_data.emplace_back(character_t{
-			psl::vec4{aligned_quad.s0, aligned_quad.t0, aligned_quad.s1, aligned_quad.t1},
-			psl::vec4{aligned_quad.x0, aligned_quad.y0, aligned_quad.x1, aligned_quad.y1} / character_height,
-			psl::vec2{xoff, yoff} / character_height});
+		character_data.emplace_back(character_t {
+		  psl::vec4 {aligned_quad.s0, aligned_quad.t0, aligned_quad.s1, aligned_quad.t1},
+		  psl::vec4 {aligned_quad.x0, aligned_quad.y0, aligned_quad.x1, aligned_quad.y1} / character_height,
+		  psl::vec2 {xoff, yoff} / character_height});
 	}
 
 	using meta_type = typename resource_traits<core::gfx::texture>::meta_type;
-	std::unique_ptr<meta_type> metaData{std::make_unique<meta_type>()};
+	std::unique_ptr<meta_type> metaData {std::make_unique<meta_type>()};
 	metaData->width(width);
 	metaData->height(height);
 	metaData->depth(1);
@@ -92,8 +101,8 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 	// samplerData->filter_max(core::gfx::filter::nearest);
 	auto samplerHandle = cache.create<gfx::sampler>(m_Context, samplerData);
 
-	auto vertShaderMeta = cache.library().get<core::meta::shader>("3982b466-58fe-4918-8735-fc6cc45378b0"_uid).value();
-	auto fragShaderMeta = cache.library().get<core::meta::shader>("e1408f20-2049-4ee5-b36c-528931c71b9e"_uid).value();
+	auto vertShaderMeta = cache.library().get<core::meta::shader>("0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid).value();
+	auto fragShaderMeta = cache.library().get<core::meta::shader>("db43dbb4-04ce-65f5-7415-d1fbc90d1aad"_uid).value();
 
 	auto matData = cache.create<data::material>();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
@@ -109,12 +118,19 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 		stage.bindings(bindings);
 		// binding.texture()
 	}
-	matData->blend_states({core::data::material::blendstate(
-		true, 0, core::gfx::blend_factor::source_alpha, core::gfx::blend_factor::one_minus_source_alpha,
-		core::gfx::blend_op::add, core::gfx::blend_factor::one, core::gfx::blend_factor::zero, core::gfx::blend_op::add,
-		core::gfx::component_bits::r | core::gfx::component_bits::g | core::gfx::component_bits::b |
-			core::gfx::component_bits::a)});
+	matData->blend_states(
+	  {core::data::material::blendstate(true,
+										0,
+										core::gfx::blend_factor::source_alpha,
+										core::gfx::blend_factor::one_minus_source_alpha,
+										core::gfx::blend_op::add,
+										core::gfx::blend_factor::one,
+										core::gfx::blend_factor::zero,
+										core::gfx::blend_op::add,
+										core::gfx::component_bits::r | core::gfx::component_bits::g |
+										  core::gfx::component_bits::b | core::gfx::component_bits::a)});
 	matData->stages(stages);
+	matData->cull_mode(core::gfx::cullmode::none);
 
 	auto material = m_Cache.create<core::gfx::material>(m_Context, matData, pipeline_cache, materialBuffer);
 
@@ -124,43 +140,85 @@ text::text(psl::ecs::state& state, cache& cache, handle<context> context,
 
 core::resource::handle<core::data::geometry> text::create_text(psl::string_view text)
 {
-	core::stream vertStream{core::stream::type::vec3};
-	core::stream normStream{core::stream::type::vec3};
-	core::stream colorStream{core::stream::type::vec4};
-	core::stream uvStream{core::stream::type::vec2};
+	core::stream vertStream {core::stream::type::vec3};
+	core::stream normStream {core::stream::type::vec3};
+	core::stream colorStream {core::stream::type::vec4};
+	core::stream uvStream {core::stream::type::vec2};
 
 	auto& vertices = vertStream.as_vec3().value().get();
 	auto& normals  = normStream.as_vec3().value().get();
 	auto& colors   = colorStream.as_vec4().value().get();
-	auto& uvs	  = uvStream.as_vec2().value().get();
+	auto& uvs	   = uvStream.as_vec2().value().get();
 
 	float right = 0;
+	float up	= 1.0f;
 
-	vertices.reserve(text.size() * 4);
-	uvs.reserve(text.size() * 4);
-	normals.resize(text.size() * 4);
-	std::fill(std::begin(normals), std::end(normals), psl::vec3::one);
-	colors.resize(text.size() * 4);
-	std::fill(std::begin(colors), std::end(colors), psl::vec4::one);
-
-	for(int character : text)
+	// validate for illegal characters in input.
 	{
-		character -= 32; // start offset
-		assert(character >= 0 && character <= character_data.size());
-		const auto& data = character_data[character];
+		const auto max_char = character_data.size() + 32;
+		for(int character : text)
+		{
+			assert((character >= 32 && character < max_char) || character == '\n' || character == '\t');
+		}
+	}
 
-		vertices.emplace_back(psl::vec3{right + data.quad[0], data.quad[3], 0.0f});
-		vertices.emplace_back(psl::vec3{right + data.quad[2], data.quad[3], 0.0f});
-		vertices.emplace_back(psl::vec3{right + data.quad[2], data.quad[1], 0.0f});
-		vertices.emplace_back(psl::vec3{right + data.quad[0], data.quad[1], 0.0f});
+	auto size = std::accumulate(std::begin(text), std::end(text), size_t {0u}, [](size_t sum, int character) -> size_t {
+		return sum + ((character == '\n') ? 0u : (character == '\t') ? 4u : 1u);
+	});
 
-		uvs.emplace_back(psl::vec2{data.uv[0], data.uv[3]});
-		uvs.emplace_back(psl::vec2{data.uv[2], data.uv[3]});
-		uvs.emplace_back(psl::vec2{data.uv[2], data.uv[1]});
-		uvs.emplace_back(psl::vec2{data.uv[0], data.uv[1]});
+	vertices.reserve(size * 4);
+	uvs.reserve(size * 4);
+
+	auto insert_character = [&vertices, &uvs](float& right, float up, const auto& data) {
+		vertices.emplace_back(psl::vec3 {right + data.quad[0], up - data.quad[3], 0.0f});
+		vertices.emplace_back(psl::vec3 {right + data.quad[2], up - data.quad[3], 0.0f});
+		vertices.emplace_back(psl::vec3 {right + data.quad[2], up - data.quad[1], 0.0f});
+		vertices.emplace_back(psl::vec3 {right + data.quad[0], up - data.quad[1], 0.0f});
+
+		uvs.emplace_back(psl::vec2 {data.uv[0], data.uv[3]});
+		uvs.emplace_back(psl::vec2 {data.uv[2], data.uv[3]});
+		uvs.emplace_back(psl::vec2 {data.uv[2], data.uv[1]});
+		uvs.emplace_back(psl::vec2 {data.uv[0], data.uv[1]});
 
 		right += data.offset.x;
+	};
+
+	size_t text_count {0u};
+	for(int character : text)
+	{
+		if(character == '\n')
+		{
+			right = 0.0f;
+			up -= 1.0f;
+			text_count = 0;
+			continue;
+		}
+
+		if(character == '\t')
+		{
+			character		 = ' ' - 32;
+			const auto& data = character_data[character];
+
+			for(auto i = 4 - text_count % 4; i > 0; --i)
+			{
+				insert_character(right, up, data);
+				++text_count;
+			}
+		}
+		else
+		{
+			const auto& data = character_data[character - 32];
+			insert_character(right, up, data);
+			++text_count;
+		}
 	}
+
+	const auto character_count = vertices.size() / 4;
+
+	normals.resize(vertices.size());
+	std::fill(std::begin(normals), std::end(normals), psl::vec3::one);
+	colors.resize(vertices.size());
+	std::fill(std::begin(colors), std::end(colors), psl::vec4::one);
 
 	auto geomData = m_Cache.create<core::data::geometry>();
 
@@ -169,8 +227,8 @@ core::resource::handle<core::data::geometry> text::create_text(psl::string_view 
 	geomData->vertices(core::data::geometry::constants::COLOR, colorStream);
 	geomData->vertices(core::data::geometry::constants::TEX, uvStream);
 
-	std::vector<uint32_t> indexBuffer(text.size() * 6);
-	for(auto i = 0, index = 0; i < text.size(); ++i)
+	std::vector<uint32_t> indexBuffer(character_count * 6);
+	for(auto i = 0u, index = 0u; i < character_count; ++i)
 	{
 		auto offset			 = i * 4;
 		indexBuffer[index++] = offset;
@@ -183,7 +241,6 @@ core::resource::handle<core::data::geometry> text::create_text(psl::string_view 
 	geomData->indices(indexBuffer);
 
 	utility::geometry::generate_tangents(geomData);
-
 	return geomData;
 }
 
@@ -193,34 +250,32 @@ void text::update_dynamic(info& info,
 {
 	for(auto [e, text, renderer] : pack)
 	{
-		renderer.geometry->recreate(create_text(text.value));
+		renderer.geometry->recreate(create_text(*text.value));
 	}
 }
 
 void text::add(info& info, pack<partial, entity, comp::text, on_add<comp::text>> pack)
 {
-
 	psl::array<entity> ents;
 	ents.resize(1);
 	for(auto [e, text] : pack)
 	{
-		ents[0] = e;
-		auto geomData   = create_text(text.value);
+		ents[0]			= e;
+		auto geomData	= create_text(*text.value);
 		auto geomHandle = m_Cache.create<gfx::geometry>(m_Context, geomData, m_VertexBuffer, m_IndexBuffer);
 		/*info.command_buffer.create(1, comp::transform{},
 			[&geomHandle, &bundle](comp::renderable& renderer) {
 				renderer.geometry = geomHandle;
 				renderer.bundle = bundle;
 			});*/
-		info.command_buffer.add_components(ents, comp::transform{},
-										   [&geomHandle, &bundle = m_Bundle](comp::renderable& renderer) {
-											   renderer.geometry = geomHandle;
-											   renderer.bundle   = bundle;
-										   });
+		info.command_buffer.add_components(ents, [&geomHandle, &bundle = m_Bundle](comp::renderable& renderer) {
+			renderer.geometry = geomHandle;
+			renderer.bundle	  = bundle;
+		});
 	}
 }
 
 void text::remove(info& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack)
 {
-	info.command_buffer.remove_components<comp::transform, comp::renderable, comp::dynamic_tag>(pack.get<entity>());
+	info.command_buffer.remove_components<comp::renderable>(pack.get<entity>());
 }

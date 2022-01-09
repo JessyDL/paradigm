@@ -12,17 +12,17 @@ namespace psl
 			friend class ring_array<T>;
 
 		  public:
-			using difference_type   = std::ptrdiff_t;
+			using difference_type	= std::ptrdiff_t;
 			using value_type		= T;
 			using pointer			= value_type*;
 			using reference			= value_type&;
 			using iterator_category = std::random_access_iterator_tag;
 
-			iterator(T* data, size_t begin = 0, size_t capacity = 0, size_t index = 0) noexcept
-				: m_Data(data), m_Begin(begin), m_Capacity(capacity), m_Index(index){};
+			iterator(T* data, size_t begin = 0, size_t capacity = 0, size_t index = 0) noexcept :
+				m_Data(data), m_Begin(begin), m_Capacity(capacity), m_Index(index) {};
 			iterator() noexcept					   = default;
 			iterator(const iterator& rhs) noexcept = default;
-			iterator(iterator&& rhs) noexcept	  = default;
+			iterator(iterator&& rhs) noexcept	   = default;
 			iterator& operator=(const iterator& rhs) noexcept = default;
 			iterator& operator=(iterator&& rhs) noexcept = default;
 			void swap(iterator& iter)
@@ -63,7 +63,7 @@ namespace psl
 			}
 			iterator operator++(int) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				++copy;
 				return copy;
 			}
@@ -74,7 +74,7 @@ namespace psl
 			}
 			iterator operator+(difference_type n) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				copy += n;
 				return copy;
 			}
@@ -85,7 +85,7 @@ namespace psl
 			}
 			iterator operator--(int) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				--copy;
 				return copy;
 			}
@@ -97,7 +97,7 @@ namespace psl
 			}
 			iterator operator-(difference_type n) const
 			{
-				auto copy{*this};
+				auto copy {*this};
 				copy -= n;
 				return copy;
 			}
@@ -105,10 +105,10 @@ namespace psl
 		  private:
 			inline size_t offset_of(size_t index) const noexcept { return ((m_Begin + index) % m_Capacity); };
 
-			pointer m_Data{nullptr};
-			size_t m_Begin{0u};
-			size_t m_Capacity{0u};
-			size_t m_Index{0u};
+			pointer m_Data {nullptr};
+			size_t m_Begin {0u};
+			size_t m_Capacity {0u};
+			size_t m_Index {0u};
 		};
 
 
@@ -131,8 +131,8 @@ namespace psl
 			}
 			delete[](m_Data);
 			newLoc -= m_Count;
-			m_Data	 = newLoc;
-			m_Begin	= newLoc;
+			m_Data	   = newLoc;
+			m_Begin	   = newLoc;
 			m_Capacity = size;
 		}
 		void resize(size_t size)
@@ -155,10 +155,10 @@ namespace psl
 				*(newLoc + i).T();
 			}*/
 
-			m_Data	 = newLoc;
-			m_Begin	= newLoc;
+			m_Data	   = newLoc;
+			m_Begin	   = newLoc;
 			m_Capacity = size;
-			m_Count	= size;
+			m_Count	   = size;
 		}
 
 		void erase(iterator location) noexcept
@@ -196,7 +196,7 @@ namespace psl
 
 			auto beginSize = beginIt.m_Index - begin().m_Index;
 			auto endSize   = end().m_Index - endIt.m_Index;
-			auto count	 = (endIt.m_Index) - beginIt.m_Index;
+			auto count	   = (endIt.m_Index) - beginIt.m_Index;
 
 			if(endSize == beginSize && endSize == 0)
 			{
@@ -204,7 +204,7 @@ namespace psl
 				return;
 			}
 
-			if(beginSize > endSize) // move end to begin
+			if(beginSize > endSize)	   // move end to begin
 			{
 				for(auto it = endIt, current = beginIt; it != end(); ++it, ++current)
 				{
@@ -320,8 +320,8 @@ namespace psl
 		size_t capacity() const noexcept { return m_Capacity; }
 
 
-		iterator begin() noexcept { return iterator{m_Data, start_of(), m_Capacity, 0}; }
-		iterator end() noexcept { return iterator{m_Data, end_of(), m_Capacity, m_Count}; }
+		iterator begin() noexcept { return iterator {m_Data, start_of(), m_Capacity, 0}; }
+		iterator end() noexcept { return iterator {m_Data, end_of(), m_Capacity, m_Count}; }
 
 	  private:
 		inline auto offset_of(size_t index) const noexcept { return (start_of() + index) & (m_Capacity - 1); }
@@ -338,4 +338,4 @@ namespace psl
 		size_t m_Count;
 		size_t m_Capacity;
 	};
-} // namespace psl
+}	 // namespace psl

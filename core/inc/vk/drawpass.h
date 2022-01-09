@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "psl/math/vec.h"
-#include "resource/resource.hpp"
-#include <vector>
-#include "vk/ivk.h"
 #include "psl/view_ptr.h"
+#include "resource/resource.hpp"
+#include "vk/ivk.h"
+#include <vector>
 
 namespace core::gfx
 {
@@ -15,7 +15,7 @@ namespace core::ivk
 	class context;
 	class framebuffer;
 	class swapchain;
-} // namespace core::ivk
+}	 // namespace core::ivk
 
 namespace core::ivk
 {
@@ -33,7 +33,7 @@ namespace core::ivk
 			float components[3];
 		};
 
-		depth_bias() : bias(psl::vec3::zero){};
+		depth_bias() : bias(psl::vec3::zero) {};
 	};
 
 	/// \brief a pass describes a start-to-finish sequence of commands to render into a set of rendertargets.
@@ -50,12 +50,12 @@ namespace core::ivk
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
 		drawpass(core::resource::handle<core::ivk::context> context,
-			 core::resource::handle<core::ivk::framebuffer> framebuffer);
+				 core::resource::handle<core::ivk::framebuffer> framebuffer);
 		/// \brief creates a pass that targets a swapchain image set.
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] swapchain the valid and loaded swapchain that this pass will output to.
 		drawpass(core::resource::handle<core::ivk::context> context,
-			 core::resource::handle<core::ivk::swapchain> swapchain);
+				 core::resource::handle<core::ivk::swapchain> swapchain);
 		~drawpass();
 		drawpass(const drawpass&) = delete;
 		drawpass(drawpass&&)	  = delete;
@@ -97,10 +97,12 @@ namespace core::ivk
 		bool is_swapchain() const noexcept;
 
 	  private:
-		void build_drawgroup(core::gfx::drawgroup& group, vk::CommandBuffer cmdBuffer,
+		void build_drawgroup(core::gfx::drawgroup& group,
+							 vk::CommandBuffer cmdBuffer,
 							 core::resource::handle<core::ivk::framebuffer> framebuffer,
 							 uint32_t index);
-		void build_drawgroup(core::gfx::drawgroup& group, vk::CommandBuffer cmdBuffer,
+		void build_drawgroup(core::gfx::drawgroup& group,
+							 vk::CommandBuffer cmdBuffer,
 							 core::resource::handle<core::ivk::swapchain> swapchain,
 							 uint32_t index);
 		/// \brief creates the vk::Fence's that will be used to sync access to this pass.
@@ -123,14 +125,14 @@ namespace core::ivk
 		std::vector<vk::CommandBuffer> m_DrawCommandBuffers;
 		uint32_t m_Buffers;
 		uint32_t m_CurrentBuffer;
-		uint64_t m_FrameCount{0u};
-		uint64_t m_LastBuildFrame{0};
+		uint64_t m_FrameCount {0u};
+		uint64_t m_LastBuildFrame {0};
 
 		core::ivk::depth_bias m_DepthBias;
 
 		// Contains command buffers and semaphores to be presented to the queue
 		vk::SubmitInfo m_SubmitInfo;
 		/** @brief Pipeline stages used to wait at for graphics queue submissions */
-		vk::PipelineStageFlags m_SubmitPipelineStages{vk::PipelineStageFlagBits::eColorAttachmentOutput};
+		vk::PipelineStageFlags m_SubmitPipelineStages {vk::PipelineStageFlagBits::eColorAttachmentOutput};
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk

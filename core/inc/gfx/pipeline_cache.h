@@ -1,7 +1,7 @@
 #pragma once
-#include <variant>
-#include "resource/resource.hpp"
 #include "fwd/gfx/pipeline_cache.h"
+#include "resource/resource.hpp"
+#include <variant>
 
 namespace core::gfx
 {
@@ -18,8 +18,10 @@ namespace core::gfx
 #endif
 
 
-		pipeline_cache(core::resource::cache& cache, const core::resource::metadata& metaData,
-					   psl::meta::file* metaFile, core::resource::handle<core::gfx::context> context);
+		pipeline_cache(core::resource::cache& cache,
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   core::resource::handle<core::gfx::context> context);
 		~pipeline_cache() = default;
 
 		pipeline_cache(const pipeline_cache& other)		= default;
@@ -39,7 +41,7 @@ namespace core::gfx
 		};
 
 	  private:
-		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::pipeline_cache> m_VKHandle;
 #endif
@@ -47,4 +49,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::program_cache> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

@@ -1,14 +1,14 @@
-﻿#include "logging.h"
-#include "vk/geometry.h"
-#include "data/geometry.h"
-#include "vk/buffer.h"
+﻿#include "vk/geometry.h"
 #include "data/buffer.h"
-#include "vk/material.h"
+#include "data/geometry.h"
 #include "data/material.h"
-#include "vk/shader.h"
+#include "gfx/types.h"
+#include "logging.h"
 #include "meta/shader.h"
 #include "resource/resource.hpp"
-#include "gfx/types.h"
+#include "vk/buffer.h"
+#include "vk/material.h"
+#include "vk/shader.h"
 
 using namespace psl;
 using namespace core::resource;
@@ -16,14 +16,17 @@ using namespace core;
 using namespace core::ivk;
 
 constexpr const vk::IndexType INDEX_TYPE =
-	sizeof(core::data::geometry::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
+  sizeof(core::data::geometry::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
 
-geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<core::ivk::context> context, core::resource::handle<core::data::geometry> data,
+geometry::geometry(core::resource::cache& cache,
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   handle<core::ivk::context> context,
+				   core::resource::handle<core::data::geometry> data,
 				   core::resource::handle<core::ivk::buffer> geometryBuffer,
-				   core::resource::handle<core::ivk::buffer> indicesBuffer)
-	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer),
-	  m_UID(metaData.uid)
+				   core::resource::handle<core::ivk::buffer> indicesBuffer) :
+	m_Context(context),
+	m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
 {
 	recreate(m_Data);
 }
@@ -37,66 +40,70 @@ geometry::~geometry()
 
 void geometry::clear()
 {
-	for (auto& binding : m_Bindings)
+	for(auto& binding : m_Bindings)
 	{
 		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
 		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
 		// begin 0
-		if (binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
+		if(binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
 	}
 	m_Bindings.clear();
 	// same as the earlier comment for geometry buffer
-	if (m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0)
+		m_IndicesBuffer->deallocate(m_IndicesSegment);
+
+	m_Data = {};
 }
 void geometry::recreate(core::resource::handle<core::data::geometry> data)
 {
 	clear();
 	std::vector<vk::DeviceSize> sizeRequests;
-	sizeRequests.reserve(m_Data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
-	std::for_each(std::begin(m_Data->vertex_streams()), std::end(m_Data->vertex_streams()),
-		[&sizeRequests](const std::pair<psl::string, core::stream>& element) {
-			sizeRequests.emplace_back((uint32_t)element.second.bytesize());
-		});
+	sizeRequests.reserve(data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
+	std::for_each(std::begin(data->vertex_streams()),
+				  std::end(data->vertex_streams()),
+				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
+					  sizeRequests.emplace_back((uint32_t)element.second.bytesize());
+				  });
 
-	if (m_GeometryBuffer == m_IndicesBuffer)
+	if(m_GeometryBuffer == m_IndicesBuffer)
 	{
-		sizeRequests.emplace_back((uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
 	}
 
 	auto segments = m_GeometryBuffer->reserve(sizeRequests, true);
-	if (segments.size() == 0)
+	if(segments.size() == 0)
 	{
 		core::ivk::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
 	}
-	assert(m_Data->vertex_streams().size() > 0);
-	m_Vertices = std::begin(m_Data->vertex_streams())->second.size();
+	assert(data->vertex_streams().size() > 0);
+	m_Vertices = std::begin(data->vertex_streams())->second.size();
 	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
-	for (const auto& stream : m_Data->vertex_streams())
+	for(const auto& stream : data->vertex_streams())
 	{
 		assert(m_Vertices == stream.second.size());
-		auto& instr = instructions.emplace_back();
-		instr.size = stream.second.bytesize();
-		instr.source = (std::uintptr_t)(stream.second.cdata());
+		auto& instr	  = instructions.emplace_back();
+		instr.size	  = stream.second.bytesize();
+		instr.source  = (std::uintptr_t)(stream.second.cdata());
 		instr.segment = segments[i].first;
-		if (segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
+		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 
-		auto& b = m_Bindings.emplace_back();
-		b.name = stream.first;
-		b.segment = segments[i].first;
+		auto& b		= m_Bindings.emplace_back();
+		b.name		= stream.first;
+		b.segment	= segments[i].first;
 		b.sub_range = segments[i].second;
 		++i;
 	}
 
-	if (m_GeometryBuffer != m_IndicesBuffer)
+	if(m_GeometryBuffer != m_IndicesBuffer)
 	{
-		if (auto indiceSegment = m_IndicesBuffer->reserve(
-			(uint32_t)(m_Data->indices().size() * sizeof(core::data::geometry::index_size_t)));
-			indiceSegment)
+		if(auto indiceSegment =
+			 m_IndicesBuffer->reserve((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+		   indiceSegment)
 		{
-			m_IndicesSegment = indiceSegment.value();
-			m_IndicesSubRange = memory::range{ 0, m_IndicesSegment.range().size() };
+			m_IndicesSegment  = indiceSegment.value();
+			m_IndicesSubRange = memory::range {0, m_IndicesSegment.range().size()};
 		}
 		else
 		{
@@ -105,39 +112,39 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 			exit(1);
 		}
 		gfx::commit_instruction instr;
-		instr.size = m_IndicesSegment.range().size();
-		instr.source = (std::uintptr_t)m_Data->indices().data();
+		instr.size	  = m_IndicesSegment.range().size();
+		instr.source  = (std::uintptr_t)data->indices().data();
 		instr.segment = m_IndicesSegment;
-		m_IndicesBuffer->commit({ instr });
+		m_IndicesBuffer->commit({instr});
 	}
 	else
 	{
-		i = segments.size() - 1;
-		auto& instr = instructions.emplace_back();
-		instr.size = segments[i].second.size();
-		instr.source = (std::uintptr_t)m_Data->indices().data();
+		i			  = segments.size() - 1;
+		auto& instr	  = instructions.emplace_back();
+		instr.size	  = segments[i].second.size();
+		instr.source  = (std::uintptr_t)data->indices().data();
 		instr.segment = segments[i].first;
-		if (segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
+		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 
-		m_IndicesSegment = segments[i].first;
+		m_IndicesSegment  = segments[i].first;
 		m_IndicesSubRange = segments[i].second;
 	}
 
 	m_Triangles = (m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t)) / 3u;
 
 	m_GeometryBuffer->commit(instructions);
+	m_Data = data;
 }
 void geometry::recreate(core::resource::handle<core::data::geometry> data,
-	core::resource::handle<core::ivk::buffer> geometryBuffer,
-	core::resource::handle<core::ivk::buffer> indicesBuffer)
+						core::resource::handle<core::ivk::buffer> geometryBuffer,
+						core::resource::handle<core::ivk::buffer> indicesBuffer)
 {
 	clear();
 
-	m_Data = data;
 	m_GeometryBuffer = geometryBuffer;
-	m_IndicesBuffer = indicesBuffer;
+	m_IndicesBuffer	 = indicesBuffer;
 
-	recreate(m_Data);	
+	recreate(data);
 }
 
 
@@ -162,8 +169,8 @@ bool geometry::compatible(const core::ivk::material& material) const noexcept
 			continue;
 
 		error:
-			core::ivk::log->error("missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(),
-								  utility::to_string(m_UID));
+			core::ivk::log->error(
+			  "missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(), utility::to_string(m_UID));
 			return false;
 		}
 	}
@@ -179,29 +186,20 @@ void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& materi
 			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
 
 			auto binding = std::find_if(
-				std::begin(m_Bindings), std::end(m_Bindings), [tag = attribute.tag()](const auto& binding) noexcept {
-					return binding.name == tag.data();
-				});
+			  std::begin(m_Bindings), std::end(m_Bindings), [tag = attribute.tag()](const auto& binding) noexcept {
+				  return binding.name == tag.data();
+			  });
 
-			auto offset = vk::DeviceSize{binding->segment.range().begin + binding->sub_range.begin};
+			auto offset = vk::DeviceSize {binding->segment.range().begin + binding->sub_range.begin};
 			buffer.bindVertexBuffers(attribute.location(), 1, &m_GeometryBuffer->gpu_buffer(), &offset);
 		}
 	}
 
-	buffer.bindIndexBuffer(m_IndicesBuffer->gpu_buffer(), m_IndicesSegment.range().begin + m_IndicesSubRange.begin,
-						   INDEX_TYPE);
+	buffer.bindIndexBuffer(
+	  m_IndicesBuffer->gpu_buffer(), m_IndicesSegment.range().begin + m_IndicesSubRange.begin, INDEX_TYPE);
 }
 
 
-size_t geometry::vertices() const noexcept
-{
-	return m_Vertices;
-}
-size_t geometry::triangles() const noexcept
-{
-	return m_Vertices;
-}
-size_t geometry::indices() const noexcept
-{
-	return m_Vertices * 3;
-}
+size_t geometry::vertices() const noexcept { return m_Vertices; }
+size_t geometry::triangles() const noexcept { return m_Vertices; }
+size_t geometry::indices() const noexcept { return m_Vertices * 3; }

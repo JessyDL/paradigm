@@ -2,9 +2,9 @@
 
 #include "gfx/drawcall.h"
 #include "gfx/drawlayer.h"
+#include "resource/resource.hpp"
 #include <map>
 #include <vector>
-#include "resource/resource.hpp"
 
 #ifdef PE_VULKAN
 namespace core::ivk
@@ -62,4 +62,4 @@ namespace core::gfx
 	  private:
 		std::map<drawlayer, std::vector<drawcall>> m_Group;
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

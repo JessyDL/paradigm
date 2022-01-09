@@ -1,18 +1,18 @@
 #pragma once
-#include <atomic>
+#include "../token.h"
+#include "description.h"
 #include "psl/unique_ptr.h"
 #include "psl/view_ptr.h"
-#include "description.h"
 #include "task.h"
-#include "../token.h"
+#include <atomic>
 
 namespace psl::async::details
 {
 	struct packet
 	{
 	  public:
-		packet(token token, psl::unique_ptr<details::task_base>&& task) noexcept
-			: m_Token(token), m_Task(std::move(task))
+		packet(token token, psl::unique_ptr<details::task_base>&& task) noexcept :
+			m_Token(token), m_Task(std::move(task))
 		{
 			m_Done.store(false, std::memory_order_relaxed);
 		}
@@ -26,10 +26,10 @@ namespace psl::async::details
 
 		packet(const packet& other) = delete;
 		packet& operator=(const packet& other) = delete;
-		packet(packet&& other) noexcept
-			: m_Description(std::move(other.m_Description)), m_Dependencies(std::move(other.m_Dependencies)),
-			  m_Token(other.m_Token), m_Task(std::move(other.m_Task)), m_Heuristic(other.m_Heuristic),
-			  m_Done(other.m_Done.load(std::memory_order_acquire)){};
+		packet(packet&& other) noexcept :
+			m_Description(std::move(other.m_Description)), m_Dependencies(std::move(other.m_Dependencies)),
+			m_Token(other.m_Token), m_Task(std::move(other.m_Task)), m_Heuristic(other.m_Heuristic),
+			m_Done(other.m_Done.load(std::memory_order_acquire)) {};
 		packet& operator=(packet&& other) noexcept
 		{
 			if(this != &other)
@@ -38,7 +38,7 @@ namespace psl::async::details
 				m_Dependencies = std::move(other.m_Dependencies);
 				m_Token		   = other.m_Token;
 				m_Task		   = std::move(other.m_Task);
-				m_Heuristic	= other.m_Heuristic;
+				m_Heuristic	   = other.m_Heuristic;
 				m_Done.store(other.m_Done.load(std::memory_order_acquire), std::memory_order_relaxed);
 			}
 			return *this;
@@ -67,11 +67,11 @@ namespace psl::async::details
 		void substitute(psl::unique_ptr<details::task_base>&& task) { m_Task = std::move(task); }
 
 	  private:
-		details::description m_Description{};
-		psl::array<psl::view_ptr<packet>> m_Dependencies{}; // things I depend on
+		details::description m_Description {};
+		psl::array<psl::view_ptr<packet>> m_Dependencies {};	// things I depend on
 		token m_Token;
 		psl::unique_ptr<details::task_base> m_Task;
-		int64_t m_Heuristic{0};
+		int64_t m_Heuristic {0};
 		std::atomic<bool> m_Done;
 	};
-} // namespace psl::async::details
+}	 // namespace psl::async::details

@@ -13,8 +13,9 @@ namespace utility::application::path
 	/// \note even though the path is absolute, don't expect it to look like a windows path on other platforms.
 	psl::string get_path();
 
-	/// \brief location where the application is being ran from, check utility::application::path::get_path() for more info.
-	static const psl::string project   = get_path();
+	/// \brief location where the application is being ran from, check utility::application::path::get_path() for more
+	/// info.
+	static const psl::string project = get_path();
 	/// \brief data path on this platform.
 	static const psl::string data = project + "data/";
 	/// \brief library path on this platform.
@@ -26,11 +27,11 @@ namespace utility::application::path
 	/// \brief materials path on this platform.
 	static const psl::string materials = data + "materials/";
 	/// \brief models path on this platform.
-	static const psl::string models	= data + "models/";
+	static const psl::string models = data + "models/";
 	/// \brief shaders path on this platform.
-	static const psl::string shaders   = data + "shaders/";
+	static const psl::string shaders = data + "shaders/";
 	/// \brief samplers path on this platform.
-	static const psl::string samplers  = data + "samplers/";
+	static const psl::string samplers = data + "samplers/";
 	/// \brief worlds path on this platform.
-	static const psl::string worlds	= data + "worlds/";
-} // namespace utility::application::path
+	static const psl::string worlds = data + "worlds/";
+}	 // namespace utility::application::path

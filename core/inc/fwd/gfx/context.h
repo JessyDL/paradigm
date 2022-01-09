@@ -20,17 +20,17 @@ namespace core::gfx
 	class context;
 
 #ifdef PE_VULKAN
-	template<>
+	template <>
 	struct backend_type<context, graphics_backend::vulkan>
 	{
 		using type = core::ivk::context;
 	};
 #endif
 #ifdef PE_GLES
-	template<>
+	template <>
 	struct backend_type<context, graphics_backend::gles>
 	{
 		using type = core::igles::context;
 	};
 #endif
-} // namespace core::gfx
+}	 // namespace core::gfx

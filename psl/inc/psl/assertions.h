@@ -1,4 +1,5 @@
 #pragma once
+#include "psl/ustring.h"
 #include <cassert>
 
 
@@ -80,15 +81,28 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #undef assert
 #ifdef NDEBUG
 
-#define assert(expression) ((void)0)
+#define assert(expression, ...) ((void)0)
 
 #else
 
-#define assert(expression) (void)((!!(expression)) || (debug_break(), 0))
-
+#define assert(expression, ...) (void)((!!(expression)) || (debug_break(), 0))
 #endif
 #endif
 
+#ifdef DEBUG
+#ifdef PLATFORM_WINDOWS
+#define psl_assert(expression, message)                                                                                \
+	(void)((!!(expression)) ||                                                                                         \
+		   (_wassert((wchar_t*)(psl::string8::to_string16_t(message + " in expression:" + #expression)).data(),        \
+					 _CRT_WIDE(__FILE__),                                                                              \
+					 (unsigned)(__LINE__)),                                                                            \
+			(debug_break(), 0))
+#else
+#define psl_assert(expression, message) assert(expression, message)
+#endif
+#else
+#define psl_assert(expression, message)
+#endif
 
 #if !defined(NDEBUG) || (NDEBUG == 0)
 #define dbg_assert(expr)                                                                                               \

@@ -1,14 +1,14 @@
 #pragma once
-#include "resource/resource.hpp"
-#include "psl/math/math.hpp"
 #include "gfx/context.h"
+#include "psl/math/math.hpp"
 #include "psl/memory/segment.h"
+#include "resource/resource.hpp"
 
 namespace core::gfx
 {
 	class buffer;
 	struct shader_buffer_binding;
-} // namespace core::gfx
+}	 // namespace core::gfx
 namespace core::os
 {
 	class surface;
@@ -19,7 +19,7 @@ namespace core::ecs::components
 	struct transform;
 	struct renderable;
 	struct camera;
-} // namespace core::ecs::components
+}	 // namespace core::ecs::components
 
 namespace psl::ecs
 {
@@ -28,14 +28,13 @@ namespace psl::ecs
 
 	template <typename... Ts>
 	class pack;
-} // namespace psl::ecs
+}	 // namespace psl::ecs
 namespace core::ecs::systems
 {
 	class gpu_camera
 	{
-
-		const psl::mat4x4 clip{1.0f,  0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f,
-							   +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f,  0.5f, 1.0f};
+		const psl::mat4x4
+		  clip {1.0f, 0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f, +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f, 0.5f, 1.0f};
 
 	  public:
 		struct framedata
@@ -55,19 +54,22 @@ namespace core::ecs::systems
 			psl::quat viewDirQuat;
 		};
 
-		gpu_camera(psl::ecs::state& state, core::resource::handle<core::os::surface> surface,
-				   core::resource::handle<core::gfx::shader_buffer_binding> binding, core::gfx::graphics_backend backend);
+		gpu_camera(psl::ecs::state& state,
+				   core::resource::handle<core::os::surface> surface,
+				   core::resource::handle<core::gfx::shader_buffer_binding> binding,
+				   core::gfx::graphics_backend backend);
 		void tick(psl::ecs::info& info,
 				  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
 
 	  private:
-		void update_buffer(size_t index, const core::ecs::components::transform& transform,
+		void update_buffer(size_t index,
+						   const core::ecs::components::transform& transform,
 						   const core::ecs::components::camera& camera);
 
 		core::resource::handle<core::os::surface> m_Surface;
 		core::resource::handle<core::gfx::shader_buffer_binding> m_Binding;
-		size_t m_Max{0};
+		size_t m_Max {0};
 		core::gfx::graphics_backend m_Backend;
 	};
 
-} // namespace core::ecs::systems
+}	 // namespace core::ecs::systems

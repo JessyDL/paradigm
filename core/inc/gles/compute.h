@@ -1,9 +1,9 @@
 #pragma once
-#include "fwd/resource/resource.h"
-#include "resource/handle.h"
 #include "fwd/gles/compute.h"
 #include "fwd/gles/texture.h"
+#include "fwd/resource/resource.h"
 #include "psl/array_view.h"
+#include "resource/handle.h"
 
 namespace core::data
 {
@@ -28,21 +28,24 @@ namespace core::igles
 	class compute
 	{
 	  public:
-		compute(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
+		compute(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				psl::meta::file* metaFile,
 				core::resource::handle<core::data::material> data,
 				core::resource::handle<core::igles::program_cache> program_cache);
 		~compute();
 
-		compute(const compute& other)	 = delete;
+		compute(const compute& other)	  = delete;
 		compute(compute&& other) noexcept = delete;
 		compute& operator=(const compute& other) = delete;
 		compute& operator=(compute&& other) noexcept = delete;
 
-		void dispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z = 1u) const
-			noexcept;
+		void
+		dispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z = 1u) const noexcept;
 
 		psl::array<core::resource::handle<core::igles::texture>> textures() const noexcept;
 		psl::array<core::resource::handle<core::igles::buffer>> buffers() const noexcept;
+
 	  private:
 		psl::meta::file* m_Meta;
 		core::resource::handle<core::igles::program> m_Program;
@@ -52,4 +55,4 @@ namespace core::igles
 		psl::array<std::pair<uint32_t, core::resource::handle<core::igles::texture>>> m_OutputTextures;
 		psl::array<std::pair<uint32_t, core::resource::handle<core::igles::buffer>>> m_OutputBuffers;
 	};
-} // namespace core::igles
+}	 // namespace core::igles

@@ -4,7 +4,7 @@
 namespace core::ivk
 {
 	class texture;
-} // namespace core::ivk
+}	 // namespace core::ivk
 
 namespace core::meta
 {
@@ -17,4 +17,4 @@ namespace core::resource
 	{
 		using meta_type = core::meta::texture;
 	};
-} // namespace core::resource
+}	 // namespace core::resource

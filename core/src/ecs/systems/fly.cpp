@@ -15,8 +15,8 @@ fly::fly(psl::ecs::state& state, core::systems::input& inputSystem) : m_InputSys
 fly::~fly() { m_InputSystem.unsubscribe(this); }
 
 void fly::tick(
-	psl::ecs::info& info,
-	psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables)
+  psl::ecs::info& info,
+  psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables)
 {
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
 	if(bHasRotated)
@@ -36,7 +36,7 @@ void fly::tick(
 
 	for(auto [transform] : movables)
 	{
-		vec3 accDirectionVec{0};
+		vec3 accDirectionVec {0};
 		auto direction = transform.rotation * vec3::forward;
 		auto up		   = vec3::up;
 		// m_transform.position(m_transform.position() + (m_MoveVector * dTime.count()));
@@ -68,7 +68,8 @@ void fly::tick(
 		if(hasMoved)
 		{
 			transform.position = transform.position + normalize(accDirectionVec) *
-														  ((m_Boost) ? m_MoveSpeed * 40 : m_MoveSpeed) * info.rTime.count();
+														((m_Boost) ? m_MoveSpeed * 40 : m_MoveSpeed) *
+														info.rTime.count();
 			accDirectionVec = psl::vec3::zero;
 		}
 		if(bHasRotated)
@@ -89,9 +90,9 @@ void fly::tick(
 			// FPS camera:  RotationX(pitch) * RotationY(yaw)
 			psl::quat qPitch   = angle_axis(radians(m_AngleV), axis);
 			transform.rotation = normalize(qPitch) * transform.rotation;
-			psl::quat qYaw	 = angle_axis(radians(m_AngleH), up);
+			psl::quat qYaw	   = angle_axis(radians(m_AngleH), up);
 			transform.rotation = normalize(qYaw) * transform.rotation;
-			psl::quat qRoll	= angle_axis(0.0f, vec3(0, 0, 1));
+			psl::quat qRoll	   = angle_axis(0.0f, vec3(0, 0, 1));
 			transform.rotation = normalize(qRoll) * transform.rotation;
 
 			// For a FPS camera we can omit roll
@@ -114,25 +115,38 @@ void fly::on_key_pressed(core::systems::input::keycode keyCode)
 	using keycode_t = core::systems::input::keycode;
 	switch(keyCode)
 	{
-	case keycode_t::Z: { m_Moving[0] = true;
+	case keycode_t::Z:
+	{
+		m_Moving[0] = true;
 	}
 	break;
-	case keycode_t::Q: { m_Moving[2] = true;
+	case keycode_t::Q:
+	{
+		m_Moving[2] = true;
 	}
 	break;
-	case keycode_t::S: { m_Moving[1] = true;
+	case keycode_t::S:
+	{
+		m_Moving[1] = true;
 	}
 	break;
-	case keycode_t::D: { m_Moving[3] = true;
+	case keycode_t::D:
+	{
+		m_Moving[3] = true;
 	}
 	break;
-	case keycode_t::SPACE: { m_Up = true;
+	case keycode_t::SPACE:
+	{
+		m_Up = true;
 	}
 	break;
-	case keycode_t::LEFT_SHIFT: { m_Boost = true;
+	case keycode_t::LEFT_SHIFT:
+	{
+		m_Boost = true;
 	}
 	break;
-	default: break;
+	default:
+		break;
 	}
 }
 
@@ -141,31 +155,44 @@ void fly::on_key_released(core::systems::input::keycode keyCode)
 	using keycode_t = core::systems::input::keycode;
 	switch(keyCode)
 	{
-	case keycode_t::Z: { m_Moving[0] = false;
+	case keycode_t::Z:
+	{
+		m_Moving[0] = false;
 	}
 	break;
-	case keycode_t::Q: { m_Moving[2] = false;
+	case keycode_t::Q:
+	{
+		m_Moving[2] = false;
 	}
 	break;
-	case keycode_t::S: { m_Moving[1] = false;
+	case keycode_t::S:
+	{
+		m_Moving[1] = false;
 	}
 	break;
-	case keycode_t::D: { m_Moving[3] = false;
+	case keycode_t::D:
+	{
+		m_Moving[3] = false;
 	}
 	break;
-	case keycode_t::SPACE: { m_Up = false;
+	case keycode_t::SPACE:
+	{
+		m_Up = false;
 	}
 	break;
-	case keycode_t::LEFT_SHIFT: { m_Boost = false;
+	case keycode_t::LEFT_SHIFT:
+	{
+		m_Boost = false;
 	}
 	break;
-	default: break;
+	default:
+		break;
 	}
 }
 
 void fly::on_mouse_move(core::systems::input::mouse_delta delta)
 {
-	//if(!m_AllowRotating) return;
+	// if(!m_AllowRotating) return;
 	m_MouseTargetX += delta.x;
 	m_MouseTargetY += delta.y;
 }
@@ -178,12 +205,12 @@ void fly::on_scroll(core::systems::input::scroll_delta delta)
 
 void fly::on_mouse_pressed(core::systems::input::mousecode mCode)
 {
-	//if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = true;
+	// if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = true;
 }
 
 void fly::on_mouse_released(core::systems::input::mousecode mCode)
 {
-	//if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = false;
+	// if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = false;
 }
 
 void fly::pitch_to(float degrees)

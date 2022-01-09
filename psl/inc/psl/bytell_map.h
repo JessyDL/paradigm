@@ -5,7 +5,7 @@
 
 namespace psl
 {
-	template<typename KT, typename VT>
+	template <typename KT, typename VT>
 	using bytell_map = ska::bytell_hash_map<KT, VT>;
 }
 
@@ -13,7 +13,7 @@ namespace psl
 #include <unordered_map>
 namespace psl
 {
-	template<typename KT, typename VT>
+	template <typename KT, typename VT>
 	using bytell_map = std::unordered_map<KT, VT>;
 }
 #endif

@@ -1,8 +1,8 @@
 ﻿#pragma once
-#include <optional>
-#include "vk/ivk.h"
 #include "fwd/resource/resource.h"
 #include "gfx/limits.h"
+#include "vk/ivk.h"
+#include <optional>
 
 namespace core::ivk
 {
@@ -96,7 +96,7 @@ namespace core::ivk
 		NV_viewport_array2,
 		NV_viewport_swizzle
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk
 
 namespace psl
 {
@@ -126,39 +126,42 @@ namespace core::ivk
 		template <typename T>
 		using optional_ref = std::optional<std::reference_wrapper<T>>;
 
-		context(core::resource::cache &cache, const core::resource::metadata &metaData, psl::meta::file *metaFile,
-				psl::string8::view name, uint32_t deviceIndex = 0u);
+		context(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				psl::meta::file* metaFile,
+				psl::string8::view name,
+				uint32_t deviceIndex = 0u);
 		~context();
-		context(const context &) = delete;
-		context(context &&)		 = delete;
-		context &operator=(const context &) = delete;
-		context &operator=(context &&) = delete;
+		context(const context&) = delete;
+		context(context&&)		= delete;
+		context& operator=(const context&) = delete;
+		context& operator=(context&&) = delete;
 
 		/// \returns the vk::Instance of this context.
-		const vk::Instance &instance() const noexcept;
+		const vk::Instance& instance() const noexcept;
 		/// \returns the vk::Device of this context.
-		const vk::Device &device() const noexcept;
+		const vk::Device& device() const noexcept;
 		/// \returns the vk::PhysicalDevice of this context.
-		const vk::PhysicalDevice &physical_device() const noexcept;
+		const vk::PhysicalDevice& physical_device() const noexcept;
 
 		/// \returns the physical device properties (for e.g. checking device limits)
-		const vk::PhysicalDeviceProperties &properties() const noexcept;
+		const vk::PhysicalDeviceProperties& properties() const noexcept;
 		/// \returns the physical device features (for e.g. checking if a feature is available)
-		const vk::PhysicalDeviceFeatures &features() const noexcept;
+		const vk::PhysicalDeviceFeatures& features() const noexcept;
 		/// \returns the available memory (type) properties for the physical device
-		const vk::PhysicalDeviceMemoryProperties &memory_properties() const noexcept;
+		const vk::PhysicalDeviceMemoryProperties& memory_properties() const noexcept;
 
 		const core::gfx::limits& limits() const noexcept { return m_Limits; };
 
 		/// \returns the command_pool that commands can be enqueued on.
-		const vk::CommandPool &command_pool() const noexcept;
-		const vk::CommandPool &transfer_command_pool() const noexcept;
+		const vk::CommandPool& command_pool() const noexcept;
+		const vk::CommandPool& transfer_command_pool() const noexcept;
 		/// \returns the descriptor pool for allocating various pipeline descriptors.
-		const vk::DescriptorPool &descriptor_pool() const noexcept;
+		const vk::DescriptorPool& descriptor_pool() const noexcept;
 
 		/// \returns the device queue for enqueuing commands.
-		const vk::Queue &queue() const noexcept;
-		const vk::Queue &transfer_queue() const noexcept;
+		const vk::Queue& queue() const noexcept;
+		const vk::Queue& transfer_queue() const noexcept;
 
 		/// \returns the queue index the graphics pipeline is running on.
 		uint32_t graphics_queue_index() const noexcept;
@@ -169,15 +172,15 @@ namespace core::ivk
 		/// requested memory type (i.e. should it be device local, or host, etc...). \param[in, out] typeIndex the
 		/// location to store the memory_type index in (on success). \returns if the current context supports a memory
 		/// type with the specific properties.
-		vk::Bool32 memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags &properties, uint32_t *typeIndex) const
-			noexcept;
+		vk::Bool32
+		memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties, uint32_t* typeIndex) const noexcept;
 
 		/// \param[in] typeBits the MemoryRequirements you get back from vulkan query operations that resquest the
 		/// requirements for resources (like textures and buffers).
 		/// \param[in] properties the MemoryPropertyFlags of the
 		/// requested memory type (i.e. should it be device local, or host, etc...).
 		/// \returns a memory type index that supports the given properties.
-		uint32_t memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags &properties) const;
+		uint32_t memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties) const;
 
 		/// \brief flushes all operations on the given commandbuffer and potentially free it at the end.
 		/// \param[in] commandBuffer the command buffer to execute the operations on.
@@ -207,19 +210,19 @@ namespace core::ivk
 		void deinit_command_pool();
 		void deinit_descriptor_pool();
 
-		vk::Result create_device(vk::DeviceQueueCreateInfo *requestedQueues, uint32_t queueSize, vk::Device &device);
+		vk::Result create_device(vk::DeviceQueueCreateInfo* requestedQueues, uint32_t queueSize, vk::Device& device);
 		// from a list of all devices, select the one that is the most appropriate (usually the one with the best
 		// capabilities)
-		void select_physical_device(const std::vector<vk::PhysicalDevice> &allDevices);
+		void select_physical_device(const std::vector<vk::PhysicalDevice>& allDevices);
 
-		bool queue_index(vk::QueueFlags flags, vk::Queue &queue, uint32_t &queueIndex);
+		bool queue_index(vk::QueueFlags flags, vk::Queue& queue, uint32_t& queueIndex);
 
 		const bool m_Validated = VULKAN_ENABLE_VALIDATION;
-		std::vector<const char *> m_InstanceLayerList;
-		std::vector<const char *> m_InstanceExtensionList;
+		std::vector<const char*> m_InstanceLayerList;
+		std::vector<const char*> m_InstanceExtensionList;
 
-		std::vector<const char *> m_DeviceLayerList;
-		std::vector<const char *> m_DeviceExtensionList;
+		std::vector<const char*> m_DeviceLayerList;
+		std::vector<const char*> m_DeviceExtensionList;
 
 		vk::Instance m_Instance;
 
@@ -259,4 +262,4 @@ namespace core::ivk
 		Memory m_HostMemory;
 		uint32_t m_DeviceIndex;
 	};
-} // namespace core::ivk
+}	 // namespace core::ivk

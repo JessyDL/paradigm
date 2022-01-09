@@ -1,24 +1,23 @@
 
 #pragma once
-#include "entity.h"
-#include "selectors.h"
-#include "psl/pack_view.h"
 #include "command_buffer.h"
-#include "psl/IDGenerator.h"
-#include "psl/array.h"
+#include "details/component_info.h"
 #include "details/component_key.h"
 #include "details/entity_info.h"
-#include "details/component_info.h"
 #include "details/system_information.h"
-#include "psl/unique_ptr.h"
-#include "psl/static_array.h"
-#include <chrono>
-#include "psl/async/async.hpp"
-#include "psl/template_utils.h"
-#include <functional>
-#include "psl/memory/raw_region.h"
 #include "entity.h"
 #include "filtering.h"
+#include "psl/IDGenerator.h"
+#include "psl/array.h"
+#include "psl/async/async.hpp"
+#include "psl/memory/raw_region.h"
+#include "psl/pack_view.h"
+#include "psl/static_array.h"
+#include "psl/template_utils.h"
+#include "psl/unique_ptr.h"
+#include "selectors.h"
+#include <chrono>
+#include <functional>
 #if __has_include(<execution>)
 #include <execution>
 #else
@@ -27,18 +26,18 @@ namespace std::execution
 	class sequenced_policy
 	{};
 
-	inline constexpr sequenced_policy seq{};
+	inline constexpr sequenced_policy seq {};
 
 	class parallel_policy
 	{};
 
-	inline constexpr parallel_policy par{};
+	inline constexpr parallel_policy par {};
 
 	class parallel_unsequenced_policy
 	{};
 
-	inline constexpr parallel_unsequenced_policy par_unseq{};
-} // namespace std::execution
+	inline constexpr parallel_unsequenced_policy par_unseq {};
+}	 // namespace std::execution
 #endif
 
 namespace psl::async
@@ -50,12 +49,11 @@ namespace psl::ecs
 {
 	class state final
 	{
-
 		struct transform_result
 		{
 			bool operator==(const transform_result& other) const noexcept { return group == other.group; }
 			psl::array<entity> entities;
-			psl::array<entity> indices; // used in case there is an order_by
+			psl::array<entity> indices;	   // used in case there is an order_by
 			std::shared_ptr<details::transform_group> group;
 		};
 
@@ -112,10 +110,11 @@ namespace psl::ecs
 			order_by<Pred, T>(std::execution::seq, begin, end);
 		}
 		template <typename Pred, typename T>
-		void order_by(std::execution::sequenced_policy, psl::array<entity>::iterator begin,
+		void order_by(std::execution::sequenced_policy,
+					  psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end) const noexcept
 		{
-			const auto pred = Pred{};
+			const auto pred = Pred {};
 			std::sort(std::execution::seq, begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
 				return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
 			});
@@ -124,8 +123,10 @@ namespace psl::ecs
 
 	  private:
 		template <typename Pred, typename T>
-		void order_by(std::execution::parallel_policy, psl::array<entity>::iterator begin,
-					  psl::array<entity>::iterator end, size_t max) const noexcept
+		void order_by(std::execution::parallel_policy,
+					  psl::array<entity>::iterator begin,
+					  psl::array<entity>::iterator end,
+					  size_t max) const noexcept
 		{
 			auto size = std::distance(begin, end);
 			if(size <= static_cast<decltype(size)>(max))
@@ -136,28 +137,29 @@ namespace psl::ecs
 			{
 				auto middle = std::next(begin, size / 2);
 				auto future = std::async(
-					[this, &begin, &middle, &max]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
+				  [this, &begin, &middle, &max]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
 
 				order_by<Pred, T>(std::execution::par, middle, end, max);
 
-				const auto pred = Pred{};
+				const auto pred = Pred {};
 				future.wait();
-				std::inplace_merge(std::execution::par_unseq, begin, middle, end,
-								   [this, &pred](entity lhs, entity rhs) -> bool {
-									   return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
-								   });
+				std::inplace_merge(
+				  std::execution::par_unseq, begin, middle, end, [this, &pred](entity lhs, entity rhs) -> bool {
+					  return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+				  });
 			}
 		}
 
 	  public:
 		void clear() noexcept;
 		template <typename Pred, typename T>
-		void order_by(std::execution::parallel_policy, psl::array<entity>::iterator begin,
+		void order_by(std::execution::parallel_policy,
+					  psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end) const noexcept
 		{
 			auto size = std::distance(begin, end);
 			auto thread_size =
-				std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % 1024u));
+			  std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % 1024u));
 			size /= thread_size;
 
 
@@ -169,17 +171,19 @@ namespace psl::ecs
 		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin,
 												  psl::array<entity>::iterator end) const noexcept
 		{
-			auto pred = Pred{};
-			return std::remove_if(std::execution::par_unseq, begin, end,
-								  [this, &pred](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
+			auto pred = Pred {};
+			return std::remove_if(std::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
+				return pred(this->get<T>(lhs));
+			});
 		}
 
 		template <typename T, typename Pred>
-		psl::array<entity>::iterator on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-												  Pred&& pred) const noexcept
+		psl::array<entity>::iterator
+		on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end, Pred&& pred) const noexcept
 		{
-			return std::remove_if(std::execution::par_unseq, begin, end,
-								  [this, &pred](entity lhs) -> bool { return pred(this->get<T>(lhs)); });
+			return std::remove_if(std::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
+				return pred(this->get<T>(lhs));
+			});
 		}
 
 		template <typename T>
@@ -205,8 +209,9 @@ namespace psl::ecs
 			if(cInfos.size() == sizeof...(Ts))
 			{
 				return std::all_of(std::begin(cInfos), std::end(cInfos), [&entities](const auto& cInfo) {
-					return cInfo && std::all_of(std::begin(entities), std::end(entities),
-												[&cInfo](entity e) { return cInfo->has_component(e); });
+					return cInfo && std::all_of(std::begin(entities), std::end(entities), [&cInfo](entity e) {
+							   return cInfo->has_component(e);
+						   });
 				});
 			}
 			return sizeof...(Ts) == 0;
@@ -234,8 +239,8 @@ namespace psl::ecs
 			const auto recycled	 = std::min<entity>(count, (entity)m_Orphans.size());
 			const auto remainder = count - recycled;
 
-			std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans),
-							  std::back_inserter(entities));
+			std::reverse_copy(
+			  std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans), std::back_inserter(entities));
 			m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
 			entities.resize(count);
 			std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
@@ -256,8 +261,8 @@ namespace psl::ecs
 			const auto recycled	 = std::min<entity>(count, static_cast<entity>(m_Orphans.size()));
 			const auto remainder = count - recycled;
 
-			std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans),
-							  std::back_inserter(entities));
+			std::reverse_copy(
+			  std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans), std::back_inserter(entities));
 			m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
 			entities.resize(count);
 			std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
@@ -294,24 +299,25 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::array<entity> filter() const noexcept
 		{
-			auto filter_group = details::make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>>{});
+			auto filter_group = details::make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>> {});
 
-			auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters),
+			auto it = std::find_if(std::begin(m_Filters),
+								   std::end(m_Filters),
 								   [&filter_group](const filter_result& data) { return *data.group == filter_group; });
 
 			if(it != std::end(m_Filters))
 			{
-				auto modified = psl::array<entity>{m_ModifiedEntities.indices()};
+				auto modified = psl::array<entity> {m_ModifiedEntities.indices()};
 				std::sort(std::begin(modified), std::end(modified));
 
-				filter_result data{{}, it->group};
+				filter_result data {{}, it->group};
 				// data = *it;
 				filter(data, modified);
 				return data.entities;
 			}
 			else
 			{
-				filter_result data{{}, std::make_shared<details::filter_group>(filter_group)};
+				filter_result data {{}, std::make_shared<details::filter_group>(filter_group)};
 				filter(data);
 				return data.entities;
 			}
@@ -360,7 +366,7 @@ namespace psl::ecs
 		template <typename T>
 		psl::array_view<entity> entities() const noexcept
 		{
-			constexpr auto key{details::key_for<T>()};
+			constexpr auto key {details::key_for<T>()};
 			if(auto it = m_Components.find(key); it != std::end(m_Components)) return it->second->entities();
 			return {};
 		}
@@ -368,7 +374,7 @@ namespace psl::ecs
 		template <typename T>
 		psl::array_view<T> view()
 		{
-			constexpr auto key{details::key_for<T>()};
+			constexpr auto key {details::key_for<T>()};
 			if(auto it = m_Components.find(key); it != std::end(m_Components))
 				return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense(0, 1);
 			return {};
@@ -405,7 +411,8 @@ namespace psl::ecs
 		{
 			if(m_LockState)
 			{
-				if(auto it = std::find_if(std::begin(m_SystemInformations), std::end(m_SystemInformations),
+				if(auto it = std::find_if(std::begin(m_SystemInformations),
+										  std::end(m_SystemInformations),
 										  [&id](const auto& system) { return system.id() == id; });
 				   it != std::end(m_SystemInformations) &&
 				   // and we make sure we don't "double delete"
@@ -418,7 +425,8 @@ namespace psl::ecs
 			}
 			else
 			{
-				if(auto it = std::find_if(std::begin(m_SystemInformations), std::end(m_SystemInformations),
+				if(auto it = std::find_if(std::begin(m_SystemInformations),
+										  std::end(m_SystemInformations),
 										  [&id](const auto& system) { return system.id() == id; });
 				   it != std::end(m_SystemInformations))
 				{
@@ -451,12 +459,15 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// helpers
 		//------------------------------------------------------------
-		size_t prepare_bindings(psl::array_view<entity> entities, void* cache, details::dependency_pack& dep_pack) const
-			noexcept;
+		size_t prepare_bindings(psl::array_view<entity> entities,
+								void* cache,
+								details::dependency_pack& dep_pack) const noexcept;
 		size_t prepare_data(psl::array_view<entity> entities, void* cache, details::component_key_t id) const noexcept;
 
-		void prepare_system(std::chrono::duration<float> dTime, std::chrono::duration<float> rTime,
-							std::uintptr_t cache_offset, details::system_information& information);
+		void prepare_system(std::chrono::duration<float> dTime,
+							std::chrono::duration<float> rTime,
+							std::uintptr_t cache_offset,
+							details::system_information& information);
 
 
 		void execute_command_buffer(info& info);
@@ -477,7 +488,7 @@ namespace psl::ecs
 		template <typename T>
 		details::component_info_typed<T>* get_component_typed_info() const noexcept
 		{
-			constexpr auto key{details::key_for<T>()};
+			constexpr auto key {details::key_for<T>()};
 			return (details::component_info_typed<T>*)&m_Components.at(key).get();
 		}
 		//------------------------------------------------------------
@@ -498,7 +509,7 @@ namespace psl::ecs
 				}
 				else
 				{
-					type v{};
+					type v {};
 					add_component_impl(details::key_for<type>(), entities, &v);
 				}
 			}
@@ -515,13 +526,13 @@ namespace psl::ecs
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
 				create_storage<type>();
-				add_component_impl(details::key_for<type>(), entities,
-								   [prototype](std::uintptr_t location, size_t count) {
-									   for(auto i = size_t{0}; i < count; ++i)
-									   {
-										   std::invoke(prototype, *((type*)(location) + i));
-									   }
-								   });
+				add_component_impl(
+				  details::key_for<type>(), entities, [prototype](std::uintptr_t location, size_t count) {
+					  for(auto i = size_t {0}; i < count; ++i)
+					  {
+						  std::invoke(prototype, *((type*)(location) + i));
+					  }
+				  });
 			}
 			else if constexpr(/*std::is_trivially_copyable<T>::value && */std::is_standard_layout<T>::value/* &&
 							  std::is_trivially_destructible<T>::value*/)
@@ -534,7 +545,7 @@ namespace psl::ecs
 				create_storage<T>();
 				add_component_impl(details::key_for<T>(), entities, &prototype);
 			}
-			else if constexpr (details::is_range_t<true_type>::value)
+			else if constexpr(details::is_range_t<true_type>::value)
 			{
 				using type = typename psl::ecs::details::is_range_t<true_type>::type;
 				create_storage<type>();
@@ -557,7 +568,7 @@ namespace psl::ecs
 			}
 			else
 			{
-				T v{};
+				T v {};
 				add_component_impl(details::key_for<T>(), entities, &v);
 			}
 		}
@@ -575,9 +586,12 @@ namespace psl::ecs
 
 
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities);
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities,
+		void add_component_impl(details::component_key_t key,
+								psl::array_view<entity> entities,
 								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, void* prototype,
+		void add_component_impl(details::component_key_t key,
+								psl::array_view<entity> entities,
+								void* prototype,
 								bool repeat = true);
 
 		//------------------------------------------------------------
@@ -590,7 +604,8 @@ namespace psl::ecs
 		// filter
 		//------------------------------------------------------------
 		template <typename T>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<T>, psl::array<entity>::iterator& begin,
+		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<T>,
+											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
 			return filter_op(details::key_for<T>(), begin, end);
@@ -640,13 +655,17 @@ namespace psl::ecs
 			return on_combine_op(to_keys<Ts...>(), begin, end);
 		}
 
-		psl::array<entity>::iterator filter_op(details::component_key_t key, psl::array<entity>::iterator& begin,
+		psl::array<entity>::iterator filter_op(details::component_key_t key,
+											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept;
-		psl::array<entity>::iterator on_add_op(details::component_key_t key, psl::array<entity>::iterator& begin,
+		psl::array<entity>::iterator on_add_op(details::component_key_t key,
+											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept;
-		psl::array<entity>::iterator on_remove_op(details::component_key_t key, psl::array<entity>::iterator& begin,
+		psl::array<entity>::iterator on_remove_op(details::component_key_t key,
+												  psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept;
-		psl::array<entity>::iterator on_except_op(details::component_key_t key, psl::array<entity>::iterator& begin,
+		psl::array<entity>::iterator on_except_op(details::component_key_t key,
+												  psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept;
 		psl::array<entity>::iterator on_break_op(psl::array<details::component_key_t> keys,
 												 psl::array<entity>::iterator& begin,
@@ -671,7 +690,7 @@ namespace psl::ecs
 		template <typename... Ts>
 		psl::array<details::component_key_t> to_keys() const noexcept
 		{
-			return psl::array<details::component_key_t>{details::key_for<Ts>()...};
+			return psl::array<details::component_key_t> {details::key_for<Ts>()...};
 		}
 
 
@@ -701,27 +720,29 @@ namespace psl::ecs
 		std::pair<std::shared_ptr<details::filter_group>, std::shared_ptr<details::transform_group>>
 		add_filter_group(details::filter_group& filter_group, details::transform_group& transform_group)
 		{
-			std::shared_ptr<details::transform_group> shared_transform_group{};
+			std::shared_ptr<details::transform_group> shared_transform_group {};
 			auto filter_it =
-				std::find_if(std::begin(m_Filters), std::end(m_Filters),
-							 [&filter_group](const filter_result& data) { return *data.group == filter_group; });
+			  std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data) {
+				  return *data.group == filter_group;
+			  });
 			if(filter_it == std::end(m_Filters))
 			{
-				m_Filters.emplace_back(filter_result{{}, std::make_shared<details::filter_group>(filter_group)});
+				m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
 				filter_it = std::prev(std::end(m_Filters));
 			}
 
 			if(transform_group)
 			{
 				auto it = std::find_if(
-					std::begin(filter_it->transformations), std::end(filter_it->transformations),
-					[&transform_group](const transform_result& data) { return *data.group == transform_group; });
+				  std::begin(filter_it->transformations),
+				  std::end(filter_it->transformations),
+				  [&transform_group](const transform_result& data) { return *data.group == transform_group; });
 				if(it == std::end(filter_it->transformations))
 				{
 					filter_it->transformations
-						.emplace_back(
-							transform_result{{}, {}, std::make_shared<details::transform_group>(transform_group)})
-						.group;
+					  .emplace_back(
+						transform_result {{}, {}, std::make_shared<details::transform_group>(transform_group)})
+					  .group;
 
 					it = std::prev(std::end(filter_it->transformations));
 				}
@@ -735,15 +756,15 @@ namespace psl::ecs
 		template <typename Fn, typename T = void>
 		auto declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-
 			using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
 			using pack_t		  = typename get_packs<function_args>::type;
-			auto filter_groups	  = details::make_filter_group(psl::templates::type_container<pack_t>{});
-			auto transform_groups = details::make_transform_group(psl::templates::type_container<pack_t>{});
+			auto filter_groups	  = details::make_filter_group(psl::templates::type_container<pack_t> {});
+			auto transform_groups = details::make_transform_group(psl::templates::type_container<pack_t> {});
 			std::function<psl::array<details::dependency_pack>(bool)> pack_generator = [](bool seedWithPrevious =
-																							  false) {
-				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
-														  psl::templates::type_container<pack_t>{}, seedWithPrevious);
+																							false) {
+				return details::expand_to_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>> {},
+														  psl::templates::type_container<pack_t> {},
+														  seedWithPrevious);
 			};
 
 			std::function<void(psl::ecs::info&, psl::array<details::dependency_pack>)> system_tick;
@@ -752,9 +773,10 @@ namespace psl::ecs
 			{
 				system_tick = [fn, ptr](psl::ecs::info& info, psl::array<details::dependency_pack> packs) -> void {
 					auto tuple_argument_list = std::tuple_cat(
-						std::tuple<T*, psl::ecs::info&>(ptr, info),
-						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
-															   psl::templates::type_container<pack_t>{}, packs));
+					  std::tuple<T*, psl::ecs::info&>(ptr, info),
+					  details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>> {},
+															 psl::templates::type_container<pack_t> {},
+															 packs));
 
 					std::apply(fn, std::move(tuple_argument_list));
 				};
@@ -763,9 +785,10 @@ namespace psl::ecs
 			{
 				system_tick = [fn](psl::ecs::info& info, psl::array<details::dependency_pack> packs) -> void {
 					auto tuple_argument_list = std::tuple_cat(
-						std::tuple<psl::ecs::info&>(info),
-						details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>>{},
-															   psl::templates::type_container<pack_t>{}, packs));
+					  std::tuple<psl::ecs::info&>(info),
+					  details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>> {},
+															 psl::templates::type_container<pack_t> {},
+															 packs));
 
 					std::apply(fn, std::move(tuple_argument_list));
 				};
@@ -777,10 +800,13 @@ namespace psl::ecs
 			{
 				auto [shared_filter, transform_filter] = add_filter_group(filter_groups, transform_groups);
 
-				sys_info.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
-									  psl::array<std::shared_ptr<details::filter_group>>{shared_filter},
-									  psl::array<std::shared_ptr<details::transform_group>>{transform_filter},
-									  ++m_SystemCounter, seedWithExisting);
+				sys_info.emplace_back(threading,
+									  std::move(pack_generator),
+									  std::move(system_tick),
+									  psl::array<std::shared_ptr<details::filter_group>> {shared_filter},
+									  psl::array<std::shared_ptr<details::transform_group>> {transform_filter},
+									  ++m_SystemCounter,
+									  seedWithExisting);
 				return sys_info[sys_info.size() - 1].id();
 			}
 			else
@@ -796,33 +822,37 @@ namespace psl::ecs
 				}
 
 
-				sys_info.emplace_back(threading, std::move(pack_generator), std::move(system_tick),
-									  shared_filter_groups, shared_transform_groups, ++m_SystemCounter,
+				sys_info.emplace_back(threading,
+									  std::move(pack_generator),
+									  std::move(system_tick),
+									  shared_filter_groups,
+									  shared_transform_groups,
+									  ++m_SystemCounter,
 									  seedWithExisting);
 				return sys_info[sys_info.size() - 1].id();
 			}
 		}
 
-		::memory::raw_region m_Cache{1024 * 1024 * 256};
-		psl::array<psl::unique_ptr<info>> info_buffer{};
-		psl::array<entity> m_Orphans{};
-		psl::array<entity> m_ToBeOrphans{};
-		mutable psl::array<filter_result> m_Filters{};
-		psl::array<details::system_information> m_SystemInformations{};
+		::memory::raw_region m_Cache {1024 * 1024 * 256};
+		psl::array<psl::unique_ptr<info>> info_buffer {};
+		psl::array<entity> m_Orphans {};
+		psl::array<entity> m_ToBeOrphans {};
+		mutable psl::array<filter_result> m_Filters {};
+		psl::array<details::system_information> m_SystemInformations {};
 
-		psl::array<details::system_token> m_ToRevoke{};
-		psl::array<details::system_information> m_NewSystemInformations{};
+		psl::array<details::system_token> m_ToRevoke {};
+		psl::array<details::system_information> m_NewSystemInformations {};
 
-		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_info>> m_Components{};
+		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_info>> m_Components {};
 
-		psl::sparse_indice_array<entity> m_ModifiedEntities{};
+		psl::sparse_indice_array<entity> m_ModifiedEntities {};
 
-		psl::unique_ptr<psl::async::scheduler> m_Scheduler{nullptr};
+		psl::unique_ptr<psl::async::scheduler> m_Scheduler {nullptr};
 
-		size_t m_LockState{0};
-		size_t m_Tick{0};
-		size_t m_SystemCounter{0};
-		entity m_Entities{0};
+		size_t m_LockState {0};
+		size_t m_Tick {0};
+		size_t m_SystemCounter {0};
+		entity m_Entities {0};
 	};
 
 	namespace details
@@ -831,20 +861,21 @@ namespace psl::ecs
 		void dependency_pack::select_ordering_impl(std::pair<Pred, std::tuple<Ts...>>)
 		{
 			static_assert(sizeof...(Ts) == 1, "due to a bug in MSVC we cannot have deeper nested template packs");
-			orderby = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
-						 const psl::ecs::state& state) {
-				state.order_by<Pred, Ts...>(std::execution::par, begin, end);
-			};
+			orderby =
+			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state& state) {
+				  state.order_by<Pred, Ts...>(std::execution::par, begin, end);
+			  };
 		}
 
 		template <typename Pred, typename... Ts>
 		void dependency_pack::select_condition_impl(std::pair<Pred, std::tuple<Ts...>>)
 		{
-			on_condition.push_back([](psl::array<entity>::iterator begin, psl::array<entity>::iterator end,
+			on_condition.push_back([](psl::array<entity>::iterator begin,
+									  psl::array<entity>::iterator end,
 									  const psl::ecs::state& state) -> psl::array<entity>::iterator {
 				return state.on_condition<Pred, Ts...>(begin, end);
 			});
 		}
 
-	} // namespace details
-} // namespace psl::ecs
+	}	 // namespace details
+}	 // namespace psl::ecs

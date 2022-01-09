@@ -1,10 +1,9 @@
 #pragma once
-
-
+#include <string>
 namespace core::ecs::components
 {
 	struct text
 	{
-		const char* value{nullptr};
+		std::string* value {nullptr};
 	};
-} // namespace core::ecs::components
+}	 // namespace core::ecs::components

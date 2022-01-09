@@ -13,11 +13,11 @@ namespace core::ivk
 	class drawpass;
 	class computepass
 	{
-	public:
-		computepass() = default;
+	  public:
+		computepass()  = default;
 		~computepass() = default;
 
-		computepass(const computepass& other) = delete;
+		computepass(const computepass& other)	  = delete;
 		computepass(computepass&& other) noexcept = delete;
 		computepass& operator=(const computepass& other) = delete;
 		computepass& operator=(computepass&& other) noexcept = delete;
@@ -34,7 +34,8 @@ namespace core::ivk
 		void connect(psl::view_ptr<computepass> pass) noexcept;
 		void disconnect(psl::view_ptr<drawpass> pass) noexcept;
 		void disconnect(psl::view_ptr<computepass> pass) noexcept;
-	private:
+
+	  private:
 		psl::array<core::gfx::computecall> m_Compute;
 	};
-}
+}	 // namespace core::ivk

@@ -1,12 +1,12 @@
 #pragma once
 #include "fwd/gfx/buffer.h"
-#include "resource/resource.hpp"
+#include "gfx/types.h"
 #include "psl/array.h"
+#include "psl/memory/range.h"
 #include "psl/memory/region.h"
 #include "psl/memory/segment.h"
-#include "psl/memory/range.h"
+#include "resource/resource.hpp"
 #include <optional>
-#include "gfx/types.h"
 
 namespace core::data
 {
@@ -20,17 +20,23 @@ namespace core::gfx
 	{
 	  public:
 #ifdef PE_VULKAN
-		  explicit buffer(core::resource::handle<core::ivk::buffer>& handle);
+		explicit buffer(core::resource::handle<core::ivk::buffer>& handle);
 #endif
 #ifdef PE_GLES
-		  explicit buffer(core::resource::handle<core::igles::buffer>& handle);
+		explicit buffer(core::resource::handle<core::igles::buffer>& handle);
 #endif
 
-		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data);
+		buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::context> context,
+			   core::resource::handle<core::data::buffer> data);
 
-		buffer(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::context> context, core::resource::handle<core::data::buffer> data,
+		buffer(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::context> context,
+			   core::resource::handle<core::data::buffer> data,
 			   core::resource::handle<core::gfx::buffer> staging);
 		~buffer();
 
@@ -56,15 +62,15 @@ namespace core::gfx
 		core::resource::handle<backend_type_t<buffer, backend>> resource() const noexcept
 		{
 #ifdef PE_VULKAN
-			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
 #endif
 #ifdef PE_GLES
-			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+			if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
 #endif
 		};
 
-	private:
-		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+	  private:
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::buffer> m_VKHandle;
 #endif
@@ -75,12 +81,15 @@ namespace core::gfx
 
 	struct shader_buffer_binding
 	{
-		shader_buffer_binding(core::resource::cache& cache, const core::resource::metadata& metaData,
-			psl::meta::file* metaFile, core::resource::handle<buffer> buffer, size_t size,
-			size_t alignment = 4);
+		shader_buffer_binding(core::resource::cache& cache,
+							  const core::resource::metadata& metaData,
+							  psl::meta::file* metaFile,
+							  core::resource::handle<buffer> buffer,
+							  size_t size,
+							  size_t alignment = 4);
 		~shader_buffer_binding();
 		core::resource::handle<buffer> buffer;
 		memory::segment segment;
 		memory::region region;
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

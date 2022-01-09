@@ -3,7 +3,6 @@
 
 namespace psl::async
 {
-
 	enum class barrier_type : uint8_t
 	{
 		READ  = 0,
@@ -13,7 +12,7 @@ namespace psl::async
 	enum class launch : uint8_t
 	{
 		IMMEDIATE = 0,
-		ASYNC	 = 1,
+		ASYNC	  = 1,
 		DEFERRED  = 2
 	};
 
@@ -22,8 +21,8 @@ namespace psl::async
 	  public:
 		using location_t   = std::uintptr_t;
 		barrier() noexcept = default;
-		barrier(location_t begin, location_t end, barrier_type type = barrier_type::READ)
-			: m_Begin(begin), m_End(end), m_Type(type){};
+		barrier(location_t begin, location_t end, barrier_type type = barrier_type::READ) :
+			m_Begin(begin), m_End(end), m_Type(type) {};
 
 		bool operator==(const barrier& other) const noexcept
 		{
@@ -44,7 +43,7 @@ namespace psl::async
 
 		void move(location_t location) noexcept
 		{
-			m_End   = size() + location;
+			m_End	= size() + location;
 			m_Begin = location;
 		}
 		void resize(location_t new_size) noexcept { m_End = m_Begin + new_size; };
@@ -62,9 +61,9 @@ namespace psl::async
 		}
 
 	  private:
-		location_t m_Begin{0};
-		location_t m_End{0};
+		location_t m_Begin {0};
+		location_t m_End {0};
 		barrier_type m_Type;
 	};
 
-} // namespace psl::async2
+}	 // namespace psl::async

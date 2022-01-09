@@ -1,9 +1,9 @@
 #pragma once
+#include "barrier.h"
+#include "psl/array.h"
+#include "psl/view_ptr.h"
 #include <cstdint>
 #include <future>
-#include "psl/view_ptr.h"
-#include "psl/array.h"
-#include "barrier.h"
 
 namespace psl::async
 {
@@ -11,12 +11,12 @@ namespace psl::async
 	class token final
 	{
 		friend class scheduler;
-		token(size_t value, psl::view_ptr<scheduler> scheduler) noexcept : m_Token(value), m_Scheduler(scheduler){};
+		token(size_t value, psl::view_ptr<scheduler> scheduler) noexcept : m_Token(value), m_Scheduler(scheduler) {};
 
 	  public:
-		token() noexcept = default;
-		~token()		 = default;
-		token(const token& other)	 = default;
+		token() noexcept			  = default;
+		~token()					  = default;
+		token(const token& other)	  = default;
 		token(token&& other) noexcept = default;
 		token& operator=(const token& other) = default;
 		token& operator=(token&& other) noexcept = default;
@@ -36,8 +36,8 @@ namespace psl::async
 		void consecutive(psl::array<token> others);
 
 	  private:
-		size_t m_Token{0};
-		psl::view_ptr<scheduler> m_Scheduler{nullptr};
+		size_t m_Token {0};
+		psl::view_ptr<scheduler> m_Scheduler {nullptr};
 	};
 
 
@@ -47,6 +47,6 @@ namespace psl::async
 	  private:
 		size_t m_Id;
 		psl::array<token> m_Tokens;
-		psl::view_ptr<scheduler> m_Scheduler{nullptr};
+		psl::view_ptr<scheduler> m_Scheduler {nullptr};
 	};
-} // namespace psl::async
+}	 // namespace psl::async

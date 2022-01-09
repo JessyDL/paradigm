@@ -1,12 +1,12 @@
 #pragma once
+#include "details/packet.h"
+#include "psl/array.h"
+#include "psl/collections/spmc/producer.h"
+#include "psl/template_utils.h"
+#include "psl/unique_ptr.h"
+#include "token.h"
 #include <future>
 #include <optional>
-#include "token.h"
-#include "psl/template_utils.h"
-#include "psl/array.h"
-#include "psl/unique_ptr.h"
-#include "psl/collections/spmc/producer.h"
-#include "details/packet.h"
 
 namespace psl::async::details
 {
@@ -22,11 +22,12 @@ namespace psl::async
 
 		template <template <typename> typename Future = std::future, typename Fn>
 		auto schedule(Fn&& func) ->
-			typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value, token,
-									  std::pair<token, Future<decltype(std::declval<Fn>()())>>>::type
+		  typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value,
+									token,
+									std::pair<token, Future<decltype(std::declval<Fn>()())>>>::type
 		{
 			using return_t = decltype(std::declval<Fn>()());
-			auto token	 = proxy();
+			auto token	   = proxy();
 
 			if constexpr(std::is_same<void, return_t>::value)
 			{
@@ -35,13 +36,13 @@ namespace psl::async
 			}
 			else
 			{
-				return std::pair{token, substitute<Future, Fn>(token, std::forward<decltype(func)>(func))};
+				return std::pair {token, substitute<Future, Fn>(token, std::forward<decltype(func)>(func))};
 			}
 		}
 
 		token proxy()
 		{
-			auto token{async::token{m_Invocables.size() + m_TokenOffset, psl::view_ptr<scheduler>{this}}};
+			auto token {async::token {m_Invocables.size() + m_TokenOffset, psl::view_ptr<scheduler> {this}}};
 			m_Invocables.emplace_back(token);
 			return token;
 		}
@@ -49,12 +50,13 @@ namespace psl::async
 
 		template <template <typename> typename Future = std::future, typename Fn>
 		auto substitute(token& token, Fn&& func) ->
-			typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value, void,
-									  Future<decltype(std::declval<Fn>()())>>::type
+		  typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value,
+									void,
+									Future<decltype(std::declval<Fn>()())>>::type
 		{
-			using return_t  = decltype(std::declval<Fn>()());
-			using storage_t = typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value, void,
-														Future<return_t>>::type;
+			using return_t	= decltype(std::declval<Fn>()());
+			using storage_t = typename std::
+			  conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value, void, Future<return_t>>::type;
 
 			auto task = new details::task<return_t, Fn, storage_t>(std::forward<decltype(func)>(func));
 			m_Invocables[token - m_TokenOffset].substitute(task);
@@ -82,10 +84,10 @@ namespace psl::async
 		size_t workers() const noexcept { return m_Workers; };
 
 	  private:
-		size_t m_Workers{4};
-		size_t m_TokenOffset{0u};
+		size_t m_Workers {4};
+		size_t m_TokenOffset {0u};
 		psl::array<details::packet> m_Invocables;
 		psl::array<psl::unique_ptr<details::worker>> m_Workerthreads;
 		psl::spmc::producer<psl::view_ptr<details::packet>> m_Tasks;
 	};
-} // namespace psl::async
+}	 // namespace psl::async

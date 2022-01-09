@@ -1,24 +1,33 @@
 ﻿#include "data/framebuffer.h"
+#include "gfx/sampler.h"
 #include "meta/texture.h"
 #include "resource/resource.hpp"
-#include "gfx/sampler.h"
 
 using namespace psl;
 using namespace core::data;
 using namespace core::gfx;
 
-framebuffer::framebuffer(core::resource::cache& cache, const core::resource::metadata& metaData,
-						 psl::meta::file* metaFile, uint32_t width, uint32_t height, uint32_t layers) noexcept
-	: m_Width(width), m_Height(height), m_Cache(&cache), m_Count(std::max(layers, 1u))
+framebuffer::framebuffer(core::resource::cache& cache,
+						 const core::resource::metadata& metaData,
+						 psl::meta::file* metaFile,
+						 uint32_t width,
+						 uint32_t height,
+						 uint32_t layers) noexcept :
+	m_Width(width),
+	m_Height(height), m_Cache(&cache), m_Count(std::max(layers, 1u))
 {}
 
-//framebuffer::framebuffer(const framebuffer& other, const UID& uid, core::resource::cache& cache)
+// framebuffer::framebuffer(const framebuffer& other, const UID& uid, core::resource::cache& cache)
 //	: m_Width(other.m_Width), m_Height(other.m_Height), m_Cache(other.m_Cache), m_Count(other.m_Count),
 //	  m_Sampler(other.m_Sampler), m_Attachments(other.m_Attachments)
 //{}
 
-const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount, core::gfx::image::usage usage,
-							core::gfx::clear_value clearValue, core::gfx::attachment descr)
+const UID& framebuffer::add(uint32_t width,
+							uint32_t height,
+							uint32_t layerCount,
+							core::gfx::image::usage usage,
+							core::gfx::clear_value clearValue,
+							core::gfx::attachment descr)
 {
 	core::gfx::image_aspect aspectMask;
 
@@ -56,7 +65,8 @@ const UID& framebuffer::add(uint32_t width, uint32_t height, uint32_t layerCount
 
 bool framebuffer::remove(const UID& uid)
 {
-	auto it = std::find_if(std::begin(m_Attachments.value), std::end(m_Attachments.value),
+	auto it = std::find_if(std::begin(m_Attachments.value),
+						   std::end(m_Attachments.value),
 						   [&uid](const attachment& att) { return att.texture() == uid; });
 	if(it == std::end(m_Attachments.value)) return false;
 
@@ -70,15 +80,18 @@ void framebuffer::set(core::resource::handle<core::gfx::sampler> sampler) { m_Sa
 uint32_t framebuffer::framebuffers() const { return m_Count.value; }
 std::optional<UID> framebuffer::sampler() const
 {
-	return ((m_Sampler.value != UID::invalid_uid) ? m_Sampler.value : std::optional<UID>{});
+	return ((m_Sampler.value != UID::invalid_uid) ? m_Sampler.value : std::optional<UID> {});
 }
 uint32_t framebuffer::width() const { return m_Width.value; }
 uint32_t framebuffer::height() const { return m_Height.value; }
 
 
-framebuffer::attachment::attachment(const UID& texture, const core::gfx::clear_value& clear_col,
-									core::gfx::attachment descr, bool shared)
-	: m_Texture(texture), m_ClearValue(clear_col), m_Description(descr), m_Shared(shared)
+framebuffer::attachment::attachment(const UID& texture,
+									const core::gfx::clear_value& clear_col,
+									core::gfx::attachment descr,
+									bool shared) :
+	m_Texture(texture),
+	m_ClearValue(clear_col), m_Description(descr), m_Shared(shared)
 {}
 const UID& framebuffer::attachment::texture() const { return m_Texture.value; }
 
@@ -86,21 +99,21 @@ const core::gfx::clear_value& framebuffer::attachment::clear_value() const { ret
 bool framebuffer::attachment::shared() const { return m_Shared.value; }
 
 framebuffer::attachment::operator core::gfx::attachment() const noexcept { return m_Description.value; }
-framebuffer::attachment::description::description(core::gfx::attachment descr) noexcept
-	: m_SampleCountFlags(descr.sample_bits), m_LoadOp(descr.image_load), m_StoreOp(descr.image_store),
-	  m_StencilLoadOp(descr.stencil_load), m_StencilStoreOp(descr.stencil_store),
-	  m_InitialLayout(descr.initial), m_FinalLayout(descr.final), m_Format(descr.format)
+framebuffer::attachment::description::description(core::gfx::attachment descr) noexcept :
+	m_SampleCountFlags(descr.sample_bits), m_LoadOp(descr.image_load), m_StoreOp(descr.image_store),
+	m_StencilLoadOp(descr.stencil_load), m_StencilStoreOp(descr.stencil_store), m_InitialLayout(descr.initial),
+	m_FinalLayout(descr.final), m_Format(descr.format)
 {}
 framebuffer::attachment::description::operator core::gfx::attachment() const noexcept
 {
 	core::gfx::attachment descr;
-	descr.sample_bits		 = m_SampleCountFlags.value;
-	descr.image_load		 = m_LoadOp.value;
-	descr.image_store		 = m_StoreOp.value;
-	descr.stencil_load  = m_StencilLoadOp.value;
+	descr.sample_bits	= m_SampleCountFlags.value;
+	descr.image_load	= m_LoadOp.value;
+	descr.image_store	= m_StoreOp.value;
+	descr.stencil_load	= m_StencilLoadOp.value;
 	descr.stencil_store = m_StencilStoreOp.value;
-	descr.initial  = m_InitialLayout.value;
-	descr.final	= m_FinalLayout.value;
-	descr.format		 = m_Format.value;
+	descr.initial		= m_InitialLayout.value;
+	descr.final			= m_FinalLayout.value;
+	descr.format		= m_Format.value;
 	return descr;
 }

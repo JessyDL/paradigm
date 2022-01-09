@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include <cstdint>
-#include "psl/serialization.h"
 #include "fwd/resource/resource.h"
+#include "psl/serialization/serializer.hpp"
+#include <cstdint>
 
 namespace core::gfx
 {
@@ -22,7 +22,7 @@ namespace core::gfx
 		WINDOWED		  = 1,
 		FULLSCREEN_WINDOW = 2
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx
 
 namespace core::data
 {
@@ -32,16 +32,24 @@ namespace core::data
 		friend class psl::serialization::accessor;
 
 	  public:
-		window(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   uint32_t width = 800, uint32_t height = 600,
-			   core::gfx::surface_mode mode   = core::gfx::surface_mode::WINDOWED,
+		window(uint32_t width				  = 800,
+			   uint32_t height				  = 600,
+			   core::gfx::surface_mode mode	  = core::gfx::surface_mode::WINDOWED,
+			   core::gfx::buffering buffering = core::gfx::buffering::SINGLE,
+			   psl::string8::view name		  = "Paradigm Engine") noexcept;
+		window(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   uint32_t width				  = 800,
+			   uint32_t height				  = 600,
+			   core::gfx::surface_mode mode	  = core::gfx::surface_mode::WINDOWED,
 			   core::gfx::buffering buffering = core::gfx::buffering::SINGLE,
 			   psl::string8::view name		  = "Paradigm Engine") noexcept;
 		~window()					= default;
-		window(const window& other) = delete;
-		window(window&& other)		= delete;
-		window& operator=(const window& other) = delete;
-		window& operator=(window&& other) = delete;
+		window(const window& other) = default;
+		window(window&& other)		= default;
+		window& operator=(const window& other) = default;
+		window& operator=(window&& other) = default;
 
 		/// \brief returns the width in pixels.
 		/// \returns the width in pixels.
@@ -85,13 +93,13 @@ namespace core::data
 			serializer << m_Name << m_Width << m_Height << m_WindowMode << m_Buffering;
 		}
 
-		static constexpr const char serialization_name[7]{"WINDOW"};
+		static constexpr const char serialization_name[7] {"WINDOW"};
 
-		psl::serialization::property<psl::string8_t, const_str("NAME", 4)> m_Name;
-		psl::serialization::property<uint32_t, const_str("WIDTH", 5)> m_Width;
-		psl::serialization::property<uint32_t, const_str("HEIGHT", 6)> m_Height;
+		psl::serialization::property<"NAME", psl::string8_t> m_Name;
+		psl::serialization::property<"WIDTH", uint32_t> m_Width;
+		psl::serialization::property<"HEIGHT", uint32_t> m_Height;
 
-		psl::serialization::property<core::gfx::surface_mode, const_str("MODE", 4)> m_WindowMode;
-		psl::serialization::property<core::gfx::buffering, const_str("BUFFERING", 9)> m_Buffering;
+		psl::serialization::property<"MODE", core::gfx::surface_mode> m_WindowMode;
+		psl::serialization::property<"BUFFERING", core::gfx::buffering> m_Buffering;
 	};
-} // namespace core::data
+}	 // namespace core::data

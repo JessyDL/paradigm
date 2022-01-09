@@ -1,14 +1,14 @@
 ﻿#pragma once
 //#include <string>
 //#include <string_view>
-#include <unordered_map>
-#include <unordered_set>
+#include "psl/logging.h"
+#include "psl/meta.h"
+#include "psl/serialization/serializer.hpp"
+#include "ustring.h"
 #include <bitset>
 #include <memory>
-#include "ustring.h"
-#include "psl/serialization.h"
-#include "psl/meta.h"
-#include "psl/logging.h"
+#include <unordered_map>
+#include <unordered_set>
 
 /// \brief contains utilities to identify types and instances at runtime and on disk.
 ///
@@ -17,7 +17,7 @@
 /// more detailed information can be found in the specific class pages.
 namespace psl::meta
 {
-	static const psl::string8_t META_EXTENSION	= "meta";
+	static const psl::string8_t META_EXTENSION	  = "meta";
 	static const psl::string8_t LIBRARY_EXTENSION = META_EXTENSION + "lib";
 
 	class library;
@@ -35,17 +35,17 @@ namespace psl::meta
 
 	  public:
 		/// \param[in] key the unique psl::UID associated with this meta::file
-		file(const psl::UID& key) : m_ID(key){};
+		file(const psl::UID& key) : m_ID(key) {};
 
 		template <typename S>
 		file(S& s, const psl::string8_t& filename)
 		{
-			static_assert(psl::serialization::details::member_function_serialize<psl::serialization::encode_to_format,
-																				 file>::value,
-						  "this shouldn't run");
+			static_assert(
+			  psl::serialization::details::member_function_serialize<psl::serialization::encode_to_format, file>::value,
+			  "this shouldn't run");
 			s.template deserialize<psl::serialization::decode_from_format>(*this, filename);
 		};
-		file() : m_ID(psl::UID::invalid_uid){};
+		file() : m_ID(psl::UID::invalid_uid) {};
 		virtual ~file() = default;
 
 		file(const file&) = delete;
@@ -71,11 +71,11 @@ namespace psl::meta
 		}
 
 	  private:
-		psl::serialization::property<psl::UID, const_str("UID", 3)> m_ID;
-		psl::serialization::property<std::vector<psl::string8_t>, const_str("TAGS", 4)> m_Tags;
+		psl::serialization::property<"UID", psl::UID> m_ID;
+		psl::serialization::property<"TAGS", std::vector<psl::string8_t>> m_Tags;
 
-		static constexpr const char serialization_name[5]{"META"};
-		static constexpr const char polymorphic_name[5]{"META"};
+		static constexpr const char serialization_name[5] {"META"};
+		static constexpr const char polymorphic_name[5] {"META"};
 		virtual const uint64_t polymorphic_id() { return polymorphic_identity; }
 		static const uint64_t polymorphic_identity;
 	};
@@ -101,10 +101,10 @@ namespace psl::meta
 		~library();
 
 		library(const library& other) = delete;
-		library(library&& other) noexcept
-			: m_TagMap(std::move(other.m_TagMap)), m_MetaData(std::move(other.m_MetaData)),
-			  m_LibraryFile(std::move(other.m_LibraryFile)), m_LibraryFolder(std::move(other.m_LibraryFolder)),
-			  m_LibraryLocation(std::move(other.m_LibraryLocation)), m_Environment(std::move(other.m_Environment)){};
+		library(library&& other) noexcept :
+			m_TagMap(std::move(other.m_TagMap)), m_MetaData(std::move(other.m_MetaData)),
+			m_LibraryFile(std::move(other.m_LibraryFile)), m_LibraryFolder(std::move(other.m_LibraryFolder)),
+			m_LibraryLocation(std::move(other.m_LibraryLocation)), m_Environment(std::move(other.m_Environment)) {};
 		library& operator=(const library& other) = delete;
 		library& operator						 =(library&& other) noexcept
 		{
@@ -112,10 +112,10 @@ namespace psl::meta
 			{
 				m_TagMap		  = std::move(other.m_TagMap);
 				m_MetaData		  = std::move(other.m_MetaData);
-				m_LibraryFile	 = std::move(other.m_LibraryFile);
-				m_LibraryFolder   = std::move(other.m_LibraryFolder);
+				m_LibraryFile	  = std::move(other.m_LibraryFile);
+				m_LibraryFolder	  = std::move(other.m_LibraryFolder);
 				m_LibraryLocation = std::move(other.m_LibraryLocation);
-				m_Environment	 = std::move(other.m_Environment);
+				m_Environment	  = std::move(other.m_Environment);
 			}
 			return *this;
 		};
@@ -151,7 +151,7 @@ namespace psl::meta
 			if(m_MetaData.find(uid) != m_MetaData.end())
 			{
 				LOG_ERROR(
-					"Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
+				  "Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
 				return std::pair<const psl::UID&, MF&>(m_MetaData.find(uid)->first,
 													   *(static_cast<MF*>(m_MetaData.find(uid)->second.data.get())));
 			}
@@ -167,7 +167,7 @@ namespace psl::meta
 			if(m_MetaData.find(uid) != m_MetaData.end())
 			{
 				LOG_ERROR(
-					"Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
+				  "Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
 				return std::pair<const psl::UID&, MF&>(m_MetaData.find(uid)->first,
 													   *(static_cast<MF*>(m_MetaData.find(uid)->second.data.get())));
 			}
@@ -319,14 +319,14 @@ namespace psl::meta
 	  private:
 		struct UIDData
 		{
-			UIDData(std::unique_ptr<file>&& dataPtr) : data(std::move(dataPtr)), flags(0){};
-			UIDData(file*&& dataPtr) : data(dataPtr), flags(0){};
-			UIDData() : data(nullptr), flags(0){};
+			UIDData(std::unique_ptr<file>&& dataPtr) : data(std::move(dataPtr)), flags(0) {};
+			UIDData(file*&& dataPtr) : data(dataPtr), flags(0) {};
+			UIDData() : data(nullptr), flags(0) {};
 
 			std::unique_ptr<file> data;
 			std::unordered_set<psl::UID> referencing;
 			std::unordered_set<psl::UID> referencedBy;
-			psl::string8_t file_data{};
+			psl::string8_t file_data {};
 
 			// In case this is a file on disk, this defaults to the disk location, otherwise it's set from code.
 			psl::string8_t readableName;
@@ -372,4 +372,4 @@ namespace psl::meta
 			return {};
 		}
 	}
-} // namespace psl::meta
+}	 // namespace psl::meta

@@ -1,23 +1,28 @@
 #include "gles/geometry.h"
-#include "resource/resource.hpp"
-#include "gles/buffer.h"
-#include "gles/material.h"
-#include "data/material.h"
 #include "data/geometry.h"
-#include "meta/shader.h"
-#include "gles/shader.h"
-#include "psl/array.h"
-#include "logging.h"
+#include "data/material.h"
+#include "gles/buffer.h"
 #include "gles/igles.h"
+#include "gles/material.h"
+#include "gles/shader.h"
+#include "logging.h"
+#include "meta/shader.h"
+#include "psl/array.h"
+#include "resource/resource.hpp"
 
 using namespace core::igles;
 using namespace core::resource;
 
 using gData = core::data::geometry;
 
-geometry::geometry(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<gData> data, handle<buffer> vertexBuffer, handle<buffer> indexBuffer)
-	: m_UID(metaData.uid), m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
+geometry::geometry(core::resource::cache& cache,
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   handle<gData> data,
+				   handle<buffer> vertexBuffer,
+				   handle<buffer> indexBuffer) :
+	m_UID(metaData.uid),
+	m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
 {
 	recreate(data);
 }
@@ -26,51 +31,52 @@ geometry::~geometry()
 {
 	if(!m_GeometryBuffer) return;
 
-	for (auto& [uid, vao] : m_VAOs)
-		glDeleteVertexArrays(1, &vao);
+	clear(true);
+}
+
+void geometry::clear(bool including_vao)
+{
+	if(including_vao)
+	{
+		for(auto& [uid, vao] : m_VAOs) glDeleteVertexArrays(1, &vao);
+
+		m_VAOs.clear();
+	}
 	for(auto& binding : m_Bindings)
 	{
 		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
 		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
 		// begin 0
-		if(binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
+		if(binding.sub_range.begin == 0 && binding.sub_range.size() != 0) m_GeometryBuffer->deallocate(binding.segment);
+		binding.segment	  = {};
+		binding.sub_range = {};
 	}
 	// same as the earlier comment for geometry buffer
-	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
-}
-
-void geometry::clear()
-{
-	for (auto& [uid, vao] : m_VAOs)
-		glDeleteVertexArrays(1, &vao);
-	for (auto& binding : m_Bindings)
-	{
-		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
-		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
-		// begin 0
-		if (binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
-	}
-	// same as the earlier comment for geometry buffer
-	if (m_IndicesBuffer && m_IndicesSubRange.begin == 0) m_IndicesBuffer->deallocate(m_IndicesSegment);
+	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() != 0)
+		m_IndicesBuffer->deallocate(m_IndicesSegment);
+	m_IndicesSegment = {};
+	m_Bindings		 = {};
 }
 void geometry::recreate(core::resource::handle<core::data::geometry> data)
 {
+	clear(false);
 
 	psl::array<size_t> sizeRequests;
 	sizeRequests.reserve(data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
-	std::for_each(std::begin(data->vertex_streams()), std::end(data->vertex_streams()),
-		[&sizeRequests](const std::pair<psl::string, core::stream>& element) {
-			sizeRequests.emplace_back(element.second.bytesize());
-		});
+	std::for_each(std::begin(data->vertex_streams()),
+				  std::end(data->vertex_streams()),
+				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
+					  sizeRequests.emplace_back(element.second.bytesize());
+				  });
 	auto error = glGetError();
 
-	if (m_GeometryBuffer == m_IndicesBuffer)
+	if(m_GeometryBuffer == m_IndicesBuffer)
 	{
 		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
 	}
 
 	auto segments = m_GeometryBuffer->allocate(sizeRequests, true);
-	if (segments.size() == 0)
+	if(segments.size() == 0)
 	{
 		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
@@ -79,29 +85,29 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 	m_Vertices = std::begin(data->vertex_streams())->second.size();
 	std::vector<core::gfx::memory_copy> instructions;
 	auto current_segment = std::begin(segments);
-	for (const auto& stream : data->vertex_streams())
+	for(const auto& stream : data->vertex_streams())
 	{
 		assert(m_Vertices == stream.second.size());
-		auto& instr = instructions.emplace_back();
-		instr.size = stream.second.bytesize();
+		auto& instr				 = instructions.emplace_back();
+		instr.size				 = stream.second.bytesize();
 		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
-		instr.source_offset = (std::uintptr_t)(stream.second.cdata());
+		instr.source_offset		 = (std::uintptr_t)(stream.second.cdata());
 
-		auto& b = m_Bindings.emplace_back();
-		b.name = stream.first;
-		b.segment = current_segment->first;
-		b.sub_range = current_segment->second;
+		auto& b			= m_Bindings.emplace_back();
+		b.name			= stream.first;
+		b.segment		= current_segment->first;
+		b.sub_range		= current_segment->second;
 		current_segment = std::next(current_segment);
 	}
 
-	if (m_GeometryBuffer != m_IndicesBuffer)
+	if(m_GeometryBuffer != m_IndicesBuffer)
 	{
-		if (auto indiceSegment =
-			m_IndicesBuffer->allocate(data->indices().size() * sizeof(core::data::geometry::index_size_t));
-			indiceSegment)
+		if(auto indiceSegment =
+			 m_IndicesBuffer->allocate(data->indices().size() * sizeof(core::data::geometry::index_size_t));
+		   indiceSegment)
 		{
-			m_IndicesSegment = indiceSegment.value();
-			m_IndicesSubRange = memory::range{ 0, m_IndicesSegment.range().size() };
+			m_IndicesSegment  = indiceSegment.value();
+			m_IndicesSubRange = memory::range {0, m_IndicesSegment.range().size()};
 		}
 		else
 		{
@@ -110,17 +116,18 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 			exit(1);
 		}
 
-		m_IndicesBuffer->set({ {(size_t)data->indices().data(), m_IndicesSegment.range().begin,
-						   data->indices().size() * sizeof(core::data::geometry::index_size_t)} });
+		m_IndicesBuffer->set({{(size_t)data->indices().data(),
+							   m_IndicesSegment.range().begin,
+							   data->indices().size() * sizeof(core::data::geometry::index_size_t)}});
 	}
 	else
 	{
-		auto& instr = instructions.emplace_back();
-		instr.size = data->indices().size() * sizeof(decltype(data->indices().at(0)));
+		auto& instr				 = instructions.emplace_back();
+		instr.size				 = data->indices().size() * sizeof(decltype(data->indices().at(0)));
 		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
-		instr.source_offset = (std::uintptr_t)(data->indices().data());
+		instr.source_offset		 = (std::uintptr_t)(data->indices().data());
 
-		m_IndicesSegment = current_segment->first;
+		m_IndicesSegment  = current_segment->first;
 		m_IndicesSubRange = current_segment->second;
 	}
 
@@ -130,12 +137,12 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 	error = glGetError();
 }
 void geometry::recreate(core::resource::handle<core::data::geometry> data,
-	core::resource::handle<core::igles::buffer> vertexBuffer,
-	core::resource::handle<core::igles::buffer> indexBuffer)
+						core::resource::handle<core::igles::buffer> vertexBuffer,
+						core::resource::handle<core::igles::buffer> indexBuffer)
 {
 	clear();
 	m_GeometryBuffer = vertexBuffer;
-	m_IndicesBuffer = indexBuffer;
+	m_IndicesBuffer	 = indexBuffer;
 
 	recreate(data);
 }
@@ -162,22 +169,23 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 
 	for(auto binding : bindings)
 	{
+		core::log->info("binding id {} offset {}", binding.first, binding.second);
 		for(int index = 0; index < 4; ++index)
 		{
 			glEnableVertexAttribArray(binding.first + index);
 			auto offset = binding.second + (index * sizeof(float) * 4);
-			glVertexAttribPointer(binding.first + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4,
-								  (void*)(offset));
+			glVertexAttribPointer(
+			  binding.first + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4, (void*)(offset));
 			glVertexAttribDivisor(binding.first + index, 1);
 		}
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, m_GeometryBuffer->id());
-	std::vector<int> activeSlots{};
 
 	for(const auto& stage : material->data().stages())
-	{		
-		auto meta_it = std::find_if(std::begin(material->shaders()), std::end(material->shaders()),
+	{
+		auto meta_it = std::find_if(std::begin(material->shaders()),
+									std::end(material->shaders()),
 									[uid = stage.shader()](const auto& shader) { return shader->meta()->ID() == uid; });
 
 		for(const auto& attribute : stage.attributes())
@@ -186,15 +194,16 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 			{
 				if(psl::to_string8_t(b.name) == attribute.tag())
 				{
-					auto offset = uint64_t{b.segment.range().begin + b.sub_range.begin};
+					auto offset = uint64_t {b.segment.range().begin + b.sub_range.begin};
 
-					auto input = std::find_if(std::begin(meta_it->meta()->inputs()), std::end(meta_it->meta()->inputs()),
-						[location = attribute.location()](const auto& input) { return location == input.location(); });
+					auto input = std::find_if(
+					  std::begin(meta_it->meta()->inputs()),
+					  std::end(meta_it->meta()->inputs()),
+					  [location = attribute.location()](const auto& input) { return location == input.location(); });
 					// todo we need type information here
-					glVertexAttribPointer(attribute.location(), input->size() / sizeof(GL_FLOAT), GL_FLOAT, false,
-										  0, (void*)offset);
 					glEnableVertexAttribArray(attribute.location());
-					activeSlots.emplace_back(attribute.location());
+					glVertexAttribPointer(
+					  attribute.location(), input->size() / sizeof(GL_FLOAT), GL_FLOAT, GL_FALSE, 0, (void*)offset);
 				}
 			}
 		}
@@ -210,15 +219,20 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());
 	auto indices = m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t);
-	if (instanceCount == 0)
+	if(instanceCount == 0)
 	{
-		glDrawElements(material->data().wireframe()? GL_LINES : GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-			(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
+		glDrawElements(material->data().wireframe() ? GL_LINES : GL_TRIANGLES,
+					   indices,
+					   GL_UNSIGNED_INT,
+					   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
 	}
 	else
 	{
-		glDrawElementsInstanced(material->data().wireframe() ? GL_LINES : GL_TRIANGLES, indices, GL_UNSIGNED_INT,
-			(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin), instanceCount);
+		glDrawElementsInstanced(material->data().wireframe() ? GL_LINES : GL_TRIANGLES,
+								indices,
+								GL_UNSIGNED_INT,
+								(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin),
+								instanceCount);
 	}
 
 
@@ -246,8 +260,8 @@ bool geometry::compatible(const core::igles::material& material) const noexcept
 			continue;
 
 		error:
-			core::igles::log->error("missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(),
-									utility::to_string(m_UID));
+			core::igles::log->error(
+			  "missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(), utility::to_string(m_UID));
 			return false;
 		}
 	}
@@ -255,15 +269,6 @@ bool geometry::compatible(const core::igles::material& material) const noexcept
 }
 
 
-size_t geometry::vertices() const noexcept
-{
-	return m_Vertices;
-}
-size_t geometry::indices() const noexcept
-{
-	return m_Triangles * 3;
-}
-size_t geometry::triangles() const noexcept
-{
-	return m_Triangles;
-}
+size_t geometry::vertices() const noexcept { return m_Vertices; }
+size_t geometry::indices() const noexcept { return m_Triangles * 3; }
+size_t geometry::triangles() const noexcept { return m_Triangles; }

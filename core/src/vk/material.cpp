@@ -1,18 +1,18 @@
-﻿#include "logging.h"
-#include "vk/context.h"
-#include "vk/material.h"
-#include "data/material.h"
-#include "vk/pipeline_cache.h"
-#include "meta/shader.h"
-#include "vk/shader.h"
-#include "vk/buffer.h"
-#include "vk/texture.h"
-#include "vk/sampler.h"
+﻿#include "vk/material.h"
 #include "data/buffer.h"
-#include "vk/swapchain.h"
+#include "data/material.h"
+#include "logging.h"
+#include "meta/shader.h"
+#include "vk/buffer.h"
+#include "vk/context.h"
+#include "vk/conversion.h"
 #include "vk/framebuffer.h"
 #include "vk/pipeline.h"
-#include "vk/conversion.h"
+#include "vk/pipeline_cache.h"
+#include "vk/sampler.h"
+#include "vk/shader.h"
+#include "vk/swapchain.h"
+#include "vk/texture.h"
 
 #include "gfx/buffer.h"
 
@@ -21,12 +21,15 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-material::material(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				   handle<core::ivk::context> context, handle<core::data::material> data,
+material::material(core::resource::cache& cache,
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   handle<core::ivk::context> context,
+				   handle<core::data::material> data,
 				   core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
-				   core::resource::handle<core::ivk::buffer> materialBuffer)
-	: m_UID(metaData.uid), m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data),
-	  m_MaterialBuffer(materialBuffer)
+				   core::resource::handle<core::ivk::buffer> materialBuffer) :
+	m_UID(metaData.uid),
+	m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data), m_MaterialBuffer(materialBuffer)
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& ID = m_UID;
@@ -39,7 +42,8 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 		if(!shader_handle)
 		{
 			core::gfx::log->warn("ivk::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-								 utility::to_string(ID), utility::to_string(stage.shader()));
+								 utility::to_string(ID),
+								 utility::to_string(stage.shader()));
 
 
 			core::gfx::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
@@ -67,10 +71,11 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				{
 					// todo: add error sampler as fallback when no sampler can be found
 					core::gfx::log->error(
-						"ivk::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
-						"cache.",
-						utility::to_string(ID), utility::to_string(binding.sampler()),
-						utility::to_string(stage.shader()));
+					  "ivk::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
+					  "cache.",
+					  utility::to_string(ID),
+					  utility::to_string(binding.sampler()),
+					  utility::to_string(stage.shader()));
 					return;
 				}
 				if(auto texture_handle = cache.find<core::ivk::texture>(binding.texture()); texture_handle)
@@ -81,10 +86,11 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				{
 					// todo: add error texture as fallback when no texture can be found
 					core::gfx::log->error(
-						"ivk::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
-						"cache.",
-						utility::to_string(ID), utility::to_string(binding.texture()),
-						utility::to_string(stage.shader()));
+					  "ivk::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
+					  "cache.",
+					  utility::to_string(ID),
+					  utility::to_string(binding.texture()),
+					  utility::to_string(stage.shader()));
 					return;
 				}
 			}
@@ -99,27 +105,31 @@ material::material(core::resource::cache& cache, const core::resource::metadata&
 				if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
 				   buffer_handle && buffer_handle->buffer.state() == core::resource::state::loaded)
 				{
-					vk::BufferUsageFlagBits usage = (binding.descriptor() == core::gfx::binding_type::uniform_buffer || binding.descriptor() == core::gfx::binding_type::uniform_buffer_dynamic)
-														? vk::BufferUsageFlagBits::eUniformBuffer
-														: vk::BufferUsageFlagBits::eStorageBuffer;
+					vk::BufferUsageFlagBits usage =
+					  (binding.descriptor() == core::gfx::binding_type::uniform_buffer ||
+					   binding.descriptor() == core::gfx::binding_type::uniform_buffer_dynamic)
+						? vk::BufferUsageFlagBits::eUniformBuffer
+						: vk::BufferUsageFlagBits::eStorageBuffer;
 					if(!(core::gfx::conversion::to_vk(buffer_handle->buffer->data().usage()) & usage))
 					{
 						core::gfx::log->error(
-							"ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
-							"the type [{2}] instead in shader [{3}]",
-							utility::to_string(ID), vk::to_string(gfx::conversion::to_vk(binding.descriptor())),
-							vk::to_string(core::gfx::conversion::to_vk(buffer_handle->buffer->data().usage())),
-							utility::to_string(stage.shader()));
+						  "ivk::material [{0}] declares resource of the type [{1}], but we detected a resource of "
+						  "the type [{2}] instead in shader [{3}]",
+						  utility::to_string(ID),
+						  vk::to_string(gfx::conversion::to_vk(binding.descriptor())),
+						  vk::to_string(core::gfx::conversion::to_vk(buffer_handle->buffer->data().usage())),
+						  utility::to_string(stage.shader()));
 						return;
 					}
 				}
 				else
 				{
 					core::gfx::log->error(
-						"ivk::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource "
-						"cache.",
-						utility::to_string(ID), utility::to_string(binding.buffer()),
-						utility::to_string(stage.shader()));
+					  "ivk::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource "
+					  "cache.",
+					  utility::to_string(ID),
+					  utility::to_string(binding.buffer()),
+					  utility::to_string(stage.shader()));
 					return;
 				}
 			}
@@ -178,7 +188,8 @@ core::resource::handle<pipeline> material::get(core::resource::handle<swapchain>
 	}
 }
 
-bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<framebuffer> framebuffer,
+bool material::bind_pipeline(vk::CommandBuffer cmdBuffer,
+							 core::resource::handle<framebuffer> framebuffer,
 							 uint32_t drawIndex)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -188,23 +199,25 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 		cmdBuffer.pushConstants(m_Bound->vkLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &drawIndex);
 	}
 
-	if (m_MaterialBufferRange.range().size() > 0)
+	if(m_MaterialBufferRange.range().size() > 0)
 	{
-		m_Bound->update(m_MaterialBufferBinding, m_MaterialBufferRange.range().begin, m_MaterialBufferRange.range().size());
+		m_Bound->update(
+		  m_MaterialBufferBinding, m_MaterialBufferRange.range().begin, m_MaterialBufferRange.range().size());
 	}
 
 	if(!m_Bound->is_complete())
 	{
 		core::ivk::log->error(
-			"tried to bind an incomplete or invalid pipeline, please inspect the logs around material {}",
-			m_UID.to_string());
+		  "tried to bind an incomplete or invalid pipeline, please inspect the logs around material {}",
+		  m_UID.to_string());
 		return false;
 	}
 
 	return m_Bound->bind(cmdBuffer, m_DynamicOffsets);
 }
 
-bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<swapchain> swapchain,
+bool material::bind_pipeline(vk::CommandBuffer cmdBuffer,
+							 core::resource::handle<swapchain> swapchain,
 							 uint32_t drawIndex)
 {
 	PROFILE_SCOPE(core::profiler)
@@ -217,8 +230,8 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 	if(!m_Bound->is_complete())
 	{
 		core::ivk::log->error(
-			"tried to bind an incomplete or invalid pipeline, please inspect the logs around material {}",
-			m_UID.to_string());
+		  "tried to bind an incomplete or invalid pipeline, please inspect the logs around material {}",
+		  m_UID.to_string());
 		return false;
 	}
 
@@ -228,14 +241,14 @@ bool material::bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle
 
 void material::bind_material_instance_data(core::resource::handle<core::ivk::buffer> buffer, memory::segment segment)
 {
-	//assert(segment.range().size() <= m_MaterialBuffer->data()->size());
+	// assert(segment.range().size() <= m_MaterialBuffer->data()->size());
 	m_MaterialBufferRange = segment;
-	//m_MaterialBuffer->copy_from(buffer.value(), {vk::BufferCopy{segment.range().begin, 0, segment.range().size()}});
+	// m_MaterialBuffer->copy_from(buffer.value(), {vk::BufferCopy{segment.range().begin, 0, segment.range().size()}});
 }
 bool material::bind_instance_data(uint32_t binding, uint32_t offset)
 {
 	auto it = std::find(std::begin(m_DynamicOffsetsIndices), std::end(m_DynamicOffsetsIndices), binding);
-	if (it == std::end(m_DynamicOffsetsIndices))
+	if(it == std::end(m_DynamicOffsetsIndices))
 	{
 		core::ivk::log->error("the requested binding slot {} was not found in the material", binding);
 		return false;

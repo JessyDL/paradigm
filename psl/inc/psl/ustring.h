@@ -8,8 +8,8 @@
 //#include <string>
 //#include <istream>
 //#include <iostream>
-#include <fstream>
 #include <cstring>
+#include <fstream>
 
 //#include <codecvt>
 // seeing the standard omits this for LLVM specific reasons (ridiculous..)
@@ -37,20 +37,20 @@ namespace psl
 	namespace string8
 	{
 		using char_t   = char;
-		using view	 = std::basic_string_view<char_t>;
+		using view	   = std::basic_string_view<char_t>;
 		using stream   = std::basic_stringstream<char_t>;
 		using ostream  = std::basic_ostream<char_t>;
 		using ofstream = std::basic_ofstream<char_t>;
 		using istream  = std::basic_istream<char_t>;
 		using ifstream = std::basic_ifstream<char_t>;
 		using fstream  = std::basic_fstream<char_t>;
-	} // namespace string8
+	}	 // namespace string8
 
 	/// \brief UTF-16 class namespace that contains the typedefs for the string objects, as well as helper methods.
 	namespace string16
 	{
 		using char_t   = char16_t;
-		using view	 = std::basic_string_view<char_t>;
+		using view	   = std::basic_string_view<char_t>;
 		using stream   = std::basic_stringstream<char_t>;
 		using ostream  = std::basic_ostream<char_t>;
 		using ofstream = std::basic_ofstream<char_t>;
@@ -58,20 +58,20 @@ namespace psl
 		using ifstream = std::basic_ifstream<char_t>;
 		using fstream  = std::basic_fstream<char_t>;
 
-	} // namespace string16
+	}	 // namespace string16
 
 	/// \brief UTF-32 class namespace that contains the typedefs for the string objects, as well as helper methods.
 	namespace string32
 	{
 		using char_t   = char32_t;
-		using view	 = std::basic_string_view<char_t>;
+		using view	   = std::basic_string_view<char_t>;
 		using stream   = std::basic_stringstream<char_t>;
 		using ostream  = std::basic_ostream<char_t>;
 		using ofstream = std::basic_ofstream<char_t>;
 		using istream  = std::basic_istream<char_t>;
 		using ifstream = std::basic_ifstream<char_t>;
 		using fstream  = std::basic_fstream<char_t>;
-	} // namespace string32
+	}	 // namespace string32
 
 	namespace platform
 	{
@@ -80,38 +80,38 @@ namespace psl
 #else
 		using char_t = char;
 #endif
-		using view	 = std::basic_string_view<char_t>;
+		using view	   = std::basic_string_view<char_t>;
 		using stream   = std::basic_stringstream<char_t>;
 		using ostream  = std::basic_ostream<char_t>;
 		using ofstream = std::basic_ofstream<char_t>;
 		using istream  = std::basic_istream<char_t>;
 		using ifstream = std::basic_ifstream<char_t>;
 		using fstream  = std::basic_fstream<char_t>;
-	} // namespace platform
+	}	 // namespace platform
 
-	using string8_t  = std::basic_string<string8::char_t, std::char_traits<string8::char_t>>;
+	using string8_t	 = std::basic_string<string8::char_t, std::char_traits<string8::char_t>>;
 	using string16_t = std::basic_string<string16::char_t, std::char_traits<string16::char_t>>;
 	using string32_t = std::basic_string<string32::char_t, std::char_traits<string32::char_t>>;
 
 	/// \brief platform conditional string type, turns into char or wchar depending on the platform and compile options
-	using pchar_t   = platform::char_t;
+	using pchar_t	= platform::char_t;
 	using pstring_t = std::basic_string<pchar_t, std::char_traits<pchar_t>>;
 #if defined(STRING_16_BIT)
-	static constexpr size_t uchar_size{sizeof(string16::char_t)};
+	static constexpr size_t uchar_size {sizeof(string16::char_t)};
 	using string	   = string16_t;
 	using char_t	   = string16::char_t;
 	using string_view  = string16::view;
 	using stringstream = string16::stream;
-	using ostream	  = string16::ostream;
-	using ofstream	 = string16::ofstream;
-	using istream	  = string16::istream;
-	using ifstream	 = string16::ifstream;
-	using fstream	  = string16::fstream;
+	using ostream	   = string16::ostream;
+	using ofstream	   = string16::ofstream;
+	using istream	   = string16::istream;
+	using ifstream	   = string16::ifstream;
+	using fstream	   = string16::fstream;
 #else
 #if !defined(STRING_8_BIT)
 #define STRING_8_BIT
 #endif
-	static constexpr size_t uchar_size{sizeof(string8::char_t)};
+	static constexpr size_t uchar_size {sizeof(string8::char_t)};
 	using string = string8_t;
 	using char_t = string8::char_t;
 	using string_view = string8::view;
@@ -155,7 +155,7 @@ namespace psl
 		static decltype(std::cerr)& cerr = std::cerr;
 		/// \brief alias for std::clor, prefer this version
 		static decltype(std::clog)& clog = std::clog;*/
-	} // namespace string8
+	}	 // namespace string8
 
 	namespace string16
 	{
@@ -182,17 +182,17 @@ namespace psl
 		static decltype(std::wcerr)& cerr = std::wcerr;
 		/// \brief alias for std::wclog, prefer this version
 		static decltype(std::wclog)& clog = std::wclog;*/
-	} // namespace string16
+	}	 // namespace string16
 
 #if defined(STRING_16_BIT)
 	inline psl::string8_t to_string8_t(const psl::string& s)
 	{
-		return (std::wstring_convert<std::codecvt_utf8<char_t>, char_t>{}).to_bytes(s);
+		return (std::wstring_convert<std::codecvt_utf8<char_t>, char_t> {}).to_bytes(s);
 	}
 
 	inline psl::string from_string8_t(const psl::string8_t& s)
 	{
-		return (std::wstring_convert<std::codecvt_utf8<char_t>, char_t>{}).from_bytes(s);
+		return (std::wstring_convert<std::codecvt_utf8<char_t>, char_t> {}).from_bytes(s);
 	}
 
 	inline psl::string8_t to_string8_t(psl::string_view s) { return to_string8_t(psl::string(s)); }
@@ -201,19 +201,19 @@ namespace psl
 
 	inline psl::ustring_t to_wstring(const psl::string& s)
 	{
-		psl::ustring_t res{(const wchar_t*)s.c_str(), s.size()};
+		psl::ustring_t res {(const wchar_t*)s.c_str(), s.size()};
 		return res;
 	}
 
 	inline psl::ustring_t to_wstring(psl::string_view s)
 	{
-		psl::ustring_t res{(const wchar_t*)s.data(), s.size()};
+		psl::ustring_t res {(const wchar_t*)s.data(), s.size()};
 		return res;
 	}
 
 	inline psl::string from_wstring(psl::ustring::view s)
 	{
-		psl::string res{(psl::char_t*)s.data(), s.size()};
+		psl::string res {(psl::char_t*)s.data(), s.size()};
 		return res;
 	}
 #else
@@ -303,17 +303,17 @@ namespace psl
 
 
 #endif
-//#ifdef UNICODE
-//	static decltype(std::wcin)& cin   = std::wcin;
-//	static decltype(std::wcout)& cout = std::wcout;
-//	static decltype(std::wcerr)& cerr = std::wcerr;
-//	static decltype(std::wclog)& clog = std::wclog;
-//#else
-//	static decltype(std::cin)& cin = std::cin;
-//	static decltype(std::cout)& cout = std::cout;
-//	static decltype(std::cerr)& cerr = std::cerr;
-//	static decltype(std::clog)& clog = std::clog;
-//#endif
+	//#ifdef UNICODE
+	//	static decltype(std::wcin)& cin   = std::wcin;
+	//	static decltype(std::wcout)& cout = std::wcout;
+	//	static decltype(std::wcerr)& cerr = std::wcerr;
+	//	static decltype(std::wclog)& clog = std::wclog;
+	//#else
+	//	static decltype(std::cin)& cin = std::cin;
+	//	static decltype(std::cout)& cout = std::cout;
+	//	static decltype(std::cerr)& cerr = std::cerr;
+	//	static decltype(std::clog)& clog = std::clog;
+	//#endif
 
 	/// \brief std::memset wrapper that auto-converts to std::wmemset when wchar == psl::char_t
 	/// \param[in] _Dst destination location of what to memset
@@ -439,12 +439,12 @@ namespace psl
 			::printf((const char*)_Format, std::forward<Args>(args)...);
 		}
 	}
-} // namespace psl
+}	 // namespace psl
 
 /// \brief helper operator that allows you to create a new psl::string8_t from adding it to a string_view
 inline psl::string8_t operator+(const psl::string8_t& a, psl::string8::view b)
 {
-	psl::string8_t res{a};
+	psl::string8_t res {a};
 	res.append(b.data(), b.size());
 	return res;
 }
@@ -452,7 +452,7 @@ inline psl::string8_t operator+(const psl::string8_t& a, psl::string8::view b)
 /// \brief helper operator that allows you to create a new psl::string8_t from adding it to a string_view
 inline psl::string8_t operator+(psl::string8::view a, const psl::string8_t& b)
 {
-	psl::string8_t res{a};
+	psl::string8_t res {a};
 	res.append(b.data(), b.size());
 	return res;
 }

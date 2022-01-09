@@ -9,7 +9,7 @@ include(src.txt)
 FetchContent_Declare(
   google_benchmark
   GIT_REPOSITORY https://github.com/google/benchmark.git
-  GIT_TAG        master
+  GIT_TAG        main
 )
 
 FetchContent_GetProperties(google_benchmark)

@@ -1,11 +1,11 @@
 #pragma once
-#include "psl/array.h"
-#include "resource/resource.hpp"
-#include "gfx/details/instance.h"
-#include "fwd/gfx/bundle.h"
 #include "fwd/gfx/buffer.h"
+#include "fwd/gfx/bundle.h"
 #include "fwd/gfx/geometry.h"
 #include "fwd/gfx/material.h"
+#include "gfx/details/instance.h"
+#include "psl/array.h"
+#include "resource/resource.hpp"
 
 namespace core::ivk
 {
@@ -13,7 +13,7 @@ namespace core::ivk
 	class framebuffer;
 	class swapchain;
 	class drawpass;
-} // namespace core::ivk
+}	 // namespace core::ivk
 
 namespace core::igles
 {
@@ -33,9 +33,9 @@ namespace core::gfx
 	};
 	namespace constants
 	{
-		static constexpr psl::string_view INSTANCE_MODELMATRIX = "INSTANCE_TRANSFORM";
+		static constexpr psl::string_view INSTANCE_MODELMATRIX		  = "INSTANCE_TRANSFORM";
 		static constexpr psl::string_view INSTANCE_LEGACY_MODELMATRIX = "iModelMat";
-	}
+	}	 // namespace constants
 
 	/// \detail
 	/// Bundles acts as a collection of core::gfx::materials, which are associated with a specific renderID (ordered
@@ -57,8 +57,11 @@ namespace core::gfx
 		*/
 
 	  public:
-		bundle(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::buffer> vertexBuffer, core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer);
+		bundle(core::resource::cache& cache,
+			   const core::resource::metadata& metaData,
+			   psl::meta::file* metaFile,
+			   core::resource::handle<core::gfx::buffer> vertexBuffer,
+			   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer);
 
 		~bundle()				  = default;
 		bundle(const bundle&)	  = delete;
@@ -149,7 +152,9 @@ namespace core::gfx
 		/// \returns true if the geometry was found, all instances were present, and the upload dispatched. The upload
 		/// is async.
 		template <typename T>
-		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, psl::string_view name,
+		bool set(core::resource::tag<core::gfx::geometry> geometry,
+				 uint32_t id,
+				 psl::string_view name,
 				 const psl::array<T>& values)
 		{
 			static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
@@ -157,7 +162,8 @@ namespace core::gfx
 			auto res = m_InstanceData.segment(geometry, name);
 			if(!res)
 			{
-				core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid().to_string());
+				core::gfx::log->error(
+				  "The element name {} was not found on geometry {}", name, geometry.uid().to_string());
 				return false;
 			}
 			return set(geometry, id, res.value().first, res.value().second, values.data(), sizeof(T), values.size());
@@ -177,8 +183,8 @@ namespace core::gfx
 			auto offset = m_InstanceData.offset_of(material, name);
 			if(offset == std::numeric_limits<decltype(offset)>::max())
 			{
-				core::gfx::log->error("The element name {} was not found in the material {} data", name,
-									  material.uid().to_string());
+				core::gfx::log->error(
+				  "The element name {} was not found in the material {} data", name, material.uid().to_string());
 				return false;
 			}
 			return set(material, value, offset);
@@ -188,26 +194,31 @@ namespace core::gfx
 		bool set(psl::string_view name, const T& value)
 		{
 			size_t count = 0;
-			for (const auto& material : m_Materials)
+			for(const auto& material : m_Materials)
 			{
 				auto offset = m_InstanceData.offset_of(material, name);
-				if (offset != std::numeric_limits<decltype(offset)>::max())
+				if(offset != std::numeric_limits<decltype(offset)>::max())
 				{
-					count += set(material, value, offset)?1:0;
+					count += set(material, value, offset) ? 1 : 0;
 				}
 			}
 
-			if (count == 0)
+			if(count == 0)
 			{
-				core::gfx::log->error("The element name {} was not found in any of the {} materials", name,
-					m_Materials.size());
+				core::gfx::log->error(
+				  "The element name {} was not found in any of the {} materials", name, m_Materials.size());
 			}
 			return count;
 		}
 
 	  private:
-		bool set(core::resource::tag<core::gfx::geometry> geometry, uint32_t id, memory::segment segment,
-				 uint32_t size_of_element, const void* data, size_t size, size_t count = 1);
+		bool set(core::resource::tag<core::gfx::geometry> geometry,
+				 uint32_t id,
+				 memory::segment segment,
+				 uint32_t size_of_element,
+				 const void* data,
+				 size_t size,
+				 size_t count = 1);
 
 		bool set(core::resource::tag<core::gfx::material> material, const void* data, size_t size, size_t offset);
 
@@ -225,4 +236,4 @@ namespace core::gfx
 		core::resource::handle<core::gfx::material> m_Bound;
 		core::resource::handle<core::gfx::buffer> m_MaterialBuffer;
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

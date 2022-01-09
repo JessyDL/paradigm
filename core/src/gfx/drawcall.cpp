@@ -1,7 +1,7 @@
 #include "gfx/drawcall.h"
 #include "gfx/geometry.h"
-#include <algorithm>
 #include "resource/resource.hpp"
+#include <algorithm>
 
 
 using namespace psl;
@@ -9,7 +9,8 @@ using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
 drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<core::gfx::geometry>>& geometry) noexcept
-	: m_Bundle(bundle)
+	:
+	m_Bundle(bundle)
 {
 	for(auto& g : geometry) m_Geometry.emplace_back(g, 1);
 }
@@ -17,13 +18,14 @@ drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<co
 
 bool drawcall::add(handle<core::gfx::geometry> geometry) noexcept
 {
-	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
+	if(auto it = std::find_if(std::begin(m_Geometry),
+							  std::end(m_Geometry),
 							  [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
 								  return geomHandle.first == geometry;
 							  });
 	   it == std::end(m_Geometry))
 	{
-		m_Geometry.emplace_back(std::make_pair(geometry, size_t{1}));
+		m_Geometry.emplace_back(std::make_pair(geometry, size_t {1}));
 		return true;
 	}
 	else
@@ -34,7 +36,8 @@ bool drawcall::add(handle<core::gfx::geometry> geometry) noexcept
 }
 bool drawcall::remove(core::resource::handle<core::gfx::geometry> geometry) noexcept
 {
-	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
+	if(auto it = std::find_if(std::begin(m_Geometry),
+							  std::end(m_Geometry),
 							  [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
 								  return geomHandle.first == geometry;
 							  });
@@ -49,7 +52,8 @@ bool drawcall::remove(core::resource::handle<core::gfx::geometry> geometry) noex
 }
 bool drawcall::remove(const UID& geometry) noexcept
 {
-	if(auto it = std::find_if(std::begin(m_Geometry), std::end(m_Geometry),
+	if(auto it = std::find_if(std::begin(m_Geometry),
+							  std::end(m_Geometry),
 							  [&geometry](const std::pair<handle<core::gfx::geometry>, size_t>& geomHandle) {
 								  return geomHandle.first == geometry;
 							  });

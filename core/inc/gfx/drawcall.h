@@ -1,9 +1,9 @@
 #pragma once
-#include <vector>
-#include "gfx/bundle.h"
-#include "fwd/resource/resource.h"
 #include "fwd/gfx/bundle.h"
 #include "fwd/gfx/geometry.h"
+#include "fwd/resource/resource.h"
+#include "gfx/bundle.h"
+#include <vector>
 
 #ifdef PE_VULKAN
 namespace core::ivk
@@ -49,4 +49,4 @@ namespace core::gfx
 		core::resource::handle<core::gfx::bundle> m_Bundle;
 		std::vector<std::pair<core::resource::handle<core::gfx::geometry>, size_t>> m_Geometry;
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

@@ -17,7 +17,9 @@ namespace core::gfx
 		explicit texture(core::resource::handle<core::igles::texture>& handle);
 #endif
 
-		texture(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::texture* metaFile,
+		texture(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				core::meta::texture* metaFile,
 				core::resource::handle<core::gfx::context> context);
 
 		~texture();
@@ -41,7 +43,7 @@ namespace core::gfx
 		const core::meta::texture& meta() const noexcept;
 
 	  private:
-		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::texture> m_VKHandle;
 #endif
@@ -49,4 +51,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::texture> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

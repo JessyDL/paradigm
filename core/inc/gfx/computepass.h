@@ -1,8 +1,8 @@
 #pragma once
-#include <variant>
+#include "gfx/types.h"
 #include "psl/view_ptr.h"
 #include "resource/resource.hpp"
-#include "gfx/types.h"
+#include <variant>
 
 #ifdef PE_GLES
 namespace core::igles
@@ -75,13 +75,13 @@ namespace core::gfx
 		bool dirty() const noexcept { return m_Dirty; }
 
 	  private:
-		core::gfx::graphics_backend m_Backend{graphics_backend::undefined};
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::ivk::computepass* m_VKHandle;
 #endif
 #ifdef PE_GLES
 		core::igles::computepass* m_GLESHandle;
 #endif
-		bool m_Dirty{false};
+		bool m_Dirty {false};
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

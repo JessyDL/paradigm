@@ -1,10 +1,10 @@
 ﻿#include "vk/swapchain.h"
+#include "logging.h"
+#include "meta/texture.h"
 #include "os/surface.h"
 #include "vk/context.h"
-#include "vk/texture.h"
 #include "vk/conversion.h"
-#include "meta/texture.h"
-#include "logging.h"
+#include "vk/texture.h"
 
 using namespace psl;
 using namespace core;
@@ -13,10 +13,14 @@ using namespace core::gfx;
 using namespace core::os;
 using namespace core::resource;
 
-swapchain::swapchain(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-					 handle<core::os::surface> surface, handle<core::ivk::context> context, bool use_depth)
-	: m_OSSurface(&surface.value()), m_Context(context), m_Cache(cache), m_DepthTextureHandle(),
-	  m_UseDepth(use_depth), m_SurfaceFormat{}
+swapchain::swapchain(core::resource::cache& cache,
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile,
+					 handle<core::os::surface> surface,
+					 handle<core::ivk::context> context,
+					 bool use_depth) :
+	m_OSSurface(&surface.value()),
+	m_Context(context), m_Cache(cache), m_DepthTextureHandle(), m_UseDepth(use_depth), m_SurfaceFormat {}
 {
 #ifdef SURFACE_WIN32
 	vk::Win32SurfaceCreateInfoKHR createInfo;
@@ -27,7 +31,7 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 #elif defined(SURFACE_XCB)
 	vk::XcbSurfaceCreateInfoKHR createInfo;
 	createInfo.connection = m_OSSurface->connection();
-	createInfo.window	 = m_OSSurface->surface_handle();
+	createInfo.window	  = m_OSSurface->surface_handle();
 	utility::vulkan::check(m_Context->instance().createXcbSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_WAYLAND)
 	vk::WaylandSurfaceCreateInfoKHR createInfo;
@@ -76,7 +80,7 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 			   mode->parameters.visibleRegion.height == m_OSSurface->data().height())
 			{
 				displayMode = mode->displayMode;
-				foundMode   = true;
+				foundMode	= true;
 				break;
 			}
 		}
@@ -150,7 +154,7 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 	surfaceInfo.pNext			   = nullptr;
 	surfaceInfo.displayMode		   = displayMode;
 	surfaceInfo.planeIndex		   = bestPlaneIndex;
-	surfaceInfo.planeStackIndex	= planeProperties[bestPlaneIndex].currentStackIndex;
+	surfaceInfo.planeStackIndex	   = planeProperties[bestPlaneIndex].currentStackIndex;
 	surfaceInfo.transform		   = vk::SurfaceTransformFlagBitsKHR::eIdentity;
 	surfaceInfo.globalAlpha		   = 1.0;
 	surfaceInfo.alphaMode		   = alphaMode;
@@ -158,7 +162,7 @@ swapchain::swapchain(core::resource::cache& cache, const core::resource::metadat
 	surfaceInfo.imageExtent.height = m_OSSurface->data().height();
 
 	if(utility::vulkan::check(
-		   m_Context->instance().createDisplayPlaneSurfaceKHR(&surfaceInfo, VK_NULL_HANDLE, &m_Surface)))
+		 m_Context->instance().createDisplayPlaneSurfaceKHR(&surfaceInfo, VK_NULL_HANDLE, &m_Surface)))
 	{
 		core::ivk::log->critical("failed to create the D2D surface");
 		exit(-1);
@@ -193,7 +197,7 @@ void swapchain::init_surface()
 	m_ImageCount		= (uint32_t)(m_OSSurface->data().buffering());
 	auto physicalDevice = m_Context->physical_device();
 	utility::vulkan::check(
-		physicalDevice.getSurfaceSupportKHR(m_Context->graphics_queue_index(), m_Surface, &m_SupportKHR));
+	  physicalDevice.getSurfaceSupportKHR(m_Context->graphics_queue_index(), m_Surface, &m_SupportKHR));
 	if(m_SupportKHR == VK_FALSE)
 	{
 		LOG_FATAL("Does not support KHR surface.");
@@ -223,7 +227,7 @@ void swapchain::init_surface()
 
 	if(m_SurfaceSupportFormats[0].format == vk::Format::eUndefined)
 	{
-		m_SurfaceFormat.format	 = SURFACE_FORMAT;
+		m_SurfaceFormat.format	   = SURFACE_FORMAT;
 		m_SurfaceFormat.colorSpace = SURFACE_COLORSPACE;
 	}
 	else
@@ -253,8 +257,8 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous)
 
 		presentMode = (std::find(allPresentModes.begin(), allPresentModes.end(), vk::PresentModeKHR::eMailbox) !=
 					   allPresentModes.end())
-						  ? vk::PresentModeKHR::eMailbox
-						  : vk::PresentModeKHR::eFifo;
+						? vk::PresentModeKHR::eMailbox
+						: vk::PresentModeKHR::eFifo;
 	}
 
 	vk::SwapchainCreateInfoKHR createInfo;
@@ -263,17 +267,17 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous)
 	createInfo.imageFormat			 = m_SurfaceFormat.format;
 	createInfo.imageColorSpace		 = m_SurfaceFormat.colorSpace;
 	createInfo.imageExtent.width	 = (uint32_t)m_OSSurface->data().width();
-	createInfo.imageExtent.height	= (uint32_t)m_OSSurface->data().height();
+	createInfo.imageExtent.height	 = (uint32_t)m_OSSurface->data().height();
 	createInfo.imageArrayLayers		 = 1;
-	createInfo.imageUsage			 = vk::ImageUsageFlagBits::eColorAttachment; // we need to draw into it;
+	createInfo.imageUsage			 = vk::ImageUsageFlagBits::eColorAttachment;	// we need to draw into it;
 	createInfo.imageSharingMode		 = vk::SharingMode::eExclusive;
-	createInfo.queueFamilyIndexCount = m_Context->graphics_queue_index(); // ignored if VK_SHARING_MODE_EXCLUSIVE
-	createInfo.pQueueFamilyIndices   = nullptr;							  // ignored if VK_SHARING_MODE_EXCLUSIVE
+	createInfo.queueFamilyIndexCount = m_Context->graphics_queue_index();	 // ignored if VK_SHARING_MODE_EXCLUSIVE
+	createInfo.pQueueFamilyIndices	 = nullptr;								 // ignored if VK_SHARING_MODE_EXCLUSIVE
 	createInfo.preTransform			 = vk::SurfaceTransformFlagBitsKHR::eIdentity;
 	createInfo.compositeAlpha		 = vk::CompositeAlphaFlagBitsKHR::eOpaque;
 	createInfo.presentMode			 = presentMode;
-	createInfo.clipped = VK_TRUE; // Setting clipped to VK_TRUE allows the implementation to discard rendering outside
-								  // of the surface area
+	createInfo.clipped = VK_TRUE;	 // Setting clipped to VK_TRUE allows the implementation to discard rendering
+									 // outside of the surface area
 	if(previous)
 		createInfo.oldSwapchain = previous.value();
 	else
@@ -282,7 +286,7 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous)
 	utility::vulkan::check(m_Context->device().createSwapchainKHR(&createInfo, nullptr, &m_Swapchain));
 
 	utility::vulkan::check(
-		m_Context->device().getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, (vk::Image*)nullptr));
+	  m_Context->device().getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, (vk::Image*)nullptr));
 	if(m_SwapchainImageCount <= 0) LOG_FATAL("We received no swapchain images.");
 }
 
@@ -301,17 +305,17 @@ void swapchain::init_images()
 		vk::ImageViewCreateInfo CI;
 		CI.image	= m_SwapchainImages[i];
 		CI.viewType = vk::ImageViewType::e2D;
-		CI.format   = m_SurfaceFormat.format;
+		CI.format	= m_SurfaceFormat.format;
 
 		CI.components.r					   = vk::ComponentSwizzle::eR;
 		CI.components.g					   = vk::ComponentSwizzle::eG;
 		CI.components.b					   = vk::ComponentSwizzle::eB;
 		CI.components.a					   = vk::ComponentSwizzle::eA;
-		CI.subresourceRange.aspectMask	 = vk::ImageAspectFlagBits::eColor;
+		CI.subresourceRange.aspectMask	   = vk::ImageAspectFlagBits::eColor;
 		CI.subresourceRange.baseMipLevel   = 0;
-		CI.subresourceRange.levelCount	 = 1;
+		CI.subresourceRange.levelCount	   = 1;
 		CI.subresourceRange.baseArrayLayer = 0;
-		CI.subresourceRange.layerCount	 = 1;
+		CI.subresourceRange.layerCount	   = 1;
 
 		utility::vulkan::check(device.createImageView(&CI, nullptr, &m_SwapchainImageViews[i]));
 	}
@@ -347,7 +351,7 @@ void swapchain::flush()
 
 	vk::SubmitInfo submitInfo;
 	submitInfo.commandBufferCount = 1;
-	submitInfo.pCommandBuffers	= &m_SetupCommandBuffer;
+	submitInfo.pCommandBuffers	  = &m_SetupCommandBuffer;
 
 	auto queue = m_Context->queue();
 	utility::vulkan::check(queue.submit(1, &submitInfo, nullptr));
@@ -374,7 +378,7 @@ void swapchain::init_depthstencil()
 	}
 
 	using meta_type = typename resource_traits<core::ivk::texture>::meta_type;
-	std::unique_ptr<meta_type> metaData{std::make_unique<meta_type>()};
+	std::unique_ptr<meta_type> metaData {std::make_unique<meta_type>()};
 	// auto [metaUID, metaData] = m_Cache.library().create<meta::texture>();
 	// m_Cache.library().set(metaUID, "SCDepthStencil");
 	metaData->width(m_OSSurface->data().width());
@@ -405,7 +409,7 @@ void swapchain::init_renderpass()
 	attachments[0].stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
 	attachments[0].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 	attachments[0].initialLayout  = vk::ImageLayout::eUndefined;
-	attachments[0].finalLayout	= vk::ImageLayout::ePresentSrcKHR;
+	attachments[0].finalLayout	  = vk::ImageLayout::ePresentSrcKHR;
 
 	// Depth attachment
 	attachments[1].format		  = core::gfx::conversion::to_vk(m_DepthTextureHandle->meta().format());
@@ -415,15 +419,15 @@ void swapchain::init_renderpass()
 	attachments[1].stencilLoadOp  = vk::AttachmentLoadOp::eDontCare;
 	attachments[1].stencilStoreOp = vk::AttachmentStoreOp::eDontCare;
 	attachments[1].initialLayout  = vk::ImageLayout::eUndefined;
-	attachments[1].finalLayout	= vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	attachments[1].finalLayout	  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
 	vk::AttachmentReference colorReference;
 	colorReference.attachment = 0;
-	colorReference.layout	 = vk::ImageLayout::eColorAttachmentOptimal;
+	colorReference.layout	  = vk::ImageLayout::eColorAttachmentOptimal;
 
 	vk::AttachmentReference depthReference;
 	depthReference.attachment = 1;
-	depthReference.layout	 = vk::ImageLayout::eDepthStencilAttachmentOptimal;
+	depthReference.layout	  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 
 	vk::SubpassDescription subpass;
 	subpass.pipelineBindPoint		= vk::PipelineBindPoint::eGraphics;
@@ -444,30 +448,30 @@ void swapchain::init_renderpass()
 	// VK_SUBPASS_EXTERNAL is a special constant that refers to all commands executed outside of the actual renderpass)
 	std::array<vk::SubpassDependency, 2> dependencies;
 
-	dependencies[0].srcSubpass	= VK_SUBPASS_EXTERNAL;
-	dependencies[0].dstSubpass	= 0;
+	dependencies[0].srcSubpass	  = VK_SUBPASS_EXTERNAL;
+	dependencies[0].dstSubpass	  = 0;
 	dependencies[0].srcStageMask  = vk::PipelineStageFlagBits::eBottomOfPipe;
 	dependencies[0].dstStageMask  = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	dependencies[0].srcAccessMask = vk::AccessFlagBits::eMemoryRead;
 	dependencies[0].dstAccessMask =
-		vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	  vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
 	dependencies[0].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
-	dependencies[1].srcSubpass   = 0;
-	dependencies[1].dstSubpass   = VK_SUBPASS_EXTERNAL;
+	dependencies[1].srcSubpass	 = 0;
+	dependencies[1].dstSubpass	 = VK_SUBPASS_EXTERNAL;
 	dependencies[1].srcStageMask = vk::PipelineStageFlagBits::eColorAttachmentOutput;
 	dependencies[1].dstStageMask = vk::PipelineStageFlagBits::eBottomOfPipe;
 	dependencies[1].srcAccessMask =
-		vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
-	dependencies[1].dstAccessMask   = vk::AccessFlagBits::eMemoryRead;
+	  vk::AccessFlagBits::eColorAttachmentRead | vk::AccessFlagBits::eColorAttachmentWrite;
+	dependencies[1].dstAccessMask	= vk::AccessFlagBits::eMemoryRead;
 	dependencies[1].dependencyFlags = vk::DependencyFlagBits::eByRegion;
 
 	vk::RenderPassCreateInfo renderPassInfo;
 	renderPassInfo.pNext		   = NULL;
 	renderPassInfo.attachmentCount = static_cast<uint32_t>(attachments.size());
-	renderPassInfo.pAttachments	= attachments.data();
-	renderPassInfo.subpassCount	= 1;
-	renderPassInfo.pSubpasses	  = &subpass;
+	renderPassInfo.pAttachments	   = attachments.data();
+	renderPassInfo.subpassCount	   = 1;
+	renderPassInfo.pSubpasses	   = &subpass;
 	renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 	renderPassInfo.pDependencies   = dependencies.data();
 
@@ -487,7 +491,7 @@ void swapchain::init_framebuffer()
 	frameBufferCreateInfo.pNext			  = NULL;
 	frameBufferCreateInfo.renderPass	  = m_RenderPass;
 	frameBufferCreateInfo.attachmentCount = 2;
-	frameBufferCreateInfo.pAttachments	= attachments;
+	frameBufferCreateInfo.pAttachments	  = attachments;
 	frameBufferCreateInfo.width			  = m_OSSurface->data().width();
 	frameBufferCreateInfo.height		  = m_OSSurface->data().height();
 	frameBufferCreateInfo.layers		  = 1;
@@ -498,7 +502,7 @@ void swapchain::init_framebuffer()
 	{
 		attachments[0] = m_SwapchainImageViews[i];
 		utility::vulkan::check(
-			m_Context->device().createFramebuffer(&frameBufferCreateInfo, nullptr, &m_Framebuffer[i]));
+		  m_Context->device().createFramebuffer(&frameBufferCreateInfo, nullptr, &m_Framebuffer[i]));
 	}
 }
 
@@ -535,7 +539,7 @@ bool swapchain::next(vk::Semaphore presentComplete, uint32_t& out_image_index)
 		core::ivk::log->error("Invalid acquire result: {}", vk::to_string(result));
 	}
 
-	m_CurrentImage  = resultValue.value;
+	m_CurrentImage	= resultValue.value;
 	out_image_index = m_CurrentImage;
 	return recreated;
 }
@@ -543,11 +547,11 @@ vk::Result swapchain::present(vk::Semaphore wait)
 {
 	vk::PresentInfoKHR presentInfo;
 	presentInfo.swapchainCount = 1;
-	presentInfo.pSwapchains	= &m_Swapchain;
+	presentInfo.pSwapchains	   = &m_Swapchain;
 	presentInfo.pImageIndices  = &m_CurrentImage;
 
 	presentInfo.waitSemaphoreCount = wait ? 1 : 0;
-	presentInfo.pWaitSemaphores	= &wait;
+	presentInfo.pWaitSemaphores	   = &wait;
 	auto res					   = m_Context->queue().presentKHR(presentInfo);
 	if(!((res == vk::Result::eSuccess) || (res == vk::Result::eSuboptimalKHR)))
 	{
@@ -562,8 +566,7 @@ vk::Result swapchain::present(vk::Semaphore wait)
 void swapchain::resize()
 {
 	while(m_Resizing)
-	{
-	};
+	{};
 
 	m_ShouldResize = true;
 }
@@ -595,7 +598,7 @@ void swapchain::apply_resize()
 	init_framebuffer();
 	// hard sync.
 	utility::vulkan::check(m_Context->device().waitIdle());
-	m_Resizing	 = false;
+	m_Resizing	   = false;
 	m_ShouldResize = false;
 }
 

@@ -6,6 +6,5 @@ namespace core::data
 	class application
 	{
 	  public:
-
 	};
-}
+}	 // namespace core::data

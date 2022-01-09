@@ -17,4 +17,4 @@ namespace psl::noise
 	  private:
 		psl::array<int32_t> m_Permutation;
 	};
-} // namespace psl::noise
+}	 // namespace psl::noise

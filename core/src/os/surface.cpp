@@ -1,18 +1,31 @@
 ﻿
 #include "os/surface.h"
-#include "vk/swapchain.h"
 #include "systems/input.h"
+#include "vk/swapchain.h"
+
+
+#include "resource2/cache.h"
 
 using namespace psl;
 using namespace core::os;
 using namespace core;
 
-surface::surface(core::resource::cache& cache, const core::resource::metadata& metaData, psl::meta::file* metaFile,
-				 core::resource::handle<data::window> data)
-	: m_Data(data), m_InputSystem(new core::systems::input())
+surface::surface(core::resource::cache& cache,
+				 const core::resource::metadata& metaData,
+				 psl::meta::file* metaFile,
+				 core::resource::handle<data::window> data) :
+	m_Data(data),
+	m_InputSystem(new core::systems::input())
 {
 	init_surface();
 }
+
+surface::surface(core::resource2::cache& cache,
+				 const core::resource2::metadata& metaData,
+				 const psl::meta::file& metaFile,
+				 const core::resource2::handle<data::window>& data) noexcept :
+	m_InputSystem(new core::systems::input())
+{}
 
 surface::~surface()
 {

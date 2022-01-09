@@ -1,27 +1,27 @@
 ﻿
 #include "vk/drawpass.h"
-#include "vk/context.h"
-#include "vk/framebuffer.h"
 #include "data/framebuffer.h"
-#include "vk/swapchain.h"
+#include "data/geometry.h"
+#include "gfx/buffer.h"
+#include "gfx/details/instance.h"
 #include "gfx/drawgroup.h"
 #include "gfx/geometry.h"
 #include "gfx/material.h"
-#include "gfx/buffer.h"
 #include "vk/buffer.h"
+#include "vk/context.h"
+#include "vk/conversion.h"
+#include "vk/framebuffer.h"
 #include "vk/geometry.h"
 #include "vk/material.h"
-#include "vk/conversion.h"
-#include "data/geometry.h"
-#include "gfx/details/instance.h"
+#include "vk/swapchain.h"
 
 using namespace core::resource;
 using namespace core::gfx;
 using namespace core::ivk;
 
 
-drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> framebuffer)
-	: m_Context(context), m_Framebuffer(framebuffer), m_UsingSwap(false)
+drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> framebuffer) :
+	m_Context(context), m_Framebuffer(framebuffer), m_UsingSwap(false)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
 	semaphoreCreateInfo.pNext = NULL;
@@ -34,19 +34,19 @@ drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebu
 	// Set up submit info structure
 	// Semaphores will stay the same during application lifetime
 
-	m_SubmitInfo.pWaitDstStageMask	= &m_SubmitPipelineStages;
-	m_SubmitInfo.waitSemaphoreCount   = 1;
+	m_SubmitInfo.pWaitDstStageMask	  = &m_SubmitPipelineStages;
+	m_SubmitInfo.waitSemaphoreCount	  = 1;
 	m_SubmitInfo.pWaitSemaphores	  = &m_PresentComplete;
 	m_SubmitInfo.signalSemaphoreCount = 1;
-	m_SubmitInfo.pSignalSemaphores	= &m_RenderComplete;
+	m_SubmitInfo.pSignalSemaphores	  = &m_RenderComplete;
 
 	create_fences(m_Framebuffer->framebuffers().size());
 
 	build();
 }
 
-drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapchain> swapchain)
-	: m_Context(context), m_Swapchain(swapchain), m_UsingSwap(true)
+drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapchain> swapchain) :
+	m_Context(context), m_Swapchain(swapchain), m_UsingSwap(true)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
 	semaphoreCreateInfo.pNext = NULL;
@@ -59,11 +59,11 @@ drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapcha
 	// Set up submit info structure
 	// Semaphores will stay the same during application lifetime
 
-	m_SubmitInfo.pWaitDstStageMask	= &m_SubmitPipelineStages;
-	m_SubmitInfo.waitSemaphoreCount   = 1;
+	m_SubmitInfo.pWaitDstStageMask	  = &m_SubmitPipelineStages;
+	m_SubmitInfo.waitSemaphoreCount	  = 1;
 	m_SubmitInfo.pWaitSemaphores	  = &m_PresentComplete;
 	m_SubmitInfo.signalSemaphoreCount = 1;
-	m_SubmitInfo.pSignalSemaphores	= &m_RenderComplete;
+	m_SubmitInfo.pSignalSemaphores	  = &m_RenderComplete;
 
 	create_fences(m_Swapchain->framebuffers().size());
 
@@ -89,8 +89,8 @@ drawpass::~drawpass()
 		m_Context->device().waitSemaphores(waitInfo, std::numeric_limits<uint64_t>::max());
 	}*/
 
-	m_Context->device().freeCommandBuffers(m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(),
-		m_DrawCommandBuffers.data());
+	m_Context->device().freeCommandBuffers(
+	  m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(), m_DrawCommandBuffers.data());
 
 	m_Context->device().destroySemaphore(m_PresentComplete);
 
@@ -103,18 +103,18 @@ bool drawpass::build()
 	m_LastBuildFrame = m_FrameCount;
 
 	m_Context->device().waitIdle();
-	m_Context->device().freeCommandBuffers(m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(),
-										   m_DrawCommandBuffers.data());
+	m_Context->device().freeCommandBuffers(
+	  m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(), m_DrawCommandBuffers.data());
 
 	m_Buffers = (uint32_t)m_DrawCommandBuffers.size();
 
 	vk::CommandBufferAllocateInfo cmdBufAllocateInfo;
 	cmdBufAllocateInfo.commandPool		  = m_Context->command_pool();
-	cmdBufAllocateInfo.commandBufferCount = (uint32_t)m_DrawCommandBuffers.size(); // one for each image
+	cmdBufAllocateInfo.commandBufferCount = (uint32_t)m_DrawCommandBuffers.size();	  // one for each image
 	cmdBufAllocateInfo.level			  = vk::CommandBufferLevel::ePrimary;
 
 	if(!utility::vulkan::check(
-		   m_Context->device().allocateCommandBuffers(&cmdBufAllocateInfo, m_DrawCommandBuffers.data())))
+		 m_Context->device().allocateCommandBuffers(&cmdBufAllocateInfo, m_DrawCommandBuffers.data())))
 		throw new std::runtime_error("Critical issue");
 
 	vk::CommandBufferBeginInfo cmdBufInfo;
@@ -137,19 +137,20 @@ bool drawpass::build()
 	else
 	{
 		const auto& attachments = m_Framebuffer->data()->attachments();
-		std::transform(std::begin(attachments), std::end(attachments), std::back_inserter(clearValues),
+		std::transform(std::begin(attachments),
+					   std::end(attachments),
+					   std::back_inserter(clearValues),
 					   [](const auto& attach) { return core::gfx::conversion::to_vk(attach.clear_value()); });
 	}
 	bool success = false;
 	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i)
 	{
-
 		m_Context->device().waitIdle();
 		if(!utility::vulkan::check(m_DrawCommandBuffers[i].begin(cmdBufInfo)))
 			throw new std::runtime_error("Critical issue");
 
 		const std::vector<vk::Framebuffer>& framebuffers =
-			(m_UsingSwap) ? m_Swapchain->framebuffers() : m_Framebuffer->framebuffers();
+		  (m_UsingSwap) ? m_Swapchain->framebuffers() : m_Framebuffer->framebuffers();
 
 
 		vk::RenderPassBeginInfo renderPassBeginInfo;
@@ -157,13 +158,13 @@ bool drawpass::build()
 		if(m_UsingSwap)
 		{
 			renderPassBeginInfo.renderPass				 = m_Swapchain->renderpass();
-			renderPassBeginInfo.renderArea.extent.width  = m_Swapchain->width();
+			renderPassBeginInfo.renderArea.extent.width	 = m_Swapchain->width();
 			renderPassBeginInfo.renderArea.extent.height = m_Swapchain->height();
 		}
 		else
 		{
 			renderPassBeginInfo.renderPass				 = m_Framebuffer->render_pass();
-			renderPassBeginInfo.renderArea.extent.width  = m_Framebuffer->data()->width();
+			renderPassBeginInfo.renderArea.extent.width	 = m_Framebuffer->data()->width();
 			renderPassBeginInfo.renderArea.extent.height = m_Framebuffer->data()->height();
 		}
 
@@ -179,8 +180,8 @@ bool drawpass::build()
 
 			// Update dynamic viewport state
 			vk::Viewport viewport;
-			viewport.height   = (float)renderPassBeginInfo.renderArea.extent.height;
-			viewport.width	= (float)renderPassBeginInfo.renderArea.extent.width;
+			viewport.height	  = (float)renderPassBeginInfo.renderArea.extent.height;
+			viewport.width	  = (float)renderPassBeginInfo.renderArea.extent.width;
 			viewport.minDepth = (float)0.0f;
 			viewport.maxDepth = (float)1.0f;
 			m_DrawCommandBuffers[i].setViewport(0, 1, &viewport);
@@ -193,8 +194,8 @@ bool drawpass::build()
 			scissor.offset.y	  = 0;
 			m_DrawCommandBuffers[i].setScissor(0, 1, &scissor);
 
-			m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
-												 m_DepthBias.components[2]);
+			m_DrawCommandBuffers[i].setDepthBias(
+			  m_DepthBias.components[0], m_DepthBias.components[1], m_DepthBias.components[2]);
 
 			for(auto& group : m_AllGroups) build_drawgroup(group, m_DrawCommandBuffers[i], m_Swapchain, i);
 
@@ -210,8 +211,8 @@ bool drawpass::build()
 
 				// Update dynamic viewport state
 				vk::Viewport viewport;
-				viewport.height   = (float)renderPassBeginInfo.renderArea.extent.height;
-				viewport.width	= (float)renderPassBeginInfo.renderArea.extent.width;
+				viewport.height	  = (float)renderPassBeginInfo.renderArea.extent.height;
+				viewport.width	  = (float)renderPassBeginInfo.renderArea.extent.width;
 				viewport.minDepth = (float)0.0f;
 				viewport.maxDepth = (float)1.0f;
 				m_DrawCommandBuffers[i].setViewport(0, 1, &viewport);
@@ -224,8 +225,8 @@ bool drawpass::build()
 				scissor.offset.y	  = 0;
 				m_DrawCommandBuffers[i].setScissor(0, 1, &scissor);
 
-				m_DrawCommandBuffers[i].setDepthBias(m_DepthBias.components[0], m_DepthBias.components[1],
-													 m_DepthBias.components[2]);
+				m_DrawCommandBuffers[i].setDepthBias(
+				  m_DepthBias.components[0], m_DepthBias.components[1], m_DepthBias.components[2]);
 
 
 				for(auto& group : m_AllGroups) build_drawgroup(group, m_DrawCommandBuffers[i], m_Framebuffer, i);
@@ -255,11 +256,12 @@ void drawpass::create_fences(const size_t size)
 
 void drawpass::destroy_fences()
 {
-	if (!utility::vulkan::check(
-		m_Context->device().waitForFences(m_WaitFences.size(), m_WaitFences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max())))
+	if(!utility::vulkan::check(m_Context->device().waitForFences(
+		 m_WaitFences.size(), m_WaitFences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max())))
 		LOG_ERROR("Failed to wait for fence");
 
-	if (!utility::vulkan::check(m_Context->device().resetFences(m_WaitFences.size(), m_WaitFences.data()))) LOG_ERROR("Failed to reset fence");
+	if(!utility::vulkan::check(m_Context->device().resetFences(m_WaitFences.size(), m_WaitFences.data())))
+		LOG_ERROR("Failed to reset fence");
 	for(auto& fence : m_WaitFences)
 	{
 		m_Context->device().destroyFence(fence, nullptr);
@@ -285,15 +287,15 @@ void drawpass::present()
 {
 	if(m_WaitFences.size() > 0)
 	{
-		if(!utility::vulkan::check(m_Context->device().waitForFences(1, &m_WaitFences[m_CurrentBuffer], VK_TRUE,
-																	 std::numeric_limits<uint64_t>::max())))
+		if(!utility::vulkan::check(m_Context->device().waitForFences(
+			 1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, std::numeric_limits<uint64_t>::max())))
 			LOG_ERROR("Failed to wait for fence");
 
 		if(!utility::vulkan::check(m_Context->device().resetFences(1, &m_WaitFences[m_CurrentBuffer])))
 			LOG_ERROR("Failed to reset fence");
 	}
 
-	std::vector<vk::Semaphore> semaphores{m_WaitFor};
+	std::vector<vk::Semaphore> semaphores {m_WaitFor};
 	std::vector<vk::PipelineStageFlags> stageFlags;
 
 	if(m_UsingSwap)
@@ -347,26 +349,26 @@ void drawpass::add(core::gfx::drawgroup& group) noexcept { m_AllGroups.push_back
 void drawpass::remove(const core::gfx::drawgroup& group) noexcept
 {
 	m_AllGroups.erase(
-		std::remove_if(std::begin(m_AllGroups), std::end(m_AllGroups),
-					   [&group](const std::reference_wrapper<drawgroup>& element) { return &group == &element.get(); }),
-		std::end(m_AllGroups));
+	  std::remove_if(std::begin(m_AllGroups),
+					 std::end(m_AllGroups),
+					 [&group](const std::reference_wrapper<drawgroup>& element) { return &group == &element.get(); }),
+	  std::end(m_AllGroups));
 }
 
 void drawpass::clear() noexcept { m_AllGroups.clear(); }
 
 
-void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept 
-{ 
-	m_WaitFor.emplace_back(pass->m_RenderComplete); 
-}
+void drawpass::connect(psl::view_ptr<drawpass> pass) noexcept { m_WaitFor.emplace_back(pass->m_RenderComplete); }
 
 void drawpass::disconnect(psl::view_ptr<drawpass> pass) noexcept
 {
 	m_WaitFor.erase(std::find(std::begin(m_WaitFor), std::end(m_WaitFor), pass->m_RenderComplete), std::end(m_WaitFor));
 }
 
-void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
-							   core::resource::handle<core::ivk::framebuffer> framebuffer, uint32_t index)
+void drawpass::build_drawgroup(drawgroup& group,
+							   vk::CommandBuffer cmdBuffer,
+							   core::resource::handle<core::ivk::framebuffer> framebuffer,
+							   uint32_t index)
 {
 	for(auto& drawLayer : group.m_Group)
 	{
@@ -377,23 +379,22 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 			render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
 		}
 		std::sort(std::begin(render_indices), std::end(render_indices));
-		render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)), std::end(render_indices));
+		render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)),
+							 std::end(render_indices));
 		for(auto renderLayer : render_indices)
 		{
 			for(auto& drawCall : drawLayer.second)
 			{
 				if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
 				auto bundle = drawCall.m_Bundle;
-				if (!bundle->bind_material(renderLayer))
-					continue;
-				auto gfxmat{bundle->bound()};
-				auto mat{gfxmat->resource< gfx::graphics_backend::vulkan>() };
+				if(!bundle->bind_material(renderLayer)) continue;
+				auto gfxmat {bundle->bound()};
+				auto mat {gfxmat->resource<gfx::graphics_backend::vulkan>()};
 
-				if (!mat->bind_pipeline(cmdBuffer, framebuffer, index))
-					continue;
+				if(!mat->bind_pipeline(cmdBuffer, framebuffer, index)) continue;
 				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
-					auto geometryHandle = gfxGeometryHandle->resource< gfx::graphics_backend::vulkan>();
+					auto geometryHandle = gfxGeometryHandle->resource<gfx::graphics_backend::vulkan>();
 					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
@@ -403,10 +404,12 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 					{
-						cmdBuffer.bindVertexBuffers(
-							b.first, 1,
-							&bundle->m_InstanceData.vertex_buffer()->resource< gfx::graphics_backend::vulkan>()->gpu_buffer(),
-							&b.second);
+						cmdBuffer.bindVertexBuffers(b.first,
+													1,
+													&bundle->m_InstanceData.vertex_buffer()
+													   ->resource<gfx::graphics_backend::vulkan>()
+													   ->gpu_buffer(),
+													&b.second);
 					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
@@ -416,8 +419,10 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 	}
 }
 
-void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
-							   core::resource::handle<core::ivk::swapchain> swapchain, uint32_t index)
+void drawpass::build_drawgroup(drawgroup& group,
+							   vk::CommandBuffer cmdBuffer,
+							   core::resource::handle<core::ivk::swapchain> swapchain,
+							   uint32_t index)
 {
 	for(auto& drawLayer : group.m_Group)
 	{
@@ -428,23 +433,22 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 			render_indices.insert(std::end(render_indices), std::begin(matIndices), std::end(matIndices));
 		}
 		std::sort(std::begin(render_indices), std::end(render_indices));
-		render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)), std::end(render_indices));
+		render_indices.erase(std::unique(std::begin(render_indices), std::end(render_indices)),
+							 std::end(render_indices));
 		for(auto renderLayer : render_indices)
 		{
 			for(auto& drawCall : drawLayer.second)
 			{
 				if(drawCall.m_Geometry.size() == 0 || !drawCall.m_Bundle->has(renderLayer)) continue;
 				auto bundle = drawCall.m_Bundle;
-				if (!bundle->bind_material(renderLayer))
-					continue;
-				auto gfxmat{bundle->bound()};
-				auto mat{gfxmat->resource< gfx::graphics_backend::vulkan>() };
+				if(!bundle->bind_material(renderLayer)) continue;
+				auto gfxmat {bundle->bound()};
+				auto mat {gfxmat->resource<gfx::graphics_backend::vulkan>()};
 
-				if (!mat->bind_pipeline(cmdBuffer, swapchain, index))
-					continue;
+				if(!mat->bind_pipeline(cmdBuffer, swapchain, index)) continue;
 				for(auto& [gfxGeometryHandle, count] : drawCall.m_Geometry)
 				{
-					auto geometryHandle = gfxGeometryHandle->resource< gfx::graphics_backend::vulkan>();
+					auto geometryHandle = gfxGeometryHandle->resource<gfx::graphics_backend::vulkan>();
 					uint32_t instance_n = bundle->instances(gfxGeometryHandle);
 					if(instance_n == 0 || !geometryHandle->compatible(mat.value())) continue;
 
@@ -454,10 +458,12 @@ void drawpass::build_drawgroup(drawgroup& group, vk::CommandBuffer cmdBuffer,
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 					{
-						cmdBuffer.bindVertexBuffers(
-							b.first, 1,
-							&bundle->m_InstanceData.vertex_buffer()->resource< gfx::graphics_backend::vulkan>()->gpu_buffer(),
-							&b.second);
+						cmdBuffer.bindVertexBuffers(b.first,
+													1,
+													&bundle->m_InstanceData.vertex_buffer()
+													   ->resource<gfx::graphics_backend::vulkan>()
+													   ->gpu_buffer(),
+													&b.second);
 					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);

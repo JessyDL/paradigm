@@ -1,19 +1,19 @@
 ﻿#pragma once
 
-#define __STDC_WANT_LIB_EXT1__ 1 // https://stackoverflow.com/questions/31278172/undefined-reference-to-memcpy-s
-#include <stddef.h>
-#include <stdarg.h>
-#include <cstddef>
-#include <vector>
+#define __STDC_WANT_LIB_EXT1__ 1	// https://stackoverflow.com/questions/31278172/undefined-reference-to-memcpy-s
 #include <array>
+#include <cstddef>
+#include <stdarg.h>
+#include <stddef.h>
+#include <vector>
 
 #include "psl/platform_def.h"
 #include "psl/ustring.h"
 
 #ifdef PLATFORM_ANDROID
+#include <android/configuration.h>
 #include <android/log.h>
 #include <android_native_app_glue.h>
-#include <android/configuration.h>
 #endif
 
 #include "psl/logging.h"
@@ -24,7 +24,7 @@ namespace platform::specifics
 	extern android_app* android_application;
 #endif
 
-} // namespace platform::specifics
+}	 // namespace platform::specifics
 
 
 #if !defined(NDEBUG) && defined(NDEBUG) && !defined(DEBUG)
@@ -40,12 +40,12 @@ namespace platform::specifics
 */
 
 
+#include "psl/profiling/profiler.h"
 #include "psl/template_utils.h"
 #include "psl/timer.h"
-#include "psl/profiling/profiler.h"
 
-#include "psl/enumerate.h"
 #include "psl/array_view.h"
+#include "psl/enumerate.h"
 #include "psl/pack_view.h"
 
 #include "psl/literals.h"

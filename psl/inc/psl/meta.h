@@ -9,7 +9,7 @@ namespace std
 	template <typename T>
 	struct hash;
 #endif
-} // namespace std
+}	 // namespace std
 
 namespace psl
 {
@@ -32,7 +32,7 @@ namespace psl
 		constexpr UID(const PUID& id) : GUID(id) {}
 
 		UID(const UID& other) noexcept = default;
-		UID(UID&& other) noexcept	  = default;
+		UID(UID&& other) noexcept	   = default;
 		UID& operator=(const UID& other) noexcept = default;
 		UID& operator=(UID&& other) noexcept = default;
 
@@ -179,11 +179,11 @@ namespace psl
 		}
 
 		constexpr auto parse = [](const char* text) {
-			uint8_t result{};
+			uint8_t result {};
 			for(size_t i = 0; i < 2; ++i)
 			{
 				auto character = text[i];
-				int res{};
+				int res {};
 				if('0' <= character && character <= '9')
 					res = character - '0';
 				else if('a' <= character && character <= 'f')
@@ -191,14 +191,14 @@ namespace psl
 				else if('A' <= character && character <= 'F')
 					res = 10 + character - 'A';
 				else
-					throw std::domain_error{"invalid character in UID"};
+					throw std::domain_error {"invalid character in UID"};
 
 				result |= res << (4 * (1 - i));
 			}
 			return result;
 		};
 
-		psl::UID::PUID res{};
+		psl::UID::PUID res {};
 		auto res_offset = 0;
 		for(size_t i = 0; i < 4; ++i)
 		{
@@ -230,7 +230,7 @@ namespace psl
 			res[res_offset++] = parse(text);
 			text += 2;
 		}
-		return psl::UID{res};
+		return psl::UID {res};
 	}
 	constexpr psl::UID make_uid(const char* text, std::size_t size) noexcept
 	{
@@ -260,7 +260,7 @@ namespace psl
 			for(size_t i = 0; i < 2; ++i)
 			{
 				auto character = text[i];
-				int res{};
+				int res {};
 				if('0' <= character && character <= '9')
 					res = character - '0';
 				else if('a' <= character && character <= 'f')
@@ -276,7 +276,7 @@ namespace psl
 		};
 
 
-		psl::UID::PUID res{};
+		psl::UID::PUID res {};
 		auto res_offset = 0;
 		for(size_t i = 0; i < 4; ++i)
 		{
@@ -308,7 +308,7 @@ namespace psl
 			parse(text, res[res_offset++]);
 			text += 2;
 		}
-		return psl::UID{res};
+		return psl::UID {res};
 	}
 
 	constexpr psl::UID psl::UID::from_string(const psl::string8_t& key)
@@ -319,7 +319,7 @@ namespace psl
 	{
 		return psl::valid_uid(key.data(), key.size());
 	}
-} // namespace psl
+}	 // namespace psl
 
 
 // required by the natvis file
@@ -334,7 +334,7 @@ namespace dummy
 	{
 		unsigned char c;
 	};
-} // namespace dummy
+}	 // namespace dummy
 
 namespace std
 {
@@ -347,7 +347,7 @@ namespace std
 			return half[0] ^ half[1];
 		}
 	};
-} // namespace std
+}	 // namespace std
 
 namespace utility
 {
@@ -358,7 +358,7 @@ namespace utility
 
 		static psl::UID from_string(psl::string8::view str) { return psl::make_uid(str.data(), str.size()); }
 	};
-} // namespace utility
+}	 // namespace utility
 
 
 constexpr psl::UID operator"" _uid(const char* text, std::size_t size) { return psl::try_make_uid(text, size); }

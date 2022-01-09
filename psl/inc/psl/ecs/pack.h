@@ -1,7 +1,7 @@
 #pragma once
+#include "details/selectors.h"
 #include "entity.h"
 #include "selectors.h"
-#include "details/selectors.h"
 
 
 namespace psl::ecs
@@ -64,12 +64,12 @@ namespace psl::ecs
 		void check_policy()
 		{
 			static_assert(!psl::ecs::details::has_type<psl::ecs::partial, std::tuple<Ys...>>::value &&
-							  !psl::ecs::details::has_type<psl::ecs::partial, std::tuple<Ys...>>::value,
+							!psl::ecs::details::has_type<psl::ecs::partial, std::tuple<Ys...>>::value,
 						  "policy types such as 'partial' and 'full' can only appear as the first type");
 		}
 
 	  public:
-		static constexpr bool has_entities{std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
+		static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
 
 		using pack_t		= typename type_pack<Ts...>::pack_t;
 		using filter_t		= typename type_pack<Ts...>::filter_t;
@@ -83,6 +83,7 @@ namespace psl::ecs
 		using policy_t		= typename type_pack<Ts...>::policy_t;
 
 		static_assert(std::tuple_size<order_by_t>::value <= 1, "multiple order_by statements make no sense");
+
 	  public:
 		pack() : m_Pack() { check_policy<Ts...>(); };
 
@@ -114,4 +115,4 @@ namespace psl::ecs
 	  private:
 		pack_t m_Pack;
 	};
-} // namespace psl::ecs
+}	 // namespace psl::ecs

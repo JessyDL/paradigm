@@ -1,8 +1,8 @@
 #pragma once
-#include "resource/resource.hpp"
 #include "fwd/gfx/compute.h"
-#include "psl/math/vec.h"
 #include "gfx/types.h"
+#include "psl/math/vec.h"
+#include "resource/resource.hpp"
 
 namespace core::data
 {
@@ -15,14 +15,14 @@ namespace core::gfx
 
 	class compute;
 #ifdef PE_VULKAN
-	template<>
+	template <>
 	struct backend_type<compute, graphics_backend::vulkan>
 	{
 		using type = core::ivk::compute;
 	};
 #endif
 #ifdef PE_GLES
-	template<>
+	template <>
 	struct backend_type<compute, graphics_backend::gles>
 	{
 		using type = core::igles::compute;
@@ -34,20 +34,22 @@ namespace core::gfx
 		friend class core::resource::cache;
 
 	  public:
-
 #ifdef PE_VULKAN
-		  explicit compute(core::resource::handle<core::ivk::compute>& handle);
+		explicit compute(core::resource::handle<core::ivk::compute>& handle);
 #endif
 #ifdef PE_GLES
-		  explicit compute(core::resource::handle<core::igles::compute>& handle);
+		explicit compute(core::resource::handle<core::igles::compute>& handle);
 #endif
 
-		compute(core::resource::cache& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile,
-				core::resource::handle<context> context_handle, core::resource::handle<core::data::material> data,
+		compute(core::resource::cache& cache,
+				const core::resource::metadata& metaData,
+				core::meta::shader* metaFile,
+				core::resource::handle<context> context_handle,
+				core::resource::handle<core::data::material> data,
 				core::resource::handle<pipeline_cache> pipeline_cache);
 		~compute() = default;
 
-		compute(const compute& other)	 = default;
+		compute(const compute& other)	  = default;
 		compute(compute&& other) noexcept = default;
 		compute& operator=(const compute& other) = default;
 		compute& operator=(compute&& other) noexcept = default;
@@ -61,15 +63,15 @@ namespace core::gfx
 		core::resource::handle<backend_type_t<compute, backend>> resource() const noexcept
 		{
 #ifdef PE_VULKAN
-			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
 #endif
 #ifdef PE_GLES
-			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+			if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
 #endif
 		};
 
-	private:
-		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+	  private:
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
 		core::resource::handle<core::ivk::compute> m_VKHandle;
 #endif
@@ -77,4 +79,4 @@ namespace core::gfx
 		core::resource::handle<core::igles::compute> m_GLESHandle;
 #endif
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx
