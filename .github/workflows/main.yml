@@ -21,6 +21,6 @@ jobs:
     - name: initialize
       run: python paradigm.py --run build --graphics ${{ matrix.graphics }}
     - name: compile
-      run: cmake --build "project_files/Visual Studio 16 2019/x64" --config Release
+      run: cmake --build "project_files/Visual Studio 17 2022/x64" --config Release
     - name: test
-      run: cd "project_files/Visual Studio 16 2019/x64"; ctest
+      run: cd "project_files/Visual Studio 17 2022/x64"; ctest
