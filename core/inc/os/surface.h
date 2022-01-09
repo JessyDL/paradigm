@@ -30,14 +30,6 @@ namespace core::ivk
 	class swapchain;
 }
 
-namespace core::resource2
-{
-	class cache;
-	struct metadata;
-
-	template <typename T>
-	class handle;
-} // namespace core::resource2
 namespace core::os
 {
 	/// \brief primitive object that create a surface we can render on.
@@ -51,10 +43,6 @@ namespace core::os
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				core::resource::handle<data::window> data);
-		surface(core::resource2::cache& cache,
-				const core::resource2::metadata& metaData,
-				const psl::meta::file& metaFile,
-				const core::resource2::handle<data::window>& data) noexcept;
 		~surface();
 		surface(const surface&) = delete;
 		surface(surface&&)		= delete;

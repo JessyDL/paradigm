@@ -4,8 +4,6 @@
 #include "vk/swapchain.h"
 
 
-#include "resource2/cache.h"
-
 using namespace psl;
 using namespace core::os;
 using namespace core;
@@ -19,13 +17,6 @@ surface::surface(core::resource::cache& cache,
 {
 	init_surface();
 }
-
-surface::surface(core::resource2::cache& cache,
-				 const core::resource2::metadata& metaData,
-				 const psl::meta::file& metaFile,
-				 const core::resource2::handle<data::window>& data) noexcept :
-	m_InputSystem(new core::systems::input())
-{}
 
 surface::~surface()
 {
