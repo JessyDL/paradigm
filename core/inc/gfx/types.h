@@ -2,6 +2,7 @@
 #include "psl/math/vec.h"
 #include "psl/memory/range.h"
 #include "psl/memory/segment.h"
+#include "psl/ustring.h"
 #include <optional>
 #include <variant>
 

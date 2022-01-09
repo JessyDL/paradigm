@@ -12,7 +12,4 @@
 #endif
 #define CATCH_CONFIG_ENABLE_BENCHMARKING
 #include <catch2/catch.hpp>
-#ifdef DBG_NEW
-#define new DBG_NEW
-#endif
 // TODO: reference additional headers your program requires here
