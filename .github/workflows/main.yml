@@ -12,6 +12,8 @@ jobs:
     runs-on: windows-2022
     steps:
     - uses: actions/checkout@v1
+      with:
+        submodules: recursive
     - name: setup dependencies
       uses: actions/setup-python@v1
       with:
