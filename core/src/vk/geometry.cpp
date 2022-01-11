@@ -49,7 +49,7 @@ void geometry::clear()
 	}
 	m_Bindings.clear();
 	// same as the earlier comment for geometry buffer
-	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0)
+	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0 && m_IndicesSegment.range().size() > 0)
 		m_IndicesBuffer->deallocate(m_IndicesSegment);
 
 	m_Data = {};
