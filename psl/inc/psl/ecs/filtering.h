@@ -30,7 +30,7 @@ namespace psl::ecs
 				order_by = [](psl::array<entity>::iterator begin,
 							  psl::array<entity>::iterator end,
 							  const psl::ecs::state& state) {
-					state.order_by<Pred, T>(std::execution::par, begin, end);
+					state.template order_by<Pred, T>(std::execution::par, begin, end);
 				};
 			}
 
@@ -41,7 +41,7 @@ namespace psl::ecs
 				on_condition.emplace_back([](psl::array<entity>::iterator begin,
 											 psl::array<entity>::iterator end,
 											 const psl::ecs::state& state) -> psl::array<entity>::iterator {
-					return state.on_condition<Pred, T>(begin, end);
+					return state.template on_condition<Pred, T>(begin, end);
 				});
 			}
 
@@ -313,7 +313,7 @@ namespace psl::ecs
 		template <typename T>
 		auto make_filter_group(T)
 		{
-			static_assert(false);
+			static_assert(utility::templates::always_false_v<void>);
 		}
 
 		template <typename... Ts>
@@ -340,7 +340,7 @@ namespace psl::ecs
 		template <typename T>
 		auto make_transform_group(T)
 		{
-			static_assert(false);
+			static_assert(utility::templates::always_false_v<void>);
 		}
 
 		template <typename... Ts>
