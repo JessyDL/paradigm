@@ -1,6 +1,6 @@
 ﻿#include "data/sampler.h"
 #include "resource/resource.hpp"
-#include <fmt\compile.h>
+#include <fmt/compile.h>
 using namespace psl;
 using namespace core::data;
 using namespace core::resource;
