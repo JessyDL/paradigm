@@ -1,0 +1,144 @@
+{
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 18,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "hidden": true,
+            "name": "settings-project",
+            "generator": "Ninja",
+            "binaryDir": "${sourceDir}/project_files/${generator}",
+            "cacheVariables": {
+                "PE_BUILD_DIR": {
+                    "type": "STRING",
+                    "value": "${sourceDir}/builds/${generator}"
+                },
+                "PE_GLES": "OFF",
+                "PE_VULKAN": "OFF",
+                "PE_MOLTEN": "OFF",
+                "VK_STATIC": "OFF"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "settings-vulkan",
+            "cacheVariables": {
+                "VK_VERSION": {
+                    "type": "STRING",
+                    "value": "1.2.148"
+                },
+                "PE_VULKAN": "ON",
+                "VK_STATIC": "OFF"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "settings-gles",
+            "cacheVariables": {
+                "PE_GLES": "ON"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "settings-molten",
+            "cacheVariables": {
+                "PE_MOLTEN": "OFF"
+            }
+        },
+        {
+            "name": "gnu-linux-base",
+            "displayName": "GNU/Linux",
+            "inherits": [
+                "settings-vulkan",
+                "settings-project"
+            ],
+            "description": "Base configuration for GNU/Linux types of distro",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            }
+        },
+        {
+            "name": "gnu-linux-debug",
+            "displayName": "GNU/Linux (Debug)",
+            "inherits": ["gnu-linux-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "gnu-linux-release",
+            "displayName": "GNU/Linux (Release)",
+            "inherits": ["gnu-linux-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "windows-base",
+            "displayName": "Windows",
+            "inherits": [
+                "settings-vulkan",
+                "settings-gles",
+                "settings-project"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/project_files/${generator}/${architecture}",
+            "description": "Base configuration for Windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "PE_BUILD_DIR": {
+                    "type": "STRING",
+                    "value": "${sourceDir}/builds/${generator}/${architecture}"
+                }
+            }
+        },
+        {
+            "name": "windows-debug",
+            "displayName": "Windows (Debug)",
+            "inherits": ["windows-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "windows-release",
+            "displayName": "Windows (Release)",
+            "inherits": ["windows-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows-debug",
+            "displayName": "Windows (Debug)",
+            "configurePreset": "windows-debug"
+        },
+        {
+            "name": "windows-release",
+            "displayName": "Windows (Release)",
+            "configurePreset": "windows-release"
+        },
+        {
+            "name": "gnu-linux-debug",
+            "displayName": "GNU/Linux (Debug)",
+            "configurePreset": "gnu-linux-debug"
+        },
+        {
+            "name": "gnu-linux-release",
+            "displayName": "GNU/Linux (Release)",
+            "configurePreset": "gnu-linux-release"
+        }
+    ]
+}
