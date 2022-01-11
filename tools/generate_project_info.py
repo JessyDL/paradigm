@@ -1,23 +1,14 @@
 import os
 import subprocess
+import re
 from datetime import datetime
 
-def run_command(command = []):
-    proc = subprocess.Popen(command, shell=True, stdout=subprocess.PIPE)
-    data = ""
-    while proc.poll() is None:
-        output = proc.stdout.readline()
-        if output:
-            data = data + output.decode("utf-8") 
-            
-    output = proc.communicate()[0]
-    if output:
-        data = data + output.decode("utf-8") 
-        
-    return data
+def run_git_command(command=[]):
+    tag = subprocess.Popen(["git"] + command, stdout=subprocess.PIPE).stdout.read().decode('utf-8')
+    return tag.strip()
     
 def all_authors():
-    possible_authors = run_command(["git", "shortlog", "-s", "-n", "--all", "--no-merges"]).split("\n")
+    possible_authors = run_git_command(["shortlog", "-s", "-n", "--all", "--no-merges"]).split("\n")
     author_exemptions = ["Travis-CI"]
     author_alias = {'JessyDL':'Jessy De Lannoit'}
     authors = {}
@@ -37,11 +28,11 @@ def all_authors():
     return authors.keys()
     
 def generate_header(force = False):
-    version = run_command(["git", "tag", "-l", "--sort=-v:refname"])
+    version = run_git_command(["tag", "-l", "--sort=-v:refname"])
     version = version.split('\n')[0]
     major, minor, patch = version.split('.')
-    sha1 = run_command(["git", "rev-parse", "HEAD"]).rstrip()
-    unix_timestamp = run_command(["git", "log", "-1", "--pretty=format:%ct"])
+    sha1 = run_git_command(["rev-parse", "HEAD"]).rstrip()
+    unix_timestamp = run_git_command(["log", "-1", "--pretty=format:%ct"])
     utc_timestamp = datetime.utcfromtimestamp(int(unix_timestamp)).strftime('%Y-%m-%d %H:%M:%S')
     filepath = os.path.dirname(os.path.realpath(__file__)) +"/../core/inc/paradigm.hpp"
     authors = all_authors()
