@@ -68,26 +68,26 @@ namespace psl
 #define ACCESSOR_1D_IMPL(type, name, index) ACCESSOR_IMPL(type, name, index)
 
 #define ACCESOR_2D_SHUFFLE(type, name1, name2, index1, index2)                                                         \
-	ACCESSOR_IMPL(type, ##name1##name2, index1, index2)                                                                \
-	ACCESSOR_IMPL(type, ##name2##name1, index2, index1)
+	ACCESSOR_IMPL(type, name1##name2, index1, index2)                                                                \
+	ACCESSOR_IMPL(type, name2##name1, index2, index1)
 
 #define ACCESOR_3D_SHUFFLE(type, name1, name2, index1, index2)                                                         \
-	ACCESSOR_IMPL(type, ##name1##name1##name2, index1, index1, index2)                                                 \
-	ACCESSOR_IMPL(type, ##name1##name2##name1, index1, index2, index1)                                                 \
-	ACCESSOR_IMPL(type, ##name1##name2##name2, index1, index2, index2)                                                 \
-	ACCESSOR_IMPL(type, ##name2##name1##name1, index2, index1, index1)                                                 \
-	ACCESSOR_IMPL(type, ##name2##name2##name1, index2, index2, index1)                                                 \
-	ACCESSOR_IMPL(type, ##name2##name1##name2, index2, index1, index2)
+	ACCESSOR_IMPL(type, name1##name1##name2, index1, index1, index2)                                                 \
+	ACCESSOR_IMPL(type, name1##name2##name1, index1, index2, index1)                                                 \
+	ACCESSOR_IMPL(type, name1##name2##name2, index1, index2, index2)                                                 \
+	ACCESSOR_IMPL(type, name2##name1##name1, index2, index1, index1)                                                 \
+	ACCESSOR_IMPL(type, name2##name2##name1, index2, index2, index1)                                                 \
+	ACCESSOR_IMPL(type, name2##name1##name2, index2, index1, index2)
 
 
 #define ACCESOR_4D_SHUFFLE3(type, name1, name2, index1, index2)                                                        \
-	ACCESSOR_IMPL(type, ##name1##name1##name1##name2, index1, index1, index1, index2)                                  \
-	ACCESSOR_IMPL(type, ##name1##name1##name2##name1, index1, index1, index2, index1)                                  \
-	ACCESSOR_IMPL(type, ##name1##name2##name1##name1, index1, index2, index1, index1)                                  \
-	ACCESSOR_IMPL(type, ##name2##name1##name1##name1, index2, index1, index1, index1)                                  \
-	ACCESSOR_IMPL(type, ##name1##name2##name2##name1, index1, index2, index2, index1)                                  \
-	ACCESSOR_IMPL(type, ##name1##name2##name1##name2, index1, index2, index1, index2)                                  \
-	ACCESSOR_IMPL(type, ##name1##name1##name2##name2, index1, index1, index2, index2)
+	ACCESSOR_IMPL(type, name1##name1##name1##name2, index1, index1, index1, index2)                                  \
+	ACCESSOR_IMPL(type, name1##name1##name2##name1, index1, index1, index2, index1)                                  \
+	ACCESSOR_IMPL(type, name1##name2##name1##name1, index1, index2, index1, index1)                                  \
+	ACCESSOR_IMPL(type, name2##name1##name1##name1, index2, index1, index1, index1)                                  \
+	ACCESSOR_IMPL(type, name1##name2##name2##name1, index1, index2, index2, index1)                                  \
+	ACCESSOR_IMPL(type, name1##name2##name1##name2, index1, index2, index1, index2)                                  \
+	ACCESSOR_IMPL(type, name1##name1##name2##name2, index1, index1, index2, index2)
 
 
 #define ACCESOR_4D_SHUFFLE2(type, name1, name2, index1, index2)                                                        \
@@ -104,10 +104,10 @@ namespace psl
 	ACCESOR_4D_SHUFFLE1(type, name1, name2, name3, index1, index2, index3)                                             \
 	ACCESOR_4D_SHUFFLE1(type, name1, name2, name3, index1, index2, index3)
 
-#define ACCESSOR_2D_IMPL(type, name, index) ACCESSOR_IMPL(type, ##name##name, index, index)
+#define ACCESSOR_2D_IMPL(type, name, index) ACCESSOR_IMPL(type, name##name, index, index)
 
-#define ACCESSOR_3D_IMPL(type, name, index) ACCESSOR_IMPL(type, ##name##name##name, index, index, index)
-#define ACCESSOR_4D_IMPL(type, name, index) ACCESSOR_IMPL(type, ##name##name##name##name, index, index, index, index)
+#define ACCESSOR_3D_IMPL(type, name, index) ACCESSOR_IMPL(type, name##name##name, index, index, index)
+#define ACCESSOR_4D_IMPL(type, name, index) ACCESSOR_IMPL(type, name##name##name##name, index, index, index, index)
 
 #define ACCESSOR_1D(type) ACCESSOR_1D_IMPL(type, x, 0)
 
@@ -207,8 +207,8 @@ namespace psl
 			return value.at(index);
 		}
 
-		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
-		operator tvec<Y, dimensions>() const noexcept
+		template <typename Y>
+		operator tvec<Y, dimensions>() const noexcept requires std::convertible_to<precision_t, Y>
 		{
 			tvec<Y, dimensions> res {};
 			for(auto i = 0; i < dimensions; ++i) res[i] = static_cast<Y>(value[i]);
@@ -302,8 +302,8 @@ namespace psl
 			return value.at(index);
 		}
 
-		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
-		operator tvec<Y, 1>() const noexcept
+		template <typename Y>
+		operator tvec<Y, 1>() const noexcept requires std::convertible_to<precision_t, Y>
 		{
 			return {static_cast<Y>(value[0])};
 		}
@@ -403,8 +403,8 @@ namespace psl
 			return value.at(index);
 		}
 
-		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
-		operator tvec<Y, 2>() const noexcept
+		template <typename Y>
+		operator tvec<Y, 2>() const noexcept requires std::convertible_to<precision_t, Y>
 		{
 			return {static_cast<Y>(value[0]), static_cast<Y>(value[1])};
 		}
@@ -519,8 +519,8 @@ namespace psl
 			return value.at(index);
 		}
 
-		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
-		operator tvec<Y, 3>() const noexcept
+		template <typename Y>
+		operator tvec<Y, 3>() const noexcept requires std::convertible_to<precision_t, Y>
 		{
 			return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2])};
 		}
@@ -651,8 +651,8 @@ namespace psl
 			return value.at(index);
 		}
 
-		template <typename Y = typename std::enable_if<std::is_convertible_v<precision_t, Y>>::type>
-		operator tvec<Y, 4>() const noexcept
+		template <typename Y>
+		operator tvec<Y, 4>() const noexcept requires std::convertible_to<precision_t, Y>
 		{
 			return {
 			  static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2]), static_cast<Y>(value[3])};
