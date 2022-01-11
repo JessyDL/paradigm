@@ -1,19 +1,14 @@
 #include "psl/serialization/serializer.hpp"
 
-// std::unique_ptr<std::unordered_map<uint64_t, serialization::polymorphic_data*>>
-// serialization::accessor::m_PolymorphicData; std::unordered_map<uint64_t, serialization::polymorphic_data*>*
-// serialization::accessor::initialized;
-
+std::unique_ptr<std::unordered_map<uint64_t, psl::serialization::polymorphic_data*>> psl::serialization::details::m_PolymorphicData = nullptr;
 
 std::unordered_map<uint64_t, psl::serialization::polymorphic_data*>& psl::serialization::accessor::polymorphic_data()
 {
-	static std::unique_ptr<std::unordered_map<uint64_t, psl::serialization::polymorphic_data*>> m_PolymorphicData;
-
-	//TODO: figure out why multiple instances exist, why the seperate library linking results in multi initialization
-	if(m_PolymorphicData == nullptr)
+	//TODO: verify single instance on both GNU/Linux & Windows
+	if(psl::serialization::details::m_PolymorphicData == nullptr)
 	{
-		m_PolymorphicData = std::make_unique<std::unordered_map<uint64_t, psl::serialization::polymorphic_data*>>();
+		psl::serialization::details::m_PolymorphicData = std::make_unique<std::unordered_map<uint64_t, psl::serialization::polymorphic_data*>>();
 	}
 
-	return *m_PolymorphicData;
+	return *psl::serialization::details::m_PolymorphicData;
 }
