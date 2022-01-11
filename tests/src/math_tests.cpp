@@ -3,6 +3,7 @@
 
 using namespace psl;
 using namespace math;
+using namespace std; // NOTICE: needed for GCC's bug related to: https://gcc.gnu.org/bugzilla/show_bug.cgi?id=79700
 //
 //TEMPLATE_TEST_CASE("mathematics", "[MATH][template]", 
 //				   tvec<float, 4>, tvec<float, 3>, tvec<float, 2>,
@@ -139,19 +140,19 @@ TEST_CASE("mathematics", "[MATH]")
 	}
 	SECTION("vectors::magnitude")
 	{
-		REQUIRE(magnitude(tvec<float, 3>{1, 0, 3}) == std::sqrtf(10.0f));
+		REQUIRE(magnitude(tvec<float, 3>{1, 0, 3}) == sqrtf(10.0f));
 		REQUIRE(square_magnitude(tvec<float, 3>{1, 0, 3}) == 10.0f);
 	}
 	SECTION("vectors::sqrt")
 	{
-		REQUIRE(sqrt(tvec<float, 3>{1, 0, 3}) == tvec<float, 3>{std::sqrtf(1.0f), 0.0f, std::sqrtf(3.0f)});
+		REQUIRE(sqrt(tvec<float, 3>{1, 0, 3}) == tvec<float, 3>{sqrtf(1.0f), 0.0f, sqrtf(3.0f)});
 	}
 	SECTION("vectors::pow")
 	{
 		float pow_v = 2.0f;
-		REQUIRE(pow(tvec<float, 3>{1, 0, 3}) == tvec<float, 3>{std::powf(1, pow_v), 0, std::powf(3, pow_v)});
+		REQUIRE(pow(tvec<float, 3>{1, 0, 3}) == tvec<float, 3>{powf(1, pow_v), 0, powf(3, pow_v)});
 		pow_v = 5.3541f;
-		REQUIRE(pow(tvec<float, 3>{1, 0, 3}, pow_v) == tvec<float, 3>{std::powf(1, pow_v), 0, std::powf(3, pow_v)});
+		REQUIRE(pow(tvec<float, 3>{1, 0, 3}, pow_v) == tvec<float, 3>{powf(1, pow_v), 0, powf(3, pow_v)});
 	}
 	SECTION("vectors::normalize")
 	{
@@ -174,9 +175,9 @@ TEST_CASE("mathematics", "[MATH]")
 		auto vec2 = to_euler(quat);
 
 		// due to precision errors we will round
-		vec2[0] = std::round(vec2[0]);
-		vec2[1] = std::round(vec2[1]);
-		vec2[2] = std::round(vec2[2]);
+		vec2[0] = round(vec2[0]);
+		vec2[1] = round(vec2[1]);
+		vec2[2] = round(vec2[2]);
 		REQUIRE(vec == vec2);
 	}
 

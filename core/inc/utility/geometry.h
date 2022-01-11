@@ -929,9 +929,10 @@ namespace utility::geometry
 
 			return i;
 		};
+		using namespace std;
 
 		// create 12 vertices o.f a icosahedron
-		float t = (1.f + std::sqrtf(5.f)) / 2.f;
+		float t = (1.f + sqrtf(5.f)) / 2.f;
 
 		vertices.push_back(psl::math::normalize(psl::vec3(-1.f, t, 0.f)));
 		vertices.push_back(psl::math::normalize(psl::vec3(1.f, t, 0.f)));
