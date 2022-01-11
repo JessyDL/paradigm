@@ -8,7 +8,7 @@ namespace core::gfx
 
 	class shader
 	{
-		friend class core::resource::cache;
+		friend class core::resource::cache_t;
 
 	  public:
 #ifdef PE_VULKAN
@@ -18,7 +18,7 @@ namespace core::gfx
 		explicit shader(core::resource::handle<core::igles::shader>& handle);
 #endif
 
-		shader(core::resource::cache& cache,
+		shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context);

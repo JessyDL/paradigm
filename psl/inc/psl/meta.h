@@ -48,12 +48,12 @@ namespace psl
 		/// "{xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx}" to this method, it will parse it and will return a valid UID
 		/// instance. Otherwise it will return UID::invalid_uid. \param[in] key a string in the valid format to convert
 		/// to UID. \returns either a valid UID based on the key, or UID::invalid_uid if something went wrong.
-		static constexpr UID from_string(const psl::string8_t& key);
+		inline static UID from_string(const psl::string8_t& key);
 
 		/// \brief checks the given string if it's in a valid UID format.
 		/// \param[in] key the string to be checked.
 		/// \returns true if the given key is convertible to a UID instance.
-		static constexpr bool valid(const psl::string8_t& key) noexcept;
+		inline static bool valid(const psl::string8_t& key) noexcept;
 
 		/// \brief generates a UID.
 		/// \returns a valid UID.
@@ -311,11 +311,11 @@ namespace psl
 		return psl::UID {res};
 	}
 
-	constexpr psl::UID psl::UID::from_string(const psl::string8_t& key)
+	inline psl::UID psl::UID::from_string(const psl::string8_t& key)
 	{
 		return psl::make_uid(key.data(), key.size());
 	}
-	constexpr bool psl::UID::valid(const psl::string8_t& key) noexcept
+	inline bool psl::UID::valid(const psl::string8_t& key) noexcept
 	{
 		return psl::valid_uid(key.data(), key.size());
 	}

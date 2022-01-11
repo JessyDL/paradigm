@@ -22,7 +22,7 @@ namespace core::gfx
 		explicit swapchain(core::resource::handle<core::igles::swapchain>& handle);
 #endif
 
-		swapchain(core::resource::cache& cache,
+		swapchain(core::resource::cache_t& cache,
 				  const core::resource::metadata& metaData,
 				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,

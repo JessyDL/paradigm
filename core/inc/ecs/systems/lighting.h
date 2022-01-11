@@ -12,7 +12,7 @@ namespace core::gfx
 	class context;
 	class render_graph;
 	class drawpass;
-	class buffer;
+	class buffer_t;
 }	 // namespace core::gfx
 
 namespace core::os
@@ -22,7 +22,7 @@ namespace core::os
 
 namespace psl::ecs
 {
-	class state;
+	class state_t;
 	struct info;
 	template <typename... Ts>
 	class pack;
@@ -41,8 +41,8 @@ namespace core::ecs::systems
 	class lighting_system
 	{
 	  public:
-		lighting_system(psl::view_ptr<psl::ecs::state> state,
-						psl::view_ptr<core::resource::cache> cache,
+		lighting_system(psl::view_ptr<psl::ecs::state_t> state,
+						psl::view_ptr<core::resource::cache_t> cache,
 						memory::region& resource_region,
 						psl::view_ptr<core::gfx::render_graph> renderGraph,
 						psl::view_ptr<core::gfx::drawpass> pass,
@@ -58,13 +58,13 @@ namespace core::ecs::systems
 						 psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>> pack);
 
 	  private:
-		psl::view_ptr<core::resource::cache> m_Cache;
+		psl::view_ptr<core::resource::cache_t> m_Cache;
 		psl::view_ptr<core::gfx::render_graph> m_RenderGraph;
 		psl::view_ptr<core::gfx::drawpass> m_DependsPass;
-		psl::view_ptr<psl::ecs::state> m_State;
+		psl::view_ptr<psl::ecs::state_t> m_State;
 		core::resource::handle<core::gfx::context> m_Context;
 		core::resource::handle<core::os::surface> m_Surface;
-		core::resource::handle<core::gfx::buffer> m_LightDataBuffer;
+		core::resource::handle<core::gfx::buffer_t> m_LightDataBuffer;
 		memory::segment m_LightSegment;
 
 		// std::unordered_map<psl::ecs::entity, psl::view_ptr<core::gfx::drawpass>> m_Passes;

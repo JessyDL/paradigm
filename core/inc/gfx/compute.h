@@ -6,7 +6,7 @@
 
 namespace core::data
 {
-	class material;
+	class material_t;
 }
 namespace core::gfx
 {
@@ -31,7 +31,7 @@ namespace core::gfx
 
 	class compute
 	{
-		friend class core::resource::cache;
+		friend class core::resource::cache_t;
 
 	  public:
 #ifdef PE_VULKAN
@@ -41,11 +41,11 @@ namespace core::gfx
 		explicit compute(core::resource::handle<core::igles::compute>& handle);
 #endif
 
-		compute(core::resource::cache& cache,
+		compute(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				core::meta::shader* metaFile,
 				core::resource::handle<context> context_handle,
-				core::resource::handle<core::data::material> data,
+				core::resource::handle<core::data::material_t> data,
 				core::resource::handle<pipeline_cache> pipeline_cache);
 		~compute() = default;
 

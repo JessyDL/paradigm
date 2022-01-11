@@ -15,21 +15,21 @@ using namespace core::gfx;
 using namespace core::resource;
 
 #ifdef PE_VULKAN
-buffer::buffer(core::resource::handle<core::ivk::buffer>& handle) :
+buffer_t::buffer_t(core::resource::handle<core::ivk::buffer_t>& handle) :
 	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-buffer::buffer(core::resource::handle<core::igles::buffer>& handle) :
+buffer_t::buffer_t(core::resource::handle<core::igles::buffer_t>& handle) :
 	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-buffer::buffer(core::resource::cache& cache,
+buffer_t::buffer_t(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   handle<context> context,
-			   handle<data::buffer> data) :
+			   handle<data::buffer_t> data) :
 	m_Backend(context->backend())
 {
 	switch(m_Backend)
@@ -37,29 +37,29 @@ buffer::buffer(core::resource::cache& cache,
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_VKHandle =
-		  cache.create_using<core::ivk::buffer>(metaData.uid, context->resource<graphics_backend::vulkan>(), data);
+		  cache.create_using<core::ivk::buffer_t>(metaData.uid, context->resource<graphics_backend::vulkan>(), data);
 		break;
 #endif
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_GLESHandle = cache.create_using<core::igles::buffer>(metaData.uid, data);
+		m_GLESHandle = cache.create_using<core::igles::buffer_t>(metaData.uid, data);
 		break;
 #endif
 	}
 }
 
-buffer::buffer(core::resource::cache& cache,
+buffer_t::buffer_t(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   handle<context> context,
-			   handle<data::buffer> data,
-			   handle<buffer> staging)
+			   handle<data::buffer_t> data,
+			   handle<buffer_t> staging)
 {
 	switch(context->backend())
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle = cache.create_using<core::ivk::buffer>(metaData.uid,
+		m_VKHandle = cache.create_using<core::ivk::buffer_t>(metaData.uid,
 														   context->resource<graphics_backend::vulkan>(),
 														   data,
 														   staging->resource<graphics_backend::vulkan>());
@@ -67,16 +67,16 @@ buffer::buffer(core::resource::cache& cache,
 #endif
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_GLESHandle = cache.create_using<core::igles::buffer>(metaData.uid, data);
+		m_GLESHandle = cache.create_using<core::igles::buffer_t>(metaData.uid, data);
 		break;
 #endif
 	}
 }
 
-buffer::~buffer() {}
+buffer_t::~buffer_t() {}
 
 
-const core::data::buffer& buffer::data() const
+const core::data::buffer_t& buffer_t::data() const
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -91,11 +91,11 @@ const core::data::buffer& buffer::data() const
 		;
 	}
 #endif
-	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
+	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
 
 
-[[nodiscard]] std::optional<memory::segment> buffer::reserve(uint64_t size)
+[[nodiscard]] std::optional<memory::segment> buffer_t::reserve(uint64_t size)
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -109,9 +109,9 @@ const core::data::buffer& buffer::data() const
 		return m_VKHandle->reserve(size);
 	}
 #endif
-	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
+	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
-[[nodiscard]] psl::array<std::pair<memory::segment, memory::range>> buffer::reserve(psl::array<uint64_t> sizes,
+[[nodiscard]] psl::array<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(psl::array<uint64_t> sizes,
 																					bool optimize)
 {
 #ifdef PE_GLES
@@ -126,10 +126,10 @@ const core::data::buffer& buffer::data() const
 		return m_VKHandle->reserve(sizes, optimize);
 	}
 #endif
-	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
+	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
 
-bool buffer::deallocate(memory::segment& segment)
+bool buffer_t::deallocate(memory::segment& segment)
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -143,9 +143,9 @@ bool buffer::deallocate(memory::segment& segment)
 		return m_VKHandle->deallocate(segment);
 	}
 #endif
-	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
+	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
-bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> ranges)
+bool buffer_t::copy_from(const buffer_t& other, psl::array<core::gfx::memory_copy> ranges)
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -165,10 +165,10 @@ bool buffer::copy_from(const buffer& other, psl::array<core::gfx::memory_copy> r
 		return m_VKHandle->copy_from(other.resource<graphics_backend::vulkan>().value(), buffer_ranges);
 	}
 #endif
-	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
+	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
 
-bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
+bool buffer_t::commit(const psl::array<core::gfx::commit_instruction>& instructions)
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -182,10 +182,10 @@ bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instruction
 		return m_VKHandle->commit(instructions);
 	}
 #endif
-	throw std::logic_error("core::gfx::buffer has no API specific buffer associated with it");
+	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
 
-size_t buffer::free_size() const noexcept
+size_t buffer_t::free_size() const noexcept
 {
 	size_t available = std::numeric_limits<size_t>::max();
 #ifdef PE_GLES
@@ -203,10 +203,10 @@ auto align_to(size_t value, size_t alignment)
 	return (remainder) ? value + (alignment - remainder) : value;
 };
 
-shader_buffer_binding::shader_buffer_binding(core::resource::cache& cache,
+shader_buffer_binding::shader_buffer_binding(core::resource::cache_t& cache,
 											 const core::resource::metadata& metaData,
 											 psl::meta::file* metaFile,
-											 core::resource::handle<core::gfx::buffer> buffer,
+											 core::resource::handle<core::gfx::buffer_t> buffer,
 											 size_t size,
 											 size_t alignment) :
 	buffer(buffer),

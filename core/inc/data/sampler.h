@@ -6,20 +6,20 @@
 
 namespace core::data
 {
-	/// \brief describes the data to build a core::ivk::sampler instance
-	class sampler final
+	/// \brief describes the data to build a core::ivk::sampler_t instance
+	class sampler_t final
 	{
 		friend class psl::serialization::accessor;
 
 	  public:
-		sampler(core::resource::cache& cache,
+		sampler_t(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile) noexcept;
-		~sampler()					  = default;
-		sampler(const sampler& other) = delete;
-		sampler(sampler&& other)	  = delete;
-		sampler& operator=(const sampler& other) = delete;
-		sampler& operator=(sampler&& other) = delete;
+		~sampler_t()					  = default;
+		sampler_t(const sampler_t& other) = delete;
+		sampler_t(sampler_t&& other)	  = delete;
+		sampler_t& operator=(const sampler_t& other) = delete;
+		sampler_t& operator=(sampler_t&& other) = delete;
 
 		/// \brief returns if mipmapping is enabled or not
 		/// \returns if mipmapping is enabled or not
@@ -55,7 +55,7 @@ namespace core::data
 
 		/// \brief returns the max mipmap LOD this instance has set.
 		/// \returns the max mipmap LOD this instance has set.
-		/// \todo this value is currently ignored in core::core::ivk::sampler.
+		/// \todo this value is currently ignored in core::core::ivk::sampler_t.
 		float mip_maxlod() const;
 		/// \brief sets the minimal mipmap max LOD for this instance.
 		/// \param[in] value the value to set.
@@ -101,7 +101,7 @@ namespace core::data
 		/// \brief call this to enable or disable anisotropic filtering.
 		/// \param[in] value set to true to enable anisotropic filtering.
 		/// \note if the current core::ivk::context doesn't support anisotropic filtering,
-		/// then this value will be ingored upstream (core::core::ivk::sampler).
+		/// then this value will be ingored upstream (core::core::ivk::sampler_t).
 		void anisotropic_filtering(bool value);
 
 		/// \brief returns the max anistropic value for this instance.

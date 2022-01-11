@@ -60,7 +60,7 @@ namespace psl::serialization
 		INV t;
 	};
 
-	struct polymorphic_data
+	struct polymorphic_data_t
 	{
 		uint64_t id;
 		std::function<void(void*, encode_to_format&)> encode;
@@ -69,11 +69,11 @@ namespace psl::serialization
 
 
 		std::vector<std::pair<psl::string8_t, uint64_t>> derived;
-		~polymorphic_data() { delete(factory); };
+		~polymorphic_data_t() { delete(factory); };
 	};
 
 	namespace details {
-		extern std::unique_ptr<std::unordered_map<uint64_t, psl::serialization::polymorphic_data*>> m_PolymorphicData;
+		extern std::unique_ptr<std::unordered_map<uint64_t, psl::serialization::polymorphic_data_t*>> m_PolymorphicData;
 	}
 	// friendly helper to access privates, see serializer's static_assert for usage
 	class accessor
@@ -165,7 +165,7 @@ namespace psl::serialization
 		}
 
 
-		static std::unordered_map<uint64_t, polymorphic_data*>& polymorphic_data();
+		static std::unordered_map<uint64_t, polymorphic_data_t*>& polymorphic_data();
 
 	  private:
 	};
@@ -828,7 +828,7 @@ namespace psl::serialization
 			}
 
 
-			static polymorphic_data data;
+			static polymorphic_data_t data;
 
 			data.id = ID;
 			auto lambda {[]() { return new T(); }};

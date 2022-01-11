@@ -10,11 +10,11 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-sampler::sampler(core::resource::cache& cache,
+sampler_t::sampler_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 handle<context> context,
-				 handle<data::sampler> sampler_data) :
+				 handle<data::sampler_t> sampler_data) :
 	m_Data(sampler_data),
 	m_Context(context), m_Samplers {}
 {
@@ -42,12 +42,12 @@ sampler::sampler(core::resource::cache& cache,
 	}
 }
 
-sampler::~sampler()
+sampler_t::~sampler_t()
 {
 	for(auto& sampler : m_Samplers) m_Context->device().destroySampler(sampler, nullptr);
 }
 
-const vk::Sampler& sampler::get(size_t mip) const noexcept
+const vk::Sampler& sampler_t::get(size_t mip) const noexcept
 {
 	if(mip >= m_Samplers.size())
 	{
@@ -57,4 +57,4 @@ const vk::Sampler& sampler::get(size_t mip) const noexcept
 	return m_Samplers[mip];
 }
 
-const core::data::sampler& sampler::data() const noexcept { return m_Data.value(); }
+const core::data::sampler_t& sampler_t::data() const noexcept { return m_Data.value(); }

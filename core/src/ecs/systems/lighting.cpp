@@ -20,8 +20,8 @@ using namespace core::resource;
 using namespace core::ecs::components;
 using namespace psl::ecs;
 
-lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state,
-								 psl::view_ptr<core::resource::cache> cache,
+lighting_system::lighting_system(psl::view_ptr<psl::ecs::state_t> state,
+								 psl::view_ptr<core::resource::cache_t> cache,
 								 memory::region& resource_region,
 								 psl::view_ptr<core::gfx::render_graph> renderGraph,
 								 psl::view_ptr<core::gfx::drawpass> pass,
@@ -32,14 +32,14 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state> state,
 {
 	state->declare(&lighting_system::create_dir, this);
 
-	auto bufferData = cache->create<data::buffer>(
+	auto bufferData = cache->create<data::buffer_t>(
 	  gfx::memory_usage::uniform_buffer,
 	  gfx::memory_property::host_visible | gfx::memory_property::host_coherent,
 	  resource_region
 		.create_region(sizeof(light) * 1024, m_Context->limits().uniform.alignment, new memory::default_allocator(true))
 		.value());
 
-	m_LightDataBuffer = cache->create<gfx::buffer>(m_Context, bufferData);
+	m_LightDataBuffer = cache->create<gfx::buffer_t>(m_Context, bufferData);
 	cache->library().set(m_LightDataBuffer, "GLOBAL_LIGHT_DATA");
 	m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 }
@@ -54,11 +54,11 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 	{
 		if(!light.shadows) continue;
 
-		auto fbdata = m_Cache->create<data::framebuffer>(m_Surface->data().width(), m_Surface->data().height(), 1);
+		auto fbdata = m_Cache->create<data::framebuffer_t>(m_Surface->data().width(), m_Surface->data().height(), 1);
 
 		{
 			core::gfx::attachment descr;
-			if(auto format = m_Context->limits().supported_depthformat; format == core::gfx::format::undefined)
+			if(auto format = m_Context->limits().supported_depthformat; format == core::gfx::format_t::undefined)
 			{
 				core::log->error("Could not find a suitable depth stencil buffer format.");
 			}
@@ -81,13 +81,13 @@ void lighting_system::create_dir(info& info, pack<entity, light, on_combine<ligh
 		}
 
 		{
-			auto ppsamplerData = m_Cache->create<data::sampler>();
+			auto ppsamplerData = m_Cache->create<data::sampler_t>();
 			ppsamplerData->mipmaps(false);
-			auto ppsamplerHandle = m_Cache->create<gfx::sampler>(m_Context, ppsamplerData);
+			auto ppsamplerHandle = m_Cache->create<gfx::sampler_t>(m_Context, ppsamplerData);
 			fbdata->set(ppsamplerHandle);
 		}
 
-		auto depthPass = m_Cache->create<gfx::framebuffer>(m_Context, fbdata);
+		auto depthPass = m_Cache->create<gfx::framebuffer_t>(m_Context, fbdata);
 
 		auto pass	 = m_RenderGraph->create_drawpass(m_Context, depthPass);
 		m_Systems[e] = new core::ecs::systems::render {*m_State, pass};

@@ -69,6 +69,7 @@ bool computepass::build(bool force)
 #ifdef PE_VULKAN
 	if(m_VKHandle) m_VKHandle->build();
 #endif
+	return false;
 }
 
 

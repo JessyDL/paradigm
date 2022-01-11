@@ -16,7 +16,7 @@ size_t allocator_base::alignment() const noexcept { return (m_Region) ? m_Region
 
 bool allocator_base::deallocate(segment& segment)
 {
-	range local = segment.range();
+	auto local = segment.range();
 	if(!m_Region->range().contains(segment.range()) || !do_deallocate(segment)) return false;
 
 	if(is_physically_backed())	  // zero-reset
@@ -28,14 +28,14 @@ bool allocator_base::deallocate(segment& segment)
 	return true;
 };
 
-bool allocator_base::commit(const range& range) { return m_Region->commit(range); }
+bool allocator_base::commit(const range_t& range) { return m_Region->commit(range); }
 
 void allocator_base::compact() { do_compact(m_Region); }
 
-std::vector<range> allocator_base::committed() { return get_committed(); }
-std::vector<range> allocator_base::available() { return get_available(); }
+std::vector<range_t> allocator_base::committed() { return get_committed(); }
+std::vector<range_t> allocator_base::available() { return get_available(); }
 
-memory::range allocator_base::get_range() const { return m_Region->range(); }
+memory::range_t allocator_base::get_range() const { return m_Region->range(); }
 
 void default_allocator::initialize(region* region)
 {
@@ -56,7 +56,7 @@ std::optional<segment> default_allocator::do_allocate(region* region, std::size_
 			begin	   = (mod) ? begin + region->alignment() - mod : begin;
 			if(free.end < begin + bytes) continue;
 
-			range r {begin, begin + bytes};
+			range_t r {begin, begin + bytes};
 			if(commit(r))
 			{
 				if(free.begin == begin)
@@ -70,7 +70,7 @@ std::optional<segment> default_allocator::do_allocate(region* region, std::size_
 					auto oldEnd	  = begin;
 					free.begin	  = r.end;
 					auto it		  = std::next(std::begin(m_Free), index);
-					m_Free.emplace(it, memory::range {oldBegin, oldEnd});
+					m_Free.emplace(it, memory::range_t {oldBegin, oldEnd});
 				}
 				auto it = m_Committed.emplace(std::upper_bound(std::begin(m_Committed), std::end(m_Committed), r), r);
 				return std::optional<segment> {std::in_place_t {}, *it, is_physically_backed()};
@@ -83,7 +83,7 @@ std::optional<segment> default_allocator::do_allocate(region* region, std::size_
 }
 bool default_allocator::do_deallocate(segment& segment)
 {
-	range r = segment.range();
+	auto r = segment.range();
 	for(auto& committed : m_Committed)
 	{
 		if(committed.contains(r))
@@ -156,13 +156,13 @@ fail:
 
 	return false;
 }
-std::vector<range> default_allocator::get_committed() const
+std::vector<range_t> default_allocator::get_committed() const
 {
 	if(m_Committed.size() == 0) return {};
 	auto r = get_range();
-	if(m_Free.size() == 0) return std::vector<range> {{r}};
+	if(m_Free.size() == 0) return std::vector<range_t> {{r}};
 
-	std::vector<range> all_ranges {};
+	std::vector<range_t> all_ranges {};
 
 
 	if(std::begin(m_Free)->begin > r.begin)
@@ -180,15 +180,15 @@ std::vector<range> default_allocator::get_committed() const
 
 	return all_ranges;
 }
-std::vector<range> default_allocator::get_available() const
+std::vector<range_t> default_allocator::get_available() const
 {
-	return std::vector<range> {std::begin(m_Free), std::end(m_Free)};
+	return std::vector<range_t> {std::begin(m_Free), std::end(m_Free)};
 }
 
 void default_allocator::do_compact(region* region)
 {
-	m_Free.sort([](const range& first, const range& second) { return first.begin < second.begin; });
-	m_Committed.sort([](const range& first, const range& second) { return first.begin < second.begin; });
+	m_Free.sort([](const range_t& first, const range_t& second) { return first.begin < second.begin; });
+	m_Committed.sort([](const range_t& first, const range_t& second) { return first.begin < second.begin; });
 
 	auto free_it = std::begin(m_Free);
 
@@ -196,12 +196,12 @@ void default_allocator::do_compact(region* region)
 	while(free_it != std::end(m_Free) && commit_it != std::end(m_Committed))
 	{
 		commit_it = std::find_if(
-		  commit_it, std::end(m_Committed), [&free_it](const range& element) { return element > *free_it; });
+		  commit_it, std::end(m_Committed), [&free_it](const range_t& element) { return element > *free_it; });
 
 		while(commit_it != std::end(m_Committed) && free_it->size() >= commit_it->size())
 		{
 			auto old_range = *commit_it;
-			memory::range new_range {free_it->begin, free_it->begin + commit_it->size()};
+			memory::range_t new_range {free_it->begin, free_it->begin + commit_it->size()};
 
 			if(is_physically_backed()) std::memcpy((void*)(free_it->begin), (void*)(old_range.begin), old_range.size());
 
@@ -219,7 +219,7 @@ void default_allocator::do_compact(region* region)
 			}
 			else
 			{
-				auto insert_loc = std::find_if(free_it, std::end(m_Free), [&old_range](const range& element) {
+				auto insert_loc = std::find_if(free_it, std::end(m_Free), [&old_range](const range_t& element) {
 					return old_range.begin == element.end;
 				});
 				if(insert_loc != std::end(m_Free))
@@ -228,7 +228,7 @@ void default_allocator::do_compact(region* region)
 				}
 				else
 				{
-					auto loc = std::find_if(free_it, std::end(m_Free), [&old_range](const range& element) {
+					auto loc = std::find_if(free_it, std::end(m_Free), [&old_range](const range_t& element) {
 						return old_range.begin > element.begin;
 					});
 					m_Free.emplace(std::prev(loc, 1), old_range);
@@ -239,13 +239,13 @@ void default_allocator::do_compact(region* region)
 		free_it = std::next(free_it, 1);
 	}
 	m_Free.erase(
-	  std::remove_if(std::begin(m_Free), std::end(m_Free), [](const range& element) { return element.size() == 0; }),
+	  std::remove_if(std::begin(m_Free), std::end(m_Free), [](const range_t& element) { return element.size() == 0; }),
 	  std::end(m_Free));
 }
 
 bool default_allocator::get_owns(const memory::segment& segment) const noexcept
 {
-	return std::find_if(std::begin(m_Committed), std::end(m_Committed), [&segment](const memory::range& range) {
+	return std::find_if(std::begin(m_Committed), std::end(m_Committed), [&segment](const memory::range_t& range) {
 			   return &segment.range() == &range;
 		   }) != std::end(m_Committed);
 }
@@ -288,22 +288,22 @@ bool block_allocator::do_deallocate(segment& segment)
 	return true;
 }
 
-std::vector<range> block_allocator::get_committed() const
+std::vector<range_t> block_allocator::get_committed() const
 {
 	auto copy = m_Ranges;
 	auto it	  = std::remove_if(
-		std::begin(copy), std::end(copy), [](const memory::range& range) { return range.end == 0 && range.begin == 0; });
+		std::begin(copy), std::end(copy), [](const memory::range_t& range) { return range.end == 0 && range.begin == 0; });
 	copy.erase(it, std::end(copy));
 
 	return copy;
 }
 
-std::vector<range> block_allocator::get_available() const
+std::vector<range_t> block_allocator::get_available() const
 {
 	auto copy = m_Ranges;
 
 	auto it = std::remove_if(
-	  std::begin(copy), std::end(copy), [](const memory::range& range) { return range.end == 0 && range.begin == 0; });
+	  std::begin(copy), std::end(copy), [](const memory::range_t& range) { return range.end == 0 && range.begin == 0; });
 	copy.erase(std::begin(copy), it);
 
 	return copy;
@@ -316,6 +316,6 @@ bool block_allocator::get_owns(const memory::segment& segment) const noexcept
 		   segment.range().begin - m_Ranges[0].begin % m_BlockSize == 0 &&	  // it is aligned correctly
 		   std::find_if(std::begin(m_Ranges),
 						std::end(m_Ranges),
-						[&segment](const memory::range& range)	  // expensive search
+						[&segment](const memory::range_t& range)	  // expensive search
 						{ return &segment.range() == &range; }) != std::end(m_Ranges);
 }

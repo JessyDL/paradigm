@@ -13,7 +13,7 @@ using namespace core::gfx;
 using namespace core::os;
 using namespace core::resource;
 
-swapchain::swapchain(core::resource::cache& cache,
+swapchain::swapchain(core::resource::cache_t& cache,
 					 const core::resource::metadata& metaData,
 					 psl::meta::file* metaFile,
 					 handle<core::os::surface> surface,
@@ -377,9 +377,9 @@ void swapchain::init_depthstencil()
 		LOG_FATAL("Could not find a suitable depth stencil buffer format.");
 	}
 
-	using meta_type = typename resource_traits<core::ivk::texture>::meta_type;
+	using meta_type = typename resource_traits<core::ivk::texture_t>::meta_type;
 	std::unique_ptr<meta_type> metaData {std::make_unique<meta_type>()};
-	// auto [metaUID, metaData] = m_Cache.library().create<meta::texture>();
+	// auto [metaUID, metaData] = m_Cache.library().create<meta::texture_t>();
 	// m_Cache.library().set(metaUID, "SCDepthStencil");
 	metaData->width(m_OSSurface->data().width());
 	metaData->height(m_OSSurface->data().height());
@@ -389,7 +389,7 @@ void swapchain::init_depthstencil()
 	metaData->format(conversion::to_format(depthFormat));
 	metaData->usage(core::gfx::image_usage::dept_stencil_attachment | core::gfx::image_usage::transfer_source);
 	metaData->aspect_mask(core::gfx::image_aspect::depth | core::gfx::image_aspect::stencil);
-	m_DepthTextureHandle = m_Cache.create_using<core::ivk::texture>(std::move(metaData), m_Context);
+	m_DepthTextureHandle = m_Cache.create_using<core::ivk::texture_t>(std::move(metaData), m_Context);
 	m_Cache.library().set(m_DepthTextureHandle, "SCDepthStencil");
 }
 

@@ -47,7 +47,7 @@ namespace psl::async
 
 namespace psl::ecs
 {
-	class state final
+	class state_t final
 	{
 		struct transform_result
 		{
@@ -70,12 +70,12 @@ namespace psl::ecs
 
 
 	  public:
-		state(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256);
-		~state()			= default;
-		state(const state&) = delete;
-		state(state&&)		= default;
-		state& operator=(const state&) = delete;
-		state& operator=(state&&) = default;
+		state_t(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256);
+		~state_t()			= default;
+		state_t(const state_t&) = delete;
+		state_t(state_t&&)		= default;
+		state_t& operator=(const state_t&) = delete;
+		state_t& operator=(state_t&&) = default;
 
 		template <typename... Ts>
 		void add_components(psl::array_view<entity> entities)
@@ -862,7 +862,7 @@ namespace psl::ecs
 		{
 			static_assert(sizeof...(Ts) == 1, "due to a bug in MSVC we cannot have deeper nested template packs");
 			orderby =
-			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state& state) {
+			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {
 				  state.order_by<Pred, Ts...>(std::execution::par, begin, end);
 			  };
 		}
@@ -872,7 +872,7 @@ namespace psl::ecs
 		{
 			on_condition.push_back([](psl::array<entity>::iterator begin,
 									  psl::array<entity>::iterator end,
-									  const psl::ecs::state& state) -> psl::array<entity>::iterator {
+									  const psl::ecs::state_t& state) -> psl::array<entity>::iterator {
 				return state.on_condition<Pred, Ts...>(begin, end);
 			});
 		}

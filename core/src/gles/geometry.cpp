@@ -13,28 +13,28 @@
 using namespace core::igles;
 using namespace core::resource;
 
-using gData = core::data::geometry;
+using gData = core::data::geometry_t;
 
-geometry::geometry(core::resource::cache& cache,
+geometry_t::geometry_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile,
 				   handle<gData> data,
-				   handle<buffer> vertexBuffer,
-				   handle<buffer> indexBuffer) :
+				   handle<buffer_t> vertexBuffer,
+				   handle<buffer_t> indexBuffer) :
 	m_UID(metaData.uid),
 	m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
 {
 	recreate(data);
 }
 
-geometry::~geometry()
+geometry_t::~geometry_t()
 {
 	if(!m_GeometryBuffer) return;
 
 	clear(true);
 }
 
-void geometry::clear(bool including_vao)
+void geometry_t::clear(bool including_vao)
 {
 	if(including_vao)
 	{
@@ -57,7 +57,7 @@ void geometry::clear(bool including_vao)
 	m_IndicesSegment = {};
 	m_Bindings		 = {};
 }
-void geometry::recreate(core::resource::handle<core::data::geometry> data)
+void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 {
 	clear(false);
 
@@ -72,7 +72,7 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 
 	if(m_GeometryBuffer == m_IndicesBuffer)
 	{
-		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
 	}
 
 	auto segments = m_GeometryBuffer->allocate(sizeRequests, true);
@@ -103,11 +103,11 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 	if(m_GeometryBuffer != m_IndicesBuffer)
 	{
 		if(auto indiceSegment =
-			 m_IndicesBuffer->allocate(data->indices().size() * sizeof(core::data::geometry::index_size_t));
+			 m_IndicesBuffer->allocate(data->indices().size() * sizeof(core::data::geometry_t::index_size_t));
 		   indiceSegment)
 		{
 			m_IndicesSegment  = indiceSegment.value();
-			m_IndicesSubRange = memory::range {0, m_IndicesSegment.range().size()};
+			m_IndicesSubRange = memory::range_t {0, m_IndicesSegment.range().size()};
 		}
 		else
 		{
@@ -118,7 +118,7 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 
 		m_IndicesBuffer->set({{(size_t)data->indices().data(),
 							   m_IndicesSegment.range().begin,
-							   data->indices().size() * sizeof(core::data::geometry::index_size_t)}});
+							   data->indices().size() * sizeof(core::data::geometry_t::index_size_t)}});
 	}
 	else
 	{
@@ -131,14 +131,14 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 		m_IndicesSubRange = current_segment->second;
 	}
 
-	m_Triangles = (m_IndicesSubRange.size() * sizeof(core::data::geometry::index_size_t)) / 3u;
+	m_Triangles = (m_IndicesSubRange.size() * sizeof(core::data::geometry_t::index_size_t)) / 3u;
 
 	m_GeometryBuffer->set(instructions);
 	error = glGetError();
 }
-void geometry::recreate(core::resource::handle<core::data::geometry> data,
-						core::resource::handle<core::igles::buffer> vertexBuffer,
-						core::resource::handle<core::igles::buffer> indexBuffer)
+void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
+						core::resource::handle<core::igles::buffer_t> vertexBuffer,
+						core::resource::handle<core::igles::buffer_t> indexBuffer)
 {
 	clear();
 	m_GeometryBuffer = vertexBuffer;
@@ -147,8 +147,8 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 	recreate(data);
 }
 
-void geometry::create_vao(core::resource::handle<core::igles::material> material,
-						  core::resource::handle<core::igles::buffer> instanceBuffer,
+void geometry_t::create_vao(core::resource::handle<core::igles::material_t> material,
+						  core::resource::handle<core::igles::buffer_t> instanceBuffer,
 						  psl::array<std::pair<size_t, size_t>> bindings)
 {
 	GLuint vao;
@@ -210,7 +210,7 @@ void geometry::create_vao(core::resource::handle<core::igles::material> material
 	}
 	m_VAOs[material] = vao;
 }
-void geometry::bind(core::resource::handle<core::igles::material> material, uint32_t instanceCount)
+void geometry_t::bind(core::resource::handle<core::igles::material_t> material, uint32_t instanceCount)
 {
 	auto error = glGetError();
 
@@ -218,7 +218,7 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 
 
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_IndicesBuffer->id());
-	auto indices = m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t);
+	auto indices = m_IndicesSubRange.size() / sizeof(core::data::geometry_t::index_size_t);
 	if(instanceCount == 0)
 	{
 		glDrawElements(material->data().wireframe() ? GL_LINES : GL_TRIANGLES,
@@ -239,7 +239,7 @@ void geometry::bind(core::resource::handle<core::igles::material> material, uint
 	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 };
 
-bool geometry::compatible(const core::igles::material& material) const noexcept
+bool geometry_t::compatible(const core::igles::material_t& material) const noexcept
 {
 	for(const auto& stage : material.data().stages())
 	{
@@ -269,6 +269,6 @@ bool geometry::compatible(const core::igles::material& material) const noexcept
 }
 
 
-size_t geometry::vertices() const noexcept { return m_Vertices; }
-size_t geometry::indices() const noexcept { return m_Triangles * 3; }
-size_t geometry::triangles() const noexcept { return m_Triangles; }
+size_t geometry_t::vertices() const noexcept { return m_Vertices; }
+size_t geometry_t::indices() const noexcept { return m_Triangles * 3; }
+size_t geometry_t::triangles() const noexcept { return m_Triangles; }

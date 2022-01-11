@@ -110,7 +110,7 @@ namespace core::os
 
 namespace core::resource
 {
-	class cache;
+	class cache_t;
 }
 namespace core::ivk
 {
@@ -126,7 +126,7 @@ namespace core::ivk
 		template <typename T>
 		using optional_ref = std::optional<std::reference_wrapper<T>>;
 
-		context(core::resource::cache& cache,
+		context(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				psl::string8::view name,

@@ -23,7 +23,7 @@ namespace core::gfx
 		explicit context(core::resource::handle<core::igles::context>& handle);
 #endif
 
-		context(core::resource::cache& cache,
+		context(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				graphics_backend backend,

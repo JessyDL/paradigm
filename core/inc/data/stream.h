@@ -10,7 +10,7 @@ namespace core
 	/// casts.
 	///
 	/// stream should be used in scenarios where something could contain various, but functionaly similar arrays of
-	/// float. see core::data::geometry for an example of this. \see core::data::geometry
+	/// float. see core::data::geometry_t for an example of this. \see core::data::geometry_t
 	class stream
 	{
 		friend class psl::serialization::accessor;

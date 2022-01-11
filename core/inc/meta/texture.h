@@ -6,7 +6,7 @@
 
 namespace core::resource
 {
-	class cache;
+	class cache_t;
 }
 
 namespace core::meta
@@ -18,16 +18,16 @@ namespace core::meta
 	/// \warning The description is assumed to be correct, otherwise undefined behaviour happens.
 	/// \note although this class allows runtime editing, it's unlikely you'd need it unless you generate textures.
 	/// and wish to serialize them to disk.
-	class texture final : public psl::meta::file
+	class texture_t final : public psl::meta::file
 	{
 		friend class psl::serialization::accessor;
 		friend class library;
 
 	  public:
-		texture() = default;
-		explicit texture(const psl::UID& key) noexcept : psl::meta::file(key) {};
+		texture_t() = default;
+		explicit texture_t(const psl::UID& key) noexcept : psl::meta::file(key) {};
 
-		~texture() = default;
+		~texture_t() = default;
 
 		/// \returns the width of the texture in pixels.
 		uint32_t width() const noexcept;
@@ -70,12 +70,12 @@ namespace core::meta
 		void layers(uint32_t layers);
 
 		/// \returns the format that the texture is in.
-		core::gfx::format format() const noexcept;
+		core::gfx::format_t format() const noexcept;
 		/// \brief the format of the texture resource.
 		/// \param[in] format the expected format.
 		/// \warning invalid formats will, in best case lead to render artifacts, and in worst cause segmentation fault
 		/// for reading outside of the memory that was expected to be present for the given format.
-		void format(core::gfx::format format);
+		void format(core::gfx::format_t format);
 
 		/// \returns the type of texture this is (2D, 3D, etc..).
 		core::gfx::image_type image_type() const noexcept;
@@ -119,7 +119,7 @@ namespace core::meta
 		psl::serialization::property<"DEPTH", uint32_t> m_Depth {1u};
 		psl::serialization::property<"MIP_LEVELS", uint32_t> m_MipLevels {1u};
 		psl::serialization::property<"LAYERS", uint32_t> m_LayerCount {1u};
-		psl::serialization::property<"FORMAT", core::gfx::format> m_Format {core::gfx::format::undefined};
+		psl::serialization::property<"FORMAT", core::gfx::format_t> m_Format {core::gfx::format_t::undefined};
 		psl::serialization::property<"IMAGE_TYPE", core::gfx::image_type> m_ImageType {
 		  core::gfx::image_type::planar_2D};
 		psl::serialization::property<"USAGE", core::gfx::image_usage> m_UsageFlags {

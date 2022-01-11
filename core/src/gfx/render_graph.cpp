@@ -17,7 +17,7 @@ psl::view_ptr<core::gfx::drawpass> render_graph::create_drawpass(handle<core::gf
 	return {pass};
 }
 psl::view_ptr<core::gfx::drawpass> render_graph::create_drawpass(handle<core::gfx::context> context,
-																 handle<core::gfx::framebuffer> framebuffer)
+																 handle<core::gfx::framebuffer_t> framebuffer)
 {
 	auto pass = new drawpass(context, framebuffer);
 	m_RenderGraph.emplace(pass);
@@ -134,4 +134,5 @@ bool render_graph::erase(render_graph::view_var_t pass) noexcept
 		m_Rebuild = true;
 		return true;
 	}
+	return false;
 }

@@ -10,10 +10,10 @@ using namespace core::resource;
 using namespace psl;
 using namespace core::gfx::details::instance;
 
-bundle::bundle(core::resource::cache& cache,
+bundle::bundle(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
-			   core::resource::handle<core::gfx::buffer> vertexBuffer,
+			   core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 			   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) :
 	m_UID(metaData.uid),
 	m_Cache(cache), m_InstanceData(vertexBuffer, materialBuffer) {};
@@ -22,7 +22,7 @@ bundle::bundle(core::resource::cache& cache,
 // material API
 // ------------------------------------------------------------------------------------------------------------
 
-std::optional<core::resource::handle<core::gfx::material>> bundle::get(uint32_t renderlayer) const noexcept
+std::optional<core::resource::handle<core::gfx::material_t>> bundle::get(uint32_t renderlayer) const noexcept
 {
 	if(auto it = std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer); it != std::end(m_Layers))
 	{
@@ -37,7 +37,7 @@ bool bundle::has(uint32_t renderlayer) const noexcept
 	return std::find(std::begin(m_Layers), std::end(m_Layers), renderlayer) != std::end(m_Layers);
 }
 
-void bundle::set_material(handle<core::gfx::material> material, std::optional<uint32_t> render_layer_override)
+void bundle::set_material(handle<core::gfx::material_t> material, std::optional<uint32_t> render_layer_override)
 {
 	uint32_t layer = render_layer_override.value_or(material->data().render_layer());
 	size_t index {};
@@ -92,28 +92,28 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept
 // instance data API
 // ------------------------------------------------------------------------------------------------------------
 
-uint32_t bundle::instances(core::resource::tag<core::gfx::geometry> geometry) const noexcept
+uint32_t bundle::instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept
 {
 	return m_InstanceData.count(geometry);
 }
 
 std::vector<std::pair<uint32_t, uint32_t>>
-bundle::instantiate(core::resource::tag<core::gfx::geometry> geometry, uint32_t count, geometry_type type)
+bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t count, geometry_type type)
 {
 	return m_InstanceData.add(geometry, count);
 }
 
-uint32_t bundle::size(tag<core::gfx::geometry> geometry) const noexcept { return m_InstanceData.count(geometry); }
-bool bundle::has(tag<core::gfx::geometry> geometry) const noexcept { return size(geometry) > 0; }
+uint32_t bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept { return m_InstanceData.count(geometry); }
+bool bundle::has(tag<core::gfx::geometry_t> geometry) const noexcept { return size(geometry) > 0; }
 
-bool bundle::release(tag<core::gfx::geometry> geometry, uint32_t id) noexcept
+bool bundle::release(tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept
 {
 	return m_InstanceData.erase(geometry, id);
 }
 
 bool bundle::release_all(std::optional<geometry_type> type) noexcept { return m_InstanceData.clear(); };
 
-bool bundle::set(tag<core::gfx::geometry> geometry,
+bool bundle::set(tag<core::gfx::geometry_t> geometry,
 				 uint32_t id,
 				 memory::segment segment,
 				 uint32_t size_of_element,
@@ -122,11 +122,11 @@ bool bundle::set(tag<core::gfx::geometry> geometry,
 				 size_t count)
 {
 	return m_InstanceData.vertex_buffer()->commit({core::gfx::commit_instruction {
-	  (void*)data, size * count, segment, memory::range {size_of_element * id, size_of_element * (id + count)}}});
+	  (void*)data, size * count, segment, memory::range_t {size_of_element * id, size_of_element * (id + count)}}});
 }
 
 
-bool bundle::set(tag<core::gfx::material> material, const void* data, size_t size, size_t offset)
+bool bundle::set(tag<core::gfx::material_t> material, const void* data, size_t size, size_t offset)
 {
 	return m_InstanceData.set(material, data, size, offset);
 }

@@ -81,8 +81,8 @@ namespace core::meta
 			uint32_t stride() const noexcept { return m_Stride.value; }
 			void stride(uint32_t value) noexcept { m_Stride.value = value; }
 
-			core::gfx::format format() const noexcept { return m_Format.value; }
-			void format(core::gfx::format value) noexcept { m_Format.value = value; }
+			core::gfx::format_t format() const noexcept { return m_Format.value; }
+			void format(core::gfx::format_t value) noexcept { m_Format.value = value; }
 
 			size_t size() const noexcept { return m_Count.value * m_Stride.value; }
 
@@ -97,7 +97,7 @@ namespace core::meta
 			psl::serialization::property<"LOCATION", uint32_t> m_Location;		   // location of the element
 			psl::serialization::property<"COUNT", uint32_t> m_Count {1};		   // how many elements
 			psl::serialization::property<"STRIDE", uint32_t> m_Stride;			   // size per element
-			psl::serialization::property<"FORMAT", core::gfx::format> m_Format;	   // format of the element
+			psl::serialization::property<"FORMAT", core::gfx::format_t> m_Format;	   // format of the element
 		};
 
 		class descriptor

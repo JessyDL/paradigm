@@ -11,7 +11,7 @@ namespace core::ecs::systems
 		friend class core::systems::input;
 
 	  public:
-		fly(psl::ecs::state& state, core::systems::input& inputSystem);
+		fly(psl::ecs::state_t& state, core::systems::input& inputSystem);
 		~fly();
 
 

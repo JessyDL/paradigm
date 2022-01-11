@@ -41,7 +41,7 @@ struct mock_data
 {
 	mock_data() { entities = state.create<Ts...>(C); }
 	psl::array<psl::ecs::entity> entities;
-	psl::ecs::state state;
+	psl::ecs::state_t state;
 };
 template <size_t C>
 using mock_data_position = mock_data<C, position>;
@@ -59,7 +59,7 @@ struct mock_data_pos_rot
 		state.add_components<position>(other);
 	}
 	psl::array<psl::ecs::entity> entities;
-	psl::ecs::state state;
+	psl::ecs::state_t state;
 };
 
 template <size_t C>
@@ -67,7 +67,7 @@ struct mock_data_trivial_system
 {
 	mock_data_trivial_system() { entities = state.create<rotation, position, velocity>(C); }
 	psl::array<psl::ecs::entity> entities;
-	psl::ecs::state state;
+	psl::ecs::state_t state;
 };
 
 template<size_t C>

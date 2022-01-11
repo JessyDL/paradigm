@@ -16,29 +16,29 @@ using namespace core;
 using namespace core::ivk;
 
 constexpr const vk::IndexType INDEX_TYPE =
-  sizeof(core::data::geometry::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
+  sizeof(core::data::geometry_t::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
 
-geometry::geometry(core::resource::cache& cache,
+geometry_t::geometry_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile,
 				   handle<core::ivk::context> context,
-				   core::resource::handle<core::data::geometry> data,
-				   core::resource::handle<core::ivk::buffer> geometryBuffer,
-				   core::resource::handle<core::ivk::buffer> indicesBuffer) :
+				   core::resource::handle<core::data::geometry_t> data,
+				   core::resource::handle<core::ivk::buffer_t> geometryBuffer,
+				   core::resource::handle<core::ivk::buffer_t> indicesBuffer) :
 	m_Context(context),
 	m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
 {
 	recreate(m_Data);
 }
 
-geometry::~geometry()
+geometry_t::~geometry_t()
 {
 	if(!m_GeometryBuffer) return;
 
 	clear();
 }
 
-void geometry::clear()
+void geometry_t::clear()
 {
 	for(auto& binding : m_Bindings)
 	{
@@ -49,12 +49,12 @@ void geometry::clear()
 	}
 	m_Bindings.clear();
 	// same as the earlier comment for geometry buffer
-	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0 && m_IndicesSegment.range().size() > 0)
+	if(m_IndicesBuffer && m_IndicesSubRange.begin == 0 && m_IndicesSubRange.size() > 0)
 		m_IndicesBuffer->deallocate(m_IndicesSegment);
 
 	m_Data = {};
 }
-void geometry::recreate(core::resource::handle<core::data::geometry> data)
+void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 {
 	clear();
 	std::vector<vk::DeviceSize> sizeRequests;
@@ -67,7 +67,7 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 
 	if(m_GeometryBuffer == m_IndicesBuffer)
 	{
-		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
 	}
 
 	auto segments = m_GeometryBuffer->reserve(sizeRequests, true);
@@ -99,11 +99,11 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 	if(m_GeometryBuffer != m_IndicesBuffer)
 	{
 		if(auto indiceSegment =
-			 m_IndicesBuffer->reserve((uint32_t)(data->indices().size() * sizeof(core::data::geometry::index_size_t)));
+			 m_IndicesBuffer->reserve((uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
 		   indiceSegment)
 		{
 			m_IndicesSegment  = indiceSegment.value();
-			m_IndicesSubRange = memory::range {0, m_IndicesSegment.range().size()};
+			m_IndicesSubRange = memory::range_t {0, m_IndicesSegment.range().size()};
 		}
 		else
 		{
@@ -130,14 +130,14 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data)
 		m_IndicesSubRange = segments[i].second;
 	}
 
-	m_Triangles = (m_IndicesSubRange.size() / sizeof(core::data::geometry::index_size_t)) / 3u;
+	m_Triangles = (m_IndicesSubRange.size() / sizeof(core::data::geometry_t::index_size_t)) / 3u;
 
 	m_GeometryBuffer->commit(instructions);
 	m_Data = data;
 }
-void geometry::recreate(core::resource::handle<core::data::geometry> data,
-						core::resource::handle<core::ivk::buffer> geometryBuffer,
-						core::resource::handle<core::ivk::buffer> indicesBuffer)
+void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
+						core::resource::handle<core::ivk::buffer_t> geometryBuffer,
+						core::resource::handle<core::ivk::buffer_t> indicesBuffer)
 {
 	clear();
 
@@ -148,7 +148,7 @@ void geometry::recreate(core::resource::handle<core::data::geometry> data,
 }
 
 
-bool geometry::compatible(const core::ivk::material& material) const noexcept
+bool geometry_t::compatible(const core::ivk::material_t& material) const noexcept
 {
 	for(const auto& stage : material.data()->stages())
 	{
@@ -177,7 +177,7 @@ bool geometry::compatible(const core::ivk::material& material) const noexcept
 	return true;
 }
 
-void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& material) const noexcept
+void geometry_t::bind(vk::CommandBuffer& buffer, const core::ivk::material_t& material) const noexcept
 {
 	for(const auto& stage : material.data()->stages())
 	{
@@ -200,6 +200,6 @@ void geometry::bind(vk::CommandBuffer& buffer, const core::ivk::material& materi
 }
 
 
-size_t geometry::vertices() const noexcept { return m_Vertices; }
-size_t geometry::triangles() const noexcept { return m_Vertices; }
-size_t geometry::indices() const noexcept { return m_Vertices * 3; }
+size_t geometry_t::vertices() const noexcept { return m_Vertices; }
+size_t geometry_t::triangles() const noexcept { return m_Vertices; }
+size_t geometry_t::indices() const noexcept { return m_Vertices * 3; }

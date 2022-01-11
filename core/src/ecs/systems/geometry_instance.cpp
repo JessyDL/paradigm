@@ -13,7 +13,7 @@ using namespace psl::math;
 using namespace core::resource;
 using namespace core::ecs::components;
 
-geometry_instancing::geometry_instancing(psl::ecs::state& state)
+geometry_instancing::geometry_instancing(psl::ecs::state_t& state)
 {
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_add, this);
 	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_remove, this);

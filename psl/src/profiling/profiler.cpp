@@ -87,14 +87,14 @@ void profiler::next_frame()
 }
 
 
-volatile profiler::scoped_block profiler::scope(const psl::string& name) noexcept
+profiler::scoped_block profiler::scope(const psl::string& name) noexcept
 {
 #ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].push(name);
 #endif
 	return {*this};
 }
-volatile profiler::scoped_block profiler::scope(const psl::string& name, void* target) noexcept
+profiler::scoped_block profiler::scope(const psl::string& name, void* target) noexcept
 {
 #ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].push(name);
@@ -102,7 +102,7 @@ volatile profiler::scoped_block profiler::scope(const psl::string& name, void* t
 	return {*this};
 }
 
-volatile profiler::scoped_block profiler::scope(void* target) noexcept
+profiler::scoped_block profiler::scope(void* target) noexcept
 {
 #ifdef PE_PROFILER
 	m_Frames[m_FrameIndex].push((std::uintptr_t)target);
@@ -110,7 +110,7 @@ volatile profiler::scoped_block profiler::scope(void* target) noexcept
 	return {*this};
 }
 
-volatile profiler::scoped_block profiler::scope() noexcept
+profiler::scoped_block profiler::scope() noexcept
 {
 #ifdef PE_PROFILER
 	auto res = utility::debug::raw_trace(1, 1);

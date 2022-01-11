@@ -8,7 +8,7 @@
 namespace core::gfx
 {
 	class context;
-	class framebuffer;
+	class framebuffer_t;
 	class swapchain;
 	class drawpass;
 	class computepass;
@@ -218,7 +218,7 @@ namespace core::gfx
 		psl::view_ptr<core::gfx::drawpass> create_drawpass(core::resource::handle<core::gfx::context> context,
 														   core::resource::handle<core::gfx::swapchain> swapchain);
 		psl::view_ptr<core::gfx::drawpass> create_drawpass(core::resource::handle<core::gfx::context> context,
-														   core::resource::handle<core::gfx::framebuffer> framebuffer);
+														   core::resource::handle<core::gfx::framebuffer_t> framebuffer);
 		psl::view_ptr<core::gfx::computepass>
 		create_computepass(core::resource::handle<core::gfx::context> context) noexcept;
 		bool connect(view_var_t child, view_var_t root) noexcept;

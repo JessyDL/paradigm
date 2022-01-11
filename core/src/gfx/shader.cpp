@@ -25,7 +25,7 @@ shader::shader(core::resource::handle<core::igles::shader>& handle) :
 {}
 #endif
 
-shader::shader(core::resource::cache& cache,
+shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::gfx::context> context) :
@@ -61,4 +61,5 @@ core::meta::shader* shader::meta() const noexcept
 		break;
 #endif
 	}
+	return nullptr;
 }

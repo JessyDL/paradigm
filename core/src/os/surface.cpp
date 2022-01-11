@@ -8,7 +8,7 @@ using namespace psl;
 using namespace core::os;
 using namespace core;
 
-surface::surface(core::resource::cache& cache,
+surface::surface(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 core::resource::handle<data::window> data) :

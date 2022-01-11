@@ -121,14 +121,14 @@ namespace core::gfx
 		/// \param[in] sub_range optional sub_range offset in the memory::segment, where a sub_range.begin() is
 		/// equal to the head of the segment. \warning make sure the source outlives the commit instruction.
 		template <typename T>
-		commit_instruction(T* source, memory::segment segment, std::optional<memory::range> sub_range = std::nullopt) :
+		commit_instruction(T* source, memory::segment segment, std::optional<memory::range_t> sub_range = std::nullopt) :
 			segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)) {};
 		commit_instruction() {};
 
 		commit_instruction(void* source,
 						   size_t size,
 						   memory::segment segment,
-						   std::optional<memory::range> sub_range = std::nullopt) :
+						   std::optional<memory::range_t> sub_range = std::nullopt) :
 			segment(segment),
 			sub_range(sub_range), source((std::uintptr_t)source), size(size) {};
 		/// \brief target segment in the buffer
@@ -137,7 +137,7 @@ namespace core::gfx
 		///
 		/// this is local offsets from the point of view of the segment
 		/// (i.e. the sub_range.begin && sub_range.end can never be bigger than the segment.size() )
-		std::optional<memory::range> sub_range;
+		std::optional<memory::range_t> sub_range;
 
 		/// \brief source to copy from
 		std::uintptr_t source {0};
@@ -291,7 +291,7 @@ namespace core::gfx
 	}
 
 	// based on https://github.com/KhronosGroup/KTX-Specification/blob/master/formats.json
-	enum class format
+	enum class format_t
 	{
 		undefined					= 0,
 		r4g4_unorm_pack8			= 1000,
@@ -440,9 +440,9 @@ namespace core::gfx
 		pvrtc2_4bpp_srgb_block_img	= 142
 	};
 
-	inline bool is_texture_format(format value) noexcept
+	inline bool is_texture_format(format_t value) noexcept
 	{
-		return static_cast<std::underlying_type_t<format>>(value) < 1000;
+		return static_cast<std::underlying_type_t<format_t>>(value) < 1000;
 	}
 
 	enum class sampler_mipmap_mode
@@ -548,29 +548,29 @@ namespace core::gfx
 		source_alpha_saturate		= 14,
 	};
 
-	inline bool has_depth(core::gfx::format format)
+	inline bool has_depth(core::gfx::format_t format)
 	{
-		static std::vector<core::gfx::format> formats = {
-		  core::gfx::format::d16_unorm,
-		  core::gfx::format::x8_d24_unorm_pack32,
-		  core::gfx::format::d24_unorm_s8_uint,
-		  core::gfx::format::d32_sfloat,
-		  core::gfx::format::d32_sfloat_s8_uint,
+		static std::vector<core::gfx::format_t> formats = {
+		  core::gfx::format_t::d16_unorm,
+		  core::gfx::format_t::x8_d24_unorm_pack32,
+		  core::gfx::format_t::d24_unorm_s8_uint,
+		  core::gfx::format_t::d32_sfloat,
+		  core::gfx::format_t::d32_sfloat_s8_uint,
 		};
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
 
-	inline bool has_stencil(core::gfx::format format)
+	inline bool has_stencil(core::gfx::format_t format)
 	{
-		static std::vector<core::gfx::format> formats = {
-		  core::gfx::format::s8_uint,
-		  core::gfx::format::d24_unorm_s8_uint,
-		  core::gfx::format::d32_sfloat_s8_uint,
+		static std::vector<core::gfx::format_t> formats = {
+		  core::gfx::format_t::s8_uint,
+		  core::gfx::format_t::d24_unorm_s8_uint,
+		  core::gfx::format_t::d32_sfloat_s8_uint,
 		};
 		return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 	}
 
-	inline bool is_depthstencil(core::gfx::format format) { return (has_depth(format) && has_stencil(format)); }
+	inline bool is_depthstencil(core::gfx::format_t format) { return (has_depth(format) && has_stencil(format)); }
 
 	namespace image
 	{
@@ -611,7 +611,7 @@ namespace core::gfx
 			dont_care = (uint8_t)load_op::dont_care
 		};
 
-		format format;
+		format_t format;
 		uint8_t sample_bits;
 		load_op image_load;
 		store_op image_store;
@@ -629,389 +629,389 @@ namespace core::gfx
 
 	using clear_value = std::variant<psl::vec4, psl::ivec4, psl::tvec<uint32_t, 4>, depth_stencil>;
 
-	inline size_t packing_size(format value) noexcept
+	inline size_t packing_size(format_t value) noexcept
 	{
 		switch(value)
 		{
-		case format::r4g4b4a4_unorm_pack16:
+		case format_t::r4g4b4a4_unorm_pack16:
 			return 2;
 			break;
-		case format::r5g6b5_unorm_pack16:
+		case format_t::r5g6b5_unorm_pack16:
 			return 2;
 			break;
-		case format::r5g5b5a1_unorm_pack16:
+		case format_t::r5g5b5a1_unorm_pack16:
 			return 2;
 			break;
-		case format::r8_unorm:
+		case format_t::r8_unorm:
 			return 1;
 			break;
-		case format::r8_snorm:
+		case format_t::r8_snorm:
 			return 1;
 			break;
-		case format::r8_uint:
+		case format_t::r8_uint:
 			return 1;
 			break;
-		case format::r8_sint:
+		case format_t::r8_sint:
 			return 1;
 			break;
-		case format::r8_srgb:
+		case format_t::r8_srgb:
 			return 1;
 			break;
-		case format::r8g8_unorm:
+		case format_t::r8g8_unorm:
 			return 1;
 			break;
-		case format::r8g8_snorm:
+		case format_t::r8g8_snorm:
 			return 1;
 			break;
-		case format::r8g8_uint:
+		case format_t::r8g8_uint:
 			return 1;
 			break;
-		case format::r8g8_sint:
+		case format_t::r8g8_sint:
 			return 1;
 			break;
-		case format::r8g8_srgb:
+		case format_t::r8g8_srgb:
 			return 1;
 			break;
-		case format::r8g8b8_unorm:
+		case format_t::r8g8b8_unorm:
 			return 1;
 			break;
-		case format::r8g8b8_snorm:
+		case format_t::r8g8b8_snorm:
 			return 1;
 			break;
-		case format::r8g8b8_uint:
+		case format_t::r8g8b8_uint:
 			return 1;
 			break;
-		case format::r8g8b8_sint:
+		case format_t::r8g8b8_sint:
 			return 1;
 			break;
-		case format::r8g8b8_srgb:
+		case format_t::r8g8b8_srgb:
 			return 1;
 			break;
-		case format::r8g8b8a8_unorm:
+		case format_t::r8g8b8a8_unorm:
 			return 1;
 			break;
-		case format::r8g8b8a8_snorm:
+		case format_t::r8g8b8a8_snorm:
 			return 1;
 			break;
-		case format::r8g8b8a8_uint:
+		case format_t::r8g8b8a8_uint:
 			return 1;
 			break;
-		case format::r8g8b8a8_sint:
+		case format_t::r8g8b8a8_sint:
 			return 1;
 			break;
-		case format::r8g8b8a8_srgb:
+		case format_t::r8g8b8a8_srgb:
 			return 1;
 			break;
-		case format::a2b10g10r10_unorm_pack32:
+		case format_t::a2b10g10r10_unorm_pack32:
 			return 4;
 			break;
-		case format::a2b10g10r10_uint_pack32:
+		case format_t::a2b10g10r10_uint_pack32:
 			return 4;
 			break;
-		case format::r16_unorm:
+		case format_t::r16_unorm:
 			return 2;
 			break;
-		case format::r16_snorm:
+		case format_t::r16_snorm:
 			return 2;
 			break;
-		case format::r16_uint:
+		case format_t::r16_uint:
 			return 2;
 			break;
-		case format::r16_sint:
+		case format_t::r16_sint:
 			return 2;
 			break;
-		case format::r16_sfloat:
+		case format_t::r16_sfloat:
 			return 2;
 			break;
-		case format::r16g16_unorm:
+		case format_t::r16g16_unorm:
 			return 2;
 			break;
-		case format::r16g16_snorm:
+		case format_t::r16g16_snorm:
 			return 2;
 			break;
-		case format::r16g16_uint:
+		case format_t::r16g16_uint:
 			return 2;
 			break;
-		case format::r16g16_sint:
+		case format_t::r16g16_sint:
 			return 2;
 			break;
-		case format::r16g16_sfloat:
+		case format_t::r16g16_sfloat:
 			return 2;
 			break;
-		case format::r16g16b16_unorm:
+		case format_t::r16g16b16_unorm:
 			return 2;
 			break;
-		case format::r16g16b16_snorm:
+		case format_t::r16g16b16_snorm:
 			return 2;
 			break;
-		case format::r16g16b16_uint:
+		case format_t::r16g16b16_uint:
 			return 2;
 			break;
-		case format::r16g16b16_sint:
+		case format_t::r16g16b16_sint:
 			return 2;
 			break;
-		case format::r16g16b16_sfloat:
+		case format_t::r16g16b16_sfloat:
 			return 2;
 			break;
-		case format::r16g16b16a16_unorm:
+		case format_t::r16g16b16a16_unorm:
 			return 2;
 			break;
-		case format::r16g16b16a16_snorm:
+		case format_t::r16g16b16a16_snorm:
 			return 2;
 			break;
-		case format::r16g16b16a16_uint:
+		case format_t::r16g16b16a16_uint:
 			return 2;
 			break;
-		case format::r16g16b16a16_sint:
+		case format_t::r16g16b16a16_sint:
 			return 2;
 			break;
-		case format::r16g16b16a16_sfloat:
+		case format_t::r16g16b16a16_sfloat:
 			return 2;
 			break;
-		case format::r32_uint:
+		case format_t::r32_uint:
 			return 4;
 			break;
-		case format::r32_sint:
+		case format_t::r32_sint:
 			return 4;
 			break;
-		case format::r32_sfloat:
+		case format_t::r32_sfloat:
 			return 4;
 			break;
-		case format::r32g32_uint:
+		case format_t::r32g32_uint:
 			return 4;
 			break;
-		case format::r32g32_sint:
+		case format_t::r32g32_sint:
 			return 4;
 			break;
-		case format::r32g32_sfloat:
+		case format_t::r32g32_sfloat:
 			return 4;
 			break;
-		case format::r32g32b32_uint:
+		case format_t::r32g32b32_uint:
 			return 4;
 			break;
-		case format::r32g32b32_sint:
+		case format_t::r32g32b32_sint:
 			return 4;
 			break;
-		case format::r32g32b32_sfloat:
+		case format_t::r32g32b32_sfloat:
 			return 4;
 			break;
-		case format::r32g32b32a32_uint:
+		case format_t::r32g32b32a32_uint:
 			return 4;
 			break;
-		case format::r32g32b32a32_sint:
+		case format_t::r32g32b32a32_sint:
 			return 4;
 			break;
-		case format::r32g32b32a32_sfloat:
+		case format_t::r32g32b32a32_sfloat:
 			return 4;
 			break;
-		case format::b10g11r11_ufloat_pack32:
+		case format_t::b10g11r11_ufloat_pack32:
 			return 4;
 			break;
-		case format::e5b9g9r9_ufloat_pack32:
+		case format_t::e5b9g9r9_ufloat_pack32:
 			return 4;
 			break;
-		case format::d16_unorm:
+		case format_t::d16_unorm:
 			return 2;
 			break;
-		case format::x8_d24_unorm_pack32:
+		case format_t::x8_d24_unorm_pack32:
 			return 4;
 			break;
-		case format::d32_sfloat:
+		case format_t::d32_sfloat:
 			return 4;
 			break;
-		case format::s8_uint:
+		case format_t::s8_uint:
 			return 1;
 			break;
-		case format::d24_unorm_s8_uint:
+		case format_t::d24_unorm_s8_uint:
 			return 4;
 			break;
-		case format::d32_sfloat_s8_uint:
+		case format_t::d32_sfloat_s8_uint:
 			return 4;
 			break;
-		case format::bc1_rgb_unorm_block:
+		case format_t::bc1_rgb_unorm_block:
 			return 1;
 			break;
-		case format::bc1_rgb_srgb_block:
+		case format_t::bc1_rgb_srgb_block:
 			return 1;
 			break;
-		case format::bc1_rgba_unorm_block:
+		case format_t::bc1_rgba_unorm_block:
 			return 1;
 			break;
-		case format::bc1_rgba_srgb_block:
+		case format_t::bc1_rgba_srgb_block:
 			return 1;
 			break;
-		case format::bc2_unorm_block:
+		case format_t::bc2_unorm_block:
 			return 1;
 			break;
-		case format::bc2_srgb_block:
+		case format_t::bc2_srgb_block:
 			return 1;
 			break;
-		case format::bc3_unorm_block:
+		case format_t::bc3_unorm_block:
 			return 1;
 			break;
-		case format::bc3_srgb_block:
+		case format_t::bc3_srgb_block:
 			return 1;
 			break;
-		case format::bc4_unorm_block:
+		case format_t::bc4_unorm_block:
 			return 1;
 			break;
-		case format::bc4_snorm_block:
+		case format_t::bc4_snorm_block:
 			return 1;
 			break;
-		case format::bc5_unorm_block:
+		case format_t::bc5_unorm_block:
 			return 1;
 			break;
-		case format::bc5_snorm_block:
+		case format_t::bc5_snorm_block:
 			return 1;
 			break;
-		case format::bc6h_ufloat_block:
+		case format_t::bc6h_ufloat_block:
 			return 1;
 			break;
-		case format::bc6h_sfloat_block:
+		case format_t::bc6h_sfloat_block:
 			return 1;
 			break;
-		case format::bc7_unorm_block:
+		case format_t::bc7_unorm_block:
 			return 1;
 			break;
-		case format::bc7_srgb_block:
+		case format_t::bc7_srgb_block:
 			return 1;
 			break;
-		case format::etc2_r8g8b8_unorm_block:
+		case format_t::etc2_r8g8b8_unorm_block:
 			return 1;
 			break;
-		case format::etc2_r8g8b8_srgb_block:
+		case format_t::etc2_r8g8b8_srgb_block:
 			return 1;
 			break;
-		case format::etc2_r8g8b8a1_unorm_block:
+		case format_t::etc2_r8g8b8a1_unorm_block:
 			return 1;
 			break;
-		case format::etc2_r8g8b8a1_srgb_block:
+		case format_t::etc2_r8g8b8a1_srgb_block:
 			return 1;
 			break;
-		case format::etc2_r8g8b8a8_unorm_block:
+		case format_t::etc2_r8g8b8a8_unorm_block:
 			return 1;
 			break;
-		case format::etc2_r8g8b8a8_srgb_block:
+		case format_t::etc2_r8g8b8a8_srgb_block:
 			return 1;
 			break;
-		case format::eac_r11_unorm_block:
+		case format_t::eac_r11_unorm_block:
 			return 1;
 			break;
-		case format::eac_r11_snorm_block:
+		case format_t::eac_r11_snorm_block:
 			return 1;
 			break;
-		case format::eac_r11g11_unorm_block:
+		case format_t::eac_r11g11_unorm_block:
 			return 1;
 			break;
-		case format::eac_r11g11_snorm_block:
+		case format_t::eac_r11g11_snorm_block:
 			return 1;
 			break;
-		case format::astc_4x4_unorm_block:
+		case format_t::astc_4x4_unorm_block:
 			return 1;
 			break;
-		case format::astc_4x4_srgb_block:
+		case format_t::astc_4x4_srgb_block:
 			return 1;
 			break;
-		case format::astc_5x4_unorm_block:
+		case format_t::astc_5x4_unorm_block:
 			return 1;
 			break;
-		case format::astc_5x4_srgb_block:
+		case format_t::astc_5x4_srgb_block:
 			return 1;
 			break;
-		case format::astc_5x5_unorm_block:
+		case format_t::astc_5x5_unorm_block:
 			return 1;
 			break;
-		case format::astc_5x5_srgb_block:
+		case format_t::astc_5x5_srgb_block:
 			return 1;
 			break;
-		case format::astc_6x5_unorm_block:
+		case format_t::astc_6x5_unorm_block:
 			return 1;
 			break;
-		case format::astc_6x5_srgb_block:
+		case format_t::astc_6x5_srgb_block:
 			return 1;
 			break;
-		case format::astc_6x6_unorm_block:
+		case format_t::astc_6x6_unorm_block:
 			return 1;
 			break;
-		case format::astc_6x6_srgb_block:
+		case format_t::astc_6x6_srgb_block:
 			return 1;
 			break;
-		case format::astc_8x5_unorm_block:
+		case format_t::astc_8x5_unorm_block:
 			return 1;
 			break;
-		case format::astc_8x5_srgb_block:
+		case format_t::astc_8x5_srgb_block:
 			return 1;
 			break;
-		case format::astc_8x6_unorm_block:
+		case format_t::astc_8x6_unorm_block:
 			return 1;
 			break;
-		case format::astc_8x6_srgb_block:
+		case format_t::astc_8x6_srgb_block:
 			return 1;
 			break;
-		case format::astc_8x8_unorm_block:
+		case format_t::astc_8x8_unorm_block:
 			return 1;
 			break;
-		case format::astc_8x8_srgb_block:
+		case format_t::astc_8x8_srgb_block:
 			return 1;
 			break;
-		case format::astc_10x5_unorm_block:
+		case format_t::astc_10x5_unorm_block:
 			return 1;
 			break;
-		case format::astc_10x5_srgb_block:
+		case format_t::astc_10x5_srgb_block:
 			return 1;
 			break;
-		case format::astc_10x6_unorm_block:
+		case format_t::astc_10x6_unorm_block:
 			return 1;
 			break;
-		case format::astc_10x6_srgb_block:
+		case format_t::astc_10x6_srgb_block:
 			return 1;
 			break;
-		case format::astc_10x8_unorm_block:
+		case format_t::astc_10x8_unorm_block:
 			return 1;
 			break;
-		case format::astc_10x8_srgb_block:
+		case format_t::astc_10x8_srgb_block:
 			return 1;
 			break;
-		case format::astc_10x10_unorm_block:
+		case format_t::astc_10x10_unorm_block:
 			return 1;
 			break;
-		case format::astc_10x10_srgb_block:
+		case format_t::astc_10x10_srgb_block:
 			return 1;
 			break;
-		case format::astc_12x10_unorm_block:
+		case format_t::astc_12x10_unorm_block:
 			return 1;
 			break;
-		case format::astc_12x10_srgb_block:
+		case format_t::astc_12x10_srgb_block:
 			return 1;
 			break;
-		case format::astc_12x12_unorm_block:
+		case format_t::astc_12x12_unorm_block:
 			return 1;
 			break;
-		case format::astc_12x12_srgb_block:
+		case format_t::astc_12x12_srgb_block:
 			return 1;
 			break;
-		case format::pvrtc1_2bpp_unorm_block_img:
+		case format_t::pvrtc1_2bpp_unorm_block_img:
 			return 1;
 			break;
-		case format::pvrtc1_4bpp_unorm_block_img:
+		case format_t::pvrtc1_4bpp_unorm_block_img:
 			return 1;
 			break;
-		case format::pvrtc2_2bpp_unorm_block_img:
+		case format_t::pvrtc2_2bpp_unorm_block_img:
 			return 1;
 			break;
-		case format::pvrtc2_4bpp_unorm_block_img:
+		case format_t::pvrtc2_4bpp_unorm_block_img:
 			return 1;
 			break;
-		case format::pvrtc1_2bpp_srgb_block_img:
+		case format_t::pvrtc1_2bpp_srgb_block_img:
 			return 1;
 			break;
-		case format::pvrtc1_4bpp_srgb_block_img:
+		case format_t::pvrtc1_4bpp_srgb_block_img:
 			return 1;
 			break;
-		case format::pvrtc2_2bpp_srgb_block_img:
+		case format_t::pvrtc2_2bpp_srgb_block_img:
 			return 1;
 			break;
-		case format::pvrtc2_4bpp_srgb_block_img:
+		case format_t::pvrtc2_4bpp_srgb_block_img:
 			return 1;
 			break;
 		}

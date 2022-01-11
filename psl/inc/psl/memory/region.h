@@ -100,7 +100,7 @@ namespace memory
 		template <typename T>
 		bool destroy(T& target)
 		{
-			memory::range temp_range {(std::uintptr_t)((void*)(&target)),
+			memory::range_t temp_range {(std::uintptr_t)((void*)(&target)),
 									  (std::uintptr_t)((void*)(&target)) + sizeof(T)};
 			memory::segment seg(temp_range, m_Allocator->is_physically_backed());
 			if(deallocate(seg))
@@ -124,9 +124,9 @@ namespace memory
 		void* data() const { return m_Base; }
 		uint64_t size() const { return m_Size; }
 		size_t alignment() const { return m_Alignment; }
-		memory::range range() const
+		memory::range_t range() const
 		{
-			return memory::range {(std::uintptr_t)(m_Base), (std::uintptr_t)(m_Base) + m_Size};
+			return memory::range_t {(std::uintptr_t)(m_Base), (std::uintptr_t)(m_Base) + m_Size};
 		}
 
 	  private:
@@ -139,11 +139,11 @@ namespace memory
 		size_t m_Size;
 		size_t m_Alignment;
 		// this will return true if the region can be allocated onto (i.e. it is backed by real memory)
-		bool commit(const memory::range& range);
+		bool commit(const memory::range_t& range);
 		allocator_base* m_Allocator {nullptr};
 
 #ifdef PLATFORM_WINDOWS
-		std::pair<uint64_t, uint64_t> page_range(const memory::range& range);
+		std::pair<uint64_t, uint64_t> page_range(const memory::range_t& range);
 		std::vector<state> m_PageState;
 #endif
 		uint64_t m_PageSize {0u};

@@ -7,7 +7,7 @@ size_t free_size(const memory::region& region)
 	auto available = region.allocator()->available();
 	if(available.size() == 0) return 0;
 	return std::accumulate(std::begin(available), std::end(available), size_t(0),
-						   [](size_t sum, const memory::range& element) { return sum + element.size(); });
+						   [](size_t sum, const memory::range_t& element) { return sum + element.size(); });
 }
 
 size_t used_size(const memory::region& region)
@@ -15,7 +15,7 @@ size_t used_size(const memory::region& region)
 	auto committed = region.allocator()->committed();
 	if(committed.size() == 0) return 0;
 	return std::accumulate(std::begin(committed), std::end(committed), size_t(0),
-						   [](size_t sum, const memory::range& element) { return sum + element.size(); });
+						   [](size_t sum, const memory::range_t& element) { return sum + element.size(); });
 }
 
 

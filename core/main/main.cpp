@@ -82,14 +82,14 @@ using namespace core::gfx;
 using namespace psl::ecs;
 using namespace core::ecs::components;
 
-handle<core::gfx::compute> create_compute(resource::cache& cache,
+handle<core::gfx::compute> create_compute(resource::cache_t& cache,
 										  handle<core::gfx::context> context_handle,
 										  handle<core::gfx::pipeline_cache> pipeline_cache,
 										  const psl::UID& shader,
 										  const psl::UID& texture)
 {
 	auto meta = cache.library().get<core::meta::shader>(shader).value();
-	auto data = cache.create<data::material>();
+	auto data = cache.create<data::material_t>();
 	data->from_shaders(cache.library(), {meta});
 	auto stages = data->stages();
 	for(auto& stage : stages)
@@ -103,16 +103,16 @@ handle<core::gfx::compute> create_compute(resource::cache& cache,
 	  "594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, context_handle, data, pipeline_cache);
 }
 
-void load_texture(resource::cache& cache, handle<core::gfx::context> context_handle, const psl::UID& texture)
+void load_texture(resource::cache_t& cache, handle<core::gfx::context> context_handle, const psl::UID& texture)
 {
 	if(!cache.contains(texture))
 	{
-		auto textureHandle = cache.instantiate<gfx::texture>(texture, context_handle);
+		auto textureHandle = cache.instantiate<gfx::texture_t>(texture, context_handle);
 		assert(textureHandle);
 	}
 }
 
-handle<core::data::material> setup_gfx_material_data(resource::cache& cache,
+handle<core::data::material_t> setup_gfx_material_data(resource::cache_t& cache,
 													 handle<core::gfx::context> context_handle,
 													 psl::UID vert,
 													 psl::UID frag,
@@ -125,11 +125,11 @@ handle<core::data::material> setup_gfx_material_data(resource::cache& cache,
 	if(texture) load_texture(cache, context_handle, texture);
 
 	// create the sampler
-	auto samplerData   = cache.create<data::sampler>();
-	auto samplerHandle = cache.create<gfx::sampler>(context_handle, samplerData);
+	auto samplerData   = cache.create<data::sampler_t>();
+	auto samplerHandle = cache.create<gfx::sampler_t>(context_handle, samplerData);
 
 	// load the example material
-	auto matData = cache.create<data::material>();
+	auto matData = cache.create<data::material_t>();
 
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
@@ -152,42 +152,42 @@ handle<core::data::material> setup_gfx_material_data(resource::cache& cache,
 		}
 		matData->stages(stages);
 	}
-	matData->blend_states({core::data::material::blendstate(0)});
+	matData->blend_states({core::data::material_t::blendstate(0)});
 	return matData;
 }
-handle<core::gfx::material> setup_gfx_material(resource::cache& cache,
+handle<core::gfx::material_t> setup_gfx_material(resource::cache_t& cache,
 											   handle<core::gfx::context> context_handle,
 											   handle<core::gfx::pipeline_cache> pipeline_cache,
-											   handle<core::gfx::buffer> matBuffer,
+											   handle<core::gfx::buffer_t> matBuffer,
 											   psl::UID vert,
 											   psl::UID frag,
 											   const psl::UID& texture)
 {
 	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, texture);
-	auto material = cache.create<core::gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
+	auto material = cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, matBuffer);
 
 	return material;
 }
 
 
-handle<core::gfx::material> setup_gfx_depth_material(resource::cache& cache,
+handle<core::gfx::material_t> setup_gfx_depth_material(resource::cache_t& cache,
 													 handle<core::gfx::context> context_handle,
 													 handle<core::gfx::pipeline_cache> pipeline_cache,
-													 handle<core::gfx::buffer> matBuffer)
+													 handle<core::gfx::buffer_t> matBuffer)
 {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("954b4ef3-f9ec-6a64-a127-ff37a9b31595"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("5340928c-5109-3688-cd5a-161766082a9c"_uid).value();
 
 
-	auto matData = cache.create<data::material>();
+	auto matData = cache.create<data::material_t>();
 
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
-	auto material = cache.create<gfx::material>(context_handle, matData, pipeline_cache, matBuffer);
+	auto material = cache.create<gfx::material_t>(context_handle, matData, pipeline_cache, matBuffer);
 	return material;
 }
 
-void create_ui(psl::ecs::state& state) {}
+void create_ui(psl::ecs::state_t& state) {}
 
 #ifndef PLATFORM_ANDROID
 void setup_loggers()
@@ -732,7 +732,7 @@ int entry(gfx::graphics_backend backend)
 		break;
 	}
 
-	cache cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
+	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
 
 	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
@@ -763,14 +763,14 @@ int entry(gfx::graphics_backend backend)
 	auto mapped_buffer_align  = context_handle->limits().memorymap.alignment;
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
-	core::resource::handle<gfx::buffer> stagingBuffer {};
+	core::resource::handle<gfx::buffer_t> stagingBuffer {};
 	if(backend == graphics_backend::vulkan)
 	{
-		auto stagingBufferData = cache.create<data::buffer>(
+		auto stagingBufferData = cache.create<data::buffer_t>(
 		  core::gfx::memory_usage::transfer_source,
 		  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 		  memory::region {(size_t)128_mb, 4, new memory::default_allocator(false)});
-		stagingBuffer = cache.create<gfx::buffer>(context_handle, stagingBufferData);
+		stagingBuffer = cache.create<gfx::buffer_t>(context_handle, stagingBufferData);
 	}
 
 	// create the buffers to store the model in
@@ -778,47 +778,47 @@ int entry(gfx::graphics_backend backend)
 	//   have a copy on the CPU
 	// - then we create the vulkan buffer resource to interface with the GPU
 	auto vertexBufferData =
-	  cache.create<data::buffer>(core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
+	  cache.create<data::buffer_t>(core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 								 core::gfx::memory_property::device_local,
 								 memory::region {256_mb, 4, new memory::default_allocator(false)});
-	auto vertexBuffer = cache.create<gfx::buffer>(context_handle, vertexBufferData, stagingBuffer);
+	auto vertexBuffer = cache.create<gfx::buffer_t>(context_handle, vertexBufferData, stagingBuffer);
 
 	auto indexBufferData =
-	  cache.create<data::buffer>(core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
+	  cache.create<data::buffer_t>(core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
 								 core::gfx::memory_property::device_local,
 								 memory::region {128_mb, 4, new memory::default_allocator(false)});
-	auto indexBuffer = cache.create<gfx::buffer>(context_handle, indexBufferData, stagingBuffer);
+	auto indexBuffer = cache.create<gfx::buffer_t>(context_handle, indexBufferData, stagingBuffer);
 
 	auto dynamicInstanceBufferData =
-	  cache.create<data::buffer>(core::gfx::memory_usage::vertex_buffer,
+	  cache.create<data::buffer_t>(core::gfx::memory_usage::vertex_buffer,
 								 core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 								 memory::region {128_mb, 4, new memory::default_allocator(false)});
 
 	// instance buffer for vertex data, these are unique per streamed instance of a geometry in a shader
 	auto instanceBufferData =
-	  cache.create<data::buffer>(core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
+	  cache.create<data::buffer_t>(core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
 								 core::gfx::memory_property::device_local,
 								 memory::region {128_mb, 4, new memory::default_allocator(false)});
-	auto instanceBuffer = cache.create<gfx::buffer>(context_handle, instanceBufferData, stagingBuffer);
+	auto instanceBuffer = cache.create<gfx::buffer_t>(context_handle, instanceBufferData, stagingBuffer);
 
 	// instance buffer for material data, these are shared over all instances of a given material bind (over all
 	// instances in the invocation)
-	auto instanceMaterialBufferData = cache.create<data::buffer>(
+	auto instanceMaterialBufferData = cache.create<data::buffer_t>(
 	  core::gfx::memory_usage::uniform_buffer | core::gfx::memory_usage::transfer_destination,
 	  core::gfx::memory_property::device_local,
 	  memory::region {8_mb, uniform_buffer_align, new memory::default_allocator(false)});
-	auto instanceMaterialBuffer = cache.create<gfx::buffer>(context_handle, instanceMaterialBufferData, stagingBuffer);
+	auto instanceMaterialBuffer = cache.create<gfx::buffer_t>(context_handle, instanceMaterialBufferData, stagingBuffer);
 	auto intanceMaterialBinding = cache.create<gfx::shader_buffer_binding>(instanceMaterialBuffer, 8_mb);
-	cache.library().set(intanceMaterialBinding.uid(), core::data::material::MATERIAL_DATA);
+	cache.library().set(intanceMaterialBinding.uid(), core::data::material_t::MATERIAL_DATA);
 
-	std::vector<resource::handle<data::geometry>> geometryDataHandles;
-	std::vector<resource::handle<gfx::geometry>> geometryHandles;
+	std::vector<resource::handle<data::geometry_t>> geometryDataHandles;
+	std::vector<resource::handle<gfx::geometry_t>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
 	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1, -1, -1, 1));
 	auto fullscreen_quad_index = geometryDataHandles.size() - 1;
 	utility::geometry::set_channel(
-	  geometryDataHandles[fullscreen_quad_index], core::data::geometry::constants::COLOR, psl::vec4::one);
+	  geometryDataHandles[fullscreen_quad_index], core::data::geometry_t::constants::COLOR, psl::vec4::one);
 	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
 	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
 	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
@@ -829,7 +829,7 @@ int entry(gfx::graphics_backend backend)
 	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::up * 0.5f);
 	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::forward * 90.0f),
-							  core::data::geometry::constants::NORMAL);
+							  core::data::geometry_t::constants::NORMAL);
 	auto up_plane_index = geometryDataHandles.size() - 1;
 	// down
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
@@ -838,7 +838,7 @@ int entry(gfx::graphics_backend backend)
 	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::down * 0.5f);
 	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::back * 90.0f),
-							  core::data::geometry::constants::NORMAL);
+							  core::data::geometry_t::constants::NORMAL);
 	auto down_plane_index = geometryDataHandles.size() - 1;
 	// left
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
@@ -847,7 +847,7 @@ int entry(gfx::graphics_backend backend)
 	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::left * 0.5f);
 	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::up * 90.0f),
-							  core::data::geometry::constants::NORMAL);
+							  core::data::geometry_t::constants::NORMAL);
 	auto left_plane_index = geometryDataHandles.size() - 1;
 	// right
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
@@ -856,7 +856,7 @@ int entry(gfx::graphics_backend backend)
 	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::right * 0.5f);
 	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::down * 90.0f),
-							  core::data::geometry::constants::NORMAL);
+							  core::data::geometry_t::constants::NORMAL);
 	auto right_plane_index = geometryDataHandles.size() - 1;
 	// forward
 	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
@@ -869,24 +869,24 @@ int entry(gfx::graphics_backend backend)
 	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::back * 0.5f);
 	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::right * 90.0f),
-							  core::data::geometry::constants::NORMAL);
+							  core::data::geometry_t::constants::NORMAL);
 	auto back_plane_index = geometryDataHandles.size() - 1;
 
 	geometryDataHandles.push_back(
 	  utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
 
-	geometryDataHandles.push_back(cache.instantiate<core::data::geometry>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
+	geometryDataHandles.push_back(cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
 	auto water_plane_index = geometryDataHandles.size() - 1;
 	for(auto& handle : geometryDataHandles)
 	{
 		if(handle != geometryDataHandles[fullscreen_quad_index] &&
-		   !handle->vertices(core::data::geometry::constants::COLOR))
+		   !handle->vertices(core::data::geometry_t::constants::COLOR))
 		{
 			core::stream colorstream {core::stream::type::vec3};
 			auto& colors = colorstream.as_vec3().value().get();
 			auto& normalStream =
-			  handle->vertices(core::data::geometry::constants::NORMAL).value().get().as_vec3().value().get();
+			  handle->vertices(core::data::geometry_t::constants::NORMAL).value().get().as_vec3().value().get();
 			colors.resize(normalStream.size());
 			std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
 
@@ -896,21 +896,21 @@ int entry(gfx::graphics_backend backend)
 				  0.5f;
 				// color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f;
 			});
-			handle->vertices(core::data::geometry::constants::COLOR, colorstream);
-			// handle->erase(core::data::geometry::constants::TANGENT);
-			// handle->erase(core::data::geometry::constants::NORMAL);
+			handle->vertices(core::data::geometry_t::constants::COLOR, colorstream);
+			// handle->erase(core::data::geometry_t::constants::TANGENT);
+			// handle->erase(core::data::geometry_t::constants::NORMAL);
 		}
-		geometryHandles.emplace_back(cache.create<gfx::geometry>(context_handle, handle, vertexBuffer, indexBuffer));
+		geometryHandles.emplace_back(cache.create<gfx::geometry_t>(context_handle, handle, vertexBuffer, indexBuffer));
 	}
 
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
-	auto globalShaderBufferData = cache.create<data::buffer>(
+	auto globalShaderBufferData = cache.create<data::buffer_t>(
 	  core::gfx::memory_usage::uniform_buffer,
 	  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 	  resource_region.create_region(1_mb, uniform_buffer_align, new memory::default_allocator(true)).value());
 
-	auto globalShaderBuffer	   = cache.create<gfx::buffer>(context_handle, globalShaderBufferData);
+	auto globalShaderBuffer	   = cache.create<gfx::buffer_t>(context_handle, globalShaderBufferData);
 	auto frameCamBufferBinding = cache.create<gfx::shader_buffer_binding>(
 	  globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
 	cache.library().set(frameCamBufferBinding, "GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX");
@@ -919,8 +919,8 @@ int entry(gfx::graphics_backend backend)
 	// create a pipeline cache
 	auto pipeline_cache = cache.create<core::gfx::pipeline_cache>(context_handle);
 
-	psl::array<core::resource::handle<core::gfx::material>> materials;
-	core::resource::handle<core::gfx::material> depth_material =
+	psl::array<core::resource::handle<core::gfx::material_t>> materials;
+	core::resource::handle<core::gfx::material_t> depth_material =
 	  setup_gfx_depth_material(cache, context_handle, pipeline_cache, instanceMaterialBuffer);
 
 	// water
@@ -976,11 +976,11 @@ int entry(gfx::graphics_backend backend)
 
 	core::gfx::render_graph renderGraph {};
 	auto frameBufferData =
-	  cache.create<core::data::framebuffer>(surface_handle->data().width(), surface_handle->data().height(), 1);
+	  cache.create<core::data::framebuffer_t>(surface_handle->data().width(), surface_handle->data().height(), 1);
 
 	{	 // render target
 		core::gfx::attachment descr {};
-		descr.format		= core::gfx::format::r32g32b32a32_sfloat;
+		descr.format		= core::gfx::format_t::r32g32b32a32_sfloat;
 		descr.sample_bits	= 1;
 		descr.image_load	= core::gfx::attachment::load_op::clear;
 		descr.image_store	= core::gfx::attachment::store_op::store;
@@ -999,7 +999,7 @@ int entry(gfx::graphics_backend backend)
 
 	{	 // depth-stencil target
 		core::gfx::attachment descr {};
-		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format::undefined)
+		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format_t::undefined)
 		{
 			core::log->error("Could not find a suitable depth stencil buffer format.");
 		}
@@ -1022,13 +1022,13 @@ int entry(gfx::graphics_backend backend)
 	}
 
 	{
-		auto ppsamplerData = cache.create<data::sampler>();
+		auto ppsamplerData = cache.create<data::sampler_t>();
 		ppsamplerData->mipmaps(false);
-		auto ppsamplerHandle = cache.create<gfx::sampler>(context_handle, ppsamplerData);
+		auto ppsamplerHandle = cache.create<gfx::sampler_t>(context_handle, ppsamplerData);
 		frameBufferData->set(ppsamplerHandle);
 	}
 
-	auto geometryFBO = cache.create<core::gfx::framebuffer>(context_handle, frameBufferData);
+	auto geometryFBO = cache.create<core::gfx::framebuffer_t>(context_handle, frameBufferData);
 
 	core::resource::handle<core::gfx::bundle> post_effect_bundle =
 	  cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
@@ -1036,13 +1036,13 @@ int entry(gfx::graphics_backend backend)
 	auto post_effect_data =
 		setup_gfx_material_data(cache, context_handle, "0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
 								"cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid, geometryFBO->texture(0).meta().ID());
-	//post_effect_data->blend_states({core::data::material::blendstate::transparent(0)});
+	//post_effect_data->blend_states({core::data::material_t::blendstate::transparent(0)});
 	post_effect_data->cull_mode(core::gfx::cullmode::none);
 	post_effect_data->depth_write(false);
 	post_effect_data->depth_test(false);
 	post_effect_data->depth_compare_op(core::gfx::compare_op::always);
 	auto post_effect_material =
-		cache.create<core::gfx::material>(context_handle, post_effect_data, pipeline_cache, instanceMaterialBuffer);
+		cache.create<core::gfx::material_t>(context_handle, post_effect_data, pipeline_cache, instanceMaterialBuffer);
 	post_effect_bundle->set_material(post_effect_material, 5001);
 	post_effect_bundle->set("color", psl::vec4::one);
 	// auto fbo_texture = geometryFBO->texture(0);
@@ -1052,10 +1052,10 @@ int entry(gfx::graphics_backend backend)
 		cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
 	auto atmos_effect_data = setup_gfx_material_data(cache, context_handle, "ad493acc-9b2f-2bce-ec98-d5df87242298"_uid,
 													 "d44d9a5e-095e-9f15-2682-aae04c562790"_uid);
-	atmos_effect_data->blend_states({core::data::material::blendstate::opaque(0)});
+	atmos_effect_data->blend_states({core::data::material_t::blendstate::opaque(0)});
 	atmos_effect_data->cull_mode(core::gfx::cullmode::none);
 	auto atmos_effect_material =
-		cache.create<core::gfx::material>(context_handle, atmos_effect_data, pipeline_cache, instanceMaterialBuffer);
+		cache.create<core::gfx::material_t>(context_handle, atmos_effect_data, pipeline_cache, instanceMaterialBuffer);
 	atmos_effect_bundle->set_material(atmos_effect_material, 5000);
 	atmos_effect_bundle->set("lightDir", psl::vec4::one);
 	// atmos_effect_bundle->set("OuterRadius", 102.5f);
@@ -1067,11 +1067,11 @@ int entry(gfx::graphics_backend backend)
 #ifdef COMPUTE
 	{
 		psl::UID compute_texture_uid;
-		std::unique_ptr<core::meta::texture> texture = std::make_unique<core::meta::texture>();
+		std::unique_ptr<core::meta::texture_t> texture = std::make_unique<core::meta::texture_t>();
 		texture->width(512);
 		texture->height(512);
-		texture->format(core::gfx::format::r8g8b8a8_unorm);
-		auto handle			= cache.create_using<core::gfx::texture>(std::move(texture), context_handle);
+		texture->format(core::gfx::format_t::r8g8b8a8_unorm);
+		auto handle			= cache.create_using<core::gfx::texture_t>(std::move(texture), context_handle);
 		compute_texture_uid = handle.meta()->ID();
 
 		auto compute_handle = create_compute(
@@ -1086,9 +1086,9 @@ int entry(gfx::graphics_backend backend)
 	}
 #endif
 	// create the ecs
-	using psl::ecs::state;
+	using psl::ecs::state_t;
 
-	state ECSState {};
+	state_t ECSState {};
 
 	using namespace core::ecs::components;
 
@@ -1182,7 +1182,7 @@ int entry(gfx::graphics_backend backend)
 		stages[1].bindings(bindings);
 		water_material_data->stages(stages);
 		water_material_data->cull_mode(core::gfx::cullmode::front);
-		auto water_material = cache.create<core::gfx::material>(
+		auto water_material = cache.create<core::gfx::material_t>(
 		  context_handle, water_material_data, pipeline_cache, instanceMaterialBuffer);
 
 		bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));

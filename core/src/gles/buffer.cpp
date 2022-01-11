@@ -10,10 +10,10 @@ using namespace core;
 
 #define USE_BUFFER_SUBDATA
 
-buffer::buffer(core::resource::cache& cache,
+buffer_t::buffer_t(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
-			   core::resource::handle<core::data::buffer> buffer_data) :
+			   core::resource::handle<core::data::buffer_t> buffer_data) :
 	m_BufferDataHandle(buffer_data),
 	m_UID(metaData.uid)
 {
@@ -51,10 +51,10 @@ buffer::buffer(core::resource::cache& cache,
 	glBindBuffer(m_BufferType, 0);
 }
 
-buffer::~buffer() { glDeleteBuffers(1, &m_Buffer); }
+buffer_t::~buffer() { glDeleteBuffers(1, &m_Buffer); }
 
 
-bool buffer::set(const void* data, std::vector<core::gfx::memory_copy> commands)
+bool buffer_t::set(const void* data, std::vector<core::gfx::memory_copy> commands)
 {
 	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
 	auto error = glGetError();
@@ -77,7 +77,7 @@ bool buffer::set(const void* data, std::vector<core::gfx::memory_copy> commands)
 	return true;
 }
 
-bool buffer::set(std::vector<core::gfx::memory_copy> commands)
+bool buffer_t::set(std::vector<core::gfx::memory_copy> commands)
 {
 	glBindBuffer(m_BufferType, m_Buffer);
 	auto error = glGetError();
@@ -98,15 +98,15 @@ bool buffer::set(std::vector<core::gfx::memory_copy> commands)
 	return true;
 }
 
-std::optional<memory::segment> buffer::allocate(size_t size) { return m_BufferDataHandle->allocate(size); }
-std::vector<std::pair<memory::segment, memory::range>> buffer::allocate(psl::array<size_t> sizes, bool optimize)
+std::optional<memory::segment> buffer_t::allocate(size_t size) { return m_BufferDataHandle->allocate(size); }
+std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::allocate(psl::array<size_t> sizes, bool optimize)
 {
 	PROFILE_SCOPE(core::profiler)
 	size_t totalSize =
 	  std::accumulate(std::next(std::begin(sizes)), std::end(sizes), sizes[0], [](size_t sum, const size_t& element) {
 		  return sum + element;
 	  });
-	std::vector<std::pair<memory::segment, memory::range>> result;
+	std::vector<std::pair<memory::segment, memory::range_t>> result;
 
 	// todo: low priority
 	// this should check for biggest continuous space in the memory::region and split like that
@@ -120,7 +120,7 @@ std::vector<std::pair<memory::segment, memory::range>> buffer::allocate(psl::arr
 			for(auto i = 0u; i < sizes.size(); ++i)
 			{
 				result[i].first	 = segment.value();
-				result[i].second = memory::range {accOffset, accOffset + sizes[i]};
+				result[i].second = memory::range_t {accOffset, accOffset + sizes[i]};
 				accOffset += sizes[i];
 			}
 			return result;
@@ -135,7 +135,7 @@ std::vector<std::pair<memory::segment, memory::range>> buffer::allocate(psl::arr
 		{
 			auto& res  = result.emplace_back();
 			res.first  = segment.value();
-			res.second = memory::range {0, size};
+			res.second = memory::range_t {0, size};
 		}
 		else
 		{
@@ -154,9 +154,9 @@ failure:
 	return {};
 }
 
-bool buffer::deallocate(memory::segment& segment) { return m_BufferDataHandle->deallocate(segment); }
+bool buffer_t::deallocate(memory::segment& segment) { return m_BufferDataHandle->deallocate(segment); }
 
-bool buffer::copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges)
+bool buffer_t::copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges)
 {
 	auto totalsize = std::accumulate(
 	  ranges.begin(), ranges.end(), 0, [&](int sum, const gfx::memory_copy& region) { return sum + (int)region.size; });
@@ -189,14 +189,14 @@ bool buffer::copy_from(const buffer& other, const psl::array<core::gfx::memory_c
 }
 
 
-bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instructions)
+bool buffer_t::commit(const psl::array<core::gfx::commit_instruction>& instructions)
 {
 	glBindBuffer(GL_COPY_WRITE_BUFFER, m_Buffer);
 	for(const auto& instruction : instructions)
 	{
 		std::uintptr_t offset = instruction.segment.range().begin -
 								(std::uintptr_t)m_BufferDataHandle->region().data() +
-								instruction.sub_range.value_or(memory::range {}).begin;
+								instruction.sub_range.value_or(memory::range_t {}).begin;
 #ifdef USE_BUFFER_SUBDATA
 		glBufferSubData(GL_COPY_WRITE_BUFFER, offset, instruction.size, (void*)((std::uintptr_t)instruction.source));
 #else
@@ -210,11 +210,11 @@ bool buffer::commit(const psl::array<core::gfx::commit_instruction>& instruction
 	return true;
 }
 
-size_t buffer::free_size() const noexcept
+size_t buffer_t::free_size() const noexcept
 {
 	auto available = m_BufferDataHandle->region().allocator()->available();
 	return std::accumulate(std::next(std::begin(available)),
 						   std::end(available),
 						   available[0].size(),
-						   [](size_t sum, const memory::range& element) { return sum + element.size(); });
+						   [](size_t sum, const memory::range_t& element) { return sum + element.size(); });
 }

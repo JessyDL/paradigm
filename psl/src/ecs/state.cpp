@@ -12,7 +12,7 @@ using psl::ecs::details::entity_info;
 constexpr size_t min_thread_entities = 1;
 
 
-state::state(size_t workers, size_t cache_size) :
+state_t::state_t(size_t workers, size_t cache_size) :
 	m_Cache(cache_size), m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers}))
 {
 	m_ModifiedEntities.reserve(65536);
@@ -63,13 +63,13 @@ psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::depen
 	return packs;
 }
 
-void state::prepare_system(std::chrono::duration<float> dTime,
+void state_t::prepare_system(std::chrono::duration<float> dTime,
 						   std::chrono::duration<float> rTime,
 						   std::uintptr_t cache_offset,
 						   details::system_information& information)
 {
-	std::function<void(state&, psl::array<details::dependency_pack>)> write_data =
-	  [](state& state, psl::array<details::dependency_pack> dep_packs) {
+	std::function<void(state_t&, psl::array<details::dependency_pack>)> write_data =
+	  [](state_t& state, psl::array<details::dependency_pack> dep_packs) {
 		  for(const auto& dep_pack : dep_packs)
 		  {
 			  for(auto& binding : dep_pack.m_RWBindings)
@@ -186,7 +186,7 @@ void state::prepare_system(std::chrono::duration<float> dTime,
 	}
 }
 
-void state::tick(std::chrono::duration<float> dTime)
+void state_t::tick(std::chrono::duration<float> dTime)
 {
 	m_LockState = 1;
 	// remove filters that are no longer in use
@@ -243,7 +243,7 @@ void state::tick(std::chrono::duration<float> dTime)
 	m_LockState = 0;
 }
 
-const details::component_info* state::get_component_info(details::component_key_t key) const noexcept
+const details::component_info* state_t::get_component_info(details::component_key_t key) const noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return &it->second.get();
@@ -251,7 +251,7 @@ const details::component_info* state::get_component_info(details::component_key_
 		return nullptr;
 }
 
-details::component_info* state::get_component_info(details::component_key_t key) noexcept
+details::component_info* state_t::get_component_info(details::component_key_t key) noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return &it->second.get();
@@ -261,7 +261,7 @@ details::component_info* state::get_component_info(details::component_key_t key)
 
 
 psl::array<const details::component_info*>
-state::get_component_info(psl::array_view<details::component_key_t> keys) const noexcept
+state_t::get_component_info(psl::array_view<details::component_key_t> keys) const noexcept
 {
 	psl::array<const details::component_info*> res {};
 	size_t count = keys.size();
@@ -278,7 +278,7 @@ state::get_component_info(psl::array_view<details::component_key_t> keys) const 
 }
 
 // empty construction
-void state::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
+void state_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
 {
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
@@ -288,7 +288,7 @@ void state::add_component_impl(details::component_key_t key, psl::array_view<ent
 }
 
 // invocable based construction
-void state::add_component_impl(details::component_key_t key,
+void state_t::add_component_impl(details::component_key_t key,
 							   psl::array_view<entity> entities,
 							   std::function<void(std::uintptr_t, size_t)> invocable)
 {
@@ -306,7 +306,7 @@ void state::add_component_impl(details::component_key_t key,
 }
 
 // prototype based construction
-void state::add_component_impl(details::component_key_t key,
+void state_t::add_component_impl(details::component_key_t key,
 							   psl::array_view<entity> entities,
 							   void* prototype,
 							   bool repeat)
@@ -323,7 +323,7 @@ void state::add_component_impl(details::component_key_t key,
 }
 
 
-void state::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
+void state_t::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
 {
 	m_Components[key]->destroy(entities);
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
@@ -331,7 +331,7 @@ void state::remove_component(details::component_key_t key, psl::array_view<entit
 
 // consider an alias feature
 // ie: alias transform = position, rotation, scale components
-void state::destroy(psl::array_view<entity> entities) noexcept
+void state_t::destroy(psl::array_view<entity> entities) noexcept
 {
 	if(entities.size() == 0) return;
 
@@ -344,7 +344,7 @@ void state::destroy(psl::array_view<entity> entities) noexcept
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 
-void state::destroy(entity entity) noexcept
+void state_t::destroy(entity entity) noexcept
 {
 	for(auto& [key, cInfo] : m_Components)
 	{
@@ -354,7 +354,7 @@ void state::destroy(entity entity) noexcept
 	m_ModifiedEntities.try_insert(entity);
 }
 
-void state::reset(psl::array_view<entity> entities) noexcept
+void state_t::reset(psl::array_view<entity> entities) noexcept
 {
 	for(auto& [key, cInfo] : m_Components)
 	{
@@ -362,7 +362,7 @@ void state::reset(psl::array_view<entity> entities) noexcept
 	}
 }
 
-psl::array<entity>::iterator state::filter_op(details::component_key_t key,
+psl::array<entity>::iterator state_t::filter_op(details::component_key_t key,
 											  psl::array<entity>::iterator& begin,
 											  psl::array<entity>::iterator& end) const noexcept
 {
@@ -371,21 +371,21 @@ psl::array<entity>::iterator state::filter_op(details::component_key_t key,
 							  : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
 
-psl::array<entity>::iterator state::on_add_op(details::component_key_t key,
+psl::array<entity>::iterator state_t::on_add_op(details::component_key_t key,
 											  psl::array<entity>::iterator& begin,
 											  psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_added(e); });
 }
-psl::array<entity>::iterator state::on_remove_op(details::component_key_t key,
+psl::array<entity>::iterator state_t::on_remove_op(details::component_key_t key,
 												 psl::array<entity>::iterator& begin,
 												 psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_removed(e); });
 }
-psl::array<entity>::iterator state::on_except_op(details::component_key_t key,
+psl::array<entity>::iterator state_t::on_except_op(details::component_key_t key,
 												 psl::array<entity>::iterator& begin,
 												 psl::array<entity>::iterator& end) const noexcept
 {
@@ -393,7 +393,7 @@ psl::array<entity>::iterator state::on_except_op(details::component_key_t key,
 	return (cInfo == nullptr) ? end
 							  : std::partition(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
 }
-psl::array<entity>::iterator state::on_break_op(psl::array<details::component_key_t> keys,
+psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_key_t> keys,
 												psl::array<entity>::iterator& begin,
 												psl::array<entity>::iterator& end) const noexcept
 {
@@ -414,7 +414,7 @@ psl::array<entity>::iterator state::on_break_op(psl::array<details::component_ke
 			 });
 }
 
-psl::array<entity>::iterator state::on_combine_op(psl::array<details::component_key_t> keys,
+psl::array<entity>::iterator state_t::on_combine_op(psl::array<details::component_key_t> keys,
 												  psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept
 {
@@ -429,7 +429,7 @@ psl::array<entity>::iterator state::on_combine_op(psl::array<details::component_
 	});
 }
 
-psl::array<entity> state::filter(details::dependency_pack& pack, bool seed_with_previous) const noexcept
+psl::array<entity> state_t::filter(details::dependency_pack& pack, bool seed_with_previous) const noexcept
 {
 	auto pack_filters = pack.filters;
 	for(const auto& [key, arr] : pack.m_RBindings) pack_filters.emplace_back(key);
@@ -473,7 +473,7 @@ psl::array<entity> state::filter(details::dependency_pack& pack, bool seed_with_
 	return entities;
 }
 
-void state::filter(filter_result& data, bool seed_with_previous) const noexcept
+void state_t::filter(filter_result& data, bool seed_with_previous) const noexcept
 {
 	std::optional<psl::array_view<entity>> source;
 
@@ -613,7 +613,7 @@ void state::filter(filter_result& data, bool seed_with_previous) const noexcept
 	}
 }
 
-void state::filter(filter_result& data, psl::array_view<entity> source) const noexcept
+void state_t::filter(filter_result& data, psl::array_view<entity> source) const noexcept
 {
 	if(source.size() == 0)
 	{
@@ -754,7 +754,7 @@ void state::filter(filter_result& data, psl::array_view<entity> source) const no
 	  }));
 }
 
-size_t state::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
+size_t state_t::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(id);
@@ -764,7 +764,7 @@ size_t state::prepare_data(psl::array_view<entity> entities, void* cache, compon
 	return cInfo->copy_to(entities, cache);
 }
 
-size_t state::prepare_bindings(psl::array_view<entity> entities,
+size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 							   void* cache,
 							   details::dependency_pack& dep_pack) const noexcept
 {
@@ -794,7 +794,7 @@ size_t state::prepare_bindings(psl::array_view<entity> entities,
 	return (std::uintptr_t)cache - offset_start;
 }
 
-size_t state::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
+size_t state_t::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(key);
@@ -803,7 +803,7 @@ size_t state::set(psl::array_view<entity> entities, details::component_key_t key
 }
 
 
-void state::execute_command_buffer(info& info)
+void state_t::execute_command_buffer(info& info)
 {
 	auto& buffer = info.command_buffer;
 
@@ -849,7 +849,7 @@ void state::execute_command_buffer(info& info)
 }
 
 
-size_t state::size(psl::array_view<details::component_key_t> keys) const noexcept
+size_t state_t::size(psl::array_view<details::component_key_t> keys) const noexcept
 {
 	for(auto& key : keys)
 	{
@@ -859,7 +859,7 @@ size_t state::size(psl::array_view<details::component_key_t> keys) const noexcep
 	return 0;
 }
 
-void state::clear() noexcept
+void state_t::clear() noexcept
 {
 	m_Components.clear();
 	m_Entities = 0;

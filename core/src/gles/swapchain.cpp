@@ -7,7 +7,7 @@ using namespace core::igles;
 using namespace core;
 using namespace core::resource;
 
-swapchain::swapchain(core::resource::cache& cache,
+swapchain::swapchain(core::resource::cache_t& cache,
 					 const core::resource::metadata& metaData,
 					 psl::meta::file* metaFile,
 					 core::resource::handle<core::os::surface> surface,

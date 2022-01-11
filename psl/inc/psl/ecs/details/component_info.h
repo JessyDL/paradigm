@@ -23,7 +23,7 @@ namespace psl::ecs::details
 	/// This class serves as a base to the actual component storage.
 	/// It contains some primitive functionality itself, but mostly serves
 	/// as a safer way of accessing the component data from the state.
-	/// \warn this should never be used by anything other than the psl::ecs::state
+	/// \warn this should never be used by anything other than the psl::ecs::state_t
 	/// The 'public' API is not safe to use.
 	class component_info
 	{

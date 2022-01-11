@@ -4,7 +4,7 @@
 using namespace core::data;
 using namespace core::resource;
 
-bundle::bundle(const psl::UID& uid, core::resource::cache& cache) noexcept {};
+bundle::bundle(const psl::UID& uid, core::resource::cache_t& cache) noexcept {};
 psl::array_view<bundle::data> bundle::materials() const noexcept { return m_Data.value; }
 void bundle::add(psl::array_view<std::pair<psl::UID, uint32_t>> materials)
 {
@@ -35,7 +35,7 @@ void bundle::remove(uint32_t layer) noexcept
 }
 
 bundle::data::data(const psl::UID& material, uint32_t layer) noexcept : m_Material(material), m_Layer(layer) {}
-const psl::UID& bundle::data::material() const noexcept { return m_Material.value; }
-void bundle::data::material(const psl::UID& value) noexcept { m_Material.value = value; }
+const psl::UID& bundle::data::material_t() const noexcept { return m_Material.value; }
+void bundle::data::material_t(const psl::UID& value) noexcept { m_Material.value = value; }
 uint32_t bundle::data::layer() const noexcept { return m_Layer.value; }
 void bundle::data::layer(uint32_t value) noexcept { m_Layer.value = value; }

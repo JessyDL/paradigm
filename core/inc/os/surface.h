@@ -39,7 +39,7 @@ namespace core::os
 	class surface
 	{
 	  public:
-		surface(core::resource::cache& cache,
+		surface(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				core::resource::handle<data::window> data);

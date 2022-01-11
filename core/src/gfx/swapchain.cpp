@@ -24,7 +24,7 @@ swapchain::swapchain(core::resource::handle<core::igles::swapchain>& handle) :
 {}
 #endif
 
-swapchain::swapchain(core::resource::cache& cache,
+swapchain::swapchain(core::resource::cache_t& cache,
 					 const core::resource::metadata& metaData,
 					 psl::meta::file* metaFile,
 					 handle<os::surface> surface,

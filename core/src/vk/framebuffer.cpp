@@ -12,11 +12,11 @@ using namespace core::resource;
 using namespace core;
 
 
-framebuffer::framebuffer(core::resource::cache& cache,
+framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 						 const core::resource::metadata& metaData,
 						 psl::meta::file* metaFile,
 						 handle<context> context,
-						 handle<data::framebuffer> data) :
+						 handle<data::framebuffer_t> data) :
 	m_Context(context),
 	m_Data(data)	// , m_Data(copy(cache, data))
 {
@@ -33,7 +33,7 @@ framebuffer::framebuffer(core::resource::cache& cache,
 		index += m_Framebuffers.size();
 	}
 
-	m_Sampler = cache.find<core::ivk::sampler>(m_Data->sampler().value());
+	m_Sampler = cache.find<core::ivk::sampler_t>(m_Data->sampler().value());
 	if(!m_Sampler)
 	{
 		core::ivk::log->error("could not load sampler {0} for framebuffer {1}", m_Sampler.uid(), metaData.uid);
@@ -147,25 +147,25 @@ framebuffer::framebuffer(core::resource::cache& cache,
 	}
 }
 
-framebuffer::~framebuffer()
+framebuffer_t::~framebuffer_t()
 {
 	m_Context->device().destroyRenderPass(m_RenderPass);
 	for(auto& fb : m_Framebuffers) m_Context->device().destroyFramebuffer(fb);
 }
 
-bool framebuffer::add(core::resource::cache& cache,
+bool framebuffer_t::add(core::resource::cache_t& cache,
 					  const UID& uid,
 					  vk::AttachmentDescription description,
 					  size_t index,
 					  size_t count)
 {
-	auto res = cache.library().get<core::meta::texture>(uid);
+	auto res = cache.library().get<core::meta::texture_t>(uid);
 	if(!res) return false;
 
 
-	auto texture = cache.find<core::ivk::texture>(uid);
-	if(texture.state() != core::resource::state::loaded)
-		texture = cache.create_using<core::ivk::texture>(uid, m_Context);
+	auto texture = cache.find<core::ivk::texture_t>(uid);
+	if(texture.state() != core::resource::status::loaded)
+		texture = cache.create_using<core::ivk::texture_t>(uid, m_Context);
 	if(!texture) return false;
 
 	auto meta = res.value();
@@ -188,24 +188,24 @@ bool framebuffer::add(core::resource::cache& cache,
 }
 
 
-std::vector<framebuffer::texture_handle> framebuffer::attachments(uint32_t index) const noexcept
+std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::texture_handle> res;
+	std::vector<framebuffer_t::texture_handle> res;
 	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
 	});
 	return res;
 }
 
-std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t index) const noexcept
+std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::texture_handle> res;
+	std::vector<framebuffer_t::texture_handle> res;
 	auto bindings {m_Bindings};
-	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
+	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer_t::binding& binding) {
 		return utility::vulkan::has_depth(binding.description.format) ||
 			   utility::vulkan::has_stencil(binding.description.format);
 	});
@@ -215,8 +215,8 @@ std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t
 
 	return res;
 }
-core::resource::handle<core::ivk::sampler> framebuffer::sampler() const noexcept { return m_Sampler; }
-core::resource::handle<core::data::framebuffer> framebuffer::data() const noexcept { return m_Data; }
-vk::RenderPass framebuffer::render_pass() const noexcept { return m_RenderPass; }
-const std::vector<vk::Framebuffer>& framebuffer::framebuffers() const noexcept { return m_Framebuffers; }
-vk::DescriptorImageInfo framebuffer::descriptor() const noexcept { return m_Descriptor; }
+core::resource::handle<core::ivk::sampler_t> framebuffer_t::sampler() const noexcept { return m_Sampler; }
+core::resource::handle<core::data::framebuffer_t> framebuffer_t::data() const noexcept { return m_Data; }
+vk::RenderPass framebuffer_t::render_pass() const noexcept { return m_RenderPass; }
+const std::vector<vk::Framebuffer>& framebuffer_t::framebuffers() const noexcept { return m_Framebuffers; }
+vk::DescriptorImageInfo framebuffer_t::descriptor() const noexcept { return m_Descriptor; }

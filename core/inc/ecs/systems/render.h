@@ -8,7 +8,7 @@
 
 namespace core::gfx
 {
-	class buffer;
+	class buffer_t;
 	class drawpass;
 }	 // namespace core::gfx
 
@@ -24,7 +24,7 @@ namespace core::ecs::systems
 	class render
 	{
 	  public:
-		render(psl::ecs::state& state, psl::view_ptr<core::gfx::drawpass> pass);
+		render(psl::ecs::state_t& state, psl::view_ptr<core::gfx::drawpass> pass);
 
 		~render() = default;
 

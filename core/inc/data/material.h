@@ -18,12 +18,12 @@ namespace psl::meta
 
 namespace core::data
 {
-	/// \brief Describes a collection of resources that can be used to initialize a core::ivk::material
+	/// \brief Describes a collection of resources that can be used to initialize a core::ivk::material_t
 	///
 	/// Material data describes a collection of textures, buffers, shaders, override parameters for these shaders,
 	/// blend operations (such as opaque or transparent), render order offsets, and generic options of how this material
 	/// *should* be rendered. It also contains facilities to set default values on buffers if needed.
-	class material final
+	class material_t final
 	{
 		friend class psl::serialization::accessor;
 
@@ -441,16 +441,16 @@ namespace core::data
 			static constexpr const char serialization_name[15] {"MATERIAL_STAGE"};
 		};
 
-		material(core::resource::cache& cache,
+		material_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile) noexcept;
-		// material(const material& other, const psl::UID& uid, core::resource::cache& cache);
-		~material();
+		// material_t(const material_t& other, const psl::UID& uid, core::resource::cache_t& cache);
+		~material_t();
 
-		material(const material&) = delete;
-		material(material&&)	  = delete;
-		material& operator=(const material&) = delete;
-		material& operator=(material&&) = delete;
+		material_t(const material_t&) = delete;
+		material_t(material_t&&)	  = delete;
+		material_t& operator=(const material_t&) = delete;
+		material_t& operator=(material_t&&) = delete;
 
 		const psl::array<stage>& stages() const;
 		const psl::array<blendstate>& blend_states() const;

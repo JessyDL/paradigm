@@ -5,13 +5,13 @@
 
 namespace core::data
 {
-	class framebuffer;
+	class framebuffer_t;
 }
 namespace core::ivk
 {
-	class texture;
+	class texture_t;
 	class context;
-	class sampler;
+	class sampler_t;
 }	 // namespace core::ivk
 
 namespace core::ivk
@@ -23,10 +23,10 @@ namespace core::ivk
 	/// to describe a set of images to the driver that you will use as render targets.
 	/// the framebuffer class is just that, and allows you to bundle together images to do
 	/// postprocessing, or shadowmapping, etc...
-	class framebuffer final
+	class framebuffer_t final
 	{
 	  public:
-		using texture_handle = core::resource::handle<core::ivk::texture>;
+		using texture_handle = core::resource::handle<core::ivk::texture_t>;
 
 		/// \brief describes a single binding point (can be many) in a framebuffer.
 		///
@@ -42,16 +42,16 @@ namespace core::ivk
 			uint32_t index;
 		};
 
-		framebuffer(core::resource::cache& cache,
+		framebuffer_t(core::resource::cache_t& cache,
 					const core::resource::metadata& metaData,
 					psl::meta::file* metaFile,
 					core::resource::handle<core::ivk::context> context,
-					core::resource::handle<core::data::framebuffer> data);
-		framebuffer(const framebuffer&) = delete;
-		framebuffer(framebuffer&&)		= delete;
-		framebuffer& operator=(const framebuffer&) = delete;
-		framebuffer& operator=(framebuffer&&) = delete;
-		~framebuffer();
+					core::resource::handle<core::data::framebuffer_t> data);
+		framebuffer_t(const framebuffer_t&) = delete;
+		framebuffer_t(framebuffer_t&&)		= delete;
+		framebuffer_t& operator=(const framebuffer_t&) = delete;
+		framebuffer_t& operator=(framebuffer_t&&) = delete;
+		~framebuffer_t();
 
 		/// \returns all attachments for a specific index
 		/// \param[in] index the index to return the attachments for.
@@ -62,9 +62,9 @@ namespace core::ivk
 		std::vector<texture_handle> color_attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns the sampler resource associated with this framebuffer.
-		core::resource::handle<core::ivk::sampler> sampler() const noexcept;
+		core::resource::handle<core::ivk::sampler_t> sampler() const noexcept;
 		/// \returns the data used to create this framebuffer
-		core::resource::handle<core::data::framebuffer> data() const noexcept;
+		core::resource::handle<core::data::framebuffer_t> data() const noexcept;
 		/// \returns the renderpass this framebuffer created and manages.
 		vk::RenderPass render_pass() const noexcept;
 		/// \returns all vulkan framebuffer objects that constitute this framebuffer.
@@ -73,15 +73,15 @@ namespace core::ivk
 		vk::DescriptorImageInfo descriptor() const noexcept;
 
 	  private:
-		bool add(core::resource::cache& cache,
+		bool add(core::resource::cache_t& cache,
 				 const psl::UID& uid,
 				 vk::AttachmentDescription description,
 				 size_t index,
 				 size_t count);
 
 		std::vector<binding> m_Bindings;
-		core::resource::handle<core::ivk::sampler> m_Sampler;
-		core::resource::handle<core::data::framebuffer> m_Data;
+		core::resource::handle<core::ivk::sampler_t> m_Sampler;
+		core::resource::handle<core::data::framebuffer_t> m_Data;
 		core::resource::handle<core::ivk::context> m_Context;
 		vk::RenderPass m_RenderPass;
 		std::vector<vk::Framebuffer> m_Framebuffers;

@@ -6,13 +6,13 @@ using namespace psl;
 using namespace core::data;
 using namespace core::resource;
 
-geometry::geometry(core::resource::cache& cache,
+geometry_t::geometry_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile) noexcept
 {}
 
 
-std::optional<std::reference_wrapper<const core::stream>> geometry::vertices(const psl::string_view name) const
+std::optional<std::reference_wrapper<const core::stream>> geometry_t::vertices(const psl::string_view name) const
 {
 	auto it = m_VertexStreams.value.find(psl::string {name});
 	if(it != std::end(m_VertexStreams.value))
@@ -21,16 +21,16 @@ std::optional<std::reference_wrapper<const core::stream>> geometry::vertices(con
 	}
 	return std::nullopt;
 }
-void geometry::vertices(const psl::string_view name, const core::stream& stream)
+void geometry_t::vertices(const psl::string_view name, const core::stream& stream)
 {
 	m_VertexStreams.value[psl::string {name}] = stream;
 }
-const std::vector<geometry::index_size_t>& geometry::indices() const { return m_Indices.value; }
-void geometry::indices(psl::array_view<index_size_t> indices) { m_Indices.value = psl::array<index_size_t> {indices}; }
+const std::vector<geometry_t::index_size_t>& geometry_t::indices() const { return m_Indices.value; }
+void geometry_t::indices(psl::array_view<index_size_t> indices) { m_Indices.value = psl::array<index_size_t> {indices}; }
 
-const std::unordered_map<psl::string, core::stream>& geometry::vertex_streams() const { return m_VertexStreams.value; }
+const std::unordered_map<psl::string, core::stream>& geometry_t::vertex_streams() const { return m_VertexStreams.value; }
 
-bool geometry::is_valid() const noexcept
+bool geometry_t::is_valid() const noexcept
 {
 	auto it = m_VertexStreams.value.find(psl::string {constants::POSITION});
 	if(it == std::end(m_VertexStreams.value))
@@ -43,7 +43,7 @@ bool geometry::is_valid() const noexcept
 	});
 }
 
-size_t geometry::bytesize() const noexcept
+size_t geometry_t::bytesize() const noexcept
 {
 	return std::accumulate(std::begin(m_VertexStreams.value),
 						   std::end(m_VertexStreams.value),
@@ -52,7 +52,7 @@ size_t geometry::bytesize() const noexcept
 }
 
 
-size_t geometry::elements() const noexcept
+size_t geometry_t::elements() const noexcept
 {
 	return std::accumulate(std::begin(m_VertexStreams.value),
 						   std::end(m_VertexStreams.value),
@@ -60,19 +60,19 @@ size_t geometry::elements() const noexcept
 						   [](auto sum, const auto& pair) { return sum + pair.second.elements(); });
 }
 
-bool geometry::erase(psl::string_view name) noexcept { return m_VertexStreams.value.erase(psl::string(name)) > 0; }
+bool geometry_t::erase(psl::string_view name) noexcept { return m_VertexStreams.value.erase(psl::string(name)) > 0; }
 
 
-geometry::index_size_t geometry::vertex_count() const noexcept
+geometry_t::index_size_t geometry_t::vertex_count() const noexcept
 {
 	return static_cast<index_size_t>(
 	  (m_VertexStreams.value.size() == 0) ? 0 : std::begin(m_VertexStreams.value)->second.size());
 }
-geometry::index_size_t geometry::index_count() const noexcept
+geometry_t::index_size_t geometry_t::index_count() const noexcept
 {
 	return static_cast<index_size_t>(m_Indices.value.size());
 }
-geometry::index_size_t geometry::triangles() const noexcept
+geometry_t::index_size_t geometry_t::triangles() const noexcept
 {
 	return static_cast<index_size_t>(m_Indices.value.size() / 3);
 }

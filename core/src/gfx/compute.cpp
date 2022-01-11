@@ -23,11 +23,11 @@ compute::compute(core::resource::handle<core::igles::compute>& handle) :
 {}
 #endif
 
-compute::compute(core::resource::cache& cache,
+compute::compute(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 core::meta::shader* metaFile,
 				 core::resource::handle<context> context_handle,
-				 core::resource::handle<core::data::material> data,
+				 core::resource::handle<core::data::material_t> data,
 				 core::resource::handle<pipeline_cache> pipeline_cache)
 {
 	switch(context_handle->backend())

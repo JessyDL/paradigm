@@ -27,7 +27,7 @@ namespace core::gfx
 			} workgroup;
 		} compute;
 
-		core::gfx::format supported_depthformat;
+		core::gfx::format_t supported_depthformat;
 	};
 
 	constexpr inline limits::buffer min(const limits::buffer& l, const limits::buffer& r) noexcept

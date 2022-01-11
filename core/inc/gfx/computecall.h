@@ -16,12 +16,12 @@ namespace core::gfx
 	  public:
 		computecall(core::resource::handle<compute> compute);
 		/*computecall(core::resource::handle<compute> compute,
-					psl::array<core::resource::handle<core::gfx::buffer>> buffers);
+					psl::array<core::resource::handle<core::gfx::buffer_t>> buffers);
 		computecall(core::resource::handle<compute> compute,
-					psl::array<core::resource::handle<core::gfx::texture>> textures);
+					psl::array<core::resource::handle<core::gfx::texture_t>> textures);
 		computecall(core::resource::handle<compute> compute,
-					psl::array<core::resource::handle<core::gfx::texture>> textures,
-					psl::array<core::resource::handle<core::gfx::buffer>> buffers);*/
+					psl::array<core::resource::handle<core::gfx::texture_t>> textures,
+					psl::array<core::resource::handle<core::gfx::buffer_t>> buffers);*/
 
 		void dispatch();
 

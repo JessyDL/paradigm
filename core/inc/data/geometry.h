@@ -35,15 +35,15 @@ namespace core::data
 	/// \brief describes a stream of data that will be uploaded to the GPU as geometry data.
 	///
 	/// Unlike most engines, geometry data in paradigm is considered a collection of undescribed data, that has been
-	/// keyed. There are some globally accepted keys defined for convenience at the core::data::geometry::constants
-	/// namespace. Only 2 streams are mandatory (core::data::geometry::constants::POSITION and the indices stream), if
+	/// keyed. There are some globally accepted keys defined for convenience at the core::data::geometry_t::constants
+	/// namespace. Only 2 streams are mandatory (core::data::geometry_t::constants::POSITION and the indices stream), if
 	/// those are not present, the data is considered invalid. All streams (except the index buffer stream) should have
 	/// equally as many entries as the position buffer stream has. The index buffer stream should not reffer to
 	/// positions larger than the size of the position buffer stream. \note these data streams can be anything, as long
 	/// as atleast a position buffer and a index buffer is present. It's up to you to make sure your geometry object has
-	/// all the required streams to correctly bind it to a core::ivk::material. \todo write an example of a custom
+	/// all the required streams to correctly bind it to a core::ivk::material_t. \todo write an example of a custom
 	/// stream. \todo support numbered streams (i.e. UV0, UV1, etc..).
-	class geometry
+	class geometry_t
 	{
 		friend class psl::serialization::accessor;
 
@@ -71,15 +71,15 @@ namespace core::data
 			/// \brief geometry bones key
 			static constexpr psl::string_view BONES = "GEOMETRY_BONES";
 		};
-		geometry() = default;
-		geometry(core::resource::cache& cache,
+		geometry_t() = default;
+		geometry_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile) noexcept;
-		~geometry()				  = default;
-		geometry(const geometry&) = delete;
-		geometry(geometry&&)	  = delete;
-		geometry& operator=(const geometry&) = delete;
-		geometry& operator=(geometry&&) = delete;
+		~geometry_t()				  = default;
+		geometry_t(const geometry_t&) = delete;
+		geometry_t(geometry_t&&)	  = delete;
+		geometry_t& operator=(const geometry_t&) = delete;
+		geometry_t& operator=(geometry_t&&) = delete;
 
 		/// \brief returns the stream reference (if any found) for the given key.
 		/// \returns the stream reference (if any found) for the given key.

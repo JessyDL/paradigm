@@ -12,17 +12,17 @@ using namespace core::resource;
 
 // todo support renderbuffer storage
 
-framebuffer::framebuffer(core::resource::cache& cache,
+framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 						 const core::resource::metadata& metaData,
 						 psl::meta::file* metaFile,
-						 handle<core::data::framebuffer> data) :
+						 handle<core::data::framebuffer_t> data) :
 	m_Data(data)
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
 
 	if(auto sampler = data->sampler(); sampler)
 	{
-		m_Sampler = cache.find<core::igles::sampler>(sampler.value());
+		m_Sampler = cache.find<core::igles::sampler_t>(sampler.value());
 		if(!m_Sampler)
 		{
 			core::ivk::log->error("could not load sampler for framebuffer {0}", metaData.uid);
@@ -39,9 +39,9 @@ framebuffer::framebuffer(core::resource::cache& cache,
 	size_t index = 0u;
 	for(const auto& attach : data->attachments())
 	{
-		auto texture = cache.find<core::igles::texture>(attach.texture());
-		if(texture.state() != core::resource::state::loaded)
-			texture = cache.create_using<core::igles::texture>(attach.texture());
+		auto texture = cache.find<core::igles::texture_t>(attach.texture());
+		if(texture.state() != core::resource::status::loaded)
+			texture = cache.create_using<core::igles::texture_t>(attach.texture());
 
 		assert_debug_break(!attach.shared());
 
@@ -81,26 +81,26 @@ framebuffer::framebuffer(core::resource::cache& cache,
 	glGetError();
 }
 
-framebuffer::~framebuffer() { glDeleteFramebuffers(m_Framebuffers.size(), m_Framebuffers.data()); }
+framebuffer_t::~framebuffer_t() { glDeleteFramebuffers(m_Framebuffers.size(), m_Framebuffers.data()); }
 
-std::vector<framebuffer::texture_handle> framebuffer::attachments(uint32_t index) const noexcept
+std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::texture_handle> res;
+	std::vector<framebuffer_t::texture_handle> res;
 	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];
 	});
 	return res;
 }
 
-std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t index) const noexcept
+std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint32_t index) const noexcept
 {
 	if(index >= m_Bindings.size()) return {};
 
-	std::vector<framebuffer::texture_handle> res;
+	std::vector<framebuffer_t::texture_handle> res;
 	auto bindings {m_Bindings};
-	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer::binding& binding) {
+	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer_t::binding& binding) {
 		return gfx::has_depth(binding.description.format) || gfx::has_stencil(binding.description.format);
 	});
 	std::transform(std::begin(bindings), end, std::back_inserter(res), [index](const auto& binding) {
@@ -109,8 +109,8 @@ std::vector<framebuffer::texture_handle> framebuffer::color_attachments(uint32_t
 
 	return res;
 }
-core::resource::handle<core::igles::sampler> framebuffer::sampler() const noexcept { return m_Sampler; }
+core::resource::handle<core::igles::sampler_t> framebuffer_t::sampler() const noexcept { return m_Sampler; }
 
-core::resource::handle<core::data::framebuffer> framebuffer::data() const noexcept { return m_Data; }
+core::resource::handle<core::data::framebuffer_t> framebuffer_t::data() const noexcept { return m_Data; }
 
-const std::vector<unsigned int>& framebuffer::framebuffers() const noexcept { return m_Framebuffers; }
+const std::vector<unsigned int>& framebuffer_t::framebuffers() const noexcept { return m_Framebuffers; }

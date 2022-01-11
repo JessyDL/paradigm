@@ -100,19 +100,19 @@ namespace core::resource
 	/// This means that every resource is guaranteed to be part of atleast one cache.
 	/// Resource can also access other resources within the same cache with ease through the
 	/// shared psl::meta::library instance. Libraries can be shared between caches, but remember that
-	/// neither the psl::meta::library nor core::resource::cache are thread-safe by themselves.
+	/// neither the psl::meta::library nor core::resource::cache_t are thread-safe by themselves.
 	/// \todo check multi-cache
 	struct metadata
 	{
 		psl::UID uid;
 		psl::UID resource_uid;
 		resource_key_t type;
-		state state;
+		status state;
 		size_t reference_count;
 		bool strong_type;
 	};
 
-	class cache
+	class cache_t
 	{
 	  public:
 		struct description
@@ -128,13 +128,13 @@ namespace core::resource
 		};
 
 	  public:
-		cache(psl::meta::library library) : m_Library(std::move(library)) {};
-		~cache() { free(true); };
+		cache_t(psl::meta::library library) : m_Library(std::move(library)) {};
+		~cache_t() { free(true); };
 
-		cache(const cache& other) = delete;
-		cache(cache&& other)	  = default;
-		cache& operator=(const cache& other) = delete;
-		cache& operator=(cache&& other) = default;
+		cache_t(const cache_t& other) = delete;
+		cache_t(cache_t&& other)	  = default;
+		cache_t& operator=(const cache_t& other) = delete;
+		cache_t& operator=(cache_t&& other) = default;
 
 		template <typename T, typename... Args>
 		handle<T> instantiate(const psl::UID& resource_uid, Args&&... args)
@@ -159,7 +159,7 @@ namespace core::resource
 			  new description {metadata {uid,
 										 resource_uid,
 										 key,
-										 state::initial,
+										 status::initial,
 										 0u,
 										 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 							   nullptr,
@@ -172,13 +172,13 @@ namespace core::resource
 				else
 				{
 					core::log->error("could not load resource [uid: '{}'] reason: missing", resource_uid.to_string());
-					descr.metaData.state = state::missing;
+					descr.metaData.state = status::missing;
 					return {nullptr, this, &descr.metaData, nullptr};
 				}
 			}
 
 			auto task = [&descr, &cache = *this, &library = m_Library, metaFile = data.metaFile](auto&&... values) {
-				descr.metaData.state = state::loading;
+				descr.metaData.state = status::loading;
 				T* resource			 = nullptr;
 				resource =
 				  new T(cache, descr.metaData, (meta_type*)&metaFile.get(), std::forward<decltype(values)>(values)...);
@@ -194,12 +194,12 @@ namespace core::resource
 					{
 						core::log->error("could not load resource [uid: '{}'] reason: missing",
 										 descr.metaData.resource_uid.to_string());
-						descr.metaData.state = state::missing;
+						descr.metaData.state = status::missing;
 						return;
 					}
 				}
 				descr.resource		 = (void*)resource;
-				descr.metaData.state = state::loaded;
+				descr.metaData.state = status::loaded;
 			};
 			std::invoke(task, std::forward<Args>(args)...);
 
@@ -236,7 +236,7 @@ namespace core::resource
 			  new description {metadata {uid,
 										 psl::UID::invalid_uid,
 										 details::key_for<value_type>(),
-										 state::initial,
+										 status::initial,
 										 0u,
 										 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 							   nullptr,
@@ -244,13 +244,13 @@ namespace core::resource
 
 
 			auto task = [&descr, &cache = *this, metaFile = data.metaFile](auto&&... values) {
-				descr.metaData.state = state::loading;
+				descr.metaData.state = status::loading;
 				T* resource			 = nullptr;
 
 				resource =
 				  new T(cache, descr.metaData, (meta_type*)&metaFile.get(), std::forward<decltype(values)>(values)...);
 				descr.resource		 = (void*)resource;
-				descr.metaData.state = state::loaded;
+				descr.metaData.state = status::loaded;
 			};
 			std::invoke(task, std::forward<Args>(args)...);
 
@@ -277,7 +277,7 @@ namespace core::resource
 			  new description {metadata {uid,
 										 psl::UID::invalid_uid,
 										 details::key_for<value_type>(),
-										 state::initial,
+										 status::initial,
 										 0u,
 										 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 							   nullptr,
@@ -285,7 +285,7 @@ namespace core::resource
 
 
 			auto task = [&descr, &cache = *this, metaFile = data.metaFile](auto&&... values) {
-				descr.metaData.state = state::loading;
+				descr.metaData.state = status::loading;
 				T* resource			 = nullptr;
 
 				resource			 = new T(cache,
@@ -293,7 +293,7 @@ namespace core::resource
 								 reinterpret_cast<meta_type*>(&metaFile.get()),
 								 std::forward<decltype(values)>(values)...);
 				descr.resource		 = (void*)resource;
-				descr.metaData.state = state::loaded;
+				descr.metaData.state = status::loaded;
 			};
 			std::invoke(task, std::forward<Args>(args)...);
 
@@ -389,11 +389,11 @@ namespace core::resource
 		template <typename T>
 		bool free(resource::handle<T>& target)
 		{
-			if(target.m_MetaData->reference_count <= 1 && target.m_MetaData->state == state::loaded)
+			if(target.m_MetaData->reference_count <= 1 && target.m_MetaData->state == status::loaded)
 			{
-				target.m_MetaData->state = state::unloading;
+				target.m_MetaData->state = status::unloading;
 				std::invoke(m_Deleters[target.m_MetaData->type], target.m_Resource);
-				target.m_MetaData->state = state::unloaded;
+				target.m_MetaData->state = status::unloaded;
 				return true;
 			}
 			return false;
@@ -402,11 +402,11 @@ namespace core::resource
 		template <typename T>
 		bool free(resource::weak_handle<T>& target)
 		{
-			if(target.m_MetaData->reference_count <= 1 && target.m_MetaData->state == state::loaded)
+			if(target.m_MetaData->reference_count <= 1 && target.m_MetaData->state == status::loaded)
 			{
-				target.m_MetaData->state = state::unloading;
+				target.m_MetaData->state = status::unloading;
 				std::invoke(m_Deleters[target.m_MetaData->type], target.m_Resource);
-				target.m_MetaData->state = state::unloaded;
+				target.m_MetaData->state = status::unloaded;
 				return true;
 			}
 			return false;
@@ -427,12 +427,12 @@ namespace core::resource
 				{
 					for(auto& it : pair.second.descriptions)
 					{
-						bLeaks |= it->metaData.state == state::loaded;
-						if(it->metaData.reference_count == 0 && it->metaData.state == state::loaded)
+						bLeaks |= it->metaData.state == status::loaded;
+						if(it->metaData.reference_count == 0 && it->metaData.state == status::loaded)
 						{
-							it->metaData.state = state::unloading;
+							it->metaData.state = status::unloading;
 							std::invoke(m_Deleters[it->metaData.type], it->resource);
-							it->metaData.state = state::unloaded;
+							it->metaData.state = status::unloaded;
 							bErased			   = true;
 							++count;
 						}
@@ -448,7 +448,7 @@ namespace core::resource
 				it->second.descriptions.erase(
 				  std::remove_if(std::begin(it->second.descriptions),
 								 std::end(it->second.descriptions),
-								 [](const auto& it) { return it->metaData.state == state::unloaded; }),
+								 [](const auto& it) { return it->metaData.state == status::unloaded; }),
 				  std::end(it->second.descriptions));
 				if(it->second.descriptions.size() == 0)
 				{
@@ -480,7 +480,7 @@ namespace core::resource
 							oldest		 = it->age;
 						}
 #endif
-						if(it->metaData.state == state::loaded)
+						if(it->metaData.state == status::loaded)
 						{
 #ifdef DEBUG_CORE_RESOURCE
 

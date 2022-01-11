@@ -16,7 +16,7 @@ using namespace psl;
 
 using std::chrono::duration;
 
-render::render(state& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass(pass)
+render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass(pass)
 {
 	state.declare(threading::seq, &render::tick_draws, this);
 }

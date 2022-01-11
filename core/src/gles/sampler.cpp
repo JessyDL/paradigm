@@ -10,10 +10,10 @@ using namespace core::igles;
 using namespace core::gfx::conversion;
 namespace data = core::data;
 
-sampler::sampler(core::resource::cache& cache,
+sampler_t::sampler_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
-				 handle<data::sampler> sampler_data)
+				 handle<data::sampler_t> sampler_data)
 {
 	size_t iterationCount = (sampler_data->mipmaps()) ? 14 : 1;	   // 14 == 8096 // todo: this is a hack
 
@@ -52,4 +52,4 @@ sampler::sampler(core::resource::cache& cache,
 	glGetError();
 }
 
-sampler::~sampler() { glDeleteSamplers(1, &m_Sampler); }
+sampler_t::~sampler_t() { glDeleteSamplers(1, &m_Sampler); }

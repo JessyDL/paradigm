@@ -61,7 +61,7 @@ namespace psl::format
 	using reference_range_t = std::vector<reference_t>;
 	using collection_t		= nodes_t;
 
-	enum class type : uint8_t
+	enum class type_t : uint8_t
 	{
 		MALFORMED		= 0,
 		VALUE			= 1,
@@ -138,7 +138,7 @@ namespace psl::format
 
 		psl::string8::view name() const;
 		container* root() const;
-		type type() const { return m_Type; };
+		type_t type() const { return m_Type; };
 		format::children_t depth() const { return m_Depth; };
 		// rebase the node onto a new parent.
 		bool parent(data& parent);
@@ -165,7 +165,7 @@ namespace psl::format
 		std::pair<size_t, size_t> m_Name;	 // 16
 		handle* m_Handle {nullptr};
 		format::children_t m_Depth {0};			  // 2
-		format::type m_Type {type::MALFORMED};	  // 1
+		format::type_t m_Type {type_t::MALFORMED};	  // 1
 	};
 
 
@@ -226,10 +226,10 @@ namespace psl::format
 		};
 
 	  private:
-		struct version
+		struct version_t
 		{
-			version() {};
-			~version() = default;
+			version_t() {};
+			~version_t() = default;
 			uint32_t major {0u};
 			uint32_t minor {0u};
 		};
@@ -249,7 +249,7 @@ namespace psl::format
 		{
 			features() {};
 			~features() = default;
-			version version {};
+			version_t version {};
 			bool recover_from_error {true};
 			bool verify_checksum {false};
 			encoding_t encoding {encoding_t::string};

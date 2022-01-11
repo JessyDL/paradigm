@@ -6,13 +6,13 @@
 
 namespace psl::ecs
 {
-	class state;
+	class state_t;
 
 	/// \brief an iterable container to work with components and entities.
 	template <typename... Ts>
 	class pack
 	{
-		friend class psl::ecs::state;
+		friend class psl::ecs::state_t;
 
 		template <typename... Ys>
 		struct type_pack

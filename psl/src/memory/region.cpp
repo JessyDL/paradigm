@@ -240,7 +240,7 @@ bool region::erase_region(memory::region& child)
 	m_Children.erase(it);
 
 	auto range =
-	  memory::range {(std::uintptr_t)(childPtr->data()), (std::uintptr_t)(childPtr->data()) + childPtr->size()};
+	  memory::range_t {(std::uintptr_t)(childPtr->data()), (std::uintptr_t)(childPtr->data()) + childPtr->size()};
 	memory::segment segm {range, child.m_Allocator->is_physically_backed()};
 #ifdef PLATFORM_WINDOWS
 	size_t start = (range.begin - (std::uintptr_t)(m_Base)) / m_PageSize;
@@ -250,7 +250,7 @@ bool region::erase_region(memory::region& child)
 	return deallocate(segm);
 }
 
-bool region::commit(const memory::range& range)
+bool region::commit(const memory::range_t& range)
 {
 	if(!m_Allocator->is_physically_backed())
 	{
@@ -349,7 +349,7 @@ void region::decommit_unused()
 }
 
 #ifdef PLATFORM_WINDOWS
-std::pair<uint64_t, uint64_t> region::page_range(const memory::range& range)
+std::pair<uint64_t, uint64_t> region::page_range(const memory::range_t& range)
 {
 	auto offset		 = range.begin - (std::uintptr_t)(m_Base);
 	auto start_index = (offset - (offset % m_PageSize)) / m_PageSize;
