@@ -44,4 +44,4 @@ jobs:
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
-      run: cd "project_files/Ninja"; ctest
+      run: cd "project_files/*/"; ctest

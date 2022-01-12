@@ -9,7 +9,6 @@
         {
             "hidden": true,
             "name": "settings-project",
-            "generator": "Ninja",
             "binaryDir": "${sourceDir}/project_files/${generator}",
             "cacheVariables": {
                 "PE_BUILD_DIR": {
