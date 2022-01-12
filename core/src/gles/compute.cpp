@@ -18,7 +18,7 @@ using namespace core::resource;
 using namespace psl::meta;
 using namespace core::gfx::conversion;
 
-compute::compute(cache& cache,
+compute::compute(cache_t& cache,
 				 const metadata& metaData,
 				 file* metaFile,
 				 core::resource::handle<core::data::material_t> data,

@@ -51,7 +51,7 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 	glBindBuffer(m_BufferType, 0);
 }
 
-buffer_t::~buffer() { glDeleteBuffers(1, &m_Buffer); }
+buffer_t::~buffer_t() { glDeleteBuffers(1, &m_Buffer); }
 
 
 bool buffer_t::set(const void* data, std::vector<core::gfx::memory_copy> commands)
@@ -156,7 +156,7 @@ failure:
 
 bool buffer_t::deallocate(memory::segment& segment) { return m_BufferDataHandle->deallocate(segment); }
 
-bool buffer_t::copy_from(const buffer& other, const psl::array<core::gfx::memory_copy>& ranges)
+bool buffer_t::copy_from(const buffer_t& other, const psl::array<core::gfx::memory_copy>& ranges)
 {
 	auto totalsize = std::accumulate(
 	  ranges.begin(), ranges.end(), 0, [&](int sum, const gfx::memory_copy& region) { return sum + (int)region.size; });
