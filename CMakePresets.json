@@ -79,6 +79,22 @@
             }
         },
         {
+            "name": "gnu-linux-debug-vulkan",
+            "displayName": "GNU/Linux Vulkan (Debug)",
+            "inherits": ["gnu-linux-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "gnu-linux-release-vulkan",
+            "displayName": "GNU/Linux Vulkan (Release)",
+            "inherits": ["gnu-linux-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
             "name": "windows-base",
             "displayName": "Windows",
             "inherits": [
@@ -170,6 +186,16 @@
             "configurePreset": "windows-release-all"
         },
         {
+            "name": "windows-debug-vulkan",
+            "displayName": "Windows Vulkan (Debug)",
+            "configurePreset": "windows-debug-vulkan"
+        },
+        {
+            "name": "windows-release-vulkan",
+            "displayName": "Windows Vulkan (Release)",
+            "configurePreset": "windows-release-vulkan"
+        },
+        {
             "name": "gnu-linux-debug-all",
             "displayName": "GNU/Linux Vulkan/GLES (Debug)",
             "configurePreset": "gnu-linux-debug-all"
@@ -178,6 +204,16 @@
             "name": "gnu-linux-release-all",
             "displayName": "GNU/Linux Vulkan/GLES (Release)",
             "configurePreset": "gnu-linux-release-all"
+        },
+        {
+            "name": "gnu-linux-debug-vulkan",
+            "displayName": "GNU/Linux Vulkan (Debug)",
+            "configurePreset": "gnu-linux-debug-vulkan"
+        },
+        {
+            "name": "gnu-linux-release-vulkan",
+            "displayName": "GNU/Linux Vulkan (Release)",
+            "configurePreset": "gnu-linux-release-vulkan"
         }
     ]
 }
