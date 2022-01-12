@@ -15,4 +15,6 @@ remove_definitions(-DSPDLOG_LEVEL_NAMES)
 add_subdirectory(gli)
 # silence all warnings, gli has some signed/unsigned issues and some issue /w unused variables
 # todo: replace gli
-target_compile_options(gli INTERFACE "-w")
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+    target_compile_options(gli INTERFACE "-w")
+endif()
