@@ -39,6 +39,12 @@ jobs:
       uses: actions/setup-python@v1
       with:
         python-version: 3.7
+    - name: Install GCC11
+      shell: bash
+      run:  |
+            sudo apt update
+            sudo apt install gcc-11 g++-11
+            sudo update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-11 110 --slave /usr/bin/g++ g++ /usr/bin/g++-11 --slave /usr/bin/gcov gcov /usr/bin/gcov-11
     - name: initialize
       run: cmake --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: compile
