@@ -1,6 +1,6 @@
 
 
-![](https://img.shields.io/badge/language-c%2B%2B17-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.2-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
+![](https://img.shields.io/badge/language-c%2B%2B20-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.2-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
 
 # Paradigm Engine
 Paradigm Engine is a Vulkan first modern graphics rendering engine written in C++17 with support for GLES (3.2). It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice. C# bindings will be provided; as well as an example projects showcasing simple gameplay.
@@ -28,26 +28,24 @@ For more detailed description about the engine itself, go to the readme of the `
 ## Building
 ### Prerequisites
 Python 3+
-[CMake ]( http://cmake.org/) 3.11 or higher is required on all platforms.
+[CMake ]( http://cmake.org/) 3.18 or higher is required on all platforms.
 
 ### Creating the project files
-You can build the libraries using the provided paradigm.py file that can be invoked, or by invoking cmake directly. The paradigm.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
+You can build the libraries using the provided paradigm.py file that can be invoked, or by invoking cmake directly (CMakePresets are supported). The paradigm.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
 
-So far only MSVC (2019), and CLang (6.0.0) with LLVM 7 - 8 and libc++ are supported. The project will *likely* incorrectly generate for other compilers/setups.
+So far MSVC (2022), CLang (12.0.0) with libc++, and GCC (11.2.0) are supported. The project will *likely* incorrectly generate for other compilers/setups.
 
-If lost, the docker folder contains a setup environment for both linux (ubuntu), as well as windows. You can see all dependencies your platform needs right there.
+If lost, check the github actions workflow folder to see ideal platform setups.
+
+#### CMakePresets
+Various CMakePresets exists, they are specified to working combinations of graphics API's that are supported for the given platform. They can be used as normal, or used as guides for custom setups.
 
 #### paradigm.py
 The paradigm script is a helper script that can invoke, amongst others, the builder script (tools/build.py). Invoke the builder script using `--run build`, this will set everything up quick and easy. It will generate a solution in the `/project_file/{generator}/{architecture}/` folder by default, and when building it will output to `/builds/{generator}/{architecture}/`.
 You can tweak various settings and values, you'll find them at the top of the `tools/build.py` file.
 
 As an example running `py paradigm.py --run build --graphics vulkan gles --generator Ninja` will set up the project as an executable, with all available graphics backends, using the Ninja build tool.
-#### cmake
-The less easy way, but perhaps better and easier to integrate. The values that are required to be set can be seen in the cmake invocation in build.py, but will be repeated here:
--`DBUILD_DIRECTORY="path/to/where/to/build/to"` (not to be confused with where the project files will be)
--`DVK_VERSION`: string based value that is a 1-1 match with an available tag in the [Vulkan-Headers](https://github.com/KhronosGroup/Vulkan-Headers) repository. These will be downloaded and used.
--`DPE_VULKAN` toggle value to enable/disable vulkan backend. (default ON)
--`DPE_GLES` toggle value to enable/disable gles backend (default ON)
+
 ## Examples
 Following are some examples that showcase various usages of this project, click the image to go to the repository.
 
@@ -85,7 +83,7 @@ The following external libraries may be used in one, or many of the sub projects
 - `GLI` image loading and saving
 - `GLM` mathematics library used only by `GLI`
 - `Vulkan-hpp` generated C++ like headers for Vulkan
-- `Catch2` when compiling the tests, Catch2 will be pulled in.
+- `Google Benchmark` when compiling the tests, Google Benchmark will be pulled in.
 - `spdlog` used for logging
 - `fmt` modern formatting library for C++
 
@@ -98,9 +96,11 @@ You can also find further documentation in the `docs` directory, such as informa
 ### building
 Tests are on by default when compiling the project as a library, you can disable this by toggline `PE_MODE` in `cmake` from `LIB` to `LIB_NO_TESTS`. Tests will not be included when building the project in `EXE` mode.
 
+When using CMake directly (or with CMakePresets), you'll have the project files output in `project_files`, from there out you can either boot it up in your editor of choice, or if your generator isn't also an IDE, then build it from there. Build outputs by default will appear in `/builds/`.
+
 When using the `paradigm.py` or `tools/build.py` script, you can set this value like this `--cmake_params="-DPE_MODE=LIB"`. `LIB` is the default value for this project.
 
-Tests use Catch2 v2.4.0, these will be fetched automatically when the CMake script detects testing to be true.
+Tests use Google Benchmark, these will be fetched automatically when the CMake script detects testing to be true.
 
 # Future
 ### Language
