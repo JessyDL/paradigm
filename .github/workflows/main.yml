@@ -21,6 +21,27 @@ jobs:
     - name: initialize
       run: cmake --preset=windows-release-${{ matrix.graphics }}
     - name: compile
-      run: cmake --build
+      run: cmake --build --preset=windows-release-${{ matrix.graphics }}
     - name: test
       run: cd "project_files/Visual Studio 17 2022/x64"; ctest
+  ubuntu:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan]
+    name: ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: setup dependencies
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: initialize
+      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }}
+    - name: compile
+      run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
+    - name: test
+      run: cd "project_files/Ninja"; ctest
