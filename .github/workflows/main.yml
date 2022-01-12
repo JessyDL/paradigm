@@ -52,4 +52,4 @@ jobs:
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
-      run: cd "project_files/"; ctest
+      run: ctest --preset=gnu-linux-release-${{ matrix.graphics }}
