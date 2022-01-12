@@ -5,7 +5,7 @@
 
 namespace core::meta
 {
-	class texture;
+	class texture_t;
 }
 
 #ifdef PE_VULKAN
@@ -18,20 +18,20 @@ namespace core::meta
 
 namespace core::gfx
 {
-	class texture;
+	class texture_t;
 
 #ifdef PE_VULKAN
 	template <>
-	struct backend_type<texture, graphics_backend::vulkan>
+	struct backend_type<texture_t, graphics_backend::vulkan>
 	{
-		using type = core::ivk::texture;
+		using type = core::ivk::texture_t;
 	};
 #endif
 #ifdef PE_GLES
 	template <>
-	struct backend_type<texture, graphics_backend::gles>
+	struct backend_type<texture_t, graphics_backend::gles>
 	{
-		using type = core::igles::texture;
+		using type = core::igles::texture_t;
 	};
 #endif
 }	 // namespace core::gfx
@@ -39,8 +39,8 @@ namespace core::gfx
 namespace core::resource
 {
 	template <>
-	struct resource_traits<core::gfx::texture>
+	struct resource_traits<core::gfx::texture_t>
 	{
-		using meta_type = core::meta::texture;
+		using meta_type = core::meta::texture_t;
 	};
 }	 // namespace core::resource

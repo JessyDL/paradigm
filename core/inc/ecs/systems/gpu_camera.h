@@ -6,7 +6,7 @@
 
 namespace core::gfx
 {
-	class buffer;
+	class buffer_t;
 	struct shader_buffer_binding;
 }	 // namespace core::gfx
 namespace core::os
@@ -23,7 +23,7 @@ namespace core::ecs::components
 
 namespace psl::ecs
 {
-	class state;
+	class state_t;
 	struct info;
 
 	template <typename... Ts>
@@ -54,7 +54,7 @@ namespace core::ecs::systems
 			psl::quat viewDirQuat;
 		};
 
-		gpu_camera(psl::ecs::state& state,
+		gpu_camera(psl::ecs::state_t& state,
 				   core::resource::handle<core::os::surface> surface,
 				   core::resource::handle<core::gfx::shader_buffer_binding> binding,
 				   core::gfx::graphics_backend backend);

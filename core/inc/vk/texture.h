@@ -5,7 +5,7 @@
 #include <unordered_map>
 // namespace core::meta
 //{
-//	class texture;
+//	class texture_t;
 //}
 
 namespace gli
@@ -16,7 +16,7 @@ namespace gli
 namespace core::ivk
 {
 	class context;
-	class buffer;
+	class buffer_t;
 }	 // namespace core::ivk
 
 namespace core::ivk
@@ -26,19 +26,19 @@ namespace core::ivk
 	/// textures are vital in a graphics application, and this class abstracts 2D, 3D, etc..
 	/// into one "texture object" as it is used by the renderer, and not to be used as a container
 	/// directly.
-	class texture
+	class texture_t
 	{
 	  public:
-		texture(core::resource::cache& cache,
+		texture_t(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
-				core::meta::texture* metaFile,
+				core::meta::texture_t* metaFile,
 				core::resource::handle<core::ivk::context> context);
-		texture(core::resource::cache& cache,
+		texture_t(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
-				core::meta::texture* metaFile,
+				core::meta::texture_t* metaFile,
 				core::resource::handle<core::ivk::context> context,
-				core::resource::handle<core::ivk::buffer> stagingBuffer);
-		~texture();
+				core::resource::handle<core::ivk::buffer_t> stagingBuffer);
+		~texture_t();
 
 		/// \returns the vk::Image associated with this instance.
 		const vk::Image& image() const noexcept;
@@ -51,7 +51,7 @@ namespace core::ivk
 		/// \returns the ImageSubresourceRange
 		const vk::ImageSubresourceRange& subResourceRange() const noexcept;
 		/// \returns the meta data that describes this texture object.
-		const core::meta::texture& meta() const noexcept;
+		const core::meta::texture_t& meta() const noexcept;
 		/// \returns how many mip levels are present in this object.
 		uint32_t mip_levels() const noexcept;
 		/// \returns a descriptor image info for the given sampler, if none are present one is generated.
@@ -63,18 +63,18 @@ namespace core::ivk
 		void create_2D(void* data = nullptr);
 		void load_cube();
 
-		gli::texture* m_TextureData;
-		core::resource::handle<core::ivk::buffer> m_StagingBuffer;
+		gli::texture* m_TextureData {nullptr};
+		core::resource::handle<core::ivk::buffer_t> m_StagingBuffer;
 		vk::Image m_Image;
 		vk::ImageView m_View;
 		vk::DeviceMemory m_DeviceMemory;
 		vk::ImageLayout m_ImageLayout {vk::ImageLayout::eGeneral};
 		vk::ImageSubresourceRange m_SubresourceRange;
-		uint32_t m_MipLevels;
+		uint32_t m_MipLevels{0};
 
-		core::resource::cache& m_Cache;
+		core::resource::cache_t& m_Cache;
 		core::resource::handle<core::ivk::context> m_Context;
-		core::meta::texture* m_Meta;
+		core::meta::texture_t* m_Meta;
 
 		std::unordered_map<psl::UID, vk::DescriptorImageInfo*> m_Descriptors;
 	};

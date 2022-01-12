@@ -15,7 +15,7 @@ using namespace core::resource;
 
 constexpr uint32_t default_capacity = 32;
 
-data::data(core::resource::handle<core::gfx::buffer> vertexBuffer,
+data::data(core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 		   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept :
 	m_VertexInstanceBuffer(vertexBuffer),
 	m_MaterialInstanceBuffer(materialBuffer)
@@ -28,7 +28,7 @@ data::~data()
 		m_MaterialInstanceBuffer->region.deallocate(it.second.segment);
 	}
 }
-void data::add(core::resource::handle<material> material)
+void data::add(core::resource::handle<material_t> material)
 {
 	if(m_Bindings.find(material) != std::end(m_Bindings)) return;
 
@@ -53,7 +53,7 @@ void data::add(core::resource::handle<material> material)
 
 		for(const auto& descriptor : meta->descriptors())
 		{
-			if(descriptor.name() == core::data::material::MATERIAL_DATA)
+			if(descriptor.name() == core::data::material_t::MATERIAL_DATA)
 			{
 				m_MaterialDataSizes.emplace_back(align_to(descriptor.size(), alignment_requirement));
 				auto segment = m_MaterialInstanceBuffer->region.allocate(descriptor.size());
@@ -120,7 +120,7 @@ void data::add(core::resource::handle<material> material)
 	}
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry> uid, uint32_t count)
+std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count)
 {
 	auto it = m_InstanceData.find(uid);
 	if(it == std::end(m_InstanceData))
@@ -162,7 +162,7 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 }
 
 
-bool data::remove(core::resource::handle<material> material) noexcept
+bool data::remove(core::resource::handle<material_t> material) noexcept
 {
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
@@ -173,7 +173,7 @@ bool data::remove(core::resource::handle<material> material) noexcept
 }
 
 
-uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcept
+uint32_t data::count(core::resource::tag<core::gfx::geometry_t> uid) const noexcept
 {
 	if(auto it = m_InstanceData.find(uid.uid()); it != std::end(m_InstanceData))
 	{
@@ -183,8 +183,8 @@ uint32_t data::count(core::resource::tag<core::gfx::geometry> uid) const noexcep
 }
 
 
-psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> material,
-															 tag<geometry> geometry) const noexcept
+psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material_t> material,
+															 tag<geometry_t> geometry) const noexcept
 {
 	psl::array<std::pair<size_t, std::uintptr_t>> result {};
 	if(auto matIt = m_Bindings.find(material); matIt != std::end(m_Bindings))
@@ -210,7 +210,7 @@ psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material> mater
 }
 
 
-bool data::has_element(tag<geometry> geometry, psl::string_view name) const noexcept
+bool data::has_element(tag<geometry_t> geometry, psl::string_view name) const noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
@@ -222,7 +222,7 @@ bool data::has_element(tag<geometry> geometry, psl::string_view name) const noex
 	return false;
 }
 
-std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> geometry,
+std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry_t> geometry,
 																  psl::string_view name) const noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
@@ -241,7 +241,7 @@ std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry> 
 }
 
 
-bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id) noexcept
+bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
@@ -257,7 +257,7 @@ bool data::erase(core::resource::tag<core::gfx::geometry> geometry, uint32_t id)
 	}
 	return false;
 }
-bool data::clear(core::resource::tag<core::gfx::geometry> geometry) noexcept
+bool data::clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept
 {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData))
 	{
@@ -279,7 +279,7 @@ bool data::clear() noexcept
 }
 
 
-size_t data::offset_of(core::resource::tag<core::gfx::material> material, psl::string_view name) const noexcept
+size_t data::offset_of(core::resource::tag<core::gfx::material_t> material, psl::string_view name) const noexcept
 {
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return std::numeric_limits<size_t>::max();
@@ -315,16 +315,16 @@ size_t data::offset_of(core::resource::tag<core::gfx::material> material, psl::s
 	return res;
 }
 
-bool data::set(core::resource::tag<core::gfx::material> material, const void* data, size_t size, size_t offset) noexcept
+bool data::set(core::resource::tag<core::gfx::material_t> material, const void* data, size_t size, size_t offset) noexcept
 {
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
 
 	return m_MaterialInstanceBuffer->buffer->commit(
-	  {core::gfx::commit_instruction {(void*)data, size, it->second.segment, memory::range {offset, offset + size}}});
+	  {core::gfx::commit_instruction {(void*)data, size, it->second.segment, memory::range_t {offset, offset + size}}});
 }
 
-bool data::bind_material(core::resource::handle<core::gfx::material> material)
+bool data::bind_material(core::resource::handle<core::gfx::material_t> material)
 {
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
@@ -332,11 +332,11 @@ bool data::bind_material(core::resource::handle<core::gfx::material> material)
 	return material->bind_instance_data(it->second.descriptor.binding(), it->second.segment.range().begin);
 }
 
-core::resource::handle<core::gfx::buffer> data::material_buffer() const noexcept
+core::resource::handle<core::gfx::buffer_t> data::material_buffer() const noexcept
 {
 	return m_MaterialInstanceBuffer->buffer;
 }
-bool data::has_data(core::resource::handle<core::gfx::material> material) const noexcept
+bool data::has_data(core::resource::handle<core::gfx::material_t> material) const noexcept
 {
 	return m_MaterialInstanceData.find(material) != std::end(m_MaterialInstanceData);
 }

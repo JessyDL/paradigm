@@ -73,10 +73,10 @@ namespace psl::profiling
 	  public:
 		profiler(size_t buffer_size = 5);
 		void next_frame();
-		volatile scoped_block scope(const psl::string& name) noexcept;
-		volatile scoped_block scope() noexcept;
-		volatile scoped_block scope(void* target) noexcept;
-		volatile scoped_block scope(const psl::string& name, void* target) noexcept;
+		scoped_block scope(const psl::string& name) noexcept;
+		scoped_block scope() noexcept;
+		scoped_block scope(void* target) noexcept;
+		scoped_block scope(const psl::string& name, void* target) noexcept;
 		void scope_begin(const psl::string& name);
 		void scope_begin(const psl::string& name, void* target);
 		void scope_end();

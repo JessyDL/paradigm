@@ -12,13 +12,13 @@ namespace core::data
 {
 	/// \brief container class for GPU data.
 	///
-	/// core::data::buffer is a data container for anything that will be uploaded to the GPU. This means that this can
-	/// not contain any complex types (such as indirections). core::data::buffer can be incorrectly set up when giving
+	/// core::data::buffer_t is a data container for anything that will be uploaded to the GPU. This means that this can
+	/// not contain any complex types (such as indirections). core::data::buffer_t can be incorrectly set up when giving
 	/// incompatible memory::region bundled with core::gfx::memory_usage. \note the memory::region you pass to this
 	/// object will also dictate the **size** and **alignment** requirements of this specific resource on the GPU. \todo
-	/// figure out a way around incompatible core::data::buffer setups, perhaps by using structs to construct the class.
+	/// figure out a way around incompatible core::data::buffer_t setups, perhaps by using structs to construct the class.
 	/// \author Jessy De Lannoit
-	class buffer
+	class buffer_t
 	{
 		friend class psl::serialization::accessor;
 
@@ -30,23 +30,23 @@ namespace core::data
 		/// \param[in] memoryPropertyFlags what are the properties of the memory (i.e. where does it live)
 		/// \param[in] memory_region what is the owning region of this memory. Note that this parameter also will
 		/// dictate the size and alignment of the resource.
-		buffer(core::resource::cache& cache,
+		buffer_t(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   core::gfx::memory_usage usage,
 			   core::gfx::memory_property memoryPropertyFlags,
 			   memory::region&& memory_region) noexcept;
 
-		~buffer();
+		~buffer_t();
 
-		buffer(const buffer&) = delete;
+		buffer_t(const buffer_t&) = delete;
 		/*buffer(buffer&& other)
 			: m_Region(std::move(other.m_Region)), m_Segments(std::move(other.m_Segments)), m_Usage(other.m_Usage),
 			  m_MemoryPropertyFlags(other.m_MemoryPropertyFlags){
 
 			  };*/
-		buffer& operator=(const buffer&) = delete;
-		buffer& operator=(buffer&&) = delete;
+		buffer_t& operator=(const buffer_t&) = delete;
+		buffer_t& operator=(buffer_t&&) = delete;
 
 		/// \returns the total size in the memory::region that this buffer occupies.
 		size_t size() const;

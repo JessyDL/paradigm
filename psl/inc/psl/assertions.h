@@ -6,7 +6,7 @@
 #if defined(HEDLEY_ALWAYS_INLINE)
 #define DBG__ALWAYS_INLINE HEDLEY_ALWAYS_INLINE
 #elif defined(__GNUC__) && (__GNUC__ >= 4)
-#define DBG__ALWAYS_INLINE __attribute__((__always_inline__))
+#define DBG__ALWAYS_INLINE inline __attribute__((__always_inline__))
 #elif defined(_MSC_VER) && (_MSC_VER >= 1200)
 #define DBG__ALWAYS_INLINE __forceinline
 #elif defined(__STDC_VERSION__) && __STDC_VERSION__ >= 199901L

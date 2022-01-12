@@ -7,13 +7,13 @@
 
 namespace core::data
 {
-	class material;
+	class material_t;
 }
 
 namespace core::ivk
 {
 	class context;
-	class buffer;
+	class buffer_t;
 }	 // namespace core::ivk
 namespace core::ivk
 {
@@ -26,22 +26,22 @@ namespace core::ivk
 	  public:
 		/// \brief creates a graphics pipeline
 		/// \warn this constructor will error-out when it detects you trying to create a compute pipeline instead
-		pipeline(core::resource::cache& cache,
+		pipeline(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 core::resource::handle<core::ivk::context> context,
-				 core::resource::handle<core::data::material> data,
+				 core::resource::handle<core::data::material_t> data,
 				 vk::PipelineCache& pipelineCache,
 				 vk::RenderPass renderPass,
 				 uint32_t attachmentCount);
 
 		/// \brief creates a compute pipeline
 		/// \warn this constructor will error-out when it detects you trying to create a graphics pipeline instead
-		pipeline(core::resource::cache& cache,
+		pipeline(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 core::resource::handle<core::ivk::context> context,
-				 core::resource::handle<core::data::material> data,
+				 core::resource::handle<core::data::material_t> data,
 				 vk::PipelineCache& pipelineCache);
 
 		~pipeline();
@@ -91,7 +91,7 @@ namespace core::ivk
 		/// \param[in] offset the new offset of the buffer binding.
 		/// \param[in] range the new size of the buffer binding.
 		bool unsafe_update(uint32_t bindingLocation,
-						   core::resource::handle<core::ivk::buffer> buffer,
+						   core::resource::handle<core::ivk::buffer_t> buffer,
 						   vk::DeviceSize offset,
 						   vk::DeviceSize range);
 
@@ -110,7 +110,7 @@ namespace core::ivk
 
 	  private:
 		bool completeness_check() noexcept;
-		bool update(core::resource::cache& cache, const core::data::material& data, vk::DescriptorSet set);
+		bool update(core::resource::cache_t& cache, const core::data::material_t& data, vk::DescriptorSet set);
 		core::resource::handle<core::ivk::context> m_Context;
 
 		vk::DescriptorSet m_DescriptorSet;
@@ -122,7 +122,7 @@ namespace core::ivk
 
 		std::vector<vk::WriteDescriptorSet> m_DescriptorSets;
 		std::vector<std::unique_ptr<vk::DescriptorBufferInfo>> m_TrackedBufferInfos;
-		core::resource::cache& m_Cache;
+		core::resource::cache_t& m_Cache;
 		bool m_HasPushConstants {false};
 		bool m_IsValid {true};
 		bool m_IsComplete {true};

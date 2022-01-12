@@ -16,46 +16,50 @@ using namespace core;
 
 
 #ifdef PE_VULKAN
-framebuffer::framebuffer(core::resource::handle<core::ivk::framebuffer>& handle) :
+framebuffer_t::framebuffer_t(core::resource::handle<core::ivk::framebuffer_t>& handle) :
 	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-framebuffer::framebuffer(core::resource::handle<core::igles::framebuffer>& handle) :
+framebuffer_t::framebuffer_t(core::resource::handle<core::igles::framebuffer_t>& handle) :
 	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-framebuffer::framebuffer(core::resource::cache& cache,
+framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 						 const core::resource::metadata& metaData,
 						 psl::meta::file* metaFile,
 						 handle<core::gfx::context> context,
-						 handle<data::framebuffer> data) :
+						 handle<data::framebuffer_t> data) :
 	m_Backend(context->backend())
 {
 	switch(context->backend())
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_GLESHandle = cache.create_using<core::igles::framebuffer>(metaData.uid, data);
+		m_GLESHandle = cache.create_using<core::igles::framebuffer_t>(metaData.uid, data);
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_VKHandle =
-		  cache.create_using<core::ivk::framebuffer>(metaData.uid, context->resource<graphics_backend::vulkan>(), data);
+		  cache.create_using<core::ivk::framebuffer_t>(metaData.uid, context->resource<graphics_backend::vulkan>(), data);
 		break;
 #endif
 	}
 }
 
-texture framebuffer::texture(size_t index) const noexcept
+[[noreturn]] void fail_gfx_backend(){
+	throw std::runtime_error("no backend present");
+}
+
+texture_t framebuffer_t::texture(size_t index) const noexcept
 {
 #ifdef PE_GLES
-	if(m_Backend == graphics_backend::gles) return gfx::texture(m_GLESHandle->color_attachments()[index]);
+	if(m_Backend == graphics_backend::gles) return gfx::texture_t(m_GLESHandle->color_attachments()[index]);
 #endif
 #ifdef PE_VULKAN
-	if(m_Backend == graphics_backend::vulkan) return gfx::texture {m_VKHandle->color_attachments()[index]};
+	if(m_Backend == graphics_backend::vulkan) return gfx::texture_t {m_VKHandle->color_attachments()[index]};
 #endif
-	throw std::runtime_error("no backend present");
+	fail_gfx_backend();
 }

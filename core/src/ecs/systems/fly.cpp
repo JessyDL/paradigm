@@ -6,7 +6,7 @@ using namespace core::ecs::components;
 using namespace psl;
 using namespace psl::math;
 
-fly::fly(psl::ecs::state& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
+fly::fly(psl::ecs::state_t& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
 {
 	state.declare(&fly::tick, this);
 	m_InputSystem.subscribe(this);

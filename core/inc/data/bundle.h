@@ -6,7 +6,7 @@
 
 namespace core::resource
 {
-	class cache;
+	class cache_t;
 }
 
 namespace core::data
@@ -53,7 +53,7 @@ namespace core::data
 
 	  public:
 		bundle() noexcept = default;
-		bundle(const psl::UID& uid, core::resource::cache& cache) noexcept;
+		bundle(const psl::UID& uid, core::resource::cache_t& cache) noexcept;
 
 		~bundle() = default;
 

@@ -29,7 +29,7 @@ void entity_creation(benchmark::State& gState)
 
 	auto eCount = gState.range(0);
 
-	ecs::state state;
+	ecs::state_t state;
 	for(auto _ : gState)
 	{
 		gState.PauseTiming();
@@ -44,7 +44,7 @@ void entity_creation_with_destruction(benchmark::State& gState)
 	auto eCount		= gState.range(0);
 	auto eHalfCount = static_cast<ecs::entity>(eCount / 2);
 
-	ecs::state state;
+	ecs::state_t state;
 	for(auto _ : gState)
 	{
 		gState.PauseTiming();
@@ -65,9 +65,9 @@ BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000
 #ifdef BENCHMARK_COMPONENT_CREATION
 void component_creation(benchmark::State& gState)
 {
-	auto eCount = gState.range_x();
-	auto cCount = gState.range_y();
-	ecs::state state;
+	auto eCount = gState.range(0);
+	auto cCount = gState.range(1);
+	ecs::state_t state;
 	auto entities = state.create(eCount);
 
 	for(auto _ : gState)
@@ -144,7 +144,7 @@ class filtering_fixture : public ::benchmark::Fixture
 
 		state.on_condition<int>(std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
 	}
-	ecs::state state;
+	ecs::state_t state;
 };
 
 BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_int, int)(benchmark::State& gState)
@@ -236,7 +236,7 @@ auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt
 }
 
 template <typename... Ts>
-void run_system(benchmark::State& gState, state& state, const std::vector<entity>& count)
+void run_system(benchmark::State& gState, state_t& state, const std::vector<entity>& count)
 {
 	assert(count.size() == 5);
 	auto entities = state.create(count[0]);
@@ -258,28 +258,28 @@ const std::vector<std::vector<entity>> system_counts{{10'000, 300, 2'700, 1'200,
 													 {1'000'000, 300'000, 210'700, 300'200, 680'700}};
 void trivial_read_only_seq_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, read_only_system<full, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
 void trivial_write_seq_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, write_system<full, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
 void trivial_read_only_par_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, read_only_system<partial, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
 void trivial_write_par_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, write_system<partial, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
@@ -292,28 +292,28 @@ using namespace core::ecs::components;
 
 void complex_read_only_seq_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, read_only_system<full, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
 void complex_write_seq_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, write_system<full, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
 void complex_read_only_par_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, read_only_system<partial, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
 void complex_write_par_system(benchmark::State& gState)
 {
-	state state;
+	state_t state;
 	state.declare(threading::seq, write_system<partial, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }

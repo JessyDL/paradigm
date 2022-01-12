@@ -16,36 +16,36 @@ using namespace core::resource;
 using namespace core::gfx;
 
 #ifdef PE_VULKAN
-material::material(core::resource::handle<core::ivk::material>& handle) :
+material_t::material_t(core::resource::handle<core::ivk::material_t>& handle) :
 	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-material::material(core::resource::handle<core::igles::material>& handle) :
+material_t::material_t(core::resource::handle<core::igles::material_t>& handle) :
 	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-material::material(core::resource::cache& cache,
+material_t::material_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile,
 				   core::resource::handle<context> context_handle,
-				   core::resource::handle<core::data::material> data,
+				   core::resource::handle<core::data::material_t> data,
 				   core::resource::handle<pipeline_cache> pipeline_cache,
-				   core::resource::handle<buffer> materialBuffer) :
+				   core::resource::handle<buffer_t> materialBuffer) :
 	m_Backend(context_handle->backend())
 {
 	switch(m_Backend)
 	{
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_GLESHandle = cache.create_using<core::igles::material>(
+		m_GLESHandle = cache.create_using<core::igles::material_t>(
 		  metaData.uid, data, pipeline_cache->resource<graphics_backend::gles>());
 		break;
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle = cache.create_using<core::ivk::material>(metaData.uid,
+		m_VKHandle = cache.create_using<core::ivk::material_t>(metaData.uid,
 															 context_handle->resource<graphics_backend::vulkan>(),
 															 data,
 															 pipeline_cache->resource<graphics_backend::vulkan>(),
@@ -55,7 +55,7 @@ material::material(core::resource::cache& cache,
 	}
 }
 
-const core::data::material& material::data() const
+const core::data::material_t& material_t::data() const
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -69,10 +69,10 @@ const core::data::material& material::data() const
 		return m_VKHandle->data().value();
 	}
 #endif
-	throw std::logic_error("core::gfx::material has no API specific material associated with it");
+	throw std::logic_error("core::gfx::material_t has no API specific material associated with it");
 }
 
-bool material::bind_instance_data(uint32_t slot, uint32_t offset)
+bool material_t::bind_instance_data(uint32_t slot, uint32_t offset)
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)
@@ -86,5 +86,5 @@ bool material::bind_instance_data(uint32_t slot, uint32_t offset)
 		return m_VKHandle->bind_instance_data(slot, offset);
 	}
 #endif
-	throw std::logic_error("core::gfx::material has no API specific material associated with it");
+	throw std::logic_error("core::gfx::material_t has no API specific material associated with it");
 }

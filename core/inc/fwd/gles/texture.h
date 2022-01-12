@@ -3,18 +3,18 @@
 
 namespace core::igles
 {
-	class texture;
+	class texture_t;
 }	 // namespace core::igles
 
 namespace core::meta
 {
-	class texture;
+	class texture_t;
 }
 namespace core::resource
 {
 	template <>
-	struct resource_traits<core::igles::texture>
+	struct resource_traits<core::igles::texture_t>
 	{
-		using meta_type = core::meta::texture;
+		using meta_type = core::meta::texture_t;
 	};
 }	 // namespace core::resource

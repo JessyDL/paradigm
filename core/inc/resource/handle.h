@@ -12,7 +12,7 @@ namespace core::resource
 	/// \brief wraps around a resource for sharing and management purposes.
 	///
 	/// resource handles are used to manage the lifetime of resources, and tracking
-	/// dependencies (i.e. who uses what). It is supposed to be used with a core::resource::cache.
+	/// dependencies (i.e. who uses what). It is supposed to be used with a core::resource::cache_t.
 	template <typename T>
 	class handle
 	{
@@ -23,12 +23,12 @@ namespace core::resource
 		using alias_type = typename details::alias_type<value_type>::type;
 
 	  private:
-		friend class cache;
+		friend class cache_t;
 		friend class weak_handle<T>;
 		template <typename Y>
 		friend class handle;
 
-		handle(void* resource, cache* cache, metadata* metaData, psl::meta::file* meta) noexcept
+		handle(void* resource, cache_t* cache, metadata* metaData, psl::meta::file* meta) noexcept
 			: m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
 			  m_MetaFile(reinterpret_cast<meta_type*>(meta))
 		{
@@ -108,23 +108,23 @@ namespace core::resource
 		};
 
 
-		inline state state() const noexcept { return m_MetaData ? m_MetaData->state : state::invalid; }
+		inline status state() const noexcept { return m_MetaData ? m_MetaData->state : status::invalid; }
 
 		inline value_type& value() noexcept
 		{
-			assert_debug_break(state() == state::loaded);
+			assert_debug_break(state() == status::loaded);
 			return *m_Resource;
 		}
 
 		inline const value_type& value() const noexcept
 		{
-			assert_debug_break(state() == state::loaded);
+			assert_debug_break(state() == status::loaded);
 			return *m_Resource;
 		}
 
 		inline bool try_get(value_type& out) const noexcept
 		{
-			if(state() == state::loaded)
+			if(state() == status::loaded)
 			{
 				out = *m_Resource;
 				return true;
@@ -154,11 +154,11 @@ namespace core::resource
 			return uid() != other.uid();
 		}
 
-		inline operator bool() const noexcept { return state() == state::loaded; }
+		inline operator bool() const noexcept { return state() == status::loaded; }
 
 		inline meta_type* meta() const noexcept { return m_MetaFile; }
 		inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
-		inline cache* cache() const noexcept { return m_Cache; }
+		inline cache_t* cache() const noexcept { return m_Cache; }
 
 		inline value_type const* operator->() const { return m_Resource; }
 		inline value_type* operator->() { return m_Resource; }
@@ -173,7 +173,7 @@ namespace core::resource
 
 	  private:
 		value_type* m_Resource{nullptr};
-		core::resource::cache* m_Cache{nullptr};
+		core::resource::cache_t* m_Cache{nullptr};
 		metadata* m_MetaData{nullptr};
 		meta_type* m_MetaFile{nullptr};
 	};
@@ -181,14 +181,14 @@ namespace core::resource
 	template <typename... Ts>
 	class handle<alias<Ts...>>
 	{
-		friend class cache;
+		friend class cache_t;
 
 		template <size_t... indices>
-		void internal_set(psl::array<cache::description*> descriptions, psl::meta::file* meta,
+		void internal_set(psl::array<cache_t::description*> descriptions, psl::meta::file* meta,
 						  std::index_sequence<indices...>)
 		{
 			(
-				[&descriptions, this, meta](psl::array<cache::description*>::iterator it) {
+				[&descriptions, this, meta](psl::array<cache_t::description*>::iterator it) {
 					if(it != std::end(descriptions))
 					{
 						std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>>{
@@ -196,11 +196,11 @@ namespace core::resource
 					}
 				}(std::find_if(std::begin(descriptions), std::end(descriptions),
 							   [key = details::key_for<std::tuple_element_t<indices, std::tuple<Ts...>>>()](
-								   cache::description* descr) { return descr->metaData.type == key; })),
+								   cache_t::description* descr) { return descr->metaData.type == key; })),
 				...);
 		}
 
-		handle(psl::array<cache::description*> descriptions, cache* cache, psl::meta::file* meta) noexcept
+		handle(psl::array<cache_t::description*> descriptions, cache_t* cache, psl::meta::file* meta) noexcept
 			: m_Cache(cache)
 		{
 			internal_set(descriptions, meta, std::make_index_sequence<sizeof...(Ts)>());
@@ -228,7 +228,6 @@ namespace core::resource
 		void unset() noexcept
 		{
 			std::get<handle<T>>(m_Resource) = {};
-			return *this;
 		}
 
 		template <typename T>
@@ -303,13 +302,13 @@ namespace core::resource
 
 	  private:
 		value_type m_Resource;
-		core::resource::cache* m_Cache{nullptr};
+		core::resource::cache_t* m_Cache{nullptr};
 	};
 
 	template <typename T>
 	class weak_handle final
 	{
-		friend class cache;
+		friend class cache_t;
 	  public:
 		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
 		using meta_type  = typename resource_traits<value_type>::meta_type;
@@ -346,8 +345,8 @@ namespace core::resource
 			return uid() != other.uid();
 		}
 		
-		inline state state() const noexcept { return m_MetaData ? m_MetaData->state : state::invalid; }
-		inline operator bool() const noexcept { return state() == state::loaded; }
+		inline auto state() const noexcept { return m_MetaData ? m_MetaData->state : status::invalid; }
+		inline operator bool() const noexcept { return state() == status::loaded; }
 
 		inline value_type const* operator->() const { return m_Resource; }
 		inline value_type* operator->() { return m_Resource; }
@@ -360,7 +359,7 @@ namespace core::resource
 
 		inline meta_type* meta() const noexcept { return m_MetaFile; }
 		inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
-		inline cache* cache() const noexcept { return m_Cache; }
+		inline cache_t* cache() const noexcept { return m_Cache; }
 
 		operator const psl::UID&() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
 		operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
@@ -374,7 +373,7 @@ namespace core::resource
 
 	  private:
 		value_type* m_Resource{nullptr};
-		core::resource::cache* m_Cache{nullptr};
+		core::resource::cache_t* m_Cache{nullptr};
 		metadata* m_MetaData{nullptr};
 		meta_type* m_MetaFile{nullptr};
 	};

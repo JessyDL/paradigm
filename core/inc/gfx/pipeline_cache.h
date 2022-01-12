@@ -18,7 +18,7 @@ namespace core::gfx
 #endif
 
 
-		pipeline_cache(core::resource::cache& cache,
+		pipeline_cache(core::resource::cache_t& cache,
 					   const core::resource::metadata& metaData,
 					   psl::meta::file* metaFile,
 					   core::resource::handle<core::gfx::context> context);

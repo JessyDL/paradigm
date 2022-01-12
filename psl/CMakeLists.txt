@@ -77,11 +77,7 @@ target_include_directories(${LOCAL_PROJECT}
 )
 target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
 
-if(LINUX)
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt libc++experimental.a ${CMAKE_THREAD_LIBS_INIT} spdlog)
-else()
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog)
-endif()
+target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog)
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})

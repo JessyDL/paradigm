@@ -5,20 +5,20 @@
 
 namespace core::data
 {
-	class framebuffer;
+	class framebuffer_t;
 }
 namespace core::igles
 {
-	class texture;
-	class sampler;
+	class texture_t;
+	class sampler_t;
 
-	class framebuffer
+	class framebuffer_t
 	{
 	  public:
-		using texture_handle = core::resource::handle<core::igles::texture>;
+		using texture_handle = core::resource::handle<core::igles::texture_t>;
 		struct description
 		{
-			core::gfx::format format;
+			core::gfx::format_t format;
 		};
 		struct binding
 		{
@@ -27,16 +27,16 @@ namespace core::igles
 			uint32_t index;
 		};
 
-		framebuffer(core::resource::cache& cache,
+		framebuffer_t(core::resource::cache_t& cache,
 					const core::resource::metadata& metaData,
 					psl::meta::file* metaFile,
-					core::resource::handle<core::data::framebuffer> data);
-		~framebuffer();
+					core::resource::handle<core::data::framebuffer_t> data);
+		~framebuffer_t();
 
-		framebuffer(const framebuffer& other)	  = delete;
-		framebuffer(framebuffer&& other) noexcept = delete;
-		framebuffer& operator=(const framebuffer& other) = delete;
-		framebuffer& operator=(framebuffer&& other) noexcept = delete;
+		framebuffer_t(const framebuffer_t& other)	  = delete;
+		framebuffer_t(framebuffer_t&& other) noexcept = delete;
+		framebuffer_t& operator=(const framebuffer_t& other) = delete;
+		framebuffer_t& operator=(framebuffer_t&& other) noexcept = delete;
 
 		/// \returns all attachments for a specific index
 		/// \param[in] index the index to return the attachments for.
@@ -47,16 +47,16 @@ namespace core::igles
 		std::vector<texture_handle> color_attachments(uint32_t index = 0u) const noexcept;
 
 		/// \returns the sampler resource associated with this framebuffer.
-		core::resource::handle<core::igles::sampler> sampler() const noexcept;
+		core::resource::handle<core::igles::sampler_t> sampler() const noexcept;
 		/// \returns the data used to create this framebuffer
-		core::resource::handle<core::data::framebuffer> data() const noexcept;
+		core::resource::handle<core::data::framebuffer_t> data() const noexcept;
 
 		const std::vector<unsigned int>& framebuffers() const noexcept;
 
 	  private:
 		std::vector<binding> m_Bindings;
-		core::resource::handle<core::igles::sampler> m_Sampler;
-		core::resource::handle<core::data::framebuffer> m_Data;
+		core::resource::handle<core::igles::sampler_t> m_Sampler;
+		core::resource::handle<core::data::framebuffer_t> m_Data;
 
 		std::vector<unsigned int> m_Framebuffers;
 	};

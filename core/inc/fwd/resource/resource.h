@@ -12,7 +12,7 @@ namespace psl
 namespace core::resource
 {
 	/// \brief represents the various states a resource can be in.
-	enum class state
+	enum class status
 	{
 		initial	  = 0,
 		loading	  = 1,
@@ -25,7 +25,7 @@ namespace core::resource
 	};
 
 
-	class cache;
+	class cache_t;
 
 	template <typename T>
 	class handle;
@@ -63,7 +63,7 @@ namespace core::resource2
 		INVALID	  = -2,
 	};
 
-	class cache;
+	class cache_t;
 
 	template <typename T>
 	class handle;

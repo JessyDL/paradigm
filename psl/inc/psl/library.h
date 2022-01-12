@@ -27,7 +27,7 @@ namespace psl::meta
 	/// This class contains associated helper data for a runtime instance, by default atleast a psl::UID, polymorphic
 	/// information, and all associated tags are stored.
 	/// You can extend meta::file to add additional information that might be needed. See the "see also" section for
-	/// examples. \see core::meta::shader \see core::meta::texture
+	/// examples. \see core::meta::shader \see core::meta::texture_t
 	class file
 	{
 		friend class psl::serialization::accessor;
@@ -244,9 +244,9 @@ namespace psl::meta
 
 		/// \brief gets a list of all psl::UID's the given psl::UID might be referencing.
 		///
-		/// as an example, a core::ivk::material could be referencing a core::ivk::texture, this means that
-		/// if you call this method using the core::ivk::material's psl::UID, then you will get a list back that
-		/// atleast contains the core::ivk::texture psl::UID.
+		/// as an example, a core::ivk::material_t could be referencing a core::ivk::texture_t, this means that
+		/// if you call this method using the core::ivk::material_t's psl::UID, then you will get a list back that
+		/// atleast contains the core::ivk::texture_t psl::UID.
 		/// \param[in] uid the psl::UID to find all references for.
 		/// \returns a list of all psl::UID's the given psl::UID is referencing.
 		/// \note will return an empty list in case the given psl::UID is not present in the meta::library.
@@ -254,9 +254,9 @@ namespace psl::meta
 
 		/// \brief gets a list of all psl::UID's the given psl::UID might be referenced by.
 		///
-		/// as an example, a core::ivk::texture could be referenced by a core::ivk::material, this means that
-		/// if you call this method using the core::ivk::texture's psl::UID, then you will get a list back that
-		/// atleast contains the core::ivk::material psl::UID.
+		/// as an example, a core::ivk::texture_t could be referenced by a core::ivk::material_t, this means that
+		/// if you call this method using the core::ivk::texture_t's psl::UID, then you will get a list back that
+		/// atleast contains the core::ivk::material_t psl::UID.
 		/// \param[in] uid the psl::UID for which to find all psl::UID's that might be referencing this psl::UID.
 		/// \returns a list of all psl::UID's the given psl::UID is being referenced by.
 		/// \note will return an empty list in case the given psl::UID is not present in the meta::library.

@@ -27,8 +27,8 @@ inline size_t get_aligned(const core::ivk::context& context, vk::DescriptorType 
 	return (remainder) ? value + (alignment - remainder) : value;
 }
 
-bool decode(core::resource::cache& cache,
-			const core::data::material& data,
+bool decode(core::resource::cache_t& cache,
+			const core::data::material_t& data,
 			std::vector<vk::DescriptorSetLayoutBinding>& layoutBinding)
 {
 	for(auto& stage : data.stages())
@@ -76,8 +76,8 @@ bool decode(core::resource::cache& cache,
 	return true;
 }
 
-bool decode(core::resource::cache& cache,
-			const core::data::material& data,
+bool decode(core::resource::cache_t& cache,
+			const core::data::material_t& data,
 			std::vector<vk::VertexInputBindingDescription>& vertexBindingDescriptions,
 			std::vector<vk::VertexInputAttributeDescription>& vertexAttributeDescriptions)
 {
@@ -124,11 +124,11 @@ bool decode(core::resource::cache& cache,
 }
 
 
-pipeline::pipeline(core::resource::cache& cache,
+pipeline::pipeline(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile,
 				   core::resource::handle<core::ivk::context> context,
-				   core::resource::handle<core::data::material> data,
+				   core::resource::handle<core::data::material_t> data,
 				   vk::PipelineCache& pipelineCache,
 				   vk::RenderPass renderPass,
 				   uint32_t attachmentCount) :
@@ -218,7 +218,7 @@ pipeline::pipeline(core::resource::cache& cache,
 	for(auto& stage : data->stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
+		if((shader_handle.state() == core::resource::status::loaded) && shader_handle->pipeline())
 		{
 			shaderStages.push_back(shader_handle->pipeline().value());
 		}
@@ -308,7 +308,7 @@ pipeline::pipeline(core::resource::cache& cache,
 		}
 
 		// fill in the remaining with the default blend state;
-		core::data::material::blendstate def_state;
+		core::data::material_t::blendstate def_state;
 		for(size_t i = blendState.size(); i < attachmentCount; ++i)
 		{
 			blendAttachmentState[i].blendEnable	   = def_state.enabled();
@@ -410,7 +410,7 @@ pipeline::~pipeline()
 
 inline size_t get_range(const core::ivk::context& context,
 						const core::meta::shader& shader,
-						const core::data::material::binding& binding,
+						const core::data::material_t::binding& binding,
 						size_t fallback)
 {
 	auto it =
@@ -422,13 +422,13 @@ inline size_t get_range(const core::ivk::context& context,
 	return get_aligned(context, conversion::to_vk(binding.descriptor()), fallback);
 }
 
-bool pipeline::update(core::resource::cache& cache, const core::data::material& data, vk::DescriptorSet set)
+bool pipeline::update(core::resource::cache_t& cache, const core::data::material_t& data, vk::DescriptorSet set)
 {
 	m_IsComplete = true;
 	for(const auto& stage : data.stages())
 	{
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
-		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->pipeline())
+		if((shader_handle.state() == core::resource::status::loaded) && shader_handle->pipeline())
 		{
 			for(const auto& binding : stage.bindings())
 			{
@@ -436,7 +436,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 				{
 				case core::gfx::binding_type::combined_image_sampler:
 				{
-					auto tex_handle = cache.find<core::ivk::texture>(binding.texture());
+					auto tex_handle = cache.find<core::ivk::texture_t>(binding.texture());
 					if(!binding.texture())
 					{
 						core::ivk::log->error(
@@ -445,11 +445,11 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 						return false;
 					}
 
-					if(tex_handle.state() != core::resource::state::loaded)
+					if(tex_handle.state() != core::resource::status::loaded)
 					{
-						tex_handle = cache.create_using<core::ivk::texture>(binding.texture(), m_Context);
+						tex_handle = cache.create_using<core::ivk::texture_t>(binding.texture(), m_Context);
 
-						if(tex_handle.state() != core::resource::state::loaded)
+						if(tex_handle.state() != core::resource::status::loaded)
 						{
 							LOG_ERROR("could not load the texture ",
 									  utility::to_string(binding.texture()),
@@ -498,7 +498,7 @@ bool pipeline::update(core::resource::cache& cache, const core::data::material& 
 						core::ivk::log->warn("Loading will be deferred");
 						m_IsComplete = false;
 					}
-					else if(buffer_handle.state() == core::resource::state::loaded)
+					else if(buffer_handle.state() == core::resource::status::loaded)
 					{
 						vk::BufferUsageFlagBits usage =
 						  (binding.descriptor() == core::gfx::binding_type::uniform_buffer ||
@@ -584,13 +584,13 @@ bool pipeline::update(uint32_t bindingLocation, const UID& textureMeta, const UI
 			{
 			case vk::DescriptorType::eCombinedImageSampler:
 			{
-				auto tex_handle = m_Cache.find<core::ivk::texture>(textureMeta);
+				auto tex_handle = m_Cache.find<core::ivk::texture_t>(textureMeta);
 
-				if(tex_handle.state() != core::resource::state::loaded)
+				if(tex_handle.state() != core::resource::status::loaded)
 				{
-					tex_handle = m_Cache.create_using<core::ivk::texture>(textureMeta, m_Context);
+					tex_handle = m_Cache.create_using<core::ivk::texture_t>(textureMeta, m_Context);
 
-					if(tex_handle.state() != core::resource::state::loaded)
+					if(tex_handle.state() != core::resource::status::loaded)
 					{
 						LOG_ERROR("could not load the texture ",
 								  utility::to_string(textureMeta),
@@ -661,7 +661,7 @@ bool pipeline::update(uint32_t bindingLocation, vk::DeviceSize offset, vk::Devic
 }
 
 bool pipeline::unsafe_update(uint32_t bindingLocation,
-							 core::resource::handle<core::ivk::buffer> buffer,
+							 core::resource::handle<core::ivk::buffer_t> buffer,
 							 vk::DeviceSize offset,
 							 vk::DeviceSize range)
 {

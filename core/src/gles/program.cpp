@@ -10,10 +10,10 @@
 using namespace core::igles;
 using namespace core::resource;
 
-program::program(core::resource::cache& cache,
+program::program(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
-				 core::resource::handle<core::data::material> data)
+				 core::resource::handle<core::data::material_t> data)
 {
 	GLint linked;
 
@@ -22,7 +22,7 @@ program::program(core::resource::cache& cache,
 	{
 		auto shader_handle = cache.find<core::igles::shader>(stage.shader());
 		if(!shader_handle) shader_handle = cache.create_using<core::igles::shader>(stage.shader());
-		if((shader_handle.state() == core::resource::state::loaded) && shader_handle->id() != 0)
+		if((shader_handle.state() == core::resource::status::loaded) && shader_handle->id() != 0)
 		{
 			shaderStages.push_back(shader_handle->id());
 		}

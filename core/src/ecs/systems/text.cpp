@@ -27,14 +27,14 @@ using namespace psl::ecs;
 using namespace core::resource;
 using namespace core::gfx;
 
-text::text(psl::ecs::state& state,
-		   cache& cache,
+text::text(psl::ecs::state_t& state,
+		   cache_t& cache,
 		   handle<context> context,
-		   core::resource::handle<core::gfx::buffer> vertexBuffer,
-		   core::resource::handle<core::gfx::buffer> indexBuffer,
+		   core::resource::handle<core::gfx::buffer_t> vertexBuffer,
+		   core::resource::handle<core::gfx::buffer_t> indexBuffer,
 		   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
-		   core::resource::handle<core::gfx::buffer> materialBuffer,
-		   core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
+		   core::resource::handle<core::gfx::buffer_t> materialBuffer,
+		   core::resource::handle<core::gfx::buffer_t> vertexInstanceBuffer,
 		   core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer) :
 	m_Cache(cache),
 	m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context)
@@ -71,14 +71,14 @@ text::text(psl::ecs::state& state,
 		  psl::vec2 {xoff, yoff} / character_height});
 	}
 
-	using meta_type = typename resource_traits<core::gfx::texture>::meta_type;
+	using meta_type = typename resource_traits<core::gfx::texture_t>::meta_type;
 	std::unique_ptr<meta_type> metaData {std::make_unique<meta_type>()};
 	metaData->width(width);
 	metaData->height(height);
 	metaData->depth(1);
 	metaData->mip_levels(1);
 	metaData->image_type(gfx::image_type::planar_2D);
-	metaData->format(core::gfx::format::r8_unorm);
+	metaData->format(core::gfx::format_t::r8_unorm);
 	metaData->usage(core::gfx::image_usage::transfer_destination | core::gfx::image_usage::sampled);
 	metaData->aspect_mask(core::gfx::image_aspect::color);
 	auto res = cache.library().add(psl::UID::generate(), std::move(metaData));
@@ -88,23 +88,23 @@ text::text(psl::ecs::state& state,
 	std::memcpy(font_str_data.data(), bitmap.data(), bitmap.size());
 	cache.library().replace_content(res.first, font_str_data);
 
-	m_FontTexture = cache.create_using<core::gfx::texture>(res.first, context);
+	m_FontTexture = cache.create_using<core::gfx::texture_t>(res.first, context);
 
 	state.declare(&text::update_dynamic, this, true);
 	state.declare(&text::add, this, true);
 	state.declare(&text::remove, this, true);
 
 	// create the sampler
-	auto samplerData = cache.create<data::sampler>();
+	auto samplerData = cache.create<data::sampler_t>();
 	samplerData->address(core::gfx::sampler_address_mode::repeat);
 	samplerData->mipmaps(false);
 	// samplerData->filter_max(core::gfx::filter::nearest);
-	auto samplerHandle = cache.create<gfx::sampler>(m_Context, samplerData);
+	auto samplerHandle = cache.create<gfx::sampler_t>(m_Context, samplerData);
 
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("db43dbb4-04ce-65f5-7415-d1fbc90d1aad"_uid).value();
 
-	auto matData = cache.create<data::material>();
+	auto matData = cache.create<data::material_t>();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
 	auto stages = matData->stages();
@@ -119,7 +119,7 @@ text::text(psl::ecs::state& state,
 		// binding.texture()
 	}
 	matData->blend_states(
-	  {core::data::material::blendstate(true,
+	  {core::data::material_t::blendstate(true,
 										0,
 										core::gfx::blend_factor::source_alpha,
 										core::gfx::blend_factor::one_minus_source_alpha,
@@ -132,13 +132,13 @@ text::text(psl::ecs::state& state,
 	matData->stages(stages);
 	matData->cull_mode(core::gfx::cullmode::none);
 
-	auto material = m_Cache.create<core::gfx::material>(m_Context, matData, pipeline_cache, materialBuffer);
+	auto material = m_Cache.create<core::gfx::material_t>(m_Context, matData, pipeline_cache, materialBuffer);
 
 	m_Bundle = m_Cache.create<gfx::bundle>(vertexInstanceBuffer, materialInstanceBuffer);
 	m_Bundle->set_material(material, 2000);
 }
 
-core::resource::handle<core::data::geometry> text::create_text(psl::string_view text)
+core::resource::handle<core::data::geometry_t> text::create_text(psl::string_view text)
 {
 	core::stream vertStream {core::stream::type::vec3};
 	core::stream normStream {core::stream::type::vec3};
@@ -220,12 +220,12 @@ core::resource::handle<core::data::geometry> text::create_text(psl::string_view 
 	colors.resize(vertices.size());
 	std::fill(std::begin(colors), std::end(colors), psl::vec4::one);
 
-	auto geomData = m_Cache.create<core::data::geometry>();
+	auto geomData = m_Cache.create<core::data::geometry_t>();
 
-	geomData->vertices(core::data::geometry::constants::POSITION, vertStream);
-	geomData->vertices(core::data::geometry::constants::NORMAL, normStream);
-	geomData->vertices(core::data::geometry::constants::COLOR, colorStream);
-	geomData->vertices(core::data::geometry::constants::TEX, uvStream);
+	geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
+	geomData->vertices(core::data::geometry_t::constants::NORMAL, normStream);
+	geomData->vertices(core::data::geometry_t::constants::COLOR, colorStream);
+	geomData->vertices(core::data::geometry_t::constants::TEX, uvStream);
 
 	std::vector<uint32_t> indexBuffer(character_count * 6);
 	for(auto i = 0u, index = 0u; i < character_count; ++i)
@@ -262,7 +262,7 @@ void text::add(info& info, pack<partial, entity, comp::text, on_add<comp::text>>
 	{
 		ents[0]			= e;
 		auto geomData	= create_text(*text.value);
-		auto geomHandle = m_Cache.create<gfx::geometry>(m_Context, geomData, m_VertexBuffer, m_IndexBuffer);
+		auto geomHandle = m_Cache.create<gfx::geometry_t>(m_Context, geomData, m_VertexBuffer, m_IndexBuffer);
 		/*info.command_buffer.create(1, comp::transform{},
 			[&geomHandle, &bundle](comp::renderable& renderer) {
 				renderer.geometry = geomHandle;

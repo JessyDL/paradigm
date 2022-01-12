@@ -4,7 +4,7 @@
 using namespace psl;
 using namespace core::data;
 
-buffer::buffer(core::resource::cache& cache,
+buffer_t::buffer_t(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   core::gfx::memory_usage usage,
@@ -14,10 +14,10 @@ buffer::buffer(core::resource::cache& cache,
 	m_Usage(usage), m_MemoryPropertyFlags(memoryPropertyFlags)
 {}
 
-buffer::~buffer() {}
+buffer_t::~buffer_t() {}
 
 
-std::optional<memory::segment> buffer::allocate(size_t size)
+std::optional<memory::segment> buffer_t::allocate(size_t size)
 {
 	if(auto segm = m_Region.allocate(size); segm)
 	{
@@ -26,9 +26,9 @@ std::optional<memory::segment> buffer::allocate(size_t size)
 	}
 	return std::optional<memory::segment> {};
 }
-bool buffer::deallocate(memory::segment& segment)
+bool buffer_t::deallocate(memory::segment& segment)
 {
-	const memory::range range {segment.range()};
+	const memory::range_t range {segment.range()};
 	auto find_it = std::find_if(std::begin(m_Segments), std::end(m_Segments), [&range](const memory::segment& entry) {
 		return entry.range() == range;
 	});
@@ -50,18 +50,18 @@ bool buffer::deallocate(memory::segment& segment)
 	return false;
 }
 
-size_t buffer::size() const
+size_t buffer_t::size() const
 {
 	return m_Region.size();
 	// return std::accumulate(std::begin(m_Segments), std::end(m_Segments), (size_t)0u,
 	//					   [](size_t sum, const memory::segment& segment) { return sum + segment.range().size(); });
 }
-core::gfx::memory_usage buffer::usage() const { return m_Usage.value; }
-core::gfx::memory_property buffer::memoryPropertyFlags() const { return m_MemoryPropertyFlags.value; }
-const memory::region& buffer::region() const { return m_Region; }
-const std::vector<memory::segment>& buffer::segments() const { return m_Segments; };
+core::gfx::memory_usage buffer_t::usage() const { return m_Usage.value; }
+core::gfx::memory_property buffer_t::memoryPropertyFlags() const { return m_MemoryPropertyFlags.value; }
+const memory::region& buffer_t::region() const { return m_Region; }
+const std::vector<memory::segment>& buffer_t::segments() const { return m_Segments; };
 
-bool buffer::transient() const noexcept { return m_Transient.value; }
-void buffer::transient(bool value) noexcept { m_Transient.value = value; }
-core::gfx::memory_write_frequency buffer::write_frequency() const noexcept { return m_WriteFrequency.value; }
-void buffer::write_frequency(core::gfx::memory_write_frequency value) noexcept { m_WriteFrequency.value = value; }
+bool buffer_t::transient() const noexcept { return m_Transient.value; }
+void buffer_t::transient(bool value) noexcept { m_Transient.value = value; }
+core::gfx::memory_write_frequency buffer_t::write_frequency() const noexcept { return m_WriteFrequency.value; }
+void buffer_t::write_frequency(core::gfx::memory_write_frequency value) noexcept { m_WriteFrequency.value = value; }

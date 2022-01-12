@@ -10,11 +10,11 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // shader::vertex::attribute::~attribute() {}
 //
 // uint32_t shader::vertex::attribute::location() const noexcept { return m_Location.value; }
-// core::gfx::format shader::vertex::attribute::format() const noexcept { return m_Format.value; }
+// core::gfx::format_t shader::vertex::attribute::format() const noexcept { return m_Format.value; }
 // uint32_t shader::vertex::attribute::offset() const noexcept { return m_Offset.value; }
 //
 // void shader::vertex::attribute::location(uint32_t value) { m_Location.value = value; }
-// void shader::vertex::attribute::format(core::gfx::format value) { m_Format.value = value; }
+// void shader::vertex::attribute::format(core::gfx::format_t value) { m_Format.value = value; }
 // void shader::vertex::attribute::offset(uint32_t value) { m_Offset.value = value; }
 //// vertex binding
 // shader::vertex::binding::binding() {}
@@ -23,7 +23,7 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // uint32_t shader::vertex::binding::binding_slot() const noexcept { return m_Binding.value; }
 // uint32_t shader::vertex::binding::size() const noexcept { return m_Size.value; }
 // core::gfx::vertex_input_rate shader::vertex::binding::input_rate() const noexcept { return m_InputRate.value; }
-// psl::string8_t shader::vertex::binding::buffer() const noexcept { return m_Buffer.value; }
+// psl::string8_t shader::vertex::binding::buffer_t() const noexcept { return m_Buffer.value; }
 // const std::vector<shader::vertex::attribute>& shader::vertex::binding::attributes() const noexcept
 //{
 //	return m_Attributes.value;
@@ -32,7 +32,7 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // void shader::vertex::binding::binding_slot(uint32_t value) { m_Binding.value = value; }
 // void shader::vertex::binding::size(uint32_t value) { m_Size.value = value; }
 // void shader::vertex::binding::input_rate(core::gfx::vertex_input_rate value) { m_InputRate.value = value; }
-// void shader::vertex::binding::buffer(psl::string8_t value) { m_Buffer.value = value; }
+// void shader::vertex::binding::buffer_t(psl::string8_t value) { m_Buffer.value = value; }
 // void shader::vertex::binding::attributes(const std::vector<shader::vertex::attribute>& value)
 //{
 //	m_Attributes.value = value;
@@ -125,12 +125,12 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // shader::instance::element::~element() {}
 //
 // psl::string8::view shader::instance::element::name() const noexcept { return m_Name.value; }
-// core::gfx::format shader::instance::element::format() const noexcept { return m_Format.value; }
+// core::gfx::format_t shader::instance::element::format() const noexcept { return m_Format.value; }
 // uint32_t shader::instance::element::offset() const noexcept { return m_Offset.value; }
 // const std::vector<uint8_t>& shader::instance::element::default_value() const noexcept { return m_Default.value; }
 //
 // void shader::instance::element::name(psl::string8::view value) { m_Name.value = value; }
-// void shader::instance::element::format(core::gfx::format value) { m_Format.value = value; }
+// void shader::instance::element::format(core::gfx::format_t value) { m_Format.value = value; }
 // void shader::instance::element::offset(uint32_t value) { m_Offset.value = value; }
 // void shader::instance::element::default_value(const std::vector<uint8_t>& value) { m_Default.value = value; }
 //

@@ -159,7 +159,7 @@ TEST_CASE("component_key must be unique", "[ECS]")
 
 TEST_CASE("filtering", "[ECS]")
 {
-	state state;
+	state_t state;
 	auto e_list1{state.create(100)};
 	auto e_list2{state.create(400)};
 	auto e_list3{state.create(500)};
@@ -230,7 +230,7 @@ struct position
 
 TEST_CASE("initializing components", "[ECS]")
 {
-	state state;
+	state_t state;
 
 	size_t count{0};
 	state.create(
@@ -260,7 +260,7 @@ TEST_CASE("initializing components", "[ECS]")
 
 TEST_CASE("systems", "[ECS]")
 {
-	state state;
+	state_t state;
 
 	auto group = details::make_filter_group(psl::templates::type_container<pack<entity, int>>{});
 
@@ -507,7 +507,7 @@ TEST_CASE("systems", "[ECS]")
 
 TEST_CASE("declaring system signatures", "[ECS]")
 {
-	state state;
+	state_t state;
 	state.declare(registration_test);
 	object_test test;
 	state.declare(&object_test::empty_system, &test);

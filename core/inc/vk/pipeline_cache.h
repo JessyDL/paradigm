@@ -6,13 +6,13 @@ namespace core::ivk
 {
 	class context;
 	class pipeline;
-	class framebuffer;
+	class framebuffer_t;
 	class swapchain;
 }	 // namespace core::ivk
 
 namespace core::data
 {
-	class material;
+	class material_t;
 }
 
 namespace psl
@@ -36,7 +36,7 @@ namespace core::ivk
 		/// \brief constructor based on the data you wish to store.
 		/// \warning the pipeline_key does not update when the material data has been updated.
 		/// the material will no longer be able to use this key when it changes its properties.
-		pipeline_key(const psl::UID& uid, core::resource::handle<core::data::material> data, vk::RenderPass pass);
+		pipeline_key(const psl::UID& uid, core::resource::handle<core::data::material_t> data, vk::RenderPass pass);
 
 		bool operator==(const pipeline_key& other) const noexcept
 		{
@@ -94,7 +94,7 @@ namespace core::ivk
 	class pipeline_cache
 	{
 	  public:
-		pipeline_cache(core::resource::cache& cache,
+		pipeline_cache(core::resource::cache_t& cache,
 					   const core::resource::metadata& metaData,
 					   psl::meta::file* metaFile,
 					   core::resource::handle<core::ivk::context> context);
@@ -110,20 +110,20 @@ namespace core::ivk
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] framebuffer the framebuffer that will be bound to.
 		core::resource::handle<core::ivk::pipeline> get(const psl::UID& uid,
-														core::resource::handle<core::data::material> data,
-														core::resource::handle<core::ivk::framebuffer> framebuffer);
+														core::resource::handle<core::data::material_t> data,
+														core::resource::handle<core::ivk::framebuffer_t> framebuffer);
 		/// \brief allows you to get a pipeline that satisfy the material requirements and is bound to the given
 		/// swapchain.
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		/// \param[in] swapchain the swapchain that will be bound to.
 		core::resource::handle<core::ivk::pipeline> get(const psl::UID& uid,
-														core::resource::handle<core::data::material> data,
+														core::resource::handle<core::data::material_t> data,
 														core::resource::handle<core::ivk::swapchain> swapchain);
 
 	  private:
 		core::resource::handle<core::ivk::context> m_Context;
-		core::resource::cache& m_Cache;
+		core::resource::cache_t& m_Cache;
 		vk::PipelineCache m_PipelineCache;
 
 		// std::vector<core::resource::handle<core::ivk::pipeline>> m_Pipelines;

@@ -22,10 +22,10 @@ using namespace core::igles;
 using namespace core::resource;
 namespace data = core::data;
 
-material::material(core::resource::cache& cache,
+material_t::material_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile,
-				   handle<data::material> data,
+				   handle<data::material_t> data,
 				   core::resource::handle<core::igles::program_cache> program_cache) :
 	m_Data(data)
 {
@@ -35,7 +35,7 @@ material::material(core::resource::cache& cache,
 		if(!shader_handle)
 		{
 			core::igles::log->warn(
-			  "igles::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
+			  "igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
 			  utility::to_string(metaData.uid),
 			  utility::to_string(stage.shader()));
 
@@ -67,14 +67,14 @@ material::material(core::resource::cache& cache,
 				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
 				// assert(binding_slot != -1);
 
-				if(auto sampler_handle = cache.find<core::igles::sampler>(binding.sampler()); sampler_handle)
+				if(auto sampler_handle = cache.find<core::igles::sampler_t>(binding.sampler()); sampler_handle)
 				{
 					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
 				}
 				else
 				{
 					core::igles::log->error(
-					  "igles::material [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the "
+					  "igles::material_t [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
 					  "cache.",
 					  utility::to_string(metaData.uid),
@@ -82,14 +82,14 @@ material::material(core::resource::cache& cache,
 					  utility::to_string(stage.shader()));
 					return;
 				}
-				if(auto texture_handle = cache.find<core::igles::texture>(binding.texture()); texture_handle)
+				if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle)
 				{
 					m_Textures.push_back(std::make_pair(binding_slot, texture_handle));
 				}
 				else
 				{
 					core::igles::log->error(
-					  "igles::material [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
+					  "igles::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
 					  "cache.",
 					  utility::to_string(metaData.uid),
@@ -111,7 +111,7 @@ material::material(core::resource::cache& cache,
 											   });
 
 				if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
-				   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
+				   buffer_handle && buffer_handle.state() == core::resource::status::loaded)
 				{
 					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), descriptor->name().data());
 					glUniformBlockBinding(m_Program->id(), binding_slot, binding.binding_slot());
@@ -132,7 +132,7 @@ material::material(core::resource::cache& cache,
 					else
 					{
 						core::igles::log->error(
-						  "igles::material [{0}] declares resource of the type [{1}], but we detected a resource of "
+						  "igles::material_t [{0}] declares resource of the type [{1}], but we detected a resource of "
 						  "the type [{2}] instead in shader [{3}]",
 						  utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
 						  vk::to_string(buffer_handle->data()->usage())*/
@@ -145,7 +145,7 @@ material::material(core::resource::cache& cache,
 				else
 				{
 					core::igles::log->error(
-					  "igles::material [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
+					  "igles::material_t [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
 					  "cache.",
 					  utility::to_string(metaData.uid),
@@ -174,7 +174,7 @@ material::material(core::resource::cache& cache,
 	}
 }
 
-void material::bind()
+void material_t::bind()
 {
 	if(!m_Program) return;
 	glUseProgram(m_Program->id());
@@ -240,11 +240,11 @@ void material::bind()
 	glGetError();
 }
 
-const std::vector<core::resource::handle<core::igles::shader>>& material::shaders() const noexcept { return m_Shaders; }
+const std::vector<core::resource::handle<core::igles::shader>>& material_t::shaders() const noexcept { return m_Shaders; }
 
-const core::data::material& material::data() const noexcept { return m_Data.value(); }
+const core::data::material_t& material_t::data() const noexcept { return m_Data.value(); }
 
-bool material::bind_instance_data(uint32_t slot, uint32_t offset)
+bool material_t::bind_instance_data(uint32_t slot, uint32_t offset)
 {
 	for(auto& buffer : m_Buffers)
 	{

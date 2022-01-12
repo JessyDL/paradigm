@@ -18,10 +18,10 @@ using namespace core::resource;
 using namespace psl::meta;
 using namespace core::gfx::conversion;
 
-compute::compute(cache& cache,
+compute::compute(cache_t& cache,
 				 const metadata& metaData,
 				 file* metaFile,
-				 core::resource::handle<core::data::material> data,
+				 core::resource::handle<core::data::material_t> data,
 				 core::resource::handle<core::igles::program_cache> program_cache) :
 	m_Meta(metaFile)
 {
@@ -30,7 +30,7 @@ compute::compute(cache& cache,
 	auto shader_handle = cache.find<core::igles::shader>(stage.shader());
 	if(!shader_handle)
 	{
-		core::igles::log->warn("igles::material [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
+		core::igles::log->warn("igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
 							   utility::to_string(metaData.uid),
 							   utility::to_string(stage.shader()));
 
@@ -64,7 +64,7 @@ compute::compute(cache& cache,
 		case core::gfx::binding_type::combined_image_sampler:
 		{
 			auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
-			if(auto texture_handle = cache.find<core::igles::texture>(binding.texture()); texture_handle)
+			if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle)
 			{
 				switch(qualifier)
 				{
@@ -103,7 +103,7 @@ compute::compute(cache& cache,
 										   });
 
 			if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
-			   buffer_handle && buffer_handle.state() == core::resource::state::loaded)
+			   buffer_handle && buffer_handle.state() == core::resource::status::loaded)
 			{
 				auto binding_slot = glGetUniformBlockIndex(m_Program->id(), descriptor->name().data());
 				glUniformBlockBinding(m_Program->id(), binding_slot, binding.binding_slot());
@@ -193,18 +193,18 @@ void compute::dispatch(unsigned int num_groups_x, unsigned int num_groups_y, uns
 	glDispatchCompute(num_groups_x, num_groups_y, num_groups_z);
 	glGetError();
 }
-psl::array<core::resource::handle<core::igles::texture>> compute::textures() const noexcept
+psl::array<core::resource::handle<core::igles::texture_t>> compute::textures() const noexcept
 {
-	psl::array<core::resource::handle<core::igles::texture>> out;
+	psl::array<core::resource::handle<core::igles::texture_t>> out;
 	std::transform(std::begin(m_OutputTextures),
 				   std::end(m_OutputTextures),
 				   std::back_inserter(out),
 				   [](const auto& pair) { return pair.second; });
 	return out;
 }
-psl::array<core::resource::handle<core::igles::buffer>> compute::buffers() const noexcept
+psl::array<core::resource::handle<core::igles::buffer_t>> compute::buffers() const noexcept
 {
-	psl::array<core::resource::handle<core::igles::buffer>> out;
+	psl::array<core::resource::handle<core::igles::buffer_t>> out;
 	std::transform(std::begin(m_OutputBuffers),
 				   std::end(m_OutputBuffers),
 				   std::back_inserter(out),

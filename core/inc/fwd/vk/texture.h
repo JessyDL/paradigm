@@ -3,18 +3,18 @@
 
 namespace core::ivk
 {
-	class texture;
+	class texture_t;
 }	 // namespace core::ivk
 
 namespace core::meta
 {
-	class texture;
+	class texture_t;
 }
 namespace core::resource
 {
 	template <>
-	struct resource_traits<core::ivk::texture>
+	struct resource_traits<core::ivk::texture_t>
 	{
-		using meta_type = core::meta::texture;
+		using meta_type = core::meta::texture_t;
 	};
 }	 // namespace core::resource

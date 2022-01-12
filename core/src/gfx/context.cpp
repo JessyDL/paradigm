@@ -23,7 +23,7 @@ context::context(core::resource::handle<core::igles::context>& handle) :
 	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
-context::context(core::resource::cache& cache,
+context::context(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 graphics_backend backend,
@@ -49,6 +49,10 @@ context::context(core::resource::cache& cache,
 	}
 }
 
+[[noreturn]] void fail(){
+	throw std::runtime_error("no context was loaded");
+}
+
 const core::gfx::limits& context::limits() const noexcept
 {
 #ifdef PE_VULKAN
@@ -57,7 +61,7 @@ const core::gfx::limits& context::limits() const noexcept
 #ifdef PE_GLES
 	if(m_GLESHandle) return m_GLESHandle->limits();
 #endif
-	throw std::runtime_error("no context was loaded");
+	fail();
 }
 
 void context::wait_idle()

@@ -106,7 +106,7 @@ namespace psl::spmc
 		{
 			auto begin = m_Begin.load(std::memory_order_relaxed);
 			auto end   = m_End.load(std::memory_order_relaxed);
-			return std::max(end - begin, 0);
+			return std::max<decltype(begin)>(end - begin, 0);
 		}
 
 		/// \brief Resizes the internal buffer to the given size

@@ -113,7 +113,7 @@ struct VKAPIVersion
 	const uint32_t minor;
 	const uint32_t patch;
 };
-context::context(core::resource::cache& cache,
+context::context(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 psl::string8::view name,
@@ -554,7 +554,7 @@ context::context(core::resource::cache& cache,
 	if(utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))
 		m_Limits.supported_depthformat = core::gfx::conversion::to_format(format);
 	else
-		m_Limits.supported_depthformat = core::gfx::format::undefined;
+		m_Limits.supported_depthformat = core::gfx::format_t::undefined;
 
 	m_Limits.compute.workgroup.count[0] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[0];
 	m_Limits.compute.workgroup.count[1] = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupCount[1];

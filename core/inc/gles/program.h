@@ -3,7 +3,7 @@
 
 namespace core::data
 {
-	class material;
+	class material_t;
 }
 
 namespace core::igles
@@ -11,10 +11,10 @@ namespace core::igles
 	class program
 	{
 	  public:
-		program(core::resource::cache& cache,
+		program(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
-				core::resource::handle<core::data::material> data);
+				core::resource::handle<core::data::material_t> data);
 		~program();
 		unsigned int id() const noexcept { return m_Program; }
 

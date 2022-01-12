@@ -37,7 +37,7 @@ namespace core::data
 			   core::gfx::surface_mode mode	  = core::gfx::surface_mode::WINDOWED,
 			   core::gfx::buffering buffering = core::gfx::buffering::SINGLE,
 			   psl::string8::view name		  = "Paradigm Engine") noexcept;
-		window(core::resource::cache& cache,
+		window(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   uint32_t width				  = 800,

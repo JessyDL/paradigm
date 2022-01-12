@@ -17,7 +17,7 @@ namespace core::ivk
 	///
 	/// handles loading a SPIR-V object from a source (disk, or otherwise).
 	/// and subsequently uploads it to the driver to be validated.
-	/// a couple of shaders together with a core::ivk::pipeline and core::ivk::geometry is all that's
+	/// a couple of shaders together with a core::ivk::pipeline and core::ivk::geometry_t is all that's
 	/// needed to render an object on screen.
 	class shader
 	{
@@ -32,11 +32,11 @@ namespace core::ivk
 			bool operator==(const specialization& other) const { return name == other.name; }
 			bool operator!=(const specialization& other) const { return name != other.name; }
 		};
-		shader(core::resource::cache& cache,
+		shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context);
-		shader(core::resource::cache& cache,
+		shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context,
@@ -58,7 +58,7 @@ namespace core::ivk
 	  private:
 		core::resource::handle<core::ivk::context> m_Context;
 		std::vector<std::pair<specialization, vk::PipelineShaderStageCreateInfo>> m_Specializations;
-		core::resource::cache& m_Cache;
+		core::resource::cache_t& m_Cache;
 		core::meta::shader* m_Meta;
 		const psl::UID m_UID;
 	};

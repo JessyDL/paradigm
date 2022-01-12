@@ -15,7 +15,7 @@ window::window(uint32_t width,
 	m_Height(height), m_WindowMode(mode), m_Buffering(buffering), m_Name(name)
 {}
 
-window::window(core::resource::cache& cache,
+window::window(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   uint32_t width,

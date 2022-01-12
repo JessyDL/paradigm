@@ -9,7 +9,7 @@ using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
-shader::shader(core::resource::cache& cache,
+shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context) :
@@ -54,7 +54,7 @@ shader::shader(core::resource::cache& cache,
 		}
 	}
 }
-shader::shader(core::resource::cache& cache,
+shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context,

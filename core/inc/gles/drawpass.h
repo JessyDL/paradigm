@@ -7,7 +7,7 @@
 namespace core::igles
 {
 	class swapchain;
-	class framebuffer;
+	class framebuffer_t;
 	class computepass;
 
 	class drawpass
@@ -20,7 +20,7 @@ namespace core::igles
 
 	  public:
 		drawpass(core::resource::handle<swapchain> swapchain);
-		drawpass(core::resource::handle<framebuffer> framebuffer);
+		drawpass(core::resource::handle<framebuffer_t> framebuffer);
 		~drawpass() = default;
 
 		drawpass(const drawpass& other)		= default;
@@ -43,7 +43,7 @@ namespace core::igles
 
 	  private:
 		core::resource::handle<swapchain> m_Swapchain;
-		core::resource::handle<framebuffer> m_Framebuffer;
+		core::resource::handle<framebuffer_t> m_Framebuffer;
 		psl::array<memory_barrier_t> m_MemoryBarriers;
 		psl::array<core::gfx::drawgroup> m_DrawGroups;
 	};

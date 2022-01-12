@@ -29,11 +29,11 @@
 using namespace core::resource;
 using namespace core::igles;
 
-texture::texture(core::resource::cache& cache,
+texture_t::texture_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
-				 core::meta::texture* metaFile) :
+				 core::meta::texture_t* metaFile) :
 	m_Cache(cache),
-	m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr))
+	m_Meta(m_Cache.library().get<core::meta::texture_t>(metaFile->ID()).value_or(nullptr))
 {
 	if(!m_Meta)
 	{
@@ -78,13 +78,13 @@ fail:
 	return;
 }
 
-texture::~texture()
+texture_t::~texture_t()
 {
 	delete(m_TextureData);
 	glDeleteTextures(1, &m_Texture);
 }
 
-void texture::load_2D()
+void texture_t::load_2D()
 {
 	gli::texture2d* m_Texture2DData = (gli::texture2d*)m_TextureData;
 	if(m_Texture2DData->empty())
@@ -98,7 +98,7 @@ void texture::load_2D()
 	if(!gfx::conversion::to_gles(m_Meta->format(), internalFormat, format, type))
 	{
 		core::igles::log->error("unsupported format detected: {}",
-								static_cast<std::underlying_type_t<gfx::format>>(m_Meta->format()));
+								static_cast<std::underlying_type_t<gfx::format_t>>(m_Meta->format()));
 	}
 
 	if(m_Meta->width() != (uint32_t)(*m_Texture2DData)[0].extent().x)
@@ -159,7 +159,7 @@ void texture::load_2D()
 
 #include <malloc.h>
 
-void texture::create_2D(void* data)
+void texture_t::create_2D(void* data)
 {
 	glGenTextures(1, &m_Texture);
 	glBindTexture(GL_TEXTURE_2D, m_Texture);
@@ -193,4 +193,4 @@ void texture::create_2D(void* data)
 }
 
 
-const core::meta::texture& texture::meta() const noexcept { return *m_Meta; }
+const core::meta::texture_t& texture_t::meta() const noexcept { return *m_Meta; }

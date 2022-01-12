@@ -8,7 +8,7 @@
 
 namespace core::data
 {
-	class buffer;
+	class buffer_t;
 }
 
 namespace core::ivk
@@ -25,7 +25,7 @@ namespace core::ivk
 	/// or because they are used for synchronising information between CPU/GPU (compute results).
 	/// This class will handle most of the needs for synchonising, and how-to upload the data to the
 	/// relevant locations as well as managing the internals.
-	class buffer
+	class buffer_t
 	{
 	  public:
 		/// \brief constructs a buffer from the given buffer_data, as well as optionally sets a staging resource.
@@ -37,18 +37,18 @@ namespace core::ivk
 		/// \note buffer_data dictates the size, and alignment of this buffer resource. In the event that the
 		/// allignment is incorrect, a suitable warning (and potential override) will be supplied.
 		/// If the supplied buffer_data is non-virtual (i.e. backed by real memory location), then the resource
-		/// will be duplicated and accessible for read access through the core::data::buffer handle directly.
-		buffer(core::resource::cache& cache,
+		/// will be duplicated and accessible for read access through the core::data::buffer_t handle directly.
+		buffer_t(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   psl::meta::file* metaFile,
 			   core::resource::handle<core::ivk::context> context,
-			   core::resource::handle<core::data::buffer> buffer_data,
-			   std::optional<core::resource::handle<core::ivk::buffer>> staging_buffer = std::nullopt);
-		~buffer();
-		buffer(const buffer&) = delete;
-		buffer(buffer&&)	  = delete;
-		buffer& operator=(const buffer&) = delete;
-		buffer& operator=(buffer&&) = delete;
+			   core::resource::handle<core::data::buffer_t> buffer_data,
+			   std::optional<core::resource::handle<core::ivk::buffer_t>> staging_buffer = std::nullopt);
+		~buffer_t();
+		buffer_t(const buffer_t&) = delete;
+		buffer_t(buffer_t&&)	  = delete;
+		buffer_t& operator=(const buffer_t&) = delete;
+		buffer_t& operator=(buffer_t&&) = delete;
 
 		// when optimize is set to true it can allocate multiple ranges in one segment if possible.
 		// it will return ranges with local begin/end values relative to the segment.
@@ -67,13 +67,13 @@ namespace core::ivk
 		/// regions of memory of atleast the given accumulative size. Depending on the optimize boolean parameter's
 		/// value this can be in one optimized memory::segment (true), or in equal amount of memory::segments as there
 		/// were elements in the sizes requested container (false).
-		/// when optimize is true, the returned memory::range in the pair signifies the offset from the start of the
+		/// when optimize is true, the returned memory::range_t in the pair signifies the offset from the start of the
 		/// segment (where the actual memory you requested resides). when optimize is false, range always starts at 0,
 		/// and ends at the actual allocated size. \returns a vector with as many contained elements as the requested
 		/// sizes container has. \param[in] sizes a container with minimum sizes you want to request. \param[in]
 		/// optimize signifies if we should we try to collapse multiple memory::segments into one segment if possible,
 		/// avoiding fragmentation and overhead.
-		[[nodiscard]] std::vector<std::pair<memory::segment, memory::range>> reserve(std::vector<vk::DeviceSize> sizes,
+		[[nodiscard]] std::vector<std::pair<memory::segment, memory::range_t>> reserve(std::vector<vk::DeviceSize> sizes,
 																					 bool optimize = false);
 
 
@@ -97,7 +97,7 @@ namespace core::ivk
 		/// you copy over the resources to a new, smaller buffer. Check copy_from() for that.
 		bool deallocate(memory::segment& segment);
 		// bool map(const memory::region& region, const memory::segment& segment);
-		// bool map(const memory::region& region, const memory::segment& segment, const memory::range& sub);
+		// bool map(const memory::region& region, const memory::segment& segment, const memory::range_t& sub);
 
 		// bool copy_from(const buffer& other, std::optional<vk::DeviceSize> size = {}, std::optional<vk::DeviceSize>
 		// dstOffset = {}, std::optional<vk::DeviceSize> srcOffset = {});
@@ -105,7 +105,7 @@ namespace core::ivk
 		/// \param[in] other the buffer to copy from into this instance.
 		/// \param[in] copyRegions the batch of copy instructions.
 		/// \returns true in case the instructions were successfully uploaded to the GPU.
-		bool copy_from(const buffer& other, const std::vector<vk::BufferCopy>& copyRegions);
+		bool copy_from(const buffer_t& other, const std::vector<vk::BufferCopy>& copyRegions);
 
 		// bool set(const void* data, vk::DeviceSize size, std::optional<vk::DeviceSize> dstOffset = {},
 		// std::optional<vk::DeviceSize> srcOffset = {});
@@ -123,7 +123,7 @@ namespace core::ivk
 		/// \param[in] compressed_copy when compressed is true, then the buffer will collapse all empty regions and
 		/// return a buffer that is the size of all actual committed memory. \returns a handle to a HOST_VISIBLE buffer
 		/// on success.
-		std::optional<resource::handle<buffer>> copy_to_host(bool compressed_copy = true) const;
+		std::optional<resource::handle<buffer_t>> copy_to_host(bool compressed_copy = true) const;
 
 		// this variation creates a new buffer that consists out of the regions you wanted to copy from.
 
@@ -131,13 +131,13 @@ namespace core::ivk
 		/// \param[in] copyRegions the regions the new buffer will consist out of. The new buffer will be the size of
 		/// the accumulate size of the copyRegions (+ alignment rules). \returns a handle to a HOST_VISIBLE buffer on
 		/// success.
-		std::optional<resource::handle<buffer>> copy_to_host(const std::vector<vk::BufferCopy>& copyRegions) const;
+		std::optional<resource::handle<buffer_t>> copy_to_host(const std::vector<vk::BufferCopy>& copyRegions) const;
 
 		/// \returns the vk::Buffer handle.
 		const vk::Buffer& gpu_buffer() const;
 
 		/// \returns the internal buffer data.
-		core::resource::handle<core::data::buffer> data() const;
+		core::resource::handle<core::data::buffer_t> data() const;
 
 		/// \returns the vulkan descriptor buffer info.
 		vk::DescriptorBufferInfo& buffer_info();
@@ -153,9 +153,9 @@ namespace core::ivk
 		vk::Fence m_BufferCompleted;
 		vk::CommandBuffer m_CommandBuffer;
 
-		core::resource::handle<core::data::buffer> m_BufferDataHandle;
-		core::resource::handle<core::ivk::buffer> m_StagingBuffer;
-		core::resource::cache& m_Cache;
+		core::resource::handle<core::data::buffer_t> m_BufferDataHandle;
+		core::resource::handle<core::ivk::buffer_t> m_StagingBuffer;
+		core::resource::cache_t& m_Cache;
 
 		psl::UID m_UID;
 	};

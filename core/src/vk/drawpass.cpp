@@ -20,7 +20,7 @@ using namespace core::gfx;
 using namespace core::ivk;
 
 
-drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebuffer> framebuffer) :
+drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebuffer_t> framebuffer) :
 	m_Context(context), m_Framebuffer(framebuffer), m_UsingSwap(false)
 {
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
@@ -367,7 +367,7 @@ void drawpass::disconnect(psl::view_ptr<drawpass> pass) noexcept
 
 void drawpass::build_drawgroup(drawgroup& group,
 							   vk::CommandBuffer cmdBuffer,
-							   core::resource::handle<core::ivk::framebuffer> framebuffer,
+							   core::resource::handle<core::ivk::framebuffer_t> framebuffer,
 							   uint32_t index)
 {
 	for(auto& drawLayer : group.m_Group)

@@ -26,15 +26,15 @@ namespace core::ivk
 		void
 		dispatch(unsigned int num_groups_x, unsigned int num_groups_y, unsigned int num_groups_z = 1u) const noexcept;
 
-		psl::array<core::resource::handle<texture>> textures() const noexcept;
-		psl::array<core::resource::handle<buffer>> buffers() const noexcept;
+		psl::array<core::resource::handle<texture_t>> textures() const noexcept;
+		psl::array<core::resource::handle<buffer_t>> buffers() const noexcept;
 
 	  private:
-		psl::array<std::pair<uint32_t, core::resource::handle<texture>>> m_InputTextures;
-		psl::array<std::pair<uint32_t, core::resource::handle<buffer>>> m_InputBuffers;
+		psl::array<std::pair<uint32_t, core::resource::handle<texture_t>>> m_InputTextures;
+		psl::array<std::pair<uint32_t, core::resource::handle<buffer_t>>> m_InputBuffers;
 
-		psl::array<std::pair<uint32_t, core::resource::handle<texture>>> m_OutputTextures;
-		psl::array<std::pair<uint32_t, core::resource::handle<buffer>>> m_OutputBuffers;
+		psl::array<std::pair<uint32_t, core::resource::handle<texture_t>>> m_OutputTextures;
+		psl::array<std::pair<uint32_t, core::resource::handle<buffer_t>>> m_OutputBuffers;
 
 		vk::CommandBuffer m_CommandBuffer;
 	};

@@ -25,7 +25,7 @@ namespace psl
 	};
 
 	template <typename T, typename Storage = local_storage<8>>
-	struct buffer
+	struct buffer_t
 	{
 	  private:
 		using iterator					 = T*;
@@ -98,8 +98,8 @@ namespace psl
 
 
 	  public:
-		buffer() : first(nullptr), last(nullptr), m_Capacity(nullptr) {};
-		explicit buffer(size_t reserve, memory::region* region) noexcept :
+		buffer_t() : first(nullptr), last(nullptr), m_Capacity(nullptr) {};
+		explicit buffer_t(size_t reserve, memory::region* region) noexcept :
 			m_Allocator(region->allocator()),
 			m_Segment((reserve * sizeof(T) < SBO_Size) ? std::nullopt : m_Allocator->allocate(sizeof(T) * reserve)),
 			first((!m_Segment) ? (T*)m_Storage.storage() : (T*)m_Segment.value().range().begin),
@@ -108,7 +108,7 @@ namespace psl
 			fill(first, last);
 		};
 
-		buffer(std::initializer_list<T> values, memory::region* region) :
+		buffer_t(std::initializer_list<T> values, memory::region* region) :
 			m_Allocator(region->allocator()),
 			m_Segment((values.size() * sizeof(T) < SBO_Size) ? std::nullopt
 															 : m_Allocator->allocate(sizeof(T) * values.size())),
@@ -118,7 +118,7 @@ namespace psl
 			emplace_back(values);
 		}
 
-		buffer(const buffer& other) noexcept :
+		buffer_t(const buffer_t& other) noexcept :
 			m_Allocator(other.m_Allocator),
 			m_Segment((other.capacity() * sizeof(T) < SBO_Size) ? std::nullopt
 																: m_Allocator->allocate(sizeof(T) * other.capacity())),
@@ -128,7 +128,7 @@ namespace psl
 			for(size_t i = 0, count = other.size(); i < count; ++i) (*this)[i] = other[i];
 		};
 
-		buffer(buffer&& other) noexcept :
+		buffer_t(buffer_t&& other) noexcept :
 			// if it fits into the SBO, move it there, if not check if it's stored in the other's SBO
 			// and if is, allocate a new buffer, otherwise "hijack" the buffer
 			m_Allocator(other.m_Allocator),
@@ -145,7 +145,7 @@ namespace psl
 			other.m_Capacity  = nullptr;
 		};
 
-		~buffer()
+		~buffer_t()
 		{
 			clear();
 

@@ -19,19 +19,19 @@ namespace psl::ecs
 		main	   = 2
 	};
 
-	class state;
+	class state_t;
 
 	struct info
 	{
-		info(const state& state,
+		info(const state_t& state,
 			 std::chrono::duration<float> dTime,
 			 std::chrono::duration<float> rTime,
 			 size_t frame) noexcept :
 			state(state),
 			dTime(dTime), rTime(rTime), command_buffer(state), tick(tick) {};
 
-		const state& state;
-		command_buffer command_buffer;
+		const state_t& state;
+		command_buffer_t command_buffer;
 		std::chrono::duration<float> dTime;
 		std::chrono::duration<float> rTime;
 		size_t tick;
@@ -51,7 +51,7 @@ namespace psl::ecs::details
 	/// system would require several dependency_pack's.
 	class dependency_pack
 	{
-		friend class psl::ecs::state;
+		friend class psl::ecs::state_t;
 		template <std::size_t... Is, typename T>
 		auto create_dependency_filters(std::index_sequence<Is...>, psl::templates::type_container<T>)
 		{
@@ -134,7 +134,7 @@ namespace psl::ecs::details
 		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
 		{
 			orderby =
-			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state& state) {};
+			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>> {},
 									  psl::templates::type_container<T> {});
@@ -277,10 +277,10 @@ namespace psl::ecs::details
 		std::vector<component_key_t> on_break;
 
 		std::vector<std::function<psl::array<
-		  entity>::iterator(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state&)>>
+		  entity>::iterator(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)>>
 		  on_condition;
 
-		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state&)> orderby;
+		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)> orderby;
 		bool m_IsPartial = false;
 	};
 

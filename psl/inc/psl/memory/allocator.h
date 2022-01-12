@@ -10,7 +10,7 @@
 namespace memory
 {
 	class region;
-	class range;
+	class range_t;
 	/// \brief base class that defines the interface for an allocator.
 	class allocator_base
 	{
@@ -31,8 +31,8 @@ namespace memory
 
 		bool deallocate(segment& segment);
 
-		std::vector<range> committed();
-		std::vector<range> available();
+		std::vector<range_t> committed();
+		std::vector<range_t> available();
 		bool is_physically_backed() const noexcept { return m_IsPhysicallyBacked; };
 
 		size_t alignment() const noexcept;
@@ -42,16 +42,16 @@ namespace memory
 		void compact();
 
 	  protected:
-		bool commit(const range& range);
-		memory::range get_range() const;
+		bool commit(const range_t& range);
+		memory::range_t get_range() const;
 
 	  private:
 		region* m_Region {nullptr};
 		virtual std::optional<segment> do_allocate(region* region, std::size_t bytes) = 0;
 		virtual bool do_deallocate(segment& segment)								  = 0;
 		virtual void initialize([[maybe_unused]] region* region) {};
-		virtual std::vector<range> get_committed() const = 0;
-		virtual std::vector<range> get_available() const = 0;
+		virtual std::vector<range_t> get_committed() const = 0;
+		virtual std::vector<range_t> get_available() const = 0;
 		virtual void do_compact([[maybe_unused]] region* region) {};
 		virtual bool get_owns(const memory::segment& segment) const noexcept = 0;
 		const bool m_IsPhysicallyBacked {true};
@@ -68,12 +68,12 @@ namespace memory
 		std::optional<segment> do_allocate(region* region, std::size_t bytes) override;
 		bool do_deallocate(segment& segment) override;
 		void initialize(region* region) override;
-		std::vector<range> get_committed() const override;
-		std::vector<range> get_available() const override;
+		std::vector<range_t> get_committed() const override;
+		std::vector<range_t> get_available() const override;
 		void do_compact(region* region) override;
 		bool get_owns(const memory::segment& segment) const noexcept override;
-		std::list<range> m_Committed;
-		std::list<range> m_Free;
+		std::list<range_t> m_Committed;
+		std::list<range_t> m_Free;
 	};
 
 	/// \brief predifined block size allocator, much faster than most allocators, but can only allocate one sized
@@ -90,12 +90,12 @@ namespace memory
 		bool do_deallocate(segment& segment) override;
 		void initialize(region* region) override;
 
-		std::vector<range> get_committed() const override;
-		std::vector<range> get_available() const override;
+		std::vector<range_t> get_committed() const override;
+		std::vector<range_t> get_available() const override;
 
 		bool get_owns(const memory::segment& segment) const noexcept override;
 
-		std::vector<memory::range> m_Ranges;
+		std::vector<memory::range_t> m_Ranges;
 		std::stack<size_t> m_Free;
 		const size_t m_BlockSize;
 	};

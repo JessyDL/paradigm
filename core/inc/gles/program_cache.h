@@ -3,7 +3,7 @@
 
 namespace core::data
 {
-	class material;
+	class material_t;
 }
 
 namespace core::igles
@@ -13,7 +13,7 @@ namespace core::igles
 	class program_cache
 	{
 	  public:
-		program_cache(core::resource::cache& cache,
+		program_cache(core::resource::cache_t& cache,
 					  const core::resource::metadata& metaData,
 					  psl::meta::file* metaFile);
 		~program_cache() = default;
@@ -27,9 +27,9 @@ namespace core::igles
 		/// \returns a handle to a pipeline object.
 		/// \param[in] data the material containing the description of all bindings.
 		core::resource::handle<core::igles::program> get(const psl::UID& uid,
-														 core::resource::handle<core::data::material> data);
+														 core::resource::handle<core::data::material_t> data);
 
 	  private:
-		core::resource::cache* m_Cache;
+		core::resource::cache_t* m_Cache;
 	};
 }	 // namespace core::igles

@@ -13,7 +13,7 @@ namespace core::gfx
 namespace core::ivk
 {
 	class context;
-	class framebuffer;
+	class framebuffer_t;
 	class swapchain;
 }	 // namespace core::ivk
 
@@ -50,7 +50,7 @@ namespace core::ivk
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] framebuffer the valid and loaded framebuffer that this pass will output to.
 		drawpass(core::resource::handle<core::ivk::context> context,
-				 core::resource::handle<core::ivk::framebuffer> framebuffer);
+				 core::resource::handle<core::ivk::framebuffer_t> framebuffer);
 		/// \brief creates a pass that targets a swapchain image set.
 		/// \param[in] context the valid and loaded context to bind this pass to.
 		/// \param[in] swapchain the valid and loaded swapchain that this pass will output to.
@@ -99,7 +99,7 @@ namespace core::ivk
 	  private:
 		void build_drawgroup(core::gfx::drawgroup& group,
 							 vk::CommandBuffer cmdBuffer,
-							 core::resource::handle<core::ivk::framebuffer> framebuffer,
+							 core::resource::handle<core::ivk::framebuffer_t> framebuffer,
 							 uint32_t index);
 		void build_drawgroup(core::gfx::drawgroup& group,
 							 vk::CommandBuffer cmdBuffer,
@@ -112,7 +112,7 @@ namespace core::ivk
 		void destroy_fences();
 
 		core::resource::handle<core::ivk::context> m_Context;
-		core::resource::handle<core::ivk::framebuffer> m_Framebuffer;
+		core::resource::handle<core::ivk::framebuffer_t> m_Framebuffer;
 		core::resource::handle<core::ivk::swapchain> m_Swapchain;
 		const bool m_UsingSwap;
 		std::vector<core::gfx::drawgroup> m_AllGroups;

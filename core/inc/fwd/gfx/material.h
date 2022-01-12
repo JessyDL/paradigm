@@ -5,33 +5,33 @@
 #ifdef PE_VULKAN
 namespace core::ivk
 {
-	class material;
+	class material_t;
 }
 #endif
 
 #ifdef PE_GLES
 namespace core::igles
 {
-	class material;
+	class material_t;
 }
 #endif
 
 namespace core::gfx
 {
-	class material;
+	class material_t;
 
 #ifdef PE_VULKAN
 	template <>
-	struct backend_type<material, graphics_backend::vulkan>
+	struct backend_type<material_t, graphics_backend::vulkan>
 	{
-		using type = core::ivk::material;
+		using type = core::ivk::material_t;
 	};
 #endif
 #ifdef PE_GLES
 	template <>
-	struct backend_type<material, graphics_backend::gles>
+	struct backend_type<material_t, graphics_backend::gles>
 	{
-		using type = core::igles::material;
+		using type = core::igles::material_t;
 	};
 #endif
 }	 // namespace core::gfx

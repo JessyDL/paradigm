@@ -1,9 +1,11 @@
 #include "gles/context.h"
 #include "gfx/limits.h"
+#ifdef PLATFORM_WINDOWS
 #include "glad/glad_wgl.h"
+#include <Windows.h>
+#endif
 #include "logging.h"
 #include "os/surface.h"
-#include <Windows.h>
 
 HDC target;
 HWND hwnd;
@@ -24,7 +26,7 @@ void* glGetProcAddress(const char* name)
 	return p;
 }
 
-context::context(core::resource::cache& cache,
+context::context(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 psl::string8::view name)
@@ -101,7 +103,7 @@ context::context(core::resource::cache& cache,
 	m_Limits.memorymap.alignment = 4;
 #endif
 	m_Limits.memorymap.size		   = std::numeric_limits<uint64_t>::max();
-	m_Limits.supported_depthformat = core::gfx::format::d32_sfloat;
+	m_Limits.supported_depthformat = core::gfx::format_t::d32_sfloat;
 
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &value);
 	m_Limits.compute.workgroup.count[0] = value;

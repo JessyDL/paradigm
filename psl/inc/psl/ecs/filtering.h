@@ -8,7 +8,7 @@
 
 namespace psl::ecs
 {
-	class state;
+	class state_t;
 	namespace details
 	{
 		// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
@@ -16,10 +16,10 @@ namespace psl::ecs
 		{
 			using ordering_pred_t	 = void(psl::array<entity>::iterator,
 											psl::array<entity>::iterator,
-											const psl::ecs::state&);
+											const psl::ecs::state_t&);
 			using conditional_pred_t = psl::array<entity>::iterator(psl::array<entity>::iterator,
 																	psl::array<entity>::iterator,
-																	const psl::ecs::state&);
+																	const psl::ecs::state_t&);
 			template <typename T>
 			constexpr void selector(psl::templates::type_container<T>) noexcept
 			{}
@@ -29,8 +29,8 @@ namespace psl::ecs
 			{
 				order_by = [](psl::array<entity>::iterator begin,
 							  psl::array<entity>::iterator end,
-							  const psl::ecs::state& state) {
-					state.order_by<Pred, T>(std::execution::par, begin, end);
+							  const auto& state) {
+					state.template order_by<Pred, T>(std::execution::par, begin, end);
 				};
 			}
 
@@ -40,8 +40,8 @@ namespace psl::ecs
 			{
 				on_condition.emplace_back([](psl::array<entity>::iterator begin,
 											 psl::array<entity>::iterator end,
-											 const psl::ecs::state& state) -> psl::array<entity>::iterator {
-					return state.on_condition<Pred, T>(begin, end);
+											 const auto& state) -> psl::array<entity>::iterator {
+					return state.template on_condition<Pred, T>(begin, end);
 				});
 			}
 
@@ -60,7 +60,7 @@ namespace psl::ecs
 
 			psl::array<entity>::iterator transform(psl::array<entity>::iterator begin,
 												   psl::array<entity>::iterator end,
-												   const state& state) const noexcept
+												   const state_t& state) const noexcept
 			{
 				for(const auto& condition : on_condition) end = condition(begin, end, state);
 
@@ -131,7 +131,7 @@ namespace psl::ecs
 			template <typename... Ts>
 			constexpr void selector(psl::templates::type_container<on_condition<Ts...>>) noexcept
 			{}
-			friend class ::psl::ecs::state;
+			friend class ::psl::ecs::state_t;
 			filter_group() = default;
 			filter_group(psl::array<component_key_t> filters_arr,
 						 psl::array<component_key_t> on_add_arr,
@@ -293,15 +293,14 @@ namespace psl::ecs
 			}
 
 		  private:
-			friend class ::psl::ecs::state;
-			using component_key_t = psl::ecs::details::component_key_t;
+			friend class ::psl::ecs::state_t;
 
-			psl::array<component_key_t> filters;
-			psl::array<component_key_t> on_add;
-			psl::array<component_key_t> on_remove;
-			psl::array<component_key_t> except;
-			psl::array<component_key_t> on_combine;
-			psl::array<component_key_t> on_break;
+			psl::array<details::component_key_t> filters;
+			psl::array<details::component_key_t> on_add;
+			psl::array<details::component_key_t> on_remove;
+			psl::array<details::component_key_t> except;
+			psl::array<details::component_key_t> on_combine;
+			psl::array<details::component_key_t> on_break;
 		};
 
 		template <typename... Ts>
@@ -313,7 +312,7 @@ namespace psl::ecs
 		template <typename T>
 		auto make_filter_group(T)
 		{
-			static_assert(false);
+			static_assert(utility::templates::always_false_v<void>);
 		}
 
 		template <typename... Ts>
@@ -340,7 +339,7 @@ namespace psl::ecs
 		template <typename T>
 		auto make_transform_group(T)
 		{
-			static_assert(false);
+			static_assert(utility::templates::always_false_v<void>);
 		}
 
 		template <typename... Ts>

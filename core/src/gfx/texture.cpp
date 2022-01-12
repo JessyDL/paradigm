@@ -15,19 +15,19 @@ using namespace core::resource;
 
 
 #ifdef PE_VULKAN
-texture::texture(core::resource::handle<core::ivk::texture>& handle) :
+texture_t::texture_t(core::resource::handle<core::ivk::texture_t>& handle) :
 	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
 {}
 #endif
 #ifdef PE_GLES
-texture::texture(core::resource::handle<core::igles::texture>& handle) :
+texture_t::texture_t(core::resource::handle<core::igles::texture_t>& handle) :
 	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
 {}
 #endif
 
-texture::texture(core::resource::cache& cache,
+texture_t::texture_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
-				 core::meta::texture* metaFile,
+				 core::meta::texture_t* metaFile,
 				 core::resource::handle<core::gfx::context> context) :
 	m_Backend(context->backend())
 {
@@ -36,20 +36,24 @@ texture::texture(core::resource::cache& cache,
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_VKHandle =
-		  cache.create_using<core::ivk::texture>(metaData.uid, context->resource<graphics_backend::vulkan>());
+		  cache.create_using<core::ivk::texture_t>(metaData.uid, context->resource<graphics_backend::vulkan>());
 		break;
 #endif
 #ifdef PE_GLES
 	case graphics_backend::gles:
-		m_GLESHandle = cache.create_using<core::igles::texture>(metaData.uid);
+		m_GLESHandle = cache.create_using<core::igles::texture_t>(metaData.uid);
 		break;
 #endif
 	}
 }
 
-texture::~texture() {}
+texture_t::~texture_t() {}
 
-const core::meta::texture& texture::meta() const noexcept
+[[noreturn]] void fail_backend(){
+	throw std::runtime_error("no backend present");
+}
+
+const core::meta::texture_t& texture_t::meta() const noexcept
 {
 #ifdef PE_VULKAN
 	if(m_Backend == graphics_backend::vulkan) return m_VKHandle->meta();
@@ -57,4 +61,5 @@ const core::meta::texture& texture::meta() const noexcept
 #ifdef PE_GLES
 	if(m_Backend == graphics_backend::gles) return m_GLESHandle->meta();
 #endif
+	fail_backend();
 }

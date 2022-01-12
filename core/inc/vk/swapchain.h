@@ -10,21 +10,21 @@ namespace core::os
 
 namespace core::ivk
 {
-	class texture;
+	class texture_t;
 	class context;
-	class framebuffer;
+	class framebuffer_t;
 }	 // namespace core::ivk
 
 namespace core::data
 {
-	class framebuffer;
+	class framebuffer_t;
 }
 
 namespace core::ivk
 {
 	/// \brief describes a framebuffer that is specially handled and created by the driver
 	///
-	/// swpachains can be considered special core::ivk::framebuffer's, with some special
+	/// swpachains can be considered special core::ivk::framebuffer_t's, with some special
 	/// pecularities. For example, unlike framebuffer's, you have to request the next image
 	/// from the driver for a swapchain, and there are many more restrictions on both format
 	/// and size imposed on swapchains.
@@ -33,7 +33,7 @@ namespace core::ivk
 		friend class core::os::surface;
 
 	  public:
-		swapchain(core::resource::cache& cache,
+		swapchain(core::resource::cache_t& cache,
 				  const core::resource::metadata& metaData,
 				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,
@@ -136,8 +136,8 @@ namespace core::ivk
 
 		uint32_t m_CurrentImage = 0;
 
-		core::resource::cache& m_Cache;
-		core::resource::handle<core::ivk::texture> m_DepthTextureHandle;
+		core::resource::cache_t& m_Cache;
+		core::resource::handle<core::ivk::texture_t> m_DepthTextureHandle;
 
 		const bool m_UseDepth;
 		vk::ClearColorValue m_ClearColor {std::array<float, 4> {0.25f, 0.4f, 0.95f, 1.0f}};

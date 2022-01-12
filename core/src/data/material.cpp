@@ -7,99 +7,99 @@
 using namespace psl;
 using namespace core::data;
 
-material::material(core::resource::cache& cache,
+material_t::material_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile) noexcept
 {}
-// material::material(const material& other, const UID& uid, core::resource::cache& cache)
+// material_t::material_t(const material_t& other, const UID& uid, core::resource::cache_t& cache)
 //	: m_Stage(other.m_Stage), m_BlendStates(other.m_BlendStates), m_Defines(other.m_Defines),
 //	m_Culling(other.m_Culling), m_DepthCompareOp(other.m_DepthCompareOp), m_DepthTest(other.m_DepthTest),
 //	m_DepthWrite(other.m_DepthWrite), m_Wireframe(other.m_Wireframe)
 //{
 //
 //};
-material ::~material() {}
+material_t::~material_t() {}
 
 // blendstate
-bool material::blendstate::enabled() const { return m_Enabled.value; }
-uint32_t material::blendstate::binding() const { return m_Binding.value; }
-core::gfx::blend_factor material::blendstate::color_blend_src() const { return m_ColorBlendFactorSrc.value; }
-core::gfx::blend_factor material::blendstate::color_blend_dst() const { return m_ColorBlendFactorDst.value; }
-core::gfx::blend_op material::blendstate::color_blend_op() const { return m_ColorBlendOp.value; }
-core::gfx::blend_factor material::blendstate::alpha_blend_src() const { return m_AlphaBlendFactorSrc.value; }
-core::gfx::blend_factor material::blendstate::alpha_blend_dst() const { return m_AlphaBlendFactorDst.value; }
-core::gfx::blend_op material::blendstate::alpha_blend_op() const { return m_AlphaBlendOp.value; }
-core::gfx::component_bits material::blendstate::color_components() const { return m_ColorComponents.value; }
+bool material_t::blendstate::enabled() const { return m_Enabled.value; }
+uint32_t material_t::blendstate::binding() const { return m_Binding.value; }
+core::gfx::blend_factor material_t::blendstate::color_blend_src() const { return m_ColorBlendFactorSrc.value; }
+core::gfx::blend_factor material_t::blendstate::color_blend_dst() const { return m_ColorBlendFactorDst.value; }
+core::gfx::blend_op material_t::blendstate::color_blend_op() const { return m_ColorBlendOp.value; }
+core::gfx::blend_factor material_t::blendstate::alpha_blend_src() const { return m_AlphaBlendFactorSrc.value; }
+core::gfx::blend_factor material_t::blendstate::alpha_blend_dst() const { return m_AlphaBlendFactorDst.value; }
+core::gfx::blend_op material_t::blendstate::alpha_blend_op() const { return m_AlphaBlendOp.value; }
+core::gfx::component_bits material_t::blendstate::color_components() const { return m_ColorComponents.value; }
 
-void material::blendstate::enabled(bool value) { m_Enabled.value = value; }
-void material::blendstate::binding(uint32_t value) { m_Binding.value = value; }
-void material::blendstate::color_blend_src(core::gfx::blend_factor value) { m_ColorBlendFactorSrc.value = value; }
-void material::blendstate::color_blend_dst(core::gfx::blend_factor value) { m_ColorBlendFactorDst.value = value; }
-void material::blendstate::color_blend_op(core::gfx::blend_op value) { m_ColorBlendOp.value = value; }
-void material::blendstate::alpha_blend_src(core::gfx::blend_factor value) { m_AlphaBlendFactorSrc.value = value; }
-void material::blendstate::alpha_blend_dst(core::gfx::blend_factor value) { m_AlphaBlendFactorDst.value = value; }
-void material::blendstate::alpha_blend_op(core::gfx::blend_op value) { m_AlphaBlendOp.value = value; }
-void material::blendstate::color_components(core::gfx::component_bits value) { m_ColorComponents.value = value; }
+void material_t::blendstate::enabled(bool value) { m_Enabled.value = value; }
+void material_t::blendstate::binding(uint32_t value) { m_Binding.value = value; }
+void material_t::blendstate::color_blend_src(core::gfx::blend_factor value) { m_ColorBlendFactorSrc.value = value; }
+void material_t::blendstate::color_blend_dst(core::gfx::blend_factor value) { m_ColorBlendFactorDst.value = value; }
+void material_t::blendstate::color_blend_op(core::gfx::blend_op value) { m_ColorBlendOp.value = value; }
+void material_t::blendstate::alpha_blend_src(core::gfx::blend_factor value) { m_AlphaBlendFactorSrc.value = value; }
+void material_t::blendstate::alpha_blend_dst(core::gfx::blend_factor value) { m_AlphaBlendFactorDst.value = value; }
+void material_t::blendstate::alpha_blend_op(core::gfx::blend_op value) { m_AlphaBlendOp.value = value; }
+void material_t::blendstate::color_components(core::gfx::component_bits value) { m_ColorComponents.value = value; }
 
 // attribute
-uint32_t material::attribute::location() const noexcept { return m_Location.value; }
-void material::attribute::location(uint32_t value) noexcept { m_Location.value = value; }
+uint32_t material_t::attribute::location() const noexcept { return m_Location.value; }
+void material_t::attribute::location(uint32_t value) noexcept { m_Location.value = value; }
 
-const psl::UID& material::attribute::buffer() const noexcept { return m_Buffer; }
-void material::attribute::buffer(psl::UID value) noexcept { m_Buffer = std::move(value); }
+const psl::UID& material_t::attribute::buffer() const noexcept { return m_Buffer; }
+void material_t::attribute::buffer(psl::UID value) noexcept { m_Buffer = std::move(value); }
 
-psl::string_view material::attribute::tag() const noexcept { return m_Tag; }
-void material::attribute::tag(psl::string8_t value) noexcept { m_Tag = std::move(value); }
+psl::string_view material_t::attribute::tag() const noexcept { return m_Tag; }
+void material_t::attribute::tag(psl::string8_t value) noexcept { m_Tag = std::move(value); }
 
-const std::optional<core::gfx::vertex_input_rate>& material::attribute::input_rate() const noexcept
+const std::optional<core::gfx::vertex_input_rate>& material_t::attribute::input_rate() const noexcept
 {
 	return m_InputRate;
 }
-void material::attribute::input_rate(core::gfx::vertex_input_rate value) noexcept { m_InputRate = value; }
+void material_t::attribute::input_rate(core::gfx::vertex_input_rate value) noexcept { m_InputRate = value; }
 
 // binding
-uint32_t material::binding::binding_slot() const { return m_Binding.value; }
-core::gfx::binding_type material::binding::descriptor() const { return m_Description.value; }
-const UID& material::binding::texture() const { return m_UID; }
-const UID& material::binding::sampler() const { return m_SamplerUID; }
-const UID& material::binding::buffer() const { return m_Buffer; }
+uint32_t material_t::binding::binding_slot() const { return m_Binding.value; }
+core::gfx::binding_type material_t::binding::descriptor() const { return m_Description.value; }
+const UID& material_t::binding::texture() const { return m_UID; }
+const UID& material_t::binding::sampler() const { return m_SamplerUID; }
+const UID& material_t::binding::buffer() const { return m_Buffer; }
 
-void material::binding::binding_slot(uint32_t value) { m_Binding.value = value; }
-void material::binding::descriptor(core::gfx::binding_type value) { m_Description.value = value; }
-void material::binding::texture(const UID& value, psl::string_view tag)
+void material_t::binding::binding_slot(uint32_t value) { m_Binding.value = value; }
+void material_t::binding::descriptor(core::gfx::binding_type value) { m_Description.value = value; }
+void material_t::binding::texture(const UID& value, psl::string_view tag)
 {
 	m_UID	 = value;
 	m_UIDTag = tag;
 }
-void material::binding::sampler(const UID& value, psl::string_view tag)
+void material_t::binding::sampler(const UID& value, psl::string_view tag)
 {
 	m_SamplerUID	= value;
 	m_SamplerUIDTag = tag;
 }
-void material::binding::buffer(const UID& value, psl::string_view tag)
+void material_t::binding::buffer(const UID& value, psl::string_view tag)
 {
 	m_Buffer	= value;
 	m_BufferTag = tag;
 }
 // stage
-core::gfx::shader_stage material::stage::shader_stage() const noexcept { return m_Stage.value; }
-const UID& material::stage::shader() const noexcept { return m_Shader.value; }
-const psl::array<material::binding>& material::stage::bindings() const noexcept { return m_Bindings.value; }
+core::gfx::shader_stage material_t::stage::shader_stage() const noexcept { return m_Stage.value; }
+const UID& material_t::stage::shader() const noexcept { return m_Shader.value; }
+const psl::array<material_t::binding>& material_t::stage::bindings() const noexcept { return m_Bindings.value; }
 
-void material::stage::shader(core::gfx::shader_stage stage, const UID& value) noexcept
+void material_t::stage::shader(core::gfx::shader_stage stage, const UID& value) noexcept
 {
 	m_Stage.value  = stage;
 	m_Shader.value = value;
 }
-void material::stage::bindings(psl::array<binding> value) noexcept { m_Bindings.value = std::move(value); }
+void material_t::stage::bindings(psl::array<binding> value) noexcept { m_Bindings.value = std::move(value); }
 
-const psl::array<material::attribute>& material::stage::attributes() const noexcept { return m_Attributes.value; }
-void material::stage::attributes(psl::array<material::attribute> value) noexcept
+const psl::array<material_t::attribute>& material_t::stage::attributes() const noexcept { return m_Attributes.value; }
+void material_t::stage::attributes(psl::array<material_t::attribute> value) noexcept
 {
 	m_Attributes.value = std::move(value);
 }
 
-void material::stage::set(const binding& value)
+void material_t::stage::set(const binding& value)
 {
 	auto it = std::find_if(std::begin(m_Bindings.value), std::end(m_Bindings.value), [&value](const binding& element) {
 		return element.binding_slot() == value.binding_slot();
@@ -109,7 +109,7 @@ void material::stage::set(const binding& value)
 	else
 		*it = value;
 }
-void material::stage::erase(const binding& value)
+void material_t::stage::erase(const binding& value)
 {
 	auto it = std::find_if(std::begin(m_Bindings.value), std::end(m_Bindings.value), [&value](const binding& element) {
 		return element.binding_slot() == value.binding_slot();
@@ -117,28 +117,28 @@ void material::stage::erase(const binding& value)
 	if(it != std::end(m_Bindings.value)) m_Bindings.value.erase(it);
 }
 // material
-const psl::array<material::stage>& material::stages() const { return m_Stage.value; }
-const psl::array<material::blendstate>& material::blend_states() const { return m_BlendStates.value; }
-const psl::array<psl::string8_t>& material::defines() const { return m_Defines.value; }
-core::gfx::cullmode material::cull_mode() const { return m_Culling.value; }
-core::gfx::compare_op material::depth_compare_op() const { return m_DepthCompareOp.value; }
-uint32_t material::render_layer() const { return m_RenderLayer.value; }
-bool material::depth_test() const { return m_DepthTest.value; }
-bool material::depth_write() const { return m_DepthWrite.value; }
-bool material::wireframe() const { return m_Wireframe.value; }
+const psl::array<material_t::stage>& material_t::stages() const { return m_Stage.value; }
+const psl::array<material_t::blendstate>& material_t::blend_states() const { return m_BlendStates.value; }
+const psl::array<psl::string8_t>& material_t::defines() const { return m_Defines.value; }
+core::gfx::cullmode material_t::cull_mode() const { return m_Culling.value; }
+core::gfx::compare_op material_t::depth_compare_op() const { return m_DepthCompareOp.value; }
+uint32_t material_t::render_layer() const { return m_RenderLayer.value; }
+bool material_t::depth_test() const { return m_DepthTest.value; }
+bool material_t::depth_write() const { return m_DepthWrite.value; }
+bool material_t::wireframe() const { return m_Wireframe.value; }
 
-void material::stages(const psl::array<stage>& values) { m_Stage.value = values; }
-void material::blend_states(const psl::array<blendstate>& values) { m_BlendStates.value = values; }
-void material::defines(const psl::array<psl::string8_t>& values) { m_Defines.value = values; }
-void material::cull_mode(core::gfx::cullmode value) { m_Culling.value = value; }
-void material::depth_compare_op(core::gfx::compare_op value) { m_DepthCompareOp.value = value; }
-void material::render_layer(uint32_t value) { m_RenderLayer.value = value; }
-void material::depth_test(bool value) { m_DepthTest.value = value; }
-void material::depth_write(bool value) { m_DepthWrite.value = value; }
-void material::wireframe(bool value) { m_Wireframe.value = value; }
+void material_t::stages(const psl::array<stage>& values) { m_Stage.value = values; }
+void material_t::blend_states(const psl::array<blendstate>& values) { m_BlendStates.value = values; }
+void material_t::defines(const psl::array<psl::string8_t>& values) { m_Defines.value = values; }
+void material_t::cull_mode(core::gfx::cullmode value) { m_Culling.value = value; }
+void material_t::depth_compare_op(core::gfx::compare_op value) { m_DepthCompareOp.value = value; }
+void material_t::render_layer(uint32_t value) { m_RenderLayer.value = value; }
+void material_t::depth_test(bool value) { m_DepthTest.value = value; }
+void material_t::depth_write(bool value) { m_DepthWrite.value = value; }
+void material_t::wireframe(bool value) { m_Wireframe.value = value; }
 
 
-void material::set(const stage& value)
+void material_t::set(const stage& value)
 {
 	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value), [&value](const stage& element) {
 		return element.shader_stage() == value.shader_stage();
@@ -148,7 +148,7 @@ void material::set(const stage& value)
 	else
 		*it = value;
 }
-void material::set(const blendstate& value)
+void material_t::set(const blendstate& value)
 {
 	auto it = std::find_if(std::begin(m_BlendStates.value),
 						   std::end(m_BlendStates.value),
@@ -158,33 +158,33 @@ void material::set(const blendstate& value)
 	else
 		*it = value;
 }
-void material::define(psl::string8::view value)
+void material_t::define(psl::string8::view value)
 {
 	auto it = std::find(std::begin(m_Defines.value), std::end(m_Defines.value), value);
 	if(it == std::end(m_Defines.value)) m_Defines.value.emplace_back(value);
 }
 
-void material::erase(const stage& value)
+void material_t::erase(const stage& value)
 {
 	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value), [&value](const stage& element) {
 		return element.shader_stage() == value.shader_stage();
 	});
 	if(it != std::end(m_Stage.value)) m_Stage.value.erase(it);
 }
-void material::erase(const blendstate& value)
+void material_t::erase(const blendstate& value)
 {
 	auto it = std::find_if(std::begin(m_BlendStates.value),
 						   std::end(m_BlendStates.value),
 						   [&value](const blendstate& element) { return element.binding() == value.binding(); });
 	if(it != std::end(m_BlendStates.value)) m_BlendStates.value.erase(it);
 }
-void material::undefine(psl::string8::view value)
+void material_t::undefine(psl::string8::view value)
 {
 	auto it = std::find(std::begin(m_Defines.value), std::end(m_Defines.value), value);
 	if(it == std::end(m_Defines.value)) m_Defines.value.erase(it);
 }
 
-void material::from_shaders(const psl::meta::library& library, psl::array<core::meta::shader*> shaderMetas)
+void material_t::from_shaders(const psl::meta::library& library, psl::array<core::meta::shader*> shaderMetas)
 {
 	psl::array<stage>& stages = m_Stage.value;
 	for(auto shader : shaderMetas)
@@ -219,7 +219,7 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 		psl::string_view instance_designator = "INSTANCE_";
 		psl::array<attribute> attributes;
 
-		using constants = core::data::geometry::constants;
+		using constants = core::data::geometry_t::constants;
 
 		for(const auto& input : shader->inputs())
 		{
@@ -231,17 +231,17 @@ void material::from_shaders(const psl::meta::library& library, psl::array<core::
 
 				// todo we should figure out a way to configure these in a clean maner
 				if(input.name() == "iPos" || input.name() == constants::POSITION)
-					attribute.tag(psl::string {core::data::geometry::constants::POSITION});
+					attribute.tag(psl::string {core::data::geometry_t::constants::POSITION});
 				else if(input.name() == "iNorm" || input.name() == constants::NORMAL)
-					attribute.tag(psl::string {core::data::geometry::constants::NORMAL});
+					attribute.tag(psl::string {core::data::geometry_t::constants::NORMAL});
 				else if(input.name() == "iCol" || input.name() == constants::COLOR)
-					attribute.tag(psl::string {core::data::geometry::constants::COLOR});
+					attribute.tag(psl::string {core::data::geometry_t::constants::COLOR});
 				else if(input.name() == "iTan" || input.name() == constants::TANGENT)
-					attribute.tag(psl::string {core::data::geometry::constants::TANGENT});
+					attribute.tag(psl::string {core::data::geometry_t::constants::TANGENT});
 				else if(input.name() == "iBiTan" || input.name() == constants::BITANGENT)
-					attribute.tag(psl::string {core::data::geometry::constants::BITANGENT});
+					attribute.tag(psl::string {core::data::geometry_t::constants::BITANGENT});
 				else if(input.name() == "iTex" || input.name() == constants::TEX)
-					attribute.tag(psl::string {core::data::geometry::constants::TEX});
+					attribute.tag(psl::string {core::data::geometry_t::constants::TEX});
 				else if(input.name() == core::gfx::constants::INSTANCE_MODELMATRIX ||
 						input.name() == core::gfx::constants::INSTANCE_LEGACY_MODELMATRIX)
 				{

@@ -13,7 +13,7 @@ namespace core::igles
 	class context
 	{
 	  public:
-		context(core::resource::cache& cache,
+		context(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				psl::string8::view name);

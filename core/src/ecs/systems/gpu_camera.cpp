@@ -13,7 +13,7 @@ using namespace psl::math;
 #undef far
 
 
-gpu_camera::gpu_camera(psl::ecs::state& state,
+gpu_camera::gpu_camera(psl::ecs::state_t& state,
 					   core::resource::handle<core::os::surface> surface,
 					   core::resource::handle<core::gfx::shader_buffer_binding> binding,
 					   core::gfx::graphics_backend backend) :
@@ -76,5 +76,5 @@ void gpu_camera::update_buffer(size_t index,
 	m_Binding->buffer->commit({core::gfx::commit_instruction {
 	  &fdata,
 	  m_Binding->segment,
-	  memory::range {index * m_Binding->region.alignment(), (index + 1) * m_Binding->region.alignment()}}});
+	  memory::range_t {index * m_Binding->region.alignment(), (index + 1) * m_Binding->region.alignment()}}});
 }

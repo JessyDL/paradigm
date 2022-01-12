@@ -5,37 +5,37 @@
 
 namespace core::data
 {
-	class sampler;
+	class sampler_t;
 }
 
 namespace core::gfx
 {
 	class context;
 
-	class sampler
+	class sampler_t
 	{
 	  public:
 #ifdef PE_VULKAN
-		explicit sampler(core::resource::handle<core::ivk::sampler>& handle);
+		explicit sampler_t(core::resource::handle<core::ivk::sampler_t>& handle);
 #endif
 #ifdef PE_GLES
-		explicit sampler(core::resource::handle<core::igles::sampler>& handle);
+		explicit sampler_t(core::resource::handle<core::igles::sampler_t>& handle);
 #endif
 
-		sampler(core::resource::cache& cache,
+		sampler_t(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				core::resource::handle<core::gfx::context> context,
-				core::resource::handle<core::data::sampler> sampler_data);
-		~sampler() = default;
+				core::resource::handle<core::data::sampler_t> sampler_data);
+		~sampler_t() = default;
 
-		sampler(const sampler& other)	  = delete;
-		sampler(sampler&& other) noexcept = delete;
-		sampler& operator=(const sampler& other) = delete;
-		sampler& operator=(sampler&& other) noexcept = delete;
+		sampler_t(const sampler_t& other)	  = delete;
+		sampler_t(sampler_t&& other) noexcept = delete;
+		sampler_t& operator=(const sampler_t& other) = delete;
+		sampler_t& operator=(sampler_t&& other) noexcept = delete;
 
 		template <core::gfx::graphics_backend backend>
-		core::resource::handle<backend_type_t<sampler, backend>> resource() const noexcept
+		core::resource::handle<backend_type_t<sampler_t, backend>> resource() const noexcept
 		{
 #ifdef PE_VULKAN
 			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
@@ -48,10 +48,10 @@ namespace core::gfx
 	  private:
 		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
-		core::resource::handle<core::ivk::sampler> m_VKHandle;
+		core::resource::handle<core::ivk::sampler_t> m_VKHandle;
 #endif
 #ifdef PE_GLES
-		core::resource::handle<core::igles::sampler> m_GLESHandle;
+		core::resource::handle<core::igles::sampler_t> m_GLESHandle;
 #endif
 	};
 }	 // namespace core::gfx

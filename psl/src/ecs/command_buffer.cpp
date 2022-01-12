@@ -4,10 +4,10 @@
 
 using namespace psl::ecs;
 
-command_buffer::command_buffer(const state& state) : m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
+command_buffer_t::command_buffer_t(const state_t& state) : m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
 
 
-details::component_info* command_buffer::get_component_info(details::component_key_t key) noexcept
+details::component_info* command_buffer_t::get_component_info(details::component_key_t key) noexcept
 {
 	auto it = std::find_if(
 	  std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo) { return cInfo->id() == key; });
@@ -17,7 +17,7 @@ details::component_info* command_buffer::get_component_info(details::component_k
 
 
 // empty construction
-void command_buffer::add_component_impl(details::component_key_t key,
+void command_buffer_t::add_component_impl(details::component_key_t key,
 										psl::array_view<std::pair<entity, entity>> entities,
 										size_t size)
 {
@@ -28,7 +28,7 @@ void command_buffer::add_component_impl(details::component_key_t key,
 
 
 // invocable based construction
-void command_buffer::add_component_impl(details::component_key_t key,
+void command_buffer_t::add_component_impl(details::component_key_t key,
 										psl::array_view<std::pair<entity, entity>> entities,
 										size_t size,
 										std::function<void(std::uintptr_t, size_t)> invocable)
@@ -45,7 +45,7 @@ void command_buffer::add_component_impl(details::component_key_t key,
 }
 
 // prototype based construction
-void command_buffer::add_component_impl(details::component_key_t key,
+void command_buffer_t::add_component_impl(details::component_key_t key,
 										psl::array_view<std::pair<entity, entity>> entities,
 										size_t size,
 										void* prototype)
@@ -67,7 +67,7 @@ void command_buffer::add_component_impl(details::component_key_t key,
 
 
 // empty construction
-void command_buffer::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
+void command_buffer_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
 {
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
@@ -76,7 +76,7 @@ void command_buffer::add_component_impl(details::component_key_t key, psl::array
 }
 
 // invocable based construction
-void command_buffer::add_component_impl(details::component_key_t key,
+void command_buffer_t::add_component_impl(details::component_key_t key,
 										psl::array_view<entity> entities,
 										size_t size,
 										std::function<void(std::uintptr_t, size_t)> invocable)
@@ -93,7 +93,7 @@ void command_buffer::add_component_impl(details::component_key_t key,
 }
 
 // prototype based construction
-void command_buffer::add_component_impl(details::component_key_t key,
+void command_buffer_t::add_component_impl(details::component_key_t key,
 										psl::array_view<entity> entities,
 										size_t size,
 										void* prototype,
@@ -124,7 +124,7 @@ void command_buffer::add_component_impl(details::component_key_t key,
 }
 
 
-void command_buffer::remove_component(details::component_key_t key,
+void command_buffer_t::remove_component(details::component_key_t key,
 									  psl::array_view<std::pair<entity, entity>> entities) noexcept
 {
 	auto it = std::find_if(
@@ -135,7 +135,7 @@ void command_buffer::remove_component(details::component_key_t key,
 }
 
 
-void command_buffer::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
+void command_buffer_t::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
 {
 	auto it = std::find_if(
 	  std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo) { return cInfo->id() == key; });
@@ -148,7 +148,7 @@ void command_buffer::remove_component(details::component_key_t key, psl::array_v
 
 // consider an alias feature
 // ie: alias transform = position, rotation, scale components
-void command_buffer::destroy(psl::array_view<entity> entities) noexcept
+void command_buffer_t::destroy(psl::array_view<entity> entities) noexcept
 {
 	/*for(auto& cInfo : m_Components)
 	{
@@ -169,7 +169,7 @@ void command_buffer::destroy(psl::array_view<entity> entities) noexcept
 	}
 }
 
-void command_buffer::destroy(entity entity) noexcept
+void command_buffer_t::destroy(entity entity) noexcept
 {
 	/*for(auto& cInfo : m_Components)
 	{

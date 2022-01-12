@@ -13,7 +13,7 @@ namespace core::igles
 	class swapchain
 	{
 	  public:
-		swapchain(core::resource::cache& cache,
+		swapchain(core::resource::cache_t& cache,
 				  const core::resource::metadata& metaData,
 				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,

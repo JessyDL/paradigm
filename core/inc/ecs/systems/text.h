@@ -14,11 +14,11 @@
 
 namespace core::data
 {
-	class geometry;
+	class geometry_t;
 }
 namespace psl::ecs
 {
-	class state;
+	class state_t;
 	struct info;
 
 	template <typename... Ts>
@@ -42,14 +42,14 @@ namespace core::ecs::systems
 		};
 
 	  public:
-		text(psl::ecs::state& state,
-			 core::resource::cache& cache,
+		text(psl::ecs::state_t& state,
+			 core::resource::cache_t& cache,
 			 core::resource::handle<core::gfx::context> context,
-			 core::resource::handle<core::gfx::buffer> vertexBuffer,
-			 core::resource::handle<core::gfx::buffer> indexBuffer,
+			 core::resource::handle<core::gfx::buffer_t> vertexBuffer,
+			 core::resource::handle<core::gfx::buffer_t> indexBuffer,
 			 core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
-			 core::resource::handle<core::gfx::buffer> materialBuffer,
-			 core::resource::handle<core::gfx::buffer> vertexInstanceBuffer,
+			 core::resource::handle<core::gfx::buffer_t> materialBuffer,
+			 core::resource::handle<core::gfx::buffer_t> vertexInstanceBuffer,
 			 core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer);
 		~text() = default;
 
@@ -77,14 +77,14 @@ namespace core::ecs::systems
 								   core::ecs::components::text,
 								   psl::ecs::on_remove<core::ecs::components::text>> pack);
 
-		core::resource::handle<core::data::geometry> create_text(psl::string_view text);
+		core::resource::handle<core::data::geometry_t> create_text(psl::string_view text);
 
 		psl::array<character_t> character_data;
-		core::resource::handle<core::gfx::texture> m_FontTexture;
+		core::resource::handle<core::gfx::texture_t> m_FontTexture;
 		core::resource::handle<core::gfx::context> m_Context;
-		core::resource::handle<core::gfx::buffer> m_VertexBuffer;
-		core::resource::handle<core::gfx::buffer> m_IndexBuffer;
+		core::resource::handle<core::gfx::buffer_t> m_VertexBuffer;
+		core::resource::handle<core::gfx::buffer_t> m_IndexBuffer;
 		core::resource::handle<core::gfx::bundle> m_Bundle;
-		core::resource::cache& m_Cache;
+		core::resource::cache_t& m_Cache;
 	};
 }	 // namespace core::ecs::systems

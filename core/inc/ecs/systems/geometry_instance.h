@@ -34,7 +34,7 @@ namespace core::ecs::systems
 		};
 
 	  public:
-		geometry_instancing(psl::ecs::state& state);
+		geometry_instancing(psl::ecs::state_t& state);
 		~geometry_instancing() = default;
 
 		geometry_instancing(const geometry_instancing& other)	  = delete;

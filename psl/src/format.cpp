@@ -34,31 +34,31 @@ collection_t& psl::format::data::reinterpret_as_collection() const { return *((c
 
 std::optional<value_range_t> data::as_value_range() const
 {
-	if(m_Type != type::VALUE_RANGE) return {};
+	if(m_Type != type_t::VALUE_RANGE) return {};
 	return *((value_range_t*)(buffer));
 }
 
 std::optional<value_t> data::as_value() const
 {
-	if(m_Type != type::VALUE) return {};
+	if(m_Type != type_t::VALUE) return {};
 	return *((value_t*)(&buffer));
 }
 
 std::optional<reference_t> data::as_reference() const
 {
-	if(m_Type != type::REFERENCE) return {};
+	if(m_Type != type_t::REFERENCE) return {};
 	return *((reference_t*)(&buffer));
 }
 
 std::optional<reference_range_t> data::as_reference_range() const
 {
-	if(m_Type != type::REFERENCE_RANGE) return {};
+	if(m_Type != type_t::REFERENCE_RANGE) return {};
 	return *((reference_range_t*)(buffer));
 }
 
 std::optional<collection_t> data::as_collection() const
 {
-	if(m_Type != type::COLLECTION) return {};
+	if(m_Type != type_t::COLLECTION) return {};
 	return *((collection_t*)(&buffer));
 }
 
@@ -90,17 +90,17 @@ size_t search(const psl::string8::view& content, const psl::string8::view& patte
 	return psl::string8_t::npos;
 }
 
-std::tuple<type, size_t> parse_type(const psl::string8::view& content, size_t node_content_begin_n)
+std::tuple<type_t, size_t> parse_type(const psl::string8::view& content, size_t node_content_begin_n)
 {
 	auto content_begin_n = content.find_first_not_of(constants::EMPTY_CHARACTERS, node_content_begin_n);
 	return std::make_tuple(
-	  (content.compare(content_begin_n, constants::HEAD_OPEN.size(), constants::HEAD_OPEN) == 0) ? type::COLLECTION
+	  (content.compare(content_begin_n, constants::HEAD_OPEN.size(), constants::HEAD_OPEN) == 0) ? type_t::COLLECTION
 	  : (content.compare(content_begin_n, constants::HEAD_OPEN.size(), constants::RANGE_OPEN) == 0)
 		? ((content.compare(content_begin_n + 1, constants::HEAD_OPEN.size(), constants::REFERENCE) == 0)
-			 ? type::REFERENCE_RANGE
-			 : type::VALUE_RANGE)
-	  : (content.compare(content_begin_n, constants::HEAD_OPEN.size(), constants::REFERENCE) == 0) ? type::REFERENCE
-																								   : type::VALUE,
+			 ? type_t::REFERENCE_RANGE
+			 : type_t::VALUE_RANGE)
+	  : (content.compare(content_begin_n, constants::HEAD_OPEN.size(), constants::REFERENCE) == 0) ? type_t::REFERENCE
+																								   : type_t::VALUE,
 	  content_begin_n);
 }
 
@@ -134,13 +134,13 @@ bool psl::format::container::remove(data& data)
 	nodes_t node_count		   = 1;
 	switch(data.m_Type)
 	{
-	case type::VALUE:
+	case type_t::VALUE:
 	{
 		content_shift_value = data.reinterpret_as_value().second.second;
 		content_shift_index = data.reinterpret_as_value().second.first;
 	}
 	break;
-	case type::VALUE_RANGE:
+	case type_t::VALUE_RANGE:
 	{
 		const auto& values = data.reinterpret_as_value_range();
 		if(values.size() > 0) content_shift_index = values[0].second.first;
@@ -150,7 +150,7 @@ bool psl::format::container::remove(data& data)
 		}
 	}
 	break;
-	case type::COLLECTION:
+	case type_t::COLLECTION:
 	{
 		const auto& children_n = data.reinterpret_as_collection();
 		nodes_t current		   = index;
@@ -159,13 +159,13 @@ bool psl::format::container::remove(data& data)
 		{
 			switch(m_NodeData[current].m_Type)
 			{
-			case type::VALUE:
+			case type_t::VALUE:
 			{
 				const auto& val		= m_NodeData[current].reinterpret_as_value();
 				content_shift_index = val.second.first;
 			}
 			break;
-			case type::VALUE_RANGE:
+			case type_t::VALUE_RANGE:
 			{
 				const auto& values = m_NodeData[current].reinterpret_as_value_range();
 				if(values.size() > 0)
@@ -188,13 +188,13 @@ bool psl::format::container::remove(data& data)
 		{
 			switch(m_NodeData[current].m_Type)
 			{
-			case type::VALUE:
+			case type_t::VALUE:
 			{
 				const auto& val		= m_NodeData[current].reinterpret_as_value();
 				content_shift_value = val.second.first + val.second.second - content_shift_index;
 			}
 			break;
-			case type::VALUE_RANGE:
+			case type_t::VALUE_RANGE:
 			{
 				const auto& values = m_NodeData[current].reinterpret_as_value_range();
 				if(values.size() > 0)
@@ -225,13 +225,13 @@ bool psl::format::container::remove(data& data)
 		{
 			switch(m_NodeData[i].m_Type)
 			{
-			case type::VALUE:
+			case type_t::VALUE:
 			{
 				auto& value = m_NodeData[i].reinterpret_as_value();
 				value.second.first -= content_shift_value;
 			}
 			break;
-			case type::VALUE_RANGE:
+			case type_t::VALUE_RANGE:
 			{
 				auto& values = *((value_range_t*)(m_NodeData[i].buffer));
 				for(auto& it : values)
@@ -249,7 +249,7 @@ bool psl::format::container::remove(data& data)
 
 	size_t name_shift_value = data.m_Name.second;
 	size_t name_shift_index = data.m_Name.first;
-	if(data.m_Type == type::COLLECTION)
+	if(data.m_Type == type_t::COLLECTION)
 	{
 		const auto& children_n = data.reinterpret_as_collection();
 		name_shift_value =
@@ -356,13 +356,13 @@ value_t psl::format::container::insert_content(psl::string8::view content, nodes
 		auto& previous = m_NodeData[rfind_n];
 		switch(previous.m_Type)
 		{
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			const auto& value	= previous.reinterpret_as_value();
 			content_shift_index = value.second.first + value.second.second;
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			const auto& values = previous.reinterpret_as_value_range();
 			if(values.size() > 0)
@@ -382,13 +382,13 @@ value_t psl::format::container::insert_content(psl::string8::view content, nodes
 	{
 		switch(m_NodeData[i].m_Type)
 		{
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			auto& value = m_NodeData[i].reinterpret_as_value();
 			value.second.first += content_shift_value;
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			auto& values = m_NodeData[i].reinterpret_as_value_range();
 			for(auto& it : values)
@@ -427,13 +427,13 @@ value_range_t psl::format::container::insert_content(std::vector<psl::string8::v
 		auto& previous = m_NodeData[rfind_n];
 		switch(previous.m_Type)
 		{
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			const auto& value	= previous.reinterpret_as_value();
 			content_shift_index = value.second.first + value.second.second;
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			const auto& values = previous.reinterpret_as_value_range();
 			if(values.size() > 0)
@@ -459,13 +459,13 @@ value_range_t psl::format::container::insert_content(std::vector<psl::string8::v
 	{
 		switch(m_NodeData[i].m_Type)
 		{
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			auto& value = m_NodeData[i].reinterpret_as_value();
 			value.second.first += content_shift_value;
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			auto& values = m_NodeData[i].reinterpret_as_value_range();
 			for(auto& it : values)
@@ -510,7 +510,7 @@ nodes_t psl::format::container::index_of(const data& data, psl::string8::view ch
 			name = std::next(name);
 			if(name == std::end(partNames)) return i;
 		}
-		else if(m_NodeData[i].m_Type == type::COLLECTION)
+		else if(m_NodeData[i].m_Type == type_t::COLLECTION)
 		{
 			i += m_NodeData[i].reinterpret_as_collection();
 		}
@@ -665,7 +665,7 @@ size_t container::parse(const psl::string8::view& content,
 		  constants::TAIL_OPEN + psl::string8_t(node_data[index].name()) + constants::TAIL_CLOSE;
 		switch(node_data[index].m_Type)
 		{
-		case type::COLLECTION:
+		case type_t::COLLECTION:
 		{
 			++depth;
 			if(depth == std::numeric_limits<children_t>::max())
@@ -676,7 +676,7 @@ size_t container::parse(const psl::string8::view& content,
 			collection_stack.push(collection_view(content_begin_n, (nodes_t)index));
 		}
 		break;
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			bool literal_value = is_literal(content, content_begin_n);
 			content_begin_n += (literal_value) ? constants::LITERAL_OPEN.size() : 0;
@@ -689,7 +689,7 @@ size_t container::parse(const psl::string8::view& content,
 			  value_t {literal_value, std::make_pair(m_Content.size() - content_size_n, content_size_n)};
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			auto offset_n = content_begin_n;
 			while(node_content_end_n == psl::string8_t::npos && offset_n != psl::string8_t::npos)
@@ -743,7 +743,7 @@ size_t container::parse(const psl::string8::view& content,
 			}
 		}
 		break;
-		case type::REFERENCE:
+		case type_t::REFERENCE:
 		{
 			reference_nodes.emplace_back((nodes_t)index);
 			content_begin_n =
@@ -754,7 +754,7 @@ size_t container::parse(const psl::string8::view& content,
 			memcpy(node_data[index]._data(), &ref, sizeof(psl::string8::view));
 		}
 		break;
-		case type::REFERENCE_RANGE:
+		case type_t::REFERENCE_RANGE:
 		{
 			reference_nodes.emplace_back((nodes_t)index);
 			auto offset_n = content_begin_n;
@@ -801,7 +801,7 @@ size_t container::parse(const psl::string8::view& content,
 			throw new std::runtime_error("invalid node detected");
 		}
 		size_t node_end_n = 0u;
-		if(node_data[index].m_Type == type::COLLECTION)
+		if(node_data[index].m_Type == type_t::COLLECTION)
 		{
 			node_end_n = content_begin_n;
 		}
@@ -838,7 +838,7 @@ void container::parse_references(container& container,
 {
 	for(const auto& it : reference_nodes)
 	{
-		if(data[it].m_Type == type::REFERENCE)
+		if(data[it].m_Type == type_t::REFERENCE)
 		{
 			psl::string8::view node_view;
 			memcpy(&node_view, data[it]._data(), sizeof(psl::string8::view));
@@ -864,11 +864,11 @@ container::~container()
 	for(int i = 0; i < m_NodeData.size(); ++i)
 	{
 		delete(m_NodeData[i].m_Handle);
-		if(m_NodeData[i].m_Type == type::REFERENCE_RANGE)
+		if(m_NodeData[i].m_Type == type_t::REFERENCE_RANGE)
 		{
 			m_NodeData[i].reinterpret_as_reference_range().~vector();
 		}
-		else if(m_NodeData[i].m_Type == type::VALUE_RANGE)
+		else if(m_NodeData[i].m_Type == type_t::VALUE_RANGE)
 		{
 			m_NodeData[i].reinterpret_as_value_range().~vector();
 		}
@@ -893,7 +893,7 @@ void container::unparent(data& node)
 
 std::optional<std::pair<bool, psl::string8::view>> data::as_value_content() const
 {
-	if(m_Type != type::VALUE) return {};
+	if(m_Type != type_t::VALUE) return {};
 	value_t* val = ((value_t*)(&buffer));
 	;
 	return std::make_pair(val->first, psl::string8::view {&root()->m_Content[val->second.first], val->second.second});
@@ -902,7 +902,7 @@ std::optional<std::pair<bool, psl::string8::view>> data::as_value_content() cons
 
 std::optional<std::vector<std::pair<bool, psl::string8::view>>> data::as_value_range_content() const
 {
-	if(m_Type != type::VALUE_RANGE) return {};
+	if(m_Type != type_t::VALUE_RANGE) return {};
 	value_range_t* val = ((value_range_t*)(buffer));
 	std::vector<std::pair<bool, psl::string8::view>> res;
 	res.reserve(val->size());
@@ -915,7 +915,7 @@ std::optional<std::vector<std::pair<bool, psl::string8::view>>> data::as_value_r
 
 bool psl::format::container::set_reference(psl::format::data& source, psl::format::data& target)
 {
-	if(source.m_Type != psl::format::type::REFERENCE) return false;
+	if(source.m_Type != psl::format::type_t::REFERENCE) return false;
 
 	reference_t* res = (reference_t*)(source._data());
 	*res			 = target.m_Handle;
@@ -942,7 +942,7 @@ nodes_t container::index_of(psl::string8::view name) const
 			++depth;
 			if(depth == partNames.size()) return i;
 		}
-		else if(m_NodeData[i].m_Type == type::COLLECTION)
+		else if(m_NodeData[i].m_Type == type_t::COLLECTION)
 		{
 			i += m_NodeData[i].reinterpret_as_collection();
 		}
@@ -972,7 +972,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		   constants::HEAD_CLOSE;
 	switch(m_Type)
 	{
-	case type::COLLECTION:
+	case type_t::COLLECTION:
 	{
 		if(settings.pretty_write)
 		{
@@ -984,7 +984,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 				const auto& node = (*root()).m_NodeData[i];
 				node.to_string(settings, out);
 				out += endl;
-				if(node.m_Type == type::COLLECTION)
+				if(node.m_Type == type_t::COLLECTION)
 				{
 					i += node.reinterpret_as_collection();
 				}
@@ -999,7 +999,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 			{
 				const auto& node = (*root()).m_NodeData[i + my_index];
 				node.to_string(settings, out);
-				if(node.m_Type == type::COLLECTION)
+				if(node.m_Type == type_t::COLLECTION)
 				{
 					i += node.reinterpret_as_collection();
 				}
@@ -1007,7 +1007,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		}
 	}
 	break;
-	case type::VALUE:
+	case type_t::VALUE:
 	{
 		auto val = as_value_content().value();
 		out += (val.first) ? constants::LITERAL_OPEN : "";
@@ -1015,7 +1015,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		out += (val.first) ? constants::LITERAL_CLOSE : "";
 	}
 	break;
-	case type::REFERENCE:
+	case type_t::REFERENCE:
 	{
 		auto val = as_reference().value();
 		if(val->m_Index == std::numeric_limits<nodes_t>().max())
@@ -1024,7 +1024,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 			out += constants::REFERENCE + root()->fullname(val->get());
 	}
 	break;
-	case type::VALUE_RANGE:
+	case type_t::VALUE_RANGE:
 	{
 		auto val = as_value_range_content().value();
 		out += constants::RANGE_OPEN;
@@ -1039,7 +1039,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		out += constants::RANGE_CLOSE;
 	}
 	break;
-	case type::REFERENCE_RANGE:
+	case type_t::REFERENCE_RANGE:
 	{
 		out += constants::RANGE_OPEN;
 		auto val = as_reference_range().value();
@@ -1073,7 +1073,7 @@ container* psl::format::data::root() const { return m_Handle->m_Container; }
 handle& container::add_value(psl::string8::view name, psl::string8::view content)
 {
 	auto [node_index, depth]	   = create(name);
-	m_NodeData[node_index].m_Type  = type::VALUE;
+	m_NodeData[node_index].m_Type  = type_t::VALUE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 
@@ -1085,7 +1085,7 @@ handle& container::add_value(psl::string8::view name, psl::string8::view content
 handle& container::add_value(data& parent, psl::string8::view name, psl::string8::view content)
 {
 	auto [node_index, depth]	   = create(parent, name);
-	m_NodeData[node_index].m_Type  = type::VALUE;
+	m_NodeData[node_index].m_Type  = type_t::VALUE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 
@@ -1097,7 +1097,7 @@ handle& container::add_value(data& parent, psl::string8::view name, psl::string8
 handle& container::add_value_range(psl::string8::view name, std::vector<psl::string8::view> content)
 {
 	auto [node_index, depth]	   = create(name);
-	m_NodeData[node_index].m_Type  = type::VALUE_RANGE;
+	m_NodeData[node_index].m_Type  = type_t::VALUE_RANGE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 
@@ -1109,7 +1109,7 @@ handle& container::add_value_range(psl::string8::view name, std::vector<psl::str
 handle& container::add_value_range(data& parent, psl::string8::view name, std::vector<psl::string8::view> content)
 {
 	auto [node_index, depth]	   = create(parent, name);
-	m_NodeData[node_index].m_Type  = type::VALUE_RANGE;
+	m_NodeData[node_index].m_Type  = type_t::VALUE_RANGE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 
@@ -1122,7 +1122,7 @@ handle& container::add_collection(psl::string8::view name)
 {
 	auto [node_index, depth] = create(name);
 
-	m_NodeData[node_index].m_Type  = type::COLLECTION;
+	m_NodeData[node_index].m_Type  = type_t::COLLECTION;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 	collection_t* children_n	   = new(m_NodeData[node_index]._data()) collection_t();
@@ -1134,7 +1134,7 @@ handle& container::add_collection(data& parent, psl::string8::view name)
 {
 	auto [node_index, depth] = create(parent, name);
 
-	m_NodeData[node_index].m_Type  = type::COLLECTION;
+	m_NodeData[node_index].m_Type  = type_t::COLLECTION;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 	collection_t* children_n	   = new(m_NodeData[node_index]._data()) collection_t();
@@ -1147,7 +1147,7 @@ handle& container::add_reference(psl::string8::view name, data& referencing)
 	reference_t ref_index	 = referencing.m_Handle;
 	auto [node_index, depth] = create(name);
 
-	m_NodeData[node_index].m_Type  = type::REFERENCE;
+	m_NodeData[node_index].m_Type  = type_t::REFERENCE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 	reference_t* res			   = new(m_NodeData[node_index]._data()) reference_t();
@@ -1160,7 +1160,7 @@ handle& container::add_reference(data& parent, psl::string8::view name, data& re
 	reference_t ref_index	 = referencing.m_Handle;
 	auto [node_index, depth] = create(parent, name);
 
-	m_NodeData[node_index].m_Type  = type::REFERENCE;
+	m_NodeData[node_index].m_Type  = type_t::REFERENCE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 	reference_t* res			   = new(m_NodeData[node_index]._data()) reference_t();
@@ -1175,7 +1175,7 @@ handle& container::add_reference_range(psl::string8::view name, std::vector<std:
 	for(auto i = 0u; i < referencing.size(); ++i) ref_indices.emplace_back(referencing[i].get().m_Handle);
 	auto [node_index, depth] = create(name);
 
-	m_NodeData[node_index].m_Type  = type::REFERENCE_RANGE;
+	m_NodeData[node_index].m_Type  = type_t::REFERENCE_RANGE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 	reference_range_t* res		   = new(m_NodeData[node_index]._data()) reference_range_t();
@@ -1192,7 +1192,7 @@ handle& container::add_reference_range(data& parent,
 	for(auto i = 0u; i < referencing.size(); ++i) ref_indices.emplace_back(referencing[i].get().m_Handle);
 	auto [node_index, depth] = create(parent, name);
 
-	m_NodeData[node_index].m_Type  = type::REFERENCE_RANGE;
+	m_NodeData[node_index].m_Type  = type_t::REFERENCE_RANGE;
 	m_NodeData[node_index].m_Name  = insert_name(name, node_index);
 	m_NodeData[node_index].m_Depth = depth;
 	reference_range_t* res		   = new(m_NodeData[node_index]._data()) reference_range_t();
@@ -1269,14 +1269,14 @@ psl::string8_t container::compact_header::build(const container& container)
 
 		switch(container.m_NodeData[i].m_Type)
 		{
-		case type::COLLECTION:
+		case type_t::COLLECTION:
 		{
 			info.count = 1;
 			auto val   = container.m_NodeData[i].as_collection().value();
 			info.offsets.emplace_back(val);
 		}
 		break;
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			info.count = 2;
 			auto val   = container.m_NodeData[i].as_value().value();
@@ -1284,14 +1284,14 @@ psl::string8_t container::compact_header::build(const container& container)
 			info.offsets.emplace_back(val.second.second);
 		}
 		break;
-		case type::REFERENCE:
+		case type_t::REFERENCE:
 		{
 			info.count = 1;
 			auto val   = container.m_NodeData[i].as_reference().value();
 			info.offsets.emplace_back(val->m_Index);
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			auto val = container.m_NodeData[i].as_value_range().value();
 			if(val.size() == 0)
@@ -1307,7 +1307,7 @@ psl::string8_t container::compact_header::build(const container& container)
 			}
 		}
 		break;
-		case type::REFERENCE_RANGE:
+		case type_t::REFERENCE_RANGE:
 		{
 			auto val = container.m_NodeData[i].as_reference_range().value();
 			if(val.size() == 0)
@@ -1402,18 +1402,18 @@ bool container::compact_header::try_decode(psl::string8::view source, psl::forma
 		data += sizeof(size_t) * content_header[i].offsets.size();
 		auto& node =
 		  target.m_NodeData.emplace_back(std::forward<psl::format::data>(psl::format::data(&target, (nodes_t)i)));
-		node.m_Type	 = (psl::format::type)entries[i].type;
+		node.m_Type	 = (psl::format::type_t)entries[i].type;
 		node.m_Name	 = std::make_pair(entries[i].name_start, entries[i].name_size);
 		node.m_Depth = (children_t)entries[i].depth;
 		switch(node.type())
 		{
-		case type::COLLECTION:
+		case type_t::COLLECTION:
 		{
 			auto& val = node.reinterpret_as_collection();
 			val		  = (collection_t)content_header[i].offsets[0];
 		}
 		break;
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			auto& val		  = node.reinterpret_as_value();
 			val.second.first  = content_header[i].offsets[0];
@@ -1421,7 +1421,7 @@ bool container::compact_header::try_decode(psl::string8::view source, psl::forma
 			content_end_value = val.second.first + val.second.second;
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			auto& val = node.reinterpret_as_value_range();
 			if(content_header[i].count == 0) continue;
@@ -1448,14 +1448,14 @@ bool container::compact_header::try_decode(psl::string8::view source, psl::forma
 		auto& node = target.m_NodeData[i];
 		switch(node.type())
 		{
-		case type::REFERENCE:
+		case type_t::REFERENCE:
 		{
 			size_t index = content_header[i].offsets[0];
 			auto& val	 = node.reinterpret_as_reference();
 			val			 = target.m_NodeData[index].m_Handle;
 		}
 		break;
-		case type::REFERENCE_RANGE:
+		case type_t::REFERENCE_RANGE:
 		{
 			auto& val = node.reinterpret_as_reference_range();
 			if(content_header[i].count == 0) continue;
@@ -1505,7 +1505,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 
 			switch(m_NodeData[i].m_Type)
 			{
-			case type::COLLECTION:
+			case type_t::COLLECTION:
 			{
 				if(setting.pretty_write)
 				{
@@ -1513,18 +1513,18 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 				}
 			}
 			break;
-			case type::VALUE:
+			case type_t::VALUE:
 			{
 				auto val = m_NodeData[i].as_value_content().value();
 				reserve += (val.first) ? constants::LITERAL_OPEN.size() + constants::LITERAL_CLOSE.size() : 0;
 			}
 			break;
-			case type::REFERENCE:
+			case type_t::REFERENCE:
 			{
 				reserve += constants::REFERENCE.size();
 			}
 			break;
-			case type::VALUE_RANGE:
+			case type_t::VALUE_RANGE:
 			{
 				auto val = m_NodeData[i].as_value_range_content().value();
 				reserve += constants::RANGE_OPEN.size() + constants::RANGE_CLOSE.size();
@@ -1535,7 +1535,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 				}
 			}
 			break;
-			case type::REFERENCE_RANGE:
+			case type_t::REFERENCE_RANGE:
 			{
 				reserve += constants::RANGE_OPEN.size() + constants::RANGE_CLOSE.size();
 				auto val = m_NodeData[i].as_reference_range().value();
@@ -1569,7 +1569,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 		{
 			m_NodeData[i].to_string(setting, res);
 			res += ((setting.pretty_write) ? "\n" : "");
-			if(m_NodeData[i].m_Type == type::COLLECTION)
+			if(m_NodeData[i].m_Type == type_t::COLLECTION)
 			{
 				i += m_NodeData[i].reinterpret_as_collection();
 			}
@@ -1598,7 +1598,7 @@ bool container::contains(psl::string8::view name) const
 			++depth;
 			if(depth == partNames.size()) return true;
 		}
-		else if(m_NodeData[i].m_Type == type::COLLECTION)
+		else if(m_NodeData[i].m_Type == type_t::COLLECTION)
 		{
 			i += m_NodeData[i].reinterpret_as_collection();
 		}
@@ -1619,7 +1619,7 @@ psl::string8_t container::fullname(const data& node) const
 		do
 		{
 			--it;
-			if(it->m_Type == type::COLLECTION)
+			if(it->m_Type == type_t::COLLECTION)
 			{
 				if(it->m_Depth < depth)
 				{
@@ -1635,7 +1635,7 @@ psl::string8_t container::fullname(const data& node) const
 }
 
 std::vector<data>::iterator
-rfind_last_index_of(std::vector<type> types, std::vector<data>::iterator first, std::vector<data>::iterator last)
+rfind_last_index_of(std::vector<type_t> types, std::vector<data>::iterator first, std::vector<data>::iterator last)
 {
 	for(auto it = last - 1; it != first; --it)
 	{
@@ -1648,7 +1648,7 @@ rfind_last_index_of(std::vector<type> types, std::vector<data>::iterator first, 
 }
 
 std::vector<data>::iterator
-find_first_index_of(std::vector<type> types, std::vector<data>::iterator first, std::vector<data>::iterator last)
+find_first_index_of(std::vector<type_t> types, std::vector<data>::iterator first, std::vector<data>::iterator last)
 {
 	for(auto it = first; it != last; ++it)
 	{
@@ -1668,16 +1668,16 @@ void container::move(data& node, nodes_t index)
 	{
 		switch(m_NodeData[current_index].m_Type)
 		{
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			// auto [is_literal, content_info] = m_NodeData[current_index].reinterpret_as_value();
 			// auto content_index = content_info.first;
 			// auto content_size = content_info.second;
-			// if (auto it = rfind_last_index_of({ type::VALUE, type::VALUE_RANGE }, m_NodeData.begin() + current_index,
+			// if (auto it = rfind_last_index_of({ type_t::VALUE, type_t::VALUE_RANGE }, m_NodeData.begin() + current_index,
 			// m_NodeData.begin() + index); it != m_NodeData.begin() + current_index)
 			//{
 			//	//auto last_value_node = it - m_NodeData.begin();
-			//	if (it->m_Type == type::VALUE)
+			//	if (it->m_Type == type_t::VALUE)
 			//	{
 			//	}
 			//	else
@@ -1687,11 +1687,11 @@ void container::move(data& node, nodes_t index)
 			//}
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 		}
 		break;
-		case type::COLLECTION:
+		case type_t::COLLECTION:
 		{
 			move_count += m_NodeData[current_index].reinterpret_as_collection();
 		}
@@ -1724,14 +1724,14 @@ void container::validate()
 
 		switch(it.m_Type)
 		{
-		case type::VALUE:
+		case type_t::VALUE:
 		{
 			const auto& val = it.reinterpret_as_value();
 			bShouldThrow |= val.second.first != last_content_index_n;
 			last_content_index_n += val.second.second;
 		}
 		break;
-		case type::VALUE_RANGE:
+		case type_t::VALUE_RANGE:
 		{
 			const auto& val = it.reinterpret_as_value_range();
 			for(const auto& valIt : val)

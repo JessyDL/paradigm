@@ -60,7 +60,7 @@ namespace psl::serialization
 		INV t;
 	};
 
-	struct polymorphic_data
+	struct polymorphic_data_t
 	{
 		uint64_t id;
 		std::function<void(void*, encode_to_format&)> encode;
@@ -69,34 +69,12 @@ namespace psl::serialization
 
 
 		std::vector<std::pair<psl::string8_t, uint64_t>> derived;
-		~polymorphic_data() { delete(factory); };
+		~polymorphic_data_t() { delete(factory); };
 	};
 
-	class accessor;
-	namespace details
-	{
-		template <typename T>
-		concept HasSerializationName = requires
-		{
-			accessor::template test_has_name<T>();
-		};
-
-		template <typename T>
-		concept HasSerializationPolymorphicName = requires
-		{
-			accessor::template test_has_polymorphic_name<T>();
-		};
-
-		template <typename T>
-		concept IsSerializationPolymorphic = requires
-		{
-			{
-				accessor::template test_is_polymorphic<T>()
-			}
-			->std::same_as<std::true_type>;
-		};
-	}	 // namespace details
-
+	namespace details {
+		extern std::unique_ptr<std::unordered_map<uint64_t, psl::serialization::polymorphic_data_t*>> m_PolymorphicData;
+	}
 	// friendly helper to access privates, see serializer's static_assert for usage
 	class accessor
 	{
@@ -151,43 +129,27 @@ namespace psl::serialization
 		}
 
 		template <typename T>
-		inline static constexpr const char* name()
-		{
-			static_assert(details::HasSerializationName<T>,
-						  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
-						  "\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
-						  "\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
-						  "\"friend class psl::serialization::accessor\"\n");
-			return T::serialization_name;
-		}
+		inline static constexpr const char* name();
 
 		template <typename T>
-		inline static consteval uint64_t id()
-		{
-			static_assert(details::HasSerializationPolymorphicName<T>,
-						  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
-						  "\t\t - has a public variable \"static constexpr const char* polymorphic_name\"\n"
-						  "\t\t - or a private variable \"static constexpr const char* polymorphic_name\" and added "
-						  "\"friend class psl::serialization::accessor\"\n");
-
-			return utility::crc64(T::polymorphic_name);
-		}
+		inline static consteval uint64_t id();
 
 		template <typename T>
 		inline static uint64_t polymorphic_id(T& obj)
 		{
-			static_assert(details::IsSerializationPolymorphic<T>,
+			static_assert(is_polymorphic<T>::type::value,
 						  "\nYou are missing, or have incorrectly defined the following requirements:"
 						  "\n\t- virtual const psl::serialization::polymorphic_base& polymorphic_id() { return "
 						  "polymorphic_container; }"
 						  "\n\t- static const psl::serialization::polymorphic<YOUR TYPE HERE> polymorphic_container;");
+						  
 			return obj.polymorphic_id();
 		}
 
 		template <typename T>
 		inline static uint64_t polymorphic_id(T* obj)
 		{
-			static_assert(details::IsSerializationPolymorphic<T>,
+			static_assert(is_polymorphic<T>::type::value,
 						  "\nYou are missing, or have incorrectly defined the following requirements:"
 						  "\n\t- virtual const psl::serialization::polymorphic_base& polymorphic_id() { return "
 						  "polymorphic_container; }"
@@ -199,14 +161,61 @@ namespace psl::serialization
 		template <typename T>
 		constexpr static bool supports_polymorphism()
 		{
-			return details::IsSerializationPolymorphic<T>;
+			return is_polymorphic<T>::type::value;
 		}
 
 
-		static std::unordered_map<uint64_t, polymorphic_data*>& polymorphic_data();
+		static std::unordered_map<uint64_t, polymorphic_data_t*>& polymorphic_data();
 
 	  private:
 	};
+
+	namespace details
+	{
+		template <typename T>
+		concept HasSerializationName = requires
+		{
+			accessor::template test_has_name<T>();
+		};
+
+		template <typename T>
+		concept HasSerializationPolymorphicName = requires
+		{
+			accessor::template test_has_polymorphic_name<T>();
+		};
+
+		template <typename T>
+		concept IsSerializationPolymorphic = requires
+		{
+			{
+				accessor::template test_is_polymorphic<T>()
+			}
+			->std::same_as<std::true_type>;
+		};
+	}	 // namespace details
+
+	template <typename T>
+	inline constexpr const char* accessor::name()
+	{
+		static_assert(details::HasSerializationName<T>,
+						"\n\tPlease make sure your class fullfills any of the following requirements:\n"
+						"\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
+						"\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
+						"\"friend class psl::serialization::accessor\"\n");
+		return T::serialization_name;
+	}
+
+	template <typename T>
+	inline consteval uint64_t accessor::id()
+	{
+		static_assert(details::HasSerializationPolymorphicName<T>,
+						"\n\tPlease make sure your class fullfills any of the following requirements:\n"
+						"\t\t - has a public variable \"static constexpr const char* polymorphic_name\"\n"
+						"\t\t - or a private variable \"static constexpr const char* polymorphic_name\" and added "
+						"\"friend class psl::serialization::accessor\"\n");
+
+		return utility::crc64(T::polymorphic_name);
+	}
 
 	namespace details
 	{
@@ -265,6 +274,14 @@ namespace psl::serialization
 			static constexpr bool value {function_serialize<Encoder, T>::value ||
 										 member_function_serialize<Encoder, T>::value};
 		};
+
+		template <typename T>
+		struct is_range
+		{
+			static constexpr bool value {utility::templates::is_trivial_container<T>::value ||
+										 utility::templates::is_complex_container<T>::value};
+		};
+
 		template <typename T, typename Encoder = encode_to_format>
 		struct is_collection_range
 		{
@@ -282,12 +299,6 @@ namespace psl::serialization
 			   member_function_serialize<Encoder, typename utility::binary::get_contained_type<T>::type>::value)};
 		};
 
-		template <typename T>
-		struct is_range
-		{
-			static constexpr bool value {utility::templates::is_trivial_container<T>::value ||
-										 utility::templates::is_complex_container<T>::value};
-		};
 		template <typename T>
 		struct is_keyed_range
 		{
@@ -809,14 +820,15 @@ namespace psl::serialization
 	  public:
 		polymorphic()
 		{
-			if(accessor::polymorphic_data().find(ID) != accessor::polymorphic_data().end())
+			auto& pData = accessor::polymorphic_data();
+			if(pData.find(ID) != pData.end())
 			{
 				LOG_FATAL("Encountered duplicate Polymorphic ID in the serialization: ", ID);
 				exit(-1);
 			}
 
 
-			static polymorphic_data data;
+			static polymorphic_data_t data;
 
 			data.id = ID;
 			auto lambda {[]() { return new T(); }};
@@ -833,7 +845,7 @@ namespace psl::serialization
 				accessor::serialize_directly<decode_from_format, T>(s, *static_cast<T*>(this_));
 				// static_assert(false, "use of undefined codec");
 			};
-			accessor::polymorphic_data()[ID] = &data;
+			pData[ID] = &data;
 		}
 
 		virtual ~polymorphic() {};

@@ -197,17 +197,16 @@ else()
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS -Wall;-Wextra)	
 	endif()
-	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++;-fstrict-aliasing;-Wno-error=unused-command-line-argument;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g)
-	list(APPEND PE_DL_LIBS c++fs)
-	
+	list(APPEND PE_COMPILE_OPTIONS -fstrict-aliasing;-Wno-switch;-Wno-unknown-pragmas;-Wno-unused-function;-g)	
 	list(APPEND PE_COMPILE_OPTIONS
 							$<$<CONFIG:Debug>:             -gdwarf-2>
 							$<$<CONFIG:Release>:           -fomit-frame-pointer;-ffunction-sections;-fdata-sections>)
 							
 	# Add colors to ninja builds
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
-		add_compile_options (-fdiagnostics-color=always)
+		add_compile_options (-fdiagnostics-color=always;-fpermissive)
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++;-Wno-error=unused-command-line-argument;)
 		add_compile_options (-fcolor-diagnostics)
 	endif()
 	
@@ -222,7 +221,7 @@ else()
 		set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
 		set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
 	else()
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -dead_strip -g")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -dead_strip -g -rdynamic")
 		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
 	endif()
 endif()

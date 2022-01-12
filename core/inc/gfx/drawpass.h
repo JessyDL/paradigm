@@ -19,7 +19,7 @@ namespace core::ivk
 namespace core::gfx
 {
 	class context;
-	class framebuffer;
+	class framebuffer_t;
 	class swapchain;
 	class drawgroup;
 	class computecall;
@@ -52,7 +52,7 @@ namespace core::gfx
 		  explicit drawpass(core::igles::drawpass* handle);
 #endif
 
-		drawpass(core::resource::handle<context> context, core::resource::handle<framebuffer> framebuffer);
+		drawpass(core::resource::handle<context> context, core::resource::handle<framebuffer_t> framebuffer);
 		drawpass(core::resource::handle<context> context, core::resource::handle<swapchain> swapchain);
 		~drawpass();
 

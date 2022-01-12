@@ -25,7 +25,7 @@ drawpass::drawpass(core::igles::drawpass* handle) : m_Backend(graphics_backend::
 
 /// todo: passes cannot describe resources in both API's at the same time, we need to decide if we
 ///	      want  a feature like it, or if we would prefer to keep only one API going
-drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebuffer> framebuffer) :
+drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebuffer_t> framebuffer) :
 	m_Backend(context->backend())
 {
 	switch(m_Backend)
@@ -106,6 +106,7 @@ bool drawpass::build(bool force)
 #ifdef PE_VULKAN
 	if(m_VKHandle) return m_VKHandle->build();
 #endif
+	return false;
 }
 
 

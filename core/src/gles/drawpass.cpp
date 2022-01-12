@@ -22,7 +22,7 @@ using namespace core::igles;
 using namespace core::resource;
 
 drawpass::drawpass(handle<swapchain> swapchain) : m_Swapchain(swapchain) {}
-drawpass::drawpass(handle<framebuffer> framebuffer) : m_Framebuffer(framebuffer) {}
+drawpass::drawpass(handle<framebuffer_t> framebuffer) : m_Framebuffer(framebuffer) {}
 
 
 void drawpass::clear() { m_DrawGroups.clear(); }
@@ -164,7 +164,7 @@ void drawpass::present()
 						core::profiler.scope_end();
 						// for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						//{
-						//	auto buffer = bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer>()->id();
+						//	auto buffer = bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer_t>()->id();
 						//	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 						//	glEnableVertexAttribArray(b.first);
 						//	glEnableVertexAttribArray(b.first + 1);
@@ -202,7 +202,7 @@ void drawpass::present()
 	glEnable(GL_CULL_FACE);
 	glDepthMask(true);
 	using namespace core::gfx::conversion;
-	auto blend_state = core::data::material::blendstate::opaque(0);
+	auto blend_state = core::data::material_t::blendstate::opaque(0);
 	glBlendEquationSeparate(to_gles(blend_state.color_blend_op()), to_gles(blend_state.alpha_blend_op()));
 	glBlendFuncSeparate(to_gles(blend_state.color_blend_src()),
 						to_gles(blend_state.color_blend_dst()),

@@ -32,25 +32,25 @@ using namespace core::ivk;
 using namespace core::resource;
 
 
-texture::texture(core::resource::cache& cache,
+texture_t::texture_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
-				 core::meta::texture* metaFile,
+				 core::meta::texture_t* metaFile,
 				 handle<core::ivk::context> context) :
-	texture(cache, metaData, metaFile, context, {})
+	texture_t(cache, metaData, metaFile, context, {})
 {}
-texture::texture(core::resource::cache& cache,
+texture_t::texture_t(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
-				 core::meta::texture* metaFile,
+				 core::meta::texture_t* metaFile,
 				 handle<core::ivk::context> context,
-				 core::resource::handle<core::ivk::buffer> stagingBuffer) :
+				 core::resource::handle<core::ivk::buffer_t> stagingBuffer) :
 	m_Cache(cache),
-	m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture>(metaFile->ID()).value_or(nullptr)),
+	m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture_t>(metaFile->ID()).value_or(nullptr)),
 	m_StagingBuffer(stagingBuffer)
 {
 	if(!m_Meta)
 	{
 		core::ivk::log->error(
-		  "ivk::texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
+		  "ivk::texture_t could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
 		  utility::to_string(metaFile->ID()));
 		return;
 	}
@@ -91,7 +91,7 @@ fail:
 	return;
 }
 
-texture::~texture()
+texture_t::~texture_t()
 {
 	for(auto& item : m_Descriptors)
 	{
@@ -104,15 +104,15 @@ texture::~texture()
 }
 
 
-const vk::Image& texture::image() const noexcept { return m_Image; }
-const vk::ImageView& texture::view() const noexcept { return m_View; }
-const vk::ImageLayout& texture::layout() const noexcept { return m_ImageLayout; }
-const vk::DeviceMemory& texture::memory() const noexcept { return m_DeviceMemory; }
-const vk::ImageSubresourceRange& texture::subResourceRange() const noexcept { return m_SubresourceRange; }
-const core::meta::texture& texture::meta() const noexcept { return *m_Meta; }
-uint32_t texture::mip_levels() const noexcept { return m_MipLevels; }
+const vk::Image& texture_t::image() const noexcept { return m_Image; }
+const vk::ImageView& texture_t::view() const noexcept { return m_View; }
+const vk::ImageLayout& texture_t::layout() const noexcept { return m_ImageLayout; }
+const vk::DeviceMemory& texture_t::memory() const noexcept { return m_DeviceMemory; }
+const vk::ImageSubresourceRange& texture_t::subResourceRange() const noexcept { return m_SubresourceRange; }
+const core::meta::texture_t& texture_t::meta() const noexcept { return *m_Meta; }
+uint32_t texture_t::mip_levels() const noexcept { return m_MipLevels; }
 
-vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
+vk::DescriptorImageInfo& texture_t::descriptor(const UID& sampler)
 {
 	auto it = m_Descriptors.find(sampler);
 	if(it != m_Descriptors.end())
@@ -120,7 +120,7 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 		return *(it->second);
 	}
 
-	auto samplerHandle = m_Cache.find<core::ivk::sampler>(sampler);
+	auto samplerHandle = m_Cache.find<core::ivk::sampler_t>(sampler);
 	assert(samplerHandle);
 
 	vk::DescriptorImageInfo* descriptor = new vk::DescriptorImageInfo();
@@ -132,11 +132,11 @@ vk::DescriptorImageInfo& texture::descriptor(const UID& sampler)
 	return *descriptor;
 }
 
-void texture::create_2D(void* data)
+void texture_t::create_2D(void* data)
 {
 	m_MipLevels = m_Meta->mip_levels();
 	vk::FormatProperties formatProperties;
-	if(m_Meta->format() == gfx::format::undefined)
+	if(m_Meta->format() == gfx::format_t::undefined)
 	{
 		LOG_ERROR("Undefined format property in: ", utility::to_string(m_Meta->ID()));
 	}
@@ -150,16 +150,16 @@ void texture::create_2D(void* data)
 		if(!m_StagingBuffer)
 		{
 			core::ivk::log->warn(
-			  "missing a staging buffer in ivk::texture, will create one dynamically, but this is inefficient");
-			auto tempBuffer = m_Cache.create<core::data::buffer>(
+			  "missing a staging buffer in ivk::texture_t, will create one dynamically, but this is inefficient");
+			auto tempBuffer = m_Cache.create<core::data::buffer_t>(
 			  core::gfx::memory_usage::transfer_source,
 			  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 			  memory::region {size + 1024, 4, new memory::default_allocator(false)});
-			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
+			stagingBuffer = m_Cache.create<ivk::buffer_t>(m_Context, tempBuffer);
 		}
 		if(!stagingBuffer)
 		{
-			core::ivk::log->error("could not create a staging buffer in ivk::texture");
+			core::ivk::log->error("could not create a staging buffer in ivk::texture_t");
 			return;
 		}
 		memory::segment segment;
@@ -172,12 +172,12 @@ void texture::create_2D(void* data)
 			instr.source  = (std::uintptr_t)data;
 			if(!stagingBuffer->commit({instr}))
 			{
-				core::ivk::log->error("could not commit an ivk::texture in a staging buffer");
+				core::ivk::log->error("could not commit an ivk::texture_t in a staging buffer");
 			}
 		}
 		else
 		{
-			core::ivk::log->error("could not allocate a segment in the staging buffer for an ivk::texture");
+			core::ivk::log->error("could not allocate a segment in the staging buffer for an ivk::texture_t");
 			return;
 		}
 
@@ -275,7 +275,7 @@ void texture::create_2D(void* data)
 }
 
 
-void texture::load_2D()
+void texture_t::load_2D()
 {
 	gli::texture2d* m_Texture2DData = (gli::texture2d*)m_TextureData;
 	if(m_Texture2DData->empty())
@@ -298,7 +298,7 @@ void texture::load_2D()
 	vk::FormatProperties formatProperties;
 
 	// todo we can map gli::format to the vulkan mappings.
-	if(m_Meta->format() == gfx::format::undefined)
+	if(m_Meta->format() == gfx::format_t::undefined)
 	{
 		LOG_ERROR("Undefined format property in: ", m_Meta->ID().to_string());
 	}
@@ -327,16 +327,16 @@ void texture::load_2D()
 		if(!m_StagingBuffer)
 		{
 			core::ivk::log->warn(
-			  "missing a staging buffer in ivk::texture, will create one dynamically, but this is inneficient");
-			auto tempBuffer = m_Cache.create<core::data::buffer>(
+			  "missing a staging buffer in ivk::texture_t, will create one dynamically, but this is inneficient");
+			auto tempBuffer = m_Cache.create<core::data::buffer_t>(
 			  core::gfx::memory_usage::transfer_source,
 			  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 			  memory::region {m_Texture2DData->size() + 1024, 4, new memory::default_allocator(false)});
-			stagingBuffer = m_Cache.create<ivk::buffer>(m_Context, tempBuffer);
+			stagingBuffer = m_Cache.create<ivk::buffer_t>(m_Context, tempBuffer);
 		}
 		if(!stagingBuffer)
 		{
-			core::ivk::log->error("could not create a staging buffer in ivk::texture");
+			core::ivk::log->error("could not create a staging buffer in ivk::texture_t");
 			return;
 		}
 		memory::segment segment;
@@ -349,12 +349,12 @@ void texture::load_2D()
 			instr.source  = (std::uintptr_t)m_Texture2DData->data();
 			if(!stagingBuffer->commit({instr}))
 			{
-				core::ivk::log->error("could not commit an ivk::texture in a staging buffer");
+				core::ivk::log->error("could not commit an ivk::texture_t in a staging buffer");
 			}
 		}
 		else
 		{
-			core::ivk::log->error("could not allocate a segment in the staging buffer for an ivk::texture");
+			core::ivk::log->error("could not allocate a segment in the staging buffer for an ivk::texture_t");
 			return;
 		}
 		// stagingBuffer->map(m_Texture2DData->data(), (vk::DeviceSize)m_Texture2DData->size(), 0);
