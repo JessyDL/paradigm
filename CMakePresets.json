@@ -63,16 +63,16 @@
             }
         },
         {
-            "name": "gnu-linux-debug",
-            "displayName": "GNU/Linux (Debug)",
+            "name": "gnu-linux-debug-all",
+            "displayName": "GNU/Linux Vulkan/GLES (Debug)",
             "inherits": ["gnu-linux-base"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "gnu-linux-release",
-            "displayName": "GNU/Linux (Release)",
+            "name": "gnu-linux-release-all",
+            "displayName": "GNU/Linux Vulkan/GLES (Release)",
             "inherits": ["gnu-linux-base"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
@@ -103,17 +103,56 @@
             }
         },
         {
-            "name": "windows-debug",
-            "displayName": "Windows (Debug)",
+            "name": "windows-base-vulkan",
+            "displayName": "Windows Vulkan",
+            "inherits": [
+                "settings-vulkan",
+                "settings-project"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/project_files/${generator}/${architecture}",
+            "description": "Base configuration for Windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "PE_BUILD_DIR": {
+                    "type": "STRING",
+                    "value": "${sourceDir}/builds/${generator}/${architecture}"
+                }
+            }
+        },
+        {
+            "name": "windows-debug-all",
+            "displayName": "Windows Vulkan/GLES (Debug)",
             "inherits": ["windows-base"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
-            "name": "windows-release",
-            "displayName": "Windows (Release)",
+            "name": "windows-release-all",
+            "displayName": "Windows Vulkan/GLES (Release)",
             "inherits": ["windows-base"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release"
+            }
+        },
+        {
+            "name": "windows-debug-vulkan",
+            "displayName": "Windows Vulkan (Debug)",
+            "inherits": ["windows-base-vulkan"],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug"
+            }
+        },
+        {
+            "name": "windows-release-vulkan",
+            "displayName": "Windows Vulkan (Release)",
+            "inherits": ["windows-base-vulkan"],
             "cacheVariables": {
                 "CMAKE_BUILD_TYPE": "Release"
             }
@@ -121,24 +160,24 @@
     ],
     "buildPresets": [
         {
-            "name": "windows-debug",
-            "displayName": "Windows (Debug)",
-            "configurePreset": "windows-debug"
+            "name": "windows-debug-all",
+            "displayName": "Windows Vulkan/GLES (Debug)",
+            "configurePreset": "windows-debug-all"
         },
         {
-            "name": "windows-release",
-            "displayName": "Windows (Release)",
-            "configurePreset": "windows-release"
+            "name": "windows-release-all",
+            "displayName": "Windows Vulkan/GLES (Release)",
+            "configurePreset": "windows-release-all"
         },
         {
-            "name": "gnu-linux-debug",
-            "displayName": "GNU/Linux (Debug)",
-            "configurePreset": "gnu-linux-debug"
+            "name": "gnu-linux-debug-all",
+            "displayName": "GNU/Linux Vulkan/GLES (Debug)",
+            "configurePreset": "gnu-linux-debug-all"
         },
         {
-            "name": "gnu-linux-release",
-            "displayName": "GNU/Linux (Release)",
-            "configurePreset": "gnu-linux-release"
+            "name": "gnu-linux-release-all",
+            "displayName": "GNU/Linux Vulkan/GLES (Release)",
+            "configurePreset": "gnu-linux-release-all"
         }
     ]
 }

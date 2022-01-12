@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        graphics: [vulkan, vulkan gles]
+        graphics: [vulkan, all]
     name: windows
     runs-on: windows-2022
     steps:
@@ -19,8 +19,8 @@ jobs:
       with:
         python-version: 3.7
     - name: initialize
-      run: python paradigm.py --run build --graphics ${{ matrix.graphics }}
+      run: cmake --preset=windows-release-${{ matrix.graphics }}
     - name: compile
-      run: cmake --build "project_files/Visual Studio 17 2022/x64" --config Release
+      run: cmake --build
     - name: test
       run: cd "project_files/Visual Studio 17 2022/x64"; ctest
