@@ -9,11 +9,11 @@
         {
             "hidden": true,
             "name": "settings-project",
-            "binaryDir": "${sourceDir}/project_files/${generator}",
+            "binaryDir": "${sourceDir}/project_files",
             "cacheVariables": {
                 "PE_BUILD_DIR": {
                     "type": "STRING",
-                    "value": "${sourceDir}/builds/${generator}"
+                    "value": "${sourceDir}/builds"
                 },
                 "PE_GLES": "OFF",
                 "PE_VULKAN": "OFF",
@@ -103,7 +103,7 @@
             ],
             "generator": "Visual Studio 17 2022",
             "architecture": "x64",
-            "binaryDir": "${sourceDir}/project_files/${generator}/x64",
+            "binaryDir": "${sourceDir}/project_files/x64",
             "description": "Base configuration for Windows",
             "condition": {
                 "type": "equals",
@@ -113,7 +113,7 @@
             "cacheVariables": {
                 "PE_BUILD_DIR": {
                     "type": "STRING",
-                    "value": "${sourceDir}/builds/${generator}/x64"
+                    "value": "${sourceDir}/builds/x64"
                 }
             }
         },
@@ -126,7 +126,7 @@
             ],
             "generator": "Visual Studio 17 2022",
             "architecture": "x64",
-            "binaryDir": "${sourceDir}/project_files/${generator}/x64",
+            "binaryDir": "${sourceDir}/project_files/x64",
             "description": "Base configuration for Windows",
             "condition": {
                 "type": "equals",
@@ -136,7 +136,7 @@
             "cacheVariables": {
                 "PE_BUILD_DIR": {
                     "type": "STRING",
-                    "value": "${sourceDir}/builds/${generator}/x64"
+                    "value": "${sourceDir}/builds/x64"
                 }
             }
         },

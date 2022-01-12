@@ -23,7 +23,7 @@ jobs:
     - name: compile
       run: cmake --build --preset=windows-release-${{ matrix.graphics }}
     - name: test
-      run: cd "project_files/Visual Studio 17 2022/x64"; ctest
+      run: cd "project_files/x64"; ctest
   ubuntu:
     container:
       image: gcc:11.2.0
@@ -52,4 +52,4 @@ jobs:
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
-      run: cd "project_files/*/"; ctest
+      run: cd "project_files/"; ctest
