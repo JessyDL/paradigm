@@ -11,3 +11,8 @@ add_definitions(-DSPDLOG_LEVEL_NAMES=${spdlog_definitions})
 add_subdirectory(spdlog)
 set_property(TARGET spdlog PROPERTY FOLDER "extern")
 remove_definitions(-DSPDLOG_LEVEL_NAMES)
+
+add_subdirectory(gli)
+# silence all warnings, gli has some signed/unsigned issues and some issue /w unused variables
+# todo: replace gli
+target_compile_options(gli INTERFACE "-w")

@@ -38,14 +38,6 @@ if(PE_VULKAN)
 	endif()
 endif()
 
-FetchContent_Declare(gli GIT_REPOSITORY https://github.com/g-truc/gli.git GIT_TAG 0.8.2.0 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-FetchContent_GetProperties(gli)
-if(NOT gli_POPULATED)
-	message(STATUS "fetching g-truc/gli...")
-	FetchContent_Populate(gli)
-	message(STATUS "g-truc/gli fetched")
-endif()
-
 if(PE_GLES)
 	FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.33 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 	FetchContent_GetProperties(glad)
@@ -119,12 +111,10 @@ target_include_directories(${LOCAL_PROJECT}
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${vulkan_SOURCE_DIR}/include
 	PRIVATE
-		${gli_SOURCE_DIR}
-		${gli_SOURCE_DIR}/external/glm
 		${WSI_INC}
 )
 
-target_link_libraries(${LOCAL_PROJECT} PUBLIC cppcoro)
+target_link_libraries(${LOCAL_PROJECT} PUBLIC cppcoro gli)
 
 add_custom_command(TARGET ${LOCAL_PROJECT} PRE_BUILD
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
