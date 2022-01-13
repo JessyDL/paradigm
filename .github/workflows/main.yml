@@ -23,7 +23,9 @@ jobs:
     - name: compile
       run: cmake --build --preset=windows-release-${{ matrix.graphics }}
     - name: test
-      run: cd "project_files/x64"; ctest
+      run: |
+            cd builds\x64\release\bin
+            .\tests.exe --formatter compact --no-source
   ubuntu:
     container:
       image: gcc:11.2.0
@@ -52,4 +54,4 @@ jobs:
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
-      run: ctest --preset=gnu-linux-release-${{ matrix.graphics }}
+      run: ./builds/*/bin/tests --formatter compact --no-source

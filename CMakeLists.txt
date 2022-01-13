@@ -270,12 +270,11 @@ if(NOT PE_SOURCE_ONLY)
 	add_subdirectory(psl)
 	add_subdirectory(core)
 	if(PE_TESTS)
-		enable_testing()
 		add_subdirectory(tests)
 	endif()
 	
 	if(PE_BENCHMARKS)
-		add_subdirectory(benchmarks)	
+		add_subdirectory(benchmarks)
 	endif()
 
 	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
