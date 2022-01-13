@@ -20,3 +20,5 @@ add_subdirectory(gli)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(gli INTERFACE "-w")
 endif()
+
+add_subdirectory(litmus)

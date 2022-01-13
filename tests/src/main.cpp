@@ -1,8 +1,4 @@
-﻿// format.cpp : Defines the entry point for the console application.
-//
-
-#define CATCH_CONFIG_RUNNER
-#include "stdafx_tests.h"
+﻿#include "stdafx_tests.h"
 
 #ifdef PLATFORM_WINDOWS
 #define _CRTDBG_MAP_ALLOC
@@ -10,6 +6,7 @@
 #include <crtdbg.h>
 #endif
 
+#include <litmus/litmus.hpp>
 #include "spdlog/spdlog.h"
 
 void setup_loggers()
@@ -52,7 +49,5 @@ int main(int argc, char* argv[])
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
 	setup_loggers();
-	int result = Catch::Session().run(argc, argv);
-
-	return result;
+	return litmus::run(argc, argv);
 }

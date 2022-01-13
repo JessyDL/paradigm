@@ -12,4 +12,4 @@
 	url = https://github.com/g-truc/gli.git
 [submodule "extern/litmus"]
 	path = extern/litmus
-	url = git@github.com:JessyDL/litmus.git
+	url = https://github.com/JessyDL/litmus.git
