@@ -3,7 +3,7 @@ name: paradigm
 on: [push]
     
 jobs:      
-  windows:    
+  windows:
     strategy:
       fail-fast: false
       matrix:
@@ -21,7 +21,7 @@ jobs:
     - name: initialize
       run: |
             python3 tools/generate_project_info.py
-            cmake --preset=windows-${{ matrix.graphics }}
+            cmake --preset=windows-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
             python3 tools/patch.py ./project_files/x64/
     - name: compile
       run: cmake --build --preset=windows-release-${{ matrix.graphics }}
@@ -29,6 +29,16 @@ jobs:
       run: |
             cd builds\x64\release\bin
             .\tests.exe --formatter compact --no-source
+    - name: benchmark
+      run: |
+           cd builds\x64\release\bin
+           .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}
+        path: builds/x64/release/bin/results.json
+        if-no-files-found: error
   ubuntu:
     container:
       image: gcc:11.2.0
@@ -53,8 +63,18 @@ jobs:
         apt-get update && apt-get install python3 -y
         python3 tools/generate_project_info.py
     - name: initialize
-      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }}
+      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
       run: ./builds/*/bin/tests --formatter compact --no-source
+    - name: benchmark
+      run: |
+           cd builds/*/bin
+           ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}
+        path: builds/*/bin/results.json
+        if-no-files-found: error

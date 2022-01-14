@@ -59,7 +59,7 @@
 #define MACRO_CHOOSER(...) CHOOSE_FROM_ARG_COUNT(NO_ARG_EXPANDER __VA_ARGS__())
 
 
-#define BENCHMARK(...) MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
+#define BENCHMARKC(...) MACRO_CHOOSER(__VA_ARGS__)(__VA_ARGS__)
 
 #define RUN_ALL_BENCHMARKS(LOGGER) benchmarks::details::m_Handler.run(LOGGER);
 namespace benchmarks::details

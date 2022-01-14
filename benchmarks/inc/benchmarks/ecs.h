@@ -2,7 +2,7 @@
 #include "stdafx_benchmarks.h"
 #include "runner.h"
 
-#include "../../psl/inc/ecs/state.h"
+#include "psl/ecs/state.h"
 
 using namespace psl::ecs;
 
@@ -74,9 +74,7 @@ template<size_t C>
 using full_mock_data = mock_data<C, position, rotation, velocity, health, lifetime>;
 
 
-
-
-BENCHMARK("Constructing 1.000.000 entities", mock_data<>)
+BENCHMARKC("Constructing 1.000.000 entities", mock_data<>)
 {
 	for(std::uint64_t i = 0; i < 1000000L; i++)
 	{
@@ -84,15 +82,15 @@ BENCHMARK("Constructing 1.000.000 entities", mock_data<>)
 	}
 }
 
-BENCHMARK("Constructing 1.000.000 entities at once", mock_data<>) { data.state.create(1000000L); }
+BENCHMARKC("Constructing 1.000.000 entities at once", mock_data<>) { data.state.create(1000000L); }
 
 
-BENCHMARK("Constructing 1.000.000 entities /w one component at once", mock_data<>)
+BENCHMARKC("Constructing 1.000.000 entities /w one component at once", mock_data<>)
 {
 	data.state.create<position>(1000000L);
 }
 
-BENCHMARK("Destroying 1.000.000 entities", mock_data<1000000L>)
+BENCHMARKC("Destroying 1.000.000 entities", mock_data<1000000L>)
 {
 	for(std::uint32_t i = 0; i < 1000000L; i++)
 	{
@@ -100,41 +98,41 @@ BENCHMARK("Destroying 1.000.000 entities", mock_data<1000000L>)
 	}
 }
 
-BENCHMARK("Destroying 1.000.000 entities at once", mock_data<1000000L>)
+BENCHMARKC("Destroying 1.000.000 entities at once", mock_data<1000000L>)
 {
-	data.state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 1000000u}});
+	data.state.destroy(data.entities);
 }
 
-BENCHMARK("Destroying 999.999 entities out of 1000000 at once", mock_data<1000000L>)
+BENCHMARKC("Destroying 999.999 entities out of 1000000 at once", mock_data<1000000L>)
 {
-	data.state.destroy(psl::array<std::pair<psl::ecs::entity, psl::ecs::entity>>{{0u, 999999u}});
+	data.state.destroy(psl::array_view {std::begin(data.entities), std::prev(std::end(data.entities))});
 }
 
-BENCHMARK("Removing 1.000.000 components from 1.000.000 entities", mock_data_position<1000000L>)
+BENCHMARKC("Removing 1.000.000 components from 1.000.000 entities", mock_data_position<1000000L>)
 {
 	data.state.remove_components(data.entities);
 }
 
-BENCHMARK("Removing 1.000.000 components from 1.000.001 entities", mock_data_position_rotation<1000001L>)
+BENCHMARKC("Removing 1.000.000 components from 1.000.001 entities", mock_data_position_rotation<1000001L>)
 {
 	data.entities.resize(data.entities.size() - 1);
 	data.state.remove_components(data.entities);
 }
 
-BENCHMARK("Iterating over 1.000.000 entities that have one component", mock_data_position_rotation<1000000L>, true)
+BENCHMARKC("Iterating over 1.000.000 entities that have one component", mock_data_position_rotation<1000000L>, true)
 {
 	auto view = data.state.view<position>();
 	std::for_each(std::begin(view), std::end(view), [](position& e) { e.x = 5; });
 }
 
-BENCHMARK("Iterating over 1.000.000 entities that have one const component", mock_data_position_rotation<1000000L>, true)
+BENCHMARKC("Iterating over 1.000.000 entities that have one const component", mock_data_position_rotation<1000000L>, true)
 {
 	auto view	= data.state.view<position>();
 	size_t count = 0;
 	std::for_each(std::begin(view), std::end(view), [&count](const position& e) { count++; });
 }
 
-BENCHMARK(
+BENCHMARKC(
 	"Loop over 500.000 position components, out of 1.000.000 entities that all have a rotation component, and half "
 	"have position component",
 	mock_data_pos_rot<1000000L>, true)
@@ -143,7 +141,7 @@ BENCHMARK(
 	std::for_each(std::begin(view), std::end(view), [](position& e) {});
 }
 
-BENCHMARK(
+BENCHMARKC(
 	"Loop over 500.000 const position components, out of 1.000.000 entities that all have a rotation component, and "
 	"half "
 	"have position component",
@@ -154,9 +152,9 @@ BENCHMARK(
 	std::for_each(std::begin(view), std::end(view), [&count](const position& e) { count++; });
 }
 
-BENCHMARK("Running a trivial system that moves components around", mock_data_trivial_system<100000>)
+BENCHMARKC("Running a trivial system that moves components around", mock_data_trivial_system<100000>)
 {
-	auto system = [](psl::ecs::info& info, psl::ecs::pack<position, const velocity> data) {
+	auto system = [](psl::ecs::info_t& info, psl::ecs::pack<position, const velocity> data) {
 		for(auto [pos, vel] : data)
 		{
 			pos.x += (uint64_t)((float)vel.x * info.dTime.count());
@@ -168,48 +166,48 @@ BENCHMARK("Running a trivial system that moves components around", mock_data_tri
 	data.state.tick(std::chrono::duration<float>(0.1f));
 }
 
-BENCHMARK("filter 1.000.000 filter<T>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter 1.000.000 filter<T>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<position>();
 }
 
-BENCHMARK("filter 1.000.000 on_add<T>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter 1.000.000 on_add<T>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<on_add<position>>();
 }
 
-BENCHMARK("filter  1.000.000 on_combine<T, U>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter  1.000.000 on_combine<T, U>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<on_combine<velocity, position>>();
 }
 
-BENCHMARK("filter 1.000.000 filter<T, U>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter 1.000.000 filter<T, U>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<position, velocity>();
 }
 
-BENCHMARK("filter 1.000.000 on_add<T, U>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter 1.000.000 on_add<T, U>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<on_add<position>, on_add<velocity>>();
 }
 
-BENCHMARK("filter  1.000.000 on_combine<T, U, V>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter  1.000.000 on_combine<T, U, V>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<on_combine<velocity, position, rotation>>();
 }
 
-BENCHMARK("filter 1.000.000 filter<T, U, V>", mock_data_trivial_system<1000000>)
+BENCHMARKC("filter 1.000.000 filter<T, U, V>", mock_data_trivial_system<1000000>)
 {
 	data.state.filter<position, velocity, rotation>();
 }
 
-BENCHMARK("filter 1.000.000 filter<T, U, V, X, Y>", full_mock_data<1000000>)
+BENCHMARKC("filter 1.000.000 filter<T, U, V, X, Y>", full_mock_data<1000000>)
 {
 	data.state.filter<position, velocity, rotation, lifetime, health>();
 }
 
 
-BENCHMARK("Looping 1.000 times creating 1.000 entities and deleting a random number of entities", mock_data<>)
+BENCHMARKC("Looping 1.000 times creating 1.000 entities and deleting a random number of entities", mock_data<>)
 {
 	for(int i = 0; i < 1000; i++)
 	{

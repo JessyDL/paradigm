@@ -222,10 +222,10 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
 
 #include <random>
 template <typename T, typename... Ts>
-auto read_only_system = [](info& info, pack<T, const Ts...>) {};
+auto read_only_system = [](info_t& info, pack<T, const Ts...>) {};
 
 template <typename T, typename... Ts>
-auto write_system = [](info& info, pack<T, Ts...>) {};
+auto write_system = [](info_t& info, pack<T, Ts...>) {};
 
 auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt19937 g)
 {
@@ -330,10 +330,3 @@ BENCHMARK(complex_read_only_par_system)->DenseRange(0, 3)->Unit(benchmark::kMicr
 BENCHMARK(complex_write_par_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
 
 #endif
-
-int main(int argc, char** argv)
-{
-	::benchmark::Initialize(&argc, argv);
-	if(::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;
-	::benchmark::RunSpecifiedBenchmarks();
-};

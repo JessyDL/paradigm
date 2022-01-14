@@ -20,5 +20,8 @@ add_subdirectory(gli)
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
     target_compile_options(gli INTERFACE "-w")
 endif()
+set_property(TARGET gli PROPERTY FOLDER "extern")
+set_property(TARGET gli_dummy PROPERTY FOLDER "extern")
 
 add_subdirectory(litmus)
+set_property(TARGET litmus PROPERTY FOLDER "extern")

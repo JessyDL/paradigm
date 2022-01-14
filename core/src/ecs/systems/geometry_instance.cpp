@@ -84,7 +84,6 @@ void geometry_instancing::dynamic_system(info_t& info,
 
 	core::profiler.scope_begin("create_all");
 	std::vector<psl::mat4x4> modelMats;
-	std::vector<psl::vec4> modelCol;
 	for(const auto& unique_bundle : UniqueCombinations)
 	{
 		modelMats.clear();
@@ -109,8 +108,6 @@ void geometry_instancing::dynamic_system(info_t& info,
 					const psl::mat4x4 rotationMat	 = to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat		 = scale(transform.scale);
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
-					modelCol.emplace_back(psl::vec4 {
-					  (std::rand() % 255) / 255.f, (std::rand() % 255) / 255.f, (std::rand() % 255) / 255.f, 1.0f});
 					std::get<instance_index&>(geometry_pack[indicesCompleted + geometryData.startIndex]).id =
 					  i + startIndex;
 				}
@@ -123,8 +120,6 @@ void geometry_instancing::dynamic_system(info_t& info,
 					  geometryHandle,
 					  startIndex,
 					  modelMats.size());
-				bundleHandle->set(geometryHandle, startIndex, "INSTANCE_COLOR", modelCol);
-				modelCol.clear();
 				modelMats.clear();
 			}
 		}

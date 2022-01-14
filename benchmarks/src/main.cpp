@@ -1,4 +1,5 @@
 ﻿#include "stdafx_benchmarks.h"
+#include <benchmark/benchmark.h>
 
 #ifdef PLATFORM_WINDOWS
 #define _CRTDBG_MAP_ALLOC
@@ -8,7 +9,7 @@
 
 #include "spdlog/spdlog.h"
 #include "benchmarks/runner.h"
-#include "benchmarks/ecs.h"
+//#include "benchmarks/ecs.h"
 
 void setup_loggers()
 {
@@ -53,5 +54,10 @@ int main(int argc, char* argv[])
 	spdlog::logger logger{"", outlogger};
 
 	RUN_ALL_BENCHMARKS(logger);
+
+	
+	::benchmark::Initialize(&argc, argv);
+	if(::benchmark::ReportUnrecognizedArguments(argc, argv)) return 1;
+	::benchmark::RunSpecifiedBenchmarks();
 	return 0;
 }

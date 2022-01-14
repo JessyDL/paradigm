@@ -1224,21 +1224,19 @@ ECSState.create(
 	};
 
 	auto COLOR_SYSTEM = [](psl::ecs::info_t& info,
-						   psl::ecs::pack<core::ecs::components::renderable,
-						   COLOR_TAG_T,
-						   const core::ecs::components::instance_index,
-						   psl::ecs::on_add<const core::ecs::components::instance_index>>
-		   pack) {
+						   psl::ecs::pack<psl::ecs::partial,
+										  core::ecs::components::renderable,
+										  COLOR_TAG_T,
+										  const core::ecs::components::instance_index> pack) {
 		using namespace core::ecs::components;
 		for(const auto& [renderable, color, index] : pack)
 		{
-			if(index.id != std::numeric_limits<decltype(instance_index::id)>::max())
-				renderable.bundle->set(
-				  renderable.geometry, index.id, "INSTANCE_COLOR", psl::array<psl::vec4> {color.color});
+			if(index.id != std::numeric_limits<decltype(instance_index::id)>::max()) color.color = psl::vec4::one;
+			//	renderable.bundle->set(renderable.geometry, index.id, "INSTANCE_COLOR", psl::array<psl::vec4> {color.color});
 		}
 	};
 
-	ECSState.declare<"COLOR_SYSTEM">(psl::ecs::threading::seq, COLOR_SYSTEM);
+	ECSState.declare<"COLOR_SYSTEM">(psl::ecs::threading::par, COLOR_SYSTEM);
 
 #ifdef _DEBUG
 	size_t count = 5;
@@ -1279,7 +1277,7 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  (iterations > 0) ? count + std::rand() % (swing + 1) : 0,
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ (frame % 250 == 0) ? 40000 : 0,
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);
@@ -1289,11 +1287,11 @@ ECSState.create(
 			  psl::ecs::empty<core::ecs::components::dynamic_tag> {},
 			  COLOR_TAG_T {{std::rand() % 255 / 255.f, std::rand() % 255 / 255.f, std::rand() % 255 / 255.f, 1.0f}},
 			  psl::ecs::empty<core::ecs::components::transform> {},
-			  [](core::ecs::components::lifetime& target) { target = {0.5f + ((std::rand() % 50) / 50.0f) * 2.0f}; },
+			  [](core::ecs::components::lifetime& target) { target = {2.5f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
 			  [&size_steps](core::ecs::components::velocity& target) {
-				  target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f,
-														   (float)(std::rand() % size_steps) / size_steps * 2.0f,
-														   (float)(std::rand() % size_steps) / size_steps * 2.0f)),
+				  target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+														   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
 							((std::rand() % 5000) / 500.0f) * 8.0f,
 							1.0f};
 			  });

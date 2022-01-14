@@ -79,9 +79,10 @@ if(PE_GLES)
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
 		)
 		add_library(gl ${GL_SOURCES})
-		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)		
+		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
 		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" "${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
+		set_property(TARGET gl PROPERTY FOLDER "extern")
 		
 		message(STATUS "Dav1dde/glad fetched")
 	endif()
