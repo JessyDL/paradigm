@@ -22,6 +22,7 @@ jobs:
       run: |
             python3 tools/generate_project_info.py
             cmake --preset=windows-${{ matrix.graphics }}
+            python3 tools/patch.py ./project_files/x64/
     - name: compile
       run: cmake --build --preset=windows-release-${{ matrix.graphics }}
     - name: test
