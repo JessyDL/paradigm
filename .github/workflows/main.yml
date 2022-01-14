@@ -29,15 +29,34 @@ jobs:
       run: |
             cd builds\x64\release\bin
             .\tests.exe --formatter compact --no-source
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}-bin
+        path: builds/x64/release/bin/benchmarks.exe
+        if-no-files-found: error
+        retention-days: 1
+  windowsbenchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: windows-benchmark
+    needs: windows
+    runs-on: windows-2022
+    steps:
+    - name: setup
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}-bin
     - name: benchmark
-      run: |
-           cd builds\x64\release\bin
-           .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
+      run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
       uses: actions/upload-artifact@v2
       with:
         name: windows-${{ matrix.graphics }}
-        path: builds/x64/release/bin/results.json
+        path: results.json
         if-no-files-found: error
   ubuntu:
     container:
@@ -67,14 +86,37 @@ jobs:
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
-      run: ./builds/*/bin/tests --formatter compact --no-source
+      run: ./builds/default/bin/tests --formatter compact --no-source
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}-bin
+        path: builds/default/bin/benchmarks
+        if-no-files-found: error
+        retention-days: 1
+  ubuntubenchmark:
+    container:
+      image: gcc:11.2.0
+    strategy:
+        fail-fast: false
+        matrix:
+          graphics: [vulkan]
+    name: ubuntu-benchmark
+    needs: ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - name: setup
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}-bin
+    - name: prepare
+      run: chmod +x benchmarks
     - name: benchmark
-      run: |
-           cd builds/*/bin
-           ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
+      run: ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
       uses: actions/upload-artifact@v2
       with:
         name: ubuntu-${{ matrix.graphics }}
-        path: builds/*/bin/results.json
+        path: results.json
         if-no-files-found: error
