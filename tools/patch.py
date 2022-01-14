@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import re
 import functools
 import os
@@ -9,9 +10,12 @@ def patch_file(filename):
         def wrapper(self):
             
             if self.filename.endswith(filename):
-                print("patching ", self.filename)
                 self.read()
+                temp = self.content
                 fn(self)
+                if temp != self.content:
+                    print(f"patched {self.filename}")
+                    self.dirty = True
         
         wrapper._targetable = True
         return wrapper
@@ -19,7 +23,10 @@ def patch_file(filename):
 
 class File(object):
     def __init__(self, filename):
+        if not os.path.exists(filename):
+            raise Exception(f"The file at '{filename}' could not be found, did you supply an incorrect root directory?")
         self.filename = filename
+        self.is_read = False
         self.dirty = False
         self.content = ""
         try:
@@ -41,10 +48,10 @@ class File(object):
 
     def read(self):
         try:
-            if not self.dirty:
+            if not self.is_read:
                 self.content = self.obj.read()
                 self.obj.seek(0)
-            self.dirty = True
+            self.is_read = True
         except:
              pass
 
@@ -59,39 +66,6 @@ class File(object):
           r'''typedef struct HMONITOR__* HMONITOR;\n'''
           r'''typedef struct _SECURITY_ATTRIBUTES SECURITY_ATTRIBUTES;''', \
           self.content, flags = re.M)
-    @patch_file("src/spdlog.cpp")
-    def patch_spdlogcpp(self):
-        if not re.search(r'#include <Windows.h>', self.content):
-            self.content = "#ifdef _WIN32\n#include <Windows.h>\n#endif\n" + self.content
-
-    @patch_file("include/spdlog/sinks/wincolor_sink.h")
-    def patch_wincolorh(self):
-        if re.search("#include <wincon.h>", self.content):
-            self.content = re.sub("#include <wincon.h>",  \
-              r'''typedef unsigned short WORD;\n'''
-              r'''typedef void* HANDLE;\n'''
-              r'''#ifndef FOREGROUND_BLUE\n'''
-              r'''#define FOREGROUND_BLUE      0x0001\n'''
-              r'''#define FOREGROUND_GREEN     0x0002\n'''
-              r'''#define FOREGROUND_RED       0x0004\n'''
-              r'''#define FOREGROUND_INTENSITY 0x0008\n'''
-              r'''#define BACKGROUND_BLUE      0x0010\n'''
-              r'''#define BACKGROUND_GREEN     0x0020\n'''
-              r'''#define BACKGROUND_RED       0x0040\n'''
-              r'''#define BACKGROUND_INTENSITY 0x0080\n'''
-              r'''#define WIN_OVERRIDE\n'''
-              r'''#endif\n''', self.content)
-            self.content += "\n#ifdef WIN_OVERRIDE\n" \
-              "#undef FOREGROUND_BLUE\n" \
-              "#undef FOREGROUND_GREEN\n" \
-              "#undef FOREGROUND_RED\n" \
-              "#undef FOREGROUND_INTENSITY\n" \
-              "#undef BACKGROUND_BLUE\n" \
-              "#undef BACKGROUND_GREEN\n" \
-              "#undef BACKGROUND_RED\n" \
-              "#undef BACKGROUND_INTENSITY\n" \
-              "#undef WIN_OVERRIDE\n" \
-              "#endif\n"
 
     @patch_file("core/core.vcxproj")
     def patch_msvc(self):
@@ -116,8 +90,17 @@ def patch_includes(root):
 def patch_msvc(root):
     root = root.replace('\\', '/')
     
-    if os.path.isfile(root + "/core/core.vcxproj"):
-        fObj = File(root + "/core/core.vcxproj")
+    if os.path.isfile(os.path.join(root, "core/core.vcxproj")):
+        fObj = File(os.path.join(root, "core/core.vcxproj"))
+    elif os.path.isfile(os.path.join(root, "paradigm/core/core.vcxproj")):
+        fObj = File(os.path.join(root, "paradigm/core/core.vcxproj"))
     else:
-        fObj = File(root + "/paradigm/core/core.vcxproj")
+        raise Exception(f"No project files found at path '{root}', did you supply the correct path?")
     fObj.patch()
+
+if __name__ == "__main__":
+    parser = ArgumentParser(description='Patch project files.')
+    parser.add_argument("directory", nargs='?', 
+                    help="Override for the project files directory, this is relative to the root")
+    args = parser.parse_args()
+    patch(args.directory)
