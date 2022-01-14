@@ -19,7 +19,7 @@ namespace core::data
 namespace psl::ecs
 {
 	class state_t;
-	struct info;
+	struct info_t;
 
 	template <typename... Ts>
 	class pack;
@@ -60,18 +60,18 @@ namespace core::ecs::systems
 
 
 	  private:
-		void update_dynamic(psl::ecs::info& info,
+		void update_dynamic(psl::ecs::info_t& info,
 							psl::ecs::pack<psl::ecs::partial,
 										   psl::ecs::entity,
 										   core::ecs::components::text,
 										   core::ecs::components::renderable,
 										   psl::ecs::filter<core::ecs::components::dynamic_tag>> pack);
-		void add(psl::ecs::info& info,
+		void add(psl::ecs::info_t& info,
 				 psl::ecs::pack<psl::ecs::partial,
 								psl::ecs::entity,
 								core::ecs::components::text,
 								psl::ecs::on_add<core::ecs::components::text>> pack);
-		void remove(psl::ecs::info& info,
+		void remove(psl::ecs::info_t& info,
 					psl::ecs::pack<psl::ecs::partial,
 								   psl::ecs::entity,
 								   core::ecs::components::text,

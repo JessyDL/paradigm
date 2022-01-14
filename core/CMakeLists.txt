@@ -60,7 +60,7 @@ if(PE_GLES)
 				--spec=gl
 				--reproducible
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
-		)		
+		)
 		
 		list(APPEND GL_SOURCES
 			"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
@@ -119,8 +119,8 @@ target_link_libraries(${LOCAL_PROJECT} PUBLIC cppcoro gli)
 add_custom_command(TARGET ${LOCAL_PROJECT} PRE_BUILD
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
+	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/paradigm.hpp
 	COMMENT "Generating headers for Paradigm")
-
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})

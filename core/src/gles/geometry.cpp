@@ -172,11 +172,11 @@ void geometry_t::create_vao(core::resource::handle<core::igles::material_t> mate
 		core::log->info("binding id {} offset {}", binding.first, binding.second);
 		for(int index = 0; index < 4; ++index)
 		{
-			glEnableVertexAttribArray(binding.first + index);
+			glEnableVertexAttribArray(static_cast<int>(binding.first) + index);
 			auto offset = binding.second + (index * sizeof(float) * 4);
 			glVertexAttribPointer(
-			  binding.first + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4, (void*)(offset));
-			glVertexAttribDivisor(binding.first + index, 1);
+			  static_cast<int>(binding.first) + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4, (void*)(offset));
+			glVertexAttribDivisor(static_cast<int>(binding.first) + index, 1);
 		}
 	}
 
@@ -222,14 +222,14 @@ void geometry_t::bind(core::resource::handle<core::igles::material_t> material, 
 	if(instanceCount == 0)
 	{
 		glDrawElements(material->data().wireframe() ? GL_LINES : GL_TRIANGLES,
-					   indices,
+					   static_cast<uint32_t>(indices),
 					   GL_UNSIGNED_INT,
 					   (void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin));
 	}
 	else
 	{
 		glDrawElementsInstanced(material->data().wireframe() ? GL_LINES : GL_TRIANGLES,
-								indices,
+								static_cast<uint32_t>(indices),
 								GL_UNSIGNED_INT,
 								(void*)(m_IndicesSubRange.begin + m_IndicesSegment.range().begin),
 								instanceCount);

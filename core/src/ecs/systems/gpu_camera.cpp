@@ -21,11 +21,11 @@ gpu_camera::gpu_camera(psl::ecs::state_t& state,
 	m_Binding(binding), m_Backend(backend)
 {
 	m_Max = m_Binding->segment.range().size() / sizeof(framedata);
-	state.declare(psl::ecs::threading::seq, &gpu_camera::tick, this);
+	state.declare<"gpu_camera::tick">(psl::ecs::threading::seq, &gpu_camera::tick, this);
 }
 
 void gpu_camera::tick(
-  psl::ecs::info& info,
+  psl::ecs::info_t& info,
   psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras)
 {
 	size_t i {0};

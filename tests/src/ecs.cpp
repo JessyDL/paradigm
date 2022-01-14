@@ -6,12 +6,12 @@
 using namespace psl::ecs;
 using namespace tests::ecs;
 
-void registration_test(psl::ecs::info& info) {}
+void registration_test(psl::ecs::info_t& info) {}
 
 
 namespace tests::ecs
 {
-	void float_iteration_test(psl::ecs::info& info, psl::ecs::pack<partial, const float, int> pack)
+	void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack<partial, const float, int> pack)
 	{
 		for(auto [fl, i] : pack)
 		{
@@ -21,7 +21,7 @@ namespace tests::ecs
 
 	struct object_test
 	{
-		void empty_system(psl::ecs::info& info) {};
+		void empty_system(psl::ecs::info_t& info) {};
 	};
 }	 // namespace tests::ecs
 
@@ -48,7 +48,19 @@ using namespace litmus;
 
 namespace
 {
-	auto t0 = suite<"component_info">() = []() {
+	struct position
+	{
+		size_t x;
+		size_t y;
+	};
+
+	template <typename T>
+	struct wrapper_t
+	{
+		T value {};
+	};
+
+	auto t0 = suite<"component_info", "ecs", "psl">() = []() {
 		section<"non-empty component_info_typed">() = [&]() {
 			details::component_info_typed<float> cInfo;
 
@@ -74,7 +86,7 @@ namespace
 					std::shuffle(std::begin(entities), std::end(entities), g);
 
 					auto count = entities.size() / 10;
-					for(auto c = 0; c < 10; ++c)
+					for(entity c = 0; c < 10; ++c)
 					{
 						for(auto i = 0; i < count; ++i)
 						{
@@ -147,23 +159,23 @@ namespace
 		// section<"empty component_info_typed">() = [&]() {};
 	};
 
-	auto t1 = suite<"component_key must be unique">() = []() {
+	auto t1 = suite<"component_key must be unique", "ecs", "psl">() = []() {
 		using namespace psl::ecs::details;
 		auto fl_id	= (std::uintptr_t)component_key<float>;
-		auto int_id =  (std::uintptr_t)component_key<int>;
+		auto int_id = (std::uintptr_t)component_key<int>;
 		require(fl_id) != int_id;
 
 
 		constexpr auto fl_cid  = component_key<float>;
 		constexpr auto int_cid = component_key<int>;
-		require( (std::uintptr_t)fl_cid) !=  (std::uintptr_t)int_cid;
+		require((std::uintptr_t)fl_cid) != (std::uintptr_t)int_cid;
 
 
 		require((std::uintptr_t)fl_cid) == fl_id;
-		require( (std::uintptr_t)int_cid) == int_id;
+		require((std::uintptr_t)int_cid) == int_id;
 	};
 
-	auto t2 = suite<"filtering">() = []() {
+	auto t2 = suite < "filtering", "ecs", "psl">() = []() {
 		state_t state;
 		auto e_list1 {state.create(100)};
 		auto e_list2 {state.create(400)};
@@ -229,13 +241,7 @@ namespace
 		};
 	};
 
-	struct position
-	{
-		size_t x;
-		size_t y;
-	};
-
-	auto t3 = suite<"initializing components">() = []() {
+	auto t3 = suite<"initializing components", "ecs", "psl">() = []() {
 		state_t state;
 
 		size_t count {0};
@@ -264,8 +270,7 @@ namespace
 		require(check_view) == check;
 	};
 
-
-	auto t4 = suite<"systems">() = []() {
+	auto t4 = suite<"systems", "ecs", "psl">() = []() {
 		state_t state;
 
 		auto group = details::make_filter_group(psl::templates::type_container<pack<entity, int>> {});
@@ -281,15 +286,17 @@ namespace
 			auto incrementer = 0;
 			state.add_components(e_list1, [&incrementer](int& target) { target = incrementer++; });
 
-			state.declare(
-			  [](psl::ecs::info& info, pack<entity, filter<int>> pack) { info.command_buffer.destroy(pack.get<entity>()); });
-			auto token = state.declare([size_1 = e_list1.size()](psl::ecs::info& info, pack<entity, const int> pack1) {
-				for(auto [e, i] : pack1)
-				{
-					require(e) == i;
-				}
-				require(pack1.size()) == size_1;
+			state.declare([](psl::ecs::info_t& info, pack<entity, filter<int>> pack) {
+				info.command_buffer.destroy(pack.get<entity>());
 			});
+			auto token =
+			  state.declare([size_1 = e_list1.size()](psl::ecs::info_t& info, pack<entity, const int> pack1) {
+				  for(auto [e, i] : pack1)
+				  {
+					  require(e) == i;
+				  }
+				  require(pack1.size()) == size_1;
+			  });
 
 			require(e_list1.size()) == state.filter<on_add<int>>().size();
 			require(e_list1.size()) == state.filter<int>().size();
@@ -312,17 +319,22 @@ namespace
 			// elist1.size(), thanks to these being the first entities, they overlap with their ID
 			require(e_list1.size()) == state.filter<on_remove<int>>().size();
 			require(0) == state.filter<int>().size();
+			require(0) == state.filter<on_add<int>>().size();
 			incrementer = e_list1.size();
 			state.add_components(e_list2, [&incrementer](int& target) { target = incrementer++; });
 			require(e_list2.size()) == state.filter<on_add<int>>().size();
 			require(e_list2.size()) == state.filter<int>().size();
 			token = state.declare(
-			  [size_1 = e_list1.size(), size_2 = e_list2.size()](
-				psl::ecs::info& info, pack<entity, const int, on_remove<int>> pack1, pack<entity, const int, filter<int>> pack2) {
+			  [size_1 = e_list1.size(), size_2 = e_list2.size()](psl::ecs::info_t& info,
+																 pack<entity, const int, on_remove<int>> pack1,
+																 pack<entity, const int, filter<int>> pack2) {
 				  for(auto [e, i] : pack1)
 				  {
 					  require(e) == i;
 				  }
+				  require(pack1.get<entity>()[0]) == 0;
+				  // if this shows 0, then the previous deleted components of tick #1 are still present
+				  require(pack2.get<entity>()[0]) == 10;
 				  for(auto [e, i] : pack2)
 				  {
 					  require(e) == i;
@@ -342,8 +354,9 @@ namespace
 			// we verify that no int component is present anymore in the system aside from the previously removed ones
 			require(e_list2.size()) == state.filter<on_remove<int>>().size();
 			require(0) == state.filter<int>().size();
-			token = state.declare([size_2 = e_list2.size()](
-									psl::ecs::info& info, pack<entity, on_remove<int>> pack1, pack<entity, filter<int>> pack2) {
+			token = state.declare([size_2 = e_list2.size()](psl::ecs::info_t& info,
+															pack<entity, on_remove<int>> pack1,
+															pack<entity, filter<int>> pack2) {
 				require(pack1.size()) == size_2;
 				require(pack2.size()) == 0;
 			});
@@ -351,10 +364,11 @@ namespace
 			// tick #3
 			state.tick(std::chrono::duration<float>(0.1f));
 			state.revoke(token);
-			token = state.declare([](psl::ecs::info& info, pack<entity, on_remove<int>> pack1, pack<entity, filter<int>> pack2) {
-				require(pack1.size()) == 0;
-				require(pack2.size()) == 0;
-			});
+			token = state.declare(
+			  [](psl::ecs::info_t& info, pack<entity, on_remove<int>> pack1, pack<entity, filter<int>> pack2) {
+				  require(pack1.size()) == 0;
+				  require(pack2.size()) == 0;
+			  });
 
 			// tick #4
 			state.tick(std::chrono::duration<float>(0.1f));
@@ -365,7 +379,7 @@ namespace
 			require(0) == state.filter<on_remove<int>>().size();
 			require(0) == state.filter<int>().size();
 		};
-
+		
 		section<"continuous removal from within systems">() = [&]() {
 			auto e_list2 {state.create(40)};
 			psl::array<int> values;
@@ -375,7 +389,7 @@ namespace
 			state.add_components<int>(e_list2, values);
 			auto expected = e_list2.size();
 
-			state.declare([&expected](psl::ecs::info& info, pack<entity, int> pack) {
+			state.declare([&expected](psl::ecs::info_t& info, pack<entity, int> pack) {
 				require(pack.size()) == expected;
 				psl::array<entity> entities;
 				for(auto [e, i] : pack)
@@ -402,7 +416,7 @@ namespace
 			state.add_components<int>(e_list2, values);
 			auto expected = e_list2.size();
 
-			state.declare([&expected](psl::ecs::info& info, pack<entity, int> pack) {
+			state.declare([&expected](psl::ecs::info_t& info, pack<entity, int> pack) {
 				require(pack.size()) == expected;
 				for(auto [e, i] : pack)
 				{
@@ -431,7 +445,7 @@ namespace
 			state.add_components<int>(e_list2, values);
 			auto expected = e_list2.size();
 
-			state.declare([&expected](psl::ecs::info& info, pack<entity, int> pack) {
+			state.declare([&expected](psl::ecs::info_t& info, pack<entity, int> pack) {
 				require(pack.size()) == expected;
 
 				for(auto [e, i] : pack)
@@ -460,7 +474,7 @@ namespace
 			}
 			auto expected = e_list2.size();
 
-			state.declare([&expected](psl::ecs::info& info, pack<entity, int> pack) {
+			state.declare([&expected](psl::ecs::info_t& info, pack<entity, int> pack) {
 				require(pack.size()) == expected;
 
 				for(auto [e, i] : pack)
@@ -496,21 +510,80 @@ namespace
 			auto results  = state.view<int>();
 			require(results.size()) == entities.size();
 			require(results.size()) == e_list1.size();
-		require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == 50; }));
+			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == 50; }));
 
-		require(state.systems() )== 1;
-		state.revoke(system_id);
-		require(state.systems() )== 0;
-		state.tick(std::chrono::duration<float>(0.1f));
-		require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == 50; }));
+			require(state.systems()) == 1;
+			state.revoke(system_id);
+			require(state.systems()) == 0;
+			state.tick(std::chrono::duration<float>(0.1f));
+			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == 50; }));
 		};
 	};
 
-	auto t5 = suite<"declaring system signatures">() = []() {
+	auto t5 = suite<"declaring system signatures", "ecs", "psl">() = []() {
 		state_t state;
 		state.declare(registration_test);
 		object_test test;
 		state.declare(&object_test::empty_system, &test);
-		state.declare([](psl::ecs::info& info) {});
+		state.declare([](psl::ecs::info_t& info) {});
+	};
+
+	auto t7 = suite<"filtering over multiple frames", "ecs", "psl">() = []() {
+		state_t state {1u};
+		section<"regression 1">() = [&] {
+
+			// issue: non-unique entry in filtering operation
+			// order of operations:
+			//  - add 1 entity -> becomes "modified entity" for filtering/ecs
+			//  - when ticking system, modify the entity again
+			//  - next tick when the results are collabed it will duplicate the entity
+			//    in the filtering for system's filtering -> issue
+
+			size_t count = 0;
+			state.declare([&](info_t& info, pack<entity, wrapper_t<float>> pack) {
+				if(pack.empty()) return;
+				count += pack.size();
+				info.command_buffer.add_components<wrapper_t<int>>(pack.get<entity>(), {0});
+			});
+
+			auto entities = state.create<wrapper_t<float>>(1);
+			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 1;
+			state.tick(std::chrono::duration<float>(1.0f));
+			expect(state.filter<wrapper_t<float>>().size()) == 1;
+			expect(state.filter<on_add<wrapper_t<int>>>().size()) == 1;
+			expect(count) == 1;
+			state.tick(std::chrono::duration<float>(1.0f));
+			expect(state.filter<wrapper_t<float>>().size()) == 1;
+			expect(state.filter<wrapper_t<int>>().size()) == 1;
+			expect(count) == 2;
+		};
+		section<"regression 2">() = [&] {
+
+			// issue: incorrect filtering return for removed entities
+			// operations:
+			// - create 2 separate entities, one with a component and one without (component irrelevant)
+			// - remove the component from the first batch of entities
+			// - add the component to the second batch
+			// - notice after ticking the present components in the system is incorrect
+			// reason: filtering operation that was based on existing filters did not correctly
+			//         use the already filtered entity list
+
+			auto entities0 = state.create<wrapper_t<float>>(1);
+			auto entities1 = state.create(1);
+			state.remove_components<wrapper_t<float>>(entities0);
+			expect(state.filter<wrapper_t<float>>().size()) == 0;
+			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 1;
+			state.add_components<wrapper_t<float>>(entities1);
+			expect(state.filter<wrapper_t<float>>().size()) == 1;
+			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 1;
+			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 1;
+			state.declare([&](info_t& info, pack<entity, wrapper_t<float>> pack) { expect(pack.size()) == 1; 
+				expect(pack.get<entity>()[0]) == 1;
+			});
+			state.tick(std::chrono::duration<float>(1.0f));
+			expect(state.filter<wrapper_t<float>>().size()) == 1;
+			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 0;
+			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 0;
+		};
 	};
 }	 // namespace

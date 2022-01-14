@@ -737,7 +737,7 @@ bool pipeline::bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamic
 {
 	buffer.bindPipeline(m_BindPoint, m_Pipeline);
 	buffer.bindDescriptorSets(
-	  m_BindPoint, m_PipelineLayout, 0, 1, &m_DescriptorSet, dynamicOffsets.size(), dynamicOffsets.data());
+	  m_BindPoint, m_PipelineLayout, 0, 1, &m_DescriptorSet, static_cast<uint32_t>(dynamicOffsets.size()), dynamicOffsets.data());
 
 	return true;
 }

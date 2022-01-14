@@ -110,8 +110,8 @@ namespace psl::ecs
 		auto begin() const noexcept -> typename pack_t::unpack_iterator { return m_Pack.unpack_begin(); }
 
 		auto end() const noexcept -> typename pack_t::unpack_iterator { return m_Pack.unpack_end(); }
-		constexpr size_t size() const noexcept { return m_Pack.size(); }
-
+		constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
+		constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
 	  private:
 		pack_t m_Pack;
 	};

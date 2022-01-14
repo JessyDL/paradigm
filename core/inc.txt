@@ -4,6 +4,7 @@ logging.h
 stdb_truetype.h
 targetver.h
 defines.h
+paradigm.hpp
 
 data/application.h
 data/buffer.h

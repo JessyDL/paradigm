@@ -15,27 +15,53 @@ using namespace core::ecs::components;
 
 geometry_instancing::geometry_instancing(psl::ecs::state_t& state)
 {
-	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_add, this);
-	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_remove, this);
-	state.declare(psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
-	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_geometry_add, this);
-	state.declare(psl::ecs::threading::seq, &geometry_instancing::static_geometry_remove, this);
+	state.declare<"geometry_instancing::assign_index_dynamic">(
+	  psl::ecs::threading::par, &geometry_instancing::assign_index_dynamic, this);
+	state.declare<"geometry_instancing::remove_index_dynamic">(
+	  psl::ecs::threading::par, &geometry_instancing::remove_index_dynamic, this);
+	state.declare<"geometry_instancing::static_add">(psl::ecs::threading::seq, &geometry_instancing::static_add, this);
+	state.declare<"geometry_instancing::static_remove">(
+	  psl::ecs::threading::seq, &geometry_instancing::static_remove, this);
+	state.declare<"geometry_instancing::dynamic_system">(
+	  psl::ecs::threading::seq, &geometry_instancing::dynamic_system, this);
+	state.declare<"geometry_instancing::static_geometry_add">(
+	  psl::ecs::threading::seq, &geometry_instancing::static_geometry_add, this);
+	state.declare<"geometry_instancing::static_geometry_remove">(
+	  psl::ecs::threading::seq, &geometry_instancing::static_geometry_remove, this);
 }
 
-size_t previous_count = {0};
-
-void geometry_instancing::dynamic_system(
-  info& info,
-  pack<renderable, const transform, const dynamic_tag, except<dont_render_tag>, order_by<renderer_sort, renderable>>
-	geometry_pack)
+void geometry_instancing::assign_index_dynamic(info_t& info,
+											   pack<psl::ecs::partial,
+													entity,
+													on_combine<const renderable, const transform, const dynamic_tag>,
+													except<dont_render_tag>> pack)
 {
-	if(geometry_pack.size() == previous_count) return;
-	previous_count = geometry_pack.size();
+	if(pack.size() == 0) return;
+	info.command_buffer.add_components<instance_index>(
+	  psl::array<entity> {pack.get<entity>()},
+	  instance_index {std::numeric_limits<decltype(instance_index::id)>::max()});
+}
+
+void geometry_instancing::remove_index_dynamic(info_t& info,
+											   pack<entity, on_break<renderable, transform, dynamic_tag>> pack)
+{
+	if(pack.size() == 0) return;
+	info.command_buffer.remove_components<instance_index>(pack.get<entity>());
+}
+
+void geometry_instancing::dynamic_system(info_t& info,
+										 pack<renderable,
+											  const transform,
+											  const dynamic_tag,
+											  instance_index,
+											  except<dont_render_tag>,
+											  order_by<renderer_sort, renderable>> geometry_pack)
+{
 	// todo clean up in case the last renderable from a dynamic object is despawned. The instance will not be released
 	// todo this will trash static instances as well
 	core::log->warn("todo: instance leak");
 	core::profiler.scope_begin("release_all");
-	for(auto [renderable, transform, tag] : geometry_pack)
+	for(auto [renderable, transform, tag, index] : geometry_pack)
 	{
 		if(renderable.bundle) renderable.bundle->release_all();
 	}
@@ -58,6 +84,7 @@ void geometry_instancing::dynamic_system(
 
 	core::profiler.scope_begin("create_all");
 	std::vector<psl::mat4x4> modelMats;
+	std::vector<psl::vec4> modelCol;
 	for(const auto& unique_bundle : UniqueCombinations)
 	{
 		modelMats.clear();
@@ -82,6 +109,10 @@ void geometry_instancing::dynamic_system(
 					const psl::mat4x4 rotationMat	 = to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat		 = scale(transform.scale);
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
+					modelCol.emplace_back(psl::vec4 {
+					  (std::rand() % 255) / 255.f, (std::rand() % 255) / 255.f, (std::rand() % 255) / 255.f, 1.0f});
+					std::get<instance_index&>(geometry_pack[indicesCompleted + geometryData.startIndex]).id =
+					  i + startIndex;
 				}
 
 				if(!bundleHandle->set(
@@ -92,7 +123,8 @@ void geometry_instancing::dynamic_system(
 					  geometryHandle,
 					  startIndex,
 					  modelMats.size());
-
+				bundleHandle->set(geometryHandle, startIndex, "INSTANCE_COLOR", modelCol);
+				modelCol.clear();
 				modelMats.clear();
 			}
 		}
@@ -100,7 +132,7 @@ void geometry_instancing::dynamic_system(
 	core::profiler.scope_end();
 }
 
-void geometry_instancing::static_add(info& info,
+void geometry_instancing::static_add(info_t& info,
 									 pack<entity,
 										  const renderable,
 										  const transform,
@@ -163,7 +195,7 @@ void geometry_instancing::static_add(info& info,
 	}
 	core::profiler.scope_end();
 }
-void geometry_instancing::static_remove(info& info,
+void geometry_instancing::static_remove(info_t& info,
 										pack<entity,
 											 renderable,
 											 const instance_id,
@@ -182,7 +214,7 @@ void geometry_instancing::static_remove(info& info,
 	core::profiler.scope_end();
 }
 
-void geometry_instancing::static_geometry_add(psl::ecs::info& info,
+void geometry_instancing::static_geometry_add(psl::ecs::info_t& info,
 											  psl::ecs::pack<psl::ecs::entity,
 															 const core::ecs::components::renderable,
 															 psl::ecs::except<core::ecs::components::transform>,
@@ -204,7 +236,7 @@ void geometry_instancing::static_geometry_add(psl::ecs::info& info,
 
 
 void geometry_instancing::static_geometry_remove(
-  psl::ecs::info& info,
+  psl::ecs::info_t& info,
   psl::ecs::pack<psl::ecs::entity,
 				 core::ecs::components::renderable,
 				 const instance_id,

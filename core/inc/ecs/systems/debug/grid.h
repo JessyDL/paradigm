@@ -50,7 +50,7 @@ namespace core::ecs::systems::debug
 		grid& operator=(grid&& other) noexcept = delete;
 
 	  private:
-		void tick(psl::ecs::info& info,
+		void tick(psl::ecs::info_t& info,
 				  psl::ecs::pack<psl::ecs::entity,
 								 const core::ecs::components::transform,
 								 psl::ecs::filter<core::ecs::components::camera>> pack,

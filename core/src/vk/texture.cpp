@@ -327,7 +327,7 @@ void texture_t::load_2D()
 		if(!m_StagingBuffer)
 		{
 			core::ivk::log->warn(
-			  "missing a staging buffer in ivk::texture_t, will create one dynamically, but this is inneficient");
+			  "missing a staging buffer in ivk::texture_t, will create one dynamically, but this is inefficient");
 			auto tempBuffer = m_Cache.create<core::data::buffer_t>(
 			  core::gfx::memory_usage::transfer_source,
 			  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,

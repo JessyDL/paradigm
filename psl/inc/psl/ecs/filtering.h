@@ -27,9 +27,7 @@ namespace psl::ecs
 			template <typename Pred, typename T>
 			constexpr void selector(psl::templates::type_container<order_by<Pred, T>>) noexcept
 			{
-				order_by = [](psl::array<entity>::iterator begin,
-							  psl::array<entity>::iterator end,
-							  const auto& state) {
+				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const auto& state) {
 					state.template order_by<Pred, T>(std::execution::par, begin, end);
 				};
 			}
@@ -71,9 +69,12 @@ namespace psl::ecs
 			operator bool() const noexcept { return order_by || on_condition.size() > 0; }
 
 		  private:
+			friend class ::psl::ecs::state_t;
+			void add_debug_system_name(psl::string_view name) { m_SystemsDebugNames.emplace_back(name); }
 			std::function<ordering_pred_t> order_by;
 
 			psl::array<std::function<conditional_pred_t>> on_condition;
+			psl::array<psl::string_view> m_SystemsDebugNames;
 		};
 
 
@@ -295,12 +296,15 @@ namespace psl::ecs
 		  private:
 			friend class ::psl::ecs::state_t;
 
+			void add_debug_system_name(psl::string_view name) { m_SystemsDebugNames.emplace_back(name); }
+
 			psl::array<details::component_key_t> filters;
 			psl::array<details::component_key_t> on_add;
 			psl::array<details::component_key_t> on_remove;
 			psl::array<details::component_key_t> except;
 			psl::array<details::component_key_t> on_combine;
 			psl::array<details::component_key_t> on_break;
+			psl::array<psl::string_view> m_SystemsDebugNames;
 		};
 
 		template <typename... Ts>
@@ -318,16 +322,17 @@ namespace psl::ecs
 		template <typename... Ts>
 		auto make_filter_group(psl::templates::type_container<std::tuple<Ts...>>)
 		{
+			psl::array<filter_group> groups;
+			groups.reserve(sizeof...(Ts));
 			if constexpr(sizeof...(Ts) == 1)
 			{
-				return make_filter_group(psl::templates::type_container<Ts> {}...);
+				groups.emplace_back(make_filter_group(psl::templates::type_container<Ts> {}...));
 			}
 			else
 			{
-				psl::array<filter_group> groups;
 				(void(groups.emplace_back(make_filter_group(psl::templates::type_container<Ts> {}))), ...);
-				return groups;
 			}
+			return groups;
 		}
 
 		template <typename... Ts>
@@ -345,16 +350,17 @@ namespace psl::ecs
 		template <typename... Ts>
 		auto make_transform_group(psl::templates::type_container<std::tuple<Ts...>>)
 		{
+			psl::array<transform_group> groups;
+			groups.reserve(sizeof...(Ts));
 			if constexpr(sizeof...(Ts) == 1)
 			{
-				return make_transform_group(psl::templates::type_container<Ts> {}...);
+				groups.emplace_back(make_transform_group(psl::templates::type_container<Ts> {}...));
 			}
 			else
 			{
-				psl::array<transform_group> groups;
 				(void(groups.emplace_back(make_transform_group(psl::templates::type_container<Ts> {}))), ...);
-				return groups;
 			}
+			return groups;
 		}
 	}	 // namespace details
 }	 // namespace psl::ecs

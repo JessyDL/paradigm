@@ -6,7 +6,7 @@
 namespace core::ecs::systems
 {
 	auto movement =
-	  [](psl::ecs::info& info,
+	  [](psl::ecs::info_t& info,
 		 psl::ecs::pack<psl::ecs::partial, const core::ecs::components::velocity, core::ecs::components::transform>
 		   movables) {
 		  using namespace psl::math;

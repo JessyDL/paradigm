@@ -7,6 +7,14 @@
 #include "resource/resource.hpp"
 #include "vk/geometry.h"
 
+namespace core::ecs::components
+{
+	struct instance_index
+	{
+		uint32_t id;
+	};
+}	 // namespace core::ecs::components
+
 namespace core::ecs::systems
 {
 	class geometry_instancing
@@ -43,16 +51,34 @@ namespace core::ecs::systems
 		geometry_instancing& operator=(geometry_instancing&& other) noexcept = delete;
 
 	  private:
+		void assign_index_dynamic(psl::ecs::info_t& info,
+								  psl::ecs::pack<psl::ecs::partial,
+												 psl::ecs::entity,
+												 psl::ecs::on_combine<const core::ecs::components::renderable,
+																	  const core::ecs::components::transform,
+																	  const core::ecs::components::dynamic_tag>,
+												 psl::ecs::except<core::ecs::components::dont_render_tag>> pack);
+		void remove_index_dynamic(psl::ecs::info_t& info,
+								  psl::ecs::pack<psl::ecs::entity,
+												 psl::ecs::on_break<core::ecs::components::renderable,
+																	core::ecs::components::transform,
+																	core::ecs::components::dynamic_tag>> pack);
+		/* void dynamic_add(psl::ecs::info& info,
+						 psl::ecs::pack<core::ecs::components::renderable,
+										psl::ecs::filter<const core::ecs::components::dynamic_tag>,
+										psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
+		*/
 		void dynamic_system(
-		  psl::ecs::info& info,
+		  psl::ecs::info_t& info,
 		  psl::ecs::pack<core::ecs::components::renderable,
 						 const core::ecs::components::transform,
 						 const core::ecs::components::dynamic_tag,
+						 core::ecs::components::instance_index,
 						 psl::ecs::except<core::ecs::components::dont_render_tag>,
 						 psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> geometry_pack);
 
 		void static_add(
-		  psl::ecs::info& info,
+		  psl::ecs::info_t& info,
 		  psl::ecs::pack<
 			psl::ecs::entity,
 			const core::ecs::components::renderable,
@@ -60,7 +86,7 @@ namespace core::ecs::systems
 			psl::ecs::except<core::ecs::components::dynamic_tag>,
 			psl::ecs::on_combine<const core::ecs::components::renderable, const core::ecs::components::transform>,
 			psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> geometry_pack);
-		void static_remove(psl::ecs::info& info,
+		void static_remove(psl::ecs::info_t& info,
 						   psl::ecs::pack<psl::ecs::entity,
 										  core::ecs::components::renderable,
 										  const instance_id,
@@ -68,14 +94,14 @@ namespace core::ecs::systems
 										  psl::ecs::on_break<const core::ecs::components::renderable,
 															 const core::ecs::components::transform>> geometry_pack);
 
-		void static_geometry_add(psl::ecs::info& info,
+		void static_geometry_add(psl::ecs::info_t& info,
 								 psl::ecs::pack<psl::ecs::entity,
 												const core::ecs::components::renderable,
 												psl::ecs::except<core::ecs::components::transform>,
 												psl::ecs::on_add<core::ecs::components::renderable>> pack);
 
 
-		void static_geometry_remove(psl::ecs::info& info,
+		void static_geometry_remove(psl::ecs::info_t& info,
 									psl::ecs::pack<psl::ecs::entity,
 												   core::ecs::components::renderable,
 												   const instance_id,

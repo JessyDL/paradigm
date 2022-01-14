@@ -20,7 +20,7 @@ namespace core::ecs::components
 namespace core::ecs::systems
 {
 	auto attractor =
-	  [](psl::ecs::info& info,
+	  [](psl::ecs::info_t& info,
 		 psl::ecs::pack<psl::ecs::partial,
 						const core::ecs::components::transform,
 						core::ecs::components::velocity,

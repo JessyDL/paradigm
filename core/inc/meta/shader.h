@@ -84,7 +84,7 @@ namespace core::meta
 			core::gfx::format_t format() const noexcept { return m_Format.value; }
 			void format(core::gfx::format_t value) noexcept { m_Format.value = value; }
 
-			size_t size() const noexcept { return m_Count.value * m_Stride.value; }
+			auto size() const noexcept { return m_Count.value * m_Stride.value; }
 
 		  private:
 			template <typename S>

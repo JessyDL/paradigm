@@ -19,7 +19,9 @@ jobs:
       with:
         python-version: 3.7
     - name: initialize
-      run: cmake --preset=windows-release-${{ matrix.graphics }}
+      run: |
+            python3 tools/generate_project_info.py
+            cmake --preset=windows-${{ matrix.graphics }}
     - name: compile
       run: cmake --build --preset=windows-release-${{ matrix.graphics }}
     - name: test
