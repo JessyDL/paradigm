@@ -229,7 +229,7 @@ void material_t::from_shaders(const psl::meta::library& library, psl::array<core
 			{
 				attribute.input_rate(core::gfx::vertex_input_rate::vertex);
 
-				// todo we should figure out a way to configure these in a clean maner
+				// todo we should figure out a way to configure these in a clean manner
 				if(input.name() == "iPos" || input.name() == constants::POSITION)
 					attribute.tag(psl::string {core::data::geometry_t::constants::POSITION});
 				else if(input.name() == "iNorm" || input.name() == constants::NORMAL)
@@ -252,6 +252,7 @@ void material_t::from_shaders(const psl::meta::library& library, psl::array<core
 				if(input.name().size() >= instance_designator.size() &&
 				   input.name().substr(0, instance_designator.size()) == instance_designator)
 				{
+					attribute.tag(psl::string(input.name()));
 					attribute.input_rate(core::gfx::vertex_input_rate::instance);
 				}
 			}

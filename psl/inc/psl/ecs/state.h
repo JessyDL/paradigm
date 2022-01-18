@@ -18,6 +18,8 @@
 #include "selectors.h"
 #include <chrono>
 #include <functional>
+#include "psl/details/fixed_astring.hpp"
+
 #if __has_include(<execution>)
 #include <execution>
 #else
@@ -310,12 +312,14 @@ namespace psl::ecs
 				auto modified = psl::array<entity> {m_ModifiedEntities.indices()};
 				std::sort(std::begin(modified), std::end(modified));
 
-				filter_result data {{}, it->group};
+				filter_result data {it->entities, it->group};
 				// data = *it;
 				filter(data, modified);
 				return data.entities;
 			}
-			else
+			// run on all entities, as no pre-existing filtering group could be found
+			// todo: look into best fit filtering groups to seed this with
+			else 
 			{
 				filter_result data {{}, std::make_shared<details::filter_group>(filter_group)};
 				filter(data);
@@ -383,28 +387,29 @@ namespace psl::ecs
 		/// \brief returns the amount of active systems
 		size_t systems() const noexcept { return m_SystemInformations.size() - m_ToRevoke.size(); }
 
-		template <typename Fn>
+		template <psl::details::fixed_astring DebugName = "", typename Fn>
 		auto declare(Fn&& fn, bool seedWithExisting = false)
 		{
-			return declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
+			return declare_impl(
+			  threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName);
 		}
 
 
-		template <typename Fn>
+		template <psl::details::fixed_astring DebugName = "", typename Fn>
 		auto declare(threading threading, Fn&& fn, bool seedWithExisting = false)
 		{
-			return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting);
+			return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName);
 		}
 
-		template <typename Fn, typename T>
+		template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
 		auto declare(Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting);
+			return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName);
 		}
-		template <typename Fn, typename T>
+		template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
 		auto declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
 		{
-			return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting);
+			return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName);
 		}
 
 		bool revoke(details::system_token id) noexcept
@@ -470,7 +475,7 @@ namespace psl::ecs
 							details::system_information& information);
 
 
-		void execute_command_buffer(info& info);
+		void execute_command_buffer(info_t& info);
 
 		template <typename T>
 		inline void create_storage() const noexcept
@@ -531,6 +536,30 @@ namespace psl::ecs
 					  for(auto i = size_t {0}; i < count; ++i)
 					  {
 						  std::invoke(prototype, *((type*)(location) + i));
+					  }
+				  });
+			}
+			else if constexpr(psl::templates::is_callable_n<T, 2>::value)
+			{
+				using tuple_type = typename psl::templates::func_traits<T>::arguments_t;
+				static_assert(std::tuple_size<tuple_type>::value == 2,
+							  "two arguments required in the prototype invocable");
+				using arg0_t = std::tuple_element_t<0, tuple_type>;
+				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
+							  "the argument type for arg 0 should be of 'T&'");
+				using arg1_t = std::tuple_element_t<1, tuple_type>;
+				static_assert(std::is_same_v <arg1_t, entity>,
+							  "the argument type for arg 1 should be of 'psl::ecs::entity'");
+				using type = typename std::remove_reference<arg0_t>::type;
+				static_assert(!std::is_empty_v<type>,
+							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+							  "psl::ecs::empty<T>{} to avoid initialization.");
+				create_storage<type>();
+				add_component_impl(
+				  details::key_for<type>(), entities, [prototype, &entities](std::uintptr_t location, size_t count) {
+					  for(auto i = size_t {0}; i < count; ++i)
+					  {
+						  std::invoke(prototype, *((type*)(location) + i), entities[i]);
 					  }
 				  });
 			}
@@ -714,11 +743,13 @@ namespace psl::ecs
 		{};
 
 		template <typename... Ts>
-		struct get_packs<psl::ecs::info&, Ts...> : public get_packs<Ts...>
+		struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...>
 		{};
 
 		std::pair<std::shared_ptr<details::filter_group>, std::shared_ptr<details::transform_group>>
-		add_filter_group(details::filter_group& filter_group, details::transform_group& transform_group)
+		add_filter_group(details::filter_group& filter_group,
+						 details::transform_group& transform_group,
+						 psl::string_view debugName)
 		{
 			std::shared_ptr<details::transform_group> shared_transform_group {};
 			auto filter_it =
@@ -730,6 +761,8 @@ namespace psl::ecs
 				m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
 				filter_it = std::prev(std::end(m_Filters));
 			}
+
+			filter_it->group->add_debug_system_name(debugName);
 
 			if(transform_group)
 			{
@@ -747,6 +780,7 @@ namespace psl::ecs
 					it = std::prev(std::end(filter_it->transformations));
 				}
 
+				it->group->add_debug_system_name(debugName);
 				return {filter_it->group, it->group};
 			}
 
@@ -754,7 +788,11 @@ namespace psl::ecs
 		}
 
 		template <typename Fn, typename T = void>
-		auto declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
+		auto declare_impl(threading threading,
+						  Fn&& fn,
+						  T* ptr,
+						  bool seedWithExisting		 = false,
+						  psl::string_view debugName = "")
 		{
 			using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
 			using pack_t		  = typename get_packs<function_args>::type;
@@ -767,13 +805,13 @@ namespace psl::ecs
 														  seedWithPrevious);
 			};
 
-			std::function<void(psl::ecs::info&, psl::array<details::dependency_pack>)> system_tick;
+			std::function<void(psl::ecs::info_t&, psl::array<details::dependency_pack>)> system_tick;
 
 			if constexpr(std::is_member_function_pointer<Fn>::value)
 			{
-				system_tick = [fn, ptr](psl::ecs::info& info, psl::array<details::dependency_pack> packs) -> void {
+				system_tick = [fn, ptr](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
 					auto tuple_argument_list = std::tuple_cat(
-					  std::tuple<T*, psl::ecs::info&>(ptr, info),
+					  std::tuple<T*, psl::ecs::info_t&>(ptr, info),
 					  details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>> {},
 															 psl::templates::type_container<pack_t> {},
 															 packs));
@@ -783,9 +821,9 @@ namespace psl::ecs
 			}
 			else
 			{
-				system_tick = [fn](psl::ecs::info& info, psl::array<details::dependency_pack> packs) -> void {
+				system_tick = [fn](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
 					auto tuple_argument_list = std::tuple_cat(
-					  std::tuple<psl::ecs::info&>(info),
+					  std::tuple<psl::ecs::info_t&>(info),
 					  details::compress_from_dependency_pack(std::make_index_sequence<std::tuple_size_v<pack_t>> {},
 															 psl::templates::type_container<pack_t> {},
 															 packs));
@@ -796,45 +834,31 @@ namespace psl::ecs
 
 			auto& sys_info = (m_LockState) ? m_NewSystemInformations : m_SystemInformations;
 
-			if constexpr(std::is_same_v<details::filter_group, decltype(filter_groups)>)
+			psl::array<std::shared_ptr<details::filter_group>> shared_filter_groups;
+			psl::array<std::shared_ptr<details::transform_group>> shared_transform_groups;
+
+			for(auto i = 0; i < filter_groups.size(); ++i)
 			{
-				auto [shared_filter, transform_filter] = add_filter_group(filter_groups, transform_groups);
-
-				sys_info.emplace_back(threading,
-									  std::move(pack_generator),
-									  std::move(system_tick),
-									  psl::array<std::shared_ptr<details::filter_group>> {shared_filter},
-									  psl::array<std::shared_ptr<details::transform_group>> {transform_filter},
-									  ++m_SystemCounter,
-									  seedWithExisting);
-				return sys_info[sys_info.size() - 1].id();
+				auto [shared_filter, transform_filter] =
+				  add_filter_group(filter_groups[i], transform_groups[i], debugName);
+				shared_filter_groups.emplace_back(shared_filter);
+				shared_transform_groups.emplace_back(transform_filter);
 			}
-			else
-			{
-				psl::array<std::shared_ptr<details::filter_group>> shared_filter_groups;
-				psl::array<std::shared_ptr<details::transform_group>> shared_transform_groups;
-
-				for(auto i = 0; i < filter_groups.size(); ++i)
-				{
-					auto [shared_filter, transform_filter] = add_filter_group(filter_groups[i], transform_groups[i]);
-					shared_filter_groups.emplace_back(shared_filter);
-					shared_transform_groups.emplace_back(transform_filter);
-				}
 
 
-				sys_info.emplace_back(threading,
-									  std::move(pack_generator),
-									  std::move(system_tick),
-									  shared_filter_groups,
-									  shared_transform_groups,
-									  ++m_SystemCounter,
-									  seedWithExisting);
-				return sys_info[sys_info.size() - 1].id();
-			}
+			sys_info.emplace_back(threading,
+									std::move(pack_generator),
+									std::move(system_tick),
+									shared_filter_groups,
+									shared_transform_groups,
+									++m_SystemCounter,
+									seedWithExisting, 
+				debugName);
+			return sys_info[sys_info.size() - 1].id();
 		}
 
 		::memory::raw_region m_Cache {1024 * 1024 * 256};
-		psl::array<psl::unique_ptr<info>> info_buffer {};
+		psl::array<psl::unique_ptr<info_t>> info_buffer {};
 		psl::array<entity> m_Orphans {};
 		psl::array<entity> m_ToBeOrphans {};
 		mutable psl::array<filter_result> m_Filters {};

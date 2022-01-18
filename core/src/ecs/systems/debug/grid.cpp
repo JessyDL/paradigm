@@ -44,7 +44,8 @@ grid::grid(state_t& state,
 {
 	// create geometry
 	auto boxData = utility::geometry::create_line_cube(cache, scale);
-	boxData->transform(core::data::geometry_t::constants::POSITION, [](psl::vec3& pos) { pos -= psl::vec3::one * 0.5f; });
+	boxData->transform(core::data::geometry_t::constants::POSITION,
+					   [](psl::vec3& pos) { pos -= psl::vec3::one * 0.5f; });
 	utility::geometry::copy_channel(
 	  boxData, core::data::geometry_t::constants::POSITION, core::data::geometry_t::constants::COLOR);
 	boxData->transform(core::data::geometry_t::constants::COLOR, [](psl::vec3& color) {
@@ -116,10 +117,10 @@ grid::grid(state_t& state,
 							  transform {},
 							  empty<grid::tag> {},
 							  empty<dynamic_tag> {});
-	state.declare(&grid::tick, this);
+	state.declare<"core::ecs::systems::debug::grid">(&grid::tick, this);
 }
 
-void grid::tick(info& info,
+void grid::tick(info_t& info,
 				pack<entity, const transform, psl::ecs::filter<camera>> pack,
 				psl::ecs::pack<transform, psl::ecs::filter<grid::tag>> grid_pack)
 {

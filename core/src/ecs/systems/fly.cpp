@@ -8,14 +8,14 @@ using namespace psl::math;
 
 fly::fly(psl::ecs::state_t& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
 {
-	state.declare(&fly::tick, this);
+	state.declare<"fly::tick">(&fly::tick, this);
 	m_InputSystem.subscribe(this);
 };
 
 fly::~fly() { m_InputSystem.unsubscribe(this); }
 
 void fly::tick(
-  psl::ecs::info& info,
+  psl::ecs::info_t& info,
   psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables)
 {
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;

@@ -90,9 +90,9 @@ text::text(psl::ecs::state_t& state,
 
 	m_FontTexture = cache.create_using<core::gfx::texture_t>(res.first, context);
 
-	state.declare(&text::update_dynamic, this, true);
-	state.declare(&text::add, this, true);
-	state.declare(&text::remove, this, true);
+	state.declare<"text::update_dynamic">(&text::update_dynamic, this, true);
+	state.declare<"text::add">(&text::add, this, true);
+	state.declare<"text::remove">(&text::remove, this, true);
 
 	// create the sampler
 	auto samplerData = cache.create<data::sampler_t>();
@@ -245,7 +245,7 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 }
 
 
-void text::update_dynamic(info& info,
+void text::update_dynamic(info_t& info,
 						  pack<partial, entity, comp::text, comp::renderable, psl::ecs::filter<comp::dynamic_tag>> pack)
 {
 	for(auto [e, text, renderer] : pack)
@@ -254,7 +254,7 @@ void text::update_dynamic(info& info,
 	}
 }
 
-void text::add(info& info, pack<partial, entity, comp::text, on_add<comp::text>> pack)
+void text::add(info_t& info, pack<partial, entity, comp::text, on_add<comp::text>> pack)
 {
 	psl::array<entity> ents;
 	ents.resize(1);
@@ -275,7 +275,7 @@ void text::add(info& info, pack<partial, entity, comp::text, on_add<comp::text>>
 	}
 }
 
-void text::remove(info& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack)
+void text::remove(info_t& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack)
 {
 	info.command_buffer.remove_components<comp::renderable>(pack.get<entity>());
 }

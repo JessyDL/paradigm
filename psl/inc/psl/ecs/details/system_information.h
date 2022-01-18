@@ -21,12 +21,12 @@ namespace psl::ecs
 
 	class state_t;
 
-	struct info
+	struct info_t
 	{
-		info(const state_t& state,
-			 std::chrono::duration<float> dTime,
-			 std::chrono::duration<float> rTime,
-			 size_t frame) noexcept :
+		info_t(const state_t& state,
+			   std::chrono::duration<float> dTime,
+			   std::chrono::duration<float> rTime,
+			   size_t frame) noexcept :
 			state(state),
 			dTime(dTime), rTime(rTime), command_buffer(state), tick(tick) {};
 
@@ -133,8 +133,9 @@ namespace psl::ecs::details
 		template <typename T>
 		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
 		{
-			orderby =
-			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {};
+			orderby		 = [](psl::array<entity>::iterator begin,
+						  psl::array<entity>::iterator end,
+						  const psl::ecs::state_t& state) {};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>> {},
 									  psl::templates::type_container<T> {});
@@ -280,7 +281,8 @@ namespace psl::ecs::details
 		  entity>::iterator(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)>>
 		  on_condition;
 
-		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)> orderby;
+		std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)>
+		  orderby;
 		bool m_IsPartial = false;
 	};
 
@@ -325,7 +327,7 @@ namespace psl::ecs::details
 	{
 	  public:
 		using pack_generator_type	= std::function<std::vector<details::dependency_pack>(bool)>;
-		using system_invocable_type = std::function<void(psl::ecs::info&, std::vector<details::dependency_pack>)>;
+		using system_invocable_type = std::function<void(psl::ecs::info_t&, std::vector<details::dependency_pack>)>;
 		system_information()		= default;
 		system_information(psl::ecs::threading threading,
 						   pack_generator_type&& generator,
@@ -333,10 +335,11 @@ namespace psl::ecs::details
 						   psl::array<std::shared_ptr<details::filter_group>> filters,
 						   psl::array<std::shared_ptr<details::transform_group>> transforms,
 						   size_t id,
-						   bool seedWithExisting = false) :
+						   bool seedWithExisting	  = false,
+						   psl::string_view debugName = "") :
 			m_Threading(threading),
 			m_PackGenerator(std::move(generator)), m_System(std::move(invocable)), m_Filters(filters),
-			m_Transforms(transforms), m_SeedWithExisting(seedWithExisting), m_ID(id) {};
+			m_Transforms(transforms), m_SeedWithExisting(seedWithExisting), m_DebugName(debugName), m_ID(id) {};
 		~system_information()						  = default;
 		system_information(const system_information&) = default;
 		system_information(system_information&&)	  = default;
@@ -345,7 +348,7 @@ namespace psl::ecs::details
 
 		std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator, false); }
 		bool seed_with_previous() const noexcept { return m_SeedWithExisting; };
-		void operator()(psl::ecs::info& info, std::vector<details::dependency_pack> packs)
+		void operator()(psl::ecs::info_t& info, std::vector<details::dependency_pack> packs)
 		{
 			m_SeedWithExisting = false;
 			std::invoke(m_System, info, packs);
@@ -367,6 +370,7 @@ namespace psl::ecs::details
 		psl::array<std::shared_ptr<details::filter_group>> m_Filters {};
 		psl::array<std::shared_ptr<details::transform_group>> m_Transforms {};
 		bool m_SeedWithExisting {false};
+		psl::string_view m_DebugName {};
 		system_token m_ID {0};
 	};
 }	 // namespace psl::ecs::details

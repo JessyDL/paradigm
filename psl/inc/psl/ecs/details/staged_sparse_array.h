@@ -317,6 +317,7 @@ namespace psl::ecs::details
 		{
 			m_Reverse.clear();
 			m_Sparse.clear();
+			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			m_StageStart = {0, 0, 0, 0};
 			m_StageSize	 = {0, 0, 0};
 		}
@@ -326,6 +327,7 @@ namespace psl::ecs::details
 		{
 			assert(m_Reverse.size() >= mapping.size());
 			m_Sparse.clear();
+			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			for(index_t i = 0; i < static_cast<index_t>(m_Reverse.size()); ++i)
 			{
 				if(std::invoke(predicate, m_Reverse[i]))
@@ -785,6 +787,7 @@ namespace psl::ecs::details
 		{
 			m_Reverse.clear();
 			m_Sparse.clear();
+			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			m_StageStart = {0, 0, 0, 0};
 			m_StageSize	 = {0, 0, 0};
 		}
@@ -794,6 +797,7 @@ namespace psl::ecs::details
 		{
 			assert(m_Reverse.size() >= mapping.size());
 			m_Sparse.clear();
+			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			for(index_t i = 0; i < static_cast<index_t>(m_Reverse.size()); ++i)
 			{
 				if(std::invoke(predicate, m_Reverse[i]))

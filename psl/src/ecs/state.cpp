@@ -128,7 +128,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 
 		auto index = info_buffer.size();
 		for(size_t i = 0; i < std::min(m_Scheduler->workers(), multi_pack.size()); ++i)
-			info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
+			info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick));
 
 		auto infoBuffer = std::next(std::begin(info_buffer), index);
 
@@ -179,7 +179,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 		}
 		// if (!has_entities)
 		//	return;
-		info_buffer.emplace_back(new info(*this, dTime, rTime, m_Tick));
+		info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick));
 		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
 		write_data(*this, pack);
@@ -729,11 +729,12 @@ void state_t::filter(filter_result& data, psl::array_view<entity> source) const 
 			//}
 			// else
 			{
+				psl::array_view new_source {begin, end};
 				psl::array<entity> diff_set {};
 				std::set_difference(std::begin(data.entities),
 									std::end(data.entities),
-									end,
-									std::end(result),
+									std::begin(source),
+									std::end(source),
 									std::back_inserter(diff_set));
 				data.entities = std::move(diff_set);
 
@@ -803,7 +804,7 @@ size_t state_t::set(psl::array_view<entity> entities, details::component_key_t k
 }
 
 
-void state_t::execute_command_buffer(info& info)
+void state_t::execute_command_buffer(info_t& info)
 {
 	auto& buffer = info.command_buffer;
 
@@ -831,7 +832,11 @@ void state_t::execute_command_buffer(info& info)
 		component_src->remap(remapped_entities, [first = buffer.m_First](entity e) -> bool { return e >= first; });
 		if(component_dst == nullptr)
 		{
-			for(auto e : component_src->entities(true)) m_ModifiedEntities.try_insert(e);
+			auto entities = component_src->entities(true);
+			for(auto e : entities)
+			{
+				m_ModifiedEntities.try_insert(e);
+			}
 			m_Components[component_src->id()] = std::move(component_src);
 		}
 		else

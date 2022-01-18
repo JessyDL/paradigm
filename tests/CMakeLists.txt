@@ -28,7 +28,3 @@ target_include_directories(${LOCAL_PROJECT}
 
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
 target_compile_options(${LOCAL_PROJECT} PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
-
-if(PE_BENCHMARKS)
-	add_subdirectory(benchmarks)
-endif()

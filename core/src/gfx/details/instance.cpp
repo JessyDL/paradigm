@@ -329,7 +329,7 @@ bool data::bind_material(core::resource::handle<core::gfx::material_t> material)
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
 
-	return material->bind_instance_data(it->second.descriptor.binding(), it->second.segment.range().begin);
+	return material->bind_instance_data(it->second.descriptor.binding(), static_cast<uint32_t>(it->second.segment.range().begin));
 }
 
 core::resource::handle<core::gfx::buffer_t> data::material_buffer() const noexcept

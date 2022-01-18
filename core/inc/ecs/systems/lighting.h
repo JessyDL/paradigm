@@ -23,7 +23,7 @@ namespace core::os
 namespace psl::ecs
 {
 	class state_t;
-	struct info;
+	struct info_t;
 	template <typename... Ts>
 	class pack;
 }	 // namespace psl::ecs
@@ -52,7 +52,7 @@ namespace core::ecs::systems
 		~lighting_system() = default;
 
 		void create_dir(
-		  psl::ecs::info& info,
+		  psl::ecs::info_t& info,
 		  psl::ecs::pack<psl::ecs::entity,
 						 core::ecs::components::light,
 						 psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>> pack);

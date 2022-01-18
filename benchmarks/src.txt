@@ -1,3 +1,4 @@
 SET(SRC 
 src/main.cpp
+src/ecs.cpp
 )

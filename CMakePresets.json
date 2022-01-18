@@ -1,222 +1,184 @@
 {
-    "version": 3,
-    "cmakeMinimumRequired": {
-        "major": 3,
-        "minor": 18,
-        "patch": 0
+  "version": 3,
+  "cmakeMinimumRequired": {
+    "major": 3,
+    "minor": 18,
+    "patch": 0
+  },
+  "configurePresets": [
+    {
+      "hidden": true,
+      "name": "settings-project",
+      "binaryDir": "${sourceDir}/project_files",
+      "cacheVariables": {
+        "PE_BUILD_DIR": {
+          "type": "STRING",
+          "value": "${sourceDir}/builds"
+        },
+        "PE_GLES": "OFF",
+        "PE_VULKAN": "OFF",
+        "PE_MOLTEN": "OFF",
+        "VK_STATIC": "OFF"
+      }
     },
-    "configurePresets": [
-        {
-            "hidden": true,
-            "name": "settings-project",
-            "binaryDir": "${sourceDir}/project_files",
-            "cacheVariables": {
-                "PE_BUILD_DIR": {
-                    "type": "STRING",
-                    "value": "${sourceDir}/builds"
-                },
-                "PE_GLES": "OFF",
-                "PE_VULKAN": "OFF",
-                "PE_MOLTEN": "OFF",
-                "VK_STATIC": "OFF"
-            }
+    {
+      "hidden": true,
+      "name": "settings-vulkan",
+      "cacheVariables": {
+        "VK_VERSION": {
+          "type": "STRING",
+          "value": "1.2.148"
         },
-        {
-            "hidden": true,
-            "name": "settings-vulkan",
-            "cacheVariables": {
-                "VK_VERSION": {
-                    "type": "STRING",
-                    "value": "1.2.148"
-                },
-                "PE_VULKAN": "ON",
-                "VK_STATIC": "OFF"
-            }
-        },
-        {
-            "hidden": true,
-            "name": "settings-gles",
-            "cacheVariables": {
-                "PE_GLES": "ON"
-            }
-        },
-        {
-            "hidden": true,
-            "name": "settings-molten",
-            "cacheVariables": {
-                "PE_MOLTEN": "OFF"
-            }
-        },
-        {
-            "name": "gnu-linux-base",
-            "displayName": "GNU/Linux",
-            "inherits": [
-                "settings-vulkan",
-                "settings-project"
-            ],
-            "description": "Base configuration for GNU/Linux types of distro",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Linux"
-            }
-        },
-        {
-            "name": "gnu-linux-debug-all",
-            "displayName": "GNU/Linux Vulkan/GLES (Debug)",
-            "inherits": ["gnu-linux-base"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "gnu-linux-release-all",
-            "displayName": "GNU/Linux Vulkan/GLES (Release)",
-            "inherits": ["gnu-linux-base"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "gnu-linux-debug-vulkan",
-            "displayName": "GNU/Linux Vulkan (Debug)",
-            "inherits": ["gnu-linux-base"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "gnu-linux-release-vulkan",
-            "displayName": "GNU/Linux Vulkan (Release)",
-            "inherits": ["gnu-linux-base"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "windows-base",
-            "displayName": "Windows",
-            "inherits": [
-                "settings-vulkan",
-                "settings-gles",
-                "settings-project"
-            ],
-            "generator": "Visual Studio 17 2022",
-            "architecture": "x64",
-            "binaryDir": "${sourceDir}/project_files/x64",
-            "description": "Base configuration for Windows",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            },
-            "cacheVariables": {
-                "PE_BUILD_DIR": {
-                    "type": "STRING",
-                    "value": "${sourceDir}/builds/x64"
-                }
-            }
-        },
-        {
-            "name": "windows-base-vulkan",
-            "displayName": "Windows Vulkan",
-            "inherits": [
-                "settings-vulkan",
-                "settings-project"
-            ],
-            "generator": "Visual Studio 17 2022",
-            "architecture": "x64",
-            "binaryDir": "${sourceDir}/project_files/x64",
-            "description": "Base configuration for Windows",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            },
-            "cacheVariables": {
-                "PE_BUILD_DIR": {
-                    "type": "STRING",
-                    "value": "${sourceDir}/builds/x64"
-                }
-            }
-        },
-        {
-            "name": "windows-debug-all",
-            "displayName": "Windows Vulkan/GLES (Debug)",
-            "inherits": ["windows-base"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "windows-release-all",
-            "displayName": "Windows Vulkan/GLES (Release)",
-            "inherits": ["windows-base"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
-        },
-        {
-            "name": "windows-debug-vulkan",
-            "displayName": "Windows Vulkan (Debug)",
-            "inherits": ["windows-base-vulkan"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Debug"
-            }
-        },
-        {
-            "name": "windows-release-vulkan",
-            "displayName": "Windows Vulkan (Release)",
-            "inherits": ["windows-base-vulkan"],
-            "cacheVariables": {
-                "CMAKE_BUILD_TYPE": "Release"
-            }
+        "PE_VULKAN": "ON",
+        "VK_STATIC": "OFF"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "settings-gles",
+      "cacheVariables": {
+        "PE_GLES": "ON"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "settings-molten",
+      "cacheVariables": {
+        "PE_MOLTEN": "OFF"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "gnu-linux-base",
+      "displayName": "GNU/Linux",
+      "inherits": [
+        "settings-vulkan",
+        "settings-project"
+      ],
+      "description": "Base configuration for GNU/Linux types of distro",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      }
+    },
+    {
+      "name": "gnu-linux-debug-all",
+      "displayName": "GNU/Linux Vulkan/GLES (Debug)",
+      "inherits": [ "gnu-linux-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "gnu-linux-release-all",
+      "displayName": "GNU/Linux Vulkan/GLES (Release)",
+      "inherits": [ "gnu-linux-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "gnu-linux-debug-vulkan",
+      "displayName": "GNU/Linux Vulkan (Debug)",
+      "inherits": [ "gnu-linux-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "gnu-linux-release-vulkan",
+      "displayName": "GNU/Linux Vulkan (Release)",
+      "inherits": [ "gnu-linux-base" ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "windows-base",
+      "displayName": "Windows",
+      "inherits": [
+        "settings-project"
+      ],
+      "generator": "Visual Studio 17 2022",
+      "architecture": "x64",
+      "binaryDir": "${sourceDir}/project_files/x64",
+      "description": "Base configuration for Windows",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Windows"
+      },
+      "cacheVariables": {
+        "PE_BUILD_DIR": {
+          "type": "STRING",
+          "value": "${sourceDir}/builds/x64"
         }
-    ],
-    "buildPresets": [
-        {
-            "name": "windows-debug-all",
-            "displayName": "Windows Vulkan/GLES (Debug)",
-            "configurePreset": "windows-debug-all",
-            "configuration": "Debug"
-        },
-        {
-            "name": "windows-release-all",
-            "displayName": "Windows Vulkan/GLES (Release)",
-            "configurePreset": "windows-release-all",
-            "configuration": "Release"
-        },
-        {
-            "name": "windows-debug-vulkan",
-            "displayName": "Windows Vulkan (Debug)",
-            "configurePreset": "windows-debug-vulkan",
-            "configuration": "Debug"
-        },
-        {
-            "name": "windows-release-vulkan",
-            "displayName": "Windows Vulkan (Release)",
-            "configurePreset": "windows-release-vulkan",
-            "configuration": "Release"
-        },
-        {
-            "name": "gnu-linux-debug-all",
-            "displayName": "GNU/Linux Vulkan/GLES (Debug)",
-            "configurePreset": "gnu-linux-debug-all"
-        },
-        {
-            "name": "gnu-linux-release-all",
-            "displayName": "GNU/Linux Vulkan/GLES (Release)",
-            "configurePreset": "gnu-linux-release-all"
-        },
-        {
-            "name": "gnu-linux-debug-vulkan",
-            "displayName": "GNU/Linux Vulkan (Debug)",
-            "configurePreset": "gnu-linux-debug-vulkan"
-        },
-        {
-            "name": "gnu-linux-release-vulkan",
-            "displayName": "GNU/Linux Vulkan (Release)",
-            "configurePreset": "gnu-linux-release-vulkan"
-        }
-    ]
+      }
+    },
+    {
+      "name": "windows-all",
+      "displayName": "Windows Vulkan/GLES",
+      "inherits": [
+        "settings-vulkan",
+        "settings-gles",
+        "windows-base"
+      ]
+    },
+    {
+      "name": "windows-vulkan",
+      "displayName": "Windows Vulkan",
+      "inherits": [
+        "settings-vulkan",
+        "windows-base"
+      ]
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "windows-debug-all",
+      "displayName": "Debug",
+      "configurePreset": "windows-all",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release-all",
+      "displayName": "Release",
+      "configurePreset": "windows-all",
+      "configuration": "Release"
+    },
+    {
+      "name": "windows-debug-vulkan",
+      "displayName": "Debug",
+      "configurePreset": "windows-vulkan",
+      "configuration": "Debug"
+    },
+    {
+      "name": "windows-release-vulkan",
+      "displayName": "Release",
+      "configurePreset": "windows-vulkan",
+      "configuration": "Release"
+    },
+    {
+      "name": "gnu-linux-debug-all",
+      "displayName": "Debug",
+      "configurePreset": "gnu-linux-debug-all"
+    },
+    {
+      "name": "gnu-linux-release-all",
+      "displayName": "Release",
+      "configurePreset": "gnu-linux-release-all"
+    },
+    {
+      "name": "gnu-linux-debug-vulkan",
+      "displayName": "Debug",
+      "configurePreset": "gnu-linux-debug-vulkan"
+    },
+    {
+      "name": "gnu-linux-release-vulkan",
+      "displayName": "Release",
+      "configurePreset": "gnu-linux-release-vulkan"
+    }
+  ]
 }

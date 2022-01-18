@@ -3,7 +3,7 @@ name: paradigm
 on: [push]
     
 jobs:      
-  windows:    
+  windows:
     strategy:
       fail-fast: false
       matrix:
@@ -19,13 +19,45 @@ jobs:
       with:
         python-version: 3.7
     - name: initialize
-      run: cmake --preset=windows-release-${{ matrix.graphics }}
+      run: |
+            python3 tools/generate_project_info.py
+            cmake --preset=windows-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
+            python3 tools/patch.py ./project_files/x64/
     - name: compile
       run: cmake --build --preset=windows-release-${{ matrix.graphics }}
     - name: test
       run: |
             cd builds\x64\release\bin
             .\tests.exe --formatter compact --no-source
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}-bin
+        path: builds/x64/release/bin/benchmarks.exe
+        if-no-files-found: error
+        retention-days: 1
+  windowsbenchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: windows-benchmark
+    needs: windows
+    runs-on: windows-2022
+    steps:
+    - name: setup
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}-bin
+    - name: benchmark
+      run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}
+        path: results.json
+        if-no-files-found: error
   ubuntu:
     container:
       image: gcc:11.2.0
@@ -50,8 +82,41 @@ jobs:
         apt-get update && apt-get install python3 -y
         python3 tools/generate_project_info.py
     - name: initialize
-      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }}
+      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
-      run: ./builds/*/bin/tests --formatter compact --no-source
+      run: ./builds/default/bin/tests --formatter compact --no-source
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}-bin
+        path: builds/default/bin/benchmarks
+        if-no-files-found: error
+        retention-days: 1
+  ubuntubenchmark:
+    container:
+      image: gcc:11.2.0
+    strategy:
+        fail-fast: false
+        matrix:
+          graphics: [vulkan]
+    name: ubuntu-benchmark
+    needs: ubuntu
+    runs-on: ubuntu-latest
+    steps:
+    - name: setup
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}-bin
+    - name: prepare
+      run: chmod +x benchmarks
+    - name: benchmark
+      run: ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}
+        path: results.json
+        if-no-files-found: error
