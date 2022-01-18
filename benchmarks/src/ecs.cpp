@@ -1,5 +1,5 @@
-#include <benchmark/benchmark.h>
 #include "psl/ecs/state.h"
+#include <benchmark/benchmark.h>
 
 using namespace psl;
 using namespace psl::ecs;
@@ -26,7 +26,6 @@ auto to_num_string(T i)
 #ifdef BENCHMARK_ENTITY_CREATION
 void entity_creation(benchmark::State& gState)
 {
-
 	auto eCount = gState.range(0);
 
 	ecs::state_t state;
@@ -59,7 +58,6 @@ void entity_creation_with_destruction(benchmark::State& gState)
 
 BENCHMARK(entity_creation)->RangeMultiplier(10)->Range(1, 1'000'000)->Unit(benchmark::kMicrosecond);
 BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000'000)->Unit(benchmark::kMicrosecond);
-
 #endif
 
 #ifdef BENCHMARK_COMPONENT_CREATION
@@ -84,10 +82,8 @@ void component_creation(benchmark::State& gState)
 	}
 }
 
-
 void component_creation_args(benchmark::internal::Benchmark* b)
 {
-
 	for(int j = 1; j <= 5; ++j)
 		for(int i = 0; i <= 6; ++i) b->ArgPair(pow(10, i), j);
 }
@@ -98,10 +94,10 @@ BENCHMARK(component_creation)->Apply(component_creation_args)->Unit(benchmark::k
 template <typename... Ts>
 class filtering_fixture : public ::benchmark::Fixture
 {
-	const std::vector<std::vector<int>> data_constraint{{10'000, 300, 2'700, 1'200, 6'700},
-														{100'000, 3'000, 21'700, 10'200, 68'700},
-														{10'000, 300, 2'700, 3'200, 6'700},
-														{100'000, 3'000, 21'700, 30'200, 68'700}};
+	const std::vector<std::vector<int>> data_constraint {{10'000, 300, 2'700, 1'200, 6'700},
+														 {100'000, 3'000, 21'700, 10'200, 68'700},
+														 {10'000, 300, 2'700, 3'200, 6'700},
+														 {100'000, 3'000, 21'700, 30'200, 68'700}};
 
   public:
 	void SetUp(const ::benchmark::State& gState) override
@@ -116,13 +112,13 @@ class filtering_fixture : public ::benchmark::Fixture
 
 		auto entities = state.create(eCount);
 
-		state.add_components<float>(psl::array<entity>{std::begin(entities), std::next(std::begin(entities), eCount)});
+		state.add_components<float>(psl::array<entity> {std::begin(entities), std::next(std::begin(entities), eCount)});
 		state.add_components<char>(
-			psl::array<entity>{std::next(std::begin(entities), char_beg), std::next(std::begin(entities), char_end)});
+		  psl::array<entity> {std::next(std::begin(entities), char_beg), std::next(std::begin(entities), char_end)});
 
 		state.add_components(
-			psl::array<entity>{std::next(std::begin(entities), int_beg), std::next(std::begin(entities), int_end)},
-			[](int& i) { i = std::rand() % 1000; });
+		  psl::array<entity> {std::next(std::begin(entities), int_beg), std::next(std::begin(entities), int_end)},
+		  [](int& i) { i = std::rand() % 1000; });
 	}
 
 	void filter() { state.filter<Ts...>(); }
@@ -207,15 +203,15 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_int)->Unit(benchmark::
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_float)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_int)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_int_float)
-	->Unit(benchmark::kMicrosecond)
-	->DenseRange(0, 3);
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_float_int_char)
-	->Unit(benchmark::kMicrosecond)
-	->DenseRange(0, 3);
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_order_by)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
-	->Unit(benchmark::kMicrosecond)
-	->DenseRange(0, 3);
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
 
 #endif
 #ifdef BENCHMARK_SYSTEMS
@@ -242,20 +238,20 @@ void run_system(benchmark::State& gState, state_t& state, const std::vector<enti
 	auto entities = state.create(count[0]);
 	std::random_device rd;
 	std::mt19937 g(rd());
-	size_t i{1};
+	size_t i {1};
 	(state.add_components<Ts>(get_random_entities(entities, count[i++], g)), ...);
 
 	for(auto _ : gState)
 	{
-		state.tick(std::chrono::duration<float>{0.01f});
+		state.tick(std::chrono::duration<float> {0.01f});
 	}
 }
 
 
-const std::vector<std::vector<entity>> system_counts{{10'000, 300, 2'700, 1'200, 6'700},
-													 {100'000, 3'000, 21'700, 10'200, 68'700},
-													 {1'000'000, 3'000, 20'700, 30'200, 60'700},
-													 {1'000'000, 300'000, 210'700, 300'200, 680'700}};
+const std::vector<std::vector<entity>> system_counts {{10'000, 300, 2'700, 1'200, 6'700},
+													  {100'000, 3'000, 21'700, 10'200, 68'700},
+													  {1'000'000, 3'000, 20'700, 30'200, 60'700},
+													  {1'000'000, 300'000, 210'700, 300'200, 680'700}};
 void trivial_read_only_seq_system(benchmark::State& gState)
 {
 	state_t state;
@@ -284,10 +280,10 @@ void trivial_write_par_system(benchmark::State& gState)
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-#include "ecs/components/transform.h"
-#include "ecs/components/lifetime.h"
-#include "ecs/components/velocity.h"
 #include "ecs/components/camera.h"
+#include "ecs/components/lifetime.h"
+#include "ecs/components/transform.h"
+#include "ecs/components/velocity.h"
 using namespace core::ecs::components;
 
 void complex_read_only_seq_system(benchmark::State& gState)
