@@ -1,10 +1,10 @@
 #pragma once
 #include "meta/shader.h"
-#include "psl/IDGenerator.h"
-#include "psl/array.h"
-#include "psl/memory/segment.h"
-#include "psl/meta.h"
-#include "psl/sparse_array.h"
+#include "psl/IDGenerator.hpp"
+#include "psl/array.hpp"
+#include "psl/memory/segment.hpp"
+#include "psl/meta.hpp"
+#include "psl/sparse_array.hpp"
 #include "resource/resource.hpp"
 
 namespace std

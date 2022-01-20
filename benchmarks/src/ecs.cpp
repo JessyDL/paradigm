@@ -1,4 +1,4 @@
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 #include <benchmark/benchmark.h>
 
 using namespace psl;

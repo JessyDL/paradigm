@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "gfx/details/instance.h"
-#include "psl/IDGenerator.h"
+#include "psl/IDGenerator.hpp"
 #include "resource/resource.hpp"
 #include "vk/ivk.h"
 #include <optional>

@@ -1,5 +1,5 @@
-#include "psl/memory/raw_region.h"
-#include "psl/platform_def.h"
+#include "psl/memory/raw_region.hpp"
+#include "psl/platform_def.hpp"
 #include <algorithm>
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
@@ -8,8 +8,8 @@
 #include <sys/mman.h>
 #include <unistd.h>
 #endif
-#include "psl/assertions.h"
-#include "psl/logging.h"
+#include "psl/assertions.hpp"
+#include "psl/logging.hpp"
 #include <cstddef>	  // std::byte
 using namespace memory;
 

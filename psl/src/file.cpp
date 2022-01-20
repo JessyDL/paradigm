@@ -1,9 +1,9 @@
-﻿#include "psl/file.h"
-#include "psl/platform_def.h"
+﻿#include "psl/file.hpp"
+#include "psl/platform_def.hpp"
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>
 #endif
-#include "psl/logging.h"
+#include "psl/logging.hpp"
 
 using namespace utility::os;
 

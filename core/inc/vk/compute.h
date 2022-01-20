@@ -4,8 +4,8 @@
 #include "fwd/vk/buffer.h"
 #include "fwd/vk/texture.h"
 
-#include "psl/array.h"
-#include "psl/array_view.h"
+#include "psl/array.hpp"
+#include "psl/array_view.hpp"
 
 #include "ivk.h"
 

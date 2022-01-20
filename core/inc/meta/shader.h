@@ -1,10 +1,10 @@
 ﻿#pragma once
 #include "gfx/types.h"
-#include "psl/array.h"
-#include "psl/array_view.h"
-#include "psl/library.h"
+#include "psl/array.hpp"
+#include "psl/array_view.hpp"
+#include "psl/library.hpp"
 #include "psl/serialization/serializer.hpp"
-#include "psl/ustring.h"
+#include "psl/ustring.hpp"
 
 namespace core::meta
 {

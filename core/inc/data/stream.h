@@ -1,7 +1,7 @@
 ﻿#pragma once
-#include "psl/array.h"
-#include "psl/math/matrix.h"
-#include "psl/math/vec.h"
+#include "psl/array.hpp"
+#include "psl/math/matrix.hpp"
+#include "psl/math/vec.hpp"
 #include "psl/serialization/serializer.hpp"
 
 namespace core

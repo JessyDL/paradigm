@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "psl/platform_def.h"
-#include "psl/string_utils.h"
+#include "psl/platform_def.hpp"
+#include "psl/string_utils.hpp"
 
 #define VULKAN_HPP_NO_EXCEPTIONS
 
@@ -31,8 +31,8 @@
 #define VK_VERSION_LATEST_PATCH VK_HEADER_VERSION
 #define VK_API_VERSION_LATEST VK_API_VERSION_1_2
 
-#include "psl/logging.h"
-#include "psl/ustring.h"
+#include "psl/logging.hpp"
+#include "psl/ustring.hpp"
 #include <assert.h>
 #include <unordered_map>
 

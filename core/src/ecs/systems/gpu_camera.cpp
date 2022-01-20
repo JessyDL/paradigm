@@ -3,7 +3,7 @@
 #include "ecs/components/transform.h"
 #include "gfx/buffer.h"
 #include "os/surface.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 
 using namespace core::ecs::systems;
 using namespace psl;

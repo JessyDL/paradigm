@@ -4,7 +4,7 @@
 #include "fwd/gfx/geometry.h"
 #include "fwd/gfx/material.h"
 #include "gfx/details/instance.h"
-#include "psl/array.h"
+#include "psl/array.hpp"
 #include "resource/resource.hpp"
 
 namespace core::ivk

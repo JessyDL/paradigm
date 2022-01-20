@@ -6,8 +6,8 @@
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 //#include <Windows.h>
 //#include "stdafx.h"
-#include "psl/application_utils.h"
-#include "psl/library.h"
+#include "psl/application_utils.hpp"
+#include "psl/library.hpp"
 #include "resource/resource.hpp"
 
 #include "paradigm.hpp"
@@ -58,7 +58,7 @@
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
 #include "ecs/components/velocity.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 
 #include "ecs/systems/attractor.h"
 #include "ecs/systems/death.h"
@@ -71,7 +71,7 @@
 #include "ecs/systems/render.h"
 #include "ecs/systems/text.h"
 
-#include "psl/literals.h"
+#include "psl/literals.hpp"
 
 #include "data/framebuffer.h"
 

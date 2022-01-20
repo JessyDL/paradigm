@@ -1,7 +1,7 @@
 #pragma once
 #include "ecs/components/transform.h"
 #include "ecs/components/velocity.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 
 namespace core::ecs::systems
 {

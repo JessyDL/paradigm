@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "fwd/gfx/context.h"
-#include "psl/memory/range.h"
-#include "psl/memory/segment.h"
+#include "psl/memory/range.hpp"
+#include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
 #include "vk/ivk.h"
 #include <vector>

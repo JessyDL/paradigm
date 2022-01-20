@@ -1,6 +1,6 @@
 #pragma once
 #include "ecs/components/dead_tag.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 
 namespace core::ecs::systems
 {

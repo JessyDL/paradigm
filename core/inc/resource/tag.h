@@ -1,5 +1,5 @@
 #pragma once
-#include "psl/meta.h"
+#include "psl/meta.hpp"
 
 namespace core::resource
 {

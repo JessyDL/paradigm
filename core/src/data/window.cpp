@@ -1,5 +1,5 @@
 ﻿#include "data/window.h"
-#include "psl/meta.h"
+#include "psl/meta.hpp"
 #include "resource/resource.hpp"
 
 using namespace psl;

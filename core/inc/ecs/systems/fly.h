@@ -1,7 +1,7 @@
 #pragma once
 #include "ecs/components/input_tag.h"
 #include "ecs/components/transform.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 #include "systems/input.h"
 
 namespace core::ecs::systems

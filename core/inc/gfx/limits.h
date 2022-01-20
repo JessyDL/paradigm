@@ -1,5 +1,5 @@
 #pragma once
-#include "psl/static_array.h"
+#include "psl/static_array.hpp"
 #include "types.h"
 #include <numeric>
 

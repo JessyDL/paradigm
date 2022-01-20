@@ -1,8 +1,8 @@
 ﻿#pragma once
 #include "fwd/resource/resource.h"
 #include "gfx/types.h"
-#include "psl/memory/region.h"
-#include "psl/memory/segment.h"
+#include "psl/memory/region.hpp"
+#include "psl/memory/segment.hpp"
 #include "psl/serialization/serializer.hpp"
 #include <optional>
 #include <vector>

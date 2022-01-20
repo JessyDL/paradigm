@@ -1,7 +1,7 @@
 #pragma once
-#include "psl/array.h"
-#include "psl/array_view.h"
-#include "psl/view_ptr.h"
+#include "psl/array.hpp"
+#include "psl/array_view.hpp"
+#include "psl/view_ptr.hpp"
 
 namespace core::gfx
 {

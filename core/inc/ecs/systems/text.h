@@ -6,10 +6,10 @@
 #include "fwd/gfx/geometry.h"
 #include "fwd/gfx/pipeline_cache.h"
 #include "fwd/gfx/texture.h"
-#include "psl/array.h"
-#include "psl/ecs/entity.h"
-#include "psl/ecs/selectors.h"
-#include "psl/math/vec.h"
+#include "psl/array.hpp"
+#include "psl/ecs/entity.hpp"
+#include "psl/ecs/selectors.hpp"
+#include "psl/math/vec.hpp"
 #include "resource/handle.h"
 
 namespace core::data

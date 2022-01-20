@@ -1,7 +1,7 @@
 ﻿#pragma once
 #include "gfx/types.h"
-#include "psl/library.h"
-#include "psl/meta.h"
+#include "psl/library.hpp"
+#include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
 
 namespace core::resource

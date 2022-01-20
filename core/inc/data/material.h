@@ -1,9 +1,9 @@
 ﻿#pragma once
 #include "fwd/resource/resource.h"
 #include "gfx/types.h"
-#include "psl/array.h"
-#include "psl/array_view.h"
-#include "psl/meta.h"
+#include "psl/array.hpp"
+#include "psl/array_view.hpp"
+#include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
 
 namespace core::meta

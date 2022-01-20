@@ -16,7 +16,7 @@
 #include "gfx/buffer.h"
 #include "gfx/details/instance.h"
 
-#include "psl/memory/segment.h"
+#include "psl/memory/segment.hpp"
 
 using namespace core::igles;
 using namespace core::resource;

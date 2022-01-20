@@ -1,7 +1,7 @@
 #pragma once
 #include "gfx/context.h"
 #include "psl/math/math.hpp"
-#include "psl/memory/segment.h"
+#include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
 
 namespace core::gfx

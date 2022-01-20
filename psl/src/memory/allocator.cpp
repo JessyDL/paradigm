@@ -1,6 +1,6 @@
-﻿#include "psl/memory/allocator.h"
-#include "psl/memory/range.h"
-#include "psl/memory/region.h"
+﻿#include "psl/memory/allocator.hpp"
+#include "psl/memory/range.hpp"
+#include "psl/memory/region.hpp"
 #include <algorithm>
 using namespace memory;
 

@@ -2,9 +2,9 @@
 
 #include "data/stream.h"
 #include "fwd/resource/resource.h"
-#include "psl/array_view.h"
-#include "psl/math/matrix.h"
-#include "psl/ustring.h"
+#include "psl/array_view.hpp"
+#include "psl/math/matrix.hpp"
+#include "psl/ustring.hpp"
 #include <unordered_map>
 #include <vector>
 

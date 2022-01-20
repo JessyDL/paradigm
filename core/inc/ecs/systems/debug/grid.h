@@ -1,6 +1,6 @@
 #pragma once
 #include "fwd/gfx/buffer.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 #include "resource/resource.hpp"
 
 namespace psl::ecs

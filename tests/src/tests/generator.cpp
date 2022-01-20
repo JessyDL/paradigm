@@ -1,6 +1,6 @@
 #include "stdafx_tests.h"
 #include "tests/generator.h"
-#include "psl/IDGenerator.h"
+#include "psl/IDGenerator.hpp"
 
 #include <litmus/expect.hpp>
 #include <litmus/section.hpp>

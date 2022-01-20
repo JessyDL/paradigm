@@ -11,8 +11,8 @@
 #include "gfx/texture.h"
 #include "meta/shader.h"
 #include "meta/texture.h"
-#include "psl/ecs/pack.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/pack.hpp"
+#include "psl/ecs/state.hpp"
 
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"

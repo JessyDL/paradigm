@@ -2,9 +2,9 @@
 #include "ecs/components/lighting.h"
 #include "ecs/components/transform.h"
 #include "ecs/systems/render.h"
-#include "psl/ecs/entity.h"
-#include "psl/ecs/selectors.h"
-#include "psl/view_ptr.h"
+#include "psl/ecs/entity.hpp"
+#include "psl/ecs/selectors.hpp"
+#include "psl/view_ptr.hpp"
 #include "resource/resource.hpp"
 
 namespace core::gfx

@@ -2,8 +2,8 @@
 #include "ecs/components/renderable.h"
 #include "ecs/components/transform.h"
 #include "gfx/bundle.h"
-#include "psl/bytell_map.h"
-#include "psl/ecs/state.h"
+#include "psl/bytell_map.hpp"
+#include "psl/ecs/state.hpp"
 #include "resource/resource.hpp"
 #include "vk/geometry.h"
 

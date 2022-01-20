@@ -3,8 +3,8 @@
 #include "fwd/gfx/compute.h"
 #include "fwd/gfx/texture.h"
 #include "fwd/resource/resource.h"
-#include "psl/array.h"
-#include "psl/static_array.h"
+#include "psl/array.hpp"
+#include "psl/static_array.hpp"
 #include "resource/handle.h"
 
 namespace core::gfx

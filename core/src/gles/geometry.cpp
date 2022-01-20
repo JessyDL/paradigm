@@ -7,7 +7,7 @@
 #include "gles/shader.h"
 #include "logging.h"
 #include "meta/shader.h"
-#include "psl/array.h"
+#include "psl/array.hpp"
 #include "resource/resource.hpp"
 
 using namespace core::igles;

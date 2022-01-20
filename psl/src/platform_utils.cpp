@@ -1,4 +1,4 @@
-﻿#include "psl/platform_utils.h"
+﻿#include "psl/platform_utils.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
@@ -7,7 +7,7 @@
 #include <tlhelp32.h>
 #endif
 
-#include "psl/string_utils.h"
+#include "psl/string_utils.hpp"
 
 // todo: validate windows directory seperator etc..
 

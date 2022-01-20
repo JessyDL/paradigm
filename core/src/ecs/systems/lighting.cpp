@@ -11,8 +11,8 @@
 #include "gfx/render_graph.h"
 #include "gfx/sampler.h"
 #include "os/surface.h"
-#include "psl/ecs/state.h"
-#include "psl/memory/region.h"
+#include "psl/ecs/state.hpp"
+#include "psl/memory/region.hpp"
 
 using namespace core::ecs::systems;
 using namespace core;

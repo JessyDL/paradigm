@@ -3,7 +3,7 @@
 #include "gfx/buffer.h"
 #include "gfx/context.h"
 #include "gfx/pipeline_cache.h"
-#include "psl/memory/segment.h"
+#include "psl/memory/segment.hpp"
 
 #ifdef PE_GLES
 #include "gles/material.h"

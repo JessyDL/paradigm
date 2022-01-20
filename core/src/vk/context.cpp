@@ -4,7 +4,7 @@
 #include "logging.h"
 #include "os/surface.h"
 #include "paradigm.hpp"
-#include "psl/meta.h"
+#include "psl/meta.hpp"
 #include "resource/resource.hpp"
 #include "vk/conversion.h"
 

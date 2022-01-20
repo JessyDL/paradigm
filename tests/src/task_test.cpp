@@ -1,5 +1,5 @@
 #include "task_test.h"
-#include "psl/async/scheduler.h"
+#include "psl/async/scheduler.hpp"
 #include "stdafx_tests.h"
 #include <chrono>
 

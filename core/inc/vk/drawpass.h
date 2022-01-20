@@ -1,6 +1,6 @@
 ﻿#pragma once
-#include "psl/math/vec.h"
-#include "psl/view_ptr.h"
+#include "psl/math/vec.hpp"
+#include "psl/view_ptr.hpp"
 #include "resource/resource.hpp"
 #include "vk/ivk.h"
 #include <vector>

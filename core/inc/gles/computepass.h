@@ -1,8 +1,8 @@
 #pragma once
 #include "gfx/computecall.h"
 #include "gles/types.h"
-#include "psl/array_view.h"
-#include "psl/view_ptr.h"
+#include "psl/array_view.hpp"
+#include "psl/view_ptr.hpp"
 #include "resource/resource.hpp"
 
 namespace core::igles

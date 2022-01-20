@@ -1,8 +1,8 @@
 #pragma once
 #include "gfx/types.h"
 #include "gles/types.h"
-#include "psl/array.h"
-#include "psl/memory/segment.h"
+#include "psl/array.hpp"
+#include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
 #include <optional>
 

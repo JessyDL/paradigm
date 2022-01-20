@@ -1,9 +1,9 @@
 ﻿#pragma once
-#include "psl/math/matrix.h"
-#include "psl/math/quaternion.h"
-#include "psl/math/vec.h"
-#include "psl/string_utils.h"
-#include "psl/ustring.h"
+#include "psl/math/matrix.hpp"
+#include "psl/math/quaternion.hpp"
+#include "psl/math/vec.hpp"
+#include "psl/string_utils.hpp"
+#include "psl/ustring.hpp"
 #include <vector>
 
 

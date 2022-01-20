@@ -2,7 +2,7 @@
 #include "fwd/gles/compute.h"
 #include "fwd/gles/texture.h"
 #include "fwd/resource/resource.h"
-#include "psl/array_view.h"
+#include "psl/array_view.hpp"
 #include "resource/handle.h"
 
 namespace core::data

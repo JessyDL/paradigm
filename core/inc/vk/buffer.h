@@ -1,6 +1,6 @@
 ﻿#pragma once
 #include "gfx/types.h"
-#include "psl/memory/segment.h"
+#include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
 #include "vk/ivk.h"
 #include <optional>

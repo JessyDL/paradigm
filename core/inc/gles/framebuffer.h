@@ -1,6 +1,6 @@
 #pragma once
 #include "gfx/types.h"
-#include "psl/array.h"
+#include "psl/array.hpp"
 #include "resource/handle.h"
 
 namespace core::data

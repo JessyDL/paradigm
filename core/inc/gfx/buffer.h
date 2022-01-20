@@ -1,10 +1,10 @@
 #pragma once
 #include "fwd/gfx/buffer.h"
 #include "gfx/types.h"
-#include "psl/array.h"
-#include "psl/memory/range.h"
-#include "psl/memory/region.h"
-#include "psl/memory/segment.h"
+#include "psl/array.hpp"
+#include "psl/memory/range.hpp"
+#include "psl/memory/region.hpp"
+#include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
 #include <optional>
 

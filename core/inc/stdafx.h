@@ -9,23 +9,23 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
-#include "psl/stdafx_psl.h"
+#include "psl/stdafx_psl.hpp"
 #include "targetver.h"
 
-#include "psl/platform_def.h"
+#include "psl/platform_def.hpp"
 
 #include "logging.h"
 #include <stdio.h>
 
 
-#include "psl/string_utils.h"
-#include "psl/ustring.h"
+#include "psl/string_utils.hpp"
+#include "psl/ustring.hpp"
 
 
 #include "gfx/stdafx.h"
 
-#include "psl/array_view.h"
-#include "psl/enumerate.h"
+#include "psl/array_view.hpp"
+#include "psl/enumerate.hpp"
 #include <array>
 #include <map>
 #include <memory>
@@ -42,12 +42,12 @@
 #endif
 
 
-#include "psl/application_utils.h"
+#include "psl/application_utils.hpp"
 
 #include "conversion_utils.h"
-#include "psl/library.h"
+#include "psl/library.hpp"
 #include "psl/math/math.hpp"
-#include "psl/meta.h"
+#include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
 #include "resource/resource.hpp"
 

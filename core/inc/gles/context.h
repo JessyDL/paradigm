@@ -1,7 +1,7 @@
 #pragma once
 #include "fwd/resource/resource.h"
 #include "gfx/limits.h"
-#include "psl/ustring.h"
+#include "psl/ustring.hpp"
 #include <cstdint>
 namespace core::os
 {

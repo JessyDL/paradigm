@@ -1,7 +1,7 @@
-#include "psl/ecs/details/component_info.h"
-#include "psl/ecs/entity.h"
-#include "psl/memory/raw_region.h"
-#include "psl/pack_view.h"
+#include "psl/ecs/details/component_info.hpp"
+#include "psl/ecs/entity.hpp"
+#include "psl/memory/raw_region.hpp"
+#include "psl/pack_view.hpp"
 #include <algorithm>
 #include <numeric>
 

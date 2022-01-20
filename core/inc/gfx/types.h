@@ -1,8 +1,8 @@
 #pragma once
-#include "psl/math/vec.h"
-#include "psl/memory/range.h"
-#include "psl/memory/segment.h"
-#include "psl/ustring.h"
+#include "psl/math/vec.hpp"
+#include "psl/memory/range.hpp"
+#include "psl/memory/segment.hpp"
+#include "psl/ustring.hpp"
 #include <optional>
 #include <variant>
 

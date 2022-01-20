@@ -1,5 +1,5 @@
 #include "ecs/systems/debug/grid.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 
 #include "resource/resource.hpp"
 

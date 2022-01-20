@@ -1,7 +1,7 @@
 #pragma once
 #include "fwd/gfx/compute.h"
 #include "gfx/types.h"
-#include "psl/math/vec.h"
+#include "psl/math/vec.hpp"
 #include "resource/resource.hpp"
 
 namespace core::data

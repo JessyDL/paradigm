@@ -1,6 +1,6 @@
 #pragma once
-#include "psl/event.h"
-#include "psl/ustring.h"
+#include "psl/event.hpp"
+#include "psl/ustring.hpp"
 #if defined(SURFACE_XCB)
 #include <xcb/xcb.h>
 #elif defined(SURFACE_WIN32)

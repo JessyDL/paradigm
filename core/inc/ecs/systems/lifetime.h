@@ -1,8 +1,8 @@
 #pragma once
 #include "ecs/components/dead_tag.h"
 #include "ecs/components/lifetime.h"
-#include "psl/ecs/command_buffer.h"
-#include "psl/ecs/state.h"
+#include "psl/ecs/command_buffer.hpp"
+#include "psl/ecs/state.hpp"
 
 
 namespace core::ecs::systems

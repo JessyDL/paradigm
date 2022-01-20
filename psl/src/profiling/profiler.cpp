@@ -1,7 +1,7 @@
-﻿#include "psl/profiling/profiler.h"
-#include "psl/application_utils.h"
-#include "psl/platform_utils.h"
-#include "psl/string_utils.h"
+﻿#include "psl/profiling/profiler.hpp"
+#include "psl/application_utils.hpp"
+#include "psl/platform_utils.hpp"
+#include "psl/string_utils.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>

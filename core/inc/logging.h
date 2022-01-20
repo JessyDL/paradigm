@@ -1,6 +1,6 @@
 #pragma once
-#include "psl/logging.h"
-#include "psl/profiling/profiler.h"
+#include "psl/logging.hpp"
+#include "psl/profiling/profiler.hpp"
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <memory>
 

@@ -1,8 +1,8 @@
 #pragma once
-#include "matrix.h"
-#include "quaternion.h"
-#include "utility.h"
-#include "vec.h"
+#include "matrix.hpp"
+#include "quaternion.hpp"
+#include "utility.hpp"
+#include "vec.hpp"
 
 #ifdef near
 #undef near

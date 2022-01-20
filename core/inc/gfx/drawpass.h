@@ -1,7 +1,7 @@
 #pragma once
 #include "resource/resource.hpp"
 #include <variant>
-#include "psl/view_ptr.h"
+#include "psl/view_ptr.hpp"
 #include "gfx/types.h"
 #ifdef PE_GLES
 namespace core::igles
