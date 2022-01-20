@@ -1,9 +1,9 @@
-#include "gles/shader.h"
-#include "gfx/stdafx.h"
-#include "gfx/types.h"
-#include "gles/conversion.h"
-#include "logging.h"
-#include "meta/shader.h"
+#include "gles/shader.hpp"
+#include "gfx/stdafx.hpp"
+#include "gfx/types.hpp"
+#include "gles/conversion.hpp"
+#include "logging.hpp"
+#include "meta/shader.hpp"
 #include "resource/resource.hpp"
 
 using namespace psl;

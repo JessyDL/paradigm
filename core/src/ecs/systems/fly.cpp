@@ -1,4 +1,4 @@
-#include "ecs/systems/fly.h"
+#include "ecs/systems/fly.hpp"
 #include "psl/ecs/command_buffer.hpp"
 
 using namespace core::ecs::systems;

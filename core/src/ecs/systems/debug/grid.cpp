@@ -1,24 +1,24 @@
-#include "ecs/systems/debug/grid.h"
+#include "ecs/systems/debug/grid.hpp"
 #include "psl/ecs/state.hpp"
 
 #include "resource/resource.hpp"
 
-#include "gfx/pipeline_cache.h"
+#include "gfx/pipeline_cache.hpp"
 
-#include "data/geometry.h"
-#include "data/material.h"
-#include "gfx/buffer.h"
-#include "gfx/bundle.h"
-#include "gfx/context.h"
-#include "gfx/geometry.h"
-#include "gfx/material.h"
-#include "meta/shader.h"
+#include "data/geometry.hpp"
+#include "data/material.hpp"
+#include "gfx/buffer.hpp"
+#include "gfx/bundle.hpp"
+#include "gfx/context.hpp"
+#include "gfx/geometry.hpp"
+#include "gfx/material.hpp"
+#include "meta/shader.hpp"
 
-#include "ecs/components/camera.h"
-#include "ecs/components/renderable.h"
-#include "ecs/components/transform.h"
+#include "ecs/components/camera.hpp"
+#include "ecs/components/renderable.hpp"
+#include "ecs/components/transform.hpp"
 
-#include "utility/geometry.h"
+#include "utility/geometry.hpp"
 
 using namespace core::ecs::systems::debug;
 using namespace core::ecs::components;

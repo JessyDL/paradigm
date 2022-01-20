@@ -1,13 +1,13 @@
-#include "gfx/geometry.h"
-#include "gfx/buffer.h"
-#include "gfx/context.h"
+#include "gfx/geometry.hpp"
+#include "gfx/buffer.hpp"
+#include "gfx/context.hpp"
 
 #ifdef PE_GLES
-#include "gles/geometry.h"
+#include "gles/geometry.hpp"
 #endif
 
 #ifdef PE_VULKAN
-#include "vk/geometry.h"
+#include "vk/geometry.hpp"
 #endif
 using namespace core;
 using namespace core::gfx;

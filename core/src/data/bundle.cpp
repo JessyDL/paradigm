@@ -1,5 +1,5 @@
-#include "data/bundle.h"
-#include "systems/resource.h"
+#include "data/bundle.hpp"
+#include "systems/resource.hpp"
 
 using namespace core::data;
 using namespace core::resource;

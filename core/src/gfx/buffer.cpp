@@ -1,14 +1,14 @@
-#include "gfx/buffer.h"
-#include "gfx/context.h"
+#include "gfx/buffer.hpp"
+#include "gfx/context.hpp"
 #ifdef PE_VULKAN
-#include "vk/buffer.h"
-#include "vk/context.h"
+#include "vk/buffer.hpp"
+#include "vk/context.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/buffer.h"
-#include "gles/context.h"
+#include "gles/buffer.hpp"
+#include "gles/context.hpp"
 #endif
-#include "data/buffer.h"
+#include "data/buffer.hpp"
 
 using namespace core;
 using namespace core::gfx;

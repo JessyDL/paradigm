@@ -5,7 +5,7 @@
 
 #pragma once
 
-#include "stdafx.h"
+#include "stdafx.hpp"
 
 #ifdef DBG_NEW
 #undef new

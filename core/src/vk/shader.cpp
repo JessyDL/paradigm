@@ -1,7 +1,7 @@
-﻿#include "vk/shader.h"
-#include "logging.h"
-#include "meta/shader.h"
-#include "vk/context.h"
+﻿#include "vk/shader.hpp"
+#include "logging.hpp"
+#include "meta/shader.hpp"
+#include "vk/context.hpp"
 
 using namespace psl;
 using namespace core::gfx;

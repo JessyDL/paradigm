@@ -1,8 +1,8 @@
-#include "gles/sampler.h"
-#include "data/sampler.h"
-#include "gfx/types.h"
-#include "gles/conversion.h"
-#include "gles/igles.h"
+#include "gles/sampler.hpp"
+#include "data/sampler.hpp"
+#include "gfx/types.hpp"
+#include "gles/conversion.hpp"
+#include "gles/igles.hpp"
 #include "resource/resource.hpp"
 
 using namespace core::resource;

@@ -1,5 +1,5 @@
 ﻿
-#include "meta/shader.h"
+#include "meta/shader.hpp"
 
 using namespace core::meta;
 using namespace psl::serialization;

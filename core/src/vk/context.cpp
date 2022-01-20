@@ -1,12 +1,12 @@
 ﻿
-#include "vk/context.h"
-#include "gfx/limits.h"
-#include "logging.h"
-#include "os/surface.h"
+#include "vk/context.hpp"
+#include "gfx/limits.hpp"
+#include "logging.hpp"
+#include "os/surface.hpp"
 #include "paradigm.hpp"
 #include "psl/meta.hpp"
 #include "resource/resource.hpp"
-#include "vk/conversion.h"
+#include "vk/conversion.hpp"
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..

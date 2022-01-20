@@ -1,4 +1,4 @@
 #pragma once
-#include "cache.h"
-#include "handle.h"
-#include "tag.h"
+#include "cache.hpp"
+#include "handle.hpp"
+#include "tag.hpp"

@@ -1,7 +1,7 @@
 #if defined(SURFACE_WIN32)
-#include "logging.h"
-#include "os/surface.h"
-#include "systems/input.h"
+#include "logging.hpp"
+#include "os/surface.hpp"
+#include "systems/input.hpp"
 #include <Windows.h>
 
 // https://chromium.googlesource.com/chromium/src/+/master/ui/events/keycodes/dom/keycode_converter_data.inc

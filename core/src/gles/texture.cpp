@@ -1,8 +1,8 @@
-#include "gles/texture.h"
-#include "gles/conversion.h"
-#include "gles/igles.h"
-#include "logging.h"
-#include "meta/texture.h"
+#include "gles/texture.hpp"
+#include "gles/conversion.hpp"
+#include "gles/igles.hpp"
+#include "logging.hpp"
+#include "meta/texture.hpp"
 #include "resource/resource.hpp"
 #ifdef fseek
 #define cached_fseek fseek

@@ -1,5 +1,5 @@
-#include "gles/computepass.h"
-#include "gles/igles.h"
+#include "gles/computepass.hpp"
+#include "gles/igles.hpp"
 
 using namespace core::igles;
 using namespace core::resource;

@@ -1,11 +1,11 @@
-#include "gles/context.h"
-#include "gfx/limits.h"
+#include "gles/context.hpp"
+#include "gfx/limits.hpp"
 #ifdef PLATFORM_WINDOWS
 #include "glad/glad_wgl.h"
 #include <Windows.h>
 #endif
-#include "logging.h"
-#include "os/surface.h"
+#include "logging.hpp"
+#include "os/surface.hpp"
 
 HDC target;
 HWND hwnd;

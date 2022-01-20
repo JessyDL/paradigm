@@ -1,10 +1,10 @@
-#include "gles/program.h"
-#include "data/material.h"
-#include "gfx/types.h"
-#include "gles/igles.h"
-#include "gles/shader.h"
-#include "logging.h"
-#include "meta/shader.h"
+#include "gles/program.hpp"
+#include "data/material.hpp"
+#include "gfx/types.hpp"
+#include "gles/igles.hpp"
+#include "gles/shader.hpp"
+#include "logging.hpp"
+#include "meta/shader.hpp"
 #include "resource/resource.hpp"
 
 using namespace core::igles;
