@@ -1,6 +1,6 @@
 #include "memory.h"
 #include "psl/memory/region.hpp"
-#include "stdafx_tests.h"
+#include "stdafx_tests.hpp"
 
 size_t free_size(const memory::region& region)
 {

@@ -1,4 +1,4 @@
-﻿#include "stdafx_tests.h"
+﻿#include "stdafx_tests.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #define _CRTDBG_MAP_ALLOC

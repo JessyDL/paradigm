@@ -1,5 +1,5 @@
 #include "psl/math/math.hpp"
-#include "stdafx_tests.h"
+#include "stdafx_tests.hpp"
 
 using namespace psl;
 using namespace math;
