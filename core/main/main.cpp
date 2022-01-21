@@ -1371,11 +1371,27 @@ int main(int argc, char* argv[])
 		{
 			std::string_view text {argv[i]};
 			if(text == "--vulkan")
+			{
+#if defined(PE_VULKAN)
 				return graphics_backend::vulkan;
+#else
+				throw std::runtime_error("Requested a Vulkan backend, but application does not support Vulkan");
+#endif
+			}
 			else if(text == "--gles")
+			{
+#if defined(PE_GLES)
 				return graphics_backend::gles;
+#else
+				throw std::runtime_error("Requested a GLES backend, but application does not support GLES");
+#endif
+			}
 		}
+#if defined(PE_VULKAN)
 		return graphics_backend::vulkan;
+#elif defined(PE_GLES)
+		return graphics_backend::gles;
+#endif
 	}(argc, argv);
 
 	entry(backend);
