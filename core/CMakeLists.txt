@@ -62,7 +62,7 @@ if(PE_GLES)
 					--reproducible
 				WORKING_DIRECTORY ${glad_SOURCE_DIR}
 			)
-			if(${PE_SURFACE} STREQUAL "WIN32")
+			if(PE_SURFACE STREQUAL "WIN32")
 				EXECUTE_PROCESS(
 					COMMAND ${PYTHON_EXECUTABLE} -m glad
 						--out-path=${GL_INCLUDE_DIRS}

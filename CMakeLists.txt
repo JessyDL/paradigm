@@ -44,6 +44,8 @@ set(PE_PLATFORM "AUTO" CACHE STRING "Target platform to build for, leave to 'AUT
 set_property(CACHE PE_PLATFORM PROPERTY STRINGS AUTO WINDOWS LINUX ANDROID)
 set(PE_INSTRUCTION_SET "fallback" CACHE STRING "Instruction set to use for SIMD instructions")
 set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS fallback SSE AVX AVX2)
+set(PE_MODE "release" CACHE STRING "set the build mode for Paradigm, this will influence the availability of PE_DEBUG/PE_RELEASE defines")
+set_property(CACHE PE_MODE PROPERTY STRINGS release debug)
 
 OPTION(VS_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
 OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
@@ -69,8 +71,8 @@ if(PE_PLATFORM STREQUAL AUTO)
 	endif()
 endif()
 
-
-list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
+string(TOUPPER PE_MODE PE_MODE)
+list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
 
 # experimental early support for not supporting vulkan
 if(PE_VULKAN)
@@ -103,7 +105,7 @@ elseif(VK_STATIC)
 	list(APPEND PE_DEFINES -DVK_STATIC)
 endif()
 
-if (${CMAKE_BUILD_TYPE} STREQUAL "Debug")
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	list(APPEND PE_DEFINES	-DPE_DEBUG)
 else()
 	list(APPEND PE_DEFINES	-DPE_RELEASE)
