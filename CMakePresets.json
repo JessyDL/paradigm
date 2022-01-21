@@ -49,7 +49,7 @@
     },
     {
       "hidden": true,
-      "name": "gnu-linux-base-debug",
+      "name": "gnu-linux-base",
       "displayName": "GNU/Linux",
       "inherits": [
         "settings-project"
@@ -61,6 +61,17 @@
         "rhs": "Linux"
       },
       "cacheVariables": {
+        "PE_PLATFORM": "LINUX"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "gnu-linux-base-debug",
+      "displayName": "GNU/Linux",
+      "inherits": [
+        "gnu-linux-base"
+      ],
+      "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
@@ -69,14 +80,8 @@
       "name": "gnu-linux-base-release",
       "displayName": "GNU/Linux",
       "inherits": [
-        "settings-project"
+        "gnu-linux-base"
       ],
-      "description": "Base configuration for GNU/Linux types of distro",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -132,6 +137,7 @@
         "rhs": "Windows"
       },
       "cacheVariables": {
+        "PE_PLATFORM": "WINDOWS",
         "PE_BUILD_DIR": {
           "type": "STRING",
           "value": "${sourceDir}/builds/x64"
