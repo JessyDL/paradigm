@@ -26,11 +26,6 @@ namespace platform::specifics
 
 }	 // namespace platform::specifics
 
-
-#if !defined(NDEBUG) && defined(NDEBUG) && !defined(DEBUG)
-#define NDEBUG 1
-#endif
-
 #include "psl/assertions.hpp"
 
 /*! \namespace memory \brief this namespace contains types and utilities for managing regions of memory
