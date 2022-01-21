@@ -61,27 +61,31 @@ if(PE_GLES)
 				--reproducible
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
 		)
+		if(${PE_SURFACE} STREQUAL "WIN32")
+			EXECUTE_PROCESS(
+				COMMAND ${PYTHON_EXECUTABLE} -m glad
+					--out-path=${GL_INCLUDE_DIRS}
+					--api=wgl=1.0
+					--generator=c
+					--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
+					--spec=wgl
+					--omit-khrplatform
+					--reproducible
+				WORKING_DIRECTORY ${glad_SOURCE_DIR}
+			)
 		
-		list(APPEND GL_SOURCES
-			"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
-			"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
-		)
+			list(APPEND GL_SOURCES
+				"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
+				"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
+			)
 			
-		EXECUTE_PROCESS(
-			COMMAND ${PYTHON_EXECUTABLE} -m glad
-				--out-path=${GL_INCLUDE_DIRS}
-				--api=wgl=1.0
-				--generator=c
-				--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
-				--spec=wgl
-				--omit-khrplatform
-				--reproducible
-			WORKING_DIRECTORY ${glad_SOURCE_DIR}
-		)
+			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" PROPERTIES LANGUAGE CXX)
+		endif()
+
 		add_library(gl ${GL_SOURCES})
 		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
-		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" "${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
+		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
 		set_property(TARGET gl PROPERTY FOLDER "extern")
 		
 		message(STATUS "Dav1dde/glad fetched")
