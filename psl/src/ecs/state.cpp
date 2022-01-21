@@ -366,7 +366,7 @@ psl::array<entity>::iterator state_t::filter_op(details::component_key_t key,
 											  psl::array<entity>::iterator& begin,
 											  psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfo = get_component_info(key);
+	const auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin
 							  : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
@@ -375,14 +375,14 @@ psl::array<entity>::iterator state_t::on_add_op(details::component_key_t key,
 											  psl::array<entity>::iterator& begin,
 											  psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfo = get_component_info(key);
+	const auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_added(e); });
 }
 psl::array<entity>::iterator state_t::on_remove_op(details::component_key_t key,
 												 psl::array<entity>::iterator& begin,
 												 psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfo = get_component_info(key);
+	const auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_removed(e); });
 }
 psl::array<entity>::iterator state_t::on_except_op(details::component_key_t key,

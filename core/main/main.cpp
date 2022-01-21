@@ -26,9 +26,9 @@
 #include "data/geometry.hpp"
 #include "data/material.hpp"
 #include "data/sampler.hpp"
-#include "data/window.hpp"	// application data
+#include "data/window.hpp"	  // application data
 
-#include "os/surface.hpp"	   // the OS surface to draw one
+#include "os/surface.hpp"	 // the OS surface to draw one
 
 #include "meta/shader.hpp"
 #include "meta/texture.hpp"
@@ -1218,32 +1218,14 @@ ECSState.create(
 	std::chrono::duration<float> dTime {};
 	std::chrono::duration<float> elapsed {};
 
-	struct COLOR_TAG_T
-	{
-		psl::vec4 color;
-	};
-
-	auto COLOR_SYSTEM = [](psl::ecs::info_t& info,
-						   psl::ecs::pack<psl::ecs::partial,
-										  core::ecs::components::renderable,
-										  COLOR_TAG_T,
-										  const core::ecs::components::instance_index> pack) {
-		using namespace core::ecs::components;
-		for(const auto& [renderable, color, index] : pack)
-		{
-			if(index.id != std::numeric_limits<decltype(instance_index::id)>::max()) color.color = psl::vec4::one;
-			//	renderable.bundle->set(renderable.geometry, index.id, "INSTANCE_COLOR", psl::array<psl::vec4> {color.color});
-		}
-	};
-
-	ECSState.declare<"COLOR_SYSTEM">(psl::ecs::threading::par, COLOR_SYSTEM);
-
-#ifdef _DEBUG
+#ifdef PE_DEBUG
 	size_t count = 5;
 	size_t swing = 0;
+	size_t burst = 1500;
 #else
 	size_t count = 750;
 	size_t swing = 100;
+	size_t burst = 40000;
 #endif
 	while(surface_handle->tick())
 	{
@@ -1277,7 +1259,7 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ (frame % 250 == 0) ? 40000 : 0,
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ (frame % 250 == 0) ? burst : 0,
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);
@@ -1285,15 +1267,15 @@ ECSState.create(
 				  renderable = {bundles[matIndex], geometryHandles[/*std::rand() % geometryHandles.size()*/ 0]};
 			  },
 			  psl::ecs::empty<core::ecs::components::dynamic_tag> {},
-			  COLOR_TAG_T {{std::rand() % 255 / 255.f, std::rand() % 255 / 255.f, std::rand() % 255 / 255.f, 1.0f}},
 			  psl::ecs::empty<core::ecs::components::transform> {},
 			  [](core::ecs::components::lifetime& target) { target = {2.5f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
 			  [&size_steps](core::ecs::components::velocity& target) {
-				  target = {psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
-														   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+				  target = {
+					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
+												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
 												   (float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f)),
-							((std::rand() % 5000) / 500.0f) * 8.0f,
-							1.0f};
+					((std::rand() % 5000) / 500.0f) * 8.0f,
+					1.0f};
 			  });
 
 
@@ -1362,10 +1344,11 @@ int main(int argc, char* argv[])
 	}
 #endif
 	std::srand(0);
-	core::log->info("hello");
-
-	for(auto i = 0; i < argc; ++i) core::log->info(argv[i]);
-
+	if(argc > 0)
+	{
+		core::log->info("Received the cli args:");
+		for(auto i = 0; i < argc; ++i) core::log->info(argv[i]);
+	}
 	auto backend = [](int argc, char* argv[]) noexcept {
 		for(auto i = 0; i < argc; ++i)
 		{

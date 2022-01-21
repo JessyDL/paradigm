@@ -4,5 +4,5 @@
 #include "vk/ivk.hpp"
 #endif
 #ifdef PE_GLES
-#include "glad/glad.h"
+#include "gles/igles.hpp"
 #endif

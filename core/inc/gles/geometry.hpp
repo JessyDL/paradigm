@@ -57,14 +57,14 @@ namespace core::igles
 
 	  private:
 		void clear(bool including_vao = true);
-		psl::UID m_UID;
-		memory::segment m_IndicesSegment;
-		memory::range_t m_IndicesSubRange;
-		core::resource::handle<core::igles::buffer_t> m_GeometryBuffer;
-		core::resource::handle<core::igles::buffer_t> m_IndicesBuffer;
+		psl::UID m_UID {};
+		memory::segment m_IndicesSegment {};
+		memory::range_t m_IndicesSubRange {};
+		core::resource::handle<core::igles::buffer_t> m_GeometryBuffer {};
+		core::resource::handle<core::igles::buffer_t> m_IndicesBuffer {};
 
-		std::unordered_map<psl::UID, unsigned int> m_VAOs;
-		psl::array<binding> m_Bindings;
+		std::unordered_map<psl::UID, unsigned int> m_VAOs {};
+		psl::array<binding> m_Bindings {};
 
 		size_t m_Vertices {0};
 		size_t m_Triangles {0};

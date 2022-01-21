@@ -42,9 +42,9 @@ namespace core::igles
 		void disconnect(psl::view_ptr<computepass> pass) noexcept;
 
 	  private:
-		core::resource::handle<swapchain> m_Swapchain;
-		core::resource::handle<framebuffer_t> m_Framebuffer;
-		psl::array<memory_barrier_t> m_MemoryBarriers;
-		psl::array<core::gfx::drawgroup> m_DrawGroups;
+		core::resource::handle<swapchain> m_Swapchain {};
+		core::resource::handle<framebuffer_t> m_Framebuffer {};
+		psl::array<memory_barrier_t> m_MemoryBarriers {};
+		psl::array<core::gfx::drawgroup> m_DrawGroups {};
 	};
 }	 // namespace core::igles

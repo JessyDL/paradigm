@@ -1379,8 +1379,8 @@ bool container::compact_header::try_decode(psl::string8::view source, psl::forma
 
 	target.m_Features.encoding = (id == string_identifier) ? encoding_t::string : encoding_t::binary;
 
-	size_t entry_size;
-	size_t content_header_size;
+	size_t entry_size{0};
+	size_t content_header_size{0};
 	const char* data = source.data() + sizeof(psl::string8::char_t) * 8;
 	memcpy(&entry_size, data, sizeof(size_t));
 	data += sizeof(size_t);

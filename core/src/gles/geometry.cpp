@@ -22,7 +22,7 @@ geometry_t::geometry_t(core::resource::cache_t& cache,
 				   handle<buffer_t> vertexBuffer,
 				   handle<buffer_t> indexBuffer) :
 	m_UID(metaData.uid),
-	m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer)
+	m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer), m_IndicesSubRange()
 {
 	recreate(data);
 }

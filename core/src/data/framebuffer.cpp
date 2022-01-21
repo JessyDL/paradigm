@@ -29,7 +29,7 @@ const UID& framebuffer_t::add(uint32_t width,
 							core::gfx::clear_value clearValue,
 							core::gfx::attachment descr)
 {
-	core::gfx::image_aspect aspectMask;
+	core::gfx::image_aspect aspectMask {};
 
 	if(usage & core::gfx::image::usage::color_attachment)
 	{
@@ -106,7 +106,7 @@ framebuffer_t::attachment::description::description(core::gfx::attachment descr)
 {}
 framebuffer_t::attachment::description::operator core::gfx::attachment() const noexcept
 {
-	core::gfx::attachment descr;
+	core::gfx::attachment descr {};
 	descr.sample_bits	= m_SampleCountFlags.value;
 	descr.image_load	= m_LoadOp.value;
 	descr.image_store	= m_StoreOp.value;

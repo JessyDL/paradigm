@@ -604,7 +604,6 @@ void context::deinit_debug()
 	}
 }
 
-
 bool context::queue_index(vk::QueueFlags flag, vk::Queue& queue, uint32_t& queueIndex)
 {
 	// Find a queue that supports graphics operations
@@ -749,7 +748,9 @@ vk::Result context::create_device(vk::DeviceQueueCreateInfo* requestedQueues, ui
 	deviceCreateInfo.pNext				  = NULL;
 	deviceCreateInfo.queueCreateInfoCount = queueSize;
 	deviceCreateInfo.pQueueCreateInfos	  = requestedQueues;
-	deviceCreateInfo.pEnabledFeatures	  = &m_PhysicalDeviceFeatures;
+	core::log->info("{} is supported", m_PhysicalDeviceFeatures.samplerAnisotropy);
+	core::log->flush();
+	deviceCreateInfo.pEnabledFeatures = &m_PhysicalDeviceFeatures;
 
 	deviceCreateInfo.enabledExtensionCount	 = (uint32_t)m_DeviceExtensionList.size();
 	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensionList.data();
@@ -874,9 +875,46 @@ void context::flush(vk::CommandBuffer commandBuffer, bool free)
 	}
 }
 
+bool has_queue(const vk::PhysicalDevice& device, vk::QueueFlags flag) noexcept
+{
+	std::vector<vk::QueueFamilyProperties> queueProps = device.getQueueFamilyProperties();
+	return std::any_of(std::begin(queueProps), std::end(queueProps), [flag](const auto& queue) noexcept {
+		return queue.queueFlags & flag;
+	});
+}
+
+bool is_valid_device(const vk::PhysicalDevice& device) noexcept
+{
+	// auto properties = device.getProperties();
+
+	auto features = device.getFeatures();
+	// auto memory_properties = device.getMemoryProperties();
+	return features.samplerAnisotropy && has_queue(device, vk::QueueFlagBits::eGraphics);
+}
+
+
 void context::select_physical_device(const std::vector<vk::PhysicalDevice>& allDevices)
 {
-	m_PhysicalDevice = allDevices[m_DeviceIndex];
+	if(m_DeviceIndex == std::numeric_limits<uint32_t>::max())
+	{
+		for(auto i = 0u; i < allDevices.size(); ++i)
+		{
+			if(is_valid_device(allDevices[i]))
+			{
+				m_DeviceIndex = i;
+				break;
+			}
+		}
+	}
+
+	if(m_DeviceIndex != std::numeric_limits<uint32_t>::max())
+	{
+		m_PhysicalDevice = allDevices[m_DeviceIndex];
+	}
+	else
+	{
+		throw std::runtime_error("No valid physical device found that was suitable");
+	}
 }
 
 const vk::Instance& context::instance() const noexcept { return m_Instance; }

@@ -59,8 +59,8 @@ namespace utility::os
 		bool close();
 
 		psl::char_t* m_Data {nullptr};
-		size_t m_Size;
-		size_t m_ContentSize;
+		size_t m_Size {0};
+		size_t m_ContentSize {0};
 #ifdef PLATFORM_WINDOWS
 		std::optional<void*> m_File;
 		std::optional<void*> m_Map;
