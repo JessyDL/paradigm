@@ -10,7 +10,7 @@
 #include "gles/texture.hpp"
 #include "meta/shader.hpp"
 
-#include "glad/glad_wgl.h"
+#include "gles/igles.hpp"
 #include "logging.hpp"
 
 #include "gfx/buffer.hpp"
