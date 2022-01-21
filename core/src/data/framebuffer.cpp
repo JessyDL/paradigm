@@ -1,6 +1,6 @@
-﻿#include "data/framebuffer.h"
-#include "gfx/sampler.h"
-#include "meta/texture.h"
+﻿#include "data/framebuffer.hpp"
+#include "gfx/sampler.hpp"
+#include "meta/texture.hpp"
 #include "resource/resource.hpp"
 
 using namespace psl;

@@ -1,5 +1,5 @@
 #if defined(SURFACE_WAYLAND)
-#include "os/surface.h"
+#include "os/surface.hpp"
 using namespace core::os;
 using namespace core;
 

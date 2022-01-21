@@ -1,4 +1,4 @@
 #pragma once
-#include "barrier.h"
-#include "scheduler.h"
-#include "token.h"
+#include "barrier.hpp"
+#include "scheduler.hpp"
+#include "token.hpp"

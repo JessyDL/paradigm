@@ -1,8 +1,8 @@
-#include "gfx/bundle.h"
-#include "data/material.h"
-#include "gfx/buffer.h"
-#include "gfx/geometry.h"
-#include "gfx/material.h"
+#include "gfx/bundle.hpp"
+#include "data/material.hpp"
+#include "gfx/buffer.hpp"
+#include "gfx/geometry.hpp"
+#include "gfx/material.hpp"
 
 using namespace core::gfx;
 using namespace core::ivk;

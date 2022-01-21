@@ -1,22 +1,22 @@
-#include "gles/material.h"
-#include "data/buffer.h"
-#include "data/material.h"
-#include "gles/buffer.h"
-#include "gles/conversion.h"
-#include "gles/program.h"
-#include "gles/program_cache.h"
-#include "gles/sampler.h"
-#include "gles/shader.h"
-#include "gles/texture.h"
-#include "meta/shader.h"
+#include "gles/material.hpp"
+#include "data/buffer.hpp"
+#include "data/material.hpp"
+#include "gles/buffer.hpp"
+#include "gles/conversion.hpp"
+#include "gles/program.hpp"
+#include "gles/program_cache.hpp"
+#include "gles/sampler.hpp"
+#include "gles/shader.hpp"
+#include "gles/texture.hpp"
+#include "meta/shader.hpp"
 
 #include "glad/glad_wgl.h"
-#include "logging.h"
+#include "logging.hpp"
 
-#include "gfx/buffer.h"
-#include "gfx/details/instance.h"
+#include "gfx/buffer.hpp"
+#include "gfx/details/instance.hpp"
 
-#include "psl/memory/segment.h"
+#include "psl/memory/segment.hpp"
 
 using namespace core::igles;
 using namespace core::resource;

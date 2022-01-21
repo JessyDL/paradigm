@@ -1,8 +1,8 @@
-#include "ecs/systems/geometry_instance.h"
-#include "ecs/components/renderable.h"
-#include "ecs/components/transform.h"
-#include "gfx/bundle.h"
-#include "gfx/geometry.h"
+#include "ecs/systems/geometry_instance.hpp"
+#include "ecs/components/renderable.hpp"
+#include "ecs/components/transform.hpp"
+#include "gfx/bundle.hpp"
+#include "gfx/geometry.hpp"
 #include "resource/resource.hpp"
 
 using namespace core::ecs::systems;

@@ -1,5 +1,5 @@
-#include "gfx/computecall.h"
-#include "gfx/compute.h"
+#include "gfx/computecall.hpp"
+#include "gfx/compute.hpp"
 
 using namespace core::gfx;
 

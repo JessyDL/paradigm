@@ -3,13 +3,13 @@
 #include <stack>
 #include <unordered_map>
 
-#include "psl/binary_utils.h"
-#include "psl/format.h"
-#include "psl/logging.h"
-#include "psl/platform_utils.h"
+#include "psl/binary_utils.hpp"
+#include "psl/format.hpp"
+#include "psl/logging.hpp"
+#include "psl/platform_utils.hpp"
 #include "psl/serialization/property.hpp"
-#include "psl/template_utils.h"
-#include "psl/ustring.h"
+#include "psl/template_utils.hpp"
+#include "psl/ustring.hpp"
 
 namespace psl::serialization
 {

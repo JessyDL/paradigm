@@ -1,12 +1,12 @@
-#include "gfx/sampler.h"
-#include "data/sampler.h"
-#include "gfx/context.h"
+#include "gfx/sampler.hpp"
+#include "data/sampler.hpp"
+#include "gfx/context.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/sampler.h"
+#include "vk/sampler.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/sampler.h"
+#include "gles/sampler.hpp"
 #endif
 
 using namespace core::gfx;

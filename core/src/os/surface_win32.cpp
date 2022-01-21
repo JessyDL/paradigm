@@ -1,7 +1,7 @@
 ﻿#ifdef SURFACE_WIN32
-#include "os/surface.h"
-#include "psl/assertions.h"
-#include "systems/input.h"
+#include "os/surface.hpp"
+#include "psl/assertions.hpp"
+#include "systems/input.hpp"
 #include <Windows.h>
 #include <cassert>
 

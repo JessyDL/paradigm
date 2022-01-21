@@ -1,4 +1,4 @@
-#include "psl/application_utils.h"
+#include "psl/application_utils.hpp"
 
 #if defined(PLATFORM_WINDOWS)
 #include "Shlwapi.h"

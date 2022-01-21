@@ -1,12 +1,12 @@
-#include "gfx/context.h"
+#include "gfx/context.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/context.h"
-#include "vk/conversion.h"
+#include "vk/context.hpp"
+#include "vk/conversion.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/context.h"
-#include "gles/igles.h"
+#include "gles/context.hpp"
+#include "gles/igles.hpp"
 #endif
 
 using namespace core;

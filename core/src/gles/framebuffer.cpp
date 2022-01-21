@@ -1,10 +1,10 @@
-#include "gles/framebuffer.h"
+#include "gles/framebuffer.hpp"
 #include "glad/glad.h"
 
-#include "data/framebuffer.h"
-#include "gles/sampler.h"
-#include "gles/texture.h"
-#include "meta/texture.h"
+#include "data/framebuffer.hpp"
+#include "gles/sampler.hpp"
+#include "gles/texture.hpp"
+#include "meta/texture.hpp"
 #include "resource/resource.hpp"
 using namespace core;
 using namespace core::igles;

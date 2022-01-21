@@ -1,6 +1,6 @@
-#include "ecs.h"
-#include "psl/ecs/state.h"
-#include "stdafx_tests.h"
+#include "ecs.hpp"
+#include "psl/ecs/state.hpp"
+#include "stdafx_tests.hpp"
 #include <random>
 
 using namespace psl::ecs;

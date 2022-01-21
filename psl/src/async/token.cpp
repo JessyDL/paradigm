@@ -1,5 +1,5 @@
-#include "psl/async/token.h"
-#include "psl/async/scheduler.h"
+#include "psl/async/token.hpp"
+#include "psl/async/scheduler.hpp"
 
 using namespace psl::async;
 

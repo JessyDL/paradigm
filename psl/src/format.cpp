@@ -1,4 +1,4 @@
-﻿#include "psl/format.h"
+﻿#include "psl/format.hpp"
 #include <algorithm>
 
 #if __has_include(<functional>)
@@ -6,8 +6,8 @@
 #else
 #include <experimental/functional>
 #endif
-#include "psl/crc32.h"
-#include "psl/string_utils.h"
+#include "psl/crc32.hpp"
+#include "psl/string_utils.hpp"
 #include <numeric>
 #include <stack>
 #include <unordered_map>

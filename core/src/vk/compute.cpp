@@ -1,4 +1,4 @@
-#include "vk/compute.h"
+#include "vk/compute.hpp"
 
 using namespace core::ivk;
 

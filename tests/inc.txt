@@ -1,9 +1,9 @@
 SET(INC 
-inc/stdafx_tests.h
-inc/targetver.h
-inc/ecs.h
-inc/math_tests.h
-inc/memory.h
-inc/tests/generator.h
-inc/task_test.h
+inc/stdafx_tests.hpp
+inc/targetver.hpp
+inc/ecs.hpp
+inc/math_tests.hpp
+inc/memory.hpp
+inc/tests/generator.hpp
+inc/task_test.hpp
 )

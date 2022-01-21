@@ -1,7 +1,7 @@
-#include "gles/swapchain.h"
+#include "gles/swapchain.hpp"
 #include "glad/glad_wgl.h"
-#include "gles/context.h"
-#include "os/surface.h"
+#include "gles/context.hpp"
+#include "os/surface.hpp"
 
 using namespace core::igles;
 using namespace core;

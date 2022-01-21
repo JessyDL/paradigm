@@ -1,4 +1,4 @@
-#include "psl/ecs/state.h"
+#include "psl/ecs/state.hpp"
 #include <benchmark/benchmark.h>
 
 using namespace psl;
@@ -280,10 +280,10 @@ void trivial_write_par_system(benchmark::State& gState)
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-#include "ecs/components/camera.h"
-#include "ecs/components/lifetime.h"
-#include "ecs/components/transform.h"
-#include "ecs/components/velocity.h"
+#include "ecs/components/camera.hpp"
+#include "ecs/components/lifetime.hpp"
+#include "ecs/components/transform.hpp"
+#include "ecs/components/velocity.hpp"
 using namespace core::ecs::components;
 
 void complex_read_only_seq_system(benchmark::State& gState)

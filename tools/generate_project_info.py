@@ -46,7 +46,7 @@ def generate_header(force = False):
         fObj.close()
     fObj = open(filepath, 'w+')
     fObj.write("// generated header file don't edit.\n")
-    fObj.write("#pragma once\n#include \"psl/ustring.h\"\n")
+    fObj.write("#pragma once\n#include \"psl/ustring.hpp\"\n")
     fObj.write("#include <array>\n\n")
     fObj.write("#define VERSION_TIME_UTC \""+utc_timestamp+"\"\n")
     fObj.write("#define VERSION_TIME_UNIX \""+unix_timestamp+"\"\n")

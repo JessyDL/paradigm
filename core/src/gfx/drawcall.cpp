@@ -1,5 +1,5 @@
-#include "gfx/drawcall.h"
-#include "gfx/geometry.h"
+#include "gfx/drawcall.hpp"
+#include "gfx/geometry.hpp"
 #include "resource/resource.hpp"
 #include <algorithm>
 

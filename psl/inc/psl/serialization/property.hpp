@@ -4,7 +4,7 @@
 #include "psl/concepts.hpp"
 #include "psl/details/fixed_astring.hpp"
 
-#include "psl/crc32.h"
+#include "psl/crc32.hpp"
 
 
 namespace psl::serialization

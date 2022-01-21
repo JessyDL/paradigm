@@ -1,7 +1,7 @@
-﻿#include "data/material.h"
-#include "data/geometry.h"
-#include "gfx/bundle.h"
-#include "meta/shader.h"
+﻿#include "data/material.hpp"
+#include "data/geometry.hpp"
+#include "gfx/bundle.hpp"
+#include "meta/shader.hpp"
 #include "resource/resource.hpp"
 
 using namespace psl;

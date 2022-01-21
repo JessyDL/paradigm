@@ -1,4 +1,4 @@
-#include "psl/noise/perlin.h"
+#include "psl/noise/perlin.hpp"
 #include "psl/math/math.hpp"
 
 #include <numeric>
