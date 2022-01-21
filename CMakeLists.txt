@@ -33,10 +33,10 @@ OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
 OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
 OPTION(PE_TESTS "make the tests" ON)
 
-include(FindXCB)
 include(FindWayland)
+include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
-CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "Wayland_FOUND" OFF)
+CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "WAYLAND_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_WIN32 "use win32 surface" ON "WIN32" OFF)
 
@@ -229,6 +229,11 @@ endif()
 ###############################################################################
 ###                    setup WSI defines                                    ###
 ###############################################################################
+
+# order of decides the order of importance, this means D2D is _always_ preferred
+# over any other surface type, and wayland is preferred over xcb
+# note: not all surface types work on all platforms, win32 surface is always on
+# by default on windows builds for example.
 
 set(HAS_WSI FALSE)
 if(NOT HAS_WSI AND PE_WSI_D2D)
