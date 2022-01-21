@@ -49,10 +49,9 @@
     },
     {
       "hidden": true,
-      "name": "gnu-linux-base",
+      "name": "gnu-linux-base-debug",
       "displayName": "GNU/Linux",
       "inherits": [
-        "settings-vulkan",
         "settings-project"
       ],
       "description": "Base configuration for GNU/Linux types of distro",
@@ -60,39 +59,61 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "gnu-linux-base-release",
+      "displayName": "GNU/Linux",
+      "inherits": [
+        "settings-project"
+      ],
+      "description": "Base configuration for GNU/Linux types of distro",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
       "name": "gnu-linux-debug-all",
       "displayName": "GNU/Linux Vulkan/GLES (Debug)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "settings-gles",
+        "gnu-linux-base-debug"
+      ]
     },
     {
       "name": "gnu-linux-release-all",
       "displayName": "GNU/Linux Vulkan/GLES (Release)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "settings-gles",
+        "gnu-linux-base-release"
+      ]
     },
     {
       "name": "gnu-linux-debug-vulkan",
       "displayName": "GNU/Linux Vulkan (Debug)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "gnu-linux-base-debug"
+      ]
     },
     {
       "name": "gnu-linux-release-vulkan",
       "displayName": "GNU/Linux Vulkan (Release)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "gnu-linux-base-release"
+      ]
     },
     {
       "hidden": true,
