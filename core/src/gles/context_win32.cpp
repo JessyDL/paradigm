@@ -1,18 +1,20 @@
+
+#ifdef SURFACE_WIN32
+
 #include "gles/context.hpp"
 #include "gfx/limits.hpp"
-#ifdef PLATFORM_WINDOWS
 #include "glad/glad_wgl.h"
 #include <Windows.h>
-#endif
 #include "logging.hpp"
 #include "os/surface.hpp"
+
+using namespace core;
+using namespace core::igles;
+
 
 HDC target;
 HWND hwnd;
 HGLRC rc;
-
-using namespace core;
-using namespace core::igles;
 
 void* glGetProcAddress(const char* name)
 {
@@ -289,5 +291,5 @@ void context::enable(const core::os::surface& surface)
 	}
 }
 
-
 bool context::swapbuffers(core::resource::handle<core::os::surface> surface) { return SwapBuffers(target); }
+#endif
