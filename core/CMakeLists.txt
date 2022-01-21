@@ -39,77 +39,79 @@ if(PE_VULKAN)
 endif()
 
 if(PE_GLES)
-	FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.33 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-	FetchContent_GetProperties(glad)
-	if(NOT glad_POPULATED)
-		message(STATUS "fetching Dav1dde/glad...")
-		FetchContent_Populate(glad)
-		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
-		
-		list(APPEND GL_SOURCES
-			"${GL_INCLUDE_DIRS}/src/glad.c"
-			"${GL_INCLUDE_DIRS}/include/glad/glad.h"
-		)
-		EXECUTE_PROCESS(
-			COMMAND ${PYTHON_EXECUTABLE} -m glad
-				--profile=core
-				--out-path=${GL_INCLUDE_DIRS}
-				--api=gles2=3.2
-				--generator=c
-				--extensions=GL_EXT_sRGB,GL_EXT_texture_buffer,GL_EXT_texture_compression_s3tc,GL_EXT_texture_compression_s3tc_srgb,GL_EXT_texture_filter_anisotropic,GL_EXT_texture_filter_minmax,GL_KHR_debug
-				--spec=gl
-				--reproducible
-			WORKING_DIRECTORY ${glad_SOURCE_DIR}
-		)
-		if(${PE_SURFACE} STREQUAL "WIN32")
+	if(PE_PLATFORM STREQUAL "WINDOWS")
+		FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.36 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+		FetchContent_GetProperties(glad)
+		if(NOT glad_POPULATED)
+			message(STATUS "fetching Dav1dde/glad...")
+			FetchContent_Populate(glad)
+			set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
+			
+			list(APPEND GL_SOURCES
+				"${GL_INCLUDE_DIRS}/src/glad.c"
+				"${GL_INCLUDE_DIRS}/include/glad/glad.h"
+			)
 			EXECUTE_PROCESS(
 				COMMAND ${PYTHON_EXECUTABLE} -m glad
+					--profile=core
 					--out-path=${GL_INCLUDE_DIRS}
-					--api=wgl=1.0
+					--api=gles2=3.2
 					--generator=c
-					--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
-					--spec=wgl
-					--omit-khrplatform
+					--extensions=GL_EXT_sRGB,GL_EXT_texture_buffer,GL_EXT_texture_compression_s3tc,GL_EXT_texture_compression_s3tc_srgb,GL_EXT_texture_filter_anisotropic,GL_EXT_texture_filter_minmax,GL_KHR_debug
+					--spec=gl
 					--reproducible
 				WORKING_DIRECTORY ${glad_SOURCE_DIR}
 			)
-		
-			list(APPEND GL_SOURCES
-				"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
-				"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
-			)
+			if(${PE_SURFACE} STREQUAL "WIN32")
+				EXECUTE_PROCESS(
+					COMMAND ${PYTHON_EXECUTABLE} -m glad
+						--out-path=${GL_INCLUDE_DIRS}
+						--api=wgl=1.0
+						--generator=c
+						--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
+						--spec=wgl
+						--omit-khrplatform
+						--reproducible
+					WORKING_DIRECTORY ${glad_SOURCE_DIR}
+				)
 			
-			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" PROPERTIES LANGUAGE CXX)
-		endif()
+				list(APPEND GL_SOURCES
+					"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
+					"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
+				)				
+				set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" PROPERTIES LANGUAGE CXX)
+			endif()
 
-		add_library(gl ${GL_SOURCES})
-		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
-		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
-		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
-		set_property(TARGET gl PROPERTY FOLDER "extern")
-		
-		message(STATUS "Dav1dde/glad fetched")
+			add_library(gl ${GL_SOURCES})
+			set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
+			target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
+			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
+			set_property(TARGET gl PROPERTY FOLDER "extern")
+			
+			message(STATUS "Dav1dde/glad fetched")
+
+			list(APPEND PE_DL_LIBS gl)
+		endif()
+	endif()
+	if(PE_PLATFORM STREQUAL "LINUX")
+		list(APPEND PE_DL_LIBS GLESv2 EGL)
 	endif()
 endif()
 
 add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
-if(PE_GLES)	
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC gl)
-endif()
+
 if(VK_STATIC AND PE_VULKAN)	
 	if(WIN32)
 		set(vk_lib_name "vulkan-1")
 	else()
 		set(vk_lib_name "libvulkan.so")
 	endif()
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
-		${vk_lib_name}  ${PROJECT_PSL} 
-		${PROJECT_INTERCEPT} ${PE_DL_LIBS} ${TEST_LIBS})
-else()
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC 
-		${PROJECT_PSL} 
-		${PROJECT_INTERCEPT} ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS})
+	list(APPEND PE_DL_LIBS ${vk_lib_name})
 endif()
+
+target_link_libraries(${LOCAL_PROJECT} PUBLIC 
+	${PROJECT_PSL} ${CMAKE_DL_LIBS}
+	${PROJECT_INTERCEPT} ${PE_DL_LIBS} ${TEST_LIBS})
 
 target_include_directories(${LOCAL_PROJECT}
 	PUBLIC 
