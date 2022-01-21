@@ -3,6 +3,7 @@
 #include "fwd/resource/resource.hpp"
 #include "gles/types.hpp"
 #include "psl/ustring.hpp"
+#include <limits>
 
 namespace core::igles
 {
