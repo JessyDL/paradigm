@@ -68,25 +68,25 @@ namespace psl
 #define ACCESSOR_1D_IMPL(type, name, index) ACCESSOR_IMPL(type, name, index)
 
 #define ACCESOR_2D_SHUFFLE(type, name1, name2, index1, index2)                                                         \
-	ACCESSOR_IMPL(type, name1##name2, index1, index2)                                                                \
+	ACCESSOR_IMPL(type, name1##name2, index1, index2)                                                                  \
 	ACCESSOR_IMPL(type, name2##name1, index2, index1)
 
 #define ACCESOR_3D_SHUFFLE(type, name1, name2, index1, index2)                                                         \
-	ACCESSOR_IMPL(type, name1##name1##name2, index1, index1, index2)                                                 \
-	ACCESSOR_IMPL(type, name1##name2##name1, index1, index2, index1)                                                 \
-	ACCESSOR_IMPL(type, name1##name2##name2, index1, index2, index2)                                                 \
-	ACCESSOR_IMPL(type, name2##name1##name1, index2, index1, index1)                                                 \
-	ACCESSOR_IMPL(type, name2##name2##name1, index2, index2, index1)                                                 \
+	ACCESSOR_IMPL(type, name1##name1##name2, index1, index1, index2)                                                   \
+	ACCESSOR_IMPL(type, name1##name2##name1, index1, index2, index1)                                                   \
+	ACCESSOR_IMPL(type, name1##name2##name2, index1, index2, index2)                                                   \
+	ACCESSOR_IMPL(type, name2##name1##name1, index2, index1, index1)                                                   \
+	ACCESSOR_IMPL(type, name2##name2##name1, index2, index2, index1)                                                   \
 	ACCESSOR_IMPL(type, name2##name1##name2, index2, index1, index2)
 
 
 #define ACCESOR_4D_SHUFFLE3(type, name1, name2, index1, index2)                                                        \
-	ACCESSOR_IMPL(type, name1##name1##name1##name2, index1, index1, index1, index2)                                  \
-	ACCESSOR_IMPL(type, name1##name1##name2##name1, index1, index1, index2, index1)                                  \
-	ACCESSOR_IMPL(type, name1##name2##name1##name1, index1, index2, index1, index1)                                  \
-	ACCESSOR_IMPL(type, name2##name1##name1##name1, index2, index1, index1, index1)                                  \
-	ACCESSOR_IMPL(type, name1##name2##name2##name1, index1, index2, index2, index1)                                  \
-	ACCESSOR_IMPL(type, name1##name2##name1##name2, index1, index2, index1, index2)                                  \
+	ACCESSOR_IMPL(type, name1##name1##name1##name2, index1, index1, index1, index2)                                    \
+	ACCESSOR_IMPL(type, name1##name1##name2##name1, index1, index1, index2, index1)                                    \
+	ACCESSOR_IMPL(type, name1##name2##name1##name1, index1, index2, index1, index1)                                    \
+	ACCESSOR_IMPL(type, name2##name1##name1##name1, index2, index1, index1, index1)                                    \
+	ACCESSOR_IMPL(type, name1##name2##name2##name1, index1, index2, index2, index1)                                    \
+	ACCESSOR_IMPL(type, name1##name2##name1##name2, index1, index2, index1, index2)                                    \
 	ACCESSOR_IMPL(type, name1##name1##name2##name2, index1, index1, index2, index2)
 
 
@@ -567,7 +567,11 @@ namespace psl
 
 	// todo alignas should be handled more gracefully
 	template <typename precision_t>
-	struct alignas(16) tvec<precision_t, 4>
+	struct
+#if !defined(__GNUC__)	  // refer to GH issue #22 for more info
+	  alignas(16)
+#endif
+		tvec<precision_t, 4>
 	{
 		static constexpr size_t dimensions_n {4};
 		using tvec_t	  = tvec<precision_t, 4>;

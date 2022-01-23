@@ -33,9 +33,12 @@ void gpu_camera::tick(
 		throw std::runtime_error(
 		  fmt::format("cannot allocate more than {}, but {} was requested for this frame", m_Max, cameras.size()));
 
-	for(auto [camera, transform] : cameras)
+	auto camera_components = cameras.get<const core::ecs::components::camera>();
+	auto transf_components = cameras.get<const core::ecs::components::transform>();
+
+	for (size_t i = 0; i < cameras.size(); ++i)
 	{
-		update_buffer(i++, transform, camera);
+		update_buffer(i, transf_components[i], camera_components[i]);
 	}
 }
 

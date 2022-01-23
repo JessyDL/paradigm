@@ -110,6 +110,7 @@ namespace psl::ecs
 		auto begin() const noexcept { return m_Pack.unpack_begin(); }
 
 		auto end() const noexcept { return m_Pack.unpack_end(); }
+
 		constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
 		constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
 

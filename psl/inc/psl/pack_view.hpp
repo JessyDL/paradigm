@@ -26,7 +26,9 @@ namespace psl
 		  private:
 			void advance_tuple(std::uintptr_t count)
 			{
-				(void(std::get<typename psl::array_view<Ts>::iterator>(data) += count), ...);
+				(void(std::get<typename psl::array_view<Ts>::iterator>(data) =
+						std::next(std::get<typename psl::array_view<Ts>::iterator>(data), count)),
+				 ...);
 			}
 
 		  public:
@@ -141,100 +143,72 @@ namespace psl
 			{
 				return std::get<0>(data) >= std::get<0>(other.data);
 			}
-			/*
+			
 			auto operator*() noexcept
 			{
-				return std::tuple<Ts...>(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
+				return std::tuple<Ts&...>(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
 			}
 
 			auto operator*() const noexcept
 			{
 				return std::tuple<const Ts&...>(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
 			}
-*/
 
-			// constexpr auto& operator*() noexcept
-			// {
-			// 	return std::forward_as_tuple(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
-			// }
-
-			constexpr auto&& operator*() noexcept
+			constexpr auto deref() noexcept
 			{
-				return std::forward_as_tuple(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
+				return std::tuple<Ts&...>(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
 			}
 
-			// constexpr const auto& operator*() const noexcept
-			// {
-			// 	return std::forward_as_tuple(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
-			// }
-
-			constexpr const auto&& operator*() const noexcept
+			constexpr const auto& deref() const noexcept
 			{
-				return std::forward_as_tuple(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
+				return std::tuple<const Ts&...>(*std::get<typename psl::array_view<Ts>::iterator>(data)...);
 			}
-			/*
-						template <typename T>
-						T& get()
-						{
-							// static_assert(::utility::templates::template tuple_contains_type<T*,
-			   internal_type>::value,
-							//			  "the requested component type does not exist in the pack");
-							return *std::get<T*>(data);
-						}
 
-						template <size_t N>
-						auto get() const noexcept -> decltype(*std::get<N>(std::declval<internal_type>()))
-						{
-							static_assert(N < std::tuple_size<internal_type>::value,
-										  "you requested a component outside of the range of the pack");
-							return *std::get<N>(data);
-						}
-			*/
 			template <std::size_t N>
 			auto& get() noexcept
 			{
-				return *std::get<N>(data);
+				return std::get<N>(deref());
 			}
 			template <std::size_t N>
 			auto&& get() noexcept
 			{
-				return *std::get<N>(data);
+				return std::get<N>(deref());
 			}
 
 			template <std::size_t N>
 			auto const& get() noexcept
 			{
-				return *std::get<N>(data);
+				return std::get<N>(deref());
 			}
 
 			template <std::size_t N>
 			auto const&& get() const noexcept
 			{
-				return *std::get<N>(data);
+				return *std::get<N>(deref());
 			}
 
 			template <class T>
 			constexpr auto& get() noexcept
 			{
-				return *std::get<typename psl::array_view<T>::iterator>(data);
+				return std::get<T>(deref());
 			}
 
 			template <class T>
 			constexpr auto&& get() noexcept
 			{
-				return *std::get<typename psl::array_view<T>::iterator>(data);
+				return std::get<T>(deref());
 			}
 
 			template <class T>
 			constexpr const auto& get() const noexcept
 			{
-				return *std::get<typename psl::array_view<T>::iterator>(data);
+				return std::get<T>(deref());
 			}
 
 			template <class T>
 			constexpr const auto&& get() const noexcept
 			{
-				return *std::get<typename psl::array_view<T>::iterator>(data);
+				return std::get<T>(deref());
 			}
 
 			operator value_type&() noexcept { return *reinterpret_cast<value_type*>(&data); }
@@ -545,14 +519,12 @@ namespace psl
 
 		auto operator[](size_t index) const noexcept
 		{
-			auto x {iterator_begin(m_Pack, index)};
-			return *(x);
+			return *(iterator_begin(m_Pack, index));
 		}
 
 		auto operator[](size_t index) noexcept
 		{
-			auto x {iterator_begin(m_Pack, index)};
-			return *(x);
+			return *(iterator_begin(m_Pack, index));
 		}
 
 		iterator begin() const noexcept { return iterator {iterator_begin(m_Pack)}; }
