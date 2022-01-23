@@ -13,11 +13,6 @@
 using namespace core;
 using namespace core::igles;
 
-EGLDisplay egl_display;
-EGLSurface egl_surface;
-EGLContext egl_context;
-EGLConfig egl_config;
-
 context::context(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
@@ -30,15 +25,15 @@ context::context(core::resource::cache_t& cache,
 
 
 	/* get an EGL display connection */
-	egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-	if(!eglInitialize(egl_display, NULL, NULL))
+	data.egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	if(!eglInitialize(data.egl_display, NULL, NULL))
 	{
 		core::igles::log->error("eglInitialize() failed");
 		return;
 	}
 	EGLint const attribute_list[] = {EGL_RED_SIZE, 1, EGL_GREEN_SIZE, 1, EGL_BLUE_SIZE, 1, EGL_NONE};
 	EGLint num_config;
-	if(!eglChooseConfig(egl_display, attribute_list, &egl_config, 1, &num_config))
+	if(!eglChooseConfig(data.egl_display, attribute_list, &data.egl_config, 1, &num_config))
 	{
 		core::igles::log->error("eglChooseConfig() failed");
 		return;
@@ -51,17 +46,17 @@ context::context(core::resource::cache_t& cache,
 	}
 
 	const EGLint ctx_attribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
-	egl_context				   = eglCreateContext(egl_display, egl_config, EGL_NO_CONTEXT, ctx_attribs);
+	data.egl_context		   = eglCreateContext(data.egl_display, data.egl_config, EGL_NO_CONTEXT, ctx_attribs);
 
 	EGLint eglConfAttrVisualID;
-	if(!eglGetConfigAttrib(egl_display, egl_config, EGL_NATIVE_VISUAL_ID, &eglConfAttrVisualID))
+	if(!eglGetConfigAttrib(data.egl_display, data.egl_config, EGL_NATIVE_VISUAL_ID, &eglConfAttrVisualID))
 	{
 		core::igles::log->error("eglGetConfigAttrib() failed");
 		return;
 	}
 
-	egl_surface = eglCreateWindowSurface(egl_display, egl_config, os_surface->surface_handle(), NULL);
-	eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context);
+	data.egl_surface = eglCreateWindowSurface(data.egl_display, data.egl_config, os_surface->surface_handle(), NULL);
+	eglMakeCurrent(data.egl_display, data.egl_surface, data.egl_surface, data.egl_context);
 
 	GLint value {};
 
@@ -106,24 +101,32 @@ context::context(core::resource::cache_t& cache,
 	core::igles::log->info("renderer: {}", glGetString(GL_RENDERER));
 	core::igles::log->info("version: {}", glGetString(GL_VERSION));
 
-	eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-	eglDestroySurface(egl_display, egl_surface);
-	eglDestroyContext(egl_display, egl_context);
-	eglTerminate(egl_display);
+	eglMakeCurrent(data.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+	eglDestroySurface(data.egl_display, data.egl_surface);
+	eglDestroyContext(data.egl_display, data.egl_context);
+	eglTerminate(data.egl_display);
+
+	data = {};
 }
 
 context::~context()
 {
-	eglMakeCurrent(egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
-	eglDestroySurface(egl_display, egl_surface);
-	eglDestroyContext(egl_display, egl_context);
-	eglTerminate(egl_display);
+	eglMakeCurrent(data.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+	eglDestroySurface(data.egl_display, data.egl_surface);
+	eglDestroyContext(data.egl_display, data.egl_context);
+	eglTerminate(data.egl_display);
 }
 
 void context::enable(const core::os::surface& surface)
 {
-	egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
-	if(!eglInitialize(egl_display, NULL, NULL))
+	if(data.egl_context != nullptr)
+	{
+		eglMakeCurrent(data.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
+		eglDestroySurface(data.egl_display, data.egl_surface);
+		eglDestroyContext(data.egl_display, data.egl_context);
+	}
+	data.egl_display = eglGetDisplay(EGL_DEFAULT_DISPLAY);
+	if(!eglInitialize(data.egl_display, NULL, NULL))
 	{
 		core::igles::log->error("eglInitialize() failed");
 		return;
@@ -146,7 +149,7 @@ void context::enable(const core::os::surface& surface)
 									 EGL_NONE};
 
 	EGLint num_config;
-	if(!eglChooseConfig(egl_display, attribute_list, &egl_config, 1, &num_config))
+	if(!eglChooseConfig(data.egl_display, attribute_list, &data.egl_config, 1, &num_config))
 	{
 		core::igles::log->error("eglChooseConfig() failed");
 		return;
@@ -159,22 +162,22 @@ void context::enable(const core::os::surface& surface)
 	}
 
 	const EGLint ctx_attribs[] = {EGL_CONTEXT_CLIENT_VERSION, 3, EGL_NONE};
-	egl_context				   = eglCreateContext(egl_display, egl_config, EGL_NO_CONTEXT, ctx_attribs);
+	data.egl_context		   = eglCreateContext(data.egl_display, data.egl_config, EGL_NO_CONTEXT, ctx_attribs);
 
 
 	EGLint eglConfAttrVisualID;
-	if(!eglGetConfigAttrib(egl_display, egl_config, EGL_NATIVE_VISUAL_ID, &eglConfAttrVisualID))
+	if(!eglGetConfigAttrib(data.egl_display, data.egl_config, EGL_NATIVE_VISUAL_ID, &eglConfAttrVisualID))
 	{
 		core::igles::log->error("eglGetConfigAttrib() failed");
 		return;
 	}
 
-	egl_surface = eglCreateWindowSurface(egl_display, egl_config, surface.surface_handle(), NULL);
-	eglMakeCurrent(egl_display, egl_surface, egl_surface, egl_context);
+	data.egl_surface = eglCreateWindowSurface(data.egl_display, data.egl_config, surface.surface_handle(), NULL);
+	eglMakeCurrent(data.egl_display, data.egl_surface, data.egl_surface, data.egl_context);
 }
 
 bool context::swapbuffers(core::resource::handle<core::os::surface> surface)
 {
-	return eglSwapBuffers(egl_display, egl_surface);
+	return eglSwapBuffers(data.egl_display, data.egl_surface);
 }
 #endif

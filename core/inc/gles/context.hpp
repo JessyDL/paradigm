@@ -10,6 +10,23 @@ namespace core::os
 
 namespace core::igles
 {
+	namespace details
+	{
+		struct xcb_context_data
+		{
+#ifdef SURFACE_XCB
+			void* egl_display {nullptr};
+			void* egl_surface {nullptr};
+			void* egl_context {nullptr};
+			void* egl_config {nullptr};
+#endif
+		};
+		struct win32_context_data
+		{
+#ifdef SURFACE_WIN32
+#endif
+		};
+	}	 // namespace details
 	class context
 	{
 	  public:
@@ -30,5 +47,13 @@ namespace core::igles
 
 	  private:
 		core::gfx::limits m_Limits;
+
+#ifdef SURFACE_WIN32
+		details::win32_context_data data {};
+#endif
+
+#ifdef SURFACE_XCB
+		details::xcb_context_data data {};
+#endif
 	};
 }	 // namespace core::igles
