@@ -33,10 +33,10 @@ OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
 OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
 OPTION(PE_TESTS "make the tests" ON)
 
-include(FindXCB)
 include(FindWayland)
+include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
-CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "Wayland_FOUND" OFF)
+CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "WAYLAND_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_WIN32 "use win32 surface" ON "WIN32" OFF)
 
@@ -44,6 +44,8 @@ set(PE_PLATFORM "AUTO" CACHE STRING "Target platform to build for, leave to 'AUT
 set_property(CACHE PE_PLATFORM PROPERTY STRINGS AUTO WINDOWS LINUX ANDROID)
 set(PE_INSTRUCTION_SET "fallback" CACHE STRING "Instruction set to use for SIMD instructions")
 set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS fallback SSE AVX AVX2)
+set(PE_MODE "release" CACHE STRING "set the build mode for Paradigm, this will influence the availability of PE_DEBUG/PE_RELEASE defines")
+set_property(CACHE PE_MODE PROPERTY STRINGS release debug)
 
 OPTION(VS_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
 OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
@@ -59,8 +61,18 @@ if(PE_GLES)
 	list(APPEND PE_DEFINES -DPE_GLES)
 endif()
 
+if(PE_PLATFORM STREQUAL AUTO)
+	if(WIN32)
+		set(PE_PLATFORM WINDOWS)
+	elseif(UNIX)
+		set(PE_PLATFORM LINUX)
+	else()
+		set(PE_PLATFORM ANDROID)
+	endif()
+endif()
 
-list(APPEND PE_DEFINES -DPLATFORM_${PE_PLATFORM})
+string(TOUPPER PE_MODE PE_MODE)
+list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
 
 # experimental early support for not supporting vulkan
 if(PE_VULKAN)
@@ -91,6 +103,12 @@ if(NOT VK_STATIC AND NOT PE_SOURCE_ONLY)
 	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES)
 elseif(VK_STATIC)
 	list(APPEND PE_DEFINES -DVK_STATIC)
+endif()
+
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+	list(APPEND PE_DEFINES	-DPE_DEBUG)
+else()
+	list(APPEND PE_DEFINES	-DPE_RELEASE)
 endif()
 
 ###############################################################################
@@ -131,25 +149,25 @@ if(PE_ANALYZE)
 	if(MSVC)
 	
 	else()
-		set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
+		set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*,-readability-function-cognitive-complexity,-readability-braces-around-statements,-readability-magic-numbers,cppcoreguidelines-init-variables,cppcoreguidelines-pro-type-member-init)
 	endif()
 	
-	find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
-	if (CMAKE_CXX_CPPCHECK)
-			list(
-					APPEND CMAKE_CXX_CPPCHECK 
-							"--enable=warning"
-							"--inconclusive"
-							"--force" 
-							"--inline-suppr"
-							"--suppressions-list=${CMAKE_SOURCE_DIR}/tools/CppCheckSuppressions.txt"
-			)
-	endif()
+	#find_program(CMAKE_CXX_CPPCHECK NAMES cppcheck)
+	# if (CMAKE_CXX_CPPCHECK)
+	# 		list(
+	# 				APPEND CMAKE_CXX_CPPCHECK 
+	# 						"--enable=warning"
+	# 						"--inconclusive"
+	# 						"--force" 
+	# 						"--inline-suppr"
+	# 						"--suppressions-list=${CMAKE_SOURCE_DIR}/tools/cppcheck-suppressions.txt"
+	# 		)
+	# endif()
 	
 endif()
 
 if(PE_VERBOSE AND NOT MSVC)
-	set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
+	#set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=-*,readability-*)
 endif()
 ###############################################################################
 ###                    compile options                                      ###
@@ -230,10 +248,24 @@ endif()
 ###                    setup WSI defines                                    ###
 ###############################################################################
 
+# order of decides the order of importance, this means D2D is _always_ preferred
+# over any other surface type, and x11/xcb is preferred over wayland
+# note: not all surface types work on all platforms, win32 surface is always on
+# by default on windows builds for example.
+
 set(HAS_WSI FALSE)
+set(PE_SURFACE "unknown")
 if(NOT HAS_WSI AND PE_WSI_D2D)
 	list(APPEND PE_DEFINES -DSURFACE_D2D)
 	message("using D2D WSI")
+	set(PE_SURFACE "D2D")
+	set(HAS_WSI TRUE)
+endif()
+if(NOT HAS_WSI AND PE_WSI_XCB AND XCB_FOUND)
+	list(APPEND PE_DEFINES -DSURFACE_XCB;-DVK_USE_PLATFORM_XCB_KHR)
+	set(WSI_LIB ${XCB_LIBRARIES})
+	message("using XCB WSI")
+	set(PE_SURFACE "XCB")
 	set(HAS_WSI TRUE)
 endif()
 if(NOT HAS_WSI AND PE_WSI_WAYLAND AND WAYLAND_FOUND)
@@ -241,17 +273,13 @@ if(NOT HAS_WSI AND PE_WSI_WAYLAND AND WAYLAND_FOUND)
 	set(WSI_LIB ${WAYLAND_CLIENT_LIBRARIES})
 	set(WSI_INC ${WAYLAND_INCLUDE_DIR})
 	message("using Wayland WSI")
-	set(HAS_WSI TRUE)
-endif()
-if(NOT HAS_WSI AND PE_WSI_XCB AND XCB_FOUND)
-	list(APPEND PE_DEFINES -DSURFACE_XCB;-DVK_USE_PLATFORM_XCB_KHR)
-	set(WSI_LIB ${XCB_LIBRARIES})
-	message("using XCB WSI")
+	set(PE_SURFACE "Wayland")
 	set(HAS_WSI TRUE)
 endif()
 if(NOT HAS_WSI AND PE_WSI_WIN32)
 	list(APPEND PE_DEFINES -DSURFACE_WIN32;-DVK_USE_PLATFORM_WIN32_KHR)
 	message("using WIN32 WSI")
+	set(PE_SURFACE "WIN32")
 	set(HAS_WSI TRUE)
 endif()
 if(NOT HAS_WSI)

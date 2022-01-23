@@ -52,7 +52,6 @@
       "name": "gnu-linux-base",
       "displayName": "GNU/Linux",
       "inherits": [
-        "settings-vulkan",
         "settings-project"
       ],
       "description": "Base configuration for GNU/Linux types of distro",
@@ -60,39 +59,68 @@
         "type": "equals",
         "lhs": "${hostSystemName}",
         "rhs": "Linux"
+      },
+      "cacheVariables": {
+        "PE_PLATFORM": "LINUX"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "gnu-linux-base-debug",
+      "displayName": "GNU/Linux",
+      "inherits": [
+        "gnu-linux-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PE_MODE": "debug"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "gnu-linux-base-release",
+      "displayName": "GNU/Linux",
+      "inherits": [
+        "gnu-linux-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PE_MODE": "release"
       }
     },
     {
       "name": "gnu-linux-debug-all",
       "displayName": "GNU/Linux Vulkan/GLES (Debug)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "settings-gles",
+        "gnu-linux-base-debug"
+      ]
     },
     {
       "name": "gnu-linux-release-all",
       "displayName": "GNU/Linux Vulkan/GLES (Release)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "settings-gles",
+        "gnu-linux-base-release"
+      ]
     },
     {
       "name": "gnu-linux-debug-vulkan",
       "displayName": "GNU/Linux Vulkan (Debug)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "gnu-linux-base-debug"
+      ]
     },
     {
       "name": "gnu-linux-release-vulkan",
       "displayName": "GNU/Linux Vulkan (Release)",
-      "inherits": [ "gnu-linux-base" ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
-      }
+      "inherits": [
+        "settings-vulkan",
+        "gnu-linux-base-release"
+      ]
     },
     {
       "hidden": true,
@@ -111,6 +139,7 @@
         "rhs": "Windows"
       },
       "cacheVariables": {
+        "PE_PLATFORM": "WINDOWS",
         "PE_BUILD_DIR": {
           "type": "STRING",
           "value": "${sourceDir}/builds/x64"
@@ -127,37 +156,77 @@
       ]
     },
     {
+      "name": "windows-debug-all",
+      "displayName": "Windows Vulkan/GLES (Debug)",
+      "inherits": [
+        "windows-all"
+      ],
+      "cacheVariables": {
+        "PE_MODE": "debug"
+      }
+    },
+    {
+      "name": "windows-release-all",
+      "displayName": "Windows Vulkan/GLES (Release)",
+      "inherits": [
+        "windows-all"
+      ],
+      "cacheVariables": {
+        "PE_MODE": "release"
+      }
+    },
+    {
       "name": "windows-vulkan",
       "displayName": "Windows Vulkan",
       "inherits": [
         "settings-vulkan",
         "windows-base"
       ]
+    },
+    {
+      "name": "windows-debug-vulkan",
+      "displayName": "Windows Vulkan (Debug)",
+      "inherits": [
+        "windows-vulkan"
+      ],
+      "cacheVariables": {
+        "PE_MODE": "debug"
+      }
+    },
+    {
+      "name": "windows-release-vulkan",
+      "displayName": "Windows Vulkan (Release)",
+      "inherits": [
+        "windows-vulkan"
+      ],
+      "cacheVariables": {
+        "PE_MODE": "release"
+      }
     }
   ],
   "buildPresets": [
     {
       "name": "windows-debug-all",
       "displayName": "Debug",
-      "configurePreset": "windows-all",
+      "configurePreset": "windows-debug-all",
       "configuration": "Debug"
     },
     {
       "name": "windows-release-all",
       "displayName": "Release",
-      "configurePreset": "windows-all",
+      "configurePreset": "windows-release-all",
       "configuration": "Release"
     },
     {
       "name": "windows-debug-vulkan",
       "displayName": "Debug",
-      "configurePreset": "windows-vulkan",
+      "configurePreset": "windows-debug-vulkan",
       "configuration": "Debug"
     },
     {
       "name": "windows-release-vulkan",
       "displayName": "Release",
-      "configurePreset": "windows-vulkan",
+      "configurePreset": "windows-release-vulkan",
       "configuration": "Release"
     },
     {

@@ -356,14 +356,14 @@ namespace psl::ecs
 							  psl::array_view<std::pair<entity, entity>> entities) noexcept;
 		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
 
-		state_t const* m_State;
-		psl::array<psl::unique_ptr<details::component_info>> m_Components;
-		entity m_First;
-		psl::array<entity> m_Entities;
+		state_t const* m_State {nullptr};
+		psl::array<psl::unique_ptr<details::component_info>> m_Components {};
+		entity m_First {0};
+		psl::array<entity> m_Entities {};
 
-		psl::array<entity> m_DestroyedEntities;
+		psl::array<entity> m_DestroyedEntities {};
 
-		entity m_Next;
+		entity m_Next {0};
 		size_t m_Orphans {0};
 	};
 }	 // namespace psl::ecs

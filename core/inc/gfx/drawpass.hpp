@@ -1,8 +1,8 @@
 #pragma once
+#include "gfx/types.hpp"
+#include "psl/view_ptr.hpp"
 #include "resource/resource.hpp"
 #include <variant>
-#include "psl/view_ptr.hpp"
-#include "gfx/types.hpp"
 #ifdef PE_GLES
 namespace core::igles
 {
@@ -28,14 +28,14 @@ namespace core::gfx
 	class drawpass;
 
 #ifdef PE_VULKAN
-	template<>
+	template <>
 	struct backend_type<drawpass, graphics_backend::vulkan>
 	{
 		using type = core::ivk::drawpass;
 	};
 #endif
 #ifdef PE_GLES
-	template<>
+	template <>
 	struct backend_type<drawpass, graphics_backend::gles>
 	{
 		using type = core::igles::drawpass;
@@ -46,10 +46,10 @@ namespace core::gfx
 	{
 	  public:
 #ifdef PE_VULKAN
-		  explicit drawpass(core::ivk::drawpass* handle);
+		explicit drawpass(core::ivk::drawpass* handle);
 #endif
 #ifdef PE_GLES
-		  explicit drawpass(core::igles::drawpass* handle);
+		explicit drawpass(core::igles::drawpass* handle);
 #endif
 
 		drawpass(core::resource::handle<context> context, core::resource::handle<framebuffer_t> framebuffer);
@@ -63,7 +63,7 @@ namespace core::gfx
 
 		bool is_swapchain() const noexcept;
 
-		
+
 		void clear();
 		void prepare();
 		bool build(bool force = false);
@@ -81,21 +81,21 @@ namespace core::gfx
 		backend_type_t<drawpass, backend>* resource() const noexcept
 		{
 #ifdef PE_VULKAN
-			if constexpr (backend == graphics_backend::vulkan) return m_VKHandle;
+			if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
 #endif
 #ifdef PE_GLES
-			if constexpr (backend == graphics_backend::gles) return m_GLESHandle;
+			if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
 #endif
 		};
 
-	private:
-		core::gfx::graphics_backend m_Backend{ graphics_backend::undefined };
+	  private:
+		core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
-		core::ivk::drawpass* m_VKHandle;
+		core::ivk::drawpass* m_VKHandle {nullptr};
 #endif
 #ifdef PE_GLES
-		core::igles::drawpass* m_GLESHandle;
+		core::igles::drawpass* m_GLESHandle {nullptr};
 #endif
-		bool m_Dirty{true};
+		bool m_Dirty {true};
 	};
-} // namespace core::gfx
+}	 // namespace core::gfx

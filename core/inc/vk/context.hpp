@@ -130,7 +130,7 @@ namespace core::ivk
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
 				psl::string8::view name,
-				uint32_t deviceIndex = 0u);
+				uint32_t deviceIndex = std::numeric_limits<uint32_t>::max());
 		~context();
 		context(const context&) = delete;
 		context(context&&)		= delete;

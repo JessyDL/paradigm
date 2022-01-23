@@ -1,4 +1,6 @@
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
+set(CMAKE_CXX_CLANG_TIDY "")
+
 set(BUILD_TESTING FALSE)
 add_subdirectory(cppcoro)
 set_property(TARGET cppcoro PROPERTY FOLDER "extern")

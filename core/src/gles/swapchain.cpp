@@ -1,5 +1,5 @@
 #include "gles/swapchain.hpp"
-#include "glad/glad_wgl.h"
+#include "gles/igles.hpp"
 #include "gles/context.hpp"
 #include "os/surface.hpp"
 

@@ -85,7 +85,7 @@ namespace psl::profiling
 		psl::string to_string() const;
 
 	  private:
-		psl::vector<frame_info> m_Frames;
-		size_t m_FrameIndex;
+		psl::vector<frame_info> m_Frames {};
+		size_t m_FrameIndex {0};
 	};
 }	 // namespace psl::profiling

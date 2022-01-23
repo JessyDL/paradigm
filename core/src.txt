@@ -80,7 +80,9 @@ endif()
 if(${PE_GLES})
 	set(SRC_GLES
 	buffer.cpp
-	context.cpp
+	context_xcb.cpp
+	context_win32.cpp
+	context_wayland.cpp
 	geometry.cpp
 	material.cpp
 	program.cpp

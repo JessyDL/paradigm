@@ -67,7 +67,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #define DBG_LIKELY(expr) (!!(expr))
 #endif
 
-#if !defined(NDEBUG) || (NDEBUG == 0)
+#if !defined(PE_DEBUG) || (PE_DEBUG == 0)
 #define assert_debug_break(condition)                                                                                  \
 	if(!(condition))                                                                                                   \
 	{                                                                                                                  \
@@ -79,7 +79,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 
 #ifdef assert
 #undef assert
-#ifdef NDEBUG
+#ifdef PE_DEBUG
 
 #define assert(expression, ...) ((void)0)
 
@@ -89,7 +89,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #endif
 #endif
 
-#ifdef DEBUG
+#ifdef PE_DEBUG
 #ifdef PLATFORM_WINDOWS
 #define psl_assert(expression, message)                                                                                \
 	(void)((!!(expression)) ||                                                                                         \
@@ -104,7 +104,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #define psl_assert(expression, message)
 #endif
 
-#if !defined(NDEBUG) || (NDEBUG == 0)
+#if !defined(PE_DEBUG) || (PE_DEBUG == 0)
 #define dbg_assert(expr)                                                                                               \
 	do                                                                                                                 \
 	{                                                                                                                  \

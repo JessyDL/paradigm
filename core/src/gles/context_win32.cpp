@@ -1,18 +1,20 @@
+
+#ifdef SURFACE_WIN32
+
 #include "gles/context.hpp"
 #include "gfx/limits.hpp"
-#ifdef PLATFORM_WINDOWS
 #include "glad/glad_wgl.h"
 #include <Windows.h>
-#endif
 #include "logging.hpp"
 #include "os/surface.hpp"
+
+using namespace core;
+using namespace core::igles;
+
 
 HDC target;
 HWND hwnd;
 HGLRC rc;
-
-using namespace core;
-using namespace core::igles;
 
 void* glGetProcAddress(const char* name)
 {
@@ -64,7 +66,7 @@ context::context(core::resource::cache_t& cache,
 						WGL_CONTEXT_MINOR_VERSION_ARB,
 						2,
 						WGL_CONTEXT_FLAGS_ARB,
-#ifdef _DEBUG
+#ifdef PE_DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif
 						  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
@@ -214,7 +216,7 @@ void context::enable(const core::os::surface& surface)
 						WGL_CONTEXT_MINOR_VERSION_ARB,
 						2,
 						WGL_CONTEXT_FLAGS_ARB,
-#ifdef _DEBUG
+#ifdef PE_DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
 #endif
 						  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
@@ -261,7 +263,7 @@ void context::enable(const core::os::surface& surface)
 
 	auto glversion = glGetString(GL_VERSION);
 
-#ifdef _DEBUG
+#ifdef PE_DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
 	GLuint unusedIds = 0;
@@ -289,5 +291,5 @@ void context::enable(const core::os::surface& surface)
 	}
 }
 
-
 bool context::swapbuffers(core::resource::handle<core::os::surface> surface) { return SwapBuffers(target); }
+#endif
