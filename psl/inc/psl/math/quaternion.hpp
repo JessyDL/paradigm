@@ -7,7 +7,11 @@ namespace psl
 {
 	// todo alignas should be handled more gracefully
 	template <typename precision_t>
-	struct alignas(16) tquat
+	struct
+#if !defined(__GNUC__)	  // refer to GH issue #22 for more info
+	  alignas(16)
+#endif
+		tquat
 	{
 		using tquat_t = tquat<precision_t>;
 

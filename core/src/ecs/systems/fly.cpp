@@ -33,8 +33,8 @@ void fly::tick(
 		m_MouseY = m_MouseTargetY;
 	}
 	const bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
-
-	for(auto [transform] : movables)
+	auto transforms		= movables.get<transform>();
+	for(auto& transform : transforms)
 	{
 		vec3 accDirectionVec {0};
 		auto direction = transform.rotation * vec3::forward;

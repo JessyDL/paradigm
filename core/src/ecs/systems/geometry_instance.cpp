@@ -27,21 +27,23 @@ geometry_instancing::geometry_instancing(psl::ecs::state_t& state)
 }
 
 
-void geometry_instancing::dynamic_system(info_t& info,
-										 pack<renderable,
-											  const transform,
-											  const dynamic_tag,
-											  except<dont_render_tag>,
-											  order_by<renderer_sort, renderable>> geometry_pack)
+void geometry_instancing::dynamic_system(
+  info_t& info,
+  pack<renderable, const transform, const dynamic_tag, except<dont_render_tag>, order_by<renderer_sort, renderable>>
+	geometry_pack)
 {
 	// todo clean up in case the last renderable from a dynamic object is despawned. The instance will not be released
 	// todo this will trash static instances as well
 	core::log->warn("todo: instance leak");
 	core::profiler.scope_begin("release_all");
-	for(auto [renderable, transform, tag] : geometry_pack)
+
 	{
-		if(renderable.bundle) renderable.bundle->release_all();
+		auto renderers = geometry_pack.get<renderable>();
+		for(auto renderable : renderers)
+			if(renderable.bundle) renderable.bundle->release_all();
+
 	}
+
 	core::profiler.scope_end();
 
 	core::profiler.scope_begin("mapping");

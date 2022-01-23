@@ -107,11 +107,13 @@ namespace psl::ecs
 
 		auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
 
-		auto begin() const noexcept -> typename pack_t::unpack_iterator { return m_Pack.unpack_begin(); }
+		auto begin() const noexcept { return m_Pack.unpack_begin(); }
 
-		auto end() const noexcept -> typename pack_t::unpack_iterator { return m_Pack.unpack_end(); }
+		auto end() const noexcept { return m_Pack.unpack_end(); }
+
 		constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
 		constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
+
 	  private:
 		pack_t m_Pack;
 	};

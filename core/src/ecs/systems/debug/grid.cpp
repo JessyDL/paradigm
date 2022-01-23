@@ -124,15 +124,18 @@ void grid::tick(info_t& info,
 				pack<entity, const transform, psl::ecs::filter<camera>> pack,
 				psl::ecs::pack<transform, psl::ecs::filter<grid::tag>> grid_pack)
 {
-	for(auto [entity, tr] : pack)
+	auto entities	= pack.get<entity>();
+	auto transforms = pack.get<const transform>();
+	auto grid_transforms = grid_pack.get<transform>();
+	for(auto i = 0; i < entities.size(); ++i)
 	{
-		if(entity != m_Target) continue;
+		if(entities[i] != m_Target) continue;
 
-		auto pos = tr.position;
+		auto pos = transforms[i].position;
 
 		pos = static_cast<psl::ivec3>(pos) - (static_cast<psl::ivec3>(pos) % static_cast<psl::ivec3>(m_Scale));
 
-		for(auto [target] : grid_pack)
+		for(auto& target : grid_transforms)
 		{
 			target.position = pos;
 		}
