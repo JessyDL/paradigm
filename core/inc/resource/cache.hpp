@@ -519,7 +519,7 @@ namespace core::resource
 		psl::meta::library m_Library;
 		std::unordered_map<psl::UID, entry> m_Cache {};
 		std::unordered_map<psl::UID, psl::UID> m_RemappedResource {};
-		std::unordered_map<resource_key_t, psl::string8_t> m_TypeNames;
-		std::unordered_map<resource_key_t, std::function<void(void*)>> m_Deleters;
+		std::unordered_map<resource_key_t, psl::string8_t> m_TypeNames {};
+		std::unordered_map<resource_key_t, std::function<void(void*)>> m_Deleters {};
 	};
 }	 // namespace core::resource

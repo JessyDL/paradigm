@@ -291,8 +291,9 @@ bool block_allocator::do_deallocate(segment& segment)
 std::vector<range_t> block_allocator::get_committed() const
 {
 	auto copy = m_Ranges;
-	auto it	  = std::remove_if(
-		std::begin(copy), std::end(copy), [](const memory::range_t& range) { return range.end == 0 && range.begin == 0; });
+	auto it	  = std::remove_if(std::begin(copy), std::end(copy), [](const memory::range_t& range) {
+		  return range.end == 0 && range.begin == 0;
+	  });
 	copy.erase(it, std::end(copy));
 
 	return copy;
@@ -302,8 +303,9 @@ std::vector<range_t> block_allocator::get_available() const
 {
 	auto copy = m_Ranges;
 
-	auto it = std::remove_if(
-	  std::begin(copy), std::end(copy), [](const memory::range_t& range) { return range.end == 0 && range.begin == 0; });
+	auto it = std::remove_if(std::begin(copy), std::end(copy), [](const memory::range_t& range) {
+		return range.end == 0 && range.begin == 0;
+	});
 	copy.erase(std::begin(copy), it);
 
 	return copy;
@@ -316,6 +318,6 @@ bool block_allocator::get_owns(const memory::segment& segment) const noexcept
 		   segment.range().begin - m_Ranges[0].begin % m_BlockSize == 0 &&	  // it is aligned correctly
 		   std::find_if(std::begin(m_Ranges),
 						std::end(m_Ranges),
-						[&segment](const memory::range_t& range)	  // expensive search
+						[&segment](const memory::range_t& range)	// expensive search
 						{ return &segment.range() == &range; }) != std::end(m_Ranges);
 }

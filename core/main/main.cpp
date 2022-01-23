@@ -1227,6 +1227,7 @@ ECSState.create(
 	size_t swing = 100;
 	size_t burst = 40000;
 #endif
+
 	while(surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
@@ -1377,7 +1378,7 @@ int main(int argc, char* argv[])
 #endif
 	}(argc, argv);
 
-	entry(backend);
+	return entry(backend);
 }
 #endif
 

@@ -43,9 +43,9 @@ namespace core::ecs::systems
 						psl::ecs::pack<const core::ecs::components::renderable,
 									   psl::ecs::on_remove<core::ecs::components::renderable>> broken_renderables);
 
-		psl::view_ptr<core::gfx::drawpass> m_Pass;
+		psl::view_ptr<core::gfx::drawpass> m_Pass {nullptr};
 
 		core::gfx::drawgroup m_DrawGroup {};
-		psl::array<std::pair<uint32_t, uint32_t>> m_RenderRanges;
+		psl::array<std::pair<uint32_t, uint32_t>> m_RenderRanges {};
 	};
 }	 // namespace core::ecs::systems

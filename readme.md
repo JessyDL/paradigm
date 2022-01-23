@@ -20,11 +20,13 @@ For more detailed description about the engine itself, go to the readme of the `
 | Architecture| Status        | Unit Tests | Vulkan| GLeS| Metal|
 :-------------|:-------------| -----:|:---:|:---:|:---:
 | ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions)| [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions) | 1.2 | 3.1 - 3.2| - |
-| ![](https://img.shields.io/badge/x64-Unix-blue.svg?style=for-the-badge)|  [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions) | [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions)|  1.2 | -| - |
+| ![](https://img.shields.io/badge/x64-GNU/Linux-blue.svg?style=for-the-badge)|  [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions) | [![paradigm](https://github.com/JessyDL/paradigm/workflows/paradigm/badge.svg)](https://github.com/JessyDL/paradigm/actions)|  1.2 | 3.2*| - |
 | ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - | -| -| - |
 | ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |    - |  -| -| - |
 | ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/status-in_development-purple.svg?style=for-the-badge)|   - | 1.2| 3.1 - 3.2| - |
 | ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/deploy-success-green.svg?style=for-the-badge)|   - | 1.2| 3.1 - 3.2| - |
+
+*GLES on GNU/Linux requires `libegl1-mesa-dev` and `libgles2-mesa-dev` to be installed.
 ## Building
 ### Prerequisites
 Python 3+
