@@ -1330,6 +1330,8 @@ ECSState.create(
 	return 0;
 }
 
+#include <iostream>
+
 int main(int argc, char* argv[])
 {
 #ifdef PLATFORM_WINDOWS
@@ -1337,6 +1339,29 @@ int main(int argc, char* argv[])
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 #endif
 	setup_loggers();
+
+	struct alignas(16) foo
+	{
+		float data[4];
+	};
+
+	state_t state {};
+
+	state.create<foo>(1);
+
+	state.declare([](info_t& info, pack<foo> pack) {
+		std::tuple<int, bool> X {};
+		const auto& [v0, v1] = X;
+
+		for(auto [value] : pack)
+		{
+			std::cout << typeid(value).name() << std::endl;
+			volatile auto copy = value;	   // <- segfault
+		}
+	});
+
+	state.tick(std::chrono::duration<float>(1.0f));
+	return 0;
 
 #ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support
