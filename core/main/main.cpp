@@ -1330,8 +1330,6 @@ ECSState.create(
 	return 0;
 }
 
-#include <iostream>
-
 int main(int argc, char* argv[])
 {
 #ifdef PLATFORM_WINDOWS
