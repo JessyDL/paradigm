@@ -20,10 +20,13 @@ state_t::state_t(size_t workers, size_t cache_size) :
 
 constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept
 {
+#pragma warning(push)
+#pragma warning(disable : 4146)
 	const auto orig	   = ptr;
 	const auto aligned = (ptr - 1u + alignment) & -alignment;
 	ptr				   = aligned;
 	return aligned - orig;
+#pragma warning(pop)
 }
 
 
