@@ -62,35 +62,51 @@ namespace psl::ecs::details
 			return *((T*)m_DenseData.data() + chunk[sub_index]);
 		}
 
-		const_reference at(index_t index) const noexcept
-		{
-			index_t sparse_index, chunk_index;
-			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index));
-			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
-		}
-		reference at(index_t index) noexcept
-		{
-			index_t sparse_index, chunk_index;
-			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index));
-			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
-		}
+		const_reference at(index_t index) const noexcept { return *addressof(index); }
 
+		reference at(index_t index) noexcept { return *addressof(index); }
 
 		const_reference at(index_t index, size_t startIndex, size_t endIndex) const noexcept
 		{
+			return *addressof(index, startIndex, endIndex);
+		}
+
+		reference at(index_t index, size_t startIndex, size_t endIndex) noexcept
+		{
+			return *addressof(index, startIndex, endIndex);
+		}
+
+		const_pointer addressof(index_t index) const noexcept
+		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index, startIndex, endIndex));
-			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
+			assert(has(index));
+			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
-		reference at(index_t index, size_t startIndex, size_t endIndex)
+
+		pointer addressof(index_t index) noexcept
+		{
+			index_t sparse_index, chunk_index;
+			chunk_info_for(index, sparse_index, chunk_index);
+			assert(has(index));
+			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
+		}
+
+
+		pointer addressof(index_t index, size_t startIndex, size_t endIndex) noexcept
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
 			assert(has(index, startIndex, endIndex));
-			return *((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
+			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
+		}
+
+		const_pointer addressof(index_t index, size_t startIndex, size_t endIndex) const noexcept
+		{
+			index_t sparse_index, chunk_index;
+			chunk_info_for(index, sparse_index, chunk_index);
+			assert(has(index, startIndex, endIndex));
+			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
 		void reserve(size_t capacity)
@@ -318,8 +334,8 @@ namespace psl::ecs::details
 			m_Reverse.clear();
 			m_Sparse.clear();
 			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
-			m_StageStart = {0, 0, 0, 0};
-			m_StageSize	 = {0, 0, 0};
+			m_StageStart		   = {0, 0, 0, 0};
+			m_StageSize			   = {0, 0, 0};
 		}
 
 		template <typename Fn>
@@ -788,8 +804,8 @@ namespace psl::ecs::details
 			m_Reverse.clear();
 			m_Sparse.clear();
 			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
-			m_StageStart = {0, 0, 0, 0};
-			m_StageSize	 = {0, 0, 0};
+			m_StageStart		   = {0, 0, 0, 0};
+			m_StageSize			   = {0, 0, 0};
 		}
 
 		template <typename Fn>

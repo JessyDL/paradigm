@@ -18,6 +18,17 @@ state_t::state_t(size_t workers, size_t cache_size) :
 	m_ModifiedEntities.reserve(65536);
 }
 
+constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept
+{
+#pragma warning(push)
+#pragma warning(disable : 4146)
+	const auto orig	   = ptr;
+	const auto aligned = (ptr - 1u + alignment) & -alignment;
+	ptr				   = aligned;
+	return aligned - orig;
+#pragma warning(pop)
+}
+
 
 psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::dependency_pack>& source,
 													   size_t workers = std::numeric_limits<size_t>::max())
@@ -64,9 +75,9 @@ psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::depen
 }
 
 void state_t::prepare_system(std::chrono::duration<float> dTime,
-						   std::chrono::duration<float> rTime,
-						   std::uintptr_t cache_offset,
-						   details::system_information& information)
+							 std::chrono::duration<float> rTime,
+							 std::uintptr_t cache_offset,
+							 details::system_information& information)
 {
 	std::function<void(state_t&, psl::array<details::dependency_pack>)> write_data =
 	  [](state_t& state, psl::array<details::dependency_pack> dep_packs) {
@@ -289,8 +300,8 @@ void state_t::add_component_impl(details::component_key_t key, psl::array_view<e
 
 // invocable based construction
 void state_t::add_component_impl(details::component_key_t key,
-							   psl::array_view<entity> entities,
-							   std::function<void(std::uintptr_t, size_t)> invocable)
+								 psl::array_view<entity> entities,
+								 std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
@@ -307,9 +318,9 @@ void state_t::add_component_impl(details::component_key_t key,
 
 // prototype based construction
 void state_t::add_component_impl(details::component_key_t key,
-							   psl::array_view<entity> entities,
-							   void* prototype,
-							   bool repeat)
+								 psl::array_view<entity> entities,
+								 void* prototype,
+								 bool repeat)
 {
 	auto cInfo = get_component_info(key);
 	assert(cInfo != nullptr);
@@ -363,8 +374,8 @@ void state_t::reset(psl::array_view<entity> entities) noexcept
 }
 
 psl::array<entity>::iterator state_t::filter_op(details::component_key_t key,
-											  psl::array<entity>::iterator& begin,
-											  psl::array<entity>::iterator& end) const noexcept
+												psl::array<entity>::iterator& begin,
+												psl::array<entity>::iterator& end) const noexcept
 {
 	const auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin
@@ -372,30 +383,30 @@ psl::array<entity>::iterator state_t::filter_op(details::component_key_t key,
 }
 
 psl::array<entity>::iterator state_t::on_add_op(details::component_key_t key,
-											  psl::array<entity>::iterator& begin,
-											  psl::array<entity>::iterator& end) const noexcept
+												psl::array<entity>::iterator& begin,
+												psl::array<entity>::iterator& end) const noexcept
 {
 	const auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_added(e); });
 }
 psl::array<entity>::iterator state_t::on_remove_op(details::component_key_t key,
-												 psl::array<entity>::iterator& begin,
-												 psl::array<entity>::iterator& end) const noexcept
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 {
 	const auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_removed(e); });
 }
 psl::array<entity>::iterator state_t::on_except_op(details::component_key_t key,
-												 psl::array<entity>::iterator& begin,
-												 psl::array<entity>::iterator& end) const noexcept
+												   psl::array<entity>::iterator& begin,
+												   psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfo = get_component_info(key);
 	return (cInfo == nullptr) ? end
 							  : std::partition(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
 }
 psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_key_t> keys,
-												psl::array<entity>::iterator& begin,
-												psl::array<entity>::iterator& end) const noexcept
+												  psl::array<entity>::iterator& begin,
+												  psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfos = get_component_info(keys);
 
@@ -415,8 +426,8 @@ psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_
 }
 
 psl::array<entity>::iterator state_t::on_combine_op(psl::array<details::component_key_t> keys,
-												  psl::array<entity>::iterator& begin,
-												  psl::array<entity>::iterator& end) const noexcept
+													psl::array<entity>::iterator& begin,
+													psl::array<entity>::iterator& end) const noexcept
 {
 	auto cInfos = get_component_info(keys);
 
@@ -695,7 +706,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity> source) const 
 
 			//		// apply the normal merging operations, keeping track of index changes
 			//		std::set_difference(std::begin(zip), std::end(zip), end, std::end(result),
-			//special_inserter(diff_set),
+			// special_inserter(diff_set),
 			//			[](const auto& lhs, const auto& rhs)
 			//			{
 			//				if constexpr (std::is_same_v<decltype(lhs), const entity&>)
@@ -713,7 +724,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity> source) const 
 			//		auto size = ordered_indices.size();
 			//		ordered_indices.resize(ordered_indices.size() + std::distance(begin, end));
 			//		std::fill(std::next(std::begin(ordered_indices), size), std::next(std::begin(ordered_indices),
-			//std::distance(begin, end)), std::numeric_limits<entity>::max());
+			// std::distance(begin, end)), std::numeric_limits<entity>::max());
 
 			//		zip = psl::zip(transformation.entities, transformation.indices, ordered_indices);
 			//		// unwind existing entities
@@ -766,8 +777,8 @@ size_t state_t::prepare_data(psl::array_view<entity> entities, void* cache, comp
 }
 
 size_t state_t::prepare_bindings(psl::array_view<entity> entities,
-							   void* cache,
-							   details::dependency_pack& dep_pack) const noexcept
+								 void* cache,
+								 details::dependency_pack& dep_pack) const noexcept
 {
 	size_t offset_start = (std::uintptr_t)cache;
 
@@ -777,19 +788,22 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 
 	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
 
-
 	for(auto& binding : dep_pack.m_RBindings)
 	{
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		auto write_size			  = prepare_data(entities, cache, binding.first);
-		cache					  = (void*)((std::uintptr_t)cache + write_size);
+		const auto& cInfo		  = get_component_info(binding.first);
+		auto offset				  = align(data_begin, cInfo->alignment());
+		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
+		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
 		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
 	}
 	for(auto& binding : dep_pack.m_RWBindings)
 	{
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		auto write_size			  = prepare_data(entities, cache, binding.first);
-		cache					  = (void*)((std::uintptr_t)cache + write_size);
+		const auto& cInfo		  = get_component_info(binding.first);
+		auto offset				  = align(data_begin, cInfo->alignment());
+		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
+		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
 		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
 	}
 	return (std::uintptr_t)cache - offset_start;

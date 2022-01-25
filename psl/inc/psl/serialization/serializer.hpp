@@ -72,7 +72,8 @@ namespace psl::serialization
 		~polymorphic_data_t() { delete(factory); };
 	};
 
-	namespace details {
+	namespace details
+	{
 		extern std::unique_ptr<std::unordered_map<uint64_t, psl::serialization::polymorphic_data_t*>> m_PolymorphicData;
 	}
 	// friendly helper to access privates, see serializer's static_assert for usage
@@ -103,7 +104,7 @@ namespace psl::serialization
 		}
 
 		template <typename T>
-		static constexpr auto test_is_polymorphic() noexcept -> is_polymorphic<T>::type
+		static constexpr auto test_is_polymorphic() noexcept -> typename is_polymorphic<T>::type
 		{
 			return {};
 		}
@@ -142,7 +143,7 @@ namespace psl::serialization
 						  "\n\t- virtual const psl::serialization::polymorphic_base& polymorphic_id() { return "
 						  "polymorphic_container; }"
 						  "\n\t- static const psl::serialization::polymorphic<YOUR TYPE HERE> polymorphic_container;");
-						  
+
 			return obj.polymorphic_id();
 		}
 
@@ -189,8 +190,7 @@ namespace psl::serialization
 		{
 			{
 				accessor::template test_is_polymorphic<T>()
-			}
-			->std::same_as<std::true_type>;
+				} -> std::same_as<std::true_type>;
 		};
 	}	 // namespace details
 
@@ -198,10 +198,10 @@ namespace psl::serialization
 	inline constexpr const char* accessor::name()
 	{
 		static_assert(details::HasSerializationName<T>,
-						"\n\tPlease make sure your class fullfills any of the following requirements:\n"
-						"\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
-						"\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
-						"\"friend class psl::serialization::accessor\"\n");
+					  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
+					  "\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
+					  "\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
+					  "\"friend class psl::serialization::accessor\"\n");
 		return T::serialization_name;
 	}
 
@@ -209,10 +209,10 @@ namespace psl::serialization
 	inline consteval uint64_t accessor::id()
 	{
 		static_assert(details::HasSerializationPolymorphicName<T>,
-						"\n\tPlease make sure your class fullfills any of the following requirements:\n"
-						"\t\t - has a public variable \"static constexpr const char* polymorphic_name\"\n"
-						"\t\t - or a private variable \"static constexpr const char* polymorphic_name\" and added "
-						"\"friend class psl::serialization::accessor\"\n");
+					  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
+					  "\t\t - has a public variable \"static constexpr const char* polymorphic_name\"\n"
+					  "\t\t - or a private variable \"static constexpr const char* polymorphic_name\" and added "
+					  "\"friend class psl::serialization::accessor\"\n");
 
 		return utility::crc64(T::polymorphic_name);
 	}

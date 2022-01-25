@@ -10,6 +10,7 @@
 #include "psl/IDGenerator.hpp"
 #include "psl/array.hpp"
 #include "psl/async/async.hpp"
+#include "psl/details/fixed_astring.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/static_array.hpp"
@@ -18,7 +19,6 @@
 #include "selectors.hpp"
 #include <chrono>
 #include <functional>
-#include "psl/details/fixed_astring.hpp"
 
 #if __has_include(<execution>)
 #include <execution>
@@ -73,7 +73,7 @@ namespace psl::ecs
 
 	  public:
 		state_t(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256);
-		~state_t()			= default;
+		~state_t()				= default;
 		state_t(const state_t&) = delete;
 		state_t(state_t&&)		= default;
 		state_t& operator=(const state_t&) = delete;
@@ -319,7 +319,7 @@ namespace psl::ecs
 			}
 			// run on all entities, as no pre-existing filtering group could be found
 			// todo: look into best fit filtering groups to seed this with
-			else 
+			else
 			{
 				filter_result data {{}, std::make_shared<details::filter_group>(filter_group)};
 				filter(data);
@@ -548,7 +548,7 @@ namespace psl::ecs
 				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 							  "the argument type for arg 0 should be of 'T&'");
 				using arg1_t = std::tuple_element_t<1, tuple_type>;
-				static_assert(std::is_same_v <arg1_t, entity>,
+				static_assert(std::is_same_v<arg1_t, entity>,
 							  "the argument type for arg 1 should be of 'psl::ecs::entity'");
 				using type = typename std::remove_reference<arg0_t>::type;
 				static_assert(!std::is_empty_v<type>,
@@ -772,10 +772,8 @@ namespace psl::ecs
 				  [&transform_group](const transform_result& data) { return *data.group == transform_group; });
 				if(it == std::end(filter_it->transformations))
 				{
-					filter_it->transformations
-					  .emplace_back(
-						transform_result {{}, {}, std::make_shared<details::transform_group>(transform_group)})
-					  .group;
+					filter_it->transformations.emplace_back(
+					  transform_result {{}, {}, std::make_shared<details::transform_group>(transform_group)});
 
 					it = std::prev(std::end(filter_it->transformations));
 				}
@@ -847,13 +845,13 @@ namespace psl::ecs
 
 
 			sys_info.emplace_back(threading,
-									std::move(pack_generator),
-									std::move(system_tick),
-									shared_filter_groups,
-									shared_transform_groups,
-									++m_SystemCounter,
-									seedWithExisting, 
-				debugName);
+								  std::move(pack_generator),
+								  std::move(system_tick),
+								  shared_filter_groups,
+								  shared_transform_groups,
+								  ++m_SystemCounter,
+								  seedWithExisting,
+								  debugName);
 			return sys_info[sys_info.size() - 1].id();
 		}
 

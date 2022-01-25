@@ -224,7 +224,7 @@ else()
 	if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "GNU")
 		add_compile_options (-fdiagnostics-color=always;-fpermissive)
 	elseif ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-	list(APPEND PE_COMPILE_OPTIONS -stdlib=libc++;-Wno-error=unused-command-line-argument;)
+	list(APPEND PE_COMPILE_OPTIONS -Wno-error=unused-command-line-argument;)
 		add_compile_options (-fcolor-diagnostics)
 	endif()
 	

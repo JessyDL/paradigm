@@ -98,7 +98,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 					 (unsigned)(__LINE__)),                                                                            \
 			(debug_break(), 0))
 #else
-#define psl_assert(expression, message) assert(expression, message)
+#define psl_assert(expression, message) assert(expression)
 #endif
 #else
 #define psl_assert(expression, message)

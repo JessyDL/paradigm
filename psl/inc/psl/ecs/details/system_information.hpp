@@ -28,7 +28,8 @@ namespace psl::ecs
 			   std::chrono::duration<float> rTime,
 			   size_t frame) noexcept :
 			state(state),
-			dTime(dTime), rTime(rTime), command_buffer(state), tick(tick) {};
+			command_buffer(state), dTime(dTime), rTime(rTime), tick(frame)
+		{}
 
 		const state_t& state;
 		command_buffer_t command_buffer;

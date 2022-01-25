@@ -313,12 +313,6 @@ namespace psl::ecs
 			return filter_group {psl::templates::type_container<Ts> {}...};
 		}
 
-		template <typename T>
-		auto make_filter_group(T)
-		{
-			static_assert(utility::templates::always_false_v<void>);
-		}
-
 		template <typename... Ts>
 		auto make_filter_group(psl::templates::type_container<std::tuple<Ts...>>)
 		{
@@ -339,12 +333,6 @@ namespace psl::ecs
 		auto make_transform_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
 		{
 			return transform_group {psl::templates::type_container<Ts> {}...};
-		}
-
-		template <typename T>
-		auto make_transform_group(T)
-		{
-			static_assert(utility::templates::always_false_v<void>);
 		}
 
 		template <typename... Ts>

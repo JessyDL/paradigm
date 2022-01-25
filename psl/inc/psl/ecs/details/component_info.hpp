@@ -83,6 +83,8 @@ namespace psl::ecs::details
 
 		virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
 		virtual bool merge(const component_info& other) noexcept												= 0;
+		virtual size_t alignment() const noexcept																= 0;
+
 
 	  protected:
 		virtual void purge_impl() noexcept																	= 0;
@@ -117,18 +119,22 @@ namespace psl::ecs::details
 
 		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
 
+		size_t alignment() const noexcept override { return std::alignment_of_v<T>; }
+
 		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
 		{
+			psl_assert((std::uintptr_t)destination % alignment() == 0, "pointer has to be aligned");
 			T* dest = (T*)destination;
 			for(auto e : entities)
 			{
-				std::memcpy(dest, (T*)&(m_Entities.at(e, 0, 2)), sizeof(T));
+				std::memcpy(dest, m_Entities.addressof(e, 0, 2), sizeof(T));
 				++dest;
 			}
 			return entities.size() * sizeof(T);
 		}
 		size_t copy_from(psl::array_view<entity> entities, void* source, bool repeat) noexcept override
 		{
+			psl_assert((std::uintptr_t)source % alignment() == 0, "pointer has to be aligned");
 			T* src = (T*)source;
 			if(repeat)
 			{
@@ -165,7 +171,7 @@ namespace psl::ecs::details
 		void set(entity e, const T& data) noexcept { m_Entities.at(e, 0, 2) = data; }
 
 	  protected:
-		void set_impl(entity entity, void* data) noexcept { m_Entities.at(entity, 0, 2) = *(T*)data; }
+		void set_impl(entity entity, void* data) noexcept override { m_Entities.at(entity, 0, 2) = *(T*)data; }
 		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
 		{
 			return m_Entities.indices(startStage, endStage);
@@ -272,6 +278,8 @@ namespace psl::ecs::details
 		void* data() noexcept override { return nullptr; }
 
 		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
+
+		size_t alignment() const noexcept override { return 1; }
 
 		void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept override
 		{

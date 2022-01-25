@@ -366,7 +366,7 @@ namespace psl::serialization
 		using base_t = details::anonymous_property<T>;
 
 	  public:
-		using value_type = base_t::value_type;
+		using value_type = typename base_t::value_type;
 		static constexpr std::string_view name() noexcept { return Name; }
 		static constexpr uint64_t ID {utility::crc64<Name.size()>(Name)};
 

@@ -1,6 +1,3 @@
-[submodule "extern/cppcoro"]
-	path = extern/cppcoro
-	url = https://github.com/andreasbuhr/cppcoro.git
 [submodule "extern/fmt"]
 	path = extern/fmt
 	url = https://github.com/JessyDL/fmt.git
