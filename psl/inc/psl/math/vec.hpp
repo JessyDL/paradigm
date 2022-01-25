@@ -567,11 +567,7 @@ namespace psl
 
 	// todo alignas should be handled more gracefully
 	template <typename precision_t>
-	struct
-#if !defined(__GNUC__)	  // refer to GH issue #22 for more info
-	  alignas(16)
-#endif
-		tvec<precision_t, 4>
+	struct alignas(16) tvec<precision_t, 4>
 	{
 		static constexpr size_t dimensions_n {4};
 		using tvec_t	  = tvec<precision_t, 4>;
