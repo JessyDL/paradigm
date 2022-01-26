@@ -46,6 +46,8 @@ namespace core::igles
 		const core::gfx::limits& limits() const noexcept { return m_Limits; }
 
 	  private:
+		void quey_capabilities() noexcept;
+
 		core::gfx::limits m_Limits;
 
 #ifdef SURFACE_WIN32
