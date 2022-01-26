@@ -175,7 +175,7 @@ namespace
 		require((std::uintptr_t)int_cid) == int_id;
 	};
 
-	auto t2 = suite < "filtering", "ecs", "psl">() = []() {
+	auto t2 = suite<"filtering", "ecs", "psl">() = []() {
 		state_t state;
 		auto e_list1 {state.create(100)};
 		auto e_list2 {state.create(400)};
@@ -238,6 +238,52 @@ namespace
 			require(state.filter<float>().size()) == state.filter<on_combine<float, size_t>>().size();
 			require(state.filter<on_remove<float>>().size()) == 1;	  // we deleted entity 1200
 			require(state.filter<on_remove<float>>().size()) == state.filter<on_break<float, size_t>>().size();
+		};
+
+		section<"on_condition">() = [&]() {
+			state.add_components<position>(e_list1, position {100, 500});
+			state.add_components<position>(e_list2, position {10, 30});
+
+			auto on_condition_func = [](const position& pos) { return (pos.x + pos.y) > 100; };
+
+			state.declare([elist1_size = e_list1.size()](
+							info_t& info, pack<position, on_condition<decltype(on_condition_func), position>> pack) {
+				expect(pack.size()) == elist1_size;
+			});
+
+			state.declare([total_size = e_list1.size() + e_list2.size()](info_t& info, pack<position> pack) {
+				expect(pack.size()) == total_size;
+			});
+
+			state.tick(std::chrono::duration<float>(1.0f));
+		};
+
+		section<"order_by">() = [&]() {
+			state.add_components(e_list1, [](position& pos) {
+				pos.x = std::rand() % 10;
+				pos.y = std::rand() % 10;
+			});
+
+			auto order_by_func = [](const position& lhs, const position& rhs) {
+				return (lhs.x == rhs.x) ? lhs.y < rhs.y : lhs.x < rhs.x;
+			};
+
+			state.declare([](info_t& info, pack<position, order_by<decltype(order_by_func), position>> pack) {
+				auto last_x = std::numeric_limits<decltype(position::x)>::min();
+				auto last_y = std::numeric_limits<decltype(position::y)>::min();
+
+				for(auto [position] : pack)
+				{
+					expect(last_x) <= position.x;
+
+					if(last_x == position.x) expect(last_y) <= position.y;
+
+					last_x = position.x;
+					last_y = position.y;
+				}
+			});
+
+			state.tick(std::chrono::duration<float>(1.0f));
 		};
 	};
 
@@ -379,7 +425,7 @@ namespace
 			require(0) == state.filter<on_remove<int>>().size();
 			require(0) == state.filter<int>().size();
 		};
-		
+
 		section<"continuous removal from within systems">() = [&]() {
 			auto e_list2 {state.create(40)};
 			psl::array<int> values;
@@ -520,7 +566,7 @@ namespace
 		};
 	};
 
-	auto t5 = suite<"declaring system signatures", "ecs", "psl">() = []() {
+	auto t5 = suite<"declaring system signatures", "ecs", "psl", "regression">() = []() {
 		state_t state;
 		state.declare(registration_test);
 		object_test test;
@@ -528,10 +574,9 @@ namespace
 		state.declare([](psl::ecs::info_t& info) {});
 	};
 
-	auto t7 = suite<"filtering over multiple frames", "ecs", "psl">() = []() {
+	auto t7 = suite<"filtering over multiple frames", "ecs", "psl", "regression">() = []() {
 		state_t state {1u};
 		section<"regression 1">() = [&] {
-
 			// issue: non-unique entry in filtering operation
 			// order of operations:
 			//  - add 1 entity -> becomes "modified entity" for filtering/ecs
@@ -558,7 +603,6 @@ namespace
 			expect(count) == 2;
 		};
 		section<"regression 2">() = [&] {
-
 			// issue: incorrect filtering return for removed entities
 			// operations:
 			// - create 2 separate entities, one with a component and one without (component irrelevant)
@@ -577,7 +621,8 @@ namespace
 			expect(state.filter<wrapper_t<float>>().size()) == 1;
 			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 1;
 			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 1;
-			state.declare([&](info_t& info, pack<entity, wrapper_t<float>> pack) { expect(pack.size()) == 1; 
+			state.declare([&](info_t& info, pack<entity, wrapper_t<float>> pack) {
+				expect(pack.size()) == 1;
 				expect(pack.get<entity>()[0]) == 1;
 			});
 			state.tick(std::chrono::duration<float>(1.0f));
