@@ -1,30 +1,33 @@
 SET(SRC 
-src/file.cpp
-src/platform_utils.cpp
-src/terminal_utils.cpp
-src/application_utils.cpp
-src/formatted_string_buffer.cpp
-src/stdafx_psl.cpp
-src/memory/allocator.cpp
-src/memory/range.cpp
-src/memory/raw_region.cpp
-src/memory/region.cpp
-src/memory/segment.cpp
-src/format.cpp
-src/library.cpp
-src/meta.cpp
-src/ustring.cpp
+file
+platform_utils
+terminal_utils
+application_utils
+formatted_string_buffer
+stdafx_psl
+memory/allocator
+memory/range
+memory/raw_region
+memory/region
+memory/segment
+format
+library
+meta
+ustring
 
-src/profiling/profiler.cpp
+profiling/profiler
 
-src/ecs/state.cpp
-src/ecs/details/component_info.cpp
-src/ecs/command_buffer.cpp
+ecs/state
+ecs/details/component_info
+ecs/command_buffer
 
-src/async/scheduler.cpp
-src/async/token.cpp
+async/scheduler
+async/token
 
-src/noise/perlin.cpp
+noise/perlin
 
-src/serialization/serializer.cpp
+serialization/serializer
 )
+
+list(TRANSFORM SRC PREPEND src/)
+list(TRANSFORM SRC APPEND .cpp)

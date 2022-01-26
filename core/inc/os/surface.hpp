@@ -1,22 +1,20 @@
 ﻿#pragma once
-#include "psl/meta.hpp"
 #include "data/window.hpp"
+#include "psl/meta.hpp"
 #include "resource/resource.hpp"
 
 #if defined(SURFACE_WIN32)
 #ifndef _WINDEF_
-struct HWND__; // Forward or never
+struct HWND__;	  // Forward or never
 typedef HWND__* HWND;
 struct HINSTANCE__;
 typedef HINSTANCE__* HINSTANCE;
 #endif
 #elif defined(SURFACE_XCB)
 #include <xcb/xcb.h>
-#elif defined(SURFACE_WAYLAND)
-#include <wayland-client.h>
 #elif defined(PLATFORM_ANDROID)
-#include <android/native_activity.h>
 #include <android/asset_manager.h>
+#include <android/native_activity.h>
 #include <android_native_app_glue.h>
 #include <sys/system_properties.h>
 #endif
@@ -105,12 +103,8 @@ namespace core::os
 		HINSTANCE surface_instance() const { return win32_instance; };
 		HWND surface_handle() const { return win32_window; };
 #elif defined(SURFACE_XCB)
-		xcb_connection_t *connection() const { return _xcb_connection; }
+		xcb_connection_t* connection() const { return _xcb_connection; }
 		xcb_window_t surface_handle() const { return _xcb_window; };
-#elif defined(SURFACE_WAYLAND)
-		wl_display* display() const { return m_Display; };
-		wl_surface* surface_handle() const { return m_Surface; };
-
 #elif defined(SURFACE_D2D) || defined(PLATFORM_ANDROID)
 #else
 #error no suitable surface was selected
@@ -126,68 +120,15 @@ namespace core::os
 		void resize_surface();
 #if defined(SURFACE_XCB)
 		void handle_event(const xcb_generic_event_t* event);
-#elif defined(SURFACE_WAYLAND)
-		static void registryGlobalCb(void *data,
-									 struct wl_registry *registry,
-									 uint32_t name,
-									 const char *interface,
-									 uint32_t version);
-		void registryGlobal(struct wl_registry *registry, uint32_t name, const char *interface, uint32_t version);
-		static void registryGlobalRemoveCb(void *data, struct wl_registry *registry, uint32_t name);
-		static void seatCapabilitiesCb(void *data, wl_seat *seat, uint32_t caps);
-		void seatCapabilities(wl_seat *seat, uint32_t caps);
-		static void pointerEnterCb(void *data,
-								   struct wl_pointer *pointer,
-								   uint32_t serial,
-								   struct wl_surface *surface,
-								   wl_fixed_t sx,
-								   wl_fixed_t sy);
-		static void pointerLeaveCb(void *data, struct wl_pointer *pointer, uint32_t serial, struct wl_surface *surface);
-		static void
-		pointerMotionCb(void *data, struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-		void pointerMotion(struct wl_pointer *pointer, uint32_t time, wl_fixed_t sx, wl_fixed_t sy);
-		static void pointerButtonCb(void *data,
-									struct wl_pointer *wl_pointer,
-									uint32_t serial,
-									uint32_t time,
-									uint32_t button,
-									uint32_t state);
-		void
-		pointerButton(struct wl_pointer *wl_pointer, uint32_t serial, uint32_t time, uint32_t button, uint32_t state);
-		static void
-		pointerAxisCb(void *data, struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
-		void pointerAxis(struct wl_pointer *wl_pointer, uint32_t time, uint32_t axis, wl_fixed_t value);
-		static void keyboardKeymapCb(void *data, struct wl_keyboard *keyboard, uint32_t format, int fd, uint32_t size);
-		static void keyboardEnterCb(void *data,
-									struct wl_keyboard *keyboard,
-									uint32_t serial,
-									struct wl_surface *surface,
-									struct wl_array *keys);
-		static void
-		keyboardLeaveCb(void *data, struct wl_keyboard *keyboard, uint32_t serial, struct wl_surface *surface);
-		static void keyboardKeyCb(void *data,
-								  struct wl_keyboard *keyboard,
-								  uint32_t serial,
-								  uint32_t time,
-								  uint32_t key,
-								  uint32_t state);
-		void keyboardKey(struct wl_keyboard *keyboard, uint32_t serial, uint32_t time, uint32_t key, uint32_t state);
-		static void keyboardModifiersCb(void *data,
-										struct wl_keyboard *keyboard,
-										uint32_t serial,
-										uint32_t mods_depressed,
-										uint32_t mods_latched,
-										uint32_t mods_locked,
-										uint32_t group);
 #endif
 
 		core::resource::handle<data::window> m_Data;
 		std::vector<core::resource::handle<core::ivk::swapchain>> m_Swapchains;
-		bool m_Focused{false};
-		bool m_Open{false};
-		bool m_IndicatorClipped{false};
-		bool m_IndicatorVisible{true};
-		bool m_IndicatorLocked{false};
+		bool m_Focused {false};
+		bool m_Open {false};
+		bool m_IndicatorClipped {false};
+		bool m_IndicatorVisible {true};
+		bool m_IndicatorLocked {false};
 		core::systems::input* m_InputSystem;
 #if defined(SURFACE_WIN32)
 		HINSTANCE win32_instance = NULL;
@@ -196,20 +137,10 @@ namespace core::os
 		static uint64_t win32_class_id_counter;
 		// void TranslateInputMessage(MSG *msg);
 #elif defined(SURFACE_XCB)
-		xcb_connection_t *_xcb_connection;
-		xcb_screen_t *screen;
+		xcb_connection_t* _xcb_connection;
+		xcb_screen_t* screen;
 		xcb_window_t _xcb_window;
-		xcb_intern_atom_reply_t *atom_wm_delete_window;
-#elif defined(SURFACE_WAYLAND)
-		wl_display* m_Display			 = nullptr;
-		wl_registry* m_Registry			 = nullptr;
-		wl_compositor* m_Compositor		 = nullptr;
-		wl_shell* m_Shell				 = nullptr;
-		wl_seat* m_Seat					 = nullptr;
-		wl_pointer* m_Pointer			 = nullptr;
-		wl_keyboard* m_Keyboard			 = nullptr;
-		wl_surface* m_Surface			 = nullptr;
-		wl_shell_surface* m_ShellSurface = nullptr;
+		xcb_intern_atom_reply_t* atom_wm_delete_window;
 #endif
 	};
-} // namespace core::os
+}	 // namespace core::os

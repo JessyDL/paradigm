@@ -5,7 +5,7 @@
 #include <xcb/xcb.h>
 #elif defined(SURFACE_WIN32)
 #ifndef _WINDEF_
-struct HWND__; // Forward or never
+struct HWND__;	  // Forward or never
 typedef HWND__* HWND;
 #endif
 #endif
@@ -23,324 +23,324 @@ namespace core::systems
 	/// generalised format, and sending out events that have been subscribed to.
 	/// for example it will translate all keyboard input messages into a generic key message that remains
 	/// the same for all platforms. You can however reverse-translate back into the platform specific key messages.
-	/// Every input instance is tied to a core::os::surface, and all its data (such as mouse coordinates) is invariably tied
-	/// to that regardless if the actual platform only has a singleton input system.
-	/// \warning all input state persists till the next platform specific message loop.
-	/// this means that the mouse_delta can be the same for several frames untill the input system gets an update.
-	/// that's why you should prefer listening to the events rather than iterating the input system itself.
+	/// Every input instance is tied to a core::os::surface, and all its data (such as mouse coordinates) is invariably
+	/// tied to that regardless if the actual platform only has a singleton input system. \warning all input state
+	/// persists till the next platform specific message loop. this means that the mouse_delta can be the same for
+	/// several frames untill the input system gets an update. that's why you should prefer listening to the events
+	/// rather than iterating the input system itself.
 	class input
 	{
 		friend class core::os::surface;
 
 	  public:
-		  /// \brief contains the mouse delta coordinates in respect to the last message tick.
+		/// \brief contains the mouse delta coordinates in respect to the last message tick.
 		struct mouse_delta
 		{
-			int64_t x{0};
-			int64_t y{0};
+			int64_t x {0};
+			int64_t y {0};
 		};
 
 		/// \brief absolute mouse coordinates that also contain the surface width/height.
 		struct mouse_coordinate
 		{
-			int64_t x{0};
-			int64_t y{0};
-			uint64_t width{0};
-			uint64_t height{0};
+			int64_t x {0};
+			int64_t y {0};
+			uint64_t width {0};
+			uint64_t height {0};
 		};
 
 		/// \brief codes for the various mouse buttons.
 		enum class mousecode
 		{
 			LEFT	= 1,
-			RIGHT   = 2,
-			MIDDLE  = 3,
+			RIGHT	= 2,
+			MIDDLE	= 3,
 			EXTRA_1 = 4,
 			EXTRA_2 = 5,
-			BTN_1   = LEFT,
-			BTN_2   = RIGHT,
-			BTN_3   = MIDDLE,
-			BTN_4   = EXTRA_1,
-			BTN_5   = EXTRA_2
+			BTN_1	= LEFT,
+			BTN_2	= RIGHT,
+			BTN_3	= MIDDLE,
+			BTN_4	= EXTRA_1,
+			BTN_5	= EXTRA_2
 		};
 
 		/// \brief delta information for the mouse scroll wheel.
 		struct scroll_delta
 		{
-			int64_t x{0};
-			int64_t y{0};
+			int64_t x {0};
+			int64_t y {0};
 		};
 
 		/// \brief array that maps keyboard keycodes to string.
-		static constexpr psl::string_view keycode_names[]{
-			"",
-			"",
-			"",
-			"",
-			"A",
-			"B",
-			"C",
-			"D",
-			"E",
-			"F",
-			"G",
-			"H",
-			"I",
-			"J",
-			"K",
-			"L",
-			"M",
-			"N",
-			"O",
-			"P",
-			"Q",
-			"R",
-			"S",
-			"T",
-			"U",
-			"V",
-			"W",
-			"X",
-			"Y",
-			"Z",
-			"KB_1",
-			"KB_2",
-			"KB_3",
-			"KB_4",
-			"KB_5",
-			"KB_6",
-			"KB_7",
-			"KB_8",
-			"KB_9",
-			"KB_0",
-			"ENTER",
-			"ESC",
-			"DEL",
-			"TAB",
-			"SPACE",
-			"MINUS",
-			"EQUALS",
-			"LEFT_BRACKET",
-			"RIGHT_BRACKET",
-			"BACK_SLASH",
-			"SEMICOLON",
-			"QUOTE",
-			"GRAVE",
-			"COMMA",
-			"PERIOD",
-			"SLASH",
-			"CAPSLOCK",
-			"F1",
-			"F2",
-			"F3",
-			"F4",
-			"F5",
-			"F6",
-			"F7",
-			"F8",
-			"F9",
-			"F10",
-			"F11",
-			"F12",
-			"PRINT_SCREEN",
-			"SCROLL8LOCK",
-			"PAUSE",
-			"INSERT",
-			"HOME",
-			"PAGE_UP",
-			"DELETE_FORWARD",
-			"END",
-			"PAGE_DOWN",
-			"RIGHT",
-			"LEFT",
-			"DOWN",
-			"UP",
-			"KP_NUM_LOCK",
-			"KP_DIVIDE",
-			"KP_MULTIPLY",
-			"KP_SUBTRACT",
-			"KP_ADD",
-			"KP_ENTER",
-			"KP_1",
-			"KP_2",
-			"KP_3",
-			"KP_4",
-			"KP_5",
-			"KP_6",
-			"KP_7",
-			"KP_8",
-			"KP_9",
-			"KP_0",
-			"KP_POINT",
-			"NON_US_BACKSLASH",
-			"KP_EQUALS",
-			"F13",
-			"F14",
-			"F15",
-			"F16",
-			"F17",
-			"F18",
-			"F19",
-			"F20",
-			"F21",
-			"F22",
-			"F23",
-			"F24",
-			"HELP",
-			"MENU", // 118
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 127
+		static constexpr psl::string_view keycode_names[] {
+		  "",
+		  "",
+		  "",
+		  "",
+		  "A",
+		  "B",
+		  "C",
+		  "D",
+		  "E",
+		  "F",
+		  "G",
+		  "H",
+		  "I",
+		  "J",
+		  "K",
+		  "L",
+		  "M",
+		  "N",
+		  "O",
+		  "P",
+		  "Q",
+		  "R",
+		  "S",
+		  "T",
+		  "U",
+		  "V",
+		  "W",
+		  "X",
+		  "Y",
+		  "Z",
+		  "KB_1",
+		  "KB_2",
+		  "KB_3",
+		  "KB_4",
+		  "KB_5",
+		  "KB_6",
+		  "KB_7",
+		  "KB_8",
+		  "KB_9",
+		  "KB_0",
+		  "ENTER",
+		  "ESC",
+		  "DEL",
+		  "TAB",
+		  "SPACE",
+		  "MINUS",
+		  "EQUALS",
+		  "LEFT_BRACKET",
+		  "RIGHT_BRACKET",
+		  "BACK_SLASH",
+		  "SEMICOLON",
+		  "QUOTE",
+		  "GRAVE",
+		  "COMMA",
+		  "PERIOD",
+		  "SLASH",
+		  "CAPSLOCK",
+		  "F1",
+		  "F2",
+		  "F3",
+		  "F4",
+		  "F5",
+		  "F6",
+		  "F7",
+		  "F8",
+		  "F9",
+		  "F10",
+		  "F11",
+		  "F12",
+		  "PRINT_SCREEN",
+		  "SCROLL8LOCK",
+		  "PAUSE",
+		  "INSERT",
+		  "HOME",
+		  "PAGE_UP",
+		  "DELETE_FORWARD",
+		  "END",
+		  "PAGE_DOWN",
+		  "RIGHT",
+		  "LEFT",
+		  "DOWN",
+		  "UP",
+		  "KP_NUM_LOCK",
+		  "KP_DIVIDE",
+		  "KP_MULTIPLY",
+		  "KP_SUBTRACT",
+		  "KP_ADD",
+		  "KP_ENTER",
+		  "KP_1",
+		  "KP_2",
+		  "KP_3",
+		  "KP_4",
+		  "KP_5",
+		  "KP_6",
+		  "KP_7",
+		  "KP_8",
+		  "KP_9",
+		  "KP_0",
+		  "KP_POINT",
+		  "NON_US_BACKSLASH",
+		  "KP_EQUALS",
+		  "F13",
+		  "F14",
+		  "F15",
+		  "F16",
+		  "F17",
+		  "F18",
+		  "F19",
+		  "F20",
+		  "F21",
+		  "F22",
+		  "F23",
+		  "F24",
+		  "HELP",
+		  "MENU",	 // 118
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 127
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 135
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 135
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 143
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 143
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 151
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 151
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 159
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 159
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 167
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 167
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 175
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 175
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 183
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 183
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 191
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 191
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 199
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 199
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 207
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 207
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 215
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 215
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 223
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 223
 
-			"LEFT_CONTROL",
-			"LEFT_SHIFT",
-			"LEFT_ALT",
-			"LEFT_GUI",
-			"RIGHT_CONTROL",
-			"RIGHT_SHIFT",
-			"RIGHT_ALT",
-			"RIGHT_GUI", // 231
+		  "LEFT_CONTROL",
+		  "LEFT_SHIFT",
+		  "LEFT_ALT",
+		  "LEFT_GUI",
+		  "RIGHT_CONTROL",
+		  "RIGHT_SHIFT",
+		  "RIGHT_ALT",
+		  "RIGHT_GUI",	  // 231
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 239
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 239
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"", // 247
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",	 // 247
 
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"",
-			"UNDEFINED" // 255
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "",
+		  "UNDEFINED"	 // 255
 		};
 
 		/// \brief contains the generic keycodes that platform specific key codes get translated to.
@@ -390,7 +390,7 @@ namespace core::systems
 			MINUS			 = 45,
 			EQUALS			 = 46,
 			LEFT_BRACKET	 = 47,
-			RIGHT_BRACKET	= 48,
+			RIGHT_BRACKET	 = 48,
 			BACK_SLASH		 = 49,
 			SEMICOLON		 = 51,
 			QUOTE			 = 52,
@@ -417,7 +417,7 @@ namespace core::systems
 			INSERT			 = 73,
 			HOME			 = 74,
 			PAGE_UP			 = 75,
-			DELETE_FORWARD   = 76,
+			DELETE_FORWARD	 = 76,
 			END				 = 77,
 			PAGE_DOWN		 = 78,
 			RIGHT			 = 79,
@@ -461,7 +461,7 @@ namespace core::systems
 			LEFT_SHIFT		 = 225,
 			LEFT_ALT		 = 226,
 			LEFT_GUI		 = 227,
-			RIGHT_CONTROL	= 228,
+			RIGHT_CONTROL	 = 228,
 			RIGHT_SHIFT		 = 229,
 			RIGHT_ALT		 = 230,
 			RIGHT_GUI		 = 231,
@@ -469,15 +469,14 @@ namespace core::systems
 		};
 
 	  private:
-
 		template <typename T, typename SFINEA = void>
 		struct mf_on_key_pressed : std::false_type
 		{};
 
 		/// \brief SFINAE tag that is used to detect the method signature for the key press event.
 		template <typename T>
-		struct mf_on_key_pressed<T, std::void_t<decltype(std::declval<T&>().on_key_pressed(std::declval<keycode>()))>>
-			: std::true_type
+		struct mf_on_key_pressed<T, std::void_t<decltype(std::declval<T&>().on_key_pressed(std::declval<keycode>()))>> :
+			std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
@@ -486,8 +485,9 @@ namespace core::systems
 
 		/// \brief SFINAE tag that is used to detect the method signature for the key release event.
 		template <typename T>
-		struct mf_on_key_released<T, std::void_t<decltype(std::declval<T&>().on_key_released(std::declval<keycode>()))>>
-			: std::true_type
+		struct mf_on_key_released<T,
+								  std::void_t<decltype(std::declval<T&>().on_key_released(std::declval<keycode>()))>> :
+			std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
@@ -496,8 +496,8 @@ namespace core::systems
 
 		/// \brief SFINAE tag that is used to detect the method signature for the key held event.
 		template <typename T>
-		struct mf_on_key_held<T, std::void_t<decltype(std::declval<T&>().on_key_held(std::declval<keycode>()))>>
-			: std::true_type
+		struct mf_on_key_held<T, std::void_t<decltype(std::declval<T&>().on_key_held(std::declval<keycode>()))>> :
+			std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
@@ -506,19 +506,21 @@ namespace core::systems
 
 		/// \brief SFINAE tag that is used to detect the method signature for the mouse delta move event.
 		template <typename T>
-		struct mf_mouse_delta<T, std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_delta>()))>>
-			: std::true_type
+		struct mf_mouse_delta<T, std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_delta>()))>> :
+			std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
 		struct mf_mouse_coordinate : std::false_type
 		{};
 
-		/// \brief SFINAE tag that is used to detect the method signature for the mouse move (absolute coordinates) event.
+		/// \brief SFINAE tag that is used to detect the method signature for the mouse move (absolute coordinates)
+		/// event.
 		template <typename T>
 		struct mf_mouse_coordinate<
-			T, std::void_t<decltype(std::declval<T&>().on_mouse_move_coords(std::declval<mouse_coordinate>()))>>
-			: std::true_type
+		  T,
+		  std::void_t<decltype(std::declval<T&>().on_mouse_move_coords(std::declval<mouse_coordinate>()))>> :
+			std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
@@ -527,8 +529,8 @@ namespace core::systems
 
 		/// \brief SFINAE tag that is used to detect the method signature for the mouse scroll event.
 		template <typename T>
-		struct mf_on_scroll<T, std::void_t<decltype(std::declval<T&>().on_scroll(std::declval<scroll_delta>()))>>
-			: std::true_type
+		struct mf_on_scroll<T, std::void_t<decltype(std::declval<T&>().on_scroll(std::declval<scroll_delta>()))>> :
+			std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
@@ -538,7 +540,8 @@ namespace core::systems
 		/// \brief SFINAE tag that is used to detect the method signature for the mouse press event.
 		template <typename T>
 		struct mf_on_mouse_pressed<
-			T, std::void_t<decltype(std::declval<T&>().on_mouse_pressed(std::declval<mousecode>()))>> : std::true_type
+		  T,
+		  std::void_t<decltype(std::declval<T&>().on_mouse_pressed(std::declval<mousecode>()))>> : std::true_type
 		{};
 		template <typename T, typename SFINEA = void>
 		struct mf_on_mouse_released : std::false_type
@@ -547,7 +550,8 @@ namespace core::systems
 		/// \brief SFINAE tag that is used to detect the method signature for the mouse release event.
 		template <typename T>
 		struct mf_on_mouse_released<
-			T, std::void_t<decltype(std::declval<T&>().on_mouse_released(std::declval<mousecode>()))>> : std::true_type
+		  T,
+		  std::void_t<decltype(std::declval<T&>().on_mouse_released(std::declval<mousecode>()))>> : std::true_type
 		{};
 		template <typename T, typename SFINEA = void>
 		struct mf_on_mouse_held : std::false_type
@@ -555,8 +559,8 @@ namespace core::systems
 
 		/// \brief SFINAE tag that is used to detect the method signature for the mouse held event.
 		template <typename T>
-		struct mf_on_mouse_held<T, std::void_t<decltype(std::declval<T&>().on_mouse_held(std::declval<mousecode>()))>>
-			: std::true_type
+		struct mf_on_mouse_held<T, std::void_t<decltype(std::declval<T&>().on_mouse_held(std::declval<mousecode>()))>> :
+			std::true_type
 		{};
 
 	  public:
@@ -642,16 +646,16 @@ namespace core::systems
 	  private:
 #if defined(SURFACE_WIN32)
 		void tick();
-		static __int64 __stdcall win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam,
-														__int64 lParam);
+		static __int64 __stdcall win_event_handler(HWND hWnd,
+												   unsigned int uMsg,
+												   unsigned __int64 wParam,
+												   __int64 lParam);
 #elif defined(SURFACE_XCB)
-		void tick(core::os::surface* const surface, xcb_connection_t* _xcb_connection,
-				  xcb_intern_atom_reply_t& delete_wm);
-		void handle_event(core::os::surface* const surface, const xcb_generic_event_t* event,
+		void
+		tick(core::os::surface* const surface, xcb_connection_t* _xcb_connection, xcb_intern_atom_reply_t& delete_wm);
+		void handle_event(core::os::surface* const surface,
+						  const xcb_generic_event_t* event,
 						  xcb_intern_atom_reply_t& delete_wm);
-
-#elif defined(SURFACE_WAYLAND)
-
 #elif defined(SURFACE_D2D)
 
 #endif
@@ -669,4 +673,4 @@ namespace core::systems
 		std::vector<keycode> m_HeldKeys;
 		std::vector<mousecode> m_HeldMouseButtons;
 	};
-} // namespace core::systems
+}	 // namespace core::systems
