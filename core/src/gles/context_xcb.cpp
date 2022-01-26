@@ -9,6 +9,7 @@
 
 #include <EGL/egl.h>
 #include <GLES3/gl3platform.h>
+#include <psl/array_view.hpp>
 
 using namespace core;
 using namespace core::igles;
@@ -36,6 +37,12 @@ context::context(core::resource::cache_t& cache,
 	if(!eglChooseConfig(data.egl_display, attribute_list, &data.egl_config, 1, &num_config))
 	{
 		core::igles::log->error("eglChooseConfig() failed");
+		return;
+	}
+
+	if(data.egl_config == nullptr)
+	{
+		core::igles::log->error("could not find a matching EGL framebuffer configuration");
 		return;
 	}
 
@@ -117,6 +124,79 @@ context::~context()
 	eglTerminate(data.egl_display);
 }
 
+/**
+ * \brief queries all EGL configs and compares it to requested attributes
+ *
+ * \param display A valid EGLDisplay
+ * \param attribute_list EGL config attribute list
+ * \return valid pointer depending on if a valid config was found or not, otherwise `nullptr`
+ * \todo extend this to support "best match" functionality
+ */
+bool get_valid_config(const auto& display, psl::array_view<EGLint> attribute_list, EGLConfig& out_config) noexcept
+{
+	// bitmask configuration entries require flag checking instead of value checking
+	static constexpr EGLint bitmask_configs[] = {EGL_RENDERABLE_TYPE, EGL_SURFACE_TYPE, EGL_CONFORMANT};
+
+	std::vector<bool> attribute_comparison_op {};
+	attribute_comparison_op.resize((attribute_list.size() - 1) / 2);
+	for(size_t i = 0; i < attribute_comparison_op.size(); ++i)
+	{
+		attribute_comparison_op[i] =
+		  std::any_of(std::begin(bitmask_configs),
+					  std::end(bitmask_configs),
+					  [&attr = attribute_list[i * 2]](const auto& mask) { return mask == attr; });
+	}
+
+	EGLint num_config {};
+
+	if(!eglGetConfigs(display, nullptr, 0, &num_config) || num_config <= 0)
+	{
+		core::igles::log->error("eglGetConfigs() failed");
+		return false;
+	}
+	psl::array<EGLConfig> configs {};
+	configs.resize(num_config);
+	eglGetConfigs(display, configs.data(), configs.size(), &num_config);
+
+	if(auto config_it =
+		 std::find_if(std::begin(configs),
+					  std::end(configs),
+					  [&attribute_list, &attribute_comparison_op, &display](const auto& config) noexcept {
+						  bool isValid = true;
+						  for(size_t i = 0; i < attribute_comparison_op.size(); ++i)
+						  {
+							  auto x = i * 2;
+							  if(attribute_list[x] == EGL_NONE) break;
+							  EGLint value = std::numeric_limits<EGLint>::min();
+							  eglGetConfigAttrib(display, config, attribute_list[x], &value);
+							  if(!attribute_comparison_op[i])
+							  {
+								  if(attribute_list[x + 1] != value)
+								  {
+									  isValid = false;
+									  break;
+								  }
+							  }
+							  else
+							  {
+								  if(value & attribute_list[x + 1] != attribute_list[x + 1])
+								  {
+									  isValid = false;
+									  break;
+								  }
+							  }
+						  }
+						  return isValid;
+					  });
+	   config_it != std::end(configs))
+	{
+		out_config = *config_it;
+		return true;
+	}
+
+	return false;
+}
+
 void context::enable(const core::os::surface& surface)
 {
 	if(data.egl_context != nullptr)
@@ -143,7 +223,7 @@ void context::enable(const core::os::surface& surface)
 									 EGL_BUFFER_SIZE,
 									 32,
 									 EGL_DEPTH_SIZE,
-									 32,
+									 24,
 									 EGL_RENDERABLE_TYPE,
 									 EGL_OPENGL_ES3_BIT,
 									 EGL_NONE};
@@ -152,6 +232,12 @@ void context::enable(const core::os::surface& surface)
 	if(!eglChooseConfig(data.egl_display, attribute_list, &data.egl_config, 1, &num_config))
 	{
 		core::igles::log->error("eglChooseConfig() failed");
+		return;
+	}
+
+	if(data.egl_config == nullptr)
+	{
+		core::igles::log->error("could not find a matching EGL framebuffer configuration");
 		return;
 	}
 
