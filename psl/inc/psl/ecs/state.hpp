@@ -175,7 +175,7 @@ namespace psl::ecs
 		{
 			auto pred = Pred {};
 			return std::remove_if(std::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
-				return pred(this->get<T>(lhs));
+				return !pred(this->get<T>(lhs));
 			});
 		}
 
@@ -184,7 +184,7 @@ namespace psl::ecs
 		on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end, Pred&& pred) const noexcept
 		{
 			return std::remove_if(std::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
-				return pred(this->get<T>(lhs));
+				return !pred(this->get<T>(lhs));
 			});
 		}
 
