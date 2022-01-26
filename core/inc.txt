@@ -4,7 +4,6 @@ logging
 stdb_truetype
 targetver
 defines
-paradigm
 
 data/application
 data/buffer
@@ -97,6 +96,14 @@ gfx/pipeline_cache
 gfx/swapchain
 )
 
+SET(GEN
+paradigm
+)
+
+list(TRANSFORM GEN PREPEND inc/)
+list(TRANSFORM GEN APPEND .hpp)
+
+set_source_files_properties(${GEN} PROPERTIES GENERATED 1)
 
 # include files for the Vulkan API
 if(${PE_VULKAN})

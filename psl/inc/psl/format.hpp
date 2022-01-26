@@ -164,7 +164,7 @@ namespace psl::format
 		uint64_t buffer[4] {0, 0, 0, 0};
 		std::pair<size_t, size_t> m_Name;	 // 16
 		handle* m_Handle {nullptr};
-		format::children_t m_Depth {0};			  // 2
+		format::children_t m_Depth {0};				  // 2
 		format::type_t m_Type {type_t::MALFORMED};	  // 1
 	};
 
@@ -377,12 +377,14 @@ namespace psl::format
 			{
 				message = "The node named '" + *name + "' could not be found in the container.";
 			}
-			return message.data();
+			m_Message = std::move(message);
+			return m_Message.data();
 		}
 
 	  public:
 		container const* const m_Container;
 		std::variant<nodes_t, psl::string8_t> m_Data;
+		mutable psl::string8_t m_Message {};
 	};
 
 	struct duplicate_node : public std::exception
@@ -390,32 +392,34 @@ namespace psl::format
 		duplicate_node(psl::string8::view name) : name(name) {};
 		char const* what() const noexcept override
 		{
-			psl::string8_t message {"duplicate node found using the name: "};
+			message = "duplicate node found using the name: ";
 			message += name;
 			return message.data();
 		}
 
 	  private:
 		psl::string8::view name;
+		mutable psl::string8_t message;
 	};
 
 	struct max_depth_reached : public std::exception
 	{
 		char const* what() const noexcept override
 		{
-			psl::string8_t message {
-			  "The depth went over the: " + std::to_string(std::numeric_limits<children_t>::max()) + " limits"};
+			message = "The depth went over the: " + std::to_string(std::numeric_limits<children_t>::max()) + " limits";
 			return message.data();
 		}
+		mutable psl::string8_t message;
 	};
 
 	struct max_nodes_reached : public std::exception
 	{
 		char const* what() const noexcept override
 		{
-			psl::string8_t message {
-			  "The node count went over the: " + std::to_string(std::numeric_limits<nodes_t>::max()) + " limits"};
+			message =
+			  "The node count went over the: " + std::to_string(std::numeric_limits<nodes_t>::max()) + " limits";
 			return message.data();
 		}
+		mutable psl::string8_t message;
 	};
 }	 // namespace psl::format
