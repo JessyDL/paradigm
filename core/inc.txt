@@ -1,162 +1,166 @@
 SET(INC 
-conversion_utils.hpp
-logging.hpp
-stdb_truetype.hpp
-targetver.hpp
-defines.hpp
-paradigm.hpp
+conversion_utils
+logging
+stdb_truetype
+targetver
+defines
+paradigm
 
-data/application.hpp
-data/buffer.hpp
-data/framebuffer.hpp
-data/geometry.hpp
-data/material.hpp
-data/sampler.hpp
-data/stream.hpp
-data/window.hpp
+data/application
+data/buffer
+data/framebuffer
+data/geometry
+data/material
+data/sampler
+data/stream
+data/window
 
-gfx/stdafx.hpp
-gfx/limits.hpp
-gfx/types.hpp
+gfx/stdafx
+gfx/limits
+gfx/types
 
-gfx/context.hpp
-gfx/compute.hpp
-gfx/computecall.hpp
-gfx/computepass.hpp
-gfx/shader.hpp
-gfx/buffer.hpp
-gfx/geometry.hpp
-gfx/texture.hpp
-gfx/sampler.hpp
-gfx/material.hpp
-gfx/swapchain.hpp
-gfx/pipeline_cache.hpp
-gfx/drawpass.hpp
-gfx/framebuffer.hpp
+gfx/context
+gfx/compute
+gfx/computecall
+gfx/computepass
+gfx/shader
+gfx/buffer
+gfx/geometry
+gfx/texture
+gfx/sampler
+gfx/material
+gfx/swapchain
+gfx/pipeline_cache
+gfx/drawpass
+gfx/framebuffer
 
-gfx/drawcall.hpp
-gfx/drawgroup.hpp
-gfx/drawlayer.hpp
-gfx/render_graph.hpp
-gfx/bundle.hpp
-gfx/details/instance.hpp
+gfx/drawcall
+gfx/drawgroup
+gfx/drawlayer
+gfx/render_graph
+gfx/bundle
+gfx/details/instance
 
-meta/shader.hpp
-meta/texture.hpp
+meta/shader
+meta/texture
 
-os/surface.hpp
+os/surface
 
-systems/input.hpp
+systems/input
 
-resource/resource.hpp
-resource/cache.hpp
-resource/handle.hpp
-resource/tag.hpp
+resource/resource
+resource/cache
+resource/handle
+resource/tag
 
-ecs/systems/fly.hpp
-ecs/systems/death.hpp
-ecs/systems/lifetime.hpp
-ecs/systems/render.hpp
-ecs/systems/geometry_instance.hpp
-ecs/systems/attractor.hpp
-ecs/systems/movement.hpp
-ecs/systems/gpu_camera.hpp
-ecs/systems/lighting.hpp
-ecs/systems/text.hpp
-ecs/systems/debug/grid.hpp
+ecs/systems/fly
+ecs/systems/death
+ecs/systems/lifetime
+ecs/systems/render
+ecs/systems/geometry_instance
+ecs/systems/attractor
+ecs/systems/movement
+ecs/systems/gpu_camera
+ecs/systems/lighting
+ecs/systems/text
+ecs/systems/debug/grid
 
-ecs/components/camera.hpp
-ecs/components/transform.hpp
-ecs/components/renderable.hpp
-ecs/components/input_tag.hpp
-ecs/components/dead_tag.hpp
-ecs/components/lifetime.hpp
-ecs/components/velocity.hpp
-ecs/components/text.hpp
+ecs/components/camera
+ecs/components/transform
+ecs/components/renderable
+ecs/components/input_tag
+ecs/components/dead_tag
+ecs/components/lifetime
+ecs/components/velocity
+ecs/components/text
 
-utility/geometry.hpp
+utility/geometry
 )
 
 
 list(TRANSFORM INC PREPEND inc/)
+list(TRANSFORM INC APPEND .hpp)
 
 SET(FWD
 
-resource/resource.hpp
-gfx/context.hpp
-gfx/shader.hpp
-gfx/geometry.hpp
-gfx/buffer.hpp
-gfx/texture.hpp
-gfx/sampler.hpp
-gfx/bundle.hpp
-gfx/framebuffer.hpp
-gfx/material.hpp
-gfx/pipeline_cache.hpp
-gfx/swapchain.hpp
+resource/resource
+gfx/context
+gfx/shader
+gfx/geometry
+gfx/buffer
+gfx/texture
+gfx/sampler
+gfx/bundle
+gfx/framebuffer
+gfx/material
+gfx/pipeline_cache
+gfx/swapchain
 )
 
 
 # include files for the Vulkan API
 if(${PE_VULKAN})
 	set(INC_VULKAN
-	ivk.hpp
-	buffer.hpp
-	compute.hpp
-	computepass.hpp
-	context.hpp
-	conversion.hpp
-	drawpass.hpp
-	framebuffer.hpp
-	geometry.hpp
-	material.hpp
-	pipeline.hpp
-	pipeline_cache.hpp
-	sampler.hpp
-	shader.hpp
-	swapchain.hpp
-	texture.hpp
+	ivk
+	buffer
+	compute
+	computepass
+	context
+	conversion
+	drawpass
+	framebuffer
+	geometry
+	material
+	pipeline
+	pipeline_cache
+	sampler
+	shader
+	swapchain
+	texture
 	)
 
 	list(APPEND FWD 
 
-	vk/shader.hpp
-	vk/texture.hpp
-	vk/buffer.hpp
+	vk/shader
+	vk/texture
+	vk/buffer
 	)
 	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
+	list(TRANSFORM INC_VULKAN APPEND .hpp)
 endif()
 
 # include files for the GLES API
 if(${PE_GLES})
 	set(INC_GLES
-	igles.hpp
-	buffer.hpp
-	context.hpp
-	geometry.hpp	
-	material.hpp
-	program.hpp
-	program_cache.hpp
-	sampler.hpp
-	shader.hpp
-	swapchain.hpp
-	texture.hpp
-	framebuffer.hpp
-	drawpass.hpp
-	conversion.hpp
-	types.hpp
-	compute.hpp
-	computepass.hpp
+	igles
+	buffer
+	context
+	geometry	
+	material
+	program
+	program_cache
+	sampler
+	shader
+	swapchain
+	texture
+	framebuffer
+	drawpass
+	conversion
+	types
+	compute
+	computepass
 	)
 
 	list(APPEND FWD 
 
-	gles/shader.hpp
-	gles/texture.hpp
-	gles/compute.hpp
+	gles/shader
+	gles/texture
+	gles/compute
 	)
 
 	list(TRANSFORM INC_GLES PREPEND inc/gles/)
+	list(TRANSFORM INC_GLES APPEND .hpp)
 endif()
 
 list(TRANSFORM FWD PREPEND inc/fwd/)
+list(TRANSFORM FWD APPEND .hpp)

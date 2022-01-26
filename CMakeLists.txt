@@ -33,10 +33,8 @@ OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
 OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
 OPTION(PE_TESTS "make the tests" ON)
 
-include(FindWayland)
 include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
-CMAKE_DEPENDENT_OPTION(PE_WSI_WAYLAND "use Wayland" ON "WAYLAND_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_WIN32 "use win32 surface" ON "WIN32" OFF)
 
@@ -249,9 +247,9 @@ endif()
 ###############################################################################
 
 # order of decides the order of importance, this means D2D is _always_ preferred
-# over any other surface type, and x11/xcb is preferred over wayland
-# note: not all surface types work on all platforms, win32 surface is always on
-# by default on windows builds for example.
+# over any other surface type, same for all subsequent entries in the list
+# note: not all surface types work on all platforms, xcb will not be selected on
+# windows, while being "higher" in the list
 
 set(HAS_WSI FALSE)
 set(PE_SURFACE "unknown")
@@ -268,14 +266,6 @@ if(NOT HAS_WSI AND PE_WSI_XCB AND XCB_FOUND)
 	set(PE_SURFACE "XCB")
 	set(HAS_WSI TRUE)
 endif()
-if(NOT HAS_WSI AND PE_WSI_WAYLAND AND WAYLAND_FOUND)
-	list(APPEND PE_DEFINES -DSURFACE_WAYLAND;-DVK_USE_PLATFORM_WAYLAND_KHR)
-	set(WSI_LIB ${WAYLAND_CLIENT_LIBRARIES})
-	set(WSI_INC ${WAYLAND_INCLUDE_DIR})
-	message("using Wayland WSI")
-	set(PE_SURFACE "Wayland")
-	set(HAS_WSI TRUE)
-endif()
 if(NOT HAS_WSI AND PE_WSI_WIN32)
 	list(APPEND PE_DEFINES -DSURFACE_WIN32;-DVK_USE_PLATFORM_WIN32_KHR)
 	message("using WIN32 WSI")
@@ -285,6 +275,8 @@ endif()
 if(NOT HAS_WSI)
 	message(FATAL_ERROR "Could not find a suitable WSI, or none was selected")
 endif()
+
+string(TOLOWER ${PE_SURFACE} PE_SURFACE_LOWERCASE)
 
 ###############################################################################
 ###                    Add the sub projects                                 ###
