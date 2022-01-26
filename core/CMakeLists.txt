@@ -12,6 +12,7 @@ SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0)
 find_package(PythonInterp REQUIRED)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${GEN}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/fwd" PREFIX "fwd" FILES ${FWD}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_GLES}) 
@@ -98,7 +99,16 @@ if(PE_GLES)
 	endif()
 endif()
 
-add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
+
+add_custom_target(core_generator)
+add_custom_command(TARGET core_generator
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
+	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/inc/paradigm.hpp
+	COMMENT "Generating headers for Paradigm")
+
+add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
+add_dependencies(${LOCAL_PROJECT} core_generator)
 
 if(VK_STATIC AND PE_VULKAN)	
 	if(WIN32)
@@ -122,12 +132,6 @@ target_include_directories(${LOCAL_PROJECT}
 )
 
 target_link_libraries(${LOCAL_PROJECT} PUBLIC gli)
-
-add_custom_command(TARGET ${LOCAL_PROJECT} PRE_BUILD
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
-	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/paradigm.hpp
-	COMMENT "Generating headers for Paradigm")
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})
