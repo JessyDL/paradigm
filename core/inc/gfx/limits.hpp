@@ -28,6 +28,14 @@ namespace core::gfx
 		} compute;
 
 		core::gfx::format_t supported_depthformat;
+
+		struct resources
+		{
+			uint32_t ssbo;
+		};
+
+		resources vertex_shader {};
+		resources fragment_shader {};
 	};
 
 	constexpr inline limits::buffer min(const limits::buffer& l, const limits::buffer& r) noexcept
