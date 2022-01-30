@@ -69,8 +69,8 @@ if(PE_PLATFORM STREQUAL AUTO)
 	endif()
 endif()
 
-string(TOUPPER PE_MODE PE_MODE)
-list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
+string(TOUPPER ${PE_MODE} PE_MODE)
+list(APPEND PE_DEFINES -DPE_${PE_MODE})
 
 # experimental early support for not supporting vulkan
 if(PE_VULKAN)
@@ -300,6 +300,8 @@ if(NOT PE_SOURCE_ONLY)
 	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
 		include(${PROJECT_SOURCE_DIR}/modules.txt)
 	endif()
+
+	add_subdirectory(resource)
 else()
 	message("did not compile the project by request")
 endif()
