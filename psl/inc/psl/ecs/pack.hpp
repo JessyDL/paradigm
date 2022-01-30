@@ -2,6 +2,7 @@
 #include "details/selectors.hpp"
 #include "entity.hpp"
 #include "selectors.hpp"
+#include "psl/template_utils.hpp"
 
 
 namespace psl::ecs

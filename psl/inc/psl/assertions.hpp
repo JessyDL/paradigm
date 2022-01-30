@@ -96,7 +96,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 		   (_wassert((wchar_t*)(psl::string8::to_string16_t(psl::string8_t{message} + " in expression:" + #expression)).data(),        \
 					 _CRT_WIDE(__FILE__),                                                                              \
 					 (unsigned)(__LINE__)),                                                                            \
-			(debug_break(), 0))
+			(debug_break(), 0)))
 #else
 #define psl_assert(expression, message) assert(expression)
 #endif

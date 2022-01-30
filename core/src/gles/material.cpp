@@ -23,10 +23,10 @@ using namespace core::resource;
 namespace data = core::data;
 
 material_t::material_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile,
-				   handle<data::material_t> data,
-				   core::resource::handle<core::igles::program_cache> program_cache) :
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   handle<data::material_t> data,
+					   core::resource::handle<core::igles::program_cache> program_cache) :
 	m_Data(data)
 {
 	for(auto& stage : data->stages())
@@ -146,8 +146,7 @@ material_t::material_t(core::resource::cache_t& cache,
 				{
 					core::igles::log->error(
 					  "igles::material_t [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
-					  "resource "
-					  "cache.",
+					  "resource cache.",
 					  utility::to_string(metaData.uid),
 					  utility::to_string(binding.buffer()),
 					  utility::to_string(stage.shader()));
@@ -240,7 +239,10 @@ void material_t::bind()
 	glGetError();
 }
 
-const std::vector<core::resource::handle<core::igles::shader>>& material_t::shaders() const noexcept { return m_Shaders; }
+const std::vector<core::resource::handle<core::igles::shader>>& material_t::shaders() const noexcept
+{
+	return m_Shaders;
+}
 
 const core::data::material_t& material_t::data() const noexcept { return m_Data.value(); }
 

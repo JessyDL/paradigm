@@ -52,18 +52,20 @@ shader::shader(core::resource::cache_t& cache, const core::resource::metadata& m
 			char* infoLog = (char*)malloc(sizeof(char) * infoLen);
 
 			glGetShaderInfoLog(shader, infoLen, NULL, infoLog);
-			// esLogMessage("Error compiling shader:\n%s\n", infoLog);
-
+			core::igles::log->error("could not compile igles::shader [{0}] from resource UID [{1}] with message: {2}",
+									metaData.resource_uid.to_string(),
+									meta->ID().to_string(),
+									infoLog);
 			free(infoLog);
+		}
+		else
+		{
+			core::igles::log->error("could not compile igles::shader [{0}] from resource UID [{1}] (no message/reason could be retrieved)",
+									metaData.resource_uid.to_string(),
+									meta->ID().to_string());
 		}
 
 		glDeleteShader(shader);
-
-
-		core::igles::log->error("could not compile igles::shader [{0}] from resource UID [{1}] with message: {2}",
-								metaData.resource_uid.to_string(),
-								meta->ID().to_string(),
-								infoLen);
 	}
 	else
 		m_Shader = shader;

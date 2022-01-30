@@ -8,7 +8,7 @@
 
 namespace utility::templates
 {
-	namespace details
+	inline namespace details
 	{
 		template <size_t first, size_t second, size_t... remainder>
 		static constexpr size_t max_impl() noexcept
@@ -362,7 +362,7 @@ namespace utility::templates
 
 	namespace operators
 	{
-		namespace details
+		inline namespace details
 		{
 			// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists/6534951
 			template <typename X, typename Y, typename Op>
