@@ -1,9 +1,12 @@
 SET(INC 
-inc/stdafx_tests.hpp
-inc/targetver.hpp
-inc/ecs.hpp
-inc/math_tests.hpp
-inc/memory.hpp
-inc/tests/generator.hpp
-inc/task_test.hpp
+ecs
+math_tests
+memory
+stdafx_tests
+targetver
+task_test
+tests/generator
 )
+
+list(TRANSFORM INC PREPEND inc/)
+list(TRANSFORM INC APPEND .hpp)

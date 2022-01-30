@@ -2,12 +2,12 @@
 
 #ifdef PLATFORM_WINDOWS
 #define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
 #include <crtdbg.h>
+#include <stdlib.h>
 #endif
 
-#include <litmus/litmus.hpp>
 #include "spdlog/spdlog.h"
+#include <litmus/litmus.hpp>
 
 void setup_loggers()
 {
@@ -39,7 +39,7 @@ void setup_loggers()
 
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
 	spdlog::register_logger(ivk_logger);
-	core::ivk::log = ivk_logger; 
+	core::ivk::log = ivk_logger;
 }
 
 int main(int argc, char* argv[])

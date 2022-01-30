@@ -121,7 +121,7 @@ endif()
 
 target_link_libraries(${LOCAL_PROJECT} PUBLIC 
 	${PROJECT_PSL} ${CMAKE_DL_LIBS}
-	${PROJECT_INTERCEPT} ${PE_DL_LIBS} ${TEST_LIBS})
+	${PROJECT_INTERCEPT} ${PE_DL_LIBS} ${TEST_LIBS} gli cppcoro)
 
 target_include_directories(${LOCAL_PROJECT}
 	PUBLIC 
@@ -130,8 +130,6 @@ target_include_directories(${LOCAL_PROJECT}
 	PRIVATE
 		${WSI_INC}
 )
-
-target_link_libraries(${LOCAL_PROJECT} PUBLIC gli)
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})

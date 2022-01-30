@@ -1,9 +1,13 @@
 SET(SRC 
-src/main.cpp
-src/stdafx_tests.cpp
-src/ecs.cpp
-src/math_tests.cpp
-src/memory.cpp
-src/tests/generator.cpp
-src/task_test.cpp
+ecs
+main
+math_tests
+memory
+resource
+stdafx_tests
+task_test
+tests/generator
 )
+
+list(TRANSFORM SRC PREPEND src/)
+list(TRANSFORM SRC APPEND .cpp)

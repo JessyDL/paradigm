@@ -1,6 +1,8 @@
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(CMAKE_CXX_CLANG_TIDY "")
 
+add_subdirectory(cppcoro)
+
 add_subdirectory(fmt)
 set_property(TARGET fmt PROPERTY FOLDER "extern")
 
