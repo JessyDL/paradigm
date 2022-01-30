@@ -12,4 +12,4 @@
 	url = https://github.com/JessyDL/litmus.git
 [submodule "extern/cppcoro"]
 	path = extern/cppcoro
-	url = https://github.com/andreasbuhr/cppcoro.git
+	url = https://github.com/JessyDL/cppcoro.git
