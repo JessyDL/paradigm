@@ -73,23 +73,25 @@ namespace psl::format
 
 	namespace constants
 	{
-		static const psl::string8_t EMPTY_CHARACTERS = " \n\t\r ";
-		static const psl::string8_t HEAD_OPEN		 = "[";
-		static const psl::string8_t HEAD_CLOSE		 = "]";
-		static const psl::string8_t TAIL_OPEN		 = HEAD_OPEN + "/";
-		static const psl::string8_t TAIL_CLOSE		 = HEAD_CLOSE;
+		static constexpr psl::string8::view EMPTY_CHARACTERS = " \n\t\r ";
+		static constexpr psl::string8::view HEAD_OPEN		 = "[";
+		static constexpr psl::string8::view HEAD_CLOSE		 = "]";
+		static constexpr psl::string8::view TAIL_OPEN		 = "[/";		  // HEAD_OPEN + "/"
+		static constexpr psl::string8::view TAIL_CLOSE		 = HEAD_CLOSE;	  // HEAD_CLOSE
 
-		static const psl::string8_t LITERAL_OPEN  = "'''";
-		static const psl::string8_t LITERAL_CLOSE = LITERAL_OPEN;
+		static constexpr psl::string8::view LITERAL_OPEN  = "'''";
+		static constexpr psl::string8::view LITERAL_CLOSE = LITERAL_OPEN;
 
-		static const psl::string8_t RANGE_OPEN	  = "{";
-		static const psl::string8_t RANGE_CLOSE	  = "}";
-		static const psl::string8_t RANGE_DIVIDER = ",";
+		static constexpr psl::string8::view RANGE_OPEN	  = "{";
+		static constexpr psl::string8::view RANGE_CLOSE	  = "}";
+		static constexpr psl::string8::view RANGE_DIVIDER = ",";
 
-		static const psl::string8_t REFERENCE		  = "&";
-		static const psl::string8_t REFERENCE_MISSING = "MISSING_REFERENCE";
-		static const psl::string8_t NAMESPACE_DIVIDER = "::";
-	}	 // namespace constants
+		static constexpr psl::string8::view REFERENCE		  = "&";
+		static constexpr psl::string8::view REFERENCE_MISSING = "MISSING_REFERENCE";
+		static constexpr psl::string8::view NAMESPACE_DIVIDER = "::";
+
+		static constexpr psl::string8::view NOT_REFERENCE = " \n\t\r &";	// EMPTY_CHARACTERS + REFERENCE
+	}																		// namespace constants
 	struct partial_view
 	{
 		std::unique_ptr<partial_view> before {nullptr};

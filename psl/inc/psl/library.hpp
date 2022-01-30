@@ -100,6 +100,7 @@ namespace psl::meta
 		/// representation of each meta::file entry in the given file, with its tags, etc.. \param[in] lib The filepath
 		/// to which file should be loaded. This path can either be absolute or relative.
 		library(psl::string8::view lib, std::vector<psl::string8_t> environment = {});
+		library() = default;
 		~library();
 
 		library(const library& other) = delete;
@@ -348,13 +349,13 @@ namespace psl::meta
 								  */
 		};
 
-		std::unordered_map<psl::string8_t, std::unordered_set<psl::UID>> m_TagMap;
-		std::unordered_map<psl::UID, UIDData> m_MetaData;
+		std::unordered_map<psl::string8_t, std::unordered_set<psl::UID>> m_TagMap {};
+		std::unordered_map<psl::UID, UIDData> m_MetaData {};
 
-		psl::string8::view m_LibraryFile;
-		psl::string8::view m_LibraryFolder;
-		psl::string8_t m_LibraryLocation;
-		std::vector<psl::string8_t> m_Environment;
+		psl::string8::view m_LibraryFile {};
+		psl::string8::view m_LibraryFolder {};
+		psl::string8_t m_LibraryLocation {};
+		std::vector<psl::string8_t> m_Environment {};
 	};
 	template <typename T>
 	std::optional<T*> library::get(const psl::UID& uid) const

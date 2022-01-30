@@ -746,8 +746,7 @@ size_t container::parse(const psl::string8::view& content,
 		case type_t::REFERENCE:
 		{
 			reference_nodes.emplace_back((nodes_t)index);
-			content_begin_n =
-			  content.find_first_not_of(constants::EMPTY_CHARACTERS + constants::REFERENCE, content_begin_n);
+			content_begin_n = content.find_first_not_of(constants::NOT_REFERENCE, content_begin_n);
 			node_content_end_n = search(content, tail_name, content_begin_n);
 			node_content_end_n = rfind_first_not_of(content, node_content_end_n, constants::EMPTY_CHARACTERS);
 			psl::string8::view ref(&content[content_begin_n], node_content_end_n - content_begin_n);
@@ -777,7 +776,7 @@ size_t container::parse(const psl::string8::view& content,
 			while(!bEnd)
 			{
 				auto sub_content_begin_n =
-				  content.find_first_not_of(constants::EMPTY_CHARACTERS + constants::REFERENCE, offset_n);
+				  content.find_first_not_of(constants::NOT_REFERENCE, offset_n);
 				auto sub_content_end_n = psl::string8_t::npos;
 				auto next_offset_n	   = search(content, constants::RANGE_DIVIDER, offset_n);
 
@@ -1019,7 +1018,10 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 	{
 		auto val = as_reference().value();
 		if(val->m_Index == std::numeric_limits<nodes_t>().max())
-			out += constants::REFERENCE + constants::REFERENCE_MISSING;
+		{
+			out += constants::REFERENCE;
+			out += constants::REFERENCE_MISSING;
+		}
 		else
 			out += constants::REFERENCE + root()->fullname(val->get());
 	}
@@ -1046,7 +1048,11 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		for(auto& it : val)
 		{
 			if(((it))->m_Index == std::numeric_limits<nodes_t>().max())
-				out += constants::REFERENCE + constants::REFERENCE_MISSING + constants::RANGE_DIVIDER;
+			{
+				out += constants::REFERENCE;
+				out += constants::REFERENCE_MISSING;
+				out += constants::RANGE_DIVIDER;
+			}
 			else
 				out += constants::REFERENCE + root()->fullname(it->get()) + constants::RANGE_DIVIDER;
 		}
