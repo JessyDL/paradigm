@@ -300,8 +300,6 @@ if(NOT PE_SOURCE_ONLY)
 	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
 		include(${PROJECT_SOURCE_DIR}/modules.txt)
 	endif()
-
-	add_subdirectory(resource)
 else()
 	message("did not compile the project by request")
 endif()
