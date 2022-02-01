@@ -179,7 +179,7 @@ namespace core::_v1
 				constexpr handle_resource_base_t(pointer_type resource) noexcept : m_Resource(resource) {}
 
 			  public:
-				auto operator->() noexcept requires !std::is_const_v<T> { return m_Resource; }
+				auto operator->() noexcept requires(!std::is_const_v<T>) { return m_Resource; }
 				auto operator->() const noexcept { return m_Resource; }
 
 				auto& get() { return *m_Resource; }
@@ -417,12 +417,11 @@ namespace core::_v1
 				using resource_data_t = typename resource_type_deduction<T>::type;
 				auto res_data		  = co_await coro_load_resource_data<resource_data_t>(res_uid, res_entry);
 				args_t<T> argpack {*this, metafile, *res_data};
-				co_return co_await load_fn<T, true>(entry, argpack, std::forward<Args>(args)...);
+				co_return co_await coro_load_fn<T>(entry, argpack, std::forward<Args>(args)...);
 			}
 
-			template <typename T, bool IsCoro, typename... Args>
-			auto load_fn(auto& entry, args_t<T>& argpack, Args&&... args)
-			  -> std::conditional_t<IsCoro, cppcoro::task<handle_t<T>>, handle_t<T>>
+			template <typename T, typename... Args>
+			auto coro_load_fn(auto& entry, args_t<T>& argpack, Args&&... args) -> cppcoro::task<handle_t<T>>
 			{
 				T* value {nullptr};
 
@@ -436,14 +435,7 @@ namespace core::_v1
 					{
 						value = new T();
 					}
-					if constexpr(IsCoro)
-					{
-						co_await value->construct(argpack, std::forward<Args>(args)...);
-					}
-					else
-					{
-						cppcoro::sync_wait(value->construct(argpack, std::forward<Args>(args)...));
-					}
+					co_await value->construct(argpack, std::forward<Args>(args)...);
 				}
 				else
 				{
@@ -452,19 +444,38 @@ namespace core::_v1
 
 				entry.resource = reinterpret_cast<void*>(value);
 				entry.deleter  = deleter_fn<T>;
-				if constexpr(IsCoro)
+				co_return handle_t<T> {entry.info, value};
+			}
+
+			template <typename T, typename... Args>
+			auto load_fn(auto& entry, args_t<T>& argpack, Args&&... args) -> handle_t<T>
+			{
+				T* value {nullptr};
+
+				if constexpr(IsConstructEnabled<T, args_t<T>, Args...>)
 				{
-					co_return handle_t<T> {entry.info, value};
+					if constexpr(resource_traits<T>::always_send_resource_pack)
+					{
+						value = new T(argpack);
+					}
+					else
+					{
+						value = new T();
+					}
+					cppcoro::sync_wait(value->construct(argpack, std::forward<Args>(args)...));
 				}
 				else
 				{
-					return handle_t<T> {entry.info, value};
+					value = new T(argpack, std::forward<Args>(args)...);
 				}
+
+				entry.resource = reinterpret_cast<void*>(value);
+				entry.deleter  = deleter_fn<T>;
+				return handle_t<T> {entry.info, value};
 			}
 
-			template <bool CoroContext = false, typename T, typename... Args>
-			auto create_fn(auto& entry, args_t<T>& pack, Args&&... args)
-			  -> std::conditional_t<CoroContext, cppcoro::task<handle_t<T>>, handle_t<T>>
+			template <typename T, typename... Args>
+			handle_t<T> create_fn(auto& entry, args_t<T>& pack, Args&&... args)
 			{
 				T* value = nullptr;
 				if constexpr(IsConstructEnabled<T, args_t<T>, Args...>)
@@ -473,10 +484,7 @@ namespace core::_v1
 						value = new T(pack);
 					else
 						value = new T();
-					if constexpr(CoroContext)
-						co_await value->construct(pack, std::forward<Args>(args)...);
-					else
-						cppcoro::sync_wait(value->construct(pack, std::forward<Args>(args)...));
+					cppcoro::sync_wait(value->construct(pack, std::forward<Args>(args)...));
 				}
 				else
 				{
@@ -484,10 +492,28 @@ namespace core::_v1
 				}
 				entry.resource = reinterpret_cast<void*>(value);
 				entry.deleter  = deleter_fn<T>;
-				if constexpr(CoroContext)
-					co_return handle_t<T> {entry.info, value};
+				return handle_t<T> {entry.info, value};
+			}
+
+			template <typename T, typename... Args>
+			cppcoro::task<handle_t<T>> coro_create_fn(auto& entry, args_t<T>& pack, Args&&... args)
+			{
+				T* value = nullptr;
+				if constexpr(IsConstructEnabled<T, args_t<T>, Args...>)
+				{
+					if constexpr(always_send_resource_pack_v<T>)
+						value = new T(pack);
+					else
+						value = new T();
+					co_await value->construct(pack, std::forward<Args>(args)...);
+				}
 				else
-					return handle_t<T> {entry.info, value};
+				{
+					value = new T(pack, std::forward<Args>(args)...);
+				}
+				entry.resource = reinterpret_cast<void*>(value);
+				entry.deleter  = deleter_fn<T>;
+				co_return handle_t<T> {entry.info, value};
 			}
 
 			template <typename T>
@@ -519,11 +545,8 @@ namespace core::_v1
 				return args_t<T> {*this, meta};
 			}
 
-			template <HasResourceDataTypes T, bool IsCoroContext = false>
-			[[nodiscard]] auto resource_data_for(const psl::UID& uid)
-			  -> std::conditional_t<IsCoroContext,
-									cppcoro::task<typename resource_type_deduction<T>::type*>,
-									typename resource_type_deduction<T>::type*>
+			template <HasResourceDataTypes T>
+			[[nodiscard]] auto resource_data_for(const psl::UID& uid) -> typename resource_type_deduction<T>::type*
 			{
 				using resource_data_t = typename resource_type_deduction<T>::type;
 				resource_data_t* data {nullptr};
@@ -534,20 +557,28 @@ namespace core::_v1
 				}
 				else
 				{
-					if constexpr(IsCoroContext)
-					{
-						auto& res_entry = m_ImmutableCache[uid];
-						data			= co_await coro_load_resource_data<resource_data_t>(uid, m_ImmutableCache[uid]);
-					}
-					else
-					{
-						data = load_resource_data<resource_data_t>(uid, m_ImmutableCache[uid]);
-					}
+					data = load_resource_data<resource_data_t>(uid, m_ImmutableCache[uid]);
 				}
-				if constexpr(IsCoroContext)
-					co_return data;
+				return data;
+			}
+
+			template <HasResourceDataTypes T>
+			[[nodiscard]] auto coro_resource_data_for(const psl::UID& uid)
+			  -> cppcoro::task<typename resource_type_deduction<T>::type*>
+			{
+				using resource_data_t = typename resource_type_deduction<T>::type;
+				resource_data_t* data {nullptr};
+
+				if(auto it = m_ImmutableCache.find(uid); it != std::end(m_ImmutableCache))
+				{
+					data = reinterpret_cast<resource_data_t*>(it->second.resource);
+				}
 				else
-					return data;
+				{
+					auto& res_entry = m_ImmutableCache[uid];
+					data			= co_await coro_load_resource_data<resource_data_t>(uid, m_ImmutableCache[uid]);
+				}
+				co_return data;
 			}
 
 		  public:
@@ -615,7 +646,7 @@ namespace core::_v1
 						data = reinterpret_cast<resource_data_t*>(it->second.resource);
 						args_t<T> argpack {*this, pair.second, *data};
 						co_return co_await cppcoro::schedule_on(
-						  scheduler, load_fn<T, true>(entry, argpack, std::forward<Args>(args)...));
+						  scheduler, coro_load_fn<T>(entry, argpack, std::forward<Args>(args)...));
 					}
 					else
 					{
@@ -629,7 +660,7 @@ namespace core::_v1
 				{
 					args_t<T> argpack {*this, pair.second};
 					co_return co_await cppcoro::schedule_on(
-					  scheduler, load_fn<T, true>(entry, argpack, std::forward<Args>(args)...));
+					  scheduler, coro_load_fn<T>(entry, argpack, std::forward<Args>(args)...));
 				}
 				co_return handle_t<T> {};
 			}
@@ -654,7 +685,7 @@ namespace core::_v1
 				auto& entry			= m_Cache[newUID];
 				entry.info->uid		= newUID;
 				args_t<T> argpack(argpack_for<T>(uid, pair.second));
-				return load_fn<T, false>(entry, argpack, std::forward<Args>(args)...);
+				return load_fn<T>(entry, argpack, std::forward<Args>(args)...);
 			}
 
 			/// \brief Creates a deep copy of the given handle, and schedule the operation on the specified
@@ -773,7 +804,7 @@ namespace core::_v1
 				entry.info->uid = uid;
 				args_t<T> argpack(argpack_for<T>(uid, pair.second));
 
-				return create_fn<false, T>(entry, argpack, std::forward<Args>(args)...);
+				return create_fn<T>(entry, argpack, std::forward<Args>(args)...);
 			}
 
 			/// \brief Create a resource directly from code in a coroutine, and schedule it on a Schedule-like objecy
@@ -793,8 +824,8 @@ namespace core::_v1
 				entry.info->uid = uid;
 				args_t<T> argpack(argpack_for<T>(uid, pair.second));
 
-				co_return co_await cppcoro::schedule_on(
-				  scheduler, create_fn<true, T>(entry, argpack, std::forward<Args>(args)...));
+				co_return co_await cppcoro::schedule_on(scheduler,
+														coro_create_fn<T>(entry, argpack, std::forward<Args>(args)...));
 			}
 
 			/// \brief Tries to clear all memory that is no longer in use

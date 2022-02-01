@@ -49,9 +49,11 @@ namespace
 		std::shared_ptr<psl::meta::library> lib;
 		psl::UID complex_uid;
 		cppcoro::static_thread_pool* pool {new cppcoro::static_thread_pool(12)};
-	} create_library()
+	};
+
+	lib_return_t create_library()
 	{
-		auto lib		   = std::make_shared<psl::meta::library>();
+		auto lib		 = std::make_shared<psl::meta::library>();
 		auto complex_uid = psl::UID::generate();
 
 		{
@@ -141,8 +143,7 @@ namespace
 		  };
 	  };
 
-	auto t1 = suite<"resource destruction", "core", "resource">() = []() 
-	{
+	auto t1 = suite<"resource destruction", "core", "resource">() = []() {
 		auto lib = std::make_shared<psl::meta::library>();
 		core::resource::cache_t cache {lib};
 
@@ -151,6 +152,5 @@ namespace
 		expect(cache.is_empty()) == false;
 		cache.try_destroy(val);
 		expect(cache.is_empty()) == true;
-		
 	};
 }	 // namespace
