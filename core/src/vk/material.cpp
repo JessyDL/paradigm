@@ -26,10 +26,10 @@ material_t::material_t(core::resource::cache_t& cache,
 				   psl::meta::file* metaFile,
 				   handle<core::ivk::context> context,
 				   handle<core::data::material_t> data,
-				   core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
+				   core::resource::handle<core::ivk::pipeline_cache> pipelineCache,
 				   core::resource::handle<core::ivk::buffer_t> materialBuffer) :
 	m_UID(metaData.uid),
-	m_Context(context), m_PipelineCache(pipeline_cache), m_Data(data), m_MaterialBuffer(materialBuffer)
+	m_Context(context), m_PipelineCache(pipelineCache), m_Data(data), m_MaterialBuffer(materialBuffer)
 {
 	PROFILE_SCOPE(core::profiler)
 	const auto& ID = m_UID;
