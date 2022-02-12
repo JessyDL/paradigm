@@ -31,7 +31,7 @@ namespace psl::meta
 	class file
 	{
 		friend class psl::serialization::accessor;
-		friend class library;
+		friend class psl::meta::library;
 
 	  public:
 		/// \param[in] key the unique psl::UID associated with this meta::file
