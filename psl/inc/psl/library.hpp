@@ -27,7 +27,9 @@ namespace psl::meta
 	/// This class contains associated helper data for a runtime instance, by default atleast a psl::UID, polymorphic
 	/// information, and all associated tags are stored.
 	/// You can extend meta::file to add additional information that might be needed. See the "see also" section for
-	/// examples. \see core::meta::shader \see core::meta::texture_t
+	/// examples.
+	/// \see core::meta::shader
+	/// \see core::meta::texture_t
 	class file
 	{
 		friend class psl::serialization::accessor;
@@ -142,8 +144,9 @@ namespace psl::meta
 												   *(static_cast<MF*>(pair.first->second.data.get())));
 		}
 		/// \brief creates a new entry with the given psl::UID and a given type that is either, or derived of
-		/// meta::file. \param[in] uid The psl::UID that should be associated with this entry. \warning giving an
-		/// already present psl::UID will result in an error log, and you will be given back the instance that is
+		/// meta::file.
+		/// \param[in] uid The psl::UID that should be associated with this entry.
+		/// \warning giving an already present psl::UID will result in an error log, and you will be given back the instance that is
 		/// already present.
 		template <typename MF = file>
 		std::pair<const psl::UID&, MF&> create(const psl::UID& uid)
@@ -182,9 +185,9 @@ namespace psl::meta
 		///
 		/// When you send a psl::UID to this method, the meta::library will verify that it has an entry with the given
 		/// psl::UID, and that it is linked to an on-disk location. When it satisfies those two requirements, it will
-		/// then proceed to serialize the file to disk using the current values that are present. \param[in] uid The
-		/// psl::UID you wish to serialize. \returns true when the psl::UID is both present in the library, and it is
-		/// linked to an on-disk file.
+		/// then proceed to serialize the file to disk using the current values that are present.
+		/// \param[in] uid The psl::UID you wish to serialize.
+		/// \returns true when the psl::UID is both present in the library, and it is linked to an on-disk file.
 		bool serialize(const psl::UID& uid);
 
 		/// \brief tries to remove the given psl::UID from the library.
@@ -193,9 +196,11 @@ namespace psl::meta
 		/// meta::file's that it references, that they no longer are being referenced by this instance.
 		///
 		/// \a safe_mode controls wether you should avoid deleting this instance if others are still referencing this
-		/// psl::UID (true), or forcibly delete this instance regardless (false). \param[in] uid The psl::UID you wish
-		/// to remove. \param[in] safe_mode when true (default), will disallow removing as long as this item is being
-		/// referenced by others. \returns true if the instance was removed or not.
+		/// psl::UID (true), or forcibly delete this instance regardless (false).
+		/// \param[in] uid The psl::UID you wish to remove.
+		/// \param[in] safe_mode when true (default), will disallow removing as long as this item is being
+		/// referenced by others.
+		/// \returns true if the instance was removed or not.
 		bool remove(const psl::UID& uid, bool safe_mode = true);
 
 		/// \brief searches the meta::library if it has an entry that corresponds to the given psl::UID.
@@ -231,7 +236,8 @@ namespace psl::meta
 		/// \param[in] uid the psl::UID to associate with the tag.
 		/// \param[in] tag the tag to apply to the psl::UID.
 		/// \returns if this was successful or not. It could return false in case the psl::UID is not part of the
-		/// meta::library. \warning it is possible to set the same tag multiple times on the same psl::UID.
+		/// meta::library.
+		/// \warning it is possible to set the same tag multiple times on the same psl::UID.
 		bool set(const psl::UID& uid, psl::string8::view tag);
 
 		/// \brief advanced version of set() that allows a list of tags.
@@ -268,9 +274,10 @@ namespace psl::meta
 		/// The associated file is the companion file for which the meta::file was generated, for example a shader will
 		/// have a core::meta::shader file on disk, but also the actual shader file (SPIR-V for Vulkan). This returns
 		/// the SPIR-V file. The file content will get cached into the meta::library to make subsequent load() calls
-		/// faster. \param[in] uid the given psl::UID to optionally find the content for. \returns the resulting content
-		/// in UTF-8 format if found. \warning this method requires the file to satisfy is_physical_file(), otherwise it
-		/// will silently fail.
+		/// faster.
+		/// \param[in] uid the given psl::UID to optionally find the content for.
+		/// \returns the resulting content in UTF-8 format if found.
+		/// \warning this method requires the file to satisfy is_physical_file(), otherwise it will silently fail.
 		std::optional<psl::string8::view> load(const psl::UID& uid);
 
 		/// \brief purges the specific psl::UID's cachec content.
@@ -279,9 +286,10 @@ namespace psl::meta
 		/// cache and purged. The associated file is the companion file for which the meta::file was generated, for
 		/// example a shader will have a core::meta::shader file on disk, but also the actual shader file (SPIR-V for
 		/// Vulkan). This returns the SPIR-V file. You can reload the file into the cache by calling load() with the
-		/// given psl::UID as parameter. \param[in] uid the given psl::UID to purge from the cache. \returns true if it
-		/// was found on the meta::library, and had cached contents. \warning this method requires the file to satisfy
-		/// is_physical_file(), otherwise it will silently fail.
+		/// given psl::UID as parameter.
+		/// \param[in] uid the given psl::UID to purge from the cache.
+		/// \returns true if it was found on the meta::library, and had cached contents.
+		/// \warning this method requires the file to satisfy is_physical_file(), otherwise it will silently fail.
 		bool unload(const psl::UID& uid);
 
 		/// \brief get the psl::UID's associated meta::file from the meta::library and tries to cast to the templated
@@ -290,16 +298,19 @@ namespace psl::meta
 		/// Searches the meta::library for the given psl::UID, and then tries to satisfy the templated type given. If
 		/// successful it will return the given template type (default meta::file), otherwise it returns an std::nullopt
 		/// in case the conversion is not possible at runtime, and will give a compile error when the template type does
-		/// not satisfy the type constraint. \tparam T should satisfy at least being either meta::file or being derived
-		/// from meta::file \param[in] uid the given psl::UID to find. \returns the meta::file, or derived class
-		/// associated with the psl::UID. \warning this method cannot downcast, it has to satisfy the type perfectly.
+		/// not satisfy the type constraint.
+		/// \tparam T should satisfy at least being either meta::file or being derived from meta::file
+		/// \param[in] uid the given psl::UID to find.
+		/// \returns the meta::file, or derived class associated with the psl::UID.
+		/// \warning this method cannot downcast, it has to satisfy the type perfectly.
 		template <typename T = file>
 		std::optional<T*> get(const psl::UID& uid) const;
 
 		/// \brief checks if the given psl::UID is associated with a physical/persistent file, or dynamically created
-		/// during the runtime. \param[in] uid the psl::UID to check. \returns true in case it has a persistent backing
-		/// (that will survive a reboot). \note that the physical backing might be out of sync with the current version
-		/// that is being used by the runtime.
+		/// during the runtime.
+		/// \param[in] uid the psl::UID to check.
+		/// \returns true in case it has a persistent backing (that will survive a reboot).
+		/// \note that the physical backing might be out of sync with the current version that is being used by the runtime.
 		bool is_physical_file(const psl::UID& uid) const;
 
 		/// \brief gets the relative location (to the meta::library's location) of the given psl::UID.
