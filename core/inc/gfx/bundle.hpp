@@ -88,32 +88,6 @@ namespace core::gfx
 		psl::array<uint32_t> materialIndices(uint32_t begin, uint32_t end) const noexcept;
 		bool bind_material(uint32_t renderlayer) noexcept;
 
-		/// \brief prepares the material for rendering by binding the pipeline.
-		/// \warning only call this in the context of recording the draw call.
-		/// \param[in] cmdBuffer the command buffer you'll be recording to
-		/// \param[in] framebuffer the framebuffer the pipeline will be bound to.
-		/// \param[in] drawIndex the index to be set in the push constant.
-		/// \todo drawindex is a temporary hack to support instancing. a generic solution should be sought after.
-		/// \warning You have to call bind_material before this.
-		// bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::framebuffer_t> framebuffer,
-		//				   uint32_t drawIndex);
-
-		/// \brief prepares the material for rendering by binding the pipeline.
-		/// \warning only call this in the context of recording the draw call.
-		/// \param[in] cmdBuffer the command buffer you'll be recording to
-		/// \param[in] swapchain the swapchain the pipeline will be bound to.
-		/// \param[in] drawIndex the index to be set in the push constant.
-		/// \warning You have to call bind_material before this.
-		// bool bind_pipeline(vk::CommandBuffer cmdBuffer, core::resource::handle<core::ivk::swapchain> swapchain,
-		//				   uint32_t drawIndex);
-
-		/// \brief prepares the material for rendering by binding the geometry's instance data.
-		/// \warning only call this in the context of recording the draw call, *after* you called bind_pipeline().
-		/// \param[in] cmdBuffer the command buffer you'll be recording to
-		/// \param[in] geometry the geometry that will be bound.
-		/// \warning You have to call bind_pipeline before this.
-		// bool bind_geometry(vk::CommandBuffer cmdBuffer, const core::resource::handle<core::ivk::geometry_t> geometry);
-
 		core::resource::handle<core::gfx::material_t> bound() const noexcept { return m_Bound; };
 		// ------------------------------------------------------------------------------------------------------------
 		// instance data API

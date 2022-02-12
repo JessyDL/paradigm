@@ -20,8 +20,8 @@ namespace core::data
 		/// \brief describes a single rendertarget in a framebuffer.
 		///
 		/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the
-		/// core::gfx::texture_t. You should take caution when calling methods that manipulate the contained resources for
-		/// this reason.
+		/// core::gfx::texture_t. You should take caution when calling methods that manipulate the contained resources
+		/// for this reason.
 		class attachment final
 		{
 			friend class psl::serialization::accessor;
@@ -70,9 +70,9 @@ namespace core::data
 			/// \param[in] texture a psl::UID pointing to a valid (known or constructed), core::ivk::texture_t object.
 			/// \param[in] clear_col the clear value to assign to this render texture.
 			/// \param[in] descr the attachment description that will be used to construct the
-			/// core::data::framebuffer_t::attachment::description. \param[in] shared value indicating if this render
-			/// attachment is shared within this framebuffer (see core::data::framebuffer_t::attachment::shared() for more
-			/// info).
+			/// core::data::framebuffer_t::attachment::description.
+			/// \param[in] shared value indicating if this render attachment is shared within this framebuffer (see
+			/// core::data::framebuffer_t::attachment::shared() for more info).
 			attachment(const psl::UID& texture,
 					   const core::gfx::clear_value& clear_col,
 					   core::gfx::attachment descr,
@@ -89,8 +89,8 @@ namespace core::data
 			const core::gfx::clear_value& clear_value() const;
 
 			/// \brief returns a core::gfx::attachment based on the internal settings. This is a passthrough method to
-			/// the core::data::framebuffer_t::attachment::description instance. \returns a core::gfx::attachment based on
-			/// the internal settings.
+			/// the core::data::framebuffer_t::attachment::description instance.
+			/// \returns a core::gfx::attachment based on the internal settings.
 			operator core::gfx::attachment() const noexcept;
 
 			/// \brief signifies if this specific attachment duplicated when the framebuffer's image count is larger
@@ -99,9 +99,9 @@ namespace core::data
 			/// Sometimes you don't need a render attachment to have a unique instance per framebuffer entry (for
 			/// example depth testing/texture in a double buffer scenario). in this case you can set this render
 			/// attachment to be "shared", a flag that will tell the implementation that rather than creating a new
-			/// instance for when the framebuffer count is larger than 1, it should instead reuse the current one. \see
-			/// core::ivk::framebuffer_t for the application of this flag. \returns true if this attachment is duplicated
-			/// (true) or not (false).
+			/// instance for when the framebuffer count is larger than 1, it should instead reuse the current one.
+			/// \see core::ivk::framebuffer_t for the application of this flag.
+			/// \returns true if this attachment is duplicated (true) or not (false).
 			bool shared() const;
 
 		  private:
@@ -120,17 +120,20 @@ namespace core::data
 		/// \brief basic constructor that sets up the rough outlines of an instance
 		/// \note you will still need to set up attachments, etc.. later on. The constructor makes a "valid" instance in
 		/// the sense that manipulating it will not cause undefined behaviour, but you cannot create a
-		/// core::ivk::framebuffer_t just yet with this after calling the constructor. \param[in] uid the resouce system
-		/// assigned psl::UID. \param[in] cache signifies in which cache I will be constructed in. \param[in] width the
-		/// width in pixels of this framebuffer. \param[in] height the height in pixels of this framebuffer. \param[in]
-		/// layers the amount of layers this framebuffer will have (often referred to as the framebuffer count in the
-		/// documentation).
+		/// core::ivk::framebuffer_t just yet with this after calling the constructor.
+		/// \param[in] cache signifies in which cache I will be constructed in.
+		/// \param[in] metaData the metadata that is assigned to this object
+		/// \param[in] metaFile the metafile associated with this instance
+		/// \param[in] width the width in pixels of this framebuffer.
+		/// \param[in] height the height in pixels of this framebuffer.
+		/// \param[in] layers the amount of layers this framebuffer will have (often referred to as the framebuffer
+		/// count in the documentation).
 		framebuffer_t(core::resource::cache_t& cache,
-					const core::resource::metadata& metaData,
-					psl::meta::file* metaFile,
-					uint32_t width,
-					uint32_t height,
-					uint32_t layers = 1u) noexcept;
+					  const core::resource::metadata& metaData,
+					  psl::meta::file* metaFile,
+					  uint32_t width,
+					  uint32_t height,
+					  uint32_t layers = 1u) noexcept;
 		// framebuffer_t(const framebuffer_t& other, const psl::UID& uid, core::resource::cache_t& cache);
 
 		/// \brief adds a core::data::framebuffer_t::attachment to the current framebuffer.

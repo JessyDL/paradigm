@@ -62,6 +62,7 @@ BreakStringLiterals: true
 BreakInheritanceList: AfterColon
 BreakConstructorInitializers: AfterColon
 BreakBeforeTernaryOperators: true
+CommentPragmas:  '.* \\(param|tparam|brief|detail|details|return|returns|note|warning|todo)'
 # EmptyLineBeforeAccessModifier: LogicalBlock
 # IndentRequires: true
 # BreakBeforeConceptDeclarations: true

@@ -42,20 +42,20 @@ namespace core::ivk
 	{
 	  public:
 		/// \brief the constructor that will create and bind the necesary resources to create a valid pipeline.
-		/// \param[in] packet resource packet containing the data that is needed from the resource system.
-		/// \param[in] context a handle to a graphics context (needs to be valid and loaded) which will own the
-		/// material.
+		/// \param[in] cache resource cache that is constructing this material.
+		/// \param[in] metaData metadata associated with the material.
+		/// \param[in] metaFile metafile associated with the material's instance.
+		/// \param[in] context a handle to a graphics context (needs to be valid and loaded) which will own the material.
 		/// \param[in] data the material data this instance will be based on.
-		/// \param[in] pipeline_cache the pipeline_cache this instance can request a pipeline from.
+		/// \param[in] pipelineCache the cache this instance can request a pipeline from.
 		/// \param[in] materialBuffer a GPU buffer that can be used by this instance to upload data to (if needed).
-		/// \param[in] instanceBuffer a GPU buffer that can be used to upload instance data to, if there is any.
 		material_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile,
-				 core::resource::handle<core::ivk::context> context,
-				 core::resource::handle<core::data::material_t> data,
-				 core::resource::handle<core::ivk::pipeline_cache> pipeline_cache,
-				 core::resource::handle<core::ivk::buffer_t> materialBuffer);
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   core::resource::handle<core::ivk::context> context,
+				   core::resource::handle<core::data::material_t> data,
+				   core::resource::handle<core::ivk::pipeline_cache> pipelineCache,
+				   core::resource::handle<core::ivk::buffer_t> materialBuffer);
 		material_t() = delete;
 		~material_t();
 		material_t(const material_t&) = delete;

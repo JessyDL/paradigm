@@ -24,8 +24,9 @@ namespace core::data
 
 	  public:
 		/// will do the minimal setup needed, no allocations happen at this point yet.
-		/// \param[in] uid the psl::UID that is assigned to this object
 		/// \param[in] cache which cache this object has been allocated in
+		/// \param[in] metaData the metadata that is assigned to this object
+		/// \param[in] metaFile the metafile associated with this instance
 		/// \param[in] usage the usage flags that signify how the resource should be used by the GPU
 		/// \param[in] memoryPropertyFlags what are the properties of the memory (i.e. where does it live)
 		/// \param[in] memory_region what is the owning region of this memory. Note that this parameter also will

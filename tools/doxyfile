@@ -32,7 +32,7 @@ DOXYFILE_ENCODING      = UTF-8
 # title of most generated pages and in a few other places.
 # The default value is: My Project.
 
-PROJECT_NAME           = "paradigm engine"
+PROJECT_NAME           = "Paradigm Engine"
 
 # The PROJECT_NUMBER tag can be used to enter a project or revision number. This
 # could be handy for archiving the generated documentation or if some version
@@ -44,7 +44,7 @@ PROJECT_NUMBER         =
 # for a project that appears at the top of each page and should give viewer a
 # quick idea about the purpose of the project. Keep the description short.
 
-PROJECT_BRIEF          = "custom C++17 Vulkan engine"
+PROJECT_BRIEF          = "C++20 Rendering Library & Toolchain"
 
 # With the PROJECT_LOGO tag one can specify a logo or an icon that is included
 # in the documentation. The maximum height of the logo should not exceed 55
@@ -792,11 +792,7 @@ WARN_LOGFILE           =
 
 INPUT                  = ../core/inc \
                          ../core/src \
-                         ../format/inc \
-                         ../format/src \
-                         ../meta/src \
-                         ../meta/inc \
-                         ../psl/inc \
+                         ../psl/inc/psl \
                          ../psl/src
 
 # This tag can be used to specify the character encoding of the source files
