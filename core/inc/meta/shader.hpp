@@ -56,7 +56,7 @@ namespace core::meta
 				s << m_Name << m_Offset << m_Count << m_Stride << m_Members;
 			}
 
-			static constexpr const char serialization_name[7] {"MEMBER"};
+			static constexpr psl::string8::view serialization_name {"MEMBER"};
 			psl::serialization::property<"NAME", psl::string> m_Name;	  // name of the element
 			psl::serialization::property<"OFFSET", uint32_t> m_Offset;	  // location of the element
 			psl::serialization::property<"COUNT", uint32_t> m_Count {
@@ -92,7 +92,7 @@ namespace core::meta
 			{
 				s << m_Name << m_Format << m_Location << m_Count << m_Stride;
 			}
-			static constexpr const char serialization_name[10] {"ATTRIBUTE"};
+			static constexpr psl::string8::view serialization_name {"ATTRIBUTE"};
 			psl::serialization::property<"NAME", psl::string> m_Name;			   // name of the element
 			psl::serialization::property<"LOCATION", uint32_t> m_Location;		   // location of the element
 			psl::serialization::property<"COUNT", uint32_t> m_Count {1};		   // how many elements
@@ -148,7 +148,7 @@ namespace core::meta
 			{
 				s << m_Name << m_Type << m_Set << m_Binding << m_Dependency << m_Members;
 			}
-			static constexpr const char serialization_name[11] {"DESCRIPTOR"};
+			static constexpr psl::string8::view serialization_name {"DESCRIPTOR"};
 			psl::serialization::property<"NAME", psl::string> m_Name;
 			psl::serialization::property<"BINDING", uint32_t> m_Binding;
 			psl::serialization::property<"SET", uint32_t> m_Set;
@@ -243,7 +243,7 @@ namespace core::meta
 
 		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64
 		/// ID of this type on.
-		static constexpr const char polymorphic_name[12] {"SHADER_META"};
+		static constexpr psl::string8::view polymorphic_name {"SHADER_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
 		virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }
 		/// \brief the associated unique ID (per type, not instance) for the polymorphic system.

@@ -194,7 +194,7 @@ namespace utility
 	/// \brief crc64 checksum calculator for the input characters.
 	/// \param[in] str the characters to calculate the crc64 for.
 	/// \returns 64 bit unsigned integer containing the crc64 value.
-	static uint64_t crc64(psl::string8::view str)
+	constexpr static uint64_t crc64(psl::string8::view str)
 	{
 		uint64_t crc = 0xFFFFFFFFFFFFFFFF;
 		for(uint8_t byte : str)
@@ -208,7 +208,7 @@ namespace utility
 	/// \brief crc32 checksum calculator for the input characters.
 	/// \param[in] str the characters to calculate the crc32 for.
 	/// \returns 32 bit unsigned integer containing the crc32 value.
-	static uint32_t crc32(psl::string8::view str)
+	constexpr static uint32_t crc32(psl::string8::view str)
 	{
 		uint32_t crc = 0xFFFFFFFF;
 		for(uint8_t byte : str)

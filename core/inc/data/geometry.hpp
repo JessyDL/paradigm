@@ -141,7 +141,7 @@ namespace core::data
 
 		/// \brief serialization name to be used by the serializer when writing and reading this container to and from
 		/// disk.
-		static constexpr const char serialization_name[9] {"GEOMETRY"};
+		static constexpr psl::string8::view serialization_name {"GEOMETRY"};
 
 		psl::serialization::property<"INDICES", std::vector<index_size_t>> m_Indices;
 		psl::serialization::property<"STREAMS", std::unordered_map<psl::string, core::stream>> m_VertexStreams;

@@ -383,7 +383,7 @@ namespace core
 		};
 
 
-		static constexpr const char serialization_name[12] {"CORE_STREAM"};
+		static constexpr psl::string8::view serialization_name {"CORE_STREAM"};
 
 		psl::serialization::property<"DATA", psl::array<float>> m_Data;
 		psl::serialization::property<"TYPE", type> m_Type;

@@ -121,7 +121,7 @@ namespace core::data
 			}
 		}
 
-		static constexpr const char serialization_name[7] {"BUFFER"};
+		static constexpr psl::string8::view serialization_name {"BUFFER"};
 
 		memory::region m_Region;
 		std::vector<memory::segment> m_Segments;

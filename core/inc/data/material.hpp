@@ -171,7 +171,7 @@ namespace core::data
 				serializer << m_Binding << m_Enabled << m_ColorBlendFactorSrc << m_ColorBlendFactorDst << m_ColorBlendOp
 						   << m_AlphaBlendFactorSrc << m_AlphaBlendFactorDst << m_AlphaBlendOp << m_ColorComponents;
 			}
-			static constexpr const char serialization_name[12] {"BLEND_STATE"};
+			static constexpr psl::string8::view serialization_name {"BLEND_STATE"};
 			psl::serialization::property<"ENABLED", bool> m_Enabled {false};
 			psl::serialization::property<"BINDING", uint32_t> m_Binding;
 			psl::serialization::property<"COLOR_BLEND_SRC", core::gfx::blend_factor> m_ColorBlendFactorSrc {
@@ -216,7 +216,7 @@ namespace core::data
 			void input_rate(core::gfx::vertex_input_rate value) noexcept;
 
 		  private:
-			static constexpr const char serialization_name[10] {"ATTRIBUTE"};
+			static constexpr psl::string8::view serialization_name {"ATTRIBUTE"};
 
 			template <typename S>
 			void serialize(S& s)
@@ -402,7 +402,7 @@ namespace core::data
 			psl::string m_BufferTag;
 			psl::string m_SamplerUIDTag;
 
-			static constexpr const char serialization_name[17] {"MATERIAL_BINDING"};
+			static constexpr psl::string8::view serialization_name {"MATERIAL_BINDING"};
 		};
 
 		class stage
@@ -438,7 +438,7 @@ namespace core::data
 			psl::serialization::property<"SHADER", psl::UID> m_Shader;
 			psl::serialization::property<"ATTRIBUTES", psl::array<attribute>> m_Attributes;
 			psl::serialization::property<"BINDINGS", psl::array<binding>> m_Bindings;
-			static constexpr const char serialization_name[15] {"MATERIAL_STAGE"};
+			static constexpr psl::string8::view serialization_name {"MATERIAL_STAGE"};
 		};
 
 		material_t(core::resource::cache_t& cache,
@@ -490,7 +490,7 @@ namespace core::data
 					   << m_BlendStates << m_RenderLayer << m_Wireframe;
 		}
 
-		static constexpr const char serialization_name[9] {"MATERIAL"};
+		static constexpr psl::string8::view serialization_name {"MATERIAL"};
 
 		psl::serialization::property<"STAGES", psl::array<stage>> m_Stage;
 		psl::serialization::property<"BLEND_STATES", psl::array<blendstate>> m_BlendStates;

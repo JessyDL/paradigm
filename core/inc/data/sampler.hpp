@@ -162,7 +162,7 @@ namespace core::data
 			serializer << m_MinFilter << m_MaxFilter << m_NormalizedCoordinates;
 		}
 
-		static constexpr const char serialization_name[8] {"SAMPLER"};
+		static constexpr psl::string8::view serialization_name {"SAMPLER"};
 
 		psl::serialization::property<"MIPMAPS", bool> m_MipMapped = true;
 		psl::serialization::property<"MIP_MODE", core::gfx::sampler_mipmap_mode> m_MipMapMode =

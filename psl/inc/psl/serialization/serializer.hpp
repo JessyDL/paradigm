@@ -130,7 +130,7 @@ namespace psl::serialization
 		}
 
 		template <typename T>
-		inline static constexpr const char* name();
+		inline static constexpr psl::string8::view name();
 
 		template <typename T>
 		inline static consteval uint64_t id();
@@ -195,14 +195,14 @@ namespace psl::serialization
 	}	 // namespace details
 
 	template <typename T>
-	inline constexpr const char* accessor::name()
+	inline constexpr psl::string8::view accessor::name()
 	{
 		static_assert(details::HasSerializationName<T>,
 					  "\n\tPlease make sure your class fullfills any of the following requirements:\n"
 					  "\t\t - has a public variable \"static constexpr const char* serialization_name\"\n"
 					  "\t\t - or a private variable \"static constexpr const char* serialization_name\" and added "
 					  "\"friend class psl::serialization::accessor\"\n");
-		return T::serialization_name;
+		return psl::string8::view {T::serialization_name};
 	}
 
 	template <typename T>

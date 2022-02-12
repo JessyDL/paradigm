@@ -74,8 +74,8 @@ namespace psl::meta
 		psl::serialization::property<"UID", psl::UID> m_ID;
 		psl::serialization::property<"TAGS", std::vector<psl::string8_t>> m_Tags;
 
-		static constexpr const char serialization_name[5] {"META"};
-		static constexpr const char polymorphic_name[5] {"META"};
+		static constexpr psl::string8::view serialization_name {"META"};
+		static constexpr psl::string8::view polymorphic_name {"META"};
 		virtual const uint64_t polymorphic_id() { return polymorphic_identity; }
 		static const uint64_t polymorphic_identity;
 	};
