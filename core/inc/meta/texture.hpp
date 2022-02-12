@@ -21,8 +21,6 @@ namespace core::meta
 	class texture_t final : public psl::meta::file
 	{
 		friend class psl::serialization::accessor;
-		friend class library;
-
 	  public:
 		texture_t() = default;
 		explicit texture_t(const psl::UID& key) noexcept : psl::meta::file(key) {};
