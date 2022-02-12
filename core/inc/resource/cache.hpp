@@ -12,8 +12,6 @@
 #include "psl/unique_ptr.hpp"
 #include "psl/view_ptr.hpp"
 
-#define DEBUG_CORE_RESOURCE
-
 
 namespace psl
 {
@@ -463,7 +461,7 @@ namespace core::resource
 			{
 				LOG_WARNING("leaks detected!");
 
-#ifdef DEBUG_CORE_RESOURCE
+#ifdef PE_DEBUG
 				size_t oldest = std::numeric_limits<size_t>::max();
 				description* oldest_descr {nullptr};
 				psl::UID oldest_uid;
@@ -472,7 +470,7 @@ namespace core::resource
 				{
 					for(auto& it : pair.second.descriptions)
 					{
-#ifdef DEBUG_CORE_RESOURCE
+#ifdef PE_DEBUG
 						if(it->age < oldest)
 						{
 							oldest_descr = &it.get();
@@ -482,7 +480,7 @@ namespace core::resource
 #endif
 						if(it->metaData.state == status::loaded)
 						{
-#ifdef DEBUG_CORE_RESOURCE
+#ifdef PE_DEBUG
 
 							core::log->warn("\ttype {0} uid {1} age {2}",
 											m_TypeNames[it->metaData.type],
@@ -490,14 +488,14 @@ namespace core::resource
 											it->age);
 #else
 							core::log->warn("\ttype {0} uid {1}",
-											utility::to_string((std::uintptr_t)(it.id)),
+											utility::to_string((std::uintptr_t)(it->metaData.type)),
 											utility::to_string(pair.first));
 #endif
 						}
 					}
 				}
 
-#ifdef DEBUG_CORE_RESOURCE
+#ifdef PE_DEBUG
 				if(oldest_descr)
 				{
 					core::log->warn("possible source: type {0} uid {1}",
