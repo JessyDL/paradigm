@@ -130,7 +130,7 @@ namespace core::meta
 
 		/// \brief the polymorphic serialization name for the psl::format::node that will be used to calculate the CRC64
 		/// ID of this type on.
-		static constexpr const char polymorphic_name[13] {"TEXTURE_META"};
+		static constexpr psl::string8::view polymorphic_name {"TEXTURE_META"};
 		/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
 		virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }
 		/// \brief the associated unique ID (per type, not instance) for the polymorphic system.

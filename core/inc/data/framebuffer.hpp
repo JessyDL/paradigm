@@ -50,7 +50,7 @@ namespace core::data
 					serializer << m_SampleCountFlags << m_LoadOp << m_StoreOp << m_StencilLoadOp << m_StencilStoreOp
 							   << m_InitialLayout << m_FinalLayout << m_Format;
 				}
-				static constexpr const char serialization_name[12] {"DESCRIPTION"};
+				static constexpr psl::string8::view serialization_name {"DESCRIPTION"};
 				psl::serialization::property<"SAMPLE_COUNT_BITS", uint8_t> m_SampleCountFlags;
 				psl::serialization::property<"LOAD_OP", core::gfx::attachment::load_op> m_LoadOp;
 				psl::serialization::property<"STORE_OP", core::gfx::attachment::store_op> m_StoreOp;
@@ -182,7 +182,7 @@ namespace core::data
 		{
 			serializer << m_Width << m_Height << m_Count << m_Sampler << m_Attachments;
 		}
-		static constexpr const char serialization_name[12] {"FRAMEBUFFER"};
+		static constexpr psl::string8::view serialization_name {"FRAMEBUFFER"};
 
 		psl::serialization::property<"ATTACHMENTS", std::vector<attachment>> m_Attachments;
 		psl::serialization::property<"SAMPLER", psl::UID> m_Sampler;

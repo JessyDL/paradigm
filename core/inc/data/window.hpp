@@ -93,7 +93,7 @@ namespace core::data
 			serializer << m_Name << m_Width << m_Height << m_WindowMode << m_Buffering;
 		}
 
-		static constexpr const char serialization_name[7] {"WINDOW"};
+		static constexpr psl::string8::view serialization_name {"WINDOW"};
 
 		psl::serialization::property<"NAME", psl::string8_t> m_Name;
 		psl::serialization::property<"WIDTH", uint32_t> m_Width;
