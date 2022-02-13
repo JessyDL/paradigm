@@ -39,7 +39,7 @@ jobs:
         cd documentation
         git config --local user.name "$USERNAME"
         git config --local user.email "41898282+$USERNAME@users.noreply.github.com"
-        git diff --exit-code || (git add -A && git commit -m "Documentation update for '${git_tag}'" && git push https://$USERNAME:$REPO_KEY@github.com/ParadigmEngine/ParadigmEngine.github.io.git)
+        git diff --exit-code --quiet || (git add -A && git commit -m "Documentation update for '${git_tag}'" && git push https://$USERNAME:$REPO_KEY@github.com/ParadigmEngine/ParadigmEngine.github.io.git)
       env:
         REPO_KEY: ${{secrets.PUSH_TOKEN}}
         USERNAME: github-actions[bot]
