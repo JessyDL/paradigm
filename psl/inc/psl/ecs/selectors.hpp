@@ -7,7 +7,7 @@ namespace psl::ecs
 	///
 	/// You can use this tag to listen to the event of a specific component type being added to
 	/// an entity.
-	/// \warn tags do not mean this component will be present in the pack, they are considered
+	/// \warning tags do not mean this component will be present in the pack, they are considered
 	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct on_add
@@ -18,7 +18,7 @@ namespace psl::ecs
 	///
 	/// You can use this tag to listen to the event of a component of the given type being removed
 	/// to an entity.
-	/// \warn tags do not mean this component will be present in the pack, they are considered
+	/// \warning tags do not mean this component will be present in the pack, they are considered
 	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct on_remove
@@ -33,7 +33,7 @@ namespace psl::ecs
 	/// components. Take core::ecs::components::renderable and core::ecs::components::transform
 	/// as example, who, when combined, create a draw call. The system that creates them should
 	/// not need to care if the transform was added first or last.
-	/// \warn tags do not mean this component will be present in the pack, they are considered
+	/// \warning tags do not mean this component will be present in the pack, they are considered
 	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct on_combine
@@ -45,7 +45,7 @@ namespace psl::ecs
 	/// instead of containing all recently combined components, it instead contains all those
 	/// who recently broke connection. This can be ideal to use in a system (such as a render
 	/// system), to erase draw calls.
-	/// \warn tags do not mean this component will be present in the pack, they are considered
+	/// \warning tags do not mean this component will be present in the pack, they are considered
 	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct on_break
@@ -58,7 +58,7 @@ namespace psl::ecs
 	/// renderable, but lacked a transform, then you could use the `except` tag to denote the filter
 	/// what to do as a hint.
 	/// Except directives are always executed last, regardless of order in the parameter pack.
-	/// \warn tags do not mean this component will be present in the pack, they are considered
+	/// \warning tags do not mean this component will be present in the pack, they are considered
 	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct except
@@ -69,7 +69,7 @@ namespace psl::ecs
 	///
 	/// When you just want to create a generic filtering behaviour, without getting the components
 	/// themselves, then you can use this tag to mark those requested components.
-	/// \warn tags do not mean this component will be present in the pack, they are considered
+	/// \warning tags do not mean this component will be present in the pack, they are considered
 	/// filter directives (or specialized filter directives).
 	template <typename... Ts>
 	struct filter

@@ -128,29 +128,36 @@ return malloc(size);
 }
 */
 
-/*! \namespace core \brief the engine core, here all graphics resources and render operations are described.
+/// \namespace core
+/// \brief the engine core, here all graphics resources and render operations are described.
 
-*/
+/// \namespace core::gfx 
+/// \brief namespace that deals with the abstract render objects
+/// \details using this namespace you can have an abstract API to the various supported graphics APIs
 
-/*! \namespace core::gfx \brief namespace that deals with the abstract render objects
-	\note currently this namespace is shared with core::ivk, this will change in the future however.
-*/
-/*! \namespace core::ivk \brief deals with all objects that are directly mapped to vulkan objects (i.e. they have
-   internal vulkan concepts in them)
+/// \namespace core::ivk 
+/// \brief deals with all objects that are directly mapped to vulkan objects (i.e. they have internal vulkan concepts in them)
 
-*/
+/// \namespace core::igles 
+/// \brief OpenGLES API abstraction
 
-/*! \namespace core::resource \brief deals with resource creation, tracking, and managing.
+/// \namespace core::resource 
+/// \brief deals with resource creation, tracking, and managing.
 
-*/
+/// \namespace core::meta 
+/// \brief contains all extensions to the psl::meta namespace.
 
-/*! \namespace core::meta \brief contains all extensions to the ::meta namespace.
+/// \namespace core::os 
+/// \brief specific OS wrappers and resources.
 
-*/
-/*! \namespace core::os \brief specific OS wrappers and resources.
+/// \namespace core::systems 
+/// \brief contains systems that are responsible for handling certain aspects (audio, input, physics, etc..).
 
-*/
-/*! \namespace core::systems \brief contains systems that are responsible for handling certain aspects (audio, input,
-   physics, etc..).
+/// \namespace core::ecs 
+/// \brief All ECS related implementations
 
-*/
+/// \namespace core::ecs::systems 
+/// \brief ECS Systems
+
+/// \namespace core::ecs::components 
+/// \brief ECS Components

@@ -29,7 +29,7 @@ namespace core::data
 
 	  public:
 		/// \brief special identifier to mark buffers that are instanciable data
-		/// \detail this type of buffer has data that is unique per instanciated material
+		/// \details this type of buffer has data that is unique per instanciated material
 		static constexpr psl::string_view MATERIAL_DATA = "MaterialData";
 
 		/// \brief describes the blend operation (source/destination) per color component in the render operation.

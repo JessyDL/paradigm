@@ -37,12 +37,12 @@ namespace psl::spmc
 		auto pop() noexcept -> decltype(std::declval<producer<T>>().steal()) { return m_Producer->steal(); }
 
 
-		/// \Returns the current count of all elements in the producer.
+		/// \returns the current count of all elements in the producer.
 		/// \warning The result here doesn't mean there will be/won't be an item on the deque by the time you invoke
 		/// pop.
 		auto size() const noexcept -> decltype(std::declval<producer<T>>().size()) { return m_Producer->size(); }
 
-		/// \Returns the current count of all elements in the producer.
+		/// \returns the current count of all elements in the producer.
 		/// \warning The result here doesn't mean there will be/won't be an item on the deque by the time you invoke
 		/// pop.
 		auto ssize() const noexcept -> decltype(std::declval<producer<T>>().ssize()) { return m_Producer->ssize(); }

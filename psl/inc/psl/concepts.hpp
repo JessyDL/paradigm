@@ -9,6 +9,8 @@
 #define force_inline __attribute__((always_inline))
 #endif
 
+/// \brief Utility concepts
+/// 
 namespace psl::concepts
 {
 	template <typename Fn, typename... Args>
