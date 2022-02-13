@@ -18,14 +18,14 @@ namespace core::ivk
 namespace core::ivk
 {
 	/// \brief encapsulated the concept of a graphics pipeline on the GPU
-	/// \warn calling the update method family _during_ the recording of the vk::CommandBuffer's will invalidate the
+	/// \warning calling the update method family _during_ the recording of the vk::CommandBuffer's will invalidate the
 	/// command buffer
 	/// \todo find a solution around the warning
 	class pipeline
 	{
 	  public:
 		/// \brief creates a graphics pipeline
-		/// \warn this constructor will error-out when it detects you trying to create a compute pipeline instead
+		/// \warning this constructor will error-out when it detects you trying to create a compute pipeline instead
 		pipeline(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
@@ -36,7 +36,7 @@ namespace core::ivk
 				 uint32_t attachmentCount);
 
 		/// \brief creates a compute pipeline
-		/// \warn this constructor will error-out when it detects you trying to create a graphics pipeline instead
+		/// \warning this constructor will error-out when it detects you trying to create a graphics pipeline instead
 		pipeline(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
@@ -84,7 +84,7 @@ namespace core::ivk
 		bool update(uint32_t bindingLocation, vk::DeviceSize offset, vk::DeviceSize range);
 
 		/// \returns if updating the binding location was successful.
-		/// \warn the buffers's usage flags have to satisfy the requirements of the binding location. If this method
+		/// \warning the buffers's usage flags have to satisfy the requirements of the binding location. If this method
 		/// fails inspect the logs to see what specifically went wrong.
 		/// \param[in] bindingLocation the binding location to update.
 		/// \param[in] buffer the new buffer to bind this descriptorset to.
@@ -96,7 +96,7 @@ namespace core::ivk
 						   vk::DeviceSize range);
 
 		/// \returns if the pipeline's descriptors have been completely filled in
-		/// \warn complete doesn't mean 'correct'. The descriptors can be filled in to point to missing or deleted items
+		/// \warning complete doesn't mean 'correct'. The descriptors can be filled in to point to missing or deleted items
 		inline bool is_complete() const noexcept { return m_IsComplete && is_valid(); }
 
 		/// \returns if the pipeline was successfully created, when false the pipeline is unrecoverable (inspect logs

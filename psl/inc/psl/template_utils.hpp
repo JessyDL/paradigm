@@ -582,7 +582,6 @@ namespace utility::templates
 	// todo move these helpers to a better location
 
 	template <typename T>
-	// struct func_traits : public func_traits<decltype(&decltype(std::function(std::declval<T>()))::operator()) >
 	struct func_traits : public func_traits<decltype(&T::operator())>
 	{};
 	template <typename T>

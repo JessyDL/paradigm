@@ -47,6 +47,8 @@ namespace psl::async
 	class scheduler;
 }
 
+/// \brief Entity Component System
+/// 
 namespace psl::ecs
 {
 	class state_t final

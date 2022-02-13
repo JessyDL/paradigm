@@ -25,17 +25,17 @@ jobs:
     - name: Setup Doxygen
       run: sudo apt-get update && sudo apt-get install doxygen
     - name: Setup m.css
-      run: git clone https://github.com/mosra/m.css.git mcss --depth 1    
+      run: git clone https://github.com/JessyDL/m.css.git mcss --depth 1    
     - name: Update Python
       run: pip3 install jinja2 Pygments
     - name: Generate
-      run: python mcss/documentation/doxygen.py tools/doxyfile
-    - name: Publish
       run: |
         git_tag=`git name-rev --name-only --tags HEAD | sed 's/^undefined$/develop/'`
         rm -rf documentation/${git_tag}
-        mkdir documentation/${git_tag}
-        mv tools/docs/html/* documentation/${git_tag}
+        python mcss/documentation/doxygen.py tools/doxyfile --output-dir documentation/${git_tag}
+    - name: Publish
+      run: |
+        git_tag=`git name-rev --name-only --tags HEAD | sed 's/^undefined$/develop/'`
         cd documentation
         git config --local user.name "$USERNAME"
         git config --local user.email "41898282+$USERNAME@users.noreply.github.com"

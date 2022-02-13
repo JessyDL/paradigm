@@ -88,7 +88,7 @@ namespace psl::spmc
 		producer& operator=(const producer& other) = delete;
 		producer& operator=(producer&& other) = default;
 
-		/// \Returns a consumer that is linked to the current producer, to be used in other threads.
+		/// \returns a consumer that is linked to the current producer, to be used in other threads.
 		::psl::spmc::consumer<T> consumer() noexcept;
 
 		bool empty() const noexcept
@@ -98,10 +98,10 @@ namespace psl::spmc
 			return end <= begin;
 		}
 
-		/// \Returns the current count of all elements in the producer.
+		/// \returns the current count of all elements in the producer.
 		size_t size() const noexcept { return static_cast<size_t>(ssize()); }
 
-		/// \Returns the current count of all elements in the producer.
+		/// \returns the current count of all elements in the producer.
 		int64_t ssize() const noexcept
 		{
 			auto begin = m_Begin.load(std::memory_order_relaxed);
