@@ -196,9 +196,9 @@ namespace utility::templates
 		{
 			using type = type_pack_t<Ts...>;
 		};
-	}
+	}	 // namespace
 
-	template<typename T>
+	template <typename T>
 	using container_to_type_pack_t = to_type_pack<T>::type;
 
 	template <typename T, typename Container>
@@ -605,15 +605,7 @@ namespace utility::templates
 	template <typename T>
 	struct func_traits : public func_traits<decltype(&T::operator())>
 	{};
-	template <typename T>
-	struct func_traits<std::function<T>> : public func_traits<T>
-	{};
-	template <typename T>
-	struct func_traits<std::function<T>&> : public func_traits<T>
-	{};
-	template <typename T>
-	struct func_traits<const std::function<T>&> : public func_traits<T>
-	{};
+
 	template <typename C, typename Ret, typename... Args>
 	struct func_traits<Ret (C::*)(Args...)>
 	{
@@ -665,33 +657,71 @@ namespace psl::templates
 
 namespace psl
 {
+	/// \brief checks if the given type exists within the variadic args
+	///
+	/// \tparam T type to search
+	/// \tparam Ts types to match against
 	template <typename T, typename... Ts>
 	using has_type = utility::templates::has_type<T, Ts...>;
 
+	/// \copydoc psl::has_type
 	template <typename T, typename... Ts>
 	concept HasType = has_type<T, Ts...>::value;
 
-	template <typename... Ts>
-	using index_of = utility::templates::index_of<Ts...>;
+	/// \brief retrieve the index of the type in the variadic args
+	///
+	/// \tparam T type to find the index of
+	/// \tparam Ts types to match against
+	/// \note don't use this with container types, convert the container type to a psl::type_pack_t first using
+	/// psl::container_to_type_pack_t
+	template <typename T, typename... Ts>
+	using index_of = utility::templates::index_of<T, Ts...>;
 
-	template <typename... Ts>
-	static constexpr auto index_of_v = index_of<Ts...>::value;
+	/// \copydoc psl::index_of
+	template <typename T, typename... Ts>
+	static constexpr auto index_of_v = index_of<T, Ts...>::value;
 
+	/// \brief get the type at the given index in the variadic args
+	///
+	/// \tparam N index to retrieve
+	/// \tparam Ts types to select from
+	/// \note don't use this with container types, convert the container type to a psl::type_pack_t first using
+	/// psl::container_to_type_pack_t
 	template <size_t N, typename... Ts>
 	using type_at_index = utility::templates::type_at_index<N, Ts...>;
 
+	/// \copydoc psl::type_at_index
 	template <size_t N, typename... Ts>
 	using type_at_index_t = typename type_at_index<N, Ts...>::type;
 
+	/// \brief used to store packs of types to pass around as parameters without instantiating the type's objects
+	///
+	/// \tparam Ts types to store
 	template <typename... Ts>
 	using type_pack_t = utility::templates::type_pack_t<Ts...>;
 
+	/// \brief retrieve the size of a type pack
+	///
+	/// \tparam T the type pack you want to extract the size from
 	template <typename T>
 	static constexpr auto type_pack_size_v = utility::templates::type_pack_size_t<T>::value;
-	
-	template<typename T>
+
+	/// \brief transforms a container like type (like tuple, or pair) into a psl::type_pack_t
+	///
+	/// \tparam T target container to transform
+	/// \note this matches any type that satisfies the signature template<typename...>, this means for types such as
+	/// std::vector, or std::unordered_map, you can get some weird results. As there is no good protection against
+	/// this, the constraint is for the user to enforce.
+	template <typename T>
 	using container_to_type_pack_t = utility::templates::container_to_type_pack_t<T>;
 
+	/// \brief checks if the container's template arguments contains the given type.
+	/// 
+	/// \tparam T the type to search for.
+	/// \tparam Container container type to search in.
+	/// \note this expands any container type that satisfies the signature template<typename...>, this means for types
+	/// such as std::vector, or std::unordered_map, you can get some weird results. As there is no good protection
+	/// against this, the constraint is for the user to enforce.
 	template <typename T, typename Container>
 	static constexpr auto container_has_type_v = utility::templates::container_has_type<T, Container>::value;
 }	 // namespace psl
