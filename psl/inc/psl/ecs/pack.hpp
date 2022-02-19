@@ -47,8 +47,6 @@ namespace psl::ecs
 	template <typename... Ts>
 	class pack : public pack_base<Ts...>
 	{
-		friend class psl::ecs::state_t;
-
 		template <typename T, typename... Ys>
 		void check_policy()
 		{
@@ -59,17 +57,24 @@ namespace psl::ecs
 
 	  public:
 		static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
+		
+		using pack_t        = pack_base<Ts...>::pack_t;
+		using filter_t      = pack_base<Ts...>::filter_t;
+		using combine_t     = pack_base<Ts...>::combine_t;
+		using break_t       = pack_base<Ts...>::break_t;
+		using add_t         = pack_base<Ts...>::add_t;
+		using remove_t      = pack_base<Ts...>::remove_t;
+		using except_t      = pack_base<Ts...>::except_t;
+		using conditional_t = pack_base<Ts...>::conditional_t;
+		using order_by_t    = pack_base<Ts...>::order_by_t;
+		using policy_t      = pack_base<Ts...>::policy_t;
 
-		static_assert(std::tuple_size<pack_base<Ts...>::order_by_t>::value <= 1,
+		static_assert(std::tuple_size<order_by_t>::value <= 1,
 					  "multiple order_by statements make no sense");
 
 	  public:
-		using pack_t = pack_base<Ts...>::pack_t;
-
 		pack() : m_Pack() { check_policy<Ts...>(); };
-
 		pack(pack_t views) : m_Pack(views) { check_policy<Ts...>(); }
-
 		pack_t view() { return m_Pack; }
 
 		template <typename T>
@@ -85,13 +90,9 @@ namespace psl::ecs
 		}
 
 		auto operator[](size_t index) const noexcept { return m_Pack.unpack(index); }
-
 		auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
-
 		auto begin() const noexcept { return m_Pack.unpack_begin(); }
-
 		auto end() const noexcept { return m_Pack.unpack_end(); }
-
 		constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
 		constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
 
