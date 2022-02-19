@@ -63,8 +63,8 @@ namespace psl::ecs
 		template <typename T, typename... Ys>
 		void check_policy()
 		{
-			static_assert(!psl::ecs::details::has_type<psl::ecs::partial, std::tuple<Ys...>>::value &&
-							!psl::ecs::details::has_type<psl::ecs::partial, std::tuple<Ys...>>::value,
+			static_assert(!psl::HasType<psl::ecs::partial, psl::type_pack_t<Ys...>> &&
+							!psl::HasType<psl::ecs::full, psl::type_pack_t<Ys...>>,
 						  "policy types such as 'partial' and 'full' can only appear as the first type");
 		}
 

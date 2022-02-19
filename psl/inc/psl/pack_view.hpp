@@ -354,22 +354,7 @@ namespace psl
 
 			value_type& operator*() noexcept { return data; }
 			const value_type& operator*() const noexcept { return data; }
-			/*
-						template <typename T>
-						T& get()
-						{
-							static_assert(::utility::templates::template tuple_contains_type<T*, internal_type>::value,
-										  "the requested component type does not exist in the pack");
-							return *std::get<T*>(data.data);
-						}
 
-						template <size_t N>
-						auto get() const noexcept -> decltype(std::get<N>(std::declval<internal_type>()))
-						{
-							static_assert(N < std::tuple_size<internal_type>::value,
-										  "you requested a component outside of the range of the pack");
-							return *std::get<N>(data.data);
-						}*/
 			template <std::size_t N>
 			auto& get() noexcept
 			{
@@ -504,7 +489,7 @@ namespace psl
 		template <typename T>
 		psl::array_view<T> get() const noexcept
 		{
-			static_assert(::utility::templates::template tuple_contains_type<psl::array_view<T>, range_t>::value,
+			static_assert(psl::container_has_type_v<psl::array_view<T>, range_t>,
 						  "the requested component type does not exist in the pack");
 			return std::get<psl::array_view<T>>(m_Pack);
 		}

@@ -183,21 +183,26 @@ namespace utility::templates
 	template <typename T>
 	inline constexpr bool always_false_v = always_false<T>::value;
 
-	template <typename T>
-	struct has_type<T, std::tuple<>> : std::false_type
-	{};
+	namespace
+	{
+		template <typename T>
+		struct to_type_pack
+		{
+			using type = type_pack_t<T>;
+		};
 
-	template <typename T, typename U, typename... Ts>
-	struct has_type<T, std::tuple<U, Ts...>> : has_type<T, std::tuple<Ts...>>
-	{};
+		template <template <typename...> typename Container, typename... Ts>
+		struct to_type_pack<Container<Ts...>>
+		{
+			using type = type_pack_t<Ts...>;
+		};
+	}
 
-	template <typename T, typename... Ts>
-	struct has_type<T, std::tuple<T, Ts...>> : std::true_type
-	{};
+	template<typename T>
+	using container_to_type_pack_t = to_type_pack<T>::type;
 
-	template <typename T, typename Tuple>
-	using tuple_contains_type = typename has_type<T, Tuple>::type;
-
+	template <typename T, typename Container>
+	using container_has_type = has_type<T, container_to_type_pack_t<Container>>;
 
 	template <typename T>
 	struct is_pair : public std::false_type
@@ -683,4 +688,10 @@ namespace psl
 
 	template <typename T>
 	static constexpr auto type_pack_size_v = utility::templates::type_pack_size_t<T>::value;
+	
+	template<typename T>
+	using container_to_type_pack_t = utility::templates::container_to_type_pack_t<T>;
+
+	template <typename T, typename Container>
+	static constexpr auto container_has_type_v = utility::templates::container_has_type<T, Container>::value;
 }	 // namespace psl
