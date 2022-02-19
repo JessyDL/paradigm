@@ -8,7 +8,7 @@
 
 namespace utility::templates
 {
-	namespace details
+	inline namespace details
 	{
 		template <size_t first, size_t second, size_t... remainder>
 		static constexpr size_t max_impl() noexcept
@@ -79,8 +79,105 @@ namespace utility::templates
 		using type = T;
 	};
 
-	template <typename T, typename Tuple>
-	struct has_type;
+	template <typename... Ts>
+	struct type_pack_t
+	{};
+
+	inline namespace details
+	{
+		template <typename... Ts>
+		struct has_type_impl : std::false_type
+		{};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(!std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public has_type_impl<T, Ts...>
+		{};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public std::true_type
+		{};
+
+	}	 // namespace details
+
+	template <typename... Ts>
+	struct has_type : has_type_impl<Ts...>
+	{};
+
+	template <typename T, typename... Ts>
+	struct has_type<T, type_pack_t<Ts...>> : public has_type_impl<T, Ts...>
+	{};
+
+	template <typename T, typename... Ts>
+	concept HasType = has_type<T, Ts...>::value;
+
+	inline namespace details
+	{
+		template <typename... Ts>
+		struct index_of_impl
+		{};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(!std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...>
+		{
+			static constexpr std::size_t value = 1 + index_of_impl<T, Ts...>::value;
+		};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...>
+		{
+			static constexpr std::size_t value = 0;
+		};
+	}	 // namespace details
+
+	template <typename T, typename... Ts>
+	requires HasType<T, Ts...>
+	struct index_of : public index_of_impl<T, Ts...>
+	{};
+
+	template <typename T, typename... Ts>
+	requires HasType<T, Ts...>
+	struct index_of<T, type_pack_t<Ts...>> : index_of_impl<T, Ts...>
+	{};
+
+	template <typename... Ts>
+	static constexpr auto index_of_v = index_of<Ts...>::value;
+
+	inline namespace details
+	{
+		template <size_t N, size_t Curr, typename... Ts>
+		struct type_at_index_impl
+		{};
+
+		template <size_t N, size_t Curr, typename T, typename... Ts>
+		requires(N == Curr) struct type_at_index_impl<N, Curr, T, Ts...>
+		{
+			using type = T;
+		};
+
+		template <size_t N, size_t Curr, typename T, typename... Ts>
+		requires(N != Curr) struct type_at_index_impl<N, Curr, T, Ts...> : public type_at_index_impl<N, Curr + 1, Ts...>
+		{};
+	}	 // namespace details
+
+	template <size_t N, typename... Ts>
+	requires(N < sizeof...(Ts)) struct type_at_index : type_at_index_impl<N, 0, Ts...>
+	{};
+
+	template <size_t N, typename... Ts>
+	struct type_at_index<N, type_pack_t<Ts...>> : type_at_index<N, Ts...>
+	{};
+
+	template <size_t N, typename... Ts>
+	using type_at_index_t = typename type_at_index<N, Ts...>::type;
+
+	// handy utility for the compilers that wish to compile static_assert(false,"") in dead code paths that should error
+	// out
+	template <typename T>
+	struct always_false : std::false_type
+	{};
+
+	template <typename T>
+	inline constexpr bool always_false_v = always_false<T>::value;
 
 	template <typename T>
 	struct has_type<T, std::tuple<>> : std::false_type
@@ -97,91 +194,6 @@ namespace utility::templates
 	template <typename T, typename Tuple>
 	using tuple_contains_type = typename has_type<T, Tuple>::type;
 
-	// handy utility for the compilers that wish to compile static_assert(false,"") in dead code paths that should error
-	// out
-	template <typename T>
-	struct always_false : std::false_type
-	{};
-
-	template <typename T>
-	inline constexpr bool always_false_v = always_false<T>::value;
-
-	namespace detail
-	{
-		template <template <class...> class Trait, class Enabler, class... Args>
-		struct is_detected : std::false_type
-		{};
-
-		template <template <class...> class Trait, class... Args>
-		struct is_detected<Trait, std::void_t<Trait<Args...>>, Args...> : std::true_type
-		{};
-	}	 // namespace detail
-
-	template <template <class...> class Trait, class... Args>
-	using is_detected = typename detail::is_detected<Trait, void, Args...>::type;
-
-	namespace match_detail
-	{
-		using namespace std;
-
-		template <int variant_index, typename VariantType, typename OneFunc>
-		constexpr void match(VariantType&& variant, OneFunc func)
-		{
-			// assert(variant.index() == variant_index); // todo write correct assertation
-			if(variant.index() != variant_index) debug_break();
-			func(get<variant_index>(std::forward<VariantType>(variant)));
-		}
-
-		template <int variant_index, typename VariantType, typename FirstFunc, typename SecondFunc, typename... Rest>
-		constexpr void match(VariantType&& variant, FirstFunc func1, SecondFunc func2, Rest... funcs)
-		{
-			if(variant.index() == variant_index)
-			{
-				match<variant_index>(variant, func1);	 // Call single func version
-				return;
-			}
-			return match<variant_index + 1>(std::forward<VariantType>(variant), func2, funcs...);
-		}
-	}	 // namespace match_detail
-
-	template <typename... args>
-	struct all_same : public std::false_type
-	{};
-
-
-	template <typename T>
-	struct all_same<T> : public std::true_type
-	{};
-
-
-	template <typename T, typename... args>
-	struct all_same<T, T, args...> : public all_same<T, args...>
-	{};
-
-	template <typename VariantType, typename... Funcs>
-	void match(VariantType&& variant, Funcs... funcs)
-	{
-		using VT = std::remove_reference_t<VariantType>;
-		static_assert(sizeof...(funcs) == std::variant_size<VT>::value,
-					  "Number of functions must match number of variant types");
-		match_detail::match<0>(std::forward<VariantType>(variant), funcs...);
-	}
-
-	template <typename T>
-	struct remove_all
-	{
-		typedef T type;
-	};
-	template <typename T>
-	struct remove_all<T*>
-	{
-		typedef typename remove_all<T>::type type;
-	};
-
-	template <bool B, typename T, T trueval, T falseval>
-	struct conditional_value :
-		std::conditional<B, std::integral_constant<T, trueval>, std::integral_constant<T, falseval>>::type
-	{};
 
 	template <typename T>
 	struct is_pair : public std::false_type
@@ -260,7 +272,7 @@ namespace utility::templates
 
 	namespace operators
 	{
-		namespace details
+		inline namespace details
 		{
 			// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists/6534951
 			template <typename X, typename Y, typename Op>
@@ -536,7 +548,7 @@ namespace utility::templates
 		template <typename T, typename Index>
 		using has_subscript_operator = typename details::has_subscript_operator<T, Index>::type;
 		template <typename T, typename Index>
-		using has_bracket_operator = typename has_subscript_operator<T, Index>::type;
+		using has_bracket_operator = typename details::has_subscript_operator<T, Index>::type;
 
 		// arithmetic operators
 		template <typename T, typename U>
@@ -614,22 +626,6 @@ namespace utility::templates
 		using arguments_t = std::tuple<Args...>;
 	};
 
-	template <typename T>
-	struct is_invocable
-	{
-		template <typename U, typename = decltype(&T::operator())>
-		static long test(const U&&);
-		static char test(...);
-
-		static constexpr bool value = sizeof(test(std::declval<T>())) == sizeof(long);
-	};
-
-	template <typename T>
-	struct proxy_type
-	{
-		using type = T;
-	};
-
 	struct any
 	{
 		template <typename T>
@@ -656,4 +652,28 @@ namespace utility::templates
 namespace psl::templates
 {
 	using namespace utility::templates;
+}
+
+namespace psl
+{
+	template <typename T, typename... Ts>
+	using has_type = utility::templates::has_type<T, Ts...>;
+
+	template <typename T, typename... Ts>
+	concept HasType = has_type<T, Ts...>::value;
+
+	template<typename... Ts>
+	using index_of = utility::templates::index_of<Ts...>;
+
+	template <typename... Ts>
+	static constexpr auto index_of_v = index_of<Ts...>::value;
+
+	template <size_t N, typename... Ts>
+	using type_at_index = utility::templates::type_at_index<N, Ts...>;
+
+	template <size_t N, typename... Ts>
+	using type_at_index_t = typename type_at_index<N, Ts...>::type;
+
+	template<typename... Ts>
+	using type_pack_t = utility::templates::type_pack_t<Ts...>;
 }

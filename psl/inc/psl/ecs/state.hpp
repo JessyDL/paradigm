@@ -635,7 +635,7 @@ namespace psl::ecs
 		// filter
 		//------------------------------------------------------------
 		template <typename T>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<T>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<T>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
@@ -643,35 +643,35 @@ namespace psl::ecs
 		}
 
 		template <typename T>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<psl::ecs::filter<T>>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::filter<T>>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
 			return filter_op(details::key_for<T>(), begin, end);
 		}
 		template <typename T>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<psl::ecs::on_add<T>>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_add<T>>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
 			return on_add_op(details::key_for<T>(), begin, end);
 		}
 		template <typename T>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<psl::ecs::on_remove<T>>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_remove<T>>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
 			return on_remove_op(details::key_for<T>(), begin, end);
 		}
 		template <typename T>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<psl::ecs::except<T>>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::except<T>>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
 			return on_except_op(details::key_for<T>(), begin, end);
 		}
 		template <typename... Ts>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<psl::ecs::on_break<Ts...>>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_break<Ts...>>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
@@ -679,7 +679,7 @@ namespace psl::ecs
 		}
 
 		template <typename... Ts>
-		psl::array<entity>::iterator filter_op(psl::templates::proxy_type<psl::ecs::on_combine<Ts...>>,
+		psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_combine<Ts...>>,
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept
 		{
