@@ -21,11 +21,11 @@ namespace psl::ecs
 																	psl::array<entity>::iterator,
 																	const psl::ecs::state_t&);
 			template <typename T>
-			constexpr void selector(psl::templates::type_container<T>) noexcept
+			constexpr void selector(psl::type_pack_t<T>) noexcept
 			{}
 
 			template <typename Pred, typename T>
-			constexpr void selector(psl::templates::type_container<order_by<Pred, T>>) noexcept
+			constexpr void selector(psl::type_pack_t<order_by<Pred, T>>) noexcept
 			{
 				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const auto& state) {
 					state.template order_by<Pred, T>(std::execution::par, begin, end);
@@ -34,7 +34,7 @@ namespace psl::ecs
 
 
 			template <typename Pred, typename T>
-			constexpr void selector(psl::templates::type_container<on_condition<Pred, T>>) noexcept
+			constexpr void selector(psl::type_pack_t<on_condition<Pred, T>>) noexcept
 			{
 				on_condition.emplace_back([](psl::array<entity>::iterator begin,
 											 psl::array<entity>::iterator end,
@@ -45,9 +45,9 @@ namespace psl::ecs
 
 		  public:
 			template <typename... Ts>
-			transform_group(psl::templates::type_container<Ts>...)
+			transform_group(psl::type_pack_t<Ts...>)
 			{
-				(void(selector(psl::templates::type_container<Ts>())), ...);
+				(void(selector(psl::type_pack_t<Ts>())), ...);
 			};
 			~transform_group() = default;
 
@@ -81,7 +81,7 @@ namespace psl::ecs
 		class filter_group
 		{
 			template <typename T>
-			constexpr void selector(psl::templates::type_container<T>) noexcept
+			constexpr void selector(psl::type_pack_t<T>) noexcept
 			{
 				if constexpr(!std::is_same_v<entity, T> && !std::is_same_v<psl::ecs::partial, T> &&
 							 !std::is_same_v<psl::ecs::full, T>)
@@ -89,48 +89,48 @@ namespace psl::ecs
 			}
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<filter<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<filter<Ts...>>) noexcept
 			{
-				(selector(psl::templates::type_container<Ts>()), ...);
+				(selector(psl::type_pack_t<Ts>()), ...);
 			}
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<on_combine<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<on_combine<Ts...>>) noexcept
 			{
 				(void(on_combine.emplace_back(details::key_for<Ts>())), ...);
 			}
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<on_break<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<on_break<Ts...>>) noexcept
 			{
 				(void(on_break.emplace_back(details::key_for<Ts>())), ...);
 			}
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<except<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<except<Ts...>>) noexcept
 			{
 				(void(except.emplace_back(details::key_for<Ts>())), ...);
 			}
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<on_add<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<on_add<Ts...>>) noexcept
 			{
 				(void(on_add.emplace_back(details::key_for<Ts>())), ...);
 			}
 
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<on_remove<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<on_remove<Ts...>>) noexcept
 			{
 				(void(on_remove.emplace_back(details::key_for<Ts>())), ...);
 			}
 
 			template <typename Pred, typename... Ts>
-			constexpr void selector(psl::templates::type_container<order_by<Pred, Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<order_by<Pred, Ts...>>) noexcept
 			{}
 
 			template <typename... Ts>
-			constexpr void selector(psl::templates::type_container<on_condition<Ts...>>) noexcept
+			constexpr void selector(psl::type_pack_t<on_condition<Ts...>>) noexcept
 			{}
 			friend class ::psl::ecs::state_t;
 			filter_group() = default;
@@ -189,9 +189,9 @@ namespace psl::ecs
 
 		  public:
 			template <typename... Ts>
-			filter_group(psl::templates::type_container<Ts>...)
+			filter_group(psl::type_pack_t<Ts...>)
 			{
-				(void(selector(psl::templates::type_container<Ts>())), ...);
+				(void(selector(psl::type_pack_t<Ts>())), ...);
 				std::sort(std::begin(filters), std::end(filters));
 				std::sort(std::begin(on_add), std::end(on_add));
 				std::sort(std::begin(on_remove), std::end(on_remove));
@@ -308,47 +308,21 @@ namespace psl::ecs
 		};
 
 		template <typename... Ts>
-		auto make_filter_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
+		auto make_filter_group(psl::type_pack_t<Ts...>) -> psl::array<filter_group>
 		{
-			return filter_group {psl::templates::type_container<Ts> {}...};
+			auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> filter_group {
+				return filter_group {psl::type_pack_t<Ys...> {}};
+			};
+			return psl::array<filter_group>{make_group(psl::type_pack_t<Ts>{})...};
 		}
 
 		template <typename... Ts>
-		auto make_filter_group(psl::templates::type_container<std::tuple<Ts...>>)
+		auto make_transform_group(psl::type_pack_t<Ts...>) -> psl::array<transform_group>
 		{
-			psl::array<filter_group> groups;
-			groups.reserve(sizeof...(Ts));
-			if constexpr(sizeof...(Ts) == 1)
-			{
-				groups.emplace_back(make_filter_group(psl::templates::type_container<Ts> {}...));
-			}
-			else
-			{
-				(void(groups.emplace_back(make_filter_group(psl::templates::type_container<Ts> {}))), ...);
-			}
-			return groups;
-		}
-
-		template <typename... Ts>
-		auto make_transform_group(psl::templates::type_container<psl::ecs::pack<Ts...>>)
-		{
-			return transform_group {psl::templates::type_container<Ts> {}...};
-		}
-
-		template <typename... Ts>
-		auto make_transform_group(psl::templates::type_container<std::tuple<Ts...>>)
-		{
-			psl::array<transform_group> groups;
-			groups.reserve(sizeof...(Ts));
-			if constexpr(sizeof...(Ts) == 1)
-			{
-				groups.emplace_back(make_transform_group(psl::templates::type_container<Ts> {}...));
-			}
-			else
-			{
-				(void(groups.emplace_back(make_transform_group(psl::templates::type_container<Ts> {}))), ...);
-			}
-			return groups;
+			auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> transform_group {
+				return transform_group {psl::type_pack_t<Ys...> {}};
+			};
+			return psl::array<transform_group>{make_group(psl::type_pack_t<Ts>{})...};
 		}
 	}	 // namespace details
 }	 // namespace psl::ecs

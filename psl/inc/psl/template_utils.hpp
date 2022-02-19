@@ -8,7 +8,7 @@
 
 namespace utility::templates
 {
-	namespace details
+	inline namespace details
 	{
 		template <size_t first, size_t second, size_t... remainder>
 		static constexpr size_t max_impl() noexcept
@@ -73,29 +73,106 @@ namespace utility::templates
 		return ret;
 	}
 
-	template <typename T>
-	struct type_container
-	{
-		using type = T;
-	};
-
-	template <typename T, typename Tuple>
-	struct has_type;
-
-	template <typename T>
-	struct has_type<T, std::tuple<>> : std::false_type
+	template <typename... Ts>
+	struct type_pack_t
 	{};
 
-	template <typename T, typename U, typename... Ts>
-	struct has_type<T, std::tuple<U, Ts...>> : has_type<T, std::tuple<Ts...>>
+	template <typename T>
+	struct type_pack_size_t
+	{};
+
+	template <typename... Ts>
+	struct type_pack_size_t<type_pack_t<Ts...>>
+	{
+		static constexpr size_t value {sizeof...(Ts)};
+	};
+
+	inline namespace details
+	{
+		template <typename... Ts>
+		struct has_type_impl : std::false_type
+		{};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(!std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public has_type_impl<T, Ts...>
+		{};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public std::true_type
+		{};
+
+	}	 // namespace details
+
+	template <typename... Ts>
+	struct has_type : has_type_impl<Ts...>
 	{};
 
 	template <typename T, typename... Ts>
-	struct has_type<T, std::tuple<T, Ts...>> : std::true_type
+	struct has_type<T, type_pack_t<Ts...>> : public has_type_impl<T, Ts...>
 	{};
 
-	template <typename T, typename Tuple>
-	using tuple_contains_type = typename has_type<T, Tuple>::type;
+	template <typename T, typename... Ts>
+	concept HasType = has_type<T, Ts...>::value;
+
+	inline namespace details
+	{
+		template <typename... Ts>
+		struct index_of_impl
+		{};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(!std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...>
+		{
+			static constexpr std::size_t value = 1 + index_of_impl<T, Ts...>::value;
+		};
+
+		template <typename T, typename Y, typename... Ts>
+		requires(std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...>
+		{
+			static constexpr std::size_t value = 0;
+		};
+	}	 // namespace details
+
+	template <typename T, typename... Ts>
+	requires HasType<T, Ts...>
+	struct index_of : public index_of_impl<T, Ts...>
+	{};
+
+	template <typename T, typename... Ts>
+	requires HasType<T, Ts...>
+	struct index_of<T, type_pack_t<Ts...>> : index_of_impl<T, Ts...>
+	{};
+
+	template <typename... Ts>
+	static constexpr auto index_of_v = index_of<Ts...>::value;
+
+	inline namespace details
+	{
+		template <size_t N, size_t Curr, typename... Ts>
+		struct type_at_index_impl
+		{};
+
+		template <size_t N, size_t Curr, typename T, typename... Ts>
+		requires(N == Curr) struct type_at_index_impl<N, Curr, T, Ts...>
+		{
+			using type = T;
+		};
+
+		template <size_t N, size_t Curr, typename T, typename... Ts>
+		requires(N != Curr) struct type_at_index_impl<N, Curr, T, Ts...> : public type_at_index_impl<N, Curr + 1, Ts...>
+		{};
+	}	 // namespace details
+
+	template <size_t N, typename... Ts>
+	requires(N < sizeof...(Ts)) struct type_at_index : type_at_index_impl<N, 0, Ts...>
+	{};
+
+	template <size_t N, typename... Ts>
+	struct type_at_index<N, type_pack_t<Ts...>> : type_at_index<N, Ts...>
+	{};
+
+	template <size_t N, typename... Ts>
+	using type_at_index_t = typename type_at_index<N, Ts...>::type;
 
 	// handy utility for the compilers that wish to compile static_assert(false,"") in dead code paths that should error
 	// out
@@ -106,82 +183,107 @@ namespace utility::templates
 	template <typename T>
 	inline constexpr bool always_false_v = always_false<T>::value;
 
-	namespace detail
+	namespace
 	{
-		template <template <class...> class Trait, class Enabler, class... Args>
-		struct is_detected : std::false_type
-		{};
-
-		template <template <class...> class Trait, class... Args>
-		struct is_detected<Trait, std::void_t<Trait<Args...>>, Args...> : std::true_type
-		{};
-	}	 // namespace detail
-
-	template <template <class...> class Trait, class... Args>
-	using is_detected = typename detail::is_detected<Trait, void, Args...>::type;
-
-	namespace match_detail
-	{
-		using namespace std;
-
-		template <int variant_index, typename VariantType, typename OneFunc>
-		constexpr void match(VariantType&& variant, OneFunc func)
+		template <typename T>
+		struct to_type_pack
 		{
-			// assert(variant.index() == variant_index); // todo write correct assertation
-			if(variant.index() != variant_index) debug_break();
-			func(get<variant_index>(std::forward<VariantType>(variant)));
-		}
+			using type = type_pack_t<T>;
+		};
 
-		template <int variant_index, typename VariantType, typename FirstFunc, typename SecondFunc, typename... Rest>
-		constexpr void match(VariantType&& variant, FirstFunc func1, SecondFunc func2, Rest... funcs)
+		template <template <typename...> typename Container, typename... Ts>
+		struct to_type_pack<Container<Ts...>>
 		{
-			if(variant.index() == variant_index)
-			{
-				match<variant_index>(variant, func1);	 // Call single func version
-				return;
-			}
-			return match<variant_index + 1>(std::forward<VariantType>(variant), func2, funcs...);
-		}
-	}	 // namespace match_detail
-
-	template <typename... args>
-	struct all_same : public std::false_type
-	{};
-
+			using type = type_pack_t<Ts...>;
+		};
+	}	 // namespace
 
 	template <typename T>
-	struct all_same<T> : public std::true_type
-	{};
+	using container_to_type_pack_t = to_type_pack<T>::type;
 
+	template <typename T, typename Container>
+	using container_has_type = has_type<T, container_to_type_pack_t<Container>>;
 
-	template <typename T, typename... args>
-	struct all_same<T, T, args...> : public all_same<T, args...>
-	{};
-
-	template <typename VariantType, typename... Funcs>
-	void match(VariantType&& variant, Funcs... funcs)
+	namespace
 	{
-		using VT = std::remove_reference_t<VariantType>;
-		static_assert(sizeof...(funcs) == std::variant_size<VT>::value,
-					  "Number of functions must match number of variant types");
-		match_detail::match<0>(std::forward<VariantType>(variant), funcs...);
-	}
+		template <typename T>
+		struct is_type_pack_t : std::false_type
+		{};
+		template <typename... Ts>
+		struct is_type_pack_t<type_pack_t<Ts...>> : std::true_type
+		{};
+	}	 // namespace
 
 	template <typename T>
-	struct remove_all
+	concept IsTypePack = is_type_pack_t<T>::value;
+
+	template <typename T, typename Y>
+	struct concat_type_pack
+	{};
+
+	template <template <typename...> typename PackA,
+			  template <typename...>
+			  typename PackB,
+			  typename... Ts,
+			  typename... Ys>
+	requires(IsTypePack<PackA<Ts...>>&& IsTypePack<PackB<Ys...>>)
+	struct concat_type_pack<PackA<Ts...>, PackB<Ys...>>
 	{
-		typedef T type;
-	};
-	template <typename T>
-	struct remove_all<T*>
-	{
-		typedef typename remove_all<T>::type type;
+		using type = type_pack_t<Ts..., Ys...>;
 	};
 
-	template <bool B, typename T, T trueval, T falseval>
-	struct conditional_value :
-		std::conditional<B, std::integral_constant<T, trueval>, std::integral_constant<T, falseval>>::type
-	{};
+	template <typename T, template <typename...> typename PackB, typename... Ys>
+	requires(IsTypePack<PackB<Ys...>>)
+	struct concat_type_pack<T, PackB<Ys...>>
+	{
+		using type = type_pack_t<T, Ys...>;
+	};
+
+	namespace
+	{
+		template <typename Y, typename... Ts>
+		struct remove_types
+		{
+			using type = type_pack_t<Ts...>;
+		};
+
+		template <typename Y, typename T, typename... Ts>
+		struct remove_types<Y, T, Ts...>
+		{
+			using type = std::conditional_t<std::is_same_v<T, Y>,
+											typename remove_types<Y, Ts...>::type,
+											typename concat_type_pack<T, typename remove_types<Y, Ts...>::type>::type>;
+		};
+
+		template<typename... Ts>
+		using remove_types_t = typename remove_types<Ts...>::type;
+
+		template <typename PackA, typename PackT>
+		struct remove_from_type_pack_impl
+		{
+			using type = PackT;
+		};
+
+		template <template <typename...> typename PackA,
+				  template <typename...>
+				  typename PackT,
+				  typename T,
+				  typename... Ts,
+				  typename... Ys>
+		struct remove_from_type_pack_impl<PackA<T, Ts...>, PackT<Ys...>>
+		{
+			using type = typename remove_from_type_pack_impl<PackA<Ts...>, remove_types_t<T, Ys...>>::type;
+		};
+	}	 // namespace
+
+	template <IsTypePack PackT, typename... Ts>
+	struct remove_from_type_pack
+	{
+		using type = typename remove_from_type_pack_impl<type_pack_t<Ts...>, PackT>::type;
+	};
+
+	template <IsTypePack PackT, typename... Ts>
+	using remove_from_type_pack_t = typename remove_from_type_pack<PackT, Ts...>::type;
 
 	template <typename T>
 	struct is_pair : public std::false_type
@@ -260,7 +362,7 @@ namespace utility::templates
 
 	namespace operators
 	{
-		namespace details
+		inline namespace details
 		{
 			// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists/6534951
 			template <typename X, typename Y, typename Op>
@@ -536,7 +638,7 @@ namespace utility::templates
 		template <typename T, typename Index>
 		using has_subscript_operator = typename details::has_subscript_operator<T, Index>::type;
 		template <typename T, typename Index>
-		using has_bracket_operator = typename has_subscript_operator<T, Index>::type;
+		using has_bracket_operator = typename details::has_subscript_operator<T, Index>::type;
 
 		// arithmetic operators
 		template <typename T, typename U>
@@ -584,50 +686,26 @@ namespace utility::templates
 	template <typename T>
 	struct func_traits : public func_traits<decltype(&T::operator())>
 	{};
-	template <typename T>
-	struct func_traits<std::function<T>> : public func_traits<T>
-	{};
-	template <typename T>
-	struct func_traits<std::function<T>&> : public func_traits<T>
-	{};
-	template <typename T>
-	struct func_traits<const std::function<T>&> : public func_traits<T>
-	{};
+
 	template <typename C, typename Ret, typename... Args>
 	struct func_traits<Ret (C::*)(Args...)>
 	{
 		using result_t	  = Ret;
-		using arguments_t = std::tuple<Args...>;
+		using arguments_t = type_pack_t<Args...>;
 	};
 
 	template <typename Ret, typename... Args>
 	struct func_traits<Ret (*)(Args...)>
 	{
 		using result_t	  = Ret;
-		using arguments_t = std::tuple<Args...>;
+		using arguments_t = type_pack_t<Args...>;
 	};
 
 	template <typename C, typename Ret, typename... Args>
 	struct func_traits<Ret (C::*)(Args...) const>
 	{
 		using result_t	  = Ret;
-		using arguments_t = std::tuple<Args...>;
-	};
-
-	template <typename T>
-	struct is_invocable
-	{
-		template <typename U, typename = decltype(&T::operator())>
-		static long test(const U&&);
-		static char test(...);
-
-		static constexpr bool value = sizeof(test(std::declval<T>())) == sizeof(long);
-	};
-
-	template <typename T>
-	struct proxy_type
-	{
-		using type = T;
+		using arguments_t = type_pack_t<Args...>;
 	};
 
 	struct any
@@ -657,3 +735,74 @@ namespace psl::templates
 {
 	using namespace utility::templates;
 }
+
+namespace psl
+{
+	/// \brief checks if the given type exists within the variadic args
+	///
+	/// \tparam T type to search
+	/// \tparam Ts types to match against
+	template <typename T, typename... Ts>
+	using has_type = utility::templates::has_type<T, Ts...>;
+
+	/// \copydoc psl::has_type
+	template <typename T, typename... Ts>
+	concept HasType = has_type<T, Ts...>::value;
+
+	/// \brief retrieve the index of the type in the variadic args
+	///
+	/// \tparam T type to find the index of
+	/// \tparam Ts types to match against
+	/// \note don't use this with container types, convert the container type to a psl::type_pack_t first using
+	/// psl::container_to_type_pack_t
+	template <typename T, typename... Ts>
+	using index_of = utility::templates::index_of<T, Ts...>;
+
+	/// \copydoc psl::index_of
+	template <typename T, typename... Ts>
+	static constexpr auto index_of_v = index_of<T, Ts...>::value;
+
+	/// \brief get the type at the given index in the variadic args
+	///
+	/// \tparam N index to retrieve
+	/// \tparam Ts types to select from
+	/// \note don't use this with container types, convert the container type to a psl::type_pack_t first using
+	/// psl::container_to_type_pack_t
+	template <size_t N, typename... Ts>
+	using type_at_index = utility::templates::type_at_index<N, Ts...>;
+
+	/// \copydoc psl::type_at_index
+	template <size_t N, typename... Ts>
+	using type_at_index_t = typename type_at_index<N, Ts...>::type;
+
+	/// \brief used to store packs of types to pass around as parameters without instantiating the type's objects
+	///
+	/// \tparam Ts types to store
+	template <typename... Ts>
+	using type_pack_t = utility::templates::type_pack_t<Ts...>;
+
+	/// \brief retrieve the size of a type pack
+	///
+	/// \tparam T the type pack you want to extract the size from
+	template <typename T>
+	static constexpr auto type_pack_size_v = utility::templates::type_pack_size_t<T>::value;
+
+	/// \brief transforms a container like type (like tuple, or pair) into a psl::type_pack_t
+	///
+	/// \tparam T target container to transform
+	/// \note this matches any type that satisfies the signature template<typename...>, this means for types such as
+	/// std::vector, or std::unordered_map, you can get some weird results. As there is no good protection against
+	/// this, the constraint is for the user to enforce.
+	template <typename T>
+	using container_to_type_pack_t = utility::templates::container_to_type_pack_t<T>;
+
+	/// \brief checks if the container's template arguments contains the given type.
+	///
+	/// \tparam T the type to search for.
+	/// \tparam Container container type to search in.
+	/// \note this expands any container type that satisfies the signature template<typename...>, this means for types
+	/// such as std::vector, or std::unordered_map, you can get some weird results. As there is no good protection
+	/// against this, the constraint is for the user to enforce.
+	template <typename T, typename Container>
+	static constexpr auto container_has_type_v = utility::templates::container_has_type<T, Container>::value;
+}	 // namespace psl
