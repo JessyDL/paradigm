@@ -522,10 +522,10 @@ namespace psl::ecs
 			}
 			else if constexpr(psl::templates::is_callable_n<T, 1>::value)
 			{
-				using tuple_type = typename psl::templates::func_traits<T>::arguments_t;
-				static_assert(std::tuple_size<tuple_type>::value == 1,
+				using pack_type = typename psl::templates::func_traits<T>::arguments_t;
+				static_assert(psl::type_pack_size_v<pack_type> == 1,
 							  "only one argument is allowed in the prototype invocable");
-				using arg0_t = std::tuple_element_t<0, tuple_type>;
+				using arg0_t = psl::type_at_index_t<0, pack_type>;
 				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 							  "the argument type should be of 'T&'");
 				using type = typename std::remove_reference<arg0_t>::type;
@@ -543,13 +543,13 @@ namespace psl::ecs
 			}
 			else if constexpr(psl::templates::is_callable_n<T, 2>::value)
 			{
-				using tuple_type = typename psl::templates::func_traits<T>::arguments_t;
-				static_assert(std::tuple_size<tuple_type>::value == 2,
+				using pack_type = typename psl::templates::func_traits<T>::arguments_t;
+				static_assert(psl::type_pack_size_v<pack_type> == 2,
 							  "two arguments required in the prototype invocable");
-				using arg0_t = std::tuple_element_t<0, tuple_type>;
+				using arg0_t = psl::type_at_index_t<0, pack_type>;
 				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 							  "the argument type for arg 0 should be of 'T&'");
-				using arg1_t = std::tuple_element_t<1, tuple_type>;
+				using arg1_t = psl::type_at_index_t<1, pack_type>;
 				static_assert(std::is_same_v<arg1_t, entity>,
 							  "the argument type for arg 1 should be of 'psl::ecs::entity'");
 				using type = typename std::remove_reference<arg0_t>::type;
@@ -741,7 +741,7 @@ namespace psl::ecs
 		};
 
 		template <typename... Ts>
-		struct get_packs<std::tuple<Ts...>> : public get_packs<Ts...>
+		struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...>
 		{};
 
 		template <typename... Ts>

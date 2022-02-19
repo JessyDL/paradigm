@@ -184,10 +184,10 @@ namespace psl::ecs
 					// https://bugs.llvm.org/show_bug.cgi?id=39606
 			// else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
 			{
-				using tuple_type = typename psl::templates::template func_traits<T>::arguments_t;
-				static_assert(std::tuple_size<tuple_type>::value == 1,
+				using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
+				static_assert(psl::type_pack_size_v<pack_type> == 1,
 							  "only one argument is allowed in the prototype invocable");
-				using arg0_t = std::tuple_element_t<0, tuple_type>;
+				using arg0_t = psl::type_at_index_t<0, pack_type>;
 				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 							  "the argument type should be of 'T&'");
 				using type = typename std::remove_reference<arg0_t>::type;
@@ -257,10 +257,10 @@ namespace psl::ecs
 			}
 			else
 			{
-				using tuple_type = typename psl::templates::template func_traits<T>::arguments_t;
-				static_assert(std::tuple_size<tuple_type>::value == 1,
+				using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
+				static_assert(psl::type_pack_size_v<pack_type> == 1,
 							  "only one argument is allowed in the prototype invocable");
-				using arg0_t = std::tuple_element_t<0, tuple_type>;
+				using arg0_t = psl::type_at_index_t<0, pack_type>;
 				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 							  "the argument type should be of 'T&'");
 				using type = typename std::remove_reference<arg0_t>::type;

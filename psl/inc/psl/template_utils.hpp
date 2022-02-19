@@ -83,6 +83,16 @@ namespace utility::templates
 	struct type_pack_t
 	{};
 
+	template <typename T>
+	struct type_pack_size_t
+	{};
+
+	template <typename... Ts>
+	struct type_pack_size_t<type_pack_t<Ts...>>
+	{
+		static constexpr size_t value {sizeof...(Ts)};
+	};
+
 	inline namespace details
 	{
 		template <typename... Ts>
@@ -609,21 +619,21 @@ namespace utility::templates
 	struct func_traits<Ret (C::*)(Args...)>
 	{
 		using result_t	  = Ret;
-		using arguments_t = std::tuple<Args...>;
+		using arguments_t = type_pack_t<Args...>;
 	};
 
 	template <typename Ret, typename... Args>
 	struct func_traits<Ret (*)(Args...)>
 	{
 		using result_t	  = Ret;
-		using arguments_t = std::tuple<Args...>;
+		using arguments_t = type_pack_t<Args...>;
 	};
 
 	template <typename C, typename Ret, typename... Args>
 	struct func_traits<Ret (C::*)(Args...) const>
 	{
 		using result_t	  = Ret;
-		using arguments_t = std::tuple<Args...>;
+		using arguments_t = type_pack_t<Args...>;
 	};
 
 	struct any
@@ -662,7 +672,7 @@ namespace psl
 	template <typename T, typename... Ts>
 	concept HasType = has_type<T, Ts...>::value;
 
-	template<typename... Ts>
+	template <typename... Ts>
 	using index_of = utility::templates::index_of<Ts...>;
 
 	template <typename... Ts>
@@ -674,6 +684,9 @@ namespace psl
 	template <size_t N, typename... Ts>
 	using type_at_index_t = typename type_at_index<N, Ts...>::type;
 
-	template<typename... Ts>
+	template <typename... Ts>
 	using type_pack_t = utility::templates::type_pack_t<Ts...>;
-}
+
+	template <typename T>
+	static constexpr auto type_pack_size_v = utility::templates::type_pack_size_t<T>::value;
+}	 // namespace psl
