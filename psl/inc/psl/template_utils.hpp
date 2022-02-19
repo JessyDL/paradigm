@@ -204,6 +204,87 @@ namespace utility::templates
 	template <typename T, typename Container>
 	using container_has_type = has_type<T, container_to_type_pack_t<Container>>;
 
+	namespace
+	{
+		template <typename T>
+		struct is_type_pack_t : std::false_type
+		{};
+		template <typename... Ts>
+		struct is_type_pack_t<type_pack_t<Ts...>> : std::true_type
+		{};
+	}	 // namespace
+
+	template <typename T>
+	concept IsTypePack = is_type_pack_t<T>::value;
+
+	template <typename T, typename Y>
+	struct concat_type_pack
+	{};
+
+	template <template <typename...> typename PackA,
+			  template <typename...>
+			  typename PackB,
+			  typename... Ts,
+			  typename... Ys>
+	requires(IsTypePack<PackA<Ts...>>&& IsTypePack<PackB<Ys...>>)
+	struct concat_type_pack<PackA<Ts...>, PackB<Ys...>>
+	{
+		using type = type_pack_t<Ts..., Ys...>;
+	};
+
+	template <typename T, template <typename...> typename PackB, typename... Ys>
+	requires(IsTypePack<PackB<Ys...>>)
+	struct concat_type_pack<T, PackB<Ys...>>
+	{
+		using type = type_pack_t<T, Ys...>;
+	};
+
+	namespace
+	{
+		template <typename Y, typename... Ts>
+		struct remove_types
+		{
+			using type = type_pack_t<Ts...>;
+		};
+
+		template <typename Y, typename T, typename... Ts>
+		struct remove_types<Y, T, Ts...>
+		{
+			using type = std::conditional_t<std::is_same_v<T, Y>,
+											typename remove_types<Y, Ts...>::type,
+											typename concat_type_pack<T, typename remove_types<Y, Ts...>::type>::type>;
+		};
+
+		template<typename... Ts>
+		using remove_types_t = typename remove_types<Ts...>::type;
+
+		template <typename PackA, typename PackT>
+		struct remove_from_type_pack_impl
+		{
+			using type = PackT;
+		};
+
+		template <template <typename...> typename PackA,
+				  template <typename...>
+				  typename PackT,
+				  typename T,
+				  typename... Ts,
+				  typename... Ys>
+		struct remove_from_type_pack_impl<PackA<T, Ts...>, PackT<Ys...>>
+		{
+			using type = typename remove_from_type_pack_impl<PackA<Ts...>, remove_types_t<T, Ys...>>::type;
+		};
+	}	 // namespace
+
+	template <IsTypePack PackT, typename... Ts>
+	struct remove_from_type_pack
+	{
+		using type = typename remove_from_type_pack_impl<type_pack_t<Ts...>, PackT>::type;
+	};
+
+	template <IsTypePack PackT, typename... Ts>
+	using remove_from_type_pack_t = typename remove_from_type_pack<PackT, Ts...>::type;
+
 	template <typename T>
 	struct is_pair : public std::false_type
 	{};
@@ -716,7 +797,7 @@ namespace psl
 	using container_to_type_pack_t = utility::templates::container_to_type_pack_t<T>;
 
 	/// \brief checks if the container's template arguments contains the given type.
-	/// 
+	///
 	/// \tparam T the type to search for.
 	/// \tparam Container container type to search in.
 	/// \note this expands any container type that satisfies the signature template<typename...>, this means for types
