@@ -54,9 +54,9 @@ namespace psl::ecs::details
 	{
 		friend class psl::ecs::state_t;
 		template <std::size_t... Is, typename T>
-		auto create_dependency_filters(std::index_sequence<Is...>, psl::templates::type_container<T>)
+		auto create_dependency_filters(std::index_sequence<Is...>, psl::type_pack_t<T>)
 		{
-			(add(psl::templates::type_container<
+			(add(psl::type_pack_t<
 				 typename std::remove_reference<decltype(std::declval<T>().template get<Is>())>::type> {}),
 			 ...);
 		}
@@ -100,7 +100,7 @@ namespace psl::ecs::details
 		}
 
 		template <typename T>
-		psl::array_view<T> fill_in(psl::templates::type_container<psl::array_view<T>>)
+		psl::array_view<T> fill_in(psl::type_pack_t<psl::array_view<T>>)
 		{
 			if constexpr(std::is_same<T, psl::ecs::entity>::value)
 			{
@@ -119,27 +119,26 @@ namespace psl::ecs::details
 		}
 
 		template <std::size_t... Is, typename T>
-		T to_pack_impl(std::index_sequence<Is...>, psl::templates::type_container<T>)
+		T to_pack_impl(std::index_sequence<Is...>, psl::type_pack_t<T>)
 		{
 			using pack_t	  = T;
 			using pack_view_t = typename pack_t::pack_t;
 			using range_t	  = typename pack_t::pack_t::range_t;
 
-			return T {pack_view_t(
-			  fill_in(psl::templates::type_container<typename std::tuple_element<Is, range_t>::type>())...)};
+			return T {pack_view_t(fill_in(psl::type_pack_t<typename std::tuple_element<Is, range_t>::type>())...)};
 		}
 
 
 	  public:
 		template <typename T>
-		dependency_pack(psl::templates::type_container<T>, bool seedWithPrevious = false)
+		dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious = false)
 		{
 			orderby		 = [](psl::array<entity>::iterator begin,
 						  psl::array<entity>::iterator end,
 						  const psl::ecs::state_t& state) {};
 			using pack_t = T;
 			create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>> {},
-									  psl::templates::type_container<T> {});
+									  psl::type_pack_t<T> {});
 			select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value> {},
 				   typename pack_t::filter_t {},
 				   filters);
@@ -185,13 +184,13 @@ namespace psl::ecs::details
 
 
 		template <typename... Ts>
-		psl::ecs::pack<Ts...> to_pack(psl::templates::type_container<psl::ecs::pack<Ts...>>)
+		psl::ecs::pack<Ts...> to_pack(psl::type_pack_t<psl::ecs::pack<Ts...>>)
 		{
 			using pack_t  = psl::ecs::pack<Ts...>;
 			using range_t = typename pack_t::pack_t::range_t;
 
 			return to_pack_impl(std::make_index_sequence<std::tuple_size<range_t>::value> {},
-								psl::templates::type_container<pack_t> {});
+								psl::type_pack_t<pack_t> {});
 		}
 
 		bool allow_partial() const noexcept { return m_IsPartial; };
@@ -248,22 +247,22 @@ namespace psl::ecs::details
 
 	  private:
 		template <typename T>
-		void add(psl::templates::type_container<psl::array_view<T>>) noexcept
+		void add(psl::type_pack_t<psl::array_view<T>>) noexcept
 		{
 			constexpr component_key_t int_id = details::key_for<T>();
 			m_RWBindings.emplace(int_id, psl::array_view<std::uintptr_t> {});
 		}
 
 		template <typename T>
-		void add(psl::templates::type_container<psl::array_view<const T>>) noexcept
+		void add(psl::type_pack_t<psl::array_view<const T>>) noexcept
 		{
 			constexpr component_key_t int_id = details::key_for<T>();
 			m_RBindings.emplace(int_id, psl::array_view<std::uintptr_t> {});
 		}
 
 
-		void add(psl::templates::type_container<psl::array_view<psl::ecs::entity>>) noexcept {}
-		void add(psl::templates::type_container<psl::array_view<const psl::ecs::entity>>) noexcept {}
+		void add(psl::type_pack_t<psl::array_view<psl::ecs::entity>>) noexcept {}
+		void add(psl::type_pack_t<psl::array_view<const psl::ecs::entity>>) noexcept {}
 
 	  private:
 		psl::array_view<psl::ecs::entity> m_Entities {};
@@ -287,30 +286,31 @@ namespace psl::ecs::details
 		bool m_IsPartial = false;
 	};
 
-	template <std::size_t... Is, typename T>
-	std::vector<dependency_pack> expand_to_dependency_pack(std::index_sequence<Is...>,
-														   psl::templates::type_container<T>,
-														   bool seedWithPrevious = false)
+	template <typename... Ts>
+	std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, bool seedWithPrevious = false)
 	{
 		std::vector<dependency_pack> res;
-		(std::invoke([&]() {
-			 res.emplace_back(dependency_pack(
-			   psl::templates::type_container<typename std::tuple_element<Is, T>::type> {}, seedWithPrevious));
-		 }),
-		 ...);
+		(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, seedWithPrevious)); }), ...);
 		return res;
 	}
-
-
-	template <std::size_t... Is, typename... Ts>
-	std::tuple<Ts...> compress_from_dependency_pack(std::index_sequence<Is...>,
-													psl::templates::type_container<std::tuple<Ts...>>,
-													std::vector<dependency_pack>& pack)
+	namespace
 	{
-		return std::tuple<Ts...> {pack[Is].to_pack(
-		  psl::templates::type_container<
-			typename std::remove_reference<decltype(std::get<Is>(std::declval<std::tuple<Ts...>>()))>::type> {})...};
+		template <size_t... Is, typename... Ts>
+		std::tuple<Ts...> compress_from_dependency_pack_impl(std::index_sequence<Is...>,
+															 psl::type_pack_t<Ts...>,
+															 std::vector<dependency_pack>& pack)
+		{
+			return std::tuple<Ts...> {
+			  pack[Is].to_pack(psl::type_pack_t<typename std::remove_reference<Ts>::type> {})...};
+		}
+	}	 // namespace
+
+	template <typename... Ts>
+	std::tuple<Ts...> compress_from_dependency_pack(psl::type_pack_t<Ts...>, std::vector<dependency_pack>& pack)
+	{
+		return compress_from_dependency_pack_impl(std::index_sequence_for<Ts...> {}, psl::type_pack_t<Ts...> {}, pack);
 	}
+
 	class system_information;
 	class system_token
 	{

@@ -319,7 +319,7 @@ namespace
 	auto t4 = suite<"systems", "ecs", "psl">() = []() {
 		state_t state;
 
-		auto group = details::make_filter_group(psl::templates::type_container<pack<entity, int>> {});
+		auto group = details::make_filter_group(psl::type_pack_t<pack<entity, int>> {});
 
 
 		section<"lifetime test">() = [&]() {

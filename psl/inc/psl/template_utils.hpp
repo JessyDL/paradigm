@@ -73,12 +73,6 @@ namespace utility::templates
 		return ret;
 	}
 
-	template <typename T>
-	struct type_container
-	{
-		using type = T;
-	};
-
 	template <typename... Ts>
 	struct type_pack_t
 	{};
