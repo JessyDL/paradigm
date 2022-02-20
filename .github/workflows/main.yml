@@ -2,7 +2,7 @@ name: paradigm
 
 on: [push]
     
-jobs:      
+jobs:
   windows:
     strategy:
       fail-fast: false
