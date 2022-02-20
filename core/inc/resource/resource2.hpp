@@ -37,7 +37,7 @@ namespace core::_v1
 			*/
 		};
 
-		inline namespace details
+		namespace
 		{
 			struct resource_info_t
 			{
