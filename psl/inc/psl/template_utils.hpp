@@ -8,7 +8,7 @@
 
 namespace utility::templates
 {
-	inline namespace details
+	namespace details
 	{
 		template <size_t first, size_t second, size_t... remainder>
 		static constexpr size_t max_impl() noexcept
@@ -87,7 +87,7 @@ namespace utility::templates
 		static constexpr size_t value {sizeof...(Ts)};
 	};
 
-	inline namespace details
+	namespace details
 	{
 		template <typename... Ts>
 		struct has_type_impl : std::false_type
@@ -104,17 +104,17 @@ namespace utility::templates
 	}	 // namespace details
 
 	template <typename... Ts>
-	struct has_type : has_type_impl<Ts...>
+	struct has_type : details::has_type_impl<Ts...>
 	{};
 
 	template <typename T, typename... Ts>
-	struct has_type<T, type_pack_t<Ts...>> : public has_type_impl<T, Ts...>
+	struct has_type<T, type_pack_t<Ts...>> : public details::has_type_impl<T, Ts...>
 	{};
 
 	template <typename T, typename... Ts>
 	concept HasType = has_type<T, Ts...>::value;
 
-	inline namespace details
+	namespace details
 	{
 		template <typename... Ts>
 		struct index_of_impl
@@ -135,18 +135,18 @@ namespace utility::templates
 
 	template <typename T, typename... Ts>
 	requires HasType<T, Ts...>
-	struct index_of : public index_of_impl<T, Ts...>
+	struct index_of : public details::index_of_impl<T, Ts...>
 	{};
 
 	template <typename T, typename... Ts>
 	requires HasType<T, Ts...>
-	struct index_of<T, type_pack_t<Ts...>> : index_of_impl<T, Ts...>
+	struct index_of<T, type_pack_t<Ts...>> : details::index_of_impl<T, Ts...>
 	{};
 
 	template <typename... Ts>
 	static constexpr auto index_of_v = index_of<Ts...>::value;
 
-	inline namespace details
+	namespace details
 	{
 		template <size_t N, size_t Curr, typename... Ts>
 		struct type_at_index_impl
@@ -164,7 +164,7 @@ namespace utility::templates
 	}	 // namespace details
 
 	template <size_t N, typename... Ts>
-	requires(N < sizeof...(Ts)) struct type_at_index : type_at_index_impl<N, 0, Ts...>
+	requires(N < sizeof...(Ts)) struct type_at_index : details::type_at_index_impl<N, 0, Ts...>
 	{};
 
 	template <size_t N, typename... Ts>
@@ -362,7 +362,7 @@ namespace utility::templates
 
 	namespace operators
 	{
-		inline namespace details
+		namespace details
 		{
 			// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists/6534951
 			template <typename X, typename Y, typename Op>
