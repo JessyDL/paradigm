@@ -10,3 +10,6 @@
 [submodule "extern/litmus"]
 	path = extern/litmus
 	url = https://github.com/JessyDL/litmus.git
+[submodule "extern/utfcpp"]
+	path = extern/utfcpp
+	url = https://github.com/nemtrif/utfcpp.git
