@@ -150,7 +150,7 @@ psl::string profiler::to_string() const
 {
 	psl::string res;
 #ifdef PE_PROFILER
-	psl::bytell_map<uint64_t, psl::string> demangled_info;
+	std::unordered_map<uint64_t, psl::string> demangled_info;
 	const auto endIt = (m_FrameIndex + 1) % m_Frames.size();
 	auto i			 = endIt;
 #ifdef PLATFORM_WINDOWS

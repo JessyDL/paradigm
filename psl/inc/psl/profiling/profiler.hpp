@@ -1,6 +1,5 @@
 #pragma once
 #include "psl/array.hpp"
-#include "psl/bytell_map.hpp"
 #include "psl/timer.hpp"
 #include "psl/ustring.hpp"
 
@@ -65,8 +64,8 @@ namespace psl::profiling
 			psl::timer m_Timer {};
 			std::chrono::microseconds duration;
 			size_t m_Stack {0};
-			psl::bytell_map<psl::string, uint64_t> m_NameMap;
-			psl::bytell_map<uint64_t, psl::string> m_IDMap;
+			std::unordered_map<psl::string, uint64_t> m_NameMap;
+			std::unordered_map<uint64_t, psl::string> m_IDMap;
 			uint64_t IDCounter {0};
 		};
 

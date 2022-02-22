@@ -43,7 +43,6 @@ static_array
 array
 unordered_map
 flat_map
-bytell_map
 sparse_array
 sparse_indice_array
 unique_ptr

@@ -5,16 +5,6 @@ project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 
 include(FetchContent)
 
-FetchContent_Declare(
-	skarupke
-	GIT_REPOSITORY https://github.com/skarupke/flat_hash_map.git
-)
-
-FetchContent_GetProperties(skarupke)
-if(NOT skarupke_POPULATED)
-  FetchContent_Populate(skarupke)
-endif()
-
 FetchContent_Declare(utf8cpp GIT_REPOSITORY https://github.com/nemtrif/utfcpp.git GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 FetchContent_GetProperties(utf8cpp)
 if(NOT utf8cpp_POPULATED)
@@ -57,8 +47,6 @@ target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
 		${utf8cpp_SOURCE_DIR}/source
-		${skarupke_SOURCE_DIR}/
-		${async_SOURCE_DIR}/inc
 )
 target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
 

@@ -2,7 +2,6 @@
 #include "ecs/components/renderable.hpp"
 #include "ecs/components/transform.hpp"
 #include "gfx/bundle.hpp"
-#include "psl/bytell_map.hpp"
 #include "psl/ecs/state.hpp"
 #include "resource/resource.hpp"
 #include "vk/geometry.hpp"
