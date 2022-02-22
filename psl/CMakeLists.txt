@@ -6,21 +6,6 @@ project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
 include(FetchContent)
 
 FetchContent_Declare(
-	async
-	GIT_REPOSITORY https://github.com/JessyDL/async.git
-)
-
-FetchContent_GetProperties(async)
-if(NOT async_POPULATED)
-  message(STATUS "fetching jessydl/async...")
-  set(ASYNC_NAMESPACE psl::async)
-  set(ASYNC_MINIMAL_INCLUDE true)
-  FetchContent_Populate(async)
-  message(STATUS "jessydl/async fetched")
-endif()
-
-
-FetchContent_Declare(
 	skarupke
 	GIT_REPOSITORY https://github.com/skarupke/flat_hash_map.git
 )

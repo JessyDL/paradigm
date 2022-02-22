@@ -3,7 +3,6 @@
 #include "psl/algorithm.hpp"
 #include "psl/unique_ptr.hpp"
 #include <numeric>
-//#include "psl/async/algorithm.hpp"
 using namespace psl::ecs;
 
 using psl::ecs::details::component_key_t;
