@@ -1,4 +1,6 @@
 #pragma once
+#include <unordered_map>
+
 #include "psl/array.hpp"
 #include "psl/timer.hpp"
 #include "psl/ustring.hpp"
