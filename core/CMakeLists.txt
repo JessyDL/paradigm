@@ -99,7 +99,6 @@ if(PE_GLES)
 	endif()
 endif()
 
-
 add_custom_target(core_generator)
 add_custom_command(TARGET core_generator
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
