@@ -64,7 +64,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        graphics: [vulkan]
+        graphics: [vulkan, all]
     name: ubuntu
     runs-on: ubuntu-latest
     steps:
@@ -81,6 +81,9 @@ jobs:
         ln -s /opt/cmake/bin/* /usr/bin/
         apt-get update && apt-get install python3 -y
         python3 tools/generate_project_info.py
+    - name: install GL libraries
+      if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
+      run: apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: initialize
       run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
     - name: compile
@@ -100,7 +103,7 @@ jobs:
     strategy:
         fail-fast: false
         matrix:
-          graphics: [vulkan]
+          graphics: [vulkan, all]
     name: ubuntu-benchmark
     needs: ubuntu
     runs-on: ubuntu-latest
