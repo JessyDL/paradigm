@@ -58,16 +58,16 @@ namespace psl::ecs
 	  public:
 		static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
 		
-		using pack_t        = pack_base<Ts...>::pack_t;
-		using filter_t      = pack_base<Ts...>::filter_t;
-		using combine_t     = pack_base<Ts...>::combine_t;
-		using break_t       = pack_base<Ts...>::break_t;
-		using add_t         = pack_base<Ts...>::add_t;
-		using remove_t      = pack_base<Ts...>::remove_t;
-		using except_t      = pack_base<Ts...>::except_t;
-		using conditional_t = pack_base<Ts...>::conditional_t;
-		using order_by_t    = pack_base<Ts...>::order_by_t;
-		using policy_t      = pack_base<Ts...>::policy_t;
+		using pack_t        = typename pack_base<Ts...>::pack_t;
+		using filter_t      = typename pack_base<Ts...>::filter_t;
+		using combine_t     = typename pack_base<Ts...>::combine_t;
+		using break_t       = typename pack_base<Ts...>::break_t;
+		using add_t         = typename pack_base<Ts...>::add_t;
+		using remove_t      = typename pack_base<Ts...>::remove_t;
+		using except_t      = typename pack_base<Ts...>::except_t;
+		using conditional_t = typename pack_base<Ts...>::conditional_t;
+		using order_by_t    = typename pack_base<Ts...>::order_by_t;
+		using policy_t      = typename pack_base<Ts...>::policy_t;
 
 		static_assert(std::tuple_size<order_by_t>::value <= 1,
 					  "multiple order_by statements make no sense");

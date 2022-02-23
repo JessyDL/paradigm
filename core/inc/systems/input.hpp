@@ -656,8 +656,8 @@ namespace core::systems
 		void handle_event(core::os::surface* const surface,
 						  const xcb_generic_event_t* event,
 						  xcb_intern_atom_reply_t& delete_wm);
-#elif defined(SURFACE_D2D)
-
+#elif defined(SURFACE_ANDROID)
+		void tick();
 #endif
 		mouse_coordinate m_Cursor;
 		common::event<keycode> m_OnKeyPressed;

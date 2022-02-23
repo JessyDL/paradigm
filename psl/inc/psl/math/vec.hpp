@@ -208,7 +208,7 @@ namespace psl
 		}
 
 		template <typename Y>
-		operator tvec<Y, dimensions>() const noexcept requires std::convertible_to<precision_t, Y>
+		operator tvec<Y, dimensions>() const noexcept requires std::is_convertible_v<precision_t, Y>
 		{
 			tvec<Y, dimensions> res {};
 			for(auto i = 0; i < dimensions; ++i) res[i] = static_cast<Y>(value[i]);
@@ -303,7 +303,7 @@ namespace psl
 		}
 
 		template <typename Y>
-		operator tvec<Y, 1>() const noexcept requires std::convertible_to<precision_t, Y>
+		operator tvec<Y, 1>() const noexcept requires std::is_convertible_v<precision_t, Y>
 		{
 			return {static_cast<Y>(value[0])};
 		}
@@ -404,7 +404,7 @@ namespace psl
 		}
 
 		template <typename Y>
-		operator tvec<Y, 2>() const noexcept requires std::convertible_to<precision_t, Y>
+		operator tvec<Y, 2>() const noexcept requires std::is_convertible_v<precision_t, Y>
 		{
 			return {static_cast<Y>(value[0]), static_cast<Y>(value[1])};
 		}
@@ -520,7 +520,7 @@ namespace psl
 		}
 
 		template <typename Y>
-		operator tvec<Y, 3>() const noexcept requires std::convertible_to<precision_t, Y>
+		operator tvec<Y, 3>() const noexcept requires std::is_convertible_v<precision_t, Y>
 		{
 			return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2])};
 		}
@@ -652,7 +652,7 @@ namespace psl
 		}
 
 		template <typename Y>
-		operator tvec<Y, 4>() const noexcept requires std::convertible_to<precision_t, Y>
+		operator tvec<Y, 4>() const noexcept requires std::is_convertible_v<precision_t, Y>
 		{
 			return {
 			  static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2]), static_cast<Y>(value[3])};

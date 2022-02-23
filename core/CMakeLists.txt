@@ -11,14 +11,14 @@ set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0)
 find_package(PythonInterp REQUIRED)
 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${GEN}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${GEN}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/fwd" PREFIX "fwd" FILES ${FWD}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC})
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_GLES}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC_GLES}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC_VULKAN}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC_VULKAN}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC})
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_GLES}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_GLES}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_VULKAN}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_VULKAN}) 
 
 if(VS_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
@@ -126,6 +126,7 @@ target_include_directories(${LOCAL_PROJECT}
 	PUBLIC 
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${vulkan_SOURCE_DIR}/include
+		$<IF:$<STREQUAL:"${PE_PLATFORM}","ANDROID">,${ANDROID_NDK}/sources/android/native_app_glue,>
 	PRIVATE
 		${WSI_INC}
 )

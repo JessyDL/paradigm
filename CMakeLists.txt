@@ -20,7 +20,6 @@ endif()
 ###############################################################################
 ###                    general options and setup                            ###
 ###############################################################################
-OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_ANALYZE "enables static analyzers for the given platform" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
@@ -71,10 +70,13 @@ endif()
 string(TOUPPER PE_MODE PE_MODE)
 list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
 
-# experimental early support for not supporting vulkan
 if(PE_VULKAN)
 	message("enabling VULKAN")
 	list(APPEND PE_DEFINES -DPE_VULKAN)
+	if(NOT DEFINED VK_VERSION OR VK_VERSION STREQUAL "")
+		message(FATAL_ERROR ${VK_VERSION})
+		message(FATAL_ERROR "requested 'vulkan' backend, but did not set 'VK_VERSION'")
+	endif()
 endif()
 
 if(PE_MOLTEN)
@@ -96,7 +98,7 @@ if(PE_PROFILER)
 endif()
 
 
-if(NOT VK_STATIC AND NOT PE_SOURCE_ONLY)	
+if(NOT VK_STATIC)	
 	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES)
 elseif(VK_STATIC)
 	list(APPEND PE_DEFINES -DVK_STATIC)
@@ -106,6 +108,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	list(APPEND PE_DEFINES	-DPE_DEBUG)
 else()
 	list(APPEND PE_DEFINES	-DPE_RELEASE)
+endif()
+
+if(${PE_PLATFORM} STREQUAL ANDROID AND (NOT DEFINED ANDROID_NDK OR ANDROID_NDK STREQUAL ""))
+		message(FATAL_ERROR "Trying to build 'android' target outside of the gradle context is not supported.")
 endif()
 
 ###############################################################################
@@ -252,6 +258,11 @@ endif()
 
 set(HAS_WSI FALSE)
 set(PE_SURFACE "unknown")
+if(PE_PLATFORM STREQUAL "ANDROID")
+	set(HAS_WSI TRUE)
+	set(PE_SURFACE "ANDROID")
+	list(APPEND PE_DEFINES -DSURFACE_ANDROID;-DVK_USE_PLATFORM_ANDROID_KHR)
+endif()
 if(NOT HAS_WSI AND PE_WSI_D2D)
 	list(APPEND PE_DEFINES -DSURFACE_D2D)
 	message("using D2D WSI")
@@ -283,22 +294,19 @@ string(TOLOWER ${PE_SURFACE} PE_SURFACE_LOWERCASE)
 
 add_definitions(${PE_DEFINES})
 
-if(NOT PE_SOURCE_ONLY)
-	add_subdirectory(extern)
+add_subdirectory(extern)
 
-	add_subdirectory(psl)
-	add_subdirectory(core)
-	if(PE_TESTS)
-		add_subdirectory(tests)
-	endif()
-	
-	if(PE_BENCHMARKS)
-		add_subdirectory(benchmarks)
-	endif()
+add_subdirectory(psl)
+add_subdirectory(core)
+if(PE_TESTS)
+	add_subdirectory(tests)
+endif()
 
-	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
-		include(${PROJECT_SOURCE_DIR}/modules.txt)
-	endif()
-else()
-	message("did not compile the project by request")
+if(PE_BENCHMARKS)
+	add_subdirectory(benchmarks)
+endif()
+
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
+	include(${PROJECT_SOURCE_DIR}/modules.txt)
 endif()

@@ -1,10 +1,10 @@
 #pragma once
 #include "details/component_key.hpp"
+#include "details/execution.hpp"
 #include "psl/array.hpp"
 #include "psl/ecs/pack.hpp"
 #include "psl/template_utils.hpp"
 #include "selectors.hpp"
-#include <execution>
 
 namespace psl::ecs
 {
@@ -28,7 +28,7 @@ namespace psl::ecs
 			constexpr void selector(psl::type_pack_t<order_by<Pred, T>>) noexcept
 			{
 				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const auto& state) {
-					state.template order_by<Pred, T>(std::execution::par, begin, end);
+					state.template order_by<Pred, T>(psl::ecs::execution::par, begin, end);
 				};
 			}
 

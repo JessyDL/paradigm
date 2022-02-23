@@ -4,6 +4,7 @@
 #include "details/component_info.hpp"
 #include "details/component_key.hpp"
 #include "details/entity_info.hpp"
+#include "details/execution.hpp"
 #include "details/system_information.hpp"
 #include "entity.hpp"
 #include "filtering.hpp"
@@ -19,28 +20,6 @@
 #include "selectors.hpp"
 #include <chrono>
 #include <functional>
-
-#if __has_include(<execution>)
-#include <execution>
-#else
-namespace std::execution
-{
-	class sequenced_policy
-	{};
-
-	inline constexpr sequenced_policy seq {};
-
-	class parallel_policy
-	{};
-
-	inline constexpr parallel_policy par {};
-
-	class parallel_unsequenced_policy
-	{};
-
-	inline constexpr parallel_unsequenced_policy par_unseq {};
-}	 // namespace std::execution
-#endif
 
 namespace psl::async
 {
@@ -111,15 +90,27 @@ namespace psl::ecs
 		template <typename Pred, typename T>
 		void order_by(psl::array<entity>::iterator begin, psl::array<entity>::iterator end) const noexcept
 		{
-			order_by<Pred, T>(std::execution::seq, begin, end);
+			order_by<Pred, T>(psl::ecs::execution::seq, begin, end);
 		}
+
 		template <typename Pred, typename T>
-		void order_by(std::execution::sequenced_policy,
+		void order_by(psl::ecs::execution::no_exec,
 					  psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end) const noexcept
 		{
 			const auto pred = Pred {};
-			std::sort(std::execution::seq, begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
+			std::sort(begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
+				return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+			});
+		}
+
+		template <typename Pred, typename T>
+		void order_by(psl::ecs::execution::sequenced_policy,
+					  psl::array<entity>::iterator begin,
+					  psl::array<entity>::iterator end) const noexcept
+		{
+			const auto pred = Pred {};
+			std::sort(psl::ecs::execution::seq, begin, end, [this, &pred](entity lhs, entity rhs) -> bool {
 				return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
 			});
 		}
@@ -127,7 +118,7 @@ namespace psl::ecs
 
 	  private:
 		template <typename Pred, typename T>
-		void order_by(std::execution::parallel_policy,
+		void order_by(psl::ecs::execution::parallel_policy,
 					  psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end,
 					  size_t max) const noexcept
@@ -135,29 +126,38 @@ namespace psl::ecs
 			auto size = std::distance(begin, end);
 			if(size <= static_cast<decltype(size)>(max))
 			{
-				order_by<Pred, T>(std::execution::seq, begin, end);
+				order_by<Pred, T>(psl::ecs::execution::seq, begin, end);
 			}
 			else
 			{
 				auto middle = std::next(begin, size / 2);
 				auto future = std::async(
-				  [this, &begin, &middle, &max]() { order_by<Pred, T>(std::execution::par, begin, middle, max); });
+				  [this, &begin, &middle, &max]() { order_by<Pred, T>(psl::ecs::execution::par, begin, middle, max); });
 
-				order_by<Pred, T>(std::execution::par, middle, end, max);
+				order_by<Pred, T>(psl::ecs::execution::par, middle, end, max);
 
 				const auto pred = Pred {};
 				future.wait();
-				std::inplace_merge(
-				  std::execution::par_unseq, begin, middle, end, [this, &pred](entity lhs, entity rhs) -> bool {
-					  return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
-				  });
+				if constexpr(std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>)
+				{
+					std::inplace_merge(begin, middle, end, [this, &pred](entity lhs, entity rhs) -> bool {
+						return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+					});
+				}
+				else
+				{
+					std::inplace_merge(
+						psl::ecs::execution::par_unseq, begin, middle, end, [this, &pred](entity lhs, entity rhs) -> bool {
+							return std::invoke(pred, this->get<T>(lhs), this->get<T>(rhs));
+					});
+				}
 			}
 		}
 
 	  public:
 		void clear() noexcept;
 		template <typename Pred, typename T>
-		void order_by(std::execution::parallel_policy,
+		void order_by(psl::ecs::execution::parallel_policy,
 					  psl::array<entity>::iterator begin,
 					  psl::array<entity>::iterator end) const noexcept
 		{
@@ -167,7 +167,7 @@ namespace psl::ecs
 			size /= thread_size;
 
 
-			order_by<Pred, T>(std::execution::par, begin, end, size);
+			order_by<Pred, T>(psl::ecs::execution::par, begin, end, size);
 		}
 
 
@@ -176,18 +176,36 @@ namespace psl::ecs
 												  psl::array<entity>::iterator end) const noexcept
 		{
 			auto pred = Pred {};
-			return std::remove_if(std::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
-				return !pred(this->get<T>(lhs));
-			});
+			if constexpr(std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>)
+			{
+				return std::remove_if(begin, end, [this, &pred](entity lhs) -> bool {
+					return !pred(this->get<T>(lhs));
+				});
+			}
+			else
+			{
+				return std::remove_if(psl::ecs::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
+					return !pred(this->get<T>(lhs));
+				});
+			}
 		}
 
 		template <typename T, typename Pred>
 		psl::array<entity>::iterator
 		on_condition(psl::array<entity>::iterator begin, psl::array<entity>::iterator end, Pred&& pred) const noexcept
 		{
-			return std::remove_if(std::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
-				return !pred(this->get<T>(lhs));
-			});
+			if constexpr(std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>)
+			{
+				return std::remove_if(begin, end, [this, &pred](entity lhs) -> bool {
+					return !pred(this->get<T>(lhs));
+				});
+			}
+			else
+			{
+				return std::remove_if(psl::ecs::execution::par_unseq, begin, end, [this, &pred](entity lhs) -> bool {
+					return !pred(this->get<T>(lhs));
+				});
+			}
 		}
 
 		template <typename T>
@@ -885,7 +903,7 @@ namespace psl::ecs
 			static_assert(sizeof...(Ts) == 1, "due to a bug in MSVC we cannot have deeper nested template packs");
 			orderby =
 			  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {
-				  state.order_by<Pred, Ts...>(std::execution::par, begin, end);
+				  state.order_by<Pred, Ts...>(psl::ecs::execution::par, begin, end);
 			  };
 		}
 
