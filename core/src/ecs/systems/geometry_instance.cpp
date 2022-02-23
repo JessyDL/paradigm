@@ -47,7 +47,7 @@ void geometry_instancing::dynamic_system(
 	core::profiler.scope_end();
 
 	core::profiler.scope_begin("mapping");
-	psl::bytell_map<psl::UID, psl::bytell_map<psl::UID, geometry_instance>> UniqueCombinations;
+	std::unordered_map<psl::UID, std::unordered_map<psl::UID, geometry_instance>> UniqueCombinations;
 
 	for(uint32_t i = 0; i < (uint32_t)geometry_pack.size(); ++i)
 	{
@@ -115,7 +115,7 @@ void geometry_instancing::static_add(info_t& info,
 	if(geometry_pack.size() == 0) return;
 
 	core::profiler.scope_begin("mapping");
-	psl::bytell_map<psl::UID, psl::bytell_map<psl::UID, geometry_instance>> UniqueCombinations;
+	std::unordered_map<psl::UID, std::unordered_map<psl::UID, geometry_instance>> UniqueCombinations;
 
 	for(uint32_t i = 0; i < (uint32_t)geometry_pack.size(); ++i)
 	{

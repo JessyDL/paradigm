@@ -23,3 +23,6 @@ set_property(TARGET gli_dummy PROPERTY FOLDER "extern")
 
 add_subdirectory(litmus)
 set_property(TARGET litmus PROPERTY FOLDER "extern")
+
+add_subdirectory(utfcpp)
+set_property(TARGET utf8cpp PROPERTY FOLDER "extern")

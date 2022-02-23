@@ -20,7 +20,6 @@ endif()
 ###############################################################################
 ###                    general options and setup                            ###
 ###############################################################################
-OPTION(PE_PCH "generate and use precompiled headers (if supported)" OFF)
 OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_ANALYZE "enables static analyzers for the given platform" OFF)

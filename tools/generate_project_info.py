@@ -1,3 +1,4 @@
+from argparse import ArgumentParser
 import os
 import subprocess
 from datetime import datetime
@@ -26,45 +27,54 @@ def all_authors():
     list(sorted(authors.items()))
     return authors.keys()
     
-def generate_header(force = False):
+def generate_header(output=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'inc', 'paradigm.hpp'), force = False):
     version = run_git_command(["tag", "-l", "--sort=-v:refname"])
     version = version.split('\n')[0]
     major, minor, patch = version.split('.')
     sha1 = run_git_command(["rev-parse", "HEAD"]).rstrip()
     unix_timestamp = run_git_command(["log", "-1", "--pretty=format:%ct"])
     utc_timestamp = datetime.utcfromtimestamp(int(unix_timestamp)).strftime('%Y-%m-%d %H:%M:%S')
-    filepath = os.path.dirname(os.path.realpath(__file__)) +"/../core/inc/paradigm.hpp"
+
     authors = all_authors()
-    if os.path.exists(filepath) and not force:
-        fObj = open(filepath, 'r')
-        content = fObj.read()
-        if content.find("#define VERSION_SHA1 " + sha1):
-            print("header file up to date")
-            return
-        print("header file out of date, updating...")
-        fObj.close()
-    fObj = open(filepath, 'w+')
-    fObj.write("// generated header file don't edit.\n")
-    fObj.write("#pragma once\n#include \"psl/ustring.hpp\"\n")
-    fObj.write("#include <array>\n\n")
-    fObj.write("#define VERSION_TIME_UTC \""+utc_timestamp+"\"\n")
-    fObj.write("#define VERSION_TIME_UNIX \""+unix_timestamp+"\"\n")
-    fObj.write("#define VERSION_MAJOR "+major+"\n")
-    fObj.write("#define VERSION_MINOR "+minor+"\n")
-    fObj.write("#define VERSION_PATCH "+patch+"\n")
-    fObj.write("#define VERSION_SHA1 \""+sha1+"\"\n")
-    fObj.write("#define VERSION \""+version + "." +sha1+"\"\n\n")
-    fObj.write("constexpr static psl::string8::view APPLICATION_NAME {\"Paradigm Engine\"};\n")
-    fObj.write("constexpr static psl::string8::view APPLICATION_FULL_NAME {\"Paradigm Engine "+ version + "." +sha1+ " "+ utc_timestamp +"\"};\n")
-    fObj.write("\n constexpr static std::array<psl::string8::view, "+str(len(authors))+ "> APPLICATION_CREDITS\n{{\n")
-    for i, author in enumerate(authors):
-        if i < len(authors) - 1:
-            fObj.write('\t"' + author + '",')
+    openmode = 'r+' if os.path.exists(output) else 'w'
+    with open(output, openmode) as fObj:
+        if openmode == 'r+':
+            content = fObj.read()
+            if not force and f'#define VERSION_SHA1 "{sha1}"' in content:
+                print("header file up to date")
+                return
+            print("header file out of date, updating...")
+            fObj.seek(0)
         else:
-            fObj.write('\t"' + author + '"')
-    fObj.write("\n}};")
-    fObj.truncate()
-    fObj.close()
+            print("header file missing, generating...")
+        fObj.write(
+f"""// generated header file don't edit.
+#pragma once
+#include "psl/ustring.hpp"
+#include <array>
+
+#define VERSION_TIME_UTC "{utc_timestamp}"
+#define VERSION_TIME_UNIX "{unix_timestamp}"
+#define VERSION_MAJOR {major}
+#define VERSION_MINOR {minor}
+#define VERSION_PATCH {patch}
+#define VERSION_SHA1 "{sha1}"
+#define VERSION "{version}.{sha1}"
+
+constexpr static psl::string8::view APPLICATION_NAME {{"Paradigm Engine"}};
+constexpr static psl::string8::view APPLICATION_FULL_NAME {{"Paradigm Engine {version}.{sha1} {utc_timestamp}"}};
+
+constexpr static std::array<psl::string8::view, {len(authors)}> APPLICATION_CREDITS
+{{
+    {f'{os.linesep}    '.join(f'"{author}",' for author in authors)}
+}};
+""")
+        fObj.truncate()
 
 if __name__ == "__main__":
-    generate_header()
+    parser = ArgumentParser()
+    parser.add_argument("--output", type=str, default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'inc', 'paradigm.hpp'), help="Set the location/name of the output header")
+    parser.add_argument("--force", action="store_true", help="Forcibly generate the output header, regardless of the state")
+    args = parser.parse_args()
+    
+    generate_header(args.output, args.force)
