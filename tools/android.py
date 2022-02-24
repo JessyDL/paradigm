@@ -23,7 +23,7 @@ def run_command(command=[], directory=None, print_stdout=False, catch_stdout=Fal
         raise Exception(f"Raised exitcode '{process.returncode}' while trying to run the command '{' '.join(comm for comm in command)}'")
     return output
 
-def generate(directory, project="example"):
+def generate(directory, project="main"):
     os.makedirs(directory, exist_ok=True)
     if not os.path.exists(os.path.join(directory, 'settings.gradle')):
         run_command(command=[

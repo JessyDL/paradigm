@@ -8,8 +8,10 @@ add_definitions(${PE_DEFINES})
 if(PE_PLATFORM STREQUAL "ANDROID")
     add_subdirectory(android_native_app_glue)
     add_library(${LOCAL_PROJECT} SHARED main.cpp)
-    
-    target_link_options(${LOCAL_PROJECT} PRIVATE "-u ANativeActivity_onCreate")
+    set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -u ANativeActivity_onCreate")
+    # todo: for some reason this is ignored?
+    # target_link_options(${LOCAL_PROJECT} PRIVATE "-u ANativeActivity_onCreate")
+
     target_include_directories(${LOCAL_PROJECT} PUBLIC ${ANDROID_NDK}/sources/android/native_app_glue)
 
     target_link_libraries(${LOCAL_PROJECT} PUBLIC ${PROJECT_PSL} ${PROJECT_CORE} ${PE_DL_LIBS} PRIVATE android ${PROJECT_ANDROID_NATIVE_GLUE} EGL GLESv1_CM log)

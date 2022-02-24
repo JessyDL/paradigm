@@ -6,6 +6,7 @@
 namespace core::os
 {
 	class surface;
+	class context;
 }
 
 namespace core::gfx
@@ -27,6 +28,7 @@ namespace core::gfx
 				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,
 				  core::resource::handle<core::gfx::context> context,
+				  core::os::context& os_context,
 				  bool use_depth = true);
 
 		~swapchain() {};

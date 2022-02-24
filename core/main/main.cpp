@@ -29,6 +29,7 @@
 #include "data/window.hpp"	  // application data
 
 #include "os/surface.hpp"	 // the OS surface to draw one
+#include "os/context.hpp"
 
 #include "meta/shader.hpp"
 #include "meta/texture.hpp"
@@ -316,7 +317,7 @@ void setup_loggers()
 
 #endif
 
-int entry(gfx::graphics_backend backend)
+int entry(gfx::graphics_backend backend, core::os::context& os_context)
 {
 	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
 
@@ -346,7 +347,7 @@ int entry(gfx::graphics_backend backend)
 
 	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME});
 
-	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle);
+	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
 	if(!cache.library().contains("234318ae-3590-f1e2-bac5-f113cac3be9b"_uid) ||
@@ -828,7 +829,7 @@ ECSState.create(
 	size_t burst = 40000;
 #endif
 
-	while(surface_handle->tick())
+	while(os_context.tick() && surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.size<renderable>());
@@ -932,8 +933,12 @@ ECSState.create(
 
 #if defined(PLATFORM_ANDROID)
 
-void android_main(struct android_app* application)
+void android_main(android_app* application)
 {
+	auto os_context = core::os::context{application};
+	setup_loggers();
+	std::srand(0);
+	entry(graphics_backend::vulkan, os_context);
 	return;
 }
 
@@ -985,7 +990,7 @@ int main(int argc, char* argv[])
 		return graphics_backend::gles;
 #endif
 	}(argc, argv);
-
-	return entry(backend);
+	core::os::context context{};
+	return entry(backend, context);
 }
 #endif

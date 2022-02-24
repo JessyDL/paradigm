@@ -44,6 +44,7 @@ meta/shader
 meta/texture
 
 os/surface
+os/context
 
 systems/input
 
@@ -75,7 +76,6 @@ ecs/components/text
 
 utility/geometry
 )
-
 
 list(TRANSFORM INC PREPEND inc/)
 list(TRANSFORM INC APPEND .hpp)
