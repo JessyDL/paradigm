@@ -115,7 +115,7 @@ jobs:
         name: ubuntu-${{ matrix.graphics }}-bin
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
-      run: apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+      run: apt-get update && apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: prepare
       run: chmod +x benchmarks
     - name: benchmark
