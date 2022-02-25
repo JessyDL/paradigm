@@ -3,13 +3,13 @@
 #include "../entity.hpp"
 #include "component_key.hpp"
 #include "psl/array_view.hpp"
-#include "psl/assertions.hpp"
 #include "psl/memory/sparse_array.hpp"
 #include "psl/sparse_array.hpp"
 #include "psl/sparse_indice_array.hpp"
 #include "psl/static_array.hpp"
 #include <functional>
 #include <numeric>
+#include "psl/assertions.hpp"
 namespace psl
 {
 	template <typename... Ts>

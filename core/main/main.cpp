@@ -7,6 +7,7 @@
 //#include <Windows.h>
 //#include "stdafx.h"
 #include "psl/application_utils.hpp"
+#include "psl/platform_utils.hpp"
 #include "psl/library.hpp"
 #include "resource/resource.hpp"
 
@@ -112,7 +113,7 @@ void load_texture(resource::cache_t& cache, handle<core::gfx::context> context_h
 	if(!cache.contains(texture))
 	{
 		auto textureHandle = cache.instantiate<gfx::texture_t>(texture, context_handle);
-		assert(textureHandle);
+		psl_assert(textureHandle, "invalid textureHandle");
 	}
 }
 
@@ -306,12 +307,12 @@ void setup_loggers()
 #include "spdlog/sinks/android_sink.h"
 void setup_loggers()
 {
-	core::log		   = spdlog::android_logger_mt("main");
-	core::systems::log = spdlog::android_logger_mt("systems");
-	core::os::log	   = spdlog::android_logger_mt("os");
-	core::data::log	   = spdlog::android_logger_mt("data");
-	core::gfx::log	   = spdlog::android_logger_mt("gfx");
-	core::ivk::log	   = spdlog::android_logger_mt("ivk");
+	core::log		   = spdlog::android_logger_mt("main", "paradigm");
+	core::systems::log = spdlog::android_logger_mt("systems", "paradigm");
+	core::os::log	   = spdlog::android_logger_mt("os", "paradigm");
+	core::data::log	   = spdlog::android_logger_mt("data", "paradigm");
+	core::gfx::log	   = spdlog::android_logger_mt("gfx", "paradigm");
+	core::ivk::log	   = spdlog::android_logger_mt("ivk", "paradigm");
 	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 
@@ -333,7 +334,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 		break;
 	}
 
+	core::log->info("creating cache");
 	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
+	core::log->info("cache created");
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
 
 	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
@@ -933,11 +936,16 @@ ECSState.create(
 
 #if defined(PLATFORM_ANDROID)
 
+// todo move to os context
+AAssetManager* utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
+
 void android_main(android_app* application)
 {
 	auto os_context = core::os::context{application};
+	utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
 	setup_loggers();
 	std::srand(0);
+
 	entry(graphics_backend::vulkan, os_context);
 	return;
 }

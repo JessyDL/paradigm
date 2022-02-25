@@ -276,7 +276,7 @@ namespace core
 			}
 			break;
 			}
-			assert(false && "unknown sized stream");
+			psl_assert(false, "unknown sized stream");
 			return 0;
 		}
 

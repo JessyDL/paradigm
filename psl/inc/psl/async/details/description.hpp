@@ -74,7 +74,7 @@ namespace psl::async::details
 						   std::end(m_DynamicBarriers),
 						   std::back_inserter(m_Barriers),
 						   [](std::future<barrier>& barrier) {
-							   assert_debug_break(barrier.valid());
+							   psl_assert(barrier.valid(), "barrier was not valid");
 							   return barrier.get();
 						   });
 			m_DynamicBarriers.clear();
@@ -83,7 +83,7 @@ namespace psl::async::details
 						   std::end(m_SharedDynamicBarriers),
 						   std::back_inserter(m_Barriers),
 						   [](std::shared_future<barrier>& barrier) {
-							   assert_debug_break(barrier.valid());
+							   psl_assert(barrier.valid(), "barrier was not valid");
 							   return barrier.get();
 						   });
 			m_SharedDynamicBarriers.clear();

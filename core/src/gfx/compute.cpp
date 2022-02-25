@@ -39,7 +39,7 @@ compute::compute(core::resource::cache_t& cache,
 		break;
 #endif
 #ifdef PE_VULKAN
-		assert(true && "todo implement vulkan backend");
+		psl::not_implemented("todo implement vulkan backend");
 		/*case graphics_backend::vulkan:
 			m_Handle << cache.create_using<core::ivk::compute>(metaData.uid,
 																context_handle->resource().get<core::ivk::context>(),

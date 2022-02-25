@@ -6,17 +6,7 @@
 #include <cctype>
 #include <clocale>
 #include <vector>
-#ifndef PLATFORM_ANDROID
-#if __has_include(<filesystem>)
 #include <filesystem>
-#else
-#include <experimental/filesystem>
-namespace std::filesystem
-{
-	using namespace experimental::filesystem;
-}
-#endif
-#endif
 #include <optional>
 #include <thread>
 #include <unordered_map>
@@ -24,6 +14,9 @@ namespace std::filesystem
 
 // https://en.wikipedia.org/wiki/Path_%28computing%29#Representations_of_paths_by_operating_system_and_shell
 
+#if defined(PLATFORM_ANDROID)
+struct AAssetManager;
+#endif
 namespace utility
 {
 	/// \brief contains some debug information, such as trace information, as well as utilities to debug.
@@ -228,6 +221,8 @@ namespace utility::platform
 		{
 #ifdef PLATFORM_WINDOWS
 			return to_windows(path);
+#elif defined(PLATFORM_ANDROID)
+			return psl::string{path};
 #else
 			return to_unix(path);
 #endif
@@ -244,11 +239,7 @@ namespace utility::platform
 		/// \todo android platform always returns false. Check if there is a way around this or redesign this.
 		static bool is_directory(psl::string_view path)
 		{
-#ifdef PLATFORM_ANDROID
-			return false;
-#else
 			return std::filesystem::is_directory(to_platform(path));
-#endif
 		}
 
 		/// \brief sanitizes the seperators into the application wide standard one.
@@ -264,11 +255,7 @@ namespace utility::platform
 		/// \todo android platform always fails this, is it possible this is not always the case?
 		inline static bool erase(psl::string_view path)
 		{
-#ifdef PLATFORM_ANDROID
-			return false;
-#else
 			return std::filesystem::remove(directory::to_platform(path));
-#endif
 		}
 		/// \brief checks if the given path (absolute) points to a directory or not.
 		/// \param[in] absolutePath the path to check.
@@ -292,9 +279,6 @@ namespace utility::platform
 		/// generic path format. \todo on android no search is run.
 		static std::vector<psl::string> all_files(psl::string_view target_directory, bool recursive)
 		{
-#ifdef PLATFORM_ANDROID
-			return {};
-#else
 			auto folder = to_platform(target_directory);
 			std::vector<psl::string> names;
 			if(recursive)
@@ -330,27 +314,22 @@ namespace utility::platform
 				}
 			}
 			return names;
-#endif
 		}
 	};
 
 	/// \brief file i/o and manpulations utilities namespace
 	namespace file
 	{
+		#if defined(PLATFORM_ANDROID)
+		extern AAssetManager* ANDROID_ASSET_MANAGER;
+		#endif
 		/// \brief checks if the given path points to a file or not.
 		///
 		/// checks if the given path points to a file or not. This path can be relative to the current working
 		/// directory, usually the app root is the working directory, or an absolute path. \param[in] filename the path
 		/// to the file to check. \returns true in case the target is indeed a file, otherwise in all scenarios it
 		/// returns false. \todo android lacks an implementation.
-		inline static bool exists(psl::string_view filename)
-		{
-#ifdef PLATFORM_ANDROID
-			return false;
-#else
-			return std::filesystem::exists(directory::to_platform(filename));
-#endif
-		}
+		bool exists(psl::string_view filename);
 
 		/// \brief erases the file ath the given path.
 		/// \param[in] filename the path to the file.
@@ -358,11 +337,7 @@ namespace utility::platform
 		/// \todo android lacks an implementation.
 		inline static bool erase(psl::string_view filename)
 		{
-#ifdef PLATFORM_ANDROID
-			return false;
-#else
 			return std::filesystem::remove(directory::to_platform(filename));
-#endif
 		}
 
 		/// \brief reads the given filepath's contents into a psl::char_t container.
@@ -372,24 +347,9 @@ namespace utility::platform
 		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
 		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 		/// the file you wish to load.
-		static bool read(psl::string_view filename,
+		bool read(psl::string_view filename,
 						 std::vector<psl::char_t>& out,
-						 size_t count = std::numeric_limits<size_t>::max())
-		{
-			psl::string file_name = directory::to_platform(filename);
-			psl::ifstream file(file_name, std::ios::binary | std::ios::ate);
-			if(!file.is_open())
-			{
-				psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
-				return false;
-			}
-			size_t size = std::min(static_cast<size_t>(file.tellg()), count);
-			file.seekg(0u, std::ios::beg);
-			out.resize(size);
-			file.read(&out[0], size);
-			file.close();
-			return true;
-		}
+						 size_t count = std::numeric_limits<size_t>::max());
 
 		/// \brief reads the given filepath's contents into a psl::string container.
 		/// \param[in] filename the path to the file.
@@ -398,22 +358,7 @@ namespace utility::platform
 		/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
 		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 		/// the file you wish to load.
-		static bool read(psl::string_view filename, psl::string& out, size_t count = std::numeric_limits<size_t>::max())
-		{
-			psl::string file_name = directory::to_platform(filename);
-			std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
-			if(!file.is_open())
-			{
-				psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
-				return false;
-			}
-			size_t size = std::min(static_cast<size_t>(file.tellg()), count);
-			file.seekg(0u, std::ios::beg);
-			out.resize(size);
-			file.read(&out[0], size);
-			file.close();
-			return true;
-		}
+		bool read(psl::string_view filename, psl::string& out, size_t count = std::numeric_limits<size_t>::max());
 
 		/// \brief reads the given filepath's contents into a psl::string container on success.
 		/// \param[in] filename the path to the file.
@@ -474,6 +419,8 @@ namespace utility::platform
 		{
 #ifdef PLATFORM_WINDOWS
 			return to_windows(path);
+#elif defined(PLATFORM_ANDROID)
+			return psl::string{path};
 #else
 			return to_unix(path);
 #endif

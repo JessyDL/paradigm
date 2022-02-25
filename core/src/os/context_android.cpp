@@ -1,8 +1,8 @@
 #define PLATFORM_ANDROID
 #include <android/sensor.h>
 #include <android_native_app_glue.h>
+#include <psl/assertions.hpp>
 #include "os/context.hpp"
-#include <cassert>
 
 static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
     switch (cmd) {
@@ -87,7 +87,7 @@ ASensorManager* AcquireASensorManagerInstance(android_app* app) {
   auto getInstanceFunc = (PF_GETINSTANCE)
       dlsym(androidHandle, "ASensorManager_getInstance");
   // by all means at this point, ASensorManager_getInstance should be available
-  assert(getInstanceFunc);
+  psl_assert(getInstanceFunc, "Could not find ASensorManager_getInstance");
   dlclose(androidHandle);
 
   return getInstanceFunc();

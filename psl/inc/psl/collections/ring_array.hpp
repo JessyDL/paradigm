@@ -91,7 +91,7 @@ namespace psl
 			}
 			iterator& operator-=(difference_type n)
 			{
-				assert(n <= m_Index);
+				psl_assert(n <= m_Index, "expected index: {} to be larger than {}", m_Index, n);
 				m_Index -= n;
 				return *this;
 			}

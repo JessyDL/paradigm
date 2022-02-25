@@ -65,7 +65,6 @@ material_t::material_t(core::resource::cache_t& cache,
 			case core::gfx::binding_type::combined_image_sampler:
 			{
 				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
-				// assert(binding_slot != -1);
 
 				if(auto sampler_handle = cache.find<core::igles::sampler_t>(binding.sampler()); sampler_handle)
 				{

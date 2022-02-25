@@ -234,7 +234,7 @@ auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt
 template <typename... Ts>
 void run_system(benchmark::State& gState, state_t& state, const std::vector<entity>& count)
 {
-	assert(count.size() == 5);
+	psl_assert(count.size() == 5, "expected size to be 5");
 	auto entities = state.create(count[0]);
 	std::random_device rd;
 	std::mt19937 g(rd());

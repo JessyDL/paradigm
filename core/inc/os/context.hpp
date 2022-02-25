@@ -28,6 +28,7 @@ namespace core::os
 {
     class context 
     {
+      public:
         bool tick() noexcept { return true; }
     };
 }

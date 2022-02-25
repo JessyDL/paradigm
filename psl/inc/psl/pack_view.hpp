@@ -479,7 +479,7 @@ namespace psl
 		pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...))
 		{
 #ifdef PE_DEBUG
-			auto test = [](size_t size1, size_t size2) { assert_debug_break(size1 == size2); };
+			auto test = [](size_t size1, size_t size2) { psl_assert(size1 == size2, "expected {} == {}", size1, size2); };
 			(test(views.size(), size()), ...);
 #endif
 		}

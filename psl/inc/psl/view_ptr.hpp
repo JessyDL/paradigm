@@ -50,7 +50,7 @@ namespace psl
 
 		constexpr reference operator*() const noexcept
 		{
-			assert_debug_break(m_Value != nullptr);
+			psl_assert(m_Value != nullptr, "m_Value was null");
 			return *m_Value;
 		}
 

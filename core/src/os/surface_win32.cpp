@@ -3,7 +3,6 @@
 #include "psl/assertions.hpp"
 #include "systems/input.hpp"
 #include <Windows.h>
-#include <cassert>
 
 using namespace core::os;
 using namespace core;
@@ -13,8 +12,8 @@ uint64_t surface::win32_class_id_counter {0};
 bool surface::init_surface()
 {
 	WNDCLASSEX win_class {};
-	assert(m_Data->width() > 0);
-	assert(m_Data->height() > 0);
+	psl_assert(m_Data->width() > 0, "attempted to make a surface with width: {}", m_Data->width());
+	psl_assert(m_Data->height() > 0, "attempted to make a surface with height: {}", m_Data->height());
 
 	int width  = m_Data->width();
 	int height = m_Data->height();
@@ -42,7 +41,7 @@ bool surface::init_surface()
 	if(!RegisterClassEx(&win_class))
 	{
 		// It didn't work, so try to give a useful error:
-		assert(0 && "Cannot create a window in which to draw!\n");
+		psl::unreachable("Cannot create a window in which to draw!")
 		fflush(stdout);
 		std::exit(-1);
 	}

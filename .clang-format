@@ -66,4 +66,5 @@ CommentPragmas:  '.* \\(param|tparam|brief|detail|details|return|returns|note|wa
 # EmptyLineBeforeAccessModifier: LogicalBlock
 # IndentRequires: true
 # BreakBeforeConceptDeclarations: true
+IndentPPDirectives: BeforeHash
 ...

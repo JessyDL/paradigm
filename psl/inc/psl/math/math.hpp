@@ -586,9 +586,8 @@ namespace psl::math
 									  (mat[{1, 2}] + mat[{2, 1}]) * mult,
 									  biggestVal,
 									  (mat[{0, 1}] - mat[{1, 0}]) * mult);
-		default:	// Silence a -Wswitch-default warning in GCC. Should never actually get here. Assert is just for
-					// sanity.
-			assert(false);
+		default:
+			psl::unreachable();
 			return tquat<precision_t>(0, 0, 0, 1);
 		}
 	}

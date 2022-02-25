@@ -121,7 +121,7 @@ vk::DescriptorImageInfo& texture_t::descriptor(const UID& sampler)
 	}
 
 	auto samplerHandle = m_Cache.find<core::ivk::sampler_t>(sampler);
-	assert(samplerHandle);
+	psl_assert(samplerHandle, "invalid samplerHandle");
 
 	vk::DescriptorImageInfo* descriptor = new vk::DescriptorImageInfo();
 	descriptor->sampler					= samplerHandle->get(mip_levels());

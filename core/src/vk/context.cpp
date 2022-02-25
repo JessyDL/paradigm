@@ -157,10 +157,10 @@ context::context(core::resource::cache_t& cache,
 
 	vk::ApplicationInfo appInfo;
 	appInfo.pApplicationName = name.data();
-	appInfo.pEngineName		 = APPLICATION_NAME.data();
-	assert_debug_break(VERSION_MAJOR < std::pow(2, 10));
-	assert_debug_break(VERSION_MINOR < std::pow(2, 10));
-	assert_debug_break(VERSION_PATCH < std::pow(2, 12));
+	appInfo.pEngineName		 = APPLICATION_NAME.data();	
+	psl_assert(VERSION_MAJOR < std::pow(2, 10), "VERSION_MAJOR {} was higher than {}", VERSION_MAJOR, std::pow(2, 10));
+	psl_assert(VERSION_MINOR < std::pow(2, 10), "VERSION_MINOR {} was higher than {}", VERSION_MINOR, std::pow(2, 10));
+	psl_assert(VERSION_PATCH < std::pow(2, 12), "VERSION_PATCH {} was higher than {}", VERSION_PATCH, std::pow(2, 12));
 	appInfo.engineVersion = (((VERSION_MAJOR) << 22) | ((VERSION_MINOR) << 12) | (VERSION_PATCH));
 	appInfo.apiVersion	  = VK_API_VERSION_LATEST;
 

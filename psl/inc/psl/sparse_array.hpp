@@ -160,7 +160,7 @@ namespace psl
 		{
 			index_type sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert_debug_break(m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max());
+			psl_assert(m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max(), "{} != {}", m_Sparse[chunk_index][sparse_index], std::numeric_limits<index_type>::max());
 			return m_Dense[m_Sparse[chunk_index][sparse_index]];
 		}
 
@@ -363,7 +363,10 @@ namespace psl
 				return;
 			}
 
-			assert(std::all_of(&first, &last, [this](index_type i) { return has(i); }));
+			psl_assert(std::all_of(&first, &last, [this](index_type i) { return has(i); }),
+					   "Tried to erase an invalid index from the sparse array when erasing the range [{}, {})",
+					   first,
+					   last);
 
 			if(last - first == m_Dense.size())
 			{

@@ -128,7 +128,7 @@ namespace psl
 				}
 			}
 
-			assert(it->first->references == 0);
+			psl_assert(it->first->references == 0, "Should have 0 references");
 
 			for(auto* node : it->second)
 			{

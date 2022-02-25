@@ -31,7 +31,7 @@
 
 #include "psl/logging.hpp"
 #include "psl/ustring.hpp"
-#include <assert.h>
+#include "psl/assertions.hpp"
 #include <unordered_map>
 
 // Set to "true" to use staging buffers for uploading
@@ -521,25 +521,14 @@ namespace utility::vulkan
 {
 	inline bool check(const vk::Result& value)
 	{
-		if(value != vk::Result::eSuccess)
-		{
-			LOG_FATAL("vk::Result is \"", vk::to_string(value), "\" in ", __FILE__, " at line ", __LINE__);
-			assert(value == vk::Result::eSuccess);
-			return false;
-		}
-
-		return true;
+		psl_assert(value == vk::Result::eSuccess, "vk::Result expected success, but got {}", vk::to_string(value));
+		return value == vk::Result::eSuccess;
 	}
 
 	inline bool check(const VkResult& value)
 	{
-		if(value != VkResult::VK_SUCCESS)
-		{
-			LOG_FATAL("vk::Result is \"", vk::to_string((vk::Result)value), "\" in ", __FILE__, " at line ", __LINE__);
-			assert(value == VkResult::VK_SUCCESS);
-			return false;
-		}
-		return true;
+		psl_assert(value == VkResult::VK_SUCCESS, "vk::Result expected success, but got {}", vk::to_string((vk::Result)value));
+		return value == VkResult::VK_SUCCESS;
 	}
 
 	template <typename T>
