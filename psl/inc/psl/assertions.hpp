@@ -75,7 +75,7 @@ namespace psl
 #endif
 	}
 
-	[[noreturn]] constexpr void unreachable(const std::string& reason = "")
+	[[noreturn]] inline void unreachable(const std::string& reason = "")
 	{
 		if(reason.empty())
 			print(level_t::fatal, "unreachable code reached.");
@@ -84,7 +84,7 @@ namespace psl
 		std::terminate();
 	}
 
-	[[noreturn]] constexpr void not_implemented(size_t issue = 0)
+	[[noreturn]] inline void not_implemented(size_t issue = 0)
 	{
 		if(issue != 0)
 			print(level_t::fatal,
@@ -95,7 +95,7 @@ namespace psl
 		std::terminate();
 	}
 
-	[[noreturn]] constexpr void not_implemented(const std::string& reason, size_t issue = 0)
+	[[noreturn]] inline void not_implemented(const std::string& reason, size_t issue = 0)
 	{
 		if(issue != 0)
 			print(level_t::fatal,
