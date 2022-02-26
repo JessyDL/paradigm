@@ -333,7 +333,7 @@ utility::debug::trace_info utility::debug::demangle(void* target)
 bool utility::platform::file::exists(psl::string_view filename)
 {
 	#if defined(PLATFORM_ANDROID)
-		return AAssetManager_open(ANDROID_ASSET_MANAGER, filename.data(), AASSET_MODE_UNKNOWN) != nullptr;
+		return AAssetManager_open(ANDROID_ASSET_MANAGER, directory::to_platform(filename).data(), AASSET_MODE_UNKNOWN) != nullptr;
 	#else
 		return std::filesystem::exists(directory::to_platform(filename));
 	#endif
@@ -343,7 +343,7 @@ bool utility::platform::file::exists(psl::string_view filename)
 bool utility::platform::file::read(psl::string_view filename, std::vector<psl::char_t>& out, size_t count)
 {
 	psl::string file_name = directory::to_platform(filename);
-	psl::print(psl::level_t::verbose, "checking if '{}' exists", directory::to_platform(filename));
+	psl_assert(exists(file_name), "Could not find filename {}", file_name);
 	#if !defined(PLATFORM_ANDROID)
 		psl::ifstream file(file_name, std::ios::binary | std::ios::ate);
 		if(!file.is_open())
@@ -397,6 +397,7 @@ bool utility::platform::file::read(psl::string_view filename, std::vector<psl::c
 bool utility::platform::file::read(psl::string_view filename, psl::string& out, size_t count)
 {
 	psl::string file_name = directory::to_platform(filename);
+	psl_assert(exists(file_name), "Could not find filename {}", file_name);
 	#if !defined(PLATFORM_ANDROID)
 		std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
 		if(!file.is_open())

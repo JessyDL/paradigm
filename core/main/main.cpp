@@ -166,7 +166,7 @@ handle<core::gfx::material_t> setup_gfx_material(resource::cache_t& cache,
 												 handle<core::gfx::buffer_t> matBuffer,
 												 psl::UID vert,
 												 psl::UID frag,
-												 const psl::UID& texture)
+												 const psl::UID& texture = psl::UID::invalid_uid)
 {
 	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, texture);
 	auto material = cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, matBuffer);
@@ -481,8 +481,8 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	  utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
 
-	geometryDataHandles.push_back(
-	  cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
+	// geometryDataHandles.push_back(
+	//   cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
 	auto water_plane_index = geometryDataHandles.size() - 1;
 	for(auto& handle : geometryDataHandles)
 	{
@@ -535,50 +535,50 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 											  pipeline_cache,
 											  instanceMaterialBuffer,
 											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "9b42f9b6-75f6-a4f1-a219-986033d37d8a"_uid));
+											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid/*,
+											  "9b42f9b6-75f6-a4f1-a219-986033d37d8a"_uid*/));
 
-	// grass
-	materials.emplace_back(setup_gfx_material(cache,
-											  context_handle,
-											  pipeline_cache,
-											  instanceMaterialBuffer,
-											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "944e7173-ede1-0bed-cffe-d6a5a34449be"_uid));
+	// // grass
+	// materials.emplace_back(setup_gfx_material(cache,
+	// 										  context_handle,
+	// 										  pipeline_cache,
+	// 										  instanceMaterialBuffer,
+	// 										  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
+	// 										  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
+	// 										  "944e7173-ede1-0bed-cffe-d6a5a34449be"_uid));
 
-	// dirt
-	materials.emplace_back(setup_gfx_material(cache,
-											  context_handle,
-											  pipeline_cache,
-											  instanceMaterialBuffer,
-											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "f24fa9d7-966a-e942-851b-5b6fb30dd0b6"_uid));
+	// // dirt
+	// materials.emplace_back(setup_gfx_material(cache,
+	// 										  context_handle,
+	// 										  pipeline_cache,
+	// 										  instanceMaterialBuffer,
+	// 										  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
+	// 										  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
+	// 										  "f24fa9d7-966a-e942-851b-5b6fb30dd0b6"_uid));
 
-	// rock
-	materials.emplace_back(setup_gfx_material(cache,
-											  context_handle,
-											  pipeline_cache,
-											  instanceMaterialBuffer,
-											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "eb4e6f57-1d5d-56d3-41ed-27ea6b5f5ea1"_uid));
+	// // rock
+	// materials.emplace_back(setup_gfx_material(cache,
+	// 										  context_handle,
+	// 										  pipeline_cache,
+	// 										  instanceMaterialBuffer,
+	// 										  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
+	// 										  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
+	// 										  "eb4e6f57-1d5d-56d3-41ed-27ea6b5f5ea1"_uid));
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
 	bundles.back()->set_material(materials[0], 2000);
 	bundles.back()->set_material(depth_material, 1000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles.back()->set_material(materials[1], 2000);
-	bundles.back()->set_material(depth_material, 1000);
+	// bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+	// bundles.back()->set_material(materials[1], 2000);
+	// bundles.back()->set_material(depth_material, 1000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles.back()->set_material(materials[2], 2000);
+	// bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+	// bundles.back()->set_material(materials[2], 2000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles.back()->set_material(materials[3], 2000);
+	// bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+	// bundles.back()->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph {};
 	auto frameBufferData =
@@ -946,6 +946,14 @@ void android_main(android_app* application)
 	setup_loggers();
 	std::srand(0);
 
+	// go into a holding loop while wait for the window to come online.
+	while(true) {
+		os_context.tick();
+		__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window ") + std::to_string((size_t)(os_context.application().window))).data());
+		if(os_context.application().window != nullptr)
+			break;
+	}
+	__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window is loaded ") + std::to_string((size_t)(os_context.application().window))).data());
 	entry(graphics_backend::vulkan, os_context);
 	return;
 }

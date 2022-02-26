@@ -1,6 +1,7 @@
 from argparse import ArgumentParser
 import io
 import os
+import shutil
 import subprocess
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
@@ -91,15 +92,48 @@ def install_required_packages():
     install_required("cmake;3.22.1", channel=3)
     install_required("ndk;25.0.8151533", channel=1)
 
+def build(directory, type='debug'):
+    commands =[]
+    if type == 'debug':
+        commands = [':app:bundleDebug']
+    elif type == 'release':
+        commands = [':app:bundleRelease']
+
+    run_command(['./gradlew'] + commands, directory=directory, print_stdout=True)
+
+def install(directory, type='debug'):
+    run_command(['adb', 'install', '-r', os.path.join(directory, 'app', 'build', 'outputs', 'apk', type, f'app-{type}.apk')], print_stdout=True)
+
+def run():
+    run_command(['adb', 'shell', 'am', 'start', '-n', 'com.paradigmengine.main/com.paradigmengine.main.MainActivity'], print_stdout=True)
+    
 def main():
     parser = ArgumentParser()
     parser.add_argument("--output", default=os.path.join(ROOT_DIR, "builds", "android"))
     parser.add_argument("--sdk", default=None, help="set to override the used android sdk, falls back to path available one")
+    parser.add_argument("-f", "--force", action="store_true", help="Forcibly generate the build directory even if it already exists")
+    parser.add_argument("-r", "--run", action="store_true", help="run the intent after installation")
+    parser.add_argument("-i", "--install", action="store_true", help="install the apk")
+    parser.add_argument("-b", "--build", action="store_true", help="build the apk")
+    parser.add_argument("-t", "--type", default="debug", help="type to generate")
+    parser.add_argument("--purge", action="store_true", help="Delete previous install, and generate from scratch")
     args = parser.parse_args()
 
     install_required_packages()
+    if args.purge:
+        args.force = True
+        shutil.rmtree(args.output, ignore_errors=True)
 
-    generate(args.output)
+
+    if not os.path.exists(args.output) or args.force:
+        generate(args.output)
+
+    if args.build:
+        build(args.output, args.type)
+    if args.install:
+        install(args.output, args.type)
+    if args.run:
+        run()
 
 if __name__ == "__main__":
     main()

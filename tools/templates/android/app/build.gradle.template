@@ -3,7 +3,7 @@ apply plugin: 'com.android.application'
 android {
     compileSdkVersion 31
     ndkVersion '25.0.8151533'
-
+    assetPacks = [":package_0"]
     defaultConfig {
         applicationId = 'com.{{COMPANY}}.{{PROJECT}}'
         minSdkVersion 21

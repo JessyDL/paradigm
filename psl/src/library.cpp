@@ -69,9 +69,10 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 		psl::string8_t extension = filepath.substr(filepath.find_last_of('.') + 1);
 
 		file* metaPtr = nullptr;
-		psl_assert(utility::platform::file::exists(root + metapath),
-				   "could not find file associated with UID {} at {}",uid.to_string(), root + metapath);
-		s.deserialize<decode_from_format>(metaPtr, root + metapath);
+		auto full_metapath = utility::platform::file::to_platform(root + metapath);
+		psl_assert(utility::platform::file::exists(full_metapath),
+				   "could not find file associated with UID {} at {}",uid.to_string(), full_metapath);
+		s.deserialize<decode_from_format>(metaPtr, full_metapath);
 
 		psl_assert(metaPtr->ID() == uid,
 				   "UID mismatch between library and metafile library expected {} but file has {}", uid.to_string(), metaPtr->ID().to_string());

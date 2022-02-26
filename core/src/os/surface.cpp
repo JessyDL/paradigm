@@ -13,9 +13,9 @@ surface::surface(core::resource::cache_t& cache,
 				 psl::meta::file* metaFile,
 				 core::resource::handle<data::window> data) :
 	m_Data(data),
-	m_InputSystem(new core::systems::input())
+	m_InputSystem(new core::systems::input()),
+	m_Open(init_surface())
 {
-	init_surface();
 }
 
 surface::~surface()

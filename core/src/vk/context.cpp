@@ -133,6 +133,7 @@ context::context(core::resource::cache_t& cache,
 
 	uint32_t extensionCount = 0;
 	auto extensions			= vk::enumerateInstanceExtensionProperties();
+	core::ivk::log->info("instance extensions: {}", extensions.value.size());
 	for(const auto& ext : extensions.value)
 	{
 		core::ivk::log->info("instance extension: {}", psl::string(&ext.extensionName[0]));
@@ -140,12 +141,14 @@ context::context(core::resource::cache_t& cache,
 	uint32_t instanceCount = 0;
 	auto instances		   = vk::enumerateInstanceLayerProperties();
 
+	core::ivk::log->info("instance layers: {}", instances.value.size());
 	for(const auto& inst : instances.value)
 	{
 		core::ivk::log->info("instance layer: {}", psl::string(&inst.layerName[0]));
 	}
 	if(m_Validated)
 	{
+		core::ivk::log->info("Enabling 'VK_LAYER_KHRONOS_validation'");
 		m_InstanceLayerList.push_back("VK_LAYER_KHRONOS_validation");
 		m_InstanceExtensionList.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	}

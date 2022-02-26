@@ -40,6 +40,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	vk::AndroidSurfaceCreateInfoKHR createInfo;
 	core::ivk::log->info("creating android swapchain");
 	createInfo.window = os_context.application().window;
+	psl_assert(createInfo.window != nullptr, "application window was invalid");
 	utility::vulkan::check(m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_D2D)
 	uint32_t displayPropertyCount;

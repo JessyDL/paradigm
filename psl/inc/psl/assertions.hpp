@@ -4,6 +4,8 @@
 
 #ifdef PLATFORM_ANDROID
 	#include <android/log.h>
+#else
+	#include <source_location>
 #endif	  // PLATFORM_ANDROID
 
 namespace psl
@@ -17,94 +19,121 @@ namespace psl
 		error,
 		fatal,
 	};
-	template <typename... Args>
-	constexpr void print(level_t level, const char* fmt = "failed assert", Args&&... args)
+
+	namespace details
 	{
-#ifdef PLATFORM_ANDROID
-		int log_level = ANDROID_LOG_SILENT;
-		switch(level)
+		/// \todo When Android implements source_location, remove the ifdefs
+		template<typename... Args>
+		struct print_t
 		{
-		case level_t::verbose:
-			log_level = ANDROID_LOG_VERBOSE;
-			break;
-		case level_t::debug:
-			log_level = ANDROID_LOG_DEBUG;
-			break;
-		case level_t::info:
-			log_level = ANDROID_LOG_INFO;
-			break;
-		case level_t::warn:
-			log_level = ANDROID_LOG_WARN;
-			break;
-		case level_t::error:
-			log_level = ANDROID_LOG_ERROR;
-			break;
-		case level_t::fatal:
-			log_level = ANDROID_LOG_FATAL;
-			break;
-		default:
-			log_level = ANDROID_LOG_SILENT;
-		}
-		__android_log_write(log_level, "paradigm", fmt::format(fmt, std::forward<Args>(args)...).c_str());
+			#if defined(PLATFORM_ANDROID)
+			print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
+			{
+				int log_level = ANDROID_LOG_SILENT;
+				switch(level)
+				{
+				case level_t::verbose:
+					log_level = ANDROID_LOG_VERBOSE;
+					break;
+				case level_t::debug:
+					log_level = ANDROID_LOG_DEBUG;
+					break;
+				case level_t::info:
+					log_level = ANDROID_LOG_INFO;
+					break;
+				case level_t::warn:
+					log_level = ANDROID_LOG_WARN;
+					break;
+				case level_t::error:
+					log_level = ANDROID_LOG_ERROR;
+					break;
+				case level_t::fatal:
+					log_level = ANDROID_LOG_FATAL;
+					break;
+				default:
+					log_level = ANDROID_LOG_SILENT;
+				}
+				__android_log_write(log_level, "paradigm", fmt::format(format, std::forward<Args>(args)...).c_str());
+				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
+			}
+			#else
+			print_t(level_t level, const char* fmt, Args&&... args, const std::source_location& loc = std::source_location::current())
+			{
+				const char* log_level;
+				switch(level)
+				{
+				case level_t::verbose:
+					log_level = "[verbose] {}\n    at: {} ({}:{}:{})";
+					break;
+				case level_t::debug:
+					log_level = "[debug]   {}\n    at: {} ({}:{}:{})";
+					break;
+				case level_t::info:
+					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
+					break;
+				case level_t::warn:
+					log_level = "[warn]    {}\n    at: {} ({}:{}:{})";
+					break;
+				case level_t::error:
+					log_level = "[error]   {}\n    at: {} ({}:{}:{})";
+					break;
+				case level_t::fatal:
+					log_level = "[fatal]   {}\n    at: {} ({}:{}:{})";
+					break;
+				default:
+					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
+				}
+				fmt::print(fmt::format(log_level, fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column()), std::forward<Args>(args)...);
+			}
+			#endif
+		};
+#if defined(PLATFORM_ANDROID)
+		template <typename... Ts>
+		print_t(level_t, const char*, const char*, int, const char*, Ts&&...)->print_t<Ts...>;
 #else
-		const char* log_level;
-		switch(level)
-		{
-		case level_t::verbose:
-			log_level = "[verbose] {}";
-			break;
-		case level_t::debug:
-			log_level = "[debug]   {}";
-			break;
-		case level_t::info:
-			log_level = "[info]    {}";
-			break;
-		case level_t::warn:
-			log_level = "[warn]    {}";
-			break;
-		case level_t::error:
-			log_level = "[error]   {}";
-			break;
-		case level_t::fatal:
-			log_level = "[fatal]   {}";
-			break;
-		default:
-			log_level = "[info]    {}";
-		}
-		fmt::print(fmt::format(log_level, fmt), std::forward<Args>(args)...);
+		template <typename... Ts>
+		print_t(level_t, const char*, Ts&&...)->print_t<Ts...>;
 #endif
 	}
+}
 
+#if defined(PLATFORM_ANDROID)
+	#define psl_print(level, message, ...) psl::details::print_t{level, __PRETTY_FUNCTION__, __FILE__, __LINE__, message, __VA_ARGS__}
+#else
+	#define psl_print(level, message, ...) psl::details::print_t{level, message, __VA_ARGS__}
+#endif
+namespace psl
+{
 	[[noreturn]] inline void unreachable(const std::string& reason = "")
 	{
 		if(reason.empty())
-			print(level_t::fatal, "unreachable code reached.");
+			psl_print(level_t::fatal, "unreachable code reached.");
 		else
-			print(level_t::fatal, "{}", reason);
+			psl_print(level_t::fatal, "{}", reason);
 		std::terminate();
 	}
 
 	[[noreturn]] inline void not_implemented(size_t issue = 0)
 	{
 		if(issue != 0)
-			print(level_t::fatal,
+			psl_print(level_t::fatal,
 				  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
 				  issue);
 		else
-			print(level_t::fatal, "feature not implemented");
+			psl_print(level_t::fatal, "feature not implemented");
 		std::terminate();
 	}
 
 	[[noreturn]] inline void not_implemented(const std::string& reason, size_t issue = 0)
 	{
 		if(issue != 0)
-			print(level_t::fatal,
+			psl_print(level_t::fatal,
 				  "feature not implemented reason: '{}', follow development at "
 				  "https://github.com/JessyDL/paradigm/issues/{}",
 				  reason,
 				  issue);
 		else
-			print(level_t::fatal, "feature not implemented reason: '{}'", reason);
+			psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
 		std::terminate();
 	}
 }	 // namespace psl
@@ -176,7 +205,7 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 
 #if defined(PE_DEBUG)
 #define psl_assert(expression, ...)                                                                            \
-			(void)((!!(expression)) || (psl::print(psl::level_t::fatal, __VA_ARGS__), 0) || (std::terminate(), 0))
+			(void)((!!(expression)) || (psl_print(psl::level_t::fatal, __VA_ARGS__), 0) || (std::terminate(), 0))
 #else
 #define psl_assert(expression, ...)
 #endif

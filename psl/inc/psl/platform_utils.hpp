@@ -5,11 +5,11 @@
 #include "psl/ustring.hpp"
 #include <cctype>
 #include <clocale>
-#include <vector>
 #include <filesystem>
 #include <optional>
 #include <thread>
 #include <unordered_map>
+#include <vector>
 
 
 // https://en.wikipedia.org/wiki/Path_%28computing%29#Representations_of_paths_by_operating_system_and_shell
@@ -214,6 +214,61 @@ namespace utility::platform
 			return dir;
 		}
 
+		static psl::string to_android(psl::string_view path)
+		{
+			psl::string result {};
+			auto constituents = [](psl::string_view path) -> std::vector<psl::string_view> {
+				std::vector<psl::string_view> res {};
+				size_t offset = 0;
+				size_t index  = path.find('/', offset);
+				while(index != psl::string_view::npos)
+				{
+					res.emplace_back(path.substr(offset, index - offset));
+					offset = index + 1;
+					index  = path.find('/', offset);
+				}
+				res.emplace_back(path.substr(offset, path.size() - offset));
+				return res;
+			}(path);
+			
+			size_t offset = 0;
+			auto it		  = std::begin(constituents);
+			auto next	  = std::next(it);
+			while(next != std::end(constituents))
+			{
+				if(*next == psl::string_view{".."})
+				{
+					constituents.erase(it, std::next(next));
+					if(offset + 2 >= constituents.size()) break;
+					it	 = std::next(std::begin(constituents), offset);
+					next = std::next(next);
+				}
+				else
+				{
+					offset += 1;
+					it	 = std::next(it);
+					next = std::next(next);
+				}
+			}
+			if(constituents.empty()) return result;
+			
+
+			const auto size = std::accumulate(std::begin(constituents),
+											  std::end(constituents),
+											  size_t {0},
+											  [](size_t sum, psl::string_view value) { return sum + value.size(); }) +
+							  constituents.size() - 1;
+			result.reserve(size);
+			
+			for(auto it = std::begin(constituents), end = std::prev(std::end(constituents)); it != end; it = std::next(it))
+			{
+				result.append(*it);
+				result.append(seperator);
+			}
+			result.append(*std::prev(std::end(constituents)));
+			return result;
+		}
+
 		/// \brief translated the given path to one that is accepted on the current platform
 		/// \param[in] path the path to translate to one that works on the current platform.
 		/// \returns a string that *should* work on the current platform, and satisfies the requirements.
@@ -222,7 +277,7 @@ namespace utility::platform
 #ifdef PLATFORM_WINDOWS
 			return to_windows(path);
 #elif defined(PLATFORM_ANDROID)
-			return psl::string{path};
+			return to_android(path);
 #else
 			return to_unix(path);
 #endif
@@ -237,10 +292,7 @@ namespace utility::platform
 		/// \param[in] path the path to check.
 		/// \returns true in case it is a directory.
 		/// \todo android platform always returns false. Check if there is a way around this or redesign this.
-		static bool is_directory(psl::string_view path)
-		{
-			return std::filesystem::is_directory(to_platform(path));
-		}
+		static bool is_directory(psl::string_view path) { return std::filesystem::is_directory(to_platform(path)); }
 
 		/// \brief sanitizes the seperators into the application wide standard one.
 		/// \param[in] path the path to sanitize.
@@ -320,9 +372,9 @@ namespace utility::platform
 	/// \brief file i/o and manpulations utilities namespace
 	namespace file
 	{
-		#if defined(PLATFORM_ANDROID)
+#if defined(PLATFORM_ANDROID)
 		extern AAssetManager* ANDROID_ASSET_MANAGER;
-		#endif
+#endif
 		/// \brief checks if the given path points to a file or not.
 		///
 		/// checks if the given path points to a file or not. This path can be relative to the current working
@@ -348,8 +400,8 @@ namespace utility::platform
 		/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 		/// the file you wish to load.
 		bool read(psl::string_view filename,
-						 std::vector<psl::char_t>& out,
-						 size_t count = std::numeric_limits<size_t>::max());
+				  std::vector<psl::char_t>& out,
+				  size_t count = std::numeric_limits<size_t>::max());
 
 		/// \brief reads the given filepath's contents into a psl::string container.
 		/// \param[in] filename the path to the file.
@@ -412,6 +464,8 @@ namespace utility::platform
 		/// \returns the transformed path.
 		static psl::string to_windows(psl::string_view path) { return directory::to_windows(path); }
 
+		static psl::string to_android(psl::string_view path) { return directory::to_android(path); }
+
 		/// \brief transforms the given path to the current platforms format.
 		/// \param[in] path the path to transform.
 		/// \returns the transformed path.
@@ -420,7 +474,7 @@ namespace utility::platform
 #ifdef PLATFORM_WINDOWS
 			return to_windows(path);
 #elif defined(PLATFORM_ANDROID)
-			return psl::string{path};
+			return to_android(path);
 #else
 			return to_unix(path);
 #endif
