@@ -3,6 +3,7 @@
 #include <android_native_app_glue.h>
 #include <psl/assertions.hpp>
 #include "os/context.hpp"
+#include "logging.hpp"
 
 static void engine_handle_cmd(struct android_app* app, int32_t cmd) {
     switch (cmd) {
@@ -124,7 +125,7 @@ bool core::os::context::tick() noexcept
     // If not animating, we will block forever waiting for events.
     // If animating, we loop until all events are read, then continue
     // to draw the next frame of animation.
-    while ((ident=ALooper_pollAll(m_Paused ? 0 : -1, nullptr, &events,
+    while ((ident=ALooper_pollAll(m_Paused ? -1 : 0, nullptr, &events,
                                     (void**)&source)) >= 0) {
 
         // Process this event.
@@ -144,6 +145,7 @@ bool core::os::context::tick() noexcept
 
         // Check if we are exiting.
         if (m_Application->destroyRequested != 0) {
+            core::os::log->info("destroy requested");
             return false;
         }
     }
