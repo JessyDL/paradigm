@@ -41,7 +41,7 @@ bool surface::init_surface()
 	if(!RegisterClassEx(&win_class))
 	{
 		// It didn't work, so try to give a useful error:
-		psl::unreachable("Cannot create a window in which to draw!")
+		psl::unreachable("Cannot create a window in which to draw!");
 		fflush(stdout);
 		std::exit(-1);
 	}
