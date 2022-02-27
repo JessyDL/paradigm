@@ -1,0 +1,3 @@
+include ':main'
+include ':package_0'
+rootProject.name = "main"

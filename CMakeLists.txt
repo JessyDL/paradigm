@@ -49,15 +49,12 @@ OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
 set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where to build the project to")
 set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
 OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check 'compile options' section in the CMakelists.txt file)" TRUE)
-
+set(ANDROID_SDK "" CACHE PATH "override root android sdk location")
+set(ANDROID_BUNDLETOOL "" CACHE PATH "override android bundletool location")
+set(ANDROID_GRADLE "" CACHE PATH "override gradle location")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(PE_GLES)
-	message("enabling GLES")
-	list(APPEND PE_DEFINES -DPE_GLES)
-endif()
-
-if(PE_PLATFORM STREQUAL AUTO)
+if(PE_PLATFORM STREQUAL "AUTO")
 	if(WIN32)
 		set(PE_PLATFORM WINDOWS)
 	elseif(UNIX)
@@ -65,6 +62,38 @@ if(PE_PLATFORM STREQUAL AUTO)
 	else()
 		set(PE_PLATFORM ANDROID)
 	endif()
+endif()
+
+if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidManifest.xml")
+	SET(Python_ADDITIONAL_VERSIONS 3 3.0)
+	find_package(PythonInterp REQUIRED)
+
+	string(TOLOWER ${CMAKE_BUILD_TYPE} build_type)
+	add_custom_target(paradigm_android_generate)
+	add_custom_command(TARGET paradigm_android_generate
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
+			--output ${PE_BUILD_DIR}/android
+			--sdk "${ANDROID_SDK}"
+			--gradle "${ANDROID_GRADLE}"
+			--bundletool "${ANDROID_BUNDLETOOL}"
+		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/android/gradle.properties)
+
+	add_custom_target(paradigm_android_build DEPENDS paradigm_android_generate)
+	add_custom_command(TARGET paradigm_android_build
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
+			--output ${PE_BUILD_DIR}/android
+			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${VK_VERSION}
+			--type ${build_type}
+			--sdk "${ANDROID_SDK}"
+			--gradle "${ANDROID_GRADLE}"
+			--bundletool "${ANDROID_BUNDLETOOL}"
+		USES_TERMINAL)
+	return()
+endif()
+
+if(PE_GLES)
+	message("enabling GLES")
+	list(APPEND PE_DEFINES -DPE_GLES)
 endif()
 
 string(TOUPPER PE_MODE PE_MODE)

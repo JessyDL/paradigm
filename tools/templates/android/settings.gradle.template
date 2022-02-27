@@ -1,3 +1,0 @@
-include ':app'
-include ':package_0'
-rootProject.name = "{{PROJECT}}"

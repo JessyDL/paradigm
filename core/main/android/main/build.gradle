@@ -5,16 +5,20 @@ android {
     ndkVersion '25.0.8151533'
     assetPacks = [":package_0"]
     defaultConfig {
-        applicationId = 'com.{{COMPANY}}.{{PROJECT}}'
+        applicationId = 'com.paradigmengine.main'
         minSdkVersion 21
         targetSdkVersion 31
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static', '-DPE_PLATFORM=ANDROID', '-DPE_GLES=OFF', '-DPE_VULKAN=ON', '-DPE_MAKE_EXE=ON', '-DVK_VERSION=1.2.148', '-DPE_TESTS=OFF'
+                arguments '-DANDROID_STL=c++_static', '-DPE_PLATFORM=ANDROID', '-DPE_GLES=' + getProperty('paradigm.gles'), '-DPE_VULKAN=' + getProperty('paradigm.vulkan'), '-DPE_MAKE_EXE=ON', '-DVK_VERSION=' + getProperty('paradigm.vulkan.version'), '-DPE_TESTS=OFF'
             }
         }
         ndk {
             abiFilters 'arm64-v8a', 'x86_64'
+            debugSymbolLevel 'full'
+        }
+        packagingOptions {
+            doNotStrip '**.so'
         }
     }
     buildTypes {
