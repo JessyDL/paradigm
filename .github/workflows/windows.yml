@@ -1,0 +1,60 @@
+name: windows
+
+on: [push]
+    
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: build
+    runs-on: windows-2022
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: setup dependencies
+      uses: actions/setup-python@v1
+      with:
+        python-version: 3.7
+    - name: initialize
+      run: |
+            python3 tools/generate_project_info.py
+            cmake --preset=windows-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
+            python3 tools/patch.py ./project_files/x64/
+    - name: compile
+      run: cmake --build --preset=windows-release-${{ matrix.graphics }}
+    - name: test
+      run: |
+            cd builds\x64\release\bin
+            .\tests.exe --formatter compact --no-source
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}-bin
+        path: builds/x64/release/bin/benchmarks.exe
+        if-no-files-found: error
+        retention-days: 1
+  benchmark:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: benchmark
+    needs: build
+    runs-on: windows-2022
+    steps:
+    - name: setup
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}-bin
+    - name: benchmark
+      run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: windows-${{ matrix.graphics }}
+        path: results.json
+        if-no-files-found: error
