@@ -67,26 +67,32 @@ endif()
 if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidManifest.xml")
 	SET(Python_ADDITIONAL_VERSIONS 3 3.0)
 	find_package(PythonInterp REQUIRED)
-
+	set(ANDROID_PY_ARGS)
+	if(NOT ANDROID_SDK STREQUAL "")
+		list(APPEND --sdk "${ANDROID_SDK}" ANDROID_PY_ARGS)
+	endif()
+	if(NOT ANDROID_GRADLE STREQUAL "")
+		list(APPEND --gradle "${ANDROID_GRADLE}" ANDROID_PY_ARGS)
+	endif()
+	if(NOT ANDROID_BUNDLETOOL STREQUAL "")
+		list(APPEND --bundletool "${ANDROID_BUNDLETOOL}" ANDROID_PY_ARGS)
+	endif()
+	
 	string(TOLOWER ${CMAKE_BUILD_TYPE} build_type)
-	add_custom_target(paradigm_android_generate)
+	add_custom_target(paradigm_android_generate ALL)
 	add_custom_command(TARGET paradigm_android_generate
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
 			--output ${PE_BUILD_DIR}/android
-			--sdk "${ANDROID_SDK}"
-			--gradle "${ANDROID_GRADLE}"
-			--bundletool "${ANDROID_BUNDLETOOL}"
+			${ANDROID_PY_ARGS}
 		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/android/gradle.properties)
 
-	add_custom_target(paradigm_android_build DEPENDS paradigm_android_generate)
+	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
 	add_custom_command(TARGET paradigm_android_build
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
 			--output ${PE_BUILD_DIR}/android
 			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${VK_VERSION}
 			--type ${build_type}
-			--sdk "${ANDROID_SDK}"
-			--gradle "${ANDROID_GRADLE}"
-			--bundletool "${ANDROID_BUNDLETOOL}"
+			${ANDROID_PY_ARGS}
 		USES_TERMINAL)
 	return()
 endif()

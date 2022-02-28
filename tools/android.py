@@ -4,7 +4,6 @@ import io
 import os
 import shutil
 import subprocess
-from distutils.dir_util import copy_tree
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 ROOT_DIR = os.path.join(CURRENT_DIR, '..')
@@ -28,18 +27,21 @@ def run_command(command=[], directory=None, print_stdout=False, catch_stdout=Fal
     return output
 
 class Android:
-    def __init__(self, directory, sdk=None, gradle=None, bundletool=None) -> None:
+    def __init__(self, directory, sdk=None, gradle=None, bundletool=None, skip_setup=False) -> None:
         self._sdk = sdk
         if self._sdk != None and self._sdk != "":
             os.environ["ANDROID_SDK_ROOT"] = self._sdk
+        elif "ANDROID_SDK_ROOT" in os.environ:
+            self._sdk = os.environ["ANDROID_SDK_ROOT"]
         self._gradle = gradle or ""
         self._bundletool = bundletool or ""
         self._directory = directory
         self._generated = os.path.exists(directory) and os.path.exists(os.path.join(directory, 'build.gradle'))
         self._regenerate_apks = set()
-        packages = Android._parse_installed_packages(channel=3, sdk=self._sdk)
-        for dependency, channel in Android.dependencies():
-            Android._install_required(packages, dependency, channel, sdk=self._sdk)
+        if not skip_setup:
+            packages = Android._parse_installed_packages(channel=3, sdk=self._sdk)
+            for dependency, channel in Android.dependencies():
+                Android._install_required(packages, dependency, channel, sdk=self._sdk)
 
     def _install_required(packages, package, channel=0, sdk=None):
         if package in packages["installed"]:
@@ -95,7 +97,7 @@ class Android:
                 ], directory=self._directory, print_stdout=True)
 
         android_build_root = os.path.join(CURRENT_DIR, '..', 'core', 'main', 'android')
-        copy_tree(android_build_root, self._directory)
+        shutil.copytree(android_build_root, self._directory, dirs_exist_ok=True)
         
         # create the symlinks to the source code
         cpp_dir = os.path.join(self._directory, 'main', 'src', 'main')
@@ -165,9 +167,10 @@ def main():
     parser.add_argument("-b", "--build", default=False, nargs='*', help="build the apk")
     parser.add_argument("-t", "--type", default="debug", help="type to generate")
     parser.add_argument("--purge", action="store_true", help="Delete previous install, and generate from scratch")
+    parser.add_argument("--skip-setup", action="store_true", help="Skip the setup phase where the SDK tools are installed")
     args = parser.parse_args()
 
-    android = Android(args.output, sdk=args.sdk, gradle=args.gradle, bundletool=args.bundletool)
+    android = Android(args.output, sdk=args.sdk, gradle=args.gradle, bundletool=args.bundletool, skip_setup=args.skip_setup)
     android.generate(overwrite=args.purge)
 
     if isinstance(args.build, list):

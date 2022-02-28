@@ -101,9 +101,9 @@ jobs:
     container:
       image: gcc:11.2.0
     strategy:
-        fail-fast: false
-        matrix:
-          graphics: [vulkan, all]
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
     name: ubuntu-benchmark
     needs: ubuntu
     runs-on: ubuntu-latest
@@ -126,3 +126,32 @@ jobs:
         name: ubuntu-${{ matrix.graphics }}
         path: results.json
         if-no-files-found: error
+  android:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan]
+    name: android
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: setup python
+      uses: actions/setup-python@v2
+      with:
+        python-version: '3.x'
+        architecture: 'x64'
+    - name: setup dependencies
+      run: |
+        wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh -q -O /tmp/cmake-install.sh \
+        && chmod u+x /tmp/cmake-install.sh \
+        && mkdir /opt/cmake \
+        && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake \
+        && rm /tmp/cmake-install.sh
+        ln -s /opt/cmake/bin/* /usr/bin/
+    - name: initialize
+      run: cmake --preset=android-release-${{ matrix.graphics }}
+    - name: compile
+      run: cmake --build --preset=android-release-${{ matrix.graphics }}
