@@ -147,3 +147,5 @@ jobs:
       run: cmake --preset=android-release-${{ matrix.graphics }}
     - name: compile
       run: cmake --build --preset=android-release-${{ matrix.graphics }}
+    - name: verify
+      run: python3 -c "import os;import sys;sys.exit(0) if os.path.exists('builds/android/main/build/outputs/bundle/release/main-release.aab') else sys.exit(1)"
