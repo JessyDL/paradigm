@@ -127,6 +127,9 @@ jobs:
         path: results.json
         if-no-files-found: error
   android:
+    env:
+      CC: gcc
+      CXX: g++
     strategy:
       fail-fast: false
       matrix:
@@ -138,19 +141,6 @@ jobs:
       uses: actions/checkout@v1
       with:
         submodules: recursive
-    - name: setup python
-      uses: actions/setup-python@v2
-      with:
-        python-version: '3.x'
-        architecture: 'x64'
-    - name: setup dependencies
-      run: |
-        wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh -q -O /tmp/cmake-install.sh \
-        && chmod u+x /tmp/cmake-install.sh \
-        && mkdir /opt/cmake \
-        && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake \
-        && rm /tmp/cmake-install.sh
-        ln -s /opt/cmake/bin/* /usr/bin/
     - name: initialize
       run: cmake --preset=android-release-${{ matrix.graphics }}
     - name: compile
