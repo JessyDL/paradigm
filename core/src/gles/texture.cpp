@@ -176,13 +176,10 @@ void texture_t::create_2D(void* data)
 
 	if(data != nullptr)
 	{
+		psl_assert(type != 0, "type was 0");
 		if(type != 0)
 		{
 			glTexSubImage2D(GL_TEXTURE_2D, 0, 0, 0, m_Meta->width(), m_Meta->height(), format, type, data);
-		}
-		else
-		{
-			assert_debug_break(false);
 		}
 
 		if(pixel_storage != 4) glPixelStorei(GL_UNPACK_ALIGNMENT, 4);

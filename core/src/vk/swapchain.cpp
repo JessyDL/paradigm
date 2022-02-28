@@ -1,7 +1,9 @@
-﻿#include "vk/swapchain.hpp"
+﻿#include "vk/ivk.hpp"
+#include "vk/swapchain.hpp"
 #include "logging.hpp"
 #include "meta/texture.hpp"
 #include "os/surface.hpp"
+#include "os/context.hpp"
 #include "vk/context.hpp"
 #include "vk/conversion.hpp"
 #include "vk/texture.hpp"
@@ -18,6 +20,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 psl::meta::file* metaFile,
 					 handle<core::os::surface> surface,
 					 handle<core::ivk::context> context,
+					 core::os::context& os_context,
 					 bool use_depth) :
 	m_OSSurface(&surface.value()),
 	m_Context(context), m_Cache(cache), m_DepthTextureHandle(), m_UseDepth(use_depth), m_SurfaceFormat {}
@@ -36,9 +39,8 @@ swapchain::swapchain(core::resource::cache_t& cache,
 #elif defined(PLATFORM_ANDROID)
 	vk::AndroidSurfaceCreateInfoKHR createInfo;
 	core::ivk::log->info("creating android swapchain");
-	auto android_app  = platform::specifics::android_application;
-	auto window		  = android_app->window;
-	createInfo.window = window;
+	createInfo.window = os_context.application().window;
+	psl_assert(createInfo.window != nullptr, "application window was invalid");
 	utility::vulkan::check(m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_D2D)
 	uint32_t displayPropertyCount;

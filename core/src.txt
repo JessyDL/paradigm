@@ -48,6 +48,17 @@ ecs/systems/geometry_instance
 ecs/systems/debug/grid
 )
 
+# plaftorm specific includes
+if(PE_PLATFORM STREQUAL "ANDROID")
+	list(APPEND SRC
+		os/context_android
+	)		
+else()
+	list(APPEND SRC
+		os/context
+	)		
+endif()
+
 list(TRANSFORM SRC PREPEND src/)
 list(TRANSFORM SRC APPEND .cpp)
 

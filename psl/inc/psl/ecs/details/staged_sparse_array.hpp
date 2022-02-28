@@ -80,7 +80,7 @@ namespace psl::ecs::details
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index));
+			psl_assert(has(index), "missing index {} in sparse array", index);
 			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
@@ -88,7 +88,7 @@ namespace psl::ecs::details
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index));
+			psl_assert(has(index), "missing index {} in sparse array", index);
 			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
@@ -97,7 +97,7 @@ namespace psl::ecs::details
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index, startIndex, endIndex));
+			psl_assert(has(index, startIndex, endIndex), "missing index {} within [{}, {}] in sparse array", index, startIndex, endIndex);
 			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
@@ -105,7 +105,7 @@ namespace psl::ecs::details
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert(has(index, startIndex, endIndex));
+			psl_assert(has(index, startIndex, endIndex), "missing index {} within [{}, {}] in sparse array", index, startIndex, endIndex);
 			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
@@ -341,14 +341,14 @@ namespace psl::ecs::details
 		template <typename Fn>
 		void remap(const psl::sparse_array<index_t>& mapping, Fn&& predicate)
 		{
-			assert(m_Reverse.size() >= mapping.size());
+			psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 			m_Sparse.clear();
 			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			for(index_t i = 0; i < static_cast<index_t>(m_Reverse.size()); ++i)
 			{
 				if(std::invoke(predicate, m_Reverse[i]))
 				{
-					assert(mapping.has(m_Reverse[i]));
+					psl_assert(mapping.has(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
 					auto new_index = mapping.at(m_Reverse[i]);
 					auto offset	   = new_index;
 					auto& chunk	   = chunk_for(offset);
@@ -459,7 +459,7 @@ namespace psl::ecs::details
 			auto orig_cap = m_Reverse.capacity();
 			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), user_index);
 			if(orig_cap != m_Reverse.capacity()) grow();
-			assert_debug_break((m_Reverse.capacity() + 1) * sizeof(value_t) <= m_DenseData.size());
+			psl_assert((m_Reverse.capacity() + 1) * sizeof(value_t) <= m_DenseData.size(), "{} <= {}", (m_Reverse.capacity() + 1) * sizeof(value_t), m_DenseData.size());
 			m_StageStart[2] += 1;
 			m_StageStart[3] += 1;
 			m_StageSize[1] += 1;
@@ -501,7 +501,7 @@ namespace psl::ecs::details
 			// if constexpr(std::is_same<value_t, int>())
 			//	assert(orig_value == this->at(user_index,2,2));
 
-			assert(chunk[offset] == reverse_index);
+			psl_assert(chunk[offset] == reverse_index, "expected {} == {}", chunk[offset], reverse_index);
 		}
 
 		void grow()
@@ -539,8 +539,8 @@ namespace psl::ecs::details
 
 				m_Reverse.reserve((m_DenseData.size() / sizeof(T)) - 1);
 
-				assert_debug_break((m_Reverse.capacity() + 1) * sizeof(value_t) <= m_DenseData.size() &&
-								   (m_Reverse.capacity() + 2) * sizeof(value_t) >= m_DenseData.size());
+				psl_assert((m_Reverse.capacity() + 1) * sizeof(value_t) <= m_DenseData.size() &&
+						   (m_Reverse.capacity() + 2) * sizeof(value_t) >= m_DenseData.size(), "capacity was not in line with density data");
 			}
 		}
 
@@ -811,14 +811,14 @@ namespace psl::ecs::details
 		template <typename Fn>
 		void remap(const psl::sparse_array<index_t>& mapping, Fn&& predicate)
 		{
-			assert(m_Reverse.size() >= mapping.size());
+			psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 			m_Sparse.clear();
 			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			for(index_t i = 0; i < static_cast<index_t>(m_Reverse.size()); ++i)
 			{
 				if(std::invoke(predicate, m_Reverse[i]))
 				{
-					assert(mapping.has(m_Reverse[i]));
+					psl_assert(mapping.has(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
 					auto new_index = mapping.at(m_Reverse[i]);
 					auto offset	   = new_index;
 					auto& chunk	   = chunk_for(offset);
@@ -902,7 +902,7 @@ namespace psl::ecs::details
 			// if constexpr(std::is_same<value_t, int>())
 			//	assert(orig_value == this->at(user_index,2,2));
 
-			assert(chunk[offset] == reverse_index);
+			psl_assert(chunk[offset] == reverse_index, "{} == {}", chunk[offset], reverse_index);
 		}
 
 		inline chunk_t& chunk_for(index_t& index) noexcept

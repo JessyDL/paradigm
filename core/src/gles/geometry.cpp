@@ -81,13 +81,13 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 		core::igles::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
 	}
-	assert(data->vertex_streams().size() > 0);
+	psl_assert(data->vertex_streams().size() > 0, "expected size 0, but got {}", data->vertex_streams().size());
 	m_Vertices = std::begin(data->vertex_streams())->second.size();
 	std::vector<core::gfx::memory_copy> instructions;
 	auto current_segment = std::begin(segments);
 	for(const auto& stream : data->vertex_streams())
 	{
-		assert(m_Vertices == stream.second.size());
+		psl_assert(m_Vertices == stream.second.size(), "{} did not match {}", m_Vertices, stream.second.size());
 		auto& instr				 = instructions.emplace_back();
 		instr.size				 = stream.second.bytesize();
 		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;

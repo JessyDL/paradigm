@@ -164,9 +164,9 @@ void scheduler::execute()
 
 	while(inflight.size() > 0)
 	{
-		assert_debug_break(std::unique(std::begin(inflight), std::end(inflight), [](const auto& lhs, const auto& rhs) {
+		psl_assert(std::unique(std::begin(inflight), std::end(inflight), [](const auto& lhs, const auto& rhs) {
 							   return *lhs == *rhs;
-						   }) == std::end(inflight));
+						   }) == std::end(inflight), "unique test failed");
 		if(auto item = m_Tasks.pop(); item)
 		{
 			auto task = item.value();
@@ -188,7 +188,7 @@ void scheduler::execute()
 
 			inflight.erase(it, std::end(inflight));
 
-			assert_debug_break(std::unique(std::begin(done), std::end(done)) == std::end(done));
+			psl_assert(std::unique(std::begin(done), std::end(done)) == std::end(done), "unique test failed");
 
 			// Redo the barriers
 			barriers.clear();
@@ -239,7 +239,7 @@ void scheduler::execute()
 	}
 	for(auto& thread : m_Workerthreads) thread->pause();
 
-	assert_debug_break(m_Invocables.size() == done.size());	   // check if all tasks are done
+	psl_assert(m_Invocables.size() == done.size(), "there were still {} tasks in flight", m_Invocables.size() - done.size());
 	m_TokenOffset += m_Invocables.size();
 	m_Invocables.clear();
 }

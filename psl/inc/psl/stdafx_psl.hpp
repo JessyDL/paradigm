@@ -10,21 +10,7 @@
 #include "psl/platform_def.hpp"
 #include "psl/ustring.hpp"
 
-#ifdef PLATFORM_ANDROID
-#include <android/configuration.h>
-#include <android/log.h>
-#include <android_native_app_glue.h>
-#endif
-
 #include "psl/logging.hpp"
-
-namespace platform::specifics
-{
-#if defined(PLATFORM_ANDROID)
-	extern android_app* android_application;
-#endif
-
-}	 // namespace platform::specifics
 
 #include "psl/assertions.hpp"
 

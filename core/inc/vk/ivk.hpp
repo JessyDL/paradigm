@@ -4,17 +4,20 @@
 
 #define VULKAN_HPP_NO_EXCEPTIONS
 
-#if defined(SURFACE_XCB)
-#ifndef VK_USE_PLATFORM_XCB_KHR
-#define VK_USE_PLATFORM_XCB_KHR
-#endif
-#define VK_SURFACE_EXTENSION_NAME VK_KHR_XCB_SURFACE_EXTENSION_NAME
+#if defined(SURFACE_ANDROID)
+	#if !defined(VK_USE_PLATFORM_ANDROID_KHR)
+		#define VK_USE_PLATFORM_ANDROID_KHR
+	#endif
+	#define VK_SURFACE_EXTENSION_NAME VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+#elif defined(SURFACE_XCB)
+	#ifndef VK_USE_PLATFORM_XCB_KHR
+	#define VK_USE_PLATFORM_XCB_KHR
+	#endif
+	#define VK_SURFACE_EXTENSION_NAME VK_KHR_XCB_SURFACE_EXTENSION_NAME
 #elif defined(SURFACE_D2D)
-#define VK_SURFACE_EXTENSION_NAME VK_KHR_DISPLAY_EXTENSION_NAME
-#elif defined(VK_USE_PLATFORM_ANDROID_KHR)
-#define VK_SURFACE_EXTENSION_NAME VK_KHR_ANDROID_SURFACE_EXTENSION_NAME
+	#define VK_SURFACE_EXTENSION_NAME VK_KHR_DISPLAY_EXTENSION_NAME
 #elif defined(SURFACE_WIN32)
-#define VK_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
+	#define VK_SURFACE_EXTENSION_NAME VK_KHR_WIN32_SURFACE_EXTENSION_NAME
 #endif
 
 #define VK_VERSION_LATEST_MAJOR 1
@@ -28,7 +31,7 @@
 
 #include "psl/logging.hpp"
 #include "psl/ustring.hpp"
-#include <assert.h>
+#include "psl/assertions.hpp"
 #include <unordered_map>
 
 // Set to "true" to use staging buffers for uploading
@@ -50,10 +53,10 @@
 #define SURFACE_COLORSPACE vk::ColorSpaceKHR::eSrgbNonlinear
 #endif
 
-#ifdef DEBUG
+#if defined(DEBUG) && !defined(PLATFORM_ANDROID)
 #define VULKAN_ENABLE_VALIDATION true
 #else
-#define VULKAN_ENABLE_VALIDATION true
+#define VULKAN_ENABLE_VALIDATION false
 #endif
 
 
@@ -518,25 +521,14 @@ namespace utility::vulkan
 {
 	inline bool check(const vk::Result& value)
 	{
-		if(value != vk::Result::eSuccess)
-		{
-			LOG_FATAL("vk::Result is \"", vk::to_string(value), "\" in ", __FILE__, " at line ", __LINE__);
-			assert(value == vk::Result::eSuccess);
-			return false;
-		}
-
-		return true;
+		psl_assert(value == vk::Result::eSuccess, "vk::Result expected success, but got {}", vk::to_string(value));
+		return value == vk::Result::eSuccess;
 	}
 
 	inline bool check(const VkResult& value)
 	{
-		if(value != VkResult::VK_SUCCESS)
-		{
-			LOG_FATAL("vk::Result is \"", vk::to_string((vk::Result)value), "\" in ", __FILE__, " at line ", __LINE__);
-			assert(value == VkResult::VK_SUCCESS);
-			return false;
-		}
-		return true;
+		psl_assert(value == VkResult::VK_SUCCESS, "vk::Result expected success, but got {}", vk::to_string((vk::Result)value));
+		return value == VkResult::VK_SUCCESS;
 	}
 
 	template <typename T>

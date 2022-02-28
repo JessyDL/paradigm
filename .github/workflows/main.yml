@@ -101,9 +101,9 @@ jobs:
     container:
       image: gcc:11.2.0
     strategy:
-        fail-fast: false
-        matrix:
-          graphics: [vulkan, all]
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
     name: ubuntu-benchmark
     needs: ubuntu
     runs-on: ubuntu-latest
@@ -126,3 +126,26 @@ jobs:
         name: ubuntu-${{ matrix.graphics }}
         path: results.json
         if-no-files-found: error
+  android:
+    env:
+      CC: gcc
+      CXX: g++
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan]
+    name: android
+    runs-on: ubuntu-latest
+    steps:
+    - name: checkout
+      uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: dependencies
+      run: yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --licenses
+    - name: initialize
+      run: cmake --preset=android-release-${{ matrix.graphics }}
+    - name: compile
+      run: cmake --build --preset=android-release-${{ matrix.graphics }}
+    - name: verify
+      run: python3 -c "import os;import sys;sys.exit(0) if os.path.exists('builds/android/main/build/outputs/bundle/release/main-release.aab') else sys.exit(1)"

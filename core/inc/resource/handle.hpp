@@ -45,7 +45,7 @@ namespace core::resource
 			}
 			if(m_MetaData)
 			{
-				assert_debug_break(m_MetaData->reference_count != 0);
+				psl_assert(m_MetaData->reference_count != 0, "reference count was {}, but should be != 0", m_MetaData->reference_count);
 				m_MetaData->reference_count -= 1;
 			}
 		};
@@ -112,13 +112,13 @@ namespace core::resource
 
 		inline value_type& value() noexcept
 		{
-			assert_debug_break(state() == status::loaded);
+			psl_assert(state() == status::loaded, "state was expected to be loaded, but was {}", state());
 			return *m_Resource;
 		}
 
 		inline const value_type& value() const noexcept
 		{
-			assert_debug_break(state() == status::loaded);
+			psl_assert(state() == status::loaded, "state was expected to be loaded, but was {}", state());
 			return *m_Resource;
 		}
 
@@ -367,7 +367,6 @@ namespace core::resource
 
 		handle<T> make_shared() const noexcept 
 		{ 
-			assert_debug_break(*this);
 			return handle<T>((void*)m_Resource, m_Cache, m_MetaData, (psl::meta::file*)m_MetaFile);
 		}
 

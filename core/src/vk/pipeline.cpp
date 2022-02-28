@@ -235,7 +235,7 @@ pipeline::pipeline(core::resource::cache_t& cache,
 
 	if(m_BindPoint == vk::PipelineBindPoint::eCompute)
 	{
-		assert(shaderStages.size() == 1 && "expecting only a single compute in the shader stages");
+		psl_assert(shaderStages.size() == 1, "expecting only a single compute in the shader stages, but got {}", shaderStages.size());
 
 		vk::ComputePipelineCreateInfo pipelineCreateInfo {};
 		pipelineCreateInfo.layout = m_PipelineLayout;

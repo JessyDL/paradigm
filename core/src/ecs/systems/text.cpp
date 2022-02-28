@@ -158,7 +158,7 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 		const auto max_char = character_data.size() + 32;
 		for(int character : text)
 		{
-			assert((character >= 32 && character < max_char) || character == '\n' || character == '\t');
+			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t', "illegal character '{}' used", (char)character);
 		}
 	}
 

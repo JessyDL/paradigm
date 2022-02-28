@@ -60,7 +60,7 @@ namespace core::gfx::conversion
 			return vk::VertexInputRate::eInstance;
 			break;
 		}
-		assert(false);
+		psl::unreachable();
 		return vk::VertexInputRate::eVertex;
 	}
 
@@ -75,7 +75,7 @@ namespace core::gfx::conversion
 			return vertex_input_rate::instance;
 			break;
 		}
-		assert(false);
+		psl::unreachable();
 		return vertex_input_rate::vertex;
 	}
 	inline vk::BufferUsageFlags to_vk(memory_usage memory) noexcept
@@ -240,7 +240,7 @@ namespace core::gfx::conversion
 			break;
 		}
 
-		assert(false);
+		psl::unreachable();
 		return vk::ImageViewType::e1D;
 	}
 
@@ -271,7 +271,7 @@ namespace core::gfx::conversion
 			break;
 		}
 
-		assert(false);
+		psl::unreachable();
 		return image_type::planar_1D;
 	}
 
@@ -302,7 +302,7 @@ namespace core::gfx::conversion
 			break;
 		}
 
-		assert(false);
+		psl::unreachable();
 		return vk::ImageType::e1D;
 	}
 	inline vk::ImageAspectFlags to_vk(image_aspect value) noexcept
@@ -775,9 +775,8 @@ namespace core::gfx::conversion
 		case VK_FORMAT_UNDEFINED:
 			return format_t::undefined;
 			break;
-		default:
-			assert(false);
 		}
+		psl::unreachable();
 		return format_t::undefined;
 	}
 	inline vk::Format to_vk(format_t value) noexcept
@@ -1315,7 +1314,7 @@ namespace core::gfx::conversion
 			return vk::DescriptorType::eInputAttachment;
 			break;
 		}
-		assert(false);
+		psl::unreachable();
 		return vk::DescriptorType {0};
 	}
 
@@ -1357,7 +1356,7 @@ namespace core::gfx::conversion
 			return binding_type::input_attachment;
 			break;
 		}
-		assert(false);
+		psl::unreachable();
 		return binding_type {0};
 	}
 	inline vk::BlendOp to_vk(blend_op value) noexcept
@@ -1405,7 +1404,7 @@ namespace core::gfx::conversion
 			break;
 		}
 
-		assert(false);
+		psl::unreachable();
 		return vk::AttachmentStoreOp {0};
 	}
 

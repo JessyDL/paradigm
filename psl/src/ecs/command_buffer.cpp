@@ -33,9 +33,9 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										size_t size,
 										std::function<void(std::uintptr_t, size_t)> invocable)
 {
-	assert(size != 0);
+	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 	auto offset = cInfo->size();
 	cInfo->add(entities);
@@ -50,9 +50,9 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										size_t size,
 										void* prototype)
 {
-	assert(size != 0);
+	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 	auto offset = cInfo->size();
 	cInfo->add(entities);
@@ -70,7 +70,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 void command_buffer_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
 {
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 	cInfo->add(entities);
 }
@@ -81,9 +81,9 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										size_t size,
 										std::function<void(std::uintptr_t, size_t)> invocable)
 {
-	assert(size != 0);
+	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 	auto offset = cInfo->size();
 	cInfo->add(entities);
@@ -99,9 +99,9 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										void* prototype,
 										bool repeat)
 {
-	assert(size != 0);
+	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 	auto offset = cInfo->size();
 
@@ -129,7 +129,7 @@ void command_buffer_t::remove_component(details::component_key_t key,
 {
 	auto it = std::find_if(
 	  std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo) { return cInfo->id() == key; });
-	assert(it != std::end(m_Components));
+	psl_assert(it != std::end(m_Components), "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 	(*it)->add(entities);
 	(*it)->destroy(entities);
 }
@@ -139,7 +139,7 @@ void command_buffer_t::remove_component(details::component_key_t key, psl::array
 {
 	auto it = std::find_if(
 	  std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo) { return cInfo->id() == key; });
-	assert(it != std::end(m_Components));
+	psl_assert(it != std::end(m_Components), "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 
 	(*it)->add(entities);

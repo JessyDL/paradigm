@@ -29,7 +29,7 @@ namespace core::gfx::conversion
 			return GL_TESS_EVALUATION_SHADER;
 			break;
 		}
-		assert(false);
+		psl_assert(false, "reached end of core::gfx::conversion::to_gles");
 		return -1;
 	}
 
@@ -56,7 +56,7 @@ namespace core::gfx::conversion
 			return shader_stage::tesselation_evaluation;
 			break;
 		}
-		assert(false);
+		psl_assert(false, "reached end of core::gfx::conversion::to_shader_stage");
 		return shader_stage {};
 	}
 
@@ -78,8 +78,7 @@ namespace core::gfx::conversion
 		}
 		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::conditional_rendering))
 		{
-			assert(false);
-			// not implemented
+			psl::not_implemented();
 		}
 		else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::index_buffer))
 		{
@@ -98,7 +97,7 @@ namespace core::gfx::conversion
 			return GL_UNIFORM_BUFFER;
 		}
 
-		assert(false);
+		psl_assert(false, "reached end of core::gfx::conversion::to_gles");
 		return -1;
 	}
 
@@ -1023,60 +1022,60 @@ namespace core::gfx::conversion
 			break;
 		}
 
-		// case GL_UNSIGNED_BYTE_3_3_2: assert(format == GL_RGB || format == GL_RGB_INTEGER); return
-		// core::gfx::format_t::undefined; case GL_UNSIGNED_BYTE_2_3_3_REV: 	assert(format == GL_BGR || format ==
-		// GL_BGR_INTEGER);
+		// case GL_UNSIGNED_BYTE_3_3_2: psl_assert(format == GL_RGB || format == GL_RGB_INTEGER, "format failed check"); return
+		// core::gfx::format_t::undefined; case GL_UNSIGNED_BYTE_2_3_3_REV: 	psl_assert(format == GL_BGR || format ==
+		// GL_BGR_INTEGER, "format failed check");
 		//	return core::gfx::format_t::undefined;
 		case GL_UNSIGNED_SHORT_5_6_5:
-			assert(format == GL_RGB || format == GL_RGB_INTEGER);
+			psl_assert(format == GL_RGB || format == GL_RGB_INTEGER, "format failed check");
 			return core::gfx::format_t::r5g6b5_unorm_pack16;
 		// case GL_UNSIGNED_SHORT_5_6_5_REV:
-		//	assert(format == GL_BGR || format == GL_BGR_INTEGER);
+		//	psl_assert(format == GL_BGR || format == GL_BGR_INTEGER, "format failed check");
 		//	return core::gfx::format_t::b5g6r5_unorm_pack16;
 		case GL_UNSIGNED_SHORT_4_4_4_4:
-			assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
-				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/);
+			psl_assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
+				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/, "format failed check");
 			return core::gfx::format_t::r4g4b4a4_unorm_pack16;
 		// case GL_UNSIGNED_SHORT_4_4_4_4_REV:
-		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	psl_assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
 		//	return core::gfx::format_t::b4g4r4a4_unorm_pack16;
 		case GL_UNSIGNED_SHORT_5_5_5_1:
-			assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
-				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/);
+			psl_assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
+				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/, "format failed check");
 			return core::gfx::format_t::r5g5b5a1_unorm_pack16;
 		// case GL_UNSIGNED_SHORT_1_5_5_5_REV:
-		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	psl_assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER, "format failed check");
 		//	return core::gfx::format_t::a1r5g5b5_unorm_pack16;
 		// case GL_UNSIGNED_INT_8_8_8_8:
-		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	psl_assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER, "format failed check");
 		//	return (format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER) ? core::gfx::format_t::r8g8b8a8_uint
 		//																   : core::gfx::format_t::r8g8b8a8_unorm;
 		// case GL_UNSIGNED_INT_8_8_8_8_REV:
-		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	psl_assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER, "format failed check");
 		//	return (format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER) ? core::gfx::format_t::a8b8g8r8_uint_pack32
 		//																   : core::gfx::format_t::a8b8g8r8_unorm_pack32;
 		// case GL_UNSIGNED_INT_10_10_10_2:
-		//	assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER);
+		//	psl_assert(format == GL_RGB || format == GL_BGRA || format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER, "format failed check");
 		//	return (format == GL_RGB_INTEGER || format == GL_BGRA_INTEGER)
 		//			   ? core::gfx::format_t::a2r10g10b10_uint_pack32
 		//			   : core::gfx::format_t::a2r10g10b10_unorm_pack32;
 		case GL_UNSIGNED_INT_2_10_10_10_REV:
-			assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
-				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/);
+			psl_assert(format == GL_RGB /*|| format == GL_BGRA*/ ||
+				   format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/, "format failed check");
 			return (format == GL_RGB_INTEGER /*|| format == GL_BGRA_INTEGER*/)
 					 ? core::gfx::format_t::a2b10g10r10_uint_pack32
 					 : core::gfx::format_t::a2b10g10r10_unorm_pack32;
 		case GL_UNSIGNED_INT_10F_11F_11F_REV:
-			assert(format == GL_RGB /*|| format == GL_BGR*/);
+			psl_assert(format == GL_RGB /*|| format == GL_BGR*/, "format failed check");
 			return core::gfx::format_t::b10g11r11_ufloat_pack32;
 		case GL_UNSIGNED_INT_5_9_9_9_REV:
-			assert(format == GL_RGB /*|| format == GL_BGR*/);
+			psl_assert(format == GL_RGB /*|| format == GL_BGR*/, "format failed check");
 			return core::gfx::format_t::e5b9g9r9_ufloat_pack32;
 		case GL_UNSIGNED_INT_24_8:
-			assert(format == GL_DEPTH_STENCIL);
+			psl_assert(format == GL_DEPTH_STENCIL, "format failed check");
 			return core::gfx::format_t::d24_unorm_s8_uint;
 		case GL_FLOAT_32_UNSIGNED_INT_24_8_REV:
-			assert(format == GL_DEPTH_STENCIL);
+			psl_assert(format == GL_DEPTH_STENCIL, "format failed check");
 			return core::gfx::format_t::d32_sfloat_s8_uint;
 		}
 		switch(internalFormat)
@@ -1295,7 +1294,7 @@ namespace core::gfx::conversion
 #endif
 		}
 
-		assert(false);
+		psl_assert(false, "core::gfx::conversion::to_gles");
 		return GL_REPEAT;
 	}
 
@@ -1347,7 +1346,7 @@ namespace core::gfx::conversion
 			return GL_FRONT_AND_BACK;
 			break;
 		}
-		assert(false);
+		psl_assert(false, "core::gfx::conversion::to_gles");
 		return GL_BACK;
 	}
 
@@ -1380,7 +1379,7 @@ namespace core::gfx::conversion
 			return GL_ALWAYS;
 			break;
 		}
-		assert(false);
+		psl_assert(false, "core::gfx::conversion::to_gles");
 		return GL_NEVER;
 	}
 
@@ -1414,7 +1413,7 @@ namespace core::gfx::conversion
 			break;
 #endif
 		}
-		assert(false);
+		psl_assert(false, "core::gfx::conversion::to_gles");
 		return GL_LINEAR;
 	}
 
@@ -1438,7 +1437,7 @@ namespace core::gfx::conversion
 			return GL_MAX;
 			break;
 		}
-		assert(false);
+		psl_assert(false, "core::gfx::conversion::to_gles");
 		return GL_FUNC_ADD;
 	}
 
@@ -1492,7 +1491,7 @@ namespace core::gfx::conversion
 			return GL_SRC_ALPHA_SATURATE;
 			break;
 		}
-		assert(false);
+		psl_assert(false, "core::gfx::conversion::to_gles");
 		return GL_FUNC_ADD;
 	}
 }	 // namespace core::gfx::conversion

@@ -90,7 +90,7 @@ namespace psl
 
 		constexpr tvec<precision_t, column_length> column(size_t index) const noexcept
 		{
-			assert(index < columns_n && "out of range");
+			psl_assert(index < columns_n, "out of range {} < {}", index, columns_n);
 			tvec<precision_t, column_length> res {};
 			std::memcpy(res.value.data(), &value[index_of(0, index)], sizeof(precision_t) * column_length);
 			return res;
@@ -105,7 +105,7 @@ namespace psl
 
 		constexpr void column(size_t index, const tvec<precision_t, column_length>& vector) noexcept
 		{
-			assert(index < columns_n && "out of range");
+			psl_assert(index < columns_n, "out of range {} < {}", index, columns_n);
 			std::memcpy(&value[index_of(0, index)], vector.value.data(), sizeof(precision_t) * column_length);
 		}
 
@@ -120,7 +120,7 @@ namespace psl
 
 		constexpr tvec<precision_t, columns_n> row(size_t index) const noexcept
 		{
-			assert(index < rows_n && "out of range");
+			psl_assert(index < rows_n, "out of range {} < {}", index, rows_n);
 			tvec<precision_t, row_length> res {};
 			for(size_t i = 0; i < row_length; ++i) res[i] = value[index_of(index, i)];
 			return res;
@@ -135,7 +135,7 @@ namespace psl
 
 		constexpr void row(size_t index, const tvec<precision_t, row_length>& vector) noexcept
 		{
-			assert(index < rows_n && "out of range");
+			psl_assert(index < rows_n, "out of range {} < {}", index, rows_n);
 			for(size_t i = 0; i < row_length; ++i) value[index_of(index, i)] = vector[i];
 		}
 

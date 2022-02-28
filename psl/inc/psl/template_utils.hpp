@@ -199,7 +199,7 @@ namespace utility::templates
 	}	 // namespace
 
 	template <typename T>
-	using container_to_type_pack_t = to_type_pack<T>::type;
+	using container_to_type_pack_t = typename to_type_pack<T>::type;
 
 	template <typename T, typename Container>
 	using container_has_type = has_type<T, container_to_type_pack_t<Container>>;

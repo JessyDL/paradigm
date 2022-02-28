@@ -133,6 +133,7 @@ context::context(core::resource::cache_t& cache,
 
 	uint32_t extensionCount = 0;
 	auto extensions			= vk::enumerateInstanceExtensionProperties();
+	core::ivk::log->info("instance extensions: {}", extensions.value.size());
 	for(const auto& ext : extensions.value)
 	{
 		core::ivk::log->info("instance extension: {}", psl::string(&ext.extensionName[0]));
@@ -140,12 +141,14 @@ context::context(core::resource::cache_t& cache,
 	uint32_t instanceCount = 0;
 	auto instances		   = vk::enumerateInstanceLayerProperties();
 
+	core::ivk::log->info("instance layers: {}", instances.value.size());
 	for(const auto& inst : instances.value)
 	{
 		core::ivk::log->info("instance layer: {}", psl::string(&inst.layerName[0]));
 	}
 	if(m_Validated)
 	{
+		core::ivk::log->info("Enabling 'VK_LAYER_KHRONOS_validation'");
 		m_InstanceLayerList.push_back("VK_LAYER_KHRONOS_validation");
 		m_InstanceExtensionList.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
 	}
@@ -157,10 +160,10 @@ context::context(core::resource::cache_t& cache,
 
 	vk::ApplicationInfo appInfo;
 	appInfo.pApplicationName = name.data();
-	appInfo.pEngineName		 = APPLICATION_NAME.data();
-	assert_debug_break(VERSION_MAJOR < std::pow(2, 10));
-	assert_debug_break(VERSION_MINOR < std::pow(2, 10));
-	assert_debug_break(VERSION_PATCH < std::pow(2, 12));
+	appInfo.pEngineName		 = APPLICATION_NAME.data();	
+	psl_assert(VERSION_MAJOR < std::pow(2, 10), "VERSION_MAJOR {} was higher than {}", VERSION_MAJOR, std::pow(2, 10));
+	psl_assert(VERSION_MINOR < std::pow(2, 10), "VERSION_MINOR {} was higher than {}", VERSION_MINOR, std::pow(2, 10));
+	psl_assert(VERSION_PATCH < std::pow(2, 12), "VERSION_PATCH {} was higher than {}", VERSION_PATCH, std::pow(2, 12));
 	appInfo.engineVersion = (((VERSION_MAJOR) << 22) | ((VERSION_MINOR) << 12) | (VERSION_PATCH));
 	appInfo.apiVersion	  = VK_API_VERSION_LATEST;
 

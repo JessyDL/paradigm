@@ -25,14 +25,18 @@ compute::compute(cache_t& cache,
 				 core::resource::handle<core::igles::program_cache> program_cache) :
 	m_Meta(metaFile)
 {
-	assert(data->stages().size() == 1 && data->stages()[0].shader_stage() == core::gfx::shader_stage::compute);
+	psl_assert(data->stages().size() == 1 && data->stages()[0].shader_stage() == core::gfx::shader_stage::compute,
+			   "shader stages {} and stage name {} did not match assertion",
+			   data->stages().size(),
+			   utility::to_string(data->stages()[0].shader_stage()));
 	auto& stage		   = data->stages()[0];
 	auto shader_handle = cache.find<core::igles::shader>(stage.shader());
 	if(!shader_handle)
 	{
-		core::igles::log->warn("igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-							   utility::to_string(metaData.uid),
-							   utility::to_string(stage.shader()));
+		core::igles::log->warn(
+		  "igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
+		  utility::to_string(metaData.uid),
+		  utility::to_string(stage.shader()));
 
 
 		core::igles::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));

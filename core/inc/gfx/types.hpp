@@ -5,6 +5,7 @@
 #include "psl/ustring.hpp"
 #include <optional>
 #include <variant>
+#include <vector>
 
 namespace core::gfx
 {

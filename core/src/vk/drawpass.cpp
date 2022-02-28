@@ -321,7 +321,7 @@ void drawpass::present()
 	// Signal ready with offscreen semaphore
 	m_SubmitInfo.pSignalSemaphores = &m_RenderComplete;
 
-	assert(m_DrawCommandBuffers[m_CurrentBuffer]);
+	psl_assert(m_DrawCommandBuffers[m_CurrentBuffer], "m_DrawCommandBuffers[{}] was not valid", m_CurrentBuffer);
 	m_SubmitInfo.pCommandBuffers	= &m_DrawCommandBuffers[m_CurrentBuffer];
 	m_SubmitInfo.commandBufferCount = 1;
 

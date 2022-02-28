@@ -7,6 +7,7 @@
 //#include <Windows.h>
 //#include "stdafx.h"
 #include "psl/application_utils.hpp"
+#include "psl/platform_utils.hpp"
 #include "psl/library.hpp"
 #include "resource/resource.hpp"
 
@@ -29,6 +30,7 @@
 #include "data/window.hpp"	  // application data
 
 #include "os/surface.hpp"	 // the OS surface to draw one
+#include "os/context.hpp"
 
 #include "meta/shader.hpp"
 #include "meta/texture.hpp"
@@ -75,6 +77,9 @@
 
 #include "data/framebuffer.hpp"
 
+#if defined(PLATFORM_ANDROID)
+#include <android_native_app_glue.h>
+#endif
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -108,7 +113,7 @@ void load_texture(resource::cache_t& cache, handle<core::gfx::context> context_h
 	if(!cache.contains(texture))
 	{
 		auto textureHandle = cache.instantiate<gfx::texture_t>(texture, context_handle);
-		assert(textureHandle);
+		psl_assert(textureHandle, "invalid textureHandle");
 	}
 }
 
@@ -161,7 +166,7 @@ handle<core::gfx::material_t> setup_gfx_material(resource::cache_t& cache,
 												 handle<core::gfx::buffer_t> matBuffer,
 												 psl::UID vert,
 												 psl::UID frag,
-												 const psl::UID& texture)
+												 const psl::UID& texture = psl::UID::invalid_uid)
 {
 	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, texture);
 	auto material = cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, matBuffer);
@@ -302,421 +307,18 @@ void setup_loggers()
 #include "spdlog/sinks/android_sink.h"
 void setup_loggers()
 {
-	core::log		   = spdlog::android_logger_mt("main");
-	core::systems::log = spdlog::android_logger_mt("systems");
-	core::os::log	   = spdlog::android_logger_mt("os");
-	core::data::log	   = spdlog::android_logger_mt("data");
-	core::gfx::log	   = spdlog::android_logger_mt("gfx");
-	core::ivk::log	   = spdlog::android_logger_mt("ivk");
+	core::log		   = spdlog::android_logger_mt("main", "paradigm");
+	core::systems::log = spdlog::android_logger_mt("systems", "paradigm");
+	core::os::log	   = spdlog::android_logger_mt("os", "paradigm");
+	core::data::log	   = spdlog::android_logger_mt("data", "paradigm");
+	core::gfx::log	   = spdlog::android_logger_mt("gfx", "paradigm");
+	core::ivk::log	   = spdlog::android_logger_mt("ivk", "paradigm");
 	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 
 #endif
 
-#if defined(MULTI_CONTEXT_RENDERING)
-#include <atomic>
-#include <shared_mutex>
-namespace core::systems
-{
-	class renderer_view;
-
-	class renderer
-	{
-	  public:
-		explicit renderer(cache* cache) : m_Cache(cache), deviceIndex(0) {}
-		~renderer();
-		renderer(renderer&& other) = delete;
-		renderer& operator=(renderer&& other) = delete;
-		renderer(const renderer& other)		  = delete;
-		renderer& operator=(const renderer& other) = delete;
-
-		void start() { m_Thread = std::thread(&core::systems::renderer::main, this); }
-		void lock() { mutex.lock(); }
-		void unlock() { mutex.unlock(); }
-
-		core::systems::renderer_view& create_view(handle<surface> surface);
-		cache& get_cache() { return *m_Cache; }
-
-		const std::vector<renderer_view*>& views() { return m_Views; }
-
-		void close(renderer_view* view);
-
-	  private:
-		void main();
-		std::shared_mutex mutex;
-		uint32_t deviceIndex = 0u;
-		cache* m_Cache;
-		handle<context> m_Context;
-		std::thread m_Thread;
-		std::atomic<bool> m_ForceClose {false};
-		std::atomic<bool> m_Closeable {false};
-		std::vector<renderer_view*> m_Views;
-	};
-	class renderer_view
-	{
-		friend class renderer;
-
-	  public:
-		renderer_view(renderer* renderer, handle<surface> surface, handle<context> context) :
-			m_Renderer(renderer), m_Surface(surface), m_Context(context), m_Swapchain(create_swapchain()),
-			m_Pass(m_Context, m_Swapchain)
-		{}
-		~renderer_view() { m_Surface.unload(true); };
-		handle<surface>& current_surface() { return m_Surface; }
-
-	  private:
-		handle<swapchain> create_swapchain()
-		{
-			auto swapchain_handle = create<swapchain>(m_Renderer->get_cache());
-			swapchain_handle.load(m_Surface, m_Context);
-			return swapchain_handle;
-		}
-		void present()
-		{
-			if(m_Surface->open()) m_Pass.present();
-		}
-		renderer* m_Renderer;
-		handle<surface> m_Surface;
-		handle<context> m_Context;
-		handle<swapchain> m_Swapchain;
-		pass m_Pass;
-	};
-
-	renderer::~renderer()
-	{
-		m_ForceClose = true;
-		while(!m_Closeable)
-		{}
-		if(m_Thread.joinable())
-		{
-			m_Thread.join();
-		}
-		for(auto& view : m_Views) delete(view);
-		m_Context.unload();
-		if(m_Cache) delete(m_Cache);
-	}
-	void renderer::main()
-	{
-		// Utility::OS::RegisterThisThread("RenderThread " + ss.str());
-		while(!m_ForceClose)
-		{
-			mutex.lock();
-			{
-				for(auto& view : m_Views)
-				{
-					auto& surf = view->current_surface();
-					if(surf->open()) view->present();
-				}
-			}
-			mutex.unlock();
-		}
-
-		m_Closeable = true;
-	}
-
-	renderer_view& renderer::create_view(handle<surface> surface)
-	{
-		mutex.lock();
-		m_Context = create<context>(*m_Cache);
-		if(!m_Context.load(APPLICATION_FULL_NAME, deviceIndex))
-		{
-			throw std::runtime_error("no vulkan context could be created");
-		}
-
-		auto& view = *m_Views.emplace_back(new renderer_view(this, surface, m_Context));
-		mutex.unlock();
-		return view;
-	}
-
-	void renderer::close(renderer_view* view)
-	{
-		auto it = std::find(std::begin(m_Views), std::end(m_Views), view);
-		if(it == std::end(m_Views)) return;
-		mutex.lock();
-		delete(*it);
-		m_Views.erase(it);
-		mutex.unlock();
-	}
-}	 // namespace core::systems
-
-core::systems::renderer* init(size_t views = 1)
-{
-	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
-
-	memory::region resource_region {1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache {psl::meta::library {psl::to_string8_t(libraryPath)}, resource_region.allocator()};
-
-	auto window_data = create_shared<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-	window_data.load();
-
-	auto rend = new core::systems::renderer {&cache};
-	for(auto i = 0u; i < views; ++i)
-	{
-		auto window_handle = create<surface>(cache);
-		if(!window_handle.load(window_data))
-		{
-			// LOG_FATAL << "Could not create a OS surface to draw on.";
-			throw std::runtime_error("no OS surface could be created");
-		}
-		rend->create_view(window_handle);
-	}
-	rend->start();
-	return rend;
-}
-
-int main()
-{
-#ifdef PLATFORM_WINDOWS
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
-	setup_loggers();
-	// Utility::OS::RegisterThisThread("Main");
-
-	std::vector<core::systems::renderer*> renderers;
-	{
-		renderers.push_back(init(4u));
-	}
-	uint64_t frameCount = 0u;
-	while(renderers.size() > 0)
-	{
-		for(auto i = 0u; i < renderers.size(); i)
-		{
-			renderers[i]->lock();
-			for(auto& view : renderers[i]->views())
-			{
-				auto& surf = view->current_surface();
-				if(surf->open())
-					surf->tick();
-				else
-				{
-					renderers[i]->close(view);
-					break;
-				}
-			}
-			if(renderers[i]->views().size() == 0)
-			{
-				delete(renderers[i]);
-				renderers.erase(std::begin(renderers) + i);
-			}
-			else
-			{
-				++i;
-			}
-			renderers[i]->unlock();
-		}
-		++frameCount;
-	}
-	return 0;
-}
-#elif defined(DEDICATED_GRAPHICS_THREAD)
-
-static void render_thread(handle<context> context, handle<swapchain> swapchain, handle<surface> surface, pass* pass)
-{
-	try
-	{
-		while(surface->open() && swapchain->is_ready())
-		{
-			pass->prepare();
-			pass->present();
-		}
-	}
-	catch(...)
-	{
-		core::gfx::log->critical("critical issue happened in rendering thread");
-	}
-}
-int main()
-{
-	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
-	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-
-	setup_loggers();
-
-	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
-
-	memory::region resource_region {1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache {psl::meta::library {psl::to_string8_t(libraryPath)}, resource_region.allocator()};
-
-	auto window_data = create<data::window>(cache, "cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-	window_data.load();
-
-	auto window_handle = create<surface>(cache);
-	if(!window_handle.load(window_data))
-	{
-		core::log->critical("could not create a OS surface to draw on.");
-		return -1;
-	}
-
-
-	auto context_handle = create<context>(cache);
-	if(!context_handle.load(APPLICATION_FULL_NAME))
-	{
-		core::log->critical("could not create graphics API surface to use for drawing.");
-		return -1;
-	}
-
-	auto swapchain_handle = create<swapchain>(cache);
-	swapchain_handle.load(window_handle, context_handle);
-	window_handle->register_swapchain(swapchain_handle);
-	pass pass {context_handle, swapchain_handle};
-
-	std::thread tr {&render_thread, context_handle, swapchain_handle, window_handle, &pass};
-
-
-	uint64_t frameCount = 0u;
-	while(window_handle->tick())
-	{
-		++frameCount;
-	}
-
-	tr.join();
-
-	return 0;
-}
-#else
-
-
-#if defined(PLATFORM_ANDROID)
-bool focused {true};
-int android_entry()
-{
-	setup_loggers();
-	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
-
-	memory::region resource_region {1024u * 1024u * 20u, 4u, new memory::default_allocator()};
-	cache cache {psl::meta::library {psl::to_string8_t(libraryPath)}, resource_region.allocator()};
-
-	auto window_data = create<data::window>(cache, UID::convert("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"));
-	window_data.load();
-
-	auto surface_handle = create<surface>(cache);
-	if(!surface_handle.load(window_data))
-	{
-		core::log->critical("Could not create a OS surface to draw on.");
-		return -1;
-	}
-
-	auto context_handle = create<context>(cache);
-	if(!context_handle.load(APPLICATION_FULL_NAME, 0))
-	{
-		core::log->critical("Could not create graphics API surface to use for drawing.");
-		return -1;
-	}
-
-	auto swapchain_handle = create<swapchain>(cache);
-	swapchain_handle.load(surface_handle, context_handle);
-	surface_handle->register_swapchain(swapchain_handle);
-	context_handle->device().waitIdle();
-	pass pass {context_handle, swapchain_handle};
-	pass.build();
-	uint64_t frameCount										 = 0u;
-	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
-
-	int ident;
-	int events;
-	struct android_poll_source* source;
-	bool destroy = false;
-	focused		 = true;
-
-	while(true)
-	{
-		while((ident = ALooper_pollAll(focused ? 0 : -1, NULL, &events, (void**)&source)) >= 0)
-		{
-			if(source != NULL)
-			{
-				source->process(platform::specifics::android_application, source);
-			}
-			if(platform::specifics::android_application->destroyRequested != 0)
-			{
-				destroy = true;
-				break;
-			}
-		}
-
-		if(destroy)
-		{
-			ANativeActivity_finish(platform::specifics::android_application->activity);
-			break;
-		}
-
-		if(swapchain_handle->is_ready())
-		{
-			pass.prepare();
-			pass.present();
-		}
-		auto current_time = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> elapsed =
-		  std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
-		last_tick = current_time;
-		++frameCount;
-
-		if(frameCount % 60 == 0)
-		{
-			swapchain_handle->clear_color(
-			  vk::ClearColorValue {std::array<float, 4> {(float)(std::rand() % 255) / 255.0f,
-														 (float)(std::rand() % 255) / 255.0f,
-														 (float)(std::rand() % 255) / 255.0f,
-														 1.0f}});
-			pass.build();
-		}
-	}
-
-	return 0;
-}
-
-
-#endif
-
-#if defined(PLATFORM_ANDROID)
-static bool initialized = false;
-
-// todo deal with this extern
-android_app* platform::specifics::android_application;
-
-void handleAppCommand(android_app* app, int32_t cmd)
-{
-	switch(cmd)
-	{
-	case APP_CMD_INIT_WINDOW:
-		initialized = true;
-		break;
-	}
-}
-
-int32_t handleAppInput(struct android_app* app, AInputEvent* event) {}
-
-void android_main(android_app* application)
-{
-	application->onAppCmd = handleAppCommand;
-	// Screen density
-	AConfiguration* config = AConfiguration_new();
-	AConfiguration_fromAssetManager(config, application->activity->assetManager);
-	// vks::android::screenDensity = AConfiguration_getDensity(config);
-	AConfiguration_delete(config);
-
-	while(!initialized)
-	{
-		int ident;
-		int events;
-		struct android_poll_source* source;
-		bool destroy = false;
-
-		while((ident = ALooper_pollAll(0, NULL, &events, (void**)&source)) >= 0)
-		{
-			if(source != NULL)
-			{
-				source->process(application, source);
-			}
-		}
-	}
-
-	platform::specifics::android_application = application;
-	android_entry();
-}
-#elif defined(PLATFORM_WINDOWS) || defined(PLATFORM_LINUX)
-
-int entry(gfx::graphics_backend backend)
+int entry(gfx::graphics_backend backend, core::os::context& os_context)
 {
 	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
 
@@ -732,7 +334,9 @@ int entry(gfx::graphics_backend backend)
 		break;
 	}
 
+	core::log->info("creating cache");
 	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
+	core::log->info("cache created");
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
 
 	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
@@ -746,7 +350,7 @@ int entry(gfx::graphics_backend backend)
 
 	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME});
 
-	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle);
+	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
 	if(!cache.library().contains("234318ae-3590-f1e2-bac5-f113cac3be9b"_uid) ||
@@ -877,8 +481,8 @@ int entry(gfx::graphics_backend backend)
 	  utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
 
-	geometryDataHandles.push_back(
-	  cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
+	// geometryDataHandles.push_back(
+	//   cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
 	auto water_plane_index = geometryDataHandles.size() - 1;
 	for(auto& handle : geometryDataHandles)
 	{
@@ -931,50 +535,50 @@ int entry(gfx::graphics_backend backend)
 											  pipeline_cache,
 											  instanceMaterialBuffer,
 											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "9b42f9b6-75f6-a4f1-a219-986033d37d8a"_uid));
+											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid/*,
+											  "9b42f9b6-75f6-a4f1-a219-986033d37d8a"_uid*/));
 
-	// grass
-	materials.emplace_back(setup_gfx_material(cache,
-											  context_handle,
-											  pipeline_cache,
-											  instanceMaterialBuffer,
-											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "944e7173-ede1-0bed-cffe-d6a5a34449be"_uid));
+	// // grass
+	// materials.emplace_back(setup_gfx_material(cache,
+	// 										  context_handle,
+	// 										  pipeline_cache,
+	// 										  instanceMaterialBuffer,
+	// 										  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
+	// 										  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
+	// 										  "944e7173-ede1-0bed-cffe-d6a5a34449be"_uid));
 
-	// dirt
-	materials.emplace_back(setup_gfx_material(cache,
-											  context_handle,
-											  pipeline_cache,
-											  instanceMaterialBuffer,
-											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "f24fa9d7-966a-e942-851b-5b6fb30dd0b6"_uid));
+	// // dirt
+	// materials.emplace_back(setup_gfx_material(cache,
+	// 										  context_handle,
+	// 										  pipeline_cache,
+	// 										  instanceMaterialBuffer,
+	// 										  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
+	// 										  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
+	// 										  "f24fa9d7-966a-e942-851b-5b6fb30dd0b6"_uid));
 
-	// rock
-	materials.emplace_back(setup_gfx_material(cache,
-											  context_handle,
-											  pipeline_cache,
-											  instanceMaterialBuffer,
-											  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
-											  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
-											  "eb4e6f57-1d5d-56d3-41ed-27ea6b5f5ea1"_uid));
+	// // rock
+	// materials.emplace_back(setup_gfx_material(cache,
+	// 										  context_handle,
+	// 										  pipeline_cache,
+	// 										  instanceMaterialBuffer,
+	// 										  "0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid,
+	// 										  "b942da62-2922-c985-9c02-ae3008f7a8bc"_uid,
+	// 										  "eb4e6f57-1d5d-56d3-41ed-27ea6b5f5ea1"_uid));
 
 	psl::array<core::resource::handle<core::gfx::bundle>> bundles;
 	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
 	bundles.back()->set_material(materials[0], 2000);
 	bundles.back()->set_material(depth_material, 1000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles.back()->set_material(materials[1], 2000);
-	bundles.back()->set_material(depth_material, 1000);
+	// bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+	// bundles.back()->set_material(materials[1], 2000);
+	// bundles.back()->set_material(depth_material, 1000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles.back()->set_material(materials[2], 2000);
+	// bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+	// bundles.back()->set_material(materials[2], 2000);
 
-	bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
-	bundles.back()->set_material(materials[3], 2000);
+	// bundles.emplace_back(cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding));
+	// bundles.back()->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph {};
 	auto frameBufferData =
@@ -1228,7 +832,7 @@ ECSState.create(
 	size_t burst = 40000;
 #endif
 
-	while(surface_handle->tick())
+	while(os_context.tick() && surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.size<renderable>());
@@ -1330,6 +934,31 @@ ECSState.create(
 	return 0;
 }
 
+#if defined(PLATFORM_ANDROID)
+
+// todo move to os context
+AAssetManager* utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
+
+void android_main(android_app* application)
+{
+	auto os_context = core::os::context{application};
+	utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
+	setup_loggers();
+	std::srand(0);
+
+	// go into a holding loop while wait for the window to come online.
+	while(true) {
+		os_context.tick();
+		__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window ") + std::to_string((size_t)(os_context.application().window))).data());
+		if(os_context.application().window != nullptr)
+			break;
+	}
+	__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window is loaded ") + std::to_string((size_t)(os_context.application().window))).data());
+	entry(graphics_backend::vulkan, os_context);
+	return;
+}
+
+#else
 int main(int argc, char* argv[])
 {
 #ifdef PLATFORM_WINDOWS
@@ -1377,9 +1006,7 @@ int main(int argc, char* argv[])
 		return graphics_backend::gles;
 #endif
 	}(argc, argv);
-
-	return entry(backend);
+	core::os::context context{};
+	return entry(backend, context);
 }
-#endif
-
 #endif

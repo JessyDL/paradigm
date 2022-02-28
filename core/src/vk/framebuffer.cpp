@@ -37,7 +37,6 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	if(!m_Sampler)
 	{
 		core::ivk::log->error("could not load sampler {0} for framebuffer {1}", m_Sampler.uid(), metaData.uid);
-		assert(false);
 	}
 
 	// now we create the renderpass that describes the framebuffer
@@ -60,8 +59,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		if(utility::vulkan::has_depth(binding.description.format) ||
 		   utility::vulkan::has_stencil(binding.description.format))
 		{
-			// Only one depth attachment allowed
-			// assert(!hasDepth);
+			psl_assert(!hasDepth, "Only one depth attachment allowed");
 			depthReference.attachment = attachmentIndex;
 			depthReference.layout	  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 			hasDepth				  = true;

@@ -20,7 +20,6 @@ endif()
 ###############################################################################
 ###                    general options and setup                            ###
 ###############################################################################
-OPTION(PE_SOURCE_ONLY "set to off to not compile the sub-projects" OFF)
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_ANALYZE "enables static analyzers for the given platform" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
@@ -50,15 +49,12 @@ OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
 set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where to build the project to")
 set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
 OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check 'compile options' section in the CMakelists.txt file)" TRUE)
-
+set(ANDROID_SDK "" CACHE PATH "override root android sdk location")
+set(ANDROID_BUNDLETOOL "" CACHE PATH "override android bundletool location")
+set(ANDROID_GRADLE "" CACHE PATH "override gradle location")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-if(PE_GLES)
-	message("enabling GLES")
-	list(APPEND PE_DEFINES -DPE_GLES)
-endif()
-
-if(PE_PLATFORM STREQUAL AUTO)
+if(PE_PLATFORM STREQUAL "AUTO")
 	if(WIN32)
 		set(PE_PLATFORM WINDOWS)
 	elseif(UNIX)
@@ -68,13 +64,54 @@ if(PE_PLATFORM STREQUAL AUTO)
 	endif()
 endif()
 
+if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidManifest.xml")
+	SET(Python_ADDITIONAL_VERSIONS 3 3.0)
+	find_package(PythonInterp REQUIRED)
+	set(ANDROID_PY_ARGS)
+	if(NOT ANDROID_SDK STREQUAL "")
+		list(APPEND --sdk "${ANDROID_SDK}" ANDROID_PY_ARGS)
+	endif()
+	if(NOT ANDROID_GRADLE STREQUAL "")
+		list(APPEND --gradle "${ANDROID_GRADLE}" ANDROID_PY_ARGS)
+	endif()
+	if(NOT ANDROID_BUNDLETOOL STREQUAL "")
+		list(APPEND --bundletool "${ANDROID_BUNDLETOOL}" ANDROID_PY_ARGS)
+	endif()
+	
+	string(TOLOWER ${CMAKE_BUILD_TYPE} build_type)
+	add_custom_target(paradigm_android_generate ALL)
+	add_custom_command(TARGET paradigm_android_generate
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
+			--output ${PE_BUILD_DIR}/android
+			${ANDROID_PY_ARGS}
+		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/android/gradle.properties)
+
+	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
+	add_custom_command(TARGET paradigm_android_build
+		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
+			--output ${PE_BUILD_DIR}/android
+			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${VK_VERSION}
+			--type ${build_type}
+			${ANDROID_PY_ARGS}
+		USES_TERMINAL)
+	return()
+endif()
+
+if(PE_GLES)
+	message("enabling GLES")
+	list(APPEND PE_DEFINES -DPE_GLES)
+endif()
+
 string(TOUPPER PE_MODE PE_MODE)
 list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
 
-# experimental early support for not supporting vulkan
 if(PE_VULKAN)
 	message("enabling VULKAN")
 	list(APPEND PE_DEFINES -DPE_VULKAN)
+	if(NOT DEFINED VK_VERSION OR VK_VERSION STREQUAL "")
+		message(FATAL_ERROR ${VK_VERSION})
+		message(FATAL_ERROR "requested 'vulkan' backend, but did not set 'VK_VERSION'")
+	endif()
 endif()
 
 if(PE_MOLTEN)
@@ -96,7 +133,7 @@ if(PE_PROFILER)
 endif()
 
 
-if(NOT VK_STATIC AND NOT PE_SOURCE_ONLY)	
+if(NOT VK_STATIC)	
 	list(APPEND PE_DEFINES -DVK_NO_PROTOTYPES)
 elseif(VK_STATIC)
 	list(APPEND PE_DEFINES -DVK_STATIC)
@@ -106,6 +143,10 @@ if (CMAKE_BUILD_TYPE STREQUAL "Debug")
 	list(APPEND PE_DEFINES	-DPE_DEBUG)
 else()
 	list(APPEND PE_DEFINES	-DPE_RELEASE)
+endif()
+
+if(${PE_PLATFORM} STREQUAL ANDROID AND (NOT DEFINED ANDROID_NDK OR ANDROID_NDK STREQUAL ""))
+		message(FATAL_ERROR "Trying to build 'android' target outside of the gradle context is not supported.")
 endif()
 
 ###############################################################################
@@ -252,6 +293,11 @@ endif()
 
 set(HAS_WSI FALSE)
 set(PE_SURFACE "unknown")
+if(PE_PLATFORM STREQUAL "ANDROID")
+	set(HAS_WSI TRUE)
+	set(PE_SURFACE "ANDROID")
+	list(APPEND PE_DEFINES -DSURFACE_ANDROID;-DVK_USE_PLATFORM_ANDROID_KHR)
+endif()
 if(NOT HAS_WSI AND PE_WSI_D2D)
 	list(APPEND PE_DEFINES -DSURFACE_D2D)
 	message("using D2D WSI")
@@ -283,22 +329,19 @@ string(TOLOWER ${PE_SURFACE} PE_SURFACE_LOWERCASE)
 
 add_definitions(${PE_DEFINES})
 
-if(NOT PE_SOURCE_ONLY)
-	add_subdirectory(extern)
+add_subdirectory(extern)
 
-	add_subdirectory(psl)
-	add_subdirectory(core)
-	if(PE_TESTS)
-		add_subdirectory(tests)
-	endif()
-	
-	if(PE_BENCHMARKS)
-		add_subdirectory(benchmarks)
-	endif()
+add_subdirectory(psl)
+add_subdirectory(core)
+if(PE_TESTS)
+	add_subdirectory(tests)
+endif()
 
-	if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
-		include(${PROJECT_SOURCE_DIR}/modules.txt)
-	endif()
-else()
-	message("did not compile the project by request")
+if(PE_BENCHMARKS)
+	add_subdirectory(benchmarks)
+endif()
+
+
+if(EXISTS "${PROJECT_SOURCE_DIR}/modules.txt")
+	include(${PROJECT_SOURCE_DIR}/modules.txt)
 endif()

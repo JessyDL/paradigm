@@ -291,7 +291,7 @@ state_t::get_component_info(psl::array_view<details::component_key_t> keys) cons
 void state_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
 {
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 
 	cInfo->add(entities);
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
@@ -303,9 +303,9 @@ void state_t::add_component_impl(details::component_key_t key,
 								 std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 	const auto component_size = cInfo->component_size();
-	assert(component_size != 0);
+	psl_assert(component_size != 0, "component size was 0");
 
 	auto offset = cInfo->entities().size();
 	cInfo->add(entities);
@@ -322,9 +322,9 @@ void state_t::add_component_impl(details::component_key_t key,
 								 bool repeat)
 {
 	auto cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 	const auto component_size = cInfo->component_size();
-	assert(component_size != 0);
+	psl_assert(component_size != 0, "component size was 0");
 
 	auto offset = cInfo->entities().size();
 
@@ -451,7 +451,7 @@ psl::array<entity> state_t::filter(details::dependency_pack& pack, bool seed_wit
 	auto it = std::find_if(
 	  std::begin(m_Filters), std::end(m_Filters), [&group](const filter_result& data) { return *data.group == group; });
 
-	assert(it != std::end(m_Filters));
+	psl_assert(it != std::end(m_Filters), "could not find filter group for pack, could indicate a sync issue");
 
 
 	auto entities = it->entities;
@@ -475,11 +475,15 @@ psl::array<entity> state_t::filter(details::dependency_pack& pack, bool seed_wit
 
 	entities.erase(end, std::end(entities));
 
-	assert_debug_break(std::all_of(std::begin(pack.filters), std::end(pack.filters), [this, &entities](auto filter) {
-		auto cInfo = get_component_info(filter);
-		return std::all_of(
-		  std::begin(entities), std::end(entities), [filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
-	}));
+	psl_assert(std::all_of(std::begin(pack.filters),
+						   std::end(pack.filters),
+						   [this, &entities](auto filter) {
+							   auto cInfo = get_component_info(filter);
+							   return std::all_of(std::begin(entities), std::end(entities), [filter, &cInfo](entity e) {
+								   return cInfo->has_storage_for(e);
+							   });
+						   }),
+			   "not all components had storage for all entities");
 	return entities;
 }
 
@@ -755,23 +759,27 @@ void state_t::filter(filter_result& data, psl::array_view<entity> source) const 
 			}
 		}
 	}
-	assert_debug_break(std::unique(std::begin(data.entities), std::end(data.entities)) == std::end(data.entities));
-	assert_debug_break(
-	  std::all_of(std::begin(data.group->on_combine), std::end(data.group->on_combine), [this, &data](auto filter) {
-		  auto cInfo = get_component_info(filter);
-		  return std::all_of(std::begin(data.entities), std::end(data.entities), [filter, &cInfo](entity e) {
-			  return cInfo->has_storage_for(e);
-		  });
-	  }));
+	psl_assert(std::unique(std::begin(data.entities), std::end(data.entities)) == std::end(data.entities),
+			   "some entities were not unique");
+	psl_assert(std::all_of(std::begin(data.group->on_combine),
+						   std::end(data.group->on_combine),
+						   [this, &data](auto filter) {
+							   auto cInfo = get_component_info(filter);
+							   return std::all_of(std::begin(data.entities),
+												  std::end(data.entities),
+												  [filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
+						   }),
+			   "some components failed to have storage for the entities");
 }
 
 size_t state_t::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(id);
-	assert_debug_break(cInfo != nullptr);
-	assert_debug_break(
-	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }));
+	psl_assert(cInfo != nullptr, "component info was null for the key {}", reinterpret_cast<std::uintptr_t>(id));
+	psl_assert(
+	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
+	  "some components failed to have storage for the entities");
 	return cInfo->copy_to(entities, cache);
 }
 
@@ -812,7 +820,7 @@ size_t state_t::set(psl::array_view<entity> entities, details::component_key_t k
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(key);
-	assert(cInfo != nullptr);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
 	return cInfo->copy_from(entities, data);
 }
 

@@ -140,7 +140,7 @@ namespace memory
 				m_DenseData = std::move(reg);
 
 				m_Reverse.reserve(m_DenseData.size() / sizeof(T));
-				assert_debug_break(m_Reverse.capacity() * sizeof(T) <= m_DenseData.size());
+				psl_assert(m_Reverse.capacity() * sizeof(T) <= m_DenseData.size(), "capacity was less than density");
 			}
 		}
 
@@ -177,8 +177,8 @@ namespace memory
 		{
 			index_type sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			assert_debug_break(m_Sparse.size() > chunk_index && m_Sparse[chunk_index].size() > 0 &&
-							   m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max());
+			psl_assert(m_Sparse.size() > chunk_index && m_Sparse[chunk_index].size() > 0 &&
+							   m_Sparse[chunk_index][sparse_index] != std::numeric_limits<index_type>::max(), "unknown at location");
 			return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
 		}
 
@@ -341,7 +341,7 @@ namespace memory
 				return;
 			}
 
-			assert(std::all_of(&first, &last, [this](index_type i) { return has(i); }));
+			psl_assert(std::all_of(&first, &last, [this](index_type i) { return has(i); }), "expected all indices between {} and {} to be available", first, last);
 
 			if(last - first == m_Reverse.size())
 			{

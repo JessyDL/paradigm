@@ -49,6 +49,7 @@
 #include "psl/math/math.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
+#include "psl/assertions.hpp"
 #include "resource/resource.hpp"
 
 #include "data/stream.hpp"
@@ -64,14 +65,6 @@
 //#define new DBG_NEW
 //#endif
 
-#endif
-
-#ifdef RELEASE
-#ifdef assert
-#undef assert
-
-#define assert ()
-#endif
 #endif
 
 #define STRINGIZE_HELPER(x) #x

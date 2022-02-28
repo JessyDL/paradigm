@@ -34,8 +34,8 @@ bool surface::init_surface()
 	screen = iter.data;
 
 	uint32_t value_mask, value_list[32];
-	assert(m_Data->width() > 0);
-	assert(m_Data->height() > 0);
+	psl_assert(m_Data->width() > 0, "window surface width wasn't larger than 0, it was '{}'", m_Data->width());
+	psl_assert(m_Data->height() > 0, "window surface height wasn't larger than 0, it was '{}'", m_Data->height());
 
 	_xcb_window = xcb_generate_id(_xcb_connection);
 

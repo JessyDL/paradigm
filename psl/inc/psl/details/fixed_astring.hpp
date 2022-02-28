@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <compare>
 #include <string_view>
 
 namespace psl

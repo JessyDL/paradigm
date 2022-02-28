@@ -26,13 +26,11 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		if(!m_Sampler)
 		{
 			core::ivk::log->error("could not load sampler for framebuffer {0}", metaData.uid);
-			assert(false);
 		}
 	}
 	else
 	{
 		core::ivk::log->error("could not load sampler for framebuffer {0}", metaData.uid);
-		assert(false);
 	}
 
 	glGenFramebuffers(m_Framebuffers.size(), m_Framebuffers.data());
@@ -43,7 +41,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		if(texture.state() != core::resource::status::loaded)
 			texture = cache.create_using<core::igles::texture_t>(attach.texture());
 
-		assert_debug_break(!attach.shared());
+		psl_assert(!attach.shared(), "attachment isn't allowed to be shared");
 
 		auto count				   = attach.shared() ? 1u : m_Framebuffers.size();
 		binding& binding		   = m_Bindings.emplace_back();

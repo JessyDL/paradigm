@@ -40,7 +40,7 @@ namespace memory
 		void set(T&& value)
 		{
 			static_assert(std::is_trivial<T>::value, "T should be a trivial type such as a POD data container.");
-			assert(sizeof(T) <= m_Range->size());
+			psl_assert(sizeof(T) <= m_Range->size(), "{} <= {}", sizeof(T), m_Range->size());
 			if(!m_IsVirtual && is_valid()) std::memcpy((void*)m_Range->begin, &value, sizeof(T));
 		}
 
@@ -48,7 +48,7 @@ namespace memory
 		void set(const T& value)
 		{
 			static_assert(std::is_trivial<T>::value, "T should be a trivial type such as a POD data container.");
-			assert(sizeof(T) <= m_Range->size());
+			psl_assert(sizeof(T) <= m_Range->size(), "{} <= {}", sizeof(T), m_Range->size());
 			if(!m_IsVirtual && is_valid()) std::memcpy((void*)m_Range->begin, &value, sizeof(T));
 		}
 
