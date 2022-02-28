@@ -1,0 +1,73 @@
+name: ubuntu
+
+on: [push]
+    
+jobs:
+  build:
+    container:
+      image: gcc:11.2.0
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: build
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: setup dependencies
+      run: |
+        wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh -q -O /tmp/cmake-install.sh \
+        && chmod u+x /tmp/cmake-install.sh \
+        && mkdir /opt/cmake \
+        && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake \
+        && rm /tmp/cmake-install.sh
+        ln -s /opt/cmake/bin/* /usr/bin/
+        apt-get update && apt-get install python3 -y
+        python3 tools/generate_project_info.py
+    - name: install GL libraries
+      if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
+      run: apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+    - name: initialize
+      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
+    - name: compile
+      run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
+    - name: test
+      run: ./builds/default/bin/tests --formatter compact --no-source
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}-bin
+        path: builds/default/bin/benchmarks
+        if-no-files-found: error
+        retention-days: 1
+  benchmark:
+    container:
+      image: gcc:11.2.0
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: benchmark
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: setup
+      id: download
+      uses: actions/download-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}-bin
+    - name: install GL libraries
+      if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
+      run: apt-get update && apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+    - name: prepare
+      run: chmod +x benchmarks
+    - name: benchmark
+      run: ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
+    - name: finalize
+      uses: actions/upload-artifact@v2
+      with:
+        name: ubuntu-${{ matrix.graphics }}
+        path: results.json
+        if-no-files-found: error
