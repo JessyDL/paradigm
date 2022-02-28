@@ -45,6 +45,7 @@ class Android:
 
     def _install_required(packages, package, channel=0, sdk=None):
         if package in packages["installed"]:
+            print(f"sdk package '{package}' was found")
             return
         print(f"Missing '{package}', trying to install now..")
         if package in packages["available"]:
@@ -115,6 +116,8 @@ class Android:
             commands = [':main:bundleRelease']
         if arguments is not None:
             commands.extend([f'-Pparadigm.{key}={value}' for key, value in zip(*[iter(arguments)]*2)])
+        
+        commands.append('--stacktrace')
         run_command(['./gradlew'] + commands, directory=self._directory, print_stdout=True)
         self._regenerate_apks.add(type)
 
