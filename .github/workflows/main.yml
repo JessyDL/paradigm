@@ -141,6 +141,8 @@ jobs:
       uses: actions/checkout@v1
       with:
         submodules: recursive
+    - name: dependencies
+      run: yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --licenses
     - name: initialize
       run: cmake --preset=android-release-${{ matrix.graphics }}
     - name: compile
