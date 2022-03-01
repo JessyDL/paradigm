@@ -4,19 +4,20 @@
 #include "resource/resource.hpp"
 
 #if defined(SURFACE_WIN32)
-#ifndef _WINDEF_
+	#ifndef _WINDEF_
 struct HWND__;	  // Forward or never
 typedef HWND__* HWND;
 struct HINSTANCE__;
 typedef HINSTANCE__* HINSTANCE;
-#endif
+	#endif
 #elif defined(SURFACE_XCB)
-#include <xcb/xcb.h>
+	#include <xcb/xcb.h>
 #elif defined(PLATFORM_ANDROID)
-#include <android/asset_manager.h>
-#include <android/native_activity.h>
-#include <android_native_app_glue.h>
-#include <sys/system_properties.h>
+struct android_app;
+struct ASensorManager;
+struct ASensor;
+struct ASensorEventQueue;
+struct ANativeWindow;
 #endif
 
 namespace core::systems
@@ -36,11 +37,19 @@ namespace core::os
 	/// anything from a resizeable window to the sole surface we can present on (ex. mobile and console platforms).
 	class surface
 	{
+#if defined(PLATFORM_ANDROID)
+		friend struct surface_accessor;
+#endif
 	  public:
 		surface(core::resource::cache_t& cache,
 				const core::resource::metadata& metaData,
 				psl::meta::file* metaFile,
-				core::resource::handle<data::window> data);
+				core::resource::handle<data::window> data
+#if defined(PLATFORM_ANDROID)
+				,
+				android_app* app
+#endif
+		);
 		~surface();
 		surface(const surface&) = delete;
 		surface(surface&&)		= delete;
@@ -105,13 +114,16 @@ namespace core::os
 #elif defined(SURFACE_XCB)
 		xcb_connection_t* connection() const { return _xcb_connection; }
 		xcb_window_t surface_handle() const { return _xcb_window; };
-#elif defined(SURFACE_D2D) || defined(PLATFORM_ANDROID)
-#else
-#error no suitable surface was selected
+#elif defined(PLATFORM_ANDROID)
+		ANativeWindow* surface_handle() const noexcept;
 #endif
 	  private:
 		/// \brief platform specific method that initializes the surface and its resources.
-		bool init_surface();
+		bool init_surface(
+#if defined(PLATFORM_ANDROID)
+			android_app* app
+#endif
+		);
 		/// \brief platform specific method that deinitializes the surface and its resources.
 		void deinit_surface();
 		/// \brief platform specific method that updates the surface and checks for messages.
@@ -120,6 +132,9 @@ namespace core::os
 		void resize_surface();
 #if defined(SURFACE_XCB)
 		void handle_event(const xcb_generic_event_t* event);
+#endif
+#if defined(PLATFORM_ANDROID)
+		void process(int32_t cmd);
 #endif
 
 		core::resource::handle<data::window> m_Data;
@@ -141,6 +156,11 @@ namespace core::os
 		xcb_screen_t* screen;
 		xcb_window_t _xcb_window;
 		xcb_intern_atom_reply_t* atom_wm_delete_window;
+#elif defined(PLATFORM_ANDROID)
+		android_app* m_Application {nullptr};
+		ASensorManager* m_SensorManager {nullptr};
+		const ASensor* m_AccelerometerSensor {nullptr};
+		ASensorEventQueue* m_SensorEventQueue {nullptr};
 #endif
 	};
 }	 // namespace core::os

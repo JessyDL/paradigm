@@ -104,12 +104,13 @@ namespace psl
 #endif
 namespace psl
 {
-	[[noreturn]] inline void unreachable(const std::string& reason = "")
+	template<typename... Args>
+	[[noreturn]] inline void unreachable(const char* fmt = nullptr, Args&&... args)
 	{
-		if(reason.empty())
+		if(fmt == nullptr)
 			psl_print(level_t::fatal, "unreachable code reached.");
 		else
-			psl_print(level_t::fatal, "{}", reason);
+			psl_print(level_t::fatal, fmt, std::forward<Args>(args)...);
 		std::terminate();
 	}
 

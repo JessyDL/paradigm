@@ -11,12 +11,20 @@ using namespace core;
 surface::surface(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
-				 core::resource::handle<data::window> data) :
+				 core::resource::handle<data::window> data
+#if defined(PLATFORM_ANDROID)
+				 ,
+				 struct android_app* app
+#endif
+				 ) :
 	m_Data(data),
 	m_InputSystem(new core::systems::input()),
+#if defined(PLATFORM_ANDROID)
+	m_Open(init_surface(app))
+#else
 	m_Open(init_surface())
-{
-}
+#endif
+{}
 
 surface::~surface()
 {

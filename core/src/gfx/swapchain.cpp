@@ -29,7 +29,6 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 psl::meta::file* metaFile,
 					 handle<os::surface> surface,
 					 handle<context> context,
-					 core::os::context& os_context,
 					 bool use_depth) :
 	m_Backend(context->backend())
 {
@@ -47,7 +46,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_VKHandle = cache.create_using<core::ivk::swapchain>(
-		  metaData.uid, surface, context->resource<graphics_backend::vulkan>(), os_context, use_depth);
+		  metaData.uid, surface, context->resource<graphics_backend::vulkan>(), use_depth);
 		surface->register_swapchain(m_VKHandle);
 		break;
 #endif

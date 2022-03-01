@@ -6,7 +6,6 @@
 namespace core::os
 {
 	class surface;
-	class context;
 }
 
 namespace core::ivk
@@ -39,7 +38,6 @@ namespace core::ivk
 				  psl::meta::file* metaFile,
 				  core::resource::handle<core::os::surface> surface,
 				  core::resource::handle<core::ivk::context> context,
-				  core::os::context& os_context,
 				  bool use_depth = true);
 		~swapchain();
 

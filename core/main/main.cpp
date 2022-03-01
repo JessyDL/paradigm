@@ -30,7 +30,6 @@
 #include "data/window.hpp"	  // application data
 
 #include "os/surface.hpp"	 // the OS surface to draw one
-#include "os/context.hpp"
 
 #include "meta/shader.hpp"
 #include "meta/texture.hpp"
@@ -318,7 +317,11 @@ void setup_loggers()
 
 #endif
 
-int entry(gfx::graphics_backend backend, core::os::context& os_context)
+#if defined(PLATFORM_ANDROID)
+int entry(gfx::graphics_backend backend, struct android_app* android_application_ptr)
+#else
+int entry(gfx::graphics_backend backend)
+#endif
 {
 	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
 
@@ -341,7 +344,11 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 
 	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
+	#if defined(PLATFORM_ANDROID)
+	auto surface_handle = cache.create<core::os::surface>(window_data, android_application_ptr);
+	#else
 	auto surface_handle = cache.create<core::os::surface>(window_data);
+	#endif
 	if(!surface_handle)
 	{
 		core::log->critical("Could not create a OS surface to draw on.");
@@ -350,7 +357,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 
 	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME});
 
-	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
+	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle);
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
 	if(!cache.library().contains("234318ae-3590-f1e2-bac5-f113cac3be9b"_uid) ||
@@ -832,7 +839,7 @@ ECSState.create(
 	size_t burst = 40000;
 #endif
 
-	while(os_context.tick() && surface_handle->tick())
+	while(surface_handle->tick())
 	{
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.size<renderable>());
@@ -929,8 +936,10 @@ ECSState.create(
 		last_tick = current_time;
 		core::log->info("---- FRAME {0} END   ---- duration {1} ms", frame++, dTime.count() * 1000);
 	}
+	core::log->error("preparing shutdown");
 	context_handle->wait_idle();
 
+	core::log->error("exiting...");
 	return 0;
 }
 
@@ -941,20 +950,10 @@ AAssetManager* utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
 
 void android_main(android_app* application)
 {
-	auto os_context = core::os::context{application};
 	utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
 	setup_loggers();
 	std::srand(0);
-
-	// go into a holding loop while wait for the window to come online.
-	while(true) {
-		os_context.tick();
-		__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window ") + std::to_string((size_t)(os_context.application().window))).data());
-		if(os_context.application().window != nullptr)
-			break;
-	}
-	__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window is loaded ") + std::to_string((size_t)(os_context.application().window))).data());
-	entry(graphics_backend::vulkan, os_context);
+	entry(graphics_backend::vulkan, application);
 	return;
 }
 
@@ -1006,7 +1005,6 @@ int main(int argc, char* argv[])
 		return graphics_backend::gles;
 #endif
 	}(argc, argv);
-	core::os::context context{};
-	return entry(backend, context);
+	return entry(backend);
 }
 #endif

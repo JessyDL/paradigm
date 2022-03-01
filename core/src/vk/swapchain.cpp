@@ -3,10 +3,13 @@
 #include "logging.hpp"
 #include "meta/texture.hpp"
 #include "os/surface.hpp"
-#include "os/context.hpp"
 #include "vk/context.hpp"
 #include "vk/conversion.hpp"
 #include "vk/texture.hpp"
+
+#if defined(PLATFORM_ANDROID)
+#include <android_native_app_glue.h>
+#endif
 
 using namespace psl;
 using namespace core;
@@ -20,7 +23,6 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 psl::meta::file* metaFile,
 					 handle<core::os::surface> surface,
 					 handle<core::ivk::context> context,
-					 core::os::context& os_context,
 					 bool use_depth) :
 	m_OSSurface(&surface.value()),
 	m_Context(context), m_Cache(cache), m_DepthTextureHandle(), m_UseDepth(use_depth), m_SurfaceFormat {}
@@ -39,7 +41,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 #elif defined(PLATFORM_ANDROID)
 	vk::AndroidSurfaceCreateInfoKHR createInfo;
 	core::ivk::log->info("creating android swapchain");
-	createInfo.window = os_context.application().window;
+	createInfo.window = m_OSSurface->surface_handle();
 	psl_assert(createInfo.window != nullptr, "application window was invalid");
 	utility::vulkan::check(m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_D2D)

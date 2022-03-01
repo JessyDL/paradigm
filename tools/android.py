@@ -122,23 +122,26 @@ class Android:
         self._regenerate_apks.add(type)
 
     def build_apks(self, type="debug") -> None:
-        if not os.path.exists(os.path.join('main', 'build', 'outputs', 'bundle', type, f'main-{type}.aab')):
-            raise Exception("No AAB generated yet, please run 'build' first")
+        path = os.path.join(self._directory, 'main', 'build', 'outputs', 'bundle', type, f'main-{type}.aab')
+        output = os.path.join(self._directory, 'main', 'build', 'outputs', 'bundle', type, f'main-{type}.apks')
+        if not os.path.exists(path):
+            raise Exception(f"No AAB generated yet, please run 'build' first. Could not find aab at '{path}'")
 
         print(f"building main-{type}.apks")
         application = os.path.join(self._bundletool, 'bundletool')
         run_command([
             application,
             'build-apks',
-            f"--bundle={os.path.join('main', 'build', 'outputs', 'bundle', type, f'main-{type}.aab')}",
-            f"--output={os.path.join('main', 'build', 'outputs', 'bundle', type, f'main-{type}.apks')}",
+            f"--bundle={path}",
+            f"--output={output}",
             "--overwrite",
             '--local-testing'], directory=self._directory, print_stdout=True)
         if type in self._regenerate_apks:
             self._regenerate_apks.remove(type)
 
     def install(self, type='debug'):
-        if not os.path.exists(os.path.join('main', 'build', 'outputs', 'bundle', type, f'main-{type}.apks')):
+        path = os.path.join(self._directory, 'main', 'build', 'outputs', 'bundle', type, f'main-{type}.apks')
+        if not os.path.exists(path):
             self.build_apks(type)
 
         if type in self._regenerate_apks:
@@ -147,15 +150,23 @@ class Android:
 
         print(f"installing main-{type}.apks")
         application = os.path.join(self._bundletool, 'bundletool')
-        run_command([application, 'install-apks', f"--apks={os.path.join('main', 'build', 'outputs', 'bundle', type, f'main-{type}.apks')}"], directory=self._directory, print_stdout=True)
+        run_command([application, 'install-apks', f"--apks={path}"], directory=self._directory, print_stdout=True)
 
-    def run(self):
-        output = run_command(['adb' 'shell' 'pm' 'list' 'packages', 'com.paradigmengine.main'], catch_stdout=True)
-        if(len(output) != 1 or output[0] != 'com.paradigmengine.main'):
-            raise Exception("App wasn't installed, please install first")
+    def run(self, type=None):
+        if type is not None and type in self._regenerate_apks:
+            print("main-{type}.apks out of date, trying to rebuild...")
+            self.build_apks(type)
+            self.install(type)
+        output = run_command(['adb', 'shell', 'pm', 'list', 'packages', 'com.paradigmengine.main'], catch_stdout=True)
+        if(len(output) != 1 or 'com.paradigmengine.main' not in output[0]):
+            if type is not None:
+                print(f"app was not installed, will try to install the '{type}' variant now")
+                self.install(type)
+                return self.run()
+            raise Exception("app wasn't installed, please install first")
         
         application = os.path.join(self._sdk, 'platform-tools', 'adb') if self._sdk != None else 'adb'
-        run_command([application, 'shell', 'am', 'start', '-n', 'com.paradigmengine.main/com.paradigmengine.main.MainActivity'], print_stdout=True)
+        run_command([application, 'shell', 'am', 'start', '-n', 'com.paradigmengine.main/android.app.NativeActivity'], print_stdout=True)
 
 
 def main():
@@ -167,7 +178,8 @@ def main():
     parser.add_argument("-f", "--force", action="store_true", help="Forcibly generate the build directory even if it already exists")
     parser.add_argument("-r", "--run", action="store_true", help="run the intent after installation")
     parser.add_argument("-i", "--install", action="store_true", help="install the apk")
-    parser.add_argument("-b", "--build", default=False, nargs='*', help="build the apk")
+    parser.add_argument("-b", "--build", default=False, nargs='*', help="build the .aab")
+    parser.add_argument("-a", "--apks", action="store_true", help="build the .apks from the .aab")
     parser.add_argument("-t", "--type", default="debug", help="type to generate")
     parser.add_argument("--purge", action="store_true", help="Delete previous install, and generate from scratch")
     parser.add_argument("--skip-setup", action="store_true", help="Skip the setup phase where the SDK tools are installed")
@@ -176,12 +188,17 @@ def main():
     android = Android(args.output, sdk=args.sdk, gradle=args.gradle, bundletool=args.bundletool, skip_setup=args.skip_setup)
     android.generate(overwrite=args.purge)
 
+    if args.type is not None:
+        args.type = args.type.lower()
+
     if isinstance(args.build, list):
         android.build(args.type, args.build)
+    if args.apks:
+        android.build_apks(args.type)
     if args.install:
         android.install(args.type)
     if args.run:
-        android.run()
+        android.run(args.type)
 
 if __name__ == "__main__":
     main()
