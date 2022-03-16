@@ -113,7 +113,7 @@ namespace core::ivk
 		void resize();
 		void apply_resize();
 
-		core::os::surface* m_OSSurface;
+		core::resource::handle<core::os::surface> m_OSSurface;
 		core::resource::handle<core::ivk::context> m_Context;
 
 		vk::SurfaceKHR m_Surface;

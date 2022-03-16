@@ -115,7 +115,7 @@ namespace core::os
 		xcb_connection_t* connection() const { return _xcb_connection; }
 		xcb_window_t surface_handle() const { return _xcb_window; };
 #elif defined(PLATFORM_ANDROID)
-		ANativeWindow* surface_handle() const noexcept;
+		ANativeWindow* surface_handle() noexcept;
 #endif
 	  private:
 		/// \brief platform specific method that initializes the surface and its resources.

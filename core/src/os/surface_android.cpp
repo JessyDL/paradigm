@@ -54,6 +54,8 @@ ASensorManager* AcquireASensorManagerInstance(android_app* app) {
 }
 
 bool surface::init_surface(struct android_app* app) {
+    psl_assert(app != nullptr, "android_app was invalid");
+    core::os::log->info("android surface being initialized");
     m_Application = app;
     m_Focused = false;
 
@@ -75,12 +77,17 @@ bool surface::init_surface(struct android_app* app) {
     return true; 
 }
 
-ANativeWindow* surface::surface_handle() const noexcept
+ANativeWindow* surface::surface_handle() noexcept
 {
+    psl_assert(m_Application != nullptr, "application is invalid");
+    psl_assert(m_Application->window != nullptr, "application window is invalid");
     return m_Application->window;
 }
 
-void surface::deinit_surface() {}
+void surface::deinit_surface() 
+{
+    core::os::log->info("surface::deinit_surface()");
+}
 
 
 void surface::focus(bool value) 

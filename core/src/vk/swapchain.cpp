@@ -24,7 +24,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 handle<core::os::surface> surface,
 					 handle<core::ivk::context> context,
 					 bool use_depth) :
-	m_OSSurface(&surface.value()),
+	m_OSSurface(surface),
 	m_Context(context), m_Cache(cache), m_DepthTextureHandle(), m_UseDepth(use_depth), m_SurfaceFormat {}
 {
 #ifdef SURFACE_WIN32

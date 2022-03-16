@@ -488,7 +488,7 @@ nodes_t psl::format::container::index_of(const data& data) const
 	auto dif = std::uintptr_t(&data) - std::uintptr_t(m_NodeData.data());
 	if(dif % sizeof(psl::format::data) != 0u || dif < 0u || dif > m_NodeData.size() * sizeof(psl::format::data))
 	{
-		throw new node_not_found(this, data.name());
+		throw node_not_found(this, data.name());
 	}
 
 	return (nodes_t)(dif / sizeof(psl::format::data));
@@ -926,7 +926,7 @@ data& container::internal_get(psl::string8::view view) { return m_NodeData[index
 
 handle& container::operator[](nodes_t index)
 {
-	if((size_t)index >= m_NodeData.size()) throw new node_not_found(this, index);
+	if((size_t)index >= m_NodeData.size()) throw node_not_found(this, index);
 	return *m_NodeData[(size_t)index].m_Handle;
 }
 
