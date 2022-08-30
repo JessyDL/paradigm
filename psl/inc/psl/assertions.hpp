@@ -1,11 +1,11 @@
 #pragma once
+#include "platform_def.hpp"
 #include "psl/ustring.hpp"
+#include "source_location.hpp"
 #include <fmt/format.h>
 
 #ifdef PLATFORM_ANDROID
 	#include <android/log.h>
-#else
-	#include <source_location>
 #endif	  // PLATFORM_ANDROID
 
 namespace psl
@@ -22,12 +22,33 @@ namespace psl
 
 	namespace details
 	{
-		/// \todo When Android implements source_location, remove the ifdefs
-		template<typename... Args>
+		template <typename... Args>
+		struct last_type_pack
+		{};
+
+		template <typename Arg>
+		struct last_type_pack<Arg>
+		{
+			using type = Arg;
+		};
+
+		template <typename First, typename... Args>
+		requires(sizeof...(Args) >= 1) struct last_type_pack<First, Args...> : last_type_pack<Args...>
+		{};
+
+		template <typename... Args>
+		using last_type_pack_t = typename last_type_pack<Args...>::type;
+
+		template <typename... Args>
+		concept HasSourceLocOverride =
+		  (std::is_same_v<std::remove_cvref_t<last_type_pack_t<Args...>>, psl::source_location>);
+
+		template <typename... Args>
 		struct print_t
 		{
-			#if defined(PLATFORM_ANDROID)
-			print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
+/// \todo When Android implements source_location, remove the ifdefs and migrate to source_location
+#if defined(PLATFORM_ANDROID)
+			int android_log_level(level_t level) noexcept
 			{
 				int log_level = ANDROID_LOG_SILENT;
 				switch(level)
@@ -53,11 +74,49 @@ namespace psl
 				default:
 					log_level = ANDROID_LOG_SILENT;
 				}
+				return log_level;
+			}
+			print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
+			{
+				auto log_level = android_log_level(level);
 				__android_log_write(log_level, "paradigm", fmt::format(format, std::forward<Args>(args)...).c_str());
 				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
 			}
-			#else
-			print_t(level_t level, const char* fmt, Args&&... args, const std::source_location& loc = std::source_location::current())
+#else
+			print_t(level_t level,
+					const char* fmt,
+					Args&&... args,
+					const psl::source_location& loc =
+					  psl::source_location::current()) requires(!HasSourceLocOverride<Args...>)
+			{
+				internal_print(
+				  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args)> {}, loc);
+			}
+
+			print_t(level_t level, const char* fmt, Args&&... args) requires(HasSourceLocOverride<Args...>)
+			{
+				internal_print(
+				  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args) - 1> {});
+			}
+
+		  private :
+
+			  template <typename... Ys, size_t... Is>
+			  void
+			  internal_print(level_t level,
+							 const char* fmt,
+							 std::tuple<Ys&...> args,
+							 std::index_sequence<Is...> indices)
+			{
+				internal_print(level, fmt, args, indices, std::get<sizeof...(Ys) - 1>(args));
+			}
+
+			template <typename... Ys, size_t... Is>
+			void internal_print(level_t level,
+								const char* fmt,
+								std::tuple<Ys&...> args,
+								std::index_sequence<Is...> indices,
+								const psl::source_location& loc)
 			{
 				const char* log_level;
 				switch(level)
@@ -83,24 +142,28 @@ namespace psl
 				default:
 					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
 				}
-				fmt::print(fmt::format(log_level, fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column()), std::forward<Args>(args)...);
+				fmt::print(fmt::format(log_level, fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column()),
+						   std::get<Is>(args)...);
 			}
-			#endif
-		};
-#if defined(PLATFORM_ANDROID)
-		template <typename... Ts>
-		print_t(level_t, const char*, const char*, int, const char*, Ts&&...)->print_t<Ts...>;
-#else
-		template <typename... Ts>
-		print_t(level_t, const char*, Ts&&...)->print_t<Ts...>;
 #endif
-	}
-}
+		};
 
 #if defined(PLATFORM_ANDROID)
-	#define psl_print(level, message, ...) psl::details::print_t{level, __PRETTY_FUNCTION__, __FILE__, __LINE__, message, __VA_ARGS__}
+		template <typename... Ts>
+		print_t(level_t, const char*, const char*, int, const char*, Ts&&...) -> print_t<Ts...>;
 #else
-	#define psl_print(level, message, ...) psl::details::print_t{level, message, __VA_ARGS__}
+		template <typename... Ts>
+		print_t(level_t, const char*, Ts&&...) -> print_t<Ts...>;
+#endif
+	}	 // namespace details
+}	 // namespace psl
+
+#if defined(PLATFORM_ANDROID)
+	#define psl_print(level, message, ...)                                                                             \
+		psl::details::print_t { level, __PRETTY_FUNCTION__, __FILE__, __LINE__, message, __VA_ARGS__ }
+#else
+	#define psl_print(level, message, ...)                                                                             \
+		psl::details::print_t { level, message, __VA_ARGS__ }
 #endif
 namespace psl
 {
@@ -117,8 +180,8 @@ namespace psl
 	{
 		if(issue != 0)
 			psl_print(level_t::fatal,
-				  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
-				  issue);
+					  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
+					  issue);
 		else
 			psl_print(level_t::fatal, "feature not implemented");
 		std::terminate();
@@ -128,10 +191,10 @@ namespace psl
 	{
 		if(issue != 0)
 			psl_print(level_t::fatal,
-				  "feature not implemented reason: '{}', follow development at "
-				  "https://github.com/JessyDL/paradigm/issues/{}",
-				  reason,
-				  issue);
+					  "feature not implemented reason: '{}', follow development at "
+					  "https://github.com/JessyDL/paradigm/issues/{}",
+					  reason,
+					  issue);
 		else
 			psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
 		std::terminate();
@@ -204,8 +267,8 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #endif
 
 #if defined(PE_DEBUG)
-#define psl_assert(expression, ...)                                                                            \
-			(void)((!!(expression)) || (psl_print(psl::level_t::fatal, __VA_ARGS__), 0) || (std::terminate(), 0))
+	#define psl_assert(expression, ...)                                                                                \
+		(void)((!!(expression)) || (psl_print(psl::level_t::fatal, __VA_ARGS__), 0) || (std::terminate(), 0))
 #else
-#define psl_assert(expression, ...)
+	#define psl_assert(expression, ...)
 #endif
