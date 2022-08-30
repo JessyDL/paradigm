@@ -14,8 +14,9 @@ surface::surface(core::resource::cache_t& cache,
 				 core::resource::handle<data::window> data) :
 	m_Data(data),
 	m_InputSystem(new core::systems::input()),
-	m_Open(init_surface())
+	m_Open(false)
 {
+	m_Open = init_surface();
 }
 
 surface::~surface()

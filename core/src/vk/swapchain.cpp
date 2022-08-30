@@ -29,6 +29,8 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	vk::Win32SurfaceCreateInfoKHR createInfo;
 	createInfo.hinstance = m_OSSurface->surface_instance();
 	createInfo.hwnd		 = m_OSSurface->surface_handle();
+	psl_assert(createInfo.hinstance != nullptr, "missing win32 surface instance");
+	psl_assert(createInfo.hwnd != nullptr, "missing win32 surface handle");
 
 	utility::vulkan::check(m_Context->instance().createWin32SurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_XCB)
