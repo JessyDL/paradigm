@@ -79,7 +79,8 @@ namespace psl
 			print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
 			{
 				auto log_level = android_log_level(level);
-				__android_log_write(log_level, "paradigm", fmt::format(format, std::forward<Args>(args)...).c_str());
+				__android_log_write(
+				  log_level, "paradigm", fmt::format(fmt::runtime(format), std::forward<Args>(args)...).c_str());
 				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
 			}
 #else
@@ -99,14 +100,10 @@ namespace psl
 				  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args) - 1> {});
 			}
 
-		  private :
-
-			  template <typename... Ys, size_t... Is>
-			  void
-			  internal_print(level_t level,
-							 const char* fmt,
-							 std::tuple<Ys&...> args,
-							 std::index_sequence<Is...> indices)
+		  private:
+			template <typename... Ys, size_t... Is>
+			void
+			internal_print(level_t level, const char* fmt, std::tuple<Ys&...> args, std::index_sequence<Is...> indices)
 			{
 				internal_print(level, fmt, args, indices, std::get<sizeof...(Ys) - 1>(args));
 			}
@@ -142,8 +139,10 @@ namespace psl
 				default:
 					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
 				}
-				fmt::print(fmt::format(log_level, fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column()),
-						   std::get<Is>(args)...);
+				fmt::print(
+				  fmt::runtime(fmt::format(
+					fmt::runtime(log_level), fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column())),
+				  std::get<Is>(args)...);
 			}
 #endif
 		};

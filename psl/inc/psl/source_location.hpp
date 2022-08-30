@@ -3,6 +3,8 @@
 
 #if !defined(PLATFORM_ANDROID)
 #include <source_location>
+#else
+#include <cstdint>
 #endif
 
 namespace psl

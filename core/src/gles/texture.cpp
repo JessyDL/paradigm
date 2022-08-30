@@ -115,7 +115,7 @@ void texture_t::load_2D()
 
 	core::igles::log->info("loading texture {} with format {} width {} : height {}",
 						   m_Meta->ID().to_string(),
-						   m_Meta->format(),
+						   static_cast<std::underlying_type_t<decltype(m_Meta->format())>>(m_Meta->format()),
 						   m_Meta->width(),
 						   m_Meta->height());
 
