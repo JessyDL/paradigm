@@ -443,19 +443,19 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 			minVal = std::min((uint32_t)region.dstOffset, minVal);
 			maxVal = std::max((uint32_t)(region.dstOffset + region.size), maxVal);
 		}
-		core::ivk::log->info("copy range {start|finish}: {0} | {1}", minVal, maxVal);
+		core::ivk::log->info("copy range (start|finish): {0} | {1}", minVal, maxVal);
 
 		if(maxVal > m_BufferDataHandle->size())
 		{
 			core::ivk::log->error(
-			  "range exceeds the allocated ivk::buffer_t size! {src|dst} {0} | {1}", m_BufferDataHandle->size(), maxVal);
+			  "range exceeds the allocated ivk::buffer_t size! (src|dst) {0} | {1}", m_BufferDataHandle->size(), maxVal);
 			debug_break();
 		}
 
 		for(const auto& region : copyRegions)
 		{
 			auto tuple = m_Context->device().mapMemory(m_Memory, region.dstOffset, region.size);
-			core::ivk::log->info("{dstOffset|size} {0} | {1}", region.dstOffset, region.size);
+			core::ivk::log->info("(dstOffset|size) {0} | {1}", region.dstOffset, region.size);
 			if(utility::vulkan::check(tuple.result))
 			{
 				if(auto segment = m_BufferDataHandle->allocate(region.size); segment)
