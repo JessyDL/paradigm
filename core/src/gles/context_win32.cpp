@@ -2,7 +2,7 @@
 #ifdef SURFACE_WIN32
 
 #include "gfx/limits.hpp"
-#include "glad/glad_wgl.h"
+#include "gles/igles.hpp"
 #include "gles/context.hpp"
 #include "logging.hpp"
 #include "os/surface.hpp"
