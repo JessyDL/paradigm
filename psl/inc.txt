@@ -92,6 +92,8 @@ serialization/serializer
 
 concepts
 details/fixed_astring
+
+utility/enum
 )
 
 list(TRANSFORM INC PREPEND inc/psl/)
