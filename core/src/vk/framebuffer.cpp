@@ -6,6 +6,9 @@
 #include "vk/conversion.hpp"
 #include "vk/sampler.hpp"
 #include "vk/texture.hpp"
+
+#include "psl/utility/cast.hpp"
+
 using namespace psl;
 using namespace core::ivk;
 using namespace core::resource;
@@ -169,7 +172,7 @@ bool framebuffer_t::add(core::resource::cache_t& cache,
 	auto meta = res.value();
 
 	binding& binding		   = m_Bindings.emplace_back();
-	binding.index			   = index;
+	binding.index			   = psl::utility::narrow_cast<uint32_t> (index);
 	binding.description		   = description;
 	binding.description.format = gfx::conversion::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)

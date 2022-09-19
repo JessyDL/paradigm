@@ -15,6 +15,8 @@
 #include "vk/material.hpp"
 #include "vk/swapchain.hpp"
 
+#include "psl/utility/cast.hpp"
+
 using namespace core::resource;
 using namespace core::gfx;
 using namespace core::ivk;
@@ -256,11 +258,15 @@ void drawpass::create_fences(const size_t size)
 
 void drawpass::destroy_fences()
 {
-	if(!utility::vulkan::check(m_Context->device().waitForFences(
-		 m_WaitFences.size(), m_WaitFences.data(), VK_TRUE, std::numeric_limits<uint64_t>::max())))
+	if(!utility::vulkan::check(
+		 m_Context->device().waitForFences(psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()),
+										   m_WaitFences.data(),
+										   VK_TRUE,
+										   std::numeric_limits<uint64_t>::max())))
 		LOG_ERROR("Failed to wait for fence");
 
-	if(!utility::vulkan::check(m_Context->device().resetFences(m_WaitFences.size(), m_WaitFences.data())))
+	if(!utility::vulkan::check(m_Context->device().resetFences(psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()),
+															   m_WaitFences.data())))
 		LOG_ERROR("Failed to reset fence");
 	for(auto& fence : m_WaitFences)
 	{
@@ -404,7 +410,7 @@ void drawpass::build_drawgroup(drawgroup& group,
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 					{
-						cmdBuffer.bindVertexBuffers(b.first,
+						cmdBuffer.bindVertexBuffers(psl::utility::narrow_cast<uint32_t>(b.first),
 													1,
 													&bundle->m_InstanceData.vertex_buffer()
 													   ->resource<gfx::graphics_backend::vulkan>()
@@ -458,7 +464,7 @@ void drawpass::build_drawgroup(drawgroup& group,
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 					{
-						cmdBuffer.bindVertexBuffers(b.first,
+						cmdBuffer.bindVertexBuffers(psl::utility::narrow_cast<uint32_t>(b.first),
 													1,
 													&bundle->m_InstanceData.vertex_buffer()
 													   ->resource<gfx::graphics_backend::vulkan>()
