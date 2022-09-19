@@ -1,8 +1,9 @@
 #pragma once
 
 #ifdef SURFACE_WIN32
-#include "glad/glad.h"
+// including wgl first as it also includes windows.h, not doing so creates warnings about redefinition of some defines
 #include "glad/glad_wgl.h"
+#include "glad/glad.h"
 #endif
 #ifdef SURFACE_XCB
 #include <GLES3/gl32.h>

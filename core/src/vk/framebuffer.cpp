@@ -1,4 +1,4 @@
-﻿
+
 #include "vk/framebuffer.hpp"
 #include "data/framebuffer.hpp"
 #include "meta/texture.hpp"
@@ -6,17 +6,19 @@
 #include "vk/conversion.hpp"
 #include "vk/sampler.hpp"
 #include "vk/texture.hpp"
-using namespace psl;
+
+#include "psl/utility/cast.hpp"
+
 using namespace core::ivk;
 using namespace core::resource;
 using namespace core;
 
 
 framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
-						 const core::resource::metadata& metaData,
-						 psl::meta::file* metaFile,
-						 handle<context> context,
-						 handle<data::framebuffer_t> data) :
+							 const core::resource::metadata& metaData,
+							 psl::meta::file* metaFile,
+							 handle<context> context,
+							 handle<data::framebuffer_t> data) :
 	m_Context(context),
 	m_Data(data)	// , m_Data(copy(cache, data))
 {
@@ -152,10 +154,10 @@ framebuffer_t::~framebuffer_t()
 }
 
 bool framebuffer_t::add(core::resource::cache_t& cache,
-					  const UID& uid,
-					  vk::AttachmentDescription description,
-					  size_t index,
-					  size_t count)
+						const psl::UID& uid,
+						vk::AttachmentDescription description,
+						size_t index,
+						size_t count)
 {
 	auto res = cache.library().get<core::meta::texture_t>(uid);
 	if(!res) return false;
@@ -169,7 +171,7 @@ bool framebuffer_t::add(core::resource::cache_t& cache,
 	auto meta = res.value();
 
 	binding& binding		   = m_Bindings.emplace_back();
-	binding.index			   = index;
+	binding.index			   = psl::utility::narrow_cast<uint32_t>(index);
 	binding.description		   = description;
 	binding.description.format = gfx::conversion::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i)
