@@ -5,10 +5,10 @@
 #include "vec.hpp"
 
 #ifdef near
-#undef near
+	#undef near
 #endif
 #ifdef far
-#undef far
+	#undef far
 #endif
 
 constexpr std::size_t operator"" _sz(unsigned long long n) { return n; }
@@ -110,33 +110,16 @@ namespace psl::math
 	{
 		return a + t * (b - a);
 	}
-	template <typename precision_t>
-	constexpr inline psl::tvec<precision_t, 1>
-	lerp(precision_t t, psl::tvec<precision_t, 1> a, psl::tvec<precision_t, 1> b) noexcept
+	
+	template <typename precision_t, details::IsVecLike L, details::IsVecLike R>
+	requires details::IsVecSameLength<L, R>
+	constexpr inline auto lerp(precision_t t, const L& left, const R& right) noexcept -> L::tvec_t
 	{
-		return a + t * (b - a);
+		typename L::tvec_t res;
+		for(auto i = 0; i < L::dimensions_n; ++i) res[i] = lerp(t, left[i], right[i]);
+		return res;
 	}
 
-	template <typename precision_t>
-	constexpr inline psl::tvec<precision_t, 2>
-	lerp(precision_t t, psl::tvec<precision_t, 2> a, psl::tvec<precision_t, 2> b) noexcept
-	{
-		return {lerp(t, a[0], b[0]), lerp(t, a[1], b[1])};
-	}
-
-	template <typename precision_t>
-	constexpr inline psl::tvec<precision_t, 3>
-	lerp(precision_t t, psl::tvec<precision_t, 3> a, psl::tvec<precision_t, 3> b) noexcept
-	{
-		return {lerp(t, a[0], b[0]), lerp(t, a[1], b[1]), lerp(t, a[2], b[2])};
-	}
-
-	template <typename precision_t>
-	constexpr inline psl::tvec<precision_t, 4>
-	lerp(precision_t t, psl::tvec<precision_t, 4> a, psl::tvec<precision_t, 4> b) noexcept
-	{
-		return {lerp(t, a[0], b[0]), lerp(t, a[1], b[1]), lerp(t, a[2], b[2]), lerp(t, a[3], b[3])};
-	}
 	template <typename precision_t>
 	constexpr static precision_t saturate(precision_t value) noexcept
 	{
@@ -162,29 +145,13 @@ namespace psl::math
 	{
 		return std::floor(value);
 	}
-
-	template <typename precision_t>
-	constexpr static psl::tvec<precision_t, 1> floor(psl::tvec<precision_t, 1> value) noexcept
+	
+	template <details::IsVecLike T>
+	constexpr static inline auto floor(const T& value) noexcept -> T::tvec_t
 	{
-		return std::floor(value);
-	}
-
-	template <typename precision_t>
-	constexpr static psl::tvec<precision_t, 2> floor(psl::tvec<precision_t, 2> value) noexcept
-	{
-		return {floor(value[0]), floor(value[1])};
-	}
-
-	template <typename precision_t>
-	constexpr static psl::tvec<precision_t, 3> floor(psl::tvec<precision_t, 3> value) noexcept
-	{
-		return {floor(value[0]), floor(value[1]), floor(value[2])};
-	}
-
-	template <typename precision_t>
-	constexpr static psl::tvec<precision_t, 4> floor(psl::tvec<precision_t, 4> value) noexcept
-	{
-		return {floor(value[0]), floor(value[1]), floor(value[2]), floor(value[3])};
+		typename T::tvec_t res;
+		for(auto i = 0; i < T::dimensions_n; ++i) res[i] = floor<typename T::precision_t>(value[i]);
+		return res;
 	}
 
 	template <typename precision_t>
@@ -262,18 +229,18 @@ namespace psl::math
 		return value - remainder;
 	}
 
-	template <typename precision_t>
+	template <details::IsNotAccessor precision_t>
 	constexpr static inline precision_t min(const precision_t& left, const precision_t& right) noexcept
 	{
 		return std::min(left, right);
 	}
 
-	template <typename precision_t, size_t N>
-	constexpr static inline tvec<precision_t, N> min(const tvec<precision_t, N>& left,
-													 const tvec<precision_t, N>& right) noexcept
+	template <details::IsVecLike L, details::IsVecLike R>
+	requires details::IsVecSameLength<L, R>
+	constexpr static inline auto min(const L& left, const R& right) noexcept
 	{
-		tvec<precision_t, N> res;
-		for(auto i = 0; i < N; ++i) res[i] = min<precision_t>(left[i], right[i]);
+		typename L::tvec_t res;
+		for(auto i = 0; i < L::dimensions_n; ++i) res[i] = min<typename L::precision_t>(left[i], right[i]);
 		return res;
 	}
 
@@ -283,12 +250,12 @@ namespace psl::math
 		return std::max(left, right);
 	}
 
-	template <typename precision_t, size_t N>
-	constexpr static inline tvec<precision_t, N> max(const tvec<precision_t, N>& left,
-													 const tvec<precision_t, N>& right) noexcept
+	template <details::IsVecLike L, details::IsVecLike R>
+	requires details::IsVecSameLength<L, R>
+	constexpr static inline auto max(const L& left, const R& right) noexcept
 	{
-		tvec<precision_t, N> res;
-		for(auto i = 0; i < N; ++i) res[i] = max<precision_t>(left[i], right[i]);
+		typename L::tvec_t res;
+		for(auto i = 0; i < L::dimensions_n; ++i) res[i] = max<typename L::precision_t>(left[i], right[i]);
 		return res;
 	}
 
@@ -298,11 +265,11 @@ namespace psl::math
 		return std::abs(value);
 	}
 
-	template <typename precision_t, size_t N>
-	constexpr static inline tvec<precision_t, N> abs(const tvec<precision_t, N>& value) noexcept
+	template <details::IsVecLike T>
+	constexpr static inline auto abs(const T& value) noexcept->T::tvec_t
 	{
-		tvec<precision_t, N> res;
-		for(auto i = 0; i < N; ++i) res[i] = abs<precision_t>(value[i]);
+		typename T::tvec_t res;
+		for(auto i = 0; i < T::dimensions_n; ++i) res[i] = abs<typename T::precision_t>(value[i]);
 		return res;
 	}
 
@@ -312,12 +279,12 @@ namespace psl::math
 		return (lhs < rhs) ? abs<precision_t>(rhs - lhs) : abs<precision_t>(lhs - rhs);
 	}
 
-	template <typename precision_t, size_t N>
-	constexpr static inline tvec<precision_t, N> difference(const tvec<precision_t, N>& lhs,
-															const tvec<precision_t, N>& rhs) noexcept
+	template <details::IsVecLike L, details::IsVecLike R>
+	requires details::IsVecSameLength<L, R>
+	constexpr static inline auto difference(const L& left, const R& right) noexcept
 	{
-		tvec<precision_t, N> res;
-		for(auto i = 0; i < N; ++i) res[i] = difference<precision_t>(lhs[i], rhs[i]);
+		typename L::tvec_t res;
+		for(auto i = 0; i < L::dimensions_n; ++i) res[i] = difference<typename L::precision_t>(left[i], right[i]);
 		return res;
 	}
 

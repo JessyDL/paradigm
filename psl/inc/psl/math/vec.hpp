@@ -15,16 +15,89 @@ namespace psl
 	namespace details
 	{
 		template <typename T, size_t... index>
+		struct accessor;
+
+		inline namespace
+		{
+			template <typename T>
+			struct is_accessor : std::false_type
+			{};
+
+			template <typename T, size_t... N>
+			struct is_accessor<accessor<T, N...>> : std::true_type
+			{};
+
+			template <typename T>
+			struct is_vec : std::false_type
+			{};
+
+			template <typename T, size_t N>
+			struct is_vec<tvec<T, N>> : std::true_type
+			{};
+		}	 // namespace
+
+		template <typename T>
+		concept IsAccessor = is_accessor<std::remove_cvref_t<T>>::value;
+
+		template <typename T>
+		concept IsNotAccessor = !IsAccessor<T>;
+
+		template <typename T>
+		concept IsVec = is_vec<std::remove_cvref_t<T>>::value;
+
+		template <typename T>
+		concept IsVecLike = IsVec<T> || IsAccessor<T>;
+
+		template <typename L, typename R>
+		concept IsVecSameLength = IsVecLike<L> && IsVecLike<R> && L::dimensions_n == R::dimensions_n;
+
+		template <size_t target, size_t... remainder>
+		constexpr auto accessor_get_at(size_t count, const auto& data) noexcept
+		{
+			if(count == 0)
+			{
+				return data[target];
+			}
+			else
+			{
+				// short circuit for compiler, so we don't generate indefinitely until the compiler complains
+				if constexpr(sizeof...(remainder) == 0)
+				{
+					psl_assert(count == 0,
+							   "reached the max depth of the index sequence, but still had '{}' remaining",
+							   count - 1);
+					return data[target];
+				}
+				else
+				{
+					return accessor_get_at<remainder...>(count - 1, data);
+				}
+			}
+		}
+
+		template <typename T, size_t... index>
 		struct accessor
 		{
-			static constexpr size_t length			 = sizeof...(index);
-			static constexpr bool is_single_accessor = length == 1;
+			static constexpr size_t dimensions_n	 = sizeof...(index);
+			using precision_t						 = T;
+			using tvec_t							 = tvec<precision_t, dimensions_n>;
+			static constexpr bool is_single_accessor = dimensions_n == 1;
 
-			inline operator std::conditional_t<is_single_accessor, T&, tvec<T, length>>() noexcept
+			inline operator std::conditional_t<is_single_accessor, T&, tvec<T, dimensions_n>>() noexcept
 			{
-				if constexpr(length > 1)
+				return as_underlying();
+			}
+
+			inline operator std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>>() const noexcept
+			{
+				return as_underlying();
+			}
+
+			inline auto as_underlying() noexcept -> std::conditional_t<is_single_accessor, T&, tvec<T, dimensions_n>>
+			{
+				if constexpr(dimensions_n > 1)
 				{
-					return tvec<T, length> {data[index]...};
+					return tvec<T, dimensions_n> {data[index]...};
 				}
 				else
 				{
@@ -32,11 +105,12 @@ namespace psl
 				}
 			}
 
-			inline operator std::conditional_t<is_single_accessor, const T&, tvec<T, length>>() const noexcept
+			inline auto as_underlying() const noexcept
+			  -> std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>>
 			{
-				if constexpr(length > 1)
+				if constexpr(dimensions_n > 1)
 				{
-					return tvec<T, length> {data[index]...};
+					return tvec<T, dimensions_n> {data[index]...};
 				}
 				else
 				{
@@ -44,20 +118,55 @@ namespace psl
 				}
 			}
 
-			inline tvec<T, length> operator=(const tvec<T, length>& other) noexcept
+			template <IsVecLike Y>
+			requires IsVecSameLength<accessor, Y>
+			auto operator=(const Y& other) noexcept -> accessor&
 			{
-				if constexpr(length > 1)
+				if constexpr(dimensions_n > 1)
 				{
-					auto it = std::begin(other.data);
-					(void(data.at(index) = *it++), ...);
+					size_t other_index = 0;
+					(void(data.at(index) = other[other_index++]), ...);
 				}
 				else
 				{
 					data.at(index...) = other;
 				}
 
-				return {data[index]...};
+				return *this;
 			}
+
+			auto operator=(const auto& other) noexcept -> accessor& requires(dimensions_n == 1)
+			{
+				data.at(index...) = other;
+				return *this;
+			}
+
+			constexpr auto operator[](size_t N) const noexcept -> const precision_t&
+			{
+				return accessor_get_at<index...>(N, data);
+			}
+
+			auto operator/(const auto& other) const noexcept
+			{
+				return as_underlying() / other;
+			}
+
+			auto operator*(const auto& other) const noexcept
+			{
+				return as_underlying() * other;
+			}
+
+			auto operator+(const auto& other) const noexcept
+			{
+				return as_underlying() + other;
+			}
+
+			auto operator-(const auto& other) const noexcept
+			{
+				return as_underlying() - other;
+			}
+
+			constexpr auto operator[](size_t N) noexcept -> precision_t& { return accessor_get_at<index...>(N, data); }
 
 			static constexpr size_t max_elements = utility::templates::max<index...>() + 1;
 			psl::static_array<T, max_elements> data;
@@ -152,10 +261,11 @@ namespace psl
 
 #pragma warning(push)
 #pragma warning(disable : 5103)
-	template <typename precision_t, size_t dimensions>
+	template <typename precision, size_t dimensions>
 	struct tvec
 	{
 		static constexpr size_t dimensions_n {dimensions};
+		using precision_t = precision;
 		using tvec_t	  = tvec<precision_t, dimensions>;
 		using container_t = psl::static_array<precision_t, dimensions>;
 
@@ -251,10 +361,11 @@ namespace psl
 		container_t value;
 	};
 
-	template <typename precision_t>
-	struct tvec<precision_t, 1>
+	template <typename precision>
+	struct tvec<precision, 1>
 	{
 		static constexpr size_t dimensions_n {1};
+		using precision_t = precision;
 		using tvec_t	  = tvec<precision_t, 1>;
 		using container_t = precision_t;
 
@@ -343,10 +454,11 @@ namespace psl
 		container_t value;
 	};
 
-	template <typename precision_t>
-	struct tvec<precision_t, 2>
+	template <typename precision>
+	struct tvec<precision, 2>
 	{
 		static constexpr size_t dimensions_n {2};
+		using precision_t = precision;
 		using tvec_t	  = tvec<precision_t, 2>;
 		using container_t = psl::static_array<precision_t, 2>;
 
@@ -448,10 +560,11 @@ namespace psl
 		};
 	};
 
-	template <typename precision_t>
-	struct tvec<precision_t, 3>
+	template <typename precision>
+	struct tvec<precision, 3>
 	{
 		static constexpr size_t dimensions_n {3};
+		using precision_t = precision;
 		using tvec_t	  = tvec<precision_t, 3>;
 		using container_t = psl::static_array<precision_t, 3>;
 
@@ -566,10 +679,11 @@ namespace psl
 	};
 
 	// todo alignas should be handled more gracefully
-	template <typename precision_t>
-	struct alignas(16) tvec<precision_t, 4>
+	template <typename precision>
+	struct alignas(16) tvec<precision, 4>
 	{
 		static constexpr size_t dimensions_n {4};
+		using precision_t = precision;
 		using tvec_t	  = tvec<precision_t, 4>;
 		using container_t = psl::static_array<precision_t, 4>;
 
