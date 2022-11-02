@@ -38,7 +38,7 @@ float perlin::noise(psl::vec3 coordinate, int32_t octaves, float persistence) co
 		auto Y = static_cast<int32_t>(std::floor(coordinate[1])) & 255;
 		auto Z = static_cast<int32_t>(std::floor(coordinate[2])) & 255;
 
-		auto fcoordinate = coordinate - floor(coordinate);
+		auto fcoordinate = coordinate - psl::math::floor(coordinate);
 
 		auto u = fade(fcoordinate[0]);
 		auto v = fade(fcoordinate[1]);
@@ -87,7 +87,7 @@ float perlin::noise(psl::vec2 coordinate, int32_t octaves, float persistence) co
 		auto X = static_cast<int32_t>(std::floor(coordinate[0])) & 255;
 		auto Y = static_cast<int32_t>(std::floor(coordinate[1])) & 255;
 
-		auto fcoordinate = coordinate - floor(coordinate);
+		auto fcoordinate = coordinate - psl::math::floor(coordinate);
 
 		auto u = fade(fcoordinate[0]);
 		auto v = fade(fcoordinate[1]);
