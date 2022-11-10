@@ -1,5 +1,6 @@
 #pragma once
 #include "psl/array.hpp"
+#include "psl/array_view.hpp"
 #include "psl/math/matrix.hpp"
 #include "psl/math/vec.hpp"
 #include "psl/serialization/serializer.hpp"
@@ -227,7 +228,7 @@ namespace core
 		};
 
 	  private:
-		void init(type t)
+		inline void init(type t)
 		{
 			switch(t)
 			{
@@ -278,11 +279,11 @@ namespace core
 			else	// storing to disk
 			{
 				std::visit(
-				  [&serializer](auto& value) {
-					  psl::serialization::property<"TYPE", type> type {decltype(value)::memory_stream_type};
-					  psl::serialization::property<"DATA", psl::array_view<typename decltype(value)::unit_t>> data {
+				  [&serializer]<typename T>(T& value) {
+					  psl::serialization::property<"TYPE", type> typeProp {T::memory_stream_type};
+					  psl::serialization::property<"DATA", psl::array_view<typename T::unit_t>> data {
 						value.value()};
-					  serializer << type << data;
+					  serializer << typeProp << data;
 				  },
 				  m_Stream);
 			}
