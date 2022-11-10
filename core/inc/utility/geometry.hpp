@@ -65,13 +65,15 @@ namespace utility::geometry
 	{
 		if(geometry_data.state() != core::resource::status::loaded) return false;
 
-		auto posStreamOpt = geometry_data->vertices(core::data::geometry_t::constants::POSITION);
-		auto uvStreamOpt  = geometry_data->vertices(core::data::geometry_t::constants::TEX);
-		if(!posStreamOpt || !uvStreamOpt) return false;
+		if(!geometry_data->contains(core::data::geometry_t::constants::POSITION) ||
+		   !geometry_data->contains(core::data::geometry_t::constants::TEX))
+			return false;
 
-		const auto& positions = posStreamOpt.value().get().get<core::vertex_stream_t::type::vec3>();
-		const auto& uvs		  = uvStreamOpt.value().get().get<core::vertex_stream_t::type::vec2>();
-		const auto& indices	  = geometry_data->indices();
+		const auto& positions =
+		  geometry_data->vertices(core::data::geometry_t::constants::POSITION).get<core::vertex_stream_t::type::vec3>();
+		const auto& uvs =
+		  geometry_data->vertices(core::data::geometry_t::constants::TEX).get<core::vertex_stream_t::type::vec2>();
+		const auto& indices = geometry_data->indices();
 
 		core::vertex_stream_t stream(core::vertex_stream_t::type::vec3);
 		stream.get<core::vertex_stream_t::type::vec3>() = {generate_tangents(positions, uvs, indices)};
@@ -145,9 +147,9 @@ namespace utility::geometry
 	/// \note the final size of the object is always 2x the extents. This means that a size {2, 1} results into a
 	/// min-coordinate {-2, -1} and max-coordinate {2, 1}.
 	static core::resource::handle<core::data::geometry_t> create_plane(core::resource::cache_t& cache,
-																	 psl::vec2 size			 = psl::vec2::one,
-																	 psl::ivec2 subdivisions = psl::ivec2(1, 1),
-																	 psl::vec2 uvScale		 = psl::vec2::one)
+																	   psl::vec2 size		   = psl::vec2::one,
+																	   psl::ivec2 subdivisions = psl::ivec2(1, 1),
+																	   psl::vec2 uvScale	   = psl::vec2::one)
 	{
 		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
 		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
@@ -222,7 +224,7 @@ namespace utility::geometry
 	}
 
 	static core::resource::handle<core::data::geometry_t> create_line_quad(core::resource::cache_t& cache,
-																		 psl::vec3 scale = psl::vec3::one)
+																		   psl::vec3 scale = psl::vec3::one)
 	{
 		float length = scale[0] * 0.5f;
 		float width	 = scale[1] * 0.5f;
@@ -262,7 +264,7 @@ namespace utility::geometry
 		return geomData;
 	}
 	static core::resource::handle<core::data::geometry_t> create_line_cube(core::resource::cache_t& cache,
-																		 psl::vec3 scale = psl::vec3::one)
+																		   psl::vec3 scale = psl::vec3::one)
 	{
 		float length = scale[0] * 0.5f;
 		float width	 = scale[1] * 0.5f;
@@ -306,7 +308,7 @@ namespace utility::geometry
 		};
 
 		std::vector<core::data::geometry_t::index_size_t> indices {0, 1, 1, 2, 2, 3, 3, 0, 4, 5, 5, 6,
-																 6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7};
+																   6, 7, 7, 4, 0, 4, 1, 5, 2, 6, 3, 7};
 
 
 		auto geomData = cache.create<core::data::geometry_t>();
@@ -334,7 +336,7 @@ namespace utility::geometry
 	/// \note unlike extent, scale implies that the final size is equal to the scale (i.e. an object of 1 unit at a
 	/// scale of 1 is equal to 1unit).
 	static core::resource::handle<core::data::geometry_t> create_box(core::resource::cache_t& cache,
-																   psl::vec3 scale = psl::vec3::one)
+																	 psl::vec3 scale = psl::vec3::one)
 	{
 		float length = scale[0] * 0.5f;
 		float width	 = scale[1] * 0.5f;
@@ -441,11 +443,11 @@ namespace utility::geometry
 											 psl::vec3(2.0, 0.0, 0.0),
 											 psl::vec3(2.0, 0.0, 0.0)};
 		static const psl::vec3 ups[6]	  = {psl::vec3(0.0, 2.0, 0.0),
-										 psl::vec3(0.0, 2.0, 0.0),
-										 psl::vec3(0.0, 2.0, 0.0),
-										 psl::vec3(0.0, 2.0, 0.0),
-										 psl::vec3(0.0, 0.0, 2.0),
-										 psl::vec3(0.0, 0.0, -2.0)};
+											 psl::vec3(0.0, 2.0, 0.0),
+											 psl::vec3(0.0, 2.0, 0.0),
+											 psl::vec3(0.0, 2.0, 0.0),
+											 psl::vec3(0.0, 0.0, 2.0),
+											 psl::vec3(0.0, 0.0, -2.0)};
 
 		std::vector<psl::vec3> vertices;
 
@@ -523,10 +525,10 @@ namespace utility::geometry
 	}
 
 	static core::resource::handle<core::data::geometry_t> create_cone(core::resource::cache_t& cache,
-																	float height	   = 1.0f,
-																	float topRadius	   = 1.0f,
-																	float bottomRadius = 1.0f,
-																	uint32_t sides	   = 18)
+																	  float height		 = 1.0f,
+																	  float topRadius	 = 1.0f,
+																	  float bottomRadius = 1.0f,
+																	  uint32_t sides	 = 18)
 	{
 		auto tempBottom			= bottomRadius;
 		bottomRadius			= topRadius * 0.5f;
@@ -725,9 +727,9 @@ namespace utility::geometry
 	}
 
 	static core::resource::handle<core::data::geometry_t> create_sphere(core::resource::cache_t& cache,
-																	  psl::vec3 scale	 = psl::vec3::one,
-																	  uint16_t longitude = 24,
-																	  uint16_t latitude	 = 16)
+																		psl::vec3 scale	   = psl::vec3::one,
+																		uint16_t longitude = 24,
+																		uint16_t latitude  = 16)
 	{
 		std::vector<psl::vec3> vertices = std::vector<psl::vec3>((longitude + 1) * latitude + 2);
 		float _pi						= 3.14159265359f;
@@ -1202,7 +1204,7 @@ namespace utility::geometry
 	}
 
 	static core::resource::handle<core::data::geometry_t> copy(core::resource::cache_t& cache,
-															 core::resource::handle<core::data::geometry_t> target)
+															   core::resource::handle<core::data::geometry_t> target)
 	{
 		if(target.state() != core::resource::status::loaded) return {};
 
@@ -1264,8 +1266,8 @@ namespace utility::geometry
 		return geomData;
 	}
 
-	static core::resource::handle<core::data::geometry_t> replicate(core::resource::handle<core::data::geometry_t> source,
-																  const psl::array<psl::vec3>& positions)
+	static core::resource::handle<core::data::geometry_t>
+	replicate(core::resource::handle<core::data::geometry_t> source, const psl::array<psl::vec3>& positions)
 	{
 		if(source.state() != core::resource::status::loaded) return {};
 		using index_t = core::data::geometry_t::index_size_t;
@@ -1290,8 +1292,8 @@ namespace utility::geometry
 		auto streams = source->vertex_streams();
 		for(auto& [name, stream] : streams)
 		{
-			const core::vertex_stream_t& original = source->vertices(name).value();
-			auto bytesize				 = original.bytesize();
+			const core::vertex_stream_t& original = source->vertices(name);
+			auto bytesize						  = original.bytesize();
 			stream.resize_elementcount(stream.size() * positions.size());
 
 			for(auto i = 0; i < positions.size(); ++i)
@@ -1315,9 +1317,10 @@ namespace utility::geometry
 		return source;
 	}
 
-	static core::resource::handle<core::data::geometry_t> replicate(core::resource::cache_t& cache,
-																  core::resource::handle<core::data::geometry_t> source,
-																  const psl::array<psl::vec3>& positions)
+	static core::resource::handle<core::data::geometry_t>
+	replicate(core::resource::cache_t& cache,
+			  core::resource::handle<core::data::geometry_t> source,
+			  const psl::array<psl::vec3>& positions)
 	{
 		return replicate(copy(cache, source), positions);
 	}
@@ -1355,12 +1358,13 @@ namespace utility::geometry
 		return source;
 	}
 
-	inline core::resource::handle<core::data::geometry_t> copy_channel(core::resource::handle<core::data::geometry_t> geom,
-																	 psl::string_view source,
-																	 psl::string_view destination)
+	inline core::resource::handle<core::data::geometry_t>
+	copy_channel(core::resource::handle<core::data::geometry_t> geom,
+				 psl::string_view source,
+				 psl::string_view destination)
 	{
 		psl_assert(geom->vertices(source).has_value(), "missing vertices channel '{}' in geom", source);
-		geom->vertices(destination, geom->vertices(source).value());
+		geom->vertices(destination, geom->vertices(source));
 		return geom;
 	}
 
@@ -1368,9 +1372,9 @@ namespace utility::geometry
 	inline core::resource::handle<core::data::geometry_t>
 	set_channel(core::resource::handle<core::data::geometry_t> source, psl::string_view channel, T value)
 	{
-		if(source->vertices(channel).has_value())
+		if(source->contains(channel))
 		{
-			if(source->vertices(channel)->get().is<T>())
+			if(source->vertices(channel).is<T>())
 			{
 				source->transform(channel, [value](T& old) mutable { old = value; });
 				return source;

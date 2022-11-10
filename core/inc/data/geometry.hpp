@@ -73,18 +73,23 @@ namespace core::data
 		};
 		geometry_t() = default;
 		geometry_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile) noexcept;
-		~geometry_t()				  = default;
-		geometry_t(const geometry_t&) = delete;
-		geometry_t(geometry_t&&)	  = delete;
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile) noexcept;
+		~geometry_t()							 = default;
+		geometry_t(const geometry_t&)			 = delete;
+		geometry_t(geometry_t&&)				 = delete;
 		geometry_t& operator=(const geometry_t&) = delete;
-		geometry_t& operator=(geometry_t&&) = delete;
+		geometry_t& operator=(geometry_t&&)		 = delete;
 
-		/// \brief returns the stream reference (if any found) for the given key.
-		/// \returns the stream reference (if any found) for the given key.
-		std::optional<std::reference_wrapper<const core::vertex_stream_t>>
-		vertices(const psl::string_view name = constants::POSITION) const;
+		/// \brief returns the stream reference for the given key.
+		/// \returns the stream reference for the given key.
+		/// \warn if you are uncertain the stream exists, run the `contains` method first. The `vertices` method will terminate if the stream isn't found.
+		const core::vertex_stream_t& vertices(const psl::string_view name = constants::POSITION) const;
+
+		/// \brief verifies if the given stream is present in the data
+		/// \param name stream name see constants::POSITION as example
+		/// \return true if the stream exists
+		bool contains(const psl::string_view name) const noexcept;
 
 		/// \brief sets the stream data for the given key. If data was already present, then it gets replaced.
 		/// \warning be sure that the stream has the correct amount of vertices as is expected by the index buffer. As

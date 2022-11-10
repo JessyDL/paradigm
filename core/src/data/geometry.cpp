@@ -11,15 +11,20 @@ geometry_t::geometry_t(core::resource::cache_t& cache,
 				   psl::meta::file* metaFile) noexcept
 {}
 
+bool geometry_t::contains(psl::string_view name) const noexcept {
+	return m_VertexStreams.value.contains(psl::string {name});
+}
 
-std::optional<std::reference_wrapper<const core::vertex_stream_t>> geometry_t::vertices(const psl::string_view name) const
+const core::vertex_stream_t& geometry_t::vertices(const psl::string_view name) const
 {
 	auto it = m_VertexStreams.value.find(psl::string {name});
+	psl_assert(
+	  it != std::end(m_VertexStreams.value), "The given stream '{}' was not found within the geometry data", name);
 	if(it != std::end(m_VertexStreams.value))
 	{
 		return it->second;
 	}
-	return std::nullopt;
+	throw std::runtime_error("Missing requested data stream in the geometry data");
 }
 void geometry_t::vertices(const psl::string_view name, const core::vertex_stream_t& stream)
 {
