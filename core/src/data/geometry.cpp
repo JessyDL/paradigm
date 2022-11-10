@@ -1,4 +1,4 @@
-﻿#include "data/geometry.hpp"
+#include "data/geometry.hpp"
 #include "psl/array_view.hpp"
 #include "resource/resource.hpp"
 
@@ -12,7 +12,7 @@ geometry_t::geometry_t(core::resource::cache_t& cache,
 {}
 
 
-std::optional<std::reference_wrapper<const core::stream>> geometry_t::vertices(const psl::string_view name) const
+std::optional<std::reference_wrapper<const core::vertex_stream_t>> geometry_t::vertices(const psl::string_view name) const
 {
 	auto it = m_VertexStreams.value.find(psl::string {name});
 	if(it != std::end(m_VertexStreams.value))
@@ -21,14 +21,17 @@ std::optional<std::reference_wrapper<const core::stream>> geometry_t::vertices(c
 	}
 	return std::nullopt;
 }
-void geometry_t::vertices(const psl::string_view name, const core::stream& stream)
+void geometry_t::vertices(const psl::string_view name, const core::vertex_stream_t& stream)
 {
 	m_VertexStreams.value[psl::string {name}] = stream;
 }
 const std::vector<geometry_t::index_size_t>& geometry_t::indices() const { return m_Indices.value; }
 void geometry_t::indices(psl::array_view<index_size_t> indices) { m_Indices.value = psl::array<index_size_t> {indices}; }
 
-const std::unordered_map<psl::string, core::stream>& geometry_t::vertex_streams() const { return m_VertexStreams.value; }
+const std::unordered_map<psl::string, core::vertex_stream_t>& geometry_t::vertex_streams() const
+{
+	return m_VertexStreams.value;
+}
 
 bool geometry_t::is_valid() const noexcept
 {

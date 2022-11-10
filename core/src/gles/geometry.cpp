@@ -65,7 +65,7 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 	sizeRequests.reserve(data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
 	std::for_each(std::begin(data->vertex_streams()),
 				  std::end(data->vertex_streams()),
-				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
+				  [&sizeRequests](const std::pair<psl::string, core::vertex_stream_t>& element) {
 					  sizeRequests.emplace_back(element.second.bytesize());
 				  });
 	auto error = glGetError();
@@ -91,7 +91,7 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 		auto& instr				 = instructions.emplace_back();
 		instr.size				 = stream.second.bytesize();
 		instr.destination_offset = current_segment->first.range().begin + current_segment->second.begin;
-		instr.source_offset		 = (std::uintptr_t)(stream.second.cdata());
+		instr.source_offset		 = (std::uintptr_t)(stream.second.data());
 
 		auto& b			= m_Bindings.emplace_back();
 		b.name			= stream.first;

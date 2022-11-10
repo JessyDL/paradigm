@@ -69,13 +69,13 @@ namespace utility::geometry
 		auto uvStreamOpt  = geometry_data->vertices(core::data::geometry_t::constants::TEX);
 		if(!posStreamOpt || !uvStreamOpt) return false;
 
-		const auto& positions = posStreamOpt.value().get().as_vec3().value().get();
-		const auto& uvs		  = uvStreamOpt.value().get().as_vec2().value().get();
+		const auto& positions = posStreamOpt.value().get().get<core::vertex_stream_t::type::vec3>();
+		const auto& uvs		  = uvStreamOpt.value().get().get<core::vertex_stream_t::type::vec2>();
 		const auto& indices	  = geometry_data->indices();
 
-		core::stream stream(core::stream::type::vec3);
-		stream.as_vec3().value().get() = {generate_tangents(positions, uvs, indices)};
-		if(stream.as_vec3().value().get().size() == positions.size())
+		core::vertex_stream_t stream(core::vertex_stream_t::type::vec3);
+		stream.get<core::vertex_stream_t::type::vec3>() = {generate_tangents(positions, uvs, indices)};
+		if(stream.get<core::vertex_stream_t::type::vec3>().size() == positions.size())
 		{
 			geometry_data->vertices(core::data::geometry_t::constants::TANGENT, stream);
 			return true;
@@ -96,13 +96,13 @@ namespace utility::geometry
 	static core::resource::handle<core::data::geometry_t>
 	create_quad(core::resource::cache_t& cache, float top, float bottom, float left, float right)
 	{
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		auto& vertices = vertStream.as_vec3().value().get();
-		auto& normals  = normStream.as_vec3().value().get();
-		auto& uvs	   = uvStream.as_vec2().value().get();
+		auto& vertices = vertStream.get<core::vertex_stream_t::type::vec3>();
+		auto& normals  = normStream.get<core::vertex_stream_t::type::vec3>();
+		auto& uvs	   = uvStream.get<core::vertex_stream_t::type::vec2>();
 
 		vertices.emplace_back(psl::vec3 {right, top, 0.0f});
 		vertices.emplace_back(psl::vec3 {left, top, 0.0f});
@@ -149,13 +149,13 @@ namespace utility::geometry
 																	 psl::ivec2 subdivisions = psl::ivec2(1, 1),
 																	 psl::vec2 uvScale		 = psl::vec2::one)
 	{
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		auto& vertices = vertStream.as_vec3().value().get();
-		auto& normals  = normStream.as_vec3().value().get();
-		auto& uvs	   = uvStream.as_vec2().value().get();
+		auto& vertices = vertStream.get<core::vertex_stream_t::type::vec3>();
+		auto& normals  = normStream.get<core::vertex_stream_t::type::vec3>();
+		auto& uvs	   = uvStream.get<core::vertex_stream_t::type::vec2>();
 
 		vertices.resize((subdivisions[0] + 1) * (subdivisions[1] + 1));
 		normals.resize((subdivisions[0] + 1) * (subdivisions[1] + 1));
@@ -209,9 +209,9 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
 
-		vertStream.as_vec3().value().get().resize(vertices.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
 
 		geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
@@ -246,12 +246,12 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		vertStream.as_vec3().value().get().resize(vertices.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
-		uvStream.as_vec2().value().get().resize(uvs.size());
+		uvStream.get<core::vertex_stream_t::type::vec2>().resize(uvs.size());
 		memcpy(uvStream.data(), uvs.data(), sizeof(psl::vec2) * uvs.size());
 
 		geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
@@ -311,12 +311,12 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		vertStream.as_vec3().value().get().resize(vertices.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
-		uvStream.as_vec2().value().get().resize(uvs.size());
+		uvStream.get<core::vertex_stream_t::type::vec2>().resize(uvs.size());
 		memcpy(uvStream.data(), uvs.data(), sizeof(psl::vec2) * uvs.size());
 
 		geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
@@ -400,15 +400,15 @@ namespace utility::geometry
 
 		auto boxGeomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		vertStream.as_vec3().value().get().resize(vertices.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
-		normStream.as_vec3().value().get().resize(normals.size());
+		normStream.get<core::vertex_stream_t::type::vec3>().resize(normals.size());
 		memcpy(normStream.data(), normals.data(), sizeof(psl::vec3) * normals.size());
-		uvStream.as_vec2().value().get().resize(uvs.size());
+		uvStream.get<core::vertex_stream_t::type::vec2>().resize(uvs.size());
 		memcpy(uvStream.data(), uvs.data(), sizeof(psl::vec2) * uvs.size());
 
 		boxGeomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
@@ -494,14 +494,14 @@ namespace utility::geometry
 
 		auto boxGeomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		vertStream.as_vec3().value().get().resize(vertices.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
-		auto& normals = normStream.as_vec3().value().get();
-		auto& uvs	  = uvStream.as_vec2().value().get();
+		auto& normals = normStream.get<core::vertex_stream_t::type::vec3>();
+		auto& uvs	  = uvStream.get<core::vertex_stream_t::type::vec2>();
 		normals.resize(vertices.size());
 		uvs.resize(vertices.size());
 
@@ -702,15 +702,15 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		vertStream.as_vec3().value().get().resize(vertices.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
 		memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
-		normStream.as_vec3().value().get().resize(normals.size());
+		normStream.get<core::vertex_stream_t::type::vec3>().resize(normals.size());
 		memcpy(normStream.data(), normals.data(), sizeof(psl::vec3) * normals.size());
-		uvStream.as_vec2().value().get().resize(uvs.size());
+		uvStream.get<core::vertex_stream_t::type::vec2>().resize(uvs.size());
 		memcpy(uvStream.data(), uvs.data(), sizeof(psl::vec2) * uvs.size());
 
 		geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
@@ -864,15 +864,15 @@ namespace utility::geometry
 
 		auto geomData = cache.create<core::data::geometry_t>();
 
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-		vertStream.as_vec3().value().get().resize(res_positions.size());
+		vertStream.get<core::vertex_stream_t::type::vec3>().resize(res_positions.size());
 		memcpy(vertStream.data(), res_positions.data(), sizeof(psl::vec3) * res_positions.size());
-		normStream.as_vec3().value().get().resize(res_normals.size());
+		normStream.get<core::vertex_stream_t::type::vec3>().resize(res_normals.size());
 		memcpy(normStream.data(), res_normals.data(), sizeof(psl::vec3) * res_normals.size());
-		uvStream.as_vec2().value().get().resize(uvs.size());
+		uvStream.get<core::vertex_stream_t::type::vec2>().resize(uvs.size());
 		memcpy(uvStream.data(), uvs.data(), sizeof(psl::vec2) * uvs.size());
 
 		geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
@@ -889,12 +889,12 @@ namespace utility::geometry
 	static core::resource::handle<core::data::geometry_t>
 	create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::one, size_t subdivisions = 2)
 	{
-		core::stream vertStream {core::stream::type::vec3};
-		core::stream normStream {core::stream::type::vec3};
-		core::stream uvStream {core::stream::type::vec2};
+		core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
 		scale *= 0.5f;
-		std::vector<psl::vec3>& vertices = vertStream.as_vec3().value();
+		std::vector<psl::vec3>& vertices = vertStream.get<core::vertex_stream_t::type::vec3>();
 		vertices.reserve(1024);
 		std::unordered_map<uint64_t, uint32_t> middlePointIndexCache;
 
@@ -1006,7 +1006,7 @@ namespace utility::geometry
 			faces = faces2;
 		}
 
-		std::vector<psl::vec2>& res_uvs = uvStream.as_vec2().value();
+		std::vector<psl::vec2>& res_uvs = uvStream.get<core::vertex_stream_t::type::vec2>();
 		res_uvs.resize(vertices.size());
 
 		for(int i = 0; i < vertices.size(); ++i)
@@ -1172,7 +1172,7 @@ namespace utility::geometry
 			indices.push_back(faces[i].v2);
 			indices.push_back(faces[i].v3);
 		}
-		std::vector<psl::vec3>& res_normals = normStream.as_vec3().value();
+		std::vector<psl::vec3>& res_normals = normStream.get<core::vertex_stream_t::type::vec3>();
 		res_normals.resize(vertices.size());
 		for(int i = 0; i < vertices.size(); ++i)
 		{
@@ -1238,9 +1238,9 @@ namespace utility::geometry
 
 				auto& dest	  = streams[name];
 				auto bytesize = dest.bytesize();
-				dest.resize(dest.size() + stream.size());
+				dest.resize_elementcount(dest.size() + stream.size());
 				auto dest_ptr = (void*)((std::intptr_t)dest.data() + bytesize);
-				memcpy(dest_ptr, stream.cdata(), stream.bytesize());
+				memcpy(dest_ptr, stream.data(), stream.bytesize());
 			}
 			auto expected_size = source_vertexcount + geometry[i]->vertex_count();
 			//.erase(std::remove_if(std::begin(streams), std::end(streams), [expected_size](const auto& name, const
@@ -1290,17 +1290,17 @@ namespace utility::geometry
 		auto streams = source->vertex_streams();
 		for(auto& [name, stream] : streams)
 		{
-			const core::stream& original = source->vertices(name).value();
+			const core::vertex_stream_t& original = source->vertices(name).value();
 			auto bytesize				 = original.bytesize();
-			stream.resize(stream.size() * positions.size());
+			stream.resize_elementcount(stream.size() * positions.size());
 
 			for(auto i = 0; i < positions.size(); ++i)
 			{
-				memcpy((void*)((size_t)stream.data() + (i * bytesize)), original.cdata(), bytesize);
+				memcpy((void*)((size_t)stream.data() + (i * bytesize)), original.data(), bytesize);
 			}
 			if(name == core::data::geometry_t::constants::POSITION)
 			{
-				auto& proxy = stream.as_vec3().value().get();
+				auto& proxy = stream.get<core::vertex_stream_t::type::vec3>();
 				for(size_t i = 0; i < positions.size(); ++i)
 				{
 					for(size_t c = 0; c < vertices; ++c)
@@ -1378,7 +1378,7 @@ namespace utility::geometry
 		}
 
 		psl::array<T> data(source->vertex_count(), value);
-		core::stream stream {std::move(data)};
+		core::vertex_stream_t stream {std::move(data)};
 		source->vertices(channel, stream);
 		return source;
 	}
