@@ -52,7 +52,7 @@ namespace psl
 		concept IsVecSameLength = IsVecLike<L> && IsVecLike<R> && L::dimensions_n == R::dimensions_n;
 
 		template <size_t target, size_t... remainder>
-		constexpr auto accessor_get_at(size_t count, const auto& data) noexcept
+		constexpr auto& accessor_get_at(size_t count, const auto& data) noexcept
 		{
 			if(count == 0)
 			{
