@@ -161,18 +161,21 @@ namespace
 
 	auto t1 = suite<"component_key must be unique", "ecs", "psl">() = []() {
 		using namespace psl::ecs::details;
-		auto fl_id	= (std::uintptr_t)component_key<float>;
-		auto int_id = (std::uintptr_t)component_key<int>;
+		auto fl_id	= key_for<float>();
+		auto int_id = key_for<int>();
 		require(fl_id) != int_id;
 
+		auto cfl_id = key_for<const float>();
+		auto cint_id = key_for<const int>();
+		require(cfl_id) != cint_id;
+		require(cfl_id) != fl_id;
+		require(cint_id) != int_id;
+		
+		constexpr auto cxfl_id = key_for<float>();
+		constexpr auto cxint_id = key_for<int>();
 
-		constexpr auto fl_cid  = component_key<float>;
-		constexpr auto int_cid = component_key<int>;
-		require((std::uintptr_t)fl_cid) != (std::uintptr_t)int_cid;
-
-
-		require((std::uintptr_t)fl_cid) == fl_id;
-		require((std::uintptr_t)int_cid) == int_id;
+		require(cxfl_id) == fl_id;
+		require(cxint_id) == int_id;
 	};
 
 	auto t2 = suite<"filtering", "ecs", "psl">() = []() {

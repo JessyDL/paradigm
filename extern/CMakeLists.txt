@@ -26,3 +26,6 @@ set_property(TARGET litmus PROPERTY FOLDER "extern")
 
 add_subdirectory(utfcpp)
 set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
+
+add_subdirectory(strtype)
+set_property(TARGET strtype PROPERTY FOLDER "extern")
