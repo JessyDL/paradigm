@@ -168,8 +168,8 @@ namespace
 		auto cfl_id = key_for<const float>();
 		auto cint_id = key_for<const int>();
 		require(cfl_id) != cint_id;
-		require(cfl_id) != fl_id;
-		require(cint_id) != int_id;
+		require(cfl_id) == fl_id;
+		require(cint_id) == int_id;
 		
 		constexpr auto cxfl_id = key_for<float>();
 		constexpr auto cxint_id = key_for<int>();
