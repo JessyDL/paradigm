@@ -72,7 +72,7 @@ namespace core
 		};
 
 		template <memory_stream_type_e Type>
-		using memory_stream_underlying_from_enum_t = memory_stream_underlying_from_enum<Type>::type;
+		using memory_stream_underlying_from_enum_t = typename memory_stream_underlying_from_enum<Type>::type;
 
 		class memory_stream_base_t
 		{

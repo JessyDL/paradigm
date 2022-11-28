@@ -114,7 +114,7 @@ namespace psl::math
 	
 	template <typename precision_t, details::IsVecLike L, details::IsVecLike R>
 	requires details::IsVecSameLength<L, R>
-	constexpr inline auto lerp(precision_t t, const L& left, const R& right) noexcept -> L::tvec_t
+	constexpr inline auto lerp(precision_t t, const L& left, const R& right) noexcept -> typename L::tvec_t
 	{
 		typename L::tvec_t res;
 		for(auto i = 0; i < L::dimensions_n; ++i) res[i] = lerp(t, left[i], right[i]);
@@ -149,7 +149,7 @@ namespace psl::math
 	}
 	
 	template <details::IsVecLike T>
-	constexpr static inline auto floor(const T& value) noexcept -> T::tvec_t
+	constexpr static inline auto floor(const T& value) noexcept -> typename T::tvec_t
 	{
 		typename T::tvec_t res;
 		for(auto i = 0; i < T::dimensions_n; ++i) res[i] = floor<typename T::precision_t>(value[i]);
@@ -276,7 +276,7 @@ namespace psl::math
 	}
 
 	template <details::IsVecLike T>
-	constexpr static inline auto abs(const T& value) noexcept->T::tvec_t
+	constexpr static inline auto abs(const T& value) noexcept -> typename T::tvec_t
 	{
 		typename T::tvec_t res;
 		for(auto i = 0; i < T::dimensions_n; ++i) res[i] = abs<typename T::precision_t>(value[i]);
