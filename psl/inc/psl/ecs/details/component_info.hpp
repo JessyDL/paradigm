@@ -27,7 +27,6 @@ namespace psl::ecs::details
 	class component_info
 	{
 	  public:
-		component_info() = default;
 		component_info(component_key_t id, size_t size);
 
 		component_info(const component_info& other) = delete;
