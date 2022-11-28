@@ -2,12 +2,12 @@
 #include "psl/event.hpp"
 #include "psl/ustring.hpp"
 #if defined(SURFACE_XCB)
-#include <xcb/xcb.h>
+	#include <xcb/xcb.h>
 #elif defined(SURFACE_WIN32)
-#ifndef _WINDEF_
+	#ifndef _WINDEF_
 struct HWND__;	  // Forward or never
 typedef HWND__* HWND;
-#endif
+	#endif
 #endif
 
 namespace core::os
@@ -28,6 +28,7 @@ namespace core::systems
 	/// persists till the next platform specific message loop. this means that the mouse_delta can be the same for
 	/// several frames untill the input system gets an update. that's why you should prefer listening to the events
 	/// rather than iterating the input system itself.
+	/// \note there are several different events to subscribe to, see the `subscribe` method for further details and documentation.
 	class input
 	{
 		friend class core::os::surface;
@@ -519,8 +520,7 @@ namespace core::systems
 		template <typename T>
 		struct mf_mouse_coordinate<
 		  T,
-		  std::void_t<decltype(std::declval<T&>().on_mouse_move_coords(std::declval<mouse_coordinate>()))>> :
-			std::true_type
+		  std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_coordinate>()))>> : std::true_type
 		{};
 
 		template <typename T, typename SFINEA = void>
@@ -565,79 +565,80 @@ namespace core::systems
 
 	  public:
 		/// \brief automatically subscribes to all the events the target has method signatures for.
-		template <typename T>
-		void subscribe(T& target)
+		/// \details The input system checks the target that tries to subscribe itself for several different signatures that satisfy the callbacks.
+		/// These are:
+		/// - T::on_key_pressed(keycode)			=> when a keycode is pressed (first frame only)
+		/// - T::on_key_released(keycode)			=> when a keycode is released (one frame)
+		/// - T::on_key_held(keycode)				=> when a keycode is held (first frame after pressed)
+		/// - T::on_moude_pressed(mousecode)		=> when a mousecode is pressed (first frame only)
+		/// - T::on_mouse_released(mousecode)		=> when a mousecode is released (one frame)
+		/// - T::on_mouse_held(mousecode)			=> when a mousecode is held (first frame after pressed)
+		/// - T::on_mouse_move(mouse_delta)			=> when the mouse moves, sends the relative coordinates (difference
+		/// from last tick)
+		/// - T::on_mouse_move(mouse_coordinate)	=> when the mouse moves, sends the absolute coordinates
+		/// - T::on_mouse_scroll(scroll_delta)		=> when the mouse moves, sends the delta change of the scroll in
+		/// respect to last tick
+		template <typename Type>
+		void subscribe(Type target)
 		{
-			if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Subscribe(&target, &T::on_key_pressed);
-			if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Subscribe(&target, &T::on_key_released);
-			if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Subscribe(&target, &T::on_key_held);
+			using T = std::remove_pointer_t<std::remove_cvref_t<Type>>;
+			T* t {};
+			if constexpr(std::is_pointer_v<Type>)
+			{
+				t = target;
+			}
+			else
+			{
+				t = &target;
+			}
+			if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Subscribe(t, &T::on_key_pressed);
+			if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Subscribe(t, &T::on_key_released);
+			if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Subscribe(t, &T::on_key_held);
 
-			if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Subscribe(&target, &T::on_mouse_pressed);
-			if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Subscribe(&target, &T::on_mouse_released);
-			if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Subscribe(&target, &T::on_mouse_held);
+			if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Subscribe(t, &T::on_mouse_pressed);
+			if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Subscribe(t, &T::on_mouse_released);
+			if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Subscribe(t, &T::on_mouse_held);
 
-			if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Subscribe(&target, &T::on_mouse_move);
-			if constexpr(mf_mouse_coordinate<T>::value)
-				m_OnMouseMoveCoordinates.Subscribe(&target, &T::on_mouse_move_coords);
+			if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Subscribe(t, &T::on_mouse_move);
+			if constexpr(mf_mouse_coordinate<T>::value) m_OnMouseMoveCoordinates.Subscribe(t, &T::on_mouse_move);
 
-			if constexpr(mf_on_scroll<T>::value) m_OnScroll.Subscribe(&target, &T::on_scroll);
-		}
+			if constexpr(mf_on_scroll<T>::value) m_OnScroll.Subscribe(t, &T::on_scroll);
 
-		/// \brief automatically subscribes to all the events the target has method signatures for.
-		template <typename T>
-		void subscribe(T* target)
-		{
-			if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Subscribe(target, &T::on_key_pressed);
-			if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Subscribe(target, &T::on_key_released);
-			if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Subscribe(target, &T::on_key_held);
-
-			if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Subscribe(target, &T::on_mouse_pressed);
-			if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Subscribe(target, &T::on_mouse_released);
-			if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Subscribe(target, &T::on_mouse_held);
-
-			if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Subscribe(target, &T::on_mouse_move);
-			if constexpr(mf_mouse_coordinate<T>::value)
-				m_OnMouseMoveCoordinates.Subscribe(target, &T::on_mouse_move_coords);
-
-			if constexpr(mf_on_scroll<T>::value) m_OnScroll.Subscribe(target, &T::on_scroll);
-		}
-
-		/// \brief automatically unsubscribes to all the events the target has method signatures for.
-		template <typename T>
-		void unsubscribe(T& target)
-		{
-			if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Unsubscribe(&target, &T::on_key_pressed);
-			if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Unsubscribe(&target, &T::on_key_released);
-			if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Unsubscribe(&target, &T::on_key_held);
-
-			if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Unsubscribe(&target, &T::on_mouse_pressed);
-			if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Unsubscribe(&target, &T::on_mouse_released);
-			if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Unsubscribe(&target, &T::on_mouse_held);
-
-			if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Unsubscribe(&target, &T::on_mouse_move);
-			if constexpr(mf_mouse_coordinate<T>::value)
-				m_OnMouseMoveCoordinates.Unsubscribe(&target, &T::on_mouse_move_coords);
-
-			if constexpr(mf_on_scroll<T>::value) m_OnScroll.Unsubscribe(&target, &T::on_scroll);
+			static_assert(mf_on_key_pressed<T>::value || mf_on_key_released<T>::value || mf_on_key_held<T>::value ||
+							mf_on_mouse_pressed<T>::value || mf_on_mouse_released<T>::value ||
+							mf_on_mouse_held<T>::value || mf_mouse_delta<T>::value || mf_mouse_coordinate<T>::value ||
+							mf_on_scroll<T>::value,
+						  "expected at least one event to be subscribable but found none, please check the signatures "
+						  "for how the events should look in the documentation.");
 		}
 
 		/// \brief automatically unsubscribes to all the events the target has method signatures for.
-		template <typename T>
-		void unsubscribe(T* target)
+		template <typename Type>
+		void unsubscribe(Type target)
 		{
-			if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Unsubscribe(target, &T::on_key_pressed);
-			if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Unsubscribe(target, &T::on_key_released);
-			if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Unsubscribe(target, &T::on_key_held);
+			using T = std::remove_pointer_t<std::remove_cvref_t<Type>>;
+			T* t {};
+			if constexpr(std::is_pointer_v<Type>)
+			{
+				t = target;
+			}
+			else
+			{
+				t = &target;
+			}
 
-			if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Unsubscribe(target, &T::on_mouse_pressed);
-			if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Unsubscribe(target, &T::on_mouse_released);
-			if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Unsubscribe(target, &T::on_mouse_held);
+			if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Unsubscribe(t, &T::on_key_pressed);
+			if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Unsubscribe(t, &T::on_key_released);
+			if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Unsubscribe(t, &T::on_key_held);
 
-			if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Unsubscribe(target, &T::on_mouse_move);
-			if constexpr(mf_mouse_coordinate<T>::value)
-				m_OnMouseMoveCoordinates.Unsubscribe(target, &T::on_mouse_move_coords);
+			if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Unsubscribe(t, &T::on_mouse_pressed);
+			if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Unsubscribe(t, &T::on_mouse_released);
+			if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Unsubscribe(t, &T::on_mouse_held);
 
-			if constexpr(mf_on_scroll<T>::value) m_OnScroll.Unsubscribe(target, &T::on_scroll);
+			if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Unsubscribe(t, &T::on_mouse_move);
+			if constexpr(mf_mouse_coordinate<T>::value) m_OnMouseMoveCoordinates.Unsubscribe(t, &T::on_mouse_move);
+
+			if constexpr(mf_on_scroll<T>::value) m_OnScroll.Unsubscribe(t, &T::on_scroll);
 		}
 
 		/// \returns the current mouse coordinate information
