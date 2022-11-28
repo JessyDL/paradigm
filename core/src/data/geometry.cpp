@@ -11,6 +11,15 @@ geometry_t::geometry_t(core::resource::cache_t& cache,
 				   psl::meta::file* metaFile) noexcept
 {}
 
+geometry_t::geometry_t(core::resource::cache_t& cache,
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   const geometry_t& other) noexcept
+{
+	m_Indices		= other.m_Indices;
+	m_VertexStreams = other.m_VertexStreams;
+}
+
 bool geometry_t::contains(psl::string_view name) const noexcept {
 	return m_VertexStreams.value.contains(psl::string {name});
 }

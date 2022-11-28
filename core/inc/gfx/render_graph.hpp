@@ -205,6 +205,9 @@ namespace psl
 }	 // namespace psl
 namespace core::gfx
 {
+	/// \brief Describes a fully contained set of graphics instructions
+	/// \detail A rendergraph allows you to connect the various draw/compute-passes and describe their interdependencies
+	/// so that it can organize their invocations in a safe manner.
 	class render_graph
 	{
 	  public:
@@ -221,6 +224,8 @@ namespace core::gfx
 														   core::resource::handle<core::gfx::framebuffer_t> framebuffer);
 		psl::view_ptr<core::gfx::computepass>
 		create_computepass(core::resource::handle<core::gfx::context> context) noexcept;
+
+		/// \brief Describes a "depends-on" relationship where the child will be executed before root. 
 		bool connect(view_var_t child, view_var_t root) noexcept;
 		bool disconnect(view_var_t pass) noexcept;
 		bool disconnect(view_var_t child, view_var_t root) noexcept;

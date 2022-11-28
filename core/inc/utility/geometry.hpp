@@ -1330,7 +1330,7 @@ namespace utility::geometry
 		   psl::quat rotation,
 		   psl::string_view channel = core::data::geometry_t::constants::POSITION)
 	{
-		psl_assert(source->vertices(channel).has_value(), "missing vertices channel '{}' in source", channel);
+		psl_assert(source->contains(channel), "missing vertices channel '{}' in source", channel);
 		source->transform(channel,
 						  [rotation](psl::vec3& value) mutable { value = psl::math::rotate(rotation, value); });
 		return source;
@@ -1342,7 +1342,7 @@ namespace utility::geometry
 		  T scale,
 		  psl::string_view channel = core::data::geometry_t::constants::POSITION)
 	{
-		psl_assert(source->vertices(channel).has_value(), "missing vertices channel '{}' in source", channel);
+		psl_assert(source->contains(channel), "missing vertices channel '{}' in source", channel);
 		source->transform(channel, [scale](T& value) mutable { value *= scale; });
 		return source;
 	}
@@ -1353,7 +1353,7 @@ namespace utility::geometry
 			  T translation,
 			  psl::string_view channel = core::data::geometry_t::constants::POSITION)
 	{
-		psl_assert(source->vertices(channel).has_value(), "missing vertices channel '{}' in source", channel);
+		psl_assert(source->contains(channel), "missing vertices channel '{}' in source", channel);
 		source->transform(channel, [translation](T& value) mutable { value += translation; });
 		return source;
 	}
@@ -1363,7 +1363,7 @@ namespace utility::geometry
 				 psl::string_view source,
 				 psl::string_view destination)
 	{
-		psl_assert(geom->vertices(source).has_value(), "missing vertices channel '{}' in geom", source);
+		psl_assert(geom->contains(source), "missing vertices channel '{}' in geom", source);
 		geom->vertices(destination, geom->vertices(source));
 		return geom;
 	}

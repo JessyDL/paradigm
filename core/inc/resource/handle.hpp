@@ -1,7 +1,7 @@
 #pragma once
+#include "cache.hpp"
 #include "fwd/resource/resource.hpp"
 #include "psl/meta.hpp"
-#include "cache.hpp"
 #include <memory>
 
 namespace core::resource
@@ -19,7 +19,7 @@ namespace core::resource
 	  public:
 		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
 		// using meta_type  = typename details::meta_type<value_type>::type;
-		using meta_type  = typename resource_traits<value_type>::meta_type;
+		using meta_type	 = typename resource_traits<value_type>::meta_type;
 		using alias_type = typename details::alias_type<value_type>::type;
 
 	  private:
@@ -28,9 +28,9 @@ namespace core::resource
 		template <typename Y>
 		friend class handle;
 
-		handle(void* resource, cache_t* cache, metadata* metaData, psl::meta::file* meta) noexcept
-			: m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
-			  m_MetaFile(reinterpret_cast<meta_type*>(meta))
+		handle(void* resource, cache_t* cache, metadata* metaData, psl::meta::file* meta) noexcept :
+			m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
+			m_MetaFile(reinterpret_cast<meta_type*>(meta))
 		{
 			m_MetaData->reference_count += 1;
 		};
@@ -45,38 +45,41 @@ namespace core::resource
 			}
 			if(m_MetaData)
 			{
-				psl_assert(m_MetaData->reference_count != 0, "reference count was {}, but should be != 0", m_MetaData->reference_count);
+				psl_assert(m_MetaData->reference_count != 0,
+						   "reference count was {}, but should be != 0",
+						   m_MetaData->reference_count);
 				m_MetaData->reference_count -= 1;
 			}
 		};
 
 		template <typename... Ts>
-		handle(const handle<alias<Ts...>>& other) noexcept : handle::handle(other.template get<T>()){};
+		handle(const handle<alias<Ts...>>& other) noexcept : handle::handle(other.template get<T>()) {};
 
 
 		template <typename Y>
 		handle(const handle<Y>& other) noexcept
 		{
-			static_assert(details::alias_has_type<T, typename details::alias_type<value_type>::type>::value, "type must be an alias");
+			static_assert(details::alias_has_type<T, typename details::alias_type<value_type>::type>::value,
+						  "type must be an alias");
 			if(!other) return;
 			handle<T> res = other.m_Cache->template find<T>(other.uid());
-			m_Resource	= res.m_Resource;
+			m_Resource	  = res.m_Resource;
 			m_Cache		  = res.m_Cache;
-			m_MetaData	= res.m_MetaData;
-			m_MetaFile	= res.m_MetaFile;
+			m_MetaData	  = res.m_MetaData;
+			m_MetaFile	  = res.m_MetaFile;
 			if(m_MetaData) m_MetaData->reference_count += 1;
 		};
 
-		handle(const handle& other) noexcept
-			: m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
-			  m_MetaFile(other.m_MetaFile)
+		handle(const handle& other) noexcept :
+			m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
+			m_MetaFile(other.m_MetaFile)
 		{
 			if(m_MetaData) m_MetaData->reference_count += 1;
 		};
 
-		handle(handle&& other) noexcept
-			: m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
-			  m_MetaFile(other.m_MetaFile)
+		handle(handle&& other) noexcept :
+			m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
+			m_MetaFile(other.m_MetaFile)
 		{
 			other.m_MetaData = nullptr;
 		};
@@ -86,7 +89,7 @@ namespace core::resource
 			{
 				if(m_MetaData) m_MetaData->reference_count -= 1;
 				m_Resource = other.m_Resource;
-				m_Cache	= other.m_Cache;
+				m_Cache	   = other.m_Cache;
 				m_MetaData = other.m_MetaData;
 				m_MetaFile = other.m_MetaFile;
 				if(m_MetaData) m_MetaData->reference_count += 1;
@@ -99,7 +102,7 @@ namespace core::resource
 			{
 				if(m_MetaData) m_MetaData->reference_count -= 1;
 				m_Resource = other.m_Resource;
-				m_Cache	= other.m_Cache;
+				m_Cache	   = other.m_Cache;
 				m_MetaData = other.m_MetaData;
 				m_MetaFile = other.m_MetaFile;
 				if(m_MetaData) m_MetaData->reference_count += 1;
@@ -112,13 +115,15 @@ namespace core::resource
 
 		inline value_type& value() noexcept
 		{
-			psl_assert(state() == status::loaded, "state was expected to be loaded, but was {}", state());
+			psl_assert(
+			  state() == status::loaded, "state was expected to be loaded, but was {}", std::to_underlying(state()));
 			return *m_Resource;
 		}
 
 		inline const value_type& value() const noexcept
 		{
-			psl_assert(state() == status::loaded, "state was expected to be loaded, but was {}", state());
+			psl_assert(
+			  state() == status::loaded, "state was expected to be loaded, but was {}", std::to_underlying(state()));
 			return *m_Resource;
 		}
 
@@ -132,7 +137,7 @@ namespace core::resource
 			return false;
 		}
 
-		template<typename Y>
+		template <typename Y>
 		bool operator==(const handle<Y>& other) const noexcept
 		{
 			return uid() == other.uid();
@@ -172,10 +177,10 @@ namespace core::resource
 		operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
 
 	  private:
-		value_type* m_Resource{nullptr};
-		core::resource::cache_t* m_Cache{nullptr};
-		metadata* m_MetaData{nullptr};
-		meta_type* m_MetaFile{nullptr};
+		value_type* m_Resource {nullptr};
+		core::resource::cache_t* m_Cache {nullptr};
+		metadata* m_MetaData {nullptr};
+		meta_type* m_MetaFile {nullptr};
 	};
 
 	template <typename... Ts>
@@ -184,24 +189,26 @@ namespace core::resource
 		friend class cache_t;
 
 		template <size_t... indices>
-		void internal_set(psl::array<cache_t::description*> descriptions, psl::meta::file* meta,
+		void internal_set(psl::array<cache_t::description*> descriptions,
+						  psl::meta::file* meta,
 						  std::index_sequence<indices...>)
 		{
 			(
-				[&descriptions, this, meta](psl::array<cache_t::description*>::iterator it) {
-					if(it != std::end(descriptions))
-					{
-						std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>>{
-							(*it)->resource, m_Cache, &(*it)->metaData, meta};
-					}
-				}(std::find_if(std::begin(descriptions), std::end(descriptions),
-							   [key = details::key_for<std::tuple_element_t<indices, std::tuple<Ts...>>>()](
-								   cache_t::description* descr) { return descr->metaData.type == key; })),
-				...);
+			  [&descriptions, this, meta](psl::array<cache_t::description*>::iterator it) {
+				  if(it != std::end(descriptions))
+				  {
+					  std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>> {
+						(*it)->resource, m_Cache, &(*it)->metaData, meta};
+				  }
+			  }(std::find_if(std::begin(descriptions),
+							 std::end(descriptions),
+							 [key = details::key_for<std::tuple_element_t<indices, std::tuple<Ts...>>>()](
+							   cache_t::description* descr) { return descr->metaData.type == key; })),
+			  ...);
 		}
 
-		handle(psl::array<cache_t::description*> descriptions, cache_t* cache, psl::meta::file* meta) noexcept
-			: m_Cache(cache)
+		handle(psl::array<cache_t::description*> descriptions, cache_t* cache, psl::meta::file* meta) noexcept :
+			m_Cache(cache)
 		{
 			internal_set(descriptions, meta, std::make_index_sequence<sizeof...(Ts)>());
 		}
@@ -210,11 +217,11 @@ namespace core::resource
 		using value_type = std::tuple<handle<Ts>...>;
 
 		handle() = default;
-		~handle(){};
+		~handle() {};
 
-		handle(const handle& other)		= default;
-		handle(handle&& other) noexcept = default;
-		handle& operator=(const handle& other) = default;
+		handle(const handle& other)				   = default;
+		handle(handle&& other) noexcept			   = default;
+		handle& operator=(const handle& other)	   = default;
 		handle& operator=(handle&& other) noexcept = default;
 
 		template <typename T>
@@ -269,24 +276,24 @@ namespace core::resource
 		void visit_all_impl(std::index_sequence<indices...>, Fn&& fn, Args&&... args)
 		{
 			(
-				[&fn](auto& handle, auto&&... values) {
-					if constexpr(std::is_invocable_v<Fn, size_t, decltype(handle.value()), decltype(values)...>)
-					{
-						if(handle) std::invoke(fn, indices, handle.value(), std::forward<decltype(values)>(values)...);
-					}
-					else
-					{
-						if(handle) std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
-					}
-				}(std::get<indices>(m_Resource), std::forward<Args>(args)...),
-				...);
+			  [&fn](auto& handle, auto&&... values) {
+				  if constexpr(std::is_invocable_v<Fn, size_t, decltype(handle.value()), decltype(values)...>)
+				  {
+					  if(handle) std::invoke(fn, indices, handle.value(), std::forward<decltype(values)>(values)...);
+				  }
+				  else
+				  {
+					  if(handle) std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
+				  }
+			  }(std::get<indices>(m_Resource), std::forward<Args>(args)...),
+			  ...);
 		}
 
 		template <typename Fn, typename... Args>
 		void visit_all(Fn&& fn, Args&&... args)
 		{
-			visit_all_impl(std::make_index_sequence<sizeof...(Ts)>(), std::forward<Fn>(fn),
-						   std::forward<Args>(args)...);
+			visit_all_impl(
+			  std::make_index_sequence<sizeof...(Ts)>(), std::forward<Fn>(fn), std::forward<Args>(args)...);
 		}
 
 
@@ -294,33 +301,34 @@ namespace core::resource
 		void visit(Fn&& fn, Args&&... args)
 		{
 			(
-				[&fn](auto& handle, auto&&... args) {
-					if(handle) std::invoke(fn, handle.value(), std::forward<decltype(args)>(args)...);
-				}(std::get<handle<T1s>>(m_Resource), std::forward<Args>(args)...),
-				...);
+			  [&fn](auto& handle, auto&&... args) {
+				  if(handle) std::invoke(fn, handle.value(), std::forward<decltype(args)>(args)...);
+			  }(std::get<handle<T1s>>(m_Resource), std::forward<Args>(args)...),
+			  ...);
 		}
 
 	  private:
 		value_type m_Resource;
-		core::resource::cache_t* m_Cache{nullptr};
+		core::resource::cache_t* m_Cache {nullptr};
 	};
 
 	template <typename T>
 	class weak_handle final
 	{
 		friend class cache_t;
+
 	  public:
 		using value_type = std::remove_cv_t<std::remove_const_t<T>>;
-		using meta_type  = typename resource_traits<value_type>::meta_type;
+		using meta_type	 = typename resource_traits<value_type>::meta_type;
 
-		weak_handle(const handle<T>& handle)
-			: m_Resource(handle.m_Resource), m_Cache(handle.m_Cache), m_MetaData(handle.m_MetaData),
-			  m_MetaFile(handle.m_MetaFile){};
+		weak_handle(const handle<T>& handle) :
+			m_Resource(handle.m_Resource), m_Cache(handle.m_Cache), m_MetaData(handle.m_MetaData),
+			m_MetaFile(handle.m_MetaFile) {};
 
-		weak_handle()						= default;
-		weak_handle(const weak_handle&)		= default;
-		weak_handle(weak_handle&&) noexcept = default;
-		weak_handle& operator=(const weak_handle&) = default;
+		weak_handle()								   = default;
+		weak_handle(const weak_handle&)				   = default;
+		weak_handle(weak_handle&&) noexcept			   = default;
+		weak_handle& operator=(const weak_handle&)	   = default;
 		weak_handle& operator=(weak_handle&&) noexcept = default;
 
 		template <typename Y>
@@ -344,7 +352,7 @@ namespace core::resource
 		{
 			return uid() != other.uid();
 		}
-		
+
 		inline auto state() const noexcept { return m_MetaData ? m_MetaData->state : status::invalid; }
 		inline operator bool() const noexcept { return state() == status::loaded; }
 
@@ -365,15 +373,15 @@ namespace core::resource
 		operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
 		operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
 
-		handle<T> make_shared() const noexcept 
-		{ 
+		handle<T> make_shared() const noexcept
+		{
 			return handle<T>((void*)m_Resource, m_Cache, m_MetaData, (psl::meta::file*)m_MetaFile);
 		}
 
 	  private:
-		value_type* m_Resource{nullptr};
-		core::resource::cache_t* m_Cache{nullptr};
-		metadata* m_MetaData{nullptr};
-		meta_type* m_MetaFile{nullptr};
+		value_type* m_Resource {nullptr};
+		core::resource::cache_t* m_Cache {nullptr};
+		metadata* m_MetaData {nullptr};
+		meta_type* m_MetaFile {nullptr};
 	};
-} // namespace core::resource
+}	 // namespace core::resource

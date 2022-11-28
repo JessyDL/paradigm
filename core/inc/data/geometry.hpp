@@ -71,10 +71,14 @@ namespace core::data
 			/// \brief geometry bones key
 			static constexpr psl::string_view BONES = "GEOMETRY_BONES";
 		};
-		geometry_t() = default;
+		constexpr geometry_t() = default;
 		geometry_t(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,
 				   psl::meta::file* metaFile) noexcept;
+		geometry_t(core::resource::cache_t& cache,
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   const geometry_t& other) noexcept;
 		~geometry_t()							 = default;
 		geometry_t(const geometry_t&)			 = delete;
 		geometry_t(geometry_t&&)				 = delete;
