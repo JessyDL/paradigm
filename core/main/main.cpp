@@ -794,7 +794,6 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 		  renderable = {post_effect_bundle, geometry};
 	  },
 	  core::ecs::components::transform {{0, 0, 1.f}});
-	  core::ecs::components::transform {});
 
 	/*
 // atmospheric effect

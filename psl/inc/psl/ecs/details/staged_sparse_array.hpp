@@ -346,7 +346,7 @@ namespace psl::ecs::details
 			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			for(index_t i = 0; i < static_cast<index_t>(m_Reverse.size()); ++i)
 			{
-				if(std::invoke(predicate, m_Reverse[i]))
+				if(predicate(m_Reverse[i]))
 				{
 					psl_assert(mapping.has(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
 					auto new_index = mapping.at(m_Reverse[i]);
@@ -816,7 +816,7 @@ namespace psl::ecs::details
 			m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
 			for(index_t i = 0; i < static_cast<index_t>(m_Reverse.size()); ++i)
 			{
-				if(std::invoke(predicate, m_Reverse[i]))
+				if(predicate(m_Reverse[i]))
 				{
 					psl_assert(mapping.has(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
 					auto new_index = mapping.at(m_Reverse[i]);

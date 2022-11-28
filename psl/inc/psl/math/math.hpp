@@ -106,6 +106,7 @@ namespace psl::math
 	}
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr inline precision_t lerp(precision_t t, precision_t a, precision_t b) noexcept
 	{
 		return a + t * (b - a);
@@ -141,6 +142,7 @@ namespace psl::math
 
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static precision_t floor(precision_t value) noexcept
 	{
 		return std::floor(value);
@@ -155,18 +157,21 @@ namespace psl::math
 	}
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static precision_t exp(precision_t value) noexcept
 	{
 		return std::exp(value);
 	}
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static precision_t fract(precision_t value) noexcept
 	{
 		return value - floor(value);
 	}
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static auto log(precision_t value) noexcept
 	{
 		return std::log(value);
@@ -197,6 +202,7 @@ namespace psl::math
 	/// \param[in] N the multiple to round to
 	/// \param[in] value the value to round
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static precision_t round_to(precision_t N, precision_t value) noexcept
 	{
 		constexpr auto remainder = value % N;
@@ -213,6 +219,7 @@ namespace psl::math
 	/// \param[in] N the multiple to ceil to
 	/// \param[in] value the value to ceil
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static precision_t ceil_to(precision_t N, precision_t value) noexcept
 	{
 		constexpr auto remainder = value % N;
@@ -223,6 +230,7 @@ namespace psl::math
 	/// \param[in] N the multiple to floor to
 	/// \param[in] value the value to floor
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static precision_t floor_to(precision_t N, precision_t value) noexcept
 	{
 		constexpr auto remainder = value % N;
@@ -245,6 +253,7 @@ namespace psl::math
 	}
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static inline precision_t max(const precision_t& left, const precision_t& right) noexcept
 	{
 		return std::max(left, right);
@@ -260,6 +269,7 @@ namespace psl::math
 	}
 
 	template <typename precision_t>
+	requires(!details::IsVecLike<precision_t>)
 	constexpr static inline precision_t abs(const precision_t& value) noexcept
 	{
 		return std::abs(value);
