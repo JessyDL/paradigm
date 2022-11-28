@@ -5,7 +5,7 @@ on: [push]
 jobs:
   build:
     container:
-      image: gcc:12.1.0
+      image: gcc:11.3.0
     strategy:
       fail-fast: false
       matrix:
@@ -44,7 +44,7 @@ jobs:
         retention-days: 1
   benchmark:
     container:
-      image: gcc:12.1.0
+      image: gcc:11.3.0
     strategy:
       fail-fast: false
       matrix:
