@@ -23,7 +23,7 @@ target_include_directories(${LOCAL_PROJECT}
 )
 target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
 
-target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8cpp)
+target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8cpp strtype)
 
 set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
 target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})

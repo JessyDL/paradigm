@@ -291,7 +291,7 @@ state_t::get_component_info(psl::array_view<details::component_key_t> keys) cons
 void state_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
 {
 	auto cInfo = get_component_info(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	cInfo->add(entities);
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
@@ -303,7 +303,7 @@ void state_t::add_component_impl(details::component_key_t key,
 								 std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	auto cInfo = get_component_info(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 	const auto component_size = cInfo->component_size();
 	psl_assert(component_size != 0, "component size was 0");
 
@@ -322,7 +322,7 @@ void state_t::add_component_impl(details::component_key_t key,
 								 bool repeat)
 {
 	auto cInfo = get_component_info(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 	const auto component_size = cInfo->component_size();
 	psl_assert(component_size != 0, "component size was 0");
 
@@ -776,7 +776,7 @@ size_t state_t::prepare_data(psl::array_view<entity> entities, void* cache, comp
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(id);
-	psl_assert(cInfo != nullptr, "component info was null for the key {}", reinterpret_cast<std::uintptr_t>(id));
+	psl_assert(cInfo != nullptr, "component info was null for the key {}", id);
 	psl_assert(
 	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
 	  "some components failed to have storage for the entities");
@@ -795,24 +795,18 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 
 	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
 
-	for(auto& binding : dep_pack.m_RBindings)
-	{
+	auto write_fn = [entities, &cache, this](auto& binding) {
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
 		const auto& cInfo		  = get_component_info(binding.first);
 		auto offset				  = align(data_begin, cInfo->alignment());
 		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
 		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
 		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
-	}
-	for(auto& binding : dep_pack.m_RWBindings)
-	{
-		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		const auto& cInfo		  = get_component_info(binding.first);
-		auto offset				  = align(data_begin, cInfo->alignment());
-		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
-		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
-		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
-	}
+	};
+
+	std::for_each(std::begin(dep_pack.m_RBindings), std::end(dep_pack.m_RBindings), write_fn);
+	std::for_each(std::begin(dep_pack.m_RWBindings), std::end(dep_pack.m_RWBindings), write_fn);
+
 	return (std::uintptr_t)cache - offset_start;
 }
 
@@ -820,7 +814,7 @@ size_t state_t::set(psl::array_view<entity> entities, details::component_key_t k
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_info(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", reinterpret_cast<std::uintptr_t>(key));
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 	return cInfo->copy_from(entities, data);
 }
 

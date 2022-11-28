@@ -25,7 +25,7 @@ void fly::tick(
 		auto diffX		 = m_MouseX - m_MouseTargetX;
 		auto diffY		 = m_MouseY - m_MouseTargetY;
 		m_AngleH		 = mouseSpeed * diffX;
-		head_to(-m_AngleH);
+		head_to(m_AngleH);
 
 		m_AngleV = mouseSpeed * diffY;
 		pitch_to(m_AngleV);

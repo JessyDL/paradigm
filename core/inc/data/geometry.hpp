@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "data/stream.hpp"
 #include "fwd/resource/resource.hpp"
@@ -71,29 +71,38 @@ namespace core::data
 			/// \brief geometry bones key
 			static constexpr psl::string_view BONES = "GEOMETRY_BONES";
 		};
-		geometry_t() = default;
+		constexpr geometry_t() = default;
 		geometry_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile) noexcept;
-		~geometry_t()				  = default;
-		geometry_t(const geometry_t&) = delete;
-		geometry_t(geometry_t&&)	  = delete;
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile) noexcept;
+		geometry_t(core::resource::cache_t& cache,
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   const geometry_t& other) noexcept;
+		~geometry_t()							 = default;
+		geometry_t(const geometry_t&)			 = delete;
+		geometry_t(geometry_t&&)				 = delete;
 		geometry_t& operator=(const geometry_t&) = delete;
-		geometry_t& operator=(geometry_t&&) = delete;
+		geometry_t& operator=(geometry_t&&)		 = delete;
 
-		/// \brief returns the stream reference (if any found) for the given key.
-		/// \returns the stream reference (if any found) for the given key.
-		std::optional<std::reference_wrapper<const core::stream>>
-		vertices(const psl::string_view name = constants::POSITION) const;
+		/// \brief returns the stream reference for the given key.
+		/// \returns the stream reference for the given key.
+		/// \warn if you are uncertain the stream exists, run the `contains` method first. The `vertices` method will terminate if the stream isn't found.
+		const core::vertex_stream_t& vertices(const psl::string_view name = constants::POSITION) const;
+
+		/// \brief verifies if the given stream is present in the data
+		/// \param name stream name see constants::POSITION as example
+		/// \return true if the stream exists
+		bool contains(const psl::string_view name) const noexcept;
 
 		/// \brief sets the stream data for the given key. If data was already present, then it gets replaced.
 		/// \warning be sure that the stream has the correct amount of vertices as is expected by the index buffer. As
 		/// you might be replacing/resizing the internal model data, we cannot error check this condition for you here.
-		void vertices(const psl::string_view name, const core::stream& stream);
+		void vertices(const psl::string_view name, const core::vertex_stream_t& stream);
 		template <typename T>
 		void vertices(const psl::string_view name, psl::array<T> stream)
 		{
-			m_VertexStreams.value[psl::string {name}] = core::stream(std::move(stream));
+			m_VertexStreams.value[psl::string {name}] = core::vertex_stream_t(std::move(stream));
 		}
 		/// \brief gets all indices that are currently assigned to this model data.
 		/// \returns all indices that are currently assigned to this model data.
@@ -105,7 +114,7 @@ namespace core::data
 
 		/// \brief returns all the streams of data and their keys.
 		/// \returns all the streams of data and their keys.
-		const std::unordered_map<psl::string, core::stream>& vertex_streams() const;
+		const std::unordered_map<psl::string, core::vertex_stream_t>& vertex_streams() const;
 
 		/// \brief helper method to check for validity of the model data in its current state.
 		/// \returns true if the data passes all checks.
@@ -125,7 +134,9 @@ namespace core::data
 		{
 			if(auto it = m_VertexStreams.value.find(psl::string(name)); it != std::end(m_VertexStreams.value))
 			{
-				return it->second.transform(std::forward<F>(transformation));
+				auto res = it->second.transform(std::forward<F>(transformation));
+				psl_assert(res, "Transformation failed on the vertex_stream_t name '{}'.", name);
+				return res;
 			}
 			return false;
 		}
@@ -144,7 +155,7 @@ namespace core::data
 		static constexpr psl::string8::view serialization_name {"GEOMETRY"};
 
 		psl::serialization::property<"INDICES", std::vector<index_size_t>> m_Indices;
-		psl::serialization::property<"STREAMS", std::unordered_map<psl::string, core::stream>> m_VertexStreams;
+		psl::serialization::property<"STREAMS", std::unordered_map<psl::string, core::vertex_stream_t>> m_VertexStreams;
 	};
 
 }	 // namespace core::data

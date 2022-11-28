@@ -1,4 +1,4 @@
-﻿#include "vk/geometry.hpp"
+#include "vk/geometry.hpp"
 #include "data/buffer.hpp"
 #include "data/geometry.hpp"
 #include "data/material.hpp"
@@ -61,7 +61,7 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 	sizeRequests.reserve(data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
 	std::for_each(std::begin(data->vertex_streams()),
 				  std::end(data->vertex_streams()),
-				  [&sizeRequests](const std::pair<psl::string, core::stream>& element) {
+				  [&sizeRequests](const std::pair<psl::string, core::vertex_stream_t>& element) {
 					  sizeRequests.emplace_back((uint32_t)element.second.bytesize());
 				  });
 
@@ -85,7 +85,7 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 		psl_assert(m_Vertices == stream.second.size(), "{} did not match {}", m_Vertices, stream.second.size());
 		auto& instr	  = instructions.emplace_back();
 		instr.size	  = stream.second.bytesize();
-		instr.source  = (std::uintptr_t)(stream.second.cdata());
+		instr.source  = (std::uintptr_t)(stream.second.data());
 		instr.segment = segments[i].first;
 		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
 

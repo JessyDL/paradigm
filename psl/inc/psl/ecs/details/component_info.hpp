@@ -9,7 +9,6 @@
 #include "psl/static_array.hpp"
 #include <functional>
 #include <numeric>
-#include "psl/assertions.hpp"
 namespace psl
 {
 	template <typename... Ts>
@@ -28,14 +27,13 @@ namespace psl::ecs::details
 	class component_info
 	{
 	  public:
-		component_info() = default;
 		component_info(component_key_t id, size_t size);
 
 		component_info(const component_info& other) = delete;
 		component_info(component_info&& other);
-		virtual ~component_info() = default;
+		virtual ~component_info()							   = default;
 		component_info& operator=(const component_info& other) = delete;
-		component_info& operator							   =(component_info&& other);
+		component_info& operator=(component_info&& other);
 
 		bool is_tag() const noexcept;
 
@@ -351,8 +349,7 @@ namespace std
 	{
 		std::size_t operator()(psl::ecs::details::component_info const& ci) const noexcept
 		{
-			static_assert(sizeof(size_t) == sizeof(psl::ecs::details::component_key_t), "should be castable");
-			return (size_t)ci.id();
+			return std::hash<psl::ecs::details::component_key_t> {}(ci.id());
 		}
 	};
 }	 // namespace std

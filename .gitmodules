@@ -13,3 +13,6 @@
 [submodule "extern/utfcpp"]
 	path = extern/utfcpp
 	url = https://github.com/nemtrif/utfcpp.git
+[submodule "extern/strtype"]
+	path = extern/strtype
+	url = https://github.com/JessyDL/strtype.git

@@ -1,4 +1,4 @@
-﻿#include "data/geometry.hpp"
+#include "data/geometry.hpp"
 #include "psl/array_view.hpp"
 #include "resource/resource.hpp"
 
@@ -11,24 +11,41 @@ geometry_t::geometry_t(core::resource::cache_t& cache,
 				   psl::meta::file* metaFile) noexcept
 {}
 
+geometry_t::geometry_t(core::resource::cache_t& cache,
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   const geometry_t& other) noexcept
+{
+	m_Indices		= other.m_Indices;
+	m_VertexStreams = other.m_VertexStreams;
+}
 
-std::optional<std::reference_wrapper<const core::stream>> geometry_t::vertices(const psl::string_view name) const
+bool geometry_t::contains(psl::string_view name) const noexcept {
+	return m_VertexStreams.value.contains(psl::string {name});
+}
+
+const core::vertex_stream_t& geometry_t::vertices(const psl::string_view name) const
 {
 	auto it = m_VertexStreams.value.find(psl::string {name});
+	psl_assert(
+	  it != std::end(m_VertexStreams.value), "The given stream '{}' was not found within the geometry data", name);
 	if(it != std::end(m_VertexStreams.value))
 	{
 		return it->second;
 	}
-	return std::nullopt;
+	throw std::runtime_error("Missing requested data stream in the geometry data");
 }
-void geometry_t::vertices(const psl::string_view name, const core::stream& stream)
+void geometry_t::vertices(const psl::string_view name, const core::vertex_stream_t& stream)
 {
 	m_VertexStreams.value[psl::string {name}] = stream;
 }
 const std::vector<geometry_t::index_size_t>& geometry_t::indices() const { return m_Indices.value; }
 void geometry_t::indices(psl::array_view<index_size_t> indices) { m_Indices.value = psl::array<index_size_t> {indices}; }
 
-const std::unordered_map<psl::string, core::stream>& geometry_t::vertex_streams() const { return m_VertexStreams.value; }
+const std::unordered_map<psl::string, core::vertex_stream_t>& geometry_t::vertex_streams() const
+{
+	return m_VertexStreams.value;
+}
 
 bool geometry_t::is_valid() const noexcept
 {

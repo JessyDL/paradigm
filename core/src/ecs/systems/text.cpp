@@ -140,15 +140,15 @@ text::text(psl::ecs::state_t& state,
 
 core::resource::handle<core::data::geometry_t> text::create_text(psl::string_view text)
 {
-	core::stream vertStream {core::stream::type::vec3};
-	core::stream normStream {core::stream::type::vec3};
-	core::stream colorStream {core::stream::type::vec4};
-	core::stream uvStream {core::stream::type::vec2};
+	core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+	core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
+	core::vertex_stream_t colorStream {core::vertex_stream_t::type::vec4};
+	core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
-	auto& vertices = vertStream.as_vec3().value().get();
-	auto& normals  = normStream.as_vec3().value().get();
-	auto& colors   = colorStream.as_vec4().value().get();
-	auto& uvs	   = uvStream.as_vec2().value().get();
+	auto& vertices = vertStream.get<core::vertex_stream_t::type::vec3>();
+	auto& normals  = normStream.get<core::vertex_stream_t::type::vec3>();
+	auto& colors   = colorStream.get<core::vertex_stream_t::type::vec4>();
+	auto& uvs	   = uvStream.get<core::vertex_stream_t::type::vec2>();
 
 	float right = 0;
 	float up	= 1.0f;

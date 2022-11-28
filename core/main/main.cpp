@@ -1,4 +1,4 @@
-﻿
+
 // core.cpp : Defines the entry point for the console application.
 //
 
@@ -7,8 +7,8 @@
 //#include <Windows.h>
 //#include "stdafx.h"
 #include "psl/application_utils.hpp"
-#include "psl/platform_utils.hpp"
 #include "psl/library.hpp"
+#include "psl/platform_utils.hpp"
 #include "resource/resource.hpp"
 
 #include "paradigm.hpp"
@@ -17,7 +17,7 @@
 #include "spdlog/sinks/basic_file_sink.h"
 #include "spdlog/sinks/dist_sink.h"
 #ifdef _MSC_VER
-#include "spdlog/sinks/msvc_sink.h"
+	#include "spdlog/sinks/msvc_sink.h"
 #endif
 #include "gfx/limits.hpp"
 #include "gfx/types.hpp"
@@ -29,8 +29,8 @@
 #include "data/sampler.hpp"
 #include "data/window.hpp"	  // application data
 
-#include "os/surface.hpp"	 // the OS surface to draw one
 #include "os/context.hpp"
+#include "os/surface.hpp"	 // the OS surface to draw one
 
 #include "meta/shader.hpp"
 #include "meta/texture.hpp"
@@ -78,7 +78,7 @@
 #include "data/framebuffer.hpp"
 
 #if defined(PLATFORM_ANDROID)
-#include <android_native_app_glue.h>
+	#include <android_native_app_glue.h>
 #endif
 using namespace core;
 using namespace core::resource;
@@ -116,18 +116,20 @@ void load_texture(resource::cache_t& cache, handle<core::gfx::context> context_h
 		psl_assert(textureHandle, "invalid textureHandle");
 	}
 }
-
 handle<core::data::material_t> setup_gfx_material_data(resource::cache_t& cache,
 													   handle<core::gfx::context> context_handle,
 													   psl::UID vert,
 													   psl::UID frag,
-													   const psl::UID& texture = psl::UID::invalid_uid)
+													   psl::array_view<psl::UID> textures = {})
+
 {
 	core::meta::shader obj {};
 	auto vertShaderMeta = cache.library().get<core::meta::shader>(vert).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>(frag).value();
 
-	if(texture) load_texture(cache, context_handle, texture);
+	std::for_each(std::begin(textures), std::end(textures), [&cache, &context_handle](const auto& uid) {
+		load_texture(cache, context_handle, uid);
+	});
 
 	// create the sampler
 	auto samplerData   = cache.create<data::sampler_t>();
@@ -138,37 +140,37 @@ handle<core::data::material_t> setup_gfx_material_data(resource::cache_t& cache,
 
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
-	if(texture)
+	auto texture_it = std::begin(textures);
+	auto stages		= matData->stages();
+	for(auto& stage : stages)
 	{
-		auto stages = matData->stages();
-		for(auto& stage : stages)
-		{
-			if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
+		if(stage.shader_stage() != core::gfx::shader_stage::fragment || texture_it == std::end(textures)) continue;
 
-			auto bindings = stage.bindings();
-			for(auto& binding : bindings)
-			{
-				if(binding.descriptor() != core::gfx::binding_type::combined_image_sampler) continue;
-				binding.texture(texture);
-				binding.sampler(samplerHandle);
-			}
-			stage.bindings(bindings);
-			// binding.texture()
+		auto bindings = stage.bindings();
+		for(auto& binding : bindings)
+		{
+			if(binding.descriptor() != core::gfx::binding_type::combined_image_sampler) continue;
+			binding.texture(*texture_it);
+			binding.sampler(samplerHandle);
+			texture_it = std::next(texture_it);
 		}
-		matData->stages(stages);
+		stage.bindings(bindings);
 	}
+	matData->stages(stages);
+
 	matData->blend_states({core::data::material_t::blendstate(0)});
 	return matData;
 }
+
 handle<core::gfx::material_t> setup_gfx_material(resource::cache_t& cache,
 												 handle<core::gfx::context> context_handle,
 												 handle<core::gfx::pipeline_cache> pipeline_cache,
 												 handle<core::gfx::buffer_t> matBuffer,
 												 psl::UID vert,
 												 psl::UID frag,
-												 const psl::UID& texture = psl::UID::invalid_uid)
+												 psl::array_view<psl::UID> textures = {})
 {
-	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, texture);
+	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, textures);
 	auto material = cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, matBuffer);
 
 	return material;
@@ -214,13 +216,13 @@ void setup_loggers()
 	  utility::application::path::get_path() + sub_path + "main.log", true));
 	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 	  utility::application::path::get_path() + "logs/latest.log", true));
-#ifdef _MSC_VER
+	#ifdef _MSC_VER
 	mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
-#else
+	#else
 	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
 	outlogger->set_level(spdlog::level::level_enum::warn);
 	mainlogger->add_sink(outlogger);
-#endif
+	#endif
 
 	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 	  utility::application::path::get_path() + sub_path + "ivk.log", true);
@@ -283,7 +285,7 @@ void setup_loggers()
 	spdlog::register_logger(gfx_logger);
 	core::gfx::log = gfx_logger;
 
-#ifdef PE_VULKAN
+	#ifdef PE_VULKAN
 	sinks.clear();
 	sinks.push_back(mainlogger);
 	sinks.push_back(ivklogger);
@@ -291,8 +293,8 @@ void setup_loggers()
 	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
 	spdlog::register_logger(ivk_logger);
 	core::ivk::log = ivk_logger;
-#endif
-#ifdef PE_GLES
+	#endif
+	#ifdef PE_GLES
 	sinks.clear();
 	sinks.push_back(mainlogger);
 	sinks.push_back(igleslogger);
@@ -300,11 +302,11 @@ void setup_loggers()
 	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
 	spdlog::register_logger(igles_logger);
 	core::igles::log = igles_logger;
-#endif
+	#endif
 	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 #else
-#include "spdlog/sinks/android_sink.h"
+	#include "spdlog/sinks/android_sink.h"
 void setup_loggers()
 {
 	core::log		   = spdlog::android_logger_mt("main", "paradigm");
@@ -317,6 +319,175 @@ void setup_loggers()
 }
 
 #endif
+
+auto generate_fullscreen_quad(core::resource::cache_t& cache,
+							  core::resource::handle<core::gfx::context>& context_handle,
+							  core::resource::handle<core::gfx::buffer_t>& vertexBuffer,
+							  core::resource::handle<core::gfx::buffer_t>& indexBuffer)
+{
+	resource::handle<data::geometry_t> geometryDataHandle {utility::geometry::create_quad(cache, 1, -1, -1, 1)};
+	utility::geometry::set_channel(geometryDataHandle, core::data::geometry_t::constants::COLOR, psl::vec4::one);
+	return cache.create<gfx::geometry_t>(context_handle, geometryDataHandle, vertexBuffer, indexBuffer);
+}
+
+auto generate_test_geometry(core::resource::cache_t& cache,
+							core::resource::handle<core::gfx::context>& context_handle,
+							core::resource::handle<core::gfx::buffer_t>& vertexBuffer,
+							core::resource::handle<core::gfx::buffer_t>& indexBuffer)
+  -> std::vector<resource::handle<gfx::geometry_t>>
+{
+	std::vector<resource::handle<data::geometry_t>> geometryDataHandles;
+	std::vector<resource::handle<gfx::geometry_t>> geometryHandles;
+	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
+	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
+	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
+	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
+	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
+	// up
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::back * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::up * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::forward * 90.0f),
+							  core::data::geometry_t::constants::NORMAL);
+	auto up_plane_index = geometryDataHandles.size() - 1;
+	// down
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::forward * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::down * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::back * 90.0f),
+							  core::data::geometry_t::constants::NORMAL);
+	auto down_plane_index = geometryDataHandles.size() - 1;
+	// left
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::down * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::left * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::up * 90.0f),
+							  core::data::geometry_t::constants::NORMAL);
+	auto left_plane_index = geometryDataHandles.size() - 1;
+	// right
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::up * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::right * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::down * 90.0f),
+							  core::data::geometry_t::constants::NORMAL);
+	auto right_plane_index = geometryDataHandles.size() - 1;
+	// forward
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::forward * 0.5f);
+	auto forward_plane_index = geometryDataHandles.size() - 1;
+	// back
+	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::left * 90.0f));
+	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::back * 0.5f);
+	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+							  psl::math::from_euler(psl::vec3::right * 90.0f),
+							  core::data::geometry_t::constants::NORMAL);
+	auto back_plane_index = geometryDataHandles.size() - 1;
+
+	geometryDataHandles.push_back(
+	  utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
+	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
+
+	// geometryDataHandles.push_back(
+	//   cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
+	auto water_plane_index = geometryDataHandles.size() - 1;
+	for(auto& handle : geometryDataHandles)
+	{
+		if(!handle->contains(core::data::geometry_t::constants::COLOR))
+		{
+			core::vertex_stream_t colorstream {core::vertex_stream_t::type::vec3};
+			auto& colors = colorstream.get<core::vertex_stream_t::type::vec3>();
+			auto& normalStream =
+			  handle->vertices(core::data::geometry_t::constants::NORMAL).get<core::vertex_stream_t::type::vec3>();
+			colors.resize(normalStream.size());
+			std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
+
+			std::for_each(std::begin(colors), std::end(colors), [](auto& color) {
+				color =
+				  (psl::math::dot(psl::math::normalize(color), psl::math::normalize(psl::vec3(145, 170, 35))) + 1.0f) *
+				  0.5f;
+				// color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f;
+			});
+			handle->vertices(core::data::geometry_t::constants::COLOR, colorstream);
+			// handle->erase(core::data::geometry_t::constants::TANGENT);
+			// handle->erase(core::data::geometry_t::constants::NORMAL);
+		}
+		geometryHandles.emplace_back(cache.create<gfx::geometry_t>(context_handle, handle, vertexBuffer, indexBuffer));
+	}
+
+	return geometryHandles;
+}
+
+auto create_fbo_data(core::resource::cache_t& cache,
+					 core::resource::handle<core::os::surface>& surface_handle,
+					 core::resource::handle<core::gfx::context>& context_handle,
+					 bool with_depth = false)
+{
+	auto frameBufferData =
+	  cache.create<core::data::framebuffer_t>(surface_handle->data().width(), surface_handle->data().height(), 1);
+
+	{	 // set the sampler state
+		auto ppsamplerData = cache.create<data::sampler_t>();
+		ppsamplerData->mipmaps(false);
+		auto ppsamplerHandle = cache.create<gfx::sampler_t>(context_handle, ppsamplerData);
+		frameBufferData->set(ppsamplerHandle);
+	}
+
+	{	 // render target
+		core::gfx::attachment descr {};
+		descr.format		= core::gfx::format_t::r32g32b32a32_sfloat;
+		descr.sample_bits	= 1;
+		descr.image_load	= core::gfx::attachment::load_op::clear;
+		descr.image_store	= core::gfx::attachment::store_op::store;
+		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
+		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+		descr.initial		= core::gfx::image::layout::undefined;
+		descr.final			= core::gfx::image::layout::general;
+
+		frameBufferData->add(surface_handle->data().width(),
+							 surface_handle->data().height(),
+							 1,
+							 core::gfx::image::usage::color_attachment | core::gfx::image::usage::sampled,
+							 core::gfx::clear_value(psl::ivec4 {0}),
+							 descr);
+	}
+
+	if(with_depth)
+	{	 // depth-stencil target
+		core::gfx::attachment descr {};
+		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format_t::undefined)
+		{
+			core::log->error("Could not find a suitable depth stencil buffer format.");
+		}
+		else
+			descr.format = format;
+		descr.sample_bits	= 1;
+		descr.image_load	= core::gfx::attachment::load_op::clear;
+		descr.image_store	= core::gfx::attachment::store_op::dont_care;
+		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
+		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
+		descr.initial		= core::gfx::image::layout::undefined;
+		descr.final			= core::gfx::image::layout::depth_stencil_attachment_optimal;
+
+		frameBufferData->add(surface_handle->data().width(),
+							 surface_handle->data().height(),
+							 1,
+							 core::gfx::image::usage::dept_stencil_attachment,
+							 core::gfx::depth_stencil {1.0f, 0},
+							 descr);
+	}
+
+	return frameBufferData;
+}
 
 int entry(gfx::graphics_backend backend, core::os::context& os_context)
 {
@@ -416,99 +587,10 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	auto intanceMaterialBinding = cache.create<gfx::shader_buffer_binding>(instanceMaterialBuffer, 8_mb);
 	cache.library().set(intanceMaterialBinding.uid(), core::data::material_t::MATERIAL_DATA);
 
-	std::vector<resource::handle<data::geometry_t>> geometryDataHandles;
-	std::vector<resource::handle<gfx::geometry_t>> geometryHandles;
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
-	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 1, -1, -1, 1));
-	auto fullscreen_quad_index = geometryDataHandles.size() - 1;
-	utility::geometry::set_channel(
-	  geometryDataHandles[fullscreen_quad_index], core::data::geometry_t::constants::COLOR, psl::vec4::one);
-	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
-	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
-	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
-	// up
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::back * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::up * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::forward * 90.0f),
-							  core::data::geometry_t::constants::NORMAL);
-	auto up_plane_index = geometryDataHandles.size() - 1;
-	// down
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::forward * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::down * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::back * 90.0f),
-							  core::data::geometry_t::constants::NORMAL);
-	auto down_plane_index = geometryDataHandles.size() - 1;
-	// left
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::down * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::left * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::up * 90.0f),
-							  core::data::geometry_t::constants::NORMAL);
-	auto left_plane_index = geometryDataHandles.size() - 1;
-	// right
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::up * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::right * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::down * 90.0f),
-							  core::data::geometry_t::constants::NORMAL);
-	auto right_plane_index = geometryDataHandles.size() - 1;
-	// forward
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::forward * 0.5f);
-	auto forward_plane_index = geometryDataHandles.size() - 1;
-	// back
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::left * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::back * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
-							  psl::math::from_euler(psl::vec3::right * 90.0f),
-							  core::data::geometry_t::constants::NORMAL);
-	auto back_plane_index = geometryDataHandles.size() - 1;
+	std::vector<resource::handle<gfx::geometry_t>> geometryHandles {
+	  generate_test_geometry(cache, context_handle, vertexBuffer, indexBuffer)};
 
-	geometryDataHandles.push_back(
-	  utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
-
-	// geometryDataHandles.push_back(
-	//   cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
-	auto water_plane_index = geometryDataHandles.size() - 1;
-	for(auto& handle : geometryDataHandles)
-	{
-		if(handle != geometryDataHandles[fullscreen_quad_index] &&
-		   !handle->vertices(core::data::geometry_t::constants::COLOR))
-		{
-			core::stream colorstream {core::stream::type::vec3};
-			auto& colors = colorstream.as_vec3().value().get();
-			auto& normalStream =
-			  handle->vertices(core::data::geometry_t::constants::NORMAL).value().get().as_vec3().value().get();
-			colors.resize(normalStream.size());
-			std::memcpy(colors.data(), normalStream.data(), sizeof(psl::vec3) * normalStream.size());
-
-			std::for_each(std::begin(colors), std::end(colors), [](auto& color) {
-				color =
-				  (psl::math::dot(psl::math::normalize(color), psl::math::normalize(psl::vec3(145, 170, 35))) + 1.0f) *
-				  0.5f;
-				// color = std::max((color[0] + color[1] + color[2]), 0.0f) + 0.33f;
-			});
-			handle->vertices(core::data::geometry_t::constants::COLOR, colorstream);
-			// handle->erase(core::data::geometry_t::constants::TANGENT);
-			// handle->erase(core::data::geometry_t::constants::NORMAL);
-		}
-		geometryHandles.emplace_back(cache.create<gfx::geometry_t>(context_handle, handle, vertexBuffer, indexBuffer));
-	}
-
+	auto fullscreenQuad = generate_fullscreen_quad(cache, context_handle, vertexBuffer, indexBuffer);
 
 	// create the buffer that we'll use for storing the WVP for the shaders;
 	auto globalShaderBufferData = cache.create<data::buffer_t>(
@@ -581,69 +663,18 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	// bundles.back()->set_material(materials[3], 2000);
 
 	core::gfx::render_graph renderGraph {};
-	auto frameBufferData =
-	  cache.create<core::data::framebuffer_t>(surface_handle->data().width(), surface_handle->data().height(), 1);
-
-	{	 // render target
-		core::gfx::attachment descr {};
-		descr.format		= core::gfx::format_t::r32g32b32a32_sfloat;
-		descr.sample_bits	= 1;
-		descr.image_load	= core::gfx::attachment::load_op::clear;
-		descr.image_store	= core::gfx::attachment::store_op::store;
-		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
-		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
-		descr.initial		= core::gfx::image::layout::undefined;
-		descr.final			= core::gfx::image::layout::general;
-
-		frameBufferData->add(surface_handle->data().width(),
-							 surface_handle->data().height(),
-							 1,
-							 core::gfx::image::usage::color_attachment | core::gfx::image::usage::sampled,
-							 core::gfx::clear_value(psl::ivec4 {0}),
-							 descr);
-	}
-
-	{	 // depth-stencil target
-		core::gfx::attachment descr {};
-		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format_t::undefined)
-		{
-			core::log->error("Could not find a suitable depth stencil buffer format.");
-		}
-		else
-			descr.format = format;
-		descr.sample_bits	= 1;
-		descr.image_load	= core::gfx::attachment::load_op::clear;
-		descr.image_store	= core::gfx::attachment::store_op::dont_care;
-		descr.stencil_load	= core::gfx::attachment::load_op::dont_care;
-		descr.stencil_store = core::gfx::attachment::store_op::dont_care;
-		descr.initial		= core::gfx::image::layout::undefined;
-		descr.final			= core::gfx::image::layout::depth_stencil_attachment_optimal;
-
-		frameBufferData->add(surface_handle->data().width(),
-							 surface_handle->data().height(),
-							 1,
-							 core::gfx::image::usage::dept_stencil_attachment,
-							 core::gfx::depth_stencil {1.0f, 0},
-							 descr);
-	}
-
-	{
-		auto ppsamplerData = cache.create<data::sampler_t>();
-		ppsamplerData->mipmaps(false);
-		auto ppsamplerHandle = cache.create<gfx::sampler_t>(context_handle, ppsamplerData);
-		frameBufferData->set(ppsamplerHandle);
-	}
-
-	auto geometryFBO = cache.create<core::gfx::framebuffer_t>(context_handle, frameBufferData);
+	auto geometryFBO = cache.create<core::gfx::framebuffer_t>(
+	  context_handle, create_fbo_data(cache, surface_handle, context_handle, true));
 
 	core::resource::handle<core::gfx::bundle> post_effect_bundle =
 	  cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
 
-	auto post_effect_data = setup_gfx_material_data(cache,
-													context_handle,
-													"0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
-													"cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid,
-													geometryFBO->texture(0).meta().ID());
+	auto post_effect_data =
+	  setup_gfx_material_data(cache,
+							  context_handle,
+							  "0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
+							  "cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid,
+							  std::vector { geometryFBO->texture(0).meta().ID() });
 	// post_effect_data->blend_states({core::data::material_t::blendstate::transparent(0)});
 	post_effect_data->cull_mode(core::gfx::cullmode::none);
 	post_effect_data->depth_write(false);
@@ -651,7 +682,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	post_effect_data->depth_compare_op(core::gfx::compare_op::always);
 	auto post_effect_material =
 	  cache.create<core::gfx::material_t>(context_handle, post_effect_data, pipeline_cache, instanceMaterialBuffer);
-	post_effect_bundle->set_material(post_effect_material, 5001);
+	post_effect_bundle->set_material(post_effect_material, 4000);
 	post_effect_bundle->set("color", psl::vec4::one);
 	// auto fbo_texture = geometryFBO->texture(0);
 
@@ -759,11 +790,10 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	// fullscreen quad entity
 	ECSState.create(
 	  1,
-	  [&post_effect_bundle,
-	   &geometry = geometryHandles[fullscreen_quad_index]](core::ecs::components::renderable& renderable) {
+	  [&post_effect_bundle, &geometry = fullscreenQuad](core::ecs::components::renderable& renderable) {
 		  renderable = {post_effect_bundle, geometry};
 	  },
-	  core::ecs::components::transform {});
+	  core::ecs::components::transform {{0, 0, 1.f}});
 
 	/*
 // atmospheric effect
@@ -782,7 +812,7 @@ ECSState.create(
 														   context_handle,
 														   "b64676ca-7000-08d2-e2ef-48c25742a6bc"_uid,
 														   "7246dfbd-29f6-65db-c89e-1b42036b368b"_uid,
-														   "3c4af7eb-289e-440d-99d9-20b5738f0200"_uid);
+														   std::vector {"3c4af7eb-289e-440d-99d9-20b5738f0200"_uid});
 		auto stages				 = water_material_data->stages();
 		auto bindings			 = stages[1].bindings();
 		bindings[2].texture("5ea8ae3d-1ff4-48cc-9c90-d0eb81ba7075"_uid);
@@ -800,7 +830,7 @@ ECSState.create(
 		ECSState.create(
 		  1,
 		  [&bundle	 = bundles.back(),
-		   &geometry = geometryHandles[water_plane_index]](core::ecs::components::renderable& renderable) {
+		   &geometry = geometryHandles[/*water_plane_index*/ 0]](core::ecs::components::renderable& renderable) {
 			  renderable = {bundle, geometry};
 		  },
 		  core::ecs::components::transform {psl::vec3 {}, psl::vec3::one * 1.f});
@@ -941,19 +971,25 @@ AAssetManager* utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
 
 void android_main(android_app* application)
 {
-	auto os_context = core::os::context{application};
+	auto os_context								   = core::os::context {application};
 	utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
 	setup_loggers();
 	std::srand(0);
 
 	// go into a holding loop while wait for the window to come online.
-	while(true) {
+	while(true)
+	{
 		os_context.tick();
-		__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window ") + std::to_string((size_t)(os_context.application().window))).data());
-		if(os_context.application().window != nullptr)
-			break;
+		__android_log_write(
+		  ANDROID_LOG_INFO,
+		  "paradigm",
+		  (std::string("window ") + std::to_string((size_t)(os_context.application().window))).data());
+		if(os_context.application().window != nullptr) break;
 	}
-	__android_log_write(ANDROID_LOG_INFO, "paradigm", (std::string("window is loaded ") + std::to_string((size_t)(os_context.application().window))).data());
+	__android_log_write(
+	  ANDROID_LOG_INFO,
+	  "paradigm",
+	  (std::string("window is loaded ") + std::to_string((size_t)(os_context.application().window))).data());
 	entry(graphics_backend::vulkan, os_context);
 	return;
 }
@@ -961,18 +997,18 @@ void android_main(android_app* application)
 #else
 int main(int argc, char* argv[])
 {
-#ifdef PLATFORM_WINDOWS
+	#ifdef PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
-#endif
+	#endif
 	setup_loggers();
 
-#ifdef _MSC_VER
+	#ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support
 		dummy::hex_dummy_high hex_dummy_high {};
 		dummy::hex_dummy_low hex_dummy_lowy {};
 	}
-#endif
+	#endif
 	std::srand(0);
 	if(argc > 0)
 	{
@@ -985,28 +1021,28 @@ int main(int argc, char* argv[])
 			std::string_view text {argv[i]};
 			if(text == "--vulkan")
 			{
-#if defined(PE_VULKAN)
+	#if defined(PE_VULKAN)
 				return graphics_backend::vulkan;
-#else
+	#else
 				throw std::runtime_error("Requested a Vulkan backend, but application does not support Vulkan");
-#endif
+	#endif
 			}
 			else if(text == "--gles")
 			{
-#if defined(PE_GLES)
+	#if defined(PE_GLES)
 				return graphics_backend::gles;
-#else
+	#else
 				throw std::runtime_error("Requested a GLES backend, but application does not support GLES");
-#endif
+	#endif
 			}
 		}
-#if defined(PE_VULKAN)
+	#if defined(PE_VULKAN)
 		return graphics_backend::vulkan;
-#elif defined(PE_GLES)
+	#elif defined(PE_GLES)
 		return graphics_backend::gles;
-#endif
+	#endif
 	}(argc, argv);
-	core::os::context context{};
+	core::os::context context {};
 	return entry(backend, context);
 }
 #endif
