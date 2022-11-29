@@ -15,9 +15,9 @@ jobs:
       with:
         submodules: recursive
     - name: setup dependencies
-      uses: actions/setup-python@v1
+      uses: actions/setup-python@v4
       with:
-        python-version: 3.7
+        python-version: '3.7'
     - name: initialize
       run: |
             python3 tools/generate_project_info.py
@@ -30,7 +30,7 @@ jobs:
             cd builds\x64\release\bin
             .\tests.exe --formatter compact --no-source
     - name: finalize
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: windows-${{ matrix.graphics }}-bin
         path: builds/x64/release/bin/benchmarks.exe
@@ -47,13 +47,13 @@ jobs:
     steps:
     - name: setup
       id: download
-      uses: actions/download-artifact@v2
+      uses: actions/download-artifact@v3
       with:
         name: windows-${{ matrix.graphics }}-bin
     - name: benchmark
       run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
-      uses: actions/upload-artifact@v2
+      uses: actions/upload-artifact@v3
       with:
         name: windows-${{ matrix.graphics }}
         path: results.json
