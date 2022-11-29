@@ -1,15 +1,27 @@
-name: ubuntu-gcc
+name: ubuntu
 
 on: [push]
     
 jobs:
   build:
-    container:
-      image: gcc:11.3.0
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         graphics: [vulkan, all]
+        include:
+          - CC: gcc-11
+            CXX: g++-11
+            BENCHMARKS: ON
+            TESTS: ON
+            COMPILER: gcc
+          - CC: clang-14
+            CXX: clang++-14
+            BENCHMARKS: OFF
+            TESTS: OFF
+            COMPILER: clang
+    env:
+      CC: ${{ matrix.CC }}
+      CXX: ${{ matrix.CXX }}
     name: build
     runs-on: ubuntu-22.04
     steps:
@@ -17,38 +29,39 @@ jobs:
       with:
         submodules: recursive
     - name: setup dependencies
-      run: |
-        wget https://github.com/Kitware/CMake/releases/download/v3.22.1/cmake-3.22.1-linux-x86_64.sh -q -O /tmp/cmake-install.sh \
-        && chmod u+x /tmp/cmake-install.sh \
-        && mkdir /opt/cmake \
-        && /tmp/cmake-install.sh --skip-license --prefix=/opt/cmake \
-        && rm /tmp/cmake-install.sh
-        ln -s /opt/cmake/bin/* /usr/bin/
-        apt-get update && apt-get install python3 -y
-        python3 tools/generate_project_info.py
+      run: python3 tools/generate_project_info.py
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
-      run: apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+      run: sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: initialize
-      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
+      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.BENCHMARKS }} -DPE_TESTS=${{ matrix.TESTS }}
     - name: compile
       run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
     - name: test
+      if: ${{ matrix.TESTS == 'ON' }}
       run: ./builds/default/bin/tests --formatter compact --no-source
     - name: finalize
+      if: ${{ matrix.BENCHMARKS == 'ON' }}
       uses: actions/upload-artifact@v3
       with:
-        name: ubuntu-${{ matrix.graphics }}-bin
+        name: ubuntu-${{ matrix.COMPILER }}-${{ matrix.graphics }}-bin
         path: builds/default/bin/benchmarks
         if-no-files-found: error
         retention-days: 1
   benchmark:
-    container:
-      image: gcc:11.3.0
     strategy:
-      fail-fast: false
+      fail-fast: true
       matrix:
         graphics: [vulkan, all]
+        include:
+          - CC: gcc-11
+            CXX: g++-11
+            BENCHMARKS: ON
+            TESTS: ON
+            COMPILER: gcc
+    env:
+      CC: ${{ matrix.CC }}
+      CXX: ${{ matrix.CXX }}
     name: benchmark
     needs: build
     runs-on: ubuntu-22.04
@@ -57,10 +70,10 @@ jobs:
       id: download
       uses: actions/download-artifact@v3
       with:
-        name: ubuntu-${{ matrix.graphics }}-bin
+        name: ubuntu-${{ matrix.COMPILER }}-${{ matrix.graphics }}-bin
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
-      run: apt-get update && apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+      run: sudo apt-get update && apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: prepare
       run: chmod +x benchmarks
     - name: benchmark
@@ -68,6 +81,6 @@ jobs:
     - name: finalize
       uses: actions/upload-artifact@v3
       with:
-        name: ubuntu-${{ matrix.graphics }}
+        name: ubuntu-${{ matrix.COMPILER }}-${{ matrix.graphics }}
         path: results.json
         if-no-files-found: error
