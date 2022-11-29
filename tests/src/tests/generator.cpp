@@ -1,4 +1,3 @@
-#include "stdafx_tests.hpp"
 #include "tests/generator.hpp"
 #include "psl/IDGenerator.hpp"
 
