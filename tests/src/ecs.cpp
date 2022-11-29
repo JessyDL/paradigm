@@ -54,12 +54,6 @@ namespace
 		size_t y;
 	};
 
-	template <typename T>
-	struct wrapper_t
-	{
-		T value {};
-	};
-
 	auto t0 = suite<"component_info", "ecs", "psl">() = []() {
 		section<"non-empty component_info_typed">() = [&]() {
 			details::component_info_typed<float> cInfo;
@@ -161,18 +155,18 @@ namespace
 
 	auto t1 = suite<"component_key must be unique", "ecs", "psl">() = []() {
 		using namespace psl::ecs::details;
-		auto fl_id	= key_for<float>();
-		auto int_id = key_for<int>();
+		auto fl_id	= component_key_t::generate<float>();
+		auto int_id = component_key_t::generate<int>();
 		require(fl_id) != int_id;
 
-		auto cfl_id = key_for<const float>();
-		auto cint_id = key_for<const int>();
+		auto cfl_id	 = component_key_t::generate<const float>();
+		auto cint_id = component_key_t::generate<const int>();
 		require(cfl_id) != cint_id;
 		require(cfl_id) == fl_id;
 		require(cint_id) == int_id;
-		
-		constexpr auto cxfl_id = key_for<float>();
-		constexpr auto cxint_id = key_for<int>();
+
+		constexpr auto cxfl_id	= component_key_t::generate<float>();
+		constexpr auto cxint_id = component_key_t::generate<int>();
 
 		require(cxfl_id) == fl_id;
 		require(cxint_id) == int_id;
@@ -588,21 +582,21 @@ namespace
 			//    in the filtering for system's filtering -> issue
 
 			size_t count = 0;
-			state.declare([&](info_t& info, pack<entity, wrapper_t<float>> pack) {
+			state.declare([&](info_t& info, pack<entity, float> pack) {
 				if(pack.empty()) return;
 				count += pack.size();
-				info.command_buffer.add_components<wrapper_t<int>>(pack.get<entity>(), {0});
+				info.command_buffer.add_components<int>(pack.get<entity>(), {0});
 			});
 
-			auto entities = state.create<wrapper_t<float>>(1);
-			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 1;
+			auto entities = state.create<float>(1);
+			expect(state.filter<on_add<float>>().size()) == 1;
 			state.tick(std::chrono::duration<float>(1.0f));
-			expect(state.filter<wrapper_t<float>>().size()) == 1;
-			expect(state.filter<on_add<wrapper_t<int>>>().size()) == 1;
+			expect(state.filter<float>().size()) == 1;
+			expect(state.filter<on_add<int>>().size()) == 1;
 			expect(count) == 1;
 			state.tick(std::chrono::duration<float>(1.0f));
-			expect(state.filter<wrapper_t<float>>().size()) == 1;
-			expect(state.filter<wrapper_t<int>>().size()) == 1;
+			expect(state.filter<float>().size()) == 1;
+			expect(state.filter<int>().size()) == 1;
 			expect(count) == 2;
 		};
 		section<"regression 2">() = [&] {
@@ -615,23 +609,43 @@ namespace
 			// reason: filtering operation that was based on existing filters did not correctly
 			//         use the already filtered entity list
 
-			auto entities0 = state.create<wrapper_t<float>>(1);
+			auto entities0 = state.create<float>(1);
 			auto entities1 = state.create(1);
-			state.remove_components<wrapper_t<float>>(entities0);
-			expect(state.filter<wrapper_t<float>>().size()) == 0;
-			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 1;
-			state.add_components<wrapper_t<float>>(entities1);
-			expect(state.filter<wrapper_t<float>>().size()) == 1;
-			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 1;
-			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 1;
-			state.declare([&](info_t& info, pack<entity, wrapper_t<float>> pack) {
+			state.remove_components<float>(entities0);
+			expect(state.filter<float>().size()) == 0;
+			expect(state.filter<on_remove<float>>().size()) == 1;
+			state.add_components<float>(entities1);
+			expect(state.filter<float>().size()) == 1;
+			expect(state.filter<on_add<float>>().size()) == 1;
+			expect(state.filter<on_remove<float>>().size()) == 1;
+			state.declare([&](info_t& info, pack<entity, float> pack) {
 				expect(pack.size()) == 1;
 				expect(pack.get<entity>()[0]) == 1;
 			});
 			state.tick(std::chrono::duration<float>(1.0f));
-			expect(state.filter<wrapper_t<float>>().size()) == 1;
-			expect(state.filter<on_remove<wrapper_t<float>>>().size()) == 0;
-			expect(state.filter<on_add<wrapper_t<float>>>().size()) == 0;
+			expect(state.filter<float>().size()) == 1;
+			expect(state.filter<on_remove<float>>().size()) == 0;
+			expect(state.filter<on_add<float>>().size()) == 0;
 		};
+	};
+
+	auto t8 = suite<"component_key name matches expected", "ecs", "psl">() = []() {
+		using namespace psl::ecs::details;
+		using namespace std::string_view_literals;
+		auto fl_id	= component_key_t::generate<float>();
+		auto int_id = component_key_t::generate<int>();
+		require(fl_id.name()) == "float"sv;
+		require(int_id.name()) == "int"sv;
+
+		auto cfl_id	 = component_key_t::generate<const float>();
+		auto cint_id = component_key_t::generate<const int>();
+		require(cfl_id) == "float"sv;
+		require(cint_id) == "int"sv;
+
+		constexpr auto cxfl_id	= component_key_t::generate<float>();
+		constexpr auto cxint_id = component_key_t::generate<int>();
+
+		require(cxfl_id) == "float"sv;
+		require(cxint_id) == "int"sv;
 	};
 }	 // namespace

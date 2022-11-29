@@ -51,9 +51,9 @@ namespace psl::ecs
 			};
 			~transform_group() = default;
 
-			transform_group(const transform_group& other)	  = default;
-			transform_group(transform_group&& other) noexcept = default;
-			transform_group& operator=(const transform_group& other) = default;
+			transform_group(const transform_group& other)				 = default;
+			transform_group(transform_group&& other) noexcept			 = default;
+			transform_group& operator=(const transform_group& other)	 = default;
 			transform_group& operator=(transform_group&& other) noexcept = default;
 
 			psl::array<entity>::iterator transform(psl::array<entity>::iterator begin,
@@ -85,7 +85,7 @@ namespace psl::ecs
 			{
 				if constexpr(!std::is_same_v<entity, T> && !std::is_same_v<psl::ecs::partial, T> &&
 							 !std::is_same_v<psl::ecs::full, T>)
-					filters.emplace_back(details::key_for<T>());
+					filters.emplace_back(details::component_key_t::generate<T>());
 			}
 
 			template <typename... Ts>
@@ -97,32 +97,32 @@ namespace psl::ecs
 			template <typename... Ts>
 			constexpr void selector(psl::type_pack_t<on_combine<Ts...>>) noexcept
 			{
-				(void(on_combine.emplace_back(details::key_for<Ts>())), ...);
+				(void(on_combine.emplace_back(details::component_key_t::generate<Ts>())), ...);
 			}
 
 			template <typename... Ts>
 			constexpr void selector(psl::type_pack_t<on_break<Ts...>>) noexcept
 			{
-				(void(on_break.emplace_back(details::key_for<Ts>())), ...);
+				(void(on_break.emplace_back(details::component_key_t::generate<Ts>())), ...);
 			}
 
 			template <typename... Ts>
 			constexpr void selector(psl::type_pack_t<except<Ts...>>) noexcept
 			{
-				(void(except.emplace_back(details::key_for<Ts>())), ...);
+				(void(except.emplace_back(details::component_key_t::generate<Ts>())), ...);
 			}
 
 			template <typename... Ts>
 			constexpr void selector(psl::type_pack_t<on_add<Ts...>>) noexcept
 			{
-				(void(on_add.emplace_back(details::key_for<Ts>())), ...);
+				(void(on_add.emplace_back(details::component_key_t::generate<Ts>())), ...);
 			}
 
 
 			template <typename... Ts>
 			constexpr void selector(psl::type_pack_t<on_remove<Ts...>>) noexcept
 			{
-				(void(on_remove.emplace_back(details::key_for<Ts>())), ...);
+				(void(on_remove.emplace_back(details::component_key_t::generate<Ts>())), ...);
 			}
 
 			template <typename Pred, typename... Ts>
@@ -313,7 +313,7 @@ namespace psl::ecs
 			auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> filter_group {
 				return filter_group {psl::type_pack_t<Ys...> {}};
 			};
-			return psl::array<filter_group>{make_group(psl::type_pack_t<Ts>{})...};
+			return psl::array<filter_group> {make_group(psl::type_pack_t<Ts> {})...};
 		}
 
 		template <typename... Ts>
@@ -322,7 +322,7 @@ namespace psl::ecs
 			auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> transform_group {
 				return transform_group {psl::type_pack_t<Ys...> {}};
 			};
-			return psl::array<transform_group>{make_group(psl::type_pack_t<Ts>{})...};
+			return psl::array<transform_group> {make_group(psl::type_pack_t<Ts> {})...};
 		}
 	}	 // namespace details
 }	 // namespace psl::ecs

@@ -53,7 +53,7 @@ namespace psl::ecs
 			if(entities.size() == 0) return;
 			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
 			(create_storage<Ts>(), ...);
-			(remove_component(details::key_for<Ts>(), entities), ...);
+			(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 		}
 
 		template <typename... Ts>
@@ -77,7 +77,7 @@ namespace psl::ecs
 			if(entities.size() == 0) return;
 			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
 			(create_storage<Ts>(), ...);
-			(remove_component(details::key_for<Ts>(), entities), ...);
+			(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 		}
 
 		template <typename... Ts>
@@ -155,11 +155,11 @@ namespace psl::ecs
 		void create_storage()
 		{
 			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
-				constexpr auto key = details::key_for<T>();
+				constexpr auto key = details::component_key_t::generate<T>();
 				return (key == cInfo->id());
 			});
 
-			constexpr auto key = details::key_for<T>();
+			constexpr auto key = details::component_key_t::generate<T>();
 			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());
 		}
 
@@ -178,7 +178,7 @@ namespace psl::ecs
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
 				create_storage<T>();
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
 			}
 			else	// todo wait till deduction guides are resolved on libc++
 					// https://bugs.llvm.org/show_bug.cgi?id=39606
@@ -196,8 +196,10 @@ namespace psl::ecs
 							  "psl::ecs::empty<T>{} to avoid initialization.");
 
 				create_storage<type>();
-				add_component_impl(
-				  details::key_for<type>(), entities, sizeof(type), [prototype](std::uintptr_t location, size_t count) {
+				add_component_impl(details::component_key_t::generate<type>(),
+								   entities,
+								   sizeof(type),
+								   [prototype](std::uintptr_t location, size_t count) {
 					  for(auto i = size_t {0}; i < count; ++i)
 					  {
 						  std::invoke(prototype, *((type*)(location) + i));
@@ -217,12 +219,13 @@ namespace psl::ecs
 			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+				add_component_impl(
+				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
 			}
 			else
 			{
 				T v {};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
 			}
 		}
 
@@ -232,12 +235,13 @@ namespace psl::ecs
 			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+				add_component_impl(
+				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
 			}
 			else
 			{
 				T v {};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
 			}
 		}
 
@@ -253,7 +257,7 @@ namespace psl::ecs
 
 
 				create_storage<T>();
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &prototype);
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
 			}
 			else
 			{
@@ -268,8 +272,10 @@ namespace psl::ecs
 							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 							  "psl::ecs::empty<T>{} to avoid initialization.");
 				create_storage<type>();
-				add_component_impl(
-				  details::key_for<type>(), entities, sizeof(type), [prototype](std::uintptr_t location, size_t count) {
+				add_component_impl(details::component_key_t::generate<type>(),
+								   entities,
+								   sizeof(type),
+								   [prototype](std::uintptr_t location, size_t count) {
 					  for(auto i = size_t {0}; i < count; ++i)
 					  {
 						  std::invoke(prototype, *((type*)(location) + i));
@@ -290,12 +296,13 @@ namespace psl::ecs
 
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+				add_component_impl(
+				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
 			}
 			else
 			{
 				T v {};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
 			}
 		}
 
@@ -305,12 +312,13 @@ namespace psl::ecs
 			create_storage<T>();
 			if constexpr(std::is_trivially_constructible_v<T>)
 			{
-				add_component_impl(details::key_for<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+				add_component_impl(
+				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
 			}
 			else
 			{
 				T v {};
-				add_component_impl(details::key_for<T>(), entities, sizeof(T), &v);
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
 			}
 		}
 
@@ -322,7 +330,7 @@ namespace psl::ecs
 			static_assert(!std::is_empty_v<T>,
 						  "no need to pass an array of tag types through, it's a waste of computing and memory");
 
-			add_component_impl(details::key_for<T>(), entities, sizeof(T), data.data(), false);
+			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), data.data(), false);
 		}
 
 		void add_component_impl(details::component_key_t key,
