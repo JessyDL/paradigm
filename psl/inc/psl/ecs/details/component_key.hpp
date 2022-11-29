@@ -18,9 +18,18 @@ namespace std
 
 namespace psl::ecs::details
 {
+	/// \brief Container type for unique component types. These should be construced using the `component_key_t::generate` helper function.
+	/// \details Internally contains the component type's stringified name, and the hash.
+	/// Both are generated at compile time using the `psl::ecs::details::component_key_t::generate` helper function.
 	class component_key_t
 	{
 		friend struct std::hash<component_key_t>;
+
+		template <typename T>
+		struct type_container
+		{
+			static constexpr auto name = strtype::stringify_typename<T>();
+		};
 
 		consteval std::uint32_t fnv1a_32(std::string_view value) const noexcept
 		{
@@ -32,11 +41,19 @@ namespace psl::ecs::details
 			return seed;
 		}
 
-	  public:
-		consteval component_key_t(std::string_view name) noexcept : m_Name(name), m_Value(fnv1a_32(name)) {}
-
-		constexpr component_key_t(const component_key_t& other) noexcept : m_Name(other.m_Name), m_Value(other.m_Value)
+		template <typename T>
+		consteval component_key_t(const type_container<T>& name) noexcept :
+			m_Name(type_container<T>::name), m_Value(fnv1a_32(type_container<T>::name))
 		{}
+
+	  public:
+		constexpr component_key_t(const component_key_t& other) : m_Name(other.m_Name), m_Value(other.m_Value)
+		{
+			if(std::find(std::begin(m_Name), std::end(m_Name), '<') != std::end(m_Name))
+			{
+				throw std::exception(/* templated component types are not supported (due to portability issues) */);
+			}
+		}
 		constexpr component_key_t& operator=(const component_key_t& other) noexcept
 		{
 			if(this != &other)
@@ -77,17 +94,19 @@ namespace psl::ecs::details
 			return m_Value > other.m_Value;
 		}
 
+		/// \brief Generates a `component_key_t` based on the given type in a cross platform safe manner.
+		/// \note Strips const, volatile, reference, and pointer designations of the template type.
+		/// \warning watch out with modifying this issue, see: https://developercommunity.visualstudio.com/t/constexpr-unable-to-call-private-constructor-in-st/82639
+		template <typename T>
+		static constexpr auto generate() noexcept -> component_key_t
+		{
+			return component_key_t {type_container<std::remove_pointer_t<std::remove_cvref_t<T>>> {}};
+		}
+
 	  private:
 		std::string_view m_Name;
 		std::uint32_t m_Value;
 	};
-
-	template <typename T, auto TName = strtype::stringify_typename<std::remove_pointer_t<std::remove_cvref_t<T>>>()>
-	constexpr auto key_for() noexcept -> component_key_t
-	{
-		constexpr component_key_t result {TName};
-		return result;
-	}
 }	 // namespace psl::ecs::details
 
 namespace std

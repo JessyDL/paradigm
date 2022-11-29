@@ -109,7 +109,7 @@ namespace psl::ecs::details
 	class component_info_typed final : public component_info
 	{
 	  public:
-		component_info_typed() : component_info(details::key_for<T>(), sizeof(T)) {};
+		component_info_typed() : component_info(details::component_key_t::generate<T>(), sizeof(T)) {};
 		auto& entity_data() noexcept { return m_Entities; };
 
 
@@ -270,7 +270,7 @@ namespace psl::ecs::details
 	class component_info_typed<T, true> final : public component_info
 	{
 	  public:
-		component_info_typed() : component_info(details::key_for<T>(), 0) {};
+		component_info_typed() : component_info(details::component_key_t::generate<T>(), 0) {};
 
 
 		void* data() noexcept override { return nullptr; }

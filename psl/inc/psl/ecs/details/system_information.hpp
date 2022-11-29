@@ -67,7 +67,7 @@ namespace psl::ecs::details
 			if constexpr(!std::is_same<typename std::decay<F>::type, psl::ecs::entity>::value)
 			{
 				using component_t			  = F;
-				constexpr component_key_t key = details::key_for<component_t>();
+				constexpr component_key_t key = details::component_key_t::generate<component_t>();
 				target.emplace_back(key);
 				m_Sizes[key] = sizeof(component_t);
 			}
@@ -108,12 +108,12 @@ namespace psl::ecs::details
 			}
 			else if constexpr(std::is_const<T>::value)
 			{
-				constexpr component_key_t int_id = details::key_for<T>();
+				constexpr component_key_t int_id = details::component_key_t::generate<T>();
 				return *(psl::array_view<T>*)&m_RBindings[int_id];
 			}
 			else
 			{
-				constexpr component_key_t int_id = details::key_for<T>();
+				constexpr component_key_t int_id = details::component_key_t::generate<T>();
 				return *(psl::array_view<T>*)&m_RWBindings[int_id];
 			}
 		}
@@ -176,10 +176,10 @@ namespace psl::ecs::details
 		};
 
 
-		~dependency_pack() noexcept					  = default;
-		dependency_pack(const dependency_pack& other) = default;
-		dependency_pack(dependency_pack&& other)	  = default;
-		dependency_pack& operator=(const dependency_pack&) = default;
+		~dependency_pack() noexcept							   = default;
+		dependency_pack(const dependency_pack& other)		   = default;
+		dependency_pack(dependency_pack&& other)			   = default;
+		dependency_pack& operator=(const dependency_pack&)	   = default;
 		dependency_pack& operator=(dependency_pack&&) noexcept = default;
 
 
@@ -213,7 +213,7 @@ namespace psl::ecs::details
 		template <typename T>
 		size_t size_of() const noexcept
 		{
-			constexpr component_key_t int_id = details::key_for<T>();
+			constexpr component_key_t int_id = details::component_key_t::generate<T>();
 			return m_Sizes.at(int_id);
 		}
 
@@ -249,14 +249,14 @@ namespace psl::ecs::details
 		template <typename T>
 		void add(psl::type_pack_t<psl::array_view<T>>) noexcept
 		{
-			constexpr component_key_t int_id = details::key_for<T>();
+			constexpr component_key_t int_id = details::component_key_t::generate<T>();
 			m_RWBindings.emplace(int_id, psl::array_view<std::uintptr_t> {});
 		}
 
 		template <typename T>
 		void add(psl::type_pack_t<psl::array_view<const T>>) noexcept
 		{
-			constexpr component_key_t int_id = details::key_for<T>();
+			constexpr component_key_t int_id = details::component_key_t::generate<T>();
 			m_RBindings.emplace(int_id, psl::array_view<std::uintptr_t> {});
 		}
 
@@ -341,11 +341,11 @@ namespace psl::ecs::details
 			m_Threading(threading),
 			m_PackGenerator(std::move(generator)), m_System(std::move(invocable)), m_Filters(filters),
 			m_Transforms(transforms), m_SeedWithExisting(seedWithExisting), m_DebugName(debugName), m_ID(id) {};
-		~system_information()						  = default;
-		system_information(const system_information&) = default;
-		system_information(system_information&&)	  = default;
+		~system_information()									 = default;
+		system_information(const system_information&)			 = default;
+		system_information(system_information&&)				 = default;
 		system_information& operator=(const system_information&) = default;
-		system_information& operator=(system_information&&) = default;
+		system_information& operator=(system_information&&)		 = default;
 
 		std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator, false); }
 		bool seed_with_previous() const noexcept { return m_SeedWithExisting; };

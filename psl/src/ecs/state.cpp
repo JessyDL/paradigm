@@ -407,7 +407,7 @@ psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_
 												  psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfos = get_component_info(keys);
+	auto cInfos = get_component_info(psl::array_view<details::component_key_t> {keys});
 
 	return (cInfos.size() != keys.size()) ? begin :
 										  // for every entity, remove if...
@@ -428,7 +428,7 @@ psl::array<entity>::iterator state_t::on_combine_op(psl::array<details::componen
 													psl::array<entity>::iterator& begin,
 													psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfos = get_component_info(keys);
+	auto cInfos = get_component_info(psl::array_view<details::component_key_t> {keys});
 
 	return (cInfos.size() != keys.size()) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
 		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
