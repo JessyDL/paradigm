@@ -44,6 +44,11 @@ namespace psl
 				static_assert(end <= N + 1);
 				return fixed_astring<end - start> {&buf[start]};
 			}
+
+			constexpr auto begin() const noexcept { return &buf[0]; }
+			constexpr auto cbegin() const noexcept { return &buf[0]; }
+			constexpr auto end() const noexcept { return &buf[N]; }
+			constexpr auto cend() const noexcept { return &buf[N]; }
 		};
 		template <unsigned N>
 		fixed_astring(char const (&)[N]) -> fixed_astring<N - 1>;

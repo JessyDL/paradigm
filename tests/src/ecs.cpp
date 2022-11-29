@@ -638,13 +638,18 @@ namespace
 
 		auto cfl_id	 = component_key_t::generate<const float>();
 		auto cint_id = component_key_t::generate<const int>();
-		require(cfl_id) == "float"sv;
-		require(cint_id) == "int"sv;
+		require(cfl_id.name()) == "float"sv;
+		require(cint_id.name()) == "int"sv;
 
 		constexpr auto cxfl_id	= component_key_t::generate<float>();
 		constexpr auto cxint_id = component_key_t::generate<int>();
 
-		require(cxfl_id) == "float"sv;
-		require(cxint_id) == "int"sv;
+		require(cxfl_id.name()) == "float"sv;
+		require(cxint_id.name()) == "int"sv;
+
+		struct foo_renamed : public psl::ecs::component_name<"SOMEOVERRIDE">
+		{};
+
+		require(component_key_t::generate<foo_renamed>().name()) == "SOMEOVERRIDE"sv;
 	};
 }	 // namespace
