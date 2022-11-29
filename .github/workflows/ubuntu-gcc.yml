@@ -1,4 +1,4 @@
-name: ubuntu
+name: ubuntu-gcc
 
 on: [push]
     
@@ -11,7 +11,7 @@ jobs:
       matrix:
         graphics: [vulkan, all]
     name: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - uses: actions/checkout@v1
       with:
@@ -51,7 +51,7 @@ jobs:
         graphics: [vulkan, all]
     name: benchmark
     needs: build
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     steps:
     - name: setup
       id: download

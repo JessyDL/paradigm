@@ -1,0 +1,29 @@
+name: ubuntu-clang
+
+on: [push]
+
+env:
+  CC: clang-14
+  CXX: clang++-14
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        graphics: [vulkan, all]
+    name: build
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - name: setup dependencies
+      run: python3 tools/generate_project_info.py
+    - name: install GL libraries
+      if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
+      run: sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+    - name: initialize
+      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=OFF -DPE_TESTS=OFF
+    - name: compile
+      run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
