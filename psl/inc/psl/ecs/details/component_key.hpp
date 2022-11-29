@@ -4,6 +4,7 @@
 #include <string_view>
 #include <type_traits>
 
+#include "psl/ecs/component_name.hpp"
 #include "strtype/strtype.hpp"
 
 namespace psl::ecs::details
@@ -29,6 +30,12 @@ namespace psl::ecs::details
 		struct type_container
 		{
 			static constexpr auto name = strtype::stringify_typename<T>();
+		};
+
+		template <details::HasComponentNameOverride T>
+		struct type_container<T>
+		{
+			static constexpr auto name = T::_ECS_COMPONENT_NAME;
 		};
 
 		consteval std::uint32_t fnv1a_32(std::string_view value) const noexcept
