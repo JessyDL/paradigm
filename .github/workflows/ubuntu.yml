@@ -7,6 +7,7 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        target: [gnu-linux, android]
         compiler: [gcc, clang]
         graphics: [vulkan, all]
         include:
@@ -15,11 +16,23 @@ jobs:
             benchmarks: ON
             tests: ON
             compiler: gcc
+            target: gnu-linux
+          - cc: gcc-11
+            cxx: g++-11
+            benchmarks: OFF
+            tests: OFF
+            compiler: gcc
+            target: android
           - cc: clang-14
             cxx: clang++-14
             benchmarks: OFF
             tests: OFF
             compiler: clang
+        exclude:
+          - target: android
+            compiler: clang
+          - target: android
+            graphics: all
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
@@ -34,10 +47,13 @@ jobs:
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
       run: sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+    - name: dependencies
+      if: ${{ matrix.target == 'android' }}
+      run: yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --licenses
     - name: initialize
-      run: cmake --preset=gnu-linux-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }}
+      run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }}
     - name: compile
-      run: cmake --build --preset=gnu-linux-release-${{ matrix.graphics }}
+      run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }}
     - name: test
       if: ${{ matrix.tests == 'ON' }}
       run: ./builds/default/bin/tests --formatter compact --no-source
@@ -49,6 +65,9 @@ jobs:
         path: builds/default/bin/benchmarks
         if-no-files-found: error
         retention-days: 1
+    - name: verify
+      if: ${{ matrix.target == 'android' }}
+      run: python3 -c "import os;import sys;sys.exit(0) if os.path.exists('builds/android/main/build/outputs/bundle/release/main-release.aab') else sys.exit(1)"
   benchmark:
     strategy:
       fail-fast: true
@@ -67,7 +86,7 @@ jobs:
         name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
-      run: sudo apt-get update && apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+      run: sudo apt-get update && sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: prepare
       run: chmod +x benchmarks
     - name: benchmark
