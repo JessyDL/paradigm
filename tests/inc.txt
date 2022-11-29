@@ -1,5 +1,4 @@
 SET(INC 
-inc/stdafx_tests.hpp
 inc/targetver.hpp
 inc/ecs.hpp
 inc/math_tests.hpp

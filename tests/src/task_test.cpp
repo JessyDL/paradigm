@@ -1,6 +1,5 @@
 #include "task_test.hpp"
 #include "psl/async/scheduler.hpp"
-#include "stdafx_tests.hpp"
 #include <chrono>
 
 namespace async = psl::async;

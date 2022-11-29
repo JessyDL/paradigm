@@ -1,6 +1,5 @@
 #include "ecs.hpp"
 #include "psl/ecs/state.hpp"
-#include "stdafx_tests.hpp"
 #include <random>
 
 using namespace psl::ecs;
