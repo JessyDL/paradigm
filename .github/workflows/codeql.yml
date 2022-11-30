@@ -4,13 +4,15 @@ on:
   push:
     branches: [ "develop", release* ]
     paths:
-      - core/*
-      - psl/*
+      - core/**
+      - psl/**
+      - .github/**
   pull_request:
     branches: [ "develop" ]
     paths:
-      - core/*
-      - psl/*
+      - core/**
+      - psl/**
+      - .github/**
   schedule:
     - cron: '30 12 * * 1,5'
 
@@ -45,6 +47,7 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
+        queries: security-extended,security-and-quality
         config-file: ./.github/workflows/codeql/codeql-config.yml
 
     - name: setup dependencies

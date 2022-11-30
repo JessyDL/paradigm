@@ -1,8 +1,5 @@
-    name: "Default Config"
-    
-    queries:
-    - uses: security-extended,security-and-quality
-    
-    paths:
-    - core/*
-    - psl/*
+name: "Default Config"
+  
+paths:
+- core/**
+- psl/**

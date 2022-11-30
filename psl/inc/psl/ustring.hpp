@@ -138,15 +138,6 @@ namespace psl
 		/// \param[in] s wstring to convert.
 		/// \returns a psl::string8_t based on the input wstring.
 		psl::string8_t from_wstring(const std::wstring& s);
-
-		/*/// \brief alias for std::cin, prefer this version
-		static decltype(std::cin)& cin = std::cin;
-		/// \brief alias for std::cout, prefer this version
-		static decltype(std::cout)& cout = std::cout;
-		/// \brief alias for std::cerr, prefer this version
-		static decltype(std::cerr)& cerr = std::cerr;
-		/// \brief alias for std::clor, prefer this version
-		static decltype(std::clog)& clog = std::clog;*/
 	}	 // namespace string8
 
 	namespace string16
@@ -165,15 +156,6 @@ namespace psl
 		/// \param[in] s UTF-8 encoded string to convert.
 		/// \returns a psl::string16_t based on the input UTF-8 string.
 		psl::string16_t from_string8_t(psl::string8::view s);
-
-		/*/// \brief alias for std::wcin, prefer this version
-		static decltype(std::wcin)& cin = std::wcin;
-		/// \brief alias for std::wcout, prefer this version
-		static decltype(std::wcout)& cout = std::wcout;
-		/// \brief alias for std::wcerr, prefer this version
-		static decltype(std::wcerr)& cerr = std::wcerr;
-		/// \brief alias for std::wclog, prefer this version
-		static decltype(std::wclog)& clog = std::wclog;*/
 	}	 // namespace string16
 
 #if defined(STRING_16_BIT)
@@ -295,18 +277,6 @@ namespace psl
 
 
 #endif
-	// #ifdef UNICODE
-	//	static decltype(std::wcin)& cin   = std::wcin;
-	//	static decltype(std::wcout)& cout = std::wcout;
-	//	static decltype(std::wcerr)& cerr = std::wcerr;
-	//	static decltype(std::wclog)& clog = std::wclog;
-	// #else
-	//	static decltype(std::cin)& cin = std::cin;
-	//	static decltype(std::cout)& cout = std::cout;
-	//	static decltype(std::cerr)& cerr = std::cerr;
-	//	static decltype(std::clog)& clog = std::clog;
-	// #endif
-
 	/// \brief std::memset wrapper that auto-converts to std::wmemset when wchar == psl::char_t
 	/// \param[in] _Dst destination location of what to memset
 	/// \param[in] _Val the value to set the _Dst to.
