@@ -1,7 +1,16 @@
 name: windows
 
-on: [push]
-    
+on: 
+  push:
+    paths:
+      - '**.c'
+      - '**.cpp'
+      - '**.h'
+      - '**.hpp'
+      - '**.py'
+      - 'CMakeLists.txt'
+      - .github/**
+
 jobs:
   build:
     strategy:

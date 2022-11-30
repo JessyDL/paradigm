@@ -3,23 +3,15 @@
 
 #ifdef WIN32
 #else
-#include <stdio.h>
+	#include <stdio.h>
 #endif
-//#include <string>
-//#include <istream>
-//#include <iostream>
 #include <cstring>
 #include <fstream>
 
-//#include <codecvt>
-// seeing the standard omits this for LLVM specific reasons (ridiculous..)
-// see: http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2013/n3512.html (Modifications to the rest of the standard
-// library)
-
 #ifdef UNICODE
-#define __T(x) L##x
+	#define __T(x) L##x
 #else
-#define __T(x) x
+	#define __T(x) x
 #endif
 
 #define _T(x) __T(x)
@@ -108,9 +100,9 @@ namespace psl
 	using ifstream	   = string16::ifstream;
 	using fstream	   = string16::fstream;
 #else
-#if !defined(STRING_8_BIT)
-#define STRING_8_BIT
-#endif
+	#if !defined(STRING_8_BIT)
+		#define STRING_8_BIT
+	#endif
 	static constexpr size_t uchar_size {sizeof(string8::char_t)};
 	using string = string8_t;
 	using char_t = string8::char_t;
@@ -146,15 +138,6 @@ namespace psl
 		/// \param[in] s wstring to convert.
 		/// \returns a psl::string8_t based on the input wstring.
 		psl::string8_t from_wstring(const std::wstring& s);
-
-		/*/// \brief alias for std::cin, prefer this version
-		static decltype(std::cin)& cin = std::cin;
-		/// \brief alias for std::cout, prefer this version
-		static decltype(std::cout)& cout = std::cout;
-		/// \brief alias for std::cerr, prefer this version
-		static decltype(std::cerr)& cerr = std::cerr;
-		/// \brief alias for std::clor, prefer this version
-		static decltype(std::clog)& clog = std::clog;*/
 	}	 // namespace string8
 
 	namespace string16
@@ -173,15 +156,6 @@ namespace psl
 		/// \param[in] s UTF-8 encoded string to convert.
 		/// \returns a psl::string16_t based on the input UTF-8 string.
 		psl::string16_t from_string8_t(psl::string8::view s);
-
-		/*/// \brief alias for std::wcin, prefer this version
-		static decltype(std::wcin)& cin = std::wcin;
-		/// \brief alias for std::wcout, prefer this version
-		static decltype(std::wcout)& cout = std::wcout;
-		/// \brief alias for std::wcerr, prefer this version
-		static decltype(std::wcerr)& cerr = std::wcerr;
-		/// \brief alias for std::wclog, prefer this version
-		static decltype(std::wclog)& clog = std::wclog;*/
 	}	 // namespace string16
 
 #if defined(STRING_16_BIT)
@@ -283,7 +257,7 @@ namespace psl
 	/// \returns a std::wstring based on the input psl::string.
 	psl::pstring_t to_pstring(psl::string16::view s);
 
-#if defined(UNICODE)
+	#if defined(UNICODE)
 	/// \brief converts a std::string int a psl::string
 	///
 	/// converts a std::string into a psl::string, depending on the bit-size (8 or 16) of psl::string
@@ -299,22 +273,10 @@ namespace psl
 	/// \param[in] s wstring to convert.
 	/// \returns a psl::string based on the input std::wstring.
 	psl::string8_t to_string8_t(const psl::pstring_t& s);
-#endif
+	#endif
 
 
 #endif
-	//#ifdef UNICODE
-	//	static decltype(std::wcin)& cin   = std::wcin;
-	//	static decltype(std::wcout)& cout = std::wcout;
-	//	static decltype(std::wcerr)& cerr = std::wcerr;
-	//	static decltype(std::wclog)& clog = std::wclog;
-	//#else
-	//	static decltype(std::cin)& cin = std::cin;
-	//	static decltype(std::cout)& cout = std::cout;
-	//	static decltype(std::cerr)& cerr = std::cerr;
-	//	static decltype(std::clog)& clog = std::clog;
-	//#endif
-
 	/// \brief std::memset wrapper that auto-converts to std::wmemset when wchar == psl::char_t
 	/// \param[in] _Dst destination location of what to memset
 	/// \param[in] _Val the value to set the _Dst to.
@@ -323,14 +285,11 @@ namespace psl
 	inline void* memset(char_t* _Dst, char_t _Val, size_t _Size)
 	{
 #if defined(PLATFORM_WINDOWS)
-		if constexpr(sizeof(char_t) == sizeof(wchar_t))
-		{
-			return std::wmemset((wchar_t*)_Dst, _Val, _Size);
-		}
-		else
-		{
-			return std::memset(_Dst, _Val, _Size);
-		}
+	#if defined(UNICODE)
+		return std::memset(_Dst, _Val, _Size);
+	#else
+		return std::wmemset((wchar_t*)_Dst, _Val, _Size);
+	#endif
 #elif defined(PLATFORM_LINUX)
 		return std::memset(_Dst, _Val, _Size);
 #endif
@@ -346,14 +305,11 @@ namespace psl
 	inline FILE* popen(const char_t* _Command, const char_t* _Mode)
 	{
 #if defined(PLATFORM_WINDOWS)
-		if constexpr(sizeof(char_t) == sizeof(wchar_t))
-		{
-			return _wpopen((const wchar_t*)_Command, (const wchar_t*)_Mode);
-		}
-		else
-		{
-			return _popen((const char*)_Command, (const char*)_Mode);
-		}
+	#if defined(UNICODE)
+		return _popen(_Command, _Mode);
+	#else
+		return _wpopen(_Command, _Mode);
+	#endif
 #elif defined(PLATFORM_LINUX)
 		// return popen((const char*)_Command, (const char*)_Mode);
 #endif
@@ -381,14 +337,11 @@ namespace psl
 	/// \param[in] _SourceSize the amount of bytes to copy from the source.
 	inline char_t* memcpy_s(char_t* const _Destination, char_t const* const _Source, size_t const _SourceSize)
 	{
-		if constexpr(sizeof(char_t) == sizeof(wchar_t))
-		{
-			return (char_t*)std::wmemcpy((wchar_t* const)_Destination, (wchar_t const* const)_Source, _SourceSize);
-		}
-		else
-		{
-			return (char_t*)std::memcpy(_Destination, _Source, _SourceSize);
-		}
+#if defined(UNICODE)
+		return (char_t*)std::memcpy(_Destination, _Source, _SourceSize);
+#else
+		return (char_t*)std::wmemcpy(_Destination, _Source, _SourceSize);
+#endif
 	}
 
 	/// \brief wrapper around ::strlen that changes behaviour depending on the size of psl::char_t.
@@ -397,14 +350,11 @@ namespace psl
 	/// \note this method works on the "platforms expectations" of the string, not the actual UTF encoding.
 	inline size_t strlen(const char_t* _Str)
 	{
-		if constexpr(sizeof(char_t) == sizeof(wchar_t))
-		{
-			return std::wcslen((const wchar_t*)_Str);
-		}
-		else
-		{
-			return ::strlen((const char*)_Str);
-		}
+#if defined(UNICODE)
+		return ::strlen(_Str);
+#else
+		return std::wcslen(_Str);
+#endif
 	}
 
 	/// \brief wrapper around fprintf that changes behaviour depending on the size of psl::char_t.
@@ -414,14 +364,11 @@ namespace psl
 	template <typename... Args>
 	inline void fprintf(FILE* const _Stream, char_t const* _Format, Args&&... args)
 	{
-		if constexpr(sizeof(char_t) == sizeof(wchar_t))
-		{
-			::fwprintf(_Stream, (const wchar_t*)_Format, std::forward<Args>(args)...);
-		}
-		else
-		{
-			::fprintf(_Stream, (const char*)_Format, std::forward<Args>(args)...);
-		}
+#if defined(UNICODE)
+		::fprintf(_Stream, _Format, std::forward<Args>(args)...);
+#else
+		::fwprintf(_Stream, _Format, std::forward<Args>(args)...);
+#endif
 	}
 
 	/// \brief wrapper around printf that changes behaviour depending on the size of psl::char_t.
@@ -430,14 +377,11 @@ namespace psl
 	template <typename... Args>
 	inline void printf(char_t const* _Format, Args&&... args)
 	{
-		if constexpr(sizeof(char_t) == sizeof(wchar_t))
-		{
-			::wprintf((const wchar_t*)_Format, std::forward<Args>(args)...);
-		}
-		else
-		{
-			::printf((const char*)_Format, std::forward<Args>(args)...);
-		}
+#if defined(UNICODE)
+		::printf(_Format, std::forward<Args>(args)...);
+#else
+		::wprintf(_Format, std::forward<Args>(args)...);
+#endif
 	}
 }	 // namespace psl
 

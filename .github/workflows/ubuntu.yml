@@ -1,7 +1,16 @@
 name: ubuntu
 
-on: [push]
-    
+on: 
+  push:
+    paths:
+      - '**.c'
+      - '**.cpp'
+      - '**.h'
+      - '**.hpp'
+      - '**.py'
+      - 'CMakeLists.txt'
+      - .github/**
+
 jobs:
   # fires off the documentation generator
   documentation:
