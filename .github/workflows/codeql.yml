@@ -3,8 +3,14 @@ name: "CodeQL"
 on: 
   push:
     branches: [ "develop", release* ]
+    paths:
+      - core/*
+      - psl/*
   pull_request:
     branches: [ "develop" ]
+    paths:
+      - core/*
+      - psl/*
   schedule:
     - cron: '30 12 * * 1,5'
 
@@ -39,7 +45,7 @@ jobs:
       uses: github/codeql-action/init@v2
       with:
         languages: ${{ matrix.language }}
-        queries: security-extended,security-and-quality
+        config-file: ./.github/workflows/codeql/codeql-config.yml
 
     - name: setup dependencies
       run: python3 tools/generate_project_info.py
