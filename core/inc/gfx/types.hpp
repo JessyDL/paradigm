@@ -630,6 +630,8 @@ namespace core::gfx
 
 	using clear_value = std::variant<psl::vec4, psl::ivec4, psl::tvec<uint32_t, 4>, depth_stencil>;
 
+	/// \brief Get the alignment of the pixel storage format
+	/// \returns The byte alignment
 	inline size_t packing_size(format_t value) noexcept
 	{
 		switch(value)
