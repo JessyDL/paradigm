@@ -1,0 +1,52 @@
+name: "CodeQL"
+
+on: 
+  push:
+    branches: ['develop', 'release']
+  schedule:
+    - cron: '30 12 * * 1,5'
+
+jobs:
+  analyze:
+    name: Analyze
+    runs-on: ubuntu-22.04
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        target: ['gnu-linux']
+        language: [ 'cpp' ]
+        graphics: [ 'all' ]
+        cc: ['clang-12']
+        cxx: ['clang++-12']
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Initializes the CodeQL tools for scanning.
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v2
+      with:
+        languages: ${{ matrix.language }}
+        queries: security-extended,security-and-quality
+
+    - name: setup dependencies
+      run: python3 tools/generate_project_info.py
+    - name: install GL libraries
+      if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
+      run: sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+    - name: initialize
+      run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=OFF -DPE_TESTS=OFF
+    - name: compile
+      run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }}
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v2
+      with:
+        category: "/language:${{matrix.language}}"
