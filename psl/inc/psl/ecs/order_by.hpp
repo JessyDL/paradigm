@@ -8,13 +8,6 @@
 namespace psl::ecs::details
 {
 	template <typename Pred, typename T>
-	static inline void
-	order_by(const psl::ecs::state_t& state, psl::array<entity>::iterator begin, psl::array<entity>::iterator end) noexcept
-	{
-		psl::ecs::details::order_by<Pred, T>(psl::ecs::execution::seq, state, begin, end);
-	}
-
-	template <typename Pred, typename T>
 	static inline void order_by(psl::ecs::execution::no_exec,
 								const psl::ecs::state_t& state,
 								psl::array<entity>::iterator begin,
@@ -93,6 +86,13 @@ namespace psl::ecs::details
 
 
 		psl::ecs::details::order_by<Pred, T>(psl::ecs::execution::par, state, begin, end, size);
+	}
+    
+	template <typename Pred, typename T>
+	static inline void
+	order_by(const psl::ecs::state_t& state, psl::array<entity>::iterator begin, psl::array<entity>::iterator end) noexcept
+	{
+		psl::ecs::details::order_by<Pred, T>(psl::ecs::execution::seq, state, begin, end);
 	}
 
 	template <typename Pred, typename... Ts>
