@@ -12,7 +12,6 @@
 
 #include "psl/logging.hpp"
 
-#include "psl/assertions.hpp"
 
 /*! \namespace memory \brief this namespace contains types and utilities for managing regions of memory
 	\details due to the potential constrained environments that this app might run in, there are

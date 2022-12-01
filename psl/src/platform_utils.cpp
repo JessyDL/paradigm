@@ -1,6 +1,7 @@
 ﻿#include "psl/platform_utils.hpp"
 
 #include "psl/ustream.hpp"
+#include "psl/assertions.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>

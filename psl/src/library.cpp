@@ -1,5 +1,6 @@
 ﻿#include "psl/library.hpp"
 #include "psl/platform_utils.hpp"
+#include "psl/assertions.hpp"
 
 using namespace psl::meta;
 using namespace psl::serialization;

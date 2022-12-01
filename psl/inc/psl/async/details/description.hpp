@@ -3,6 +3,7 @@
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
 #include "psl/unique_ptr.hpp"
+#include "psl/assertions.hpp"
 #include "task.hpp"
 namespace psl::async
 {
