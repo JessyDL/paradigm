@@ -5,8 +5,9 @@
 #else
 	#include <stdio.h>
 #endif
+#include <string>
 #include <cstring>
-#include <fstream>
+#include <string_view>
 
 #ifdef UNICODE
 	#define __T(x) L##x
@@ -17,7 +18,7 @@
 #define _T(x) __T(x)
 #define _TEXT(x) __T(x)
 
-using namespace std::string_literals;
+using namespace std::string_view_literals;
 
 /// \brief paradigm standard library
 ///
@@ -30,12 +31,6 @@ namespace psl
 	{
 		using char_t   = char;
 		using view	   = std::basic_string_view<char_t>;
-		using stream   = std::basic_stringstream<char_t>;
-		using ostream  = std::basic_ostream<char_t>;
-		using ofstream = std::basic_ofstream<char_t>;
-		using istream  = std::basic_istream<char_t>;
-		using ifstream = std::basic_ifstream<char_t>;
-		using fstream  = std::basic_fstream<char_t>;
 	}	 // namespace string8
 
 	/// \brief UTF-16 class namespace that contains the typedefs for the string objects, as well as helper methods.
@@ -43,12 +38,6 @@ namespace psl
 	{
 		using char_t   = char16_t;
 		using view	   = std::basic_string_view<char_t>;
-		using stream   = std::basic_stringstream<char_t>;
-		using ostream  = std::basic_ostream<char_t>;
-		using ofstream = std::basic_ofstream<char_t>;
-		using istream  = std::basic_istream<char_t>;
-		using ifstream = std::basic_ifstream<char_t>;
-		using fstream  = std::basic_fstream<char_t>;
 
 	}	 // namespace string16
 
@@ -57,12 +46,6 @@ namespace psl
 	{
 		using char_t   = char32_t;
 		using view	   = std::basic_string_view<char_t>;
-		using stream   = std::basic_stringstream<char_t>;
-		using ostream  = std::basic_ostream<char_t>;
-		using ofstream = std::basic_ofstream<char_t>;
-		using istream  = std::basic_istream<char_t>;
-		using ifstream = std::basic_ifstream<char_t>;
-		using fstream  = std::basic_fstream<char_t>;
 	}	 // namespace string32
 
 	namespace platform
@@ -73,12 +56,6 @@ namespace psl
 		using char_t = char;
 #endif
 		using view	   = std::basic_string_view<char_t>;
-		using stream   = std::basic_stringstream<char_t>;
-		using ostream  = std::basic_ostream<char_t>;
-		using ofstream = std::basic_ofstream<char_t>;
-		using istream  = std::basic_istream<char_t>;
-		using ifstream = std::basic_ifstream<char_t>;
-		using fstream  = std::basic_fstream<char_t>;
 	}	 // namespace platform
 
 	using string8_t	 = std::basic_string<string8::char_t, std::char_traits<string8::char_t>>;
@@ -93,12 +70,6 @@ namespace psl
 	using string	   = string16_t;
 	using char_t	   = string16::char_t;
 	using string_view  = string16::view;
-	using stringstream = string16::stream;
-	using ostream	   = string16::ostream;
-	using ofstream	   = string16::ofstream;
-	using istream	   = string16::istream;
-	using ifstream	   = string16::ifstream;
-	using fstream	   = string16::fstream;
 #else
 	#if !defined(STRING_8_BIT)
 		#define STRING_8_BIT
@@ -107,12 +78,6 @@ namespace psl
 	using string = string8_t;
 	using char_t = string8::char_t;
 	using string_view = string8::view;
-	using stringstream = string8::stream;
-	using ostream = string8::ostream;
-	using ofstream = string8::ofstream;
-	using istream = string8::istream;
-	using ifstream = string8::ifstream;
-	using fstream = string8::fstream;
 #endif
 	namespace string8
 	{

@@ -1,5 +1,7 @@
 ﻿#include "psl/platform_utils.hpp"
 
+#include "psl/ustream.hpp"
+
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
 #pragma comment(lib, "Dbghelp.lib")
@@ -391,6 +393,30 @@ bool utility::platform::file::read(psl::string_view filename, std::vector<psl::c
 		}
 		AAsset_close(asset);
 	#endif // !PLATFORM_ANDROID
+	return true;
+}
+
+bool utility::platform::file::write(psl::string_view filename, psl::string_view content)
+{
+	auto file_name = directory::to_platform(filename);
+
+	std::size_t found = file_name.find_last_of(directory::seperator);
+
+	if(!directory::exists(file_name.substr(0, found)) && !directory::create(file_name.substr(0, found), true))
+		return false;
+
+	psl::ofstream output;
+	try
+	{
+		output.open(file_name, std::ios::trunc | std::ios::out | std::ios::binary);
+	}
+	catch(...)
+	{
+		psl::fprintf(stderr, "Could not write the file: %s!\n", file_name.c_str());
+		return false;
+	}
+	output.write(content.data(), content.size());
+	output.close();
 	return true;
 }
 

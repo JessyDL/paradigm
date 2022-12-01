@@ -4,6 +4,7 @@ algorithm
 application_utils
 formatted_string_buffer
 string_utils
+stream_utils
 binary_utils
 HandleGenerator
 buffer
@@ -24,6 +25,7 @@ memory/raw_region
 memory/segment
 memory/sparse_array
 ustring
+ustream
 evoke
 platform_def
 vulkan_utils

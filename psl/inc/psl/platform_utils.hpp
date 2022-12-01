@@ -430,29 +430,7 @@ namespace utility::platform
 		/// \param[in] filename the path to the target location.
 		/// \param[in] content the content to write at the given location.
 		/// \returns true when the content has successfully been written at the target location.
-		static bool write(psl::string_view filename, psl::string_view content)
-		{
-			auto file_name = directory::to_platform(filename);
-
-			std::size_t found = file_name.find_last_of(directory::seperator);
-
-			if(!directory::exists(file_name.substr(0, found)) && !directory::create(file_name.substr(0, found), true))
-				return false;
-
-			psl::ofstream output;
-			try
-			{
-				output.open(file_name, std::ios::trunc | std::ios::out | std::ios::binary);
-			}
-			catch(...)
-			{
-				psl::fprintf(stderr, "Could not write the file: %s!\n", file_name.c_str());
-				return false;
-			}
-			output.write(content.data(), content.size());
-			output.close();
-			return true;
-		}
+		bool write(psl::string_view filename, psl::string_view content);
 
 		/// \brief transforms the given path to the unix format.
 		/// \param[in] path the path to transform.
