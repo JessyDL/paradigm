@@ -7,6 +7,7 @@
 #include "logging.hpp"
 #include "os/surface.hpp"
 #include "psl/stream_utils.hpp"
+#include "psl/debug_utils.hpp"
 #include <Windows.h>
 
 using namespace core;

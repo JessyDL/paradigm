@@ -1,4 +1,6 @@
+#include <stdexcept>
 #include "psl/debug_utils.hpp"
+#include "psl/assertions.hpp"
 
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>

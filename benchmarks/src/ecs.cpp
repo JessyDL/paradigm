@@ -2,6 +2,7 @@
 #include "psl/ecs/order_by.hpp"
 #include "psl/ecs/on_condition.hpp"
 #include <benchmark/benchmark.h>
+#include "psl/math/math.hpp"
 
 using namespace psl;
 using namespace psl::ecs;
