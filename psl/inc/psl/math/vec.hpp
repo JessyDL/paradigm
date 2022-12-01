@@ -1,6 +1,7 @@
 #pragma once
 #include "psl/static_array.hpp"
 #include "psl/template_utils.hpp"
+#include "psl/assertions.hpp"
 #include <algorithm>
 #include <cmath>	// std::sqrt, etc..
 #include <cstddef>

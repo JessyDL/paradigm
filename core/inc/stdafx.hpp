@@ -49,7 +49,6 @@
 #include "psl/math/math.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
-#include "psl/assertions.hpp"
 #include "resource/resource.hpp"
 
 #include "data/stream.hpp"

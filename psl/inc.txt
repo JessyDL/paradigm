@@ -4,6 +4,7 @@ algorithm
 application_utils
 formatted_string_buffer
 string_utils
+stream_utils
 binary_utils
 HandleGenerator
 buffer
@@ -24,11 +25,13 @@ memory/raw_region
 memory/segment
 memory/sparse_array
 ustring
+ustream
 evoke
 platform_def
 vulkan_utils
 expected
 platform_utils
+debug_utils
 file
 format
 library
@@ -70,6 +73,8 @@ ecs/state
 ecs/pack
 ecs/filtering
 ecs/selectors
+ecs/order_by
+ecs/on_condition
 ecs/command_buffer
 ecs/details/component_info
 ecs/details/component_key
@@ -89,6 +94,9 @@ noise/perlin
 
 serialization/property
 serialization/serializer
+serialization/polymorphic
+serialization/encoder
+serialization/decoder
 
 concepts
 details/fixed_astring

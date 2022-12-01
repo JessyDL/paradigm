@@ -16,7 +16,12 @@ psl::string8_t psl::string8::from_string16_t(const psl::string16_t& s)
 	return res;
 }
 
-psl::string8_t psl::string8::from_string16_t(psl::string16::view s) { return from_string16_t(psl::string16_t(s)); }
+psl::string8_t psl::string8::from_string16_t(psl::string16::view s) 
+{
+	psl::string8_t res;
+	utf8::utf16to8(s.begin(), s.end(), back_inserter(res));
+	return res;
+}
 
 
 psl::string8_t psl::string8::from_wstring(const std::wstring& s)

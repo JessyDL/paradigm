@@ -1,5 +1,7 @@
 #include "ecs.hpp"
 #include "psl/ecs/state.hpp"
+#include "psl/ecs/order_by.hpp"
+#include "psl/ecs/on_condition.hpp"
 #include <random>
 
 using namespace psl::ecs;

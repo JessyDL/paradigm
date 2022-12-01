@@ -4,6 +4,7 @@
 #include "psl/logging.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
+#include "psl/serialization/polymorphic.hpp"
 #include "ustring.hpp"
 #include <bitset>
 #include <memory>

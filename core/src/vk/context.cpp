@@ -7,6 +7,7 @@
 #include "psl/meta.hpp"
 #include "resource/resource.hpp"
 #include "vk/conversion.hpp"
+#include "psl/ustream.hpp"
 
 #ifdef PLATFORM_LINUX
 // https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..

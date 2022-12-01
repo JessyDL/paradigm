@@ -1,9 +1,14 @@
 #pragma once
 #include "platform_def.hpp"
-#include "psl/ustring.hpp"
 #include "source_location.hpp"
+#include <type_traits>
+#include <tuple>
+#include <exception>
+#if defined(PE_DEBUG)
 #include <fmt/format.h>
-
+#else
+#include <cstdio>
+#endif
 #ifdef PLATFORM_ANDROID
 	#include <android/log.h>
 #endif	  // PLATFORM_ANDROID
@@ -79,9 +84,13 @@ namespace psl
 			print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
 			{
 				auto log_level = android_log_level(level);
+#if defined(PE_DEBUG)
 				__android_log_write(
 				  log_level, "paradigm", fmt::format(fmt::runtime(format), std::forward<Args>(args)...).c_str());
 				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
+#else
+				__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
+#endif
 			}
 #else
 			print_t(level_t level,
@@ -139,10 +148,14 @@ namespace psl
 				default:
 					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
 				}
+#if defined(PE_DEBUG)
 				fmt::print(
 				  fmt::runtime(fmt::format(
 					fmt::runtime(log_level), fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column())),
 				  std::get<Is>(args)...);
+#else
+				std::printf("todo: todo: assert log not supported in release");
+#endif
 			}
 #endif
 		};
@@ -166,12 +179,15 @@ namespace psl
 #endif
 namespace psl
 {
-	[[noreturn]] inline void unreachable(const std::string& reason = "")
+	[[noreturn]] inline void unreachable()
 	{
-		if(reason.empty())
-			psl_print(level_t::fatal, "unreachable code reached.");
-		else
-			psl_print(level_t::fatal, "{}", reason);
+		psl_print(level_t::fatal, "unreachable code reached.");
+		std::terminate();
+	}
+
+	[[noreturn]] inline void unreachable(const auto& reason)
+	{
+		psl_print(level_t::fatal, "{}", reason);
 		std::terminate();
 	}
 
@@ -186,7 +202,7 @@ namespace psl
 		std::terminate();
 	}
 
-	[[noreturn]] inline void not_implemented(const std::string& reason, size_t issue = 0)
+	[[noreturn]] inline void not_implemented(const auto& reason, size_t issue = 0)
 	{
 		if(issue != 0)
 			psl_print(level_t::fatal,

@@ -5,6 +5,7 @@
 #include "psl/ecs/pack.hpp"
 #include "psl/template_utils.hpp"
 #include "selectors.hpp"
+#include "psl/ustring.hpp"
 
 namespace psl::ecs
 {
@@ -24,24 +25,13 @@ namespace psl::ecs
 			constexpr void selector(psl::type_pack_t<T>) noexcept
 			{}
 
+			// implementation lives in `psl/ecs/order_by.hpp`
 			template <typename Pred, typename T>
-			constexpr void selector(psl::type_pack_t<order_by<Pred, T>>) noexcept
-			{
-				order_by = [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const auto& state) {
-					state.template order_by<Pred, T>(psl::ecs::execution::par, begin, end);
-				};
-			}
+			void selector(psl::type_pack_t<order_by<Pred, T>>) noexcept;
 
-
+			// implementation lives in `psl/ecs/on_condition.hpp`
 			template <typename Pred, typename T>
-			constexpr void selector(psl::type_pack_t<on_condition<Pred, T>>) noexcept
-			{
-				on_condition.emplace_back([](psl::array<entity>::iterator begin,
-											 psl::array<entity>::iterator end,
-											 const auto& state) -> psl::array<entity>::iterator {
-					return state.template on_condition<Pred, T>(begin, end);
-				});
-			}
+			void selector(psl::type_pack_t<on_condition<Pred, T>>) noexcept;
 
 		  public:
 			template <typename... Ts>

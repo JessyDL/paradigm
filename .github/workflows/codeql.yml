@@ -3,16 +3,8 @@ name: "CodeQL"
 on: 
   push:
     branches: [ "develop", release* ]
-    paths:
-      - core/**
-      - psl/**
-      - .github/**
   pull_request:
     branches: [ "develop" ]
-    paths:
-      - core/**
-      - psl/**
-      - .github/**
   schedule:
     - cron: '30 12 * * 1,5'
 
@@ -40,7 +32,9 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v1
       with:
-        submodules: recursive
+        submodules: recursive    
+    - uses: SimenB/github-actions-cpu-cores@v1
+      id: cpu-cores
 
     # Initializes the CodeQL tools for scanning.
     - name: Initialize CodeQL
@@ -56,7 +50,7 @@ jobs:
     - name: initialize
       run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=OFF -DPE_TESTS=OFF
     - name: compile
-      run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }}
+      run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: Perform CodeQL Analysis
       uses: github/codeql-action/analyze@v2
       with:

@@ -1,6 +1,6 @@
 ﻿#include "psl/profiling/profiler.hpp"
 #include "psl/application_utils.hpp"
-#include "psl/platform_utils.hpp"
+#include "psl/debug_utils.hpp"
 #include "psl/string_utils.hpp"
 
 #ifdef PLATFORM_WINDOWS

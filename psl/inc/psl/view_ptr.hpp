@@ -1,5 +1,6 @@
 #pragma once
 #include "psl/template_utils.hpp"
+#include "psl/assertions.hpp"
 
 namespace psl
 {

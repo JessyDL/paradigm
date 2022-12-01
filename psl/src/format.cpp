@@ -1789,3 +1789,24 @@ container& container::operator=(container&& other)
 data& handle::get() const { return m_Container->m_NodeData[m_Index]; };
 
 data* handle::operator->() const { return &m_Container->m_NodeData[m_Index]; };
+
+char const* node_not_found::what() const noexcept
+{
+			psl::string8_t message {
+			  "An unknown error occured, please create a repro case and submit as a bug ticket, thank you!"};
+			if(auto index = std::get_if<nodes_t>(&m_Data))
+			{
+				if((size_t)*index >= m_Container->size())
+				{
+					message = "The index " + utility::to_string(*index) +
+							  " is larger than the last element, which is at index: " +
+							  utility::to_string(m_Container->size() - 1);
+				}
+			}
+			else if(auto name = std::get_if<psl::string8_t>(&m_Data))
+			{
+				message = "The node named '" + *name + "' could not be found in the container.";
+			}
+			m_Message = std::move(message);
+			return m_Message.data();
+		}

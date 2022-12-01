@@ -1,6 +1,7 @@
 SET(SRC 
 file
 platform_utils
+debug_utils
 terminal_utils
 application_utils
 formatted_string_buffer

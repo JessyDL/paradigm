@@ -1,15 +1,12 @@
 ﻿#pragma once
 
 #include "psl/platform_def.hpp"
-#include "psl/string_utils.hpp"
 #include "psl/ustring.hpp"
 #include <cctype>
 #include <clocale>
-#include <filesystem>
 #include <optional>
-#include <thread>
-#include <unordered_map>
 #include <vector>
+#include <numeric>
 
 
 // https://en.wikipedia.org/wiki/Path_%28computing%29#Representations_of_paths_by_operating_system_and_shell
@@ -17,94 +14,6 @@
 #if defined(PLATFORM_ANDROID)
 struct AAssetManager;
 #endif
-namespace utility
-{
-	/// \brief contains some debug information, such as trace information, as well as utilities to debug.
-	class debug
-	{
-	  public:
-		/// \brief contains the structure of a trace
-		struct trace_info
-		{
-			/// \brief UTF-8 encoded psl::string that contains the demangled information of a trace.
-			psl::string name;
-			/// \brief address location in memory of the traced function.
-			std::uintptr_t addr;
-		};
-
-		/// \brief method to get trace information of the current callstack.
-		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the
-		/// callstack). \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the
-		/// current information, while 255 would likely get you to the root). \returns an std::vector containing a
-		/// struct of trace_info of the current callstack (excluding this method).
-		static std::vector<trace_info>
-		trace(size_t offset = 0u, size_t depth = 255u, std::optional<std::thread::id> id = std::nullopt);
-
-
-		/// \brief method to get raw trace information of the current callstack.
-		/// \param[in] offset what height of the callstack to start from (0 being the bottom, not root of the
-		/// callstack). \param[in] depth how far up should we get information from (i.e. a depth of 1 would only get the
-		/// current information, while 255 would likely get you to the root). \returns an std::vector containing void
-		/// pointers pointing to the address of the current callstack (excluding this method).
-		static std::vector<void*> raw_trace(size_t offset = 0u, size_t depth = 255u);
-
-		static utility::debug::trace_info demangle(void* target);
-		/// \brief helper method to give a name to a specific thread.
-		/// \param[in] id thread::id that will be named.
-		/// \param[in] name the name to assign to the given thread::id.
-		static void register_thread(const std::thread::id& id, const psl::string8_t& name)
-		{
-			m_ThreadMap.insert(std::pair<std::thread::id, psl::string8_t>(id, name));
-		}
-
-		/// \brief helper method to name the current (this) thread.
-		/// \param[in] name the name to assign to std::this_thread.
-		static void register_thread(const psl::string8_t& name) { register_thread(std::this_thread::get_id(), name); }
-
-		/// \brief gets the name of the given thread::id.
-		/// \param[in] id the id of the thread to look up.
-		/// \returns the name (if any) that is assigned to the given thread::id.
-		static const psl::string8_t thread_name(const std::thread::id& id) { return m_ThreadMap[id]; }
-
-		/// \brief gets the name of the current (this) thread.
-		/// \returns the name (if any) that is assigned to the current thread.
-		static const psl::string8_t thread_name() { return thread_name(std::this_thread::get_id()); }
-
-		/// \brief helper method to extract just the class from a trace.
-		/// \param[in] fullFuncName the signature of the trace.
-		/// \returns the class name.
-		static const psl::string8_t func_to_class(const char* fullFuncName)
-		{
-			psl::string8_t fullFuncNameStr(fullFuncName);
-			size_t pos = fullFuncNameStr.find_last_of("::");
-			if(pos == psl::string8_t::npos)
-			{
-				return fullFuncNameStr;
-			}
-			psl::string8_t newName = fullFuncNameStr.substr(0, pos - 1);
-			pos					   = newName.find_last_of("::");
-			if(pos == psl::string8_t::npos)
-			{
-				return newName;
-			}
-			return newName.substr(pos + 1);
-		}
-
-		static const psl::string8_t func_to_namespace(const char* fullFuncName)
-		{
-			psl::string8_t fullFuncNameStr(fullFuncName);
-			size_t pos = fullFuncNameStr.find_last_of("::");
-			if(pos == psl::string8_t::npos)
-			{
-				return fullFuncNameStr;
-			}
-			return fullFuncNameStr.substr(0, pos - 1);
-		}
-
-	  private:
-		static std::unordered_map<std::thread::id, psl::string8_t> m_ThreadMap;
-	};
-}	 // namespace utility
 
 namespace utility::platform
 {
@@ -130,48 +39,7 @@ namespace utility::platform
 		/// \brief translated the given path to one that is accepted on Unix systems
 		/// \param[in] path the path to translate to one that works in unix systems.
 		/// \returns a string that *should* work on unix systems, and satisfies the requirements.
-		static psl::string to_unix(psl::string_view path)
-		{
-			psl::string dir;
-			while(path.size() > 0 && (path[0] == '\"' || path[0] == '\''))
-			{
-				path = path.substr(1);
-			}
-
-			while(path.size() > 0 && (path[path.size() - 1] == '\"' || path[path.size() - 1] == '\''))
-			{
-				path = path.substr(0, path.size() - 1);
-			}
-
-			if(auto find = path.find(":\\\\"); find == 1u)
-			{
-				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(4u);
-			}
-			else if(find = path.find(":\\"); find == 1u)
-			{
-				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
-			}
-			else if(find = path.find(":/"); find == 1u)
-			{
-				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
-			}
-			else
-			{
-				dir = path;
-			}
-
-			auto find = dir.find('\\');
-			while(find < dir.size())
-			{
-				dir.replace(find, 1, "/");
-				find = dir.find('\\');
-			}
-
-			return dir;
-		}
+		static psl::string to_unix(psl::string_view path);
 
 		/// \brief translated the given path to one that is accepted on Windows systems
 		/// \param[in] path the path to translate to one that works in Windows systems.
@@ -292,12 +160,12 @@ namespace utility::platform
 		/// \param[in] path the path to check.
 		/// \returns true in case it is a directory.
 		/// \todo android platform always returns false. Check if there is a way around this or redesign this.
-		static bool is_directory(psl::string_view path) { return std::filesystem::is_directory(to_platform(path)); }
+		static bool is_directory(psl::string_view path);
 
 		/// \brief sanitizes the seperators into the application wide standard one.
 		/// \param[in] path the path to sanitize.
 		/// \returns the transformed input path.
-		static psl::string sanitize(psl::string_view path) { return utility::string::replace_all(path, "\\", "/"); }
+		static psl::string sanitize(psl::string_view path);
 
 		/// \brief tries to erase/delete the given item this path points to.
 		///
@@ -305,10 +173,8 @@ namespace utility::platform
 		/// \param[in] path the path to what you wish to be erased.
 		/// \returns true if erasing the target item is successful.
 		/// \todo android platform always fails this, is it possible this is not always the case?
-		inline static bool erase(psl::string_view path)
-		{
-			return std::filesystem::remove(directory::to_platform(path));
-		}
+		static bool erase(psl::string_view path);
+
 		/// \brief checks if the given path (absolute) points to a directory or not.
 		/// \param[in] absolutePath the path to check.
 		/// \returns true in case this path is valid and points to a directory.
@@ -329,44 +195,7 @@ namespace utility::platform
 		/// \param[in] recursive should we also search the sub-directories (true), or not (false).
 		/// \returns a container of elements of the type psl::string, of all found items, that are transformed to the
 		/// generic path format. \todo on android no search is run.
-		static std::vector<psl::string> all_files(psl::string_view target_directory, bool recursive)
-		{
-			auto folder = to_platform(target_directory);
-			std::vector<psl::string> names;
-			if(recursive)
-			{
-				for(std::filesystem::recursive_directory_iterator i(folder), end; i != end; ++i)
-				{
-					if(!std::filesystem::is_directory(i->path()))
-					{
-#ifdef UNICODE
-						auto filename =
-						  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
-#else
-						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
-#endif
-						names.push_back(filename);
-					}
-				}
-			}
-			else
-			{
-				for(std::filesystem::directory_iterator i(folder), end; i != end; ++i)
-				{
-					if(!std::filesystem::is_directory(i->path()))
-					{
-#ifdef UNICODE
-						auto filename =
-						  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
-#else
-						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
-#endif
-						names.push_back(filename);
-					}
-				}
-			}
-			return names;
-		}
+		static std::vector<psl::string> all_files(psl::string_view target_directory, bool recursive);
 	};
 
 	/// \brief file i/o and manpulations utilities namespace
@@ -387,10 +216,7 @@ namespace utility::platform
 		/// \param[in] filename the path to the file.
 		/// \returns true in case the file was successfuly erased.
 		/// \todo android lacks an implementation.
-		inline static bool erase(psl::string_view filename)
-		{
-			return std::filesystem::remove(directory::to_platform(filename));
-		}
+		static bool erase(psl::string_view filename);
 
 		/// \brief reads the given filepath's contents into a psl::char_t container.
 		/// \param[in] filename the path to the file.
@@ -430,29 +256,7 @@ namespace utility::platform
 		/// \param[in] filename the path to the target location.
 		/// \param[in] content the content to write at the given location.
 		/// \returns true when the content has successfully been written at the target location.
-		static bool write(psl::string_view filename, psl::string_view content)
-		{
-			auto file_name = directory::to_platform(filename);
-
-			std::size_t found = file_name.find_last_of(directory::seperator);
-
-			if(!directory::exists(file_name.substr(0, found)) && !directory::create(file_name.substr(0, found), true))
-				return false;
-
-			psl::ofstream output;
-			try
-			{
-				output.open(file_name, std::ios::trunc | std::ios::out | std::ios::binary);
-			}
-			catch(...)
-			{
-				psl::fprintf(stderr, "Could not write the file: %s!\n", file_name.c_str());
-				return false;
-			}
-			output.write(content.data(), content.size());
-			output.close();
-			return true;
-		}
+		bool write(psl::string_view filename, psl::string_view content);
 
 		/// \brief transforms the given path to the unix format.
 		/// \param[in] path the path to transform.

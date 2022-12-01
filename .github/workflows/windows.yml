@@ -1,15 +1,6 @@
 name: windows
 
-on: 
-  push:
-    paths:
-      - '**.c'
-      - '**.cpp'
-      - '**.h'
-      - '**.hpp'
-      - '**.py'
-      - 'CMakeLists.txt'
-      - .github/**
+on: [push]
 
 jobs:
   build:
@@ -22,7 +13,9 @@ jobs:
     steps:
     - uses: actions/checkout@v1
       with:
-        submodules: recursive
+        submodules: recursive    
+    - uses: SimenB/github-actions-cpu-cores@v1
+      id: cpu-cores
     - name: setup dependencies
       uses: actions/setup-python@v4
       with:
@@ -33,7 +26,7 @@ jobs:
             cmake --preset=windows-release-${{ matrix.graphics }} -DPE_BENCHMARKS=ON
             python3 tools/patch.py ./project_files/x64/
     - name: compile
-      run: cmake --build --preset=windows-release-${{ matrix.graphics }}
+      run: cmake --build --preset=windows-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       run: |
             cd builds\x64\release\bin
