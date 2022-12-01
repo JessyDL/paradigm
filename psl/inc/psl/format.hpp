@@ -1,10 +1,11 @@
 ﻿#pragma once
-#include "psl/string_utils.hpp"
 #include "psl/ustring.hpp"
 #include <memory>
 #include <optional>
 #include <unordered_map>
 #include <variant>
+#include <vector>
+#include <numeric>
 
 /*
 	string based version:
@@ -360,26 +361,7 @@ namespace psl::format
 
 		container const* const target() const noexcept { return m_Container; }
 
-		char const* what() const noexcept override
-		{
-			psl::string8_t message {
-			  "An unknown error occured, please create a repro case and submit as a bug ticket, thank you!"};
-			if(auto index = std::get_if<nodes_t>(&m_Data))
-			{
-				if((size_t)*index >= m_Container->size())
-				{
-					message = "The index " + utility::to_string(*index) +
-							  " is larger than the last element, which is at index: " +
-							  utility::to_string(m_Container->size() - 1);
-				}
-			}
-			else if(auto name = std::get_if<psl::string8_t>(&m_Data))
-			{
-				message = "The node named '" + *name + "' could not be found in the container.";
-			}
-			m_Message = std::move(message);
-			return m_Message.data();
-		}
+		char const* what() const noexcept override;
 
 	  public:
 		container const* const m_Container;
