@@ -19,6 +19,8 @@ state_t::state_t(size_t workers, size_t cache_size) :
 	m_ModifiedEntities.reserve(65536);
 }
 
+state_t::~state_t() {};
+
 constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept
 {
 #pragma warning(push)

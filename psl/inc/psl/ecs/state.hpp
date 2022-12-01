@@ -48,7 +48,7 @@ namespace psl::ecs
 
 	  public:
 		state_t(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256);
-		~state_t()						   = default;
+		~state_t();
 		state_t(const state_t&)			   = delete;
 		state_t(state_t&&)				   = default;
 		state_t& operator=(const state_t&) = delete;
