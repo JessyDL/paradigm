@@ -25,36 +25,6 @@ namespace utility
 	/// \brief utility namespace to deal with psl::string operations.
 	namespace string
 	{
-		/// \brief cast the input string containing a hex value, to the given type
-		/// \tparam T the type to convert the output to.
-		/// \param[in] str the string containing the hex value.
-		/// \returns an object of type T that has been constructed using the hex value.
-		template <typename T>
-		inline T from_hex(const psl::string8_t& str)
-		{
-			return lexical_cast<T>(str);
-		}
-
-		/// \brief cast the input string containing a hex value, to the given type
-		/// \tparam T the type to convert the output to.
-		/// \param[in] str the string containing the hex value.
-		/// \returns an object of type T that has been constructed using the hex value.
-		template <typename T>
-		inline T from_hex(const psl::string16_t& str)
-		{
-			return lexical_cast<T>(str);
-		}
-
-		/// \brief cast the input string containing a hex value, to the given type
-		/// \tparam T the type to convert the output to.
-		/// \param[in] str the string containing the hex value.
-		/// \returns an object of type T that has been constructed using the hex value.
-		template <typename T>
-		inline T from_hex(const psl::string32_t& str)
-		{
-			return lexical_cast<T>(str);
-		}
-
 		/// \brief convert the given input string to capital letters (if possible).
 		/// \param[in] str the string to transform.
 		/// \returns the transformed string.

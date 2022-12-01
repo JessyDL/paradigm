@@ -1,6 +1,7 @@
 #pragma once
 #include "ustring.hpp"
 #include <fstream>
+#include <sstream>
 
 namespace psl
 {
