@@ -137,6 +137,92 @@ std::vector<unsigned int> utility::platform::os::to_virtual_keycode(const psl::s
 	return values;
 }
 
+psl::string utility::platform::directory::sanitize(psl::string_view path)
+{ 
+	return utility::string::replace_all(path, "\\", "/"); 
+}
+
+std::vector<psl::string> utility::platform::directory::all_files(psl::string_view target_directory, bool recursive)
+{
+	auto folder = to_platform(target_directory);
+	std::vector<psl::string> names;
+	if(recursive)
+	{
+		for(std::filesystem::recursive_directory_iterator i(folder), end; i != end; ++i)
+		{
+			if(!std::filesystem::is_directory(i->path()))
+			{
+#ifdef UNICODE
+				auto filename =
+					utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
+#else
+				auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
+#endif
+				names.push_back(filename);
+			}
+		}
+	}
+	else
+	{
+		for(std::filesystem::directory_iterator i(folder), end; i != end; ++i)
+		{
+			if(!std::filesystem::is_directory(i->path()))
+			{
+#ifdef UNICODE
+				auto filename =
+					utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
+#else
+				auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
+#endif
+				names.push_back(filename);
+			}
+		}
+	}
+	return names;
+}
+
+psl::string utility::platform::directory::to_unix(psl::string_view path)
+{
+	psl::string dir;
+	while(path.size() > 0 && (path[0] == '\"' || path[0] == '\''))
+	{
+		path = path.substr(1);
+	}
+
+	while(path.size() > 0 && (path[path.size() - 1] == '\"' || path[path.size() - 1] == '\''))
+	{
+		path = path.substr(0, path.size() - 1);
+	}
+
+	if(auto find = path.find(":\\\\"); find == 1u)
+	{
+		psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
+		dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(4u);
+	}
+	else if(find = path.find(":\\"); find == 1u)
+	{
+		psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
+		dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
+	}
+	else if(find = path.find(":/"); find == 1u)
+	{
+		psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
+		dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
+	}
+	else
+	{
+		dir = path;
+	}
+
+	auto find = dir.find('\\');
+	while(find < dir.size())
+	{
+		dir.replace(find, 1, "/");
+		find = dir.find('\\');
+	}
+
+	return dir;
+}
 
 bool utility::platform::directory::exists(psl::string_view absolutePath)
 {

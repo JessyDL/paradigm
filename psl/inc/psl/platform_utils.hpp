@@ -1,7 +1,7 @@
 ﻿#pragma once
 
 #include "psl/platform_def.hpp"
-#include "psl/string_utils.hpp"
+//#include "psl/string_utils.hpp"
 #include "psl/ustring.hpp"
 #include <cctype>
 #include <clocale>
@@ -10,6 +10,7 @@
 #include <thread>
 #include <unordered_map>
 #include <vector>
+#include <numeric>
 
 
 // https://en.wikipedia.org/wiki/Path_%28computing%29#Representations_of_paths_by_operating_system_and_shell
@@ -130,48 +131,7 @@ namespace utility::platform
 		/// \brief translated the given path to one that is accepted on Unix systems
 		/// \param[in] path the path to translate to one that works in unix systems.
 		/// \returns a string that *should* work on unix systems, and satisfies the requirements.
-		static psl::string to_unix(psl::string_view path)
-		{
-			psl::string dir;
-			while(path.size() > 0 && (path[0] == '\"' || path[0] == '\''))
-			{
-				path = path.substr(1);
-			}
-
-			while(path.size() > 0 && (path[path.size() - 1] == '\"' || path[path.size() - 1] == '\''))
-			{
-				path = path.substr(0, path.size() - 1);
-			}
-
-			if(auto find = path.find(":\\\\"); find == 1u)
-			{
-				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(4u);
-			}
-			else if(find = path.find(":\\"); find == 1u)
-			{
-				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
-			}
-			else if(find = path.find(":/"); find == 1u)
-			{
-				psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
-				dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
-			}
-			else
-			{
-				dir = path;
-			}
-
-			auto find = dir.find('\\');
-			while(find < dir.size())
-			{
-				dir.replace(find, 1, "/");
-				find = dir.find('\\');
-			}
-
-			return dir;
-		}
+		static psl::string to_unix(psl::string_view path);
 
 		/// \brief translated the given path to one that is accepted on Windows systems
 		/// \param[in] path the path to translate to one that works in Windows systems.
@@ -297,7 +257,7 @@ namespace utility::platform
 		/// \brief sanitizes the seperators into the application wide standard one.
 		/// \param[in] path the path to sanitize.
 		/// \returns the transformed input path.
-		static psl::string sanitize(psl::string_view path) { return utility::string::replace_all(path, "\\", "/"); }
+		static psl::string sanitize(psl::string_view path);
 
 		/// \brief tries to erase/delete the given item this path points to.
 		///
@@ -329,44 +289,7 @@ namespace utility::platform
 		/// \param[in] recursive should we also search the sub-directories (true), or not (false).
 		/// \returns a container of elements of the type psl::string, of all found items, that are transformed to the
 		/// generic path format. \todo on android no search is run.
-		static std::vector<psl::string> all_files(psl::string_view target_directory, bool recursive)
-		{
-			auto folder = to_platform(target_directory);
-			std::vector<psl::string> names;
-			if(recursive)
-			{
-				for(std::filesystem::recursive_directory_iterator i(folder), end; i != end; ++i)
-				{
-					if(!std::filesystem::is_directory(i->path()))
-					{
-#ifdef UNICODE
-						auto filename =
-						  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
-#else
-						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
-#endif
-						names.push_back(filename);
-					}
-				}
-			}
-			else
-			{
-				for(std::filesystem::directory_iterator i(folder), end; i != end; ++i)
-				{
-					if(!std::filesystem::is_directory(i->path()))
-					{
-#ifdef UNICODE
-						auto filename =
-						  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
-#else
-						auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
-#endif
-						names.push_back(filename);
-					}
-				}
-			}
-			return names;
-		}
+		static std::vector<psl::string> all_files(psl::string_view target_directory, bool recursive);
 	};
 
 	/// \brief file i/o and manpulations utilities namespace
