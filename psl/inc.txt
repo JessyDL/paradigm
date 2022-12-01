@@ -31,6 +31,7 @@ platform_def
 vulkan_utils
 expected
 platform_utils
+debug_utils
 file
 format
 library
