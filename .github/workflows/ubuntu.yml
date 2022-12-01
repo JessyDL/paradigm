@@ -66,6 +66,8 @@ jobs:
     - uses: actions/checkout@v1
       with:
         submodules: recursive
+    - uses: SimenB/github-actions-cpu-cores@v1
+      id: cpu-cores
     - name: setup dependencies
       run: python3 tools/generate_project_info.py
     - name: install GL libraries
@@ -77,7 +79,7 @@ jobs:
     - name: initialize
       run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }}
     - name: compile
-      run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }}
+      run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       if: ${{ matrix.tests == 'ON' }}
       run: ./builds/default/bin/tests --formatter compact --no-source
