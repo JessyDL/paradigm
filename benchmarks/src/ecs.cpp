@@ -1,4 +1,6 @@
 #include "psl/ecs/state.hpp"
+#include "psl/ecs/order_by.hpp"
+#include "psl/ecs/on_condition.hpp"
 #include <benchmark/benchmark.h>
 
 using namespace psl;
@@ -129,7 +131,7 @@ class filtering_fixture : public ::benchmark::Fixture
 		auto entities = state.filter<int>();
 		gState.ResumeTiming();
 
-		state.order_by<std::less<int>, int>(std::begin(entities), std::end(entities));
+		psl::ecs::details::order_by<std::less<int>, int>(state, std::begin(entities), std::end(entities));
 	}
 
 	void on_condition(benchmark::State& gState)
@@ -138,7 +140,7 @@ class filtering_fixture : public ::benchmark::Fixture
 		auto entities = state.filter<int>();
 		gState.ResumeTiming();
 
-		state.on_condition<int>(std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
+		psl::ecs::details::on_condition<int>(state, std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
 	}
 	ecs::state_t state;
 };

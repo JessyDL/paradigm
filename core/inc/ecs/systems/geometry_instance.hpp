@@ -3,6 +3,7 @@
 #include "ecs/components/transform.hpp"
 #include "gfx/bundle.hpp"
 #include "psl/ecs/state.hpp"
+#include "psl/ecs/order_by.hpp"
 #include "resource/resource.hpp"
 #include "vk/geometry.hpp"
 

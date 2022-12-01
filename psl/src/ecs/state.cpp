@@ -2,6 +2,8 @@
 #include "psl/ecs/state.hpp"
 #include "psl/algorithm.hpp"
 #include "psl/unique_ptr.hpp"
+#include "psl/async/async.hpp"
+
 #include <numeric>
 using namespace psl::ecs;
 
@@ -78,7 +80,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 							 std::uintptr_t cache_offset,
 							 details::system_information& information)
 {
-	std::function<void(state_t&, psl::array<details::dependency_pack>)> write_data =
+	auto write_data =
 	  [](state_t& state, psl::array<details::dependency_pack> dep_packs) {
 		  for(const auto& dep_pack : dep_packs)
 		  {
@@ -294,24 +296,6 @@ void state_t::add_component_impl(details::component_key_t key, psl::array_view<e
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	cInfo->add(entities);
-	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
-}
-
-// invocable based construction
-void state_t::add_component_impl(details::component_key_t key,
-								 psl::array_view<entity> entities,
-								 std::function<void(std::uintptr_t, size_t)> invocable)
-{
-	auto cInfo = get_component_info(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
-	const auto component_size = cInfo->component_size();
-	psl_assert(component_size != 0, "component size was 0");
-
-	auto offset = cInfo->entities().size();
-	cInfo->add(entities);
-
-	auto location = (std::uintptr_t)cInfo->data() + (offset * component_size);
-	std::invoke(invocable, location, entities.size());
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 }
 

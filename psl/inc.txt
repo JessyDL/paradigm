@@ -72,6 +72,8 @@ ecs/state
 ecs/pack
 ecs/filtering
 ecs/selectors
+ecs/order_by
+ecs/on_condition
 ecs/command_buffer
 ecs/details/component_info
 ecs/details/component_key
