@@ -5,6 +5,7 @@
 #include "psl/ecs/pack.hpp"
 #include "psl/template_utils.hpp"
 #include "selectors.hpp"
+#include "psl/ustring.hpp"
 
 namespace psl::ecs
 {
