@@ -53,11 +53,17 @@ namespace utility
 		/// \brief gets the name of the given thread::id.
 		/// \param[in] id the id of the thread to look up.
 		/// \returns the name (if any) that is assigned to the given thread::id.
-		static const psl::string8_t thread_name(const std::thread::id& id) { return m_ThreadMap[id]; }
+		static const psl::string8_t thread_name(const std::thread::id& id)
+        { 
+            return m_ThreadMap[id];
+        }
 
 		/// \brief gets the name of the current (this) thread.
 		/// \returns the name (if any) that is assigned to the current thread.
-		static const psl::string8_t thread_name() { return thread_name(std::this_thread::get_id()); }
+		static const psl::string8_t thread_name()
+        {
+            return thread_name(std::this_thread::get_id());
+        }
 
 		/// \brief helper method to extract just the class from a trace.
 		/// \param[in] fullFuncName the signature of the trace.
