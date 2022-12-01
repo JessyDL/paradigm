@@ -93,6 +93,9 @@ noise/perlin
 
 serialization/property
 serialization/serializer
+serialization/polymorphic
+serialization/encoder
+serialization/decoder
 
 concepts
 details/fixed_astring
