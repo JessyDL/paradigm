@@ -47,7 +47,6 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 
 	CONTEXT context		 = {};
 	context.ContextFlags = CONTEXT_ALL;
-	// RtlCaptureContext(&context);
 	GetThreadContext(thread, &context);
 	STACKFRAME frame	   = {};
 	frame.AddrPC.Offset	   = context.Rip;
@@ -66,13 +65,6 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 		auto& info = res.emplace_back();
 		info.addr  = frame.AddrPC.Offset;
 		info.name  = {};
-		// DWORD64 moduleBase = SymGetModuleBase(process, frame.AddrPC.Offset);
-		// char moduleBuff[MAX_PATH];
-		// if(moduleBase && GetModuleFileNameA((HINSTANCE)moduleBase, moduleBuff, MAX_PATH))
-		//{
-		//	info.name += moduleBuff;
-		//	info.name += " ";
-		//}
 
 		char symbolBuffer[sizeof(IMAGEHLP_SYMBOL) + 255];
 		PIMAGEHLP_SYMBOL symbol = (PIMAGEHLP_SYMBOL)symbolBuffer;
