@@ -1,7 +1,10 @@
 ﻿#pragma once
-#include "psl/platform_def.hpp"
-#include "psl/string_utils.hpp"
 #include <array>
+#include <cstdint>
+#include <functional>
+#include <stdexcept>
+#include "psl/platform_def.hpp"
+#include "psl/ustring.hpp"
 
 namespace std
 {
@@ -49,6 +52,7 @@ namespace psl
 		/// instance. Otherwise it will return UID::invalid_uid. \param[in] key a string in the valid format to convert
 		/// to UID. \returns either a valid UID based on the key, or UID::invalid_uid if something went wrong.
 		inline static UID from_string(const psl::string8_t& key);
+		inline static UID from_string(psl::string8::view key);
 
 		/// \brief checks the given string if it's in a valid UID format.
 		/// \param[in] key the string to be checked.
@@ -315,6 +319,12 @@ namespace psl
 	{
 		return psl::make_uid(key.data(), key.size());
 	}
+
+	inline psl::UID psl::UID::from_string(psl::string8::view key)
+	{
+		return psl::make_uid(key.data(), key.size());
+	}
+
 	inline bool psl::UID::valid(const psl::string8_t& key) noexcept
 	{
 		return psl::valid_uid(key.data(), key.size());
@@ -348,17 +358,5 @@ namespace std
 		}
 	};
 }	 // namespace std
-
-namespace utility
-{
-	template <>
-	struct converter<psl::UID>
-	{
-		static psl::string8_t to_string(const psl::UID& x) { return x.to_string(); }
-
-		static psl::UID from_string(psl::string8::view str) { return psl::make_uid(str.data(), str.size()); }
-	};
-}	 // namespace utility
-
 
 constexpr psl::UID operator"" _uid(const char* text, std::size_t size) { return psl::try_make_uid(text, size); }

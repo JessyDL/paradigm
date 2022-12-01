@@ -682,6 +682,11 @@ namespace utility
 		  X,
 		  std::void_t<decltype(std::declval<X&>().from_string(std::declval<psl::string8::view>()))>> : std::true_type
 		{};
+
+		template<typename T>
+		concept HasStaticFromString = requires() {
+			T::from_string(std::string_view{});
+		};
 	}	 // namespace details
 	template <typename X>
 	struct converter
@@ -718,7 +723,11 @@ namespace utility
 		{
 			if constexpr(std::is_convertible<X, psl::string8_t>::value)
 			{
-				return psl::string8_t(str);
+				return { psl::string8_t(str) };
+			} 
+			else if constexpr(details::HasStaticFromString<X>)
+			{
+				return X::from_string(str);
 			}
 			else
 			{
