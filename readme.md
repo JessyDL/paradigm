@@ -38,7 +38,7 @@ A C++20 compliant compiler. See the Github Actions for up-to-date examples of su
 ### Creating the project files
 You can build this project by either using the provided `CMakePresets.json` file (recommended), or by running `paradigm.py` with python 3.9+. See the [`CMakePresets` section](#cmakepresets) for more information.
 
-So far MSVC (2022), CLang (12.0.0) with libc++, and GCC (11.3.0) are supported. The project will *likely* incorrectly generate for other compilers/setups. You can always verify the compiler version that was used by checking the github CI runners.
+So far MSVC (2022), CLang (12.0.0) with libc++, and GCC (12.1.0) are supported. The project will *likely* incorrectly generate for other compilers/setups. You can always verify the compiler version that was used by checking the github CI runners.
 
 If lost, check the github actions workflow folder to see ideal platform setups.
 
