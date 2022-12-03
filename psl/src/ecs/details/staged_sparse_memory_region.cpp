@@ -343,12 +343,12 @@ namespace psl::ecs::details
 		case stage_range_t::SETTLED:
 		case stage_range_t::ALIVE:
 		case stage_range_t::ALL:
-			return 0;
+			return to_underlying(stage_t::SETTLED);
 		case stage_range_t::ADDED:
 		case stage_range_t::TERMINAL:
-			return 1;
+			return to_underlying(stage_t::ADDED);
 		case stage_range_t::REMOVED:
-			return 2;
+			return to_underlying(stage_t::REMOVED);
 		}
 		psl::unreachable("stage was of unknown value");
 	}
@@ -358,14 +358,14 @@ namespace psl::ecs::details
 		switch(stage)
 		{
 		case stage_range_t::SETTLED:
-			return 1;
+			return to_underlying(stage_t::ADDED);
 		case stage_range_t::ALIVE:
 		case stage_range_t::ADDED:
-			return 2;
+			return to_underlying(stage_t::REMOVED);
 		case stage_range_t::TERMINAL:
 		case stage_range_t::REMOVED:
 		case stage_range_t::ALL:
-			return 3;
+			return to_underlying(stage_t::REMOVED) + 1;
 		}
 		psl::unreachable("stage was of unknown value");
 	}

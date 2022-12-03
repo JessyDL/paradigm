@@ -72,7 +72,7 @@ namespace psl::ecs::details
 		/// --------------------------------------------------------------------------
 
 		constexpr auto capacity() const noexcept -> size_type { return std::size(m_Sparse) * chunks_size; }
-		constexpr auto size(stage_range_t stage) const noexcept -> size_type
+		constexpr auto size(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> size_type
 		{
 			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 		}
