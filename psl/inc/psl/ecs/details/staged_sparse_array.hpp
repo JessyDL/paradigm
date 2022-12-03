@@ -10,6 +10,7 @@
 /// you know what you need it for and are sure you understand its internals.
 #include <memory>	 // std::uninitialized_move
 #include <cstring>   // std::memmove
+#include <optional>
 #include "../entity.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
