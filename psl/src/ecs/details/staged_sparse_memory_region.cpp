@@ -26,7 +26,6 @@ auto staged_sparse_memory_region_t::has(key_type index, size_t startStage, size_
 
 auto staged_sparse_memory_region_t::operator[](key_type index) -> reference
 {
-	psl_assert(sizeof(T) == m_Size);
 	auto sub_index = index;
 	auto& chunk	   = chunk_for(sub_index);
 

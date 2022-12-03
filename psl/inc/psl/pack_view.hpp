@@ -3,6 +3,9 @@
 #include "psl/template_utils.hpp"
 #include <iterator>
 #include <type_traits>
+#ifdef PE_DEBUG
+#include "psl/assertions.hpp"
+#endif
 
 namespace psl
 {

@@ -61,7 +61,7 @@ class staged_sparse_memory_region_t
 	template <typename T>
 	constexpr inline auto operator[](key_type index) -> T&
 	{
-		psl_assert(sizeof(T) == m_Size);
+		psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 		return *(T*)(&this->operator[](index));
 	}
 
@@ -77,7 +77,7 @@ class staged_sparse_memory_region_t
 	template<typename T>
 	constexpr inline auto to_view(size_t stage = 0) -> psl::array_view<T>
 	{
-		psl_assert(sizeof(T) == m_Size);
+		psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 		return psl::array_view<T> {std::next((T*)m_DenseData.data(), m_StageStart[stage]),
 								   std::next((T*)m_DenseData.data(), m_StageStart[stage + 1])};
 	}
