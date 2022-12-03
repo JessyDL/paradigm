@@ -9,12 +9,9 @@ include(FetchContent)
 
 FetchContent_Declare(
   google_benchmark
-  GIT_REPOSITORY https://github.com/google/benchmark.git
-  GIT_TAG        v1.7.1
+  GIT_REPOSITORY https://github.com/JessyDL/benchmark.git
+  GIT_TAG        fix/win32_unicode_support
 )
-
-# todo: for the time being this needs to be silenced
-add_definitions(-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 
 FetchContent_GetProperties(google_benchmark)
 if(NOT google_benchmark_POPULATED)
