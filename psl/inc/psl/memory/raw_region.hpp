@@ -1,5 +1,6 @@
 #pragma once
 #include <cstdint>
+#include <stddef.h>
 
 namespace memory
 {
@@ -12,8 +13,6 @@ namespace memory
 		raw_region(raw_region&& other);
 		raw_region& operator=(const raw_region& other);
 		raw_region& operator=(raw_region&& other);
-
-		void commit(size_t offset, size_t size);
 
 		void* data() const noexcept { return m_Base; }
 		uint64_t size() const noexcept { return m_Size; }

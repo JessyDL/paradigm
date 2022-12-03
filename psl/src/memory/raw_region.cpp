@@ -14,7 +14,7 @@
 using namespace memory;
 
 
-raw_region::raw_region(uint64_t size)
+raw_region::raw_region(std::uint64_t size)
 {
 	if(size == 0)
 	{

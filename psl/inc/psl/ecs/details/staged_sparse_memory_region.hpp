@@ -3,6 +3,7 @@
 #include <cstring>
 #include <memory>
 #include <optional>
+#include <numeric>
 
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
