@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include "psl/array.hpp"
 #include "psl/math/vec.hpp"
 

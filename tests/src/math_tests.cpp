@@ -1,3 +1,4 @@
+#include <stdint.h>
 #include "psl/math/math.hpp"
 
 using namespace psl;

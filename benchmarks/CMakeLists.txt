@@ -10,10 +10,10 @@ include(FetchContent)
 FetchContent_Declare(
   google_benchmark
   GIT_REPOSITORY https://github.com/google/benchmark.git
-  GIT_TAG        v1.6.2
+  GIT_TAG        v1.7.1
 )
 
-# todo: 1.7.0 of google benchmarks has a fatal compile issue, while the main branch doesn't work with C++23, so for the time being we need to silence this.
+# todo: for the time being this needs to be silenced
 add_definitions(-D_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING)
 
 FetchContent_GetProperties(google_benchmark)

@@ -1,3 +1,5 @@
+#include <stdint.h>
+
 #include "ecs/systems/geometry_instance.hpp"
 #include "ecs/components/renderable.hpp"
 #include "ecs/components/transform.hpp"
