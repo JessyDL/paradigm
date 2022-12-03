@@ -29,21 +29,36 @@ For more detailed description about the engine itself, go to the readme of the `
 *GLES on GNU/Linux requires `libegl1-mesa-dev` and `libgles2-mesa-dev` to be installed.
 ## Building
 ### Prerequisites
-Python 3+
+Python 3.9 or newer
 
 [CMake ]( http://cmake.org/) 3.18 or higher is required on all platforms.
 
 A C++20 compliant compiler. See the Github Actions for up-to-date examples of supported compilers on different platforms.
 
 ### Creating the project files
-You can build the libraries using the provided paradigm.py file that can be invoked, or by invoking cmake directly (CMakePresets are supported). The paradigm.py just helps you to set up a workspace and sets some critical defines that will be used in the build process.
+You can build this project by either using the provided `CMakePresets.json` file (recommended), or by running `paradigm.py` with python 3.9+. See the [`CMakePresets` section](#cmakepresets) for more information.
 
-So far MSVC (2022), CLang (12.0.0) with libc++, and GCC (11.2.0) are supported. The project will *likely* incorrectly generate for other compilers/setups.
+So far MSVC (2022), CLang (12.0.0) with libc++, and GCC (11.3.0) are supported. The project will *likely* incorrectly generate for other compilers/setups. You can always verify the compiler version that was used by checking the github CI runners.
 
 If lost, check the github actions workflow folder to see ideal platform setups.
 
 #### CMakePresets
 Various CMakePresets exists, they are specified to working combinations of graphics API's that are supported for the given platform. They can be used as normal, or used as guides for custom setups.
+
+The cmake presets are structured in the following way `{platform}-{type}-{graphics}`, see next section for more information. Following are the valid settings for each.
+
+platform:
+ - windows
+ - gnu-linux
+ - android
+
+type:
+ - debug
+ - release
+
+graphics:
+ - vulkan
+ - all (imples both vulkan and gles support).
 
 #### paradigm.py
 The paradigm script is a helper script that can invoke, amongst others, the builder script (tools/build.py). Invoke the builder script using `--run build`, this will set everything up quick and easy. It will generate a solution in the `/project_file/{generator}/{architecture}/` folder by default, and when building it will output to `/builds/{generator}/{architecture}/`.
@@ -88,13 +103,15 @@ The following external libraries may be used in one, or many of the sub projects
 - `spdlog` used for logging
 - `fmt` modern formatting library for C++
 - `utfcpp` utf8 string parsing
+- `strype` support for stringifying typenames and enums on supported compilers
+
+note that dependencies might pull in further dependencies that are not listed here.
 
 ### Conditional dependencies
 The following dependencies are conditionally included:
-- When enabling the Vulkan backend:
-  - `Vulkan-hpp` generated C++ like headers for Vulkan
-- When enabling the GL backend:
-  - `GLAD` Used to generate the GL headers
+- `Vulkan-hpp` when enabling the Vulkan backend `Vulkan-hpp` is used to generated C++ like headers for Vulkan
+- `GLAD` when enabling the GL backend `GLAD` is used to generate the GL headers
+- `google/benchmark` when enabling `PE_BENCHMARKS`
 
 # Documentation
 A reference documentation is available at [https://paradigmengine.github.io/](https://paradigmengine.github.io/).
@@ -129,7 +146,7 @@ This project is dual-licensed under commercial and open source licenses. License
 
 -  GNU AGPLv3: You may use Paradigm Engine as a Free Open Source Software as outlined in the terms found here: [https://www.gnu.org/licenses/agpl-3.0.en.html](https://www.gnu.org/licenses/agpl-3.0.en.html)
     
--  Commercial license: If you do not want to disclose the source of your application you have the option to purchase a commercial license. The commercial license gives you the full rights to create and distribute software on your own terms without any open source license obligations. For more information, please contact me directly.
+-  Commercial license: If you do not want to disclose the source of your application you have the option to purchase a commercial license. The commercial license gives you the full rights to create and distribute software on your own terms without any open source license obligations. For more information, please contact [Jessy De Lannoit directly here](https://www.linkedin.com/in/jessydelannoit/).
 
 This license (and its setup) only applies to the current major version of this software. So if you are getting the license on version 1.0.0, you will be able to use all upgrades that carry the same major version number (in this case 1.x.x). Once the switch is made to a newer version such as 2.x.x of the project, you will need to upgrade your license to use that major version's updated license (in case there is a new license), or the updated license setup. 
 
