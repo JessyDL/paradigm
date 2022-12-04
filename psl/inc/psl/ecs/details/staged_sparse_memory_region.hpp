@@ -59,19 +59,24 @@ namespace psl::ecs::details
 			TERMINAL,	 // values that have just been added, and to-be removed values
 		};
 
+		/// \note prefer using the `instantiate<T>()` function
+		/// \param size element size in the container
+		staged_sparse_memory_region_t(size_t size) : m_DenseData(0), m_Size(size) { grow(); }
 
-		staged_sparse_memory_region_t(size_t size) : m_DenseData((m_Reverse.capacity() + 1) * size), m_Size(size) {}
-
-		staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)				 = default;
-		staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept			 = default;
-		staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other)	 = default;
+		staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)		 = default;
+		staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept	 = default;
+		staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other) = default;
 		staged_sparse_memory_region_t& operator=(staged_sparse_memory_region_t&& other) noexcept = default;
 
+		template <typename T>
+		static inline auto instantiate() -> staged_sparse_memory_region_t
+		{
+			return staged_sparse_memory_region_t(sizeof(T));
+		}
 		/// --------------------------------------------------------------------------
 		/// Query operations
 		/// --------------------------------------------------------------------------
 
-		constexpr auto capacity() const noexcept -> size_type { return std::size(m_Sparse) * chunks_size; }
 		constexpr auto size(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> size_type
 		{
 			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
@@ -101,6 +106,23 @@ namespace psl::ecs::details
 		constexpr inline auto get(key_type index) -> T&
 		{
 			return this->template operator[]<T>(index);
+		}
+
+		template <typename T>
+		constexpr inline auto set(key_type index, T&& value) -> bool
+		{
+			using type = std::remove_cvref_t<T>;
+			psl_assert(sizeof(type) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
+			auto sub_index = index;
+			auto& chunk	   = chunk_for(sub_index);
+
+			if(!has(index, stage_range_t::ALIVE))
+			{
+				return false;
+			}
+
+			*((type*)m_DenseData.data() + chunk[sub_index]) = std::forward<type>(value);
+			return true;
 		}
 
 		auto reserve(size_t capacity) -> void;
@@ -142,25 +164,20 @@ namespace psl::ecs::details
 			return *addressof(index, stage);
 		}
 
-		inline auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept
-		  -> const_pointer
+		template<typename T>
+		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> T const&
 		{
-			key_type sparse_index, chunk_index;
-			chunk_info_for(index, sparse_index, chunk_index);
-			psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, stage);
-			return (static_cast<const_pointer>(m_DenseData.data()) +
-					(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
+			return *reinterpret_cast<T const*>(addressof(index, stage));
 		}
 
-		inline auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> pointer
+		template <typename T>
+		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> T&
 		{
-			key_type sparse_index, chunk_index;
-			chunk_info_for(index, sparse_index, chunk_index);
-			psl_assert(
-			  has(index, stage, stage_count), "missing index {} within [{}, {}] in sparse array", index, stage);
-			return (static_cast<pointer>(m_DenseData.data()) +
-					(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
+			return *reinterpret_cast<T*>(addressof(index, stage));
 		}
+
+		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> const_pointer;
+		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> pointer;
 
 		auto erase(key_type first, key_type last) noexcept -> void;
 
@@ -170,77 +187,6 @@ namespace psl::ecs::details
 		void emplace(key_type index, T&& value)
 		{
 			this->template operator[]<T>(index) = std::forward<T>(value);
-		}
-
-		template <typename ItF, typename ItL>
-		void insert(key_type index, ItF&& first, ItL&& last)
-		{
-			using T = decltype(*first);
-			// todo lookups can be lowered further by splitting it into a "from index to chunk_0_end : chunk_1 to
-			// chunk_before_end : chunk_end to last_index;
-			const auto distance = static_cast<size_t>(std::distance(first, last));
-			reserve(size() + distance);
-
-			for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
-			{
-				auto old_offset = m_Reverse[i];
-				auto& old_chunk = chunk_for(old_offset);
-				old_chunk[old_offset] += distance;
-			}
-
-			memcpy((T*)m_DenseData.data() + m_StageStart[2] + distance,
-				   (T*)m_DenseData.data() + m_StageStart[2],
-				   (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
-
-			auto first_chunk = chunks_size - (index % chunks_size);
-			{
-				auto offset = index;
-				auto& chunk = chunk_for(offset);
-				for(size_t i = 0; i < first_chunk; ++i)
-				{
-					chunk[offset + i] = static_cast<key_type>(m_StageStart[2]);
-					auto orig_cap	  = m_Reverse.capacity();
-					m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), index);
-
-					first = std::next(first);
-					index += 1;
-				}
-			}
-			auto remainder_chunk	 = (distance - first_chunk) % chunks_size;
-			auto process_chunk_count = (distance - first_chunk - remainder_chunk) / chunks_size;
-			{
-				for(auto c = 0; c < process_chunk_count; ++c)
-				{
-					auto offset = index;
-					auto& chunk = chunk_for(offset);
-					for(size_t i = 0; i < chunks_size; ++i)
-					{
-						chunk[offset + i] = static_cast<key_type>(m_StageStart[2]);
-						auto orig_cap	  = m_Reverse.capacity();
-						m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), index);
-
-						first = std::next(first);
-						index += 1;
-					}
-				}
-			}
-			{
-				auto offset = index;
-				auto& chunk = chunk_for(offset);
-				for(size_t i = 0; i < remainder_chunk; ++i)
-				{
-					chunk[offset + i] = static_cast<key_type>(m_StageStart[2]);
-					auto orig_cap	  = m_Reverse.capacity();
-					m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), index);
-
-					first = std::next(first);
-					index += 1;
-				}
-			}
-
-			m_StageStart[2] += distance;
-			m_StageStart[3] += distance;
-			m_StageSize[1] += distance;
 		}
 
 		template <typename T>
@@ -287,6 +233,7 @@ namespace psl::ecs::details
 		auto merge(const staged_sparse_memory_region_t& other) noexcept -> void;
 
 	  private:
+		constexpr auto capacity() const noexcept -> size_type { return std::size(m_Sparse) * chunks_size; }
 		template <typename T>
 		constexpr inline auto to_underlying(T value) const noexcept -> std::underlying_type_t<T>
 		{

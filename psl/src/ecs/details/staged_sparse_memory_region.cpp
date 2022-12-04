@@ -1,5 +1,5 @@
 #include "psl/ecs/details/staged_sparse_memory_region.hpp"
-
+#include "psl/utility/cast.hpp"
 
 namespace psl::ecs::details
 {
@@ -38,7 +38,6 @@ namespace psl::ecs::details
 
 	auto staged_sparse_memory_region_t::reserve(size_t capacity) -> void
 	{
-		capacity *= m_Size;
 		if(capacity <= m_Reverse.capacity()) return;
 
 		m_Reverse.reserve(capacity);
@@ -57,6 +56,23 @@ namespace psl::ecs::details
 			chunk_index = (size - (size % mod_val)) / chunks_size;
 		}
 		if(m_Sparse.size() <= chunk_index) m_Sparse.resize(chunk_index + 1);
+	}
+
+	auto staged_sparse_memory_region_t::addressof(key_type index, stage_range_t stage) const noexcept -> const_pointer
+	{
+		key_type sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, stage);
+		return (static_cast<const_pointer>(m_DenseData.data()) +
+				(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
+	}
+
+	auto staged_sparse_memory_region_t::addressof(key_type index, stage_range_t stage) noexcept -> pointer
+	{
+		key_type sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		psl_assert(has(index, stage, stage_count), "missing index {} within [{}, {}] in sparse array", index, stage);
+		return (static_cast<pointer>(m_DenseData.data()) + (get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
 
 	auto staged_sparse_memory_region_t::erase(key_type first, key_type last) noexcept -> void
@@ -82,9 +98,9 @@ namespace psl::ecs::details
 						std::end(m_Reverse));
 
 		m_StageSize[to_underlying(stage_t::SETTLED)] += m_StageSize[to_underlying(stage_t::ADDED)];
-		m_StageStart[to_underlying(stage_t::ADDED)]  = m_StageSize[to_underlying(stage_t::SETTLED)];
-		m_StageStart[3]									  = m_StageStart[to_underlying(stage_t::REMOVED)];
-		m_StageSize[to_underlying(stage_t::ADDED)]	  = 0;
+		m_StageStart[to_underlying(stage_t::ADDED)]	 = m_StageSize[to_underlying(stage_t::SETTLED)];
+		m_StageStart[3]								 = m_StageStart[to_underlying(stage_t::REMOVED)];
+		m_StageSize[to_underlying(stage_t::ADDED)]	 = 0;
 		m_StageSize[to_underlying(stage_t::REMOVED)] = 0;
 	}
 
@@ -119,10 +135,12 @@ namespace psl::ecs::details
 
 	inline auto staged_sparse_memory_region_t::grow() -> void
 	{
-		auto capacity = m_Reverse.capacity() + 1;
+		auto capacity = psl::utility::narrow_cast<key_type>(m_Reverse.capacity() + 1);
+
 		if(m_DenseData.size() < capacity * m_Size)
 		{
-			auto new_capacity = std::max(capacity, m_DenseData.size() * 2 / m_Size);
+			auto new_capacity =
+			  std::max<key_type>(capacity, psl::utility::narrow_cast<key_type>(m_DenseData.size() * 2 / m_Size));
 
 			// copy the data to a new container of the given size, and then assign that container to the member
 			// variable.
@@ -132,11 +150,10 @@ namespace psl::ecs::details
 				m_DenseData = std::move(reg);
 			}
 			m_Reverse.reserve((m_DenseData.size() / m_Size) - 1);
-
-			psl_assert((m_Reverse.capacity() + 1) * m_Size <= m_DenseData.size() &&
-						 (m_Reverse.capacity() + 2) * m_Size >= m_DenseData.size(),
-					   "capacity was not in line with density data");
 		}
+		psl_assert((m_Reverse.capacity() + 1) * m_Size <= m_DenseData.size() &&
+					 (m_Reverse.capacity() + 2) * m_Size >= m_DenseData.size(),
+				   "capacity was not in line with density data");
 	}
 
 	inline auto staged_sparse_memory_region_t::insert_impl(chunk_type& chunk, key_type offset, key_type user_index)
