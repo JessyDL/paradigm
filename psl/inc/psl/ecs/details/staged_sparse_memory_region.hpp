@@ -73,15 +73,6 @@ namespace psl::ecs::details
 		{
 			return staged_sparse_memory_region_t(sizeof(T));
 		}
-		/// --------------------------------------------------------------------------
-		/// Query operations
-		/// --------------------------------------------------------------------------
-
-		constexpr auto size(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> size_type
-		{
-			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
-		}
-		constexpr auto empty() const noexcept -> bool { return std::empty(m_Reverse); };
 
 		void clear() noexcept
 		{
@@ -124,9 +115,6 @@ namespace psl::ecs::details
 			*((type*)m_DenseData.data() + chunk[sub_index]) = std::forward<type>(value);
 			return true;
 		}
-
-		auto reserve(size_t capacity) -> void;
-		auto resize(key_type size) -> void;
 
 		template <typename T>
 		inline auto dense(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<T>
@@ -233,6 +221,13 @@ namespace psl::ecs::details
 		auto merge(const staged_sparse_memory_region_t& other) noexcept -> void;
 
 	  private:
+		constexpr auto size(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> size_type
+		{
+			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
+		}
+		constexpr auto empty() const noexcept -> bool { return std::empty(m_Reverse); };
+		auto resize(key_type size) -> void;
+		auto reserve(size_t capacity) -> void;
 		constexpr auto capacity() const noexcept -> size_type { return std::size(m_Sparse) * chunks_size; }
 		template <typename T>
 		constexpr inline auto to_underlying(T value) const noexcept -> std::underlying_type_t<T>
