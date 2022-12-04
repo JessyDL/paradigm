@@ -61,7 +61,7 @@ namespace psl::ecs::details
 
 		/// \note prefer using the `instantiate<T>()` function
 		/// \param size element size in the container
-		staged_sparse_memory_region_t(size_t size) : m_DenseData(0), m_Size(size) { grow(); }
+		staged_sparse_memory_region_t(size_t size);
 
 		staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)		 = default;
 		staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept	 = default;

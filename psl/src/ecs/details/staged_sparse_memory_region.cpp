@@ -3,6 +3,8 @@
 
 namespace psl::ecs::details
 {
+	staged_sparse_memory_region_t::staged_sparse_memory_region_t(size_t size) : m_DenseData(0), m_Size(size) { grow(); }
+
 	auto staged_sparse_memory_region_t::has(key_type index, stage_range_t stage) const noexcept -> bool
 	{
 		if(index < capacity())
