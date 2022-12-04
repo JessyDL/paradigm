@@ -167,9 +167,9 @@ namespace psl::ecs::details
 		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> const_pointer;
 		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> pointer;
 
-		auto erase(key_type first, key_type last) noexcept -> void;
+		auto erase(key_type first, key_type last) noexcept -> size_t;
 
-		inline void erase(key_type index) noexcept { return erase(index, index + 1); }
+		inline auto erase(key_type index) noexcept -> size_t { return erase(index, index + 1); }
 
 		template <typename T>
 		void emplace(key_type index, T&& value)

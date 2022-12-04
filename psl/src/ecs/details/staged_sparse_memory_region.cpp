@@ -77,15 +77,21 @@ namespace psl::ecs::details
 		return (static_cast<pointer>(m_DenseData.data()) + (get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
 
-	auto staged_sparse_memory_region_t::erase(key_type first, key_type last) noexcept -> void
+	auto staged_sparse_memory_region_t::erase(key_type first, key_type last) noexcept -> size_t
 	{
+		size_t count {0};
 		for(auto i = first; i < last; ++i)
 		{
 			auto sub_index = i;
 			auto& chunk	   = chunk_for(sub_index);
 
-			if(has_impl(chunk, sub_index)) erase_impl(chunk, sub_index, i);
+			if(has_impl(chunk, sub_index))
+			{
+				erase_impl(chunk, sub_index, i);
+				++count;
+			}
 		}
+		return count;
 	}
 
 	auto staged_sparse_memory_region_t::insert(key_type index) -> void
