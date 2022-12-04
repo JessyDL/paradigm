@@ -182,14 +182,7 @@ namespace psl::ecs::details
 		{
 			this->template operator[]<T>(index) = value;
 		}
-		void insert(key_type index)
-		{
-			auto sub_index = index;
-			auto& chunk	   = chunk_for(sub_index);
-
-			insert_impl(chunk, sub_index, index);
-		}
-
+		auto insert(key_type index) -> void;
 		auto promote() noexcept -> void;
 
 		template <typename Fn>
@@ -235,8 +228,39 @@ namespace psl::ecs::details
 			return static_cast<std::underlying_type_t<T>>(value);
 		}
 
-		constexpr inline auto stage_begin(stage_range_t stage) const noexcept -> size_t;
-		constexpr inline auto stage_end(stage_range_t stage) const noexcept -> size_t;
+		constexpr inline auto stage_begin(stage_range_t stage) const noexcept -> size_t
+		{
+			switch(stage)
+			{
+			case stage_range_t::SETTLED:
+			case stage_range_t::ALIVE:
+			case stage_range_t::ALL:
+				return to_underlying(stage_t::SETTLED);
+			case stage_range_t::ADDED:
+			case stage_range_t::TERMINAL:
+				return to_underlying(stage_t::ADDED);
+			case stage_range_t::REMOVED:
+				return to_underlying(stage_t::REMOVED);
+			}
+			psl::unreachable("stage was of unknown value");
+		}
+
+		constexpr inline auto stage_end(stage_range_t stage) const noexcept -> size_t
+		{
+			switch(stage)
+			{
+			case stage_range_t::SETTLED:
+				return to_underlying(stage_t::ADDED);
+			case stage_range_t::ALIVE:
+			case stage_range_t::ADDED:
+				return to_underlying(stage_t::REMOVED);
+			case stage_range_t::TERMINAL:
+			case stage_range_t::REMOVED:
+			case stage_range_t::ALL:
+				return to_underlying(stage_t::REMOVED) + 1;
+			}
+			psl::unreachable("stage was of unknown value");
+		}
 
 		auto operator[](key_type index) -> reference;
 
@@ -251,7 +275,47 @@ namespace psl::ecs::details
 		inline auto erase_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void;
 		constexpr inline auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type&;
 		constexpr inline auto get_chunk_from_index(key_type index) noexcept -> chunk_type&;
-		constexpr inline auto chunk_for(key_type& index) noexcept -> chunk_type&;
+		constexpr inline auto chunk_for(key_type& index) noexcept -> chunk_type&
+		{
+			if(index >= capacity()) resize(index + 1);
+
+			if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+			{
+				if constexpr(is_power_of_two)
+				{
+					index = index & (mod_val);
+				}
+				else
+				{
+					index = index % mod_val;
+				}
+				return *m_CachedChunk;
+			}
+			key_type chunk_index;
+			if constexpr(is_power_of_two)
+			{
+				const auto element_index = index & (mod_val);
+				chunk_index				 = (index - element_index) / chunks_size;
+				m_CachedChunkUserIndex	 = index - element_index;
+				index					 = element_index;
+			}
+			else
+			{
+				const auto element_index = index % mod_val;
+				chunk_index				 = (index - element_index) / chunks_size;
+				m_CachedChunkUserIndex	 = index - element_index;
+				index					 = element_index;
+			}
+			std::optional<chunk_type>& chunk = m_Sparse[chunk_index];
+			if(!chunk)
+			{
+				chunk = chunk_type {};
+				// chunk.resize(chunks_size);
+				std::fill(std::begin(chunk.value()), std::end(chunk.value()), std::numeric_limits<key_type>::max());
+			}
+			m_CachedChunk = &chunk.value();
+			return chunk.value();
+		}
 
 		constexpr inline auto get_chunk_from_user_index(key_type index) const noexcept -> const chunk_type&;
 		constexpr inline auto get_chunk_from_user_index(key_type index) noexcept -> chunk_type&;

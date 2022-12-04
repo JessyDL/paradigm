@@ -88,6 +88,14 @@ namespace psl::ecs::details
 		}
 	}
 
+	auto staged_sparse_memory_region_t::insert(key_type index) -> void
+	{
+		auto sub_index = index;
+		auto& chunk	   = chunk_for(sub_index);
+
+		insert_impl(chunk, sub_index, index);
+	}
+
 	auto staged_sparse_memory_region_t::promote() noexcept -> void
 	{
 		for(auto i = m_StageStart[to_underlying(stage_t::REMOVED)]; i < m_Reverse.size(); ++i)
@@ -259,48 +267,6 @@ namespace psl::ecs::details
 		return m_Sparse[index].value();
 	}
 
-	constexpr inline auto staged_sparse_memory_region_t::chunk_for(key_type& index) noexcept -> chunk_type&
-	{
-		if(index >= capacity()) resize(index + 1);
-
-		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
-		{
-			if constexpr(is_power_of_two)
-			{
-				index = index & (mod_val);
-			}
-			else
-			{
-				index = index % mod_val;
-			}
-			return *m_CachedChunk;
-		}
-		key_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
-			const auto element_index = index & (mod_val);
-			chunk_index				 = (index - element_index) / chunks_size;
-			m_CachedChunkUserIndex	 = index - element_index;
-			index					 = element_index;
-		}
-		else
-		{
-			const auto element_index = index % mod_val;
-			chunk_index				 = (index - element_index) / chunks_size;
-			m_CachedChunkUserIndex	 = index - element_index;
-			index					 = element_index;
-		}
-		std::optional<chunk_type>& chunk = m_Sparse[chunk_index];
-		if(!chunk)
-		{
-			chunk = chunk_type {};
-			// chunk.resize(chunks_size);
-			std::fill(std::begin(chunk.value()), std::end(chunk.value()), std::numeric_limits<key_type>::max());
-		}
-		m_CachedChunk = &chunk.value();
-		return chunk.value();
-	}
-
 	constexpr inline auto staged_sparse_memory_region_t::get_chunk_from_user_index(key_type index) const noexcept
 	  -> const chunk_type&
 	{
@@ -353,40 +319,4 @@ namespace psl::ecs::details
 			element_index = index % mod_val;
 		}
 	}
-
-
-	constexpr inline auto staged_sparse_memory_region_t::stage_begin(stage_range_t stage) const noexcept -> size_t
-	{
-		switch(stage)
-		{
-		case stage_range_t::SETTLED:
-		case stage_range_t::ALIVE:
-		case stage_range_t::ALL:
-			return to_underlying(stage_t::SETTLED);
-		case stage_range_t::ADDED:
-		case stage_range_t::TERMINAL:
-			return to_underlying(stage_t::ADDED);
-		case stage_range_t::REMOVED:
-			return to_underlying(stage_t::REMOVED);
-		}
-		psl::unreachable("stage was of unknown value");
-	}
-
-	constexpr inline auto staged_sparse_memory_region_t::stage_end(stage_range_t stage) const noexcept -> size_t
-	{
-		switch(stage)
-		{
-		case stage_range_t::SETTLED:
-			return to_underlying(stage_t::ADDED);
-		case stage_range_t::ALIVE:
-		case stage_range_t::ADDED:
-			return to_underlying(stage_t::REMOVED);
-		case stage_range_t::TERMINAL:
-		case stage_range_t::REMOVED:
-		case stage_range_t::ALL:
-			return to_underlying(stage_t::REMOVED) + 1;
-		}
-		psl::unreachable("stage was of unknown value");
-	}
-
 }	 // namespace psl::ecs::details
