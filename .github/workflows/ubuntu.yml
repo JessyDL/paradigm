@@ -28,7 +28,7 @@ jobs:
         include:
           - cc: gcc-12
             cxx: g++-12
-            benchmarks: ON
+            benchmarks: OFF
             tests: ON
             compiler: gcc
             target: gnu-linux
@@ -43,6 +43,9 @@ jobs:
             benchmarks: OFF
             tests: OFF
             compiler: clang
+          - compiler: gcc
+            graphics: all
+            benchmarks: ON
         exclude:
           - target: android
             compiler: clang
@@ -90,9 +93,8 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
-        graphics: [vulkan, all]
-        include:
-          - compiler: gcc
+        graphics: [ all ]
+        compiler: [ gcc ]
     name: benchmark
     needs: build
     runs-on: ubuntu-22.04
