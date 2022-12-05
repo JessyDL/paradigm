@@ -52,7 +52,6 @@
 #include "resource/resource.hpp"
 
 #include "data/stream.hpp"
-#include "psl/ecs/state.hpp"
 
 #include "psl/assertions.hpp"
 
