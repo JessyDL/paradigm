@@ -197,11 +197,27 @@ handle<core::gfx::material_t> setup_gfx_depth_material(resource::cache_t& cache,
 void create_ui(psl::ecs::state_t& state) {}
 
 #ifndef PLATFORM_ANDROID
+
+inline std::tm localtime_safe(std::time_t timer)
+{
+	std::tm bt {};
+	#if defined(__unix__)
+	localtime_r(&timer, &bt);
+	#elif defined(_MSC_VER)
+	localtime_s(&bt, &timer);
+	#else
+	static std::mutex mtx;
+	std::lock_guard<std::mutex> lock(mtx);
+	bt = *std::localtime(&timer);
+	#endif
+	return bt;
+}
+
 void setup_loggers()
 {
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	std::time_t now_c						  = std::chrono::system_clock::to_time_t(now);
-	std::tm now_tm							  = *std::localtime(&now_c);
+	std::tm now_tm							  = localtime_safe(now_c);
 	psl::string time;
 	time.resize(20);
 	strftime(time.data(), 20, "%Y-%m-%d %H-%M-%S", &now_tm);
