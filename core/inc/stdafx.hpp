@@ -52,6 +52,11 @@
 #include "resource/resource.hpp"
 
 #include "data/stream.hpp"
+#include "psl/ecs/state.hpp"
+
+#include "psl/assertions.hpp"
+
+#include "gfx/stdafx.hpp"
 
 #if defined(PLATFORM_WINDOWS)
 #define _CRTDBG_MAP_ALLOC
