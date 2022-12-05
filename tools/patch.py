@@ -125,7 +125,7 @@ def patch_utf8(folders):
 
 if __name__ == "__main__":
     parser = ArgumentParser(description='Patch project files.')
-    parser.add_argument("--project", nargs='+', 
+    parser.add_argument("--project",  
                     help="Override for the project files directory, this is relative to the root")
     parser.add_argument("--utf8", nargs='+', 
                     help="Override for the project files directory, this is relative to the root")
