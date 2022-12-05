@@ -35,7 +35,8 @@ jobs:
       run: |
             cd builds\x64\release\bin
             .\tests.exe --formatter compact --no-source
-    - name: finalize
+    - name: finalize    
+      if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v3
       with:
         name: windows-${{ matrix.graphics }}-bin
