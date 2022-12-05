@@ -16,13 +16,13 @@
 
 namespace psl::ecs::details
 {
+	/// \brief Constraint for what types can safely be stored by `staged_sparse_memory_region_t`
 	template <typename T>
-	concept IsValidForContainer = std::is_trivial<T>::value;
-	/// @brief
-	/// @tparam Key
-	/// @tparam chunks_size
+	concept IsValidForStagedSparseMemoryRange = std::is_trivial<T>::value;
+
+	/// \brief A specialized container type to store components in a type agnostic manner
 	/// \note due to the dense data being stored on its own page, alignment shouldn't be a concern.
-	/// \warning this container is unsuitable for types that have non-trivial constructors, copy/move operations, and destructors.
+	/// \warning This container is unsuitable for types that have non-trivial constructors, copy/move operations, and destructors. Check your type against `IsValidForStagedSparseMemoryRange` to verify.
 	class staged_sparse_memory_region_t
 	{
 		using Key = psl::ecs::entity;
@@ -42,6 +42,7 @@ namespace psl::ecs::details
 		using iterator_category = std::random_access_iterator_tag;
 		using chunk_type		= psl::static_array<key_type, chunks_size>;
 
+		/// \brief Defines the discrete stages the `staged_sparse_memory_region_t` can store
 		enum class stage_t : uint8_t
 		{
 			SETTLED = 0,	// values that have persisted for one promotion, and aren't about to be removed
@@ -49,6 +50,7 @@ namespace psl::ecs::details
 			REMOVED = 2,	// values slated for removal with the next promote calld values
 		};
 
+		/// \brief Defines types of ranges you can safely interact with in a contiguous way
 		enum class stage_range_t : uint8_t
 		{
 			SETTLED,	 // values that have persisted for one promotion, and aren't about to be removed
@@ -68,12 +70,17 @@ namespace psl::ecs::details
 		staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other)	 = default;
 		staged_sparse_memory_region_t& operator=(staged_sparse_memory_region_t&& other) noexcept = default;
 
-		template <typename T>
+		/// \brief Safe (and preferred) method of creating a `staged_sparse_memory_region_t`
+		/// \tparam T component type this should be storing (only used for size)
+		/// \returns An instance of `staged_sparse_memory_region_t` set up to be used with the given type
+		template <IsValidForStagedSparseMemoryRange T>
 		static inline auto instantiate() -> staged_sparse_memory_region_t
 		{
 			return staged_sparse_memory_region_t(sizeof(T));
 		}
 
+		/// \brief Revert the object back to a safe default stage
+		/// \note memory does not get deallocated.
 		void clear() noexcept
 		{
 			m_Reverse.clear();
@@ -83,23 +90,50 @@ namespace psl::ecs::details
 			m_StageSize			   = {0, 0, 0};
 		}
 
-
+		/// \brief Checks if the given index exist in the requested range
+		/// \param index Index to check
+		/// \param stage Stage that will be searched in
+		/// \return Boolean containing true if found
 		auto has(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> bool;
 
-		template <typename T>
+		/// \brief Fetch or create the item at the given index
+		/// \tparam T Used to check the expected component size
+		/// \param index Where the item would be
+		/// \returns The object as `T` at the given location
+		template <IsValidForStagedSparseMemoryRange T>
 		constexpr inline auto operator[](key_type index) -> T&
 		{
 			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 			return *(T*)(&this->operator[](index));
 		}
 
-		template <typename T>
-		constexpr inline auto get(key_type index) -> T&
+		/// \brief Fetch the item at the given index
+		/// \tparam T Used to check the expected component size
+		/// \param index Where the item would be
+		/// \param stage The `stage_range_t` to search the index.
+		/// \returns The object as `T` at the given location
+		/// \note Throws if the item was not found in the given stage
+		template <IsValidForStagedSparseMemoryRange T>
+		constexpr inline auto get(key_type index, stage_range_t stage = stage_range_t::ALL) const -> T&
 		{
-			return this->template operator[]<T>(index);
+			psl_assert(sizeof(type) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
+			auto sub_index = index;
+			auto& chunk	   = chunk_for(sub_index);
+
+			if(!has(index, stage))
+			{
+				throw std::exception();
+			}
+
+			return *((T*)m_DenseData.data() + chunk[sub_index]);
 		}
 
-		template <typename T>
+		/// \brief Sets the value at the given index
+		/// \tparam T Type of the component (used for size and assignment)
+		/// \param index Index of the item
+		/// \param value The value to set at the given index
+		/// \return Boolean value indicating if the index was successfuly set or not
+		template <IsValidForStagedSparseMemoryRange T>
 		constexpr inline auto set(key_type index, T&& value) -> bool
 		{
 			using type = std::remove_cvref_t<T>;
@@ -116,7 +150,11 @@ namespace psl::ecs::details
 			return true;
 		}
 
-		template <typename T>
+		/// \brief Get a view of the underlying data for the given `stage_range_t`
+		/// \tparam T Component type to interpret the data as
+		/// \param stage `stage_range_t` to limit what data is returned
+		/// \return A view of the underlying data as the requested type
+		template <IsValidForStagedSparseMemoryRange T>
 		inline auto dense(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<T>
 		{
 			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
@@ -124,65 +162,112 @@ namespace psl::ecs::details
 									   std::next((T*)m_DenseData.data(), m_StageStart[stage_end(stage)])};
 		}
 
+		/// \brief Get a view of the indices for the given `stage_range_t`
+		/// \param stage `stage_range_t` to limit what indices are returned
+		/// \return A view of the indices
 		inline auto indices(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<key_type>
 		{
 			return psl::array_view<key_type> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
 											  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 		}
 
+		/// \brief Get the data pointer for the given stage (where the data begins)
+		/// \param stage `stage_t` to retrieve
+		/// \return A pointer to the head of the dense data
 		auto data(stage_t stage) noexcept -> pointer
 		{
 			return static_cast<pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 		}
 
+		/// \brief Get the data pointer for the given stage (where the data begins)
+		/// \param stage `stage_t` to retrieve
+		/// \return A pointer to the head of the dense data
 		auto cdata(stage_t stage) const noexcept -> const_pointer
 		{
 			return static_cast<const_pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 		}
 
-		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> const_reference
-		{
-			return *addressof(index, stage);
-		}
-
-		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> reference
-		{
-			return *addressof(index, stage);
-		}
-
-		template <typename T>
+		/// \brief Get a reference of the requested type at the index
+		/// \tparam T Type we want to interpret the data as
+		/// \param index Where to look
+		/// \param stage Used to limit the stages we wish to look in
+		/// \return Given memory address as a const ref
+		/// \note When assertions are enabled, this function can assert
+		template <IsValidForStagedSparseMemoryRange T>
 		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> T const&
 		{
 			return *reinterpret_cast<T const*>(addressof(index, stage));
 		}
 
-		template <typename T>
+
+		/// \brief Get a reference of the requested type at the index
+		/// \tparam T Type we want to interpret the data as
+		/// \param index Where to look
+		/// \param stage Used to limit the stages we wish to look in
+		/// \return Given memory address as a const ref
+		/// \note When assertions are enabled, this function can assert
+		template <IsValidForStagedSparseMemoryRange T>
 		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> T&
 		{
 			return *reinterpret_cast<T*>(addressof(index, stage));
 		}
 
+		/// \brief Get a pointer of the data at the index
+		/// \param index Where to look
+		/// \param stage Used to limit the stages we wish to look in
+		/// \return memory address
+		/// \note When assertions are enabled, this function can assert
 		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> const_pointer;
+
+		/// \brief Get a pointer of the data at the index
+		/// \param index Where to look
+		/// \param stage Used to limit the stages we wish to look in
+		/// \return memory address
+		/// \note When assertions are enabled, this function can assert
 		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> pointer;
 
+		/// \brief Erases all values between the first/last indices
+		/// \param first Begin of the range
+		/// \param last End of the range
+		/// \return Amount of elements erased
 		auto erase(key_type first, key_type last) noexcept -> size_t;
 
+		/// \brief Erases value at the given index
+		/// \param index Index to erase
+		/// \return Amount of elements erased (0 or 1)
 		inline auto erase(key_type index) noexcept -> size_t { return erase(index, index + 1); }
 
-		template <typename T>
-		void emplace(key_type index, T&& value)
+		/// \brief Emplaces an item at the given index
+		/// \tparam T The type of the element to emplace
+		/// \param index Where to emplace it
+		/// \param value The value to emplace
+		/// \note When assertions are enabled this method can assert when the tparam is not of the expected size
+		template <IsValidForStagedSparseMemoryRange T>
+		auto emplace(key_type index, T&& value) -> void
 		{
 			this->template operator[]<T>(index) = std::forward<T>(value);
 		}
 
-		template <typename T>
-		void insert(key_type index, const T& value)
+		/// \brief Inserts an item at the given index
+		/// \tparam T The type of the element to insert
+		/// \param index Where to insert it
+		/// \param value The value to insert
+		/// \note When assertions are enabled this method can assert when the tparam is not of the expected size
+		/// \note The value is assigned regardless if the index already contained a value.
+		template <IsValidForStagedSparseMemoryRange T>
+		auto insert(key_type index, const T& value) -> void
 		{
 			this->template operator[]<T>(index) = value;
 		}
 
+		/// \brief Inserts all items [begin, end) starting from the index
+		/// \param index First index to where to start the insertions
+		/// \param begin Iterator to the beginning of the values range
+		/// \param end Iterator to the end of the values range
+		/// \note When assertions are enabled this method can assert when the typename is not of the expected size
+		/// \note The value is assigned regardless if the index already contained a value.
 		template <typename ItF, typename ItL>
-		void insert(key_type index, ItF&& begin, ItL&& end)
+		auto insert(key_type index, ItF&& begin, ItL&& end) -> void
 		{
 			for(auto it = begin; it != end; it = std::next(it), ++index)
 			{
@@ -190,9 +275,17 @@ namespace psl::ecs::details
 			}
 		}
 
+		/// \brief Valueless insert. Either creates the memory for the given index, or does nothing if it already exists
+		/// \param index Where to insert
 		auto insert(key_type index) -> void;
+
+		/// \brief Promotes all values to the next `stage_t`. The cycle is as follows: ADDED -> SETTLED -> REMOVED -> deleted.
 		auto promote() noexcept -> void;
 
+		/// \brief Remaps the current instance based on the mapping provided
+		/// \tparam Fn 
+		/// \param mapping The mapping to use
+		/// \param predicate Predicate that returns a boolean value if the index was found
 		template <typename Fn>
 		auto remap(const psl::sparse_array<key_type>& mapping, Fn&& predicate) -> void
 		{
