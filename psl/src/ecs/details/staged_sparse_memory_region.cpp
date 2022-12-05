@@ -120,12 +120,19 @@ namespace psl::ecs::details
 		m_StageSize[to_underlying(stage_t::REMOVED)] = 0;
 	}
 
-	auto staged_sparse_memory_region_t::merge(const staged_sparse_memory_region_t& other) noexcept -> void
+	auto staged_sparse_memory_region_t::merge(const staged_sparse_memory_region_t& other) noexcept -> merge_result
 	{
-		psl_assert(m_Size == other.m_Size,
-				   "staged_sparse_memory_region_t should have the same component size, but instead got {} and {}",
-				   m_Size,
-				   other.m_Size);
+		if(m_Size != other.m_Size || this == &other)
+		{
+			psl_assert(m_Size == other.m_Size,
+					   "staged_sparse_memory_region_t should have the same component size, but instead got {} and {}",
+					   m_Size,
+					   other.m_Size);
+			psl_assert(this != &other, "self merging not allowed");
+			return merge_result {false};
+		}
+
+		size_t inserted {0};
 		for(key_type i = 0; i < static_cast<key_type>(other.m_Reverse.size()); ++i)
 		{
 			auto sub_index = other.m_Reverse[i];
@@ -133,6 +140,7 @@ namespace psl::ecs::details
 			if(!has_impl(chunk, sub_index))
 			{
 				insert_impl(chunk, sub_index, other.m_Reverse[i]);
+				++inserted;
 			}
 
 			memcpy((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size),
@@ -143,6 +151,8 @@ namespace psl::ecs::details
 		{
 			erase(other.m_Reverse[i]);
 		}
+		return merge_result {
+		  .success = true, .added = inserted, .total = static_cast<key_type>(other.m_Reverse.size())};
 	}
 
 	/// ---------------------------------------------------------------------------

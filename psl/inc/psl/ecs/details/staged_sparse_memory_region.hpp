@@ -63,9 +63,9 @@ namespace psl::ecs::details
 		/// \param size element size in the container
 		staged_sparse_memory_region_t(size_t size);
 
-		staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)		 = default;
-		staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept	 = default;
-		staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other) = default;
+		staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)				 = default;
+		staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept			 = default;
+		staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other)	 = default;
 		staged_sparse_memory_region_t& operator=(staged_sparse_memory_region_t&& other) noexcept = default;
 
 		template <typename T>
@@ -120,16 +120,14 @@ namespace psl::ecs::details
 		inline auto dense(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<T>
 		{
 			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
-			return psl::array_view<T> {
-			  std::next((T*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
-			  std::next((T*)m_DenseData.data(), m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)])};
+			return psl::array_view<T> {std::next((T*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
+									   std::next((T*)m_DenseData.data(), m_StageStart[stage_end(stage)])};
 		}
 
 		inline auto indices(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<key_type>
 		{
-			return psl::array_view<key_type> {
-			  std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
-			  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)])};
+			return psl::array_view<key_type> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
+											  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 		}
 
 		auto data(stage_t stage) noexcept -> pointer
@@ -152,7 +150,7 @@ namespace psl::ecs::details
 			return *addressof(index, stage);
 		}
 
-		template<typename T>
+		template <typename T>
 		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> T const&
 		{
 			return *reinterpret_cast<T const*>(addressof(index, stage));
@@ -182,6 +180,16 @@ namespace psl::ecs::details
 		{
 			this->template operator[]<T>(index) = value;
 		}
+
+		template <typename ItF, typename ItL>
+		void insert(key_type index, ItF&& begin, ItL&& end)
+		{
+			for(auto it = begin; it != end; it = std::next(it), ++index)
+			{
+				insert(index, *it);
+			}
+		}
+
 		auto insert(key_type index) -> void;
 		auto promote() noexcept -> void;
 
@@ -211,7 +219,17 @@ namespace psl::ecs::details
 			}
 		}
 
-		auto merge(const staged_sparse_memory_region_t& other) noexcept -> void;
+		struct merge_result
+		{
+			bool success {false};
+			size_t added {0};
+			size_t total {0};
+		};
+
+		/// \brief Merges 2 staged_sparse_memory_region_t together (into the current one) replacing pre-existing entries.
+		/// \param other the staged_sparse_memory_region_t to merge into this one
+		/// \returns object that contains { .success /* bool */, .total /* total items processed, inserted + replaced */, .added /* amount that was inserted into the current container */ }
+		auto merge(const staged_sparse_memory_region_t& other) noexcept -> merge_result;
 
 	  private:
 		constexpr auto size(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> size_type
