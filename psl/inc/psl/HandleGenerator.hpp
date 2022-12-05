@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "psl/IDGenerator.hpp"
 
 namespace psl

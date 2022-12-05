@@ -1,4 +1,4 @@
-﻿#include "psl/terminal_utils.hpp"
+#include "psl/terminal_utils.hpp"
 #ifdef PLATFORM_WINDOWS
 #include <Windows.h>
 #endif

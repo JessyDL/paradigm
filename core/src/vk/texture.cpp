@@ -1,4 +1,4 @@
-﻿#include "vk/texture.hpp"
+#include "vk/texture.hpp"
 #include "data/buffer.hpp"
 #include "logging.hpp"
 #include "meta/texture.hpp"

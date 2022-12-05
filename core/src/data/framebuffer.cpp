@@ -1,4 +1,4 @@
-﻿#include "data/framebuffer.hpp"
+#include "data/framebuffer.hpp"
 #include "gfx/sampler.hpp"
 #include "meta/texture.hpp"
 #include "resource/resource.hpp"

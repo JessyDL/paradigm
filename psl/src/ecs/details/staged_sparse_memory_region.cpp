@@ -64,7 +64,7 @@ namespace psl::ecs::details
 	{
 		key_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
-		psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, stage);
+		psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, static_cast<std::underlying_type_t<stage_range_t>>(stage));
 		return (static_cast<const_pointer>(m_DenseData.data()) +
 				(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
@@ -73,7 +73,7 @@ namespace psl::ecs::details
 	{
 		key_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
-		psl_assert(has(index, stage, stage_count), "missing index {} within [{}, {}] in sparse array", index, stage);
+		psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, static_cast<std::underlying_type_t<stage_range_t>>(stage));
 		return (static_cast<pointer>(m_DenseData.data()) + (get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
 

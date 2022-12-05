@@ -1,4 +1,4 @@
-﻿
+
 #include "gfx/drawgroup.hpp"
 #include "data/geometry.hpp"
 #include "logging.hpp"

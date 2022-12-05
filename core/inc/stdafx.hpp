@@ -1,4 +1,4 @@
-﻿// stdafx.h : include file for standard system include files,
+// stdafx.h : include file for standard system include files,
 // or project specific include files that are used frequently, but
 // are changed infrequently
 //
@@ -52,6 +52,10 @@
 #include "resource/resource.hpp"
 
 #include "data/stream.hpp"
+
+#include "psl/assertions.hpp"
+
+#include "gfx/stdafx.hpp"
 
 #if defined(PLATFORM_WINDOWS)
 #define _CRTDBG_MAP_ALLOC

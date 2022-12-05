@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "gfx/drawcall.hpp"
 #include "gfx/drawlayer.hpp"

@@ -116,7 +116,7 @@ namespace psl::ecs::details
 		template <IsValidForStagedSparseMemoryRange T>
 		constexpr inline auto get(key_type index, stage_range_t stage = stage_range_t::ALL) const -> T&
 		{
-			psl_assert(sizeof(type) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
+			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 			auto sub_index = index;
 			auto& chunk	   = chunk_for(sub_index);
 
@@ -137,7 +137,7 @@ namespace psl::ecs::details
 		constexpr inline auto set(key_type index, T&& value) -> bool
 		{
 			using type = std::remove_cvref_t<T>;
-			psl_assert(sizeof(type) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
+			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 			auto sub_index = index;
 			auto& chunk	   = chunk_for(sub_index);
 

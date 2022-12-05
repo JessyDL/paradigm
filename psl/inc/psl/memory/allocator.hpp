@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "range.hpp"
 #include "segment.hpp"
 #include <cmath>

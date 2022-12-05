@@ -1,4 +1,4 @@
-﻿#include "psl/format.hpp"
+#include "psl/format.hpp"
 #include <algorithm>
 
 #if __has_include(<functional>)

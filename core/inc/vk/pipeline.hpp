@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "psl/array_view.hpp"
 #include "resource/resource.hpp"

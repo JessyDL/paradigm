@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "resource/resource.hpp"
 #include "vk/ivk.hpp"
 

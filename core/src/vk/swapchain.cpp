@@ -1,4 +1,4 @@
-﻿#include "vk/ivk.hpp"
+#include "vk/ivk.hpp"
 #include "vk/swapchain.hpp"
 #include "logging.hpp"
 #include "meta/texture.hpp"

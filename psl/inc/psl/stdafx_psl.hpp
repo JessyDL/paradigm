@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #define __STDC_WANT_LIB_EXT1__ 1	// https://stackoverflow.com/questions/31278172/undefined-reference-to-memcpy-s
 #include <array>

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "fwd/gfx/context.hpp"
 #include "psl/memory/range.hpp"
 #include "psl/memory/segment.hpp"

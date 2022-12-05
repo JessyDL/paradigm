@@ -1,4 +1,5 @@
 from argparse import ArgumentParser
+import codecs
 import re
 import functools
 import os
@@ -98,9 +99,39 @@ def patch_msvc(root):
         raise Exception(f"No project files found at path '{root}', did you supply the correct path?")
     fObj.patch()
 
+def patch_utf8(folders):
+    for folder in folders:
+        for r, d, f in os.walk(folder):
+            for file in f:
+                try:
+                    BUFSIZE = 4096
+                    BOMLEN = len(codecs.BOM_UTF8)
+
+                    with open(os.path.join(r, file), "r+b") as fp:
+                        chunk = fp.read(BUFSIZE)
+                        if chunk.startswith(codecs.BOM_UTF8):
+                            i = 0
+                            chunk = chunk[BOMLEN:]
+                            while chunk:
+                                fp.seek(i)
+                                fp.write(chunk)
+                                i += len(chunk)
+                                fp.seek(BOMLEN, os.SEEK_CUR)
+                                chunk = fp.read(BUFSIZE)
+                            fp.seek(-BOMLEN, os.SEEK_CUR)
+                            fp.truncate()
+                except:
+                    continue
+
 if __name__ == "__main__":
     parser = ArgumentParser(description='Patch project files.')
-    parser.add_argument("directory", nargs='?', 
+    parser.add_argument("--project",  
+                    help="Override for the project files directory, this is relative to the root")
+    parser.add_argument("--utf8", nargs='+', 
                     help="Override for the project files directory, this is relative to the root")
     args = parser.parse_args()
-    patch(args.directory)
+
+    if args.project:
+        patch(args.project)
+    if args.utf8:
+        patch_utf8(args.utf8)

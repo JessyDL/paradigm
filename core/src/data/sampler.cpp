@@ -1,4 +1,4 @@
-﻿#include "data/sampler.hpp"
+#include "data/sampler.hpp"
 #include "resource/resource.hpp"
 #include <fmt/compile.h>
 using namespace psl;

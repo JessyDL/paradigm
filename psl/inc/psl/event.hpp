@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "delegate.hpp"
 #include <cstring>	  // std::mem*
 #include <functional>

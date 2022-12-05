@@ -1,4 +1,4 @@
-﻿#include "psl/memory/allocator.hpp"
+#include "psl/memory/allocator.hpp"
 #include "psl/memory/range.hpp"
 #include "psl/memory/region.hpp"
 #include <algorithm>

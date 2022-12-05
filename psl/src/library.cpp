@@ -1,4 +1,4 @@
-﻿#include "psl/library.hpp"
+#include "psl/library.hpp"
 #include "psl/platform_utils.hpp"
 #include "psl/assertions.hpp"
 #include "psl/serialization/polymorphic.hpp"

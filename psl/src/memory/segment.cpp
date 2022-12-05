@@ -1,4 +1,4 @@
-﻿#include "psl/memory/segment.hpp"
+#include "psl/memory/segment.hpp"
 #include "psl/memory/range.hpp"
 
 using namespace memory;

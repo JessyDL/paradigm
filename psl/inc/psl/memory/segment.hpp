@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "psl/assertions.hpp"
 #include "range.hpp"
 #include <cstring>

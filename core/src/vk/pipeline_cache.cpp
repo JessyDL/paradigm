@@ -1,4 +1,4 @@
-﻿#include "vk/pipeline_cache.hpp"
+#include "vk/pipeline_cache.hpp"
 #include "data/material.hpp"
 #include "logging.hpp"
 #include "psl/meta.hpp"

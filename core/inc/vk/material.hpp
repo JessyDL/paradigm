@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "gfx/details/instance.hpp"
 #include "psl/IDGenerator.hpp"
 #include "resource/resource.hpp"

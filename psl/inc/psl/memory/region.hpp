@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "allocator.hpp"
 #include "psl/expected.hpp"
 #include "psl/platform_def.hpp"

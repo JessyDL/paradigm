@@ -1,4 +1,4 @@
-﻿#include "psl/formatted_string_buffer.hpp"
+#include "psl/formatted_string_buffer.hpp"
 #include "psl/logging.hpp"
 #include <numeric>
 
