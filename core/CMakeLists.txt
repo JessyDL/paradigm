@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.16)
 set(PROJECT_CORE core CACHE INTERNAL "")
 set(LOCAL_PROJECT ${PROJECT_CORE})
 project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
@@ -108,6 +108,8 @@ add_custom_command(TARGET core_generator
 
 add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
 add_dependencies(${LOCAL_PROJECT} core_generator)
+
+target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
 
 if(VK_STATIC AND PE_VULKAN)	
 	if(WIN32)

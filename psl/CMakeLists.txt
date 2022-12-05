@@ -17,6 +17,9 @@ endif()
 find_package (Threads)
 
 add_library(${LOCAL_PROJECT} STATIC ${INC} ${SRC} ${NATVIS})
+
+target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>

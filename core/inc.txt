@@ -1,3 +1,10 @@
+SET(INC_PCH
+	stdafx
+)
+
+list(TRANSFORM INC_PCH PREPEND inc/)
+list(TRANSFORM INC_PCH APPEND .hpp)
+
 SET(INC 
 conversion_utils
 logging

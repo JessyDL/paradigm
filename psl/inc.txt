@@ -1,3 +1,10 @@
+SET(INC_PCH
+	stdafx_psl
+)
+
+list(TRANSFORM INC_PCH PREPEND inc/psl/)
+list(TRANSFORM INC_PCH APPEND .hpp)
+
 SET(INC 
 stdafx_psl
 algorithm
