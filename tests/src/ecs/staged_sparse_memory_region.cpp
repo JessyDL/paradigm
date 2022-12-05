@@ -61,137 +61,64 @@ namespace
 		  val.dense<float>(ssmr_t::stage_range_t::TERMINAL).size();
 	}
 
-	void insert_elements(ssmr_t& container, entity first, entity last)
+	template <typename T>
+	inline auto
+	append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges, std::vector<T> values = {}) -> size_t
 	{
-		auto start_count_added	 = container.indices(ssmr_t::stage_range_t::ADDED).size();
-		auto start_count_settled = container.indices(ssmr_t::stage_range_t::SETTLED).size();
-		float default_value		 = 10.0f;
-		entity count			 = 0;
-
-		section<"with data">() = [&]() {
-			count = last - first;
-			for(entity i = first; i < last; ++i, ++default_value)
-			{
-				container.insert(i, default_value);
-			}
-		};
-		section<"without data (post modification)">() = [&]() {
-			count = last - first;
-			for(entity i = first; i < last; ++i)
-			{
-				container.insert(i);
-			}
-			for(entity i = first; i < last; ++i, ++default_value)
-			{
-				require(container.set(i, default_value));
-			}
-
-
-			require(all_of_n(first, last, [&default_value, &container](auto i) mutable {
-				return container.at<float>(i, ssmr_t::stage_range_t::ADDED) == default_value++;
-			}));
-		};
-
-		default_value -= count;
-		require(all_of_n(first, first + count, [&default_value, &container](auto i) mutable {
-			return container.at<float>(i, ssmr_t::stage_range_t::ADDED) == default_value++;
-		}));
-
-		require(container.indices(ssmr_t::stage_range_t::ADDED).size()) == count + start_count_added;
-		require(container.indices(ssmr_t::stage_range_t::SETTLED).size()) == start_count_settled;
-		require(container.indices().size()) == start_count_settled;
-
-		compare_ranges(container);
-	}
-
-	void remove_elements(ssmr_t& container, entity first, entity last)
-	{
-		auto start_count_all	 = container.indices(ssmr_t::stage_range_t::ALL).size();
-		auto start_count_alive	 = container.indices(ssmr_t::stage_range_t::ALIVE).size();
-		auto start_count_removed = container.indices(ssmr_t::stage_range_t::REMOVED).size();
-
-		size_t erased {0};
-		size_t expected = std::accumulate(
-		  std::begin(container.indices(ssmr_t::stage_range_t::ALIVE)),
-		  std::end(container.indices(ssmr_t::stage_range_t::ALIVE)),
-		  size_t {0},
-		  [&container](size_t sum, entity index) { return sum + container.has(index, ssmr_t::stage_range_t::ALIVE); });
-
-		section<"ranged">() = [&]() { erased = container.erase(first, last); };
-
-		section<"manual">() = [&]() {
-			for(auto i = first; i != last; ++i) erased += container.erase(i);
-		};
-		require(expected) == erased;
-
-		for(entity i = 0; i < erased; ++i)
-		{
-			require(!container.has(i + first));
-		}
-		require(container.indices(ssmr_t::stage_range_t::ALL).size()) == start_count_all;
-		require(container.indices(ssmr_t::stage_range_t::ALIVE).size()) == start_count_alive - erased;
-		require(container.indices(ssmr_t::stage_range_t::REMOVED).size()) == start_count_removed + erased;
-
-		compare_ranges(container);
-	}
-
-	void promote_elements(ssmr_t& container)
-	{
-		auto added	 = container.indices(ssmr_t::stage_range_t::ADDED).size();
-		auto removed = container.indices(ssmr_t::stage_range_t::REMOVED).size();
-		auto settled = container.indices(ssmr_t::stage_range_t::SETTLED).size();
-		auto all	 = container.indices(ssmr_t::stage_range_t::ALL).size();
-
-		container.promote();
-
-		require(container.indices(ssmr_t::stage_range_t::ADDED).size()) == 0;
-		require(container.indices(ssmr_t::stage_range_t::REMOVED).size()) == 0;
-		require(container.indices(ssmr_t::stage_range_t::SETTLED).size()) == added + settled;
-		require(container.indices(ssmr_t::stage_range_t::ALL).size()) == all - removed;
-
-		compare_ranges(container);
-	}
-
-	void merge(ssmr_t& container, ssmr_t& other)
-	{
-		auto container_indices = psl::array<entity> {container.indices()};
-		auto result			   = container.merge(other);
 		size_t total {0};
-		for(auto index : other.indices())
+		if(values.empty())
 		{
-			require(container.has(index));
-			++total;
+			for(auto [first, last] : ranges)
+			{
+				for(auto it = first; it != last; ++it)
+				{
+					total += (size_t)(!container.has(it));
+					container.insert(it);
+				}
+			}
 		}
-		require(other.indices().size()) == total;
-
-		auto other_indices = psl::array<entity> {other.indices()};
-
-		psl::array<entity> pre_existing {};
-		std::sort(std::begin(container_indices), std::end(container_indices));
-		std::sort(std::begin(other_indices), std::end(other_indices));
-		std::set_difference(std::begin(container_indices),
-							std::end(container_indices),
-							std::begin(other_indices),
-							std::end(other_indices),
-							std::back_inserter(pre_existing));
-
-		require(pre_existing.size()) == container_indices.size() - total;
+		else
+		{
+			auto val = std::begin(values);
+			for(auto [first, last] : ranges)
+			{
+				for(auto it = first; it != last; ++it)
+				{
+					total += (size_t)(!container.has(it));
+					if(val == std::end(values)) throw std::exception();
+					container.insert(it, *val);
+					val = std::next(val);
+				}
+			}
+		}
+		return total;
 	}
 
-	constexpr std::array<std::pair<entity, entity>, 3> sizes {{{0, 50}, {0, 5000}, {0, 50000}}};
-	constexpr std::array<std::pair<entity, entity>, 3> erase_ranges {{{10, 35}, {4500, 5500}, {10000, 50000}}};
+	inline auto erase_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges) -> size_t
+	{
+		size_t total {0};
+		for(auto [first, last] : ranges)
+		{
+			total += container.erase(first, last);
+		}
+		return total;
+	}
 
 	struct insert_structure
 	{
 		entity first, last;
 	};
 
-	auto t0 = suite<"staged_sparse_memory_region_t::insertion", "ecs", "psl", "collections">(
+	struct erase_structure : public insert_structure
+	{
+		entity erase_first, erase_last;
+	};
+
+	auto t0 = suite<"staged_sparse_memory_region_t", "ecs", "psl", "collections">(
 	  array_typed<insert_structure,
 				  insert_structure {0, 50},
 				  insert_structure {0, 5000},
-				  insert_structure {0, 50000}> {}) =
-	  [](insert_structure info) {
+				  insert_structure {0, 50000}> {}) = [](insert_structure info) {
 		ssmr_t container = ssmr_t::instantiate<float>();
 		require(container.indices().size()) >= 0;
 		require(container.dense<float>().size()) >= 0;
@@ -239,44 +166,9 @@ namespace
 		require(container.indices().size()) == start_count_settled;
 
 		compare_ranges(container);
-
-		// section<"inserting several elements">(
-		//   val, sizes[index].first, sizes[index].second)
-		// section<"inserting several elements">(
-		//   val, sizes[index].first, sizes[index].second, erase_ranges[index].first, erase_ranges[index].second) =
-		//   [](ssmr_t& container,
-		//   entity first,
-		//   entity last,
-		//   entity erase_first,
-		//   entity erase_last) {
-		//    insert_elements(container, first, last);
-		//    section<"promote elements">(container) = promote_elements;
-
-		//   section<"removing elements">(container, erase_first, erase_last) =
-		//	 [](ssmr_t& container, entity first, entity last) {
-		//		 remove_elements(container, first, last);
-		//		 section<"promote elements">(container) = promote_elements;
-
-
-		//		 section<"merge">(container, last / 2, last * 2) =
-		//		   [](ssmr_t& container, entity first, entity last) {
-		//			   ssmr_t other_container = ssmr_t::instantiate<float>();
-		//			   for(entity i = first; i < last; ++i)
-		//			   {
-		//				   other_container.insert(i);
-		//			   }
-		//			   merge(container, other_container);
-		//		   };
-		//	 };
-		//  };
 	};
 
-	struct erase_structure : public insert_structure
-	{
-		entity erase_first, erase_last;
-	};
-
-	auto t1 = suite<"staged_sparse_memory_region_t::erasing", "ecs", "psl", "collections">(
+	auto t1 = suite<"staged_sparse_memory_region_t", "ecs", "psl", "collections">(
 	  array_typed<erase_structure,
 				  erase_structure {0, 50, 10, 35},
 				  erase_structure {0, 5000, 4500, 5500},
@@ -310,9 +202,8 @@ namespace
 				  for(auto i = first; i != last; ++i) erased += container.erase(i);
 			  };
 			  require(expected) == erased;
-
-
-			  require(none_of_n(first, first + erased, [&container](auto index) -> bool { return container.has(index); })) == true;
+			  require(none_of_n(
+				first, first + erased, [&container](auto index) -> bool { return container.has(index); })) == true;
 
 			  require(container.indices(ssmr_t::stage_range_t::ALL).size()) == start_count_all;
 			  require(container.indices(ssmr_t::stage_range_t::ALIVE).size()) == start_count_alive - erased;
@@ -320,5 +211,81 @@ namespace
 
 			  compare_ranges(container);
 		  };
+	};
+
+	auto t2 = suite<"staged_sparse_memory_region_t", "ecs", "psl", "collections">() = []() {
+		auto promote = [](ssmr_t& container) mutable {
+			auto previous_added	  = container.indices(ssmr_t::stage_range_t::ADDED).size();
+			auto previous_removed = container.indices(ssmr_t::stage_range_t::REMOVED).size();
+			auto previous_settled = container.indices(ssmr_t::stage_range_t::SETTLED).size();
+
+			container.promote();
+
+			require(container.indices(ssmr_t::stage_range_t::ADDED).size()) == 0;
+			require(container.indices(ssmr_t::stage_range_t::REMOVED).size()) == 0;
+			require(container.indices(ssmr_t::stage_range_t::SETTLED).size()) == previous_settled + previous_added;
+			require(container.indices(ssmr_t::stage_range_t::ALIVE).size()) == previous_added + previous_settled;
+			require(container.indices(ssmr_t::stage_range_t::ALL).size()) == previous_added + previous_settled;
+			require(container.indices(ssmr_t::stage_range_t::TERMINAL).size()) == 0;
+		};
+
+		ssmr_t container = ssmr_t::instantiate<float>();
+		append_ssmr<float>(container, {{15, 50}, {200, 750}});
+		promote(container);
+		append_ssmr<float>(container, {{900, 1050}, {2000, 7500}});
+		erase_ssmr(container, {{0, 1000}, {4000, 5000}});
+		promote(container);
+	};
+
+	auto t3 = suite<"staged_sparse_memory_region_t", "ecs", "psl", "collections">() = []() {
+		auto merge = [](ssmr_t& container, ssmr_t& other) {
+			auto container_indices = psl::array<entity> {container.indices(ssmr_t::stage_range_t::ALL)};
+
+			size_t pre_existing {0};
+			for(auto index : other.indices(ssmr_t::stage_range_t::ALL))
+			{
+				pre_existing += size_t {container.has(index)};
+			}
+
+			auto result = container.merge(other);
+			for(auto index : other.indices(ssmr_t::stage_range_t::ALL))
+			{
+				require(container.has(index));
+			}
+
+			require(container.indices(ssmr_t::stage_range_t::ALL).size()) ==
+			  container_indices.size() + other.indices(ssmr_t::stage_range_t::ALL).size() - pre_existing;
+		};
+
+		section<"non-overlapping">() = [&merge]() {
+			ssmr_t container_1 = ssmr_t::instantiate<float>();
+			append_ssmr<float>(container_1, {{15, 50}, {200, 750}});
+
+			ssmr_t container_2 = ssmr_t::instantiate<float>();
+			append_ssmr<float>(container_2, {{1500, 5000}});
+
+			merge(container_1, container_2);
+		};
+
+		section<"fully-overlapping">() = [&merge]() {
+			ssmr_t container_1 = ssmr_t::instantiate<float>();
+			append_ssmr<float>(container_1, {{15, 50}, {200, 750}});
+
+			ssmr_t container_2 = ssmr_t::instantiate<float>();
+			append_ssmr<float>(container_2, {{0, 1000}});
+
+			merge(container_1, container_2);
+		};
+
+
+		section<"partial-overlapping">() = [&merge]() {
+			ssmr_t container_1 = ssmr_t::instantiate<float>();
+			append_ssmr<float>(container_1, {{15, 50}, {200, 750}});
+
+			ssmr_t container_2 = ssmr_t::instantiate<float>();
+			append_ssmr<float>(container_2, {{60, 500}});
+
+			merge(container_1, container_2);
+		};
 	};
 }	 // namespace
