@@ -162,7 +162,7 @@ namespace
 
 		require(container.indices(ssmr_t::stage_range_t::ADDED).size()) == count + start_count_added;
 		require(container.indices(ssmr_t::stage_range_t::SETTLED).size()) == start_count_settled;
-		require(container.indices().size()) == start_count_settled;
+		require(container.indices().size()) == count + start_count_added;
 
 		compare_ranges(container);
 	};
@@ -302,7 +302,7 @@ namespace
 							std::end(container.indices(ssmr_t::stage_range_t::ALL)),
 							[&container](auto index) { return container.get<float>(index) == (float)index; }));
 
-		psl::sparse_array<entity, entity> sparse {};
+		psl::sparse_array<entity> sparse {};
 
 		for(entity i = 0; i < 35; ++i)
 		{

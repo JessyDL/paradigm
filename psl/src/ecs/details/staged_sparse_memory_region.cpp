@@ -64,7 +64,10 @@ namespace psl::ecs::details
 	{
 		key_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
-		psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, static_cast<std::underlying_type_t<stage_range_t>>(stage));
+		psl_assert(has(index, stage),
+				   "missing index {} within [{}, {}] in sparse array",
+				   index,
+				   static_cast<std::underlying_type_t<stage_range_t>>(stage));
 		return (static_cast<const_pointer>(m_DenseData.data()) +
 				(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
@@ -73,7 +76,10 @@ namespace psl::ecs::details
 	{
 		key_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
-		psl_assert(has(index, stage), "missing index {} within [{}, {}] in sparse array", index, static_cast<std::underlying_type_t<stage_range_t>>(stage));
+		psl_assert(has(index, stage),
+				   "missing index {} within [{}, {}] in sparse array",
+				   index,
+				   static_cast<std::underlying_type_t<stage_range_t>>(stage));
 		return (static_cast<pointer>(m_DenseData.data()) + (get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
 
@@ -85,7 +91,7 @@ namespace psl::ecs::details
 			auto sub_index = i;
 			auto& chunk	   = chunk_for(sub_index);
 
-			if(has_impl(chunk, sub_index))
+			if(has_impl(chunk, sub_index, stage_range_t::ALIVE))
 			{
 				erase_impl(chunk, sub_index, i);
 				++count;
@@ -137,7 +143,7 @@ namespace psl::ecs::details
 		{
 			auto sub_index = other.m_Reverse[i];
 			auto& chunk	   = chunk_for(sub_index);
-			if(!has_impl(chunk, sub_index))
+			if(!has_impl(chunk, sub_index, stage_range_t::ALL))
 			{
 				insert_impl(chunk, sub_index, other.m_Reverse[i]);
 				++inserted;
@@ -234,13 +240,13 @@ namespace psl::ecs::details
 	inline auto staged_sparse_memory_region_t::erase_impl(chunk_type& chunk, key_type offset, key_type user_index)
 	  -> void
 	{
-		auto orig_value	   = this->operator[](user_index);
 		auto reverse_index = chunk[offset];
 
 		// figure out which stage it belonged to
 		auto what_stage = (reverse_index < m_StageStart[1]) ? 0 : (reverse_index < m_StageStart[2]) ? 1 : 2;
 		if(what_stage == 2) return;
 		auto scratch_memory = malloc(m_Size);
+		if(!scratch_memory) throw std::exception();
 
 		// we swap it out
 		for(auto i = what_stage; i < 2; ++i)
@@ -250,12 +256,13 @@ namespace psl::ecs::details
 				std::iter_swap(std::next(std::begin(m_Reverse), reverse_index),
 							   std::next(std::begin(m_Reverse), m_StageStart[i + 1] - 1));
 
-				std::memcpy(scratch_memory, (std::byte*)m_DenseData.data() + (reverse_index * m_Size), m_Size);
-				std::memcpy((std::byte*)m_DenseData.data() + (reverse_index * m_Size),
-							(std::byte*)m_DenseData.data() + ((m_StageStart[i + 1] - 1) * m_Size),
-							m_Size);
-				std::memcpy(
-				  (std::byte*)m_DenseData.data() + ((m_StageStart[i + 1] - 1) * m_Size), scratch_memory, m_Size);
+				auto A = (std::byte*)m_DenseData.data() + (reverse_index * m_Size);
+				auto B = (std::byte*)m_DenseData.data() + ((m_StageStart[i + 1] - 1) * m_Size);
+
+				std::memcpy(scratch_memory, A, m_Size);
+				std::memcpy(A, B, m_Size);
+				std::memcpy(B, scratch_memory, m_Size);
+
 				chunk[offset]		 = m_StageStart[i + 1] - 1;
 				auto new_index		 = m_Reverse[reverse_index];
 				auto& new_chunk		 = chunk_for(new_index);

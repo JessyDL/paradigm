@@ -80,7 +80,7 @@ namespace psl::ecs
 
 		template <typename... Ts>
 		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
-		
+
 		void clear() noexcept;
 
 		template <typename T>
@@ -88,7 +88,14 @@ namespace psl::ecs
 		{
 			// todo this should support filtering
 			auto cInfo = get_component_typed_info<T>();
-			return cInfo->entity_data().at(entity, 0, 2);
+			if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
+			{
+				return cInfo->entity_data().at<T>(entity, details::staged_sparse_memory_region_t::stage_range_t::ALL);
+			}
+			else
+			{
+				return cInfo->entity_data().at(entity, 0, 2);
+			}
 		}
 
 		template <typename T>
@@ -96,7 +103,15 @@ namespace psl::ecs
 		{
 			// todo this should support filtering
 			auto cInfo = get_component_typed_info<T>();
-			return cInfo->entity_data().at(entity, 0, 2);
+
+			if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
+			{
+				return cInfo->entity_data().at<T>(entity, details::staged_sparse_memory_region_t::stage_range_t::ALL);
+			}
+			else
+			{
+				return cInfo->entity_data().at(entity, 0, 2);
+			}
 		}
 
 		template <typename... Ts>
@@ -279,7 +294,16 @@ namespace psl::ecs
 		{
 			constexpr auto key {details::component_key_t::generate<T>()};
 			if(auto it = m_Components.find(key); it != std::end(m_Components))
-				return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense(0, 1);
+			{
+				if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
+				{
+					return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense<T>(details::staged_sparse_memory_region_t::stage_range_t::ALIVE);
+				}
+				else
+				{
+					return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense(0, 1);
+				}
+			}
 			return {};
 		}
 
@@ -521,11 +545,9 @@ namespace psl::ecs
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities);
 
 		// invocable based construction
-		template<typename Fn>
-		requires (std::is_invocable<Fn, std::uintptr_t, size_t>::value)
-		void add_component_impl(details::component_key_t key,
-								psl::array_view<entity> entities,
-								Fn&& invocable)
+		template <typename Fn>
+			requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
+		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, Fn&& invocable)
 		{
 			auto cInfo = get_component_info(key);
 			psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
@@ -707,7 +729,7 @@ namespace psl::ecs
 			return {filter_it->group, {}};
 		}
 
-		template<typename Fn, typename T, typename pack_t>
+		template <typename Fn, typename T, typename pack_t>
 		auto create_system_tick_functional(Fn& fn, T* ptr) const noexcept
 		{
 			if constexpr(std::is_member_function_pointer<Fn>::value)
@@ -741,13 +763,12 @@ namespace psl::ecs
 			using pack_t		  = typename get_packs<function_args>::type;
 			auto filter_groups	  = details::make_filter_group(pack_t {});
 			auto transform_groups = details::make_transform_group(pack_t {});
-			auto pack_generator = [](bool seedWithPrevious =
-																							false) {
-				return details::expand_to_dependency_pack(pack_t {}, seedWithPrevious);
+			auto pack_generator	  = [](bool seedWithPrevious = false) {
+				  return details::expand_to_dependency_pack(pack_t {}, seedWithPrevious);
 			};
 
 			auto system_tick = create_system_tick_functional<Fn, T, pack_t>(fn, ptr);
-			auto& sys_info = (m_LockState) ? m_NewSystemInformations : m_SystemInformations;
+			auto& sys_info	 = (m_LockState) ? m_NewSystemInformations : m_SystemInformations;
 
 			psl::array<std::shared_ptr<details::filter_group>> shared_filter_groups;
 			psl::array<std::shared_ptr<details::transform_group>> shared_transform_groups;

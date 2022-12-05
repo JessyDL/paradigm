@@ -1,5 +1,6 @@
 #pragma once
 #include "../details/staged_sparse_array.hpp"
+#include "../details/staged_sparse_memory_region.hpp"
 #include "../entity.hpp"
 #include "component_key.hpp"
 #include "psl/array_view.hpp"
@@ -264,6 +265,177 @@ namespace psl::ecs::details
 
 	  private:
 		details::staged_sparse_array<T, entity> m_Entities;
+	};
+
+	template <details::IsValidForStagedSparseMemoryRange T>
+	class component_info_typed<T, false> final : public component_info
+	{
+		using stage_range_t = details::staged_sparse_memory_region_t::stage_range_t;
+
+	  public:
+		component_info_typed() :
+			component_info(details::component_key_t::generate<T>(), sizeof(T)), m_Entities(sizeof(T)) {};
+
+		auto& entity_data() noexcept { return m_Entities; };
+
+
+		void* data() noexcept override { return m_Entities.data(); }
+
+		bool has_storage_for(entity entity) const noexcept override
+		{
+			return m_Entities.has(entity, stage_range_t::ALL);
+		}
+
+		size_t alignment() const noexcept override { return std::alignment_of_v<T>; }
+
+		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
+		{
+			psl_assert((std::uintptr_t)destination % alignment() == 0, "pointer has to be aligned");
+			T* dest = (T*)destination;
+			for(auto e : entities)
+			{
+				std::memcpy(dest, m_Entities.addressof(e, stage_range_t::ALL), sizeof(T));
+				++dest;
+			}
+			return entities.size() * sizeof(T);
+		}
+		size_t copy_from(psl::array_view<entity> entities, void* source, bool repeat) noexcept override
+		{
+			psl_assert((std::uintptr_t)source % alignment() == 0, "pointer has to be aligned");
+			T* src = (T*)source;
+			if(repeat)
+			{
+				for(auto e : entities)
+				{
+					std::memcpy((void*)&(m_Entities.at<T>(e, stage_range_t::ALL)), src, sizeof(T));
+				}
+			}
+			else
+			{
+				for(auto e : entities)
+				{
+					// if(std::memcmp((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T)) != 0)
+					std::memcpy((void*)&(m_Entities.at<T>(e, stage_range_t::ALL)), src, sizeof(T));
+					++src;
+				}
+			}
+			return sizeof(T) * entities.size();
+		};
+
+		void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept override
+		{
+			m_Entities.remap(mapping, pred);
+		}
+		bool merge(const component_info& other) noexcept override
+		{
+			if(other.id() != id()) return false;
+
+			component_info_typed<T>* other_ptr = (component_info_typed<T>*)(&other);
+			m_Entities.merge(other_ptr->m_Entities);
+			return true;
+		}
+
+		void set(entity e, const T& data) noexcept { m_Entities.at<T>(e, stage_range_t::ALL) = data; }
+
+	  protected:
+		void set_impl(entity entity, void* data) noexcept override
+		{
+			m_Entities.set<T>(entity, *(T*)data);
+		}
+		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
+		{
+			return m_Entities.indices(m_Entities.to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+		}
+		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
+		{
+			//m_Entities.reserve(m_Entities.indices(stage_range_t::ALL).size() + entities.size());
+			T* source = (T*)data;
+			if(data == nullptr)
+			{
+				for(size_t i = 0; i < entities.size(); ++i)
+				{
+					m_Entities.insert(entities[i]);
+				}
+			}
+			else if(repeat)
+			{
+				for(size_t i = 0; i < entities.size(); ++i)
+				{
+					m_Entities.insert(entities[i], *source);
+				}
+			}
+			else
+			{
+				for(size_t i = 0; i < entities.size(); ++i)
+				{
+					m_Entities.insert(entities[i], *source);
+					++source;
+				}
+			}
+		}
+		void add_impl(entity entity, void* data) override
+		{
+			if(data == nullptr)
+				m_Entities.insert(entity);
+			else
+				m_Entities.insert(entity, *(T*)data);
+		}
+		void add_impl(psl::array_view<std::pair<entity, entity>> entities, void* data, bool repeat) override
+		{
+			auto count = std::accumulate(
+			  std::begin(entities), std::end(entities), size_t {0}, [](size_t sum, const std::pair<entity, entity>& r) {
+				  return sum + (r.second - r.first);
+			  });
+
+			//m_Entities.reserve(m_Entities.indices(stage_range_t::ALL).size() + count);
+			T* source = (T*)data;
+			if(data == nullptr)
+			{
+				for(auto range : entities)
+				{
+					for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
+				}
+			}
+			else if(repeat)
+			{
+				for(auto range : entities)
+				{
+					for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e, *source);
+				}
+			}
+			else
+			{
+				for(auto range : entities)
+				{
+					for(auto e = range.first; e < range.second; ++e)
+					{
+						m_Entities.insert(e, *source);
+						++source;
+					}
+				}
+			}
+		}
+		void purge_impl() noexcept override { m_Entities.promote(); }
+
+		void remove_impl(entity entity) override { m_Entities.erase(entity); }
+		void remove_impl(psl::array_view<entity> entities) override
+		{
+			for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(entities[i]);
+		}
+		void remove_impl(psl::array_view<std::pair<entity, entity>> entities) override
+		{
+			for(auto range : entities)
+			{
+				for(auto i = range.first; i < range.second; ++i) m_Entities.erase(i);
+			}
+		}
+		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
+		{
+			return m_Entities.has(entity, m_Entities.to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+		}
+
+	  private:
+		details::staged_sparse_memory_region_t m_Entities;
 	};
 
 	template <typename T>

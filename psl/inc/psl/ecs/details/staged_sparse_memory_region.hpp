@@ -57,8 +57,8 @@ namespace psl::ecs::details
 			ADDED,		 // values that have just been added
 			REMOVED,	 // values slated for removal with the next promote call
 			ALIVE,		 // all non-removed values
-			ALL,		 // all values
 			TERMINAL,	 // values that have just been added, and to-be removed values
+			ALL,		 // all values
 		};
 
 		/// \note prefer using the `instantiate<T>()` function
@@ -94,7 +94,7 @@ namespace psl::ecs::details
 		/// \param index Index to check
 		/// \param stage Stage that will be searched in
 		/// \return Boolean containing true if found
-		auto has(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> bool;
+		auto has(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> bool;
 
 		/// \brief Fetch or create the item at the given index
 		/// \tparam T Used to check the expected component size
@@ -134,9 +134,8 @@ namespace psl::ecs::details
 		/// \param value The value to set at the given index
 		/// \return Boolean value indicating if the index was successfuly set or not
 		template <IsValidForStagedSparseMemoryRange T>
-		constexpr inline auto set(key_type index, T&& value) -> bool
+		constexpr inline auto set(key_type index, const T& value) -> bool
 		{
-			using type = std::remove_cvref_t<T>;
 			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 			auto sub_index = index;
 			auto& chunk	   = chunk_for(sub_index);
@@ -146,7 +145,7 @@ namespace psl::ecs::details
 				return false;
 			}
 
-			*((type*)m_DenseData.data() + chunk[sub_index]) = std::forward<type>(value);
+			*((T*)m_DenseData.data() + chunk[sub_index]) = value;
 			return true;
 		}
 
@@ -155,7 +154,7 @@ namespace psl::ecs::details
 		/// \param stage `stage_range_t` to limit what data is returned
 		/// \return A view of the underlying data as the requested type
 		template <IsValidForStagedSparseMemoryRange T>
-		inline auto dense(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<T>
+		inline auto dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<T>
 		{
 			psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 			return psl::array_view<T> {std::next((T*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
@@ -165,7 +164,7 @@ namespace psl::ecs::details
 		/// \brief Get a view of the indices for the given `stage_range_t`
 		/// \param stage `stage_range_t` to limit what indices are returned
 		/// \return A view of the indices
-		inline auto indices(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> psl::array_view<key_type>
+		inline auto indices(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<key_type>
 		{
 			return psl::array_view<key_type> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
 											  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
@@ -174,7 +173,7 @@ namespace psl::ecs::details
 		/// \brief Get the data pointer for the given stage (where the data begins)
 		/// \param stage `stage_t` to retrieve
 		/// \return A pointer to the head of the dense data
-		auto data(stage_t stage) noexcept -> pointer
+		auto data(stage_t stage = stage_t::SETTLED) noexcept -> pointer
 		{
 			return static_cast<pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 		}
@@ -182,7 +181,7 @@ namespace psl::ecs::details
 		/// \brief Get the data pointer for the given stage (where the data begins)
 		/// \param stage `stage_t` to retrieve
 		/// \return A pointer to the head of the dense data
-		auto cdata(stage_t stage) const noexcept -> const_pointer
+		auto cdata(stage_t stage = stage_t::SETTLED) const noexcept -> const_pointer
 		{
 			return static_cast<const_pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 		}
@@ -194,7 +193,7 @@ namespace psl::ecs::details
 		/// \return Given memory address as a const ref
 		/// \note When assertions are enabled, this function can assert
 		template <IsValidForStagedSparseMemoryRange T>
-		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> T const&
+		inline auto at(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> T const&
 		{
 			return *reinterpret_cast<T const*>(addressof(index, stage));
 		}
@@ -207,7 +206,7 @@ namespace psl::ecs::details
 		/// \return Given memory address as a const ref
 		/// \note When assertions are enabled, this function can assert
 		template <IsValidForStagedSparseMemoryRange T>
-		inline auto at(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> T&
+		inline auto at(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> T&
 		{
 			return *reinterpret_cast<T*>(addressof(index, stage));
 		}
@@ -217,14 +216,14 @@ namespace psl::ecs::details
 		/// \param stage Used to limit the stages we wish to look in
 		/// \return memory address
 		/// \note When assertions are enabled, this function can assert
-		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) const noexcept -> const_pointer;
+		auto addressof(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> const_pointer;
 
 		/// \brief Get a pointer of the data at the index
 		/// \param index Where to look
 		/// \param stage Used to limit the stages we wish to look in
 		/// \return memory address
 		/// \note When assertions are enabled, this function can assert
-		auto addressof(key_type index, stage_range_t stage = stage_range_t::SETTLED) noexcept -> pointer;
+		auto addressof(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> pointer;
 
 		/// \brief Erases all values between the first/last indices
 		/// \param first Begin of the range
@@ -287,12 +286,12 @@ namespace psl::ecs::details
 		/// \param mapping The mapping to use
 		/// \param predicate Predicate that returns a boolean value if the index was found
 		/// \details accesses all indices in the current container rejecting those who don't satisfy the predicate.
-		/// Those who weren't rejected by the predicate are then looked up in the `mapping` value, and their return value
-		/// is used to re-assign the index in the current container.
-		/// f.e. if the mapping had a value of { 100, 200 } (index, value), and the predicate didn't reject the item on our end,
-		/// then what was at 100 in this container would be remapped to the index 200.
+		/// Those who weren't rejected by the predicate are then looked up in the `mapping` value, and their return
+		/// value is used to re-assign the index in the current container. f.e. if the mapping had a value of { 100, 200
+		/// } (index, value), and the predicate didn't reject the item on our end, then what was at 100 in this
+		/// container would be remapped to the index 200.
 		template <typename Fn>
-		auto remap(const psl::sparse_array<key_type, key_type>& mapping, Fn&& predicate) -> void
+		auto remap(const psl::sparse_array<key_type>& mapping, Fn&& predicate) -> void
 		{
 			psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 			m_Sparse.clear();
@@ -329,8 +328,42 @@ namespace psl::ecs::details
 		/// \returns object that contains { .success /* bool */, .total /* total items processed, inserted + replaced */, .added /* amount that was inserted into the current container */ }
 		auto merge(const staged_sparse_memory_region_t& other) noexcept -> merge_result;
 
+		static constexpr stage_range_t to_stage_range(uint8_t begin, uint8_t end) noexcept
+		{
+			switch(begin)
+			{
+			case 0:
+				switch(end)
+				{
+				case 0:
+					return stage_range_t::SETTLED;
+				case 1:
+					return stage_range_t::ALIVE;
+				case 2:
+					return stage_range_t::ALL;
+				}
+			case 1:
+				switch(end)
+				{
+				case 1:
+					return stage_range_t::ADDED;
+				case 2:
+					return stage_range_t::TERMINAL;
+				}
+			case 2:
+				switch(end)
+				{
+				case 2:
+					return stage_range_t::REMOVED;
+				}
+			}
+			if(begin == end) return stage_range_t(begin);
+
+			return stage_range_t(begin + end + uint8_t {1});
+		}
+
 	  private:
-		constexpr auto size(stage_range_t stage = stage_range_t::SETTLED) const noexcept -> size_type
+		constexpr auto size(stage_range_t stage) const noexcept -> size_type
 		{
 			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 		}
@@ -384,10 +417,10 @@ namespace psl::ecs::details
 		inline auto insert_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void;
 		constexpr inline auto has_impl(key_type chunk_index,
 									   key_type offset,
-									   stage_range_t stage = stage_range_t::SETTLED) const noexcept -> bool;
+									   stage_range_t stage) const noexcept -> bool;
 		constexpr inline auto has_impl(chunk_type& chunk,
 									   key_type offset,
-									   stage_range_t stage = stage_range_t::SETTLED) const noexcept -> bool;
+									   stage_range_t stage) const noexcept -> bool;
 		inline auto erase_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void;
 		constexpr inline auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type&;
 		constexpr inline auto get_chunk_from_index(key_type index) noexcept -> chunk_type&;

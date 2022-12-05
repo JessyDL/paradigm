@@ -1,7 +1,7 @@
 #include "ecs.hpp"
-#include "psl/ecs/state.hpp"
-#include "psl/ecs/order_by.hpp"
 #include "psl/ecs/on_condition.hpp"
+#include "psl/ecs/order_by.hpp"
+#include "psl/ecs/state.hpp"
 #include <random>
 
 using namespace psl::ecs;
@@ -72,7 +72,7 @@ namespace
 				std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity e) {
 					require(cInfo.has_component(e));
 					require(cInfo.has_added(e));
-					require(cInfo.entity_data().at(e)) == static_cast<float>(e);
+					require(cInfo.entity_data().at<float>(e)) == static_cast<float>(e);
 				});
 
 				section<"removals">() = [&]() {
@@ -96,13 +96,15 @@ namespace
 								auto index = entities[i];
 								require(!cInfo.has_component(index));
 								require(cInfo.has_removed(index));
-								require(cInfo.entity_data().at(index, 2, 2)) == static_cast<float>(index);
+								require(cInfo.entity_data().at<float>(
+								  index, details::staged_sparse_memory_region_t::stage_range_t::REMOVED)) ==
+								  static_cast<float>(index);
 							}
 							else
 							{
 								auto index = entities[i];
 								require(cInfo.has_component(index));
-								require(cInfo.entity_data().at(index)) == static_cast<float>(index);
+								require(cInfo.entity_data().at<float>(index)) == static_cast<float>(index);
 							}
 						}
 					}
@@ -146,7 +148,8 @@ namespace
 								  std::end(cInfo.entities()),
 								  [&cInfo, offset = static_cast<entity>(cInfo.size())](entity e) {
 									  require(e) <= offset;
-									  require(cInfo.entity_data()[e]) == static_cast<float>(e);
+									  require(cInfo.entity_data().template operator[]<float>(e)) ==
+										static_cast<float>(e);
 								  });
 				};
 			};
