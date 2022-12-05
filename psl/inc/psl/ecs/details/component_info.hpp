@@ -307,7 +307,7 @@ namespace psl::ecs::details
 			{
 				for(auto e : entities)
 				{
-					std::memcpy((void*)&(m_Entities.at<T>(e, stage_range_t::ALL)), src, sizeof(T));
+					std::memcpy((void*)&(m_Entities.template at<T>(e, stage_range_t::ALL)), src, sizeof(T));
 				}
 			}
 			else
@@ -315,7 +315,7 @@ namespace psl::ecs::details
 				for(auto e : entities)
 				{
 					// if(std::memcmp((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T)) != 0)
-					std::memcpy((void*)&(m_Entities.at<T>(e, stage_range_t::ALL)), src, sizeof(T));
+					std::memcpy((void*)&(m_Entities.template at<T>(e, stage_range_t::ALL)), src, sizeof(T));
 					++src;
 				}
 			}
@@ -335,7 +335,7 @@ namespace psl::ecs::details
 			return true;
 		}
 
-		void set(entity e, const T& data) noexcept { m_Entities.at<T>(e, stage_range_t::ALL) = data; }
+		void set(entity e, const T& data) noexcept { m_Entities.template at<T>(e, stage_range_t::ALL) = data; }
 
 	  protected:
 		void set_impl(entity entity, void* data) noexcept override
