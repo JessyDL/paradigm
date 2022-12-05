@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include <stdexcept>	// std::runtime_error
 
 #include <algorithm>

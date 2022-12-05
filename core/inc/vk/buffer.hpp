@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "gfx/types.hpp"
 #include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"

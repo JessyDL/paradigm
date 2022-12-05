@@ -1,4 +1,4 @@
-﻿#include "psl/memory/region.hpp"
+#include "psl/memory/region.hpp"
 #include "psl/platform_def.hpp"
 #include <algorithm>
 #if defined(PLATFORM_WINDOWS)

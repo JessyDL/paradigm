@@ -1,4 +1,4 @@
-﻿
+
 #include "vk/sampler.hpp"
 #include "data/sampler.hpp"
 #include "vk/context.hpp"

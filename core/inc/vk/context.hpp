@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "fwd/resource/resource.hpp"
 #include "gfx/limits.hpp"
 #include "vk/ivk.hpp"

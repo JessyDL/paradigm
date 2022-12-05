@@ -1,4 +1,4 @@
-﻿#include "psl/platform_utils.hpp"
+#include "psl/platform_utils.hpp"
 
 #include <filesystem>
 #include "psl/ustream.hpp"

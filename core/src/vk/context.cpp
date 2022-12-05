@@ -1,4 +1,4 @@
-﻿
+
 #include "vk/context.hpp"
 #include "gfx/limits.hpp"
 #include "logging.hpp"

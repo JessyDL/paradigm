@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "fwd/resource/resource.hpp"
 #include "gfx/types.hpp"
 #include "psl/meta.hpp"

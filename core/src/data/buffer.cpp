@@ -1,4 +1,4 @@
-﻿#include "data/buffer.hpp"
+#include "data/buffer.hpp"
 #include "logging.hpp"
 #include "resource/resource.hpp"
 using namespace psl;

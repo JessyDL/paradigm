@@ -1,4 +1,4 @@
-﻿
+
 #include "os/surface.hpp"
 #include "systems/input.hpp"
 #include "vk/swapchain.hpp"

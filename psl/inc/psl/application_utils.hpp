@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "psl/ustring.hpp"
 
 /// \brief contains application specific information and utilities

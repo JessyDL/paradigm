@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #include "psl/platform_def.hpp"
 #include "psl/ustring.hpp"

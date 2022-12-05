@@ -1,4 +1,4 @@
-﻿#include "data/window.hpp"
+#include "data/window.hpp"
 #include "psl/meta.hpp"
 #include "resource/resource.hpp"
 

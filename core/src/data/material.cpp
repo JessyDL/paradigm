@@ -1,4 +1,4 @@
-﻿#include "data/material.hpp"
+#include "data/material.hpp"
 #include "data/geometry.hpp"
 #include "gfx/bundle.hpp"
 #include "meta/shader.hpp"

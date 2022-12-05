@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 
 #if !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_IOS) && !defined(PLATFORM_OSX) && !defined(PLATFORM_ANDROID) &&    \
   !defined(PLATFORM_LINUX) && !defined(PLATFORM_POSIX)

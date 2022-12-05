@@ -1,4 +1,4 @@
-﻿# PSL
+# PSL
 PSL contains both a method for disk based serialization of classes, as well as a data-format to serialize to and from.
 In general the overhead for using the serialization is *none*, unless actual serialization happens. See psl::meta::file for an example of polymorphic serialization, and core::data::* classes for examples of static serialization.
 

@@ -1,4 +1,4 @@
-﻿#include "vk/shader.hpp"
+#include "vk/shader.hpp"
 #include "logging.hpp"
 #include "meta/shader.hpp"
 #include "vk/context.hpp"

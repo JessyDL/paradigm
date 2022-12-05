@@ -1,4 +1,4 @@
-﻿
+
 #include "vk/drawpass.hpp"
 #include "data/framebuffer.hpp"
 #include "data/geometry.hpp"

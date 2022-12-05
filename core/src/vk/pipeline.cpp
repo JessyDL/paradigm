@@ -1,4 +1,4 @@
-﻿
+
 #include "vk/pipeline.hpp"
 #include "data/buffer.hpp"
 #include "data/material.hpp"

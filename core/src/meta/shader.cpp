@@ -1,4 +1,4 @@
-﻿
+
 #include "meta/shader.hpp"
 
 using namespace core::meta;

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "delegate.hpp"
 #include <array>
 #include <functional>

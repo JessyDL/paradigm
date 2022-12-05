@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "fwd/vk/shader.hpp"
 #include "psl/ustring.hpp"
 #include "resource/resource.hpp"

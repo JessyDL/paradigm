@@ -1,4 +1,4 @@
-﻿#ifdef SURFACE_WIN32
+#ifdef SURFACE_WIN32
 #include "os/surface.hpp"
 #include "psl/assertions.hpp"
 #include "systems/input.hpp"

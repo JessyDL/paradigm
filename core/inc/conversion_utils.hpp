@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "psl/math/matrix.hpp"
 #include "psl/math/quaternion.hpp"
 #include "psl/math/vec.hpp"

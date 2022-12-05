@@ -1,1 +1,1 @@
-﻿#include "data/application.hpp"
+#include "data/application.hpp"

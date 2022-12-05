@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "psl/memory/allocator.hpp"
 #include "psl/memory/segment.hpp"
 #include "psl/template_utils.hpp"

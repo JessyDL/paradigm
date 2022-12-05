@@ -1,4 +1,4 @@
-﻿#include "meta/texture.hpp"
+#include "meta/texture.hpp"
 #include "resource/resource.hpp"
 
 using namespace core::meta;

@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 #include "psl/source_location.hpp"
 
 #include "psl/platform_def.hpp"

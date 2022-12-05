@@ -1,4 +1,4 @@
-﻿#include "vk/buffer.hpp"
+#include "vk/buffer.hpp"
 #include "data/buffer.hpp"
 #include "logging.hpp"
 #include "vk/context.hpp"

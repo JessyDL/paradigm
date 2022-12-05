@@ -1,4 +1,4 @@
-﻿#pragma once
+#pragma once
 // https://codereview.stackexchange.com/questions/14730/impossibly-fast-delegate-in-c11
 
 

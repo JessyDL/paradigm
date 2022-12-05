@@ -1,4 +1,4 @@
-﻿#include "psl/file.hpp"
+#include "psl/file.hpp"
 #include "psl/platform_def.hpp"
 #if defined(PLATFORM_WINDOWS)
 #include <Windows.h>

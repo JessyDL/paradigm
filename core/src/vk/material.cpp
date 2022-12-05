@@ -1,4 +1,4 @@
-﻿#include "vk/material.hpp"
+#include "vk/material.hpp"
 #include "data/buffer.hpp"
 #include "data/material.hpp"
 #include "logging.hpp"
