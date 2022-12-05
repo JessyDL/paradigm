@@ -10,6 +10,7 @@
 /// you know what you need it for and are sure you understand its internals.
 #include <memory>	 // std::uninitialized_move
 #include <cstring>   // std::memmove
+#include <optional>
 #include "../entity.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
@@ -169,93 +170,6 @@ namespace psl::ecs::details
 		}
 
 		void emplace(index_t index, value_type&& value) { this->operator[](index) = std::forward<value_type>(value); }
-
-		template <typename ItF, typename ItL>
-		void insert(index_t index, ItF&& first, ItL&& last)
-		{
-			// todo lookups can be lowered further by splitting it into a "from index to chunk_0_end : chunk_1 to
-			// chunk_before_end : chunk_end to last_index;
-			const auto distance = static_cast<size_t>(std::distance(first, last));
-			reserve(size() + distance);
-
-			for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
-			{
-				auto old_offset = m_Reverse[i];
-				auto& old_chunk = chunk_for(old_offset);
-				old_chunk[old_offset] += distance;
-			}
-
-			if constexpr(std::is_trivially_copyable_v<T>)
-			{
-				std::memmove((T*)m_DenseData.data() + m_StageStart[2] + distance,
-							 (T*)m_DenseData.data() + m_StageStart[2],
-							 (m_Reverse.size() - m_StageStart[2]) * sizeof(T));
-			}
-			else
-			{
-				auto dst = (T*)m_DenseData.data() + m_StageStart[2] + distance,
-					 src = (T*)m_DenseData.data() + m_StageStart[2], end = src + (m_Reverse.size() - m_StageStart[2]);
-				if constexpr(std::is_move_assignable_v<T>)
-				{
-					std::uninitialized_move(src, end, dst);
-				}
-				else
-				{
-					std::uninitialized_copy(src, end, dst);
-				}
-			}
-
-
-			auto first_chunk = chunks_size - (index % chunks_size);
-			{
-				auto offset = index;
-				auto& chunk = chunk_for(offset);
-				for(size_t i = 0; i < first_chunk; ++i)
-				{
-					chunk[offset + i] = static_cast<index_t>(m_StageStart[2]);
-					auto orig_cap	  = m_Reverse.capacity();
-					m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), index);
-
-					first = std::next(first);
-					index += 1;
-				}
-			}
-			auto remainder_chunk	 = (distance - first_chunk) % chunks_size;
-			auto process_chunk_count = (distance - first_chunk - remainder_chunk) / chunks_size;
-			{
-				for(auto c = 0; c < process_chunk_count; ++c)
-				{
-					auto offset = index;
-					auto& chunk = chunk_for(offset);
-					for(size_t i = 0; i < chunks_size; ++i)
-					{
-						chunk[offset + i] = static_cast<index_t>(m_StageStart[2]);
-						auto orig_cap	  = m_Reverse.capacity();
-						m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), index);
-
-						first = std::next(first);
-						index += 1;
-					}
-				}
-			}
-			{
-				auto offset = index;
-				auto& chunk = chunk_for(offset);
-				for(size_t i = 0; i < remainder_chunk; ++i)
-				{
-					chunk[offset + i] = static_cast<index_t>(m_StageStart[2]);
-					auto orig_cap	  = m_Reverse.capacity();
-					m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), index);
-
-					first = std::next(first);
-					index += 1;
-				}
-			}
-
-			m_StageStart[2] += distance;
-			m_StageStart[3] += distance;
-			m_StageSize[1] += distance;
-		}
 
 		void insert(index_t index, const_reference value) { this->operator[](index) = value; }
 		void insert(index_t index)

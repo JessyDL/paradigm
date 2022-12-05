@@ -1,4 +1,5 @@
 #pragma once
+#include <stdint.h>
 #include "ecs/components/lighting.hpp"
 #include "ecs/components/transform.hpp"
 #include "ecs/systems/render.hpp"

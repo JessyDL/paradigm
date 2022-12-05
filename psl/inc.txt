@@ -81,6 +81,7 @@ ecs/details/component_key
 ecs/details/entity_info
 ecs/details/system_information
 ecs/details/staged_sparse_array
+ecs/details/staged_sparse_memory_region
 
 async/async
 async/barrier

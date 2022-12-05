@@ -282,8 +282,11 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 #endif
 
 #if defined(PE_DEBUG)
+	// _PSL_ASSERT_IMPL_(N) are added to inject a generic failed message in case none was provided.
+	#define _PSL_ASSERT_IMPL_(...) psl_print(psl::level_t::fatal, "assertion failed")
+	#define _PSL_ASSERT_IMPL_N(...) psl_print(psl::level_t::fatal, __VA_ARGS__)
 	#define psl_assert(expression, ...)                                                                                \
-		(void)((!!(expression)) || (psl_print(psl::level_t::fatal, __VA_ARGS__), 0) || (std::terminate(), 0))
+		(void)((!!(expression)) || (_PSL_ASSERT_IMPL_##__VA_OPT__(N)(__VA_ARGS__), 0) || (std::terminate(), 0))
 #else
 	#define psl_assert(expression, ...)
 #endif
