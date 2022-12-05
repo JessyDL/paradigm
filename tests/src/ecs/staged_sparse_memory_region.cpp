@@ -287,4 +287,35 @@ namespace
 			merge(container_1, container_2);
 		};
 	};
+
+	auto t4 = suite<ssmr_t, "collections">() = []() {
+		ssmr_t container = ssmr_t::instantiate<float>();
+		append_ssmr<float>(container, {{15, 50}, {200, 750}});
+
+		require(container.indices(ssmr_t::stage_range_t::ALL).size()) == 585;
+
+		for(auto index : container.indices(ssmr_t::stage_range_t::ALL))
+		{
+			container.set(index, (float)index);
+		}
+		require(std::all_of(std::begin(container.indices(ssmr_t::stage_range_t::ALL)),
+							std::end(container.indices(ssmr_t::stage_range_t::ALL)),
+							[&container](auto index) { return container.get<float>(index) == (float)index; }));
+
+		psl::sparse_array<entity, entity> sparse {};
+
+		for(entity i = 0; i < 35; ++i)
+		{
+			sparse[i + 15] = 750 + i;
+		}
+
+		container.remap(sparse, [](auto index) -> bool { return index <= 50; });
+
+		require(all_of_n(200, 785, [&container](auto index) { return container.has(index); }));
+		require(all_of_n(200, 750, [&container](auto index) { return container.get<float>(index) == (float)index; }));
+		require(
+		  all_of_n(750, 785, [&container](auto index) { return container.get<float>(index) == (float)(index + 750); }));
+
+		require(container.indices(ssmr_t::stage_range_t::ALL).size()) == 585;
+	};
 }	 // namespace

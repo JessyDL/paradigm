@@ -283,11 +283,16 @@ namespace psl::ecs::details
 		auto promote() noexcept -> void;
 
 		/// \brief Remaps the current instance based on the mapping provided
-		/// \tparam Fn 
+		/// \tparam Fn
 		/// \param mapping The mapping to use
 		/// \param predicate Predicate that returns a boolean value if the index was found
+		/// \details accesses all indices in the current container rejecting those who don't satisfy the predicate.
+		/// Those who weren't rejected by the predicate are then looked up in the `mapping` value, and their return value
+		/// is used to re-assign the index in the current container.
+		/// f.e. if the mapping had a value of { 100, 200 } (index, value), and the predicate didn't reject the item on our end,
+		/// then what was at 100 in this container would be remapped to the index 200.
 		template <typename Fn>
-		auto remap(const psl::sparse_array<key_type>& mapping, Fn&& predicate) -> void
+		auto remap(const psl::sparse_array<key_type, key_type>& mapping, Fn&& predicate) -> void
 		{
 			psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 			m_Sparse.clear();
@@ -426,6 +431,42 @@ namespace psl::ecs::details
 			}
 			m_CachedChunk = &chunk.value();
 			return chunk.value();
+		}
+
+		constexpr inline auto chunk_for(key_type& index) const noexcept -> chunk_type&
+		{
+			psl_assert(index < capacity(), "expected index to be lower than the capacity");
+			if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+			{
+				if constexpr(is_power_of_two)
+				{
+					index = index & (mod_val);
+				}
+				else
+				{
+					index = index % mod_val;
+				}
+				return *m_CachedChunk;
+			}
+			key_type chunk_index;
+			if constexpr(is_power_of_two)
+			{
+				const auto element_index = index & (mod_val);
+				chunk_index				 = (index - element_index) / chunks_size;
+				m_CachedChunkUserIndex	 = index - element_index;
+				index					 = element_index;
+			}
+			else
+			{
+				const auto element_index = index % mod_val;
+				chunk_index				 = (index - element_index) / chunks_size;
+				m_CachedChunkUserIndex	 = index - element_index;
+				index					 = element_index;
+			}
+			const std::optional<chunk_type>& chunk = m_Sparse.at(chunk_index);
+			psl_assert(chunk.has_value(), "chunk was not created yet");
+			m_CachedChunk = const_cast<chunk_type*>(&(chunk.value()));
+			return *m_CachedChunk;
 		}
 
 		constexpr inline auto get_chunk_from_user_index(key_type index) const noexcept -> const chunk_type&;
