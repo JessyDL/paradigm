@@ -60,9 +60,7 @@ jobs:
     - uses: SimenB/github-actions-cpu-cores@v1
       id: cpu-cores
     - name: setup dependencies
-      run: |
-        python3 tools/generate_project_info.py
-        sudo apt-get install ccache -y
+      run: python3 tools/generate_project_info.py
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
       run: sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
