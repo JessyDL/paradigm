@@ -18,7 +18,9 @@ find_package (Threads)
 
 add_library(${LOCAL_PROJECT} STATIC ${INC} ${SRC} ${NATVIS})
 
-target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+if(${PE_PCH})
+	target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+endif()
 
 target_include_directories(${LOCAL_PROJECT}
     PUBLIC 

@@ -109,7 +109,9 @@ add_custom_command(TARGET core_generator
 add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
 add_dependencies(${LOCAL_PROJECT} core_generator)
 
-target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+if(${PE_PCH})
+	target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+endif()
 
 if(VK_STATIC AND PE_VULKAN)	
 	if(WIN32)

@@ -30,6 +30,7 @@ OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
 OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
 OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
 OPTION(PE_TESTS "make the tests" ON)
+OPTION(PE_PCH "enable usage of the precompiled header" ON)
 
 include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
