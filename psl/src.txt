@@ -20,7 +20,6 @@ profiling/profiler
 
 ecs/state
 ecs/details/component_info
-ecs/details/staged_sparse_memory_region
 ecs/command_buffer
 
 async/scheduler
