@@ -369,6 +369,16 @@ namespace psl::ecs::details
 			insert_impl(chunk, sub_index, index);
 		}
 
+		FORCEINLINE auto get_or_insert(key_type index) -> pointer
+		{
+			auto sub_index = index;
+			auto& chunk	   = chunk_for(sub_index);
+
+			insert_impl(chunk, sub_index, index);
+			return ((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
+
+		}
+
 		/// \brief Promotes all values to the next `stage_t`. The cycle is as follows: ADDED -> SETTLED -> REMOVED -> deleted.
 		FORCEINLINE auto promote() noexcept -> void
 		{
