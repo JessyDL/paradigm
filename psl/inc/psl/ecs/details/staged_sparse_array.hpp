@@ -18,6 +18,8 @@
 #include "psl/memory/raw_region.hpp"
 #include "psl/sparse_array.hpp"
 
+#include "psl/ecs/details/stage_range_t.hpp"
+
 namespace psl::ecs::details
 {
 	template <typename T, typename Key = psl::ecs::entity, Key chunks_size = 4096>
@@ -43,7 +45,8 @@ namespace psl::ecs::details
 		staged_sparse_array() noexcept : m_Reverse(), m_DenseData((m_Reverse.capacity() + 1) * sizeof(T)) {};
 		~staged_sparse_array()
 		{
-			for(auto it = begin(0); it != end(2); ++it) it->~value_type();
+			auto data = dense(stage_range_t::ALL);
+			for(auto it : data) it.~value_type();
 		}
 
 		staged_sparse_array(const staged_sparse_array& other)	  = default;
@@ -63,50 +66,59 @@ namespace psl::ecs::details
 			return *((T*)m_DenseData.data() + chunk[sub_index]);
 		}
 
-		const_reference at(index_t index) const noexcept { return *addressof(index); }
-
-		reference at(index_t index) noexcept { return *addressof(index); }
-
-		const_reference at(index_t index, size_t startIndex, size_t endIndex) const noexcept
+		// here for consistency /w staged_sparse_array_region
+		template <typename Y>
+		reference operator[](index_t index)
 		{
-			return *addressof(index, startIndex, endIndex);
+			auto sub_index = index;
+			auto& chunk	   = chunk_for(sub_index);
+
+			if(!has(index))
+			{
+				insert_impl(chunk, sub_index, index);
+			}
+			return *((T*)m_DenseData.data() + chunk[sub_index]);
 		}
 
-		reference at(index_t index, size_t startIndex, size_t endIndex) noexcept
-		{
-			return *addressof(index, startIndex, endIndex);
+		const_reference at(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
+		{ return *addressof(index, stage);
 		}
 
-		const_pointer addressof(index_t index) const noexcept
+		reference at(index_t index, stage_range_t stage = stage_range_t::ALIVE) noexcept
+		{ return *addressof(index, stage);
+		}
+
+		// here for consistency /w staged_sparse_array_region
+		template<typename Y>
+		const_reference at(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
+		{
+			return *addressof(index, stage);
+		}
+
+		// here for consistency /w staged_sparse_array_region
+		template <typename Y>
+		reference at(index_t index, stage_range_t stage = stage_range_t::ALIVE) noexcept
+		{
+			return *addressof(index, stage);
+		}
+
+
+		pointer addressof(index_t index, stage_range_t stage = stage_range_t::ALIVE) noexcept
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			psl_assert(has(index), "missing index {} in sparse array", index);
+			psl_assert(has(index, stage), "missing index {} within [{}] in sparse array", index, to_underlying(stage));
 			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
-		pointer addressof(index_t index) noexcept
+		const_pointer addressof(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
 			index_t sparse_index, chunk_index;
 			chunk_info_for(index, sparse_index, chunk_index);
-			psl_assert(has(index), "missing index {} in sparse array", index);
-			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
-		}
-
-
-		pointer addressof(index_t index, size_t startIndex, size_t endIndex) noexcept
-		{
-			index_t sparse_index, chunk_index;
-			chunk_info_for(index, sparse_index, chunk_index);
-			psl_assert(has(index, startIndex, endIndex), "missing index {} within [{}, {}] in sparse array", index, startIndex, endIndex);
-			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
-		}
-
-		const_pointer addressof(index_t index, size_t startIndex, size_t endIndex) const noexcept
-		{
-			index_t sparse_index, chunk_index;
-			chunk_info_for(index, sparse_index, chunk_index);
-			psl_assert(has(index, startIndex, endIndex), "missing index {} within [{}, {}] in sparse array", index, startIndex, endIndex);
+			psl_assert(has(index, stage),
+					   "missing index {} within [{}] in sparse array",
+					   index,
+					   to_underlying(stage));
 			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 		}
 
@@ -148,7 +160,7 @@ namespace psl::ecs::details
 			if(has_impl(chunk, sub_index)) erase_impl(chunk, sub_index, index);
 		}
 
-		constexpr bool has(index_t index, size_t startStage = 0, size_t endStage = 1) const noexcept
+		constexpr bool has(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
 			if(index < capacity())
 			{
@@ -164,7 +176,7 @@ namespace psl::ecs::details
 					chunk_index = (index - (index % mod_val)) / chunks_size;
 					index		= index % mod_val;
 				}
-				return has_impl(chunk_index, index, startStage, endStage);
+				return has_impl(chunk_index, index, stage);
 			}
 			return false;
 		}
@@ -180,29 +192,29 @@ namespace psl::ecs::details
 			insert_impl(chunk, sub_index, index);
 		}
 
-		psl::array_view<index_t> indices(size_t stage = 0) const noexcept
+		psl::array_view<index_t> indices(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
+			return psl::array_view<index_t> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
+											 std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 		}
-		psl::array_view<value_t> dense(size_t stage = 0) const noexcept
+		
+		psl::array_view<value_t> dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return psl::array_view<value_t> {(T*)m_DenseData.data() + m_StageStart[stage], m_StageSize[stage]};
+			return psl::array_view<value_t> {std::next((value_t*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
+											 std::next((value_t*)m_DenseData.data(), m_StageStart[stage_end(stage)])};
 		}
 
-		psl::array_view<index_t> indices(size_t startStage, size_t endStage) const noexcept
+		// here for consistency /w staged_sparse_array_region
+		template <typename Y>
+		psl::array_view<value_t> dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[startStage],
-											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
-		}
-		psl::array_view<value_t> dense(size_t startStage, size_t endStage) const noexcept
-		{
-			return psl::array_view<value_t> {(T*)m_DenseData.data() + m_StageStart[startStage],
-											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
+			return psl::array_view<value_t> {std::next((value_t*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
+											 std::next((value_t*)m_DenseData.data(), m_StageStart[stage_end(stage)])};
 		}
 
 		void promote() noexcept
 		{
-			for(auto it = begin(2); it != end(2); ++it) it->~value_type();
+			for(auto it = begin(stage_t::REMOVED); it != end(stage_t::REMOVED); ++it) it->~value_type();
 
 			for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
 			{
@@ -219,24 +231,27 @@ namespace psl::ecs::details
 			m_StageSize[2]	= 0;
 		}
 
-		size_type size(index_t stage = 0) const noexcept { return m_StageSize[stage]; }
-		size_type size(index_t startStage, index_t endStage) const noexcept
+		size_type size(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return m_StageStart[endStage + 1] - m_StageStart[startStage];
+			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 		}
+
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
-		auto begin(index_t stage = 0) noexcept { return std::next((T*)m_DenseData.data(), m_StageStart[stage]); }
-		auto end(index_t stage = 0) noexcept { return std::next((T*)m_DenseData.data(), m_StageStart[stage + 1]); }
-
-		const auto cbegin(index_t stage = 0) const noexcept
+		auto begin(stage_t stage = stage_t::SETTLED) noexcept { return std::next((T*)m_DenseData.data(), m_StageStart[to_underlying(stage)]); }
+		auto end(stage_t stage = stage_t::ADDED) noexcept
 		{
-			return std::next(m_DenseData.data(), m_StageStart[stage]);
+			return std::next((T*)m_DenseData.data(), m_StageStart[to_underlying(stage)]);
 		}
 
-		const auto cend(index_t stage = 0) const noexcept
+		const auto cbegin(stage_t stage = stage_t::SETTLED) const noexcept
 		{
-			return std::next(m_DenseData.data(), m_StageStart[stage + 1]);
+			return std::next(m_DenseData.data(), m_StageStart[to_underlying(stage)]);
+		}
+
+		const auto cend(stage_t stage = stage_t::ADDED) const noexcept
+		{
+			return std::next(m_DenseData.data(), m_StageStart[to_underlying(stage) + 1]);
 		}
 
 		constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
@@ -299,21 +314,21 @@ namespace psl::ecs::details
 
 	  private:
 		inline constexpr bool
-		has_impl(index_t chunk_index, index_t offset, size_t startStage = 0, size_t endStage = 1) const noexcept
+		has_impl(index_t chunk_index, index_t offset, stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
 			if(m_Sparse[chunk_index])
 			{
 				const auto& chunk = get_chunk_from_index(chunk_index);
 				return chunk[offset] != std::numeric_limits<index_t>::max() &&
-					   chunk[offset] >= m_StageStart[startStage] && chunk[offset] < m_StageStart[endStage + 1];
+					   chunk[offset] >= m_StageStart[stage_begin(stage)] && chunk[offset] < m_StageStart[stage_end(stage)];
 			}
 			return false;
 		}
 		inline constexpr bool
-		has_impl(chunk_t& chunk, index_t offset, size_t startStage = 0, size_t endStage = 1) const noexcept
+		has_impl(chunk_t& chunk, index_t offset, stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return chunk[offset] != std::numeric_limits<index_t>::max() && chunk[offset] >= m_StageStart[startStage] &&
-				   chunk[offset] < m_StageStart[endStage + 1];
+			return chunk[offset] != std::numeric_limits<index_t>::max() &&
+				   chunk[offset] >= m_StageStart[stage_begin(stage)] && chunk[offset] < m_StageStart[stage_end(stage)];
 		}
 		auto insert_impl(chunk_t& chunk, index_t offset, index_t user_index)
 		{
@@ -432,7 +447,7 @@ namespace psl::ecs::details
 				}
 				else
 				{
-					auto src = (T*)m_DenseData.data(), end = src + size(0, 2), dst = (T*)reg.data();
+					auto src = (T*)m_DenseData.data(), end = src + size(stage_range_t::ALL), dst = (T*)reg.data();
 
 					if constexpr(std::is_move_constructible_v<T>)
 						std::uninitialized_move(src, end, dst);
@@ -627,9 +642,7 @@ namespace psl::ecs::details
 			}
 		}
 
-		constexpr bool has(index_t index) const noexcept { return has(index, 0, 1); }
-
-		constexpr bool has(index_t index, size_t startStage, size_t endStage) const noexcept
+		constexpr bool has(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
 			if(index < capacity())
 			{
@@ -649,7 +662,8 @@ namespace psl::ecs::details
 				{
 					const auto& chunk = get_chunk_from_index(chunk_index);
 					return chunk[index] != std::numeric_limits<index_t>::max() &&
-						   chunk[index] >= m_StageStart[startStage] && chunk[index] < m_StageStart[endStage + 1];
+						   chunk[index] >= m_StageStart[stage_begin(stage)] &&
+						   chunk[index] < m_StageStart[stage_end(stage)];
 				}
 			}
 			return false;
@@ -675,15 +689,11 @@ namespace psl::ecs::details
 			insert_impl(chunk, sub_index, index);
 		}
 
-		psl::array_view<index_t> indices(size_t stage = 0) const noexcept
-		{
-			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
-		}
 
-		psl::array_view<index_t> indices(size_t startStage, size_t endStage) const noexcept
+		psl::array_view<index_t> indices(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[startStage],
-											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
+			return psl::array_view<index_t> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
+											  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 		}
 
 		void promote() noexcept
@@ -703,10 +713,9 @@ namespace psl::ecs::details
 			m_StageSize[2]	= 0;
 		}
 
-		size_type size(index_t stage = 0) const noexcept { return m_StageSize[stage]; }
-		size_type size(index_t startStage, index_t endStage) const noexcept
+		size_type size(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return m_StageStart[endStage + 1] - m_StageStart[startStage];
+			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 		}
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
