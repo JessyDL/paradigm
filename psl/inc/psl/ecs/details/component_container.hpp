@@ -51,20 +51,20 @@ namespace psl::ecs::details
 		void destroy(psl::array_view<entity> entities) noexcept { remove_impl(entities); }
 		void destroy(entity entity) noexcept { remove_impl(entity); }
 		virtual void* data() noexcept = 0;
-		bool has_component(entity entity) const noexcept { return has_impl(entity, 0, 1); }
-		bool has_added(entity entity) const noexcept { return has_impl(entity, 1, 1); }
-		bool has_removed(entity entity) const noexcept { return has_impl(entity, 2, 2); }
+		bool has_component(entity entity) const noexcept { return has_impl(entity, stage_range_t::ALIVE); }
+		bool has_added(entity entity) const noexcept { return has_impl(entity, stage_range_t::ADDED); }
+		bool has_removed(entity entity) const noexcept { return has_impl(entity, stage_range_t::REMOVED); }
 		virtual bool has_storage_for(entity entity) const noexcept = 0;
 		psl::array_view<entity> entities(bool include_removed = false) const noexcept
 		{
-			return entities_impl(0, (include_removed) ? 2 : 1);
+			return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
 		}
 
 		void purge() noexcept { purge_impl(); }
 		component_key_t id() const noexcept;
 
-		psl::array_view<entity> added_entities() const noexcept { return entities_impl(1, 1); };
-		psl::array_view<entity> removed_entities() const noexcept { return entities_impl(2, 2); };
+		psl::array_view<entity> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
+		psl::array_view<entity> removed_entities() const noexcept { return entities_impl(stage_range_t::REMOVED); };
 
 		virtual size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept { return 0; };
 		virtual size_t copy_from(psl::array_view<entity> entities, void* source, bool repeat = false) noexcept
@@ -75,7 +75,7 @@ namespace psl::ecs::details
 		inline size_t component_size() const noexcept { return m_Size; };
 		size_t size(bool include_removed = false) const noexcept
 		{
-			return entities_impl(0, (include_removed) ? 2 : 1).size();
+			return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE).size();
 		}
 
 		void set(entity entity, void* data) noexcept { set_impl(entity, data); }
@@ -89,12 +89,12 @@ namespace psl::ecs::details
 		virtual void add_impl(entity entity, void* data)													= 0;
 		virtual void add_impl(psl::array_view<entity> entities, void* data, bool repeat)					= 0;
 		virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities, void* data, bool repeat) = 0;
-		virtual psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept	= 0;
+		virtual psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept	= 0;
 		virtual void set_impl(entity entity, void* data) noexcept											= 0;
 		virtual void remove_impl(entity entity)																= 0;
 		virtual void remove_impl(psl::array_view<entity> entities)											= 0;
 		virtual void remove_impl(psl::array_view<std::pair<entity, entity>> entities)						= 0;
-		virtual bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept				= 0;
+		virtual bool has_impl(entity entity, stage_range_t stage) const noexcept							= 0;
 
 	  protected:
 		component_key_t m_ID;
@@ -171,9 +171,9 @@ namespace psl::ecs::details
 		{
 			m_Entities.at(entity, stage_range_t::ALL) = *(T*)data;
 		}
-		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
+		psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept override
 		{
-			return m_Entities.indices(to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.indices(stage);
 		}
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
 		{
@@ -258,9 +258,9 @@ namespace psl::ecs::details
 				for(auto i = range.first; i < range.second; ++i) m_Entities.erase(i);
 			}
 		}
-		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
+		bool has_impl(entity entity, stage_range_t stage) const noexcept override
 		{
-			return m_Entities.has(entity, to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.has(entity, stage);
 		}
 
 	  private:
@@ -294,9 +294,9 @@ namespace psl::ecs::details
 
 	  protected:
 		void set_impl(entity entity, void* data) noexcept {};
-		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
+		psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept override
 		{
-			return m_Entities.indices(to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.indices(stage);
 		}
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
 		{
@@ -331,9 +331,9 @@ namespace psl::ecs::details
 				for(auto i = range.first; i < range.second; ++i) m_Entities.erase(i);
 			}
 		}
-		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
+		bool has_impl(entity entity, stage_range_t stage) const noexcept override
 		{
-			return m_Entities.has(entity, to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.has(entity, stage);
 		}
 
 	  private:
@@ -418,9 +418,9 @@ namespace psl::ecs::details
 			auto* ptr = m_Entities.addressof(entity, stage_range_t::ALL);
 			std::memcpy(ptr, data, m_Size);
 		}
-		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
+		psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept override
 		{
-			return m_Entities.indices(to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.indices(stage);
 		}
 
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
@@ -511,9 +511,9 @@ namespace psl::ecs::details
 				for(auto i = range.first; i < range.second; ++i) m_Entities.erase(i);
 			}
 		}
-		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
+		bool has_impl(entity entity, stage_range_t stage) const noexcept override
 		{
-			return m_Entities.has(entity, to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.has(entity, stage);
 		}
 
 	  private:
