@@ -38,7 +38,7 @@ namespace psl::ecs::details
 			static constexpr auto name = T::_ECS_COMPONENT_NAME;
 		};
 
-		consteval std::uint32_t fnv1a_32(std::string_view value) const noexcept
+		constexpr std::uint32_t fnv1a_32(std::string_view value) const noexcept
 		{
 			std::uint32_t seed {2166136261u};
 			for(auto c : value)
@@ -63,6 +63,10 @@ namespace psl::ecs::details
 			TRIVIAL = 1,
 			FLAG	= 2,
 		};
+
+		constexpr component_key_t(std::string_view name, component_type type) :
+			m_Name(name), m_Value(fnv1a_32(name)), m_Type(type)
+		{}
 
 		constexpr component_key_t(const component_key_t& other) :
 			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type)

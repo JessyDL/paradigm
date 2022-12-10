@@ -15,6 +15,8 @@
 #include "selectors.hpp"
 #include <chrono>
 
+#include "psl/serialization/serializer.hpp"
+
 namespace psl::async
 {
 	class scheduler;
@@ -31,6 +33,96 @@ namespace psl::ecs
 {
 	class state_t final
 	{
+		friend class psl::serialization::accessor;
+		static constexpr auto serialization_name {"ECS"};
+
+		template <typename S>
+		void serialize(S& serializer)
+		{
+			serializer.template parse<"ORPHANS">(m_Orphans);
+			serializer.template parse<"FUTURE_ORPHANS">(m_ToBeOrphans);
+			serializer.template parse<"ENTITIES">(m_Entities);
+
+			std::vector<size_t> component_sizes {};
+			std::vector<entity> component_entities {};
+			std::vector<size_t> component_data_size {};
+			std::vector<std::byte> component_data {};
+			std::vector<std::string> component_names {};
+
+			if constexpr(psl::serialization::details::IsEncoder<S>)
+			{
+				size_t expected_total_datasize {0};
+				size_t expected_total_entities {0};
+				for(const auto& [key, component] : m_Components)
+				{
+					if(key.type() == details::component_key_t::component_type::COMPLEX) continue;
+					expected_total_entities += component->size(true);
+
+					expected_total_datasize +=
+					  (component->component_size() > 0) ? component->component_size() * component->size(true) : 0;
+				}
+
+				component_entities.reserve(expected_total_entities);
+				component_data.resize(expected_total_datasize);
+
+				size_t data_offset {0};
+				for(const auto& [key, component] : m_Components)
+				{
+					if(key.type() == details::component_key_t::component_type::COMPLEX) continue;
+
+					component_sizes.emplace_back(component->size(true));
+					component_entities.append_range(component->entities(true));
+					component_data_size.emplace_back(component->component_size());
+					component_names.emplace_back(key.name());
+
+					if(component->component_size() > 0)
+					{
+						auto total_size = component->component_size() * component->size(true);
+						memcpy(component_data.data() + data_offset, component->data(), total_size);
+						data_offset += total_size;
+					}
+				}
+			}
+
+			serializer.template parse<"COMPONENTS">(component_names);
+			serializer.template parse<"CDATASIZE">(component_data_size);
+			serializer.template parse<"CSIZE">(component_sizes);
+			serializer.template parse<"CENTITIES">(component_entities);
+			serializer.template parse<"CDATA">(component_data);
+
+
+			if constexpr(psl::serialization::details::IsDecoder<S>)
+			{
+				const auto count = component_names.size();
+				for(size_t i = 0; i < count; ++i)
+				{
+					details::component_key_t key(component_names[i],
+												 (component_data_size[i] == 0)
+												   ? details::component_key_t::component_type::FLAG
+												   : details::component_key_t::component_type::TRIVIAL);
+					auto it = m_Components.find(key);
+					if(it == m_Components.end())
+					{
+						m_Components.emplace(key, nullptr);
+						it = m_Components.find(key);
+					}
+
+					if(!it->second)
+					{
+						if (key.type() == details::component_key_t::component_type::FLAG)
+						{
+							it->second = new details::component_container_flag_t(key);
+						}
+						else
+						{
+							it->second = new details::component_container_untyped_t(key, component_data_size[i], 2);
+						}
+					}
+				}
+			}
+		}
+
+
 		struct transform_result
 		{
 			bool operator==(const transform_result& other) const noexcept { return group == other.group; }

@@ -10,6 +10,7 @@
 #include "psl/static_array.hpp"
 #include <functional>
 #include <numeric>
+
 namespace psl
 {
 	template <typename... Ts>
@@ -51,6 +52,7 @@ namespace psl::ecs::details
 		void destroy(psl::array_view<entity> entities) noexcept { remove_impl(entities); }
 		void destroy(entity entity) noexcept { remove_impl(entity); }
 		virtual void* data() noexcept = 0;
+		virtual void* const data() const noexcept = 0;
 		bool has_component(entity entity) const noexcept { return has_impl(entity, stage_range_t::ALIVE); }
 		bool has_added(entity entity) const noexcept { return has_impl(entity, stage_range_t::ADDED); }
 		bool has_removed(entity entity) const noexcept { return has_impl(entity, stage_range_t::REMOVED); }
@@ -110,6 +112,7 @@ namespace psl::ecs::details
 
 
 		void* data() noexcept override { return m_Entities.data(); }
+		void* const data() const noexcept override { return m_Entities.data(); }
 
 		bool has_storage_for(entity entity) const noexcept override
 		{
@@ -273,6 +276,7 @@ namespace psl::ecs::details
 		component_container_flag_t(psl::ecs::details::component_key_t key) : component_container_t(key, 0) {};
 
 		void* data() noexcept override { return nullptr; }
+		void* const data() const noexcept override { return nullptr; }
 
 		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, stage_range_t::ALL); }
 
@@ -352,6 +356,7 @@ namespace psl::ecs::details
 
 
 		void* data() noexcept override { return m_Entities.data(); }
+		void* const data() const noexcept override { return m_Entities.data(); }
 
 		bool has_storage_for(entity entity) const noexcept override
 		{

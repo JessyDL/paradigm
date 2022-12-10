@@ -187,6 +187,11 @@ namespace psl::ecs::details
 			return static_cast<const_pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 		}
 
+		FORCEINLINE auto data(stage_t stage = stage_t::SETTLED) const noexcept -> const_pointer
+		{
+			return cdata(stage);
+		}
+
 		/// \brief Get a reference of the requested type at the index
 		/// \tparam T Type we want to interpret the data as
 		/// \param index Where to look

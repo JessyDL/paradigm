@@ -256,7 +256,7 @@ namespace psl::ecs::details
 
 		constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
 		void* data() noexcept { return m_DenseData.data(); };
-		const void* data() const noexcept { return m_DenseData.data(); };
+		void* const data() const noexcept { return m_DenseData.data(); };
 
 		void clear() noexcept
 		{
