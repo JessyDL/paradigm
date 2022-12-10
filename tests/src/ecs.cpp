@@ -65,13 +65,6 @@ namespace
 		operator const T&() const noexcept { return val; }
 		operator T&() noexcept { return val; }
 
-		bool operator==(const complex_wrapper& rhs) const noexcept { return val == rhs.val; }
-		bool operator!=(const complex_wrapper& rhs) const noexcept { return val != rhs.val; }
-		bool operator==(const T& rhs) const noexcept { return val == rhs; }
-		bool operator!=(const T& rhs) const noexcept { return val != rhs; }
-		bool operator==(const auto& rhs) const noexcept { return val == static_cast<T>(rhs); }
-		bool operator!=(const auto& rhs) const noexcept { return val != static_cast<T>(rhs); }
-
 		complex_wrapper& operator=(const T& rhs)
 		{
 			if(this != &rhs)
@@ -373,7 +366,7 @@ namespace
 			state.add_components(e_list1, [&incrementer](type& target) { target = type(incrementer++); });
 
 			state.declare([](psl::ecs::info_t& info, pack<entity, filter<type>> pack) {
-				info.command_buffer.destroy(pack.get<entity>());
+				info.command_buffer.destroy(pack.template get<entity>());
 			});
 			auto token =
 			  state.declare([size_1 = e_list1.size()](psl::ecs::info_t& info, pack<entity, const type> pack1) {
@@ -394,7 +387,7 @@ namespace
 			{
 				for(auto e : e_list1)
 				{
-					auto val = state.get<type>(e);
+					auto val = state.template get<type>(e);
 					require(e) == val;
 				}
 			}
@@ -418,9 +411,9 @@ namespace
 				  {
 					  require(e) == i;
 				  }
-				  require(pack1.get<entity>()[0]) == 0;
+				  require(pack1.template get<entity>()[0]) == 0;
 				  // if this shows 0, then the previous deleted components of tick #1 are still present
-				  require(pack2.get<entity>()[0]) == 10;
+				  require(pack2.template get<entity>()[0]) == 10;
 				  for(auto [e, i] : pack2)
 				  {
 					  require(e) == i;
@@ -596,13 +589,13 @@ namespace
 			auto results  = state.view<type>();
 			require(results.size()) == entities.size();
 			require(results.size()) == e_list1.size();
-			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == 50; }));
+			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
 
 			require(state.systems()) == 1;
 			state.revoke(system_id);
 			require(state.systems()) == 0;
 			state.tick(std::chrono::duration<float>(0.1f));
-			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == 50; }));
+			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
 		};
 	};
 
@@ -628,7 +621,7 @@ namespace
 			state.declare([&](info_t& info, pack<entity, type> pack) {
 				if(pack.empty()) return;
 				count += pack.size();
-				info.command_buffer.add_components<int>(pack.get<entity>(), {0});
+				info.command_buffer.add_components<int>(pack.template get<entity>(), {0});
 			});
 
 			auto entities = state.create<type>(1);
@@ -663,7 +656,7 @@ namespace
 			expect(state.filter<on_remove<type>>().size()) == 1;
 			state.declare([&](info_t& info, pack<entity, type> pack) {
 				expect(pack.size()) == 1;
-				expect(pack.get<entity>()[0]) == 1;
+				expect(pack.template get<entity>()[0]) == 1;
 			});
 			state.tick(std::chrono::duration<float>(1.0f));
 			expect(state.filter<type>().size()) == 1;
