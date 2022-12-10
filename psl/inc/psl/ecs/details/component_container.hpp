@@ -336,7 +336,7 @@ namespace psl::ecs::details
 
 	class component_container_untyped_t : public component_container_t
 	{
-		using stage_range_t = details::staged_sparse_memory_region_t::stage_range_t;
+		using stage_range_t = details::stage_range_t;
 
 	  public:
 		component_container_untyped_t(psl::ecs::details::component_key_t key, size_t size, size_t alignment) :

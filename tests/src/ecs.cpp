@@ -97,7 +97,7 @@ namespace
 								require(!cInfo.has_component(index));
 								require(cInfo.has_removed(index));
 								require(cInfo.entity_data().template at<float>(
-								  index, details::staged_sparse_memory_region_t::stage_range_t::REMOVED)) ==
+								  index, details::stage_range_t::REMOVED)) ==
 								  static_cast<float>(index);
 							}
 							else

@@ -98,7 +98,7 @@ namespace psl::ecs
 			if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
 			{
 				return cInfo->entity_data().template at<T>(entity,
-														  details::staged_sparse_memory_region_t::stage_range_t::ALL);
+														  details::stage_range_t::ALL);
 			}
 			else
 			{
@@ -115,7 +115,7 @@ namespace psl::ecs
 			if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
 			{
 				return cInfo->entity_data().template at<T>(entity,
-														  details::staged_sparse_memory_region_t::stage_range_t::ALL);
+														  details::stage_range_t::ALL);
 			}
 			else
 			{
@@ -308,7 +308,7 @@ namespace psl::ecs
 				{
 					return ((details::component_container_typed_t<T>*)(&it->second.get()))
 					  ->entity_data()
-					  .template dense<T>(details::staged_sparse_memory_region_t::stage_range_t::ALIVE);
+					  .template dense<T>(details::stage_range_t::ALIVE);
 				}
 				else
 				{

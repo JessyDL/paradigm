@@ -1,7 +1,8 @@
 #include "psl/ecs/details/staged_sparse_memory_region.hpp"
 #include <array>
 using ssmr_t = psl::ecs::details::staged_sparse_memory_region_t;
-
+using stage_range_t = psl::ecs::details::stage_range_t;
+using stage_t = psl::ecs::details::stage_t;
 #include <litmus/expect.hpp>
 #include <litmus/generator/range.hpp>
 #include <litmus/section.hpp>
@@ -48,17 +49,17 @@ namespace
 {
 	void compare_ranges(ssmr_t& val)
 	{
-		require(val.indices(ssmr_t::stage_range_t::ALL).size()) == val.dense<float>(ssmr_t::stage_range_t::ALL).size();
-		require(val.indices(ssmr_t::stage_range_t::ADDED).size()) ==
-		  val.dense<float>(ssmr_t::stage_range_t::ADDED).size();
-		require(val.indices(ssmr_t::stage_range_t::SETTLED).size()) ==
-		  val.dense<float>(ssmr_t::stage_range_t::SETTLED).size();
-		require(val.indices(ssmr_t::stage_range_t::REMOVED).size()) ==
-		  val.dense<float>(ssmr_t::stage_range_t::REMOVED).size();
-		require(val.indices(ssmr_t::stage_range_t::ALIVE).size()) ==
-		  val.dense<float>(ssmr_t::stage_range_t::ALIVE).size();
-		require(val.indices(ssmr_t::stage_range_t::TERMINAL).size()) ==
-		  val.dense<float>(ssmr_t::stage_range_t::TERMINAL).size();
+		require(val.indices(stage_range_t::ALL).size()) == val.dense<float>(stage_range_t::ALL).size();
+		require(val.indices(stage_range_t::ADDED).size()) ==
+		  val.dense<float>(stage_range_t::ADDED).size();
+		require(val.indices(stage_range_t::SETTLED).size()) ==
+		  val.dense<float>(stage_range_t::SETTLED).size();
+		require(val.indices(stage_range_t::REMOVED).size()) ==
+		  val.dense<float>(stage_range_t::REMOVED).size();
+		require(val.indices(stage_range_t::ALIVE).size()) ==
+		  val.dense<float>(stage_range_t::ALIVE).size();
+		require(val.indices(stage_range_t::TERMINAL).size()) ==
+		  val.dense<float>(stage_range_t::TERMINAL).size();
 	}
 
 	template <typename T>
@@ -122,8 +123,8 @@ namespace
 		require(container.indices().size()) >= 0;
 		require(container.dense<float>().size()) >= 0;
 
-		auto start_count_added	 = container.indices(ssmr_t::stage_range_t::ADDED).size();
-		auto start_count_settled = container.indices(ssmr_t::stage_range_t::SETTLED).size();
+		auto start_count_added	 = container.indices(stage_range_t::ADDED).size();
+		auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
 		float default_value		 = 10.0f;
 		entity count			 = 0;
 
@@ -157,11 +158,11 @@ namespace
 		  };
 
 		require(all_of_n(info.first, info.first + count, [&default_value, &container](auto i) mutable {
-			return container.at<float>(i, ssmr_t::stage_range_t::ADDED) == default_value++;
+			return container.at<float>(i, stage_range_t::ADDED) == default_value++;
 		}));
 
-		require(container.indices(ssmr_t::stage_range_t::ADDED).size()) == count + start_count_added;
-		require(container.indices(ssmr_t::stage_range_t::SETTLED).size()) == start_count_settled;
+		require(container.indices(stage_range_t::ADDED).size()) == count + start_count_added;
+		require(container.indices(stage_range_t::SETTLED).size()) == start_count_settled;
 		require(container.indices().size()) == count + start_count_added;
 
 		compare_ranges(container);
@@ -173,8 +174,8 @@ namespace
 											   erase_structure {0, 5000, 4500, 5500},
 											   erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
 		  ssmr_t container		   = ssmr_t::instantiate<float>();
-		  auto start_count_added   = container.indices(ssmr_t::stage_range_t::ADDED).size();
-		  auto start_count_settled = container.indices(ssmr_t::stage_range_t::SETTLED).size();
+		  auto start_count_added   = container.indices(stage_range_t::ADDED).size();
+		  auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
 
 		  float default_value = 10.f;
 		  auto count		  = info.last - info.first;
@@ -184,9 +185,9 @@ namespace
 
 		  section<"removing elements">(container, info.erase_first, info.erase_last) =
 			[](ssmr_t& container, entity first, entity last) {
-				auto start_count_all	 = container.indices(ssmr_t::stage_range_t::ALL).size();
-				auto start_count_alive	 = container.indices(ssmr_t::stage_range_t::ALIVE).size();
-				auto start_count_removed = container.indices(ssmr_t::stage_range_t::REMOVED).size();
+				auto start_count_all	 = container.indices(stage_range_t::ALL).size();
+				auto start_count_alive	 = container.indices(stage_range_t::ALIVE).size();
+				auto start_count_removed = container.indices(stage_range_t::REMOVED).size();
 
 				size_t erased {0};
 				size_t expected {0};
@@ -204,9 +205,9 @@ namespace
 				require(none_of_n(
 				  first, first + erased, [&container](auto index) -> bool { return container.has(index); })) == true;
 
-				require(container.indices(ssmr_t::stage_range_t::ALL).size()) == start_count_all;
-				require(container.indices(ssmr_t::stage_range_t::ALIVE).size()) == start_count_alive - erased;
-				require(container.indices(ssmr_t::stage_range_t::REMOVED).size()) == start_count_removed + erased;
+				require(container.indices(stage_range_t::ALL).size()) == start_count_all;
+				require(container.indices(stage_range_t::ALIVE).size()) == start_count_alive - erased;
+				require(container.indices(stage_range_t::REMOVED).size()) == start_count_removed + erased;
 
 				compare_ranges(container);
 			};
@@ -214,18 +215,18 @@ namespace
 
 	auto t2 = suite<ssmr_t, "collections">() = []() {
 		auto promote = [](ssmr_t& container) mutable {
-			auto previous_added	  = container.indices(ssmr_t::stage_range_t::ADDED).size();
-			auto previous_removed = container.indices(ssmr_t::stage_range_t::REMOVED).size();
-			auto previous_settled = container.indices(ssmr_t::stage_range_t::SETTLED).size();
+			auto previous_added	  = container.indices(stage_range_t::ADDED).size();
+			auto previous_removed = container.indices(stage_range_t::REMOVED).size();
+			auto previous_settled = container.indices(stage_range_t::SETTLED).size();
 
 			container.promote();
 
-			require(container.indices(ssmr_t::stage_range_t::ADDED).size()) == 0;
-			require(container.indices(ssmr_t::stage_range_t::REMOVED).size()) == 0;
-			require(container.indices(ssmr_t::stage_range_t::SETTLED).size()) == previous_settled + previous_added;
-			require(container.indices(ssmr_t::stage_range_t::ALIVE).size()) == previous_added + previous_settled;
-			require(container.indices(ssmr_t::stage_range_t::ALL).size()) == previous_added + previous_settled;
-			require(container.indices(ssmr_t::stage_range_t::TERMINAL).size()) == 0;
+			require(container.indices(stage_range_t::ADDED).size()) == 0;
+			require(container.indices(stage_range_t::REMOVED).size()) == 0;
+			require(container.indices(stage_range_t::SETTLED).size()) == previous_settled + previous_added;
+			require(container.indices(stage_range_t::ALIVE).size()) == previous_added + previous_settled;
+			require(container.indices(stage_range_t::ALL).size()) == previous_added + previous_settled;
+			require(container.indices(stage_range_t::TERMINAL).size()) == 0;
 		};
 
 		ssmr_t container = ssmr_t::instantiate<float>();
@@ -238,22 +239,22 @@ namespace
 
 	auto t3 = suite<ssmr_t, "collections">() = []() {
 		auto merge = [](ssmr_t& container, ssmr_t& other) {
-			auto container_indices = psl::array<entity> {container.indices(ssmr_t::stage_range_t::ALL)};
+			auto container_indices = psl::array<entity> {container.indices(stage_range_t::ALL)};
 
 			size_t pre_existing {0};
-			for(auto index : other.indices(ssmr_t::stage_range_t::ALL))
+			for(auto index : other.indices(stage_range_t::ALL))
 			{
 				pre_existing += size_t {container.has(index)};
 			}
 
 			auto result = container.merge(other);
-			for(auto index : other.indices(ssmr_t::stage_range_t::ALL))
+			for(auto index : other.indices(stage_range_t::ALL))
 			{
 				require(container.has(index));
 			}
 
-			require(container.indices(ssmr_t::stage_range_t::ALL).size()) ==
-			  container_indices.size() + other.indices(ssmr_t::stage_range_t::ALL).size() - pre_existing;
+			require(container.indices(stage_range_t::ALL).size()) ==
+			  container_indices.size() + other.indices(stage_range_t::ALL).size() - pre_existing;
 		};
 
 		section<"non-overlapping">() = [&merge]() {
@@ -292,14 +293,14 @@ namespace
 		ssmr_t container = ssmr_t::instantiate<float>();
 		append_ssmr<float>(container, {{15, 50}, {200, 750}});
 
-		require(container.indices(ssmr_t::stage_range_t::ALL).size()) == 585;
+		require(container.indices(stage_range_t::ALL).size()) == 585;
 
-		for(auto index : container.indices(ssmr_t::stage_range_t::ALL))
+		for(auto index : container.indices(stage_range_t::ALL))
 		{
 			container.set(index, (float)index);
 		}
-		require(std::all_of(std::begin(container.indices(ssmr_t::stage_range_t::ALL)),
-							std::end(container.indices(ssmr_t::stage_range_t::ALL)),
+		require(std::all_of(std::begin(container.indices(stage_range_t::ALL)),
+							std::end(container.indices(stage_range_t::ALL)),
 							[&container](auto index) { return container.get<float>(index) == (float)index; }));
 
 		psl::sparse_array<entity> sparse {};
@@ -316,6 +317,6 @@ namespace
 		require(
 		  all_of_n(750, 785, [&container](auto index) { return container.get<float>(index) == (float)(index + 750); }));
 
-		require(container.indices(ssmr_t::stage_range_t::ALL).size()) == 585;
+		require(container.indices(stage_range_t::ALL).size()) == 585;
 	};
 }	 // namespace
