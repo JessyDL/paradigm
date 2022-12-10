@@ -461,40 +461,6 @@ namespace psl::ecs::details
 			  .success = true, .added = inserted, .total = static_cast<key_type>(other.m_Reverse.size())};
 		}
 
-		FORCEINLINE static constexpr stage_range_t to_stage_range(uint8_t begin, uint8_t end) noexcept
-		{
-			switch(begin)
-			{
-			case 0:
-				switch(end)
-				{
-				case 0:
-					return stage_range_t::SETTLED;
-				case 1:
-					return stage_range_t::ALIVE;
-				case 2:
-					return stage_range_t::ALL;
-				}
-			case 1:
-				switch(end)
-				{
-				case 1:
-					return stage_range_t::ADDED;
-				case 2:
-					return stage_range_t::TERMINAL;
-				}
-			case 2:
-				switch(end)
-				{
-				case 2:
-					return stage_range_t::REMOVED;
-				}
-			}
-			if(begin == end) return stage_range_t(begin);
-
-			return stage_range_t(begin + end + uint8_t {1});
-		}
-
 	  private:
 		FORCEINLINE constexpr auto size(stage_range_t stage) const noexcept -> size_type
 		{

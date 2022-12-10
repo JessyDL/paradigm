@@ -63,4 +63,38 @@ namespace psl::ecs::details
 		}
 		psl::unreachable("stage was of unknown value");
 	}
+
+	constexpr FORCEINLINE auto to_stage_range(uint8_t begin, uint8_t end) noexcept -> stage_range_t
+	{
+		switch(begin)
+		{
+		case 0:
+			switch(end)
+			{
+			case 0:
+				return stage_range_t::SETTLED;
+			case 1:
+				return stage_range_t::ALIVE;
+			case 2:
+				return stage_range_t::ALL;
+			}
+		case 1:
+			switch(end)
+			{
+			case 1:
+				return stage_range_t::ADDED;
+			case 2:
+				return stage_range_t::TERMINAL;
+			}
+		case 2:
+			switch(end)
+			{
+			case 2:
+				return stage_range_t::REMOVED;
+			}
+		}
+		if(begin == end) return stage_range_t(begin);
+
+		psl::unreachable("stage was of unknown value");
+	}
 }

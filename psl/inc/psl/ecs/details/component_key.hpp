@@ -69,7 +69,7 @@ namespace psl::ecs::details
 		{
 			if(std::find(std::begin(m_Name), std::end(m_Name), '<') != std::end(m_Name))
 			{
-				throw std::exception(/* templated component types are not supported (due to portability issues) */);
+				throw std::runtime_error("templated component types are not supported (due to portability issues)");
 			}
 		}
 		constexpr component_key_t& operator=(const component_key_t& other) noexcept

@@ -111,7 +111,10 @@ namespace psl::ecs::details
 
 		void* data() noexcept override { return m_Entities.data(); }
 
-		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
+		bool has_storage_for(entity entity) const noexcept override
+		{
+			return m_Entities.has(entity, stage_range_t::ALL);
+		}
 
 		size_t alignment() const noexcept override { return std::alignment_of_v<T>; }
 
@@ -121,7 +124,7 @@ namespace psl::ecs::details
 			T* dest = (T*)destination;
 			for(auto e : entities)
 			{
-				std::memcpy(dest, m_Entities.addressof(e, 0, 2), sizeof(T));
+				std::memcpy(dest, m_Entities.addressof(e, stage_range_t::ALL), sizeof(T));
 				++dest;
 			}
 			return entities.size() * sizeof(T);
@@ -134,14 +137,14 @@ namespace psl::ecs::details
 			{
 				for(auto e : entities)
 				{
-					std::memcpy((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T));
+					std::memcpy((void*)&(m_Entities.at(e, stage_range_t::ALL)), src, sizeof(T));
 				}
 			}
 			else
 			{
 				for(auto e : entities)
 				{
-					std::memcpy((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T));
+					std::memcpy((void*)&(m_Entities.at(e, stage_range_t::ALL)), src, sizeof(T));
 					++src;
 				}
 			}
@@ -161,17 +164,20 @@ namespace psl::ecs::details
 			return true;
 		}
 
-		void set(entity e, const T& data) noexcept { m_Entities.at(e, 0, 2) = data; }
+		void set(entity e, const T& data) noexcept { m_Entities.at(e, stage_range_t::ALL) = data; }
 
 	  protected:
-		void set_impl(entity entity, void* data) noexcept override { m_Entities.at(entity, 0, 2) = *(T*)data; }
+		void set_impl(entity entity, void* data) noexcept override
+		{
+			m_Entities.at(entity, stage_range_t::ALL) = *(T*)data;
+		}
 		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.indices(startStage, endStage);
+			return m_Entities.indices(to_stage_range((uint8_t)startStage, (uint8_t)endStage));
 		}
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
 		{
-			m_Entities.reserve(m_Entities.size(0, 2) + entities.size());
+			m_Entities.reserve(m_Entities.size(stage_range_t::ALL) + entities.size());
 			T* source = (T*)data;
 			if(data == nullptr)
 			{
@@ -210,7 +216,7 @@ namespace psl::ecs::details
 				  return sum + (r.second - r.first);
 			  });
 
-			m_Entities.reserve(m_Entities.size(0, 2) + count);
+			m_Entities.reserve(m_Entities.size(stage_range_t::ALL) + count);
 			T* source = (T*)data;
 			if(data == nullptr)
 			{
@@ -254,7 +260,7 @@ namespace psl::ecs::details
 		}
 		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.has(entity, startStage, endStage);
+			return m_Entities.has(entity, to_stage_range((uint8_t)startStage, (uint8_t)endStage));
 		}
 
 	  private:
@@ -414,7 +420,7 @@ namespace psl::ecs::details
 		}
 		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.indices(m_Entities.to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.indices(to_stage_range((uint8_t)startStage, (uint8_t)endStage));
 		}
 
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
@@ -507,7 +513,7 @@ namespace psl::ecs::details
 		}
 		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.has(entity, m_Entities.to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.has(entity, to_stage_range((uint8_t)startStage, (uint8_t)endStage));
 		}
 
 	  private:
