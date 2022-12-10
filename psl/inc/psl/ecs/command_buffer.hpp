@@ -1,5 +1,5 @@
 #pragma once
-#include "details/component_info.hpp"
+#include "details/component_container.hpp"
 #include "details/component_key.hpp"
 #include "entity.hpp"
 #include "psl/array.hpp"
@@ -160,10 +160,14 @@ namespace psl::ecs
 			});
 
 			constexpr auto key = details::component_key_t::generate<T>();
-			if(it == std::end(m_Components)) m_Components.emplace_back(new details::component_info_typed<T>());
+
+			if(it == std::end(m_Components))
+			{
+				m_Components.emplace_back(new details::component_container_typed_t<T>());
+			}
 		}
 
-		details::component_info* get_component_info(details::component_key_t key) noexcept;
+		details::component_container_t* get_component_container(details::component_key_t key) noexcept;
 
 		//------------------------------------------------------------
 		// add_component
@@ -365,7 +369,7 @@ namespace psl::ecs
 		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
 
 		state_t const* m_State {nullptr};
-		psl::array<psl::unique_ptr<details::component_info>> m_Components {};
+		psl::array<psl::unique_ptr<details::component_container_t>> m_Components {};
 		entity m_First {0};
 		psl::array<entity> m_Entities {};
 

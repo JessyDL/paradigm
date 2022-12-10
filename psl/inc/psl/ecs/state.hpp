@@ -1,7 +1,7 @@
 
 #pragma once
 #include "command_buffer.hpp"
-#include "details/component_info.hpp"
+#include "details/component_container.hpp"
 #include "details/component_key.hpp"
 #include "details/entity_info.hpp"
 #include "details/system_information.hpp"
@@ -18,6 +18,13 @@
 namespace psl::async
 {
 	class scheduler;
+}
+
+/// \brief Private implementation details for the ECS.
+/// \warning Users should not rely on these implementations.
+namespace psl::ecs::details
+{
+
 }
 
 /// \brief Entity Component System
@@ -119,7 +126,7 @@ namespace psl::ecs
 		template <typename... Ts>
 		bool has_components(psl::array_view<entity> entities) const noexcept
 		{
-			auto cInfos = get_component_info(to_keys<Ts...>());
+			auto cInfos = get_component_container(to_keys<Ts...>());
 			if(cInfos.size() == sizeof...(Ts))
 			{
 				return std::all_of(std::begin(cInfos), std::end(cInfos), [&entities](const auto& cInfo) {
@@ -255,7 +262,7 @@ namespace psl::ecs
 		void set_component(psl::array_view<entity> entities, T&& data) noexcept
 		{
 			constexpr auto key = details::component_key_t::generate<T>();
-			auto cInfo		   = get_component_info(key);
+			auto cInfo		   = get_component_container(key);
 			for(auto e : entities)
 			{
 				cInfo->set(e, &data);
@@ -270,7 +277,7 @@ namespace psl::ecs
 					   entities.size(),
 					   data.size());
 			constexpr auto key = details::component_key_t::generate<T>();
-			auto cInfo		   = get_component_info(key);
+			auto cInfo		   = get_component_container(key);
 			auto d			   = std::begin(data);
 			for(auto e : entities)
 			{
@@ -299,11 +306,13 @@ namespace psl::ecs
 			{
 				if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
 				{
-					return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().template dense<T>(details::staged_sparse_memory_region_t::stage_range_t::ALIVE);
+					return ((details::component_container_typed_t<T>*)(&it->second.get()))
+					  ->entity_data()
+					  .template dense<T>(details::staged_sparse_memory_region_t::stage_range_t::ALIVE);
 				}
 				else
 				{
-					return ((details::component_info_typed<T>*)(&it->second.get()))->entity_data().dense(0, 1);
+					return ((details::component_container_typed_t<T>*)(&it->second.get()))->entity_data().dense(0, 1);
 				}
 			}
 			return {};
@@ -407,19 +416,21 @@ namespace psl::ecs
 		{
 			constexpr auto key = details::component_key_t::generate<T>();
 			if(auto it = m_Components.find(key); it == std::end(m_Components))
-				m_Components.emplace(key, new details::component_info_typed<T>());
+			{
+				m_Components.emplace(key, new details::component_container_typed_t<T>());
+			}
 		}
 
-		details::component_info* get_component_info(details::component_key_t key) noexcept;
-		const details::component_info* get_component_info(details::component_key_t key) const noexcept;
+		details::component_container_t* get_component_container(details::component_key_t key) noexcept;
+		const details::component_container_t* get_component_container(details::component_key_t key) const noexcept;
 
-		psl::array<const details::component_info*>
-		get_component_info(psl::array_view<details::component_key_t> keys) const noexcept;
+		psl::array<const details::component_container_t*>
+		get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;
 		template <typename T>
-		details::component_info_typed<T>* get_component_typed_info() const noexcept
+		details::component_container_typed_t<T>* get_component_typed_info() const noexcept
 		{
 			constexpr auto key {details::component_key_t::generate<T>()};
-			return (details::component_info_typed<T>*)&m_Components.at(key).get();
+			return (details::component_container_typed_t<T>*)&m_Components.at(key).get();
 		}
 		//------------------------------------------------------------
 		// add_component
@@ -551,7 +562,7 @@ namespace psl::ecs
 			requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
 		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, Fn&& invocable)
 		{
-			auto cInfo = get_component_info(key);
+			auto cInfo = get_component_container(key);
 			psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 			const auto component_size = cInfo->component_size();
 			psl_assert(component_size != 0, "component size was 0");
@@ -805,7 +816,8 @@ namespace psl::ecs
 		psl::array<details::system_token> m_ToRevoke {};
 		psl::array<details::system_information> m_NewSystemInformations {};
 
-		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_info>> m_Components {};
+		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_container_t>>
+		  m_Components {};
 
 		psl::sparse_indice_array<entity> m_ModifiedEntities {};
 

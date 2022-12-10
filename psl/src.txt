@@ -19,7 +19,7 @@ ustring
 profiling/profiler
 
 ecs/state
-ecs/details/component_info
+ecs/details/component_container
 ecs/command_buffer
 
 async/scheduler

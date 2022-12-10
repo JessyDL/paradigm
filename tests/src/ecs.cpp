@@ -57,7 +57,7 @@ namespace
 
 	auto t0 = suite<"component_info", "ecs", "psl">() = []() {
 		section<"non-empty component_info_typed">() = [&]() {
-			details::component_info_typed<float> cInfo;
+			details::component_container_typed_t<float> cInfo;
 
 			section<"additions">() = [&]() {
 				psl::array<entity> entities;
@@ -114,7 +114,7 @@ namespace
 
 			// section<"additions && removals">() = [&](){};
 			section<"remap">() = [&]() {
-				details::component_info_typed<float> cInfo2;
+				details::component_container_typed_t<float> cInfo2;
 				psl::array<entity> entities;
 				entities.resize(100);
 				std::iota(std::begin(entities), std::end(entities), entity {0});

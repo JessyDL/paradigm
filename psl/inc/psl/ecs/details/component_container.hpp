@@ -18,23 +18,23 @@ namespace psl
 
 namespace psl::ecs::details
 {
-	/// \brief implementation detail that stores the component information
+	/// \brief implementation detail that stores the component data
 	///
 	/// This class serves as a base to the actual component storage.
 	/// It contains some primitive functionality itself, but mostly serves
 	/// as a safer way of accessing the component data from the state.
 	/// \warning this should never be used by anything other than the psl::ecs::state_t
 	/// The 'public' API is not safe to use.
-	class component_info
+	class component_container_t
 	{
 	  public:
-		component_info(component_key_t id, size_t size);
+		component_container_t(component_key_t id, size_t size);
 
-		component_info(const component_info& other) = delete;
-		component_info(component_info&& other);
-		virtual ~component_info()							   = default;
-		component_info& operator=(const component_info& other) = delete;
-		component_info& operator=(component_info&& other);
+		component_container_t(const component_container_t& other) = delete;
+		component_container_t(component_container_t&& other);
+		virtual ~component_container_t()							   = default;
+		component_container_t& operator=(const component_container_t& other) = delete;
+		component_container_t& operator=(component_container_t&& other);
 
 		bool is_tag() const noexcept;
 
@@ -81,9 +81,8 @@ namespace psl::ecs::details
 		void set(entity entity, void* data) noexcept { set_impl(entity, data); }
 
 		virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
-		virtual bool merge(const component_info& other) noexcept												= 0;
+		virtual bool merge(const component_container_t& other) noexcept												= 0;
 		virtual size_t alignment() const noexcept																= 0;
-
 
 	  protected:
 		virtual void purge_impl() noexcept																	= 0;
@@ -98,19 +97,15 @@ namespace psl::ecs::details
 		virtual bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept				= 0;
 
 	  protected:
-		// size_t m_LockState{0};
-		// psl::sparse_indice_array<entity> m_AssociatedEntities;
-		// psl::sparse_indice_array<entity> m_Removed;
-		// psl::sparse_indice_array<entity> m_Added;
 		component_key_t m_ID;
 		size_t m_Size;
 	};
 
 	template <typename T, bool tag_type = std::is_empty<T>::value>
-	class component_info_typed final : public component_info
+	class component_container_typed_t final : public component_container_t
 	{
 	  public:
-		component_info_typed() : component_info(details::component_key_t::generate<T>(), sizeof(T)) {};
+		component_container_typed_t() : component_container_t(details::component_key_t::generate<T>(), sizeof(T)) {};
 		auto& entity_data() noexcept { return m_Entities; };
 
 
@@ -146,7 +141,6 @@ namespace psl::ecs::details
 			{
 				for(auto e : entities)
 				{
-					// if(std::memcmp((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T)) != 0)
 					std::memcpy((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T));
 					++src;
 				}
@@ -158,11 +152,11 @@ namespace psl::ecs::details
 		{
 			m_Entities.remap(mapping, pred);
 		}
-		bool merge(const component_info& other) noexcept override
+		bool merge(const component_container_t& other) noexcept override
 		{
 			if(other.id() != id()) return false;
 
-			component_info_typed<T>* other_ptr = (component_info_typed<T>*)(&other);
+			component_container_typed_t<T>* other_ptr = (component_container_typed_t<T>*)(&other);
 			m_Entities.merge(other_ptr->m_Entities);
 			return true;
 		}
@@ -267,119 +261,43 @@ namespace psl::ecs::details
 		details::staged_sparse_array<T, entity> m_Entities;
 	};
 
-	template <details::IsValidForStagedSparseMemoryRange T>
-	class component_info_typed<T, false> final : public component_info
+	class component_container_flag_t : public component_container_t
 	{
-		using stage_range_t = details::staged_sparse_memory_region_t::stage_range_t;
-
 	  public:
-		component_info_typed() :
-			component_info(details::component_key_t::generate<T>(), sizeof(T)), m_Entities(sizeof(T)) {};
+		component_container_flag_t(psl::ecs::details::component_key_t key) : component_container_t(key, 0) {};
 
-		auto& entity_data() noexcept { return m_Entities; };
+		void* data() noexcept override { return nullptr; }
 
+		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
 
-		void* data() noexcept override { return m_Entities.data(); }
-
-		bool has_storage_for(entity entity) const noexcept override
-		{
-			return m_Entities.has(entity, stage_range_t::ALL);
-		}
-
-		size_t alignment() const noexcept override { return std::alignment_of_v<T>; }
-
-		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
-		{
-			psl_assert((std::uintptr_t)destination % alignment() == 0, "pointer has to be aligned");
-			T* dest = (T*)destination;
-			for(auto e : entities)
-			{
-				std::memcpy(dest, m_Entities.addressof(e, stage_range_t::ALL), sizeof(T));
-				++dest;
-			}
-			return entities.size() * sizeof(T);
-		}
-		size_t copy_from(psl::array_view<entity> entities, void* source, bool repeat) noexcept override
-		{
-			psl_assert((std::uintptr_t)source % alignment() == 0, "pointer has to be aligned");
-			T* src = (T*)source;
-			if(repeat)
-			{
-				for(auto e : entities)
-				{
-					std::memcpy((void*)&(m_Entities.template at<T>(e, stage_range_t::ALL)), src, sizeof(T));
-				}
-			}
-			else
-			{
-				for(auto e : entities)
-				{
-					// if(std::memcmp((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T)) != 0)
-					std::memcpy((void*)&(m_Entities.template at<T>(e, stage_range_t::ALL)), src, sizeof(T));
-					++src;
-				}
-			}
-			return sizeof(T) * entities.size();
-		};
+		size_t alignment() const noexcept override { return 1; }
 
 		void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept override
 		{
 			m_Entities.remap(mapping, pred);
 		}
-		bool merge(const component_info& other) noexcept override
+
+		bool merge(const component_container_t& other) noexcept override
 		{
 			if(other.id() != id()) return false;
 
-			component_info_typed<T>* other_ptr = (component_info_typed<T>*)(&other);
+			component_container_flag_t* other_ptr = (component_container_flag_t*)(&other);
 			m_Entities.merge(other_ptr->m_Entities);
 			return true;
 		}
 
-		void set(entity e, const T& data) noexcept { m_Entities.template at<T>(e, stage_range_t::ALL) = data; }
-
 	  protected:
-		void set_impl(entity entity, void* data) noexcept override
-		{
-			m_Entities.set<T>(entity, *(T*)data);
-		}
+		void set_impl(entity entity, void* data) noexcept {};
 		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.indices(m_Entities.to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.indices(startStage, endStage);
 		}
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
 		{
-			//m_Entities.reserve(m_Entities.indices(stage_range_t::ALL).size() + entities.size());
-			T* source = (T*)data;
-			if(data == nullptr)
-			{
-				for(size_t i = 0; i < entities.size(); ++i)
-				{
-					m_Entities.insert(entities[i]);
-				}
-			}
-			else if(repeat)
-			{
-				for(size_t i = 0; i < entities.size(); ++i)
-				{
-					m_Entities.insert(entities[i], *source);
-				}
-			}
-			else
-			{
-				for(size_t i = 0; i < entities.size(); ++i)
-				{
-					m_Entities.insert(entities[i], *source);
-					++source;
-				}
-			}
+			m_Entities.reserve(m_Entities.size(0, 2) + entities.size());
+			for(auto e : entities) m_Entities.insert(e);
 		}
-		void add_impl(entity entity, void* data) override
-		{
-			if(data == nullptr)
-				m_Entities.insert(entity);
-			else
-				m_Entities.insert(entity, *(T*)data);
-		}
+		void add_impl(entity entity, void* data) override { m_Entities.insert(entity); }
 		void add_impl(psl::array_view<std::pair<entity, entity>> entities, void* data, bool repeat) override
 		{
 			auto count = std::accumulate(
@@ -387,32 +305,10 @@ namespace psl::ecs::details
 				  return sum + (r.second - r.first);
 			  });
 
-			//m_Entities.reserve(m_Entities.indices(stage_range_t::ALL).size() + count);
-			T* source = (T*)data;
-			if(data == nullptr)
+			m_Entities.reserve(m_Entities.size(0, 2) + count);
+			for(auto range : entities)
 			{
-				for(auto range : entities)
-				{
-					for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
-				}
-			}
-			else if(repeat)
-			{
-				for(auto range : entities)
-				{
-					for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e, *source);
-				}
-			}
-			else
-			{
-				for(auto range : entities)
-				{
-					for(auto e = range.first; e < range.second; ++e)
-					{
-						m_Entities.insert(e, *source);
-						++source;
-					}
-				}
+				for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
 			}
 		}
 		void purge_impl() noexcept override { m_Entities.promote(); }
@@ -431,20 +327,20 @@ namespace psl::ecs::details
 		}
 		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.has(entity, m_Entities.to_stage_range((uint8_t)startStage, (uint8_t)endStage));
+			return m_Entities.has(entity, startStage, endStage);
 		}
 
 	  private:
-		details::staged_sparse_memory_region_t m_Entities;
+		details::staged_sparse_array<void, entity> m_Entities;
 	};
 
-	class component_info_untyped_t final : public component_info
+	class component_container_untyped_t : public component_container_t
 	{
 		using stage_range_t = details::staged_sparse_memory_region_t::stage_range_t;
 
 	  public:
-		component_info_untyped_t(psl::ecs::details::component_key_t key, size_t size, size_t alignment) :
-			component_info(key, size), m_Entities(size), m_Alignment(alignment) {};
+		component_container_untyped_t(psl::ecs::details::component_key_t key, size_t size, size_t alignment) :
+			component_container_t(key, size), m_Entities(size), m_Alignment(alignment) {};
 
 		auto& entity_data() noexcept { return m_Entities; };
 
@@ -484,7 +380,6 @@ namespace psl::ecs::details
 			{
 				for(auto e : entities)
 				{
-					// if(std::memcmp((void*)&(m_Entities.at(e, 0, 2)), src, sizeof(T)) != 0)
 					std::memcpy(m_Entities.addressof(e, stage_range_t::ALL), src, m_Size);
 					src += m_Size;
 				}
@@ -497,16 +392,19 @@ namespace psl::ecs::details
 			m_Entities.remap(mapping, pred);
 		}
 
-		bool merge(const component_info& other) noexcept override
+		bool merge(const component_container_t& other) noexcept override
 		{
 			if(other.id() != id()) return false;
 
-			component_info_untyped_t const* other_ptr = (component_info_untyped_t const*)(&other);
+			component_container_untyped_t* other_ptr = (component_container_untyped_t*)(&other);
 			return m_Entities.merge(other_ptr->m_Entities).success;
 		}
 
-		template<typename T>
-		void set(entity e, const T& data) noexcept { m_Entities.template at<T>(e, stage_range_t::ALL) = data; }
+		template <typename T>
+		void set(entity e, const T& data) noexcept
+		{
+			m_Entities.template at<T>(e, stage_range_t::ALL) = data;
+		}
 
 	  protected:
 		void set_impl(entity entity, void* data) noexcept override
@@ -521,7 +419,6 @@ namespace psl::ecs::details
 
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
 		{
-			// m_Entities.reserve(m_Entities.indices(stage_range_t::ALL).size() + entities.size());
 			std::byte* source = (std::byte*)data;
 			if(data == nullptr)
 			{
@@ -618,15 +515,29 @@ namespace psl::ecs::details
 		size_t m_Alignment {};
 	};
 
+	template <details::IsValidForStagedSparseMemoryRange T>
+	class component_container_typed_t<T, false> final : public component_container_untyped_t
+	{
+	  public:
+		component_container_typed_t() :
+			component_container_untyped_t(details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>)
+		{}
+	};
 
+	template <typename T>
+	class component_container_typed_t<T, true> final : public component_container_flag_t
+	{
+	  public:
+		component_container_typed_t() : component_container_flag_t(details::component_key_t::generate<T>()) {}
+	};
 }	 // namespace psl::ecs::details
 
 namespace std
 {
 	template <>
-	struct hash<psl::ecs::details::component_info>
+	struct hash<psl::ecs::details::component_container_t>
 	{
-		std::size_t operator()(psl::ecs::details::component_info const& ci) const noexcept
+		std::size_t operator()(psl::ecs::details::component_container_t const& ci) const noexcept
 		{
 			return std::hash<psl::ecs::details::component_key_t> {}(ci.id());
 		}
