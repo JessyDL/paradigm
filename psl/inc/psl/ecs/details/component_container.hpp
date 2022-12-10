@@ -274,7 +274,7 @@ namespace psl::ecs::details
 
 		void* data() noexcept override { return nullptr; }
 
-		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, 0, 2); }
+		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, stage_range_t::ALL); }
 
 		size_t alignment() const noexcept override { return 1; }
 
@@ -296,11 +296,11 @@ namespace psl::ecs::details
 		void set_impl(entity entity, void* data) noexcept {};
 		psl::array_view<entity> entities_impl(size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.indices(startStage, endStage);
+			return m_Entities.indices(to_stage_range((uint8_t)startStage, (uint8_t)endStage));
 		}
 		void add_impl(psl::array_view<entity> entities, void* data, bool repeat) override
 		{
-			m_Entities.reserve(m_Entities.size(0, 2) + entities.size());
+			m_Entities.reserve(m_Entities.size(stage_range_t::ALL) + entities.size());
 			for(auto e : entities) m_Entities.insert(e);
 		}
 		void add_impl(entity entity, void* data) override { m_Entities.insert(entity); }
@@ -311,7 +311,7 @@ namespace psl::ecs::details
 				  return sum + (r.second - r.first);
 			  });
 
-			m_Entities.reserve(m_Entities.size(0, 2) + count);
+			m_Entities.reserve(m_Entities.size(stage_range_t::ALL) + count);
 			for(auto range : entities)
 			{
 				for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
@@ -333,7 +333,7 @@ namespace psl::ecs::details
 		}
 		bool has_impl(entity entity, size_t startStage, size_t endStage) const noexcept override
 		{
-			return m_Entities.has(entity, startStage, endStage);
+			return m_Entities.has(entity, to_stage_range((uint8_t)startStage, (uint8_t)endStage));
 		}
 
 	  private:

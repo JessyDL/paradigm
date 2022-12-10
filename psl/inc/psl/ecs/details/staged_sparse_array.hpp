@@ -197,6 +197,15 @@ namespace psl::ecs::details
 			return psl::array_view<index_t> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
 											 std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 		}
+		
+		psl::array_view<value_t> dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept
+		{
+			return psl::array_view<value_t> {std::next((value_t*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
+											 std::next((value_t*)m_DenseData.data(), m_StageStart[stage_end(stage)])};
+		}
+
+		// here for consistency /w staged_sparse_array_region
+		template <typename Y>
 		psl::array_view<value_t> dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
 			return psl::array_view<value_t> {std::next((value_t*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
@@ -224,9 +233,9 @@ namespace psl::ecs::details
 
 		size_type size(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			// todo simplify
-			return indices(stage).size();
+			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 		}
+
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
 		auto begin(stage_t stage = stage_t::SETTLED) noexcept { return std::next((T*)m_DenseData.data(), m_StageStart[to_underlying(stage)]); }
@@ -633,9 +642,7 @@ namespace psl::ecs::details
 			}
 		}
 
-		constexpr bool has(index_t index) const noexcept { return has(index, 0, 1); }
-
-		constexpr bool has(index_t index, size_t startStage, size_t endStage) const noexcept
+		constexpr bool has(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
 			if(index < capacity())
 			{
@@ -655,7 +662,8 @@ namespace psl::ecs::details
 				{
 					const auto& chunk = get_chunk_from_index(chunk_index);
 					return chunk[index] != std::numeric_limits<index_t>::max() &&
-						   chunk[index] >= m_StageStart[startStage] && chunk[index] < m_StageStart[endStage + 1];
+						   chunk[index] >= m_StageStart[stage_begin(stage)] &&
+						   chunk[index] < m_StageStart[stage_end(stage)];
 				}
 			}
 			return false;
@@ -681,15 +689,11 @@ namespace psl::ecs::details
 			insert_impl(chunk, sub_index, index);
 		}
 
-		psl::array_view<index_t> indices(size_t stage = 0) const noexcept
-		{
-			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[stage], m_StageSize[stage]};
-		}
 
-		psl::array_view<index_t> indices(size_t startStage, size_t endStage) const noexcept
+		psl::array_view<index_t> indices(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return psl::array_view<index_t> {(index_t*)m_Reverse.data() + m_StageStart[startStage],
-											 m_StageStart[endStage + 1] - m_StageStart[startStage]};
+			return psl::array_view<index_t> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
+											  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 		}
 
 		void promote() noexcept
@@ -709,10 +713,9 @@ namespace psl::ecs::details
 			m_StageSize[2]	= 0;
 		}
 
-		size_type size(index_t stage = 0) const noexcept { return m_StageSize[stage]; }
-		size_type size(index_t startStage, index_t endStage) const noexcept
+		size_type size(stage_range_t stage = stage_range_t::ALIVE) const noexcept
 		{
-			return m_StageStart[endStage + 1] - m_StageStart[startStage];
+			return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 		}
 		size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 

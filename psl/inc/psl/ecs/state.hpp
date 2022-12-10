@@ -93,18 +93,7 @@ namespace psl::ecs
 		{
 			// todo this should support filtering
 			auto cInfo = get_component_typed_info<T>();
-			if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
-			{
-				return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
-			}
-			else if constexpr(std::is_empty_v<T>)
-			{
-				return cInfo->entity_data().at(entity, 0, 2);
-			}
-			else
-			{
-				return cInfo->entity_data().at(entity, details::stage_range_t::ALL);
-			}
+			return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 		}
 
 		template <typename T>
@@ -112,19 +101,7 @@ namespace psl::ecs
 		{
 			// todo this should support filtering
 			auto cInfo = get_component_typed_info<T>();
-
-			if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
-			{
-				return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
-			}
-			else if constexpr(std::is_empty_v<T>)
-			{
-				return cInfo->entity_data().at(entity, 0, 2);
-			}
-			else
-			{
-				return cInfo->entity_data().at(entity, details::stage_range_t::ALL);
-			}
+			return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 		}
 
 		template <typename... Ts>
@@ -308,22 +285,9 @@ namespace psl::ecs
 			constexpr auto key {details::component_key_t::generate<T>()};
 			if(auto it = m_Components.find(key); it != std::end(m_Components))
 			{
-				if constexpr(details::IsValidForStagedSparseMemoryRange<T>)
-				{
-					return ((details::component_container_typed_t<T>*)(&it->second.get()))
-					  ->entity_data()
-					  .template dense<T>(details::stage_range_t::ALIVE);
-				}
-				else if constexpr(std::is_empty_v<T>)
-				{
-					return ((details::component_container_typed_t<T>*)(&it->second.get()))->entity_data().dense(0, 1);
-				}
-				else
-				{
-					return ((details::component_container_typed_t<T>*)(&it->second.get()))
-					  ->entity_data()
-					  .dense(details::stage_range_t::ALIVE);
-				}
+				return ((details::component_container_typed_t<T>*)(&it->second.get()))
+				  ->entity_data()
+				  .template dense<T>(details::stage_range_t::ALIVE);
 			}
 			return {};
 		}

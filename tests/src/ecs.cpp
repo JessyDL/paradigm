@@ -91,6 +91,10 @@ namespace
 	{
 		using complex_wrapper<int>::complex_wrapper;
 	};
+
+	struct flag_type
+	{};
+
 	// components do not support templated typenames
 	using float_tpack = tpack<float, complex_wrapper_float>;
 	using int_tpack = tpack<int, complex_wrapper_int>;
@@ -210,7 +214,7 @@ namespace
 		  require(cxint_id) == int_id;
 	  };
 
-	auto t2 = suite<"filtering", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
+	auto t2 = suite<"filtering", "ecs", "psl">().templates<tpack<float, complex_wrapper_float, flag_type>>() = []<typename type>() {
 		state_t state;
 		auto e_list1 {state.create(100)};
 		auto e_list2 {state.create(400)};
@@ -260,9 +264,9 @@ namespace
 		};
 
 		section<"filtering components that are non-contiguous">() = [&]() {
-			state.create(500, type {}, size_t {});
+			state.create<type, size_t>(500);
 			state.destroy(1200);
-			auto entities = state.create(3, type {}, size_t {});
+			auto entities = state.create<type, size_t>(3);
 
 			require(entities.size()) == 3;
 			require(entities[0]) == 1500;
