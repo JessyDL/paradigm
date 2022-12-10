@@ -50,11 +50,22 @@ namespace psl::ecs::details
 
 		template <typename T>
 		consteval component_key_t(const type_container<T>& name) noexcept :
-			m_Name(type_container<T>::name), m_Value(fnv1a_32(type_container<T>::name))
+			m_Name(type_container<T>::name), m_Value(fnv1a_32(type_container<T>::name)),
+			m_Type(std::is_empty_v<T>	  ? component_type::FLAG
+				   : std::is_trivial_v<T> ? component_type::TRIVIAL
+										  : component_type::COMPLEX)
 		{}
 
 	  public:
-		constexpr component_key_t(const component_key_t& other) : m_Name(other.m_Name), m_Value(other.m_Value)
+		enum class component_type : std::uint8_t
+		{
+			COMPLEX = 0,
+			TRIVIAL = 1,
+			FLAG	= 2,
+		};
+
+		constexpr component_key_t(const component_key_t& other) :
+			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type)
 		{
 			if(std::find(std::begin(m_Name), std::end(m_Name), '<') != std::end(m_Name))
 			{
@@ -67,16 +78,19 @@ namespace psl::ecs::details
 			{
 				m_Name	= other.m_Name;
 				m_Value = other.m_Value;
+				m_Type	= other.m_Type;
 			}
 			return *this;
 		}
-		constexpr component_key_t(component_key_t&& other) noexcept : m_Name(other.m_Name), m_Value(other.m_Value) {};
+		constexpr component_key_t(component_key_t&& other) noexcept :
+			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type) {};
 		constexpr component_key_t& operator=(component_key_t&& other) noexcept
 		{
 			if(this != &other)
 			{
 				m_Name	= other.m_Name;
 				m_Value = other.m_Value;
+				m_Type	= other.m_Type;
 			}
 			return *this;
 		}
@@ -110,9 +124,12 @@ namespace psl::ecs::details
 			return component_key_t {type_container<std::remove_pointer_t<std::remove_cvref_t<T>>> {}};
 		}
 
+		component_type type() const noexcept { return m_Type; }
+
 	  private:
 		std::string_view m_Name;
 		std::uint32_t m_Value;
+		component_type m_Type;
 	};
 }	 // namespace psl::ecs::details
 

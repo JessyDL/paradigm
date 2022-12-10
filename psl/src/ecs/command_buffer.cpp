@@ -7,7 +7,7 @@ using namespace psl::ecs;
 command_buffer_t::command_buffer_t(const state_t& state) : m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
 
 
-details::component_info* command_buffer_t::get_component_info(details::component_key_t key) noexcept
+details::component_container_t* command_buffer_t::get_component_container(details::component_key_t key) noexcept
 {
 	auto it = std::find_if(
 	  std::begin(m_Components), std::end(m_Components), [key](const auto& cInfo) { return cInfo->id() == key; });
@@ -21,7 +21,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										psl::array_view<std::pair<entity, entity>> entities,
 										size_t size)
 {
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 
 	cInfo->add(entities);
 }
@@ -34,7 +34,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	auto offset = cInfo->size();
@@ -51,7 +51,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										void* prototype)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	auto offset = cInfo->size();
@@ -69,7 +69,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 // empty construction
 void command_buffer_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size)
 {
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	cInfo->add(entities);
@@ -82,7 +82,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	auto offset = cInfo->size();
@@ -100,7 +100,7 @@ void command_buffer_t::add_component_impl(details::component_key_t key,
 										bool repeat)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	auto offset = cInfo->size();

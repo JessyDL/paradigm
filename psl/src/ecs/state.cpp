@@ -257,7 +257,7 @@ void state_t::tick(std::chrono::duration<float> dTime)
 	m_LockState = 0;
 }
 
-const details::component_info* state_t::get_component_info(details::component_key_t key) const noexcept
+const details::component_container_t* state_t::get_component_container(details::component_key_t key) const noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return &it->second.get();
@@ -265,7 +265,7 @@ const details::component_info* state_t::get_component_info(details::component_ke
 		return nullptr;
 }
 
-details::component_info* state_t::get_component_info(details::component_key_t key) noexcept
+details::component_container_t* state_t::get_component_container(details::component_key_t key) noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return &it->second.get();
@@ -274,10 +274,10 @@ details::component_info* state_t::get_component_info(details::component_key_t ke
 }
 
 
-psl::array<const details::component_info*>
-state_t::get_component_info(psl::array_view<details::component_key_t> keys) const noexcept
+psl::array<const details::component_container_t*>
+state_t::get_component_container(psl::array_view<details::component_key_t> keys) const noexcept
 {
-	psl::array<const details::component_info*> res {};
+	psl::array<const details::component_container_t*> res {};
 	size_t count = keys.size();
 	for(const auto& [key, cInfo] : m_Components)
 	{
@@ -294,7 +294,7 @@ state_t::get_component_info(psl::array_view<details::component_key_t> keys) cons
 // empty construction
 void state_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
 {
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	cInfo->add(entities);
@@ -307,7 +307,7 @@ void state_t::add_component_impl(details::component_key_t key,
 								 void* prototype,
 								 bool repeat)
 {
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 	const auto component_size = cInfo->component_size();
 	psl_assert(component_size != 0, "component size was 0");
@@ -362,7 +362,7 @@ psl::array<entity>::iterator state_t::filter_op(details::component_key_t key,
 												psl::array<entity>::iterator& begin,
 												psl::array<entity>::iterator& end) const noexcept
 {
-	const auto cInfo = get_component_info(key);
+	const auto cInfo = get_component_container(key);
 	return (cInfo == nullptr) ? begin
 							  : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_component(e); });
 }
@@ -371,21 +371,21 @@ psl::array<entity>::iterator state_t::on_add_op(details::component_key_t key,
 												psl::array<entity>::iterator& begin,
 												psl::array<entity>::iterator& end) const noexcept
 {
-	const auto cInfo = get_component_info(key);
+	const auto cInfo = get_component_container(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_added(e); });
 }
 psl::array<entity>::iterator state_t::on_remove_op(details::component_key_t key,
 												   psl::array<entity>::iterator& begin,
 												   psl::array<entity>::iterator& end) const noexcept
 {
-	const auto cInfo = get_component_info(key);
+	const auto cInfo = get_component_container(key);
 	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity e) { return cInfo->has_removed(e); });
 }
 psl::array<entity>::iterator state_t::on_except_op(details::component_key_t key,
 												   psl::array<entity>::iterator& begin,
 												   psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfo = get_component_info(key);
+	auto cInfo = get_component_container(key);
 	return (cInfo == nullptr) ? end
 							  : std::partition(begin, end, [cInfo](entity e) { return !cInfo->has_component(e); });
 }
@@ -393,7 +393,7 @@ psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_
 												  psl::array<entity>::iterator& begin,
 												  psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfos = get_component_info(psl::array_view<details::component_key_t> {keys});
+	auto cInfos = get_component_container(psl::array_view<details::component_key_t> {keys});
 
 	return (cInfos.size() != keys.size()) ? begin :
 										  // for every entity, remove if...
@@ -402,9 +402,10 @@ psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_
 				   // any of them have not had an entity removed
 				   !(!std::any_of(std::begin(cInfos),
 								  std::end(cInfos),
-								  [e](const details::component_info* cInfo) { return cInfo->has_removed(e); }) ||
+								  [e](const details::component_container_t* cInfo) { return cInfo->has_removed(e); }) ||
 					 // or all of them do not have a component, or had the entity removed
-					 !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
+					 !std::all_of(
+					   std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
 						 return cInfo->has_component(e) || cInfo->has_removed(e);
 					 }));
 			 });
@@ -414,12 +415,12 @@ psl::array<entity>::iterator state_t::on_combine_op(psl::array<details::componen
 													psl::array<entity>::iterator& begin,
 													psl::array<entity>::iterator& end) const noexcept
 {
-	auto cInfos = get_component_info(psl::array_view<details::component_key_t> {keys});
+	auto cInfos = get_component_container(psl::array_view<details::component_key_t> {keys});
 
 	return (cInfos.size() != keys.size()) ? begin : std::remove_if(begin, end, [cInfos](entity e) {
-		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
+		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
 			return cInfo->has_added(e);
-		}) || !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_info* cInfo) {
+		}) || !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
 			return cInfo->has_component(e);
 		});
 	});
@@ -464,7 +465,7 @@ psl::array<entity> state_t::filter(details::dependency_pack& pack, bool seed_wit
 	psl_assert(std::all_of(std::begin(pack.filters),
 						   std::end(pack.filters),
 						   [this, &entities](auto filter) {
-							   auto cInfo = get_component_info(filter);
+							   auto cInfo = get_component_container(filter);
 							   return std::all_of(std::begin(entities), std::end(entities), [filter, &cInfo](entity e) {
 								   return cInfo->has_storage_for(e);
 							   });
@@ -479,7 +480,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 
 	for(auto filter : data.group->on_remove)
 	{
-		auto cInfo = get_component_info(filter);
+		auto cInfo = get_component_container(filter);
 		if(!cInfo)
 		{
 			data.entities = {};
@@ -492,7 +493,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	}
 	for(auto filter : data.group->on_break)
 	{
-		auto cInfo = get_component_info(filter);
+		auto cInfo = get_component_container(filter);
 		if(!cInfo)
 		{
 			data.entities = {};
@@ -505,7 +506,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	}
 	for(auto filter : data.group->on_add)
 	{
-		auto cInfo = get_component_info(filter);
+		auto cInfo = get_component_container(filter);
 		if(!cInfo)
 		{
 			data.entities = {};
@@ -528,7 +529,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	}
 	for(auto filter : data.group->on_combine)
 	{
-		auto cInfo = get_component_info(filter);
+		auto cInfo = get_component_container(filter);
 		if(!cInfo)
 		{
 			data.entities = {};
@@ -552,7 +553,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 
 	for(auto filter : data.group->filters)
 	{
-		auto cInfo = get_component_info(filter);
+		auto cInfo = get_component_container(filter);
 		if(!cInfo)
 		{
 			data.entities = {};
@@ -750,7 +751,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity> source) const 
 	psl_assert(std::all_of(std::begin(data.group->on_combine),
 						   std::end(data.group->on_combine),
 						   [this, &data](auto filter) {
-							   auto cInfo = get_component_info(filter);
+							   auto cInfo = get_component_container(filter);
 							   return std::all_of(std::begin(data.entities),
 												  std::end(data.entities),
 												  [filter, &cInfo](entity e) { return cInfo->has_storage_for(e); });
@@ -761,7 +762,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity> source) const 
 size_t state_t::prepare_data(psl::array_view<entity> entities, void* cache, component_key_t id) const noexcept
 {
 	if(entities.size() == 0) return 0;
-	const auto& cInfo = get_component_info(id);
+	const auto& cInfo = get_component_container(id);
 	psl_assert(cInfo != nullptr, "component info was null for the key {}", id);
 	psl_assert(
 	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
@@ -783,7 +784,7 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 
 	auto write_fn = [entities, &cache, this](auto& binding) {
 		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		const auto& cInfo		  = get_component_info(binding.first);
+		const auto& cInfo		  = get_component_container(binding.first);
 		auto offset				  = align(data_begin, cInfo->alignment());
 		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
 		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
@@ -799,7 +800,7 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 size_t state_t::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
 {
 	if(entities.size() == 0) return 0;
-	const auto& cInfo = get_component_info(key);
+	const auto& cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 	return cInfo->copy_from(entities, data);
 }
@@ -828,7 +829,7 @@ void state_t::execute_command_buffer(info_t& info)
 	for(auto& component_src : buffer.m_Components)
 	{
 		if(component_src->entities(true).size() == 0) continue;
-		auto component_dst = get_component_info(component_src->id());
+		auto component_dst = get_component_container(component_src->id());
 
 		component_src->remap(remapped_entities, [first = buffer.m_First](entity e) -> bool { return e >= first; });
 		if(component_dst == nullptr)
@@ -859,7 +860,7 @@ size_t state_t::size(psl::array_view<details::component_key_t> keys) const noexc
 {
 	for(auto& key : keys)
 	{
-		auto cInfo = get_component_info(key);
+		auto cInfo = get_component_container(key);
 		return cInfo ? cInfo->size() : 0;
 	}
 	return 0;

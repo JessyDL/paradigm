@@ -83,7 +83,7 @@ ecs/selectors
 ecs/order_by
 ecs/on_condition
 ecs/command_buffer
-ecs/details/component_info
+ecs/details/component_container
 ecs/details/component_key
 ecs/details/entity_info
 ecs/details/system_information

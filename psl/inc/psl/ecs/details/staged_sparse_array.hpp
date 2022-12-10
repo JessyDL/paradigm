@@ -381,7 +381,6 @@ namespace psl::ecs::details
 
 		auto erase_impl(chunk_t& chunk, index_t offset, index_t user_index)
 		{
-			auto orig_value	   = this->operator[](user_index);
 			auto reverse_index = chunk[offset];
 
 			// chunk[offset] = std::numeric_limits<index_t>::max();
