@@ -364,7 +364,7 @@ bool utility::platform::file::write(psl::string_view filename, psl::string_view 
 
 	std::size_t found = file_name.find_last_of(directory::seperator);
 
-	if(!directory::exists(file_name.substr(0, found)) && !directory::create(file_name.substr(0, found), true))
+	if(found != std::string::npos && !directory::exists(file_name.substr(0, found)) && !directory::create(file_name.substr(0, found), true))
 		return false;
 
 	psl::ofstream output;
