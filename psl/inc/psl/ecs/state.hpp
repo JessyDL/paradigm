@@ -39,6 +39,14 @@ namespace psl::ecs
 		template <typename S>
 		void serialize(S& serializer)
 		{
+			if constexpr(psl::serialization::details::IsDecoder<S>)
+			{
+				if(m_Tick != 0 || m_Entities != 0 || m_ModifiedEntities.size() != 0)
+				{
+					throw std::runtime_error("unsupported deserializing into non-empty state");
+				}
+			}
+
 			serializer.template parse<"ORPHANS">(m_Orphans);
 			serializer.template parse<"FUTURE_ORPHANS">(m_ToBeOrphans);
 			serializer.template parse<"ENTITIES">(m_Entities);
@@ -54,22 +62,26 @@ namespace psl::ecs
 			{
 				size_t expected_total_datasize {0};
 				size_t expected_total_entities {0};
+				std::vector<details::component_key_t> all_keys {};
 				for(const auto& [key, component] : m_Components)
 				{
 					if(key.type() == details::component_key_t::component_type::COMPLEX) continue;
 					expected_total_entities += component->size(true);
 
+					all_keys.emplace_back(key);
+
 					expected_total_datasize +=
 					  (component->component_size() > 0) ? component->component_size() * component->size(true) : 0;
 				}
-
+				// sort to make the serializations deterministic
+				std::sort(std::begin(all_keys), std::end(all_keys));
 				component_entities.reserve(expected_total_entities);
 				component_data.resize(expected_total_datasize);
 
 				size_t data_offset {0};
-				for(const auto& [key, component] : m_Components)
+				for(const auto& key : all_keys)
 				{
-					if(key.type() == details::component_key_t::component_type::COMPLEX) continue;
+					const auto& component = m_Components[key];
 
 					component_sizes.emplace_back(component->size(true));
 					auto entities = component->entities(true);
@@ -98,7 +110,9 @@ namespace psl::ecs
 			if constexpr(psl::serialization::details::IsDecoder<S>)
 			{
 				const auto count = component_names.size();
-				for(size_t i = 0; i < count; ++i)
+				for(size_t i = 0, entity_offset = 0, data_offset = 0; i < count; entity_offset += component_sizes[i],
+						   data_offset += (component_sizes[i] * component_data_size[i]),
+						   ++i)
 				{
 					details::component_key_t key(component_names[i],
 												 (component_data_size[i] == 0)
@@ -107,14 +121,27 @@ namespace psl::ecs
 					auto it = m_Components.find(key);
 					if(it == m_Components.end())
 					{
-						m_Components.emplace(key,
-											 details::instantiate_component_container(
-											   key, component_data_size[i], component_data_alignment[i]));
+						auto pair = m_Components.emplace(key,
+														 details::instantiate_component_container(
+														   key, component_data_size[i], component_data_alignment[i]));
+
+						if(!pair.second)
+						{
+							throw std::runtime_error("failed to insert key into map");
+						}
+						it = pair.first;
 					}
 					else
 					{
 						throw std::runtime_error("unsupported deserializing into non-empty state");
 					}
+
+					psl::array_view<psl::ecs::entity> entities {
+					  std::next(std::begin(component_entities), entity_offset),
+					  std::next(std::begin(component_entities), entity_offset + component_sizes[i])};
+
+					add_component_impl(
+					  key, entities, (void*)(&*std::next(std::begin(component_data), data_offset)), false);
 				}
 			}
 		}

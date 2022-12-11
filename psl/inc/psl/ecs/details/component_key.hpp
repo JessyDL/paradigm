@@ -53,7 +53,8 @@ namespace psl::ecs::details
 			m_Name(type_container<T>::name), m_Value(fnv1a_32(type_container<T>::name)),
 			m_Type(std::is_empty_v<T>	  ? component_type::FLAG
 				   : std::is_trivial_v<T> ? component_type::TRIVIAL
-										  : component_type::COMPLEX)
+										  : component_type::COMPLEX),
+			m_StringMemory(nullptr)
 		{}
 
 	  public:
@@ -65,15 +66,37 @@ namespace psl::ecs::details
 		};
 
 		constexpr component_key_t(std::string_view name, component_type type) :
-			m_Name(name), m_Value(fnv1a_32(name)), m_Type(type)
-		{}
+			m_Name(name), m_Value(fnv1a_32(name)), m_Type(type), m_StringMemory(nullptr)
+		{
+			if(!std::is_constant_evaluated())
+			{
+				m_StringMemory = (char*)malloc(sizeof(char) * name.size());
+				memcpy(m_StringMemory, name.data(), sizeof(char) * name.size());
+				m_Name = std::string_view(m_StringMemory, name.size());
+			}
+		}
+
+		constexpr ~component_key_t()
+		{
+			if(!std::is_constant_evaluated() && m_StringMemory)
+			{
+				free(m_StringMemory);
+			}
+		}
 
 		constexpr component_key_t(const component_key_t& other) :
-			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type)
+			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type), m_StringMemory(nullptr)
 		{
 			if(std::find(std::begin(m_Name), std::end(m_Name), '<') != std::end(m_Name))
 			{
 				throw std::runtime_error("templated component types are not supported (due to portability issues)");
+			}
+
+			if(!std::is_constant_evaluated() && other.m_StringMemory)
+			{
+				m_StringMemory = (char*)malloc(sizeof(char) * other.m_Name.size());
+				memcpy(m_StringMemory, other.m_Name.data(), sizeof(char) * other.m_Name.size());
+				m_Name = std::string_view(m_StringMemory, other.m_Name.size());
 			}
 		}
 		constexpr component_key_t& operator=(const component_key_t& other) noexcept
@@ -83,18 +106,31 @@ namespace psl::ecs::details
 				m_Name	= other.m_Name;
 				m_Value = other.m_Value;
 				m_Type	= other.m_Type;
+				m_StringMemory = nullptr;
+
+				if(!std::is_constant_evaluated() && other.m_StringMemory)
+				{
+					m_StringMemory = (char*)malloc(sizeof(char) * other.m_Name.size());
+					memcpy(m_StringMemory, other.m_Name.data(), sizeof(char) * other.m_Name.size());
+					m_Name = std::string_view(m_StringMemory, other.m_Name.size());
+				}
 			}
 			return *this;
 		}
 		constexpr component_key_t(component_key_t&& other) noexcept :
-			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type) {};
+			m_Name(other.m_Name), m_Value(other.m_Value), m_Type(other.m_Type), m_StringMemory(other.m_StringMemory)
+		{
+			other.m_StringMemory = nullptr;
+		};
 		constexpr component_key_t& operator=(component_key_t&& other) noexcept
 		{
 			if(this != &other)
 			{
-				m_Name	= other.m_Name;
-				m_Value = other.m_Value;
-				m_Type	= other.m_Type;
+				m_Name				 = other.m_Name;
+				m_Value				 = other.m_Value;
+				m_Type				 = other.m_Type;
+				m_StringMemory		 = other.m_StringMemory;
+				other.m_StringMemory = nullptr;
 			}
 			return *this;
 		}
@@ -134,6 +170,7 @@ namespace psl::ecs::details
 		std::string_view m_Name;
 		std::uint32_t m_Value;
 		component_type m_Type;
+		char* m_StringMemory;
 	};
 }	 // namespace psl::ecs::details
 
