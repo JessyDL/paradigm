@@ -29,11 +29,11 @@ namespace psl::ecs::details
 	class component_container_t
 	{
 	  public:
-		component_container_t(component_key_t id, size_t size);
+		component_container_t(component_key_t id, size_t size, size_t alignment);
 
 		component_container_t(const component_container_t& other) = delete;
 		component_container_t(component_container_t&& other);
-		virtual ~component_container_t()							   = default;
+		virtual ~component_container_t()									 = default;
 		component_container_t& operator=(const component_container_t& other) = delete;
 		component_container_t& operator=(component_container_t&& other);
 
@@ -51,7 +51,7 @@ namespace psl::ecs::details
 		void destroy(psl::array_view<std::pair<entity, entity>> entities) { remove_impl(entities); };
 		void destroy(psl::array_view<entity> entities) noexcept { remove_impl(entities); }
 		void destroy(entity entity) noexcept { remove_impl(entity); }
-		virtual void* data() noexcept = 0;
+		virtual void* data() noexcept			  = 0;
 		virtual void* const data() const noexcept = 0;
 		bool has_component(entity entity) const noexcept { return has_impl(entity, stage_range_t::ALIVE); }
 		bool has_added(entity entity) const noexcept { return has_impl(entity, stage_range_t::ADDED); }
@@ -79,19 +79,19 @@ namespace psl::ecs::details
 		{
 			return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE).size();
 		}
+		size_t alignment() const noexcept { return m_Alignment; }
 
 		void set(entity entity, void* data) noexcept { set_impl(entity, data); }
 
 		virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
-		virtual bool merge(const component_container_t& other) noexcept												= 0;
-		virtual size_t alignment() const noexcept																= 0;
+		virtual bool merge(const component_container_t& other) noexcept											= 0;
 
 	  protected:
 		virtual void purge_impl() noexcept																	= 0;
 		virtual void add_impl(entity entity, void* data)													= 0;
 		virtual void add_impl(psl::array_view<entity> entities, void* data, bool repeat)					= 0;
 		virtual void add_impl(psl::array_view<std::pair<entity, entity>> entities, void* data, bool repeat) = 0;
-		virtual psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept	= 0;
+		virtual psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept					= 0;
 		virtual void set_impl(entity entity, void* data) noexcept											= 0;
 		virtual void remove_impl(entity entity)																= 0;
 		virtual void remove_impl(psl::array_view<entity> entities)											= 0;
@@ -101,13 +101,21 @@ namespace psl::ecs::details
 	  protected:
 		component_key_t m_ID;
 		size_t m_Size;
+		size_t m_Alignment;
 	};
 
-	template <typename T, bool tag_type = std::is_empty<T>::value>
+	template <typename T>
+	struct component_container_type_for;
+
+	template <typename T>
 	class component_container_typed_t final : public component_container_t
 	{
+		static_assert(std::is_same_v<typename component_container_type_for<T>::type, component_container_typed_t<T>>,
+					  "The complex container should only be used for complex types");
+
 	  public:
-		component_container_typed_t() : component_container_t(details::component_key_t::generate<T>(), sizeof(T)) {};
+		component_container_typed_t() :
+			component_container_t(details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>) {};
 		auto& entity_data() noexcept { return m_Entities; };
 
 
@@ -118,8 +126,6 @@ namespace psl::ecs::details
 		{
 			return m_Entities.has(entity, stage_range_t::ALL);
 		}
-
-		size_t alignment() const noexcept override { return std::alignment_of_v<T>; }
 
 		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
 		{
@@ -273,14 +279,15 @@ namespace psl::ecs::details
 	class component_container_flag_t : public component_container_t
 	{
 	  public:
-		component_container_flag_t(psl::ecs::details::component_key_t key) : component_container_t(key, 0) {};
+		component_container_flag_t(psl::ecs::details::component_key_t key) : component_container_t(key, 0, 0) {};
 
 		void* data() noexcept override { return nullptr; }
 		void* const data() const noexcept override { return nullptr; }
 
-		bool has_storage_for(entity entity) const noexcept override { return m_Entities.has(entity, stage_range_t::ALL); }
-
-		size_t alignment() const noexcept override { return 1; }
+		bool has_storage_for(entity entity) const noexcept override
+		{
+			return m_Entities.has(entity, stage_range_t::ALL);
+		}
 
 		void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept override
 		{
@@ -297,7 +304,7 @@ namespace psl::ecs::details
 		}
 
 	  protected:
-		void set_impl(entity entity, void* data) noexcept {};
+		void set_impl(entity entity, void* data) noexcept override {};
 		psl::array_view<entity> entities_impl(stage_range_t stage) const noexcept override
 		{
 			return m_Entities.indices(stage);
@@ -350,7 +357,7 @@ namespace psl::ecs::details
 
 	  public:
 		component_container_untyped_t(psl::ecs::details::component_key_t key, size_t size, size_t alignment) :
-			component_container_t(key, size), m_Entities(size), m_Alignment(alignment) {};
+			component_container_t(key, size, alignment), m_Entities(size) {};
 
 		auto& entity_data() noexcept { return m_Entities; };
 
@@ -362,8 +369,6 @@ namespace psl::ecs::details
 		{
 			return m_Entities.has(entity, stage_range_t::ALL);
 		}
-
-		size_t alignment() const noexcept override { return m_Alignment; }
 
 		size_t copy_to(psl::array_view<entity> entities, void* destination) const noexcept override
 		{
@@ -523,24 +528,60 @@ namespace psl::ecs::details
 
 	  private:
 		details::staged_sparse_memory_region_t m_Entities;
-		size_t m_Alignment {};
-	};
-
-	template <details::IsValidForStagedSparseMemoryRange T>
-	class component_container_typed_t<T, false> final : public component_container_untyped_t
-	{
-	  public:
-		component_container_typed_t() :
-			component_container_untyped_t(details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>)
-		{}
 	};
 
 	template <typename T>
-	class component_container_typed_t<T, true> final : public component_container_flag_t
+	struct component_container_type_for
 	{
-	  public:
-		component_container_typed_t() : component_container_flag_t(details::component_key_t::generate<T>()) {}
+		using type = std::conditional_t<
+		  std::is_empty_v<T>,
+		  component_container_flag_t,
+		  std::conditional_t<std::is_trivial_v<T>, component_container_untyped_t, component_container_typed_t<T>>>;
 	};
+
+	template <typename T>
+	using component_container_type_for_t = typename component_container_type_for<T>::type;
+
+	template <typename T>
+	inline auto instantiate_component_container() -> std::unique_ptr<component_container_t>
+	{
+		using return_type = component_container_type_for_t<T>;
+		if constexpr(std::is_empty_v<T>)
+		{
+			return std::unique_ptr<component_container_t>(
+			  std::make_unique<component_container_flag_t>(psl::ecs::details::component_key_t::generate<T>()));
+		}
+		else if constexpr(std::is_trivial_v<T>)
+		{
+			return std::unique_ptr<component_container_t>(std::make_unique<component_container_untyped_t>(
+			  psl::ecs::details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>));
+		}
+		else
+		{
+			return std::unique_ptr<component_container_t>(std::make_unique<component_container_typed_t<T>>());
+		}
+	}
+
+	inline auto instantiate_component_container(psl::ecs::details::component_key_t key, size_t size, size_t alignment)
+	  -> std::unique_ptr<component_container_t>
+	{
+		switch(key.type())
+		{
+		case psl::ecs::details::component_key_t::component_type::TRIVIAL:
+			return std::make_unique<component_container_untyped_t>(key, size, alignment);
+		case psl::ecs::details::component_key_t::component_type::FLAG:
+			return std::make_unique<component_container_flag_t>(key);
+		case psl::ecs::details::component_key_t::component_type::COMPLEX:
+			throw std::runtime_error("Cannot runtime instantiate a complex type without type information");
+		}
+		psl::unreachable("invalid key value for component type");
+	}
+
+	template <typename T>
+	inline auto cast_component_container(component_container_t* container) -> component_container_type_for_t<T>*
+	{
+		return reinterpret_cast<component_container_type_for_t<T>*>(container);
+	}
 }	 // namespace psl::ecs::details
 
 namespace std

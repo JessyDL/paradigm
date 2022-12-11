@@ -163,7 +163,7 @@ namespace psl::ecs
 
 			if(it == std::end(m_Components))
 			{
-				m_Components.emplace_back(new details::component_container_typed_t<T>());
+				m_Components.emplace_back(details::instantiate_component_container<T>());
 			}
 		}
 
@@ -369,7 +369,7 @@ namespace psl::ecs
 		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
 
 		state_t const* m_State {nullptr};
-		psl::array<psl::unique_ptr<details::component_container_t>> m_Components {};
+		psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
 		entity m_First {0};
 		psl::array<entity> m_Entities {};
 

@@ -78,7 +78,8 @@ namespace
 
 	struct complex_wrapper_float : public complex_wrapper<float>
 	{
-		using complex_wrapper<float>::complex_wrapper;};
+		using complex_wrapper<float>::complex_wrapper;
+	};
 
 	struct complex_wrapper_int : public complex_wrapper<int>
 	{
@@ -90,11 +91,12 @@ namespace
 
 	// components do not support templated typenames
 	using float_tpack = tpack<float, complex_wrapper_float>;
-	using int_tpack = tpack<int, complex_wrapper_int>;
+	using int_tpack	  = tpack<int, complex_wrapper_int>;
 
 	auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
 		section<"non-empty component_info_typed">() = [&]() {
-			details::component_container_typed_t<type> cInfo;
+			auto cInfoPtr {details::instantiate_component_container<type>()};
+			auto& cInfo	  = *details::cast_component_container<type>(cInfoPtr.get());
 
 			section<"additions">() = [&]() {
 				psl::array<entity> entities;
@@ -148,7 +150,8 @@ namespace
 
 			// section<"additions && removals">() = [&](){};
 			section<"remap">() = [&]() {
-				details::component_container_typed_t<type> cInfo2;
+				auto cInfo2Ptr {details::instantiate_component_container<type>()};
+				auto& cInfo2 = *details::cast_component_container<type>(cInfo2Ptr.get());
 				psl::array<entity> entities;
 				entities.resize(100);
 				std::iota(std::begin(entities), std::end(entities), entity {0});
@@ -187,167 +190,166 @@ namespace
 		// section<"empty component_info_typed">() = [&]() {};
 	};
 
-	auto t1 = suite<"component_key must be unique", "ecs", "psl">().templates<float_tpack>() =
-	  []<typename type>() {
-		  using namespace psl::ecs::details;
-		  auto fl_id  = component_key_t::generate<type>();
-		  auto int_id = component_key_t::generate<int>();
-		  require(fl_id) != int_id;
+	auto t1 = suite<"component_key must be unique", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
+		using namespace psl::ecs::details;
+		auto fl_id	= component_key_t::generate<type>();
+		auto int_id = component_key_t::generate<int>();
+		require(fl_id) != int_id;
 
-		  auto cfl_id  = component_key_t::generate<const type>();
-		  auto cint_id = component_key_t::generate<const int>();
-		  require(cfl_id) != cint_id;
-		  require(cfl_id) == fl_id;
-		  require(cint_id) == int_id;
+		auto cfl_id	 = component_key_t::generate<const type>();
+		auto cint_id = component_key_t::generate<const int>();
+		require(cfl_id) != cint_id;
+		require(cfl_id) == fl_id;
+		require(cint_id) == int_id;
 
-		  constexpr auto cxfl_id  = component_key_t::generate<type>();
-		  constexpr auto cxint_id = component_key_t::generate<int>();
+		constexpr auto cxfl_id	= component_key_t::generate<type>();
+		constexpr auto cxint_id = component_key_t::generate<int>();
 
-		  require(cxfl_id) == fl_id;
-		  require(cxint_id) == int_id;
-	  };
-
-	auto t2 = suite<"filtering", "ecs", "psl">().templates<tpack<float, complex_wrapper_float, flag_type>>() = []<typename type>() {
-		state_t state;
-		auto e_list1 {state.create(100)};
-		auto e_list2 {state.create(400)};
-		auto e_list3 {state.create(500)};
-
-
-		section<"only the first 100 are given all components">() = [&]() {
-			state.add_components<type>(e_list1);
-			state.add_components<size_t>(e_list1);
-			state.add_components<int>(e_list1);
-			state.add_components<char>(e_list1);
-			state.add_components<std::byte>(e_list1);
-
-			auto f = state.filter<type, size_t, int, char, std::byte>();
-			require(f.size()) == e_list1.size();
-			require(std::equal(std::begin(f), std::end(f), std::begin(e_list1)));
-			require(state.filter<type>().size()) == state.filter<on_add<type>>().size();
-			require(state.filter<type>().size()) == state.filter<on_combine<type, size_t>>().size();
-			require(state.filter<on_remove<type>>().size()) == state.filter<on_break<type, size_t>>().size();
-		};
-
-		section<"500 are given two component types and 100 are given 3 component types where 2 overlap">() = [&]() {
-			state.add_components<int>(e_list1);
-			state.add_components<char>(e_list1);
-			state.add_components<size_t>(e_list1);
-
-			state.add_components<char>(e_list3);
-			state.add_components<size_t>(e_list3);
-
-
-			auto f = state.filter<type, size_t, int, char, std::byte>();
-			require(f.size()) == 0;
-
-			f = state.filter<size_t, int, char>();
-			require(f.size()) == e_list1.size();
-			require(std::equal(std::begin(f), std::end(f), std::begin(e_list1)));
-
-			f								= state.filter<size_t, char>();
-			std::vector<entity> combination = e_list1;
-			combination.reserve(e_list1.size() + e_list3.size());
-			combination.insert(std::end(combination), std::begin(e_list3), std::end(e_list3));
-			require(std::equal(std::begin(f), std::end(f), std::begin(combination)));
-			require(f.size()) == combination.size();
-			f = state.filter<char>();
-			require(std::equal(std::begin(f), std::end(f), std::begin(combination)));
-			require(f.size()) == combination.size();
-		};
-
-		section<"filtering components that are non-contiguous">() = [&]() {
-			state.create<type, size_t>(500);
-			state.destroy(1200);
-			auto entities = state.create<type, size_t>(3);
-
-			require(entities.size()) == 3;
-			require(entities[0]) == 1500;
-			require(entities[1]) == 1501;
-			require(entities[2]) == 1502;
-			require(state.filter<type>().size()) == 502;	// 500 + 3 - 1
-			require(state.filter<type>().size()) == state.filter<on_add<type>>().size();
-			require(state.filter<type>().size()) == state.filter<on_combine<type, size_t>>().size();
-			require(state.filter<on_remove<type>>().size()) == 1;	 // we deleted entity 1200
-			require(state.filter<on_remove<type>>().size()) == state.filter<on_break<type, size_t>>().size();
-		};
-
-		section<"on_condition">() = [&]() {
-			state.add_components<position>(e_list1, position {100, 500});
-			state.add_components<position>(e_list2, position {10, 30});
-
-			auto on_condition_func = [](const position& pos) { return (pos.x + pos.y) > 100; };
-
-			state.declare([elist1_size = e_list1.size()](
-							info_t& info, pack<position, on_condition<decltype(on_condition_func), position>> pack) {
-				expect(pack.size()) == elist1_size;
-			});
-
-			state.declare([total_size = e_list1.size() + e_list2.size()](info_t& info, pack<position> pack) {
-				expect(pack.size()) == total_size;
-			});
-
-			state.tick(std::chrono::duration<float>(1.0f));
-		};
-
-		section<"order_by">() = [&]() {
-			state.add_components(e_list1, [](position& pos) {
-				pos.x = std::rand() % 10;
-				pos.y = std::rand() % 10;
-			});
-
-			auto order_by_func = [](const position& lhs, const position& rhs) {
-				return (lhs.x == rhs.x) ? lhs.y < rhs.y : lhs.x < rhs.x;
-			};
-
-			state.declare([](info_t& info, pack<position, order_by<decltype(order_by_func), position>> pack) {
-				auto last_x = std::numeric_limits<decltype(position::x)>::min();
-				auto last_y = std::numeric_limits<decltype(position::y)>::min();
-
-				for(auto [position] : pack)
-				{
-					expect(last_x) <= position.x;
-
-					if(last_x == position.x) expect(last_y) <= position.y;
-
-					last_x = position.x;
-					last_y = position.y;
-				}
-			});
-
-			state.tick(std::chrono::duration<float>(1.0f));
-		};
+		require(cxfl_id) == fl_id;
+		require(cxint_id) == int_id;
 	};
 
-	auto t3 =
-	  suite<"initializing components", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
+	auto t2 = suite<"filtering", "ecs", "psl">().templates<tpack<float, complex_wrapper_float, flag_type>>() =
+	  []<typename type>() {
 		  state_t state;
+		  auto e_list1 {state.create(100)};
+		  auto e_list2 {state.create(400)};
+		  auto e_list3 {state.create(500)};
 
-		  size_t count {0};
-		  state.create(
-			50,
-			[&count](position& i) {
-				i = {++count, 0};
-			},
-			type {5.0f},
-			psl::ecs::empty<size_t>());
 
-		  require(state.view<position>().size()) == 50;
-		  require(state.view<type>().size()) == 50;
-		  require(state.view<size_t>().size()) == 50;
+		  section<"only the first 100 are given all components">() = [&]() {
+			  state.add_components<type>(e_list1);
+			  state.add_components<size_t>(e_list1);
+			  state.add_components<int>(e_list1);
+			  state.add_components<char>(e_list1);
+			  state.add_components<std::byte>(e_list1);
 
-		  count = {0};
-		  size_t check {0};
-		  size_t check_view {0};
-		  for(const auto& i : state.view<position>())
-		  {
-			  ++count;
-			  check += count;
-			  check_view += i.x;
-		  }
+			  auto f = state.filter<type, size_t, int, char, std::byte>();
+			  require(f.size()) == e_list1.size();
+			  require(std::equal(std::begin(f), std::end(f), std::begin(e_list1)));
+			  require(state.filter<type>().size()) == state.filter<on_add<type>>().size();
+			  require(state.filter<type>().size()) == state.filter<on_combine<type, size_t>>().size();
+			  require(state.filter<on_remove<type>>().size()) == state.filter<on_break<type, size_t>>().size();
+		  };
 
-		  require(check_view) == check;
+		  section<"500 are given two component types and 100 are given 3 component types where 2 overlap">() = [&]() {
+			  state.add_components<int>(e_list1);
+			  state.add_components<char>(e_list1);
+			  state.add_components<size_t>(e_list1);
+
+			  state.add_components<char>(e_list3);
+			  state.add_components<size_t>(e_list3);
+
+
+			  auto f = state.filter<type, size_t, int, char, std::byte>();
+			  require(f.size()) == 0;
+
+			  f = state.filter<size_t, int, char>();
+			  require(f.size()) == e_list1.size();
+			  require(std::equal(std::begin(f), std::end(f), std::begin(e_list1)));
+
+			  f								  = state.filter<size_t, char>();
+			  std::vector<entity> combination = e_list1;
+			  combination.reserve(e_list1.size() + e_list3.size());
+			  combination.insert(std::end(combination), std::begin(e_list3), std::end(e_list3));
+			  require(std::equal(std::begin(f), std::end(f), std::begin(combination)));
+			  require(f.size()) == combination.size();
+			  f = state.filter<char>();
+			  require(std::equal(std::begin(f), std::end(f), std::begin(combination)));
+			  require(f.size()) == combination.size();
+		  };
+
+		  section<"filtering components that are non-contiguous">() = [&]() {
+			  state.create<type, size_t>(500);
+			  state.destroy(1200);
+			  auto entities = state.create<type, size_t>(3);
+
+			  require(entities.size()) == 3;
+			  require(entities[0]) == 1500;
+			  require(entities[1]) == 1501;
+			  require(entities[2]) == 1502;
+			  require(state.filter<type>().size()) == 502;	  // 500 + 3 - 1
+			  require(state.filter<type>().size()) == state.filter<on_add<type>>().size();
+			  require(state.filter<type>().size()) == state.filter<on_combine<type, size_t>>().size();
+			  require(state.filter<on_remove<type>>().size()) == 1;	   // we deleted entity 1200
+			  require(state.filter<on_remove<type>>().size()) == state.filter<on_break<type, size_t>>().size();
+		  };
+
+		  section<"on_condition">() = [&]() {
+			  state.add_components<position>(e_list1, position {100, 500});
+			  state.add_components<position>(e_list2, position {10, 30});
+
+			  auto on_condition_func = [](const position& pos) { return (pos.x + pos.y) > 100; };
+
+			  state.declare([elist1_size = e_list1.size()](
+							  info_t& info, pack<position, on_condition<decltype(on_condition_func), position>> pack) {
+				  expect(pack.size()) == elist1_size;
+			  });
+
+			  state.declare([total_size = e_list1.size() + e_list2.size()](info_t& info, pack<position> pack) {
+				  expect(pack.size()) == total_size;
+			  });
+
+			  state.tick(std::chrono::duration<float>(1.0f));
+		  };
+
+		  section<"order_by">() = [&]() {
+			  state.add_components(e_list1, [](position& pos) {
+				  pos.x = std::rand() % 10;
+				  pos.y = std::rand() % 10;
+			  });
+
+			  auto order_by_func = [](const position& lhs, const position& rhs) {
+				  return (lhs.x == rhs.x) ? lhs.y < rhs.y : lhs.x < rhs.x;
+			  };
+
+			  state.declare([](info_t& info, pack<position, order_by<decltype(order_by_func), position>> pack) {
+				  auto last_x = std::numeric_limits<decltype(position::x)>::min();
+				  auto last_y = std::numeric_limits<decltype(position::y)>::min();
+
+				  for(auto [position] : pack)
+				  {
+					  expect(last_x) <= position.x;
+
+					  if(last_x == position.x) expect(last_y) <= position.y;
+
+					  last_x = position.x;
+					  last_y = position.y;
+				  }
+			  });
+
+			  state.tick(std::chrono::duration<float>(1.0f));
+		  };
 	  };
+
+	auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
+		state_t state;
+
+		size_t count {0};
+		state.create(
+		  50,
+		  [&count](position& i) {
+			  i = {++count, 0};
+		  },
+		  type {5.0f},
+		  psl::ecs::empty<size_t>());
+
+		require(state.view<position>().size()) == 50;
+		require(state.view<type>().size()) == 50;
+		require(state.view<size_t>().size()) == 50;
+
+		count = {0};
+		size_t check {0};
+		size_t check_view {0};
+		for(const auto& i : state.view<position>())
+		{
+			++count;
+			check += count;
+			check_view += i.x;
+		}
+
+		require(check_view) == check;
+	};
 
 	auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename type>() {
 		state_t state;
@@ -589,13 +591,15 @@ namespace
 			auto results  = state.view<type>();
 			require(results.size()) == entities.size();
 			require(results.size()) == e_list1.size();
-			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+			require(
+			  std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
 
 			require(state.systems()) == 1;
 			state.revoke(system_id);
 			require(state.systems()) == 0;
 			state.tick(std::chrono::duration<float>(0.1f));
-			require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+			require(
+			  std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
 		};
 	};
 
@@ -607,63 +611,64 @@ namespace
 		state.declare([](psl::ecs::info_t& info) {});
 	};
 
-	auto t7 = suite<"filtering over multiple frames", "ecs", "psl", "regression">().templates<float_tpack>() = []<typename type>() {
-		state_t state {1u};
-		section<"regression 1">() = [&] {
-			// issue: non-unique entry in filtering operation
-			// order of operations:
-			//  - add 1 entity -> becomes "modified entity" for filtering/ecs
-			//  - when ticking system, modify the entity again
-			//  - next tick when the results are collabed it will duplicate the entity
-			//    in the filtering for system's filtering -> issue
+	auto t7 = suite<"filtering over multiple frames", "ecs", "psl", "regression">().templates<float_tpack>() =
+	  []<typename type>() {
+		  state_t state {1u};
+		  section<"regression 1">() = [&] {
+			  // issue: non-unique entry in filtering operation
+			  // order of operations:
+			  //  - add 1 entity -> becomes "modified entity" for filtering/ecs
+			  //  - when ticking system, modify the entity again
+			  //  - next tick when the results are collabed it will duplicate the entity
+			  //    in the filtering for system's filtering -> issue
 
-			size_t count = 0;
-			state.declare([&](info_t& info, pack<entity, type> pack) {
-				if(pack.empty()) return;
-				count += pack.size();
-				info.command_buffer.add_components<int>(pack.template get<entity>(), {0});
-			});
+			  size_t count = 0;
+			  state.declare([&](info_t& info, pack<entity, type> pack) {
+				  if(pack.empty()) return;
+				  count += pack.size();
+				  info.command_buffer.add_components<int>(pack.template get<entity>(), {0});
+			  });
 
-			auto entities = state.create<type>(1);
-			expect(state.filter<on_add<type>>().size()) == 1;
-			state.tick(std::chrono::duration<float>(1.0f));
-			expect(state.filter<type>().size()) == 1;
-			expect(state.filter<on_add<int>>().size()) == 1;
-			expect(count) == 1;
-			state.tick(std::chrono::duration<float>(1.0f));
-			expect(state.filter<type>().size()) == 1;
-			expect(state.filter<int>().size()) == 1;
-			expect(count) == 2;
-		};
-		section<"regression 2">() = [&] {
-			// issue: incorrect filtering return for removed entities
-			// operations:
-			// - create 2 separate entities, one with a component and one without (component irrelevant)
-			// - remove the component from the first batch of entities
-			// - add the component to the second batch
-			// - notice after ticking the present components in the system is incorrect
-			// reason: filtering operation that was based on existing filters did not correctly
-			//         use the already filtered entity list
+			  auto entities = state.create<type>(1);
+			  expect(state.filter<on_add<type>>().size()) == 1;
+			  state.tick(std::chrono::duration<float>(1.0f));
+			  expect(state.filter<type>().size()) == 1;
+			  expect(state.filter<on_add<int>>().size()) == 1;
+			  expect(count) == 1;
+			  state.tick(std::chrono::duration<float>(1.0f));
+			  expect(state.filter<type>().size()) == 1;
+			  expect(state.filter<int>().size()) == 1;
+			  expect(count) == 2;
+		  };
+		  section<"regression 2">() = [&] {
+			  // issue: incorrect filtering return for removed entities
+			  // operations:
+			  // - create 2 separate entities, one with a component and one without (component irrelevant)
+			  // - remove the component from the first batch of entities
+			  // - add the component to the second batch
+			  // - notice after ticking the present components in the system is incorrect
+			  // reason: filtering operation that was based on existing filters did not correctly
+			  //         use the already filtered entity list
 
-			auto entities0 = state.create<type>(1);
-			auto entities1 = state.create(1);
-			state.remove_components<type>(entities0);
-			expect(state.filter<type>().size()) == 0;
-			expect(state.filter<on_remove<type>>().size()) == 1;
-			state.add_components<type>(entities1);
-			expect(state.filter<type>().size()) == 1;
-			expect(state.filter<on_add<type>>().size()) == 1;
-			expect(state.filter<on_remove<type>>().size()) == 1;
-			state.declare([&](info_t& info, pack<entity, type> pack) {
-				expect(pack.size()) == 1;
-				expect(pack.template get<entity>()[0]) == 1;
-			});
-			state.tick(std::chrono::duration<float>(1.0f));
-			expect(state.filter<type>().size()) == 1;
-			expect(state.filter<on_remove<type>>().size()) == 0;
-			expect(state.filter<on_add<type>>().size()) == 0;
-		};
-	};
+			  auto entities0 = state.create<type>(1);
+			  auto entities1 = state.create(1);
+			  state.remove_components<type>(entities0);
+			  expect(state.filter<type>().size()) == 0;
+			  expect(state.filter<on_remove<type>>().size()) == 1;
+			  state.add_components<type>(entities1);
+			  expect(state.filter<type>().size()) == 1;
+			  expect(state.filter<on_add<type>>().size()) == 1;
+			  expect(state.filter<on_remove<type>>().size()) == 1;
+			  state.declare([&](info_t& info, pack<entity, type> pack) {
+				  expect(pack.size()) == 1;
+				  expect(pack.template get<entity>()[0]) == 1;
+			  });
+			  state.tick(std::chrono::duration<float>(1.0f));
+			  expect(state.filter<type>().size()) == 1;
+			  expect(state.filter<on_remove<type>>().size()) == 0;
+			  expect(state.filter<on_add<type>>().size()) == 0;
+		  };
+	  };
 
 	auto t8 = suite<"component_key name matches expected", "ecs", "psl">() = []() {
 		using namespace psl::ecs::details;

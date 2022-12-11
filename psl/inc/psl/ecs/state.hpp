@@ -46,6 +46,7 @@ namespace psl::ecs
 			std::vector<size_t> component_sizes {};
 			std::vector<entity> component_entities {};
 			std::vector<size_t> component_data_size {};
+			std::vector<size_t> component_data_alignment {};
 			std::vector<std::byte> component_data {};
 			std::vector<std::string> component_names {};
 
@@ -71,8 +72,10 @@ namespace psl::ecs
 					if(key.type() == details::component_key_t::component_type::COMPLEX) continue;
 
 					component_sizes.emplace_back(component->size(true));
-					component_entities.append_range(component->entities(true));
+					auto entities = component->entities(true);
+					component_entities.insert(std::end(component_entities), std::begin(entities), std::end(entities));
 					component_data_size.emplace_back(component->component_size());
+					component_data_alignment.emplace_back(component->alignment());
 					component_names.emplace_back(key.name());
 
 					if(component->component_size() > 0)
@@ -86,6 +89,7 @@ namespace psl::ecs
 
 			serializer.template parse<"COMPONENTS">(component_names);
 			serializer.template parse<"CDATASIZE">(component_data_size);
+			serializer.template parse<"CDATAALIGNMENT">(component_data_alignment);
 			serializer.template parse<"CSIZE">(component_sizes);
 			serializer.template parse<"CENTITIES">(component_entities);
 			serializer.template parse<"CDATA">(component_data);
@@ -103,20 +107,13 @@ namespace psl::ecs
 					auto it = m_Components.find(key);
 					if(it == m_Components.end())
 					{
-						m_Components.emplace(key, nullptr);
-						it = m_Components.find(key);
+						m_Components.emplace(key,
+											 details::instantiate_component_container(
+											   key, component_data_size[i], component_data_alignment[i]));
 					}
-
-					if(!it->second)
+					else
 					{
-						if (key.type() == details::component_key_t::component_type::FLAG)
-						{
-							it->second = new details::component_container_flag_t(key);
-						}
-						else
-						{
-							it->second = new details::component_container_untyped_t(key, component_data_size[i], 2);
-						}
+						throw std::runtime_error("unsupported deserializing into non-empty state");
 					}
 				}
 			}
@@ -377,7 +374,7 @@ namespace psl::ecs
 			constexpr auto key {details::component_key_t::generate<T>()};
 			if(auto it = m_Components.find(key); it != std::end(m_Components))
 			{
-				return ((details::component_container_typed_t<T>*)(&it->second.get()))
+				return (details::cast_component_container<T>(it->second.get()))
 				  ->entity_data()
 				  .template dense<T>(details::stage_range_t::ALIVE);
 			}
@@ -483,7 +480,7 @@ namespace psl::ecs
 			constexpr auto key = details::component_key_t::generate<T>();
 			if(auto it = m_Components.find(key); it == std::end(m_Components))
 			{
-				m_Components.emplace(key, new details::component_container_typed_t<T>());
+				m_Components.emplace(key, details::instantiate_component_container<T>());
 			}
 		}
 
@@ -493,10 +490,10 @@ namespace psl::ecs
 		psl::array<const details::component_container_t*>
 		get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;
 		template <typename T>
-		details::component_container_typed_t<T>* get_component_typed_info() const noexcept
+		auto get_component_typed_info() const noexcept
 		{
 			constexpr auto key {details::component_key_t::generate<T>()};
-			return (details::component_container_typed_t<T>*)&m_Components.at(key).get();
+			return details::cast_component_container<T>(m_Components.at(key).get());
 		}
 		//------------------------------------------------------------
 		// add_component
@@ -882,7 +879,7 @@ namespace psl::ecs
 		psl::array<details::system_token> m_ToRevoke {};
 		psl::array<details::system_information> m_NewSystemInformations {};
 
-		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_container_t>>
+		mutable std::unordered_map<details::component_key_t, std::unique_ptr<details::component_container_t>>
 		  m_Components {};
 
 		psl::sparse_indice_array<entity> m_ModifiedEntities {};

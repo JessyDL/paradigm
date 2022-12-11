@@ -260,7 +260,7 @@ void state_t::tick(std::chrono::duration<float> dTime)
 const details::component_container_t* state_t::get_component_container(details::component_key_t key) const noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
-		return &it->second.get();
+		return it->second.get();
 	else
 		return nullptr;
 }
@@ -268,7 +268,7 @@ const details::component_container_t* state_t::get_component_container(details::
 details::component_container_t* state_t::get_component_container(details::component_key_t key) noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
-		return &it->second.get();
+		return it->second.get();
 	else
 		return nullptr;
 }
@@ -284,7 +284,7 @@ state_t::get_component_container(psl::array_view<details::component_key_t> keys)
 		if(count == 0) break;
 		if(auto it = std::find(std::begin(keys), std::end(keys), key); it != std::end(keys))
 		{
-			res.push_back(&cInfo.get());
+			res.push_back(cInfo.get());
 			--count;
 		}
 	}
