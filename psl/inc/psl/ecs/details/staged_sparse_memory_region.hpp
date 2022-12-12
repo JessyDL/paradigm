@@ -11,15 +11,16 @@
 #include "psl/memory/raw_region.hpp"
 #include "psl/sparse_array.hpp"
 
-#include "psl/ecs/entity.hpp"
+#include "psl/ecs/component_traits.hpp"
 #include "psl/ecs/details/stage_range_t.hpp"
+#include "psl/ecs/entity.hpp"
 
 
 namespace psl::ecs::details
 {
 	/// \brief Constraint for what types can safely be stored by `staged_sparse_memory_region_t`
 	template <typename T>
-	concept IsValidForStagedSparseMemoryRange = std::is_trivial<T>::value;
+	concept IsValidForStagedSparseMemoryRange = IsComponentTrivialType<T>;
 
 	/// \brief A specialized container type to store components in a type agnostic manner
 	/// \note due to the dense data being stored on its own page, alignment shouldn't be a concern.
@@ -187,10 +188,7 @@ namespace psl::ecs::details
 			return static_cast<const_pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 		}
 
-		FORCEINLINE auto data(stage_t stage = stage_t::SETTLED) const noexcept -> const_pointer
-		{
-			return cdata(stage);
-		}
+		FORCEINLINE auto data(stage_t stage = stage_t::SETTLED) const noexcept -> const_pointer { return cdata(stage); }
 
 		/// \brief Get a reference of the requested type at the index
 		/// \tparam T Type we want to interpret the data as
@@ -363,7 +361,6 @@ namespace psl::ecs::details
 
 			insert_impl(chunk, sub_index, index);
 			return ((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
-
 		}
 
 		/// \brief Promotes all values to the next `stage_t`. The cycle is as follows: ADDED -> SETTLED -> REMOVED -> deleted.

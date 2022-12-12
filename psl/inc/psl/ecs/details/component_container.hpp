@@ -4,6 +4,7 @@
 #include "../entity.hpp"
 #include "component_key.hpp"
 #include "psl/array_view.hpp"
+#include "psl/ecs/component_traits.hpp"
 #include "psl/memory/sparse_array.hpp"
 #include "psl/sparse_array.hpp"
 #include "psl/sparse_indice_array.hpp"
@@ -82,6 +83,8 @@ namespace psl::ecs::details
 		size_t alignment() const noexcept { return m_Alignment; }
 
 		void set(entity entity, void* data) noexcept { set_impl(entity, data); }
+		virtual bool should_serialize() const noexcept { return false; }
+		virtual bool should_serialize(bool value) noexcept { return false; }
 
 		virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
 		virtual bool merge(const component_container_t& other) noexcept											= 0;
@@ -279,7 +282,8 @@ namespace psl::ecs::details
 	class component_container_flag_t : public component_container_t
 	{
 	  public:
-		component_container_flag_t(psl::ecs::details::component_key_t key) : component_container_t(key, 0, 0) {};
+		component_container_flag_t(psl::ecs::details::component_key_t key, bool serializable = false) :
+			component_container_t(key, 0, 0) {};
 
 		void* data() noexcept override { return nullptr; }
 		void* const data() const noexcept override { return nullptr; }
@@ -300,6 +304,13 @@ namespace psl::ecs::details
 
 			component_container_flag_t* other_ptr = (component_container_flag_t*)(&other);
 			m_Entities.merge(other_ptr->m_Entities);
+			return true;
+		}
+
+		bool should_serialize() const noexcept override { return m_Serializable; }
+		bool should_serialize(bool value) noexcept override
+		{
+			m_Serializable = value;
 			return true;
 		}
 
@@ -349,6 +360,7 @@ namespace psl::ecs::details
 
 	  private:
 		details::staged_sparse_array<void, entity> m_Entities;
+		bool m_Serializable {false};
 	};
 
 	class component_container_untyped_t : public component_container_t
@@ -356,8 +368,12 @@ namespace psl::ecs::details
 		using stage_range_t = details::stage_range_t;
 
 	  public:
-		component_container_untyped_t(psl::ecs::details::component_key_t key, size_t size, size_t alignment) :
-			component_container_t(key, size, alignment), m_Entities(size) {};
+		component_container_untyped_t(psl::ecs::details::component_key_t key,
+									  size_t size,
+									  size_t alignment,
+									  bool serializable = false) :
+			component_container_t(key, size, alignment),
+			m_Entities(size), m_Serializable(serializable) {};
 
 		auto& entity_data() noexcept { return m_Entities; };
 
@@ -420,6 +436,13 @@ namespace psl::ecs::details
 		void set(entity e, const T& data) noexcept
 		{
 			m_Entities.template at<T>(e, stage_range_t::ALL) = data;
+		}
+
+		bool should_serialize() const noexcept override { return m_Serializable; }
+		bool should_serialize(bool value) noexcept override
+		{
+			m_Serializable = value;
+			return true;
 		}
 
 	  protected:
@@ -528,15 +551,16 @@ namespace psl::ecs::details
 
 	  private:
 		details::staged_sparse_memory_region_t m_Entities;
+		bool m_Serializable {false};
 	};
 
 	template <typename T>
 	struct component_container_type_for
 	{
 		using type = std::conditional_t<
-		  std::is_empty_v<T>,
+		  IsComponentFlagType<T>,
 		  component_container_flag_t,
-		  std::conditional_t<std::is_trivial_v<T>, component_container_untyped_t, component_container_typed_t<T>>>;
+		  std::conditional_t<IsComponentTrivialType<T>, component_container_untyped_t, component_container_typed_t<T>>>;
 	};
 
 	template <typename T>
@@ -546,32 +570,44 @@ namespace psl::ecs::details
 	inline auto instantiate_component_container() -> std::unique_ptr<component_container_t>
 	{
 		using return_type = component_container_type_for_t<T>;
-		if constexpr(std::is_empty_v<T>)
+
+		// mostly future proofed check, this basically checks that either serialization is turned off, _or_ the type
+		// supports it.
+		static_assert(!component_traits<T>::serializable || IsComponentSerializable<T>,
+					  "Unsupported. Component type cannot support serialization, please fix your `component_traits<T>` "
+					  "specialization for this component type");
+
+		if constexpr(IsComponentFlagType<T>)
+		{
+			return std::unique_ptr<component_container_t>(std::make_unique<component_container_flag_t>(
+			  psl::ecs::details::component_key_t::generate<T>(), component_traits<T>::serializable));
+		}
+		else if constexpr(IsComponentTrivialType<T>)
 		{
 			return std::unique_ptr<component_container_t>(
-			  std::make_unique<component_container_flag_t>(psl::ecs::details::component_key_t::generate<T>()));
+			  std::make_unique<component_container_untyped_t>(psl::ecs::details::component_key_t::generate<T>(),
+															  sizeof(T),
+															  std::alignment_of_v<T>,
+															  component_traits<T>::serializable));
 		}
-		else if constexpr(std::is_trivial_v<T>)
-		{
-			return std::unique_ptr<component_container_t>(std::make_unique<component_container_untyped_t>(
-			  psl::ecs::details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>));
-		}
-		else
+		else if constexpr(IsComponentComplexType<T>)
 		{
 			return std::unique_ptr<component_container_t>(std::make_unique<component_container_typed_t<T>>());
 		}
 	}
 
-	inline auto instantiate_component_container(psl::ecs::details::component_key_t key, size_t size, size_t alignment)
-	  -> std::unique_ptr<component_container_t>
+	inline auto instantiate_component_container(psl::ecs::details::component_key_t key,
+												size_t size,
+												size_t alignment,
+												bool should_serialize) -> std::unique_ptr<component_container_t>
 	{
 		switch(key.type())
 		{
-		case psl::ecs::details::component_key_t::component_type::TRIVIAL:
-			return std::make_unique<component_container_untyped_t>(key, size, alignment);
-		case psl::ecs::details::component_key_t::component_type::FLAG:
-			return std::make_unique<component_container_flag_t>(key);
-		case psl::ecs::details::component_key_t::component_type::COMPLEX:
+		case psl::ecs::component_type::TRIVIAL:
+			return std::make_unique<component_container_untyped_t>(key, size, alignment, should_serialize);
+		case psl::ecs::component_type::FLAG:
+			return std::make_unique<component_container_flag_t>(key, should_serialize);
+		case psl::ecs::component_type::COMPLEX:
 			throw std::runtime_error("Cannot runtime instantiate a complex type without type information");
 		}
 		psl::unreachable("invalid key value for component type");

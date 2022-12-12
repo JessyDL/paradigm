@@ -9,6 +9,7 @@
 #include "filtering.hpp"
 #include "psl/array.hpp"
 #include "psl/details/fixed_astring.hpp"
+#include "psl/ecs/component_traits.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/unique_ptr.hpp"
@@ -65,7 +66,8 @@ namespace psl::ecs
 				std::vector<details::component_key_t> all_keys {};
 				for(const auto& [key, component] : m_Components)
 				{
-					if(key.type() == details::component_key_t::component_type::COMPLEX) continue;
+					// skip unserializable types, or those that aren't requesting to be serialized
+					if(key.type() == component_type::COMPLEX || !component->should_serialize()) continue;
 					expected_total_entities += component->size(true);
 
 					all_keys.emplace_back(key);
@@ -73,6 +75,7 @@ namespace psl::ecs
 					expected_total_datasize +=
 					  (component->component_size() > 0) ? component->component_size() * component->size(true) : 0;
 				}
+
 				// sort to make the serializations deterministic
 				std::sort(std::begin(all_keys), std::end(all_keys));
 				component_entities.reserve(expected_total_entities);
@@ -115,15 +118,15 @@ namespace psl::ecs
 						   ++i)
 				{
 					details::component_key_t key(component_names[i],
-												 (component_data_size[i] == 0)
-												   ? details::component_key_t::component_type::FLAG
-												   : details::component_key_t::component_type::TRIVIAL);
+												 (component_data_size[i] == 0) ? component_type::FLAG
+																			   : component_type::TRIVIAL);
 					auto it = m_Components.find(key);
 					if(it == m_Components.end())
 					{
-						auto pair = m_Components.emplace(key,
-														 details::instantiate_component_container(
-														   key, component_data_size[i], component_data_alignment[i]));
+						auto pair =
+						  m_Components.emplace(key,
+											   details::instantiate_component_container(
+												 key, component_data_size[i], component_data_alignment[i], true));
 
 						if(!pair.second)
 						{
@@ -174,6 +177,17 @@ namespace psl::ecs
 		state_t(state_t&&)				   = default;
 		state_t& operator=(const state_t&) = delete;
 		state_t& operator=(state_t&&)	   = default;
+
+		template <IsComponentSerializable T>
+		bool override_serialization(bool value)
+		{
+			constexpr auto key = details::component_key_t::generate<T>();
+			if(auto it = m_Components.find(key); it != std::end(m_Components))
+			{
+				return it->second->should_serialize(value);
+			}
+			return false;
+		}
 
 		template <typename... Ts>
 		void add_components(psl::array_view<entity> entities)

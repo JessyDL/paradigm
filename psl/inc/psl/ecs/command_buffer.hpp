@@ -204,11 +204,11 @@ namespace psl::ecs
 								   entities,
 								   sizeof(type),
 								   [prototype](std::uintptr_t location, size_t count) {
-					  for(auto i = size_t {0}; i < count; ++i)
-					  {
-						  std::invoke(prototype, *((type*)(location) + i));
-					  }
-				  });
+									   for(auto i = size_t {0}; i < count; ++i)
+									   {
+										   std::invoke(prototype, *((type*)(location) + i));
+									   }
+								   });
 			}
 			/*else
 			{
@@ -280,11 +280,11 @@ namespace psl::ecs
 								   entities,
 								   sizeof(type),
 								   [prototype](std::uintptr_t location, size_t count) {
-					  for(auto i = size_t {0}; i < count; ++i)
-					  {
-						  std::invoke(prototype, *((type*)(location) + i));
-					  }
-				  });
+									   for(auto i = size_t {0}; i < count; ++i)
+									   {
+										   std::invoke(prototype, *((type*)(location) + i));
+									   }
+								   });
 			}
 			/*else
 			{
@@ -329,7 +329,10 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
 		{
-			psl_assert(entities.size() == data.size(), "incorrect amount of data input compared to entities, expected {} but got {}", entities.size(), data.size());
+			psl_assert(entities.size() == data.size(),
+					   "incorrect amount of data input compared to entities, expected {} but got {}",
+					   entities.size(),
+					   data.size());
 			create_storage<T>();
 			static_assert(!std::is_empty_v<T>,
 						  "no need to pass an array of tag types through, it's a waste of computing and memory");

@@ -5,6 +5,7 @@
 #include <type_traits>
 
 #include "psl/ecs/component_name.hpp"
+#include "psl/ecs/component_traits.hpp"
 #include "strtype/strtype.hpp"
 
 namespace psl::ecs::details
@@ -58,13 +59,6 @@ namespace psl::ecs::details
 		{}
 
 	  public:
-		enum class component_type : std::uint8_t
-		{
-			COMPLEX = 0,
-			TRIVIAL = 1,
-			FLAG	= 2,
-		};
-
 		constexpr component_key_t(std::string_view name, component_type type) :
 			m_Name(name), m_Value(fnv1a_32(name)), m_Type(type), m_StringMemory(nullptr)
 		{
@@ -103,9 +97,9 @@ namespace psl::ecs::details
 		{
 			if(this != &other)
 			{
-				m_Name	= other.m_Name;
-				m_Value = other.m_Value;
-				m_Type	= other.m_Type;
+				m_Name		   = other.m_Name;
+				m_Value		   = other.m_Value;
+				m_Type		   = other.m_Type;
 				m_StringMemory = nullptr;
 
 				if(!std::is_constant_evaluated() && other.m_StringMemory)
