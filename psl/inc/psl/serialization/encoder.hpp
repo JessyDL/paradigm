@@ -30,13 +30,19 @@ namespace psl::serialization
 		template <auto Name, typename T>
 		void parse(property<Name, T>& property)
 		{
-			parse(property.value, property.name());
+			parse_internal(property.value, property.name());
 		}
 
 		template <auto Name, typename T>
 		void parse(property<Name, T*>& property)
 		{
-			parse(*property.value, property.name());
+			parse_internal(*property.value, property.name());
+		}
+
+		template <psl::details::fixed_astring Name, typename T >
+		void parse(T& property)
+		{
+			parse_internal(property, Name);
 		}
 
 		void resolve_references()
@@ -79,7 +85,7 @@ namespace psl::serialization
 			m_CollectionStack.pop();
 		}
 		template <typename T>
-		void parse(T& value, psl::string8::view name)
+		void parse_internal(T& value, psl::string8::view name)
 		{
 			constexpr bool is_range = details::is_range<T>::value;
 			using contained_t		= typename utility::binary::get_contained_type<T>::type;

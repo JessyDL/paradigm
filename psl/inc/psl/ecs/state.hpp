@@ -3,17 +3,19 @@
 #include "command_buffer.hpp"
 #include "details/component_container.hpp"
 #include "details/component_key.hpp"
-#include "details/entity_info.hpp"
 #include "details/system_information.hpp"
 #include "entity.hpp"
 #include "filtering.hpp"
 #include "psl/array.hpp"
 #include "psl/details/fixed_astring.hpp"
+#include "psl/ecs/component_traits.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/unique_ptr.hpp"
 #include "selectors.hpp"
 #include <chrono>
+
+#include "psl/serialization/serializer.hpp"
 
 namespace psl::async
 {
@@ -31,6 +33,122 @@ namespace psl::ecs
 {
 	class state_t final
 	{
+		friend class psl::serialization::accessor;
+		static constexpr auto serialization_name {"ECS"};
+
+		template <typename S>
+		void serialize(S& serializer)
+		{
+			if constexpr(psl::serialization::details::IsDecoder<S>)
+			{
+				if(m_Tick != 0 || m_Entities != 0 || m_ModifiedEntities.size() != 0)
+				{
+					throw std::runtime_error("unsupported deserializing into non-empty state");
+				}
+			}
+
+			serializer.template parse<"ORPHANS">(m_Orphans);
+			serializer.template parse<"FUTURE_ORPHANS">(m_ToBeOrphans);
+			serializer.template parse<"ENTITIES">(m_Entities);
+
+			std::vector<size_t> component_sizes {};
+			std::vector<entity> component_entities {};
+			std::vector<size_t> component_data_size {};
+			std::vector<size_t> component_data_alignment {};
+			std::vector<std::byte> component_data {};
+			std::vector<std::string> component_names {};
+
+			if constexpr(psl::serialization::details::IsEncoder<S>)
+			{
+				size_t expected_total_datasize {0};
+				size_t expected_total_entities {0};
+				std::vector<details::component_key_t> all_keys {};
+				for(const auto& [key, component] : m_Components)
+				{
+					// skip unserializable types, or those that aren't requesting to be serialized
+					if(key.type() == component_type::COMPLEX || !component->should_serialize()) continue;
+					expected_total_entities += component->size(true);
+
+					all_keys.emplace_back(key);
+
+					expected_total_datasize +=
+					  (component->component_size() > 0) ? component->component_size() * component->size(true) : 0;
+				}
+
+				// sort to make the serializations deterministic
+				std::sort(std::begin(all_keys), std::end(all_keys));
+				component_entities.reserve(expected_total_entities);
+				component_data.resize(expected_total_datasize);
+
+				size_t data_offset {0};
+				for(const auto& key : all_keys)
+				{
+					const auto& component = m_Components[key];
+
+					component_sizes.emplace_back(component->size(true));
+					auto entities = component->entities(true);
+					component_entities.insert(std::end(component_entities), std::begin(entities), std::end(entities));
+					component_data_size.emplace_back(component->component_size());
+					component_data_alignment.emplace_back(component->alignment());
+					component_names.emplace_back(key.name());
+
+					if(component->component_size() > 0)
+					{
+						auto total_size = component->component_size() * component->size(true);
+						memcpy(component_data.data() + data_offset, component->data(), total_size);
+						data_offset += total_size;
+					}
+				}
+			}
+
+			serializer.template parse<"COMPONENTS">(component_names);
+			serializer.template parse<"CDATASIZE">(component_data_size);
+			serializer.template parse<"CDATAALIGNMENT">(component_data_alignment);
+			serializer.template parse<"CSIZE">(component_sizes);
+			serializer.template parse<"CENTITIES">(component_entities);
+			serializer.template parse<"CDATA">(component_data);
+
+
+			if constexpr(psl::serialization::details::IsDecoder<S>)
+			{
+				const auto count = component_names.size();
+				for(size_t i = 0, entity_offset = 0, data_offset = 0; i < count; entity_offset += component_sizes[i],
+						   data_offset += (component_sizes[i] * component_data_size[i]),
+						   ++i)
+				{
+					details::component_key_t key(component_names[i],
+												 (component_data_size[i] == 0) ? component_type::FLAG
+																			   : component_type::TRIVIAL);
+					auto it = m_Components.find(key);
+					if(it == m_Components.end())
+					{
+						auto pair =
+						  m_Components.emplace(key,
+											   details::instantiate_component_container(
+												 key, component_data_size[i], component_data_alignment[i], true));
+
+						if(!pair.second)
+						{
+							throw std::runtime_error("failed to insert key into map");
+						}
+						it = pair.first;
+					}
+					else
+					{
+						throw std::runtime_error("unsupported deserializing into non-empty state");
+					}
+
+					psl::array_view<psl::ecs::entity> entities {
+					  std::next(std::begin(component_entities), entity_offset),
+					  std::next(std::begin(component_entities), entity_offset + component_sizes[i])};
+
+					add_component_impl(
+					  key, entities, (void*)(&*std::next(std::begin(component_data), data_offset)), false);
+				}
+			}
+		}
+
+
 		struct transform_result
 		{
 			bool operator==(const transform_result& other) const noexcept { return group == other.group; }
@@ -59,6 +177,17 @@ namespace psl::ecs
 		state_t& operator=(const state_t&) = delete;
 		state_t& operator=(state_t&&)	   = default;
 
+		template <IsComponentTypeSerializable T>
+		bool override_serialization(bool value)
+		{
+			constexpr auto key = details::component_key_t::generate<T>();
+			if(auto it = m_Components.find(key); it != std::end(m_Components))
+			{
+				return it->second->should_serialize(value);
+			}
+			return false;
+		}
+
 		template <typename... Ts>
 		void add_components(psl::array_view<entity> entities)
 		{
@@ -82,9 +211,15 @@ namespace psl::ecs
 			(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 		}
 
-
-		template <typename... Ts>
-		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
+		template <typename T>
+		psl::array<T> get_component(psl::array_view<entity> entities) const noexcept
+		{
+			auto cInfo = get_component_typed_info<T>();
+			psl::array<T> result {};
+			result.resize(entities.size());
+			cInfo->copy_to(entities, result.data());
+			return result;
+		}
 
 		void clear() noexcept;
 
@@ -285,7 +420,7 @@ namespace psl::ecs
 			constexpr auto key {details::component_key_t::generate<T>()};
 			if(auto it = m_Components.find(key); it != std::end(m_Components))
 			{
-				return ((details::component_container_typed_t<T>*)(&it->second.get()))
+				return (details::cast_component_container<T>(it->second.get()))
 				  ->entity_data()
 				  .template dense<T>(details::stage_range_t::ALIVE);
 			}
@@ -391,20 +526,20 @@ namespace psl::ecs
 			constexpr auto key = details::component_key_t::generate<T>();
 			if(auto it = m_Components.find(key); it == std::end(m_Components))
 			{
-				m_Components.emplace(key, new details::component_container_typed_t<T>());
+				m_Components.emplace(key, details::instantiate_component_container<T>());
 			}
 		}
 
-		details::component_container_t* get_component_container(details::component_key_t key) noexcept;
-		const details::component_container_t* get_component_container(details::component_key_t key) const noexcept;
+		details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
+		const details::component_container_t* get_component_container(const details::component_key_t& key) const noexcept;
 
 		psl::array<const details::component_container_t*>
 		get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;
 		template <typename T>
-		details::component_container_typed_t<T>* get_component_typed_info() const noexcept
+		auto get_component_typed_info() const noexcept
 		{
 			constexpr auto key {details::component_key_t::generate<T>()};
-			return (details::component_container_typed_t<T>*)&m_Components.at(key).get();
+			return details::cast_component_container<T>(m_Components.at(key).get());
 		}
 		//------------------------------------------------------------
 		// add_component
@@ -529,12 +664,12 @@ namespace psl::ecs
 		}
 
 
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities);
+		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities);
 
 		// invocable based construction
 		template <typename Fn>
 			requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, Fn&& invocable)
+		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, Fn&& invocable)
 		{
 			auto cInfo = get_component_container(key);
 			psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
@@ -549,7 +684,7 @@ namespace psl::ecs
 			for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 		}
 
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<entity> entities,
 								void* prototype,
 								bool repeat = true);
@@ -557,7 +692,7 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// remove_component
 		//------------------------------------------------------------
-		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
+		void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
 
 
 		//------------------------------------------------------------
@@ -657,7 +792,7 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// set
 		//------------------------------------------------------------
-		size_t set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept;
+		size_t set(psl::array_view<entity> entities, const details::component_key_t& key, void* data) noexcept;
 
 
 		//------------------------------------------------------------
@@ -790,7 +925,7 @@ namespace psl::ecs
 		psl::array<details::system_token> m_ToRevoke {};
 		psl::array<details::system_information> m_NewSystemInformations {};
 
-		mutable std::unordered_map<details::component_key_t, psl::unique_ptr<details::component_container_t>>
+		mutable std::unordered_map<details::component_key_t, std::unique_ptr<details::component_container_t>>
 		  m_Components {};
 
 		psl::sparse_indice_array<entity> m_ModifiedEntities {};

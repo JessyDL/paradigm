@@ -177,6 +177,18 @@ namespace psl
 	#define psl_print(level, message, ...)                                                                             \
 		psl::details::print_t { level, message, __VA_ARGS__ }
 #endif
+
+#if defined(PE_DEBUG)
+	 // _PSL_ASSERT_IMPL_(N) are added to inject a generic failed message in case none was provided.
+	#define _PSL_ASSERT_IMPL_(...) psl_print(psl::level_t::fatal, "assertion failed")
+	#define _PSL_ASSERT_IMPL_N(...) psl_print(psl::level_t::fatal, __VA_ARGS__)
+	#define psl_assert(expression, ...)                                                                                \
+		(void)((!!(expression)) || (_PSL_ASSERT_IMPL_##__VA_OPT__(N)(__VA_ARGS__), 0) || (std::terminate(), 0))
+#else
+	#define psl_assert(expression, ...)
+#endif
+
+
 namespace psl
 {
 	[[noreturn]] inline void unreachable()
@@ -213,6 +225,38 @@ namespace psl
 		else
 			psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
 		std::terminate();
+	}
+
+	template<typename Fn>
+	constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args)
+	{
+		if (std::is_constant_evaluated())
+		{
+			if (!conditional())
+			{
+				throw std::runtime_error(reason);
+			}
+		}
+		else
+		{
+			psl_assert(conditional(), reason, args...);
+		}
+	}
+
+	template <typename Fn>
+	constexpr inline void assertion(Fn&& conditional)
+	{
+		if(std::is_constant_evaluated())
+		{
+			if(!conditional())
+			{
+				throw std::exception();
+			}
+		}
+		else
+		{
+			psl_assert(conditional());
+		}
 	}
 }	 // namespace psl
 
@@ -279,14 +323,4 @@ DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
 	#define DBG_LIKELY(expr) __builtin_expect(!!(expr), 1)
 #else
 	#define DBG_LIKELY(expr) (!!(expr))
-#endif
-
-#if defined(PE_DEBUG)
-	// _PSL_ASSERT_IMPL_(N) are added to inject a generic failed message in case none was provided.
-	#define _PSL_ASSERT_IMPL_(...) psl_print(psl::level_t::fatal, "assertion failed")
-	#define _PSL_ASSERT_IMPL_N(...) psl_print(psl::level_t::fatal, __VA_ARGS__)
-	#define psl_assert(expression, ...)                                                                                \
-		(void)((!!(expression)) || (_PSL_ASSERT_IMPL_##__VA_OPT__(N)(__VA_ARGS__), 0) || (std::terminate(), 0))
-#else
-	#define psl_assert(expression, ...)
 #endif

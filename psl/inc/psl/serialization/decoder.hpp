@@ -45,13 +45,20 @@ namespace psl::serialization
 			if constexpr(details::is_collection<T>::value)
 			{
 				property.value = create_polymorphic_collection<T>();
-				parse_collection(*property.value, property.name);
+				parse_collection(*property.value, property.name());
 			}
 			else
 			{
 				property.value = new T();
 				parse_internal(*property.value, property.name());
 			}
+		}
+
+		
+		template <psl::details::fixed_astring Name, typename T>
+		void parse(T& property)
+		{
+			parse_internal(property, Name);
 		}
 
 		void resolve_references()

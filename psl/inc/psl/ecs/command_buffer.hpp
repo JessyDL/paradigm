@@ -163,11 +163,11 @@ namespace psl::ecs
 
 			if(it == std::end(m_Components))
 			{
-				m_Components.emplace_back(new details::component_container_typed_t<T>());
+				m_Components.emplace_back(details::instantiate_component_container<T>());
 			}
 		}
 
-		details::component_container_t* get_component_container(details::component_key_t key) noexcept;
+		details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
 
 		//------------------------------------------------------------
 		// add_component
@@ -204,11 +204,11 @@ namespace psl::ecs
 								   entities,
 								   sizeof(type),
 								   [prototype](std::uintptr_t location, size_t count) {
-					  for(auto i = size_t {0}; i < count; ++i)
-					  {
-						  std::invoke(prototype, *((type*)(location) + i));
-					  }
-				  });
+									   for(auto i = size_t {0}; i < count; ++i)
+									   {
+										   std::invoke(prototype, *((type*)(location) + i));
+									   }
+								   });
 			}
 			/*else
 			{
@@ -280,11 +280,11 @@ namespace psl::ecs
 								   entities,
 								   sizeof(type),
 								   [prototype](std::uintptr_t location, size_t count) {
-					  for(auto i = size_t {0}; i < count; ++i)
-					  {
-						  std::invoke(prototype, *((type*)(location) + i));
-					  }
-				  });
+									   for(auto i = size_t {0}; i < count; ++i)
+									   {
+										   std::invoke(prototype, *((type*)(location) + i));
+									   }
+								   });
 			}
 			/*else
 			{
@@ -329,7 +329,10 @@ namespace psl::ecs
 		template <typename T>
 		void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
 		{
-			psl_assert(entities.size() == data.size(), "incorrect amount of data input compared to entities, expected {} but got {}", entities.size(), data.size());
+			psl_assert(entities.size() == data.size(),
+					   "incorrect amount of data input compared to entities, expected {} but got {}",
+					   entities.size(),
+					   data.size());
 			create_storage<T>();
 			static_assert(!std::is_empty_v<T>,
 						  "no need to pass an array of tag types through, it's a waste of computing and memory");
@@ -337,25 +340,25 @@ namespace psl::ecs
 			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), data.data(), false);
 		}
 
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<std::pair<entity, entity>> entities,
 								size_t size);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<std::pair<entity, entity>> entities,
 								size_t size,
 								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<std::pair<entity, entity>> entities,
 								size_t size,
 								void* prototype);
 
 
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, size_t size);
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<entity> entities,
 								size_t size,
 								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<entity> entities,
 								size_t size,
 								void* prototype,
@@ -364,12 +367,12 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// remove_component
 		//------------------------------------------------------------
-		void remove_component(details::component_key_t key,
+		void remove_component(const details::component_key_t& key,
 							  psl::array_view<std::pair<entity, entity>> entities) noexcept;
-		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
+		void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
 
 		state_t const* m_State {nullptr};
-		psl::array<psl::unique_ptr<details::component_container_t>> m_Components {};
+		psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
 		entity m_First {0};
 		psl::array<entity> m_Entities {};
 
