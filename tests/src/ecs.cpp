@@ -4,6 +4,9 @@
 #include "psl/ecs/state.hpp"
 #include <random>
 
+#include "psl/serialization/encoder.hpp"
+#include "psl/serialization/decoder.hpp"
+
 using namespace psl::ecs;
 using namespace tests::ecs;
 
@@ -45,13 +48,13 @@ struct foo_renamed
 
 namespace psl::ecs
 {
-	template<>
+	template <>
 	struct component_traits<foo_renamed>
 	{
 		static constexpr bool serializable {true};
 		static constexpr auto name = "SOMEOVERRIDE";
 	};
-}
+}	 // namespace psl::ecs
 
 #include <litmus/expect.hpp>
 #include <litmus/section.hpp>
@@ -108,7 +111,7 @@ namespace
 	auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
 		section<"non-empty component_info_typed">() = [&]() {
 			auto cInfoPtr {details::instantiate_component_container<type>()};
-			auto& cInfo	  = *details::cast_component_container<type>(cInfoPtr.get());
+			auto& cInfo = *details::cast_component_container<type>(cInfoPtr.get());
 
 			section<"additions">() = [&]() {
 				psl::array<entity> entities;
@@ -703,5 +706,36 @@ namespace
 		require(cxint_id.name()) == "int"sv;
 
 		require(component_key_t::generate<foo_renamed>().name()) == "SOMEOVERRIDE"sv;
+	};
+
+	auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
+		psl::ecs::state_t state_a {}, state_b {};
+		int counter {0};
+		state_a.create(200, [&counter](int& value) { value = counter++; });
+		state_a.override_serialization<int>(true);
+
+		psl::serialization::serializer serializer {};
+
+		psl::format::container container_a {};
+		serializer.serialize<psl::serialization::encode_to_format>(state_a, container_a);
+		serializer.deserialize<psl::serialization::decode_from_format>(state_b, container_a);
+		
+		require(state_a.size<int>()) == state_b.size<int>();
+		require(state_a.size<int>()) == 200;
+
+		auto entities	  = state_a.entities<int>();
+		auto components_a = state_a.get_component<int>(entities);
+		auto components_b = state_b.get_component<int>(entities);
+
+		for(size_t i = 0; i < components_a.size(); ++i)
+		{
+			require(components_a[i]) == components_b[i];
+			require(entities[i]) == components_a[i];
+		}
+
+		psl::format::container container_b {};
+		serializer.serialize<psl::serialization::encode_to_format>(state_b, container_b);
+
+		require(container_b.to_string()) == container_a.to_string();
 	};
 }	 // namespace

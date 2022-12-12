@@ -212,9 +212,15 @@ namespace psl::ecs
 			(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 		}
 
-
-		template <typename... Ts>
-		psl::ecs::pack<Ts...> get_components(psl::array_view<entity> entities) const noexcept;
+		template <typename T>
+		psl::array<T> get_component(psl::array_view<entity> entities) const noexcept
+		{
+			auto cInfo = get_component_typed_info<T>();
+			psl::array<T> result {};
+			result.resize(entities.size());
+			cInfo->copy_to(entities, result.data());
+			return result;
+		}
 
 		void clear() noexcept;
 
