@@ -664,12 +664,12 @@ namespace psl::ecs
 		}
 
 
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities);
+		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities);
 
 		// invocable based construction
 		template <typename Fn>
 			requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, Fn&& invocable)
+		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, Fn&& invocable)
 		{
 			auto cInfo = get_component_container(key);
 			psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
@@ -684,7 +684,7 @@ namespace psl::ecs
 			for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
 		}
 
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<entity> entities,
 								void* prototype,
 								bool repeat = true);
@@ -692,7 +692,7 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// remove_component
 		//------------------------------------------------------------
-		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
+		void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
 
 
 		//------------------------------------------------------------
@@ -792,7 +792,7 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// set
 		//------------------------------------------------------------
-		size_t set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept;
+		size_t set(psl::array_view<entity> entities, const details::component_key_t& key, void* data) noexcept;
 
 
 		//------------------------------------------------------------

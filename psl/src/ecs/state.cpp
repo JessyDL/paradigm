@@ -292,7 +292,7 @@ state_t::get_component_container(psl::array_view<details::component_key_t> keys)
 }
 
 // empty construction
-void state_t::add_component_impl(details::component_key_t key, psl::array_view<entity> entities)
+void state_t::add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities)
 {
 	auto cInfo = get_component_container(key);
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
@@ -302,7 +302,7 @@ void state_t::add_component_impl(details::component_key_t key, psl::array_view<e
 }
 
 // prototype based construction
-void state_t::add_component_impl(details::component_key_t key,
+void state_t::add_component_impl(const details::component_key_t& key,
 								 psl::array_view<entity> entities,
 								 void* prototype,
 								 bool repeat)
@@ -319,7 +319,7 @@ void state_t::add_component_impl(details::component_key_t key,
 }
 
 
-void state_t::remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept
+void state_t::remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept
 {
 	m_Components[key]->destroy(entities);
 	for(size_t i = 0; i < entities.size(); ++i) m_ModifiedEntities.try_insert(entities[i]);
@@ -797,7 +797,7 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 	return (std::uintptr_t)cache - offset_start;
 }
 
-size_t state_t::set(psl::array_view<entity> entities, details::component_key_t key, void* data) noexcept
+size_t state_t::set(psl::array_view<entity> entities, const details::component_key_t& key, void* data) noexcept
 {
 	if(entities.size() == 0) return 0;
 	const auto& cInfo = get_component_container(key);
