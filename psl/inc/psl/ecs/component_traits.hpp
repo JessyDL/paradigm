@@ -1,8 +1,19 @@
 #pragma once
+#include "psl/details/fixed_astring.hpp"
+#include "strtype/strtype.hpp"
 #include <cstdint>
 
 namespace psl::ecs
 {
+	/// \brief Specialize this type to override default behaviours, or to enable serialization
+	/// \note `serializable` controls the default behaviour. Ineligible types (complex component types) will throw compile errors if you try to force serialization.
+	template <typename T>
+	struct component_traits
+	{
+		static constexpr bool serializable {false};
+		static constexpr auto name {strtype::stringify_typename<T>()};
+	};
+
 	enum class component_type : std::uint8_t
 	{
 		COMPLEX = 0,
@@ -22,15 +33,7 @@ namespace psl::ecs
 	IsComponentTrivialType<T> && !IsComponentFlagType<T>;
 
 	template <typename T>
-	concept IsComponentSerializable = IsComponentTrivialType<T> || IsComponentFlagType<T>;
-
-	/// \brief Specialize this type to override default behaviours, or to enable serialization
-	/// \note `serializable` controls the default behaviour. Ineligible types (complex component types) will throw compile errors if you try to force serialization.
-	template <typename T>
-	struct component_traits
-	{
-		static constexpr bool serializable {false};
-	};
+	concept IsComponentTypeSerializable = IsComponentTrivialType<T> || IsComponentFlagType<T>;
 
 	/// \warning Do not specialize this.
 	template <typename T>

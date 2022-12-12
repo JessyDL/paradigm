@@ -178,7 +178,7 @@ namespace psl::ecs
 		state_t& operator=(const state_t&) = delete;
 		state_t& operator=(state_t&&)	   = default;
 
-		template <IsComponentSerializable T>
+		template <IsComponentTypeSerializable T>
 		bool override_serialization(bool value)
 		{
 			constexpr auto key = details::component_key_t::generate<T>();

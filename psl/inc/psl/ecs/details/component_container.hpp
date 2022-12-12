@@ -573,7 +573,7 @@ namespace psl::ecs::details
 
 		// mostly future proofed check, this basically checks that either serialization is turned off, _or_ the type
 		// supports it.
-		static_assert(!component_traits<T>::serializable || IsComponentSerializable<T>,
+		static_assert(IsComponentTypeSerializable<T> || !component_traits<T>::serializable,
 					  "Unsupported. Component type cannot support serialization, please fix your `component_traits<T>` "
 					  "specialization for this component type");
 

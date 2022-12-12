@@ -4,7 +4,6 @@
 #include <string_view>
 #include <type_traits>
 
-#include "psl/ecs/component_name.hpp"
 #include "psl/ecs/component_traits.hpp"
 #include "strtype/strtype.hpp"
 
@@ -20,24 +19,24 @@ namespace std
 
 namespace psl::ecs::details
 {
+	/// \brief Verify the given name is valid for component name substitution.
+	/// \details In general this means all characters are valid if they are also valid for that context for typenames.
+	/// This means the name has to start with an alphabetical letter or underscore. Subsequent values can be
+	/// alphanumeric.
+	constexpr auto is_valid_name(std::string_view name) -> bool
+	{
+		using namespace std::literals::string_view_literals;
+		return name.find_first_not_of(
+				 "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:<>_"sv) == std::string_view::npos &&
+			   "0123456789:<>"sv.find(name[0]) == std::string_view::npos;
+	}
+
 	/// \brief Container type for unique component types. These should be construced using the `component_key_t::generate` helper function.
 	/// \details Internally contains the component type's stringified name, and the hash.
 	/// Both are generated at compile time using the `psl::ecs::details::component_key_t::generate` helper function.
 	class component_key_t
 	{
 		friend struct std::hash<component_key_t>;
-
-		template <typename T>
-		struct type_container
-		{
-			static constexpr auto name = strtype::stringify_typename<T>();
-		};
-
-		template <details::HasComponentNameOverride T>
-		struct type_container<T>
-		{
-			static constexpr auto name = T::_ECS_COMPONENT_NAME;
-		};
 
 		constexpr std::uint32_t fnv1a_32(std::string_view value) const noexcept
 		{
@@ -50,11 +49,9 @@ namespace psl::ecs::details
 		}
 
 		template <typename T>
-		consteval component_key_t(const type_container<T>& name) noexcept :
-			m_Name(type_container<T>::name), m_Value(fnv1a_32(type_container<T>::name)),
-			m_Type(std::is_empty_v<T>	  ? component_type::FLAG
-				   : std::is_trivial_v<T> ? component_type::TRIVIAL
-										  : component_type::COMPLEX),
+		consteval component_key_t(const component_traits<T>& traits) noexcept :
+			m_Name(traits.name), m_Value(fnv1a_32(traits.name)),
+			m_Type(component_type_v<T>),
 			m_StringMemory(nullptr)
 		{}
 
@@ -62,6 +59,8 @@ namespace psl::ecs::details
 		constexpr component_key_t(std::string_view name, component_type type) :
 			m_Name(name), m_Value(fnv1a_32(name)), m_Type(type), m_StringMemory(nullptr)
 		{
+			psl::assertion([this]() { return is_valid_name(m_Name); });
+
 			if(!std::is_constant_evaluated())
 			{
 				m_StringMemory = (char*)malloc(sizeof(char) * name.size());
@@ -155,7 +154,7 @@ namespace psl::ecs::details
 		template <typename T>
 		static constexpr auto generate() noexcept -> component_key_t
 		{
-			return component_key_t {type_container<std::remove_pointer_t<std::remove_cvref_t<T>>> {}};
+			return component_key_t {component_traits<std::remove_pointer_t<std::remove_cvref_t<T>>> {}};
 		}
 
 		component_type type() const noexcept { return m_Type; }

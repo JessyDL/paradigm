@@ -40,6 +40,18 @@ auto to_num_string(T i)
 	return conversion;
 }
 
+struct foo_renamed
+{};
+
+namespace psl::ecs
+{
+	template<>
+	struct component_traits<foo_renamed>
+	{
+		static constexpr bool serializable {true};
+		static constexpr auto name = "SOMEOVERRIDE";
+	};
+}
 
 #include <litmus/expect.hpp>
 #include <litmus/section.hpp>
@@ -670,6 +682,7 @@ namespace
 		  };
 	  };
 
+
 	auto t8 = suite<"component_key name matches expected", "ecs", "psl">() = []() {
 		using namespace psl::ecs::details;
 		using namespace std::string_view_literals;
@@ -688,9 +701,6 @@ namespace
 
 		require(cxfl_id.name()) == "float"sv;
 		require(cxint_id.name()) == "int"sv;
-
-		struct foo_renamed : public psl::ecs::component_name<"SOMEOVERRIDE">
-		{};
 
 		require(component_key_t::generate<foo_renamed>().name()) == "SOMEOVERRIDE"sv;
 	};
