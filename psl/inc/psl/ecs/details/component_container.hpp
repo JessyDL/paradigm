@@ -30,7 +30,7 @@ namespace psl::ecs::details
 	class component_container_t
 	{
 	  public:
-		component_container_t(component_key_t id, size_t size, size_t alignment);
+		component_container_t(const component_key_t& id, size_t size, size_t alignment);
 
 		component_container_t(const component_container_t& other) = delete;
 		component_container_t(component_container_t&& other);
@@ -64,7 +64,7 @@ namespace psl::ecs::details
 		}
 
 		void purge() noexcept { purge_impl(); }
-		component_key_t id() const noexcept;
+		const component_key_t& id() const noexcept;
 
 		psl::array_view<entity> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
 		psl::array_view<entity> removed_entities() const noexcept { return entities_impl(stage_range_t::REMOVED); };
@@ -282,8 +282,8 @@ namespace psl::ecs::details
 	class component_container_flag_t : public component_container_t
 	{
 	  public:
-		component_container_flag_t(psl::ecs::details::component_key_t key, bool serializable = false) :
-			component_container_t(key, 0, 0) {};
+		component_container_flag_t(const psl::ecs::details::component_key_t& key, bool serializable = false) :
+			component_container_t(std::move(key), 0, 0) {};
 
 		void* data() noexcept override { return nullptr; }
 		void* const data() const noexcept override { return nullptr; }
@@ -368,11 +368,11 @@ namespace psl::ecs::details
 		using stage_range_t = details::stage_range_t;
 
 	  public:
-		component_container_untyped_t(psl::ecs::details::component_key_t key,
+		component_container_untyped_t(const psl::ecs::details::component_key_t& key,
 									  size_t size,
 									  size_t alignment,
 									  bool serializable = false) :
-			component_container_t(key, size, alignment),
+			component_container_t(std::move(key), size, alignment),
 			m_Entities(size), m_Serializable(serializable) {};
 
 		auto& entity_data() noexcept { return m_Entities; };
@@ -596,7 +596,7 @@ namespace psl::ecs::details
 		}
 	}
 
-	inline auto instantiate_component_container(psl::ecs::details::component_key_t key,
+	inline auto instantiate_component_container(const psl::ecs::details::component_key_t& key,
 												size_t size,
 												size_t alignment,
 												bool should_serialize) -> std::unique_ptr<component_container_t>
@@ -604,9 +604,9 @@ namespace psl::ecs::details
 		switch(key.type())
 		{
 		case psl::ecs::component_type::TRIVIAL:
-			return std::make_unique<component_container_untyped_t>(key, size, alignment, should_serialize);
+			return std::make_unique<component_container_untyped_t>(std::move(key), size, alignment, should_serialize);
 		case psl::ecs::component_type::FLAG:
-			return std::make_unique<component_container_flag_t>(key, should_serialize);
+			return std::make_unique<component_container_flag_t>(std::move(key), should_serialize);
 		case psl::ecs::component_type::COMPLEX:
 			throw std::runtime_error("Cannot runtime instantiate a complex type without type information");
 		}

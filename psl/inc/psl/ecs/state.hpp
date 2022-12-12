@@ -3,7 +3,6 @@
 #include "command_buffer.hpp"
 #include "details/component_container.hpp"
 #include "details/component_key.hpp"
-#include "details/entity_info.hpp"
 #include "details/system_information.hpp"
 #include "entity.hpp"
 #include "filtering.hpp"
@@ -531,8 +530,8 @@ namespace psl::ecs
 			}
 		}
 
-		details::component_container_t* get_component_container(details::component_key_t key) noexcept;
-		const details::component_container_t* get_component_container(details::component_key_t key) const noexcept;
+		details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
+		const details::component_container_t* get_component_container(const details::component_key_t& key) const noexcept;
 
 		psl::array<const details::component_container_t*>
 		get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;

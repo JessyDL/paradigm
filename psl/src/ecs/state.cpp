@@ -8,7 +8,6 @@
 using namespace psl::ecs;
 
 using psl::ecs::details::component_key_t;
-using psl::ecs::details::entity_info;
 
 constexpr size_t min_thread_entities = 1;
 
@@ -257,7 +256,8 @@ void state_t::tick(std::chrono::duration<float> dTime)
 	m_LockState = 0;
 }
 
-const details::component_container_t* state_t::get_component_container(details::component_key_t key) const noexcept
+const details::component_container_t*
+state_t::get_component_container(const details::component_key_t& key) const noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return it->second.get();
@@ -265,7 +265,7 @@ const details::component_container_t* state_t::get_component_container(details::
 		return nullptr;
 }
 
-details::component_container_t* state_t::get_component_container(details::component_key_t key) noexcept
+details::component_container_t* state_t::get_component_container(const details::component_key_t& key) noexcept
 {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return it->second.get();

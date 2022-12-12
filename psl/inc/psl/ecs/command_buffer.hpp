@@ -167,7 +167,7 @@ namespace psl::ecs
 			}
 		}
 
-		details::component_container_t* get_component_container(details::component_key_t key) noexcept;
+		details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
 
 		//------------------------------------------------------------
 		// add_component
@@ -340,25 +340,25 @@ namespace psl::ecs
 			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), data.data(), false);
 		}
 
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<std::pair<entity, entity>> entities,
 								size_t size);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<std::pair<entity, entity>> entities,
 								size_t size,
 								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<std::pair<entity, entity>> entities,
 								size_t size,
 								void* prototype);
 
 
-		void add_component_impl(details::component_key_t key, psl::array_view<entity> entities, size_t size);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, size_t size);
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<entity> entities,
 								size_t size,
 								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(details::component_key_t key,
+		void add_component_impl(const details::component_key_t& key,
 								psl::array_view<entity> entities,
 								size_t size,
 								void* prototype,
@@ -367,9 +367,9 @@ namespace psl::ecs
 		//------------------------------------------------------------
 		// remove_component
 		//------------------------------------------------------------
-		void remove_component(details::component_key_t key,
+		void remove_component(const details::component_key_t& key,
 							  psl::array_view<std::pair<entity, entity>> entities) noexcept;
-		void remove_component(details::component_key_t key, psl::array_view<entity> entities) noexcept;
+		void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
 
 		state_t const* m_State {nullptr};
 		psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
