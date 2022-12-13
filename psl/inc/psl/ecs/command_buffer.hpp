@@ -218,34 +218,19 @@ namespace psl::ecs
 		}
 
 		template <typename T>
-		void add_component(psl::array_view<std::pair<entity, entity>> entities, psl::ecs::empty<T>&& prototype)
-		{
-			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
-			{
-				add_component_impl(
-				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-			else
-			{
-				T v {};
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
-			}
-		}
-
-		template <typename T>
 		void add_component(psl::array_view<std::pair<entity, entity>> entities)
 		{
 			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
+
+			if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
 			{
-				add_component_impl(
-				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+				T v {details::prototype_for<T>()};
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
 			}
 			else
 			{
-				T v {};
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
+				add_component_impl(
+				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
 			}
 		}
 
@@ -294,35 +279,19 @@ namespace psl::ecs
 		}
 
 		template <typename T>
-		void add_component(psl::array_view<entity> entities, psl::ecs::empty<T>&& prototype)
-		{
-			create_storage<T>();
-
-			if constexpr(std::is_trivially_constructible_v<T>)
-			{
-				add_component_impl(
-				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-			else
-			{
-				T v {};
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
-			}
-		}
-
-		template <typename T>
 		void add_component(psl::array_view<entity> entities)
 		{
 			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
+
+			if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
 			{
-				add_component_impl(
-				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+				T v {details::prototype_for<T>};
+				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
 			}
 			else
 			{
-				T v {};
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
+				add_component_impl(
+				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
 			}
 		}
 
