@@ -7,25 +7,26 @@
 #include "vk/conversion.hpp"
 #include "vk/sampler.hpp"
 #ifdef fseek
-#define cached_fseek fseek
-#define cached_fclose fclose
-#define cached_fwrite fwrite
-#define cached_fread fread
-#define cached_ftell ftell
-#undef fseek
-#undef fclose
-#undef fwrite
-#undef fread
-#undef ftell
+	#define cached_fseek fseek
+	#define cached_fclose fclose
+	#define cached_fwrite fwrite
+	#define cached_fread fread
+	#define cached_ftell ftell
+	#undef fseek
+	#undef fclose
+	#undef fwrite
+	#undef fread
+	#undef ftell
 #endif
 #include "gli/gli.hpp"
 #ifdef cached_fseek
-#define fseek cached_fseek
-#define fclose cached_fclose
-#define fwrite cached_fwrite
-#define fread cached_fread
-#define ftell cached_ftell
+	#define fseek cached_fseek
+	#define fclose cached_fclose
+	#define fwrite cached_fwrite
+	#define fread cached_fread
+	#define ftell cached_ftell
 #endif
+
 using namespace psl;
 using namespace core::gfx::conversion;
 using namespace core::ivk;
@@ -33,16 +34,16 @@ using namespace core::resource;
 
 
 texture_t::texture_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 core::meta::texture_t* metaFile,
-				 handle<core::ivk::context> context) :
+					 const core::resource::metadata& metaData,
+					 core::meta::texture_t* metaFile,
+					 handle<core::ivk::context> context) :
 	texture_t(cache, metaData, metaFile, context, {})
 {}
 texture_t::texture_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 core::meta::texture_t* metaFile,
-				 handle<core::ivk::context> context,
-				 core::resource::handle<core::ivk::buffer_t> stagingBuffer) :
+					 const core::resource::metadata& metaData,
+					 core::meta::texture_t* metaFile,
+					 handle<core::ivk::context> context,
+					 core::resource::handle<core::ivk::buffer_t> stagingBuffer) :
 	m_Cache(cache),
 	m_Context(context), m_Meta(m_Cache.library().get<core::meta::texture_t>(metaFile->ID()).value_or(nullptr)),
 	m_StagingBuffer(stagingBuffer)
@@ -298,9 +299,13 @@ void texture_t::load_2D()
 	vk::FormatProperties formatProperties;
 
 	// todo we can map gli::format to the vulkan mappings.
-	if(m_Meta->format() == gfx::format_t::undefined)
+	// this already gracefully handles core::gfx::format_t::undefined, so we might as well check the vk format instead.
+	if(to_vk(m_Meta->format()) == vk::Format::eUndefined)
 	{
-		LOG_ERROR("Undefined format property in: ", m_Meta->ID().to_string());
+		core::ivk::log->critical("Format is unsupported: {} in texture ID {}",
+								 static_cast<std::underlying_type_t<core::gfx::format_t>>(m_Meta->format()),
+								 m_Meta->ID().to_string());
+		throw std::exception();
 	}
 	m_Context->physical_device().getFormatProperties(to_vk(m_Meta->format()), &formatProperties);
 
