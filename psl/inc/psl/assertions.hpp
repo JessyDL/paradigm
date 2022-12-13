@@ -1,15 +1,16 @@
 #pragma once
 #include "platform_def.hpp"
 #include "source_location.hpp"
-#include <type_traits>
-#include <tuple>
 #include <exception>
+#include <tuple>
+#include <type_traits>
 #if defined(PE_DEBUG)
-#include <fmt/format.h>
+	#include <fmt/format.h>
 #else
-#include <cstdio>
+	#include <cstdio>
 #endif
 #ifdef PLATFORM_ANDROID
+	#include <tuple>
 	#include <android/log.h>
 #endif	  // PLATFORM_ANDROID
 
@@ -81,16 +82,74 @@ namespace psl
 				}
 				return log_level;
 			}
-			print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
+
+			print_t(level_t level,
+					const char* func,
+					const char* file,
+					int line,
+					const char* format,
+					Args&&... args) requires((!std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> && ...))
 			{
 				auto log_level = android_log_level(level);
-#if defined(PE_DEBUG)
+	#if defined(PE_DEBUG)
 				__android_log_write(
 				  log_level, "paradigm", fmt::format(fmt::runtime(format), std::forward<Args>(args)...).c_str());
 				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
-#else
+	#else
 				__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
-#endif
+	#endif
+			}
+
+		  private:
+			template <size_t Current, size_t... Indices>
+			static auto stripped_print_indices(std::index_sequence<Indices...> indices)
+			{
+				return indices;
+			}
+
+			template <size_t Current, typename T, typename... Types, size_t... Indices>
+			static auto stripped_print_indices(std::index_sequence<Indices...> indices)
+			{
+				if constexpr(std::is_same_v<std::remove_cvref_t<T>, psl::source_location>)
+				{
+					return stripped_print_indices<Current + 1, Types...>(indices);
+				}
+				else
+				{
+					return stripped_print_indices<Current + 1, Types...>(std::index_sequence<Indices..., Current> {});
+				}
+			}
+
+			static auto stripped_print_indices()
+			{
+				return stripped_print_indices<0, Args...>(std::index_sequence<> {});
+			}
+
+			static auto stripped_print(const char* format, auto&& tuple)
+			{
+				return [&]<size_t... Indices>(std::index_sequence<Indices...>)
+				{
+					return fmt::format(fmt::runtime(format), std::get<Indices>(tuple)...);
+				}
+				(stripped_print_indices());
+			}
+
+		  public:
+			print_t(level_t level,
+					const char* func,
+					const char* file,
+					int line,
+					const char* format,
+					Args&&... args) requires((std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> || ...))
+			{
+				auto log_level = android_log_level(level);
+	#if defined(PE_DEBUG)
+				__android_log_write(
+				  log_level, "paradigm", stripped_print(format, std::forward_as_tuple(args...)).c_str());
+				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
+	#else
+				__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
+	#endif
 			}
 #else
 			print_t(level_t level,
@@ -148,14 +207,14 @@ namespace psl
 				default:
 					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
 				}
-#if defined(PE_DEBUG)
+	#if defined(PE_DEBUG)
 				fmt::print(
 				  fmt::runtime(fmt::format(
 					fmt::runtime(log_level), fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column())),
 				  std::get<Is>(args)...);
-#else
+	#else
 				std::printf("todo: todo: assert log not supported in release");
-#endif
+	#endif
 			}
 #endif
 		};
@@ -227,12 +286,12 @@ namespace psl
 		std::terminate();
 	}
 
-	template<typename Fn>
+	template <typename Fn>
 	constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args)
 	{
-		if (std::is_constant_evaluated())
+		if(std::is_constant_evaluated())
 		{
-			if (!conditional())
+			if(!conditional())
 			{
 				throw std::runtime_error(reason);
 			}

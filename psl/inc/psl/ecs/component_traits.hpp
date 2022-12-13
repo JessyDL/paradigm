@@ -25,12 +25,10 @@ namespace psl::ecs
 	concept IsComponentFlagType = std::is_empty_v<T>;
 
 	template <typename T>
-	concept IsComponentTrivialType = std::is_trivial_v<T> && !
-	IsComponentFlagType<T>;
+	concept IsComponentTrivialType = std::is_trivial_v<T> && !IsComponentFlagType<T>;
 
 	template <typename T>
-	concept IsComponentComplexType = !
-	IsComponentTrivialType<T> && !IsComponentFlagType<T>;
+	concept IsComponentComplexType = !IsComponentTrivialType<T> && !IsComponentFlagType<T>;
 
 	template <typename T>
 	concept IsComponentTypeSerializable = IsComponentTrivialType<T> || IsComponentFlagType<T>;
@@ -44,18 +42,30 @@ namespace psl::ecs
 	namespace details
 	{
 		template <typename T>
-		concept HasComponentTraitsPrototypeDefinition = requires() {
-															{
-																component_traits<T>::prototype()
-																} -> std::same_as<T>;
-														};
+		concept HasComponentTraitsPrototypeDefinition = requires()
+		{
+#if !defined(PLATFORM_ANDROID)
+			{
+#endif
+				component_traits<T>::prototype()
+#if !defined(PLATFORM_ANDROID)
+				} -> std::same_as<T>
+#endif
+				  ;
+		};
 
 		template <typename T>
-		concept HasComponentMemberPrototypeDefinition = requires() {
-															{
-																T::prototype()
-																} -> std::same_as<T>;
-														};
+		concept HasComponentMemberPrototypeDefinition = requires()
+		{
+#if !defined(PLATFORM_ANDROID)
+			{
+#endif
+				T::prototype()
+#if !defined(PLATFORM_ANDROID)
+				} -> std::same_as<T>
+#endif
+				  ;
+		};
 
 		template <typename T>
 		concept HasComponentTypePrototypeDefinition =

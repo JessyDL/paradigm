@@ -108,7 +108,7 @@ namespace core::meta
 			s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType
 			  << m_UsageFlags << m_AspectMask;
 
-			psl_assert(std::to_underlying(m_Format.value) <= 97 || std::to_underlying(m_Format.value) >= 120, "format should be <= 98 or >= 120, but was {}", std::to_underlying(m_Format.value));
+			psl_assert(static_cast<std::underlying_type_t<core::gfx::format_t>>(m_Format.value) <= 97 || static_cast<std::underlying_type_t<core::gfx::format_t>>(m_Format.value) >= 120, "format should be <= 98 or >= 120, but was {}", static_cast<std::underlying_type_t<core::gfx::format_t>>(m_Format.value));
 		}
 		/// \brief validates this texture
 		bool validate() const noexcept;
