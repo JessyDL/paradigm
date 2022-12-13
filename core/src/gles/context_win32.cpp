@@ -1,14 +1,14 @@
 
 #ifdef SURFACE_WIN32
 
-#include "gfx/limits.hpp"
-#include "gles/igles.hpp"
-#include "gles/context.hpp"
-#include "logging.hpp"
-#include "os/surface.hpp"
-#include "psl/stream_utils.hpp"
-#include "psl/debug_utils.hpp"
-#include <Windows.h>
+	#include "gfx/limits.hpp"
+	#include "gles/context.hpp"
+	#include "gles/igles.hpp"
+	#include "logging.hpp"
+	#include "os/surface.hpp"
+	#include "psl/debug_utils.hpp"
+	#include "psl/stream_utils.hpp"
+	#include <Windows.h>
 
 using namespace core;
 using namespace core::igles;
@@ -68,9 +68,9 @@ context::context(core::resource::cache_t& cache,
 						WGL_CONTEXT_MINOR_VERSION_ARB,
 						2,
 						WGL_CONTEXT_FLAGS_ARB,
-#ifdef PE_DEBUG
+	#ifdef PE_DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
-#endif
+	#endif
 						  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
@@ -181,9 +181,9 @@ void context::enable(const core::os::surface& surface)
 						WGL_CONTEXT_MINOR_VERSION_ARB,
 						2,
 						WGL_CONTEXT_FLAGS_ARB,
-#ifdef PE_DEBUG
+	#ifdef PE_DEBUG
 						WGL_CONTEXT_DEBUG_BIT_ARB |
-#endif
+	#endif
 						  WGL_CONTEXT_FORWARD_COMPATIBLE_BIT_ARB,
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
@@ -228,16 +228,16 @@ void context::enable(const core::os::surface& surface)
 
 	auto glversion = glGetString(GL_VERSION);
 
-#ifdef PE_DEBUG
+	#ifdef PE_DEBUG
 	glEnable(GL_DEBUG_OUTPUT);
 	glDebugMessageCallback(MessageCallback, 0);
 	GLuint unusedIds = 0;
 	glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DONT_CARE, 0, &unusedIds, true);
-#endif
+	#endif
 
 	if(surface.data().buffering() != core::gfx::buffering::SINGLE)
 	{
-#ifdef GL_EXT_swap_control_tear
+	#ifdef GL_EXT_swap_control_tear
 		if(surface.data().buffering() == core::gfx::buffering::triple)
 		{
 			if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(-1);
@@ -246,9 +246,9 @@ void context::enable(const core::os::surface& surface)
 		{
 			if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(1);
 		}
-#else
+	#else
 		if(wglSwapIntervalEXT != NULL) wglSwapIntervalEXT(1);
-#endif
+	#endif
 
 		glEnable(GL_BLEND);
 		glEnable(GL_CULL_FACE);

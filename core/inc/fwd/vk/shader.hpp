@@ -5,18 +5,18 @@
 
 namespace core::ivk
 {
-	class shader;
+class shader;
 }	 // namespace core::ivk
 
 namespace core::meta
 {
-	class shader;
+class shader;
 }
 namespace core::resource
 {
-	template <>
-	struct resource_traits<core::ivk::shader>
-	{
-		using meta_type = core::meta::shader;
-	};
+template <>
+struct resource_traits<core::ivk::shader>
+{
+	using meta_type = core::meta::shader;
+};
 }	 // namespace core::resource

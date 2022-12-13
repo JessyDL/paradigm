@@ -69,98 +69,96 @@ uint64_t find_nth_prime(uint64_t n)
 
 namespace
 {
-	auto t0 = litmus::suite<"free-floating tasks">() = []() {
-		async::scheduler scheduler;
-		size_t iteration_count = 64;
+auto t0 = litmus::suite<"free-floating tasks">() = []() {
+	async::scheduler scheduler;
+	size_t iteration_count = 64;
 
-		std::vector<std::future<int>> results;
-		for(size_t i = 0; i < iteration_count; ++i)
+	std::vector<std::future<int>> results;
+	for(size_t i = 0; i < iteration_count; ++i)
+	{
+		results.emplace_back(scheduler
+							   .schedule([]() {
+								   std::this_thread::sleep_for(std::chrono::microseconds {10});
+								   return 5;
+							   })
+							   .second);
+	}
+
+
+	scheduler.execute();
+
+	litmus::require(std::accumulate(std::begin(results), std::end(results), 0, [](int sum, std::future<int>& value) {
+		return sum + value.get();
+	})) == iteration_count * 5;
+};
+
+auto t1 = litmus::suite<"tasks with inter-task-dependencies">() = []() {
+	async::scheduler scheduler;
+	std::array<std::atomic_bool, 1024> trigger_check;
+	std::fill(std::begin(trigger_check), std::end(trigger_check), false);
+	std::vector<std::pair<psl::async::token, std::future<int>>> results;
+	for(size_t i = 0; i < trigger_check.size(); ++i)
+	{
+		std::optional<size_t> verify_index = std::nullopt;
+		if(i > 0) verify_index = std::rand() % i;
+		results.emplace_back(scheduler.schedule([verify_index, &trigger_check, i]() mutable {
+			if(verify_index && !trigger_check[verify_index.value()]) return 10;
+			trigger_check[i] = true;
+			return 5;
+		}));
+
+		if(verify_index)
 		{
-			results.emplace_back(scheduler
-								   .schedule([]() {
-									   std::this_thread::sleep_for(std::chrono::microseconds {10});
-									   return 5;
-								   })
-								   .second);
+			results[results.size() - 1].first.after(results[verify_index.value()].first);
 		}
+	}
 
 
-		scheduler.execute();
+	scheduler.execute();
 
-		litmus::require(std::accumulate(std::begin(results), std::end(results), 0, [](int sum, std::future<int>& value) {
-			return sum + value.get();
-		})) == iteration_count * 5;
-	};
-
-	auto t1 = litmus::suite<"tasks with inter-task-dependencies">() = []() {
-		async::scheduler scheduler;
-		std::array<std::atomic_bool, 1024> trigger_check;
-		std::fill(std::begin(trigger_check), std::end(trigger_check), false);
-		std::vector<std::pair<psl::async::token, std::future<int>>> results;
-		for(size_t i = 0; i < trigger_check.size(); ++i)
-		{
-			std::optional<size_t> verify_index = std::nullopt;
-			if(i > 0) verify_index = std::rand() % i;
-			results.emplace_back(scheduler.schedule([verify_index, &trigger_check, i]() mutable {
-				if(verify_index && !trigger_check[verify_index.value()]) return 10;
-				trigger_check[i] = true;
-				return 5;
-			}));
-
-			if(verify_index)
-			{
-				results[results.size() - 1].first.after(results[verify_index.value()].first);
-			}
-		}
+	litmus::require(std::accumulate(
+	  std::begin(results), std::end(results), 0, [](int sum, std::pair<psl::async::token, std::future<int>>& value) {
+		  return sum + value.second.get();
+	  })) == trigger_check.size() * 5;
+};
 
 
-		scheduler.execute();
+auto t2 = litmus::suite<"tasks with inter-memory-dependencies">() = []() {
+	async::scheduler scheduler {24};
+	size_t iteration_count = 24 * 10;
 
-		litmus::require(std::accumulate(std::begin(results),
-								std::end(results),
-								0,
-								[](int sum, std::pair<psl::async::token, std::future<int>>& value) {
-									return sum + value.second.get();
-								})) == trigger_check.size() * 5;
-	};
+	std::vector<uint64_t> shared_values {50045,	 150020, 121005, 233100, 250045, 367000, 50045,	 150020,
+										 121005, 233100, 250045, 367000, 50045,	 150020, 121005, 233100,
+										 250045, 367000, 50045,	 150020, 121005, 233100, 250045, 367000};
+	std::vector<uint64_t> shared_output {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+	uint64_t calculated_value = 0;
+	for(auto val : shared_values) calculated_value += find_nth_prime(val);
+	std::vector<std::future<uint64_t>> results;
+	for(size_t i = 0; i < iteration_count; ++i)
+	{
+		auto pair {scheduler.schedule([i, &shared_values, &shared_output]() {
+			++shared_output[i % shared_output.size()];
+			return find_nth_prime(shared_values[i % shared_values.size()]);
+		})};
 
-	auto t2 = litmus::suite<"tasks with inter-memory-dependencies">() = []() {
-		async::scheduler scheduler {24};
-		size_t iteration_count = 24 * 10;
+		async::barrier read_barrier {
+		  (std::uintptr_t)shared_values.data() + (i % shared_output.size()) * sizeof(uint64_t),
+		  (std::uintptr_t)shared_values.data() + ((i % shared_output.size()) + 1) * sizeof(uint64_t)};
+		async::barrier write_barrier {
+		  (std::uintptr_t)shared_output.data() + (i % shared_values.size()) * sizeof(uint64_t),
+		  (std::uintptr_t)shared_output.data() + ((i % shared_values.size()) + 1) * sizeof(uint64_t),
+		  async::barrier_type::WRITE};
 
-		std::vector<uint64_t> shared_values {50045,	 150020, 121005, 233100, 250045, 367000, 50045,	 150020,
-											 121005, 233100, 250045, 367000, 50045,	 150020, 121005, 233100,
-											 250045, 367000, 50045,	 150020, 121005, 233100, 250045, 367000};
-		std::vector<uint64_t> shared_output {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+		pair.first.barriers({read_barrier, write_barrier});
+		results.emplace_back(std::move(pair.second));
+	}
 
-		uint64_t calculated_value = 0;
-		for(auto val : shared_values) calculated_value += find_nth_prime(val);
-		std::vector<std::future<uint64_t>> results;
-		for(size_t i = 0; i < iteration_count; ++i)
-		{
-			auto pair {scheduler.schedule([i, &shared_values, &shared_output]() {
-				++shared_output[i % shared_output.size()];
-				return find_nth_prime(shared_values[i % shared_values.size()]);
-			})};
+	scheduler.execute();
 
-			async::barrier read_barrier {
-			  (std::uintptr_t)shared_values.data() + (i % shared_output.size()) * sizeof(uint64_t),
-			  (std::uintptr_t)shared_values.data() + ((i % shared_output.size()) + 1) * sizeof(uint64_t)};
-			async::barrier write_barrier {
-			  (std::uintptr_t)shared_output.data() + (i % shared_values.size()) * sizeof(uint64_t),
-			  (std::uintptr_t)shared_output.data() + ((i % shared_values.size()) + 1) * sizeof(uint64_t),
-			  async::barrier_type::WRITE};
-
-			pair.first.barriers({read_barrier, write_barrier});
-			results.emplace_back(std::move(pair.second));
-		}
-
-		scheduler.execute();
-
-		litmus::require(std::accumulate(
-		  std::begin(results), std::end(results), uint64_t {0}, [](uint64_t sum, std::future<uint64_t>& value) {
-			  return sum + value.get();
-		  })) == (iteration_count / shared_output.size()) * calculated_value;
-	};
+	litmus::require(std::accumulate(
+	  std::begin(results), std::end(results), uint64_t {0}, [](uint64_t sum, std::future<uint64_t>& value) {
+		  return sum + value.get();
+	  })) == (iteration_count / shared_output.size()) * calculated_value;
+};
 }	 // namespace

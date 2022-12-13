@@ -13,341 +13,341 @@
 
 namespace psl::ecs
 {
-	class state_t;
+class state_t;
 
-	class command_buffer_t
+class command_buffer_t
+{
+	friend class state_t;
+
+  public:
+	command_buffer_t(const state_t& state);
+
+	template <typename... Ts>
+	void add_components(psl::array_view<entity> entities)
 	{
-		friend class state_t;
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
+		(add_component<Ts>(entities), ...);
+	}
 
-	  public:
-		command_buffer_t(const state_t& state);
 
-		template <typename... Ts>
-		void add_components(psl::array_view<entity> entities)
+	template <typename... Ts>
+	void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data)
+	{
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
+		(add_component<Ts>(entities, data), ...);
+	}
+
+	template <typename... Ts>
+	void add_components(psl::array_view<entity> entities, Ts&&... prototype)
+	{
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
+		(add_component(entities, std::forward<Ts>(prototype)), ...);
+	}
+
+	template <typename... Ts>
+	void remove_components(psl::array_view<entity> entities) noexcept
+	{
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
+		(create_storage<Ts>(), ...);
+		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
+	}
+
+	template <typename... Ts>
+	void add_components(psl::array_view<std::pair<entity, entity>> entities)
+	{
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
+		(add_component<Ts>(entities), ...);
+	}
+	template <typename... Ts>
+	void add_components(psl::array_view<std::pair<entity, entity>> entities, Ts&&... prototype)
+	{
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
+		(add_component(entities, std::forward<Ts>(prototype)), ...);
+	}
+
+	template <typename... Ts>
+	void remove_components(psl::array_view<std::pair<entity, entity>> entities) noexcept
+	{
+		if(entities.size() == 0) return;
+		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
+		(create_storage<Ts>(), ...);
+		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
+	}
+
+	template <typename... Ts>
+	psl::array<entity> create(entity count)
+	{
+		psl::array<entity> entities;
+		const auto recycled = std::min<entity>(count, (entity)m_Orphans);
+		m_Orphans -= recycled;
+		const auto remainder = count - recycled;
+
+		entities.reserve(recycled + remainder);
+		// we do this to protect ourselves from 1 entity loops
+		if(m_Entities.size() + remainder >= m_Entities.capacity())
+			m_Entities.reserve(m_Entities.size() * 2 + remainder);
+
+		for(size_t i = 0; i < recycled; ++i)
 		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
-			(add_component<Ts>(entities), ...);
+			const auto orphan = m_Next;
+			entities.emplace_back(orphan);
+			m_Next					   = m_Entities[(size_t)m_Next];
+			m_Entities[(size_t)orphan] = orphan;
 		}
 
-
-		template <typename... Ts>
-		void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data)
+		for(size_t i = 0; i < remainder; ++i)
 		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
-			(add_component<Ts>(entities, data), ...);
+			entities.emplace_back((entity)m_Entities.size() + m_First);
+			m_Entities.emplace_back((entity)m_Entities.size() + m_First);
 		}
 
-		template <typename... Ts>
-		void add_components(psl::array_view<entity> entities, Ts&&... prototype)
+		if constexpr(sizeof...(Ts) > 0)
 		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
-			(add_component(entities, std::forward<Ts>(prototype)), ...);
+			(add_components<Ts>(entities), ...);
+		}
+		return entities;
+	}
+
+	template <typename... Ts>
+	psl::array<entity> create(entity count, Ts&&... prototype)
+	{
+		psl::array<entity> entities;
+		const auto recycled = std::min<entity>(count, (entity)m_Orphans);
+		m_Orphans -= recycled;
+		const auto remainder = count - recycled;
+
+		entities.reserve(recycled + remainder);
+		// we do this to protect ourselves from 1 entity loops
+		if(m_Entities.size() + remainder >= m_Entities.capacity())
+			m_Entities.reserve(m_Entities.size() * 2 + remainder);
+		for(size_t i = 0; i < recycled; ++i)
+		{
+			auto orphan = m_Next;
+			entities.emplace_back(orphan);
+			m_Next					   = m_Entities[(size_t)m_Next];
+			m_Entities[(size_t)orphan] = orphan;
 		}
 
-		template <typename... Ts>
-		void remove_components(psl::array_view<entity> entities) noexcept
+		for(size_t i = 0; i < remainder; ++i)
 		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
-			(create_storage<Ts>(), ...);
-			(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
+			entities.emplace_back((entity)m_Entities.size() + m_First);
+			m_Entities.emplace_back((entity)m_Entities.size() + m_First);
 		}
+		add_components(entities, std::forward<Ts>(prototype)...);
 
-		template <typename... Ts>
-		void add_components(psl::array_view<std::pair<entity, entity>> entities)
-		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
-			(add_component<Ts>(entities), ...);
-		}
-		template <typename... Ts>
-		void add_components(psl::array_view<std::pair<entity, entity>> entities, Ts&&... prototype)
-		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
-			(add_component(entities, std::forward<Ts>(prototype)), ...);
-		}
+		return entities;
+	}
 
-		template <typename... Ts>
-		void remove_components(psl::array_view<std::pair<entity, entity>> entities) noexcept
-		{
-			if(entities.size() == 0) return;
-			static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
-			(create_storage<Ts>(), ...);
-			(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
-		}
+	void destroy(psl::array_view<entity> entities) noexcept;
+	void destroy(entity entity) noexcept;
 
-		template <typename... Ts>
-		psl::array<entity> create(entity count)
-		{
-			psl::array<entity> entities;
-			const auto recycled = std::min<entity>(count, (entity)m_Orphans);
-			m_Orphans -= recycled;
-			const auto remainder = count - recycled;
-
-			entities.reserve(recycled + remainder);
-			// we do this to protect ourselves from 1 entity loops
-			if(m_Entities.size() + remainder >= m_Entities.capacity())
-				m_Entities.reserve(m_Entities.size() * 2 + remainder);
-
-			for(size_t i = 0; i < recycled; ++i)
-			{
-				const auto orphan = m_Next;
-				entities.emplace_back(orphan);
-				m_Next					   = m_Entities[(size_t)m_Next];
-				m_Entities[(size_t)orphan] = orphan;
-			}
-
-			for(size_t i = 0; i < remainder; ++i)
-			{
-				entities.emplace_back((entity)m_Entities.size() + m_First);
-				m_Entities.emplace_back((entity)m_Entities.size() + m_First);
-			}
-
-			if constexpr(sizeof...(Ts) > 0)
-			{
-				(add_components<Ts>(entities), ...);
-			}
-			return entities;
-		}
-
-		template <typename... Ts>
-		psl::array<entity> create(entity count, Ts&&... prototype)
-		{
-			psl::array<entity> entities;
-			const auto recycled = std::min<entity>(count, (entity)m_Orphans);
-			m_Orphans -= recycled;
-			const auto remainder = count - recycled;
-
-			entities.reserve(recycled + remainder);
-			// we do this to protect ourselves from 1 entity loops
-			if(m_Entities.size() + remainder >= m_Entities.capacity())
-				m_Entities.reserve(m_Entities.size() * 2 + remainder);
-			for(size_t i = 0; i < recycled; ++i)
-			{
-				auto orphan = m_Next;
-				entities.emplace_back(orphan);
-				m_Next					   = m_Entities[(size_t)m_Next];
-				m_Entities[(size_t)orphan] = orphan;
-			}
-
-			for(size_t i = 0; i < remainder; ++i)
-			{
-				entities.emplace_back((entity)m_Entities.size() + m_First);
-				m_Entities.emplace_back((entity)m_Entities.size() + m_First);
-			}
-			add_components(entities, std::forward<Ts>(prototype)...);
-
-			return entities;
-		}
-
-		void destroy(psl::array_view<entity> entities) noexcept;
-		void destroy(entity entity) noexcept;
-
-	  private:
-		//------------------------------------------------------------
-		// helpers
-		//------------------------------------------------------------
-		template <typename T>
-		void create_storage()
-		{
-			auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
-				constexpr auto key = details::component_key_t::generate<T>();
-				return (key == cInfo->id());
-			});
-
+  private:
+	//------------------------------------------------------------
+	// helpers
+	//------------------------------------------------------------
+	template <typename T>
+	void create_storage()
+	{
+		auto it = std::find_if(std::begin(m_Components), std::end(m_Components), [](const auto& cInfo) {
 			constexpr auto key = details::component_key_t::generate<T>();
+			return (key == cInfo->id());
+		});
 
-			if(it == std::end(m_Components))
-			{
-				m_Components.emplace_back(details::instantiate_component_container<T>());
-			}
-		}
+		constexpr auto key = details::component_key_t::generate<T>();
 
-		details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
-
-		//------------------------------------------------------------
-		// add_component
-		//------------------------------------------------------------
-		template <typename T>
-		void add_component(psl::array_view<std::pair<entity, entity>> entities, T&& prototype)
+		if(it == std::end(m_Components))
 		{
-			if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
-						 std::is_trivially_destructible<T>::value)
-			{
-				static_assert(!std::is_empty_v<T>,
-							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-							  "psl::ecs::empty<T>{} to avoid initialization.");
-				create_storage<T>();
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
-			}
-			else	// todo wait till deduction guides are resolved on libc++
-					// https://bugs.llvm.org/show_bug.cgi?id=39606
-			// else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
-			{
-				using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
-				static_assert(psl::type_pack_size_v<pack_type> == 1,
-							  "only one argument is allowed in the prototype invocable");
-				using arg0_t = psl::type_at_index_t<0, pack_type>;
-				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
-							  "the argument type should be of 'T&'");
-				using type = typename std::remove_reference<arg0_t>::type;
-				static_assert(!std::is_empty_v<type>,
-							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-							  "psl::ecs::empty<T>{} to avoid initialization.");
-
-				create_storage<type>();
-				add_component_impl(details::component_key_t::generate<type>(),
-								   entities,
-								   sizeof(type),
-								   [prototype](std::uintptr_t location, size_t count) {
-									   for(auto i = size_t {0}; i < count; ++i)
-									   {
-										   std::invoke(prototype, *((type*)(location) + i));
-									   }
-								   });
-			}
-			/*else
-			{
-				static_assert(psl::templates::always_false<T>::value,
-							  "could not figure out if the template type was an invocable or a component prototype");
-			}*/
+			m_Components.emplace_back(details::instantiate_component_container<T>());
 		}
+	}
 
-		template <typename T>
-		void add_component(psl::array_view<std::pair<entity, entity>> entities)
+	details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
+
+	//------------------------------------------------------------
+	// add_component
+	//------------------------------------------------------------
+	template <typename T>
+	void add_component(psl::array_view<std::pair<entity, entity>> entities, T&& prototype)
+	{
+		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
+					 std::is_trivially_destructible<T>::value)
 		{
-			create_storage<T>();
-
-			if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
-			{
-				T v {details::prototype_for<T>()};
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
-			}
-			else
-			{
-				add_component_impl(
-				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-		}
-
-		template <typename T>
-		void add_component(psl::array_view<entity> entities, T&& prototype)
-		{
-			if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
-						 std::is_trivially_destructible<T>::value)
-			{
-				static_assert(!std::is_empty_v<T>,
-							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-							  "psl::ecs::empty<T>{} to avoid initialization.");
-
-
-				create_storage<T>();
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
-			}
-			else
-			{
-				using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
-				static_assert(psl::type_pack_size_v<pack_type> == 1,
-							  "only one argument is allowed in the prototype invocable");
-				using arg0_t = psl::type_at_index_t<0, pack_type>;
-				static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
-							  "the argument type should be of 'T&'");
-				using type = typename std::remove_reference<arg0_t>::type;
-				static_assert(!std::is_empty_v<type>,
-							  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-							  "psl::ecs::empty<T>{} to avoid initialization.");
-				create_storage<type>();
-				add_component_impl(details::component_key_t::generate<type>(),
-								   entities,
-								   sizeof(type),
-								   [prototype](std::uintptr_t location, size_t count) {
-									   for(auto i = size_t {0}; i < count; ++i)
-									   {
-										   std::invoke(prototype, *((type*)(location) + i));
-									   }
-								   });
-			}
-			/*else
-			{
-				static_assert(psl::templates::always_false<T>::value,
-							  "could not figure out if the template type was an invocable or a component prototype");
-			}*/
-		}
-
-		template <typename T>
-		void add_component(psl::array_view<entity> entities)
-		{
-			create_storage<T>();
-
-			if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
-			{
-				T v {details::prototype_for<T>};
-				add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
-			}
-			else
-			{
-				add_component_impl(
-				  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-			}
-		}
-
-		template <typename T>
-		void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
-		{
-			psl_assert(entities.size() == data.size(),
-					   "incorrect amount of data input compared to entities, expected {} but got {}",
-					   entities.size(),
-					   data.size());
-			create_storage<T>();
 			static_assert(!std::is_empty_v<T>,
-						  "no need to pass an array of tag types through, it's a waste of computing and memory");
-
-			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), data.data(), false);
+						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+						  "psl::ecs::empty<T>{} to avoid initialization.");
+			create_storage<T>();
+			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
 		}
+		else	// todo wait till deduction guides are resolved on libc++
+				// https://bugs.llvm.org/show_bug.cgi?id=39606
+		// else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
+		{
+			using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
+			static_assert(psl::type_pack_size_v<pack_type> == 1,
+						  "only one argument is allowed in the prototype invocable");
+			using arg0_t = psl::type_at_index_t<0, pack_type>;
+			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
+						  "the argument type should be of 'T&'");
+			using type = typename std::remove_reference<arg0_t>::type;
+			static_assert(!std::is_empty_v<type>,
+						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+						  "psl::ecs::empty<T>{} to avoid initialization.");
 
-		void add_component_impl(const details::component_key_t& key,
-								psl::array_view<std::pair<entity, entity>> entities,
-								size_t size);
-		void add_component_impl(const details::component_key_t& key,
-								psl::array_view<std::pair<entity, entity>> entities,
-								size_t size,
-								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(const details::component_key_t& key,
-								psl::array_view<std::pair<entity, entity>> entities,
-								size_t size,
-								void* prototype);
+			create_storage<type>();
+			add_component_impl(details::component_key_t::generate<type>(),
+							   entities,
+							   sizeof(type),
+							   [prototype](std::uintptr_t location, size_t count) {
+								   for(auto i = size_t {0}; i < count; ++i)
+								   {
+									   std::invoke(prototype, *((type*)(location) + i));
+								   }
+							   });
+		}
+		/*else
+		{
+			static_assert(psl::templates::always_false<T>::value,
+						  "could not figure out if the template type was an invocable or a component prototype");
+		}*/
+	}
+
+	template <typename T>
+	void add_component(psl::array_view<std::pair<entity, entity>> entities)
+	{
+		create_storage<T>();
+
+		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
+		{
+			T v {details::prototype_for<T>()};
+			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
+		}
+		else
+		{
+			add_component_impl(
+			  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+		}
+	}
+
+	template <typename T>
+	void add_component(psl::array_view<entity> entities, T&& prototype)
+	{
+		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
+					 std::is_trivially_destructible<T>::value)
+		{
+			static_assert(!std::is_empty_v<T>,
+						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+						  "psl::ecs::empty<T>{} to avoid initialization.");
 
 
-		void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, size_t size);
-		void add_component_impl(const details::component_key_t& key,
-								psl::array_view<entity> entities,
-								size_t size,
-								std::function<void(std::uintptr_t, size_t)> invocable);
-		void add_component_impl(const details::component_key_t& key,
-								psl::array_view<entity> entities,
-								size_t size,
-								void* prototype,
-								bool repeat = true);
+			create_storage<T>();
+			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
+		}
+		else
+		{
+			using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
+			static_assert(psl::type_pack_size_v<pack_type> == 1,
+						  "only one argument is allowed in the prototype invocable");
+			using arg0_t = psl::type_at_index_t<0, pack_type>;
+			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
+						  "the argument type should be of 'T&'");
+			using type = typename std::remove_reference<arg0_t>::type;
+			static_assert(!std::is_empty_v<type>,
+						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+						  "psl::ecs::empty<T>{} to avoid initialization.");
+			create_storage<type>();
+			add_component_impl(details::component_key_t::generate<type>(),
+							   entities,
+							   sizeof(type),
+							   [prototype](std::uintptr_t location, size_t count) {
+								   for(auto i = size_t {0}; i < count; ++i)
+								   {
+									   std::invoke(prototype, *((type*)(location) + i));
+								   }
+							   });
+		}
+		/*else
+		{
+			static_assert(psl::templates::always_false<T>::value,
+						  "could not figure out if the template type was an invocable or a component prototype");
+		}*/
+	}
 
-		//------------------------------------------------------------
-		// remove_component
-		//------------------------------------------------------------
-		void remove_component(const details::component_key_t& key,
-							  psl::array_view<std::pair<entity, entity>> entities) noexcept;
-		void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
+	template <typename T>
+	void add_component(psl::array_view<entity> entities)
+	{
+		create_storage<T>();
 
-		state_t const* m_State {nullptr};
-		psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
-		entity m_First {0};
-		psl::array<entity> m_Entities {};
+		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
+		{
+			T v {details::prototype_for<T>};
+			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
+		}
+		else
+		{
+			add_component_impl(
+			  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
+		}
+	}
 
-		psl::array<entity> m_DestroyedEntities {};
+	template <typename T>
+	void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
+	{
+		psl_assert(entities.size() == data.size(),
+				   "incorrect amount of data input compared to entities, expected {} but got {}",
+				   entities.size(),
+				   data.size());
+		create_storage<T>();
+		static_assert(!std::is_empty_v<T>,
+					  "no need to pass an array of tag types through, it's a waste of computing and memory");
 
-		entity m_Next {0};
-		size_t m_Orphans {0};
-	};
+		add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), data.data(), false);
+	}
+
+	void add_component_impl(const details::component_key_t& key,
+							psl::array_view<std::pair<entity, entity>> entities,
+							size_t size);
+	void add_component_impl(const details::component_key_t& key,
+							psl::array_view<std::pair<entity, entity>> entities,
+							size_t size,
+							std::function<void(std::uintptr_t, size_t)> invocable);
+	void add_component_impl(const details::component_key_t& key,
+							psl::array_view<std::pair<entity, entity>> entities,
+							size_t size,
+							void* prototype);
+
+
+	void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, size_t size);
+	void add_component_impl(const details::component_key_t& key,
+							psl::array_view<entity> entities,
+							size_t size,
+							std::function<void(std::uintptr_t, size_t)> invocable);
+	void add_component_impl(const details::component_key_t& key,
+							psl::array_view<entity> entities,
+							size_t size,
+							void* prototype,
+							bool repeat = true);
+
+	//------------------------------------------------------------
+	// remove_component
+	//------------------------------------------------------------
+	void remove_component(const details::component_key_t& key,
+						  psl::array_view<std::pair<entity, entity>> entities) noexcept;
+	void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
+
+	state_t const* m_State {nullptr};
+	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
+	entity m_First {0};
+	psl::array<entity> m_Entities {};
+
+	psl::array<entity> m_DestroyedEntities {};
+
+	entity m_Next {0};
+	size_t m_Orphans {0};
+};
 }	 // namespace psl::ecs

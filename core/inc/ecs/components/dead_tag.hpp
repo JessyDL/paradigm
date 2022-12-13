@@ -2,5 +2,6 @@
 
 namespace core::ecs::components
 {
-	struct dead_tag {};
-}
+struct dead_tag
+{};
+}	 // namespace core::ecs::components

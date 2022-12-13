@@ -3,7 +3,10 @@
 
 using namespace memory;
 
-range_t::range_t(std::uintptr_t begin, std::uintptr_t end) : begin(begin), end(end) { psl_assert(begin <= end, "range's begin should be lequal to end, but was {} <= {}", begin, end); };
+range_t::range_t(std::uintptr_t begin, std::uintptr_t end) : begin(begin), end(end)
+{
+	psl_assert(begin <= end, "range's begin should be lequal to end, but was {} <= {}", begin, end);
+};
 
 bool range_t::operator==(const range_t& other) const { return (other.begin == begin && other.end == end); }
 

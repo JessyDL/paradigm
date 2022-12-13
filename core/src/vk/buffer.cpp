@@ -15,11 +15,11 @@ using namespace core::resource;
 static const size_t max_size_set {65535};
 
 buffer_t::buffer_t(core::resource::cache_t& cache,
-			   const core::resource::metadata& metaData,
-			   psl::meta::file* metaFile,
-			   handle<context> context,
-			   handle<data::buffer_t> buffer_data,
-			   std::optional<core::resource::handle<core::ivk::buffer_t>> staging_buffer) :
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   handle<context> context,
+				   handle<data::buffer_t> buffer_data,
+				   std::optional<core::resource::handle<core::ivk::buffer_t>> staging_buffer) :
 	m_Context(context),
 	m_BufferDataHandle(std::move(buffer_data)), m_Cache(cache), m_UID(metaData.uid),
 	m_StagingBuffer(staging_buffer.value_or(core::resource::handle<core::ivk::buffer_t> {}))
@@ -126,7 +126,8 @@ size_t buffer_t::free_size() const noexcept
 }
 std::optional<memory::segment> buffer_t::reserve(vk::DeviceSize size) { return m_BufferDataHandle->allocate(size); }
 
-std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::vector<vk::DeviceSize> sizes, bool optimize)
+std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::vector<vk::DeviceSize> sizes,
+																		   bool optimize)
 {
 	PROFILE_SCOPE(core::profiler)
 	vk::DeviceSize totalSize = std::accumulate(
@@ -202,9 +203,9 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions)
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer_t.");
 			memory::region temp_region {totalSize, 4, new memory::default_allocator(false)};
 			auto buffer_data = m_Cache.create<core::data::buffer_t>(core::gfx::memory_usage::transfer_source,
-																  core::gfx::memory_property::host_visible |
-																	core::gfx::memory_property::host_coherent,
-																  std::move(temp_region));
+																	core::gfx::memory_property::host_visible |
+																	  core::gfx::memory_property::host_coherent,
+																	std::move(temp_region));
 
 			stagingBuffer = m_Cache.create<core::ivk::buffer_t>(m_Context, buffer_data);
 		}
@@ -337,9 +338,9 @@ bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer_t.");
 			memory::region temp_region {size * 2, 4, new memory::default_allocator(true)};
 			auto buffer_data = m_Cache.create<core::data::buffer_t>(core::gfx::memory_usage::transfer_source,
-																  core::gfx::memory_property::host_visible |
-																	core::gfx::memory_property::host_coherent,
-																  std::move(temp_region));
+																	core::gfx::memory_property::host_visible |
+																	  core::gfx::memory_property::host_coherent,
+																	std::move(temp_region));
 			auto staging	 = m_Cache.create<core::ivk::buffer_t>(m_Context, buffer_data);
 
 			auto tuple = m_Context->device().mapMemory(staging->m_Memory, 0, size);
@@ -447,8 +448,9 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 
 		if(maxVal > m_BufferDataHandle->size())
 		{
-			core::ivk::log->error(
-			  "range exceeds the allocated ivk::buffer_t size! (src|dst) {0} | {1}", m_BufferDataHandle->size(), maxVal);
+			core::ivk::log->error("range exceeds the allocated ivk::buffer_t size! (src|dst) {0} | {1}",
+								  m_BufferDataHandle->size(),
+								  maxVal);
 			debug_break();
 		}
 
@@ -480,13 +482,14 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 
 
 bool buffer_t::set(const void* data,
-				 std::vector<vk::BufferCopy> commands)	  // maps to the UpdateBuffer of the old version
+				   std::vector<vk::BufferCopy> commands)	// maps to the UpdateBuffer of the old version
 {
 	PROFILE_SCOPE(core::profiler)
 	if(data == nullptr || commands.size() == 0)
 	{
-		core::ivk::log->error(((data == nullptr) ? "tried passing nullptr to update an ivk::buffer_t"
-												 : "tried updating an ivk::buffer_t, but forgetting to send commands."));
+		core::ivk::log->error(((data == nullptr)
+								 ? "tried passing nullptr to update an ivk::buffer_t"
+								 : "tried updating an ivk::buffer_t, but forgetting to send commands."));
 		return false;
 	}
 

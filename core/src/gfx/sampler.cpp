@@ -3,10 +3,10 @@
 #include "gfx/context.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/sampler.hpp"
+	#include "vk/sampler.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/sampler.hpp"
+	#include "gles/sampler.hpp"
 #endif
 
 using namespace core::gfx;
@@ -25,10 +25,10 @@ sampler_t::sampler_t(core::resource::handle<core::igles::sampler_t>& handle) :
 #endif
 
 sampler_t::sampler_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile,
-				 core::resource::handle<core::gfx::context> context,
-				 core::resource::handle<core::data::sampler_t> sampler_data) :
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile,
+					 core::resource::handle<core::gfx::context> context,
+					 core::resource::handle<core::data::sampler_t> sampler_data) :
 	m_Backend(context->backend())
 {
 	switch(m_Backend)

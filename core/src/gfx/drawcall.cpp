@@ -8,8 +8,8 @@ using namespace psl;
 using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
-drawcall::drawcall(handle<core::gfx::bundle> bundle, const std::vector<handle<core::gfx::geometry_t>>& geometry) noexcept
-	:
+drawcall::drawcall(handle<core::gfx::bundle> bundle,
+				   const std::vector<handle<core::gfx::geometry_t>>& geometry) noexcept :
 	m_Bundle(bundle)
 {
 	for(auto& g : geometry) m_Geometry.emplace_back(g, 1);

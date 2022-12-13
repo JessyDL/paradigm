@@ -1,11 +1,11 @@
-#include "vk/ivk.hpp"
 #include "vk/swapchain.hpp"
 #include "logging.hpp"
 #include "meta/texture.hpp"
-#include "os/surface.hpp"
 #include "os/context.hpp"
+#include "os/surface.hpp"
 #include "vk/context.hpp"
 #include "vk/conversion.hpp"
+#include "vk/ivk.hpp"
 #include "vk/texture.hpp"
 
 using namespace psl;
@@ -167,7 +167,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 		exit(-1);
 	}
 #else
-#error platform not supported by the swapchain
+	#error platform not supported by the swapchain
 #endif
 
 	init_surface();

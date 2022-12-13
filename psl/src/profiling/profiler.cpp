@@ -4,9 +4,9 @@
 #include "psl/string_utils.hpp"
 
 #ifdef PLATFORM_WINDOWS
-#include <Windows.h>
-#pragma comment(lib, "Dbghelp.lib")
-#include <Dbghelp.h>
+	#include <Windows.h>
+	#pragma comment(lib, "Dbghelp.lib")
+	#include <Dbghelp.h>
 #endif
 
 using namespace psl::profiling;
@@ -153,28 +153,28 @@ psl::string profiler::to_string() const
 	std::unordered_map<uint64_t, psl::string> demangled_info;
 	const auto endIt = (m_FrameIndex + 1) % m_Frames.size();
 	auto i			 = endIt;
-#ifdef PLATFORM_WINDOWS
-	/*auto mapping = utility::platform::file::read(utility::application::path::get_path() + "core.map");
-	if(mapping)
-	{
-		auto index = mapping.value().find_first_not_of("\r\n\t ", mapping.value().find("Lib:Object") + 10);
-		bool reached_end = false;
-		psl::string demangled;
-		demangled.resize(256);
-		while(!reached_end)
+	#ifdef PLATFORM_WINDOWS
+		/*auto mapping = utility::platform::file::read(utility::application::path::get_path() + "core.map");
+		if(mapping)
 		{
-			auto end = mapping.value().find('\n', index);
-			psl::string line = mapping.value().substr(index, end - index);
-			auto elements = utility::string::split(line, " ", true);
-			psl::string mangled{elements[1]};
-			auto size = UnDecorateSymbolName(mangled.c_str(), demangled.data(), 256, UNDNAME_COMPLETE);
-			demangled_info[psl::string(elements[1])] = demangled.substr(0, size);
-			index = end + 1;
-			if(mapping.value()[index] == '\r' || mapping.value()[index] == '\n')
-				reached_end = true;
-		}
-	}*/
-#endif
+			auto index = mapping.value().find_first_not_of("\r\n\t ", mapping.value().find("Lib:Object") + 10);
+			bool reached_end = false;
+			psl::string demangled;
+			demangled.resize(256);
+			while(!reached_end)
+			{
+				auto end = mapping.value().find('\n', index);
+				psl::string line = mapping.value().substr(index, end - index);
+				auto elements = utility::string::split(line, " ", true);
+				psl::string mangled{elements[1]};
+				auto size = UnDecorateSymbolName(mangled.c_str(), demangled.data(), 256, UNDNAME_COMPLETE);
+				demangled_info[psl::string(elements[1])] = demangled.substr(0, size);
+				index = end + 1;
+				if(mapping.value()[index] == '\r' || mapping.value()[index] == '\n')
+					reached_end = true;
+			}
+		}*/
+	#endif
 	do
 	{
 		const auto& frame_data = m_Frames[i];

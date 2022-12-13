@@ -3,29 +3,29 @@
 #include "gles/igles.hpp"
 #include "logging.hpp"
 #include "meta/texture.hpp"
-#include "resource/resource.hpp"
 #include "psl/utility/cast.hpp"
+#include "resource/resource.hpp"
 
 
 #ifdef fseek
-#define cached_fseek fseek
-#define cached_fclose fclose
-#define cached_fwrite fwrite
-#define cached_fread fread
-#define cached_ftell ftell
-#undef fseek
-#undef fclose
-#undef fwrite
-#undef fread
-#undef ftell
+	#define cached_fseek fseek
+	#define cached_fclose fclose
+	#define cached_fwrite fwrite
+	#define cached_fread fread
+	#define cached_ftell ftell
+	#undef fseek
+	#undef fclose
+	#undef fwrite
+	#undef fread
+	#undef ftell
 #endif
 #include "gli/gli.hpp"
 #ifdef cached_fseek
-#define fseek cached_fseek
-#define fclose cached_fclose
-#define fwrite cached_fwrite
-#define fread cached_fread
-#define ftell cached_ftell
+	#define fseek cached_fseek
+	#define fclose cached_fclose
+	#define fwrite cached_fwrite
+	#define fread cached_fread
+	#define ftell cached_ftell
 #endif
 
 
@@ -33,8 +33,8 @@ using namespace core::resource;
 using namespace core::igles;
 
 texture_t::texture_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 core::meta::texture_t* metaFile) :
+					 const core::resource::metadata& metaData,
+					 core::meta::texture_t* metaFile) :
 	m_Cache(cache),
 	m_Meta(m_Cache.library().get<core::meta::texture_t>(metaFile->ID()).value_or(nullptr))
 {

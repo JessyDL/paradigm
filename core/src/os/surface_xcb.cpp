@@ -1,7 +1,7 @@
 #ifdef SURFACE_XCB
-#include "os/surface.hpp"
-#include "systems/input.hpp"
-#include <xcb/xcb.h>
+	#include "os/surface.hpp"
+	#include "systems/input.hpp"
+	#include <xcb/xcb.h>
 
 using namespace core::os;
 using namespace core;

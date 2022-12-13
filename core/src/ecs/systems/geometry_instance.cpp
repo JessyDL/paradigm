@@ -1,8 +1,8 @@
 #include <stdint.h>
 
-#include "ecs/systems/geometry_instance.hpp"
 #include "ecs/components/renderable.hpp"
 #include "ecs/components/transform.hpp"
+#include "ecs/systems/geometry_instance.hpp"
 #include "gfx/bundle.hpp"
 #include "gfx/geometry.hpp"
 #include "resource/resource.hpp"
@@ -43,7 +43,6 @@ void geometry_instancing::dynamic_system(
 		auto renderers = geometry_pack.get<renderable>();
 		for(auto renderable : renderers)
 			if(renderable.bundle) renderable.bundle->release_all();
-
 	}
 
 	core::profiler.scope_end();

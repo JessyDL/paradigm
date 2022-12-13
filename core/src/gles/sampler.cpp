@@ -11,9 +11,9 @@ using namespace core::gfx::conversion;
 namespace data = core::data;
 
 sampler_t::sampler_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile,
-				 handle<data::sampler_t> sampler_data)
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile,
+					 handle<data::sampler_t> sampler_data)
 {
 	size_t iterationCount = (sampler_data->mipmaps()) ? 14 : 1;	   // 14 == 8096 // todo: this is a hack
 

@@ -2,9 +2,9 @@
 #include <algorithm>
 
 #if __has_include(<functional>)
-#include <functional>
+	#include <functional>
 #else
-#include <experimental/functional>
+	#include <experimental/functional>
 #endif
 #include "psl/crc32.hpp"
 #include "psl/string_utils.hpp"
@@ -12,10 +12,10 @@
 #include <stack>
 #include <unordered_map>
 #ifdef PLATFORM_LINUX
-// todo: find cleaner solution to this, https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like
-// the windows min/max..
-#undef minor
-#undef major
+	// todo: find cleaner solution to this, https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's
+	// like the windows min/max..
+	#undef minor
+	#undef major
 #endif
 using namespace psl::format;
 
@@ -1379,8 +1379,8 @@ bool container::compact_header::try_decode(psl::string8::view source, psl::forma
 
 	target.m_Features.encoding = (id == string_identifier) ? encoding_t::string : encoding_t::binary;
 
-	size_t entry_size{0};
-	size_t content_header_size{0};
+	size_t entry_size {0};
+	size_t content_header_size {0};
 	const char* data = source.data() + sizeof(psl::string8::char_t) * 8;
 	memcpy(&entry_size, data, sizeof(size_t));
 	data += sizeof(size_t);
@@ -1673,8 +1673,8 @@ void container::move(data& node, nodes_t index)
 			// auto [is_literal, content_info] = m_NodeData[current_index].reinterpret_as_value();
 			// auto content_index = content_info.first;
 			// auto content_size = content_info.second;
-			// if (auto it = rfind_last_index_of({ type_t::VALUE, type_t::VALUE_RANGE }, m_NodeData.begin() + current_index,
-			// m_NodeData.begin() + index); it != m_NodeData.begin() + current_index)
+			// if (auto it = rfind_last_index_of({ type_t::VALUE, type_t::VALUE_RANGE }, m_NodeData.begin() +
+			// current_index, m_NodeData.begin() + index); it != m_NodeData.begin() + current_index)
 			//{
 			//	//auto last_value_node = it - m_NodeData.begin();
 			//	if (it->m_Type == type_t::VALUE)
@@ -1792,21 +1792,21 @@ data* handle::operator->() const { return &m_Container->m_NodeData[m_Index]; };
 
 char const* node_not_found::what() const noexcept
 {
-			psl::string8_t message {
-			  "An unknown error occured, please create a repro case and submit as a bug ticket, thank you!"};
-			if(auto index = std::get_if<nodes_t>(&m_Data))
-			{
-				if((size_t)*index >= m_Container->size())
-				{
-					message = "The index " + utility::to_string(*index) +
-							  " is larger than the last element, which is at index: " +
-							  utility::to_string(m_Container->size() - 1);
-				}
-			}
-			else if(auto name = std::get_if<psl::string8_t>(&m_Data))
-			{
-				message = "The node named '" + *name + "' could not be found in the container.";
-			}
-			m_Message = std::move(message);
-			return m_Message.data();
+	psl::string8_t message {
+	  "An unknown error occured, please create a repro case and submit as a bug ticket, thank you!"};
+	if(auto index = std::get_if<nodes_t>(&m_Data))
+	{
+		if((size_t)*index >= m_Container->size())
+		{
+			message =
+			  "The index " + utility::to_string(*index) +
+			  " is larger than the last element, which is at index: " + utility::to_string(m_Container->size() - 1);
 		}
+	}
+	else if(auto name = std::get_if<psl::string8_t>(&m_Data))
+	{
+		message = "The node named '" + *name + "' could not be found in the container.";
+	}
+	m_Message = std::move(message);
+	return m_Message.data();
+}

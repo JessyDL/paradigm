@@ -8,11 +8,11 @@ using namespace core::data;
 using namespace core::gfx;
 
 framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
-						 const core::resource::metadata& metaData,
-						 psl::meta::file* metaFile,
-						 uint32_t width,
-						 uint32_t height,
-						 uint32_t layers) noexcept :
+							 const core::resource::metadata& metaData,
+							 psl::meta::file* metaFile,
+							 uint32_t width,
+							 uint32_t height,
+							 uint32_t layers) noexcept :
 	m_Width(width),
 	m_Height(height), m_Cache(&cache), m_Count(std::max(layers, 1u))
 {}
@@ -23,11 +23,11 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 //{}
 
 const UID& framebuffer_t::add(uint32_t width,
-							uint32_t height,
-							uint32_t layerCount,
-							core::gfx::image::usage usage,
-							core::gfx::clear_value clearValue,
-							core::gfx::attachment descr)
+							  uint32_t height,
+							  uint32_t layerCount,
+							  core::gfx::image::usage usage,
+							  core::gfx::clear_value clearValue,
+							  core::gfx::attachment descr)
 {
 	core::gfx::image_aspect aspectMask {};
 
@@ -87,9 +87,9 @@ uint32_t framebuffer_t::height() const { return m_Height.value; }
 
 
 framebuffer_t::attachment::attachment(const UID& texture,
-									const core::gfx::clear_value& clear_col,
-									core::gfx::attachment descr,
-									bool shared) :
+									  const core::gfx::clear_value& clear_col,
+									  core::gfx::attachment descr,
+									  bool shared) :
 	m_Texture(texture),
 	m_ClearValue(clear_col), m_Description(descr), m_Shared(shared)
 {}

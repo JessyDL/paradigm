@@ -1,8 +1,8 @@
 #include "psl/library.hpp"
-#include "psl/platform_utils.hpp"
 #include "psl/assertions.hpp"
-#include "psl/serialization/polymorphic.hpp"
+#include "psl/platform_utils.hpp"
 #include "psl/serialization/encoder.hpp"
+#include "psl/serialization/polymorphic.hpp"
 
 using namespace psl::meta;
 using namespace psl::serialization;
@@ -11,7 +11,7 @@ const uint64_t file::polymorphic_identity {register_polymorphic<file>()};
 
 library::library(psl::string8::view lib, std::vector<psl::string8_t> environment)
 {
-	auto library = utility::platform::file::read(lib).value_or("");	
+	auto library	  = utility::platform::file::read(lib).value_or("");
 	m_LibraryLocation = utility::platform::directory::to_platform(lib);
 	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(utility::platform::directory::seperator));
 	m_LibraryFolder	  = psl::string8::view(&m_LibraryLocation[0], loc);
@@ -21,21 +21,22 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 	psl::string8_t root = psl::string8_t(m_LibraryFolder) + psl::to_string8_t(utility::platform::directory::seperator);
 
 	psl_assert(utility::platform::file::exists(psl::from_string8_t(m_LibraryLocation)),
-			   "could not find library at '{}'", m_LibraryLocation);
+			   "could not find library at '{}'",
+			   m_LibraryLocation);
 
 	// Load library into memory
 	serializer s;
 
-	auto lines = [](const auto& file){
-		std::vector<psl::string8_t> lines{};
+	auto lines = [](const auto& file) {
+		std::vector<psl::string8_t> lines {};
 		lines.reserve(std::count(file.begin(), file.end(), '\n'));
-		auto index = file.find('\n');
+		auto index	  = file.find('\n');
 		size_t offset = 0;
 		while(index != psl::string8_t::npos)
 		{
 			lines.emplace_back(file.substr(offset, index));
 			offset = index + 1;
-			index = file.find('\n', offset);
+			index  = file.find('\n', offset);
 		}
 		return lines;
 	}(library);
@@ -64,21 +65,24 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 		{
 			continue;
 		}
-		psl_assert(m_MetaData.find(uid) == std::end(m_MetaData),
-				   "duplicate UID {} found in library", uid.to_string());
+		psl_assert(m_MetaData.find(uid) == std::end(m_MetaData), "duplicate UID {} found in library", uid.to_string());
 
 		psl::string8_t metapath	 = line.substr(startPath, endPath - startPath);
 		psl::string8_t filepath	 = line.substr(startFilePath, endFilePath - startFilePath);
 		psl::string8_t extension = filepath.substr(filepath.find_last_of('.') + 1);
 
-		file* metaPtr = nullptr;
+		file* metaPtr	   = nullptr;
 		auto full_metapath = utility::platform::file::to_platform(root + metapath);
 		psl_assert(utility::platform::file::exists(full_metapath),
-				   "could not find file associated with UID {} at {}",uid.to_string(), full_metapath);
+				   "could not find file associated with UID {} at {}",
+				   uid.to_string(),
+				   full_metapath);
 		s.deserialize<decode_from_format>(metaPtr, full_metapath);
 
 		psl_assert(metaPtr->ID() == uid,
-				   "UID mismatch between library and metafile library expected {} but file has {}", uid.to_string(), metaPtr->ID().to_string());
+				   "UID mismatch between library and metafile library expected {} but file has {}",
+				   uid.to_string(),
+				   metaPtr->ID().to_string());
 
 
 		auto pair = m_MetaData.emplace(metaPtr->ID(), std::move(metaPtr));

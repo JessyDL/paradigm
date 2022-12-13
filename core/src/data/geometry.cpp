@@ -7,8 +7,8 @@ using namespace core::data;
 using namespace core::resource;
 
 geometry_t::geometry_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile) noexcept
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile) noexcept
 {}
 
 geometry_t::geometry_t(core::resource::cache_t& cache,
@@ -20,7 +20,8 @@ geometry_t::geometry_t(core::resource::cache_t& cache,
 	m_VertexStreams = other.m_VertexStreams;
 }
 
-bool geometry_t::contains(psl::string_view name) const noexcept {
+bool geometry_t::contains(psl::string_view name) const noexcept
+{
 	return m_VertexStreams.value.contains(psl::string {name});
 }
 
@@ -40,7 +41,10 @@ void geometry_t::vertices(const psl::string_view name, const core::vertex_stream
 	m_VertexStreams.value[psl::string {name}] = stream;
 }
 const std::vector<geometry_t::index_size_t>& geometry_t::indices() const { return m_Indices.value; }
-void geometry_t::indices(psl::array_view<index_size_t> indices) { m_Indices.value = psl::array<index_size_t> {indices}; }
+void geometry_t::indices(psl::array_view<index_size_t> indices)
+{
+	m_Indices.value = psl::array<index_size_t> {indices};
+}
 
 const std::unordered_map<psl::string, core::vertex_stream_t>& geometry_t::vertex_streams() const
 {

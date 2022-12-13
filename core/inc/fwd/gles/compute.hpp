@@ -5,5 +5,5 @@
 
 namespace core::igles
 {
-	class compute;
+class compute;
 }	 // namespace core::igles

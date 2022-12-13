@@ -120,15 +120,15 @@ text::text(psl::ecs::state_t& state,
 	}
 	matData->blend_states(
 	  {core::data::material_t::blendstate(true,
-										0,
-										core::gfx::blend_factor::source_alpha,
-										core::gfx::blend_factor::one_minus_source_alpha,
-										core::gfx::blend_op::add,
-										core::gfx::blend_factor::one,
-										core::gfx::blend_factor::zero,
-										core::gfx::blend_op::add,
-										core::gfx::component_bits::r | core::gfx::component_bits::g |
-										  core::gfx::component_bits::b | core::gfx::component_bits::a)});
+										  0,
+										  core::gfx::blend_factor::source_alpha,
+										  core::gfx::blend_factor::one_minus_source_alpha,
+										  core::gfx::blend_op::add,
+										  core::gfx::blend_factor::one,
+										  core::gfx::blend_factor::zero,
+										  core::gfx::blend_op::add,
+										  core::gfx::component_bits::r | core::gfx::component_bits::g |
+											core::gfx::component_bits::b | core::gfx::component_bits::a)});
 	matData->stages(stages);
 	matData->cull_mode(core::gfx::cullmode::none);
 
@@ -158,7 +158,9 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 		const auto max_char = character_data.size() + 32;
 		for(int character : text)
 		{
-			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t', "illegal character '{}' used", (char)character);
+			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t',
+					   "illegal character '{}' used",
+					   (char)character);
 		}
 	}
 

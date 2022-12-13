@@ -124,8 +124,8 @@ void grid::tick(info_t& info,
 				pack<entity, const transform, psl::ecs::filter<camera>> pack,
 				psl::ecs::pack<transform, psl::ecs::filter<grid::tag>> grid_pack)
 {
-	auto entities	= pack.get<entity>();
-	auto transforms = pack.get<const transform>();
+	auto entities		 = pack.get<entity>();
+	auto transforms		 = pack.get<const transform>();
 	auto grid_transforms = grid_pack.get<transform>();
 	for(auto i = 0; i < entities.size(); ++i)
 	{

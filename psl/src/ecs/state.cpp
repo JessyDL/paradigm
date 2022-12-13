@@ -1,8 +1,8 @@
 
 #include "psl/ecs/state.hpp"
 #include "psl/algorithm.hpp"
-#include "psl/unique_ptr.hpp"
 #include "psl/async/async.hpp"
+#include "psl/unique_ptr.hpp"
 
 #include <numeric>
 using namespace psl::ecs;
@@ -81,18 +81,17 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 							 std::uintptr_t cache_offset,
 							 details::system_information& information)
 {
-	auto write_data =
-	  [](state_t& state, psl::array<details::dependency_pack> dep_packs) {
-		  for(const auto& dep_pack : dep_packs)
-		  {
-			  for(auto& binding : dep_pack.m_RWBindings)
-			  {
-				  const size_t size	  = dep_pack.m_Sizes.at(binding.first);
-				  std::uintptr_t data = (std::uintptr_t)binding.second.data();
-				  state.set(dep_pack.m_Entities, binding.first, (void*)data);
-			  }
-		  }
-	  };
+	auto write_data = [](state_t& state, psl::array<details::dependency_pack> dep_packs) {
+		for(const auto& dep_pack : dep_packs)
+		{
+			for(auto& binding : dep_pack.m_RWBindings)
+			{
+				const size_t size	= dep_pack.m_Sizes.at(binding.first);
+				std::uintptr_t data = (std::uintptr_t)binding.second.data();
+				state.set(dep_pack.m_Entities, binding.first, (void*)data);
+			}
+		}
+	};
 
 	auto pack = information.create_pack();
 	bool has_partial =
@@ -406,8 +405,8 @@ psl::array<entity>::iterator state_t::on_break_op(psl::array<details::component_
 					 // or all of them do not have a component, or had the entity removed
 					 !std::all_of(
 					   std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-						 return cInfo->has_component(e) || cInfo->has_removed(e);
-					 }));
+						   return cInfo->has_component(e) || cInfo->has_removed(e);
+					   }));
 			 });
 }
 

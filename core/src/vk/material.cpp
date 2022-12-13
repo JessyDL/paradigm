@@ -22,12 +22,12 @@ using namespace core::resource;
 using namespace core;
 
 material_t::material_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile,
-				   handle<core::ivk::context> context,
-				   handle<core::data::material_t> data,
-				   core::resource::handle<core::ivk::pipeline_cache> pipelineCache,
-				   core::resource::handle<core::ivk::buffer_t> materialBuffer) :
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   handle<core::ivk::context> context,
+					   handle<core::data::material_t> data,
+					   core::resource::handle<core::ivk::pipeline_cache> pipelineCache,
+					   core::resource::handle<core::ivk::buffer_t> materialBuffer) :
 	m_UID(metaData.uid),
 	m_Context(context), m_PipelineCache(pipelineCache), m_Data(data), m_MaterialBuffer(materialBuffer)
 {
@@ -41,9 +41,10 @@ material_t::material_t(core::resource::cache_t& cache,
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
 		if(!shader_handle)
 		{
-			core::gfx::log->warn("ivk::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-								 utility::to_string(ID),
-								 utility::to_string(stage.shader()));
+			core::gfx::log->warn(
+			  "ivk::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
+			  utility::to_string(ID),
+			  utility::to_string(stage.shader()));
 
 
 			core::gfx::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
@@ -189,8 +190,8 @@ core::resource::handle<pipeline> material_t::get(core::resource::handle<swapchai
 }
 
 bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
-							 core::resource::handle<framebuffer_t> framebuffer,
-							 uint32_t drawIndex)
+							   core::resource::handle<framebuffer_t> framebuffer,
+							   uint32_t drawIndex)
 {
 	PROFILE_SCOPE(core::profiler)
 	m_Bound = get(framebuffer);
@@ -217,8 +218,8 @@ bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
 }
 
 bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
-							 core::resource::handle<swapchain> swapchain,
-							 uint32_t drawIndex)
+							   core::resource::handle<swapchain> swapchain,
+							   uint32_t drawIndex)
 {
 	PROFILE_SCOPE(core::profiler)
 	m_Bound = get(swapchain);
@@ -239,7 +240,8 @@ bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
 	return m_Bound->bind(cmdBuffer, m_DynamicOffsets);
 }
 
-void material_t::bind_material_instance_data(core::resource::handle<core::ivk::buffer_t> buffer, memory::segment segment)
+void material_t::bind_material_instance_data(core::resource::handle<core::ivk::buffer_t> buffer,
+											 memory::segment segment)
 {
 	// assert(segment.range().size() <= m_MaterialBuffer->data()->size());
 	m_MaterialBufferRange = segment;

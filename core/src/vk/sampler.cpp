@@ -11,10 +11,10 @@ using namespace core::resource;
 using namespace core;
 
 sampler_t::sampler_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile,
-				 handle<context> context,
-				 handle<data::sampler_t> sampler_data) :
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile,
+					 handle<context> context,
+					 handle<data::sampler_t> sampler_data) :
 	m_Data(sampler_data),
 	m_Context(context), m_Samplers {}
 {

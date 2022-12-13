@@ -1,12 +1,12 @@
-#include <stdexcept>
 #include "psl/debug_utils.hpp"
 #include "psl/assertions.hpp"
+#include <stdexcept>
 
 #ifdef PLATFORM_WINDOWS
-#include <Windows.h>
-#pragma comment(lib, "Dbghelp.lib")
-#include <Dbghelp.h>
-#include <tlhelp32.h>
+	#include <Windows.h>
+	#pragma comment(lib, "Dbghelp.lib")
+	#include <Dbghelp.h>
+	#include <tlhelp32.h>
 #endif
 
 std::vector<utility::debug::trace_info>

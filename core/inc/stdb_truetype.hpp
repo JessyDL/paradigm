@@ -239,8 +239,8 @@
 //  Incomplete text-in-3d-api example, which draws quads properly aligned to be lossless
 //
 #if 0
-#define STB_TRUETYPE_IMPLEMENTATION	   // force following include to generate implementation
-#include "stb_truetype.hpp"
+	#define STB_TRUETYPE_IMPLEMENTATION	   // force following include to generate implementation
+	#include "stb_truetype.hpp"
 
 unsigned char ttf_buffer[1 << 20];
 unsigned char temp_bitmap[512 * 512];
@@ -287,9 +287,9 @@ void my_stbtt_print(float x, float y, char *text)
 // Complete program (this compiles): get a single bitmap, print as ASCII art
 //
 #if 0
-#include <stdio.h>
-#define STB_TRUETYPE_IMPLEMENTATION	   // force following include to generate implementation
-#include "stb_truetype.hpp"
+	#include <stdio.h>
+	#define STB_TRUETYPE_IMPLEMENTATION	   // force following include to generate implementation
+	#include "stb_truetype.hpp"
 
 char ttf_buffer[1 << 25];
 
@@ -384,58 +384,58 @@ int main(int arg, char **argv)
 ////   of C library functions used by stb_truetype.
 
 #ifdef STB_TRUETYPE_IMPLEMENTATION
-// #define your own (u)stbtt_int8/16/32 before including to override this
-#ifndef stbtt_uint8
+	// #define your own (u)stbtt_int8/16/32 before including to override this
+	#ifndef stbtt_uint8
 typedef unsigned char stbtt_uint8;
 typedef signed char stbtt_int8;
 typedef unsigned short stbtt_uint16;
 typedef signed short stbtt_int16;
 typedef unsigned int stbtt_uint32;
 typedef signed int stbtt_int32;
-#endif
+	#endif
 
 typedef char stbtt__check_size32[sizeof(stbtt_int32) == 4 ? 1 : -1];
 typedef char stbtt__check_size16[sizeof(stbtt_int16) == 2 ? 1 : -1];
 
-// #define your own STBTT_ifloor/STBTT_iceil() to avoid math.h
-#ifndef STBTT_ifloor
-#include <math.h>
-#define STBTT_ifloor(x) ((int)floor(x))
-#define STBTT_iceil(x) ((int)ceil(x))
-#endif
+	// #define your own STBTT_ifloor/STBTT_iceil() to avoid math.h
+	#ifndef STBTT_ifloor
+		#include <math.h>
+		#define STBTT_ifloor(x) ((int)floor(x))
+		#define STBTT_iceil(x) ((int)ceil(x))
+	#endif
 
-#ifndef STBTT_sqrt
-#include <math.h>
-#define STBTT_sqrt(x) sqrt(x)
-#endif
+	#ifndef STBTT_sqrt
+		#include <math.h>
+		#define STBTT_sqrt(x) sqrt(x)
+	#endif
 
-#ifndef STBTT_fabs
-#include <math.h>
-#define STBTT_fabs(x) fabs(x)
-#endif
+	#ifndef STBTT_fabs
+		#include <math.h>
+		#define STBTT_fabs(x) fabs(x)
+	#endif
 
-// #define your own functions "STBTT_malloc" / "STBTT_free" to avoid malloc.h
-#ifndef STBTT_malloc
-#include <stdlib.h>
-#define STBTT_malloc(x, u) ((void)(u), malloc(x))
-#define STBTT_free(x, u) ((void)(u), free(x))
-#endif
+	// #define your own functions "STBTT_malloc" / "STBTT_free" to avoid malloc.h
+	#ifndef STBTT_malloc
+		#include <stdlib.h>
+		#define STBTT_malloc(x, u) ((void)(u), malloc(x))
+		#define STBTT_free(x, u) ((void)(u), free(x))
+	#endif
 
-#ifndef STBTT_assert
-#include <assert.h>
-#define STBTT_assert(x) assert(x)
-#endif
+	#ifndef STBTT_assert
+		#include <assert.h>
+		#define STBTT_assert(x) assert(x)
+	#endif
 
-#ifndef STBTT_strlen
-#include <string.h>
-#define STBTT_strlen(x) strlen(x)
-#endif
+	#ifndef STBTT_strlen
+		#include <string.h>
+		#define STBTT_strlen(x) strlen(x)
+	#endif
 
-#ifndef STBTT_memcpy
-#include <memory.h>
-#define STBTT_memcpy memcpy
-#define STBTT_memset memset
-#endif
+	#ifndef STBTT_memcpy
+		#include <memory.h>
+		#define STBTT_memcpy memcpy
+		#define STBTT_memset memset
+	#endif
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -446,17 +446,17 @@ typedef char stbtt__check_size16[sizeof(stbtt_int16) == 2 ? 1 : -1];
 ////
 
 #ifndef __STB_INCLUDE_STB_TRUETYPE_H__
-#define __STB_INCLUDE_STB_TRUETYPE_H__
+	#define __STB_INCLUDE_STB_TRUETYPE_H__
 
-#ifdef STBTT_STATIC
-#define STBTT_DEF static
-#else
-#define STBTT_DEF extern
-#endif
+	#ifdef STBTT_STATIC
+		#define STBTT_DEF static
+	#else
+		#define STBTT_DEF extern
+	#endif
 
-#ifdef __cplusplus
+	#ifdef __cplusplus
 extern "C" {
-#endif
+	#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -528,9 +528,9 @@ typedef struct
 
 typedef struct stbtt_pack_context stbtt_pack_context;
 typedef struct stbtt_fontinfo stbtt_fontinfo;
-#ifndef STB_RECT_PACK_VERSION
+	#ifndef STB_RECT_PACK_VERSION
 typedef struct stbrp_rect stbrp_rect;
-#endif
+	#endif
 
 STBTT_DEF int stbtt_PackBegin(stbtt_pack_context* spc,
 							  unsigned char* pixels,
@@ -552,7 +552,7 @@ STBTT_DEF int stbtt_PackBegin(stbtt_pack_context* spc,
 STBTT_DEF void stbtt_PackEnd(stbtt_pack_context* spc);
 // Cleans up the packing context and frees all memory.
 
-#define STBTT_POINT_SIZE(x) (-(x))
+	#define STBTT_POINT_SIZE(x) (-(x))
 
 STBTT_DEF int stbtt_PackFontRange(stbtt_pack_context* spc,
 								  unsigned char* fontdata,
@@ -759,24 +759,24 @@ STBTT_DEF int stbtt_GetGlyphBox(const stbtt_fontinfo* info, int glyph_index, int
 // the bitmaps for C declaration-order reasons)
 //
 
-#ifndef STBTT_vmove	   // you can predefine these to use different values (but why?)
+	#ifndef STBTT_vmove	   // you can predefine these to use different values (but why?)
 enum
 {
 	STBTT_vmove = 1,
 	STBTT_vline,
 	STBTT_vcurve
 };
-#endif
+	#endif
 
-#ifndef stbtt_vertex	// you can predefine this to use different values
-// (we share this with other code at RAD)
-#define stbtt_vertex_type short	   // can't use stbtt_int16 because that's not visible in the header file
+	#ifndef stbtt_vertex	// you can predefine this to use different values
+		// (we share this with other code at RAD)
+		#define stbtt_vertex_type short	   // can't use stbtt_int16 because that's not visible in the header file
 typedef struct
 {
 	stbtt_vertex_type x, y, cx, cy;
 	unsigned char type, padding;
 } stbtt_vertex;
-#endif
+	#endif
 
 STBTT_DEF int stbtt_IsGlyphEmpty(const stbtt_fontinfo* info, int glyph_index);
 // returns non-zero if nothing is drawn for this glyph
@@ -988,15 +988,15 @@ STBTT_DEF void stbtt_Rasterize(stbtt__bitmap* result,		// 1-channel bitmap to dr
 
 
 STBTT_DEF int stbtt_FindMatchingFont(const unsigned char* fontdata, const char* name, int flags);
-// returns the offset (not index) of the font that matches, or -1 if none
-//   if you use STBTT_MACSTYLE_DONTCARE, use a font name like "Arial Bold".
-//   if you use any other flag, use a font name like "Arial"; this checks
-//     the 'macStyle' header field; i don't know if fonts set this consistently
-#define STBTT_MACSTYLE_DONTCARE 0
-#define STBTT_MACSTYLE_BOLD 1
-#define STBTT_MACSTYLE_ITALIC 2
-#define STBTT_MACSTYLE_UNDERSCORE 4
-#define STBTT_MACSTYLE_NONE 8	 // <= not same as 0, this makes us check the bitfield is 0
+	// returns the offset (not index) of the font that matches, or -1 if none
+	//   if you use STBTT_MACSTYLE_DONTCARE, use a font name like "Arial Bold".
+	//   if you use any other flag, use a font name like "Arial"; this checks
+	//     the 'macStyle' header field; i don't know if fonts set this consistently
+	#define STBTT_MACSTYLE_DONTCARE 0
+	#define STBTT_MACSTYLE_BOLD 1
+	#define STBTT_MACSTYLE_ITALIC 2
+	#define STBTT_MACSTYLE_UNDERSCORE 4
+	#define STBTT_MACSTYLE_NONE 8	 // <= not same as 0, this makes us check the bitfield is 0
 
 STBTT_DEF int stbtt_CompareUTF8toUTF16_bigendian(const char* s1, int len1, const char* s2, int len2);
 // returns 1/0 whether the first string interpreted as utf8 is identical to
@@ -1087,9 +1087,9 @@ enum
 	STBTT_MAC_LANG_CHINESE_TRAD		  = 19
 };
 
-#ifdef __cplusplus
+	#ifdef __cplusplus
 }
-#endif
+	#endif
 
 #endif	  // __STB_INCLUDE_STB_TRUETYPE_H__
 
@@ -1102,25 +1102,25 @@ enum
 
 #ifdef STB_TRUETYPE_IMPLEMENTATION
 
-#ifndef STBTT_MAX_OVERSAMPLE
-#define STBTT_MAX_OVERSAMPLE 8
-#endif
+	#ifndef STBTT_MAX_OVERSAMPLE
+		#define STBTT_MAX_OVERSAMPLE 8
+	#endif
 
-#if STBTT_MAX_OVERSAMPLE > 255
-#error "STBTT_MAX_OVERSAMPLE cannot be > 255"
-#endif
+	#if STBTT_MAX_OVERSAMPLE > 255
+		#error "STBTT_MAX_OVERSAMPLE cannot be > 255"
+	#endif
 
 typedef int stbtt__test_oversample_pow2[(STBTT_MAX_OVERSAMPLE & (STBTT_MAX_OVERSAMPLE - 1)) == 0 ? 1 : -1];
 
-#ifndef STBTT_RASTERIZER_VERSION
-#define STBTT_RASTERIZER_VERSION 2
-#endif
+	#ifndef STBTT_RASTERIZER_VERSION
+		#define STBTT_RASTERIZER_VERSION 2
+	#endif
 
-#ifdef _MSC_VER
-#define STBTT__NOTUSED(v) (void)(v)
-#else
-#define STBTT__NOTUSED(v) (void)sizeof(v)
-#endif
+	#ifdef _MSC_VER
+		#define STBTT__NOTUSED(v) (void)(v)
+	#else
+		#define STBTT__NOTUSED(v) (void)sizeof(v)
+	#endif
 
 //////////////////////////////////////////////////////////////////////////
 //
@@ -1130,28 +1130,28 @@ typedef int stbtt__test_oversample_pow2[(STBTT_MAX_OVERSAMPLE & (STBTT_MAX_OVERS
 // on platforms that don't allow misaligned reads, if we want to allow
 // truetype fonts that aren't padded to alignment, define ALLOW_UNALIGNED_TRUETYPE
 
-#define ttBYTE(p) (*(stbtt_uint8*)(p))
-#define ttCHAR(p) (*(stbtt_int8*)(p))
-#define ttFixed(p) ttLONG(p)
+	#define ttBYTE(p) (*(stbtt_uint8*)(p))
+	#define ttCHAR(p) (*(stbtt_int8*)(p))
+	#define ttFixed(p) ttLONG(p)
 
-#if defined(STB_TRUETYPE_BIGENDIAN) && !defined(ALLOW_UNALIGNED_TRUETYPE)
+	#if defined(STB_TRUETYPE_BIGENDIAN) && !defined(ALLOW_UNALIGNED_TRUETYPE)
 
-#define ttUSHORT(p) (*(stbtt_uint16*)(p))
-#define ttSHORT(p) (*(stbtt_int16*)(p))
-#define ttULONG(p) (*(stbtt_uint32*)(p))
-#define ttLONG(p) (*(stbtt_int32*)(p))
+		#define ttUSHORT(p) (*(stbtt_uint16*)(p))
+		#define ttSHORT(p) (*(stbtt_int16*)(p))
+		#define ttULONG(p) (*(stbtt_uint32*)(p))
+		#define ttLONG(p) (*(stbtt_int32*)(p))
 
-#else
+	#else
 
 static stbtt_uint16 ttUSHORT(const stbtt_uint8* p) { return p[0] * 256 + p[1]; }
 static stbtt_int16 ttSHORT(const stbtt_uint8* p) { return p[0] * 256 + p[1]; }
 static stbtt_uint32 ttULONG(const stbtt_uint8* p) { return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]; }
 static stbtt_int32 ttLONG(const stbtt_uint8* p) { return (p[0] << 24) + (p[1] << 16) + (p[2] << 8) + p[3]; }
 
-#endif
+	#endif
 
-#define stbtt_tag4(p, c0, c1, c2, c3) ((p)[0] == (c0) && (p)[1] == (c1) && (p)[2] == (c2) && (p)[3] == (c3))
-#define stbtt_tag(p, str) stbtt_tag4(p, str[0], str[1], str[2], str[3])
+	#define stbtt_tag4(p, c0, c1, c2, c3) ((p)[0] == (c0) && (p)[1] == (c1) && (p)[2] == (c2) && (p)[3] == (c3))
+	#define stbtt_tag(p, str) stbtt_tag4(p, str[0], str[1], str[2], str[3])
 
 static int stbtt__isfont(const stbtt_uint8* font)
 {
@@ -1964,24 +1964,24 @@ typedef struct stbtt__edge
 typedef struct stbtt__active_edge
 {
 	struct stbtt__active_edge* next;
-#if STBTT_RASTERIZER_VERSION == 1
+	#if STBTT_RASTERIZER_VERSION == 1
 	int x, dx;
 	float ey;
 	int direction;
-#elif STBTT_RASTERIZER_VERSION == 2
+	#elif STBTT_RASTERIZER_VERSION == 2
 	float fx, fdx, fdy;
 	float direction;
 	float sy;
 	float ey;
-#else
-#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
-#endif
+	#else
+		#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
+	#endif
 } stbtt__active_edge;
 
-#if STBTT_RASTERIZER_VERSION == 1
-#define STBTT_FIXSHIFT 10
-#define STBTT_FIX (1 << STBTT_FIXSHIFT)
-#define STBTT_FIXMASK (STBTT_FIX - 1)
+	#if STBTT_RASTERIZER_VERSION == 1
+		#define STBTT_FIXSHIFT 10
+		#define STBTT_FIX (1 << STBTT_FIXSHIFT)
+		#define STBTT_FIXMASK (STBTT_FIX - 1)
 
 static stbtt__active_edge*
 stbtt__new_active(stbtt__hheap* hh, stbtt__edge* e, int off_x, float start_point, void* userdata)
@@ -2006,7 +2006,7 @@ stbtt__new_active(stbtt__hheap* hh, stbtt__edge* e, int off_x, float start_point
 	z->direction = e->invert ? 1 : -1;
 	return z;
 }
-#elif STBTT_RASTERIZER_VERSION == 2
+	#elif STBTT_RASTERIZER_VERSION == 2
 static stbtt__active_edge*
 stbtt__new_active(stbtt__hheap* hh, stbtt__edge* e, int off_x, float start_point, void* userdata)
 {
@@ -2025,11 +2025,11 @@ stbtt__new_active(stbtt__hheap* hh, stbtt__edge* e, int off_x, float start_point
 	z->next		 = 0;
 	return z;
 }
-#else
-#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
-#endif
+	#else
+		#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
+	#endif
 
-#if STBTT_RASTERIZER_VERSION == 1
+	#if STBTT_RASTERIZER_VERSION == 1
 // note: this routine clips fills that extend off the edges... ideally this
 // wouldn't happen, but it could happen if the truetype glyph bounding boxes
 // are wrong, or if the user supplies a too-small bitmap
@@ -2208,7 +2208,7 @@ static void stbtt__rasterize_sorted_edges(stbtt__bitmap* result,
 	if(scanline != scanline_data) STBTT_free(scanline, userdata);
 }
 
-#elif STBTT_RASTERIZER_VERSION == 2
+	#elif STBTT_RASTERIZER_VERSION == 2
 
 // the edge passed in here does not cross the vertical line at x or the vertical line at x+1
 // (i.e. it has already been clipped to those)
@@ -2558,11 +2558,11 @@ static void stbtt__rasterize_sorted_edges(stbtt__bitmap* result,
 
 	if(scanline != scanline_data) STBTT_free(scanline, userdata);
 }
-#else
-#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
-#endif
+	#else
+		#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
+	#endif
 
-#define STBTT__COMPARE(a, b) ((a)->y0 < (b)->y0)
+	#define STBTT__COMPARE(a, b) ((a)->y0 < (b)->y0)
 
 static void stbtt__sort_edges_ins_sort(stbtt__edge* p, int n)
 {
@@ -2680,13 +2680,13 @@ static void stbtt__rasterize(stbtt__bitmap* result,
 	float y_scale_inv = invert ? -scale_y : scale_y;
 	stbtt__edge* e;
 	int n, i, j, k, m;
-#if STBTT_RASTERIZER_VERSION == 1
+	#if STBTT_RASTERIZER_VERSION == 1
 	int vsubsample = result->h < 8 ? 15 : 5;
-#elif STBTT_RASTERIZER_VERSION == 2
+	#elif STBTT_RASTERIZER_VERSION == 2
 	int vsubsample = 1;
-#else
-#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
-#endif
+	#else
+		#error "Unrecognized value of STBTT_RASTERIZER_VERSION"
+	#endif
 	// vsubsample should divide 255 evenly; otherwise we won't reach full opacity
 
 	// now we have to blow out the windings into explicit edge lists
@@ -3153,7 +3153,7 @@ STBTT_DEF void stbtt_GetBakedQuad(stbtt_bakedchar* chardata,
 // rectangle packing replacement routines if you don't have stb_rect_pack.h
 //
 
-#ifndef STB_RECT_PACK_VERSION
+	#ifndef STB_RECT_PACK_VERSION
 
 typedef int stbrp_coord;
 
@@ -3215,7 +3215,7 @@ static void stbrp_pack_rects(stbrp_context* con, stbrp_rect* rects, int num_rect
 	}
 	for(; i < num_rects; ++i) rects[i].was_packed = 0;
 }
-#endif
+	#endif
 
 //////////////////////////////////////////////////////////////////////////////
 //
@@ -3275,7 +3275,7 @@ STBTT_DEF void stbtt_PackSetOversampling(stbtt_pack_context* spc, unsigned int h
 	if(v_oversample <= STBTT_MAX_OVERSAMPLE) spc->v_oversample = v_oversample;
 }
 
-#define STBTT__OVER_MASK (STBTT_MAX_OVERSAMPLE - 1)
+	#define STBTT__OVER_MASK (STBTT_MAX_OVERSAMPLE - 1)
 
 static void stbtt__h_prefilter(unsigned char* pixels, int w, int h, int stride_in_bytes, unsigned int kernel_width)
 {

@@ -7,8 +7,8 @@ using namespace core::resource;
 using namespace core;
 
 sampler_t::sampler_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile) noexcept
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile) noexcept
 {}
 
 
@@ -44,8 +44,8 @@ void sampler_t::address(core::gfx::sampler_address_mode value) noexcept
 }
 
 void sampler_t::address(core::gfx::sampler_address_mode u,
-					  core::gfx::sampler_address_mode v,
-					  core::gfx::sampler_address_mode w) noexcept
+						core::gfx::sampler_address_mode v,
+						core::gfx::sampler_address_mode w) noexcept
 {
 	m_AddressModeU.value = u;
 	m_AddressModeV.value = v;

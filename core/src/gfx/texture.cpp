@@ -3,10 +3,10 @@
 #include "meta/texture.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/texture.hpp"
+	#include "vk/texture.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/texture.hpp"
+	#include "gles/texture.hpp"
 #endif
 
 using namespace core;
@@ -26,9 +26,9 @@ texture_t::texture_t(core::resource::handle<core::igles::texture_t>& handle) :
 #endif
 
 texture_t::texture_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 core::meta::texture_t* metaFile,
-				 core::resource::handle<core::gfx::context> context) :
+					 const core::resource::metadata& metaData,
+					 core::meta::texture_t* metaFile,
+					 core::resource::handle<core::gfx::context> context) :
 	m_Backend(context->backend())
 {
 	switch(m_Backend)
@@ -49,9 +49,7 @@ texture_t::texture_t(core::resource::cache_t& cache,
 
 texture_t::~texture_t() {}
 
-[[noreturn]] void fail_backend(){
-	throw std::runtime_error("no backend present");
-}
+[[noreturn]] void fail_backend() { throw std::runtime_error("no backend present"); }
 
 const core::meta::texture_t& texture_t::meta() const noexcept
 {

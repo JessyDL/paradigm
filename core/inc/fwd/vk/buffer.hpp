@@ -3,5 +3,5 @@
 
 namespace core::ivk
 {
-	class buffer_t;
+class buffer_t;
 }	 // namespace core::ivk

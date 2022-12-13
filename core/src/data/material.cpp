@@ -8,8 +8,8 @@ using namespace psl;
 using namespace core::data;
 
 material_t::material_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile) noexcept
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile) noexcept
 {}
 // material_t::material_t(const material_t& other, const UID& uid, core::resource::cache_t& cache)
 //	: m_Stage(other.m_Stage), m_BlendStates(other.m_BlendStates), m_Defines(other.m_Defines),

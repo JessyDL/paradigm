@@ -4,5 +4,5 @@
 
 namespace core::gfx
 {
-	class bundle;
+class bundle;
 }	 // namespace core::gfx

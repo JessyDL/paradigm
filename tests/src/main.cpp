@@ -1,7 +1,7 @@
 #ifdef PLATFORM_WINDOWS
-#define _CRTDBG_MAP_ALLOC
-#include <stdlib.h>
-#include <crtdbg.h>
+	#define _CRTDBG_MAP_ALLOC
+	#include <crtdbg.h>
+	#include <stdlib.h>
 #endif
 
 #include <litmus/litmus.hpp>

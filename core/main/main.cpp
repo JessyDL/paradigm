@@ -685,12 +685,11 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	core::resource::handle<core::gfx::bundle> post_effect_bundle =
 	  cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
 
-	auto post_effect_data =
-	  setup_gfx_material_data(cache,
-							  context_handle,
-							  "0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
-							  "cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid,
-							  std::vector { geometryFBO->texture(0).meta().ID() });
+	auto post_effect_data = setup_gfx_material_data(cache,
+													context_handle,
+													"0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
+													"cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid,
+													std::vector {geometryFBO->texture(0).meta().ID()});
 	// post_effect_data->blend_states({core::data::material_t::blendstate::transparent(0)});
 	post_effect_data->cull_mode(core::gfx::cullmode::none);
 	post_effect_data->depth_write(false);

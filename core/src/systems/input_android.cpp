@@ -1,5 +1,3 @@
 #include "systems/input.hpp"
 
-void core::systems::input::tick()
-{
-}
+void core::systems::input::tick() {}

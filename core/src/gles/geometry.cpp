@@ -16,11 +16,11 @@ using namespace core::resource;
 using gData = core::data::geometry_t;
 
 geometry_t::geometry_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile,
-				   handle<gData> data,
-				   handle<buffer_t> vertexBuffer,
-				   handle<buffer_t> indexBuffer) :
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   handle<gData> data,
+					   handle<buffer_t> vertexBuffer,
+					   handle<buffer_t> indexBuffer) :
 	m_UID(metaData.uid),
 	m_GeometryBuffer(vertexBuffer), m_IndicesBuffer(indexBuffer), m_IndicesSubRange()
 {
@@ -137,8 +137,8 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 	error = glGetError();
 }
 void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
-						core::resource::handle<core::igles::buffer_t> vertexBuffer,
-						core::resource::handle<core::igles::buffer_t> indexBuffer)
+						  core::resource::handle<core::igles::buffer_t> vertexBuffer,
+						  core::resource::handle<core::igles::buffer_t> indexBuffer)
 {
 	clear();
 	m_GeometryBuffer = vertexBuffer;
@@ -148,8 +148,8 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
 }
 
 void geometry_t::create_vao(core::resource::handle<core::igles::material_t> material,
-						  core::resource::handle<core::igles::buffer_t> instanceBuffer,
-						  psl::array<std::pair<size_t, size_t>> bindings)
+							core::resource::handle<core::igles::buffer_t> instanceBuffer,
+							psl::array<std::pair<size_t, size_t>> bindings)
 {
 	GLuint vao;
 	// todo this is not correct

@@ -4,10 +4,10 @@
 #include "gfx/texture.hpp"
 
 #ifdef PE_GLES
-#include "gles/framebuffer.hpp"
+	#include "gles/framebuffer.hpp"
 #endif
 #ifdef PE_VULKAN
-#include "vk/framebuffer.hpp"
+	#include "vk/framebuffer.hpp"
 #endif
 
 using namespace core::resource;
@@ -27,10 +27,10 @@ framebuffer_t::framebuffer_t(core::resource::handle<core::igles::framebuffer_t>&
 #endif
 
 framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
-						 const core::resource::metadata& metaData,
-						 psl::meta::file* metaFile,
-						 handle<core::gfx::context> context,
-						 handle<data::framebuffer_t> data) :
+							 const core::resource::metadata& metaData,
+							 psl::meta::file* metaFile,
+							 handle<core::gfx::context> context,
+							 handle<data::framebuffer_t> data) :
 	m_Backend(context->backend())
 {
 	switch(context->backend())
@@ -42,16 +42,14 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 #endif
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle =
-		  cache.create_using<core::ivk::framebuffer_t>(metaData.uid, context->resource<graphics_backend::vulkan>(), data);
+		m_VKHandle = cache.create_using<core::ivk::framebuffer_t>(
+		  metaData.uid, context->resource<graphics_backend::vulkan>(), data);
 		break;
 #endif
 	}
 }
 
-[[noreturn]] void fail_gfx_backend(){
-	throw std::runtime_error("no backend present");
-}
+[[noreturn]] void fail_gfx_backend() { throw std::runtime_error("no backend present"); }
 
 texture_t framebuffer_t::texture(size_t index) const noexcept
 {

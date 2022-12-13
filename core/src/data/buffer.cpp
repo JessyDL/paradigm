@@ -5,11 +5,11 @@ using namespace psl;
 using namespace core::data;
 
 buffer_t::buffer_t(core::resource::cache_t& cache,
-			   const core::resource::metadata& metaData,
-			   psl::meta::file* metaFile,
-			   core::gfx::memory_usage usage,
-			   core::gfx::memory_property memoryPropertyFlags,
-			   memory::region&& memory_region) noexcept :
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   core::gfx::memory_usage usage,
+				   core::gfx::memory_property memoryPropertyFlags,
+				   memory::region&& memory_region) noexcept :
 	m_Region(std::move(memory_region)),
 	m_Usage(usage), m_MemoryPropertyFlags(memoryPropertyFlags)
 {}

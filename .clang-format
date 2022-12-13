@@ -34,7 +34,7 @@ BreakBeforeBraces: Custom
 Cpp11BracedListStyle: true
 DerivePointerAlignment: false
 MaxEmptyLinesToKeep: 2
-NamespaceIndentation: All
+NamespaceIndentation: Inner
 SpaceAfterCStyleCast: false
 SpaceBeforeAssignmentOperators: true
 SpaceBeforeParens: Never

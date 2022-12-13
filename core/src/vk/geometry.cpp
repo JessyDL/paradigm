@@ -19,12 +19,12 @@ constexpr const vk::IndexType INDEX_TYPE =
   sizeof(core::data::geometry_t::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
 
 geometry_t::geometry_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile,
-				   handle<core::ivk::context> context,
-				   core::resource::handle<core::data::geometry_t> data,
-				   core::resource::handle<core::ivk::buffer_t> geometryBuffer,
-				   core::resource::handle<core::ivk::buffer_t> indicesBuffer) :
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   handle<core::ivk::context> context,
+					   core::resource::handle<core::data::geometry_t> data,
+					   core::resource::handle<core::ivk::buffer_t> geometryBuffer,
+					   core::resource::handle<core::ivk::buffer_t> indicesBuffer) :
 	m_Context(context),
 	m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
 {
@@ -76,7 +76,9 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 		core::ivk::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
 	}
-	psl_assert(data->vertex_streams().size() > 0, "sizeof vertex streams was not larger than 0, it was '{}'", data->vertex_streams().size());
+	psl_assert(data->vertex_streams().size() > 0,
+			   "sizeof vertex streams was not larger than 0, it was '{}'",
+			   data->vertex_streams().size());
 	m_Vertices = std::begin(data->vertex_streams())->second.size();
 	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
@@ -98,8 +100,8 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 
 	if(m_GeometryBuffer != m_IndicesBuffer)
 	{
-		if(auto indiceSegment =
-			 m_IndicesBuffer->reserve((uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
+		if(auto indiceSegment = m_IndicesBuffer->reserve(
+			 (uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
 		   indiceSegment)
 		{
 			m_IndicesSegment  = indiceSegment.value();
@@ -136,8 +138,8 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 	m_Data = data;
 }
 void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
-						core::resource::handle<core::ivk::buffer_t> geometryBuffer,
-						core::resource::handle<core::ivk::buffer_t> indicesBuffer)
+						  core::resource::handle<core::ivk::buffer_t> geometryBuffer,
+						  core::resource::handle<core::ivk::buffer_t> indicesBuffer)
 {
 	clear();
 

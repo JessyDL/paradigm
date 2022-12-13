@@ -3,8 +3,8 @@
 
 namespace core::data
 {
-	class application
-	{
-	  public:
-	};
+class application
+{
+  public:
+};
 }	 // namespace core::data

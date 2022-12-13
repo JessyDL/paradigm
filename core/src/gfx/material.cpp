@@ -6,10 +6,10 @@
 #include "psl/memory/segment.hpp"
 
 #ifdef PE_GLES
-#include "gles/material.hpp"
+	#include "gles/material.hpp"
 #endif
 #ifdef PE_VULKAN
-#include "vk/material.hpp"
+	#include "vk/material.hpp"
 #endif
 
 using namespace core::resource;
@@ -27,12 +27,12 @@ material_t::material_t(core::resource::handle<core::igles::material_t>& handle) 
 #endif
 
 material_t::material_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile,
-				   core::resource::handle<context> context_handle,
-				   core::resource::handle<core::data::material_t> data,
-				   core::resource::handle<pipeline_cache> pipeline_cache,
-				   core::resource::handle<buffer_t> materialBuffer) :
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   core::resource::handle<context> context_handle,
+					   core::resource::handle<core::data::material_t> data,
+					   core::resource::handle<pipeline_cache> pipeline_cache,
+					   core::resource::handle<buffer_t> materialBuffer) :
 	m_Backend(context_handle->backend())
 {
 	switch(m_Backend)
@@ -46,10 +46,10 @@ material_t::material_t(core::resource::cache_t& cache,
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_VKHandle = cache.create_using<core::ivk::material_t>(metaData.uid,
-															 context_handle->resource<graphics_backend::vulkan>(),
-															 data,
-															 pipeline_cache->resource<graphics_backend::vulkan>(),
-															 materialBuffer->resource<graphics_backend::vulkan>());
+															   context_handle->resource<graphics_backend::vulkan>(),
+															   data,
+															   pipeline_cache->resource<graphics_backend::vulkan>(),
+															   materialBuffer->resource<graphics_backend::vulkan>());
 		break;
 #endif
 	}

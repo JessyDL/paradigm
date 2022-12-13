@@ -11,9 +11,9 @@ using namespace core;
 #define USE_BUFFER_SUBDATA
 
 buffer_t::buffer_t(core::resource::cache_t& cache,
-			   const core::resource::metadata& metaData,
-			   psl::meta::file* metaFile,
-			   core::resource::handle<core::data::buffer_t> buffer_data) :
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   core::resource::handle<core::data::buffer_t> buffer_data) :
 	m_BufferDataHandle(buffer_data),
 	m_UID(metaData.uid)
 {

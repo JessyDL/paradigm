@@ -1,8 +1,8 @@
-#include "psl/ecs/state.hpp"
-#include "psl/ecs/order_by.hpp"
 #include "psl/ecs/on_condition.hpp"
-#include <benchmark/benchmark.h>
+#include "psl/ecs/order_by.hpp"
+#include "psl/ecs/state.hpp"
 #include "psl/math/math.hpp"
+#include <benchmark/benchmark.h>
 
 using namespace psl;
 using namespace psl::ecs;
@@ -141,7 +141,8 @@ class filtering_fixture : public ::benchmark::Fixture
 		auto entities = state.filter<int>();
 		gState.ResumeTiming();
 
-		psl::ecs::details::on_condition<int>(state, std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
+		psl::ecs::details::on_condition<int>(
+		  state, std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
 	}
 	ecs::state_t state;
 };
@@ -219,7 +220,7 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
 #endif
 #ifdef BENCHMARK_SYSTEMS
 
-#include <random>
+	#include <random>
 template <typename T, typename... Ts>
 auto read_only_system = [](info_t& info, pack<T, const Ts...>) {};
 
@@ -283,10 +284,10 @@ void trivial_write_par_system(benchmark::State& gState)
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-#include "ecs/components/camera.hpp"
-#include "ecs/components/lifetime.hpp"
-#include "ecs/components/transform.hpp"
-#include "ecs/components/velocity.hpp"
+	#include "ecs/components/camera.hpp"
+	#include "ecs/components/lifetime.hpp"
+	#include "ecs/components/transform.hpp"
+	#include "ecs/components/velocity.hpp"
 using namespace core::ecs::components;
 
 void complex_read_only_seq_system(benchmark::State& gState)

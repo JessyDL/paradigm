@@ -1,12 +1,12 @@
 #include "gfx/buffer.hpp"
 #include "gfx/context.hpp"
 #ifdef PE_VULKAN
-#include "vk/buffer.hpp"
-#include "vk/context.hpp"
+	#include "vk/buffer.hpp"
+	#include "vk/context.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/buffer.hpp"
-#include "gles/context.hpp"
+	#include "gles/buffer.hpp"
+	#include "gles/context.hpp"
 #endif
 #include "data/buffer.hpp"
 
@@ -26,10 +26,10 @@ buffer_t::buffer_t(core::resource::handle<core::igles::buffer_t>& handle) :
 #endif
 
 buffer_t::buffer_t(core::resource::cache_t& cache,
-			   const core::resource::metadata& metaData,
-			   psl::meta::file* metaFile,
-			   handle<context> context,
-			   handle<data::buffer_t> data) :
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   handle<context> context,
+				   handle<data::buffer_t> data) :
 	m_Backend(context->backend())
 {
 	switch(m_Backend)
@@ -49,20 +49,20 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 }
 
 buffer_t::buffer_t(core::resource::cache_t& cache,
-			   const core::resource::metadata& metaData,
-			   psl::meta::file* metaFile,
-			   handle<context> context,
-			   handle<data::buffer_t> data,
-			   handle<buffer_t> staging)
+				   const core::resource::metadata& metaData,
+				   psl::meta::file* metaFile,
+				   handle<context> context,
+				   handle<data::buffer_t> data,
+				   handle<buffer_t> staging)
 {
 	switch(context->backend())
 	{
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
 		m_VKHandle = cache.create_using<core::ivk::buffer_t>(metaData.uid,
-														   context->resource<graphics_backend::vulkan>(),
-														   data,
-														   staging->resource<graphics_backend::vulkan>());
+															 context->resource<graphics_backend::vulkan>(),
+															 data,
+															 staging->resource<graphics_backend::vulkan>());
 		break;
 #endif
 #ifdef PE_GLES
@@ -112,7 +112,7 @@ const core::data::buffer_t& buffer_t::data() const
 	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
 [[nodiscard]] psl::array<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(psl::array<uint64_t> sizes,
-																					bool optimize)
+																						bool optimize)
 {
 #ifdef PE_GLES
 	if(m_GLESHandle)

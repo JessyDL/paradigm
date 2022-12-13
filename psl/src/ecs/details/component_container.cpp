@@ -8,7 +8,9 @@
 using namespace psl::ecs;
 using namespace psl::ecs::details;
 
-component_container_t::component_container_t(const component_key_t& id, size_t size, size_t alignment) : m_ID(std::move(id)), m_Size(size), m_Alignment(alignment) {}
+component_container_t::component_container_t(const component_key_t& id, size_t size, size_t alignment) :
+	m_ID(std::move(id)), m_Size(size), m_Alignment(alignment)
+{}
 
 component_container_t::component_container_t(component_container_t&& other) :
 	m_ID(std::move(other.m_ID)), m_Size(std::move(other.m_Size)) {};

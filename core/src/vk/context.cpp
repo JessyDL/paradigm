@@ -5,14 +5,14 @@
 #include "os/surface.hpp"
 #include "paradigm.hpp"
 #include "psl/meta.hpp"
+#include "psl/ustream.hpp"
 #include "resource/resource.hpp"
 #include "vk/conversion.hpp"
-#include "psl/ustream.hpp"
 
 #ifdef PLATFORM_LINUX
-// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
-#undef minor
-#undef major
+	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
+	#undef minor
+	#undef major
 #endif
 
 #ifdef VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
@@ -161,7 +161,7 @@ context::context(core::resource::cache_t& cache,
 
 	vk::ApplicationInfo appInfo;
 	appInfo.pApplicationName = name.data();
-	appInfo.pEngineName		 = APPLICATION_NAME.data();	
+	appInfo.pEngineName		 = APPLICATION_NAME.data();
 	psl_assert(VERSION_MAJOR < std::pow(2, 10), "VERSION_MAJOR {} was higher than {}", VERSION_MAJOR, std::pow(2, 10));
 	psl_assert(VERSION_MINOR < std::pow(2, 10), "VERSION_MINOR {} was higher than {}", VERSION_MINOR, std::pow(2, 10));
 	psl_assert(VERSION_PATCH < std::pow(2, 12), "VERSION_PATCH {} was higher than {}", VERSION_PATCH, std::pow(2, 12));

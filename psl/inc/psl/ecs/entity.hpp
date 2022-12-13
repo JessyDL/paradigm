@@ -5,54 +5,54 @@
 
 namespace psl::ecs
 {
-	/// \brief tag type to circumvent constructing an object in the backing data
+/// \brief tag type to circumvent constructing an object in the backing data
+template <typename T>
+struct empty
+{};
+
+namespace details
+{
 	template <typename T>
-	struct empty
+	struct is_empty_container : std::false_type
 	{};
 
-	namespace details
+	template <typename T>
+	struct is_empty_container<psl::ecs::empty<T>> : std::true_type
+	{};
+
+	template <typename T>
+	struct empty_container
 	{
-		template <typename T>
-		struct is_empty_container : std::false_type
-		{};
+		using type = void;
+	};
 
-		template <typename T>
-		struct is_empty_container<psl::ecs::empty<T>> : std::true_type
-		{};
+	template <typename T>
+	struct empty_container<psl::ecs::empty<T>>
+	{
+		using type = T;
+	};
 
-		template <typename T>
-		struct empty_container
-		{
-			using type = void;
-		};
+	template <typename T>
+	struct is_range_t : std::false_type
+	{};
 
-		template <typename T>
-		struct empty_container<psl::ecs::empty<T>>
-		{
-			using type = T;
-		};
+	template <typename T>
+	struct is_range_t<psl::array<T>> : std::true_type
+	{
+		using type = T;
+	};
+}	 // namespace details
 
-		template <typename T>
-		struct is_range_t : std::false_type
-		{};
+/// ----------------------------------------------------------------------------------------------
+/// Entity
+/// ----------------------------------------------------------------------------------------------
+// struct entity;
 
-		template <typename T>
-		struct is_range_t<psl::array<T>> : std::true_type
-		{
-			using type = T;
-		};
-	}	 // namespace details
+/// \brief entity points to a collection of components
+using entity = uint32_t;
 
-	/// ----------------------------------------------------------------------------------------------
-	/// Entity
-	/// ----------------------------------------------------------------------------------------------
-	// struct entity;
-
-	/// \brief entity points to a collection of components
-	using entity = uint32_t;
-
-	/// \brief checks if an entity is valid or not
-	/// \param[in] e the entity to check
-	static bool valid(entity e) noexcept { return e != 0u; };
+/// \brief checks if an entity is valid or not
+/// \param[in] e the entity to check
+static bool valid(entity e) noexcept { return e != 0u; };
 
 }	 // namespace psl::ecs

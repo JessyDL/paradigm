@@ -47,8 +47,9 @@ core::resource::handle<core::ivk::pipeline> pipeline_cache::get(const psl::UID& 
 	return pipelineHandle;
 }
 
-core::resource::handle<core::ivk::pipeline>
-pipeline_cache::get(const psl::UID& uid, handle<core::data::material_t> data, core::resource::handle<swapchain> swapchain)
+core::resource::handle<core::ivk::pipeline> pipeline_cache::get(const psl::UID& uid,
+																handle<core::data::material_t> data,
+																core::resource::handle<swapchain> swapchain)
 {
 	pipeline_key key(uid, data, swapchain->renderpass());
 	if(auto it = m_Pipelines.find(key); it != std::end(m_Pipelines))

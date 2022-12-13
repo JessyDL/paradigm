@@ -315,7 +315,10 @@ size_t data::offset_of(core::resource::tag<core::gfx::material_t> material, psl:
 	return res;
 }
 
-bool data::set(core::resource::tag<core::gfx::material_t> material, const void* data, size_t size, size_t offset) noexcept
+bool data::set(core::resource::tag<core::gfx::material_t> material,
+			   const void* data,
+			   size_t size,
+			   size_t offset) noexcept
 {
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
@@ -329,7 +332,8 @@ bool data::bind_material(core::resource::handle<core::gfx::material_t> material)
 	auto it = m_MaterialInstanceData.find(material);
 	if(it == std::end(m_MaterialInstanceData)) return false;
 
-	return material->bind_instance_data(it->second.descriptor.binding(), static_cast<uint32_t>(it->second.segment.range().begin));
+	return material->bind_instance_data(it->second.descriptor.binding(),
+										static_cast<uint32_t>(it->second.segment.range().begin));
 }
 
 core::resource::handle<core::gfx::buffer_t> data::material_buffer() const noexcept

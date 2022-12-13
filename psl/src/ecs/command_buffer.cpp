@@ -4,7 +4,8 @@
 
 using namespace psl::ecs;
 
-command_buffer_t::command_buffer_t(const state_t& state) : m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
+command_buffer_t::command_buffer_t(const state_t& state) :
+	m_State(&state), m_First(static_cast<entity>(state.capacity())) {};
 
 
 details::component_container_t* command_buffer_t::get_component_container(const details::component_key_t& key) noexcept
@@ -18,8 +19,8 @@ details::component_container_t* command_buffer_t::get_component_container(const 
 
 // empty construction
 void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										psl::array_view<std::pair<entity, entity>> entities,
-										size_t size)
+										  psl::array_view<std::pair<entity, entity>> entities,
+										  size_t size)
 {
 	auto cInfo = get_component_container(key);
 
@@ -29,9 +30,9 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 
 // invocable based construction
 void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										psl::array_view<std::pair<entity, entity>> entities,
-										size_t size,
-										std::function<void(std::uintptr_t, size_t)> invocable)
+										  psl::array_view<std::pair<entity, entity>> entities,
+										  size_t size,
+										  std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_container(key);
@@ -46,9 +47,9 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 
 // prototype based construction
 void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										psl::array_view<std::pair<entity, entity>> entities,
-										size_t size,
-										void* prototype)
+										  psl::array_view<std::pair<entity, entity>> entities,
+										  size_t size,
+										  void* prototype)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_container(key);
@@ -79,9 +80,9 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 
 // invocable based construction
 void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										psl::array_view<entity> entities,
-										size_t size,
-										std::function<void(std::uintptr_t, size_t)> invocable)
+										  psl::array_view<entity> entities,
+										  size_t size,
+										  std::function<void(std::uintptr_t, size_t)> invocable)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_container(key);
@@ -96,10 +97,10 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 
 // prototype based construction
 void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										psl::array_view<entity> entities,
-										size_t size,
-										void* prototype,
-										bool repeat)
+										  psl::array_view<entity> entities,
+										  size_t size,
+										  void* prototype,
+										  bool repeat)
 {
 	psl_assert(size != 0, "size of requested components shouldn't be 0");
 	auto cInfo = get_component_container(key);
@@ -127,7 +128,7 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 
 
 void command_buffer_t::remove_component(const details::component_key_t& key,
-									  psl::array_view<std::pair<entity, entity>> entities) noexcept
+										psl::array_view<std::pair<entity, entity>> entities) noexcept
 {
 	auto it = std::find_if(
 	  std::begin(m_Components), std::end(m_Components), [&key](const auto& cInfo) { return cInfo->id() == key; });

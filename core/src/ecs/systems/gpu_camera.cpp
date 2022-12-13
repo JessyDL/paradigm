@@ -36,7 +36,7 @@ void gpu_camera::tick(
 	auto camera_components = cameras.get<const core::ecs::components::camera>();
 	auto transf_components = cameras.get<const core::ecs::components::transform>();
 
-	for (size_t i = 0; i < cameras.size(); ++i)
+	for(size_t i = 0; i < cameras.size(); ++i)
 	{
 		update_buffer(i, transf_components[i], camera_components[i]);
 	}

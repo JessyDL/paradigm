@@ -1,15 +1,15 @@
 #include "psl/platform_utils.hpp"
 
-#include <filesystem>
-#include "psl/ustream.hpp"
 #include "psl/assertions.hpp"
+#include "psl/ustream.hpp"
+#include <filesystem>
 
 #ifdef PLATFORM_WINDOWS
-#include <Windows.h>
+	#include <Windows.h>
 #endif
 
 #if defined(PLATFORM_ANDROID)
-#include <android/asset_manager.h>
+	#include <android/asset_manager.h>
 #endif
 
 #include "psl/string_utils.hpp"
@@ -146,8 +146,8 @@ bool utility::platform::directory::erase(psl::string_view path)
 }
 
 psl::string utility::platform::directory::sanitize(psl::string_view path)
-{ 
-	return utility::string::replace_all(path, "\\", "/"); 
+{
+	return utility::string::replace_all(path, "\\", "/");
 }
 
 std::vector<psl::string> utility::platform::directory::all_files(psl::string_view target_directory, bool recursive)
@@ -162,7 +162,7 @@ std::vector<psl::string> utility::platform::directory::all_files(psl::string_vie
 			{
 #ifdef UNICODE
 				auto filename =
-					utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
+				  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
 				auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 #endif
@@ -178,7 +178,7 @@ std::vector<psl::string> utility::platform::directory::all_files(psl::string_vie
 			{
 #ifdef UNICODE
 				auto filename =
-					utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
+				  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
 				auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 #endif
@@ -291,11 +291,12 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 
 bool utility::platform::file::exists(psl::string_view filename)
 {
-	#if defined(PLATFORM_ANDROID)
-		return AAssetManager_open(ANDROID_ASSET_MANAGER, directory::to_platform(filename).data(), AASSET_MODE_UNKNOWN) != nullptr;
-	#else
-		return std::filesystem::exists(directory::to_platform(filename));
-	#endif
+#if defined(PLATFORM_ANDROID)
+	return AAssetManager_open(ANDROID_ASSET_MANAGER, directory::to_platform(filename).data(), AASSET_MODE_UNKNOWN) !=
+		   nullptr;
+#else
+	return std::filesystem::exists(directory::to_platform(filename));
+#endif
 }
 
 bool utility::platform::file::erase(psl::string_view filename)
@@ -308,53 +309,53 @@ bool utility::platform::file::read(psl::string_view filename, std::vector<psl::c
 {
 	psl::string file_name = directory::to_platform(filename);
 	psl_assert(exists(file_name), "Could not find filename {}", file_name);
-	#if !defined(PLATFORM_ANDROID)
-		psl::ifstream file(file_name, std::ios::binary | std::ios::ate);
-		if(!file.is_open())
-		{
-			psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
-			return false;
-		}
-		size_t size = std::min(static_cast<size_t>(file.tellg()), count);
-		file.seekg(0u, std::ios::beg);
-		out.resize(size);
-		file.read(&out[0], size);
-		file.close();
-	#else // PLATFORM_ANDROID
-		AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
-		AAsset *asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_STREAMING);
-		//holds size of searched file
-		off64_t length = AAsset_getLength64(asset);
-		//keeps track of remaining bytes to read
-		off64_t remaining = AAsset_getRemainingLength64(asset);
-		size_t Mb = 1000 *1024; // 1Mb is maximum chunk size for compressed assets
-		size_t currChunk;
-		out.reserve(length);
+#if !defined(PLATFORM_ANDROID)
+	psl::ifstream file(file_name, std::ios::binary | std::ios::ate);
+	if(!file.is_open())
+	{
+		psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
+		return false;
+	}
+	size_t size = std::min(static_cast<size_t>(file.tellg()), count);
+	file.seekg(0u, std::ios::beg);
+	out.resize(size);
+	file.read(&out[0], size);
+	file.close();
+#else	  // PLATFORM_ANDROID
+	AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
+	AAsset* asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_STREAMING);
+	// holds size of searched file
+	off64_t length = AAsset_getLength64(asset);
+	// keeps track of remaining bytes to read
+	off64_t remaining = AAsset_getRemainingLength64(asset);
+	size_t Mb = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
+	size_t currChunk;
+	out.reserve(length);
 
-		//while we have still some data to read
-		while (remaining != 0) 
+	// while we have still some data to read
+	while(remaining != 0)
+	{
+		// set proper size for our next chunk
+		if(remaining >= Mb)
 		{
-			//set proper size for our next chunk
-			if(remaining >= Mb)
-			{
-				currChunk = Mb;
-			}
-			else
-			{
-				currChunk = remaining;
-			}
-			char chunk[currChunk];
-
-			//read data chunk
-			if(AAsset_read(asset, chunk, currChunk) > 0) // returns less than 0 on error
-			{
-				//and append it to our vector
-				out.insert(out.end(),chunk, chunk + currChunk);
-				remaining = AAsset_getRemainingLength64(asset);
-			}
+			currChunk = Mb;
 		}
-		AAsset_close(asset);
-	#endif // !PLATFORM_ANDROID
+		else
+		{
+			currChunk = remaining;
+		}
+		char chunk[currChunk];
+
+		// read data chunk
+		if(AAsset_read(asset, chunk, currChunk) > 0)	// returns less than 0 on error
+		{
+			// and append it to our vector
+			out.insert(out.end(), chunk, chunk + currChunk);
+			remaining = AAsset_getRemainingLength64(asset);
+		}
+	}
+	AAsset_close(asset);
+#endif	  // !PLATFORM_ANDROID
 	return true;
 }
 
@@ -364,7 +365,8 @@ bool utility::platform::file::write(psl::string_view filename, psl::string_view 
 
 	std::size_t found = file_name.find_last_of(directory::seperator);
 
-	if(found != std::string::npos && !directory::exists(file_name.substr(0, found)) && !directory::create(file_name.substr(0, found), true))
+	if(found != std::string::npos && !directory::exists(file_name.substr(0, found)) &&
+	   !directory::create(file_name.substr(0, found), true))
 		return false;
 
 	psl::ofstream output;
@@ -386,52 +388,52 @@ bool utility::platform::file::read(psl::string_view filename, psl::string& out, 
 {
 	psl::string file_name = directory::to_platform(filename);
 	psl_assert(exists(file_name), "Could not find filename {}", file_name);
-	#if !defined(PLATFORM_ANDROID)
-		std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
-		if(!file.is_open())
-		{
-			psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
-			return false;
-		}
-		size_t size = std::min(static_cast<size_t>(file.tellg()), count);
-		file.seekg(0u, std::ios::beg);
-		out.resize(size);
-		file.read(&out[0], size);
-		file.close();
-	#else // PLATFORM_ANDROID
-		AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
-		AAsset *asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_BUFFER);
-		//holds size of searched file
-		off64_t length = AAsset_getLength64(asset);
-		//keeps track of remaining bytes to read
-		off64_t remaining = AAsset_getRemainingLength64(asset);
-		size_t Mb = 1000 *1024; // 1Mb is maximum chunk size for compressed assets
-		size_t currChunk;
-		out.reserve(length);
+#if !defined(PLATFORM_ANDROID)
+	std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
+	if(!file.is_open())
+	{
+		psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
+		return false;
+	}
+	size_t size = std::min(static_cast<size_t>(file.tellg()), count);
+	file.seekg(0u, std::ios::beg);
+	out.resize(size);
+	file.read(&out[0], size);
+	file.close();
+#else	  // PLATFORM_ANDROID
+	AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
+	AAsset* asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_BUFFER);
+	// holds size of searched file
+	off64_t length = AAsset_getLength64(asset);
+	// keeps track of remaining bytes to read
+	off64_t remaining = AAsset_getRemainingLength64(asset);
+	size_t Mb = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
+	size_t currChunk;
+	out.reserve(length);
 
-		//while we have still some data to read
-		while (remaining != 0) 
+	// while we have still some data to read
+	while(remaining != 0)
+	{
+		// set proper size for our next chunk
+		if(remaining >= Mb)
 		{
-			//set proper size for our next chunk
-			if(remaining >= Mb)
-			{
-				currChunk = Mb;
-			}
-			else
-			{
-				currChunk = remaining;
-			}
-			char chunk[currChunk];
-
-			//read data chunk
-			if(AAsset_read(asset, chunk, currChunk) > 0) // returns less than 0 on error
-			{
-				//and append it to our vector
-				out.insert(out.end(),chunk, chunk + currChunk);
-				remaining = AAsset_getRemainingLength64(asset);
-			}
+			currChunk = Mb;
 		}
-		AAsset_close(asset);
-	#endif // !PLATFORM_ANDROID
+		else
+		{
+			currChunk = remaining;
+		}
+		char chunk[currChunk];
+
+		// read data chunk
+		if(AAsset_read(asset, chunk, currChunk) > 0)	// returns less than 0 on error
+		{
+			// and append it to our vector
+			out.insert(out.end(), chunk, chunk + currChunk);
+			remaining = AAsset_getRemainingLength64(asset);
+		}
+	}
+	AAsset_close(asset);
+#endif	  // !PLATFORM_ANDROID
 	return true;
 }

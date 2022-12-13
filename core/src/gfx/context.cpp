@@ -1,12 +1,12 @@
 #include "gfx/context.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
+	#include "vk/context.hpp"
+	#include "vk/conversion.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/context.hpp"
-#include "gles/igles.hpp"
+	#include "gles/context.hpp"
+	#include "gles/igles.hpp"
 #endif
 
 using namespace core;
@@ -49,9 +49,7 @@ context::context(core::resource::cache_t& cache,
 	}
 }
 
-[[noreturn]] void fail(){
-	throw std::runtime_error("no context was loaded");
-}
+[[noreturn]] void fail() { throw std::runtime_error("no context was loaded"); }
 
 const core::gfx::limits& context::limits() const noexcept
 {

@@ -6,13 +6,13 @@
 #include "gfx/drawlayer.hpp"
 #include "gfx/geometry.hpp"
 #include "gfx/material.hpp"
-#include "gles/igles.hpp"
 #include "gles/buffer.hpp"
 #include "gles/compute.hpp"
 #include "gles/computepass.hpp"
 #include "gles/conversion.hpp"
 #include "gles/framebuffer.hpp"
 #include "gles/geometry.hpp"
+#include "gles/igles.hpp"
 #include "gles/material.hpp"
 #include "gles/swapchain.hpp"
 
@@ -164,7 +164,8 @@ void drawpass::present()
 						core::profiler.scope_end();
 						// for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle))
 						//{
-						//	auto buffer = bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer_t>()->id();
+						//	auto buffer =
+						// bundle->m_InstanceData.buffer()->resource().get<core::igles::buffer_t>()->id();
 						//	glBindBuffer(GL_ARRAY_BUFFER, buffer);
 						//	glEnableVertexAttribArray(b.first);
 						//	glEnableVertexAttribArray(b.first + 1);

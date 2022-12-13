@@ -3,196 +3,196 @@
 
 namespace details
 {
-	template <typename F>
-	class monadic_container
+template <typename F>
+class monadic_container
+{
+  public:
+	monadic_container(F&& f) : callable(f) {};
+
+	auto operator()() -> typename std::invoke_result_t<F> { return std::invoke(callable); }
+	F callable;
+};
+
+class monadic_stub
+{
+  public:
+	monadic_stub(bool success = true) : m_Return(success) {}
+
+	template <typename T>
+	monadic_stub(T&& target)
 	{
-	  public:
-		monadic_container(F&& f) : callable(f) {};
+		call(std::forward<T>(target));
+	}
 
-		auto operator()() -> typename std::invoke_result_t<F> { return std::invoke(callable); }
-		F callable;
-	};
-
-	class monadic_stub
+	template <typename T, typename Comparator>
+	monadic_stub(T&& target, Comparator&& comparator)
 	{
-	  public:
-		monadic_stub(bool success = true) : m_Return(success) {}
+		call(std::forward<T>(target), std::forward<Comparator>(comparator));
+	}
 
-		template <typename T>
-		monadic_stub(T&& target)
+	template <typename T>
+	monadic_stub& then(T&& target)
+	{
+		if(m_Return) call(std::forward<T>(target));
+
+		return *this;
+	}
+
+
+	template <typename T, typename Comparator>
+	monadic_stub& then(T&& target, Comparator&& comparator)
+	{
+		if(m_Return) call(std::forward<T>(target), std::forward<Comparator>(comparator));
+
+		return *this;
+	}
+
+
+	template <typename T0, typename T1>
+	monadic_stub& then_or(T0&& target0, T1&& target1)
+	{
+		if(m_Return)
+			call(std::forward<T0>(target0));
+		else
+			call(std::forward<T1>(target1));
+
+		return *this;
+	}
+	template <typename T0, typename T1, typename Comparator>
+	monadic_stub& then_or(T0&& target0, T1&& target1, Comparator&& comparator)
+	{
+		if(m_Return)
+			call(std::forward<T0>(target0), std::forward<Comparator>(comparator));
+		else
+			call(std::forward<T1>(target1), std::forward<Comparator>(comparator));
+
+		return *this;
+	}
+	template <typename T0, typename T1, typename Comparator0, typename Comparator1>
+	monadic_stub& then_or(T0&& target0, T1&& target1, Comparator0&& comparator0, Comparator1&& comparator1)
+	{
+		if(m_Return)
+			call(std::forward<T0>(target0), std::forward<Comparator0>(comparator0));
+		else
+			call(std::forward<T1>(target1), std::forward<Comparator1>(comparator1));
+
+		return *this;
+	}
+
+	template <typename... Ts>
+	monadic_stub& all(Ts&&... targets)
+	{
+		if(m_Return)
 		{
-			call(std::forward<T>(target));
+			monadic_stub sub_stub {true};
+			(sub_stub.then(std::forward<Ts>(targets)), ...);
+			m_Return = sub_stub.m_Return;
 		}
+		return *this;
+	}
 
-		template <typename T, typename Comparator>
-		monadic_stub(T&& target, Comparator&& comparator)
+	template <typename... Ts>
+	monadic_stub& any(Ts&&... targets)
+	{
+		if(m_Return)
 		{
-			call(std::forward<T>(target), std::forward<Comparator>(comparator));
+			monadic_stub sub_stub {true};
+			m_Return = false;
+			(std::invoke([&]() {
+				 sub_stub.call(std::forward<Ts>(targets));
+				 m_Return |= sub_stub.success();
+			 }),
+			 ...);
 		}
+		return *this;
+	}
 
-		template <typename T>
-		monadic_stub& then(T&& target)
+	template <typename... Ts>
+	monadic_stub& at_least(size_t count, Ts&&... targets)
+	{
+		if(m_Return)
 		{
-			if(m_Return) call(std::forward<T>(target));
-
-			return *this;
+			monadic_stub sub_stub {true};
+			size_t success_count {0};
+			(std::invoke([&success_count, &sub_stub, &targets]() {
+				 sub_stub.call(std::forward<Ts>(targets));
+				 success_count = ((sub_stub.success()) ? success_count + 1 : success_count);
+			 }),
+			 ...);
+			m_Return = success_count >= count;
 		}
+		return *this;
+	}
 
 
-		template <typename T, typename Comparator>
-		monadic_stub& then(T&& target, Comparator&& comparator)
+	template <typename... Ts>
+	monadic_stub& at_most(size_t count, Ts&&... targets)
+	{
+		if(m_Return)
 		{
-			if(m_Return) call(std::forward<T>(target), std::forward<Comparator>(comparator));
-
-			return *this;
+			monadic_stub sub_stub {true};
+			size_t success_count {0};
+			(std::invoke([&success_count, &sub_stub, &targets]() {
+				 sub_stub.call(std::forward<Ts>(targets));
+				 success_count = ((sub_stub.success()) ? success_count + 1 : success_count);
+			 }),
+			 ...);
+			m_Return = success_count <= count;
 		}
+		return *this;
+	}
 
+	bool success() const noexcept { return m_Return; };
 
-		template <typename T0, typename T1>
-		monadic_stub& then_or(T0&& target0, T1&& target1)
+  private:
+	template <typename T, typename Fn>
+	void call(T&& target, Fn&& comparator)
+	{
+		if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value)
 		{
-			if(m_Return)
-				call(std::forward<T0>(target0));
-			else
-				call(std::forward<T1>(target1));
-
-			return *this;
+			std::invoke(target);
+			m_Return = true;
 		}
-		template <typename T0, typename T1, typename Comparator>
-		monadic_stub& then_or(T0&& target0, T1&& target1, Comparator&& comparator)
+		else
 		{
-			if(m_Return)
-				call(std::forward<T0>(target0), std::forward<Comparator>(comparator));
-			else
-				call(std::forward<T1>(target1), std::forward<Comparator>(comparator));
-
-			return *this;
+			m_Return = std::invoke(comparator, std::invoke(target));
 		}
-		template <typename T0, typename T1, typename Comparator0, typename Comparator1>
-		monadic_stub& then_or(T0&& target0, T1&& target1, Comparator0&& comparator0, Comparator1&& comparator1)
+	}
+
+	template <typename T>
+	void call(T&& target)
+	{
+		if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value)
 		{
-			if(m_Return)
-				call(std::forward<T0>(target0), std::forward<Comparator0>(comparator0));
-			else
-				call(std::forward<T1>(target1), std::forward<Comparator1>(comparator1));
-
-			return *this;
+			std::invoke(target);
+			m_Return = true;
 		}
-
-		template <typename... Ts>
-		monadic_stub& all(Ts&&... targets)
+		else
 		{
-			if(m_Return)
-			{
-				monadic_stub sub_stub {true};
-				(sub_stub.then(std::forward<Ts>(targets)), ...);
-				m_Return = sub_stub.m_Return;
-			}
-			return *this;
+			m_Return = std::invoke(target);
 		}
+	}
 
-		template <typename... Ts>
-		monadic_stub& any(Ts&&... targets)
-		{
-			if(m_Return)
-			{
-				monadic_stub sub_stub {true};
-				m_Return = false;
-				(std::invoke([&]() {
-					 sub_stub.call(std::forward<Ts>(targets));
-					 m_Return |= sub_stub.success();
-				 }),
-				 ...);
-			}
-			return *this;
-		}
+	template <>
+	void call(monadic_stub&& target)
+	{
+		m_Return = target.m_Return;
+	}
 
-		template <typename... Ts>
-		monadic_stub& at_least(size_t count, Ts&&... targets)
-		{
-			if(m_Return)
-			{
-				monadic_stub sub_stub {true};
-				size_t success_count {0};
-				(std::invoke([&success_count, &sub_stub, &targets]() {
-					 sub_stub.call(std::forward<Ts>(targets));
-					 success_count = ((sub_stub.success()) ? success_count + 1 : success_count);
-				 }),
-				 ...);
-				m_Return = success_count >= count;
-			}
-			return *this;
-		}
+	template <>
+	void call(monadic_stub& target)
+	{
+		m_Return = target.m_Return;
+	}
 
+	template <>
+	void call(const monadic_stub& target)
+	{
+		m_Return = target.m_Return;
+	}
 
-		template <typename... Ts>
-		monadic_stub& at_most(size_t count, Ts&&... targets)
-		{
-			if(m_Return)
-			{
-				monadic_stub sub_stub {true};
-				size_t success_count {0};
-				(std::invoke([&success_count, &sub_stub, &targets]() {
-					 sub_stub.call(std::forward<Ts>(targets));
-					 success_count = ((sub_stub.success()) ? success_count + 1 : success_count);
-				 }),
-				 ...);
-				m_Return = success_count <= count;
-			}
-			return *this;
-		}
-
-		bool success() const noexcept { return m_Return; };
-
-	  private:
-		template <typename T, typename Fn>
-		void call(T&& target, Fn&& comparator)
-		{
-			if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value)
-			{
-				std::invoke(target);
-				m_Return = true;
-			}
-			else
-			{
-				m_Return = std::invoke(comparator, std::invoke(target));
-			}
-		}
-
-		template <typename T>
-		void call(T&& target)
-		{
-			if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value)
-			{
-				std::invoke(target);
-				m_Return = true;
-			}
-			else
-			{
-				m_Return = std::invoke(target);
-			}
-		}
-
-		template <>
-		void call(monadic_stub&& target)
-		{
-			m_Return = target.m_Return;
-		}
-
-		template <>
-		void call(monadic_stub& target)
-		{
-			m_Return = target.m_Return;
-		}
-
-		template <>
-		void call(const monadic_stub& target)
-		{
-			m_Return = target.m_Return;
-		}
-
-		bool m_Return {false};
-	};
+	bool m_Return {false};
+};
 }	 // namespace details
 
 template <typename T>

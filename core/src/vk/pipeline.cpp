@@ -235,7 +235,9 @@ pipeline::pipeline(core::resource::cache_t& cache,
 
 	if(m_BindPoint == vk::PipelineBindPoint::eCompute)
 	{
-		psl_assert(shaderStages.size() == 1, "expecting only a single compute in the shader stages, but got {}", shaderStages.size());
+		psl_assert(shaderStages.size() == 1,
+				   "expecting only a single compute in the shader stages, but got {}",
+				   shaderStages.size());
 
 		vk::ComputePipelineCreateInfo pipelineCreateInfo {};
 		pipelineCreateInfo.layout = m_PipelineLayout;
@@ -736,8 +738,13 @@ bool pipeline::completeness_check() noexcept
 bool pipeline::bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamicOffsets)
 {
 	buffer.bindPipeline(m_BindPoint, m_Pipeline);
-	buffer.bindDescriptorSets(
-	  m_BindPoint, m_PipelineLayout, 0, 1, &m_DescriptorSet, static_cast<uint32_t>(dynamicOffsets.size()), dynamicOffsets.data());
+	buffer.bindDescriptorSets(m_BindPoint,
+							  m_PipelineLayout,
+							  0,
+							  1,
+							  &m_DescriptorSet,
+							  static_cast<uint32_t>(dynamicOffsets.size()),
+							  dynamicOffsets.data());
 
 	return true;
 }

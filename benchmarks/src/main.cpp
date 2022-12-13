@@ -1,9 +1,9 @@
 ﻿#include <benchmark/benchmark.h>
 
 #ifdef PLATFORM_WINDOWS
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
-#include <stdlib.h>
+	#define _CRTDBG_MAP_ALLOC
+	#include <crtdbg.h>
+	#include <stdlib.h>
 #endif
 
 int main(int argc, char* argv[])

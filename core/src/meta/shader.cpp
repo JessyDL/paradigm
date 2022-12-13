@@ -41,8 +41,8 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // void shader::vertex::binding::set(attribute value)
 //{
 //	auto it = std::find_if(std::begin(m_Attributes.value), std::end(m_Attributes.value), [&value](const attribute&
-//attribute) { 							   return attribute.location() == value.location() && 									  attribute.format() == value.format()/* &&
-//attribute.offset() == value.offset()*/;
+// attribute) { 							   return attribute.location() == value.location() && 									  attribute.format()
+// == value.format()/* && attribute.offset() == value.offset()*/;
 //		});
 //	if(it == std::end(m_Attributes.value))
 //	{
@@ -141,7 +141,7 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // bool shader::descriptor::has_default_value() const noexcept
 //{
 //	return std::any_of(std::begin(m_SubElements.value), std::end(m_SubElements.value), [](const auto& element) { return
-//element.default_value().size() > 0;});
+// element.default_value().size() > 0;});
 //}
 //
 // uint32_t shader::descriptor::binding() const noexcept { return m_Binding.value; }
