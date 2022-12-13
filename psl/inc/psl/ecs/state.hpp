@@ -531,7 +531,8 @@ namespace psl::ecs
 		}
 
 		details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
-		const details::component_container_t* get_component_container(const details::component_key_t& key) const noexcept;
+		const details::component_container_t*
+		get_component_container(const details::component_key_t& key) const noexcept;
 
 		psl::array<const details::component_container_t*>
 		get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;
@@ -553,14 +554,14 @@ namespace psl::ecs
 			{
 				using type = typename psl::ecs::details::empty_container<true_type>::type;
 				create_storage<type>();
-				if constexpr(std::is_trivially_constructible_v<type>)
+				if constexpr(details::DoesComponentTypeNeedPrototypeCall<type>)
 				{
-					add_component_impl(details::component_key_t::generate<type>(), entities);
+					type v {details::prototype_for<type>()};
+					add_component_impl(details::component_key_t::generate<type>(), entities, &v);
 				}
 				else
 				{
-					type v {};
-					add_component_impl(details::component_key_t::generate<type>(), entities, &v);
+					add_component_impl(details::component_key_t::generate<type>(), entities);
 				}
 			}
 			else if constexpr(psl::templates::is_callable_n<T, 1>::value)
@@ -638,14 +639,14 @@ namespace psl::ecs
 		void add_component(psl::array_view<entity> entities)
 		{
 			create_storage<T>();
-			if constexpr(std::is_trivially_constructible_v<T>)
+			if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
 			{
-				add_component_impl(details::component_key_t::generate<T>(), entities);
+				T v {details::prototype_for<T>()};
+				add_component_impl(details::component_key_t::generate<T>(), entities, &v);
 			}
 			else
 			{
-				T v {};
-				add_component_impl(details::component_key_t::generate<T>(), entities, &v);
+				add_component_impl(details::component_key_t::generate<T>(), entities);
 			}
 		}
 

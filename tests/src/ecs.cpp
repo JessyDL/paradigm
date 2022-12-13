@@ -4,8 +4,8 @@
 #include "psl/ecs/state.hpp"
 #include <random>
 
-#include "psl/serialization/encoder.hpp"
 #include "psl/serialization/decoder.hpp"
+#include "psl/serialization/encoder.hpp"
 
 using namespace psl::ecs;
 using namespace tests::ecs;
@@ -719,7 +719,7 @@ namespace
 		psl::format::container container_a {};
 		serializer.serialize<psl::serialization::encode_to_format>(state_a, container_a);
 		serializer.deserialize<psl::serialization::decode_from_format>(state_b, container_a);
-		
+
 		require(state_a.size<int>()) == state_b.size<int>();
 		require(state_a.size<int>()) == 200;
 
@@ -737,5 +737,17 @@ namespace
 		serializer.serialize<psl::serialization::encode_to_format>(state_b, container_b);
 
 		require(container_b.to_string()) == container_a.to_string();
+	};
+
+	struct foo
+	{
+		static constexpr auto prototype() -> foo { return foo {10}; }
+		int value;
+	};
+
+	auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
+		psl::ecs::state_t state {};
+		auto entity = state.create<foo>(1);
+		require(state.get<foo>(entity[0]).value) == 10;
 	};
 }	 // namespace

@@ -40,4 +40,48 @@ namespace psl::ecs
 	static constexpr auto component_type_v = IsComponentFlagType<T>		 ? component_type::FLAG
 											 : IsComponentTrivialType<T> ? component_type::TRIVIAL
 																		 : component_type::COMPLEX;
+
+	namespace details
+	{
+		template <typename T>
+		concept HasComponentTraitsPrototypeDefinition = requires() {
+															{
+																component_traits<T>::prototype()
+																} -> std::same_as<T>;
+														};
+
+		template <typename T>
+		concept HasComponentMemberPrototypeDefinition = requires() {
+															{
+																T::prototype()
+																} -> std::same_as<T>;
+														};
+
+		template <typename T>
+		concept HasComponentTypePrototypeDefinition =
+		  HasComponentTraitsPrototypeDefinition<T> || HasComponentMemberPrototypeDefinition<T>;
+
+		/// \brief Designates types that either _need_ to be constructed, or that have a prototype definition that override their normal operations.
+		template <typename T>
+		concept DoesComponentTypeNeedPrototypeCall =
+		  IsComponentComplexType<T> || HasComponentTypePrototypeDefinition<T>;
+
+		template <DoesComponentTypeNeedPrototypeCall T>
+		FORCEINLINE static constexpr auto prototype_for() -> T
+		{
+			if constexpr(HasComponentTraitsPrototypeDefinition<T>)
+			{
+				return component_traits<T>::prototype();
+			}
+			else if constexpr(HasComponentMemberPrototypeDefinition<T>)
+			{
+				return T::prototype();
+			}
+			else
+			{
+				return T {};
+			}
+		}
+
+	}	 // namespace details
 }	 // namespace psl::ecs
