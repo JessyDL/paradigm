@@ -116,14 +116,14 @@ namespace core::resource
 		inline value_type& value() noexcept
 		{
 			psl_assert(
-			  state() == status::loaded, "state was expected to be loaded, but was {}", std::to_underlying(state()));
+			  state() == status::loaded, "state was expected to be loaded, but was {}", static_cast<std::underlying_type_t<status>>(state()));
 			return *m_Resource;
 		}
 
 		inline const value_type& value() const noexcept
 		{
 			psl_assert(
-			  state() == status::loaded, "state was expected to be loaded, but was {}", std::to_underlying(state()));
+			  state() == status::loaded, "state was expected to be loaded, but was {}", static_cast<std::underlying_type_t<status>>(state()));
 			return *m_Resource;
 		}
 
