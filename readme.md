@@ -29,11 +29,16 @@ For more detailed description about the engine itself, go to the readme of the `
 *GLES on GNU/Linux requires `libegl1-mesa-dev` and `libgles2-mesa-dev` to be installed.
 ## Building
 ### Prerequisites
+#### All platforms
 Python 3.9 or newer
 
-[CMake ]( http://cmake.org/) 3.18 or higher is required on all platforms.
+[CMake ]( http://cmake.org/) 3.22 or higher is required on all platforms.
 
-A C++20 compliant compiler. See the Github Actions for up-to-date examples of supported compilers on different platforms.
+A C++23 compliant compiler. See the Github Actions for up-to-date examples of supported compilers on different platforms.
+
+#### Android
+Android SDK
+Gradle (7.6 or later)
 
 ### Creating the project files
 You can build this project by either using the provided `CMakePresets.json` file (recommended), or by running `paradigm.py` with python 3.9+. See the [`CMakePresets` section](#cmakepresets) for more information.
