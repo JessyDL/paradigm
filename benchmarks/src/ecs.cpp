@@ -1,8 +1,8 @@
-#include "psl/ecs/state.hpp"
-#include "psl/ecs/order_by.hpp"
 #include "psl/ecs/on_condition.hpp"
-#include <benchmark/benchmark.h>
+#include "psl/ecs/order_by.hpp"
+#include "psl/ecs/state.hpp"
 #include "psl/math/math.hpp"
+#include <benchmark/benchmark.h>
 
 using namespace psl;
 using namespace psl::ecs;
@@ -13,13 +13,11 @@ using namespace psl::ecs;
 #define BENCHMARK_SYSTEMS
 
 template <typename T>
-auto to_num_string(T i)
-{
+auto to_num_string(T i) {
 	static_assert(std::is_arithmetic_v<T>);
 	auto conversion = std::to_string(i);
 	auto it			= std::end(conversion);
-	while(std::distance(std::begin(conversion), it) > 3)
-	{
+	while(std::distance(std::begin(conversion), it) > 3) {
 		it = std::prev(it, 3);
 		conversion.insert(it, '.');
 	}
@@ -27,13 +25,11 @@ auto to_num_string(T i)
 }
 
 #ifdef BENCHMARK_ENTITY_CREATION
-void entity_creation(benchmark::State& gState)
-{
+void entity_creation(benchmark::State& gState) {
 	auto eCount = gState.range(0);
 
 	ecs::state_t state;
-	for(auto _ : gState)
-	{
+	for(auto _ : gState) {
 		gState.PauseTiming();
 		state.clear();
 		gState.ResumeTiming();
@@ -41,14 +37,12 @@ void entity_creation(benchmark::State& gState)
 	}
 }
 
-void entity_creation_with_destruction(benchmark::State& gState)
-{
+void entity_creation_with_destruction(benchmark::State& gState) {
 	auto eCount		= gState.range(0);
 	auto eHalfCount = static_cast<ecs::entity>(eCount / 2);
 
 	ecs::state_t state;
-	for(auto _ : gState)
-	{
+	for(auto _ : gState) {
 		gState.PauseTiming();
 		state.clear();
 		gState.ResumeTiming();
@@ -64,29 +58,30 @@ BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000
 #endif
 
 #ifdef BENCHMARK_COMPONENT_CREATION
-void component_creation(benchmark::State& gState)
-{
+void component_creation(benchmark::State& gState) {
 	auto eCount = gState.range(0);
 	auto cCount = gState.range(1);
 	ecs::state_t state;
 	auto entities = state.create(eCount);
 
-	for(auto _ : gState)
-	{
+	for(auto _ : gState) {
 		gState.PauseTiming();
 		state.clear();
 		gState.ResumeTiming();
-		if(cCount >= 5) state.add_components<uint64_t>(entities);
-		if(cCount >= 4) state.add_components<bool>(entities);
-		if(cCount >= 3) state.add_components<char>(entities);
-		if(cCount >= 2) state.add_components<float>(entities);
+		if(cCount >= 5)
+			state.add_components<uint64_t>(entities);
+		if(cCount >= 4)
+			state.add_components<bool>(entities);
+		if(cCount >= 3)
+			state.add_components<char>(entities);
+		if(cCount >= 2)
+			state.add_components<float>(entities);
 
 		state.add_components<int>(entities);
 	}
 }
 
-void component_creation_args(benchmark::internal::Benchmark* b)
-{
+void component_creation_args(benchmark::internal::Benchmark* b) {
 	for(int j = 1; j <= 5; ++j)
 		for(int i = 0; i <= 6; ++i) b->ArgPair(pow(10, i), j);
 }
@@ -95,16 +90,14 @@ BENCHMARK(component_creation)->Apply(component_creation_args)->Unit(benchmark::k
 
 #ifdef BENCHMARK_FILTERING
 template <typename... Ts>
-class filtering_fixture : public ::benchmark::Fixture
-{
+class filtering_fixture : public ::benchmark::Fixture {
 	const std::vector<std::vector<int>> data_constraint {{10'000, 300, 2'700, 1'200, 6'700},
 														 {100'000, 3'000, 21'700, 10'200, 68'700},
 														 {10'000, 300, 2'700, 3'200, 6'700},
 														 {100'000, 3'000, 21'700, 30'200, 68'700}};
 
   public:
-	void SetUp(const ::benchmark::State& gState) override
-	{
+	void SetUp(const ::benchmark::State& gState) override {
 		auto index		 = gState.range();
 		const auto& data = data_constraint[index];
 		auto eCount		 = data[0];
@@ -126,8 +119,7 @@ class filtering_fixture : public ::benchmark::Fixture
 
 	void filter() { state.filter<Ts...>(); }
 
-	void order_by(benchmark::State& gState)
-	{
+	void order_by(benchmark::State& gState) {
 		gState.PauseTiming();
 		auto entities = state.filter<int>();
 		gState.ResumeTiming();
@@ -135,69 +127,55 @@ class filtering_fixture : public ::benchmark::Fixture
 		psl::ecs::details::order_by<std::less<int>, int>(state, std::begin(entities), std::end(entities));
 	}
 
-	void on_condition(benchmark::State& gState)
-	{
+	void on_condition(benchmark::State& gState) {
 		gState.PauseTiming();
 		auto entities = state.filter<int>();
 		gState.ResumeTiming();
 
-		psl::ecs::details::on_condition<int>(state, std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
+		psl::ecs::details::on_condition<int>(
+		  state, std::begin(entities), std::end(entities), [](const int& i) { return i < 500; });
 	}
 	ecs::state_t state;
 };
 
-BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_int, int)(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_int, int)(benchmark::State& gState) {
+	for(auto _ : gState) {
 		filter();
 	}
 }
 
-BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_char_float, char, float)(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_char_float, char, float)(benchmark::State& gState) {
+	for(auto _ : gState) {
 		filter();
 	}
 }
-BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_char_int, char, int)(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_char_int, char, int)(benchmark::State& gState) {
+	for(auto _ : gState) {
 		filter();
 	}
 }
 BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_char_int_float, char, int, float)
-(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+(benchmark::State& gState) {
+	for(auto _ : gState) {
 		filter();
 	}
 }
 BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_float_int_char, float, int, char)
-(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+(benchmark::State& gState) {
+	for(auto _ : gState) {
 		filter();
 	}
 }
 
 BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_order_by)
-(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+(benchmark::State& gState) {
+	for(auto _ : gState) {
 		order_by(gState);
 	}
 }
 BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_on_condition)
-(benchmark::State& gState)
-{
-	for(auto _ : gState)
-	{
+(benchmark::State& gState) {
+	for(auto _ : gState) {
 		on_condition(gState);
 	}
 }
@@ -219,15 +197,14 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
 #endif
 #ifdef BENCHMARK_SYSTEMS
 
-#include <random>
+	#include <random>
 template <typename T, typename... Ts>
 auto read_only_system = [](info_t& info, pack<T, const Ts...>) {};
 
 template <typename T, typename... Ts>
 auto write_system = [](info_t& info, pack<T, Ts...>) {};
 
-auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt19937 g)
-{
+auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt19937 g) {
 	auto copy = source;
 	std::shuffle(std::begin(copy), std::end(copy), g);
 	copy.resize(std::min(copy.size(), count));
@@ -235,8 +212,7 @@ auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt
 }
 
 template <typename... Ts>
-void run_system(benchmark::State& gState, state_t& state, const std::vector<entity>& count)
-{
+void run_system(benchmark::State& gState, state_t& state, const std::vector<entity>& count) {
 	psl_assert(count.size() == 5, "expected size to be 5");
 	auto entities = state.create(count[0]);
 	std::random_device rd;
@@ -244,8 +220,7 @@ void run_system(benchmark::State& gState, state_t& state, const std::vector<enti
 	size_t i {1};
 	(state.add_components<Ts>(get_random_entities(entities, count[i++], g)), ...);
 
-	for(auto _ : gState)
-	{
+	for(auto _ : gState) {
 		state.tick(std::chrono::duration<float> {0.01f});
 	}
 }
@@ -255,63 +230,55 @@ const std::vector<std::vector<entity>> system_counts {{10'000, 300, 2'700, 1'200
 													  {100'000, 3'000, 21'700, 10'200, 68'700},
 													  {1'000'000, 3'000, 20'700, 30'200, 60'700},
 													  {1'000'000, 300'000, 210'700, 300'200, 680'700}};
-void trivial_read_only_seq_system(benchmark::State& gState)
-{
+void trivial_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<full, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-void trivial_write_seq_system(benchmark::State& gState)
-{
+void trivial_write_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<full, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-void trivial_read_only_par_system(benchmark::State& gState)
-{
+void trivial_read_only_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<partial, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-void trivial_write_par_system(benchmark::State& gState)
-{
+void trivial_write_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<partial, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-#include "ecs/components/camera.hpp"
-#include "ecs/components/lifetime.hpp"
-#include "ecs/components/transform.hpp"
-#include "ecs/components/velocity.hpp"
+	#include "ecs/components/camera.hpp"
+	#include "ecs/components/lifetime.hpp"
+	#include "ecs/components/transform.hpp"
+	#include "ecs/components/velocity.hpp"
 using namespace core::ecs::components;
 
-void complex_read_only_seq_system(benchmark::State& gState)
-{
+void complex_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<full, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
-void complex_write_seq_system(benchmark::State& gState)
-{
+void complex_write_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<full, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
-void complex_read_only_par_system(benchmark::State& gState)
-{
+void complex_read_only_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<partial, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
-void complex_write_par_system(benchmark::State& gState)
-{
+void complex_write_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<partial, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);

@@ -1,6 +1,6 @@
 #ifdef SURFACE_XCB
-#include "os/surface.hpp"
-#include "systems/input.hpp"
+	#include "os/surface.hpp"
+	#include "systems/input.hpp"
 
 using namespace core::systems;
 using kc = input::keycode;
@@ -288,30 +288,23 @@ const kc XCB_NATIVE_TO_HID[256] = {
 
 void input::handle_event(core::os::surface* const surface,
 						 const xcb_generic_event_t* event,
-						 xcb_intern_atom_reply_t& delete_wm)
-{
-	switch(event->response_type & 0x7f)
-	{
+						 xcb_intern_atom_reply_t& delete_wm) {
+	switch(event->response_type & 0x7f) {
 	case XCB_CLIENT_MESSAGE:
-		if((*(xcb_client_message_event_t*)event).data.data32[0] == delete_wm.atom)
-		{
+		if((*(xcb_client_message_event_t*)event).data.data32[0] == delete_wm.atom) {
 			surface->terminate();
 		}
 		break;
 	case XCB_DESTROY_NOTIFY:
 		surface->terminate();
 		break;
-	case XCB_CONFIGURE_NOTIFY:
-	{
+	case XCB_CONFIGURE_NOTIFY: {
 		const xcb_configure_notify_event_t* cfgEvent = (const xcb_configure_notify_event_t*)event;
-		if(cfgEvent->width != surface->data().width() || cfgEvent->height != surface->data().height())
-		{
+		if(cfgEvent->width != surface->data().width() || cfgEvent->height != surface->data().height()) {
 			surface->resize(cfgEvent->width, cfgEvent->height);
 		}
-	}
-	break;
-	case XCB_KEY_PRESS:
-	{
+	} break;
+	case XCB_KEY_PRESS: {
 		const xcb_key_press_event_t* keypress_event = reinterpret_cast<const xcb_key_press_event_t*>(event);
 		xcb_keycode_t code							= keypress_event->detail;
 		core::systems::log->info(std::to_string((uint8_t)code));
@@ -319,10 +312,8 @@ void input::handle_event(core::os::surface* const surface,
 		m_OnKeyPressed.Execute((input::keycode)XCB_NATIVE_TO_HID[(uint8_t)code]);
 		m_HeldKeys.emplace_back((input::keycode)XCB_NATIVE_TO_HID[(uint8_t)code]);
 		// core::systems::log->info(keycode_names[(uint8_t)XCB_NATIVE_TO_HID[(uint8_t)code]]);
-	}
-	break;
-	case XCB_KEY_RELEASE:
-	{
+	} break;
+	case XCB_KEY_RELEASE: {
 		const xcb_key_release_event_t* keypress_event = reinterpret_cast<const xcb_key_release_event_t*>(event);
 		xcb_keycode_t code							  = keypress_event->detail;
 		// return;
@@ -330,10 +321,8 @@ void input::handle_event(core::os::surface* const surface,
 		m_HeldKeys.erase(
 		  std::remove(std::begin(m_HeldKeys), std::end(m_HeldKeys), (input::keycode)XCB_NATIVE_TO_HID[(uint8_t)code]),
 		  std::end(m_HeldKeys));
-	}
-	break;
-	case XCB_MOTION_NOTIFY:
-	{
+	} break;
+	case XCB_MOTION_NOTIFY: {
 		xcb_motion_notify_event_t* motion = (xcb_motion_notify_event_t*)event;
 
 		mouse_delta mDelta;
@@ -347,73 +336,54 @@ void input::handle_event(core::os::surface* const surface,
 
 		m_OnMouseMoveDelta(mDelta);
 		m_OnMouseMoveCoordinates(m_Cursor);
-	}
-	break;
-	case XCB_BUTTON_RELEASE:
-	{
+	} break;
+	case XCB_BUTTON_RELEASE: {
 		xcb_button_release_event_t* bp = (xcb_button_release_event_t*)event;
 		core::systems::log->info(std::to_string(bp->detail));
-		switch((uint8_t)bp->detail)
-		{
-		case 1u:
-		{
+		switch((uint8_t)bp->detail) {
+		case 1u: {
 			m_OnMouseReleased(mousecode::BTN_1);
 			m_HeldMouseButtons.erase(
 			  std::remove(std::begin(m_HeldMouseButtons), std::end(m_HeldMouseButtons), mousecode::BTN_1),
 			  std::end(m_HeldMouseButtons));
-		}
-		break;
-		case 3u:
-		{
+		} break;
+		case 3u: {
 			m_OnMouseReleased(mousecode::BTN_2);
 			m_HeldMouseButtons.erase(
 			  std::remove(std::begin(m_HeldMouseButtons), std::end(m_HeldMouseButtons), mousecode::BTN_2),
 			  std::end(m_HeldMouseButtons));
-		}
-		break;
+		} break;
 		};
-	}
-	break;
-	case XCB_BUTTON_PRESS:
-	{
+	} break;
+	case XCB_BUTTON_PRESS: {
 		xcb_button_press_event_t* bp = (xcb_button_press_event_t*)event;
 		core::systems::log->info(std::to_string(bp->detail));
-		switch((uint8_t)bp->detail)
-		{
-		case 1u:
-		{
+		switch((uint8_t)bp->detail) {
+		case 1u: {
 			m_OnMousePressed(mousecode::BTN_1);
 			m_HeldMouseButtons.emplace_back(mousecode::BTN_1);
-		}
-		break;
-		case 3u:
-		{
+		} break;
+		case 3u: {
 			m_OnMousePressed(mousecode::BTN_2);
 			m_HeldMouseButtons.emplace_back(mousecode::BTN_2);
-		}
-		break;
+		} break;
 		case 4u:
-		case 5u:
-		{
+		case 5u: {
 			scroll_delta delta;
 			delta.y = (short)(bp->detail - 4) * 2 - 1;
 			m_OnScroll(delta);
-		}
-		break;
+		} break;
 		};
-	}
-	break;
+	} break;
 	}
 }
 
 void input::tick(core::os::surface* const surface,
 				 xcb_connection_t* _xcb_connection,
-				 xcb_intern_atom_reply_t& delete_wm)
-{
+				 xcb_intern_atom_reply_t& delete_wm) {
 	xcb_flush(_xcb_connection);
 	xcb_generic_event_t* event;
-	while((event = xcb_poll_for_event(_xcb_connection)))
-	{
+	while((event = xcb_poll_for_event(_xcb_connection))) {
 		handle_event(surface, event, delete_wm);
 		free(event);
 	}

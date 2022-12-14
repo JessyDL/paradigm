@@ -35,10 +35,8 @@ text::text(psl::ecs::state_t& state,
 		   core::resource::handle<core::gfx::pipeline_cache> pipeline_cache,
 		   core::resource::handle<core::gfx::buffer_t> materialBuffer,
 		   core::resource::handle<core::gfx::buffer_t> vertexInstanceBuffer,
-		   core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer) :
-	m_Cache(cache),
-	m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context)
-{
+		   core::resource::handle<core::gfx::shader_buffer_binding> materialInstanceBuffer)
+	: m_Cache(cache), m_VertexBuffer(vertexBuffer), m_IndexBuffer(indexBuffer), m_Context(context) {
 	psl::static_array<stbtt_bakedchar, 96> char_data {0};
 
 	auto view = cache.library().load("b041e1ff-09a6-dbd3-efae-aa929a7317a2"_uid).value_or(psl::string_view {});
@@ -58,8 +56,7 @@ text::text(psl::ecs::state_t& state,
 										  static_cast<int>(char_data.size()),
 										  char_data.data());
 	character_data.reserve(char_data.size());
-	for(auto& c : char_data)
-	{
+	for(auto& c : char_data) {
 		float xoff {};
 		float yoff {};
 		stbtt_aligned_quad aligned_quad {};
@@ -108,9 +105,9 @@ text::text(psl::ecs::state_t& state,
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 
 	auto stages = matData->stages();
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != core::gfx::shader_stage::fragment) continue;
+	for(auto& stage : stages) {
+		if(stage.shader_stage() != core::gfx::shader_stage::fragment)
+			continue;
 
 		auto bindings = stage.bindings();
 		bindings[0].texture(m_FontTexture);
@@ -120,15 +117,15 @@ text::text(psl::ecs::state_t& state,
 	}
 	matData->blend_states(
 	  {core::data::material_t::blendstate(true,
-										0,
-										core::gfx::blend_factor::source_alpha,
-										core::gfx::blend_factor::one_minus_source_alpha,
-										core::gfx::blend_op::add,
-										core::gfx::blend_factor::one,
-										core::gfx::blend_factor::zero,
-										core::gfx::blend_op::add,
-										core::gfx::component_bits::r | core::gfx::component_bits::g |
-										  core::gfx::component_bits::b | core::gfx::component_bits::a)});
+										  0,
+										  core::gfx::blend_factor::source_alpha,
+										  core::gfx::blend_factor::one_minus_source_alpha,
+										  core::gfx::blend_op::add,
+										  core::gfx::blend_factor::one,
+										  core::gfx::blend_factor::zero,
+										  core::gfx::blend_op::add,
+										  core::gfx::component_bits::r | core::gfx::component_bits::g |
+											core::gfx::component_bits::b | core::gfx::component_bits::a)});
 	matData->stages(stages);
 	matData->cull_mode(core::gfx::cullmode::none);
 
@@ -138,8 +135,7 @@ text::text(psl::ecs::state_t& state,
 	m_Bundle->set_material(material, 2000);
 }
 
-core::resource::handle<core::data::geometry_t> text::create_text(psl::string_view text)
-{
+core::resource::handle<core::data::geometry_t> text::create_text(psl::string_view text) {
 	core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
 	core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
 	core::vertex_stream_t colorStream {core::vertex_stream_t::type::vec4};
@@ -156,9 +152,10 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 	// validate for illegal characters in input.
 	{
 		const auto max_char = character_data.size() + 32;
-		for(int character : text)
-		{
-			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t', "illegal character '{}' used", (char)character);
+		for(int character : text) {
+			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t',
+					   "illegal character '{}' used",
+					   (char)character);
 		}
 	}
 
@@ -184,29 +181,23 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 	};
 
 	size_t text_count {0u};
-	for(int character : text)
-	{
-		if(character == '\n')
-		{
+	for(int character : text) {
+		if(character == '\n') {
 			right = 0.0f;
 			up -= 1.0f;
 			text_count = 0;
 			continue;
 		}
 
-		if(character == '\t')
-		{
+		if(character == '\t') {
 			character		 = ' ' - 32;
 			const auto& data = character_data[character];
 
-			for(auto i = 4 - text_count % 4; i > 0; --i)
-			{
+			for(auto i = 4 - text_count % 4; i > 0; --i) {
 				insert_character(right, up, data);
 				++text_count;
 			}
-		}
-		else
-		{
+		} else {
 			const auto& data = character_data[character - 32];
 			insert_character(right, up, data);
 			++text_count;
@@ -228,8 +219,7 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 	geomData->vertices(core::data::geometry_t::constants::TEX, uvStream);
 
 	std::vector<uint32_t> indexBuffer(character_count * 6);
-	for(auto i = 0u, index = 0u; i < character_count; ++i)
-	{
+	for(auto i = 0u, index = 0u; i < character_count; ++i) {
 		auto offset			 = i * 4;
 		indexBuffer[index++] = offset;
 		indexBuffer[index++] = 1 + offset;
@@ -245,21 +235,18 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 }
 
 
-void text::update_dynamic(info_t& info,
-						  pack<partial, entity, comp::text, comp::renderable, psl::ecs::filter<comp::dynamic_tag>> pack)
-{
-	for(auto [e, text, renderer] : pack)
-	{
+void text::update_dynamic(
+  info_t& info,
+  pack<partial, entity, comp::text, comp::renderable, psl::ecs::filter<comp::dynamic_tag>> pack) {
+	for(auto [e, text, renderer] : pack) {
 		renderer.geometry->recreate(create_text(*text.value));
 	}
 }
 
-void text::add(info_t& info, pack<partial, entity, comp::text, on_add<comp::text>> pack)
-{
+void text::add(info_t& info, pack<partial, entity, comp::text, on_add<comp::text>> pack) {
 	psl::array<entity> ents;
 	ents.resize(1);
-	for(auto [e, text] : pack)
-	{
+	for(auto [e, text] : pack) {
 		ents[0]			= e;
 		auto geomData	= create_text(*text.value);
 		auto geomHandle = m_Cache.create<gfx::geometry_t>(m_Context, geomData, m_VertexBuffer, m_IndexBuffer);
@@ -275,7 +262,6 @@ void text::add(info_t& info, pack<partial, entity, comp::text, on_add<comp::text
 	}
 }
 
-void text::remove(info_t& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack)
-{
+void text::remove(info_t& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack) {
 	info.command_buffer.remove_components<comp::renderable>(pack.get<entity>());
 }

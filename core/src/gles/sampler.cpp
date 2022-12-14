@@ -11,10 +11,9 @@ using namespace core::gfx::conversion;
 namespace data = core::data;
 
 sampler_t::sampler_t(core::resource::cache_t& cache,
-				 const core::resource::metadata& metaData,
-				 psl::meta::file* metaFile,
-				 handle<data::sampler_t> sampler_data)
-{
+					 const core::resource::metadata& metaData,
+					 psl::meta::file* metaFile,
+					 handle<data::sampler_t> sampler_data) {
 	size_t iterationCount = (sampler_data->mipmaps()) ? 14 : 1;	   // 14 == 8096 // todo: this is a hack
 
 	glGenSamplers(1, &m_Sampler);
@@ -31,8 +30,7 @@ sampler_t::sampler_t(core::resource::cache_t& cache,
 
 	to_gles(sampler_data->border_color(), m_Sampler);
 
-	if(sampler_data->mipmaps())
-	{
+	if(sampler_data->mipmaps()) {
 		if(sampler_data->anisotropic_filtering())
 			glSamplerParameterf(m_Sampler, GL_TEXTURE_MAX_ANISOTROPY_EXT, sampler_data->max_anisotropy());
 
@@ -41,9 +39,7 @@ sampler_t::sampler_t(core::resource::cache_t& cache,
 
 		glSamplerParameteri(
 		  m_Sampler, GL_TEXTURE_COMPARE_FUNC, core::gfx::conversion::to_gles(sampler_data->compare_op()));
-	}
-	else
-	{
+	} else {
 		glSamplerParameterf(m_Sampler, GL_TEXTURE_MIN_LOD, 0.0f);
 		glSamplerParameterf(m_Sampler, GL_TEXTURE_MAX_LOD, 0.0f);
 	}
@@ -52,4 +48,6 @@ sampler_t::sampler_t(core::resource::cache_t& cache,
 	glGetError();
 }
 
-sampler_t::~sampler_t() { glDeleteSamplers(1, &m_Sampler); }
+sampler_t::~sampler_t() {
+	glDeleteSamplers(1, &m_Sampler);
+}

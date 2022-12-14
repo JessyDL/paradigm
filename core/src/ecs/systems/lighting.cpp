@@ -26,10 +26,9 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state_t> state,
 								 psl::view_ptr<core::gfx::render_graph> renderGraph,
 								 psl::view_ptr<core::gfx::drawpass> pass,
 								 core::resource::handle<core::gfx::context> context,
-								 core::resource::handle<core::os::surface> surface) noexcept :
-	m_Cache(cache),
-	m_RenderGraph(renderGraph), m_DependsPass(pass), m_State(state), m_Context(context), m_Surface(surface)
-{
+								 core::resource::handle<core::os::surface> surface) noexcept
+	: m_Cache(cache), m_RenderGraph(renderGraph), m_DependsPass(pass), m_State(state), m_Context(context),
+	  m_Surface(surface) {
 	state->declare(&lighting_system::create_dir, this);
 
 	auto bufferData = cache->create<data::buffer_t>(
@@ -44,25 +43,23 @@ lighting_system::lighting_system(psl::view_ptr<psl::ecs::state_t> state,
 	m_LightSegment = m_LightDataBuffer->reserve(m_LightDataBuffer->free_size()).value();
 }
 
-void lighting_system::create_dir(info_t& info, pack<entity, light, on_combine<light, transform>> pack)
-{
-	if(pack.size() == 0) return;
+void lighting_system::create_dir(info_t& info, pack<entity, light, on_combine<light, transform>> pack) {
+	if(pack.size() == 0)
+		return;
 	// insertion_sort(std::begin(pack), std::end(pack), sort_impl<light_sort, light>{});
 
 	// create depth pass
-	for(auto [e, light] : pack)
-	{
-		if(!light.shadows) continue;
+	for(auto [e, light] : pack) {
+		if(!light.shadows)
+			continue;
 
 		auto fbdata = m_Cache->create<data::framebuffer_t>(m_Surface->data().width(), m_Surface->data().height(), 1);
 
 		{
 			core::gfx::attachment descr;
-			if(auto format = m_Context->limits().supported_depthformat; format == core::gfx::format_t::undefined)
-			{
+			if(auto format = m_Context->limits().supported_depthformat; format == core::gfx::format_t::undefined) {
 				core::log->error("Could not find a suitable depth stencil buffer format.");
-			}
-			else
+			} else
 				descr.format = format;
 			descr.sample_bits	= 1;
 			descr.image_load	= core::gfx::attachment::load_op::clear;

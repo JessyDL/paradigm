@@ -18,28 +18,22 @@ using namespace core::resource;
 framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 							 const core::resource::metadata& metaData,
 							 psl::meta::file* metaFile,
-							 handle<core::data::framebuffer_t> data) :
-	m_Data(data)
-{
+							 handle<core::data::framebuffer_t> data)
+	: m_Data(data) {
 	m_Framebuffers.resize(m_Data->framebuffers());
 
-	if(auto sampler = data->sampler(); sampler)
-	{
+	if(auto sampler = data->sampler(); sampler) {
 		m_Sampler = cache.find<core::igles::sampler_t>(sampler.value());
-		if(!m_Sampler)
-		{
+		if(!m_Sampler) {
 			core::ivk::log->error("could not load sampler for framebuffer {0}", metaData.uid);
 		}
-	}
-	else
-	{
+	} else {
 		core::ivk::log->error("could not load sampler for framebuffer {0}", metaData.uid);
 	}
 
 	glGenFramebuffers(psl::utility::narrow_cast<uint32_t>(m_Framebuffers.size()), m_Framebuffers.data());
 	size_t index = 0u;
-	for(const auto& attach : data->attachments())
-	{
+	for(const auto& attach : data->attachments()) {
 		auto texture = cache.find<core::igles::texture_t>(attach.texture());
 		if(texture.state() != core::resource::status::loaded)
 			texture = cache.create_using<core::igles::texture_t>(attach.texture());
@@ -57,12 +51,10 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	}
 
 	glGetError();
-	for(auto i = 0u; i < m_Framebuffers.size(); ++i)
-	{
+	for(auto i = 0u; i < m_Framebuffers.size(); ++i) {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffers[i]);
 		size_t index = 0;
-		for(const auto& binding : m_Bindings)
-		{
+		for(const auto& binding : m_Bindings) {
 			auto format = (core::gfx::is_depthstencil(binding.description.format)) ? GL_DEPTH_STENCIL_ATTACHMENT
 						  : (core::gfx::has_stencil(binding.description.format))   ? GL_STENCIL_ATTACHMENT
 						  : (core::gfx::has_depth(binding.description.format))	   ? GL_DEPTH_ATTACHMENT
@@ -71,8 +63,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		}
 	}
 	auto status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
-	switch(status)
-	{
+	switch(status) {
 	case GL_FRAMEBUFFER_COMPLETE:
 		break;
 	default:
@@ -82,14 +73,13 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	glGetError();
 }
 
-framebuffer_t::~framebuffer_t()
-{
+framebuffer_t::~framebuffer_t() {
 	glDeleteFramebuffers(psl::utility::narrow_cast<uint32_t>(m_Framebuffers.size()), m_Framebuffers.data());
 }
 
-std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept
-{
-	if(index >= m_Bindings.size()) return {};
+std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept {
+	if(index >= m_Bindings.size())
+		return {};
 
 	std::vector<framebuffer_t::texture_handle> res;
 	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
@@ -98,9 +88,9 @@ std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t i
 	return res;
 }
 
-std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint32_t index) const noexcept
-{
-	if(index >= m_Bindings.size()) return {};
+std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint32_t index) const noexcept {
+	if(index >= m_Bindings.size())
+		return {};
 
 	std::vector<framebuffer_t::texture_handle> res;
 	auto bindings {m_Bindings};
@@ -113,8 +103,14 @@ std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint
 
 	return res;
 }
-core::resource::handle<core::igles::sampler_t> framebuffer_t::sampler() const noexcept { return m_Sampler; }
+core::resource::handle<core::igles::sampler_t> framebuffer_t::sampler() const noexcept {
+	return m_Sampler;
+}
 
-core::resource::handle<core::data::framebuffer_t> framebuffer_t::data() const noexcept { return m_Data; }
+core::resource::handle<core::data::framebuffer_t> framebuffer_t::data() const noexcept {
+	return m_Data;
+}
 
-const std::vector<unsigned int>& framebuffer_t::framebuffers() const noexcept { return m_Framebuffers; }
+const std::vector<unsigned int>& framebuffer_t::framebuffers() const noexcept {
+	return m_Framebuffers;
+}

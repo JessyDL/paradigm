@@ -19,33 +19,31 @@ constexpr const vk::IndexType INDEX_TYPE =
   sizeof(core::data::geometry_t::index_size_t) == 2 ? vk::IndexType::eUint16 : vk::IndexType::eUint32;
 
 geometry_t::geometry_t(core::resource::cache_t& cache,
-				   const core::resource::metadata& metaData,
-				   psl::meta::file* metaFile,
-				   handle<core::ivk::context> context,
-				   core::resource::handle<core::data::geometry_t> data,
-				   core::resource::handle<core::ivk::buffer_t> geometryBuffer,
-				   core::resource::handle<core::ivk::buffer_t> indicesBuffer) :
-	m_Context(context),
-	m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer), m_UID(metaData.uid)
-{
+					   const core::resource::metadata& metaData,
+					   psl::meta::file* metaFile,
+					   handle<core::ivk::context> context,
+					   core::resource::handle<core::data::geometry_t> data,
+					   core::resource::handle<core::ivk::buffer_t> geometryBuffer,
+					   core::resource::handle<core::ivk::buffer_t> indicesBuffer)
+	: m_Context(context), m_Data(data), m_GeometryBuffer(geometryBuffer), m_IndicesBuffer(indicesBuffer),
+	  m_UID(metaData.uid) {
 	recreate(m_Data);
 }
 
-geometry_t::~geometry_t()
-{
-	if(!m_GeometryBuffer) return;
+geometry_t::~geometry_t() {
+	if(!m_GeometryBuffer)
+		return;
 
 	clear();
 }
 
-void geometry_t::clear()
-{
-	for(auto& binding : m_Bindings)
-	{
+void geometry_t::clear() {
+	for(auto& binding : m_Bindings) {
 		// this check makes sure this is the owner of the memory segment. if there's a local offset it means this
 		// binding has a shared memory::segment and we should only clear the first one who coincidentally starts at
 		// begin 0
-		if(binding.sub_range.begin == 0) m_GeometryBuffer->deallocate(binding.segment);
+		if(binding.sub_range.begin == 0)
+			m_GeometryBuffer->deallocate(binding.segment);
 	}
 	m_Bindings.clear();
 	// same as the earlier comment for geometry buffer
@@ -54,8 +52,7 @@ void geometry_t::clear()
 
 	m_Data = {};
 }
-void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
-{
+void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data) {
 	clear();
 	std::vector<vk::DeviceSize> sizeRequests;
 	sizeRequests.reserve(data->vertex_streams().size() + ((m_GeometryBuffer == m_IndicesBuffer) ? 1 : 0));
@@ -65,29 +62,29 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 					  sizeRequests.emplace_back((uint32_t)element.second.bytesize());
 				  });
 
-	if(m_GeometryBuffer == m_IndicesBuffer)
-	{
+	if(m_GeometryBuffer == m_IndicesBuffer) {
 		sizeRequests.emplace_back((uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
 	}
 
 	auto segments = m_GeometryBuffer->reserve(sizeRequests, true);
-	if(segments.size() == 0)
-	{
+	if(segments.size() == 0) {
 		core::ivk::log->critical("ran out of memory, could not allocate enough in the buffer to accomodate");
 		exit(1);
 	}
-	psl_assert(data->vertex_streams().size() > 0, "sizeof vertex streams was not larger than 0, it was '{}'", data->vertex_streams().size());
+	psl_assert(data->vertex_streams().size() > 0,
+			   "sizeof vertex streams was not larger than 0, it was '{}'",
+			   data->vertex_streams().size());
 	m_Vertices = std::begin(data->vertex_streams())->second.size();
 	std::vector<core::gfx::commit_instruction> instructions;
 	size_t i = 0;
-	for(const auto& stream : data->vertex_streams())
-	{
+	for(const auto& stream : data->vertex_streams()) {
 		psl_assert(m_Vertices == stream.second.size(), "{} did not match {}", m_Vertices, stream.second.size());
 		auto& instr	  = instructions.emplace_back();
 		instr.size	  = stream.second.bytesize();
 		instr.source  = (std::uintptr_t)(stream.second.data());
 		instr.segment = segments[i].first;
-		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
+		if(segments[i].first.range() != segments[i].second)
+			instr.sub_range = segments[i].second;
 
 		auto& b		= m_Bindings.emplace_back();
 		b.name		= stream.first;
@@ -96,17 +93,13 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 		++i;
 	}
 
-	if(m_GeometryBuffer != m_IndicesBuffer)
-	{
-		if(auto indiceSegment =
-			 m_IndicesBuffer->reserve((uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
-		   indiceSegment)
-		{
+	if(m_GeometryBuffer != m_IndicesBuffer) {
+		if(auto indiceSegment = m_IndicesBuffer->reserve(
+			 (uint32_t)(data->indices().size() * sizeof(core::data::geometry_t::index_size_t)));
+		   indiceSegment) {
 			m_IndicesSegment  = indiceSegment.value();
 			m_IndicesSubRange = memory::range_t {0, m_IndicesSegment.range().size()};
-		}
-		else
-		{
+		} else {
 			core::ivk::log->critical("index buffer was out of memory");
 			// todo error condition could not allocate segment
 			exit(1);
@@ -116,15 +109,14 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 		instr.source  = (std::uintptr_t)data->indices().data();
 		instr.segment = m_IndicesSegment;
 		m_IndicesBuffer->commit({instr});
-	}
-	else
-	{
+	} else {
 		i			  = segments.size() - 1;
 		auto& instr	  = instructions.emplace_back();
 		instr.size	  = segments[i].second.size();
 		instr.source  = (std::uintptr_t)data->indices().data();
 		instr.segment = segments[i].first;
-		if(segments[i].first.range() != segments[i].second) instr.sub_range = segments[i].second;
+		if(segments[i].first.range() != segments[i].second)
+			instr.sub_range = segments[i].second;
 
 		m_IndicesSegment  = segments[i].first;
 		m_IndicesSubRange = segments[i].second;
@@ -136,9 +128,8 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data)
 	m_Data = data;
 }
 void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
-						core::resource::handle<core::ivk::buffer_t> geometryBuffer,
-						core::resource::handle<core::ivk::buffer_t> indicesBuffer)
-{
+						  core::resource::handle<core::ivk::buffer_t> geometryBuffer,
+						  core::resource::handle<core::ivk::buffer_t> indicesBuffer) {
 	clear();
 
 	m_GeometryBuffer = geometryBuffer;
@@ -148,18 +139,14 @@ void geometry_t::recreate(core::resource::handle<core::data::geometry_t> data,
 }
 
 
-bool geometry_t::compatible(const core::ivk::material_t& material) const noexcept
-{
-	for(const auto& stage : material.data()->stages())
-	{
-		for(const auto& attribute : stage.attributes())
-		{
-			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
+bool geometry_t::compatible(const core::ivk::material_t& material) const noexcept {
+	for(const auto& stage : material.data()->stages()) {
+		for(const auto& attribute : stage.attributes()) {
+			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex)
+				continue;
 
-			for(const auto& b : m_Bindings)
-			{
-				if(psl::to_string8_t(b.name) == attribute.tag())
-				{
+			for(const auto& b : m_Bindings) {
+				if(psl::to_string8_t(b.name) == attribute.tag()) {
 					goto success;
 				}
 			}
@@ -177,13 +164,11 @@ bool geometry_t::compatible(const core::ivk::material_t& material) const noexcep
 	return true;
 }
 
-void geometry_t::bind(vk::CommandBuffer& buffer, const core::ivk::material_t& material) const noexcept
-{
-	for(const auto& stage : material.data()->stages())
-	{
-		for(const auto& attribute : stage.attributes())
-		{
-			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex) continue;
+void geometry_t::bind(vk::CommandBuffer& buffer, const core::ivk::material_t& material) const noexcept {
+	for(const auto& stage : material.data()->stages()) {
+		for(const auto& attribute : stage.attributes()) {
+			if(!attribute.input_rate() || attribute.input_rate() != core::gfx::vertex_input_rate::vertex)
+				continue;
 
 			auto binding = std::find_if(
 			  std::begin(m_Bindings), std::end(m_Bindings), [tag = attribute.tag()](const auto& binding) noexcept {
@@ -200,6 +185,12 @@ void geometry_t::bind(vk::CommandBuffer& buffer, const core::ivk::material_t& ma
 }
 
 
-size_t geometry_t::vertices() const noexcept { return m_Vertices; }
-size_t geometry_t::triangles() const noexcept { return m_Vertices; }
-size_t geometry_t::indices() const noexcept { return m_Vertices * 3; }
+size_t geometry_t::vertices() const noexcept {
+	return m_Vertices;
+}
+size_t geometry_t::triangles() const noexcept {
+	return m_Vertices;
+}
+size_t geometry_t::indices() const noexcept {
+	return m_Vertices * 3;
+}

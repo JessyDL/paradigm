@@ -3,10 +3,10 @@
 #include "meta/shader.hpp"
 
 #ifdef PE_VULKAN
-#include "vk/shader.hpp"
+	#include "vk/shader.hpp"
 #endif
 #ifdef PE_GLES
-#include "gles/shader.hpp"
+	#include "gles/shader.hpp"
 #endif
 
 using namespace core;
@@ -15,24 +15,20 @@ using namespace core::resource;
 
 
 #ifdef PE_VULKAN
-shader::shader(core::resource::handle<core::ivk::shader>& handle) :
-	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
-{}
+shader::shader(core::resource::handle<core::ivk::shader>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle) {}
 #endif
 #ifdef PE_GLES
-shader::shader(core::resource::handle<core::igles::shader>& handle) :
-	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
-{}
+shader::shader(core::resource::handle<core::igles::shader>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle) {}
 #endif
 
 shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
-			   core::resource::handle<core::gfx::context> context) :
-	m_Backend(context->backend())
-{
-	switch(context->backend())
-	{
+			   core::resource::handle<core::gfx::context> context)
+	: m_Backend(context->backend()) {
+	switch(context->backend()) {
 #ifdef PE_GLES
 	case graphics_backend::gles:
 		m_GLESHandle = cache.create_using<core::igles::shader>(metaData.uid);
@@ -47,10 +43,8 @@ shader::shader(core::resource::cache_t& cache,
 }
 
 
-core::meta::shader* shader::meta() const noexcept
-{
-	switch(m_Backend)
-	{
+core::meta::shader* shader::meta() const noexcept {
+	switch(m_Backend) {
 #ifdef PE_GLES
 	case graphics_backend::gles:
 		return m_GLESHandle.meta();

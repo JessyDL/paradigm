@@ -91,14 +91,12 @@ handle<core::gfx::compute> create_compute(resource::cache_t& cache,
 										  handle<core::gfx::context> context_handle,
 										  handle<core::gfx::pipeline_cache> pipeline_cache,
 										  const psl::UID& shader,
-										  const psl::UID& texture)
-{
+										  const psl::UID& texture) {
 	auto meta = cache.library().get<core::meta::shader>(shader).value();
 	auto data = cache.create<data::material_t>();
 	data->from_shaders(cache.library(), {meta});
 	auto stages = data->stages();
-	for(auto& stage : stages)
-	{
+	for(auto& stage : stages) {
 		auto bindings = stage.bindings();
 		bindings[0].texture(texture);
 		stage.bindings(bindings);
@@ -108,10 +106,8 @@ handle<core::gfx::compute> create_compute(resource::cache_t& cache,
 	  "594b2b8a-d4ea-e162-2b2c-987de571c7be"_uid, context_handle, data, pipeline_cache);
 }
 
-void load_texture(resource::cache_t& cache, handle<core::gfx::context> context_handle, const psl::UID& texture)
-{
-	if(!cache.contains(texture))
-	{
+void load_texture(resource::cache_t& cache, handle<core::gfx::context> context_handle, const psl::UID& texture) {
+	if(!cache.contains(texture)) {
 		auto textureHandle = cache.instantiate<gfx::texture_t>(texture, context_handle);
 		psl_assert(textureHandle, "invalid textureHandle");
 	}
@@ -142,14 +138,14 @@ handle<core::data::material_t> setup_gfx_material_data(resource::cache_t& cache,
 
 	auto texture_it = std::begin(textures);
 	auto stages		= matData->stages();
-	for(auto& stage : stages)
-	{
-		if(stage.shader_stage() != core::gfx::shader_stage::fragment || texture_it == std::end(textures)) continue;
+	for(auto& stage : stages) {
+		if(stage.shader_stage() != core::gfx::shader_stage::fragment || texture_it == std::end(textures))
+			continue;
 
 		auto bindings = stage.bindings();
-		for(auto& binding : bindings)
-		{
-			if(binding.descriptor() != core::gfx::binding_type::combined_image_sampler) continue;
+		for(auto& binding : bindings) {
+			if(binding.descriptor() != core::gfx::binding_type::combined_image_sampler)
+				continue;
 			binding.texture(*texture_it);
 			binding.sampler(samplerHandle);
 			texture_it = std::next(texture_it);
@@ -168,8 +164,7 @@ handle<core::gfx::material_t> setup_gfx_material(resource::cache_t& cache,
 												 handle<core::gfx::buffer_t> matBuffer,
 												 psl::UID vert,
 												 psl::UID frag,
-												 psl::array_view<psl::UID> textures = {})
-{
+												 psl::array_view<psl::UID> textures = {}) {
 	auto matData  = setup_gfx_material_data(cache, context_handle, vert, frag, textures);
 	auto material = cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, matBuffer);
 
@@ -180,8 +175,7 @@ handle<core::gfx::material_t> setup_gfx_material(resource::cache_t& cache,
 handle<core::gfx::material_t> setup_gfx_depth_material(resource::cache_t& cache,
 													   handle<core::gfx::context> context_handle,
 													   handle<core::gfx::pipeline_cache> pipeline_cache,
-													   handle<core::gfx::buffer_t> matBuffer)
-{
+													   handle<core::gfx::buffer_t> matBuffer) {
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("954b4ef3-f9ec-6a64-a127-ff37a9b31595"_uid).value();
 	auto fragShaderMeta = cache.library().get<core::meta::shader>("5340928c-5109-3688-cd5a-161766082a9c"_uid).value();
 
@@ -198,8 +192,7 @@ void create_ui(psl::ecs::state_t& state) {}
 
 #ifndef PLATFORM_ANDROID
 
-inline std::tm localtime_safe(std::time_t timer)
-{
+inline std::tm localtime_safe(std::time_t timer) {
 	std::tm bt {};
 	#if defined(__unix__)
 	localtime_r(&timer, &bt);
@@ -213,8 +206,7 @@ inline std::tm localtime_safe(std::time_t timer)
 	return bt;
 }
 
-void setup_loggers()
-{
+void setup_loggers() {
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	std::time_t now_c						  = std::chrono::system_clock::to_time_t(now);
 	std::tm now_tm							  = localtime_safe(now_c);
@@ -323,8 +315,7 @@ void setup_loggers()
 }
 #else
 	#include "spdlog/sinks/android_sink.h"
-void setup_loggers()
-{
+void setup_loggers() {
 	core::log		   = spdlog::android_logger_mt("main", "paradigm");
 	core::systems::log = spdlog::android_logger_mt("systems", "paradigm");
 	core::os::log	   = spdlog::android_logger_mt("os", "paradigm");
@@ -339,8 +330,7 @@ void setup_loggers()
 auto generate_fullscreen_quad(core::resource::cache_t& cache,
 							  core::resource::handle<core::gfx::context>& context_handle,
 							  core::resource::handle<core::gfx::buffer_t>& vertexBuffer,
-							  core::resource::handle<core::gfx::buffer_t>& indexBuffer)
-{
+							  core::resource::handle<core::gfx::buffer_t>& indexBuffer) {
 	resource::handle<data::geometry_t> geometryDataHandle {utility::geometry::create_quad(cache, 1, -1, -1, 1)};
 	utility::geometry::set_channel(geometryDataHandle, core::data::geometry_t::constants::COLOR, psl::vec4::one);
 	return cache.create<gfx::geometry_t>(context_handle, geometryDataHandle, vertexBuffer, indexBuffer);
@@ -350,8 +340,7 @@ auto generate_test_geometry(core::resource::cache_t& cache,
 							core::resource::handle<core::gfx::context>& context_handle,
 							core::resource::handle<core::gfx::buffer_t>& vertexBuffer,
 							core::resource::handle<core::gfx::buffer_t>& indexBuffer)
-  -> std::vector<resource::handle<gfx::geometry_t>>
-{
+  -> std::vector<resource::handle<gfx::geometry_t>> {
 	std::vector<resource::handle<data::geometry_t>> geometryDataHandles;
 	std::vector<resource::handle<gfx::geometry_t>> geometryHandles;
 	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
@@ -416,10 +405,8 @@ auto generate_test_geometry(core::resource::cache_t& cache,
 	// geometryDataHandles.push_back(
 	//   cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
 	auto water_plane_index = geometryDataHandles.size() - 1;
-	for(auto& handle : geometryDataHandles)
-	{
-		if(!handle->contains(core::data::geometry_t::constants::COLOR))
-		{
+	for(auto& handle : geometryDataHandles) {
+		if(!handle->contains(core::data::geometry_t::constants::COLOR)) {
 			core::vertex_stream_t colorstream {core::vertex_stream_t::type::vec3};
 			auto& colors = colorstream.get<core::vertex_stream_t::type::vec3>();
 			auto& normalStream =
@@ -446,8 +433,7 @@ auto generate_test_geometry(core::resource::cache_t& cache,
 auto create_fbo_data(core::resource::cache_t& cache,
 					 core::resource::handle<core::os::surface>& surface_handle,
 					 core::resource::handle<core::gfx::context>& context_handle,
-					 bool with_depth = false)
-{
+					 bool with_depth = false) {
 	auto frameBufferData =
 	  cache.create<core::data::framebuffer_t>(surface_handle->data().width(), surface_handle->data().height(), 1);
 
@@ -477,14 +463,11 @@ auto create_fbo_data(core::resource::cache_t& cache,
 							 descr);
 	}
 
-	if(with_depth)
-	{	 // depth-stencil target
+	if(with_depth) {	// depth-stencil target
 		core::gfx::attachment descr {};
-		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format_t::undefined)
-		{
+		if(auto format = context_handle->limits().supported_depthformat; format == core::gfx::format_t::undefined) {
 			core::log->error("Could not find a suitable depth stencil buffer format.");
-		}
-		else
+		} else
 			descr.format = format;
 		descr.sample_bits	= 1;
 		descr.image_load	= core::gfx::attachment::load_op::clear;
@@ -505,14 +488,12 @@ auto create_fbo_data(core::resource::cache_t& cache,
 	return frameBufferData;
 }
 
-int entry(gfx::graphics_backend backend, core::os::context& os_context)
-{
+int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
 	psl::string8_t environment = "";
-	switch(backend)
-	{
+	switch(backend) {
 	case graphics_backend::gles:
 		environment = "gles";
 		break;
@@ -529,8 +510,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
 	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
 	auto surface_handle = cache.create<core::os::surface>(window_data);
-	if(!surface_handle)
-	{
+	if(!surface_handle) {
 		core::log->critical("Could not create a OS surface to draw on.");
 		return -1;
 	}
@@ -541,11 +521,11 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 
 	// get a vertex and fragment shader that can be combined, we only need the meta
 	if(!cache.library().contains("234318ae-3590-f1e2-bac5-f113cac3be9b"_uid) ||
-	   !cache.library().contains("5e43dd8b-d10e-2ea0-a9d6-df4199bbe2aa"_uid))
-	{
+	   !cache.library().contains("5e43dd8b-d10e-2ea0-a9d6-df4199bbe2aa"_uid)) {
 		core::log->critical(
 		  "Could not find the required shader resources in the meta library. Did you forget to copy the files over?");
-		if(surface_handle) surface_handle->terminate();
+		if(surface_handle)
+			surface_handle->terminate();
 		return -1;
 	}
 
@@ -555,8 +535,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 
 	// create a staging buffer, this is allows for more advantagous resource access for the GPU
 	core::resource::handle<gfx::buffer_t> stagingBuffer {};
-	if(backend == graphics_backend::vulkan)
-	{
+	if(backend == graphics_backend::vulkan) {
 		auto stagingBufferData = cache.create<data::buffer_t>(
 		  core::gfx::memory_usage::transfer_source,
 		  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
@@ -685,12 +664,11 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	core::resource::handle<core::gfx::bundle> post_effect_bundle =
 	  cache.create<gfx::bundle>(instanceBuffer, intanceMaterialBinding);
 
-	auto post_effect_data =
-	  setup_gfx_material_data(cache,
-							  context_handle,
-							  "0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
-							  "cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid,
-							  std::vector { geometryFBO->texture(0).meta().ID() });
+	auto post_effect_data = setup_gfx_material_data(cache,
+													context_handle,
+													"0b4cb8ca-b3d0-d105-c7be-8ed4eb5f3395"_uid,
+													"cc4889f4-bbd6-65ae-3c2b-758a8e7b5bbf"_uid,
+													std::vector {geometryFBO->texture(0).meta().ID()});
 	// post_effect_data->blend_states({core::data::material_t::blendstate::transparent(0)});
 	post_effect_data->cull_mode(core::gfx::cullmode::none);
 	post_effect_data->depth_write(false);
@@ -732,8 +710,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 		auto compute_handle = create_compute(
 		  cache, context_handle, pipeline_cache, "9d48b49f-d82f-bcbd-a180-93a713e43b98"_uid, compute_texture_uid);
 
-		if(context_handle->backend() == core::gfx::graphics_backend::gles)
-		{
+		if(context_handle->backend() == core::gfx::graphics_backend::gles) {
 			auto compute_pass = renderGraph.create_computepass(context_handle);
 			compute_pass->add(core::gfx::computecall {compute_handle});
 			renderGraph.connect(compute_pass, swapchain_pass);
@@ -772,8 +749,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context)
 	ECSState.declare<"movement">(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare<"lifetime">(psl::ecs::threading::par, core::ecs::systems::lifetime);
 	ECSState.declare<"downscale">(psl::ecs::threading::par, [](info_t& info, pack<transform, const lifetime> pack) {
-		for(auto [transf, life] : pack)
-		{
+		for(auto [transf, life] : pack) {
 			auto remainder = std::min(life.value * 2.0f, 1.0f);
 			transf.scale *= remainder;
 		}
@@ -821,8 +797,7 @@ ECSState.create(
 	},
 	core::ecs::components::transform{});
 	*/
-	if(false)
-	{
+	if(false) {
 		load_texture(cache, context_handle, "5ea8ae3d-1ff4-48cc-9c90-d0eb81ba7075"_uid);
 		auto water_material_data = setup_gfx_material_data(cache,
 														   context_handle,
@@ -878,8 +853,7 @@ ECSState.create(
 	size_t burst = 40000;
 #endif
 
-	while(os_context.tick() && surface_handle->tick())
-	{
+	while(os_context.tick() && surface_handle->tick()) {
 		core::log->info("---- FRAME {0} START ----", frame);
 		core::log->info("There are {} renderables alive right now", ECSState.size<renderable>());
 		core::profiler.next_frame();
@@ -930,10 +904,8 @@ ECSState.create(
 			  });
 
 
-			if(iterations > 0)
-			{
-				if(ECSState.filter<core::ecs::components::attractor>().size() < 1)
-				{
+			if(iterations > 0) {
+				if(ECSState.filter<core::ecs::components::attractor>().size() < 1) {
 					ECSState.create(
 					  2,
 					  [](core::ecs::components::lifetime& target) {
@@ -985,22 +957,21 @@ ECSState.create(
 // todo move to os context
 AAssetManager* utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
 
-void android_main(android_app* application)
-{
+void android_main(android_app* application) {
 	auto os_context								   = core::os::context {application};
 	utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
 	setup_loggers();
 	std::srand(0);
 
 	// go into a holding loop while wait for the window to come online.
-	while(true)
-	{
+	while(true) {
 		os_context.tick();
 		__android_log_write(
 		  ANDROID_LOG_INFO,
 		  "paradigm",
 		  (std::string("window ") + std::to_string((size_t)(os_context.application().window))).data());
-		if(os_context.application().window != nullptr) break;
+		if(os_context.application().window != nullptr)
+			break;
 	}
 	__android_log_write(
 	  ANDROID_LOG_INFO,
@@ -1011,8 +982,7 @@ void android_main(android_app* application)
 }
 
 #else
-int main(int argc, char* argv[])
-{
+int main(int argc, char* argv[]) {
 	#ifdef PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
@@ -1026,25 +996,20 @@ int main(int argc, char* argv[])
 	}
 	#endif
 	std::srand(0);
-	if(argc > 0)
-	{
+	if(argc > 0) {
 		core::log->info("Received the cli args:");
 		for(auto i = 0; i < argc; ++i) core::log->info(argv[i]);
 	}
 	auto backend = [](int argc, char* argv[]) noexcept {
-		for(auto i = 0; i < argc; ++i)
-		{
+		for(auto i = 0; i < argc; ++i) {
 			std::string_view text {argv[i]};
-			if(text == "--vulkan")
-			{
+			if(text == "--vulkan") {
 	#if defined(PE_VULKAN)
 				return graphics_backend::vulkan;
 	#else
 				throw std::runtime_error("Requested a Vulkan backend, but application does not support Vulkan");
 	#endif
-			}
-			else if(text == "--gles")
-			{
+			} else if(text == "--gles") {
 	#if defined(PE_GLES)
 				return graphics_backend::gles;
 	#else

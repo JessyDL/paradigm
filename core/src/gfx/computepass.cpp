@@ -3,10 +3,10 @@
 #include "gfx/context.hpp"
 
 #if PE_GLES
-#include "gles/computepass.hpp"
+	#include "gles/computepass.hpp"
 #endif
 #if PE_VULKAN
-#include "vk/computepass.hpp"
+	#include "vk/computepass.hpp"
 #endif
 
 using namespace core::resource;
@@ -21,10 +21,8 @@ computepass::computepass(core::igles::computepass* handle) : m_Backend(graphics_
 #endif
 
 
-computepass::computepass(handle<core::gfx::context> context) : m_Backend(context->backend())
-{
-	switch(m_Backend)
-	{
+computepass::computepass(handle<core::gfx::context> context) : m_Backend(context->backend()) {
+	switch(m_Backend) {
 #ifdef PE_GLES
 	case graphics_backend::gles:
 		m_GLESHandle = new core::igles::computepass();
@@ -38,8 +36,7 @@ computepass::computepass(handle<core::gfx::context> context) : m_Backend(context
 	}
 }
 
-computepass::~computepass()
-{
+computepass::~computepass() {
 #ifdef PE_GLES
 	delete(m_GLESHandle);
 #endif
@@ -49,80 +46,79 @@ computepass::~computepass()
 }
 
 
-void computepass::prepare()
-{
+void computepass::prepare() {
 #ifdef PE_GLES
-	if(m_GLESHandle) m_GLESHandle->prepare();
+	if(m_GLESHandle)
+		m_GLESHandle->prepare();
 #endif
 #ifdef PE_VULKAN
-	if(m_VKHandle) m_VKHandle->prepare();
+	if(m_VKHandle)
+		m_VKHandle->prepare();
 #endif
 }
-bool computepass::build(bool force)
-{
-	if(!m_Dirty && !force) return true;
+bool computepass::build(bool force) {
+	if(!m_Dirty && !force)
+		return true;
 
 	m_Dirty = false;
 #ifdef PE_GLES
-	if(m_GLESHandle) m_GLESHandle->build();
+	if(m_GLESHandle)
+		m_GLESHandle->build();
 #endif
 #ifdef PE_VULKAN
-	if(m_VKHandle) m_VKHandle->build();
+	if(m_VKHandle)
+		m_VKHandle->build();
 #endif
 	return false;
 }
 
 
-void computepass::clear()
-{
+void computepass::clear() {
 #ifdef PE_GLES
-	if(m_GLESHandle) m_GLESHandle->clear();
+	if(m_GLESHandle)
+		m_GLESHandle->clear();
 #endif
-#ifdef PE_VULKAN
-	if(m_VKHandle) m_VKHandle->clear();
-#endif
-}
-void computepass::present()
-{
-#ifdef PE_GLES
-	if(m_GLESHandle) m_GLESHandle->present();
-#endif
-#ifdef PE_VULKAN
-	if(m_VKHandle) m_VKHandle->present();
-#endif
-}
-
-
-bool computepass::connect(psl::view_ptr<computepass> child) noexcept
-{
 #ifdef PE_VULKAN
 	if(m_VKHandle)
-	{
+		m_VKHandle->clear();
+#endif
+}
+void computepass::present() {
+#ifdef PE_GLES
+	if(m_GLESHandle)
+		m_GLESHandle->present();
+#endif
+#ifdef PE_VULKAN
+	if(m_VKHandle)
+		m_VKHandle->present();
+#endif
+}
+
+
+bool computepass::connect(psl::view_ptr<computepass> child) noexcept {
+#ifdef PE_VULKAN
+	if(m_VKHandle) {
 		m_VKHandle->connect(child->m_VKHandle);
 		return true;
 	}
 #endif
 #ifdef PE_GLES
-	if(m_VKHandle)
-	{
+	if(m_VKHandle) {
 		m_GLESHandle->connect(child->m_GLESHandle);
 		return true;
 	}
 #endif
 	return false;
 }
-bool computepass::disconnect(psl::view_ptr<computepass> child) noexcept
-{
+bool computepass::disconnect(psl::view_ptr<computepass> child) noexcept {
 #ifdef PE_VULKAN
-	if(m_VKHandle)
-	{
+	if(m_VKHandle) {
 		m_VKHandle->disconnect(child->m_VKHandle);
 		return true;
 	}
 #endif
 #ifdef PE_GLES
-	if(m_VKHandle)
-	{
+	if(m_VKHandle) {
 		m_GLESHandle->disconnect(child->m_GLESHandle);
 		return true;
 	}
@@ -131,12 +127,13 @@ bool computepass::disconnect(psl::view_ptr<computepass> child) noexcept
 }
 
 
-void computepass::add(const core::gfx::computecall& call) noexcept
-{
+void computepass::add(const core::gfx::computecall& call) noexcept {
 #ifdef PE_GLES
-	if(m_GLESHandle) m_GLESHandle->add(call);
+	if(m_GLESHandle)
+		m_GLESHandle->add(call);
 #endif
 #ifdef PE_VULKAN
-	if(m_VKHandle) m_VKHandle->add(call);
+	if(m_VKHandle)
+		m_VKHandle->add(call);
 #endif
 }

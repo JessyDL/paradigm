@@ -6,8 +6,7 @@
 
 using namespace psl::noise;
 using namespace psl::math;
-perlin::perlin(uint32_t seed) noexcept
-{
+perlin::perlin(uint32_t seed) noexcept {
 	m_Permutation.resize(256);
 
 	std::iota(std::begin(m_Permutation), std::end(m_Permutation), 0);
@@ -17,8 +16,7 @@ perlin::perlin(uint32_t seed) noexcept
 	m_Permutation.insert(std::end(m_Permutation), std::begin(m_Permutation), std::end(m_Permutation));
 }
 
-void perlin::reseed(uint32_t seed) noexcept
-{
+void perlin::reseed(uint32_t seed) noexcept {
 	std::iota(std::begin(m_Permutation), std::end(m_Permutation), 0);
 	std::default_random_engine engine(seed);
 	std::shuffle(std::begin(m_Permutation), std::end(m_Permutation), engine);
@@ -26,14 +24,12 @@ void perlin::reseed(uint32_t seed) noexcept
 	  std::begin(m_Permutation), std::next(std::begin(m_Permutation), 256), std::next(std::begin(m_Permutation), 256));
 }
 
-float perlin::noise(psl::vec3 coordinate, int32_t octaves, float persistence) const noexcept
-{
+float perlin::noise(psl::vec3 coordinate, int32_t octaves, float persistence) const noexcept {
 	octaves = std::max<int32_t>(1, octaves);
 	float res {0.0f};
 	float amp {1.0f};
 
-	for(int32_t i = 0; i < octaves; ++i)
-	{
+	for(int32_t i = 0; i < octaves; ++i) {
 		auto X = static_cast<int32_t>(std::floor(coordinate[0])) & 255;
 		auto Y = static_cast<int32_t>(std::floor(coordinate[1])) & 255;
 		auto Z = static_cast<int32_t>(std::floor(coordinate[2])) & 255;
@@ -76,14 +72,12 @@ float perlin::noise(psl::vec3 coordinate, int32_t octaves, float persistence) co
 }
 
 
-float perlin::noise(psl::vec2 coordinate, int32_t octaves, float persistence) const noexcept
-{
+float perlin::noise(psl::vec2 coordinate, int32_t octaves, float persistence) const noexcept {
 	octaves = std::max<int32_t>(1, octaves);
 	float res {0.0f};
 	float amp {1.0f};
 
-	for(int32_t i = 0; i < octaves; ++i)
-	{
+	for(int32_t i = 0; i < octaves; ++i) {
 		auto X = static_cast<int32_t>(std::floor(coordinate[0])) & 255;
 		auto Y = static_cast<int32_t>(std::floor(coordinate[1])) & 255;
 

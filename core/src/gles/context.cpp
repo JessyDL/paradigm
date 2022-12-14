@@ -6,8 +6,7 @@
 
 using namespace core::igles;
 
-void context::quey_capabilities() noexcept
-{
+void context::quey_capabilities() noexcept {
 	GLint value {};
 
 	glGetIntegerv(GL_SHADER_STORAGE_BUFFER_OFFSET_ALIGNMENT, &value);

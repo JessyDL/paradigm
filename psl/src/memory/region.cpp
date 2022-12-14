@@ -2,11 +2,11 @@
 #include "psl/platform_def.hpp"
 #include <algorithm>
 #if defined(PLATFORM_WINDOWS)
-#include <Windows.h>
+	#include <Windows.h>
 #endif
 #if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID)
-#include <sys/mman.h>
-#include <unistd.h>
+	#include <sys/mman.h>
+	#include <unistd.h>
 #endif
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"
@@ -16,17 +16,14 @@ region::region(region& parent,
 			   memory::segment& segment,
 			   uint64_t pageSize,
 			   uint64_t alignment,
-			   allocator_base* allocator) :
-	m_Parent(&parent),
-	m_Allocator(allocator), m_Alignment(alignment)
-{
+			   allocator_base* allocator)
+	: m_Parent(&parent), m_Allocator(allocator), m_Alignment(alignment) {
 	m_PageSize = pageSize;
 	m_Size	   = segment.range().size();
 	m_Base	   = (void*)segment.range().begin;
 
 #if defined(PLATFORM_WINDOWS)
-	if(m_Allocator->is_physically_backed())
-	{
+	if(m_Allocator->is_physically_backed()) {
 		m_PageState.resize(m_Size / pageSize);
 	}
 #endif
@@ -35,17 +32,13 @@ region::region(region& parent,
 	allocator->initialize(this);
 }
 
-region::region(uint64_t size, uint64_t alignment, allocator_base* allocator) :
-	m_Allocator(allocator), m_Alignment(alignment)
-{
-	if(!allocator->is_physically_backed())
-	{
+region::region(uint64_t size, uint64_t alignment, allocator_base* allocator)
+	: m_Allocator(allocator), m_Alignment(alignment) {
+	if(!allocator->is_physically_backed()) {
 		m_PageSize = 0u;
 		m_Size	   = size;
 		m_Base	   = nullptr;
-	}
-	else
-	{
+	} else {
 #if defined(PLATFORM_WINDOWS)
 		// DWORD dwPages = 0;              // Count of pages gotten so far
 
@@ -61,8 +54,7 @@ region::region(uint64_t size, uint64_t alignment, allocator_base* allocator) :
 
 		m_PageState.resize(m_Size / m_PageSize);
 
-		if(m_Base == nullptr)
-		{
+		if(m_Base == nullptr) {
 			// todo error state
 			__debugbreak();
 		}
@@ -72,8 +64,7 @@ region::region(uint64_t size, uint64_t alignment, allocator_base* allocator) :
 		m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
 
 		auto addr = mmap(NULL, m_Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-		if(addr == MAP_FAILED)
-		{
+		if(addr == MAP_FAILED) {
 			exit(EXIT_FAILURE);
 		}
 		m_Base = (unsigned char*)addr;
@@ -84,15 +75,13 @@ region::region(uint64_t size, uint64_t alignment, allocator_base* allocator) :
 	allocator->initialize(this);
 }
 
-region::region(region&& other) :
-	m_Allocator(other.m_Allocator), m_Alignment(other.m_Alignment), m_Base(other.m_Base), m_Size(other.m_Size),
+region::region(region&& other)
+	: m_Allocator(other.m_Allocator), m_Alignment(other.m_Alignment), m_Base(other.m_Base), m_Size(other.m_Size),
 #ifdef PLATFORM_WINDOWS
-	m_PageState(std::move(other.m_PageState)),
+	  m_PageState(std::move(other.m_PageState)),
 #endif
-	m_Children(std::move(other.m_Children)), m_Parent(other.m_Parent), m_PageSize(other.m_PageSize)
-{
-	if(m_Parent)
-	{
+	  m_Children(std::move(other.m_Children)), m_Parent(other.m_Parent), m_PageSize(other.m_PageSize) {
+	if(m_Parent) {
 		std::replace_if(
 		  std::begin(m_Parent->m_Children),
 		  std::end(m_Parent->m_Children),
@@ -100,8 +89,7 @@ region::region(region&& other) :
 		  this);
 	}
 
-	for(auto& it : m_Children)
-	{
+	for(auto& it : m_Children) {
 		it->m_Parent = this;
 	}
 	m_Allocator->m_Region = this;
@@ -111,10 +99,8 @@ region::region(region&& other) :
 	other.m_Children.clear();
 }
 
-region& region::operator=(region&& other)
-{
-	if(this != &other)
-	{
+region& region::operator=(region&& other) {
+	if(this != &other) {
 		m_Allocator = other.m_Allocator;
 		m_Alignment = other.m_Alignment;
 		m_Base		= other.m_Base;
@@ -132,8 +118,7 @@ region& region::operator=(region&& other)
 		  [&other](auto& it) { return it == &other; },
 		  this);
 
-		for(auto& it : m_Children)
-		{
+		for(auto& it : m_Children) {
 			it->m_Parent = this;
 		}
 		m_Allocator->m_Region = this;
@@ -144,24 +129,22 @@ region& region::operator=(region&& other)
 	return *this;
 }
 
-std::optional<segment> region::allocate(size_t size) { return m_Allocator->allocate(size); }
+std::optional<segment> region::allocate(size_t size) {
+	return m_Allocator->allocate(size);
+}
 
-region::~region()
-{
+region::~region() {
 	if(m_Children.size() != 0)
 		debug_break();	  // todo: we need to figure out a good error here, children need to be cleared before their
 						  // parents
 
-	if(m_Parent != nullptr)
-	{
+	if(m_Parent != nullptr) {
 		m_Parent->erase_region(*this);
 		delete(m_Allocator);
-	}
-	else
-	{
-		if(m_Base == nullptr || !m_Allocator->is_physically_backed())
-		{
-			if(m_Allocator) delete(m_Allocator);
+	} else {
+		if(m_Base == nullptr || !m_Allocator->is_physically_backed()) {
+			if(m_Allocator)
+				delete(m_Allocator);
 
 			return;
 		}
@@ -171,8 +154,7 @@ region::~region()
 					0,				 // Bytes of committed pages
 					MEM_RELEASE);	 // Decommit the pages
 #else
-		if(munmap(m_Base, sizeof(int)) == -1)
-		{
+		if(munmap(m_Base, sizeof(int)) == -1) {
 			LOG_ERROR("munmap()() failed");
 			exit(EXIT_FAILURE);
 		}
@@ -181,17 +163,14 @@ region::~region()
 }
 
 std::optional<memory::region>
-region::create_region(size_t size, std::optional<size_t> alignment, allocator_base* allocator)
-{
-	if(allocator->is_physically_backed() != m_Allocator->is_physically_backed())
-	{
+region::create_region(size_t size, std::optional<size_t> alignment, allocator_base* allocator) {
+	if(allocator->is_physically_backed() != m_Allocator->is_physically_backed()) {
 		return {};
 	}
 
 #ifdef PLATFORM_WINDOWS
 	auto final_size = size;
-	if(m_Allocator->is_physically_backed())
-	{
+	if(m_Allocator->is_physically_backed()) {
 		uint64_t pages = 0u;
 		pages		   = (size + (size % m_PageSize)) / m_PageSize;
 		pages		   = (pages == 0) ? 1 : pages;
@@ -204,8 +183,7 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 	auto res			 = m_Allocator->allocate(final_size);
 	m_Alignment			 = cachedAlignment;
 
-	if(res)
-	{
+	if(res) {
 		size_t start = (res.value().range().begin - (std::uintptr_t)(m_Base)) / m_PageSize;
 		size_t end	 = (res.value().range().end - (std::uintptr_t)(m_Base)) / m_PageSize;
 		std::fill(std::begin(m_PageState) + start, std::begin(m_PageState) + end, state::DEFERRED);
@@ -219,8 +197,7 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 	m_Alignment = m_PageSize;
 	auto res = m_Allocator->allocate(size);
 	m_Alignment = cachedAlignment;
-	if(res)
-	{
+	if(res) {
 		return memory::region {*this, res.value(), 0, alignment.value_or(m_Alignment), allocator};
 	}
 #endif
@@ -228,12 +205,12 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 	return {};
 }
 
-bool region::erase_region(memory::region& child)
-{
+bool region::erase_region(memory::region& child) {
 	auto it = std::find_if(
 	  std::begin(m_Children), std::end(m_Children), [&child](const memory::region* item) { return item == &child; });
 
-	if(it == std::end(m_Children)) return false;
+	if(it == std::end(m_Children))
+		return false;
 
 	memory::region* childPtr = *it;
 
@@ -250,26 +227,19 @@ bool region::erase_region(memory::region& child)
 	return deallocate(segm);
 }
 
-bool region::commit(const memory::range_t& range)
-{
-	if(!m_Allocator->is_physically_backed())
-	{
+bool region::commit(const memory::range_t& range) {
+	if(!m_Allocator->is_physically_backed()) {
 		return true;
 	}
 	// we only keep track on windows what the pages are
 #ifdef PLATFORM_WINDOWS
 	auto pages = page_range(range);
 	auto start = pages.first;
-	for(auto i = pages.first; i < pages.second; ++i)
-	{
-		if(m_PageState[i] != state::COMMITED)
-		{
+	for(auto i = pages.first; i < pages.second; ++i) {
+		if(m_PageState[i] != state::COMMITED) {
 			continue;
-		}
-		else
-		{
-			if(start != i)
-			{
+		} else {
+			if(start != i) {
 				auto loc = (std::uintptr_t)(m_Base) + (m_PageSize * start);
 
 				auto lpvResult = VirtualAlloc((void*)loc,				   // Next page to commit
@@ -277,21 +247,18 @@ bool region::commit(const memory::range_t& range)
 											  MEM_COMMIT,				   // Allocate a committed page
 											  PAGE_READWRITE);			   // Read/write access
 
-				if(lpvResult != NULL)
-				{
+				if(lpvResult != NULL) {
 					auto end =
 					  (pages.second > m_PageState.size()) ? std::end(m_PageState) : std::begin(m_PageState) + i;
 					std::fill(std::begin(m_PageState) + start, end, state::COMMITED);
-				}
-				else
+				} else
 					return false;
 			}
 			start = i + 1;
 		}
 	}
 
-	if(start != pages.second)
-	{
+	if(start != pages.second) {
 		auto loc = (std::uintptr_t)(m_Base) + (m_PageSize * start);
 
 		auto lpvResult = VirtualAlloc((void*)loc,							  // Next page to commit
@@ -299,14 +266,11 @@ bool region::commit(const memory::range_t& range)
 									  MEM_COMMIT,							  // Allocate a committed page
 									  PAGE_READWRITE);						  // Read/write access
 
-		if(lpvResult != NULL)
-		{
+		if(lpvResult != NULL) {
 			auto end =
 			  (pages.second > m_PageState.size()) ? std::end(m_PageState) : std::begin(m_PageState) + pages.second;
 			std::fill(std::begin(m_PageState) + start, end, state::COMMITED);
-		}
-		else
-		{
+		} else {
 			return false;
 		}
 	}
@@ -314,26 +278,26 @@ bool region::commit(const memory::range_t& range)
 	return true;
 }
 
-bool region::deallocate(segment& segment) { return m_Allocator->deallocate(segment); }
+bool region::deallocate(segment& segment) {
+	return m_Allocator->deallocate(segment);
+}
 
-bool region::deallocate(std::optional<segment>& segment)
-{
+bool region::deallocate(std::optional<segment>& segment) {
 	return ((segment) ? m_Allocator->deallocate(segment.value()) : false);
 }
 
-void region::compact() { m_Allocator->compact(); }
+void region::compact() {
+	m_Allocator->compact();
+}
 
-void region::decommit_unused()
-{
-	if(!m_Allocator->is_physically_backed())
-	{
+void region::decommit_unused() {
+	if(!m_Allocator->is_physically_backed()) {
 		return;
 	}
 	// we only keep track on windows what the pages are
 #ifdef PLATFORM_WINDOWS
 	auto committed {m_Allocator->available()};
-	for(auto commit : committed)
-	{
+	for(auto commit : committed) {
 		auto pages = page_range(commit);
 
 		auto loc = (std::uintptr_t)(m_Base) + (m_PageSize * pages.first);
@@ -349,13 +313,13 @@ void region::decommit_unused()
 }
 
 #ifdef PLATFORM_WINDOWS
-std::pair<uint64_t, uint64_t> region::page_range(const memory::range_t& range)
-{
+std::pair<uint64_t, uint64_t> region::page_range(const memory::range_t& range) {
 	auto offset		 = range.begin - (std::uintptr_t)(m_Base);
 	auto start_index = (offset - (offset % m_PageSize)) / m_PageSize;
 	offset			 = range.end - (std::uintptr_t)(m_Base);
 	auto end_index	 = (offset + (m_PageSize - (offset % m_PageSize))) / m_PageSize;
-	if(end_index > m_PageState.size()) end_index = m_PageState.size();
+	if(end_index > m_PageState.size())
+		end_index = m_PageState.size();
 	return {start_index, end_index};
 }
 #endif

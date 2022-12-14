@@ -7,15 +7,26 @@ const UID UID::invalid_uid = PUID {0};
 
 UID::UID(const psl::string8_t& key) : GUID(from_string(key).GUID) {}
 
-bool UID::operator==(const UID& b) const { return GUID == b.GUID; }
-bool UID::operator!=(const UID& b) const { return GUID != b.GUID; }
-bool UID::operator<(const UID& b) const { return GUID < b.GUID; }
-bool UID::operator>(const UID& b) const { return GUID > b.GUID; }
-bool UID::operator<=(const UID& b) const { return GUID <= b.GUID; }
-bool UID::operator>=(const UID& b) const { return GUID >= b.GUID; }
+bool UID::operator==(const UID& b) const {
+	return GUID == b.GUID;
+}
+bool UID::operator!=(const UID& b) const {
+	return GUID != b.GUID;
+}
+bool UID::operator<(const UID& b) const {
+	return GUID < b.GUID;
+}
+bool UID::operator>(const UID& b) const {
+	return GUID > b.GUID;
+}
+bool UID::operator<=(const UID& b) const {
+	return GUID <= b.GUID;
+}
+bool UID::operator>=(const UID& b) const {
+	return GUID >= b.GUID;
+}
 
-const psl::string8_t UID::to_string() const
-{
+const psl::string8_t UID::to_string() const {
 	psl::string8_t str;
 	str.resize(37);
 	snprintf(str.data(),
@@ -41,8 +52,7 @@ const psl::string8_t UID::to_string() const
 	return str;
 }
 
-UID UID::generate()
-{
+UID UID::generate() {
 	static std::random_device rd;
 	static std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 

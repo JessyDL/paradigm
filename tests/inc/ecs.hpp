@@ -1,5 +1,3 @@
 #pragma once
 
-namespace tests::ecs
-{
-}
+namespace tests::ecs {}

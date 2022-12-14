@@ -36,9 +36,9 @@
 #include <vector>
 
 #ifdef PLATFORM_LINUX
-// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
-#undef minor
-#undef major
+	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
+	#undef minor
+	#undef major
 #endif
 
 
@@ -58,9 +58,9 @@
 #include "gfx/stdafx.hpp"
 
 #if defined(PLATFORM_WINDOWS)
-#define _CRTDBG_MAP_ALLOC
-#include <crtdbg.h>
-#include <stdlib.h>
+	#define _CRTDBG_MAP_ALLOC
+	#include <crtdbg.h>
+	#include <stdlib.h>
 
 
 //#ifndef DBG_NEW
@@ -87,18 +87,17 @@
 
 #if defined(PLATFORM_WINDOWS)
 
-#define CHKHEAP() (chk_heap(__FILE__, __LINE__))
+	#define CHKHEAP() (chk_heap(__FILE__, __LINE__))
 
-static void chk_heap(char* file, int line)
-{
+static void chk_heap(char* file, int line) {
 	static const char* lastOkFile = "here";
 	static int lastOkLine		  = 0;
 	static int heapOK			  = 1;
 
-	if(!heapOK) return;
+	if(!heapOK)
+		return;
 
-	if(_heapchk() == _HEAPOK)
-	{
+	if(_heapchk() == _HEAPOK) {
 		lastOkFile = file;
 		lastOkLine = line;
 		return;
@@ -127,33 +126,33 @@ return malloc(size);
 /// \namespace core
 /// \brief the engine core, here all graphics resources and render operations are described.
 
-/// \namespace core::gfx 
+/// \namespace core::gfx
 /// \brief namespace that deals with the abstract render objects
 /// \details using this namespace you can have an abstract API to the various supported graphics APIs
 
-/// \namespace core::ivk 
+/// \namespace core::ivk
 /// \brief deals with all objects that are directly mapped to vulkan objects (i.e. they have internal vulkan concepts in them)
 
-/// \namespace core::igles 
+/// \namespace core::igles
 /// \brief OpenGLES API abstraction
 
-/// \namespace core::resource 
+/// \namespace core::resource
 /// \brief deals with resource creation, tracking, and managing.
 
-/// \namespace core::meta 
+/// \namespace core::meta
 /// \brief contains all extensions to the psl::meta namespace.
 
-/// \namespace core::os 
+/// \namespace core::os
 /// \brief specific OS wrappers and resources.
 
-/// \namespace core::systems 
+/// \namespace core::systems
 /// \brief contains systems that are responsible for handling certain aspects (audio, input, physics, etc..).
 
-/// \namespace core::ecs 
+/// \namespace core::ecs
 /// \brief All ECS related implementations
 
-/// \namespace core::ecs::systems 
+/// \namespace core::ecs::systems
 /// \brief ECS Systems
 
-/// \namespace core::ecs::components 
+/// \namespace core::ecs::components
 /// \brief ECS Components

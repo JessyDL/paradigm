@@ -16,18 +16,15 @@ using namespace psl::math;
 gpu_camera::gpu_camera(psl::ecs::state_t& state,
 					   core::resource::handle<core::os::surface> surface,
 					   core::resource::handle<core::gfx::shader_buffer_binding> binding,
-					   core::gfx::graphics_backend backend) :
-	m_Surface(surface),
-	m_Binding(binding), m_Backend(backend)
-{
+					   core::gfx::graphics_backend backend)
+	: m_Surface(surface), m_Binding(binding), m_Backend(backend) {
 	m_Max = m_Binding->segment.range().size() / sizeof(framedata);
 	state.declare<"gpu_camera::tick">(psl::ecs::threading::seq, &gpu_camera::tick, this);
 }
 
 void gpu_camera::tick(
   psl::ecs::info_t& info,
-  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras)
-{
+  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras) {
 	size_t i {0};
 	if(cameras.size() >= m_Max)
 		throw std::runtime_error(
@@ -36,16 +33,14 @@ void gpu_camera::tick(
 	auto camera_components = cameras.get<const core::ecs::components::camera>();
 	auto transf_components = cameras.get<const core::ecs::components::transform>();
 
-	for (size_t i = 0; i < cameras.size(); ++i)
-	{
+	for(size_t i = 0; i < cameras.size(); ++i) {
 		update_buffer(i, transf_components[i], camera_components[i]);
 	}
 }
 
 void gpu_camera::update_buffer(size_t index,
 							   const core::ecs::components::transform& transform,
-							   const core::ecs::components::camera& camera)
-{
+							   const core::ecs::components::camera& camera) {
 	using namespace psl;
 	PROFILE_SCOPE(core::profiler)
 	vec3 position  = transform.position;

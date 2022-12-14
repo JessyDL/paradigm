@@ -38,10 +38,8 @@ grid::grid(state_t& state,
 		   resource::handle<shader_buffer_binding> instanceMaterialBuffer,
 		   resource::handle<buffer_t> instanceVertexBuffer,
 		   psl::vec3 scale,
-		   psl::vec3 offset) :
-	m_Target(target),
-	m_Scale(scale), m_Offset(offset)
-{
+		   psl::vec3 offset)
+	: m_Target(target), m_Scale(scale), m_Offset(offset) {
 	// create geometry
 	auto boxData = utility::geometry::create_line_cube(cache, scale);
 	boxData->transform(core::data::geometry_t::constants::POSITION,
@@ -53,12 +51,9 @@ grid::grid(state_t& state,
 	});
 	array<vec3> positions;
 	constexpr int extent = 4;
-	for(auto x = -extent; x < extent; ++x)
-	{
-		for(auto y = -extent; y < extent; ++y)
-		{
-			for(auto z = -extent; z < extent; ++z)
-			{
+	for(auto x = -extent; x < extent; ++x) {
+		for(auto y = -extent; y < extent; ++y) {
+			for(auto z = -extent; z < extent; ++z) {
 				positions.emplace_back(static_cast<float>(x), static_cast<float>(y), static_cast<float>(z));
 				positions[positions.size() - 1] *= scale;
 				positions[positions.size() - 1] += offset;
@@ -122,21 +117,19 @@ grid::grid(state_t& state,
 
 void grid::tick(info_t& info,
 				pack<entity, const transform, psl::ecs::filter<camera>> pack,
-				psl::ecs::pack<transform, psl::ecs::filter<grid::tag>> grid_pack)
-{
-	auto entities	= pack.get<entity>();
-	auto transforms = pack.get<const transform>();
+				psl::ecs::pack<transform, psl::ecs::filter<grid::tag>> grid_pack) {
+	auto entities		 = pack.get<entity>();
+	auto transforms		 = pack.get<const transform>();
 	auto grid_transforms = grid_pack.get<transform>();
-	for(auto i = 0; i < entities.size(); ++i)
-	{
-		if(entities[i] != m_Target) continue;
+	for(auto i = 0; i < entities.size(); ++i) {
+		if(entities[i] != m_Target)
+			continue;
 
 		auto pos = transforms[i].position;
 
 		pos = static_cast<psl::ivec3>(pos) - (static_cast<psl::ivec3>(pos) % static_cast<psl::ivec3>(m_Scale));
 
-		for(auto& target : grid_transforms)
-		{
+		for(auto& target : grid_transforms) {
 			target.position = pos;
 		}
 	}

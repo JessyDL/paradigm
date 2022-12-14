@@ -1,8 +1,8 @@
 #if defined(SURFACE_WIN32)
-#include "logging.hpp"
-#include "os/surface.hpp"
-#include "systems/input.hpp"
-#include <Windows.h>
+	#include "logging.hpp"
+	#include "os/surface.hpp"
+	#include "systems/input.hpp"
+	#include <Windows.h>
 
 // https://chromium.googlesource.com/chromium/src/+/master/ui/events/keycodes/dom/keycode_converter_data.inc
 // https://handmade.network/forums/t/2011-keyboard_inputs_-_scancodes,_raw_input,_text_input,_key_names/2
@@ -37,19 +37,15 @@ const uint8_t WIN_NATIVE_TO_HID[256] = {
   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
 
-__int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam, __int64 lParam)
-{
+__int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam, __int64 lParam) {
 	core::os::surface* surface = reinterpret_cast<core::os::surface*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
-	if(surface != nullptr)
-	{
+	if(surface != nullptr) {
 		auto& input = surface->input();
-		switch(uMsg)
-		{
+		switch(uMsg) {
 		case WM_MOUSEACTIVATE:
 		case WM_ACTIVATE:
 		case WM_ACTIVATEAPP:
-			switch(wParam)
-			{
+			switch(wParam) {
 			case 0:	   // FALSE or WM_INACTIVE
 					   // Pause game, etc
 				surface->focus(false);
@@ -64,30 +60,26 @@ __int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigne
 		case WM_CLOSE:
 			surface->terminate();
 			return 0;
-		case WM_SIZE:
-		{
+		case WM_SIZE: {
 			// we get here if the window has changed size, we should rebuild most
 			// of our window resources before rendering to this window again.
 			// ( no need for this because our window sizing by hand is disabled )
 
 			surface->resize(LOWORD(lParam), HIWORD(lParam));
-		}
-		break;
+		} break;
 		default:
 			break;
 		}
-		if(!surface->focused()) return DefWindowProc(hWnd, uMsg, wParam, lParam);
+		if(!surface->focused())
+			return DefWindowProc(hWnd, uMsg, wParam, lParam);
 
-		switch(uMsg)
-		{
-		case WM_INPUT:
-		{
+		switch(uMsg) {
+		case WM_INPUT: {
 			UINT dwSize;
 
 			GetRawInputData((HRAWINPUT)lParam, RID_INPUT, NULL, &dwSize, sizeof(RAWINPUTHEADER));
 			LPBYTE lpb = new BYTE[dwSize];
-			if(lpb == NULL)
-			{
+			if(lpb == NULL) {
 				return 0;
 			}
 
@@ -95,8 +87,7 @@ __int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigne
 				OutputDebugString(TEXT("GetRawInputData does not return correct size !\n"));
 
 			RAWINPUT* raw = (RAWINPUT*)lpb;
-			if(raw->header.dwType == RIM_TYPEMOUSE)
-			{
+			if(raw->header.dwType == RIM_TYPEMOUSE) {
 				POINT pt;
 				pt.x = surface->data().width() / 2;
 				pt.y = surface->data().height() / 2;
@@ -114,8 +105,7 @@ __int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigne
 				input.m_OnMouseMoveDelta(mDelta);
 				input.m_OnMouseMoveCoordinates(m_coords);
 
-				switch(raw->data.mouse.usButtonFlags)
-				{
+				switch(raw->data.mouse.usButtonFlags) {
 				case RI_MOUSE_BUTTON_1_DOWN:
 					input.m_OnMousePressed(mousecode::BTN_1);
 					input.m_HeldMouseButtons.emplace_back(mousecode::BTN_1);
@@ -177,18 +167,14 @@ __int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigne
 					input.m_OnScroll(delta);
 					break;
 				}
-			}
-			else if(raw->header.dwType == RIM_TYPEKEYBOARD)
-			{
+			} else if(raw->header.dwType == RIM_TYPEKEYBOARD) {
 				if(raw->data.keyboard.Flags == RI_KEY_MAKE || raw->data.keyboard.Flags == (RI_KEY_MAKE | RI_KEY_E0) ||
-				   raw->data.keyboard.Flags == (RI_KEY_MAKE | RI_KEY_E1))
-				{
+				   raw->data.keyboard.Flags == (RI_KEY_MAKE | RI_KEY_E1)) {
 					input.m_OnKeyPressed.Execute((keycode)WIN_NATIVE_TO_HID[raw->data.keyboard.VKey]);
 					input.m_HeldKeys.emplace_back((keycode)WIN_NATIVE_TO_HID[raw->data.keyboard.VKey]);
 				}
 				if(raw->data.keyboard.Flags == RI_KEY_BREAK || raw->data.keyboard.Flags == (RI_KEY_BREAK | RI_KEY_E0) ||
-				   raw->data.keyboard.Flags == (RI_KEY_BREAK | RI_KEY_E1))
-				{
+				   raw->data.keyboard.Flags == (RI_KEY_BREAK | RI_KEY_E1)) {
 					surface->input().m_OnKeyReleased.Execute((keycode)WIN_NATIVE_TO_HID[raw->data.keyboard.VKey]);
 					input.m_HeldKeys.erase(std::remove(std::begin(input.m_HeldKeys),
 													   std::end(input.m_HeldKeys),
@@ -198,20 +184,17 @@ __int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigne
 			}
 			delete[] lpb;
 			return 0;
-		}
-		break;
+		} break;
 		}
 	}
 	return DefWindowProc(hWnd, uMsg, wParam, lParam);
 }
 
-void input::tick()
-{
+void input::tick() {
 	PROFILE_SCOPE(core::profiler)
 	MSG msg;
 	ZeroMemory(&msg, sizeof(MSG));
-	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0)
-	{
+	while(PeekMessage(&msg, NULL, 0, 0, PM_REMOVE) > 0) {
 		TranslateMessage(&msg);
 		DispatchMessage(&msg);
 	}

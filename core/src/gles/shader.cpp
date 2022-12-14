@@ -10,14 +10,12 @@ using namespace psl;
 using namespace core::igles;
 using namespace core::resource;
 
-shader::shader(core::resource::cache_t& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile) :
-	m_Shader {0}
-{
+shader::shader(core::resource::cache_t& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile)
+	: m_Shader {0} {
 	auto meta	= cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr);
 	m_Meta		= meta;
 	auto result = cache.library().load(meta->ID());
-	if(!result)
-	{
+	if(!result) {
 		core::igles::log->error("could not load igles::shader [{0}] from resource UID [{1}]",
 								metaData.uid.to_string(),
 								meta->ID().to_string());
@@ -32,7 +30,8 @@ shader::shader(core::resource::cache_t& cache, const core::resource::metadata& m
 	// Create the shader object
 	shader = glCreateShader(gl_stage);
 
-	if(shader == 0) throw std::runtime_error("could not load the given shader");
+	if(shader == 0)
+		throw std::runtime_error("could not load the given shader");
 
 	auto shaderData = result.value().data();
 	glShaderSource(shader, 1, &shaderData, NULL);
@@ -41,14 +40,12 @@ shader::shader(core::resource::cache_t& cache, const core::resource::metadata& m
 
 	glGetShaderiv(shader, GL_COMPILE_STATUS, &compiled);
 
-	if(!compiled)
-	{
+	if(!compiled) {
 		GLint infoLen = 0;
 
 		glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &infoLen);
 
-		if(infoLen > 1)
-		{
+		if(infoLen > 1) {
 			char* infoLog = (char*)malloc(sizeof(char) * infoLen);
 
 			glGetShaderInfoLog(shader, infoLen, NULL, infoLog);
@@ -64,13 +61,16 @@ shader::shader(core::resource::cache_t& cache, const core::resource::metadata& m
 								metaData.resource_uid.to_string(),
 								meta->ID().to_string(),
 								infoLen);
-	}
-	else
+	} else
 		m_Shader = shader;
 
 	glGetError();
 }
 
-shader::~shader() { glDeleteShader(m_Shader); }
+shader::~shader() {
+	glDeleteShader(m_Shader);
+}
 
-GLuint shader::id() const noexcept { return m_Shader; }
+GLuint shader::id() const noexcept {
+	return m_Shader;
+}

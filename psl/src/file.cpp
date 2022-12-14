@@ -1,7 +1,7 @@
 #include "psl/file.hpp"
 #include "psl/platform_def.hpp"
 #if defined(PLATFORM_WINDOWS)
-#include <Windows.h>
+	#include <Windows.h>
 #endif
 #include "psl/logging.hpp"
 
@@ -12,15 +12,13 @@ file::file(psl::string_view filename,
 		   mode mode,
 		   method method,
 		   std::optional<size_t> offset,
-		   std::optional<size_t> length)
-{
+		   std::optional<size_t> length) {
 #ifdef PLATFORM_WINDOWS
 	auto file_flags	  = (mode == mode::READ)	? GENERIC_READ
 						: (mode == mode::WRITE) ? GENERIC_WRITE
 												: GENERIC_READ | GENERIC_WRITE;
 	auto method_flags = 0L;
-	switch(method)
-	{
+	switch(method) {
 	case method::OPEN:
 		method_flags = OPEN_EXISTING;
 		break;
@@ -39,8 +37,7 @@ file::file(psl::string_view filename,
 	}
 	m_File =
 	  CreateFile(psl::to_pstring(filename).data(), file_flags, 0, NULL, method_flags, FILE_ATTRIBUTE_NORMAL, NULL);
-	if(m_File == INVALID_HANDLE_VALUE)
-	{
+	if(m_File == INVALID_HANDLE_VALUE) {
 		m_File = {};
 		return;
 	}
@@ -49,12 +46,9 @@ file::file(psl::string_view filename,
 	SYSTEM_INFO SysInfo;	// system information; used to get granularity
 
 
-	if(LARGE_INTEGER file_size; ::GetFileSizeEx(m_File.value(), &file_size))
-	{
+	if(LARGE_INTEGER file_size; ::GetFileSizeEx(m_File.value(), &file_size)) {
 		m_Size = static_cast<size_t>(file_size.QuadPart);
-	}
-	else
-	{
+	} else {
 		close();
 		return;
 	}
@@ -78,8 +72,7 @@ file::file(psl::string_view filename,
 								map_size & 0xffffffff,	  // size of mapping object, low
 								NULL);					  // name of mapping object
 
-	if(m_Map.value() == NULL)
-	{
+	if(m_Map.value() == NULL) {
 		m_Map = {};
 		close();
 		return;
@@ -90,8 +83,7 @@ file::file(psl::string_view filename,
 											   : FILE_MAP_ALL_ACCESS;
 	m_MapView		 = MapViewOfFile(m_Map.value(), file_access, file_start >> 32, file_start & 0xffffffff, view_size);
 
-	if(m_MapView.value() == NULL)
-	{
+	if(m_MapView.value() == NULL) {
 		m_MapView = {};
 		close();
 		return;
@@ -99,19 +91,14 @@ file::file(psl::string_view filename,
 	// Calculate the pointer to the data.
 	m_Data = (psl::char_t*)m_MapView.value() + view_delta;
 
-	if(length)
-	{
+	if(length) {
 		m_ContentSize = length.value();
-	}
-	else
-	{
+	} else {
 		auto view_ = psl::string_view {&m_Data[0], m_Size};
 
 		size_t index = m_Size;
-		for(auto it = std::end(view_) - 1; it != std::begin(view_); --it)
-		{
-			if(*it != _T('\0'))
-			{
+		for(auto it = std::end(view_) - 1; it != std::begin(view_); --it) {
+			if(*it != _T('\0')) {
 				break;
 			}
 			--index;
@@ -122,37 +109,29 @@ file::file(psl::string_view filename,
 }
 
 
-file::~file() { close(); }
+file::~file() {
+	close();
+}
 
-bool file::close()
-{
+bool file::close() {
 #ifdef PLATFORM_WINDOWS
 	bool success = true;
-	if(m_MapView && !UnmapViewOfFile(m_MapView.value()))
-	{
+	if(m_MapView && !UnmapViewOfFile(m_MapView.value())) {
 		spdlog::get("main")->error("Error occurred during the closing of the mmap view with error: ", GetLastError());
 		success = false;
-	}
-	else
-	{
+	} else {
 		m_MapView = {};
 	}
-	if(m_Map && !CloseHandle(m_Map.value()))
-	{
+	if(m_Map && !CloseHandle(m_Map.value())) {
 		spdlog::get("main")->error("Error occurred during the closing of the mmap handle with error: ", GetLastError());
 		success = false;
-	}
-	else
-	{
+	} else {
 		m_Map = {};
 	}
-	if(m_File && !CloseHandle(m_File.value()))
-	{
+	if(m_File && !CloseHandle(m_File.value())) {
 		spdlog::get("main")->error("Error occurred during the closing of the file handle with error: ", GetLastError());
 		success = false;
-	}
-	else
-	{
+	} else {
 		m_File = {};
 	}
 	return success;

@@ -2,11 +2,11 @@
 #include "psl/platform_def.hpp"
 #include <algorithm>
 #if defined(PLATFORM_WINDOWS)
-#include <Windows.h>
+	#include <Windows.h>
 #endif
 #if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID)
-#include <sys/mman.h>
-#include <unistd.h>
+	#include <sys/mman.h>
+	#include <unistd.h>
 #endif
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"
@@ -14,10 +14,8 @@
 using namespace memory;
 
 
-raw_region::raw_region(std::uint64_t size)
-{
-	if(size == 0)
-	{
+raw_region::raw_region(std::uint64_t size) {
+	if(size == 0) {
 		m_Base	   = nullptr;
 		m_Size	   = 0;
 		m_PageSize = 0;
@@ -37,8 +35,7 @@ raw_region::raw_region(std::uint64_t size)
 								 PAGE_READWRITE);			  // Protection = no access
 
 
-	if(m_Base == nullptr)
-	{
+	if(m_Base == nullptr) {
 		// todo error state
 		__debugbreak();
 	}
@@ -48,8 +45,7 @@ raw_region::raw_region(std::uint64_t size)
 	m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
 
 	auto addr = mmap(NULL, m_Size, PROT_READ | PROT_WRITE, MAP_PRIVATE | MAP_ANONYMOUS, -1, 0);
-	if(addr == MAP_FAILED)
-	{
+	if(addr == MAP_FAILED) {
 		exit(EXIT_FAILURE);
 	}
 	m_Base = (std::byte*)addr;
@@ -57,30 +53,26 @@ raw_region::raw_region(std::uint64_t size)
 #endif
 }
 
-raw_region::~raw_region()
-{
-	if(m_Size == 0) return;
+raw_region::~raw_region() {
+	if(m_Size == 0)
+		return;
 #ifdef PLATFORM_WINDOWS
 	VirtualFree(m_Base,			 // Base address of block
 				0,				 // Bytes of committed pages
 				MEM_RELEASE);	 // Decommit the pages
 #else
-	if(munmap(m_Base, sizeof(int)) == -1)
-	{
+	if(munmap(m_Base, sizeof(int)) == -1) {
 		LOG_ERROR("munmap()() failed");
 		exit(EXIT_FAILURE);
 	}
 #endif
 }
 
-raw_region::raw_region(const raw_region& other) :
-	m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize)
-{}
+raw_region::raw_region(const raw_region& other)
+	: m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize) {}
 
-raw_region& raw_region::operator=(const raw_region& other)
-{
-	if(this != &other)
-	{
+raw_region& raw_region::operator=(const raw_region& other) {
+	if(this != &other) {
 		m_Base	   = other.m_Base;
 		m_Size	   = other.m_Size;
 		m_PageSize = other.m_PageSize;
@@ -88,15 +80,12 @@ raw_region& raw_region::operator=(const raw_region& other)
 	return *this;
 }
 
-raw_region::raw_region(raw_region&& other) : m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize)
-{
+raw_region::raw_region(raw_region&& other) : m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize) {
 	other.m_Base = nullptr;
 }
 
-raw_region& raw_region::operator=(raw_region&& other)
-{
-	if(this != &other)
-	{
+raw_region& raw_region::operator=(raw_region&& other) {
+	if(this != &other) {
 		m_Base	   = other.m_Base;
 		m_Size	   = other.m_Size;
 		m_PageSize = other.m_PageSize;

@@ -1,9 +1,11 @@
 #if defined(SURFACE_D2D)
-#include "os/surface.hpp"
+	#include "os/surface.hpp"
 
 using namespace core::os;
 
-bool surface::init_surface() { return true; }
+bool surface::init_surface() {
+	return true;
+}
 
 void surface::deinit_surface() {}
 

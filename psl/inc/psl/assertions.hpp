@@ -14,227 +14,205 @@
 	#include <android/log.h>
 #endif	  // PLATFORM_ANDROID
 
-namespace psl
-{
-	enum class level_t
-	{
-		verbose,
-		debug,
-		info,
-		warn,
-		error,
-		fatal,
+namespace psl {
+enum class level_t {
+	verbose,
+	debug,
+	info,
+	warn,
+	error,
+	fatal,
+};
+
+namespace details {
+	template <typename... Args>
+	struct last_type_pack {};
+
+	template <typename Arg>
+	struct last_type_pack<Arg> {
+		using type = Arg;
 	};
 
-	namespace details
-	{
-		template <typename... Args>
-		struct last_type_pack
-		{};
+	template <typename First, typename... Args>
+	requires(sizeof...(Args) >= 1) struct last_type_pack<First, Args...> : last_type_pack<Args...> {};
 
-		template <typename Arg>
-		struct last_type_pack<Arg>
-		{
-			using type = Arg;
-		};
+	template <typename... Args>
+	using last_type_pack_t = typename last_type_pack<Args...>::type;
 
-		template <typename First, typename... Args>
-		requires(sizeof...(Args) >= 1) struct last_type_pack<First, Args...> : last_type_pack<Args...>
-		{};
+	template <typename... Args>
+	concept HasSourceLocOverride =
+	  (std::is_same_v<std::remove_cvref_t<last_type_pack_t<Args...>>, psl::source_location>);
 
-		template <typename... Args>
-		using last_type_pack_t = typename last_type_pack<Args...>::type;
-
-		template <typename... Args>
-		concept HasSourceLocOverride =
-		  (std::is_same_v<std::remove_cvref_t<last_type_pack_t<Args...>>, psl::source_location>);
-
-		template <typename... Args>
-		struct print_t
-		{
+	template <typename... Args>
+	struct print_t {
 /// \todo When Android implements source_location, remove the ifdefs and migrate to source_location
 #if defined(PLATFORM_ANDROID)
-			int android_log_level(level_t level) noexcept
-			{
-				int log_level = ANDROID_LOG_SILENT;
-				switch(level)
-				{
-				case level_t::verbose:
-					log_level = ANDROID_LOG_VERBOSE;
-					break;
-				case level_t::debug:
-					log_level = ANDROID_LOG_DEBUG;
-					break;
-				case level_t::info:
-					log_level = ANDROID_LOG_INFO;
-					break;
-				case level_t::warn:
-					log_level = ANDROID_LOG_WARN;
-					break;
-				case level_t::error:
-					log_level = ANDROID_LOG_ERROR;
-					break;
-				case level_t::fatal:
-					log_level = ANDROID_LOG_FATAL;
-					break;
-				default:
-					log_level = ANDROID_LOG_SILENT;
-				}
-				return log_level;
+		int android_log_level(level_t level) noexcept {
+			int log_level = ANDROID_LOG_SILENT;
+			switch(level) {
+			case level_t::verbose:
+				log_level = ANDROID_LOG_VERBOSE;
+				break;
+			case level_t::debug:
+				log_level = ANDROID_LOG_DEBUG;
+				break;
+			case level_t::info:
+				log_level = ANDROID_LOG_INFO;
+				break;
+			case level_t::warn:
+				log_level = ANDROID_LOG_WARN;
+				break;
+			case level_t::error:
+				log_level = ANDROID_LOG_ERROR;
+				break;
+			case level_t::fatal:
+				log_level = ANDROID_LOG_FATAL;
+				break;
+			default:
+				log_level = ANDROID_LOG_SILENT;
 			}
+			return log_level;
+		}
 
-			print_t(level_t level,
-					const char* func,
-					const char* file,
-					int line,
-					const char* format,
-					Args&&... args) requires((!std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> && ...))
-			{
-				auto log_level = android_log_level(level);
+		print_t(level_t level,
+				const char* func,
+				const char* file,
+				int line,
+				const char* format,
+				Args&&... args) requires((!std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> && ...)) {
+			auto log_level = android_log_level(level);
 	#if defined(PE_DEBUG)
-				__android_log_write(
-				  log_level, "paradigm", fmt::format(fmt::runtime(format), std::forward<Args>(args)...).c_str());
-				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
+			__android_log_write(
+			  log_level, "paradigm", fmt::format(fmt::runtime(format), std::forward<Args>(args)...).c_str());
+			__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
 	#else
-				__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
+			__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
 	#endif
-			}
+		}
 
-		  private:
-			template <size_t Current, size_t... Indices>
-			static auto stripped_print_indices(std::index_sequence<Indices...> indices)
-			{
-				return indices;
-			}
+	  private:
+		template <size_t Current, size_t... Indices>
+		static auto stripped_print_indices(std::index_sequence<Indices...> indices) {
+			return indices;
+		}
 
-			template <size_t Current, typename T, typename... Types, size_t... Indices>
-			static auto stripped_print_indices(std::index_sequence<Indices...> indices)
-			{
-				if constexpr(std::is_same_v<std::remove_cvref_t<T>, psl::source_location>)
-				{
-					return stripped_print_indices<Current + 1, Types...>(indices);
-				}
-				else
-				{
-					return stripped_print_indices<Current + 1, Types...>(std::index_sequence<Indices..., Current> {});
-				}
+		template <size_t Current, typename T, typename... Types, size_t... Indices>
+		static auto stripped_print_indices(std::index_sequence<Indices...> indices) {
+			if constexpr(std::is_same_v<std::remove_cvref_t<T>, psl::source_location>) {
+				return stripped_print_indices<Current + 1, Types...>(indices);
+			} else {
+				return stripped_print_indices<Current + 1, Types...>(std::index_sequence<Indices..., Current> {});
 			}
+		}
 
-			static auto stripped_print_indices()
-			{
-				return stripped_print_indices<0, Args...>(std::index_sequence<> {});
+		static auto stripped_print_indices() {
+			return stripped_print_indices<0, Args...>(std::index_sequence<> {});
+		}
+
+		static auto stripped_print(const char* format, auto&& tuple) {
+			return [&]<size_t... Indices>(std::index_sequence<Indices...>) {
+				return fmt::format(fmt::runtime(format), std::get<Indices>(tuple)...);
 			}
+			(stripped_print_indices());
+		}
 
-			static auto stripped_print(const char* format, auto&& tuple)
-			{
-				return [&]<size_t... Indices>(std::index_sequence<Indices...>)
-				{
-					return fmt::format(fmt::runtime(format), std::get<Indices>(tuple)...);
-				}
-				(stripped_print_indices());
-			}
-
-		  public:
-			print_t(level_t level,
-					const char* func,
-					const char* file,
-					int line,
-					const char* format,
-					Args&&... args) requires((std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> || ...))
-			{
-				auto log_level = android_log_level(level);
+	  public:
+		print_t(level_t level,
+				const char* func,
+				const char* file,
+				int line,
+				const char* format,
+				Args&&... args) requires((std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> || ...)) {
+			auto log_level = android_log_level(level);
 	#if defined(PE_DEBUG)
-				__android_log_write(
-				  log_level, "paradigm", stripped_print(format, std::forward_as_tuple(args...)).c_str());
-				__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
+			__android_log_write(log_level, "paradigm", stripped_print(format, std::forward_as_tuple(args...)).c_str());
+			__android_log_write(log_level, "paradigm", fmt::format("at: {} ({}:{})", func, file, line).c_str());
 	#else
-				__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
+			__android_log_write(log_level, "paradigm", "todo: assert log not supported in release");
 	#endif
-			}
+		}
 #else
-			print_t(level_t level,
-					const char* fmt,
-					Args&&... args,
-					const psl::source_location& loc =
-					  psl::source_location::current()) requires(!HasSourceLocOverride<Args...>)
-			{
-				internal_print(
-				  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args)> {}, loc);
-			}
+		print_t(
+		  level_t level,
+		  const char* fmt,
+		  Args&&... args,
+		  const psl::source_location& loc = psl::source_location::current()) requires(!HasSourceLocOverride<Args...>) {
+			internal_print(
+			  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args)> {}, loc);
+		}
 
-			print_t(level_t level, const char* fmt, Args&&... args) requires(HasSourceLocOverride<Args...>)
-			{
-				internal_print(
-				  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args) - 1> {});
-			}
+		print_t(level_t level, const char* fmt, Args&&... args) requires(HasSourceLocOverride<Args...>) {
+			internal_print(
+			  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args) - 1> {});
+		}
 
-		  private:
-			template <typename... Ys, size_t... Is>
-			void
-			internal_print(level_t level, const char* fmt, std::tuple<Ys&...> args, std::index_sequence<Is...> indices)
-			{
-				internal_print(level, fmt, args, indices, std::get<sizeof...(Ys) - 1>(args));
-			}
+	  private:
+		template <typename... Ys, size_t... Is>
+		void
+		internal_print(level_t level, const char* fmt, std::tuple<Ys&...> args, std::index_sequence<Is...> indices) {
+			internal_print(level, fmt, args, indices, std::get<sizeof...(Ys) - 1>(args));
+		}
 
-			template <typename... Ys, size_t... Is>
-			void internal_print(level_t level,
-								const char* fmt,
-								std::tuple<Ys&...> args,
-								std::index_sequence<Is...> indices,
-								const psl::source_location& loc)
-			{
-				const char* log_level;
-				switch(level)
-				{
-				case level_t::verbose:
-					log_level = "[verbose] {}\n    at: {} ({}:{}:{})";
-					break;
-				case level_t::debug:
-					log_level = "[debug]   {}\n    at: {} ({}:{}:{})";
-					break;
-				case level_t::info:
-					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
-					break;
-				case level_t::warn:
-					log_level = "[warn]    {}\n    at: {} ({}:{}:{})";
-					break;
-				case level_t::error:
-					log_level = "[error]   {}\n    at: {} ({}:{}:{})";
-					break;
-				case level_t::fatal:
-					log_level = "[fatal]   {}\n    at: {} ({}:{}:{})";
-					break;
-				default:
-					log_level = "[info]    {}\n    at: {} ({}:{}:{})";
-				}
+		template <typename... Ys, size_t... Is>
+		void internal_print(level_t level,
+							const char* fmt,
+							std::tuple<Ys&...> args,
+							std::index_sequence<Is...> indices,
+							const psl::source_location& loc) {
+			const char* log_level;
+			switch(level) {
+			case level_t::verbose:
+				log_level = "[verbose] {}\n    at: {} ({}:{}:{})";
+				break;
+			case level_t::debug:
+				log_level = "[debug]   {}\n    at: {} ({}:{}:{})";
+				break;
+			case level_t::info:
+				log_level = "[info]    {}\n    at: {} ({}:{}:{})";
+				break;
+			case level_t::warn:
+				log_level = "[warn]    {}\n    at: {} ({}:{}:{})";
+				break;
+			case level_t::error:
+				log_level = "[error]   {}\n    at: {} ({}:{}:{})";
+				break;
+			case level_t::fatal:
+				log_level = "[fatal]   {}\n    at: {} ({}:{}:{})";
+				break;
+			default:
+				log_level = "[info]    {}\n    at: {} ({}:{}:{})";
+			}
 	#if defined(PE_DEBUG)
-				fmt::print(
-				  fmt::runtime(fmt::format(
-					fmt::runtime(log_level), fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column())),
-				  std::get<Is>(args)...);
+			fmt::print(fmt::runtime(fmt::format(
+						 fmt::runtime(log_level), fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column())),
+					   std::get<Is>(args)...);
 	#else
-				std::printf("todo: todo: assert log not supported in release");
+			std::printf("todo: todo: assert log not supported in release");
 	#endif
-			}
+		}
 #endif
-		};
+	};
 
 #if defined(PLATFORM_ANDROID)
-		template <typename... Ts>
-		print_t(level_t, const char*, const char*, int, const char*, Ts&&...) -> print_t<Ts...>;
+	template <typename... Ts>
+	print_t(level_t, const char*, const char*, int, const char*, Ts&&...) -> print_t<Ts...>;
 #else
-		template <typename... Ts>
-		print_t(level_t, const char*, Ts&&...) -> print_t<Ts...>;
+	template <typename... Ts>
+	print_t(level_t, const char*, Ts&&...) -> print_t<Ts...>;
 #endif
-	}	 // namespace details
+}	 // namespace details
 }	 // namespace psl
 
 #if defined(PLATFORM_ANDROID)
 	#define psl_print(level, message, ...)                                                                             \
-		psl::details::print_t { level, __PRETTY_FUNCTION__, __FILE__, __LINE__, message, __VA_ARGS__ }
+		psl::details::print_t {                                                                                        \
+			level, __PRETTY_FUNCTION__, __FILE__, __LINE__, message, __VA_ARGS__                                       \
+		}
 #else
 	#define psl_print(level, message, ...)                                                                             \
-		psl::details::print_t { level, message, __VA_ARGS__ }
+		psl::details::print_t {                                                                                        \
+			level, message, __VA_ARGS__                                                                                \
+		}
 #endif
 
 #if defined(PE_DEBUG)
@@ -248,75 +226,60 @@ namespace psl
 #endif
 
 
-namespace psl
-{
-	[[noreturn]] inline void unreachable()
-	{
-		psl_print(level_t::fatal, "unreachable code reached.");
-		std::terminate();
-	}
+namespace psl {
+[[noreturn]] inline void unreachable() {
+	psl_print(level_t::fatal, "unreachable code reached.");
+	std::terminate();
+}
 
-	[[noreturn]] inline void unreachable(const auto& reason)
-	{
-		psl_print(level_t::fatal, "{}", reason);
-		std::terminate();
-	}
+[[noreturn]] inline void unreachable(const auto& reason) {
+	psl_print(level_t::fatal, "{}", reason);
+	std::terminate();
+}
 
-	[[noreturn]] inline void not_implemented(size_t issue = 0)
-	{
-		if(issue != 0)
-			psl_print(level_t::fatal,
-					  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
-					  issue);
-		else
-			psl_print(level_t::fatal, "feature not implemented");
-		std::terminate();
-	}
+[[noreturn]] inline void not_implemented(size_t issue = 0) {
+	if(issue != 0)
+		psl_print(level_t::fatal,
+				  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
+				  issue);
+	else
+		psl_print(level_t::fatal, "feature not implemented");
+	std::terminate();
+}
 
-	[[noreturn]] inline void not_implemented(const auto& reason, size_t issue = 0)
-	{
-		if(issue != 0)
-			psl_print(level_t::fatal,
-					  "feature not implemented reason: '{}', follow development at "
-					  "https://github.com/JessyDL/paradigm/issues/{}",
-					  reason,
-					  issue);
-		else
-			psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
-		std::terminate();
-	}
+[[noreturn]] inline void not_implemented(const auto& reason, size_t issue = 0) {
+	if(issue != 0)
+		psl_print(level_t::fatal,
+				  "feature not implemented reason: '{}', follow development at "
+				  "https://github.com/JessyDL/paradigm/issues/{}",
+				  reason,
+				  issue);
+	else
+		psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
+	std::terminate();
+}
 
-	template <typename Fn>
-	constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args)
-	{
-		if(std::is_constant_evaluated())
-		{
-			if(!conditional())
-			{
-				throw std::runtime_error(reason);
-			}
+template <typename Fn>
+constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args) {
+	if(std::is_constant_evaluated()) {
+		if(!conditional()) {
+			throw std::runtime_error(reason);
 		}
-		else
-		{
-			psl_assert(conditional(), reason, args...);
-		}
+	} else {
+		psl_assert(conditional(), reason, args...);
 	}
+}
 
-	template <typename Fn>
-	constexpr inline void assertion(Fn&& conditional)
-	{
-		if(std::is_constant_evaluated())
-		{
-			if(!conditional())
-			{
-				throw std::exception();
-			}
+template <typename Fn>
+constexpr inline void assertion(Fn&& conditional) {
+	if(std::is_constant_evaluated()) {
+		if(!conditional()) {
+			throw std::exception();
 		}
-		else
-		{
-			psl_assert(conditional());
-		}
+	} else {
+		psl_assert(conditional());
 	}
+}
 }	 // namespace psl
 
 
@@ -353,17 +316,29 @@ namespace psl
 			#include <builtins.h>
 			#define debug_break() __trap(42)
 		#elif defined(__DMC__) && defined(_M_IX86)
-DBG__FUNCTION void debug_break(void) { __asm int 3h; }
+DBG__FUNCTION void debug_break(void) {
+	__asm int 3h;
+}
 		#elif defined(__i386__) || defined(__x86_64__)
-DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("int $03"); }
+DBG__FUNCTION void debug_break(void) {
+	__asm__ __volatile__("int $03");
+}
 		#elif defined(__thumb__)
-DBG__FUNCTION void debug_break(void) { __asm__ __volatile__(".inst 0xde01"); }
+DBG__FUNCTION void debug_break(void) {
+	__asm__ __volatile__(".inst 0xde01");
+}
 		#elif defined(__aarch64__)
-DBG__FUNCTION void debug_break(void) { __asm__ __volatile__(".inst 0xd4200000"); }
+DBG__FUNCTION void debug_break(void) {
+	__asm__ __volatile__(".inst 0xd4200000");
+}
 		#elif defined(__arm__)
-DBG__FUNCTION void debug_break(void) { __asm__ __volatile__(".inst 0xe7f001f0"); }
+DBG__FUNCTION void debug_break(void) {
+	__asm__ __volatile__(".inst 0xe7f001f0");
+}
 		#elif defined(__alpha__) && !defined(__osf__)
-DBG__FUNCTION void debug_break(void) { __asm__ __volatile__("bpt"); }
+DBG__FUNCTION void debug_break(void) {
+	__asm__ __volatile__("bpt");
+}
 		#elif defined(__STDC_HOSTED__) && (__STDC_HOSTED__ == 0) && defined(__GNUC__)
 			#define debug_break() __builtin_trap()
 		#else

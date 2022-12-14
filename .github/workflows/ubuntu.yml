@@ -3,24 +3,31 @@ name: ubuntu
 on: [push]
 
 jobs:
-  # fires off the documentation generator
-  documentation:
+  # verify the project's formatting, errors out if a difference is detected and generates a patch
+  # the user should apply to fix it.
+  formatting:
     runs-on: ubuntu-22.04
     steps:
-    - uses: actions/github-script@v6
+    - uses: actions/checkout@v1
       with:
-        github-token: ${{ secrets.PUSH_TOKEN }}
-        script: |
-          await github.rest.actions.createWorkflowDispatch({
-            owner: 'ParadigmEngine',
-            repo: 'ParadigmEngine.github.io',
-            workflow_id: 'documentation.yml',
-            ref: 'main'
-          })
+        submodules: recursive
+    - name: run formatter
+      run: python3 tools/clang-format.py
+    - name: verify
+      run: |
+        output=$(git diff --stat HEAD)
+        if [[ -n $output ]]; then
+          echo "changes detected, please apply the following patch"
+          git diff --patch-with-stat --color-words HEAD
+          exit 1
+        else
+          echo "success"
+          exit 0
+        fi
   # build the project for the various permutations
   build:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         target: [gnu-linux, android]
         compiler: [gcc, clang]
@@ -91,7 +98,7 @@ jobs:
   # run benchmarks for the permutations that build the benchmarks binary
   benchmark:
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         graphics: [ all ]
         compiler: [ gcc ]
@@ -117,3 +124,18 @@ jobs:
         name: ubuntu-${{ matrix.COMPILER }}-${{ matrix.graphics }}
         path: results.json
         if-no-files-found: error
+  # fires off the documentation generator
+  documentation:
+    needs: [build, formatting]
+    runs-on: ubuntu-22.04
+    steps:
+    - uses: actions/github-script@v6
+      with:
+        github-token: ${{ secrets.PUSH_TOKEN }}
+        script: |
+          await github.rest.actions.createWorkflowDispatch({
+            owner: 'ParadigmEngine',
+            repo: 'ParadigmEngine.github.io',
+            workflow_id: 'documentation.yml',
+            ref: 'main'
+          })

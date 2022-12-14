@@ -4,23 +4,21 @@
 #include "gfx/pipeline_cache.hpp"
 
 #ifdef PE_GLES
-#include "gles/compute.hpp"
+	#include "gles/compute.hpp"
 #endif
 #ifdef PE_VULKAN
-#include "vk/compute.hpp"
+	#include "vk/compute.hpp"
 #endif
 using namespace core::gfx;
 using namespace core::resource;
 
 #ifdef PE_VULKAN
-compute::compute(core::resource::handle<core::ivk::compute>& handle) :
-	m_Backend(graphics_backend::vulkan), m_VKHandle(handle)
-{}
+compute::compute(core::resource::handle<core::ivk::compute>& handle)
+	: m_Backend(graphics_backend::vulkan), m_VKHandle(handle) {}
 #endif
 #ifdef PE_GLES
-compute::compute(core::resource::handle<core::igles::compute>& handle) :
-	m_Backend(graphics_backend::gles), m_GLESHandle(handle)
-{}
+compute::compute(core::resource::handle<core::igles::compute>& handle)
+	: m_Backend(graphics_backend::gles), m_GLESHandle(handle) {}
 #endif
 
 compute::compute(core::resource::cache_t& cache,
@@ -28,10 +26,8 @@ compute::compute(core::resource::cache_t& cache,
 				 core::meta::shader* metaFile,
 				 core::resource::handle<context> context_handle,
 				 core::resource::handle<core::data::material_t> data,
-				 core::resource::handle<pipeline_cache> pipeline_cache)
-{
-	switch(context_handle->backend())
-	{
+				 core::resource::handle<pipeline_cache> pipeline_cache) {
+	switch(context_handle->backend()) {
 #ifdef PE_GLES
 	case graphics_backend::gles:
 		m_GLESHandle = cache.create_using<core::igles::compute>(
@@ -50,17 +46,14 @@ compute::compute(core::resource::cache_t& cache,
 }
 
 
-void compute::dispatch(const psl::static_array<uint32_t, 3>& size)
-{
+void compute::dispatch(const psl::static_array<uint32_t, 3>& size) {
 #ifdef PE_GLES
-	if(m_GLESHandle)
-	{
+	if(m_GLESHandle) {
 		m_GLESHandle->dispatch(size[0], size[1], size[2]);
 	}
 #endif
 #ifdef PE_VULKAN
-	if(m_VKHandle)
-	{
+	if(m_VKHandle) {
 		m_VKHandle->dispatch(size[0], size[1], size[2]);
 	}
 #endif
