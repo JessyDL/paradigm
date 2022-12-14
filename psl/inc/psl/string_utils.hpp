@@ -512,7 +512,7 @@ namespace string {
 	}
 
 
-	[[nodiscard]] inline psl::string_view::size_type
+	[[nodiscard]] constexpr inline psl::string_view::size_type
 	rfind_first_of(psl::string_view source,
 				   psl::string_view tokens,
 				   const psl::string_view::size_type offset = psl::string_view::npos) {
@@ -525,7 +525,7 @@ namespace string {
 		return psl::string_view::npos;
 	}
 
-	[[nodiscard]] inline psl::string_view::size_type
+	[[nodiscard]] constexpr inline psl::string_view::size_type
 	rfind_first_of(psl::string_view source,
 				   psl::char_t token,
 				   const psl::string_view::size_type offset = psl::string_view::npos) {
@@ -539,7 +539,7 @@ namespace string {
 	}
 
 
-	[[nodiscard]] inline psl::string_view::size_type
+	[[nodiscard]] constexpr inline psl::string_view::size_type
 	rfind_first_not_of(psl::string_view source,
 					   psl::string_view tokens,
 					   const psl::string_view::size_type offset = psl::string_view::npos) {
@@ -553,7 +553,7 @@ namespace string {
 		return psl::string_view::npos;
 	}
 
-	[[nodiscard]] inline psl::string_view::size_type
+	[[nodiscard]] constexpr inline psl::string_view::size_type
 	rfind_first_not_of(psl::string_view source,
 					   psl::char_t token,
 					   const psl::string_view::size_type offset = psl::string_view::npos) {
