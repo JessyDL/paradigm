@@ -12,12 +12,10 @@
 #include "psl/math/vec.hpp"
 #include "resource/handle.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class geometry_t;
 }
-namespace psl::ecs
-{
+namespace psl::ecs {
 class state_t;
 struct info_t;
 
@@ -25,17 +23,13 @@ template <typename... Ts>
 class pack;
 }	 // namespace psl::ecs
 
-namespace core::ecs::components
-{
+namespace core::ecs::components {
 struct renderable;
 struct dynamic_tag;
 }	 // namespace core::ecs::components
-namespace core::ecs::systems
-{
-class text
-{
-	struct character_t
-	{
+namespace core::ecs::systems {
+class text {
+	struct character_t {
 		psl::vec4 uv;
 		psl::vec4 quad;
 		psl::vec2 offset;

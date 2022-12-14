@@ -1,11 +1,9 @@
 #pragma once
 #include <memory>
 
-namespace memory
-{
+namespace memory {
 /// \brief defines a begin/end location in (virtual) memory (in respect to the region, or segment).
-class range_t
-{
+class range_t {
   public:
 	range_t() = default;
 	range_t(std::uintptr_t begin, std::uintptr_t end);

@@ -2,15 +2,13 @@
 #include <array>
 #include <cstddef>
 
-namespace psl
-{
+namespace psl {
 template <typename T, size_t N = 0>
 using static_array = std::array<T, N>;
 
 
 template <typename T>
-class range
-{
+class range {
   public:
 	static_assert(std::is_integral_v<T>, "type must be integral type");
 	range() = default;

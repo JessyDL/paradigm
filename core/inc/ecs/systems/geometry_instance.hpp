@@ -7,29 +7,23 @@
 #include "resource/resource.hpp"
 #include "vk/geometry.hpp"
 
-namespace core::ecs::systems
-{
-class geometry_instancing
-{
-	struct renderer_sort
-	{
+namespace core::ecs::systems {
+class geometry_instancing {
+	struct renderer_sort {
 		inline bool operator()(const core::ecs::components::renderable& lhs,
-							   const core::ecs::components::renderable& rhs) const noexcept
-		{
+							   const core::ecs::components::renderable& rhs) const noexcept {
 			if(lhs.bundle.uid() != rhs.bundle.uid())
 				return lhs.bundle.uid() < rhs.bundle.uid();
 			else
 				return lhs.geometry.uid() < rhs.geometry.uid();
 		}
 	};
-	struct geometry_instance
-	{
+	struct geometry_instance {
 		size_t startIndex;
 		size_t count;
 	};
 
-	struct instance_id
-	{
+	struct instance_id {
 		uint32_t id;
 	};
 

@@ -23,15 +23,13 @@
 /// \todo implement a more robust system for this.
 #define MAX_BONE_WEIGHTS 4
 
-namespace psl
-{
+namespace psl {
 template <typename T>
 class array_view;
 }
 
 
-namespace core::data
-{
+namespace core::data {
 /// \brief describes a stream of data that will be uploaded to the GPU as geometry data.
 ///
 /// Unlike most engines, geometry data in paradigm is considered a collection of undescribed data, that has been
@@ -43,8 +41,7 @@ namespace core::data
 /// as atleast a position buffer and a index buffer is present. It's up to you to make sure your geometry object has
 /// all the required streams to correctly bind it to a core::ivk::material_t. \todo write an example of a custom
 /// stream. \todo support numbered streams (i.e. UV0, UV1, etc..).
-class geometry_t
-{
+class geometry_t {
 	friend class psl::serialization::accessor;
 
   public:
@@ -52,8 +49,7 @@ class geometry_t
 	using bone_t	   = psl::mat4x4;
 
 	/// \brief contains globally pre-defined keys for common streams that most engines have.
-	struct constants
-	{
+	struct constants {
 		/// \brief vertex position data key
 		static constexpr psl::string_view POSITION = "GEOMETRY_VERTEX_POSITION";
 		/// \brief vertex color data key
@@ -101,8 +97,7 @@ class geometry_t
 	/// you might be replacing/resizing the internal model data, we cannot error check this condition for you here.
 	void vertices(const psl::string_view name, const core::vertex_stream_t& stream);
 	template <typename T>
-	void vertices(const psl::string_view name, psl::array<T> stream)
-	{
+	void vertices(const psl::string_view name, psl::array<T> stream) {
 		m_VertexStreams.value[psl::string {name}] = core::vertex_stream_t(std::move(stream));
 	}
 	/// \brief gets all indices that are currently assigned to this model data.
@@ -131,10 +126,8 @@ class geometry_t
 	bool erase(psl::string_view name) noexcept;
 
 	template <typename F>
-	bool transform(psl::string_view name, F&& transformation)
-	{
-		if(auto it = m_VertexStreams.value.find(psl::string(name)); it != std::end(m_VertexStreams.value))
-		{
+	bool transform(psl::string_view name, F&& transformation) {
+		if(auto it = m_VertexStreams.value.find(psl::string(name)); it != std::end(m_VertexStreams.value)) {
 			auto res = it->second.transform(std::forward<F>(transformation));
 			psl_assert(res, "Transformation failed on the vertex_stream_t name '{}'.", name);
 			return res;
@@ -146,8 +139,7 @@ class geometry_t
 	/// \brief serialization method to be used by the serializer when writing this container to the disk.
 	/// \param[in] serializer the serialization object, consult the serialization namespace for more information.
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_VertexStreams << m_Indices;
 	};
 

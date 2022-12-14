@@ -1,14 +1,11 @@
 #pragma once
 #include "fwd/resource/resource.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class sampler_t;
 }	 // namespace core::data
-namespace core::igles
-{
-class sampler_t
-{
+namespace core::igles {
+class sampler_t {
   public:
 	sampler_t(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,

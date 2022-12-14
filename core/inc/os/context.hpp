@@ -6,10 +6,8 @@ struct ASensorManager;
 struct ASensor;
 struct ASensorEventQueue;
 
-namespace core::os
-{
-class context
-{
+namespace core::os {
+class context {
   public:
 	context(android_app* application);
 
@@ -25,10 +23,8 @@ class context
 };
 }	 // namespace core::os
 #else
-namespace core::os
-{
-class context
-{
+namespace core::os {
+class context {
   public:
 	bool tick() noexcept { return true; }
 };

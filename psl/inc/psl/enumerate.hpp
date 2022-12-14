@@ -1,14 +1,11 @@
 #pragma once
 #include <iterator>
 
-namespace psl
-{
+namespace psl {
 template <typename T, typename index_type = size_t, typename TIterator = decltype(std::begin(std::declval<T>()))>
-class enumerator
-{
+class enumerator {
   public:
-	class iterator
-	{
+	class iterator {
 	  public:
 		iterator(index_type index, TIterator iterator) noexcept : index(index), it(iterator) {}
 		~iterator()											= default;
@@ -17,28 +14,24 @@ class enumerator
 		iterator& operator=(const iterator& other) noexcept = default;
 		iterator& operator=(iterator&& other) noexcept		= default;
 
-		iterator& operator++()
-		{
+		iterator& operator++() {
 			++index;
 			++it;
 			return *this;
 		}
 
-		iterator& operator--()
-		{
+		iterator& operator--() {
 			--index;
 			--it;
 			return *this;
 		}
 
-		iterator operator++() const
-		{
+		iterator operator++() const {
 			auto copy {*this};
 			++copy;
 			return copy;
 		}
-		iterator operator--() const
-		{
+		iterator operator--() const {
 			auto copy {*this};
 			--copy;
 			return copy;
@@ -51,8 +44,7 @@ class enumerator
 		auto operator*() -> std::pair<index_type, decltype(*std::declval<TIterator>())> { return {index, *it}; }
 
 
-		auto operator*() const -> std::pair<index_type, const decltype(*std::declval<TIterator>())>
-		{
+		auto operator*() const -> std::pair<index_type, const decltype(*std::declval<TIterator>())> {
 			return {index, *it};
 		}
 
@@ -60,12 +52,10 @@ class enumerator
 		index_type index;
 		TIterator it;
 	};
-	enumerator(T& container) :
-		first(std::begin(container)), last(std::end(container)), index(0), count(std::size(container))
-	{}
-	enumerator(TIterator first, TIterator last, index_type index = 0, index_type count = 0) :
-		first(first), last(last), index(index), count(count)
-	{}
+	enumerator(T& container)
+		: first(std::begin(container)), last(std::end(container)), index(0), count(std::size(container)) {}
+	enumerator(TIterator first, TIterator last, index_type index = 0, index_type count = 0)
+		: first(first), last(last), index(index), count(count) {}
 
 	iterator begin() const { return iterator(index, first); }
 
@@ -79,14 +69,12 @@ class enumerator
 };
 
 template <class T>
-auto enumerate(T first, T last, typename enumerator<T>::index_t index = 0) -> enumerator<T>
-{
+auto enumerate(T first, T last, typename enumerator<T>::index_t index = 0) -> enumerator<T> {
 	return enumerator<T>(first, last, index, std::distance(first, last));
 }
 
 template <class T>
-auto enumerate(T& content) -> enumerator<T>
-{
+auto enumerate(T& content) -> enumerator<T> {
 	return enumerator<T>(content);
 }
 }	 // namespace psl

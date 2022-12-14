@@ -8,14 +8,11 @@
 #include <future>
 #include <optional>
 
-namespace psl::async::details
-{
+namespace psl::async::details {
 struct worker;
 }
-namespace psl::async
-{
-class scheduler final
-{
+namespace psl::async {
+class scheduler final {
   public:
 	scheduler(std::optional<size_t> workers = std::nullopt) noexcept;
 	~scheduler();
@@ -24,24 +21,19 @@ class scheduler final
 	auto schedule(Fn&& func) ->
 	  typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value,
 								token,
-								std::pair<token, Future<decltype(std::declval<Fn>()())>>>::type
-	{
+								std::pair<token, Future<decltype(std::declval<Fn>()())>>>::type {
 		using return_t = decltype(std::declval<Fn>()());
 		auto token	   = proxy();
 
-		if constexpr(std::is_same<void, return_t>::value)
-		{
+		if constexpr(std::is_same<void, return_t>::value) {
 			substitute<Future, Fn>(token, std::forward<decltype(func)>(func));
 			return token;
-		}
-		else
-		{
+		} else {
 			return std::pair {token, substitute<Future, Fn>(token, std::forward<decltype(func)>(func))};
 		}
 	}
 
-	token proxy()
-	{
+	token proxy() {
 		auto token {async::token {m_Invocables.size() + m_TokenOffset, psl::view_ptr<scheduler> {this}}};
 		m_Invocables.emplace_back(token);
 		return token;
@@ -52,8 +44,7 @@ class scheduler final
 	auto substitute(token& token, Fn&& func) ->
 	  typename std::conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value,
 								void,
-								Future<decltype(std::declval<Fn>()())>>::type
-	{
+								Future<decltype(std::declval<Fn>()())>>::type {
 		using return_t	= decltype(std::declval<Fn>()());
 		using storage_t = typename std::
 		  conditional<std::is_same<decltype(std::declval<Fn>()()), void>::value, void, Future<return_t>>::type;
@@ -61,8 +52,7 @@ class scheduler final
 		auto task = new details::task<return_t, Fn, storage_t>(std::forward<decltype(func)>(func));
 		m_Invocables[token - m_TokenOffset].substitute(task);
 
-		if constexpr(!std::is_same<void, return_t>::value)
-		{
+		if constexpr(!std::is_same<void, return_t>::value) {
 			return task->future();
 		}
 	}

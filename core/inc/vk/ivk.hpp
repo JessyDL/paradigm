@@ -62,27 +62,22 @@
 #endif
 
 
-namespace utility
-{
+namespace utility {
 template <typename BitType>
-struct converter<vk::Flags<BitType>>
-{
-	static psl::string8_t to_string(const vk::Flags<BitType>& x)
-	{
+struct converter<vk::Flags<BitType>> {
+	static psl::string8_t to_string(const vk::Flags<BitType>& x) {
 		using MaskType = typename vk::Flags<BitType>::MaskType;
 		return converter<MaskType>::to_string((MaskType)(x));
 	}
 
-	static vk::Flags<BitType> from_string(psl::string8::view str)
-	{
+	static vk::Flags<BitType> from_string(psl::string8::view str) {
 		using MaskType = typename vk::Flags<BitType>::MaskType;
 		return (BitType)converter<MaskType>::from_string(str);
 	}
 };
 
 template <>
-struct converter<vk::ClearValue>
-{
+struct converter<vk::ClearValue> {
 	static psl::string8_t to_string(const vk::ClearValue& value) { return ""; }
 
 	static vk::ClearValue from_string(psl::string8::view str) { return vk::ClearValue {vk::ClearColorValue {}}; }
@@ -91,11 +86,9 @@ struct converter<vk::ClearValue>
 
 
 /// \brief helper namespace that contains handy defaults and constructor helpers for Vulkan objects
-namespace utility::vulkan::defaults
-{
+namespace utility::vulkan::defaults {
 /// \brief creates a default, 0 sized VkMemoryAllocateInfo
-inline VkMemoryAllocateInfo mem_ai()
-{
+inline VkMemoryAllocateInfo mem_ai() {
 	VkMemoryAllocateInfo memAllocInfo = {};
 	memAllocInfo.sType				  = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
 	memAllocInfo.pNext				  = NULL;
@@ -105,8 +98,7 @@ inline VkMemoryAllocateInfo mem_ai()
 }
 
 inline VkCommandBufferAllocateInfo
-cmd_buffer_ai(VkCommandPool commandPool, VkCommandBufferLevel level, uint32_t bufferCount)
-{
+cmd_buffer_ai(VkCommandPool commandPool, VkCommandBufferLevel level, uint32_t bufferCount) {
 	VkCommandBufferAllocateInfo commandBufferAllocateInfo = {};
 	commandBufferAllocateInfo.sType						  = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
 	commandBufferAllocateInfo.commandPool				  = commandPool;
@@ -115,46 +107,40 @@ cmd_buffer_ai(VkCommandPool commandPool, VkCommandBufferLevel level, uint32_t bu
 	return commandBufferAllocateInfo;
 }
 
-inline VkCommandPoolCreateInfo cmd_pool_ci()
-{
+inline VkCommandPoolCreateInfo cmd_pool_ci() {
 	VkCommandPoolCreateInfo cmdPoolCreateInfo = {};
 	cmdPoolCreateInfo.sType					  = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
 	return cmdPoolCreateInfo;
 }
 
-inline VkCommandBufferBeginInfo cmd_pool_bi()
-{
+inline VkCommandBufferBeginInfo cmd_pool_bi() {
 	VkCommandBufferBeginInfo cmdBufferBeginInfo = {};
 	cmdBufferBeginInfo.sType					= VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
 	cmdBufferBeginInfo.pNext					= NULL;
 	return cmdBufferBeginInfo;
 }
 
-inline VkCommandBufferInheritanceInfo cmd_buffer_ii()
-{
+inline VkCommandBufferInheritanceInfo cmd_buffer_ii() {
 	VkCommandBufferInheritanceInfo cmdBufferInheritanceInfo = {};
 	cmdBufferInheritanceInfo.sType							= VK_STRUCTURE_TYPE_COMMAND_BUFFER_INHERITANCE_INFO;
 	return cmdBufferInheritanceInfo;
 }
 
-inline VkRenderPassBeginInfo renderpass_bi()
-{
+inline VkRenderPassBeginInfo renderpass_bi() {
 	VkRenderPassBeginInfo renderPassBeginInfo = {};
 	renderPassBeginInfo.sType				  = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	renderPassBeginInfo.pNext				  = NULL;
 	return renderPassBeginInfo;
 }
 
-inline VkRenderPassCreateInfo renderpass_ci()
-{
+inline VkRenderPassCreateInfo renderpass_ci() {
 	VkRenderPassCreateInfo renderPassCreateInfo = {};
 	renderPassCreateInfo.sType					= VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
 	renderPassCreateInfo.pNext					= NULL;
 	return renderPassCreateInfo;
 }
 
-inline VkImageMemoryBarrier image_membarrier()
-{
+inline VkImageMemoryBarrier image_membarrier() {
 	VkImageMemoryBarrier imageMemoryBarrier = {};
 	imageMemoryBarrier.sType				= VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
 	imageMemoryBarrier.pNext				= NULL;
@@ -164,16 +150,14 @@ inline VkImageMemoryBarrier image_membarrier()
 	return imageMemoryBarrier;
 }
 
-inline VkBufferMemoryBarrier buffer_membarrier()
-{
+inline VkBufferMemoryBarrier buffer_membarrier() {
 	VkBufferMemoryBarrier bufferMemoryBarrier = {};
 	bufferMemoryBarrier.sType				  = VK_STRUCTURE_TYPE_BUFFER_MEMORY_BARRIER;
 	bufferMemoryBarrier.pNext				  = NULL;
 	return bufferMemoryBarrier;
 }
 
-inline VkSemaphoreCreateInfo semaphore_ci()
-{
+inline VkSemaphoreCreateInfo semaphore_ci() {
 	VkSemaphoreCreateInfo semaphoreCreateInfo = {};
 	semaphoreCreateInfo.sType				  = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 	semaphoreCreateInfo.pNext				  = NULL;
@@ -181,31 +165,27 @@ inline VkSemaphoreCreateInfo semaphore_ci()
 	return semaphoreCreateInfo;
 }
 
-inline VkFenceCreateInfo fence_ci(VkFenceCreateFlags flags)
-{
+inline VkFenceCreateInfo fence_ci(VkFenceCreateFlags flags) {
 	VkFenceCreateInfo fenceCreateInfo = {};
 	fenceCreateInfo.sType			  = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	fenceCreateInfo.flags			  = flags;
 	return fenceCreateInfo;
 }
 
-inline VkEventCreateInfo event_ci()
-{
+inline VkEventCreateInfo event_ci() {
 	VkEventCreateInfo eventCreateInfo = {};
 	eventCreateInfo.sType			  = VK_STRUCTURE_TYPE_EVENT_CREATE_INFO;
 	return eventCreateInfo;
 }
 
-inline VkSubmitInfo submit_i()
-{
+inline VkSubmitInfo submit_i() {
 	VkSubmitInfo submitInfo = {};
 	submitInfo.sType		= VK_STRUCTURE_TYPE_SUBMIT_INFO;
 	submitInfo.pNext		= NULL;
 	return submitInfo;
 }
 
-inline VkViewport viewport(float width, float height, float minDepth, float maxDepth)
-{
+inline VkViewport viewport(float width, float height, float minDepth, float maxDepth) {
 	VkViewport viewport = {};
 	viewport.width		= width;
 	viewport.height		= height;
@@ -214,8 +194,7 @@ inline VkViewport viewport(float width, float height, float minDepth, float maxD
 	return viewport;
 }
 
-inline VkRect2D rect2D(int32_t width, int32_t height, int32_t offsetX, int32_t offsetY)
-{
+inline VkRect2D rect2D(int32_t width, int32_t height, int32_t offsetX, int32_t offsetY) {
 	VkRect2D rect2D		 = {};
 	rect2D.extent.width	 = width;
 	rect2D.extent.height = height;
@@ -224,15 +203,13 @@ inline VkRect2D rect2D(int32_t width, int32_t height, int32_t offsetX, int32_t o
 	return rect2D;
 }
 
-inline VkBufferCreateInfo buffer_ci()
-{
+inline VkBufferCreateInfo buffer_ci() {
 	VkBufferCreateInfo bufCreateInfo = {};
 	bufCreateInfo.sType				 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	return bufCreateInfo;
 }
 
-inline VkBufferCreateInfo buffer_ci(VkBufferUsageFlags usage, VkDeviceSize size)
-{
+inline VkBufferCreateInfo buffer_ci(VkBufferUsageFlags usage, VkDeviceSize size) {
 	VkBufferCreateInfo bufCreateInfo = {};
 	bufCreateInfo.sType				 = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
 	bufCreateInfo.pNext				 = NULL;
@@ -243,8 +220,7 @@ inline VkBufferCreateInfo buffer_ci(VkBufferUsageFlags usage, VkDeviceSize size)
 }
 
 inline vk::DescriptorPoolCreateInfo
-descriptor_pool_ci(uint32_t poolSizeCount, vk::DescriptorPoolSize* pPoolSizes, uint32_t maxSets)
-{
+descriptor_pool_ci(uint32_t poolSizeCount, vk::DescriptorPoolSize* pPoolSizes, uint32_t maxSets) {
 	vk::DescriptorPoolCreateInfo descriptorPoolInfo;
 	descriptorPoolInfo.pNext		 = NULL;
 	descriptorPoolInfo.poolSizeCount = poolSizeCount;
@@ -253,8 +229,7 @@ descriptor_pool_ci(uint32_t poolSizeCount, vk::DescriptorPoolSize* pPoolSizes, u
 	return descriptorPoolInfo;
 }
 
-inline VkDescriptorPoolSize descriptor_pool_size(VkDescriptorType type, uint32_t descriptorCount)
-{
+inline VkDescriptorPoolSize descriptor_pool_size(VkDescriptorType type, uint32_t descriptorCount) {
 	VkDescriptorPoolSize descriptorPoolSize = {};
 	descriptorPoolSize.type					= type;
 	descriptorPoolSize.descriptorCount		= descriptorCount;
@@ -264,8 +239,7 @@ inline VkDescriptorPoolSize descriptor_pool_size(VkDescriptorType type, uint32_t
 inline vk::DescriptorSetLayoutBinding descriptor_setlayout_binding(vk::DescriptorType type,
 																   vk::ShaderStageFlags stageFlags,
 																   uint32_t binding,
-																   uint32_t descriptorCount = 1)
-{
+																   uint32_t descriptorCount = 1) {
 	vk::DescriptorSetLayoutBinding setLayoutBinding;
 	setLayoutBinding.descriptorType = type;
 	setLayoutBinding.stageFlags		= stageFlags;
@@ -277,8 +251,7 @@ inline vk::DescriptorSetLayoutBinding descriptor_setlayout_binding(vk::Descripto
 }
 
 inline VkDescriptorSetLayoutCreateInfo descriptor_setlayout_ci(const VkDescriptorSetLayoutBinding* pBindings,
-															   uint32_t bindingCount)
-{
+															   uint32_t bindingCount) {
 	VkDescriptorSetLayoutCreateInfo descriptorSetLayoutCreateInfo = {};
 	descriptorSetLayoutCreateInfo.sType							  = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
 	descriptorSetLayoutCreateInfo.pNext							  = NULL;
@@ -287,8 +260,8 @@ inline VkDescriptorSetLayoutCreateInfo descriptor_setlayout_ci(const VkDescripto
 	return descriptorSetLayoutCreateInfo;
 }
 
-inline VkPipelineLayoutCreateInfo pipeline_layout_ci(const VkDescriptorSetLayout* pSetLayouts, uint32_t setLayoutCount)
-{
+inline VkPipelineLayoutCreateInfo pipeline_layout_ci(const VkDescriptorSetLayout* pSetLayouts,
+													 uint32_t setLayoutCount) {
 	VkPipelineLayoutCreateInfo pipelineLayoutCreateInfo = {};
 	pipelineLayoutCreateInfo.sType						= VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 	pipelineLayoutCreateInfo.pNext						= NULL;
@@ -299,8 +272,7 @@ inline VkPipelineLayoutCreateInfo pipeline_layout_ci(const VkDescriptorSetLayout
 
 inline VkDescriptorSetAllocateInfo descriptor_set_ai(VkDescriptorPool descriptorPool,
 													 const VkDescriptorSetLayout* pSetLayouts,
-													 uint32_t descriptorSetCount)
-{
+													 uint32_t descriptorSetCount) {
 	VkDescriptorSetAllocateInfo descriptorSetAllocateInfo = {};
 	descriptorSetAllocateInfo.sType						  = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	descriptorSetAllocateInfo.pNext						  = NULL;
@@ -311,8 +283,7 @@ inline VkDescriptorSetAllocateInfo descriptor_set_ai(VkDescriptorPool descriptor
 }
 
 inline vk::DescriptorImageInfo
-descriptor_image_info(vk::Sampler sampler, vk::ImageView imageView, vk::ImageLayout imageLayout)
-{
+descriptor_image_info(vk::Sampler sampler, vk::ImageView imageView, vk::ImageLayout imageLayout) {
 	vk::DescriptorImageInfo descriptorImageInfo;
 	descriptorImageInfo.sampler		= sampler;
 	descriptorImageInfo.imageView	= imageView;
@@ -324,8 +295,7 @@ inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet,
 												   vk::DescriptorType type,
 												   uint32_t binding,
 												   vk::DescriptorBufferInfo* bufferInfo,
-												   uint32_t descriptorCount = 1)
-{
+												   uint32_t descriptorCount = 1) {
 	vk::WriteDescriptorSet writeDescriptorSet;
 	writeDescriptorSet.pNext		  = NULL;
 	writeDescriptorSet.dstSet		  = dstSet;
@@ -342,8 +312,7 @@ inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet,
 												   vk::DescriptorType type,
 												   uint32_t binding,
 												   vk::DescriptorImageInfo* imageInfo,
-												   uint32_t descriptorCount = 1)
-{
+												   uint32_t descriptorCount = 1) {
 	vk::WriteDescriptorSet writeDescriptorSet;
 	writeDescriptorSet.pNext		  = NULL;
 	writeDescriptorSet.dstSet		  = dstSet;
@@ -357,8 +326,7 @@ inline vk::WriteDescriptorSet write_descriptor_set(vk::DescriptorSet dstSet,
 }
 
 inline VkVertexInputBindingDescription
-vertex_input_binding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate)
-{
+vertex_input_binding(uint32_t binding, uint32_t stride, VkVertexInputRate inputRate) {
 	VkVertexInputBindingDescription vInputBindDescription = {};
 	vInputBindDescription.binding						  = binding;
 	vInputBindDescription.stride						  = stride;
@@ -367,8 +335,7 @@ vertex_input_binding(uint32_t binding, uint32_t stride, VkVertexInputRate inputR
 }
 
 inline VkVertexInputAttributeDescription
-vertex_input_attr(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset)
-{
+vertex_input_attr(uint32_t binding, uint32_t location, VkFormat format, uint32_t offset) {
 	VkVertexInputAttributeDescription vInputAttribDescription = {};
 	vInputAttribDescription.location						  = location;
 	vInputAttribDescription.binding							  = binding;
@@ -377,8 +344,7 @@ vertex_input_attr(uint32_t binding, uint32_t location, VkFormat format, uint32_t
 	return vInputAttribDescription;
 }
 
-inline VkPipelineVertexInputStateCreateInfo pipeline_vertex_inputstate_ci()
-{
+inline VkPipelineVertexInputStateCreateInfo pipeline_vertex_inputstate_ci() {
 	VkPipelineVertexInputStateCreateInfo pipelineVertexInputStateCreateInfo = {};
 	pipelineVertexInputStateCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
 	pipelineVertexInputStateCreateInfo.pNext = NULL;
@@ -387,8 +353,7 @@ inline VkPipelineVertexInputStateCreateInfo pipeline_vertex_inputstate_ci()
 
 inline VkPipelineInputAssemblyStateCreateInfo pipeline_input_asmstate_ci(VkPrimitiveTopology topology,
 																		 VkPipelineInputAssemblyStateCreateFlags flags,
-																		 VkBool32 primitiveRestartEnable)
-{
+																		 VkBool32 primitiveRestartEnable) {
 	VkPipelineInputAssemblyStateCreateInfo pipelineInputAssemblyStateCreateInfo = {};
 	pipelineInputAssemblyStateCreateInfo.sType	  = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
 	pipelineInputAssemblyStateCreateInfo.topology = topology;
@@ -401,8 +366,7 @@ inline VkPipelineRasterizationStateCreateInfo
 pipeline_rasterizationstate_ci(VkPolygonMode polygonMode,
 							   VkCullModeFlags cullMode,
 							   VkFrontFace frontFace,
-							   VkPipelineRasterizationStateCreateFlags flags)
-{
+							   VkPipelineRasterizationStateCreateFlags flags) {
 	VkPipelineRasterizationStateCreateInfo pipelineRasterizationStateCreateInfo = {};
 	pipelineRasterizationStateCreateInfo.sType			  = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
 	pipelineRasterizationStateCreateInfo.polygonMode	  = polygonMode;
@@ -415,8 +379,7 @@ pipeline_rasterizationstate_ci(VkPolygonMode polygonMode,
 }
 
 inline VkPipelineColorBlendAttachmentState pipeline_colorblend_attch_state(VkColorComponentFlags colorWriteMask,
-																		   VkBool32 blendEnable)
-{
+																		   VkBool32 blendEnable) {
 	VkPipelineColorBlendAttachmentState pipelineColorBlendAttachmentState = {};
 	pipelineColorBlendAttachmentState.colorWriteMask					  = colorWriteMask;
 	pipelineColorBlendAttachmentState.blendEnable						  = blendEnable;
@@ -424,8 +387,7 @@ inline VkPipelineColorBlendAttachmentState pipeline_colorblend_attch_state(VkCol
 }
 
 inline VkPipelineColorBlendStateCreateInfo
-pipeline_colorblendstate_ci(uint32_t attachmentCount, const VkPipelineColorBlendAttachmentState* pAttachments)
-{
+pipeline_colorblendstate_ci(uint32_t attachmentCount, const VkPipelineColorBlendAttachmentState* pAttachments) {
 	VkPipelineColorBlendStateCreateInfo pipelineColorBlendStateCreateInfo = {};
 	pipelineColorBlendStateCreateInfo.sType			  = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
 	pipelineColorBlendStateCreateInfo.pNext			  = NULL;
@@ -435,8 +397,7 @@ pipeline_colorblendstate_ci(uint32_t attachmentCount, const VkPipelineColorBlend
 }
 
 inline VkPipelineDepthStencilStateCreateInfo
-pipeline_ds_state_ci(VkBool32 depthTestEnable, VkBool32 depthWriteEnable, VkCompareOp depthCompareOp)
-{
+pipeline_ds_state_ci(VkBool32 depthTestEnable, VkBool32 depthWriteEnable, VkCompareOp depthCompareOp) {
 	VkPipelineDepthStencilStateCreateInfo pipelineDepthStencilStateCreateInfo = {};
 	pipelineDepthStencilStateCreateInfo.sType			 = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
 	pipelineDepthStencilStateCreateInfo.depthTestEnable	 = depthTestEnable;
@@ -448,8 +409,7 @@ pipeline_ds_state_ci(VkBool32 depthTestEnable, VkBool32 depthWriteEnable, VkComp
 }
 
 inline VkPipelineViewportStateCreateInfo
-pipeline_viewportstate_ci(uint32_t viewportCount, uint32_t scissorCount, VkPipelineViewportStateCreateFlags flags)
-{
+pipeline_viewportstate_ci(uint32_t viewportCount, uint32_t scissorCount, VkPipelineViewportStateCreateFlags flags) {
 	VkPipelineViewportStateCreateInfo pipelineViewportStateCreateInfo = {};
 	pipelineViewportStateCreateInfo.sType		  = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
 	pipelineViewportStateCreateInfo.viewportCount = viewportCount;
@@ -459,8 +419,7 @@ pipeline_viewportstate_ci(uint32_t viewportCount, uint32_t scissorCount, VkPipel
 }
 
 inline VkPipelineMultisampleStateCreateInfo pipeline_ms_state_ci(VkSampleCountFlagBits rasterizationSamples,
-																 VkPipelineMultisampleStateCreateFlags flags)
-{
+																 VkPipelineMultisampleStateCreateFlags flags) {
 	VkPipelineMultisampleStateCreateInfo pipelineMultisampleStateCreateInfo = {};
 	pipelineMultisampleStateCreateInfo.sType				= VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
 	pipelineMultisampleStateCreateInfo.rasterizationSamples = rasterizationSamples;
@@ -469,8 +428,7 @@ inline VkPipelineMultisampleStateCreateInfo pipeline_ms_state_ci(VkSampleCountFl
 
 inline VkPipelineDynamicStateCreateInfo pipeline_dynstate_ci(const VkDynamicState* pDynamicStates,
 															 uint32_t dynamicStateCount,
-															 VkPipelineDynamicStateCreateFlags flags)
-{
+															 VkPipelineDynamicStateCreateFlags flags) {
 	VkPipelineDynamicStateCreateInfo pipelineDynamicStateCreateInfo = {};
 	pipelineDynamicStateCreateInfo.sType			 = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
 	pipelineDynamicStateCreateInfo.pDynamicStates	 = pDynamicStates;
@@ -478,8 +436,7 @@ inline VkPipelineDynamicStateCreateInfo pipeline_dynstate_ci(const VkDynamicStat
 	return pipelineDynamicStateCreateInfo;
 }
 
-inline VkPipelineTessellationStateCreateInfo pipeline_tess_state_ci(uint32_t patchControlPoints)
-{
+inline VkPipelineTessellationStateCreateInfo pipeline_tess_state_ci(uint32_t patchControlPoints) {
 	VkPipelineTessellationStateCreateInfo pipelineTessellationStateCreateInfo = {};
 	pipelineTessellationStateCreateInfo.sType			   = VK_STRUCTURE_TYPE_PIPELINE_TESSELLATION_STATE_CREATE_INFO;
 	pipelineTessellationStateCreateInfo.patchControlPoints = patchControlPoints;
@@ -487,8 +444,7 @@ inline VkPipelineTessellationStateCreateInfo pipeline_tess_state_ci(uint32_t pat
 }
 
 inline VkGraphicsPipelineCreateInfo
-pipeline_ci(VkPipelineLayout layout, VkRenderPass renderPass, VkPipelineCreateFlags flags)
-{
+pipeline_ci(VkPipelineLayout layout, VkRenderPass renderPass, VkPipelineCreateFlags flags) {
 	VkGraphicsPipelineCreateInfo pipelineCreateInfo = {};
 	pipelineCreateInfo.sType						= VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
 	pipelineCreateInfo.pNext						= NULL;
@@ -498,8 +454,7 @@ pipeline_ci(VkPipelineLayout layout, VkRenderPass renderPass, VkPipelineCreateFl
 	return pipelineCreateInfo;
 }
 
-inline VkComputePipelineCreateInfo compute_pipeline_ci(VkPipelineLayout layout, VkPipelineCreateFlags flags)
-{
+inline VkComputePipelineCreateInfo compute_pipeline_ci(VkPipelineLayout layout, VkPipelineCreateFlags flags) {
 	VkComputePipelineCreateInfo computePipelineCreateInfo = {};
 	computePipelineCreateInfo.sType						  = VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO;
 	computePipelineCreateInfo.layout					  = layout;
@@ -507,8 +462,7 @@ inline VkComputePipelineCreateInfo compute_pipeline_ci(VkPipelineLayout layout, 
 	return computePipelineCreateInfo;
 }
 
-inline VkPushConstantRange push_constant_range(VkShaderStageFlags stageFlags, uint32_t size, uint32_t offset)
-{
+inline VkPushConstantRange push_constant_range(VkShaderStageFlags stageFlags, uint32_t size, uint32_t offset) {
 	VkPushConstantRange pushConstantRange = {};
 	pushConstantRange.stageFlags		  = stageFlags;
 	pushConstantRange.offset			  = offset;
@@ -517,24 +471,20 @@ inline VkPushConstantRange push_constant_range(VkShaderStageFlags stageFlags, ui
 }
 }	 // namespace utility::vulkan::defaults
 
-namespace utility::vulkan
-{
-inline bool check(const vk::Result& value, const psl::source_location& loc = psl::source_location::current())
-{
+namespace utility::vulkan {
+inline bool check(const vk::Result& value, const psl::source_location& loc = psl::source_location::current()) {
 	psl_assert(value == vk::Result::eSuccess, "vk::Result expected success, but got {}", vk::to_string(value), loc);
 	return value == vk::Result::eSuccess;
 }
 
-inline bool check(const VkResult& value, const psl::source_location& loc = psl::source_location::current())
-{
+inline bool check(const VkResult& value, const psl::source_location& loc = psl::source_location::current()) {
 	psl_assert(
 	  value == VkResult::VK_SUCCESS, "vk::Result expected success, but got {}", vk::to_string((vk::Result)value), loc);
 	return value == VkResult::VK_SUCCESS;
 }
 
 template <typename T>
-inline bool check(const vk::ResultValue<T>& value)
-{
+inline bool check(const vk::ResultValue<T>& value) {
 	return check(value.result);
 }
 
@@ -542,8 +492,7 @@ inline vk::CommandBuffer create_cmd_buffer(vk::Device device,
 										   vk::CommandPool pool,
 										   vk::CommandBufferLevel level,
 										   bool begin,
-										   uint32_t bufferCount)
-{
+										   uint32_t bufferCount) {
 	vk::CommandBuffer cmdBuffer;
 
 	vk::CommandBufferAllocateInfo commandBufferAllocateInfo;
@@ -554,8 +503,7 @@ inline vk::CommandBuffer create_cmd_buffer(vk::Device device,
 	check(device.allocateCommandBuffers(&commandBufferAllocateInfo, &cmdBuffer));
 
 	// If requested, also start the new command buffer
-	if(begin)
-	{
+	if(begin) {
 		vk::CommandBufferBeginInfo cmdBufferBeginInfo;
 		check(cmdBuffer.begin(&cmdBufferBeginInfo));
 	}
@@ -565,15 +513,12 @@ inline vk::CommandBuffer create_cmd_buffer(vk::Device device,
 
 inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice,
 										std::vector<vk::Format> depthFormats,
-										vk::Format* depthFormat)
-{
-	for(auto format : depthFormats)
-	{
+										vk::Format* depthFormat) {
+	for(auto format : depthFormats) {
 		vk::FormatProperties formatProps;
 		physicalDevice.getFormatProperties(format, &formatProps);
 		// Format must support depth stencil attachment for optimal tiling
-		if(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment)
-		{
+		if(formatProps.optimalTilingFeatures & vk::FormatFeatureFlagBits::eDepthStencilAttachment) {
 			*depthFormat = format;
 			return true;
 		}
@@ -582,8 +527,7 @@ inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice
 	return false;
 }
 
-inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice, vk::Format* depthFormat)
-{
+inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice, vk::Format* depthFormat) {
 	// Since all depth formats may be optional, we need to find a suitable depth format to use
 	// Start with the highest precision packed format
 	std::vector<vk::Format> depthFormats = {vk::Format::eD32SfloatS8Uint,
@@ -599,8 +543,7 @@ inline vk::Bool32 supported_depthformat(const vk::PhysicalDevice& physicalDevice
 // an image and put it into an active command buffer
 // See chapter 11.4 "Image Layout" for details
 
-inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout)
-{
+inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageLayout, vk::ImageLayout newImageLayout) {
 	vk::ImageMemoryBarrier imageMemoryBarrier {};
 	imageMemoryBarrier.oldLayout = oldImageLayout;
 	imageMemoryBarrier.newLayout = newImageLayout;
@@ -608,8 +551,7 @@ inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageL
 	// Source layouts (old)
 	// Source access mask controls actions that have to be finished on the old layout
 	// before it will be transitioned to the new layout
-	switch(oldImageLayout)
-	{
+	switch(oldImageLayout) {
 	case vk::ImageLayout::eGeneral:
 	case vk::ImageLayout::eUndefined:
 		// Image layout is undefined (or does not matter)
@@ -660,8 +602,7 @@ inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageL
 
 	// Target layouts (new)
 	// Destination access mask controls the dependency for the new image layout
-	switch(newImageLayout)
-	{
+	switch(newImageLayout) {
 	case vk::ImageLayout::eTransferDstOptimal:
 		// Image will be used as a transfer destination
 		// Make sure any writes to the image have been finished
@@ -692,8 +633,7 @@ inline vk::ImageMemoryBarrier image_memory_barrier_for(vk::ImageLayout oldImageL
 	case vk::ImageLayout::eShaderReadOnlyOptimal:
 		// Image will be read in a shader (sampler, input attachment)
 		// Make sure any writes to the image have been finished
-		if(imageMemoryBarrier.srcAccessMask == (vk::AccessFlagBits)0)
-		{
+		if(imageMemoryBarrier.srcAccessMask == (vk::AccessFlagBits)0) {
 			imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eHostWrite | vk::AccessFlagBits::eTransferWrite;
 		}
 		imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
@@ -711,8 +651,7 @@ inline void set_image_layout(vk::CommandBuffer cmdbuffer,
 							 vk::ImageLayout newImageLayout,
 							 vk::ImageSubresourceRange subresourceRange,
 							 vk::PipelineStageFlags srcStageMask,
-							 vk::PipelineStageFlags dstStageMask)
-{
+							 vk::PipelineStageFlags dstStageMask) {
 	// Create an image barrier object
 	vk::ImageMemoryBarrier imageMemoryBarrier = image_memory_barrier_for(oldImageLayout, newImageLayout);
 	imageMemoryBarrier.setPNext(nullptr);
@@ -728,8 +667,7 @@ inline void set_image_layout(vk::CommandBuffer& cmdbuffer,
 							 vk::Image& image,
 							 const vk::ImageLayout& oldImageLayout,
 							 const vk::ImageLayout& newImageLayout,
-							 vk::ImageSubresourceRange& subresourceRange)
-{
+							 vk::ImageSubresourceRange& subresourceRange) {
 	set_image_layout(cmdbuffer,
 					 image,
 					 oldImageLayout,
@@ -745,8 +683,7 @@ inline vk::CommandBuffer CreateCommandBuffer(vk::Device device,
 											 vk::CommandPool pool,
 											 vk::CommandBufferLevel level,
 											 bool begin,
-											 uint32_t bufferCount)
-{
+											 uint32_t bufferCount) {
 	vk::CommandBuffer cmdBuffer;
 
 	vk::CommandBufferAllocateInfo commandBufferAllocateInfo;
@@ -757,8 +694,7 @@ inline vk::CommandBuffer CreateCommandBuffer(vk::Device device,
 	check(device.allocateCommandBuffers(&commandBufferAllocateInfo, &cmdBuffer));
 
 	// If requested, also start the new command buffer
-	if(begin)
-	{
+	if(begin) {
 		vk::CommandBufferBeginInfo cmdBufferBeginInfo;
 		check(cmdBuffer.begin(&cmdBufferBeginInfo));
 	}
@@ -770,8 +706,7 @@ inline vk::CommandBuffer CreateCommandBuffer(vk::Device device,
 /**
  * @brief Returns true if the attachment has a depth component
  */
-inline bool has_depth(vk::Format format)
-{
+inline bool has_depth(vk::Format format) {
 	static std::vector<vk::Format> formats = {
 	  vk::Format::eD16Unorm,
 	  vk::Format::eX8D24UnormPack32,
@@ -786,8 +721,7 @@ inline bool has_depth(vk::Format format)
 /**
  * @brief Returns true if the attachment has a stencil component
  */
-inline bool has_stencil(vk::Format format)
-{
+inline bool has_stencil(vk::Format format) {
 	static std::vector<vk::Format> formats = {
 	  vk::Format::eS8Uint,
 	  vk::Format::eD16UnormS8Uint,
@@ -799,5 +733,7 @@ inline bool has_stencil(vk::Format format)
 /**
  * @brief Returns true if the attachment is a depth and/or stencil attachment
  */
-inline bool is_depthstencil(vk::Format format) { return (has_depth(format) && has_stencil(format)); }
+inline bool is_depthstencil(vk::Format format) {
+	return (has_depth(format) && has_stencil(format));
+}
 }	 // namespace utility::vulkan

@@ -1,11 +1,9 @@
 #pragma once
 #include <type_traits>
 
-namespace details
-{
+namespace details {
 template <typename F>
-class monadic_container
-{
+class monadic_container {
   public:
 	monadic_container(F&& f) : callable(f) {};
 
@@ -13,44 +11,40 @@ class monadic_container
 	F callable;
 };
 
-class monadic_stub
-{
+class monadic_stub {
   public:
 	monadic_stub(bool success = true) : m_Return(success) {}
 
 	template <typename T>
-	monadic_stub(T&& target)
-	{
+	monadic_stub(T&& target) {
 		call(std::forward<T>(target));
 	}
 
 	template <typename T, typename Comparator>
-	monadic_stub(T&& target, Comparator&& comparator)
-	{
+	monadic_stub(T&& target, Comparator&& comparator) {
 		call(std::forward<T>(target), std::forward<Comparator>(comparator));
 	}
 
 	template <typename T>
-	monadic_stub& then(T&& target)
-	{
-		if(m_Return) call(std::forward<T>(target));
+	monadic_stub& then(T&& target) {
+		if(m_Return)
+			call(std::forward<T>(target));
 
 		return *this;
 	}
 
 
 	template <typename T, typename Comparator>
-	monadic_stub& then(T&& target, Comparator&& comparator)
-	{
-		if(m_Return) call(std::forward<T>(target), std::forward<Comparator>(comparator));
+	monadic_stub& then(T&& target, Comparator&& comparator) {
+		if(m_Return)
+			call(std::forward<T>(target), std::forward<Comparator>(comparator));
 
 		return *this;
 	}
 
 
 	template <typename T0, typename T1>
-	monadic_stub& then_or(T0&& target0, T1&& target1)
-	{
+	monadic_stub& then_or(T0&& target0, T1&& target1) {
 		if(m_Return)
 			call(std::forward<T0>(target0));
 		else
@@ -59,8 +53,7 @@ class monadic_stub
 		return *this;
 	}
 	template <typename T0, typename T1, typename Comparator>
-	monadic_stub& then_or(T0&& target0, T1&& target1, Comparator&& comparator)
-	{
+	monadic_stub& then_or(T0&& target0, T1&& target1, Comparator&& comparator) {
 		if(m_Return)
 			call(std::forward<T0>(target0), std::forward<Comparator>(comparator));
 		else
@@ -69,8 +62,7 @@ class monadic_stub
 		return *this;
 	}
 	template <typename T0, typename T1, typename Comparator0, typename Comparator1>
-	monadic_stub& then_or(T0&& target0, T1&& target1, Comparator0&& comparator0, Comparator1&& comparator1)
-	{
+	monadic_stub& then_or(T0&& target0, T1&& target1, Comparator0&& comparator0, Comparator1&& comparator1) {
 		if(m_Return)
 			call(std::forward<T0>(target0), std::forward<Comparator0>(comparator0));
 		else
@@ -80,10 +72,8 @@ class monadic_stub
 	}
 
 	template <typename... Ts>
-	monadic_stub& all(Ts&&... targets)
-	{
-		if(m_Return)
-		{
+	monadic_stub& all(Ts&&... targets) {
+		if(m_Return) {
 			monadic_stub sub_stub {true};
 			(sub_stub.then(std::forward<Ts>(targets)), ...);
 			m_Return = sub_stub.m_Return;
@@ -92,10 +82,8 @@ class monadic_stub
 	}
 
 	template <typename... Ts>
-	monadic_stub& any(Ts&&... targets)
-	{
-		if(m_Return)
-		{
+	monadic_stub& any(Ts&&... targets) {
+		if(m_Return) {
 			monadic_stub sub_stub {true};
 			m_Return = false;
 			(std::invoke([&]() {
@@ -108,10 +96,8 @@ class monadic_stub
 	}
 
 	template <typename... Ts>
-	monadic_stub& at_least(size_t count, Ts&&... targets)
-	{
-		if(m_Return)
-		{
+	monadic_stub& at_least(size_t count, Ts&&... targets) {
+		if(m_Return) {
 			monadic_stub sub_stub {true};
 			size_t success_count {0};
 			(std::invoke([&success_count, &sub_stub, &targets]() {
@@ -126,10 +112,8 @@ class monadic_stub
 
 
 	template <typename... Ts>
-	monadic_stub& at_most(size_t count, Ts&&... targets)
-	{
-		if(m_Return)
-		{
+	monadic_stub& at_most(size_t count, Ts&&... targets) {
+		if(m_Return) {
 			monadic_stub sub_stub {true};
 			size_t success_count {0};
 			(std::invoke([&success_count, &sub_stub, &targets]() {
@@ -146,48 +130,37 @@ class monadic_stub
 
   private:
 	template <typename T, typename Fn>
-	void call(T&& target, Fn&& comparator)
-	{
-		if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value)
-		{
+	void call(T&& target, Fn&& comparator) {
+		if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value) {
 			std::invoke(target);
 			m_Return = true;
-		}
-		else
-		{
+		} else {
 			m_Return = std::invoke(comparator, std::invoke(target));
 		}
 	}
 
 	template <typename T>
-	void call(T&& target)
-	{
-		if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value)
-		{
+	void call(T&& target) {
+		if constexpr(std::is_same<typename std::invoke_result<T>::type, void>::value) {
 			std::invoke(target);
 			m_Return = true;
-		}
-		else
-		{
+		} else {
 			m_Return = std::invoke(target);
 		}
 	}
 
 	template <>
-	void call(monadic_stub&& target)
-	{
+	void call(monadic_stub&& target) {
 		m_Return = target.m_Return;
 	}
 
 	template <>
-	void call(monadic_stub& target)
-	{
+	void call(monadic_stub& target) {
 		m_Return = target.m_Return;
 	}
 
 	template <>
-	void call(const monadic_stub& target)
-	{
+	void call(const monadic_stub& target) {
 		m_Return = target.m_Return;
 	}
 
@@ -196,33 +169,31 @@ class monadic_stub
 }	 // namespace details
 
 template <typename T>
-static ::details::monadic_stub when(T&& target)
-{
+static ::details::monadic_stub when(T&& target) {
 	return ::details::monadic_stub(std::forward<T>(target));
 }
 
 template <typename T, typename Comparator>
-static ::details::monadic_stub when(T&& target, Comparator&& comparator)
-{
+static ::details::monadic_stub when(T&& target, Comparator&& comparator) {
 	return ::details::monadic_stub(std::forward<T>(target), std::forward<Comparator>(comparator));
 }
 
 template <typename... Ts>
-static ::details::monadic_stub when_any(Ts&&... targets)
-{
+static ::details::monadic_stub when_any(Ts&&... targets) {
 	::details::monadic_stub mon;
 	return mon.any(std::forward<Ts>(targets)...);
 }
 
 
 template <typename... Ts>
-static ::details::monadic_stub when_all(Ts&&... targets)
-{
+static ::details::monadic_stub when_all(Ts&&... targets) {
 	::details::monadic_stub mon;
 	return mon.all(std::forward<Ts>(targets)...);
 }
 
-static ::details::monadic_stub monadic() { return ::details::monadic_stub {}; }
+static ::details::monadic_stub monadic() {
+	return ::details::monadic_stub {};
+}
 //
 // template <class T>
 // class monad

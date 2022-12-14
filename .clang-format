@@ -1,34 +1,34 @@
 ---
 Language: Cpp
-Standard: c++20
+Standard: Latest
 AlignAfterOpenBracket: Align
 AlignConsecutiveAssignments: true
 AlignOperands: true
 AlignTrailingComments: true
 AllowAllParametersOfDeclarationOnNextLine: false
 AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: All
-AllowShortIfStatementsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: false
 AllowShortLoopsOnASingleLine: true
 AlwaysBreakBeforeMultilineStrings: true
 AlwaysBreakTemplateDeclarations: true
 BinPackArguments: false
 BinPackParameters: false
 BraceWrapping:
-  AfterCaseLabel: true
-  AfterEnum: true
-  AfterStruct: true
-  AfterClass: true
-  AfterFunction: true
-  AfterNamespace: true
-  AfterUnion: true
-  BeforeCatch: true
-  BeforeElse: true
+  AfterCaseLabel: false
+  AfterEnum: false
+  AfterStruct: false
+  AfterClass: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterUnion: false
+  BeforeCatch: false
+  BeforeElse: false
   IndentBraces: false
   SplitEmptyFunction: false
   SplitEmptyRecord: false
   SplitEmptyNamespace: false
-  AfterControlStatement: true
+  AfterControlStatement: false
 ColumnLimit: 120
 BreakBeforeBraces: Custom
 Cpp11BracedListStyle: true
@@ -59,9 +59,11 @@ KeepEmptyLinesAtTheStartOfBlocks: false
 FixNamespaceComments: true
 ContinuationIndentWidth: 2
 BreakStringLiterals: true
-BreakInheritanceList: AfterColon
-BreakConstructorInitializers: AfterColon
+BreakInheritanceList: BeforeColon
+BreakConstructorInitializers: BeforeColon
 BreakBeforeTernaryOperators: true
+AllowShortBlocksOnASingleLine: false
+SpaceBeforeRangeBasedForLoopColon: true
 CommentPragmas:  '.* \\(param|tparam|brief|detail|details|return|returns|note|warning|todo)'
 # EmptyLineBeforeAccessModifier: LogicalBlock
 # IndentRequires: true

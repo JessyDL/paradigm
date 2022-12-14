@@ -4,8 +4,7 @@
 #include "psl/meta.hpp"
 #include <memory>
 
-namespace core::resource
-{
+namespace core::resource {
 template <typename T>
 class weak_handle;
 
@@ -14,8 +13,7 @@ class weak_handle;
 /// resource handles are used to manage the lifetime of resources, and tracking
 /// dependencies (i.e. who uses what). It is supposed to be used with a core::resource::cache_t.
 template <typename T>
-class handle
-{
+class handle {
   public:
 	using value_type = std::remove_cv_t<std::remove_const_t<T>>;
 	// using meta_type  = typename details::meta_type<value_type>::type;
@@ -28,23 +26,19 @@ class handle
 	template <typename Y>
 	friend class handle;
 
-	handle(void* resource, cache_t* cache, metadata* metaData, psl::meta::file* meta) noexcept :
-		m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
-		m_MetaFile(reinterpret_cast<meta_type*>(meta))
-	{
+	handle(void* resource, cache_t* cache, metadata* metaData, psl::meta::file* meta) noexcept
+		: m_Resource(reinterpret_cast<value_type*>(resource)), m_Cache(cache), m_MetaData(metaData),
+		  m_MetaFile(reinterpret_cast<meta_type*>(meta)) {
 		m_MetaData->reference_count += 1;
 	};
 
   public:
 	handle() = default;
-	~handle()
-	{
-		if constexpr(!std::is_same_v<alias_type, void>)
-		{
+	~handle() {
+		if constexpr(!std::is_same_v<alias_type, void>) {
 			static_assert(details::is_valid_alias<value_type, alias_type>::value);
 		}
-		if(m_MetaData)
-		{
+		if(m_MetaData) {
 			psl_assert(m_MetaData->reference_count != 0,
 					   "reference count was {}, but should be != 0",
 					   m_MetaData->reference_count);
@@ -57,53 +51,55 @@ class handle
 
 
 	template <typename Y>
-	handle(const handle<Y>& other) noexcept
-	{
+	handle(const handle<Y>& other) noexcept {
 		static_assert(details::alias_has_type<T, typename details::alias_type<value_type>::type>::value,
 					  "type must be an alias");
-		if(!other) return;
+		if(!other)
+			return;
 		handle<T> res = other.m_Cache->template find<T>(other.uid());
 		m_Resource	  = res.m_Resource;
 		m_Cache		  = res.m_Cache;
 		m_MetaData	  = res.m_MetaData;
 		m_MetaFile	  = res.m_MetaFile;
-		if(m_MetaData) m_MetaData->reference_count += 1;
+		if(m_MetaData)
+			m_MetaData->reference_count += 1;
 	};
 
-	handle(const handle& other) noexcept :
-		m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData), m_MetaFile(other.m_MetaFile)
-	{
-		if(m_MetaData) m_MetaData->reference_count += 1;
+	handle(const handle& other) noexcept
+		: m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
+		  m_MetaFile(other.m_MetaFile) {
+		if(m_MetaData)
+			m_MetaData->reference_count += 1;
 	};
 
-	handle(handle&& other) noexcept :
-		m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData), m_MetaFile(other.m_MetaFile)
-	{
+	handle(handle&& other) noexcept
+		: m_Resource(other.m_Resource), m_Cache(other.m_Cache), m_MetaData(other.m_MetaData),
+		  m_MetaFile(other.m_MetaFile) {
 		other.m_MetaData = nullptr;
 	};
-	handle& operator=(const handle& other)
-	{
-		if(this != &other)
-		{
-			if(m_MetaData) m_MetaData->reference_count -= 1;
+	handle& operator=(const handle& other) {
+		if(this != &other) {
+			if(m_MetaData)
+				m_MetaData->reference_count -= 1;
 			m_Resource = other.m_Resource;
 			m_Cache	   = other.m_Cache;
 			m_MetaData = other.m_MetaData;
 			m_MetaFile = other.m_MetaFile;
-			if(m_MetaData) m_MetaData->reference_count += 1;
+			if(m_MetaData)
+				m_MetaData->reference_count += 1;
 		}
 		return *this;
 	};
-	handle& operator=(handle&& other) noexcept
-	{
-		if(this != &other)
-		{
-			if(m_MetaData) m_MetaData->reference_count -= 1;
+	handle& operator=(handle&& other) noexcept {
+		if(this != &other) {
+			if(m_MetaData)
+				m_MetaData->reference_count -= 1;
 			m_Resource = other.m_Resource;
 			m_Cache	   = other.m_Cache;
 			m_MetaData = other.m_MetaData;
 			m_MetaFile = other.m_MetaFile;
-			if(m_MetaData) m_MetaData->reference_count += 1;
+			if(m_MetaData)
+				m_MetaData->reference_count += 1;
 		}
 		return *this;
 	};
@@ -111,26 +107,22 @@ class handle
 
 	inline status state() const noexcept { return m_MetaData ? m_MetaData->state : status::invalid; }
 
-	inline value_type& value() noexcept
-	{
+	inline value_type& value() noexcept {
 		psl_assert(state() == status::loaded,
 				   "state was expected to be loaded, but was {}",
 				   static_cast<std::underlying_type_t<status>>(state()));
 		return *m_Resource;
 	}
 
-	inline const value_type& value() const noexcept
-	{
+	inline const value_type& value() const noexcept {
 		psl_assert(state() == status::loaded,
 				   "state was expected to be loaded, but was {}",
 				   static_cast<std::underlying_type_t<status>>(state()));
 		return *m_Resource;
 	}
 
-	inline bool try_get(value_type& out) const noexcept
-	{
-		if(state() == status::loaded)
-		{
+	inline bool try_get(value_type& out) const noexcept {
+		if(state() == status::loaded) {
 			out = *m_Resource;
 			return true;
 		}
@@ -138,24 +130,20 @@ class handle
 	}
 
 	template <typename Y>
-	bool operator==(const handle<Y>& other) const noexcept
-	{
+	bool operator==(const handle<Y>& other) const noexcept {
 		return uid() == other.uid();
 	}
 	template <typename Y>
-	bool operator!=(const handle<Y>& other) const noexcept
-	{
+	bool operator!=(const handle<Y>& other) const noexcept {
 		return uid() != other.uid();
 	}
 
 	template <typename Y>
-	bool operator==(const weak_handle<Y>& other) const noexcept
-	{
+	bool operator==(const weak_handle<Y>& other) const noexcept {
 		return uid() == other.uid();
 	}
 	template <typename Y>
-	bool operator!=(const weak_handle<Y>& other) const noexcept
-	{
+	bool operator!=(const weak_handle<Y>& other) const noexcept {
 		return uid() != other.uid();
 	}
 
@@ -184,18 +172,16 @@ class handle
 };
 
 template <typename... Ts>
-class handle<alias<Ts...>>
-{
+class handle<alias<Ts...>> {
 	friend class cache_t;
 
 	template <size_t... indices>
-	void
-	internal_set(psl::array<cache_t::description*> descriptions, psl::meta::file* meta, std::index_sequence<indices...>)
-	{
+	void internal_set(psl::array<cache_t::description*> descriptions,
+					  psl::meta::file* meta,
+					  std::index_sequence<indices...>) {
 		(
 		  [&descriptions, this, meta](psl::array<cache_t::description*>::iterator it) {
-			  if(it != std::end(descriptions))
-			  {
+			  if(it != std::end(descriptions)) {
 				  std::get<indices>(m_Resource) = handle<std::tuple_element_t<indices, std::tuple<Ts...>>> {
 					(*it)->resource, m_Cache, &(*it)->metaData, meta};
 			  }
@@ -206,9 +192,8 @@ class handle<alias<Ts...>>
 		  ...);
 	}
 
-	handle(psl::array<cache_t::description*> descriptions, cache_t* cache, psl::meta::file* meta) noexcept :
-		m_Cache(cache)
-	{
+	handle(psl::array<cache_t::description*> descriptions, cache_t* cache, psl::meta::file* meta) noexcept
+		: m_Cache(cache) {
 		internal_set(descriptions, meta, std::make_index_sequence<sizeof...(Ts)>());
 	}
 
@@ -224,83 +209,72 @@ class handle<alias<Ts...>>
 	handle& operator=(handle&& other) noexcept = default;
 
 	template <typename T>
-	handle& operator<<(const handle<T>& data)
-	{
+	handle& operator<<(const handle<T>& data) {
 		std::get<handle<T>>(m_Resource) = data;
 		return *this;
 	}
 
 	template <typename T>
-	void unset() noexcept
-	{
+	void unset() noexcept {
 		std::get<handle<T>>(m_Resource) = {};
 	}
 
 	template <typename T>
-	void set(const handle<T>& data)
-	{
+	void set(const handle<T>& data) {
 		std::get<handle<T>>(m_Resource) = data;
 	}
 
 	template <size_t I>
-	auto get() const noexcept
-	{
+	auto get() const noexcept {
 		return std::get<I>(m_Resource);
 	}
 
 	template <typename T>
-	auto get() const noexcept
-	{
+	auto get() const noexcept {
 		return std::get<handle<T>>(m_Resource);
 	}
 
 	template <typename T>
-	constexpr bool contains() const noexcept
-	{
+	constexpr bool contains() const noexcept {
 		return std::get<handle<T>>(m_Resource);
 	}
 
 	template <typename T>
-	T& value() noexcept
-	{
+	T& value() noexcept {
 		return std::get<handle<T>>(m_Resource).value();
 	}
 	template <typename T>
-	const T& value() const noexcept
-	{
+	const T& value() const noexcept {
 		return std::get<handle<T>>(m_Resource).value();
 	}
 
 	template <typename Fn, typename... Args, size_t... indices>
-	void visit_all_impl(std::index_sequence<indices...>, Fn&& fn, Args&&... args)
-	{
+	void visit_all_impl(std::index_sequence<indices...>, Fn&& fn, Args&&... args) {
 		(
 		  [&fn](auto& handle, auto&&... values) {
-			  if constexpr(std::is_invocable_v<Fn, size_t, decltype(handle.value()), decltype(values)...>)
-			  {
-				  if(handle) std::invoke(fn, indices, handle.value(), std::forward<decltype(values)>(values)...);
-			  }
-			  else
-			  {
-				  if(handle) std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
+			  if constexpr(std::is_invocable_v<Fn, size_t, decltype(handle.value()), decltype(values)...>) {
+				  if(handle)
+					  std::invoke(fn, indices, handle.value(), std::forward<decltype(values)>(values)...);
+			  } else {
+				  if(handle)
+					  std::invoke(fn, handle.value(), std::forward<decltype(values)>(values)...);
 			  }
 		  }(std::get<indices>(m_Resource), std::forward<Args>(args)...),
 		  ...);
 	}
 
 	template <typename Fn, typename... Args>
-	void visit_all(Fn&& fn, Args&&... args)
-	{
+	void visit_all(Fn&& fn, Args&&... args) {
 		visit_all_impl(std::make_index_sequence<sizeof...(Ts)>(), std::forward<Fn>(fn), std::forward<Args>(args)...);
 	}
 
 
 	template <typename... T1s, typename Fn, typename... Args>
-	void visit(Fn&& fn, Args&&... args)
-	{
+	void visit(Fn&& fn, Args&&... args) {
 		(
 		  [&fn](auto& handle, auto&&... args) {
-			  if(handle) std::invoke(fn, handle.value(), std::forward<decltype(args)>(args)...);
+			  if(handle)
+				  std::invoke(fn, handle.value(), std::forward<decltype(args)>(args)...);
 		  }(std::get<handle<T1s>>(m_Resource), std::forward<Args>(args)...),
 		  ...);
 	}
@@ -311,17 +285,16 @@ class handle<alias<Ts...>>
 };
 
 template <typename T>
-class weak_handle final
-{
+class weak_handle final {
 	friend class cache_t;
 
   public:
 	using value_type = std::remove_cv_t<std::remove_const_t<T>>;
 	using meta_type	 = typename resource_traits<value_type>::meta_type;
 
-	weak_handle(const handle<T>& handle) :
-		m_Resource(handle.m_Resource), m_Cache(handle.m_Cache), m_MetaData(handle.m_MetaData),
-		m_MetaFile(handle.m_MetaFile) {};
+	weak_handle(const handle<T>& handle)
+		: m_Resource(handle.m_Resource), m_Cache(handle.m_Cache), m_MetaData(handle.m_MetaData),
+		  m_MetaFile(handle.m_MetaFile) {};
 
 	weak_handle()								   = default;
 	weak_handle(const weak_handle&)				   = default;
@@ -330,24 +303,20 @@ class weak_handle final
 	weak_handle& operator=(weak_handle&&) noexcept = default;
 
 	template <typename Y>
-	bool operator==(const handle<Y>& other) const noexcept
-	{
+	bool operator==(const handle<Y>& other) const noexcept {
 		return uid() == other.uid();
 	}
 	template <typename Y>
-	bool operator!=(const handle<Y>& other) const noexcept
-	{
+	bool operator!=(const handle<Y>& other) const noexcept {
 		return uid() != other.uid();
 	}
 
 	template <typename Y>
-	bool operator==(const weak_handle<Y>& other) const noexcept
-	{
+	bool operator==(const weak_handle<Y>& other) const noexcept {
 		return uid() == other.uid();
 	}
 	template <typename Y>
-	bool operator!=(const weak_handle<Y>& other) const noexcept
-	{
+	bool operator!=(const weak_handle<Y>& other) const noexcept {
 		return uid() != other.uid();
 	}
 
@@ -371,8 +340,7 @@ class weak_handle final
 	operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
 	operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
 
-	handle<T> make_shared() const noexcept
-	{
+	handle<T> make_shared() const noexcept {
 		return handle<T>((void*)m_Resource, m_Cache, m_MetaData, (psl::meta::file*)m_MetaFile);
 	}
 

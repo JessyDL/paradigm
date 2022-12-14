@@ -7,12 +7,10 @@
 	#include <cstdint>
 #endif
 
-namespace psl
-{
+namespace psl {
 #if defined(PLATFORM_ANDROID) || defined(__clang__)
 /// \todo When Android implements source_location, remove
-class source_location
-{
+class source_location {
   public:
 	constexpr source_location() noexcept {}
 	source_location(const source_location&) {}

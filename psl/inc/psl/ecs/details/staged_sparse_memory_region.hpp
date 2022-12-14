@@ -16,8 +16,7 @@
 #include "psl/ecs/entity.hpp"
 
 
-namespace psl::ecs::details
-{
+namespace psl::ecs::details {
 /// \brief Constraint for what types can safely be stored by `staged_sparse_memory_region_t`
 template <typename T>
 concept IsValidForStagedSparseMemoryRange = IsComponentTrivialType<T>;
@@ -25,8 +24,7 @@ concept IsValidForStagedSparseMemoryRange = IsComponentTrivialType<T>;
 /// \brief A specialized container type to store components in a type agnostic manner
 /// \note due to the dense data being stored on its own page, alignment shouldn't be a concern.
 /// \warning This container is unsuitable for types that have non-trivial constructors, copy/move operations, and destructors. Check your type against `IsValidForStagedSparseMemoryRange` to verify.
-class staged_sparse_memory_region_t
-{
+class staged_sparse_memory_region_t {
 	using Key = psl::ecs::entity;
 	static constexpr Key chunks_size {4096};
 	static constexpr bool is_power_of_two {chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
@@ -57,15 +55,13 @@ class staged_sparse_memory_region_t
 	/// \tparam T component type this should be storing (only used for size)
 	/// \returns An instance of `staged_sparse_memory_region_t` set up to be used with the given type
 	template <IsValidForStagedSparseMemoryRange T>
-	static FORCEINLINE auto instantiate() -> staged_sparse_memory_region_t
-	{
+	static FORCEINLINE auto instantiate() -> staged_sparse_memory_region_t {
 		return staged_sparse_memory_region_t(sizeof(T));
 	}
 
 	/// \brief Revert the object back to a safe default stage
 	/// \note memory does not get deallocated.
-	FORCEINLINE void clear() noexcept
-	{
+	FORCEINLINE void clear() noexcept {
 		m_Reverse.clear();
 		m_Sparse.clear();
 		m_CachedChunkUserIndex = std::numeric_limits<key_type>::max();
@@ -77,19 +73,14 @@ class staged_sparse_memory_region_t
 	/// \param index Index to check
 	/// \param stage Stage that will be searched in
 	/// \return Boolean containing true if found
-	FORCEINLINE auto has(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> bool
-	{
-		if(index < capacity())
-		{
+	FORCEINLINE auto has(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> bool {
+		if(index < capacity()) {
 			key_type chunk_index;
-			if constexpr(is_power_of_two)
-			{
+			if constexpr(is_power_of_two) {
 				const auto element_index = index & (mod_val);
 				chunk_index				 = (index - element_index) / chunks_size;
 				index					 = element_index;
-			}
-			else
-			{
+			} else {
 				chunk_index = (index - (index % mod_val)) / chunks_size;
 				index		= index % mod_val;
 			}
@@ -103,8 +94,7 @@ class staged_sparse_memory_region_t
 	/// \param index Where the item would be
 	/// \returns The object as `T` at the given location
 	template <IsValidForStagedSparseMemoryRange T>
-	constexpr FORCEINLINE auto operator[](key_type index) -> T&
-	{
+	constexpr FORCEINLINE auto operator[](key_type index) -> T& {
 		psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 		return *(T*)(&this->operator[](index));
 	}
@@ -116,14 +106,12 @@ class staged_sparse_memory_region_t
 	/// \returns The object as `T` at the given location
 	/// \note Throws if the item was not found in the given stage
 	template <IsValidForStagedSparseMemoryRange T>
-	constexpr FORCEINLINE auto get(key_type index, stage_range_t stage = stage_range_t::ALL) const -> T&
-	{
+	constexpr FORCEINLINE auto get(key_type index, stage_range_t stage = stage_range_t::ALL) const -> T& {
 		psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
-		if(!has(index, stage))
-		{
+		if(!has(index, stage)) {
 			throw std::exception();
 		}
 
@@ -136,14 +124,12 @@ class staged_sparse_memory_region_t
 	/// \param value The value to set at the given index
 	/// \return Boolean value indicating if the index was successfuly set or not
 	template <IsValidForStagedSparseMemoryRange T>
-	constexpr FORCEINLINE auto set(key_type index, const T& value) -> bool
-	{
+	constexpr FORCEINLINE auto set(key_type index, const T& value) -> bool {
 		psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
-		if(!has(index, stage_range_t::ALIVE))
-		{
+		if(!has(index, stage_range_t::ALIVE)) {
 			return false;
 		}
 
@@ -156,8 +142,7 @@ class staged_sparse_memory_region_t
 	/// \param stage `stage_range_t` to limit what data is returned
 	/// \return A view of the underlying data as the requested type
 	template <IsValidForStagedSparseMemoryRange T>
-	FORCEINLINE auto dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<T>
-	{
+	FORCEINLINE auto dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<T> {
 		psl_assert(sizeof(T) == m_Size, "expected {} but instead got {}", m_Size, sizeof(T));
 		return psl::array_view<T> {std::next((T*)m_DenseData.data(), m_StageStart[stage_begin(stage)]),
 								   std::next((T*)m_DenseData.data(), m_StageStart[stage_end(stage)])};
@@ -166,8 +151,7 @@ class staged_sparse_memory_region_t
 	/// \brief Get a view of the indices for the given `stage_range_t`
 	/// \param stage `stage_range_t` to limit what indices are returned
 	/// \return A view of the indices
-	FORCEINLINE auto indices(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<key_type>
-	{
+	FORCEINLINE auto indices(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<key_type> {
 		return psl::array_view<key_type> {std::next(m_Reverse.data(), m_StageStart[stage_begin(stage)]),
 										  std::next(m_Reverse.data(), m_StageStart[stage_end(stage)])};
 	}
@@ -175,16 +159,14 @@ class staged_sparse_memory_region_t
 	/// \brief Get the data pointer for the given stage (where the data begins)
 	/// \param stage `stage_t` to retrieve
 	/// \return A pointer to the head of the dense data
-	FORCEINLINE auto data(stage_t stage = stage_t::SETTLED) noexcept -> pointer
-	{
+	FORCEINLINE auto data(stage_t stage = stage_t::SETTLED) noexcept -> pointer {
 		return static_cast<pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 	}
 
 	/// \brief Get the data pointer for the given stage (where the data begins)
 	/// \param stage `stage_t` to retrieve
 	/// \return A pointer to the head of the dense data
-	FORCEINLINE auto cdata(stage_t stage = stage_t::SETTLED) const noexcept -> const_pointer
-	{
+	FORCEINLINE auto cdata(stage_t stage = stage_t::SETTLED) const noexcept -> const_pointer {
 		return static_cast<const_pointer>(m_DenseData.data()) + (m_StageStart[to_underlying(stage)] * m_Size);
 	}
 
@@ -197,8 +179,7 @@ class staged_sparse_memory_region_t
 	/// \return Given memory address as a const ref
 	/// \note When assertions are enabled, this function can assert
 	template <IsValidForStagedSparseMemoryRange T>
-	FORCEINLINE auto at(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> T const&
-	{
+	FORCEINLINE auto at(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> T const& {
 		return *reinterpret_cast<T const*>(addressof(index, stage));
 	}
 
@@ -210,8 +191,7 @@ class staged_sparse_memory_region_t
 	/// \return Given memory address as a const ref
 	/// \note When assertions are enabled, this function can assert
 	template <IsValidForStagedSparseMemoryRange T>
-	FORCEINLINE auto at(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> T&
-	{
+	FORCEINLINE auto at(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> T& {
 		return *reinterpret_cast<T*>(addressof(index, stage));
 	}
 
@@ -221,8 +201,7 @@ class staged_sparse_memory_region_t
 	/// \return memory address
 	/// \note When assertions are enabled, this function can assert
 	FORCEINLINE auto addressof(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
-	  -> const_pointer
-	{
+	  -> const_pointer {
 		key_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
 		psl_assert(has(index, stage),
@@ -238,8 +217,7 @@ class staged_sparse_memory_region_t
 	/// \param stage Used to limit the stages we wish to look in
 	/// \return memory address
 	/// \note When assertions are enabled, this function can assert
-	FORCEINLINE auto addressof(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> pointer
-	{
+	FORCEINLINE auto addressof(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> pointer {
 		key_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
 		psl_assert(has(index, stage),
@@ -253,16 +231,13 @@ class staged_sparse_memory_region_t
 	/// \param first Begin of the range
 	/// \param last End of the range
 	/// \return Amount of elements erased
-	FORCEINLINE auto erase(key_type first, key_type last) noexcept -> size_t
-	{
+	FORCEINLINE auto erase(key_type first, key_type last) noexcept -> size_t {
 		size_t count {0};
-		for(auto i = first; i < last; ++i)
-		{
+		for(auto i = first; i < last; ++i) {
 			auto sub_index = i;
 			auto& chunk	   = chunk_for(sub_index);
 
-			if(has_impl(chunk, sub_index, stage_range_t::ALIVE))
-			{
+			if(has_impl(chunk, sub_index, stage_range_t::ALIVE)) {
 				erase_impl(chunk, sub_index, i);
 				++count;
 			}
@@ -281,8 +256,7 @@ class staged_sparse_memory_region_t
 	/// \param value The value to emplace
 	/// \note When assertions are enabled this method can assert when the tparam is not of the expected size
 	template <IsValidForStagedSparseMemoryRange T>
-	FORCEINLINE auto emplace(key_type index, T&& value) -> void
-	{
+	FORCEINLINE auto emplace(key_type index, T&& value) -> void {
 		this->template operator[]<T>(index) = std::forward<T>(value);
 	}
 
@@ -293,8 +267,7 @@ class staged_sparse_memory_region_t
 	/// \note When assertions are enabled this method can assert when the tparam is not of the expected size
 	/// \note The value is assigned regardless if the index already contained a value.
 	template <IsValidForStagedSparseMemoryRange T>
-	FORCEINLINE auto insert(key_type index, const T& value) -> void
-	{
+	FORCEINLINE auto insert(key_type index, const T& value) -> void {
 		this->template operator[]<T>(index) = value;
 	}
 
@@ -305,19 +278,18 @@ class staged_sparse_memory_region_t
 	/// \note When assertions are enabled this method can assert when the typename is not of the expected size
 	/// \note The value is assigned regardless if the index already contained a value.
 	template <typename ItF, typename ItL>
-	FORCEINLINE auto insert(key_type index, ItF&& begin, ItL&& end) -> void
-	{
+	FORCEINLINE auto insert(key_type index, ItF&& begin, ItL&& end) -> void {
 		using T = typename std::iterator_traits<ItF>::value_type;
 
 		key_type element_index {};
 		key_type chunk_index {};
 
 		auto get_chunk = [this](auto index, auto& element_index, auto& chunk_index) mutable -> chunk_type* {
-			if(index >= capacity()) resize(index + 1);
+			if(index >= capacity())
+				resize(index + 1);
 			chunk_info_for(index, element_index, chunk_index);
 			auto& chunk_opt = m_Sparse[chunk_index];
-			if(!chunk_opt)
-			{
+			if(!chunk_opt) {
 				chunk_opt = chunk_type {};
 				std::fill(
 				  std::begin(chunk_opt.value()), std::end(chunk_opt.value()), std::numeric_limits<key_type>::max());
@@ -327,10 +299,8 @@ class staged_sparse_memory_region_t
 
 		chunk_type* chunk = get_chunk(index, element_index, chunk_index);
 		auto it			  = begin;
-		while(it != end)
-		{
-			if(index % chunks_size == 0)
-			{
+		while(it != end) {
+			if(index % chunks_size == 0) {
 				chunk = get_chunk(index, element_index, chunk_index);
 			}
 			insert_impl(*chunk, element_index, index);
@@ -345,16 +315,14 @@ class staged_sparse_memory_region_t
 
 	/// \brief Valueless insert. Either creates the memory for the given index, or does nothing if it already exists
 	/// \param index Where to insert
-	FORCEINLINE auto insert(key_type index) -> void
-	{
+	FORCEINLINE auto insert(key_type index) -> void {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
 		insert_impl(chunk, sub_index, index);
 	}
 
-	FORCEINLINE auto get_or_insert(key_type index) -> pointer
-	{
+	FORCEINLINE auto get_or_insert(key_type index) -> pointer {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
@@ -363,10 +331,8 @@ class staged_sparse_memory_region_t
 	}
 
 	/// \brief Promotes all values to the next `stage_t`. The cycle is as follows: ADDED -> SETTLED -> REMOVED -> deleted.
-	FORCEINLINE auto promote() noexcept -> void
-	{
-		for(auto i = m_StageStart[to_underlying(stage_t::REMOVED)]; i < m_Reverse.size(); ++i)
-		{
+	FORCEINLINE auto promote() noexcept -> void {
+		for(auto i = m_StageStart[to_underlying(stage_t::REMOVED)]; i < m_Reverse.size(); ++i) {
 			auto offset	  = m_Reverse[i];
 			auto& chunk	  = chunk_for(offset);
 			chunk[offset] = std::numeric_limits<key_type>::max();
@@ -391,24 +357,19 @@ class staged_sparse_memory_region_t
 	/// } (index, value), and the predicate didn't reject the item on our end, then what was at 100 in this
 	/// container would be remapped to the index 200.
 	template <typename Fn>
-	FORCEINLINE auto remap(const psl::sparse_array<key_type>& mapping, Fn&& predicate) -> void
-	{
+	FORCEINLINE auto remap(const psl::sparse_array<key_type>& mapping, Fn&& predicate) -> void {
 		psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 		m_Sparse.clear();
 		m_CachedChunkUserIndex = std::numeric_limits<key_type>::max();
-		for(key_type i = 0; i < static_cast<key_type>(m_Reverse.size()); ++i)
-		{
-			if(predicate(m_Reverse[i]))
-			{
+		for(key_type i = 0; i < static_cast<key_type>(m_Reverse.size()); ++i) {
+			if(predicate(m_Reverse[i])) {
 				psl_assert(mapping.has(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
 				auto new_index = mapping.at(m_Reverse[i]);
 				auto offset	   = new_index;
 				auto& chunk	   = chunk_for(offset);
 				chunk[offset]  = i;
 				m_Reverse[i]   = new_index;
-			}
-			else
-			{
+			} else {
 				auto offset	  = m_Reverse[i];
 				auto& chunk	  = chunk_for(offset);
 				chunk[offset] = i;
@@ -416,8 +377,7 @@ class staged_sparse_memory_region_t
 		}
 	}
 
-	struct merge_result
-	{
+	struct merge_result {
 		bool success {false};
 		size_t added {0};
 		size_t total {0};
@@ -426,10 +386,8 @@ class staged_sparse_memory_region_t
 	/// \brief Merges 2 staged_sparse_memory_region_t together (into the current one) replacing pre-existing entries.
 	/// \param other the staged_sparse_memory_region_t to merge into this one
 	/// \returns object that contains { .success /* bool */, .total /* total items processed, inserted + replaced */, .added /* amount that was inserted into the current container */ }
-	FORCEINLINE auto merge(const staged_sparse_memory_region_t& other) noexcept -> merge_result
-	{
-		if(m_Size != other.m_Size || this == &other)
-		{
+	FORCEINLINE auto merge(const staged_sparse_memory_region_t& other) noexcept -> merge_result {
+		if(m_Size != other.m_Size || this == &other) {
 			psl_assert(m_Size == other.m_Size,
 					   "staged_sparse_memory_region_t should have the same component size, but instead got {} and {}",
 					   m_Size,
@@ -439,12 +397,10 @@ class staged_sparse_memory_region_t
 		}
 
 		size_t inserted {0};
-		for(key_type i = 0; i < static_cast<key_type>(other.m_Reverse.size()); ++i)
-		{
+		for(key_type i = 0; i < static_cast<key_type>(other.m_Reverse.size()); ++i) {
 			auto sub_index = other.m_Reverse[i];
 			auto& chunk	   = chunk_for(sub_index);
-			if(!has_impl(chunk, sub_index, stage_range_t::ALL))
-			{
+			if(!has_impl(chunk, sub_index, stage_range_t::ALL)) {
 				insert_impl(chunk, sub_index, other.m_Reverse[i]);
 				++inserted;
 			}
@@ -453,8 +409,7 @@ class staged_sparse_memory_region_t
 				   (std::byte*)other.m_DenseData.data() + (i * m_Size),
 				   m_Size);
 		}
-		for(key_type i = other.m_StageStart[2]; i < other.m_StageStart[3]; ++i)
-		{
+		for(key_type i = other.m_StageStart[2]; i < other.m_StageStart[3]; ++i) {
 			erase(other.m_Reverse[i]);
 		}
 		return merge_result {
@@ -462,30 +417,26 @@ class staged_sparse_memory_region_t
 	}
 
   private:
-	FORCEINLINE constexpr auto size(stage_range_t stage) const noexcept -> size_type
-	{
+	FORCEINLINE constexpr auto size(stage_range_t stage) const noexcept -> size_type {
 		return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 	}
 
 	FORCEINLINE constexpr auto empty() const noexcept -> bool { return std::empty(m_Reverse); };
 
-	FORCEINLINE auto resize(key_type size) -> void
-	{
+	FORCEINLINE auto resize(key_type size) -> void {
 		key_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			chunk_index = (size - (size & mod_val)) / chunks_size;
-		}
-		else
-		{
+		} else {
 			chunk_index = (size - (size % mod_val)) / chunks_size;
 		}
-		if(m_Sparse.size() <= chunk_index) m_Sparse.resize(chunk_index + 1);
+		if(m_Sparse.size() <= chunk_index)
+			m_Sparse.resize(chunk_index + 1);
 	}
 
-	FORCEINLINE auto reserve(size_t capacity) -> void
-	{
-		if(capacity <= m_Reverse.capacity()) return;
+	FORCEINLINE auto reserve(size_t capacity) -> void {
+		if(capacity <= m_Reverse.capacity())
+			return;
 
 		m_Reverse.reserve(capacity);
 		grow();
@@ -493,24 +444,20 @@ class staged_sparse_memory_region_t
 
 	FORCEINLINE constexpr auto capacity() const noexcept -> size_type { return std::size(m_Sparse) * chunks_size; }
 
-	FORCEINLINE auto operator[](key_type index) -> reference
-	{
+	FORCEINLINE auto operator[](key_type index) -> reference {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
-		if(!has(index))
-		{
+		if(!has(index)) {
 			insert_impl(chunk, sub_index, index);
 		}
 		return *((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
 	}
 
-	FORCEINLINE auto grow() -> void
-	{
+	FORCEINLINE auto grow() -> void {
 		auto capacity = static_cast<key_type>(m_Reverse.capacity() + 1);
 
-		if(m_DenseData.size() < capacity * m_Size)
-		{
+		if(m_DenseData.size() < capacity * m_Size) {
 			auto new_capacity = std::max<key_type>(capacity, static_cast<key_type>(m_DenseData.size() * 2 / m_Size));
 
 			// copy the data to a new container of the given size, and then assign that container to the member
@@ -527,10 +474,8 @@ class staged_sparse_memory_region_t
 				   "capacity was not in line with density data");
 	}
 
-	FORCEINLINE auto insert_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void
-	{
-		for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i)
-		{
+	FORCEINLINE auto insert_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void {
+		for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i) {
 			auto old_offset = m_Reverse[i];
 			auto& old_chunk = chunk_for(old_offset);
 			old_chunk[old_offset] += 1;
@@ -544,7 +489,8 @@ class staged_sparse_memory_region_t
 		chunk[offset] = static_cast<key_type>(m_StageStart[2]);
 		auto orig_cap = m_Reverse.capacity();
 		m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), user_index);
-		if(orig_cap != m_Reverse.capacity()) grow();
+		if(orig_cap != m_Reverse.capacity())
+			grow();
 		psl_assert((m_Reverse.capacity() + 1) * m_Size <= m_DenseData.size(),
 				   "{} <= {}",
 				   (m_Reverse.capacity() + 1) * m_Size,
@@ -555,10 +501,8 @@ class staged_sparse_memory_region_t
 	}
 
 	constexpr FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept
-	  -> bool
-	{
-		if(m_Sparse[chunk_index])
-		{
+	  -> bool {
+		if(m_Sparse[chunk_index]) {
 			const auto& chunk = get_chunk_from_index(chunk_index);
 			return chunk[offset] != std::numeric_limits<key_type>::max() &&
 				   chunk[offset] >= m_StageStart[stage_begin(stage)] && chunk[offset] < m_StageStart[stage_end(stage)];
@@ -566,27 +510,26 @@ class staged_sparse_memory_region_t
 		return false;
 	}
 
-	constexpr FORCEINLINE auto has_impl(chunk_type& chunk, key_type offset, stage_range_t stage) const noexcept -> bool
-	{
+	constexpr FORCEINLINE auto has_impl(chunk_type& chunk, key_type offset, stage_range_t stage) const noexcept
+	  -> bool {
 		return chunk[offset] != std::numeric_limits<key_type>::max() &&
 			   chunk[offset] >= m_StageStart[stage_begin(stage)] && chunk[offset] < m_StageStart[stage_end(stage)];
 	}
 
-	FORCEINLINE auto erase_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void
-	{
+	FORCEINLINE auto erase_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void {
 		auto reverse_index = chunk[offset];
 
 		// figure out which stage it belonged to
 		auto what_stage = (reverse_index < m_StageStart[1]) ? 0 : (reverse_index < m_StageStart[2]) ? 1 : 2;
-		if(what_stage == 2) return;
+		if(what_stage == 2)
+			return;
 		auto scratch_memory = malloc(m_Size);
-		if(!scratch_memory) throw std::exception();
+		if(!scratch_memory)
+			throw std::exception();
 
 		// we swap it out
-		for(auto i = what_stage; i < 2; ++i)
-		{
-			if(reverse_index != m_StageStart[i + 1] - 1)
-			{
+		for(auto i = what_stage; i < 2; ++i) {
+			if(reverse_index != m_StageStart[i + 1] - 1) {
 				std::iter_swap(std::next(std::begin(m_Reverse), reverse_index),
 							   std::next(std::begin(m_Reverse), m_StageStart[i + 1] - 1));
 
@@ -614,50 +557,40 @@ class staged_sparse_memory_region_t
 		psl_assert(chunk[offset] == reverse_index, "expected {} == {}", chunk[offset], reverse_index);
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type&
-	{
+	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type& {
 		return m_Sparse[index].value();
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type&
-	{
+	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& {
 		return m_Sparse[index].value();
 	}
 
-	constexpr FORCEINLINE auto chunk_for(key_type& index) noexcept -> chunk_type&
-	{
-		if(index >= capacity()) resize(index + 1);
+	constexpr FORCEINLINE auto chunk_for(key_type& index) noexcept -> chunk_type& {
+		if(index >= capacity())
+			resize(index + 1);
 
-		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
-		{
-			if constexpr(is_power_of_two)
-			{
+		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size) {
+			if constexpr(is_power_of_two) {
 				index = index & (mod_val);
-			}
-			else
-			{
+			} else {
 				index = index % mod_val;
 			}
 			return *m_CachedChunk;
 		}
 		key_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			const auto element_index = index & (mod_val);
 			chunk_index				 = (index - element_index) / chunks_size;
 			m_CachedChunkUserIndex	 = index - element_index;
 			index					 = element_index;
-		}
-		else
-		{
+		} else {
 			const auto element_index = index % mod_val;
 			chunk_index				 = (index - element_index) / chunks_size;
 			m_CachedChunkUserIndex	 = index - element_index;
 			index					 = element_index;
 		}
 		std::optional<chunk_type>& chunk = m_Sparse[chunk_index];
-		if(!chunk)
-		{
+		if(!chunk) {
 			chunk = chunk_type {};
 			// chunk.resize(chunks_size);
 			std::fill(std::begin(chunk.value()), std::end(chunk.value()), std::numeric_limits<key_type>::max());
@@ -666,31 +599,23 @@ class staged_sparse_memory_region_t
 		return chunk.value();
 	}
 
-	constexpr FORCEINLINE auto chunk_for(key_type& index) const noexcept -> chunk_type&
-	{
+	constexpr FORCEINLINE auto chunk_for(key_type& index) const noexcept -> chunk_type& {
 		psl_assert(index < capacity(), "expected index to be lower than the capacity");
-		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
-		{
-			if constexpr(is_power_of_two)
-			{
+		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size) {
+			if constexpr(is_power_of_two) {
 				index = index & (mod_val);
-			}
-			else
-			{
+			} else {
 				index = index % mod_val;
 			}
 			return *m_CachedChunk;
 		}
 		key_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			const auto element_index = index & (mod_val);
 			chunk_index				 = (index - element_index) / chunks_size;
 			m_CachedChunkUserIndex	 = index - element_index;
 			index					 = element_index;
-		}
-		else
-		{
+		} else {
 			const auto element_index = index % mod_val;
 			chunk_index				 = (index - element_index) / chunks_size;
 			m_CachedChunkUserIndex	 = index - element_index;
@@ -702,36 +627,30 @@ class staged_sparse_memory_region_t
 		return *m_CachedChunk;
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_user_index(key_type index) const noexcept -> const chunk_type&
-	{
-		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size) return *m_CachedChunk;
+	constexpr FORCEINLINE auto get_chunk_from_user_index(key_type index) const noexcept -> const chunk_type& {
+		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+			return *m_CachedChunk;
 		m_CachedChunkUserIndex = index;
 		key_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			const auto element_index = index & (mod_val);
 			chunk_index				 = (index - element_index) / chunks_size;
-		}
-		else
-		{
+		} else {
 			chunk_index = (index - (index % mod_val)) / chunks_size;
 		}
 		m_CachedChunk = const_cast<chunk_type*>(&m_Sparse[chunk_index].value());
 		return *m_CachedChunk;
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_user_index(key_type index) noexcept -> chunk_type&
-	{
-		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size) return *m_CachedChunk;
+	constexpr FORCEINLINE auto get_chunk_from_user_index(key_type index) noexcept -> chunk_type& {
+		if(index >= m_CachedChunkUserIndex && index < m_CachedChunkUserIndex + chunks_size)
+			return *m_CachedChunk;
 		m_CachedChunkUserIndex = index;
 		key_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			const auto element_index = index & (mod_val);
 			chunk_index				 = (index - element_index) / chunks_size;
-		}
-		else
-		{
+		} else {
 			chunk_index = (index - (index % mod_val)) / chunks_size;
 		}
 		m_CachedChunk = &m_Sparse[chunk_index].value();
@@ -739,15 +658,11 @@ class staged_sparse_memory_region_t
 	}
 
 	constexpr FORCEINLINE auto
-	chunk_info_for(key_type index, key_type& element_index, key_type& chunk_index) const noexcept -> void
-	{
-		if constexpr(is_power_of_two)
-		{
+	chunk_info_for(key_type index, key_type& element_index, key_type& chunk_index) const noexcept -> void {
+		if constexpr(is_power_of_two) {
 			element_index = index & (mod_val);
 			chunk_index	  = (index - element_index) / chunks_size;
-		}
-		else
-		{
+		} else {
 			chunk_index	  = (index - (index % mod_val)) / chunks_size;
 			element_index = index % mod_val;
 		}

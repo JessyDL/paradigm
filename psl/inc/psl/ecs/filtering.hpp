@@ -7,14 +7,11 @@
 #include "psl/ustring.hpp"
 #include "selectors.hpp"
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 class state_t;
-namespace details
-{
+namespace details {
 	// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
-	class transform_group
-	{
+	class transform_group {
 		using ordering_pred_t	 = void(psl::array<entity>::iterator,
 										psl::array<entity>::iterator,
 										const psl::ecs::state_t&);
@@ -22,8 +19,7 @@ namespace details
 																psl::array<entity>::iterator,
 																const psl::ecs::state_t&);
 		template <typename T>
-		constexpr void selector(psl::type_pack_t<T>) noexcept
-		{}
+		constexpr void selector(psl::type_pack_t<T>) noexcept {}
 
 		// implementation lives in `psl/ecs/order_by.hpp`
 		template <typename Pred, typename T>
@@ -35,8 +31,7 @@ namespace details
 
 	  public:
 		template <typename... Ts>
-		transform_group(psl::type_pack_t<Ts...>)
-		{
+		transform_group(psl::type_pack_t<Ts...>) {
 			(void(selector(psl::type_pack_t<Ts>())), ...);
 		};
 		~transform_group() = default;
@@ -48,11 +43,11 @@ namespace details
 
 		psl::array<entity>::iterator transform(psl::array<entity>::iterator begin,
 											   psl::array<entity>::iterator end,
-											   const state_t& state) const noexcept
-		{
+											   const state_t& state) const noexcept {
 			for(const auto& condition : on_condition) end = condition(begin, end, state);
 
-			if(order_by) order_by(begin, end, state);
+			if(order_by)
+				order_by(begin, end, state);
 			return end;
 		}
 
@@ -68,60 +63,50 @@ namespace details
 	};
 
 
-	class filter_group
-	{
+	class filter_group {
 		template <typename T>
-		constexpr void selector(psl::type_pack_t<T>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<T>) noexcept {
 			if constexpr(!std::is_same_v<entity, T> && !std::is_same_v<psl::ecs::partial, T> &&
 						 !std::is_same_v<psl::ecs::full, T>)
 				filters.emplace_back(details::component_key_t::generate<T>());
 		}
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<filter<Ts...>>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<filter<Ts...>>) noexcept {
 			(selector(psl::type_pack_t<Ts>()), ...);
 		}
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_combine<Ts...>>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<on_combine<Ts...>>) noexcept {
 			(void(on_combine.emplace_back(details::component_key_t::generate<Ts>())), ...);
 		}
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_break<Ts...>>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<on_break<Ts...>>) noexcept {
 			(void(on_break.emplace_back(details::component_key_t::generate<Ts>())), ...);
 		}
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<except<Ts...>>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<except<Ts...>>) noexcept {
 			(void(except.emplace_back(details::component_key_t::generate<Ts>())), ...);
 		}
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_add<Ts...>>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<on_add<Ts...>>) noexcept {
 			(void(on_add.emplace_back(details::component_key_t::generate<Ts>())), ...);
 		}
 
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_remove<Ts...>>) noexcept
-		{
+		constexpr void selector(psl::type_pack_t<on_remove<Ts...>>) noexcept {
 			(void(on_remove.emplace_back(details::component_key_t::generate<Ts>())), ...);
 		}
 
 		template <typename Pred, typename... Ts>
-		constexpr void selector(psl::type_pack_t<order_by<Pred, Ts...>>) noexcept
-		{}
+		constexpr void selector(psl::type_pack_t<order_by<Pred, Ts...>>) noexcept {}
 
 		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>) noexcept
-		{}
+		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>) noexcept {}
 		friend class ::psl::ecs::state_t;
 		filter_group() = default;
 		filter_group(psl::array<component_key_t> filters_arr,
@@ -129,11 +114,9 @@ namespace details
 					 psl::array<component_key_t> on_remove_arr,
 					 psl::array<component_key_t> except_arr,
 					 psl::array<component_key_t> on_combine_arr,
-					 psl::array<component_key_t> on_break_arr) :
-			filters(filters_arr),
-			on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr), on_combine(on_combine_arr),
-			on_break(on_break_arr)
-		{
+					 psl::array<component_key_t> on_break_arr)
+			: filters(filters_arr), on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr),
+			  on_combine(on_combine_arr), on_break(on_break_arr) {
 			std::sort(std::begin(filters), std::end(filters));
 			std::sort(std::begin(on_add), std::end(on_add));
 			std::sort(std::begin(on_remove), std::end(on_remove));
@@ -173,8 +156,7 @@ namespace details
 
 	  public:
 		template <typename... Ts>
-		filter_group(psl::type_pack_t<Ts...>)
-		{
+		filter_group(psl::type_pack_t<Ts...>) {
 			(void(selector(psl::type_pack_t<Ts>())), ...);
 			std::sort(std::begin(filters), std::end(filters));
 			std::sort(std::begin(on_add), std::end(on_add));
@@ -216,8 +198,7 @@ namespace details
 
 
 		// Is this fully containable in the other
-		bool is_subset_of(const filter_group& other) const noexcept
-		{
+		bool is_subset_of(const filter_group& other) const noexcept {
 			return std::includes(
 					 std::begin(other.filters), std::end(other.filters), std::begin(filters), std::end(filters)) &&
 				   std::includes(
@@ -242,13 +223,11 @@ namespace details
 		// neither superset or subset, but partial match
 		bool is_divergent(const filter_group& other) const noexcept { return false; }
 
-		bool clear_every_frame() const noexcept
-		{
+		bool clear_every_frame() const noexcept {
 			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0;
 		}
 
-		bool operator==(const filter_group& other) const noexcept
-		{
+		bool operator==(const filter_group& other) const noexcept {
 			return std::equal(
 					 std::begin(filters), std::end(filters), std::begin(other.filters), std::end(other.filters)) &&
 				   std::equal(std::begin(on_add), std::end(on_add), std::begin(other.on_add), std::end(other.on_add)) &&
@@ -280,8 +259,7 @@ namespace details
 	};
 
 	template <typename... Ts>
-	auto make_filter_group(psl::type_pack_t<Ts...>) -> psl::array<filter_group>
-	{
+	auto make_filter_group(psl::type_pack_t<Ts...>) -> psl::array<filter_group> {
 		auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> filter_group {
 			return filter_group {psl::type_pack_t<Ys...> {}};
 		};
@@ -289,8 +267,7 @@ namespace details
 	}
 
 	template <typename... Ts>
-	auto make_transform_group(psl::type_pack_t<Ts...>) -> psl::array<transform_group>
-	{
+	auto make_transform_group(psl::type_pack_t<Ts...>) -> psl::array<transform_group> {
 		auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> transform_group {
 			return transform_group {psl::type_pack_t<Ys...> {}};
 		};

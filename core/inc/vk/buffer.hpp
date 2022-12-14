@@ -6,18 +6,15 @@
 #include <optional>
 
 
-namespace core::data
-{
+namespace core::data {
 class buffer_t;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief maps a memory region and interfaces with the driver for read/writes
 ///
 /// buffers are used to map regions of memory that the driver should know about, either
@@ -25,8 +22,7 @@ namespace core::ivk
 /// or because they are used for synchronising information between CPU/GPU (compute results).
 /// This class will handle most of the needs for synchonising, and how-to upload the data to the
 /// relevant locations as well as managing the internals.
-class buffer_t
-{
+class buffer_t {
   public:
 	/// \brief constructs a buffer from the given buffer_data, as well as optionally sets a staging resource.
 	/// \param[in] buffer_data the data source to bind to this buffer. (see note for more info)

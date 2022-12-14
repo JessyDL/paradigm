@@ -3,25 +3,21 @@
 #include "vk/ivk.hpp"
 #include <vector>
 
-namespace core::data
-{
+namespace core::data {
 class sampler_t;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief sampler object for texture filtering and lookups
 ///
 /// In Vulkan textures are accessed by samplers, this separates all the sampling information from the texture data.
 /// this means you could have multiple sampler objects for the same texture with different settings similar to the
 /// samplers available with OpenGL 3.3
-class sampler_t final
-{
+class sampler_t final {
   public:
 	sampler_t(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,

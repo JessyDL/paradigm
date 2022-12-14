@@ -12,22 +12,17 @@ using namespace core;
 shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
-			   core::resource::handle<core::ivk::context> context) :
-	m_Context(context),
-	m_Cache(cache), m_UID(metaData.uid),
-	m_Meta(cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr))
-{
-	if(m_Meta == nullptr)
-	{
+			   core::resource::handle<core::ivk::context> context)
+	: m_Context(context), m_Cache(cache), m_UID(metaData.uid),
+	  m_Meta(cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr)) {
+	if(m_Meta == nullptr) {
 		core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", m_UID.to_string());
 		return;
 	}
 	core::meta::shader& meta = *m_Meta;
-	if(cache.library().is_physical_file(meta.ID()))
-	{
+	if(cache.library().is_physical_file(meta.ID())) {
 		auto result = cache.library().load(meta.ID());
-		if(!result)
-		{
+		if(!result) {
 			core::ivk::log->error(
 			  "could not load ivk::shader [{0}] from resource UID [{1}]", m_UID.to_string(), meta.ID().to_string());
 		}
@@ -48,8 +43,7 @@ shader::shader(core::resource::cache_t& cache,
 
 		spec.name  = "main";
 		pipe.pName = spec.name.data();
-		if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module)))
-		{
+		if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
 			m_Specializations.erase(std::end(m_Specializations) - 1u);
 		}
 	}
@@ -58,16 +52,12 @@ shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context,
-			   const std::vector<specialization> specializations) :
-	m_Context(context),
-	m_Cache(cache), m_UID(metaData.uid)
-{
-	if(cache.library().is_physical_file(m_UID))
-	{
+			   const std::vector<specialization> specializations)
+	: m_Context(context), m_Cache(cache), m_UID(metaData.uid) {
+	if(cache.library().is_physical_file(m_UID)) {
 		core::meta::shader& meta = *metaFile;
 		auto result				 = cache.library().load(m_UID);
-		if(!result)
-		{
+		if(!result) {
 			core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", m_UID.to_string());
 		}
 
@@ -77,8 +67,7 @@ shader::shader(core::resource::cache_t& cache,
 		moduleCreateInfo.pCode	  = (uint32_t*)result.value().data();
 		moduleCreateInfo.flags	  = vk::ShaderModuleCreateFlagBits();
 
-		for(const auto& spec_temp : specializations)
-		{
+		for(const auto& spec_temp : specializations) {
 			auto& [spec, pipe] =
 			  m_Specializations.emplace_back(std::make_pair(spec_temp, vk::PipelineShaderStageCreateInfo {}));
 
@@ -89,36 +78,34 @@ shader::shader(core::resource::cache_t& cache,
 								 meta.ID().to_string(),
 								 vk::to_string(pipe.stage));
 
-			if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module)))
-			{
+			if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
 				m_Specializations.erase(std::end(m_Specializations) - 1u);
 			}
 		}
 	}
 
-	for(auto& pair : m_Specializations)
-	{
+	for(auto& pair : m_Specializations) {
 		pair.second.pName = pair.first.name.data();
 	}
 }
 
-shader::~shader()
-{
+shader::~shader() {
 	for(auto& [spec, pipeline] : m_Specializations) m_Context->device().destroyShaderModule(pipeline.module, nullptr);
 }
 
 
-std::optional<vk::PipelineShaderStageCreateInfo> shader::pipeline(const specialization& description)
-{
+std::optional<vk::PipelineShaderStageCreateInfo> shader::pipeline(const specialization& description) {
 	auto it = std::find_if(std::begin(m_Specializations),
 						   std::end(m_Specializations),
 						   [&description](const std::pair<specialization, vk::PipelineShaderStageCreateInfo>& pair) {
 							   return pair.first == description;
 						   });
 
-	if(it != std::end(m_Specializations)) return it->second;
+	if(it != std::end(m_Specializations))
+		return it->second;
 
-	if(!m_Cache.library().is_physical_file(m_UID)) return {};
+	if(!m_Cache.library().is_physical_file(m_UID))
+		return {};
 
 	auto result = m_Cache.library().load(m_UID);
 
@@ -134,17 +121,17 @@ std::optional<vk::PipelineShaderStageCreateInfo> shader::pipeline(const speciali
 	pipe.pName = description.name.data();
 
 
-	for(auto& pair : m_Specializations)
-	{
+	for(auto& pair : m_Specializations) {
 		pair.second.pName = pair.first.name.data();
 	}
 
-	if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module)))
-	{
+	if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
 		m_Specializations.erase(std::end(m_Specializations) - 1u);
 		return {};
 	}
 
 	return pipe;
 }
-core::meta::shader* shader::meta() const noexcept { return m_Meta; }
+core::meta::shader* shader::meta() const noexcept {
+	return m_Meta;
+}

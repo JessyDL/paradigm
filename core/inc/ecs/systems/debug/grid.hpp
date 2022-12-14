@@ -3,32 +3,26 @@
 #include "psl/ecs/state.hpp"
 #include "resource/resource.hpp"
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 class state_t;
 }
 
-namespace core::gfx
-{
+namespace core::gfx {
 class geometry_t;
 class bundle;
 class context;
 class pipeline_cache;
 }	 // namespace core::gfx
 
-namespace core::ecs::components
-{
+namespace core::ecs::components {
 struct transform;
 struct camera;
 }	 // namespace core::ecs::components
 
-namespace core::ecs::systems::debug
-{
+namespace core::ecs::systems::debug {
 /// \brief renders a grid-like object of given size.
-class grid
-{
-	struct tag
-	{};
+class grid {
+	struct tag {};
 
   public:
 	grid(psl::ecs::state_t& state,

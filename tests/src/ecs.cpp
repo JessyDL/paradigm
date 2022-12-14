@@ -13,44 +13,35 @@ using namespace tests::ecs;
 void registration_test(psl::ecs::info_t& info) {}
 
 
-namespace tests::ecs
-{
-void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack<partial, const float, int> pack)
-{
-	for(auto [fl, i] : pack)
-	{
+namespace tests::ecs {
+void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack<partial, const float, int> pack) {
+	for(auto [fl, i] : pack) {
 		i += 5;
 	}
 };
 
-struct object_test
-{
+struct object_test {
 	void empty_system(psl::ecs::info_t& info) {};
 };
 }	 // namespace tests::ecs
 
 template <typename T>
-auto to_num_string(T i)
-{
+auto to_num_string(T i) {
 	static_assert(std::is_arithmetic_v<T>);
 	auto conversion = std::to_string(i);
 	auto it			= std::end(conversion);
-	while(std::distance(std::begin(conversion), it) > 3)
-	{
+	while(std::distance(std::begin(conversion), it) > 3) {
 		it = std::prev(it, 3);
 		conversion.insert(it, '.');
 	}
 	return conversion;
 }
 
-struct foo_renamed
-{};
+struct foo_renamed {};
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 template <>
-struct component_traits<foo_renamed>
-{
+struct component_traits<foo_renamed> {
 	static constexpr bool serializable {true};
 	static constexpr auto name = "SOMEOVERRIDE";
 };
@@ -62,17 +53,14 @@ struct component_traits<foo_renamed>
 
 using namespace litmus;
 
-namespace
-{
-struct position
-{
+namespace {
+struct position {
 	size_t x;
 	size_t y;
 };
 
 template <typename T>
-struct complex_wrapper
-{
+struct complex_wrapper {
 	complex_wrapper() = default;
 	complex_wrapper(T val) : val(val) {}
 	complex_wrapper(auto val) : val(static_cast<T>(val)) {}
@@ -80,10 +68,8 @@ struct complex_wrapper
 	operator const T&() const noexcept { return val; }
 	operator T&() noexcept { return val; }
 
-	complex_wrapper& operator=(const T& rhs)
-	{
-		if(this != &rhs)
-		{
+	complex_wrapper& operator=(const T& rhs) {
+		if(this != &rhs) {
 			val = rhs;
 		}
 		return *this;
@@ -91,18 +77,15 @@ struct complex_wrapper
 	T val {};
 };
 
-struct complex_wrapper_float : public complex_wrapper<float>
-{
+struct complex_wrapper_float : public complex_wrapper<float> {
 	using complex_wrapper<float>::complex_wrapper;
 };
 
-struct complex_wrapper_int : public complex_wrapper<int>
-{
+struct complex_wrapper_int : public complex_wrapper<int> {
 	using complex_wrapper<int>::complex_wrapper;
 };
 
-struct flag_type
-{};
+struct flag_type {};
 
 // components do not support templated typenames
 using float_tpack = tpack<float, complex_wrapper_float>;
@@ -133,26 +116,20 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 				std::shuffle(std::begin(entities), std::end(entities), g);
 
 				auto count = entities.size() / 10;
-				for(entity c = 0; c < 10; ++c)
-				{
-					for(auto i = 0; i < count; ++i)
-					{
+				for(entity c = 0; c < 10; ++c) {
+					for(auto i = 0; i < count; ++i) {
 						auto index = c * 10 + i;
 						cInfo.destroy(entities[index]);
 					}
 
-					for(entity i = 0; i < static_cast<entity>(entities.size()); ++i)
-					{
-						if(i < (c + 1) * 10)
-						{
+					for(entity i = 0; i < static_cast<entity>(entities.size()); ++i) {
+						if(i < (c + 1) * 10) {
 							auto index = entities[i];
 							require(!cInfo.has_component(index));
 							require(cInfo.has_removed(index));
 							require(cInfo.entity_data().template at<type>(index, details::stage_range_t::REMOVED)) ==
 							  type(index);
-						}
-						else
-						{
+						} else {
 							auto index = entities[i];
 							require(cInfo.has_component(index));
 							require(cInfo.entity_data().template at<type>(index)) == type(index);
@@ -321,11 +298,11 @@ auto t2 =
 			  auto last_x = std::numeric_limits<decltype(position::x)>::min();
 			  auto last_y = std::numeric_limits<decltype(position::y)>::min();
 
-			  for(auto [position] : pack)
-			  {
+			  for(auto [position] : pack) {
 				  expect(last_x) <= position.x;
 
-				  if(last_x == position.x) expect(last_y) <= position.y;
+				  if(last_x == position.x)
+					  expect(last_y) <= position.y;
 
 				  last_x = position.x;
 				  last_y = position.y;
@@ -355,8 +332,7 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 	count = {0};
 	size_t check {0};
 	size_t check_view {0};
-	for(const auto& i : state.view<position>())
-	{
+	for(const auto& i : state.view<position>()) {
 		++count;
 		check += count;
 		check_view += i.x;
@@ -385,8 +361,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 			info.command_buffer.destroy(pack.template get<entity>());
 		});
 		auto token = state.declare([size_1 = e_list1.size()](psl::ecs::info_t& info, pack<entity, const type> pack1) {
-			for(auto [e, i] : pack1)
-			{
+			for(auto [e, i] : pack1) {
 				require(e) == i;
 			}
 			require(pack1.size()) == size_1;
@@ -400,8 +375,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		// followed by deleting them all.
 		state.tick(std::chrono::duration<float>(0.1f));
 		{
-			for(auto e : e_list1)
-			{
+			for(auto e : e_list1) {
 				auto val = state.template get<type>(e);
 				require(e) == val;
 			}
@@ -422,15 +396,13 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		  [size_1 = e_list1.size(), size_2 = e_list2.size()](psl::ecs::info_t& info,
 															 pack<entity, const type, on_remove<type>> pack1,
 															 pack<entity, const type, filter<type>> pack2) {
-			  for(auto [e, i] : pack1)
-			  {
+			  for(auto [e, i] : pack1) {
 				  require(e) == i;
 			  }
 			  require(pack1.template get<entity>()[0]) == 0;
 			  // if this shows 0, then the previous deleted components of tick #1 are still present
 			  require(pack2.template get<entity>()[0]) == 10;
-			  for(auto [e, i] : pack2)
-			  {
+			  for(auto [e, i] : pack2) {
 				  require(e) == i;
 			  }
 			  require(pack1.size()) == size_1;
@@ -486,11 +458,9 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
 			require(pack.size()) == expected;
 			psl::array<entity> entities;
-			for(auto [e, i] : pack)
-			{
+			for(auto [e, i] : pack) {
 				require(type(e)) == i;
-				if(std::rand() % 2 == 0)
-				{
+				if(std::rand() % 2 == 0) {
 					entities.emplace_back(e);
 					--expected;
 				}
@@ -512,14 +482,12 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 
 		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
 			require(pack.size()) == expected;
-			for(auto [e, i] : pack)
-			{
+			for(auto [e, i] : pack) {
 				require(type(e)) == i;
 			}
 		});
 
-		while(expected > 0)
-		{
+		while(expected > 0) {
 			state.tick(std::chrono::duration<float>(0.1f));
 
 			auto mid = std::partition(std::begin(e_list2), std::end(e_list2), [](auto e) { return std::rand() % 2; });
@@ -541,8 +509,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
 			require(pack.size()) == expected;
 
-			for(auto [e, i] : pack)
-			{
+			for(auto [e, i] : pack) {
 				require(type(e)) == i;
 			}
 			auto new_count				= std::rand() % 20;
@@ -570,14 +537,12 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
 			require(pack.size()) == expected;
 
-			for(auto [e, i] : pack)
-			{
+			for(auto [e, i] : pack) {
 				require(type(e)) == i;
 			}
 		});
 
-		while(expected <= 1'000)
-		{
+		while(expected <= 1'000) {
 			state.tick(std::chrono::duration<float>(0.1f));
 
 			auto new_count				= std::rand() % 20;
@@ -634,7 +599,8 @@ auto t7 =
 
 		  size_t count = 0;
 		  state.declare([&](info_t& info, pack<entity, type> pack) {
-			  if(pack.empty()) return;
+			  if(pack.empty())
+				  return;
 			  count += pack.size();
 			  info.command_buffer.add_components<int>(pack.template get<entity>(), {0});
 		  });
@@ -722,8 +688,7 @@ auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 	auto components_a = state_a.get_component<int>(entities);
 	auto components_b = state_b.get_component<int>(entities);
 
-	for(size_t i = 0; i < components_a.size(); ++i)
-	{
+	for(size_t i = 0; i < components_a.size(); ++i) {
 		require(components_a[i]) == components_b[i];
 		require(entities[i]) == components_a[i];
 	}
@@ -734,8 +699,7 @@ auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 	require(container_b.to_string()) == container_a.to_string();
 };
 
-struct foo
-{
+struct foo {
 	static constexpr auto prototype() -> foo { return foo {10}; }
 	int value;
 };

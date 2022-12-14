@@ -5,12 +5,10 @@
 #include <algorithm>
 #include <cstring>
 
-namespace memory
-{
+namespace memory {
 /// \brief container type that is fast to iterate, but has non-continuous interface
 template <typename T, typename Key = size_t, Key chunks_size = 4096>
-class sparse_array
-{
+class sparse_array {
 	using type_t	 = T;
 	using index_type = Key;
 
@@ -18,8 +16,7 @@ class sparse_array
 	static constexpr Key mod_val {(is_power_of_two) ? chunks_size - 1 : chunks_size};
 
   public:
-	class iterator
-	{
+	class iterator {
 		friend class sparse_array<T, Key, chunks_size>;
 		iterator(T* value, Key* index) : value(value), dense_index(index) {};
 
@@ -41,31 +38,27 @@ class sparse_array
 		  delete;	 // disables mutating the container, todo we might support this but not right now.
 
 
-		iterator& operator++() noexcept
-		{
+		iterator& operator++() noexcept {
 			++value;
 			++dense_index;
 
 			return *this;
 		}
 
-		iterator operator++(int) noexcept
-		{
+		iterator operator++(int) noexcept {
 			iterator orig = *this;
 			++(*this);
 			return orig;
 		}
 
-		iterator& operator--() noexcept
-		{
+		iterator& operator--() noexcept {
 			--value;
 			--dense_index;
 
 			return *this;
 		}
 
-		iterator operator--(int) noexcept
-		{
+		iterator operator--(int) noexcept {
 			iterator orig = *this;
 			--(*this);
 			return orig;
@@ -95,25 +88,21 @@ class sparse_array
 
 	sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) { reserve(1024); };
 	~sparse_array() = default;
-	sparse_array(const sparse_array& other) noexcept :
-		m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
-	sparse_array(sparse_array&& other) noexcept :
-		m_DenseData(std::move(other.m_DenseData)), m_Reverse(std::move(other.m_Reverse)),
-		m_Sparse(std::move(other.m_Sparse)) {};
-	sparse_array& operator=(const sparse_array& other) noexcept
-	{
-		if(this != &other)
-		{
+	sparse_array(const sparse_array& other) noexcept
+		: m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
+	sparse_array(sparse_array&& other) noexcept
+		: m_DenseData(std::move(other.m_DenseData)), m_Reverse(std::move(other.m_Reverse)),
+		  m_Sparse(std::move(other.m_Sparse)) {};
+	sparse_array& operator=(const sparse_array& other) noexcept {
+		if(this != &other) {
 			m_DenseData = other.m_DenseData;
 			m_Reverse	= other.m_Reverse;
 			m_Sparse	= other.m_Sparse;
 		}
 		return *this;
 	}
-	sparse_array& operator=(sparse_array&& other) noexcept
-	{
-		if(this != &other)
-		{
+	sparse_array& operator=(sparse_array&& other) noexcept {
+		if(this != &other) {
 			m_DenseData = std::move(other.m_DenseData);
 			m_Reverse	= std::move(other.m_Reverse);
 			m_Sparse	= std::move(other.m_Sparse);
@@ -124,15 +113,12 @@ class sparse_array
 	size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
 
 	iterator begin() noexcept { return iterator {(T*)m_DenseData.data(), m_Reverse.data()}; };
-	iterator end() noexcept
-	{
+	iterator end() noexcept {
 		return iterator {(T*)m_DenseData.data() + m_Reverse.size(), m_Reverse.data() + m_Reverse.size()};
 	};
 
-	void grow()
-	{
-		if(m_DenseData.size() < m_Reverse.capacity() * sizeof(T))
-		{
+	void grow() {
+		if(m_DenseData.size() < m_Reverse.capacity() * sizeof(T)) {
 			auto new_capacity = std::max(m_Reverse.capacity(), m_DenseData.size() * 2 / sizeof(T));
 
 			::memory::raw_region reg(new_capacity * sizeof(T));
@@ -144,13 +130,11 @@ class sparse_array
 		}
 	}
 
-	reference operator[](index_type index)
-	{
+	reference operator[](index_type index) {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
-		if(!has(index))
-		{
+		if(!has(index)) {
 			chunk[sub_index] = (index_type)m_Reverse.size();
 
 			m_Reverse.emplace_back(index);
@@ -159,13 +143,11 @@ class sparse_array
 		return *((T*)m_DenseData.data() + chunk[sub_index]);
 	}
 
-	reference at(index_type index)
-	{
+	reference at(index_type index) {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
-		if(!has(index))
-		{
+		if(!has(index)) {
 			chunk[sub_index] = (index_type)m_Reverse.size();
 			m_Reverse.emplace_back(index);
 			grow();
@@ -173,8 +155,7 @@ class sparse_array
 		return *((T*)m_DenseData.data() + chunk[sub_index]);
 	}
 
-	const_reference at(index_type index) const noexcept
-	{
+	const_reference at(index_type index) const noexcept {
 		index_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
 		psl_assert(m_Sparse.size() > chunk_index && m_Sparse[chunk_index].size() > 0 &&
@@ -183,41 +164,37 @@ class sparse_array
 		return *((T*)m_DenseData.data() + m_Sparse[chunk_index][sparse_index]);
 	}
 
-	void resize(index_type size)
-	{
+	void resize(index_type size) {
 		index_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			chunk_index = (size - (size & mod_val)) / chunks_size;
-		}
-		else
-		{
+		} else {
 			chunk_index = (size - (size % mod_val)) / chunks_size;
 		}
-		if(m_Sparse.size() <= chunk_index) m_Sparse.resize(chunk_index + 1);
+		if(m_Sparse.size() <= chunk_index)
+			m_Sparse.resize(chunk_index + 1);
 	}
-	void insert(index_type index)
-	{
+	void insert(index_type index) {
 		const auto should_grow = m_Reverse.capacity() == m_Reverse.size();
 		m_Reverse.emplace_back(index);
 		auto& chunk	 = chunk_for(index);
 		chunk[index] = (index_type)m_Reverse.size() - 1;
-		if(should_grow) grow();
+		if(should_grow)
+			grow();
 	}
-	void insert(index_type index, const_reference value)
-	{
+	void insert(index_type index, const_reference value) {
 		const auto should_grow = m_Reverse.capacity() == m_Reverse.size();
 		m_Reverse.emplace_back(index);
 		auto& chunk = chunk_for(index);
 
 		chunk[index] = (index_type)m_Reverse.size() - 1;
-		if(should_grow) grow();
+		if(should_grow)
+			grow();
 		*((T*)m_DenseData.data() + chunk[index]) = value;
 	}
 
 	template <typename ItF, typename ItL>
-	void insert(index_type index, ItF&& first, ItL&& last)
-	{
+	void insert(index_type index, ItF&& first, ItL&& last) {
 		auto first_index = index;
 		auto last_index	 = (index_type)std::distance(first, last) + index;
 		auto end_index	 = last_index;
@@ -226,12 +203,11 @@ class sparse_array
 		chunk_info_for(first_index, first_index, first_chunk);
 		chunk_info_for(last_index, last_index, last_chunk);
 
-		if(end_index >= capacity()) resize(end_index + 1);
+		if(end_index >= capacity())
+			resize(end_index + 1);
 
-		for(auto i = first_index; i < last_index + 1; ++i)
-		{
-			if(m_Sparse[i].size() == 0)
-			{
+		for(auto i = first_index; i < last_index + 1; ++i) {
+			if(m_Sparse[i].size() == 0) {
 				m_Sparse[i].resize(chunks_size);
 				std::fill_n(std::begin(m_Sparse[i]), chunks_size, std::numeric_limits<index_type>::max());
 			}
@@ -239,10 +215,8 @@ class sparse_array
 
 		auto it = first;
 
-		for(auto i = first_chunk; i < last_chunk; ++i)
-		{
-			for(auto x = first_index; x < chunks_size; ++x)
-			{
+		for(auto i = first_chunk; i < last_chunk; ++i) {
+			for(auto x = first_index; x < chunks_size; ++x) {
 				m_Sparse[i][x] = (index_type)m_Reverse.size();
 				m_Reverse.emplace_back(index++);
 				grow();
@@ -252,8 +226,7 @@ class sparse_array
 			first_index = 0;
 		}
 
-		for(auto x = 0u; x < last_index; ++x)
-		{
+		for(auto x = 0u; x < last_index; ++x) {
 			m_Sparse[last_index][x] = (index_type)m_Reverse.size();
 			m_Reverse.emplace_back(index++);
 			*((T*)m_DenseData.data() + m_Reverse.size() - 1) = *it;
@@ -261,8 +234,7 @@ class sparse_array
 		}
 	}
 
-	void emplace(index_type index, value_type&& value)
-	{
+	void emplace(index_type index, value_type&& value) {
 		m_Reverse.emplace_back(index);
 		auto& chunk = chunk_for(index);
 
@@ -271,18 +243,13 @@ class sparse_array
 		*((T*)m_DenseData.data() + m_Reverse.size() - 1) = value;
 	}
 
-	constexpr bool has(index_type index) const noexcept
-	{
-		if(index < capacity())
-		{
+	constexpr bool has(index_type index) const noexcept {
+		if(index < capacity()) {
 			index_type chunk_index;
-			if constexpr(is_power_of_two)
-			{
+			if constexpr(is_power_of_two) {
 				chunk_index = (index - (index & mod_val)) / chunks_size;
 				index		= index & mod_val;
-			}
-			else
-			{
+			} else {
 				chunk_index = (index - (index % mod_val)) / chunks_size;
 				index		= index % mod_val;
 			}
@@ -297,8 +264,7 @@ class sparse_array
 	void* data() noexcept { return m_DenseData.data(); };
 	const void* data() const noexcept { return m_DenseData.data(); };
 
-	void erase(index_type index) noexcept
-	{
+	void erase(index_type index) noexcept {
 		index_type sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
 		// assert(m_Sparse[chunk_index].size() > 0 && m_Sparse[chunk_index][sparse_index] !=
@@ -308,8 +274,7 @@ class sparse_array
 			const auto dense_index				= m_Sparse[chunk_index][sparse_index];
 			m_Sparse[chunk_index][sparse_index] = std::numeric_limits<index_type>::max();
 
-			if(dense_index != m_Reverse.size() - 1)
-			{
+			if(dense_index != m_Reverse.size() - 1) {
 				std::swap(*((T*)m_DenseData.data() + dense_index), *((T*)m_DenseData.data() + m_Reverse.size() - 1));
 				std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse)));
 
@@ -322,21 +287,19 @@ class sparse_array
 		}
 	}
 
-	void clear() noexcept
-	{
+	void clear() noexcept {
 		m_Reverse.clear();
 		m_Sparse.clear();
 		reserve(1024);
 	}
-	void erase(index_type first, index_type last) noexcept
-	{
-		if(m_Sparse.size() == 0) return;
+	void erase(index_type first, index_type last) noexcept {
+		if(m_Sparse.size() == 0)
+			return;
 
 		first = std::min<index_type>(first, (index_type)capacity() - 1);
 		last  = std::min<index_type>(last, (index_type)capacity() - 1);
 
-		if(last - first == 1)
-		{
+		if(last - first == 1) {
 			erase(first);
 			return;
 		}
@@ -346,8 +309,7 @@ class sparse_array
 				   first,
 				   last);
 
-		if(last - first == m_Reverse.size())
-		{
+		if(last - first == m_Reverse.size()) {
 			clear();
 			return;
 		}
@@ -362,22 +324,20 @@ class sparse_array
 		index_type processed {0};
 
 		auto index = first_index;
-		for(auto i = first_chunk; i < last_chunk; ++i)
-		{
-			if(m_Sparse[i].size() == 0)
-			{
+		for(auto i = first_chunk; i < last_chunk; ++i) {
+			if(m_Sparse[i].size() == 0) {
 				index = 0u;
 				continue;
 			}
 
-			for(auto x = index; x < chunks_size; ++x)
-			{
+			for(auto x = index; x < chunks_size; ++x) {
 				const auto dense_index {m_Sparse[i][x]};
 				// if(dense_index == std::numeric_limits<index_type>::max())
 				//	continue;
 				++count;
 				m_Sparse[i][x] = std::numeric_limits<index_type>::max();
-				if(std::size(m_Reverse) - dense_index == count) continue;
+				if(std::size(m_Reverse) - dense_index == count)
+					continue;
 				std::swap(*((T*)m_DenseData.data() + dense_index),
 						  *((T*)m_DenseData.data() + m_Reverse.size() - count));
 				std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
@@ -393,16 +353,15 @@ class sparse_array
 			}
 			index = 0u;
 		}
-		if(m_Sparse[last_chunk].size() > 0)
-		{
-			for(auto x = index; x < last_index; ++x)
-			{
+		if(m_Sparse[last_chunk].size() > 0) {
+			for(auto x = index; x < last_index; ++x) {
 				const auto dense_index {m_Sparse[last_chunk][x]};
 				// if(dense_index == std::numeric_limits<index_type>::max())
 				//	continue;
 				++count;
 				m_Sparse[last_chunk][x] = std::numeric_limits<index_type>::max();
-				if(std::size(m_Reverse) - dense_index == count) continue;
+				if(std::size(m_Reverse) - dense_index == count)
+					continue;
 				std::swap(*((T*)m_DenseData.data() + dense_index),
 						  *((T*)m_DenseData.data() + m_Reverse.size() - count));
 				std::iter_swap(std::next(std::begin(m_Reverse), dense_index), std::prev(std::end(m_Reverse), count));
@@ -422,39 +381,34 @@ class sparse_array
 		m_Reverse.resize(m_Reverse.size() - count);
 	}
 
-	void reserve(size_t capacity)
-	{
-		if(capacity <= m_Reverse.capacity()) return;
+	void reserve(size_t capacity) {
+		if(capacity <= m_Reverse.capacity())
+			return;
 
 		m_Reverse.reserve(capacity);
 		grow();
 	}
 
 	psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
-	psl::array_view<value_type> dense() const noexcept
-	{
+	psl::array_view<value_type> dense() const noexcept {
 		return psl::array_view<value_type> {(T*)m_DenseData.data(), (T*)m_DenseData.data() + m_Reverse.size()};
 	}
 
   private:
-	inline psl::array<index_type>& chunk_for(index_type& index)
-	{
-		if(index >= capacity()) resize(index + 1);
+	inline psl::array<index_type>& chunk_for(index_type& index) {
+		if(index >= capacity())
+			resize(index + 1);
 		index_type chunk_index;
-		if constexpr(is_power_of_two)
-		{
+		if constexpr(is_power_of_two) {
 			const auto element_index = index & (mod_val);
 			chunk_index				 = (index - element_index) / chunks_size;
 			index					 = element_index;
-		}
-		else
-		{
+		} else {
 			chunk_index = (index - (index % mod_val)) / chunks_size;
 			index		= index % mod_val;
 		}
 		auto& chunk = m_Sparse[chunk_index];
-		if(chunk.size() == 0)
-		{
+		if(chunk.size() == 0) {
 			chunk.resize(chunks_size);
 			std::fill(std::begin(chunk), std::end(chunk), std::numeric_limits<index_type>::max());
 		}
@@ -462,15 +416,11 @@ class sparse_array
 		return chunk;
 	}
 
-	inline void chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept
-	{
-		if constexpr(is_power_of_two)
-		{
+	inline void chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept {
+		if constexpr(is_power_of_two) {
 			element_index = index & (mod_val);
 			chunk_index	  = (index - element_index) / chunks_size;
-		}
-		else
-		{
+		} else {
 			chunk_index	  = (index - (index % mod_val)) / chunks_size;
 			element_index = index % mod_val;
 		}

@@ -1,15 +1,12 @@
 #pragma once
 #include "fwd/resource/resource.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace core::igles
-{
-class program
-{
+namespace core::igles {
+class program {
   public:
 	program(core::resource::cache_t& cache,
 			const core::resource::metadata& metaData,

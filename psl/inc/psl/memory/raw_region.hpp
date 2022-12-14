@@ -2,10 +2,8 @@
 #include <cstdint>
 #include <stddef.h>
 
-namespace memory
-{
-class raw_region
-{
+namespace memory {
+class raw_region {
   public:
 	raw_region(uint64_t size);
 	~raw_region();

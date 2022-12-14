@@ -27,12 +27,9 @@
 	#define PROFILE_SCOPE_BEGIN(profiler)
 	#define PROFILE_SCOPE_END(profiler)
 #endif
-namespace psl::profiling
-{
-class profiler
-{
-	struct scoped_block
-	{
+namespace psl::profiling {
+class profiler {
+	struct scoped_block {
 		scoped_block(profiler& profiler) noexcept;
 		~scoped_block() noexcept;
 		scoped_block(const scoped_block&) = delete;
@@ -45,18 +42,16 @@ class profiler
 		profiler* prf;
 	};
 
-	struct scope_info
-	{
-		scope_info(uint64_t name, size_t depth, bool mangled_name = false) :
-			name(name), duration(0), depth(depth), mangled_name(mangled_name) {};
+	struct scope_info {
+		scope_info(uint64_t name, size_t depth, bool mangled_name = false)
+			: name(name), duration(0), depth(depth), mangled_name(mangled_name) {};
 		uint64_t name;
 		bool mangled_name;
 		std::chrono::microseconds duration;
 		size_t depth;
 	};
 
-	struct frame_info
-	{
+	struct frame_info {
 		void push(const psl::string& name) noexcept;
 		void push(uint64_t name) noexcept;
 		void pop() noexcept;

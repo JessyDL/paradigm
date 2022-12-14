@@ -31,14 +31,12 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags,
 											 int32_t messageCode,
 											 const char* layer_prefix,
 											 const char* msg,
-											 void* pUserData)
-{
+											 void* pUserData) {
 	psl::string message {msg};
 	message.append(" [");
 	message.append(layer_prefix);
 	message.append("]");
-	switch(flags)
-	{
+	switch(flags) {
 	case VK_DEBUG_REPORT_FLAG_BITS_MAX_ENUM_EXT:
 		core::ivk::log->info(message.c_str());
 		break;
@@ -64,12 +62,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags,
 	return false;	 // always return false
 }
 
-inline psl::string8_t size_denotation(size_t size)
-{
+inline psl::string8_t size_denotation(size_t size) {
 	static const std::vector<psl::string8::view> SUFFIXES {{"B", "KB", "MB", "GB", "TB", "PB"}};
 	size_t suffixIndex = 0;
-	while(suffixIndex < SUFFIXES.size() - 1 && size > 1024)
-	{
+	while(suffixIndex < SUFFIXES.size() - 1 && size > 1024) {
 		size >>= 10;
 		++suffixIndex;
 	}
@@ -79,35 +75,28 @@ inline psl::string8_t size_denotation(size_t size)
 	return buffer.str();
 }
 
-struct VKAPIVersion
-{
+struct VKAPIVersion {
   public:
-	explicit VKAPIVersion(uint32_t version) :
-		major((uint32_t)(version) >> 22), minor(((uint32_t)(version) >> 12) & 0x3ff),
-		patch((uint32_t)(version)&0xfff) {};
+	explicit VKAPIVersion(uint32_t version)
+		: major((uint32_t)(version) >> 22), minor(((uint32_t)(version) >> 12) & 0x3ff),
+		  patch((uint32_t)(version)&0xfff) {};
 
-	bool operator==(const VKAPIVersion& other) const
-	{
+	bool operator==(const VKAPIVersion& other) const {
 		return (major == other.major && minor == other.minor && patch == other.patch);
 	};
-	bool operator!=(const VKAPIVersion& other) const
-	{
+	bool operator!=(const VKAPIVersion& other) const {
 		return (major != other.major || minor != other.minor || patch != other.patch);
 	};
-	bool operator>(const VKAPIVersion& other) const
-	{
+	bool operator>(const VKAPIVersion& other) const {
 		return (major > other.major && minor > other.minor && patch > other.patch);
 	};
-	bool operator>=(const VKAPIVersion& other) const
-	{
+	bool operator>=(const VKAPIVersion& other) const {
 		return (major >= other.major && minor >= other.minor && patch >= other.patch);
 	};
-	bool operator<(const VKAPIVersion& other) const
-	{
+	bool operator<(const VKAPIVersion& other) const {
 		return (major < other.major && minor < other.minor && patch < other.patch);
 	};
-	bool operator<=(const VKAPIVersion& other) const
-	{
+	bool operator<=(const VKAPIVersion& other) const {
 		return (major <= other.major && minor <= other.minor && patch <= other.patch);
 	};
 	const uint32_t major;
@@ -118,9 +107,8 @@ context::context(core::resource::cache_t& cache,
 				 const core::resource::metadata& metaData,
 				 psl::meta::file* metaFile,
 				 psl::string8::view name,
-				 uint32_t deviceIndex) :
-	m_DeviceIndex(deviceIndex)
-{
+				 uint32_t deviceIndex)
+	: m_DeviceIndex(deviceIndex) {
 #ifndef VK_STATIC
 	// todo load library ourselves, not through the vulkan dynamic loader solution
 	// HMODULE module = LoadLibraryA("vulkan-1.dll");
@@ -135,20 +123,17 @@ context::context(core::resource::cache_t& cache,
 	uint32_t extensionCount = 0;
 	auto extensions			= vk::enumerateInstanceExtensionProperties();
 	core::ivk::log->info("instance extensions: {}", extensions.value.size());
-	for(const auto& ext : extensions.value)
-	{
+	for(const auto& ext : extensions.value) {
 		core::ivk::log->info("instance extension: {}", psl::string(&ext.extensionName[0]));
 	}
 	uint32_t instanceCount = 0;
 	auto instances		   = vk::enumerateInstanceLayerProperties();
 
 	core::ivk::log->info("instance layers: {}", instances.value.size());
-	for(const auto& inst : instances.value)
-	{
+	for(const auto& inst : instances.value) {
 		core::ivk::log->info("instance layer: {}", psl::string(&inst.layerName[0]));
 	}
-	if(m_Validated)
-	{
+	if(m_Validated) {
 		core::ivk::log->info("Enabling 'VK_LAYER_KHRONOS_validation'");
 		m_InstanceLayerList.push_back("VK_LAYER_KHRONOS_validation");
 		m_InstanceExtensionList.push_back(VK_EXT_DEBUG_REPORT_EXTENSION_NAME);
@@ -171,19 +156,16 @@ context::context(core::resource::cache_t& cache,
 	vk::InstanceCreateInfo instanceCI;
 	instanceCI.pApplicationInfo = &appInfo;
 
-	if(m_InstanceLayerList.size() > 0)
-	{
+	if(m_InstanceLayerList.size() > 0) {
 		instanceCI.enabledLayerCount   = (uint32_t)m_InstanceLayerList.size();
 		instanceCI.ppEnabledLayerNames = m_InstanceLayerList.data();
 	}
-	if(m_InstanceExtensionList.size() > 0)
-	{
+	if(m_InstanceExtensionList.size() > 0) {
 		instanceCI.enabledExtensionCount   = (uint32_t)m_InstanceExtensionList.size();
 		instanceCI.ppEnabledExtensionNames = m_InstanceExtensionList.data();
 	}
 
-	if(!utility::vulkan::check(vk::createInstance(&instanceCI, nullptr, &m_Instance)))
-	{
+	if(!utility::vulkan::check(vk::createInstance(&instanceCI, nullptr, &m_Instance))) {
 		core::ivk::log->critical("Could not create a Vulkan instance.");
 		std::exit(-1);
 	}
@@ -197,15 +179,13 @@ context::context(core::resource::cache_t& cache,
 
 	core::ivk::log->info("Vulkan Context Created");
 	core::ivk::log->info("API Version:         {0}.{1}.{2}", apiversion.major, apiversion.minor, apiversion.patch);
-	if(gpuapiversion != apiversion)
-	{
+	if(gpuapiversion != apiversion) {
 		core::ivk::log->warn(
 		  "API Version(Actual): {0}.{1}.{2}", gpuapiversion.major, gpuapiversion.minor, gpuapiversion.patch);
 	}
 	core::ivk::log->info("Driver Version: {}", m_PhysicalDeviceProperties.driverVersion);
 	psl::string8_t vendor;
-	switch(m_PhysicalDeviceProperties.vendorID)
-	{
+	switch(m_PhysicalDeviceProperties.vendorID) {
 	case 0x1002:
 		vendor = "AMD";
 		break;
@@ -233,23 +213,18 @@ context::context(core::resource::cache_t& cache,
 	core::ivk::log->info("Device ID:      {}", std::to_string(m_PhysicalDeviceProperties.deviceID));
 	core::ivk::log->info("Memory Heaps:   {}", m_PhysicalDeviceMemoryProperties.memoryHeapCount);
 
-	for(size_t i = 0; i < m_PhysicalDeviceMemoryProperties.memoryHeapCount; ++i)
-	{
+	for(size_t i = 0; i < m_PhysicalDeviceMemoryProperties.memoryHeapCount; ++i) {
 		const auto& heap = m_PhysicalDeviceMemoryProperties.memoryHeaps[i];
 		core::ivk::log->info("\tHeap {0} flags {1} size {2}", i, vk::to_string(heap.flags), size_denotation(heap.size));
-		if(heap.flags == vk::MemoryHeapFlagBits::eDeviceLocal)
-		{
+		if(heap.flags == vk::MemoryHeapFlagBits::eDeviceLocal) {
 			m_DeviceMemory.availableMemory += heap.size;
-		}
-		else
-		{
+		} else {
 			m_HostMemory.availableMemory += heap.size;
 		}
 	}
 
 	core::ivk::log->info("Memory Types:  {}", m_PhysicalDeviceMemoryProperties.memoryTypeCount);
-	for(size_t i = 0; i < m_PhysicalDeviceMemoryProperties.memoryTypeCount; ++i)
-	{
+	for(size_t i = 0; i < m_PhysicalDeviceMemoryProperties.memoryTypeCount; ++i) {
 		const auto type = m_PhysicalDeviceMemoryProperties.memoryTypes[i];
 		core::ivk::log->info("\tType {0} flags {1} heap {2}", i, vk::to_string(type.propertyFlags), type.heapIndex);
 	}
@@ -257,8 +232,7 @@ context::context(core::resource::cache_t& cache,
 	core::ivk::log->info("Queues:");
 	std::vector<vk::QueueFamilyProperties> queueProps = m_PhysicalDevice.getQueueFamilyProperties();
 
-	for(size_t i = 0; i < queueProps.size(); ++i)
-	{
+	for(size_t i = 0; i < queueProps.size(); ++i) {
 		const auto& queueFamilyProperties = queueProps[i];
 		core::ivk::log->info("Queue Family: {}", i);
 		core::ivk::log->info("\tQueue Family Flags: {}", vk::to_string(queueFamilyProperties.queueFlags));
@@ -571,8 +545,7 @@ context::context(core::resource::cache_t& cache,
 	m_Limits.compute.workgroup.invocations = m_PhysicalDeviceProperties.limits.maxComputeWorkGroupInvocations;
 }
 
-context::~context()
-{
+context::~context() {
 	m_Device.waitIdle();
 	deinit_descriptor_pool();
 	deinit_command_pool();
@@ -583,10 +556,8 @@ context::~context()
 	core::ivk::log->info("vulkan context destroyed");
 }
 
-void context::init_debug()
-{
-	if(m_Validated)
-	{
+void context::init_debug() {
+	if(m_Validated) {
 		vk::DebugReportCallbackCreateInfoEXT callbackCreateInfo {};
 		callbackCreateInfo.flags = vk::DebugReportFlagBitsEXT::eInformation | vk::DebugReportFlagBitsEXT::eWarning |
 								   vk::DebugReportFlagBitsEXT::ePerformanceWarning |
@@ -600,85 +571,75 @@ void context::init_debug()
 	}
 }
 
-void context::deinit_debug()
-{
-	if(m_Validated)
-	{
+void context::deinit_debug() {
+	if(m_Validated) {
 		m_Instance.destroyDebugReportCallbackEXT(m_DebugReport);
 	}
 }
 
-bool context::queue_index(vk::QueueFlags flag, vk::Queue& queue, uint32_t& queueIndex)
-{
+bool context::queue_index(vk::QueueFlags flag, vk::Queue& queue, uint32_t& queueIndex) {
 	// Find a queue that supports graphics operations
 	std::vector<vk::QueueFamilyProperties> queueProps = m_PhysicalDevice.getQueueFamilyProperties();
 	std::optional<uint32_t> secondBest				  = std::nullopt;
-	for(queueIndex = 0; queueIndex < queueProps.size(); queueIndex++)
-	{
-		if(queueProps[queueIndex].queueFlags & flag) secondBest = queueIndex;
+	for(queueIndex = 0; queueIndex < queueProps.size(); queueIndex++) {
+		if(queueProps[queueIndex].queueFlags & flag)
+			secondBest = queueIndex;
 
-		if(queueProps[queueIndex].queueFlags == flag) break;
+		if(queueProps[queueIndex].queueFlags == flag)
+			break;
 	}
-	if(queueIndex >= queueProps.size() && secondBest.has_value()) queueIndex = secondBest.value();
-	if(queueIndex >= queueProps.size())
-	{
+	if(queueIndex >= queueProps.size() && secondBest.has_value())
+		queueIndex = secondBest.value();
+	if(queueIndex >= queueProps.size()) {
 		core::ivk::log->warn("Could not find the appropriate queue enabled bit for {}", vk::to_string(flag));
 		return false;
 	}
 	return true;
 }
 
-bool context::consume(vk::MemoryHeapFlagBits type, vk::DeviceSize amount)
-{
-	if(type == vk::MemoryHeapFlagBits::eDeviceLocal)
-	{
-		if(amount > m_DeviceMemory.availableMemory) return false;
+bool context::consume(vk::MemoryHeapFlagBits type, vk::DeviceSize amount) {
+	if(type == vk::MemoryHeapFlagBits::eDeviceLocal) {
+		if(amount > m_DeviceMemory.availableMemory)
+			return false;
 		m_DeviceMemory.availableMemory -= amount;
-	}
-	else
-	{
-		if(amount > m_HostMemory.availableMemory) return false;
+	} else {
+		if(amount > m_HostMemory.availableMemory)
+			return false;
 		m_HostMemory.availableMemory -= amount;
 	}
 	return true;
 }
 
-bool context::release(vk::MemoryHeapFlagBits type, vk::DeviceSize amount)
-{
-	if(type == vk::MemoryHeapFlagBits::eDeviceLocal)
-	{
-		if(m_DeviceMemory.availableMemory + amount > m_DeviceMemory.maxMemory) return false;
+bool context::release(vk::MemoryHeapFlagBits type, vk::DeviceSize amount) {
+	if(type == vk::MemoryHeapFlagBits::eDeviceLocal) {
+		if(m_DeviceMemory.availableMemory + amount > m_DeviceMemory.maxMemory)
+			return false;
 		m_DeviceMemory.availableMemory += amount;
-	}
-	else
-	{
-		if(m_HostMemory.availableMemory + amount > m_HostMemory.maxMemory) return false;
+	} else {
+		if(m_HostMemory.availableMemory + amount > m_HostMemory.maxMemory)
+			return false;
 		m_HostMemory.availableMemory += amount;
 	}
 	return true;
 }
 
-vk::DeviceSize context::remaining(vk::MemoryHeapFlagBits type)
-{
+vk::DeviceSize context::remaining(vk::MemoryHeapFlagBits type) {
 	return (type == vk::MemoryHeapFlagBits::eDeviceLocal) ? m_DeviceMemory.availableMemory
 														  : m_HostMemory.availableMemory;
 }
 
-void context::init_device()
-{
+void context::init_device() {
 	select_physical_device(m_Instance.enumeratePhysicalDevices().value);
 
 	std::vector<vk::ExtensionProperties> extensions {m_PhysicalDevice.enumerateDeviceExtensionProperties().value};
 
-	for(const auto& ext : extensions)
-	{
+	for(const auto& ext : extensions) {
 		core::ivk::log->info("device extension: {}", psl::string(&ext.extensionName[0]));
 	}
 
 	std::vector<vk::LayerProperties> layers {m_PhysicalDevice.enumerateDeviceLayerProperties().value};
 
-	for(const auto& lyr : layers)
-	{
+	for(const auto& lyr : layers) {
 		core::ivk::log->info("device layer: {}", psl::string(&lyr.layerName[0]));
 	}
 
@@ -689,15 +650,13 @@ void context::init_device()
 	m_PhysicalDeviceMemoryProperties = m_PhysicalDevice.getMemoryProperties();
 
 	bool has_transfer = queue_index(vk::QueueFlagBits::eTransfer, m_TransferQueue, m_TransferQueueIndex);
-	if(!queue_index(vk::QueueFlagBits::eGraphics, m_Queue, m_GraphicsQueueIndex))
-	{
+	if(!queue_index(vk::QueueFlagBits::eGraphics, m_Queue, m_GraphicsQueueIndex)) {
 		core::ivk::log->critical("could not find a graphics queue, even though it was requested, crashing now...");
 		exit(1);
 	}
 
 	std::vector<vk::DeviceQueueCreateInfo> queueCreateInfo;
-	if(m_TransferQueueIndex == m_GraphicsQueueIndex && has_transfer)
-	{
+	if(m_TransferQueueIndex == m_GraphicsQueueIndex && has_transfer) {
 		// Vulkan device
 		std::array<float, 1> queuePriorities = {1.0f};
 		queueCreateInfo.resize(1);
@@ -705,17 +664,14 @@ void context::init_device()
 		queueCreateInfo[0].queueCount		= 1;
 		queueCreateInfo[0].pQueuePriorities = queuePriorities.data();
 
-		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device)))
-		{
+		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
 		}
 
 		m_Device.getQueue(m_GraphicsQueueIndex, 0, &m_Queue);
 		m_TransferQueue = m_Queue;
-	}
-	else
-	{
+	} else {
 		// Vulkan device
 		std::array<float, 1> queuePriorities = {1.0f};
 		queueCreateInfo.resize(2);
@@ -728,8 +684,7 @@ void context::init_device()
 		queueCreateInfo[1].pQueuePriorities = queuePriorities.data();
 
 
-		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device)))
-		{
+		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
 		}
@@ -743,11 +698,12 @@ void context::init_device()
 #endif
 }
 
-void context::deinit_device() { m_Device.destroy(); }
+void context::deinit_device() {
+	m_Device.destroy();
+}
 
 
-vk::Result context::create_device(vk::DeviceQueueCreateInfo* requestedQueues, uint32_t queueSize, vk::Device& device)
-{
+vk::Result context::create_device(vk::DeviceQueueCreateInfo* requestedQueues, uint32_t queueSize, vk::Device& device) {
 	vk::DeviceCreateInfo deviceCreateInfo = {};
 	deviceCreateInfo.pNext				  = NULL;
 	deviceCreateInfo.queueCreateInfoCount = queueSize;
@@ -759,8 +715,7 @@ vk::Result context::create_device(vk::DeviceQueueCreateInfo* requestedQueues, ui
 	deviceCreateInfo.enabledExtensionCount	 = (uint32_t)m_DeviceExtensionList.size();
 	deviceCreateInfo.ppEnabledExtensionNames = m_DeviceExtensionList.data();
 
-	if(m_Validated)
-	{
+	if(m_Validated) {
 		deviceCreateInfo.enabledLayerCount	 = (uint32_t)m_DeviceLayerList.size();
 		deviceCreateInfo.ppEnabledLayerNames = m_DeviceLayerList.data();
 	}
@@ -769,8 +724,7 @@ vk::Result context::create_device(vk::DeviceQueueCreateInfo* requestedQueues, ui
 }
 
 
-void context::init_command_pool()
-{
+void context::init_command_pool() {
 	vk::CommandPoolCreateInfo CI;
 	CI.queueFamilyIndex = m_GraphicsQueueIndex;
 	CI.flags			= vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
@@ -782,16 +736,14 @@ void context::init_command_pool()
 	utility::vulkan::check(m_Device.createCommandPool(&CI, nullptr, &m_TransferCommandPool));
 }
 
-void context::deinit_command_pool()
-{
+void context::deinit_command_pool() {
 	m_Device.destroyCommandPool(m_TransferCommandPool);
 	m_Device.destroyCommandPool(m_CommandPool);
 	m_CommandPool		  = nullptr;
 	m_TransferCommandPool = nullptr;
 }
 
-void context::init_descriptor_pool()
-{
+void context::init_descriptor_pool() {
 	// We need to tell the API the number of max. requested descriptors per type
 	std::vector<vk::DescriptorPoolSize> typeCounts = {
 	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64),
@@ -812,17 +764,15 @@ void context::init_descriptor_pool()
 	utility::vulkan::check(m_Device.createDescriptorPool(&descriptorPoolInfo, nullptr, &m_DescriptorPool));
 }
 
-void context::deinit_descriptor_pool() { m_Device.destroyDescriptorPool(m_DescriptorPool); }
+void context::deinit_descriptor_pool() {
+	m_Device.destroyDescriptorPool(m_DescriptorPool);
+}
 
 vk::Bool32
-context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties, uint32_t* typeIndex) const noexcept
-{
-	for(uint32_t i = 0; i < 32; i++)
-	{
-		if((typeBits & 1) == 1)
-		{
-			if((m_PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			{
+context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties, uint32_t* typeIndex) const noexcept {
+	for(uint32_t i = 0; i < 32; i++) {
+		if((typeBits & 1) == 1) {
+			if((m_PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 				*typeIndex = i;
 				return true;
 			}
@@ -832,14 +782,10 @@ context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& propertie
 	return false;
 }
 
-uint32_t context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties) const
-{
-	for(uint32_t i = 0; i < 32; i++)
-	{
-		if((typeBits & 1) == 1)
-		{
-			if((m_PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties)
-			{
+uint32_t context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& properties) const {
+	for(uint32_t i = 0; i < 32; i++) {
+		if((typeBits & 1) == 1) {
+			if((m_PhysicalDeviceMemoryProperties.memoryTypes[i].propertyFlags & properties) == properties) {
 				return i;
 			}
 		}
@@ -849,10 +795,8 @@ uint32_t context::memory_type(uint32_t typeBits, const vk::MemoryPropertyFlags& 
 	throw std::runtime_error("could not find memory type");
 }
 
-void context::flush(vk::CommandBuffer commandBuffer, bool free)
-{
-	if(!commandBuffer)
-	{
+void context::flush(vk::CommandBuffer commandBuffer, bool free) {
+	if(!commandBuffer) {
 		return;
 	}
 
@@ -873,22 +817,19 @@ void context::flush(vk::CommandBuffer commandBuffer, bool free)
 	utility::vulkan::check(m_Device.waitForFences(1, &fence, VK_TRUE, 100000000000 /*nanoseconds*/));
 	m_Device.destroyFence(fence);
 
-	if(free)
-	{
+	if(free) {
 		m_Device.freeCommandBuffers(m_CommandPool, 1, &commandBuffer);
 	}
 }
 
-bool has_queue(const vk::PhysicalDevice& device, vk::QueueFlags flag) noexcept
-{
+bool has_queue(const vk::PhysicalDevice& device, vk::QueueFlags flag) noexcept {
 	std::vector<vk::QueueFamilyProperties> queueProps = device.getQueueFamilyProperties();
 	return std::any_of(std::begin(queueProps), std::end(queueProps), [flag](const auto& queue) noexcept {
 		return queue.queueFlags & flag;
 	});
 }
 
-bool is_valid_device(const vk::PhysicalDevice& device) noexcept
-{
+bool is_valid_device(const vk::PhysicalDevice& device) noexcept {
 	// auto properties = device.getProperties();
 
 	auto features = device.getFeatures();
@@ -897,57 +838,75 @@ bool is_valid_device(const vk::PhysicalDevice& device) noexcept
 }
 
 
-void context::select_physical_device(const std::vector<vk::PhysicalDevice>& allDevices)
-{
-	if(m_DeviceIndex == std::numeric_limits<uint32_t>::max())
-	{
-		for(auto i = 0u; i < allDevices.size(); ++i)
-		{
-			if(is_valid_device(allDevices[i]))
-			{
+void context::select_physical_device(const std::vector<vk::PhysicalDevice>& allDevices) {
+	if(m_DeviceIndex == std::numeric_limits<uint32_t>::max()) {
+		for(auto i = 0u; i < allDevices.size(); ++i) {
+			if(is_valid_device(allDevices[i])) {
 				m_DeviceIndex = i;
 				break;
 			}
 		}
 	}
 
-	if(m_DeviceIndex != std::numeric_limits<uint32_t>::max())
-	{
+	if(m_DeviceIndex != std::numeric_limits<uint32_t>::max()) {
 		m_PhysicalDevice = allDevices[m_DeviceIndex];
-	}
-	else
-	{
+	} else {
 		throw std::runtime_error("No valid physical device found that was suitable");
 	}
 }
 
-const vk::Instance& context::instance() const noexcept { return m_Instance; }
+const vk::Instance& context::instance() const noexcept {
+	return m_Instance;
+}
 
-const vk::Device& context::device() const noexcept { return m_Device; }
+const vk::Device& context::device() const noexcept {
+	return m_Device;
+}
 
-const vk::PhysicalDevice& context::physical_device() const noexcept { return m_PhysicalDevice; }
+const vk::PhysicalDevice& context::physical_device() const noexcept {
+	return m_PhysicalDevice;
+}
 
-const vk::PhysicalDeviceProperties& context::properties() const noexcept { return m_PhysicalDeviceProperties; }
+const vk::PhysicalDeviceProperties& context::properties() const noexcept {
+	return m_PhysicalDeviceProperties;
+}
 
-const vk::PhysicalDeviceFeatures& context::features() const noexcept { return m_PhysicalDeviceFeatures; }
+const vk::PhysicalDeviceFeatures& context::features() const noexcept {
+	return m_PhysicalDeviceFeatures;
+}
 
-const vk::PhysicalDeviceMemoryProperties& context::memory_properties() const noexcept
-{
+const vk::PhysicalDeviceMemoryProperties& context::memory_properties() const noexcept {
 	return m_PhysicalDeviceMemoryProperties;
 }
 
-const vk::CommandPool& context::command_pool() const noexcept { return m_CommandPool; }
+const vk::CommandPool& context::command_pool() const noexcept {
+	return m_CommandPool;
+}
 
-const vk::CommandPool& context::transfer_command_pool() const noexcept { return m_TransferCommandPool; }
+const vk::CommandPool& context::transfer_command_pool() const noexcept {
+	return m_TransferCommandPool;
+}
 
-const vk::DescriptorPool& context::descriptor_pool() const noexcept { return m_DescriptorPool; }
+const vk::DescriptorPool& context::descriptor_pool() const noexcept {
+	return m_DescriptorPool;
+}
 
-const vk::Queue& context::queue() const noexcept { return m_Queue; }
+const vk::Queue& context::queue() const noexcept {
+	return m_Queue;
+}
 
-const vk::Queue& context::transfer_queue() const noexcept { return m_TransferQueue; }
+const vk::Queue& context::transfer_queue() const noexcept {
+	return m_TransferQueue;
+}
 
-uint32_t context::graphics_queue_index() const noexcept { return m_GraphicsQueueIndex; }
+uint32_t context::graphics_queue_index() const noexcept {
+	return m_GraphicsQueueIndex;
+}
 
-uint32_t context::transfer_que_index() const noexcept { return m_TransferQueueIndex; }
+uint32_t context::transfer_que_index() const noexcept {
+	return m_TransferQueueIndex;
+}
 
-bool context::acquireNextImage2KHR(optional_ref<uint64_t> out_version) const noexcept { return false; }
+bool context::acquireNextImage2KHR(optional_ref<uint64_t> out_version) const noexcept {
+	return false;
+}

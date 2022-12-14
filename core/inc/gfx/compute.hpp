@@ -4,33 +4,28 @@
 #include "psl/math/vec.hpp"
 #include "resource/resource.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class pipeline_cache;
 
 class compute;
 #ifdef PE_VULKAN
 template <>
-struct backend_type<compute, graphics_backend::vulkan>
-{
+struct backend_type<compute, graphics_backend::vulkan> {
 	using type = core::ivk::compute;
 };
 #endif
 #ifdef PE_GLES
 template <>
-struct backend_type<compute, graphics_backend::gles>
-{
+struct backend_type<compute, graphics_backend::gles> {
 	using type = core::igles::compute;
 };
 #endif
 
-class compute
-{
+class compute {
 	friend class core::resource::cache_t;
 
   public:
@@ -60,13 +55,14 @@ class compute
 	void dispatch(const psl::static_array<uint32_t, 3>& size);
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<compute, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<compute, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

@@ -3,14 +3,12 @@
 #include "ustring.hpp"
 #include <iomanip>
 
-namespace utility::string
-{
+namespace utility::string {
 /// \brief transforms the input value to a psl::string8_t containing the hex characters.
 /// \param[in] value the value to transform
 /// \returns a string containing the hex value.
 template <typename T>
-inline psl::string8_t to_hex(const T& value)
-{
+inline psl::string8_t to_hex(const T& value) {
 	psl::string8::stream stream;
 	stream << "0x" << std::setfill('0') << std::setw(sizeof(T) * 2) << std::hex << value;
 	return stream.str();
@@ -23,8 +21,7 @@ return std::setw(sizeof(T) * 2) + 2;
 }*/
 
 template <typename TOut, typename TIn>
-inline TOut lexical_cast(const TIn& in)
-{
+inline TOut lexical_cast(const TIn& in) {
 	// though this needs the 0x prefix so it knows it is hex
 	// unsigned int x = lexical_cast<unsigned int>("0xdeadbeef");
 	TOut out;
@@ -39,8 +36,7 @@ inline TOut lexical_cast(const TIn& in)
 /// \param[in] str the string containing the hex value.
 /// \returns an object of type T that has been constructed using the hex value.
 template <typename T>
-inline T from_hex(const psl::string8_t& str)
-{
+inline T from_hex(const psl::string8_t& str) {
 	return lexical_cast<T>(str);
 }
 
@@ -49,8 +45,7 @@ inline T from_hex(const psl::string8_t& str)
 /// \param[in] str the string containing the hex value.
 /// \returns an object of type T that has been constructed using the hex value.
 template <typename T>
-inline T from_hex(const psl::string16_t& str)
-{
+inline T from_hex(const psl::string16_t& str) {
 	return lexical_cast<T>(str);
 }
 
@@ -59,8 +54,7 @@ inline T from_hex(const psl::string16_t& str)
 /// \param[in] str the string containing the hex value.
 /// \returns an object of type T that has been constructed using the hex value.
 template <typename T>
-inline T from_hex(const psl::string32_t& str)
-{
+inline T from_hex(const psl::string32_t& str) {
 	return lexical_cast<T>(str);
 }
 }	 // namespace utility::string

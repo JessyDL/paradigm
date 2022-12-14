@@ -5,11 +5,9 @@
 #include <cstdint>
 #include <future>
 
-namespace psl::async
-{
+namespace psl::async {
 class scheduler;
-class token final
-{
+class token final {
 	friend class scheduler;
 	token(size_t value, psl::view_ptr<scheduler> scheduler) noexcept : m_Token(value), m_Scheduler(scheduler) {};
 
@@ -41,8 +39,7 @@ class token final
 };
 
 
-class pack
-{
+class pack {
   public:
   private:
 	size_t m_Id;

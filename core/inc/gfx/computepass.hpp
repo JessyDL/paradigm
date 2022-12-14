@@ -5,19 +5,16 @@
 #include <variant>
 
 #ifdef PE_GLES
-namespace core::igles
-{
+namespace core::igles {
 class computepass;
 }
 #endif
 #ifdef PE_VULKAN
-namespace core::ivk
-{
+namespace core::ivk {
 class computepass;
 }
 #endif
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class drawpass;
 class computecall;
@@ -27,22 +24,19 @@ class computepass;
 
 #ifdef PE_VULKAN
 template <>
-struct backend_type<computepass, graphics_backend::vulkan>
-{
+struct backend_type<computepass, graphics_backend::vulkan> {
 	using type = core::ivk::computepass;
 };
 #endif
 #ifdef PE_GLES
 template <>
-struct backend_type<computepass, graphics_backend::gles>
-{
+struct backend_type<computepass, graphics_backend::gles> {
 	using type = core::igles::computepass;
 };
 #endif
 
 /// \brief describes a compute stage in the render_graph
-class computepass
-{
+class computepass {
   public:
 #ifdef PE_VULKAN
 	computepass(core::ivk::computepass* handle);
@@ -64,15 +58,23 @@ class computepass
 	bool build(bool force = false);
 	void present();
 
-	bool connect(psl::view_ptr<core::gfx::drawpass> child) noexcept { return true; };
+	bool connect(psl::view_ptr<core::gfx::drawpass> child) noexcept {
+		return true;
+	};
 	bool connect(psl::view_ptr<core::gfx::computepass> child) noexcept;
-	bool disconnect(psl::view_ptr<core::gfx::drawpass> child) noexcept { return true; };
+	bool disconnect(psl::view_ptr<core::gfx::drawpass> child) noexcept {
+		return true;
+	};
 	bool disconnect(psl::view_ptr<core::gfx::computepass> child) noexcept;
 
 	void add(const core::gfx::computecall& call) noexcept;
 
-	void dirty(bool value) noexcept { m_Dirty = value; }
-	bool dirty() const noexcept { return m_Dirty; }
+	void dirty(bool value) noexcept {
+		m_Dirty = value;
+	}
+	bool dirty() const noexcept {
+		return m_Dirty;
+	}
 
   private:
 	core::gfx::graphics_backend m_Backend {graphics_backend::undefined};

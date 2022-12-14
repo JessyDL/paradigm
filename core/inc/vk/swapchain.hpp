@@ -3,34 +3,29 @@
 #include "resource/handle.hpp"
 #include "vk/ivk.hpp"
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 class context;
 }	 // namespace core::os
 
-namespace core::ivk
-{
+namespace core::ivk {
 class texture_t;
 class context;
 class framebuffer_t;
 }	 // namespace core::ivk
 
-namespace core::data
-{
+namespace core::data {
 class framebuffer_t;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief describes a framebuffer that is specially handled and created by the driver
 ///
 /// swpachains can be considered special core::ivk::framebuffer_t's, with some special
 /// pecularities. For example, unlike framebuffer's, you have to request the next image
 /// from the driver for a swapchain, and there are many more restrictions on both format
 /// and size imposed on swapchains.
-class swapchain
-{
+class swapchain {
 	friend class core::os::surface;
 
   public:

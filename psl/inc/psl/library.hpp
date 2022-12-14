@@ -16,8 +16,7 @@
 /// small namespace that contains psl::UID, meta::file, and meta::library
 /// each of those are to be used together to identify types and instances on disk, or at runtime.
 /// more detailed information can be found in the specific class pages.
-namespace psl::meta
-{
+namespace psl::meta {
 static const psl::string8_t META_EXTENSION	  = "meta";
 static const psl::string8_t LIBRARY_EXTENSION = META_EXTENSION + "lib";
 
@@ -31,8 +30,7 @@ class library;
 /// examples.
 /// \see core::meta::shader
 /// \see core::meta::texture_t
-class file
-{
+class file {
 	friend class psl::serialization::accessor;
 	friend class psl::meta::library;
 
@@ -41,8 +39,7 @@ class file
 	file(const psl::UID& key) : m_ID(key) {};
 
 	template <typename S>
-	file(S& s, const psl::string8_t& filename)
-	{
+	file(S& s, const psl::string8_t& filename) {
 		static_assert(
 		  psl::serialization::details::member_function_serialize<psl::serialization::encode_to_format, file>::value,
 		  "this shouldn't run");
@@ -68,8 +65,7 @@ class file
 
   protected:
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_ID << m_Tags;
 	}
 
@@ -92,8 +88,7 @@ class file
 /// There are also facilities to have psl::UID's reference other psl::UID's, and do bi-directional lookups for these
 /// relations. As well as the ability to load the persistent companion file that the meta::file describes (in case
 /// the psl::UID satisfies is_physical_file() ), and to have that companion file cached for faster reloads.
-class library
-{
+class library {
   public:
 	/// \brief location on disk where the library can be found.
 	///
@@ -104,15 +99,13 @@ class library
 	~library();
 
 	library(const library& other) = delete;
-	library(library&& other) noexcept :
-		m_TagMap(std::move(other.m_TagMap)), m_MetaData(std::move(other.m_MetaData)),
-		m_LibraryFile(std::move(other.m_LibraryFile)), m_LibraryFolder(std::move(other.m_LibraryFolder)),
-		m_LibraryLocation(std::move(other.m_LibraryLocation)), m_Environment(std::move(other.m_Environment)) {};
+	library(library&& other) noexcept
+		: m_TagMap(std::move(other.m_TagMap)), m_MetaData(std::move(other.m_MetaData)),
+		  m_LibraryFile(std::move(other.m_LibraryFile)), m_LibraryFolder(std::move(other.m_LibraryFolder)),
+		  m_LibraryLocation(std::move(other.m_LibraryLocation)), m_Environment(std::move(other.m_Environment)) {};
 	library& operator=(const library& other) = delete;
-	library& operator=(library&& other) noexcept
-	{
-		if(this != &other)
-		{
+	library& operator=(library&& other) noexcept {
+		if(this != &other) {
 			m_TagMap		  = std::move(other.m_TagMap);
 			m_MetaData		  = std::move(other.m_MetaData);
 			m_LibraryFile	  = std::move(other.m_LibraryFile);
@@ -125,20 +118,17 @@ class library
 
 	/// \brief creates a new entry with a unique psl::UID and a given type that is either, or derived of meta::file.
 	template <typename MF = file>
-	std::pair<const psl::UID&, MF&> create()
-	{
+	std::pair<const psl::UID&, MF&> create() {
 		return create<MF>(psl::UID::generate());
 	}
 
 	template <typename MF = file>
-	std::pair<const psl::UID&, MF&> create(psl::string8_t content)
-	{
+	std::pair<const psl::UID&, MF&> create(psl::string8_t content) {
 		return create<MF>(psl::UID::generate(), std::move(content));
 	}
 
 	template <typename MF = file>
-	std::pair<const psl::UID&, MF&> add(const psl::UID& uid, std::unique_ptr<MF> metaData)
-	{
+	std::pair<const psl::UID&, MF&> add(const psl::UID& uid, std::unique_ptr<MF> metaData) {
 		auto pair							= m_MetaData.emplace(uid, std::move(metaData));
 		pair.first->second.data.get()->m_ID = pair.first->first;
 		return std::pair<const psl::UID&, MF&>(pair.first->first, *(static_cast<MF*>(pair.first->second.data.get())));
@@ -149,10 +139,8 @@ class library
 	/// \warning giving an already present psl::UID will result in an error log, and you will be given back the instance that is
 	/// already present.
 	template <typename MF = file>
-	std::pair<const psl::UID&, MF&> create(const psl::UID& uid)
-	{
-		if(m_MetaData.find(uid) != m_MetaData.end())
-		{
+	std::pair<const psl::UID&, MF&> create(const psl::UID& uid) {
+		if(m_MetaData.find(uid) != m_MetaData.end()) {
 			LOG_ERROR("Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
 			return std::pair<const psl::UID&, MF&>(m_MetaData.find(uid)->first,
 												   *(static_cast<MF*>(m_MetaData.find(uid)->second.data.get())));
@@ -163,10 +151,8 @@ class library
 	}
 
 	template <typename MF = file>
-	std::pair<const psl::UID&, MF&> create(const psl::UID& uid, psl::string8_t content)
-	{
-		if(m_MetaData.find(uid) != m_MetaData.end())
-		{
+	std::pair<const psl::UID&, MF&> create(const psl::UID& uid, psl::string8_t content) {
+		if(m_MetaData.find(uid) != m_MetaData.end()) {
 			LOG_ERROR("Tried to create a psl::UID that already is present in the MetaLibrary! Returning the original");
 			return std::pair<const psl::UID&, MF&>(m_MetaData.find(uid)->first,
 												   *(static_cast<MF*>(m_MetaData.find(uid)->second.data.get())));
@@ -324,8 +310,7 @@ class library
 	const std::vector<psl::string8_t>& environment() const noexcept { return m_Environment; }
 
   private:
-	struct UIDData
-	{
+	struct UIDData {
 		UIDData(std::unique_ptr<file>&& dataPtr) : data(std::move(dataPtr)), flags(0) {};
 		UIDData(file*&& dataPtr) : data(dataPtr), flags(0) {};
 		UIDData() : data(nullptr), flags(0) {};
@@ -353,29 +338,29 @@ class library
 	std::vector<psl::string8_t> m_Environment;
 };
 template <typename T>
-std::optional<T*> library::get(const psl::UID& uid) const
-{
-	if constexpr(std::is_same<T, psl::meta::file>::value)
-	{
+std::optional<T*> library::get(const psl::UID& uid) const {
+	if constexpr(std::is_same<T, psl::meta::file>::value) {
 		auto it = m_MetaData.find(uid);
-		if(it == std::end(m_MetaData)) return {};
+		if(it == std::end(m_MetaData))
+			return {};
 
 		return it->second.data.get();
-	}
-	else
-	{
+	} else {
 		static_assert(std::is_base_of<psl::meta::file, T>::value,
 					  "cannot cast the given type to meta::file, you can only use this to cast to derived types");
 
 
 		auto it = m_MetaData.find(uid);
-		if(it == std::end(m_MetaData)) return {};
+		if(it == std::end(m_MetaData))
+			return {};
 
 		// todo: check the correctness of this
-		if(it->second.data->serialization_name != psl::serialization::accessor::name<T>()) return {};
+		if(it->second.data->serialization_name != psl::serialization::accessor::name<T>())
+			return {};
 
 		T* res = reinterpret_cast<T*>(it->second.data.get());
-		if(res != nullptr) return res;
+		if(res != nullptr)
+			return res;
 		return {};
 	}
 }

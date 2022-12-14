@@ -6,8 +6,7 @@
 #include "segment.hpp"
 #include <vector>
 
-namespace memory
-{
+namespace memory {
 /// \brief defines a region of memory that *might* be physically backed depending on the allocator.
 ///
 /// memory regions allow for easy managing of virtual memory in a platform abstract way.
@@ -16,13 +15,11 @@ namespace memory
 /// memory::region::create()/memory::region::destroy() methods). Memory regions do not allocate memory in one go,
 /// they reserve and "grow to" the specified size (like how virtual memory behaves). How they do this is platform
 /// specific however, but should not be of concern for the end-user.
-class region
-{
+class region {
 	friend class allocator_base;
 
 	/// \brief describes the various states memory can be in.
-	enum class state
-	{
+	enum class state {
 		RESERVED = 0,
 		COMMITED = 1,
 		DEFERRED = 2,	 // someone else manages this, likely a sub-region
@@ -67,8 +64,7 @@ class region
 
 
 	template <typename T>
-	std::optional<segment> allocate()
-	{
+	std::optional<segment> allocate() {
 		return allocate(sizeof(T));
 	}
 
@@ -79,11 +75,9 @@ class region
 	// when using this version, please also call destroy on the result when you're done
 	// this method will fail when no memory is remaining in the region
 	template <typename T, typename... Args>
-	std::optional<std::reference_wrapper<T>> create(Args&&... args)
-	{
+	std::optional<std::reference_wrapper<T>> create(Args&&... args) {
 		auto seg {allocate(sizeof(T))};
-		if(seg)
-		{
+		if(seg) {
 #ifdef DBG_NEW
 	#undef new
 #endif
@@ -97,33 +91,37 @@ class region
 	}
 
 	template <typename T>
-	bool destroy(T& target)
-	{
+	bool destroy(T& target) {
 		memory::range_t temp_range {(std::uintptr_t)((void*)(&target)), (std::uintptr_t)((void*)(&target)) + sizeof(T)};
 		memory::segment seg(temp_range, m_Allocator->is_physically_backed());
-		if(deallocate(seg))
-		{
+		if(deallocate(seg)) {
 			target.~T();
 			return true;
 		}
 		return false;
 	}
 	template <typename T>
-	bool destroy(std::optional<T>& target)
-	{
+	bool destroy(std::optional<T>& target) {
 		return ((target) ? destroy(target.value()) : false);
 	}
 
 	bool deallocate(segment& segment);
 	bool deallocate(std::optional<segment>& segment);
-	allocator_base* allocator() const { return m_Allocator; };
+	allocator_base* allocator() const {
+		return m_Allocator;
+	};
 	void compact();
 	void decommit_unused();
-	void* data() const { return m_Base; }
-	uint64_t size() const { return m_Size; }
-	size_t alignment() const { return m_Alignment; }
-	memory::range_t range() const
-	{
+	void* data() const {
+		return m_Base;
+	}
+	uint64_t size() const {
+		return m_Size;
+	}
+	size_t alignment() const {
+		return m_Alignment;
+	}
+	memory::range_t range() const {
 		return memory::range_t {(std::uintptr_t)(m_Base), (std::uintptr_t)(m_Base) + m_Size};
 	}
 

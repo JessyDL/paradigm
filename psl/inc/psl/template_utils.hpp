@@ -5,170 +5,129 @@
 #include <unordered_set>
 #include <variant>
 
-namespace utility::templates
-{
-namespace details
-{
+namespace utility::templates {
+namespace details {
 	template <size_t first, size_t second, size_t... remainder>
-	static constexpr size_t max_impl() noexcept
-	{
+	static constexpr size_t max_impl() noexcept {
 		constexpr auto val = (first > second) ? first : second;
-		if constexpr(sizeof...(remainder) > 0)
-		{
+		if constexpr(sizeof...(remainder) > 0) {
 			return details::max_impl<val, remainder...>();
-		}
-		else
+		} else
 			return val;
 	}
 
 	template <size_t first, size_t second, size_t... remainder>
-	static constexpr size_t min_impl() noexcept
-	{
+	static constexpr size_t min_impl() noexcept {
 		constexpr auto val = (first < second) ? first : second;
-		if constexpr(sizeof...(remainder) > 0)
-		{
+		if constexpr(sizeof...(remainder) > 0) {
 			return details::min_impl<val, remainder...>();
-		}
-		else
+		} else
 			return val;
 	}
 }	 // namespace details
 
 template <size_t first, size_t... remainder>
-static constexpr size_t max() noexcept
-{
-	if constexpr(sizeof...(remainder) > 0)
-	{
+static constexpr size_t max() noexcept {
+	if constexpr(sizeof...(remainder) > 0) {
 		return details::max_impl<first, remainder...>();
-	}
-	else
+	} else
 		return first;
 }
 
 template <size_t first, size_t... remainder>
-static constexpr size_t min() noexcept
-{
-	if constexpr(sizeof...(remainder) > 0)
-	{
+static constexpr size_t min() noexcept {
+	if constexpr(sizeof...(remainder) > 0) {
 		return details::min_impl<first, remainder...>();
-	}
-	else
+	} else
 		return first;
 }
 
 template <class... Ts>
-struct overloaded : Ts...
-{
+struct overloaded : Ts... {
 	using Ts::operator()...;
 };
 template <class... Ts>
 overloaded(Ts...) -> overloaded<Ts...>;
 
 template <size_t N, class T>
-constexpr std::array<T, N> make_array(const T& v) noexcept
-{
+constexpr std::array<T, N> make_array(const T& v) noexcept {
 	std::array<T, N> ret;
 	ret.fill(v);
 	return ret;
 }
 
 template <typename... Ts>
-struct type_pack_t
-{};
+struct type_pack_t {};
 
 template <typename T>
-struct type_pack_size_t
-{};
+struct type_pack_size_t {};
 
 template <typename... Ts>
-struct type_pack_size_t<type_pack_t<Ts...>>
-{
+struct type_pack_size_t<type_pack_t<Ts...>> {
 	static constexpr size_t value {sizeof...(Ts)};
 };
 
-namespace details
-{
+namespace details {
 	template <typename... Ts>
-	struct has_type_impl : std::false_type
-	{};
+	struct has_type_impl : std::false_type {};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(!std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public has_type_impl<T, Ts...>
-	{};
+	requires(!std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public has_type_impl<T, Ts...> {};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public std::true_type
-	{};
+	requires(std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public std::true_type {};
 
 }	 // namespace details
 
 template <typename... Ts>
-struct has_type : details::has_type_impl<Ts...>
-{};
+struct has_type : details::has_type_impl<Ts...> {};
 
 template <typename T, typename... Ts>
-struct has_type<T, type_pack_t<Ts...>> : public details::has_type_impl<T, Ts...>
-{};
+struct has_type<T, type_pack_t<Ts...>> : public details::has_type_impl<T, Ts...> {};
 
 template <typename T, typename... Ts>
 concept HasType = has_type<T, Ts...>::value;
 
-namespace details
-{
+namespace details {
 	template <typename... Ts>
-	struct index_of_impl
-	{};
+	struct index_of_impl {};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(!std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...>
-	{
+	requires(!std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...> {
 		static constexpr std::size_t value = 1 + index_of_impl<T, Ts...>::value;
 	};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...>
-	{
-		static constexpr std::size_t value = 0;
-	};
+	requires(std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...> { static constexpr std::size_t value = 0; };
 }	 // namespace details
 
 template <typename T, typename... Ts>
 requires HasType<T, Ts...>
-struct index_of : public details::index_of_impl<T, Ts...>
-{};
+struct index_of : public details::index_of_impl<T, Ts...> {};
 
 template <typename T, typename... Ts>
 requires HasType<T, Ts...>
-struct index_of<T, type_pack_t<Ts...>> : details::index_of_impl<T, Ts...>
-{};
+struct index_of<T, type_pack_t<Ts...>> : details::index_of_impl<T, Ts...> {};
 
 template <typename... Ts>
 static constexpr auto index_of_v = index_of<Ts...>::value;
 
-namespace details
-{
+namespace details {
 	template <size_t N, size_t Curr, typename... Ts>
-	struct type_at_index_impl
-	{};
+	struct type_at_index_impl {};
 
 	template <size_t N, size_t Curr, typename T, typename... Ts>
-	requires(N == Curr) struct type_at_index_impl<N, Curr, T, Ts...>
-	{
-		using type = T;
-	};
+	requires(N == Curr) struct type_at_index_impl<N, Curr, T, Ts...> { using type = T; };
 
 	template <size_t N, size_t Curr, typename T, typename... Ts>
-	requires(N != Curr) struct type_at_index_impl<N, Curr, T, Ts...> : public type_at_index_impl<N, Curr + 1, Ts...>
-	{};
+	requires(N != Curr) struct type_at_index_impl<N, Curr, T, Ts...> : public type_at_index_impl<N, Curr + 1, Ts...> {};
 }	 // namespace details
 
 template <size_t N, typename... Ts>
-requires(N < sizeof...(Ts)) struct type_at_index : details::type_at_index_impl<N, 0, Ts...>
-{};
+requires(N < sizeof...(Ts)) struct type_at_index : details::type_at_index_impl<N, 0, Ts...> {};
 
 template <size_t N, typename... Ts>
-struct type_at_index<N, type_pack_t<Ts...>> : type_at_index<N, Ts...>
-{};
+struct type_at_index<N, type_pack_t<Ts...>> : type_at_index<N, Ts...> {};
 
 template <size_t N, typename... Ts>
 using type_at_index_t = typename type_at_index<N, Ts...>::type;
@@ -176,23 +135,19 @@ using type_at_index_t = typename type_at_index<N, Ts...>::type;
 // handy utility for the compilers that wish to compile static_assert(false,"") in dead code paths that should error
 // out
 template <typename T>
-struct always_false : std::false_type
-{};
+struct always_false : std::false_type {};
 
 template <typename T>
 inline constexpr bool always_false_v = always_false<T>::value;
 
-namespace
-{
+namespace {
 	template <typename T>
-	struct to_type_pack
-	{
+	struct to_type_pack {
 		using type = type_pack_t<T>;
 	};
 
 	template <template <typename...> typename Container, typename... Ts>
-	struct to_type_pack<Container<Ts...>>
-	{
+	struct to_type_pack<Container<Ts...>> {
 		using type = type_pack_t<Ts...>;
 	};
 }	 // namespace
@@ -203,46 +158,35 @@ using container_to_type_pack_t = typename to_type_pack<T>::type;
 template <typename T, typename Container>
 using container_has_type = has_type<T, container_to_type_pack_t<Container>>;
 
-namespace
-{
+namespace {
 	template <typename T>
-	struct is_type_pack_t : std::false_type
-	{};
+	struct is_type_pack_t : std::false_type {};
 	template <typename... Ts>
-	struct is_type_pack_t<type_pack_t<Ts...>> : std::true_type
-	{};
+	struct is_type_pack_t<type_pack_t<Ts...>> : std::true_type {};
 }	 // namespace
 
 template <typename T>
 concept IsTypePack = is_type_pack_t<T>::value;
 
 template <typename T, typename Y>
-struct concat_type_pack
-{};
+struct concat_type_pack {};
 
 template <template <typename...> typename PackA, template <typename...> typename PackB, typename... Ts, typename... Ys>
-requires(IsTypePack<PackA<Ts...>>&& IsTypePack<PackB<Ys...>>) struct concat_type_pack<PackA<Ts...>, PackB<Ys...>>
-{
+requires(IsTypePack<PackA<Ts...>>&& IsTypePack<PackB<Ys...>>) struct concat_type_pack<PackA<Ts...>, PackB<Ys...>> {
 	using type = type_pack_t<Ts..., Ys...>;
 };
 
 template <typename T, template <typename...> typename PackB, typename... Ys>
-requires(IsTypePack<PackB<Ys...>>) struct concat_type_pack<T, PackB<Ys...>>
-{
-	using type = type_pack_t<T, Ys...>;
-};
+requires(IsTypePack<PackB<Ys...>>) struct concat_type_pack<T, PackB<Ys...>> { using type = type_pack_t<T, Ys...>; };
 
-namespace
-{
+namespace {
 	template <typename Y, typename... Ts>
-	struct remove_types
-	{
+	struct remove_types {
 		using type = type_pack_t<Ts...>;
 	};
 
 	template <typename Y, typename T, typename... Ts>
-	struct remove_types<Y, T, Ts...>
-	{
+	struct remove_types<Y, T, Ts...> {
 		using type = std::conditional_t<std::is_same_v<T, Y>,
 										typename remove_types<Y, Ts...>::type,
 										typename concat_type_pack<T, typename remove_types<Y, Ts...>::type>::type>;
@@ -252,8 +196,7 @@ namespace
 	using remove_types_t = typename remove_types<Ts...>::type;
 
 	template <typename PackA, typename PackT>
-	struct remove_from_type_pack_impl
-	{
+	struct remove_from_type_pack_impl {
 		using type = PackT;
 	};
 
@@ -263,15 +206,13 @@ namespace
 			  typename T,
 			  typename... Ts,
 			  typename... Ys>
-	struct remove_from_type_pack_impl<PackA<T, Ts...>, PackT<Ys...>>
-	{
+	struct remove_from_type_pack_impl<PackA<T, Ts...>, PackT<Ys...>> {
 		using type = typename remove_from_type_pack_impl<PackA<Ts...>, remove_types_t<T, Ys...>>::type;
 	};
 }	 // namespace
 
 template <IsTypePack PackT, typename... Ts>
-struct remove_from_type_pack
-{
+struct remove_from_type_pack {
 	using type = typename remove_from_type_pack_impl<type_pack_t<Ts...>, PackT>::type;
 };
 
@@ -279,88 +220,71 @@ template <IsTypePack PackT, typename... Ts>
 using remove_from_type_pack_t = typename remove_from_type_pack<PackT, Ts...>::type;
 
 template <typename T>
-struct is_pair : public std::false_type
-{};
+struct is_pair : public std::false_type {};
 template <typename T>
-struct is_associative_container
-{
+struct is_associative_container {
 	static constexpr bool value {false};
 };
 template <typename T>
-struct is_trivial_container
-{
+struct is_trivial_container {
 	static constexpr bool value {false};
 };
 template <typename T>
-struct is_complex_container
-{
+struct is_complex_container {
 	static constexpr bool value {false};
 };
 template <typename T>
-struct is_container
-{
+struct is_container {
 	static constexpr bool value {is_trivial_container<T>::value || is_complex_container<T>::value ||
 								 is_associative_container<T>::value};
 };
 
 template <typename T, typename A>
-struct is_trivial_container<std::vector<T, A>>
-{
+struct is_trivial_container<std::vector<T, A>> {
 	static constexpr bool value {true};
 };
 
 template <typename T, typename... A>
-struct is_complex_container<std::tuple<T, A...>>
-{
+struct is_complex_container<std::tuple<T, A...>> {
 	static constexpr bool value {true};
 };
 
 template <typename T, typename A>
-struct is_complex_container<std::unordered_set<T, A>>
-{
+struct is_complex_container<std::unordered_set<T, A>> {
 	static constexpr bool value {true};
 };
 
 template <typename T, typename A>
-struct is_associative_container<std::unordered_map<T, A>>
-{
+struct is_associative_container<std::unordered_map<T, A>> {
 	static constexpr bool value {true};
 };
 
 template <typename T, typename A>
-struct is_pair<std::pair<T, A>>
-{
+struct is_pair<std::pair<T, A>> {
 	static constexpr bool value {true};
 };
 
 template <typename T>
-struct get_key_type
-{};
+struct get_key_type {};
 
 template <typename T, typename A>
-struct get_key_type<std::unordered_map<T, A>>
-{
+struct get_key_type<std::unordered_map<T, A>> {
 	using type = T;
 };
 
 template <typename T>
-struct get_value_type
-{};
+struct get_value_type {};
 
 template <typename T, typename A>
-struct get_value_type<std::unordered_map<T, A>>
-{
+struct get_value_type<std::unordered_map<T, A>> {
 	using type = A;
 };
 
-namespace operators
-{
-	namespace details
-	{
+namespace operators {
+	namespace details {
 		// https://stackoverflow.com/questions/6534041/how-to-check-whether-operator-exists/6534951
 		template <typename X, typename Y, typename Op>
-		struct op_valid_impl
-		{
+		struct op_valid_impl {
 			template <typename U, typename L, typename R>
 			static auto test(int)
 			  -> decltype(std::declval<U>()(std::declval<L>(), std::declval<R>()), void(), std::true_type());
@@ -372,8 +296,7 @@ namespace operators
 		};
 
 		template <typename T>
-		struct has_pre_increment
-		{
+		struct has_pre_increment {
 			template <typename U, typename = decltype(++(std::declval<U&>()))>
 			static long test(const U&&);
 			static char test(...);
@@ -381,8 +304,7 @@ namespace operators
 			static constexpr bool value = sizeof(test(std::declval<T>())) == sizeof(long);
 		};
 		template <typename T>
-		struct has_post_increment
-		{
+		struct has_post_increment {
 			template <typename U, typename = decltype((std::declval<U&>())++)>
 			static long test(const U&&);
 			static char test(...);
@@ -390,8 +312,7 @@ namespace operators
 			static constexpr bool value = sizeof(test(std::declval<T>())) == sizeof(long);
 		};
 		template <typename T>
-		struct has_pre_decrement
-		{
+		struct has_pre_decrement {
 			template <typename U, typename = decltype(--(std::declval<U&>()))>
 			static long test(const U&&);
 			static char test(...);
@@ -400,8 +321,7 @@ namespace operators
 		};
 
 		template <typename T>
-		struct has_post_decrement
-		{
+		struct has_post_decrement {
 			template <typename U, typename = decltype((std::declval<U&>())--)>
 			static long test(const U&&);
 			static char test(...);
@@ -411,8 +331,7 @@ namespace operators
 
 
 		template <typename T>
-		struct has_bool_operator
-		{
+		struct has_bool_operator {
 			template <typename U, typename = decltype((std::declval<U&>()).operator bool())>
 			static long test(const U&&);
 			static char test(...);
@@ -422,149 +341,109 @@ namespace operators
 
 		// https://stackoverflow.com/questions/31305894/how-to-check-for-the-existence-of-a-subscript-operator
 		template <typename T, typename Index, typename = void>
-		struct has_subscript_operator : std::false_type
-		{};
+		struct has_subscript_operator : std::false_type {};
 		template <typename T, typename Index>
-		struct has_subscript_operator<T, Index, std::void_t<decltype(std::declval<T>()[std::declval<Index>()])>> :
-			std::true_type
-		{};
+		struct has_subscript_operator<T, Index, std::void_t<decltype(std::declval<T>()[std::declval<Index>()])>>
+			: std::true_type {};
 
 		template <typename T, typename U, typename = void>
-		struct has_arithmetic_plus : std::false_type
-		{};
+		struct has_arithmetic_plus : std::false_type {};
 		template <typename T, typename U>
-		struct has_arithmetic_plus<T, U, std::void_t<decltype(std::declval<T>().operator+(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_arithmetic_plus<T, U, std::void_t<decltype(std::declval<T>().operator+(std::declval<U>()))>>
+			: std::true_type {};
 
 		template <typename T, typename U, typename = void>
-		struct has_arithmetic_minus : std::false_type
-		{};
+		struct has_arithmetic_minus : std::false_type {};
 		template <typename T, typename U>
-		struct has_arithmetic_minus<T, U, std::void_t<decltype(std::declval<T>().operator-(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_arithmetic_minus<T, U, std::void_t<decltype(std::declval<T>().operator-(std::declval<U>()))>>
+			: std::true_type {};
 
 		template <typename T, typename U, typename = void>
-		struct has_arithmetic_multiply : std::false_type
-		{};
+		struct has_arithmetic_multiply : std::false_type {};
 		template <typename T, typename U>
-		struct has_arithmetic_multiply<T, U, std::void_t<decltype(std::declval<T>().operator*(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_arithmetic_multiply<T, U, std::void_t<decltype(std::declval<T>().operator*(std::declval<U>()))>>
+			: std::true_type {};
 
 		template <typename T, typename U, typename = void>
-		struct has_arithmetic_divide : std::false_type
-		{};
+		struct has_arithmetic_divide : std::false_type {};
 		template <typename T, typename U>
-		struct has_arithmetic_divide<T, U, std::void_t<decltype(std::declval<T>().operator/(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_arithmetic_divide<T, U, std::void_t<decltype(std::declval<T>().operator/(std::declval<U>()))>>
+			: std::true_type {};
 
 		template <typename T, typename U, typename = void>
-		struct has_arithmetic_modulus : std::false_type
-		{};
+		struct has_arithmetic_modulus : std::false_type {};
 		template <typename T, typename U>
-		struct has_arithmetic_modulus<T, U, std::void_t<decltype(std::declval<T>().operator%(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_arithmetic_modulus<T, U, std::void_t<decltype(std::declval<T>().operator%(std::declval<U>()))>>
+			: std::true_type {};
 
 
 		template <typename T, typename U, typename = void>
-		struct has_assignment_plus : std::false_type
-		{};
+		struct has_assignment_plus : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_plus<T, U, std::void_t<decltype(std::declval<T>().operator+=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_plus<T, U, std::void_t<decltype(std::declval<T>().operator+=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_minus : std::false_type
-		{};
+		struct has_assignment_minus : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_minus<T, U, std::void_t<decltype(std::declval<T>().operator-=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_minus<T, U, std::void_t<decltype(std::declval<T>().operator-=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_multiply : std::false_type
-		{};
+		struct has_assignment_multiply : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_multiply<T, U, std::void_t<decltype(std::declval<T>().operator*=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_multiply<T, U, std::void_t<decltype(std::declval<T>().operator*=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_divide : std::false_type
-		{};
+		struct has_assignment_divide : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_divide<T, U, std::void_t<decltype(std::declval<T>().operator/=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_divide<T, U, std::void_t<decltype(std::declval<T>().operator/=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_modulus : std::false_type
-		{};
+		struct has_assignment_modulus : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_modulus<T, U, std::void_t<decltype(std::declval<T>().operator%=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_modulus<T, U, std::void_t<decltype(std::declval<T>().operator%=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_and : std::false_type
-		{};
+		struct has_assignment_and : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_and<T, U, std::void_t<decltype(std::declval<T>().operator&=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_and<T, U, std::void_t<decltype(std::declval<T>().operator&=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_or : std::false_type
-		{};
+		struct has_assignment_or : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_or<T, U, std::void_t<decltype(std::declval<T>().operator|=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_or<T, U, std::void_t<decltype(std::declval<T>().operator|=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_xor : std::false_type
-		{};
+		struct has_assignment_xor : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_xor<T, U, std::void_t<decltype(std::declval<T>().operator^=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_xor<T, U, std::void_t<decltype(std::declval<T>().operator^=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_left_shift : std::false_type
-		{};
+		struct has_assignment_left_shift : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_left_shift<T,
-										 U,
-										 std::void_t<decltype(std::declval<T>().operator<<=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_left_shift<T, U, std::void_t<decltype(std::declval<T>().operator<<=(std::declval<U>()))>>
+			: std::true_type {};
 		template <typename T, typename U, typename = void>
-		struct has_assignment_right_shift : std::false_type
-		{};
+		struct has_assignment_right_shift : std::false_type {};
 		template <typename T, typename U>
-		struct has_assignment_right_shift<T,
-										  U,
-										  std::void_t<decltype(std::declval<T>().operator>>=(std::declval<U>()))>> :
-			std::true_type
-		{};
+		struct has_assignment_right_shift<T, U, std::void_t<decltype(std::declval<T>().operator>>=(std::declval<U>()))>>
+			: std::true_type {};
 
 		template <typename X, typename Y, typename Op>
 		using op_valid = typename op_valid_impl<X, Y, Op>::type;
 
 
-		struct left_shift
-		{
+		struct left_shift {
 			template <typename L, typename R>
 			constexpr auto operator()(L&& l, R&& r) const noexcept(noexcept(std::forward<L>(l) << std::forward<R>(r)))
-			  -> decltype(std::forward<L>(l) << std::forward<R>(r))
-			{
+			  -> decltype(std::forward<L>(l) << std::forward<R>(r)) {
 				return std::forward<L>(l) << std::forward<R>(r);
 			}
 		};
 
-		struct right_shift
-		{
+		struct right_shift {
 			template <typename L, typename R>
 			constexpr auto operator()(L&& l, R&& r) const noexcept(noexcept(std::forward<L>(l) >> std::forward<R>(r)))
-			  -> decltype(std::forward<L>(l) >> std::forward<R>(r))
-			{
+			  -> decltype(std::forward<L>(l) >> std::forward<R>(r)) {
 				return std::forward<L>(l) >> std::forward<R>(r);
 			}
 		};
@@ -669,32 +548,27 @@ namespace operators
 // todo move these helpers to a better location
 
 template <typename T>
-struct func_traits : public func_traits<decltype(&T::operator())>
-{};
+struct func_traits : public func_traits<decltype(&T::operator())> {};
 
 template <typename C, typename Ret, typename... Args>
-struct func_traits<Ret (C::*)(Args...)>
-{
+struct func_traits<Ret (C::*)(Args...)> {
 	using result_t	  = Ret;
 	using arguments_t = type_pack_t<Args...>;
 };
 
 template <typename Ret, typename... Args>
-struct func_traits<Ret (*)(Args...)>
-{
+struct func_traits<Ret (*)(Args...)> {
 	using result_t	  = Ret;
 	using arguments_t = type_pack_t<Args...>;
 };
 
 template <typename C, typename Ret, typename... Args>
-struct func_traits<Ret (C::*)(Args...) const>
-{
+struct func_traits<Ret (C::*)(Args...) const> {
 	using result_t	  = Ret;
 	using arguments_t = type_pack_t<Args...>;
 };
 
-struct any
-{
+struct any {
 	template <typename T>
 	operator T&() const;
 
@@ -704,24 +578,21 @@ struct any
 
 
 template <class, std::size_t N, class = std::make_index_sequence<N>, class = std::void_t<>>
-struct is_callable_n : std::false_type
-{};
+struct is_callable_n : std::false_type {};
 
 template <class F, std::size_t N, std::size_t... Idx>
 struct is_callable_n<F,
 					 N,
 					 std::index_sequence<Idx...>,
-					 std::void_t<decltype(std::declval<F>()((Idx, std::declval<any const&&>())...))>> : std::true_type
-{};
+					 std::void_t<decltype(std::declval<F>()((Idx, std::declval<any const&&>())...))>> : std::true_type {
+};
 }	 // namespace utility::templates
 
-namespace psl::templates
-{
+namespace psl::templates {
 using namespace utility::templates;
 }
 
-namespace psl
-{
+namespace psl {
 /// \brief checks if the given type exists within the variadic args
 ///
 /// \tparam T type to search

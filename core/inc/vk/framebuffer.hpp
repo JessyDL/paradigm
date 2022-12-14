@@ -3,19 +3,16 @@
 #include "vk/ivk.hpp"
 #include <vector>
 
-namespace core::data
-{
+namespace core::data {
 class framebuffer_t;
 }
-namespace core::ivk
-{
+namespace core::ivk {
 class texture_t;
 class context;
 class sampler_t;
 }	 // namespace core::ivk
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief describes a set of images to use as rendertargets
 ///
 /// in many graphics applications you will need to use more advanced techniques
@@ -23,8 +20,7 @@ namespace core::ivk
 /// to describe a set of images to the driver that you will use as render targets.
 /// the framebuffer class is just that, and allows you to bundle together images to do
 /// postprocessing, or shadowmapping, etc...
-class framebuffer_t final
-{
+class framebuffer_t final {
   public:
 	using texture_handle = core::resource::handle<core::ivk::texture_t>;
 
@@ -35,8 +31,7 @@ class framebuffer_t final
 	/// this is where bindings come in; even though most bindings will have 1 attachment,
 	/// in a multi-layer scenario you can have many attachments, or have some indices all share
 	/// the same attachment.
-	struct binding
-	{
+	struct binding {
 		std::vector<texture_handle> attachments;
 		vk::AttachmentDescription description;
 		uint32_t index;

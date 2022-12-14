@@ -61,27 +61,13 @@ typedef void* HANDLE;	 //-V677
 
 
 /// \brief platform specific utilities that help in identifying the current platform, and various specifications of it.
-namespace utility::platform
-{
+namespace utility::platform {
 /// \brief contains all known, supported (or to be supported) platforms.
 /// \note we need to add an extra dash to linux as the define already exists on linux platforms
-enum class platform_t
-{
-	UNKNOWN = 0,
-	lnx		= 1,
-	osx		= 2,
-	windows = 3,
-	android = 4,
-	ios		= 5
-};
+enum class platform_t { UNKNOWN = 0, lnx = 1, osx = 2, windows = 3, android = 4, ios = 5 };
 
 /// \brief encoding enum, that can be used to help identify encoding of items.
-enum class encoding_t
-{
-	UNKNOWN = 0,
-	UTF8	= 1,
-	UTF16	= 2
-};
+enum class encoding_t { UNKNOWN = 0, UTF8 = 1, UTF16 = 2 };
 #if defined(PLATFORM_WINDOWS)
 /// \brief contains what platform this current is.
 constexpr platform_t platform = platform_t::windows;
@@ -107,12 +93,7 @@ constexpr encoding_t encoding = encoding_t::UTF8;
 #endif
 
 /// \brief contains all known, supported (or to be supported) architectures.
-enum class architecture_t
-{
-	UNKNOWN = 0,
-	x64,
-	ARM
-};
+enum class architecture_t { UNKNOWN = 0, x64, ARM };
 
 #if defined(PLATFORM_X64)
 /// \brief the architecture of the current platform.

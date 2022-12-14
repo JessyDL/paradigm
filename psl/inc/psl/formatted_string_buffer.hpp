@@ -2,8 +2,7 @@
 #include "psl/ustring.hpp"
 #include <vector>
 
-class formatted_string_buffer
-{
+class formatted_string_buffer {
   public:
 	formatted_string_buffer();
 	formatted_string_buffer(const psl::string8_t& dividerOpen, const psl::string8_t& dividerClose);

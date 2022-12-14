@@ -2,27 +2,23 @@
 #include "resource/resource.hpp"
 #include "vk/ivk.hpp"
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 class pipeline;
 class framebuffer_t;
 class swapchain;
 }	 // namespace core::ivk
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace psl
-{
+namespace psl {
 struct UID;
 }
 
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief the pipeline key creates a hash of the important elements of a vk::Pipeline
 ///
 /// when you want to store, and lookup pipelines based on their properties, then pipeline_key
@@ -30,16 +26,14 @@ namespace core::ivk
 /// properties that make it unique (for the GPU), and easily retrieve it.
 /// to see this being used, check core::ivk::pipeline_cache.
 /// \see core::ivk::pipeline_cache
-struct pipeline_key
-{
+struct pipeline_key {
 	pipeline_key() = default;
 	/// \brief constructor based on the data you wish to store.
 	/// \warning the pipeline_key does not update when the material data has been updated.
 	/// the material will no longer be able to use this key when it changes its properties.
 	pipeline_key(const psl::UID& uid, core::resource::handle<core::data::material_t> data, vk::RenderPass pass);
 
-	bool operator==(const pipeline_key& other) const noexcept
-	{
+	bool operator==(const pipeline_key& other) const noexcept {
 		return renderPass.operator VkRenderPass() == other.renderPass.operator VkRenderPass() &&
 			   descriptors.size() == other.descriptors.size() &&
 			   std::equal(std::begin(descriptors),
@@ -47,8 +41,7 @@ struct pipeline_key
 						  std::begin(other.descriptors),
 						  std::end(other.descriptors));
 	}
-	bool operator!=(const pipeline_key& other) const noexcept
-	{
+	bool operator!=(const pipeline_key& other) const noexcept {
 		return renderPass.operator VkRenderPass() != other.renderPass.operator VkRenderPass() ||
 			   descriptors.size() != other.descriptors.size() ||
 			   !std::equal(std::begin(descriptors),
@@ -65,16 +58,12 @@ struct pipeline_key
 };
 }	 // namespace core::ivk
 
-namespace std
-{
+namespace std {
 template <>
-struct hash<core::ivk::pipeline_key>
-{
-	std::size_t operator()(core::ivk::pipeline_key const& s) const noexcept
-	{
+struct hash<core::ivk::pipeline_key> {
+	std::size_t operator()(core::ivk::pipeline_key const& s) const noexcept {
 		std::size_t seed = std::hash<psl::UID> {}(s.uid);
-		for(auto& i : s.descriptors)
-		{
+		for(auto& i : s.descriptors) {
 			seed ^= (uint64_t)i.first + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			seed ^= (uint64_t)i.second + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		}
@@ -84,15 +73,13 @@ struct hash<core::ivk::pipeline_key>
 };
 }	 // namespace std
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief the pipeline cache allows sharing of pipelines between various materials.
 ///
 /// the pipeline cache allows sharing of pipelines between various materials.
 /// it is responsible for the creation and destruction of all pipeline objects, as well as
 /// providing easy facilities to get pipelines based on material descriptions.
-class pipeline_cache
-{
+class pipeline_cache {
   public:
 	pipeline_cache(core::resource::cache_t& cache,
 				   const core::resource::metadata& metaData,

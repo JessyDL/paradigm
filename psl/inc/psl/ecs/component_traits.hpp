@@ -3,19 +3,16 @@
 #include "strtype/strtype.hpp"
 #include <cstdint>
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 /// \brief Specialize this type to override default behaviours, or to enable serialization
 /// \note `serializable` controls the default behaviour. Ineligible types (complex component types) will throw compile errors if you try to force serialization.
 template <typename T>
-struct component_traits
-{
+struct component_traits {
 	static constexpr bool serializable {false};
 	static constexpr auto name {strtype::stringify_typename<T>()};
 };
 
-enum class component_type : std::uint8_t
-{
+enum class component_type : std::uint8_t {
 	COMPLEX = 0,
 	TRIVIAL = 1,
 	FLAG	= 2,
@@ -39,11 +36,9 @@ static constexpr auto component_type_v = IsComponentFlagType<T>		 ? component_ty
 										 : IsComponentTrivialType<T> ? component_type::TRIVIAL
 																	 : component_type::COMPLEX;
 
-namespace details
-{
+namespace details {
 	template <typename T>
-	concept HasComponentTraitsPrototypeDefinition = requires()
-	{
+	concept HasComponentTraitsPrototypeDefinition = requires() {
 #if !defined(PLATFORM_ANDROID)
 		{
 #endif
@@ -55,8 +50,7 @@ namespace details
 	};
 
 	template <typename T>
-	concept HasComponentMemberPrototypeDefinition = requires()
-	{
+	concept HasComponentMemberPrototypeDefinition = requires() {
 #if !defined(PLATFORM_ANDROID)
 		{
 #endif
@@ -76,18 +70,12 @@ namespace details
 	concept DoesComponentTypeNeedPrototypeCall = IsComponentComplexType<T> || HasComponentTypePrototypeDefinition<T>;
 
 	template <DoesComponentTypeNeedPrototypeCall T>
-	FORCEINLINE static constexpr auto prototype_for() -> T
-	{
-		if constexpr(HasComponentTraitsPrototypeDefinition<T>)
-		{
+	FORCEINLINE static constexpr auto prototype_for() -> T {
+		if constexpr(HasComponentTraitsPrototypeDefinition<T>) {
 			return component_traits<T>::prototype();
-		}
-		else if constexpr(HasComponentMemberPrototypeDefinition<T>)
-		{
+		} else if constexpr(HasComponentMemberPrototypeDefinition<T>) {
 			return T::prototype();
-		}
-		else
-		{
+		} else {
 			return T {};
 		}
 	}

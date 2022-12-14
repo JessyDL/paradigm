@@ -10,13 +10,11 @@ typedef HWND__* HWND;
 	#endif
 #endif
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
-namespace core::systems
-{
+namespace core::systems {
 /// \brief handles all inputs and sends out generic events that can be subscribed to.
 ///
 /// the input class is responsible for translating platform specific input events to a more
@@ -29,21 +27,18 @@ namespace core::systems
 /// several frames untill the input system gets an update. that's why you should prefer listening to the events
 /// rather than iterating the input system itself.
 /// \note there are several different events to subscribe to, see the `subscribe` method for further details and documentation.
-class input
-{
+class input {
 	friend class core::os::surface;
 
   public:
 	/// \brief contains the mouse delta coordinates in respect to the last message tick.
-	struct mouse_delta
-	{
+	struct mouse_delta {
 		int64_t x {0};
 		int64_t y {0};
 	};
 
 	/// \brief absolute mouse coordinates that also contain the surface width/height.
-	struct mouse_coordinate
-	{
+	struct mouse_coordinate {
 		int64_t x {0};
 		int64_t y {0};
 		uint64_t width {0};
@@ -51,8 +46,7 @@ class input
 	};
 
 	/// \brief codes for the various mouse buttons.
-	enum class mousecode
-	{
+	enum class mousecode {
 		LEFT	= 1,
 		RIGHT	= 2,
 		MIDDLE	= 3,
@@ -66,8 +60,7 @@ class input
 	};
 
 	/// \brief delta information for the mouse scroll wheel.
-	struct scroll_delta
-	{
+	struct scroll_delta {
 		int64_t x {0};
 		int64_t y {0};
 	};
@@ -345,8 +338,7 @@ class input
 	};
 
 	/// \brief contains the generic keycodes that platform specific key codes get translated to.
-	enum class keycode : uint8_t
-	{
+	enum class keycode : uint8_t {
 		A				 = 4,
 		B				 = 5,
 		C				 = 6,
@@ -471,96 +463,77 @@ class input
 
   private:
 	template <typename T, typename SFINEA = void>
-	struct mf_on_key_pressed : std::false_type
-	{};
+	struct mf_on_key_pressed : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the key press event.
 	template <typename T>
-	struct mf_on_key_pressed<T, std::void_t<decltype(std::declval<T&>().on_key_pressed(std::declval<keycode>()))>> :
-		std::true_type
-	{};
+	struct mf_on_key_pressed<T, std::void_t<decltype(std::declval<T&>().on_key_pressed(std::declval<keycode>()))>>
+		: std::true_type {};
 
 	template <typename T, typename SFINEA = void>
-	struct mf_on_key_released : std::false_type
-	{};
+	struct mf_on_key_released : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the key release event.
 	template <typename T>
-	struct mf_on_key_released<T, std::void_t<decltype(std::declval<T&>().on_key_released(std::declval<keycode>()))>> :
-		std::true_type
-	{};
+	struct mf_on_key_released<T, std::void_t<decltype(std::declval<T&>().on_key_released(std::declval<keycode>()))>>
+		: std::true_type {};
 
 	template <typename T, typename SFINEA = void>
-	struct mf_on_key_held : std::false_type
-	{};
+	struct mf_on_key_held : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the key held event.
 	template <typename T>
-	struct mf_on_key_held<T, std::void_t<decltype(std::declval<T&>().on_key_held(std::declval<keycode>()))>> :
-		std::true_type
-	{};
+	struct mf_on_key_held<T, std::void_t<decltype(std::declval<T&>().on_key_held(std::declval<keycode>()))>>
+		: std::true_type {};
 
 	template <typename T, typename SFINEA = void>
-	struct mf_mouse_delta : std::false_type
-	{};
+	struct mf_mouse_delta : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the mouse delta move event.
 	template <typename T>
-	struct mf_mouse_delta<T, std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_delta>()))>> :
-		std::true_type
-	{};
+	struct mf_mouse_delta<T, std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_delta>()))>>
+		: std::true_type {};
 
 	template <typename T, typename SFINEA = void>
-	struct mf_mouse_coordinate : std::false_type
-	{};
+	struct mf_mouse_coordinate : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the mouse move (absolute coordinates)
 	/// event.
 	template <typename T>
 	struct mf_mouse_coordinate<
 	  T,
-	  std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_coordinate>()))>> : std::true_type
-	{};
+	  std::void_t<decltype(std::declval<T&>().on_mouse_move(std::declval<mouse_coordinate>()))>> : std::true_type {};
 
 	template <typename T, typename SFINEA = void>
-	struct mf_on_scroll : std::false_type
-	{};
+	struct mf_on_scroll : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the mouse scroll event.
 	template <typename T>
-	struct mf_on_scroll<T, std::void_t<decltype(std::declval<T&>().on_scroll(std::declval<scroll_delta>()))>> :
-		std::true_type
-	{};
+	struct mf_on_scroll<T, std::void_t<decltype(std::declval<T&>().on_scroll(std::declval<scroll_delta>()))>>
+		: std::true_type {};
 
 	template <typename T, typename SFINEA = void>
-	struct mf_on_mouse_pressed : std::false_type
-	{};
+	struct mf_on_mouse_pressed : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the mouse press event.
 	template <typename T>
-	struct mf_on_mouse_pressed<T,
-							   std::void_t<decltype(std::declval<T&>().on_mouse_pressed(std::declval<mousecode>()))>> :
-		std::true_type
-	{};
+	struct mf_on_mouse_pressed<T, std::void_t<decltype(std::declval<T&>().on_mouse_pressed(std::declval<mousecode>()))>>
+		: std::true_type {};
 	template <typename T, typename SFINEA = void>
-	struct mf_on_mouse_released : std::false_type
-	{};
+	struct mf_on_mouse_released : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the mouse release event.
 	template <typename T>
-	struct mf_on_mouse_released<
-	  T,
-	  std::void_t<decltype(std::declval<T&>().on_mouse_released(std::declval<mousecode>()))>> : std::true_type
-	{};
+	struct mf_on_mouse_released<T,
+								std::void_t<decltype(std::declval<T&>().on_mouse_released(std::declval<mousecode>()))>>
+		: std::true_type {};
 	template <typename T, typename SFINEA = void>
-	struct mf_on_mouse_held : std::false_type
-	{};
+	struct mf_on_mouse_held : std::false_type {};
 
 	/// \brief SFINAE tag that is used to detect the method signature for the mouse held event.
 	template <typename T>
-	struct mf_on_mouse_held<T, std::void_t<decltype(std::declval<T&>().on_mouse_held(std::declval<mousecode>()))>> :
-		std::true_type
-	{};
+	struct mf_on_mouse_held<T, std::void_t<decltype(std::declval<T&>().on_mouse_held(std::declval<mousecode>()))>>
+		: std::true_type {};
 
   public:
 	/// \brief automatically subscribes to all the events the target has method signatures for.
@@ -578,30 +551,35 @@ class input
 	/// - T::on_mouse_scroll(scroll_delta)		=> when the mouse moves, sends the delta change of the scroll in
 	/// respect to last tick
 	template <typename Type>
-	void subscribe(Type target)
-	{
+	void subscribe(Type target) {
 		using T = std::remove_pointer_t<std::remove_cvref_t<Type>>;
 		T* t {};
-		if constexpr(std::is_pointer_v<Type>)
-		{
+		if constexpr(std::is_pointer_v<Type>) {
 			t = target;
-		}
-		else
-		{
+		} else {
 			t = &target;
 		}
-		if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Subscribe(t, &T::on_key_pressed);
-		if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Subscribe(t, &T::on_key_released);
-		if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Subscribe(t, &T::on_key_held);
+		if constexpr(mf_on_key_pressed<T>::value)
+			m_OnKeyPressed.Subscribe(t, &T::on_key_pressed);
+		if constexpr(mf_on_key_released<T>::value)
+			m_OnKeyReleased.Subscribe(t, &T::on_key_released);
+		if constexpr(mf_on_key_held<T>::value)
+			m_OnKeyHeld.Subscribe(t, &T::on_key_held);
 
-		if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Subscribe(t, &T::on_mouse_pressed);
-		if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Subscribe(t, &T::on_mouse_released);
-		if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Subscribe(t, &T::on_mouse_held);
+		if constexpr(mf_on_mouse_pressed<T>::value)
+			m_OnMousePressed.Subscribe(t, &T::on_mouse_pressed);
+		if constexpr(mf_on_mouse_released<T>::value)
+			m_OnMouseReleased.Subscribe(t, &T::on_mouse_released);
+		if constexpr(mf_on_mouse_held<T>::value)
+			m_OnMouseHeld.Subscribe(t, &T::on_mouse_held);
 
-		if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Subscribe(t, &T::on_mouse_move);
-		if constexpr(mf_mouse_coordinate<T>::value) m_OnMouseMoveCoordinates.Subscribe(t, &T::on_mouse_move);
+		if constexpr(mf_mouse_delta<T>::value)
+			m_OnMouseMoveDelta.Subscribe(t, &T::on_mouse_move);
+		if constexpr(mf_mouse_coordinate<T>::value)
+			m_OnMouseMoveCoordinates.Subscribe(t, &T::on_mouse_move);
 
-		if constexpr(mf_on_scroll<T>::value) m_OnScroll.Subscribe(t, &T::on_scroll);
+		if constexpr(mf_on_scroll<T>::value)
+			m_OnScroll.Subscribe(t, &T::on_scroll);
 
 		static_assert(mf_on_key_pressed<T>::value || mf_on_key_released<T>::value || mf_on_key_held<T>::value ||
 						mf_on_mouse_pressed<T>::value || mf_on_mouse_released<T>::value || mf_on_mouse_held<T>::value ||
@@ -612,31 +590,36 @@ class input
 
 	/// \brief automatically unsubscribes to all the events the target has method signatures for.
 	template <typename Type>
-	void unsubscribe(Type target)
-	{
+	void unsubscribe(Type target) {
 		using T = std::remove_pointer_t<std::remove_cvref_t<Type>>;
 		T* t {};
-		if constexpr(std::is_pointer_v<Type>)
-		{
+		if constexpr(std::is_pointer_v<Type>) {
 			t = target;
-		}
-		else
-		{
+		} else {
 			t = &target;
 		}
 
-		if constexpr(mf_on_key_pressed<T>::value) m_OnKeyPressed.Unsubscribe(t, &T::on_key_pressed);
-		if constexpr(mf_on_key_released<T>::value) m_OnKeyReleased.Unsubscribe(t, &T::on_key_released);
-		if constexpr(mf_on_key_held<T>::value) m_OnKeyHeld.Unsubscribe(t, &T::on_key_held);
+		if constexpr(mf_on_key_pressed<T>::value)
+			m_OnKeyPressed.Unsubscribe(t, &T::on_key_pressed);
+		if constexpr(mf_on_key_released<T>::value)
+			m_OnKeyReleased.Unsubscribe(t, &T::on_key_released);
+		if constexpr(mf_on_key_held<T>::value)
+			m_OnKeyHeld.Unsubscribe(t, &T::on_key_held);
 
-		if constexpr(mf_on_mouse_pressed<T>::value) m_OnMousePressed.Unsubscribe(t, &T::on_mouse_pressed);
-		if constexpr(mf_on_mouse_released<T>::value) m_OnMouseReleased.Unsubscribe(t, &T::on_mouse_released);
-		if constexpr(mf_on_mouse_held<T>::value) m_OnMouseHeld.Unsubscribe(t, &T::on_mouse_held);
+		if constexpr(mf_on_mouse_pressed<T>::value)
+			m_OnMousePressed.Unsubscribe(t, &T::on_mouse_pressed);
+		if constexpr(mf_on_mouse_released<T>::value)
+			m_OnMouseReleased.Unsubscribe(t, &T::on_mouse_released);
+		if constexpr(mf_on_mouse_held<T>::value)
+			m_OnMouseHeld.Unsubscribe(t, &T::on_mouse_held);
 
-		if constexpr(mf_mouse_delta<T>::value) m_OnMouseMoveDelta.Unsubscribe(t, &T::on_mouse_move);
-		if constexpr(mf_mouse_coordinate<T>::value) m_OnMouseMoveCoordinates.Unsubscribe(t, &T::on_mouse_move);
+		if constexpr(mf_mouse_delta<T>::value)
+			m_OnMouseMoveDelta.Unsubscribe(t, &T::on_mouse_move);
+		if constexpr(mf_mouse_coordinate<T>::value)
+			m_OnMouseMoveCoordinates.Unsubscribe(t, &T::on_mouse_move);
 
-		if constexpr(mf_on_scroll<T>::value) m_OnScroll.Unsubscribe(t, &T::on_scroll);
+		if constexpr(mf_on_scroll<T>::value)
+			m_OnScroll.Unsubscribe(t, &T::on_scroll);
 	}
 
 	/// \returns the current mouse coordinate information

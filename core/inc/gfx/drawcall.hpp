@@ -6,21 +6,17 @@
 #include <vector>
 
 #ifdef PE_VULKAN
-namespace core::ivk
-{
+namespace core::ivk {
 class drawpass;
 }
 #endif
 #ifdef PE_GLES
-namespace core::igles
-{
+namespace core::igles {
 class drawpass;
 }
 #endif
-namespace core::gfx
-{
-class drawcall
-{
+namespace core::gfx {
+class drawcall {
 	friend class drawgroup;
 #ifdef PE_VULKAN
 	friend class core::ivk::drawpass;

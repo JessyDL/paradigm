@@ -3,25 +3,20 @@
 #include "psl/array.hpp"
 #include "resource/handle.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class framebuffer_t;
 }
-namespace core::igles
-{
+namespace core::igles {
 class texture_t;
 class sampler_t;
 
-class framebuffer_t
-{
+class framebuffer_t {
   public:
 	using texture_handle = core::resource::handle<core::igles::texture_t>;
-	struct description
-	{
+	struct description {
 		core::gfx::format_t format;
 	};
-	struct binding
-	{
+	struct binding {
 		psl::array<texture_handle> attachments;
 		description description;
 		uint32_t index;

@@ -1,14 +1,11 @@
 #pragma once
 #include "psl/static_array.hpp"
 
-namespace psl
-{
+namespace psl {
 template <typename T>
-class ring_array
-{
+class ring_array {
   public:
-	class iterator
-	{
+	class iterator {
 		friend class ring_array<T>;
 
 	  public:
@@ -18,34 +15,29 @@ class ring_array
 		using reference			= value_type&;
 		using iterator_category = std::random_access_iterator_tag;
 
-		iterator(T* data, size_t begin = 0, size_t capacity = 0, size_t index = 0) noexcept :
-			m_Data(data), m_Begin(begin), m_Capacity(capacity), m_Index(index) {};
+		iterator(T* data, size_t begin = 0, size_t capacity = 0, size_t index = 0) noexcept
+			: m_Data(data), m_Begin(begin), m_Capacity(capacity), m_Index(index) {};
 		iterator() noexcept								  = default;
 		iterator(const iterator& rhs) noexcept			  = default;
 		iterator(iterator&& rhs) noexcept				  = default;
 		iterator& operator=(const iterator& rhs) noexcept = default;
 		iterator& operator=(iterator&& rhs) noexcept	  = default;
-		void swap(iterator& iter)
-		{
+		void swap(iterator& iter) {
 			std::swap(m_Data + offset_of(m_Index), iter.m_Data + iter.offset_of(iter.m_Index));
 		};
 
 		bool operator==(const iterator& rhs) { return m_Data == rhs.m_Data && m_Index == rhs.m_Index; }
 		bool operator!=(const iterator& rhs) const noexcept { return m_Data != rhs.m_Data || m_Index != rhs.m_Index; }
-		bool operator<(const iterator& rhs) const noexcept
-		{
+		bool operator<(const iterator& rhs) const noexcept {
 			return (m_Data < rhs.m_Data) ? true : m_Index < rhs.m_Index;
 		}
-		bool operator<=(const iterator& rhs) const noexcept
-		{
+		bool operator<=(const iterator& rhs) const noexcept {
 			return (m_Data <= rhs.m_Data) ? true : m_Index <= rhs.m_Index;
 		}
-		bool operator>(const iterator& rhs) const noexcept
-		{
+		bool operator>(const iterator& rhs) const noexcept {
 			return (m_Data > rhs.m_Data) ? true : m_Index > rhs.m_Index;
 		}
-		bool operator>=(const iterator& rhs) const noexcept
-		{
+		bool operator>=(const iterator& rhs) const noexcept {
 			return (m_Data >= rhs.m_Data) ? true : m_Index >= rhs.m_Index;
 		}
 
@@ -53,47 +45,39 @@ class ring_array
 		pointer operator->() { return m_Data + offset_of(m_Index); }
 		reference operator[](difference_type n) { return *(m_Data + offset_of(m_Index + n)); }
 
-		iterator& operator++()
-		{
+		iterator& operator++() {
 			++m_Index;
 			return *this;
 		}
-		iterator operator++(int) const
-		{
+		iterator operator++(int) const {
 			auto copy {*this};
 			++copy;
 			return copy;
 		}
-		iterator& operator+=(difference_type n)
-		{
+		iterator& operator+=(difference_type n) {
 			m_Index += n;
 			return *this;
 		}
-		iterator operator+(difference_type n) const
-		{
+		iterator operator+(difference_type n) const {
 			auto copy {*this};
 			copy += n;
 			return copy;
 		}
-		iterator& operator--()
-		{
+		iterator& operator--() {
 			--m_Index;
 			return *this;
 		}
-		iterator operator--(int) const
-		{
+		iterator operator--(int) const {
 			auto copy {*this};
 			--copy;
 			return copy;
 		}
-		iterator& operator-=(difference_type n)
-		{
+		iterator& operator-=(difference_type n) {
 			psl_assert(n <= m_Index, "expected index: {} to be larger than {}", m_Index, n);
 			m_Index -= n;
 			return *this;
 		}
-		iterator operator-(difference_type n) const
-		{
+		iterator operator-(difference_type n) const {
 			auto copy {*this};
 			copy -= n;
 			return copy;
@@ -114,15 +98,15 @@ class ring_array
 	~ring_array() { delete[](m_Data); }
 
 
-	void reserve(size_t size)
-	{
-		if(size == m_Capacity) return;
+	void reserve(size_t size) {
+		if(size == m_Capacity)
+			return;
 
 		T* newLoc = new T[size];
-		if(newLoc == nullptr) throw std::runtime_error("could not allocate");
+		if(newLoc == nullptr)
+			throw std::runtime_error("could not allocate");
 
-		for(auto it = begin(); it != end(); ++it)
-		{
+		for(auto it = begin(); it != end(); ++it) {
 			*newLoc = *it;
 			++newLoc;
 		}
@@ -132,15 +116,15 @@ class ring_array
 		m_Begin	   = newLoc;
 		m_Capacity = size;
 	}
-	void resize(size_t size)
-	{
-		if(size == m_Capacity) return;
+	void resize(size_t size) {
+		if(size == m_Capacity)
+			return;
 
 		T* newLoc = new T[size];
-		if(newLoc == nullptr) throw std::runtime_error("could not allocate");
+		if(newLoc == nullptr)
+			throw std::runtime_error("could not allocate");
 
-		for(auto it = begin(); it != end(); ++it)
-		{
+		for(auto it = begin(); it != end(); ++it) {
 			*newLoc = *it;
 			++newLoc;
 		}
@@ -158,28 +142,18 @@ class ring_array
 		m_Count	   = size;
 	}
 
-	void erase(iterator location) noexcept
-	{
-		if(location.m_Index == 0)
-		{
+	void erase(iterator location) noexcept {
+		if(location.m_Index == 0) {
 			pop_front();
-		}
-		else if(location.m_Index == m_Count)
-		{
+		} else if(location.m_Index == m_Count) {
 			pop_back();
-		}
-		else if(location.m_Index > m_Count / 2)
-		{
-			for(auto it = location + 1, current = location; it != end(); ++it, ++current)
-			{
+		} else if(location.m_Index > m_Count / 2) {
+			for(auto it = location + 1, current = location; it != end(); ++it, ++current) {
 				*current = *it;
 			}
 			--m_Count;
-		}
-		else
-		{
-			for(auto it = location - 1, current = location; current != begin(); --it, --current)
-			{
+		} else {
+			for(auto it = location - 1, current = location; current != begin(); --it, --current) {
 				*current = *it;
 			}
 			++m_Begin;
@@ -187,32 +161,27 @@ class ring_array
 		}
 	}
 
-	void erase(iterator beginIt, iterator endIt) noexcept
-	{
-		if(beginIt.m_Index == endIt.m_Index) return;
+	void erase(iterator beginIt, iterator endIt) noexcept {
+		if(beginIt.m_Index == endIt.m_Index)
+			return;
 
 		auto beginSize = beginIt.m_Index - begin().m_Index;
 		auto endSize   = end().m_Index - endIt.m_Index;
 		auto count	   = (endIt.m_Index) - beginIt.m_Index;
 
-		if(endSize == beginSize && endSize == 0)
-		{
+		if(endSize == beginSize && endSize == 0) {
 			clear();
 			return;
 		}
 
 		if(beginSize > endSize)	   // move end to begin
 		{
-			for(auto it = endIt, current = beginIt; it != end(); ++it, ++current)
-			{
+			for(auto it = endIt, current = beginIt; it != end(); ++it, ++current) {
 				*current = *it;
 			}
 			m_Count -= count;
-		}
-		else
-		{
-			for(auto it = beginIt - 1, current = endIt - 1; it != begin(); --it, --current)
-			{
+		} else {
+			for(auto it = beginIt - 1, current = endIt - 1; it != begin(); --it, --current) {
 				*current = *it;
 			}
 			m_Begin += count;
@@ -222,8 +191,7 @@ class ring_array
 
 	void shrink_to_fit() { resize(m_Count); }
 
-	void clear() noexcept
-	{
+	void clear() noexcept {
 		m_Count = 0;
 		m_Begin = m_Data;
 	}
@@ -237,10 +205,8 @@ class ring_array
 
 	const T& at(int64_t index) const noexcept { return *(m_Data + offset_of(index)); }
 
-	void push_back(T&& value)
-	{
-		if(m_Count == m_Capacity)
-		{
+	void push_back(T&& value) {
+		if(m_Count == m_Capacity) {
 			reserve(m_Capacity * 2);
 		}
 
@@ -249,10 +215,8 @@ class ring_array
 	}
 
 	template <typename... Ts>
-	void emplace_back(Ts&&... args)
-	{
-		if(m_Count == m_Capacity)
-		{
+	void emplace_back(Ts&&... args) {
+		if(m_Count == m_Capacity) {
 			reserve(m_Capacity * 2);
 		}
 
@@ -260,15 +224,12 @@ class ring_array
 		++m_Count;
 	}
 
-	void push_front(T&& value)
-	{
-		if(m_Count == m_Capacity)
-		{
+	void push_front(T&& value) {
+		if(m_Count == m_Capacity) {
 			reserve(m_Capacity * 2);
 		}
 
-		if(m_Begin == m_Data)
-		{
+		if(m_Begin == m_Data) {
 			m_Begin = m_Data + m_Capacity;
 		}
 		--m_Begin;
@@ -276,15 +237,12 @@ class ring_array
 		*m_Begin = std::forward<T>(value);
 	}
 	template <typename... Ts>
-	void emplace_front(Ts&&... args)
-	{
-		if(m_Count == m_Capacity)
-		{
+	void emplace_front(Ts&&... args) {
+		if(m_Count == m_Capacity) {
 			reserve(m_Capacity * 2);
 		}
 
-		if(m_Begin == m_Data)
-		{
+		if(m_Begin == m_Data) {
 			m_Begin = m_Data + m_Capacity;
 		}
 		--m_Begin;
@@ -293,17 +251,17 @@ class ring_array
 		*m_Begin = T(std::forward<Ts>(args)...);
 	}
 
-	void pop_back()
-	{
-		if(m_Count == 0) throw std::runtime_error("no elements to pop_back");
+	void pop_back() {
+		if(m_Count == 0)
+			throw std::runtime_error("no elements to pop_back");
 
 		// back().~T();
 		--m_Count;
 	}
 
-	void pop_front()
-	{
-		if(m_Count == 0) throw std::runtime_error("no elements to pop_front");
+	void pop_front() {
+		if(m_Count == 0)
+			throw std::runtime_error("no elements to pop_front");
 		// front().~T();
 		++m_Begin;
 		--m_Count;
@@ -322,8 +280,7 @@ class ring_array
 
   private:
 	inline auto offset_of(size_t index) const noexcept { return (start_of() + index) & (m_Capacity - 1); }
-	inline auto offset_of(int64_t index) const noexcept
-	{
+	inline auto offset_of(int64_t index) const noexcept {
 		return (static_cast<int64_t>(start_of()) + index) & (m_Capacity - 1);
 	}
 	inline size_t start_of() const noexcept { return static_cast<size_t>(m_Begin - m_Data); }

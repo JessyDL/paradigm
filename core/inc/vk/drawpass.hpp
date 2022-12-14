@@ -5,26 +5,20 @@
 #include "vk/ivk.hpp"
 #include <vector>
 
-namespace core::gfx
-{
+namespace core::gfx {
 class drawgroup;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 class framebuffer_t;
 class swapchain;
 }	 // namespace core::ivk
 
-namespace core::ivk
-{
-struct depth_bias
-{
-	union
-	{
-		union
-		{
+namespace core::ivk {
+struct depth_bias {
+	union {
+		union {
 			float constantFactor;
 			float clamp;
 			float slopeFactor;
@@ -43,8 +37,7 @@ struct depth_bias
 /// subsequent passes, or present it to a core::gfx::surface.
 /// Passes also make sure that they don't create race conditions with other passes that have been assigned as its
 /// dependencies.
-class drawpass
-{
+class drawpass {
   public:
 	/// \brief creates a pass that targets a framebuffer.
 	/// \param[in] context the valid and loaded context to bind this pass to.

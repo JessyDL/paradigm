@@ -4,10 +4,8 @@
 #include "psl/ecs/state.hpp"
 #include "systems/input.hpp"
 
-namespace core::ecs::systems
-{
-class fly
-{
+namespace core::ecs::systems {
+class fly {
 	friend class core::systems::input;
 
   public:

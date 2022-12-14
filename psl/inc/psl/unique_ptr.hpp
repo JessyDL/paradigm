@@ -1,10 +1,8 @@
 #pragma once
 
-namespace psl
-{
+namespace psl {
 template <typename T>
-class unique_ptr
-{
+class unique_ptr {
   public:
 	unique_ptr() = default;
 	unique_ptr(T* ptr) : m_Ptr(ptr) {};
@@ -15,10 +13,8 @@ class unique_ptr
 
 
 	unique_ptr(unique_ptr&& other) noexcept : m_Ptr(other.m_Ptr) { other.m_Ptr = nullptr; };
-	unique_ptr& operator=(unique_ptr&& other)
-	{
-		if(this != &other)
-		{
+	unique_ptr& operator=(unique_ptr&& other) {
+		if(this != &other) {
 			m_Ptr		= other.m_Ptr;
 			other.m_Ptr = nullptr;
 		}
@@ -35,15 +31,13 @@ class unique_ptr
 
 	const T& operator*() const noexcept { return *m_Ptr; }
 
-	unique_ptr<T>& operator=(T* other) noexcept
-	{
+	unique_ptr<T>& operator=(T* other) noexcept {
 		delete(m_Ptr);
 		m_Ptr = other;
 		return *this;
 	}
 
-	void reset() noexcept
-	{
+	void reset() noexcept {
 		delete(m_Ptr);
 		m_Ptr = nullptr;
 	}

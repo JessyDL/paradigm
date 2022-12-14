@@ -2,11 +2,9 @@
 #include "fwd/gfx/texture.hpp"
 #include "resource/resource.hpp"
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
-class texture_t
-{
+class texture_t {
   public:
 	using meta_type = core::meta::texture_t;
 
@@ -30,13 +28,14 @@ class texture_t
 	texture_t& operator=(texture_t&& other) noexcept = delete;
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<texture_t, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<texture_t, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

@@ -3,42 +3,33 @@
 #include <cstdint>
 #include <type_traits>
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 /// \brief tag type to circumvent constructing an object in the backing data
 template <typename T>
-struct empty
-{};
+struct empty {};
 
-namespace details
-{
+namespace details {
 	template <typename T>
-	struct is_empty_container : std::false_type
-	{};
+	struct is_empty_container : std::false_type {};
 
 	template <typename T>
-	struct is_empty_container<psl::ecs::empty<T>> : std::true_type
-	{};
+	struct is_empty_container<psl::ecs::empty<T>> : std::true_type {};
 
 	template <typename T>
-	struct empty_container
-	{
+	struct empty_container {
 		using type = void;
 	};
 
 	template <typename T>
-	struct empty_container<psl::ecs::empty<T>>
-	{
+	struct empty_container<psl::ecs::empty<T>> {
 		using type = T;
 	};
 
 	template <typename T>
-	struct is_range_t : std::false_type
-	{};
+	struct is_range_t : std::false_type {};
 
 	template <typename T>
-	struct is_range_t<psl::array<T>> : std::true_type
-	{
+	struct is_range_t<psl::array<T>> : std::true_type {
 		using type = T;
 	};
 }	 // namespace details
@@ -53,6 +44,8 @@ using entity = uint32_t;
 
 /// \brief checks if an entity is valid or not
 /// \param[in] e the entity to check
-static bool valid(entity e) noexcept { return e != 0u; };
+static bool valid(entity e) noexcept {
+	return e != 0u;
+};
 
 }	 // namespace psl::ecs

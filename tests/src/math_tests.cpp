@@ -9,32 +9,27 @@ using namespace std;	// NOTICE: needed for GCC's bug related to: https://gcc.gnu
 #include <litmus/section.hpp>
 #include <litmus/suite.hpp>
 
-namespace psl
-{
+namespace psl {
 template <typename T>
-std::string to_string(const tvec<T, 4>& v) noexcept
-{
+std::string to_string(const tvec<T, 4>& v) noexcept {
 	return std::to_string(v[0]) + ", " + std::to_string(v[1]) + ", " + std::to_string(v[2]) + ", " +
 		   std::to_string(v[3]);
 }
 
 template <typename T>
-std::string to_string(const tvec<T, 3>& v) noexcept
-{
+std::string to_string(const tvec<T, 3>& v) noexcept {
 	return std::to_string(v[0]) + ", " + std::to_string(v[1]) + ", " + std::to_string(v[2]);
 }
 
 template <typename T>
-std::string to_string(const tquat<T>& v) noexcept
-{
+std::string to_string(const tquat<T>& v) noexcept {
 	return std::to_string(v[0]) + ", " + std::to_string(v[1]) + ", " + std::to_string(v[2]) + ", " +
 		   std::to_string(v[3]);
 }
 }	 // namespace psl
 
 using namespace litmus;
-namespace
-{
+namespace {
 auto m = suite<"mathematics">() = []() {
 	tvec<float, 4> v1 {1, 2, 5, 0};
 	tvec<float, 4> v2 {5, 3, 2, 3};

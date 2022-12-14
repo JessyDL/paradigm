@@ -3,10 +3,8 @@
 #include "psl/math/vec.hpp"
 #include <stdint.h>
 
-namespace psl::noise
-{
-class perlin
-{
+namespace psl::noise {
+class perlin {
   public:
 	perlin(uint32_t seed = 5489U) noexcept;
 

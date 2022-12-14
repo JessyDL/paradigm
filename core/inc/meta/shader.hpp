@@ -6,21 +6,18 @@
 #include "psl/serialization/serializer.hpp"
 #include "psl/ustring.hpp"
 
-namespace core::meta
-{
+namespace core::meta {
 /// \brief contains extensions for meta data when loading shader files.
 ///
 /// shaders need various metadata that can describe the binding points and types of resources
 /// a SPIR-V might be expecting, as well as the pipeline stage it is assigned to.
 /// This extension to psl::meta::file contains that type of data.
 /// \todo add a way to deal with push_constants
-class shader final : public psl::meta::file
-{
+class shader final : public psl::meta::file {
 	friend class psl::serialization::accessor;
 
   public:
-	class member
-	{
+	class member {
 		friend class psl::serialization::accessor;
 
 	  public:
@@ -51,8 +48,7 @@ class shader final : public psl::meta::file
 
 	  private:
 		template <typename S>
-		void serialize(S& s)
-		{
+		void serialize(S& s) {
 			s << m_Name << m_Offset << m_Count << m_Stride << m_Members;
 		}
 
@@ -64,8 +60,7 @@ class shader final : public psl::meta::file
 		psl::serialization::property<"STRIDE", uint32_t> m_Stride;				  // size per element
 		psl::serialization::property<"MEMBERS", psl::array<member>> m_Members;	  // sub-elements (if array)
 	};
-	class attribute
-	{
+	class attribute {
 		friend class psl::serialization::accessor;
 
 	  public:
@@ -88,8 +83,7 @@ class shader final : public psl::meta::file
 
 	  private:
 		template <typename S>
-		void serialize(S& s)
-		{
+		void serialize(S& s) {
 			s << m_Name << m_Format << m_Location << m_Count << m_Stride;
 		}
 		static constexpr psl::string8::view serialization_name {"ATTRIBUTE"};
@@ -100,17 +94,11 @@ class shader final : public psl::meta::file
 		psl::serialization::property<"FORMAT", core::gfx::format_t> m_Format;	 // format of the element
 	};
 
-	class descriptor
-	{
+	class descriptor {
 		friend class psl::serialization::accessor;
 
 	  public:
-		enum class dependency
-		{
-			in	  = 1 << 0,
-			out	  = 1 << 1,
-			inout = in + out
-		};
+		enum class dependency { in = 1 << 0, out = 1 << 1, inout = in + out };
 
 		~descriptor() = default;
 
@@ -134,8 +122,7 @@ class shader final : public psl::meta::file
 		void members(psl::array<member> value) noexcept { m_Members.value = value; }
 
 
-		size_t size() const noexcept
-		{
+		size_t size() const noexcept {
 			return std::accumulate(std::begin(m_Members.value),
 								   std::end(m_Members.value),
 								   size_t {0},
@@ -144,8 +131,7 @@ class shader final : public psl::meta::file
 
 	  private:
 		template <typename S>
-		void serialize(S& s)
-		{
+		void serialize(S& s) {
 			s << m_Name << m_Type << m_Set << m_Binding << m_Dependency << m_Members;
 		}
 		static constexpr psl::string8::view serialization_name {"DESCRIPTOR"};
@@ -174,24 +160,20 @@ class shader final : public psl::meta::file
 	/// \param[in] value the stage to expect.
 	void stage(core::gfx::shader_stage value) noexcept { m_Stage.value = value; }
 
-	psl::array_view<attribute> inputs() noexcept
-	{
+	psl::array_view<attribute> inputs() noexcept {
 		return psl::array_view<attribute>(m_Attributes.data(), m_InputAttributesSize);
 	}
-	void inputs(psl::array<attribute> value) noexcept
-	{
+	void inputs(psl::array<attribute> value) noexcept {
 		m_Attributes.erase(std::begin(m_Attributes), std::next(std::begin(m_Attributes), m_InputAttributesSize));
 		m_InputAttributesSize = value.size();
 		m_Attributes.insert(
 		  std::begin(m_Attributes), std::move_iterator(std::begin(value)), std::move_iterator(std::end(value)));
 	}
-	psl::array_view<attribute> outputs() noexcept
-	{
+	psl::array_view<attribute> outputs() noexcept {
 		return psl::array_view<attribute>(m_Attributes.data() + m_InputAttributesSize,
 										  std::size(m_Attributes) - m_InputAttributesSize);
 	}
-	void outputs(psl::array<attribute> value) noexcept
-	{
+	void outputs(psl::array<attribute> value) noexcept {
 		m_Attributes.erase(std::next(std::begin(m_Attributes), m_InputAttributesSize), std::end(m_Attributes));
 		m_Attributes.insert(
 		  std::end(m_Attributes), std::move_iterator(std::begin(value)), std::move_iterator(std::end(value)));
@@ -205,14 +187,12 @@ class shader final : public psl::meta::file
 	/// \tparam S the type of the serializer/deserializer
 	/// \param[in] s instance of a serializer that you can read from, or write to.
 	template <typename S>
-	void serialize(S& s)
-	{
+	void serialize(S& s) {
 		psl::meta::file::serialize(s);
 		psl::serialization::property<"INPUTS", psl::array<attribute>> inputs;
 		psl::serialization::property<"OUTPUTS", psl::array<attribute>> outputs;
 
-		if(m_Attributes.size() != 0)
-		{
+		if(m_Attributes.size() != 0) {
 			inputs.value.insert(std::end(inputs.value),
 								std::begin(m_Attributes),
 								std::next(std::begin(m_Attributes), m_InputAttributesSize));
@@ -227,8 +207,7 @@ class shader final : public psl::meta::file
 			return lhs.binding() < rhs.binding();
 		});
 
-		if(m_Attributes.size() == 0)
-		{
+		if(m_Attributes.size() == 0) {
 			m_Attributes.reserve(inputs.value.size() + outputs.value.size());
 			m_Attributes.insert(std::end(m_Attributes), std::begin(inputs.value), std::end(inputs.value));
 			m_Attributes.insert(std::end(m_Attributes), std::begin(outputs.value), std::end(outputs.value));

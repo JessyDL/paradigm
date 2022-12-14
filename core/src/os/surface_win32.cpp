@@ -9,8 +9,7 @@ using namespace core;
 
 uint64_t surface::win32_class_id_counter {0};
 
-bool surface::init_surface()
-{
+bool surface::init_surface() {
 	WNDCLASSEX win_class {};
 	psl_assert(m_Data->width() > 0, "attempted to make a surface with width: {}", m_Data->width());
 	psl_assert(m_Data->height() > 0, "attempted to make a surface with height: {}", m_Data->height());
@@ -38,16 +37,14 @@ bool surface::init_surface()
 	win_class.lpszClassName = win32_class_name.c_str();
 	win_class.hIconSm		= NULL;
 	// Register window class:
-	if(!RegisterClassEx(&win_class))
-	{
+	if(!RegisterClassEx(&win_class)) {
 		// It didn't work, so try to give a useful error:
 		psl::unreachable("Cannot create a window in which to draw!");
 		fflush(stdout);
 		std::exit(-1);
 	}
 	bool fullscreen = m_Data->mode() == core::gfx::surface_mode::FULLSCREEN;
-	if(fullscreen)
-	{
+	if(fullscreen) {
 		DEVMODE dmScreenSettings;
 		memset(&dmScreenSettings, 0, sizeof(dmScreenSettings));
 		dmScreenSettings.dmSize		  = sizeof(dmScreenSettings);
@@ -56,19 +53,14 @@ bool surface::init_surface()
 		dmScreenSettings.dmBitsPerPel = 32;
 		dmScreenSettings.dmFields	  = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
 
-		if((width != screenWidth) && (height != screenHeight))
-		{
-			if(ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL)
-			{
+		if((width != screenWidth) && (height != screenHeight)) {
+			if(ChangeDisplaySettings(&dmScreenSettings, CDS_FULLSCREEN) != DISP_CHANGE_SUCCESSFUL) {
 				if(MessageBox(NULL,
 							  L"Fullscreen Mode not supported!\n Switch to window mode?",
 							  L"Error",
-							  MB_YESNO | MB_ICONEXCLAMATION) == IDYES)
-				{
+							  MB_YESNO | MB_ICONEXCLAMATION) == IDYES) {
 					fullscreen = FALSE;
-				}
-				else
-				{
+				} else {
 					return FALSE;
 				}
 			}
@@ -78,13 +70,10 @@ bool surface::init_surface()
 	DWORD ex_style;
 	DWORD style;
 
-	if(fullscreen)
-	{
+	if(fullscreen) {
 		ex_style = WS_EX_APPWINDOW;
 		style	 = WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
-	}
-	else
-	{
+	} else {
 		ex_style = WS_EX_APPWINDOW | WS_EX_WINDOWEDGE;
 		style = WS_BORDER | WS_OVERLAPPED | WS_CAPTION | WS_SYSMENU | WS_MINIMIZEBOX | WS_MAXIMIZEBOX | WS_THICKFRAME;
 	}
@@ -106,8 +95,7 @@ bool surface::init_surface()
 								  NULL,					 // handle to menu
 								  win32_instance,		 // hInstance
 								  NULL);				 // no extra parameters
-	if(!win32_window)
-	{
+	if(!win32_window) {
 		// It didn't work, so try to give a useful error:
 		LOG_ERROR("Cannot create a window in which to draw!");
 		fflush(stdout);
@@ -115,8 +103,7 @@ bool surface::init_surface()
 	}
 	SetWindowLongPtr(win32_window, GWLP_USERDATA, (LONG_PTR)this);
 
-	if(!fullscreen)
-	{
+	if(!fullscreen) {
 		// Center on screen
 		// uint32_t x = (GetSystemMetrics(SM_CXSCREEN) - wr.right) / 2;
 		// uint32_t y = (GetSystemMetrics(SM_CYSCREEN) - wr.bottom) / 2;
@@ -138,8 +125,7 @@ bool surface::init_surface()
 	Rid[1].dwFlags	   = 0;	   // adds HID keyboard and also ignores legacy keyboard messages
 	Rid[1].hwndTarget  = NULL;
 
-	if(RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE)
-	{
+	if(RegisterRawInputDevices(Rid, 2, sizeof(Rid[0])) == FALSE) {
 		// registration failed. Call GetLastError for the cause of the error
 
 		LOG_ERROR("Failed to init Raw Input: ", GetLastError());
@@ -156,20 +142,17 @@ bool surface::init_surface()
 	return true;
 }
 
-void surface::deinit_surface()
-{
+void surface::deinit_surface() {
 	focus(false);
 	DestroyWindow(win32_window);
 	UnregisterClass(win32_class_name.c_str(), win32_instance);
 }
-void surface::focus(bool value)
-{
-	if(m_Focused == value) return;
-	if(value)
-	{
+void surface::focus(bool value) {
+	if(m_Focused == value)
+		return;
+	if(value) {
 		// SetCapture(_win32_window);
-		if(m_IndicatorClipped)
-		{
+		if(m_IndicatorClipped) {
 			RECT crect;
 			GetClientRect(win32_window, &crect);
 			POINT lt = {crect.left, crect.top};	   // Practicaly both are 0
@@ -183,19 +166,16 @@ void surface::focus(bool value)
 			crect.bottom = rb.y;
 			ClipCursor(&crect);
 		}
-		if(!m_IndicatorVisible) ShowCursor(false);
+		if(!m_IndicatorVisible)
+			ShowCursor(false);
 
 		SetForegroundWindow(win32_window);
 		SetFocus(win32_window);
-	}
-	else
-	{
-		if(m_IndicatorClipped)
-		{
+	} else {
+		if(m_IndicatorClipped) {
 			ClipCursor(NULL);
 		}
-		if(!m_IndicatorVisible)
-		{
+		if(!m_IndicatorVisible) {
 			ShowCursor(true);
 			SetCursor(LoadCursor(NULL, IDC_ARROW));
 		}
@@ -206,17 +186,18 @@ void surface::focus(bool value)
 	m_Focused = value;
 }
 
-void surface::update_surface() { m_InputSystem->tick(); }
+void surface::update_surface() {
+	m_InputSystem->tick();
+}
 
 void surface::resize_surface() {}
 
 
-void surface::trap_cursor(bool state) noexcept
-{
-	if(m_IndicatorClipped == state) return;
+void surface::trap_cursor(bool state) noexcept {
+	if(m_IndicatorClipped == state)
+		return;
 	m_IndicatorClipped = state;
-	if(m_IndicatorClipped)
-	{
+	if(m_IndicatorClipped) {
 		RECT crect;
 		GetClientRect(win32_window, &crect);
 		POINT lt = {crect.left, crect.top};	   // Practicaly both are 0
@@ -229,11 +210,11 @@ void surface::trap_cursor(bool state) noexcept
 		crect.right	 = rb.x;
 		crect.bottom = rb.y;
 		ClipCursor(&crect);
-	}
-	else
-	{
+	} else {
 		ClipCursor(NULL);
 	}
 }
-bool surface::is_cursor_trapped() const noexcept { return m_IndicatorVisible; }
+bool surface::is_cursor_trapped() const noexcept {
+	return m_IndicatorVisible;
+}
 #endif

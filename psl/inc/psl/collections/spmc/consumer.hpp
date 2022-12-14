@@ -5,8 +5,7 @@
 #include <atomic>
 #include <optional>
 
-namespace psl::spmc
-{
+namespace psl::spmc {
 template <typename T>
 class producer;
 
@@ -16,8 +15,7 @@ class producer;
 /// into the SPMC deque. The consumer is limited to viewing the state of the producer, and popping items from the
 /// front (if any are left).
 template <typename T>
-class consumer final
-{
+class consumer final {
 	friend class producer<T>;
 	consumer(psl::view_ptr<producer<T>> producer) : m_Producer(producer) {};
 

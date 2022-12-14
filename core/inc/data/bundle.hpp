@@ -4,21 +4,17 @@
 #include "serialization.hpp"
 #include "vector.hpp"
 
-namespace core::resource
-{
+namespace core::resource {
 class cache_t;
 }
 
-namespace core::data
-{
-class bundle final
-{
+namespace core::data {
+class bundle final {
 	friend class psl::serialization::accessor;
 	template <typename T, char... Char>
 	using sproperty = psl::serialization::property<T, Char...>;
 
-	class data final
-	{
+	class data final {
 		friend class psl::serialization::accessor;
 
 	  public:
@@ -43,8 +39,7 @@ class bundle final
 		/// \param[in] serializer the serialization object, consult the serialization namespace for more
 		/// information.
 		template <typename S>
-		void serialize(S& serializer)
-		{
+		void serialize(S& serializer) {
 			serializer << m_Material << m_Layer;
 		};
 		sproperty<psl::UID, const_str("MATERIAL", 8)> m_Material;
@@ -72,8 +67,7 @@ class bundle final
 	/// \brief serialization method to be used by the serializer when writing this container to the disk.
 	/// \param[in] serializer the serialization object, consult the serialization namespace for more information.
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_Data;
 	};
 

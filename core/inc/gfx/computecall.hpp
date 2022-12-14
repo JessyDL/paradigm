@@ -7,12 +7,10 @@
 #include "psl/static_array.hpp"
 #include "resource/handle.hpp"
 
-namespace core::gfx
-{
+namespace core::gfx {
 class compute;
 
-class computecall
-{
+class computecall {
   public:
 	computecall(core::resource::handle<compute> compute);
 	/*computecall(core::resource::handle<compute> compute,

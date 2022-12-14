@@ -6,15 +6,12 @@
 #include "resource/resource.hpp"
 #include <optional>
 
-namespace core::data
-{
+namespace core::data {
 class buffer_t;
 }
 
-namespace core::igles
-{
-class buffer_t
-{
+namespace core::igles {
+class buffer_t {
   public:
 	buffer_t(core::resource::cache_t& cache,
 			 const core::resource::metadata& metaData,

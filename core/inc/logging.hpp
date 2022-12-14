@@ -4,35 +4,28 @@
 #include "spdlog/sinks/stdout_color_sinks.h"
 #include <memory>
 
-namespace core
-{
+namespace core {
 extern std::shared_ptr<spdlog::logger> log;
-namespace gfx
-{
+namespace gfx {
 	extern std::shared_ptr<spdlog::logger> log;
 }
 #ifdef PE_VULKAN
-namespace ivk
-{
+namespace ivk {
 	extern std::shared_ptr<spdlog::logger> log;
 }
 #endif
 #ifdef PE_GLES
-namespace igles
-{
+namespace igles {
 	extern std::shared_ptr<spdlog::logger> log;
 }
 #endif
-namespace data
-{
+namespace data {
 	extern std::shared_ptr<spdlog::logger> log;
 }
-namespace systems
-{
+namespace systems {
 	extern std::shared_ptr<spdlog::logger> log;
 }
-namespace os
-{
+namespace os {
 	extern std::shared_ptr<spdlog::logger> log;
 }
 

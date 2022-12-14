@@ -4,20 +4,20 @@
 
 namespace async = psl::async;
 
-uint64_t findSieveSize(uint64_t n)
-{
+uint64_t findSieveSize(uint64_t n) {
 	// For small n, the formula returns a value too low, so we can just
 	// hardcode the sieve size to 5 (5th prime is 11).
-	if(n < 6) return 13;
+	if(n < 6)
+		return 13;
 
 	// We can't find a prime that will exceed ~0UL.
-	if(n >= (~0UL / log(~0UL))) return 0;
+	if(n >= (~0UL / log(~0UL)))
+		return 0;
 
 	// Binary search for the right value.
 	uint64_t low  = n;
 	uint64_t high = ~0UL - 1;
-	do
-	{
+	do {
 		uint64_t mid = low + (high - low) / 2;
 		double guess = mid / log(mid);
 
@@ -29,33 +29,35 @@ uint64_t findSieveSize(uint64_t n)
 	return high + 1;
 }
 
-uint64_t find_nth_prime(uint64_t n)
-{
-	if(!n) return 1;	  // "0th prime"
-	if(!--n) return 2;	  // first prime
+uint64_t find_nth_prime(uint64_t n) {
+	if(!n)
+		return 1;	 // "0th prime"
+	if(!--n)
+		return 2;	 // first prime
 
 	uint64_t sieveSize = findSieveSize(n);
 	uint64_t count	   = 0;
 	uint64_t max_i	   = sqrt(sieveSize - 1) + 1;
 
-	if(sieveSize == 0) return 0;
+	if(sieveSize == 0)
+		return 0;
 
 	std::vector<bool> sieve(sieveSize);
-	for(uint64_t i = 3; true; i += 2)
-	{
-		if(!sieve[i])
-		{
-			if(++count == n) return i;
-			if(i >= max_i) continue;
+	for(uint64_t i = 3; true; i += 2) {
+		if(!sieve[i]) {
+			if(++count == n)
+				return i;
+			if(i >= max_i)
+				continue;
 			uint64_t j	  = i * i;
 			uint64_t inc  = i + i;
 			uint64_t maxj = sieveSize - inc;
 			// This loop checks j before adding inc so that we can stop
 			// before j overflows.
-			do
-			{
+			do {
 				sieve[j] = true;
-				if(j >= maxj) break;
+				if(j >= maxj)
+					break;
 				j += inc;
 			} while(1);
 		}
@@ -67,15 +69,13 @@ uint64_t find_nth_prime(uint64_t n)
 #include <litmus/section.hpp>
 #include <litmus/suite.hpp>
 
-namespace
-{
+namespace {
 auto t0 = litmus::suite<"free-floating tasks">() = []() {
 	async::scheduler scheduler;
 	size_t iteration_count = 64;
 
 	std::vector<std::future<int>> results;
-	for(size_t i = 0; i < iteration_count; ++i)
-	{
+	for(size_t i = 0; i < iteration_count; ++i) {
 		results.emplace_back(scheduler
 							   .schedule([]() {
 								   std::this_thread::sleep_for(std::chrono::microseconds {10});
@@ -97,18 +97,18 @@ auto t1 = litmus::suite<"tasks with inter-task-dependencies">() = []() {
 	std::array<std::atomic_bool, 1024> trigger_check;
 	std::fill(std::begin(trigger_check), std::end(trigger_check), false);
 	std::vector<std::pair<psl::async::token, std::future<int>>> results;
-	for(size_t i = 0; i < trigger_check.size(); ++i)
-	{
+	for(size_t i = 0; i < trigger_check.size(); ++i) {
 		std::optional<size_t> verify_index = std::nullopt;
-		if(i > 0) verify_index = std::rand() % i;
+		if(i > 0)
+			verify_index = std::rand() % i;
 		results.emplace_back(scheduler.schedule([verify_index, &trigger_check, i]() mutable {
-			if(verify_index && !trigger_check[verify_index.value()]) return 10;
+			if(verify_index && !trigger_check[verify_index.value()])
+				return 10;
 			trigger_check[i] = true;
 			return 5;
 		}));
 
-		if(verify_index)
-		{
+		if(verify_index) {
 			results[results.size() - 1].first.after(results[verify_index.value()].first);
 		}
 	}
@@ -135,8 +135,7 @@ auto t2 = litmus::suite<"tasks with inter-memory-dependencies">() = []() {
 	uint64_t calculated_value = 0;
 	for(auto val : shared_values) calculated_value += find_nth_prime(val);
 	std::vector<std::future<uint64_t>> results;
-	for(size_t i = 0; i < iteration_count; ++i)
-	{
+	for(size_t i = 0; i < iteration_count; ++i) {
 		auto pair {scheduler.schedule([i, &shared_values, &shared_output]() {
 			++shared_output[i % shared_output.size()];
 			return find_nth_prime(shared_values[i % shared_values.size()]);

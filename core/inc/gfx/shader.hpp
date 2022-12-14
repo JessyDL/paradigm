@@ -2,12 +2,10 @@
 #include "fwd/gfx/shader.hpp"
 #include "resource/resource.hpp"
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 
-class shader
-{
+class shader {
 	friend class core::resource::cache_t;
 
   public:
@@ -31,13 +29,14 @@ class shader
 
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<shader, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<shader, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

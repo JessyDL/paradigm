@@ -6,15 +6,12 @@
 #include <unordered_map>
 #include <vector>
 
-namespace utility
-{
+namespace utility {
 /// \brief contains some debug information, such as trace information, as well as utilities to debug.
-class debug
-{
+class debug {
   public:
 	/// \brief contains the structure of a trace
-	struct trace_info
-	{
+	struct trace_info {
 		/// \brief UTF-8 encoded psl::string that contains the demangled information of a trace.
 		psl::string name;
 		/// \brief address location in memory of the traced function.
@@ -41,8 +38,7 @@ class debug
 	/// \brief helper method to give a name to a specific thread.
 	/// \param[in] id thread::id that will be named.
 	/// \param[in] name the name to assign to the given thread::id.
-	static void register_thread(const std::thread::id& id, const psl::string8_t& name)
-	{
+	static void register_thread(const std::thread::id& id, const psl::string8_t& name) {
 		m_ThreadMap.insert(std::pair<std::thread::id, psl::string8_t>(id, name));
 	}
 
@@ -62,29 +58,24 @@ class debug
 	/// \brief helper method to extract just the class from a trace.
 	/// \param[in] fullFuncName the signature of the trace.
 	/// \returns the class name.
-	static const psl::string8_t func_to_class(const char* fullFuncName)
-	{
+	static const psl::string8_t func_to_class(const char* fullFuncName) {
 		psl::string8_t fullFuncNameStr(fullFuncName);
 		size_t pos = fullFuncNameStr.find_last_of("::");
-		if(pos == psl::string8_t::npos)
-		{
+		if(pos == psl::string8_t::npos) {
 			return fullFuncNameStr;
 		}
 		psl::string8_t newName = fullFuncNameStr.substr(0, pos - 1);
 		pos					   = newName.find_last_of("::");
-		if(pos == psl::string8_t::npos)
-		{
+		if(pos == psl::string8_t::npos) {
 			return newName;
 		}
 		return newName.substr(pos + 1);
 	}
 
-	static const psl::string8_t func_to_namespace(const char* fullFuncName)
-	{
+	static const psl::string8_t func_to_namespace(const char* fullFuncName) {
 		psl::string8_t fullFuncNameStr(fullFuncName);
 		size_t pos = fullFuncNameStr.find_last_of("::");
-		if(pos == psl::string8_t::npos)
-		{
+		if(pos == psl::string8_t::npos) {
 			return fullFuncNameStr;
 		}
 		return fullFuncNameStr.substr(0, pos - 1);

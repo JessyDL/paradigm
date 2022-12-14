@@ -6,22 +6,19 @@
 #include <functional>
 #include <stdexcept>
 
-namespace std
-{
+namespace std {
 #ifdef _MSC_VER
 template <typename T>
 struct hash;
 #endif
 }	 // namespace std
 
-namespace psl
-{
+namespace psl {
 /// \brief is an object holding a Unique IDentifier (UID)
 ///
 /// UID generates a unique ID, either through a random number generator, or by using OS provided
 /// methods. It is immutable once created.
-struct UID final
-{
+struct UID final {
   public:
 	friend struct std::hash<UID>;
 	using PUID = std::array<uint8_t, 16>;
@@ -91,32 +88,26 @@ struct UID final
 	PUID GUID;
 };
 
-constexpr bool valid_uid(const char* text, std::size_t size) noexcept
-{
+constexpr bool valid_uid(const char* text, std::size_t size) noexcept {
 	constexpr const size_t short_size = 36;
 	constexpr const size_t long_size  = 38;
-	if(size != short_size && size != long_size)
-	{
+	if(size != short_size && size != long_size) {
 		return false;
 	}
 
-	if(text[0] == '{')
-	{
-		if(text[size - 1] != '}')
-		{
+	if(text[0] == '{') {
+		if(text[size - 1] != '}') {
 			return false;
 		}
 		text += 1;
 	}
 
-	if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-'))
-	{
+	if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-')) {
 		return false;
 	}
 
 	constexpr auto parse = [](const char* text) {
-		for(size_t i = 0; i < 2; ++i)
-		{
+		for(size_t i = 0; i < 2; ++i) {
 			auto character = text[i];
 			if(!('0' <= character && character <= '9') && !('a' <= character && character <= 'f') &&
 			   !('A' <= character && character <= 'F'))
@@ -125,67 +116,61 @@ constexpr bool valid_uid(const char* text, std::size_t size) noexcept
 		return true;
 	};
 
-	for(size_t i = 0; i < 4; ++i)
-	{
-		if(!parse(text)) return false;
+	for(size_t i = 0; i < 4; ++i) {
+		if(!parse(text))
+			return false;
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
-		if(!parse(text)) return false;
+	for(size_t i = 0; i < 2; ++i) {
+		if(!parse(text))
+			return false;
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
-		if(!parse(text)) return false;
+	for(size_t i = 0; i < 2; ++i) {
+		if(!parse(text))
+			return false;
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
-		if(!parse(text)) return false;
+	for(size_t i = 0; i < 2; ++i) {
+		if(!parse(text))
+			return false;
 		text += 2;
 	}
 	text += 1;
 
-	for(size_t i = 0; i < 6; ++i)
-	{
-		if(!parse(text)) return false;
+	for(size_t i = 0; i < 6; ++i) {
+		if(!parse(text))
+			return false;
 		text += 2;
 	}
 
 	return true;
 }
-constexpr psl::UID try_make_uid(const char* text, std::size_t size)
-{
+constexpr psl::UID try_make_uid(const char* text, std::size_t size) {
 	constexpr const size_t short_size = 36;
 	constexpr const size_t long_size  = 38;
-	if(size != short_size && size != long_size)
-	{
+	if(size != short_size && size != long_size) {
 		throw std::domain_error("parsed text is of incorrect size to be a UID");
 	}
 
-	if(text[0] == '{')
-	{
-		if(text[size - 1] != '}')
-		{
+	if(text[0] == '{') {
+		if(text[size - 1] != '}') {
 			throw std::domain_error("parsed text is of incorrect format to be a UID");
 		}
 		text += 1;
 	}
 
 
-	if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-'))
-	{
+	if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-')) {
 		throw std::domain_error("parsed text is of incorrect format to be a UID");
 	}
 
 	constexpr auto parse = [](const char* text) {
 		uint8_t result {};
-		for(size_t i = 0; i < 2; ++i)
-		{
+		for(size_t i = 0; i < 2; ++i) {
 			auto character = text[i];
 			int res {};
 			if('0' <= character && character <= '9')
@@ -204,65 +189,54 @@ constexpr psl::UID try_make_uid(const char* text, std::size_t size)
 
 	psl::UID::PUID res {};
 	auto res_offset = 0;
-	for(size_t i = 0; i < 4; ++i)
-	{
+	for(size_t i = 0; i < 4; ++i) {
 		res[res_offset++] = parse(text);
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
+	for(size_t i = 0; i < 2; ++i) {
 		res[res_offset++] = parse(text);
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
+	for(size_t i = 0; i < 2; ++i) {
 		res[res_offset++] = parse(text);
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
+	for(size_t i = 0; i < 2; ++i) {
 		res[res_offset++] = parse(text);
 		text += 2;
 	}
 	text += 1;
 
-	for(size_t i = 0; i < 6; ++i)
-	{
+	for(size_t i = 0; i < 6; ++i) {
 		res[res_offset++] = parse(text);
 		text += 2;
 	}
 	return psl::UID {res};
 }
-constexpr psl::UID make_uid(const char* text, std::size_t size) noexcept
-{
+constexpr psl::UID make_uid(const char* text, std::size_t size) noexcept {
 	constexpr const size_t short_size = 36;
 	constexpr const size_t long_size  = 38;
-	if(size != short_size && size != long_size)
-	{
+	if(size != short_size && size != long_size) {
 		return psl::UID::invalid_uid;
 	}
 
-	if(text[0] == '{')
-	{
-		if(text[size - 1] != '}')
-		{
+	if(text[0] == '{') {
+		if(text[size - 1] != '}') {
 			return psl::UID::invalid_uid;
 		}
 		text += 1;
 	}
 
 
-	if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-'))
-	{
+	if((text[8] != '-') || (text[13] != '-') || (text[18] != '-') || (text[23] != '-')) {
 		return psl::UID::invalid_uid;
 	}
 
 	constexpr auto parse = [](const char* text, uint8_t& out) {
-		for(size_t i = 0; i < 2; ++i)
-		{
+		for(size_t i = 0; i < 2; ++i) {
 			auto character = text[i];
 			int res {};
 			if('0' <= character && character <= '9')
@@ -282,72 +256,69 @@ constexpr psl::UID make_uid(const char* text, std::size_t size) noexcept
 
 	psl::UID::PUID res {};
 	auto res_offset = 0;
-	for(size_t i = 0; i < 4; ++i)
-	{
+	for(size_t i = 0; i < 4; ++i) {
 		parse(text, res[res_offset++]);
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
+	for(size_t i = 0; i < 2; ++i) {
 		parse(text, res[res_offset++]);
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
+	for(size_t i = 0; i < 2; ++i) {
 		parse(text, res[res_offset++]);
 		text += 2;
 	}
 	text += 1;
-	for(size_t i = 0; i < 2; ++i)
-	{
+	for(size_t i = 0; i < 2; ++i) {
 		parse(text, res[res_offset++]);
 		text += 2;
 	}
 	text += 1;
 
-	for(size_t i = 0; i < 6; ++i)
-	{
+	for(size_t i = 0; i < 6; ++i) {
 		parse(text, res[res_offset++]);
 		text += 2;
 	}
 	return psl::UID {res};
 }
 
-inline psl::UID psl::UID::from_string(const psl::string8_t& key) { return psl::make_uid(key.data(), key.size()); }
+inline psl::UID psl::UID::from_string(const psl::string8_t& key) {
+	return psl::make_uid(key.data(), key.size());
+}
 
-inline psl::UID psl::UID::from_string(psl::string8::view key) { return psl::make_uid(key.data(), key.size()); }
+inline psl::UID psl::UID::from_string(psl::string8::view key) {
+	return psl::make_uid(key.data(), key.size());
+}
 
-inline bool psl::UID::valid(const psl::string8_t& key) noexcept { return psl::valid_uid(key.data(), key.size()); }
+inline bool psl::UID::valid(const psl::string8_t& key) noexcept {
+	return psl::valid_uid(key.data(), key.size());
+}
 }	 // namespace psl
 
 
 // required by the natvis file
-namespace dummy
-{
-struct hex_dummy_low
-{
+namespace dummy {
+struct hex_dummy_low {
 	unsigned char c;
 };
 
-struct hex_dummy_high
-{
+struct hex_dummy_high {
 	unsigned char c;
 };
 }	 // namespace dummy
 
-namespace std
-{
+namespace std {
 template <>
-struct hash<psl::UID>
-{
-	size_t operator()(const psl::UID& x) const noexcept
-	{
+struct hash<psl::UID> {
+	size_t operator()(const psl::UID& x) const noexcept {
 		const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
 		return half[0] ^ half[1];
 	}
 };
 }	 // namespace std
 
-constexpr psl::UID operator"" _uid(const char* text, std::size_t size) { return psl::try_make_uid(text, size); }
+constexpr psl::UID operator"" _uid(const char* text, std::size_t size) {
+	return psl::try_make_uid(text, size);
+}

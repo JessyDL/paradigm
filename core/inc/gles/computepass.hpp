@@ -5,14 +5,11 @@
 #include "psl/view_ptr.hpp"
 #include "resource/resource.hpp"
 
-namespace core::igles
-{
+namespace core::igles {
 class drawpass;
 
-class computepass
-{
-	struct memory_barrier_t
-	{
+class computepass {
+	struct memory_barrier_t {
 		GLbitfield barrier {0};
 		uint32_t usage {0};
 	};

@@ -3,8 +3,7 @@
 #include "psl/serialization/encoder.hpp"
 #include "psl/serialization/serializer.hpp"
 
-namespace psl::serialization
-{
+namespace psl::serialization {
 static property<"POLYMORPHIC_ID", psl::string8_t> p;
 
 /// \brief contains the polymorphic lambda constructor for your polymorphic type
@@ -16,14 +15,11 @@ static property<"POLYMORPHIC_ID", psl::string8_t> p;
 /// Aside from the fact you need to register your polymorphic types (once), there should be no further
 /// interaction with this class.
 template <typename T>
-class polymorphic final : public polymorphic_base
-{
+class polymorphic final : public polymorphic_base {
   public:
-	polymorphic()
-	{
+	polymorphic() {
 		auto& pData = accessor::polymorphic_data();
-		if(pData.find(ID) != pData.end())
-		{
+		if(pData.find(ID) != pData.end()) {
 			LOG_FATAL("Encountered duplicate Polymorphic ID in the serialization: ", ID);
 			exit(-1);
 		}
@@ -55,21 +51,17 @@ class polymorphic final : public polymorphic_base
 };
 
 template <typename Base, typename... Rest>
-static const void notify_base(psl::string8_t name, uint64_t ID)
-{
+static const void notify_base(psl::string8_t name, uint64_t ID) {
 	accessor::polymorphic_data()[accessor::id<Base>()]->derived.emplace_back(name, ID);
-	if constexpr(sizeof...(Rest) > 0)
-	{
+	if constexpr(sizeof...(Rest) > 0) {
 		notify_base<Rest...>(name, ID);
 	}
 }
 
 template <typename T, typename... Base>
-static const uint64_t register_polymorphic()
-{
+static const uint64_t register_polymorphic() {
 	static psl::serialization::polymorphic<T> polymorphic_container;
-	if constexpr(sizeof...(Base) > 0)
-	{
+	if constexpr(sizeof...(Base) > 0) {
 		notify_base<Base...>(accessor::name<T>(), accessor::id<T>());
 	}
 	return accessor::id<T>();

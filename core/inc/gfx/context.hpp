@@ -4,17 +4,14 @@
 #include "resource/resource.hpp"
 #include "types.hpp"
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
 #include <variant>
 
-namespace core::gfx
-{
-class context
-{
+namespace core::gfx {
+class context {
   public:
 #ifdef PE_VULKAN
 	explicit context(core::resource::handle<core::ivk::context>& handle);
@@ -36,17 +33,20 @@ class context
 	context& operator=(const context& other)	 = delete;
 	context& operator=(context&& other) noexcept = delete;
 
-	graphics_backend backend() const noexcept { return m_Backend; }
+	graphics_backend backend() const noexcept {
+		return m_Backend;
+	}
 
 	const core::gfx::limits& limits() const noexcept;
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<context, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<context, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 	void wait_idle();

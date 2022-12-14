@@ -4,8 +4,7 @@
 #endif
 using namespace utility;
 
-void utility::terminal::set_color(color foreground, color background)
-{
+void utility::terminal::set_color(color foreground, color background) {
 #ifdef PLATFORM_WINDOWS
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (uint8_t)foreground | ((uint8_t)background) * 16u);
 #else

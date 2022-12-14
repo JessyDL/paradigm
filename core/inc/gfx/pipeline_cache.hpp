@@ -3,12 +3,10 @@
 #include "resource/resource.hpp"
 #include <variant>
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 
-class pipeline_cache
-{
+class pipeline_cache {
   public:
 #ifdef PE_VULKAN
 	explicit pipeline_cache(core::resource::handle<core::ivk::pipeline_cache>& handle);
@@ -30,13 +28,14 @@ class pipeline_cache
 	pipeline_cache& operator=(pipeline_cache&& other) noexcept = default;
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<pipeline_cache, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<pipeline_cache, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

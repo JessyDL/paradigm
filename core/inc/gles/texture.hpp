@@ -4,14 +4,11 @@
 #include "gles/types.hpp"
 #include <stdint.h>
 
-namespace gli
-{
+namespace gli {
 class texture;
 }
-namespace core::igles
-{
-class texture_t
-{
+namespace core::igles {
+class texture_t {
   public:
 	texture_t(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,

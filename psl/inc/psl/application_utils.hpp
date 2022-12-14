@@ -5,8 +5,7 @@
 ///
 /// this namespace contains application specific information and utilities that might help you to find
 /// out information of its location, specific datapaths, etc...
-namespace utility::application::path
-{
+namespace utility::application::path {
 /// \brief gets the path of the current application. This path is platform specific.
 /// \todo check if returning an empty path for android is correct behaviour.
 /// \returns an absolute path where the application is being ran from.

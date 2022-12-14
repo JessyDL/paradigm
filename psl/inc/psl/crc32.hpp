@@ -6,8 +6,7 @@
 
 #include "psl/details/fixed_astring.hpp"
 
-namespace utility
-{
+namespace utility {
 /// \brief 32 bit crc checksum table.
 static constexpr uint32_t crc32_table[256] {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832,
@@ -96,42 +95,33 @@ static constexpr uint64_t crc64_table[256] {
   0x29b7d047efec8728ULL,
 };
 
-namespace details
-{
+namespace details {
 	template <int size, int idx = 0, class dummy = void>
-	struct crc32
-	{
-		static constexpr uint32_t generate(const char* str, uint32_t prev_crc = 0xFFFFFFFF)
-		{
+	struct crc32 {
+		static constexpr uint32_t generate(const char* str, uint32_t prev_crc = 0xFFFFFFFF) {
 			return crc32<size, idx + 1>::generate(str, (prev_crc >> 8) ^ crc32_table[(prev_crc ^ str[idx]) & 0xFF]);
 		}
 	};
 
 	// This is the stop-recursion function
 	template <int size, class dummy>
-	struct crc32<size, size, dummy>
-	{
-		static constexpr uint32_t generate([[maybe_unused]] const char* str, uint32_t prev_crc = 0xFFFFFFFF)
-		{
+	struct crc32<size, size, dummy> {
+		static constexpr uint32_t generate([[maybe_unused]] const char* str, uint32_t prev_crc = 0xFFFFFFFF) {
 			return prev_crc ^ 0xFFFFFFFF;
 		}
 	};
 
 	template <int size, int idx = 0, class dummy = void>
-	struct crc64
-	{
-		static constexpr uint64_t generate(const char* str, uint64_t prev_crc = 0xFFFFFFFFFFFFFFFF)
-		{
+	struct crc64 {
+		static constexpr uint64_t generate(const char* str, uint64_t prev_crc = 0xFFFFFFFFFFFFFFFF) {
 			return crc64<size, idx + 1>::generate(str, (prev_crc >> 8) ^ crc64_table[(prev_crc ^ str[idx]) & 0xFF]);
 		}
 	};
 
 	// This is the stop-recursion function
 	template <int size, class dummy>
-	struct crc64<size, size, dummy>
-	{
-		static constexpr uint64_t generate([[maybe_unused]] const char* str, uint64_t prev_crc = 0xFFFFFFFFFFFFFFFF)
-		{
+	struct crc64<size, size, dummy> {
+		static constexpr uint64_t generate([[maybe_unused]] const char* str, uint64_t prev_crc = 0xFFFFFFFFFFFFFFFF) {
 			return prev_crc ^ 0xFFFFFFFFFFFFFFFF;
 		}
 	};
@@ -144,8 +134,7 @@ namespace details
 /// \tparam length the length of the character array.
 /// \returns 32 bit unsigned integer containing the crc32 value.
 template <size_t length>
-static constexpr uint32_t crc32(char const (&str)[length])
-{
+static constexpr uint32_t crc32(char const (&str)[length]) {
 	return details::crc32<length - 1>::generate(str);
 }
 
@@ -154,14 +143,12 @@ static constexpr uint32_t crc32(char const (&str)[length])
 /// \tparam length the length of the character array.
 /// \returns 32 bit unsigned integer containing the crc32 value.
 template <size_t length>
-static constexpr uint32_t crc32(char const* str)
-{
+static constexpr uint32_t crc32(char const* str) {
 	return details::crc32<length - 1>::generate(str);
 }
 
 template <psl::details::fixed_astring Text>
-consteval uint32_t crc32()
-{
+consteval uint32_t crc32() {
 	return details::crc32<Text.size()>::generate(Text);
 }
 
@@ -170,8 +157,7 @@ consteval uint32_t crc32()
 /// \tparam length the length of the character array.
 /// \returns 64 bit unsigned integer containing the crc64 value.
 template <size_t length>
-static constexpr uint64_t crc64(char const (&str)[length])
-{
+static constexpr uint64_t crc64(char const (&str)[length]) {
 	return details::crc64<length - 1>::generate(str);
 }
 
@@ -180,25 +166,21 @@ static constexpr uint64_t crc64(char const (&str)[length])
 /// \tparam length the length of the character array.
 /// \returns 64 bit unsigned integer containing the crc64 value.
 template <size_t length>
-static constexpr uint64_t crc64(char const* str)
-{
+static constexpr uint64_t crc64(char const* str) {
 	return details::crc64<length - 1>::generate(str);
 }
 
 template <psl::details::fixed_astring Text>
-consteval uint32_t crc64()
-{
+consteval uint32_t crc64() {
 	return details::crc64<Text.size()>::generate(Text);
 }
 
 /// \brief crc64 checksum calculator for the input characters.
 /// \param[in] str the characters to calculate the crc64 for.
 /// \returns 64 bit unsigned integer containing the crc64 value.
-constexpr static uint64_t crc64(psl::string8::view str)
-{
+constexpr static uint64_t crc64(psl::string8::view str) {
 	uint64_t crc = 0xFFFFFFFFFFFFFFFF;
-	for(uint8_t byte : str)
-	{
+	for(uint8_t byte : str) {
 		crc = crc64_table[(uint8_t)crc ^ byte] ^ (crc >> 8);
 	}
 
@@ -208,11 +190,9 @@ constexpr static uint64_t crc64(psl::string8::view str)
 /// \brief crc32 checksum calculator for the input characters.
 /// \param[in] str the characters to calculate the crc32 for.
 /// \returns 32 bit unsigned integer containing the crc32 value.
-constexpr static uint32_t crc32(psl::string8::view str)
-{
+constexpr static uint32_t crc32(psl::string8::view str) {
 	uint32_t crc = 0xFFFFFFFF;
-	for(uint8_t byte : str)
-	{
+	for(uint8_t byte : str) {
 		crc = crc32_table[(uint8_t)crc ^ byte] ^ (crc >> 8);
 	}
 	return crc ^ 0xFFFFFFFF;

@@ -4,15 +4,12 @@
 #include "selectors.hpp"
 
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 class state_t;
 
-namespace
-{
+namespace {
 	template <typename... Ys>
-	struct pack_base_types
-	{
+	struct pack_base_types {
 		using pack_t		= typename details::typelist_to_pack_view<Ys...>::type;
 		using filter_t		= typename details::typelist_to_pack<Ys...>::type;
 		using combine_t		= typename details::typelist_to_combine_pack<Ys...>::type;
@@ -25,31 +22,26 @@ namespace
 	};
 
 	template <typename... Ys>
-	struct pack_base : public pack_base_types<Ys...>
-	{
+	struct pack_base : public pack_base_types<Ys...> {
 		using policy_t = psl::ecs::full;
 	};
 
 	template <typename... Ys>
-	struct pack_base<psl::ecs::full, Ys...> : public pack_base_types<Ys...>
-	{
+	struct pack_base<psl::ecs::full, Ys...> : public pack_base_types<Ys...> {
 		using policy_t = psl::ecs::full;
 	};
 
 	template <typename... Ys>
-	struct pack_base<psl::ecs::partial, Ys...> : public pack_base_types<Ys...>
-	{
+	struct pack_base<psl::ecs::partial, Ys...> : public pack_base_types<Ys...> {
 		using policy_t = psl::ecs::partial;
 	};
 }	 // namespace
 
 /// \brief an iterable container to work with components and entities.
 template <typename... Ts>
-class pack : public pack_base<Ts...>
-{
+class pack : public pack_base<Ts...> {
 	template <typename T, typename... Ys>
-	void check_policy()
-	{
+	void check_policy() {
 		static_assert(!psl::HasType<psl::ecs::partial, psl::type_pack_t<Ys...>> &&
 						!psl::HasType<psl::ecs::full, psl::type_pack_t<Ys...>>,
 					  "policy types such as 'partial' and 'full' can only appear as the first type");
@@ -77,14 +69,12 @@ class pack : public pack_base<Ts...>
 	pack_t view() { return m_Pack; }
 
 	template <typename T>
-	psl::array_view<T> get() const noexcept
-	{
+	psl::array_view<T> get() const noexcept {
 		return m_Pack.template get<T>();
 	}
 
 	template <size_t N>
-	auto get() const noexcept -> decltype(std::declval<pack_t>().template get<N>())
-	{
+	auto get() const noexcept -> decltype(std::declval<pack_t>().template get<N>()) {
 		return m_Pack.template get<N>();
 	}
 

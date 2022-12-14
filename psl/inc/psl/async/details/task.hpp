@@ -2,10 +2,8 @@
 #include <functional>
 #include <future>
 
-namespace psl::async::details
-{
-class task_base
-{
+namespace psl::async::details {
+class task_base {
   public:
 	virtual ~task_base()	  = default;
 	virtual void operator()() = 0;
@@ -13,8 +11,7 @@ class task_base
 
 
 template <typename R, typename Storage = std::function<void()>, typename Future = std::future<R>>
-class task final : public task_base
-{
+class task final : public task_base {
 	using Actual_Storage = typename std::remove_reference<Storage>::type;
 
   public:
@@ -30,8 +27,7 @@ class task final : public task_base
 };
 
 template <typename R, typename Storage>
-class task<R, Storage, void> final : public task_base
-{
+class task<R, Storage, void> final : public task_base {
 	using Actual_Storage = typename std::remove_reference<Storage>::type;
 
   public:

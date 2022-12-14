@@ -1,7 +1,6 @@
 #pragma once
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 /// \brief tag that allows you to select entities (and components) that have recently added
 /// the given component type
 ///
@@ -10,8 +9,7 @@ namespace psl::ecs
 /// \warning tags do not mean this component will be present in the pack, they are considered
 /// filter directives (or specialized filter directives).
 template <typename... Ts>
-struct on_add
-{};
+struct on_add {};
 
 /// \brief tag that allows you to listen to the event of a component of the given type being
 /// removed.
@@ -21,8 +19,7 @@ struct on_add
 /// \warning tags do not mean this component will be present in the pack, they are considered
 /// filter directives (or specialized filter directives).
 template <typename... Ts>
-struct on_remove
-{};
+struct on_remove {};
 
 /// \brief specialized tag of `on_add`
 ///
@@ -36,8 +33,7 @@ struct on_remove
 /// \warning tags do not mean this component will be present in the pack, they are considered
 /// filter directives (or specialized filter directives).
 template <typename... Ts>
-struct on_combine
-{};
+struct on_combine {};
 
 /// \brief specialized tag of `on_remove`
 ///
@@ -48,8 +44,7 @@ struct on_combine
 /// \warning tags do not mean this component will be present in the pack, they are considered
 /// filter directives (or specialized filter directives).
 template <typename... Ts>
-struct on_break
-{};
+struct on_break {};
 
 /// \brief tag that disallows a certain component to be present on the given entity.
 ///
@@ -61,8 +56,7 @@ struct on_break
 /// \warning tags do not mean this component will be present in the pack, they are considered
 /// filter directives (or specialized filter directives).
 template <typename... Ts>
-struct except
-{};
+struct except {};
 
 
 /// \brief tag allows you to filter on sets of components
@@ -72,29 +66,24 @@ struct except
 /// \warning tags do not mean this component will be present in the pack, they are considered
 /// filter directives (or specialized filter directives).
 template <typename... Ts>
-struct filter
-{};
+struct filter {};
 
 template <typename Pred, typename... Ts>
-struct on_condition
-{};
+struct on_condition {};
 
 template <typename Pred, typename... Ts>
-struct order_by
-{};
+struct order_by {};
 
 
 /// \brief allows packs to exist in a partial state
 ///
 /// Special tag type that signifies that a pack can be split
 /// up into smaller sub-packs by the scheduler when ticking systems
-struct partial
-{};
+struct partial {};
 
 /// \brief requires a pack to be whole when filled in
 ///
 /// Certain packs require their data to be fully available to the system.
 /// Using this tag you can guarantee this is the case.
-struct full
-{};
+struct full {};
 }	 // namespace psl::ecs

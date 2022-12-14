@@ -6,25 +6,21 @@
 #include <optional>
 
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief creates a shader object from a SPIR-V module
 ///
 /// handles loading a SPIR-V object from a source (disk, or otherwise).
 /// and subsequently uploads it to the driver to be validated.
 /// a couple of shaders together with a core::ivk::pipeline and core::ivk::geometry_t is all that's
 /// needed to render an object on screen.
-class shader
-{
+class shader {
   public:
 	/// \brief contains the specialization info that might be used by the shader.
-	struct specialization
-	{
+	struct specialization {
 		psl::string8_t name;
 		specialization() : name("main") {};
 		specialization(const specialization& other) : name(other.name) {}

@@ -4,20 +4,17 @@
 #include "resource/resource.hpp"
 #include <variant>
 #ifdef PE_GLES
-namespace core::igles
-{
+namespace core::igles {
 class drawpass;
 }
 #endif
 #ifdef PE_VULKAN
-namespace core::ivk
-{
+namespace core::ivk {
 class drawpass;
 }
 #endif
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class framebuffer_t;
 class swapchain;
@@ -29,21 +26,18 @@ class drawpass;
 
 #ifdef PE_VULKAN
 template <>
-struct backend_type<drawpass, graphics_backend::vulkan>
-{
+struct backend_type<drawpass, graphics_backend::vulkan> {
 	using type = core::ivk::drawpass;
 };
 #endif
 #ifdef PE_GLES
 template <>
-struct backend_type<drawpass, graphics_backend::gles>
-{
+struct backend_type<drawpass, graphics_backend::gles> {
 	using type = core::igles::drawpass;
 };
 #endif
 
-class drawpass
-{
+class drawpass {
   public:
 #ifdef PE_VULKAN
 	explicit drawpass(core::ivk::drawpass* handle);
@@ -70,21 +64,30 @@ class drawpass
 	void present();
 
 	bool connect(psl::view_ptr<core::gfx::drawpass> child) noexcept;
-	bool connect(psl::view_ptr<core::gfx::computepass> child) noexcept { return true; };
+	bool connect(psl::view_ptr<core::gfx::computepass> child) noexcept {
+		return true;
+	};
 	bool disconnect(psl::view_ptr<core::gfx::drawpass> child) noexcept;
-	bool disconnect(psl::view_ptr<core::gfx::computepass> child) noexcept { return true; };
+	bool disconnect(psl::view_ptr<core::gfx::computepass> child) noexcept {
+		return true;
+	};
 	void add(core::gfx::drawgroup& group) noexcept;
 
-	void dirty(bool value) noexcept { m_Dirty = value; }
-	bool dirty() const noexcept { return m_Dirty; }
+	void dirty(bool value) noexcept {
+		m_Dirty = value;
+	}
+	bool dirty() const noexcept {
+		return m_Dirty;
+	}
 	template <core::gfx::graphics_backend backend>
-	backend_type_t<drawpass, backend>* resource() const noexcept
-	{
+	backend_type_t<drawpass, backend>* resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

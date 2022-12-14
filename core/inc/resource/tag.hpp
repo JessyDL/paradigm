@@ -1,11 +1,9 @@
 #pragma once
 #include "psl/meta.hpp"
 
-namespace core::resource
-{
+namespace core::resource {
 template <typename T>
-class tag
-{
+class tag {
   public:
 	tag(const psl::UID& uid) : m_UID(uid) {};
 	~tag()					   = default;

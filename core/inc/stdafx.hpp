@@ -89,16 +89,15 @@
 
 	#define CHKHEAP() (chk_heap(__FILE__, __LINE__))
 
-static void chk_heap(char* file, int line)
-{
+static void chk_heap(char* file, int line) {
 	static const char* lastOkFile = "here";
 	static int lastOkLine		  = 0;
 	static int heapOK			  = 1;
 
-	if(!heapOK) return;
+	if(!heapOK)
+		return;
 
-	if(_heapchk() == _HEAPOK)
-	{
+	if(_heapchk() == _HEAPOK) {
 		lastOkFile = file;
 		lastOkLine = line;
 		return;

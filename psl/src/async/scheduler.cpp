@@ -4,44 +4,41 @@
 
 using namespace psl::async;
 
-namespace psl::async::details
-{
-struct worker
-{
+namespace psl::async::details {
+struct worker {
   public:
 	worker() = delete;
 	worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer) : m_Consumer(std::move(consumer)) {};
-	~worker()
-	{
-		if(!terminated()) resume(), terminate();
-		while(!m_Thread.joinable())
-		{};
+	~worker() {
+		if(!terminated())
+			resume(), terminate();
+		while(!m_Thread.joinable()) {
+		};
 		m_Thread.join();
 	}
 	worker(const worker& other) : m_Consumer(other.m_Consumer) {};
 	worker(worker&&)				 = delete;
 	worker& operator=(const worker&) = delete;
 	worker& operator=(worker&&)		 = delete;
-	void start()
-	{
+	void start() {
 		m_Done.store(false, std::memory_order_relaxed);
 		m_Thread = std::thread {&worker::loop, this};
 	}
 	void terminate() { m_Run.store(false, std::memory_order_relaxed); }
 	bool terminated() { return m_Done.load(std::memory_order_relaxed); }
 
-	void pause()
-	{
-		if(m_Paused) return;
+	void pause() {
+		if(m_Paused)
+			return;
 		// pause
 		{
 			std::lock_guard<std::mutex> lk(m);
 			m_Paused = true;
 		}
 	}
-	void resume()
-	{
-		if(!m_Paused) return;
+	void resume() {
+		if(!m_Paused)
+			return;
 		{
 			std::lock_guard<std::mutex> lk(m);
 			m_Paused = false;
@@ -51,28 +48,22 @@ struct worker
 	}
 
   private:
-	void loop()
-	{
+	void loop() {
 		int max_spin = 1000;
-		while(m_Run.load(std::memory_order_relaxed))
-		{
-			while(m_Paused)
-			{
+		while(m_Run.load(std::memory_order_relaxed)) {
+			while(m_Paused) {
 				std::unique_lock<std::mutex> lk(m);
 				cv.wait(lk, [this]() { return !m_Paused; });
 				lk.unlock();
 			}
 
-			if(auto item = m_Consumer.pop(); item)
-			{
+			if(auto item = m_Consumer.pop(); item) {
 				auto task = item.value();
 				task->operator()();
-			}
-			else
+			} else
 				--max_spin;
 
-			if(max_spin == 0)
-			{
+			if(max_spin == 0) {
 				max_spin = 1000;
 				std::this_thread::sleep_for(std::chrono::microseconds(5));
 			}
@@ -92,12 +83,10 @@ struct worker
 };
 }	 // namespace psl::async::details
 
-scheduler::scheduler(std::optional<size_t> workers) noexcept :
-	m_Workers(workers.value_or(std::thread::hardware_concurrency() - 1))
-{
+scheduler::scheduler(std::optional<size_t> workers) noexcept
+	: m_Workers(workers.value_or(std::thread::hardware_concurrency() - 1)) {
 	m_Workerthreads.reserve(m_Workers);
-	for(auto i = 0; i < m_Workers; ++i)
-	{
+	for(auto i = 0; i < m_Workers; ++i) {
 		m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer()));
 		m_Workerthreads[i]->start();
 	}
@@ -105,10 +94,8 @@ scheduler::scheduler(std::optional<size_t> workers) noexcept :
 
 scheduler::~scheduler() {}
 
-void scheduler::execute()
-{
-	struct invocable_comparer
-	{
+void scheduler::execute() {
+	struct invocable_comparer {
 		bool operator()(psl::view_ptr<details::packet> lhs, size_t rhs) const noexcept { return *lhs < rhs; }
 
 		bool operator()(size_t lhs, psl::view_ptr<details::packet> rhs) const noexcept { return lhs < *rhs; }
@@ -137,12 +124,10 @@ void scheduler::execute()
 		return psl::view_ptr<details::packet>(&packet);
 	});
 
-	for(auto packet : invocables)
-	{
+	for(auto packet : invocables) {
 		std::sort(std::begin(packet->description().m_Blockers), std::end(packet->description().m_Blockers));
 		if(packet->description().blockers().size() == 0 && packet->description().dynamic_barriers_ready() &&
-		   compatible(packet->description().barriers(), barriers))
-		{
+		   compatible(packet->description().barriers(), barriers)) {
 			m_Tasks.push(psl::view_ptr<details::packet>(packet));
 			inflight.emplace_back(packet);
 			barriers.insert(std::end(barriers),
@@ -162,14 +147,12 @@ void scheduler::execute()
 	}
 	for(auto& thread : m_Workerthreads) thread->resume();
 
-	while(inflight.size() > 0)
-	{
+	while(inflight.size() > 0) {
 		psl_assert(std::unique(std::begin(inflight),
 							   std::end(inflight),
 							   [](const auto& lhs, const auto& rhs) { return *lhs == *rhs; }) == std::end(inflight),
 				   "unique test failed");
-		if(auto item = m_Tasks.pop(); item)
-		{
+		if(auto item = m_Tasks.pop(); item) {
 			auto task = item.value();
 			task->operator()();
 		}
@@ -177,8 +160,7 @@ void scheduler::execute()
 		if(auto it = std::stable_partition(std::begin(inflight),
 										   std::end(inflight),
 										   [](psl::view_ptr<details::packet> packet) { return !packet->is_ready(); });
-		   it != std::end(inflight))
-		{
+		   it != std::end(inflight)) {
 			// Add all ready inflight tasks to the done list, and sort the result. Then remove them from the infight.
 			auto done_mid = done.size();
 			std::transform(it, std::end(inflight), std::back_inserter(done), [](const auto& task) -> size_t {
@@ -193,8 +175,7 @@ void scheduler::execute()
 
 			// Redo the barriers
 			barriers.clear();
-			for(auto& packet : inflight)
-			{
+			for(auto& packet : inflight) {
 				barriers.insert(std::end(barriers),
 								std::begin(packet->description().barriers()),
 								std::end(packet->description().barriers()));
@@ -202,8 +183,7 @@ void scheduler::execute()
 
 			// Find new tasks to push into flight, and sort the result
 			auto inflight_mid = inflight.size();
-			for(auto& packet : invocables)
-			{
+			for(auto& packet : invocables) {
 				if(packet->description().dynamic_barriers_ready())
 					packet->description().merge_dynamic_barriers();
 				else
@@ -213,8 +193,7 @@ void scheduler::execute()
 								 std::end(done),
 								 std::begin(packet->description().blockers()),
 								 std::end(packet->description().blockers())) &&
-				   compatible(packet->description().barriers(), barriers))
-				{
+				   compatible(packet->description().barriers(), barriers)) {
 					m_Tasks.push(psl::view_ptr<details::packet>(packet));
 					inflight.emplace_back(packet);
 
@@ -246,45 +225,35 @@ void scheduler::execute()
 	m_Invocables.clear();
 }
 
-void scheduler::sequence(token first, token then) noexcept
-{
+void scheduler::sequence(token first, token then) noexcept {
 	m_Invocables[then - m_TokenOffset].description().blockers(first);
 }
-void scheduler::sequence(psl::array<token> first, token then) noexcept
-{
+void scheduler::sequence(psl::array<token> first, token then) noexcept {
 	m_Invocables[then - m_TokenOffset].description().blockers(first);
 }
-void scheduler::sequence(token first, psl::array<token> then) noexcept
-{
+void scheduler::sequence(token first, psl::array<token> then) noexcept {
 	for(const auto& t : then) m_Invocables[t - m_TokenOffset].description().blockers(first);
 }
-void scheduler::sequence(psl::array<token> first, psl::array<token> then) noexcept
-{
+void scheduler::sequence(psl::array<token> first, psl::array<token> then) noexcept {
 	for(const auto& t : then) m_Invocables[t - m_TokenOffset].description().blockers(first);
 }
 
-void scheduler::barriers(token token, const psl::array<barrier>& barriers)
-{
+void scheduler::barriers(token token, const psl::array<barrier>& barriers) {
 	m_Invocables[token - m_TokenOffset].description().barriers(barriers);
 }
-void scheduler::barriers(token token, psl::array<std::future<barrier>>&& barriers)
-{
+void scheduler::barriers(token token, psl::array<std::future<barrier>>&& barriers) {
 	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(std::move(barriers));
 }
-void scheduler::barriers(token token, std::future<barrier>&& barrier)
-{
+void scheduler::barriers(token token, std::future<barrier>&& barrier) {
 	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(std::move(barrier));
 }
-void scheduler::barriers(token token, const psl::array<std::shared_future<barrier>>& barriers)
-{
+void scheduler::barriers(token token, const psl::array<std::shared_future<barrier>>& barriers) {
 	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(barriers);
 }
-void scheduler::barriers(token token, std::shared_future<barrier>& barrier)
-{
+void scheduler::barriers(token token, std::shared_future<barrier>& barrier) {
 	m_Invocables[token - m_TokenOffset].description().dynamic_barriers(barrier);
 }
 
-void scheduler::consecutive(token target, psl::array<token> tokens)
-{
+void scheduler::consecutive(token target, psl::array<token> tokens) {
 	m_Invocables[target - m_TokenOffset].description().blocking(tokens);
 }

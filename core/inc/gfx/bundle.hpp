@@ -7,32 +7,23 @@
 #include "psl/array.hpp"
 #include "resource/resource.hpp"
 
-namespace core::ivk
-{
+namespace core::ivk {
 class geometry_t;
 class framebuffer_t;
 class swapchain;
 class drawpass;
 }	 // namespace core::ivk
 
-namespace core::igles
-{
+namespace core::igles {
 class drawpass;
 }
-namespace vk
-{
+namespace vk {
 class CommandBuffer;
 }
 
-namespace core::gfx
-{
-enum class geometry_type
-{
-	STATIC	= 0,
-	DYNAMIC = 1
-};
-namespace constants
-{
+namespace core::gfx {
+enum class geometry_type { STATIC = 0, DYNAMIC = 1 };
+namespace constants {
 	static constexpr psl::string_view INSTANCE_MODELMATRIX		  = "INSTANCE_TRANSFORM";
 	static constexpr psl::string_view INSTANCE_LEGACY_MODELMATRIX = "iModelMat";
 }	 // namespace constants
@@ -46,8 +37,7 @@ namespace constants
 /// combination. This allows geometry to share instance related data (such as positions, or colors) across different
 /// 'core::gfx::material_t's and different 'core::gfx::pass'es. As example sharing instance position data between
 /// the depth-only prepass, and normal render pass.
-class bundle final
-{
+class bundle final {
 	friend class core::ivk::drawpass;
 	friend class core::igles::drawpass;
 
@@ -129,13 +119,11 @@ class bundle final
 	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
 			 uint32_t id,
 			 psl::string_view name,
-			 const psl::array<T>& values)
-	{
+			 const psl::array<T>& values) {
 		static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
 		static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
 		auto res = m_InstanceData.segment(geometry, name);
-		if(!res)
-		{
+		if(!res) {
 			core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid().to_string());
 			return false;
 		}
@@ -143,19 +131,16 @@ class bundle final
 	}
 
 	template <typename T>
-	bool set(core::resource::tag<core::gfx::material_t> material, const T& value, size_t offset = 0)
-	{
+	bool set(core::resource::tag<core::gfx::material_t> material, const T& value, size_t offset = 0) {
 		static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
 		static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
 		return set(material, &value, sizeof(T), offset);
 	}
 
 	template <typename T>
-	bool set(core::resource::tag<core::gfx::material_t> material, psl::string_view name, const T& value)
-	{
+	bool set(core::resource::tag<core::gfx::material_t> material, psl::string_view name, const T& value) {
 		auto offset = m_InstanceData.offset_of(material, name);
-		if(offset == std::numeric_limits<decltype(offset)>::max())
-		{
+		if(offset == std::numeric_limits<decltype(offset)>::max()) {
 			core::gfx::log->error(
 			  "The element name {} was not found in the material {} data", name, material.uid().to_string());
 			return false;
@@ -164,20 +149,16 @@ class bundle final
 	}
 
 	template <typename T>
-	bool set(psl::string_view name, const T& value)
-	{
+	bool set(psl::string_view name, const T& value) {
 		size_t count = 0;
-		for(const auto& material : m_Materials)
-		{
+		for(const auto& material : m_Materials) {
 			auto offset = m_InstanceData.offset_of(material, name);
-			if(offset != std::numeric_limits<decltype(offset)>::max())
-			{
+			if(offset != std::numeric_limits<decltype(offset)>::max()) {
 				count += set(material, value, offset) ? 1 : 0;
 			}
 		}
 
-		if(count == 0)
-		{
+		if(count == 0) {
 			core::gfx::log->error(
 			  "The element name {} was not found in any of the {} materials", name, m_Materials.size());
 		}

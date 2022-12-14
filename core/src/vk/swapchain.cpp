@@ -21,10 +21,9 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 handle<core::os::surface> surface,
 					 handle<core::ivk::context> context,
 					 core::os::context& os_context,
-					 bool use_depth) :
-	m_OSSurface(&surface.value()),
-	m_Context(context), m_Cache(cache), m_DepthTextureHandle(), m_UseDepth(use_depth), m_SurfaceFormat {}
-{
+					 bool use_depth)
+	: m_OSSurface(&surface.value()), m_Context(context), m_Cache(cache), m_DepthTextureHandle(),
+	  m_UseDepth(use_depth), m_SurfaceFormat {} {
 #ifdef SURFACE_WIN32
 	vk::Win32SurfaceCreateInfoKHR createInfo;
 	createInfo.hinstance = m_OSSurface->surface_instance();
@@ -62,8 +61,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	vk::DisplayKHR display;
 	vk::DisplayModeKHR displayMode;
 	bool foundMode = false;
-	for(uint32_t i = 0; i < displayPropertyCount; ++i)
-	{
+	for(uint32_t i = 0; i < displayPropertyCount; ++i) {
 		display = displayProperties[i].display;
 		uint32_t modeCount;
 		std::vector<vk::DisplayModePropertiesKHR> modeProperties;
@@ -71,34 +69,29 @@ swapchain::swapchain(core::resource::cache_t& cache,
 		modeProperties.resize(modeCount);
 		m_Context->physical_device().getDisplayModePropertiesKHR(display, &modeCount, modeProperties.data());
 
-		for(uint32_t j = 0; j < modeCount; ++j)
-		{
+		for(uint32_t j = 0; j < modeCount; ++j) {
 			const auto* mode = &modeProperties[j];
 
 			if(mode->parameters.visibleRegion.width == m_OSSurface->data().width() &&
-			   mode->parameters.visibleRegion.height == m_OSSurface->data().height())
-			{
+			   mode->parameters.visibleRegion.height == m_OSSurface->data().height()) {
 				displayMode = mode->displayMode;
 				foundMode	= true;
 				break;
 			}
 		}
-		if(foundMode)
-		{
+		if(foundMode) {
 			break;
 		}
 	}
 
-	if(!foundMode)
-	{
+	if(!foundMode) {
 		core::ivk::log->critical("couldn't find a display and display mode that matched");
 		exit(-1);
 	}
 
 	// Search for a best plane we can use
 	uint32_t bestPlaneIndex = UINT32_MAX;
-	for(uint32_t i = 0; i < planePropertyCount; i++)
-	{
+	for(uint32_t i = 0; i < planePropertyCount; i++) {
 		uint32_t planeIndex = i;
 		uint32_t displayCount;
 		std::vector<vk::DisplayKHR> displays;
@@ -108,22 +101,18 @@ swapchain::swapchain(core::resource::cache_t& cache,
 
 		// Find a display that matches the current plane
 		bestPlaneIndex = UINT32_MAX;
-		for(uint32_t j = 0; j < displayCount; j++)
-		{
-			if(display == displays[j])
-			{
+		for(uint32_t j = 0; j < displayCount; j++) {
+			if(display == displays[j]) {
 				bestPlaneIndex = i;
 				break;
 			}
 		}
-		if(bestPlaneIndex != UINT32_MAX)
-		{
+		if(bestPlaneIndex != UINT32_MAX) {
 			break;
 		}
 	}
 
-	if(bestPlaneIndex == UINT32_MAX)
-	{
+	if(bestPlaneIndex == UINT32_MAX) {
 		core::ivk::log->critical("couldn't find a plane to display on");
 		exit(-1);
 	}
@@ -132,20 +121,13 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	m_Context->physical_device().getDisplayPlaneCapabilitiesKHR(displayMode, bestPlaneIndex, &planeCap);
 	vk::DisplayPlaneAlphaFlagBitsKHR alphaMode;
 
-	if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::ePerPixelPremultiplied)
-	{
+	if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::ePerPixelPremultiplied) {
 		alphaMode = vk::DisplayPlaneAlphaFlagBitsKHR::ePerPixelPremultiplied;
-	}
-	else if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::ePerPixel)
-	{
+	} else if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::ePerPixel) {
 		alphaMode = vk::DisplayPlaneAlphaFlagBitsKHR::ePerPixel;
-	}
-	else if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::eGlobal)
-	{
+	} else if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::eGlobal) {
 		alphaMode = vk::DisplayPlaneAlphaFlagBitsKHR::eGlobal;
-	}
-	else if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::eOpaque)
-	{
+	} else if(planeCap.supportedAlpha & vk::DisplayPlaneAlphaFlagBitsKHR::eOpaque) {
 		alphaMode = vk::DisplayPlaneAlphaFlagBitsKHR::eOpaque;
 	}
 
@@ -161,8 +143,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	surfaceInfo.imageExtent.height = m_OSSurface->data().height();
 
 	if(utility::vulkan::check(
-		 m_Context->instance().createDisplayPlaneSurfaceKHR(&surfaceInfo, VK_NULL_HANDLE, &m_Surface)))
-	{
+		 m_Context->instance().createDisplayPlaneSurfaceKHR(&surfaceInfo, VK_NULL_HANDLE, &m_Surface))) {
 		core::ivk::log->critical("failed to create the D2D surface");
 		exit(-1);
 	}
@@ -174,68 +155,58 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	init_swapchain();
 	init_command_buffer();
 	init_images();
-	if(m_UseDepth) init_depthstencil();
+	if(m_UseDepth)
+		init_depthstencil();
 	init_renderpass();
 	init_framebuffer();
 	flush();
 }
 
-swapchain::~swapchain()
-{
+swapchain::~swapchain() {
 	deinit_framebuffer();
 	deinit_renderpass();
-	if(m_UseDepth) deinit_depthstencil();
+	if(m_UseDepth)
+		deinit_depthstencil();
 	deinit_images();
 	deinit_command_buffer();
 	deinit_swapchain();
 	deinit_surface();
 }
 
-void swapchain::init_surface()
-{
+void swapchain::init_surface() {
 	m_ImageCount		= (uint32_t)(m_OSSurface->data().buffering());
 	auto physicalDevice = m_Context->physical_device();
 	utility::vulkan::check(
 	  physicalDevice.getSurfaceSupportKHR(m_Context->graphics_queue_index(), m_Surface, &m_SupportKHR));
-	if(m_SupportKHR == VK_FALSE)
-	{
+	if(m_SupportKHR == VK_FALSE) {
 		LOG_FATAL("Does not support KHR surface.");
 	}
 	utility::vulkan::check(physicalDevice.getSurfaceCapabilitiesKHR(m_Surface, &m_SurfaceCapabilities));
-	if(m_SurfaceCapabilities.currentExtent.width < UINT32_MAX)
-	{
+	if(m_SurfaceCapabilities.currentExtent.width < UINT32_MAX) {
 		// TODO: Figure out this problematic area
 		// width = m_SurfaceCapabilities.currentExtent.width;
 		// height = m_SurfaceCapabilities.currentExtent.height;
-		if(m_SurfaceCapabilities.maxImageCount != 0)
-		{
+		if(m_SurfaceCapabilities.maxImageCount != 0) {
 			m_ImageCount = (uint32_t)std::fmin(m_ImageCount, m_SurfaceCapabilities.maxImageCount);
 		}
 		m_ImageCount = (uint32_t)std::fmax(m_ImageCount, m_SurfaceCapabilities.minImageCount);
 	}
 
-	if(auto res = physicalDevice.getSurfaceFormatsKHR(m_Surface); utility::vulkan::check(res.result))
-	{
+	if(auto res = physicalDevice.getSurfaceFormatsKHR(m_Surface); utility::vulkan::check(res.result)) {
 		m_SurfaceSupportFormats = res.value;
-	}
-	else
-	{
+	} else {
 		core::ivk::log->critical("could not get surface formats");
 	}
-	if(m_SurfaceSupportFormats.size() <= 0) LOG_FATAL("No surface formats found.");
+	if(m_SurfaceSupportFormats.size() <= 0)
+		LOG_FATAL("No surface formats found.");
 
-	if(m_SurfaceSupportFormats[0].format == vk::Format::eUndefined)
-	{
+	if(m_SurfaceSupportFormats[0].format == vk::Format::eUndefined) {
 		m_SurfaceFormat.format	   = SURFACE_FORMAT;
 		m_SurfaceFormat.colorSpace = SURFACE_COLORSPACE;
-	}
-	else
-	{
+	} else {
 		m_SurfaceFormat = m_SurfaceSupportFormats[0];
-		for(auto& item : m_SurfaceSupportFormats)
-		{
-			if(item.format == SURFACE_FORMAT)
-			{
+		for(auto& item : m_SurfaceSupportFormats) {
+			if(item.format == SURFACE_FORMAT) {
 				m_SurfaceFormat.format = SURFACE_FORMAT;
 				break;
 			}
@@ -243,10 +214,11 @@ void swapchain::init_surface()
 		m_SurfaceFormat.colorSpace = SURFACE_COLORSPACE;
 	}
 }
-void swapchain::deinit_surface() { m_Context->instance().destroySurfaceKHR(m_Surface); }
+void swapchain::deinit_surface() {
+	m_Context->instance().destroySurfaceKHR(m_Surface);
+}
 
-void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous)
-{
+void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous) {
 	auto physicalDevice			   = m_Context->physical_device();
 	vk::PresentModeKHR presentMode = vk::PresentModeKHR::eFifo;
 	{
@@ -286,21 +258,22 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous)
 
 	utility::vulkan::check(
 	  m_Context->device().getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, (vk::Image*)nullptr));
-	if(m_SwapchainImageCount <= 0) LOG_FATAL("We received no swapchain images.");
+	if(m_SwapchainImageCount <= 0)
+		LOG_FATAL("We received no swapchain images.");
 }
 
-void swapchain::deinit_swapchain() { m_Context->device().destroySwapchainKHR(m_Swapchain); }
+void swapchain::deinit_swapchain() {
+	m_Context->device().destroySwapchainKHR(m_Swapchain);
+}
 
-void swapchain::init_images()
-{
+void swapchain::init_images() {
 	m_SwapchainImages.resize(m_SwapchainImageCount);
 	m_SwapchainImageViews.resize(m_SwapchainImageCount);
 
 	auto device = m_Context->device();
 	utility::vulkan::check(device.getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, m_SwapchainImages.data()));
 
-	for(uint32_t i = 0; i < m_SwapchainImageCount; ++i)
-	{
+	for(uint32_t i = 0; i < m_SwapchainImageCount; ++i) {
 		vk::ImageViewCreateInfo CI;
 		CI.image	= m_SwapchainImages[i];
 		CI.viewType = vk::ImageViewType::e2D;
@@ -320,21 +293,18 @@ void swapchain::init_images()
 	}
 }
 
-void swapchain::deinit_images()
-{
+void swapchain::deinit_images() {
 	auto& device = m_Context->device();
 	for(uint32_t i = 0; i < m_SwapchainImageCount; ++i) device.destroyImageView(m_SwapchainImageViews[i], nullptr);
 }
 
-void swapchain::init_command_buffer()
-{
+void swapchain::init_command_buffer() {
 	vk::CommandBufferAllocateInfo AI;
 	AI.commandBufferCount = 1;
 	AI.commandPool		  = m_Context->command_pool();
 	AI.level			  = vk::CommandBufferLevel::ePrimary;
 
-	if(!utility::vulkan::check(m_Context->device().allocateCommandBuffers(&AI, &m_SetupCommandBuffer)))
-	{
+	if(!utility::vulkan::check(m_Context->device().allocateCommandBuffers(&AI, &m_SetupCommandBuffer))) {
 		LOG_ERROR("Could not allocate primary command buffer!");
 	}
 	vk::CommandBufferBeginInfo cmdBufInfo;
@@ -342,9 +312,9 @@ void swapchain::init_command_buffer()
 	utility::vulkan::check(m_SetupCommandBuffer.begin(&cmdBufInfo));
 }
 
-void swapchain::flush()
-{
-	if(!m_SetupCommandBuffer) return;
+void swapchain::flush() {
+	if(!m_SetupCommandBuffer)
+		return;
 
 	utility::vulkan::check(m_SetupCommandBuffer.end());
 
@@ -361,18 +331,16 @@ void swapchain::flush()
 	m_SetupCommandBuffer = nullptr;
 }
 
-void swapchain::deinit_command_buffer()
-{
-	if(!m_SetupCommandBuffer) return;
+void swapchain::deinit_command_buffer() {
+	if(!m_SetupCommandBuffer)
+		return;
 	m_Context->device().freeCommandBuffers(m_Context->command_pool(), 1, &m_SetupCommandBuffer);
 }
 
-void swapchain::init_depthstencil()
-{
+void swapchain::init_depthstencil() {
 	// auto device = m_Context->device();
 	vk::Format depthFormat;
-	if(utility::vulkan::supported_depthformat(m_Context->physical_device(), &depthFormat) != VK_TRUE)
-	{
+	if(utility::vulkan::supported_depthformat(m_Context->physical_device(), &depthFormat) != VK_TRUE) {
 		LOG_FATAL("Could not find a suitable depth stencil buffer format.");
 	}
 
@@ -392,12 +360,10 @@ void swapchain::init_depthstencil()
 	m_Cache.library().set(m_DepthTextureHandle, "SCDepthStencil");
 }
 
-void swapchain::deinit_depthstencil()
-{ /*m_DepthTextureHandle.unload();*/
+void swapchain::deinit_depthstencil() { /*m_DepthTextureHandle.unload();*/
 }
 
-void swapchain::init_renderpass()
-{
+void swapchain::init_renderpass() {
 	std::array<vk::AttachmentDescription, 2> attachments;
 
 	// Color attachment
@@ -477,10 +443,11 @@ void swapchain::init_renderpass()
 	utility::vulkan::check(m_Context->device().createRenderPass(&renderPassInfo, nullptr, &m_RenderPass));
 }
 
-void swapchain::deinit_renderpass() { m_Context->device().destroyRenderPass(m_RenderPass); }
+void swapchain::deinit_renderpass() {
+	m_Context->device().destroyRenderPass(m_RenderPass);
+}
 
-void swapchain::init_framebuffer()
-{
+void swapchain::init_framebuffer() {
 	vk::ImageView attachments[2];
 
 	// Depth/Stencil attachment is the same for all frame buffers
@@ -497,25 +464,21 @@ void swapchain::init_framebuffer()
 
 	// Create frame buffers for every swap chain image
 	m_Framebuffer.resize(m_SwapchainImageCount);
-	for(uint32_t i = 0; i < m_SwapchainImageCount; i++)
-	{
+	for(uint32_t i = 0; i < m_SwapchainImageCount; i++) {
 		attachments[0] = m_SwapchainImageViews[i];
 		utility::vulkan::check(
 		  m_Context->device().createFramebuffer(&frameBufferCreateInfo, nullptr, &m_Framebuffer[i]));
 	}
 }
 
-void swapchain::deinit_framebuffer()
-{
+void swapchain::deinit_framebuffer() {
 	for(uint32_t i = 0; i < m_SwapchainImageCount; ++i)
 		m_Context->device().destroyFramebuffer(m_Framebuffer[i], nullptr);
 }
 
-bool swapchain::next(vk::Semaphore presentComplete, uint32_t& out_image_index)
-{
+bool swapchain::next(vk::Semaphore presentComplete, uint32_t& out_image_index) {
 	bool recreated = false;
-	if(m_ShouldResize)
-	{
+	if(m_ShouldResize) {
 		recreated = true;
 		apply_resize();
 	}
@@ -528,13 +491,10 @@ bool swapchain::next(vk::Semaphore presentComplete, uint32_t& out_image_index)
 	// auto resultValue  = m_Context->device().acquireNextImage2KHR(acquireNextImageInfo);
 	auto resultValue  = m_Context->device().acquireNextImageKHR(m_Swapchain, UINT64_MAX, presentComplete, nullptr);
 	vk::Result result = resultValue.result;
-	if((result == vk::Result::eErrorOutOfDateKHR) || (result == vk::Result::eSuboptimalKHR))
-	{
+	if((result == vk::Result::eErrorOutOfDateKHR) || (result == vk::Result::eSuboptimalKHR)) {
 		recreated = true;
 		apply_resize();
-	}
-	else if(result != vk::Result::eSuccess)
-	{
+	} else if(result != vk::Result::eSuccess) {
 		core::ivk::log->error("Invalid acquire result: {}", vk::to_string(result));
 	}
 
@@ -542,8 +502,7 @@ bool swapchain::next(vk::Semaphore presentComplete, uint32_t& out_image_index)
 	out_image_index = m_CurrentImage;
 	return recreated;
 }
-vk::Result swapchain::present(vk::Semaphore wait)
-{
+vk::Result swapchain::present(vk::Semaphore wait) {
 	vk::PresentInfoKHR presentInfo;
 	presentInfo.swapchainCount = 1;
 	presentInfo.pSwapchains	   = &m_Swapchain;
@@ -552,25 +511,21 @@ vk::Result swapchain::present(vk::Semaphore wait)
 	presentInfo.waitSemaphoreCount = wait ? 1 : 0;
 	presentInfo.pWaitSemaphores	   = &wait;
 	auto res					   = m_Context->queue().presentKHR(presentInfo);
-	if(!((res == vk::Result::eSuccess) || (res == vk::Result::eSuboptimalKHR)))
-	{
-		if(res == vk::Result::eErrorOutOfDateKHR)
-		{
+	if(!((res == vk::Result::eSuccess) || (res == vk::Result::eSuboptimalKHR))) {
+		if(res == vk::Result::eErrorOutOfDateKHR) {
 			apply_resize();
 		}
 	}
 	return res;
 }
 
-void swapchain::resize()
-{
-	while(m_Resizing)
-	{};
+void swapchain::resize() {
+	while(m_Resizing) {
+	};
 
 	m_ShouldResize = true;
 }
-void swapchain::apply_resize()
-{
+void swapchain::apply_resize() {
 	m_Resizing = true;
 	// hard sync.
 	utility::vulkan::check(m_Context->device().waitIdle());
@@ -586,13 +541,15 @@ void swapchain::apply_resize()
 	deinit_renderpass();
 	auto& device = m_Context->device();
 	for(uint32_t i = 0; i < images; ++i) device.destroyImageView(m_SwapchainImageViews[i], nullptr);
-	if(m_UseDepth) deinit_depthstencil();
+	if(m_UseDepth)
+		deinit_depthstencil();
 	deinit_command_buffer();
 	device.destroySwapchainKHR(previous);
 
 	init_command_buffer();
 	init_images();
-	if(m_UseDepth) init_depthstencil();
+	if(m_UseDepth)
+		init_depthstencil();
 	init_renderpass();
 	init_framebuffer();
 	// hard sync.
@@ -601,20 +558,44 @@ void swapchain::apply_resize()
 	m_ShouldResize = false;
 }
 
-bool swapchain::is_ready() const noexcept { return !m_Resizing; }
+bool swapchain::is_ready() const noexcept {
+	return !m_Resizing;
+}
 
 // amount of images in the swapchain
-uint32_t swapchain::size() const noexcept { return m_SwapchainImageCount; }
-vk::RenderPass swapchain::renderpass() const noexcept { return m_RenderPass; }
+uint32_t swapchain::size() const noexcept {
+	return m_SwapchainImageCount;
+}
+vk::RenderPass swapchain::renderpass() const noexcept {
+	return m_RenderPass;
+}
 
-uint32_t swapchain::width() const noexcept { return m_OSSurface->data().width(); }
-uint32_t swapchain::height() const noexcept { return m_OSSurface->data().height(); }
+uint32_t swapchain::width() const noexcept {
+	return m_OSSurface->data().width();
+}
+uint32_t swapchain::height() const noexcept {
+	return m_OSSurface->data().height();
+}
 
-const std::vector<vk::Framebuffer>& swapchain::framebuffers() const noexcept { return m_Framebuffer; }
-const std::vector<vk::Image>& swapchain::images() const noexcept { return m_SwapchainImages; }
-const std::vector<vk::ImageView>& swapchain::views() const noexcept { return m_SwapchainImageViews; }
-const vk::ClearColorValue swapchain::clear_color() const noexcept { return m_ClearColor; }
-const vk::ClearDepthStencilValue swapchain::clear_depth() const noexcept { return m_ClearDepth; }
-bool swapchain::has_depth() const noexcept { return m_UseDepth; }
+const std::vector<vk::Framebuffer>& swapchain::framebuffers() const noexcept {
+	return m_Framebuffer;
+}
+const std::vector<vk::Image>& swapchain::images() const noexcept {
+	return m_SwapchainImages;
+}
+const std::vector<vk::ImageView>& swapchain::views() const noexcept {
+	return m_SwapchainImageViews;
+}
+const vk::ClearColorValue swapchain::clear_color() const noexcept {
+	return m_ClearColor;
+}
+const vk::ClearDepthStencilValue swapchain::clear_depth() const noexcept {
+	return m_ClearDepth;
+}
+bool swapchain::has_depth() const noexcept {
+	return m_UseDepth;
+}
 
-void swapchain::clear_color(vk::ClearColorValue color) noexcept { m_ClearColor = color; }
+void swapchain::clear_color(vk::ClearColorValue color) noexcept {
+	m_ClearColor = color;
+}

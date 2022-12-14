@@ -3,16 +3,13 @@
 #include "psl/array_view.hpp"
 #include "psl/view_ptr.hpp"
 
-namespace core::gfx
-{
+namespace core::gfx {
 class computecall;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class drawpass;
-class computepass
-{
+class computepass {
   public:
 	computepass()  = default;
 	~computepass() = default;

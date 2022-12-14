@@ -2,18 +2,15 @@
 #include "fwd/gfx/framebuffer.hpp"
 #include "resource/resource.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class framebuffer_t;
 }
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class texture_t;
 
-class framebuffer_t
-{
+class framebuffer_t {
   public:
 #ifdef PE_VULKAN
 	explicit framebuffer_t(core::resource::handle<core::ivk::framebuffer_t>& handle);
@@ -35,13 +32,14 @@ class framebuffer_t
 	framebuffer_t& operator=(framebuffer_t&& other) noexcept = delete;
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<framebuffer_t, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<framebuffer_t, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

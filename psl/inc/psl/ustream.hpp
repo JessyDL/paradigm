@@ -3,11 +3,9 @@
 #include <fstream>
 #include <sstream>
 
-namespace psl
-{
+namespace psl {
 /// \brief UTF-8 class namespace that contains the typedefs for the string objects, as well as helper methods.
-namespace string8
-{
+namespace string8 {
 	using stream   = std::basic_stringstream<char_t>;
 	using ostream  = std::basic_ostream<char_t>;
 	using ofstream = std::basic_ofstream<char_t>;
@@ -17,8 +15,7 @@ namespace string8
 }	 // namespace string8
 
 /// \brief UTF-16 class namespace that contains the typedefs for the string objects, as well as helper methods.
-namespace string16
-{
+namespace string16 {
 	using stream   = std::basic_stringstream<char_t>;
 	using ostream  = std::basic_ostream<char_t>;
 	using ofstream = std::basic_ofstream<char_t>;
@@ -29,8 +26,7 @@ namespace string16
 }	 // namespace string16
 
 /// \brief UTF-32 class namespace that contains the typedefs for the string objects, as well as helper methods.
-namespace string32
-{
+namespace string32 {
 	using stream   = std::basic_stringstream<char_t>;
 	using ostream  = std::basic_ostream<char_t>;
 	using ofstream = std::basic_ofstream<char_t>;
@@ -39,8 +35,7 @@ namespace string32
 	using fstream  = std::basic_fstream<char_t>;
 }	 // namespace string32
 
-namespace platform
-{
+namespace platform {
 	using stream   = std::basic_stringstream<char_t>;
 	using ostream  = std::basic_ostream<char_t>;
 	using ofstream = std::basic_ofstream<char_t>;

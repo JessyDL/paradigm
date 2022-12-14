@@ -1,18 +1,15 @@
 #pragma once
 #include "resource/resource.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace memory
-{
+namespace memory {
 class segment;
 }
 
-namespace core::igles
-{
+namespace core::igles {
 class buffer_t;
 class program;
 class program_cache;
@@ -20,10 +17,8 @@ class texture_t;
 class sampler_t;
 class shader;
 
-class material_t
-{
-	struct buffer_binding
-	{
+class material_t {
+	struct buffer_binding {
 		core::resource::handle<core::igles::buffer_t> buffer;
 		uint32_t slot;
 		uint32_t offset {0};

@@ -1,10 +1,8 @@
 #pragma once
 #include "ustring.hpp"
 
-namespace psl::format
-{
-namespace constants
-{
+namespace psl::format {
+namespace constants {
 	static const psl::string8_t EMPTY_CHARACTERS = " \n\t\r";
 	static const psl::string8_t SCOPE_OPEN		 = "{";
 	static const psl::string8_t SCOPE_CLOSE		 = "};";
@@ -22,8 +20,7 @@ namespace constants
 	static const psl::string8_t NAMESPACE_DIVIDER = "::";
 }	 // namespace constants
 
-class parser
-{
+class parser {
   public:
 	parser()  = default;
 	~parser() = default;
@@ -40,8 +37,7 @@ class parser
 ///
 /// Running this on a target will verify if it is following the rules correctly
 /// and if not, which rules it breaks
-class validator
-{
+class validator {
   public:
 	validator()	 = default;
 	~validator() = default;
@@ -54,27 +50,16 @@ class validator
   private:
 };
 
-enum class response
-{
-	ALLOW = 0,
-	WARN  = 1,
-	ERROR = 2
-};
+enum class response { ALLOW = 0, WARN = 1, ERROR = 2 };
 
-enum class inheritance_mode
-{
+enum class inheritance_mode {
 	merge  = 0,
 	append = 1,
 };
 
-enum class attribute
-{
-	optional = 0,
-	required = 1
-};
+enum class attribute { optional = 0, required = 1 };
 
-struct settings
-{
+struct settings {
   public:
 	uint16_t major;
 	uint16_t minor;
@@ -93,8 +78,7 @@ struct settings
   private:
 };
 
-class container
-{
+class container {
   public:
 	container()	 = default;
 	~container() = default;
@@ -107,20 +91,11 @@ class container
   private:
 };
 
-enum class type : uint8_t
-{
-	MALFORMED = 1 << 0,
-	VALUE	  = 1 << 1,
-	OBJECT	  = 1 << 2,
-	REFERENCE = 1 << 3,
-	RANGE	  = 1 << 4
-};
+enum class type : uint8_t { MALFORMED = 1 << 0, VALUE = 1 << 1, OBJECT = 1 << 2, REFERENCE = 1 << 3, RANGE = 1 << 4 };
 
-namespace details
-{
+namespace details {
 	template <type T>
-	static bool is_check(type t) noexcept
-	{
+	static bool is_check(type t) noexcept {
 		using underlaying_type = typename std::underlying_type<type>::type;
 		constexpr static underlaying_type check {static_cast<underlaying_type>(T)};
 
@@ -128,18 +103,24 @@ namespace details
 	}
 }	 // namespace details
 
-static bool is_valid(type t) noexcept
-{
+static bool is_valid(type t) noexcept {
 	return !details::is_check<type::MALFORMED>(t) && ((is_value(t) && !is_reference(t)) || is_object(t));
 }
 
-static bool is_range(type t) noexcept { return details::is_check<type::RANGE>(t); }
-static bool is_value(type t) noexcept { return details::is_check<type::VALUE>(t); }
-static bool is_object(type t) noexcept { return details::is_check<type::OBJECT>(t); }
-static bool is_reference(type t) noexcept { return details::is_check<type::REFERENCE>(t); }
+static bool is_range(type t) noexcept {
+	return details::is_check<type::RANGE>(t);
+}
+static bool is_value(type t) noexcept {
+	return details::is_check<type::VALUE>(t);
+}
+static bool is_object(type t) noexcept {
+	return details::is_check<type::OBJECT>(t);
+}
+static bool is_reference(type t) noexcept {
+	return details::is_check<type::REFERENCE>(t);
+}
 
-class node final
-{
+class node final {
   public:
 	node()	= default;
 	~node() = default;

@@ -4,13 +4,11 @@
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
 
-namespace core::resource
-{
+namespace core::resource {
 class cache_t;
 }
 
-namespace core::meta
-{
+namespace core::meta {
 /// \brief Custom meta data that describes a texture. i.e. width, height, format, etc..
 ///
 /// does not contain any actual texture data, just describes it. This aids the engine in setting up
@@ -18,8 +16,7 @@ namespace core::meta
 /// \warning The description is assumed to be correct, otherwise undefined behaviour happens.
 /// \note although this class allows runtime editing, it's unlikely you'd need it unless you generate textures.
 /// and wish to serialize them to disk.
-class texture_t final : public psl::meta::file
-{
+class texture_t final : public psl::meta::file {
 	friend class psl::serialization::accessor;
 
   public:
@@ -102,8 +99,7 @@ class texture_t final : public psl::meta::file
 	/// \tparam S the type of the serializer/deserializer
 	/// \param[in] s instance of a serializer that you can read from, or write to.
 	template <typename S>
-	void serialize(S& s)
-	{
+	void serialize(S& s) {
 		psl::meta::file::serialize(s);
 
 		s << m_Width << m_Height << m_Depth << m_MipLevels << m_LayerCount << m_Format << m_ImageType << m_UsageFlags

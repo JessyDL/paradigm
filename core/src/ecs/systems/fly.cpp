@@ -7,21 +7,20 @@ using namespace core::ecs::components;
 using namespace psl;
 using namespace psl::math;
 
-fly::fly(psl::ecs::state_t& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem)
-{
+fly::fly(psl::ecs::state_t& state, core::systems::input& inputSystem) : m_InputSystem(inputSystem) {
 	state.declare<"fly::tick">(&fly::tick, this);
 	m_InputSystem.subscribe(this);
 };
 
-fly::~fly() { m_InputSystem.unsubscribe(this); }
+fly::~fly() {
+	m_InputSystem.unsubscribe(this);
+}
 
 void fly::tick(
   psl::ecs::info_t& info,
-  psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables)
-{
+  psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables) {
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
-	if(bHasRotated)
-	{
+	if(bHasRotated) {
 		float mouseSpeed = .12f;
 		auto diffX		 = m_MouseX - m_MouseTargetX;
 		auto diffY		 = m_MouseY - m_MouseTargetY;
@@ -35,46 +34,38 @@ void fly::tick(
 	}
 	const bool hasMoved = m_Moving[0] || m_Moving[1] || m_Moving[2] || m_Moving[3] || m_Up;
 	auto transforms		= movables.get<transform>();
-	for(auto& transform : transforms)
-	{
+	for(auto& transform : transforms) {
 		vec3 accDirectionVec {0};
 		auto direction = transform.rotation * vec3::forward;
 		auto up		   = vec3::up;
 		// m_transform.position(m_transform.position() + (m_MoveVector * dTime.count()));
-		if(m_Moving[0])
-		{
+		if(m_Moving[0]) {
 			accDirectionVec += direction;
 		}
 
-		if(m_Moving[1])
-		{
+		if(m_Moving[1]) {
 			accDirectionVec -= direction;
 		}
 
-		if(m_Moving[2])
-		{
+		if(m_Moving[2]) {
 			accDirectionVec -= cross(direction, up);
 		}
 
-		if(m_Moving[3])
-		{
+		if(m_Moving[3]) {
 			accDirectionVec -= cross(up, direction);
 		}
 
-		if(m_Up)
-		{
+		if(m_Up) {
 			accDirectionVec += up;
 		}
 
-		if(hasMoved)
-		{
+		if(hasMoved) {
 			transform.position = transform.position + normalize(accDirectionVec) *
 														((m_Boost) ? m_MoveSpeed * 40 : m_MoveSpeed) *
 														info.rTime.count();
 			accDirectionVec = psl::vec3::zero;
 		}
-		if(bHasRotated)
-		{
+		if(bHasRotated) {
 			// determine axis for pitch rotation
 			vec3 axis = cross(direction, up);
 			// compute quaternion for pitch based on the camera pitch angle
@@ -111,143 +102,100 @@ void fly::tick(
 	// m_Heading = 0;
 }
 
-void fly::on_key_pressed(core::systems::input::keycode keyCode)
-{
+void fly::on_key_pressed(core::systems::input::keycode keyCode) {
 	using keycode_t = core::systems::input::keycode;
-	switch(keyCode)
-	{
-	case keycode_t::Z:
-	{
+	switch(keyCode) {
+	case keycode_t::Z: {
 		m_Moving[0] = true;
-	}
-	break;
-	case keycode_t::Q:
-	{
+	} break;
+	case keycode_t::Q: {
 		m_Moving[2] = true;
-	}
-	break;
-	case keycode_t::S:
-	{
+	} break;
+	case keycode_t::S: {
 		m_Moving[1] = true;
-	}
-	break;
-	case keycode_t::D:
-	{
+	} break;
+	case keycode_t::D: {
 		m_Moving[3] = true;
-	}
-	break;
-	case keycode_t::SPACE:
-	{
+	} break;
+	case keycode_t::SPACE: {
 		m_Up = true;
-	}
-	break;
-	case keycode_t::LEFT_SHIFT:
-	{
+	} break;
+	case keycode_t::LEFT_SHIFT: {
 		m_Boost = true;
-	}
-	break;
+	} break;
 	default:
 		break;
 	}
 }
 
-void fly::on_key_released(core::systems::input::keycode keyCode)
-{
+void fly::on_key_released(core::systems::input::keycode keyCode) {
 	using keycode_t = core::systems::input::keycode;
-	switch(keyCode)
-	{
-	case keycode_t::Z:
-	{
+	switch(keyCode) {
+	case keycode_t::Z: {
 		m_Moving[0] = false;
-	}
-	break;
-	case keycode_t::Q:
-	{
+	} break;
+	case keycode_t::Q: {
 		m_Moving[2] = false;
-	}
-	break;
-	case keycode_t::S:
-	{
+	} break;
+	case keycode_t::S: {
 		m_Moving[1] = false;
-	}
-	break;
-	case keycode_t::D:
-	{
+	} break;
+	case keycode_t::D: {
 		m_Moving[3] = false;
-	}
-	break;
-	case keycode_t::SPACE:
-	{
+	} break;
+	case keycode_t::SPACE: {
 		m_Up = false;
-	}
-	break;
-	case keycode_t::LEFT_SHIFT:
-	{
+	} break;
+	case keycode_t::LEFT_SHIFT: {
 		m_Boost = false;
-	}
-	break;
+	} break;
 	default:
 		break;
 	}
 }
 
-void fly::on_mouse_move(core::systems::input::mouse_delta delta)
-{
+void fly::on_mouse_move(core::systems::input::mouse_delta delta) {
 	// if(!m_AllowRotating) return;
 	m_MouseTargetX += delta.x;
 	m_MouseTargetY += delta.y;
 }
 
-void fly::on_scroll(core::systems::input::scroll_delta delta)
-{
+void fly::on_scroll(core::systems::input::scroll_delta delta) {
 	m_MoveSpeed += m_MoveStepIncrease * delta.y;
 	m_MoveSpeed = std::max(m_MoveSpeed, 0.05f);
 }
 
-void fly::on_mouse_pressed(core::systems::input::mousecode mCode)
-{
+void fly::on_mouse_pressed(core::systems::input::mousecode mCode) {
 	// if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = true;
 }
 
-void fly::on_mouse_released(core::systems::input::mousecode mCode)
-{
+void fly::on_mouse_released(core::systems::input::mousecode mCode) {
 	// if(mCode == core::systems::input::mousecode::RIGHT) m_AllowRotating = false;
 }
 
-void fly::pitch_to(float degrees)
-{
+void fly::pitch_to(float degrees) {
 	m_Pitch += degrees;
 
 	// Check bounds for the camera pitch
-	if(m_Pitch > 360.0f)
-	{
+	if(m_Pitch > 360.0f) {
 		m_Pitch -= 360.0f;
-	}
-	else if(m_Pitch < -360.0f)
-	{
+	} else if(m_Pitch < -360.0f) {
 		m_Pitch += 360.0f;
 	}
 }
 
-void fly::head_to(float degrees)
-{
+void fly::head_to(float degrees) {
 	// This controls how the heading is changed if the camera is pointed straight up or down
 	// The heading delta direction changes
-	if((m_Pitch > 90 && m_Pitch < 270) || (m_Pitch < -90 && m_Pitch > -270))
-	{
+	if((m_Pitch > 90 && m_Pitch < 270) || (m_Pitch < -90 && m_Pitch > -270)) {
 		m_Heading += degrees;
-	}
-	else
-	{
+	} else {
 		m_Heading -= degrees;
 	}
 	// Check bounds for the camera heading
-	if(m_Heading > 360.0f)
-	{
+	if(m_Heading > 360.0f) {
 		m_Heading -= 360.0f;
-	}
-	else if(m_Heading < -360.0f)
-	{
+	} else if(m_Heading < -360.0f) {
 		m_Heading += 360.0f;
 	}
 }

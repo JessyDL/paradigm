@@ -18,14 +18,12 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 							 const core::resource::metadata& metaData,
 							 psl::meta::file* metaFile,
 							 handle<context> context,
-							 handle<data::framebuffer_t> data) :
-	m_Context(context),
-	m_Data(data)	// , m_Data(copy(cache, data))
+							 handle<data::framebuffer_t> data)
+	: m_Context(context), m_Data(data)	  // , m_Data(copy(cache, data))
 {
 	m_Framebuffers.resize(m_Data->framebuffers());
 	size_t index = 0u;
-	for(const auto& attach : m_Data->attachments())
-	{
+	for(const auto& attach : m_Data->attachments()) {
 		if(!add(cache,
 				attach.texture(),
 				gfx::conversion::to_vk(attach),
@@ -36,8 +34,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	}
 
 	m_Sampler = cache.find<core::ivk::sampler_t>(m_Data->sampler().value());
-	if(!m_Sampler)
-	{
+	if(!m_Sampler) {
 		core::ivk::log->error("could not load sampler {0} for framebuffer {1}", m_Sampler.uid(), metaData.uid);
 	}
 
@@ -56,18 +53,14 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 
 	uint32_t attachmentIndex = 0;
 
-	for(auto& binding : m_Bindings)
-	{
+	for(auto& binding : m_Bindings) {
 		if(utility::vulkan::has_depth(binding.description.format) ||
-		   utility::vulkan::has_stencil(binding.description.format))
-		{
+		   utility::vulkan::has_stencil(binding.description.format)) {
 			psl_assert(!hasDepth, "Only one depth attachment allowed");
 			depthReference.attachment = attachmentIndex;
 			depthReference.layout	  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
 			hasDepth				  = true;
-		}
-		else
-		{
+		} else {
 			colorReferences.push_back({attachmentIndex, vk::ImageLayout::eColorAttachmentOptimal});
 			hasColor = true;
 		}
@@ -77,13 +70,11 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	// Default render pass setup uses only one subpass
 	vk::SubpassDescription subpass;
 	subpass.pipelineBindPoint = vk::PipelineBindPoint::eGraphics;
-	if(hasColor)
-	{
+	if(hasColor) {
 		subpass.pColorAttachments	 = colorReferences.data();
 		subpass.colorAttachmentCount = static_cast<uint32_t>(colorReferences.size());
 	}
-	if(hasDepth)
-	{
+	if(hasDepth) {
 		subpass.pDepthStencilAttachment = &depthReference;
 	}
 
@@ -131,13 +122,11 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	framebufferInfo.height			= m_Data->height();
 	framebufferInfo.layers			= 0;
 
-	for(auto i = 0u; i < m_Data->framebuffers(); ++i)
-	{
+	for(auto i = 0u; i < m_Data->framebuffers(); ++i) {
 		// Find. max number of layers across attachments && store all attachment views
 		uint32_t maxLayers = 0u;
 
-		for(const auto& binding : m_Bindings)
-		{
+		for(const auto& binding : m_Bindings) {
 			attachmentViews[binding.index] = binding.attachments[i]->view();
 			maxLayers					   = std::max(maxLayers, binding.attachments[i]->subResourceRange().layerCount);
 		}
@@ -147,8 +136,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	}
 }
 
-framebuffer_t::~framebuffer_t()
-{
+framebuffer_t::~framebuffer_t() {
 	m_Context->device().destroyRenderPass(m_RenderPass);
 	for(auto& fb : m_Framebuffers) m_Context->device().destroyFramebuffer(fb);
 }
@@ -157,16 +145,17 @@ bool framebuffer_t::add(core::resource::cache_t& cache,
 						const psl::UID& uid,
 						vk::AttachmentDescription description,
 						size_t index,
-						size_t count)
-{
+						size_t count) {
 	auto res = cache.library().get<core::meta::texture_t>(uid);
-	if(!res) return false;
+	if(!res)
+		return false;
 
 
 	auto texture = cache.find<core::ivk::texture_t>(uid);
 	if(texture.state() != core::resource::status::loaded)
 		texture = cache.create_using<core::ivk::texture_t>(uid, m_Context);
-	if(!texture) return false;
+	if(!texture)
+		return false;
 
 	auto meta = res.value();
 
@@ -174,8 +163,7 @@ bool framebuffer_t::add(core::resource::cache_t& cache,
 	binding.index			   = psl::utility::narrow_cast<uint32_t>(index);
 	binding.description		   = description;
 	binding.description.format = gfx::conversion::to_vk(meta->format());
-	for(auto i = index; i < index + count; ++i)
-	{
+	for(auto i = index; i < index + count; ++i) {
 		binding.attachments.push_back(texture);
 		/*attachment& attachment		= binding.attachments.emplace_back();
 		attachment.view				= texture->view();
@@ -188,9 +176,9 @@ bool framebuffer_t::add(core::resource::cache_t& cache,
 }
 
 
-std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept
-{
-	if(index >= m_Bindings.size()) return {};
+std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept {
+	if(index >= m_Bindings.size())
+		return {};
 
 	std::vector<framebuffer_t::texture_handle> res;
 	std::transform(std::begin(m_Bindings), std::end(m_Bindings), std::back_inserter(res), [index](const auto& binding) {
@@ -199,9 +187,9 @@ std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t i
 	return res;
 }
 
-std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint32_t index) const noexcept
-{
-	if(index >= m_Bindings.size()) return {};
+std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint32_t index) const noexcept {
+	if(index >= m_Bindings.size())
+		return {};
 
 	std::vector<framebuffer_t::texture_handle> res;
 	auto bindings {m_Bindings};
@@ -215,8 +203,18 @@ std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint
 
 	return res;
 }
-core::resource::handle<core::ivk::sampler_t> framebuffer_t::sampler() const noexcept { return m_Sampler; }
-core::resource::handle<core::data::framebuffer_t> framebuffer_t::data() const noexcept { return m_Data; }
-vk::RenderPass framebuffer_t::render_pass() const noexcept { return m_RenderPass; }
-const std::vector<vk::Framebuffer>& framebuffer_t::framebuffers() const noexcept { return m_Framebuffers; }
-vk::DescriptorImageInfo framebuffer_t::descriptor() const noexcept { return m_Descriptor; }
+core::resource::handle<core::ivk::sampler_t> framebuffer_t::sampler() const noexcept {
+	return m_Sampler;
+}
+core::resource::handle<core::data::framebuffer_t> framebuffer_t::data() const noexcept {
+	return m_Data;
+}
+vk::RenderPass framebuffer_t::render_pass() const noexcept {
+	return m_RenderPass;
+}
+const std::vector<vk::Framebuffer>& framebuffer_t::framebuffers() const noexcept {
+	return m_Framebuffers;
+}
+vk::DescriptorImageInfo framebuffer_t::descriptor() const noexcept {
+	return m_Descriptor;
+}

@@ -7,30 +7,24 @@
 #include "psl/sparse_array.hpp"
 #include "resource/resource.hpp"
 
-namespace std
-{
+namespace std {
 #ifdef _MSC_VER
 template <typename T>
 struct hash;
 #endif
 }	 // namespace std
 
-namespace core::gfx
-{
+namespace core::gfx {
 class buffer_t;
 struct shader_buffer_binding;
 class geometry_t;
 class material_t;
 }	 // namespace core::gfx
 
-namespace core::gfx::details::instance
-{
-struct binding
-{
-	struct header final
-	{
-		bool operator==(const header& b) const noexcept
-		{
+namespace core::gfx::details::instance {
+struct binding {
+	struct header final {
+		bool operator==(const header& b) const noexcept {
 			return /*size_of_element == b.size_of_element && */ name == b.name;
 		}
 		psl::string name {};
@@ -42,8 +36,7 @@ struct binding
 	uint32_t slot;
 };
 
-struct object final
-{
+struct object final {
 	object(psl::UID uid) : geometry(uid), id_generator(0) {};
 	object(psl::UID uid, uint32_t capacity) : geometry(uid), id_generator(capacity) {};
 
@@ -57,23 +50,18 @@ struct object final
 }	 // namespace core::gfx::details::instance
 
 
-namespace std
-{
+namespace std {
 template <>
-struct hash<core::gfx::details::instance::object>
-{
-	std::size_t operator()(const core::gfx::details::instance::object& s) const noexcept
-	{
+struct hash<core::gfx::details::instance::object> {
+	std::size_t operator()(const core::gfx::details::instance::object& s) const noexcept {
 		return std::hash<psl::UID> {}(s.geometry);
 	}
 	std::size_t operator()(const psl::UID& s) const noexcept { return std::hash<psl::UID> {}(s); }
 };
 
 template <>
-struct hash<core::gfx::details::instance::binding::header>
-{
-	std::size_t operator()(const core::gfx::details::instance::binding::header& s) const noexcept
-	{
+struct hash<core::gfx::details::instance::binding::header> {
+	std::size_t operator()(const core::gfx::details::instance::binding::header& s) const noexcept {
 		std::size_t seed = std::hash<psl::string> {}(s.name);
 		// seed ^= (uint64_t)s.size_of_element + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		return seed;
@@ -81,28 +69,23 @@ struct hash<core::gfx::details::instance::binding::header>
 };
 
 template <>
-struct hash<core::gfx::details::instance::binding>
-{
-	std::size_t operator()(const core::gfx::details::instance::binding& s) const noexcept
-	{
+struct hash<core::gfx::details::instance::binding> {
+	std::size_t operator()(const core::gfx::details::instance::binding& s) const noexcept {
 		return std::hash<core::gfx::details::instance::binding::header> {}(s.description);
 	}
 };
 }	 // namespace std
 
 
-namespace core::gfx::details::instance
-{
+namespace core::gfx::details::instance {
 /// \brief handles instance data associated to materials/geometry combinations
 /// \details Manages instance data related to materials-geometry, both the geometry specific data (such as instance
 /// position, etc...), as well as material-wide instance data (shared with all drawcalls using this specific
 /// instance set). The latter could be visualised as all pieces of foliage sharing the same "wind intensity" value.
 /// This is not to be confused as "global data", such as all pieces of geometry knowing about "fog", it is still
 /// duplicated over every instance of a bundle.
-class data final
-{
-	struct material_instance_data
-	{
+class data final {
+	struct material_instance_data {
 		core::meta::shader::descriptor descriptor;
 		size_t size;
 		memory::segment segment;

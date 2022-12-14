@@ -10,10 +10,8 @@
 #include "ivk.hpp"
 
 
-namespace core::ivk
-{
-class compute
-{
+namespace core::ivk {
+class compute {
   public:
 	compute()  = default;
 	~compute() = default;

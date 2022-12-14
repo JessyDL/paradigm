@@ -7,19 +7,15 @@
 #include "resource/handle.hpp"
 #include <unordered_map>
 
-namespace core::data
-{
+namespace core::data {
 class geometry_t;
 }
-namespace core::igles
-{
+namespace core::igles {
 class buffer_t;
 class material_t;
 
-class geometry_t
-{
-	struct binding
-	{
+class geometry_t {
+	struct binding {
 		psl::string name;
 		memory::segment segment;
 		memory::range_t sub_range;

@@ -1,27 +1,21 @@
 #pragma once
 #include "psl/IDGenerator.hpp"
 
-namespace psl
-{
+namespace psl {
 template <class T, class precision = uint32_t>
-struct handle
-{
+struct handle {
 	friend struct generator;
 
-	struct generator
-	{
+	struct generator {
 		generator() : m_Generator(), m_AllHandles(65535), m_Items(65535) {};
 
 		generator(psl::IDGenerator<precision>& generator) : m_Generator(generator), m_AllHandles(4), m_Items(4) {};
 		generator(precision limit) : m_Generator(limit), m_AllHandles(4), m_Items(4) {};
 
-		handle& create(const T& target)
-		{
+		handle& create(const T& target) {
 			precision id;
-			if(m_Generator.create(id))
-			{
-				if(id >= m_AllHandles.capacity())
-				{
+			if(m_Generator.create(id)) {
+				if(id >= m_AllHandles.capacity()) {
 					m_AllHandles.resize(m_AllHandles.size() * 2);
 					m_Items.resize(m_AllHandles.size() * 2);
 				}
@@ -70,24 +64,19 @@ struct handle
 
 
 template <class T, class precision>
-struct handle<T*, precision>
-{
+struct handle<T*, precision> {
 	friend struct generator;
 
-	struct generator
-	{
+	struct generator {
 		generator() : m_Generator(), m_AllHandles(65535), m_Items(65535) {};
 
 		generator(psl::IDGenerator<precision>& generator) : m_Generator(generator), m_AllHandles(4), m_Items(4) {};
 		generator(precision limit) : m_Generator(limit), m_AllHandles(4), m_Items(4) {};
 
-		handle& create(T* target)
-		{
+		handle& create(T* target) {
 			precision id;
-			if(m_Generator.create(id))
-			{
-				if(id >= m_AllHandles.capacity())
-				{
+			if(m_Generator.create(id)) {
+				if(id >= m_AllHandles.capacity()) {
 					m_AllHandles.resize(m_AllHandles.size() * 2);
 					m_Items.resize(m_AllHandles.size() * 2);
 				}
@@ -100,8 +89,7 @@ struct handle<T*, precision>
 			return m_AllHandles[id];
 		}
 
-		bool destroy(const handle& handle)
-		{
+		bool destroy(const handle& handle) {
 			--m_Used;
 			return m_Generator.destroy(handle.ID());
 		}

@@ -2,20 +2,12 @@
 #include "psl/ustring.hpp"
 #include <optional>
 
-namespace utility::os
-{
-class file
-{
+namespace utility::os {
+class file {
   public:
-	enum mode
-	{
-		READ,
-		WRITE,
-		READ_AND_WRITE
-	};
+	enum mode { READ, WRITE, READ_AND_WRITE };
 
-	enum method
-	{
+	enum method {
 		// creates if it doesn't exist, if it does, it fails
 		CREATE,
 
@@ -43,15 +35,15 @@ class file
 
 	operator bool() const { return m_Data; }
 
-	std::optional<psl::string_view> view() const
-	{
-		if(!m_Data) return {};
+	std::optional<psl::string_view> view() const {
+		if(!m_Data)
+			return {};
 		return psl::string_view {&m_Data[0], m_ContentSize};
 	}
 
-	std::optional<psl::char_t*> data() const
-	{
-		if(!m_Data) return {};
+	std::optional<psl::char_t*> data() const {
+		if(!m_Data)
+			return {};
 		return m_Data;
 	}
 

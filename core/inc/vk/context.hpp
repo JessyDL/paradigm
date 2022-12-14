@@ -4,11 +4,9 @@
 #include "vk/ivk.hpp"
 #include <optional>
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief all known extensions for Vulkan.
-enum class extensions
-{
+enum class extensions {
 	KHR_8bit_storage,
 	KHR_android_surface,
 	KHR_create_renderpass2,
@@ -98,30 +96,25 @@ enum class extensions
 };
 }	 // namespace core::ivk
 
-namespace psl
-{
+namespace psl {
 struct UID;
 }
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
-namespace core::resource
-{
+namespace core::resource {
 class cache_t;
 }
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief encapsulated a graphics context.
 ///
 /// a context encapsulated a physical device (GPU), as well as a instance of the graphics context on the driver.
 /// it is the single point of information that many operations need in Vulkan, so that those operations know
 /// who will be executing them. As such, the context class is fundamental, and will be passed around a lot.
 /// It is often one of the first objects to be created, and one of the last to be destroyed in a most applications.
-class context
-{
+class context {
   public:
 	template <typename T>
 	using optional_ref = std::optional<std::reference_wrapper<T>>;
@@ -252,8 +245,7 @@ class context
 	// VkDebugReportCallbackCreateInfoEXT debugCBCI;
 
 	core::gfx::limits m_Limits;
-	struct Memory
-	{
+	struct Memory {
 		vk::DeviceSize maxMemory;
 		vk::DeviceSize availableMemory;
 	};

@@ -3,32 +3,18 @@
 #include "psl/serialization/serializer.hpp"
 #include <cstdint>
 
-namespace core::gfx
-{
+namespace core::gfx {
 /// \brief how many render buffers should there be.
-enum class buffering : uint8_t
-{
-	SINGLE = 1,
-	DOUBLE = 2,
-	TRIPLE = 3,
-	COUNT  = TRIPLE
-};
+enum class buffering : uint8_t { SINGLE = 1, DOUBLE = 2, TRIPLE = 3, COUNT = TRIPLE };
 
 /// \brief how should the surface be rendered.
 /// \note depending on the platform, fullscreen could be the only option and all others ignored.
-enum class surface_mode : uint8_t
-{
-	FULLSCREEN		  = 0,
-	WINDOWED		  = 1,
-	FULLSCREEN_WINDOW = 2
-};
+enum class surface_mode : uint8_t { FULLSCREEN = 0, WINDOWED = 1, FULLSCREEN_WINDOW = 2 };
 }	 // namespace core::gfx
 
-namespace core::data
-{
+namespace core::data {
 /// \brief contains the data to initialize a core::os::surface
-class window
-{
+class window {
 	friend class psl::serialization::accessor;
 
   public:
@@ -88,8 +74,7 @@ class window
 
   private:
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_Name << m_Width << m_Height << m_WindowMode << m_Buffering;
 	}
 

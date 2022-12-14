@@ -4,16 +4,13 @@
 #include "gles/types.hpp"
 #include "resource/resource.hpp"
 
-namespace core::igles
-{
+namespace core::igles {
 class swapchain;
 class framebuffer_t;
 class computepass;
 
-class drawpass
-{
-	struct memory_barrier_t
-	{
+class drawpass {
+	struct memory_barrier_t {
 		GLbitfield barrier {0};
 		uint32_t usage {0};
 	};

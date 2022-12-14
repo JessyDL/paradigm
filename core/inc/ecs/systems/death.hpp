@@ -2,8 +2,7 @@
 #include "ecs/components/dead_tag.hpp"
 #include "psl/ecs/state.hpp"
 
-namespace core::ecs::systems
-{
+namespace core::ecs::systems {
 auto death =
   [](psl::ecs::info_t& info,
 	 psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, psl::ecs::on_add<core::ecs::components::dead_tag>> dead_pack) {

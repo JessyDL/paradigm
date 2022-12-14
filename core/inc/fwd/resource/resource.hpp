@@ -1,19 +1,15 @@
 #pragma once
 
-namespace psl
-{
+namespace psl {
 struct UID;
-namespace meta
-{
+namespace meta {
 	class file;
 }
 }	 // namespace psl
 
-namespace core::resource
-{
+namespace core::resource {
 /// \brief represents the various states a resource can be in.
-enum class status
-{
+enum class status {
 	initial	  = 0,
 	loading	  = 1,
 	loaded	  = 2,
@@ -43,17 +39,14 @@ struct metadata;
 
 
 template <typename T>
-struct resource_traits
-{
+struct resource_traits {
 	using meta_type = psl::meta::file;
 };
 }	 // namespace core::resource
 
-namespace core::resource2
-{
+namespace core::resource2 {
 /// \brief represents the various states a resource can be in.
-enum class state
-{
+enum class state {
 	INITIAL	  = 0,
 	LOADING	  = 1,
 	LOADED	  = 2,
@@ -81,8 +74,7 @@ struct metadata;
 
 
 template <typename T>
-struct resource_traits
-{
+struct resource_traits {
 	using meta_type = psl::meta::file;
 };
 }	 // namespace core::resource2

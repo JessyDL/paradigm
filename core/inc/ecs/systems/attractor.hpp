@@ -6,10 +6,8 @@
 #include "psl/math/math.hpp"
 #include <chrono>
 
-namespace core::ecs::components
-{
-struct attractor
-{
+namespace core::ecs::components {
+struct attractor {
 	attractor() = default;
 	attractor(float force, float radius) : force(force), radius(radius) {};
 	float force;
@@ -17,8 +15,7 @@ struct attractor
 };
 }	 // namespace core::ecs::components
 
-namespace core::ecs::systems
-{
+namespace core::ecs::systems {
 auto attractor =
   [](psl::ecs::info_t& info,
 	 psl::ecs::pack<psl::ecs::partial,
@@ -29,10 +26,8 @@ auto attractor =
 	   attractors) {
 	  using namespace psl::math;
 
-	  for(auto [movTrans, movVel] : movables)
-	  {
-		  for(auto [attrTransform, attractor] : attractors)
-		  {
+	  for(auto [movTrans, movVel] : movables) {
+		  for(auto [attrTransform, attractor] : attractors) {
 			  const auto mag = saturate((attractor.radius - magnitude(movTrans.position - attrTransform.position)) /
 										attractor.radius) *
 							   info.dTime.count();

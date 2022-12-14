@@ -2,10 +2,8 @@
 
 #if !defined(PLATFORM_ANDROID)
 	#include <execution>
-namespace psl::ecs::execution
-{
-struct no_exec
-{};
+namespace psl::ecs::execution {
+struct no_exec {};
 using sequenced_policy			  = std::execution::sequenced_policy;
 using parallel_policy			  = std::execution::parallel_policy;
 using parallel_unsequenced_policy = std::execution::parallel_unsequenced_policy;
@@ -17,18 +15,12 @@ inline constexpr parallel_unsequenced_policy par_unseq {};
 inline constexpr unsequenced_policy unseq {};
 }	 // namespace psl::ecs::execution
 #else
-namespace psl::ecs::execution
-{
-struct no_exec
-{};
-struct sequenced_policy
-{};
-struct parallel_policy
-{};
-struct parallel_unsequenced_policy
-{};
-struct unsequenced_policy
-{};
+namespace psl::ecs::execution {
+struct no_exec {};
+struct sequenced_policy {};
+struct parallel_policy {};
+struct parallel_unsequenced_policy {};
+struct unsequenced_policy {};
 
 inline constexpr no_exec seq {};
 inline constexpr no_exec par {};

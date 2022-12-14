@@ -3,17 +3,13 @@
 #include "gfx/limits.hpp"
 #include "psl/ustring.hpp"
 #include <cstdint>
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
-namespace core::igles
-{
-namespace details
-{
-	struct xcb_context_data
-	{
+namespace core::igles {
+namespace details {
+	struct xcb_context_data {
 #ifdef SURFACE_XCB
 		void* egl_display {nullptr};
 		void* egl_surface {nullptr};
@@ -21,14 +17,12 @@ namespace details
 		void* egl_config {nullptr};
 #endif
 	};
-	struct win32_context_data
-	{
+	struct win32_context_data {
 #ifdef SURFACE_WIN32
 #endif
 	};
 }	 // namespace details
-class context
-{
+class context {
   public:
 	context(core::resource::cache_t& cache,
 			const core::resource::metadata& metaData,

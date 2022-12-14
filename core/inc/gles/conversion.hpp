@@ -4,12 +4,9 @@
 #include "details/definitions.hpp"
 #include "gfx/types.hpp"
 
-namespace core::gfx::conversion
-{
-inline decltype(GL_VERTEX_SHADER) to_gles(shader_stage stage) noexcept
-{
-	switch(stage)
-	{
+namespace core::gfx::conversion {
+inline decltype(GL_VERTEX_SHADER) to_gles(shader_stage stage) noexcept {
+	switch(stage) {
 	case shader_stage::vertex:
 		return GL_VERTEX_SHADER;
 		break;
@@ -33,10 +30,8 @@ inline decltype(GL_VERTEX_SHADER) to_gles(shader_stage stage) noexcept
 	return -1;
 }
 
-inline shader_stage to_shader_stage(GLint value) noexcept
-{
-	switch(value)
-	{
+inline shader_stage to_shader_stage(GLint value) noexcept {
+	switch(value) {
 	case GL_VERTEX_SHADER:
 		return shader_stage::vertex;
 		break;
@@ -60,40 +55,29 @@ inline shader_stage to_shader_stage(GLint value) noexcept
 	return shader_stage {};
 }
 
-inline GLint to_gles(vertex_input_rate value) noexcept
-{
+inline GLint to_gles(vertex_input_rate value) noexcept {
 	return static_cast<std::underlying_type_t<vertex_input_rate>>(value);
 }
 
-inline vertex_input_rate to_vertex_input_rate(GLint value) noexcept { return vertex_input_rate(value); }
+inline vertex_input_rate to_vertex_input_rate(GLint value) noexcept {
+	return vertex_input_rate(value);
+}
 /// \warning gles does not have a concept of transfer_source/transfer_destination, all buffers are "valid" as
 /// either
-inline decltype(GL_ARRAY_BUFFER) to_gles(memory_usage memory) noexcept
-{
+inline decltype(GL_ARRAY_BUFFER) to_gles(memory_usage memory) noexcept {
 	using gfx_type = std::underlying_type_t<memory_usage>;
 
-	if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_texel_buffer))
-	{
+	if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_texel_buffer)) {
 		return GL_TEXTURE_BUFFER;
-	}
-	else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::conditional_rendering))
-	{
+	} else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::conditional_rendering)) {
 		psl::not_implemented();
-	}
-	else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::index_buffer))
-	{
+	} else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::index_buffer)) {
 		return GL_ELEMENT_ARRAY_BUFFER;
-	}
-	else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::vertex_buffer))
-	{
+	} else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::vertex_buffer)) {
 		return GL_ARRAY_BUFFER;
-	}
-	else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::storage_buffer))
-	{
+	} else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::storage_buffer)) {
 		return GL_SHADER_STORAGE_BUFFER;
-	}
-	else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_buffer))
-	{
+	} else if(static_cast<gfx_type>(memory) & static_cast<gfx_type>(memory_usage::uniform_buffer)) {
 		return GL_UNIFORM_BUFFER;
 	}
 
@@ -101,11 +85,9 @@ inline decltype(GL_ARRAY_BUFFER) to_gles(memory_usage memory) noexcept
 	return -1;
 }
 
-inline bool to_gles(format_t value, GLint& internalFormat, GLint& format, GLint& type) noexcept
-{
+inline bool to_gles(format_t value, GLint& internalFormat, GLint& format, GLint& type) noexcept {
 	internalFormat = -1;
-	switch(value)
-	{
+	switch(value) {
 	case format_t::r4g4b4a4_unorm_pack16:
 		internalFormat = GL_RGBA4;
 		format		   = GL_RGBA;
@@ -745,14 +727,10 @@ inline bool to_gles(format_t value, GLint& internalFormat, GLint& format, GLint&
 	return internalFormat != -1;
 }
 
-inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint type) noexcept
-{
-	switch(type)
-	{
-	case GL_UNSIGNED_BYTE:
-	{
-		switch(format)
-		{
+inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint type) noexcept {
+	switch(type) {
+	case GL_UNSIGNED_BYTE: {
+		switch(format) {
 		case GL_RED:
 			return format_t::r8_unorm;
 		case GL_RG:
@@ -782,10 +760,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 		}
 		break;
 	}
-	case GL_BYTE:
-	{
-		switch(format)
-		{
+	case GL_BYTE: {
+		switch(format) {
 		case GL_RED:
 			return core::gfx::format_t::r8_snorm;
 		case GL_RG:
@@ -819,10 +795,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 	//
 	// 16 bits per component
 	//
-	case GL_UNSIGNED_SHORT:
-	{
-		switch(format)
-		{
+	case GL_UNSIGNED_SHORT: {
+		switch(format) {
 		case GL_RED:
 			return core::gfx::format_t::r16_unorm;
 		case GL_RG:
@@ -851,10 +825,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 		}
 		break;
 	}
-	case GL_SHORT:
-	{
-		switch(format)
-		{
+	case GL_SHORT: {
+		switch(format) {
 		case GL_RED:
 			return core::gfx::format_t::r16_snorm;
 		case GL_RG:
@@ -887,8 +859,7 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 	case GL_HALF_FLOAT:
 		// case GL_HALF_FLOAT_OES:
 		{
-			switch(format)
-			{
+			switch(format) {
 			case GL_RED:
 				return core::gfx::format_t::r16_sfloat;
 			case GL_RG:
@@ -922,10 +893,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 	//
 	// 32 bits per component
 	//
-	case GL_UNSIGNED_INT:
-	{
-		switch(format)
-		{
+	case GL_UNSIGNED_INT: {
+		switch(format) {
 		case GL_RED:
 			return core::gfx::format_t::r32_uint;
 		case GL_RG:
@@ -955,10 +924,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 		}
 		break;
 	}
-	case GL_INT:
-	{
-		switch(format)
-		{
+	case GL_INT: {
+		switch(format) {
 		case GL_RED:
 			return core::gfx::format_t::r32_sint;
 		case GL_RG:
@@ -988,10 +955,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 		}
 		break;
 	}
-	case GL_FLOAT:
-	{
-		switch(format)
-		{
+	case GL_FLOAT: {
+		switch(format) {
 		case GL_RED:
 			return core::gfx::format_t::r32_sfloat;
 		case GL_RG:
@@ -1082,8 +1047,7 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 		psl_assert(format == GL_DEPTH_STENCIL, "format failed check");
 		return core::gfx::format_t::d32_sfloat_s8_uint;
 	}
-	switch(internalFormat)
-	{
+	switch(internalFormat) {
 	case GL_COMPRESSED_RGB_S3TC_DXT1_EXT:
 		return format_t::bc1_rgb_unorm_block;
 		break;
@@ -1271,10 +1235,8 @@ inline core::gfx::format_t to_format(GLint internalFormat, GLint format, GLint t
 	return format_t::undefined;
 }
 
-inline GLuint to_gles(sampler_address_mode value) noexcept
-{
-	switch(value)
-	{
+inline GLuint to_gles(sampler_address_mode value) noexcept {
+	switch(value) {
 	case sampler_address_mode::repeat:
 		return GL_REPEAT;
 		break;
@@ -1302,12 +1264,10 @@ inline GLuint to_gles(sampler_address_mode value) noexcept
 	return GL_REPEAT;
 }
 
-inline void to_gles(border_color value, GLint sampler) noexcept
-{
+inline void to_gles(border_color value, GLint sampler) noexcept {
 	float fvalues[] {0.0f, 0.0f, 0.0f, 0.0f};
 	int ivalues[] {0, 0, 0, 0};
-	switch(value)
-	{
+	switch(value) {
 	case border_color::float_transparent_black:
 		glSamplerParameterfv(sampler, GL_TEXTURE_BORDER_COLOR, fvalues);
 		break;
@@ -1333,10 +1293,8 @@ inline void to_gles(border_color value, GLint sampler) noexcept
 	}
 }
 
-inline GLuint to_gles(cullmode value) noexcept
-{
-	switch(value)
-	{
+inline GLuint to_gles(cullmode value) noexcept {
+	switch(value) {
 	case cullmode::none:
 		return GL_NONE;
 		break;
@@ -1354,10 +1312,8 @@ inline GLuint to_gles(cullmode value) noexcept
 	return GL_BACK;
 }
 
-inline GLuint to_gles(compare_op value) noexcept
-{
-	switch(value)
-	{
+inline GLuint to_gles(compare_op value) noexcept {
+	switch(value) {
 	case compare_op::never:
 		return GL_NEVER;
 		break;
@@ -1387,21 +1343,17 @@ inline GLuint to_gles(compare_op value) noexcept
 	return GL_NEVER;
 }
 
-inline GLuint to_gles(filter value, sampler_mipmap_mode mode) noexcept
-{
-	switch(value)
-	{
+inline GLuint to_gles(filter value, sampler_mipmap_mode mode) noexcept {
+	switch(value) {
 	case filter::nearest:
-		switch(mode)
-		{
+		switch(mode) {
 		case sampler_mipmap_mode::linear:
 			return GL_NEAREST_MIPMAP_LINEAR;
 		case sampler_mipmap_mode::nearest:
 			return GL_NEAREST_MIPMAP_NEAREST;
 		}
 	case filter::linear:
-		switch(mode)
-		{
+		switch(mode) {
 		case sampler_mipmap_mode::linear:
 			return GL_LINEAR_MIPMAP_LINEAR;
 		case sampler_mipmap_mode::nearest:
@@ -1421,10 +1373,8 @@ inline GLuint to_gles(filter value, sampler_mipmap_mode mode) noexcept
 	return GL_LINEAR;
 }
 
-inline GLuint to_gles(blend_op value) noexcept
-{
-	switch(value)
-	{
+inline GLuint to_gles(blend_op value) noexcept {
+	switch(value) {
 	case blend_op::add:
 		return GL_FUNC_ADD;
 		break;
@@ -1445,10 +1395,8 @@ inline GLuint to_gles(blend_op value) noexcept
 	return GL_FUNC_ADD;
 }
 
-inline GLuint to_gles(blend_factor value) noexcept
-{
-	switch(value)
-	{
+inline GLuint to_gles(blend_factor value) noexcept {
+	switch(value) {
 	case blend_factor::zero:
 		return GL_ZERO;
 		break;

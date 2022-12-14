@@ -41,7 +41,8 @@ const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
 // void shader::vertex::binding::set(attribute value)
 //{
 //	auto it = std::find_if(std::begin(m_Attributes.value), std::end(m_Attributes.value), [&value](const attribute&
-// attribute) { 							   return attribute.location() == value.location() && 									  attribute.format()
+// attribute) { 							   return attribute.location() == value.location() &&
+// attribute.format()
 // == value.format()/* && attribute.offset() == value.offset()*/;
 //		});
 //	if(it == std::end(m_Attributes.value))

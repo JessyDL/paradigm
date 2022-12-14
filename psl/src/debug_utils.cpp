@@ -10,8 +10,7 @@
 #endif
 
 std::vector<utility::debug::trace_info>
-utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id> id)
-{
+utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id> id) {
 	std::vector<utility::debug::trace_info> res;
 #ifdef PLATFORM_WINDOWS
 	static HANDLE process = std::invoke([]() {
@@ -25,19 +24,17 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 
 	HANDLE thread = std::invoke(
 	  [](std::optional<std::thread::id> id) -> HANDLE {
-		  if(!id || id.value() == std::this_thread::get_id()) return GetCurrentThread();
+		  if(!id || id.value() == std::this_thread::get_id())
+			  return GetCurrentThread();
 
 		  HANDLE h = CreateToolhelp32Snapshot(TH32CS_SNAPTHREAD, 0);
 		  THREADENTRY32 te;
 		  te.dwSize = sizeof(te);
 		  Thread32First(h, &te);
-		  if(Thread32First(h, &te))
-		  {
-			  do
-			  {
+		  if(Thread32First(h, &te)) {
+			  do {
 				  static_assert(sizeof(id.value()) == sizeof(te.th32ThreadID));
-				  if(memcmp(&id.value(), &te.th32ThreadID, sizeof(te.th32ThreadID)) == 0)
-				  {
+				  if(memcmp(&id.value(), &te.th32ThreadID, sizeof(te.th32ThreadID)) == 0) {
 					  return OpenThread(THREAD_ALL_ACCESS, false, te.th32ThreadID);
 				  }
 				  te.dwSize = sizeof(te);
@@ -58,12 +55,12 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 	frame.AddrStack.Offset = context.Rsp;
 	frame.AddrStack.Mode   = AddrModeFlat;
 
-	for(unsigned int i = 0; i < depth + offset; i++)
-	{
+	for(unsigned int i = 0; i < depth + offset; i++) {
 		if(!StackWalk(machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL))
 			break;
 
-		if(i < offset) continue;
+		if(i < offset)
+			continue;
 		auto& info = res.emplace_back();
 		info.addr  = frame.AddrPC.Offset;
 		info.name  = {};
@@ -73,8 +70,7 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 		symbol->SizeOfStruct	= (sizeof IMAGEHLP_SYMBOL) + 255;
 		symbol->MaxNameLength	= 254;
 
-		if(SymGetSymFromAddr(process, frame.AddrPC.Offset, NULL, symbol))
-		{
+		if(SymGetSymFromAddr(process, frame.AddrPC.Offset, NULL, symbol)) {
 			info.name += symbol->Name;
 			info.name += " ";
 		}
@@ -83,19 +79,18 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 		IMAGEHLP_LINE line;
 		line.SizeOfStruct = sizeof(IMAGEHLP_LINE);
 
-		if(SymGetLineFromAddr(process, frame.AddrPC.Offset, &offset, &line))
-		{
+		if(SymGetLineFromAddr(process, frame.AddrPC.Offset, &offset, &line)) {
 			info.name += psl::string8_t(line.FileName) + ":" + std::to_string(line.LineNumber);
 		}
 	}
 
-	if(id && id.value() != std::this_thread::get_id()) CloseHandle(thread);
+	if(id && id.value() != std::this_thread::get_id())
+		CloseHandle(thread);
 #endif
 	return res;
 }
 
-std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth)
-{
+std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth) {
 	std::vector<void*> stack;
 #ifdef PLATFORM_WINDOWS
 	stack.resize(depth);
@@ -113,8 +108,7 @@ std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth)
 }
 
 
-utility::debug::trace_info utility::debug::demangle(void* target)
-{
+utility::debug::trace_info utility::debug::demangle(void* target) {
 	utility::debug::trace_info info;
 #ifdef PLATFORM_WINDOWS
 	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {

@@ -26,14 +26,11 @@ material_t::material_t(core::resource::cache_t& cache,
 					   const core::resource::metadata& metaData,
 					   psl::meta::file* metaFile,
 					   handle<data::material_t> data,
-					   core::resource::handle<core::igles::program_cache> program_cache) :
-	m_Data(data)
-{
-	for(auto& stage : data->stages())
-	{
+					   core::resource::handle<core::igles::program_cache> program_cache)
+	: m_Data(data) {
+	for(auto& stage : data->stages()) {
 		auto shader_handle = cache.find<core::igles::shader>(stage.shader());
-		if(!shader_handle)
-		{
+		if(!shader_handle) {
 			core::igles::log->warn(
 			  "igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
 			  utility::to_string(metaData.uid),
@@ -42,8 +39,7 @@ material_t::material_t(core::resource::cache_t& cache,
 
 			core::igles::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
 			shader_handle = cache.instantiate<core::igles::shader>(stage.shader());
-			if(!shader_handle)
-			{
+			if(!shader_handle) {
 				core::igles::log->error("failed to load shader [{0}]", utility::to_string(stage.shader()));
 				return;
 			}
@@ -53,25 +49,18 @@ material_t::material_t(core::resource::cache_t& cache,
 	}
 
 	m_Program = program_cache->get(metaData.uid, data);
-	for(auto& stage : data->stages())
-	{
+	for(auto& stage : data->stages()) {
 		auto meta = cache.library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 		// now we validate the shader, and store all the bound resource handles
 		auto index = 0;
-		for(const auto& binding : stage.bindings())
-		{
-			switch(binding.descriptor())
-			{
-			case core::gfx::binding_type::combined_image_sampler:
-			{
+		for(const auto& binding : stage.bindings()) {
+			switch(binding.descriptor()) {
+			case core::gfx::binding_type::combined_image_sampler: {
 				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
 
-				if(auto sampler_handle = cache.find<core::igles::sampler_t>(binding.sampler()); sampler_handle)
-				{
+				if(auto sampler_handle = cache.find<core::igles::sampler_t>(binding.sampler()); sampler_handle) {
 					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
-				}
-				else
-				{
+				} else {
 					core::igles::log->error(
 					  "igles::material_t [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
@@ -81,12 +70,9 @@ material_t::material_t(core::resource::cache_t& cache,
 					  utility::to_string(stage.shader()));
 					return;
 				}
-				if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle)
-				{
+				if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle) {
 					m_Textures.push_back(std::make_pair(binding_slot, texture_handle));
-				}
-				else
-				{
+				} else {
 					core::igles::log->error(
 					  "igles::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
@@ -96,13 +82,11 @@ material_t::material_t(core::resource::cache_t& cache,
 					  utility::to_string(stage.shader()));
 					return;
 				}
-			}
-			break;
+			} break;
 			case core::gfx::binding_type::uniform_buffer_dynamic:
 			case core::gfx::binding_type::storage_buffer_dynamic:
 			case core::gfx::binding_type::uniform_buffer:
-			case core::gfx::binding_type::storage_buffer:
-			{
+			case core::gfx::binding_type::storage_buffer: {
 				auto descriptor = std::find_if(std::begin(meta->descriptors()),
 											   std::end(meta->descriptors()),
 											   [&binding](const core::meta::shader::descriptor& descriptor) {
@@ -110,8 +94,7 @@ material_t::material_t(core::resource::cache_t& cache,
 											   });
 
 				if(auto buffer_handle = cache.find<core::gfx::shader_buffer_binding>(binding.buffer());
-				   buffer_handle && buffer_handle.state() == core::resource::status::loaded)
-				{
+				   buffer_handle && buffer_handle.state() == core::resource::status::loaded) {
 					auto binding_slot = glGetUniformBlockIndex(m_Program->id(), descriptor->name().data());
 					glUniformBlockBinding(m_Program->id(), binding_slot, binding.binding_slot());
 
@@ -120,16 +103,13 @@ material_t::material_t(core::resource::cache_t& cache,
 								  binding.descriptor() == core::gfx::binding_type::uniform_buffer_dynamic)
 								   ? core::gfx::memory_usage::uniform_buffer
 								   : core::gfx::memory_usage::storage_buffer;
-					if(buffer_handle->buffer->data().usage() & usage)
-					{
+					if(buffer_handle->buffer->data().usage() & usage) {
 						m_Buffers.emplace_back(
 						  buffer_binding {buffer_handle->buffer->resource<gfx::graphics_backend::gles>(),
 										  binding.binding_slot(),
 										  0,
 										  static_cast<uint32_t>(descriptor->size())});
-					}
-					else
-					{
+					} else {
 						core::igles::log->error(
 						  "igles::material_t [{0}] declares resource of the type [{1}], but we detected a resource of "
 						  "the type [{2}] instead in shader [{3}]",
@@ -140,9 +120,7 @@ material_t::material_t(core::resource::cache_t& cache,
 						  utility::to_string(stage.shader()));
 						return;
 					}
-				}
-				else
-				{
+				} else {
 					core::igles::log->error(
 					  "igles::material_t [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
@@ -152,8 +130,7 @@ material_t::material_t(core::resource::cache_t& cache,
 					  utility::to_string(stage.shader()));
 					return;
 				}
-			}
-			break;
+			} break;
 
 			default:
 				throw new std::runtime_error("This should not be reached");
@@ -162,30 +139,29 @@ material_t::material_t(core::resource::cache_t& cache,
 			++index;
 		}
 	}
-	if(m_Textures.size() > 0)
-	{
+	if(m_Textures.size() > 0) {
 		glUseProgram(m_Program->id());
-		for(const auto& [binding, texture] : m_Textures)
-		{
-			if(binding != std::numeric_limits<uint32_t>::max()) glUniform1i(binding, binding);
+		for(const auto& [binding, texture] : m_Textures) {
+			if(binding != std::numeric_limits<uint32_t>::max())
+				glUniform1i(binding, binding);
 		}
 		glUseProgram(0);
 	}
 }
 
-void material_t::bind()
-{
-	if(!m_Program) return;
+void material_t::bind() {
+	if(!m_Program)
+		return;
 	glUseProgram(m_Program->id());
 	const auto& blend_states = m_Data->blend_states();
 	using namespace core::gfx::conversion;
 
 
-	for(auto i = 0; i < m_Textures.size(); ++i)
-	{
+	for(auto i = 0; i < m_Textures.size(); ++i) {
 		auto binding = m_Textures[i].first;
 
-		if(binding == std::numeric_limits<uint32_t>::max()) continue;
+		if(binding == std::numeric_limits<uint32_t>::max())
+			continue;
 
 		glActiveTexture(GL_TEXTURE0 + binding);
 		auto tex_id = m_Textures[i].second->id();
@@ -193,8 +169,7 @@ void material_t::bind()
 		glBindSampler(binding, m_Samplers[i].second->id());
 	}
 
-	for(auto i = 0; i < blend_states.size(); ++i)
-	{
+	for(auto i = 0; i < blend_states.size(); ++i) {
 		glBlendEquationSeparatei(
 		  i, to_gles(blend_states[i].color_blend_op()), to_gles(blend_states[i].alpha_blend_op()));
 		glBlendFuncSeparatei(i,
@@ -203,16 +178,14 @@ void material_t::bind()
 							 to_gles(blend_states[i].alpha_blend_src()),
 							 to_gles(blend_states[i].alpha_blend_dst()));
 	}
-	for(auto& buffer : m_Buffers)
-	{
+	for(auto& buffer : m_Buffers) {
 		if(buffer.offset == 0)
 			glBindBufferBase(GL_UNIFORM_BUFFER, buffer.slot, buffer.buffer->id());
 		else
 			glBindBufferRange(GL_UNIFORM_BUFFER, buffer.slot, buffer.buffer->id(), buffer.offset, buffer.size);
 	}
 
-	switch(m_Data->cull_mode())
-	{
+	switch(m_Data->cull_mode()) {
 	case core::gfx::cullmode::front:
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
@@ -239,19 +212,17 @@ void material_t::bind()
 	glGetError();
 }
 
-const std::vector<core::resource::handle<core::igles::shader>>& material_t::shaders() const noexcept
-{
+const std::vector<core::resource::handle<core::igles::shader>>& material_t::shaders() const noexcept {
 	return m_Shaders;
 }
 
-const core::data::material_t& material_t::data() const noexcept { return m_Data.value(); }
+const core::data::material_t& material_t::data() const noexcept {
+	return m_Data.value();
+}
 
-bool material_t::bind_instance_data(uint32_t slot, uint32_t offset)
-{
-	for(auto& buffer : m_Buffers)
-	{
-		if(buffer.slot == slot)
-		{
+bool material_t::bind_instance_data(uint32_t slot, uint32_t offset) {
+	for(auto& buffer : m_Buffers) {
+		if(buffer.slot == slot) {
 			buffer.offset = offset;
 			return true;
 		}

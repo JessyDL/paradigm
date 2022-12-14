@@ -7,34 +7,24 @@
 #include <variant>
 #include <vector>
 
-namespace core::gfx
-{
-enum class graphics_backend
-{
-	undefined = 0,
-	vulkan	  = 1 << 0,
-	gles	  = 1 << 1
-};
+namespace core::gfx {
+enum class graphics_backend { undefined = 0, vulkan = 1 << 0, gles = 1 << 1 };
 
 template <typename T, graphics_backend backend>
-struct backend_type
-{};
+struct backend_type {};
 
 template <typename T, graphics_backend backend>
 using backend_type_t = typename backend_type<T, backend>::type;
 
 template <graphics_backend backend>
-constexpr bool is_enabled()
-{
+constexpr bool is_enabled() {
 #ifdef PE_VULKAN
-	if constexpr(backend == graphics_backend::vulkan)
-	{
+	if constexpr(backend == graphics_backend::vulkan) {
 		return PE_VULKAN;
 	}
 #endif
 #ifdef PE_GLES
-	if constexpr(backend == graphics_backend::gles)
-	{
+	if constexpr(backend == graphics_backend::gles) {
 		return PE_GLES;
 	}
 #endif
@@ -42,8 +32,7 @@ constexpr bool is_enabled()
 }
 
 template <typename T>
-class enum_flag
-{
+class enum_flag {
   public:
 	using value_type = std::underlying_type_t<T>;
 	enum_flag(T value) : m_Enum(static_cast<value_type>(value)) {};
@@ -55,40 +44,34 @@ class enum_flag
 	enum_flag& operator=(const enum_flag&) = default;
 	enum_flag& operator=(enum_flag&&)	   = default;
 
-	enum_flag& operator|=(enum_flag const& rhs) noexcept
-	{
+	enum_flag& operator|=(enum_flag const& rhs) noexcept {
 		m_Enum |= rhs.m_Enum;
 		return *this;
 	}
 
-	enum_flag& operator&=(enum_flag const& rhs) noexcept
-	{
+	enum_flag& operator&=(enum_flag const& rhs) noexcept {
 		m_Enum &= rhs.m_Enum;
 		return *this;
 	}
 
-	enum_flag& operator^=(enum_flag const& rhs) noexcept
-	{
+	enum_flag& operator^=(enum_flag const& rhs) noexcept {
 		m_Enum ^= rhs.m_Enum;
 		return *this;
 	}
 
-	enum_flag operator|(enum_flag const& rhs) const noexcept
-	{
+	enum_flag operator|(enum_flag const& rhs) const noexcept {
 		enum_flag result(*this);
 		result |= rhs;
 		return result;
 	}
 
-	enum_flag operator&(enum_flag const& rhs) const noexcept
-	{
+	enum_flag operator&(enum_flag const& rhs) const noexcept {
 		enum_flag result(*this);
 		result &= rhs;
 		return result;
 	}
 
-	enum_flag operator^(enum_flag const& rhs) const noexcept
-	{
+	enum_flag operator^(enum_flag const& rhs) const noexcept {
 		enum_flag<T> result(*this);
 		result ^= rhs;
 		return result;
@@ -113,8 +96,7 @@ class enum_flag
 };
 
 /// \brief description of a memory commit instruction. Tries to offer some safer mechanisms.
-struct commit_instruction
-{
+struct commit_instruction {
 	/// \brief automatically construct the information from the type information of the source.
 	/// \tparam T the type you wish to commit in this instruction.
 	/// \param[in] source the source we will copy from.
@@ -122,16 +104,15 @@ struct commit_instruction
 	/// \param[in] sub_range optional sub_range offset in the memory::segment, where a sub_range.begin() is
 	/// equal to the head of the segment. \warning make sure the source outlives the commit instruction.
 	template <typename T>
-	commit_instruction(T* source, memory::segment segment, std::optional<memory::range_t> sub_range = std::nullopt) :
-		segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)) {};
+	commit_instruction(T* source, memory::segment segment, std::optional<memory::range_t> sub_range = std::nullopt)
+		: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(sizeof(T)) {};
 	commit_instruction() {};
 
 	commit_instruction(void* source,
 					   size_t size,
 					   memory::segment segment,
-					   std::optional<memory::range_t> sub_range = std::nullopt) :
-		segment(segment),
-		sub_range(sub_range), source((std::uintptr_t)source), size(size) {};
+					   std::optional<memory::range_t> sub_range = std::nullopt)
+		: segment(segment), sub_range(sub_range), source((std::uintptr_t)source), size(size) {};
 	/// \brief target segment in the buffer
 	memory::segment segment {};
 	/// \brief possible sub range within the segment.
@@ -147,8 +128,7 @@ struct commit_instruction
 	uint64_t size {0};
 };
 ///*** [format:enum
-enum class shader_stage : uint8_t
-{
+enum class shader_stage : uint8_t {
 	vertex				   = 1 << 0,
 	tesselation_control	   = 1 << 1,
 	tesselation_evaluation = 1 << 2,
@@ -157,26 +137,15 @@ enum class shader_stage : uint8_t
 	compute				   = 1 << 5
 };
 
-enum class vertex_input_rate : uint8_t
-{
-	vertex	 = 0,
-	instance = 1
-};
+enum class vertex_input_rate : uint8_t { vertex = 0, instance = 1 };
 
-enum class memory_write_frequency
-{
-	per_frame,
-	sometimes,
-	almost_never
-};
-struct memory_copy
-{
+enum class memory_write_frequency { per_frame, sometimes, almost_never };
+struct memory_copy {
 	size_t source_offset;		  // offset in the source location
 	size_t destination_offset;	  // offset in the destination location
 	size_t size;				  // size of the copy instruction
 };
-enum class memory_usage
-{
+enum class memory_usage {
 	transfer_source		  = 1 << 0,
 	transfer_destination  = 1 << 1,
 	uniform_texel_buffer  = 1 << 2,
@@ -189,20 +158,17 @@ enum class memory_usage
 	conditional_rendering = 1 << 9
 };
 
-inline memory_usage operator|(memory_usage bit0, memory_usage bit1)
-{
+inline memory_usage operator|(memory_usage bit0, memory_usage bit1) {
 	using type = enum_flag<memory_usage>;
 	return type(bit0) | bit1;
 }
 
-inline bool operator&(memory_usage bit0, memory_usage bit1)
-{
+inline bool operator&(memory_usage bit0, memory_usage bit1) {
 	using type = enum_flag<memory_usage>;
 	return (type(bit0) & bit1) == bit1;
 }
 
-enum class memory_property
-{
+enum class memory_property {
 	device_local	 = 1 << 0,
 	host_visible	 = 1 << 1,
 	host_coherent	 = 1 << 2,
@@ -212,19 +178,16 @@ enum class memory_property
 };
 
 
-inline memory_property operator|(memory_property bit0, memory_property bit1)
-{
+inline memory_property operator|(memory_property bit0, memory_property bit1) {
 	using type = enum_flag<memory_property>;
 	return type(bit0) | bit1;
 }
 
-inline bool operator&(memory_property bit0, memory_property bit1)
-{
+inline bool operator&(memory_property bit0, memory_property bit1) {
 	using type = enum_flag<memory_property>;
 	return (type(bit0) & bit1) == bit1;
 }
-enum class image_type
-{
+enum class image_type {
 	planar_1D  = 0,
 	planar_2D  = 1,
 	planar_3D  = 2,
@@ -234,22 +197,15 @@ enum class image_type
 	array_cube = 6
 };
 
-enum class image_aspect
-{
-	color	= 1 << 0,
-	depth	= 1 << 1,
-	stencil = 1 << 2
-};
+enum class image_aspect { color = 1 << 0, depth = 1 << 1, stencil = 1 << 2 };
 
 
-inline image_aspect operator|(image_aspect bit0, image_aspect bit1)
-{
+inline image_aspect operator|(image_aspect bit0, image_aspect bit1) {
 	using image_aspect_flags = enum_flag<image_aspect>;
 	return (image_aspect_flags(bit0) | bit1);
 }
 
-enum class image_usage
-{
+enum class image_usage {
 	transfer_source			= 1 << 0,
 	transfer_destination	= 1 << 1,
 	sampled					= 1 << 2,
@@ -261,39 +217,25 @@ enum class image_usage
 };
 
 
-inline image_usage operator|(image_usage bit0, image_usage bit1)
-{
+inline image_usage operator|(image_usage bit0, image_usage bit1) {
 	using image_usage_flags = enum_flag<image_usage>;
 	return image_usage_flags(bit0) | bit1;
 }
 
-inline bool operator&(image_usage bit0, image_usage bit1)
-{
+inline bool operator&(image_usage bit0, image_usage bit1) {
 	using type = enum_flag<image_usage>;
 	return (type(bit0) & bit1) == bit1;
 }
 
-enum class component_bits
-{
-	r = 1 << 0,
-	g = 1 << 1,
-	b = 1 << 2,
-	a = 1 << 3,
-	x = r,
-	y = g,
-	z = b,
-	w = a
-};
+enum class component_bits { r = 1 << 0, g = 1 << 1, b = 1 << 2, a = 1 << 3, x = r, y = g, z = b, w = a };
 
-inline component_bits operator|(component_bits bit0, component_bits bit1)
-{
+inline component_bits operator|(component_bits bit0, component_bits bit1) {
 	using component_bit_flags = enum_flag<component_bits>;
 	return component_bit_flags(bit0) | bit1;
 }
 
 // based on https://github.com/KhronosGroup/KTX-Specification/blob/master/formats.json
-enum class format_t
-{
+enum class format_t {
 	undefined					= 0,
 	r4g4_unorm_pack8			= 1000,
 	r4g4b4a4_unorm_pack16		= 143,
@@ -441,27 +383,20 @@ enum class format_t
 	pvrtc2_4bpp_srgb_block_img	= 142
 };
 
-inline bool is_texture_format(format_t value) noexcept
-{
+inline bool is_texture_format(format_t value) noexcept {
 	return static_cast<std::underlying_type_t<format_t>>(value) < 1000;
 }
 
-enum class sampler_mipmap_mode
-{
-	nearest = 0,
-	linear	= 1
-};
+enum class sampler_mipmap_mode { nearest = 0, linear = 1 };
 
-enum class sampler_address_mode
-{
+enum class sampler_address_mode {
 	repeat				 = 0,
 	mirrored_repeat		 = 1,
 	clamp_to_edge		 = 2,
 	clamp_to_border		 = 3,
 	mirror_clamp_to_edge = 4
 };
-enum class border_color
-{
+enum class border_color {
 	float_transparent_black = 0,
 	int_transparent_black	= 1,
 	float_opaque_black		= 2,
@@ -470,17 +405,10 @@ enum class border_color
 	int_opaque_white		= 5
 };
 
-enum class cullmode
-{
-	none  = 0,
-	front = 1,
-	back  = 2,
-	all	  = 3
-};
+enum class cullmode { none = 0, front = 1, back = 2, all = 3 };
 
 
-enum class compare_op
-{
+enum class compare_op {
 	never		  = 0,
 	less		  = 1,
 	equal		  = 2,
@@ -492,16 +420,10 @@ enum class compare_op
 
 };
 
-enum class filter
-{
-	nearest = 0,
-	linear	= 1,
-	cubic	= 2
-};
+enum class filter { nearest = 0, linear = 1, cubic = 2 };
 
 /// \brief these signify the binding type in the shader
-enum class binding_type
-{
+enum class binding_type {
 	sampler,
 	combined_image_sampler,
 	sampled_image,
@@ -515,23 +437,14 @@ enum class binding_type
 	input_attachment
 };
 
-inline bool operator&(binding_type bit0, binding_type bit1)
-{
+inline bool operator&(binding_type bit0, binding_type bit1) {
 	using type = enum_flag<binding_type>;
 	return (type(bit0) & bit1) == bit1;
 }
 
-enum class blend_op
-{
-	add				 = 0,
-	subtract		 = 1,
-	reverse_subtract = 2,
-	min				 = 3,
-	max				 = 4
-};
+enum class blend_op { add = 0, subtract = 1, reverse_subtract = 2, min = 3, max = 4 };
 
-enum class blend_factor
-{
+enum class blend_factor {
 	zero						= 0,
 	one							= 1,
 	source_color				= 2,
@@ -549,8 +462,7 @@ enum class blend_factor
 	source_alpha_saturate		= 14,
 };
 
-inline bool has_depth(core::gfx::format_t format)
-{
+inline bool has_depth(core::gfx::format_t format) {
 	static std::vector<core::gfx::format_t> formats = {
 	  core::gfx::format_t::d16_unorm,
 	  core::gfx::format_t::x8_d24_unorm_pack32,
@@ -561,8 +473,7 @@ inline bool has_depth(core::gfx::format_t format)
 	return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 }
 
-inline bool has_stencil(core::gfx::format_t format)
-{
+inline bool has_stencil(core::gfx::format_t format) {
 	static std::vector<core::gfx::format_t> formats = {
 	  core::gfx::format_t::s8_uint,
 	  core::gfx::format_t::d24_unorm_s8_uint,
@@ -571,12 +482,12 @@ inline bool has_stencil(core::gfx::format_t format)
 	return std::find(formats.begin(), formats.end(), format) != std::end(formats);
 }
 
-inline bool is_depthstencil(core::gfx::format_t format) { return (has_depth(format) && has_stencil(format)); }
+inline bool is_depthstencil(core::gfx::format_t format) {
+	return (has_depth(format) && has_stencil(format));
+}
 
-namespace image
-{
-	enum class layout
-	{
+namespace image {
+	enum class layout {
 		undefined								   = 0,
 		general									   = 1,
 		color_attachment_optimal				   = 2,
@@ -597,20 +508,10 @@ namespace image
 	using usage = image_usage;
 }	 // namespace image
 
-struct attachment
-{
-	enum class load_op : uint8_t
-	{
-		load	  = 0,
-		clear	  = 1,
-		dont_care = 2
-	};
+struct attachment {
+	enum class load_op : uint8_t { load = 0, clear = 1, dont_care = 2 };
 
-	enum class store_op : uint8_t
-	{
-		store	  = (uint8_t)load_op::load,
-		dont_care = (uint8_t)load_op::dont_care
-	};
+	enum class store_op : uint8_t { store = (uint8_t)load_op::load, dont_care = (uint8_t)load_op::dont_care };
 
 	format_t format;
 	uint8_t sample_bits;
@@ -622,8 +523,7 @@ struct attachment
 	image::layout final;
 };
 
-struct depth_stencil
-{
+struct depth_stencil {
 	float depth;
 	uint32_t stencil;
 };
@@ -632,10 +532,8 @@ using clear_value = std::variant<psl::vec4, psl::ivec4, psl::tvec<uint32_t, 4>, 
 
 /// \brief Get the alignment of the pixel storage format
 /// \returns The byte alignment
-inline size_t packing_size(format_t value) noexcept
-{
-	switch(value)
-	{
+inline size_t packing_size(format_t value) noexcept {
+	switch(value) {
 	case format_t::r4g4b4a4_unorm_pack16:
 		return 2;
 		break;

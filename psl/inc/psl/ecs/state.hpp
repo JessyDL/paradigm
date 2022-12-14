@@ -17,32 +17,25 @@
 
 #include "psl/serialization/serializer.hpp"
 
-namespace psl::async
-{
+namespace psl::async {
 class scheduler;
 }
 
 /// \brief Private implementation details for the ECS.
 /// \warning Users should not rely on these implementations.
-namespace psl::ecs::details
-{}
+namespace psl::ecs::details {}
 
 /// \brief Entity Component System
 ///
-namespace psl::ecs
-{
-class state_t final
-{
+namespace psl::ecs {
+class state_t final {
 	friend class psl::serialization::accessor;
 	static constexpr auto serialization_name {"ECS"};
 
 	template <typename S>
-	void serialize(S& serializer)
-	{
-		if constexpr(psl::serialization::details::IsDecoder<S>)
-		{
-			if(m_Tick != 0 || m_Entities != 0 || m_ModifiedEntities.size() != 0)
-			{
+	void serialize(S& serializer) {
+		if constexpr(psl::serialization::details::IsDecoder<S>) {
+			if(m_Tick != 0 || m_Entities != 0 || m_ModifiedEntities.size() != 0) {
 				throw std::runtime_error("unsupported deserializing into non-empty state");
 			}
 		}
@@ -58,15 +51,14 @@ class state_t final
 		std::vector<std::byte> component_data {};
 		std::vector<std::string> component_names {};
 
-		if constexpr(psl::serialization::details::IsEncoder<S>)
-		{
+		if constexpr(psl::serialization::details::IsEncoder<S>) {
 			size_t expected_total_datasize {0};
 			size_t expected_total_entities {0};
 			std::vector<details::component_key_t> all_keys {};
-			for(const auto& [key, component] : m_Components)
-			{
+			for(const auto& [key, component] : m_Components) {
 				// skip unserializable types, or those that aren't requesting to be serialized
-				if(key.type() == component_type::COMPLEX || !component->should_serialize()) continue;
+				if(key.type() == component_type::COMPLEX || !component->should_serialize())
+					continue;
 				expected_total_entities += component->size(true);
 
 				all_keys.emplace_back(key);
@@ -81,8 +73,7 @@ class state_t final
 			component_data.resize(expected_total_datasize);
 
 			size_t data_offset {0};
-			for(const auto& key : all_keys)
-			{
+			for(const auto& key : all_keys) {
 				const auto& component = m_Components[key];
 
 				component_sizes.emplace_back(component->size(true));
@@ -92,8 +83,7 @@ class state_t final
 				component_data_alignment.emplace_back(component->alignment());
 				component_names.emplace_back(key.name());
 
-				if(component->component_size() > 0)
-				{
+				if(component->component_size() > 0) {
 					auto total_size = component->component_size() * component->size(true);
 					memcpy(component_data.data() + data_offset, component->data(), total_size);
 					data_offset += total_size;
@@ -109,29 +99,24 @@ class state_t final
 		serializer.template parse<"CDATA">(component_data);
 
 
-		if constexpr(psl::serialization::details::IsDecoder<S>)
-		{
+		if constexpr(psl::serialization::details::IsDecoder<S>) {
 			const auto count = component_names.size();
-			for(size_t i = 0, entity_offset = 0, data_offset = 0; i < count;
-				entity_offset += component_sizes[i], data_offset += (component_sizes[i] * component_data_size[i]), ++i)
-			{
+			for(size_t i = 0, entity_offset = 0, data_offset = 0; i < count; entity_offset += component_sizes[i],
+					   data_offset += (component_sizes[i] * component_data_size[i]),
+					   ++i) {
 				details::component_key_t key(
 				  component_names[i], (component_data_size[i] == 0) ? component_type::FLAG : component_type::TRIVIAL);
 				auto it = m_Components.find(key);
-				if(it == m_Components.end())
-				{
+				if(it == m_Components.end()) {
 					auto pair = m_Components.emplace(key,
 													 details::instantiate_component_container(
 													   key, component_data_size[i], component_data_alignment[i], true));
 
-					if(!pair.second)
-					{
+					if(!pair.second) {
 						throw std::runtime_error("failed to insert key into map");
 					}
 					it = pair.first;
-				}
-				else
-				{
+				} else {
 					throw std::runtime_error("unsupported deserializing into non-empty state");
 				}
 
@@ -145,16 +130,14 @@ class state_t final
 	}
 
 
-	struct transform_result
-	{
+	struct transform_result {
 		bool operator==(const transform_result& other) const noexcept { return group == other.group; }
 		psl::array<entity> entities;
 		psl::array<entity> indices;	   // used in case there is an order_by
 		std::shared_ptr<details::transform_group> group;
 	};
 
-	struct filter_result
-	{
+	struct filter_result {
 		bool operator==(const filter_result& other) const noexcept { return group == other.group; }
 		bool operator==(const details::filter_group& other) const noexcept { return *group == other; }
 		psl::array<entity> entities;
@@ -174,42 +157,35 @@ class state_t final
 	state_t& operator=(state_t&&)	   = default;
 
 	template <IsComponentTypeSerializable T>
-	bool override_serialization(bool value)
-	{
+	bool override_serialization(bool value) {
 		constexpr auto key = details::component_key_t::generate<T>();
-		if(auto it = m_Components.find(key); it != std::end(m_Components))
-		{
+		if(auto it = m_Components.find(key); it != std::end(m_Components)) {
 			return it->second->should_serialize(value);
 		}
 		return false;
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<entity> entities)
-	{
+	void add_components(psl::array_view<entity> entities) {
 		(add_component<Ts>(entities), ...);
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data)
-	{
+	void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) {
 		(add_component<Ts>(entities, data), ...);
 	}
 	template <typename... Ts>
-	void add_components(psl::array_view<entity> entities, Ts&&... prototype)
-	{
+	void add_components(psl::array_view<entity> entities, Ts&&... prototype) {
 		(add_component(entities, std::forward<Ts>(prototype)), ...);
 	}
 
 	template <typename... Ts>
-	void remove_components(psl::array_view<entity> entities) noexcept
-	{
+	void remove_components(psl::array_view<entity> entities) noexcept {
 		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 	}
 
 	template <typename T>
-	psl::array<T> get_component(psl::array_view<entity> entities) const noexcept
-	{
+	psl::array<T> get_component(psl::array_view<entity> entities) const noexcept {
 		auto cInfo = get_component_typed_info<T>();
 		psl::array<T> result {};
 		result.resize(entities.size());
@@ -220,27 +196,23 @@ class state_t final
 	void clear() noexcept;
 
 	template <typename T>
-	T& get(entity entity)
-	{
+	T& get(entity entity) {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
 		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 	}
 
 	template <typename T>
-	const T& get(entity entity) const noexcept
-	{
+	const T& get(entity entity) const noexcept {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
 		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 	}
 
 	template <typename... Ts>
-	bool has_components(psl::array_view<entity> entities) const noexcept
-	{
+	bool has_components(psl::array_view<entity> entities) const noexcept {
 		auto cInfos = get_component_container(to_keys<Ts...>());
-		if(cInfos.size() == sizeof...(Ts))
-		{
+		if(cInfos.size() == sizeof...(Ts)) {
 			return std::all_of(std::begin(cInfos), std::end(cInfos), [&entities](const auto& cInfo) {
 				return cInfo && std::all_of(std::begin(entities), std::end(entities), [&cInfo](entity e) {
 						   return cInfo->has_component(e);
@@ -250,23 +222,18 @@ class state_t final
 		return sizeof...(Ts) == 0;
 	}
 
-	[[maybe_unused]] entity create()
-	{
-		if(m_Orphans.size() > 0)
-		{
+	[[maybe_unused]] entity create() {
+		if(m_Orphans.size() > 0) {
 			auto entity = m_Orphans.back();
 			m_Orphans.pop_back();
 			return entity;
-		}
-		else
-		{
+		} else {
 			return m_Entities++;
 		}
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity> create(entity count)
-	{
+	[[maybe_unused]] psl::array<entity> create(entity count) {
 		psl::array<entity> entities;
 		entities.reserve(count);
 		const auto recycled	 = std::min<entity>(count, (entity)m_Orphans.size());
@@ -278,16 +245,14 @@ class state_t final
 		std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
 		m_Entities += remainder;
 
-		if constexpr(sizeof...(Ts) > 0)
-		{
+		if constexpr(sizeof...(Ts) > 0) {
 			(add_components<Ts>(entities), ...);
 		}
 		return entities;
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity> create(entity count, Ts&&... prototype)
-	{
+	[[maybe_unused]] psl::array<entity> create(entity count, Ts&&... prototype) {
 		psl::array<entity> entities;
 		entities.reserve(count);
 		const auto recycled	 = std::min<entity>(count, static_cast<entity>(m_Orphans.size()));
@@ -307,18 +272,15 @@ class state_t final
 	void destroy(psl::array_view<entity> entities) noexcept;
 	void destroy(entity entity) noexcept;
 
-	psl::array<entity> all_entities() const noexcept
-	{
+	psl::array<entity> all_entities() const noexcept {
 		auto orphans = m_Orphans;
 		std::sort(std::begin(orphans), std::end(orphans));
 
 		auto orphan_it = std::begin(orphans);
 		psl::array<entity> result;
 		result.reserve(m_Entities - orphans.size());
-		for(entity e = 0; e < m_Entities; ++e)
-		{
-			if(orphan_it != std::end(m_Orphans) && e == *orphan_it)
-			{
+		for(entity e = 0; e < m_Entities; ++e) {
+			if(orphan_it != std::end(m_Orphans) && e == *orphan_it) {
 				orphan_it = std::next(orphan_it);
 				continue;
 			}
@@ -328,8 +290,7 @@ class state_t final
 	}
 
 	template <typename... Ts>
-	psl::array<entity> filter() const noexcept
-	{
+	psl::array<entity> filter() const noexcept {
 		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack<Ts...>> {});
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
@@ -337,8 +298,7 @@ class state_t final
 			return *data.group == filter_group[0];
 		});
 
-		if(it != std::end(m_Filters))
-		{
+		if(it != std::end(m_Filters)) {
 			auto modified = psl::array<entity> {m_ModifiedEntities.indices()};
 			std::sort(std::begin(modified), std::end(modified));
 
@@ -348,39 +308,33 @@ class state_t final
 		}
 		// run on all entities, as no pre-existing filtering group could be found
 		// todo: look into best fit filtering groups to seed this with
-		else
-		{
+		else {
 			filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
 			filter(data);
 			return data.entities;
 		}
 	}
 	template <typename... Ts>
-	void set_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept
-	{
+	void set_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept {
 		(set_component(entities, std::forward<Ts>(data)), ...);
 	}
 
 	template <typename... Ts>
-	void set_components(psl::array_view<entity> entities, Ts&&... data) noexcept
-	{
+	void set_components(psl::array_view<entity> entities, Ts&&... data) noexcept {
 		(set_component(entities, std::forward<Ts>(data)), ...);
 	}
 
 	template <typename T>
-	void set_component(psl::array_view<entity> entities, T&& data) noexcept
-	{
+	void set_component(psl::array_view<entity> entities, T&& data) noexcept {
 		constexpr auto key = details::component_key_t::generate<T>();
 		auto cInfo		   = get_component_container(key);
-		for(auto e : entities)
-		{
+		for(auto e : entities) {
 			cInfo->set(e, &data);
 		}
 	}
 
 	template <typename T>
-	void set_component(psl::array_view<entity> entities, psl::array_view<T> data) noexcept
-	{
+	void set_component(psl::array_view<entity> entities, psl::array_view<T> data) noexcept {
 		psl_assert(entities.size() == data.size(),
 				   "incorrect amount of data input compared to entities, expected {} but got {}",
 				   entities.size(),
@@ -388,8 +342,7 @@ class state_t final
 		constexpr auto key = details::component_key_t::generate<T>();
 		auto cInfo		   = get_component_container(key);
 		auto d			   = std::begin(data);
-		for(auto e : entities)
-		{
+		for(auto e : entities) {
 			cInfo->set(e, *d);
 			d = std::next(d);
 		}
@@ -400,19 +353,17 @@ class state_t final
 	void reset(psl::array_view<entity> entities) noexcept;
 
 	template <typename T>
-	psl::array_view<entity> entities() const noexcept
-	{
+	psl::array_view<entity> entities() const noexcept {
 		constexpr auto key {details::component_key_t::generate<T>()};
-		if(auto it = m_Components.find(key); it != std::end(m_Components)) return it->second->entities();
+		if(auto it = m_Components.find(key); it != std::end(m_Components))
+			return it->second->entities();
 		return {};
 	}
 
 	template <typename T>
-	psl::array_view<T> view()
-	{
+	psl::array_view<T> view() {
 		constexpr auto key {details::component_key_t::generate<T>()};
-		if(auto it = m_Components.find(key); it != std::end(m_Components))
-		{
+		if(auto it = m_Components.find(key); it != std::end(m_Components)) {
 			return (details::cast_component_container<T>(it->second.get()))
 			  ->entity_data()
 			  .template dense<T>(details::stage_range_t::ALIVE);
@@ -424,52 +375,42 @@ class state_t final
 	size_t systems() const noexcept { return m_SystemInformations.size() - m_ToRevoke.size(); }
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(Fn&& fn, bool seedWithExisting = false)
-	{
+	auto declare(Fn&& fn, bool seedWithExisting = false) {
 		return declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName);
 	}
 
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(threading threading, Fn&& fn, bool seedWithExisting = false)
-	{
+	auto declare(threading threading, Fn&& fn, bool seedWithExisting = false) {
 		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName);
 	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(Fn&& fn, T* ptr, bool seedWithExisting = false)
-	{
+	auto declare(Fn&& fn, T* ptr, bool seedWithExisting = false) {
 		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName);
 	}
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false)
-	{
+	auto declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false) {
 		return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName);
 	}
 
-	bool revoke(details::system_token id) noexcept
-	{
-		if(m_LockState)
-		{
+	bool revoke(details::system_token id) noexcept {
+		if(m_LockState) {
 			if(auto it = std::find_if(std::begin(m_SystemInformations),
 									  std::end(m_SystemInformations),
 									  [&id](const auto& system) { return system.id() == id; });
 			   it != std::end(m_SystemInformations) &&
 			   // and we make sure we don't "double delete"
-			   std::find(std::begin(m_ToRevoke), std::end(m_ToRevoke), id) == std::end(m_ToRevoke))
-			{
+			   std::find(std::begin(m_ToRevoke), std::end(m_ToRevoke), id) == std::end(m_ToRevoke)) {
 				m_ToRevoke.emplace_back(id);
 				return true;
 			}
 			return false;
-		}
-		else
-		{
+		} else {
 			if(auto it = std::find_if(std::begin(m_SystemInformations),
 									  std::end(m_SystemInformations),
 									  [&id](const auto& system) { return system.id() == id; });
-			   it != std::end(m_SystemInformations))
-			{
+			   it != std::end(m_SystemInformations)) {
 				m_SystemInformations.erase(it);
 				return true;
 			}
@@ -480,15 +421,11 @@ class state_t final
 	size_t capacity() const noexcept { return m_Entities; }
 
 	template <typename... Ts>
-	size_t size() const noexcept
-	{
+	size_t size() const noexcept {
 		// todo implement filtering?
-		if constexpr(sizeof...(Ts) == 0)
-		{
+		if constexpr(sizeof...(Ts) == 0) {
 			return m_Entities - m_Orphans.size();
-		}
-		else
-		{
+		} else {
 			return size(to_keys<Ts...>());
 		}
 	}
@@ -512,11 +449,9 @@ class state_t final
 	void execute_command_buffer(info_t& info);
 
 	template <typename T>
-	inline void create_storage() const noexcept
-	{
+	inline void create_storage() const noexcept {
 		constexpr auto key = details::component_key_t::generate<T>();
-		if(auto it = m_Components.find(key); it == std::end(m_Components))
-		{
+		if(auto it = m_Components.find(key); it == std::end(m_Components)) {
 			m_Components.emplace(key, details::instantiate_component_container<T>());
 		}
 	}
@@ -527,8 +462,7 @@ class state_t final
 	psl::array<const details::component_container_t*>
 	get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;
 	template <typename T>
-	auto get_component_typed_info() const noexcept
-	{
+	auto get_component_typed_info() const noexcept {
 		constexpr auto key {details::component_key_t::generate<T>()};
 		return details::cast_component_container<T>(m_Components.at(key).get());
 	}
@@ -537,25 +471,18 @@ class state_t final
 	//------------------------------------------------------------
 
 	template <typename T>
-	void add_component(psl::array_view<entity> entities, T&& prototype)
-	{
+	void add_component(psl::array_view<entity> entities, T&& prototype) {
 		using true_type = std::remove_const_t<std::remove_reference_t<T>>;
-		if constexpr(psl::ecs::details::is_empty_container<true_type>::value)
-		{
+		if constexpr(psl::ecs::details::is_empty_container<true_type>::value) {
 			using type = typename psl::ecs::details::empty_container<true_type>::type;
 			create_storage<type>();
-			if constexpr(details::DoesComponentTypeNeedPrototypeCall<type>)
-			{
+			if constexpr(details::DoesComponentTypeNeedPrototypeCall<type>) {
 				type v {details::prototype_for<type>()};
 				add_component_impl(details::component_key_t::generate<type>(), entities, &v);
-			}
-			else
-			{
+			} else {
 				add_component_impl(details::component_key_t::generate<type>(), entities);
 			}
-		}
-		else if constexpr(psl::templates::is_callable_n<T, 1>::value)
-		{
+		} else if constexpr(psl::templates::is_callable_n<T, 1>::value) {
 			using pack_type = typename psl::templates::func_traits<T>::arguments_t;
 			static_assert(psl::type_pack_size_v<pack_type> == 1,
 						  "only one argument is allowed in the prototype invocable");
@@ -569,14 +496,11 @@ class state_t final
 			create_storage<type>();
 			add_component_impl(
 			  details::component_key_t::generate<type>(), entities, [prototype](std::uintptr_t location, size_t count) {
-				  for(auto i = size_t {0}; i < count; ++i)
-				  {
+				  for(auto i = size_t {0}; i < count; ++i) {
 					  std::invoke(prototype, *((type*)(location) + i));
 				  }
 			  });
-		}
-		else if constexpr(psl::templates::is_callable_n<T, 2>::value)
-		{
+		} else if constexpr(psl::templates::is_callable_n<T, 2>::value) {
 			using pack_type = typename psl::templates::func_traits<T>::arguments_t;
 			static_assert(psl::type_pack_size_v<pack_type> == 2, "two arguments required in the prototype invocable");
 			using arg0_t = psl::type_at_index_t<0, pack_type>;
@@ -593,8 +517,7 @@ class state_t final
 			add_component_impl(details::component_key_t::generate<type>(),
 							   entities,
 							   [prototype, &entities](std::uintptr_t location, size_t count) {
-								   for(auto i = size_t {0}; i < count; ++i)
-								   {
+								   for(auto i = size_t {0}; i < count; ++i) {
 									   std::invoke(prototype, *((type*)(location) + i), entities[i]);
 								   }
 							   });
@@ -609,38 +532,29 @@ class state_t final
 
 			create_storage<T>();
 			add_component_impl(details::component_key_t::generate<T>(), entities, &prototype);
-		}
-		else if constexpr(details::is_range_t<true_type>::value)
-		{
+		} else if constexpr(details::is_range_t<true_type>::value) {
 			using type = typename psl::ecs::details::is_range_t<true_type>::type;
 			create_storage<type>();
 			add_component_impl(details::component_key_t::generate<type>(), entities, prototype.data(), false);
-		}
-		else
-		{
+		} else {
 			static_assert(psl::templates::always_false<T>::value,
 						  "could not figure out if the template type was an invocable or a component prototype");
 		}
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<entity> entities)
-	{
+	void add_component(psl::array_view<entity> entities) {
 		create_storage<T>();
-		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>)
-		{
+		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
 			T v {details::prototype_for<T>()};
 			add_component_impl(details::component_key_t::generate<T>(), entities, &v);
-		}
-		else
-		{
+		} else {
 			add_component_impl(details::component_key_t::generate<T>(), entities);
 		}
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<entity> entities, psl::array_view<T> data)
-	{
+	void add_component(psl::array_view<entity> entities, psl::array_view<T> data) {
 		psl_assert(entities.size() == data.size(),
 				   "incorrect amount of data input compared to entities, expected {} but got {}",
 				   entities.size(),
@@ -660,8 +574,7 @@ class state_t final
 	requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value) void add_component_impl(
 	  const details::component_key_t& key,
 	  psl::array_view<entity> entities,
-	  Fn&& invocable)
-	{
+	  Fn&& invocable) {
 		auto cInfo = get_component_container(key);
 		psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 		const auto component_size = cInfo->component_size();
@@ -692,52 +605,45 @@ class state_t final
 	template <typename T>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<T>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return filter_op(details::component_key_t::generate<T>(), begin, end);
 	}
 
 	template <typename T>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::filter<T>>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return filter_op(details::component_key_t::generate<T>(), begin, end);
 	}
 	template <typename T>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_add<T>>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return on_add_op(details::component_key_t::generate<T>(), begin, end);
 	}
 	template <typename T>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_remove<T>>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return on_remove_op(details::component_key_t::generate<T>(), begin, end);
 	}
 	template <typename T>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::except<T>>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return on_except_op(details::component_key_t::generate<T>(), begin, end);
 	}
 	template <typename... Ts>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_break<Ts...>>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return on_break_op(to_keys<Ts...>(), begin, end);
 	}
 
 	template <typename... Ts>
 	psl::array<entity>::iterator filter_op(psl::type_pack_t<psl::ecs::on_combine<Ts...>>,
 										   psl::array<entity>::iterator& begin,
-										   psl::array<entity>::iterator& end) const noexcept
-	{
+										   psl::array<entity>::iterator& end) const noexcept {
 		return on_combine_op(to_keys<Ts...>(), begin, end);
 	}
 
@@ -774,8 +680,7 @@ class state_t final
 
 
 	template <typename... Ts>
-	psl::array<details::component_key_t> to_keys() const noexcept
-	{
+	psl::array<details::component_key_t> to_keys() const noexcept {
 		return psl::array<details::component_key_t> {details::component_key_t::generate<Ts>()...};
 	}
 
@@ -790,45 +695,38 @@ class state_t final
 	// system declare
 	//------------------------------------------------------------
 	template <typename... Ts>
-	struct get_packs
-	{
+	struct get_packs {
 		using type = psl::type_pack_t<Ts...>;
 	};
 
 	template <typename... Ts>
-	struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...>
-	{};
+	struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...> {};
 
 	template <typename... Ts>
-	struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...>
-	{};
+	struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...> {};
 
 	std::pair<std::shared_ptr<details::filter_group>, std::shared_ptr<details::transform_group>>
 	add_filter_group(details::filter_group& filter_group,
 					 details::transform_group& transform_group,
-					 psl::string_view debugName)
-	{
+					 psl::string_view debugName) {
 		std::shared_ptr<details::transform_group> shared_transform_group {};
 		auto filter_it =
 		  std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data) {
 			  return *data.group == filter_group;
 		  });
-		if(filter_it == std::end(m_Filters))
-		{
+		if(filter_it == std::end(m_Filters)) {
 			m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
 			filter_it = std::prev(std::end(m_Filters));
 		}
 
 		filter_it->group->add_debug_system_name(debugName);
 
-		if(transform_group)
-		{
+		if(transform_group) {
 			auto it =
 			  std::find_if(std::begin(filter_it->transformations),
 						   std::end(filter_it->transformations),
 						   [&transform_group](const transform_result& data) { return *data.group == transform_group; });
-			if(it == std::end(filter_it->transformations))
-			{
+			if(it == std::end(filter_it->transformations)) {
 				filter_it->transformations.emplace_back(
 				  transform_result {{}, {}, std::make_shared<details::transform_group>(transform_group)});
 
@@ -843,19 +741,15 @@ class state_t final
 	}
 
 	template <typename Fn, typename T, typename pack_t>
-	auto create_system_tick_functional(Fn& fn, T* ptr) const noexcept
-	{
-		if constexpr(std::is_member_function_pointer<Fn>::value)
-		{
+	auto create_system_tick_functional(Fn& fn, T* ptr) const noexcept {
+		if constexpr(std::is_member_function_pointer<Fn>::value) {
 			return [fn, ptr](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
 				auto tuple_argument_list = std::tuple_cat(std::tuple<T*, psl::ecs::info_t&>(ptr, info),
 														  details::compress_from_dependency_pack(pack_t {}, packs));
 
 				std::apply(fn, std::move(tuple_argument_list));
 			};
-		}
-		else
-		{
+		} else {
 			return [fn](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
 				auto tuple_argument_list = std::tuple_cat(std::tuple<psl::ecs::info_t&>(info),
 														  details::compress_from_dependency_pack(pack_t {}, packs));
@@ -867,8 +761,7 @@ class state_t final
 
 	template <typename Fn, typename T = void>
 	auto
-	declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false, psl::string_view debugName = "")
-	{
+	declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false, psl::string_view debugName = "") {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
 		using pack_t		  = typename get_packs<function_args>::type;
 		auto filter_groups	  = details::make_filter_group(pack_t {});
@@ -883,8 +776,7 @@ class state_t final
 		psl::array<std::shared_ptr<details::filter_group>> shared_filter_groups;
 		psl::array<std::shared_ptr<details::transform_group>> shared_transform_groups;
 
-		for(auto i = 0; i < filter_groups.size(); ++i)
-		{
+		for(auto i = 0; i < filter_groups.size(); ++i) {
 			auto [shared_filter, transform_filter] = add_filter_group(filter_groups[i], transform_groups[i], debugName);
 			shared_filter_groups.emplace_back(shared_filter);
 			shared_transform_groups.emplace_back(transform_filter);

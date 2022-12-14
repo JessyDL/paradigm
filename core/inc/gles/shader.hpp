@@ -5,10 +5,8 @@
 #include "psl/ustring.hpp"
 #include <limits>
 
-namespace core::igles
-{
-class shader
-{
+namespace core::igles {
+class shader {
   public:
 	shader(core::resource::cache_t& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile);
 	~shader();

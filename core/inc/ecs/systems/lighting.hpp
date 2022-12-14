@@ -8,39 +8,33 @@
 #include "resource/resource.hpp"
 #include <stdint.h>
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class render_graph;
 class drawpass;
 class buffer_t;
 }	 // namespace core::gfx
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 class state_t;
 struct info_t;
 template <typename... Ts>
 class pack;
 }	 // namespace psl::ecs
 
-namespace memory
-{
+namespace memory {
 class region;
 }
 
 
-namespace core::ecs::systems
-{
+namespace core::ecs::systems {
 //	class render;
 
-class lighting_system
-{
+class lighting_system {
   public:
 	lighting_system(psl::view_ptr<psl::ecs::state_t> state,
 					psl::view_ptr<core::resource::cache_t> cache,

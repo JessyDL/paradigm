@@ -50,8 +50,7 @@
 */
 
 
-namespace psl::format
-{
+namespace psl::format {
 struct handle;
 
 using children_t		= uint16_t;
@@ -62,8 +61,7 @@ using reference_t		= handle*;
 using reference_range_t = std::vector<reference_t>;
 using collection_t		= nodes_t;
 
-enum class type_t : uint8_t
-{
+enum class type_t : uint8_t {
 	MALFORMED		= 0,
 	VALUE			= 1,
 	VALUE_RANGE		= 2,
@@ -72,8 +70,7 @@ enum class type_t : uint8_t
 	COLLECTION		= 5
 };
 
-namespace constants
-{
+namespace constants {
 	static const psl::string8_t EMPTY_CHARACTERS = " \n\t\r ";
 	static const psl::string8_t HEAD_OPEN		 = "[";
 	static const psl::string8_t HEAD_CLOSE		 = "]";
@@ -91,8 +88,7 @@ namespace constants
 	static const psl::string8_t REFERENCE_MISSING = "MISSING_REFERENCE";
 	static const psl::string8_t NAMESPACE_DIVIDER = "::";
 }	 // namespace constants
-struct partial_view
-{
+struct partial_view {
 	std::unique_ptr<partial_view> before {nullptr};
 	psl::string8::view view;
 	std::unique_ptr<partial_view> after {nullptr};
@@ -100,8 +96,7 @@ struct partial_view
 
 struct container;
 
-struct settings
-{
+struct settings {
 	bool pretty_write	= true;
 	bool write_header	= true;
 	bool binary_value	= false;
@@ -109,8 +104,7 @@ struct settings
 };
 
 
-struct data final
-{
+struct data final {
 	friend struct container;
 
 	static_assert(sizeof(collection_t) <= sizeof(uint64_t) * 4, "collection node will not fit in the buffer");
@@ -169,8 +163,7 @@ struct data final
 };
 
 
-struct handle final
-{
+struct handle final {
 	friend struct data;
 	friend struct container;
 	handle(nodes_t index, container* container) : m_Index(index), m_Container(container) {};
@@ -179,12 +172,10 @@ struct handle final
 	data& get() const;
 	data* operator->() const;
 	bool exists() const { return m_Container != nullptr; }
-	bool operator==(const handle& other) const
-	{
+	bool operator==(const handle& other) const {
 		return m_Container == other.m_Container && m_Index == other.m_Index && parent == other.parent;
 	}
-	bool operator!=(const handle& other) const
-	{
+	bool operator!=(const handle& other) const {
 		return m_Container != other.m_Container || m_Index != other.m_Index || parent != other.parent;
 	}
 
@@ -194,20 +185,16 @@ struct handle final
 	handle* parent {nullptr};
 };
 
-struct container
-{
-	struct compact_header
-	{
-		struct entry
-		{
+struct container {
+	struct compact_header {
+		struct entry {
 			size_t name_start;	  // element is always the start offset in respects to the names string's begin
 			size_t name_size;
 			size_t depth;
 			uint8_t type;
 		};
 
-		struct content_info
-		{
+		struct content_info {
 			size_t count;
 			std::vector<size_t>
 			  offsets;	  // first element is always the start offset in respects to the content string's begin
@@ -226,8 +213,7 @@ struct container
 	};
 
   private:
-	struct version_t
-	{
+	struct version_t {
 		version_t() {};
 		~version_t() = default;
 		uint32_t major {0u};
@@ -238,15 +224,13 @@ struct container
 	friend struct handle;
 
   public:
-	enum class encoding_t : uint8_t
-	{
+	enum class encoding_t : uint8_t {
 		string = 0b01,
 		// binary serializes as much as it can into a binary stream of data. it also uses the same setup like
 		// compact
 		binary = 0b10
 	};
-	struct features
-	{
+	struct features {
 		features() {};
 		~features() = default;
 		version_t version {};
@@ -313,8 +297,7 @@ struct container
 
 	void clear_settings() { m_Settings = std::nullopt; }
 	void set_settings(settings settings) { m_Settings = settings; }
-	bool operator==(const container& other) const
-	{
+	bool operator==(const container& other) const {
 		return size() == other.size() && m_InternalData == other.m_InternalData && m_Content == other.m_Content;
 	}
 
@@ -350,11 +333,10 @@ struct container
 };
 
 
-struct node_not_found : public std::exception
-{
+struct node_not_found : public std::exception {
 	node_not_found(container const* const container, nodes_t index) : m_Container(container), m_Data(index) {};
-	node_not_found(container const* const container, psl::string8::view name) :
-		m_Container(container), m_Data(name.data()) {};
+	node_not_found(container const* const container, psl::string8::view name)
+		: m_Container(container), m_Data(name.data()) {};
 
 	container const* const target() const noexcept { return m_Container; }
 
@@ -366,11 +348,9 @@ struct node_not_found : public std::exception
 	mutable psl::string8_t m_Message {};
 };
 
-struct duplicate_node : public std::exception
-{
+struct duplicate_node : public std::exception {
 	duplicate_node(psl::string8::view name) : name(name) {};
-	char const* what() const noexcept override
-	{
+	char const* what() const noexcept override {
 		message = "duplicate node found using the name: ";
 		message += name;
 		return message.data();
@@ -381,20 +361,16 @@ struct duplicate_node : public std::exception
 	mutable psl::string8_t message;
 };
 
-struct max_depth_reached : public std::exception
-{
-	char const* what() const noexcept override
-	{
+struct max_depth_reached : public std::exception {
+	char const* what() const noexcept override {
 		message = "The depth went over the: " + std::to_string(std::numeric_limits<children_t>::max()) + " limits";
 		return message.data();
 	}
 	mutable psl::string8_t message;
 };
 
-struct max_nodes_reached : public std::exception
-{
-	char const* what() const noexcept override
-	{
+struct max_nodes_reached : public std::exception {
+	char const* what() const noexcept override {
 		message = "The node count went over the: " + std::to_string(std::numeric_limits<nodes_t>::max()) + " limits";
 		return message.data();
 	}

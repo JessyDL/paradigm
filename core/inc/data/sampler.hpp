@@ -4,11 +4,9 @@
 #include "psl/serialization/serializer.hpp"
 
 
-namespace core::data
-{
+namespace core::data {
 /// \brief describes the data to build a core::ivk::sampler_t instance
-class sampler_t final
-{
+class sampler_t final {
 	friend class psl::serialization::accessor;
 
   public:
@@ -151,14 +149,16 @@ class sampler_t final
 
   private:
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_MipMapped;
-		if(m_MipMapped.value) serializer << m_MipMapMode << m_MipLodBias << m_MinLod << m_MaxLod;
+		if(m_MipMapped.value)
+			serializer << m_MipMapMode << m_MipLodBias << m_MinLod << m_MaxLod;
 		serializer << m_AddressModeU << m_AddressModeV << m_AddressModeW << m_BorderColor << m_AnisotropyEnable;
-		if(m_AnisotropyEnable.value) serializer << m_MaxAnisotropy;
+		if(m_AnisotropyEnable.value)
+			serializer << m_MaxAnisotropy;
 		serializer << m_CompareEnable;
-		if(m_CompareEnable.value) serializer << m_CompareOp;
+		if(m_CompareEnable.value)
+			serializer << m_CompareOp;
 		serializer << m_MinFilter << m_MaxFilter << m_NormalizedCoordinates;
 	}
 

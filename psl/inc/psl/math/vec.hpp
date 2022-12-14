@@ -8,33 +8,26 @@
 #include <cstring>	  // std::mem*
 #include <limits>
 #include <utility>
-namespace psl
-{
+namespace psl {
 template <typename precision_t, size_t dimensions>
 struct tvec;
 
-namespace details
-{
+namespace details {
 	template <typename T, size_t... index>
 	struct accessor;
 
-	inline namespace
-	{
+	inline namespace {
 		template <typename T>
-		struct is_accessor : std::false_type
-		{};
+		struct is_accessor : std::false_type {};
 
 		template <typename T, size_t... N>
-		struct is_accessor<accessor<T, N...>> : std::true_type
-		{};
+		struct is_accessor<accessor<T, N...>> : std::true_type {};
 
 		template <typename T>
-		struct is_vec : std::false_type
-		{};
+		struct is_vec : std::false_type {};
 
 		template <typename T, size_t N>
-		struct is_vec<tvec<T, N>> : std::true_type
-		{};
+		struct is_vec<tvec<T, N>> : std::true_type {};
 	}	 // namespace
 
 	template <typename T>
@@ -53,96 +46,72 @@ namespace details
 	concept IsVecSameLength = IsVecLike<L> && IsVecLike<R> && L::dimensions_n == R::dimensions_n;
 
 	template <size_t target, size_t... remainder>
-	constexpr auto& accessor_get_at(size_t count, const auto& data) noexcept
-	{
-		if(count == 0)
-		{
+	constexpr auto& accessor_get_at(size_t count, const auto& data) noexcept {
+		if(count == 0) {
 			return data[target];
-		}
-		else
-		{
+		} else {
 			// short circuit for compiler, so we don't generate indefinitely until the compiler complains
-			if constexpr(sizeof...(remainder) == 0)
-			{
+			if constexpr(sizeof...(remainder) == 0) {
 				psl_assert(
 				  count == 0, "reached the max depth of the index sequence, but still had '{}' remaining", count - 1);
 				return data[target];
-			}
-			else
-			{
+			} else {
 				return accessor_get_at<remainder...>(count - 1, data);
 			}
 		}
 	}
 
 	template <typename T, size_t... index>
-	struct accessor
-	{
+	struct accessor {
 		static constexpr size_t dimensions_n	 = sizeof...(index);
 		using precision_t						 = T;
 		using tvec_t							 = tvec<precision_t, dimensions_n>;
 		static constexpr bool is_single_accessor = dimensions_n == 1;
 
-		inline operator std::conditional_t<is_single_accessor, T&, tvec<T, dimensions_n>>() noexcept
-		{
+		inline operator std::conditional_t<is_single_accessor, T&, tvec<T, dimensions_n>>() noexcept {
 			return as_underlying();
 		}
 
-		inline operator std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>>() const noexcept
-		{
+		inline operator std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>>() const noexcept {
 			return as_underlying();
 		}
 
-		inline auto as_underlying() noexcept -> std::conditional_t<is_single_accessor, T&, tvec<T, dimensions_n>>
-		{
-			if constexpr(dimensions_n > 1)
-			{
+		inline auto as_underlying() noexcept -> std::conditional_t<is_single_accessor, T&, tvec<T, dimensions_n>> {
+			if constexpr(dimensions_n > 1) {
 				return tvec<T, dimensions_n> {data[index]...};
-			}
-			else
-			{
+			} else {
 				return {data[index]...};
 			}
 		}
 
 		inline auto as_underlying() const noexcept
-		  -> std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>>
-		{
-			if constexpr(dimensions_n > 1)
-			{
+		  -> std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>> {
+			if constexpr(dimensions_n > 1) {
 				return tvec<T, dimensions_n> {data[index]...};
-			}
-			else
-			{
+			} else {
 				return {data[index]...};
 			}
 		}
 
 		template <IsVecLike Y>
 		requires IsVecSameLength<accessor, Y>
-		auto operator=(const Y& other) noexcept -> accessor&
-		{
-			if constexpr(dimensions_n > 1)
-			{
+		auto operator=(const Y& other) noexcept -> accessor& {
+			if constexpr(dimensions_n > 1) {
 				size_t other_index = 0;
 				(void(data.at(index) = other[other_index++]), ...);
-			}
-			else
-			{
+			} else {
 				data.at(index...) = other;
 			}
 
 			return *this;
 		}
 
-		auto operator=(const auto& other) noexcept -> accessor& requires(dimensions_n == 1)
-		{
+		auto operator=(const auto& other) noexcept -> accessor& requires(dimensions_n == 1) {
 			data.at(index...) = other;
 			return *this;
 		}
 
-		constexpr auto operator[](size_t N) const noexcept -> const precision_t&
-		{
+		constexpr auto operator[](size_t N) const noexcept -> const precision_t& {
 			return accessor_get_at<index...>(N, data);
 		}
 
@@ -250,8 +219,7 @@ namespace details
 #pragma warning(push)
 #pragma warning(disable : 5103)
 template <typename precision, size_t dimensions>
-struct tvec
-{
+struct tvec {
 	static constexpr size_t dimensions_n {dimensions};
 	using precision_t = precision;
 	using tvec_t	  = tvec<precision_t, dimensions>;
@@ -274,16 +242,14 @@ struct tvec
 	operator container_t() const noexcept { return value; }
 	operator container_t&() noexcept { return value; }
 
-	tvec_t& operator=(const container_t& container)
-	{
+	tvec_t& operator=(const container_t& container) {
 		value = container;
 		return *this;
 	}
 	// ---------------------------------------------
 	// operators
 	// ---------------------------------------------
-	constexpr precision_t& operator[](size_t index) noexcept
-	{
+	constexpr precision_t& operator[](size_t index) noexcept {
 		static_assert(std::is_standard_layout<tvec_t>::value && std::is_trivially_copyable_v<tvec_t>,
 					  "should remain POD");
 
@@ -293,34 +259,29 @@ struct tvec
 	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
 	template <size_t index>
-	constexpr precision_t& at() noexcept
-	{
+	constexpr precision_t& at() noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 	template <size_t index>
-	constexpr const precision_t& at() const noexcept
-	{
+	constexpr const precision_t& at() const noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 
 	template <typename Y>
-	operator tvec<Y, dimensions>() const noexcept requires std::is_convertible_v<precision_t, Y>
-	{
+	operator tvec<Y, dimensions>() const noexcept requires std::is_convertible_v<precision_t, Y> {
 		tvec<Y, dimensions> res {};
 		for(auto i = 0; i < dimensions; ++i) res[i] = static_cast<Y>(value[i]);
 		return res;
 	}
 
-	constexpr tvec operator%=(const tvec& other) noexcept
-	{
+	constexpr tvec operator%=(const tvec& other) noexcept {
 		for(auto i = 0; i < dimensions; ++i) value[i] %= other.value[i];
 		return *this;
 	}
 
-	constexpr tvec operator%(const tvec& other) const noexcept
-	{
+	constexpr tvec operator%(const tvec& other) const noexcept {
 		tvec res {*this};
 		res %= other;
 		return res;
@@ -331,14 +292,10 @@ struct tvec
 	// ---------------------------------------------
 
 	template <size_t new_size>
-	tvec<precision_t, new_size> resize() const noexcept
-	{
-		if constexpr(new_size == dimensions_n)
-		{
+	tvec<precision_t, new_size> resize() const noexcept {
+		if constexpr(new_size == dimensions_n) {
 			return *this;
-		}
-		else
-		{
+		} else {
 			tvec<precision_t, new_size> res {};
 			constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 			std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
@@ -350,8 +307,7 @@ struct tvec
 };
 
 template <typename precision>
-struct tvec<precision, 1>
-{
+struct tvec<precision, 1> {
 	static constexpr size_t dimensions_n {1};
 	using precision_t = precision;
 	using tvec_t	  = tvec<precision_t, 1>;
@@ -373,14 +329,12 @@ struct tvec<precision, 1>
 	operator container_t&() noexcept { return value; }
 
 
-	tvec_t& operator=(const container_t& container)
-	{
+	tvec_t& operator=(const container_t& container) {
 		value = container;
 		return *this;
 	}
 
-	constexpr precision_t& operator[](size_t index) noexcept
-	{
+	constexpr precision_t& operator[](size_t index) noexcept {
 		static_assert(std::is_standard_layout<tvec_t>::value && std::is_trivially_copyable_v<tvec_t>,
 					  "should remain POD");
 		return value[index];
@@ -389,32 +343,27 @@ struct tvec<precision, 1>
 	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
 	template <size_t index>
-	constexpr precision_t& at() noexcept
-	{
+	constexpr precision_t& at() noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 	template <size_t index>
-	constexpr const precision_t& at() const noexcept
-	{
+	constexpr const precision_t& at() const noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 
 	template <typename Y>
-	operator tvec<Y, 1>() const noexcept requires std::is_convertible_v<precision_t, Y>
-	{
+	operator tvec<Y, 1>() const noexcept requires std::is_convertible_v<precision_t, Y> {
 		return {static_cast<Y>(value[0])};
 	}
 
-	constexpr tvec operator%=(const tvec& other) noexcept
-	{
+	constexpr tvec operator%=(const tvec& other) noexcept {
 		value %= other.value;
 		return *this;
 	}
 
-	constexpr tvec operator%(const tvec& other) const noexcept
-	{
+	constexpr tvec operator%(const tvec& other) const noexcept {
 		tvec res {*this};
 		res %= other;
 		return res;
@@ -424,14 +373,10 @@ struct tvec<precision, 1>
 	// members
 	// ---------------------------------------------
 	template <size_t new_size>
-	tvec<precision_t, new_size> resize() const noexcept
-	{
-		if constexpr(new_size == dimensions_n)
-		{
+	tvec<precision_t, new_size> resize() const noexcept {
+		if constexpr(new_size == dimensions_n) {
 			return *this;
-		}
-		else
-		{
+		} else {
 			tvec<precision_t, new_size> res {};
 			constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 			std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
@@ -443,8 +388,7 @@ struct tvec<precision, 1>
 };
 
 template <typename precision>
-struct tvec<precision, 2>
-{
+struct tvec<precision, 2> {
 	static constexpr size_t dimensions_n {2};
 	using precision_t = precision;
 	using tvec_t	  = tvec<precision_t, 2>;
@@ -481,8 +425,7 @@ struct tvec<precision, 2>
 	operator container_t() const noexcept { return value; }
 	operator container_t&() noexcept { return value; }
 
-	constexpr precision_t& operator[](size_t index) noexcept
-	{
+	constexpr precision_t& operator[](size_t index) noexcept {
 		static_assert(std::is_standard_layout<tvec_t>::value && std::is_trivially_copyable_v<tvec_t>,
 					  "should remain POD");
 		return value[index];
@@ -491,33 +434,28 @@ struct tvec<precision, 2>
 	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
 	template <size_t index>
-	constexpr precision_t& at() noexcept
-	{
+	constexpr precision_t& at() noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 	template <size_t index>
-	constexpr const precision_t& at() const noexcept
-	{
+	constexpr const precision_t& at() const noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 
 	template <typename Y>
-	operator tvec<Y, 2>() const noexcept requires std::is_convertible_v<precision_t, Y>
-	{
+	operator tvec<Y, 2>() const noexcept requires std::is_convertible_v<precision_t, Y> {
 		return {static_cast<Y>(value[0]), static_cast<Y>(value[1])};
 	}
 
-	constexpr tvec operator%=(const tvec& other) noexcept
-	{
+	constexpr tvec operator%=(const tvec& other) noexcept {
 		value[0] %= other.value[0];
 		value[1] %= other.value[1];
 		return *this;
 	}
 
-	constexpr tvec operator%(const tvec& other) const noexcept
-	{
+	constexpr tvec operator%(const tvec& other) const noexcept {
 		tvec res {*this};
 		res %= other;
 		return res;
@@ -527,30 +465,24 @@ struct tvec<precision, 2>
 	// members
 	// ---------------------------------------------
 	template <size_t new_size>
-	tvec<precision_t, new_size> resize() const noexcept
-	{
-		if constexpr(new_size == dimensions_n)
-		{
+	tvec<precision_t, new_size> resize() const noexcept {
+		if constexpr(new_size == dimensions_n) {
 			return *this;
-		}
-		else
-		{
+		} else {
 			tvec<precision_t, new_size> res {};
 			constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 			std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
 			return res;
 		}
 	}
-	union
-	{
+	union {
 		container_t value;
 		ACCESSOR_2D(precision_t)
 	};
 };
 
 template <typename precision>
-struct tvec<precision, 3>
-{
+struct tvec<precision, 3> {
 	static constexpr size_t dimensions_n {3};
 	using precision_t = precision;
 	using tvec_t	  = tvec<precision_t, 3>;
@@ -569,8 +501,8 @@ struct tvec<precision, 3>
 
 	constexpr tvec() noexcept = default;
 	constexpr tvec(const precision_t& x, const precision_t& y, const precision_t& z) noexcept : value({x, y, z}) {};
-	constexpr tvec(precision_t&& x, precision_t&& y, precision_t&& z) noexcept :
-		value({std::move(x), std::move(y), std::move(z)}) {};
+	constexpr tvec(precision_t&& x, precision_t&& y, precision_t&& z) noexcept
+		: value({std::move(x), std::move(y), std::move(z)}) {};
 	constexpr tvec(const precision_t& value) noexcept : value({value, value, value}) {};
 
 	constexpr tvec(const tvec<precision_t, 2>& v2, const precision_t& value) noexcept : value({v2[0], v2[1], value}) {};
@@ -591,14 +523,12 @@ struct tvec<precision, 3>
 	operator container_t() const noexcept { return value; }
 	operator container_t&() noexcept { return value; }
 
-	tvec_t& operator=(const container_t& container)
-	{
+	tvec_t& operator=(const container_t& container) {
 		value = container;
 		return *this;
 	}
 
-	constexpr precision_t& operator[](size_t index) noexcept
-	{
+	constexpr precision_t& operator[](size_t index) noexcept {
 		static_assert(std::is_standard_layout<tvec_t>::value && std::is_trivially_copyable_v<tvec_t>,
 					  "should remain POD");
 		return value[index];
@@ -607,34 +537,29 @@ struct tvec<precision, 3>
 	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
 	template <size_t index>
-	constexpr precision_t& at() noexcept
-	{
+	constexpr precision_t& at() noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 	template <size_t index>
-	constexpr const precision_t& at() const noexcept
-	{
+	constexpr const precision_t& at() const noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 
 	template <typename Y>
-	operator tvec<Y, 3>() const noexcept requires std::is_convertible_v<precision_t, Y>
-	{
+	operator tvec<Y, 3>() const noexcept requires std::is_convertible_v<precision_t, Y> {
 		return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2])};
 	}
 
-	constexpr tvec operator%=(const tvec& other) noexcept
-	{
+	constexpr tvec operator%=(const tvec& other) noexcept {
 		value[0] %= other.value[0];
 		value[1] %= other.value[1];
 		value[2] %= other.value[2];
 		return *this;
 	}
 
-	constexpr tvec operator%(const tvec& other) const noexcept
-	{
+	constexpr tvec operator%(const tvec& other) const noexcept {
 		tvec res {*this};
 		res %= other;
 		return res;
@@ -644,22 +569,17 @@ struct tvec<precision, 3>
 	// members
 	// ---------------------------------------------
 	template <size_t new_size>
-	tvec<precision_t, new_size> resize() const noexcept
-	{
-		if constexpr(new_size == dimensions_n)
-		{
+	tvec<precision_t, new_size> resize() const noexcept {
+		if constexpr(new_size == dimensions_n) {
 			return *this;
-		}
-		else
-		{
+		} else {
 			tvec<precision_t, new_size> res {};
 			constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 			std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
 			return res;
 		}
 	}
-	union
-	{
+	union {
 		container_t value;
 		ACCESSOR_3D(precision_t)
 	};
@@ -667,8 +587,7 @@ struct tvec<precision, 3>
 
 // todo alignas should be handled more gracefully
 template <typename precision>
-struct alignas(16) tvec<precision, 4>
-{
+struct alignas(16) tvec<precision, 4> {
 	static constexpr size_t dimensions_n {4};
 	using precision_t = precision;
 	using tvec_t	  = tvec<precision_t, 4>;
@@ -688,16 +607,16 @@ struct alignas(16) tvec<precision, 4>
 	const static tvec_t negative_infinity;
 
 	constexpr tvec() noexcept = default;
-	constexpr tvec(const precision_t& x, const precision_t& y, const precision_t& z, const precision_t& w) noexcept :
-		value({x, y, z, w}) {};
-	constexpr tvec(precision_t&& x, precision_t&& y, precision_t&& z, precision_t&& w) noexcept :
-		value({std::move(x), std::move(y), std::move(z), std::move(w)}) {};
+	constexpr tvec(const precision_t& x, const precision_t& y, const precision_t& z, const precision_t& w) noexcept
+		: value({x, y, z, w}) {};
+	constexpr tvec(precision_t&& x, precision_t&& y, precision_t&& z, precision_t&& w) noexcept
+		: value({std::move(x), std::move(y), std::move(z), std::move(w)}) {};
 	constexpr tvec(const precision_t& value) noexcept : value({value, value, value, value}) {};
 
-	constexpr tvec(const tvec<precision_t, 2>& a, const tvec<precision_t, 2>& b) noexcept :
-		value({a[0], a[1], b[0], b[1]}) {};
-	constexpr tvec(const tvec<precision_t, 3>& v3, const precision_t& value) noexcept :
-		value({v3[0], v3[1], v3[2], value}) {};
+	constexpr tvec(const tvec<precision_t, 2>& a, const tvec<precision_t, 2>& b) noexcept
+		: value({a[0], a[1], b[0], b[1]}) {};
+	constexpr tvec(const tvec<precision_t, 3>& v3, const precision_t& value) noexcept
+		: value({v3[0], v3[1], v3[2], value}) {};
 
 	template <typename src_precision_t>
 	constexpr tvec(psl::static_array<src_precision_t, dimensions_n>&& arr) noexcept : value({std::move(arr)}) {};
@@ -723,14 +642,12 @@ struct alignas(16) tvec<precision, 4>
 	operator container_t() const noexcept { return value; }
 	operator container_t&() noexcept { return value; }
 
-	tvec_t& operator=(const container_t& container)
-	{
+	tvec_t& operator=(const container_t& container) {
 		value = container;
 		return *this;
 	}
 
-	constexpr precision_t& operator[](size_t index) noexcept
-	{
+	constexpr precision_t& operator[](size_t index) noexcept {
 		static_assert(std::is_standard_layout<tvec_t>::value && std::is_trivially_copyable_v<tvec_t>,
 					  "should remain POD");
 		return value[index];
@@ -739,26 +656,22 @@ struct alignas(16) tvec<precision, 4>
 	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
 	template <size_t index>
-	constexpr precision_t& at() noexcept
-	{
+	constexpr precision_t& at() noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 	template <size_t index>
-	constexpr const precision_t& at() const noexcept
-	{
+	constexpr const precision_t& at() const noexcept {
 		static_assert(index < dimensions_n, "out of range");
 		return value.at(index);
 	}
 
 	template <typename Y>
-	operator tvec<Y, 4>() const noexcept requires std::is_convertible_v<precision_t, Y>
-	{
+	operator tvec<Y, 4>() const noexcept requires std::is_convertible_v<precision_t, Y> {
 		return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2]), static_cast<Y>(value[3])};
 	}
 
-	constexpr tvec operator%=(const tvec& other) noexcept
-	{
+	constexpr tvec operator%=(const tvec& other) noexcept {
 		value[0] %= other.value[0];
 		value[1] %= other.value[1];
 		value[2] %= other.value[2];
@@ -766,8 +679,7 @@ struct alignas(16) tvec<precision, 4>
 		return *this;
 	}
 
-	constexpr tvec operator%(const tvec& other) const noexcept
-	{
+	constexpr tvec operator%(const tvec& other) const noexcept {
 		tvec res {*this};
 		res %= other;
 		return res;
@@ -777,14 +689,10 @@ struct alignas(16) tvec<precision, 4>
 	// members
 	// ---------------------------------------------
 	template <size_t new_size>
-	tvec<precision_t, new_size> resize() const noexcept
-	{
-		if constexpr(new_size == dimensions_n)
-		{
+	tvec<precision_t, new_size> resize() const noexcept {
+		if constexpr(new_size == dimensions_n) {
 			return *this;
-		}
-		else
-		{
+		} else {
 			tvec<precision_t, new_size> res {};
 			constexpr size_t max_copy_size = std::min(dimensions_n, new_size);
 			std::copy(std::begin(value), std::next(std::begin(value), max_copy_size), std::begin(res.value));
@@ -792,8 +700,7 @@ struct alignas(16) tvec<precision, 4>
 		}
 	}
 
-	union
-	{
+	union {
 		container_t value;
 		ACCESSOR_4D(precision_t)
 	};
@@ -899,107 +806,94 @@ const tvec<precision_t, 4> tvec<precision_t, 4>::direction {0};
 }	 // namespace psl
 
 
-namespace psl
-{
+namespace psl {
 // ---------------------------------------------
 // operators tvec<precision_t, 1>
 // ---------------------------------------------
 template <typename precision_t>
-constexpr tvec<precision_t, 1>& operator+=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept
-{
+constexpr tvec<precision_t, 1>& operator+=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept {
 	owner.value += other.value;
 	return owner;
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 1>& operator*=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept
-{
+constexpr tvec<precision_t, 1>& operator*=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept {
 	owner.value *= other.value;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept
-{
+constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other.value[0] == 0) throw std::runtime_exception("division by 0");
+	if(other.value[0] == 0)
+		throw std::runtime_exception("division by 0");
 #endif
 	owner.value /= other.value;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1>& operator*=(tvec<precision_t, 1>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 1>& operator*=(tvec<precision_t, 1>& owner, const precision_t& other) noexcept {
 	owner.value *= other;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 1>& operator/=(tvec<precision_t, 1>& owner, const precision_t& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other.value[0] == 0) throw std::runtime_exception("division by 0");
+	if(other.value[0] == 0)
+		throw std::runtime_exception("division by 0");
 #endif
 	owner.value /= other;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1>& operator-=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept
-{
+constexpr tvec<precision_t, 1>& operator-=(tvec<precision_t, 1>& owner, const tvec<precision_t, 1>& other) noexcept {
 	owner.value -= other.value;
 	return owner;
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 1> operator+(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
-{
+constexpr tvec<precision_t, 1> operator+(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept {
 	auto cpy = left;
 	cpy.value += right.value;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
-{
+constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept {
 	auto cpy = left;
 	cpy.value *= right.value;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
-{
+constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept {
 	auto cpy = left;
 	cpy.value /= right.value;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 1> operator*(const tvec<precision_t, 1>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy.value *= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 1> operator/(const tvec<precision_t, 1>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy.value /= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 1> operator-(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
-{
+constexpr tvec<precision_t, 1> operator-(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept {
 	auto cpy = left;
 	cpy.value -= right.value;
 	return cpy;
 }
 
 template <typename precision_t>
-constexpr bool operator==(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
-{
+constexpr bool operator==(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept {
 	return left[0] == right[0];
 }
 
 template <typename precision_t>
-constexpr bool operator!=(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept
-{
+constexpr bool operator!=(const tvec<precision_t, 1>& left, const tvec<precision_t, 1>& right) noexcept {
 	return left[0] != right[0];
 }
 
@@ -1007,98 +901,88 @@ constexpr bool operator!=(const tvec<precision_t, 1>& left, const tvec<precision
 // operators tvec<precision_t, 2>
 // ---------------------------------------------
 template <typename precision_t>
-constexpr tvec<precision_t, 2>& operator+=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept
-{
+constexpr tvec<precision_t, 2>& operator+=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept {
 	owner.value[0] += other.value[0];
 	owner.value[1] += other.value[1];
 	return owner;
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 2>& operator*=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept
-{
+constexpr tvec<precision_t, 2>& operator*=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept {
 	owner.value[0] *= other.value[0];
 	owner.value[1] *= other.value[1];
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept
-{
+constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other.value[0] == 0 || other.value[1] == 0) throw std::runtime_exception("division by 0");
+	if(other.value[0] == 0 || other.value[1] == 0)
+		throw std::runtime_exception("division by 0");
 #endif
 	owner.value[0] /= other.value[0];
 	owner.value[1] /= other.value[1];
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2>& operator*=(tvec<precision_t, 2>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 2>& operator*=(tvec<precision_t, 2>& owner, const precision_t& other) noexcept {
 	owner.value[0] *= other;
 	owner.value[1] *= other;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 2>& operator/=(tvec<precision_t, 2>& owner, const precision_t& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other.value[0] == 0 || other.value[1] == 0) throw std::runtime_exception("division by 0");
+	if(other.value[0] == 0 || other.value[1] == 0)
+		throw std::runtime_exception("division by 0");
 #endif
 	owner.value[0] /= other;
 	owner.value[1] /= other;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2>& operator-=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept
-{
+constexpr tvec<precision_t, 2>& operator-=(tvec<precision_t, 2>& owner, const tvec<precision_t, 2>& other) noexcept {
 	owner.value[0] -= other.value[0];
 	owner.value[1] -= other.value[1];
 	return owner;
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 2> operator+(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
-{
+constexpr tvec<precision_t, 2> operator+(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] += right.value[0];
 	cpy.value[1] += right.value[1];
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
-{
+constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] *= right.value[0];
 	cpy.value[1] *= right.value[1];
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
-{
+constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] /= right.value[0];
 	cpy.value[1] /= right.value[1];
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 2> operator*(const tvec<precision_t, 2>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] *= right;
 	cpy.value[1] *= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 2> operator/(const tvec<precision_t, 2>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] /= right;
 	cpy.value[1] /= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 2> operator-(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
-{
+constexpr tvec<precision_t, 2> operator-(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] -= right.value[0];
 	cpy.value[1] -= right.value[1];
@@ -1106,14 +990,12 @@ constexpr tvec<precision_t, 2> operator-(const tvec<precision_t, 2>& left, const
 }
 
 template <typename precision_t>
-constexpr bool operator==(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
-{
+constexpr bool operator==(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept {
 	return left[0] == right[0] && left[1] == right[1];
 }
 
 template <typename precision_t>
-constexpr bool operator!=(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept
-{
+constexpr bool operator!=(const tvec<precision_t, 2>& left, const tvec<precision_t, 2>& right) noexcept {
 	return left[0] != right[0] || left[1] != right[1];
 }
 
@@ -1121,8 +1003,7 @@ constexpr bool operator!=(const tvec<precision_t, 2>& left, const tvec<precision
 // operators tvec<precision_t, 3>
 // ---------------------------------------------
 template <typename precision_t>
-constexpr tvec<precision_t, 3>& operator+=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept
-{
+constexpr tvec<precision_t, 3>& operator+=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept {
 	owner.value[0] += other.value[0];
 	owner.value[1] += other.value[1];
 	owner.value[2] += other.value[2];
@@ -1130,18 +1011,17 @@ constexpr tvec<precision_t, 3>& operator+=(tvec<precision_t, 3>& owner, const tv
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 3>& operator*=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept
-{
+constexpr tvec<precision_t, 3>& operator*=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept {
 	owner.value[0] *= other.value[0];
 	owner.value[1] *= other.value[1];
 	owner.value[2] *= other.value[2];
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept
-{
+constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0) throw std::runtime_exception("division by 0");
+	if(other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
+		throw std::runtime_exception("division by 0");
 #endif
 	owner.value[0] /= other.value[0];
 	owner.value[1] /= other.value[1];
@@ -1150,18 +1030,17 @@ constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const tv
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 3>& operator*=(tvec<precision_t, 3>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 3>& operator*=(tvec<precision_t, 3>& owner, const precision_t& other) noexcept {
 	owner.value[0] *= other;
 	owner.value[1] *= other;
 	owner.value[2] *= other;
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const precision_t& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0) throw std::runtime_exception("division by 0");
+	if(other.value[0] == 0 || other.value[1] == 0 || other.value[2] == 0)
+		throw std::runtime_exception("division by 0");
 #endif
 	owner.value[0] /= other;
 	owner.value[1] /= other;
@@ -1170,8 +1049,7 @@ constexpr tvec<precision_t, 3>& operator/=(tvec<precision_t, 3>& owner, const pr
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 3>& operator-=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept
-{
+constexpr tvec<precision_t, 3>& operator-=(tvec<precision_t, 3>& owner, const tvec<precision_t, 3>& other) noexcept {
 	owner.value[0] -= other.value[0];
 	owner.value[1] -= other.value[1];
 	owner.value[2] -= other.value[2];
@@ -1179,8 +1057,7 @@ constexpr tvec<precision_t, 3>& operator-=(tvec<precision_t, 3>& owner, const tv
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 3> operator+(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
-{
+constexpr tvec<precision_t, 3> operator+(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] += right.value[0];
 	cpy.value[1] += right.value[1];
@@ -1188,8 +1065,7 @@ constexpr tvec<precision_t, 3> operator+(const tvec<precision_t, 3>& left, const
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
-{
+constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] *= right.value[0];
 	cpy.value[1] *= right.value[1];
@@ -1197,8 +1073,7 @@ constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
-{
+constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] /= right.value[0];
 	cpy.value[1] /= right.value[1];
@@ -1207,8 +1082,7 @@ constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] *= right;
 	cpy.value[1] *= right;
@@ -1216,8 +1090,7 @@ constexpr tvec<precision_t, 3> operator*(const tvec<precision_t, 3>& left, const
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] /= right;
 	cpy.value[1] /= right;
@@ -1226,8 +1099,7 @@ constexpr tvec<precision_t, 3> operator/(const tvec<precision_t, 3>& left, const
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 3> operator-(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
-{
+constexpr tvec<precision_t, 3> operator-(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept {
 	auto cpy = left;
 	cpy.value[0] -= right.value[0];
 	cpy.value[1] -= right.value[1];
@@ -1236,14 +1108,12 @@ constexpr tvec<precision_t, 3> operator-(const tvec<precision_t, 3>& left, const
 }
 
 template <typename precision_t>
-constexpr bool operator==(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
-{
+constexpr bool operator==(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept {
 	return left[0] == right[0] && left[1] == right[1] && left[2] == right[2];
 }
 
 template <typename precision_t>
-constexpr bool operator!=(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept
-{
+constexpr bool operator!=(const tvec<precision_t, 3>& left, const tvec<precision_t, 3>& right) noexcept {
 	return left[0] != right[0] || left[1] != right[1] || left[2] != right[2];
 }
 
@@ -1252,8 +1122,7 @@ constexpr bool operator!=(const tvec<precision_t, 3>& left, const tvec<precision
 // ---------------------------------------------
 
 template <typename precision_t>
-constexpr tvec<precision_t, 4>& operator*=(tvec<precision_t, 4>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 4>& operator*=(tvec<precision_t, 4>& owner, const precision_t& other) noexcept {
 	owner.value[0] *= other;
 	owner.value[1] *= other;
 	owner.value[2] *= other;
@@ -1261,8 +1130,7 @@ constexpr tvec<precision_t, 4>& operator*=(tvec<precision_t, 4>& owner, const pr
 	return owner;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 4>& operator/=(tvec<precision_t, 4>& owner, const precision_t& other) noexcept
-{
+constexpr tvec<precision_t, 4>& operator/=(tvec<precision_t, 4>& owner, const precision_t& other) noexcept {
 	owner.value[0] /= other;
 	owner.value[1] /= other;
 	owner.value[2] /= other;
@@ -1271,43 +1139,37 @@ constexpr tvec<precision_t, 4>& operator/=(tvec<precision_t, 4>& owner, const pr
 }
 
 template <typename precision_t>
-constexpr tvec<precision_t, 4> operator+(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
-{
+constexpr tvec<precision_t, 4> operator+(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept {
 	auto cpy = left;
 	cpy += right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
-{
+constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept {
 	auto cpy = left;
 	cpy *= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
-{
+constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept {
 	auto cpy = left;
 	cpy /= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 4> operator*(const tvec<precision_t, 4>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy *= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left, const precision_t& right) noexcept
-{
+constexpr tvec<precision_t, 4> operator/(const tvec<precision_t, 4>& left, const precision_t& right) noexcept {
 	auto cpy = left;
 	cpy /= right;
 	return cpy;
 }
 template <typename precision_t>
-constexpr tvec<precision_t, 4> operator-(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
-{
+constexpr tvec<precision_t, 4> operator-(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept {
 	auto cpy = left;
 	cpy -= right;
 	return cpy;
@@ -1315,14 +1177,12 @@ constexpr tvec<precision_t, 4> operator-(const tvec<precision_t, 4>& left, const
 
 
 template <typename precision_t>
-constexpr bool operator==(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
-{
+constexpr bool operator==(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept {
 	return left[0] == right[0] && left[1] == right[1] && left[2] == right[2] && left[3] == right[3];
 }
 
 template <typename precision_t>
-constexpr bool operator!=(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept
-{
+constexpr bool operator!=(const tvec<precision_t, 4>& left, const tvec<precision_t, 4>& right) noexcept {
 	return left[0] != right[0] || left[1] != right[1] || left[2] != right[2] || left[3] != right[3];
 }
 
@@ -1331,35 +1191,31 @@ constexpr bool operator!=(const tvec<precision_t, 4>& left, const tvec<precision
 // ---------------------------------------------
 
 template <typename precision_t, size_t dimensions>
-constexpr tvec<precision_t, dimensions> operator-(const tvec<precision_t, dimensions>& owner) noexcept
-{
+constexpr tvec<precision_t, dimensions> operator-(const tvec<precision_t, dimensions>& owner) noexcept {
 	auto cpy = owner;
 	for(size_t i = 0; i < dimensions; ++i) cpy.value[i] = -cpy.value[i];
 	return cpy;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions>& operator+=(tvec<precision_t, dimensions>& owner,
-													const tvec<precision_t, dimensions>& other) noexcept
-{
+													const tvec<precision_t, dimensions>& other) noexcept {
 	for(size_t i = 0; i < dimensions; ++i) owner.value[i] += other.value[i];
 	return owner;
 }
 
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions>& operator*=(tvec<precision_t, dimensions>& owner,
-													const tvec<precision_t, dimensions>& other) noexcept
-{
+													const tvec<precision_t, dimensions>& other) noexcept {
 	for(size_t i = 0; i < dimensions; ++i) owner.value[i] *= other.value[i];
 	return owner;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions>& operator/=(tvec<precision_t, dimensions>& owner,
-													const tvec<precision_t, dimensions>& other) noexcept
-{
-	for(size_t i = 0; i < dimensions; ++i)
-	{
+													const tvec<precision_t, dimensions>& other) noexcept {
+	for(size_t i = 0; i < dimensions; ++i) {
 #ifdef MATH_DIV_ZERO_CHECK
-		if(other.value[i] == 0) throw std::runtime_exception("division by 0");
+		if(other.value[i] == 0)
+			throw std::runtime_exception("division by 0");
 #endif
 		owner.value[i] /= other.value[i];
 	}
@@ -1367,60 +1223,53 @@ constexpr tvec<precision_t, dimensions>& operator/=(tvec<precision_t, dimensions
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions>& operator*=(tvec<precision_t, dimensions>& owner,
-													const precision_t& other) noexcept
-{
+													const precision_t& other) noexcept {
 	for(size_t i = 0; i < dimensions; ++i) owner.value[i] *= other;
 	return owner;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions>& operator/=(tvec<precision_t, dimensions>& owner,
-													const precision_t& other) noexcept
-{
+													const precision_t& other) noexcept {
 #ifdef MATH_DIV_ZERO_CHECK
-	if(other == 0) throw std::runtime_exception("division by 0");
+	if(other == 0)
+		throw std::runtime_exception("division by 0");
 #endif
-	for(size_t i = 0; i < dimensions; ++i)
-	{
+	for(size_t i = 0; i < dimensions; ++i) {
 		owner.value[i] /= other;
 	}
 	return owner;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions>& operator-=(tvec<precision_t, dimensions>& owner,
-													const tvec<precision_t, dimensions>& other) noexcept
-{
+													const tvec<precision_t, dimensions>& other) noexcept {
 	for(size_t i = 0; i < dimensions; ++i) owner.value[i] -= other.value[i];
 	return owner;
 }
 
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions> operator+(const tvec<precision_t, dimensions>& left,
-												  const tvec<precision_t, dimensions>& right) noexcept
-{
+												  const tvec<precision_t, dimensions>& right) noexcept {
 	auto cpy = left;
 	for(size_t i = 0; i < dimensions; ++i) cpy.value[i] += right.value[i];
 	return cpy;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions> operator*(const tvec<precision_t, dimensions>& left,
-												  const tvec<precision_t, dimensions>& right) noexcept
-{
+												  const tvec<precision_t, dimensions>& right) noexcept {
 	auto cpy = left;
 	for(size_t i = 0; i < dimensions; ++i) cpy.value[i] *= right.value[i];
 	return cpy;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions> operator/(const tvec<precision_t, dimensions>& left,
-												  const tvec<precision_t, dimensions>& right) noexcept
-{
+												  const tvec<precision_t, dimensions>& right) noexcept {
 	auto cpy = left;
 	for(size_t i = 0; i < dimensions; ++i) cpy.value[i] /= right.value[i];
 	return cpy;
 }
 template <typename precision_t, size_t dimensions>
 constexpr tvec<precision_t, dimensions> operator-(const tvec<precision_t, dimensions>& left,
-												  const tvec<precision_t, dimensions>& right) noexcept
-{
+												  const tvec<precision_t, dimensions>& right) noexcept {
 	auto cpy = left;
 	for(size_t i = 0; i < dimensions; ++i) cpy.value[i] -= right.value[i];
 	return cpy;
@@ -1429,78 +1278,67 @@ constexpr tvec<precision_t, dimensions> operator-(const tvec<precision_t, dimens
 
 template <typename precision_t, size_t dimensions>
 constexpr bool operator==(const tvec<precision_t, dimensions>& left,
-						  const tvec<precision_t, dimensions>& right) noexcept
-{
+						  const tvec<precision_t, dimensions>& right) noexcept {
 	return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) == 0;
 }
 
 template <typename precision_t, size_t dimensions>
 constexpr bool operator!=(const tvec<precision_t, dimensions>& left,
-						  const tvec<precision_t, dimensions>& right) noexcept
-{
+						  const tvec<precision_t, dimensions>& right) noexcept {
 	return std::memcmp(left.value.data(), right.value.data(), dimensions * sizeof(precision_t)) != 0;
 }
 
 }	 // namespace psl
 
-namespace psl::math
-{
+namespace psl::math {
 // ---------------------------------------------
 // operations between tvec<precision_t, N>
 // ---------------------------------------------
 template <typename precision_t, size_t dimensions>
 constexpr static precision_t dot(const tvec<precision_t, dimensions>& left,
-								 const tvec<precision_t, dimensions>& right) noexcept
-{
+								 const tvec<precision_t, dimensions>& right) noexcept {
 	precision_t res = precision_t {0};
 	for(size_t i = 0; i < dimensions; ++i) res += left[i] * right[i];
 	return res;
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static precision_t compound(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static precision_t compound(const tvec<precision_t, dimensions>& vec) noexcept {
 	precision_t res = precision_t {vec[0]};
 	for(size_t i = 1; i < dimensions; ++i) res += vec[i];
 	return res;
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static precision_t compound_mul(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static precision_t compound_mul(const tvec<precision_t, dimensions>& vec) noexcept {
 	precision_t res = precision_t {vec[0]};
 	for(size_t i = 1; i < dimensions; ++i) res *= vec[i];
 	return res;
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static precision_t square_magnitude(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static precision_t square_magnitude(const tvec<precision_t, dimensions>& vec) noexcept {
 	precision_t res = precision_t {0};
 	for(size_t i = 0; i < dimensions; ++i) res += vec[i] * vec[i];
 	return res;
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static precision_t magnitude(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static precision_t magnitude(const tvec<precision_t, dimensions>& vec) noexcept {
 	precision_t res = precision_t {0};
 	for(size_t i = 0; i < dimensions; ++i) res += vec[i] * vec[i];
 	return std::sqrt(res);
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static precision_t length(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static precision_t length(const tvec<precision_t, dimensions>& vec) noexcept {
 	return std::sqrt(dot(vec, vec));
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static tvec<precision_t, dimensions> sqrt(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static tvec<precision_t, dimensions> sqrt(const tvec<precision_t, dimensions>& vec) noexcept {
 	tvec<precision_t, dimensions> res {};
-	for(size_t i = 0; i < dimensions; ++i)
-	{
+	for(size_t i = 0; i < dimensions; ++i) {
 		res[i] = std::sqrt(vec[i]);
 	}
 	return res;
@@ -1508,11 +1346,9 @@ constexpr static tvec<precision_t, dimensions> sqrt(const tvec<precision_t, dime
 
 template <typename precision_t, size_t dimensions>
 constexpr static tvec<precision_t, dimensions> pow(const tvec<precision_t, dimensions>& vec,
-												   precision_t pow_value = precision_t {2}) noexcept
-{
+												   precision_t pow_value = precision_t {2}) noexcept {
 	tvec<precision_t, dimensions> res {};
-	for(size_t i = 0; i < dimensions; ++i)
-	{
+	for(size_t i = 0; i < dimensions; ++i) {
 		res[i] = std::pow(vec[i], pow_value);
 	}
 	return res;
@@ -1520,15 +1356,13 @@ constexpr static tvec<precision_t, dimensions> pow(const tvec<precision_t, dimen
 }
 
 template <typename precision_t, size_t dimensions>
-constexpr static tvec<precision_t, dimensions> normalize(const tvec<precision_t, dimensions>& vec) noexcept
-{
+constexpr static tvec<precision_t, dimensions> normalize(const tvec<precision_t, dimensions>& vec) noexcept {
 	return vec / magnitude(vec);
 }
 
 template <typename precision_t>
 constexpr static tvec<precision_t, 3> cross(const tvec<precision_t, 3>& left,
-											const tvec<precision_t, 3>& right) noexcept
-{
+											const tvec<precision_t, 3>& right) noexcept {
 	return tvec<precision_t, 3> {left[1] * right[2] - left[2] * right[1],
 								 left[2] * right[0] - left[0] * right[2],
 								 left[0] * right[1] - left[1] * right[0]};

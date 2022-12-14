@@ -5,13 +5,11 @@
 #include "psl/array_view.hpp"
 #include "resource/handle.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace core::igles
-{
+namespace core::igles {
 class program;
 class program_cache;
 class buffer_t;
@@ -25,8 +23,7 @@ class buffer_t;
 /// But unlike materials, this object also has core::igles::texture_t and core::igles::buffer_t outputs, which can
 /// be integrated into your normal core::gfx::pass as a (potentially) concurrent process. The outputs will put a
 /// _hard_ sync on draw/compute calls that happen after this that utilize these resources.
-class compute
-{
+class compute {
   public:
 	compute(core::resource::cache_t& cache,
 			const core::resource::metadata& metaData,

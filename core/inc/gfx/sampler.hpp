@@ -3,17 +3,14 @@
 #include "resource/resource.hpp"
 #include <variant>
 
-namespace core::data
-{
+namespace core::data {
 class sampler_t;
 }
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 
-class sampler_t
-{
+class sampler_t {
   public:
 #ifdef PE_VULKAN
 	explicit sampler_t(core::resource::handle<core::ivk::sampler_t>& handle);
@@ -35,13 +32,14 @@ class sampler_t
 	sampler_t& operator=(sampler_t&& other) noexcept = delete;
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<sampler_t, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<sampler_t, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

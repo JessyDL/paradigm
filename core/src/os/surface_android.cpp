@@ -4,7 +4,9 @@
 
 using namespace core::os;
 
-bool surface::init_surface() { return true; }
+bool surface::init_surface() {
+	return true;
+}
 
 void surface::deinit_surface() {}
 

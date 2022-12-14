@@ -7,13 +7,11 @@
 #include <stack>
 #include <vector>
 
-namespace memory
-{
+namespace memory {
 class region;
 class range_t;
 /// \brief base class that defines the interface for an allocator.
-class allocator_base
-{
+class allocator_base {
 	friend class region;
 
   public:
@@ -23,9 +21,9 @@ class allocator_base
 	allocator_base(const allocator_base&)			 = delete;
 	allocator_base& operator=(const allocator_base&) = delete;
 
-	[[nodiscard]] std::optional<segment> allocate(std::size_t bytes)
-	{
-		if(bytes == 0) return std::nullopt;
+	[[nodiscard]] std::optional<segment> allocate(std::size_t bytes) {
+		if(bytes == 0)
+			return std::nullopt;
 		return do_allocate(m_Region, bytes);
 	};
 
@@ -58,8 +56,7 @@ class allocator_base
 };
 
 /// \brief default allocator that internally works using lists
-class default_allocator : public allocator_base
-{
+class default_allocator : public allocator_base {
   public:
 	default_allocator(bool physically_backed = true) : allocator_base(physically_backed) {};
 	virtual ~default_allocator() = default;
@@ -78,11 +75,10 @@ class default_allocator : public allocator_base
 
 /// \brief predifined block size allocator, much faster than most allocators, but can only allocate one sized
 /// blocks.
-class block_allocator : public allocator_base
-{
+class block_allocator : public allocator_base {
   public:
-	block_allocator(size_t block_size, bool physically_backed = true) :
-		allocator_base(physically_backed), m_BlockSize(block_size) {};
+	block_allocator(size_t block_size, bool physically_backed = true)
+		: allocator_base(physically_backed), m_BlockSize(block_size) {};
 	virtual ~block_allocator() = default;
 
   private:

@@ -16,39 +16,34 @@ using array_typed = litmus::generator::array_typed<T, Values...>;
 using entity = psl::ecs::entity;
 
 template <typename Fn>
-auto any_of_n(auto first, auto last, Fn&& fn)
-{
-	for(auto i = first; i != last; ++i)
-	{
-		if(fn(i)) return true;
+auto any_of_n(auto first, auto last, Fn&& fn) {
+	for(auto i = first; i != last; ++i) {
+		if(fn(i))
+			return true;
 	}
 	return false;
 }
 
 template <typename Fn>
-auto none_of_n(auto first, auto last, Fn&& fn)
-{
-	for(auto i = first; i != last; ++i)
-	{
-		if(fn(i)) return false;
+auto none_of_n(auto first, auto last, Fn&& fn) {
+	for(auto i = first; i != last; ++i) {
+		if(fn(i))
+			return false;
 	}
 	return true;
 }
 
 template <typename Fn>
-auto all_of_n(auto first, auto last, Fn&& fn)
-{
-	for(auto i = first; i != last; ++i)
-	{
-		if(!fn(i)) return false;
+auto all_of_n(auto first, auto last, Fn&& fn) {
+	for(auto i = first; i != last; ++i) {
+		if(!fn(i))
+			return false;
 	}
 	return true;
 }
 
-namespace
-{
-void compare_ranges(ssmr_t& val)
-{
+namespace {
+void compare_ranges(ssmr_t& val) {
 	require(val.indices(stage_range_t::ALL).size()) == val.dense<float>(stage_range_t::ALL).size();
 	require(val.indices(stage_range_t::ADDED).size()) == val.dense<float>(stage_range_t::ADDED).size();
 	require(val.indices(stage_range_t::SETTLED).size()) == val.dense<float>(stage_range_t::SETTLED).size();
@@ -59,29 +54,22 @@ void compare_ranges(ssmr_t& val)
 
 template <typename T>
 inline auto append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges, std::vector<T> values = {})
-  -> size_t
-{
+  -> size_t {
 	size_t total {0};
-	if(values.empty())
-	{
-		for(auto [first, last] : ranges)
-		{
-			for(auto it = first; it != last; ++it)
-			{
+	if(values.empty()) {
+		for(auto [first, last] : ranges) {
+			for(auto it = first; it != last; ++it) {
 				total += (size_t)(!container.has(it));
 				container.insert(it);
 			}
 		}
-	}
-	else
-	{
+	} else {
 		auto val = std::begin(values);
-		for(auto [first, last] : ranges)
-		{
-			for(auto it = first; it != last; ++it)
-			{
+		for(auto [first, last] : ranges) {
+			for(auto it = first; it != last; ++it) {
 				total += (size_t)(!container.has(it));
-				if(val == std::end(values)) throw std::exception();
+				if(val == std::end(values))
+					throw std::exception();
 				container.insert(it, *val);
 				val = std::next(val);
 			}
@@ -90,23 +78,19 @@ inline auto append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>
 	return total;
 }
 
-inline auto erase_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges) -> size_t
-{
+inline auto erase_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges) -> size_t {
 	size_t total {0};
-	for(auto [first, last] : ranges)
-	{
+	for(auto [first, last] : ranges) {
 		total += container.erase(first, last);
 	}
 	return total;
 }
 
-struct insert_structure
-{
+struct insert_structure {
 	entity first, last;
 };
 
-struct erase_structure : public insert_structure
-{
+struct erase_structure : public insert_structure {
 	entity erase_first, erase_last;
 };
 
@@ -125,8 +109,7 @@ auto t0 = suite<ssmr_t, "collections">(
 	  section<"with data (single)">(container, info.first, info.last, default_value, count) =
 		[](ssmr_t& container, auto first, auto last, auto default_value, auto& count) {
 			count = last - first;
-			for(entity i = first; i < last; ++i, ++default_value)
-			{
+			for(entity i = first; i < last; ++i, ++default_value) {
 				container.insert(i, default_value);
 			}
 		};
@@ -142,8 +125,7 @@ auto t0 = suite<ssmr_t, "collections">(
 	  section<"without data (post modification)">(container, info.first, info.last, default_value, count) =
 		[](ssmr_t& container, auto first, auto last, auto default_value, auto& count) {
 			count = last - first;
-			for(entity i = first; i < last; ++i)
-			{
+			for(entity i = first; i < last; ++i) {
 				container.insert(i);
 			}
 			require(all_of_n(
@@ -184,8 +166,7 @@ auto t1													   = suite<ssmr_t, "collections">(
 
 		   size_t erased {0};
 		   size_t expected {0};
-		   for(auto i = first; i < last; ++i)
-		   {
+		   for(auto i = first; i < last; ++i) {
 			   expected += (size_t)container.has(i);
 		   }
 
@@ -235,14 +216,12 @@ auto t3 = suite<ssmr_t, "collections">() = []() {
 		auto container_indices = psl::array<entity> {container.indices(stage_range_t::ALL)};
 
 		size_t pre_existing {0};
-		for(auto index : other.indices(stage_range_t::ALL))
-		{
+		for(auto index : other.indices(stage_range_t::ALL)) {
 			pre_existing += size_t {container.has(index)};
 		}
 
 		auto result = container.merge(other);
-		for(auto index : other.indices(stage_range_t::ALL))
-		{
+		for(auto index : other.indices(stage_range_t::ALL)) {
 			require(container.has(index));
 		}
 
@@ -288,8 +267,7 @@ auto t4 = suite<ssmr_t, "collections">() = []() {
 
 	require(container.indices(stage_range_t::ALL).size()) == 585;
 
-	for(auto index : container.indices(stage_range_t::ALL))
-	{
+	for(auto index : container.indices(stage_range_t::ALL)) {
 		container.set(index, (float)index);
 	}
 	require(std::all_of(std::begin(container.indices(stage_range_t::ALL)),
@@ -298,8 +276,7 @@ auto t4 = suite<ssmr_t, "collections">() = []() {
 
 	psl::sparse_array<entity> sparse {};
 
-	for(entity i = 0; i < 35; ++i)
-	{
+	for(entity i = 0; i < 35; ++i) {
 		sparse[i + 15] = 750 + i;
 	}
 

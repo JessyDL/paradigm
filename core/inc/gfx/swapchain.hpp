@@ -3,18 +3,15 @@
 #include "resource/resource.hpp"
 #include <variant>
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 class context;
 }	 // namespace core::os
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 
-class swapchain
-{
+class swapchain {
   public:
 #ifdef PE_VULKAN
 	explicit swapchain(core::resource::handle<core::ivk::swapchain>& handle);
@@ -39,13 +36,14 @@ class swapchain
 	swapchain& operator=(swapchain&& other) noexcept = delete;
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<swapchain, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<swapchain, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

@@ -3,24 +3,20 @@
 #include "resource/resource.hpp"
 
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace memory
-{
+namespace memory {
 class segment;
 }
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class pipeline_cache;
 class buffer_t;
 
-class material_t
-{
+class material_t {
   public:
 #ifdef PE_VULKAN
 	explicit material_t(core::resource::handle<core::ivk::material_t>& handle);
@@ -49,13 +45,14 @@ class material_t
 	const core::data::material_t& data() const;
 	bool bind_instance_data(uint32_t slot, uint32_t offset);
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<material_t, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<material_t, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

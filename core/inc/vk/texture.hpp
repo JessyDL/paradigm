@@ -8,26 +8,22 @@
 //	class texture_t;
 //}
 
-namespace gli
-{
+namespace gli {
 class texture;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 class buffer_t;
 }	 // namespace core::ivk
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief a texture resource used for rendering, either as target, or as input resource.
 ///
 /// textures are vital in a graphics application, and this class abstracts 2D, 3D, etc..
 /// into one "texture object" as it is used by the renderer, and not to be used as a container
 /// directly.
-class texture_t
-{
+class texture_t {
   public:
 	texture_t(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,

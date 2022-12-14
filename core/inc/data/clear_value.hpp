@@ -3,21 +3,17 @@
 #include "serialization.hpp"
 #include "vulkan_stdafx.hpp"
 
-namespace core::data
-{
+namespace core::data {
 /// \brief typesafe alternative to vk::ClearValue
-class clear_value
-{
-	struct depth_stencil
-	{
+class clear_value {
+	struct depth_stencil {
 		float depth;
 		uint32_t stencil;
 	};
 
 
 	template <class... Ts>
-	struct overloaded : Ts...
-	{
+	struct overloaded : Ts... {
 		using Ts::operator()...;
 	};
 	template <class... Ts>
@@ -32,48 +28,35 @@ class clear_value
 	operator vk::ClearValue() const noexcept {}
 
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_Mode;
-		if constexpr(psl::serialization::details::is_decoder<S>::value)
-		{
-			switch(m_Mode.value)
-			{
-			case 1:
-			{
+		if constexpr(psl::serialization::details::is_decoder<S>::value) {
+			switch(m_Mode.value) {
+			case 1: {
 				psl::serialization::property<float[4], const_str("VALUE", 5)> value {};
 				serializer << value;
 				m_ClearValue = psl::static_array<float, 4> {value};
-			}
-			break;
-			case 2:
-			{
+			} break;
+			case 2: {
 				psl::serialization::property<uint32_t[4], const_str("VALUE", 5)> value {};
 				serializer << value;
 				m_ClearValue = psl::static_array<uint32_t, 4> {value};
-			}
-			break;
-			case 3:
-			{
+			} break;
+			case 3: {
 				psl::serialization::property<int32_t[4], const_str("VALUE", 5)> value {};
 				serializer << value;
 				m_ClearValue = psl::static_array<int32_t, 4> {value};
-			}
-			break;
-			case 4:
-			{
+			} break;
+			case 4: {
 				psl::serialization::property<float, const_str("DEPTH", 5)> depth {};
 				psl::serialization::property<uint32_t, const_str("STENCIL", 7)> stencil {};
 				serializer << depth << stencil;
 				m_ClearValue = depth_stencil {depth, stencil};
-			}
-			break;
+			} break;
 			default:
 				break;
 			}
-		}
-		else
-		{
+		} else {
 			std::visit(
 			  m_ClearValue,
 			  [](psl::static_array<float, 4>& val) {

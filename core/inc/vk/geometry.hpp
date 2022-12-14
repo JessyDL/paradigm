@@ -6,23 +6,19 @@
 #include "vk/ivk.hpp"
 #include <vector>
 
-namespace core::data
-{
+namespace core::data {
 class geometry_t;
 class material_t;
 }	 // namespace core::data
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 class buffer_t;
 class material_t;
 
 /// \brief describes the driver visible concept of geometry.
-class geometry_t
-{
-	struct binding
-	{
+class geometry_t {
+	struct binding {
 		psl::string name;
 		memory::segment segment;
 		memory::range_t sub_range;

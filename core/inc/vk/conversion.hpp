@@ -2,10 +2,8 @@
 #include "gfx/types.hpp"
 #include "vk/ivk.hpp"
 
-namespace core::gfx::conversion
-{
-inline vk::ShaderStageFlags to_vk(shader_stage stage) noexcept
-{
+namespace core::gfx::conversion {
+inline vk::ShaderStageFlags to_vk(shader_stage stage) noexcept {
 	using vk_type  = std::underlying_type_t<vk::ShaderStageFlagBits>;
 	using gfx_type = std::underlying_type_t<shader_stage>;
 
@@ -31,8 +29,7 @@ inline vk::ShaderStageFlags to_vk(shader_stage stage) noexcept
 	return vk::ShaderStageFlags {vk::ShaderStageFlagBits {destination}};
 }
 
-inline shader_stage to_shader_stage(vk::ShaderStageFlags flags)
-{
+inline shader_stage to_shader_stage(vk::ShaderStageFlags flags) {
 	using gfx_type = std::underlying_type_t<shader_stage>;
 
 	gfx_type res {0};
@@ -49,10 +46,8 @@ inline shader_stage to_shader_stage(vk::ShaderStageFlags flags)
 
 	return shader_stage {res};
 }
-inline vk::VertexInputRate to_vk(vertex_input_rate value) noexcept
-{
-	switch(value)
-	{
+inline vk::VertexInputRate to_vk(vertex_input_rate value) noexcept {
+	switch(value) {
 	case vertex_input_rate::vertex:
 		return vk::VertexInputRate::eVertex;
 		break;
@@ -64,10 +59,8 @@ inline vk::VertexInputRate to_vk(vertex_input_rate value) noexcept
 	return vk::VertexInputRate::eVertex;
 }
 
-inline vertex_input_rate to_vertex_input_rate(vk::VertexInputRate value) noexcept
-{
-	switch(value)
-	{
+inline vertex_input_rate to_vertex_input_rate(vk::VertexInputRate value) noexcept {
+	switch(value) {
 	case vk::VertexInputRate::eVertex:
 		return vertex_input_rate::vertex;
 		break;
@@ -78,8 +71,7 @@ inline vertex_input_rate to_vertex_input_rate(vk::VertexInputRate value) noexcep
 	psl::unreachable();
 	return vertex_input_rate::vertex;
 }
-inline vk::BufferUsageFlags to_vk(memory_usage memory) noexcept
-{
+inline vk::BufferUsageFlags to_vk(memory_usage memory) noexcept {
 	using vk_type  = std::underlying_type_t<vk::BufferUsageFlagBits>;
 	using gfx_type = std::underlying_type_t<memory_usage>;
 
@@ -117,8 +109,7 @@ inline vk::BufferUsageFlags to_vk(memory_usage memory) noexcept
 	return vk::BufferUsageFlags {vk::BufferUsageFlagBits {destination}};
 }
 
-inline memory_usage to_memory_usage(vk::BufferUsageFlags flags) noexcept
-{
+inline memory_usage to_memory_usage(vk::BufferUsageFlags flags) noexcept {
 	using gfx_type = std::underlying_type_t<memory_usage>;
 
 	gfx_type res {0};
@@ -152,8 +143,7 @@ inline memory_usage to_memory_usage(vk::BufferUsageFlags flags) noexcept
 }
 
 
-inline vk::MemoryPropertyFlags to_vk(memory_property memory) noexcept
-{
+inline vk::MemoryPropertyFlags to_vk(memory_property memory) noexcept {
 	using vk_type  = std::underlying_type_t<vk::MemoryPropertyFlagBits>;
 	using gfx_type = std::underlying_type_t<memory_property>;
 
@@ -179,8 +169,7 @@ inline vk::MemoryPropertyFlags to_vk(memory_property memory) noexcept
 	return vk::MemoryPropertyFlags {vk::MemoryPropertyFlagBits {destination}};
 }
 
-inline memory_property to_memory_property(vk::MemoryPropertyFlags flags) noexcept
-{
+inline memory_property to_memory_property(vk::MemoryPropertyFlags flags) noexcept {
 	using gfx_type = std::underlying_type_t<memory_property>;
 
 	gfx_type res {0};
@@ -205,10 +194,8 @@ inline memory_property to_memory_property(vk::MemoryPropertyFlags flags) noexcep
 }
 
 
-inline vk::ImageViewType to_vk(image_type value) noexcept
-{
-	switch(value)
-	{
+inline vk::ImageViewType to_vk(image_type value) noexcept {
+	switch(value) {
 	case image_type::planar_1D:
 		return vk::ImageViewType::e1D;
 		break;
@@ -236,10 +223,8 @@ inline vk::ImageViewType to_vk(image_type value) noexcept
 	return vk::ImageViewType::e1D;
 }
 
-inline image_type to_image_type(vk::ImageViewType value) noexcept
-{
-	switch(value)
-	{
+inline image_type to_image_type(vk::ImageViewType value) noexcept {
+	switch(value) {
 	case vk::ImageViewType::e1D:
 		return image_type::planar_1D;
 		break;
@@ -267,10 +252,8 @@ inline image_type to_image_type(vk::ImageViewType value) noexcept
 	return image_type::planar_1D;
 }
 
-inline vk::ImageType to_type(image_type value) noexcept
-{
-	switch(value)
-	{
+inline vk::ImageType to_type(image_type value) noexcept {
+	switch(value) {
 	case image_type::planar_1D:
 		return vk::ImageType::e1D;
 		break;
@@ -297,41 +280,33 @@ inline vk::ImageType to_type(image_type value) noexcept
 	psl::unreachable();
 	return vk::ImageType::e1D;
 }
-inline vk::ImageAspectFlags to_vk(image_aspect value) noexcept
-{
+inline vk::ImageAspectFlags to_vk(image_aspect value) noexcept {
 	return vk::ImageAspectFlags {vk::ImageAspectFlagBits(static_cast<std::underlying_type_t<image_aspect>>(value))};
 }
 
-inline image_aspect to_image_aspect(vk::ImageAspectFlags value) noexcept
-{
+inline image_aspect to_image_aspect(vk::ImageAspectFlags value) noexcept {
 	return image_aspect(static_cast<VkImageAspectFlags>(value));
 }
 
-inline vk::ImageUsageFlags to_vk(image_usage value) noexcept
-{
+inline vk::ImageUsageFlags to_vk(image_usage value) noexcept {
 	return vk::ImageUsageFlags {vk::ImageUsageFlagBits(static_cast<std::underlying_type_t<image_usage>>(value))};
 }
 
-inline image_usage to_image_usage(vk::ImageUsageFlags value) noexcept
-{
+inline image_usage to_image_usage(vk::ImageUsageFlags value) noexcept {
 	return image_usage(static_cast<VkImageUsageFlags>(value));
 }
 
-inline vk::ColorComponentFlags to_vk(component_bits value) noexcept
-{
+inline vk::ColorComponentFlags to_vk(component_bits value) noexcept {
 	return vk::ColorComponentFlags {
 	  vk::ColorComponentFlagBits(static_cast<std::underlying_type_t<component_bits>>(value))};
 }
-inline component_bits to_component_bits(vk::ColorComponentFlags value) noexcept
-{
+inline component_bits to_component_bits(vk::ColorComponentFlags value) noexcept {
 	return component_bits(static_cast<VkColorComponentFlags>(value));
 }
 
 
-inline format_t to_format(vk::Format value) noexcept
-{
-	switch(static_cast<VkFormat>(value))
-	{
+inline format_t to_format(vk::Format value) noexcept {
+	switch(static_cast<VkFormat>(value)) {
 	case VK_FORMAT_R4G4_UNORM_PACK8:
 		return format_t::r4g4_unorm_pack8;
 		break;
@@ -771,10 +746,8 @@ inline format_t to_format(vk::Format value) noexcept
 	psl::unreachable();
 	return format_t::undefined;
 }
-inline vk::Format to_vk(format_t value) noexcept
-{
-	switch(value)
-	{
+inline vk::Format to_vk(format_t value) noexcept {
+	switch(value) {
 	case format_t::r4g4_unorm_pack8:
 		return vk::Format::eR4G4UnormPack8;
 		break;
@@ -1227,48 +1200,41 @@ inline vk::Format to_vk(format_t value) noexcept
 	}
 	return vk::Format::eUndefined;
 }
-inline vk::SamplerMipmapMode to_vk(sampler_mipmap_mode value) noexcept
-{
+inline vk::SamplerMipmapMode to_vk(sampler_mipmap_mode value) noexcept {
 	return vk::SamplerMipmapMode(static_cast<std::underlying_type_t<sampler_mipmap_mode>>(value));
 }
 
-inline vk::SamplerAddressMode to_vk(sampler_address_mode value) noexcept
-{
+inline vk::SamplerAddressMode to_vk(sampler_address_mode value) noexcept {
 	return vk::SamplerAddressMode(static_cast<std::underlying_type_t<sampler_address_mode>>(value));
 }
 
-inline vk::BorderColor to_vk(border_color value) noexcept
-{
+inline vk::BorderColor to_vk(border_color value) noexcept {
 	return vk::BorderColor(static_cast<std::underlying_type_t<border_color>>(value));
 }
 
-inline vk::CullModeFlags to_vk(cullmode value) noexcept
-{
+inline vk::CullModeFlags to_vk(cullmode value) noexcept {
 	return vk::CullModeFlags(static_cast<std::underlying_type_t<cullmode>>(value));
 }
 
-inline cullmode to_cullmode(vk::CullModeFlags value) noexcept { return cullmode(static_cast<VkCullModeFlags>(value)); }
+inline cullmode to_cullmode(vk::CullModeFlags value) noexcept {
+	return cullmode(static_cast<VkCullModeFlags>(value));
+}
 
 
-inline vk::CompareOp to_vk(compare_op value) noexcept
-{
+inline vk::CompareOp to_vk(compare_op value) noexcept {
 	return vk::CompareOp(static_cast<std::underlying_type_t<compare_op>>(value));
 }
 
-inline compare_op to_compare_op(vk::CompareOp value) noexcept
-{
+inline compare_op to_compare_op(vk::CompareOp value) noexcept {
 	return compare_op(static_cast<std::underlying_type_t<vk::CompareOp>>(value));
 }
 
-inline vk::Filter to_vk(filter value) noexcept
-{
+inline vk::Filter to_vk(filter value) noexcept {
 	return vk::Filter(static_cast<std::underlying_type_t<filter>>(value));
 }
 
-inline vk::DescriptorType to_vk(binding_type value) noexcept
-{
-	switch(value)
-	{
+inline vk::DescriptorType to_vk(binding_type value) noexcept {
+	switch(value) {
 	case binding_type::sampler:
 		return vk::DescriptorType::eSampler;
 		break;
@@ -1307,10 +1273,8 @@ inline vk::DescriptorType to_vk(binding_type value) noexcept
 	return vk::DescriptorType {0};
 }
 
-inline binding_type to_binding_type(vk::DescriptorType value) noexcept
-{
-	switch(value)
-	{
+inline binding_type to_binding_type(vk::DescriptorType value) noexcept {
+	switch(value) {
 	case vk::DescriptorType::eSampler:
 		return binding_type::sampler;
 		break;
@@ -1348,28 +1312,23 @@ inline binding_type to_binding_type(vk::DescriptorType value) noexcept
 	psl::unreachable();
 	return binding_type {0};
 }
-inline vk::BlendOp to_vk(blend_op value) noexcept
-{
+inline vk::BlendOp to_vk(blend_op value) noexcept {
 	return vk::BlendOp {static_cast<std::underlying_type_t<blend_op>>(value)};
 }
 
-inline blend_op to_blend_op(vk::BlendOp value) noexcept
-{
+inline blend_op to_blend_op(vk::BlendOp value) noexcept {
 	return blend_op(static_cast<std::underlying_type_t<vk::BlendOp>>(value));
 }
 
-inline vk::BlendFactor to_vk(blend_factor value) noexcept
-{
+inline vk::BlendFactor to_vk(blend_factor value) noexcept {
 	return vk::BlendFactor {static_cast<std::underlying_type_t<blend_factor>>(value)};
 }
 
-inline blend_factor to_blend_factor(vk::BlendFactor value) noexcept
-{
+inline blend_factor to_blend_factor(vk::BlendFactor value) noexcept {
 	return blend_factor(static_cast<std::underlying_type_t<vk::BlendFactor>>(value));
 }
 
-inline vk::AttachmentLoadOp to_vk(core::gfx::attachment::load_op value) noexcept
-{
+inline vk::AttachmentLoadOp to_vk(core::gfx::attachment::load_op value) noexcept {
 	using vk_etype	= vk::AttachmentLoadOp;
 	using vk_type	= std::underlying_type_t<vk_etype>;
 	using gfx_etype = core::gfx::attachment::load_op;
@@ -1381,10 +1340,8 @@ inline vk::AttachmentLoadOp to_vk(core::gfx::attachment::load_op value) noexcept
 	return vk_etype {static_cast<gfx_type>(value)};
 }
 
-inline vk::AttachmentStoreOp to_vk(core::gfx::attachment::store_op value) noexcept
-{
-	switch(value)
-	{
+inline vk::AttachmentStoreOp to_vk(core::gfx::attachment::store_op value) noexcept {
+	switch(value) {
 	case core::gfx::attachment::store_op::store:
 		return vk::AttachmentStoreOp::eStore;
 		break;
@@ -1397,8 +1354,7 @@ inline vk::AttachmentStoreOp to_vk(core::gfx::attachment::store_op value) noexce
 	return vk::AttachmentStoreOp {0};
 }
 
-inline vk::ImageLayout to_vk(core::gfx::image::layout layout) noexcept
-{
+inline vk::ImageLayout to_vk(core::gfx::image::layout layout) noexcept {
 	using vk_etype	= vk::ImageLayout;
 	using vk_type	= std::underlying_type_t<vk_etype>;
 	using gfx_etype = core::gfx::image::layout;
@@ -1433,8 +1389,7 @@ inline vk::ImageLayout to_vk(core::gfx::image::layout layout) noexcept
 	return vk_etype {static_cast<gfx_type>(layout)};
 }
 
-inline vk::AttachmentDescription to_vk(const core::gfx::attachment& attachment) noexcept
-{
+inline vk::AttachmentDescription to_vk(const core::gfx::attachment& attachment) noexcept {
 	return {vk::AttachmentDescriptionFlagBits::eMayAlias,
 			to_vk(attachment.format),
 			vk::SampleCountFlagBits {attachment.sample_bits},
@@ -1446,16 +1401,13 @@ inline vk::AttachmentDescription to_vk(const core::gfx::attachment& attachment) 
 			to_vk(attachment.final)};
 }
 
-inline vk::ClearValue to_vk(const core::gfx::clear_value& clear_value) noexcept
-{
+inline vk::ClearValue to_vk(const core::gfx::clear_value& clear_value) noexcept {
 	return std::visit(
 	  [](const auto& value) -> vk::ClearValue {
 		  using type = std::decay_t<decltype(value)>;
-		  if constexpr(std::is_same_v<type, depth_stencil>)
-		  {
+		  if constexpr(std::is_same_v<type, depth_stencil>) {
 			  return vk::ClearDepthStencilValue(value.depth, value.stencil);
-		  }
-		  else
+		  } else
 			  return vk::ClearColorValue(value);
 	  },
 	  clear_value);

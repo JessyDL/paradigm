@@ -4,16 +4,13 @@
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
 
-namespace core::gfx
-{
+namespace core::gfx {
 class sampler_t;
 }
 
-namespace core::data
-{
+namespace core::data {
 /// \brief container class that describes the data to create a set of rendertargets.
-class framebuffer_t final
-{
+class framebuffer_t final {
 	friend class psl::serialization::accessor;
 
   public:
@@ -22,16 +19,14 @@ class framebuffer_t final
 	/// all data contained within this object is not guaranteed to be loaded, this includes the psl::UID of the
 	/// core::gfx::texture_t. You should take caution when calling methods that manipulate the contained resources
 	/// for this reason.
-	class attachment final
-	{
+	class attachment final {
 		friend class psl::serialization::accessor;
 		friend class framebuffer_t;
 
 	  public:
 		/// \brief describes how the rendertarget should be loaded, stored, it's sample count, and what transition
 		/// layouts it should go through.
-		class description final
-		{
+		class description final {
 			friend class psl::serialization::accessor;
 
 		  public:
@@ -45,8 +40,7 @@ class framebuffer_t final
 
 		  private:
 			template <typename S>
-			void serialize(S& serializer)
-			{
+			void serialize(S& serializer) {
 				serializer << m_SampleCountFlags << m_LoadOp << m_StoreOp << m_StencilLoadOp << m_StencilStoreOp
 						   << m_InitialLayout << m_FinalLayout << m_Format;
 			}
@@ -106,8 +100,7 @@ class framebuffer_t final
 
 	  private:
 		template <typename S>
-		void serialize(S& serializer)
-		{
+		void serialize(S& serializer) {
 			serializer << m_Texture /*<< m_ClearValue*/ << m_Shared;
 		}
 
@@ -181,8 +174,7 @@ class framebuffer_t final
 
   private:
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_Width << m_Height << m_Count << m_Sampler << m_Attachments;
 	}
 	static constexpr psl::string8::view serialization_name {"FRAMEBUFFER"};

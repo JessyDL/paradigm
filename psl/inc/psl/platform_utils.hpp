@@ -15,11 +15,9 @@
 struct AAssetManager;
 #endif
 
-namespace utility::platform
-{
+namespace utility::platform {
 /// \brief helper class that contains directory specific I/O manipulation methods and platform utilities.
-class directory
-{
+class directory {
   public:
 	/// \brief the seperator character that all commands will be assumed to use, and all platform specific commands
 	/// will be translated to/from
@@ -44,53 +42,43 @@ class directory
 	/// \brief translated the given path to one that is accepted on Windows systems
 	/// \param[in] path the path to translate to one that works in Windows systems.
 	/// \returns a string that *should* work on Windows systems, and satisfies the requirements.
-	static psl::string to_windows(psl::string_view path)
-	{
+	static psl::string to_windows(psl::string_view path) {
 		psl::string dir;
-		while(path.size() > 0 && (path[0] == '\"' || path[0] == '\''))
-		{
+		while(path.size() > 0 && (path[0] == '\"' || path[0] == '\'')) {
 			path = path.substr(1);
 		}
 
-		while(path.size() > 0 && (path[path.size() - 1] == '\"' || path[path.size() - 1] == '\''))
-		{
+		while(path.size() > 0 && (path[path.size() - 1] == '\"' || path[path.size() - 1] == '\'')) {
 			path = path.substr(0, path.size() - 1);
 		}
 
-		if(path[0] == '/')
-		{
+		if(path[0] == '/') {
 			dir = psl::string(path.substr(5u, 1u)) + ":/" + path.substr(7u);
-		}
-		else
-		{
+		} else {
 			dir = path;
 		}
 
 		auto find = dir.find('\\');
-		while(find < dir.size())
-		{
+		while(find < dir.size()) {
 			dir.replace(find, 1, "/");
 			find = dir.find('\\');
 		}
 
 		find = dir.find("//");
-		while(find < dir.size())
-		{
+		while(find < dir.size()) {
 			dir.erase(find, 1);
 			find = dir.find("//");
 		}
 		return dir;
 	}
 
-	static psl::string to_android(psl::string_view path)
-	{
+	static psl::string to_android(psl::string_view path) {
 		psl::string result {};
 		auto constituents = [](psl::string_view path) -> std::vector<psl::string_view> {
 			std::vector<psl::string_view> res {};
 			size_t offset = 0;
 			size_t index  = path.find('/', offset);
-			while(index != psl::string_view::npos)
-			{
+			while(index != psl::string_view::npos) {
 				res.emplace_back(path.substr(offset, index - offset));
 				offset = index + 1;
 				index  = path.find('/', offset);
@@ -102,23 +90,21 @@ class directory
 		size_t offset = 0;
 		auto it		  = std::begin(constituents);
 		auto next	  = std::next(it);
-		while(next != std::end(constituents))
-		{
-			if(*next == psl::string_view {".."})
-			{
+		while(next != std::end(constituents)) {
+			if(*next == psl::string_view {".."}) {
 				constituents.erase(it, std::next(next));
-				if(offset + 2 >= constituents.size()) break;
+				if(offset + 2 >= constituents.size())
+					break;
 				it	 = std::next(std::begin(constituents), offset);
 				next = std::next(next);
-			}
-			else
-			{
+			} else {
 				offset += 1;
 				it	 = std::next(it);
 				next = std::next(next);
 			}
 		}
-		if(constituents.empty()) return result;
+		if(constituents.empty())
+			return result;
 
 
 		const auto size = std::accumulate(std::begin(constituents),
@@ -128,8 +114,8 @@ class directory
 						  constituents.size() - 1;
 		result.reserve(size);
 
-		for(auto it = std::begin(constituents), end = std::prev(std::end(constituents)); it != end; it = std::next(it))
-		{
+		for(auto it = std::begin(constituents), end = std::prev(std::end(constituents)); it != end;
+			it = std::next(it)) {
 			result.append(*it);
 			result.append(seperator);
 		}
@@ -140,8 +126,7 @@ class directory
 	/// \brief translated the given path to one that is accepted on the current platform
 	/// \param[in] path the path to translate to one that works on the current platform.
 	/// \returns a string that *should* work on the current platform, and satisfies the requirements.
-	static psl::string to_platform(psl::string_view path)
-	{
+	static psl::string to_platform(psl::string_view path) {
 #ifdef PLATFORM_WINDOWS
 		return to_windows(path);
 #elif defined(PLATFORM_ANDROID)
@@ -154,7 +139,9 @@ class directory
 	/// \brief translates the given path to the default path encoding that is used across this application as the
 	/// standard. \param[in] path the path to translate. \returns a string that is translated to the
 	/// application-wide standard encoding (unix).
-	static psl::string to_generic(psl::string_view path) { return to_unix(path); }
+	static psl::string to_generic(psl::string_view path) {
+		return to_unix(path);
+	}
 
 	/// \brief checks if the given path is a directory.
 	/// \param[in] path the path to check.
@@ -199,8 +186,7 @@ class directory
 };
 
 /// \brief file i/o and manpulations utilities namespace
-namespace file
-{
+namespace file {
 #if defined(PLATFORM_ANDROID)
 	extern AAssetManager* ANDROID_ASSET_MANAGER;
 #endif
@@ -243,10 +229,11 @@ namespace file
 	/// \note this function might not work in all scenarios on non-desktop platforms that have sandboxed away the
 	/// interaction with the filesystem. Please verify that your target platform actually supports this function for
 	/// the file you wish to load.
-	static std::optional<psl::string> read(psl::string_view filename, size_t count = std::numeric_limits<size_t>::max())
-	{
+	static std::optional<psl::string> read(psl::string_view filename,
+										   size_t count = std::numeric_limits<size_t>::max()) {
 		psl::string res;
-		if(!read(filename, res, count)) return std::nullopt;
+		if(!read(filename, res, count))
+			return std::nullopt;
 		return res;
 	}
 
@@ -259,20 +246,25 @@ namespace file
 	/// \brief transforms the given path to the unix format.
 	/// \param[in] path the path to transform.
 	/// \returns the transformed path.
-	static psl::string to_unix(psl::string_view path) { return directory::to_unix(path); }
+	static psl::string to_unix(psl::string_view path) {
+		return directory::to_unix(path);
+	}
 
 	/// \brief transforms the given path to the windows format.
 	/// \param[in] path the path to transform.
 	/// \returns the transformed path.
-	static psl::string to_windows(psl::string_view path) { return directory::to_windows(path); }
+	static psl::string to_windows(psl::string_view path) {
+		return directory::to_windows(path);
+	}
 
-	static psl::string to_android(psl::string_view path) { return directory::to_android(path); }
+	static psl::string to_android(psl::string_view path) {
+		return directory::to_android(path);
+	}
 
 	/// \brief transforms the given path to the current platforms format.
 	/// \param[in] path the path to transform.
 	/// \returns the transformed path.
-	static psl::string to_platform(psl::string_view path)
-	{
+	static psl::string to_platform(psl::string_view path) {
 #ifdef PLATFORM_WINDOWS
 		return to_windows(path);
 #elif defined(PLATFORM_ANDROID)
@@ -285,29 +277,24 @@ namespace file
 	/// \brief transforms the given path to the application wide standard format.
 	/// \param[in] path the path to transform.
 	/// \returns the transformed path.
-	static psl::string to_generic(psl::string_view path) { return to_unix(path); }
+	static psl::string to_generic(psl::string_view path) {
+		return to_unix(path);
+	}
 };	  // namespace file
 
 /// \brief platform specific utility that can freeze the console running on the current thread.
-static void cmd_prompt_presskeytocontinue()
-{
-	if constexpr(platform == platform_t::windows)
-	{
+static void cmd_prompt_presskeytocontinue() {
+	if constexpr(platform == platform_t::windows) {
 		system("pause");
-	}
-	else if constexpr(platform == platform_t::osx)
-	{
+	} else if constexpr(platform == platform_t::osx) {
 		system("read");
-	}
-	else
-	{
+	} else {
 		static_assert("CMDPromptPressAnyKeyToContinue has not been implemented for the given platform.");
 	}
 }
 
 /// \brief OS specific utility functions
-class os
-{
+class os {
   public:
 	static std::vector<unsigned int> to_virtual_keycode(const psl::string8_t& key);
 };

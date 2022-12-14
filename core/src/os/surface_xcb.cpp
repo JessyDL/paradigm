@@ -7,22 +7,20 @@ using namespace core::os;
 using namespace core;
 
 
-static inline xcb_intern_atom_reply_t* intern_atom_helper(xcb_connection_t* conn, bool only_if_exists, const char* str)
-{
+static inline xcb_intern_atom_reply_t*
+intern_atom_helper(xcb_connection_t* conn, bool only_if_exists, const char* str) {
 	xcb_intern_atom_cookie_t cookie = xcb_intern_atom(conn, only_if_exists, strlen(str), str);
 	return xcb_intern_atom_reply(conn, cookie, NULL);
 }
 
-bool surface::init_surface()
-{
+bool surface::init_surface() {
 	// Initialize XCB connection
 	const xcb_setup_t* setup;
 	xcb_screen_iterator_t iter;
 	int scr;
 
 	_xcb_connection = xcb_connect(NULL, &scr);
-	if(_xcb_connection == NULL)
-	{
+	if(_xcb_connection == NULL) {
 		printf("Could not find a compatible Vulkan ICD!\n");
 		fflush(stdout);
 		exit(1);
@@ -47,8 +45,7 @@ bool surface::init_surface()
 
 	auto width	= m_Data->width();
 	auto height = m_Data->height();
-	if(m_Data->mode() == core::gfx::surface_mode::FULLSCREEN)
-	{
+	if(m_Data->mode() == core::gfx::surface_mode::FULLSCREEN) {
 		width  = screen->width_in_pixels;
 		height = screen->height_in_pixels;
 	}
@@ -85,8 +82,7 @@ bool surface::init_surface()
 
 	free(reply);
 
-	if(m_Data->mode() == core::gfx::surface_mode::FULLSCREEN)
-	{
+	if(m_Data->mode() == core::gfx::surface_mode::FULLSCREEN) {
 		xcb_intern_atom_reply_t* atom_wm_state = intern_atom_helper(_xcb_connection, false, "_NET_WM_STATE");
 		xcb_intern_atom_reply_t* atom_wm_fullscreen =
 		  intern_atom_helper(_xcb_connection, false, "_NET_WM_STATE_FULLSCREEN");
@@ -108,8 +104,7 @@ bool surface::init_surface()
 	return true;
 }
 
-void surface::deinit_surface()
-{
+void surface::deinit_surface() {
 	xcb_destroy_window(_xcb_connection, _xcb_window);
 	xcb_disconnect(_xcb_connection);
 }
@@ -118,7 +113,9 @@ void surface::deinit_surface()
 void surface::focus(bool value) {}
 
 
-void surface::update_surface() { m_InputSystem->tick(this, _xcb_connection, *atom_wm_delete_window); }
+void surface::update_surface() {
+	m_InputSystem->tick(this, _xcb_connection, *atom_wm_delete_window);
+}
 
 
 void surface::resize_surface() {}

@@ -1,16 +1,13 @@
 #pragma once
 #include <stdint.h>
 
-namespace utility
-{
-class terminal
-{
+namespace utility {
+class terminal {
   public:
 	terminal()	= delete;
 	~terminal() = delete;
 
-	enum class color : uint8_t
-	{
+	enum class color : uint8_t {
 		BLACK		 = 0x0,
 		BLUE		 = 0x1,
 		GREEN		 = 0x2,

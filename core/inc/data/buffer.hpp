@@ -8,8 +8,7 @@
 #include <vector>
 
 /// \brief contains all data types that can be serialized to/from disk.
-namespace core::data
-{
+namespace core::data {
 /// \brief container class for GPU data.
 ///
 /// core::data::buffer_t is a data container for anything that will be uploaded to the GPU. This means that this can
@@ -18,8 +17,7 @@ namespace core::data
 /// object will also dictate the **size** and **alignment** requirements of this specific resource on the GPU. \todo
 /// figure out a way around incompatible core::data::buffer_t setups, perhaps by using structs to construct the
 /// class. \author Jessy De Lannoit
-class buffer_t
-{
+class buffer_t {
 	friend class psl::serialization::accessor;
 
   public:
@@ -85,38 +83,30 @@ class buffer_t
 
   private:
 	template <typename S>
-	void serialize(S& serializer)
-	{
+	void serialize(S& serializer) {
 		serializer << m_Usage << m_MemoryPropertyFlags << m_Transient << m_WriteFrequency;
 
-		if constexpr(psl::serialization::details::IsEncoder<S>)
-		{
+		if constexpr(psl::serialization::details::IsEncoder<S>) {
 			psl::serialization::property<"SIZE", size_t> size {m_Region.size()};
 			psl::serialization::property<"ALIGNMENT", size_t> alignment {m_Region.alignment()};
 			psl::serialization::property<"DATA", std::vector<psl::string8_t>> data {};
 
-			for(auto it : m_Segments)
-			{
+			for(auto it : m_Segments) {
 				data.value.emplace_back((char*)it.range().begin, it.range().size());
 			}
 
 			serializer << size << alignment << data;
-		}
-		else
-		{
+		} else {
 			psl::serialization::property<"SIZE", size_t> size {0u};
 			psl::serialization::property<"ALIGNMENT", size_t> alignment {4u};
 			psl::serialization::property<"DATA", std::vector<psl::string8_t>> data {};
 
 			serializer << size << alignment << data;
-			for(auto it : data.value)
-			{
-				if(auto segm = m_Region.allocate(it.size()); segm)
-				{
+			for(auto it : data.value) {
+				if(auto segm = m_Region.allocate(it.size()); segm) {
 					segm.value().unsafe_set(it.data(), it.size());
 					m_Segments.push_back(segm.value());
-				}
-				else
+				} else
 					LOG_ERROR("Could not allocate a segment on the region of the size specified.");
 			}
 		}

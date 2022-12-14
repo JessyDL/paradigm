@@ -8,16 +8,13 @@
 #include "resource/resource.hpp"
 #include <optional>
 
-namespace core::data
-{
+namespace core::data {
 class buffer_t;
 }
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
-class buffer_t
-{
+class buffer_t {
   public:
 #ifdef PE_VULKAN
 	explicit buffer_t(core::resource::handle<core::ivk::buffer_t>& handle);
@@ -59,13 +56,14 @@ class buffer_t
 	size_t free_size() const noexcept;
 
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<buffer_t, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<buffer_t, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 
@@ -79,8 +77,7 @@ class buffer_t
 #endif
 };
 
-struct shader_buffer_binding
-{
+struct shader_buffer_binding {
 	shader_buffer_binding(core::resource::cache_t& cache,
 						  const core::resource::metadata& metaData,
 						  psl::meta::file* metaFile,

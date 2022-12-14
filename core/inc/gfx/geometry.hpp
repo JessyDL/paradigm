@@ -2,18 +2,15 @@
 #include "fwd/gfx/geometry.hpp"
 #include "resource/resource.hpp"
 
-namespace core::data
-{
+namespace core::data {
 class geometry_t;
 }
 
-namespace core::gfx
-{
+namespace core::gfx {
 class context;
 class buffer_t;
 
-class geometry_t
-{
+class geometry_t {
   public:
 #ifdef PE_VULKAN
 	explicit geometry_t(core::resource::handle<core::ivk::geometry_t>& handle);
@@ -41,13 +38,14 @@ class geometry_t
 				  core::resource::handle<core::gfx::buffer_t> geometryBuffer,
 				  core::resource::handle<core::gfx::buffer_t> indicesBuffer);
 	template <core::gfx::graphics_backend backend>
-	core::resource::handle<backend_type_t<geometry_t, backend>> resource() const noexcept
-	{
+	core::resource::handle<backend_type_t<geometry_t, backend>> resource() const noexcept {
 #ifdef PE_VULKAN
-		if constexpr(backend == graphics_backend::vulkan) return m_VKHandle;
+		if constexpr(backend == graphics_backend::vulkan)
+			return m_VKHandle;
 #endif
 #ifdef PE_GLES
-		if constexpr(backend == graphics_backend::gles) return m_GLESHandle;
+		if constexpr(backend == graphics_backend::gles)
+			return m_GLESHandle;
 #endif
 	};
 

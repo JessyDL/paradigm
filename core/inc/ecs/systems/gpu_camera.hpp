@@ -4,41 +4,34 @@
 #include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
 
-namespace core::gfx
-{
+namespace core::gfx {
 class buffer_t;
 struct shader_buffer_binding;
 }	 // namespace core::gfx
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
-namespace core::ecs::components
-{
+namespace core::ecs::components {
 struct transform;
 struct renderable;
 struct camera;
 }	 // namespace core::ecs::components
 
-namespace psl::ecs
-{
+namespace psl::ecs {
 class state_t;
 struct info_t;
 
 template <typename... Ts>
 class pack;
 }	 // namespace psl::ecs
-namespace core::ecs::systems
-{
-class gpu_camera
-{
+namespace core::ecs::systems {
+class gpu_camera {
 	const psl::mat4x4
 	  clip {1.0f, 0.0f, 0.0f, 0.0f, +0.0f, -1.0f, 0.0f, 0.0f, +0.0f, 0.0f, 0.5f, 0.0f, +0.0f, 0.0f, 0.5f, 1.0f};
 
   public:
-	struct framedata
-	{
+	struct framedata {
 		psl::mat4x4 clipMatrix;
 		psl::mat4x4 projectionMatrix;
 		psl::mat4x4 modelMatrix;

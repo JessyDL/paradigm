@@ -5,24 +5,20 @@
 #include "vk/ivk.hpp"
 #include <vector>
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 class buffer_t;
 }	 // namespace core::ivk
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief encapsulated the concept of a graphics pipeline on the GPU
 /// \warning calling the update method family _during_ the recording of the vk::CommandBuffer's will invalidate the
 /// command buffer
 /// \todo find a solution around the warning
-class pipeline
-{
+class pipeline {
   public:
 	/// \brief creates a graphics pipeline
 	/// \warning this constructor will error-out when it detects you trying to create a compute pipeline instead

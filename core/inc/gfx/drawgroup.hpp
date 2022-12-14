@@ -7,20 +7,17 @@
 #include <vector>
 
 #ifdef PE_VULKAN
-namespace core::ivk
-{
+namespace core::ivk {
 class drawpass;
 }
 #endif
 #ifdef PE_GLES
-namespace core::igles
-{
+namespace core::igles {
 class drawpass;
 }
 #endif
 
-namespace core::gfx
-{
+namespace core::gfx {
 class bundle;
 class drawgroup;
 class drawcall;
@@ -30,8 +27,7 @@ class drawcall;
 /// describes a group of various core::gfx::drawcalls, ordered by core::gfx::drawlayers.
 /// these are then pinned to a set of possible outputs (swapchain or framebuffer)
 /// which will be used by the render to order and output them.
-class drawgroup
-{
+class drawgroup {
 #ifdef PE_VULKAN
 	friend class core::ivk::drawpass;
 #endif

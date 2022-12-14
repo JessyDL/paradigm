@@ -5,18 +5,15 @@
 #include "vk/ivk.hpp"
 #include <optional>
 
-namespace core::data
-{
+namespace core::data {
 class material_t;
 }
 
-namespace memory
-{
+namespace memory {
 class segment;
 }
 
-namespace core::ivk
-{
+namespace core::ivk {
 class context;
 class shader;
 class geometry_t;
@@ -29,8 +26,7 @@ class framebuffer_t;
 class swapchain;
 }	 // namespace core::ivk
 
-namespace core::ivk
-{
+namespace core::ivk {
 /// \brief class that creates a bindable collection of resources that can be used in conjuction with a surface to
 /// render.
 ///
@@ -38,8 +34,7 @@ namespace core::ivk
 /// happen to a surface in the render pipeline on the GPU, and what is all needed.
 /// The material class also can contain instance data and will manage this for you.
 /// Together with a core::ivk::geometry_t, this describes all the resources you need to render something on screen.
-class material_t final
-{
+class material_t final {
   public:
 	/// \brief the constructor that will create and bind the necesary resources to create a valid pipeline.
 	/// \param[in] cache resource cache that is constructing this material.

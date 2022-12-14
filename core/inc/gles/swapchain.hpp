@@ -2,16 +2,13 @@
 #include "psl/math/vec.hpp"
 #include "resource/handle.hpp"
 
-namespace core::os
-{
+namespace core::os {
 class surface;
 }
 
-namespace core::igles
-{
+namespace core::igles {
 class context;
-class swapchain
-{
+class swapchain {
   public:
 	swapchain(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,
