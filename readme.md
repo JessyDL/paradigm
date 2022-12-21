@@ -149,7 +149,7 @@ This project is dual-licensed under commercial and open source licenses. License
 
 -  GNU AGPLv3: You may use Paradigm Engine as a Free Open Source Software as outlined in the terms found here: [https://www.gnu.org/licenses/agpl-3.0.en.html](https://www.gnu.org/licenses/agpl-3.0.en.html)
     
--  Commercial license: If you do not want to disclose the source of your application you have the option to purchase a commercial license. The commercial license gives you the full rights to create and distribute software on your own terms without any open source license obligations. For more information, please contact [Jessy De Lannoit directly here](https://www.linkedin.com/in/jessydelannoit/).
+-  Commercial license: If you do not want to disclose the source of your application you have the option to request a commercial license. The commercial license gives you the full rights to create and distribute software on your own terms without any open source license obligations. For more information, please contact [Jessy De Lannoit directly here](https://www.linkedin.com/in/jessydelannoit/).
 
 This license (and its setup) only applies to the current major version of this software. So if you are getting the license on version 1.0.0, you will be able to use all upgrades that carry the same major version number (in this case 1.x.x). Once the switch is made to a newer version such as 2.x.x of the project, you will need to upgrade your license to use that major version's updated license (in case there is a new license), or the updated license setup. 
 
