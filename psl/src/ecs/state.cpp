@@ -18,7 +18,7 @@ state_t::state_t(size_t workers, size_t cache_size)
 	m_ModifiedEntities.reserve(65536);
 }
 
-state_t::~state_t() {};
+state_t::~state_t() = default;
 
 constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept {
 #pragma warning(push)
@@ -762,8 +762,15 @@ size_t state_t::size(psl::array_view<details::component_key_t> keys) const noexc
 	return 0;
 }
 
-void state_t::clear() noexcept {
-	m_Components.clear();
+void state_t::clear(bool release_memory) noexcept {
+	if(release_memory) {
+		m_Components = decltype(m_Components){};
+	} else {
+		for(auto& [key, storage] : m_Components) {
+			storage->clear();
+		}
+	}
+
 	m_Entities = 0;
 	m_Orphans.clear();
 	m_ToBeOrphans.clear();
