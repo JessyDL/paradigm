@@ -193,7 +193,7 @@ class state_t final {
 		return result;
 	}
 
-	void clear() noexcept;
+	void clear(bool release_memory = true) noexcept;
 
 	template <typename T>
 	T& get(entity entity) {
@@ -207,6 +207,15 @@ class state_t final {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
 		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
+	}
+
+	template <typename T>
+	psl::array<T> get(psl::array_view<entity> entities) const {
+		auto cInfo = get_component_typed_info<T>();
+		psl::array<T> result {};
+		result.resize(entities.size());
+		cInfo->copy_to(entities, result.data());
+		return result;
 	}
 
 	template <typename... Ts>
@@ -314,6 +323,17 @@ class state_t final {
 			return data.entities;
 		}
 	}
+
+	template <typename... Ts>
+	psl::array<entity> filter(psl::array_view<entity> entities) const noexcept {
+		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack<Ts...>> {});
+		psl_assert(filter_group.size() == 1, "expected only one filter group");
+
+		filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
+		filter(data, entities);
+		return data.entities;
+	}
+
 	template <typename... Ts>
 	void set_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) noexcept {
 		(set_component(entities, std::forward<Ts>(data)), ...);

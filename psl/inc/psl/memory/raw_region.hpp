@@ -17,6 +17,7 @@ class raw_region {
 	size_t pageSize() const noexcept { return m_PageSize; }
 
   private:
+	void release() noexcept;
 	void* m_Base {nullptr};
 	size_t m_Size {0u};
 	size_t m_PageSize {0u};
