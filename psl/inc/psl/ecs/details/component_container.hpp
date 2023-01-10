@@ -80,7 +80,8 @@ class component_container_t {
 
 	virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
 	virtual bool merge(const component_container_t& other) noexcept											= 0;
-	virtual void clear() = 0;
+	virtual void clear()																					= 0;
+
   protected:
 	virtual void purge_impl() noexcept																	= 0;
 	virtual void add_impl(entity entity, void* data)													= 0;
@@ -227,9 +228,8 @@ class component_container_typed_t final : public component_container_t {
 	}
 	bool has_impl(entity entity, stage_range_t stage) const noexcept override { return m_Entities.has(entity, stage); }
 
-	void clear() override {
-		m_Entities.clear();
-	}
+	void clear() override { m_Entities.clear(); }
+
   private:
 	details::staged_sparse_array<T, entity> m_Entities;
 };
@@ -302,6 +302,7 @@ class component_container_flag_t : public component_container_t {
 		m_Entities.clear();
 		m_Serializable = false;
 	}
+
   private:
 	details::staged_sparse_array<void, entity> m_Entities;
 	bool m_Serializable {false};
@@ -377,6 +378,7 @@ class component_container_untyped_t : public component_container_t {
 		m_Entities.clear();
 		m_Serializable = false;
 	}
+
   protected:
 	void set_impl(entity entity, void* data) noexcept override {
 		auto* ptr = m_Entities.addressof(entity, stage_range_t::ALL);

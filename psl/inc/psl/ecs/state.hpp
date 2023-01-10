@@ -208,7 +208,7 @@ class state_t final {
 		auto cInfo = get_component_typed_info<T>();
 		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 	}
-	
+
 	template <typename T>
 	psl::array<T> get(psl::array_view<entity> entities) const {
 		auto cInfo = get_component_typed_info<T>();
@@ -591,10 +591,8 @@ class state_t final {
 
 	// invocable based construction
 	template <typename Fn>
-	requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value) void add_component_impl(
-	  const details::component_key_t& key,
-	  psl::array_view<entity> entities,
-	  Fn&& invocable) {
+		requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
+	void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, Fn&& invocable) {
 		auto cInfo = get_component_container(key);
 		psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 		const auto component_size = cInfo->component_size();

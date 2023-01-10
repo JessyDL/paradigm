@@ -764,7 +764,7 @@ size_t state_t::size(psl::array_view<details::component_key_t> keys) const noexc
 
 void state_t::clear(bool release_memory) noexcept {
 	if(release_memory) {
-		m_Components = decltype(m_Components){};
+		m_Components = decltype(m_Components) {};
 	} else {
 		for(auto& [key, storage] : m_Components) {
 			storage->clear();
