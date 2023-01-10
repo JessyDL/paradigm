@@ -80,7 +80,7 @@ class component_container_t {
 
 	virtual void remap(const psl::sparse_array<entity>& mapping, std::function<bool(entity)> pred) noexcept = 0;
 	virtual bool merge(const component_container_t& other) noexcept											= 0;
-
+	virtual void clear() = 0;
   protected:
 	virtual void purge_impl() noexcept																	= 0;
 	virtual void add_impl(entity entity, void* data)													= 0;
@@ -110,6 +110,7 @@ class component_container_typed_t final : public component_container_t {
   public:
 	component_container_typed_t()
 		: component_container_t(details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>) {};
+	~component_container_typed_t() override = default;
 	auto& entity_data() noexcept { return m_Entities; };
 
 
@@ -226,6 +227,9 @@ class component_container_typed_t final : public component_container_t {
 	}
 	bool has_impl(entity entity, stage_range_t stage) const noexcept override { return m_Entities.has(entity, stage); }
 
+	void clear() override {
+		m_Entities.clear();
+	}
   private:
 	details::staged_sparse_array<T, entity> m_Entities;
 };
@@ -234,6 +238,7 @@ class component_container_flag_t : public component_container_t {
   public:
 	component_container_flag_t(const psl::ecs::details::component_key_t& key, bool serializable = false)
 		: component_container_t(std::move(key), 0, 0) {};
+	~component_container_flag_t() override = default;
 
 	void* data() noexcept override { return nullptr; }
 	void* const data() const noexcept override { return nullptr; }
@@ -293,6 +298,10 @@ class component_container_flag_t : public component_container_t {
 	}
 	bool has_impl(entity entity, stage_range_t stage) const noexcept override { return m_Entities.has(entity, stage); }
 
+	void clear() override {
+		m_Entities.clear();
+		m_Serializable = false;
+	}
   private:
 	details::staged_sparse_array<void, entity> m_Entities;
 	bool m_Serializable {false};
@@ -307,7 +316,7 @@ class component_container_untyped_t : public component_container_t {
 								  size_t alignment,
 								  bool serializable = false)
 		: component_container_t(std::move(key), size, alignment), m_Entities(size), m_Serializable(serializable) {};
-
+	~component_container_untyped_t() override = default;
 	auto& entity_data() noexcept { return m_Entities; };
 
 
@@ -364,6 +373,10 @@ class component_container_untyped_t : public component_container_t {
 		return true;
 	}
 
+	void clear() override {
+		m_Entities.clear();
+		m_Serializable = false;
+	}
   protected:
 	void set_impl(entity entity, void* data) noexcept override {
 		auto* ptr = m_Entities.addressof(entity, stage_range_t::ALL);
