@@ -21,8 +21,12 @@ raw_region::raw_region(std::uint64_t size) {
 		m_PageSize = 0;
 		return;
 	}
-
-#if defined(PLATFORM_WINDOWS)
+#if defined(PLATFORM_GENERIC)
+	m_PageSize = size;
+	m_Base	   = malloc(size);
+	m_Size	   = size;
+	psl_assert(m_Base != nullptr, "failed to allocate {} bytes", size);
+#elif defined(PLATFORM_WINDOWS)
 	SYSTEM_INFO sSysInfo;		 // Useful information about the system
 	GetSystemInfo(&sSysInfo);	 // Initialize the structure.
 	m_PageSize = sSysInfo.dwPageSize;
@@ -54,18 +58,7 @@ raw_region::raw_region(std::uint64_t size) {
 }
 
 raw_region::~raw_region() {
-	if(m_Size == 0)
-		return;
-#ifdef PLATFORM_WINDOWS
-	VirtualFree(m_Base,			 // Base address of block
-				0,				 // Bytes of committed pages
-				MEM_RELEASE);	 // Decommit the pages
-#else
-	if(munmap(m_Base, sizeof(int)) == -1) {
-		LOG_ERROR("munmap()() failed");
-		exit(EXIT_FAILURE);
-	}
-#endif
+	release();
 }
 
 raw_region::raw_region(const raw_region& other)
@@ -81,16 +74,38 @@ raw_region& raw_region::operator=(const raw_region& other) {
 }
 
 raw_region::raw_region(raw_region&& other) : m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize) {
-	other.m_Base = nullptr;
+	other.m_Base	 = nullptr;
+	other.m_Size	 = 0;
+	other.m_PageSize = 0;
 }
 
 raw_region& raw_region::operator=(raw_region&& other) {
 	if(this != &other) {
-		m_Base	   = other.m_Base;
-		m_Size	   = other.m_Size;
-		m_PageSize = other.m_PageSize;
-
-		other.m_Base = nullptr;
+		std::swap(m_Base, other.m_Base);
+		std::swap(m_Size, other.m_Size);
+		std::swap(m_PageSize, other.m_PageSize);
+		other.release();
 	}
 	return *this;
+}
+
+void raw_region::release() noexcept {
+	if(!m_Base) {
+		return;
+	}
+#if defined(PLATFORM_GENERIC)
+	free(m_Base);
+#elif defined(PLATFORM_WINDOWS)
+	VirtualFree(m_Base,			 // Base address of block
+				0,				 // Bytes of committed pages
+				MEM_RELEASE);	 // Decommit the pages
+#else
+	if(munmap(m_Base, sizeof(int)) == -1) {
+		LOG_ERROR("munmap()() failed");
+		exit(EXIT_FAILURE);
+	}
+#endif
+	m_Size	   = 0;
+	m_PageSize = 0;
+	m_Base	   = nullptr;
 }
