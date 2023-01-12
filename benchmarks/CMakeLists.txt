@@ -34,6 +34,7 @@ add_executable(paradigm::benchmarks ALIAS benchmarks)
 
 set_property(TARGET benchmarks PROPERTY FOLDER "benchmarks")
 target_link_libraries(benchmarks PUBLIC ${SHLWAPI} paradigm::core benchmark::benchmark)
+set_target_properties(benchmarks PROPERTIES LINKER_LANGUAGE CXX)
 
 set_target_output_directory(benchmarks)
 target_include_directories(benchmarks

@@ -16,6 +16,7 @@ endif()
     
 target_compile_features(main PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(main PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+set_target_properties(main PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET main PROPERTY FOLDER "paradigm-engine")
 

@@ -137,6 +137,7 @@ if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 endif()
 
 set_property(TARGET core PROPERTY FOLDER "paradigm-engine")
+set_target_properties(core PROPERTIES LINKER_LANGUAGE CXX)
 
 target_compile_features(core PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(core PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
