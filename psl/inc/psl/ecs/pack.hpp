@@ -67,8 +67,10 @@ class pack : public pack_base<Ts...> {
 	pack() : m_Pack() { check_policy<Ts...>(); };
 	pack(pack_t views) : m_Pack(views) { check_policy<Ts...>(); }
 
-	template<typename... Ys>
-	pack(Ys&&... values) : m_Pack(std::forward<Ys>(values)...) { check_policy<Ts...>(); }
+	template <typename... Ys>
+	pack(Ys&&... values) : m_Pack(std::forward<Ys>(values)...) {
+		check_policy<Ts...>();
+	}
 	pack_t view() { return m_Pack; }
 
 	template <typename T>
@@ -434,7 +436,7 @@ namespace details {
 
 	template <typename T>
 	using tuple_to_indirect_pack_view_t = typename tuple_to_indirect_pack_view<T>::type;
-}	 // namespace
+}	 // namespace details
 
 
 template <IsPolicy Policy, typename... Ts>
@@ -520,7 +522,7 @@ class pack_t<Policy, indirect_t, Ts...> : public view_t<Policy, Ts...> {
 	using base_type = view_t<Policy, Ts...>;
 
   public:
-	template<typename... Ys>
+	template <typename... Ys>
 	pack_t(Policy, Ys&&... values) : base_type(std::forward<Ys>(values)...) {}
 };
 
