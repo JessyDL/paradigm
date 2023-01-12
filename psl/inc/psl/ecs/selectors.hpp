@@ -86,4 +86,10 @@ struct partial {};
 /// Certain packs require their data to be fully available to the system.
 /// Using this tag you can guarantee this is the case.
 struct full {};
+
+static constexpr full full_v {};
+static constexpr partial partial_v {};
+
+struct contiguous {};
+struct indirect {};
 }	 // namespace psl::ecs
