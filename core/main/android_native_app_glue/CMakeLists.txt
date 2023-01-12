@@ -1,4 +1,4 @@
 add_library(android_native_glue STATIC ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
-set_target_properties(android_native_glue PROPERTIES LINKER_LANGUAGE CXX)
+set_target_properties(android_native_glue PROPERTIES LINKER_LANGUAGE C)
 add_library(paradigm::android_native_glue ALIAS android_native_glue)
 set_target_output_directory(android_native_glue)
