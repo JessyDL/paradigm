@@ -46,7 +46,9 @@ jobs:
       run: python3 tools/generate_project_info.py
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
-      run: sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+      run: |        
+        sudo apt-get update
+        sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: initialize
       run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=OFF -DPE_TESTS=OFF
     - name: compile
