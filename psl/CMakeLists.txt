@@ -1,35 +1,32 @@
-cmake_minimum_required(VERSION 3.11)
-set(PROJECT_PSL psl CACHE INTERNAL "")
-set(LOCAL_PROJECT ${PROJECT_PSL})
-project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
-
 include(inc.txt) 
 include(src.txt)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/psl" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 
 
-if(VS_USE_NATVIS)	
+if(PE_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
 	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/nvs" PREFIX "natvis" FILES ${NATVIS}) 
 endif()
 
 find_package (Threads)
 
-add_library(${LOCAL_PROJECT} STATIC ${INC} ${SRC} ${NATVIS})
+add_library(psl STATIC ${INC} ${SRC} ${NATVIS})
+add_library(paradigm::psl ALIAS psl)
 
 if(${PE_PCH})
-	target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+	target_precompile_headers(psl PUBLIC ${INC_PCH})
 endif()
 
-target_include_directories(${LOCAL_PROJECT}
+target_include_directories(psl
     PUBLIC 
 		$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/inc>
 )
-target_compile_definitions(${LOCAL_PROJECT} PUBLIC "SPDLOG_FMT_EXTERNAL")
+target_compile_definitions(psl PUBLIC "SPDLOG_FMT_EXTERNAL" ${PE_DEFINES})
 
-target_link_libraries(${LOCAL_PROJECT} PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8cpp strtype)
+target_link_libraries(psl PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8cpp strtype)
+set_target_output_directory(psl)
 
-set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
-target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
-target_compile_options(${LOCAL_PROJECT} PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB})
+set_property(TARGET psl PROPERTY FOLDER "paradigm-engine")
+target_compile_features(psl PUBLIC ${PE_COMPILER_FEATURES})
+target_compile_options(psl PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB})

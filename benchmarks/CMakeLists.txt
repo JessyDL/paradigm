@@ -1,8 +1,3 @@
-cmake_minimum_required(VERSION 3.10)
-set(PROJECT_PARADIGM_BENCHMARKS benchmarks CACHE INTERNAL "")
-set(LOCAL_PROJECT ${PROJECT_PARADIGM_BENCHMARKS})
-project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
-
 include(inc.txt)
 include(src.txt)
 include(FetchContent)
@@ -29,20 +24,22 @@ set_property(TARGET benchmark_main PROPERTY FOLDER "extern")
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" PREFIX "src" FILES ${SRC}) 
 
-if(VS_USE_NATVIS)	
+if(PE_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
 	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/nvs" PREFIX "natvis" FILES ${NATVIS}) 
 endif()
 
-add_executable(${LOCAL_PROJECT} ${INC} ${SRC} ${NATVIS})
+add_executable(benchmarks ${INC} ${SRC} ${NATVIS})
+add_executable(paradigm::benchmarks ALIAS benchmarks)
 
-set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "benchmarks")
-target_link_libraries(${LOCAL_PROJECT} PUBLIC ${SHLWAPI} ${PROJECT_CORE} benchmark::benchmark)
+set_property(TARGET benchmarks PROPERTY FOLDER "benchmarks")
+target_link_libraries(benchmarks PUBLIC ${SHLWAPI} paradigm::core benchmark::benchmark)
 
-target_include_directories(${LOCAL_PROJECT}
+set_target_output_directory(benchmarks)
+target_include_directories(benchmarks
 	PUBLIC
 		${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
-target_compile_features(${LOCAL_PROJECT} PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
-target_compile_options(${LOCAL_PROJECT} PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
+target_compile_features(benchmarks PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
+target_compile_options(benchmarks PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})

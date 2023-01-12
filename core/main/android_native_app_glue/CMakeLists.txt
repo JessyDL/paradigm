@@ -1,6 +1,4 @@
-cmake_minimum_required(VERSION 3.11)
-set(PROJECT_ANDROID_NATIVE_GLUE android_native_glue CACHE INTERNAL "")
-set(LOCAL_PROJECT ${PROJECT_ANDROID_NATIVE_GLUE})
-project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES C)
-
-add_library(${LOCAL_PROJECT} STATIC ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
+add_library(android_native_glue STATIC ${ANDROID_NDK}/sources/android/native_app_glue/android_native_app_glue.c)
+set_target_properties(android_native_glue PROPERTIES LINKER_LANGUAGE CXX)
+add_library(paradigm::android_native_glue ALIAS android_native_glue)
+set_target_output_directory(android_native_glue)

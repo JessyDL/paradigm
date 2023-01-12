@@ -157,7 +157,7 @@ class Paradigm(object):
             args.cmake_update = False
             cmakeCmd = [cmakeExe, "-G", args.generator, \
                  "-DPE_BUILD_DIR="+args.build_dir, \
-                 "-DVK_VERSION="+args.vk_version, \
+                 "-DPE_VULKAN_VERSION="+args.vk_version, \
                  "-DVK_STATIC="+("ON" if args.vk_static else "OFF"), \
                  "-DCMAKE_BUILD_TYPE="+args.build_config, \
                  "-DPE_VULKAN="+("ON" if "vulkan" in args.graphics else "OFF"), \
@@ -168,7 +168,7 @@ class Paradigm(object):
             cmakeCmd = cmakeCmd + [ "-H"+ args.root_dir, "-B"+args.project_dir]
         elif args.cmake_update:
             cmakeCmd = [cmakeExe, r".", \
-                 "-DVK_VERSION="+args.vk_version, \
+                 "-DPE_VULKAN_VERSION="+args.vk_version, \
                  "-DCMAKE_BUILD_TYPE="+args.build_config, \
                  "-DPE_VULKAN="+("ON" if "vulkan" in args.graphics else "OFF"), \
                  "-DPE_GLES="+("ON" if "gles" in args.graphics else "OFF"), \

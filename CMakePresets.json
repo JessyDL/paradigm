@@ -25,7 +25,7 @@
       "hidden": true,
       "name": "settings-vulkan",
       "cacheVariables": {
-        "VK_VERSION": {
+        "PE_VULKAN_VERSION": {
           "type": "STRING",
           "value": "1.2.148"
         },

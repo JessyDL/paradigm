@@ -29,5 +29,7 @@ endif()
 add_subdirectory(utfcpp)
 set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
 
-add_subdirectory(strtype)
+if(NOT TARGET strtype)
+    add_subdirectory(strtype)
+endif()
 set_property(TARGET strtype PROPERTY FOLDER "extern")

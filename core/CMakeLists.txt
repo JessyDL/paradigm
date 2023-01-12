@@ -1,8 +1,3 @@
-cmake_minimum_required(VERSION 3.16)
-set(PROJECT_CORE core CACHE INTERNAL "")
-set(LOCAL_PROJECT ${PROJECT_CORE})
-project(${LOCAL_PROJECT} VERSION 1.0.0 LANGUAGES CXX)
-
 include(inc.txt)
 include(src.txt)
 include(FetchContent)
@@ -20,14 +15,14 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_GL
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_VULKAN}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_VULKAN}) 
 
-if(VS_USE_NATVIS)	
+if(PE_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
 	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/nvs" PREFIX "natvis" FILES ${NATVIS}) 
 endif()
 link_libraries(${WSI_LIB})
 
 if(PE_VULKAN)
-	FetchContent_Declare(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${VK_VERSION} GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+	FetchContent_Declare(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${PE_VULKAN_VERSION} GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 	FetchContent_GetProperties(vulkan)
 	if(NOT vulkan_POPULATED)
 		message(STATUS "fetching KhronosGroup/Vulkan-Headers...")
@@ -106,11 +101,13 @@ add_custom_command(TARGET core_generator
 	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/inc/paradigm.hpp
 	COMMENT "Generating headers for Paradigm")
 
-add_library(${LOCAL_PROJECT} STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
-add_dependencies(${LOCAL_PROJECT} core_generator)
+add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
+add_library(paradigm::core ALIAS core)
+
+add_dependencies(core core_generator)
 
 if(${PE_PCH})
-	target_precompile_headers(${LOCAL_PROJECT} PUBLIC ${INC_PCH})
+	target_precompile_headers(core PUBLIC ${INC_PCH})
 endif()
 
 if(VK_STATIC AND PE_VULKAN)	
@@ -122,11 +119,9 @@ if(VK_STATIC AND PE_VULKAN)
 	list(APPEND PE_DL_LIBS ${vk_lib_name})
 endif()
 
-target_link_libraries(${LOCAL_PROJECT} PUBLIC 
-	${PROJECT_PSL} ${CMAKE_DL_LIBS}
-	${PROJECT_INTERCEPT} ${PE_DL_LIBS} ${TEST_LIBS})
-
-target_include_directories(${LOCAL_PROJECT}
+target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS})
+set_target_output_directory(core)
+target_include_directories(core
 	PUBLIC 
       ${CMAKE_CURRENT_SOURCE_DIR}/inc
 		${vulkan_SOURCE_DIR}/include
@@ -135,18 +130,18 @@ target_include_directories(${LOCAL_PROJECT}
 		${WSI_INC}
 )
 
-target_link_libraries(${LOCAL_PROJECT} PUBLIC gli)
+target_link_libraries(core PUBLIC gli)
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
-	target_link_libraries(${LOCAL_PROJECT} PUBLIC ${WSI_LIB})
+	target_link_libraries(core PUBLIC ${WSI_LIB})
 endif()
 
-set_property(TARGET ${LOCAL_PROJECT} PROPERTY FOLDER "paradigm-engine")
+set_property(TARGET core PROPERTY FOLDER "paradigm-engine")
 
-target_compile_features(${LOCAL_PROJECT} PUBLIC ${PE_COMPILER_FEATURES})
-target_compile_options(${LOCAL_PROJECT} PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+target_compile_features(core PUBLIC ${PE_COMPILER_FEATURES})
+target_compile_options(core PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
 if(MSVC)
-	target_compile_options(${LOCAL_PROJECT} PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
+	target_compile_options(core PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
 endif()
 
 if(PE_MAKE_EXE)
