@@ -10,7 +10,7 @@ android {
         targetSdkVersion 31
         externalNativeBuild {
             cmake {
-                arguments '-DANDROID_STL=c++_static', '-DPE_PLATFORM=ANDROID', '-DPE_GLES=' + getProperty('paradigm.gles'), '-DPE_VULKAN=' + getProperty('paradigm.vulkan'), '-DPE_MAKE_EXE=ON', '-DVK_VERSION=' + getProperty('paradigm.vulkan.version'), '-DPE_TESTS=OFF'
+                arguments '-DANDROID_STL=c++_static', '-DPE_PLATFORM=ANDROID', '-DPE_GLES=' + getProperty('paradigm.gles'), '-DPE_VULKAN=' + getProperty('paradigm.vulkan'), '-DPE_MAKE_EXE=ON', '-DPE_VULKAN_VERSION=' + getProperty('paradigm.vulkan.version'), '-DPE_TESTS=OFF'
             }
         }
         ndk {

@@ -7,9 +7,9 @@ if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
     message(FATAL_ERROR "we require a 64bit build platform")
 endif()
 
-cmake_minimum_required(VERSION 3.11)
-set(PROJECT_PARADIGM paradigm CACHE INTERNAL "")
-project(${PROJECT_PARADIGM} VERSION 1.0.0 LANGUAGES CXX)
+cmake_minimum_required(VERSION 3.16)
+set(PE_NAME paradigm CACHE INTERNAL "")
+project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
 
@@ -23,7 +23,7 @@ endif()
 OPTION(PE_PROFILER "enables the internal profiler" OFF)
 OPTION(PE_ANALYZE "enables static analyzers for the given platform" OFF)
 OPTION(PE_VERBOSE "verbose error checking in the default compile options" OFF)
-set(VK_VERSION "" CACHE STRING "The vulkan version to use")
+set(PE_VULKAN_VERSION "" CACHE STRING "The vulkan version to use")
 OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 OPTION(PE_GLES "controls OpenGL ES support" ON)
 OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
@@ -32,7 +32,9 @@ OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
 OPTION(PE_TESTS "make the tests" ON)
 OPTION(PE_PCH "enable usage of the precompiled header" ON)
 OPTION(PE_CCACHE "enable ccache" ON)
+OPTION(PE_CORE "generate the paradigm core, turn this off if you only want the PSL to generate" ON)
 
+include(Utils)
 include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
@@ -45,7 +47,7 @@ set_property(CACHE PE_INSTRUCTION_SET PROPERTY STRINGS fallback SSE AVX AVX2)
 set(PE_MODE "release" CACHE STRING "set the build mode for Paradigm, this will influence the availability of PE_DEBUG/PE_RELEASE defines")
 set_property(CACHE PE_MODE PROPERTY STRINGS release debug)
 
-OPTION(VS_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
+OPTION(PE_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
 OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
 
 set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where to build the project to")
@@ -103,7 +105,7 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 	add_custom_command(TARGET paradigm_android_build
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
 			--output ${PE_BUILD_DIR}/android
-			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${VK_VERSION}
+			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${PE_VULKAN_VERSION}
 			--type ${build_type}
 			${ANDROID_PY_ARGS}
 		USES_TERMINAL)
@@ -121,9 +123,9 @@ list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
 if(PE_VULKAN)
 	message("enabling VULKAN")
 	list(APPEND PE_DEFINES -DPE_VULKAN)
-	if(NOT DEFINED VK_VERSION OR VK_VERSION STREQUAL "")
-		message(FATAL_ERROR ${VK_VERSION})
-		message(FATAL_ERROR "requested 'vulkan' backend, but did not set 'VK_VERSION'")
+	if(NOT DEFINED PE_VULKAN_VERSION OR PE_VULKAN_VERSION STREQUAL "")
+		message(FATAL_ERROR ${PE_VULKAN_VERSION})
+		message(FATAL_ERROR "requested 'vulkan' backend, but did not set 'PE_VULKAN_VERSION'")
 	endif()
 endif()
 
@@ -173,28 +175,19 @@ endif()
 ###############################################################################
 ###                    setup output directories                             ###
 ###############################################################################
-set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${PE_BUILD_DIR}/default/lib 
-	CACHE PATH "Output directory for static libraries.")
-set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PE_BUILD_DIR}/default/lib
-	CACHE PATH "Output directory for shared libraries.")
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PE_BUILD_DIR}/default/bin
-	CACHE PATH "Output directory for executables and DLL's.")
-	
-file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY}")
-file(MAKE_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}")
-file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY}")
-
-foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-	string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-	string(TOLOWER ${OUTPUTCONFIG} OUTPUTCONFIG_FOLDERNAME)
-	set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/bin" CACHE PATH "" FORCE)
-	set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib" CACHE PATH "" FORCE)
-	set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG} "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib" CACHE PATH "" FORCE)
-	
-	file(MAKE_DIRECTORY "${CMAKE_RUNTIME_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
-	file(MAKE_DIRECTORY "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
-	file(MAKE_DIRECTORY "${CMAKE_LIBRARY_OUTPUT_DIRECTORY_${OUTPUTCONFIG}}")
-endforeach()
+get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+if(is_multi_config)
+	foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
+		string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
+		string(TOLOWER ${OUTPUTCONFIG} OUTPUTCONFIG_FOLDERNAME)
+		
+		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/bin")
+		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib")
+	endforeach()
+else()		
+	file(MAKE_DIRECTORY "${PE_BUILD_DIR}/default/bin")
+	file(MAKE_DIRECTORY "${PE_BUILD_DIR}/default/lib")
+endif()
 
 if(PE_ANALYZE)
 	if(MSVC)
@@ -340,18 +333,18 @@ string(TOLOWER ${PE_SURFACE} PE_SURFACE_LOWERCASE)
 ###                    Add the sub projects                                 ###
 ###############################################################################
 
-add_definitions(${PE_DEFINES})
-
 add_subdirectory(extern)
-
 add_subdirectory(psl)
-add_subdirectory(core)
-if(PE_TESTS)
-	add_subdirectory(tests)
+if(PE_CORE)
+	add_subdirectory(core)
+	
+	if(PE_BENCHMARKS)
+		add_subdirectory(benchmarks)
+	endif()
 endif()
 
-if(PE_BENCHMARKS)
-	add_subdirectory(benchmarks)
+if(PE_TESTS)
+	add_subdirectory(tests)
 endif()
 
 
