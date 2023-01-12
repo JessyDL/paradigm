@@ -9,7 +9,7 @@ endif()
 
 cmake_minimum_required(VERSION 3.16)
 set(PE_NAME paradigm CACHE INTERNAL "")
-project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX)
+project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
 
