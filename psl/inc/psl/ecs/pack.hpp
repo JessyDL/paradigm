@@ -464,22 +464,22 @@ class view_t {
 
 	template <size_t N>
 	constexpr inline auto const& get() const noexcept {
-		return m_Pack.get<N>();
+		return m_Pack.template get<N>();
 	}
 
 	template <size_t N>
 	constexpr inline auto get() noexcept {
-		return m_Pack.get<N>();
+		return m_Pack.template get<N>();
 	}
 
 	template <typename T>
 	constexpr inline auto const& get() const noexcept {
-		return m_Pack.get<T>();
+		return m_Pack.template get<T>();
 	}
 
 	template <typename T>
 	constexpr inline auto get() noexcept {
-		return m_Pack.get<T>();
+		return m_Pack.template get<T>();
 	}
 
 	constexpr inline auto size() const noexcept -> size_t { return m_Pack.size(); }
