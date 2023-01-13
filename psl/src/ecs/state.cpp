@@ -381,7 +381,7 @@ psl::array<entity>::iterator state_t::on_combine_op(psl::array<details::componen
 	});
 }
 
-psl::array<entity> state_t::filter(details::dependency_pack& pack, bool seed_with_previous) const noexcept {
+psl::array<entity> state_t::filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept {
 	auto pack_filters = pack.filters;
 	for(const auto& [key, arr] : pack.m_RBindings) pack_filters.emplace_back(key);
 	for(const auto& [key, arr] : pack.m_RWBindings) pack_filters.emplace_back(key);

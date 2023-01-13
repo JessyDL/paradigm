@@ -686,7 +686,7 @@ class state_t final {
 											   psl::array<entity>::iterator& begin,
 											   psl::array<entity>::iterator& end) const noexcept;
 
-	psl::array<entity> filter(details::dependency_pack& pack, bool seed_with_previous) const noexcept;
+	psl::array<entity> filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept;
 	void filter(filter_result& data, psl::array_view<entity> source) const noexcept;
 	void filter(filter_result& data, bool seed_with_previous = false) const noexcept;
 

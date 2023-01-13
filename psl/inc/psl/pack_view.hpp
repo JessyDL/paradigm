@@ -401,6 +401,7 @@ class pack_view {
 	}
 
   public:
+	pack_view() = default;
 	pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {
 #ifdef PE_DEBUG
 		// todo this needs further verification, seems tag types are present here, should they be?

@@ -7,26 +7,6 @@
 namespace psl::ecs {
 class state_t;
 
-template <typename T>
-concept IsPackPartial = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::partial_t>;
-template <typename T>
-concept IsPackFull = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::full_t>;
-template <typename T>
-concept IsPolicy = IsPackFull<T> || IsPackPartial<T>;
-
-struct direct_t {};
-struct indirect_t {};
-
-static constexpr direct_t direct {};
-static constexpr indirect_t indirect {};
-
-template <typename T>
-concept IsAccessDirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::direct_t>;
-template <typename T>
-concept IsAccessIndirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::indirect_t>;
-template <typename T>
-concept IsAccessType = IsAccessDirect<T> || IsAccessIndirect<T>;
-
 // internal details for non-owning views
 namespace details {
 
@@ -377,32 +357,32 @@ class pack_t {
 	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
 
   public:
-	pack_t() : m_Pack() {};
-	pack_t(pack_type views) : m_Pack(views) {}
+	constexpr pack_t() = default;
+	constexpr pack_t(pack_type views) : m_Pack(views) {}
 
 	template <typename... Ys>
-	pack_t(Ys&&... values) : m_Pack(std::forward<Ys>(values)...) {}
-	pack_type view() { return m_Pack; }
+	constexpr pack_t(Ys&&... values) : m_Pack(std::forward<Ys>(values)...) {}
+	constexpr inline pack_type view() { return m_Pack; }
 
 	template <typename T>
-	psl::array_view<T> get() const noexcept {
+	constexpr inline psl::array_view<T> get() const noexcept {
 		return m_Pack.template get<T>();
 	}
 
 	template <size_t N>
-	auto get() const noexcept -> decltype(std::declval<pack_type>().template get<N>()) {
+	constexpr inline auto get() const noexcept -> decltype(std::declval<pack_type>().template get<N>()) {
 		return m_Pack.template get<N>();
 	}
 
-	auto operator[](size_t index) const noexcept { return m_Pack.unpack(index); }
-	auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
-	auto begin() const noexcept { return m_Pack.unpack_begin(); }
-	auto end() const noexcept { return m_Pack.unpack_end(); }
-	constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
-	constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
+	constexpr inline auto operator[](size_t index) const noexcept { return m_Pack.unpack(index); }
+	constexpr inline auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
+	constexpr inline auto begin() const noexcept { return m_Pack.unpack_begin(); }
+	constexpr inline auto end() const noexcept { return m_Pack.unpack_end(); }
+	constexpr inline auto size() const noexcept -> size_t { return m_Pack.size(); }
+	constexpr inline auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
 
   private:
-	pack_type m_Pack;
+	pack_type m_Pack {};
 };
 
 template <IsPolicy Policy, typename... Ts>

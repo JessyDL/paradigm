@@ -42,8 +42,13 @@ class dependency_pack {
 	friend class psl::ecs::state_t;
 	template <std::size_t... Is, typename T>
 	auto create_dependency_filters(std::index_sequence<Is...>, psl::type_pack_t<T>) {
-		(add(psl::type_pack_t<typename std::remove_reference<decltype(std::declval<T>().template get<Is>())>::type> {}),
-		 ...);
+		if constexpr(IsPackFull<typename T::access_type>) {
+			(add(psl::type_pack_t<
+				 typename std::remove_reference<decltype(std::declval<T>().template get<Is>())>::type> {}),
+			 ...);
+		} else {
+			// todo we need to write an add for the indirect_array_t
+		}
 	}
 
 	template <typename F>
@@ -94,17 +99,21 @@ class dependency_pack {
 
 	template <std::size_t... Is, typename T>
 	T to_pack_impl(std::index_sequence<Is...>, psl::type_pack_t<T>) {
-		using pack_t	  = T;
-		using pack_view_t = typename pack_t::pack_type;
-		using range_t	  = typename pack_t::pack_type::range_t;
-
-		return T {pack_view_t(fill_in(psl::type_pack_t<typename std::tuple_element<Is, range_t>::type>())...)};
+		using pack_type	  = typename T::pack_type;
+		using range_t	  = typename pack_type::range_t;
+		if constexpr(IsPackFull<typename T::access_type>) {
+			return T {pack_type(fill_in(psl::type_pack_t<typename std::tuple_element<Is, range_t>::type>())...)};
+		} else {
+			// todo return a fully formed pack_t of indirect values
+			return T {};
+		}
 	}
 
 
   public:
 	template <typename T>
-	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious = false) {
+	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious = false)
+		: m_IsPartial(IsPackPartial<typename T::policy_type>), m_IsIndirect(IsAccessIndirect<typename T::access_type>) {
 		orderby =
 		  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {};
 		using pack_t = T;
@@ -140,9 +149,6 @@ class dependency_pack {
 		filters.clear();
 		std::set_difference(
 		  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
-		if constexpr(IsPackPartial<typename pack_t::policy_type>) {
-			m_IsPartial = true;
-		}
 	};
 
 
@@ -243,11 +249,13 @@ class dependency_pack {
 
 	std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)> orderby;
 	bool m_IsPartial = false;
+	bool m_IsIndirect = false;
 };
 
 template <typename... Ts>
 std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, bool seedWithPrevious = false) {
 	std::vector<dependency_pack> res;
+	res.reserve(sizeof...(Ts));
 	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, seedWithPrevious)); }), ...);
 	return res;
 }

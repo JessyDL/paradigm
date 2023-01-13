@@ -90,6 +90,33 @@ struct full_t {};
 static constexpr full_t full_v {};
 static constexpr partial_t partial_v {};
 
-struct contiguous {};
-struct indirect {};
+template <typename T>
+concept IsPackPartial = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::partial_t>;
+template <typename T>
+concept IsPackFull = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::full_t>;
+template <typename T>
+concept IsPolicy = IsPackFull<T> || IsPackPartial<T>;
+
+/// \brief Guarantees direct access to the underlying data
+/// \details The underlying data is guaranteed to be accessible without indirections contiguously and sequentially
+/// in memory
+struct direct_t {};
+
+/// \brief The data is not optimized for direct access
+/// \details In contrast to `direct_t` the data is only accessible through indirection. Sequential elements are not
+/// guaranteed to be sequential in memory, and the data is not guaranteed to be contiguous. It is possible that the
+/// data does satisfy those conditions, but there won't be any guarantee, or facilities to check so.
+/// This access type's advantage to `direct_t` is less bookeeping and setup required so unless your system is
+/// computationally heavy (and so would benefit from memory locality guarantees), it is usually better to use this.
+struct indirect_t {};
+
+static constexpr direct_t direct {};
+static constexpr indirect_t indirect {};
+
+template <typename T>
+concept IsAccessDirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::direct_t>;
+template <typename T>
+concept IsAccessIndirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::indirect_t>;
+template <typename T>
+concept IsAccessType = IsAccessDirect<T> || IsAccessIndirect<T>;
 }	 // namespace psl::ecs
