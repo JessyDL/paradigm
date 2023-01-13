@@ -8,7 +8,11 @@ namespace psl::ecs {
 class state_t;
 
 template <typename T>
-concept IsPolicy = std::is_same_v<T, psl::ecs::partial> || std::is_same_v<T, psl::ecs::full>;
+concept IsPackPartial = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::partial_t>;
+template <typename T>
+concept IsPackFull = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::full_t>;
+template <typename T>
+concept IsPolicy = IsPackFull<T> || IsPackPartial<T>;
 
 struct direct_t {};
 struct indirect_t {};
@@ -17,7 +21,11 @@ static constexpr direct_t direct {};
 static constexpr indirect_t indirect {};
 
 template <typename T>
-concept IsAccessType = std::is_same_v<T, psl::ecs::direct_t> || std::is_same_v<T, psl::ecs::indirect_t>;
+concept IsAccessDirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::direct_t>;
+template <typename T>
+concept IsAccessIndirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::indirect_t>;
+template <typename T>
+concept IsAccessType = IsAccessDirect<T> || IsAccessIndirect<T>;
 
 // internal details for non-owning views
 namespace details {
@@ -469,16 +477,16 @@ template <IsPolicy Policy, typename... Ts>
 pack_t(Policy, psl::array<Ts>...) -> pack_t<Policy, direct_t, Ts...>;
 
 template <typename... Ts>
-using pack_indirect_partial_t = pack_t<psl::ecs::partial, indirect_t, Ts...>;
+using pack_indirect_partial_t = pack_t<psl::ecs::partial_t, indirect_t, Ts...>;
 
 template <typename... Ts>
-using pack_indirect_full_t = pack_t<psl::ecs::full, indirect_t, Ts...>;
+using pack_indirect_full_t = pack_t<psl::ecs::full_t, indirect_t, Ts...>;
 
 template <typename... Ts>
-using pack_direct_partial_t = pack_t<psl::ecs::partial, direct_t, Ts...>;
+using pack_direct_partial_t = pack_t<psl::ecs::partial_t, direct_t, Ts...>;
 
 template <typename... Ts>
-using pack_direct_full_t = pack_t<psl::ecs::full, direct_t, Ts...>;
+using pack_direct_full_t = pack_t<psl::ecs::full_t, direct_t, Ts...>;
 
 template <typename T>
 struct is_pack : std::false_type {};

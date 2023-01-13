@@ -140,7 +140,7 @@ class dependency_pack {
 		filters.clear();
 		std::set_difference(
 		  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
-		if constexpr(std::is_same<psl::ecs::partial, typename pack_t::policy_type>::value) {
+		if constexpr(IsPackPartial<typename pack_t::policy_type>) {
 			m_IsPartial = true;
 		}
 	};

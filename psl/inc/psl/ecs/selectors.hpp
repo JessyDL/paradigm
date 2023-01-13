@@ -79,16 +79,16 @@ struct order_by {};
 ///
 /// Special tag type that signifies that a pack can be split
 /// up into smaller sub-packs by the scheduler when ticking systems
-struct partial {};
+struct partial_t {};
 
 /// \brief requires a pack to be whole when filled in
 ///
 /// Certain packs require their data to be fully available to the system.
 /// Using this tag you can guarantee this is the case.
-struct full {};
+struct full_t {};
 
-static constexpr full full_v {};
-static constexpr partial partial_v {};
+static constexpr full_t full_v {};
+static constexpr partial_t partial_v {};
 
 struct contiguous {};
 struct indirect {};

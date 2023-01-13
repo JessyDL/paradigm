@@ -828,8 +828,6 @@ ECSState.create(
 		  core::ecs::components::transform {psl::vec3 {}, psl::vec3::one * 1.f});
 	}
 
-	ECSState.declare([](psl::ecs::info_t& info, psl::ecs::pack_t<psl::ecs::partial, psl::ecs::direct_t, int> pack) {});
-
 	ECSState.create(1,
 					psl::ecs::empty<core::ecs::components::transform> {},
 					core::ecs::components::light {{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
