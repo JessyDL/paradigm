@@ -300,7 +300,7 @@ class state_t final {
 
 	template <typename... Ts>
 	psl::array<entity> filter() const noexcept {
-		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack<Ts...>> {});
+		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack_direct_full_t<Ts...>> {});
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
 		auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data) {
@@ -326,7 +326,7 @@ class state_t final {
 
 	template <typename... Ts>
 	psl::array<entity> filter(psl::array_view<entity> entities) const noexcept {
-		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack<Ts...>> {});
+		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack_direct_full_t<Ts...>> {});
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
 		filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
@@ -760,19 +760,19 @@ class state_t final {
 		return {filter_it->group, {}};
 	}
 
-	template <typename Fn, typename T, typename pack_t>
+	template <typename Fn, typename T, typename pack_type>
 	auto create_system_tick_functional(Fn& fn, T* ptr) const noexcept {
 		if constexpr(std::is_member_function_pointer<Fn>::value) {
 			return [fn, ptr](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
 				auto tuple_argument_list = std::tuple_cat(std::tuple<T*, psl::ecs::info_t&>(ptr, info),
-														  details::compress_from_dependency_pack(pack_t {}, packs));
+														  details::compress_from_dependency_pack(pack_type {}, packs));
 
 				std::apply(fn, std::move(tuple_argument_list));
 			};
 		} else {
 			return [fn](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
 				auto tuple_argument_list = std::tuple_cat(std::tuple<psl::ecs::info_t&>(info),
-														  details::compress_from_dependency_pack(pack_t {}, packs));
+														  details::compress_from_dependency_pack(pack_type {}, packs));
 
 				std::apply(fn, std::move(tuple_argument_list));
 			};
@@ -783,14 +783,14 @@ class state_t final {
 	auto
 	declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false, psl::string_view debugName = "") {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-		using pack_t		  = typename get_packs<function_args>::type;
-		auto filter_groups	  = details::make_filter_group(pack_t {});
-		auto transform_groups = details::make_transform_group(pack_t {});
+		using pack_type		  = typename get_packs<function_args>::type;
+		auto filter_groups	  = details::make_filter_group(pack_type {});
+		auto transform_groups = details::make_transform_group(pack_type {});
 		auto pack_generator	  = [](bool seedWithPrevious = false) {
-			  return details::expand_to_dependency_pack(pack_t {}, seedWithPrevious);
+			  return details::expand_to_dependency_pack(pack_type {}, seedWithPrevious);
 		};
 
-		auto system_tick = create_system_tick_functional<Fn, T, pack_t>(fn, ptr);
+		auto system_tick = create_system_tick_functional<Fn, T, pack_type>(fn, ptr);
 		auto& sys_info	 = (m_LockState) ? m_NewSystemInformations : m_SystemInformations;
 
 		psl::array<std::shared_ptr<details::filter_group>> shared_filter_groups;

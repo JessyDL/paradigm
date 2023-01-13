@@ -14,7 +14,7 @@ void registration_test(psl::ecs::info_t& info) {}
 
 
 namespace tests::ecs {
-void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack<partial, const float, int> pack) {
+void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_direct_partial_t<const float, int> pack) {
 	for(auto [fl, i] : pack) {
 		i += 5;
 	}
@@ -272,14 +272,14 @@ auto t2 =
 
 		  auto on_condition_func = [](const position& pos) { return (pos.x + pos.y) > 100; };
 
-		  state.declare([elist1_size = e_list1.size()](
-						  info_t& info, pack<position, on_condition<decltype(on_condition_func), position>> pack) {
-			  expect(pack.size()) == elist1_size;
-		  });
+		  state.declare(
+			[elist1_size = e_list1.size()](
+			  info_t& info, pack_direct_full_t<position, on_condition<decltype(on_condition_func), position>> pack) {
+				expect(pack.size()) == elist1_size;
+			});
 
-		  state.declare([total_size = e_list1.size() + e_list2.size()](info_t& info, pack<position> pack) {
-			  expect(pack.size()) == total_size;
-		  });
+		  state.declare([total_size = e_list1.size() + e_list2.size()](
+						  info_t& info, pack_direct_full_t<position> pack) { expect(pack.size()) == total_size; });
 
 		  state.tick(std::chrono::duration<float>(1.0f));
 	  };
@@ -294,20 +294,21 @@ auto t2 =
 			  return (lhs.x == rhs.x) ? lhs.y < rhs.y : lhs.x < rhs.x;
 		  };
 
-		  state.declare([](info_t& info, pack<position, order_by<decltype(order_by_func), position>> pack) {
-			  auto last_x = std::numeric_limits<decltype(position::x)>::min();
-			  auto last_y = std::numeric_limits<decltype(position::y)>::min();
+		  state.declare(
+			[](info_t& info, pack_direct_full_t<position, order_by<decltype(order_by_func), position>> pack) {
+				auto last_x = std::numeric_limits<decltype(position::x)>::min();
+				auto last_y = std::numeric_limits<decltype(position::y)>::min();
 
-			  for(auto [position] : pack) {
-				  expect(last_x) <= position.x;
+				for(auto [position] : pack) {
+					expect(last_x) <= position.x;
 
-				  if(last_x == position.x)
-					  expect(last_y) <= position.y;
+					if(last_x == position.x)
+						expect(last_y) <= position.y;
 
-				  last_x = position.x;
-				  last_y = position.y;
-			  }
-		  });
+					last_x = position.x;
+					last_y = position.y;
+				}
+			});
 
 		  state.tick(std::chrono::duration<float>(1.0f));
 	  };
@@ -344,7 +345,7 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename type>() {
 	state_t state;
 
-	auto group = details::make_filter_group(psl::type_pack_t<pack<entity, type>> {});
+	auto group = details::make_filter_group(psl::type_pack_t<pack_direct_full_t<entity, type>> {});
 
 
 	section<"lifetime test">() = [&]() {
@@ -357,15 +358,16 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		size_t incrementer = 0;
 		state.add_components(e_list1, [&incrementer](type& target) { target = type(incrementer++); });
 
-		state.declare([](psl::ecs::info_t& info, pack<entity, filter<type>> pack) {
+		state.declare([](psl::ecs::info_t& info, pack_direct_full_t<entity, filter<type>> pack) {
 			info.command_buffer.destroy(pack.template get<entity>());
 		});
-		auto token = state.declare([size_1 = e_list1.size()](psl::ecs::info_t& info, pack<entity, const type> pack1) {
-			for(auto [e, i] : pack1) {
-				require(e) == i;
-			}
-			require(pack1.size()) == size_1;
-		});
+		auto token = state.declare(
+		  [size_1 = e_list1.size()](psl::ecs::info_t& info, pack_direct_full_t<entity, const type> pack1) {
+			  for(auto [e, i] : pack1) {
+				  require(e) == i;
+			  }
+			  require(pack1.size()) == size_1;
+		  });
 
 		require(e_list1.size()) == state.filter<on_add<type>>().size();
 		require(e_list1.size()) == state.filter<type>().size();
@@ -392,22 +394,22 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.add_components(e_list2, [&incrementer](type& target) { target = type(incrementer++); });
 		require(e_list2.size()) == state.filter<on_add<type>>().size();
 		require(e_list2.size()) == state.filter<type>().size();
-		token = state.declare(
-		  [size_1 = e_list1.size(), size_2 = e_list2.size()](psl::ecs::info_t& info,
-															 pack<entity, const type, on_remove<type>> pack1,
-															 pack<entity, const type, filter<type>> pack2) {
-			  for(auto [e, i] : pack1) {
-				  require(e) == i;
-			  }
-			  require(pack1.template get<entity>()[0]) == 0;
-			  // if this shows 0, then the previous deleted components of tick #1 are still present
-			  require(pack2.template get<entity>()[0]) == 10;
-			  for(auto [e, i] : pack2) {
-				  require(e) == i;
-			  }
-			  require(pack1.size()) == size_1;
-			  require(pack2.size()) == size_2;
-		  });
+		token = state.declare([size_1 = e_list1.size(),
+							   size_2 = e_list2.size()](psl::ecs::info_t& info,
+														pack_direct_full_t<entity, const type, on_remove<type>> pack1,
+														pack_direct_full_t<entity, const type, filter<type>> pack2) {
+			for(auto [e, i] : pack1) {
+				require(e) == i;
+			}
+			require(pack1.template get<entity>()[0]) == 0;
+			// if this shows 0, then the previous deleted components of tick #1 are still present
+			require(pack2.template get<entity>()[0]) == 10;
+			for(auto [e, i] : pack2) {
+				require(e) == i;
+			}
+			require(pack1.size()) == size_1;
+			require(pack2.size()) == size_2;
+		});
 
 		// tick #2
 		// we verify the elements of e_list1 are deleted and their data is intact
@@ -421,8 +423,8 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		require(e_list2.size()) == state.filter<on_remove<type>>().size();
 		require(0) == state.filter<type>().size();
 		token = state.declare([size_2 = e_list2.size()](psl::ecs::info_t& info,
-														pack<entity, on_remove<type>> pack1,
-														pack<entity, filter<type>> pack2) {
+														pack_direct_full_t<entity, on_remove<type>> pack1,
+														pack_direct_full_t<entity, filter<type>> pack2) {
 			require(pack1.size()) == size_2;
 			require(pack2.size()) == 0;
 		});
@@ -430,11 +432,12 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		// tick #3
 		state.tick(std::chrono::duration<float>(0.1f));
 		state.revoke(token);
-		token = state.declare(
-		  [](psl::ecs::info_t& info, pack<entity, on_remove<type>> pack1, pack<entity, filter<type>> pack2) {
-			  require(pack1.size()) == 0;
-			  require(pack2.size()) == 0;
-		  });
+		token = state.declare([](psl::ecs::info_t& info,
+								 pack_direct_full_t<entity, on_remove<type>> pack1,
+								 pack_direct_full_t<entity, filter<type>> pack2) {
+			require(pack1.size()) == 0;
+			require(pack2.size()) == 0;
+		});
 
 		// tick #4
 		state.tick(std::chrono::duration<float>(0.1f));
@@ -455,7 +458,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.add_components<type>(e_list2, values);
 		auto expected = e_list2.size();
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
+		state.declare([&expected](psl::ecs::info_t& info, pack_direct_full_t<entity, type> pack) {
 			require(pack.size()) == expected;
 			psl::array<entity> entities;
 			for(auto [e, i] : pack) {
@@ -480,7 +483,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.add_components<type>(e_list2, values);
 		auto expected = e_list2.size();
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
+		state.declare([&expected](psl::ecs::info_t& info, pack_direct_full_t<entity, type> pack) {
 			require(pack.size()) == expected;
 			for(auto [e, i] : pack) {
 				require(type(e)) == i;
@@ -506,7 +509,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		state.add_components<type>(e_list2, values);
 		auto expected = e_list2.size();
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
+		state.declare([&expected](psl::ecs::info_t& info, pack_direct_full_t<entity, type> pack) {
 			require(pack.size()) == expected;
 
 			for(auto [e, i] : pack) {
@@ -534,7 +537,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename 
 		}
 		auto expected = e_list2.size();
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
+		state.declare([&expected](psl::ecs::info_t& info, pack_direct_full_t<entity, type> pack) {
 			require(pack.size()) == expected;
 
 			for(auto [e, i] : pack) {
@@ -598,7 +601,7 @@ auto t7 =
 		  //    in the filtering for system's filtering -> issue
 
 		  size_t count = 0;
-		  state.declare([&](info_t& info, pack<entity, type> pack) {
+		  state.declare([&](info_t& info, pack_direct_full_t<entity, type> pack) {
 			  if(pack.empty())
 				  return;
 			  count += pack.size();
@@ -635,7 +638,7 @@ auto t7 =
 		  expect(state.filter<type>().size()) == 1;
 		  expect(state.filter<on_add<type>>().size()) == 1;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
-		  state.declare([&](info_t& info, pack<entity, type> pack) {
+		  state.declare([&](info_t& info, pack_direct_full_t<entity, type> pack) {
 			  expect(pack.size()) == 1;
 			  expect(pack.template get<entity>()[0]) == 1;
 		  });

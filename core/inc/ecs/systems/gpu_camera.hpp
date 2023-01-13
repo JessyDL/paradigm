@@ -3,6 +3,7 @@
 #include "psl/math/math.hpp"
 #include "psl/memory/segment.hpp"
 #include "resource/resource.hpp"
+#include "psl/ecs/pack.hpp"
 
 namespace core::gfx {
 class buffer_t;
@@ -21,10 +22,8 @@ struct camera;
 namespace psl::ecs {
 class state_t;
 struct info_t;
-
-template <typename... Ts>
-class pack;
 }	 // namespace psl::ecs
+
 namespace core::ecs::systems {
 class gpu_camera {
 	const psl::mat4x4
@@ -52,7 +51,8 @@ class gpu_camera {
 			   core::resource::handle<core::gfx::shader_buffer_binding> binding,
 			   core::gfx::graphics_backend backend);
 	void tick(psl::ecs::info_t& info,
-			  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras);
+			  psl::ecs::pack_direct_full_t<const core::ecs::components::camera, const core::ecs::components::transform>
+				cameras);
 
   private:
 	void update_buffer(size_t index,

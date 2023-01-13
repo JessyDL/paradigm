@@ -5,9 +5,9 @@
 
 namespace core::ecs::systems {
 auto movement =
-  [](psl::ecs::info_t& info,
-	 psl::ecs::pack<psl::ecs::partial, const core::ecs::components::velocity, core::ecs::components::transform>
-	   movables) {
+  [](
+	psl::ecs::info_t& info,
+	psl::ecs::pack_direct_partial_t<const core::ecs::components::velocity, core::ecs::components::transform> movables) {
 	  using namespace psl::math;
 	  using namespace core::ecs;
 	  using namespace core::ecs::components;

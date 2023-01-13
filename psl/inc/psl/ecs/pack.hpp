@@ -7,93 +7,6 @@
 namespace psl::ecs {
 class state_t;
 
-namespace {
-	template <typename... Ys>
-	struct pack_base_types {
-		using pack_t		= typename details::typelist_to_pack_view<Ys...>::type;
-		using filter_t		= typename details::typelist_to_pack<Ys...>::type;
-		using combine_t		= typename details::typelist_to_combine_pack<Ys...>::type;
-		using break_t		= typename details::typelist_to_break_pack<Ys...>::type;
-		using add_t			= typename details::typelist_to_add_pack<Ys...>::type;
-		using remove_t		= typename details::typelist_to_remove_pack<Ys...>::type;
-		using except_t		= typename details::typelist_to_except_pack<Ys...>::type;
-		using conditional_t = typename details::typelist_to_conditional_pack<Ys...>::type;
-		using order_by_t	= typename details::typelist_to_orderby_pack<Ys...>::type;
-	};
-
-	template <typename... Ys>
-	struct pack_base : public pack_base_types<Ys...> {
-		using policy_t = psl::ecs::full;
-	};
-
-	template <typename... Ys>
-	struct pack_base<psl::ecs::full, Ys...> : public pack_base_types<Ys...> {
-		using policy_t = psl::ecs::full;
-	};
-
-	template <typename... Ys>
-	struct pack_base<psl::ecs::partial, Ys...> : public pack_base_types<Ys...> {
-		using policy_t = psl::ecs::partial;
-	};
-}	 // namespace
-
-/// \brief an iterable container to work with components and entities.
-template <typename... Ts>
-class pack : public pack_base<Ts...> {
-	template <typename T, typename... Ys>
-	void check_policy() {
-		static_assert(!psl::HasType<psl::ecs::partial, psl::type_pack_t<Ys...>> &&
-						!psl::HasType<psl::ecs::full, psl::type_pack_t<Ys...>>,
-					  "policy types such as 'partial' and 'full' can only appear as the first type");
-	}
-
-  public:
-	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
-
-	using pack_t		= typename pack_base<Ts...>::pack_t;
-	using filter_t		= typename pack_base<Ts...>::filter_t;
-	using combine_t		= typename pack_base<Ts...>::combine_t;
-	using break_t		= typename pack_base<Ts...>::break_t;
-	using add_t			= typename pack_base<Ts...>::add_t;
-	using remove_t		= typename pack_base<Ts...>::remove_t;
-	using except_t		= typename pack_base<Ts...>::except_t;
-	using conditional_t = typename pack_base<Ts...>::conditional_t;
-	using order_by_t	= typename pack_base<Ts...>::order_by_t;
-	using policy_t		= typename pack_base<Ts...>::policy_t;
-
-	static_assert(std::tuple_size<order_by_t>::value <= 1, "multiple order_by statements make no sense");
-
-  public:
-	pack() : m_Pack() { check_policy<Ts...>(); };
-	pack(pack_t views) : m_Pack(views) { check_policy<Ts...>(); }
-
-	template <typename... Ys>
-	pack(Ys&&... values) : m_Pack(std::forward<Ys>(values)...) {
-		check_policy<Ts...>();
-	}
-	pack_t view() { return m_Pack; }
-
-	template <typename T>
-	psl::array_view<T> get() const noexcept {
-		return m_Pack.template get<T>();
-	}
-
-	template <size_t N>
-	auto get() const noexcept -> decltype(std::declval<pack_t>().template get<N>()) {
-		return m_Pack.template get<N>();
-	}
-
-	auto operator[](size_t index) const noexcept { return m_Pack.unpack(index); }
-	auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
-	auto begin() const noexcept { return m_Pack.unpack_begin(); }
-	auto end() const noexcept { return m_Pack.unpack_end(); }
-	constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
-	constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
-
-  private:
-	pack_t m_Pack;
-};
-
 template <typename T>
 concept IsPolicy = std::is_same_v<T, psl::ecs::partial> || std::is_same_v<T, psl::ecs::full>;
 
@@ -105,9 +18,6 @@ static constexpr indirect_t indirect {};
 
 template <typename T>
 concept IsAccessType = std::is_same_v<T, psl::ecs::direct_t> || std::is_same_v<T, psl::ecs::indirect_t>;
-//
-// template<typename T>
-// concept IsValidPack = std::tuple_size<typename T::order_by_t>::value <= 1;
 
 // internal details for non-owning views
 namespace details {
@@ -338,6 +248,7 @@ namespace details {
 		template <typename Y>
 		using _indice_tuple_machinery = psl::array<indice_type>;
 		using indices_tuple_t		  = std::tuple<_indice_tuple_machinery<Ts>...>;
+		using range_t				  = std::tuple<indirect_array_t<Ts, indice_type>...>;
 
 
 		template <typename... Ys>
@@ -419,7 +330,7 @@ namespace details {
 
 		constexpr inline auto cbegin() const noexcept { return begin(); }
 		constexpr inline auto cend() const noexcept { return end(); }
-		std::tuple<indirect_array_t<Ts, indice_type>...> m_Data {};
+		range_t m_Data {};
 	};
 
 	template <typename IndiceType, typename... Ts>
@@ -438,31 +349,80 @@ namespace details {
 	using tuple_to_indirect_pack_view_t = typename tuple_to_indirect_pack_view<T>::type;
 }	 // namespace details
 
-
-template <IsPolicy Policy, typename... Ts>
-class view_t {
+template <IsPolicy Policy, IsAccessType Access, typename... Ts>
+	requires(!IsPolicy<Ts> && ...)
+class pack_t {
   public:
-	using pack_t		= details::tuple_to_indirect_pack_view_t<typename details::typelist_to_tuple<Ts...>::type>;
-	using filter_t		= typename details::typelist_to_pack<Ts...>::type;
-	using combine_t		= typename details::typelist_to_combine_pack<Ts...>::type;
-	using break_t		= typename details::typelist_to_break_pack<Ts...>::type;
-	using add_t			= typename details::typelist_to_add_pack<Ts...>::type;
-	using remove_t		= typename details::typelist_to_remove_pack<Ts...>::type;
-	using except_t		= typename details::typelist_to_except_pack<Ts...>::type;
-	using conditional_t = typename details::typelist_to_conditional_pack<Ts...>::type;
-	using order_by_t	= typename details::typelist_to_orderby_pack<Ts...>::type;
-	using policy_t		= Policy;
+	using pack_type		   = typename details::typelist_to_pack_view<Ts...>::type;
+	using filter_type	   = typename details::typelist_to_pack<Ts...>::type;
+	using combine_type	   = typename details::typelist_to_combine_pack<Ts...>::type;
+	using break_type	   = typename details::typelist_to_break_pack<Ts...>::type;
+	using add_type		   = typename details::typelist_to_add_pack<Ts...>::type;
+	using remove_type	   = typename details::typelist_to_remove_pack<Ts...>::type;
+	using except_type	   = typename details::typelist_to_except_pack<Ts...>::type;
+	using conditional_type = typename details::typelist_to_conditional_pack<Ts...>::type;
+	using order_by_type	   = typename details::typelist_to_orderby_pack<Ts...>::type;
+	using policy_type	   = Policy;
+	using access_type	   = Access;
 	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
 
-	static_assert(std::tuple_size<order_by_t>::value <= 1, "multiple order_by statements make no sense");
+	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
 
-	constexpr view_t() = default;
+  public:
+	pack_t() : m_Pack() {};
+	pack_t(pack_type views) : m_Pack(views) {}
 
 	template <typename... Ys>
-	constexpr view_t(Policy, Ys&&... data) : m_Pack(std::forward<Ys>(data)...) {}
+	pack_t(Ys&&... values) : m_Pack(std::forward<Ys>(values)...) {}
+	pack_type view() { return m_Pack; }
+
+	template <typename T>
+	psl::array_view<T> get() const noexcept {
+		return m_Pack.template get<T>();
+	}
+
+	template <size_t N>
+	auto get() const noexcept -> decltype(std::declval<pack_type>().template get<N>()) {
+		return m_Pack.template get<N>();
+	}
+
+	auto operator[](size_t index) const noexcept { return m_Pack.unpack(index); }
+	auto operator[](size_t index) noexcept { return m_Pack.unpack(index); }
+	auto begin() const noexcept { return m_Pack.unpack_begin(); }
+	auto end() const noexcept { return m_Pack.unpack_end(); }
+	constexpr auto size() const noexcept -> size_t { return m_Pack.size(); }
+	constexpr auto empty() const noexcept -> bool { return m_Pack.size() == 0; }
+
+  private:
+	pack_type m_Pack;
+};
+
+template <IsPolicy Policy, typename... Ts>
+	requires(!IsPolicy<Ts> && ...)
+class pack_t<Policy, indirect_t, Ts...> {
+  public:
+	using pack_type		   = details::tuple_to_indirect_pack_view_t<typename details::typelist_to_tuple<Ts...>::type>;
+	using filter_type	   = typename details::typelist_to_pack<Ts...>::type;
+	using combine_type	   = typename details::typelist_to_combine_pack<Ts...>::type;
+	using break_type	   = typename details::typelist_to_break_pack<Ts...>::type;
+	using add_type		   = typename details::typelist_to_add_pack<Ts...>::type;
+	using remove_type	   = typename details::typelist_to_remove_pack<Ts...>::type;
+	using except_type	   = typename details::typelist_to_except_pack<Ts...>::type;
+	using conditional_type = typename details::typelist_to_conditional_pack<Ts...>::type;
+	using order_by_type	   = typename details::typelist_to_orderby_pack<Ts...>::type;
+	using policy_type	   = Policy;
+	using access_type	   = indirect_t;
+	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
+
+	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
+
+	constexpr pack_t() = default;
 
 	template <typename... Ys>
-	constexpr view_t(Ys&&... data) : m_Pack(std::forward<Ys>(data)...) {}
+	constexpr pack_t(Policy, Ys&&... data) : m_Pack(std::forward<Ys>(data)...) {}
+
+	template <typename... Ys>
+	constexpr pack_t(Ys&&... data) : m_Pack(std::forward<Ys>(data)...) {}
 
 	template <size_t N>
 	constexpr inline auto const& get() const noexcept {
@@ -496,34 +456,7 @@ class view_t {
 	constexpr inline auto cend() const noexcept { return end(); }
 
   private:
-	pack_t m_Pack {};
-};
-
-template <IsPolicy Policy, typename... Ts>
-view_t(Policy, details::indirect_array_t<Ts, psl::ecs::entity>...) -> view_t<Policy, Ts...>;
-
-template <typename... Ts>
-using view_partial_t = view_t<psl::ecs::partial, Ts...>;
-
-template <typename... Ts>
-using view_full_t = view_t<psl::ecs::full, Ts...>;
-
-template <IsPolicy Policy, IsAccessType Access, typename... Ts>
-class pack_t : pack<Policy, Ts...> {
-	using base_type = pack<Policy, Ts...>;
-
-  public:
-	template <typename... Ys>
-	pack_t(Policy, Ys&&... values) : base_type(std::forward<Ys>(values)...) {}
-};
-
-template <IsPolicy Policy, typename... Ts>
-class pack_t<Policy, indirect_t, Ts...> : public view_t<Policy, Ts...> {
-	using base_type = view_t<Policy, Ts...>;
-
-  public:
-	template <typename... Ys>
-	pack_t(Policy, Ys&&... values) : base_type(std::forward<Ys>(values)...) {}
+	pack_type m_Pack {};
 };
 
 template <IsPolicy Policy, typename... Ts>
@@ -534,4 +467,37 @@ pack_t(Policy, psl::array_view<Ts>...) -> pack_t<Policy, direct_t, Ts...>;
 
 template <IsPolicy Policy, typename... Ts>
 pack_t(Policy, psl::array<Ts>...) -> pack_t<Policy, direct_t, Ts...>;
+
+template <typename... Ts>
+using pack_indirect_partial_t = pack_t<psl::ecs::partial, indirect_t, Ts...>;
+
+template <typename... Ts>
+using pack_indirect_full_t = pack_t<psl::ecs::full, indirect_t, Ts...>;
+
+template <typename... Ts>
+using pack_direct_partial_t = pack_t<psl::ecs::partial, direct_t, Ts...>;
+
+template <typename... Ts>
+using pack_direct_full_t = pack_t<psl::ecs::full, direct_t, Ts...>;
+
+template <typename T>
+struct is_pack : std::false_type {};
+template <typename... Ts>
+struct is_pack<pack_t<Ts...>> : std::true_type {};
+
+template <typename T>
+concept IsPack = is_pack<std::remove_cvref_t<T>>::value;
+
+template <IsPack T>
+struct decode_pack_types {};
+
+template <typename... Ts>
+struct decode_pack_types<pack_t<Ts...>> {
+	using type = utility::templates::type_pack_t<Ts...>;
+};
+
+/// \brief Helper to convert a pack to a type_pack_t of its arguments (including policies etc..)
+/// \tparam T pack type to decode
+template <IsPack T>
+using decode_pack_types_t = typename decode_pack_types<std::remove_cvref_t<T>>::type;
 }	 // namespace psl::ecs

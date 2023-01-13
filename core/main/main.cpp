@@ -4,8 +4,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
-//#include <Windows.h>
-//#include "stdafx.h"
+// #include <Windows.h>
+// #include "stdafx.h"
 #include "psl/application_utils.hpp"
 #include "psl/library.hpp"
 #include "psl/platform_utils.hpp"
@@ -748,7 +748,8 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 
 	ECSState.declare<"movement">(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare<"lifetime">(psl::ecs::threading::par, core::ecs::systems::lifetime);
-	ECSState.declare<"downscale">(psl::ecs::threading::par, [](info_t& info, pack<transform, const lifetime> pack) {
+	ECSState.declare<"downscale">(psl::ecs::threading::par,
+								  [](info_t& info, pack_direct_full_t<transform, const lifetime> pack) {
 		for(auto [transf, life] : pack) {
 			auto remainder = std::min(life.value * 2.0f, 1.0f);
 			transf.scale *= remainder;
@@ -827,6 +828,8 @@ ECSState.create(
 		  core::ecs::components::transform {psl::vec3 {}, psl::vec3::one * 1.f});
 	}
 
+	ECSState.declare([](psl::ecs::info_t& info, psl::ecs::pack_t<psl::ecs::partial, psl::ecs::direct_t, int> pack) {});
+
 	ECSState.create(1,
 					psl::ecs::empty<core::ecs::components::transform> {},
 					core::ecs::components::light {{}, 1.0f, core::ecs::components::light::type::DIRECTIONAL, true});
@@ -884,7 +887,7 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ (frame % 250 == 0) ? burst : 0,
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity>((frame % 250 == 0) ? burst : 0),
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);

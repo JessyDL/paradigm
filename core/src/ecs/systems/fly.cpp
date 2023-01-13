@@ -18,7 +18,8 @@ fly::~fly() {
 
 void fly::tick(
   psl::ecs::info_t& info,
-  psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables) {
+			   psl::ecs::pack_direct_full_t<core::ecs::components::transform,
+											psl::ecs::filter<core::ecs::components::input_tag>> movables) {
 	bool bHasRotated = m_MouseX != m_MouseTargetX || m_MouseY != m_MouseTargetY;
 	if(bHasRotated) {
 		float mouseSpeed = .12f;

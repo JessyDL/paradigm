@@ -95,8 +95,8 @@ class dependency_pack {
 	template <std::size_t... Is, typename T>
 	T to_pack_impl(std::index_sequence<Is...>, psl::type_pack_t<T>) {
 		using pack_t	  = T;
-		using pack_view_t = typename pack_t::pack_t;
-		using range_t	  = typename pack_t::pack_t::range_t;
+		using pack_view_t = typename pack_t::pack_type;
+		using range_t	  = typename pack_t::pack_type::range_t;
 
 		return T {pack_view_t(fill_in(psl::type_pack_t<typename std::tuple_element<Is, range_t>::type>())...)};
 	}
@@ -108,30 +108,30 @@ class dependency_pack {
 		orderby =
 		  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {};
 		using pack_t = T;
-		create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_t::range_t>> {},
+		create_dependency_filters(std::make_index_sequence<std::tuple_size_v<typename pack_t::pack_type::range_t>> {},
 								  psl::type_pack_t<T> {});
-		select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_t>::value> {},
-			   typename pack_t::filter_t {},
+		select(std::make_index_sequence<std::tuple_size<typename pack_t::filter_type>::value> {},
+			   typename pack_t::filter_type {},
 			   filters);
-		select(std::make_index_sequence<std::tuple_size<typename pack_t::add_t>::value> {},
-			   typename pack_t::add_t {},
+		select(std::make_index_sequence<std::tuple_size<typename pack_t::add_type>::value> {},
+			   typename pack_t::add_type {},
 			   (seedWithPrevious) ? filters : on_add);
-		select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_t>::value> {},
-			   typename pack_t::remove_t {},
+		select(std::make_index_sequence<std::tuple_size<typename pack_t::remove_type>::value> {},
+			   typename pack_t::remove_type {},
 			   on_remove);
-		select(std::make_index_sequence<std::tuple_size<typename pack_t::break_t>::value> {},
-			   typename pack_t::break_t {},
+		select(std::make_index_sequence<std::tuple_size<typename pack_t::break_type>::value> {},
+			   typename pack_t::break_type {},
 			   on_break);
-		select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_t>::value> {},
-			   typename pack_t::combine_t {},
+		select(std::make_index_sequence<std::tuple_size<typename pack_t::combine_type>::value> {},
+			   typename pack_t::combine_type {},
 			   (seedWithPrevious) ? filters : on_combine);
-		select(std::make_index_sequence<std::tuple_size<typename pack_t::except_t>::value> {},
-			   typename pack_t::except_t {},
+		select(std::make_index_sequence<std::tuple_size<typename pack_t::except_type>::value> {},
+			   typename pack_t::except_type {},
 			   except);
-		select_ordering(typename pack_t::order_by_t {});
-		select_condition(typename pack_t::conditional_t {});
+		select_ordering(typename pack_t::order_by_type {});
+		select_condition(typename pack_t::conditional_type {});
 
-		static_assert(std::tuple_size<typename pack_t::order_by_t>::value < 2);
+		static_assert(std::tuple_size<typename pack_t::order_by_type>::value < 2);
 
 		std::sort(std::begin(filters), std::end(filters));
 		filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
@@ -140,7 +140,7 @@ class dependency_pack {
 		filters.clear();
 		std::set_difference(
 		  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
-		if constexpr(std::is_same<psl::ecs::partial, typename pack_t::policy_t>::value) {
+		if constexpr(std::is_same<psl::ecs::partial, typename pack_t::policy_type>::value) {
 			m_IsPartial = true;
 		}
 	};
@@ -154,9 +154,10 @@ class dependency_pack {
 
 
 	template <typename... Ts>
-	psl::ecs::pack<Ts...> to_pack(psl::type_pack_t<psl::ecs::pack<Ts...>>) {
-		using pack_t  = psl::ecs::pack<Ts...>;
-		using range_t = typename pack_t::pack_t::range_t;
+	psl::ecs::pack_t<Ts...> to_pack(psl::type_pack_t<Ts...>) {
+		// note: pack is constructed here, we need to figure out how to make it a view optionally
+		using pack_t  = psl::ecs::pack_t<Ts...>;
+		using range_t = typename pack_t::pack_type::range_t;
 
 		return to_pack_impl(std::make_index_sequence<std::tuple_size<range_t>::value> {}, psl::type_pack_t<pack_t> {});
 	}
@@ -252,15 +253,15 @@ std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, 
 }
 namespace {
 	template <size_t... Is, typename... Ts>
-	std::tuple<Ts...> compress_from_dependency_pack_impl(std::index_sequence<Is...>,
+	auto compress_from_dependency_pack_impl(std::index_sequence<Is...>,
 														 psl::type_pack_t<Ts...>,
 														 std::vector<dependency_pack>& pack) {
-		return std::tuple<Ts...> {pack[Is].to_pack(psl::type_pack_t<typename std::remove_reference<Ts>::type> {})...};
+		return std::make_tuple(pack[Is].to_pack(decode_pack_types_t<Ts> {})...);
 	}
 }	 // namespace
 
 template <typename... Ts>
-std::tuple<Ts...> compress_from_dependency_pack(psl::type_pack_t<Ts...>, std::vector<dependency_pack>& pack) {
+auto compress_from_dependency_pack(psl::type_pack_t<Ts...>, std::vector<dependency_pack>& pack) {
 	return compress_from_dependency_pack_impl(std::index_sequence_for<Ts...> {}, psl::type_pack_t<Ts...> {}, pack);
 }
 

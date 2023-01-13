@@ -34,9 +34,9 @@ class render {
 
   private:
 	void tick_draws(psl::ecs::info_t& info,
-					psl::ecs::pack<const core::ecs::components::renderable,
+					psl::ecs::pack_direct_full_t<const core::ecs::components::renderable,
 								   psl::ecs::on_add<core::ecs::components::renderable>> renderables,
-					psl::ecs::pack<const core::ecs::components::renderable,
+			   psl::ecs::pack_direct_full_t<const core::ecs::components::renderable,
 								   psl::ecs::on_remove<core::ecs::components::renderable>> broken_renderables);
 
 	psl::view_ptr<core::gfx::drawpass> m_Pass {nullptr};

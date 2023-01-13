@@ -66,8 +66,7 @@ namespace details {
 	class filter_group {
 		template <typename T>
 		constexpr void selector(psl::type_pack_t<T>) noexcept {
-			if constexpr(!std::is_same_v<entity, T> && !std::is_same_v<psl::ecs::partial, T> &&
-						 !std::is_same_v<psl::ecs::full, T>)
+			if constexpr(!std::is_same_v<entity, T> && !IsPolicy<T> && !IsAccessType<T>)
 				filters.emplace_back(details::component_key_t::generate<T>());
 		}
 
@@ -260,18 +259,12 @@ namespace details {
 
 	template <typename... Ts>
 	auto make_filter_group(psl::type_pack_t<Ts...>) -> psl::array<filter_group> {
-		auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> filter_group {
-			return filter_group {psl::type_pack_t<Ys...> {}};
-		};
-		return psl::array<filter_group> {make_group(psl::type_pack_t<Ts> {})...};
+		return psl::array<filter_group> {filter_group(decode_pack_types_t<Ts> {})...};
 	}
 
 	template <typename... Ts>
 	auto make_transform_group(psl::type_pack_t<Ts...>) -> psl::array<transform_group> {
-		auto make_group = []<typename... Ys>(psl::type_pack_t<psl::ecs::pack<Ys...>>) -> transform_group {
-			return transform_group {psl::type_pack_t<Ys...> {}};
-		};
-		return psl::array<transform_group> {make_group(psl::type_pack_t<Ts> {})...};
+		return psl::array<transform_group> {transform_group(decode_pack_types_t<Ts> {})...};
 	}
 }	 // namespace details
 }	 // namespace psl::ecs

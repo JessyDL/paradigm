@@ -38,13 +38,13 @@ class geometry_instancing {
 
   private:
 	/* void dynamic_add(psl::ecs::info& info,
-					 psl::ecs::pack<core::ecs::components::renderable,
+					 psl::ecs::pack_direct_full_t<core::ecs::components::renderable,
 									psl::ecs::filter<const core::ecs::components::dynamic_tag>,
 									psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
 	*/
 	void
 	dynamic_system(psl::ecs::info_t& info,
-				   psl::ecs::pack<core::ecs::components::renderable,
+	  psl::ecs::pack_direct_full_t<core::ecs::components::renderable,
 								  const core::ecs::components::transform,
 								  const core::ecs::components::dynamic_tag,
 								  psl::ecs::except<core::ecs::components::dont_render_tag>,
@@ -52,7 +52,7 @@ class geometry_instancing {
 
 	void
 	static_add(psl::ecs::info_t& info,
-			   psl::ecs::pack<
+			   psl::ecs::pack_direct_full_t<
 				 psl::ecs::entity,
 				 const core::ecs::components::renderable,
 				 const core::ecs::components::transform,
@@ -60,7 +60,7 @@ class geometry_instancing {
 				 psl::ecs::on_combine<const core::ecs::components::renderable, const core::ecs::components::transform>,
 				 psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> geometry_pack);
 	void static_remove(psl::ecs::info_t& info,
-					   psl::ecs::pack<psl::ecs::entity,
+	  psl::ecs::pack_direct_full_t<psl::ecs::entity,
 									  core::ecs::components::renderable,
 									  const instance_id,
 									  psl::ecs::except<core::ecs::components::dynamic_tag>,
@@ -68,20 +68,20 @@ class geometry_instancing {
 														 const core::ecs::components::transform>> geometry_pack);
 
 	void static_geometry_add(psl::ecs::info_t& info,
-							 psl::ecs::pack<psl::ecs::entity,
+							 psl::ecs::pack_direct_full_t<psl::ecs::entity,
 											const core::ecs::components::renderable,
 											psl::ecs::except<core::ecs::components::transform>,
 											psl::ecs::on_add<core::ecs::components::renderable>> pack);
 
 
 	void static_geometry_remove(psl::ecs::info_t& info,
-								psl::ecs::pack<psl::ecs::entity,
+						   psl::ecs::pack_direct_full_t<psl::ecs::entity,
 											   core::ecs::components::renderable,
 											   const instance_id,
 											   psl::ecs::except<core::ecs::components::transform>,
 											   psl::ecs::on_remove<core::ecs::components::renderable>> pack);
 	// void static_disable();
-	// void static_enable(psl::ecs::info& info, psl::ecs::pack<psl::ecs::entity, const
+	// void static_enable(psl::ecs::info& info, psl::ecs::pack_direct_full_t<psl::ecs::entity, const
 	// core::ecs::components::renderable, const instance_id, core::ecs::components::dont_render_tag> dont_render);
 };
 }	 // namespace core::ecs::systems
