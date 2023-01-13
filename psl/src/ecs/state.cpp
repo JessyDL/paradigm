@@ -692,18 +692,34 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 
 	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
 
-	auto write_fn = [entities, &cache, this](auto& binding) {
-		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		const auto& cInfo		  = get_component_container(binding.first);
-		auto offset				  = align(data_begin, cInfo->alignment());
-		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
-		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
-		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
-	};
+	if(dep_pack.is_direct_access()) {
+		// this functional handles filling in the cache with the data for the given component
+		// it offsets the `cache` every invocation with the amount the previous invocation added
+		auto write_fn = [entities, &cache, this](auto& binding) {
+			std::uintptr_t data_begin = (std::uintptr_t)cache;
+			const auto& cInfo		  = get_component_container(binding.first);
+			if(cInfo->component_size() > 0) {
+				auto offset		= align(data_begin, cInfo->alignment());
+				auto write_size = prepare_data(entities, (void*)data_begin, binding.first);
+				cache			= (void*)((std::uintptr_t)cache + write_size + offset);
+				binding.second	= psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
+			}
+		};
 
-	std::for_each(std::begin(dep_pack.m_RBindings), std::end(dep_pack.m_RBindings), write_fn);
-	std::for_each(std::begin(dep_pack.m_RWBindings), std::end(dep_pack.m_RWBindings), write_fn);
-
+		std::for_each(std::begin(dep_pack.m_RBindings), std::end(dep_pack.m_RBindings), write_fn);
+		std::for_each(std::begin(dep_pack.m_RWBindings), std::end(dep_pack.m_RWBindings), write_fn);
+	} else {
+		// this functional handles filling in the indirect offsets to the data so that we can reconstruct
+		// an indirect_array_t
+		auto view_fn = [entities, this](auto& binding) {
+			const auto& cInfo	   = get_component_container(binding.first);
+			binding.second.indices = cInfo->memory_location_offsets_for(entities);
+			binding.second.data	   = cInfo->data();
+		};
+		std::for_each(std::begin(dep_pack.m_IndirectReadBindings), std::end(dep_pack.m_IndirectReadBindings), view_fn);
+		std::for_each(
+		  std::begin(dep_pack.m_IndirectReadWriteBindings), std::end(dep_pack.m_IndirectReadWriteBindings), view_fn);
+	}
 	return (std::uintptr_t)cache - offset_start;
 }
 

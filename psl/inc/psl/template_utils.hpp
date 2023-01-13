@@ -57,7 +57,9 @@ constexpr std::array<T, N> make_array(const T& v) noexcept {
 }
 
 template <typename... Ts>
-struct type_pack_t {};
+struct type_pack_t {
+	static constexpr size_t size = sizeof...(Ts);
+};
 
 template <typename T>
 struct type_pack_size_t {};
