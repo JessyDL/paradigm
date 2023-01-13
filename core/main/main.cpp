@@ -750,11 +750,11 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	ECSState.declare<"lifetime">(psl::ecs::threading::par, core::ecs::systems::lifetime);
 	ECSState.declare<"downscale">(psl::ecs::threading::par,
 								  [](info_t& info, pack_direct_full_t<transform, const lifetime> pack) {
-		for(auto [transf, life] : pack) {
-			auto remainder = std::min(life.value * 2.0f, 1.0f);
-			transf.scale *= remainder;
-		}
-	});
+									  for(auto [transf, life] : pack) {
+										  auto remainder = std::min(life.value * 2.0f, 1.0f);
+										  transf.scale *= remainder;
+									  }
+								  });
 
 	ECSState.declare<"attractor">(psl::ecs::threading::par, core::ecs::systems::attractor);
 	core::ecs::systems::geometry_instancing geometry_instancing_system {ECSState};
@@ -885,7 +885,8 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity>((frame % 250 == 0) ? burst : 0),
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity>(
+				(frame % 250 == 0) ? burst : 0),
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);

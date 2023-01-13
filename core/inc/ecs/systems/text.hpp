@@ -8,10 +8,10 @@
 #include "fwd/gfx/texture.hpp"
 #include "psl/array.hpp"
 #include "psl/ecs/entity.hpp"
+#include "psl/ecs/pack.hpp"
 #include "psl/ecs/selectors.hpp"
 #include "psl/math/vec.hpp"
 #include "resource/handle.hpp"
-#include "psl/ecs/pack.hpp"
 
 namespace core::data {
 class geometry_t;

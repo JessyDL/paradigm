@@ -316,8 +316,12 @@ namespace details {
 			return indirect_pack_view_iterator_t(std::get<indirect_array_t<Ts, indice_type>>(m_Data).end()...);
 		}
 
-		constexpr inline auto cbegin() const noexcept { return begin(); }
-		constexpr inline auto cend() const noexcept { return end(); }
+		constexpr inline auto cbegin() const noexcept {
+			return begin();
+		}
+		constexpr inline auto cend() const noexcept {
+			return end();
+		}
 		range_t m_Data {};
 	};
 
@@ -338,8 +342,7 @@ namespace details {
 }	 // namespace details
 
 template <IsPolicy Policy, IsAccessType Access, typename... Ts>
-	requires(!IsPolicy<Ts> && ...)
-class pack_t {
+requires(!IsPolicy<Ts> && ...) class pack_t {
   public:
 	using pack_type		   = typename details::typelist_to_pack_view<Ts...>::type;
 	using filter_type	   = typename details::typelist_to_pack<Ts...>::type;
@@ -386,8 +389,7 @@ class pack_t {
 };
 
 template <IsPolicy Policy, typename... Ts>
-	requires(!IsPolicy<Ts> && ...)
-class pack_t<Policy, indirect_t, Ts...> {
+requires(!IsPolicy<Ts> && ...) class pack_t<Policy, indirect_t, Ts...> {
   public:
 	using pack_type		   = details::tuple_to_indirect_pack_view_t<typename details::typelist_to_tuple<Ts...>::type>;
 	using filter_type	   = typename details::typelist_to_pack<Ts...>::type;

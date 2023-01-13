@@ -127,7 +127,8 @@ class component_container_typed_t final : public component_container_t {
 		psl::array<entity> result {};
 		result.reserve(entities.size());
 		for(auto e : entities) {
-			result.emplace_back(static_cast<entity>(m_Entities.addressof(e, stage_range_t::ALL) - (T*)m_Entities.data()));
+			result.emplace_back(
+			  static_cast<entity>(m_Entities.addressof(e, stage_range_t::ALL) - (T*)m_Entities.data()));
 		}
 		return result;
 	}

@@ -33,11 +33,12 @@ class render {
 	void remove_render_range(uint32_t begin, uint32_t end);
 
   private:
-	void tick_draws(psl::ecs::info_t& info,
-					psl::ecs::pack_direct_full_t<const core::ecs::components::renderable,
-								   psl::ecs::on_add<core::ecs::components::renderable>> renderables,
+	void
+	tick_draws(psl::ecs::info_t& info,
 			   psl::ecs::pack_direct_full_t<const core::ecs::components::renderable,
-								   psl::ecs::on_remove<core::ecs::components::renderable>> broken_renderables);
+											psl::ecs::on_add<core::ecs::components::renderable>> renderables,
+			   psl::ecs::pack_direct_full_t<const core::ecs::components::renderable,
+											psl::ecs::on_remove<core::ecs::components::renderable>> broken_renderables);
 
 	psl::view_ptr<core::gfx::drawpass> m_Pass {nullptr};
 

@@ -46,8 +46,8 @@ class grid {
   private:
 	void tick(psl::ecs::info_t& info,
 			  psl::ecs::pack_direct_full_t<psl::ecs::entity,
-							 const core::ecs::components::transform,
-							 psl::ecs::filter<core::ecs::components::camera>> pack,
+										   const core::ecs::components::transform,
+										   psl::ecs::filter<core::ecs::components::camera>> pack,
 			  psl::ecs::pack_direct_full_t<core::ecs::components::transform, psl::ecs::filter<grid::tag>> grid_pack);
 
 	core::resource::handle<core::gfx::bundle> m_Bundle;
