@@ -33,7 +33,7 @@ constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept {
 
 psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::dependency_pack>& source,
 													   size_t workers = std::numeric_limits<size_t>::max()) {
-	psl::array<psl::array<details::dependency_pack>> packs;
+	psl::array<psl::array<details::dependency_pack>> packs {};
 
 	if(source.size() == 0)
 		return packs;

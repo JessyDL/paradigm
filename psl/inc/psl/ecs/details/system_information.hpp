@@ -278,14 +278,14 @@ class dependency_pack {
 		for(const auto& binding : m_IndirectReadBindings) {
 			auto size										  = cpy.m_Sizes[binding.first];
 			cpy.m_IndirectReadBindings[binding.first].indices = psl::array<entity>(
-			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.end(), end));
+			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadBindings[binding.first].data = binding.second.data;
 		}
 
 		for(const auto& binding : m_IndirectReadWriteBindings) {
 			auto size											   = cpy.m_Sizes[binding.first];
 			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array<entity>(
-			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.end(), end));
+			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadWriteBindings[binding.first].data = binding.second.data;
 		}
 		return cpy;
