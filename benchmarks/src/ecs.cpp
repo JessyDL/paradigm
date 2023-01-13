@@ -199,10 +199,10 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
 
 	#include <random>
 template <typename T, typename... Ts>
-auto read_only_system = [](info_t& info, pack_direct_full_t<T, const Ts...>) {};
+auto read_only_system = [](info_t& info, pack_t<T, direct_t, const Ts...>) {};
 
 template <typename T, typename... Ts>
-auto write_system = [](info_t& info, pack_direct_full_t<T, Ts...>) {};
+auto write_system = [](info_t& info, pack_t<T, direct_t, Ts...>) {};
 
 auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt19937 g) {
 	auto copy = source;
