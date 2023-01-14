@@ -48,7 +48,7 @@ class lighting_system {
 
 	void create_dir(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+	  psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
 								   core::ecs::components::light,
 								   psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>>
 		pack);
@@ -63,8 +63,8 @@ class lighting_system {
 	core::resource::handle<core::gfx::buffer_t> m_LightDataBuffer;
 	memory::segment m_LightSegment;
 
-	// std::unordered_map<psl::ecs::entity, psl::view_ptr<core::gfx::drawpass>> m_Passes;
-	std::unordered_map<psl::ecs::entity, psl::unique_ptr<core::ecs::systems::render>> m_Systems;
+	// std::unordered_map<psl::ecs::entity_t, psl::view_ptr<core::gfx::drawpass>> m_Passes;
+	std::unordered_map<psl::ecs::entity_size_type, psl::unique_ptr<core::ecs::systems::render>> m_Systems;
 };
 
 }	 // namespace core::ecs::systems

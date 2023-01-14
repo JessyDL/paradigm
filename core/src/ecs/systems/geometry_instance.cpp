@@ -103,7 +103,7 @@ void geometry_instancing::dynamic_system(info_t& info,
 }
 
 void geometry_instancing::static_add(info_t& info,
-									 pack_direct_full_t<entity,
+									 pack_direct_full_t<entity_t,
 														const renderable,
 														const transform,
 														psl::ecs::except<dynamic_tag>,
@@ -127,7 +127,7 @@ void geometry_instancing::static_add(info_t& info,
 
 	core::profiler.scope_begin("create_all");
 	std::vector<psl::mat4x4> modelMats;
-	psl::array<entity> eIds;
+	psl::array<entity_t> eIds;
 	eIds.resize(1);
 	for(const auto& unique_bundle : UniqueCombinations) {
 		modelMats.clear();
@@ -149,7 +149,7 @@ void geometry_instancing::static_add(info_t& info,
 					const psl::mat4x4 scaleMat		 = scale(transform.scale);
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 
-					eIds[0] = std::get<entity&>(geometry_pack[indicesCompleted + geometryData.startIndex]);
+					eIds[0] = std::get<entity_t&>(geometry_pack[indicesCompleted + geometryData.startIndex]);
 					info.command_buffer.add_components<instance_id>(eIds, instance_id {i});
 				}
 				bundleHandle->set(
@@ -162,7 +162,7 @@ void geometry_instancing::static_add(info_t& info,
 	core::profiler.scope_end();
 }
 void geometry_instancing::static_remove(info_t& info,
-										pack_direct_full_t<entity,
+										pack_direct_full_t<entity_t,
 														   renderable,
 														   const instance_id,
 														   psl::ecs::except<dynamic_tag>,
@@ -176,19 +176,19 @@ void geometry_instancing::static_remove(info_t& info,
 			renderable.bundle->release(renderable.geometry, instance_id.id);
 	}
 
-	info.command_buffer.remove_components<instance_id>(geometry_pack.get<entity>());
+	info.command_buffer.remove_components<instance_id>(geometry_pack.get<entity_t>());
 	core::profiler.scope_end();
 }
 
 void geometry_instancing::static_geometry_add(
   psl::ecs::info_t& info,
-  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+  psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
 							   const core::ecs::components::renderable,
 							   psl::ecs::except<core::ecs::components::transform>,
 							   psl::ecs::on_add<core::ecs::components::renderable>> pack) {
 	if(pack.size() == 0)
 		return;
-	psl::array<entity> eIds;
+	psl::array<entity_t> eIds;
 	eIds.resize(1);
 	for(auto [entity, render] : pack) {
 		auto bundleHandle	= render.bundle;
@@ -203,7 +203,7 @@ void geometry_instancing::static_geometry_add(
 
 void geometry_instancing::static_geometry_remove(
   psl::ecs::info_t& info,
-  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+  psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
 							   core::ecs::components::renderable,
 							   const instance_id,
 							   psl::ecs::except<core::ecs::components::transform>,
@@ -215,5 +215,5 @@ void geometry_instancing::static_geometry_remove(
 			renderable.bundle->release(renderable.geometry, instance_id.id);
 	}
 
-	info.command_buffer.remove_components<instance_id>(pack.get<entity>());
+	info.command_buffer.remove_components<instance_id>(pack.get<entity_t>());
 }

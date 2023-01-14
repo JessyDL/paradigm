@@ -19,14 +19,14 @@ class command_buffer_t {
 	friend class state_t;
 
 	template <IsPack PackType>
-	psl::array_view<entity> pack_get_entities(PackType const& pack) {
-		psl::array_view<entity> entities {};
+	psl::array_view<entity_t> pack_get_entities(PackType const& pack) {
+		psl::array_view<entity_t> entities {};
 		if constexpr(IsAccessDirect<typename PackType::access_type>) {
-			entities = pack.template get<entity>();
+			entities = pack.template get<entity_t>();
 		} else {
-			const auto& indirect_array = pack.template get<entity>();
+			const auto& indirect_array = pack.template get<entity_t>();
 			// the internal data does not get modified, so const_cast'ing is safe here.
-			entities = psl::array_view<entity> {const_cast<entity*>(indirect_array.data()), indirect_array.size()};
+			entities = psl::array_view<entity_t> {const_cast<entity_t*>(indirect_array.data()), indirect_array.size()};
 		}
 		return entities;
 	}
@@ -36,12 +36,12 @@ class command_buffer_t {
 
 	template <typename... Ts>
 	void add_components(IsPack auto const& pack) {
-		psl::array_view<entity> entities = pack_get_entities(pack);
+		psl::array_view<entity_t> entities = pack_get_entities(pack);
 		(add_component<Ts>(entities), ...);
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<entity> entities) {
+	void add_components(psl::array_view<entity_t> entities) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
@@ -50,12 +50,12 @@ class command_buffer_t {
 
 	template <typename... Ts>
 	void add_components(IsPack auto const& pack, psl::array_view<Ts>... data) {
-		psl::array_view<entity> entities = pack_get_entities(pack);
+		psl::array_view<entity_t> entities = pack_get_entities(pack);
 		add_components<Ts...>(entities, data...);
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) {
+	void add_components(psl::array_view<entity_t> entities, psl::array_view<Ts>... data) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
@@ -64,12 +64,12 @@ class command_buffer_t {
 
 	template <typename... Ts>
 	void add_components(IsPack auto const& pack, Ts&&... prototype) {
-		psl::array_view<entity> entities = pack_get_entities(pack);
+		psl::array_view<entity_t> entities = pack_get_entities(pack);
 		add_components<Ts...>(entities, std::forward<Ts>(prototype)...);
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<entity> entities, Ts&&... prototype) {
+	void add_components(psl::array_view<entity_t> entities, Ts&&... prototype) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
@@ -78,12 +78,12 @@ class command_buffer_t {
 
 	template <typename... Ts>
 	void remove_components(IsPack auto const& pack) noexcept {
-		psl::array_view<entity> entities = pack_get_entities(pack);
+		psl::array_view<entity_t> entities = pack_get_entities(pack);
 		remove_components<Ts...>(entities);
 	}
 
 	template <typename... Ts>
-	void remove_components(psl::array_view<entity> entities) noexcept {
+	void remove_components(psl::array_view<entity_t> entities) noexcept {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
@@ -92,14 +92,14 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<std::pair<entity, entity>> entities) {
+	void add_components(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
 		(add_component<Ts>(entities), ...);
 	}
 	template <typename... Ts>
-	void add_components(psl::array_view<std::pair<entity, entity>> entities, Ts&&... prototype) {
+	void add_components(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities, Ts&&... prototype) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
@@ -107,7 +107,7 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	void remove_components(psl::array_view<std::pair<entity, entity>> entities) noexcept {
+	void remove_components(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) noexcept {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
@@ -116,9 +116,9 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	psl::array<entity> create(entity count) {
-		psl::array<entity> entities;
-		const auto recycled = std::min<entity>(count, (entity)m_Orphans);
+	psl::array<entity_t> create(entity_size_type count) {
+		psl::array<entity_t> entities;
+		const auto recycled = std::min<entity_size_type>(static_cast<entity_size_type>(count), m_Orphans);
 		m_Orphans -= recycled;
 		const auto remainder = count - recycled;
 
@@ -135,8 +135,8 @@ class command_buffer_t {
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back((entity)m_Entities.size() + m_First);
-			m_Entities.emplace_back((entity)m_Entities.size() + m_First);
+			entities.emplace_back(entity_t {static_cast<entity_size_type>(m_Entities.size()) + m_First});
+			m_Entities.emplace_back(entity_t {static_cast<entity_size_type>(m_Entities.size()) + m_First});
 		}
 
 		if constexpr(sizeof...(Ts) > 0) {
@@ -146,9 +146,9 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	psl::array<entity> create(entity count, Ts&&... prototype) {
-		psl::array<entity> entities;
-		const auto recycled = std::min<entity>(count, (entity)m_Orphans);
+	psl::array<entity_t> create(entity_size_type count, Ts&&... prototype) {
+		psl::array<entity_t> entities;
+		const auto recycled = std::min<entity_size_type>(count, m_Orphans);
 		m_Orphans -= recycled;
 		const auto remainder = count - recycled;
 
@@ -164,17 +164,17 @@ class command_buffer_t {
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back((entity)m_Entities.size() + m_First);
-			m_Entities.emplace_back((entity)m_Entities.size() + m_First);
+			entities.emplace_back(entity_t {m_Entities.size() + m_First});
+			m_Entities.emplace_back(entity_t {m_Entities.size() + m_First});
 		}
 		add_components(entities, std::forward<Ts>(prototype)...);
 
 		return entities;
 	}
 
-	void destroy(psl::array_view<entity> entities) noexcept;
-	void destroy(psl::ecs::details::indirect_array_t<entity, entity> entities) noexcept;
-	void destroy(entity entity) noexcept;
+	void destroy(psl::array_view<entity_t> entities) noexcept;
+	void destroy(psl::ecs::details::indirect_array_t<entity_t, entity_size_type> entities) noexcept;
+	void destroy(entity_t entity) noexcept;
 
   private:
 	//------------------------------------------------------------
@@ -200,7 +200,7 @@ class command_buffer_t {
 	// add_component
 	//------------------------------------------------------------
 	template <typename T>
-	void add_component(psl::array_view<std::pair<entity, entity>> entities, T&& prototype) {
+	void add_component(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities, T&& prototype) {
 		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
 					 std::is_trivially_destructible<T>::value) {
 			static_assert(!std::is_empty_v<T>,
@@ -241,7 +241,7 @@ class command_buffer_t {
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<std::pair<entity, entity>> entities) {
+	void add_component(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) {
 		create_storage<T>();
 
 		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
@@ -254,7 +254,7 @@ class command_buffer_t {
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<entity> entities, T&& prototype) {
+	void add_component(psl::array_view<entity_t> entities, T&& prototype) {
 		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
 					 std::is_trivially_destructible<T>::value) {
 			static_assert(!std::is_empty_v<T>,
@@ -293,7 +293,7 @@ class command_buffer_t {
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<entity> entities) {
+	void add_component(psl::array_view<entity_t> entities) {
 		create_storage<T>();
 
 		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
@@ -306,7 +306,7 @@ class command_buffer_t {
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<entity> entities, psl::array_view<T> data) {
+	void add_component(psl::array_view<entity_t> entities, psl::array_view<T> data) {
 		psl_assert(entities.size() == data.size(),
 				   "incorrect amount of data input compared to entities, expected {} but got {}",
 				   entities.size(),
@@ -319,25 +319,25 @@ class command_buffer_t {
 	}
 
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity, entity>> entities,
+							psl::array_view<std::pair<entity_size_type, entity_size_type>> entities,
 							size_t size);
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity, entity>> entities,
+							psl::array_view<std::pair<entity_size_type, entity_size_type>> entities,
 							size_t size,
 							std::function<void(std::uintptr_t, size_t)> invocable);
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity, entity>> entities,
+							psl::array_view<std::pair<entity_size_type, entity_size_type>> entities,
 							size_t size,
 							void* prototype);
 
 
-	void add_component_impl(const details::component_key_t& key, psl::array_view<entity> entities, size_t size);
+	void add_component_impl(const details::component_key_t& key, psl::array_view<entity_t> entities, size_t size);
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<entity> entities,
+							psl::array_view<entity_t> entities,
 							size_t size,
 							std::function<void(std::uintptr_t, size_t)> invocable);
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<entity> entities,
+							psl::array_view<entity_t> entities,
 							size_t size,
 							void* prototype,
 							bool repeat = true);
@@ -346,17 +346,17 @@ class command_buffer_t {
 	// remove_component
 	//------------------------------------------------------------
 	void remove_component(const details::component_key_t& key,
-						  psl::array_view<std::pair<entity, entity>> entities) noexcept;
-	void remove_component(const details::component_key_t& key, psl::array_view<entity> entities) noexcept;
+						  psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) noexcept;
+	void remove_component(const details::component_key_t& key, psl::array_view<entity_t> entities) noexcept;
 
 	state_t const* m_State {nullptr};
 	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
-	entity m_First {0};
-	psl::array<entity> m_Entities {};
+	entity_size_type m_First {0};
+	psl::array<entity_t> m_Entities {};
 
-	psl::array<entity> m_DestroyedEntities {};
+	psl::array<entity_t> m_DestroyedEntities {};
 
-	entity m_Next {0};
-	size_t m_Orphans {0};
+	entity_size_type m_Next {0};
+	entity_size_type m_Orphans {0};
 };
 }	 // namespace psl::ecs

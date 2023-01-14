@@ -29,7 +29,7 @@ using namespace core::gfx;
 
 
 grid::grid(state_t& state,
-		   entity target,
+		   entity_t target,
 		   resource::cache_t& cache,
 		   resource::handle<context> context,
 		   resource::handle<buffer_t> vertexBuffer,
@@ -116,9 +116,9 @@ grid::grid(state_t& state,
 }
 
 void grid::tick(info_t& info,
-				pack_direct_full_t<entity, const transform, psl::ecs::filter<camera>> pack,
+				pack_direct_full_t<entity_t, const transform, psl::ecs::filter<camera>> pack,
 				psl::ecs::pack_direct_full_t<transform, psl::ecs::filter<grid::tag>> grid_pack) {
-	auto entities		 = pack.get<entity>();
+	auto entities		 = pack.get<entity_t>();
 	auto transforms		 = pack.get<const transform>();
 	auto grid_transforms = grid_pack.get<transform>();
 	for(auto i = 0; i < entities.size(); ++i) {

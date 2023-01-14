@@ -12,12 +12,12 @@ class state_t;
 namespace details {
 	// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
 	class transform_group {
-		using ordering_pred_t	 = void(psl::array<entity>::iterator,
-										psl::array<entity>::iterator,
+		using ordering_pred_t	 = void(psl::array<entity_t>::iterator,
+										psl::array<entity_t>::iterator,
 										const psl::ecs::state_t&);
-		using conditional_pred_t = psl::array<entity>::iterator(psl::array<entity>::iterator,
-																psl::array<entity>::iterator,
-																const psl::ecs::state_t&);
+		using conditional_pred_t = psl::array<entity_t>::iterator(psl::array<entity_t>::iterator,
+																  psl::array<entity_t>::iterator,
+																  const psl::ecs::state_t&);
 		template <typename T>
 		constexpr void selector(psl::type_pack_t<T>) noexcept {}
 
@@ -41,9 +41,9 @@ namespace details {
 		transform_group& operator=(const transform_group& other)	 = default;
 		transform_group& operator=(transform_group&& other) noexcept = default;
 
-		psl::array<entity>::iterator transform(psl::array<entity>::iterator begin,
-											   psl::array<entity>::iterator end,
-											   const state_t& state) const noexcept {
+		psl::array<entity_t>::iterator transform(psl::array<entity_t>::iterator begin,
+												 psl::array<entity_t>::iterator end,
+												 const state_t& state) const noexcept {
 			for(const auto& condition : on_condition) end = condition(begin, end, state);
 
 			if(order_by)
@@ -66,7 +66,7 @@ namespace details {
 	class filter_group {
 		template <typename T>
 		constexpr void selector(psl::type_pack_t<T>) noexcept {
-			if constexpr(!std::is_same_v<entity, T> && !IsPolicy<T> && !IsAccessType<T>)
+			if constexpr(!std::is_same_v<entity_t, T> && !IsPolicy<T> && !IsAccessType<T>)
 				filters.emplace_back(details::component_key_t::generate<T>());
 		}
 

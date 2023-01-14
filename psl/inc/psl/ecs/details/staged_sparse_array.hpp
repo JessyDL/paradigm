@@ -21,7 +21,7 @@
 #include "psl/ecs/details/stage_range_t.hpp"
 
 namespace psl::ecs::details {
-template <typename T, typename Key = psl::ecs::entity, Key chunks_size = 4096>
+template <typename T, typename Key = psl::ecs::entity_size_type, Key chunks_size = 4096>
 class staged_sparse_array {
 	using value_t = T;
 	using index_t = Key;

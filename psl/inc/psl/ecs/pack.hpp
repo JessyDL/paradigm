@@ -202,7 +202,7 @@ namespace details {
 	template <typename... Ts>
 	class indirect_pack_view_iterator_t {
 	  public:
-		using size_type = psl::ecs::entity;
+		using size_type = psl::ecs::entity_size_type;
 		template <typename T>
 		using value_element_type   = indirect_array_iterator_t<T, size_type>;
 		using value_type		   = std::tuple<value_element_type<Ts>...>;
@@ -404,7 +404,7 @@ namespace details {
 
 	template <typename... Ts>
 	struct tuple_to_indirect_pack_view<std::tuple<Ts...>> {
-		using type = indirect_pack_view_t<psl::ecs::entity, Ts...>;
+		using type = indirect_pack_view_t<psl::ecs::entity_size_type, Ts...>;
 	};
 
 	template <typename T>
@@ -425,7 +425,7 @@ requires(!IsPolicy<Ts> && ...) class pack_t {
 	using order_by_type	   = typename details::typelist_to_orderby_pack<Ts...>::type;
 	using policy_type	   = Policy;
 	using access_type	   = Access;
-	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
+	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity_t, Ts>...>::value};
 
 	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
 
@@ -472,7 +472,7 @@ requires(!IsPolicy<Ts> && ...) class pack_t<Policy, indirect_t, Ts...> {
 	using order_by_type	   = typename details::typelist_to_orderby_pack<Ts...>::type;
 	using policy_type	   = Policy;
 	using access_type	   = indirect_t;
-	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity, Ts>...>::value};
+	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity_t, Ts>...>::value};
 
 	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
 
@@ -520,7 +520,7 @@ requires(!IsPolicy<Ts> && ...) class pack_t<Policy, indirect_t, Ts...> {
 };
 
 template <IsPolicy Policy, typename... Ts>
-pack_t(Policy, details::indirect_array_t<Ts, psl::ecs::entity>...) -> pack_t<Policy, indirect_t, Ts...>;
+pack_t(Policy, details::indirect_array_t<Ts, psl::ecs::entity_size_type>...) -> pack_t<Policy, indirect_t, Ts...>;
 
 template <IsPolicy Policy, typename... Ts>
 pack_t(Policy, psl::array_view<Ts>...) -> pack_t<Policy, direct_t, Ts...>;

@@ -7,11 +7,11 @@
 
 namespace core::ecs::systems {
 auto lifetime = [](psl::ecs::info_t& info,
-				   psl::ecs::pack_direct_partial_t<psl::ecs::entity, core::ecs::components::lifetime> life_pack) {
+				   psl::ecs::pack_direct_partial_t<psl::ecs::entity_t, core::ecs::components::lifetime> life_pack) {
 	using namespace psl::ecs;
 	using namespace core::ecs::components;
 
-	std::vector<entity> dead_entities;
+	std::vector<entity_t> dead_entities;
 	for(auto [entity, lifetime] : life_pack) {
 		lifetime.value -= info.dTime.count();
 		if(lifetime.value <= 0.0f)
