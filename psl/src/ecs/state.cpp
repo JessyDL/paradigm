@@ -659,7 +659,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 				psl::array_view new_source {begin, end};
 				psl::array<entity_t> diff_set {};
 				psl::array_view<entity_t::size_type> ent_view {(entity_t::size_type*)(data.entities.data()),
-															data.entities.size()};
+															   data.entities.size()};
 				psl::array_view<entity_t::size_type> source_view {(entity_t::size_type*)(source.data()), source.size()};
 				std::set_difference(std::begin(ent_view),
 									std::end(ent_view),
@@ -670,8 +670,8 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 
 				auto size = std::size(data.entities);
 				data.entities.insert(std::end(data.entities), begin, end);
-				ent_view =
-				  psl::array_view<entity_t::size_type> {(entity_t::size_type*)(data.entities.data()), data.entities.size()};
+				ent_view = psl::array_view<entity_t::size_type> {(entity_t::size_type*)(data.entities.data()),
+																 data.entities.size()};
 				std::inplace_merge(std::begin(ent_view), std::next(std::begin(ent_view), size), std::end(ent_view));
 			}
 		}
@@ -763,9 +763,9 @@ void state_t::execute_command_buffer(info_t& info) {
 	if(buffer.m_Entities.size() > 0) {
 		psl::array<entity_t> added_entities;
 		psl::array_view<entity_t::size_type> buf_view {(entity_t::size_type*)buffer.m_Entities.data(),
-													buffer.m_Entities.size()};
-		psl::array_view<entity_t::size_type> buf_destroyed_view {(entity_t::size_type*)buffer.m_DestroyedEntities.data(),
-															  buffer.m_DestroyedEntities.size()};
+													   buffer.m_Entities.size()};
+		psl::array_view<entity_t::size_type> buf_destroyed_view {
+		  (entity_t::size_type*)buffer.m_DestroyedEntities.data(), buffer.m_DestroyedEntities.size()};
 		std::set_difference(std::begin(buf_view),
 							std::end(buf_view),
 							std::begin(buf_destroyed_view),
@@ -793,13 +793,15 @@ void state_t::execute_command_buffer(info_t& info) {
 			m_Components[component_src->id()] = std::move(component_src);
 		} else {
 			component_dst->merge(*component_src);
-			for(auto e : component_src->entities(true)) m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
+			for(auto e : component_src->entities(true))
+				m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
 		}
 	}
 	auto destroyed_entities = buffer.m_DestroyedEntities;
-	auto mid				= std::partition(std::begin(destroyed_entities),
-								 std::end(destroyed_entities),
-								 [first = buffer.m_First](auto e) { return static_cast<entity_t::size_type>(e) >= first; });
+	auto mid =
+	  std::partition(std::begin(destroyed_entities), std::end(destroyed_entities), [first = buffer.m_First](auto e) {
+		  return static_cast<entity_t::size_type>(e) >= first;
+	  });
 	if(mid != std::end(destroyed_entities))
 		destroy(
 		  psl::array_view<entity_t> {&*mid, static_cast<size_t>(std::distance(mid, std::end(destroyed_entities)))});

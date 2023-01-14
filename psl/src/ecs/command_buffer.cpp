@@ -55,7 +55,8 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 	auto offset = cInfo->size();
 	cInfo->add(entities);
 	for(const auto& id_range : entities) {
-		for(auto i = static_cast<entity_t::size_type>(id_range.first); i < static_cast<entity_t::size_type>(id_range.second);
+		for(auto i = static_cast<entity_t::size_type>(id_range.first);
+			i < static_cast<entity_t::size_type>(id_range.second);
 			++i) {
 			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
 		}
@@ -153,7 +154,7 @@ void command_buffer_t::destroy(psl::array_view<entity_t> entities) noexcept {
 		}
 		++m_Orphans;
 		m_Entities[static_cast<entity_t::size_type>(e)] = entity_t {m_Next};
-		m_Next										 = static_cast<entity_t::size_type>(e);
+		m_Next											= static_cast<entity_t::size_type>(e);
 	}
 }
 
@@ -165,7 +166,7 @@ void command_buffer_t::destroy(psl::ecs::details::indirect_array_t<entity_t, ent
 		}
 		++m_Orphans;
 		m_Entities[static_cast<entity_t::size_type>(e)] = entity_t {m_Next};
-		m_Next										 = static_cast<entity_t::size_type>(e);
+		m_Next											= static_cast<entity_t::size_type>(e);
 	}
 }
 
@@ -180,7 +181,7 @@ void command_buffer_t::destroy(entity_t entity) noexcept {
 		return;
 
 	m_Entities[static_cast<entity_t::size_type>(entity)] = entity_t {m_Next};
-	m_Next											  = static_cast<entity_t::size_type>(entity);
+	m_Next												 = static_cast<entity_t::size_type>(entity);
 
 	++m_Orphans;
 }

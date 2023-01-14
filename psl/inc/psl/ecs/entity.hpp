@@ -42,7 +42,7 @@ namespace details {
 /// \brief entity points to a collection of components
 struct entity_t {
 	// edit this value for smaller or larger entities.
-	using size_type = uint32_t;
+	using size_type		 = uint32_t;
 	constexpr entity_t() = default;
 	constexpr entity_t(size_type value) noexcept : value(value) {}
 	constexpr entity_t(const entity_t& entity) noexcept			   = default;

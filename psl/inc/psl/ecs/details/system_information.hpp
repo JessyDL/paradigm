@@ -135,20 +135,21 @@ class dependency_pack {
 			std::vector<entity_t::size_type> indices {};
 			indices.resize(m_Entities.size());
 			std::iota(std::begin(indices), std::end(indices), entity_t::size_type {0});
-			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(indices, (T*)m_Entities.data());
+			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(indices,
+																						 (T*)m_Entities.data());
 		} else {
 			constexpr component_key_t id = details::component_key_t::generate<T>();
 			if constexpr(std::is_const<T>::value) {
 				auto it = m_IndirectReadBindings.find(id);
 				psl_assert(it != m_IndirectReadBindings.end(), "type wasn't present in `m_IndirectReadBindings`");
 				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(it->second.indices,
-																						  (T*)it->second.data);
+																							 (T*)it->second.data);
 			} else {
 				auto it = m_IndirectReadWriteBindings.find(id);
 				psl_assert(it != m_IndirectReadWriteBindings.end(),
 						   "type wasn't present in `m_IndirectReadWriteBindings`");
 				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(it->second.indices,
-																						  (T*)it->second.data);
+																							 (T*)it->second.data);
 			}
 		}
 	}

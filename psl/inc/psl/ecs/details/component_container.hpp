@@ -46,7 +46,9 @@ class component_container_t {
 			 bool repeat = false) {
 		add_impl(entities, data, repeat);
 	}
-	void destroy(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) { remove_impl(entities); };
+	void destroy(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) {
+		remove_impl(entities);
+	};
 	void destroy(psl::array_view<entity_t> entities) noexcept { remove_impl(entities); }
 	void destroy(entity_t entity) noexcept { remove_impl(entity); }
 	virtual void* data() noexcept			  = 0;
@@ -90,17 +92,18 @@ class component_container_t {
 	virtual void clear()											= 0;
 
   protected:
-	virtual void purge_impl() noexcept												   = 0;
-	virtual void add_impl(entity_t entity, void* data)								   = 0;
-	virtual void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat) = 0;
-	virtual void
-	add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities, void* data, bool repeat) = 0;
-	virtual psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept						   = 0;
-	virtual void set_impl(entity_t entity, void* data) noexcept												   = 0;
-	virtual void remove_impl(entity_t entity)																   = 0;
-	virtual void remove_impl(psl::array_view<entity_t> entities)											   = 0;
-	virtual void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities)		   = 0;
-	virtual bool has_impl(entity_t entity, stage_range_t stage) const noexcept								   = 0;
+	virtual void purge_impl() noexcept																		= 0;
+	virtual void add_impl(entity_t entity, void* data)														= 0;
+	virtual void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat)						= 0;
+	virtual void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
+						  void* data,
+						  bool repeat)																		= 0;
+	virtual psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept						= 0;
+	virtual void set_impl(entity_t entity, void* data) noexcept												= 0;
+	virtual void remove_impl(entity_t entity)																= 0;
+	virtual void remove_impl(psl::array_view<entity_t> entities)											= 0;
+	virtual void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) = 0;
+	virtual bool has_impl(entity_t entity, stage_range_t stage) const noexcept								= 0;
 
   protected:
 	component_key_t m_ID;

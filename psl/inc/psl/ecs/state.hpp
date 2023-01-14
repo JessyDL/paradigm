@@ -155,7 +155,7 @@ class state_t final {
 	struct transform_result {
 		bool operator==(const transform_result& other) const noexcept { return group == other.group; }
 		psl::array<entity_t> entities;
-		psl::array<entity_t::size_type> indices;	 // used in case there is an order_by
+		psl::array<entity_t::size_type> indices;	// used in case there is an order_by
 		std::shared_ptr<details::transform_group> group;
 	};
 
@@ -221,14 +221,16 @@ class state_t final {
 	T& get(entity_t entity) {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity), details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity),
+												   details::stage_range_t::ALL);
 	}
 
 	template <typename T>
 	const T& get(entity_t entity) const noexcept {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity), details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity),
+												   details::stage_range_t::ALL);
 	}
 
 	template <typename T>

@@ -99,7 +99,8 @@ class command_buffer_t {
 		(add_component<Ts>(entities), ...);
 	}
 	template <typename... Ts>
-	void add_components(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities, Ts&&... prototype) {
+	void add_components(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
+						Ts&&... prototype) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
