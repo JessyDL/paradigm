@@ -92,14 +92,14 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	void add_components(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) {
+	void add_components(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
 		(add_component<Ts>(entities), ...);
 	}
 	template <typename... Ts>
-	void add_components(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities, Ts&&... prototype) {
+	void add_components(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities, Ts&&... prototype) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
@@ -107,7 +107,7 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	void remove_components(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) noexcept {
+	void remove_components(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) noexcept {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
@@ -116,9 +116,9 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	psl::array<entity_t> create(entity_size_type count) {
+	psl::array<entity_t> create(entity_t::size_type count) {
 		psl::array<entity_t> entities;
-		const auto recycled = std::min<entity_size_type>(static_cast<entity_size_type>(count), m_Orphans);
+		const auto recycled = std::min<entity_t::size_type>(static_cast<entity_t::size_type>(count), m_Orphans);
 		m_Orphans -= recycled;
 		const auto remainder = count - recycled;
 
@@ -130,13 +130,13 @@ class command_buffer_t {
 		for(size_t i = 0; i < recycled; ++i) {
 			const auto orphan = m_Next;
 			entities.emplace_back(orphan);
-			m_Next					   = static_cast<entity_size_type>(m_Entities[m_Next]);
+			m_Next					   = static_cast<entity_t::size_type>(m_Entities[m_Next]);
 			m_Entities[(size_t)orphan] = orphan;
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back(entity_t {static_cast<entity_size_type>(m_Entities.size()) + m_First});
-			m_Entities.emplace_back(entity_t {static_cast<entity_size_type>(m_Entities.size()) + m_First});
+			entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
+			m_Entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
 		}
 
 		if constexpr(sizeof...(Ts) > 0) {
@@ -146,9 +146,9 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
-	psl::array<entity_t> create(entity_size_type count, Ts&&... prototype) {
+	psl::array<entity_t> create(entity_t::size_type count, Ts&&... prototype) {
 		psl::array<entity_t> entities;
-		const auto recycled = std::min<entity_size_type>(count, m_Orphans);
+		const auto recycled = std::min<entity_t::size_type>(count, m_Orphans);
 		m_Orphans -= recycled;
 		const auto remainder = count - recycled;
 
@@ -173,7 +173,7 @@ class command_buffer_t {
 	}
 
 	void destroy(psl::array_view<entity_t> entities) noexcept;
-	void destroy(psl::ecs::details::indirect_array_t<entity_t, entity_size_type> entities) noexcept;
+	void destroy(psl::ecs::details::indirect_array_t<entity_t, entity_t::size_type> entities) noexcept;
 	void destroy(entity_t entity) noexcept;
 
   private:
@@ -200,7 +200,7 @@ class command_buffer_t {
 	// add_component
 	//------------------------------------------------------------
 	template <typename T>
-	void add_component(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities, T&& prototype) {
+	void add_component(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities, T&& prototype) {
 		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
 					 std::is_trivially_destructible<T>::value) {
 			static_assert(!std::is_empty_v<T>,
@@ -241,7 +241,7 @@ class command_buffer_t {
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) {
+	void add_component(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) {
 		create_storage<T>();
 
 		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
@@ -319,14 +319,14 @@ class command_buffer_t {
 	}
 
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity_size_type, entity_size_type>> entities,
+							psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 							size_t size);
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity_size_type, entity_size_type>> entities,
+							psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 							size_t size,
 							std::function<void(std::uintptr_t, size_t)> invocable);
 	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity_size_type, entity_size_type>> entities,
+							psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 							size_t size,
 							void* prototype);
 
@@ -346,17 +346,17 @@ class command_buffer_t {
 	// remove_component
 	//------------------------------------------------------------
 	void remove_component(const details::component_key_t& key,
-						  psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) noexcept;
+						  psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) noexcept;
 	void remove_component(const details::component_key_t& key, psl::array_view<entity_t> entities) noexcept;
 
 	state_t const* m_State {nullptr};
 	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
-	entity_size_type m_First {0};
+	entity_t::size_type m_First {0};
 	psl::array<entity_t> m_Entities {};
 
 	psl::array<entity_t> m_DestroyedEntities {};
 
-	entity_size_type m_Next {0};
-	entity_size_type m_Orphans {0};
+	entity_t::size_type m_Next {0};
+	entity_t::size_type m_Orphans {0};
 };
 }	 // namespace psl::ecs

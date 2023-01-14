@@ -25,7 +25,7 @@ concept IsValidForStagedSparseMemoryRange = IsComponentTrivialType<T>;
 /// \note due to the dense data being stored on its own page, alignment shouldn't be a concern.
 /// \warning This container is unsuitable for types that have non-trivial constructors, copy/move operations, and destructors. Check your type against `IsValidForStagedSparseMemoryRange` to verify.
 class staged_sparse_memory_region_t {
-	using Key = psl::ecs::entity_size_type;
+	using Key = psl::ecs::entity_t::size_type;
 	static constexpr Key chunks_size {4096};
 	static constexpr bool is_power_of_two {chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
 	static constexpr Key mod_val {(is_power_of_two) ? chunks_size - 1 : chunks_size};

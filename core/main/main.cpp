@@ -885,7 +885,7 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity_size_type>(
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity_t::size_type>(
 				(frame % 250 == 0) ? burst : 0),
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;

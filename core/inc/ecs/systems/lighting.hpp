@@ -64,7 +64,7 @@ class lighting_system {
 	memory::segment m_LightSegment;
 
 	// std::unordered_map<psl::ecs::entity_t, psl::view_ptr<core::gfx::drawpass>> m_Passes;
-	std::unordered_map<psl::ecs::entity_size_type, psl::unique_ptr<core::ecs::systems::render>> m_Systems;
+	std::unordered_map<psl::ecs::entity_t::size_type, psl::unique_ptr<core::ecs::systems::render>> m_Systems;
 };
 
 }	 // namespace core::ecs::systems

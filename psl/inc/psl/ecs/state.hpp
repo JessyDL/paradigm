@@ -34,11 +34,11 @@ struct converter<psl::ecs::entity_t> {
 	using encoding_t = psl::string8_t;
 
 	static encoding_t to_string(const value_t& x) {
-		return converter<psl::ecs::entity_size_type> {}.to_string(x.value);
+		return converter<psl::ecs::entity_t::size_type> {}.to_string(x.value);
 	}
 
 	static value_t from_string(view_t str) {
-		return value_t(converter<psl::ecs::entity_size_type> {}.from_string(str));
+		return value_t(converter<psl::ecs::entity_t::size_type> {}.from_string(str));
 	}
 
 	static void from_string(value_t& out, view_t str) { out = from_string(str); }
@@ -155,7 +155,7 @@ class state_t final {
 	struct transform_result {
 		bool operator==(const transform_result& other) const noexcept { return group == other.group; }
 		psl::array<entity_t> entities;
-		psl::array<entity_size_type> indices;	 // used in case there is an order_by
+		psl::array<entity_t::size_type> indices;	 // used in case there is an order_by
 		std::shared_ptr<details::transform_group> group;
 	};
 
@@ -221,14 +221,14 @@ class state_t final {
 	T& get(entity_t entity) {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(static_cast<entity_size_type>(entity), details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity), details::stage_range_t::ALL);
 	}
 
 	template <typename T>
 	const T& get(entity_t entity) const noexcept {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(static_cast<entity_size_type>(entity), details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity), details::stage_range_t::ALL);
 	}
 
 	template <typename T>
@@ -264,10 +264,10 @@ class state_t final {
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity_t> create(entity_size_type count) {
+	[[maybe_unused]] psl::array<entity_t> create(entity_t::size_type count) {
 		psl::array<entity_t> entities;
 		entities.reserve(count);
-		const auto recycled	 = std::min<entity_size_type>(count, static_cast<entity_size_type>(m_Orphans.size()));
+		const auto recycled	 = std::min<entity_t::size_type>(count, static_cast<entity_t::size_type>(m_Orphans.size()));
 		const auto remainder = count - recycled;
 
 		std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans), std::back_inserter(entities));
@@ -283,10 +283,10 @@ class state_t final {
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity_t> create(entity_size_type count, Ts&&... prototype) {
+	[[maybe_unused]] psl::array<entity_t> create(entity_t::size_type count, Ts&&... prototype) {
 		psl::array<entity_t> entities;
 		entities.reserve(count);
-		const auto recycled	 = std::min<entity_size_type>(count, static_cast<entity_size_type>(m_Orphans.size()));
+		const auto recycled	 = std::min<entity_t::size_type>(count, static_cast<entity_t::size_type>(m_Orphans.size()));
 		const auto remainder = count - recycled;
 
 		std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans), std::back_inserter(entities));
@@ -305,14 +305,14 @@ class state_t final {
 
 	psl::array<entity_t> all_entities() const noexcept {
 		auto orphans = m_Orphans;
-		psl::array_view<entity_size_type> orphans_view {(entity_size_type*)orphans.data(), orphans.size()};
+		psl::array_view<entity_t::size_type> orphans_view {(entity_t::size_type*)orphans.data(), orphans.size()};
 		std::sort(std::begin(orphans_view), std::end(orphans_view));
 
 		auto orphan_it = std::begin(orphans);
 		psl::array<entity_t> result;
 		result.reserve(m_Entities - orphans.size());
-		for(entity_size_type e = 0; e < m_Entities; ++e) {
-			if(orphan_it != std::end(m_Orphans) && e == static_cast<entity_size_type>(*orphan_it)) {
+		for(entity_t::size_type e = 0; e < m_Entities; ++e) {
+			if(orphan_it != std::end(m_Orphans) && e == static_cast<entity_t::size_type>(*orphan_it)) {
 				orphan_it = std::next(orphan_it);
 				continue;
 			}
@@ -334,7 +334,7 @@ class state_t final {
 			auto modified = psl::array<entity_t> {(entity_t*)m_ModifiedEntities.indices().data(),
 												  (entity_t*)m_ModifiedEntities.indices().data() +
 													m_ModifiedEntities.indices().size()};
-			std::sort((entity_size_type*)modified.data(), (entity_size_type*)(modified.data() + modified.size()));
+			std::sort((entity_t::size_type*)modified.data(), (entity_t::size_type*)(modified.data() + modified.size()));
 
 			filter_result data {it->entities, it->group};
 			filter(data, modified);
@@ -632,7 +632,7 @@ class state_t final {
 		auto location = (std::uintptr_t)cInfo->data() + (offset * component_size);
 		std::invoke(invocable, location, entities.size());
 		for(size_t i = 0; i < entities.size(); ++i)
-			m_ModifiedEntities.try_insert(static_cast<entity_size_type>(entities[i]));
+			m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(entities[i]));
 	}
 
 	void add_component_impl(const details::component_key_t& key,
@@ -854,13 +854,13 @@ class state_t final {
 	mutable std::unordered_map<details::component_key_t, std::unique_ptr<details::component_container_t>>
 	  m_Components {};
 
-	psl::sparse_indice_array<entity_size_type> m_ModifiedEntities {};
+	psl::sparse_indice_array<entity_t::size_type> m_ModifiedEntities {};
 
 	psl::unique_ptr<psl::async::scheduler> m_Scheduler {nullptr};
 
 	size_t m_LockState {0};
 	size_t m_Tick {0};
 	size_t m_SystemCounter {0};
-	entity_size_type m_Entities {0};
+	entity_t::size_type m_Entities {0};
 };
 }	 // namespace psl::ecs

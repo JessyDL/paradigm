@@ -13,7 +13,7 @@ using namespace litmus;
 template <typename T, auto... Values>
 using array_typed = litmus::generator::array_typed<T, Values...>;
 
-using entity = psl::ecs::entity_size_type;
+using entity = psl::ecs::entity_t::size_type;
 
 template <typename Fn>
 auto any_of_n(auto first, auto last, Fn&& fn) {
