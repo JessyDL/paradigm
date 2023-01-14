@@ -11,6 +11,19 @@ using psl::ecs::details::component_key_t;
 
 constexpr size_t min_thread_entities = 1;
 
+template <typename T = void>
+void invoke(auto&& fn, auto begin, auto end) {
+	auto count = end - begin;
+	if(count > 0) {
+		auto* data = begin.operator->();
+		if constexpr(std::is_same_v<T, void>) {
+			fn(data, data + count);
+		} else {
+			fn((T*)data, (T*)(data) + count);
+		}
+	}
+}
+
 
 state_t::state_t(size_t workers, size_t cache_size)
 	: m_Cache(cache_size),
@@ -190,7 +203,8 @@ void state_t::tick(std::chrono::duration<float> dTime) {
 	auto modified_entities =
 	  psl::array<entity_t> {(entity_t*)m_ModifiedEntities.indices().data(),
 							(entity_t*)m_ModifiedEntities.indices().data() + m_ModifiedEntities.indices().size()};
-	std::sort(std::begin(modified_entities), std::end(modified_entities));
+	invoke<entity_size_type>(
+	  [](auto... args) { std::sort(args...); }, modified_entities.begin(), modified_entities.end());
 
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
@@ -570,8 +584,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			end = on_except_op(filter, begin, end);
 		}
 
-
-		std::sort(begin, end);
+		invoke<entity_size_type>([](auto... args) { std::sort(args...); }, begin, end);
 		if(data.group->clear_every_frame()) {
 			result.erase(end, std::end(result));
 			data.entities = std::move(result);
@@ -585,7 +598,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 											  std::end(transformation.entities));
 			}
 		} else {
-			std::sort(end, std::end(result));
+			invoke<entity_size_type>([](auto... args) { std::sort(args...); }, end, std::end(result));
 
 			// todo support order_by and on_condition
 			// if(false && data.transformations.size() > 0)
@@ -645,17 +658,21 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			{
 				psl::array_view new_source {begin, end};
 				psl::array<entity_t> diff_set {};
-				std::set_difference(std::begin(data.entities),
-									std::end(data.entities),
-									std::begin(source),
-									std::end(source),
+				psl::array_view<entity_size_type> ent_view {(entity_size_type*)(data.entities.data()),
+															data.entities.size()};
+				psl::array_view<entity_size_type> source_view {(entity_size_type*)(source.data()), source.size()};
+				std::set_difference(std::begin(ent_view),
+									std::end(ent_view),
+									std::begin(source_view),
+									std::end(source_view),
 									std::back_inserter(diff_set));
 				data.entities = std::move(diff_set);
 
 				auto size = std::size(data.entities);
 				data.entities.insert(std::end(data.entities), begin, end);
-				std::inplace_merge(
-				  std::begin(data.entities), std::next(std::begin(data.entities), size), std::end(data.entities));
+				ent_view =
+				  psl::array_view<entity_size_type> {(entity_size_type*)(data.entities.data()), data.entities.size()};
+				std::inplace_merge(std::begin(ent_view), std::next(std::begin(ent_view), size), std::end(ent_view));
 			}
 		}
 	}
@@ -745,15 +762,19 @@ void state_t::execute_command_buffer(info_t& info) {
 	psl::sparse_array<entity_size_type> remapped_entities;
 	if(buffer.m_Entities.size() > 0) {
 		psl::array<entity_t> added_entities;
-		std::set_difference(std::begin(buffer.m_Entities),
-							std::end(buffer.m_Entities),
-							std::begin(buffer.m_DestroyedEntities),
-							std::end(buffer.m_DestroyedEntities),
+		psl::array_view<entity_size_type> buf_view {(entity_size_type*)buffer.m_Entities.data(),
+													buffer.m_Entities.size()};
+		psl::array_view<entity_size_type> buf_destroyed_view {(entity_size_type*)buffer.m_DestroyedEntities.data(),
+															  buffer.m_DestroyedEntities.size()};
+		std::set_difference(std::begin(buf_view),
+							std::end(buf_view),
+							std::begin(buf_destroyed_view),
+							std::end(buf_destroyed_view),
 							std::back_inserter(added_entities));
 
 
 		for(auto e : added_entities) {
-			remapped_entities[e] = static_cast<entity_size_type>(create());
+			remapped_entities[static_cast<entity_size_type>(e)] = static_cast<entity_size_type>(create());
 		}
 	}
 	for(auto& component_src : buffer.m_Components) {
@@ -761,7 +782,9 @@ void state_t::execute_command_buffer(info_t& info) {
 			continue;
 		auto component_dst = get_component_container(component_src->id());
 
-		component_src->remap(remapped_entities, [first = buffer.m_First](entity_t e) -> bool { return e >= first; });
+		component_src->remap(remapped_entities, [first = buffer.m_First](entity_t e) -> bool {
+			return static_cast<entity_size_type>(e) >= first;
+		});
 		if(component_dst == nullptr) {
 			auto entities = component_src->entities(true);
 			for(auto e : entities) {
@@ -776,7 +799,7 @@ void state_t::execute_command_buffer(info_t& info) {
 	auto destroyed_entities = buffer.m_DestroyedEntities;
 	auto mid				= std::partition(std::begin(destroyed_entities),
 								 std::end(destroyed_entities),
-								 [first = buffer.m_First](auto e) { return e >= first; });
+								 [first = buffer.m_First](auto e) { return static_cast<entity_size_type>(e) >= first; });
 	if(mid != std::end(destroyed_entities))
 		destroy(
 		  psl::array_view<entity_t> {&*mid, static_cast<size_t>(std::distance(mid, std::end(destroyed_entities)))});

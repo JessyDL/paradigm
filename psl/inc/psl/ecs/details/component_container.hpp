@@ -126,7 +126,9 @@ class component_container_typed_t final : public component_container_t {
 	void* data() noexcept override { return m_Entities.data(); }
 	void* const data() const noexcept override { return m_Entities.data(); }
 
-	bool has_storage_for(entity_t entity) const noexcept override { return m_Entities.has(entity, stage_range_t::ALL); }
+	bool has_storage_for(entity_t entity) const noexcept override {
+		return m_Entities.has(static_cast<entity_size_type>(entity), stage_range_t::ALL);
+	}
 
 	psl::array<entity_size_type>
 	memory_location_offsets_for(psl::array_view<entity_t> entities) const noexcept override {
@@ -248,7 +250,7 @@ class component_container_typed_t final : public component_container_t {
 
 	void remove_impl(entity_t entity) override { m_Entities.erase(static_cast<entity_size_type>(entity)); }
 	void remove_impl(psl::array_view<entity_t> entities) override {
-		for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(entities[i]);
+		for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(static_cast<entity_size_type>(entities[i]));
 	}
 	void remove_impl(psl::array_view<std::pair<entity_size_type, entity_size_type>> entities) override {
 		for(auto range : entities) {
@@ -375,7 +377,8 @@ class component_container_untyped_t : public component_container_t {
 		const auto base = reinterpret_cast<std::uintptr_t>(m_Entities.data());
 		result.reserve(entities.size());
 		for(auto e : entities) {
-			const auto address = reinterpret_cast<std::uintptr_t>(m_Entities.addressof(e, stage_range_t::ALL));
+			const auto address = reinterpret_cast<std::uintptr_t>(
+			  m_Entities.addressof(static_cast<entity_size_type>(e), stage_range_t::ALL));
 			result.emplace_back(
 			  static_cast<entity_size_type>((address - base) / static_cast<entity_size_type>(m_Size)));
 		}

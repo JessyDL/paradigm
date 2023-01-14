@@ -130,7 +130,7 @@ class command_buffer_t {
 		for(size_t i = 0; i < recycled; ++i) {
 			const auto orphan = m_Next;
 			entities.emplace_back(orphan);
-			m_Next					   = m_Entities[(size_t)m_Next];
+			m_Next					   = static_cast<entity_size_type>(m_Entities[m_Next]);
 			m_Entities[(size_t)orphan] = orphan;
 		}
 

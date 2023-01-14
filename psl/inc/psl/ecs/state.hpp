@@ -221,14 +221,14 @@ class state_t final {
 	T& get(entity_t entity) {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(static_cast<entity_size_type>(entity), details::stage_range_t::ALL);
 	}
 
 	template <typename T>
 	const T& get(entity_t entity) const noexcept {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(static_cast<entity_size_type>(entity), details::stage_range_t::ALL);
 	}
 
 	template <typename T>
@@ -264,7 +264,7 @@ class state_t final {
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity_t> create(entity_t count) {
+	[[maybe_unused]] psl::array<entity_t> create(entity_size_type count) {
 		psl::array<entity_t> entities;
 		entities.reserve(count);
 		const auto recycled	 = std::min<entity_size_type>(count, static_cast<entity_size_type>(m_Orphans.size()));
@@ -283,7 +283,7 @@ class state_t final {
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity_t> create(entity_t count, Ts&&... prototype) {
+	[[maybe_unused]] psl::array<entity_t> create(entity_size_type count, Ts&&... prototype) {
 		psl::array<entity_t> entities;
 		entities.reserve(count);
 		const auto recycled	 = std::min<entity_size_type>(count, static_cast<entity_size_type>(m_Orphans.size()));
@@ -305,13 +305,14 @@ class state_t final {
 
 	psl::array<entity_t> all_entities() const noexcept {
 		auto orphans = m_Orphans;
-		std::sort(std::begin(orphans), std::end(orphans));
+		psl::array_view<entity_size_type> orphans_view {(entity_size_type*)orphans.data(), orphans.size()};
+		std::sort(std::begin(orphans_view), std::end(orphans_view));
 
 		auto orphan_it = std::begin(orphans);
 		psl::array<entity_t> result;
 		result.reserve(m_Entities - orphans.size());
 		for(entity_size_type e = 0; e < m_Entities; ++e) {
-			if(orphan_it != std::end(m_Orphans) && e == *orphan_it) {
+			if(orphan_it != std::end(m_Orphans) && e == static_cast<entity_size_type>(*orphan_it)) {
 				orphan_it = std::next(orphan_it);
 				continue;
 			}
@@ -333,7 +334,7 @@ class state_t final {
 			auto modified = psl::array<entity_t> {(entity_t*)m_ModifiedEntities.indices().data(),
 												  (entity_t*)m_ModifiedEntities.indices().data() +
 													m_ModifiedEntities.indices().size()};
-			std::sort(std::begin(modified), std::end(modified));
+			std::sort((entity_size_type*)modified.data(), (entity_size_type*)(modified.data() + modified.size()));
 
 			filter_result data {it->entities, it->group};
 			filter(data, modified);

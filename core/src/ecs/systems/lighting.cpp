@@ -86,9 +86,9 @@ void lighting_system::create_dir(info_t& info, pack_direct_full_t<entity_t, ligh
 
 		auto depthPass = m_Cache->create<gfx::framebuffer_t>(m_Context, fbdata);
 
-		auto pass	 = m_RenderGraph->create_drawpass(m_Context, depthPass);
-		m_Systems[e] = new core::ecs::systems::render {*m_State, pass};
-		m_Systems[e]->add_render_range(1000, 1500);
+		auto pass											  = m_RenderGraph->create_drawpass(m_Context, depthPass);
+		m_Systems[static_cast<psl::ecs::entity_size_type>(e)] = new core::ecs::systems::render {*m_State, pass};
+		m_Systems[static_cast<psl::ecs::entity_size_type>(e)]->add_render_range(1000, 1500);
 
 		m_RenderGraph->connect(pass, m_DependsPass);
 	}
