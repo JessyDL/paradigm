@@ -101,17 +101,20 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 		auto& cInfo = *details::cast_component_container<type>(cInfoPtr.get());
 
 		section<"additions">() = [&]() {
-			psl::array<entity> entities;
+			psl::array<entity_t> entities;
 			entities.resize(100);
-			std::iota(std::begin(entities), std::end(entities), entity {0});
+			std::iota(std::begin(entities), std::end(entities), entity_t::size_type {0});
 			cInfo.add(entities);
 			require(cInfo.size()) == entities.size();
 			require(cInfo.added_entities().size()) == entities.size();
-			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity e) { cInfo.set(e, type(e)); });
-			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity e) {
+			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity_t e) {
+				cInfo.set(e, type(static_cast<entity_t::size_type>(e)));
+			});
+			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity_t e) {
 				require(cInfo.has_component(e));
 				require(cInfo.has_added(e));
-				require(cInfo.entity_data().template at<type>(e)) == type(e);
+				require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(e))) ==
+				  type(static_cast<entity_t::size_type>(e));
 			});
 
 			section<"removals">() = [&]() {
@@ -120,23 +123,25 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 				std::shuffle(std::begin(entities), std::end(entities), g);
 
 				auto count = entities.size() / 10;
-				for(entity c = 0; c < 10; ++c) {
+				for(entity_t::size_type c = 0; c < 10; ++c) {
 					for(auto i = 0; i < count; ++i) {
 						auto index = c * 10 + i;
 						cInfo.destroy(entities[index]);
 					}
 
-					for(entity i = 0; i < static_cast<entity>(entities.size()); ++i) {
+					for(entity_t::size_type i = 0; i < static_cast<entity_t::size_type>(entities.size()); ++i) {
 						if(i < (c + 1) * 10) {
 							auto index = entities[i];
 							require(!cInfo.has_component(index));
 							require(cInfo.has_removed(index));
-							require(cInfo.entity_data().template at<type>(index, details::stage_range_t::REMOVED)) ==
-							  type(index);
+							require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(index),
+																		  details::stage_range_t::REMOVED)) ==
+							  type(static_cast<entity_t::size_type>(index));
 						} else {
 							auto index = entities[i];
 							require(cInfo.has_component(index));
-							require(cInfo.entity_data().template at<type>(index)) == type(index);
+							require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(index))) ==
+							  type(static_cast<entity_t::size_type>(index));
 						}
 					}
 				}
@@ -148,36 +153,46 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 		section<"remap">() = [&]() {
 			auto cInfo2Ptr {details::instantiate_component_container<type>()};
 			auto& cInfo2 = *details::cast_component_container<type>(cInfo2Ptr.get());
-			psl::array<entity> entities;
+			psl::array<entity_t> entities;
 			entities.resize(100);
-			std::iota(std::begin(entities), std::end(entities), entity {0});
+			std::iota(std::begin(entities), std::end(entities), entity_t::size_type {0});
 			cInfo.add(entities);
 			cInfo2.add(entities);
 
-			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity e) { cInfo.set(e, type(e)); });
+			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity_t e) {
+				cInfo.set(e, type(static_cast<entity_t::size_type>(e)));
+			});
 
-			std::for_each(
-			  std::begin(entities),
-			  std::end(entities),
-			  [&cInfo2, offset = static_cast<entity>(cInfo.size())](entity e) { cInfo2.set(e, type(e + offset)); });
-
-			psl::sparse_array<entity> remap;
 			std::for_each(std::begin(entities),
 						  std::end(entities),
-						  [&remap, offset = static_cast<entity>(cInfo.size())](entity e) { remap[e] = e + offset; });
-			cInfo2.remap(remap, [offset = static_cast<entity>(cInfo.size())](entity e) { return e < offset; });
+						  [&cInfo2, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
+							  cInfo2.set(e, type(static_cast<entity_t::size_type>(e) + offset));
+						  });
+
+			psl::sparse_array<entity_t::size_type> remap;
+			std::for_each(std::begin(entities),
+						  std::end(entities),
+						  [&remap, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
+							  remap[static_cast<entity_t::size_type>(e)] = static_cast<entity_t::size_type>(e) + offset;
+						  });
+			cInfo2.remap(remap, [offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
+				return static_cast<entity_t::size_type>(e) < offset;
+			});
 			std::for_each(std::begin(cInfo2.entities()),
 						  std::end(cInfo2.entities()),
-						  [offset = static_cast<entity>(cInfo.size())](entity e) { require(e) >= offset; });
+						  [offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
+							  require(static_cast<entity_t::size_type>(e)) >= offset;
+						  });
 			section<"merge">() = [&]() {
 				auto orig_size = cInfo.size();
 				cInfo.merge(cInfo2);
 				require(cInfo.size()) == orig_size + cInfo2.size();
 				std::for_each(std::begin(cInfo.entities()),
 							  std::end(cInfo.entities()),
-							  [&cInfo, offset = static_cast<entity>(cInfo.size())](entity e) {
-								  require(e) <= offset;
-								  require(cInfo.entity_data().template operator[]<type>(e)) == type(e);
+							  [&cInfo, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
+								  require(static_cast<entity_t::size_type>(e)) <= offset;
+								  require(cInfo.entity_data().template operator[]<type>(
+									static_cast<entity_t::size_type>(e))) == type(static_cast<entity_t::size_type>(e));
 							  });
 			};
 		};
@@ -208,9 +223,9 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 			.templates<tpack<float, complex_wrapper_float, flag_type>, policy_tpack, access_tpack>() =
   []<typename type, typename policy, typename access>() {
 	  state_t state;
-	  auto e_list1 {state.create(100)};
-	  auto e_list2 {state.create(400)};
-	  auto e_list3 {state.create(500)};
+	  auto e_list1 {state.create(static_cast<entity_t::size_type>(100))};
+	  auto e_list2 {state.create(static_cast<entity_t::size_type>(400))};
+	  auto e_list3 {state.create(static_cast<entity_t::size_type>(500))};
 
 
 	  section<"only the first 100 are given all components">() = [&]() {
@@ -244,8 +259,8 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 		  require(f.size()) == e_list1.size();
 		  require(std::equal(std::begin(f), std::end(f), std::begin(e_list1)));
 
-		  f								  = state.filter<size_t, char>();
-		  std::vector<entity> combination = e_list1;
+		  f									= state.filter<size_t, char>();
+		  std::vector<entity_t> combination = e_list1;
 		  combination.reserve(e_list1.size() + e_list3.size());
 		  combination.insert(std::end(combination), std::begin(e_list3), std::end(e_list3));
 		  require(std::equal(std::begin(f), std::end(f), std::begin(combination)));
@@ -256,14 +271,14 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 	  };
 
 	  section<"filtering components that are non-contiguous">() = [&]() {
-		  state.create<type, size_t>(500);
+		  state.create<type, size_t>(static_cast<entity_t::size_type>(500));
 		  state.destroy(1200);
-		  auto entities = state.create<type, size_t>(3);
+		  auto entities = state.create<type, size_t>(static_cast<entity_t::size_type>(3));
 
 		  require(entities.size()) == 3;
-		  require(entities[0]) == 1500;
-		  require(entities[1]) == 1501;
-		  require(entities[2]) == 1502;
+		  require(static_cast<entity_t::size_type>(entities[0])) == 1500;
+		  require(static_cast<entity_t::size_type>(entities[1])) == 1501;
+		  require(static_cast<entity_t::size_type>(entities[2])) == 1502;
 		  require(state.filter<type>().size()) == 502;	  // 500 + 3 - 1
 		  require(state.filter<type>().size()) == state.filter<on_add<type>>().size();
 		  require(state.filter<type>().size()) == state.filter<on_combine<type, size_t>>().size();
@@ -334,7 +349,7 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 
 	size_t count {0};
 	state.create(
-	  50,
+	  static_cast<entity_t::size_type>(50),
 	  [&count](position& i) {
 		  i = {++count, 0};
 	  },
@@ -362,17 +377,17 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 	  state_t state;
 
 	  section<"lifetime test">() = [&]() {
-		  auto e_list1 {state.create(10)};
-		  auto e_list2 {state.create(40)};
-		  auto e_list3 {state.create(50)};
+		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
+		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
+		  auto e_list3 {state.create(static_cast<entity_t::size_type>(50))};
 		  // pre-tick #1
 		  // we add int components to all elements in e_list1, by giving them an incrementing value
 		  // thanks to these being the first entities, they overlap with their ID
 		  size_t incrementer = 0;
 		  state.add_components(e_list1, [&incrementer](type& target) { target = type(incrementer++); });
 
-		  state.declare([](psl::ecs::info_t& info, pack_t<policy, access, entity, filter<type>> pack) {
-			  info.command_buffer.destroy(pack.template get<entity>());
+		  state.declare([](psl::ecs::info_t& info, pack_t<policy, access, entity_t, filter<type>> pack) {
+			  info.command_buffer.destroy(pack.template get<entity_t>());
 		  });
 
 		  size_t total_pack1 {0};
@@ -381,9 +396,9 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  std::mutex lock {};
 
 		  auto token = state.declare(
-			[&lock, &total_pack1](psl::ecs::info_t& info, pack_t<policy, access, entity, const type> pack1) {
+			[&lock, &total_pack1](psl::ecs::info_t& info, pack_t<policy, access, entity_t, const type> pack1) {
 				for(auto [e, i] : pack1) {
-					require(e) == i;
+					require(static_cast<entity_t::size_type>(e)) == i;
 				}
 
 				std::lock_guard<std::mutex> guard(lock);
@@ -403,7 +418,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  {
 			  for(auto e : e_list1) {
 				  auto val = state.template get<type>(e);
-				  require(e) == val;
+				  require(static_cast<entity_t::size_type>(e)) == val;
 			  }
 		  }
 		  state.revoke(token);
@@ -421,16 +436,16 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 
 		  token = state.declare(
 			[&lock, &total_pack1, &total_pack2](psl::ecs::info_t& info,
-												pack_t<policy, access, entity, const type, on_remove<type>> pack1,
-												pack_t<policy, access, entity, const type, filter<type>> pack2) {
+												pack_t<policy, access, entity_t, const type, on_remove<type>> pack1,
+												pack_t<policy, access, entity_t, const type, filter<type>> pack2) {
 				for(auto [e, i] : pack1) {
-					require(e) == i;
+					require(static_cast<entity_t::size_type>(e)) == i;
 				}
-				require(pack1.template get<entity>()[0]) == 0;
+				require(static_cast<entity_t::size_type>(pack1.template get<entity_t>()[0])) == 0;
 				// if this shows 0, then the previous deleted components of tick #1 are still present
-				require(pack2.template get<entity>()[0]) == 10;
+				require(static_cast<entity_t::size_type>(pack2.template get<entity_t>()[0])) == 10;
 				for(auto [e, i] : pack2) {
-					require(e) == i;
+					require(static_cast<entity_t::size_type>(e)) == i;
 				}
 				std::lock_guard<std::mutex> guard(lock);
 				total_pack1 += pack1.size();
@@ -453,8 +468,8 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  require(e_list2.size()) == state.filter<on_remove<type>>().size();
 		  require(0) == state.filter<type>().size();
 		  token = state.declare([&lock, &total_pack2](psl::ecs::info_t& info,
-													  pack_t<policy, access, entity, on_remove<type>> pack1,
-													  pack_t<policy, access, entity, filter<type>> pack2) {
+													  pack_t<policy, access, entity_t, on_remove<type>> pack1,
+													  pack_t<policy, access, entity_t, filter<type>> pack2) {
 			  std::lock_guard<std::mutex> guard(lock);
 			  total_pack2 += pack1.size();
 
@@ -483,7 +498,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 	  };
 
 	  section<"continuous removal from within systems">() = [&]() {
-		  auto e_list2 {state.create(40)};
+		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
@@ -493,11 +508,11 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 
 		  std::mutex lock {};
 
-		  state.declare([&expected, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity, type> pack) {
+		  state.declare([&expected, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) {
 			  size_t removed {0};
-			  psl::array<entity> entities;
+			  psl::array<entity_t> entities;
 			  for(auto [e, i] : pack) {
-				  require(type(e)) == i;
+				  require(type(static_cast<entity_t::size_type>(e))) == i;
 				  if(std::rand() % 2 == 0) {
 					  entities.emplace_back(e);
 					  removed++;
@@ -514,7 +529,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 
 
 	  section<"continuous removal from external">() = [&]() {
-		  auto e_list2 {state.create(40)};
+		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
@@ -524,9 +539,9 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  size_t total = 0;
 		  std::mutex lock {};
 
-		  state.declare([&total, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity, type> pack) {
+		  state.declare([&total, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) {
 			  for(auto [e, i] : pack) {
-				  require(type(e)) == i;
+				  require(type(static_cast<entity_t::size_type>(e))) == i;
 			  }
 			  std::lock_guard<std::mutex> guard(lock);
 			  total += pack.size();
@@ -539,28 +554,28 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 			  total	   = 0;
 			  auto mid = std::partition(std::begin(e_list2), std::end(e_list2), [](auto e) { return std::rand() % 2; });
 			  state.remove_components<type>(
-				psl::array_view<entity> {mid, static_cast<size_t>(std::distance(mid, std::end(e_list2)))});
+				psl::array_view<entity_t> {mid, static_cast<size_t>(std::distance(mid, std::end(e_list2)))});
 			  expected -= std::distance(mid, std::end(e_list2));
 			  e_list2.erase(mid, std::end(e_list2));
 		  }
 	  };
 
 	  section<"continuous addition from within systems">() = [&]() {
-		  auto e_list2 {state.create(40)};
+		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
 		  state.add_components<type>(e_list2, values);
 		  auto expected = e_list2.size();
 
-		  state.declare([&expected](psl::ecs::info_t& info, pack_t<psl::ecs::full_t, access, entity, type> pack) {
+		  state.declare([&expected](psl::ecs::info_t& info, pack_t<psl::ecs::full_t, access, entity_t, type> pack) {
 			  require(pack.size()) == expected;
 
 			  for(auto [e, i] : pack) {
-				  require(type(e)) == i;
+				  require(type(static_cast<entity_t::size_type>(e))) == i;
 			  }
-			  auto new_count			  = std::rand() % 20;
-			  psl::array<entity> entities = info.command_buffer.create(new_count);
+			  auto new_count				= static_cast<entity_t::size_type>(std::rand() % 20);
+			  psl::array<entity_t> entities = info.command_buffer.create(new_count);
 			  psl::array<type> values;
 			  values.resize(entities.size());
 			  std::iota(std::begin(values), std::end(values), type(expected));
@@ -574,7 +589,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 	  };
 
 	  section<"continuous addition from external">() = [&]() {
-		  auto e_list2 {state.create(40)};
+		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  {
 			  psl::array<type> values;
 			  values.resize(e_list2.size());
@@ -586,9 +601,9 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  size_t total = 0;
 		  std::mutex lock {};
 
-		  state.declare([&total, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity, type> pack) {
+		  state.declare([&total, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) {
 			  for(auto [e, i] : pack) {
-				  require(type(e)) == i;
+				  require(type(static_cast<entity_t::size_type>(e))) == i;
 			  }
 			  std::lock_guard<std::mutex> guard(lock);
 			  total += pack.size();
@@ -599,8 +614,8 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 			  require(total) == expected;
 			  total = 0;
 
-			  auto new_count			  = std::rand() % 20;
-			  psl::array<entity> entities = state.create(new_count);
+			  auto new_count				= static_cast<entity_t::size_type>(std::rand() % 20);
+			  psl::array<entity_t> entities = state.create(new_count);
 			  psl::array<type> values;
 			  values.resize(entities.size());
 			  std::iota(std::begin(values), std::end(values), type(expected));
@@ -610,9 +625,9 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 	  };
 
 	  section<"simple iterations test">() = [&]() {
-		  auto e_list1 {state.create(10)};
-		  auto e_list2 {state.create(40)};
-		  auto e_list3 {state.create(50)};
+		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
+		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
+		  auto e_list3 {state.create(static_cast<entity_t::size_type>(50))};
 		  state.add_components<float>(e_list1);
 		  state.add_components<type>(e_list1);
 		  auto system_id = state.declare(float_iteration_test<policy, access>);
@@ -654,7 +669,7 @@ auto t7 =
 
 		  size_t count = 0;
 		  std::mutex lock {};
-		  state.declare([&](info_t& info, pack_t<policy, access, entity, type> pack) {
+		  state.declare([&](info_t& info, pack_t<policy, access, entity_t, type> pack) {
 			  if(pack.empty())
 				  return;
 			  info.command_buffer.add_components<int>(pack, {0});
@@ -663,7 +678,7 @@ auto t7 =
 			  count += pack.size();
 		  });
 
-		  auto entities = state.create<type>(1);
+		  auto entities = state.create<type>(static_cast<entity_t::size_type>(1));
 		  expect(state.filter<on_add<type>>().size()) == 1;
 		  state.tick(std::chrono::duration<float>(1.0f));
 		  expect(state.filter<type>().size()) == 1;
@@ -684,8 +699,8 @@ auto t7 =
 		  // reason: filtering operation that was based on existing filters did not correctly
 		  //         use the already filtered entity list
 
-		  auto entities0 = state.create<type>(1);
-		  auto entities1 = state.create(1);
+		  auto entities0 = state.create<type>(static_cast<entity_t::size_type>(1));
+		  auto entities1 = state.create(static_cast<entity_t::size_type>(1));
 		  state.remove_components<type>(entities0);
 		  expect(state.filter<type>().size()) == 0;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
@@ -693,9 +708,9 @@ auto t7 =
 		  expect(state.filter<type>().size()) == 1;
 		  expect(state.filter<on_add<type>>().size()) == 1;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
-		  state.declare([&](info_t& info, pack_t<psl::ecs::full_t, access, entity, type> pack) {
+		  state.declare([&](info_t& info, pack_t<psl::ecs::full_t, access, entity_t, type> pack) {
 			  expect(pack.size()) == 1;
-			  expect(pack.template get<entity>()[0]) == 1;
+			  expect(static_cast<entity_t::size_type>(pack.template get<entity_t>()[0])) == 1;
 		  });
 		  state.tick(std::chrono::duration<float>(1.0f));
 		  expect(state.filter<type>().size()) == 1;
@@ -730,7 +745,7 @@ auto t8 = suite<"component_key name matches expected", "ecs", "psl">() = []() {
 auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 	psl::ecs::state_t state_a {}, state_b {};
 	int counter {0};
-	state_a.create(200, [&counter](int& value) { value = counter++; });
+	state_a.create(static_cast<entity_t::size_type>(200), [&counter](int& value) { value = counter++; });
 	state_a.override_serialization<int>(true);
 
 	psl::serialization::serializer serializer {};
@@ -748,7 +763,7 @@ auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 
 	for(size_t i = 0; i < components_a.size(); ++i) {
 		require(components_a[i]) == components_b[i];
-		require(entities[i]) == components_a[i];
+		require(static_cast<entity_t::size_type>(entities[i])) == components_a[i];
 	}
 
 	psl::format::container container_b {};
@@ -764,7 +779,7 @@ struct foo {
 
 auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
-	auto entity = state.create<foo>(1);
+	auto entity = state.create<foo>(static_cast<entity_t::size_type>(1));
 	require(state.get<foo>(entity[0]).value) == 10;
 };
 }	 // namespace

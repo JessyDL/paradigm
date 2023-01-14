@@ -26,7 +26,7 @@ class grid {
 
   public:
 	grid(psl::ecs::state_t& state,
-		 psl::ecs::entity target,
+		 psl::ecs::entity_t target,
 		 core::resource::cache_t& cache,
 		 core::resource::handle<core::gfx::context> context,
 		 core::resource::handle<core::gfx::buffer_t> vertexBuffer,
@@ -45,15 +45,15 @@ class grid {
 
   private:
 	void tick(psl::ecs::info_t& info,
-			  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+			  psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
 										   const core::ecs::components::transform,
 										   psl::ecs::filter<core::ecs::components::camera>> pack,
 			  psl::ecs::pack_direct_full_t<core::ecs::components::transform, psl::ecs::filter<grid::tag>> grid_pack);
 
 	core::resource::handle<core::gfx::bundle> m_Bundle;
 	core::resource::handle<core::gfx::geometry_t> m_Geometry;
-	std::vector<psl::ecs::entity> m_Entities;
-	psl::ecs::entity m_Target;
+	std::vector<psl::ecs::entity_t> m_Entities;
+	psl::ecs::entity_t m_Target;
 	psl::vec3 m_Scale;
 	psl::vec3 m_Offset;
 };

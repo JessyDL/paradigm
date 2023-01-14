@@ -39,7 +39,7 @@ void entity_creation(benchmark::State& gState) {
 
 void entity_creation_with_destruction(benchmark::State& gState) {
 	auto eCount		= gState.range(0);
-	auto eHalfCount = static_cast<ecs::entity>(eCount / 2);
+	auto eHalfCount = static_cast<ecs::entity_t::size_type>(eCount / 2);
 
 	ecs::state_t state;
 	for(auto _ : gState) {
@@ -108,12 +108,13 @@ class filtering_fixture : public ::benchmark::Fixture {
 
 		auto entities = state.create(eCount);
 
-		state.add_components<float>(psl::array<entity> {std::begin(entities), std::next(std::begin(entities), eCount)});
+		state.add_components<float>(
+		  psl::array<entity_t> {std::begin(entities), std::next(std::begin(entities), eCount)});
 		state.add_components<char>(
-		  psl::array<entity> {std::next(std::begin(entities), char_beg), std::next(std::begin(entities), char_end)});
+		  psl::array<entity_t> {std::next(std::begin(entities), char_beg), std::next(std::begin(entities), char_end)});
 
 		state.add_components(
-		  psl::array<entity> {std::next(std::begin(entities), int_beg), std::next(std::begin(entities), int_end)},
+		  psl::array<entity_t> {std::next(std::begin(entities), int_beg), std::next(std::begin(entities), int_end)},
 		  [](int& i) { i = std::rand() % 1000; });
 	}
 
@@ -204,7 +205,7 @@ auto read_only_system = [](info_t& info, pack_t<T, direct_t, const Ts...>) {};
 template <typename T, typename... Ts>
 auto write_system = [](info_t& info, pack_t<T, direct_t, Ts...>) {};
 
-auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt19937 g) {
+auto get_random_entities(const psl::array<entity_t>& source, size_t count, std::mt19937 g) {
 	auto copy = source;
 	std::shuffle(std::begin(copy), std::end(copy), g);
 	copy.resize(std::min(copy.size(), count));
@@ -212,7 +213,7 @@ auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt
 }
 
 template <typename... Ts>
-void run_system(benchmark::State& gState, state_t& state, const std::vector<entity>& count) {
+void run_system(benchmark::State& gState, state_t& state, const std::vector<entity_t::size_type>& count) {
 	psl_assert(count.size() == 5, "expected size to be 5");
 	auto entities = state.create(count[0]);
 	std::random_device rd;
@@ -226,10 +227,10 @@ void run_system(benchmark::State& gState, state_t& state, const std::vector<enti
 }
 
 
-const std::vector<std::vector<entity>> system_counts {{10'000, 300, 2'700, 1'200, 6'700},
-													  {100'000, 3'000, 21'700, 10'200, 68'700},
-													  {1'000'000, 3'000, 20'700, 30'200, 60'700},
-													  {1'000'000, 300'000, 210'700, 300'200, 680'700}};
+const std::vector<std::vector<entity_t::size_type>> system_counts {{10'000, 300, 2'700, 1'200, 6'700},
+																   {100'000, 3'000, 21'700, 10'200, 68'700},
+																   {1'000'000, 3'000, 20'700, 30'200, 60'700},
+																   {1'000'000, 300'000, 210'700, 300'200, 680'700}};
 void trivial_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<full_t, char, int, float, uint64_t>);

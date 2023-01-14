@@ -33,14 +33,14 @@ namespace psl::ecs::details {
 ///
 /// systems can have various dependencies, for example a movement system could have
 /// dependencies on both a psl::ecs::components::transform component and a psl::ecs::components::renderable
-/// component. This dependency will output a set of psl::ecs::entity's that have all required
+/// component. This dependency will output a set of psl::ecs::entity_t's that have all required
 /// psl::ecs::components present. Certain systems could have sets of dependencies, for example the render
 /// system requires knowing about both all `psl::ecs::components::renderable` that have a
 /// `psl::ecs::components::transform`, but also needs to know all `psl::ecs::components::camera's`. So that
 /// system would require several dependency_pack's.
 class dependency_pack {
 	struct indirect_storage_t {
-		psl::array<entity> indices {};
+		psl::array<entity_t::size_type> indices {};
 		void* data {nullptr};
 	};
 	friend class psl::ecs::state_t;
@@ -63,26 +63,26 @@ class dependency_pack {
 		m_RBindings.emplace(id, psl::array_view<std::uintptr_t> {});
 	}
 
-	auto _create_dependency_filters_impl(psl::array_view<entity>) {}
-	auto _create_dependency_filters_impl(psl::array_view<entity const>) {}
+	auto _create_dependency_filters_impl(psl::array_view<entity_t>) {}
+	auto _create_dependency_filters_impl(psl::array_view<entity_t const>) {}
 
 	template <typename T>
-	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<T, entity>) {
+	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<T, entity_t::size_type>) {
 		constexpr auto id = details::component_key_t::generate<T>();
 		m_IndirectReadWriteBindings.emplace(id, indirect_storage_t {});
 	}
 	template <typename T>
-	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<T const, entity>) {
+	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<T const, entity_t::size_type>) {
 		constexpr auto id = details::component_key_t::generate<T>();
 		m_IndirectReadBindings.emplace(id, indirect_storage_t {});
 	}
 
-	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<entity, entity>) {}
-	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<entity const, entity>) {}
+	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<entity_t, entity_t::size_type>) {}
+	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<entity_t const, entity_t::size_type>) {}
 
 	template <typename F>
 	void select_impl(std::vector<component_key_t>& target) {
-		if constexpr(!std::is_same<typename std::decay<F>::type, psl::ecs::entity>::value) {
+		if constexpr(!std::is_same<typename std::decay<F>::type, psl::ecs::entity_t>::value) {
 			using component_t			  = F;
 			constexpr component_key_t key = details::component_key_t::generate<component_t>();
 			target.emplace_back(key);
@@ -115,7 +115,7 @@ class dependency_pack {
 
 	template <typename T>
 	auto fill_in(psl::type_pack_t<psl::array_view<T>>) -> psl::array_view<T> {
-		if constexpr(std::is_same<T, psl::ecs::entity>::value) {
+		if constexpr(std::is_same<T, psl::ecs::entity_t>::value) {
 			return m_Entities;
 		} else {
 			constexpr component_key_t id = details::component_key_t::generate<T>();
@@ -128,28 +128,28 @@ class dependency_pack {
 	}
 
 	template <typename T>
-	auto fill_in(psl::type_pack_t<psl::ecs::details::indirect_array_t<T, psl::ecs::entity>>) {
-		if constexpr(std::is_same<T, psl::ecs::entity>::value) {
+	auto fill_in(psl::type_pack_t<psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>>) {
+		if constexpr(std::is_same<T, psl::ecs::entity_t>::value) {
 			// todo: this is a temporary hack until mixed packs can be done. Ideally entities are an array_view not an
 			// indirect_array_t
-			std::vector<entity> indices {};
+			std::vector<entity_t::size_type> indices {};
 			indices.resize(m_Entities.size());
-			std::iota(std::begin(indices), std::end(indices), entity {0});
-			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(indices,
-																			(psl::ecs::entity*)m_Entities.data());
+			std::iota(std::begin(indices), std::end(indices), entity_t::size_type {0});
+			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(indices,
+																						 (T*)m_Entities.data());
 		} else {
 			constexpr component_key_t id = details::component_key_t::generate<T>();
 			if constexpr(std::is_const<T>::value) {
 				auto it = m_IndirectReadBindings.find(id);
 				psl_assert(it != m_IndirectReadBindings.end(), "type wasn't present in `m_IndirectReadBindings`");
-				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(it->second.indices,
-																				(T*)it->second.data);
+				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(it->second.indices,
+																							 (T*)it->second.data);
 			} else {
 				auto it = m_IndirectReadWriteBindings.find(id);
 				psl_assert(it != m_IndirectReadWriteBindings.end(),
 						   "type wasn't present in `m_IndirectReadWriteBindings`");
-				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(it->second.indices,
-																				(T*)it->second.data);
+				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(it->second.indices,
+																							 (T*)it->second.data);
 			}
 		}
 	}
@@ -166,8 +166,9 @@ class dependency_pack {
 	template <typename T>
 	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious = false)
 		: m_IsPartial(IsPackPartial<typename T::policy_type>), m_IsIndirect(IsAccessIndirect<typename T::access_type>) {
-		orderby =
-		  [](psl::array<entity>::iterator begin, psl::array<entity>::iterator end, const psl::ecs::state_t& state) {};
+		orderby			= [](psl::array<entity_t>::iterator begin,
+					 psl::array<entity_t>::iterator end,
+					 const psl::ecs::state_t& state) {};
 		using pack_type = T;
 		create_dependency_filters(
 		  std::make_index_sequence<std::tuple_size_v<typename pack_type::pack_type::range_t>> {},
@@ -262,7 +263,7 @@ class dependency_pack {
 		auto cpy = make_partial_copy();
 
 		cpy.m_Entities =
-		  psl::array_view<entity>(std::next(m_Entities.begin(), begin), std::next(m_Entities.begin(), end));
+		  psl::array_view<entity_t>(std::next(m_Entities.begin(), begin), std::next(m_Entities.begin(), end));
 
 		for(const auto& binding : m_RBindings) {
 			auto size = cpy.m_Sizes[binding.first];
@@ -283,14 +284,14 @@ class dependency_pack {
 
 		for(const auto& binding : m_IndirectReadBindings) {
 			auto size										  = cpy.m_Sizes[binding.first];
-			cpy.m_IndirectReadBindings[binding.first].indices = psl::array<entity>(
+			cpy.m_IndirectReadBindings[binding.first].indices = psl::array<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadBindings[binding.first].data = binding.second.data;
 		}
 
 		for(const auto& binding : m_IndirectReadWriteBindings) {
 			auto size											   = cpy.m_Sizes[binding.first];
-			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array<entity>(
+			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadWriteBindings[binding.first].data = binding.second.data;
 		}
@@ -315,7 +316,7 @@ class dependency_pack {
 		return cpy;
 	}
 
-	psl::array_view<psl::ecs::entity> m_Entities {};
+	psl::array_view<psl::ecs::entity_t> m_Entities {};
 	std::unordered_map<component_key_t, size_t> m_Sizes {};
 	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
 	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RWBindings;
@@ -330,10 +331,10 @@ class dependency_pack {
 	std::vector<component_key_t> on_break {};
 
 	std::vector<std::function<psl::array<
-	  entity>::iterator(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)>>
+	  entity_t>::iterator(psl::array<entity_t>::iterator, psl::array<entity_t>::iterator, const psl::ecs::state_t&)>>
 	  on_condition {};
 
-	std::function<void(psl::array<entity>::iterator, psl::array<entity>::iterator, const psl::ecs::state_t&)>
+	std::function<void(psl::array<entity_t>::iterator, psl::array<entity_t>::iterator, const psl::ecs::state_t&)>
 	  orderby {};
 	bool m_IsPartial  = false;
 	bool m_IsIndirect = false;

@@ -25,7 +25,7 @@ concept IsValidForStagedSparseMemoryRange = IsComponentTrivialType<T>;
 /// \note due to the dense data being stored on its own page, alignment shouldn't be a concern.
 /// \warning This container is unsuitable for types that have non-trivial constructors, copy/move operations, and destructors. Check your type against `IsValidForStagedSparseMemoryRange` to verify.
 class staged_sparse_memory_region_t {
-	using Key = psl::ecs::entity;
+	using Key = psl::ecs::entity_t::size_type;
 	static constexpr Key chunks_size {4096};
 	static constexpr bool is_power_of_two {chunks_size && ((chunks_size & (chunks_size - 1)) == 0)};
 	static constexpr Key mod_val {(is_power_of_two) ? chunks_size - 1 : chunks_size};
@@ -500,9 +500,8 @@ class staged_sparse_memory_region_t {
 		m_StageSize[1] += 1;
 	}
 
-	constexpr FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept
-	  -> bool {
-		if(m_Sparse[chunk_index]) {
+	FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept -> bool {
+		if(m_Sparse.at(chunk_index)) {
 			const auto& chunk = get_chunk_from_index(chunk_index);
 			return chunk[offset] != std::numeric_limits<key_type>::max() &&
 				   chunk[offset] >= m_StageStart[stage_begin(stage)] && chunk[offset] < m_StageStart[stage_end(stage)];
@@ -557,13 +556,11 @@ class staged_sparse_memory_region_t {
 		psl_assert(chunk[offset] == reverse_index, "expected {} == {}", chunk[offset], reverse_index);
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type& {
-		return m_Sparse[index].value();
+	FORCEINLINE auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type& {
+		return m_Sparse.at(index).value();
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& {
-		return m_Sparse[index].value();
-	}
+	FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& { return m_Sparse.at(index).value(); }
 
 	constexpr FORCEINLINE auto chunk_for(key_type& index) noexcept -> chunk_type& {
 		if(index >= capacity())
