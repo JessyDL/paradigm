@@ -16,7 +16,7 @@ void registration_test(psl::ecs::info_t& info) {}
 
 namespace tests::ecs {
 template <IsPolicy Policy, IsAccessType Access>
-void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, /*const*/ float, int> pack) {
+void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, const float, int> pack) {
 	for(auto [fl, i] : pack) {
 		i += 5;
 	}
@@ -381,7 +381,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  std::mutex lock {};
 
 		  auto token = state.declare(
-			[&lock, &total_pack1](psl::ecs::info_t& info, pack_t<policy, access, entity, /*const*/ type> pack1) {
+			[&lock, &total_pack1](psl::ecs::info_t& info, pack_t<policy, access, entity, const type> pack1) {
 				for(auto [e, i] : pack1) {
 					require(e) == i;
 				}
@@ -421,8 +421,8 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 
 		  token = state.declare(
 			[&lock, &total_pack1, &total_pack2](psl::ecs::info_t& info,
-												pack_t<policy, access, entity, /*const*/ type, on_remove<type>> pack1,
-												pack_t<policy, access, entity, /*const*/ type, filter<type>> pack2) {
+												pack_t<policy, access, entity, const type, on_remove<type>> pack1,
+												pack_t<policy, access, entity, const type, filter<type>> pack2) {
 				for(auto [e, i] : pack1) {
 					require(e) == i;
 				}

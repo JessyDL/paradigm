@@ -130,7 +130,7 @@ class dependency_pack {
 	template <typename T>
 	auto fill_in(psl::type_pack_t<psl::ecs::details::indirect_array_t<T, psl::ecs::entity>>) {
 		if constexpr(std::is_same<T, psl::ecs::entity>::value) {
-			// todo: this is a temporary hack untill mixed packs can be done. Ideally entities are an array_view not an
+			// todo: this is a temporary hack until mixed packs can be done. Ideally entities are an array_view not an
 			// indirect_array_t
 			std::vector<entity> indices {};
 			indices.resize(m_Entities.size());
