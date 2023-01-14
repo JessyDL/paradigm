@@ -500,8 +500,7 @@ class staged_sparse_memory_region_t {
 		m_StageSize[1] += 1;
 	}
 
-	FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept
-	  -> bool {
+	FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept -> bool {
 		if(m_Sparse.at(chunk_index)) {
 			const auto& chunk = get_chunk_from_index(chunk_index);
 			return chunk[offset] != std::numeric_limits<key_type>::max() &&
@@ -561,9 +560,7 @@ class staged_sparse_memory_region_t {
 		return m_Sparse.at(index).value();
 	}
 
-	FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& {
-		return m_Sparse.at(index).value();
-	}
+	FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& { return m_Sparse.at(index).value(); }
 
 	constexpr FORCEINLINE auto chunk_for(key_type& index) noexcept -> chunk_type& {
 		if(index >= capacity())
