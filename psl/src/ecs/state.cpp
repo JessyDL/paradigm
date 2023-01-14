@@ -658,21 +658,19 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			{
 				psl::array_view new_source {begin, end};
 				psl::array<entity_t> diff_set {};
-				psl::array_view<entity_t::size_type> ent_view {(entity_t::size_type*)(data.entities.data()),
-															   data.entities.size()};
-				psl::array_view<entity_t::size_type> source_view {(entity_t::size_type*)(source.data()), source.size()};
-				std::set_difference(std::begin(ent_view),
-									std::end(ent_view),
-									std::begin(source_view),
-									std::end(source_view),
+				std::set_difference((entity_t::size_type*)(data.entities.data()),
+									(entity_t::size_type*)(data.entities.data()) + data.entities.size(),
+									(entity_t::size_type*)(source.data()),
+									(entity_t::size_type*)(source.data()) + source.size(),
 									std::back_inserter(diff_set));
 				data.entities = std::move(diff_set);
 
 				auto size = std::size(data.entities);
 				data.entities.insert(std::end(data.entities), begin, end);
-				ent_view = psl::array_view<entity_t::size_type> {(entity_t::size_type*)(data.entities.data()),
-																 data.entities.size()};
-				std::inplace_merge(std::begin(ent_view), std::next(std::begin(ent_view), size), std::end(ent_view));
+
+				std::inplace_merge((entity_t::size_type*)(data.entities.data()),
+								   (entity_t::size_type*)(data.entities.data()) + size,
+								   (entity_t::size_type*)(data.entities.data()) + data.entities.size());
 			}
 		}
 	}
@@ -762,14 +760,11 @@ void state_t::execute_command_buffer(info_t& info) {
 	psl::sparse_array<entity_t::size_type> remapped_entities;
 	if(buffer.m_Entities.size() > 0) {
 		psl::array<entity_t> added_entities;
-		psl::array_view<entity_t::size_type> buf_view {(entity_t::size_type*)buffer.m_Entities.data(),
-													   buffer.m_Entities.size()};
-		psl::array_view<entity_t::size_type> buf_destroyed_view {
-		  (entity_t::size_type*)buffer.m_DestroyedEntities.data(), buffer.m_DestroyedEntities.size()};
-		std::set_difference(std::begin(buf_view),
-							std::end(buf_view),
-							std::begin(buf_destroyed_view),
-							std::end(buf_destroyed_view),
+		std::set_difference((entity_t::size_type*)(buffer.m_Entities.data()),
+							(entity_t::size_type*)(buffer.m_Entities.data()) + buffer.m_Entities.size(),
+							(entity_t::size_type*)(buffer.m_DestroyedEntities.data()),
+							(entity_t::size_type*)(buffer.m_DestroyedEntities.data()) +
+							  buffer.m_DestroyedEntities.size(),
 							std::back_inserter(added_entities));
 
 

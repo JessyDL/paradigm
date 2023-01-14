@@ -307,8 +307,11 @@ class state_t final {
 
 	psl::array<entity_t> all_entities() const noexcept {
 		auto orphans = m_Orphans;
-		psl::array_view<entity_t::size_type> orphans_view {(entity_t::size_type*)orphans.data(), orphans.size()};
-		std::sort(std::begin(orphans_view), std::end(orphans_view));
+		auto count	 = orphans.end() - orphans.begin();
+		if(count > 0) {
+			auto* data = (entity_t::size_type*)orphans.data();
+			std::sort(data, data + count);
+		}
 
 		auto orphan_it = std::begin(orphans);
 		psl::array<entity_t> result;

@@ -165,8 +165,8 @@ class command_buffer_t {
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back(entity_t {m_Entities.size() + m_First});
-			m_Entities.emplace_back(entity_t {m_Entities.size() + m_First});
+			entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
+			m_Entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
 		}
 		add_components(entities, std::forward<Ts>(prototype)...);
 
