@@ -697,8 +697,8 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 	psl_assert(
 	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
 	  "some components failed to have storage for the entities");
-	psl_assert(static_cast<std::uintptr_t>(cache) + (cInfo->component_size() * entities.size()) <=
-				 static_cast<std::uintptr_t>(m_Cache.data()) + m_Cache.size(),
+	psl_assert((std::uintptr_t)(cache) + (cInfo->component_size() * entities.size()) <=
+				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
 			   "Cache ran out of memory");
 	return cInfo->copy_to(entities, cache);
 }
@@ -707,8 +707,8 @@ size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
 								 void* cache,
 								 details::dependency_pack& dep_pack) const noexcept {
 	size_t offset_start = (std::uintptr_t)cache;
-	psl_assert(static_cast<std::uintptr_t>(cache) + (sizeof(entity_t) * entities.size()) <=
-				 static_cast<std::uintptr_t>(m_Cache.data()) + m_Cache.size(),
+	psl_assert((std::uintptr_t)(cache) + (sizeof(entity_t) * entities.size()) <=
+				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
 			   "Cache ran out of memory");
 	std::memcpy(cache, entities.data(), sizeof(entity_t) * entities.size());
 	dep_pack.m_Entities = psl::array_view<entity_t>(

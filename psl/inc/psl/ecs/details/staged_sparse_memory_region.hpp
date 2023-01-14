@@ -500,9 +500,9 @@ class staged_sparse_memory_region_t {
 		m_StageSize[1] += 1;
 	}
 
-	constexpr FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept
+	FORCEINLINE auto has_impl(key_type chunk_index, key_type offset, stage_range_t stage) const noexcept
 	  -> bool {
-		if(m_Sparse[chunk_index]) {
+		if(m_Sparse.at(chunk_index)) {
 			const auto& chunk = get_chunk_from_index(chunk_index);
 			return chunk[offset] != std::numeric_limits<key_type>::max() &&
 				   chunk[offset] >= m_StageStart[stage_begin(stage)] && chunk[offset] < m_StageStart[stage_end(stage)];
@@ -557,12 +557,12 @@ class staged_sparse_memory_region_t {
 		psl_assert(chunk[offset] == reverse_index, "expected {} == {}", chunk[offset], reverse_index);
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type& {
-		return m_Sparse[index].value();
+	FORCEINLINE auto get_chunk_from_index(key_type index) const noexcept -> const chunk_type& {
+		return m_Sparse.at(index).value();
 	}
 
-	constexpr FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& {
-		return m_Sparse[index].value();
+	FORCEINLINE auto get_chunk_from_index(key_type index) noexcept -> chunk_type& {
+		return m_Sparse.at(index).value();
 	}
 
 	constexpr FORCEINLINE auto chunk_for(key_type& index) noexcept -> chunk_type& {
