@@ -24,7 +24,7 @@ gpu_camera::gpu_camera(psl::ecs::state_t& state,
 
 void gpu_camera::tick(
   psl::ecs::info_t& info,
-  psl::ecs::pack<const core::ecs::components::camera, const core::ecs::components::transform> cameras) {
+  psl::ecs::pack_direct_full_t<const core::ecs::components::camera, const core::ecs::components::transform> cameras) {
 	size_t i {0};
 	if(cameras.size() >= m_Max)
 		throw std::runtime_error(

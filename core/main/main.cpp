@@ -4,8 +4,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
-//#include <Windows.h>
-//#include "stdafx.h"
+// #include <Windows.h>
+// #include "stdafx.h"
 #include "psl/application_utils.hpp"
 #include "psl/library.hpp"
 #include "psl/platform_utils.hpp"
@@ -748,12 +748,13 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 
 	ECSState.declare<"movement">(psl::ecs::threading::par, core::ecs::systems::movement);
 	ECSState.declare<"lifetime">(psl::ecs::threading::par, core::ecs::systems::lifetime);
-	ECSState.declare<"downscale">(psl::ecs::threading::par, [](info_t& info, pack<transform, const lifetime> pack) {
-		for(auto [transf, life] : pack) {
-			auto remainder = std::min(life.value * 2.0f, 1.0f);
-			transf.scale *= remainder;
-		}
-	});
+	ECSState.declare<"downscale">(psl::ecs::threading::par,
+								  [](info_t& info, pack_direct_full_t<transform, const lifetime> pack) {
+									  for(auto [transf, life] : pack) {
+										  auto remainder = std::min(life.value * 2.0f, 1.0f);
+										  transf.scale *= remainder;
+									  }
+								  });
 
 	ECSState.declare<"attractor">(psl::ecs::threading::par, core::ecs::systems::attractor);
 	core::ecs::systems::geometry_instancing geometry_instancing_system {ECSState};
@@ -884,7 +885,8 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ (frame % 250 == 0) ? burst : 0,
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity>(
+				(frame % 250 == 0) ? burst : 0),
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);
@@ -1000,7 +1002,7 @@ int main(int argc, char* argv[]) {
 		core::log->info("Received the cli args:");
 		for(auto i = 0; i < argc; ++i) core::log->info(argv[i]);
 	}
-	auto backend = [](int argc, char* argv[]) noexcept {
+	auto backend = [](int argc, char* argv[]) {
 		for(auto i = 0; i < argc; ++i) {
 			std::string_view text {argv[i]};
 			if(text == "--vulkan") {

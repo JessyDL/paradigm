@@ -7,7 +7,7 @@
 
 namespace core::ecs::systems {
 auto lifetime = [](psl::ecs::info_t& info,
-				   psl::ecs::pack<psl::ecs::partial, psl::ecs::entity, core::ecs::components::lifetime> life_pack) {
+				   psl::ecs::pack_direct_partial_t<psl::ecs::entity, core::ecs::components::lifetime> life_pack) {
 	using namespace psl::ecs;
 	using namespace core::ecs::components;
 

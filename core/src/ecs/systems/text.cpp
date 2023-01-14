@@ -237,13 +237,13 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 
 void text::update_dynamic(
   info_t& info,
-  pack<partial, entity, comp::text, comp::renderable, psl::ecs::filter<comp::dynamic_tag>> pack) {
+  pack_direct_partial_t<entity, comp::text, comp::renderable, psl::ecs::filter<comp::dynamic_tag>> pack) {
 	for(auto [e, text, renderer] : pack) {
 		renderer.geometry->recreate(create_text(*text.value));
 	}
 }
 
-void text::add(info_t& info, pack<partial, entity, comp::text, on_add<comp::text>> pack) {
+void text::add(info_t& info, pack_direct_partial_t<entity, comp::text, on_add<comp::text>> pack) {
 	psl::array<entity> ents;
 	ents.resize(1);
 	for(auto [e, text] : pack) {
@@ -262,6 +262,6 @@ void text::add(info_t& info, pack<partial, entity, comp::text, on_add<comp::text
 	}
 }
 
-void text::remove(info_t& info, pack<partial, entity, comp::text, on_remove<comp::text>> pack) {
+void text::remove(info_t& info, pack_direct_partial_t<entity, comp::text, on_remove<comp::text>> pack) {
 	info.command_buffer.remove_components<comp::renderable>(pack.get<entity>());
 }

@@ -2,6 +2,7 @@
 #include "psl/ecs/on_condition.hpp"
 #include "psl/ecs/order_by.hpp"
 #include "psl/ecs/state.hpp"
+#include <mutex>
 #include <random>
 
 #include "psl/serialization/decoder.hpp"
@@ -14,7 +15,8 @@ void registration_test(psl::ecs::info_t& info) {}
 
 
 namespace tests::ecs {
-void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack<partial, const float, int> pack) {
+template <IsPolicy Policy, IsAccessType Access>
+void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, const float, int> pack) {
 	for(auto [fl, i] : pack) {
 		i += 5;
 	}
@@ -88,8 +90,10 @@ struct complex_wrapper_int : public complex_wrapper<int> {
 struct flag_type {};
 
 // components do not support templated typenames
-using float_tpack = tpack<float, complex_wrapper_float>;
-using int_tpack	  = tpack<int, complex_wrapper_int>;
+using float_tpack  = tpack<float, complex_wrapper_float>;
+using int_tpack	   = tpack<int, complex_wrapper_int>;
+using policy_tpack = tpack<psl::ecs::partial_t, psl::ecs::full_t>;
+using access_tpack = tpack<psl::ecs::direct_t, psl::ecs::indirect_t>;
 
 auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
 	section<"non-empty component_info_typed">() = [&]() {
@@ -200,8 +204,9 @@ auto t1 = suite<"component_key must be unique", "ecs", "psl">().templates<float_
 	require(cxint_id) == int_id;
 };
 
-auto t2 =
-  suite<"filtering", "ecs", "psl">().templates<tpack<float, complex_wrapper_float, flag_type>>() = []<typename type>() {
+auto t2 = suite<"filtering", "ecs", "psl">()
+			.templates<tpack<float, complex_wrapper_float, flag_type>, policy_tpack, access_tpack>() =
+  []<typename type, typename policy, typename access>() {
 	  state_t state;
 	  auto e_list1 {state.create(100)};
 	  auto e_list2 {state.create(400)};
@@ -272,16 +277,26 @@ auto t2 =
 
 		  auto on_condition_func = [](const position& pos) { return (pos.x + pos.y) > 100; };
 
-		  state.declare([elist1_size = e_list1.size()](
-						  info_t& info, pack<position, on_condition<decltype(on_condition_func), position>> pack) {
-			  expect(pack.size()) == elist1_size;
+		  size_t total_1 {0};
+		  size_t total_2 {0};
+		  std::mutex lock_1 {};
+		  std::mutex lock_2 {};
+
+		  state.declare([&total_1, &lock_1](
+						  info_t& info,
+						  pack_t<policy, access, position, on_condition<decltype(on_condition_func), position>> pack) {
+			  std::lock_guard<std::mutex> guard(lock_1);
+			  total_1 += pack.size();
 		  });
 
-		  state.declare([total_size = e_list1.size() + e_list2.size()](info_t& info, pack<position> pack) {
-			  expect(pack.size()) == total_size;
+		  state.declare([&total_2, &lock_2](info_t& info, pack_t<policy, access, position> pack) {
+			  std::lock_guard<std::mutex> guard(lock_2);
+			  total_2 += pack.size();
 		  });
 
 		  state.tick(std::chrono::duration<float>(1.0f));
+		  expect(total_1) == e_list1.size();
+		  expect(total_2) == (e_list1.size() + e_list2.size());
 	  };
 
 	  section<"order_by">() = [&]() {
@@ -294,20 +309,21 @@ auto t2 =
 			  return (lhs.x == rhs.x) ? lhs.y < rhs.y : lhs.x < rhs.x;
 		  };
 
-		  state.declare([](info_t& info, pack<position, order_by<decltype(order_by_func), position>> pack) {
-			  auto last_x = std::numeric_limits<decltype(position::x)>::min();
-			  auto last_y = std::numeric_limits<decltype(position::y)>::min();
+		  state.declare(
+			[](info_t& info, pack_t<policy, access, position, order_by<decltype(order_by_func), position>> pack) {
+				auto last_x = std::numeric_limits<decltype(position::x)>::min();
+				auto last_y = std::numeric_limits<decltype(position::y)>::min();
 
-			  for(auto [position] : pack) {
-				  expect(last_x) <= position.x;
+				for(auto [position] : pack) {
+					expect(last_x) <= position.x;
 
-				  if(last_x == position.x)
-					  expect(last_y) <= position.y;
+					if(last_x == position.x)
+						expect(last_y) <= position.y;
 
-				  last_x = position.x;
-				  last_y = position.y;
-			  }
-		  });
+					last_x = position.x;
+					last_y = position.y;
+				}
+			});
 
 		  state.tick(std::chrono::duration<float>(1.0f));
 	  };
@@ -341,242 +357,280 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 	require(check_view) == check;
 };
 
-auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack>() = []<typename type>() {
-	state_t state;
+auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, access_tpack>() =
+  []<typename type, typename policy, typename access>() {
+	  state_t state;
 
-	auto group = details::make_filter_group(psl::type_pack_t<pack<entity, type>> {});
+	  section<"lifetime test">() = [&]() {
+		  auto e_list1 {state.create(10)};
+		  auto e_list2 {state.create(40)};
+		  auto e_list3 {state.create(50)};
+		  // pre-tick #1
+		  // we add int components to all elements in e_list1, by giving them an incrementing value
+		  // thanks to these being the first entities, they overlap with their ID
+		  size_t incrementer = 0;
+		  state.add_components(e_list1, [&incrementer](type& target) { target = type(incrementer++); });
 
-
-	section<"lifetime test">() = [&]() {
-		auto e_list1 {state.create(10)};
-		auto e_list2 {state.create(40)};
-		auto e_list3 {state.create(50)};
-		// pre-tick #1
-		// we add int components to all elements in e_list1, by giving them an incrementing value
-		// thanks to these being the first entities, they overlap with their ID
-		size_t incrementer = 0;
-		state.add_components(e_list1, [&incrementer](type& target) { target = type(incrementer++); });
-
-		state.declare([](psl::ecs::info_t& info, pack<entity, filter<type>> pack) {
-			info.command_buffer.destroy(pack.template get<entity>());
-		});
-		auto token = state.declare([size_1 = e_list1.size()](psl::ecs::info_t& info, pack<entity, const type> pack1) {
-			for(auto [e, i] : pack1) {
-				require(e) == i;
-			}
-			require(pack1.size()) == size_1;
-		});
-
-		require(e_list1.size()) == state.filter<on_add<type>>().size();
-		require(e_list1.size()) == state.filter<type>().size();
-
-		// tick #1
-		// here we verify the resources of e_list1 are all present, and their values accurate
-		// followed by deleting them all.
-		state.tick(std::chrono::duration<float>(0.1f));
-		{
-			for(auto e : e_list1) {
-				auto val = state.template get<type>(e);
-				require(e) == val;
-			}
-		}
-		state.revoke(token);
-
-		// pre-tick #2
-		// we add int components to all elements in e_list2, by giving them an incrementing value with offset of
-		// elist1.size(), thanks to these being the first entities, they overlap with their ID
-		require(e_list1.size()) == state.filter<on_remove<type>>().size();
-		require(0) == state.filter<type>().size();
-		require(0) == state.filter<on_add<type>>().size();
-		incrementer = e_list1.size();
-		state.add_components(e_list2, [&incrementer](type& target) { target = type(incrementer++); });
-		require(e_list2.size()) == state.filter<on_add<type>>().size();
-		require(e_list2.size()) == state.filter<type>().size();
-		token = state.declare(
-		  [size_1 = e_list1.size(), size_2 = e_list2.size()](psl::ecs::info_t& info,
-															 pack<entity, const type, on_remove<type>> pack1,
-															 pack<entity, const type, filter<type>> pack2) {
-			  for(auto [e, i] : pack1) {
-				  require(e) == i;
-			  }
-			  require(pack1.template get<entity>()[0]) == 0;
-			  // if this shows 0, then the previous deleted components of tick #1 are still present
-			  require(pack2.template get<entity>()[0]) == 10;
-			  for(auto [e, i] : pack2) {
-				  require(e) == i;
-			  }
-			  require(pack1.size()) == size_1;
-			  require(pack2.size()) == size_2;
+		  state.declare([](psl::ecs::info_t& info, pack_t<policy, access, entity, filter<type>> pack) {
+			  info.command_buffer.destroy(pack.template get<entity>());
 		  });
 
-		// tick #2
-		// we verify the elements of e_list1 are deleted and their data is intact
-		// we verify the elements of e_list2 are added and their data is correct
-		// we also remove all elements of e_list2
-		state.tick(std::chrono::duration<float>(0.1f));
-		state.revoke(token);
+		  size_t total_pack1 {0};
+		  size_t total_pack2 {0};
+		  size_t total_pack3 {0};
+		  std::mutex lock {};
 
-		// pre-tick #3
-		// we verify that no int component is present anymore in the system aside from the previously removed ones
-		require(e_list2.size()) == state.filter<on_remove<type>>().size();
-		require(0) == state.filter<type>().size();
-		token = state.declare([size_2 = e_list2.size()](psl::ecs::info_t& info,
-														pack<entity, on_remove<type>> pack1,
-														pack<entity, filter<type>> pack2) {
-			require(pack1.size()) == size_2;
-			require(pack2.size()) == 0;
-		});
+		  auto token = state.declare(
+			[&lock, &total_pack1](psl::ecs::info_t& info, pack_t<policy, access, entity, const type> pack1) {
+				for(auto [e, i] : pack1) {
+					require(e) == i;
+				}
 
-		// tick #3
-		state.tick(std::chrono::duration<float>(0.1f));
-		state.revoke(token);
-		token = state.declare(
-		  [](psl::ecs::info_t& info, pack<entity, on_remove<type>> pack1, pack<entity, filter<type>> pack2) {
+				std::lock_guard<std::mutex> guard(lock);
+				total_pack1 += pack1.size();
+			});
+
+		  require(e_list1.size()) == state.filter<on_add<type>>().size();
+		  require(e_list1.size()) == state.filter<type>().size();
+
+		  // tick #1
+		  // here we verify the resources of e_list1 are all present, and their values accurate
+		  // followed by deleting them all.
+		  state.tick(std::chrono::duration<float>(0.1f));
+
+		  expect(total_pack1) == e_list1.size();
+		  total_pack1 = 0;
+		  {
+			  for(auto e : e_list1) {
+				  auto val = state.template get<type>(e);
+				  require(e) == val;
+			  }
+		  }
+		  state.revoke(token);
+
+		  // pre-tick #2
+		  // we add int components to all elements in e_list2, by giving them an incrementing value with offset of
+		  // elist1.size(), thanks to these being the first entities, they overlap with their ID
+		  require(e_list1.size()) == state.filter<on_remove<type>>().size();
+		  require(0) == state.filter<type>().size();
+		  require(0) == state.filter<on_add<type>>().size();
+		  incrementer = e_list1.size();
+		  state.add_components(e_list2, [&incrementer](type& target) { target = type(incrementer++); });
+		  require(e_list2.size()) == state.filter<on_add<type>>().size();
+		  require(e_list2.size()) == state.filter<type>().size();
+
+		  token = state.declare(
+			[&lock, &total_pack1, &total_pack2](psl::ecs::info_t& info,
+												pack_t<policy, access, entity, const type, on_remove<type>> pack1,
+												pack_t<policy, access, entity, const type, filter<type>> pack2) {
+				for(auto [e, i] : pack1) {
+					require(e) == i;
+				}
+				require(pack1.template get<entity>()[0]) == 0;
+				// if this shows 0, then the previous deleted components of tick #1 are still present
+				require(pack2.template get<entity>()[0]) == 10;
+				for(auto [e, i] : pack2) {
+					require(e) == i;
+				}
+				std::lock_guard<std::mutex> guard(lock);
+				total_pack1 += pack1.size();
+				total_pack2 += pack2.size();
+			});
+
+		  // tick #2
+		  // we verify the elements of e_list1 are deleted and their data is intact
+		  // we verify the elements of e_list2 are added and their data is correct
+		  // we also remove all elements of e_list2
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  expect(total_pack1) == e_list1.size();
+		  expect(total_pack2) == e_list2.size();
+		  total_pack1 = 0;
+		  total_pack2 = 0;
+		  state.revoke(token);
+
+		  // pre-tick #3
+		  // we verify that no int component is present anymore in the system aside from the previously removed ones
+		  require(e_list2.size()) == state.filter<on_remove<type>>().size();
+		  require(0) == state.filter<type>().size();
+		  token = state.declare([&lock, &total_pack2](psl::ecs::info_t& info,
+													  pack_t<policy, access, entity, on_remove<type>> pack1,
+													  pack_t<policy, access, entity, filter<type>> pack2) {
+			  std::lock_guard<std::mutex> guard(lock);
+			  total_pack2 += pack1.size();
+
+			  require(pack2.size()) == 0;
+		  });
+
+		  // tick #3
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  expect(total_pack2) == e_list2.size();
+		  state.revoke(token);
+		  token = state.declare([](psl::ecs::info_t& info,
+								   pack_t<policy, access, on_remove<type>> pack1,
+								   pack_t<policy, access, filter<type>> pack2) {
 			  require(pack1.size()) == 0;
 			  require(pack2.size()) == 0;
 		  });
 
-		// tick #4
-		state.tick(std::chrono::duration<float>(0.1f));
+		  // tick #4
+		  state.tick(std::chrono::duration<float>(0.1f));
 
-		// tick #5
-		state.tick(std::chrono::duration<float>(0.1f));
+		  // tick #5
+		  state.tick(std::chrono::duration<float>(0.1f));
 
-		require(0) == state.filter<on_remove<type>>().size();
-		require(0) == state.filter<type>().size();
-	};
+		  require(0) == state.filter<on_remove<type>>().size();
+		  require(0) == state.filter<type>().size();
+	  };
 
-	section<"continuous removal from within systems">() = [&]() {
-		auto e_list2 {state.create(40)};
-		psl::array<type> values;
-		values.resize(e_list2.size());
-		std::iota(std::begin(values), std::end(values), 0);
-		;
-		state.add_components<type>(e_list2, values);
-		auto expected = e_list2.size();
+	  section<"continuous removal from within systems">() = [&]() {
+		  auto e_list2 {state.create(40)};
+		  psl::array<type> values;
+		  values.resize(e_list2.size());
+		  std::iota(std::begin(values), std::end(values), 0);
+		  ;
+		  state.add_components<type>(e_list2, values);
+		  auto expected = e_list2.size();
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
-			require(pack.size()) == expected;
-			psl::array<entity> entities;
-			for(auto [e, i] : pack) {
-				require(type(e)) == i;
-				if(std::rand() % 2 == 0) {
-					entities.emplace_back(e);
-					--expected;
-				}
-			}
-			info.command_buffer.remove_components<type>(entities);
-		});
+		  std::mutex lock {};
 
-		while(expected > 0) state.tick(std::chrono::duration<float>(0.1f));
-	};
+		  state.declare([&expected, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity, type> pack) {
+			  size_t removed {0};
+			  psl::array<entity> entities;
+			  for(auto [e, i] : pack) {
+				  require(type(e)) == i;
+				  if(std::rand() % 2 == 0) {
+					  entities.emplace_back(e);
+					  removed++;
+				  }
+			  }
+			  info.command_buffer.remove_components<type>(entities);
+
+			  std::lock_guard<std::mutex> guard(lock);
+			  expected -= removed;
+		  });
+
+		  while(expected > 0) state.tick(std::chrono::duration<float>(0.1f));
+	  };
 
 
-	section<"continuous removal from external">() = [&]() {
-		auto e_list2 {state.create(40)};
-		psl::array<type> values;
-		values.resize(e_list2.size());
-		std::iota(std::begin(values), std::end(values), 0);
-		state.add_components<type>(e_list2, values);
-		auto expected = e_list2.size();
+	  section<"continuous removal from external">() = [&]() {
+		  auto e_list2 {state.create(40)};
+		  psl::array<type> values;
+		  values.resize(e_list2.size());
+		  std::iota(std::begin(values), std::end(values), 0);
+		  state.add_components<type>(e_list2, values);
+		  auto expected = e_list2.size();
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
-			require(pack.size()) == expected;
-			for(auto [e, i] : pack) {
-				require(type(e)) == i;
-			}
-		});
+		  size_t total = 0;
+		  std::mutex lock {};
 
-		while(expected > 0) {
-			state.tick(std::chrono::duration<float>(0.1f));
+		  state.declare([&total, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity, type> pack) {
+			  for(auto [e, i] : pack) {
+				  require(type(e)) == i;
+			  }
+			  std::lock_guard<std::mutex> guard(lock);
+			  total += pack.size();
+		  });
 
-			auto mid = std::partition(std::begin(e_list2), std::end(e_list2), [](auto e) { return std::rand() % 2; });
-			state.remove_components<type>(
-			  psl::array_view<entity> {mid, static_cast<size_t>(std::distance(mid, std::end(e_list2)))});
-			expected -= std::distance(mid, std::end(e_list2));
-			e_list2.erase(mid, std::end(e_list2));
-		}
-	};
 
-	section<"continuous addition from within systems">() = [&]() {
-		auto e_list2 {state.create(40)};
-		psl::array<type> values;
-		values.resize(e_list2.size());
-		std::iota(std::begin(values), std::end(values), 0);
-		state.add_components<type>(e_list2, values);
-		auto expected = e_list2.size();
+		  while(expected > 0) {
+			  state.tick(std::chrono::duration<float>(0.1f));
+			  require(total) == expected;
+			  total	   = 0;
+			  auto mid = std::partition(std::begin(e_list2), std::end(e_list2), [](auto e) { return std::rand() % 2; });
+			  state.remove_components<type>(
+				psl::array_view<entity> {mid, static_cast<size_t>(std::distance(mid, std::end(e_list2)))});
+			  expected -= std::distance(mid, std::end(e_list2));
+			  e_list2.erase(mid, std::end(e_list2));
+		  }
+	  };
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
-			require(pack.size()) == expected;
+	  section<"continuous addition from within systems">() = [&]() {
+		  auto e_list2 {state.create(40)};
+		  psl::array<type> values;
+		  values.resize(e_list2.size());
+		  std::iota(std::begin(values), std::end(values), 0);
+		  state.add_components<type>(e_list2, values);
+		  auto expected = e_list2.size();
 
-			for(auto [e, i] : pack) {
-				require(type(e)) == i;
-			}
-			auto new_count				= std::rand() % 20;
-			psl::array<entity> entities = info.command_buffer.create(new_count);
-			psl::array<type> values;
-			values.resize(entities.size());
-			std::iota(std::begin(values), std::end(values), type(expected));
-			info.command_buffer.add_components<type>(entities, values);
-			expected += new_count;
-		});
+		  state.declare([&expected](psl::ecs::info_t& info, pack_t<psl::ecs::full_t, access, entity, type> pack) {
+			  require(pack.size()) == expected;
 
-		while(expected <= 1'000) state.tick(std::chrono::duration<float>(0.1f));
-	};
+			  for(auto [e, i] : pack) {
+				  require(type(e)) == i;
+			  }
+			  auto new_count			  = std::rand() % 20;
+			  psl::array<entity> entities = info.command_buffer.create(new_count);
+			  psl::array<type> values;
+			  values.resize(entities.size());
+			  std::iota(std::begin(values), std::end(values), type(expected));
+			  info.command_buffer.add_components<type>(entities, values);
+			  expected += new_count;
+		  });
 
-	section<"continuous addition from external">() = [&]() {
-		auto e_list2 {state.create(40)};
-		{
-			psl::array<type> values;
-			values.resize(e_list2.size());
-			std::iota(std::begin(values), std::end(values), 0);
-			state.add_components<type>(e_list2, values);
-		}
-		auto expected = e_list2.size();
+		  while(expected <= 1'000) {
+			  state.tick(std::chrono::duration<float>(0.1f));
+		  }
+	  };
 
-		state.declare([&expected](psl::ecs::info_t& info, pack<entity, type> pack) {
-			require(pack.size()) == expected;
+	  section<"continuous addition from external">() = [&]() {
+		  auto e_list2 {state.create(40)};
+		  {
+			  psl::array<type> values;
+			  values.resize(e_list2.size());
+			  std::iota(std::begin(values), std::end(values), 0);
+			  state.add_components<type>(e_list2, values);
+		  }
+		  auto expected = e_list2.size();
 
-			for(auto [e, i] : pack) {
-				require(type(e)) == i;
-			}
-		});
+		  size_t total = 0;
+		  std::mutex lock {};
 
-		while(expected <= 1'000) {
-			state.tick(std::chrono::duration<float>(0.1f));
+		  state.declare([&total, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity, type> pack) {
+			  for(auto [e, i] : pack) {
+				  require(type(e)) == i;
+			  }
+			  std::lock_guard<std::mutex> guard(lock);
+			  total += pack.size();
+		  });
 
-			auto new_count				= std::rand() % 20;
-			psl::array<entity> entities = state.create(new_count);
-			psl::array<type> values;
-			values.resize(entities.size());
-			std::iota(std::begin(values), std::end(values), type(expected));
-			state.add_components<type>(entities, values);
-			expected += new_count;
-		}
-	};
+		  while(expected <= 1'000) {
+			  state.tick(std::chrono::duration<float>(0.1f));
+			  require(total) == expected;
+			  total = 0;
 
-	section<"simple iterations test">() = [&]() {
-		auto e_list1 {state.create(10)};
-		auto e_list2 {state.create(40)};
-		auto e_list3 {state.create(50)};
-		state.add_components<float>(e_list1);
-		state.add_components<type>(e_list1);
-		auto system_id = state.declare(float_iteration_test);
-		for(int i = 0; i < 10; ++i) state.tick(std::chrono::duration<float>(0.1f));
+			  auto new_count			  = std::rand() % 20;
+			  psl::array<entity> entities = state.create(new_count);
+			  psl::array<type> values;
+			  values.resize(entities.size());
+			  std::iota(std::begin(values), std::end(values), type(expected));
+			  state.add_components<type>(entities, values);
+			  expected += new_count;
+		  }
+	  };
 
-		auto entities = state.filter<type>();
-		auto results  = state.view<type>();
-		require(results.size()) == entities.size();
-		require(results.size()) == e_list1.size();
-		require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+	  section<"simple iterations test">() = [&]() {
+		  auto e_list1 {state.create(10)};
+		  auto e_list2 {state.create(40)};
+		  auto e_list3 {state.create(50)};
+		  state.add_components<float>(e_list1);
+		  state.add_components<type>(e_list1);
+		  auto system_id = state.declare(float_iteration_test<policy, access>);
+		  for(int i = 0; i < 10; ++i) state.tick(std::chrono::duration<float>(0.1f));
 
-		require(state.systems()) == 1;
-		state.revoke(system_id);
-		require(state.systems()) == 0;
-		state.tick(std::chrono::duration<float>(0.1f));
-		require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
-	};
-};
+		  auto entities = state.filter<type>();
+		  auto results	= state.view<type>();
+		  require(results.size()) == entities.size();
+		  require(results.size()) == e_list1.size();
+		  require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+
+		  require(state.systems()) == 1;
+		  state.revoke(system_id);
+		  require(state.systems()) == 0;
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+	  };
+  };
 
 auto t5 = suite<"declaring system signatures", "ecs", "psl", "regression">() = []() {
 	state_t state;
@@ -587,7 +641,8 @@ auto t5 = suite<"declaring system signatures", "ecs", "psl", "regression">() = [
 };
 
 auto t7 =
-  suite<"filtering over multiple frames", "ecs", "psl", "regression">().templates<float_tpack>() = []<typename type>() {
+  suite<"filtering over multiple frames", "ecs", "psl", "regression">()
+	.templates<float_tpack, policy_tpack, access_tpack>() = []<typename type, typename policy, typename access>() {
 	  state_t state {1u};
 	  section<"regression 1">() = [&] {
 		  // issue: non-unique entry in filtering operation
@@ -598,11 +653,14 @@ auto t7 =
 		  //    in the filtering for system's filtering -> issue
 
 		  size_t count = 0;
-		  state.declare([&](info_t& info, pack<entity, type> pack) {
+		  std::mutex lock {};
+		  state.declare([&](info_t& info, pack_t<policy, access, entity, type> pack) {
 			  if(pack.empty())
 				  return;
+			  info.command_buffer.add_components<int>(pack, {0});
+
+			  std::lock_guard guard {lock};
 			  count += pack.size();
-			  info.command_buffer.add_components<int>(pack.template get<entity>(), {0});
 		  });
 
 		  auto entities = state.create<type>(1);
@@ -635,7 +693,7 @@ auto t7 =
 		  expect(state.filter<type>().size()) == 1;
 		  expect(state.filter<on_add<type>>().size()) == 1;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
-		  state.declare([&](info_t& info, pack<entity, type> pack) {
+		  state.declare([&](info_t& info, pack_t<psl::ecs::full_t, access, entity, type> pack) {
 			  expect(pack.size()) == 1;
 			  expect(pack.template get<entity>()[0]) == 1;
 		  });

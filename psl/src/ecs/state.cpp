@@ -33,7 +33,7 @@ constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept {
 
 psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::dependency_pack>& source,
 													   size_t workers = std::numeric_limits<size_t>::max()) {
-	psl::array<psl::array<details::dependency_pack>> packs;
+	psl::array<psl::array<details::dependency_pack>> packs {};
 
 	if(source.size() == 0)
 		return packs;
@@ -381,7 +381,7 @@ psl::array<entity>::iterator state_t::on_combine_op(psl::array<details::componen
 	});
 }
 
-psl::array<entity> state_t::filter(details::dependency_pack& pack, bool seed_with_previous) const noexcept {
+psl::array<entity> state_t::filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept {
 	auto pack_filters = pack.filters;
 	for(const auto& [key, arr] : pack.m_RBindings) pack_filters.emplace_back(key);
 	for(const auto& [key, arr] : pack.m_RWBindings) pack_filters.emplace_back(key);
@@ -673,6 +673,9 @@ size_t state_t::prepare_data(psl::array_view<entity> entities, void* cache, comp
 	psl_assert(
 	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
 	  "some components failed to have storage for the entities");
+	psl_assert(static_cast<std::uintptr_t>(cache) + (cInfo->component_size() * entities.size()) <=
+				 static_cast<std::uintptr_t>(m_Cache.data()) + m_Cache.size(),
+			   "Cache ran out of memory");
 	return cInfo->copy_to(entities, cache);
 }
 
@@ -680,25 +683,43 @@ size_t state_t::prepare_bindings(psl::array_view<entity> entities,
 								 void* cache,
 								 details::dependency_pack& dep_pack) const noexcept {
 	size_t offset_start = (std::uintptr_t)cache;
-
+	psl_assert(static_cast<std::uintptr_t>(cache) + (sizeof(entity) * entities.size()) <=
+				 static_cast<std::uintptr_t>(m_Cache.data()) + m_Cache.size(),
+			   "Cache ran out of memory");
 	std::memcpy(cache, entities.data(), sizeof(entity) * entities.size());
 	dep_pack.m_Entities =
 	  psl::array_view<entity>((entity*)cache, (entity*)((std::uintptr_t)cache + (sizeof(entity) * entities.size())));
 
 	cache = (void*)((std::uintptr_t)cache + (sizeof(entity) * entities.size()));
 
-	auto write_fn = [entities, &cache, this](auto& binding) {
-		std::uintptr_t data_begin = (std::uintptr_t)cache;
-		const auto& cInfo		  = get_component_container(binding.first);
-		auto offset				  = align(data_begin, cInfo->alignment());
-		auto write_size			  = prepare_data(entities, (void*)data_begin, binding.first);
-		cache					  = (void*)((std::uintptr_t)cache + write_size + offset);
-		binding.second = psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
-	};
+	if(dep_pack.is_direct_access()) {
+		// this functional handles filling in the cache with the data for the given component
+		// it offsets the `cache` every invocation with the amount the previous invocation added
+		auto write_fn = [entities, &cache, this](auto& binding) {
+			std::uintptr_t data_begin = (std::uintptr_t)cache;
+			const auto& cInfo		  = get_component_container(binding.first);
+			if(cInfo->component_size() > 0) {
+				auto offset		= align(data_begin, cInfo->alignment());
+				auto write_size = prepare_data(entities, (void*)data_begin, binding.first);
+				cache			= (void*)((std::uintptr_t)cache + write_size + offset);
+				binding.second	= psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
+			}
+		};
 
-	std::for_each(std::begin(dep_pack.m_RBindings), std::end(dep_pack.m_RBindings), write_fn);
-	std::for_each(std::begin(dep_pack.m_RWBindings), std::end(dep_pack.m_RWBindings), write_fn);
-
+		std::for_each(std::begin(dep_pack.m_RBindings), std::end(dep_pack.m_RBindings), write_fn);
+		std::for_each(std::begin(dep_pack.m_RWBindings), std::end(dep_pack.m_RWBindings), write_fn);
+	} else {
+		// this functional handles filling in the indirect offsets to the data so that we can reconstruct
+		// an indirect_array_t
+		auto view_fn = [entities, this](auto& binding) {
+			const auto& cInfo	   = get_component_container(binding.first);
+			binding.second.indices = cInfo->memory_location_offsets_for(entities);
+			binding.second.data	   = cInfo->data();
+		};
+		std::for_each(std::begin(dep_pack.m_IndirectReadBindings), std::end(dep_pack.m_IndirectReadBindings), view_fn);
+		std::for_each(
+		  std::begin(dep_pack.m_IndirectReadWriteBindings), std::end(dep_pack.m_IndirectReadWriteBindings), view_fn);
+	}
 	return (std::uintptr_t)cache - offset_start;
 }
 

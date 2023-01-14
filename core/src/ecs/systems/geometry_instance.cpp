@@ -28,10 +28,12 @@ geometry_instancing::geometry_instancing(psl::ecs::state_t& state) {
 }
 
 
-void geometry_instancing::dynamic_system(
-  info_t& info,
-  pack<renderable, const transform, const dynamic_tag, except<dont_render_tag>, order_by<renderer_sort, renderable>>
-	geometry_pack) {
+void geometry_instancing::dynamic_system(info_t& info,
+										 pack_direct_full_t<renderable,
+															const transform,
+															const dynamic_tag,
+															except<dont_render_tag>,
+															order_by<renderer_sort, renderable>> geometry_pack) {
 	// todo clean up in case the last renderable from a dynamic object is despawned. The instance will not be released
 	// todo this will trash static instances as well
 	core::log->warn("todo: instance leak");
@@ -101,12 +103,12 @@ void geometry_instancing::dynamic_system(
 }
 
 void geometry_instancing::static_add(info_t& info,
-									 pack<entity,
-										  const renderable,
-										  const transform,
-										  psl::ecs::except<dynamic_tag>,
-										  on_combine<const renderable, const transform>,
-										  order_by<renderer_sort, renderable>> geometry_pack) {
+									 pack_direct_full_t<entity,
+														const renderable,
+														const transform,
+														psl::ecs::except<dynamic_tag>,
+														on_combine<const renderable, const transform>,
+														order_by<renderer_sort, renderable>> geometry_pack) {
 	if(geometry_pack.size() == 0)
 		return;
 
@@ -160,11 +162,11 @@ void geometry_instancing::static_add(info_t& info,
 	core::profiler.scope_end();
 }
 void geometry_instancing::static_remove(info_t& info,
-										pack<entity,
-											 renderable,
-											 const instance_id,
-											 psl::ecs::except<dynamic_tag>,
-											 on_break<const renderable, const transform>> geometry_pack) {
+										pack_direct_full_t<entity,
+														   renderable,
+														   const instance_id,
+														   psl::ecs::except<dynamic_tag>,
+														   on_break<const renderable, const transform>> geometry_pack) {
 	if(geometry_pack.size() == 0)
 		return;
 	core::log->info("deallocating {} static instances", geometry_pack.size());
@@ -180,10 +182,10 @@ void geometry_instancing::static_remove(info_t& info,
 
 void geometry_instancing::static_geometry_add(
   psl::ecs::info_t& info,
-  psl::ecs::pack<psl::ecs::entity,
-				 const core::ecs::components::renderable,
-				 psl::ecs::except<core::ecs::components::transform>,
-				 psl::ecs::on_add<core::ecs::components::renderable>> pack) {
+  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+							   const core::ecs::components::renderable,
+							   psl::ecs::except<core::ecs::components::transform>,
+							   psl::ecs::on_add<core::ecs::components::renderable>> pack) {
 	if(pack.size() == 0)
 		return;
 	psl::array<entity> eIds;
@@ -201,11 +203,11 @@ void geometry_instancing::static_geometry_add(
 
 void geometry_instancing::static_geometry_remove(
   psl::ecs::info_t& info,
-  psl::ecs::pack<psl::ecs::entity,
-				 core::ecs::components::renderable,
-				 const instance_id,
-				 psl::ecs::except<core::ecs::components::transform>,
-				 psl::ecs::on_remove<core::ecs::components::renderable>> pack) {
+  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+							   core::ecs::components::renderable,
+							   const instance_id,
+							   psl::ecs::except<core::ecs::components::transform>,
+							   psl::ecs::on_remove<core::ecs::components::renderable>> pack) {
 	if(pack.size() == 0)
 		return;
 	for(auto [entity, renderable, instance_id] : pack) {

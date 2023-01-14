@@ -199,10 +199,10 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
 
 	#include <random>
 template <typename T, typename... Ts>
-auto read_only_system = [](info_t& info, pack<T, const Ts...>) {};
+auto read_only_system = [](info_t& info, pack_t<T, direct_t, const Ts...>) {};
 
 template <typename T, typename... Ts>
-auto write_system = [](info_t& info, pack<T, Ts...>) {};
+auto write_system = [](info_t& info, pack_t<T, direct_t, Ts...>) {};
 
 auto get_random_entities(const psl::array<entity>& source, size_t count, std::mt19937 g) {
 	auto copy = source;
@@ -232,25 +232,25 @@ const std::vector<std::vector<entity>> system_counts {{10'000, 300, 2'700, 1'200
 													  {1'000'000, 300'000, 210'700, 300'200, 680'700}};
 void trivial_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, read_only_system<full, char, int, float, uint64_t>);
+	state.declare(threading::seq, read_only_system<full_t, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
 void trivial_write_seq_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, write_system<full, char, int, float, uint64_t>);
+	state.declare(threading::seq, write_system<full_t, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
 void trivial_read_only_par_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, read_only_system<partial, char, int, float, uint64_t>);
+	state.declare(threading::seq, read_only_system<partial_t, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
 void trivial_write_par_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, write_system<partial, char, int, float, uint64_t>);
+	state.declare(threading::seq, write_system<partial_t, char, int, float, uint64_t>);
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
@@ -262,25 +262,25 @@ using namespace core::ecs::components;
 
 void complex_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, read_only_system<full, camera, velocity, lifetime, transform>);
+	state.declare(threading::seq, read_only_system<full_t, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
 void complex_write_seq_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, write_system<full, camera, velocity, lifetime, transform>);
+	state.declare(threading::seq, write_system<full_t, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
 void complex_read_only_par_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, read_only_system<partial, camera, velocity, lifetime, transform>);
+	state.declare(threading::seq, read_only_system<partial_t, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 
 void complex_write_par_system(benchmark::State& gState) {
 	state_t state;
-	state.declare(threading::seq, write_system<partial, camera, velocity, lifetime, transform>);
+	state.declare(threading::seq, write_system<partial_t, camera, velocity, lifetime, transform>);
 	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
 }
 

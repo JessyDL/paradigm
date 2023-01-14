@@ -401,7 +401,9 @@ class pack_view {
 	}
 
   public:
-	pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {
+	pack_view() = default;
+	pack_view(psl::array_view<Ts>... views) requires(sizeof...(Ts) > 0)
+		: m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {
 #ifdef PE_DEBUG
 		// todo this needs further verification, seems tag types are present here, should they be?
 		auto test = [](size_t size1, size_t size2) {
@@ -459,8 +461,11 @@ class pack_view {
 	unpack_iterator unpack_end() const noexcept {
 		return {unpack_iterator_end(m_Pack)};
 	}
-	constexpr size_t size() const noexcept {
+	constexpr size_t size() const noexcept requires(sizeof...(Ts) > 0) {
 		return std::get<0>(m_Pack).size();
+	}
+	constexpr size_t size() const noexcept requires(sizeof...(Ts) == 0) {
+		return 0;
 	}
 
   private:

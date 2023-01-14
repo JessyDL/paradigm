@@ -48,9 +48,10 @@ class lighting_system {
 
 	void create_dir(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack<psl::ecs::entity,
-					 core::ecs::components::light,
-					 psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>> pack);
+	  psl::ecs::pack_direct_full_t<psl::ecs::entity,
+								   core::ecs::components::light,
+								   psl::ecs::on_combine<core::ecs::components::light, core::ecs::components::transform>>
+		pack);
 
   private:
 	psl::view_ptr<core::resource::cache_t> m_Cache;

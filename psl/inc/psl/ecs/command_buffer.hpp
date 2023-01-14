@@ -4,6 +4,7 @@
 #include "entity.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
+#include "psl/ecs/pack.hpp"
 #include "psl/memory/sparse_array.hpp"
 #include "psl/sparse_array.hpp"
 #include "psl/sparse_indice_array.hpp"
@@ -17,8 +18,27 @@ class state_t;
 class command_buffer_t {
 	friend class state_t;
 
+	template <IsPack PackType>
+	psl::array_view<entity> pack_get_entities(PackType const& pack) {
+		psl::array_view<entity> entities {};
+		if constexpr(IsAccessDirect<typename PackType::access_type>) {
+			entities = pack.template get<entity>();
+		} else {
+			const auto& indirect_array = pack.template get<entity>();
+			// the internal data does not get modified, so const_cast'ing is safe here.
+			entities = psl::array_view<entity> {const_cast<entity*>(indirect_array.data()), indirect_array.size()};
+		}
+		return entities;
+	}
+
   public:
 	command_buffer_t(const state_t& state);
+
+	template <typename... Ts>
+	void add_components(IsPack auto const& pack) {
+		psl::array_view<entity> entities = pack_get_entities(pack);
+		(add_component<Ts>(entities), ...);
+	}
 
 	template <typename... Ts>
 	void add_components(psl::array_view<entity> entities) {
@@ -28,6 +48,11 @@ class command_buffer_t {
 		(add_component<Ts>(entities), ...);
 	}
 
+	template <typename... Ts>
+	void add_components(IsPack auto const& pack, psl::array_view<Ts>... data) {
+		psl::array_view<entity> entities = pack_get_entities(pack);
+		add_components<Ts...>(entities, data...);
+	}
 
 	template <typename... Ts>
 	void add_components(psl::array_view<entity> entities, psl::array_view<Ts>... data) {
@@ -38,11 +63,23 @@ class command_buffer_t {
 	}
 
 	template <typename... Ts>
+	void add_components(IsPack auto const& pack, Ts&&... prototype) {
+		psl::array_view<entity> entities = pack_get_entities(pack);
+		add_components<Ts...>(entities, std::forward<Ts>(prototype)...);
+	}
+
+	template <typename... Ts>
 	void add_components(psl::array_view<entity> entities, Ts&&... prototype) {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
 		(add_component(entities, std::forward<Ts>(prototype)), ...);
+	}
+
+	template <typename... Ts>
+	void remove_components(IsPack auto const& pack) noexcept {
+		psl::array_view<entity> entities = pack_get_entities(pack);
+		remove_components<Ts...>(entities);
 	}
 
 	template <typename... Ts>
@@ -136,6 +173,7 @@ class command_buffer_t {
 	}
 
 	void destroy(psl::array_view<entity> entities) noexcept;
+	void destroy(psl::ecs::details::indirect_array_t<entity, entity> entities) noexcept;
 	void destroy(entity entity) noexcept;
 
   private:

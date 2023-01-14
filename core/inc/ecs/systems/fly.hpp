@@ -14,9 +14,9 @@ class fly {
 
 
   private:
-	void
-	tick(psl::ecs::info_t& info,
-		 psl::ecs::pack<core::ecs::components::transform, psl::ecs::filter<core::ecs::components::input_tag>> movables);
+	void tick(psl::ecs::info_t& info,
+			  psl::ecs::pack_direct_full_t<core::ecs::components::transform,
+										   psl::ecs::filter<core::ecs::components::input_tag>> movables);
 
 	void on_key_pressed(core::systems::input::keycode keyCode);
 	void on_key_released(core::systems::input::keycode keyCode);

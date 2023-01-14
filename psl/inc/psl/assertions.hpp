@@ -216,6 +216,7 @@ namespace details {
 #endif
 
 #if defined(PE_DEBUG)
+	#define PE_ASSERT
 	 // _PSL_ASSERT_IMPL_(N) are added to inject a generic failed message in case none was provided.
 	#define _PSL_ASSERT_IMPL_(...) psl_print(psl::level_t::fatal, "assertion failed")
 	#define _PSL_ASSERT_IMPL_N(...) psl_print(psl::level_t::fatal, __VA_ARGS__)

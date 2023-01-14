@@ -20,8 +20,8 @@ render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass
 	state.declare<"render::tick_draws">(threading::seq, &render::tick_draws, this);
 }
 void render::tick_draws(info_t& info,
-						pack<const renderable, on_add<renderable>> renderables,
-						pack<const renderable, on_remove<renderable>> broken_renderables) {
+						pack_direct_full_t<const renderable, on_add<renderable>> renderables,
+						pack_direct_full_t<const renderable, on_remove<renderable>> broken_renderables) {
 	if(!renderables.size() && !broken_renderables.size())
 		return;
 	m_Pass->dirty(true);
