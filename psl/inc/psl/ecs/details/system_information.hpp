@@ -130,8 +130,12 @@ class dependency_pack {
 	template <typename T>
 	auto fill_in(psl::type_pack_t<psl::ecs::details::indirect_array_t<T, psl::ecs::entity>>)
 	  -> psl::ecs::details::indirect_array_t<T, psl::ecs::entity> {
-		if constexpr(std::is_same<T, psl::ecs::entity>::value) {
-			return m_Entities;
+		if constexpr(std::is_same<std::remove_const_t<T>, psl::ecs::entity>::value) {
+			// todo: this is a temporary hack untill mixed packs can be done. Ideally entities are an array_view not an indirect_array_t
+			std::vector<entity> indices {};
+			indices.resize(m_Entities.size());
+			std::iota(std::begin(indices), std::end(indices), entity {0});
+			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(indices, m_Entities.data());
 		} else {
 			constexpr component_key_t id = details::component_key_t::generate<T>();
 			if constexpr(std::is_const<T>::value) {
