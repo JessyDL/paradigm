@@ -136,8 +136,7 @@ class component_container_typed_t final : public component_container_t {
 	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
 														   entity_t::size_type* destination) const noexcept override {
 		for(auto e : entities) {
-			*destination = static_cast<entity_t::size_type>(
-			  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL) - (T*)m_Entities.data());
+			*destination = m_Entities.dense_index_for(static_cast<entity_t::size_type>(e), stage_range_t::ALL);
 			++destination;
 		}
 		return destination;
@@ -375,12 +374,8 @@ class component_container_untyped_t : public component_container_t {
 
 	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
 														   entity_t::size_type* destination) const noexcept override {
-		const auto base = reinterpret_cast<std::uintptr_t>(m_Entities.data());
 		for(auto e : entities) {
-			const auto address = reinterpret_cast<std::uintptr_t>(
-			  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL));
-			*destination =
-			  static_cast<entity_t::size_type>((address - base) / static_cast<entity_t::size_type>(m_Size));
+			*destination = m_Entities.dense_index_for(static_cast<entity_t::size_type>(e), stage_range_t::ALL);
 			++destination;
 		}
 		return destination;

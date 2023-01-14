@@ -108,6 +108,13 @@ class staged_sparse_array {
 		return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 	}
 
+	inline auto dense_index_for(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> index_t {
+		index_t sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		psl_assert(has(index, stage), "missing index {} within [{}] in sparse array", index, to_underlying(stage));
+		return static_cast<index_t>(get_chunk_from_index(chunk_index)[sparse_index]);
+	}
+
 	void reserve(size_t capacity) {
 		if(capacity <= m_Reverse.capacity())
 			return;

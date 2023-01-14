@@ -227,6 +227,21 @@ class staged_sparse_memory_region_t {
 		return (static_cast<pointer>(m_DenseData.data()) + (get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
 
+	/// \brief Retrieves the internal index for the dense data for the given index
+	/// \param index Where to look
+	/// \param stage Used to limit the stages we wish to look in
+	/// \return Index of the data relative to the data() (note that this does not take the type's size in account)
+	FORCEINLINE auto dense_index_for(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
+	  -> key_type {
+		key_type sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		psl_assert(has(index, stage),
+				   "missing index {} within [{}, {}] in sparse array",
+				   index,
+				   static_cast<std::underlying_type_t<stage_range_t>>(stage));
+		return static_cast<key_type>(get_chunk_from_index(chunk_index)[sparse_index]);
+	}
+
 	/// \brief Erases all values between the first/last indices
 	/// \param first Begin of the range
 	/// \param last End of the range
