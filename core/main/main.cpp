@@ -1002,7 +1002,7 @@ int main(int argc, char* argv[]) {
 		core::log->info("Received the cli args:");
 		for(auto i = 0; i < argc; ++i) core::log->info(argv[i]);
 	}
-	auto backend = [](int argc, char* argv[]) noexcept {
+	auto backend = [](int argc, char* argv[]) {
 		for(auto i = 0; i < argc; ++i) {
 			std::string_view text {argv[i]};
 			if(text == "--vulkan") {

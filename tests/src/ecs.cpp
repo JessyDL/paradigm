@@ -276,13 +276,15 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 
 		  auto on_condition_func = [](const position& pos) { return (pos.x + pos.y) > 100; };
 
-		  state.declare([elist1_size = e_list1.size()](
-						  info_t& info,
+		  state.declare(
+			[elist1_size = e_list1.size()](
+			  info_t& info,
 			  pack_t<psl::ecs::full_t, access, position, on_condition<decltype(on_condition_func), position>> pack) {
-			  expect(pack.size()) == elist1_size;
-		  });
+				expect(pack.size()) == elist1_size;
+			});
 
-		  state.declare([total_size = e_list1.size() + e_list2.size()](info_t& info, pack_t<psl::ecs::full_t, access, position> pack) {
+		  state.declare([total_size = e_list1.size() +
+									  e_list2.size()](info_t& info, pack_t<psl::ecs::full_t, access, position> pack) {
 			  expect(pack.size()) == total_size;
 		  });
 
@@ -400,10 +402,10 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  state.add_components(e_list2, [&incrementer](type& target) { target = type(incrementer++); });
 		  require(e_list2.size()) == state.filter<on_add<type>>().size();
 		  require(e_list2.size()) == state.filter<type>().size();
-		  token = state.declare([size_1 = e_list1.size(), size_2 = e_list2.size()](
-								  psl::ecs::info_t& info,
-								  pack_direct_full_t<entity, const type, on_remove<type>> pack1,
-								  pack_direct_full_t<entity, const type, filter<type>> pack2) {
+		  token = state.declare([size_1 = e_list1.size(),
+								 size_2 = e_list2.size()](psl::ecs::info_t& info,
+														  pack_direct_full_t<entity, const type, on_remove<type>> pack1,
+														  pack_direct_full_t<entity, const type, filter<type>> pack2) {
 			  for(auto [e, i] : pack1) {
 				  require(e) == i;
 			  }
@@ -596,7 +598,8 @@ auto t5 = suite<"declaring system signatures", "ecs", "psl", "regression">() = [
 };
 
 auto t7 =
-  suite<"filtering over multiple frames", "ecs", "psl", "regression">().templates<float_tpack, policy_tpack, access_tpack>() = []<typename type, typename policy, typename access>() {
+  suite<"filtering over multiple frames", "ecs", "psl", "regression">()
+	.templates<float_tpack, policy_tpack, access_tpack>() = []<typename type, typename policy, typename access>() {
 	  state_t state {1u};
 	  section<"regression 1">() = [&] {
 		  // issue: non-unique entry in filtering operation
