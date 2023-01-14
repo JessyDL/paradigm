@@ -155,6 +155,18 @@ void command_buffer_t::destroy(psl::array_view<entity> entities) noexcept {
 	}
 }
 
+void command_buffer_t::destroy(psl::ecs::details::indirect_array_t<entity, entity> entities) noexcept {
+	for(auto e : entities) {
+		if(e < m_First) {
+			m_DestroyedEntities.emplace_back(e);
+			continue;
+		}
+		++m_Orphans;
+		m_Entities[e] = m_Next;
+		m_Next		  = e;
+	}
+}
+
 void command_buffer_t::destroy(entity entity) noexcept {
 	/*for(auto& cInfo : m_Components)
 	{
