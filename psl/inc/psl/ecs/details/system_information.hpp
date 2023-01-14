@@ -128,20 +128,20 @@ class dependency_pack {
 	}
 
 	template <typename T>
-	auto fill_in(psl::type_pack_t<psl::ecs::details::indirect_array_t<T, psl::ecs::entity>>)
-	  {
+	auto fill_in(psl::type_pack_t<psl::ecs::details::indirect_array_t<T, psl::ecs::entity>>) {
 		if constexpr(std::is_same<T, psl::ecs::entity>::value) {
-			// todo: this is a temporary hack untill mixed packs can be done. Ideally entities are an array_view not an indirect_array_t
+			// todo: this is a temporary hack untill mixed packs can be done. Ideally entities are an array_view not an
+			// indirect_array_t
 			std::vector<entity> indices {};
 			indices.resize(m_Entities.size());
 			std::iota(std::begin(indices), std::end(indices), entity {0});
-			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(indices, (psl::ecs::entity*)m_Entities.data());
+			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(indices,
+																			(psl::ecs::entity*)m_Entities.data());
 		} else {
 			constexpr component_key_t id = details::component_key_t::generate<T>();
 			if constexpr(std::is_const<T>::value) {
 				auto it = m_IndirectReadBindings.find(id);
-				psl_assert(it != m_IndirectReadBindings.end(),
-						   "type wasn't present in `m_IndirectReadBindings`");
+				psl_assert(it != m_IndirectReadBindings.end(), "type wasn't present in `m_IndirectReadBindings`");
 				return psl::ecs::details::indirect_array_t<T, psl::ecs::entity>(it->second.indices,
 																				(T*)it->second.data);
 			} else {
@@ -155,7 +155,7 @@ class dependency_pack {
 	}
 
 	template <std::size_t... Is, typename T>
-	auto to_pack_impl(std::index_sequence<Is...>, psl::type_pack_t<T>) -> T{
+	auto to_pack_impl(std::index_sequence<Is...>, psl::type_pack_t<T>) -> T {
 		using pack_type = typename T::pack_type;
 		using range_t	= typename pack_type::range_t;
 		return T(pack_type(fill_in(psl::type_pack_t<typename std::tuple_element<Is, range_t>::type>())...));

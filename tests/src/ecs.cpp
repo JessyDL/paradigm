@@ -419,23 +419,23 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  require(e_list2.size()) == state.filter<on_add<type>>().size();
 		  require(e_list2.size()) == state.filter<type>().size();
 
-		  token = state.declare([&lock, &total_pack1, &total_pack2](
-								  psl::ecs::info_t& info,
+		  token = state.declare(
+			[&lock, &total_pack1, &total_pack2](psl::ecs::info_t& info,
 												pack_t<policy, access, entity, /*const*/ type, on_remove<type>> pack1,
-								  pack_t<policy, access, entity, /*const*/ type, filter<type>> pack2) {
-			  for(auto [e, i] : pack1) {
-				  require(e) == i;
-			  }
-			  require(pack1.template get<entity>()[0]) == 0;
-			  // if this shows 0, then the previous deleted components of tick #1 are still present
-			  require(pack2.template get<entity>()[0]) == 10;
-			  for(auto [e, i] : pack2) {
-				  require(e) == i;
-			  }
-			  std::lock_guard<std::mutex> guard(lock);
-			  total_pack1 += pack1.size();
-			  total_pack2 += pack2.size();
-		  });
+												pack_t<policy, access, entity, /*const*/ type, filter<type>> pack2) {
+				for(auto [e, i] : pack1) {
+					require(e) == i;
+				}
+				require(pack1.template get<entity>()[0]) == 0;
+				// if this shows 0, then the previous deleted components of tick #1 are still present
+				require(pack2.template get<entity>()[0]) == 10;
+				for(auto [e, i] : pack2) {
+					require(e) == i;
+				}
+				std::lock_guard<std::mutex> guard(lock);
+				total_pack1 += pack1.size();
+				total_pack2 += pack2.size();
+			});
 
 		  // tick #2
 		  // we verify the elements of e_list1 are deleted and their data is intact

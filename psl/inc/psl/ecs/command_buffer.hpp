@@ -4,12 +4,12 @@
 #include "entity.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
+#include "psl/ecs/pack.hpp"
 #include "psl/memory/sparse_array.hpp"
 #include "psl/sparse_array.hpp"
 #include "psl/sparse_indice_array.hpp"
 #include "psl/static_array.hpp"
 #include "psl/template_utils.hpp"
-#include "psl/ecs/pack.hpp"
 #include "psl/unique_ptr.hpp"
 
 namespace psl::ecs {
@@ -18,7 +18,7 @@ class state_t;
 class command_buffer_t {
 	friend class state_t;
 
-	template<IsPack PackType>
+	template <IsPack PackType>
 	psl::array_view<entity> pack_get_entities(PackType const& pack) {
 		psl::array_view<entity> entities {};
 		if constexpr(IsAccessDirect<typename PackType::access_type>) {
@@ -47,7 +47,7 @@ class command_buffer_t {
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
 		(add_component<Ts>(entities), ...);
 	}
-	
+
 	template <typename... Ts>
 	void add_components(IsPack auto const& pack, psl::array_view<Ts>... data) {
 		psl::array_view<entity> entities = pack_get_entities(pack);

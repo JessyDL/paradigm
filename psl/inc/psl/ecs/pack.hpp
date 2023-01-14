@@ -107,16 +107,15 @@ namespace details {
 	/// @tparam SizeType
 	template <typename T, typename SizeType = size_t>
 	struct indirect_array_t {
-		using size_type	   = SizeType;
-		using value_type   = std::remove_cvref_t<T>;
-		using pointer_type = value_type*;
+		using size_type			 = SizeType;
+		using value_type		 = std::remove_cvref_t<T>;
+		using pointer_type		 = value_type*;
 		using const_pointer_type = value_type const*;
 
 		using iterator_type = indirect_array_iterator_t<T, size_type>;
 
 		template <typename Y>
-		indirect_array_t(Y&& indices, pointer_type data)
-			: m_Indices(std::forward<Y>(indices)), m_Data(data) {}
+		indirect_array_t(Y&& indices, pointer_type data) : m_Indices(std::forward<Y>(indices)), m_Data(data) {}
 		indirect_array_t() = default;
 
 		constexpr inline auto& operator[](size_t index) noexcept { return *(m_Data + m_Indices[index]); }
@@ -128,7 +127,9 @@ namespace details {
 		constexpr inline auto begin() noexcept { return iterator_type(m_Indices.data(), m_Data); }
 		constexpr inline auto end() noexcept { return iterator_type(m_Indices.data() + m_Indices.size(), m_Data); }
 		constexpr inline auto begin() const noexcept { return iterator_type(m_Indices.data(), m_Data); }
-		constexpr inline auto end() const noexcept { return iterator_type(m_Indices.data() + m_Indices.size(), m_Data); }
+		constexpr inline auto end() const noexcept {
+			return iterator_type(m_Indices.data() + m_Indices.size(), m_Data);
+		}
 		constexpr inline auto cbegin() const noexcept { return begin(); }
 		constexpr inline auto cend() const noexcept { return end(); }
 		constexpr inline auto empty() const noexcept -> bool { return m_Indices.empty(); }
@@ -250,9 +251,7 @@ namespace details {
 
 
 		template <typename... Ys>
-		indirect_pack_view_t(Ys&&... data)
-			requires(sizeof...(Ys) > 0)
-			: m_Data(std::forward<Ys>(data)...) {
+		indirect_pack_view_t(Ys&&... data) requires(sizeof...(Ys) > 0) : m_Data(std::forward<Ys>(data)...) {
 // we hide the assert behind a check as the fold expression otherwise doesn't exist which leads to a compile error. This
 // approach is cleaner without adding more machinery.
 #if defined(PE_ASSERT)
@@ -291,27 +290,19 @@ namespace details {
 			return std::get<indirect_array_t<T, indice_type>>(m_Data);
 		}
 
-		constexpr inline auto size() const noexcept -> size_t
-			requires(sizeof...(Ts) > 0)
-		{
+		constexpr inline auto size() const noexcept -> size_t requires(sizeof...(Ts) > 0) {
 			return std::get<0>(m_Data).size();
 		}
 
-		constexpr inline auto size() const noexcept -> size_t
-			requires(sizeof...(Ts) == 0)
-		{
+		constexpr inline auto size() const noexcept -> size_t requires(sizeof...(Ts) == 0) {
 			return 0;
 		}
 
-		constexpr inline auto empty() const noexcept -> bool
-			requires(sizeof...(Ts) > 0)
-		{
+		constexpr inline auto empty() const noexcept -> bool requires(sizeof...(Ts) > 0) {
 			return std::get<0>(m_Data).empty();
 		}
 
-		constexpr inline auto empty() const noexcept -> bool
-			requires(sizeof...(Ts) == 0)
-		{
+		constexpr inline auto empty() const noexcept -> bool requires(sizeof...(Ts) == 0) {
 			return true;
 		}
 
@@ -336,8 +327,12 @@ namespace details {
 			return indirect_pack_view_iterator_t(std::get<indirect_array_t<Ts, indice_type>>(m_Data).end()...);
 		}
 
-		constexpr inline auto cbegin() const noexcept { return begin(); }
-		constexpr inline auto cend() const noexcept { return end(); }
+		constexpr inline auto cbegin() const noexcept {
+			return begin();
+		}
+		constexpr inline auto cend() const noexcept {
+			return end();
+		}
 		range_t m_Data {};
 	};
 
@@ -358,8 +353,7 @@ namespace details {
 }	 // namespace details
 
 template <IsPolicy Policy, IsAccessType Access, typename... Ts>
-	requires(!IsPolicy<Ts> && ...)
-class pack_t {
+requires(!IsPolicy<Ts> && ...) class pack_t {
   public:
 	using pack_type		   = typename details::typelist_to_pack_view<Ts...>::type;
 	using filter_type	   = typename details::typelist_to_pack<Ts...>::type;
@@ -406,8 +400,7 @@ class pack_t {
 };
 
 template <IsPolicy Policy, typename... Ts>
-	requires(!IsPolicy<Ts> && ...)
-class pack_t<Policy, indirect_t, Ts...> {
+requires(!IsPolicy<Ts> && ...) class pack_t<Policy, indirect_t, Ts...> {
   public:
 	using pack_type		   = details::tuple_to_indirect_pack_view_t<typename details::typelist_to_tuple<Ts...>::type>;
 	using filter_type	   = typename details::typelist_to_pack<Ts...>::type;
