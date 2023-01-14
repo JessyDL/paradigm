@@ -402,7 +402,9 @@ class pack_view {
 
   public:
 	pack_view() = default;
-	pack_view(psl::array_view<Ts>... views) : m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {
+	pack_view(psl::array_view<Ts>... views)
+		requires(sizeof...(Ts) > 0)
+		: m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {
 #ifdef PE_DEBUG
 		// todo this needs further verification, seems tag types are present here, should they be?
 		auto test = [](size_t size1, size_t size2) {
@@ -412,9 +414,7 @@ class pack_view {
 #endif
 	}
 
-	range_t view() {
-		return m_Pack;
-	}
+	range_t view() { return m_Pack; }
 
 	template <typename T>
 	psl::array_view<T> get() const noexcept {
@@ -430,20 +430,12 @@ class pack_view {
 		return std::get<N>(m_Pack);
 	}
 
-	auto operator[](size_t index) const noexcept {
-		return *(iterator_begin(m_Pack, index));
-	}
+	auto operator[](size_t index) const noexcept { return *(iterator_begin(m_Pack, index)); }
 
-	auto operator[](size_t index) noexcept {
-		return *(iterator_begin(m_Pack, index));
-	}
+	auto operator[](size_t index) noexcept { return *(iterator_begin(m_Pack, index)); }
 
-	iterator begin() const noexcept {
-		return iterator {iterator_begin(m_Pack)};
-	}
-	iterator end() const noexcept {
-		return iterator {iterator_end(m_Pack)};
-	}
+	iterator begin() const noexcept { return iterator {iterator_begin(m_Pack)}; }
+	iterator end() const noexcept { return iterator {iterator_end(m_Pack)}; }
 
 
 	auto unpack(size_t index) const noexcept {
@@ -454,14 +446,17 @@ class pack_view {
 		auto x {unpack_iterator_begin(m_Pack, index)};
 		return *unpack_iterator(x);
 	}
-	unpack_iterator unpack_begin() const noexcept {
-		return {unpack_iterator_begin(m_Pack)};
-	}
-	unpack_iterator unpack_end() const noexcept {
-		return {unpack_iterator_end(m_Pack)};
-	}
-	constexpr size_t size() const noexcept {
+	unpack_iterator unpack_begin() const noexcept { return {unpack_iterator_begin(m_Pack)}; }
+	unpack_iterator unpack_end() const noexcept { return {unpack_iterator_end(m_Pack)}; }
+	constexpr size_t size() const noexcept
+		requires(sizeof...(Ts) > 0)
+	{
 		return std::get<0>(m_Pack).size();
+	}
+	constexpr size_t size() const noexcept
+		requires(sizeof...(Ts) == 0)
+	{
+		return 0;
 	}
 
   private:
