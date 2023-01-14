@@ -161,7 +161,6 @@ namespace details {
 		using const_iterator_type = indirect_array_iterator_t<const_value_type, size_type>;
 
 		indirect_array_t(psl::array_view<size_type> indices, pointer_type data) : m_Indices(indices), m_Data(data) {}
-		template <typename Y>
 		indirect_array_t(psl::array_view<size_type> indices, const_pointer_type data) requires(_is_const)
 			: m_Indices(indices), m_Data(const_cast<pointer_type>(data)) {}
 		indirect_array_t() = default;
@@ -184,7 +183,7 @@ namespace details {
 		}
 		constexpr inline auto cbegin() const noexcept { return begin(); }
 		constexpr inline auto cend() const noexcept { return end(); }
-		constexpr inline auto empty() const noexcept -> bool { return m_Indices.empty(); }
+		constexpr inline auto empty() const noexcept -> bool { return size() == 0; }
 
 		constexpr inline auto data() noexcept -> pointer_type requires(!_is_const) { return m_Data; }
 		constexpr inline auto data() const noexcept -> const_pointer_type { return m_Data; }
