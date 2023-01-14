@@ -733,10 +733,16 @@ size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
 	} else {
 		// this functional handles filling in the indirect offsets to the data so that we can reconstruct
 		// an indirect_array_t
-		auto view_fn = [entities, this](auto& binding) {
-			const auto& cInfo	   = get_component_container(binding.first);
-			binding.second.indices = cInfo->memory_location_offsets_for(entities);
-			binding.second.data	   = cInfo->data();
+		auto view_fn = [entities, &cache, this](auto& binding) {
+			std::uintptr_t data_begin = (std::uintptr_t)cache;
+			const auto& cInfo		  = get_component_container(binding.first);
+			if(cInfo->component_size() > 0) {
+				auto offset = align(data_begin, alignof(entity_t));
+				cache		= cInfo->write_memory_location_offsets_for(entities, (entity_t::size_type*)data_begin);
+				binding.second.indices =
+				  psl::array_view<entity_t::size_type>((entity_t::size_type*)data_begin, (entity_t::size_type*)cache);
+				binding.second.data = cInfo->data();
+			}
 		};
 		std::for_each(std::begin(dep_pack.m_IndirectReadBindings), std::end(dep_pack.m_IndirectReadBindings), view_fn);
 		std::for_each(
