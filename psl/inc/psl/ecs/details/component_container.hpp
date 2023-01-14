@@ -67,9 +67,9 @@ class component_container_t {
 	psl::array_view<entity_t> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
 	psl::array_view<entity_t> removed_entities() const noexcept { return entities_impl(stage_range_t::REMOVED); };
 
-	virtual psl::array<entity_t::size_type>
-	memory_location_offsets_for(psl::array_view<entity_t> entities) const noexcept {
-		return {};
+	virtual entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
+																   entity_t::size_type* target) const noexcept {
+		return target;
 	}
 	virtual size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept { return 0; };
 	virtual size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat = false) noexcept {
@@ -133,15 +133,14 @@ class component_container_typed_t final : public component_container_t {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
 	}
 
-	psl::array<entity_t::size_type>
-	memory_location_offsets_for(psl::array_view<entity_t> entities) const noexcept override {
-		psl::array<entity_t::size_type> result {};
-		result.reserve(entities.size());
+	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
+														   entity_t::size_type* destination) const noexcept override {
 		for(auto e : entities) {
-			result.emplace_back(static_cast<entity_t::size_type>(
-			  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL) - (T*)m_Entities.data()));
+			*destination = static_cast<entity_t::size_type>(
+			  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL) - (T*)m_Entities.data());
+			++destination;
 		}
-		return result;
+		return destination;
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {
@@ -374,18 +373,17 @@ class component_container_untyped_t : public component_container_t {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
 	}
 
-	psl::array<entity_t::size_type>
-	memory_location_offsets_for(psl::array_view<entity_t> entities) const noexcept override {
-		psl::array<entity_t::size_type> result {};
+	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
+														   entity_t::size_type* destination) const noexcept override {
 		const auto base = reinterpret_cast<std::uintptr_t>(m_Entities.data());
-		result.reserve(entities.size());
 		for(auto e : entities) {
 			const auto address = reinterpret_cast<std::uintptr_t>(
 			  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL));
-			result.emplace_back(
-			  static_cast<entity_t::size_type>((address - base) / static_cast<entity_t::size_type>(m_Size)));
+			*destination =
+			  static_cast<entity_t::size_type>((address - base) / static_cast<entity_t::size_type>(m_Size));
+			++destination;
 		}
-		return result;
+		return destination;
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {

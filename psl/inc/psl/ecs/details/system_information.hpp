@@ -40,7 +40,7 @@ namespace psl::ecs::details {
 /// system would require several dependency_pack's.
 class dependency_pack {
 	struct indirect_storage_t {
-		psl::array<entity_t::size_type> indices {};
+		psl::array_view<entity_t::size_type> indices {};
 		void* data {nullptr};
 	};
 	friend class psl::ecs::state_t;
@@ -132,10 +132,9 @@ class dependency_pack {
 		if constexpr(std::is_same<T, psl::ecs::entity_t>::value) {
 			// todo: this is a temporary hack until mixed packs can be done. Ideally entities are an array_view not an
 			// indirect_array_t
-			std::vector<entity_t::size_type> indices {};
-			indices.resize(m_Entities.size());
-			std::iota(std::begin(indices), std::end(indices), entity_t::size_type {0});
-			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(indices,
+			m_EntityIndices.resize(m_Entities.size());
+			std::iota(std::begin(m_EntityIndices), std::end(m_EntityIndices), entity_t::size_type {0});
+			return psl::ecs::details::indirect_array_t<T, psl::ecs::entity_t::size_type>(m_EntityIndices,
 																						 (T*)m_Entities.data());
 		} else {
 			constexpr component_key_t id = details::component_key_t::generate<T>();
@@ -284,14 +283,14 @@ class dependency_pack {
 
 		for(const auto& binding : m_IndirectReadBindings) {
 			auto size										  = cpy.m_Sizes[binding.first];
-			cpy.m_IndirectReadBindings[binding.first].indices = psl::array<entity_t::size_type>(
+			cpy.m_IndirectReadBindings[binding.first].indices = psl::array_view<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadBindings[binding.first].data = binding.second.data;
 		}
 
 		for(const auto& binding : m_IndirectReadWriteBindings) {
 			auto size											   = cpy.m_Sizes[binding.first];
-			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array<entity_t::size_type>(
+			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array_view<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadWriteBindings[binding.first].data = binding.second.data;
 		}
@@ -316,6 +315,10 @@ class dependency_pack {
 		return cpy;
 	}
 
+	// todo this variable is a hack/workaround, and should be resolved.
+	// this issue is that indirect packs can't be mixed with "owning" memory as of now, and so
+	// to access entities within an indirect pack we must create a fake indices array.
+	psl::array<psl::ecs::entity_t::size_type> m_EntityIndices {};
 	psl::array_view<psl::ecs::entity_t> m_Entities {};
 	std::unordered_map<component_key_t, size_t> m_Sizes {};
 	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
