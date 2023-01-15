@@ -85,7 +85,7 @@ jobs:
       run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       if: ${{ matrix.tests == 'ON' }}
-      run: ./builds/default/bin/tests --formatter compact --no-source
+      run: ./builds/default/bin/tests --formatter compact --no-source --single-threaded
     - name: finalize
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v3
