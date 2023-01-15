@@ -102,11 +102,6 @@ void scheduler::execute() {
 		});
 	};
 
-	// make sure no proxy objects exist
-	psl_assert(std::none_of(std::begin(m_Invocables), std::end(m_Invocables), [](const auto& ptr) {
-				   return ptr == nullptr;
-			   }) == true);
-
 	psl::array<barrier> barriers {};
 	psl::array<size_t> done {};
 
