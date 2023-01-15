@@ -799,7 +799,7 @@ class state_t final {
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept {
 		return on_break_op(
-		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts...>()...}, begin, end);
+		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts>()...}, begin, end);
 	}
 
 	template <typename... Ts>
@@ -807,7 +807,7 @@ class state_t final {
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept {
 		return on_combine_op(
-		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts...>()...}, begin, end);
+		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts>()...}, begin, end);
 	}
 
 	psl::array<entity_t>::iterator filter_op(details::component_key_t key,
