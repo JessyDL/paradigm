@@ -227,6 +227,37 @@ class staged_sparse_memory_region_t {
 		return (static_cast<pointer>(m_DenseData.data()) + (get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
 	}
 
+	/// \brief Get a pointer of the data at the index
+	/// \param index Where to look
+	/// \param stage Used to limit the stages we wish to look in
+	/// \return memory address
+	/// \note When assertions are enabled, this function can assert
+	FORCEINLINE auto addressof_if(key_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
+	  -> const_pointer {
+		key_type sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		if(has(index, stage)) {
+			return (static_cast<const_pointer>(m_DenseData.data()) +
+					(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
+		}
+		return nullptr;
+	}
+
+	/// \brief Get a pointer of the data at the index
+	/// \param index Where to look
+	/// \param stage Used to limit the stages we wish to look in
+	/// \return memory address
+	/// \note When assertions are enabled, this function can assert
+	FORCEINLINE auto addressof_if(key_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> pointer {
+		key_type sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		if(has(index, stage)) {
+			return (static_cast<pointer>(m_DenseData.data()) +
+					(get_chunk_from_index(chunk_index)[sparse_index] * m_Size));
+		}
+		return nullptr;
+	}
+
 	/// \brief Retrieves the internal index for the dense data for the given index
 	/// \param index Where to look
 	/// \param stage Used to limit the stages we wish to look in

@@ -53,19 +53,24 @@ class component_container_t {
 	void destroy(entity_t entity) noexcept { remove_impl(entity); }
 	virtual void* data() noexcept			  = 0;
 	virtual void* const data() const noexcept = 0;
-	bool has_component(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::ALIVE); }
-	bool has_added(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::ADDED); }
-	bool has_removed(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::REMOVED); }
+	inline bool has(entity_t entity, stage_range_t stage = stage_range_t::ALL) { return has_impl(entity, stage); }
+	inline bool has_component(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::ALIVE); }
+	inline bool has_added(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::ADDED); }
+	inline bool has_removed(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::REMOVED); }
 	virtual bool has_storage_for(entity_t entity) const noexcept = 0;
-	psl::array_view<entity_t> entities(bool include_removed = false) const noexcept {
+	inline psl::array_view<entity_t> entities(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
 	}
 
-	void purge() noexcept { purge_impl(); }
+	virtual void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) { return nullptr; }
+
+	inline void purge() noexcept { purge_impl(); }
 	const component_key_t& id() const noexcept;
 
-	psl::array_view<entity_t> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
-	psl::array_view<entity_t> removed_entities() const noexcept { return entities_impl(stage_range_t::REMOVED); };
+	inline psl::array_view<entity_t> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
+	inline psl::array_view<entity_t> removed_entities() const noexcept {
+		return entities_impl(stage_range_t::REMOVED);
+	};
 
 	virtual entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
 																   entity_t::size_type* target) const noexcept {
@@ -131,6 +136,10 @@ class component_container_typed_t final : public component_container_t {
 
 	bool has_storage_for(entity_t entity) const noexcept override {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
+	}
+
+	void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) override {
+		return m_Entities.addressof_if(static_cast<entity_t::size_type>(entity), stage);
 	}
 
 	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
@@ -370,6 +379,10 @@ class component_container_untyped_t : public component_container_t {
 
 	bool has_storage_for(entity_t entity) const noexcept override {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
+	}
+
+	void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) override {
+		return m_Entities.addressof_if(static_cast<entity_t::size_type>(entity), stage);
 	}
 
 	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
