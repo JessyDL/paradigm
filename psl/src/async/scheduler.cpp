@@ -44,12 +44,10 @@ struct worker {
 			m_Paused = false;
 		}
 		cv.notify_one();
-		// resume t2
 	}
 
   private:
 	void loop() {
-		int max_spin = 1000;
 		while(m_Run.load(std::memory_order_relaxed)) {
 			while(m_Paused) {
 				std::unique_lock<std::mutex> lk(m);
@@ -60,12 +58,6 @@ struct worker {
 			if(auto item = m_Consumer.pop(); item) {
 				auto task = item.value();
 				task->operator()();
-			} else
-				--max_spin;
-
-			if(max_spin == 0) {
-				max_spin = 1000;
-				std::this_thread::sleep_for(std::chrono::microseconds(5));
 			}
 		}
 		m_Done.store(true, std::memory_order_relaxed);
@@ -110,10 +102,6 @@ void scheduler::execute() {
 		});
 	};
 
-	// make sure no proxy objects exist
-	// assert(std::none_of(std::begin(m_Invocables), std::end(m_Invocables), [](const auto& ptr) { return ptr ==
-	// nullptr; }) == true);
-
 	psl::array<barrier> barriers {};
 	psl::array<size_t> done {};
 
@@ -145,7 +133,10 @@ void scheduler::execute() {
 							std::end(inflight),
 							std::back_inserter(invocables));
 	}
-	for(auto& thread : m_Workerthreads) thread->resume();
+
+	for(auto& thread : m_Workerthreads) {
+		thread->resume();
+	}
 
 	while(inflight.size() > 0) {
 		psl_assert(std::unique(std::begin(inflight),
@@ -161,7 +152,8 @@ void scheduler::execute() {
 										   std::end(inflight),
 										   [](psl::view_ptr<details::packet> packet) { return !packet->is_ready(); });
 		   it != std::end(inflight)) {
-			// Add all ready inflight tasks to the done list, and sort the result. Then remove them from the infight.
+			// Add all ready inflight tasks to the done list, and sort the result. Then remove them from the inflight
+			// container.
 			auto done_mid = done.size();
 			std::transform(it, std::end(inflight), std::back_inserter(done), [](const auto& task) -> size_t {
 				return task->operator size_t();
@@ -217,7 +209,9 @@ void scheduler::execute() {
 							   [](const auto& lhs, const auto& rhs) { return *lhs < *rhs; });
 		}
 	}
-	for(auto& thread : m_Workerthreads) thread->pause();
+	for(auto& thread : m_Workerthreads) {
+		thread->pause();
+	}
 
 	psl_assert(
 	  m_Invocables.size() == done.size(), "there were still {} tasks in flight", m_Invocables.size() - done.size());

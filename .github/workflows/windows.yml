@@ -34,7 +34,7 @@ jobs:
     - name: test
       run: |
             cd builds\x64\release\bin
-            .\tests.exe --formatter compact --no-source
+            .\tests.exe --formatter compact --no-source --single-threaded
     - name: finalize    
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v3
