@@ -171,7 +171,7 @@ class state_t final {
 
 
   public:
-	state_t(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256);
+	state_t(size_t workers = 0, size_t cache_size = 1024 * 1024 * 256, entity_t::size_type min_entities_per_worker = 1024);
 	~state_t();
 	state_t(const state_t&)			   = delete;
 	state_t(state_t&&)				   = default;
@@ -867,5 +867,6 @@ class state_t final {
 	size_t m_Tick {0};
 	size_t m_SystemCounter {0};
 	entity_t::size_type m_Entities {0};
+	entity_t::size_type m_MinEntitiesPerWorker {1024};
 };
 }	 // namespace psl::ecs

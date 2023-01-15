@@ -9,8 +9,6 @@ using namespace psl::ecs;
 
 using psl::ecs::details::component_key_t;
 
-constexpr size_t min_thread_entities = 1;
-
 template <typename T = void>
 void invoke(auto&& fn, auto begin, auto end) {
 	auto count = end - begin;
@@ -25,9 +23,10 @@ void invoke(auto&& fn, auto begin, auto end) {
 }
 
 
-state_t::state_t(size_t workers, size_t cache_size)
+state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_entities_per_worker)
 	: m_Cache(cache_size),
-	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers})) {
+	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers})),
+	  m_MinEntitiesPerWorker(min_entities_per_worker) {
 	m_ModifiedEntities.reserve(65536);
 }
 
@@ -45,7 +44,8 @@ constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept {
 
 
 psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::dependency_pack>& source,
-													   size_t workers = std::numeric_limits<size_t>::max()) {
+													   size_t workers = std::numeric_limits<size_t>::max(),
+													   entity_t::size_type min_entities_per_worker = 1024) {
 	psl::array<psl::array<details::dependency_pack>> packs {};
 
 	if(source.size() == 0)
@@ -55,8 +55,12 @@ psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::depen
 	  std::minmax_element(std::begin(source), std::end(source), [](const auto& lhs, const auto& rhs) {
 		  return lhs.entities() < rhs.entities();
 	  });
-	workers			 = std::min<size_t>(workers, std::thread::hardware_concurrency());
-	auto max_workers = std::max<size_t>(1u, std::min(workers, largest_batch->entities() % min_thread_entities));
+	workers = std::min<size_t>(workers, std::thread::hardware_concurrency());
+	auto max_workers =
+	  std::max<size_t>(1u,
+					   std::min(workers,
+								(largest_batch->entities() - (largest_batch->entities() % min_entities_per_worker)) /
+								  min_entities_per_worker));
 
 	// To guard having systems run with concurrent packs that have no data in them.
 	// Doing so would seem counter-intuitive to users
@@ -134,9 +138,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
 
-		auto multi_pack = slice(pack, m_Scheduler->workers());
-
-		// psl::array<std::future<void>> future_commands;
+		auto multi_pack = slice(pack, m_Scheduler->workers(), m_MinEntitiesPerWorker);
 
 		auto index = info_buffer.size();
 		for(size_t i = 0; i < std::min(m_Scheduler->workers(), multi_pack.size()); ++i)
@@ -153,7 +155,6 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 
 			t2.after(t1);
 
-			// future_commands.emplace_back(std::move(t1));
 			infoBuffer = std::next(infoBuffer);
 		}
 		m_Scheduler->execute();
@@ -183,8 +184,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 			has_entities = true;
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
-		// if (!has_entities)
-		//	return;
+
 		info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick));
 		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
