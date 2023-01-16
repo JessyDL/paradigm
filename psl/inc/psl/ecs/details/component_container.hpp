@@ -65,7 +65,7 @@ class component_container_t {
 	virtual void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) { return nullptr; }
 
 	inline void purge() noexcept { purge_impl(); }
-	const component_key_t& id() const noexcept;
+	constexpr component_key_t const& id() const noexcept { return m_ID; }
 
 	inline psl::array_view<entity_t> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
 	inline psl::array_view<entity_t> removed_entities() const noexcept {

@@ -26,8 +26,3 @@ component_container_t& component_container_t::operator=(component_container_t&& 
 bool component_container_t::is_tag() const noexcept {
 	return m_Size == 0;
 }
-
-
-const component_key_t& component_container_t::id() const noexcept {
-	return m_ID;
-}

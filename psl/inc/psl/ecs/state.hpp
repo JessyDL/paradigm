@@ -408,7 +408,7 @@ class state_t final {
 
 	template <typename... Ts>
 	psl::array<entity_t> filter() const noexcept {
-		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack_direct_full_t<Ts...>> {});
+		auto filter_group = make_filter_group<psl::ecs::pack_direct_full_t<Ts...>>();
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
 		auto it = std::find_if(std::begin(m_Filters), std::end(m_Filters), [&filter_group](const filter_result& data) {
@@ -436,7 +436,7 @@ class state_t final {
 
 	template <typename... Ts>
 	psl::array<entity_t> filter(psl::array_view<entity_t> entities) const noexcept {
-		auto filter_group = details::make_filter_group(psl::type_pack_t<psl::ecs::pack_direct_full_t<Ts...>> {});
+		auto filter_group = make_filter_group<psl::ecs::pack_direct_full_t<Ts...>>();
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
 		filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
@@ -570,6 +570,37 @@ class state_t final {
 	//------------------------------------------------------------
 	// helpers
 	//------------------------------------------------------------
+	template <IsPack... Ts>
+	auto make_filter_group() const noexcept -> psl::array<details::filter_group> {
+		psl::array<details::filter_group> result {};
+		result.reserve(sizeof...(Ts));
+		(
+		  [&result, this]<typename... Ys>(utility::templates::type_pack_t<Ys...>) mutable {
+			  result.emplace_back(make_filter_group<Ys...>());
+		  }(decode_pack_types_t<Ts> {}),
+		  ...);
+		return result;
+	}
+
+	template <IsPack... Ts>
+	auto make_filter_group(psl::type_pack_t<Ts...>) const noexcept -> psl::array<details::filter_group> {
+		psl::array<details::filter_group> result {};
+		result.reserve(sizeof...(Ts));
+		(
+		  [&result, this]<typename... Ys>(utility::templates::type_pack_t<Ys...>) mutable {
+			  result.emplace_back(make_filter_group<Ys...>());
+		  }(decode_pack_types_t<Ts> {}),
+		  ...);
+		return result;
+	}
+
+	template <typename... Ts>
+	details::filter_group make_filter_group() const noexcept {
+		return details::filter_group {
+		  psl::type_pack_t<Ts...> {},
+		  [this]<typename T>() -> details::component_container_t* { return get_component_untyped_info<T>(); }};
+	}
+
 	size_t prepare_bindings(psl::array_view<entity_t> entities,
 							void* cache,
 							details::dependency_pack& dep_pack) const noexcept;
@@ -594,10 +625,12 @@ class state_t final {
 	}
 
 	details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
-	const details::component_container_t* get_component_container(const details::component_key_t& key) const noexcept;
+	details::component_container_t* get_component_container(const details::component_key_t& key) const noexcept;
 
 	psl::array<const details::component_container_t*>
 	get_component_container(psl::array_view<details::component_key_t> keys) const noexcept;
+	psl::array<details::component_container_t*>
+	get_component_container(psl::array_view<details::cached_container_entry_t> entries) const noexcept;
 	template <typename T>
 	inline auto get_component_typed_info() const noexcept -> psl::ecs::details::component_container_type_for_t<T>* {
 		return details::cast_component_container<T>(get_component_untyped_info<T>());
@@ -741,7 +774,7 @@ class state_t final {
 	  details::component_container_t* cInfo,
 	  psl::array_view<entity_t> entities,
 	  Fn&& invocable) {
-		psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
+		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 		const auto component_size = cInfo->component_size();
 		psl_assert(component_size != 0, "component size was 0");
 
@@ -808,53 +841,34 @@ class state_t final {
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_break<Ts...>>,
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept {
-		return on_break_op(
-		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts>()...}, begin, end);
+		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
+		return on_break_op(entries, begin, end);
 	}
 
 	template <typename... Ts>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_combine<Ts...>>,
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept {
-		return on_combine_op(
-		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts>()...}, begin, end);
+		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
+		return on_combine_op(entries, begin, end);
 	}
 
-	psl::array<entity_t>::iterator filter_op(details::component_key_t key,
+	psl::array<entity_t>::iterator filter_op(details::cached_container_entry_t& entry,
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_add_op(details::component_key_t key,
+	psl::array<entity_t>::iterator on_add_op(details::cached_container_entry_t& entry,
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_remove_op(details::component_key_t key,
+	psl::array<entity_t>::iterator on_remove_op(details::cached_container_entry_t& entry,
 												psl::array<entity_t>::iterator& begin,
 												psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_except_op(details::component_key_t key,
+	psl::array<entity_t>::iterator on_except_op(details::cached_container_entry_t& entry,
 												psl::array<entity_t>::iterator& begin,
 												psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_break_op(psl::array<details::component_key_t> keys,
+	psl::array<entity_t>::iterator on_break_op(psl::array<details::cached_container_entry_t>& entries,
 											   psl::array<entity_t>::iterator& begin,
 											   psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_combine_op(psl::array<details::component_key_t> keys,
-												 psl::array<entity_t>::iterator& begin,
-												 psl::array<entity_t>::iterator& end) const noexcept;
-
-	psl::array<entity_t>::iterator filter_op(details::component_container_t* cInfo,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_add_op(details::component_container_t* cInfo,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_remove_op(details::component_container_t* cInfo,
-												psl::array<entity_t>::iterator& begin,
-												psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_except_op(details::component_container_t* cInfo,
-												psl::array<entity_t>::iterator& begin,
-												psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_break_op(psl::array<details::component_container_t*> cInfos,
-											   psl::array<entity_t>::iterator& begin,
-											   psl::array<entity_t>::iterator& end) const noexcept;
-	psl::array<entity_t>::iterator on_combine_op(psl::array<details::component_container_t*> cInfos,
+	psl::array<entity_t>::iterator on_combine_op(psl::array<details::cached_container_entry_t>& entries,
 												 psl::array<entity_t>::iterator& begin,
 												 psl::array<entity_t>::iterator& end) const noexcept;
 
@@ -956,10 +970,15 @@ class state_t final {
 	declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false, psl::string_view debugName = "") {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
 		using pack_type		  = typename get_packs<function_args>::type;
-		auto filter_groups	  = details::make_filter_group(pack_type {});
-		auto transform_groups = details::make_transform_group(pack_type {});
-		auto pack_generator	  = [](bool seedWithPrevious = false) {
-			  return details::expand_to_dependency_pack(pack_type {}, seedWithPrevious);
+		auto filter_groups	  = make_filter_group(pack_type {});
+		auto transform_groups = []<typename... Ts>(psl::type_pack_t<Ts...>) -> psl::array<details::transform_group> {
+			return psl::array<details::transform_group> {details::transform_group(decode_pack_types_t<Ts> {})...};
+		}(pack_type {});
+		auto pack_generator = [this](bool seedWithPrevious = false) {
+			return details::expand_to_dependency_pack(
+			  pack_type {}, seedWithPrevious, [this]<typename Z>() -> details::component_container_t* {
+				  return get_component_untyped_info<Z>();
+			  });
 		};
 
 		auto system_tick = create_system_tick_functional<Fn, T, pack_type>(fn, ptr);

@@ -80,19 +80,19 @@ class dependency_pack {
 	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<entity_t, entity_t::size_type>) {}
 	auto _create_dependency_filters_impl(psl::ecs::details::indirect_array_t<entity_t const, entity_t::size_type>) {}
 
-	template <typename F>
-	void select_impl(std::vector<component_key_t>& target) {
+	template <typename F, typename Fn>
+	void select_impl(std::vector<cached_container_entry_t>& target, Fn& query) {
 		if constexpr(!std::is_same<typename std::decay<F>::type, psl::ecs::entity_t>::value) {
 			using component_t			  = F;
 			constexpr component_key_t key = details::component_key_t::generate<component_t>();
-			target.emplace_back(key);
+			target.emplace_back(key, query.template operator()<component_t>());
 			m_Sizes[key] = sizeof(component_t);
 		}
 	}
 
-	template <std::size_t... Is, typename T>
-	auto select(std::index_sequence<Is...>, T, std::vector<component_key_t>& target) {
-		(select_impl<typename std::tuple_element<Is, T>::type>(target), ...);
+	template <std::size_t... Is, typename T, typename Fn>
+	auto select(std::index_sequence<Is...>, T, std::vector<cached_container_entry_t>& target, Fn& query) {
+		(select_impl<typename std::tuple_element<Is, T>::type>(target, query), ...);
 	}
 
 	template <typename Pred, typename... Ts>
@@ -162,8 +162,8 @@ class dependency_pack {
 
 
   public:
-	template <typename T>
-	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious = false)
+	template <typename T, typename Fn>
+	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious, Fn&& query)
 		: m_IsPartial(IsPackPartial<typename T::policy_type>), m_IsIndirect(IsAccessIndirect<typename T::access_type>) {
 		orderby			= [](psl::array<entity_t>::iterator begin,
 					 psl::array<entity_t>::iterator end,
@@ -174,22 +174,28 @@ class dependency_pack {
 		  psl::type_pack_t<typename pack_type::pack_type> {});
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::filter_type>::value> {},
 			   typename pack_type::filter_type {},
-			   filters);
+			   filters,
+			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::add_type>::value> {},
 			   typename pack_type::add_type {},
-			   (seedWithPrevious) ? filters : on_add);
+			   (seedWithPrevious) ? filters : on_add,
+			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::remove_type>::value> {},
 			   typename pack_type::remove_type {},
-			   on_remove);
+			   on_remove,
+			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::break_type>::value> {},
 			   typename pack_type::break_type {},
-			   on_break);
+			   on_break,
+			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::combine_type>::value> {},
 			   typename pack_type::combine_type {},
-			   (seedWithPrevious) ? filters : on_combine);
+			   (seedWithPrevious) ? filters : on_combine,
+			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::except_type>::value> {},
 			   typename pack_type::except_type {},
-			   except);
+			   except,
+			   query);
 		select_ordering(typename pack_type::order_by_type {});
 		select_condition(typename pack_type::conditional_type {});
 
@@ -221,13 +227,12 @@ class dependency_pack {
 		return to_pack_impl(std::make_index_sequence<std::tuple_size<range_t>::value> {}, psl::type_pack_t<pack_t> {});
 	}
 
-	bool allow_partial() const noexcept { return m_IsPartial; };
 	constexpr inline bool is_partial_pack() const noexcept { return m_IsPartial; };
 	constexpr inline bool is_full_pack() const noexcept { return !m_IsPartial; };
 	constexpr inline bool is_direct_access() const noexcept { return !m_IsIndirect; };
 	constexpr inline bool is_indirect_access() const noexcept { return m_IsIndirect; };
 
-	size_t size_per_element() const noexcept {
+	inline size_t size_per_element() const noexcept {
 		size_t res {0};
 		if(!m_IsIndirect) {
 			for(const auto& binding : m_RBindings) {
@@ -250,14 +255,14 @@ class dependency_pack {
 	}
 
 	template <typename T>
-	size_t size_of() const noexcept {
+	inline constexpr size_t size_of() const noexcept {
 		constexpr component_key_t int_id = details::component_key_t::generate<T>();
 		return m_Sizes.at(int_id);
 	}
 
-	size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
+	inline size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
 
-	size_t entities() const noexcept { return m_Entities.size(); }
+	inline size_t entities() const noexcept { return m_Entities.size(); }
 	dependency_pack slice(size_t begin, size_t end) const noexcept {
 		auto cpy = make_partial_copy();
 
@@ -282,14 +287,12 @@ class dependency_pack {
 		}
 
 		for(const auto& binding : m_IndirectReadBindings) {
-			auto size										  = cpy.m_Sizes[binding.first];
 			cpy.m_IndirectReadBindings[binding.first].indices = psl::array_view<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadBindings[binding.first].data = binding.second.data;
 		}
 
 		for(const auto& binding : m_IndirectReadWriteBindings) {
-			auto size											   = cpy.m_Sizes[binding.first];
 			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array_view<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadWriteBindings[binding.first].data = binding.second.data;
@@ -326,12 +329,12 @@ class dependency_pack {
 	std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadBindings;
 	std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadWriteBindings;
 
-	std::vector<component_key_t> filters {};
-	std::vector<component_key_t> on_add {};
-	std::vector<component_key_t> on_remove {};
-	std::vector<component_key_t> except {};
-	std::vector<component_key_t> on_combine {};
-	std::vector<component_key_t> on_break {};
+	std::vector<cached_container_entry_t> filters {};
+	std::vector<cached_container_entry_t> on_add {};
+	std::vector<cached_container_entry_t> on_remove {};
+	std::vector<cached_container_entry_t> except {};
+	std::vector<cached_container_entry_t> on_combine {};
+	std::vector<cached_container_entry_t> on_break {};
 
 	std::vector<std::function<psl::array<
 	  entity_t>::iterator(psl::array<entity_t>::iterator, psl::array<entity_t>::iterator, const psl::ecs::state_t&)>>
@@ -348,6 +351,14 @@ std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, 
 	std::vector<dependency_pack> res;
 	res.reserve(sizeof...(Ts));
 	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, seedWithPrevious)); }), ...);
+	return res;
+}
+
+template <typename... Ts, typename Fn>
+std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, bool seedWithPrevious, Fn&& query) {
+	std::vector<dependency_pack> res;
+	res.reserve(sizeof...(Ts));
+	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, seedWithPrevious, query)); }), ...);
 	return res;
 }
 namespace {
@@ -409,7 +420,7 @@ class system_information final {
 
 	psl::ecs::threading threading() const noexcept { return m_Threading; };
 
-	system_token id() const noexcept { return m_ID; }
+	constexpr system_token id() const noexcept { return m_ID; }
 
 	auto filters() const noexcept { return m_Filters; }
 	auto transforms() const noexcept { return m_Transforms; }
