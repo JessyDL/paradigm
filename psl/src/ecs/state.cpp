@@ -883,6 +883,7 @@ void state_t::clear(bool release_memory) noexcept {
 		}
 	}
 
+	m_Tick	   = 0;
 	m_Entities = 0;
 	m_Orphans.clear();
 	m_ToBeOrphans.clear();
@@ -890,5 +891,7 @@ void state_t::clear(bool release_memory) noexcept {
 	m_NewSystemInformations.clear();
 	m_Filters.clear();
 	m_LockState = 0;
+	m_ModifiedEntities.clear();
+	m_ToRevoke.clear();
 	++m_ComponentGeneration;
 }
