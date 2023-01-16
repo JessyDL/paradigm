@@ -27,6 +27,10 @@ state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_enti
 	: m_Cache(cache_size),
 	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers})),
 	  m_MinEntitiesPerWorker(min_entities_per_worker) {
+	static std::mutex mut {};
+	static std::atomic<size_t> generation {1};
+	std::lock_guard l {mut};
+	m_StateUniqueKey = ++generation;
 	m_ModifiedEntities.reserve(65536);
 }
 

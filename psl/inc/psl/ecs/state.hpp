@@ -606,10 +606,12 @@ class state_t final {
 	template <typename T>
 	inline auto get_component_untyped_info() const noexcept -> psl::ecs::details::component_container_t* {
 		constexpr auto key {details::component_key_t::generate<T>()};
-		static size_t generation {0};
-		static psl::ecs::details::component_container_t* container = nullptr;
-		static state_t const* owner {nullptr};
-		if(this != owner || generation != m_ComponentGeneration || container == nullptr) {
+		static thread_local size_t generation {0};
+		static thread_local size_t state_unique_key {0};
+		static thread_local psl::ecs::details::component_container_t* container = nullptr;
+		static thread_local state_t const* owner {nullptr};
+		if(this != owner || generation != m_ComponentGeneration || container == nullptr ||
+		   state_unique_key != m_StateUniqueKey) {
 			auto it	   = m_Components.find(key);
 			container  = nullptr;
 			owner	   = this;
@@ -617,7 +619,8 @@ class state_t final {
 			if(it == std::end(m_Components)) {
 				return nullptr;
 			}
-			container = it->second.get();
+			container		 = it->second.get();
+			state_unique_key = m_StateUniqueKey;
 		}
 		return container;
 	}
@@ -998,6 +1001,13 @@ class state_t final {
 	size_t m_SystemCounter {0};
 	entity_t::size_type m_Entities {0};
 	entity_t::size_type m_MinEntitiesPerWorker {1024};
-	size_t m_ComponentGeneration {1};
+
+	// Used by the local cache to improve lookup speed. Every time the state get's cleared this is incremented so the
+	// cache can be regenerated.
+	std::atomic<size_t> m_ComponentGeneration {1};
+	// used by the local cache to improve lookup speed. Every instance of state increments a global that is used to
+	// distinguish that instance. This is to protect ourselves from the (rare) occassion a state_t gets deleted and
+	// recreated on the same memory location, which would result in the cache not correctly getting rejected.
+	std::atomic<size_t> m_StateUniqueKey {0};
 };
 }	 // namespace psl::ecs
