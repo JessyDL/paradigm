@@ -58,6 +58,8 @@ set(ANDROID_BUNDLETOOL "" CACHE PATH "override android bundletool location")
 set(ANDROID_GRADLE "" CACHE PATH "override gradle location")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
+OPTION(PE_ECS_DISABLE_LOOKUP_CACHE_BEHAVIOUR "Disable the usage of the lookup cache for psl::ecs::state_t" OFF)
+
 if(${PE_CCACHE})
 	find_program(CCACHE "ccache")
 	if(CCACHE)
@@ -162,6 +164,10 @@ endif()
 
 if(${PE_PLATFORM} STREQUAL ANDROID AND (NOT DEFINED ANDROID_NDK OR ANDROID_NDK STREQUAL ""))
 		message(FATAL_ERROR "Trying to build 'android' target outside of the gradle context is not supported.")
+endif()
+
+if(PE_ECS_DISABLE_LOOKUP_CACHE_BEHAVIOUR)
+	list(APPEND PE_DEFINES -DPE_ECS_DISABLE_LOOKUP_CACHE)
 endif()
 
 ###############################################################################

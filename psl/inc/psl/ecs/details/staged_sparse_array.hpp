@@ -108,6 +108,24 @@ class staged_sparse_array {
 		return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
 	}
 
+	pointer addressof_if(index_t index, stage_range_t stage = stage_range_t::ALIVE) noexcept {
+		index_t sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		if(has(index, stage)) {
+			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
+		}
+		return nullptr;
+	}
+
+	const_pointer addressof_if(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept {
+		index_t sparse_index, chunk_index;
+		chunk_info_for(index, sparse_index, chunk_index);
+		if(has(index, stage)) {
+			return ((T*)m_DenseData.data() + get_chunk_from_index(chunk_index)[sparse_index]);
+		}
+		return nullptr;
+	}
+
 	inline auto dense_index_for(index_t index, stage_range_t stage = stage_range_t::ALIVE) const noexcept -> index_t {
 		index_t sparse_index, chunk_index;
 		chunk_info_for(index, sparse_index, chunk_index);
