@@ -300,7 +300,16 @@ class staged_sparse_memory_region_t {
 	/// \brief Erases value at the given index
 	/// \param index Index to erase
 	/// \return Amount of elements erased (0 or 1)
-	FORCEINLINE auto erase(key_type index) noexcept -> size_t { return erase(index, index + 1); }
+	FORCEINLINE auto erase(key_type index) noexcept -> size_t {
+		auto sub_index = index;
+		auto& chunk	   = chunk_for(sub_index);
+
+		if(has_impl(chunk, sub_index, stage_range_t::ALIVE)) {
+			erase_impl(chunk, sub_index, index);
+			return 1;
+		}
+		return 0;
+	}
 
 	FORCEINLINE auto erase(key_type* begin, key_type* end) noexcept -> size_t {
 		size_t count {0};
@@ -314,17 +323,6 @@ class staged_sparse_memory_region_t {
 			}
 		}
 		return count;
-	}
-
-
-	/// \brief Emplaces an item at the given index
-	/// \tparam T The type of the element to emplace
-	/// \param index Where to emplace it
-	/// \param value The value to emplace
-	/// \note When assertions are enabled this method can assert when the tparam is not of the expected size
-	template <IsValidForStagedSparseMemoryRange T>
-	FORCEINLINE auto emplace(key_type index, T&& value) -> void {
-		this->template operator[]<T>(index) = std::forward<T>(value);
 	}
 
 	/// \brief Inserts an item at the given index
@@ -345,43 +343,38 @@ class staged_sparse_memory_region_t {
 	/// \note When assertions are enabled this method can assert when the typename is not of the expected size
 	/// \note The value is assigned regardless if the index already contained a value.
 	template <typename ItF, typename ItL>
-	FORCEINLINE auto insert(key_type index, ItF&& begin, ItL&& end) -> void {
+	requires(IsValidForStagedSparseMemoryRange<typename std::iterator_traits<ItF>::value_type>) FORCEINLINE
+	  auto insert(key_type index, ItF&& begin, ItL&& end) -> void {
 		using T = typename std::iterator_traits<ItF>::value_type;
 
-		key_type element_index {};
-		key_type chunk_index {};
+		auto count = static_cast<key_type>(end - begin);
+		auto first = m_StageStart[2];
+		insert_make_space(count);
 
-		auto get_chunk = [this](auto index, auto& element_index, auto& chunk_index) mutable -> chunk_type* {
-			if(index >= capacity())
-				resize(index + 1);
-			chunk_info_for(index, element_index, chunk_index);
-			auto& chunk_opt = m_Sparse[chunk_index];
-			if(!chunk_opt) {
-				chunk_opt = chunk_type {};
-				std::fill(
-				  std::begin(chunk_opt.value()), std::end(chunk_opt.value()), std::numeric_limits<key_type>::max());
-			}
-			return &(chunk_opt.value());
-		};
+		size_t loop {0};
+		for(auto i = index, end_index = index + count; i < end_index; ++i) {
+			auto sub_index = i;
+			auto& chunk	   = chunk_for(sub_index);
 
-		chunk_type* chunk = get_chunk(index, element_index, chunk_index);
-		auto it			  = begin;
-		while(it != end) {
-			if(index % chunks_size == 0) {
-				chunk = get_chunk(index, element_index, chunk_index);
-			}
-			insert_impl(*chunk, element_index, index);
+			chunk[sub_index] = static_cast<key_type>(m_StageStart[2] + loop);
+			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2] + loop), i);
+			++loop;
+		}
 
-			psl_assert(m_DenseData.size() < (*chunk)[element_index] * sizeof(T), "");
-			*((T*)m_DenseData.data() + (*chunk)[element_index]) = *it;
-			++index;
-			it = std::next(it);
-			++element_index;
+		m_StageStart[2] += count;
+		m_StageStart[3] += count;
+		m_StageSize[1] += count;
+
+		auto begin_ptr = (T*)m_DenseData.data() + (first);
+		auto end_ptr   = (T*)m_DenseData.data() + (first + count);
+		auto value_it  = begin;
+		for(auto it = begin_ptr; it != end_ptr; ++it, ++value_it) {
+			*it = *value_it;
 		}
 	}
 
-	/// \brief Valueless insert. Either creates the memory for the given index, or does nothing if it already exists
-	/// \param index Where to insert
+	/// \brief Insert an element at the given index.
+	/// \param index Location to insert a value
 	FORCEINLINE auto insert(key_type index) -> void {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
@@ -389,12 +382,88 @@ class staged_sparse_memory_region_t {
 		insert_impl(chunk, sub_index, index);
 	}
 
-	FORCEINLINE auto get_or_insert(key_type index) -> pointer {
+	/// \brief Insert a range of elements from [begin, end).
+	/// \param begin Iterator to the first element.
+	/// \param end Iterator to one beyond the last element.
+	FORCEINLINE auto insert(key_type* begin, key_type* end) -> void {
+		auto count = static_cast<key_type>(end - begin);
+		insert_make_space(count);
+
+		size_t loop {0};
+		for(auto it = begin; it != end; ++it) {
+			auto sub_index = *it;
+			auto& chunk	   = chunk_for(sub_index);
+
+			chunk[sub_index] = static_cast<key_type>(m_StageStart[2] + loop);
+			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2] + loop), *it);
+			++loop;
+		}
+		m_StageStart[2] += count;
+		m_StageStart[3] += count;
+		m_StageSize[1] += count;
+	}
+
+	/// \brief Insert a range of elements at the given index.
+	/// \param index Location of the first element
+	/// \param count How many items to insert (the range is [index, index+count)
+	FORCEINLINE auto insert(key_type index, key_type count) -> void {
+		insert_make_space(count);
+
+		size_t loop {0};
+		const auto end = index + count;
+		for(auto i = index; i != end; ++i) {
+			auto sub_index = i;
+			auto& chunk	   = chunk_for(sub_index);
+
+			chunk[sub_index] = static_cast<key_type>(m_StageStart[2] + loop);
+			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2] + loop), i);
+			++loop;
+		}
+		m_StageStart[2] += count;
+		m_StageStart[3] += count;
+		m_StageSize[1] += count;
+	}
+
+	/// \brief Insert a range of elements from [begin, end), and invoke the callback with the memory address associated with it.
+	/// \param begin Iterator to the first element.
+	/// \param end Iterator to one beyond the last element.
+	/// \param callback Function of the signature void(std::byte*, std::byte*) to invoke. Where the second element is the end ptr.
+	template <typename Fn>
+	requires(std::is_invocable_v<Fn, std::byte*, std::byte*>) FORCEINLINE
+	  auto insert(key_type* begin, key_type* end, Fn&& callback) -> void {
+		auto count = static_cast<key_type>(end - begin);
+		auto first = m_StageStart[2];
+		insert(begin, end);
+		auto begin_ptr = (std::byte*)m_DenseData.data() + (first * m_Size);
+		auto end_ptr   = (std::byte*)m_DenseData.data() + (first + count) * m_Size;
+		callback(begin_ptr, end_ptr);
+	}
+
+	/// \brief Insert a range of elements at the given index, and invoke the callback with the memory address associated with it.
+	/// \param index Location of the first element
+	/// \param count How many items to insert (the range is [index, index+count)
+	/// \param callback Function of the signature void(std::byte*, std::byte*) to invoke. Where the second element is the end ptr.
+	template <typename Fn>
+	requires(std::is_invocable_v<Fn, std::byte*, std::byte*>) FORCEINLINE
+	  auto insert(key_type index, key_type count, Fn&& callback) -> void {
+		auto first = m_StageStart[2];
+		insert(index, count);
+		auto begin_ptr = (std::byte*)m_DenseData.data() + (first * m_Size);
+		auto end_ptr   = (std::byte*)m_DenseData.data() + (first + count) * m_Size;
+		callback(begin_ptr, end_ptr);
+	}
+
+	/// \brief Insert an element at the given index, and invoke the callback with the memory address associated with it.
+	/// \param index Location to insert a value
+	/// \param callback Function of the signature void(std::byte*) to invoke.
+	template <typename Fn>
+	requires(std::is_invocable_v<Fn, std::byte*>) FORCEINLINE auto insert(key_type index, Fn&& callback) -> void {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
 		insert_impl(chunk, sub_index, index);
-		return ((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
+
+		callback((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
 	}
 
 	/// \brief Promotes all values to the next `stage_t`. The cycle is as follows: ADDED -> SETTLED -> REMOVED -> deleted.
@@ -521,8 +590,8 @@ class staged_sparse_memory_region_t {
 		return *((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
 	}
 
-	FORCEINLINE auto grow() -> void {
-		auto capacity = static_cast<key_type>(m_Reverse.capacity() + 1);
+	FORCEINLINE auto grow(size_t expected = 1) -> void {
+		auto capacity = static_cast<key_type>(m_Reverse.capacity() + expected);
 
 		if(m_DenseData.size() < capacity * m_Size) {
 			auto new_capacity = std::max<key_type>(capacity, static_cast<key_type>(m_DenseData.size() * 2 / m_Size));
@@ -539,6 +608,23 @@ class staged_sparse_memory_region_t {
 		psl_assert((m_Reverse.capacity() + 1) * m_Size <= m_DenseData.size() &&
 					 (m_Reverse.capacity() + 2) * m_Size >= m_DenseData.size(),
 				   "capacity was not in line with density data");
+	}
+
+	/// \brief Makes sure there is insertion space for N elements
+	/// \param size Amount of elements to make space for
+	FORCEINLINE auto insert_make_space(key_type size = 1) -> void {
+		if(m_Reverse.size() + size >= m_Reverse.capacity())
+			grow(size);
+
+		for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i) {
+			auto old_offset = m_Reverse[i];
+			auto& old_chunk = chunk_for(old_offset);
+			old_chunk[old_offset] += size;
+		}
+
+		std::memcpy((std::byte*)m_DenseData.data() + ((m_StageStart[2] + size) * m_Size),
+					(std::byte*)m_DenseData.data() + (m_StageStart[2] * m_Size),
+					(m_Reverse.size() - m_StageStart[2]) * m_Size * size);
 	}
 
 	FORCEINLINE auto insert_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void {
