@@ -44,13 +44,21 @@ class staged_sparse_memory_region_t {
 
 	/// \note prefer using the `instantiate<T>()` function
 	/// \param size element size in the container
-	staged_sparse_memory_region_t(size_t size) : m_DenseData(0), m_Size(size) { grow(); }
+	staged_sparse_memory_region_t(size_t size) : m_DenseData(0), m_Size(size), m_ScratchMemory(malloc(size)) {
+		psl_assert(m_ScratchMemory != nullptr, "Couldn't allocate scratch memory");
+		grow();
+	}
 
-	staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)				 = default;
-	staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept			 = default;
-	staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other)	 = default;
-	staged_sparse_memory_region_t& operator=(staged_sparse_memory_region_t&& other) noexcept = default;
-
+	staged_sparse_memory_region_t(const staged_sparse_memory_region_t& other)				 = delete;
+	staged_sparse_memory_region_t(staged_sparse_memory_region_t&& other) noexcept			 = delete;
+	staged_sparse_memory_region_t& operator=(const staged_sparse_memory_region_t& other)	 = delete;
+	staged_sparse_memory_region_t& operator=(staged_sparse_memory_region_t&& other) noexcept = delete;
+	~staged_sparse_memory_region_t() {
+		if(m_ScratchMemory) {
+			free(m_ScratchMemory);
+		}
+		m_ScratchMemory = nullptr;
+	}
 	/// \brief Safe (and preferred) method of creating a `staged_sparse_memory_region_t`
 	/// \tparam T component type this should be storing (only used for size)
 	/// \returns An instance of `staged_sparse_memory_region_t` set up to be used with the given type
@@ -293,6 +301,21 @@ class staged_sparse_memory_region_t {
 	/// \param index Index to erase
 	/// \return Amount of elements erased (0 or 1)
 	FORCEINLINE auto erase(key_type index) noexcept -> size_t { return erase(index, index + 1); }
+
+	FORCEINLINE auto erase(key_type* begin, key_type* end) noexcept -> size_t {
+		size_t count {0};
+		for(auto it = begin; it != end; ++it) {
+			auto sub_index = *it;
+			auto& chunk	   = chunk_for(sub_index);
+
+			if(has_impl(chunk, sub_index, stage_range_t::ALIVE)) {
+				erase_impl(chunk, sub_index, *it);
+				++count;
+			}
+		}
+		return count;
+	}
+
 
 	/// \brief Emplaces an item at the given index
 	/// \tparam T The type of the element to emplace
@@ -566,9 +589,6 @@ class staged_sparse_memory_region_t {
 		auto what_stage = (reverse_index < m_StageStart[1]) ? 0 : (reverse_index < m_StageStart[2]) ? 1 : 2;
 		if(what_stage == 2)
 			return;
-		auto scratch_memory = malloc(m_Size);
-		if(!scratch_memory)
-			throw std::exception();
 
 		// we swap it out
 		for(auto i = what_stage; i < 2; ++i) {
@@ -579,9 +599,9 @@ class staged_sparse_memory_region_t {
 				auto A = (std::byte*)m_DenseData.data() + (reverse_index * m_Size);
 				auto B = (std::byte*)m_DenseData.data() + ((m_StageStart[i + 1] - 1) * m_Size);
 
-				std::memcpy(scratch_memory, A, m_Size);
+				std::memcpy(m_ScratchMemory, A, m_Size);
 				std::memcpy(A, B, m_Size);
-				std::memcpy(B, scratch_memory, m_Size);
+				std::memcpy(B, m_ScratchMemory, m_Size);
 
 				chunk[offset]		 = m_StageStart[i + 1] - 1;
 				auto new_index		 = m_Reverse[reverse_index];
@@ -720,7 +740,8 @@ class staged_sparse_memory_region_t {
 	mutable chunk_type* m_CachedChunk;
 	mutable key_type m_CachedChunkUserIndex = std::numeric_limits<key_type>::max();
 
-	size_t m_Size;	  // size of underlying type
+	size_t m_Size;						// size of underlying type
+	void* m_ScratchMemory {nullptr};	// used by some methods to temporarily store a copy
 };
 }	 // namespace psl::ecs::details
 
