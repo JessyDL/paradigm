@@ -461,9 +461,8 @@ class component_container_untyped_t : public component_container_t {
 	void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat) override {
 		std::byte* source = (std::byte*)data;
 		if(data == nullptr) {
-			for(size_t i = 0; i < entities.size(); ++i) {
-				m_Entities.insert(static_cast<entity_t::size_type>(entities[i]));
-			}
+			m_Entities.insert((entity_t::size_type*)entities.data(),
+							  (entity_t::size_type*)entities.data() + entities.size());
 		} else if(repeat) {
 			for(size_t i = 0; i < entities.size(); ++i) {
 				auto ptr = m_Entities.get_or_insert(static_cast<entity_t::size_type>(entities[i]));

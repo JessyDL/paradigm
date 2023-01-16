@@ -300,7 +300,16 @@ class staged_sparse_memory_region_t {
 	/// \brief Erases value at the given index
 	/// \param index Index to erase
 	/// \return Amount of elements erased (0 or 1)
-	FORCEINLINE auto erase(key_type index) noexcept -> size_t { return erase(index, index + 1); }
+	FORCEINLINE auto erase(key_type index) noexcept -> size_t {
+		auto sub_index = index;
+		auto& chunk	   = chunk_for(sub_index);
+
+		if(has_impl(chunk, sub_index, stage_range_t::ALIVE)) {
+			erase_impl(chunk, sub_index, index);
+			return 1;
+		}
+		return 0;
+	}
 
 	FORCEINLINE auto erase(key_type* begin, key_type* end) noexcept -> size_t {
 		size_t count {0};
@@ -387,6 +396,26 @@ class staged_sparse_memory_region_t {
 		auto& chunk	   = chunk_for(sub_index);
 
 		insert_impl(chunk, sub_index, index);
+	}
+
+	// \brief Valueless insert. Either creates the memory for the given index, or does nothing if it already exists
+	/// \param index Where to insert
+	FORCEINLINE auto insert(key_type* begin, key_type* end) -> void {
+		auto count = static_cast<key_type>(end - begin);
+		insert_make_space(count);
+
+		size_t loop {0};
+		for(auto it = begin; it != end; ++it) {
+			auto sub_index = *it;
+			auto& chunk	   = chunk_for(sub_index);
+
+			chunk[sub_index] = static_cast<key_type>(m_StageStart[2] + loop);
+			m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2] + loop), *it);
+			++loop;
+		}
+		m_StageStart[2] += count;
+		m_StageStart[3] += count;
+		m_StageSize[1] += count;
 	}
 
 	FORCEINLINE auto get_or_insert(key_type index) -> pointer {
@@ -521,8 +550,8 @@ class staged_sparse_memory_region_t {
 		return *((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size));
 	}
 
-	FORCEINLINE auto grow() -> void {
-		auto capacity = static_cast<key_type>(m_Reverse.capacity() + 1);
+	FORCEINLINE auto grow(size_t expected = 1) -> void {
+		auto capacity = static_cast<key_type>(m_Reverse.capacity() + expected);
 
 		if(m_DenseData.size() < capacity * m_Size) {
 			auto new_capacity = std::max<key_type>(capacity, static_cast<key_type>(m_DenseData.size() * 2 / m_Size));
@@ -539,6 +568,23 @@ class staged_sparse_memory_region_t {
 		psl_assert((m_Reverse.capacity() + 1) * m_Size <= m_DenseData.size() &&
 					 (m_Reverse.capacity() + 2) * m_Size >= m_DenseData.size(),
 				   "capacity was not in line with density data");
+	}
+
+	/// \brief Makes sure there is insertion space for N elements
+	/// \param size Amount of elements to make space for
+	FORCEINLINE auto insert_make_space(key_type size = 1) -> void {
+		if(m_Reverse.size() + size >= m_Reverse.capacity())
+			grow(size);
+
+		for(auto i = m_StageStart[2]; i < m_Reverse.size(); ++i) {
+			auto old_offset = m_Reverse[i];
+			auto& old_chunk = chunk_for(old_offset);
+			old_chunk[old_offset] += size;
+		}
+
+		std::memcpy((std::byte*)m_DenseData.data() + ((m_StageStart[2] + size) * m_Size),
+					(std::byte*)m_DenseData.data() + (m_StageStart[2] * m_Size),
+					(m_Reverse.size() - m_StageStart[2]) * m_Size * size);
 	}
 
 	FORCEINLINE auto insert_impl(chunk_type& chunk, key_type offset, key_type user_index) -> void {
