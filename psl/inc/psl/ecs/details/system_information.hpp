@@ -232,7 +232,7 @@ class dependency_pack {
 	constexpr inline bool is_direct_access() const noexcept { return !m_IsIndirect; };
 	constexpr inline bool is_indirect_access() const noexcept { return m_IsIndirect; };
 
-	inline constexpr size_t size_per_element() const noexcept {
+	inline size_t size_per_element() const noexcept {
 		size_t res {0};
 		if(!m_IsIndirect) {
 			for(const auto& binding : m_RBindings) {
@@ -260,9 +260,9 @@ class dependency_pack {
 		return m_Sizes.at(int_id);
 	}
 
-	inline constexpr size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
+	inline size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
 
-	inline constexpr size_t entities() const noexcept { return m_Entities.size(); }
+	inline size_t entities() const noexcept { return m_Entities.size(); }
 	dependency_pack slice(size_t begin, size_t end) const noexcept {
 		auto cpy = make_partial_copy();
 
@@ -420,7 +420,7 @@ class system_information final {
 
 	psl::ecs::threading threading() const noexcept { return m_Threading; };
 
-	system_token id() const noexcept { return m_ID; }
+	constexpr system_token id() const noexcept { return m_ID; }
 
 	auto filters() const noexcept { return m_Filters; }
 	auto transforms() const noexcept { return m_Transforms; }

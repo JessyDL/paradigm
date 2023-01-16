@@ -77,7 +77,7 @@ psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::depen
 
 	packs.resize(workers);
 	for(auto& dep_pack : source) {
-		if(dep_pack.allow_partial()) {
+		if(dep_pack.is_partial_pack()) {
 			auto batch_size = dep_pack.entities() / workers;
 			size_t processed {0};
 			for(auto i = 0; i < workers - 1; ++i) {
@@ -295,7 +295,7 @@ state_t::get_component_container(psl::array_view<details::component_key_t> keys)
 
 // empty construction
 void state_t::add_component_impl(details::component_container_t* cInfo, psl::array_view<entity_t> entities) {
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 
 	cInfo->add(entities);
 	for(size_t i = 0; i < entities.size(); ++i)
@@ -312,7 +312,7 @@ void state_t::add_component_impl(details::component_container_t* cInfo,
 								 psl::array_view<entity_t> entities,
 								 void* prototype,
 								 bool repeat) {
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 	const auto component_size = cInfo->component_size();
 	psl_assert(component_size != 0, "component size was 0");
 
@@ -332,7 +332,7 @@ void state_t::add_component_impl(const details::component_key_t& key,
 
 
 void state_t::remove_component(details::component_container_t* cInfo, psl::array_view<entity_t> entities) noexcept {
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
+	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 	cInfo->destroy(entities);
 	for(size_t i = 0; i < entities.size(); ++i)
 		m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(entities[i]));

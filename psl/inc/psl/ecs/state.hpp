@@ -774,7 +774,7 @@ class state_t final {
 	  details::component_container_t* cInfo,
 	  psl::array_view<entity_t> entities,
 	  Fn&& invocable) {
-		psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
+		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 		const auto component_size = cInfo->component_size();
 		psl_assert(component_size != 0, "component size was 0");
 
@@ -841,16 +841,16 @@ class state_t final {
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_break<Ts...>>,
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept {
-		return on_break_op(
-		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts>()...}, begin, end);
+		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
+		return on_break_op(entries, begin, end);
 	}
 
 	template <typename... Ts>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_combine<Ts...>>,
 											 psl::array<entity_t>::iterator& begin,
 											 psl::array<entity_t>::iterator& end) const noexcept {
-		return on_combine_op(
-		  psl::array<details::component_container_t*> {get_component_untyped_info<Ts>()...}, begin, end);
+		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
+		return on_combine_op(entries, begin, end);
 	}
 
 	psl::array<entity_t>::iterator filter_op(details::cached_container_entry_t& entry,
@@ -976,8 +976,8 @@ class state_t final {
 		}(pack_type {});
 		auto pack_generator = [this](bool seedWithPrevious = false) {
 			return details::expand_to_dependency_pack(
-			  pack_type {}, seedWithPrevious, [this]<typename T>() -> details::component_container_t* {
-				  return get_component_untyped_info<T>();
+			  pack_type {}, seedWithPrevious, [this]<typename Z>() -> details::component_container_t* {
+				  return get_component_untyped_info<Z>();
 			  });
 		};
 
