@@ -10,6 +10,78 @@
 namespace psl::ecs {
 class state_t;
 namespace details {
+	struct cached_container_entry_t {
+		constexpr cached_container_entry_t(const details::component_key_t& target) : key(target), container(nullptr) {};
+		constexpr cached_container_entry_t(details::component_container_t* target)
+			: key(target->id()), container(target) {};
+		constexpr cached_container_entry_t(const details::component_key_t& target_key,
+										   details::component_container_t* target_container)
+			: key(target_key), container(target_container) {
+			psl_assert(target_key == target_container->id(), "ID did not match");
+		};
+
+		constexpr cached_container_entry_t(cached_container_entry_t const&)			   = default;
+		constexpr cached_container_entry_t(cached_container_entry_t&&)				   = default;
+		constexpr cached_container_entry_t& operator=(cached_container_entry_t const&) = default;
+		constexpr cached_container_entry_t& operator=(cached_container_entry_t&&)	   = default;
+
+		constexpr operator details::component_key_t const&() const noexcept { return key; }
+		constexpr operator details::component_key_t&() noexcept { return key; }
+
+		friend constexpr bool operator==(cached_container_entry_t const& lhs,
+										 cached_container_entry_t const& rhs) noexcept {
+			return lhs.key == rhs.key;
+		}
+		friend constexpr bool operator!=(cached_container_entry_t const& lhs,
+										 cached_container_entry_t const& rhs) noexcept {
+			return lhs.key != rhs.key;
+		}
+		friend constexpr bool operator<=(cached_container_entry_t const& lhs,
+										 cached_container_entry_t const& rhs) noexcept {
+			return lhs.key <= rhs.key;
+		}
+		friend constexpr bool operator>=(cached_container_entry_t const& lhs,
+										 cached_container_entry_t const& rhs) noexcept {
+			return lhs.key >= rhs.key;
+		}
+		friend constexpr bool operator<(cached_container_entry_t const& lhs,
+										cached_container_entry_t const& rhs) noexcept {
+			return lhs.key < rhs.key;
+		}
+		friend constexpr bool operator>(cached_container_entry_t const& lhs,
+										cached_container_entry_t const& rhs) noexcept {
+			return lhs.key > rhs.key;
+		}
+
+		friend constexpr bool operator==(cached_container_entry_t const& lhs,
+										 details::component_key_t const& rhs) noexcept {
+			return lhs.key == rhs;
+		}
+		friend constexpr bool operator!=(cached_container_entry_t const& lhs,
+										 details::component_key_t const& rhs) noexcept {
+			return lhs.key != rhs;
+		}
+		friend constexpr bool operator<=(cached_container_entry_t const& lhs,
+										 details::component_key_t const& rhs) noexcept {
+			return lhs.key <= rhs;
+		}
+		friend constexpr bool operator>=(cached_container_entry_t const& lhs,
+										 details::component_key_t const& rhs) noexcept {
+			return lhs.key >= rhs;
+		}
+		friend constexpr bool operator<(cached_container_entry_t const& lhs,
+										details::component_key_t const& rhs) noexcept {
+			return lhs.key < rhs;
+		}
+		friend constexpr bool operator>(cached_container_entry_t const& lhs,
+										details::component_key_t const& rhs) noexcept {
+			return lhs.key > rhs;
+		}
+
+		details::component_key_t key {};
+		details::component_container_t* container {nullptr};
+	};
+
 	// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
 	class transform_group {
 		using ordering_pred_t	 = void(psl::array<entity_t>::iterator,
@@ -64,58 +136,64 @@ namespace details {
 
 
 	class filter_group {
-		template <typename T>
-		constexpr void selector(psl::type_pack_t<T>) noexcept {
+		template <typename T, typename Fn>
+		constexpr void selector(psl::type_pack_t<T>, Fn&& query) noexcept {
 			if constexpr(!std::is_same_v<entity_t, T> && !IsPolicy<T> && !IsAccessType<T>)
-				filters.emplace_back(details::component_key_t::generate<T>());
+				filters.emplace_back(details::component_key_t::generate<T>(), query.template operator()<T>());
 		}
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<filter<Ts...>>) noexcept {
-			(selector(psl::type_pack_t<Ts>()), ...);
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<filter<Ts...>>, Fn&& query) noexcept {
+			(selector(psl::type_pack_t<Ts>(), query), ...);
 		}
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_combine<Ts...>>) noexcept {
-			(void(on_combine.emplace_back(details::component_key_t::generate<Ts>())), ...);
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_combine<Ts...>>, Fn&& query) noexcept {
+			(void(on_combine.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			 ...);
 		}
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_break<Ts...>>) noexcept {
-			(void(on_break.emplace_back(details::component_key_t::generate<Ts>())), ...);
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_break<Ts...>>, Fn&& query) noexcept {
+			(void(on_break.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			 ...);
 		}
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<except<Ts...>>) noexcept {
-			(void(except.emplace_back(details::component_key_t::generate<Ts>())), ...);
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<except<Ts...>>, Fn&& query) noexcept {
+			(void(except.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())), ...);
 		}
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_add<Ts...>>) noexcept {
-			(void(on_add.emplace_back(details::component_key_t::generate<Ts>())), ...);
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_add<Ts...>>, Fn&& query) noexcept {
+			(void(on_add.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())), ...);
 		}
 
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_remove<Ts...>>) noexcept {
-			(void(on_remove.emplace_back(details::component_key_t::generate<Ts>())), ...);
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_remove<Ts...>>, Fn&& query) noexcept {
+			(void(on_remove.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			 ...);
 		}
 
-		template <typename Pred, typename... Ts>
-		constexpr void selector(psl::type_pack_t<order_by<Pred, Ts...>>) noexcept {}
+		template <typename Pred, typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<order_by<Pred, Ts...>>, Fn&&) noexcept {}
 
-		template <typename... Ts>
-		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>) noexcept {}
+		template <typename... Ts, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>, Fn&&) noexcept {}
+
 		friend class ::psl::ecs::state_t;
 		filter_group() = default;
-		filter_group(psl::array<component_key_t> filters_arr,
-					 psl::array<component_key_t> on_add_arr,
-					 psl::array<component_key_t> on_remove_arr,
-					 psl::array<component_key_t> except_arr,
-					 psl::array<component_key_t> on_combine_arr,
-					 psl::array<component_key_t> on_break_arr)
-			: filters(filters_arr), on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr),
-			  on_combine(on_combine_arr), on_break(on_break_arr) {
+		filter_group(psl::array<cached_container_entry_t> filters_arr,
+					 psl::array<cached_container_entry_t> on_add_arr,
+					 psl::array<cached_container_entry_t> on_remove_arr,
+					 psl::array<cached_container_entry_t> except_arr,
+					 psl::array<cached_container_entry_t> on_combine_arr,
+					 psl::array<cached_container_entry_t> on_break_arr)
+			: filters(filters_arr.begin(), filters_arr.end()), on_add(on_add_arr.begin(), on_add_arr.end()),
+			  on_remove(on_remove_arr.begin(), on_remove_arr.end()), except(except_arr.begin(), except_arr.end()),
+			  on_combine(on_combine_arr.begin(), on_combine_arr.end()),
+			  on_break(on_break_arr.begin(), on_break_arr.end()) {
 			std::sort(std::begin(filters), std::end(filters));
 			std::sort(std::begin(on_add), std::end(on_add));
 			std::sort(std::begin(on_remove), std::end(on_remove));
@@ -154,9 +232,9 @@ namespace details {
 		};
 
 	  public:
-		template <typename... Ts>
-		filter_group(psl::type_pack_t<Ts...>) {
-			(void(selector(psl::type_pack_t<Ts>())), ...);
+		template <typename... Ts, typename Fn>
+		filter_group(psl::type_pack_t<Ts...>, Fn&& query) {
+			(void(selector(psl::type_pack_t<Ts>(), query)), ...);
 			std::sort(std::begin(filters), std::end(filters));
 			std::sort(std::begin(on_add), std::end(on_add));
 			std::sort(std::begin(on_remove), std::end(on_remove));
@@ -194,7 +272,6 @@ namespace details {
 			std::set_difference(
 			  std::begin(cpy), std::end(cpy), std::begin(on_break), std::end(on_break), std::back_inserter(filters));
 		}
-
 
 		// Is this fully containable in the other
 		bool is_subset_of(const filter_group& other) const noexcept {
@@ -248,23 +325,13 @@ namespace details {
 
 		void add_debug_system_name(psl::string_view name) { m_SystemsDebugNames.emplace_back(name); }
 
-		psl::array<details::component_key_t> filters;
-		psl::array<details::component_key_t> on_add;
-		psl::array<details::component_key_t> on_remove;
-		psl::array<details::component_key_t> except;
-		psl::array<details::component_key_t> on_combine;
-		psl::array<details::component_key_t> on_break;
+		psl::array<cached_container_entry_t> filters;
+		psl::array<cached_container_entry_t> on_add;
+		psl::array<cached_container_entry_t> on_remove;
+		psl::array<cached_container_entry_t> except;
+		psl::array<cached_container_entry_t> on_combine;
+		psl::array<cached_container_entry_t> on_break;
 		psl::array<psl::string_view> m_SystemsDebugNames;
 	};
-
-	template <typename... Ts>
-	auto make_filter_group(psl::type_pack_t<Ts...>) -> psl::array<filter_group> {
-		return psl::array<filter_group> {filter_group(decode_pack_types_t<Ts> {})...};
-	}
-
-	template <typename... Ts>
-	auto make_transform_group(psl::type_pack_t<Ts...>) -> psl::array<transform_group> {
-		return psl::array<transform_group> {transform_group(decode_pack_types_t<Ts> {})...};
-	}
 }	 // namespace details
 }	 // namespace psl::ecs

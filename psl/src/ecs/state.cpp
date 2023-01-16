@@ -251,8 +251,7 @@ void state_t::tick(std::chrono::duration<float> dTime) {
 	m_LockState = 0;
 }
 
-const details::component_container_t*
-state_t::get_component_container(const details::component_key_t& key) const noexcept {
+details::component_container_t* state_t::get_component_container(const details::component_key_t& key) const noexcept {
 	if(auto it = m_Components.find(key); it != std::end(m_Components))
 		return it->second.get();
 	else
@@ -266,6 +265,18 @@ details::component_container_t* state_t::get_component_container(const details::
 		return nullptr;
 }
 
+psl::array<details::component_container_t*>
+state_t::get_component_container(psl::array_view<details::cached_container_entry_t> entries) const noexcept {
+	psl::array<details::component_container_t*> res {};
+	for(const auto& entry : entries) {
+		if(entry.container != nullptr) {
+			res.emplace_back(entry.container);
+		} else {
+			res.emplace_back(get_component_container(entry.key));
+		}
+	}
+	return res;
+}
 
 psl::array<const details::component_container_t*>
 state_t::get_component_container(psl::array_view<details::component_key_t> keys) const noexcept {
@@ -360,124 +371,92 @@ void state_t::reset(psl::array_view<entity_t> entities) noexcept {
 	}
 }
 
-psl::array<entity_t>::iterator state_t::filter_op(details::component_container_t* cInfo,
+psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entry_t& entry,
 												  psl::array<entity_t>::iterator& begin,
 												  psl::array<entity_t>::iterator& end) const noexcept {
-	return (cInfo == nullptr) ? begin
-							  : std::partition(begin, end, [cInfo](entity_t e) { return cInfo->has_component(e); });
-}
-psl::array<entity_t>::iterator state_t::filter_op(details::component_key_t key,
-												  psl::array<entity_t>::iterator& begin,
-												  psl::array<entity_t>::iterator& end) const noexcept {
-	const auto cInfo = get_component_container(key);
-	return (cInfo == nullptr) ? begin
-							  : std::partition(begin, end, [cInfo](entity_t e) { return cInfo->has_component(e); });
-}
-
-psl::array<entity_t>::iterator state_t::on_add_op(details::component_container_t* cInfo,
-												  psl::array<entity_t>::iterator& begin,
-												  psl::array<entity_t>::iterator& end) const noexcept {
-	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity_t e) { return cInfo->has_added(e); });
-}
-psl::array<entity_t>::iterator state_t::on_add_op(details::component_key_t key,
-												  psl::array<entity_t>::iterator& begin,
-												  psl::array<entity_t>::iterator& end) const noexcept {
-	const auto cInfo = get_component_container(key);
-	return (cInfo == nullptr) ? begin : std::partition(begin, end, [cInfo](entity_t e) { return cInfo->has_added(e); });
-}
-psl::array<entity_t>::iterator state_t::on_remove_op(details::component_container_t* cInfo,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
-	return (cInfo == nullptr) ? begin
-							  : std::partition(begin, end, [cInfo](entity_t e) { return cInfo->has_removed(e); });
-}
-psl::array<entity_t>::iterator state_t::on_remove_op(details::component_key_t key,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
-	const auto cInfo = get_component_container(key);
-	return (cInfo == nullptr) ? begin
-							  : std::partition(begin, end, [cInfo](entity_t e) { return cInfo->has_removed(e); });
-}
-psl::array<entity_t>::iterator state_t::on_except_op(details::component_container_t* cInfo,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
-	return (cInfo == nullptr) ? end
-							  : std::partition(begin, end, [cInfo](entity_t e) { return !cInfo->has_component(e); });
-}
-psl::array<entity_t>::iterator state_t::on_except_op(details::component_key_t key,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
-	auto cInfo = get_component_container(key);
-	return (cInfo == nullptr) ? end
-							  : std::partition(begin, end, [cInfo](entity_t e) { return !cInfo->has_component(e); });
-}
-psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::component_container_t*> cInfos,
-													psl::array<entity_t>::iterator& begin,
-													psl::array<entity_t>::iterator& end) const noexcept {
-	if(std::any_of(cInfos.begin(), cInfos.end(), [](auto* cInfo) { return cInfo == nullptr; })) {
-		return begin;
+	if(!entry.container) {
+		entry.container = get_component_container(entry.key);
 	}
-
-	return std::partition(begin, end, [&cInfos](entity_t e) {
-		return
-		  // any of them have not had an entity removed
-		  !(!std::any_of(std::begin(cInfos),
-						 std::end(cInfos),
-						 [e](const details::component_container_t* cInfo) { return cInfo->has_removed(e); }) ||
-			// or all of them do not have a component, or had the entity removed
-			!std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-				return cInfo->has_component(e) || cInfo->has_removed(e);
-			}));
-	});
+	return (entry.container == nullptr)
+			 ? begin
+			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_component(e); });
 }
-psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::component_key_t> keys,
+
+psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entry_t& entry,
+												  psl::array<entity_t>::iterator& begin,
+												  psl::array<entity_t>::iterator& end) const noexcept {
+	if(!entry.container) {
+		entry.container = get_component_container(entry.key);
+	}
+	return (entry.container == nullptr)
+			 ? begin
+			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_added(e); });
+}
+
+psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_entry_t& entry,
+													 psl::array<entity_t>::iterator& begin,
+													 psl::array<entity_t>::iterator& end) const noexcept {
+	if(!entry.container) {
+		entry.container = get_component_container(entry.key);
+	}
+	return (entry.container == nullptr)
+			 ? begin
+			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_removed(e); });
+}
+
+psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_entry_t& entry,
+													 psl::array<entity_t>::iterator& begin,
+													 psl::array<entity_t>::iterator& end) const noexcept {
+	if(!entry.container) {
+		entry.container = get_component_container(entry.key);
+	}
+	return (entry.container == nullptr)
+			 ? end
+			 : std::partition(begin, end, [&entry](entity_t e) { return !entry.container->has_component(e); });
+}
+
+psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_container_entry_t>& entries,
 													psl::array<entity_t>::iterator& begin,
 													psl::array<entity_t>::iterator& end) const noexcept {
-	auto cInfos = get_component_container(psl::array_view<details::component_key_t> {keys});
-
-	return (cInfos.size() != keys.size()) ? begin :
-										  // for every entity, remove if...
-			 std::partition(begin, end, [&cInfos](entity_t e) {
+	for(auto& entry : entries) {
+		if(entry.container == nullptr) {
+			entry.container = get_component_container(entry.key);
+		}
+	}
+	return (std::any_of(entries.begin(), entries.end(), [](const auto& cache) { return cache.container == nullptr; }))
+			 ? begin
+			 :
+			 // for every entity, remove if...
+			 std::partition(begin, end, [&entries](entity_t e) {
 				 return
 				   // any of them have not had an entity removed
-				   !(!std::any_of(std::begin(cInfos),
-								  std::end(cInfos),
-								  [e](const details::component_container_t* cInfo) { return cInfo->has_removed(e); }) ||
+				   !(!std::any_of(std::begin(entries),
+								  std::end(entries),
+								  [e](const auto& entry) { return entry.container->has_removed(e); }) ||
 					 // or all of them do not have a component, or had the entity removed
-					 !std::all_of(
-					   std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-						   return cInfo->has_component(e) || cInfo->has_removed(e);
-					   }));
+					 !std::all_of(std::begin(entries), std::end(entries), [e](const auto& entry) {
+						 return entry.container->has_component(e) || entry.container->has_removed(e);
+					 }));
 			 });
 }
 
-psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::component_container_t*> cInfos,
+psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached_container_entry_t>& entries,
 													  psl::array<entity_t>::iterator& begin,
 													  psl::array<entity_t>::iterator& end) const noexcept {
-	if(std::any_of(cInfos.begin(), cInfos.end(), [](auto* cInfo) { return cInfo == nullptr; })) {
-		return begin;
+	for(auto& entry : entries) {
+		if(entry.container == nullptr) {
+			entry.container = get_component_container(entry.key);
+		}
 	}
-
-	return std::remove_if(begin, end, [cInfos](entity_t e) {
-		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-			return cInfo->has_added(e);
-		}) || !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-			return cInfo->has_component(e);
-		});
-	});
-}
-psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::component_key_t> keys,
-													  psl::array<entity_t>::iterator& begin,
-													  psl::array<entity_t>::iterator& end) const noexcept {
-	auto cInfos = get_component_container(psl::array_view<details::component_key_t> {keys});
-
-	return (cInfos.size() != keys.size()) ? begin : std::remove_if(begin, end, [cInfos](entity_t e) {
-		return !std::any_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-			return cInfo->has_added(e);
-		}) || !std::all_of(std::begin(cInfos), std::end(cInfos), [e](const details::component_container_t* cInfo) {
-			return cInfo->has_component(e);
-		});
-	});
+	return (std::any_of(entries.begin(), entries.end(), [](const auto& cache) { return cache.container == nullptr; }))
+			 ? begin
+			 : std::remove_if(begin, end, [entries](entity_t e) {
+				   return !std::any_of(std::begin(entries), std::end(entries), [e](const auto& entry) {
+					   return entry.container->has_added(e);
+				   }) || !std::all_of(std::begin(entries), std::end(entries), [e](const auto& entry) {
+					   return entry.container->has_component(e);
+				   });
+			   });
 }
 
 psl::array<entity_t> state_t::filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept {
