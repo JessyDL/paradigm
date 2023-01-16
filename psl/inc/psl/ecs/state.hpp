@@ -606,6 +606,7 @@ class state_t final {
 	template <typename T>
 	inline auto get_component_untyped_info() const noexcept -> psl::ecs::details::component_container_t* {
 		constexpr auto key {details::component_key_t::generate<T>()};
+#if !defined(PE_ECS_DISABLE_LOOKUP_CACHE)
 		static thread_local size_t generation {0};
 		static thread_local size_t state_unique_key {0};
 		static thread_local psl::ecs::details::component_container_t* container = nullptr;
@@ -623,6 +624,12 @@ class state_t final {
 			state_unique_key = m_StateUniqueKey;
 		}
 		return container;
+#else
+		if(auto it = m_Components.find(key); it == std::end(m_Components)) {
+			return it->second.get();
+		}
+		return nullptr;
+#endif
 	}
 	//------------------------------------------------------------
 	// add_component
@@ -1001,7 +1008,7 @@ class state_t final {
 	size_t m_SystemCounter {0};
 	entity_t::size_type m_Entities {0};
 	entity_t::size_type m_MinEntitiesPerWorker {1024};
-
+#if !defined(PE_ECS_DISABLE_LOOKUP_CACHE)
 	// Used by the local cache to improve lookup speed. Every time the state get's cleared this is incremented so the
 	// cache can be regenerated.
 	std::atomic<size_t> m_ComponentGeneration {1};
@@ -1009,5 +1016,6 @@ class state_t final {
 	// distinguish that instance. This is to protect ourselves from the (rare) occassion a state_t gets deleted and
 	// recreated on the same memory location, which would result in the cache not correctly getting rejected.
 	std::atomic<size_t> m_StateUniqueKey {0};
+#endif
 };
 }	 // namespace psl::ecs
