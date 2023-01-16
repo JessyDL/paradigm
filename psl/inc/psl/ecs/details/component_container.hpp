@@ -463,55 +463,51 @@ class component_container_untyped_t : public component_container_t {
 		if(data == nullptr) {
 			m_Entities.insert((entity_t::size_type*)entities.data(),
 							  (entity_t::size_type*)entities.data() + entities.size());
-		} else if(repeat) {
-			for(size_t i = 0; i < entities.size(); ++i) {
-				auto ptr = m_Entities.get_or_insert(static_cast<entity_t::size_type>(entities[i]));
-				memcpy(ptr, source, m_Size);
-			}
 		} else {
-			for(size_t i = 0; i < entities.size(); ++i) {
-				auto ptr = m_Entities.get_or_insert(static_cast<entity_t::size_type>(entities[i]));
-				memcpy(ptr, source, m_Size);
-				source += m_Size;
-			}
+			m_Entities.insert(
+			  (entity_t::size_type*)entities.data(),
+			  (entity_t::size_type*)entities.data() + entities.size(),
+			  [&source, size = m_Size, count = entities.size(), repeat](std::byte* begin, std::byte* end) {
+				  psl_assert((end - begin) / size == count);
+				  if(repeat) {
+					  for(auto it = begin; it != end; it += size) {
+						  memcpy(it, source, size);
+					  }
+				  } else {
+					  memcpy(begin, source, size * count);
+				  }
+			  });
 		}
 	}
-	void add_impl(entity_t entity, void* data) override {
-		auto ptr = m_Entities.get_or_insert(static_cast<entity_t::size_type>(entity));
 
-		if(data != nullptr)
-			memcpy(ptr, data, m_Size);
+	void add_impl(entity_t entity, void* data) override {
+		m_Entities.insert(static_cast<entity_t::size_type>(entity),
+						  [size = m_Size, data](std::byte* ptr) { memcpy(ptr, data, size); });
 	}
 
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 				  void* data,
 				  bool repeat) override {
-		auto count = std::accumulate(std::begin(entities),
-									 std::end(entities),
-									 size_t {0},
-									 [](size_t sum, const std::pair<entity_t::size_type, entity_t::size_type>& r) {
-										 return sum + (r.second - r.first);
-									 });
-
 		std::byte* source = (std::byte*)data;
 		if(data == nullptr) {
 			for(auto range : entities) {
-				for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
-			}
-		} else if(repeat) {
-			for(auto range : entities) {
-				for(auto e = range.first; e < range.second; ++e) {
-					auto ptr = m_Entities.get_or_insert(e);
-					memcpy(ptr, source, m_Size);
-				}
+				m_Entities.insert(range.first, range.second - range.first);
 			}
 		} else {
 			for(auto range : entities) {
-				for(auto e = range.first; e < range.second; ++e) {
-					auto ptr = m_Entities.get_or_insert(e);
-					memcpy(ptr, source, m_Size);
-					source += m_Size;
-				}
+				m_Entities.insert(
+				  range.first,
+				  range.second - range.first,
+				  [&source, size = m_Size, count = entities.size(), repeat](std::byte* begin, std::byte* end) {
+					  psl_assert((end - begin) / size == count);
+					  if(repeat) {
+						  for(auto it = begin; it != end; it += size) {
+							  memcpy(it, source, size);
+						  }
+					  } else {
+						  memcpy(begin, source, size * count);
+					  }
+				  });
 			}
 		}
 	}
