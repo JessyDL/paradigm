@@ -162,12 +162,6 @@ class dependency_pack {
 
 
   public:
-	template <typename T>
-	dependency_pack(psl::type_pack_t<T> tpack, bool seedWithPrevious = false)
-		: dependency_pack(tpack, seedWithPrevious, []<typename Ts>() -> details::component_container_t* {
-			  return nullptr;
-		  }) {};
-
 	template <typename T, typename Fn>
 	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious, Fn&& query)
 		: m_IsPartial(IsPackPartial<typename T::policy_type>), m_IsIndirect(IsAccessIndirect<typename T::access_type>) {
@@ -233,13 +227,12 @@ class dependency_pack {
 		return to_pack_impl(std::make_index_sequence<std::tuple_size<range_t>::value> {}, psl::type_pack_t<pack_t> {});
 	}
 
-	bool allow_partial() const noexcept { return m_IsPartial; };
 	constexpr inline bool is_partial_pack() const noexcept { return m_IsPartial; };
 	constexpr inline bool is_full_pack() const noexcept { return !m_IsPartial; };
 	constexpr inline bool is_direct_access() const noexcept { return !m_IsIndirect; };
 	constexpr inline bool is_indirect_access() const noexcept { return m_IsIndirect; };
 
-	size_t size_per_element() const noexcept {
+	inline constexpr size_t size_per_element() const noexcept {
 		size_t res {0};
 		if(!m_IsIndirect) {
 			for(const auto& binding : m_RBindings) {
@@ -262,14 +255,14 @@ class dependency_pack {
 	}
 
 	template <typename T>
-	size_t size_of() const noexcept {
+	inline constexpr size_t size_of() const noexcept {
 		constexpr component_key_t int_id = details::component_key_t::generate<T>();
 		return m_Sizes.at(int_id);
 	}
 
-	size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
+	inline constexpr size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
 
-	size_t entities() const noexcept { return m_Entities.size(); }
+	inline constexpr size_t entities() const noexcept { return m_Entities.size(); }
 	dependency_pack slice(size_t begin, size_t end) const noexcept {
 		auto cpy = make_partial_copy();
 
@@ -294,14 +287,12 @@ class dependency_pack {
 		}
 
 		for(const auto& binding : m_IndirectReadBindings) {
-			auto size										  = cpy.m_Sizes[binding.first];
 			cpy.m_IndirectReadBindings[binding.first].indices = psl::array_view<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadBindings[binding.first].data = binding.second.data;
 		}
 
 		for(const auto& binding : m_IndirectReadWriteBindings) {
-			auto size											   = cpy.m_Sizes[binding.first];
 			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array_view<entity_t::size_type>(
 			  std::next(binding.second.indices.begin(), begin), std::next(binding.second.indices.begin(), end));
 			cpy.m_IndirectReadWriteBindings[binding.first].data = binding.second.data;

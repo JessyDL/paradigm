@@ -108,8 +108,8 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 	};
 
 	auto pack = information.create_pack();
-	bool has_partial =
-	  std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.allow_partial(); });
+	bool is_partial_pack =
+	  std::any_of(std::begin(pack), std::end(pack), [](const auto& dep_pack) { return dep_pack.is_partial_pack(); });
 
 
 	auto filter_groups	  = information.filters();
@@ -118,7 +118,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 	auto filter_it	  = begin(filter_groups);
 	auto transform_it = begin(transform_groups);
 
-	if(has_partial && information.threading() == threading::par) {
+	if(is_partial_pack && information.threading() == threading::par) {
 		for(auto& dep_pack : pack) {
 			psl::array_view<entity_t> entities;
 			auto group_it = std::find_if(
