@@ -35,6 +35,7 @@ class component_key_t {
 
 	// used to generate a "default" component_key_t that always evaluates to false when queried
 	struct invalid_component_key_t {};
+	static constexpr component_traits<invalid_component_key_t> invalid_component_key_v {};
 
 	constexpr std::uint32_t fnv1a_32(std::string_view value) const noexcept {
 		std::uint32_t seed {2166136261u};
@@ -49,7 +50,9 @@ class component_key_t {
 		: m_Name(traits.name), m_Value(fnv1a_32(traits.name)), m_Type(component_type_v<T>), m_StringMemory(nullptr) {}
 
   public:
-	constexpr component_key_t() noexcept : component_key_t(component_traits<invalid_component_key_t> {}) {}
+	constexpr component_key_t() noexcept
+		: m_Name(invalid_component_key_v.name), m_Value(0), m_Type(component_type_v<invalid_component_key_t>),
+		  m_StringMemory(nullptr) {}
 	constexpr component_key_t(std::string_view name, component_type type)
 		: m_Name(name), m_Value(fnv1a_32(name)), m_Type(type), m_StringMemory(nullptr) {
 		psl::assertion([this]() { return is_valid_name(m_Name); });
