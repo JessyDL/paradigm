@@ -158,8 +158,14 @@ auto m = suite<"mathematics">() = []() {
 		require(normalize(tvec<float, 3> {8, 0, 0})) == tvec<float, 3> {1, 0, 0};
 	};
 	section<"quaternions::angle_axis">() = [&] {
-		require(angle_axis(85.0, dvec3(30, 15, 8))) ==
-		  dquat {-29.882595093587820, -14.941297546793910, -7.9686920249567521, 0.088383699305805544};
+		auto angle_axis_1 = psl::math::abs(
+		  angle_axis(85.0, dvec3(30, 15, 8)).as_vec() -
+		  dquat {-29.882595093587820, -14.941297546793910, -7.9686920249567521, 0.088383699305805544}.as_vec());
+		// macos has a slight value difference, so we check for the difference value
+		for(auto i = 0; i < 4; ++i) {
+			require(angle_axis_1[i]) <= 0.00001;
+		}
+
 		require(angle_axis(.5f, vec3(783, 178, 62))) == quat {193.717300f, 44.0379066f, 15.3390455f, 0.968912423f};
 	};
 	section<"quaternions::to/from_euler">() = [&] {
