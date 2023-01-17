@@ -49,7 +49,7 @@ class component_key_t {
 		: m_Name(traits.name), m_Value(fnv1a_32(traits.name)), m_Type(component_type_v<T>), m_StringMemory(nullptr) {}
 
   public:
-	constexpr component_key_t() noexcept : component_key_t(generate<invalid_component_key_t>()) {}
+	constexpr component_key_t() noexcept : component_key_t(component_traits<invalid_component_key_t> {}) {}
 	constexpr component_key_t(std::string_view name, component_type type)
 		: m_Name(name), m_Value(fnv1a_32(name)), m_Type(type), m_StringMemory(nullptr) {
 		psl::assertion([this]() { return is_valid_name(m_Name); });
@@ -130,14 +130,14 @@ class component_key_t {
 		return m_Value >= other.m_Value;
 	}
 
-	inline constexpr operator bool() const noexcept { return (*this != generate<invalid_component_key_t>()); }
+	inline constexpr operator bool() const noexcept { return (*this != component_key_t()); }
 
 	/// \brief Generates a `component_key_t` based on the given type in a cross platform safe manner.
 	/// \note Strips const, volatile, reference, and pointer designations of the template type.
 	/// \warning watch out with modifying this issue, see: https://developercommunity.visualstudio.com/t/constexpr-unable-to-call-private-constructor-in-st/82639
 	template <typename T>
 	static constexpr auto generate() noexcept -> component_key_t {
-		return component_key_t {component_traits<std::remove_pointer_t<std::remove_cvref_t<T>>> {}};
+		return component_key_t(component_traits<std::remove_pointer_t<std::remove_cvref_t<T>>> {});
 	}
 
 	component_type type() const noexcept { return m_Type; }
