@@ -278,19 +278,14 @@ else()
 		add_compile_options (-fcolor-diagnostics)
 	endif()
 	
-	if (APPLE)
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g")
-		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
-		
-		# tell ranlib to ignore empty compilation units
-		set(CMAKE_C_ARCHIVE_FINISH   "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
-		set(CMAKE_CXX_ARCHIVE_FINISH "<CMAKE_RANLIB> -no_warning_for_no_symbols <TARGET>")
-		# prevents ar from invoking ranlib, let CMake do it
-		set(CMAKE_C_ARCHIVE_CREATE   "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
-		set(CMAKE_CXX_ARCHIVE_CREATE "<CMAKE_AR> qc -S <TARGET> <LINK_FLAGS> <OBJECTS>")
+	set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -dead_strip -g")
+	set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
+
+	if (NOT APPLE)
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -rdynamic")
 	else()
-		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS}  -dead_strip -g -rdynamic")
-		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -dead_strip")
+		set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fvisibility-inlines-hidden")
+		set(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} -fvisibility-inlines-hidden")
 	endif()
 endif()
 
@@ -302,7 +297,7 @@ endif()
 # over any other surface type, same for all subsequent entries in the list
 # note: not all surface types work on all platforms, xcb will not be selected on
 # windows, while being "higher" in the list
-
+if(PE_CORE)
 set(HAS_WSI FALSE)
 set(PE_SURFACE "unknown")
 if(PE_PLATFORM STREQUAL "ANDROID")
@@ -334,7 +329,7 @@ if(NOT HAS_WSI)
 endif()
 
 string(TOLOWER ${PE_SURFACE} PE_SURFACE_LOWERCASE)
-
+endif()
 ###############################################################################
 ###                    Add the sub projects                                 ###
 ###############################################################################

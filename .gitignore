@@ -6,3 +6,4 @@ docker/cache/
 project_files/
 __pycache__
 core/inc/paradigm.hpp
+.DS_Store

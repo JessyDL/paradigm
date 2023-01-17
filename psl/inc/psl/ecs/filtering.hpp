@@ -17,7 +17,7 @@ namespace details {
 		constexpr cached_container_entry_t(const details::component_key_t& target_key,
 										   details::component_container_t* target_container)
 			: key(target_key), container(target_container) {
-			psl_assert(target_key == target_container->id(), "ID did not match");
+			psl_assert(target_container == nullptr || target_key == target_container->id(), "ID did not match");
 		};
 
 		constexpr cached_container_entry_t(cached_container_entry_t const&)			   = default;

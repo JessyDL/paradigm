@@ -407,7 +407,7 @@ class staged_sparse_array {
 	void grow() {
 		auto capacity = m_Reverse.capacity() + 1;
 		if(m_DenseData.size() < capacity * sizeof(T)) {
-			auto new_capacity = std::max(capacity, m_DenseData.size() * 2 / sizeof(T));
+			auto new_capacity = std::max<size_t>(capacity, m_DenseData.size() * 2 / sizeof(T));
 
 			::memory::raw_region reg(new_capacity * sizeof(T));
 

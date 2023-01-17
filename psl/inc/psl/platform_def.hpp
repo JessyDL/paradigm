@@ -1,6 +1,6 @@
 #pragma once
 
-#if !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_IOS) && !defined(PLATFORM_OSX) && !defined(PLATFORM_ANDROID) &&    \
+#if !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_IOS) && !defined(PLATFORM_MACOS) && !defined(PLATFORM_ANDROID) &&  \
   !defined(PLATFORM_LINUX) && !defined(PLATFORM_POSIX)
 	#ifdef _WIN64
 		#define PLATFORM_WINDOWS
@@ -9,15 +9,11 @@
 	#elif __APPLE__
 		#include "TargetConditionals.h"
 		#if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
-			// define something for simulator
 			#define PLATFORM_IOS
 		#elif TARGET_OS_IPHONE
-			// define something for iphone
 			#define PLATFORM_IOS
-		#else
-			#define TARGET_OS_OSX 1
-			// define something for OSX
-			#define PLATFORM_OSX
+		#elif TARGET_OS_OSX
+			#define PLATFORM_MACOS
 		#endif
 	#elif __ANDROID__
 		#define PLATFORM_ANDROID
@@ -43,18 +39,18 @@ typedef void* HANDLE;	 //-V677
 
 // namespace psl
 //{
-//#if defined(_WIN64)
+// #if defined(_WIN64)
 //	using size_t = long long unsigned int;
 //	using ptrdiff_t = long long int;
-//#elif defined(_WIN32)
+// #elif defined(_WIN32)
 //	using size_t = unsigned int;
 //	using ptrdiff_t = int;
-//#elif defined (__linux__) && defined(__SIZE_TYPE__) && defined(__PTRDIFF_TYPE__)
+// #elif defined (__linux__) && defined(__SIZE_TYPE__) && defined(__PTRDIFF_TYPE__)
 //	using size_t = __SIZE_TYPE__;
 //	using ptrdiff_t = __PTRDIFF_TYPE__;
-//#else
-//#	error unknown platform
-//#endif
+// #else
+// #	error unknown platform
+// #endif
 //}
 
 // using ptrdiff_t = psl::ptrdiff_t;
@@ -64,7 +60,7 @@ typedef void* HANDLE;	 //-V677
 namespace utility::platform {
 /// \brief contains all known, supported (or to be supported) platforms.
 /// \note we need to add an extra dash to linux as the define already exists on linux platforms
-enum class platform_t { UNKNOWN = 0, lnx = 1, osx = 2, windows = 3, android = 4, ios = 5 };
+enum class platform_t { UNKNOWN = 0, lnx = 1, macos = 2, windows = 3, android = 4, ios = 5 };
 
 /// \brief encoding enum, that can be used to help identify encoding of items.
 enum class encoding_t { UNKNOWN = 0, UTF8 = 1, UTF16 = 2 };
@@ -76,8 +72,8 @@ constexpr encoding_t encoding = encoding_t::UTF16;
 #elif defined(PLATFORM_IOS)
 constexpr platform_t platform		  = platform_t::ios;
 constexpr encoding_t encoding		  = encoding_t::UTF8;
-#elif defined(PLATFORM_OSX)
-constexpr platform_t platform		  = platform_t::osx;
+#elif defined(PLATFORM_MACOS)
+constexpr platform_t platform		  = platform_t::macos;
 constexpr encoding_t encoding		  = encoding_t::UTF8;
 #elif defined(PLATFORM_ANDROID)
 constexpr platform_t platform = platform_t::android;

@@ -1,6 +1,6 @@
 #pragma once
 
-//#include <string>
+// #include <string>
 #include "psl/ustring.hpp"
 #include <algorithm>
 #include <bitset>
@@ -596,6 +596,11 @@ namespace details {
 	concept HasStaticFromString = requires() {
 		T::from_string(std::string_view {});
 	};
+
+	template <typename T>
+	concept HasStdToString = requires(T t) {
+		std::to_string(t);
+	};
 }	 // namespace details
 template <typename X>
 struct converter {
@@ -605,6 +610,8 @@ struct converter {
 			return x;
 		} else if constexpr(details::member_function_to_string<X>::value) {
 			return x.to_string();
+		} else if constexpr(details::HasStdToString<X>) {
+			return std::to_string(x);
 		} else {
 			static_assert(utility::templates::always_false_v<X>,
 						  "no conversion possible from the given type, please write a converter specialization, or "
@@ -742,12 +749,12 @@ struct converter<double> {
 	static double from_string(psl::string8::view str) { return std::stod(psl::string8_t(str)); }
 };
 
-template <>
-struct converter<uint64_t> {
-	static psl::string8_t to_string(const uint64_t& x) { return std::to_string(x); }
+template <typename T>
+requires(std::is_same_v<unsigned long, T> || std::is_same_v<uint64_t, T>) struct converter<T> {
+	static psl::string8_t to_string(const T& x) { return std::to_string(x); }
 
-	static uint64_t from_string(psl::string8::view str) { return std::stoull(psl::string8_t(str)); }
-	static uint64_t from_string(uint64_t& target, psl::string8::view str) {
+	static T from_string(psl::string8::view str) { return std::stoull(psl::string8_t(str)); }
+	static T from_string(T& target, psl::string8::view str) {
 		target = std::stoull(psl::string8_t(str));
 		return target;
 	}

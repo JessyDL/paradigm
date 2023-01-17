@@ -286,7 +286,7 @@ namespace file {
 static void cmd_prompt_presskeytocontinue() {
 	if constexpr(platform == platform_t::windows) {
 		system("pause");
-	} else if constexpr(platform == platform_t::osx) {
+	} else if constexpr(platform == platform_t::macos) {
 		system("read");
 	} else {
 		static_assert("CMDPromptPressAnyKeyToContinue has not been implemented for the given platform.");

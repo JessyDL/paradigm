@@ -4,7 +4,7 @@
 #if defined(PLATFORM_WINDOWS)
 	#include <Windows.h>
 #endif
-#if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID)
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID) || defined(PLATFORM_MACOS)
 	#include <sys/mman.h>
 	#include <unistd.h>
 #endif

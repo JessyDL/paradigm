@@ -49,6 +49,62 @@
     },
     {
       "hidden": true,
+      "name": "macos-base",
+      "displayName": "MacOS",
+      "inherits": [
+        "settings-project"
+      ],
+      "description": "Base configuration for MacOS distro",
+      "condition": {
+        "type": "equals",
+        "lhs": "${hostSystemName}",
+        "rhs": "Darwin"
+      },
+      "cacheVariables": {
+        "PE_PLATFORM": "MACOS",
+        "PE_CORE": "OFF"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "macos-base-debug",
+      "displayName": "MacOS",
+      "inherits": [
+        "macos-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PE_MODE": "debug"
+      }
+    },
+    {
+      "hidden": true,
+      "name": "macos-base-release",
+      "displayName": "MacOS",
+      "inherits": [
+        "macos-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PE_MODE": "release"
+      }
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "MacOS (Debug)",
+      "inherits": [
+        "macos-base-debug"
+      ]
+    },
+    {
+      "name": "macos-release",
+      "displayName": "MacOS (Release)",
+      "inherits": [
+        "macos-base-release"
+      ]
+    },
+    {
+      "hidden": true,
       "name": "gnu-linux-base",
       "displayName": "GNU/Linux",
       "inherits": [
@@ -284,6 +340,18 @@
       "name": "android-debug-vulkan",
       "displayName": "Debug",
       "configurePreset": "android-debug-vulkan"
+    },
+    {
+      "name": "macos-debug",
+      "displayName": "Debug",
+      "configurePreset": "macos-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "macos-release",
+      "displayName": "Release",
+      "configurePreset": "macos-release",
+      "configuration": "Release"
     }
   ]
 }

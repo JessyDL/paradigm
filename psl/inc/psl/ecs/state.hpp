@@ -177,9 +177,9 @@ class state_t final {
 			entity_t::size_type min_entities_per_worker = 1024);
 	~state_t();
 	state_t(const state_t&)			   = delete;
-	state_t(state_t&&)				   = default;
+	state_t(state_t&&)				   = delete;
 	state_t& operator=(const state_t&) = delete;
-	state_t& operator=(state_t&&)	   = default;
+	state_t& operator=(state_t&&)	   = delete;
 
 	template <IsComponentTypeSerializable T>
 	bool override_serialization(bool value) {

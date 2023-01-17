@@ -44,7 +44,7 @@ struct alignas(16) tquat {
 
 	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
 
-
+	constexpr psl::tvec<precision_t, 4> as_vec() const noexcept { return value; }
 	// ---------------------------------------------
 	// members
 	// ---------------------------------------------
