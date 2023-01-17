@@ -16,7 +16,8 @@ static inline psl::array<entity_t>::iterator on_condition(const psl::ecs::state_
 														  psl::array<entity_t>::iterator begin,
 														  psl::array<entity_t>::iterator end) noexcept {
 	auto pred = Pred {};
-	if constexpr(std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>) {
+	if constexpr(!psl::ecs::execution::has_execution_v ||
+				 std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>) {
 		return std::remove_if(begin, end, [&state, &pred](entity_t lhs) -> bool { return !pred(state.get<T>(lhs)); });
 	} else {
 		return std::remove_if(psl::ecs::execution::par_unseq, begin, end, [&state, &pred](entity_t lhs) -> bool {
@@ -30,7 +31,8 @@ psl::array<entity_t>::iterator static inline on_condition(const psl::ecs::state_
 														  psl::array<entity_t>::iterator begin,
 														  psl::array<entity_t>::iterator end,
 														  Pred&& pred) noexcept {
-	if constexpr(std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>) {
+	if constexpr(!psl::ecs::execution::has_execution_v ||
+				 std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>) {
 		return std::remove_if(begin, end, [&state, &pred](entity_t lhs) -> bool { return !pred(state.get<T>(lhs)); });
 	} else {
 		return std::remove_if(psl::ecs::execution::par_unseq, begin, end, [&state, &pred](entity_t lhs) -> bool {
