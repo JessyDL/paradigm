@@ -48,7 +48,7 @@ class Paradigm(object):
                             help="Set the generator for the project", dest="generator")
         build_arguments.add_argument("--arch", const="x64", default="x64", nargs='?', 
                             help="Architecture type to generate for", dest="architecture")
-        build_arguments.add_argument("--clean", const="all", default="", nargs='?', 
+        build_arguments.add_argument("--clean", action='store', default="all", choices=['all','project','build'], nargs='?', 
                             help="Allows you to clean the project files, build files, or all", dest="clean")
         build_arguments.add_argument("--root", const=directory, default=directory, nargs='?', 
                             help="Override for the root directory to work from", dest="root_dir")

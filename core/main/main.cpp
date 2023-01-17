@@ -4,8 +4,8 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
-// #include <Windows.h>
-// #include "stdafx.h"
+//  #include <Windows.h>
+//  #include "stdafx.h"
 #include "psl/application_utils.hpp"
 #include "psl/library.hpp"
 #include "psl/platform_utils.hpp"
@@ -895,7 +895,9 @@ ECSState.create(
 			  },
 			  psl::ecs::empty<core::ecs::components::dynamic_tag> {},
 			  psl::ecs::empty<core::ecs::components::transform> {},
-			  [](core::ecs::components::lifetime& target) { target = {2.5f + ((std::rand() % 50) / 50.0f) * 5.0f}; },
+			  [](core::ecs::components::lifetime& target) {
+				  target = {2.5f + (static_cast<float>(std::rand() % 50) / 50.0f) * 5.0f};
+			  },
 			  [&size_steps](core::ecs::components::velocity& target) {
 				  target = {
 					psl::math::normalize(psl::vec3((float)(std::rand() % size_steps) / size_steps * 2.0f - 1.0f,
@@ -984,12 +986,119 @@ void android_main(android_app* application) {
 }
 
 #else
+
+	#include "psl/serialization/v2/format.hpp"
+	#include "psl/parser/parser_ct.hpp"
+
 int main(int argc, char* argv[]) {
 	#ifdef PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	#endif
 	setup_loggers();
+	using namespace psl::parser::ct;
+	constexpr auto get_text_size = []<psl::parser::ct::view_t View>() -> psl::parser::ct::result_t<size_t> {
+		return psl::parser::ct::result_t<size_t>(View.view().size(),
+												 psl::parser::ct::view_t(View.CPtr, View.end, View.end));
+	};
+
+	constexpr auto text = psl::parser::ct::from_text<"hello">();
+
+	constexpr auto is_larger_than_zero_parser =
+	  psl::parser::ct::transformer(get_text_size, [](size_t input) -> bool { return input > 0; });
+
+	constexpr auto result = psl::parser::ct::parse<"hello">(is_larger_than_zero_parser);
+	constexpr auto result2 = psl::parser::ct::parse<"hello">(psl::parser::ct::fail());
+	constexpr auto remainder = result2.next();
+
+	constexpr auto result3 = parse<" hello">(skip(" \t"sv));
+	/*constexpr auto get_text_size =
+	  psl::parser::parser_t([](psl::parser::input_t input) -> psl::parser::result_t<size_t> {
+		  return psl::parser::result_t<size_t>(input.size(), input.substr(input.size()));
+	  });
+
+	constexpr auto parse_word =
+	  psl::parser::parser_t {[](psl::parser::input_t input) -> psl::parser::result_t<psl::parser::input_t> {
+		  constexpr psl::string8::view whitespace(" \n\r\t"sv);
+		  size_t end {0};
+		  while(end < input.size() && whitespace.find(input.at(end)) == whitespace.npos) {
+			  ++end;
+		  }
+		  return {input.substr(size_t {0}, end), input.substr(end)};
+	  }};
+
+	constexpr auto skip_whitespace =
+	  psl::parser::parser_t {[](psl::parser::input_t input) -> psl::parser::result_t<psl::parser::input_t> {
+		  constexpr psl::string8::view whitespace(" \n\r\t"sv);
+		  size_t end {0};
+		  while(end < input.size() && whitespace.find(input.at(end)) != whitespace.npos) {
+			  ++end;
+		  }
+		  return {input.substr(size_t {0}, end), input.substr(end)};
+	  }};
+
+	static_assert(psl::parser::IsParser<decltype(get_text_size)>);
+	constexpr auto text		 = "hello"sv;
+	constexpr auto text_size = get_text_size(text);
+	constexpr auto is_larger_than_zero =
+	  psl::parser::transformer(get_text_size, [](size_t input) -> bool { return input > 0; })(text);
+
+	constexpr auto text_size_accumulator = [](size_t count, psl::parser::input_t word) -> size_t {
+		return count + word.size();
+	};
+
+	constexpr auto text_hello_world = "hello world"sv;
+	constexpr auto res				= parse_word.repeat_then(
+	   text_hello_world,
+	   atleast_n(1, skip_whitespace),
+	   [](psl::parser::input_t left, psl::parser::input_t) -> size_t { return left.size(); },
+	   psl::parser::drop_left());*/
+	// constexpr auto parser = psl::serialization::parser::numeric_parser<float>();
+	// float f {-5.2f};
+	// constexpr auto result = parser("0000.1 rest"sv);
+	// static_assert(result->first == .1f);
+
+	// constexpr auto res = psl::serialization::format::parse("#version 5;");
+	//
+	//	psl::serialization::format_t format_container {};
+	//
+	//	format_container.parse(
+	//	  R"""(
+	// uid : prototype<object> = { id: string; };
+	// tracked : prototype<uid> = { value: uint64; };
+	//)""");
+	//
+	//	format_container.parse(
+	//	  R"""(
+	// uid : prototype<object> = { id: string; };
+	//)""");
+	//
+	//		format_container.parse(
+	//	  R"""(
+	// uid : prototype<object> = { id: array<string> = { value, """other""", "and" , 'or', '''''this''''}; };
+	//)""");
+	//
+	//	format_container.parse(
+	//	  R"""(
+	// uid : prototype<object> = { id: string = { "test" }; };
+	//)""");
+	//
+	//	format_container.parse(
+	//	  R"""(
+	// test : object = { id: string = { "nothing" }; };
+	//)""");
+	//
+	//	format_container.parse(
+	//	  R"""(
+	// test : array<string> = { "nothing", "other" };
+	//)""");
+	//
+	//	format_container.parse(
+	// R"""(
+	// #import "something.ptf";
+	//
+	// test : string = { "nothing" };
+	//)""");
 
 	#ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support
