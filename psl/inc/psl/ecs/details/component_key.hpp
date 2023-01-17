@@ -33,10 +33,6 @@ constexpr auto is_valid_name(std::string_view name) -> bool {
 class component_key_t {
 	friend struct std::hash<component_key_t>;
 
-	// used to generate a "default" component_key_t that always evaluates to false when queried
-	struct invalid_component_key_t {};
-	static constexpr component_traits<invalid_component_key_t> invalid_component_key_v {};
-
 	constexpr std::uint32_t fnv1a_32(std::string_view value) const noexcept {
 		std::uint32_t seed {2166136261u};
 		for(auto c : value) {
@@ -51,8 +47,7 @@ class component_key_t {
 
   public:
 	constexpr component_key_t() noexcept
-		: m_Name(invalid_component_key_v.name), m_Value(0), m_Type(component_type_v<invalid_component_key_t>),
-		  m_StringMemory(nullptr) {}
+		: m_Name("__invalid__"), m_Value(0), m_Type(component_type::TRIVIAL), m_StringMemory(nullptr) {}
 	constexpr component_key_t(std::string_view name, component_type type)
 		: m_Name(name), m_Value(fnv1a_32(name)), m_Type(type), m_StringMemory(nullptr) {
 		psl::assertion([this]() { return is_valid_name(m_Name); });
@@ -133,7 +128,7 @@ class component_key_t {
 		return m_Value >= other.m_Value;
 	}
 
-	inline constexpr operator bool() const noexcept { return (*this != component_key_t()); }
+	inline constexpr operator bool() const noexcept { return m_Value != 0; }
 
 	/// \brief Generates a `component_key_t` based on the given type in a cross platform safe manner.
 	/// \note Strips const, volatile, reference, and pointer designations of the template type.
