@@ -93,7 +93,7 @@ void raw_region::release() noexcept {
 	if(!m_Base) {
 		return;
 	}
-#if defined(PLATFORM_GENERIC) || defined(PLATFORM_MACOS)
+#if defined(PLATFORM_GENERIC)
 	free(m_Base);
 #elif defined(PLATFORM_WINDOWS)
 	VirtualFree(m_Base,			 // Base address of block
