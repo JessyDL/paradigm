@@ -11,7 +11,7 @@ uint64_t findSieveSize(uint64_t n) {
 		return 13;
 
 	// We can't find a prime that will exceed ~0UL.
-	if(n >= (~0UL / log(~0UL)))
+	if(n >= (~0UL / (size_t)log(~0UL)))
 		return 0;
 
 	// Binary search for the right value.
