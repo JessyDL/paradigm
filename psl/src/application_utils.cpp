@@ -11,6 +11,11 @@
 	#include <unistd.h>
 #endif
 
+#if defined(PLATFORM_MACOS)
+	#include <mach-o/dyld.h>
+	#include <limits.h>
+#endif
+
 using namespace utility::application::path;
 
 psl::string utility::application::path::get_path() {
@@ -29,6 +34,12 @@ psl::string utility::application::path::get_path() {
 	return "";
 #elif defined(PLATFORM_ANDROID)	   // we run in a sandbox where we are "root"
 	return "";
+#elif defined(PLATFORM_MACOS)
+	char buf[PATH_MAX];
+	uint32_t bufsize = PATH_MAX;
+	if(!_NSGetExecutablePath(buf, &bufsize))
+		puts(buf);
+	return psl::string {buf, bufsize};
 #else
 	#error not supported
 #endif
