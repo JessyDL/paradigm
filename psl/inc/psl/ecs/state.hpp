@@ -177,9 +177,9 @@ class state_t final {
 			entity_t::size_type min_entities_per_worker = 1024);
 	~state_t();
 	state_t(const state_t&)			   = delete;
-	state_t(state_t&&)				   = default;
+	state_t(state_t&&)				   = delete;
 	state_t& operator=(const state_t&) = delete;
-	state_t& operator=(state_t&&)	   = default;
+	state_t& operator=(state_t&&)	   = delete;
 
 	template <IsComponentTypeSerializable T>
 	bool override_serialization(bool value) {
@@ -770,10 +770,8 @@ class state_t final {
 
 	// invocable based construction
 	template <typename Fn>
-	requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value) void add_component_impl(
-	  details::component_container_t* cInfo,
-	  psl::array_view<entity_t> entities,
-	  Fn&& invocable) {
+		requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
+	void add_component_impl(details::component_container_t* cInfo, psl::array_view<entity_t> entities, Fn&& invocable) {
 		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 		const auto component_size = cInfo->component_size();
 		psl_assert(component_size != 0, "component size was 0");

@@ -4,7 +4,7 @@
 #if defined(PLATFORM_WINDOWS)
 	#include <Windows.h>
 #endif
-#if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID)
+#if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID) || defined(PLATFORM_MACOS)
 	#include <sys/mman.h>
 	#include <unistd.h>
 #endif
@@ -93,7 +93,7 @@ void raw_region::release() noexcept {
 	if(!m_Base) {
 		return;
 	}
-#if defined(PLATFORM_GENERIC)
+#if defined(PLATFORM_GENERIC) || defined(PLATFORM_MACOS)
 	free(m_Base);
 #elif defined(PLATFORM_WINDOWS)
 	VirtualFree(m_Base,			 // Base address of block
