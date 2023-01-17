@@ -1,0 +1,31 @@
+name: macos
+
+on: [push]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [macos]
+        compiler: [clang]
+        include:
+          - benchmarks: OFF
+            tests: ON
+    name: build
+    runs-on: macos-12
+    steps:
+    - uses: actions/checkout@v1
+      with:
+        submodules: recursive
+    - uses: SimenB/github-actions-cpu-cores@v1
+      id: cpu-cores
+    - name: setup dependencies
+      run: python3 tools/generate_project_info.py
+    - name: initialize
+      run: cmake --preset=${{ matrix.target }}-release -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }} -DCMAKE_C_COMPILER=$(brew --prefix llvm@14)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@14)/bin/clang++
+    - name: compile
+      run: cmake --build --preset=${{ matrix.target }}-release -j ${{ steps.cpu-cores.outputs.count }}
+    - name: test
+      if: ${{ matrix.tests == 'ON' }}
+      run: ./builds/default/bin/tests --formatter compact --no-source --single-threaded
