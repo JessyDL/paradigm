@@ -593,10 +593,14 @@ namespace details {
 	  std::void_t<decltype(std::declval<X&>().from_string(std::declval<psl::string8::view>()))>> : std::true_type {};
 
 	template <typename T>
-	concept HasStaticFromString = requires() { T::from_string(std::string_view {}); };
+	concept HasStaticFromString = requires() {
+		T::from_string(std::string_view {});
+	};
 
 	template <typename T>
-	concept HasStdToString = requires(T t) { std::to_string(t); };
+	concept HasStdToString = requires(T t) {
+		std::to_string(t);
+	};
 }	 // namespace details
 template <typename X>
 struct converter {
@@ -746,8 +750,7 @@ struct converter<double> {
 };
 
 template <typename T>
-	requires(std::is_same_v<unsigned long, T> || std::is_same_v<uint64_t, T>)
-struct converter<T> {
+requires(std::is_same_v<unsigned long, T> || std::is_same_v<uint64_t, T>) struct converter<T> {
 	static psl::string8_t to_string(const T& x) { return std::to_string(x); }
 
 	static T from_string(psl::string8::view str) { return std::stoull(psl::string8_t(str)); }

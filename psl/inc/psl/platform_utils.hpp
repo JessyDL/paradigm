@@ -139,7 +139,9 @@ class directory {
 	/// \brief translates the given path to the default path encoding that is used across this application as the
 	/// standard. \param[in] path the path to translate. \returns a string that is translated to the
 	/// application-wide standard encoding (unix).
-	static psl::string to_generic(psl::string_view path) { return to_unix(path); }
+	static psl::string to_generic(psl::string_view path) {
+		return to_unix(path);
+	}
 
 	/// \brief checks if the given path is a directory.
 	/// \param[in] path the path to check.

@@ -770,8 +770,10 @@ class state_t final {
 
 	// invocable based construction
 	template <typename Fn>
-		requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
-	void add_component_impl(details::component_container_t* cInfo, psl::array_view<entity_t> entities, Fn&& invocable) {
+	requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value) void add_component_impl(
+	  details::component_container_t* cInfo,
+	  psl::array_view<entity_t> entities,
+	  Fn&& invocable) {
 		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 		const auto component_size = cInfo->component_size();
 		psl_assert(component_size != 0, "component size was 0");
