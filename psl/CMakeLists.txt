@@ -31,3 +31,7 @@ set_target_properties(psl PROPERTIES LINKER_LANGUAGE CXX)
 set_property(TARGET psl PROPERTY FOLDER "paradigm-engine")
 target_compile_features(psl PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(psl PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB})
+
+if(PE_DEV_MAKE_PSL_EXE)
+	add_subdirectory(main)
+endif()
