@@ -1,8 +1,8 @@
 #pragma once
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 
-#include "fwd/vk/buffer.hpp"
-#include "fwd/vk/texture.hpp"
+#include "core/fwd/vk/buffer.hpp"
+#include "core/fwd/vk/texture.hpp"
 
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"

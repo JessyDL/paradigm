@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/material.hpp"
+#include "core/fwd/gfx/material.hpp"
 #include "resource/resource.hpp"
 
 

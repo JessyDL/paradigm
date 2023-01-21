@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "psl/array.hpp"
 #include "psl/memory/range.hpp"
 #include "psl/memory/segment.hpp"

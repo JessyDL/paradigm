@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/vk/texture.hpp"
+#include "core/fwd/vk/texture.hpp"
 #include "resource/resource.hpp"
 #include "vk/ivk.hpp"
 #include <unordered_map>

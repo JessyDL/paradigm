@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "gfx/types.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"

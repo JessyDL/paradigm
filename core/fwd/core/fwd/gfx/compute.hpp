@@ -1,6 +1,6 @@
 #pragma once
 #include "defines.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 
 
 namespace core::gfx {
@@ -12,11 +12,11 @@ class shader;
 }
 
 #ifdef PE_VULKAN
-	#include "fwd/vk/compute.hpp"
+	#include "core/fwd/vk/compute.hpp"
 #endif
 
 #ifdef PE_GLES
-	#include "fwd/gles/compute.hpp"
+	#include "core/fwd/gles/compute.hpp"
 #endif
 
 namespace core::resource {

@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/shader.hpp"
+#include "core/fwd/gfx/shader.hpp"
 #include "resource/resource.hpp"
 
 namespace core::gfx {

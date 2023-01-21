@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/geometry.hpp"
+#include "core/fwd/gfx/geometry.hpp"
 #include "resource/resource.hpp"
 
 namespace core::data {

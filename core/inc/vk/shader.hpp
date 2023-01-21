@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/vk/shader.hpp"
+#include "core/fwd/vk/shader.hpp"
 #include "psl/ustring.hpp"
 #include "resource/resource.hpp"
 #include "vk/ivk.hpp"

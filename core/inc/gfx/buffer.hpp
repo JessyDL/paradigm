@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/buffer.hpp"
+#include "core/fwd/gfx/buffer.hpp"
 #include "gfx/types.hpp"
 #include "psl/array.hpp"
 #include "psl/memory/range.hpp"

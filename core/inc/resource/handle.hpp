@@ -1,6 +1,6 @@
 #pragma once
 #include "cache.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "psl/meta.hpp"
 #include <memory>
 

@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "gfx/types.hpp"
 
 
@@ -8,11 +8,11 @@ class texture_t;
 }
 
 #ifdef PE_VULKAN
-	#include "fwd/vk/texture.hpp"
+	#include "core/fwd/vk/texture.hpp"
 #endif
 
 #ifdef PE_GLES
-	#include "fwd/gles/texture.hpp"
+	#include "core/fwd/gles/texture.hpp"
 #endif
 
 namespace core::gfx {

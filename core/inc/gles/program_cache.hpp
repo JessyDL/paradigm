@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 
 namespace core::data {
 class material_t;

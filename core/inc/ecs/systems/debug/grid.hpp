@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/buffer.hpp"
+#include "core/fwd/gfx/buffer.hpp"
 #include "psl/ecs/state.hpp"
 #include "resource/resource.hpp"
 

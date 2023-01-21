@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/texture.hpp"
+#include "core/fwd/gfx/texture.hpp"
 #include "resource/resource.hpp"
 
 namespace core::gfx {

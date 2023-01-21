@@ -1,7 +1,7 @@
 #pragma once
 
 #include "data/stream.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "psl/array_view.hpp"
 #include "psl/math/matrix.hpp"
 #include "psl/ustring.hpp"

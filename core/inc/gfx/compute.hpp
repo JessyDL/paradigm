@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/compute.hpp"
+#include "core/fwd/gfx/compute.hpp"
 #include "gfx/types.hpp"
 #include "psl/math/vec.hpp"
 #include "resource/resource.hpp"

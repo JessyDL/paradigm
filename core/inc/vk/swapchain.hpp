@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/vk/texture.hpp"
+#include "core/fwd/vk/texture.hpp"
 #include "resource/handle.hpp"
 #include "vk/ivk.hpp"
 

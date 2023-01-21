@@ -1,7 +1,7 @@
 #pragma once
-#include "fwd/gfx/bundle.hpp"
-#include "fwd/gfx/geometry.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/gfx/bundle.hpp"
+#include "core/fwd/gfx/geometry.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "gfx/bundle.hpp"
 #include <vector>
 

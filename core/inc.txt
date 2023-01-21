@@ -176,5 +176,5 @@ if(${PE_GLES})
 	list(TRANSFORM INC_GLES APPEND .hpp)
 endif()
 
-list(TRANSFORM FWD PREPEND inc/fwd/)
+list(TRANSFORM FWD PREPEND fwd/core/fwd/)
 list(TRANSFORM FWD APPEND .hpp)

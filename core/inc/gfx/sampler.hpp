@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/sampler.hpp"
+#include "core/fwd/gfx/sampler.hpp"
 #include "resource/resource.hpp"
 #include <variant>
 

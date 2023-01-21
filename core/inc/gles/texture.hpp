@@ -1,6 +1,6 @@
 #pragma once
-#include "fwd/gles/texture.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/gles/texture.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "gles/types.hpp"
 #include <stdint.h>
 

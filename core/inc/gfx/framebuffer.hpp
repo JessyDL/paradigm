@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/framebuffer.hpp"
+#include "core/fwd/gfx/framebuffer.hpp"
 #include "resource/resource.hpp"
 
 namespace core::data {

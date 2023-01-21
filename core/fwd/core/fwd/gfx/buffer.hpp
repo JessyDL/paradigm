@@ -1,6 +1,6 @@
 #pragma once
 #include "defines.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "gfx/types.hpp"
 
 #ifdef PE_VULKAN

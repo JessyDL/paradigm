@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/swapchain.hpp"
+#include "core/fwd/gfx/swapchain.hpp"
 #include "resource/resource.hpp"
 #include <variant>
 

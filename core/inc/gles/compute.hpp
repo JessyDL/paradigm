@@ -1,7 +1,7 @@
 #pragma once
-#include "fwd/gles/compute.hpp"
-#include "fwd/gles/texture.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/gles/compute.hpp"
+#include "core/fwd/gles/texture.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "psl/array_view.hpp"
 #include "resource/handle.hpp"
 

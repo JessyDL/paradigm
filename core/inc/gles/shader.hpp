@@ -1,6 +1,6 @@
 #pragma once
-#include "fwd/gles/shader.hpp"
-#include "fwd/resource/resource.hpp"
+#include "core/fwd/gles/shader.hpp"
+#include "core/fwd/resource/resource.hpp"
 #include "gles/types.hpp"
 #include "psl/ustring.hpp"
 #include <limits>

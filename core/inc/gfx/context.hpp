@@ -1,5 +1,5 @@
 #pragma once
-#include "fwd/gfx/context.hpp"
+#include "core/fwd/gfx/context.hpp"
 #include "limits.hpp"
 #include "resource/resource.hpp"
 #include "types.hpp"

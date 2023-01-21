@@ -8,7 +8,7 @@ find_package(PythonInterp REQUIRED)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${GEN}) 
-source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc/fwd" PREFIX "fwd" FILES ${FWD}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/fwd"     PREFIX "fwd" FILES ${FWD}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC})
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_GLES}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_GLES}) 
@@ -123,7 +123,9 @@ target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} $
 set_target_output_directory(core)
 target_include_directories(core
 	PUBLIC 
-      ${CMAKE_CURRENT_SOURCE_DIR}/inc
+	${CMAKE_CURRENT_SOURCE_DIR}/inc
+	${CMAKE_CURRENT_SOURCE_DIR}/fwd
+	${CMAKE_CURRENT_SOURCE_DIR}/gen
 		${vulkan_SOURCE_DIR}/include
 		$<IF:$<STREQUAL:"${PE_PLATFORM}","ANDROID">,${ANDROID_NDK}/sources/android/native_app_glue,>
 	PRIVATE

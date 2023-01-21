@@ -1,8 +1,8 @@
 #pragma once
-#include "fwd/gfx/buffer.hpp"
-#include "fwd/gfx/bundle.hpp"
-#include "fwd/gfx/geometry.hpp"
-#include "fwd/gfx/material.hpp"
+#include "core/fwd/gfx/buffer.hpp"
+#include "core/fwd/gfx/bundle.hpp"
+#include "core/fwd/gfx/geometry.hpp"
+#include "core/fwd/gfx/material.hpp"
 #include "gfx/details/instance.hpp"
 #include "psl/array.hpp"
 #include "resource/resource.hpp"
