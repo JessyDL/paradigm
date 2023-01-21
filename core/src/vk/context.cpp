@@ -3,7 +3,7 @@
 #include "gfx/limits.hpp"
 #include "logging.hpp"
 #include "os/surface.hpp"
-#include "paradigm.hpp"
+#include "core/paradigm.hpp"
 #include "psl/meta.hpp"
 #include "psl/ustream.hpp"
 #include "resource/resource.hpp"

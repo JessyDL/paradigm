@@ -107,7 +107,7 @@ SET(GEN
 paradigm
 )
 
-list(TRANSFORM GEN PREPEND inc/)
+list(TRANSFORM GEN PREPEND gen/)
 list(TRANSFORM GEN APPEND .hpp)
 
 set_source_files_properties(${GEN} PROPERTIES GENERATED 1)

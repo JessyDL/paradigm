@@ -27,7 +27,7 @@ def all_authors():
     list(sorted(authors.items()))
     return authors.keys()
     
-def generate_header(output=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'inc', 'paradigm.hpp'), force = False):
+def generate_header(output=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'gen', 'core', 'paradigm.hpp'), force = False):
     version = run_git_command(["tag", "-l", "--sort=-v:refname"])
     version = version.split('\n')[0]
     major, minor, patch = version.split('.')
@@ -73,7 +73,7 @@ constexpr static std::array<psl::string8::view, {len(authors)}> APPLICATION_CRED
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument("--output", type=str, default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'inc', 'paradigm.hpp'), help="Set the location/name of the output header")
+    parser.add_argument("--output", type=str, default=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'gen', 'core', 'paradigm.hpp'), help="Set the location/name of the output header")
     parser.add_argument("--force", action="store_true", help="Forcibly generate the output header, regardless of the state")
     args = parser.parse_args()
     

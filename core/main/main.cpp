@@ -11,7 +11,7 @@
 #include "psl/platform_utils.hpp"
 #include "resource/resource.hpp"
 
-#include "paradigm.hpp"
+#include "core/paradigm.hpp"
 
 #include "logging.hpp"
 #include "spdlog/sinks/basic_file_sink.h"
