@@ -1,9 +1,9 @@
 #pragma once
 #include "core/gfx/types.hpp"
 #include "core/gles/types.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/array.hpp"
 #include "psl/memory/segment.hpp"
-#include "core/resource/resource.hpp"
 #include <optional>
 
 namespace core::data {

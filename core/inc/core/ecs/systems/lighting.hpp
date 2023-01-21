@@ -2,10 +2,10 @@
 #include "core/ecs/components/lighting.hpp"
 #include "core/ecs/components/transform.hpp"
 #include "core/ecs/systems/render.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/ecs/entity.hpp"
 #include "psl/ecs/selectors.hpp"
 #include "psl/view_ptr.hpp"
-#include "core/resource/resource.hpp"
 #include <stdint.h>
 
 namespace core::gfx {

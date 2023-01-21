@@ -1,9 +1,9 @@
 #pragma once
 #include "core/fwd/gfx/context.hpp"
-#include "psl/memory/range.hpp"
-#include "psl/memory/segment.hpp"
 #include "core/resource/resource.hpp"
 #include "core/vk/ivk.hpp"
+#include "psl/memory/range.hpp"
+#include "psl/memory/segment.hpp"
 #include <vector>
 
 namespace core::data {

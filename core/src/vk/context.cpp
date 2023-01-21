@@ -4,10 +4,10 @@
 #include "core/logging.hpp"
 #include "core/os/surface.hpp"
 #include "core/paradigm.hpp"
-#include "psl/meta.hpp"
-#include "psl/ustream.hpp"
 #include "core/resource/resource.hpp"
 #include "core/vk/conversion.hpp"
+#include "psl/meta.hpp"
+#include "psl/ustream.hpp"
 
 #ifdef PLATFORM_LINUX
 	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..

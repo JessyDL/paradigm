@@ -6,10 +6,10 @@
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 // #include <Windows.h>
 // #include "stdafx.h"
+#include "core/resource/resource.hpp"
 #include "psl/application_utils.hpp"
 #include "psl/library.hpp"
 #include "psl/platform_utils.hpp"
-#include "core/resource/resource.hpp"
 
 #include "core/paradigm.hpp"
 
@@ -27,10 +27,10 @@
 #include "core/data/geometry.hpp"
 #include "core/data/material.hpp"
 #include "core/data/sampler.hpp"
-#include "core/data/window.hpp"	  // application data
+#include "core/data/window.hpp"	   // application data
 
 #include "core/os/context.hpp"
-#include "core/os/surface.hpp"	 // the OS surface to draw one
+#include "core/os/surface.hpp"	  // the OS surface to draw one
 
 #include "core/meta/shader.hpp"
 #include "core/meta/texture.hpp"

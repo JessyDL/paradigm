@@ -1,8 +1,8 @@
 #pragma once
 #include "core/ecs/components/input_tag.hpp"
 #include "core/ecs/components/transform.hpp"
-#include "psl/ecs/state.hpp"
 #include "core/systems/input.hpp"
+#include "psl/ecs/state.hpp"
 
 namespace core::ecs::systems {
 class fly {

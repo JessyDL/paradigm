@@ -1,9 +1,9 @@
 #pragma once
 #include "core/gfx/computecall.hpp"
 #include "core/gles/types.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/array_view.hpp"
 #include "psl/view_ptr.hpp"
-#include "core/resource/resource.hpp"
 
 namespace core::igles {
 class drawpass;

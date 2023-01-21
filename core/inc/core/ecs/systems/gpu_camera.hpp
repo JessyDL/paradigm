@@ -1,9 +1,9 @@
 #pragma once
 #include "core/gfx/context.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/ecs/pack.hpp"
 #include "psl/math/math.hpp"
 #include "psl/memory/segment.hpp"
-#include "core/resource/resource.hpp"
 
 namespace core::gfx {
 class buffer_t;

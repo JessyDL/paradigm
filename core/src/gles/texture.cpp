@@ -3,8 +3,8 @@
 #include "core/gles/igles.hpp"
 #include "core/logging.hpp"
 #include "core/meta/texture.hpp"
-#include "psl/utility/cast.hpp"
 #include "core/resource/resource.hpp"
+#include "psl/utility/cast.hpp"
 
 
 #ifdef fseek

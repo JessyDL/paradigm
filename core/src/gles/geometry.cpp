@@ -7,8 +7,8 @@
 #include "core/gles/shader.hpp"
 #include "core/logging.hpp"
 #include "core/meta/shader.hpp"
-#include "psl/array.hpp"
 #include "core/resource/resource.hpp"
+#include "psl/array.hpp"
 
 using namespace core::igles;
 using namespace core::resource;

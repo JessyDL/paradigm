@@ -247,7 +247,7 @@ class id_generator {
 	}
 
 	id_generator& operator=(const id_generator&) = default;
-	id_generator(const id_generator&)			   = default;
+	id_generator(const id_generator&)			 = default;
 
 	id_generator(id_generator&& other)
 		: m_Ranges(other.m_Ranges), m_Count(other.m_Count), m_Capacity(other.m_Capacity), m_MaxID(other.m_MaxID) {

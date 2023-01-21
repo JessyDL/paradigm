@@ -1,8 +1,8 @@
 #pragma once
 #include "core/fwd/gfx/compute.hpp"
 #include "core/gfx/types.hpp"
-#include "psl/math/vec.hpp"
 #include "core/resource/resource.hpp"
+#include "psl/math/vec.hpp"
 
 namespace core::data {
 class material_t;

@@ -1,8 +1,8 @@
 #pragma once
 #include "igles.hpp"
 #define GL_ENABLE_ALL_DEFINES
-#include "details/definitions.hpp"
 #include "core/gfx/types.hpp"
+#include "details/definitions.hpp"
 
 namespace core::gfx::conversion {
 inline decltype(GL_VERTEX_SHADER) to_gles(shader_stage stage) noexcept {

@@ -4,8 +4,8 @@
 #include "core/fwd/gfx/geometry.hpp"
 #include "core/fwd/gfx/material.hpp"
 #include "core/gfx/details/instance.hpp"
-#include "psl/array.hpp"
 #include "core/resource/resource.hpp"
+#include "psl/array.hpp"
 
 namespace core::ivk {
 class geometry_t;

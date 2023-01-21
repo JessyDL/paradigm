@@ -1,7 +1,7 @@
 #pragma once
 #include "core/gfx/types.hpp"
-#include "psl/array.hpp"
 #include "core/resource/handle.hpp"
+#include "psl/array.hpp"
 
 namespace core::data {
 class framebuffer_t;

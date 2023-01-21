@@ -1,7 +1,7 @@
 #pragma once
 #include "core/data/window.hpp"
-#include "psl/meta.hpp"
 #include "core/resource/resource.hpp"
+#include "psl/meta.hpp"
 
 #if defined(SURFACE_WIN32)
 	#ifndef _WINDEF_

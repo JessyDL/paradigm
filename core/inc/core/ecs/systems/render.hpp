@@ -1,10 +1,10 @@
 #pragma once
 #include "core/gfx/drawgroup.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/ecs/state.hpp"
 #include "psl/math/matrix.hpp"
 #include "psl/math/vec.hpp"
 #include "psl/view_ptr.hpp"
-#include "core/resource/resource.hpp"
 
 namespace core::gfx {
 class buffer_t;

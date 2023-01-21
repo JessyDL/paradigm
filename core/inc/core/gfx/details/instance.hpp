@@ -1,11 +1,11 @@
 #pragma once
 #include "core/meta/shader.hpp"
-#include "psl/generator.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/array.hpp"
+#include "psl/generator.hpp"
 #include "psl/memory/segment.hpp"
 #include "psl/meta.hpp"
 #include "psl/sparse_array.hpp"
-#include "core/resource/resource.hpp"
 
 namespace std {
 #ifdef _MSC_VER

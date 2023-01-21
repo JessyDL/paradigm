@@ -1,10 +1,10 @@
 #pragma once
 #include "core/fwd/resource/resource.hpp"
+#include "core/resource/handle.hpp"
 #include "psl/array.hpp"
 #include "psl/memory/range.hpp"
 #include "psl/memory/segment.hpp"
 #include "psl/ustring.hpp"
-#include "core/resource/handle.hpp"
 #include <unordered_map>
 
 namespace core::data {

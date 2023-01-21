@@ -1,7 +1,7 @@
 #pragma once
 #include "core/fwd/gfx/buffer.hpp"
-#include "psl/ecs/state.hpp"
 #include "core/resource/resource.hpp"
+#include "psl/ecs/state.hpp"
 
 namespace psl::ecs {
 class state_t;

@@ -9,8 +9,8 @@
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
-#include "psl/stdafx_psl.hpp"
 #include "core/targetver.hpp"
+#include "psl/stdafx_psl.hpp"
 
 #include "psl/platform_def.hpp"
 
@@ -45,11 +45,11 @@
 #include "psl/application_utils.hpp"
 
 #include "core/conversion_utils.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/library.hpp"
 #include "psl/math/math.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/serializer.hpp"
-#include "core/resource/resource.hpp"
 
 #include "core/data/stream.hpp"
 

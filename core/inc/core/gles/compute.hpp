@@ -2,8 +2,8 @@
 #include "core/fwd/gles/compute.hpp"
 #include "core/fwd/gles/texture.hpp"
 #include "core/fwd/resource/resource.hpp"
-#include "psl/array_view.hpp"
 #include "core/resource/handle.hpp"
+#include "psl/array_view.hpp"
 
 namespace core::data {
 class material_t;

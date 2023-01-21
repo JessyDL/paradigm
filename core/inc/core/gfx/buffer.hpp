@@ -1,11 +1,11 @@
 #pragma once
 #include "core/fwd/gfx/buffer.hpp"
 #include "core/gfx/types.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/array.hpp"
 #include "psl/memory/range.hpp"
 #include "psl/memory/region.hpp"
 #include "psl/memory/segment.hpp"
-#include "core/resource/resource.hpp"
 #include <optional>
 
 namespace core::data {

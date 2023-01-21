@@ -3,9 +3,9 @@
 #include "core/fwd/gfx/compute.hpp"
 #include "core/fwd/gfx/texture.hpp"
 #include "core/fwd/resource/resource.hpp"
+#include "core/resource/handle.hpp"
 #include "psl/array.hpp"
 #include "psl/static_array.hpp"
-#include "core/resource/handle.hpp"
 
 namespace core::gfx {
 class compute;

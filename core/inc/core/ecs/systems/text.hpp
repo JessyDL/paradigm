@@ -6,12 +6,12 @@
 #include "core/fwd/gfx/geometry.hpp"
 #include "core/fwd/gfx/pipeline_cache.hpp"
 #include "core/fwd/gfx/texture.hpp"
+#include "core/resource/handle.hpp"
 #include "psl/array.hpp"
 #include "psl/ecs/entity.hpp"
 #include "psl/ecs/pack.hpp"
 #include "psl/ecs/selectors.hpp"
 #include "psl/math/vec.hpp"
-#include "core/resource/handle.hpp"
 
 namespace core::data {
 class geometry_t;
