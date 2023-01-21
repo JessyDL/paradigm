@@ -1,10 +1,10 @@
-#include "gles/shader.hpp"
-#include "gfx/stdafx.hpp"
-#include "gfx/types.hpp"
-#include "gles/conversion.hpp"
-#include "logging.hpp"
-#include "meta/shader.hpp"
-#include "resource/resource.hpp"
+#include "core/gles/shader.hpp"
+#include "core/gfx/stdafx.hpp"
+#include "core/gfx/types.hpp"
+#include "core/gles/conversion.hpp"
+#include "core/logging.hpp"
+#include "core/meta/shader.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace psl;
 using namespace core::igles;

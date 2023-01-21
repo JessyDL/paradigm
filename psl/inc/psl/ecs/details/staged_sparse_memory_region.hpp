@@ -12,7 +12,7 @@
 #include "psl/sparse_array.hpp"
 
 #include "psl/ecs/component_traits.hpp"
-#include "psl/ecs/details/stage_range_t.hpp"
+#include "psl/ecs/details/stage_range.hpp"
 #include "psl/ecs/entity.hpp"
 
 

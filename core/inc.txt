@@ -2,7 +2,7 @@ SET(INC_PCH
 	stdafx
 )
 
-list(TRANSFORM INC_PCH PREPEND inc/)
+list(TRANSFORM INC_PCH PREPEND inc/core/)
 list(TRANSFORM INC_PCH APPEND .hpp)
 
 SET(INC 
@@ -84,7 +84,7 @@ ecs/components/text
 utility/geometry
 )
 
-list(TRANSFORM INC PREPEND inc/)
+list(TRANSFORM INC PREPEND inc/core/)
 list(TRANSFORM INC APPEND .hpp)
 
 SET(FWD
@@ -107,7 +107,7 @@ SET(GEN
 paradigm
 )
 
-list(TRANSFORM GEN PREPEND inc/)
+list(TRANSFORM GEN PREPEND gen/core/)
 list(TRANSFORM GEN APPEND .hpp)
 
 set_source_files_properties(${GEN} PROPERTIES GENERATED 1)
@@ -139,7 +139,7 @@ if(${PE_VULKAN})
 	vk/texture
 	vk/buffer
 	)
-	list(TRANSFORM INC_VULKAN PREPEND inc/vk/)
+	list(TRANSFORM INC_VULKAN PREPEND inc/core/vk/)
 	list(TRANSFORM INC_VULKAN APPEND .hpp)
 endif()
 
@@ -172,9 +172,9 @@ if(${PE_GLES})
 	gles/compute
 	)
 
-	list(TRANSFORM INC_GLES PREPEND inc/gles/)
+	list(TRANSFORM INC_GLES PREPEND inc/core/gles/)
 	list(TRANSFORM INC_GLES APPEND .hpp)
 endif()
 
-list(TRANSFORM FWD PREPEND inc/fwd/)
+list(TRANSFORM FWD PREPEND fwd/core/fwd/)
 list(TRANSFORM FWD APPEND .hpp)

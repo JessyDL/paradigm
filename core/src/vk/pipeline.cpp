@@ -1,17 +1,17 @@
 
-#include "vk/pipeline.hpp"
-#include "data/buffer.hpp"
-#include "data/material.hpp"
-#include "meta/shader.hpp"
-#include "meta/texture.hpp"
-#include "vk/buffer.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
-#include "vk/sampler.hpp"
-#include "vk/shader.hpp"
-#include "vk/texture.hpp"
+#include "core/vk/pipeline.hpp"
+#include "core/data/buffer.hpp"
+#include "core/data/material.hpp"
+#include "core/meta/shader.hpp"
+#include "core/meta/texture.hpp"
+#include "core/vk/buffer.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
+#include "core/vk/sampler.hpp"
+#include "core/vk/shader.hpp"
+#include "core/vk/texture.hpp"
 
-#include "gfx/buffer.hpp"
+#include "core/gfx/buffer.hpp"
 
 using namespace psl;
 using namespace core::gfx;

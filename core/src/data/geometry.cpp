@@ -1,6 +1,6 @@
-#include "data/geometry.hpp"
+#include "core/data/geometry.hpp"
+#include "core/resource/resource.hpp"
 #include "psl/array_view.hpp"
-#include "resource/resource.hpp"
 
 using namespace psl;
 using namespace core::data;

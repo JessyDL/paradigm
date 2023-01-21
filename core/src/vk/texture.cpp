@@ -1,11 +1,11 @@
-#include "vk/texture.hpp"
-#include "data/buffer.hpp"
-#include "logging.hpp"
-#include "meta/texture.hpp"
-#include "vk/buffer.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
-#include "vk/sampler.hpp"
+#include "core/vk/texture.hpp"
+#include "core/data/buffer.hpp"
+#include "core/logging.hpp"
+#include "core/meta/texture.hpp"
+#include "core/vk/buffer.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
+#include "core/vk/sampler.hpp"
 #ifdef fseek
 	#define cached_fseek fseek
 	#define cached_fclose fclose

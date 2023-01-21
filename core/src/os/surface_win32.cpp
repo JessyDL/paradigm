@@ -1,7 +1,7 @@
 #ifdef SURFACE_WIN32
-	#include "os/surface.hpp"
+	#include "core/os/surface.hpp"
 	#include "psl/assertions.hpp"
-	#include "systems/input.hpp"
+	#include "core/systems/input.hpp"
 	#include <Windows.h>
 
 using namespace core::os;

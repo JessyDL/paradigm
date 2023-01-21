@@ -1,12 +1,12 @@
-#include "vk/swapchain.hpp"
-#include "logging.hpp"
-#include "meta/texture.hpp"
-#include "os/context.hpp"
-#include "os/surface.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
-#include "vk/ivk.hpp"
-#include "vk/texture.hpp"
+#include "core/vk/swapchain.hpp"
+#include "core/logging.hpp"
+#include "core/meta/texture.hpp"
+#include "core/os/context.hpp"
+#include "core/os/surface.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
+#include "core/vk/ivk.hpp"
+#include "core/vk/texture.hpp"
 
 using namespace psl;
 using namespace core;

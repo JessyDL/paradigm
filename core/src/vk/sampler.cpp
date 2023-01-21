@@ -1,8 +1,8 @@
 
-#include "vk/sampler.hpp"
-#include "data/sampler.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
+#include "core/vk/sampler.hpp"
+#include "core/data/sampler.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
 
 using namespace psl;
 using namespace core::gfx::conversion;

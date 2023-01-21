@@ -1,13 +1,13 @@
-#include "gfx/compute.hpp"
-#include "data/material.hpp"
-#include "gfx/context.hpp"
-#include "gfx/pipeline_cache.hpp"
+#include "core/gfx/compute.hpp"
+#include "core/data/material.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/pipeline_cache.hpp"
 
 #ifdef PE_GLES
-	#include "gles/compute.hpp"
+	#include "core/gles/compute.hpp"
 #endif
 #ifdef PE_VULKAN
-	#include "vk/compute.hpp"
+	#include "core/vk/compute.hpp"
 #endif
 using namespace core::gfx;
 using namespace core::resource;

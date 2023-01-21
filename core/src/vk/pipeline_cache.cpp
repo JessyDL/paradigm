@@ -1,12 +1,12 @@
-#include "vk/pipeline_cache.hpp"
-#include "data/material.hpp"
-#include "logging.hpp"
+#include "core/vk/pipeline_cache.hpp"
+#include "core/data/material.hpp"
+#include "core/logging.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
+#include "core/vk/framebuffer.hpp"
+#include "core/vk/pipeline.hpp"
+#include "core/vk/swapchain.hpp"
 #include "psl/meta.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
-#include "vk/framebuffer.hpp"
-#include "vk/pipeline.hpp"
-#include "vk/swapchain.hpp"
 
 using namespace psl;
 using namespace core::gfx;

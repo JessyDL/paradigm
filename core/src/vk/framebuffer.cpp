@@ -1,11 +1,11 @@
 
-#include "vk/framebuffer.hpp"
-#include "data/framebuffer.hpp"
-#include "meta/texture.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
-#include "vk/sampler.hpp"
-#include "vk/texture.hpp"
+#include "core/vk/framebuffer.hpp"
+#include "core/data/framebuffer.hpp"
+#include "core/meta/texture.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
+#include "core/vk/sampler.hpp"
+#include "core/vk/texture.hpp"
 
 #include "psl/utility/cast.hpp"
 

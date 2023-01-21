@@ -1,13 +1,13 @@
-#include "gfx/framebuffer.hpp"
-#include "data/framebuffer.hpp"
-#include "gfx/context.hpp"
-#include "gfx/texture.hpp"
+#include "core/gfx/framebuffer.hpp"
+#include "core/data/framebuffer.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/texture.hpp"
 
 #ifdef PE_GLES
-	#include "gles/framebuffer.hpp"
+	#include "core/gles/framebuffer.hpp"
 #endif
 #ifdef PE_VULKAN
-	#include "vk/framebuffer.hpp"
+	#include "core/vk/framebuffer.hpp"
 #endif
 
 using namespace core::resource;

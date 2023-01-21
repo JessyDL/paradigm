@@ -1,11 +1,11 @@
-#include "gles/framebuffer.hpp"
-#include "gles/igles.hpp"
+#include "core/gles/framebuffer.hpp"
+#include "core/gles/igles.hpp"
 
-#include "data/framebuffer.hpp"
-#include "gles/sampler.hpp"
-#include "gles/texture.hpp"
-#include "meta/texture.hpp"
-#include "resource/resource.hpp"
+#include "core/data/framebuffer.hpp"
+#include "core/gles/sampler.hpp"
+#include "core/gles/texture.hpp"
+#include "core/meta/texture.hpp"
+#include "core/resource/resource.hpp"
 
 #include "psl/utility/cast.hpp"
 

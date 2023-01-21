@@ -1,12 +1,12 @@
-#include "gfx/shader.hpp"
-#include "gfx/context.hpp"
-#include "meta/shader.hpp"
+#include "core/gfx/shader.hpp"
+#include "core/gfx/context.hpp"
+#include "core/meta/shader.hpp"
 
 #ifdef PE_VULKAN
-	#include "vk/shader.hpp"
+	#include "core/vk/shader.hpp"
 #endif
 #ifdef PE_GLES
-	#include "gles/shader.hpp"
+	#include "core/gles/shader.hpp"
 #endif
 
 using namespace core;

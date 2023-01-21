@@ -1,7 +1,7 @@
-#include "data/framebuffer.hpp"
-#include "gfx/sampler.hpp"
-#include "meta/texture.hpp"
-#include "resource/resource.hpp"
+#include "core/data/framebuffer.hpp"
+#include "core/gfx/sampler.hpp"
+#include "core/meta/texture.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace psl;
 using namespace core::data;

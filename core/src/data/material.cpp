@@ -1,8 +1,8 @@
-#include "data/material.hpp"
-#include "data/geometry.hpp"
-#include "gfx/bundle.hpp"
-#include "meta/shader.hpp"
-#include "resource/resource.hpp"
+#include "core/data/material.hpp"
+#include "core/data/geometry.hpp"
+#include "core/gfx/bundle.hpp"
+#include "core/meta/shader.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace psl;
 using namespace core::data;

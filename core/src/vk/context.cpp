@@ -1,13 +1,13 @@
 
-#include "vk/context.hpp"
-#include "gfx/limits.hpp"
-#include "logging.hpp"
-#include "os/surface.hpp"
-#include "paradigm.hpp"
+#include "core/vk/context.hpp"
+#include "core/gfx/limits.hpp"
+#include "core/logging.hpp"
+#include "core/os/surface.hpp"
+#include "core/paradigm.hpp"
+#include "core/resource/resource.hpp"
+#include "core/vk/conversion.hpp"
 #include "psl/meta.hpp"
 #include "psl/ustream.hpp"
-#include "resource/resource.hpp"
-#include "vk/conversion.hpp"
 
 #ifdef PLATFORM_LINUX
 	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..

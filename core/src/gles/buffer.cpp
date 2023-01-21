@@ -1,7 +1,7 @@
-#include "gles/buffer.hpp"
-#include "data/buffer.hpp"
-#include "gles/conversion.hpp"
-#include "logging.hpp"
+#include "core/gles/buffer.hpp"
+#include "core/data/buffer.hpp"
+#include "core/gles/conversion.hpp"
+#include "core/logging.hpp"
 
 using namespace core::igles;
 using namespace core::gfx;

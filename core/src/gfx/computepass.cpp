@@ -1,12 +1,12 @@
-#include "gfx/computepass.hpp"
-#include "gfx/computecall.hpp"
-#include "gfx/context.hpp"
+#include "core/gfx/computepass.hpp"
+#include "core/gfx/computecall.hpp"
+#include "core/gfx/context.hpp"
 
 #if PE_GLES
-	#include "gles/computepass.hpp"
+	#include "core/gles/computepass.hpp"
 #endif
 #if PE_VULKAN
-	#include "vk/computepass.hpp"
+	#include "core/vk/computepass.hpp"
 #endif
 
 using namespace core::resource;

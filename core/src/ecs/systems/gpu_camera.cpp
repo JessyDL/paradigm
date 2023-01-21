@@ -1,8 +1,8 @@
-#include "ecs/systems/gpu_camera.hpp"
-#include "ecs/components/camera.hpp"
-#include "ecs/components/transform.hpp"
-#include "gfx/buffer.hpp"
-#include "os/surface.hpp"
+#include "core/ecs/systems/gpu_camera.hpp"
+#include "core/ecs/components/camera.hpp"
+#include "core/ecs/components/transform.hpp"
+#include "core/gfx/buffer.hpp"
+#include "core/os/surface.hpp"
 #include "psl/ecs/state.hpp"
 
 using namespace core::ecs::systems;

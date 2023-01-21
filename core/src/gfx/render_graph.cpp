@@ -1,9 +1,9 @@
-#include "gfx/render_graph.hpp"
-#include "gfx/computepass.hpp"
-#include "gfx/context.hpp"
-#include "gfx/drawpass.hpp"
-#include "gfx/framebuffer.hpp"
-#include "gfx/swapchain.hpp"
+#include "core/gfx/render_graph.hpp"
+#include "core/gfx/computepass.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/drawpass.hpp"
+#include "core/gfx/framebuffer.hpp"
+#include "core/gfx/swapchain.hpp"
 
 using namespace core::gfx;
 using core::resource::handle;
