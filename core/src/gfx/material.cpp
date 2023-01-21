@@ -1,15 +1,15 @@
-#include "gfx/material.hpp"
-#include "data/material.hpp"
-#include "gfx/buffer.hpp"
-#include "gfx/context.hpp"
-#include "gfx/pipeline_cache.hpp"
+#include "core/gfx/material.hpp"
+#include "core/data/material.hpp"
+#include "core/gfx/buffer.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/pipeline_cache.hpp"
 #include "psl/memory/segment.hpp"
 
 #ifdef PE_GLES
-	#include "gles/material.hpp"
+	#include "core/gles/material.hpp"
 #endif
 #ifdef PE_VULKAN
-	#include "vk/material.hpp"
+	#include "core/vk/material.hpp"
 #endif
 
 using namespace core::resource;

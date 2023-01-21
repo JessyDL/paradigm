@@ -1,10 +1,10 @@
-#include "ecs/systems/render.hpp"
-#include "ecs/components/renderable.hpp"
-#include "ecs/components/transform.hpp"
-#include "gfx/bundle.hpp"
-#include "gfx/drawpass.hpp"
-#include "gfx/geometry.hpp"
-#include "gfx/render_graph.hpp"
+#include "core/ecs/systems/render.hpp"
+#include "core/ecs/components/renderable.hpp"
+#include "core/ecs/components/transform.hpp"
+#include "core/gfx/bundle.hpp"
+#include "core/gfx/drawpass.hpp"
+#include "core/gfx/geometry.hpp"
+#include "core/gfx/render_graph.hpp"
 
 using core::resource::handle;
 using namespace core::gfx;

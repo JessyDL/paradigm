@@ -1,6 +1,6 @@
-#include "vk/computepass.hpp"
-#include "gfx/computecall.hpp"
-#include "gfx/drawpass.hpp"
+#include "core/vk/computepass.hpp"
+#include "core/gfx/computecall.hpp"
+#include "core/gfx/drawpass.hpp"
 
 using namespace core::ivk;
 using computecall = core::gfx::computecall;

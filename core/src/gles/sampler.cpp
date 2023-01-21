@@ -1,9 +1,9 @@
-#include "gles/sampler.hpp"
-#include "data/sampler.hpp"
-#include "gfx/types.hpp"
-#include "gles/conversion.hpp"
-#include "gles/igles.hpp"
-#include "resource/resource.hpp"
+#include "core/gles/sampler.hpp"
+#include "core/data/sampler.hpp"
+#include "core/gfx/types.hpp"
+#include "core/gles/conversion.hpp"
+#include "core/gles/igles.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace core::resource;
 using namespace core::igles;

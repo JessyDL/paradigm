@@ -1,12 +1,12 @@
-#include "gfx/pipeline_cache.hpp"
-#include "gfx/context.hpp"
-#include "gfx/types.hpp"
+#include "core/gfx/pipeline_cache.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/types.hpp"
 
 #ifdef PE_GLES
-	#include "gles/program_cache.hpp"
+	#include "core/gles/program_cache.hpp"
 #endif
 #ifdef PE_VULKAN
-	#include "vk/pipeline_cache.hpp"
+	#include "core/vk/pipeline_cache.hpp"
 #endif
 
 using namespace core::resource;

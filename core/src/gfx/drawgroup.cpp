@@ -1,7 +1,7 @@
 
-#include "gfx/drawgroup.hpp"
-#include "data/geometry.hpp"
-#include "logging.hpp"
+#include "core/gfx/drawgroup.hpp"
+#include "core/data/geometry.hpp"
+#include "core/logging.hpp"
 
 using namespace core::gfx;
 

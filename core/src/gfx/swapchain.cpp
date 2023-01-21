@@ -1,12 +1,12 @@
-#include "gfx/swapchain.hpp"
-#include "gfx/context.hpp"
-#include "os/surface.hpp"
+#include "core/gfx/swapchain.hpp"
+#include "core/gfx/context.hpp"
+#include "core/os/surface.hpp"
 
 #ifdef PE_VULKAN
-	#include "vk/swapchain.hpp"
+	#include "core/vk/swapchain.hpp"
 #endif
 #ifdef PE_GLES
-	#include "gles/swapchain.hpp"
+	#include "core/gles/swapchain.hpp"
 #endif
 
 using namespace core::gfx;

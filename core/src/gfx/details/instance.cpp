@@ -1,13 +1,13 @@
-#include "gfx/details/instance.hpp"
-#include "data/buffer.hpp"
-#include "data/material.hpp"
-#include "gfx/buffer.hpp"
-#include "gfx/limits.hpp"
-#include "gfx/material.hpp"
-#include "gfx/shader.hpp"
-#include "gfx/types.hpp"
-#include "meta/shader.hpp"
-#include "resource/resource.hpp"
+#include "core/gfx/details/instance.hpp"
+#include "core/data/buffer.hpp"
+#include "core/data/material.hpp"
+#include "core/gfx/buffer.hpp"
+#include "core/gfx/limits.hpp"
+#include "core/gfx/material.hpp"
+#include "core/gfx/shader.hpp"
+#include "core/gfx/types.hpp"
+#include "core/meta/shader.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace core::gfx;
 using namespace core::gfx::details::instance;

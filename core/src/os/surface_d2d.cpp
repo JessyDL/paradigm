@@ -1,5 +1,5 @@
 #if defined(SURFACE_D2D)
-	#include "os/surface.hpp"
+	#include "core/os/surface.hpp"
 
 using namespace core::os;
 

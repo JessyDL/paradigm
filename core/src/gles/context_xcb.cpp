@@ -1,11 +1,11 @@
 
 #if defined(SURFACE_XCB)
 
-	#include "gfx/limits.hpp"
-	#include "gles/context.hpp"
-	#include "gles/igles.hpp"
-	#include "logging.hpp"
-	#include "os/surface.hpp"
+	#include "core/gfx/limits.hpp"
+	#include "core/gles/context.hpp"
+	#include "core/gles/igles.hpp"
+	#include "core/logging.hpp"
+	#include "core/os/surface.hpp"
 
 	#include <EGL/egl.h>
 	#include <GLES3/gl3platform.h>

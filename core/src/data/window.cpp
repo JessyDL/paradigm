@@ -1,6 +1,6 @@
-#include "data/window.hpp"
+#include "core/data/window.hpp"
 #include "psl/meta.hpp"
-#include "resource/resource.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace psl;
 using namespace core::data;

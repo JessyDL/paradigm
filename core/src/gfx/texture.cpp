@@ -1,12 +1,12 @@
-#include "gfx/texture.hpp"
-#include "gfx/context.hpp"
-#include "meta/texture.hpp"
+#include "core/gfx/texture.hpp"
+#include "core/gfx/context.hpp"
+#include "core/meta/texture.hpp"
 
 #ifdef PE_VULKAN
-	#include "vk/texture.hpp"
+	#include "core/vk/texture.hpp"
 #endif
 #ifdef PE_GLES
-	#include "gles/texture.hpp"
+	#include "core/gles/texture.hpp"
 #endif
 
 using namespace core;

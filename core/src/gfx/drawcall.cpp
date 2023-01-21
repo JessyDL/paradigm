@@ -1,6 +1,6 @@
-#include "gfx/drawcall.hpp"
-#include "gfx/geometry.hpp"
-#include "resource/resource.hpp"
+#include "core/gfx/drawcall.hpp"
+#include "core/gfx/geometry.hpp"
+#include "core/resource/resource.hpp"
 #include <algorithm>
 
 

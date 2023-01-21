@@ -1,6 +1,6 @@
-#include "gles/context.hpp"
-#include "gfx/limits.hpp"
-#include "gles/igles.hpp"
+#include "core/gles/context.hpp"
+#include "core/gfx/limits.hpp"
+#include "core/gles/igles.hpp"
 
 #include <numeric>
 

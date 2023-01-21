@@ -1,10 +1,10 @@
-#include "gles/texture.hpp"
-#include "gles/conversion.hpp"
-#include "gles/igles.hpp"
-#include "logging.hpp"
-#include "meta/texture.hpp"
+#include "core/gles/texture.hpp"
+#include "core/gles/conversion.hpp"
+#include "core/gles/igles.hpp"
+#include "core/logging.hpp"
+#include "core/meta/texture.hpp"
 #include "psl/utility/cast.hpp"
-#include "resource/resource.hpp"
+#include "core/resource/resource.hpp"
 
 
 #ifdef fseek

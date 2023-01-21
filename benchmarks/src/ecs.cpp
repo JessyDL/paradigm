@@ -255,10 +255,10 @@ void trivial_write_par_system(benchmark::State& gState) {
 	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
 }
 
-	#include "ecs/components/camera.hpp"
-	#include "ecs/components/lifetime.hpp"
-	#include "ecs/components/transform.hpp"
-	#include "ecs/components/velocity.hpp"
+	#include "core/ecs/components/camera.hpp"
+	#include "core/ecs/components/lifetime.hpp"
+	#include "core/ecs/components/transform.hpp"
+	#include "core/ecs/components/velocity.hpp"
 using namespace core::ecs::components;
 
 void complex_read_only_seq_system(benchmark::State& gState) {

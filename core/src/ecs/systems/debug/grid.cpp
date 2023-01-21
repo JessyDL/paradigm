@@ -1,24 +1,24 @@
-#include "ecs/systems/debug/grid.hpp"
+#include "core/ecs/systems/debug/grid.hpp"
 #include "psl/ecs/state.hpp"
 
-#include "resource/resource.hpp"
+#include "core/resource/resource.hpp"
 
-#include "gfx/pipeline_cache.hpp"
+#include "core/gfx/pipeline_cache.hpp"
 
-#include "data/geometry.hpp"
-#include "data/material.hpp"
-#include "gfx/buffer.hpp"
-#include "gfx/bundle.hpp"
-#include "gfx/context.hpp"
-#include "gfx/geometry.hpp"
-#include "gfx/material.hpp"
-#include "meta/shader.hpp"
+#include "core/data/geometry.hpp"
+#include "core/data/material.hpp"
+#include "core/gfx/buffer.hpp"
+#include "core/gfx/bundle.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/geometry.hpp"
+#include "core/gfx/material.hpp"
+#include "core/meta/shader.hpp"
 
-#include "ecs/components/camera.hpp"
-#include "ecs/components/renderable.hpp"
-#include "ecs/components/transform.hpp"
+#include "core/ecs/components/camera.hpp"
+#include "core/ecs/components/renderable.hpp"
+#include "core/ecs/components/transform.hpp"
 
-#include "utility/geometry.hpp"
+#include "core/utility/geometry.hpp"
 
 using namespace core::ecs::systems::debug;
 using namespace core::ecs::components;

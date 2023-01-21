@@ -1,7 +1,7 @@
-#include "gles/swapchain.hpp"
-#include "gles/context.hpp"
-#include "gles/igles.hpp"
-#include "os/surface.hpp"
+#include "core/gles/swapchain.hpp"
+#include "core/gles/context.hpp"
+#include "core/gles/igles.hpp"
+#include "core/os/surface.hpp"
 
 using namespace core::igles;
 using namespace core;

@@ -1,15 +1,15 @@
-#include "gfx/drawpass.hpp"
-#include "gfx/computecall.hpp"
-#include "gfx/context.hpp"
-#include "gfx/drawgroup.hpp"
-#include "gfx/framebuffer.hpp"
-#include "gfx/swapchain.hpp"
+#include "core/gfx/drawpass.hpp"
+#include "core/gfx/computecall.hpp"
+#include "core/gfx/context.hpp"
+#include "core/gfx/drawgroup.hpp"
+#include "core/gfx/framebuffer.hpp"
+#include "core/gfx/swapchain.hpp"
 
 #ifdef PE_GLES
-	#include "gles/drawpass.hpp"
+	#include "core/gles/drawpass.hpp"
 #endif
 #ifdef PE_VULKAN
-	#include "vk/drawpass.hpp"
+	#include "core/vk/drawpass.hpp"
 #endif
 
 using namespace core::resource;

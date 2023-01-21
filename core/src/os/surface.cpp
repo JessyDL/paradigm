@@ -1,7 +1,7 @@
 
-#include "os/surface.hpp"
-#include "systems/input.hpp"
-#include "vk/swapchain.hpp"
+#include "core/os/surface.hpp"
+#include "core/systems/input.hpp"
+#include "core/vk/swapchain.hpp"
 
 
 using namespace psl;

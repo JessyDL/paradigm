@@ -1,6 +1,6 @@
 #pragma once
 #include "core/fwd/resource/resource.hpp"
-#include "gfx/types.hpp"
+#include "core/gfx/types.hpp"
 
 #ifdef PE_VULKAN
 namespace core::ivk {

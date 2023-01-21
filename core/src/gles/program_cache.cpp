@@ -1,6 +1,6 @@
-#include "gles/program_cache.hpp"
-#include "gles/program.hpp"
-#include "resource/resource.hpp"
+#include "core/gles/program_cache.hpp"
+#include "core/gles/program.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace core::igles;
 using namespace core::resource;

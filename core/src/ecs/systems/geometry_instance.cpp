@@ -1,11 +1,11 @@
 #include <stdint.h>
 
-#include "ecs/components/renderable.hpp"
-#include "ecs/components/transform.hpp"
-#include "ecs/systems/geometry_instance.hpp"
-#include "gfx/bundle.hpp"
-#include "gfx/geometry.hpp"
-#include "resource/resource.hpp"
+#include "core/ecs/components/renderable.hpp"
+#include "core/ecs/components/transform.hpp"
+#include "core/ecs/systems/geometry_instance.hpp"
+#include "core/gfx/bundle.hpp"
+#include "core/gfx/geometry.hpp"
+#include "core/resource/resource.hpp"
 
 using namespace core::ecs::systems;
 using namespace psl;

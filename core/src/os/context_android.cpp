@@ -1,6 +1,6 @@
 #define PLATFORM_ANDROID
-#include "logging.hpp"
-#include "os/context.hpp"
+#include "core/logging.hpp"
+#include "core/os/context.hpp"
 #include <android/sensor.h>
 #include <android_native_app_glue.h>
 #include <psl/assertions.hpp>

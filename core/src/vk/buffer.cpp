@@ -1,8 +1,8 @@
-#include "vk/buffer.hpp"
-#include "data/buffer.hpp"
-#include "logging.hpp"
-#include "vk/context.hpp"
-#include "vk/conversion.hpp"
+#include "core/vk/buffer.hpp"
+#include "core/data/buffer.hpp"
+#include "core/logging.hpp"
+#include "core/vk/context.hpp"
+#include "core/vk/conversion.hpp"
 
 using namespace psl;
 using namespace core;
