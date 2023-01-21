@@ -6,58 +6,57 @@ list(TRANSFORM INC_PCH PREPEND inc/psl/)
 list(TRANSFORM INC_PCH APPEND .hpp)
 
 SET(INC 
-stdafx_psl
 algorithm
 application_utils
-formatted_string_buffer
-string_utils
-stream_utils
-binary_utils
-HandleGenerator
-buffer
-logging
+array_view
+array
 assertions
-IDGenerator
-template_utils
+binary_utils
+buffer
+concepts
 crc32
-literals
-terminal_utils
+debug_utils
 delegate
-timer
+enumerate
 event
+evoke
+expected
+file
+format
+formatted_string_buffer
+handle_generator
+generator
+library
+literals
+logging
+meta
+pack_view
+platform_def
+source_location
+sparse_array
+sparse_indice_array
+static_array
+stdafx_psl
+stream_utils
+string_utils
+template_utils
+terminal_utils
+timer
+unique_ptr
+unordered_map
+ustream
+ustring
+view_ptr
+vulkan_utils
+
 memory/allocator
 memory/range
 memory/region
 memory/raw_region
 memory/segment
 memory/sparse_array
-ustring
-ustream
-evoke
-platform_def
-vulkan_utils
-expected
-platform_utils
-debug_utils
-file
-format
-library
-meta
-enumerate
-array_view
-pack_view
-monads
 
-unordered_map
-static_array
-array
-unordered_map
-flat_map
-sparse_array
-sparse_indice_array
-unique_ptr
-view_ptr
-
+collections/indirect_array
 collections/static_ring_array
 collections/ring_array
 collections/spmc
@@ -75,20 +74,23 @@ math/${PE_INSTRUCTION_SET}/quaternion
 
 profiling/profiler
 
-ecs/entity
-ecs/state
-ecs/pack
-ecs/filtering
-ecs/selectors
-ecs/order_by
-ecs/on_condition
 ecs/command_buffer
 ecs/component_traits
+ecs/entity
+ecs/filtering
+ecs/on_condition
+ecs/order_by
+ecs/pack
+ecs/selectors
+ecs/state
 ecs/details/component_container
 ecs/details/component_key
-ecs/details/system_information
+ecs/details/execution
+ecs/details/selectors
+ecs/details/stage_range
 ecs/details/staged_sparse_array
 ecs/details/staged_sparse_memory_region
+ecs/details/system_information
 
 async/async
 async/barrier
@@ -100,17 +102,16 @@ async/details/task
 
 noise/perlin
 
+serialization/decoder
+serialization/encoder
+serialization/polymorphic
 serialization/property
 serialization/serializer
-serialization/polymorphic
-serialization/encoder
-serialization/decoder
 
-concepts
 details/fixed_astring
 
-utility/enum
 utility/cast
+utility/enum
 )
 
 list(TRANSFORM INC PREPEND inc/psl/)

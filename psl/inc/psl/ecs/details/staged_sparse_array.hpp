@@ -18,7 +18,7 @@
 #include <memory>	  // std::uninitialized_move
 #include <optional>
 
-#include "psl/ecs/details/stage_range_t.hpp"
+#include "psl/ecs/details/stage_range.hpp"
 
 namespace psl::ecs::details {
 template <typename T, typename Key = psl::ecs::entity_t::size_type, Key chunks_size = 4096>

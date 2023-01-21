@@ -1,5 +1,5 @@
 #pragma once
-#include "psl/IDGenerator.hpp"
+#include "psl/generator.hpp"
 
 namespace psl {
 template <class T, class precision = uint32_t>
@@ -9,7 +9,7 @@ struct handle {
 	struct generator {
 		generator() : m_Generator(), m_AllHandles(65535), m_Items(65535) {};
 
-		generator(psl::IDGenerator<precision>& generator) : m_Generator(generator), m_AllHandles(4), m_Items(4) {};
+		generator(psl::id_generator<precision>& generator) : m_Generator(generator), m_AllHandles(4), m_Items(4) {};
 		generator(precision limit) : m_Generator(limit), m_AllHandles(4), m_Items(4) {};
 
 		handle& create(const T& target) {
@@ -38,7 +38,7 @@ struct handle {
 		T& get(precision id) { return m_Items[id]; };
 
 	  private:
-		psl::IDGenerator<precision> m_Generator;
+		psl::id_generator<precision> m_Generator;
 		std::vector<handle> m_AllHandles;
 		std::vector<T> m_Items;
 	};
@@ -70,7 +70,7 @@ struct handle<T*, precision> {
 	struct generator {
 		generator() : m_Generator(), m_AllHandles(65535), m_Items(65535) {};
 
-		generator(psl::IDGenerator<precision>& generator) : m_Generator(generator), m_AllHandles(4), m_Items(4) {};
+		generator(psl::id_generator<precision>& generator) : m_Generator(generator), m_AllHandles(4), m_Items(4) {};
 		generator(precision limit) : m_Generator(limit), m_AllHandles(4), m_Items(4) {};
 
 		handle& create(T* target) {
@@ -106,7 +106,7 @@ struct handle<T*, precision> {
 		const precision& Used() { return m_Used; }
 
 	  private:
-		psl::IDGenerator<precision> m_Generator;
+		psl::id_generator<precision> m_Generator;
 		std::vector<handle> m_AllHandles;
 		std::vector<T*> m_Items;
 

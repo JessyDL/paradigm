@@ -211,7 +211,7 @@ class generator {
 
 
 template <class T = uint32_t>
-class IDGenerator {
+class id_generator {
   private:
 	struct Range {
 		T m_First;
@@ -224,7 +224,7 @@ class IDGenerator {
 	T m_MaxID;
 
   public:
-	explicit IDGenerator(T max_id) {
+	explicit id_generator(T max_id) {
 		// Start with a single range, from 0 to max allowed ID (specified)
 		auto newRange = static_cast<Range*>(::malloc(sizeof(Range)));
 		if(newRange == NULL) {
@@ -239,22 +239,22 @@ class IDGenerator {
 		m_MaxID				= max_id;
 	}
 
-	IDGenerator() : IDGenerator(std::numeric_limits<T>::max()) {};
+	id_generator() : id_generator(std::numeric_limits<T>::max()) {};
 
-	~IDGenerator() {
+	~id_generator() {
 		if(m_Ranges != nullptr)
 			::free(m_Ranges);
 	}
 
-	IDGenerator& operator=(const IDGenerator&) = default;
-	IDGenerator(const IDGenerator&)			   = default;
+	id_generator& operator=(const id_generator&) = default;
+	id_generator(const id_generator&)			   = default;
 
-	IDGenerator(IDGenerator&& other)
+	id_generator(id_generator&& other)
 		: m_Ranges(other.m_Ranges), m_Count(other.m_Count), m_Capacity(other.m_Capacity), m_MaxID(other.m_MaxID) {
 		other.m_Ranges = nullptr;
 	}
 
-	IDGenerator& operator=(IDGenerator&& other) {
+	id_generator& operator=(id_generator&& other) {
 		if(this != &other) {
 			m_Ranges   = other.m_Ranges;
 			m_Count	   = other.m_Count;

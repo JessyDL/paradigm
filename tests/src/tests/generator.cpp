@@ -1,5 +1,5 @@
 #include "tests/generator.hpp"
-#include "psl/IDGenerator.hpp"
+#include "psl/generator.hpp"
 
 #include <litmus/expect.hpp>
 #include <litmus/section.hpp>
