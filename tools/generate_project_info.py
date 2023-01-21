@@ -28,6 +28,8 @@ def all_authors():
     return authors.keys()
     
 def generate_header(output=os.path.join(os.path.dirname(os.path.realpath(__file__)), '..', 'core', 'gen', 'core', 'paradigm.hpp'), force = False):
+    if not os.path.exists(os.path.dirname(output)):
+        os.makedirs(os.path.dirname(output), exist_ok=True)
     version = run_git_command(["tag", "-l", "--sort=-v:refname"])
     version = version.split('\n')[0]
     major, minor, patch = version.split('.')
