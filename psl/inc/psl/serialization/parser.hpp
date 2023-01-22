@@ -1,5 +1,7 @@
 #pragma once
+#include "psl/details/fixed_astring.hpp"
 #include "psl/ustring.hpp"
+#include <stdexcept>
 #include <tuple>
 #include <type_traits>
 
@@ -21,43 +23,18 @@ inline namespace details {
 		using type = std::invoke_result_t<T, parse_view_t>;
 	};
 
-	template <IsParser... Parsers>
-	requires(sizeof...(Parsers) < 2)	// when 1 or 0 they are compatible by default
-	  struct is_compatible_parsers : std::true_type {};
+	template <IsParser T>
+	using parser_result_type_t = typename parser_result_type<T>::type;
 
-	template <IsParser Parser1, IsParser... Rest>
-	struct is_compatible_parsers<Parser1, Rest...>
-		: std::conditional_t<std::conjunction_v<std::is_same<typename parser_result_type<Parser1>::type,
-															 typename parser_result_type<Rest>::type>...>,
+	template <IsParser Parser1, IsParser Parser2>
+	struct is_compatible_parsers
+		: std::conditional_t<std::is_same_v<parser_result_type_t<Parser1>, parser_result_type_t<Parser2>>,
 							 std::true_type,
 							 std::false_type> {};
 
-	template <typename... Parsers>
-	concept IsCompatibleParsers = is_compatible_parsers<Parsers...>::value;
-
-
-	template <IsParser T, IsParser... Rest>
-	requires(sizeof...(Rest) == 0 ||
-			 IsCompatibleParsers<T, Rest...>) using parser_result_type_t = typename parser_result_type<T>::type;
-
-	template <typename T, typename Y>
-	struct make_tuple_with_element_count_impl {};
-
-	template <typename T, size_t... Indices>
-	struct make_tuple_with_element_count_impl<T, std::index_sequence<Indices...>> {
-		template <size_t>
-		using _type_repeater = T;
-
-		using type = std::tuple<_type_repeater<Indices>...>;
-	};
-
-	template <typename T, size_t Count>
-	struct make_tuple_with_element_count {
-		using type = typename make_tuple_with_element_count_impl<T, decltype(std::make_index_sequence<Count>())>::type;
-	};
-
-	template <typename T, size_t Count>
-	using make_tuple_with_element_count_t = typename make_tuple_with_element_count<T, Count>::type;
+	template <typename Parser1, typename Parser2>
+	concept IsCompatibleParsers =
+	  IsParser<Parser1> && IsParser<Parser2> && is_compatible_parsers<Parser1, Parser2>::value;
 }	 // namespace details
 
 template <typename T>
@@ -91,7 +68,7 @@ constexpr auto fmap(FMapFn&& fmapFn, ParserFn&& parserFn) noexcept {
 	return [fmapFn = std::forward<FMapFn>(fmapFn), parserFn = std::forward<ParserFn>(parserFn)](
 			 parse_view_t view) -> parse_result_t<std::invoke_result_t<FMapFn, parser_result_type_t<ParserFn>>> {
 		if(parse_result_t const res = parserFn(view); res) {
-			return {fmapFn(res.value()), res.view()};
+			return {res.view(), fmapFn(res.value())};
 		}
 		return invalid_result;
 	};
@@ -121,34 +98,41 @@ requires(IsCompatibleParsers<Parser1, Parser2>) constexpr auto if_else(Parser1&&
 	};
 }
 
-template <IsParser... Parsers, typename AccumulatorFn>
-requires(IsCompatibleParsers<Parsers...> &&
-		 sizeof...(Parsers) > 1) constexpr auto accumulate(Parsers&&... parsers, AccumulatorFn&& accumulatorFn) {
-	using parser_return_type	  = parser_result_type_t<Parsers...>;
-	using accumulated_result_type = make_tuple_with_element_count_t<parser_return_type, sizeof...(Parsers)>;
+template <IsParser Parser, typename TransformFn>
+constexpr auto bind(Parser&& parser, TransformFn&& transformFn) {
+	return
+	  [parser = std::forward<Parser>(parser), transformFn = std::forward<TransformFn>(transformFn)](parse_view_t view)
+		-> std::invoke_result_t<TransformFn, typename parser_result_type_t<Parser>::value_type, parse_view_t> {
+		  const auto result = parser(view);
+		  if(!result) {
+			  return invalid_result;
+		  }
+		  return transformFn(result.value(), result.view());
+	  };
+}
+
+template <IsParser Parser1, IsParser Parser2, typename AccumulatorFn>
+requires(IsCompatibleParsers<Parser1, Parser2>) constexpr auto accumulate(Parser1&& parser1,
+																		  Parser2&& parser2,
+																		  AccumulatorFn&& accumulatorFn) {
+	using parser_return_type = typename parser_result_type_t<Parser1>::value_type;
 	using return_type = parse_result_t<std::invoke_result_t<AccumulatorFn, parser_return_type, parser_return_type>>;
 
-	return [parsers = std::forward<Parsers>(parsers)](parse_view_t view) -> return_type {
+	return [parser1		  = std::forward<Parser1>(parser1),
+			parser2		  = std::forward<Parser2>(parser2),
+			accumulatorFn = std::forward<AccumulatorFn>(accumulatorFn)](parse_view_t view) -> return_type {
 		return_type result {invalid_result};
-		auto cpy_view = view;
-		bool stop {false};
-		accumulated_result_type accumulated {[&stop, &view]() mutable -> parser_return_type {
-			if(!stop) {
-				const auto result = Parsers(view);
-				if(!result) {
-					stop = true;
-					return invalid_result;
-				} else {
-					view = result.view();
-					return result;
-				}
-			}
-		}()...};
-
-		if(stop) {
+		const auto result_1 = parser1(view);
+		if(!result_1) {
 			return invalid_result;
 		}
-		return {std::apply(AccumulatorFn, accumulated), view};
+
+		const auto result_2 = parser2(result_1.view());
+		if(!result_2) {
+			return invalid_result;
+		}
+
+		return {result_2.view(), accumulatorFn(result_1.value(), result_2.value())};
 	};
 }
 
@@ -166,9 +150,179 @@ requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto drop_right(Pa
 	});
 }
 
+template <IsParser ParserLhs, IsParser ParserRhs>
+requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto operator<(ParserLhs&& lhs, ParserRhs&& rhs) {
+	return drop_left(lhs, rhs);
+}
+
+template <IsParser ParserLhs, IsParser ParserRhs>
+requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto operator>(ParserLhs&& lhs, ParserRhs&& rhs) {
+	return drop_right(lhs, rhs);
+}
+
 template <IsParser Parser1, IsParser Parser2>
 requires(IsCompatibleParsers<Parser1, Parser2>) constexpr auto operator|(Parser1&& parser1,
 																		 Parser2&& parser2) noexcept {
 	return if_else(std::forward<Parser1>(parser1), std::forward<Parser2>(parser2));
 }
+
+template <IsParser Parser, typename T, typename Accumulator>
+constexpr auto many(Parser&& parser, T&& default_val, Accumulator&& accumulator, size_t atleast = 0) {
+	using return_type = parse_result_t<std::invoke_result_t<Accumulator, T, parser_result_type_t<Parser>>>;
+
+	return [parser		= std::forward<Parser>(parser),
+			default_val = std::forward<T>(default_val),
+			accumulator = std::forward<Accumulator>(accumulator),
+			atleast](parse_view_t view) -> return_type {
+		auto result {default_val};
+		size_t count {0};
+		while(!view.empty()) {
+			const auto intermediate = parser(view);
+			if(!intermediate) {
+				if(count >= atleast) {
+					return {view, result};
+				} else {
+					return invalid_result;
+				}
+			}
+			result = accumulator(result, intermediate.value());
+			view   = intermediate.view();
+			++count;
+		}
+		if(count >= atleast) {
+			return {view, result};
+		} else {
+			return invalid_result;
+		}
+	};
+}
+
+template <IsParser Parser, typename T, typename Accumulator>
+constexpr auto exactly(size_t exactly, Parser&& parser, T&& default_val, Accumulator&& accumulator) {
+	using return_type = parse_result_t<std::invoke_result_t<Accumulator, T, T>>;
+
+	return [parser		= std::forward<Parser>(parser),
+			default_val = std::forward<T>(default_val),
+			accumulator = std::forward<Accumulator>(accumulator),
+			exactly](parse_view_t view) -> return_type {
+		auto result {default_val};
+		auto remaining = exactly;
+		while(!view.empty() && remaining > 0) {
+			const auto intermediate = parser(view);
+			if(!intermediate) {
+				return invalid_result;
+			}
+			result = accumulator(result, intermediate.value());
+			view   = intermediate.view();
+			--remaining;
+		}
+		if(remaining == 0) {
+			return {view, result};
+		} else {
+			return invalid_result;
+		}
+	};
+}
+
+template <template <typename> typename Comparison = std::equal_to>
+constexpr auto char_parser(char c) {
+	return [c](parse_view_t view) -> parse_result_t<char> {
+		if(!view.empty() && Comparison<char> {}(view.at(0), c)) {
+			return {view.substr(1), c};
+		}
+		return invalid_result;
+	};
+}
+
+template <template <typename> typename Comparison = std::equal_to>
+constexpr auto char_compare_to(psl::string8::view characters) {
+	return [characters](parse_view_t view) -> parse_result_t<char> {
+		if(!view.empty() && Comparison<size_t> {}(characters.find(view.at(0)), psl::string8::view::npos)) {
+			return {view.substr(1), view.at(0)};
+		}
+		return invalid_result;
+	};
+}
+
+constexpr auto any_of(psl::string8::view characters) {
+	return char_compare_to<std::not_equal_to>(characters);
+}
+
+constexpr auto none_of(psl::string8::view characters) {
+	return char_compare_to<std::equal_to>(characters);
+}
+
+template <template <typename> typename Comparison = std::equal_to>
+constexpr auto text_parser(psl::string8::view text) {
+	return [text](parse_view_t view) -> parse_result_t<psl::string8::view> {
+		if(Comparison<psl::string8::view::const_iterator> {}(
+			 std::mismatch(text.begin(), text.end(), view.begin(), view.end()).first, text.end())) {
+			return {view.substr(text.size()), text};
+		}
+		return invalid_result;
+	};
+}
+
+constexpr auto skip_whitespace_parser() {
+	return [](parse_view_t view) -> parse_result_t<psl::string8::view> {
+		return fmap([&view](size_t value) -> psl::string8::view { return view.substr(0, value); },
+					many(char_parser(' ') | char_parser('\r') | char_parser('\n') | char_parser('\t'),
+						 size_t {0},
+						 [](size_t result, char value) { return result + 1; }))(view);
+	};
+}
+
+template <IsParser Parser>
+constexpr auto accumulate_many(Parser&& parser, size_t atleast = 0) {
+	return [parser = std::forward<Parser>(parser), atleast](parse_view_t view) -> parse_result_t<psl::string8::view> {
+		return fmap([&view](size_t value) -> psl::string8::view { return view.substr(0, value); },
+					many(
+					  parser, size_t {0}, [](size_t result, char value) { return result + 1; }, atleast))(view);
+	};
+}
+
+constexpr auto accumulate_many() {
+	return [](parse_view_t view) -> parse_result_t<psl::string8::view> {
+		return fmap([&view](size_t value) -> psl::string8::view { return view.substr(0, value); },
+					many(
+					  [](parse_view_t view) -> parse_result_t<char> {
+						  if(view.empty()) {
+							  return invalid_result;
+						  }
+						  return {view.substr(1), view.at(0)};
+					  },
+					  size_t {0},
+					  [](size_t result, char value) { return result + 1; }))(view);
+	};
+}
+
+template <IsParser Parser>
+constexpr auto parse_to_string_view(Parser&& parser) {
+	return [parser = std::forward<Parser>(parser)](parse_view_t view) -> parse_result_t<psl::string8::view> {
+		if constexpr(std::is_same_v<parse_result_t<char>, parser_result_type_t<Parser>>) {
+			if(auto result = parser(view); result) {
+				return {result.view(), view.substr(0, 1)};
+			}
+		} else if constexpr(std::is_same_v<parse_result_t<psl::string8::view>, parser_result_type_t<Parser>>) {
+			if(auto result = parser(view); result) {
+				return {result.view(), result.value()};
+			}
+		} else {
+			throw std::exception();
+		}
+		return invalid_result;
+	};
+}
+
+template <psl::details::fixed_astring Message, IsParser Parser>
+constexpr auto parse_or_throw(Parser&& parser) {
+	return [parser = std::forward<Parser>(parser)](parse_view_t view) {
+		if(const auto result = parser(view); result) {
+			return result;
+		} else {
+			throw std::runtime_error {Message};
+		}
+	};
+}
+
 }	 // namespace psl::serialization::parser

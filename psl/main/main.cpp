@@ -5,6 +5,19 @@
 // generated in the output's `bin` folder
 // --------------------------------------------------------------------------------------------------------------------
 
+#include "psl/serialization/format.hpp"
+
 int main(int argc, char* argv[]) {
+	using namespace psl::serialization::parser;
+
+	constexpr psl::string8::view text {"identifier : t = { 'some_value   ' };"};
+
+	constexpr auto field = psl::serialization::format::parse_field(text);
+	static_assert(field.value().name == "identifier"sv);
+	static_assert(field.value().type.name == "t"sv);
+	static_assert(field.value().value.value == "some_value   "sv);
+
+
+	// std::printf("%.*s\n", static_cast<int>(value.value().size()), value.value().data());
 	return 0;
 }

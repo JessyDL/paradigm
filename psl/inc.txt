@@ -104,6 +104,7 @@ noise/perlin
 
 serialization/decoder
 serialization/encoder
+serialization/format
 serialization/parser
 serialization/polymorphic
 serialization/property
