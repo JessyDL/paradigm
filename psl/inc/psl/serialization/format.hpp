@@ -49,10 +49,53 @@ constexpr auto parse_type(psl::string8::view view) -> psl::serialization::parser
 	result = {result.view(), result.value().substr(0, actual_size)};
 
 	// we do a look ahead to figure out if the next statement is an attribute
-	if(!result.view().empty() && result.view().at(0) == '[') {
+	/*if(!result.view().empty() && result.view().at(0) == '[') {
 		throw std::runtime_error("not implemented");
-	}
+	}*/
 	return result;
+}
+
+constexpr auto parse_attribute_begin(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+	using namespace psl::serialization::parser;
+	constexpr auto parser = skip_whitespace_parser()<text_parser("["sv)> skip_whitespace_parser();
+	return parser(view);
+}
+
+constexpr auto parse_attribute_identfier(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+	using namespace psl::serialization::parser;
+	constexpr auto parser = skip_whitespace_parser()<accumulate_many(none_of("=]{"sv))> skip_whitespace_parser();
+	return parser(view);
+}
+
+constexpr auto parse_attribute_assignment_begin(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+	using namespace psl::serialization::parser;
+	constexpr auto parser = skip_whitespace_parser()<text_parser("{"sv)> skip_whitespace_parser();
+	return parser(view);
+}
+
+constexpr auto parse_assigment_value(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view>;
+
+constexpr auto parse_attribute_assignment_value(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+	return parse_assigment_value(view);
+}
+
+constexpr auto parse_attribute_assignment_end(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+	using namespace psl::serialization::parser;
+	constexpr auto parser = skip_whitespace_parser()<text_parser("}"sv)> skip_whitespace_parser();
+	return parser(view);
+}
+
+constexpr auto parse_attribute_end(psl::string8::view view)
+  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+	using namespace psl::serialization::parser;
+	constexpr auto parser = skip_whitespace_parser()<text_parser("]"sv)> skip_whitespace_parser();
+	return parser(view);
 }
 
 constexpr auto parse_assignment_begin(psl::string8::view view)
@@ -168,6 +211,54 @@ namespace size {
 		return parser::invalid_result;
 	}
 
+
+	constexpr auto parse_attribute_begin(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<size_t> {
+		if(const auto val = format::parse_attribute_begin(view); val) {
+			return {val.view(), 0};
+		}
+		return parser::invalid_result;
+	}
+
+	constexpr auto parse_attribute_identfier(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<size_t> {
+		if(const auto val = format::parse_attribute_identfier(view); val) {
+			return {val.view(), val.value().size()};
+		}
+		return parser::invalid_result;
+	}
+
+
+	constexpr auto parse_attribute_assignment_begin(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<size_t> {
+		if(const auto val = format::parse_attribute_assignment_begin(view); val) {
+			return {val.view(), 0};
+		}
+		return parser::invalid_result;
+	}
+
+	constexpr auto parse_assigment_value(psl::string8::view view) -> parser::parse_result_t<size_t>;
+	constexpr auto parse_attribute_assignment_value(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<size_t> {
+		return size::parse_assigment_value(view);
+	}
+
+	constexpr auto parse_attribute_assignment_end(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<size_t> {
+		if(const auto val = format::parse_attribute_assignment_end(view); val) {
+			return {val.view(), 0};
+		}
+		return parser::invalid_result;
+	}
+
+	constexpr auto parse_attribute_end(psl::string8::view view) -> psl::serialization::parser::parse_result_t<size_t> {
+		if(const auto val = format::parse_attribute_end(view); val) {
+			return {val.view(), 0};
+		}
+		return parser::invalid_result;
+	}
+
+
 	constexpr auto parse_assignment_begin(psl::string8::view view) -> parser::parse_result_t<size_t> {
 		if(const auto val = format::parse_assignment_begin(view); val) {
 			return {val.view(), 0};
@@ -201,6 +292,17 @@ namespace size {
 										   size::parse_identifier,
 										   size::parse_identifier_type_seperator,
 										   size::parse_type,
+										   parser::many(accumulate(std::plus {},
+																   size::parse_attribute_begin,
+																   size::parse_attribute_identfier,
+																   accumulate(std::plus {},
+																			  size::parse_attribute_assignment_begin,
+																			  size::parse_attribute_assignment_value,
+																			  size::parse_attribute_assignment_end,
+																			  size::parse_attribute_end) |
+																	 size::parse_attribute_end),
+														size_t {0},
+														std::plus<size_t> {}),
 										   size::parse_assignment_begin,
 										   parser::many(
 											 [](parser::parse_view_t view) -> parser::parse_result_t<size_t> {

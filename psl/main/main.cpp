@@ -10,7 +10,7 @@
 int main(int argc, char* argv[]) {
 	using namespace psl::serialization::parser;
 
-	constexpr psl::string8::view text {"identifier : t<float> { 'some_value', '5', '''3  3 ''' };"};
+	constexpr psl::string8::view text {"identifier : t<float> [inline]{ 'some_value', '5', '''3  3 ''' };"};
 
 	constexpr auto size = psl::serialization::format::size::parse_field(text);
 	// constexpr std::array<char, size.value()> storage {};
