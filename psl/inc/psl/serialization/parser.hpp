@@ -111,43 +111,52 @@ constexpr auto bind(Parser&& parser, TransformFn&& transformFn) {
 	  };
 }
 
-template <IsParser Parser1, IsParser Parser2, typename AccumulatorFn>
-requires(IsCompatibleParsers<Parser1, Parser2>) constexpr auto accumulate(Parser1&& parser1,
-																		  Parser2&& parser2,
-																		  AccumulatorFn&& accumulatorFn) {
-	using parser_return_type = typename parser_result_type_t<Parser1>::value_type;
-	using return_type = parse_result_t<std::invoke_result_t<AccumulatorFn, parser_return_type, parser_return_type>>;
-
-	return [parser1		  = std::forward<Parser1>(parser1),
-			parser2		  = std::forward<Parser2>(parser2),
-			accumulatorFn = std::forward<AccumulatorFn>(accumulatorFn)](parse_view_t view) -> return_type {
-		return_type result {invalid_result};
-		const auto result_1 = parser1(view);
-		if(!result_1) {
-			return invalid_result;
+template <typename AccumulatorFn, IsParser Parser1, IsParser... Parsers>
+requires((IsCompatibleParsers<Parser1, Parsers> && ...) &&
+		 std::conjunction_v<std::is_same<parser_result_type_t<Parser1>, parser_result_type_t<Parsers>>...> &&
+		 std::is_same_v<typename parser_result_type_t<Parser1>::value_type,
+						std::invoke_result_t<AccumulatorFn,
+											 typename parser_result_type_t<Parser1>::value_type,
+											 typename parser_result_type_t<Parser1>::
+											   value_type>>) constexpr auto accumulate(AccumulatorFn&& accumulatorFn,
+																					   Parser1&& parser1,
+																					   Parsers&&... parsers) noexcept {
+	using return_type = typename parser_result_type_t<Parser1>::value_type;
+	return [accumulatorFn = std::forward<AccumulatorFn>(accumulatorFn),
+			parser1		  = std::forward<Parser1>(parser1),
+			... parsers	  = std::forward<Parsers>(parsers)](parse_view_t view) -> parse_result_t<return_type> {
+		parse_result_t<return_type> result = parser1(view);
+		if(result) {
+			(
+			  [&result, &accumulatorFn](auto&& parser) mutable {
+				  if(result) {
+					  const auto next = parser(result.view());
+					  if(next) {
+						  result = {next.view(), accumulatorFn(result.value(), next.value())};
+					  } else {
+						  result = invalid_result;
+					  }
+				  }
+			  }(parsers),
+			  ...);
+			return result;
 		}
-
-		const auto result_2 = parser2(result_1.view());
-		if(!result_2) {
-			return invalid_result;
-		}
-
-		return {result_2.view(), accumulatorFn(result_1.value(), result_2.value())};
+		return invalid_result;
 	};
 }
 
 template <IsParser ParserLhs, IsParser ParserRhs>
 requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto drop_left(ParserLhs&& lhs, ParserRhs&& rhs) {
-	return accumulate(std::forward<ParserLhs>(lhs), std::forward<ParserRhs>(rhs), []<typename T>(T&&, T&& rhs) {
-		return std::forward<T>(rhs);
-	});
+	return accumulate([]<typename T>(T const&, T const& rhs) { return rhs; },
+					  std::forward<ParserLhs>(lhs),
+					  std::forward<ParserRhs>(rhs));
 }
 
 template <IsParser ParserLhs, IsParser ParserRhs>
 requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto drop_right(ParserLhs&& lhs, ParserRhs&& rhs) {
-	return accumulate(std::forward<ParserLhs>(lhs), std::forward<ParserRhs>(rhs), []<typename T>(T&& lhs, T&&) {
-		return std::forward<T>(lhs);
-	});
+	return accumulate([]<typename T>(T const& lhs, T const&) { return lhs; },
+					  std::forward<ParserLhs>(lhs),
+					  std::forward<ParserRhs>(rhs));
 }
 
 template <IsParser ParserLhs, IsParser ParserRhs>
