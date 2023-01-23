@@ -10,11 +10,12 @@
 int main(int argc, char* argv[]) {
 	using namespace psl::serialization::parser;
 
-	constexpr psl::string8::view text {"identifier : t<float> [inline]{ 'some_value', '5', '''3  3 ''' };"};
+	constexpr psl::string8::view text {"identifier : t<float> [inline] { 'some_value', '5', '''3  3 ''' };"};
+	constexpr psl::string8::view text2 {"i : object { a : object { b := {}; };  }; "};
 
-	constexpr auto size = psl::serialization::format::size::parse_field(text);
+	constexpr auto size = psl::serialization::format::size::parse(text2);
 	// constexpr std::array<char, size.value()> storage {};
-	// constexpr auto field = psl::serialization::format::parse_field(text);
+	constexpr auto field = psl::serialization::format::parse_field(text);
 	// static_assert(field.value().name == "identifier"sv);
 	// static_assert(field.value().type.name == "t"sv);
 	// static_assert(field.value().value.value == "some_value   "sv);

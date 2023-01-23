@@ -3,8 +3,19 @@
 #include "psl/serialization/parser.hpp"
 #include <algorithm>
 #include <stdexcept>
+#include <strtype/strtype.hpp>
 
 namespace psl::serialization::format {
+
+template <typename T>
+struct type_map {
+	static constexpr psl::string8::view value = {strtype::stringify_typename<T>()};
+};
+
+template <typename T>
+static constexpr psl::string8::view type_map_v = type_map<T>::value;
+
+enum class field_type_t { object, value };
 
 constexpr auto parse_identifier(psl::string8::view view)
   -> psl::serialization::parser::parse_result_t<psl::string8::view> {
@@ -15,7 +26,7 @@ constexpr auto parse_identifier(psl::string8::view view)
 		  return psl::string8::view {sv2.data() - sv1.size(), sv1.size() + sv2.size()};
 	  },
 	  text_parser<std::not_equal_to>("#"sv),
-	  accumulate_many(none_of(" \n\r\t:"), 1))>
+	  accumulate_many(none_of(" \n\r\t:")))>
 	skip_whitespace_parser();
 	return parser(view);
 }
@@ -204,9 +215,13 @@ namespace size {
 		return parser::invalid_result;
 	}
 
-	constexpr auto parse_type(psl::string8::view view) -> parser::parse_result_t<size_t> {
+	constexpr auto parse_type(psl::string8::view view) -> parser::parse_result_t<std::pair<size_t, field_type_t>> {
 		if(const auto val = format::parse_type(view); val) {
-			return {val.view(), val.value().size()};
+			field_type_t field = {field_type_t ::value};
+			if(val.value() == "object"sv) {
+				field = field_type_t::object;
+			}
+			return {val.view(), std::pair<size_t, field_type_t> {val.value().size(), field}};
 		}
 		return parser::invalid_result;
 	}
@@ -288,38 +303,66 @@ namespace size {
 	}
 
 	constexpr auto parse_field(psl::string8::view view) -> parser::parse_result_t<size_t> {
-		constexpr auto parser = accumulate(std::plus {},
-										   size::parse_identifier,
-										   size::parse_identifier_type_seperator,
-										   size::parse_type,
-										   parser::many(accumulate(std::plus {},
-																   size::parse_attribute_begin,
-																   size::parse_attribute_identfier,
-																   accumulate(std::plus {},
-																			  size::parse_attribute_assignment_begin,
-																			  size::parse_attribute_assignment_value,
-																			  size::parse_attribute_assignment_end,
-																			  size::parse_attribute_end) |
-																	 size::parse_attribute_end),
-														size_t {0},
-														std::plus<size_t> {}),
-										   size::parse_assignment_begin,
-										   parser::many(
-											 [](parser::parse_view_t view) -> parser::parse_result_t<size_t> {
-												 const auto res = size::parse_assigment_value(view);
-												 if(res) {
-													 const auto sep = size::parse_assigment_value_more(res.view());
-													 if(res.value() == 0 && !sep) {
-														 return parser::invalid_result;
-													 } else if(sep) {
-														 return {sep.view(), res.value()};
-													 }
-												 }
-												 return res;
-											 },
-											 size_t {0},
-											 std::plus<size_t> {}),
-										   size::parse_assignment_end);
+		constexpr auto counter = []<typename T>(T&& parser, size_t atleast = 0) {
+			return parser::many(std::forward<T>(parser), size_t {0}, std::plus {}, atleast);
+		};
+
+		field_type_t type {field_type_t ::value};
+
+		constexpr auto parser = accumulate(
+		  std::plus {},
+		  size::parse_identifier,
+		  size::parse_identifier_type_seperator,
+		  parser::fmap(
+			[&type](const std::pair<size_t, field_type_t>& pair) -> size_t {
+				type = pair.second;
+				return pair.first;
+			},
+			size::parse_type),
+		  counter(accumulate(std::plus {},
+							 size::parse_attribute_begin,
+							 size::parse_attribute_identfier,
+							 accumulate(std::plus {},
+										size::parse_attribute_assignment_begin,
+										size::parse_attribute_assignment_value,
+										size::parse_attribute_assignment_end,
+										size::parse_attribute_end) |
+							   size::parse_attribute_end)),
+		  size::parse_assignment_begin,
+		  [&type](parser::parse_view_t view) -> parser::parse_result_t<size_t> {
+			  constexpr auto counter = []<typename T>(T&& parser, size_t atleast = 0) {
+				  return parser::many(std::forward<T>(parser), size_t {0}, std::plus {}, atleast);
+			  };
+			  switch(type) {
+			  case field_type_t::object:
+				  return counter(size::parse_field)(view);
+			  case field_type_t::value:
+				  return counter(accumulate(std::plus {},
+											counter([](parser::parse_view_t view) -> parser::parse_result_t<size_t> {
+												const auto res = size::parse_assigment_value(view);
+												if(res) {
+													const auto sep = size::parse_assigment_value_more(res.view());
+													if(res.value() == 0 && !sep) {
+														return parser::invalid_result;
+													} else if(sep) {
+														return {sep.view(), res.value()};
+													}
+												}
+												return res;
+											}),
+											size::parse_assignment_end))(view);
+			  }
+			  return parser::invalid_result;
+		  });
+		return parser(view);
+	}
+
+	constexpr auto parse(psl::string8::view view) -> parser::parse_result_t<size_t> {
+		constexpr auto counter = []<typename T>(T&& parser, size_t atleast = 0) {
+			return parser::many(std::forward<T>(parser), size_t {0}, std::plus {}, atleast);
+		};
+		constexpr auto parser = counter(size::parse_field);
+
 		return parser(view);
 	}
 }	 // namespace size

@@ -66,7 +66,7 @@ parse_result_t(parse_view_t, T&&) -> parse_result_t<T>;
 template <typename FMapFn, IsParser ParserFn>
 constexpr auto fmap(FMapFn&& fmapFn, ParserFn&& parserFn) noexcept {
 	return [fmapFn = std::forward<FMapFn>(fmapFn), parserFn = std::forward<ParserFn>(parserFn)](
-			 parse_view_t view) -> parse_result_t<std::invoke_result_t<FMapFn, parser_result_type_t<ParserFn>>> {
+			 parse_view_t view) -> parse_result_t<std::invoke_result_t<FMapFn, typename parser_result_type_t<ParserFn>::value_type>> {
 		if(parse_result_t const res = parserFn(view); res) {
 			return {res.view(), fmapFn(res.value())};
 		}
