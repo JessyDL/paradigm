@@ -12,22 +12,38 @@ inline namespace _details {
 	enum class value_parse_type { object, value };
 
 	struct format_storage_info_t {
+		struct entry {
+			size_t count {0};
+			size_t size {0};
+
+			friend constexpr entry operator+(entry const& lhs, entry const& rhs) noexcept {
+				return entry {.count = lhs.count + rhs.count, .size = lhs.size + rhs.size};
+			};
+		};
+
 		friend constexpr format_storage_info_t operator+(format_storage_info_t const& lhs,
 														 format_storage_info_t const& rhs) noexcept {
-			return format_storage_info_t {.identifiers		 = lhs.identifiers + rhs.identifiers,
-										  .types			 = lhs.types + rhs.types,
-										  .attributes		 = lhs.attributes + rhs.attributes,
-										  .attributes_values = lhs.attributes_values + rhs.attributes_values,
-										  .values			 = lhs.values + rhs.values,
-										  .storage_size		 = lhs.storage_size + rhs.storage_size};
+			return format_storage_info_t {
+			  .identifiers		 = lhs.identifiers + rhs.identifiers,
+			  .attributes_values = lhs.attributes_values + rhs.attributes_values,
+			  .values			 = lhs.values + rhs.values,
+			  .prototypes		 = lhs.prototypes + rhs.prototypes,
+			  .types			 = lhs.types + rhs.types,
+			  .attributes		 = lhs.attributes + rhs.attributes,
+			};
 		}
 
-		size_t identifiers {0};
-		size_t types {0};
-		size_t attributes {0};
-		size_t attributes_values {0};
-		size_t values {0};
-		size_t storage_size {0};
+		constexpr size_t storage_size() const noexcept {
+			return identifiers.size + attributes_values.size + values.size + prototypes.size + types.size +
+				   attributes.size;
+		}
+
+		entry identifiers {};
+		entry attributes_values {};
+		entry values {};
+		entry prototypes {};
+		entry types {0};
+		entry attributes {0};
 	};
 
 	constexpr auto decode_type(psl::string8::view view) -> value_parse_type {
@@ -40,6 +56,18 @@ inline namespace _details {
 			}
 		}
 		return value_parse_type::value;
+	}
+
+	constexpr auto is_prototype(psl::string8::view view) -> bool {
+		if(view == "prototype"sv) {
+			return true;
+		} else if(view.starts_with("prototype"sv)) {
+			auto offset = view.find_first_not_of(" \n\r\t"sv, 6);
+			if(offset != view.npos && view[offset] == '<') {
+				return true;
+			}
+		}
+		return false;
 	}
 
 	constexpr auto parse_identifier(psl::string8::view view)
@@ -198,43 +226,142 @@ inline namespace _details {
 		  skip_whitespace_parser();
 		return parser(view);
 	}
+	struct storage_entry_t {
+		psl::string8::view value {};
+		size_t depth {0};
+	};
+
+	struct storage_identifier_t : public storage_entry_t {
+		size_t value_begin {0};
+		size_t value_end {0};
+	};
+
+	template <format_storage_info_t Storage>
+	struct storage_t {
+		psl::static_array<psl::string8::char_t, Storage.storage_size()> storage;
+		psl::static_array<storage_entry_t, Storage.identifiers.count> identifiers;
+		psl::static_array<storage_entry_t, Storage.values.count> values;
+		psl::static_array<storage_entry_t, Storage.attributes.count> attributes;
+		psl::static_array<storage_entry_t, Storage.attributes_values.count> attributes_values;
+		psl::static_array<storage_entry_t, Storage.types.count> types;
+		psl::static_array<storage_entry_t, Storage.prototypes.count> prototypes;
+	};
+
+	struct noop_t {
+		friend constexpr noop_t operator+(noop_t const&, noop_t const&) noexcept { return {}; }
+	};
+
+	template <format_storage_info_t Storage>
+	struct storage_writer_t {
+		storage_t<Storage> storage {};
+		size_t offset {0};
+		size_t depth {0};
+		using return_type = noop_t;
+		constexpr auto transform_identifier(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+
+		constexpr auto transform_type(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+
+		constexpr auto transform_attribute(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+
+		constexpr auto transform_attribute_value(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+
+		constexpr auto transform_value(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+
+		constexpr auto increase_depth() { ++depth; }
+		constexpr auto decrease_depth() { --depth; }
+
+		template <parser::IsParser T>
+		static constexpr auto wrap(T&& parser) {
+			return
+			  [parser = std::forward<T>(parser)](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+				  const auto result = parser(view);
+				  if(result) {
+					  return {result.view(), return_type {}};
+				  }
+				  return parser::invalid_result;
+			  };
+		}
+		template <parser::IsParser T, typename Fn>
+		static constexpr auto wrap(T&& parser, Fn fn) {
+			return [parser = std::forward<T>(parser),
+					fn	   = std::forward<Fn>(fn)](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+				const auto result = parser(view);
+				if(result) {
+					return {result.view(), fn(result.value())};
+				}
+				return parser::invalid_result;
+			};
+		}
+	};
 
 	struct size_calculator_t {
 		using return_type = format_storage_info_t;
-		static constexpr auto transform_identifier(psl::string8::view view) -> return_type {
+		constexpr auto transform_identifier(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
-			info.identifiers  = 1;
-			info.storage_size = view.size();
+			info.identifiers.count = 1;
+			info.identifiers.size  = view.size();
 			return info;
 		}
 
-		static constexpr auto transform_type(psl::string8::view view) -> return_type {
+		constexpr auto transform_type(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
-			info.types		  = 1;
-			info.storage_size = view.size();
+			info.types.count = 1;
+			info.types.size	 = view.size();
+			if(is_prototype(view)) {
+				info.prototypes.size  = view.size();
+				info.prototypes.count = 1;
+			}
 			return info;
 		}
 
-		static constexpr auto transform_attribute(psl::string8::view view) -> return_type {
+		constexpr auto transform_attribute(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
-			info.attributes	  = 1;
-			info.storage_size = view.size();
+			info.attributes.count = 1;
+			info.attributes.size  = view.size();
 			return info;
 		}
 
-		static constexpr auto transform_attribute_value(psl::string8::view view) -> return_type {
+		constexpr auto transform_attribute_value(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
-			info.attributes_values = 1;
-			info.storage_size	   = view.size();
+			info.attributes_values.count = 1;
+			info.attributes_values.size	 = view.size();
 			return info;
 		}
 
-		static constexpr auto transform_value(psl::string8::view view) -> return_type {
+		constexpr auto transform_value(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
-			info.values		  = 1;
-			info.storage_size = view.size();
+			info.values.count = 1;
+			info.values.size  = view.size();
 			return info;
 		}
+
+		constexpr auto increase_depth() {}
+		constexpr auto decrease_depth() {}
 
 		template <parser::IsParser T>
 		static constexpr auto wrap(T&& parser) {
@@ -261,26 +388,32 @@ inline namespace _details {
 	};
 
 	template <typename T>
-	constexpr auto parse(psl::string8::view text) -> parser::parse_result_t<typename T::return_type> {
+	constexpr auto parse(psl::string8::view text, T& target) -> parser::parse_result_t<typename T::return_type> {
 		using return_type = typename T::return_type;
 
+		auto bind = [&target](auto&& fnPtr) {
+			return [&target, fnPtr](parser::parse_view_t view) { return (target.*fnPtr)(view); };
+		};
+
+		target.increase_depth();
+
 		// parse until the type seperator
-		constexpr auto parse_identifier =
+		auto parse_identifier =
 		  parser::accumulate(std::plus {},
-							 T::wrap(_details::parse_identifier, T::transform_identifier),
-							 T::wrap(_details::parse_identifier_type_seperator));
+							 target.wrap(_details::parse_identifier, bind(&T::transform_identifier)),
+							 target.wrap(_details::parse_identifier_type_seperator));
 
 		// parses the type, and decides to run either the value parser or the object parser dependent on the outcome
-		constexpr auto parse_type = []<parser::IsParser ValueFn, parser::IsParser ObjectFn>(ValueFn&& value_parser,
-																							ObjectFn&& object_parser) {
+		auto parse_type = [&target]<parser::IsParser ValueFn, parser::IsParser ObjectFn>(ValueFn&& value_parser,
+																						 ObjectFn&& object_parser) {
 			return [value_parser  = std::forward<ValueFn>(value_parser),
-					object_parser = std::forward<ObjectFn>(object_parser)](
-					 parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+					object_parser = std::forward<ObjectFn>(object_parser),
+					&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
 				const auto result = _details::parse_type(view);
 				if(!result) {
 					return parser::invalid_result;
 				}
-				auto result_info = T::transform_type(result.value());
+				auto result_info = target.transform_type(result.value());
 
 				const auto type = _details::decode_type(result.value());
 				switch(type) {
@@ -304,62 +437,80 @@ inline namespace _details {
 		};
 
 		// parse all attributes until no more can be found
-		constexpr auto parse_attributes =
-		  parser::many(parser::accumulate(std::plus {},
-										  T::wrap(_details::parse_attribute_begin),
-										  T::wrap(_details::parse_attribute_identfier, T::transform_attribute),
-										  parser::accumulate(std::plus {},
-															 T::wrap(_details::parse_attribute_assignment_begin),
-															 T::wrap(_details::parse_attribute_assignment_value,
-																	 T::transform_attribute_value),
-															 T::wrap(_details::parse_attribute_assignment_end),
-															 T::wrap(_details::parse_attribute_end)) |
-											T::wrap(_details::parse_attribute_end)),
-					   return_type {},
-					   std::plus {});
+		auto parse_attributes = parser::many(
+		  parser::accumulate(std::plus {},
+							 target.wrap(_details::parse_attribute_begin),
+							 target.wrap(_details::parse_attribute_identfier, bind(&T::transform_attribute)),
+							 parser::accumulate(std::plus {},
+												target.wrap(_details::parse_attribute_assignment_begin),
+												target.wrap(_details::parse_attribute_assignment_value,
+															bind(&T::transform_attribute_value)),
+												target.wrap(_details::parse_attribute_assignment_end),
+												target.wrap(_details::parse_attribute_end)) |
+							   target.wrap(_details::parse_attribute_end)),
+		  return_type {},
+		  std::plus {});
 
 		// parses all values until the end statement is found
-		constexpr auto parse_assignment_values = parser::accumulate(
+		auto parse_assignment_values = parser::accumulate(
 		  std::plus {},
-		  T::wrap(_details::parse_assignment_begin),
-		  T::wrap(_details::parse_assigment_value, T::transform_value),
+		  target.wrap(_details::parse_assignment_begin),
+		  target.wrap(_details::parse_assigment_value, bind(&T::transform_value)),
 		  parser::many(parser::accumulate(std::plus {},
-										  T::wrap(_details::parse_assigment_value_more) <
-											T::wrap(_details::parse_assigment_value, T::transform_value)),
+										  target.wrap(_details::parse_assigment_value_more),
+										  target.wrap(_details::parse_assigment_value, bind(&T::transform_value))),
 					   return_type {},
 					   std::plus {}),
-		  T::wrap(_details::parse_assignment_end));
+		  target.wrap(_details::parse_assignment_end));
 
-		// parses all objects until the end statement is found, we internally first scan for the end statement to decide
-		// if a next object even exists
-		constexpr auto parse_assignment_objects =
+		// parses all objects until the end statement is found, we internally first scan for the end statement to
+		// decide if a next object even exists
+		auto parse_assignment_objects =
 		  parser::accumulate(std::plus {},
-							 T::wrap(_details::parse_assignment_begin),
+							 target.wrap(_details::parse_assignment_begin),
 							 parser::many(
-							   [](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+							   [&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
 								   if(const auto end = _details::parse_assignment_end(view); end) {
 									   return parser::invalid_result;
 								   }
-								   return parse<T>(view);
+								   return parse(view, target);
 							   },
 							   return_type {},
 							   std::plus {}),
-							 T::wrap(_details::parse_assignment_end));
+							 target.wrap(_details::parse_assignment_end));
 
 		// the combination of all previous parsers into a continuous statement that recursively scans the fields
-		constexpr auto parser =
+		auto parser =
 		  parser::accumulate(std::plus {},
 							 parse_identifier,
 							 parse_type(parser::accumulate(std::plus {}, parse_attributes, parse_assignment_values),
 										parser::accumulate(std::plus {}, parse_attributes, parse_assignment_objects)));
 
 		// we run the parser unbounded times till we hit the end of the view
-		return parser::many(parser, return_type {}, std::plus {})(text);
+		const auto result = parser::many(parser, return_type {}, std::plus {})(text);
+		target.decrease_depth();
+		return result;
 	}
 }	 // namespace _details
 
 // calculate the size constraints of the text
 constexpr auto size(psl::string8::view text) -> parser::parse_result_t<format_storage_info_t> {
-	return _details::parse<_details::size_calculator_t>(text);
+	_details::size_calculator_t result {};
+	return _details::parse(text, result);
+}
+
+template <auto View>
+consteval auto parse(psl::ct_string_wrapper<View>) {
+	constexpr auto calculated_size = size(View);
+	_details::storage_writer_t<calculated_size.value()> writer {};
+	_details::parse(View, writer);
+	return writer.storage;
+}
+
+template <format_storage_info_t Storage>
+auto parse_unsafe(psl::string8::view text) {
+	_details::storage_writer_t<Storage> writer {};
+	_details::parse(text, writer);
+	return writer.storage;
 }
 }	 // namespace psl::serialization::format

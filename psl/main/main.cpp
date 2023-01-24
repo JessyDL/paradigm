@@ -20,6 +20,7 @@ int main(int argc, char* argv[]) {
 
 	constexpr psl::string8::view text5 {"b : {''' ''', unguarded}; "};
 	constexpr auto size = psl::serialization::format::size(text2);
+	auto view			= psl::serialization::format::parse_unsafe<size.value()>(text2);
 	// constexpr auto size = psl::serialization::format::size::parse(text4);
 	//// constexpr std::array<char, size.value()> storage {};
 	// constexpr auto field = psl::serialization::format::parse_field(text);
