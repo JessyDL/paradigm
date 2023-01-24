@@ -56,6 +56,7 @@ memory/raw_region
 memory/segment
 memory/sparse_array
 
+collections/compile_time_string
 collections/indirect_array
 collections/static_ring_array
 collections/ring_array

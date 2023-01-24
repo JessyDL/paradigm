@@ -65,8 +65,8 @@ parse_result_t(parse_view_t, T&&) -> parse_result_t<T>;
 
 template <typename FMapFn, IsParser ParserFn>
 constexpr auto fmap(FMapFn&& fmapFn, ParserFn&& parserFn) noexcept {
-	return [fmapFn = std::forward<FMapFn>(fmapFn), parserFn = std::forward<ParserFn>(parserFn)](
-			 parse_view_t view) -> parse_result_t<std::invoke_result_t<FMapFn, typename parser_result_type_t<ParserFn>::value_type>> {
+	return [fmapFn = std::forward<FMapFn>(fmapFn), parserFn = std::forward<ParserFn>(parserFn)](parse_view_t view)
+			 -> parse_result_t<std::invoke_result_t<FMapFn, typename parser_result_type_t<ParserFn>::value_type>> {
 		if(parse_result_t const res = parserFn(view); res) {
 			return {res.view(), fmapFn(res.value())};
 		}
@@ -159,25 +159,28 @@ requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto drop_right(Pa
 					  std::forward<ParserRhs>(rhs));
 }
 
-template <IsParser ParserLhs, IsParser ParserRhs>
-requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto operator<(ParserLhs&& lhs, ParserRhs&& rhs) {
-	return drop_left(lhs, rhs);
-}
+inline namespace operators {
+	template <IsParser ParserLhs, IsParser ParserRhs>
+	requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto operator<(ParserLhs&& lhs, ParserRhs&& rhs) {
+		return drop_left(lhs, rhs);
+	}
 
-template <IsParser ParserLhs, IsParser ParserRhs>
-requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto operator>(ParserLhs&& lhs, ParserRhs&& rhs) {
-	return drop_right(lhs, rhs);
-}
+	template <IsParser ParserLhs, IsParser ParserRhs>
+	requires(IsCompatibleParsers<ParserLhs, ParserRhs>) constexpr auto operator>(ParserLhs&& lhs, ParserRhs&& rhs) {
+		return drop_right(lhs, rhs);
+	}
 
-template <IsParser Parser1, IsParser Parser2>
-requires(IsCompatibleParsers<Parser1, Parser2>) constexpr auto operator|(Parser1&& parser1,
-																		 Parser2&& parser2) noexcept {
-	return if_else(std::forward<Parser1>(parser1), std::forward<Parser2>(parser2));
-}
+	template <IsParser Parser1, IsParser Parser2>
+	requires(IsCompatibleParsers<Parser1, Parser2>) constexpr auto operator|(Parser1&& parser1,
+																			 Parser2&& parser2) noexcept {
+		return if_else(std::forward<Parser1>(parser1), std::forward<Parser2>(parser2));
+	}
+}	 // namespace operators
 
 template <IsParser Parser, typename T, typename Accumulator>
 constexpr auto many(Parser&& parser, T&& default_val, Accumulator&& accumulator, size_t atleast = 0) {
-	using return_type = parse_result_t<std::invoke_result_t<Accumulator, T, parser_result_type_t<Parser>>>;
+	using return_type =
+	  parse_result_t<std::invoke_result_t<Accumulator, T, typename parser_result_type_t<Parser>::value_type>>;
 
 	return [parser		= std::forward<Parser>(parser),
 			default_val = std::forward<T>(default_val),
@@ -243,22 +246,28 @@ constexpr auto char_parser(char c) {
 	};
 }
 
-template <template <typename> typename Comparison = std::equal_to>
+template <template <typename> typename Comparison = std::equal_to, typename ReturnType = char>
 constexpr auto char_compare_to(psl::string8::view characters) {
-	return [characters](parse_view_t view) -> parse_result_t<char> {
+	return [characters](parse_view_t view) -> parse_result_t<ReturnType> {
 		if(!view.empty() && Comparison<size_t> {}(characters.find(view.at(0)), psl::string8::view::npos)) {
-			return {view.substr(1), view.at(0)};
+			if constexpr(std::is_same_v<ReturnType, char>) {
+				return {view.substr(1), view.at(0)};
+			} else if constexpr(std::is_same_v<ReturnType, psl::string8::view>) {
+				return {view.substr(1), view.substr(0, 1)};
+			}
 		}
 		return invalid_result;
 	};
 }
 
+template <typename ReturnType = char>
 constexpr auto any_of(psl::string8::view characters) {
-	return char_compare_to<std::not_equal_to>(characters);
+	return char_compare_to<std::not_equal_to, ReturnType>(characters);
 }
 
+template <typename ReturnType = char>
 constexpr auto none_of(psl::string8::view characters) {
-	return char_compare_to<std::equal_to>(characters);
+	return char_compare_to<std::equal_to, ReturnType>(characters);
 }
 
 template <template <typename> typename Comparison = std::equal_to>

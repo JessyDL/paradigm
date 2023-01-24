@@ -9,16 +9,33 @@
 
 int main(int argc, char* argv[]) {
 	using namespace psl::serialization::parser;
+	using namespace psl;
 
 	constexpr psl::string8::view text {"identifier : t<float> [inline] { 'some_value', '5', '''3  3 ''' };"};
-	constexpr psl::string8::view text2 {"i : object { a : object { b := {}; };  }; "};
+	constexpr psl::string8::view text1 {"i : object { a : f {};  }; "};
+	constexpr psl::string8::view text2 {"i : object { a : object { b : {f}; };  }; "};
+	constexpr psl::string8::view text3 {"b : {f};"};
+	constexpr psl::string8::view text4 {
+	  "identifi : object<float> [inline{something}] { a : object { b : {''' ''', unguarded}; };  }; "};
 
-	constexpr auto size = psl::serialization::format::size::parse(text2);
-	// constexpr std::array<char, size.value()> storage {};
-	constexpr auto field = psl::serialization::format::parse_field(text);
-	// static_assert(field.value().name == "identifier"sv);
-	// static_assert(field.value().type.name == "t"sv);
-	// static_assert(field.value().value.value == "some_value   "sv);
+	constexpr psl::string8::view text5 {"b : {''' ''', unguarded}; "};
+	constexpr auto size = psl::serialization::format::size(text2);
+	// constexpr auto size = psl::serialization::format::size::parse(text4);
+	//// constexpr std::array<char, size.value()> storage {};
+	// constexpr auto field = psl::serialization::format::parse_field(text);
+
+	//// constexpr auto f = psl::serialization::format::parse<
+	////   "identifi : object<float> [inline{something}] { a : object { b : {''' ''', unguarded}; };  };
+	////   "_fixed_astring>();
+
+	// constexpr auto f = psl::serialization::format::parse("identifi : object<float> {};"_ctstr);
+
+	/*constexpr auto f2	  = psl::serialization::format::parsing (psl::details::fixed_astring {
+	  "identifi : object<float> [inline{something}] { a : object { b : {''' ''', unguarded}; };  }; "});*/
+	// constexpr auto f_view = f2.value().view();
+	//  static_assert(field.value().name == "identifier"sv);
+	//  static_assert(field.value().type.name == "t"sv);
+	//  static_assert(field.value().value.value == "some_value   "sv);
 
 	// std::printf("%.*s\n", static_cast<int>(value.value().size()), value.value().data());
 	return 0;
