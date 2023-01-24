@@ -390,7 +390,7 @@ inline namespace _details {
 		constexpr auto decrease_depth() {}
 	};
 
-	template <typename T>
+	template <typename T, bool AllowDirectives = true>
 	constexpr auto parse(psl::string8::view text, T& target) -> parser::parse_result_t<typename T::return_type> {
 		using return_type = typename T::return_type;
 		target.increase_depth();
@@ -419,19 +419,16 @@ inline namespace _details {
 		auto parse_type = wrap_apply(_details::parse_type, &T::transform_type);
 
 		// parse all attributes until no more can be found
-		auto parse_attributes =
-		  parser::many(parser::accumulate(std::plus {},
-										  wrap(_details::parse_attribute_begin),
-										  wrap_apply(_details::parse_attribute_identfier, &T::transform_attribute),
-										  parser::accumulate(std::plus {},
-															 wrap(_details::parse_attribute_assignment_begin),
-															 wrap_apply(_details::parse_attribute_assignment_value,
-																		&T::transform_attribute_value),
-															 wrap(_details::parse_attribute_assignment_end),
-															 wrap(_details::parse_attribute_end)) |
-											wrap(_details::parse_attribute_end)),
-					   return_type {},
-					   std::plus {});
+		auto parse_attributes = parser::many(parser::accumulate(
+		  std::plus {},
+		  wrap(_details::parse_attribute_begin),
+		  wrap_apply(_details::parse_attribute_identfier, &T::transform_attribute),
+		  parser::accumulate(std::plus {},
+							 wrap(_details::parse_attribute_assignment_begin),
+							 wrap_apply(_details::parse_attribute_assignment_value, &T::transform_attribute_value),
+							 wrap(_details::parse_attribute_assignment_end),
+							 wrap(_details::parse_attribute_end)) |
+			wrap(_details::parse_attribute_end)));
 
 		// parses all values until no seperators can be found
 		auto parse_assignment_values = parser::accumulate(
@@ -439,9 +436,7 @@ inline namespace _details {
 		  wrap_apply(_details::parse_assigment_value, &T::transform_value),
 		  parser::many(parser::accumulate(std::plus {},
 										  wrap(_details::parse_assigment_value_more),
-										  wrap_apply(_details::parse_assigment_value, &T::transform_value)),
-					   return_type {},
-					   std::plus {}));
+										  wrap_apply(_details::parse_assigment_value, &T::transform_value))));
 
 		// parses all objects until the end statement is found.
 		// we first scan to see if the next item would satisfy an object (i.e. does it have an identifier and a split)
@@ -451,35 +446,37 @@ inline namespace _details {
 			constexpr auto parse_identifier =
 			  wrap(_details::parse_identifier) < wrap(_details::parse_identifier_type_seperator);
 			if(const auto is_identifier = parse_identifier(view); is_identifier) {
-				return parser::many(
-				  [&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
-					  if(const auto end = _details::parse_assignment_end(view); end) {
-						  return parser::invalid_result;
-					  }
-
-					  return parse(view, target);
-				  },
-				  return_type {},
-				  std::plus {})(view);
+				return parser::many([&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+					if(const auto end = _details::parse_assignment_end(view); end) {
+						return parser::invalid_result;
+					}
+					return parse<std::remove_cvref_t<decltype(target)>, false>(view, target);
+				})(view);
 			}
 			return parser::invalid_result;
 		};
 
-
 		// the combination of all previous parsers into a continuous statement that recursively scans the fields
-		auto parser = parse_directive | parser::accumulate(std::plus {},
-														   parse_identifier,
-														   parse_type,
-														   parse_attributes,
-														   wrap(_details::parse_assignment_begin),
-														   wrap(_details::parse_assignment_end) |
-															 parse_assignment_objects | parse_assignment_values,
-														   wrap(_details::parse_assignment_end));
+		auto parse_field =
+		  parser::accumulate(std::plus {},
+							 parse_identifier,
+							 parse_type,
+							 parse_attributes,
+							 wrap(_details::parse_assignment_begin),
+							 wrap(_details::parse_assignment_end) | parse_assignment_objects | parse_assignment_values,
+							 wrap(_details::parse_assignment_end));
 
 		// we run the parser unbounded times till we hit the end of the view
-		const auto result = parser::many(parser, return_type {}, std::plus {})(text);
-		target.decrease_depth();
-		return result;
+		// if we are root, we allow directives to be scanned, otherwise don't.
+		if constexpr(AllowDirectives) {
+			const auto result = parser::many(parse_directive | parse_field)(text);
+			target.decrease_depth();
+			return result;
+		} else {
+			const auto result = parser::many(parse_field)(text);
+			target.decrease_depth();
+			return result;
+		}
 	}
 }	 // namespace _details
 

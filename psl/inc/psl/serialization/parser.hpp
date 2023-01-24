@@ -177,8 +177,10 @@ inline namespace operators {
 	}
 }	 // namespace operators
 
-template <IsParser Parser, typename T, typename Accumulator>
-constexpr auto many(Parser&& parser, T&& default_val, Accumulator&& accumulator, size_t atleast = 0) {
+template <IsParser Parser,
+		  typename T		   = typename parser_result_type_t<Parser>::value_type,
+		  typename Accumulator = std::plus<T>>
+constexpr auto many(Parser&& parser, T&& default_val = {}, Accumulator&& accumulator = {}, size_t atleast = 0) {
 	using return_type =
 	  parse_result_t<std::invoke_result_t<Accumulator, T, typename parser_result_type_t<Parser>::value_type>>;
 
