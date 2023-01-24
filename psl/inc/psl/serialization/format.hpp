@@ -415,38 +415,8 @@ inline namespace _details {
 												   wrap_apply(_details::parse_identifier, &T::transform_identifier),
 												   wrap(_details::parse_identifier_type_seperator));
 
-		// parses the type, and decides to run either the value parser or the object parser dependent on the outcome
-		auto parse_type = [&target]<parser::IsParser ValueFn, parser::IsParser ObjectFn>(ValueFn&& value_parser,
-																						 ObjectFn&& object_parser) {
-			return [value_parser  = std::forward<ValueFn>(value_parser),
-					object_parser = std::forward<ObjectFn>(object_parser),
-					&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
-				const auto result = _details::parse_type(view);
-				if(!result) {
-					return parser::invalid_result;
-				}
-				auto result_info = target.transform_type(result.value());
-
-				const auto type = _details::decode_type(result.value());
-				switch(type) {
-				case value_parse_type::value: {
-					const auto value = value_parser(result.view());
-					if(!value) {
-						return parser::invalid_result;
-					}
-					return {value.view(), value.value() + result_info};
-				}
-				case value_parse_type::object: {
-					const auto value = object_parser(result.view());
-					if(!value) {
-						return parser::invalid_result;
-					}
-					return {value.view(), value.value() + result_info};
-				}
-				}
-				return parser::invalid_result;
-			};
-		};
+		// parse the type until the end of a template statement is found, or the start of an attribute or assignment
+		auto parse_type = wrap_apply(_details::parse_type, &T::transform_type);
 
 		// parse all attributes until no more can be found
 		auto parse_attributes =
@@ -463,41 +433,48 @@ inline namespace _details {
 					   return_type {},
 					   std::plus {});
 
-		// parses all values until the end statement is found
+		// parses all values until no seperators can be found
 		auto parse_assignment_values = parser::accumulate(
 		  std::plus {},
-		  wrap(_details::parse_assignment_begin),
 		  wrap_apply(_details::parse_assigment_value, &T::transform_value),
 		  parser::many(parser::accumulate(std::plus {},
 										  wrap(_details::parse_assigment_value_more),
 										  wrap_apply(_details::parse_assigment_value, &T::transform_value)),
 					   return_type {},
-					   std::plus {}),
-		  wrap(_details::parse_assignment_end));
+					   std::plus {}));
 
-		// parses all objects until the end statement is found, we internally first scan for the end statement to
-		// decide if a next object even exists
-		auto parse_assignment_objects =
-		  parser::accumulate(std::plus {},
-							 wrap(_details::parse_assignment_begin),
-							 parser::many(
-							   [&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
-								   if(const auto end = _details::parse_assignment_end(view); end) {
-									   return parser::invalid_result;
-								   }
-								   return parse(view, target);
-							   },
-							   return_type {},
-							   std::plus {}),
-							 wrap(_details::parse_assignment_end));
+		// parses all objects until the end statement is found.
+		// we first scan to see if the next item would satisfy an object (i.e. does it have an identifier and a split)
+		// otherwise we invalidate the search. For the loop we internally first scan for the end statement to decide if
+		// a next object even exists.
+		auto parse_assignment_objects = [&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+			constexpr auto parse_identifier =
+			  wrap(_details::parse_identifier) < wrap(_details::parse_identifier_type_seperator);
+			if(const auto is_identifier = parse_identifier(view); is_identifier) {
+				return parser::many(
+				  [&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+					  if(const auto end = _details::parse_assignment_end(view); end) {
+						  return parser::invalid_result;
+					  }
+
+					  return parse(view, target);
+				  },
+				  return_type {},
+				  std::plus {})(view);
+			}
+			return parser::invalid_result;
+		};
+
 
 		// the combination of all previous parsers into a continuous statement that recursively scans the fields
-		auto parser =
-		  parse_directive |
-		  parser::accumulate(std::plus {},
-							 parse_identifier,
-							 parse_type(parser::accumulate(std::plus {}, parse_attributes, parse_assignment_values),
-										parser::accumulate(std::plus {}, parse_attributes, parse_assignment_objects)));
+		auto parser = parse_directive | parser::accumulate(std::plus {},
+														   parse_identifier,
+														   parse_type,
+														   parse_attributes,
+														   wrap(_details::parse_assignment_begin),
+														   wrap(_details::parse_assignment_end) |
+															 parse_assignment_objects | parse_assignment_values,
+														   wrap(_details::parse_assignment_end));
 
 		// we run the parser unbounded times till we hit the end of the view
 		const auto result = parser::many(parser, return_type {}, std::plus {})(text);
@@ -507,7 +484,7 @@ inline namespace _details {
 }	 // namespace _details
 
 // calculate the size constraints of the text
-consteval auto size(psl::string8::view text) -> parser::parse_result_t<format_storage_info_t> {
+constexpr auto size(psl::string8::view text) -> parser::parse_result_t<format_storage_info_t> {
 	_details::size_calculator_t calculator {};
 	auto result = _details::parse(text, calculator);
 	if(result) {
