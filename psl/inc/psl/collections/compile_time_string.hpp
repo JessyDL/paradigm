@@ -12,7 +12,7 @@ inline namespace _details {
 	struct is_ct_string : std::false_type {};
 	template <std::size_t N>
 	struct is_ct_string<ct_string<N>> : std::true_type {};
-}	 // namespace details
+}	 // namespace _details
 template <typename T>
 concept IsCTString = is_ct_string<std::remove_cvref_t<T>>::value;
 
