@@ -24,6 +24,8 @@ inline namespace _details {
 		friend constexpr format_storage_info_t operator+(format_storage_info_t const& lhs,
 														 format_storage_info_t const& rhs) noexcept {
 			return format_storage_info_t {
+			  .directives		 = lhs.directives + rhs.directives,
+			  .directives_values = lhs.directives_values + rhs.directives_values,
 			  .identifiers		 = lhs.identifiers + rhs.identifiers,
 			  .attributes_values = lhs.attributes_values + rhs.attributes_values,
 			  .values			 = lhs.values + rhs.values,
@@ -34,16 +36,20 @@ inline namespace _details {
 		}
 
 		constexpr size_t storage_size() const noexcept {
-			return identifiers.size + attributes_values.size + values.size + prototypes.size + types.size +
-				   attributes.size;
+			return directives.size + directives_values.size + identifiers.size + attributes_values.size + values.size +
+				   prototypes.size + types.size + attributes.size;
 		}
 
+		entry directives {};
+		entry directives_values {};
 		entry identifiers {};
 		entry attributes_values {};
 		entry values {};
 		entry prototypes {};
 		entry types {0};
 		entry attributes {0};
+		const char* data {};
+		size_t data_size {};
 	};
 
 	constexpr auto decode_type(psl::string8::view view) -> value_parse_type {
@@ -70,6 +76,24 @@ inline namespace _details {
 		return false;
 	}
 
+
+	constexpr auto parse_directive(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+		using namespace psl::serialization::parser;
+		constexpr auto parser =
+		  skip_whitespace_parser()<parser::text_parser("#"sv) < accumulate_many(none_of(" \n\r\t:"sv))>
+		  skip_whitespace_parser();
+		return parser(view);
+	}
+
+	constexpr auto parse_directive_value(psl::string8::view view)
+	  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
+		using namespace psl::serialization::parser;
+		constexpr auto parser =
+		  skip_whitespace_parser()<accumulate_many(none_of(";"sv))> text_parser(";"sv) > skip_whitespace_parser();
+		return parser(view);
+	}
+
 	constexpr auto parse_identifier(psl::string8::view view)
 	  -> psl::serialization::parser::parse_result_t<psl::string8::view> {
 		using namespace psl::serialization::parser;
@@ -78,7 +102,7 @@ inline namespace _details {
 			  // todo this isn't exactly safe, find better way
 			  return psl::string8::view {sv2.data() - sv1.size(), sv1.size() + sv2.size()};
 		  },
-		  parser::none_of<psl::string8::view>("}#"),
+		  parser::none_of<psl::string8::view>("}#"sv),
 		  accumulate_many(none_of(" \n\r\t:")))>
 		skip_whitespace_parser();
 		return parser(view);
@@ -256,6 +280,19 @@ inline namespace _details {
 		size_t offset {0};
 		size_t depth {0};
 		using return_type = noop_t;
+		constexpr auto transform_directive(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+		constexpr auto transform_directive_value(psl::string8::view view) -> return_type {
+			for(auto c : view) {
+				storage.storage[offset++] = c;
+			}
+			return {};
+		}
+
 		constexpr auto transform_identifier(psl::string8::view view) -> return_type {
 			for(auto c : view) {
 				storage.storage[offset++] = c;
@@ -297,6 +334,19 @@ inline namespace _details {
 
 	struct size_calculator_t {
 		using return_type = format_storage_info_t;
+
+		constexpr auto transform_directive(psl::string8::view view) -> return_type {
+			format_storage_info_t info {};
+			info.directives.count = 1;
+			info.directives.size  = view.size();
+			return info;
+		}
+		constexpr auto transform_directive_value(psl::string8::view view) -> return_type {
+			format_storage_info_t info {};
+			info.directives_values.count = 1;
+			info.directives_values.size	 = view.size();
+			return info;
+		}
 		constexpr auto transform_identifier(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
 			info.identifiers.count = 1;
@@ -353,6 +403,12 @@ inline namespace _details {
 			return parser::fmap(
 			  [memFnPtr, &target](psl::string8::view view) -> return_type { return (target.*memFnPtr)(view); }, fnPtr);
 		};
+
+		// parse directive statements
+		auto parse_directive =
+		  parser::accumulate(std::plus {},
+							 wrap_apply(_details::parse_directive, &T::transform_directive),
+							 wrap_apply(_details::parse_directive_value, &T::transform_directive_value));
 
 		// parse until the type seperator
 		auto parse_identifier = parser::accumulate(std::plus {},
@@ -437,6 +493,7 @@ inline namespace _details {
 
 		// the combination of all previous parsers into a continuous statement that recursively scans the fields
 		auto parser =
+		  parse_directive |
 		  parser::accumulate(std::plus {},
 							 parse_identifier,
 							 parse_type(parser::accumulate(std::plus {}, parse_attributes, parse_assignment_values),
@@ -450,9 +507,14 @@ inline namespace _details {
 }	 // namespace _details
 
 // calculate the size constraints of the text
-constexpr auto size(psl::string8::view text) -> parser::parse_result_t<format_storage_info_t> {
-	_details::size_calculator_t result {};
-	return _details::parse(text, result);
+consteval auto size(psl::string8::view text) -> parser::parse_result_t<format_storage_info_t> {
+	_details::size_calculator_t calculator {};
+	auto result = _details::parse(text, calculator);
+	if(result) {
+		result.value().data		 = text.data();
+		result.value().data_size = text.size();
+	}
+	return result;
 }
 
 template <auto View>
@@ -464,7 +526,8 @@ consteval auto parse(psl::ct_string_wrapper<View>) {
 }
 
 template <format_storage_info_t Storage>
-auto parse_unsafe(psl::string8::view text) {
+constexpr auto parse() {
+	constexpr psl::string8::view text = {Storage.data, Storage.data_size};
 	_details::storage_writer_t<Storage> writer {};
 	_details::parse(text, writer);
 	return writer.storage;

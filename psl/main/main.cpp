@@ -19,8 +19,9 @@ int main(int argc, char* argv[]) {
 	  "identifi : object<float> [inline{something}] { a : object { b : {''' ''', unguarded}; };  }; "};
 
 	constexpr psl::string8::view text5 {"b : {''' ''', unguarded}; "};
-	constexpr auto size = psl::serialization::format::size(text2);
-	auto view			= psl::serialization::format::parse_unsafe<size.value()>(text2);
+	constexpr psl::string8::view text6 {"#version 5; identifier : {5};"};
+	constexpr auto size = psl::serialization::format::size(text6);
+	constexpr auto view = psl::serialization::format::parse<size.value()>();
 	// constexpr auto size = psl::serialization::format::size::parse(text4);
 	//// constexpr std::array<char, size.value()> storage {};
 	// constexpr auto field = psl::serialization::format::parse_field(text);
