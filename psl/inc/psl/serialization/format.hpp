@@ -3,10 +3,26 @@
 #include "psl/collections/compile_time_string.hpp"
 #include "psl/serialization/parser.hpp"
 #include <algorithm>
+#include <span>
 #include <stdexcept>
 #include <strtype/strtype.hpp>
 
 namespace psl::serialization::format {
+constexpr std::uint64_t parse_to(psl::string8::view view) {
+	std::uint64_t result {0};
+	size_t magnitude {1};
+	for(size_t i = 0; i < view.size(); ++i) {
+		result += view[view.size() - (i + 1)] * magnitude;
+		magnitude *= 10;
+	}
+	return result;
+}
+
+template <typename T>
+concept HasParser = requires(psl::string8::view view) {
+	{ parse_to(view) } -> std::same_as<T>;
+};
+
 inline namespace _details {
 	/// \brief Details how to parse the given field, what rules the parser shoud follow
 	enum class value_parse_type { object, value };
@@ -32,6 +48,7 @@ inline namespace _details {
 			  .prototypes		 = lhs.prototypes + rhs.prototypes,
 			  .types			 = lhs.types + rhs.types,
 			  .attributes		 = lhs.attributes + rhs.attributes,
+			  .max_depth		 = std::max(lhs.max_depth, rhs.max_depth),
 			};
 		}
 
@@ -49,7 +66,8 @@ inline namespace _details {
 		entry types {0};
 		entry attributes {0};
 		const char* data {};
-		size_t data_size {};
+		size_t data_size {0};
+		size_t max_depth {0};
 	};
 
 	constexpr auto decode_type(psl::string8::view view) -> value_parse_type {
@@ -249,25 +267,53 @@ inline namespace _details {
 		  skip_whitespace_parser();
 		return parser(view);
 	}
-	struct storage_entry_t {
-		psl::string8::view value {};
-		size_t depth {0};
-	};
 
-	struct storage_identifier_t : public storage_entry_t {
-		size_t value_begin {0};
-		size_t value_end {0};
+	struct storage_field_t {
+		enum class field_type : std::uint8_t {
+			unknown = 0,
+			directive,
+			identifier,
+			attribute,
+			type,
+			prototype,
+			directive_value,
+			attribute_value,
+			value,
+		};
+
+		// todo: msvc has an ICE that means we can't just use a psl::string8::view like we should be able to
+		// accessing the beginning of storage's data (char const*) results in the ICE, but is only triggered
+		// under certain conditions.
+		// sadly this means we are forced to always access the entry's information through the storage that
+		// can transform this begin/end into something useful.
+		struct storage_entry_view_t {
+			size_t begin {0};
+			size_t end {0};
+		} value {};
+
+		size_t depth {0};
+		field_type type {field_type::unknown};
 	};
 
 	template <format_storage_info_t Storage>
 	struct storage_t {
+		constexpr auto data() const noexcept { return storage.data(); }
+		constexpr auto size() const noexcept { return Storage.storage_size(); }
+
+		constexpr auto view() const noexcept -> psl::string8::view { return {data(), size()}; }
+
+		constexpr auto max_depth() const noexcept -> size_t { return Storage.max_depth; }
+
+		constexpr auto name(storage_field_t const& field) const noexcept -> psl::string8::view {
+			return {storage.data() + field.value.begin, field.value.end - field.value.begin};
+		}
+
 		psl::static_array<psl::string8::char_t, Storage.storage_size()> storage;
-		psl::static_array<storage_entry_t, Storage.identifiers.count> identifiers;
-		psl::static_array<storage_entry_t, Storage.values.count> values;
-		psl::static_array<storage_entry_t, Storage.attributes.count> attributes;
-		psl::static_array<storage_entry_t, Storage.attributes_values.count> attributes_values;
-		psl::static_array<storage_entry_t, Storage.types.count> types;
-		psl::static_array<storage_entry_t, Storage.prototypes.count> prototypes;
+		psl::static_array<storage_field_t,
+						  Storage.directives.count + Storage.directives_values.count + Storage.identifiers.count +
+							Storage.values.count + Storage.attributes.count + Storage.attributes_values.count +
+							Storage.types.count + Storage.prototypes.count>
+		  fields {};
 	};
 
 	struct noop_t {
@@ -276,55 +322,53 @@ inline namespace _details {
 
 	template <format_storage_info_t Storage>
 	struct storage_writer_t {
-		storage_t<Storage> storage {};
+		storage_t<Storage> storage;
 		size_t offset {0};
 		size_t depth {0};
+
+		size_t field_index {0};
+
 		using return_type = noop_t;
-		constexpr auto transform_directive(psl::string8::view view) -> return_type {
+
+		constexpr auto write(psl::string8::view view, storage_field_t::field_type type) {
+			auto begin = offset;
 			for(auto c : view) {
 				storage.storage[offset++] = c;
 			}
+			storage.fields[field_index++] = {.value = {begin, offset}, .depth = depth, .type = type};
+		}
+
+		constexpr auto transform_directive(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::directive);
 			return {};
 		}
 		constexpr auto transform_directive_value(psl::string8::view view) -> return_type {
-			for(auto c : view) {
-				storage.storage[offset++] = c;
-			}
+			write(view, storage_field_t::field_type::directive_value);
 			return {};
 		}
 
 		constexpr auto transform_identifier(psl::string8::view view) -> return_type {
-			for(auto c : view) {
-				storage.storage[offset++] = c;
-			}
+			write(view, storage_field_t::field_type::identifier);
 			return {};
 		}
 
 		constexpr auto transform_type(psl::string8::view view) -> return_type {
-			for(auto c : view) {
-				storage.storage[offset++] = c;
-			}
+			write(view, storage_field_t::field_type::type);
 			return {};
 		}
 
 		constexpr auto transform_attribute(psl::string8::view view) -> return_type {
-			for(auto c : view) {
-				storage.storage[offset++] = c;
-			}
+			write(view, storage_field_t::field_type::attribute);
 			return {};
 		}
 
 		constexpr auto transform_attribute_value(psl::string8::view view) -> return_type {
-			for(auto c : view) {
-				storage.storage[offset++] = c;
-			}
+			write(view, storage_field_t::field_type::attribute_value);
 			return {};
 		}
 
 		constexpr auto transform_value(psl::string8::view view) -> return_type {
-			for(auto c : view) {
-				storage.storage[offset++] = c;
-			}
+			write(view, storage_field_t::field_type::value);
 			return {};
 		}
 
@@ -334,6 +378,8 @@ inline namespace _details {
 
 	struct size_calculator_t {
 		using return_type = format_storage_info_t;
+		size_t depth {0};
+		size_t max_depth {0};
 
 		constexpr auto transform_directive(psl::string8::view view) -> return_type {
 			format_storage_info_t info {};
@@ -386,14 +432,16 @@ inline namespace _details {
 			return info;
 		}
 
-		constexpr auto increase_depth() {}
-		constexpr auto decrease_depth() {}
+		constexpr auto increase_depth() noexcept {
+			++depth;
+			max_depth = std::max(max_depth, depth);
+		}
+		constexpr auto decrease_depth() noexcept { --depth; }
 	};
 
 	template <typename T, bool AllowDirectives = true>
 	constexpr auto parse(psl::string8::view text, T& target) -> parser::parse_result_t<typename T::return_type> {
 		using return_type = typename T::return_type;
-		target.increase_depth();
 
 		constexpr auto wrap = [](auto&& fnPtr) {
 			return parser::fmap([](psl::string8::view) -> return_type { return return_type {}; }, fnPtr);
@@ -431,12 +479,21 @@ inline namespace _details {
 			wrap(_details::parse_attribute_end)));
 
 		// parses all values until no seperators can be found
+		// we increase the scope depth internally
 		auto parse_assignment_values = parser::accumulate(
 		  std::plus {},
-		  wrap_apply(_details::parse_assigment_value, &T::transform_value),
-		  parser::many(parser::accumulate(std::plus {},
-										  wrap(_details::parse_assigment_value_more),
-										  wrap_apply(_details::parse_assigment_value, &T::transform_value))));
+		  [&target, &wrap_apply](parser::parse_view_t view) {
+			  target.increase_depth();
+			  return wrap_apply(_details::parse_assigment_value, &T::transform_value)(view);
+		  },
+		  [&target, &wrap, &wrap_apply](parser::parse_view_t view) {
+			  const auto result = parser::many(
+				parser::accumulate(std::plus {},
+								   wrap(_details::parse_assigment_value_more),
+								   wrap_apply(_details::parse_assigment_value, &T::transform_value)))(view);
+			  target.decrease_depth();
+			  return result;
+		  });
 
 		// parses all objects until the end statement is found.
 		// we first scan to see if the next item would satisfy an object (i.e. does it have an identifier and a split)
@@ -446,37 +503,139 @@ inline namespace _details {
 			constexpr auto parse_identifier =
 			  wrap(_details::parse_identifier) < wrap(_details::parse_identifier_type_seperator);
 			if(const auto is_identifier = parse_identifier(view); is_identifier) {
-				return parser::many([&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
-					if(const auto end = _details::parse_assignment_end(view); end) {
-						return parser::invalid_result;
-					}
-					return parse<std::remove_cvref_t<decltype(target)>, false>(view, target);
-				})(view);
+				target.increase_depth();
+				const auto result =
+				  parser::many([&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
+					  if(const auto end = _details::parse_assignment_end(view); end) {
+						  return parser::invalid_result;
+					  }
+					  return parse<std::remove_cvref_t<decltype(target)>, false>(view, target);
+				  })(view);
+				target.decrease_depth();
+				return result;
 			}
 			return parser::invalid_result;
 		};
 
 		// the combination of all previous parsers into a continuous statement that recursively scans the fields
-		auto parse_field =
-		  parser::accumulate(std::plus {},
-							 parse_identifier,
-							 parse_type,
-							 parse_attributes,
-							 wrap(_details::parse_assignment_begin),
-							 wrap(_details::parse_assignment_end) | parse_assignment_objects | parse_assignment_values,
-							 wrap(_details::parse_assignment_end));
+		auto parse_field = parser::accumulate(std::plus {},
+											  parse_identifier,
+											  parse_type,
+											  parse_attributes,
+											  wrap(_details::parse_assignment_begin),
+											  parse_assignment_objects | parse_assignment_values,
+											  wrap(_details::parse_assignment_end));
 
 		// we run the parser unbounded times till we hit the end of the view
 		// if we are root, we allow directives to be scanned, otherwise don't.
 		if constexpr(AllowDirectives) {
 			const auto result = parser::many(parse_directive | parse_field)(text);
-			target.decrease_depth();
 			return result;
 		} else {
 			const auto result = parser::many(parse_field)(text);
-			target.decrease_depth();
 			return result;
 		}
+	}
+
+	constexpr size_t field_count(auto const& storage, size_t index = 0) {
+		constexpr std::array valid_field_types {storage_field_t::field_type::identifier,
+												storage_field_t::field_type::value};
+		auto target = std::next(std::begin(storage.fields), index);
+		if(target->type != storage_field_t::field_type::identifier) {
+			throw std::runtime_error("target wasn't an identifier");
+		}
+
+		// forward scan to one beyond the type or attributes, whichever was last
+		constexpr auto skip_invalid_fields = [](auto target) {
+			do {
+				++target;
+			} while(std::find(std::begin(valid_field_types), std::end(valid_field_types), target->type) ==
+					std::end(valid_field_types));
+			return target;
+		};
+		size_t values {0};
+
+
+		for(auto it = skip_invalid_fields(target); it != std::end(storage.fields) && target->depth < it->depth; ++it) {
+			if(it->depth == target->depth + 1 &&
+			   std::find(std::begin(valid_field_types), std::end(valid_field_types), it->type) !=
+				 std::end(valid_field_types)) {
+				++values;
+			}
+		}
+		return values;
+	}
+
+	template <size_t Depth, auto Storage>
+	constexpr size_t fields_at_depth() noexcept {
+		auto next_field_at_depth = [](auto iterator) {
+			auto next_field_at_depth = [](auto const& field) {
+				return field.type == storage_field_t::field_type::identifier && field.depth == Depth;
+			};
+			return std::find_if(iterator, std::end(Storage.fields), next_field_at_depth);
+		};
+
+		size_t count {0};
+		for(auto it = next_field_at_depth(std::begin(Storage.fields)); it != std::end(Storage.fields);
+			it		= next_field_at_depth(it + 1)) {
+			++count;
+		}
+		return count;
+	}
+
+	struct ct_format_value_t {
+		psl::string8::view value;
+	};
+
+	struct ct_format_field_t {
+		psl::string8::view name;
+		psl::string8::view type;
+		std::span<ct_format_field_t> children {};
+		std::span<ct_format_value_t> values {};
+	};
+
+	template <size_t Size>
+	struct ct_format_layer_t {
+		psl::static_array<ct_format_field_t, Size> fields {};
+	};
+
+	// ...Sizes is a template pack that signifies the amount of fields to expect per layer
+	template <size_t... Sizes>
+	struct ct_format_t {
+		std::tuple<ct_format_layer_t<Sizes>...> layers {};
+	};
+
+	template <size_t Depth, auto Storage>
+	constexpr auto fill_names(auto& fields) {
+		auto next_field_at_depth = [](auto iterator) {
+			auto next_field_at_depth = [](auto const& field) {
+				return field.type == storage_field_t::field_type::identifier && field.depth == Depth;
+			};
+			return std::find_if(iterator, std::end(Storage.fields), next_field_at_depth);
+		};
+
+		auto target = std::begin(fields);
+
+		for(auto it = next_field_at_depth(std::begin(Storage.fields)); it != std::end(Storage.fields);
+			it		= next_field_at_depth(it + 1)) {
+			target->name = Storage.name(*it);
+			target->type = Storage.name(*std::next(it));
+			target		 = std::next(target);
+		}
+	}
+
+	template <size_t MaxDepth, auto Storage>
+	constexpr auto transform_intermediate_to_user_format() {
+		auto result = []<size_t... Depth>(std::index_sequence<Depth...>) {
+			auto result = ct_format_t<fields_at_depth<Depth, Storage>()...> {};
+
+			([](auto& layer) { fill_names<Depth, Storage>(layer.fields); }(std::get<Depth>(result.layers)), ...);
+
+			return result;
+		}
+		(std::make_index_sequence<MaxDepth>());
+
+		return result;
 	}
 }	 // namespace _details
 
@@ -487,8 +646,23 @@ constexpr auto size(psl::string8::view text) -> parser::parse_result_t<format_st
 	if(result) {
 		result.value().data		 = text.data();
 		result.value().data_size = text.size();
+		result.value().max_depth = calculator.max_depth;
 	}
 	return result;
+}
+
+template <format_storage_info_t Storage>
+constexpr auto parse() {
+	// write the format_storage_info_t into an intermediate storage container
+	// from there we can form the tree in a user-friendly manner and start the process
+	// of validating the attributes and types.
+	constexpr auto intermediate_storage = []() {
+		_details::storage_writer_t<Storage> writer {};
+		auto result = _details::parse({Storage.data, Storage.data_size}, writer);
+		return writer.storage;
+	}();
+
+	return transform_intermediate_to_user_format<Storage.max_depth, intermediate_storage>();
 }
 
 template <auto View>
@@ -496,14 +670,6 @@ consteval auto parse(psl::ct_string_wrapper<View>) {
 	constexpr auto calculated_size = size(View);
 	_details::storage_writer_t<calculated_size.value()> writer {};
 	_details::parse(View, writer);
-	return writer.storage;
-}
-
-template <format_storage_info_t Storage>
-constexpr auto parse() {
-	constexpr psl::string8::view text = {Storage.data, Storage.data_size};
-	_details::storage_writer_t<Storage> writer {};
-	_details::parse(text, writer);
-	return writer.storage;
+	return parse<writer.storage>();
 }
 }	 // namespace psl::serialization::format

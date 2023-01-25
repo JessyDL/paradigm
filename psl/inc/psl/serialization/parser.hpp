@@ -61,7 +61,7 @@ requires(std::is_default_constructible_v<T>) class parse_result_t {
 };
 
 template <typename T>
-parse_result_t(parse_view_t, T&&) -> parse_result_t<T>;
+parse_result_t(auto, T) -> parse_result_t<T>;
 
 template <typename FMapFn, IsParser ParserFn>
 constexpr auto fmap(FMapFn&& fmapFn, ParserFn&& parserFn) noexcept {
