@@ -4,6 +4,7 @@ src/ecs.cpp
 src/ecs/staged_sparse_memory_region.cpp
 src/math_tests.cpp
 src/memory.cpp
+src/serialization.cpp
 src/tests/generator.cpp
 src/task_test.cpp
 )

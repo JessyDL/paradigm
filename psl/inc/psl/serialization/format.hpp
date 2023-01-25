@@ -529,7 +529,11 @@ inline namespace _details {
 		// we run the parser unbounded times till we hit the end of the view
 		// if we are root, we allow directives to be scanned, otherwise don't.
 		if constexpr(AllowDirectives) {
-			const auto result = parser::many(parse_directive | parse_field)(text);
+			const auto result = parser::many(parse_directive | parse_field, return_type {}, std::plus {}, 1)(text);
+			// as the root, if we don't parse the full view, then we clearly ran into an issue.
+			if(result && !result.view().empty()) {
+				return parser::invalid_result;
+			}
 			return result;
 		} else {
 			const auto result = parser::many(parse_field)(text);
@@ -637,6 +641,13 @@ inline namespace _details {
 
 		return result;
 	}
+
+	template <format_storage_info_t Storage>
+	constexpr auto get_intermediate_storage() {
+		_details::storage_writer_t<Storage> writer {};
+		auto result = _details::parse({Storage.data, Storage.data_size}, writer);
+		return writer.storage;
+	}
 }	 // namespace _details
 
 // calculate the size constraints of the text
@@ -656,11 +667,7 @@ constexpr auto parse() {
 	// write the format_storage_info_t into an intermediate storage container
 	// from there we can form the tree in a user-friendly manner and start the process
 	// of validating the attributes and types.
-	constexpr auto intermediate_storage = []() {
-		_details::storage_writer_t<Storage> writer {};
-		auto result = _details::parse({Storage.data, Storage.data_size}, writer);
-		return writer.storage;
-	}();
+	constexpr auto intermediate_storage = get_intermediate_storage<Storage>();
 
 	return transform_intermediate_to_user_format<Storage.max_depth, intermediate_storage>();
 }
