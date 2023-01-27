@@ -1,9 +1,12 @@
 #pragma once
 
+#include "psl/array.hpp"
+#include "psl/assertions.hpp"
 #include "psl/collections/compile_time_string.hpp"
 #include "psl/serialization/parser.hpp"
 #include <algorithm>
 #include <span>
+#include <stack>
 #include <stdexcept>
 #include <strtype/strtype.hpp>
 
@@ -439,6 +442,181 @@ inline namespace _details {
 		constexpr auto decrease_depth() noexcept { --depth; }
 	};
 
+	struct rt_format_t {
+		using value_t = psl::string8_t;
+
+		struct attribute_mapping_t {
+			psl::string8_t name {};
+			std::function<bool(psl::string8_t const&, psl::array<value_t> const&)> callback {};
+		};
+
+		struct attribute_t {
+			psl::string8_t name {};
+			psl::array<value_t> values {};
+		};
+
+		struct type_field_t {
+			psl::string8_t name {};
+			std::span<type_field_t> children {};
+			psl::array<value_t> values {};
+		};
+
+		struct type_t {
+			psl::string8_t name {};
+			psl::array<type_field_t> fields {};
+			psl::array<attribute_t> attributes {};
+
+			friend constexpr bool operator==(type_t const& lhs, type_t const& rhs) noexcept {
+				return lhs.name == rhs.name;
+			}
+			friend constexpr bool operator!=(type_t const& lhs, type_t const& rhs) noexcept {
+				return lhs.name != rhs.name;
+			}
+			friend constexpr bool operator==(type_t const& lhs, psl::string8::view const& rhs) noexcept {
+				return lhs.name == rhs;
+			}
+			friend constexpr bool operator!=(type_t const& lhs, psl::string8::view const& rhs) noexcept {
+				return lhs.name != rhs;
+			}
+			friend constexpr bool operator==(psl::string8::view const& lhs, type_t const& rhs) noexcept {
+				return lhs == rhs.name;
+			}
+			friend constexpr bool operator!=(psl::string8::view const& lhs, type_t const& rhs) noexcept {
+				return lhs != rhs.name;
+			}
+
+			struct comparator_t {
+				using is_transparent = void;
+				constexpr bool operator()(std::shared_ptr<type_t> const& lhs,
+										  std::shared_ptr<type_t> const& rhs) const noexcept {
+					return *lhs == *rhs;
+				}
+				constexpr bool operator()(std::shared_ptr<type_t> const& lhs,
+										  psl::string8::view const& rhs) const noexcept {
+					return *lhs == rhs;
+				}
+				constexpr bool operator()(psl::string8::view const& lhs,
+										  std::shared_ptr<type_t> const& rhs) const noexcept {
+					return lhs == *rhs;
+				}
+			};
+
+			struct hasher_t {
+				using is_transparent		= void;
+				using transparent_key_equal = comparator_t;
+				[[nodiscard]] size_t operator()(std::shared_ptr<type_t> const& value) const noexcept {
+					return std::hash<psl::string8_t> {}(value->name);
+				}
+				[[nodiscard]] size_t operator()(psl::string8::view value) const noexcept {
+					return std::hash<psl::string8::view> {}(value);
+				}
+			};
+		};
+
+		struct field_t {
+			psl::string8_t name;
+			std::shared_ptr<type_t> type;
+			std::span<field_t> children;
+			psl::array<value_t> values;
+			size_t depth;
+		};
+
+
+		std::unordered_set<std::shared_ptr<type_t>, type_t::hasher_t, type_t::comparator_t> types = {
+		  {std::make_shared<type_t>(type_t {.name		= "u64",
+											.fields		= {{.name = "value", .values = {"0"}}},
+											.attributes = {{.name = "inline"}}})},
+		  std::make_shared<type_t>(
+			type_t {.name = "u32", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "u16", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "u16", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "u8", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "i64", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "i32", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "i16", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(
+			type_t {.name = "i8", .fields = {{.name = "value", .values = {"0"}}}, .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(type_t {.name	   = "string",
+										   .fields	   = {{.name = "value", .values = {""}}},
+										   .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(type_t {.name	   = "bool",
+										   .fields	   = {{.name = "value", .values = {"true"}}},
+										   .attributes = {{.name = "inline"}}}),
+		  std::make_shared<type_t>(type_t {.name = "object", .attributes = {{.name = "]dynamic"}}})};
+		psl::array<field_t> fields;
+	};
+
+	struct rt_writer_t {
+		using return_type = noop_t;
+
+		rt_format_t result {};
+		psl::array<size_t> field_stack {};
+		rt_writer_t() {};
+
+		auto write(psl::string8::view view, storage_field_t::field_type type) {
+			switch(type) {
+			case storage_field_t::field_type::identifier: {
+				field_stack.emplace_back(result.fields.size());
+				result.fields.emplace_back(
+				  rt_format_t::field_t({view.data(), view.size()}, nullptr, {}, {}, field_stack.size() - 1));
+			} break;
+			case storage_field_t::field_type::type: {
+				auto it = result.types.find(view);
+				psl::assertion([&]() { return it != std::end(result.types); },
+							   "Failed to find '{}' in the typeslist, did you forget to define the prototype?",
+							   view);
+				result.fields[field_stack.back()].type = *it;
+			} break;
+			case storage_field_t::field_type::value: {
+				result.fields[field_stack.back()].values.emplace_back(rt_format_t ::value_t {view.data(), view.size()});
+			} break;
+			}
+		}
+
+		auto transform_directive(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::directive);
+			return {};
+		}
+		auto transform_directive_value(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::directive_value);
+			return {};
+		}
+
+		auto transform_identifier(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::identifier);
+			return {};
+		}
+
+		auto transform_type(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::type);
+			return {};
+		}
+
+		auto transform_attribute(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::attribute);
+			return {};
+		}
+
+		auto transform_attribute_value(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::attribute_value);
+			return {};
+		}
+
+		auto transform_value(psl::string8::view view) -> return_type {
+			write(view, storage_field_t::field_type::value);
+			return {};
+		}
+
+		auto increase_depth() {}
+		auto decrease_depth() { field_stack.pop_back(); }
+	};
+
 	template <typename T, bool AllowDirectives = true>
 	constexpr auto parse(psl::string8::view text, T& target) -> parser::parse_result_t<typename T::return_type> {
 		using return_type = typename T::return_type;
@@ -496,9 +674,9 @@ inline namespace _details {
 		  });
 
 		// parses all objects until the end statement is found.
-		// we first scan to see if the next item would satisfy an object (i.e. does it have an identifier and a split)
-		// otherwise we invalidate the search. For the loop we internally first scan for the end statement to decide if
-		// a next object even exists.
+		// we first scan to see if the next item would satisfy an object (i.e. does it have an identifier and a
+		// split) otherwise we invalidate the search. For the loop we internally first scan for the end statement to
+		// decide if a next object even exists.
 		auto parse_assignment_objects = [&target](parser::parse_view_t view) -> parser::parse_result_t<return_type> {
 			constexpr auto parse_identifier =
 			  wrap(_details::parse_identifier) < wrap(_details::parse_identifier_type_seperator);
@@ -678,5 +856,14 @@ consteval auto parse(psl::ct_string_wrapper<View>) {
 	_details::storage_writer_t<calculated_size.value()> writer {};
 	_details::parse(View, writer);
 	return parse<writer.storage>();
+}
+
+auto parse(psl::string8::view text) -> parser::parse_result_t<rt_format_t> {
+	rt_writer_t writer {};
+	const auto res = _details::parse(text, writer);
+	if(res) {
+		return {res.view(), writer.result};
+	}
+	return parser::invalid_result;
 }
 }	 // namespace psl::serialization::format
