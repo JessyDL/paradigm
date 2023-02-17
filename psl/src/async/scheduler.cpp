@@ -140,12 +140,8 @@ void scheduler::execute() {
 							std::back_inserter(invocables));
 	}
 
-	size_t max_workers {m_Invocables.size()};
 	for(auto& thread : m_Workerthreads) {
 		thread->resume();
-		if(--max_workers == 0) {
-			break;
-		}
 	}
 
 	while(inflight.size() > 0) {
@@ -218,12 +214,8 @@ void scheduler::execute() {
 							   std::end(inflight),
 							   [](const auto& lhs, const auto& rhs) { return *lhs < *rhs; });
 
-			size_t max_workers {inflight.size()};
 			for(auto& thread : m_Workerthreads) {
 				thread->resume();
-				if(--max_workers == 0) {
-					break;
-				}
 			}
 		}
 	}

@@ -123,9 +123,9 @@ auto t1 = litmus::suite<"tasks with inter-task-dependencies">() = []() {
 };
 
 
-auto t2 = litmus::suite<"tasks with inter-memory-dependencies">() = []() {
-	async::scheduler scheduler {24};
-	size_t iteration_count = 24 * 10;
+auto t2 = litmus::suite<"tasks with inter-memory-dependencies">(12) = [](size_t threads) {
+	async::scheduler scheduler {threads};
+	size_t iteration_count = threads * 10;
 
 	std::vector<uint64_t> shared_values {50045,	 150020, 121005, 233100, 250045, 367000, 50045,	 150020,
 										 121005, 233100, 250045, 367000, 50045,	 150020, 121005, 233100,
