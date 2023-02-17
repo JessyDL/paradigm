@@ -58,6 +58,8 @@ struct worker {
 			if(auto item = m_Consumer.pop(); item) {
 				auto task = item.value();
 				task->operator()();
+			} else if(m_Consumer.size() == 0) {
+				pause();
 			}
 		}
 		m_Done.store(true, std::memory_order_relaxed);
@@ -87,6 +89,10 @@ scheduler::scheduler(std::optional<size_t> workers) noexcept
 scheduler::~scheduler() {}
 
 void scheduler::execute() {
+	if(m_Invocables.empty()) {
+		return;
+	}
+
 	struct invocable_comparer {
 		bool operator()(psl::view_ptr<details::packet> lhs, size_t rhs) const noexcept { return *lhs < rhs; }
 
@@ -134,8 +140,12 @@ void scheduler::execute() {
 							std::back_inserter(invocables));
 	}
 
+	size_t max_workers {m_Invocables.size()};
 	for(auto& thread : m_Workerthreads) {
 		thread->resume();
+		if(--max_workers == 0) {
+			break;
+		}
 	}
 
 	while(inflight.size() > 0) {
@@ -207,6 +217,14 @@ void scheduler::execute() {
 							   std::next(std::begin(inflight), inflight_mid),
 							   std::end(inflight),
 							   [](const auto& lhs, const auto& rhs) { return *lhs < *rhs; });
+
+			size_t max_workers {inflight.size()};
+			for(auto& thread : m_Workerthreads) {
+				thread->resume();
+				if(--max_workers == 0) {
+					break;
+				}
+			}
 		}
 	}
 	for(auto& thread : m_Workerthreads) {
