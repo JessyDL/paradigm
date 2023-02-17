@@ -78,7 +78,7 @@ inline namespace _details {
 			return value_parse_type::object;
 		} else if(view.starts_with("object"sv)) {
 			auto offset = view.find_first_not_of(" \n\r\t"sv, 6);
-			if(offset != view.npos && view[offset] == '<') {
+			if(offset != view.npos && view[offset] == '-') {
 				return value_parse_type::object;
 			}
 		}
@@ -90,7 +90,7 @@ inline namespace _details {
 			return true;
 		} else if(view.starts_with("prototype"sv)) {
 			auto offset = view.find_first_not_of(" \n\r\t"sv, 6);
-			if(offset != view.npos && view[offset] == '<') {
+			if(offset != view.npos && view[offset] == '-') {
 				return true;
 			}
 		}
@@ -459,30 +459,45 @@ inline namespace _details {
 			psl::string8_t name {};
 			std::span<type_field_t> children {};
 			psl::array<value_t> values {};
+			psl::array<attribute_t> attributes {};
 		};
 
 		struct type_t {
 			psl::string8_t name {};
 			psl::array<type_field_t> fields {};
 			psl::array<attribute_t> attributes {};
+			bool extendable {false};
+			std::shared_ptr<type_t> base {};
 
 			friend constexpr bool operator==(type_t const& lhs, type_t const& rhs) noexcept {
-				return lhs.name == rhs.name;
+				return lhs.name == rhs.name && lhs.base == rhs.base;
 			}
 			friend constexpr bool operator!=(type_t const& lhs, type_t const& rhs) noexcept {
-				return lhs.name != rhs.name;
+				return lhs.name != rhs.name && lhs.base != rhs.base;
 			}
 			friend constexpr bool operator==(type_t const& lhs, psl::string8::view const& rhs) noexcept {
+				auto split = rhs.rfind("->");
+				if(split != rhs.npos) {
+					auto type	  = rhs.substr(rhs.size() - split);
+					auto basetype = rhs.substr(0, split);
+					return lhs.name == type && lhs.base && *lhs.base == basetype;
+				}
 				return lhs.name == rhs;
 			}
 			friend constexpr bool operator!=(type_t const& lhs, psl::string8::view const& rhs) noexcept {
+				auto split = rhs.rfind("->");
+				if(split != rhs.npos) {
+					auto type	  = rhs.substr(rhs.size() - split);
+					auto basetype = rhs.substr(0, split);
+					return lhs.name != type || !lhs.base || *lhs.base != basetype;
+				}
 				return lhs.name != rhs;
 			}
 			friend constexpr bool operator==(psl::string8::view const& lhs, type_t const& rhs) noexcept {
-				return lhs == rhs.name;
+				return rhs == lhs;
 			}
 			friend constexpr bool operator!=(psl::string8::view const& lhs, type_t const& rhs) noexcept {
-				return lhs != rhs.name;
+				return rhs != lhs;
 			}
 
 			struct comparator_t {
@@ -521,6 +536,46 @@ inline namespace _details {
 			size_t depth;
 		};
 
+		auto get_type(psl::string8::view type) -> std::shared_ptr<type_t> {
+			using namespace parser::operators;
+			constexpr auto parse =
+			  parser::skip_whitespace_parser()<accumulate_many(parser::none_of(" \t\n\r-"sv), 1)>
+			  parser::skip_whitespace_parser() >
+			  (parser::text_parser("->") | [](parser::parse_view_t view) -> parser::parse_result_t<psl::string8::view> {
+				  if(view.empty()) {
+					  return {view, view};
+				  }
+				  return parser::invalid_result;
+			  });
+
+			auto result = parse(type);
+			if(!result) {
+				return nullptr;
+			}
+			auto it = types.find(result.value());
+			if(it == std::end(types)) {
+				return nullptr;
+			}
+
+			psl::string8_t name {result.value()};
+			result = parse(result.view());
+			while(result) {
+				name += "->";
+				name.insert_range(name.end(), result.value());
+				auto prev_it = it;
+				it			 = types.find(name);
+				if(it == std::end(types)) {
+					auto derived  = std::make_shared<type_t>(**prev_it);
+					derived->name = name;
+					derived->base = *prev_it;
+					it			  = types.insert(derived).first;
+				}
+				result = parse(result.view());
+			}
+
+			return *it;
+		}
+
 
 		std::unordered_set<std::shared_ptr<type_t>, type_t::hasher_t, type_t::comparator_t> types = {
 		  {std::make_shared<type_t>(type_t {.name		= "u64",
@@ -548,7 +603,8 @@ inline namespace _details {
 		  std::make_shared<type_t>(type_t {.name	   = "bool",
 										   .fields	   = {{.name = "value", .values = {"true"}}},
 										   .attributes = {{.name = "inline"}}}),
-		  std::make_shared<type_t>(type_t {.name = "object", .attributes = {{.name = "]dynamic"}}})};
+		  std::make_shared<type_t>(type_t {.name = "object", .attributes = {{.name = "]dynamic"}}, .extendable = true}),
+		  std::make_shared<type_t>(type_t {.name = "array", .attributes = {{.name = "inline"}}, .extendable = true})};
 		psl::array<field_t> fields;
 	};
 
@@ -567,11 +623,11 @@ inline namespace _details {
 				  rt_format_t::field_t({view.data(), view.size()}, nullptr, {}, {}, field_stack.size() - 1));
 			} break;
 			case storage_field_t::field_type::type: {
-				auto it = result.types.find(view);
-				psl::assertion([&]() { return it != std::end(result.types); },
+				auto type = result.get_type(view);
+				psl::assertion([&]() { return type != nullptr; },
 							   "Failed to find '{}' in the typeslist, did you forget to define the prototype?",
 							   view);
-				result.fields[field_stack.back()].type = *it;
+				result.fields[field_stack.back()].type = type;
 			} break;
 			case storage_field_t::field_type::value: {
 				result.fields[field_stack.back()].values.emplace_back(rt_format_t ::value_t {view.data(), view.size()});
