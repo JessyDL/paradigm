@@ -74,7 +74,7 @@ class Android:
         return packages
 
     def dependencies():
-        return [("platforms;android-31", 0), ("cmake;3.22.1", 3), ("ndk;25.1.8937393", 1)]
+        return [("platforms;android-31", 0), ("cmake;3.22.1", 3), ("ndk;25.2.9519653", 1)]
     
     def is_generated(self) -> bool:
         return self._generated
