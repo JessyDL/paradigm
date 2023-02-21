@@ -28,4 +28,4 @@ jobs:
       run: cmake --build --preset=${{ matrix.target }}-release -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       if: ${{ matrix.tests == 'ON' }}
-      run: ./builds/default/bin/tests --formatter compact --no-source --single-threaded
+      run: ./builds/default/bin/tests --formatter compact --no-source
