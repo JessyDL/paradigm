@@ -97,7 +97,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 							 std::chrono::duration<float> rTime,
 							 std::uintptr_t cache_offset,
 							 details::system_information& information) {
-	auto write_data = [](state_t& state, psl::array<details::dependency_pack> dep_packs) {
+	auto write_data = [](state_t& state, psl::array<details::dependency_pack> const& dep_packs) {
 		for(const auto& dep_pack : dep_packs) {
 			for(auto& binding : dep_pack.m_RWBindings) {
 				const size_t size	= dep_pack.m_Sizes.at(binding.first);
@@ -144,21 +144,20 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
 
-		auto multi_pack = slice(pack, m_Scheduler->workers(), m_MinEntitiesPerWorker);
+		// main thread participates, so workers + 1
+		auto multi_pack = slice(pack, m_Scheduler->workers() + 1, m_MinEntitiesPerWorker);
 
 		auto index = info_buffer.size();
-		for(size_t i = 0; i < std::min(m_Scheduler->workers(), multi_pack.size()); ++i)
+		for(size_t i = 0; i < std::min(m_Scheduler->workers() + 1, multi_pack.size()); ++i)
 			info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick));
 
 		auto infoBuffer = std::next(std::begin(info_buffer), index);
 
 		for(auto& mPack : multi_pack) {
-			auto t1 = m_Scheduler->schedule([&fn = information.system(), infoBuffer, mPack]() mutable {
-				return std::invoke(fn, infoBuffer->get(), mPack);
+			auto t1 = m_Scheduler->schedule([&fn = information.system(), infoBuffer, &mPack]() mutable {
+				std::invoke(fn, infoBuffer->get(), mPack);
 			});
-			auto t2 = m_Scheduler->schedule(
-			  [&write_data, this, mPack = mPack]() { return std::invoke(write_data, *this, mPack); });
-
+			auto t2 = m_Scheduler->schedule([&]() { std::invoke(write_data, *this, mPack); });
 			t2.after(t1);
 
 			infoBuffer = std::next(infoBuffer);
