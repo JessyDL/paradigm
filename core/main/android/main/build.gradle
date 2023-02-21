@@ -4,6 +4,7 @@ android {
     compileSdkVersion 31
     ndkVersion '25.2.9519653'
     assetPacks = [":package_0"]
+    namespace 'com.paradigmengine.main'
     defaultConfig {
         applicationId = 'com.paradigmengine.main'
         minSdkVersion 21
