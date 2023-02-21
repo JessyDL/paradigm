@@ -74,12 +74,14 @@ class Android:
         return packages
 
     def dependencies():
-        return [("platforms;android-31", 0), ("cmake;3.22.1", 3), ("ndk;25.1.8937393", 1)]
+        return [("platforms;android-33-ext4", 0), ("cmake;3.22.1", 3), ("ndk;25.2.9519653", 1)]
     
     def is_generated(self) -> bool:
         return self._generated
 
     def generate(self, overwrite=False) -> None:
+        android_build_root = os.path.join(CURRENT_DIR, '..', 'core', 'main', 'android')
+
         if self._generated:
             if not overwrite: return
 
@@ -96,8 +98,8 @@ class Android:
                     '--project-name', "main",
                     '--incubating'
                 ], directory=self._directory, print_stdout=True)
+            shutil.copyfile(os.path.join(android_build_root, "gradle.properties"), os.path.join(self._directory, "gradle.properties"))
 
-        android_build_root = os.path.join(CURRENT_DIR, '..', 'core', 'main', 'android')
         shutil.copytree(android_build_root, self._directory, dirs_exist_ok=True)
         
         # create the symlinks to the source code
