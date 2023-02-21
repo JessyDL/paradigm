@@ -48,18 +48,25 @@ struct worker {
 
   private:
 	void loop() {
+		constexpr size_t spin_default {1000};
+		size_t spincount {spin_default};
 		while(m_Run.load(std::memory_order_relaxed)) {
 			while(m_Paused) {
 				std::unique_lock<std::mutex> lk(m);
 				cv.wait(lk, [this]() { return !m_Paused; });
 				lk.unlock();
+				spincount = spin_default;
 			}
 
 			if(auto item = m_Consumer.pop(); item) {
 				auto task = item.value();
 				task->operator()();
-			} else if(m_Consumer.size() == 0) {
+				spincount = spin_default;
+			} else if(spincount == 0) {
 				pause();
+			} else if(m_Consumer.size() == 0) {
+				--spincount;
+				std::this_thread::sleep_for(std::chrono::nanoseconds(10));
 			}
 		}
 		m_Done.store(true, std::memory_order_relaxed);
@@ -78,7 +85,8 @@ struct worker {
 }	 // namespace psl::async::details
 
 scheduler::scheduler(std::optional<size_t> workers) noexcept
-	: m_Workers(workers.value_or(std::thread::hardware_concurrency() - 1)) {
+	: m_Workers(workers.value_or(std::thread::hardware_concurrency() -
+								 1 /* removing one for the main thread that participates */)) {
 	m_Workerthreads.reserve(m_Workers);
 	for(auto i = 0; i < m_Workers; ++i) {
 		m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer()));
