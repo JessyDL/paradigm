@@ -80,6 +80,8 @@ class Android:
         return self._generated
 
     def generate(self, overwrite=False) -> None:
+        android_build_root = os.path.join(CURRENT_DIR, '..', 'core', 'main', 'android')
+
         if self._generated:
             if not overwrite: return
 
@@ -96,8 +98,8 @@ class Android:
                     '--project-name', "main",
                     '--incubating'
                 ], directory=self._directory, print_stdout=True)
+            shutil.copyfile(os.path.join(android_build_root, "gradle.properties"), os.path.join(self._directory, "gradle.properties"))
 
-        android_build_root = os.path.join(CURRENT_DIR, '..', 'core', 'main', 'android')
         shutil.copytree(android_build_root, self._directory, dirs_exist_ok=True)
         
         # create the symlinks to the source code
