@@ -18,6 +18,7 @@ data/framebuffer
 data/geometry
 data/material
 data/sampler
+data/skeleton
 data/stream
 data/window
 
