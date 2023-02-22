@@ -11,8 +11,8 @@ class skeleton_t;
 
 namespace core::igles {
 class skeleton_t {
-	using index_size_t = core::data::skeleton_t::index_size_t;
-	using weight_t	   = core::data::skeleton_t::weight_t;
+	using index_size_t	= core::data::skeleton_t::index_size_t;
+	using weight_size_t = core::data::skeleton_t::weight_size_t;
 	/// @brief Used to describe the buffer layout and appearance on the GPU, this only exists as an assistance tool
 	struct gpu_transforms_buffer_t {
 		constexpr gpu_transforms_buffer_t() noexcept = default;
@@ -31,11 +31,11 @@ class skeleton_t {
 	/// @brief Used to describe the buffer layout and appearance on the GPU
 	struct gpu_weights_buffer_t {
 		constexpr gpu_weights_buffer_t() noexcept = default;
-		constexpr gpu_weights_buffer_t(index_size_t vertex_v, weight_t weight_v) noexcept
+		constexpr gpu_weights_buffer_t(index_size_t vertex_v, weight_size_t weight_v) noexcept
 			: vertex(vertex_v), weight(weight_v) {};
 
 		index_size_t vertex;
-		weight_t weight;
+		weight_size_t weight;
 	};
 
   public:

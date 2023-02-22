@@ -11,8 +11,8 @@ class skeleton_t {
 	static constexpr psl::string8::view serialization_name {"SKELETON"};
 
   public:
-	using index_size_t = core::data::geometry_t::index_size_t;
-	using weight_t	   = float;
+	using index_size_t	= core::data::geometry_t::index_size_t;
+	using weight_size_t = float;
 
 	class bone_t {
 		friend class psl::serialization::accessor;
@@ -21,10 +21,10 @@ class skeleton_t {
 	  public:
 		struct weight_t {
 			constexpr weight_t() noexcept = default;
-			constexpr weight_t(index_size_t vertex_v, skeleton_t::weight_t value_v) noexcept
+			constexpr weight_t(index_size_t vertex_v, weight_size_t value_v) noexcept
 				: vertex(vertex_v), value(value_v) {};
 			index_size_t vertex;
-			skeleton_t::weight_t value;
+			weight_size_t value;
 		};
 
 		constexpr bone_t() = default;
@@ -43,11 +43,11 @@ class skeleton_t {
 		void serialize(S& serializer) {
 			serializer << m_Name << m_Transform;
 			psl::serialization::property<"VERTICES", psl::array<index_size_t>> weight_vertices {};
-			psl::serialization::property<"WEIGHT", psl::array<weight_t>> weight_values {};
+			psl::serialization::property<"WEIGHT", psl::array<weight_size_t>> weight_values {};
 
 			for(auto const& weight : m_Weights) {
-				weight_vertices->push_back(weight.vertex);
-				weight_values->push_back(weight.value);
+				weight_vertices->emplace_back(weight.vertex);
+				weight_values->emplace_back(weight.value);
 			}
 
 			serializer << weight_vertices << weight_values;
