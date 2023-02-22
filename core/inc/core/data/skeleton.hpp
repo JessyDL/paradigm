@@ -46,8 +46,8 @@ class skeleton_t {
 			psl::serialization::property<"WEIGHT", psl::array<weight_t>> weight_values {};
 
 			for(auto const& weight : m_Weights) {
-				weight_vertices->emplace_back(weight.vertex);
-				weight_values->emplace_back(weight.value);
+				weight_vertices->push_back(weight.vertex);
+				weight_values->push_back(weight.value);
 			}
 
 			serializer << weight_vertices << weight_values;
