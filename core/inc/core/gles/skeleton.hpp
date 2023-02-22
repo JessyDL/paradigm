@@ -15,6 +15,11 @@ class skeleton_t {
 	using weight_t	   = core::data::skeleton_t::weight_t;
 	/// @brief Used to describe the buffer layout and appearance on the GPU, this only exists as an assistance tool
 	struct gpu_transforms_buffer_t {
+		constexpr gpu_transforms_buffer_t() noexcept = default;
+		constexpr gpu_transforms_buffer_t(psl::mat4x4 transform_v,
+										  index_size_t weight_index_v,
+										  index_size_t weight_count_v) noexcept
+			: transform(transform_v), weight_index(weight_index_v), weight_count(weight_count_v) {}
 		psl::mat4x4 transform;
 		/// @brief Refers to the index into the `gpu_weights_buffer_t` what vertices will be associated with this entry
 		index_size_t weight_index;
@@ -25,6 +30,10 @@ class skeleton_t {
 
 	/// @brief Used to describe the buffer layout and appearance on the GPU
 	struct gpu_weights_buffer_t {
+		constexpr gpu_weights_buffer_t() noexcept = default;
+		constexpr gpu_weights_buffer_t(index_size_t vertex_v, weight_t weight_v) noexcept
+			: vertex(vertex_v), weight(weight_v) {};
+
 		index_size_t vertex;
 		weight_t weight;
 	};

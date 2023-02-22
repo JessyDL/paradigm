@@ -20,6 +20,9 @@ class skeleton_t {
 
 	  public:
 		struct weight_t {
+			constexpr weight_t() noexcept = default;
+			constexpr weight_t(index_size_t vertex_v, skeleton_t::weight_t value_v) noexcept
+				: vertex(vertex_v), value(value_v) {};
 			index_size_t vertex;
 			skeleton_t::weight_t value;
 		};
