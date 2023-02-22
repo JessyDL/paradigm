@@ -1,8 +1,9 @@
 #pragma once
 
-#include "geometry.hpp"
+#include "core/data/geometry.hpp"
 #include "psl/serialization/property.hpp"
 #include "psl/serialization/serializer.hpp"
+#include "psl/utility/cast.hpp"
 
 namespace core::data {
 class skeleton_t {
@@ -64,6 +65,8 @@ class skeleton_t {
 	bone_t const& bone(index_size_t index) const { return m_Bones->at(index); }
 	bone_t& bone(index_size_t index) { return m_Bones->at(index); }
 	void bone(index_size_t index, bone_t value) { m_Bones->at(index) = value; }
+
+	index_size_t size() const noexcept { return psl::utility::narrow_cast<index_size_t>(m_Bones->size()); }
 
   private:
 	template <typename S>
