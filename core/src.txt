@@ -96,6 +96,7 @@ if(${PE_GLES})
 	program_cache
 	sampler
 	shader
+	skeleton
 	swapchain
 	texture
 	framebuffer
