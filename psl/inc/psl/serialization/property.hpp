@@ -301,6 +301,12 @@ namespace details {
 			concepts::HasOperatorInvoke<value_type, Args...>) {
 			return value(std::forward<Args>(args)...);
 		}
+
+		template <typename Y>
+		requires(std::is_convertible_v<value_type, Y>) constexpr force_inline operator Y() const
+		  noexcept(std::is_nothrow_convertible_v<value_type, Y>) {
+			return static_cast<Y>(value);
+		}
 #pragma endregion
 #pragma endregion
 
