@@ -202,7 +202,7 @@ namespace file {
 	/// \param[in] filename the path to the file.
 	/// \returns true in case the file was successfuly erased.
 	/// \todo android lacks an implementation.
-	static bool erase(psl::string_view filename);
+	bool erase(psl::string_view filename);
 
 	/// \brief reads the given filepath's contents into a psl::char_t container.
 	/// \param[in] filename the path to the file.
