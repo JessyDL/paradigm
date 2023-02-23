@@ -3,15 +3,15 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "ERROR: detected an in-tree build. please create a sub-directory and invoke cmake from there, or a location outside the project.")
 endif()
 
-if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "4")
-    message(FATAL_ERROR "we require a 64bit build platform")
-endif()
-
 cmake_minimum_required(VERSION 3.16)
 set(PE_NAME paradigm CACHE INTERNAL "")
 project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
+
+if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
+    message(FATAL_ERROR "we require a 64bit build platform, got sizeof void* being ${CMAKE_SIZEOF_VOID_P} bytes")
+endif()
 
 if (UNIX AND NOT APPLE AND NOT ANDROID)
     set(LINUX TRUE)

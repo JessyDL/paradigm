@@ -244,8 +244,8 @@ class vertex_stream_t {
 			std::visit(
 			  [&serializer]<typename T>(T& value) {
 				  psl::serialization::property<"TYPE", type> typeProp {T::memory_stream_type};
-				  psl::serialization::property<"DATA", psl::array_view<typename T::unit_t>> data {value.value()};
-				  serializer << typeProp << data;
+				  serializer << typeProp;
+				  serializer.template parse<"DATA">(value.value());
 			  },
 			  m_Stream);
 		}
