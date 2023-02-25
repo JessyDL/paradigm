@@ -150,3 +150,5 @@ endif()
 if(PE_MAKE_EXE)
 	add_subdirectory(main)
 endif()
+
+install(TARGETS core)

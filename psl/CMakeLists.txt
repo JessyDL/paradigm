@@ -35,3 +35,5 @@ target_compile_options(psl PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_LIB
 if(PE_DEV_MAKE_PSL_EXE)
 	add_subdirectory(main)
 endif()
+
+install(TARGETS psl)
