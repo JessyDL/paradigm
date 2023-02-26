@@ -132,7 +132,7 @@ target_include_directories(core
 		${WSI_INC}
 )
 
-target_link_libraries(core PUBLIC gli)
+target_link_libraries(core PRIVATE gli)
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(core PUBLIC ${WSI_LIB})
@@ -144,7 +144,7 @@ set_target_properties(core PROPERTIES LINKER_LANGUAGE CXX)
 target_compile_features(core PUBLIC ${PE_COMPILER_FEATURES})
 target_compile_options(core PUBLIC ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
 if(MSVC)
-	target_compile_options(core PUBLIC /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
+	target_compile_options(core PRIVATE /experimental:external /external:I${gli_SOURCE_DIR} /external:W3)
 endif()
 
 if(PE_MAKE_EXE)
