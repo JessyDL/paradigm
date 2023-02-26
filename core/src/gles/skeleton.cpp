@@ -41,12 +41,12 @@ skeleton_t::skeleton_t(core::resource::cache_t& cache,
 	gpu_weights.reserve(weights_size);
 
 	for(auto const& bone : data->bones()) {
-		auto const weight_index = psl::utility::narrow_cast<index_size_t>(gpu_weights.size());
+		auto const weight_index = psl::narrow_cast<index_size_t>(gpu_weights.size());
 		for(auto const& weight : bone.weights()) {
 			gpu_weights.emplace_back(weight.vertex, weight.value);
 		}
 		gpu_transforms.emplace_back(
-		  bone.transform(), weight_index, psl::utility::narrow_cast<index_size_t>(gpu_weights.size()) - weight_index);
+		  bone.transform(), weight_index, psl::narrow_cast<index_size_t>(gpu_weights.size()) - weight_index);
 	}
 	m_TransformsBuffer->set(gpu_transforms.data(),
 							{core::gfx::memory_copy {0, m_TransformsSegment.range().begin, transforms_size}});

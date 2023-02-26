@@ -69,7 +69,7 @@ class skeleton_t {
 	bone_t& bone(index_size_t index) { return m_Bones->at(index); }
 	void bone(index_size_t index, bone_t value) { m_Bones->at(index) = value; }
 
-	index_size_t size() const noexcept { return psl::utility::narrow_cast<index_size_t>(m_Bones->size()); }
+	index_size_t size() const noexcept { return psl::narrow_cast<index_size_t>(m_Bones->size()); }
 
   private:
 	template <typename S>

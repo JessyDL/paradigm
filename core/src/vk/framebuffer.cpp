@@ -160,7 +160,7 @@ bool framebuffer_t::add(core::resource::cache_t& cache,
 	auto meta = res.value();
 
 	binding& binding		   = m_Bindings.emplace_back();
-	binding.index			   = psl::utility::narrow_cast<uint32_t>(index);
+	binding.index			   = psl::narrow_cast<uint32_t>(index);
 	binding.description		   = description;
 	binding.description.format = gfx::conversion::to_vk(meta->format());
 	for(auto i = index; i < index + count; ++i) {
