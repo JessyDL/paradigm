@@ -239,15 +239,14 @@ void drawpass::create_fences(const size_t size) {
 }
 
 void drawpass::destroy_fences() {
-	if(!utility::vulkan::check(
-		 m_Context->device().waitForFences(psl::narrow_cast<uint32_t>(m_WaitFences.size()),
-										   m_WaitFences.data(),
-										   VK_TRUE,
-										   std::numeric_limits<uint64_t>::max())))
+	if(!utility::vulkan::check(m_Context->device().waitForFences(psl::narrow_cast<uint32_t>(m_WaitFences.size()),
+																 m_WaitFences.data(),
+																 VK_TRUE,
+																 std::numeric_limits<uint64_t>::max())))
 		LOG_ERROR("Failed to wait for fence");
 
-	if(!utility::vulkan::check(m_Context->device().resetFences(psl::narrow_cast<uint32_t>(m_WaitFences.size()),
-															   m_WaitFences.data())))
+	if(!utility::vulkan::check(
+		 m_Context->device().resetFences(psl::narrow_cast<uint32_t>(m_WaitFences.size()), m_WaitFences.data())))
 		LOG_ERROR("Failed to reset fence");
 	for(auto& fence : m_WaitFences) {
 		m_Context->device().destroyFence(fence, nullptr);
