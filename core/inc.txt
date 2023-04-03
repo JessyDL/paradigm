@@ -12,6 +12,7 @@ stdb_truetype
 targetver
 defines
 
+data/animation
 data/application
 data/buffer
 data/framebuffer

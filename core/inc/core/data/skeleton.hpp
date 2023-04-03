@@ -28,20 +28,20 @@ class skeleton_t {
 		};
 
 		constexpr bone_t() = default;
-		constexpr bone_t(psl::string8::view name, psl::mat4x4 transform = {}, psl::array<weight_t> weights = {})
-			: m_Name(name), m_Transform(transform), m_Weights(weights) {};
+		constexpr bone_t(psl::string8::view name, psl::mat4x4 bonespace_offset = {}, psl::array<weight_t> weights = {})
+			: m_Name(name), m_BonespaceOffset(bonespace_offset), m_Weights(weights) {};
 
 		void name(psl::string_view value) { m_Name = value; }
 		psl::string8::view name() const noexcept { return m_Name; }
-		void transform(psl::mat4x4 value) { m_Transform = value; }
-		psl::mat4x4 transform() const noexcept { return m_Transform; }
+		void bonespace_offset(psl::mat4x4 value) { m_BonespaceOffset = value; }
+		psl::mat4x4 bonespace_offset() const noexcept { return m_BonespaceOffset; }
 		void weights(psl::array<weight_t> const& values) { m_Weights = values; }
 		psl::array<weight_t> const& weights() const noexcept { return m_Weights; }
 
 	  private:
 		template <typename S>
 		void serialize(S& serializer) {
-			serializer << m_Name << m_Transform;
+			serializer << m_Name << m_BonespaceOffset;
 			psl::serialization::property<"VERTICES", psl::array<index_size_t>> weight_vertices {};
 			psl::serialization::property<"WEIGHT", psl::array<weight_size_t>> weight_values {};
 
@@ -54,7 +54,8 @@ class skeleton_t {
 		};
 
 		psl::serialization::property<"NAME", psl::string8_t> m_Name {};
-		psl::serialization::property<"TRANSFORM", psl::mat4x4> m_Transform {};
+		// used to offset the model's local space into the bonespace needed to apply animation transformations
+		psl::serialization::property<"BONESPACE_OFFSET", psl::mat4x4> m_BonespaceOffset {};
 		psl::array<weight_t> m_Weights {};
 	};
 
