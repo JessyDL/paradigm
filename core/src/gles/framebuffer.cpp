@@ -31,7 +31,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		core::ivk::log->error("could not load sampler for framebuffer {0}", metaData.uid);
 	}
 
-	glGenFramebuffers(psl::utility::narrow_cast<uint32_t>(m_Framebuffers.size()), m_Framebuffers.data());
+	glGenFramebuffers(psl::narrow_cast<uint32_t>(m_Framebuffers.size()), m_Framebuffers.data());
 	size_t index = 0u;
 	for(const auto& attach : data->attachments()) {
 		auto texture = cache.find<core::igles::texture_t>(attach.texture());
@@ -42,7 +42,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 
 		auto count				   = attach.shared() ? 1u : m_Framebuffers.size();
 		binding& binding		   = m_Bindings.emplace_back();
-		binding.index			   = psl::utility::narrow_cast<uint32_t>(index);
+		binding.index			   = psl::narrow_cast<uint32_t>(index);
 		binding.description.format = texture.meta()->format();
 
 		binding.attachments.push_back(texture);
@@ -74,7 +74,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 }
 
 framebuffer_t::~framebuffer_t() {
-	glDeleteFramebuffers(psl::utility::narrow_cast<uint32_t>(m_Framebuffers.size()), m_Framebuffers.data());
+	glDeleteFramebuffers(psl::narrow_cast<uint32_t>(m_Framebuffers.size()), m_Framebuffers.data());
 }
 
 std::vector<framebuffer_t::texture_handle> framebuffer_t::attachments(uint32_t index) const noexcept {

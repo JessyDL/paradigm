@@ -153,7 +153,7 @@ void texture_t::create_2D(void* data) {
 
 	GLint internalFormat, format, type;
 	gfx::conversion::to_gles(m_Meta->format(), internalFormat, format, type);
-	auto pixel_storage = psl::utility::narrow_cast<uint32_t>(gfx::packing_size(m_Meta->format()));
+	auto pixel_storage = psl::narrow_cast<uint32_t>(gfx::packing_size(m_Meta->format()));
 	if(data != nullptr && pixel_storage != 4) {
 		glPixelStorei(GL_UNPACK_ALIGNMENT, pixel_storage);
 	}

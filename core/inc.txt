@@ -12,12 +12,14 @@ stdb_truetype
 targetver
 defines
 
+data/animation
 data/application
 data/buffer
 data/framebuffer
 data/geometry
 data/material
 data/sampler
+data/skeleton
 data/stream
 data/window
 
@@ -155,6 +157,7 @@ if(${PE_GLES})
 	program_cache
 	sampler
 	shader
+	skeleton
 	swapchain
 	texture
 	framebuffer

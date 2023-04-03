@@ -1,6 +1,7 @@
 SET(SRC 
 logging
 
+data/animation
 data/application
 data/buffer
 data/framebuffer
@@ -96,6 +97,7 @@ if(${PE_GLES})
 	program_cache
 	sampler
 	shader
+	skeleton
 	swapchain
 	texture
 	framebuffer
