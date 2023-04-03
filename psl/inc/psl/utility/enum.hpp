@@ -1,7 +1,7 @@
 #pragma once
 #include <type_traits>
 
-namespace psl::utility {
+namespace psl {
 template <typename T>
 concept IsEnumClass = std::is_enum_v<T> && !std::is_convertible_v<T, std::underlying_type_t<T>>;
 
@@ -13,27 +13,24 @@ inline constexpr enum_ops_t enable_enum_ops = enum_ops_t::NONE;
 template <>
 inline constexpr auto enable_enum_ops<enum_ops_t> = enum_ops_t::BIT;
 
+namespace details {
+	constexpr auto enum_bit_test(enum_ops_t value, enum_ops_t bit) noexcept -> bool {
+		return static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(value) &
+									   static_cast<std::underlying_type_t<enum_ops_t>>(bit)) == bit;
+	}
+}	 // namespace details
+
 template <typename T>
-concept HasEnumBitOps = IsEnumClass<T> && static_cast<enum_ops_t>(
-						  static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
-						  static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::BIT)) == enum_ops_t::BIT;
+concept HasEnumBitOps = IsEnumClass<T> && details::enum_bit_test(enable_enum_ops<T>, enum_ops_t::BIT);
 template <typename T>
-concept HasEnumShiftOps = IsEnumClass<T> && static_cast<enum_ops_t>(
-							static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
-							static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::SHIFT)) == enum_ops_t::SHIFT;
+concept HasEnumShiftOps = IsEnumClass<T> && details::enum_bit_test(enable_enum_ops<T>, enum_ops_t::SHIFT);
 template <typename T>
-concept HasEnumArithmeticOps =
-  IsEnumClass<T> && static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
-											static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::ARITHMETIC)) ==
-  enum_ops_t::ARITHMETIC;
+concept HasEnumArithmeticOps = IsEnumClass<T> && details::enum_bit_test(enable_enum_ops<T>, enum_ops_t::ARITHMETIC);
 template <typename T>
-concept HasEnumLogicalOps =
-  IsEnumClass<T> &&
-  static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
-						  static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::LOGICAL)) == enum_ops_t::LOGICAL;
+concept HasEnumLogicalOps = IsEnumClass<T> && details::enum_bit_test(enable_enum_ops<T>, enum_ops_t::LOGICAL);
 
 template <HasEnumBitOps T>
-[[nodiscard]] constexpr T operator|(T const a, T const b) noexcept {
+[[nodiscard]] constexpr T operator|(T const& a, T const& b) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) | static_cast<I>(b));
 }
@@ -98,4 +95,4 @@ template <HasEnumShiftOps T>
 constexpr T& operator>>=(T& a, std::size_t pos) noexcept {
 	return a = a >> pos;
 }
-}	 // namespace psl::utility
+}	 // namespace psl
