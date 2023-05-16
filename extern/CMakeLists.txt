@@ -33,3 +33,24 @@ if(NOT TARGET strtype)
     add_subdirectory(strtype)
 endif()
 set_property(TARGET strtype PROPERTY FOLDER "extern")
+
+# setup cppfront which lacks a cmake integration
+add_executable(cppfront_compiler cppfront/source/cppfront.cpp)
+set_target_properties(
+    cppfront_compiler
+    PROPERTIES
+    OUTPUT_NAME cppfront
+    EXPORT_NAME cppfront
+)
+target_compile_features(cppfront_compiler PRIVATE cxx_std_20)
+
+add_library(cppfront_interface INTERFACE)
+target_compile_features(cppfront_interface INTERFACE cxx_std_20)
+target_sources(
+    cppfront_interface
+    INTERFACE
+    FILE_SET HEADERS
+    BASE_DIRS cppfront/include
+    FILES cppfront/include/cpp2util.h
+)
+target_include_directories(cppfront_interface SYSTEM INTERFACE "$<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/cppfront/include>")

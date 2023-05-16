@@ -101,10 +101,20 @@ add_custom_command(TARGET core_generator
 	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/gen/core/paradigm.hpp
 	COMMENT "Generating headers for Paradigm")
 
-add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
+add_custom_target(core_cppfront)
+list(TRANSFORM SRC_GEN_CPP2 PREPEND ${CMAKE_CURRENT_SOURCE_DIR}/)
+add_custom_command(TARGET core_cppfront
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/cppfront.py -c $<TARGET_FILE:cppfront_compiler> -i ${SRC_CPP2} --generate
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}
+	BYPRODUCTS ${SRC_GEN_CPP2}
+	COMMENT "Transpile cpp2 to cpp")
+
+add_dependencies(core_cppfront cppfront_compiler)
+
+add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS} ${SRC_GEN_CPP2})
 add_library(paradigm::core ALIAS core)
 
-add_dependencies(core core_generator)
+add_dependencies(core core_generator core_cppfront)
 
 if(${PE_PCH})
 	target_precompile_headers(core PUBLIC ${INC_PCH})
@@ -119,7 +129,7 @@ if(VK_STATIC AND PE_VULKAN)
 	list(APPEND PE_DL_LIBS ${vk_lib_name})
 endif()
 
-target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS})
+target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS} cppfront_interface)
 set_target_output_directory(core)
 target_include_directories(core
 	PUBLIC 
