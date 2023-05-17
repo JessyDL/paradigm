@@ -108,8 +108,6 @@ if(${PE_GLES})
 endif()
 
 set(SRC_CPP2
-	hello
-	other
 )
 
 list(TRANSFORM SRC_CPP2 PREPEND src/)
