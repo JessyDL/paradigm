@@ -106,3 +106,12 @@ if(${PE_GLES})
 	list(TRANSFORM SRC_GLES PREPEND src/gles/)
 	list(TRANSFORM SRC_GLES APPEND .cpp)
 endif()
+
+set(SRC_CPP2
+)
+
+list(TRANSFORM SRC_CPP2 PREPEND src/)
+set(SRC_GEN_CPP2 ${SRC_CPP2})
+list(TRANSFORM SRC_GEN_CPP2 APPEND .gen.cpp)
+list(TRANSFORM SRC_CPP2 APPEND .cpp2)
+set_source_files_properties(${SRC_GEN_CPP2} PROPERTIES GENERATED 1)

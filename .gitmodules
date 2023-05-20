@@ -16,3 +16,6 @@
 [submodule "extern/strtype"]
 	path = extern/strtype
 	url = https://github.com/JessyDL/strtype.git
+[submodule "extern/cppfront"]
+	path = extern/cppfront
+	url = https://github.com/hsutter/cppfront.git
