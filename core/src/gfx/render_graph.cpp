@@ -32,7 +32,8 @@ psl::view_ptr<core::gfx::computepass> render_graph::create_computepass(handle<co
 
 template <typename... Ts>
 auto get_var_ptr(const std::variant<Ts...>& vars) {
-	return std::visit(psl::utility::templates::overloaded {[](auto&& pass) -> void* { return (void*)&pass.get(); }}, vars);
+	return std::visit(psl::utility::templates::overloaded {[](auto&& pass) -> void* { return (void*)&pass.get(); }},
+					  vars);
 }
 
 void render_graph::rebuild() noexcept {
@@ -95,7 +96,7 @@ bool render_graph::disconnect(render_graph::view_var_t child, render_graph::view
 					   std::visit(psl::utility::templates::overloaded {[&child](auto&& root) {
 									  root->disconnect(&child.get());
 								  }},
-						 *root_ptr);
+								  *root_ptr);
 				   }},
 				   *child_ptr);
 		m_Rebuild = true;

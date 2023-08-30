@@ -1,9 +1,9 @@
 #pragma once
 #include "matrix.hpp"
+#include "psl/utility/cast.hpp"
 #include "quaternion.hpp"
 #include "utility.hpp"
 #include "vec.hpp"
-#include "psl/utility/cast.hpp"
 
 #ifdef near
 	#undef near

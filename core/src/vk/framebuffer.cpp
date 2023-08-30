@@ -132,7 +132,8 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		}
 
 		framebufferInfo.layers = maxLayers;
-		core::utility::vulkan::check(m_Context->device().createFramebuffer(&framebufferInfo, nullptr, &m_Framebuffers[i]));
+		core::utility::vulkan::check(
+		  m_Context->device().createFramebuffer(&framebufferInfo, nullptr, &m_Framebuffers[i]));
 	}
 }
 

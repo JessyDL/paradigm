@@ -107,12 +107,20 @@ class region {
 
 	bool deallocate(segment& segment);
 	bool deallocate(std::optional<segment>& segment);
-	allocator_base* allocator() const { return m_Allocator; };
+	allocator_base* allocator() const {
+		return m_Allocator;
+	};
 	void compact();
 	void decommit_unused();
-	void* data() const { return m_Base; }
-	size_t size() const { return m_Size; }
-	size_t alignment() const { return m_Alignment; }
+	void* data() const {
+		return m_Base;
+	}
+	size_t size() const {
+		return m_Size;
+	}
+	size_t alignment() const {
+		return m_Alignment;
+	}
 	memory::range_t range() const {
 		return memory::range_t {(std::uintptr_t)(m_Base), (std::uintptr_t)(m_Base) + m_Size};
 	}

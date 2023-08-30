@@ -171,8 +171,9 @@ void material_t::bind() {
 	}
 
 	for(size_t i = 0; i < blend_states.size(); ++i) {
-		glBlendEquationSeparatei(
-		  psl::utility::narrow_cast<GLuint>(i), to_gles(blend_states[i].color_blend_op()), to_gles(blend_states[i].alpha_blend_op()));
+		glBlendEquationSeparatei(psl::utility::narrow_cast<GLuint>(i),
+								 to_gles(blend_states[i].color_blend_op()),
+								 to_gles(blend_states[i].alpha_blend_op()));
 		glBlendFuncSeparatei(psl::utility::narrow_cast<GLuint>(i),
 							 to_gles(blend_states[i].color_blend_src()),
 							 to_gles(blend_states[i].color_blend_dst()),

@@ -233,7 +233,8 @@ struct tvec {
 	constexpr tvec() noexcept = default;
 
 	constexpr tvec(const container_t& value) noexcept : value(value) {};
-	constexpr tvec(const precision_t& value) noexcept : value(psl::utility::templates::make_array<dimensions>(value)) {};
+	constexpr tvec(const precision_t& value) noexcept
+		: value(psl::utility::templates::make_array<dimensions>(value)) {};
 
 	template <typename... Args>
 	constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}) {};

@@ -859,32 +859,32 @@ create_icosphere(core::resource::cache_t& cache,
 							   index_size_t p2,
 							   std::vector<psl::vec3>& vertices,
 							   std::unordered_map<uint64_t, index_size_t>& cache) {
-		  // first check if we have it already
-		  bool firstIsSmaller	= p1 < p2;
-		  uint64_t smallerIndex = firstIsSmaller ? p1 : p2;
-		  uint64_t greaterIndex = firstIsSmaller ? p2 : p1;
-		  uint64_t key			= (smallerIndex << 32) + greaterIndex;
+		// first check if we have it already
+		bool firstIsSmaller	  = p1 < p2;
+		uint64_t smallerIndex = firstIsSmaller ? p1 : p2;
+		uint64_t greaterIndex = firstIsSmaller ? p2 : p1;
+		uint64_t key		  = (smallerIndex << 32) + greaterIndex;
 
-		  auto it = cache.find(key);
-		  if(it != cache.end()) {
-			  return it->second;
-		  }
+		auto it = cache.find(key);
+		if(it != cache.end()) {
+			return it->second;
+		}
 
-		  // not in cache, calculate it
-		  psl::vec3 point1 = vertices[p1];
-		  psl::vec3 point2 = vertices[p2];
-		  psl::vec3 middle =
-			psl::vec3((point1[0] + point2[0]) / 2.f, (point1[1] + point2[1]) / 2.f, (point1[2] + point2[2]) / 2.f);
+		// not in cache, calculate it
+		psl::vec3 point1 = vertices[p1];
+		psl::vec3 point2 = vertices[p2];
+		psl::vec3 middle =
+		  psl::vec3((point1[0] + point2[0]) / 2.f, (point1[1] + point2[1]) / 2.f, (point1[2] + point2[2]) / 2.f);
 
-		  // add vertex makes sure point is on unit sphere
-		  index_size_t i = (index_size_t)vertices.size();
-		  vertices.push_back(psl::math::normalize(middle));
+		// add vertex makes sure point is on unit sphere
+		index_size_t i = (index_size_t)vertices.size();
+		vertices.push_back(psl::math::normalize(middle));
 
-		  // store it, return index
-		  cache[key] = i;
+		// store it, return index
+		cache[key] = i;
 
-		  return i;
-	  };
+		return i;
+	};
 	using namespace std;
 
 	// create 12 vertices o.f a icosahedron
@@ -998,12 +998,12 @@ create_icosphere(core::resource::cache_t& cache,
 		index_size_t a = faces[i].v1;
 		index_size_t b = faces[i].v2;
 		index_size_t c = faces[i].v3;
-		auto A	   = res_uvs[a];
-		auto B	   = res_uvs[b];
-		auto C	   = res_uvs[c];
+		auto A		   = res_uvs[a];
+		auto B		   = res_uvs[b];
+		auto C		   = res_uvs[c];
 		if(A[0] < 0.25f) {
 			index_size_t tempA = a;
-			auto it		   = visited.find(a);
+			auto it			   = visited.find(a);
 			if(it == visited.end()) {
 				A[0] += 1;
 				vertices.emplace_back(vertices[a]);
@@ -1018,7 +1018,7 @@ create_icosphere(core::resource::cache_t& cache,
 		}
 		if(B[0] < 0.25f) {
 			index_size_t tempB = b;
-			auto it		   = visited.find(b);
+			auto it			   = visited.find(b);
 			if(it == visited.end()) {
 				B[0] += 1;
 				vertices.emplace_back(vertices[b]);
@@ -1033,7 +1033,7 @@ create_icosphere(core::resource::cache_t& cache,
 		}
 		if(C[0] < 0.25f) {
 			index_size_t tempC = c;
-			auto it		   = visited.find(c);
+			auto it			   = visited.find(c);
 			if(it == visited.end()) {
 				C[0] += 1;
 				vertices.emplace_back(vertices[c]);

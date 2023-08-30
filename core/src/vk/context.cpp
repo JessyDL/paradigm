@@ -522,12 +522,15 @@ context::context(core::resource::cache_t& cache,
 		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers);
 	}
 
-	m_Limits.uniform.alignment	 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
-	m_Limits.uniform.size		 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxUniformBufferRange);
-	m_Limits.storage.alignment	 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment);
-	m_Limits.storage.size		 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxStorageBufferRange);
-	m_Limits.memorymap.alignment = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minMemoryMapAlignment);
-	m_Limits.memorymap.size		 = psl::utility::narrow_cast<size_t>(std::numeric_limits<uint64_t>::max());
+	m_Limits.uniform.alignment =
+	  psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
+	m_Limits.uniform.size = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxUniformBufferRange);
+	m_Limits.storage.alignment =
+	  psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment);
+	m_Limits.storage.size = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxStorageBufferRange);
+	m_Limits.memorymap.alignment =
+	  psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minMemoryMapAlignment);
+	m_Limits.memorymap.size = psl::utility::narrow_cast<size_t>(std::numeric_limits<uint64_t>::max());
 
 	vk::Format format;
 	if(core::utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))
@@ -665,7 +668,8 @@ void context::init_device() {
 		queueCreateInfo[0].queueCount		= 1;
 		queueCreateInfo[0].pQueuePriorities = queuePriorities.data();
 
-		if(!core::utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
+		if(!core::utility::vulkan::check(
+			 create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
 		}
@@ -685,7 +689,8 @@ void context::init_device() {
 		queueCreateInfo[1].pQueuePriorities = queuePriorities.data();
 
 
-		if(!core::utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
+		if(!core::utility::vulkan::check(
+			 create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
 		}

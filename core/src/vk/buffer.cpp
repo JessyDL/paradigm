@@ -126,7 +126,7 @@ std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::
 	  });
 	std::vector<std::pair<memory::segment, memory::range_t>> result;
 
-	
+
 	psl_assert(totalSize <= std::numeric_limits<size_t>::max(),
 			   "size should be lower than the numerical limits of the bitsize of the platform, should be less-equal "
 			   "than '{}' but got '{}'",
@@ -177,13 +177,12 @@ failure:
 
 bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 	PROFILE_SCOPE(core::profiler)
-	auto totalSize =
-	  std::accumulate(std::next(std::begin(instructions)),
-					  std::end(instructions),
-					  std::begin(instructions)->size,
-					  [](auto sum, const commit_instruction& element) { return sum + element.size; });
+	auto totalSize = std::accumulate(std::next(std::begin(instructions)),
+									 std::end(instructions),
+									 std::begin(instructions)->size,
+									 [](auto sum, const commit_instruction& element) { return sum + element.size; });
 
-	
+
 	psl_assert(totalSize <= std::numeric_limits<size_t>::max(),
 			   "size should be lower than the numerical limits of the bitsize of the platform, should be less-equal "
 			   "than '{}' but got '{}'",
@@ -454,7 +453,8 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 			auto tuple = m_Context->device().mapMemory(m_Memory, region.dstOffset, region.size);
 			core::ivk::log->info("(dstOffset|size) {0} | {1}", region.dstOffset, region.size);
 			if(core::utility::vulkan::check(tuple.result)) {
-				if(auto segment = m_BufferDataHandle->allocate(psl::utility::narrow_cast<size_t>(region.size)); segment) {
+				if(auto segment = m_BufferDataHandle->allocate(psl::utility::narrow_cast<size_t>(region.size));
+				   segment) {
 					memcpy((void*)(segment.value().range().begin),
 						   tuple.value,
 						   psl::utility::narrow_cast<size_t>(region.size));
@@ -496,7 +496,8 @@ bool buffer_t::set(const void* data,
 
 		psl::string8_t message = "\n";
 		for(auto it = end; it != std::end(commands); ++it)
-			message += "size: " + psl::utility::to_string(it->size) + " srcOffset: " + psl::utility::to_string(it->srcOffset) +
+			message += "size: " + psl::utility::to_string(it->size) +
+					   " srcOffset: " + psl::utility::to_string(it->srcOffset) +
 					   " dstOffset: " + psl::utility::to_string(it->dstOffset) + "\n";
 		core::ivk::log->debug(message);
 		return false;

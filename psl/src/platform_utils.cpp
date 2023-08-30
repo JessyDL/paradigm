@@ -121,7 +121,8 @@ psl::string psl::utility::platform::directory::sanitize(psl::string_view path) {
 	return psl::utility::string::replace_all(path, "\\", "/");
 }
 
-std::vector<psl::string> psl::utility::platform::directory::all_files(psl::string_view target_directory, bool recursive) {
+std::vector<psl::string> psl::utility::platform::directory::all_files(psl::string_view target_directory,
+																	  bool recursive) {
 	auto folder = to_platform(target_directory);
 	std::vector<psl::string> names;
 	if(recursive) {

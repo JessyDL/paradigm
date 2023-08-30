@@ -410,7 +410,7 @@ void texture_t::load_2D() {
 		// Optimal image will be used as destination for the copy
 		{
 			auto barrier				= core::utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eUndefined,
-																		vk::ImageLayout::eTransferDstOptimal);
+																			  vk::ImageLayout::eTransferDstOptimal);
 			barrier.image				= m_Image;
 			barrier.subresourceRange	= subresourceRange;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;

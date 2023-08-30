@@ -42,7 +42,8 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	core::ivk::log->info("creating android swapchain");
 	createInfo.window = os_context.application().window;
 	psl_assert(createInfo.window != nullptr, "application window was invalid");
-	core::utility::vulkan::check(m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
+	core::utility::vulkan::check(
+	  m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_D2D)
 	uint32_t displayPropertyCount;
 	std::vector<vk::DisplayPropertiesKHR> displayProperties;
@@ -271,7 +272,8 @@ void swapchain::init_images() {
 	m_SwapchainImageViews.resize(m_SwapchainImageCount);
 
 	auto device = m_Context->device();
-	core::utility::vulkan::check(device.getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, m_SwapchainImages.data()));
+	core::utility::vulkan::check(
+	  device.getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, m_SwapchainImages.data()));
 
 	for(uint32_t i = 0; i < m_SwapchainImageCount; ++i) {
 		vk::ImageViewCreateInfo CI;

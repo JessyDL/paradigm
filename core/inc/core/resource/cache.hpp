@@ -483,8 +483,12 @@ class cache_t {
 		LOG_INFO("destroying cache end");
 	}
 
-	const psl::meta::library& library() const noexcept { return m_Library; }
-	psl::meta::library& library() noexcept { return m_Library; }
+	const psl::meta::library& library() const noexcept {
+		return m_Library;
+	}
+	psl::meta::library& library() noexcept {
+		return m_Library;
+	}
 
   private:
 	size_t m_AgeCounter {0};

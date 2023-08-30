@@ -102,7 +102,8 @@ class encode_to_format : encoder {
 			for(auto& pair : value) {
 				static_assert(details::is_collection<typename psl::utility::templates::get_value_type<T>::type>::value,
 							  "can only use associative containers when their value is a collection");
-				parse_collection(pair.second,
+				parse_collection(
+				  pair.second,
 				  psl::utility::to_string<typename psl::utility::templates::get_key_type<T>::type>(pair.first));
 			}
 			m_CollectionStack.pop();

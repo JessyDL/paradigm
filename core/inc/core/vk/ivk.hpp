@@ -82,7 +82,7 @@ struct converter<vk::ClearValue> {
 
 	static vk::ClearValue from_string(psl::string8::view str) { return vk::ClearValue {vk::ClearColorValue {}}; }
 };
-}	 // namespace core::utility
+}	 // namespace psl::utility
 
 
 /// \brief helper namespace that contains handy defaults and constructor helpers for Vulkan objects

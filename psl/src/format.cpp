@@ -1363,8 +1363,8 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 		res.erase(res.end() - 1);
 
 		if(setting.write_header) {
-			auto checksum =
-			  psl::utility::crc32(psl::string8::view {&res[checksum_content_index], res.size() - checksum_content_index});
+			auto checksum = psl::utility::crc32(
+			  psl::string8::view {&res[checksum_content_index], res.size() - checksum_content_index});
 			auto chksum_str = psl::string8_t("CHECKSUM " + std::to_string(checksum) + "\n");
 			res.insert(res.begin() + checksum_index, chksum_str.begin(), chksum_str.end());
 		}
@@ -1548,8 +1548,7 @@ char const* node_not_found::what() const noexcept {
 	  "An unknown error occured, please create a repro case and submit as a bug ticket, thank you!"};
 	if(auto index = std::get_if<nodes_t>(&m_Data)) {
 		if((size_t)*index >= m_Container->size()) {
-			message =
-			  "The index " + psl::utility::to_string(*index) +
+			message = "The index " + psl::utility::to_string(*index) +
 					  " is larger than the last element, which is at index: " +
 					  psl::utility::to_string(m_Container->size() - 1);
 		}

@@ -14,7 +14,8 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib);
 	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
 	m_LibraryFolder	  = psl::string8::view(&m_LibraryLocation[0], loc);
-	m_LibraryFile = psl::string8::view(&m_LibraryLocation[loc + psl::utility::platform::directory::seperator.size()],
+	m_LibraryFile =
+	  psl::string8::view(&m_LibraryLocation[loc + psl::utility::platform::directory::seperator.size()],
 						 m_LibraryLocation.size() - loc - psl::utility::platform::directory::seperator.size());
 
 	psl::string8_t root =
@@ -239,8 +240,8 @@ std::optional<psl::string8::view> library::load(const UID& uid) {
 		return it->second.file_data;
 
 	if(auto res = psl::utility::platform::file::read(psl::from_string8_t(m_LibraryFolder) +
-												psl::utility::platform::directory::seperator +
-									   psl::from_string8_t(it->second.readableName));
+													 psl::utility::platform::directory::seperator +
+													 psl::from_string8_t(it->second.readableName));
 	   res) {
 		it->second.file_data = psl::string(res.value().data(), res.value().size());
 		return it->second.file_data;
