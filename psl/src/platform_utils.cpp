@@ -16,7 +16,7 @@
 
 // todo: validate windows directory seperator etc..
 
-std::vector<unsigned int> utility::platform::os::to_virtual_keycode(const psl::string8_t& key) {
+std::vector<unsigned int> psl::utility::platform::os::to_virtual_keycode(const psl::string8_t& key) {
 	std::vector<unsigned int> values;
 #ifdef PLATFORM_WINDOWS
 	if(key.size() == 1) {
@@ -33,7 +33,7 @@ std::vector<unsigned int> utility::platform::os::to_virtual_keycode(const psl::s
 			values.push_back(VK_MENU);
 		}
 	}
-	psl::string8_t upper = utility::string::to_upper(key);
+	psl::string8_t upper = psl::utility::string::to_upper(key);
 
 	if(upper == "SHIFT") {
 		values.push_back(VK_SHIFT);
@@ -109,19 +109,19 @@ std::vector<unsigned int> utility::platform::os::to_virtual_keycode(const psl::s
 	return values;
 }
 
-bool utility::platform::directory::is_directory(psl::string_view path) {
+bool psl::utility::platform::directory::is_directory(psl::string_view path) {
 	return std::filesystem::is_directory(to_platform(path));
 }
 
-bool utility::platform::directory::erase(psl::string_view path) {
+bool psl::utility::platform::directory::erase(psl::string_view path) {
 	return std::filesystem::remove(directory::to_platform(path));
 }
 
-psl::string utility::platform::directory::sanitize(psl::string_view path) {
-	return utility::string::replace_all(path, "\\", "/");
+psl::string psl::utility::platform::directory::sanitize(psl::string_view path) {
+	return psl::utility::string::replace_all(path, "\\", "/");
 }
 
-std::vector<psl::string> utility::platform::directory::all_files(psl::string_view target_directory, bool recursive) {
+std::vector<psl::string> psl::utility::platform::directory::all_files(psl::string_view target_directory, bool recursive) {
 	auto folder = to_platform(target_directory);
 	std::vector<psl::string> names;
 	if(recursive) {
@@ -129,9 +129,9 @@ std::vector<psl::string> utility::platform::directory::all_files(psl::string_vie
 			if(!std::filesystem::is_directory(i->path())) {
 #ifdef UNICODE
 				auto filename =
-				  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
+				  psl::utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
-				auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
+				auto filename = psl::utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 #endif
 				names.push_back(filename);
 			}
@@ -141,9 +141,9 @@ std::vector<psl::string> utility::platform::directory::all_files(psl::string_vie
 			if(!std::filesystem::is_directory(i->path())) {
 #ifdef UNICODE
 				auto filename =
-				  utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
+				  psl::utility::string::replace_all(psl::to_string8_t(i->path().generic_wstring()), "\\", seperator);
 #else
-				auto filename = utility::string::replace_all(i->path().generic_string(), "\\", seperator);
+				auto filename = psl::utility::string::replace_all(i->path().generic_string(), "\\", seperator);
 #endif
 				names.push_back(filename);
 			}
@@ -152,7 +152,7 @@ std::vector<psl::string> utility::platform::directory::all_files(psl::string_vie
 	return names;
 }
 
-psl::string utility::platform::directory::to_unix(psl::string_view path) {
+psl::string psl::utility::platform::directory::to_unix(psl::string_view path) {
 	psl::string dir;
 	while(path.size() > 0 && (path[0] == '\"' || path[0] == '\'')) {
 		path = path.substr(1);
@@ -163,13 +163,13 @@ psl::string utility::platform::directory::to_unix(psl::string_view path) {
 	}
 
 	if(auto find = path.find(":\\\\"); find == 1u) {
-		psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
+		psl::char_t drive = psl::utility::string::to_lower(path.substr(0u, 1u))[0];
 		dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(4u);
 	} else if(find = path.find(":\\"); find == 1u) {
-		psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
+		psl::char_t drive = psl::utility::string::to_lower(path.substr(0u, 1u))[0];
 		dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
 	} else if(find = path.find(":/"); find == 1u) {
-		psl::char_t drive = utility::string::to_lower(path.substr(0u, 1u))[0];
+		psl::char_t drive = psl::utility::string::to_lower(path.substr(0u, 1u))[0];
 		dir				  = "/mnt/" + psl::string(1, drive) + seperator + path.substr(3u);
 	} else {
 		dir = path;
@@ -184,7 +184,7 @@ psl::string utility::platform::directory::to_unix(psl::string_view path) {
 	return dir;
 }
 
-bool utility::platform::directory::exists(psl::string_view absolutePath) {
+bool psl::utility::platform::directory::exists(psl::string_view absolutePath) {
 	auto platform_path = to_platform(absolutePath);
 #ifdef PLATFORM_WINDOWS
 	std::wstring str {psl::to_pstring(platform_path)};
@@ -204,7 +204,7 @@ bool utility::platform::directory::exists(psl::string_view absolutePath) {
 }
 
 
-bool utility::platform::directory::create(psl::string_view absolutePath, bool recursive) {
+bool psl::utility::platform::directory::create(psl::string_view absolutePath, bool recursive) {
 	psl::string path = to_platform(absolutePath);
 #ifdef PLATFORM_WINDOWS
 	std::wstring str {psl::to_pstring(absolutePath)};
@@ -241,7 +241,7 @@ bool utility::platform::directory::create(psl::string_view absolutePath, bool re
 #endif
 }
 
-bool utility::platform::file::exists(psl::string_view filename) {
+bool psl::utility::platform::file::exists(psl::string_view filename) {
 #if defined(PLATFORM_ANDROID)
 	return AAssetManager_open(ANDROID_ASSET_MANAGER, directory::to_platform(filename).data(), AASSET_MODE_UNKNOWN) !=
 		   nullptr;
@@ -250,12 +250,12 @@ bool utility::platform::file::exists(psl::string_view filename) {
 #endif
 }
 
-bool utility::platform::file::erase(psl::string_view filename) {
+bool psl::utility::platform::file::erase(psl::string_view filename) {
 	return std::filesystem::remove(directory::to_platform(filename));
 }
 
 
-bool utility::platform::file::read(psl::string_view filename, std::vector<psl::char_t>& out, size_t count) {
+bool psl::utility::platform::file::read(psl::string_view filename, std::vector<psl::char_t>& out, size_t count) {
 	psl::string file_name = directory::to_platform(filename);
 	psl_assert(exists(file_name), "Could not find filename {}", file_name);
 #if !defined(PLATFORM_ANDROID)
@@ -303,7 +303,7 @@ bool utility::platform::file::read(psl::string_view filename, std::vector<psl::c
 	return true;
 }
 
-bool utility::platform::file::write(psl::string_view filename, psl::string_view content) {
+bool psl::utility::platform::file::write(psl::string_view filename, psl::string_view content) {
 	auto file_name = directory::to_platform(filename);
 
 	std::size_t found = file_name.find_last_of(directory::seperator);
@@ -324,7 +324,7 @@ bool utility::platform::file::write(psl::string_view filename, psl::string_view 
 	return true;
 }
 
-bool utility::platform::file::read(psl::string_view filename, psl::string& out, size_t count) {
+bool psl::utility::platform::file::read(psl::string_view filename, psl::string& out, size_t count) {
 	psl::string file_name = directory::to_platform(filename);
 	psl_assert(exists(file_name), "Could not find filename {}", file_name);
 #if !defined(PLATFORM_ANDROID)

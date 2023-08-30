@@ -54,8 +54,8 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	uint32_t attachmentIndex = 0;
 
 	for(auto& binding : m_Bindings) {
-		if(utility::vulkan::has_depth(binding.description.format) ||
-		   utility::vulkan::has_stencil(binding.description.format)) {
+		if(core::utility::vulkan::has_depth(binding.description.format) ||
+		   core::utility::vulkan::has_stencil(binding.description.format)) {
 			psl_assert(!hasDepth, "Only one depth attachment allowed");
 			depthReference.attachment = attachmentIndex;
 			depthReference.layout	  = vk::ImageLayout::eDepthStencilAttachmentOptimal;
@@ -107,7 +107,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 	renderPassInfo.pSubpasses	   = &subpass;
 	renderPassInfo.dependencyCount = 2;
 	renderPassInfo.pDependencies   = dependencies.data();
-	utility::vulkan::check(m_Context->device().createRenderPass(&renderPassInfo, nullptr, &m_RenderPass));
+	core::utility::vulkan::check(m_Context->device().createRenderPass(&renderPassInfo, nullptr, &m_RenderPass));
 
 	// pre-allocate attachmentviews, and fill in all the data in the FBCI
 	// we will override the views in the upcoming loop, where the device also will create the FBOs
@@ -132,7 +132,7 @@ framebuffer_t::framebuffer_t(core::resource::cache_t& cache,
 		}
 
 		framebufferInfo.layers = maxLayers;
-		utility::vulkan::check(m_Context->device().createFramebuffer(&framebufferInfo, nullptr, &m_Framebuffers[i]));
+		core::utility::vulkan::check(m_Context->device().createFramebuffer(&framebufferInfo, nullptr, &m_Framebuffers[i]));
 	}
 }
 
@@ -194,8 +194,8 @@ std::vector<framebuffer_t::texture_handle> framebuffer_t::color_attachments(uint
 	std::vector<framebuffer_t::texture_handle> res;
 	auto bindings {m_Bindings};
 	auto end = std::remove_if(std::begin(bindings), std::end(bindings), [](const framebuffer_t::binding& binding) {
-		return utility::vulkan::has_depth(binding.description.format) ||
-			   utility::vulkan::has_stencil(binding.description.format);
+		return core::utility::vulkan::has_depth(binding.description.format) ||
+			   core::utility::vulkan::has_stencil(binding.description.format);
 	});
 	std::transform(std::begin(bindings), end, std::back_inserter(res), [index](const auto& binding) {
 		return (binding.attachments.size() > 1) ? binding.attachments[index] : binding.attachments[0];

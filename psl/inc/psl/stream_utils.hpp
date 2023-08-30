@@ -3,7 +3,7 @@
 #include "ustring.hpp"
 #include <iomanip>
 
-namespace utility::string {
+namespace psl::utility::string {
 /// \brief transforms the input value to a psl::string8_t containing the hex characters.
 /// \param[in] value the value to transform
 /// \returns a string containing the hex value.
@@ -57,4 +57,4 @@ template <typename T>
 inline T from_hex(const psl::string32_t& str) {
 	return lexical_cast<T>(str);
 }
-}	 // namespace utility::string
+}	 // namespace psl::utility::string

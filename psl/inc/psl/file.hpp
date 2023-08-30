@@ -2,7 +2,7 @@
 #include "psl/ustring.hpp"
 #include <optional>
 
-namespace utility::os {
+namespace psl::utility::os {
 class file {
   public:
 	enum mode { READ, WRITE, READ_AND_WRITE };
@@ -59,4 +59,4 @@ class file {
 	std::optional<void*> m_MapView;
 #endif
 };
-}	 // namespace utility::os
+}	 // namespace psl::utility::os

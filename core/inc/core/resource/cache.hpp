@@ -4,7 +4,7 @@
 #include "psl/meta.hpp"
 #include <cstdint>		  // uintptr_t
 #include <type_traits>	  // std::remove_const/etc
-//#include "psl/memory/region.hpp"
+// #include "psl/memory/region.hpp"
 #include "core/logging.hpp"
 #include "psl/profiling/profiler.hpp"
 #include "psl/serialization/serializer.hpp"
@@ -380,24 +380,47 @@ class cache_t {
 		bool bErased	 = false;
 		size_t iteration = 0u;
 		bool bLeaks		 = false;
+
+		size_t remaining =
+		  std::accumulate(std::begin(m_Cache), std::end(m_Cache), size_t {0}, [](size_t sum, auto const& pair) {
+			  return std::accumulate(
+				std::begin(pair.second.descriptions),
+				std::end(pair.second.descriptions),
+				sum,
+				[](size_t sum, auto const& it) { return sum + (it->metaData.state == status::loaded ? 1 : 0); });
+		  });
+
 		do {
 			bErased		 = false;
 			bLeaks		 = false;
 			size_t count = 0u;
+			if(remaining == 0) {
+				break;
+			}
 			for(auto& pair : m_Cache) {
 				for(auto& it : pair.second.descriptions) {
-					bLeaks |= it->metaData.state == status::loaded;
-					if(it->metaData.reference_count == 0 && it->metaData.state == status::loaded) {
-						it->metaData.state = status::unloading;
-						std::invoke(m_Deleters[it->metaData.type], it->resource);
-						it->metaData.state = status::unloaded;
-						bErased			   = true;
+					auto& metadata = it->metaData;
+					if(metadata.state != status::loaded) {
+						continue;
+					}
+					bLeaks = true;
+					if(metadata.reference_count == 0 && metadata.state == status::loaded) {
+						metadata.state = status::unloading;
+						std::invoke(m_Deleters[metadata.type], it->resource);
+						metadata.state = status::unloaded;
+						bErased		   = true;
 						++count;
 					}
 				}
 			}
-			LOG_INFO(
-			  "iteration ", utility::to_string(iteration++), " destroyed ", utility::to_string(count), " objects");
+			LOG_INFO("iteration ",
+					 psl::utility::to_string(iteration++),
+					 " destroyed ",
+					 psl::utility::to_string(count),
+					 " objects out of ",
+					 psl::utility::to_string(remaining),
+					 " remaining");
+			remaining -= count;
 		} while(bErased);	 // keep looping as long as items are present
 
 
@@ -436,12 +459,12 @@ class cache_t {
 
 						core::log->warn("\ttype {0} uid {1} age {2}",
 										m_TypeNames[it->metaData.type],
-										utility::to_string(pair.first),
+										psl::utility::to_string(pair.first),
 										it->age);
 #else
 						core::log->warn("\ttype {0} uid {1}",
-										utility::to_string((std::uintptr_t)(it->metaData.type)),
-										utility::to_string(pair.first));
+										psl::utility::to_string((std::uintptr_t)(it->metaData.type)),
+										psl::utility::to_string(pair.first));
 #endif
 					}
 				}
@@ -451,7 +474,7 @@ class cache_t {
 			if(oldest_descr) {
 				core::log->warn("possible source: type {0} uid {1}",
 								m_TypeNames[oldest_descr->metaData.type],
-								utility::to_string(oldest_uid));
+								psl::utility::to_string(oldest_uid));
 			}
 #endif
 		}
@@ -460,12 +483,8 @@ class cache_t {
 		LOG_INFO("destroying cache end");
 	}
 
-	const psl::meta::library& library() const noexcept {
-		return m_Library;
-	}
-	psl::meta::library& library() noexcept {
-		return m_Library;
-	}
+	const psl::meta::library& library() const noexcept { return m_Library; }
+	psl::meta::library& library() noexcept { return m_Library; }
 
   private:
 	size_t m_AgeCounter {0};

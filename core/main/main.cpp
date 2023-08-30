@@ -215,15 +215,15 @@ void setup_loggers() {
 	strftime(time.data(), 20, "%Y-%m-%d %H-%M-%S", &now_tm);
 	time[time.size() - 1] = '/';
 	psl::string sub_path  = "logs/" + time;
-	if(!utility::platform::file::exists(utility::application::path::get_path() + sub_path + "main.log"))
-		utility::platform::file::write(utility::application::path::get_path() + sub_path + "main.log", "");
+	if(!psl::utility::platform::file::exists(psl::utility::application::path::get_path() + sub_path + "main.log"))
+		psl::utility::platform::file::write(psl::utility::application::path::get_path() + sub_path + "main.log", "");
 	std::vector<spdlog::sink_ptr> sinks;
 
 	auto mainlogger = std::make_shared<spdlog::sinks::dist_sink_mt>();
 	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "main.log", true));
+	  psl::utility::application::path::get_path() + sub_path + "main.log", true));
 	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + "logs/latest.log", true));
+	  psl::utility::application::path::get_path() + "logs/latest.log", true));
 	#ifdef _MSC_VER
 	mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 	#else
@@ -233,25 +233,25 @@ void setup_loggers() {
 	#endif
 
 	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "ivk.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "ivk.log", true);
 
 	auto igleslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "igles.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "igles.log", true);
 
 	auto gfxlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "gfx.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "gfx.log", true);
 
 	auto systemslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "systems.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "systems.log", true);
 
 	auto oslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "os.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "os.log", true);
 
 	auto datalogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "data.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "data.log", true);
 
 	auto corelogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  utility::application::path::get_path() + sub_path + "core.log", true);
+	  psl::utility::application::path::get_path() + sub_path + "core.log", true);
 
 	sinks.push_back(mainlogger);
 	sinks.push_back(corelogger);
@@ -331,8 +331,8 @@ auto generate_fullscreen_quad(core::resource::cache_t& cache,
 							  core::resource::handle<core::gfx::context>& context_handle,
 							  core::resource::handle<core::gfx::buffer_t>& vertexBuffer,
 							  core::resource::handle<core::gfx::buffer_t>& indexBuffer) {
-	resource::handle<data::geometry_t> geometryDataHandle {utility::geometry::create_quad(cache, 1, -1, -1, 1)};
-	utility::geometry::set_channel(geometryDataHandle, core::data::geometry_t::constants::COLOR, psl::vec4::one);
+	resource::handle<data::geometry_t> geometryDataHandle {core::utility::geometry::create_quad(cache, 1, -1, -1, 1)};
+	core::utility::geometry::set_channel(geometryDataHandle, core::data::geometry_t::constants::COLOR, psl::vec4::one);
 	return cache.create<gfx::geometry_t>(context_handle, geometryDataHandle, vertexBuffer, indexBuffer);
 }
 
@@ -343,64 +343,64 @@ auto generate_test_geometry(core::resource::cache_t& cache,
   -> std::vector<resource::handle<gfx::geometry_t>> {
 	std::vector<resource::handle<data::geometry_t>> geometryDataHandles;
 	std::vector<resource::handle<gfx::geometry_t>> geometryHandles;
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
-	geometryDataHandles.push_back(utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
-	geometryDataHandles.push_back(utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
-	geometryDataHandles.push_back(utility::geometry::create_box(cache, psl::vec3::one));
-	geometryDataHandles.push_back(utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
+	geometryDataHandles.push_back(core::utility::geometry::create_icosphere(cache, psl::vec3::one, 0));
+	geometryDataHandles.push_back(core::utility::geometry::create_cone(cache, 1.0f, 1.0f, 1.0f, 12));
+	geometryDataHandles.push_back(core::utility::geometry::create_spherified_cube(cache, psl::vec3::one, 2));
+	geometryDataHandles.push_back(core::utility::geometry::create_box(cache, psl::vec3::one));
+	geometryDataHandles.push_back(core::utility::geometry::create_sphere(cache, psl::vec3::one, 12, 8));
 	// up
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	geometryDataHandles.push_back(core::utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::back * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::up * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	core::utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::up * 0.5f);
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::forward * 90.0f),
 							  core::data::geometry_t::constants::NORMAL);
 	auto up_plane_index = geometryDataHandles.size() - 1;
 	// down
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	geometryDataHandles.push_back(core::utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::forward * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::down * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	core::utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::down * 0.5f);
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::back * 90.0f),
 							  core::data::geometry_t::constants::NORMAL);
 	auto down_plane_index = geometryDataHandles.size() - 1;
 	// left
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	geometryDataHandles.push_back(core::utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::down * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::left * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	core::utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::left * 0.5f);
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::up * 90.0f),
 							  core::data::geometry_t::constants::NORMAL);
 	auto left_plane_index = geometryDataHandles.size() - 1;
 	// right
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	geometryDataHandles.push_back(core::utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::up * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::right * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	core::utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::right * 0.5f);
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::down * 90.0f),
 							  core::data::geometry_t::constants::NORMAL);
 	auto right_plane_index = geometryDataHandles.size() - 1;
 	// forward
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::forward * 0.5f);
+	geometryDataHandles.push_back(core::utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	core::utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::forward * 0.5f);
 	auto forward_plane_index = geometryDataHandles.size() - 1;
 	// back
-	geometryDataHandles.push_back(utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	geometryDataHandles.push_back(core::utility::geometry::create_quad(cache, 0.5f, -0.5f, -0.5f, 0.5f));
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::left * 90.0f));
-	utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::back * 0.5f);
-	utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
+	core::utility::geometry::translate(geometryDataHandles[geometryDataHandles.size() - 1], psl::vec3::back * 0.5f);
+	core::utility::geometry::rotate(geometryDataHandles[geometryDataHandles.size() - 1],
 							  psl::math::from_euler(psl::vec3::right * 90.0f),
 							  core::data::geometry_t::constants::NORMAL);
 	auto back_plane_index = geometryDataHandles.size() - 1;
 
 	geometryDataHandles.push_back(
-	  utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
-	geometryDataHandles.push_back(utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
+	  core::utility::geometry::create_plane(cache, psl::vec2::one * 128.f, psl::ivec2::one, psl::vec2::one * 8.f));
+	geometryDataHandles.push_back(core::utility::geometry::create_icosphere(cache, psl::vec3::one, 4));
 
 	// geometryDataHandles.push_back(
 	//   cache.instantiate<core::data::geometry_t>("bf36d6f1-af53-41b9-b7ae-0f0cb16d8734"_uid));
@@ -489,7 +489,7 @@ auto create_fbo_data(core::resource::cache_t& cache,
 }
 
 int entry(gfx::graphics_backend backend, core::os::context& os_context) {
-	psl::string libraryPath {utility::application::path::library + "resources.metalib"};
+	psl::string libraryPath {psl::utility::application::path::library + "resources.metalib"};
 
 	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
 	psl::string8_t environment = "";
@@ -730,7 +730,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	const float timeScale		  = 1.f;
 	const size_t spawnInterval	  = (size_t)((float)100 * (1.f / timeScale));
 
-	utility::platform::file::write(utility::application::path::get_path() + "frame_data.txt",
+	psl::utility::platform::file::write(psl::utility::application::path::get_path() + "frame_data.txt",
 								   core::profiler.to_string());
 
 
@@ -957,11 +957,11 @@ ECSState.create(
 #if defined(PLATFORM_ANDROID)
 
 // todo move to os context
-AAssetManager* utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
+AAssetManager* psl::utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
 
 void android_main(android_app* application) {
 	auto os_context								   = core::os::context {application};
-	utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
+	psl::utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
 	setup_loggers();
 	std::srand(0);
 

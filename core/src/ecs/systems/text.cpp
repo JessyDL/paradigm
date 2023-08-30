@@ -230,7 +230,7 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 	}
 	geomData->indices(indexBuffer);
 
-	utility::geometry::generate_tangents(geomData);
+	core::utility::geometry::generate_tangents(geomData);
 	return geomData;
 }
 

@@ -58,7 +58,7 @@ class encode_to_format : encoder {
 		} else if constexpr(details::function_serialize<codec_t, T>::value) {
 			accessor::serialize_fn(*this, property);
 		} else {
-			static_assert(utility::templates::always_false_v<T>,
+			static_assert(psl::utility::templates::always_false_v<T>,
 						  "\n\tPlease define one of the following for the serializer:\n"
 						  "\t\t- a member function of the type template<typename S> void serialize(S& s) {};\n"
 						  "\t\t- a function in the namespace 'serialization' of the signature: template<typename "
@@ -71,7 +71,7 @@ class encode_to_format : encoder {
 	template <typename T>
 	void parse_internal(T& value, psl::string8::view name) {
 		constexpr bool is_range = details::is_range<T>::value;
-		using contained_t		= typename utility::binary::get_contained_type<T>::type;
+		using contained_t		= typename psl::utility::binary::get_contained_type<T>::type;
 
 		constexpr bool is_collection = details::is_collection<
 		  typename std::conditional<is_range, typename std::remove_pointer<contained_t>::type, T>::type>::value;
@@ -87,11 +87,11 @@ class encode_to_format : encoder {
 
 			if constexpr(std::is_pointer<contained_t>::value) {
 				for(contained_t& it : value) {
-					parse_collection(*it, utility::to_string(index++));
+					parse_collection(*it, psl::utility::to_string(index++));
 				}
 			} else {
 				for(contained_t& it : value) {
-					parse_collection(it, utility::to_string(index++));
+					parse_collection(it, psl::utility::to_string(index++));
 				}
 			}
 			m_CollectionStack.pop();
@@ -100,10 +100,10 @@ class encode_to_format : encoder {
 			m_ReferenceMap[(std::uintptr_t)&value] = &collection;
 			m_CollectionStack.push(&collection);
 			for(auto& pair : value) {
-				static_assert(details::is_collection<typename utility::templates::get_value_type<T>::type>::value,
+				static_assert(details::is_collection<typename psl::utility::templates::get_value_type<T>::type>::value,
 							  "can only use associative containers when their value is a collection");
 				parse_collection(pair.second,
-								 utility::to_string<typename utility::templates::get_key_type<T>::type>(pair.first));
+				  psl::utility::to_string<typename psl::utility::templates::get_key_type<T>::type>(pair.first));
 			}
 			m_CollectionStack.pop();
 		} else if constexpr(is_range) {
@@ -113,12 +113,12 @@ class encode_to_format : encoder {
 			res.reserve(value.size());
 			if constexpr(std::is_pointer<contained_t>::value) {
 				for(const auto& it : value) {
-					intermediate.append(utility::to_string<typename std::remove_pointer<contained_t>::type>(*it));
+					intermediate.append(psl::utility::to_string<typename std::remove_pointer<contained_t>::type>(*it));
 					locations.push_back(intermediate.size());
 				}
 			} else {
 				for(const auto& it : value) {
-					intermediate.append(utility::to_string<contained_t>(it));
+					intermediate.append(psl::utility::to_string<contained_t>(it));
 					locations.push_back(intermediate.size());
 				}
 			}
@@ -131,7 +131,7 @@ class encode_to_format : encoder {
 			m_Container.add_value_range(m_CollectionStack.top()->get(), name, res);
 			m_ReferenceMap[(std::uintptr_t)&value] = &m_Container[(psl::format::nodes_t)(m_Container.size() - 1u)];
 		} else {
-			m_Container.add_value(m_CollectionStack.top()->get(), name, utility::to_string<contained_t>(value));
+			m_Container.add_value(m_CollectionStack.top()->get(), name, psl::utility::to_string<contained_t>(value));
 			m_ReferenceMap[(std::uintptr_t)&value] = &m_Container[(psl::format::nodes_t)(m_Container.size() - 1u)];
 		}
 	}

@@ -186,7 +186,7 @@ inline consteval uint64_t accessor::id() {
 				  "\t\t - or a private variable \"static constexpr const char* polymorphic_name\" and added "
 				  "\"friend class psl::serialization::accessor\"\n");
 
-	return utility::crc64(T::polymorphic_name);
+	return psl::utility::crc64(T::polymorphic_name);
 }
 
 namespace details {
@@ -240,28 +240,28 @@ namespace details {
 
 	template <typename T>
 	struct is_range {
-		static constexpr bool value {utility::templates::is_trivial_container<T>::value ||
-									 utility::templates::is_complex_container<T>::value};
+		static constexpr bool value {psl::utility::templates::is_trivial_container<T>::value ||
+									 psl::utility::templates::is_complex_container<T>::value};
 	};
 
 	template <typename T, typename Encoder = encode_to_format>
 	struct is_collection_range {
 		static constexpr bool value {
 		  is_range<T>::value &&
-		  (function_serialize<Encoder, typename utility::binary::get_contained_type<T>::type>::value ||
-		   member_function_serialize<Encoder, typename utility::binary::get_contained_type<T>::type>::value)};
+		  (function_serialize<Encoder, typename psl::utility::binary::get_contained_type<T>::type>::value ||
+		   member_function_serialize<Encoder, typename psl::utility::binary::get_contained_type<T>::type>::value)};
 	};
 	template <typename T, typename Encoder>
 	struct is_collection_range<T*, Encoder> {
 		static constexpr bool value {
 		  is_range<T>::value &&
-		  (function_serialize<Encoder, typename utility::binary::get_contained_type<T>::type>::value ||
-		   member_function_serialize<Encoder, typename utility::binary::get_contained_type<T>::type>::value)};
+		  (function_serialize<Encoder, typename psl::utility::binary::get_contained_type<T>::type>::value ||
+		   member_function_serialize<Encoder, typename psl::utility::binary::get_contained_type<T>::type>::value)};
 	};
 
 	template <typename T>
 	struct is_keyed_range {
-		static constexpr bool value {utility::templates::is_associative_container<T>::value};
+		static constexpr bool value {psl::utility::templates::is_associative_container<T>::value};
 	};
 }	 // namespace details
 
@@ -310,7 +310,7 @@ class serializer {
 	void serialize(T& target, psl::string8::view filename, std::optional<psl::string8::view> name = {}) {
 		psl::format::container out;
 		serialize<Encoder, T>(target, out, name);
-		utility::platform::file::write(psl::from_string8_t(filename), psl::from_string8_t(out.to_string()));
+		psl::utility::platform::file::write(psl::from_string8_t(filename), psl::from_string8_t(out.to_string()));
 	};
 
 	template <typename Encoder, typename T>
@@ -319,7 +319,7 @@ class serializer {
 			return;
 		psl::format::container out;
 		serialize<Encoder, T>(*target, out, name);
-		utility::platform::file::write(psl::from_string8_t(filename), psl::from_string8_t(out.to_string()));
+		psl::utility::platform::file::write(psl::from_string8_t(filename), psl::from_string8_t(out.to_string()));
 	};
 
 	template <typename Encoder, typename T>
@@ -365,7 +365,7 @@ class serializer {
 
 	template <typename Encoder, typename T>
 	bool deserialize(T*& target, psl::string8::view filename, std::optional<psl::string8::view> name = {}) {
-		auto res = utility::platform::file::read(psl::from_string8_t(filename));
+		auto res = psl::utility::platform::file::read(psl::from_string8_t(filename));
 		if(!res)
 			return false;
 		psl::format::container cont {psl::to_string8_t(res.value())};
@@ -374,7 +374,7 @@ class serializer {
 
 	template <typename Encoder, typename T>
 	bool deserialize(T& target, psl::string8::view filename, std::optional<psl::string8::view> name = {}) {
-		auto res = utility::platform::file::read(psl::from_string8_t(filename));
+		auto res = psl::utility::platform::file::read(psl::from_string8_t(filename));
 		if(!res)
 			return false;
 		psl::format::container cont {psl::to_string8_t(res.value())};
@@ -411,7 +411,7 @@ class serializer {
 template <typename S, typename T>
 inline auto accessor::serialize_fn(S& s, T& obj) {
 	if constexpr(accessor::supports_polymorphism<T>()) {
-		static_assert(utility::templates::always_false_v<S>,
+		static_assert(psl::utility::templates::always_false_v<S>,
 					  "You should not attempt to use functions in a polymorphic setting. Please use methods.");
 	} else {
 		using psl::serialization::serialize;

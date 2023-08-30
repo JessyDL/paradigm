@@ -2,9 +2,9 @@
 #ifdef PLATFORM_WINDOWS
 	#include <Windows.h>
 #endif
-using namespace utility;
+using namespace psl::utility;
 
-void utility::terminal::set_color(color foreground, color background) {
+void psl::utility::terminal::set_color(color foreground, color background) {
 #ifdef PLATFORM_WINDOWS
 	SetConsoleTextAttribute(GetStdHandle(STD_OUTPUT_HANDLE), (uint8_t)foreground | ((uint8_t)background) * 16u);
 #else

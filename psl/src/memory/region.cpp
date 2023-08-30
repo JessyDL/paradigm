@@ -12,11 +12,7 @@
 #include "psl/logging.hpp"
 using namespace memory;
 
-region::region(region& parent,
-			   memory::segment& segment,
-			   uint64_t pageSize,
-			   uint64_t alignment,
-			   allocator_base* allocator)
+region::region(region& parent, memory::segment& segment, size_t pageSize, size_t alignment, allocator_base* allocator)
 	: m_Parent(&parent), m_Allocator(allocator), m_Alignment(alignment) {
 	m_PageSize = pageSize;
 	m_Size	   = segment.range().size();
@@ -32,7 +28,7 @@ region::region(region& parent,
 	allocator->initialize(this);
 }
 
-region::region(uint64_t size, uint64_t alignment, allocator_base* allocator)
+region::region(size_t size, size_t alignment, allocator_base* allocator)
 	: m_Allocator(allocator), m_Alignment(alignment) {
 	if(!allocator->is_physically_backed()) {
 		m_PageSize = 0u;
@@ -171,10 +167,10 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 #ifdef PLATFORM_WINDOWS
 	auto final_size = size;
 	if(m_Allocator->is_physically_backed()) {
-		uint64_t pages = 0u;
-		pages		   = (size + (size % m_PageSize)) / m_PageSize;
-		pages		   = (pages == 0) ? 1 : pages;
-		final_size	   = pages * m_PageSize;
+		size_t pages = 0u;
+		pages		 = (size + (size % m_PageSize)) / m_PageSize;
+		pages		 = (pages == 0) ? 1 : pages;
+		final_size	 = pages * m_PageSize;
 	}
 
 	// we cheat and trick the allocator to allocate in page sized allocations
@@ -313,7 +309,7 @@ void region::decommit_unused() {
 }
 
 #ifdef PLATFORM_WINDOWS
-std::pair<uint64_t, uint64_t> region::page_range(const memory::range_t& range) {
+std::pair<size_t, size_t> region::page_range(const memory::range_t& range) {
 	auto offset		 = range.begin - (std::uintptr_t)(m_Base);
 	auto start_index = (offset - (offset % m_PageSize)) / m_PageSize;
 	offset			 = range.end - (std::uintptr_t)(m_Base);

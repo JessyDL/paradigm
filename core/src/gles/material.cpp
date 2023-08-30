@@ -33,14 +33,14 @@ material_t::material_t(core::resource::cache_t& cache,
 		if(!shader_handle) {
 			core::igles::log->warn(
 			  "igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-			  utility::to_string(metaData.uid),
-			  utility::to_string(stage.shader()));
+			  psl::utility::to_string(metaData.uid),
+			  psl::utility::to_string(stage.shader()));
 
 
-			core::igles::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
+			core::igles::log->info("trying to load shader [{0}].", psl::utility::to_string(stage.shader()));
 			shader_handle = cache.instantiate<core::igles::shader>(stage.shader());
 			if(!shader_handle) {
-				core::igles::log->error("failed to load shader [{0}]", utility::to_string(stage.shader()));
+				core::igles::log->error("failed to load shader [{0}]", psl::utility::to_string(stage.shader()));
 				return;
 			}
 		}
@@ -65,9 +65,9 @@ material_t::material_t(core::resource::cache_t& cache,
 					  "igles::material_t [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
 					  "cache.",
-					  utility::to_string(metaData.uid),
-					  utility::to_string(binding.sampler()),
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(metaData.uid),
+					  psl::utility::to_string(binding.sampler()),
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 				if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle) {
@@ -77,9 +77,9 @@ material_t::material_t(core::resource::cache_t& cache,
 					  "igles::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
 					  "cache.",
-					  utility::to_string(metaData.uid),
-					  utility::to_string(binding.texture()),
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(metaData.uid),
+					  psl::utility::to_string(binding.texture()),
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 			} break;
@@ -113,11 +113,12 @@ material_t::material_t(core::resource::cache_t& cache,
 						core::igles::log->error(
 						  "igles::material_t [{0}] declares resource of the type [{1}], but we detected a resource of "
 						  "the type [{2}] instead in shader [{3}]",
-						  utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
+						  psl::utility::to_string(
+							metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
 						  vk::to_string(buffer_handle->data()->usage())*/
 						  "",
 						  "",
-						  utility::to_string(stage.shader()));
+						  psl::utility::to_string(stage.shader()));
 						return;
 					}
 				} else {
@@ -125,9 +126,9 @@ material_t::material_t(core::resource::cache_t& cache,
 					  "igles::material_t [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
 					  "resource "
 					  "cache.",
-					  utility::to_string(metaData.uid),
-					  utility::to_string(binding.buffer()),
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(metaData.uid),
+					  psl::utility::to_string(binding.buffer()),
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 			} break;
@@ -157,7 +158,7 @@ void material_t::bind() {
 	using namespace core::gfx::conversion;
 
 
-	for(auto i = 0; i < m_Textures.size(); ++i) {
+	for(size_t i = 0; i < m_Textures.size(); ++i) {
 		auto binding = m_Textures[i].first;
 
 		if(binding == std::numeric_limits<uint32_t>::max())
@@ -169,10 +170,10 @@ void material_t::bind() {
 		glBindSampler(binding, m_Samplers[i].second->id());
 	}
 
-	for(auto i = 0; i < blend_states.size(); ++i) {
+	for(size_t i = 0; i < blend_states.size(); ++i) {
 		glBlendEquationSeparatei(
-		  i, to_gles(blend_states[i].color_blend_op()), to_gles(blend_states[i].alpha_blend_op()));
-		glBlendFuncSeparatei(i,
+		  psl::utility::narrow_cast<GLuint>(i), to_gles(blend_states[i].color_blend_op()), to_gles(blend_states[i].alpha_blend_op()));
+		glBlendFuncSeparatei(psl::utility::narrow_cast<GLuint>(i),
 							 to_gles(blend_states[i].color_blend_src()),
 							 to_gles(blend_states[i].color_blend_dst()),
 							 to_gles(blend_states[i].alpha_blend_src()),

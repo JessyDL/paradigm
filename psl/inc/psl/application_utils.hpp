@@ -5,14 +5,14 @@
 ///
 /// this namespace contains application specific information and utilities that might help you to find
 /// out information of its location, specific datapaths, etc...
-namespace utility::application::path {
+namespace psl::utility::application::path {
 /// \brief gets the path of the current application. This path is platform specific.
 /// \todo check if returning an empty path for android is correct behaviour.
 /// \returns an absolute path where the application is being ran from.
 /// \note even though the path is absolute, don't expect it to look like a windows path on other platforms.
 psl::string get_path();
 
-/// \brief location where the application is being ran from, check utility::application::path::get_path() for more
+/// \brief location where the application is being ran from, check psl::utility::application::path::get_path() for more
 /// info.
 static const psl::string project = get_path();
 /// \brief data path on this platform.
@@ -33,4 +33,4 @@ static const psl::string shaders = data + "shaders/";
 static const psl::string samplers = data + "samplers/";
 /// \brief worlds path on this platform.
 static const psl::string worlds = data + "worlds/";
-}	 // namespace utility::application::path
+}	 // namespace psl::utility::application::path

@@ -27,7 +27,7 @@ inline bool to_string(const psl::tvec<precision_t, size>& value, psl::string8_t&
 
 template <typename precision_t, size_t size>
 inline psl::tvec<precision_t, size> from_string(psl::string8::view str) noexcept {
-	auto split = utility::string::split(str, psl::string8::view {","});
+	auto split = psl::utility::string::split(str, psl::string8::view {","});
 	psl::tvec<precision_t, size> res;
 	for(size_t i = 0; i < size; ++i) res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 	return res;
@@ -35,7 +35,7 @@ inline psl::tvec<precision_t, size> from_string(psl::string8::view str) noexcept
 
 template <typename precision_t, size_t size>
 inline void from_string(psl::string8::view str, psl::tvec<precision_t, size>& out) noexcept {
-	auto split = utility::string::split(str, ",");
+	auto split = psl::utility::string::split(str, ",");
 	for(size_t i = 0; i < size; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 }
 
@@ -58,7 +58,7 @@ inline bool to_string(const psl::tquat<precision_t>& value, psl::string8_t& out)
 
 template <typename precision_t>
 inline psl::tquat<precision_t> from_string(psl::string8::view str) noexcept {
-	auto split = utility::string::split(str, psl::string8::view {","});
+	auto split = psl::utility::string::split(str, psl::string8::view {","});
 	psl::tquat<precision_t> res;
 	for(size_t i = 0; i < 4; ++i) res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 	return res;
@@ -66,7 +66,7 @@ inline psl::tquat<precision_t> from_string(psl::string8::view str) noexcept {
 
 template <typename precision_t>
 inline void from_string(psl::string8::view str, psl::tquat<precision_t>& out) noexcept {
-	auto split = utility::string::split(str, ",");
+	auto split = psl::utility::string::split(str, ",");
 	for(size_t i = 0; i < 4; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 }
 
@@ -89,7 +89,7 @@ inline bool to_string(const psl::tmat<precision_t, nX, nY>& value, psl::string8_
 
 template <typename precision_t, size_t nX, size_t nY>
 inline psl::tmat<precision_t, nX, nY> from_string(psl::string8::view str) noexcept {
-	auto split = utility::string::split(str, psl::string8::view {","});
+	auto split = psl::utility::string::split(str, psl::string8::view {","});
 	psl::tmat<precision_t, nX, nY> res;
 	for(size_t i = 0; i < nX * nY; ++i) res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 	return res;
@@ -97,11 +97,11 @@ inline psl::tmat<precision_t, nX, nY> from_string(psl::string8::view str) noexce
 
 template <typename precision_t, size_t nX, size_t nY>
 inline void from_string(psl::string8::view str, psl::tmat<precision_t, nX, nY>& out) noexcept {
-	auto split = utility::string::split(str, ",");
+	auto split = psl::utility::string::split(str, ",");
 	for(size_t i = 0; i < nX * nY; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 }
 }	 // namespace psl::serialization::converters
-namespace utility {
+namespace psl::utility {
 template <typename precision_t, size_t size>
 struct converter<psl::tvec<precision_t, size>> {
 	using value_t	 = psl::tvec<precision_t, size>;
@@ -115,14 +115,14 @@ struct converter<psl::tvec<precision_t, size>> {
 	}
 
 	static value_t from_string(view_t str) {
-		auto split = utility::string::split(str, ",");
+		auto split = psl::utility::string::split(str, ",");
 		value_t res;
 		for(size_t i = 0; i < size; ++i) res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 		return res;
 	}
 
 	static void from_string(value_t& out, view_t str) {
-		auto split = utility::string::split(str, ",");
+		auto split = psl::utility::string::split(str, ",");
 		for(size_t i = 0; i < size; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 
@@ -142,14 +142,14 @@ struct converter<psl::tquat<precision_t>> {
 	}
 
 	static value_t from_string(view_t str) {
-		auto split = utility::string::split(str, ",");
+		auto split = psl::utility::string::split(str, ",");
 		value_t res;
 		for(size_t i = 0; i < 4; ++i) res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 		return res;
 	}
 
 	static void from_string(value_t& out, view_t str) {
-		auto split = utility::string::split(str, ",");
+		auto split = psl::utility::string::split(str, ",");
 		for(size_t i = 0; i < 4; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 
@@ -170,17 +170,17 @@ struct converter<psl::tmat<precision_t, nX, nY>> {
 	}
 
 	static value_t from_string(view_t str) {
-		auto split = utility::string::split(str, ",");
+		auto split = psl::utility::string::split(str, ",");
 		value_t res;
 		for(size_t i = 0; i < nX * nY; ++i) res.value[i] = utility::converter<precision_t>().from_string(split[i]);
 		return res;
 	}
 
 	static void from_string(value_t& out, view_t str) {
-		auto split = utility::string::split(str, ",");
+		auto split = psl::utility::string::split(str, ",");
 		for(size_t i = 0; i < nX * nY; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 
 	static bool is_valid(view_t str) { return true; }
 };
-}	 // namespace utility
+}	 // namespace psl::utility

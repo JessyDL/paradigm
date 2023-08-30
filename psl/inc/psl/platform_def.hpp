@@ -57,7 +57,7 @@ typedef void* HANDLE;	 //-V677
 
 
 /// \brief platform specific utilities that help in identifying the current platform, and various specifications of it.
-namespace utility::platform {
+namespace psl::utility::platform {
 /// \brief contains all known, supported (or to be supported) platforms.
 /// \note we need to add an extra dash to linux as the define already exists on linux platforms
 enum class platform_t { UNKNOWN = 0, lnx = 1, macos = 2, windows = 3, android = 4, ios = 5 };
@@ -99,7 +99,7 @@ constexpr architecture_t architecture = architecture_t::ARM;
 #else
 constexpr architecture_t architecture = architecture_t::UNKNOWN;
 #endif
-}	 // namespace utility::platform
+}	 // namespace psl::utility::platform
 
 
 #ifdef _MSC_VER

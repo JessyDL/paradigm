@@ -33,7 +33,7 @@ class polymorphic final : public polymorphic_base {
 
 		data.encode = [](void* this_, encode_to_format& s) {
 			T* t	= static_cast<T*>(this_);
-			p.value = utility::to_string(accessor::polymorphic_id(t));
+			p.value = psl::utility::to_string(accessor::polymorphic_id(t));
 			s.parse(p);
 			accessor::serialize_directly<encode_to_format, T>(s, *t);
 			// t->serialize(s);

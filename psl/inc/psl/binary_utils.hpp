@@ -5,7 +5,7 @@
 #include <vector>
 
 /// \brief this namespace contains various helper utilities to aid you.
-namespace utility {
+namespace psl::utility {
 /// \brief contains various utilities in helping you to convert to, and from a byte stream.
 namespace binary {
 	template <typename T>
@@ -149,4 +149,4 @@ namespace binary {
 		memcpy(target, &buffer[offset], sizeof(uint8_t) * size * bytes);
 	}
 }	 // namespace binary
-}	 // namespace utility
+}	 // namespace psl::utility

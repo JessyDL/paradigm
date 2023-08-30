@@ -8,6 +8,7 @@
 #include "core/vk/conversion.hpp"
 #include "psl/meta.hpp"
 #include "psl/ustream.hpp"
+#include "psl/utility/cast.hpp"
 
 #ifdef PLATFORM_LINUX
 	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
@@ -62,7 +63,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL VulkanDebugCB(VkDebugReportFlagsEXT flags,
 	return false;	 // always return false
 }
 
-inline psl::string8_t size_denotation(size_t size) {
+inline psl::string8_t size_denotation(vk::DeviceSize size) {
 	static const std::vector<psl::string8::view> SUFFIXES {{"B", "KB", "MB", "GB", "TB", "PB"}};
 	size_t suffixIndex = 0;
 	while(suffixIndex < SUFFIXES.size() - 1 && size > 1024) {
@@ -165,7 +166,7 @@ context::context(core::resource::cache_t& cache,
 		instanceCI.ppEnabledExtensionNames = m_InstanceExtensionList.data();
 	}
 
-	if(!utility::vulkan::check(vk::createInstance(&instanceCI, nullptr, &m_Instance))) {
+	if(!core::utility::vulkan::check(vk::createInstance(&instanceCI, nullptr, &m_Instance))) {
 		core::ivk::log->critical("Could not create a Vulkan instance.");
 		std::exit(-1);
 	}
@@ -521,15 +522,15 @@ context::context(core::resource::cache_t& cache,
 		  m_PhysicalDeviceProperties.limits.maxPerStageDescriptorStorageBuffers);
 	}
 
-	m_Limits.uniform.alignment	 = m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment;
-	m_Limits.uniform.size		 = m_PhysicalDeviceProperties.limits.maxUniformBufferRange;
-	m_Limits.storage.alignment	 = m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment;
-	m_Limits.storage.size		 = m_PhysicalDeviceProperties.limits.maxStorageBufferRange;
-	m_Limits.memorymap.alignment = m_PhysicalDeviceProperties.limits.minMemoryMapAlignment;
-	m_Limits.memorymap.size		 = std::numeric_limits<uint64_t>::max();
+	m_Limits.uniform.alignment	 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
+	m_Limits.uniform.size		 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxUniformBufferRange);
+	m_Limits.storage.alignment	 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment);
+	m_Limits.storage.size		 = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxStorageBufferRange);
+	m_Limits.memorymap.alignment = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minMemoryMapAlignment);
+	m_Limits.memorymap.size		 = psl::utility::narrow_cast<size_t>(std::numeric_limits<uint64_t>::max());
 
 	vk::Format format;
-	if(utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))
+	if(core::utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))
 		m_Limits.supported_depthformat = core::gfx::conversion::to_format(format);
 	else
 		m_Limits.supported_depthformat = core::gfx::format_t::undefined;
@@ -567,7 +568,7 @@ void context::init_debug() {
 
 		vk::Result success;
 		std::tie(success, m_DebugReport) = m_Instance.createDebugReportCallbackEXT(callbackCreateInfo);
-		utility::vulkan::check(success);
+		core::utility::vulkan::check(success);
 	}
 }
 
@@ -664,7 +665,7 @@ void context::init_device() {
 		queueCreateInfo[0].queueCount		= 1;
 		queueCreateInfo[0].pQueuePriorities = queuePriorities.data();
 
-		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
+		if(!core::utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
 		}
@@ -684,7 +685,7 @@ void context::init_device() {
 		queueCreateInfo[1].pQueuePriorities = queuePriorities.data();
 
 
-		if(!utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
+		if(!core::utility::vulkan::check(create_device(queueCreateInfo.data(), (uint32_t)queueCreateInfo.size(), m_Device))) {
 			core::ivk::log->critical("Could not create a Vulkan device.");
 			std::exit(-1);
 		}
@@ -728,12 +729,12 @@ void context::init_command_pool() {
 	vk::CommandPoolCreateInfo CI;
 	CI.queueFamilyIndex = m_GraphicsQueueIndex;
 	CI.flags			= vk::CommandPoolCreateFlagBits::eResetCommandBuffer;
-	utility::vulkan::check(m_Device.createCommandPool(&CI, nullptr, &m_CommandPool));
+	core::utility::vulkan::check(m_Device.createCommandPool(&CI, nullptr, &m_CommandPool));
 
 
 	CI.queueFamilyIndex = m_TransferQueueIndex;
 	CI.flags			= vk::CommandPoolCreateFlagBits::eTransient;
-	utility::vulkan::check(m_Device.createCommandPool(&CI, nullptr, &m_TransferCommandPool));
+	core::utility::vulkan::check(m_Device.createCommandPool(&CI, nullptr, &m_TransferCommandPool));
 }
 
 void context::deinit_command_pool() {
@@ -746,11 +747,11 @@ void context::deinit_command_pool() {
 void context::init_descriptor_pool() {
 	// We need to tell the API the number of max. requested descriptors per type
 	std::vector<vk::DescriptorPoolSize> typeCounts = {
-	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64),
-	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 16),
-	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64),
-	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64),
-	  utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64)};
+	  core::utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 64),
+	  core::utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, 16),
+	  core::utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 64),
+	  core::utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_STORAGE_BUFFER_DYNAMIC, 64),
+	  core::utility::vulkan::defaults::descriptor_pool_size(VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 64)};
 	// For additional types you need to add new entries in the type count list
 	// E.g. for two combined image samplers :
 	// typeCounts[1].type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
@@ -759,9 +760,9 @@ void context::init_descriptor_pool() {
 	// Create the global descriptor pool
 	// All descriptors used in this example are allocated from this pool
 	vk::DescriptorPoolCreateInfo descriptorPoolInfo =
-	  utility::vulkan::defaults::descriptor_pool_ci((uint32_t)typeCounts.size(), typeCounts.data(), 32);
+	  core::utility::vulkan::defaults::descriptor_pool_ci((uint32_t)typeCounts.size(), typeCounts.data(), 32);
 	descriptorPoolInfo.flags = vk::DescriptorPoolCreateFlagBits::eFreeDescriptorSet;
-	utility::vulkan::check(m_Device.createDescriptorPool(&descriptorPoolInfo, nullptr, &m_DescriptorPool));
+	core::utility::vulkan::check(m_Device.createDescriptorPool(&descriptorPoolInfo, nullptr, &m_DescriptorPool));
 }
 
 void context::deinit_descriptor_pool() {
@@ -800,7 +801,7 @@ void context::flush(vk::CommandBuffer commandBuffer, bool free) {
 		return;
 	}
 
-	utility::vulkan::check(commandBuffer.end());
+	core::utility::vulkan::check(commandBuffer.end());
 
 	vk::SubmitInfo submitInfo;
 	submitInfo.commandBufferCount = 1;
@@ -811,10 +812,10 @@ void context::flush(vk::CommandBuffer commandBuffer, bool free) {
 	// fenceCreateInfo.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
 	// fenceCreateInfo.flags = 0u;
 	auto [result, fence] = m_Device.createFence(fenceCreateInfo, nullptr);
-	utility::vulkan::check(result);
+	core::utility::vulkan::check(result);
 
-	utility::vulkan::check(m_Queue.submit(1, &submitInfo, fence));
-	utility::vulkan::check(m_Device.waitForFences(1, &fence, VK_TRUE, 100000000000 /*nanoseconds*/));
+	core::utility::vulkan::check(m_Queue.submit(1, &submitInfo, fence));
+	core::utility::vulkan::check(m_Device.waitForFences(1, &fence, VK_TRUE, 100000000000 /*nanoseconds*/));
 	m_Device.destroyFence(fence);
 
 	if(free) {

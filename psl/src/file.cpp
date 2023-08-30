@@ -5,7 +5,7 @@
 #endif
 #include "psl/logging.hpp"
 
-using namespace utility::os;
+using namespace psl::utility::os;
 
 
 file::file(psl::string_view filename,

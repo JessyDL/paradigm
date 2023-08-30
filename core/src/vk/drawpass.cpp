@@ -27,8 +27,9 @@ drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::framebu
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
 	semaphoreCreateInfo.pNext = NULL;
 
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_PresentComplete));
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_RenderComplete));
+	core::utility::vulkan::check(
+	  m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_PresentComplete));
+	core::utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_RenderComplete));
 
 	m_DrawCommandBuffers.resize(m_Framebuffer->framebuffers().size());
 
@@ -51,8 +52,9 @@ drawpass::drawpass(handle<core::ivk::context> context, handle<core::ivk::swapcha
 	vk::SemaphoreCreateInfo semaphoreCreateInfo;
 	semaphoreCreateInfo.pNext = NULL;
 
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_PresentComplete));
-	utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_RenderComplete));
+	core::utility::vulkan::check(
+	  m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_PresentComplete));
+	core::utility::vulkan::check(m_Context->device().createSemaphore(&semaphoreCreateInfo, nullptr, &m_RenderComplete));
 
 	m_DrawCommandBuffers.resize(m_Swapchain->framebuffers().size());
 
@@ -111,7 +113,7 @@ bool drawpass::build() {
 	cmdBufAllocateInfo.commandBufferCount = (uint32_t)m_DrawCommandBuffers.size();	  // one for each image
 	cmdBufAllocateInfo.level			  = vk::CommandBufferLevel::ePrimary;
 
-	if(!utility::vulkan::check(
+	if(!core::utility::vulkan::check(
 		 m_Context->device().allocateCommandBuffers(&cmdBufAllocateInfo, m_DrawCommandBuffers.data())))
 		throw new std::runtime_error("Critical issue");
 
@@ -136,9 +138,9 @@ bool drawpass::build() {
 					   [](const auto& attach) { return core::gfx::conversion::to_vk(attach.clear_value()); });
 	}
 	bool success = false;
-	for(auto i = 0; i < m_DrawCommandBuffers.size(); ++i) {
+	for(size_t i = 0; i < m_DrawCommandBuffers.size(); ++i) {
 		m_Context->device().waitIdle();
-		if(!utility::vulkan::check(m_DrawCommandBuffers[i].begin(cmdBufInfo)))
+		if(!core::utility::vulkan::check(m_DrawCommandBuffers[i].begin(cmdBufInfo)))
 			throw new std::runtime_error("Critical issue");
 
 		const std::vector<vk::Framebuffer>& framebuffers =
@@ -185,7 +187,8 @@ bool drawpass::build() {
 			m_DrawCommandBuffers[i].setDepthBias(
 			  m_DepthBias.components[0], m_DepthBias.components[1], m_DepthBias.components[2]);
 
-			for(auto& group : m_AllGroups) build_drawgroup(group, m_DrawCommandBuffers[i], m_Swapchain, i);
+			for(auto& group : m_AllGroups)
+				build_drawgroup(group, m_DrawCommandBuffers[i], m_Swapchain, psl::utility::narrow_cast<uint32_t>(i));
 
 			m_DrawCommandBuffers[i].endRenderPass();
 		} else {
@@ -214,14 +217,16 @@ bool drawpass::build() {
 				  m_DepthBias.components[0], m_DepthBias.components[1], m_DepthBias.components[2]);
 
 
-				for(auto& group : m_AllGroups) build_drawgroup(group, m_DrawCommandBuffers[i], m_Framebuffer, i);
+				for(auto& group : m_AllGroups)
+					build_drawgroup(
+					  group, m_DrawCommandBuffers[i], m_Framebuffer, psl::utility::narrow_cast<uint32_t>(i));
 
 
 				m_DrawCommandBuffers[i].endRenderPass();
 			}
 		}
 
-		success |= utility::vulkan::check(m_DrawCommandBuffers[i].end());
+		success |= core::utility::vulkan::check(m_DrawCommandBuffers[i].end());
 	}
 
 	return success;
@@ -231,7 +236,7 @@ void drawpass::create_fences(const size_t size) {
 	if(m_WaitFences.size() > 0)
 		destroy_fences();
 
-	for(auto i = 0; i < size; ++i) {
+	for(size_t i = 0; i < size; ++i) {
 		vk::FenceCreateInfo fCI;
 		fCI.flags = vk::FenceCreateFlagBits::eSignaled;
 		m_WaitFences.push_back(m_Context->device().createFence(fCI, nullptr).value);
@@ -239,15 +244,15 @@ void drawpass::create_fences(const size_t size) {
 }
 
 void drawpass::destroy_fences() {
-	if(!utility::vulkan::check(
+	if(!core::utility::vulkan::check(
 		 m_Context->device().waitForFences(psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()),
 										   m_WaitFences.data(),
 										   VK_TRUE,
 										   std::numeric_limits<uint64_t>::max())))
 		LOG_ERROR("Failed to wait for fence");
 
-	if(!utility::vulkan::check(m_Context->device().resetFences(psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()),
-															   m_WaitFences.data())))
+	if(!core::utility::vulkan::check(m_Context->device().resetFences(
+		 psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()), m_WaitFences.data())))
 		LOG_ERROR("Failed to reset fence");
 	for(auto& fence : m_WaitFences) {
 		m_Context->device().destroyFence(fence, nullptr);
@@ -267,11 +272,11 @@ void drawpass::prepare() {
 
 void drawpass::present() {
 	if(m_WaitFences.size() > 0) {
-		if(!utility::vulkan::check(m_Context->device().waitForFences(
+		if(!core::utility::vulkan::check(m_Context->device().waitForFences(
 			 1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, std::numeric_limits<uint64_t>::max())))
 			LOG_ERROR("Failed to wait for fence");
 
-		if(!utility::vulkan::check(m_Context->device().resetFences(1, &m_WaitFences[m_CurrentBuffer])))
+		if(!core::utility::vulkan::check(m_Context->device().resetFences(1, &m_WaitFences[m_CurrentBuffer])))
 			LOG_ERROR("Failed to reset fence");
 	}
 
@@ -289,7 +294,7 @@ void drawpass::present() {
 		m_SubmitInfo.waitSemaphoreCount = (uint32_t)semaphores.size();
 		m_SubmitInfo.pWaitSemaphores	= semaphores.data();
 
-		for(auto i = 0; i < semaphores.size(); ++i) stageFlags.push_back(m_SubmitPipelineStages);
+		for(size_t i = 0; i < semaphores.size(); ++i) stageFlags.push_back(m_SubmitPipelineStages);
 
 		m_SubmitInfo.pWaitDstStageMask = stageFlags.data();
 	}
@@ -303,12 +308,12 @@ void drawpass::present() {
 
 
 	if(m_WaitFences.size() > 0)
-		utility::vulkan::check(m_Context->queue().submit(1, &m_SubmitInfo, m_WaitFences[m_CurrentBuffer]));
+		core::utility::vulkan::check(m_Context->queue().submit(1, &m_SubmitInfo, m_WaitFences[m_CurrentBuffer]));
 	else
-		utility::vulkan::check(m_Context->queue().submit(1, &m_SubmitInfo, nullptr));
+		core::utility::vulkan::check(m_Context->queue().submit(1, &m_SubmitInfo, nullptr));
 
 	if(m_UsingSwap) {
-		utility::vulkan::check(m_Swapchain->present(m_RenderComplete));
+		core::utility::vulkan::check(m_Swapchain->present(m_RenderComplete));
 	}
 
 	++m_FrameCount;
@@ -386,12 +391,13 @@ void drawpass::build_drawgroup(drawgroup& group,
 					// bundle->bind_geometry(cmdBuffer, geometryHandle);
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle)) {
+						vk::DeviceSize b_second = b.second;
 						cmdBuffer.bindVertexBuffers(psl::utility::narrow_cast<uint32_t>(b.first),
 													1,
 													&bundle->m_InstanceData.vertex_buffer()
 													   ->resource<gfx::graphics_backend::vulkan>()
 													   ->gpu_buffer(),
-													&b.second);
+													&b_second);
 					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);
@@ -437,12 +443,13 @@ void drawpass::build_drawgroup(drawgroup& group,
 					// bundle->bind_geometry(cmdBuffer, geometryHandle);
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle)) {
+						vk::DeviceSize b_second = b.second;
 						cmdBuffer.bindVertexBuffers(psl::utility::narrow_cast<uint32_t>(b.first),
 													1,
 													&bundle->m_InstanceData.vertex_buffer()
 													   ->resource<gfx::graphics_backend::vulkan>()
 													   ->gpu_buffer(),
-													&b.second);
+													&b_second);
 					}
 
 					cmdBuffer.drawIndexed((uint32_t)geometryHandle->data()->indices().size(), instance_n, 0, 0, 0);

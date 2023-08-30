@@ -3,6 +3,7 @@
 #include "quaternion.hpp"
 #include "utility.hpp"
 #include "vec.hpp"
+#include "psl/utility/cast.hpp"
 
 #ifdef near
 	#undef near
@@ -12,7 +13,7 @@
 #endif
 
 constexpr std::size_t operator"" _sz(unsigned long long n) {
-	return n;
+	return psl::utility::narrow_cast<size_t>(n);
 }
 
 namespace psl {

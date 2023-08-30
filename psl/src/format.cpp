@@ -358,7 +358,7 @@ value_range_t psl::format::container::insert_content(std::vector<psl::string8::v
 	psl::string8_t agg_content;
 	value_range_t res;
 	res.reserve(content.size());
-	agg_content.reserve(utility::string::size(content));
+	agg_content.reserve(psl::utility::string::size(content));
 	for(const auto& it : content) {
 		agg_content += it;
 		res.emplace_back(std::make_pair(false, std::make_pair(agg_content.size() - it.size(), it.size())));
@@ -425,7 +425,7 @@ nodes_t psl::format::container::index_of(const data& data) const {
 nodes_t psl::format::container::index_of(const data& data, psl::string8::view child) const {
 	nodes_t parent_index = index_of(data);
 
-	std::vector<psl::string8::view> partNames = utility::string::split(child, constants::NAMESPACE_DIVIDER);
+	std::vector<psl::string8::view> partNames = psl::utility::string::split(child, constants::NAMESPACE_DIVIDER);
 	children_t depth						  = m_NodeData[parent_index].m_Depth;
 	auto children_n							  = m_NodeData[parent_index].reinterpret_as_collection();
 	auto name								  = std::begin(partNames);
@@ -457,7 +457,7 @@ psl::format::container::features parse_header(psl::string8::view content) {
 		auto chksum_end	  = header.find_first_not_of(numeric_values, chksum_start);
 
 		psl::string8::view headerless_content {&content[header.size()], content.size() - header.size()};
-		auto checksum = utility::crc32(headerless_content);
+		auto checksum = psl::utility::crc32(headerless_content);
 		psl::string8_t checksum_file(&header[chksum_start], chksum_end - chksum_start);
 
 		char* endptr = nullptr;
@@ -733,7 +733,7 @@ void container::parse_references(container& container,
 			((std::vector<psl::string8::view>*)(data[it]._data()))->~vector();
 			reference_range_t* references = new(data[it]._data()) reference_range_t();
 			references->resize(names.size());
-			for(int u = 0; u < names.size(); ++u) {
+			for(size_t u = 0; u < names.size(); ++u) {
 				(*references)[u] = internal_get(names[u]).m_Handle;
 			}
 		}
@@ -741,7 +741,7 @@ void container::parse_references(container& container,
 }
 
 container::~container() {
-	for(int i = 0; i < m_NodeData.size(); ++i) {
+	for(size_t i = 0; i < m_NodeData.size(); ++i) {
 		delete(m_NodeData[i].m_Handle);
 		if(m_NodeData[i].m_Type == type_t::REFERENCE_RANGE) {
 			m_NodeData[i].reinterpret_as_reference_range().~vector();
@@ -812,13 +812,13 @@ handle& container::operator[](psl::string8::view view) const {
 	return *m_NodeData[index_of(view)].m_Handle;
 }
 nodes_t container::index_of(psl::string8::view name) const {
-	std::vector<psl::string8::view> partNames = utility::string::split(name, constants::NAMESPACE_DIVIDER);
+	std::vector<psl::string8::view> partNames = psl::utility::string::split(name, constants::NAMESPACE_DIVIDER);
 	children_t depth						  = 0;
-	for(int i = 0; i < m_NodeData.size(); ++i) {
+	for(size_t i = 0; i < m_NodeData.size(); ++i) {
 		if(m_NodeData[i].m_Depth == depth && m_NodeData[i].name() == partNames[depth]) {
 			++depth;
 			if(depth == partNames.size())
-				return i;
+				return psl::utility::narrow_cast<nodes_t>(i);
 		} else if(m_NodeData[i].m_Type == type_t::COLLECTION) {
 			i += m_NodeData[i].reinterpret_as_collection();
 		}
@@ -1100,7 +1100,7 @@ handle& container::operator+=(std::pair<psl::string8::view, psl::string8::view> 
 psl::string8_t container::compact_header::build(const container& container) {
 	names	= container.m_InternalData;
 	content = container.m_Content;
-	for(int i = 0; i < container.m_NodeData.size(); ++i) {
+	for(size_t i = 0; i < container.m_NodeData.size(); ++i) {
 		compact_header::entry& entry	   = entries.emplace_back();
 		entry.type						   = (uint8_t)container.m_NodeData[i].m_Type;
 		entry.name_start				   = container.m_NodeData[i].m_Name.first;
@@ -1302,7 +1302,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 	} else {
 		size_t reserve = m_Content.size() + m_InternalData.size() + m_InternalData.size() + res.size() +
 						 (m_Content.size() + m_InternalData.size()) / 10u;
-		for(int i = 0; i < m_NodeData.size(); ++i) {
+		for(size_t i = 0; i < m_NodeData.size(); ++i) {
 			reserve += m_NodeData[i].m_Depth * (size_t)(setting.pretty_write) + constants::HEAD_OPEN.size() +
 					   constants::HEAD_CLOSE.size() + constants::TAIL_OPEN.size() + constants::TAIL_CLOSE.size();
 
@@ -1353,7 +1353,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 
 		size_t checksum_content_index = res.size();
 
-		for(int i = 0; i < m_NodeData.size(); ++i) {
+		for(size_t i = 0; i < m_NodeData.size(); ++i) {
 			m_NodeData[i].to_string(setting, res);
 			res += ((setting.pretty_write) ? "\n" : "");
 			if(m_NodeData[i].m_Type == type_t::COLLECTION) {
@@ -1364,7 +1364,7 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 
 		if(setting.write_header) {
 			auto checksum =
-			  utility::crc32(psl::string8::view {&res[checksum_content_index], res.size() - checksum_content_index});
+			  psl::utility::crc32(psl::string8::view {&res[checksum_content_index], res.size() - checksum_content_index});
 			auto chksum_str = psl::string8_t("CHECKSUM " + std::to_string(checksum) + "\n");
 			res.insert(res.begin() + checksum_index, chksum_str.begin(), chksum_str.end());
 		}
@@ -1373,9 +1373,9 @@ psl::string8_t container::to_string(std::optional<psl::format::settings> setting
 }
 
 bool container::contains(psl::string8::view name) const {
-	std::vector<psl::string8::view> partNames = utility::string::split(name, constants::NAMESPACE_DIVIDER);
+	std::vector<psl::string8::view> partNames = psl::utility::string::split(name, constants::NAMESPACE_DIVIDER);
 	children_t depth						  = 0;
-	for(int i = 0; i < m_NodeData.size(); ++i) {
+	for(size_t i = 0; i < m_NodeData.size(); ++i) {
 		if(m_NodeData[i].m_Depth == depth && m_NodeData[i].name() == partNames[depth]) {
 			++depth;
 			if(depth == partNames.size())
@@ -1549,8 +1549,9 @@ char const* node_not_found::what() const noexcept {
 	if(auto index = std::get_if<nodes_t>(&m_Data)) {
 		if((size_t)*index >= m_Container->size()) {
 			message =
-			  "The index " + utility::to_string(*index) +
-			  " is larger than the last element, which is at index: " + utility::to_string(m_Container->size() - 1);
+			  "The index " + psl::utility::to_string(*index) +
+					  " is larger than the last element, which is at index: " +
+					  psl::utility::to_string(m_Container->size() - 1);
 		}
 	} else if(auto name = std::get_if<psl::string8_t>(&m_Data)) {
 		message = "The node named '" + *name + "' could not be found in the container.";

@@ -14,7 +14,7 @@
 using namespace memory;
 
 
-raw_region::raw_region(std::uint64_t size) {
+raw_region::raw_region(size_t size) {
 	if(size == 0) {
 		m_Base	   = nullptr;
 		m_Size	   = 0;
@@ -31,17 +31,19 @@ raw_region::raw_region(std::uint64_t size) {
 	GetSystemInfo(&sSysInfo);	 // Initialize the structure.
 	m_PageSize = sSysInfo.dwPageSize;
 
-	m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
+	m_Size = ((size + m_PageSize - 1) / m_PageSize * m_PageSize);
 
 	m_Base = (void*)VirtualAlloc(NULL,						  // System selects address
 								 m_Size,					  // Size of allocation
 								 MEM_RESERVE | MEM_COMMIT,	  // Allocate reserved pages
 								 PAGE_READWRITE);			  // Protection = no access
 
-
+	psl_assert(m_Base != nullptr, "VirtualAlloc failed");
 	if(m_Base == nullptr) {
 		// todo error state
+		auto error = GetLastError();
 		__debugbreak();
+		std::abort();
 	}
 #else
 	m_PageSize = sysconf(_SC_PAGE_SIZE);

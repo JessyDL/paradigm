@@ -37,7 +37,7 @@ uint64_t find_nth_prime(uint64_t n) {
 
 	uint64_t sieveSize = findSieveSize(n);
 	uint64_t count	   = 0;
-	uint64_t max_i	   = sqrt(sieveSize - 1) + 1;
+	uint64_t max_i	   = (uint64_t)sqrt(sieveSize - 1) + 1;
 
 	if(sieveSize == 0)
 		return 0;

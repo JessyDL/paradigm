@@ -27,20 +27,20 @@ compute::compute(cache_t& cache,
 	psl_assert(data->stages().size() == 1 && data->stages()[0].shader_stage() == core::gfx::shader_stage::compute,
 			   "shader stages {} and stage name {} did not match assertion",
 			   data->stages().size(),
-			   utility::to_string(data->stages()[0].shader_stage()));
+			   psl::utility::to_string(data->stages()[0].shader_stage()));
 	auto& stage		   = data->stages()[0];
 	auto shader_handle = cache.find<core::igles::shader>(stage.shader());
 	if(!shader_handle) {
 		core::igles::log->warn(
 		  "igles::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-		  utility::to_string(metaData.uid),
-		  utility::to_string(stage.shader()));
+		  psl::utility::to_string(metaData.uid),
+		  psl::utility::to_string(stage.shader()));
 
 
-		core::igles::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
+		core::igles::log->info("trying to load shader [{0}].", psl::utility::to_string(stage.shader()));
 		shader_handle = cache.instantiate<core::igles::shader>(stage.shader());
 		if(!shader_handle) {
-			core::igles::log->error("failed to load shader [{0}]", utility::to_string(stage.shader()));
+			core::igles::log->error("failed to load shader [{0}]", psl::utility::to_string(stage.shader()));
 			return;
 		}
 	}
@@ -80,9 +80,9 @@ compute::compute(cache_t& cache,
 				  "igles::compute [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
 				  "resource "
 				  "cache.",
-				  utility::to_string(metaData.uid),
-				  utility::to_string(binding.texture()),
-				  utility::to_string(stage.shader()));
+				  psl::utility::to_string(metaData.uid),
+				  psl::utility::to_string(binding.texture()),
+				  psl::utility::to_string(stage.shader()));
 				return;
 			}
 		} break;
@@ -123,11 +123,11 @@ compute::compute(cache_t& cache,
 					core::igles::log->error(
 					  "igles::compute [{0}] declares resource of the type [{1}], but we detected a resource of "
 					  "the type [{2}] instead in shader [{3}]",
-					  utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
+					  psl::utility::to_string(metaData.uid), /*vk::to_string(conversion::to_vk(binding.descriptor())),
 					  vk::to_string(buffer_handle->data()->usage())*/
 					  "",
 					  "",
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 			} else {
@@ -135,9 +135,9 @@ compute::compute(cache_t& cache,
 				  "igles::compute [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the "
 				  "resource "
 				  "cache.",
-				  utility::to_string(metaData.uid),
-				  utility::to_string(binding.buffer()),
-				  utility::to_string(stage.shader()));
+				  psl::utility::to_string(metaData.uid),
+				  psl::utility::to_string(binding.buffer()),
+				  psl::utility::to_string(stage.shader()));
 				return;
 			}
 		} break;

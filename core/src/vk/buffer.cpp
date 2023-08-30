@@ -59,16 +59,16 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 	bufCreateInfo.size	= m_BufferDataHandle->size();
 	bufCreateInfo.flags = vk::BufferCreateFlagBits();
 
-	utility::vulkan::check(m_Context->device().createBuffer(&bufCreateInfo, nullptr, &m_Buffer));
+	core::utility::vulkan::check(m_Context->device().createBuffer(&bufCreateInfo, nullptr, &m_Buffer));
 
 	memReqs = m_Context->device().getBufferMemoryRequirements(m_Buffer), memAllocInfo.allocationSize = memReqs.size;
 
 	m_Context->memory_type(memReqs.memoryTypeBits,
 						   core::gfx::conversion::to_vk(m_BufferDataHandle->memoryPropertyFlags()),
 						   &memAllocInfo.memoryTypeIndex);
-	utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_Memory));
+	core::utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_Memory));
 
-	utility::vulkan::check(m_Context->device().bindBufferMemory(m_Buffer, m_Memory, 0));
+	core::utility::vulkan::check(m_Context->device().bindBufferMemory(m_Buffer, m_Memory, 0));
 	m_Descriptor.buffer = m_Buffer;
 	m_Descriptor.offset = 0;
 	m_Descriptor.range	= m_BufferDataHandle->size();
@@ -91,7 +91,7 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 		cmdBufInfo.level			  = vk::CommandBufferLevel::ePrimary;
 		cmdBufInfo.commandBufferCount = 1;
 
-		utility::vulkan::check(m_Context->device().allocateCommandBuffers(&cmdBufInfo, &m_CommandBuffer));
+		core::utility::vulkan::check(m_Context->device().allocateCommandBuffers(&cmdBufInfo, &m_CommandBuffer));
 	}
 }
 
@@ -114,7 +114,7 @@ size_t buffer_t::free_size() const noexcept {
 						   [](size_t sum, const memory::range_t& element) { return sum + element.size(); });
 }
 std::optional<memory::segment> buffer_t::reserve(vk::DeviceSize size) {
-	return m_BufferDataHandle->allocate(size);
+	return m_BufferDataHandle->allocate(psl::utility::narrow_cast<size_t>(size));
 }
 
 std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::vector<vk::DeviceSize> sizes,
@@ -126,17 +126,26 @@ std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::
 	  });
 	std::vector<std::pair<memory::segment, memory::range_t>> result;
 
+	
+	psl_assert(totalSize <= std::numeric_limits<size_t>::max(),
+			   "size should be lower than the numerical limits of the bitsize of the platform, should be less-equal "
+			   "than '{}' but got '{}'",
+			   std::numeric_limits<size_t>::max(),
+			   totalSize);
+
+	size_t totalSize_platform = (size_t)totalSize;
+
 	// todo: low priority
 	// this should check for biggest continuous space in the memory::region and split like that
 	if(optimize) {
-		auto segment = m_BufferDataHandle->allocate(totalSize);
+		auto segment = m_BufferDataHandle->allocate(totalSize_platform);
 		if(segment) {
 			result.resize(sizes.size());
-			vk::DeviceSize accOffset = 0u;
+			size_t accOffset = 0u;
 			for(auto i = 0u; i < sizes.size(); ++i) {
 				result[i].first	 = segment.value();
-				result[i].second = memory::range_t {accOffset, accOffset + sizes[i]};
-				accOffset += sizes[i];
+				result[i].second = memory::range_t {accOffset, accOffset + (size_t)sizes[i]};
+				accOffset += (size_t)sizes[i];
 			}
 			return result;
 		}
@@ -145,10 +154,12 @@ std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::
 	// either optimization failed, or we aren't optimizing
 	result.reserve(sizes.size());
 	for(const auto& size : sizes) {
-		if(auto segment = m_BufferDataHandle->allocate(size); segment) {
+		// has already been verified at the entry when calculating the total space requirement.
+		size_t size_platform = (size_t)size;
+		if(auto segment = m_BufferDataHandle->allocate(size_platform); segment) {
 			auto& res  = result.emplace_back();
 			res.first  = segment.value();
-			res.second = memory::range_t {0, size};
+			res.second = memory::range_t {0, size_platform};
 		} else {
 			goto failure;
 		}
@@ -166,11 +177,20 @@ failure:
 
 bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 	PROFILE_SCOPE(core::profiler)
-	vk::DeviceSize totalSize =
+	auto totalSize =
 	  std::accumulate(std::next(std::begin(instructions)),
 					  std::end(instructions),
 					  std::begin(instructions)->size,
-					  [](vk::DeviceSize sum, const commit_instruction& element) { return sum + element.size; });
+					  [](auto sum, const commit_instruction& element) { return sum + element.size; });
+
+	
+	psl_assert(totalSize <= std::numeric_limits<size_t>::max(),
+			   "size should be lower than the numerical limits of the bitsize of the platform, should be less-equal "
+			   "than '{}' but got '{}'",
+			   std::numeric_limits<size_t>::max(),
+			   totalSize);
+
+	size_t totalSize_platform = (size_t)totalSize;
 
 	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::device_local) {
 		std::vector<vk::DeviceSize> sizeRequests;
@@ -180,7 +200,7 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 		auto stagingBuffer = m_StagingBuffer;
 		if(!stagingBuffer) {
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer_t.");
-			memory::region temp_region {totalSize, 4, new memory::default_allocator(false)};
+			memory::region temp_region {totalSize_platform, 4, new memory::default_allocator(false)};
 			auto buffer_data = m_Cache.create<core::data::buffer_t>(core::gfx::memory_usage::transfer_source,
 																	core::gfx::memory_property::host_visible |
 																	  core::gfx::memory_property::host_coherent,
@@ -213,7 +233,7 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 
 		if(stagingSegments.size() > 0 && stagingSegments[0].first.range().size() == 0)
 			debug_break();
-		for(auto i = 0; i < stagingSegments.size(); ++i) {
+		for(size_t i = 0; i < stagingSegments.size(); ++i) {
 			if(stagingSegments[i].first.range() != boundSegment.range()) {
 				m_Context->device().unmapMemory(stagingBuffer->m_Memory);
 				boundSegment = stagingSegments[i].first;
@@ -222,7 +242,7 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 				tuple = m_Context->device().mapMemory(stagingBuffer->m_Memory, offset, boundSegment.range().size());
 			}
 
-			if(!utility::vulkan::check(tuple.result)) {
+			if(!core::utility::vulkan::check(tuple.result)) {
 				return false;
 			}
 
@@ -270,7 +290,7 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 									instruction.sub_range.value_or(memory::range_t {}).begin;
 
 			auto tuple = m_Context->device().mapMemory(m_Memory, offset, instruction.size);
-			if(!utility::vulkan::check(tuple.result)) {
+			if(!core::utility::vulkan::check(tuple.result)) {
 				return false;
 			}
 			memcpy(tuple.value, (void*)instruction.source, instruction.size);
@@ -289,10 +309,27 @@ bool buffer_t::deallocate(memory::segment& segment) {
 
 bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset) {
 	PROFILE_SCOPE(core::profiler)
-	if(size == 0)
+	if(size == 0) {
 		return true;
+	}
 
-	if(size > m_BufferDataHandle->size() || (size + offset) > m_BufferDataHandle->size()) {
+	psl_assert(size <= std::numeric_limits<size_t>::max(),
+			   "size should be lower than the numerical limits of the bitsize of the platform, should be less-equal "
+			   "than '{}' but got '{}'",
+			   std::numeric_limits<size_t>::max(),
+			   size);
+
+
+	psl_assert(size + offset <= std::numeric_limits<size_t>::max(),
+			   "size + offset should be lower than the numerical limits of the bitsize of the platform, should be "
+			   "less-equal than '{}' but got '{}'",
+			   std::numeric_limits<size_t>::max(),
+			   size + offset);
+
+	size_t platform_size   = psl::utility::narrow_cast<size_t>(size);
+	size_t platform_offset = psl::utility::narrow_cast<size_t>(offset);
+
+	if(platform_size > m_BufferDataHandle->size() || (platform_size + platform_offset) > m_BufferDataHandle->size()) {
 		core::ivk::log->error("tried to map an incorrect size amount to an ivk::buffer_t.");
 		return false;
 	}
@@ -304,7 +341,7 @@ bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		} else {
 			// make a local staging buffer, this is hardly efficient. todo find better way.
 			core::ivk::log->warn("inefficient loading, dynamically creating a staging ivk::buffer_t.");
-			memory::region temp_region {size * 2, 4, new memory::default_allocator(true)};
+			memory::region temp_region {platform_size * 2, 4, new memory::default_allocator(true)};
 			auto buffer_data = m_Cache.create<core::data::buffer_t>(core::gfx::memory_usage::transfer_source,
 																	core::gfx::memory_property::host_visible |
 																	  core::gfx::memory_property::host_coherent,
@@ -312,10 +349,10 @@ bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			auto staging	 = m_Cache.create<core::ivk::buffer_t>(m_Context, buffer_data);
 
 			auto tuple = m_Context->device().mapMemory(staging->m_Memory, 0, size);
-			if(!utility::vulkan::check(tuple.result)) {
+			if(!core::utility::vulkan::check(tuple.result)) {
 				debug_break();
 			}
-			memcpy(tuple.value, data, size);
+			memcpy(tuple.value, data, platform_size);
 			m_Context->device().unmapMemory(staging->m_Memory);
 
 			return copy_from(staging.value(), {vk::BufferCopy {0u, offset, size}});
@@ -324,12 +361,12 @@ bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 		// core::ivk::log->info("mapping ivk::buffer_t data from CPU.");
 
 		auto tuple = m_Context->device().mapMemory(m_Memory, offset, size);
-		if(!utility::vulkan::check(tuple.result)) {
+		if(!core::utility::vulkan::check(tuple.result)) {
 			debug_break();
 		}
-		memcpy(tuple.value, data, size);
+		memcpy(tuple.value, data, platform_size);
 		if(m_BufferDataHandle->region().data() != data)	   // Let's map this to the buffer too.
-			memcpy(m_BufferDataHandle->region().data(), data, size);
+			memcpy(m_BufferDataHandle->region().data(), data, platform_size);
 
 		m_Context->device().unmapMemory(m_Memory);
 		return true;
@@ -356,8 +393,8 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 	  });
 
 	core::ivk::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
-						 utility::to_string(other.m_UID),
-						 utility::to_string(m_UID),
+						 psl::utility::to_string(other.m_UID),
+						 psl::utility::to_string(m_UID),
 						 totalsize,
 						 copyRegions.size());
 
@@ -372,7 +409,7 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 	// Put buffer region copies into command buffer
 	// Note that the staging buffer must not be deleted before the copies
 	// have been submitted and executed
-	utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
+	core::utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
 	m_CommandBuffer.copyBuffer(other.m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
 	m_CommandBuffer.end();
 
@@ -382,7 +419,7 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 	copySubmitInfo.pCommandBuffers	  = &m_CommandBuffer;
 	m_Context->device().resetFences(m_BufferCompleted);
 	core::profiler.scope_end(this);
-	utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
+	core::utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
 	core::profiler.scope_begin("wait idle", this);
 	queue.waitIdle();
 	core::profiler.scope_end(this);
@@ -391,13 +428,13 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 		core::profiler.scope_begin("replicate to host", this);
 		// TODO this really needs to be per region..
 		// auto tuple = m_Context->Device().mapMemory(m_Memory, 0, m_Descriptor.range);
-		// utility::vulkan::check(tuple.result);
+		// core::utility::vulkan::check(tuple.result);
 		// memcpy(m_BufferData.Data(), tuple.value, m_Descriptor.range);
 		// m_Context->Device().unmapMemory(m_Memory);
 
 		core::ivk::log->info("mapping an ivk::buffer_t of size {0} to a pool of size {1}",
-							 utility::to_string(m_BufferDataHandle->size()),
-							 utility::to_string(m_BufferDataHandle->size()));
+							 psl::utility::to_string(m_BufferDataHandle->size()),
+							 psl::utility::to_string(m_BufferDataHandle->size()));
 
 		uint32_t minVal {std::numeric_limits<uint32_t>::max()}, maxVal {std::numeric_limits<uint32_t>::min()};
 		for(const auto& region : copyRegions) {
@@ -416,9 +453,11 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 		for(const auto& region : copyRegions) {
 			auto tuple = m_Context->device().mapMemory(m_Memory, region.dstOffset, region.size);
 			core::ivk::log->info("(dstOffset|size) {0} | {1}", region.dstOffset, region.size);
-			if(utility::vulkan::check(tuple.result)) {
-				if(auto segment = m_BufferDataHandle->allocate(region.size); segment) {
-					memcpy((void*)(segment.value().range().begin), tuple.value, region.size);
+			if(core::utility::vulkan::check(tuple.result)) {
+				if(auto segment = m_BufferDataHandle->allocate(psl::utility::narrow_cast<size_t>(region.size)); segment) {
+					memcpy((void*)(segment.value().range().begin),
+						   tuple.value,
+						   psl::utility::narrow_cast<size_t>(region.size));
 				} else {
 					core::ivk::log->error("could not get a free spot in the pool for some reason..");
 					debug_break();
@@ -457,8 +496,8 @@ bool buffer_t::set(const void* data,
 
 		psl::string8_t message = "\n";
 		for(auto it = end; it != std::end(commands); ++it)
-			message += "size: " + utility::to_string(it->size) + " srcOffset: " + utility::to_string(it->srcOffset) +
-					   " dstOffset: " + utility::to_string(it->dstOffset) + "\n";
+			message += "size: " + psl::utility::to_string(it->size) + " srcOffset: " + psl::utility::to_string(it->srcOffset) +
+					   " dstOffset: " + psl::utility::to_string(it->dstOffset) + "\n";
 		core::ivk::log->debug(message);
 		return false;
 	}
@@ -472,7 +511,7 @@ bool buffer_t::set(const void* data,
 	// Put buffer region copies into command buffer
 	// Note that the staging buffer must not be deleted before the copies
 	// have been submitted and executed
-	utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
+	core::utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
 
 	// now we will do all the seperate commands.
 	for(auto it = std::begin(commands); it != end; ++it) {
@@ -487,7 +526,7 @@ bool buffer_t::set(const void* data,
 	copySubmitInfo.pCommandBuffers	  = &m_CommandBuffer;
 
 	m_Context->device().resetFences(m_BufferCompleted);
-	utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
+	core::utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
 	// queue.waitIdle();
 	// m_CommandBuffer.reset(vk::CommandBufferResetFlagBits::eReleaseResources);
 

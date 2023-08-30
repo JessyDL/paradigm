@@ -6,7 +6,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace utility {
+namespace psl::utility {
 /// \brief contains some debug information, such as trace information, as well as utilities to debug.
 class debug {
   public:
@@ -34,7 +34,7 @@ class debug {
 	/// pointers pointing to the address of the current callstack (excluding this method).
 	static std::vector<void*> raw_trace(size_t offset = 0u, size_t depth = 255u);
 
-	static utility::debug::trace_info demangle(void* target);
+	static psl::utility::debug::trace_info demangle(void* target);
 	/// \brief helper method to give a name to a specific thread.
 	/// \param[in] id thread::id that will be named.
 	/// \param[in] name the name to assign to the given thread::id.
@@ -84,4 +84,4 @@ class debug {
   private:
 	static std::unordered_map<std::thread::id, psl::string8_t> m_ThreadMap;
 };
-}	 // namespace utility
+}	 // namespace psl::utility

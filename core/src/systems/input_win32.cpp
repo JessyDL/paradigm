@@ -37,7 +37,7 @@ const uint8_t WIN_NATIVE_TO_HID[256] = {
   255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255, 255};
 
 
-__int64 __stdcall input::win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam, __int64 lParam) {
+LRESULT CALLBACK input::win_event_handler(HWND hWnd, unsigned int uMsg, WPARAM wParam, LPARAM lParam) {
 	core::os::surface* surface = reinterpret_cast<core::os::surface*>(GetWindowLongPtrW(hWnd, GWLP_USERDATA));
 	if(surface != nullptr) {
 		auto& input = surface->input();

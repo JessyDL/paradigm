@@ -9,9 +9,9 @@
 	#include <tlhelp32.h>
 #endif
 
-std::vector<utility::debug::trace_info>
-utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id> id) {
-	std::vector<utility::debug::trace_info> res;
+std::vector<psl::utility::debug::trace_info>
+psl::utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id> id) {
+	std::vector<psl::utility::debug::trace_info> res;
 #ifdef PLATFORM_WINDOWS
 	static HANDLE process = std::invoke([]() {
 		HANDLE h = GetCurrentProcess();
@@ -47,13 +47,22 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 	CONTEXT context		 = {};
 	context.ContextFlags = CONTEXT_ALL;
 	GetThreadContext(thread, &context);
-	STACKFRAME frame	   = {};
-	frame.AddrPC.Offset	   = context.Rip;
+	STACKFRAME frame = {};
+	#if defined(PE_PLATFORM_32_BIT)
+	frame.AddrPC.Offset	   = context.Eip;
 	frame.AddrPC.Mode	   = AddrModeFlat;
-	frame.AddrFrame.Offset = context.Rbp;
+	frame.AddrFrame.Offset = context.Ebp;
 	frame.AddrFrame.Mode   = AddrModeFlat;
-	frame.AddrStack.Offset = context.Rsp;
+	frame.AddrStack.Offset = context.Esp;
 	frame.AddrStack.Mode   = AddrModeFlat;
+	#elif defined(PE_PLATFORM_64_BIT)
+	frame.AddrPC.Offset		   = context.Rip;
+	frame.AddrPC.Mode		   = AddrModeFlat;
+	frame.AddrFrame.Offset	   = context.Rbp;
+	frame.AddrFrame.Mode	   = AddrModeFlat;
+	frame.AddrStack.Offset	   = context.Rsp;
+	frame.AddrStack.Mode	   = AddrModeFlat;
+	#endif
 
 	for(unsigned int i = 0; i < depth + offset; i++) {
 		if(!StackWalk(machine, process, thread, &frame, &context, NULL, SymFunctionTableAccess, SymGetModuleBase, NULL))
@@ -90,7 +99,7 @@ utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id
 	return res;
 }
 
-std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth) {
+std::vector<void*> psl::utility::debug::raw_trace(size_t offset, size_t depth) {
 	std::vector<void*> stack;
 #ifdef PLATFORM_WINDOWS
 	stack.resize(depth);
@@ -108,24 +117,35 @@ std::vector<void*> utility::debug::raw_trace(size_t offset, size_t depth) {
 }
 
 
-utility::debug::trace_info utility::debug::demangle(void* target) {
-	utility::debug::trace_info info;
+psl::utility::debug::trace_info psl::utility::debug::demangle(void* target) {
+	psl::utility::debug::trace_info info;
 #ifdef PLATFORM_WINDOWS
-	static std::unique_ptr<IMAGEHLP_SYMBOL64> symbol = std::invoke([]() {
-		IMAGEHLP_SYMBOL64* sPtr;
-		sPtr				= (IMAGEHLP_SYMBOL64*)calloc(sizeof(IMAGEHLP_SYMBOL64) + 256 * sizeof(char), 1);
+	#if defined(PE_PLATFORM_32_BIT)
+	using IMAGEHLP_SYMBOL_TYPE = IMAGEHLP_SYMBOL;
+	using DWORD_TYPE		   = DWORD;
+	#elif defined(PE_PLATFORM_64_BIT)
+	using IMAGEHLP_SYMBOL_TYPE = IMAGEHLP_SYMBOL64;
+	using DWORD_TYPE		   = DWORD64;
+	#endif
+	static std::unique_ptr<IMAGEHLP_SYMBOL_TYPE> symbol = std::invoke([]() {
+		IMAGEHLP_SYMBOL_TYPE* sPtr;
+		sPtr				= (IMAGEHLP_SYMBOL_TYPE*)calloc(sizeof(IMAGEHLP_SYMBOL_TYPE) + 256 * sizeof(char), 1);
 		sPtr->MaxNameLength = 255;
-		sPtr->SizeOfStruct	= sizeof(IMAGEHLP_SYMBOL64);
-		std::unique_ptr<IMAGEHLP_SYMBOL64> sUPtr {sPtr};
+		sPtr->SizeOfStruct	= sizeof(IMAGEHLP_SYMBOL_TYPE);
+		std::unique_ptr<IMAGEHLP_SYMBOL_TYPE> sUPtr {sPtr};
 		return sUPtr;
 	});
-	static HANDLE process							 = std::invoke([]() {
-		   HANDLE h = GetCurrentProcess();
-		   SymInitialize(h, NULL, TRUE);
-		   return h;
-	   });
+	static HANDLE process								= std::invoke([]() {
+		  HANDLE h = GetCurrentProcess();
+		  SymInitialize(h, NULL, TRUE);
+		  return h;
+	  });
 
-	SymGetSymFromAddr64(process, (DWORD64)(target), 0, symbol.get());
+	#if defined(PE_PLATFORM_32_BIT)
+	SymGetSymFromAddr(process, (DWORD_TYPE)(target), 0, symbol.get());
+	#elif defined(PE_PLATFORM_64_BIT)
+	SymGetSymFromAddr64(process, (DWORD_TYPE)(target), 0, symbol.get());
+	#endif
 	info.name = psl::from_string8_t(psl::string8_t(symbol->Name));
 	info.addr = symbol->Address;
 #endif

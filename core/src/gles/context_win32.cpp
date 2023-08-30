@@ -123,10 +123,10 @@ void GLAPIENTRY MessageCallback(GLenum source,
 		break;
 	case GL_DEBUG_SEVERITY_HIGH:
 		if(type == GL_DEBUG_TYPE_ERROR) {
-			auto stack = utility::debug::trace(0, 255, main_thread);
+			auto stack = psl::utility::debug::trace(0, 255, main_thread);
 			psl::string traceStr {"--- TRACE ---\n"};
 			for(const auto& trace : stack) {
-				traceStr.append('\t' + utility::string::to_hex(trace.addr) + "    " + trace.name + '\n');
+				traceStr.append('\t' + psl::utility::string::to_hex(trace.addr) + "    " + trace.name + '\n');
 			}
 			traceStr.append("--- END ---");
 			core::igles::log->critical("{0} - {1}: {2} at {3}\n{4}", type, id, message, source, traceStr);

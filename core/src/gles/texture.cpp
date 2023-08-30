@@ -39,7 +39,7 @@ texture_t::texture_t(core::resource::cache_t& cache,
 	if(!m_Meta) {
 		core::igles::log->error(
 		  "texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
-		  utility::to_string(metaFile->ID()));
+		  psl::utility::to_string(metaFile->ID()));
 		return;
 	}
 

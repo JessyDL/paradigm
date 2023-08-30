@@ -88,7 +88,7 @@ scheduler::scheduler(std::optional<size_t> workers) noexcept
 	: m_Workers(workers.value_or(std::thread::hardware_concurrency() -
 								 1 /* removing one for the main thread that participates */)) {
 	m_Workerthreads.reserve(m_Workers);
-	for(auto i = 0; i < m_Workers; ++i) {
+	for(size_t i = 0; i < m_Workers; ++i) {
 		m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer()));
 		m_Workerthreads[i]->start();
 	}
