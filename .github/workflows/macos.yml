@@ -29,3 +29,4 @@ jobs:
     - name: test
       if: ${{ matrix.tests == 'ON' }}
       run: ./builds/default/bin/tests --formatter compact --no-source
+      timeout-minutes: 20
