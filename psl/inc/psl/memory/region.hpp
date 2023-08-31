@@ -138,7 +138,7 @@ class region {
 	bool commit(const memory::range_t& range);
 	allocator_base* m_Allocator {nullptr};
 
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	std::pair<size_t, size_t> page_range(const memory::range_t& range);
 	std::vector<state> m_PageState;
 #endif

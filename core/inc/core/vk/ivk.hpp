@@ -55,7 +55,7 @@
 	#define SURFACE_COLORSPACE vk::ColorSpaceKHR::eSrgbNonlinear
 #endif
 
-#if defined(DEBUG) && !defined(PLATFORM_ANDROID)
+#if defined(DEBUG) && !defined(PE_PLATFORM_ANDROID)
 	#define VULKAN_ENABLE_VALIDATION true
 #else
 	#define VULKAN_ENABLE_VALIDATION false

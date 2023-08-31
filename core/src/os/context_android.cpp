@@ -1,4 +1,4 @@
-#define PLATFORM_ANDROID
+#define PE_PLATFORM_ANDROID
 #include "core/logging.hpp"
 #include "core/os/context.hpp"
 #include <android/sensor.h>

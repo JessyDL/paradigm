@@ -1,6 +1,6 @@
 #pragma once
 
-#if !defined(PLATFORM_ANDROID) && __cpp_lib_execution >= 201902
+#if !defined(PE_PLATFORM_ANDROID) && __cpp_lib_execution >= 201902
 	#include <execution>
 namespace psl::ecs::execution {
 static constexpr bool has_execution_v {true};

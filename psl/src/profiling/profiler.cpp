@@ -3,7 +3,7 @@
 #include "psl/debug_utils.hpp"
 #include "psl/string_utils.hpp"
 
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	#include <Windows.h>
 	#pragma comment(lib, "Dbghelp.lib")
 	#include <Dbghelp.h>
@@ -138,7 +138,7 @@ psl::string profiler::to_string() const {
 	std::unordered_map<uint64_t, psl::string> demangled_info;
 	const auto endIt = (m_FrameIndex + 1) % m_Frames.size();
 	auto i			 = endIt;
-	#ifdef PLATFORM_WINDOWS
+	#ifdef PE_PLATFORM_WINDOWS
 		/*auto mapping = psl::utility::platform::file::read(psl::utility::application::path::get_path() + "core.map");
 		if(mapping)
 		{

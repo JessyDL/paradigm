@@ -1,10 +1,10 @@
 #include "psl/memory/raw_region.hpp"
 #include "psl/platform_def.hpp"
 #include <algorithm>
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 	#include <Windows.h>
 #endif
-#if defined(PLATFORM_LINUX) || defined(PLATFORM_ANDROID) || defined(PLATFORM_MACOS)
+#if defined(PE_PLATFORM_LINUX) || defined(PE_PLATFORM_ANDROID) || defined(PE_PLATFORM_MACOS)
 	#include <sys/mman.h>
 	#include <unistd.h>
 #endif
@@ -26,7 +26,7 @@ raw_region::raw_region(size_t size) {
 	m_Base	   = malloc(size);
 	m_Size	   = size;
 	psl_assert(m_Base != nullptr, "failed to allocate {} bytes", size);
-#elif defined(PLATFORM_WINDOWS)
+#elif defined(PE_PLATFORM_WINDOWS)
 	SYSTEM_INFO sSysInfo;		 // Useful information about the system
 	GetSystemInfo(&sSysInfo);	 // Initialize the structure.
 	m_PageSize = sSysInfo.dwPageSize;
@@ -97,7 +97,7 @@ void raw_region::release() noexcept {
 	}
 #if defined(PLATFORM_GENERIC)
 	free(m_Base);
-#elif defined(PLATFORM_WINDOWS)
+#elif defined(PE_PLATFORM_WINDOWS)
 	VirtualFree(m_Base,			 // Base address of block
 				0,				 // Bytes of committed pages
 				MEM_RELEASE);	 // Decommit the pages

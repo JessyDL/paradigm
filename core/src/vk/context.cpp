@@ -10,7 +10,7 @@
 #include "psl/ustream.hpp"
 #include "psl/utility/cast.hpp"
 
-#ifdef PLATFORM_LINUX
+#ifdef PE_PLATFORM_LINUX
 	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
 	#undef minor
 	#undef major

@@ -39,11 +39,11 @@ static constexpr auto component_type_v = IsComponentFlagType<T>		 ? component_ty
 namespace details {
 	template <typename T>
 	concept HasComponentTraitsPrototypeDefinition = requires() {
-#if !defined(PLATFORM_ANDROID)
+#if !defined(PE_PLATFORM_ANDROID)
 		{
 #endif
 			component_traits<T>::prototype()
-#if !defined(PLATFORM_ANDROID)
+#if !defined(PE_PLATFORM_ANDROID)
 			} -> std::same_as<T>
 #endif
 			  ;
@@ -51,11 +51,11 @@ namespace details {
 
 	template <typename T>
 	concept HasComponentMemberPrototypeDefinition = requires() {
-#if !defined(PLATFORM_ANDROID)
+#if !defined(PE_PLATFORM_ANDROID)
 		{
 #endif
 			T::prototype()
-#if !defined(PLATFORM_ANDROID)
+#if !defined(PE_PLATFORM_ANDROID)
 			} -> std::same_as<T>
 #endif
 			  ;

@@ -35,7 +35,7 @@
 #include <unordered_set>
 #include <vector>
 
-#ifdef PLATFORM_LINUX
+#ifdef PE_PLATFORM_LINUX
 	// https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's like the windows min/max..
 	#undef minor
 	#undef major
@@ -57,7 +57,7 @@
 
 #include "core/gfx/stdafx.hpp"
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 	#define _CRTDBG_MAP_ALLOC
 	#include <crtdbg.h>
 	#include <stdlib.h>
@@ -85,7 +85,7 @@
 //#ifdef DEBUG
 #include <malloc.h>
 
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 
 	#define CHKHEAP() (chk_heap(__FILE__, __LINE__))
 

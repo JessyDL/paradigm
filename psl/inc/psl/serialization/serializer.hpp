@@ -42,7 +42,7 @@ template <typename INV>
 class invocable_wrapper final : public invocable_wrapper_base {
   public:
 	invocable_wrapper(INV&& inv) : t(std::forward<INV>(inv)) {
-#if !defined(PLATFORM_ANDROID)	  // todo android currently does not support is_invocable
+#if !defined(PE_PLATFORM_ANDROID)	 // todo android currently does not support is_invocable
 		static_assert(std::is_invocable<INV>::value, "Must be an invocable");
 #endif
 	};

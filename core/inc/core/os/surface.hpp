@@ -12,7 +12,7 @@ typedef HINSTANCE__* HINSTANCE;
 	#endif
 #elif defined(SURFACE_XCB)
 	#include <xcb/xcb.h>
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_ANDROID)
 	#include <android/asset_manager.h>
 	#include <android/native_activity.h>
 	#include <android_native_app_glue.h>
@@ -109,7 +109,7 @@ class surface {
 	xcb_window_t surface_handle() const {
 		return _xcb_window;
 	};
-#elif defined(SURFACE_D2D) || defined(PLATFORM_ANDROID)
+#elif defined(SURFACE_D2D) || defined(PE_PLATFORM_ANDROID)
 #else
 	#error no suitable surface was selected
 #endif

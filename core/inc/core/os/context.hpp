@@ -1,6 +1,6 @@
 #pragma once
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 struct android_app;
 struct ASensorManager;
 struct ASensor;

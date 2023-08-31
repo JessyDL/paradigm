@@ -62,7 +62,8 @@
       },
       "cacheVariables": {
         "PE_PLATFORM": "MACOS",
-        "PE_CORE": "OFF"
+        "PE_CORE": "OFF",
+        "PE_ARCHITECTURE": "x86_64"
       }
     },
     {
@@ -117,7 +118,8 @@
         "rhs": "Linux"
       },
       "cacheVariables": {
-        "PE_PLATFORM": "LINUX"
+        "PE_PLATFORM": "LINUX",
+        "PE_ARCHITECTURE": "x86_64"
       }
     },
     {
@@ -199,7 +201,8 @@
         "PE_BUILD_DIR": {
           "type": "STRING",
           "value": "${sourceDir}/builds/x64"
-        }
+        },
+        "PE_ARCHITECTURE": "x86_64"
       }
     },
     {
@@ -223,7 +226,8 @@
         "PE_BUILD_DIR": {
           "type": "STRING",
           "value": "${sourceDir}/builds/Win32"
-        }
+        },
+        "PE_ARCHITECTURE": "x86"
       }
     },
     {
@@ -357,7 +361,8 @@
         "rhs": ""
       },
       "cacheVariables": {
-        "PE_PLATFORM": "ANDROID"
+        "PE_PLATFORM": "ANDROID",
+        "PE_ARCHITECTURE": "ARM64"
       }
     },
     {

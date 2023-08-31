@@ -9,10 +9,10 @@
 #else
 	#include <cstdio>
 #endif
-#ifdef PLATFORM_ANDROID
+#ifdef PE_PLATFORM_ANDROID
 	#include <tuple>
 	#include <android/log.h>
-#endif	  // PLATFORM_ANDROID
+#endif	  // PE_PLATFORM_ANDROID
 
 namespace psl {
 enum class level_t {
@@ -46,7 +46,7 @@ namespace details {
 	template <typename... Args>
 	struct print_t {
 /// \todo When Android implements source_location, remove the ifdefs and migrate to source_location
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 		int android_log_level(level_t level) noexcept {
 			int log_level = ANDROID_LOG_SILENT;
 			switch(level) {
@@ -193,7 +193,7 @@ namespace details {
 #endif
 	};
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	template <typename... Ts>
 	print_t(level_t, const char*, const char*, int, const char*, Ts&&...) -> print_t<Ts...>;
 #else
@@ -203,7 +203,7 @@ namespace details {
 }	 // namespace details
 }	 // namespace psl
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	#define psl_print(level, message, ...)                                                                             \
 		psl::details::print_t {                                                                                        \
 			level, __PRETTY_FUNCTION__, __FILE__, __LINE__, message, __VA_ARGS__                                       \
@@ -298,7 +298,7 @@ constexpr inline void assertion(Fn&& conditional) {
 
 #define DBG__FUNCTION static DBG__ALWAYS_INLINE
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	#define debug_break()
 #else
 	#if defined(__has_builtin) && !defined(__ibmxl__)
