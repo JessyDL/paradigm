@@ -36,12 +36,16 @@ compute::compute(core::resource::cache_t& cache,
 #endif
 #ifdef PE_VULKAN
 		psl::not_implemented("todo implement vulkan backend");
-		/*case graphics_backend::vulkan:
+	case graphics_backend::vulkan:
+		psl::not_implemented();
+		/*
 			m_Handle << cache.create_using<core::ivk::compute>(metaData.uid,
 																context_handle->resource().get<core::ivk::context>(),
 		   data, pipeline_cache->resource().get<core::ivk::pipeline_cache>());*/
 		break;
 #endif
+	default:
+		psl::not_implemented();
 	}
 }
 
