@@ -19,6 +19,9 @@ template <typename T>
 class producer final {
 	friend class consumer<T>;
 
+	using signed_size_t		   = std::conditional_t<sizeof(size_t) == 8, int64_t, int32_t>;
+	using signed_atomic_size_t = std::conditional_t<sizeof(size_t) == 8, std::atomic_int64_t, std::atomic_int32_t>;
+
 	/// \brief Wrapper over ring_array<T>
 	///
 	/// \details This wrapper class over a ring_array keeps track of its internal offset.
@@ -31,13 +34,13 @@ class producer final {
 	  public:
 		buffer(size_t capacity) : m_Data(psl::math::next_pow_of(2, std::max<size_t>(32u, capacity))) {};
 		~buffer() {}
-		void set(int64_t index, T&& value) noexcept {
-			m_Data[psl::utility::narrow_cast<size_t>((index - static_cast<int64_t>(m_Offset)) & (m_Data.ssize() - 1))] =
-			  std::forward<T>(value);
+		void set(signed_size_t index, T&& value) noexcept {
+			m_Data[psl::utility::narrow_cast<size_t>((index - static_cast<signed_size_t>(m_Offset)) &
+													 (m_Data.ssize() - 1))] = std::forward<T>(value);
 		}
 
-		auto at(int64_t index) const noexcept {
-			return m_Data[psl::utility::narrow_cast<size_t>((index - static_cast<int64_t>(m_Offset)) &
+		auto at(signed_size_t index) const noexcept {
+			return m_Data[psl::utility::narrow_cast<size_t>((index - static_cast<signed_size_t>(m_Offset)) &
 															(m_Data.ssize() - 1))];
 		}
 
@@ -65,8 +68,8 @@ class producer final {
 	};
 
   public:
-	producer(int64_t capacity = 1024) {
-		capacity = psl::math::next_pow_of(2, std::max(capacity, (int64_t)1024));
+	producer(signed_size_t capacity = 1024) {
+		capacity = psl::math::next_pow_of(2, std::max(capacity, (signed_size_t)1024));
 		m_Begin.store(0, std::memory_order_relaxed);
 		m_End.store(0, std::memory_order_relaxed);
 		auto cont = new buffer(capacity);
@@ -96,7 +99,7 @@ class producer final {
 	size_t size() const noexcept { return static_cast<size_t>(ssize()); }
 
 	/// \returns the current count of all elements in the producer.
-	int64_t ssize() const noexcept {
+	signed_size_t ssize() const noexcept {
 		auto begin = m_Begin.load(std::memory_order_relaxed);
 		auto end   = m_End.load(std::memory_order_relaxed);
 		return std::max<decltype(begin)>(end - begin, 0);
@@ -110,7 +113,7 @@ class producer final {
 	void resize(size_t size) {
 		auto cont = m_Data.load(std::memory_order_relaxed);
 		size	  = psl::math::next_pow_of(2, size);
-		if(size == (int64_t)cont->capacity())
+		if(size == (signed_size_t)cont->capacity())
 			return;
 
 		auto begin	 = m_Begin.load(std::memory_order_relaxed);
@@ -132,11 +135,11 @@ class producer final {
 	/// \warning Callable only on the owning thread, do not call from multiple threads.
 	/// \todo Implement the backing storage as an atomic<shared_ptr<buffer>> for more logical cleanup flow.
 	void push(T&& value) {
-		int64_t end	  = m_End.load(std::memory_order_relaxed);
-		int64_t begin = m_Begin.load(std::memory_order_acquire);
-		auto cont	  = m_Data.load(std::memory_order_relaxed);
+		signed_size_t end	= m_End.load(std::memory_order_relaxed);
+		signed_size_t begin = m_Begin.load(std::memory_order_acquire);
+		auto cont			= m_Data.load(std::memory_order_relaxed);
 
-		if(static_cast<int64_t>(cont->capacity()) < (end - begin) + 1) {
+		if(static_cast<signed_size_t>(cont->capacity()) < (end - begin) + 1) {
 			auto newCont = cont->copy(begin, end);
 			std::swap(newCont, cont);
 			m_Data.store(cont, std::memory_order_relaxed);
@@ -156,11 +159,11 @@ class producer final {
 	/// \details Tries to pop an element off the end of the deque.
 	/// \warning Only callable from the owning thread, otherwise the results will be undefined.
 	std::optional<T> pop() noexcept {
-		int64_t end = m_End.load(std::memory_order_relaxed) - 1;
-		auto cont	= m_Data.load(std::memory_order_relaxed);
+		signed_size_t end = m_End.load(std::memory_order_relaxed) - 1;
+		auto cont		  = m_Data.load(std::memory_order_relaxed);
 		m_End.store(end, std::memory_order_relaxed);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
-		int64_t begin = m_Begin.load(std::memory_order_relaxed);
+		signed_size_t begin = m_Begin.load(std::memory_order_relaxed);
 
 		std::optional<T> res {std::nullopt};
 
@@ -190,9 +193,9 @@ class producer final {
 	/// \details To be used by consumer threads, this gives a thread safe way of stealing items from the deque.
 	/// It can be called by any thread, but is only exposed to the consumer class.
 	std::optional<T> steal() noexcept {
-		int64_t begin = m_Begin.load(std::memory_order_acquire);
+		signed_size_t begin = m_Begin.load(std::memory_order_acquire);
 		std::atomic_thread_fence(std::memory_order_seq_cst);
-		int64_t end = m_End.load(std::memory_order_acquire);
+		signed_size_t end = m_End.load(std::memory_order_acquire);
 
 		std::optional<T> res {std::nullopt};
 
@@ -209,8 +212,8 @@ class producer final {
 		return res;
 	}
 
-	std::atomic_int64_t m_Begin;
-	std::atomic_int64_t m_End;
+	signed_atomic_size_t m_Begin;
+	signed_atomic_size_t m_End;
 	std::atomic<buffer*> m_Data;
 	buffer* m_Last {nullptr};
 };
