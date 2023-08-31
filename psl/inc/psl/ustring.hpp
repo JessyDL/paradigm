@@ -248,13 +248,13 @@ psl::string8_t to_string8_t(const psl::pstring_t& s);
 /// \param[in] _Size how many times this should be repeated.
 /// \returns the location on success, or a nullptr on failure.
 inline void* memset(char_t* _Dst, char_t _Val, size_t _Size) {
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 	#if defined(UNICODE)
 	return std::memset(_Dst, _Val, _Size);
 	#else
 	return std::wmemset((wchar_t*)_Dst, _Val, _Size);
 	#endif
-#elif defined(PLATFORM_LINUX)
+#elif defined(PE_PLATFORM_LINUX)
 	return std::memset(_Dst, _Val, _Size);
 #endif
 	return nullptr;
@@ -267,13 +267,13 @@ inline void* memset(char_t* _Dst, char_t _Val, size_t _Size) {
 /// \warning this method is platform specific, please review the internals before calling so that it satisfies the
 /// requirements of the platform you call it on.
 inline FILE* popen(const char_t* _Command, const char_t* _Mode) {
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 	#if defined(UNICODE)
 	return _popen(_Command, _Mode);
 	#else
 	return _wpopen(_Command, _Mode);
 	#endif
-#elif defined(PLATFORM_LINUX)
+#elif defined(PE_PLATFORM_LINUX)
 	// return popen((const char*)_Command, (const char*)_Mode);
 #endif
 	return nullptr;
@@ -285,9 +285,9 @@ inline FILE* popen(const char_t* _Command, const char_t* _Mode) {
 /// \warning this method is platform specific, please review the internals before calling so that it satisfies the
 /// requirements of the platform you call it on.
 inline int pclose(FILE* _Stream) {
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 	return _pclose(_Stream);
-#elif defined(PLATFORM_LINUX)
+#elif defined(PE_PLATFORM_LINUX)
 	// return pclose(_Stream);
 #endif
 	return 0;

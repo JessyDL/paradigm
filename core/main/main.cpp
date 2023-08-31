@@ -77,7 +77,7 @@
 
 #include "core/data/framebuffer.hpp"
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	#include <android_native_app_glue.h>
 #endif
 using namespace core;
@@ -190,7 +190,7 @@ handle<core::gfx::material_t> setup_gfx_depth_material(resource::cache_t& cache,
 
 void create_ui(psl::ecs::state_t& state) {}
 
-#ifndef PLATFORM_ANDROID
+#ifndef PE_PLATFORM_ANDROID
 
 inline std::tm localtime_safe(std::time_t timer) {
 	std::tm bt {};
@@ -954,7 +954,7 @@ ECSState.create(
 	return 0;
 }
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 
 // todo move to os context
 AAssetManager* psl::utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
@@ -985,7 +985,7 @@ void android_main(android_app* application) {
 
 #else
 int main(int argc, char* argv[]) {
-	#ifdef PLATFORM_WINDOWS
+	#ifdef PE_PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	#endif

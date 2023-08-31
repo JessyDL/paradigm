@@ -629,9 +629,9 @@ class input {
 #if defined(SURFACE_WIN32)
 	void tick();
 
-	#if defined(PE_PLATFORM_32_BIT)
+	#if defined(PE_ARCHITECTURE_X86)
 	static long __stdcall win_event_handler(HWND hWnd, unsigned int uMsg, unsigned int wParam, long lParam);
-	#elif defined(PE_PLATFORM_64_BIT)
+	#elif defined(PE_ARCHITECTURE_X86_64)
 	static __int64 __stdcall win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam, __int64 lParam);
 	#endif
 

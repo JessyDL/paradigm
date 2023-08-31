@@ -11,7 +11,7 @@
 #include <numeric>
 #include <stack>
 #include <unordered_map>
-#ifdef PLATFORM_LINUX
+#ifdef PE_PLATFORM_LINUX
 	// todo: find cleaner solution to this, https://bugzilla.redhat.com/show_bug.cgi?id=130601 not a bug my ass, it's
 	// like the windows min/max..
 	#undef minor

@@ -2,7 +2,7 @@
 #include "psl/assertions.hpp"
 #include <stdexcept>
 
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	#include <Windows.h>
 	#pragma comment(lib, "Dbghelp.lib")
 	#include <Dbghelp.h>
@@ -12,7 +12,7 @@
 std::vector<psl::utility::debug::trace_info>
 psl::utility::debug::trace(size_t offset, size_t depth, std::optional<std::thread::id> id) {
 	std::vector<psl::utility::debug::trace_info> res;
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	static HANDLE process = std::invoke([]() {
 		HANDLE h = GetCurrentProcess();
 		psl_assert(SymInitialize(h, NULL, TRUE) != FALSE, "SymInitialize failed");
@@ -48,14 +48,14 @@ psl::utility::debug::trace(size_t offset, size_t depth, std::optional<std::threa
 	context.ContextFlags = CONTEXT_ALL;
 	GetThreadContext(thread, &context);
 	STACKFRAME frame = {};
-	#if defined(PE_PLATFORM_32_BIT)
+	#if defined(PE_ARCHITECTURE_X86)
 	frame.AddrPC.Offset	   = context.Eip;
 	frame.AddrPC.Mode	   = AddrModeFlat;
 	frame.AddrFrame.Offset = context.Ebp;
 	frame.AddrFrame.Mode   = AddrModeFlat;
 	frame.AddrStack.Offset = context.Esp;
 	frame.AddrStack.Mode   = AddrModeFlat;
-	#elif defined(PE_PLATFORM_64_BIT)
+	#elif defined(PE_ARCHITECTURE_X86_64)
 	frame.AddrPC.Offset		   = context.Rip;
 	frame.AddrPC.Mode		   = AddrModeFlat;
 	frame.AddrFrame.Offset	   = context.Rbp;
@@ -101,7 +101,7 @@ psl::utility::debug::trace(size_t offset, size_t depth, std::optional<std::threa
 
 std::vector<void*> psl::utility::debug::raw_trace(size_t offset, size_t depth) {
 	std::vector<void*> stack;
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	stack.resize(depth);
 	unsigned short frames;
 	static HANDLE process = std::invoke([]() {
@@ -119,11 +119,11 @@ std::vector<void*> psl::utility::debug::raw_trace(size_t offset, size_t depth) {
 
 psl::utility::debug::trace_info psl::utility::debug::demangle(void* target) {
 	psl::utility::debug::trace_info info;
-#ifdef PLATFORM_WINDOWS
-	#if defined(PE_PLATFORM_32_BIT)
+#ifdef PE_PLATFORM_WINDOWS
+	#if defined(PE_ARCHITECTURE_X86)
 	using IMAGEHLP_SYMBOL_TYPE = IMAGEHLP_SYMBOL;
 	using DWORD_TYPE		   = DWORD;
-	#elif defined(PE_PLATFORM_64_BIT)
+	#elif defined(PE_ARCHITECTURE_X86_64)
 	using IMAGEHLP_SYMBOL_TYPE = IMAGEHLP_SYMBOL64;
 	using DWORD_TYPE		   = DWORD64;
 	#endif
@@ -141,9 +141,9 @@ psl::utility::debug::trace_info psl::utility::debug::demangle(void* target) {
 		  return h;
 	  });
 
-	#if defined(PE_PLATFORM_32_BIT)
+	#if defined(PE_ARCHITECTURE_X86)
 	SymGetSymFromAddr(process, (DWORD_TYPE)(target), 0, symbol.get());
-	#elif defined(PE_PLATFORM_64_BIT)
+	#elif defined(PE_ARCHITECTURE_X86_64)
 	SymGetSymFromAddr64(process, (DWORD_TYPE)(target), 0, symbol.get());
 	#endif
 	info.name = psl::from_string8_t(psl::string8_t(symbol->Name));

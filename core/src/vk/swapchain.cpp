@@ -37,7 +37,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	createInfo.connection = m_OSSurface->connection();
 	createInfo.window	  = m_OSSurface->surface_handle();
 	core::utility::vulkan::check(m_Context->instance().createXcbSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_ANDROID)
 	vk::AndroidSurfaceCreateInfoKHR createInfo;
 	core::ivk::log->info("creating android swapchain");
 	createInfo.window = os_context.application().window;

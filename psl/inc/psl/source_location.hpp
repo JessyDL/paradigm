@@ -1,14 +1,14 @@
 #pragma once
 #include "platform_def.hpp"
 
-#if !defined(PLATFORM_ANDROID) && !defined(__clang__)
+#if !defined(PE_PLATFORM_ANDROID) && !defined(__clang__)
 	#include <source_location>
 #else
 	#include <cstdint>
 #endif
 
 namespace psl {
-#if defined(PLATFORM_ANDROID) || defined(__clang__)
+#if defined(PE_PLATFORM_ANDROID) || defined(__clang__)
 /// \todo When Android implements source_location, remove
 class source_location {
   public:

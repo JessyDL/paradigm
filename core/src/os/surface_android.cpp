@@ -1,5 +1,5 @@
 #include "psl/platform_def.hpp"
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	#include "core/os/surface.hpp"
 
 using namespace core::os;

@@ -1,33 +1,6 @@
 #pragma once
 
-#if !defined(PLATFORM_WINDOWS) && !defined(PLATFORM_IOS) && !defined(PLATFORM_MACOS) && !defined(PLATFORM_ANDROID) &&  \
-  !defined(PLATFORM_LINUX) && !defined(PLATFORM_POSIX)
-	#ifdef _WIN64
-		#define PLATFORM_WINDOWS
-	#elif _WIN32
-		#define PLATFORM_WINDOWS
-	#elif __APPLE__
-		#include "TargetConditionals.h"
-		#if TARGET_OS_IPHONE && TARGET_IPHONE_SIMULATOR
-			#define PLATFORM_IOS
-		#elif TARGET_OS_IPHONE
-			#define PLATFORM_IOS
-		#elif TARGET_OS_OSX
-			#define PLATFORM_MACOS
-		#endif
-	#elif __ANDROID__
-		#define PLATFORM_ANDROID
-	#elif __linux
-		// linux
-		#define PLATFORM_LINUX
-	#elif __posix
-		// POSIX
-		#define PLATFORM_POSIX
-	#endif
-#endif
-
-
-#ifndef PLATFORM_WINDOWS
+#ifndef PE_PLATFORM_WINDOWS
 typedef unsigned long DWORD;	//-V677
 typedef unsigned short WORD;	//-V677
 typedef unsigned int UNINT32;
@@ -64,24 +37,24 @@ enum class platform_t { UNKNOWN = 0, lnx = 1, macos = 2, windows = 3, android = 
 
 /// \brief encoding enum, that can be used to help identify encoding of items.
 enum class encoding_t { UNKNOWN = 0, UTF8 = 1, UTF16 = 2 };
-#if defined(PLATFORM_WINDOWS)
+#if defined(PE_PLATFORM_WINDOWS)
 /// \brief contains what platform this current is.
 constexpr platform_t platform = platform_t::windows;
 /// \brief contains the UTF-ness of the current platform.
 constexpr encoding_t encoding = encoding_t::UTF16;
-#elif defined(PLATFORM_IOS)
-constexpr platform_t platform		  = platform_t::ios;
-constexpr encoding_t encoding		  = encoding_t::UTF8;
-#elif defined(PLATFORM_MACOS)
-constexpr platform_t platform		  = platform_t::macos;
-constexpr encoding_t encoding		  = encoding_t::UTF8;
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_IOS)
+constexpr platform_t platform = platform_t::ios;
+constexpr encoding_t encoding = encoding_t::UTF8;
+#elif defined(PE_PLATFORM_MACOS)
+constexpr platform_t platform = platform_t::macos;
+constexpr encoding_t encoding = encoding_t::UTF8;
+#elif defined(PE_PLATFORM_ANDROID)
 constexpr platform_t platform = platform_t::android;
 constexpr encoding_t encoding = encoding_t::UTF8;
-#elif defined(PLATFORM_LINUX)
+#elif defined(PE_PLATFORM_LINUX)
 constexpr platform_t platform = platform_t::lnx;
 constexpr encoding_t encoding = encoding_t::UTF8;
-#elif defined(PLATFORM_POSIX)
+#elif defined(PE_PLATFORM_POSIX)
 constexpr platform_t platform = platform_t::posix;
 constexpr encoding_t encoding = encoding_t::UTF8;
 #else
@@ -89,16 +62,20 @@ constexpr encoding_t encoding = encoding_t::UTF8;
 #endif
 
 /// \brief contains all known, supported (or to be supported) architectures.
-enum class architecture_t { UNKNOWN = 0, x64, ARM };
+enum class architecture_t { UNKNOWN = 0, x86, x86_64, ARM64 };
 
-#if defined(PLATFORM_X64)
 /// \brief the architecture of the current platform.
-constexpr architecture_t architecture = architecture_t::x64;
-#elif defined(PLATFORM_ANDROID)
-constexpr architecture_t architecture = architecture_t::ARM;
+constexpr architecture_t architecture =
+#if defined(PE_ARCHITECTURE_X86_64)
+  architecture_t::x86_64
+#elif defined(PE_ARCHITECTURE_X86)
+  architecture_t::x86
+#elif defined(PE_ARCHITECTURE_ARM64)
+  architecture_t::ARM64
 #else
-constexpr architecture_t architecture = architecture_t::UNKNOWN;
+  architecture_t::UNKNOWN
 #endif
+  ;
 }	 // namespace psl::utility::platform
 
 

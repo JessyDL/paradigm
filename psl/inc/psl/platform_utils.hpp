@@ -11,7 +11,7 @@
 
 // https://en.wikipedia.org/wiki/Path_%28computing%29#Representations_of_paths_by_operating_system_and_shell
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 struct AAssetManager;
 #endif
 
@@ -22,7 +22,7 @@ class directory {
 	/// \brief the seperator character that all commands will be assumed to use, and all platform specific commands
 	/// will be translated to/from
 	static constexpr psl::string_view seperator = "/";
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	/// \brief the platform specific seperator for the current platform (i.e. the one the platform by default uses)
 	static constexpr psl::string_view seperator_platform = "\\";
 #else
@@ -129,9 +129,9 @@ class directory {
 	/// \param[in] path the path to translate to one that works on the current platform.
 	/// \returns a string that *should* work on the current platform, and satisfies the requirements.
 	static psl::string to_platform(psl::string_view path) {
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 		return to_windows(path);
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_ANDROID)
 		return to_android(path);
 #else
 		return to_unix(path);
@@ -189,7 +189,7 @@ class directory {
 
 /// \brief file i/o and manpulations utilities namespace
 namespace file {
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	extern AAssetManager* ANDROID_ASSET_MANAGER;
 #endif
 	/// \brief checks if the given path points to a file or not.
@@ -267,9 +267,9 @@ namespace file {
 	/// \param[in] path the path to transform.
 	/// \returns the transformed path.
 	static psl::string to_platform(psl::string_view path) {
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 		return to_windows(path);
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_ANDROID)
 		return to_android(path);
 #else
 		return to_unix(path);

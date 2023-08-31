@@ -4,11 +4,11 @@
 #include "psl/ustream.hpp"
 #include <filesystem>
 
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	#include <Windows.h>
 #endif
 
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	#include <android/asset_manager.h>
 #endif
 
@@ -18,7 +18,7 @@
 
 std::vector<unsigned int> psl::utility::platform::os::to_virtual_keycode(const psl::string8_t& key) {
 	std::vector<unsigned int> values;
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	if(key.size() == 1) {
 		short result = VkKeyScanEx(*(key.c_str()), GetKeyboardLayout(0));
 		values.push_back(LOBYTE(result));
@@ -187,7 +187,7 @@ psl::string psl::utility::platform::directory::to_unix(psl::string_view path) {
 
 bool psl::utility::platform::directory::exists(psl::string_view absolutePath) {
 	auto platform_path = to_platform(absolutePath);
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	std::wstring str {psl::to_pstring(platform_path)};
 	auto ftyp = GetFileAttributes(str.c_str());
 	if(ftyp == INVALID_FILE_ATTRIBUTES)
@@ -197,7 +197,7 @@ bool psl::utility::platform::directory::exists(psl::string_view absolutePath) {
 		return true;	// this is a directory!
 
 	return false;	 // this is not a directory!
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_ANDROID)
 	return false;
 #else
 	return std::filesystem::exists(platform_path);
@@ -207,7 +207,7 @@ bool psl::utility::platform::directory::exists(psl::string_view absolutePath) {
 
 bool psl::utility::platform::directory::create(psl::string_view absolutePath, bool recursive) {
 	psl::string path = to_platform(absolutePath);
-#ifdef PLATFORM_WINDOWS
+#ifdef PE_PLATFORM_WINDOWS
 	std::wstring str {psl::to_pstring(absolutePath)};
 	bool succes = (CreateDirectory(str.c_str(), NULL) != 0);
 	if(succes)
@@ -223,7 +223,7 @@ bool psl::utility::platform::directory::create(psl::string_view absolutePath, bo
 			return (CreateDirectory(str.c_str(), NULL) != 0);
 	}
 	return false;
-#elif defined(PLATFORM_ANDROID)
+#elif defined(PE_PLATFORM_ANDROID)
 	return false;
 #else
 	size_t position = path.substr(0, path.size() - directory::seperator.size()).find_last_of(directory::seperator);
@@ -243,7 +243,7 @@ bool psl::utility::platform::directory::create(psl::string_view absolutePath, bo
 }
 
 bool psl::utility::platform::file::exists(psl::string_view filename) {
-#if defined(PLATFORM_ANDROID)
+#if defined(PE_PLATFORM_ANDROID)
 	return AAssetManager_open(ANDROID_ASSET_MANAGER, directory::to_platform(filename).data(), AASSET_MODE_UNKNOWN) !=
 		   nullptr;
 #else
@@ -259,7 +259,7 @@ bool psl::utility::platform::file::erase(psl::string_view filename) {
 bool psl::utility::platform::file::read(psl::string_view filename, std::vector<psl::char_t>& out, size_t count) {
 	psl::string file_name = directory::to_platform(filename);
 	psl_assert(exists(file_name), "Could not find filename {}", file_name);
-#if !defined(PLATFORM_ANDROID)
+#if !defined(PE_PLATFORM_ANDROID)
 	psl::ifstream file(file_name, std::ios::binary | std::ios::ate);
 	if(!file.is_open()) {
 		psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
@@ -270,7 +270,7 @@ bool psl::utility::platform::file::read(psl::string_view filename, std::vector<p
 	out.resize(size);
 	file.read(&out[0], size);
 	file.close();
-#else	  // PLATFORM_ANDROID
+#else	  // PE_PLATFORM_ANDROID
 	AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
 	AAsset* asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_STREAMING);
 	// holds size of searched file
@@ -300,7 +300,7 @@ bool psl::utility::platform::file::read(psl::string_view filename, std::vector<p
 		}
 	}
 	AAsset_close(asset);
-#endif	  // !PLATFORM_ANDROID
+#endif	  // !PE_PLATFORM_ANDROID
 	return true;
 }
 
@@ -328,7 +328,7 @@ bool psl::utility::platform::file::write(psl::string_view filename, psl::string_
 bool psl::utility::platform::file::read(psl::string_view filename, psl::string& out, size_t count) {
 	psl::string file_name = directory::to_platform(filename);
 	psl_assert(exists(file_name), "Could not find filename {}", file_name);
-#if !defined(PLATFORM_ANDROID)
+#if !defined(PE_PLATFORM_ANDROID)
 	std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
 	if(!file.is_open()) {
 		psl::fprintf(stderr, "Cannot open file %s!\n", file_name.c_str());
@@ -339,7 +339,7 @@ bool psl::utility::platform::file::read(psl::string_view filename, psl::string& 
 	out.resize(size);
 	file.read(&out[0], size);
 	file.close();
-#else	  // PLATFORM_ANDROID
+#else	  // PE_PLATFORM_ANDROID
 	AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
 	AAsset* asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_BUFFER);
 	// holds size of searched file
@@ -369,6 +369,6 @@ bool psl::utility::platform::file::read(psl::string_view filename, psl::string& 
 		}
 	}
 	AAsset_close(asset);
-#endif	  // !PLATFORM_ANDROID
+#endif	  // !PE_PLATFORM_ANDROID
 	return true;
 }
