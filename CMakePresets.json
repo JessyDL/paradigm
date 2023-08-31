@@ -1,536 +1,538 @@
 {
-  "version": 3,
-  "cmakeMinimumRequired": {
-    "major": 3,
-    "minor": 18,
-    "patch": 0
-  },
-  "configurePresets": [
-    {
-      "hidden": true,
-      "name": "settings-project",
-      "binaryDir": "${sourceDir}/project_files",
-      "cacheVariables": {
-        "PE_BUILD_DIR": {
-          "type": "STRING",
-          "value": "${sourceDir}/builds"
+    "version": 3,
+    "cmakeMinimumRequired": {
+        "major": 3,
+        "minor": 18,
+        "patch": 0
+    },
+    "configurePresets": [
+        {
+            "hidden": true,
+            "name": "settings-project",
+            "binaryDir": "${sourceDir}/project_files",
+            "cacheVariables": {
+                "PE_BUILD_DIR": {
+                    "type": "STRING",
+                    "value": "${sourceDir}/builds"
+                },
+                "PE_GLES": "OFF",
+                "PE_VULKAN": "OFF",
+                "PE_MOLTEN": "OFF",
+                "VK_STATIC": "OFF"
+            }
         },
-        "PE_GLES": "OFF",
-        "PE_VULKAN": "OFF",
-        "PE_MOLTEN": "OFF",
-        "VK_STATIC": "OFF"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "settings-vulkan",
-      "cacheVariables": {
-        "PE_VULKAN_VERSION": {
-          "type": "STRING",
-          "value": "1.2.148"
+        {
+            "hidden": true,
+            "name": "settings-vulkan",
+            "cacheVariables": {
+                "PE_VULKAN_VERSION": {
+                    "type": "STRING",
+                    "value": "1.2.148"
+                },
+                "PE_VULKAN": "ON",
+                "VK_STATIC": "OFF"
+            }
         },
-        "PE_VULKAN": "ON",
-        "VK_STATIC": "OFF"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "settings-gles",
-      "cacheVariables": {
-        "PE_GLES": "ON"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "settings-molten",
-      "cacheVariables": {
-        "PE_MOLTEN": "OFF"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "macos-base",
-      "displayName": "MacOS",
-      "inherits": [
-        "settings-project"
-      ],
-      "description": "Base configuration for MacOS distro",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Darwin"
-      },
-      "cacheVariables": {
-        "PE_PLATFORM": "MACOS",
-        "PE_CORE": "OFF",
-        "PE_ARCHITECTURE": "x86_64"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "macos-base-debug",
-      "displayName": "MacOS",
-      "inherits": [
-        "macos-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "macos-base-release",
-      "displayName": "MacOS",
-      "inherits": [
-        "macos-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "name": "macos-debug",
-      "displayName": "MacOS (Debug)",
-      "inherits": [
-        "macos-base-debug"
-      ]
-    },
-    {
-      "name": "macos-release",
-      "displayName": "MacOS (Release)",
-      "inherits": [
-        "macos-base-release"
-      ]
-    },
-    {
-      "hidden": true,
-      "name": "gnu-linux-base",
-      "displayName": "GNU/Linux",
-      "inherits": [
-        "settings-project"
-      ],
-      "description": "Base configuration for GNU/Linux types of distro",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Linux"
-      },
-      "cacheVariables": {
-        "PE_PLATFORM": "LINUX",
-        "PE_ARCHITECTURE": "x86_64"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "gnu-linux-base-debug",
-      "displayName": "GNU/Linux",
-      "inherits": [
-        "gnu-linux-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "gnu-linux-base-release",
-      "displayName": "GNU/Linux",
-      "inherits": [
-        "gnu-linux-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "name": "gnu-linux-debug-all",
-      "displayName": "GNU/Linux Vulkan/GLES (Debug)",
-      "inherits": [
-        "settings-vulkan",
-        "settings-gles",
-        "gnu-linux-base-debug"
-      ]
-    },
-    {
-      "name": "gnu-linux-release-all",
-      "displayName": "GNU/Linux Vulkan/GLES (Release)",
-      "inherits": [
-        "settings-vulkan",
-        "settings-gles",
-        "gnu-linux-base-release"
-      ]
-    },
-    {
-      "name": "gnu-linux-debug-vulkan",
-      "displayName": "GNU/Linux Vulkan (Debug)",
-      "inherits": [
-        "settings-vulkan",
-        "gnu-linux-base-debug"
-      ]
-    },
-    {
-      "name": "gnu-linux-release-vulkan",
-      "displayName": "GNU/Linux Vulkan (Release)",
-      "inherits": [
-        "settings-vulkan",
-        "gnu-linux-base-release"
-      ]
-    },
-    {
-      "hidden": true,
-      "name": "windows-64-base",
-      "displayName": "Windows 64bit",
-      "inherits": [
-        "settings-project"
-      ],
-      "generator": "Visual Studio 17 2022",
-      "architecture": "x64",
-      "binaryDir": "${sourceDir}/project_files/x64",
-      "description": "Base configuration for Windows",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      },
-      "cacheVariables": {
-        "PE_PLATFORM": "WINDOWS",
-        "PE_BUILD_DIR": {
-          "type": "STRING",
-          "value": "${sourceDir}/builds/x64"
+        {
+            "hidden": true,
+            "name": "settings-gles",
+            "cacheVariables": {
+                "PE_GLES": "ON"
+            }
         },
-        "PE_ARCHITECTURE": "x86_64"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "windows-32-base",
-      "displayName": "Windows 32bit",
-      "inherits": [
-        "settings-project"
-      ],
-      "generator": "Visual Studio 17 2022",
-      "architecture": "Win32",
-      "binaryDir": "${sourceDir}/project_files/Win32",
-      "description": "Base configuration for Windows",
-      "condition": {
-        "type": "equals",
-        "lhs": "${hostSystemName}",
-        "rhs": "Windows"
-      },
-      "cacheVariables": {
-        "PE_PLATFORM": "WINDOWS",
-        "PE_BUILD_DIR": {
-          "type": "STRING",
-          "value": "${sourceDir}/builds/Win32"
+        {
+            "hidden": true,
+            "name": "settings-molten",
+            "cacheVariables": {
+                "PE_MOLTEN": "OFF"
+            }
         },
-        "PE_ARCHITECTURE": "x86"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "windows-64-all",
-      "displayName": "Windows Vulkan/GLES 64bit",
-      "inherits": [
-        "settings-vulkan",
-        "settings-gles",
-        "windows-64-base"
-      ]
-    },
-    {
-      "hidden": true,
-      "name": "windows-32-all",
-      "displayName": "Windows Vulkan/GLES 32bit",
-      "inherits": [
-        "settings-vulkan",
-        "settings-gles",
-        "windows-32-base"
-      ]
-    },
-    {
-      "name": "windows-64-debug-all",
-      "displayName": "Windows Vulkan/GLES 64bit (Debug)",
-      "inherits": [
-        "windows-64-all"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "name": "windows-64-release-all",
-      "displayName": "Windows Vulkan/GLES 64bit (Release)",
-      "inherits": [
-        "windows-64-all"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "windows-64-vulkan",
-      "displayName": "Windows Vulkan 64bit",
-      "inherits": [
-        "settings-vulkan",
-        "windows-64-base"
-      ]
-    },
-    {
-      "name": "windows-64-debug-vulkan",
-      "displayName": "Windows Vulkan 64bit (Debug)",
-      "inherits": [
-        "windows-64-vulkan"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "name": "windows-64-release-vulkan",
-      "displayName": "Windows Vulkan 64bit (Release)",
-      "inherits": [
-        "windows-64-vulkan"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "name": "windows-32-debug-all",
-      "displayName": "Windows Vulkan/GLES 32bit (Debug)",
-      "inherits": [
-        "windows-32-all"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "name": "windows-32-release-all",
-      "displayName": "Windows Vulkan/GLES 32bit (Release)",
-      "inherits": [
-        "windows-32-all"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "windows-32-vulkan",
-      "displayName": "Windows Vulkan 32bit",
-      "inherits": [
-        "settings-vulkan",
-        "windows-32-base"
-      ]
-    },
-    {
-      "name": "windows-32-debug-vulkan",
-      "displayName": "Windows Vulkan 32bit (Debug)",
-      "inherits": [
-        "windows-32-vulkan"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "name": "windows-32-release-vulkan",
-      "displayName": "Windows Vulkan 32bit (Release)",
-      "inherits": [
-        "windows-32-vulkan"
-      ],
-      "cacheVariables": {
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "android-base",
-      "inherits": [
-        "settings-vulkan",
-        "settings-project"
-      ],
-      "condition": {
-        "type": "notEquals",
-        "lhs": "$env{ANDROID_SDK_ROOT}",
-        "rhs": ""
-      },
-      "cacheVariables": {
-        "PE_PLATFORM": "ANDROID",
-        "PE_ARCHITECTURE": "ARM64"
-      }
-    },
-    {
-      "name": "android-release-vulkan",
-      "displayName": "Android Vulkan (Release)",
-      "inherits": [
-        "android-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "name": "android-debug-vulkan",
-      "displayName": "Android Vulkan (Debug)",
-      "inherits": [
-        "android-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PE_MODE": "debug"
-      }
-    },
-    {
-      "hidden": true,
-      "name": "wasm-base",
-      "inherits": [
-        "settings-project"
-      ],
-      "condition": {
-        "type": "notEquals",
-        "lhs": "$env{EMSDK}",
-        "rhs": ""
-      },
-      "cacheVariables": {
-        "PE_PLATFORM": "WEB",
-        "CMAKE_TOOLCHAIN_PATH": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
-        "CMAKE_C_COMPILER": "emcc",
-        "CMAKE_CXX_COMPILER": "em++",
-        "PE_CORE": "OFF"
-      }
-    },
-    {
-      "name": "wasm-release",
-      "displayName": "Web (Release)",
-      "inherits": [
-        "wasm-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release",
-        "PE_MODE": "release"
-      }
-    },
-    {
-      "name": "wasm-debug",
-      "displayName": "Web (Debug)",
-      "inherits": [
-        "wasm-base"
-      ],
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Debug",
-        "PE_MODE": "debug"
-      }
-    }
-  ],
-  "buildPresets": [
-    {
-      "name": "windows-64-debug-all",
-      "displayName": "Windows Vulkan/GLES 64bit (Debug)",
-      "configurePreset": "windows-64-debug-all",
-      "configuration": "Debug"
-    },
-    {
-      "name": "windows-64-release-all",
-      "displayName": "Windows Vulkan/GLES 64bit (Release)",
-      "configurePreset": "windows-64-release-all",
-      "configuration": "Release"
-    },
-    {
-      "name": "windows-64-debug-vulkan",
-      "displayName": "Windows Vulkan 64bit (Debug)",
-      "configurePreset": "windows-64-debug-vulkan",
-      "configuration": "Debug"
-    },
-    {
-      "name": "windows-64-release-vulkan",
-      "displayName": "Windows Vulkan 64bit (Release)",
-      "configurePreset": "windows-64-release-vulkan",
-      "configuration": "Release"
-    },
-    {
-      "name": "windows-32-debug-all",
-      "displayName": "Windows Vulkan/GLES 32bit (Debug)",
-      "configurePreset": "windows-32-debug-all",
-      "configuration": "Debug"
-    },
-    {
-      "name": "windows-32-release-all",
-      "displayName": "Windows Vulkan/GLES 32bit (Release)",
-      "configurePreset": "windows-32-release-all",
-      "configuration": "Release"
-    },
-    {
-      "name": "windows-32-debug-vulkan",
-      "displayName": "Windows Vulkan 32bit (Debug)",
-      "configurePreset": "windows-32-debug-vulkan",
-      "configuration": "Debug"
-    },
-    {
-      "name": "windows-32-release-vulkan",
-      "displayName": "Windows Vulkan 32bit (Release)",
-      "configurePreset": "windows-32-release-vulkan",
-      "configuration": "Release"
-    },
-    {
-      "name": "gnu-linux-debug-all",
-      "displayName": "Debug",
-      "configurePreset": "gnu-linux-debug-all"
-    },
-    {
-      "name": "gnu-linux-release-all",
-      "displayName": "Release",
-      "configurePreset": "gnu-linux-release-all"
-    },
-    {
-      "name": "gnu-linux-debug-vulkan",
-      "displayName": "Debug",
-      "configurePreset": "gnu-linux-debug-vulkan"
-    },
-    {
-      "name": "gnu-linux-release-vulkan",
-      "displayName": "Release",
-      "configurePreset": "gnu-linux-release-vulkan"
-    },
-    {
-      "name": "android-release-vulkan",
-      "displayName": "Android Release",
-      "configurePreset": "android-release-vulkan"
-    },
-    {
-      "name": "android-debug-vulkan",
-      "displayName": "Android Debug",
-      "configurePreset": "android-debug-vulkan"
-    },
-    {
-      "name": "macos-debug",
-      "displayName": "Debug",
-      "configurePreset": "macos-debug",
-      "configuration": "Debug"
-    },
-    {
-      "name": "macos-release",
-      "displayName": "Release",
-      "configurePreset": "macos-release",
-      "configuration": "Release"
-    },
-    {
-      "name": "wasm-debug",
-      "displayName": "Web (Debug)",
-      "configurePreset": "wasm-debug",
-      "configuration": "Debug"
-    },
-    {
-      "name": "wasm-release",
-      "displayName": "Web (Release)",
-      "configurePreset": "wasm-release",
-      "configuration": "Release"
-    }
-  ]
+        {
+            "hidden": true,
+            "name": "macos-base",
+            "displayName": "MacOS",
+            "inherits": [
+                "settings-project"
+            ],
+            "description": "Base configuration for MacOS distro",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Darwin"
+            },
+            "cacheVariables": {
+                "PE_PLATFORM": "MACOS",
+                "PE_CORE": "OFF",
+                "PE_ARCHITECTURE": "x86_64"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "macos-base-debug",
+            "displayName": "MacOS",
+            "inherits": [
+                "macos-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "macos-base-release",
+            "displayName": "MacOS",
+            "inherits": [
+                "macos-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "name": "macos-debug",
+            "displayName": "MacOS (Debug)",
+            "inherits": [
+                "macos-base-debug"
+            ]
+        },
+        {
+            "name": "macos-release",
+            "displayName": "MacOS (Release)",
+            "inherits": [
+                "macos-base-release"
+            ]
+        },
+        {
+            "hidden": true,
+            "name": "gnu-linux-base",
+            "displayName": "GNU/Linux",
+            "inherits": [
+                "settings-project"
+            ],
+            "description": "Base configuration for GNU/Linux types of distro",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Linux"
+            },
+            "cacheVariables": {
+                "PE_PLATFORM": "LINUX",
+                "PE_ARCHITECTURE": "x86_64"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "gnu-linux-base-debug",
+            "displayName": "GNU/Linux",
+            "inherits": [
+                "gnu-linux-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "gnu-linux-base-release",
+            "displayName": "GNU/Linux",
+            "inherits": [
+                "gnu-linux-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "name": "gnu-linux-debug-all",
+            "displayName": "GNU/Linux Vulkan/GLES (Debug)",
+            "inherits": [
+                "settings-vulkan",
+                "settings-gles",
+                "gnu-linux-base-debug"
+            ]
+        },
+        {
+            "name": "gnu-linux-release-all",
+            "displayName": "GNU/Linux Vulkan/GLES (Release)",
+            "inherits": [
+                "settings-vulkan",
+                "settings-gles",
+                "gnu-linux-base-release"
+            ]
+        },
+        {
+            "name": "gnu-linux-debug-vulkan",
+            "displayName": "GNU/Linux Vulkan (Debug)",
+            "inherits": [
+                "settings-vulkan",
+                "gnu-linux-base-debug"
+            ]
+        },
+        {
+            "name": "gnu-linux-release-vulkan",
+            "displayName": "GNU/Linux Vulkan (Release)",
+            "inherits": [
+                "settings-vulkan",
+                "gnu-linux-base-release"
+            ]
+        },
+        {
+            "hidden": true,
+            "name": "windows-64-base",
+            "displayName": "Windows 64bit",
+            "inherits": [
+                "settings-project"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "binaryDir": "${sourceDir}/project_files/x64",
+            "description": "Base configuration for Windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "PE_PLATFORM": "WINDOWS",
+                "PE_BUILD_DIR": {
+                    "type": "STRING",
+                    "value": "${sourceDir}/builds/x64"
+                },
+                "PE_ARCHITECTURE": "x86_64"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "windows-32-base",
+            "displayName": "Windows 32bit",
+            "inherits": [
+                "settings-project"
+            ],
+            "generator": "Visual Studio 17 2022",
+            "architecture": "Win32",
+            "binaryDir": "${sourceDir}/project_files/Win32",
+            "description": "Base configuration for Windows",
+            "condition": {
+                "type": "equals",
+                "lhs": "${hostSystemName}",
+                "rhs": "Windows"
+            },
+            "cacheVariables": {
+                "PE_PLATFORM": "WINDOWS",
+                "PE_BUILD_DIR": {
+                    "type": "STRING",
+                    "value": "${sourceDir}/builds/Win32"
+                },
+                "PE_ARCHITECTURE": "x86"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "windows-64-all",
+            "displayName": "Windows Vulkan/GLES 64bit",
+            "inherits": [
+                "settings-vulkan",
+                "settings-gles",
+                "windows-64-base"
+            ]
+        },
+        {
+            "hidden": true,
+            "name": "windows-32-all",
+            "displayName": "Windows Vulkan/GLES 32bit",
+            "inherits": [
+                "settings-vulkan",
+                "settings-gles",
+                "windows-32-base"
+            ]
+        },
+        {
+            "name": "windows-64-debug-all",
+            "displayName": "Windows Vulkan/GLES 64bit (Debug)",
+            "inherits": [
+                "windows-64-all"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "name": "windows-64-release-all",
+            "displayName": "Windows Vulkan/GLES 64bit (Release)",
+            "inherits": [
+                "windows-64-all"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "windows-64-vulkan",
+            "displayName": "Windows Vulkan 64bit",
+            "inherits": [
+                "settings-vulkan",
+                "windows-64-base"
+            ]
+        },
+        {
+            "name": "windows-64-debug-vulkan",
+            "displayName": "Windows Vulkan 64bit (Debug)",
+            "inherits": [
+                "windows-64-vulkan"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "name": "windows-64-release-vulkan",
+            "displayName": "Windows Vulkan 64bit (Release)",
+            "inherits": [
+                "windows-64-vulkan"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "name": "windows-32-debug-all",
+            "displayName": "Windows Vulkan/GLES 32bit (Debug)",
+            "inherits": [
+                "windows-32-all"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "name": "windows-32-release-all",
+            "displayName": "Windows Vulkan/GLES 32bit (Release)",
+            "inherits": [
+                "windows-32-all"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "windows-32-vulkan",
+            "displayName": "Windows Vulkan 32bit",
+            "inherits": [
+                "settings-vulkan",
+                "windows-32-base"
+            ]
+        },
+        {
+            "name": "windows-32-debug-vulkan",
+            "displayName": "Windows Vulkan 32bit (Debug)",
+            "inherits": [
+                "windows-32-vulkan"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "name": "windows-32-release-vulkan",
+            "displayName": "Windows Vulkan 32bit (Release)",
+            "inherits": [
+                "windows-32-vulkan"
+            ],
+            "cacheVariables": {
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "android-base",
+            "inherits": [
+                "settings-vulkan",
+                "settings-project"
+            ],
+            "condition": {
+                "type": "notEquals",
+                "lhs": "$env{ANDROID_SDK_ROOT}",
+                "rhs": ""
+            },
+            "cacheVariables": {
+                "PE_PLATFORM": "ANDROID",
+                "PE_ARCHITECTURE": "ARM64"
+            }
+        },
+        {
+            "name": "android-release-vulkan",
+            "displayName": "Android Vulkan (Release)",
+            "inherits": [
+                "android-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "name": "android-debug-vulkan",
+            "displayName": "Android Vulkan (Debug)",
+            "inherits": [
+                "android-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PE_MODE": "debug"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "wasm-base",
+            "inherits": [
+                "settings-project"
+            ],
+            "condition": {
+                "type": "notEquals",
+                "lhs": "$env{EMSDK}",
+                "rhs": ""
+            },
+            "generator": "Ninja",
+            "cacheVariables": {
+                "PE_PLATFORM": "WEB",
+                "PE_ARCHITECTURE": "WASM",
+                "CMAKE_C_COMPILER": "emcc",
+                "CMAKE_CXX_COMPILER": "em++",
+                "CMAKE_TOOLCHAIN_FILE": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+                "PE_CORE": "OFF"
+            }
+        },
+        {
+            "name": "wasm-release",
+            "displayName": "Web (Release)",
+            "inherits": [
+                "wasm-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Release",
+                "PE_MODE": "release"
+            }
+        },
+        {
+            "name": "wasm-debug",
+            "displayName": "Web (Debug)",
+            "inherits": [
+                "wasm-base"
+            ],
+            "cacheVariables": {
+                "CMAKE_BUILD_TYPE": "Debug",
+                "PE_MODE": "debug"
+            }
+        }
+    ],
+    "buildPresets": [
+        {
+            "name": "windows-64-debug-all",
+            "displayName": "Windows Vulkan/GLES 64bit (Debug)",
+            "configurePreset": "windows-64-debug-all",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-64-release-all",
+            "displayName": "Windows Vulkan/GLES 64bit (Release)",
+            "configurePreset": "windows-64-release-all",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-64-debug-vulkan",
+            "displayName": "Windows Vulkan 64bit (Debug)",
+            "configurePreset": "windows-64-debug-vulkan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-64-release-vulkan",
+            "displayName": "Windows Vulkan 64bit (Release)",
+            "configurePreset": "windows-64-release-vulkan",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-32-debug-all",
+            "displayName": "Windows Vulkan/GLES 32bit (Debug)",
+            "configurePreset": "windows-32-debug-all",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-32-release-all",
+            "displayName": "Windows Vulkan/GLES 32bit (Release)",
+            "configurePreset": "windows-32-release-all",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-32-debug-vulkan",
+            "displayName": "Windows Vulkan 32bit (Debug)",
+            "configurePreset": "windows-32-debug-vulkan",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-32-release-vulkan",
+            "displayName": "Windows Vulkan 32bit (Release)",
+            "configurePreset": "windows-32-release-vulkan",
+            "configuration": "Release"
+        },
+        {
+            "name": "gnu-linux-debug-all",
+            "displayName": "Debug",
+            "configurePreset": "gnu-linux-debug-all"
+        },
+        {
+            "name": "gnu-linux-release-all",
+            "displayName": "Release",
+            "configurePreset": "gnu-linux-release-all"
+        },
+        {
+            "name": "gnu-linux-debug-vulkan",
+            "displayName": "Debug",
+            "configurePreset": "gnu-linux-debug-vulkan"
+        },
+        {
+            "name": "gnu-linux-release-vulkan",
+            "displayName": "Release",
+            "configurePreset": "gnu-linux-release-vulkan"
+        },
+        {
+            "name": "android-release-vulkan",
+            "displayName": "Android Release",
+            "configurePreset": "android-release-vulkan"
+        },
+        {
+            "name": "android-debug-vulkan",
+            "displayName": "Android Debug",
+            "configurePreset": "android-debug-vulkan"
+        },
+        {
+            "name": "macos-debug",
+            "displayName": "Debug",
+            "configurePreset": "macos-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "macos-release",
+            "displayName": "Release",
+            "configurePreset": "macos-release",
+            "configuration": "Release"
+        },
+        {
+            "name": "wasm-debug",
+            "displayName": "Web (Debug)",
+            "configurePreset": "wasm-debug",
+            "configuration": "Debug"
+        },
+        {
+            "name": "wasm-release",
+            "displayName": "Web (Release)",
+            "configurePreset": "wasm-release",
+            "configuration": "Release"
+        }
+    ]
 }
