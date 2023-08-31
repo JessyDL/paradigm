@@ -5,7 +5,7 @@
 #include <unordered_set>
 #include <variant>
 
-namespace utility::templates {
+namespace psl::utility::templates {
 namespace details {
 	template <size_t first, size_t second, size_t... remainder>
 	static constexpr size_t max_impl() noexcept {
@@ -588,10 +588,10 @@ struct is_callable_n<F,
 					 std::index_sequence<Idx...>,
 					 std::void_t<decltype(std::declval<F>()((Idx, std::declval<any const&&>())...))>> : std::true_type {
 };
-}	 // namespace utility::templates
+}	 // namespace psl::utility::templates
 
 namespace psl::templates {
-using namespace utility::templates;
+using namespace psl::utility::templates;
 }
 
 namespace psl {
@@ -600,7 +600,7 @@ namespace psl {
 /// \tparam T type to search
 /// \tparam Ts types to match against
 template <typename T, typename... Ts>
-using has_type = utility::templates::has_type<T, Ts...>;
+using has_type = psl::utility::templates::has_type<T, Ts...>;
 
 /// \copydoc psl::has_type
 template <typename T, typename... Ts>
@@ -613,7 +613,7 @@ concept HasType = has_type<T, Ts...>::value;
 /// \note don't use this with container types, convert the container type to a psl::type_pack_t first using
 /// psl::container_to_type_pack_t
 template <typename T, typename... Ts>
-using index_of = utility::templates::index_of<T, Ts...>;
+using index_of = psl::utility::templates::index_of<T, Ts...>;
 
 /// \copydoc psl::index_of
 template <typename T, typename... Ts>
@@ -626,7 +626,7 @@ static constexpr auto index_of_v = index_of<T, Ts...>::value;
 /// \note don't use this with container types, convert the container type to a psl::type_pack_t first using
 /// psl::container_to_type_pack_t
 template <size_t N, typename... Ts>
-using type_at_index = utility::templates::type_at_index<N, Ts...>;
+using type_at_index = psl::utility::templates::type_at_index<N, Ts...>;
 
 /// \copydoc psl::type_at_index
 template <size_t N, typename... Ts>
@@ -636,13 +636,13 @@ using type_at_index_t = typename type_at_index<N, Ts...>::type;
 ///
 /// \tparam Ts types to store
 template <typename... Ts>
-using type_pack_t = utility::templates::type_pack_t<Ts...>;
+using type_pack_t = psl::utility::templates::type_pack_t<Ts...>;
 
 /// \brief retrieve the size of a type pack
 ///
 /// \tparam T the type pack you want to extract the size from
 template <typename T>
-static constexpr auto type_pack_size_v = utility::templates::type_pack_size_t<T>::value;
+static constexpr auto type_pack_size_v = psl::utility::templates::type_pack_size_t<T>::value;
 
 /// \brief transforms a container like type (like tuple, or pair) into a psl::type_pack_t
 ///
@@ -651,7 +651,7 @@ static constexpr auto type_pack_size_v = utility::templates::type_pack_size_t<T>
 /// std::vector, or std::unordered_map, you can get some weird results. As there is no good protection against
 /// this, the constraint is for the user to enforce.
 template <typename T>
-using container_to_type_pack_t = utility::templates::container_to_type_pack_t<T>;
+using container_to_type_pack_t = psl::utility::templates::container_to_type_pack_t<T>;
 
 /// \brief checks if the container's template arguments contains the given type.
 ///
@@ -661,5 +661,5 @@ using container_to_type_pack_t = utility::templates::container_to_type_pack_t<T>
 /// such as std::vector, or std::unordered_map, you can get some weird results. As there is no good protection
 /// against this, the constraint is for the user to enforce.
 template <typename T, typename Container>
-static constexpr auto container_has_type_v = utility::templates::container_has_type<T, Container>::value;
+static constexpr auto container_has_type_v = psl::utility::templates::container_has_type<T, Container>::value;
 }	 // namespace psl

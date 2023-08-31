@@ -313,8 +313,13 @@ namespace std {
 template <>
 struct hash<psl::UID> {
 	size_t operator()(const psl::UID& x) const noexcept {
+#if defined(PE_PLATFORM_32_BIT)
+		const uint32_t* quarters = reinterpret_cast<const uint32_t*>(&x.GUID);
+		return quarters[0] ^ quarters[1] ^ quarters[2] ^ quarters[3];
+#elif defined(PE_PLATFORM_64_BIT)
 		const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
 		return half[0] ^ half[1];
+#endif
 	}
 };
 }	 // namespace std

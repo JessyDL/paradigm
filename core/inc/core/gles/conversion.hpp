@@ -1352,6 +1352,7 @@ inline GLuint to_gles(filter value, sampler_mipmap_mode mode) noexcept {
 		case sampler_mipmap_mode::nearest:
 			return GL_NEAREST_MIPMAP_NEAREST;
 		}
+		break;
 	case filter::linear:
 		switch(mode) {
 		case sampler_mipmap_mode::linear:
@@ -1359,6 +1360,7 @@ inline GLuint to_gles(filter value, sampler_mipmap_mode mode) noexcept {
 		case sampler_mipmap_mode::nearest:
 			return GL_LINEAR_MIPMAP_NEAREST;
 		}
+		break;
 #ifdef GL_IMG_texture_filter_cubic
 	case filter::cubic:
 		return CUBIC_IMG;

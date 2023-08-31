@@ -35,7 +35,7 @@ sampler_t::sampler_t(core::resource::cache_t& cache,
 		sampler.maxAnisotropy	 = m_Data->max_anisotropy();
 		sampler.anisotropyEnable = m_Data->anisotropic_filtering();
 		sampler.borderColor		 = to_vk(m_Data->border_color());
-		utility::vulkan::check(m_Context->device().createSampler(&sampler, nullptr, &m_Samplers[i]));
+		core::utility::vulkan::check(m_Context->device().createSampler(&sampler, nullptr, &m_Samplers[i]));
 	}
 }
 

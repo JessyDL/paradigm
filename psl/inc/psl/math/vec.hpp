@@ -125,7 +125,7 @@ namespace details {
 
 		constexpr auto operator[](size_t N) noexcept -> precision_t& { return accessor_get_at<index...>(N, data); }
 
-		static constexpr size_t max_elements = utility::templates::max<index...>() + 1;
+		static constexpr size_t max_elements = psl::utility::templates::max<index...>() + 1;
 		psl::static_array<T, max_elements> data;
 	};
 }	 // namespace details
@@ -233,7 +233,8 @@ struct tvec {
 	constexpr tvec() noexcept = default;
 
 	constexpr tvec(const container_t& value) noexcept : value(value) {};
-	constexpr tvec(const precision_t& value) noexcept : value(utility::templates::make_array<dimensions>(value)) {};
+	constexpr tvec(const precision_t& value) noexcept
+		: value(psl::utility::templates::make_array<dimensions>(value)) {};
 
 	template <typename... Args>
 	constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}) {};

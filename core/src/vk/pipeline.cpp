@@ -18,7 +18,7 @@ using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
 
-inline size_t get_aligned(const core::ivk::context& context, vk::DescriptorType flags, size_t value) {
+inline vk::DeviceSize get_aligned(const core::ivk::context& context, vk::DescriptorType flags, vk::DeviceSize value) {
 	auto alignment = (vk::DescriptorType::eUniformBuffer == flags || vk::DescriptorType::eUniformBufferDynamic == flags)
 					   ? context.limits().uniform.alignment
 					   : context.limits().storage.alignment;
@@ -32,7 +32,7 @@ bool decode(core::resource::cache_t& cache,
 	for(auto& stage : data.stages()) {
 		auto shader_handle = cache.library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 		if(!shader_handle) {
-			LOG_ERROR("tried to load incorrect shader ", utility::to_string(stage.shader()));
+			LOG_ERROR("tried to load incorrect shader ", psl::utility::to_string(stage.shader()));
 			return false;
 		}
 
@@ -53,10 +53,10 @@ bool decode(core::resource::cache_t& cache,
 			case core::gfx::binding_type::storage_buffer_dynamic:
 			case core::gfx::binding_type::storage_buffer:
 			case core::gfx::binding_type::uniform_buffer: {
-				layoutBinding.push_back(
-				  utility::vulkan::defaults::descriptor_setlayout_binding(conversion::to_vk(binding.descriptor()),
-																		  conversion::to_vk(shader_handle->stage()),
-																		  binding.binding_slot()));
+				layoutBinding.push_back(core::utility::vulkan::defaults::descriptor_setlayout_binding(
+				  conversion::to_vk(binding.descriptor()),
+				  conversion::to_vk(shader_handle->stage()),
+				  binding.binding_slot()));
 			} break;
 			default:
 				throw new std::runtime_error("this should not be reached");
@@ -73,7 +73,7 @@ bool decode(core::resource::cache_t& cache,
 	for(auto& stage : data.stages()) {
 		auto shader_handle = cache.library().get<core::meta::shader>(stage.shader()).value_or(nullptr);
 		if(!shader_handle) {
-			LOG_ERROR("tried to load incorrect shader ", utility::to_string(stage.shader()));
+			LOG_ERROR("tried to load incorrect shader ", psl::utility::to_string(stage.shader()));
 			return false;
 		}
 
@@ -130,7 +130,7 @@ pipeline::pipeline(core::resource::cache_t& cache,
 	descriptorLayout.bindingCount = (uint32_t)layoutBinding.size();
 	descriptorLayout.pBindings	  = layoutBinding.data();
 
-	utility::vulkan::check(
+	core::utility::vulkan::check(
 	  m_Context->device().createDescriptorSetLayout(&descriptorLayout, nullptr, &m_DescriptorSetLayout));
 
 
@@ -182,7 +182,7 @@ pipeline::pipeline(core::resource::cache_t& cache,
 	}
 
 
-	if(!utility::vulkan::check(
+	if(!core::utility::vulkan::check(
 		 m_Context->device().createPipelineLayout(&pPipelineLayoutCreateInfo, nullptr, &m_PipelineLayout))) {
 		core::ivk::log->error("fatal error happened during the creation of a pipeline");
 		m_IsValid = false;
@@ -217,7 +217,7 @@ pipeline::pipeline(core::resource::cache_t& cache,
 		pipelineCreateInfo.stage  = shaderStages[0];
 
 		if(auto pipeline = m_Context->device().createComputePipeline(m_PipelineCache, pipelineCreateInfo);
-		   utility::vulkan::check(pipeline)) {
+		   core::utility::vulkan::check(pipeline)) {
 			m_Pipeline = pipeline.value;
 		} else {
 			core::ivk::log->error("failed to create a compute pipeline");
@@ -350,7 +350,7 @@ pipeline::pipeline(core::resource::cache_t& cache,
 		pipelineCreateInfo.pDynamicState	   = &dynamicState;
 
 		// Create rendering pipeline
-		if(!utility::vulkan::check(m_Context->device().createGraphicsPipelines(
+		if(!core::utility::vulkan::check(m_Context->device().createGraphicsPipelines(
 			 m_PipelineCache, 1, &pipelineCreateInfo, nullptr, &m_Pipeline))) {
 			debug_break();
 		}
@@ -360,7 +360,7 @@ pipeline::pipeline(core::resource::cache_t& cache,
 	allocInfo.pSetLayouts		 = &m_DescriptorSetLayout;
 	allocInfo.descriptorPool	 = m_Context->descriptor_pool();
 
-	utility::vulkan::check(m_Context->device().allocateDescriptorSets(&allocInfo, &m_DescriptorSet));
+	core::utility::vulkan::check(m_Context->device().allocateDescriptorSets(&allocInfo, &m_DescriptorSet));
 
 
 	update(m_Cache, data.value(), m_DescriptorSet);
@@ -372,10 +372,10 @@ pipeline::~pipeline() {
 	m_Context->device().destroyDescriptorSetLayout(m_DescriptorSetLayout, nullptr);
 }
 
-inline size_t get_range(const core::ivk::context& context,
-						const core::meta::shader& shader,
-						const core::data::material_t::binding& binding,
-						size_t fallback) {
+inline vk::DeviceSize get_range(const core::ivk::context& context,
+								const core::meta::shader& shader,
+								const core::data::material_t::binding& binding,
+								vk::DeviceSize fallback) {
 	auto it =
 	  std::find_if(std::begin(shader.descriptors()),
 				   std::end(shader.descriptors()),
@@ -407,7 +407,7 @@ bool pipeline::update(core::resource::cache_t& cache, const core::data::material
 
 						if(tex_handle.state() != core::resource::status::loaded) {
 							LOG_ERROR("could not load the texture ",
-									  utility::to_string(binding.texture()),
+									  psl::utility::to_string(binding.texture()),
 									  " when updating the pipeline");
 
 							m_IsValid = false;
@@ -446,7 +446,7 @@ bool pipeline::update(core::resource::cache_t& cache, const core::data::material
 					if(!buffer_handle) {
 						core::ivk::log->warn("Tried to use the missing buffer {} in a pipeline in shader {}",
 											 vk::to_string(conversion::to_vk(binding.descriptor())),
-											 utility::to_string(stage.shader()));
+											 psl::utility::to_string(stage.shader()));
 						core::ivk::log->warn("Loading will be deferred");
 						m_IsComplete = false;
 					} else if(buffer_handle.state() == core::resource::status::loaded) {
@@ -458,7 +458,7 @@ bool pipeline::update(core::resource::cache_t& cache, const core::data::material
 						if(!(conversion::to_vk(buffer_handle->buffer->data().usage()) & usage)) {
 							LOG_ERROR("The actual buffer's usage is not compatible with the buffer type ",
 									  vk::to_string(usage));
-							LOG_ERROR("Shader: ", utility::to_string(stage.shader()));
+							LOG_ERROR("Shader: ", psl::utility::to_string(stage.shader()));
 							m_IsComplete = false;
 						}
 
@@ -472,7 +472,7 @@ bool pipeline::update(core::resource::cache_t& cache, const core::data::material
 					} else {
 						core::ivk::log->warn("Tried to use the unloaded {} in a pipeline in shader {}",
 											 vk::to_string(conversion::to_vk(binding.descriptor())),
-											 utility::to_string(stage.shader()));
+											 psl::utility::to_string(stage.shader()));
 						m_IsComplete = false;
 					}
 
@@ -526,7 +526,7 @@ bool pipeline::update(uint32_t bindingLocation, const UID& textureMeta, const UI
 
 					if(tex_handle.state() != core::resource::status::loaded) {
 						LOG_ERROR("could not load the texture ",
-								  utility::to_string(textureMeta),
+								  psl::utility::to_string(textureMeta),
 								  " when updating the pipeline");
 
 						m_IsValid = false;

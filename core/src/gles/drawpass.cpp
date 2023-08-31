@@ -49,30 +49,29 @@ void drawpass::prepare() {
 				depth	= depth && gfx_attachment.image_load == core::gfx::attachment::load_op::clear;
 
 				if(depth_stencil) {
-					std::visit(utility::templates::overloaded {[](const core::gfx::depth_stencil& dstencil) {
-																   glClearBufferfi(GL_DEPTH_STENCIL,
-																				   0,
-																				   dstencil.depth,
-																				   static_cast<int>(dstencil.stencil));
-															   },
-															   [](const psl::vec4& color) {},
-															   [](const psl::ivec4& color) {},
-															   [](const psl::tvec<uint32_t, 4>& color) {
+					std::visit(psl::utility::templates::overloaded {
+								 [](const core::gfx::depth_stencil& dstencil) {
+									 glClearBufferfi(
+									   GL_DEPTH_STENCIL, 0, dstencil.depth, static_cast<int>(dstencil.stencil));
+								 },
+								 [](const psl::vec4& color) {},
+								 [](const psl::ivec4& color) {},
+								 [](const psl::tvec<uint32_t, 4>& color) {
 
-															   }},
+								 }},
 							   clear_value);
 				} else if(depth) {
-					std::visit(utility::templates::overloaded {[](const core::gfx::depth_stencil& dstencil) {
-																   glClearBufferfv(GL_DEPTH, 0, &dstencil.depth);
-															   },
-															   [](const psl::vec4& color) {},
-															   [](const psl::ivec4& color) {},
-															   [](const psl::tvec<uint32_t, 4>& color) {
+					std::visit(psl::utility::templates::overloaded {[](const core::gfx::depth_stencil& dstencil) {
+																		glClearBufferfv(GL_DEPTH, 0, &dstencil.depth);
+																	},
+																	[](const psl::vec4& color) {},
+																	[](const psl::ivec4& color) {},
+																	[](const psl::tvec<uint32_t, 4>& color) {
 
-															   }},
+																	}},
 							   clear_value);
 				} else if(stencil) {
-					std::visit(utility::templates::overloaded {
+					std::visit(psl::utility::templates::overloaded {
 								 [](const core::gfx::depth_stencil& dstencil) {
 									 glClearBufferiv(GL_STENCIL, 0, reinterpret_cast<const int*>(&dstencil.stencil));
 								 },
@@ -86,7 +85,7 @@ void drawpass::prepare() {
 			} else {
 				if(gfx_attachment.image_load == core::gfx::attachment::load_op::clear) {
 					std::visit(
-					  utility::templates::overloaded {
+					  psl::utility::templates::overloaded {
 						[&](const core::gfx::depth_stencil& dstencil) {},
 						[&](const psl::vec4& color) { glClearBufferfv(GL_COLOR, index, &color[0]); },
 						[&](const psl::ivec4& color) { glClearBufferiv(GL_COLOR, index, &color[0]); },

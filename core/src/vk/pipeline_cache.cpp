@@ -19,7 +19,7 @@ pipeline_cache::pipeline_cache(core::resource::cache_t& cache,
 							   core::resource::handle<core::ivk::context> context)
 	: m_Context(context), m_Cache(cache) {
 	::vk::PipelineCacheCreateInfo pcci;
-	if(!utility::vulkan::check(m_Context->device().createPipelineCache(&pcci, nullptr, &m_PipelineCache))) {
+	if(!core::utility::vulkan::check(m_Context->device().createPipelineCache(&pcci, nullptr, &m_PipelineCache))) {
 		core::gfx::log->error("could not create a ivk::pipeline_cache");
 	}
 }

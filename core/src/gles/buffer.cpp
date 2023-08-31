@@ -150,8 +150,8 @@ bool buffer_t::copy_from(const buffer_t& other, const psl::array<core::gfx::memo
 	  ranges.begin(), ranges.end(), 0, [&](int sum, const gfx::memory_copy& region) { return sum + (int)region.size; });
 
 	core::igles::log->info("copying buffer {0} into {1} for a total size of {2} using {3} copy instructions",
-						   utility::to_string(other.m_UID),
-						   utility::to_string(m_UID),
+						   psl::utility::to_string(other.m_UID),
+						   psl::utility::to_string(m_UID),
 						   totalsize,
 						   ranges.size());
 

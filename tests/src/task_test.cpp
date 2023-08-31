@@ -4,7 +4,7 @@
 
 namespace async = psl::async;
 
-uint64_t findSieveSize(uint64_t n) {
+size_t findSieveSize(size_t n) {
 	// For small n, the formula returns a value too low, so we can just
 	// hardcode the sieve size to 5 (5th prime is 11).
 	if(n < 6)
@@ -15,43 +15,43 @@ uint64_t findSieveSize(uint64_t n) {
 		return 0;
 
 	// Binary search for the right value.
-	uint64_t low  = n;
-	uint64_t high = ~0UL - 1;
+	size_t low	= n;
+	size_t high = ~0UL - 1;
 	do {
-		uint64_t mid = low + (high - low) / 2;
+		size_t mid	 = low + (high - low) / 2;
 		double guess = mid / log(mid);
 
 		if(guess > n)
-			high = (uint64_t)mid - 1;
+			high = (size_t)mid - 1;
 		else
-			low = (uint64_t)mid + 1;
+			low = (size_t)mid + 1;
 	} while(low < high);
 	return high + 1;
 }
 
-uint64_t find_nth_prime(uint64_t n) {
+size_t find_nth_prime(size_t n) {
 	if(!n)
 		return 1;	 // "0th prime"
 	if(!--n)
 		return 2;	 // first prime
 
-	uint64_t sieveSize = findSieveSize(n);
-	uint64_t count	   = 0;
-	uint64_t max_i	   = sqrt(sieveSize - 1) + 1;
+	size_t sieveSize = findSieveSize(n);
+	size_t count	 = 0;
+	size_t max_i	 = (size_t)sqrt(sieveSize - 1) + 1;
 
 	if(sieveSize == 0)
 		return 0;
 
 	std::vector<bool> sieve(sieveSize);
-	for(uint64_t i = 3; true; i += 2) {
+	for(size_t i = 3; true; i += 2) {
 		if(!sieve[i]) {
 			if(++count == n)
 				return i;
 			if(i >= max_i)
 				continue;
-			uint64_t j	  = i * i;
-			uint64_t inc  = i + i;
-			uint64_t maxj = sieveSize - inc;
+			size_t j	= i * i;
+			size_t inc	= i + i;
+			size_t maxj = sieveSize - inc;
 			// This loop checks j before adding inc so that we can stop
 			// before j overflows.
 			do {
@@ -127,26 +127,26 @@ auto t2 = litmus::suite<"tasks with inter-memory-dependencies">(12) = [](size_t 
 	async::scheduler scheduler {threads};
 	size_t iteration_count = threads * 10;
 
-	std::vector<uint64_t> shared_values {50045,	 150020, 121005, 233100, 250045, 367000, 50045,	 150020,
-										 121005, 233100, 250045, 367000, 50045,	 150020, 121005, 233100,
-										 250045, 367000, 50045,	 150020, 121005, 233100, 250045, 367000};
-	std::vector<uint64_t> shared_output {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
+	std::vector<size_t> shared_values {50045,  150020, 121005, 233100, 250045, 367000, 50045,  150020,
+									   121005, 233100, 250045, 367000, 50045,  150020, 121005, 233100,
+									   250045, 367000, 50045,  150020, 121005, 233100, 250045, 367000};
+	std::vector<size_t> shared_output {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
-	uint64_t calculated_value = 0;
+	size_t calculated_value = 0;
 	for(auto val : shared_values) calculated_value += find_nth_prime(val);
-	std::vector<std::future<uint64_t>> results;
+	std::vector<std::future<size_t>> results;
 	for(size_t i = 0; i < iteration_count; ++i) {
 		auto pair {scheduler.schedule([i, &shared_values, &shared_output]() {
 			++shared_output[i % shared_output.size()];
 			return find_nth_prime(shared_values[i % shared_values.size()]);
 		})};
 
-		async::barrier read_barrier {
-		  (std::uintptr_t)shared_values.data() + (i % shared_output.size()) * sizeof(uint64_t),
-		  (std::uintptr_t)shared_values.data() + ((i % shared_output.size()) + 1) * sizeof(uint64_t)};
+		async::barrier read_barrier {(std::uintptr_t)shared_values.data() + (i % shared_output.size()) * sizeof(size_t),
+									 (std::uintptr_t)shared_values.data() +
+									   ((i % shared_output.size()) + 1) * sizeof(size_t)};
 		async::barrier write_barrier {
-		  (std::uintptr_t)shared_output.data() + (i % shared_values.size()) * sizeof(uint64_t),
-		  (std::uintptr_t)shared_output.data() + ((i % shared_values.size()) + 1) * sizeof(uint64_t),
+		  (std::uintptr_t)shared_output.data() + (i % shared_values.size()) * sizeof(size_t),
+		  (std::uintptr_t)shared_output.data() + ((i % shared_values.size()) + 1) * sizeof(size_t),
 		  async::barrier_type::WRITE};
 
 		pair.first.barriers({read_barrier, write_barrier});
@@ -155,8 +155,8 @@ auto t2 = litmus::suite<"tasks with inter-memory-dependencies">(12) = [](size_t 
 
 	scheduler.execute();
 
-	litmus::require(std::accumulate(
-	  std::begin(results), std::end(results), uint64_t {0}, [](uint64_t sum, std::future<uint64_t>& value) {
+	litmus::require(
+	  std::accumulate(std::begin(results), std::end(results), size_t {0}, [](size_t sum, std::future<size_t>& value) {
 		  return sum + value.get();
 	  })) == (iteration_count / shared_output.size()) * calculated_value;
 };

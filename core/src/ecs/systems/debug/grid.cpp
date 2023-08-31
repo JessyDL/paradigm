@@ -41,10 +41,10 @@ grid::grid(state_t& state,
 		   psl::vec3 offset)
 	: m_Target(target), m_Scale(scale), m_Offset(offset) {
 	// create geometry
-	auto boxData = utility::geometry::create_line_cube(cache, scale);
+	auto boxData = core::utility::geometry::create_line_cube(cache, scale);
 	boxData->transform(core::data::geometry_t::constants::POSITION,
 					   [](psl::vec3& pos) { pos -= psl::vec3::one * 0.5f; });
-	utility::geometry::copy_channel(
+	core::utility::geometry::copy_channel(
 	  boxData, core::data::geometry_t::constants::POSITION, core::data::geometry_t::constants::COLOR);
 	boxData->transform(core::data::geometry_t::constants::COLOR, [](psl::vec3& color) {
 		color = psl::vec3 {0.015f, 0.035f, 0.005f};
@@ -60,19 +60,19 @@ grid::grid(state_t& state,
 			}
 		}
 	}
-	utility::geometry::replicate(boxData, positions);
+	core::utility::geometry::replicate(boxData, positions);
 
 	m_Geometry = cache.create<core::gfx::geometry_t>(context, boxData, vertexBuffer, indexBuffer);
 
-	auto boxData2 = utility::geometry::create_box(cache, scale);
+	auto boxData2 = core::utility::geometry::create_box(cache, scale);
 	boxData2->transform(core::data::geometry_t::constants::POSITION,
 						[](psl::vec3& pos) { pos -= psl::vec3::one * 0.5f; });
-	utility::geometry::copy_channel(
+	core::utility::geometry::copy_channel(
 	  boxData2, core::data::geometry_t::constants::POSITION, core::data::geometry_t::constants::COLOR);
 	boxData2->transform(core::data::geometry_t::constants::COLOR, [](psl::vec3& color) {
 		color = psl::vec3 {0.015f, 0.035f, 0.005f};
 	});
-	// utility::geometry::replicate(boxData2, positions);
+	// core::utility::geometry::replicate(boxData2, positions);
 	auto geometry2 = cache.create<core::gfx::geometry_t>(context, boxData2, vertexBuffer, indexBuffer);
 	// create bundle
 	auto vertShaderMeta = cache.library().get<core::meta::shader>("0f48f21f-f707-06b5-5c66-83ff0d53c5a1"_uid).value();
@@ -121,7 +121,7 @@ void grid::tick(info_t& info,
 	auto entities		 = pack.get<entity_t>();
 	auto transforms		 = pack.get<const transform>();
 	auto grid_transforms = grid_pack.get<transform>();
-	for(auto i = 0; i < entities.size(); ++i) {
+	for(size_t i = 0; i < entities.size(); ++i) {
 		if(entities[i] != m_Target)
 			continue;
 

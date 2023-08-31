@@ -80,14 +80,14 @@ psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::depen
 		if(dep_pack.is_partial_pack()) {
 			auto batch_size = dep_pack.entities() / workers;
 			size_t processed {0};
-			for(auto i = 0; i < workers - 1; ++i) {
+			for(size_t i = 0; i < workers - 1; ++i) {
 				packs[i].emplace_back(dep_pack.slice(processed, processed + batch_size));
 				processed += batch_size;
 			}
 			packs[packs.size() - 1].emplace_back(dep_pack.slice(processed, dep_pack.entities()));
 		} else	  // if packs cannot be split, then emplace the 'full' data
 		{
-			for(auto i = 0; i < workers; ++i) packs[i].emplace_back(dep_pack);
+			for(size_t i = 0; i < workers; ++i) packs[i].emplace_back(dep_pack);
 		}
 	}
 	return packs;

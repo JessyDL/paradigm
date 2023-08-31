@@ -31,8 +31,8 @@ class region {
 	/// segment (being aligned to pages, and starting at a page).
 	region(region& parent,
 		   memory::segment& segment,
-		   uint64_t pageSize,
-		   uint64_t alignment,
+		   size_t pageSize,
+		   size_t alignment,
 		   allocator_base* allocator = new default_allocator());
 
   public:
@@ -41,7 +41,7 @@ class region {
 	/// \param[in] alignment the alignment value of the region.
 	/// \param[in] allocator the allocator that should be used internally.
 	/// \warning \a allocators should not be shared unless the allocator itself supports such a behaviour.
-	region(uint64_t size, uint64_t alignment, allocator_base* allocator = new default_allocator());
+	region(size_t size, size_t alignment, allocator_base* allocator = new default_allocator());
 
 	~region();
 	region(const region& other) = delete;
@@ -115,7 +115,7 @@ class region {
 	void* data() const {
 		return m_Base;
 	}
-	uint64_t size() const {
+	size_t size() const {
 		return m_Size;
 	}
 	size_t alignment() const {
@@ -139,9 +139,9 @@ class region {
 	allocator_base* m_Allocator {nullptr};
 
 #ifdef PLATFORM_WINDOWS
-	std::pair<uint64_t, uint64_t> page_range(const memory::range_t& range);
+	std::pair<size_t, size_t> page_range(const memory::range_t& range);
 	std::vector<state> m_PageState;
 #endif
-	uint64_t m_PageSize {0u};
+	size_t m_PageSize {0u};
 };
 }	 // namespace memory

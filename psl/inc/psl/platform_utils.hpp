@@ -15,7 +15,7 @@
 struct AAssetManager;
 #endif
 
-namespace utility::platform {
+namespace psl::utility::platform {
 /// \brief helper class that contains directory specific I/O manipulation methods and platform utilities.
 class directory {
   public:
@@ -53,7 +53,9 @@ class directory {
 		}
 
 		if(path[0] == '/') {
-			dir = psl::string(path.substr(5u, 1u)) + ":/" + path.substr(7u);
+			dir = psl::string(path.substr(5u, 1u));
+			dir += ":/";
+			dir += path.substr(7u);
 		} else {
 			dir = path;
 		}
@@ -298,4 +300,4 @@ class os {
   public:
 	static std::vector<unsigned int> to_virtual_keycode(const psl::string8_t& key);
 };
-}	 // namespace utility::platform
+}	 // namespace psl::utility::platform

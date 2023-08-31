@@ -25,7 +25,7 @@ void context::quey_capabilities() noexcept {
 	// no real requirements, but let's take something
 	m_Limits.memorymap.alignment = 4;
 #endif
-	m_Limits.memorymap.size		   = std::numeric_limits<uint64_t>::max();
+	m_Limits.memorymap.size		   = std::numeric_limits<size_t>::max();
 	m_Limits.supported_depthformat = core::gfx::format_t::d32_sfloat;
 
 	glGetIntegeri_v(GL_MAX_COMPUTE_WORK_GROUP_COUNT, 0, &value);

@@ -31,18 +31,19 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	psl_assert(createInfo.hinstance != nullptr, "missing win32 surface instance");
 	psl_assert(createInfo.hwnd != nullptr, "missing win32 surface handle");
 
-	utility::vulkan::check(m_Context->instance().createWin32SurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
+	core::utility::vulkan::check(m_Context->instance().createWin32SurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_XCB)
 	vk::XcbSurfaceCreateInfoKHR createInfo;
 	createInfo.connection = m_OSSurface->connection();
 	createInfo.window	  = m_OSSurface->surface_handle();
-	utility::vulkan::check(m_Context->instance().createXcbSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
+	core::utility::vulkan::check(m_Context->instance().createXcbSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(PLATFORM_ANDROID)
 	vk::AndroidSurfaceCreateInfoKHR createInfo;
 	core::ivk::log->info("creating android swapchain");
 	createInfo.window = os_context.application().window;
 	psl_assert(createInfo.window != nullptr, "application window was invalid");
-	utility::vulkan::check(m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
+	core::utility::vulkan::check(
+	  m_Context->instance().createAndroidSurfaceKHR(&createInfo, VK_NULL_HANDLE, &m_Surface));
 #elif defined(SURFACE_D2D)
 	uint32_t displayPropertyCount;
 	std::vector<vk::DisplayPropertiesKHR> displayProperties;
@@ -142,7 +143,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 	surfaceInfo.imageExtent.width  = m_OSSurface->data().width();
 	surfaceInfo.imageExtent.height = m_OSSurface->data().height();
 
-	if(utility::vulkan::check(
+	if(core::utility::vulkan::check(
 		 m_Context->instance().createDisplayPlaneSurfaceKHR(&surfaceInfo, VK_NULL_HANDLE, &m_Surface))) {
 		core::ivk::log->critical("failed to create the D2D surface");
 		exit(-1);
@@ -176,12 +177,12 @@ swapchain::~swapchain() {
 void swapchain::init_surface() {
 	m_ImageCount		= (uint32_t)(m_OSSurface->data().buffering());
 	auto physicalDevice = m_Context->physical_device();
-	utility::vulkan::check(
+	core::utility::vulkan::check(
 	  physicalDevice.getSurfaceSupportKHR(m_Context->graphics_queue_index(), m_Surface, &m_SupportKHR));
 	if(m_SupportKHR == VK_FALSE) {
 		LOG_FATAL("Does not support KHR surface.");
 	}
-	utility::vulkan::check(physicalDevice.getSurfaceCapabilitiesKHR(m_Surface, &m_SurfaceCapabilities));
+	core::utility::vulkan::check(physicalDevice.getSurfaceCapabilitiesKHR(m_Surface, &m_SurfaceCapabilities));
 	if(m_SurfaceCapabilities.currentExtent.width < UINT32_MAX) {
 		// TODO: Figure out this problematic area
 		// width = m_SurfaceCapabilities.currentExtent.width;
@@ -192,7 +193,7 @@ void swapchain::init_surface() {
 		m_ImageCount = (uint32_t)std::fmax(m_ImageCount, m_SurfaceCapabilities.minImageCount);
 	}
 
-	if(auto res = physicalDevice.getSurfaceFormatsKHR(m_Surface); utility::vulkan::check(res.result)) {
+	if(auto res = physicalDevice.getSurfaceFormatsKHR(m_Surface); core::utility::vulkan::check(res.result)) {
 		m_SurfaceSupportFormats = res.value;
 	} else {
 		core::ivk::log->critical("could not get surface formats");
@@ -223,7 +224,7 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous) {
 	vk::PresentModeKHR presentMode = vk::PresentModeKHR::eFifo;
 	{
 		std::vector<vk::PresentModeKHR> allPresentModes;
-		if(auto res = physicalDevice.getSurfacePresentModesKHR(m_Surface); utility::vulkan::check(res.result))
+		if(auto res = physicalDevice.getSurfacePresentModesKHR(m_Surface); core::utility::vulkan::check(res.result))
 			allPresentModes = res.value;
 
 		presentMode = (std::find(allPresentModes.begin(), allPresentModes.end(), vk::PresentModeKHR::eMailbox) !=
@@ -254,9 +255,9 @@ void swapchain::init_swapchain(std::optional<vk::SwapchainKHR> previous) {
 	else
 		createInfo.oldSwapchain = nullptr;
 
-	utility::vulkan::check(m_Context->device().createSwapchainKHR(&createInfo, nullptr, &m_Swapchain));
+	core::utility::vulkan::check(m_Context->device().createSwapchainKHR(&createInfo, nullptr, &m_Swapchain));
 
-	utility::vulkan::check(
+	core::utility::vulkan::check(
 	  m_Context->device().getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, (vk::Image*)nullptr));
 	if(m_SwapchainImageCount <= 0)
 		LOG_FATAL("We received no swapchain images.");
@@ -271,7 +272,8 @@ void swapchain::init_images() {
 	m_SwapchainImageViews.resize(m_SwapchainImageCount);
 
 	auto device = m_Context->device();
-	utility::vulkan::check(device.getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, m_SwapchainImages.data()));
+	core::utility::vulkan::check(
+	  device.getSwapchainImagesKHR(m_Swapchain, &m_SwapchainImageCount, m_SwapchainImages.data()));
 
 	for(uint32_t i = 0; i < m_SwapchainImageCount; ++i) {
 		vk::ImageViewCreateInfo CI;
@@ -289,7 +291,7 @@ void swapchain::init_images() {
 		CI.subresourceRange.baseArrayLayer = 0;
 		CI.subresourceRange.layerCount	   = 1;
 
-		utility::vulkan::check(device.createImageView(&CI, nullptr, &m_SwapchainImageViews[i]));
+		core::utility::vulkan::check(device.createImageView(&CI, nullptr, &m_SwapchainImageViews[i]));
 	}
 }
 
@@ -304,28 +306,28 @@ void swapchain::init_command_buffer() {
 	AI.commandPool		  = m_Context->command_pool();
 	AI.level			  = vk::CommandBufferLevel::ePrimary;
 
-	if(!utility::vulkan::check(m_Context->device().allocateCommandBuffers(&AI, &m_SetupCommandBuffer))) {
+	if(!core::utility::vulkan::check(m_Context->device().allocateCommandBuffers(&AI, &m_SetupCommandBuffer))) {
 		LOG_ERROR("Could not allocate primary command buffer!");
 	}
 	vk::CommandBufferBeginInfo cmdBufInfo;
 
-	utility::vulkan::check(m_SetupCommandBuffer.begin(&cmdBufInfo));
+	core::utility::vulkan::check(m_SetupCommandBuffer.begin(&cmdBufInfo));
 }
 
 void swapchain::flush() {
 	if(!m_SetupCommandBuffer)
 		return;
 
-	utility::vulkan::check(m_SetupCommandBuffer.end());
+	core::utility::vulkan::check(m_SetupCommandBuffer.end());
 
 	vk::SubmitInfo submitInfo;
 	submitInfo.commandBufferCount = 1;
 	submitInfo.pCommandBuffers	  = &m_SetupCommandBuffer;
 
 	auto queue = m_Context->queue();
-	utility::vulkan::check(queue.submit(1, &submitInfo, nullptr));
+	core::utility::vulkan::check(queue.submit(1, &submitInfo, nullptr));
 
-	utility::vulkan::check(queue.waitIdle());
+	core::utility::vulkan::check(queue.waitIdle());
 
 	m_Context->device().freeCommandBuffers(m_Context->command_pool(), 1, &m_SetupCommandBuffer);
 	m_SetupCommandBuffer = nullptr;
@@ -340,7 +342,7 @@ void swapchain::deinit_command_buffer() {
 void swapchain::init_depthstencil() {
 	// auto device = m_Context->device();
 	vk::Format depthFormat;
-	if(utility::vulkan::supported_depthformat(m_Context->physical_device(), &depthFormat) != VK_TRUE) {
+	if(core::utility::vulkan::supported_depthformat(m_Context->physical_device(), &depthFormat) != VK_TRUE) {
 		LOG_FATAL("Could not find a suitable depth stencil buffer format.");
 	}
 
@@ -440,7 +442,7 @@ void swapchain::init_renderpass() {
 	renderPassInfo.dependencyCount = static_cast<uint32_t>(dependencies.size());
 	renderPassInfo.pDependencies   = dependencies.data();
 
-	utility::vulkan::check(m_Context->device().createRenderPass(&renderPassInfo, nullptr, &m_RenderPass));
+	core::utility::vulkan::check(m_Context->device().createRenderPass(&renderPassInfo, nullptr, &m_RenderPass));
 }
 
 void swapchain::deinit_renderpass() {
@@ -466,7 +468,7 @@ void swapchain::init_framebuffer() {
 	m_Framebuffer.resize(m_SwapchainImageCount);
 	for(uint32_t i = 0; i < m_SwapchainImageCount; i++) {
 		attachments[0] = m_SwapchainImageViews[i];
-		utility::vulkan::check(
+		core::utility::vulkan::check(
 		  m_Context->device().createFramebuffer(&frameBufferCreateInfo, nullptr, &m_Framebuffer[i]));
 	}
 }
@@ -528,7 +530,7 @@ void swapchain::resize() {
 void swapchain::apply_resize() {
 	m_Resizing = true;
 	// hard sync.
-	utility::vulkan::check(m_Context->device().waitIdle());
+	core::utility::vulkan::check(m_Context->device().waitIdle());
 
 	// recreate the swapchain
 	vk::SwapchainKHR previous = m_Swapchain;
@@ -553,7 +555,7 @@ void swapchain::apply_resize() {
 	init_renderpass();
 	init_framebuffer();
 	// hard sync.
-	utility::vulkan::check(m_Context->device().waitIdle());
+	core::utility::vulkan::check(m_Context->device().waitIdle());
 	m_Resizing	   = false;
 	m_ShouldResize = false;
 }

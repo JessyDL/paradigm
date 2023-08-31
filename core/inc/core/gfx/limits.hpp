@@ -6,8 +6,8 @@
 namespace core::gfx {
 struct limits {
 	struct buffer {
-		uint64_t alignment;
-		uint64_t size;
+		size_t alignment;
+		size_t size;
 	};
 
 	buffer uniform;
@@ -39,7 +39,7 @@ constexpr inline limits min(const limits& l, const limits& r) noexcept {
 	limit.uniform	= min(l.uniform, r.uniform);
 	limit.memorymap = min(l.memorymap, r.memorymap);
 
-	for(int i = 0; i < l.compute.workgroup.size.size(); ++i) {
+	for(size_t i = 0; i < l.compute.workgroup.size.size(); ++i) {
 		limit.compute.workgroup.size[i]	 = std::min(l.compute.workgroup.size[i], r.compute.workgroup.size[i]);
 		limit.compute.workgroup.count[i] = std::min(l.compute.workgroup.count[i], r.compute.workgroup.count[i]);
 	}

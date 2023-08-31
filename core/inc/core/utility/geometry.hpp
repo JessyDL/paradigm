@@ -7,7 +7,7 @@
 #include <vector>
 
 /// \brief various geometry and geometry related operation utilities.
-namespace utility::geometry {
+namespace core::utility::geometry {
 /// \brief generates tangent information for the geometry data
 /// \returns the generated tangent information.
 /// \param[in] positions vertex position info
@@ -83,7 +83,7 @@ static bool generate_tangents(core::resource::handle<core::data::geometry_t> geo
 
 /// \brief generates a quad primitive with the bounds coordinates.
 ///
-/// the principal difference between this function and utility::geometry::create_plane() is that
+/// the principal difference between this function and core::utility::geometry::create_plane() is that
 /// this method allows fine control of the extents. This can be handy for generating UI elements.
 /// \param[in, out] cache the cache to store the generated geometry information on.
 /// \param[in] top the extent in the +Y axis.
@@ -131,7 +131,7 @@ create_quad(core::resource::cache_t& cache, float top, float bottom, float left,
 
 /// \brief generates a plane primitive with the bounds coordinates.
 ///
-/// the principal differences between this method and utility::geometry::create_quad() is that
+/// the principal differences between this method and core::utility::geometry::create_quad() is that
 /// the plane can be subdivided, and has finer control over the UV's, making it better suited for
 /// 3D geometry.
 /// \param[in, out] cache the cache to store the generated geometry information on.
@@ -141,10 +141,12 @@ create_quad(core::resource::cache_t& cache, float top, float bottom, float left,
 /// \returns the handle to the generated geometry data.
 /// \note the final size of the object is always 2x the extents. This means that a size {2, 1} results into a
 /// min-coordinate {-2, -1} and max-coordinate {2, 1}.
-static core::resource::handle<core::data::geometry_t> create_plane(core::resource::cache_t& cache,
-																   psl::vec2 size		   = psl::vec2::one,
-																   psl::ivec2 subdivisions = psl::ivec2(1, 1),
-																   psl::vec2 uvScale	   = psl::vec2::one) {
+static core::resource::handle<core::data::geometry_t>
+create_plane(core::resource::cache_t& cache,
+			 psl::vec2 size = psl::vec2::one,
+			 psl::tvec<core::data::geometry_t::index_size_t, 2> subdivisions =
+			   psl::tvec<core::data::geometry_t::index_size_t, 2>(1, 1),
+			 psl::vec2 uvScale = psl::vec2::one) {
 	core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
 	core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
 	core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
@@ -158,8 +160,8 @@ static core::resource::handle<core::data::geometry_t> create_plane(core::resourc
 	uvs.resize((subdivisions[0] + 1) * (subdivisions[1] + 1));
 
 	psl::vec2 offset = (size * -0.5f);
-	for(auto i = 0, y = 0; y <= subdivisions[1]; y++) {
-		for(auto x = 0; x <= subdivisions[0]; x++, i++) {
+	for(size_t i = 0, y = 0; y <= subdivisions[1]; y++) {
+		for(size_t x = 0; x <= subdivisions[0]; x++, i++) {
 			vertices[i] = psl::vec3(((float)x / ((float)subdivisions[0])) * size[0] + offset[0],
 									0,
 									((float)y / ((float)subdivisions[1])) * size[1] + offset[1]);
@@ -168,10 +170,11 @@ static core::resource::handle<core::data::geometry_t> create_plane(core::resourc
 								((float)y / ((float)subdivisions[1])) * uvScale[1]);
 		}
 	}
+	using index_size_t = core::data::geometry_t::index_size_t;
 
-	std::vector<uint32_t> indexBuffer((subdivisions[0]) * (subdivisions[1]) * 6);
-	for(auto ti = 0, vi = 0, y = 0; y < subdivisions[1]; y++, vi++) {
-		for(auto x = 0; x < subdivisions[0]; x++, ti += 6, vi++) {
+	std::vector<index_size_t> indexBuffer((subdivisions[0]) * (subdivisions[1]) * 6);
+	for(index_size_t ti = 0, vi = 0, y = 0; y < subdivisions[1]; y++, vi++) {
+		for(index_size_t x = 0; x < subdivisions[0]; x++, ti += 6, vi++) {
 			indexBuffer[ti]		= vi;
 			indexBuffer[ti + 3] = indexBuffer[ti + 2] = vi + 1;
 			indexBuffer[ti + 4] = indexBuffer[ti + 1] = vi + subdivisions[0] + 1;
@@ -486,7 +489,7 @@ create_spherified_cube(core::resource::cache_t& cache, psl::vec3 scale = psl::ve
 	normals.resize(vertices.size());
 	uvs.resize(vertices.size());
 
-	for(auto i = 0; i < vertices.size(); ++i) {
+	for(size_t i = 0; i < vertices.size(); ++i) {
 		normals[i] = psl::math::normalize(vertices[i]);
 		uvs[i]	   = {normals[i][0], normals[i][1]};
 	}
@@ -839,7 +842,10 @@ static core::resource::handle<core::data::geometry_t> create_sphere(core::resour
 }
 
 static core::resource::handle<core::data::geometry_t>
-create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::one, size_t subdivisions = 2) {
+create_icosphere(core::resource::cache_t& cache,
+				 psl::vec3 scale								   = psl::vec3::one,
+				 core::data::geometry_t::index_size_t subdivisions = 2) {
+	using index_size_t = core::data::geometry_t::index_size_t;
 	core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
 	core::vertex_stream_t normStream {core::vertex_stream_t::type::vec3};
 	core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
@@ -847,36 +853,38 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	scale *= 0.5f;
 	std::vector<psl::vec3>& vertices = vertStream.get<core::vertex_stream_t::type::vec3>();
 	vertices.reserve(1024);
-	std::unordered_map<uint64_t, uint32_t> middlePointIndexCache;
+	std::unordered_map<uint64_t, index_size_t> middlePointIndexCache;
 
-	auto get_middle_point =
-	  [](uint32_t p1, uint32_t p2, std::vector<psl::vec3>& vertices, std::unordered_map<uint64_t, uint32_t>& cache) {
-		  // first check if we have it already
-		  bool firstIsSmaller	= p1 < p2;
-		  uint64_t smallerIndex = firstIsSmaller ? p1 : p2;
-		  uint64_t greaterIndex = firstIsSmaller ? p2 : p1;
-		  uint64_t key			= (smallerIndex << 32) + greaterIndex;
+	auto get_middle_point = [](index_size_t p1,
+							   index_size_t p2,
+							   std::vector<psl::vec3>& vertices,
+							   std::unordered_map<uint64_t, index_size_t>& cache) {
+		// first check if we have it already
+		bool firstIsSmaller	  = p1 < p2;
+		uint64_t smallerIndex = firstIsSmaller ? p1 : p2;
+		uint64_t greaterIndex = firstIsSmaller ? p2 : p1;
+		uint64_t key		  = (smallerIndex << 32) + greaterIndex;
 
-		  auto it = cache.find(key);
-		  if(it != cache.end()) {
-			  return it->second;
-		  }
+		auto it = cache.find(key);
+		if(it != cache.end()) {
+			return it->second;
+		}
 
-		  // not in cache, calculate it
-		  psl::vec3 point1 = vertices[p1];
-		  psl::vec3 point2 = vertices[p2];
-		  psl::vec3 middle =
-			psl::vec3((point1[0] + point2[0]) / 2.f, (point1[1] + point2[1]) / 2.f, (point1[2] + point2[2]) / 2.f);
+		// not in cache, calculate it
+		psl::vec3 point1 = vertices[p1];
+		psl::vec3 point2 = vertices[p2];
+		psl::vec3 middle =
+		  psl::vec3((point1[0] + point2[0]) / 2.f, (point1[1] + point2[1]) / 2.f, (point1[2] + point2[2]) / 2.f);
 
-		  // add vertex makes sure point is on unit sphere
-		  uint32_t i = (uint32_t)vertices.size();
-		  vertices.push_back(psl::math::normalize(middle));
+		// add vertex makes sure point is on unit sphere
+		index_size_t i = (index_size_t)vertices.size();
+		vertices.push_back(psl::math::normalize(middle));
 
-		  // store it, return index
-		  cache[key] = i;
+		// store it, return index
+		cache[key] = i;
 
-		  return i;
-	  };
+		return i;
+	};
 	using namespace std;
 
 	// create 12 vertices o.f a icosahedron
@@ -898,10 +906,10 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	vertices.push_back(psl::math::normalize(psl::vec3(-t, 0.f, 1.f)));
 
 	struct triangle {
-		triangle(uint32_t v1, uint32_t v2, uint32_t v3) : v1(v1), v2(v2), v3(v3) {};
-		uint32_t v1;
-		uint32_t v2;
-		uint32_t v3;
+		triangle(index_size_t v1, index_size_t v2, index_size_t v3) : v1(v1), v2(v2), v3(v3) {};
+		index_size_t v1;
+		index_size_t v2;
+		index_size_t v3;
 	};
 
 	std::vector<triangle> faces;
@@ -935,13 +943,13 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	faces.push_back(triangle(9, 8, 1));
 
 	// refine triangles
-	for(uint32_t i = 0; i < subdivisions; i++) {
+	for(index_size_t i = 0; i < subdivisions; i++) {
 		std::vector<triangle> faces2;
 		for(auto& tri : faces) {
 			// replace triangle by 4 triangles
-			uint32_t a = get_middle_point(tri.v1, tri.v2, vertices, middlePointIndexCache);
-			uint32_t b = get_middle_point(tri.v2, tri.v3, vertices, middlePointIndexCache);
-			uint32_t c = get_middle_point(tri.v3, tri.v1, vertices, middlePointIndexCache);
+			index_size_t a = get_middle_point(tri.v1, tri.v2, vertices, middlePointIndexCache);
+			index_size_t b = get_middle_point(tri.v2, tri.v3, vertices, middlePointIndexCache);
+			index_size_t c = get_middle_point(tri.v3, tri.v1, vertices, middlePointIndexCache);
 
 			faces2.push_back(triangle(tri.v1, a, c));
 			faces2.push_back(triangle(tri.v2, b, a));
@@ -954,15 +962,15 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	std::vector<psl::vec2>& res_uvs = uvStream.get<core::vertex_stream_t::type::vec2>();
 	res_uvs.resize(vertices.size());
 
-	for(int i = 0; i < vertices.size(); ++i) {
+	for(size_t i = 0; i < vertices.size(); ++i) {
 		res_uvs[i] =
 		  psl::vec2(atan2(vertices[i][2], vertices[i][0]) / 3.14159265359f / 2, acos(vertices[i][1]) / 3.14159265359f);
 		vertices[i] *= scale;
 	}
 
-	std::vector<uint32_t> tempIndices;
+	std::vector<index_size_t> tempIndices;
 
-	for(uint32_t i = 0; i < faces.size(); i++) {
+	for(index_size_t i = 0; i < faces.size(); i++) {
 		tempIndices.push_back(faces[i].v1);
 		tempIndices.push_back(faces[i].v2);
 		tempIndices.push_back(faces[i].v3);
@@ -970,11 +978,11 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 
 	// GenerateTangents(vertexData, tempIndices);
 
-	std::vector<uint32_t> problemIndices;
-	for(int i = 0; i < faces.size(); ++i) {
-		uint32_t a			= faces[i].v1;
-		uint32_t b			= faces[i].v2;
-		uint32_t c			= faces[i].v3;
+	std::vector<index_size_t> problemIndices;
+	for(index_size_t i = 0; i < faces.size(); ++i) {
+		index_size_t a		= faces[i].v1;
+		index_size_t b		= faces[i].v2;
+		index_size_t c		= faces[i].v3;
 		psl::vec3 texA		= psl::vec3(res_uvs[a], 0);
 		psl::vec3 texB		= psl::vec3(res_uvs[b], 0);
 		psl::vec3 texC		= psl::vec3(res_uvs[c], 0);
@@ -984,18 +992,18 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	}
 
 
-	uint32_t verticeIndex = (uint32_t)res_uvs.size() - 1;
-	std::unordered_map<uint32_t, uint32_t> visited;
+	index_size_t verticeIndex = (index_size_t)res_uvs.size() - 1;
+	std::unordered_map<index_size_t, index_size_t> visited;
 	for(auto& i : problemIndices) {
-		uint32_t a = faces[i].v1;
-		uint32_t b = faces[i].v2;
-		uint32_t c = faces[i].v3;
-		auto A	   = res_uvs[a];
-		auto B	   = res_uvs[b];
-		auto C	   = res_uvs[c];
+		index_size_t a = faces[i].v1;
+		index_size_t b = faces[i].v2;
+		index_size_t c = faces[i].v3;
+		auto A		   = res_uvs[a];
+		auto B		   = res_uvs[b];
+		auto C		   = res_uvs[c];
 		if(A[0] < 0.25f) {
-			uint32_t tempA = a;
-			auto it		   = visited.find(a);
+			index_size_t tempA = a;
+			auto it			   = visited.find(a);
 			if(it == visited.end()) {
 				A[0] += 1;
 				vertices.emplace_back(vertices[a]);
@@ -1009,8 +1017,8 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 			a = tempA;
 		}
 		if(B[0] < 0.25f) {
-			uint32_t tempB = b;
-			auto it		   = visited.find(b);
+			index_size_t tempB = b;
+			auto it			   = visited.find(b);
 			if(it == visited.end()) {
 				B[0] += 1;
 				vertices.emplace_back(vertices[b]);
@@ -1024,8 +1032,8 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 			b = tempB;
 		}
 		if(C[0] < 0.25f) {
-			uint32_t tempC = c;
-			auto it		   = visited.find(c);
+			index_size_t tempC = c;
+			auto it			   = visited.find(c);
 			if(it == visited.end()) {
 				C[0] += 1;
 				vertices.emplace_back(vertices[c]);
@@ -1044,8 +1052,8 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	}
 
 	float min = 1, max = -1;
-	uint32_t northIndex {0}, southIndex {0};
-	for(uint32_t i = 0; i < vertices.size(); ++i) {
+	index_size_t northIndex {0}, southIndex {0};
+	for(index_size_t i = 0; i < vertices.size(); ++i) {
 		if(vertices[i][1] < min) {
 			northIndex = i;
 			min		   = vertices[i][1];
@@ -1061,8 +1069,8 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	auto south	  = vertices[southIndex];
 	auto south_uv = res_uvs[southIndex];
 
-	verticeIndex = (uint32_t)vertices.size() - 1;
-	for(int i = 0; i < faces.size(); ++i) {
+	verticeIndex = (index_size_t)vertices.size() - 1;
+	for(size_t i = 0; i < faces.size(); ++i) {
 		if(faces[i].v1 == northIndex) {
 			// Vertex A = vertexData[faces[i].v1];
 			const auto& B = res_uvs[faces[i].v2];
@@ -1088,15 +1096,15 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 		}
 	}
 
-	std::vector<uint32_t> indices;
-	for(uint32_t i = 0; i < faces.size(); i++) {
+	std::vector<index_size_t> indices;
+	for(index_size_t i = 0; i < faces.size(); i++) {
 		indices.push_back(faces[i].v1);
 		indices.push_back(faces[i].v2);
 		indices.push_back(faces[i].v3);
 	}
 	std::vector<psl::vec3>& res_normals = normStream.get<core::vertex_stream_t::type::vec3>();
 	res_normals.resize(vertices.size());
-	for(int i = 0; i < vertices.size(); ++i) {
+	for(size_t i = 0; i < vertices.size(); ++i) {
 		res_normals[i] = psl::math::normalize(vertices[i]);
 	}
 
@@ -1106,7 +1114,7 @@ create_icosphere(core::resource::cache_t& cache, psl::vec3 scale = psl::vec3::on
 	geomData->vertices(core::data::geometry_t::constants::NORMAL, normStream);
 	geomData->vertices(core::data::geometry_t::constants::TEX, uvStream);
 
-	std::vector<uint32_t> triangles(faces.size() * 3);
+	std::vector<index_size_t> triangles(faces.size() * 3);
 	size_t triangleI = 0;
 	for(const auto& face : faces) {
 		triangles[triangleI++] = face.v1;
@@ -1150,7 +1158,7 @@ merge(core::resource::cache_t& cache, const psl::array<core::resource::handle<co
 	auto streams			= geometry[0]->vertex_streams();
 	auto source_vertexcount = geometry[0]->vertex_count();
 
-	for(auto i = 1; i < geometry.size(); ++i) {
+	for(size_t i = 1; i < geometry.size(); ++i) {
 		for(const auto& [name, stream] : geometry[i]->vertex_streams()) {
 			if(streams.find(name) == std::end(streams))
 				continue;
@@ -1209,7 +1217,7 @@ static core::resource::handle<core::data::geometry_t> replicate(core::resource::
 		auto bytesize						  = original.bytesize();
 		stream.resize_elementcount(stream.size() * positions.size());
 
-		for(auto i = 0; i < positions.size(); ++i) {
+		for(size_t i = 0; i < positions.size(); ++i) {
 			memcpy((void*)((size_t)stream.data() + (i * bytesize)), original.data(), bytesize);
 		}
 		if(name == core::data::geometry_t::constants::POSITION) {
@@ -1284,4 +1292,4 @@ set_channel(core::resource::handle<core::data::geometry_t> source, psl::string_v
 	source->vertices(channel, stream);
 	return source;
 }
-}	 // namespace utility::geometry
+}	 // namespace core::utility::geometry

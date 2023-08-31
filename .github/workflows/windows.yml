@@ -7,11 +7,19 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
+        target: [windows]
         graphics: [vulkan, all]
+        arch: [x86, x86_64]
         include:
           - benchmarks: OFF
           - graphics: all
             benchmarks: ON
+          - arch: x86
+            bitconfig: 32
+            output: Win32
+          - arch: x86_64
+            bitconfig: 64
+            output: x64
     name: build
     runs-on: windows-2022
     steps:
@@ -27,20 +35,20 @@ jobs:
     - name: initialize
       run: |
             python3 tools/generate_project_info.py
-            cmake --preset=windows-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }}
-            python3 tools/patch.py --project ./project_files/x64/
+            cmake --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }}
+            python3 tools/patch.py --project ./project_files/${{ matrix.output }}/
     - name: compile
-      run: cmake --build --preset=windows-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
+      run: cmake --build --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       run: |
-            cd builds\x64\release\bin
+            cd builds\${{ matrix.output }}\release\bin
             .\tests.exe --formatter compact --no-source
     - name: finalize    
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v3
       with:
         name: windows-${{ matrix.graphics }}-bin
-        path: builds/x64/release/bin/benchmarks.exe
+        path: builds/${{ matrix.output }}/release/bin/benchmarks.exe
         if-no-files-found: error
         retention-days: 1
   benchmark:

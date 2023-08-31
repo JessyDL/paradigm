@@ -16,9 +16,9 @@
 	#include <limits.h>
 #endif
 
-using namespace utility::application::path;
+using namespace psl::utility::application::path;
 
-psl::string utility::application::path::get_path() {
+psl::string psl::utility::application::path::get_path() {
 #ifdef WIN32
 	wchar_t dest[MAX_PATH];
 	GetModuleFileName(NULL, dest, MAX_PATH);

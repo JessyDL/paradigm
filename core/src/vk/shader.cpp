@@ -43,7 +43,8 @@ shader::shader(core::resource::cache_t& cache,
 
 		spec.name  = "main";
 		pipe.pName = spec.name.data();
-		if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
+		if(!core::utility::vulkan::check(
+			 m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
 			m_Specializations.erase(std::end(m_Specializations) - 1u);
 		}
 	}
@@ -78,7 +79,8 @@ shader::shader(core::resource::cache_t& cache,
 								 meta.ID().to_string(),
 								 vk::to_string(pipe.stage));
 
-			if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
+			if(!core::utility::vulkan::check(
+				 m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
 				m_Specializations.erase(std::end(m_Specializations) - 1u);
 			}
 		}
@@ -125,7 +127,7 @@ std::optional<vk::PipelineShaderStageCreateInfo> shader::pipeline(const speciali
 		pair.second.pName = pair.first.name.data();
 	}
 
-	if(!utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
+	if(!core::utility::vulkan::check(m_Context->device().createShaderModule(&moduleCreateInfo, NULL, &pipe.module))) {
 		m_Specializations.erase(std::end(m_Specializations) - 1u);
 		return {};
 	}

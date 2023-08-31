@@ -6,7 +6,7 @@
 
 #include "psl/details/fixed_astring.hpp"
 
-namespace utility {
+namespace psl::utility {
 /// \brief 32 bit crc checksum table.
 static constexpr uint32_t crc32_table[256] {
   0x00000000, 0x77073096, 0xee0e612c, 0x990951ba, 0x076dc419, 0x706af48f, 0xe963a535, 0x9e6495a3, 0x0edb8832,
@@ -197,4 +197,4 @@ constexpr static uint32_t crc32(psl::string8::view str) {
 	}
 	return crc ^ 0xFFFFFFFF;
 }
-}	 // namespace utility
+}	 // namespace psl::utility

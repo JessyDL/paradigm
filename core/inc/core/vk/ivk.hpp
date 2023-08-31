@@ -62,7 +62,7 @@
 #endif
 
 
-namespace utility {
+namespace psl::utility {
 template <typename BitType>
 struct converter<vk::Flags<BitType>> {
 	static psl::string8_t to_string(const vk::Flags<BitType>& x) {
@@ -82,11 +82,11 @@ struct converter<vk::ClearValue> {
 
 	static vk::ClearValue from_string(psl::string8::view str) { return vk::ClearValue {vk::ClearColorValue {}}; }
 };
-}	 // namespace utility
+}	 // namespace psl::utility
 
 
 /// \brief helper namespace that contains handy defaults and constructor helpers for Vulkan objects
-namespace utility::vulkan::defaults {
+namespace core::utility::vulkan::defaults {
 /// \brief creates a default, 0 sized VkMemoryAllocateInfo
 inline VkMemoryAllocateInfo mem_ai() {
 	VkMemoryAllocateInfo memAllocInfo = {};
@@ -469,9 +469,9 @@ inline VkPushConstantRange push_constant_range(VkShaderStageFlags stageFlags, ui
 	pushConstantRange.size				  = size;
 	return pushConstantRange;
 }
-}	 // namespace utility::vulkan::defaults
+}	 // namespace core::utility::vulkan::defaults
 
-namespace utility::vulkan {
+namespace core::utility::vulkan {
 inline bool check(const vk::Result& value, const psl::source_location& loc = psl::source_location::current()) {
 	psl_assert(value == vk::Result::eSuccess, "vk::Result expected success, but got {}", vk::to_string(value), loc);
 	return value == vk::Result::eSuccess;
@@ -736,4 +736,4 @@ inline bool has_stencil(vk::Format format) {
 inline bool is_depthstencil(vk::Format format) {
 	return (has_depth(format) && has_stencil(format));
 }
-}	 // namespace utility::vulkan
+}	 // namespace core::utility::vulkan

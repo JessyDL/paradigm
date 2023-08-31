@@ -551,7 +551,7 @@ struct decode_pack_types {};
 
 template <typename... Ts>
 struct decode_pack_types<pack_t<Ts...>> {
-	using type = utility::templates::type_pack_t<Ts...>;
+	using type = psl::utility::templates::type_pack_t<Ts...>;
 };
 
 /// \brief Helper to convert a pack to a type_pack_t of its arguments (including policies etc..)

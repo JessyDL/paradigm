@@ -94,7 +94,7 @@ class generator {
 
 	std::vector<std::pair<T, T>> create_multi(T count = 1) {
 		std::vector<std::pair<T, T>> result {};
-		for(auto i = 0; i < m_FreeRanges.size();) {
+		for(size_t i = 0; i < m_FreeRanges.size();) {
 			auto& r		 = m_FreeRanges[i];
 			auto consume = std::min(r.size(), count);
 			count -= consume;

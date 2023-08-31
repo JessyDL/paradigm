@@ -27,7 +27,7 @@ class scheduler;
 /// \warning Users should not rely on these implementations.
 namespace psl::ecs::details {}
 
-namespace utility {
+namespace psl::utility {
 template <>
 struct converter<psl::ecs::entity_t> {
 	using value_t	 = psl::ecs::entity_t;
@@ -46,7 +46,7 @@ struct converter<psl::ecs::entity_t> {
 
 	static bool is_valid(view_t str) { return true; }
 };
-}	 // namespace utility
+}	 // namespace psl::utility
 
 /// \brief Entity Component System
 ///
@@ -173,7 +173,7 @@ class state_t final {
 
   public:
 	state_t(size_t workers								= 0,
-			size_t cache_size							= 1024 * 1024 * 256,
+			size_t cache_size							= 1024 * 1024 * 128,
 			entity_t::size_type min_entities_per_worker = 1024);
 	~state_t();
 	state_t(const state_t&)			   = delete;
@@ -575,7 +575,7 @@ class state_t final {
 		psl::array<details::filter_group> result {};
 		result.reserve(sizeof...(Ts));
 		(
-		  [&result, this]<typename... Ys>(utility::templates::type_pack_t<Ys...>) mutable {
+		  [&result, this]<typename... Ys>(psl::utility::templates::type_pack_t<Ys...>) mutable {
 			  result.emplace_back(make_filter_group<Ys...>());
 		  }(decode_pack_types_t<Ts> {}),
 		  ...);
@@ -587,7 +587,7 @@ class state_t final {
 		psl::array<details::filter_group> result {};
 		result.reserve(sizeof...(Ts));
 		(
-		  [&result, this]<typename... Ys>(utility::templates::type_pack_t<Ys...>) mutable {
+		  [&result, this]<typename... Ys>(psl::utility::templates::type_pack_t<Ys...>) mutable {
 			  result.emplace_back(make_filter_group<Ys...>());
 		  }(decode_pack_types_t<Ts> {}),
 		  ...);
@@ -987,7 +987,7 @@ class state_t final {
 		psl::array<std::shared_ptr<details::filter_group>> shared_filter_groups;
 		psl::array<std::shared_ptr<details::transform_group>> shared_transform_groups;
 
-		for(auto i = 0; i < filter_groups.size(); ++i) {
+		for(size_t i = 0; i < filter_groups.size(); ++i) {
 			auto [shared_filter, transform_filter] = add_filter_group(filter_groups[i], transform_groups[i], debugName);
 			shared_filter_groups.emplace_back(shared_filter);
 			shared_transform_groups.emplace_back(transform_filter);

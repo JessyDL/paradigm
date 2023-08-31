@@ -8,13 +8,13 @@
 namespace {
 auto t0 = litmus::suite<"psl::generator">() = []() {
 	using litmus::require;
-	psl::generator<uint64_t> generator;
+	psl::generator<size_t> generator;
 
 	require(generator.capacity()) == generator.available();
-	require(generator.capacity()) == std::numeric_limits<uint64_t>::max();
+	require(generator.capacity()) == std::numeric_limits<size_t>::max();
 
 	size_t accumulated = 0;
-	uint64_t id {1523365};
+	size_t id {1523365};
 	id = generator.create(100);
 	accumulated += 100;
 	require(id) == 0;

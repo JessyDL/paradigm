@@ -628,7 +628,13 @@ class input {
   private:
 #if defined(SURFACE_WIN32)
 	void tick();
+
+	#if defined(PE_PLATFORM_32_BIT)
+	static long __stdcall win_event_handler(HWND hWnd, unsigned int uMsg, unsigned int wParam, long lParam);
+	#elif defined(PE_PLATFORM_64_BIT)
 	static __int64 __stdcall win_event_handler(HWND hWnd, unsigned int uMsg, unsigned __int64 wParam, __int64 lParam);
+	#endif
+
 #elif defined(SURFACE_XCB)
 	void tick(core::os::surface* const surface, xcb_connection_t* _xcb_connection, xcb_intern_atom_reply_t& delete_wm);
 	void handle_event(core::os::surface* const surface,

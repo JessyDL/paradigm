@@ -86,7 +86,7 @@ const core::data::buffer_t& buffer_t::data() const {
 }
 
 
-[[nodiscard]] std::optional<memory::segment> buffer_t::reserve(uint64_t size) {
+[[nodiscard]] std::optional<memory::segment> buffer_t::reserve(size_t size) {
 #ifdef PE_GLES
 	if(m_GLESHandle) {
 		return m_GLESHandle->allocate(size);
@@ -99,7 +99,7 @@ const core::data::buffer_t& buffer_t::data() const {
 #endif
 	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");
 }
-[[nodiscard]] psl::array<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(psl::array<uint64_t> sizes,
+[[nodiscard]] psl::array<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(psl::array<size_t> sizes,
 																						bool optimize) {
 #ifdef PE_GLES
 	if(m_GLESHandle) {
@@ -108,7 +108,12 @@ const core::data::buffer_t& buffer_t::data() const {
 #endif
 #ifdef PE_VULKAN
 	if(m_VKHandle) {
+	#if defined(PE_PLATFORM_32_BIT)
+		psl::array<vk::DeviceSize> sizes_64 {std::begin(sizes), std::end(sizes)};
+		return m_VKHandle->reserve(sizes_64, optimize);
+	#elif defined(PE_PLATFORM_64_BIT)
 		return m_VKHandle->reserve(sizes, optimize);
+	#endif
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");

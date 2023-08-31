@@ -40,14 +40,14 @@ material_t::material_t(core::resource::cache_t& cache,
 		if(!shader_handle) {
 			core::gfx::log->warn(
 			  "ivk::material_t [{0}] uses a shader [{1}] that cannot be found in the resource cache.",
-			  utility::to_string(ID),
-			  utility::to_string(stage.shader()));
+			  psl::utility::to_string(ID),
+			  psl::utility::to_string(stage.shader()));
 
 
-			core::gfx::log->info("trying to load shader [{0}].", utility::to_string(stage.shader()));
+			core::gfx::log->info("trying to load shader [{0}].", psl::utility::to_string(stage.shader()));
 			shader_handle = cache.instantiate<core::ivk::shader>(stage.shader(), context);
 			if(!shader_handle) {
-				core::ivk::log->error("failed to load shader [{0}]", utility::to_string(stage.shader()));
+				core::ivk::log->error("failed to load shader [{0}]", psl::utility::to_string(stage.shader()));
 				return;
 			}
 		}
@@ -64,9 +64,9 @@ material_t::material_t(core::resource::cache_t& cache,
 					core::gfx::log->error(
 					  "ivk::material_t [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the resource "
 					  "cache.",
-					  utility::to_string(ID),
-					  utility::to_string(binding.sampler()),
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(ID),
+					  psl::utility::to_string(binding.sampler()),
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 				if(auto texture_handle = cache.find<core::ivk::texture_t>(binding.texture()); texture_handle) {
@@ -76,9 +76,9 @@ material_t::material_t(core::resource::cache_t& cache,
 					core::gfx::log->error(
 					  "ivk::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
 					  "cache.",
-					  utility::to_string(ID),
-					  utility::to_string(binding.texture()),
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(ID),
+					  psl::utility::to_string(binding.texture()),
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 			} break;
@@ -99,19 +99,19 @@ material_t::material_t(core::resource::cache_t& cache,
 						core::gfx::log->error(
 						  "ivk::material_t [{0}] declares resource of the type [{1}], but we detected a resource of "
 						  "the type [{2}] instead in shader [{3}]",
-						  utility::to_string(ID),
+						  psl::utility::to_string(ID),
 						  vk::to_string(gfx::conversion::to_vk(binding.descriptor())),
 						  vk::to_string(core::gfx::conversion::to_vk(buffer_handle->buffer->data().usage())),
-						  utility::to_string(stage.shader()));
+						  psl::utility::to_string(stage.shader()));
 						return;
 					}
 				} else {
 					core::gfx::log->error(
 					  "ivk::material_t [{0}] uses a buffer [{1}] in shader [{2}] that cannot be found in the resource "
 					  "cache.",
-					  utility::to_string(ID),
-					  utility::to_string(binding.buffer()),
-					  utility::to_string(stage.shader()));
+					  psl::utility::to_string(ID),
+					  psl::utility::to_string(binding.buffer()),
+					  psl::utility::to_string(stage.shader()));
 					return;
 				}
 			} break;

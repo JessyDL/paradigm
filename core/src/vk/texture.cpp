@@ -49,7 +49,7 @@ texture_t::texture_t(core::resource::cache_t& cache,
 	if(!m_Meta) {
 		core::ivk::log->error(
 		  "ivk::texture_t could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
-		  utility::to_string(metaFile->ID()));
+		  psl::utility::to_string(metaFile->ID()));
 		return;
 	}
 	// AddReference(m_Context);
@@ -141,7 +141,7 @@ void texture_t::create_2D(void* data) {
 	m_MipLevels = m_Meta->mip_levels();
 	vk::FormatProperties formatProperties;
 	if(m_Meta->format() == gfx::format_t::undefined) {
-		LOG_ERROR("Undefined format property in: ", utility::to_string(m_Meta->ID()));
+		LOG_ERROR("Undefined format property in: ", psl::utility::to_string(m_Meta->ID()));
 	}
 	m_Context->physical_device().getFormatProperties(to_vk(m_Meta->format()), &formatProperties);
 
@@ -202,7 +202,7 @@ void texture_t::create_2D(void* data) {
 	imageCreateInfo.extent		  = vk::Extent3D {m_Meta->width(), m_Meta->height(), m_Meta->depth()};
 	imageCreateInfo.usage		  = to_vk(m_Meta->usage());
 
-	utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
+	core::utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
 
 
 	// Create and bind the memory
@@ -217,11 +217,11 @@ void texture_t::create_2D(void* data) {
 	memAllocInfo.memoryTypeIndex =
 	  m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-	utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
+	core::utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
 	m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
 
 	if(data != nullptr) {
-		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(
+		vk::CommandBuffer copyCmd = core::utility::vulkan::create_cmd_buffer(
 		  m_Context->device(), m_Context->command_pool(), vk::CommandBufferLevel::ePrimary, true, 1);
 
 		vk::ImageSubresourceRange subresourceRange;
@@ -231,7 +231,7 @@ void texture_t::create_2D(void* data) {
 		subresourceRange.layerCount	  = m_Meta->layers();
 		// Image barrier for optimal image (target)
 		// Optimal image will be used as destination for the copy
-		utility::vulkan::set_image_layout(
+		core::utility::vulkan::set_image_layout(
 		  copyCmd, m_Image, vk::ImageLayout::eUndefined, vk::ImageLayout::eTransferDstOptimal, subresourceRange);
 
 		// Copy mip levels from staging buffer
@@ -241,7 +241,7 @@ void texture_t::create_2D(void* data) {
 		// Change texture image layout to shader read after all mip levels have been copied
 		m_ImageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
-		utility::vulkan::set_image_layout(
+		core::utility::vulkan::set_image_layout(
 		  copyCmd, m_Image, vk::ImageLayout::eTransferDstOptimal, m_ImageLayout, subresourceRange);
 
 		m_Context->flush(copyCmd, true);
@@ -257,7 +257,7 @@ void texture_t::create_2D(void* data) {
 	view.format		= to_vk(m_Meta->format());
 	view.components = vk::ComponentMapping();
 	view.subresourceRange.aspectMask =
-	  (utility::vulkan::has_depth(view.format)) ? vk::ImageAspectFlagBits::eDepth : to_vk(m_Meta->aspect_mask());
+	  (core::utility::vulkan::has_depth(view.format)) ? vk::ImageAspectFlagBits::eDepth : to_vk(m_Meta->aspect_mask());
 	view.subresourceRange.baseMipLevel	 = 0;
 	view.subresourceRange.baseArrayLayer = 0;
 	view.subresourceRange.layerCount	 = m_Meta->layers();
@@ -266,7 +266,7 @@ void texture_t::create_2D(void* data) {
 	view.subresourceRange.levelCount = m_MipLevels;
 	m_SubresourceRange				 = view.subresourceRange;
 
-	utility::vulkan::check(m_Context->device().createImageView(&view, nullptr, &m_View));
+	core::utility::vulkan::check(m_Context->device().createImageView(&view, nullptr, &m_View));
 }
 
 
@@ -382,7 +382,7 @@ void texture_t::load_2D() {
 		imageCreateInfo.extent		  = vk::Extent3D {m_Meta->width(), m_Meta->height(), m_Meta->depth()};
 		imageCreateInfo.usage		  = to_vk(m_Meta->usage());
 
-		utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
+		core::utility::vulkan::check(m_Context->device().createImage(&imageCreateInfo, nullptr, &m_Image));
 
 		vk::MemoryRequirements memReqs;
 		vk::MemoryAllocateInfo memAllocInfo;
@@ -395,10 +395,10 @@ void texture_t::load_2D() {
 		memAllocInfo.memoryTypeIndex =
 		  m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
-		utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
+		core::utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
 		m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
 
-		vk::CommandBuffer copyCmd = utility::vulkan::create_cmd_buffer(
+		vk::CommandBuffer copyCmd = core::utility::vulkan::create_cmd_buffer(
 		  m_Context->device(), m_Context->command_pool(), vk::CommandBufferLevel::ePrimary, true, 1);
 
 		vk::ImageSubresourceRange subresourceRange;
@@ -409,8 +409,8 @@ void texture_t::load_2D() {
 		// Image barrier for optimal image (target)
 		// Optimal image will be used as destination for the copy
 		{
-			auto barrier				= utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eUndefined,
-																		vk::ImageLayout::eTransferDstOptimal);
+			auto barrier				= core::utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eUndefined,
+																			  vk::ImageLayout::eTransferDstOptimal);
 			barrier.image				= m_Image;
 			barrier.subresourceRange	= subresourceRange;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -446,7 +446,7 @@ void texture_t::load_2D() {
 
 		{
 			auto barrier =
-			  utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eTransferDstOptimal, m_ImageLayout);
+			  core::utility::vulkan::image_memory_barrier_for(vk::ImageLayout::eTransferDstOptimal, m_ImageLayout);
 			barrier.image				= m_Image;
 			barrier.subresourceRange	= subresourceRange;
 			barrier.srcQueueFamilyIndex = VK_QUEUE_FAMILY_IGNORED;
@@ -491,5 +491,5 @@ void texture_t::load_2D() {
 	view.subresourceRange.levelCount = (useStaging) ? m_MipLevels : 1;
 	m_SubresourceRange				 = view.subresourceRange;
 	view.image						 = m_Image;
-	utility::vulkan::check(m_Context->device().createImageView(&view, nullptr, &m_View));
+	core::utility::vulkan::check(m_Context->device().createImageView(&view, nullptr, &m_View));
 }

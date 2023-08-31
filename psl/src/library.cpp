@@ -10,16 +10,18 @@ using namespace psl;
 const uint64_t file::polymorphic_identity {register_polymorphic<file>()};
 
 library::library(psl::string8::view lib, std::vector<psl::string8_t> environment) {
-	auto library	  = utility::platform::file::read(lib).value_or("");
-	m_LibraryLocation = utility::platform::directory::to_platform(lib);
-	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(utility::platform::directory::seperator));
+	auto library	  = psl::utility::platform::file::read(lib).value_or("");
+	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib);
+	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
 	m_LibraryFolder	  = psl::string8::view(&m_LibraryLocation[0], loc);
-	m_LibraryFile	  = psl::string8::view(&m_LibraryLocation[loc + utility::platform::directory::seperator.size()],
-									   m_LibraryLocation.size() - loc - utility::platform::directory::seperator.size());
+	m_LibraryFile =
+	  psl::string8::view(&m_LibraryLocation[loc + psl::utility::platform::directory::seperator.size()],
+						 m_LibraryLocation.size() - loc - psl::utility::platform::directory::seperator.size());
 
-	psl::string8_t root = psl::string8_t(m_LibraryFolder) + psl::to_string8_t(utility::platform::directory::seperator);
+	psl::string8_t root =
+	  psl::string8_t(m_LibraryFolder) + psl::to_string8_t(psl::utility::platform::directory::seperator);
 
-	psl_assert(utility::platform::file::exists(psl::from_string8_t(m_LibraryLocation)),
+	psl_assert(psl::utility::platform::file::exists(psl::from_string8_t(m_LibraryLocation)),
 			   "could not find library at '{}'",
 			   m_LibraryLocation);
 
@@ -55,7 +57,7 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 		if(startEnv != psl::string8_t::npos &&
 		   std::find_if(std::begin(environment),
 						std::end(environment),
-						[env = utility::string::split(line.substr(startEnv + 5, endEnv - (startEnv + 5)), ";")](
+						[env = psl::utility::string::split(line.substr(startEnv + 5, endEnv - (startEnv + 5)), ";")](
 						  const psl::string8_t& expected) {
 							return std::find(std::begin(env), std::end(env), expected) != std::end(env);
 						}) == std::end(environment)) {
@@ -68,8 +70,8 @@ library::library(psl::string8::view lib, std::vector<psl::string8_t> environment
 		psl::string8_t extension = filepath.substr(filepath.find_last_of('.') + 1);
 
 		file* metaPtr	   = nullptr;
-		auto full_metapath = utility::platform::file::to_platform(root + metapath);
-		psl_assert(utility::platform::file::exists(full_metapath),
+		auto full_metapath = psl::utility::platform::file::to_platform(root + metapath);
+		psl_assert(psl::utility::platform::file::exists(full_metapath),
 				   "could not find file associated with UID {} at {}",
 				   uid.to_string(),
 				   full_metapath);
@@ -97,7 +99,7 @@ bool library::serialize(const UID& uid) {
 		return false;
 
 	psl::string8_t filepath = psl::string8_t(m_LibraryFolder) +
-							  psl::to_string8_t(utility::platform::directory::seperator) + it->second.readableName;
+							  psl::to_string8_t(psl::utility::platform::directory::seperator) + it->second.readableName;
 	serializer s;
 	s.serialize<encode_to_format>(it->second.data.get(), psl::string8::view {filepath});
 	return true;
@@ -220,7 +222,7 @@ std::optional<psl::string8_t> library::get_physical_location(const UID& uid) con
 	if(it == std::end(m_MetaData) || it->second.flags[0] != true)
 		return {};
 
-	return psl::string8_t(m_LibraryFolder) + psl::to_string8_t(utility::platform::directory::seperator) +
+	return psl::string8_t(m_LibraryFolder) + psl::to_string8_t(psl::utility::platform::directory::seperator) +
 		   it->second.readableName;
 }
 
@@ -237,9 +239,9 @@ std::optional<psl::string8::view> library::load(const UID& uid) {
 	if(it->second.flags[0] != true || it->second.file_data.size() > 0)
 		return it->second.file_data;
 
-	if(auto res =
-		 utility::platform::file::read(psl::from_string8_t(m_LibraryFolder) + utility::platform::directory::seperator +
-									   psl::from_string8_t(it->second.readableName));
+	if(auto res = psl::utility::platform::file::read(psl::from_string8_t(m_LibraryFolder) +
+													 psl::utility::platform::directory::seperator +
+													 psl::from_string8_t(it->second.readableName));
 	   res) {
 		it->second.file_data = psl::string(res.value().data(), res.value().size());
 		return it->second.file_data;

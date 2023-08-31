@@ -1,7 +1,7 @@
 #pragma once
 #include <stdint.h>
 
-namespace utility {
+namespace psl::utility {
 class terminal {
   public:
 	terminal()	= delete;
@@ -28,4 +28,4 @@ class terminal {
 
 	static void set_color(color foreground, color background = color::BLACK);
 };
-}	 // namespace utility
+}	 // namespace psl::utility

@@ -15,7 +15,7 @@
 #include "psl/template_utils.hpp"
 
 
-namespace utility {
+namespace psl::utility {
 class string_constructor_t {
 	psl::string8::view value;
 };
@@ -613,7 +613,7 @@ struct converter {
 		} else if constexpr(details::HasStdToString<X>) {
 			return std::to_string(x);
 		} else {
-			static_assert(utility::templates::always_false_v<X>,
+			static_assert(psl::utility::templates::always_false_v<X>,
 						  "no conversion possible from the given type, please write a converter specialization, or "
 						  "a publically accessible to_string() method.");
 		}
@@ -633,7 +633,7 @@ struct converter {
 		} else if constexpr(details::HasStaticFromString<X>) {
 			return X::from_string(str);
 		} else {
-			static_assert(utility::templates::always_false_v<X>,
+			static_assert(psl::utility::templates::always_false_v<X>,
 						  "no conversion possible from the given type, please write a converter specialization, or "
 						  "a publically accessible from_string(string_view) method.");
 		}
@@ -646,7 +646,7 @@ struct converter {
 		} else if constexpr(details::member_function_from_string<X>::value) {
 			x.from_string(str);
 		} else {
-			static_assert(utility::templates::always_false_v<X>,
+			static_assert(psl::utility::templates::always_false_v<X>,
 						  "no conversion possible from the given type, please write a converter specialization, or "
 						  "a publically accessible from_string(string_view) method.");
 		}
@@ -709,12 +709,12 @@ struct converter<bool> {
 
 	static bool from_string(psl::string8::view str) {
 		psl::string8_t v {str};
-		v = utility::string::to_lower(v);
+		v = psl::utility::string::to_lower(v);
 		return v == "1" || v == "t" || v == "true";
 	}
 
 	static bool is_valid(psl::string8::view str) {
-		psl::string8_t v = utility::string::to_lower(str);
+		psl::string8_t v = psl::utility::string::to_lower(str);
 		return v == "1" || v == "0" || v == "t" || v == "f" || v == "true" || v == "false";
 	}
 };
@@ -870,4 +870,4 @@ static psl::string8_t to_string(const T& target) {
 	}
 #endif
 }
-}	 // namespace utility
+}	 // namespace psl::utility

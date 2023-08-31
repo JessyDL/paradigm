@@ -9,9 +9,6 @@ project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
 include(CMakeDependentOption)
 
-if(NOT CMAKE_SIZEOF_VOID_P EQUAL 8)
-    message(FATAL_ERROR "we require a 64bit build platform, got sizeof void* being ${CMAKE_SIZEOF_VOID_P} bytes")
-endif()
 
 if (UNIX AND NOT APPLE AND NOT ANDROID)
     set(LINUX TRUE)
@@ -122,6 +119,14 @@ endif()
 
 string(TOUPPER PE_MODE PE_MODE)
 list(APPEND PE_DEFINES -DPLATFORM_${PE_MODE})
+
+if(CMAKE_SIZEOF_VOID_P EQUAL 4)
+	list(APPEND PE_DEFINES -DPE_PLATFORM_32_BIT)
+elseif(CMAKE_SIZEOF_VOID_P EQUAL 8)
+	list(APPEND PE_DEFINES -DPE_PLATFORM_64_BIT)
+else()
+    message(FATAL_ERROR "we require a 32 or 64bit build platform, got sizeof void* being ${CMAKE_SIZEOF_VOID_P} bytes")
+endif()
 
 if(PE_VULKAN)
 	message("enabling VULKAN")

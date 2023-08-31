@@ -32,7 +32,8 @@ psl::view_ptr<core::gfx::computepass> render_graph::create_computepass(handle<co
 
 template <typename... Ts>
 auto get_var_ptr(const std::variant<Ts...>& vars) {
-	return std::visit(utility::templates::overloaded {[](auto&& pass) -> void* { return (void*)&pass.get(); }}, vars);
+	return std::visit(psl::utility::templates::overloaded {[](auto&& pass) -> void* { return (void*)&pass.get(); }},
+					  vars);
 }
 
 void render_graph::rebuild() noexcept {
@@ -50,7 +51,7 @@ void render_graph::present() {
 	core::profiler.scope_begin("prepare/build");
 	for(auto* ptr : m_FlattenedRenderGraph) {
 		auto& pass = *ptr;
-		std::visit(utility::templates::overloaded {[rebuild = m_Rebuild](auto&& pass) {
+		std::visit(psl::utility::templates::overloaded {[rebuild = m_Rebuild](auto&& pass) {
 					   pass->prepare();
 					   pass->build();
 				   }},
@@ -60,7 +61,7 @@ void render_graph::present() {
 	core::profiler.scope_begin("present");
 	for(auto* ptr : m_FlattenedRenderGraph) {
 		auto& pass = *ptr;
-		std::visit(utility::templates::overloaded {[](auto&& pass) { pass->present(); }}, pass);
+		std::visit(psl::utility::templates::overloaded {[](auto&& pass) { pass->present(); }}, pass);
 	}
 	core::profiler.scope_end();
 }
@@ -72,9 +73,9 @@ bool render_graph::connect(render_graph::view_var_t child, render_graph::view_va
 	  root, [](const auto& lhs, const auto& rhs) { return get_var_ptr(lhs) == get_var_ptr(rhs); });
 
 	if(m_RenderGraph.connect(child_ptr, root_ptr)) {
-		std::visit(utility::templates::overloaded {[&root_ptr](auto&& child) {
+		std::visit(psl::utility::templates::overloaded {[&root_ptr](auto&& child) {
 					   std::visit(
-						 utility::templates::overloaded {[&child](auto&& root) { root->connect(&child.get()); }},
+						 psl::utility::templates::overloaded {[&child](auto&& root) { root->connect(&child.get()); }},
 						 *root_ptr);
 				   }},
 				   *child_ptr);
@@ -91,10 +92,11 @@ bool render_graph::disconnect(render_graph::view_var_t child, render_graph::view
 	  root, [](const auto& lhs, const auto& rhs) { return get_var_ptr(lhs) == get_var_ptr(rhs); });
 
 	if(m_RenderGraph.disconnect(child_ptr, root_ptr)) {
-		std::visit(utility::templates::overloaded {[&root_ptr](auto&& child) {
-					   std::visit(
-						 utility::templates::overloaded {[&child](auto&& root) { root->disconnect(&child.get()); }},
-						 *root_ptr);
+		std::visit(psl::utility::templates::overloaded {[&root_ptr](auto&& child) {
+					   std::visit(psl::utility::templates::overloaded {[&child](auto&& root) {
+									  root->disconnect(&child.get());
+								  }},
+								  *root_ptr);
 				   }},
 				   *child_ptr);
 		m_Rebuild = true;

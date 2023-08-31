@@ -157,7 +157,7 @@ bool geometry_t::compatible(const core::ivk::material_t& material) const noexcep
 
 		error:
 			core::ivk::log->error(
-			  "missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(), utility::to_string(m_UID));
+			  "missing ATTRIBUTE [{0}] in GEOMETRY [{1}]", attribute.tag(), psl::utility::to_string(m_UID));
 			return false;
 		}
 	}

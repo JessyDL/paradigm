@@ -101,7 +101,7 @@ class decode_from_format : decoder {
 							details::function_serialize<codec_t, T>::value) {
 			accessor::serialize_fn(*this, property);
 		} else {
-			static_assert(utility::templates::always_false_v<T>,
+			static_assert(psl::utility::templates::always_false_v<T>,
 						  "\n\tPlease define one of the following for the serializer:\n"
 						  "\t\t- a member function of the type template<typename S> void serialize(S& s) {};\n"
 						  "\t\t- a function in the namespace 'serialization' of the signature: template<typename "
@@ -149,13 +149,13 @@ class decode_from_format : decoder {
 		constexpr bool is_range		 = details::is_range<T>::value;
 		constexpr bool is_collection = details::is_collection<typename std::conditional<
 		  is_range,
-		  typename std::remove_pointer<typename utility::binary::get_contained_type<T>::type>::type,
+		  typename std::remove_pointer<typename psl::utility::binary::get_contained_type<T>::type>::type,
 		  T>::type>::value;
 
 		if constexpr(is_collection && !is_range) {
 			parse_collection(value, name);
 		} else if constexpr(is_collection && is_range) {
-			using contained_t = typename utility::binary::get_contained_type<T>::type;
+			using contained_t = typename psl::utility::binary::get_contained_type<T>::type;
 
 			size_t size = 0;
 			if(m_CollectionStack.size() > 0) {
@@ -185,7 +185,8 @@ class decode_from_format : decoder {
 				   (size_t)(m_CollectionStack.top()->get().depth())) {
 					if constexpr(std::is_pointer<contained_t>::value) {
 						using deref_t = typename std::remove_pointer<contained_t>::type;
-						value.emplace_back(create_polymorphic_collection<deref_t>(utility::to_string(actual_index)));
+						value.emplace_back(
+						  create_polymorphic_collection<deref_t>(psl::utility::to_string(actual_index)));
 						parse_collection(*value[actual_index], (psl::format::nodes_t)(i));
 					} else {
 						value.emplace_back();
@@ -221,14 +222,15 @@ class decode_from_format : decoder {
 				if((size_t)(m_Container[psl::format::nodes_t(i)].get().depth()) - 1u ==
 				   (size_t)(m_CollectionStack.top()->get().depth())) {
 					// auto& pair = value.emplace(, typename T::value_type{});
-					auto& sub_val = value[utility::from_string<typename utility::templates::get_key_type<T>::type>(
-					  m_Container[psl::format::nodes_t(i)].get().name())];
+					auto& sub_val =
+					  value[psl::utility::from_string<typename psl::utility::templates::get_key_type<T>::type>(
+						m_Container[psl::format::nodes_t(i)].get().name())];
 					parse_collection(sub_val, (psl::format::nodes_t)(i));
 				}
 			}
 			m_CollectionStack.pop();
 		} else if constexpr(is_range) {
-			using contained_t = typename utility::binary::get_contained_type<T>::type;
+			using contained_t = typename psl::utility::binary::get_contained_type<T>::type;
 
 			auto& node = (m_CollectionStack.size() > 0) ? m_Container.find(m_CollectionStack.top()->get(), name)
 														: m_Container.find(name);
@@ -245,10 +247,11 @@ class decode_from_format : decoder {
 					if constexpr(std::is_pointer<contained_t>::value) {
 						using deref_t = typename std::remove_pointer<contained_t>::type;
 						value.emplace_back(new deref_t(
-						  utility::from_string<typename std::remove_pointer<contained_t>::type>(it.second)));
+						  psl::utility::from_string<typename std::remove_pointer<contained_t>::type>(it.second)));
 					} else {
 						value.emplace_back(
-						  utility::from_string<typename utility::binary::get_contained_type<T>::type>(it.second));
+						  psl::utility::from_string<typename psl::utility::binary::get_contained_type<T>::type>(
+							it.second));
 					}
 				}
 			}
@@ -260,7 +263,7 @@ class decode_from_format : decoder {
 				return;
 
 			if(auto value_opt = node.get().as_value_content(); value_opt) {
-				value = utility::from_string<T>(value_opt.value().second);
+				value = psl::utility::from_string<T>(value_opt.value().second);
 			}
 			m_ReferenceMap[&node] = (std::uintptr_t)&value;
 		}

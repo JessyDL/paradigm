@@ -323,7 +323,7 @@ class property final : public details::anonymous_property<T> {
   public:
 	using value_type = typename base_t::value_type;
 	static constexpr std::string_view name() noexcept { return Name; }
-	static constexpr uint64_t ID {utility::crc64<Name.size()>(Name)};
+	static constexpr uint64_t ID {psl::utility::crc64<Name.size()>(Name)};
 
 	using base_t::operator==;
 	using base_t::operator!=;

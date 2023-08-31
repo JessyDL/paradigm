@@ -321,7 +321,7 @@ struct buffer_t {
 
 	template <typename... Args>
 	void emplace_back(Args&&... args) {
-		if constexpr(utility::templates::all_same<Args...>::value) {
+		if constexpr(psl::utility::templates::all_same<Args...>::value) {
 			emplace_back_v(args...);
 		} else {
 			emplace_back_n(1u, args...);

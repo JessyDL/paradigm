@@ -39,7 +39,7 @@ texture_t::texture_t(core::resource::cache_t& cache,
 	if(!m_Meta) {
 		core::igles::log->error(
 		  "texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
-		  utility::to_string(metaFile->ID()));
+		  psl::utility::to_string(metaFile->ID()));
 		return;
 	}
 
@@ -153,7 +153,7 @@ void texture_t::create_2D(void* data) {
 
 	GLint internalFormat, format, type;
 	gfx::conversion::to_gles(m_Meta->format(), internalFormat, format, type);
-	auto pixel_storage = psl::utility::narrow_cast<uint32_t>(gfx::packing_size(m_Meta->format()));
+	auto pixel_storage = psl::narrow_cast<uint32_t>(gfx::packing_size(m_Meta->format()));
 	if(data != nullptr && pixel_storage != 4) {
 		glPixelStorei(GL_UNPACK_ALIGNMENT, pixel_storage);
 	}

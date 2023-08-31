@@ -103,7 +103,7 @@ profiler::scoped_block profiler::scope(void* target) noexcept {
 
 profiler::scoped_block profiler::scope() noexcept {
 #ifdef PE_PROFILER
-	auto res = utility::debug::raw_trace(1, 1);
+	auto res = psl::utility::debug::raw_trace(1, 1);
 	m_Frames[m_FrameIndex].push((std::uintptr_t)res[0]);
 #endif
 	return {*this};
@@ -139,7 +139,7 @@ psl::string profiler::to_string() const {
 	const auto endIt = (m_FrameIndex + 1) % m_Frames.size();
 	auto i			 = endIt;
 	#ifdef PLATFORM_WINDOWS
-		/*auto mapping = utility::platform::file::read(utility::application::path::get_path() + "core.map");
+		/*auto mapping = psl::utility::platform::file::read(psl::utility::application::path::get_path() + "core.map");
 		if(mapping)
 		{
 			auto index = mapping.value().find_first_not_of("\r\n\t ", mapping.value().find("Lib:Object") + 10);
@@ -150,7 +150,7 @@ psl::string profiler::to_string() const {
 			{
 				auto end = mapping.value().find('\n', index);
 				psl::string line = mapping.value().substr(index, end - index);
-				auto elements = utility::string::split(line, " ", true);
+				auto elements = psl::utility::string::split(line, " ", true);
 				psl::string mangled{elements[1]};
 				auto size = UnDecorateSymbolName(mangled.c_str(), demangled.data(), 256, UNDNAME_COMPLETE);
 				demangled_info[psl::string(elements[1])] = demangled.substr(0, size);
@@ -165,7 +165,7 @@ psl::string profiler::to_string() const {
 		for(const auto& scope : frame_data.m_Scopes) {
 			if(scope.mangled_name) {
 				if(auto it = demangled_info.find(scope.name); it == std::end(demangled_info)) {
-					demangled_info.insert({scope.name, utility::debug::demangle((void*)scope.name).name});
+					demangled_info.insert({scope.name, psl::utility::debug::demangle((void*)scope.name).name});
 				}
 			}
 		}

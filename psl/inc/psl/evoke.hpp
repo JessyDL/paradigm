@@ -14,7 +14,7 @@
 ///					- evocableR: the invokes return value is known
 ///					- evocableT: mostly for completion and consistency with the Event API, has very few use cases
 
-namespace utility::templates {
+namespace psl::utility::templates {
 enum class type_qualifier_value : uint8_t { CONST_MOD = 1 << 0, ATOMIC = 1 << 1, VALUE = 1 << 2, REFERENCE = 1 << 3 };
 
 enum class type_qualifier : uint8_t {
@@ -81,15 +81,15 @@ struct get_type_qualifier<T&&> {
 template <typename... T>
 struct get_type_qualifier_v {
 	static constexpr std::array<type_qualifier, sizeof...(T)> value {
-	  utility::templates::get_type_qualifier<T> {}.value...};
+	  psl::utility::templates::get_type_qualifier<T> {}.value...};
 };
 
 template <typename... T>
 struct get_type_qualifier_v<std::tuple<T...>> {
 	static constexpr std::array<type_qualifier, sizeof...(T)> value {
-	  utility::templates::get_type_qualifier<T> {}.value...};
+	  psl::utility::templates::get_type_qualifier<T> {}.value...};
 };
-}	 // namespace utility::templates
+}	 // namespace psl::utility::templates
 namespace Common {
 namespace details {
 	template <typename T>

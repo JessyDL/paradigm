@@ -45,8 +45,8 @@ class buffer_t {
 
 	const core::data::buffer_t& data() const;
 
-	[[nodiscard]] std::optional<memory::segment> reserve(uint64_t size);
-	[[nodiscard]] psl::array<std::pair<memory::segment, memory::range_t>> reserve(psl::array<uint64_t> sizes,
+	[[nodiscard]] std::optional<memory::segment> reserve(size_t size);
+	[[nodiscard]] psl::array<std::pair<memory::segment, memory::range_t>> reserve(psl::array<size_t> sizes,
 																				  bool optimize = false);
 	bool deallocate(memory::segment& segment);
 

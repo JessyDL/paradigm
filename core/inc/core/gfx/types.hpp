@@ -125,7 +125,7 @@ struct commit_instruction {
 	std::uintptr_t source {0};
 
 	/// \brief sizeof source
-	uint64_t size {0};
+	size_t size {0};
 };
 ///*** [format:enum
 enum class shader_stage : uint8_t {
