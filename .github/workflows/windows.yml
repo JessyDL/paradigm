@@ -8,10 +8,15 @@ jobs:
       fail-fast: false
       matrix:
         graphics: [vulkan, all]
+        platform: [32, 64]
         include:
           - benchmarks: OFF
           - graphics: all
             benchmarks: ON
+          - platform: 32
+            target: Win32
+          - platform: 64
+            target: x64
     name: build
     runs-on: windows-2022
     steps:
@@ -27,20 +32,20 @@ jobs:
     - name: initialize
       run: |
             python3 tools/generate_project_info.py
-            cmake --preset=windows-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }}
-            python3 tools/patch.py --project ./project_files/x64/
+            cmake --preset=windows-${{ matrix.platform }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }}
+            python3 tools/patch.py --project ./project_files/${{ matrix.target }}/
     - name: compile
-      run: cmake --build --preset=windows-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
+      run: cmake --build --preset=windows-${{ matrix.platform }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       run: |
-            cd builds\x64\release\bin
+            cd builds\${{ matrix.target }}\release\bin
             .\tests.exe --formatter compact --no-source
     - name: finalize    
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v3
       with:
         name: windows-${{ matrix.graphics }}-bin
-        path: builds/x64/release/bin/benchmarks.exe
+        path: builds/${{ matrix.target }}/release/bin/benchmarks.exe
         if-no-files-found: error
         retention-days: 1
   benchmark:

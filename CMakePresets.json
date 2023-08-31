@@ -180,7 +180,7 @@
     },
     {
       "hidden": true,
-      "name": "windows-base",
+      "name": "windows-64-base",
       "displayName": "Windows 64bit",
       "inherits": [
         "settings-project"
@@ -204,7 +204,7 @@
     },
     {
       "hidden": true,
-      "name": "windows-base-32",
+      "name": "windows-32-base",
       "displayName": "Windows 32bit",
       "inherits": [
         "settings-project"
@@ -228,39 +228,39 @@
     },
     {
       "hidden": true,
-      "name": "windows-all",
+      "name": "windows-64-all",
       "displayName": "Windows Vulkan/GLES 64bit",
       "inherits": [
         "settings-vulkan",
         "settings-gles",
-        "windows-base"
+        "windows-64-base"
       ]
     },
     {
       "hidden": true,
-      "name": "windows-all-32",
+      "name": "windows-32-all",
       "displayName": "Windows Vulkan/GLES 32bit",
       "inherits": [
         "settings-vulkan",
         "settings-gles",
-        "windows-base-32"
+        "windows-32-base"
       ]
     },
     {
-      "name": "windows-debug-all",
+      "name": "windows-64-debug-all",
       "displayName": "Windows Vulkan/GLES 64bit (Debug)",
       "inherits": [
-        "windows-all"
+        "windows-64-all"
       ],
       "cacheVariables": {
         "PE_MODE": "debug"
       }
     },
     {
-      "name": "windows-release-all",
+      "name": "windows-64-release-all",
       "displayName": "Windows Vulkan/GLES 64bit (Release)",
       "inherits": [
-        "windows-all"
+        "windows-64-all"
       ],
       "cacheVariables": {
         "PE_MODE": "release"
@@ -268,28 +268,28 @@
     },
     {
       "hidden": true,
-      "name": "windows-vulkan",
+      "name": "windows-64-vulkan",
       "displayName": "Windows Vulkan 64bit",
       "inherits": [
         "settings-vulkan",
-        "windows-base"
+        "windows-64-base"
       ]
     },
     {
-      "name": "windows-debug-vulkan",
+      "name": "windows-64-debug-vulkan",
       "displayName": "Windows Vulkan 64bit (Debug)",
       "inherits": [
-        "windows-vulkan"
+        "windows-64-vulkan"
       ],
       "cacheVariables": {
         "PE_MODE": "debug"
       }
     },
     {
-      "name": "windows-release-vulkan",
+      "name": "windows-64-release-vulkan",
       "displayName": "Windows Vulkan 64bit (Release)",
       "inherits": [
-        "windows-vulkan"
+        "windows-64-vulkan"
       ],
       "cacheVariables": {
         "PE_MODE": "release"
@@ -299,7 +299,7 @@
       "name": "windows-32-debug-all",
       "displayName": "Windows Vulkan/GLES 32bit (Debug)",
       "inherits": [
-        "windows-all-32"
+        "windows-32-all"
       ],
       "cacheVariables": {
         "PE_MODE": "debug"
@@ -309,7 +309,7 @@
       "name": "windows-32-release-all",
       "displayName": "Windows Vulkan/GLES 32bit (Release)",
       "inherits": [
-        "windows-all-32"
+        "windows-32-all"
       ],
       "cacheVariables": {
         "PE_MODE": "release"
@@ -321,7 +321,7 @@
       "displayName": "Windows Vulkan 32bit",
       "inherits": [
         "settings-vulkan",
-        "windows-base-32"
+        "windows-32-base"
       ]
     },
     {
@@ -373,27 +373,27 @@
   ],
   "buildPresets": [
     {
-      "name": "windows-debug-all",
+      "name": "windows-64-debug-all",
       "displayName": "Windows Vulkan/GLES 64bit (Debug)",
-      "configurePreset": "windows-debug-all",
+      "configurePreset": "windows-64-debug-all",
       "configuration": "Debug"
     },
     {
-      "name": "windows-release-all",
+      "name": "windows-64-release-all",
       "displayName": "Windows Vulkan/GLES 64bit (Release)",
-      "configurePreset": "windows-release-all",
+      "configurePreset": "windows-64-release-all",
       "configuration": "Release"
     },
     {
-      "name": "windows-debug-vulkan",
+      "name": "windows-64-debug-vulkan",
       "displayName": "Windows Vulkan 64bit (Debug)",
-      "configurePreset": "windows-debug-vulkan",
+      "configurePreset": "windows-64-debug-vulkan",
       "configuration": "Debug"
     },
     {
-      "name": "windows-release-vulkan",
+      "name": "windows-64-release-vulkan",
       "displayName": "Windows Vulkan 64bit (Release)",
-      "configurePreset": "windows-release-vulkan",
+      "configurePreset": "windows-64-release-vulkan",
       "configuration": "Release"
     },
     {
