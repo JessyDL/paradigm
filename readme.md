@@ -17,10 +17,11 @@ For more detailed description about the engine itself, go to the readme of the `
 ## Status
 | Architecture| Status        | Vulkan| GLeS| Metal|
 :-------------|:-------------|:---:|:---:|:---:
-| ![](https://img.shields.io/badge/x64-Windows-blue.svg?style=for-the-badge)| [![windows](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml)|  1.2 | 3.1 - 3.2| - |
-| ![](https://img.shields.io/badge/x64-GNU/Linux-blue.svg?style=for-the-badge)| [![ubuntu](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml) |  1.2 | 3.2*| - |
-| ![](https://img.shields.io/badge/x64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) | -| -| - |
-| ![](https://img.shields.io/badge/x64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |  -| -| - |
+| ![](https://img.shields.io/badge/x86__64-Windows-blue.svg?style=for-the-badge)| [![windows](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml)|  1.2 | 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/x86-Windows-blue.svg?style=for-the-badge)| [![windows](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml)|  1.2 | 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/x86__64-GNU/Linux-blue.svg?style=for-the-badge)| [![ubuntu](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml) |  1.2 | 3.2*| - |
+| ![](https://img.shields.io/badge/x86__64-OSx-blue.svg?style=for-the-badge)|  ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) | -| -| - |
+| ![](https://img.shields.io/badge/x86__64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |  -| -| - |
 | ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-in_development-purple.svg?style=for-the-badge)| 1.2| 3.1 - 3.2| - |
 | ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|[![ubuntu](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml)| 1.2| 3.1 - 3.2| - |
 
