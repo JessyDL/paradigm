@@ -124,7 +124,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 
 				auto count = entities.size() / 10;
 				for(entity_t::size_type c = 0; c < 10; ++c) {
-					for(auto i = 0; i < count; ++i) {
+					for(entity_t::size_type i = 0; i < count; ++i) {
 						auto index = c * 10 + i;
 						cInfo.destroy(entities[index]);
 					}

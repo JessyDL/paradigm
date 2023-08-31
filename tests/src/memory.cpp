@@ -83,7 +83,7 @@ auto m = litmus::suite<"memory">(litmus::generator::range<size_t, 0, 2> {}) = []
 			const auto available = region.allocator()->available();
 			;
 			for(const auto& av : available) {
-				require(av.size()) > 0;
+				require(av.size()) > 0u;
 			}
 		}
 	};
@@ -123,7 +123,7 @@ auto m = litmus::suite<"memory">(litmus::generator::range<size_t, 0, 2> {}) = []
 					const auto available = region.allocator()->available();
 					;
 					for(const auto& av : available) {
-						require(av.size()) > 0;
+						require(av.size()) > 0u;
 					}
 					const auto calculated_usage = used_size(segments);
 					require(calculated_usage) == expected_size;

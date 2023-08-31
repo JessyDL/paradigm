@@ -98,8 +98,8 @@ auto t0 = suite<ssmr_t, "collections">(
   array_typed<insert_structure, insert_structure {0, 50}, insert_structure {0, 5000}, insert_structure {0, 50000}> {}) =
   [](insert_structure info) {
 	  ssmr_t container = ssmr_t::instantiate<float>();
-	  require(container.indices().size()) >= 0;
-	  require(container.dense<float>().size()) >= 0;
+	  require(container.indices().size()) >= 0u;
+	  require(container.dense<float>().size()) >= 0u;
 
 	  auto start_count_added   = container.indices(stage_range_t::ADDED).size();
 	  auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
