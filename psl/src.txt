@@ -1,5 +1,4 @@
-SET(SRC 
-file
+SET(SRC
 platform_utils
 debug_utils
 terminal_utils
