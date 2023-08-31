@@ -35,13 +35,13 @@ class producer final {
 		buffer(size_t capacity) : m_Data(psl::math::next_pow_of(2, std::max<size_t>(32u, capacity))) {};
 		~buffer() {}
 		void set(signed_size_t index, T&& value) noexcept {
-			m_Data[psl::utility::narrow_cast<size_t>((index - static_cast<signed_size_t>(m_Offset)) &
-													 (m_Data.ssize() - 1))] = std::forward<T>(value);
+			m_Data[psl::narrow_cast<size_t>((index - static_cast<signed_size_t>(m_Offset)) & (m_Data.ssize() - 1))] =
+			  std::forward<T>(value);
 		}
 
 		auto at(signed_size_t index) const noexcept {
-			return m_Data[psl::utility::narrow_cast<size_t>((index - static_cast<signed_size_t>(m_Offset)) &
-															(m_Data.ssize() - 1))];
+			return m_Data[psl::narrow_cast<size_t>((index - static_cast<signed_size_t>(m_Offset)) &
+												   (m_Data.ssize() - 1))];
 		}
 
 		/// \brief Returns a logical continuation buffer based on this buffer

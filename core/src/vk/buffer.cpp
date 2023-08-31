@@ -114,7 +114,7 @@ size_t buffer_t::free_size() const noexcept {
 						   [](size_t sum, const memory::range_t& element) { return sum + element.size(); });
 }
 std::optional<memory::segment> buffer_t::reserve(vk::DeviceSize size) {
-	return m_BufferDataHandle->allocate(psl::utility::narrow_cast<size_t>(size));
+	return m_BufferDataHandle->allocate(psl::narrow_cast<size_t>(size));
 }
 
 std::vector<std::pair<memory::segment, memory::range_t>> buffer_t::reserve(std::vector<vk::DeviceSize> sizes,
@@ -325,8 +325,8 @@ bool buffer_t::map(const void* data, vk::DeviceSize size, vk::DeviceSize offset)
 			   std::numeric_limits<size_t>::max(),
 			   size + offset);
 
-	size_t platform_size   = psl::utility::narrow_cast<size_t>(size);
-	size_t platform_offset = psl::utility::narrow_cast<size_t>(offset);
+	size_t platform_size   = psl::narrow_cast<size_t>(size);
+	size_t platform_offset = psl::narrow_cast<size_t>(offset);
 
 	if(platform_size > m_BufferDataHandle->size() || (platform_size + platform_offset) > m_BufferDataHandle->size()) {
 		core::ivk::log->error("tried to map an incorrect size amount to an ivk::buffer_t.");
@@ -453,11 +453,8 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 			auto tuple = m_Context->device().mapMemory(m_Memory, region.dstOffset, region.size);
 			core::ivk::log->info("(dstOffset|size) {0} | {1}", region.dstOffset, region.size);
 			if(core::utility::vulkan::check(tuple.result)) {
-				if(auto segment = m_BufferDataHandle->allocate(psl::utility::narrow_cast<size_t>(region.size));
-				   segment) {
-					memcpy((void*)(segment.value().range().begin),
-						   tuple.value,
-						   psl::utility::narrow_cast<size_t>(region.size));
+				if(auto segment = m_BufferDataHandle->allocate(psl::narrow_cast<size_t>(region.size)); segment) {
+					memcpy((void*)(segment.value().range().begin), tuple.value, psl::narrow_cast<size_t>(region.size));
 				} else {
 					core::ivk::log->error("could not get a free spot in the pool for some reason..");
 					debug_break();

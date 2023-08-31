@@ -1,6 +1,7 @@
 #pragma once
 #include "core/resource/resource.hpp"
 #include "core/vk/ivk.hpp"
+#include "psl/utility/cast.hpp"
 
 namespace core::ivk {
 class context;
@@ -64,7 +65,7 @@ struct hash<core::ivk::pipeline_key> {
 	std::size_t operator()(core::ivk::pipeline_key const& s) const noexcept {
 		std::size_t seed = std::hash<psl::UID> {}(s.uid);
 		for(auto& i : s.descriptors) {
-			seed ^= static_cast<size_t>(std::to_underlying(i.first)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+			seed ^= static_cast<size_t>(psl::to_underlying(i.first)) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 			seed ^= static_cast<size_t>(i.second) + 0x9e3779b9 + (seed << 6) + (seed >> 2);
 		}
 		seed += (size_t)s.renderPass.operator VkRenderPass() + 0x9e3779b9 + (seed << 6) + (seed >> 2);

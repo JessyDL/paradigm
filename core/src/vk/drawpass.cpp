@@ -188,7 +188,7 @@ bool drawpass::build() {
 			  m_DepthBias.components[0], m_DepthBias.components[1], m_DepthBias.components[2]);
 
 			for(auto& group : m_AllGroups)
-				build_drawgroup(group, m_DrawCommandBuffers[i], m_Swapchain, psl::utility::narrow_cast<uint32_t>(i));
+				build_drawgroup(group, m_DrawCommandBuffers[i], m_Swapchain, psl::narrow_cast<uint32_t>(i));
 
 			m_DrawCommandBuffers[i].endRenderPass();
 		} else {
@@ -218,8 +218,7 @@ bool drawpass::build() {
 
 
 				for(auto& group : m_AllGroups)
-					build_drawgroup(
-					  group, m_DrawCommandBuffers[i], m_Framebuffer, psl::utility::narrow_cast<uint32_t>(i));
+					build_drawgroup(group, m_DrawCommandBuffers[i], m_Framebuffer, psl::narrow_cast<uint32_t>(i));
 
 
 				m_DrawCommandBuffers[i].endRenderPass();
@@ -244,15 +243,14 @@ void drawpass::create_fences(const size_t size) {
 }
 
 void drawpass::destroy_fences() {
-	if(!core::utility::vulkan::check(
-		 m_Context->device().waitForFences(psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()),
-										   m_WaitFences.data(),
-										   VK_TRUE,
-										   std::numeric_limits<uint64_t>::max())))
+	if(!core::utility::vulkan::check(m_Context->device().waitForFences(psl::narrow_cast<uint32_t>(m_WaitFences.size()),
+																	   m_WaitFences.data(),
+																	   VK_TRUE,
+																	   std::numeric_limits<uint64_t>::max())))
 		LOG_ERROR("Failed to wait for fence");
 
-	if(!core::utility::vulkan::check(m_Context->device().resetFences(
-		 psl::utility::narrow_cast<uint32_t>(m_WaitFences.size()), m_WaitFences.data())))
+	if(!core::utility::vulkan::check(
+		 m_Context->device().resetFences(psl::narrow_cast<uint32_t>(m_WaitFences.size()), m_WaitFences.data())))
 		LOG_ERROR("Failed to reset fence");
 	for(auto& fence : m_WaitFences) {
 		m_Context->device().destroyFence(fence, nullptr);
@@ -392,7 +390,7 @@ void drawpass::build_drawgroup(drawgroup& group,
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle)) {
 						vk::DeviceSize b_second = b.second;
-						cmdBuffer.bindVertexBuffers(psl::utility::narrow_cast<uint32_t>(b.first),
+						cmdBuffer.bindVertexBuffers(psl::narrow_cast<uint32_t>(b.first),
 													1,
 													&bundle->m_InstanceData.vertex_buffer()
 													   ->resource<gfx::graphics_backend::vulkan>()
@@ -444,7 +442,7 @@ void drawpass::build_drawgroup(drawgroup& group,
 
 					for(const auto& b : bundle->m_InstanceData.bindings(gfxmat, gfxGeometryHandle)) {
 						vk::DeviceSize b_second = b.second;
-						cmdBuffer.bindVertexBuffers(psl::utility::narrow_cast<uint32_t>(b.first),
+						cmdBuffer.bindVertexBuffers(psl::narrow_cast<uint32_t>(b.first),
 													1,
 													&bundle->m_InstanceData.vertex_buffer()
 													   ->resource<gfx::graphics_backend::vulkan>()

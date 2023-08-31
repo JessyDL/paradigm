@@ -523,14 +523,13 @@ context::context(core::resource::cache_t& cache,
 	}
 
 	m_Limits.uniform.alignment =
-	  psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
-	m_Limits.uniform.size = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxUniformBufferRange);
+	  psl::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minUniformBufferOffsetAlignment);
+	m_Limits.uniform.size = psl::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxUniformBufferRange);
 	m_Limits.storage.alignment =
-	  psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment);
-	m_Limits.storage.size = psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxStorageBufferRange);
-	m_Limits.memorymap.alignment =
-	  psl::utility::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minMemoryMapAlignment);
-	m_Limits.memorymap.size = psl::utility::narrow_cast<size_t>(std::numeric_limits<uint64_t>::max());
+	  psl::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minStorageBufferOffsetAlignment);
+	m_Limits.storage.size		 = psl::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.maxStorageBufferRange);
+	m_Limits.memorymap.alignment = psl::narrow_cast<size_t>(m_PhysicalDeviceProperties.limits.minMemoryMapAlignment);
+	m_Limits.memorymap.size		 = psl::narrow_cast<size_t>(std::numeric_limits<uint64_t>::max());
 
 	vk::Format format;
 	if(core::utility::vulkan::supported_depthformat(m_PhysicalDevice, &format))

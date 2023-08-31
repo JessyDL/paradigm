@@ -818,7 +818,7 @@ nodes_t container::index_of(psl::string8::view name) const {
 		if(m_NodeData[i].m_Depth == depth && m_NodeData[i].name() == partNames[depth]) {
 			++depth;
 			if(depth == partNames.size())
-				return psl::utility::narrow_cast<nodes_t>(i);
+				return psl::narrow_cast<nodes_t>(i);
 		} else if(m_NodeData[i].m_Type == type_t::COLLECTION) {
 			i += m_NodeData[i].reinterpret_as_collection();
 		}
