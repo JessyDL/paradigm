@@ -386,6 +386,47 @@
         "CMAKE_BUILD_TYPE": "Debug",
         "PE_MODE": "debug"
       }
+    },
+    {
+      "hidden": true,
+      "name": "wasm-base",
+      "inherits": [
+        "settings-project"
+      ],
+      "condition": {
+        "type": "notEquals",
+        "lhs": "$env{EMSDK}",
+        "rhs": ""
+      },
+      "cacheVariables": {
+        "PE_PLATFORM": "WEB",
+        "CMAKE_TOOLCHAIN_PATH": "$env{EMSDK}/upstream/emscripten/cmake/Modules/Platform/Emscripten.cmake",
+        "CMAKE_C_COMPILER": "emcc",
+        "CMAKE_CXX_COMPILER": "em++",
+        "PE_CORE": "OFF"
+      }
+    },
+    {
+      "name": "wasm-release",
+      "displayName": "Web (Release)",
+      "inherits": [
+        "wasm-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "PE_MODE": "release"
+      }
+    },
+    {
+      "name": "wasm-debug",
+      "displayName": "Web (Debug)",
+      "inherits": [
+        "wasm-base"
+      ],
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "PE_MODE": "debug"
+      }
     }
   ],
   "buildPresets": [
@@ -477,6 +518,18 @@
       "name": "macos-release",
       "displayName": "Release",
       "configurePreset": "macos-release",
+      "configuration": "Release"
+    },
+    {
+      "name": "wasm-debug",
+      "displayName": "Web (Debug)",
+      "configurePreset": "wasm-debug",
+      "configuration": "Debug"
+    },
+    {
+      "name": "wasm-release",
+      "displayName": "Web (Release)",
+      "configurePreset": "wasm-release",
       "configuration": "Release"
     }
   ]
