@@ -345,29 +345,41 @@
       }
     },
     {
-      "name": "android-release-vulkan",
-      "displayName": "Android Vulkan (Release)",
+      "hidden": true,
+      "name": "android-base",
       "inherits": [
         "settings-vulkan",
         "settings-project"
       ],
+      "condition": {
+        "type": "notEquals",
+        "lhs": "$env{ANDROID_SDK_ROOT}",
+        "rhs": ""
+      },
+      "cacheVariables": {
+        "PE_PLATFORM": "ANDROID"
+      }
+    },
+    {
+      "name": "android-release-vulkan",
+      "displayName": "Android Vulkan (Release)",
+      "inherits": [
+        "android-base"
+      ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release",
-        "PE_MODE": "release",
-        "PE_PLATFORM": "ANDROID"
+        "PE_MODE": "release"
       }
     },
     {
       "name": "android-debug-vulkan",
       "displayName": "Android Vulkan (Debug)",
       "inherits": [
-        "settings-vulkan",
-        "settings-project"
+        "android-base"
       ],
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Debug",
-        "PE_MODE": "debug",
-        "PE_PLATFORM": "ANDROID"
+        "PE_MODE": "debug"
       }
     }
   ],
