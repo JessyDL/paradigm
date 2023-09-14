@@ -40,6 +40,8 @@ psl::string psl::utility::application::path::get_path() {
 	if(!_NSGetExecutablePath(buf, &bufsize))
 		puts(buf);
 	return psl::string {buf, bufsize};
+#elif defined(PE_PLATFORM_WEB)
+	return "";
 #else
 	#error not supported
 #endif

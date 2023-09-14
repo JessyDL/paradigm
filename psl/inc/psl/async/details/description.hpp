@@ -1,4 +1,5 @@
 #pragma once
+#include <algorithm>
 #include "../barrier.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
