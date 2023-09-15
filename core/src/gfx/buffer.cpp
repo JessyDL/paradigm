@@ -108,10 +108,10 @@ const core::data::buffer_t& buffer_t::data() const {
 #endif
 #ifdef PE_VULKAN
 	if(m_VKHandle) {
-	#if defined(PE_ARCHITECTURE_X86)
+	#if defined(PE_POINTER_SIZE_32_BIT)
 		psl::array<vk::DeviceSize> sizes_64 {std::begin(sizes), std::end(sizes)};
 		return m_VKHandle->reserve(sizes_64, optimize);
-	#elif defined(PE_ARCHITECTURE_X86_64)
+	#elif defined(POINTER_SIZE_64_BIT)
 		return m_VKHandle->reserve(sizes, optimize);
 	#endif
 	}

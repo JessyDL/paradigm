@@ -9,7 +9,7 @@ if(PE_USE_NATVIS)
 	source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/nvs" PREFIX "natvis" FILES ${NATVIS}) 
 endif()
 
-find_package (Threads)
+find_package (Threads REQUIRED)
 
 add_library(psl STATIC ${INC} ${SRC} ${NATVIS})
 add_library(paradigm::psl ALIAS psl)

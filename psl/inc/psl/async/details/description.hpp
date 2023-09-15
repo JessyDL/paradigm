@@ -5,6 +5,7 @@
 #include "psl/assertions.hpp"
 #include "psl/unique_ptr.hpp"
 #include "task.hpp"
+#include <algorithm>
 namespace psl::async {
 class scheduler;
 }

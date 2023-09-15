@@ -3,10 +3,13 @@
 #include <algorithm>
 #if defined(PE_PLATFORM_WINDOWS)
 	#include <Windows.h>
-#endif
-#if defined(PE_PLATFORM_LINUX) || defined(PE_PLATFORM_ANDROID) || defined(PE_PLATFORM_MACOS)
+	#define USE_WIN32
+#elif defined(PE_PLATFORM_LINUX) || defined(PE_PLATFORM_ANDROID) || defined(PE_PLATFORM_MACOS)
 	#include <sys/mman.h>
 	#include <unistd.h>
+	#define USE_POSIX
+#else
+	#define USE_GENERIC
 #endif
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"
@@ -21,12 +24,12 @@ raw_region::raw_region(size_t size) {
 		m_PageSize = 0;
 		return;
 	}
-#if defined(PLATFORM_GENERIC)
+#if defined(USE_GENERIC)
 	m_PageSize = size;
 	m_Base	   = malloc(size);
 	m_Size	   = size;
 	psl_assert(m_Base != nullptr, "failed to allocate {} bytes", size);
-#elif defined(PE_PLATFORM_WINDOWS)
+#elif defined(USE_WIN32)
 	SYSTEM_INFO sSysInfo;		 // Useful information about the system
 	GetSystemInfo(&sSysInfo);	 // Initialize the structure.
 	m_PageSize = sSysInfo.dwPageSize;
@@ -45,7 +48,7 @@ raw_region::raw_region(size_t size) {
 		__debugbreak();
 		std::abort();
 	}
-#else
+#elif defined(USE_POSIX)
 	m_PageSize = sysconf(_SC_PAGE_SIZE);
 
 	m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
@@ -95,13 +98,13 @@ void raw_region::release() noexcept {
 	if(!m_Base) {
 		return;
 	}
-#if defined(PLATFORM_GENERIC)
+#if defined(USE_GENERIC)
 	free(m_Base);
-#elif defined(PE_PLATFORM_WINDOWS)
+#elif defined(USE_WIN32)
 	VirtualFree(m_Base,			 // Base address of block
 				0,				 // Bytes of committed pages
 				MEM_RELEASE);	 // Decommit the pages
-#else
+#elif defined(USE_POSIX)
 	if(munmap(m_Base, sizeof(int)) == -1) {
 		LOG_ERROR("munmap()() failed");
 		exit(EXIT_FAILURE);
@@ -111,3 +114,13 @@ void raw_region::release() noexcept {
 	m_PageSize = 0;
 	m_Base	   = nullptr;
 }
+
+#ifdef USE_WIN32
+	#undef USE_WIN32
+#endif
+#ifdef USE_POSIX
+	#undef USE_POSIX
+#endif
+#ifdef USE_GENERIC
+	#undef USE_GENERIC
+#endif

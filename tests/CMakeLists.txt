@@ -19,6 +19,10 @@ target_link_libraries(tests PUBLIC ${SHLWAPI} paradigm::psl litmus)
 set_target_output_directory(tests)
 set_target_properties(tests PROPERTIES LINKER_LANGUAGE CXX)
 
+if(PE_PLATFORM STREQUAL "WEB")
+    set_target_properties(tests PROPERTIES SUFFIX ".html")
+endif()
+
 target_include_directories(tests
     PUBLIC 
 		${CMAKE_CURRENT_SOURCE_DIR}/inc

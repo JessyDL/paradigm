@@ -1,7 +1,7 @@
-![](https://img.shields.io/badge/language-c%2B%2B20-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.2-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge)  [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
+![](https://img.shields.io/badge/language-c%2B%2B20-blue.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/vulkan-1.2-red.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/GLES-3.1--3.2-green.svg?longCache=true&style=for-the-badge) ![](https://img.shields.io/badge/WebGPU-1.0-orange.svg?longCache=true&style=for-the-badge) [![last git tag](https://img.shields.io/github/tag/JessyDL/paradigm.svg?style=for-the-badge&colorB=6e42ce)](https://github.com/JessyDL/paradigm/tree/0.1.1)
 
 # Paradigm Engine
-Paradigm Engine is a Vulkan first modern graphics rendering library written in C++23 (mostly c++17/20) with support for GLES (3.2). It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project's needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice.
+Paradigm Engine is a Vulkan first modern graphics rendering library written in C++23 (mostly c++17/20) with support for GLES (3.2), and future WebGPU support (see status section for more info). It concerns itself mostly with the heavy lifting of the rendering part of the engine, and supporting a toolchain that is flexible to your project's needs and structure. It stays away from dictating your code design, forcing you to use inheritence or the like for your logic, stays away from macro usage (unless in very rare instances), avoids globals, and provides simple bindings for you to implement your language of choice.
 
 Some of the key reasons why this engine exists:
 - Showcasing an approach to serialization in C++ that does not rely on external compilers or macro magic.
@@ -15,8 +15,8 @@ Some of the key reasons why this engine exists:
 
 For more detailed description about the engine itself, go to the readme of the `core` project, which is in the folder of the same name. Similarly all sub-projects that make up the engine all have their own readme's describing their intent, structure, status and dependencies. This readme is just to give a larger oversight over the entire project.
 ## Status
-| Architecture| Status        | Vulkan| GLeS| Metal|
-:-------------|:-------------|:---:|:---:|:---:
+| Architecture| Status        | Vulkan| GLeS| Metal| WebGPU|
+:-------------|:-------------|:---:|:---:|:---:|:---:
 | ![](https://img.shields.io/badge/x86__64-Windows-blue.svg?style=for-the-badge)| [![windows](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml)|  1.2 | 3.1 - 3.2| - |
 | ![](https://img.shields.io/badge/x86-Windows-blue.svg?style=for-the-badge)| [![windows](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/windows.yml)|  1.2 | 3.1 - 3.2| - |
 | ![](https://img.shields.io/badge/x86__64-GNU/Linux-blue.svg?style=for-the-badge)| [![ubuntu](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml) |  1.2 | 3.2*| - |
@@ -24,8 +24,12 @@ For more detailed description about the engine itself, go to the readme of the `
 | ![](https://img.shields.io/badge/x86__64-iOS-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-to_be_designed-lightgrey.svg?style=for-the-badge) |  -| -| - |
 | ![](https://img.shields.io/badge/ARMv7-Android-blue.svg?style=for-the-badge)| ![](https://img.shields.io/badge/-in_development-purple.svg?style=for-the-badge)| 1.2| 3.1 - 3.2| - |
 | ![](https://img.shields.io/badge/ARM64-Android-blue.svg?style=for-the-badge)|[![ubuntu](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml/badge.svg?branch=develop)](https://github.com/JessyDL/paradigm/actions/workflows/ubuntu.yml)| 1.2| 3.1 - 3.2| - |
+| ![](https://img.shields.io/badge/WASM-Web-blue.svg?style=for-the-badge)|see notes**| -| - | - | in progress
 
-*GLES on GNU/Linux requires `libegl1-mesa-dev` and `libgles2-mesa-dev` to be installed.
+\* GLES on GNU/Linux requires `libegl1-mesa-dev` and `libgles2-mesa-dev` to be installed.
+
+** WASM/WebGPU currently in progress, the `psl` library compiles, but the WebGPU HAL still needs to be written in `core`.
+
 ## Building
 ### Prerequisites
 #### All platforms
@@ -49,7 +53,7 @@ If lost, check the github actions workflow folder to see ideal platform setups.
 #### CMakePresets
 Various CMakePresets exists, they are specified to working combinations of graphics API's that are supported for the given platform. They can be used as normal, or used as guides for custom setups.
 
-The cmake presets are structured in the following way `{platform}-{type}-{graphics}`, see next section for more information. Following are the valid settings for each.
+The cmake presets are structured in the following way `{platform}-{type}-{graphics}` unless the platform also supports different architectures (such as x86 and x86_64) in which case they are `{platform}-{pointer_size}-{type}-{graphics}`, see next section for more information. Following are the valid settings for each.
 
 platform:
  - windows

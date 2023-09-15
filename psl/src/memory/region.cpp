@@ -3,10 +3,13 @@
 #include <algorithm>
 #if defined(PE_PLATFORM_WINDOWS)
 	#include <Windows.h>
-#endif
-#if defined(PE_PLATFORM_LINUX) || defined(PE_PLATFORM_ANDROID) || defined(PE_PLATFORM_MACOS)
+	#define USE_WIN32
+#elif defined(PE_PLATFORM_LINUX) || defined(PE_PLATFORM_ANDROID) || defined(PE_PLATFORM_MACOS)
 	#include <sys/mman.h>
 	#include <unistd.h>
+	#define USE_POSIX
+#else
+	#define USE_GENERIC
 #endif
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"
@@ -18,7 +21,7 @@ region::region(region& parent, memory::segment& segment, size_t pageSize, size_t
 	m_Size	   = segment.range().size();
 	m_Base	   = (void*)segment.range().begin;
 
-#if defined(PE_PLATFORM_WINDOWS)
+#if defined(USE_WIN32)
 	if(m_Allocator->is_physically_backed()) {
 		m_PageState.resize(m_Size / pageSize);
 	}
@@ -35,7 +38,7 @@ region::region(size_t size, size_t alignment, allocator_base* allocator)
 		m_Size	   = size;
 		m_Base	   = nullptr;
 	} else {
-#if defined(PE_PLATFORM_WINDOWS)
+#if defined(USE_WIN32)
 		// DWORD dwPages = 0;              // Count of pages gotten so far
 
 		SYSTEM_INFO sSysInfo;		 // Useful information about the system
@@ -54,7 +57,7 @@ region::region(size_t size, size_t alignment, allocator_base* allocator)
 			// todo error state
 			__debugbreak();
 		}
-#else
+#elif defined(USE_POSIX)
 		m_PageSize = sysconf(_SC_PAGE_SIZE);
 
 		m_Size = (size + m_PageSize - 1) / m_PageSize * m_PageSize;
@@ -73,7 +76,7 @@ region::region(size_t size, size_t alignment, allocator_base* allocator)
 
 region::region(region&& other)
 	: m_Allocator(other.m_Allocator), m_Alignment(other.m_Alignment), m_Base(other.m_Base), m_Size(other.m_Size),
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 	  m_PageState(std::move(other.m_PageState)),
 #endif
 	  m_Children(std::move(other.m_Children)), m_Parent(other.m_Parent), m_PageSize(other.m_PageSize) {
@@ -101,7 +104,7 @@ region& region::operator=(region&& other) {
 		m_Alignment = other.m_Alignment;
 		m_Base		= other.m_Base;
 		m_Size		= other.m_Size;
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 		m_PageState = std::move(other.m_PageState);
 #endif
 		m_Children = std::move(other.m_Children);
@@ -145,11 +148,11 @@ region::~region() {
 			return;
 		}
 		delete(m_Allocator);
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 		VirtualFree(m_Base,			 // Base address of block
 					0,				 // Bytes of committed pages
 					MEM_RELEASE);	 // Decommit the pages
-#else
+#elif defined(USE_POSIX)
 		if(munmap(m_Base, sizeof(int)) == -1) {
 			LOG_ERROR("munmap()() failed");
 			exit(EXIT_FAILURE);
@@ -164,7 +167,7 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 		return {};
 	}
 
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 	auto final_size = size;
 	if(m_Allocator->is_physically_backed()) {
 		size_t pages = 0u;
@@ -187,7 +190,7 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 		return memory::region {*this, res.value(), m_PageSize, alignment.value_or(m_Alignment), allocator};
 	}
 
-#else
+#elif defined(USE_POSIX)
 	// we cheat and trick the allocator to allocate in page sized allocations
 	auto cachedAlignment = m_Alignment;
 	m_Alignment = m_PageSize;
@@ -215,7 +218,7 @@ bool region::erase_region(memory::region& child) {
 	auto range =
 	  memory::range_t {(std::uintptr_t)(childPtr->data()), (std::uintptr_t)(childPtr->data()) + childPtr->size()};
 	memory::segment segm {range, child.m_Allocator->is_physically_backed()};
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 	size_t start = (range.begin - (std::uintptr_t)(m_Base)) / m_PageSize;
 	size_t end	 = (range.end - (std::uintptr_t)(m_Base)) / m_PageSize;
 	std::fill(std::begin(m_PageState) + start, std::begin(m_PageState) + end, state::COMMITED);
@@ -228,7 +231,7 @@ bool region::commit(const memory::range_t& range) {
 		return true;
 	}
 	// we only keep track on windows what the pages are
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 	auto pages = page_range(range);
 	auto start = pages.first;
 	for(auto i = pages.first; i < pages.second; ++i) {
@@ -291,7 +294,7 @@ void region::decommit_unused() {
 		return;
 	}
 	// we only keep track on windows what the pages are
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 	auto committed {m_Allocator->available()};
 	for(auto commit : committed) {
 		auto pages = page_range(commit);
@@ -308,7 +311,7 @@ void region::decommit_unused() {
 #endif
 }
 
-#ifdef PE_PLATFORM_WINDOWS
+#if defined(USE_WIN32)
 std::pair<size_t, size_t> region::page_range(const memory::range_t& range) {
 	auto offset		 = range.begin - (std::uintptr_t)(m_Base);
 	auto start_index = (offset - (offset % m_PageSize)) / m_PageSize;
@@ -318,4 +321,14 @@ std::pair<size_t, size_t> region::page_range(const memory::range_t& range) {
 		end_index = m_PageState.size();
 	return {start_index, end_index};
 }
+#endif
+
+#ifdef USE_WIN32
+	#undef USE_WIN32
+#endif
+#ifdef USE_POSIX
+	#undef USE_POSIX
+#endif
+#ifdef USE_GENERIC
+	#undef USE_GENERIC
 #endif

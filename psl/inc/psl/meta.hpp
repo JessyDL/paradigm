@@ -313,17 +313,17 @@ namespace std {
 template <>
 struct hash<psl::UID> {
 	size_t operator()(const psl::UID& x) const noexcept {
-#if defined(PE_ARCHITECTURE_X86)
-		const uint32_t* quarters = reinterpret_cast<const uint32_t*>(&x.GUID);
-		return quarters[0] ^ quarters[1] ^ quarters[2] ^ quarters[3];
-#elif defined(PE_ARCHITECTURE_X86_64)
-		const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
-		return half[0] ^ half[1];
-#endif
+		if constexpr(sizeof(size_t) == 4) {
+			const uint32_t* quarters = reinterpret_cast<const uint32_t*>(&x.GUID);
+			return quarters[0] ^ quarters[1] ^ quarters[2] ^ quarters[3];
+		} else if constexpr(sizeof(size_t) == 8) {
+			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
+			return half[0] ^ half[1];
+		}
 	}
 };
 }	 // namespace std
 
-constexpr psl::UID operator"" _uid(const char* text, std::size_t size) {
+constexpr psl::UID operator""_uid(const char* text, std::size_t size) {
 	return psl::try_make_uid(text, size);
 }

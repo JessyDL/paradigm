@@ -33,7 +33,9 @@ typedef void* HANDLE;	 //-V677
 namespace psl::utility::platform {
 /// \brief contains all known, supported (or to be supported) platforms.
 /// \note we need to add an extra dash to linux as the define already exists on linux platforms
-enum class platform_t { UNKNOWN = 0, lnx = 1, macos = 2, windows = 3, android = 4, ios = 5 };
+enum class platform_t { UNKNOWN = 0, linux = 1, macos = 2, windows = 3, android = 4, ios = 5, web = 6 };
+
+enum class pointer_size_t { x32 = 4, x64 = 8 };
 
 /// \brief encoding enum, that can be used to help identify encoding of items.
 enum class encoding_t { UNKNOWN = 0, UTF8 = 1, UTF16 = 2 };
@@ -52,17 +54,17 @@ constexpr encoding_t encoding = encoding_t::UTF8;
 constexpr platform_t platform = platform_t::android;
 constexpr encoding_t encoding = encoding_t::UTF8;
 #elif defined(PE_PLATFORM_LINUX)
-constexpr platform_t platform = platform_t::lnx;
+constexpr platform_t platform = platform_t::linux;
 constexpr encoding_t encoding = encoding_t::UTF8;
-#elif defined(PE_PLATFORM_POSIX)
-constexpr platform_t platform = platform_t::posix;
+#elif defined(PE_PLATFORM_WEB)
+constexpr platform_t platform = platform_t::web;
 constexpr encoding_t encoding = encoding_t::UTF8;
 #else
 	#error not supported
 #endif
 
 /// \brief contains all known, supported (or to be supported) architectures.
-enum class architecture_t { UNKNOWN = 0, x86, x86_64, ARM64 };
+enum class architecture_t { UNKNOWN = 0, x86, x86_64, ARM64, WASM };
 
 /// \brief the architecture of the current platform.
 constexpr architecture_t architecture =
@@ -72,12 +74,23 @@ constexpr architecture_t architecture =
   architecture_t::x86
 #elif defined(PE_ARCHITECTURE_ARM64)
   architecture_t::ARM64
+#elif defined(PE_ARCHITECTURE_WASM)
+  architecture_t::WASM
 #else
   architecture_t::UNKNOWN
 #endif
   ;
-}	 // namespace psl::utility::platform
 
+#if defined(PE_ARCHITECTURE_X86_64) || defined(PE_ARCHITECTURE_ARM64)
+	#define PE_POINTER_SIZE_64_BIT
+constexpr pointer_size_t pointer_size = pointer_size_t::x64;
+#elif defined(PE_ARCHITECTURE_X86) || defined(PE_ARCHITECTURE_WASM)
+	#define PE_POINTER_SIZE_32_BIT
+constexpr pointer_size_t pointer_size = pointer_size_t::x32;
+#else
+	#pragma error "unknown architecture"
+#endif
+}	 // namespace psl::utility::platform
 
 #ifdef _MSC_VER
 	#define FORCEINLINE __forceinline
