@@ -35,6 +35,8 @@ namespace psl::utility::platform {
 /// \note we need to add an extra dash to linux as the define already exists on linux platforms
 enum class platform_t { UNKNOWN = 0, linux = 1, macos = 2, windows = 3, android = 4, ios = 5, web = 6 };
 
+enum class pointer_size_t { x32 = 4, x64 = 8 };
+
 /// \brief encoding enum, that can be used to help identify encoding of items.
 enum class encoding_t { UNKNOWN = 0, UTF8 = 1, UTF16 = 2 };
 #if defined(PE_PLATFORM_WINDOWS)
@@ -78,8 +80,17 @@ constexpr architecture_t architecture =
   architecture_t::UNKNOWN
 #endif
   ;
-}	 // namespace psl::utility::platform
 
+#if defined(PE_ARCHITECTURE_X86_64) || defined(PE_ARCHITECTURE_ARM64)
+	#define PE_POINTER_SIZE_64_BIT
+constexpr pointer_size_t pointer_size = pointer_size_t::x64;
+#elif defined(PE_ARCHITECTURE_X86) || defined(PE_ARCHITECTURE_WASM)
+	#define PE_POINTER_SIZE_32_BIT
+constexpr pointer_size_t pointer_size = pointer_size_t::x32;
+#else
+	#pragma error "unknown architecture"
+#endif
+}	 // namespace psl::utility::platform
 
 #ifdef _MSC_VER
 	#define FORCEINLINE __forceinline
