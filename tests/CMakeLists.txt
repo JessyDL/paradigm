@@ -17,7 +17,11 @@ add_executable(paradigm::tests ALIAS tests)
 set_property(TARGET tests PROPERTY FOLDER "tests")
 target_link_libraries(tests PUBLIC ${SHLWAPI} paradigm::psl litmus)
 set_target_output_directory(tests)
-set_target_properties(tests PROPERTIES LINKER_LANGUAGE CXX SUFFIX ${PE_EXECUTABLE_SUFFIX})
+set_target_properties(tests PROPERTIES LINKER_LANGUAGE CXX)
+
+if(PE_PLATFORM STREQUAL "WEB")
+    set_target_properties(tests PROPERTIES SUFFIX ".html")
+endif()
 
 target_include_directories(tests
     PUBLIC 
