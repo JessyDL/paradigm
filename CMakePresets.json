@@ -390,6 +390,7 @@
         {
             "hidden": true,
             "name": "wasm-base",
+			"generator": "Ninja",
             "inherits": [
                 "settings-project"
             ],
@@ -398,7 +399,6 @@
                 "lhs": "$env{EMSDK}",
                 "rhs": ""
             },
-            "generator": "Ninja",
             "cacheVariables": {
                 "PE_PLATFORM": "WEB",
                 "PE_ARCHITECTURE": "WASM",

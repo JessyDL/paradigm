@@ -316,8 +316,7 @@ struct hash<psl::UID> {
 		if constexpr(sizeof(size_t) == 4) {
 			const uint32_t* quarters = reinterpret_cast<const uint32_t*>(&x.GUID);
 			return quarters[0] ^ quarters[1] ^ quarters[2] ^ quarters[3];
-		}
-		else if constexpr(sizeof(size_t) == 8) {
+		} else if constexpr(sizeof(size_t) == 8) {
 			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
 			return half[0] ^ half[1];
 		}

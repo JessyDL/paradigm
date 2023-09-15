@@ -116,11 +116,11 @@ void raw_region::release() noexcept {
 }
 
 #ifdef USE_WIN32
-#undef USE_WIN32
+	#undef USE_WIN32
 #endif
 #ifdef USE_POSIX
-#undef USE_POSIX
+	#undef USE_POSIX
 #endif
 #ifdef USE_GENERIC
-#undef USE_GENERIC
+	#undef USE_GENERIC
 #endif

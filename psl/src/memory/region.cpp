@@ -324,11 +324,11 @@ std::pair<size_t, size_t> region::page_range(const memory::range_t& range) {
 #endif
 
 #ifdef USE_WIN32
-#undef USE_WIN32
+	#undef USE_WIN32
 #endif
 #ifdef USE_POSIX
-#undef USE_POSIX
+	#undef USE_POSIX
 #endif
 #ifdef USE_GENERIC
-#undef USE_GENERIC
+	#undef USE_GENERIC
 #endif

@@ -1,11 +1,11 @@
 #pragma once
-#include <algorithm>
 #include "../barrier.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
 #include "psl/assertions.hpp"
 #include "psl/unique_ptr.hpp"
 #include "task.hpp"
+#include <algorithm>
 namespace psl::async {
 class scheduler;
 }
