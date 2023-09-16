@@ -13,7 +13,7 @@ jobs:
         submodules: recursive
     - name: run formatter
       run: python3 tools/clang-format.py
-    - name: verify
+    - name: verify c++ formatting
       run: |
         output=$(git diff --stat HEAD)
         if [[ -n $output ]]; then
@@ -24,6 +24,11 @@ jobs:
           echo "success"
           exit 0
         fi
+    - name: verify python formatting
+      uses: psf/black@stable
+      with:
+        options: "--check --diff --color"
+        src: "./tools"
   # build the project for the various permutations
   build:
     strategy:
