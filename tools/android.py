@@ -162,7 +162,7 @@ class Android:
 
 def main():
     parser = ArgumentParser()
-    parser.add_argument("--output", default=os.path.join(ROOT_DIR, "builds", "android"))
+    parser.add_argument("--output", type=str, help="output directory for the build, the provided cmake script typically sets this to builds/android/{arch}")
     parser.add_argument("--sdk", default=None, help="set to override the used android sdk, falls back to path available one")
     parser.add_argument("--gradle", default=None, help="set to override the used gradle, falls back to path available one")
     parser.add_argument("--bundletool", default=None, help="set to override the used bundletool, falls back to path available one")
@@ -187,4 +187,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

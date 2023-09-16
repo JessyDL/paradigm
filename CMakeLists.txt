@@ -50,7 +50,7 @@ set_property(CACHE PE_ARCHITECTURE PROPERTY STRINGS AUTO x86 x86_64 ARM64)
 OPTION(PE_USE_NATVIS "Configure project to use Visual Studio native visualizers when building for visual studio" TRUE)
 OPTION(PE_BENCHMARKS "Enable the generation of benchmarks" OFF)
 
-set(PE_BUILD_DIR "${CMAKE_BINARY_DIR}/builds/" CACHE PATH "target location where to build the project to")
+set(PE_BUILD_DIR "" CACHE PATH "target location where to build the project to")
 set(PE_DEFINES -DUNICODE;-D_UNICODE;-DNOMINMAX CACHE INTERNAL "")
 OPTION(PE_DEFAULT_COMPILE_OPTIONS "Use the default set of compile options (check 'compile options' section in the CMakelists.txt file)" TRUE)
 set(ANDROID_SDK "" CACHE PATH "override root android sdk location")
@@ -110,7 +110,18 @@ endif()
 string(TOUPPER ${PE_ARCHITECTURE} PE_ARCHITECTURE)
 list(APPEND PE_DEFINES -DPE_ARCHITECTURE_${PE_ARCHITECTURE})
 
+if(PE_BUILD_DIR STREQUAL "")
+	string(TOLOWER ${PE_PLATFORM} PE_PLATFORM_LOWER)
+	string(TOLOWER ${PE_ARCHITECTURE} PE_ARCHITECTURE_LOWER)
+	if(PE_PLATFORM_LOWER STREQUAL "linux")
+		set(PE_PLATFORM_LOWER gnulinux)
+	endif()
+	set(PE_BUILD_DIR "${CMAKE_SOURCE_DIR}/builds/${PE_PLATFORM_LOWER}/${PE_ARCHITECTURE_LOWER}")
+endif()
+
 if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidManifest.xml")
+	string(TOLOWER ${PE_ARCHITECTURE} PE_ARCHITECTURE_LOWER)
+
 	SET(Python_ADDITIONAL_VERSIONS 3 3.0)
 	find_package(PythonInterp REQUIRED)
 	set(ANDROID_PY_ARGS)
@@ -128,14 +139,14 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 	add_custom_target(paradigm_android_generate ALL)
 	add_custom_command(TARGET paradigm_android_generate
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
-			--output ${PE_BUILD_DIR}/android
+			--output ${PE_BUILD_DIR}
 			${ANDROID_PY_ARGS}
-		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/android/gradle.properties)
+		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/gradle.properties)
 
 	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
 	add_custom_command(TARGET paradigm_android_build
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
-			--output ${PE_BUILD_DIR}/android
+			--output ${PE_BUILD_DIR}
 			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${PE_VULKAN_VERSION}
 			--type ${build_type}
 			${ANDROID_PY_ARGS}
@@ -210,8 +221,8 @@ if(is_multi_config)
 		string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
 		string(TOLOWER ${OUTPUTCONFIG} OUTPUTCONFIG_FOLDERNAME)
 		
-		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/bin")
-		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/${ARCHI}/lib")
+		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/bin")
+		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/lib")
 	endforeach()
 else()		
 	file(MAKE_DIRECTORY "${PE_BUILD_DIR}/default/bin")
