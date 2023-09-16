@@ -139,14 +139,14 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 	add_custom_target(paradigm_android_generate ALL)
 	add_custom_command(TARGET paradigm_android_generate
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
-			--output ${PE_BUILD_DIR}/android/${PE_ARCHITECTURE_LOWER}
+			--output ${PE_BUILD_DIR}
 			${ANDROID_PY_ARGS}
-		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/android/gradle.properties)
+		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/gradle.properties)
 
 	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
 	add_custom_command(TARGET paradigm_android_build
 		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
-			--output ${PE_BUILD_DIR}/android/${PE_ARCHITECTURE_LOWER}
+			--output ${PE_BUILD_DIR}
 			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${PE_VULKAN_VERSION}
 			--type ${build_type}
 			${ANDROID_PY_ARGS}
