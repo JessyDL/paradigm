@@ -12,6 +12,7 @@ jobs:
         include:
           - benchmarks: OFF
             tests: ON
+            arch: x86_64
     name: build
     runs-on: macos-12
     steps:
@@ -28,5 +29,5 @@ jobs:
       run: cmake --build --preset=${{ matrix.target }}-release -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       if: ${{ matrix.tests == 'ON' }}
-      run: ./builds/default/bin/tests --formatter compact --no-source
+      run: ./builds/${{ matrix.target }}/${{ matrix.arch }}/default/bin/tests --formatter compact --no-source
       timeout-minutes: 20

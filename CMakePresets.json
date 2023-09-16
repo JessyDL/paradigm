@@ -11,10 +11,6 @@
             "name": "settings-project",
             "binaryDir": "${sourceDir}/project_files",
             "cacheVariables": {
-                "PE_BUILD_DIR": {
-                    "type": "STRING",
-                    "value": "${sourceDir}/builds"
-                },
                 "PE_GLES": "OFF",
                 "PE_VULKAN": "OFF",
                 "PE_MOLTEN": "OFF",
@@ -182,14 +178,11 @@
         },
         {
             "hidden": true,
-            "name": "windows-64-base",
-            "displayName": "Windows 64bit",
+            "name": "windows-base",
+            "displayName": "Windows",
             "inherits": [
                 "settings-project"
             ],
-            "generator": "Visual Studio 17 2022",
-            "architecture": "x64",
-            "binaryDir": "${sourceDir}/project_files/x64",
             "description": "Base configuration for Windows",
             "condition": {
                 "type": "equals",
@@ -197,11 +190,20 @@
                 "rhs": "Windows"
             },
             "cacheVariables": {
-                "PE_PLATFORM": "WINDOWS",
-                "PE_BUILD_DIR": {
-                    "type": "STRING",
-                    "value": "${sourceDir}/builds/x64"
-                },
+                "PE_PLATFORM": "WINDOWS"
+            }
+        },
+        {
+            "hidden": true,
+            "name": "windows-64-base",
+            "displayName": "Windows 64bit",
+            "inherits": [
+                "windows-base"
+            ],
+            "binaryDir": "${sourceDir}/project_files/x86_64",
+            "generator": "Visual Studio 17 2022",
+            "architecture": "x64",
+            "cacheVariables": {
                 "PE_ARCHITECTURE": "x86_64"
             }
         },
@@ -210,23 +212,12 @@
             "name": "windows-32-base",
             "displayName": "Windows 32bit",
             "inherits": [
-                "settings-project"
+                "windows-base"
             ],
+            "binaryDir": "${sourceDir}/project_files/x86",
             "generator": "Visual Studio 17 2022",
             "architecture": "Win32",
-            "binaryDir": "${sourceDir}/project_files/Win32",
-            "description": "Base configuration for Windows",
-            "condition": {
-                "type": "equals",
-                "lhs": "${hostSystemName}",
-                "rhs": "Windows"
-            },
             "cacheVariables": {
-                "PE_PLATFORM": "WINDOWS",
-                "PE_BUILD_DIR": {
-                    "type": "STRING",
-                    "value": "${sourceDir}/builds/Win32"
-                },
                 "PE_ARCHITECTURE": "x86"
             }
         },
@@ -390,7 +381,7 @@
         {
             "hidden": true,
             "name": "wasm-base",
-			"generator": "Ninja",
+            "generator": "Ninja",
             "inherits": [
                 "settings-project"
             ],

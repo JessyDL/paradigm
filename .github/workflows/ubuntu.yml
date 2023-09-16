@@ -33,6 +33,12 @@ jobs:
         compiler: [gcc, clang]
         graphics: [vulkan, all]
         include:
+          - target: gnu-linux
+            name: gnulinux
+            arch: x86_64
+          - target: android
+            name: android
+            arch: arm64
           - cc: gcc-12
             cxx: g++-12
             benchmarks: OFF
@@ -85,18 +91,18 @@ jobs:
       run: cmake --build --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
       if: ${{ matrix.tests == 'ON' }}
-      run: ./builds/default/bin/tests --formatter compact --no-source
+      run: ./builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/tests --formatter compact --no-source
     - name: finalize
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v3
       with:
         name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
-        path: builds/default/bin/benchmarks
+        path: builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
         if-no-files-found: error
         retention-days: 1
     - name: verify
       if: ${{ matrix.target == 'android' }}
-      run: python3 -c "import os;import sys;sys.exit(0) if os.path.exists('builds/android/main/build/outputs/bundle/release/main-release.aab') else sys.exit(1)"
+      run: python3 -c "import os;import sys;sys.exit(0) if os.path.exists('builds/${{ matrix.name }}/${{ matrix.arch }}/main/build/outputs/bundle/release/main-release.aab') else sys.exit(1)"
   # run benchmarks for the permutations that build the benchmarks binary
   benchmark:
     strategy:
