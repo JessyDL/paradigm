@@ -1,9 +1,9 @@
 #pragma once
 #include "../selectors.hpp"
 #include <cstdint>
+#include <fmt/format.h>
 #include <string_view>
 #include <type_traits>
-#include <fmt/format.h>
 
 #include "psl/ecs/component_traits.hpp"
 #include "strtype/strtype.hpp"

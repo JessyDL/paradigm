@@ -2,8 +2,8 @@
 #include "cache.hpp"
 #include "core/fwd/resource/resource.hpp"
 #include "psl/meta.hpp"
-#include <memory>
 #include <fmt/format.h>
+#include <memory>
 
 namespace core::resource {
 template <typename T>

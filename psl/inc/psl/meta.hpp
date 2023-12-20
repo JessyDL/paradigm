@@ -3,9 +3,9 @@
 #include "psl/ustring.hpp"
 #include <array>
 #include <cstdint>
+#include <fmt/format.h>
 #include <functional>
 #include <stdexcept>
-#include <fmt/format.h>
 
 namespace std {
 #ifdef _MSC_VER
