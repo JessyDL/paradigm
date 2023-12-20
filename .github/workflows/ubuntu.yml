@@ -56,8 +56,8 @@ jobs:
             tests: OFF
             compiler: gcc
             target: android
-          - cc: clang-15
-            cxx: clang++-15
+          - cc: clang-16
+            cxx: clang++-16
             benchmarks: OFF
             tests: OFF
             compiler: clang
@@ -82,6 +82,12 @@ jobs:
       id: cpu-cores
     - name: setup dependencies
       run: python3 tools/generate_project_info.py
+    - name: setup clang
+      if: ${{ matrix.compiler == 'clang' }}
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod u+x llvm.sh
+        sudo ./llvm.sh 16
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
       run: |
