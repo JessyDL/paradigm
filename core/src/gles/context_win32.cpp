@@ -212,7 +212,7 @@ void context::enable(const core::os::surface& surface) {
 	version = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
 	error	= glGetError();
 
-	auto glversion = glGetString(GL_VERSION);
+	auto glversion = glGetStringView(GL_VERSION);
 
 	#ifdef PE_DEBUG
 	glEnable(GL_DEBUG_OUTPUT);

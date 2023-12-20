@@ -56,8 +56,8 @@ jobs:
             tests: OFF
             compiler: gcc
             target: android
-          - cc: clang-14
-            cxx: clang++-14
+          - cc: clang-15
+            cxx: clang++-15
             benchmarks: OFF
             tests: OFF
             compiler: clang
