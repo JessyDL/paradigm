@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <string_view>
 #include <type_traits>
+#include <fmt/format.h>
 
 #include "psl/ecs/component_traits.hpp"
 #include "strtype/strtype.hpp"
@@ -140,12 +141,18 @@ class component_key_t {
 
 	component_type type() const noexcept { return m_Type; }
 
+	friend constexpr auto format_as(component_key_t const& key);
+
   private:
 	std::string_view m_Name;
 	std::uint32_t m_Value;
 	component_type m_Type;
 	char* m_StringMemory;
 };
+
+constexpr auto format_as(component_key_t const& key) {
+	return key.m_Value;
+}
 }	 // namespace psl::ecs::details
 
 namespace std {

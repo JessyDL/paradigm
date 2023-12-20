@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <stdexcept>
+#include <fmt/format.h>
 
 namespace std {
 #ifdef _MSC_VER
@@ -87,6 +88,10 @@ struct UID final {
   private:
 	PUID GUID;
 };
+
+inline auto format_as(UID const& value) {
+	return value.to_string();
+}
 
 constexpr bool valid_uid(const char* text, std::size_t size) noexcept {
 	constexpr const size_t short_size = 36;
