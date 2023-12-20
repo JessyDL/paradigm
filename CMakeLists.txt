@@ -269,6 +269,11 @@ endif()
 
 set(CXX_EXTENSIONS OFF)
 
+if(PE_PLATFORM STREQUAL "WEB")
+	add_compile_options(-fexceptions -sALLOW_MEMORY_GROWTH -pthread -sSTACK_SIZE=8MB)
+	add_link_options(-fexceptions -sALLOW_MEMORY_GROWTH -pthread -sSTACK_SIZE=8MB)
+endif()
+
 if(MSVC) # we currently make no distinction for CLang (todo)
 	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC;/Zc:preprocessor)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)

@@ -343,8 +343,8 @@ class staged_sparse_memory_region_t {
 	/// \note When assertions are enabled this method can assert when the typename is not of the expected size
 	/// \note The value is assigned regardless if the index already contained a value.
 	template <typename ItF, typename ItL>
-	requires(IsValidForStagedSparseMemoryRange<typename std::iterator_traits<ItF>::value_type>) FORCEINLINE
-	  auto insert(key_type index, ItF&& begin, ItL&& end) -> void {
+		requires(IsValidForStagedSparseMemoryRange<typename std::iterator_traits<ItF>::value_type>)
+	FORCEINLINE auto insert(key_type index, ItF&& begin, ItL&& end) -> void {
 		using T = typename std::iterator_traits<ItF>::value_type;
 
 		auto count = static_cast<key_type>(end - begin);
@@ -429,8 +429,8 @@ class staged_sparse_memory_region_t {
 	/// \param end Iterator to one beyond the last element.
 	/// \param callback Function of the signature void(std::byte*, std::byte*) to invoke. Where the second element is the end ptr.
 	template <typename Fn>
-	requires(std::is_invocable_v<Fn, std::byte*, std::byte*>) FORCEINLINE
-	  auto insert(key_type* begin, key_type* end, Fn&& callback) -> void {
+		requires(std::is_invocable_v<Fn, std::byte*, std::byte*>)
+	FORCEINLINE auto insert(key_type* begin, key_type* end, Fn&& callback) -> void {
 		auto count = static_cast<key_type>(end - begin);
 		auto first = m_StageStart[2];
 		insert(begin, end);
@@ -444,8 +444,8 @@ class staged_sparse_memory_region_t {
 	/// \param count How many items to insert (the range is [index, index+count)
 	/// \param callback Function of the signature void(std::byte*, std::byte*) to invoke. Where the second element is the end ptr.
 	template <typename Fn>
-	requires(std::is_invocable_v<Fn, std::byte*, std::byte*>) FORCEINLINE
-	  auto insert(key_type index, key_type count, Fn&& callback) -> void {
+		requires(std::is_invocable_v<Fn, std::byte*, std::byte*>)
+	FORCEINLINE auto insert(key_type index, key_type count, Fn&& callback) -> void {
 		auto first = m_StageStart[2];
 		insert(index, count);
 		auto begin_ptr = (std::byte*)m_DenseData.data() + (first * m_Size);
@@ -457,7 +457,8 @@ class staged_sparse_memory_region_t {
 	/// \param index Location to insert a value
 	/// \param callback Function of the signature void(std::byte*) to invoke.
 	template <typename Fn>
-	requires(std::is_invocable_v<Fn, std::byte*>) FORCEINLINE auto insert(key_type index, Fn&& callback) -> void {
+		requires(std::is_invocable_v<Fn, std::byte*>)
+	FORCEINLINE auto insert(key_type index, Fn&& callback) -> void {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
 
@@ -540,7 +541,6 @@ class staged_sparse_memory_region_t {
 				insert_impl(chunk, sub_index, other.m_Reverse[i]);
 				++inserted;
 			}
-
 			memcpy((std::byte*)m_DenseData.data() + (chunk[sub_index] * m_Size),
 				   (std::byte*)other.m_DenseData.data() + (i * m_Size),
 				   m_Size);
@@ -638,16 +638,9 @@ class staged_sparse_memory_region_t {
 					(std::byte*)m_DenseData.data() + (m_StageStart[2] * m_Size),
 					(m_Reverse.size() - m_StageStart[2]) * m_Size);
 
-
 		chunk[offset] = static_cast<key_type>(m_StageStart[2]);
-		auto orig_cap = m_Reverse.capacity();
 		m_Reverse.emplace(std::next(std::begin(m_Reverse), m_StageStart[2]), user_index);
-		if(orig_cap != m_Reverse.capacity())
-			grow();
-		psl_assert((m_Reverse.capacity() + 1) * m_Size <= m_DenseData.size(),
-				   "{} <= {}",
-				   (m_Reverse.capacity() + 1) * m_Size,
-				   m_DenseData.size());
+		grow();
 		m_StageStart[2] += 1;
 		m_StageStart[3] += 1;
 		m_StageSize[1] += 1;

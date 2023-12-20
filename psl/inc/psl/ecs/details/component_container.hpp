@@ -427,7 +427,6 @@ class component_container_untyped_t : public component_container_t {
 	bool merge(const component_container_t& other) noexcept override {
 		if(other.id() != id())
 			return false;
-
 		component_container_untyped_t* other_ptr = (component_container_untyped_t*)(&other);
 		return m_Entities.merge(other_ptr->m_Entities).success;
 	}
