@@ -3,6 +3,7 @@
 #include "psl/ustring.hpp"
 #include <array>
 #include <cstdint>
+#include <fmt/format.h>
 #include <functional>
 #include <stdexcept>
 
@@ -87,6 +88,10 @@ struct UID final {
   private:
 	PUID GUID;
 };
+
+inline auto format_as(UID const& value) {
+	return value.to_string();
+}
 
 constexpr bool valid_uid(const char* text, std::size_t size) noexcept {
 	constexpr const size_t short_size = 36;

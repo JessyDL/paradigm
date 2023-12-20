@@ -62,9 +62,9 @@ context::context(core::resource::cache_t& cache,
 	quey_capabilities();
 
 	core::igles::log->info("GLES context initialized");
-	core::igles::log->info("vendor: {}", glGetString(GL_VENDOR));
-	core::igles::log->info("renderer: {}", glGetString(GL_RENDERER));
-	core::igles::log->info("version: {}", glGetString(GL_VERSION));
+	core::igles::log->info("vendor: {}", glGetStringView(GL_VENDOR));
+	core::igles::log->info("renderer: {}", glGetStringView(GL_RENDERER));
+	core::igles::log->info("version: {}", glGetStringView(GL_VERSION));
 
 	eglMakeCurrent(data.egl_display, EGL_NO_SURFACE, EGL_NO_SURFACE, EGL_NO_CONTEXT);
 	eglDestroySurface(data.egl_display, data.egl_surface);

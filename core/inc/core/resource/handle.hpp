@@ -2,6 +2,7 @@
 #include "cache.hpp"
 #include "core/fwd/resource/resource.hpp"
 #include "psl/meta.hpp"
+#include <fmt/format.h>
 #include <memory>
 
 namespace core::resource {
@@ -350,4 +351,14 @@ class weak_handle final {
 	metadata* m_MetaData {nullptr};
 	meta_type* m_MetaFile {nullptr};
 };
+
+template <typename T>
+inline auto format_as(handle<T> const& value) {
+	return value.uid();
+}
+
+template <typename T>
+inline auto format_as(weak_handle<T> const& value) {
+	return value.uid();
+}
 }	 // namespace core::resource

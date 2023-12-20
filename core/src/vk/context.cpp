@@ -209,7 +209,9 @@ context::context(core::resource::cache_t& cache,
 		vendor = "Unknown";
 	}
 	core::ivk::log->info("Vendor:         {}", vendor);
-	core::ivk::log->info("Device Name:    {}", m_PhysicalDeviceProperties.deviceName);
+	core::ivk::log->info(
+	  "Device Name:    {}",
+	  std::string_view {m_PhysicalDeviceProperties.deviceName.data(), m_PhysicalDeviceProperties.deviceName.size()});
 	core::ivk::log->info("Device Type:    {}", vk::to_string(m_PhysicalDeviceProperties.deviceType));
 	core::ivk::log->info("Device ID:      {}", std::to_string(m_PhysicalDeviceProperties.deviceID));
 	core::ivk::log->info("Memory Heaps:   {}", m_PhysicalDeviceMemoryProperties.memoryHeapCount);
