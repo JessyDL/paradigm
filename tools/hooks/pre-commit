@@ -1,0 +1,4 @@
+#!/bin/sh
+python tools/clang-format.py --verify --staged
+echo "Running python black formatter..."
+python -m black ./tools --check
