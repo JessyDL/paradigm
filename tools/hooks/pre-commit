@@ -1,0 +1,2 @@
+#!/bin/sh
+python tools/clang-format.py --verify --staged

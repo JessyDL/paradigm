@@ -1,5 +1,6 @@
 .vs/
 builds/
+tools/.config.json
 tools/cache/
 tests/common/build/
 docker/cache/

@@ -204,6 +204,13 @@ if(PE_ECS_DISABLE_LOOKUP_CACHE_BEHAVIOUR)
 	list(APPEND PE_DEFINES -DPE_ECS_DISABLE_LOOKUP_CACHE)
 endif()
 
+# here we register the local hooks for git, this is done to ensure that the
+# formatting is done before the commit is made
+find_package(Git QUIET REQUIRED)
+execute_process(
+    COMMAND ${GIT_EXECUTABLE} config --local core.hooksPath tools/hooks/
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+
 ###############################################################################
 ###                    validation                                           ###
 ###############################################################################
