@@ -499,9 +499,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	case graphics_backend::vulkan:
 		environment = "vulkan";
 		break;
-		case graphics_backend::webgpu:
-			environment = "webgpu";
-			break;
+	case graphics_backend::webgpu:
+		environment = "webgpu";
+		break;
 	}
 
 	core::log->info("creating cache");

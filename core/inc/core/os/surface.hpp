@@ -98,11 +98,19 @@ class surface {
 	void trap_cursor(bool state) noexcept;
 	bool is_cursor_trapped() const noexcept;
 #if defined(SURFACE_WIN32)
-	HINSTANCE surface_instance() const { return win32_instance; };
-	HWND surface_handle() const { return win32_window; };
+	HINSTANCE surface_instance() const {
+		return win32_instance;
+	};
+	HWND surface_handle() const {
+		return win32_window;
+	};
 #elif defined(SURFACE_XCB)
-	xcb_connection_t* connection() const { return _xcb_connection; }
-	xcb_window_t surface_handle() const { return _xcb_window; };
+	xcb_connection_t* connection() const {
+		return _xcb_connection;
+	}
+	xcb_window_t surface_handle() const {
+		return _xcb_window;
+	};
 #elif defined(SURFACE_D2D) || defined(PE_PLATFORM_ANDROID)
 #else
 	#error no suitable surface was selected

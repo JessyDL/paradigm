@@ -29,7 +29,7 @@ constexpr bool is_enabled() {
 	}
 #endif
 #ifdef PE_WEBGPU
-	if constexpr (backend == graphics_backend::webgpu) {
+	if constexpr(backend == graphics_backend::webgpu) {
 		return PE_WEBGPU;
 	}
 #endif

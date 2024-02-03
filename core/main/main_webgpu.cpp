@@ -189,9 +189,8 @@ template <typename Fn>
 auto RequestAdapter(wgpu::Instance instance,
 					wgpu::RequestAdapterOptions options,
 					Fn&& invocable,
-					void* userdata = nullptr) -> void
-	requires std::is_invocable_v<Fn, wgpu::RequestAdapterStatus, wgpu::Adapter, char const*, void*>
-{
+					void* userdata = nullptr)
+  -> void requires std::is_invocable_v<Fn, wgpu::RequestAdapterStatus, wgpu::Adapter, char const*, void*> {
 	auto future = RequestAdapter(instance, options);
 	auto result = future.get();
 	invocable(result.status, std::move(result.adapter), result.message, userdata);
@@ -221,9 +220,7 @@ struct DeviceCallbackResult {
 
 template <typename Fn>
 auto RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor, Fn&& invocable, void* userdata = nullptr)
-  -> void
-	requires std::is_invocable_v<Fn, wgpu::RequestDeviceStatus, wgpu::Device, char const*, void*>
-{
+  -> void requires std::is_invocable_v<Fn, wgpu::RequestDeviceStatus, wgpu::Device, char const*, void*> {
 	auto future = RequestDevice(adapter, descriptor);
 	auto result = future.get();
 	invocable(result.status, std::move(result.device), result.message, userdata);
@@ -351,7 +348,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	while(os_context.tick() && surface_handle->tick()) {
 		auto texture_view = swap_chain.GetCurrentTextureView();
 
-		auto color_attachments = std::vector<wgpu::RenderPassColorAttachment>(1);
+		auto color_attachments			= std::vector<wgpu::RenderPassColorAttachment>(1);
 		color_attachments[0].view		= texture_view;
 		color_attachments[0].loadOp		= wgpu::LoadOp::Clear;
 		color_attachments[0].storeOp	= wgpu::StoreOp::Store;
