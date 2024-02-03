@@ -132,12 +132,12 @@ target_include_directories(core
 		${WSI_INC}
 )
 
-set(CORE_PRIVATE_LIBS gli)
-if(${PE_WEBGPU_NATIVE})
-	list(APPEND CORE_PRIVATE_LIBS webgpu_cpp webgpu_native)
-endif()
-
-target_link_libraries(core PRIVATE ${CORE_PRIVATE_LIBS})
+target_link_libraries(core 
+	PRIVATE
+		gli
+	PUBLIC
+		$<$<BOOL:${PE_WEBGPU_NATIVE}>:webgpu_dawn webgpu_cpp>
+)
 
 if(WSI_LIB OR NOT WSI_LIB STREQUAL "")
 	target_link_libraries(core PUBLIC ${WSI_LIB})

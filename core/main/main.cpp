@@ -4,8 +4,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
-// #include <Windows.h>
-// #include "stdafx.h"
+
 #include "core/resource/resource.hpp"
 #include "psl/application_utils.hpp"
 #include "psl/library.hpp"
@@ -500,6 +499,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	case graphics_backend::vulkan:
 		environment = "vulkan";
 		break;
+		case graphics_backend::webgpu:
+			environment = "webgpu";
+			break;
 	}
 
 	core::log->info("creating cache");
@@ -1017,10 +1019,19 @@ int main(int argc, char* argv[]) {
 	#else
 				throw std::runtime_error("Requested a GLES backend, but application does not support GLES");
 	#endif
+			} else if(text == "--webgpu") {
+	#if defined(PE_WEBGPU)
+				return graphics_backend::webgpu;
+	#else
+				throw std::runtime_error("Requested a WebGPU backend, but application does not support WebGPU");
+	#endif
 			}
+			return graphics_backend::undefined;
 		}
 	#if defined(PE_VULKAN)
 		return graphics_backend::vulkan;
+	#elif defined(PE_WEBGPU)
+		return graphics_backend::webgpu;
 	#elif defined(PE_GLES)
 		return graphics_backend::gles;
 	#endif

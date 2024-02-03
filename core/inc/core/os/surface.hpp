@@ -22,10 +22,11 @@ typedef HINSTANCE__* HINSTANCE;
 namespace core::systems {
 class input;
 }
+#if defined(PE_VULKAN)
 namespace core::ivk {
 class swapchain;
 }
-
+#endif
 namespace core::os {
 /// \brief primitive object that create a surface we can render on.
 ///
@@ -89,26 +90,19 @@ class surface {
 	/// across the various platforms.
 	core::systems::input& input() const noexcept;
 
+#if defined(PE_VULKAN)
 	/// \brief this method will be called by the swapchain class, so that the surface knows who to notify of resize
 	/// events, etc.. \todo can we hide this?
 	void register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain);
-
+#endif
 	void trap_cursor(bool state) noexcept;
 	bool is_cursor_trapped() const noexcept;
 #if defined(SURFACE_WIN32)
-	HINSTANCE surface_instance() const {
-		return win32_instance;
-	};
-	HWND surface_handle() const {
-		return win32_window;
-	};
+	HINSTANCE surface_instance() const { return win32_instance; };
+	HWND surface_handle() const { return win32_window; };
 #elif defined(SURFACE_XCB)
-	xcb_connection_t* connection() const {
-		return _xcb_connection;
-	}
-	xcb_window_t surface_handle() const {
-		return _xcb_window;
-	};
+	xcb_connection_t* connection() const { return _xcb_connection; }
+	xcb_window_t surface_handle() const { return _xcb_window; };
 #elif defined(SURFACE_D2D) || defined(PE_PLATFORM_ANDROID)
 #else
 	#error no suitable surface was selected
@@ -127,7 +121,9 @@ class surface {
 #endif
 
 	core::resource::handle<data::window> m_Data;
+#if defined(PE_VULKAN)
 	std::vector<core::resource::handle<core::ivk::swapchain>> m_Swapchains;
+#endif
 	bool m_Focused {false};
 	bool m_Open {false};
 	bool m_IndicatorClipped {false};
