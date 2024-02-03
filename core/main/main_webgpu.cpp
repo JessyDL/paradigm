@@ -32,6 +32,8 @@
 
 #include <webgpu/webgpu_cpp.h>
 
+#include <future>
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -159,6 +161,75 @@ void setup_loggers() {
 	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 
+namespace wgpu {
+
+struct RequestAdapterCallbackResult {
+	wgpu::Adapter adapter;
+	wgpu::RequestAdapterStatus status;
+	char const* message;
+	void* userdata;
+};
+
+[[nodiscard]] auto RequestAdapter(wgpu::Instance instance, wgpu::RequestAdapterOptions options)
+  -> std::future<RequestAdapterCallbackResult> {
+	auto promise = std::promise<RequestAdapterCallbackResult>();
+	instance.RequestAdapter(
+	  &options,
+	  [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* userdata) -> void {
+		  auto promise = static_cast<std::promise<RequestAdapterCallbackResult>*>(userdata);
+		  promise->set_value({adapter, static_cast<wgpu::RequestAdapterStatus>(status), message, userdata});
+		  wgpuAdapterRelease(adapter);
+	  },
+	  &promise);
+
+	return promise.get_future();
+}
+
+template <typename Fn>
+auto RequestAdapter(wgpu::Instance instance,
+					wgpu::RequestAdapterOptions options,
+					Fn&& invocable,
+					void* userdata = nullptr) -> void
+	requires std::is_invocable_v<Fn, wgpu::RequestAdapterStatus, wgpu::Adapter, char const*, void*>
+{
+	auto future = RequestAdapter(instance, options);
+	auto result = future.get();
+	invocable(result.status, std::move(result.adapter), result.message, userdata);
+}
+
+struct DeviceCallbackResult {
+	wgpu::Device device;
+	wgpu::RequestDeviceStatus status;
+	char const* message;
+	void* userdata;
+};
+
+[[nodiscard]] auto RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor)
+  -> std::future<DeviceCallbackResult> {
+	auto promise = std::promise<DeviceCallbackResult>();
+	adapter.RequestDevice(
+	  &descriptor,
+	  [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* userdata) -> void {
+		  auto promise = static_cast<std::promise<DeviceCallbackResult>*>(userdata);
+		  promise->set_value({device, static_cast<wgpu::RequestDeviceStatus>(status), message, userdata});
+		  wgpuDeviceRelease(device);
+	  },
+	  &promise);
+
+	return promise.get_future();
+}
+
+template <typename Fn>
+auto RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor, Fn&& invocable, void* userdata = nullptr)
+  -> void
+	requires std::is_invocable_v<Fn, wgpu::RequestDeviceStatus, wgpu::Device, char const*, void*>
+{
+	auto future = RequestDevice(adapter, descriptor);
+	auto result = future.get();
+	invocable(result.status, std::move(result.device), result.message, userdata);
+}
+}	 // namespace wgpu
+
 int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	core::log->info("Starting the application");
 
@@ -176,6 +247,8 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 		environment = "webgpu";
 		break;
 	}
+
+	core::log->info("creating a '{}' backend", environment);
 
 	core::log->info("creating cache");
 	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
@@ -199,13 +272,102 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 		return 1;
 	}
 
-	wgpu::RequestAdapterOptions options = {};
-	wgpu::RequestAdapterCallback callback =
-	  [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* msg, void* userdata) -> void {
-		core::log->info("Adapter requested");
-	};
-	instance.RequestAdapter(&options, callback, nullptr);
+	std::future<wgpu::Adapter> adapter_future;
 
+	wgpu::SurfaceDescriptorFromWindowsHWND winsurface_desc = {};
+	winsurface_desc.nextInChain							   = nullptr;
+	winsurface_desc.hinstance							   = surface_handle->surface_instance();
+	winsurface_desc.hwnd								   = surface_handle->surface_handle();
+
+	wgpu::SurfaceDescriptor surface_desc = {};
+	surface_desc.nextInChain			 = &winsurface_desc;
+	surface_desc.label					 = "WebGPU Surface";
+
+	wgpu::Surface surface = instance.CreateSurface(&surface_desc);
+
+
+	wgpu::Adapter adapter;
+	wgpu::RequestAdapterOptions options = {};
+	options.compatibleSurface			= surface;
+	wgpu::RequestAdapter(
+	  instance,
+	  options,
+	  [&adapter](wgpu::RequestAdapterStatus status, wgpu::Adapter _adapter, const char* message, void* userdata) {
+		  if(status == wgpu::RequestAdapterStatus::Success) {
+			  adapter = _adapter;
+		  } else {
+			  core::log->critical("Could not create a WebGPU adapter: {}", message);
+		  }
+	  },
+	  nullptr);
+
+
+	auto const count = adapter.EnumerateFeatures(nullptr);
+	std::vector<wgpu::FeatureName> features(count);
+	adapter.EnumerateFeatures(features.data());
+
+	for(auto const& feature : features) {
+		core::log->info("Feature: {}", std::to_underlying(feature));
+	}
+
+
+	wgpu::DeviceDescriptor device_desc = {};
+	device_desc.label				   = "WebGPU Device";
+	device_desc.defaultQueue.label	   = "WebGPU Queue";
+	wgpu::Device device;
+	wgpu::RequestDevice(
+	  adapter,
+	  device_desc,
+	  [&device](wgpu::RequestDeviceStatus status, wgpu::Device _device, const char* message, void* userdata) {
+		  if(status == wgpu::RequestDeviceStatus::Success) {
+			  device = _device;
+		  } else {
+			  core::log->critical("Could not create a WebGPU device: {}", message);
+		  }
+	  });
+
+	device.SetUncapturedErrorCallback([](WGPUErrorType type,
+										 const char* message,
+										 void* userdata) -> void { core::log->error("WebGPU error: {}", message); },
+									  nullptr);
+
+	auto queue = device.GetQueue();
+	queue.OnSubmittedWorkDone(
+	  [](WGPUQueueWorkDoneStatus status, void* userdata) -> void {
+		  core::log->info("WebGPU queue work done: {}", std::to_underlying(status));
+	  },
+	  nullptr);
+
+	auto swap_chain_desc		= wgpu::SwapChainDescriptor();
+	swap_chain_desc.usage		= wgpu::TextureUsage::RenderAttachment;
+	swap_chain_desc.format		= surface.GetPreferredFormat(adapter);
+	swap_chain_desc.width		= window_data->width();
+	swap_chain_desc.height		= window_data->height();
+	swap_chain_desc.presentMode = wgpu::PresentMode::Fifo;
+
+	auto swap_chain = device.CreateSwapChain(surface, &swap_chain_desc);
+
+
+	while(os_context.tick() && surface_handle->tick()) {
+		auto texture_view = swap_chain.GetCurrentTextureView();
+
+		auto color_attachments = std::vector<wgpu::RenderPassColorAttachment>(1);
+		color_attachments[0].view		= texture_view;
+		color_attachments[0].loadOp		= wgpu::LoadOp::Clear;
+		color_attachments[0].storeOp	= wgpu::StoreOp::Store;
+		color_attachments[0].clearValue = {(std::rand() % 255) / 255.f, 0.0f, 0.0f, 1.0f};
+
+		auto pass_descriptor				 = wgpu::RenderPassDescriptor();
+		pass_descriptor.colorAttachments	 = color_attachments.data();
+		pass_descriptor.colorAttachmentCount = color_attachments.size();
+
+		auto command_encoder = device.CreateCommandEncoder();
+		auto render_pass	 = command_encoder.BeginRenderPass(&pass_descriptor);
+		render_pass.End();
+		auto command_buffer = command_encoder.Finish();
+		queue.Submit(1, &command_buffer);
+		swap_chain.Present();
+	}
 
 	return 0;
 }
