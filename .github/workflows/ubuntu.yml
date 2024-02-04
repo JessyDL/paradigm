@@ -84,7 +84,7 @@ jobs:
         sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: dependencies
       if: ${{ matrix.target == 'android' }}
-      run: yes | $ANDROID_SDK_ROOT/tools/bin/sdkmanager --licenses
+      run: yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses
     - name: initialize
       run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }}
     - name: compile
