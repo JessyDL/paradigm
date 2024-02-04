@@ -35,4 +35,9 @@ namespace os {
 }
 
 extern psl::profiling::profiler profiler;
+
+namespace {
+	bool _loggers_initialized = false;
+}
+auto initialize_loggers() -> bool;
 }	 // namespace core
