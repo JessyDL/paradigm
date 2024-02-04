@@ -26,6 +26,7 @@
 #include "core/os/surface.hpp"	  // the OS surface to draw one
 
 #include "core/gfx/context.hpp"
+#include "core/gfx/render_graph.hpp"
 #include "core/gfx/swapchain.hpp"
 
 #include <core/wgpu/iwgpu.hpp>
@@ -36,30 +37,14 @@ using namespace core::gfx;
 
 int entry_agnostic(gfx::graphics_backend backend, core::os::context& os_context) {
 	core::log->info("Starting the application");
-
-	psl::string libraryPath {psl::utility::application::path::library + "resources.metalib"};
-	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
-	psl::string8_t environment = "";
-	switch(backend) {
-	case graphics_backend::gles:
-		environment = "gles";
-		break;
-	case graphics_backend::vulkan:
-		environment = "vulkan";
-		break;
-	case graphics_backend::webgpu:
-		environment = "webgpu";
-		break;
-	}
-
-	core::log->info("creating a '{}' backend", environment);
+	core::log->info("creating a '{}' backend", gfx::graphics_backend_str(backend));
 
 	core::log->info("creating cache");
-	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
+	cache_t cache {psl::meta::library {}};
 	core::log->info("cache created");
 
-	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
-	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
+	auto window_data = cache.create<data::window>();
+	window_data->name(APPLICATION_FULL_NAME + " { " + gfx::graphics_backend_str(backend) + " }");
 	auto surface_handle = cache.create<core::os::surface>(window_data);
 	if(!surface_handle) {
 		core::log->critical("Could not create a OS surface to draw on.");
@@ -67,9 +52,15 @@ int entry_agnostic(gfx::graphics_backend backend, core::os::context& os_context)
 	}
 
 	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME}, surface_handle);
-
 	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
+
+	core::gfx::render_graph renderGraph {};
+
+
+	auto swapchain_pass = renderGraph.create_drawpass(context_handle, swapchain_handle);
+
 	while(os_context.tick() && surface_handle->tick()) {
+		renderGraph.present();
 	}
 	return 0;
 }
@@ -105,7 +96,6 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 		core::log->critical("Could not create a OS surface to draw on.");
 		return -1;
 	}
-
 
 	wgpu::InstanceDescriptor desc = {};
 	desc.nextInChain			  = nullptr;
@@ -256,7 +246,6 @@ int main(int argc, char** argv) {
 				throw std::runtime_error("Requested a WebGPU backend, but application does not support WebGPU");
 #endif
 			}
-			return graphics_backend::undefined;
 		}
 #if defined(PE_VULKAN)
 		return graphics_backend::vulkan;
@@ -265,7 +254,8 @@ int main(int argc, char** argv) {
 #elif defined(PE_GLES)
 		return graphics_backend::gles;
 #endif
+		return graphics_backend::undefined;
 	}(argc, argv);
 	core::os::context context {};
-	return entry(backend, context);
+	return entry_agnostic(backend, context);
 }

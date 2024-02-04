@@ -8,6 +8,9 @@
 #ifdef PE_GLES
 	#include "core/gles/swapchain.hpp"
 #endif
+#if defined(PE_WEBGPU)
+	#include "core/wgpu/swapchain.hpp"
+#endif
 
 using namespace core::gfx;
 using namespace core::resource;
@@ -20,6 +23,10 @@ swapchain::swapchain(core::resource::handle<core::ivk::swapchain>& handle)
 #ifdef PE_GLES
 swapchain::swapchain(core::resource::handle<core::igles::swapchain>& handle)
 	: m_Backend(graphics_backend::gles), m_GLESHandle(handle) {}
+#endif
+#if defined(PE_WEBGPU)
+swapchain::swapchain(core::resource::handle<core::iwgpu::swapchain>& handle)
+	: m_Backend(graphics_backend::webgpu), m_WGPUHandle(handle) {}
 #endif
 
 swapchain::swapchain(core::resource::cache_t& cache,
@@ -45,5 +52,13 @@ swapchain::swapchain(core::resource::cache_t& cache,
 		surface->register_swapchain(m_VKHandle);
 		break;
 #endif
+#if defined(PE_WEBGPU)
+	case graphics_backend::webgpu:
+		m_WGPUHandle = cache.create_using<core::iwgpu::swapchain>(
+		  metaData.uid, surface, context->resource<graphics_backend::webgpu>(), use_depth);
+		break;
+#endif
+	default:
+		throw std::runtime_error("a backend that was not enabled somehow was used to create a context.");
 	}
 }

@@ -181,6 +181,8 @@ if(${PE_WEBGPU})
 	set(INC_WEBGPU
 	iwgpu
 	context
+	computepass
+	drawpass
 	swapchain
 	)
 

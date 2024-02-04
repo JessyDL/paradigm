@@ -10,6 +10,19 @@
 namespace core::gfx {
 enum class graphics_backend { undefined = 0, vulkan = 1 << 0, gles = 1 << 1, webgpu = 1 << 2 };
 
+constexpr auto graphics_backend_str(graphics_backend backend) noexcept {
+	switch(backend) {
+	case graphics_backend::vulkan:
+		return "vulkan";
+	case graphics_backend::gles:
+		return "gles";
+	case graphics_backend::webgpu:
+		return "webgpu";
+	default:
+		return "undefined";
+	}
+}
+
 template <typename T, graphics_backend backend>
 struct backend_type {};
 

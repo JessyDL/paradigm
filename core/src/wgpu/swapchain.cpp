@@ -27,3 +27,18 @@ bool swapchain::present() {
 	m_SwapChain.Present();
 	return true;
 }
+
+auto swapchain::descriptor() noexcept -> wgpu::RenderPassDescriptor {
+	m_ColorAttachments.resize(1);
+	m_ColorAttachments[0].view		 = view();
+	m_ColorAttachments[0].loadOp	 = wgpu::LoadOp::Clear;
+	m_ColorAttachments[0].storeOp	 = wgpu::StoreOp::Store;
+	m_ColorAttachments[0].clearValue = {m_ClearColor[0], m_ClearColor[1], m_ClearColor[2], m_ClearColor[3]};
+
+	auto pass_descriptor				 = wgpu::RenderPassDescriptor();
+	pass_descriptor.colorAttachments	 = m_ColorAttachments.data();
+	pass_descriptor.colorAttachmentCount = m_ColorAttachments.size();
+
+
+	return pass_descriptor;
+}

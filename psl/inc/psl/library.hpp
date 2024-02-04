@@ -90,6 +90,7 @@ class file {
 /// the psl::UID satisfies is_physical_file() ), and to have that companion file cached for faster reloads.
 class library {
   public:
+	library();
 	/// \brief location on disk where the library can be found.
 	///
 	/// The constructor will try to load the given filepath, and then parse it. It will also create the minimal
@@ -329,13 +330,13 @@ class library {
 							  */
 	};
 
-	std::unordered_map<psl::string8_t, std::unordered_set<psl::UID>> m_TagMap;
-	std::unordered_map<psl::UID, UIDData> m_MetaData;
+	std::unordered_map<psl::string8_t, std::unordered_set<psl::UID>> m_TagMap {};
+	std::unordered_map<psl::UID, UIDData> m_MetaData {};
 
-	psl::string8::view m_LibraryFile;
-	psl::string8::view m_LibraryFolder;
-	psl::string8_t m_LibraryLocation;
-	std::vector<psl::string8_t> m_Environment;
+	psl::string8::view m_LibraryFile {};
+	psl::string8::view m_LibraryFolder {};
+	psl::string8_t m_LibraryLocation {};
+	std::vector<psl::string8_t> m_Environment {};
 };
 template <typename T>
 std::optional<T*> library::get(const psl::UID& uid) const {

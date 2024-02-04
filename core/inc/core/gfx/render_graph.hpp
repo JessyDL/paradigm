@@ -23,11 +23,7 @@ class graph {
 	};
 
   public:
-	~graph() {
-		for(auto& [node, list] : m_Edges) {
-			delete(node);
-		}
-	}
+	~graph();
 	template <typename... Args>
 	T* emplace(Args&&... args) {
 		m_Edges.emplace_back(std::pair<node*, psl::array<node*>> {new node {T {std::forward<Args>(args)...}}, {}});
@@ -188,7 +184,7 @@ class render_graph {
 	using unique_var_t = std::variant<psl::unique_ptr<core::gfx::drawpass>, psl::unique_ptr<core::gfx::computepass>>;
 
   public:
-	~render_graph() = default;
+	~render_graph();
 
 	psl::view_ptr<core::gfx::drawpass> create_drawpass(core::resource::handle<core::gfx::context> context,
 													   core::resource::handle<core::gfx::swapchain> swapchain);

@@ -14,6 +14,12 @@ class swapchain;
 }
 #endif
 
+#if defined(PE_WEBGPU)
+namespace core::iwgpu {
+class swapchain;
+}
+#endif
+
 namespace core::gfx {
 class swapchain;
 
@@ -28,6 +34,12 @@ struct backend_type<swapchain, graphics_backend::vulkan> {
 template <>
 struct backend_type<swapchain, graphics_backend::gles> {
 	using type = core::igles::swapchain;
+};
+#endif
+#if defined(PE_WEBGPU)
+template <>
+struct backend_type<swapchain, graphics_backend::webgpu> {
+	using type = core::iwgpu::swapchain;
 };
 #endif
 }	 // namespace core::gfx

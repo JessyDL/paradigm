@@ -33,6 +33,8 @@ class swapchain {
 	auto texture() const noexcept -> wgpu::Texture { return m_SwapChain.GetCurrentTexture(); }
 	auto view() const noexcept -> wgpu::TextureView { return m_SwapChain.GetCurrentTextureView(); }
 
+	auto descriptor() noexcept -> wgpu::RenderPassDescriptor;
+
   private:
 	psl::vec4 m_ClearColor {0.25f, 0.4f, 0.95f, 1.0f};
 	float m_ClearDepth {1.0f};

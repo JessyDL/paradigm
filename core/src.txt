@@ -110,6 +110,8 @@ endif()
 if(${PE_WEBGPU})
 	set(SRC_WEBGPU
 	context
+	computepass
+	drawpass
 	swapchain
 	)
 	list(TRANSFORM SRC_WEBGPU PREPEND src/wgpu/)
