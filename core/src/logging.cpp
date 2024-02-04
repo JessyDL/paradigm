@@ -10,6 +10,9 @@ std::shared_ptr<spdlog::logger> core::ivk::log {nullptr};
 #ifdef PE_GLES
 std::shared_ptr<spdlog::logger> core::igles::log {nullptr};
 #endif
+#ifdef PE_WEBGPU
+std::shared_ptr<spdlog::logger> core::iwgpu::log {nullptr};
+#endif
 std::shared_ptr<spdlog::logger> core::data::log {nullptr};
 std::shared_ptr<spdlog::logger> core::systems::log {nullptr};
 std::shared_ptr<spdlog::logger> core::os::log {nullptr};

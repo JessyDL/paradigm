@@ -30,9 +30,10 @@
 #include "core/os/context.hpp"
 #include "core/os/surface.hpp"	  // the OS surface to draw one
 
-#include <webgpu/webgpu_cpp.h>
+#include "core/gfx/context.hpp"
+#include "core/gfx/swapchain.hpp"
 
-#include <future>
+#include <core/wgpu/iwgpu.hpp>
 
 using namespace core;
 using namespace core::resource;
@@ -84,6 +85,9 @@ void setup_loggers() {
 
 	auto igleslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 	  psl::utility::application::path::get_path() + sub_path + "igles.log", true);
+
+	auto iwgpulogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+	  psl::utility::application::path::get_path() + sub_path + "iwgpu.log", true);
 
 	auto gfxlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 	  psl::utility::application::path::get_path() + sub_path + "gfx.log", true);
@@ -158,74 +162,57 @@ void setup_loggers() {
 	spdlog::register_logger(igles_logger);
 	core::igles::log = igles_logger;
 #endif
+#ifdef PE_WEBGPU
+	sinks.clear();
+	sinks.push_back(mainlogger);
+	sinks.push_back(iwgpulogger);
+
+	auto iwgpu_logger = std::make_shared<spdlog::logger>("iwgpu", begin(sinks), end(sinks));
+	spdlog::register_logger(iwgpu_logger);
+	core::iwgpu::log = iwgpu_logger;
+#endif
 	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 
-namespace wgpu {
+int entry_agnostic(gfx::graphics_backend backend, core::os::context& os_context) {
+	core::log->info("Starting the application");
 
-struct RequestAdapterCallbackResult {
-	wgpu::Adapter adapter;
-	wgpu::RequestAdapterStatus status;
-	char const* message;
-	void* userdata;
-};
+	psl::string libraryPath {psl::utility::application::path::library + "resources.metalib"};
+	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
+	psl::string8_t environment = "";
+	switch(backend) {
+	case graphics_backend::gles:
+		environment = "gles";
+		break;
+	case graphics_backend::vulkan:
+		environment = "vulkan";
+		break;
+	case graphics_backend::webgpu:
+		environment = "webgpu";
+		break;
+	}
 
-[[nodiscard]] auto RequestAdapter(wgpu::Instance instance, wgpu::RequestAdapterOptions options)
-  -> std::future<RequestAdapterCallbackResult> {
-	auto promise = std::promise<RequestAdapterCallbackResult>();
-	instance.RequestAdapter(
-	  &options,
-	  [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* userdata) -> void {
-		  auto promise = static_cast<std::promise<RequestAdapterCallbackResult>*>(userdata);
-		  promise->set_value({adapter, static_cast<wgpu::RequestAdapterStatus>(status), message, userdata});
-		  wgpuAdapterRelease(adapter);
-	  },
-	  &promise);
+	core::log->info("creating a '{}' backend", environment);
 
-	return promise.get_future();
+	core::log->info("creating cache");
+	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
+	core::log->info("cache created");
+
+	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
+	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
+	auto surface_handle = cache.create<core::os::surface>(window_data);
+	if(!surface_handle) {
+		core::log->critical("Could not create a OS surface to draw on.");
+		return -1;
+	}
+
+	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME}, surface_handle);
+
+	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
+	while(os_context.tick() && surface_handle->tick()) {
+	}
+	return 0;
 }
-
-template <typename Fn>
-auto RequestAdapter(wgpu::Instance instance,
-					wgpu::RequestAdapterOptions options,
-					Fn&& invocable,
-					void* userdata = nullptr)
-  -> void requires std::is_invocable_v<Fn, wgpu::RequestAdapterStatus, wgpu::Adapter, char const*, void*> {
-	auto future = RequestAdapter(instance, options);
-	auto result = future.get();
-	invocable(result.status, std::move(result.adapter), result.message, userdata);
-}
-
-struct DeviceCallbackResult {
-	wgpu::Device device;
-	wgpu::RequestDeviceStatus status;
-	char const* message;
-	void* userdata;
-};
-
-[[nodiscard]] auto RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor)
-  -> std::future<DeviceCallbackResult> {
-	auto promise = std::promise<DeviceCallbackResult>();
-	adapter.RequestDevice(
-	  &descriptor,
-	  [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* userdata) -> void {
-		  auto promise = static_cast<std::promise<DeviceCallbackResult>*>(userdata);
-		  promise->set_value({device, static_cast<wgpu::RequestDeviceStatus>(status), message, userdata});
-		  wgpuDeviceRelease(device);
-	  },
-	  &promise);
-
-	return promise.get_future();
-}
-
-template <typename Fn>
-auto RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor, Fn&& invocable, void* userdata = nullptr)
-  -> void requires std::is_invocable_v<Fn, wgpu::RequestDeviceStatus, wgpu::Device, char const*, void*> {
-	auto future = RequestDevice(adapter, descriptor);
-	auto result = future.get();
-	invocable(result.status, std::move(result.device), result.message, userdata);
-}
-}	 // namespace wgpu
 
 int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	core::log->info("Starting the application");

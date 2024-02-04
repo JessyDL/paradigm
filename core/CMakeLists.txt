@@ -14,6 +14,8 @@ source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_GL
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_GLES}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_VULKAN}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_VULKAN}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC_WEBGPU}) 
+source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/src" 	PREFIX "src" FILES ${SRC_WEBGPU}) 
 
 if(PE_USE_NATVIS)	
 	file(GLOB_RECURSE NATVIS nvs/*.natvis)
@@ -101,7 +103,7 @@ add_custom_command(TARGET core_generator
 	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/gen/core/paradigm.hpp
 	COMMENT "Generating headers for Paradigm")
 
-add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${NATVIS})
+add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${INC_WEBGPU} ${SRC_WEBGPU} ${NATVIS})
 add_library(paradigm::core ALIAS core)
 
 add_dependencies(core core_generator)

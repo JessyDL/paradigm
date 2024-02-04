@@ -27,7 +27,7 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 psl::meta::file* metaFile,
 					 handle<os::surface> surface,
 					 handle<context> context,
-					 core::os::context& os_context,
+					 [[maybe_unused]] core::os::context& os_context,
 					 bool use_depth)
 	: m_Backend(context->backend()) {
 	switch(context->backend()) {

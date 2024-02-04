@@ -237,6 +237,9 @@ void setup_loggers() {
 	auto igleslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 	  psl::utility::application::path::get_path() + sub_path + "igles.log", true);
 
+	auto iwgpulogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
+	  psl::utility::application::path::get_path() + sub_path + "iwgpu.log", true);
+
 	auto gfxlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
 	  psl::utility::application::path::get_path() + sub_path + "gfx.log", true);
 
@@ -309,6 +312,15 @@ void setup_loggers() {
 	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
 	spdlog::register_logger(igles_logger);
 	core::igles::log = igles_logger;
+	#endif
+	#ifdef PE_WEBGPU
+	sinks.clear();
+	sinks.push_back(mainlogger);
+	sinks.push_back(iwgpulogger);
+
+	auto iwgpu_logger = std::make_shared<spdlog::logger>("iwgpu", begin(sinks), end(sinks));
+	spdlog::register_logger(iwgpu_logger);
+	core::iwgpu::log = iwgpu_logger;
 	#endif
 	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
@@ -517,7 +529,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 		return -1;
 	}
 
-	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME});
+	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME}, surface_handle);
 
 	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
 
