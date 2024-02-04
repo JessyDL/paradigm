@@ -19,6 +19,11 @@ namespace igles {
 	extern std::shared_ptr<spdlog::logger> log;
 }
 #endif
+#ifdef PE_WEBGPU
+namespace iwgpu {
+	extern std::shared_ptr<spdlog::logger> log;
+}
+#endif
 namespace data {
 	extern std::shared_ptr<spdlog::logger> log;
 }
@@ -30,4 +35,9 @@ namespace os {
 }
 
 extern psl::profiling::profiler profiler;
+
+namespace {
+	bool _loggers_initialized = false;
+}
+auto initialize_loggers() -> bool;
 }	 // namespace core

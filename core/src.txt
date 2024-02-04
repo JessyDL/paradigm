@@ -106,3 +106,14 @@ if(${PE_GLES})
 	list(TRANSFORM SRC_GLES PREPEND src/gles/)
 	list(TRANSFORM SRC_GLES APPEND .cpp)
 endif()
+
+if(${PE_WEBGPU})
+	set(SRC_WEBGPU
+	context
+	computepass
+	drawpass
+	swapchain
+	)
+	list(TRANSFORM SRC_WEBGPU PREPEND src/wgpu/)
+	list(TRANSFORM SRC_WEBGPU APPEND .cpp)
+endif()

@@ -9,6 +9,8 @@ using namespace psl::serialization;
 using namespace psl;
 const uint64_t file::polymorphic_identity {register_polymorphic<file>()};
 
+library::library() {}
+
 library::library(psl::string8::view lib, std::vector<psl::string8_t> environment) {
 	auto library	  = psl::utility::platform::file::read(lib).value_or("");
 	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib);

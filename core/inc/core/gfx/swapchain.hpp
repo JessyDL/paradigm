@@ -19,6 +19,9 @@ class swapchain {
 #ifdef PE_GLES
 	explicit swapchain(core::resource::handle<core::igles::swapchain>& handle);
 #endif
+#if defined(PE_WEBGPU)
+	explicit swapchain(core::resource::handle<core::iwgpu::swapchain>& handle);
+#endif
 
 	swapchain(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,
@@ -45,6 +48,10 @@ class swapchain {
 		if constexpr(backend == graphics_backend::gles)
 			return m_GLESHandle;
 #endif
+#if defined(PE_WEBGPU)
+		if constexpr(backend == graphics_backend::webgpu)
+			return m_WGPUHandle;
+#endif
 	};
 
   private:
@@ -54,6 +61,9 @@ class swapchain {
 #endif
 #ifdef PE_GLES
 	core::resource::handle<core::igles::swapchain> m_GLESHandle;
+#endif
+#if defined(PE_WEBGPU)
+	core::resource::handle<core::iwgpu::swapchain> m_WGPUHandle;
 #endif
 };
 }	 // namespace core::gfx

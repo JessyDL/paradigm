@@ -25,6 +25,8 @@ OPTION(VK_STATIC "Should we statically bind Vulkan (if possible)" OFF)
 OPTION(PE_GLES "controls OpenGL ES support" ON)
 OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
 OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
+OPTION(PE_WEBGPU_NATIVE "controls native WebGPU support" OFF)
+OPTION(PE_WEBGPU "controls WebGPU support, note this is also on when PE_WEBGPU_NATIVE is enabled." OFF)
 OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
 OPTION(PE_DEV_MAKE_PSL_EXE "For development you can make an executable " OFF)
 OPTION(PE_TESTS "make the tests" ON)
@@ -162,6 +164,10 @@ endif()
 string(TOUPPER ${PE_MODE} PE_MODE)
 list(APPEND PE_DEFINES -DPE_${PE_MODE})
 
+if(PE_WEBGPU_NATIVE)
+	list(APPEND PE_DEFINES -DPE_WEBGPU_NATIVE -DPE_WEBGPU)
+endif()
+
 if(PE_VULKAN)
 	message("enabling VULKAN")
 	list(APPEND PE_DEFINES -DPE_VULKAN)
@@ -202,6 +208,10 @@ endif()
 
 if(PE_ECS_DISABLE_LOOKUP_CACHE_BEHAVIOUR)
 	list(APPEND PE_DEFINES -DPE_ECS_DISABLE_LOOKUP_CACHE)
+endif()
+
+if(PE_WEBGPU_NATIVE)
+	set(PE_WEBGPU ON)
 endif()
 
 # here we register the local hooks for git, this is done to ensure that the

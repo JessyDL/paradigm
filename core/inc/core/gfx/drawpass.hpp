@@ -2,7 +2,6 @@
 #include "core/gfx/types.hpp"
 #include "core/resource/resource.hpp"
 #include "psl/view_ptr.hpp"
-#include <variant>
 #ifdef PE_GLES
 namespace core::igles {
 class drawpass;
@@ -10,6 +9,11 @@ class drawpass;
 #endif
 #ifdef PE_VULKAN
 namespace core::ivk {
+class drawpass;
+}
+#endif
+#if defined(PE_WEBGPU)
+namespace core::iwgpu {
 class drawpass;
 }
 #endif
@@ -36,6 +40,12 @@ struct backend_type<drawpass, graphics_backend::gles> {
 	using type = core::igles::drawpass;
 };
 #endif
+#if defined(PE_WEBGPU)
+template <>
+struct backend_type<drawpass, graphics_backend::webgpu> {
+	using type = core::iwgpu::drawpass;
+};
+#endif
 
 class drawpass {
   public:
@@ -45,9 +55,13 @@ class drawpass {
 #ifdef PE_GLES
 	explicit drawpass(core::igles::drawpass* handle);
 #endif
+#if defined(PE_WEBGPU)
+	explicit drawpass(core::iwgpu::drawpass* handle);
+#endif
 
-	drawpass(core::resource::handle<context> context, core::resource::handle<framebuffer_t> framebuffer);
-	drawpass(core::resource::handle<context> context, core::resource::handle<swapchain> swapchain);
+	drawpass([[maybe_unused]] core::resource::handle<context> context,
+			 core::resource::handle<framebuffer_t> framebuffer);
+	drawpass([[maybe_unused]] core::resource::handle<context> context, core::resource::handle<swapchain> swapchain);
 	~drawpass();
 
 	drawpass(const drawpass& other)				   = delete;
@@ -89,6 +103,12 @@ class drawpass {
 		if constexpr(backend == graphics_backend::gles)
 			return m_GLESHandle;
 #endif
+#if defined(PE_WEBGPU)
+		if constexpr(backend == graphics_backend::webgpu)
+			return m_WGPUHandle;
+#endif
+
+		return nullptr;
 	};
 
   private:
@@ -98,6 +118,9 @@ class drawpass {
 #endif
 #ifdef PE_GLES
 	core::igles::drawpass* m_GLESHandle {nullptr};
+#endif
+#if defined(PE_WEBGPU)
+	core::iwgpu::drawpass* m_WGPUHandle {nullptr};
 #endif
 	bool m_Dirty {true};
 };

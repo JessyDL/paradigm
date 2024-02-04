@@ -4,8 +4,7 @@
 
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
-// #include <Windows.h>
-// #include "stdafx.h"
+
 #include "core/resource/resource.hpp"
 #include "psl/application_utils.hpp"
 #include "psl/library.hpp"
@@ -13,14 +12,9 @@
 
 #include "core/paradigm.hpp"
 
-#include "core/logging.hpp"
-#include "spdlog/sinks/basic_file_sink.h"
-#include "spdlog/sinks/dist_sink.h"
-#ifdef _MSC_VER
-	#include "spdlog/sinks/msvc_sink.h"
-#endif
 #include "core/gfx/limits.hpp"
 #include "core/gfx/types.hpp"
+#include "core/logging.hpp"
 #include "core/utility/geometry.hpp"
 
 #include "core/data/buffer.hpp"
@@ -189,143 +183,6 @@ handle<core::gfx::material_t> setup_gfx_depth_material(resource::cache_t& cache,
 }
 
 void create_ui(psl::ecs::state_t& state) {}
-
-#ifndef PE_PLATFORM_ANDROID
-
-inline std::tm localtime_safe(std::time_t timer) {
-	std::tm bt {};
-	#if defined(__unix__)
-	localtime_r(&timer, &bt);
-	#elif defined(_MSC_VER)
-	localtime_s(&bt, &timer);
-	#else
-	static std::mutex mtx;
-	std::lock_guard<std::mutex> lock(mtx);
-	bt = *std::localtime(&timer);
-	#endif
-	return bt;
-}
-
-void setup_loggers() {
-	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
-	std::time_t now_c						  = std::chrono::system_clock::to_time_t(now);
-	std::tm now_tm							  = localtime_safe(now_c);
-	psl::string time;
-	time.resize(20);
-	strftime(time.data(), 20, "%Y-%m-%d %H-%M-%S", &now_tm);
-	time[time.size() - 1] = '/';
-	psl::string sub_path  = "logs/" + time;
-	if(!psl::utility::platform::file::exists(psl::utility::application::path::get_path() + sub_path + "main.log"))
-		psl::utility::platform::file::write(psl::utility::application::path::get_path() + sub_path + "main.log", "");
-	std::vector<spdlog::sink_ptr> sinks;
-
-	auto mainlogger = std::make_shared<spdlog::sinks::dist_sink_mt>();
-	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "main.log", true));
-	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + "logs/latest.log", true));
-	#ifdef _MSC_VER
-	mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
-	#else
-	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-	outlogger->set_level(spdlog::level::level_enum::warn);
-	mainlogger->add_sink(outlogger);
-	#endif
-
-	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "ivk.log", true);
-
-	auto igleslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "igles.log", true);
-
-	auto gfxlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "gfx.log", true);
-
-	auto systemslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "systems.log", true);
-
-	auto oslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "os.log", true);
-
-	auto datalogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "data.log", true);
-
-	auto corelogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "core.log", true);
-
-	sinks.push_back(mainlogger);
-	sinks.push_back(corelogger);
-
-	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
-	spdlog::register_logger(logger);
-	core::log = logger;
-
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(systemslogger);
-
-	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
-	spdlog::register_logger(system_logger);
-	core::systems::log = system_logger;
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(oslogger);
-
-	auto os_logger = std::make_shared<spdlog::logger>("os", begin(sinks), end(sinks));
-	spdlog::register_logger(os_logger);
-	core::os::log = os_logger;
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(datalogger);
-
-	auto data_logger = std::make_shared<spdlog::logger>("data", begin(sinks), end(sinks));
-	spdlog::register_logger(data_logger);
-	core::data::log = data_logger;
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(gfxlogger);
-
-	auto gfx_logger = std::make_shared<spdlog::logger>("gfx", begin(sinks), end(sinks));
-	spdlog::register_logger(gfx_logger);
-	core::gfx::log = gfx_logger;
-
-	#ifdef PE_VULKAN
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(ivklogger);
-
-	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
-	spdlog::register_logger(ivk_logger);
-	core::ivk::log = ivk_logger;
-	#endif
-	#ifdef PE_GLES
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(igleslogger);
-
-	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
-	spdlog::register_logger(igles_logger);
-	core::igles::log = igles_logger;
-	#endif
-	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
-}
-#else
-	#include "spdlog/sinks/android_sink.h"
-void setup_loggers() {
-	core::log		   = spdlog::android_logger_mt("main", "paradigm");
-	core::systems::log = spdlog::android_logger_mt("systems", "paradigm");
-	core::os::log	   = spdlog::android_logger_mt("os", "paradigm");
-	core::data::log	   = spdlog::android_logger_mt("data", "paradigm");
-	core::gfx::log	   = spdlog::android_logger_mt("gfx", "paradigm");
-	core::ivk::log	   = spdlog::android_logger_mt("ivk", "paradigm");
-	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
-}
-
-#endif
 
 auto generate_fullscreen_quad(core::resource::cache_t& cache,
 							  core::resource::handle<core::gfx::context>& context_handle,
@@ -500,6 +357,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	case graphics_backend::vulkan:
 		environment = "vulkan";
 		break;
+	case graphics_backend::webgpu:
+		environment = "webgpu";
+		break;
 	}
 
 	core::log->info("creating cache");
@@ -515,7 +375,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 		return -1;
 	}
 
-	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME});
+	auto context_handle = cache.create<core::gfx::context>(backend, psl::string8_t {APPLICATION_NAME}, surface_handle);
 
 	auto swapchain_handle = cache.create<core::gfx::swapchain>(surface_handle, context_handle, os_context);
 
@@ -962,7 +822,7 @@ AAssetManager* psl::utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
 void android_main(android_app* application) {
 	auto os_context										= core::os::context {application};
 	psl::utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
-	setup_loggers();
+	core::initialize_loggers();
 	std::srand(0);
 
 	// go into a holding loop while wait for the window to come online.
@@ -989,7 +849,7 @@ int main(int argc, char* argv[]) {
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	#endif
-	setup_loggers();
+	core::initialize_loggers();
 
 	#ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support
@@ -1017,10 +877,19 @@ int main(int argc, char* argv[]) {
 	#else
 				throw std::runtime_error("Requested a GLES backend, but application does not support GLES");
 	#endif
+			} else if(text == "--webgpu") {
+	#if defined(PE_WEBGPU)
+				return graphics_backend::webgpu;
+	#else
+				throw std::runtime_error("Requested a WebGPU backend, but application does not support WebGPU");
+	#endif
 			}
+			return graphics_backend::undefined;
 		}
 	#if defined(PE_VULKAN)
 		return graphics_backend::vulkan;
+	#elif defined(PE_WEBGPU)
+		return graphics_backend::webgpu;
 	#elif defined(PE_GLES)
 		return graphics_backend::gles;
 	#endif

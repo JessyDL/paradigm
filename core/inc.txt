@@ -176,5 +176,24 @@ if(${PE_GLES})
 	list(TRANSFORM INC_GLES APPEND .hpp)
 endif()
 
+# include files for the WebGPU API
+if(${PE_WEBGPU})
+	set(INC_WEBGPU
+	iwgpu
+	context
+	computepass
+	drawpass
+	swapchain
+	)
+
+	list(APPEND FWD 
+
+	wgpu/texture
+	)
+
+	list(TRANSFORM INC_WEBGPU PREPEND inc/core/wgpu/)
+	list(TRANSFORM INC_WEBGPU APPEND .hpp)
+endif()
+
 list(TRANSFORM FWD PREPEND fwd/core/fwd/)
 list(TRANSFORM FWD APPEND .hpp)

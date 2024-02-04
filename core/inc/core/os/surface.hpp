@@ -22,10 +22,11 @@ typedef HINSTANCE__* HINSTANCE;
 namespace core::systems {
 class input;
 }
+#if defined(PE_VULKAN)
 namespace core::ivk {
 class swapchain;
 }
-
+#endif
 namespace core::os {
 /// \brief primitive object that create a surface we can render on.
 ///
@@ -89,10 +90,11 @@ class surface {
 	/// across the various platforms.
 	core::systems::input& input() const noexcept;
 
+#if defined(PE_VULKAN)
 	/// \brief this method will be called by the swapchain class, so that the surface knows who to notify of resize
 	/// events, etc.. \todo can we hide this?
 	void register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain);
-
+#endif
 	void trap_cursor(bool state) noexcept;
 	bool is_cursor_trapped() const noexcept;
 #if defined(SURFACE_WIN32)
@@ -127,7 +129,9 @@ class surface {
 #endif
 
 	core::resource::handle<data::window> m_Data;
+#if defined(PE_VULKAN)
 	std::vector<core::resource::handle<core::ivk::swapchain>> m_Swapchains;
+#endif
 	bool m_Focused {false};
 	bool m_Open {false};
 	bool m_IndicatorClipped {false};

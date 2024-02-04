@@ -88,5 +88,6 @@
         "stop_token": "cpp",
         "cinttypes": "cpp",
         "typeindex": "cpp"
-    }
+    },
+    "git.ignoreLimitWarning": true
 }

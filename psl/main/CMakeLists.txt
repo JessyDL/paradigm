@@ -2,7 +2,12 @@
 add_executable(psl_main main.cpp)
 add_executable(paradigm::psl::main ALIAS psl_main)
 
-target_link_libraries(psl_main psl)
+list(APPEND PUBLIC_LIBRARIES psl)
+list(APPEND PRIVATE_LIBRARIES)
+if(${PE_WEBGPU_NATIVE})
+    list(APPEND PRIVATE_LIBRARIES webgpu_cpp webgpu_dawn)
+endif()
+target_link_libraries(psl_main PUBLIC ${PUBLIC_LIBRARIES} PRIVATE ${PRIVATE_LIBRARIES})
 set_target_properties(psl_main PROPERTIES LINKER_LANGUAGE CXX)
 
 
