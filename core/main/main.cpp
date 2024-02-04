@@ -822,7 +822,7 @@ AAssetManager* psl::utility::platform::file::ANDROID_ASSET_MANAGER = nullptr;
 void android_main(android_app* application) {
 	auto os_context										= core::os::context {application};
 	psl::utility::platform::file::ANDROID_ASSET_MANAGER = application->activity->assetManager;
-	setup_loggers();
+	core::initialize_loggers();
 	std::srand(0);
 
 	// go into a holding loop while wait for the window to come online.
