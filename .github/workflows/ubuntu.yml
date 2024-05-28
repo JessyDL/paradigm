@@ -2,6 +2,10 @@ name: ubuntu
 
 on: [push]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !(startsWith(github.ref, 'release/') || github.ref == 'develop')}}
+
 jobs:
   # verify the project's formatting, errors out if a difference is detected and generates a patch
   # the user should apply to fix it.

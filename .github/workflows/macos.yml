@@ -2,6 +2,10 @@ name: macos
 
 on: [push]
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !(startsWith(github.ref, 'release/') || github.ref == 'develop')}}
+
 jobs:
   build:
     strategy:
