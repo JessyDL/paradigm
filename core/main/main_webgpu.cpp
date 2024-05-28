@@ -213,6 +213,8 @@ int main(int argc, char** argv) {
 #endif
 	core::initialize_loggers();
 
+	core::log->warn("WebGPU is not yet fully implemented, this is a temporary main file.");
+
 #ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support
 		dummy::hex_dummy_high hex_dummy_high {};

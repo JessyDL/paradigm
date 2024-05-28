@@ -1,6 +1,4 @@
 #pragma once
-//#include <string>
-//#include <string_view>
 #include "psl/logging.hpp"
 #include "psl/meta.hpp"
 #include "psl/serialization/polymorphic.hpp"
@@ -94,9 +92,11 @@ class library {
 	/// \brief location on disk where the library can be found.
 	///
 	/// The constructor will try to load the given filepath, and then parse it. It will also create the minimal
-	/// representation of each meta::file entry in the given file, with its tags, etc.. \param[in] lib The filepath
-	/// to which file should be loaded. This path can either be absolute or relative.
-	library(psl::string8::view lib, std::vector<psl::string8_t> environment = {});
+	/// representation of each meta::file entry in the given file, with its tags, etc..
+	/// \param[in] lib The filepath to which file should be loaded. This path can either be absolute or relative.
+	/// \param[in] environment a list of environment values to select within the library to load, this is a form
+	/// of permutating the loaded values.
+	library(std::optional<psl::string8::view> lib = {}, std::vector<psl::string8_t> environment = {});
 	~library();
 
 	library(const library& other) = delete;

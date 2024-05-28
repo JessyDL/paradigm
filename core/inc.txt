@@ -183,11 +183,14 @@ if(${PE_WEBGPU})
 	context
 	computepass
 	drawpass
+	pipeline
+	shader
 	swapchain
 	)
 
 	list(APPEND FWD 
 
+	wgpu/shader
 	wgpu/texture
 	)
 

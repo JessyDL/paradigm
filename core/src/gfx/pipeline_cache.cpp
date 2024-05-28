@@ -28,16 +28,20 @@ pipeline_cache::pipeline_cache(core::resource::cache_t& cache,
 							   core::resource::handle<core::gfx::context> context)
 	: m_Backend(context->backend()) {
 	switch(context->backend()) {
-#ifdef PE_GLES
 	case graphics_backend::gles:
+#ifdef PE_GLES
 		m_GLESHandle = cache.create_using<core::igles::program_cache>(metaData.uid);
 		break;
 #endif
-#ifdef PE_VULKAN
+		psl::fatal("gles not supported");
 	case graphics_backend::vulkan:
+#ifdef PE_VULKAN
 		m_VKHandle =
 		  cache.create_using<core::ivk::pipeline_cache>(metaData.uid, context->resource<graphics_backend::vulkan>());
 		break;
 #endif
+		psl::fatal("vulkan not supported");
+	default:
+		psl::fatal("Unknown backend not supported");
 	}
 }

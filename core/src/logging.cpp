@@ -40,9 +40,10 @@ inline std::tm localtime_safe(std::time_t timer) {
 	return bt;
 }
 
-auto core::initialize_loggers() -> bool {
-	if(core::_loggers_initialized)
-		return true;
+auto core::initialize_loggers() -> void {
+	if(core::_loggers_initialized) {
+		return;
+	}
 
 	core::_loggers_initialized = true;
 
@@ -167,9 +168,10 @@ auto core::initialize_loggers() -> bool {
 #else
 
 	#include "spdlog/sinks/android_sink.h"
-auto core::initialize_loggers() -> bool {
-	if(core::_loggers_initialized)
-		return true;
+auto core::initialize_loggers() -> void {
+	if(core::_loggers_initialized) {
+		return;
+	}
 
 	core::_loggers_initialized = true;
 	core::log				   = spdlog::android_logger_mt("main", "paradigm");

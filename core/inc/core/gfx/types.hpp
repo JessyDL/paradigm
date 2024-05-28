@@ -3,6 +3,7 @@
 #include "psl/memory/range.hpp"
 #include "psl/memory/segment.hpp"
 #include "psl/ustring.hpp"
+#include "psl/utility/enum.hpp"
 #include <optional>
 #include <variant>
 #include <vector>
@@ -145,7 +146,10 @@ struct commit_instruction {
 	/// \brief sizeof source
 	size_t size {0};
 };
-///*** [format:enum
+
+/// \brief describes what format the shader source is in.
+enum class shader_source_format { unknown = 0, glsl, spirv, hlsl, msl, wgsl };
+
 enum class shader_stage : uint8_t {
 	vertex				   = 1 << 0,
 	tesselation_control	   = 1 << 1,
@@ -937,3 +941,9 @@ inline size_t packing_size(format_t value) noexcept {
 	return 0;
 }
 }	 // namespace core::gfx
+
+
+namespace psl::utility {
+template <>
+inline constexpr auto enable_enum_ops<core::gfx::graphics_backend> = enum_ops_t::LOGICAL;
+}	 // namespace psl::utility

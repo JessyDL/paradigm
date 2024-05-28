@@ -327,7 +327,6 @@ bool psl::utility::platform::file::write(psl::string_view filename, psl::string_
 
 bool psl::utility::platform::file::read(psl::string_view filename, psl::string& out, size_t count) {
 	psl::string file_name = directory::to_platform(filename);
-	psl_assert(exists(file_name), "Could not find filename {}", file_name);
 #if !defined(PE_PLATFORM_ANDROID)
 	std::ifstream file(file_name.c_str(), std::ios::binary | std::ios::ate);
 	if(!file.is_open()) {

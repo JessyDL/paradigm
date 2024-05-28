@@ -148,17 +148,23 @@ class shader final : public psl::meta::file {
 
 	~shader() = default;
 
-	bool per_instance(size_t attribute_index) const noexcept;
-	bool per_instance(const attribute& attribute) const noexcept;
-
-
 	/// \returns the shader stage of this SPIR-V module (i.e. vertex, fragment, compute, etc..)
 	core::gfx::shader_stage stage() const noexcept { return m_Stage.value; }
+
 	/// \brief sets the stage of this SPIR-V module to the given value.
 	/// \warning it is assumed this stage flag is the actual stage flag, otherwise binding the
 	/// shader will fail during creation.
 	/// \param[in] value the stage to expect.
 	void stage(core::gfx::shader_stage value) noexcept { m_Stage.value = value; }
+
+	/// \returns the source format of this SPIR-V module (i.e. glsl, spirv, etc..)
+	core::gfx::shader_source_format source_format() const noexcept { return m_SourceFormat.value; }
+
+	/// \brief sets the source format of this SPIR-V module to the given value.
+	/// \param[in] value the source format to expect.
+	/// \warning it is assumed this source format is the actual source format, otherwise binding the
+	/// shader will fail during creation.
+	void source_format(core::gfx::shader_source_format value) noexcept { m_SourceFormat.value = value; }
 
 	psl::array_view<attribute> inputs() noexcept {
 		return psl::array_view<attribute>(m_Attributes.data(), m_InputAttributesSize);
@@ -201,7 +207,7 @@ class shader final : public psl::meta::file {
 								 std::end(m_Attributes));
 		}
 
-		s << m_Stage << inputs << outputs << m_Descriptors;
+		s << m_Stage << m_SourceFormat << inputs << outputs << m_Descriptors;
 
 		std::sort(std::begin(m_Descriptors.value), std::end(m_Descriptors.value), [](const auto& lhs, const auto& rhs) {
 			return lhs.binding() < rhs.binding();
@@ -217,6 +223,8 @@ class shader final : public psl::meta::file {
 
 	psl::serialization::property<"STAGE", core::gfx::shader_stage> m_Stage;
 	psl::serialization::property<"DESCRIPTORS", psl::array<descriptor>> m_Descriptors;
+	psl::serialization::property<"SOURCE_FORMAT", core::gfx::shader_source_format> m_SourceFormat {
+	  core::gfx::shader_source_format::unknown};
 	psl::array<attribute> m_Attributes;
 	size_t m_InputAttributesSize {0};	 // index of end() for input attributes
 

@@ -28,24 +28,25 @@ compute::compute(core::resource::cache_t& cache,
 				 core::resource::handle<core::data::material_t> data,
 				 core::resource::handle<pipeline_cache> pipeline_cache) {
 	switch(context_handle->backend()) {
-#ifdef PE_GLES
 	case graphics_backend::gles:
+#ifdef PE_GLES
 		m_GLESHandle = cache.create_using<core::igles::compute>(
 		  metaData.uid, data, pipeline_cache->resource<graphics_backend::gles>());
 		break;
 #endif
+		psl::fatal("gles not supported");
+	case graphics_backend::vulkan:
 #ifdef PE_VULKAN
 		psl::not_implemented("todo implement vulkan backend");
-	case graphics_backend::vulkan:
-		psl::not_implemented();
 		/*
 			m_Handle << cache.create_using<core::ivk::compute>(metaData.uid,
 																context_handle->resource().get<core::ivk::context>(),
 		   data, pipeline_cache->resource().get<core::ivk::pipeline_cache>());*/
 		break;
 #endif
+		psl::fatal("vulkan not supported");
 	default:
-		psl::not_implemented();
+		psl::fatal("Unknown backend not supported");
 	}
 }
 

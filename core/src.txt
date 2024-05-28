@@ -112,6 +112,8 @@ if(${PE_WEBGPU})
 	context
 	computepass
 	drawpass
+	pipeline
+	shader
 	swapchain
 	)
 	list(TRANSFORM SRC_WEBGPU PREPEND src/wgpu/)

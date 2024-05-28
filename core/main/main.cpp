@@ -363,6 +363,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	}
 
 	core::log->info("creating cache");
+	// though you can create a library with or without a file, this sample cannot run without it.
+	psl_assert(
+	  psl::utility::platform::file::exists(libraryPath), "Could not find the resource library at: {}", libraryPath);
 	cache_t cache {psl::meta::library {psl::to_string8_t(libraryPath), {{environment}}}};
 	core::log->info("cache created");
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
@@ -884,7 +887,6 @@ int main(int argc, char* argv[]) {
 				throw std::runtime_error("Requested a WebGPU backend, but application does not support WebGPU");
 	#endif
 			}
-			return graphics_backend::undefined;
 		}
 	#if defined(PE_VULKAN)
 		return graphics_backend::vulkan;
@@ -892,6 +894,8 @@ int main(int argc, char* argv[]) {
 		return graphics_backend::webgpu;
 	#elif defined(PE_GLES)
 		return graphics_backend::gles;
+	#else
+		psl::fatal("No backend enabled, please enable one");
 	#endif
 	}(argc, argv);
 	core::os::context context {};
