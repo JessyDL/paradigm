@@ -18,25 +18,20 @@ DIRECTORIES = [
 
 
 def load_config(file: str = CONFIG_FILE):
+    res = {
+        "formatting": {
+            "run-on-wsl": False,
+            "wsl-python": "python3",
+            "shell": False,
+            "clang-format": ["clang-format"],
+        }
+    }
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
-            res = json.load(f)
-
-            if "formatting" not in res:
-                res["formatting"] = {}
-            if "run-on-wsl" not in res["formatting"]:
-                res["formatting"]["run-on-wsl"] = False
-            if "wsl-python" not in res["formatting"]:
-                res["formatting"]["wsl-python"] = "python3"
-            if "shell" not in res["formatting"]:
-                res["formatting"]["shell"] = False
-            if "clang-format" not in res["formatting"]:
-                res["formatting"]["clang-format"] = ["clang-format"]
-
-            elif isinstance(res["formatting"]["clang-format"], str):
+            res = res | json.load(f)
+            if isinstance(res["formatting"]["clang-format"], str):
                 res["formatting"]["clang-format"] = [res["formatting"]["clang-format"]]
-            return res
-    return None
+    return res
 
 
 CONFIG = load_config()
