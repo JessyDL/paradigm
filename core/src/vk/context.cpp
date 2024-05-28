@@ -2,7 +2,6 @@
 #include "core/vk/context.hpp"
 #include "core/gfx/limits.hpp"
 #include "core/logging.hpp"
-#include "core/os/surface.hpp"
 #include "core/paradigm.hpp"
 #include "core/resource/resource.hpp"
 #include "core/vk/conversion.hpp"

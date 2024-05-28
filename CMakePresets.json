@@ -14,7 +14,8 @@
                 "PE_GLES": "OFF",
                 "PE_VULKAN": "OFF",
                 "PE_MOLTEN": "OFF",
-                "VK_STATIC": "OFF"
+                "VK_STATIC": "OFF",
+                "PE_WEBGPU_NATIVE": "OFF"
             }
         },
         {
@@ -42,6 +43,43 @@
             "cacheVariables": {
                 "PE_MOLTEN": "OFF"
             }
+        },
+        {
+          "hidden": true,
+          "name": "webgpu-native",
+          "displayName": "WebGPU Native",
+          "inherits": [
+            "settings-project"
+          ],
+          "cacheVariables": {
+            "PE_WEBGPU_NATIVE": "ON"
+          }
+        },
+        {
+          "hidden": false,
+          "name": "windows-64-debug-webgpu-native",
+          "displayName": "WebGPU Native Windows (Debug)",
+          "inherits": [
+            "webgpu-native",
+            "windows-64-base"
+          ],
+          "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Debug",
+            "PE_MODE": "debug"
+          }
+        },
+        {
+          "hidden": false,
+          "name": "windows-64-release-webgpu-native",
+          "displayName": "WebGPU Native Windows (Release)",
+          "inherits": [
+            "webgpu-native",
+            "windows-64-base"
+          ],
+          "cacheVariables": {
+            "CMAKE_BUILD_TYPE": "Release",
+            "PE_MODE": "release"
+          }
         },
         {
             "hidden": true,
@@ -433,6 +471,18 @@
             "name": "windows-64-release-all",
             "displayName": "Windows Vulkan/GLES 64bit (Release)",
             "configurePreset": "windows-64-release-all",
+            "configuration": "Release"
+        },
+        {
+            "name": "windows-64-debug-webgpu-native",
+            "displayName": "Windows WebGPU Native 64bit (Debug)",
+            "configurePreset": "windows-64-debug-webgpu-native",
+            "configuration": "Debug"
+        },
+        {
+            "name": "windows-64-release-webgpu-native",
+            "displayName": "Windows WebGPU Native 64bit (Release)",
+            "configurePreset": "windows-64-release-webgpu-native",
             "configuration": "Release"
         },
         {

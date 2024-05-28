@@ -4,10 +4,37 @@ import os
 import re
 import subprocess
 import json
+import platform
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_DIR = os.path.join(CURRENT_DIR, os.path.pardir)
 CONFIG_FILE = os.path.join(CURRENT_DIR, ".config.json")
+DIRECTORIES = [
+    os.path.join(PROJECT_DIR, "core"),
+    os.path.join(PROJECT_DIR, "psl"),
+    os.path.join(PROJECT_DIR, "tests"),
+    os.path.join(PROJECT_DIR, "benchmarks"),
+]
+
+
+def load_config(file: str = CONFIG_FILE):
+    res = {
+        "formatting": {
+            "run-on-wsl": False,
+            "wsl-python": "python3",
+            "shell": False,
+            "clang-format": ["clang-format"],
+        }
+    }
+    if os.path.exists(CONFIG_FILE):
+        with open(CONFIG_FILE, "r") as f:
+            res = res | json.load(f)
+            if isinstance(res["formatting"]["clang-format"], str):
+                res["formatting"]["clang-format"] = [res["formatting"]["clang-format"]]
+    return res
+
+
+CONFIG = load_config()
 
 
 def run_command(
@@ -17,6 +44,7 @@ def run_command(
     catch_stdout=False,
     error_out=True,
     shell=False,
+    env=os.environ,
 ):
     process = subprocess.Popen(
         command,
@@ -24,6 +52,7 @@ def run_command(
         stderr=os.sys.stderr if print_stdout else subprocess.PIPE,
         cwd=directory,
         shell=shell,
+        env=env,
     )
     output = []
     if catch_stdout:
@@ -46,35 +75,47 @@ def run_command(
     return [output, process.returncode]
 
 
-def _get_clang_format_settings(path: str = None):
-    shell = False
-    command = [path or "clang-format"]
-    if path is None:
-        if os.path.exists(CONFIG_FILE):
-            with open(CONFIG_FILE, "r") as f:
-                config = json.load(f)
-                command = config["formatting"]["clang-format"]
-                if isinstance(command, str):
-                    command = [command]
-                shell = config["formatting"]["shell"] or False
-
-    return {"command": command, "shell": shell}
-
-
-def format(
-    folders, cformat: str = None, dry_run: bool = False, only_staged: bool = True
-):
+def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True):
     print("formatting...")
-    settings = _get_clang_format_settings(cformat)
+    if platform.system() == "Windows" and CONFIG["formatting"]["run-on-wsl"]:
+        print("running on WSL")
+        command = [
+            "wsl",
+            "-e",
+            CONFIG["formatting"]["wsl-python"],
+            "tools/clang-format.py",
+        ]
+        if dry_run:
+            command.append("--verify")
+        if only_staged:
+            command.append("--staged")
+        [_, errorCode] = run_command(
+            command,
+            print_stdout=True,
+            error_out=False,
+            shell=False,
+            directory=PROJECT_DIR,
+        )
 
-    folders = [os.path.abspath(folder) for folder in folders]
+        if errorCode != 0:
+            print("ERROR: clang-format should be run before committing")
+            exit(1)
+        return
+
+    clang_format = CONFIG["formatting"]["clang-format"]
+    if cformat is not None:
+        clang_format = [cformat]
+
+    folders = [os.path.abspath(folder) for folder in DIRECTORIES]
     files = []
     if only_staged:
         staged_files = run_command(
             ["git", "diff", "--name-only", "--staged"],
             directory=PROJECT_DIR,
             catch_stdout=True,
-        )[0]
+        )
+        print(f"Staged files: {files}")
+        staged_files = staged_files[0]
         if len(staged_files) == 1:
             staged_files = staged_files[0].split("\n")
             files = [
@@ -95,21 +136,22 @@ def format(
         ]
 
     marked_files = []
-    for file in files:
-        if re.search(".*?\.(cpp|hpp|h)", file):
-            commands = settings["command"] + [file, "-i", "-style=file"]
-            if dry_run:
-                commands.extend(["--dry-run", "-Werror"])
+    files = [file for file in files if re.search(".*?\.(cpp|hpp|h)", file)]
 
-            [_, errorCode] = run_command(
-                commands,
-                print_stdout=not dry_run,
-                error_out=not dry_run,
-                directory=PROJECT_DIR,
-                shell=settings["shell"],
-            )
-            if dry_run and errorCode != 0:
-                marked_files.append(file)
+    for file in files:
+        commands = clang_format + [file, "-i", "-style=file"]
+        if dry_run:
+            commands.extend(["--dry-run", "-Werror"])
+
+        [_, errorCode] = run_command(
+            commands,
+            print_stdout=not dry_run,
+            error_out=not dry_run,
+            directory=PROJECT_DIR,
+            shell=CONFIG["formatting"]["shell"],
+        )
+        if dry_run and errorCode != 0:
+            marked_files.append(file)
 
     if dry_run and len(marked_files) > 0:
         marked_file_str = ", ".join(f"'{file}'" for file in marked_files)
@@ -123,19 +165,6 @@ def format(
 
 if __name__ == "__main__":
     parser = ArgumentParser()
-    parser.add_argument(
-        "--directory",
-        nargs="+",
-        default=[
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "core"),
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "psl"),
-            os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "tests"),
-            os.path.join(
-                os.path.dirname(os.path.realpath(__file__)), "..", "benchmarks"
-            ),
-        ],
-        help="Set the directories you wish to format recursively",
-    )
     parser.add_argument(
         "--staged", action="store_true", help="Check only staged files instead of all"
     )
@@ -152,6 +181,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    format(
-        args.directory, args.clang_format, dry_run=args.verify, only_staged=args.staged
-    )
+    format(args.clang_format, dry_run=args.verify, only_staged=args.staged)

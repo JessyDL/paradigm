@@ -9,9 +9,19 @@ using namespace psl::serialization;
 using namespace psl;
 const uint64_t file::polymorphic_identity {register_polymorphic<file>()};
 
-library::library(psl::string8::view lib, std::vector<psl::string8_t> environment) {
-	auto library	  = psl::utility::platform::file::read(lib).value_or("");
-	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib);
+library::library() {}
+
+library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8_t> environment) {
+	auto library = [&lib]() {
+		if(lib) {
+			// it makes no sense to specify a path if the file is not there, this must be a mistake or error.
+			psl_assert(
+			  psl::utility::platform::file::exists(psl::from_string8_t(*lib)), "Could not find library at '{}'", *lib);
+			return psl::utility::platform::file::read(psl::from_string8_t(*lib)).value_or("");
+		}
+		return psl::string8_t();
+	}();
+	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib.value_or(""));
 	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
 	m_LibraryFolder	  = psl::string8::view(&m_LibraryLocation[0], loc);
 	m_LibraryFile =

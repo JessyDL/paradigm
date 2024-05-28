@@ -8,6 +8,17 @@
 using namespace core::gfx;
 using core::resource::handle;
 
+namespace psl {
+template <>
+graph<render_graph::unique_var_t>::~graph() {
+	for(auto& [node, list] : m_Edges) {
+		delete(node);
+	}
+}
+}	 // namespace psl
+
+render_graph::~render_graph() {}
+
 psl::view_ptr<core::gfx::drawpass> render_graph::create_drawpass(handle<core::gfx::context> context,
 																 handle<core::gfx::swapchain> swapchain) {
 	auto pass = new drawpass(context, swapchain);

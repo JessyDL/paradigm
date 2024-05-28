@@ -100,10 +100,6 @@ namespace psl {
 struct UID;
 }
 
-namespace core::os {
-class surface;
-}
-
 namespace core::resource {
 class cache_t;
 }

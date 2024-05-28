@@ -11,6 +11,9 @@
 #ifdef PE_VULKAN
 	#include "core/vk/drawpass.hpp"
 #endif
+#if defined(PE_WEBGPU)
+	#include "core/wgpu/drawpass.hpp"
+#endif
 
 using namespace core::resource;
 using namespace core::gfx;
@@ -21,6 +24,9 @@ drawpass::drawpass(core::ivk::drawpass* handle) : m_Backend(graphics_backend::vu
 #endif
 #ifdef PE_GLES
 drawpass::drawpass(core::igles::drawpass* handle) : m_Backend(graphics_backend::gles), m_GLESHandle(handle) {}
+#endif
+#if defined(PE_WEBGPU)
+drawpass::drawpass(core::iwgpu::drawpass* handle) : m_Backend(graphics_backend::webgpu), m_WGPUHandle(handle) {}
 #endif
 
 /// todo: passes cannot describe resources in both API's at the same time, we need to decide if we
@@ -37,6 +43,11 @@ drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::framebu
 	case graphics_backend::vulkan:
 		m_VKHandle = new core::ivk::drawpass(context->resource<graphics_backend::vulkan>(),
 											 framebuffer->resource<graphics_backend::vulkan>());
+		break;
+#endif
+#if defined(PE_WEBGPU)
+	case graphics_backend::webgpu:
+		// m_WGPUHandle = new core::iwgpu::drawpass(framebuffer->resource<graphics_backend::webgpu>());
 		break;
 #endif
 	}
@@ -56,6 +67,12 @@ drawpass::drawpass(handle<core::gfx::context> context, handle<core::gfx::swapcha
 											 swapchain->resource<graphics_backend::vulkan>());
 		break;
 #endif
+#if defined(PE_WEBGPU)
+	case graphics_backend::webgpu:
+		m_WGPUHandle = new core::iwgpu::drawpass(context->resource<graphics_backend::webgpu>(),
+												 swapchain->resource<graphics_backend::webgpu>());
+		break;
+#endif
 	}
 }
 
@@ -65,6 +82,9 @@ drawpass::~drawpass() {
 #endif
 #ifdef PE_VULKAN
 	delete(m_VKHandle);
+#endif
+#if defined(PE_WEBGPU)
+	delete(m_WGPUHandle);
 #endif
 }
 
@@ -78,6 +98,10 @@ bool drawpass::is_swapchain() const noexcept {
 	if(m_VKHandle)
 		return m_VKHandle->is_swapchain();
 #endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle)
+		return m_WGPUHandle->is_swapchain();
+#endif
 	return false;
 }
 
@@ -90,6 +114,11 @@ void drawpass::prepare() {
 #ifdef PE_VULKAN
 	if(m_VKHandle)
 		m_VKHandle->prepare();
+#endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		m_WGPUHandle->prepare();
+	}
 #endif
 }
 bool drawpass::build(bool force) {
@@ -105,6 +134,11 @@ bool drawpass::build(bool force) {
 	if(m_VKHandle)
 		return m_VKHandle->build();
 #endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		return m_WGPUHandle->build();
+	}
+#endif
 	return false;
 }
 
@@ -118,6 +152,11 @@ void drawpass::clear() {
 	if(m_VKHandle)
 		m_VKHandle->clear();
 #endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		m_WGPUHandle->clear();
+	}
+#endif
 }
 void drawpass::present() {
 #ifdef PE_GLES
@@ -127,6 +166,11 @@ void drawpass::present() {
 #ifdef PE_VULKAN
 	if(m_VKHandle)
 		m_VKHandle->present();
+#endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		m_WGPUHandle->present();
+	}
 #endif
 }
 
@@ -140,6 +184,12 @@ bool drawpass::connect(psl::view_ptr<drawpass> child) noexcept {
 #ifdef PE_GLES
 	if(m_VKHandle) {
 		m_GLESHandle->connect(psl::view_ptr<core::igles::drawpass>(child->m_GLESHandle));
+		return true;
+	}
+#endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		m_WGPUHandle->connect(psl::view_ptr<core::iwgpu::drawpass>(child->m_WGPUHandle));
 		return true;
 	}
 #endif
@@ -158,6 +208,12 @@ bool drawpass::disconnect(psl::view_ptr<drawpass> child) noexcept {
 		return true;
 	}
 #endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		m_WGPUHandle->disconnect(psl::view_ptr<core::iwgpu::drawpass>(child->m_WGPUHandle));
+		return true;
+	}
+#endif
 	return false;
 }
 
@@ -170,5 +226,10 @@ void drawpass::add(core::gfx::drawgroup& group) noexcept {
 #ifdef PE_VULKAN
 	if(m_VKHandle)
 		m_VKHandle->add(group);
+#endif
+#if defined(PE_WEBGPU)
+	if(m_WGPUHandle) {
+		m_WGPUHandle->add(group);
+	}
 #endif
 }

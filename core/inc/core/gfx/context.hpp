@@ -19,12 +19,16 @@ class context {
 #ifdef PE_GLES
 	explicit context(core::resource::handle<core::igles::context>& handle);
 #endif
+#ifdef PE_WEBGPU
+	explicit context(core::resource::handle<core::iwgpu::context>& handle);
+#endif
 
 	context(core::resource::cache_t& cache,
 			const core::resource::metadata& metaData,
 			psl::meta::file* metaFile,
 			graphics_backend backend,
-			const psl::string8_t& name);
+			const psl::string8_t& name,
+			[[maybe_unused]] core::resource::handle<core::os::surface> surface);
 
 	~context() {};
 
@@ -48,6 +52,10 @@ class context {
 		if constexpr(backend == graphics_backend::gles)
 			return m_GLESHandle;
 #endif
+#ifdef PE_WEBGPU
+		if constexpr(backend == graphics_backend::webgpu)
+			return m_WebGPUHandle;
+#endif
 	};
 	void wait_idle();
 
@@ -58,6 +66,9 @@ class context {
 #endif
 #ifdef PE_GLES
 	core::resource::handle<core::igles::context> m_GLESHandle;
+#endif
+#ifdef PE_WEBGPU
+	core::resource::handle<core::iwgpu::context> m_WebGPUHandle;
 #endif
 };
 }	 // namespace core::gfx

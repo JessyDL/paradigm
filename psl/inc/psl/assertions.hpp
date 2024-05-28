@@ -260,6 +260,16 @@ namespace psl {
 	std::terminate();
 }
 
+
+/// @brief Similar to std::terminate, but additionally prints a message and location
+/// @param reason An optional message to print
+/// @param loc The location where the fatal error occurred, note ignore setting this value, it will be set automatically
+[[noreturn]] inline void fatal(auto const& reason			   = "",
+							   const psl::source_location& loc = psl::source_location::current()) {
+	psl_print(level_t::fatal, "{} at {}", reason, loc);
+	std::terminate();
+}
+
 template <typename Fn>
 constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args) {
 	if(std::is_constant_evaluated()) {

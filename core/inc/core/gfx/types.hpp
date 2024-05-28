@@ -3,12 +3,26 @@
 #include "psl/memory/range.hpp"
 #include "psl/memory/segment.hpp"
 #include "psl/ustring.hpp"
+#include "psl/utility/enum.hpp"
 #include <optional>
 #include <variant>
 #include <vector>
 
 namespace core::gfx {
-enum class graphics_backend { undefined = 0, vulkan = 1 << 0, gles = 1 << 1 };
+enum class graphics_backend { undefined = 0, vulkan = 1 << 0, gles = 1 << 1, webgpu = 1 << 2 };
+
+constexpr auto graphics_backend_str(graphics_backend backend) noexcept {
+	switch(backend) {
+	case graphics_backend::vulkan:
+		return "vulkan";
+	case graphics_backend::gles:
+		return "gles";
+	case graphics_backend::webgpu:
+		return "webgpu";
+	default:
+		return "undefined";
+	}
+}
 
 template <typename T, graphics_backend backend>
 struct backend_type {};
@@ -26,6 +40,11 @@ constexpr bool is_enabled() {
 #ifdef PE_GLES
 	if constexpr(backend == graphics_backend::gles) {
 		return PE_GLES;
+	}
+#endif
+#ifdef PE_WEBGPU
+	if constexpr(backend == graphics_backend::webgpu) {
+		return PE_WEBGPU;
 	}
 #endif
 	return false;
@@ -127,7 +146,10 @@ struct commit_instruction {
 	/// \brief sizeof source
 	size_t size {0};
 };
-///*** [format:enum
+
+/// \brief describes what format the shader source is in.
+enum class shader_source_format { unknown = 0, glsl, spirv, hlsl, msl, wgsl };
+
 enum class shader_stage : uint8_t {
 	vertex				   = 1 << 0,
 	tesselation_control	   = 1 << 1,
@@ -919,3 +941,9 @@ inline size_t packing_size(format_t value) noexcept {
 	return 0;
 }
 }	 // namespace core::gfx
+
+
+namespace psl::utility {
+template <>
+inline constexpr auto enable_enum_ops<core::gfx::graphics_backend> = enum_ops_t::LOGICAL;
+}	 // namespace psl::utility

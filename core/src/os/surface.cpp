@@ -1,8 +1,10 @@
 
 #include "core/os/surface.hpp"
 #include "core/systems/input.hpp"
-#include "core/vk/swapchain.hpp"
 
+#if defined(PE_VULKAN)
+	#include "core/vk/swapchain.hpp"
+#endif
 
 using namespace psl;
 using namespace core::os;
@@ -28,7 +30,9 @@ bool surface::open() const {
 }
 void surface::terminate() {
 	m_Open = false;
+#if defined(PE_VULKAN)
 	m_Swapchains.clear();
+#endif
 }
 bool surface::tick() {
 	if(m_Open)
@@ -43,16 +47,19 @@ bool surface::resize(uint32_t width, uint32_t height) {
 	m_Data->height(height);
 	resize_surface();
 
+#if defined(PE_VULKAN)
 	for(auto& swapchain : m_Swapchains) {
 		swapchain->resize();
 	}
+#endif
 	return true;
 }
 
+#if defined(PE_VULKAN)
 void surface::register_swapchain(core::resource::handle<core::ivk::swapchain> swapchain) {
 	m_Swapchains.push_back(swapchain);
 }
-
+#endif
 const data::window& surface::data() const {
 	return m_Data.value();
 }

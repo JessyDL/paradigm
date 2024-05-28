@@ -37,6 +37,7 @@ class pipeline_cache {
 		if constexpr(backend == graphics_backend::gles)
 			return m_GLESHandle;
 #endif
+		psl::fatal("unknown/unsupported backend");
 	};
 
   private:
