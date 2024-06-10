@@ -1,1 +1,2 @@
 add_subdirectory(HelloScreen)
+add_subdirectory(HelloTriangle)
