@@ -12,15 +12,6 @@ const uint64_t file::polymorphic_identity {register_polymorphic<file>()};
 library::library() {}
 
 library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8_t> environment) {
-	auto library = [&lib]() {
-		if(lib) {
-			// it makes no sense to specify a path if the file is not there, this must be a mistake or error.
-			psl_assert(
-			  psl::utility::platform::file::exists(psl::from_string8_t(*lib)), "Could not find library at '{}'", *lib);
-			return psl::utility::platform::file::read(psl::from_string8_t(*lib)).value_or("");
-		}
-		return psl::string8_t();
-	}();
 	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib.value_or(""));
 	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
 	m_LibraryFolder	  = psl::string8::view(&m_LibraryLocation[0], loc);
@@ -35,25 +26,35 @@ library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8
 			   "could not find library at '{}'",
 			   m_LibraryLocation);
 
-	if(library.empty()) {
+	if(!lib) {
 		return;
 	}
 
 	// Load library into memory
 	serializer s;
 	metalib metalib;
-	s.deserialize<decode_from_format>(metalib, library);
+	s.deserialize<decode_from_format>(metalib, lib.value());
 
 	for(auto& entry : metalib.entries.value) {
-		psl_assert(m_MetaData.find(entry.first) == std::end(m_MetaData),
+		// here we handle environment variations
+		// if the environments for the file aren't empty we check if any_of the environments are also in the provided
+		// environment list, if not (or if the environment list is empty) we skip this entry
+		if(!entry.environments->empty() &&
+		   !std::any_of(std::begin(environment), std::end(environment), [&entry](auto const& environment) {
+			   return std::find(entry.environments->begin(), entry.environments->end(), environment) !=
+					  entry.environments->end();
+		   })) {
+			continue;
+		}
+		psl_assert(m_MetaData.find(entry.id) == std::end(m_MetaData),
 				   "duplicate UID {} found in library",
-				   entry.first.to_string());
+				   entry.id->to_string());
 
 		auto full_metapath = psl::utility::platform::file::to_platform(root + entry.meta->path);
 		psl_assert(psl::utility::platform::file::exists(full_metapath),
 				   "could not find file associated with UID {} at {}",
 				   entry.id->to_string(),
-				   entry.meta->path);
+				   entry.meta->path.value);
 
 		file* metaPtr = nullptr;
 		s.deserialize<decode_from_format>(metaPtr, full_metapath);

@@ -107,7 +107,7 @@ class metalib {
 	}
 
 	static constexpr psl::string8::view serialization_name {"METALIB"};
-	psl::serialization::property <"ENTRIES", std::vector<entry>> entries;
+	psl::serialization::property<"ENTRIES", std::vector<entry>> entries;
 };
 
 /// \brief container class for meta::file's

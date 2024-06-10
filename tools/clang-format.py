@@ -18,6 +18,18 @@ DIRECTORIES = [
 
 
 def load_config(file: str = CONFIG_FILE):
+    # https://stackoverflow.com/a/24837438
+    def merge(dict1: dict, dict2: dict):
+        """Recursively merges dict2 into dict1"""
+        if not isinstance(dict1, dict) or not isinstance(dict2, dict):
+            return dict2
+        for k in dict2:
+            if k in dict1:
+                dict1[k] = merge(dict1[k], dict2[k])
+            else:
+                dict1[k] = dict2[k]
+        return dict1
+
     res = {
         "formatting": {
             "run-on-wsl": False,
@@ -28,7 +40,8 @@ def load_config(file: str = CONFIG_FILE):
     }
     if os.path.exists(CONFIG_FILE):
         with open(CONFIG_FILE, "r") as f:
-            res = res | json.load(f)
+            res = merge(res, json.load(f))
+
             if isinstance(res["formatting"]["clang-format"], str):
                 res["formatting"]["clang-format"] = [res["formatting"]["clang-format"]]
     return res
