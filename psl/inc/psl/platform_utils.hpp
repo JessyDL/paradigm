@@ -43,7 +43,10 @@ class directory {
 	/// \param[in] path the path to translate to one that works in Windows systems.
 	/// \returns a string that *should* work on Windows systems, and satisfies the requirements.
 	static psl::string to_windows(psl::string_view path) {
-		psl::string dir;
+		psl::string dir {};
+		if(path.empty()) {
+			return dir;
+		}
 		while(path.size() > 0 && (path[0] == '\"' || path[0] == '\'')) {
 			path = path.substr(1);
 		}
