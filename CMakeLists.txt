@@ -33,7 +33,7 @@ OPTION(PE_TESTS "make the tests" ON)
 OPTION(PE_PCH "enable usage of the precompiled header" ON)
 OPTION(PE_CCACHE "enable ccache" ON)
 OPTION(PE_CORE "generate the paradigm core, turn this off if you only want the PSL to generate" ON)
-OPTION(PE_EXAMPLES "generate the examples" ON)
+OPTION(PE_EXAMPLES "generate the examples" OFF)
 
 include(Utils)
 include(FindXCB)
