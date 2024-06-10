@@ -35,68 +35,38 @@ library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8
 			   "could not find library at '{}'",
 			   m_LibraryLocation);
 
+	if(library.empty()) {
+		return;
+	}
+
 	// Load library into memory
 	serializer s;
+	metalib metalib;
+	s.deserialize<decode_from_format>(metalib, library);
 
-	auto lines = [](const auto& file) {
-		std::vector<psl::string8_t> lines {};
-		lines.reserve(std::count(file.begin(), file.end(), '\n'));
-		auto index	  = file.find('\n');
-		size_t offset = 0;
-		while(index != psl::string8_t::npos) {
-			lines.emplace_back(file.substr(offset, index));
-			offset = index + 1;
-			index  = file.find('\n', offset);
-		}
-		return lines;
-	}(library);
+	for(auto& entry : metalib.entries.value) {
+		psl_assert(m_MetaData.find(entry.first) == std::end(m_MetaData),
+				   "duplicate UID {} found in library",
+				   entry.first.to_string());
 
-	for(auto line : lines) {
-		size_t start		 = line.find("UID=") + 4;
-		size_t end			 = line.find("]", start);
-		psl::string8_t meta	 = line.substr(start, end - start);
-		auto uid			 = utility::converter<UID>::from_string(meta);
-		size_t startFilePath = line.find("PATH=") + 5;
-		size_t endFilePath	 = line.find("]", startFilePath);
-		size_t startPath	 = line.find("METAPATH=", endFilePath) + 9;
-		size_t endPath		 = line.find("]", startPath);
-
-		size_t startEnv = line.find("[ENV=");
-		size_t endEnv	= line.find("]", startEnv);
-
-		if(startEnv != psl::string8_t::npos &&
-		   std::find_if(std::begin(environment),
-						std::end(environment),
-						[env = psl::utility::string::split(line.substr(startEnv + 5, endEnv - (startEnv + 5)), ";")](
-						  const psl::string8_t& expected) {
-							return std::find(std::begin(env), std::end(env), expected) != std::end(env);
-						}) == std::end(environment)) {
-			continue;
-		}
-		psl_assert(m_MetaData.find(uid) == std::end(m_MetaData), "duplicate UID {} found in library", uid.to_string());
-
-		psl::string8_t metapath	 = line.substr(startPath, endPath - startPath);
-		psl::string8_t filepath	 = line.substr(startFilePath, endFilePath - startFilePath);
-		psl::string8_t extension = filepath.substr(filepath.find_last_of('.') + 1);
-
-		file* metaPtr	   = nullptr;
-		auto full_metapath = psl::utility::platform::file::to_platform(root + metapath);
+		auto full_metapath = psl::utility::platform::file::to_platform(root + entry.meta->path);
 		psl_assert(psl::utility::platform::file::exists(full_metapath),
 				   "could not find file associated with UID {} at {}",
-				   uid.to_string(),
-				   full_metapath);
+				   entry.id->to_string(),
+				   entry.meta->path);
+
+		file* metaPtr = nullptr;
 		s.deserialize<decode_from_format>(metaPtr, full_metapath);
 
-		psl_assert(metaPtr->ID() == uid,
+		psl_assert(metaPtr->ID() == entry.id,
 				   "UID mismatch between library and metafile library expected {} but file has {}",
-				   uid.to_string(),
+				   entry.id->to_string(),
 				   metaPtr->ID().to_string());
 
-
 		auto pair = m_MetaData.emplace(metaPtr->ID(), std::move(metaPtr));
-		m_TagMap[filepath].insert(pair.first->second.data->ID());
+		m_TagMap[entry.data->path].insert(pair.first->second.data->ID());
 		pair.first->second.flags[0]		= true;
-		pair.first->second.readableName = filepath;
+		pair.first->second.readableName = entry.data->path;
 	}
 }
 

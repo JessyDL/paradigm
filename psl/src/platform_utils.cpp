@@ -124,6 +124,9 @@ psl::string psl::utility::platform::directory::sanitize(psl::string_view path) {
 std::vector<psl::string> psl::utility::platform::directory::all_files(psl::string_view target_directory,
 																	  bool recursive) {
 	auto folder = to_platform(target_directory);
+	if(!exists(folder)) {
+		return {};
+	}
 	std::vector<psl::string> names;
 	if(recursive) {
 		for(std::filesystem::recursive_directory_iterator i(folder), end; i != end; ++i) {
