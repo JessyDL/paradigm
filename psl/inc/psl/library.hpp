@@ -77,6 +77,39 @@ class file {
 	static const uint64_t polymorphic_identity;
 };
 
+class metalib {
+  public:
+	struct entry {
+		struct file {
+			static constexpr psl::string8::view serialization_name {"FILE"};
+			template <typename S>
+			void serialize(S& s) {
+				s << path << time;
+			}
+			psl::serialization::property<"PATH", psl::string8_t> path;
+			psl::serialization::property<"TIME", std::uint64_t> time;
+		};
+		template <typename S>
+		void serialize(S& s) {
+			s << id << data << meta << environments;
+		}
+
+		static constexpr psl::string8::view serialization_name {"ENTRY"};
+		psl::serialization::property<"UID", psl::UID> id;
+		psl::serialization::property<"DATA", file> data;
+		psl::serialization::property<"META", file> meta;
+		psl::serialization::property<"ENV", std::vector<psl::string8_t>> environments;
+	};
+
+	template <typename S>
+	void serialize(S& s) {
+		s << entries;
+	}
+
+	static constexpr psl::string8::view serialization_name {"METALIB"};
+	psl::serialization::property<"ENTRIES", std::vector<entry>> entries;
+};
+
 /// \brief container class for meta::file's
 ///
 /// a meta::library is a collection of meta::file instances. The library will do the basic bookkeeping, allowing you
