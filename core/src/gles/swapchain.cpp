@@ -40,3 +40,39 @@ void swapchain::clear() {
 		glClearColor(m_ClearColor[0], m_ClearColor[1], m_ClearColor[2], m_ClearColor[3]);
 	}
 }
+
+uint32_t swapchain::size() const noexcept {
+	return 1;
+}
+
+uint32_t swapchain::width() const noexcept {
+	return m_Surface->data().width();
+}
+
+uint32_t swapchain::height() const noexcept {
+	return m_Surface->data().height();
+}
+
+const psl::vec4 swapchain::clear_color() const noexcept {
+	return m_ClearColor;
+}
+
+const float swapchain::clear_depth() const noexcept {
+	return m_ClearDepth;
+}
+
+const uint32_t swapchain::clear_stencil() const noexcept {
+	return m_ClearStencil;
+}
+
+bool swapchain::has_depth() const noexcept {
+	return m_UseDepth;
+}
+
+void swapchain::clear_color(psl::vec4 color) noexcept {
+	m_ClearColor = color;
+}
+
+bool swapchain::is_ready() const noexcept {
+	return true;
+}

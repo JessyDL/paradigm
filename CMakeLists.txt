@@ -33,6 +33,7 @@ OPTION(PE_TESTS "make the tests" ON)
 OPTION(PE_PCH "enable usage of the precompiled header" ON)
 OPTION(PE_CCACHE "enable ccache" ON)
 OPTION(PE_CORE "generate the paradigm core, turn this off if you only want the PSL to generate" ON)
+OPTION(PE_EXAMPLES "generate the examples" ON)
 
 include(Utils)
 include(FindXCB)
@@ -397,6 +398,10 @@ endif()
 
 if(PE_TESTS)
 	add_subdirectory(tests)
+endif()
+
+if(PE_EXAMPLES)
+	add_subdirectory(examples)
 endif()
 
 
