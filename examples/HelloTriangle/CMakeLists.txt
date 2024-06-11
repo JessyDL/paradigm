@@ -7,3 +7,4 @@ target_compile_options(ex_hello_triangle PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMP
 set_target_properties(ex_hello_triangle PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_hello_triangle PROPERTY FOLDER "paradigm-engine/examples")
+set_target_output_directory(TARGET ex_hello_triangle DIRECTORY "examples/HelloTriangle")

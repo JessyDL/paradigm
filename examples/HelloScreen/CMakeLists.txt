@@ -7,3 +7,4 @@ target_compile_options(ex_hello_screen PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPIL
 set_target_properties(ex_hello_screen PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_hello_screen PROPERTY FOLDER "paradigm-engine/examples")
+set_target_output_directory(TARGET ex_hello_screen DIRECTORY "examples/HelloScreen")
