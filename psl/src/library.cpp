@@ -15,8 +15,8 @@ library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8
 	if(auto loc = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
 	   loc == psl::string8_t::npos) {
 		loc				= 0;
-		m_LibraryFolder = "";
-		m_LibraryFile	= "";
+		m_LibraryFolder = ".";
+		m_LibraryFile	= lib.value_or("");
 	} else {
 		m_LibraryFolder = psl::string8::view(&m_LibraryLocation[0], loc);
 		m_LibraryFile =
