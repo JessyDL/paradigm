@@ -1,0 +1,12 @@
+#version 310 es
+precision mediump float;
+precision highp int;
+
+layout(location = 0) out highp vec4 fsCol;
+layout(location = 0) in highp vec4 vsCol;
+
+void main()
+{
+    fsCol = vsCol;
+}
+

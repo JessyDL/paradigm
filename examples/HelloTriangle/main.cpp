@@ -4,6 +4,11 @@
 // A lot of the initialization code is no longer documented, if you wish to understand the initialization process
 // better, please refer to the 'HelloScreen' example.
 
+// Do note that in this example we will ignore the ECS system, meaning we will handle the rendering manually.
+// normally you would use the library's bundled ECS system to handle this for you, but for educational purposes
+// we will do this manually. To see how to do this with the ECS system, please refer to the 'InstancedRendering'
+// example.
+
 // See the #region tags for the relevant code snippets, they will be marked with `example`
 
 
@@ -24,11 +29,22 @@
 #include "core/paradigm.hpp"
 #include "core/resource/resource.hpp"
 
+// these are the additional includes that are needed for this example
+// compared to the previous example
 #include "core/data/buffer.hpp"
 #include "core/data/geometry.hpp"
+#include "core/data/material.hpp"
 #include "core/gfx/buffer.hpp"
+#include "core/gfx/bundle.hpp"
+#include "core/gfx/drawcall.hpp"
+#include "core/gfx/drawgroup.hpp"
+#include "core/gfx/drawpass.hpp"
 #include "core/gfx/geometry.hpp"
+#include "core/gfx/material.hpp"
+#include "core/gfx/pipeline_cache.hpp"
+#include "core/gfx/shader.hpp"
 #include "core/gfx/types.hpp"
+#include "core/meta/shader.hpp"
 #include "psl/memory/region.hpp"
 
 
@@ -56,7 +72,31 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	core::log->info("Starting the application");
 	core::log->info("creating a '{}' backend", core::gfx::graphics_backend_str(backend));
 	core::log->info("creating cache");
-	core::resource::cache_t cache {psl::meta::library {}};
+#pragma region example
+	// Unlike the HelloScreen example, we will now additionally load a resource library. This library contains all the
+	// resources that are used in the application.
+	// As the resources are tied to the graphics API being used, we will also have to tell the psl::meta::library which
+	// variations of resources we are targetting.
+
+	// To give a more in-depth reason why the library has these variations is that it allows api (or platform) specific
+	// resources to share the same UID. Elsewise in your code you'd have to continuously differentiate between f.e.
+	// "texture_vulkan" and "texture_gles" which is cumbersome and error-prone.
+	psl::string8_t environment = "";
+	switch(backend) {
+	case core::gfx::graphics_backend::gles:
+		environment = "gles";
+		break;
+	case core::gfx::graphics_backend::vulkan:
+		environment = "vulkan";
+		break;
+	case core::gfx::graphics_backend::webgpu:
+		environment = "webgpu";
+		break;
+	}
+
+	core::resource::cache_t cache {psl::meta::library {"resources.metalib", {{environment}}}};
+
+#pragma endregion example
 	core::log->info("cache created");
 	auto window_data = cache.create<core::data::window>();
 	window_data->name(APPLICATION_FULL_NAME + " { " + core::gfx::graphics_backend_str(backend) + " }");
@@ -122,6 +162,29 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	  memory::region {32_mb, 4, new memory::default_allocator(false)});
 	auto indexBuffer = cache.create<core::gfx::buffer_t>(context_handle, indexBufferData, stagingBuffer);
 
+	// a small detour here, we will need to create a core::gfx::bundle object. This object is a collection of
+	// core::gfx::material_t objects, which are associated with a specific renderID (ordered from lowest to highest).
+	// These renderID's are what core::gfx::drawpass will use to decide which materials to bind for the current pass
+	// but to create a bundle we will also need both a material instance data buffer and an instance data buffer.
+	// the details of these are irrelevant for now, you will see more about this when we deal with instanced
+	// rendering, and when we deal with multiple instances of the same material (with different data).
+	auto const uniform_buffer_align = context_handle->limits().uniform.alignment;
+
+	auto instanceBufferData = cache.create<core::data::buffer_t>(
+	  core::gfx::memory_usage::vertex_buffer | core::gfx::memory_usage::transfer_destination,
+	  core::gfx::memory_property::device_local,
+	  memory::region {32_mb, 4, new memory::default_allocator(false)});
+	auto instanceBuffer = cache.create<core::gfx::buffer_t>(context_handle, instanceBufferData, stagingBuffer);
+
+	auto instanceMaterialBufferData = cache.create<core::data::buffer_t>(
+	  core::gfx::memory_usage::uniform_buffer | core::gfx::memory_usage::transfer_destination,
+	  core::gfx::memory_property::device_local,
+	  memory::region {8_mb, uniform_buffer_align, new memory::default_allocator(false)});
+	auto instanceMaterialBuffer =
+	  cache.create<core::gfx::buffer_t>(context_handle, instanceMaterialBufferData, stagingBuffer);
+	auto intanceMaterialBinding = cache.create<core::gfx::shader_buffer_binding>(instanceMaterialBuffer, 8_mb);
+	cache.library().set(intanceMaterialBinding.uid(), core::data::material_t::MATERIAL_DATA);
+
 	// next up we will create the geometry data. This data will be uploaded to the GPU and used to render the triangle.
 	// this is the equivalent of a "model", but in this case we will construct it through code.
 	auto triangleGeomData = cache.create<core::data::geometry_t>();
@@ -153,6 +216,33 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// resources in the core::gfx namespace.
 	auto triangleGeometryResource =
 	  cache.create<core::gfx::geometry_t>(context_handle, triangleGeomData, vertexBuffer, indexBuffer);
+
+	// create a pipeline cache
+	auto pipeline_cache = cache.create<core::gfx::pipeline_cache>(context_handle);
+
+	// next up we will make a material. This is the object that will be responsible for rendering the geometry.
+	auto const uid_vert_shader = "ef43c833-9503-c1e4-e5c0-055770a13282"_uid;	// ./data/shaders/surface/color.vert.*
+	auto const uid_frag_shader = "1241e0fa-4602-74f8-c136-a7bd5f2d79a5"_uid;	// ./data/shaders/surface/color.frag.*
+	auto vertShaderMeta		   = cache.library().get<core::meta::shader>(uid_vert_shader).value();
+	auto fragShaderMeta		   = cache.library().get<core::meta::shader>(uid_frag_shader).value();
+
+	auto matData = cache.create<core::data::material_t>();
+	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
+	auto material =
+	  cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, instanceMaterialBuffer);
+
+
+	auto bundle = cache.create<core::gfx::bundle>(instanceBuffer, intanceMaterialBinding);
+	// the material itself comes with a renderlayer, but here we explicitly set it to 500 as we will add the bundle to
+	// the drawgroup with a renderlayer range of 0-1000.
+	bundle->set_material(material, 500);
+
+	auto drawGroup	= core::gfx::drawgroup {};
+	auto& drawLayer = drawGroup.layer("default", 0, 1000);
+	drawGroup.add(drawLayer, bundle);
+
+	swapchain_pass->add(drawGroup);
+
 #pragma endregion example
 
 	while(os_context.tick() && surface_handle->tick()) {

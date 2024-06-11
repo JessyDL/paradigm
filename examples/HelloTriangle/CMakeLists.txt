@@ -8,3 +8,7 @@ set_target_properties(ex_hello_triangle PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_hello_triangle PROPERTY FOLDER "paradigm-engine/examples")
 set_target_output_directory(TARGET ex_hello_triangle DIRECTORY "examples/HelloTriangle")
+
+add_custom_command(TARGET ex_hello_triangle PRE_BUILD
+                   COMMAND ${CMAKE_COMMAND} -E copy_directory
+                       ${CMAKE_CURRENT_SOURCE_DIR}/data $<TARGET_FILE_DIR:ex_hello_triangle>)
