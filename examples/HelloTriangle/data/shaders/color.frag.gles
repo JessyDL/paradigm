@@ -3,10 +3,10 @@ precision mediump float;
 precision highp int;
 
 layout(location = 0) out highp vec4 fsCol;
-layout(location = 0) in highp vec4 vsCol;
+layout(location = 0) in highp vec3 vsCol;
 
 void main()
 {
-    fsCol = vsCol;
+    fsCol = vec4(vsCol, 1.0);
 }
 
