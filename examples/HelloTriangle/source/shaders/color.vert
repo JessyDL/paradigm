@@ -12,7 +12,7 @@ layout(location = 4) in mat4 INSTANCE_TRANSFORM;
 
 layout(location = 0) out vec3 vsCol;
 
-layout(binding = 0, std140) uniform GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX
+layout(binding = 1, std140) uniform GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX
 {
 	FrameData data;
 } ubo;

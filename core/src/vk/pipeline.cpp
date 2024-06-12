@@ -467,8 +467,10 @@ bool pipeline::update(core::resource::cache_t& cache, const core::data::material
 						  buffer_handle->buffer->resource<gfx::graphics_backend::vulkan>()->gpu_buffer();
 						bufferInfo->offset = 0;
 						// todo this lookup can be improved
-						bufferInfo->range = get_range(
+						auto const range = get_range(
 						  m_Context.value(), *shader_handle.meta(), binding, buffer_handle->buffer->data().size());
+						bufferInfo->range = range;
+						;
 					} else {
 						core::ivk::log->warn("Tried to use the unloaded {} in a pipeline in shader {}",
 											 vk::to_string(conversion::to_vk(binding.descriptor())),
