@@ -26,9 +26,13 @@ void gpu_camera::tick(
   psl::ecs::info_t& info,
   psl::ecs::pack_direct_full_t<const core::ecs::components::camera, const core::ecs::components::transform> cameras) {
 	size_t i {0};
-	if(cameras.size() >= m_Max)
+	if(cameras.empty()) {
+		core::log->warn("no cameras found in the scene");
+	}
+	if(cameras.size() >= m_Max) {
 		throw std::runtime_error(
 		  fmt::format("cannot allocate more than {}, but {} was requested for this frame", m_Max, cameras.size()));
+	}
 
 	auto camera_components = cameras.get<const core::ecs::components::camera>();
 	auto transf_components = cameras.get<const core::ecs::components::transform>();

@@ -34,6 +34,7 @@
 #include "core/data/buffer.hpp"	   // cpu side representation of a buffer, this will be needed to initialize the gpu buffer (found in core/gfx/buffer.hpp)
 #include "core/data/geometry.hpp"	 // same as with the buffer, this is the cpu side representation of a geometry, this will be needed to initialize the gpu geometry (found in core/gfx/geometry.hpp)
 #include "core/data/material.hpp"	 // material data is used to create a core::gfx::material, here you can set per-instance data and which shaders will be referenced.
+#include "core/ecs/components/camera.hpp"
 #include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
 #include "core/ecs/systems/geometry_instance.hpp"	 // ecs system that handles instanced rendering, as we only support instanced rendering this does the heavy lifting for you
@@ -196,9 +197,9 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 		auto& vertices = vertexStream.get<core::vertex_stream_t::type::vec3>();
 		auto& colors   = colorStream.get<core::vertex_stream_t::type::vec3>();
 
-		vertices.emplace_back(psl::vec3 {-0.5f, 0.5f, 0.0f});
-		vertices.emplace_back(psl::vec3 {0.5f, 0.5f, 0.0f});
-		vertices.emplace_back(psl::vec3 {0.0f, -0.5f, 0.0f});
+		vertices.emplace_back(psl::vec3 {-0.5f, -0.5f, 0.0f});
+		vertices.emplace_back(psl::vec3 {+0.0f, +0.5f, 0.0f});
+		vertices.emplace_back(psl::vec3 {+0.5f, -0.5f, 0.0f});
 
 		colors.emplace_back(psl::vec3 {1.0f, 0.0f, 0.0f});
 		colors.emplace_back(psl::vec3 {0.0f, 1.0f, 0.0f});
@@ -233,7 +234,6 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 
 	auto matData = cache.create<core::data::material_t>();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
-	matData->cull_mode(core::gfx::cullmode::none);
 	auto material =
 	  cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, instanceMaterialBuffer);
 
@@ -249,16 +249,19 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// component, which has a reference to both the bundle and the geometry.
 	// the core::ecs::system::geometry_instancing will take care of setting up the instance data for us.
 	psl::ecs::state_t state {};
-	auto renderSystem = core::ecs::systems::render {state, swapchain_pass};
+	auto gpuCameraSystem = core::ecs::systems::gpu_camera {state, surface_handle, frameCamBufferBinding, backend};
+	auto geometryInstancingSystem = core::ecs::systems::geometry_instancing {state};
+	auto renderSystem			  = core::ecs::systems::render {state, swapchain_pass};
 	// here we define the renderrange this system will be in charge of.
 	// any renderables that have a bundle that satisfies this will have a drawcall created for them.
 	renderSystem.add_render_range(0, 1000);
-	auto geometryInstancingSystem = core::ecs::systems::geometry_instancing {state};
-	auto gpuCameraSystem = core::ecs::systems::gpu_camera {state, surface_handle, frameCamBufferBinding, backend};
+
+	state.create(
+	  1, core::ecs::components::transform {psl::vec3 {0, 0, -2}}, psl::ecs::empty<core::ecs::components::camera> {});
 
 	state.create(1,
 				 core::ecs::components::renderable {bundle, triangleGeometryResource},
-				 psl::ecs::empty<core::ecs::components::dynamic_tag> {},
+				 psl::ecs::empty<core::ecs::components::dynamic_tag>(),
 				 psl::ecs::empty<core::ecs::components::transform> {});
 
 #pragma endregion example
@@ -272,6 +275,7 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 		elapsed += dTime;
 		last_tick = current_time;
 		state.tick(dTime);
+
 		renderGraph.present();
 	}
 	return 0;

@@ -8,9 +8,9 @@
 
 layout(location = 0) in vec3 iPos;
 layout(location = 1) in vec3 iCol;
-layout(location = 2) in mat4 INSTANCE_TRANSFORM;
+layout(location = 4) in mat4 INSTANCE_TRANSFORM;
 
-layout(location = 0) out vec4 vsCol;
+layout(location = 0) out vec3 vsCol;
 
 layout(binding = 0, std140) uniform GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX
 {
@@ -25,6 +25,7 @@ out gl_PerVertex
 
 void main() 
 {
-	vsCol = vec4(iCol.xyz, 1.0);
-	gl_Position = vec4(iPos.xyz, 1.0);
+	vsCol = iCol;		
+	vec3 position = (ubo.data.modelMatrix * INSTANCE_TRANSFORM * vec4(iPos.xyz, 1.0)).xyz;
+	gl_Position = ubo.data.WVP * vec4(position, 1.0);
 }
