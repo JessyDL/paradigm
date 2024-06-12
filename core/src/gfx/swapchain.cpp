@@ -62,3 +62,36 @@ swapchain::swapchain(core::resource::cache_t& cache,
 		throw std::runtime_error("a backend that was not enabled somehow was used to create a context.");
 	}
 }
+
+void swapchain::clear_color(const psl::vec4& color) noexcept {
+	switch(m_Backend) {
+	case graphics_backend::vulkan: {
+#if defined(PE_VULKAN)
+		vk::ClearColorValue vk_color;
+		vk_color.float32[0] = color.x;
+		vk_color.float32[1] = color.y;
+		vk_color.float32[2] = color.z;
+		vk_color.float32[3] = color.w;
+		m_VKHandle->clear_color(vk_color);
+#else
+		psl::fatal("a backend that was not enabled somehow was used to create a context.");
+#endif
+	} break;
+	case graphics_backend::gles:
+#ifdef PE_GLES
+		m_GLESHandle->clear_color(color);
+#else
+		psl::fatal("a backend that was not enabled somehow was used to create a context.");
+#endif
+		break;
+	case graphics_backend::webgpu:
+#if defined(PE_WEBGPU)
+		psl::not_implemented();
+#else
+		psl::fatal("a backend that was not enabled somehow was used to create a context.");
+#endif
+		break;
+	default:
+		psl::fatal("unknown backend used");
+	}
+}

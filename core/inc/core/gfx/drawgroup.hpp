@@ -43,13 +43,13 @@ class drawgroup {
 	drawgroup& operator=(drawgroup&&)	   = default;
 
 	const drawlayer& layer(const psl::string& layer, uint32_t priority, uint32_t extent) noexcept;
-	bool contains(const psl::string& layer) const noexcept;
-	std::optional<std::reference_wrapper<const drawlayer>> get(const psl::string& layer) const noexcept;
+	[[nodiscard]] bool contains(const psl::string& layer) const noexcept;
+	[[nodiscard]] std::optional<std::reference_wrapper<const drawlayer>> get(const psl::string& layer) const noexcept;
 	bool priority(drawlayer& layer, uint32_t priority) noexcept;
 
-	drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::bundle> bundle) noexcept;
-	std::optional<std::reference_wrapper<drawcall>> get(const drawlayer& layer,
-														core::resource::handle<core::gfx::bundle> bundle) noexcept;
+	[[nodiscard]] drawcall& add(const drawlayer& layer, core::resource::handle<core::gfx::bundle> bundle) noexcept;
+	[[nodiscard]] std::optional<std::reference_wrapper<drawcall>>
+	get(const drawlayer& layer, core::resource::handle<core::gfx::bundle> bundle) noexcept;
 
 	// bool remove(const drawlayer& layer);
 	// bool remove(const drawcall& call);

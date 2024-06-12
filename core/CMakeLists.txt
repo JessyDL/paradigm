@@ -122,7 +122,7 @@ if(VK_STATIC AND PE_VULKAN)
 endif()
 
 target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS})
-set_target_output_directory(core)
+set_target_output_directory(TARGET core)
 target_include_directories(core
 	PUBLIC 
 	${CMAKE_CURRENT_SOURCE_DIR}/inc

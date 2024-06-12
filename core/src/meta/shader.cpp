@@ -3,7 +3,20 @@
 
 using namespace core::meta;
 using namespace psl::serialization;
-const uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
+uint64_t shader::polymorphic_identity {register_polymorphic<shader>()};
+
+
+shader::shader(const psl::UID& key) : psl::meta::file(key) {};
+
+
+// todo: for some reason the polymorphic_identity is not being self-registered
+// on msvc. This is a workaround for that. See issue https://github.com/JessyDL/paradigm/issues/134
+void shader::register_serializer() {
+	static auto reg = []() {
+		polymorphic_identity = register_polymorphic<shader>();
+		return true;
+	}();
+}
 //
 //// vertex attribute
 // shader::vertex::attribute::attribute() {}

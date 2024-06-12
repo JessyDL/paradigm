@@ -25,7 +25,7 @@ class swapchain {
 
 	bool present();
 	void clear();
-	/*/// returns the amount of images in the swapchain
+	/// returns the amount of images in the swapchain
 	uint32_t size() const noexcept;
 
 	/// \returns the width of the swapchain image
@@ -53,7 +53,7 @@ class swapchain {
 	void clear_color(psl::vec4 color) noexcept;
 
 	/// \returns false in case the window might be resizing.
-	bool is_ready() const noexcept;*/
+	bool is_ready() const noexcept;
 
   private:
 	psl::vec4 m_ClearColor {0.25f, 0.4f, 0.95f, 1.0f};

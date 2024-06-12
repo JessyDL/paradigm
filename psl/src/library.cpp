@@ -9,27 +9,30 @@ using namespace psl::serialization;
 using namespace psl;
 const uint64_t file::polymorphic_identity {register_polymorphic<file>()};
 
-library::library() {}
-
 library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8_t> environment) {
 	m_LibraryLocation = psl::utility::platform::directory::to_platform(lib.value_or(""));
-	auto loc		  = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
-	m_LibraryFolder	  = psl::string8::view(&m_LibraryLocation[0], loc);
-	m_LibraryFile =
-	  psl::string8::view(&m_LibraryLocation[loc + psl::utility::platform::directory::seperator.size()],
-						 m_LibraryLocation.size() - loc - psl::utility::platform::directory::seperator.size());
 
-	psl::string8_t root =
-	  psl::string8_t(m_LibraryFolder) + psl::to_string8_t(psl::utility::platform::directory::seperator);
-
-	psl_assert(psl::utility::platform::file::exists(psl::from_string8_t(m_LibraryLocation)),
-			   "could not find library at '{}'",
-			   m_LibraryLocation);
+	if(auto loc = m_LibraryLocation.rfind(psl::to_string8_t(psl::utility::platform::directory::seperator));
+	   loc == psl::string8_t::npos) {
+		loc				= 0;
+		m_LibraryFolder = ".";
+		m_LibraryFile	= lib.value_or("");
+	} else {
+		m_LibraryFolder = psl::string8::view(&m_LibraryLocation[0], loc);
+		m_LibraryFile =
+		  psl::string8::view(&m_LibraryLocation[loc + psl::utility::platform::directory::seperator.size()],
+							 m_LibraryLocation.size() - loc - psl::utility::platform::directory::seperator.size());
+		psl_assert(psl::utility::platform::file::exists(psl::from_string8_t(m_LibraryLocation)),
+				   "could not find library at '{}'",
+				   m_LibraryLocation);
+	}
 
 	if(!lib) {
 		return;
 	}
 
+	psl::string8_t root =
+	  psl::string8_t(m_LibraryFolder) + psl::to_string8_t(psl::utility::platform::directory::seperator);
 	// Load library into memory
 	serializer s;
 	metalib metalib;

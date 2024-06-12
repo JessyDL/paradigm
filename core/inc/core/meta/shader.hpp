@@ -144,7 +144,7 @@ class shader final : public psl::meta::file {
 	};
 
 	shader() = default;
-	shader(const psl::UID& key) : psl::meta::file(key) {};
+	shader(const psl::UID& key);
 
 	~shader() = default;
 
@@ -187,6 +187,8 @@ class shader final : public psl::meta::file {
 
 	psl::array_view<descriptor> descriptors() const noexcept { return {m_Descriptors.value}; }
 	void descriptors(psl::array<descriptor> value) noexcept { m_Descriptors.value = std::move(value); }
+
+	static void register_serializer();
 
   private:
 	/// \brief method that will be invoked by the serialization system.
@@ -234,6 +236,6 @@ class shader final : public psl::meta::file {
 	/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
 	virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }
 	/// \brief the associated unique ID (per type, not instance) for the polymorphic system.
-	static const uint64_t polymorphic_identity;
+	static uint64_t polymorphic_identity;
 };
 }	 // namespace core::meta

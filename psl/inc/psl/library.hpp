@@ -121,7 +121,6 @@ class metalib {
 /// the psl::UID satisfies is_physical_file() ), and to have that companion file cached for faster reloads.
 class library {
   public:
-	library();
 	/// \brief location on disk where the library can be found.
 	///
 	/// The constructor will try to load the given filepath, and then parse it. It will also create the minimal

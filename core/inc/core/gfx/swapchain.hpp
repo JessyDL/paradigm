@@ -38,6 +38,9 @@ class swapchain {
 	swapchain& operator=(const swapchain& other)	 = delete;
 	swapchain& operator=(swapchain&& other) noexcept = delete;
 
+	void clear_color(const psl::vec4& color) noexcept;
+	psl::vec4 clear_color() const noexcept;
+
 	template <core::gfx::graphics_backend backend>
 	core::resource::handle<backend_type_t<swapchain, backend>> resource() const noexcept {
 #ifdef PE_VULKAN

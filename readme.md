@@ -75,19 +75,9 @@ You can tweak various settings and values, you'll find them at the top of the `t
 As an example running `py paradigm.py --run build --graphics vulkan gles --generator Ninja` will set up the project as an executable, with all available graphics backends, using the Ninja build tool.
 
 ## Examples
-Following are some examples that showcase various usages of this project, click the image to go to the repository.
+Examples can be built when toggling on the `PE_EXAMPLES` cmake option. You can inspect the examples at `./examples/`. By default all examples are built as a sub-folder in the output directory.
 
-**[basic-app](https://github.com/JessyDL/paradigm-example-app)**
-
-<a href="https://github.com/JessyDL/paradigm-example-app"><img src="https://raw.githubusercontent.com/JessyDL/paradigm-example-app/master/example_app_01.png" height=150></a> 
-
-Basic example app showcasing how to create a surface, loading a meta::library, create memory::region's and a resource::cache, and finally rendering a basic textured box.
-
-**[assembler](https://github.com/JessyDL/assembler)**
-
-<a href="https://github.com/JessyDL/assembler"><img src="https://raw.githubusercontent.com/JessyDL/assembler/master/output.png" height=150></a> 
-
-The assembler project is a CLI toolchain that allows you to generate data files that can be used by the engine, as well as generating resource libraries. Its setup is a bit different due to the fact that it consumes the library mostly as a source. 
+The examples directory additionally contains a readme that describes the examples in more detail.
 
 ## Project Structure
 ### Sub-Projects

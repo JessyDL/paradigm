@@ -24,4 +24,4 @@ set_target_properties(main PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET main PROPERTY FOLDER "paradigm-engine")
 
-set_target_output_directory(main)
+set_target_output_directory(TARGET main)
