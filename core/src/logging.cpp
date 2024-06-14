@@ -107,13 +107,13 @@ auto core::initialize_loggers(bool to_file) -> void {
 #else
 
 	#include "spdlog/sinks/android_sink.h"
-auto core::initialize_loggers() -> void {
+auto core::initialize_loggers([[maybe_unused]] bool to_file) -> void {
 	if(core::_loggers_initialized) {
 		return;
 	}
 
 	core::_loggers_initialized = true;
-	core::log				   = spdlog::android_logger_mt("main", "paradigm");
+	core::log				   = spdlog::android_logger_mt("core", "paradigm");
 	core::systems::log		   = spdlog::android_logger_mt("systems", "paradigm");
 	core::os::log			   = spdlog::android_logger_mt("os", "paradigm");
 	core::data::log			   = spdlog::android_logger_mt("data", "paradigm");
