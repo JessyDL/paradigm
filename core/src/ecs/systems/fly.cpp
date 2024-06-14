@@ -16,6 +16,14 @@ fly::~fly() {
 	m_InputSystem.unsubscribe(this);
 }
 
+using keycode_t = core::systems::input::keycode;
+constexpr keycode_t KEYCODE_FORWARD {keycode_t::W};
+constexpr keycode_t KEYCODE_BACKWARD {keycode_t::S};
+constexpr keycode_t KEYCODE_LEFT {keycode_t::A};
+constexpr keycode_t KEYCODE_RIGHT {keycode_t::D};
+constexpr keycode_t KEYCODE_UP {keycode_t::SPACE};
+constexpr keycode_t KEYCODE_BOOST {keycode_t::LEFT_SHIFT};
+
 void fly::tick(psl::ecs::info_t& info,
 			   psl::ecs::pack_direct_full_t<core::ecs::components::transform,
 											psl::ecs::filter<core::ecs::components::input_tag>> movables) {
@@ -59,7 +67,7 @@ void fly::tick(psl::ecs::info_t& info,
 			accDirectionVec += up;
 		}
 
-		if(hasMoved) {
+		if(hasMoved && accDirectionVec != vec3::zero) {
 			transform.position = transform.position + normalize(accDirectionVec) *
 														((m_Boost) ? m_MoveSpeed * 40 : m_MoveSpeed) *
 														info.rTime.count();
@@ -103,24 +111,23 @@ void fly::tick(psl::ecs::info_t& info,
 }
 
 void fly::on_key_pressed(core::systems::input::keycode keyCode) {
-	using keycode_t = core::systems::input::keycode;
 	switch(keyCode) {
-	case keycode_t::Z: {
+	case KEYCODE_FORWARD: {
 		m_Moving[0] = true;
 	} break;
-	case keycode_t::Q: {
+	case KEYCODE_LEFT: {
 		m_Moving[2] = true;
 	} break;
-	case keycode_t::S: {
+	case KEYCODE_BACKWARD: {
 		m_Moving[1] = true;
 	} break;
-	case keycode_t::D: {
+	case KEYCODE_RIGHT: {
 		m_Moving[3] = true;
 	} break;
-	case keycode_t::SPACE: {
+	case KEYCODE_UP: {
 		m_Up = true;
 	} break;
-	case keycode_t::LEFT_SHIFT: {
+	case KEYCODE_BOOST: {
 		m_Boost = true;
 	} break;
 	default:
@@ -129,24 +136,23 @@ void fly::on_key_pressed(core::systems::input::keycode keyCode) {
 }
 
 void fly::on_key_released(core::systems::input::keycode keyCode) {
-	using keycode_t = core::systems::input::keycode;
 	switch(keyCode) {
-	case keycode_t::Z: {
+	case KEYCODE_FORWARD: {
 		m_Moving[0] = false;
 	} break;
-	case keycode_t::Q: {
+	case KEYCODE_LEFT: {
 		m_Moving[2] = false;
 	} break;
-	case keycode_t::S: {
+	case KEYCODE_BACKWARD: {
 		m_Moving[1] = false;
 	} break;
-	case keycode_t::D: {
+	case KEYCODE_RIGHT: {
 		m_Moving[3] = false;
 	} break;
-	case keycode_t::SPACE: {
+	case KEYCODE_UP: {
 		m_Up = false;
 	} break;
-	case keycode_t::LEFT_SHIFT: {
+	case KEYCODE_BOOST: {
 		m_Boost = false;
 	} break;
 	default:
