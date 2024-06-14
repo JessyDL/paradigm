@@ -40,7 +40,7 @@ inline std::tm localtime_safe(std::time_t timer) {
 	return bt;
 }
 
-auto core::initialize_loggers() -> void {
+auto core::initialize_loggers(bool to_file) -> void {
 	if(core::_loggers_initialized) {
 		return;
 	}
@@ -54,16 +54,31 @@ auto core::initialize_loggers() -> void {
 	time.resize(20);
 	strftime(time.data(), 20, "%Y-%m-%d %H-%M-%S", &now_tm);
 	time[time.size() - 1] = '/';
-	psl::string sub_path  = "logs/" + time;
-	if(!psl::utility::platform::file::exists(psl::utility::application::path::get_path() + sub_path + "main.log"))
-		psl::utility::platform::file::write(psl::utility::application::path::get_path() + sub_path + "main.log", "");
+	auto path			  = psl::utility::application::path::get_path();
+	psl::string sub_path  = path + "logs/" + time;
 	std::vector<spdlog::sink_ptr> sinks;
 
+	auto make_sink = [](std::shared_ptr<spdlog::logger>& target,
+						psl::string_view name,
+						std::optional<psl::string_view> path,
+						auto&... additional_sinks) {
+		std::vector<spdlog::sink_ptr> sinks;
+		sinks.reserve(sizeof...(additional_sinks) + 1);
+		if(path) {
+			sinks.emplace_back(
+			  std::make_shared<spdlog::sinks::basic_file_sink_mt>(psl::string {path.value()} + name + ".log", true));
+		}
+		(sinks.emplace_back(additional_sinks), ...);
+		auto logger = std::make_shared<spdlog::logger>(psl::string {name}, begin(sinks), end(sinks));
+		spdlog::register_logger(logger);
+		target = logger;
+	};
+
 	auto mainlogger = std::make_shared<spdlog::sinks::dist_sink_mt>();
-	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "main.log", true));
-	mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + "logs/latest.log", true));
+	if(to_file) {
+		mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(sub_path + "main.log", true));
+		mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(path + "logs/latest.log", true));
+	}
 	#ifdef _MSC_VER
 	mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 	#else
@@ -72,109 +87,33 @@ auto core::initialize_loggers() -> void {
 	mainlogger->add_sink(outlogger);
 	#endif
 
-	auto ivklogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "ivk.log", true);
-
-	auto igleslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "igles.log", true);
-
-	auto iwgpulogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "iwgpu.log", true);
-
-	auto gfxlogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "gfx.log", true);
-
-	auto systemslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "systems.log", true);
-
-	auto oslogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "os.log", true);
-
-	auto datalogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "data.log", true);
-
-	auto corelogger = std::make_shared<spdlog::sinks::basic_file_sink_mt>(
-	  psl::utility::application::path::get_path() + sub_path + "core.log", true);
-
-	sinks.push_back(mainlogger);
-	sinks.push_back(corelogger);
-
-	auto logger = std::make_shared<spdlog::logger>("main", begin(sinks), end(sinks));
-	spdlog::register_logger(logger);
-	core::log = logger;
-
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(systemslogger);
-
-	auto system_logger = std::make_shared<spdlog::logger>("systems", begin(sinks), end(sinks));
-	spdlog::register_logger(system_logger);
-	core::systems::log = system_logger;
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(oslogger);
-
-	auto os_logger = std::make_shared<spdlog::logger>("os", begin(sinks), end(sinks));
-	spdlog::register_logger(os_logger);
-	core::os::log = os_logger;
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(datalogger);
-
-	auto data_logger = std::make_shared<spdlog::logger>("data", begin(sinks), end(sinks));
-	spdlog::register_logger(data_logger);
-	core::data::log = data_logger;
-
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(gfxlogger);
-
-	auto gfx_logger = std::make_shared<spdlog::logger>("gfx", begin(sinks), end(sinks));
-	spdlog::register_logger(gfx_logger);
-	core::gfx::log = gfx_logger;
-
-	#ifdef PE_VULKAN
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(ivklogger);
-
-	auto ivk_logger = std::make_shared<spdlog::logger>("ivk", begin(sinks), end(sinks));
-	spdlog::register_logger(ivk_logger);
-	core::ivk::log = ivk_logger;
+	make_sink(core::log, "core", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
+	make_sink(core::gfx::log, "gfx", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
+	#if defined(PE_VULKAN)
+	make_sink(core::ivk::log, "ivk", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
 	#endif
-	#ifdef PE_GLES
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(igleslogger);
-
-	auto igles_logger = std::make_shared<spdlog::logger>("igles", begin(sinks), end(sinks));
-	spdlog::register_logger(igles_logger);
-	core::igles::log = igles_logger;
+	#if defined(PE_GLES)
+	make_sink(core::igles::log, "igles", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
 	#endif
-	#ifdef PE_WEBGPU
-	sinks.clear();
-	sinks.push_back(mainlogger);
-	sinks.push_back(iwgpulogger);
-
-	auto iwgpu_logger = std::make_shared<spdlog::logger>("iwgpu", begin(sinks), end(sinks));
-	spdlog::register_logger(iwgpu_logger);
-	core::iwgpu::log = iwgpu_logger;
+	#if defined(PE_WEBGPU)
+	make_sink(core::iwgpu::log, "iwgpu", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
 	#endif
+	make_sink(core::data::log, "data", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
+	make_sink(core::systems::log, "systems", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
+	make_sink(core::os::log, "os", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
+
 	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }
 #else
 
 	#include "spdlog/sinks/android_sink.h"
-auto core::initialize_loggers() -> void {
+auto core::initialize_loggers([[maybe_unused]] bool to_file) -> void {
 	if(core::_loggers_initialized) {
 		return;
 	}
 
 	core::_loggers_initialized = true;
-	core::log				   = spdlog::android_logger_mt("main", "paradigm");
+	core::log				   = spdlog::android_logger_mt("core", "paradigm");
 	core::systems::log		   = spdlog::android_logger_mt("systems", "paradigm");
 	core::os::log			   = spdlog::android_logger_mt("os", "paradigm");
 	core::data::log			   = spdlog::android_logger_mt("data", "paradigm");

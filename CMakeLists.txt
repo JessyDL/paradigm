@@ -27,9 +27,9 @@ OPTION(PE_VULKAN "controls Vulkan support (experimental - not done)" ON)
 OPTION(PE_MOLTEN "controls Metal support (not implemented)" OFF)
 OPTION(PE_WEBGPU_NATIVE "controls native WebGPU support" OFF)
 OPTION(PE_WEBGPU "controls WebGPU support, note this is also on when PE_WEBGPU_NATIVE is enabled." OFF)
-OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ON)
+OPTION(PE_MAKE_EXE "make example executable based on Paradigm" ${PROJECT_IS_TOP_LEVEL})
 OPTION(PE_DEV_MAKE_PSL_EXE "For development you can make an executable " OFF)
-OPTION(PE_TESTS "make the tests" ON)
+OPTION(PE_TESTS "make the tests" ${PROJECT_IS_TOP_LEVEL})
 OPTION(PE_PCH "enable usage of the precompiled header" ON)
 OPTION(PE_CCACHE "enable ccache" ON)
 OPTION(PE_CORE "generate the paradigm core, turn this off if you only want the PSL to generate" ON)
@@ -62,6 +62,8 @@ set(ANDROID_GRADLE "" CACHE PATH "override gradle location")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 OPTION(PE_ECS_DISABLE_LOOKUP_CACHE_BEHAVIOUR "Disable the usage of the lookup cache for psl::ecs::state_t" OFF)
+
+set(PE_INTERNAL_SET_BUILD_DIR ${PROJECT_IS_TOP_LEVEL})
 
 if(${PE_CCACHE})
 	find_program(CCACHE "ccache")
@@ -233,20 +235,6 @@ endif()
 ###############################################################################
 ###                    setup output directories                             ###
 ###############################################################################
-get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-if(is_multi_config)
-	foreach(OUTPUTCONFIG ${CMAKE_CONFIGURATION_TYPES})
-		string(TOUPPER ${OUTPUTCONFIG} OUTPUTCONFIG)
-		string(TOLOWER ${OUTPUTCONFIG} OUTPUTCONFIG_FOLDERNAME)
-		
-		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/bin")
-		file(MAKE_DIRECTORY "${PE_BUILD_DIR}/${OUTPUTCONFIG_FOLDERNAME}/lib")
-	endforeach()
-else()		
-	file(MAKE_DIRECTORY "${PE_BUILD_DIR}/default/bin")
-	file(MAKE_DIRECTORY "${PE_BUILD_DIR}/default/lib")
-endif()
-
 if(PE_ANALYZE)
 	if(MSVC)
 	
