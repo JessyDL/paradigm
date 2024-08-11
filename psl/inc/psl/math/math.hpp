@@ -29,6 +29,11 @@ constexpr psl::tvec<precision_t, 3> operator*(const psl::tquat<precision_t>& qua
 }	 // namespace psl
 
 namespace psl::math {
+static constexpr float PI	   = 3.14159265358979323846f;
+static constexpr double PI_D   = 3.14159265358979323846;
+static constexpr float PI_2	   = 1.57079632679489661923f;
+static constexpr double PI_2_D = 1.57079632679489661923;
+
 template <typename precision_t>
 constexpr static precision_t sin(precision_t value) noexcept {
 	return std::sin(value);
