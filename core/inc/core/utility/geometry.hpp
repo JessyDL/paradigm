@@ -694,10 +694,130 @@ static core::resource::handle<core::data::geometry_t> create_cone(core::resource
 	return geomData;
 }
 
+// \brief generates an arrow gizmo with a pivot of {0,0,0}.
+// \details It is a combination of a cylinder and a cone and each cardinal direction is colored to their colour component equivalent.
+// meaning that the x-axis is red, the y-axis is green and the z-axis is blue.
+// It is scaled by the scale parameter and will generate normal, and tangent information, but no UV information.
+// \param[in, out] cache the cache to store the generated geometry information on.
+// \param[in] scale the scale of the object.
+// \returns the handle to the generated geometry data.
+static core::resource::handle<core::data::geometry_t> create_arrow_gizmo(core::resource::cache_t& cache,
+																		 psl::vec3 scale = psl::vec3::one) {
+	using index_size_t				   = core::data::geometry_t::index_size_t;
+	index_size_t const circle_segments = 16;
+	float const arrow_radius		   = 0.01f;
+	float const arrow_length		   = 0.85f;
+
+	float const tip_radius = 0.05f;
+	float const tip_length = 0.15f;
+
+	enum class axis_t { X = 0, Y = 1, Z = 2 };
+
+	auto gen_circle_vertices = [circle_segments](std::vector<psl::vec3>& vertices,
+												 std::vector<index_size_t>& indices,
+												 axis_t axis,
+												 float radius,
+												 psl::vec3 offset = psl::vec3::zero) {
+		index_size_t const index_offset = psl::narrow_cast<index_size_t>(vertices.size());
+		for(size_t i = 0; i < circle_segments; ++i) {
+			float const angle = 2.f * psl::math::PI * float(i) / float(circle_segments);
+			// emplace the vertex in the vertices array depending on the axis as the up vector
+			auto const first_pos  = cos(angle) * radius;
+			auto const second_pos = sin(angle) * radius;
+			psl::vec3 vertex {psl::vec3::zero};
+			vertex[axis == axis_t::X ? 1 : axis == axis_t::Y ? 2 : 0] = first_pos;
+			vertex[axis == axis_t::X ? 2 : axis == axis_t::Y ? 0 : 1] = second_pos;
+			vertex += offset;
+			vertices.emplace_back(std::move(vertex));
+		}
+
+		for(index_size_t i = 0; i < circle_segments; ++i) {
+			indices.push_back(index_offset);
+			indices.push_back(index_offset + (i + 1) % circle_segments + 1);
+			indices.push_back(index_offset + i + 1);
+		}
+	};
+
+	auto connect_circles = [circle_segments](index_size_t first_circle_offset, std::vector<index_size_t>& indices) {
+		for(index_size_t i = 0; i < circle_segments; ++i) {
+			indices.push_back(first_circle_offset + i);
+			indices.push_back(first_circle_offset + (i + 1) % circle_segments);
+			indices.push_back(first_circle_offset + i + circle_segments);
+
+			indices.push_back(first_circle_offset + (i + 1) % circle_segments);
+			indices.push_back(first_circle_offset + (i + 1) % circle_segments + circle_segments);
+			indices.push_back(first_circle_offset + i + circle_segments);
+		}
+	};
+
+	auto connect_circles_to_tip = [circle_segments](index_size_t first_circle_offset,
+													std::vector<index_size_t>& indices) {
+		for(index_size_t i = 0; i < circle_segments; ++i) {
+			indices.push_back(first_circle_offset + i);
+			indices.push_back(first_circle_offset + (i + 1) % circle_segments);
+			indices.push_back(first_circle_offset + circle_segments);
+		}
+	};
+
+	std::vector<psl::vec3> vertices {};
+	std::vector<psl::vec3> colour {};
+	std::vector<index_size_t> indices {};
+
+	std::vector<axis_t> axes {axis_t::X, axis_t::Y, axis_t::Z};
+
+	index_size_t index_offset = 0;
+	for(auto axis : axes) {
+		psl::vec3 offset_arrow_length {0.f, 0.f, 0.f};
+		offset_arrow_length[psl::to_underlying(axis)] = arrow_length;
+		psl::vec3 offset_tip_length {0.f, 0.f, 0.f};
+		offset_tip_length[psl::to_underlying(axis)] = arrow_length + tip_length;
+		psl::vec3 current_colour {0.f, 0.f, 0.f};
+		current_colour[psl::to_underlying(axis)] = 1.f;
+
+		gen_circle_vertices(vertices, indices, axis, arrow_radius);
+		gen_circle_vertices(vertices, indices, axis, arrow_radius, offset_arrow_length);
+
+		connect_circles(psl::narrow_cast<index_size_t>(index_offset), indices);
+
+		gen_circle_vertices(vertices, indices, axis, tip_radius, offset_arrow_length);
+		vertices.emplace_back(offset_tip_length);
+		connect_circles_to_tip(psl::narrow_cast<index_size_t>(vertices.size() - circle_segments - 1), indices);
+
+		for(size_t i = index_offset; i < vertices.size(); ++i) {
+			colour.emplace_back(current_colour);
+		}
+
+		index_offset = psl::narrow_cast<index_size_t>(vertices.size());
+	}
+
+	// rescale
+	for(auto& vertex : vertices) {
+		vertex *= scale;
+	}
+
+	auto geomData = cache.create<core::data::geometry_t>();
+
+	core::vertex_stream_t vertStream {core::vertex_stream_t::type::vec3};
+	core::vertex_stream_t colourStream {core::vertex_stream_t::type::vec3};
+
+	vertStream.get<core::vertex_stream_t::type::vec3>().resize(vertices.size());
+	memcpy(vertStream.data(), vertices.data(), sizeof(psl::vec3) * vertices.size());
+	colourStream.get<core::vertex_stream_t::type::vec3>().resize(colour.size());
+	memcpy(colourStream.data(), colour.data(), sizeof(psl::vec3) * colour.size());
+
+	geomData->vertices(core::data::geometry_t::constants::POSITION, vertStream);
+	geomData->vertices(core::data::geometry_t::constants::COLOR, colourStream);
+
+	geomData->indices(indices);
+
+	return geomData;
+}
+
 static core::resource::handle<core::data::geometry_t> create_sphere(core::resource::cache_t& cache,
 																	psl::vec3 scale	   = psl::vec3::one,
 																	uint16_t longitude = 24,
 																	uint16_t latitude  = 16) {
+	scale *= 0.5f;	  // scale the sphere to be of radius 1
 	std::vector<psl::vec3> vertices = std::vector<psl::vec3>((longitude + 1) * latitude + 2);
 	float _pi						= 3.14159265359f;
 	float _2pi						= _pi * 2.0f;
@@ -765,7 +885,7 @@ static core::resource::handle<core::data::geometry_t> create_sphere(core::resour
 	std::vector<psl::vec3> res_normals(vertices.size());
 
 	for(i = 0; i < vertices.size(); ++i) {
-		res_positions[i] = vertices[i] * scale;
+		res_positions[i] = (vertices[i]) * scale;
 		res_normals[i]	 = psl::math::normalize(res_positions[i]);
 	}
 
