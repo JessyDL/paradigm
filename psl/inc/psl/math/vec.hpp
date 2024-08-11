@@ -1336,6 +1336,19 @@ constexpr static precision_t length(const tvec<precision_t, dimensions>& vec) no
 	return std::sqrt(dot(vec, vec));
 }
 
+// \brief returns the squared distance between two points. If you want the actual distance, use `length`
+template <typename precision_t, size_t dimensions>
+constexpr static precision_t length_squared(const tvec<precision_t, dimensions>& vec) noexcept {
+	return dot(vec, vec);
+}
+
+// \brief returns the reflection vector of the incident vector on the normal vector
+template <typename precision_t, size_t dimensions>
+constexpr static tvec<precision_t, dimensions> reflect(const tvec<precision_t, dimensions>& incident,
+													   const tvec<precision_t, dimensions>& normal) noexcept {
+	return incident - normal * (2 * dot(incident, normal));
+}
+
 template <typename precision_t, size_t dimensions>
 constexpr static tvec<precision_t, dimensions> sqrt(const tvec<precision_t, dimensions>& vec) noexcept {
 	tvec<precision_t, dimensions> res {};

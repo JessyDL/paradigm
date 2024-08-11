@@ -287,15 +287,15 @@ if(MSVC) # we currently make no distinction for CLang (todo)
 	
 	
 	list(APPEND PE_COMPILE_OPTIONS_EXE
-							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
-							$<$<CONFIG:Release>:           /MD /O2;/Oi;/Gy-;/GL;/Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/GL;/Zo;/Z7>
-							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
+							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1>
+							$<$<CONFIG:Release>:           /MD /O2;/Oi;/Gy-;/GL>
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/GL;/Zo>
+							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1>)
 	list(APPEND PE_COMPILE_OPTIONS_LIB
-							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1;/Z7>
-							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy-;/Zi>
-							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/Zo;/Z7>
-							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1;/Zi>)
+							$<$<CONFIG:Debug>:             /MDd;/Od;/RTC1>
+							$<$<CONFIG:Release>:           /MD;/O2;/Oi;/Gy->
+							$<$<CONFIG:RelWithDebInfo>:    /MD;/O2;/Oi;/Gy-;/Zo>
+							$<$<CONFIG:RelNoOptimization>: /MDd;/Od;/RTC1>)
 							
 	set(CMAKE_EXE_LINKER_FLAGS_DEBUG "/INCREMENTAL /DEBUG /OPT:NOREF /OPT:NOICF")
 	SET(CMAKE_EXE_LINKER_FLAGS_RELEASE "/INCREMENTAL:NO /OPT:REF /OPT:ICF /LTCG")
