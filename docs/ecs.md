@@ -15,7 +15,7 @@ Hopefully after this short introduction & examples you will have enough of an id
 ## concepts
 ### state
  Often other ECS implementations refer to this as their "world". The `state` contains the actual `component` data, to which `entity` the `component` maps, and a list of `systems` that should be executed per invocation.
- Its most notable methods are [`add_components`](#state::add_components), `remove_components`, `create`, `destroy`, `filter`, and `tick`. There are several others, but they are mostly self explanatory and explained in the reference documentation.
+ Its most notable methods are `add_components`, `remove_components`, `create`, `destroy`, `filter`, and `tick`. There are several others, but they are mostly self explanatory and explained in the reference documentation.
  
 ### command_buffer
  Due to the fact that the ECS can run multithreaded, we cannot allow the `state` to be mutated during the execution of systems (it would lead to a lock-mess when creating/destroying entities). This is where the `command_buffer` comes into play.
@@ -234,6 +234,16 @@ Next table is a reference chart of what the different combinations result in. `N
 | -- | -- | -- |
 | **pack<whole,...>** | single thread, invoked once per frame | equivalent to threading::sequential
 | **pack<partial,...>** | multi-context (but not concurrent), invoked N times per frame | Invoked N times, concurrently per frame.
+
+### System Groups
+
+Sometimes you want systems to not tick at the same rate as others, as example physics is often ran at a fixed timestep rather than every tick. For this the concept of system groups exists. You can create a group by calling the member function `create_system_group()` on an instance of `psl::ecs::state_t`. This will return you an opaque handle to a group. You can then subsequently use this when you are declaring your systems (`state_t::declare()`) as one of its arguments.
+
+#### limitations and caveats 
+
+As component lifetime events such as `on_add`, `on_remove`, `on_combine`, `on_break` are properties of the component these will not be propogated to anything but the default system group (invoking `state_t::tick()` without the group arguments). At runtime an exception will be thrown if you try to register a system that belongs to a group which does one of these operations.
+
+As a side consequence if you add components or entities during the ticking of a system group, these will not be visible until you do a normal tick.
 
 ### examples
 A single threaded system that filters on all entities that have a `position` component. Note that position is *not* marked `const` because we will be adjusting the position value in our imaginary example. If it was marked as `const`, we would only get a read-only view into the data.

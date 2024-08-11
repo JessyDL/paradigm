@@ -197,7 +197,14 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 	}
 }
 
+
 void state_t::tick(std::chrono::duration<float> dTime) {
+	tick(dTime, psl::array_view<system_group_t> {});
+}
+void state_t::tick(std::chrono::duration<float> dTime, system_group_t group) {
+	tick(dTime, psl::array_view<system_group_t> {&group, 1});
+}
+void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_group_t> groups) {
 	m_LockState = 1;
 	// remove filters that are no longer in use
 	m_Filters.erase(std::remove_if(begin(m_Filters),
@@ -218,23 +225,60 @@ void state_t::tick(std::chrono::duration<float> dTime) {
 
 	m_ModifiedEntities.clear();
 
-	// tick systems;
-	for(auto& system : m_SystemInformations) {
-		prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
+	// todo: we can optimize this, and additionally the filters should be refined for the systems that we'll actually
+	// use
+	//
+	// when ticking if the system is a group we go down an alternate pathway where we do not do any component promotion
+	// or filtering, but instead we just execute the systems in the group
+	// additionally the tick value does not increment.
+	// new systems can be added and removed during this tick, but that's the only shared functionality between the two.
+	// as group ticks can not use advanced filtering operations they will additionally not see new components until a
+	// normal tick is performed.
+	if(groups.size() == 0) {
+		for(auto& system : m_SystemInformations) {
+			if(m_SystemGroupIndices.find(system.id()) != std::end(m_SystemGroupIndices)) {
+				continue;
+			}
+			prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
+		}
+
+		m_Orphans.insert(std::end(m_Orphans), std::begin(m_ToBeOrphans), std::end(m_ToBeOrphans));
+		m_ToBeOrphans.clear();
+
+		for(auto& [key, cInfo] : m_Components) cInfo->purge();
+
+		for(auto& info : info_buffer) {
+			execute_command_buffer(*info);
+		}
+		info_buffer.clear();
+
+		// purge;
+		++m_Tick;
+	} else {
+		auto system_indices = std::unordered_set<details::system_token>();
+
+		// for every group, get all the systems and append them to system_indices
+		for(auto& group : groups) {
+			auto group_it = m_SystemGroups.find(group.m_Id);
+			if(group_it == std::end(m_SystemGroups)) {
+				continue;
+			}
+			for(auto& system : group_it->second) {
+				system_indices.insert(system);
+			}
+		}
+
+		for(auto& system : m_SystemInformations) {
+			if(system_indices.find(system.id()) == std::end(system_indices)) {
+				continue;
+			}
+			prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
+		}
+		for(auto& info : info_buffer) {
+			execute_command_buffer(*info);
+		}
+		info_buffer.clear();
 	}
-
-	m_Orphans.insert(std::end(m_Orphans), std::begin(m_ToBeOrphans), std::end(m_ToBeOrphans));
-	m_ToBeOrphans.clear();
-
-	for(auto& [key, cInfo] : m_Components) cInfo->purge();
-
-	for(auto& info : info_buffer) {
-		execute_command_buffer(*info);
-	}
-	info_buffer.clear();
-
-	// purge;
-	++m_Tick;
 
 	if(m_NewSystemInformations.size() > 0) {
 		for(auto& system : m_NewSystemInformations) m_SystemInformations.emplace_back(std::move(system));
@@ -892,5 +936,8 @@ void state_t::clear(bool release_memory) noexcept {
 	m_LockState = 0;
 	m_ModifiedEntities.clear();
 	m_ToRevoke.clear();
+	m_SystemGroupCounter = 0;
+	m_SystemGroups.clear();
+	m_SystemGroupIndices.clear();
 	++m_ComponentGeneration;
 }
