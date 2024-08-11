@@ -51,6 +51,20 @@ struct converter<psl::ecs::entity_t> {
 /// \brief Entity Component System
 ///
 namespace psl::ecs {
+class state_t;
+
+class system_group_t final {
+	friend class state_t;
+	system_group_t(size_t id, psl::string_view debugName = "") : m_Id(id), m_DebugName(debugName) {}
+
+  public:
+	system_group_t() = default;
+
+  private:
+	size_t m_Id {std::numeric_limits<size_t>::max()};
+	psl::string_view m_DebugName;
+};
+
 class state_t final {
 	friend class psl::serialization::accessor;
 	static constexpr auto serialization_name {"ECS"};
@@ -483,6 +497,8 @@ class state_t final {
 	}
 
 	void tick(std::chrono::duration<float> dTime);
+	void tick(std::chrono::duration<float> dTime, system_group_t group);
+	void tick(std::chrono::duration<float> dTime, psl::array_view<system_group_t> groups);
 
 	void reset(psl::array_view<entity_t> entities) noexcept;
 
@@ -509,23 +525,40 @@ class state_t final {
 	size_t systems() const noexcept { return m_SystemInformations.size() - m_ToRevoke.size(); }
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(Fn&& fn, bool seedWithExisting = false) {
-		return declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName);
+	auto declare(Fn&& fn, bool seedWithExisting = false, std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(
+		  threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName, systemGroup);
 	}
 
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(threading threading, Fn&& fn, bool seedWithExisting = false) {
-		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName);
+	auto declare(threading threading,
+				 Fn&& fn,
+				 bool seedWithExisting					   = false,
+				 std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName, systemGroup);
 	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(Fn&& fn, T* ptr, bool seedWithExisting = false) {
-		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName);
+	auto
+	declare(Fn&& fn, T* ptr, bool seedWithExisting = false, std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName, systemGroup);
 	}
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false) {
-		return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName);
+	auto declare(threading threading,
+				 Fn&& fn,
+				 T* ptr,
+				 bool seedWithExisting					   = false,
+				 std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName, systemGroup);
+	}
+
+	template <psl::details::fixed_astring DebugName = "">
+	[[nodiscard]] auto create_system_group() noexcept {
+		m_SystemGroups.emplace(m_SystemGroupCounter, psl::array<details::system_token> {});
+		auto group = system_group_t {m_SystemGroupCounter, DebugName};
+		++m_SystemGroupCounter;
+		return group;
 	}
 
 	bool revoke(details::system_token id) noexcept {
@@ -966,8 +999,12 @@ class state_t final {
 	}
 
 	template <typename Fn, typename T = void>
-	auto
-	declare_impl(threading threading, Fn&& fn, T* ptr, bool seedWithExisting = false, psl::string_view debugName = "") {
+	auto declare_impl(threading threading,
+					  Fn&& fn,
+					  T* ptr,
+					  bool seedWithExisting						= false,
+					  psl::string_view debugName				= "",
+					  std::optional<system_group_t> systemGroup = std::nullopt) {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
 		using pack_type		  = typename get_packs<function_args>::type;
 		auto filter_groups	  = make_filter_group(pack_type {});
@@ -980,6 +1017,20 @@ class state_t final {
 				  return get_component_untyped_info<Z>();
 			  });
 		};
+
+		// make sure systems don't have any non-basic filter operations if they are part of a system group
+		// the reason for this is that the tracking for component lifetime events is not done on a per system level
+		// but handled by the storage of the components themselves. This means that if a group is ticked on a different
+		// cadence than every tick, the system would miss out on component lifetime events.
+		if(systemGroup != std::nullopt) {
+			for(auto const& filter_group : filter_groups) {
+				if(!filter_group.is_basic_filter()) {
+					throw std::runtime_error(
+					  "system groups can only contain basic filter operations, no on_add, on_break, on_combine, or "
+					  "on_remove");
+				}
+			}
+		}
 
 		auto system_tick = create_system_tick_functional<Fn, T, pack_type>(fn, ptr);
 		auto& sys_info	 = (m_LockState) ? m_NewSystemInformations : m_SystemInformations;
@@ -994,15 +1045,28 @@ class state_t final {
 		}
 
 
-		sys_info.emplace_back(threading,
-							  std::move(pack_generator),
-							  std::move(system_tick),
-							  shared_filter_groups,
-							  shared_transform_groups,
-							  ++m_SystemCounter,
-							  seedWithExisting,
-							  debugName);
-		return sys_info[sys_info.size() - 1].id();
+		auto system_id = sys_info
+						   .emplace_back(threading,
+										 std::move(pack_generator),
+										 std::move(system_tick),
+										 shared_filter_groups,
+										 shared_transform_groups,
+										 ++m_SystemCounter,
+										 seedWithExisting,
+										 debugName)
+						   .id();
+
+		if(systemGroup != std::nullopt) {
+			auto it = m_SystemGroups.find(systemGroup->m_Id);
+			psl_assert(it != std::end(m_SystemGroups),
+					   "system group not found, are you sure you registered it with this container? Do note that "
+					   "groups do not persist a reset.");
+
+			m_SystemGroupIndices.emplace(system_id);
+			it->second.push_back(system_id);
+		}
+
+		return system_id;
 	}
 
 	::memory::raw_region m_Cache {1024 * 1024 * 256};
@@ -1014,6 +1078,9 @@ class state_t final {
 
 	psl::array<details::system_token> m_ToRevoke {};
 	psl::array<details::system_information> m_NewSystemInformations {};
+	std::unordered_map<size_t, psl::array<details::system_token>> m_SystemGroups {};
+	std::unordered_set<details::system_token> m_SystemGroupIndices {};
+	size_t m_SystemGroupCounter {0};
 
 	mutable std::unordered_map<details::component_key_t, std::unique_ptr<details::component_container_t>>
 	  m_Components {};

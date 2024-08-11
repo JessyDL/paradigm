@@ -378,6 +378,7 @@ auto compress_from_dependency_pack(psl::type_pack_t<Ts...>, std::vector<dependen
 class system_information;
 class system_token {
 	friend class system_information;
+	friend std::hash<system_token>;
 	constexpr system_token(size_t id) noexcept : id(id) {};
 
   public:
@@ -436,3 +437,10 @@ class system_information final {
 	system_token m_ID {0};
 };
 }	 // namespace psl::ecs::details
+
+namespace std {
+template <>
+struct hash<psl::ecs::details::system_token> {
+	size_t operator()(const psl::ecs::details::system_token& token) const noexcept { return token.id; }
+};
+}	 // namespace std

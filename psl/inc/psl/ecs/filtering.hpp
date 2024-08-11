@@ -320,6 +320,12 @@ namespace details {
 					 std::begin(on_break), std::end(on_break), std::begin(other.on_break), std::end(other.on_break));
 		}
 
+		// returns true if this filter is a basic filter, meaning it only filters on components, not special events
+		// such as on_add, on_remove, on_combine, on_break
+		bool is_basic_filter() const noexcept {
+			return on_add.size() == 0 && on_remove.size() == 0 && on_combine.size() == 0 && on_break.size() == 0;
+		}
+
 	  private:
 		friend class ::psl::ecs::state_t;
 
