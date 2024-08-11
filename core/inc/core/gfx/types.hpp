@@ -50,6 +50,22 @@ constexpr bool is_enabled() {
 	return false;
 }
 
+// \brief utility function to check if a backend is enabled
+// \param[in] backend the backend to check
+// \returns true if the backend is enabled
+constexpr bool is_enabled(graphics_backend backend) noexcept {
+	switch(backend) {
+	case graphics_backend::vulkan:
+		return is_enabled<graphics_backend::vulkan>();
+	case graphics_backend::gles:
+		return is_enabled<graphics_backend::gles>();
+	case graphics_backend::webgpu:
+		return is_enabled<graphics_backend::webgpu>();
+	default:
+		return false;
+	}
+}
+
 template <typename T>
 class enum_flag {
   public:
