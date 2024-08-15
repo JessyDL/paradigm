@@ -97,7 +97,7 @@ class data final {
 	data(core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 		 core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept;
 	void add(core::resource::handle<core::gfx::material_t> material);
-	std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count = 1);
+	std::vector<uint32_t> add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count = 1);
 
 	bool remove(core::resource::handle<core::gfx::material_t> material) noexcept;
 

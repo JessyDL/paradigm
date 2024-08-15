@@ -92,30 +92,37 @@ void data::add(core::resource::handle<material_t> material) {
 
 			for(auto& [uid, obj] : m_InstanceData) {
 				auto res = m_VertexInstanceBuffer->reserve(obj.id_generator.capacity() * d.description.size_of_element);
-				if(!res)
+				if(!res) {
 					core::gfx::log->error("could not allocate");
+					throw std::runtime_error("could not allocate");
+				}
 
 				obj.data.emplace_back(res.value());
 				obj.description.emplace_back(d.description);
 			}
 		} else {
-			if(it->first.size_of_element != d.description.size_of_element)
+			if(it->first.size_of_element != d.description.size_of_element) {
 				core::gfx::log->error(
 				  "clash in material binding slots, names are unique and should be all the same size");
+				throw std::runtime_error(
+				  "clash in material binding slots, names are unique and should be all the same size");
+			}
 			it->second += 1;
 		}
 	}
 }
 
-std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count) {
+psl::array<uint32_t> data::add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count) {
 	auto it = m_InstanceData.find(uid);
 	if(it == std::end(m_InstanceData)) {
 		auto size {(count > default_capacity) ? count << 2 : default_capacity};
 		it = m_InstanceData.emplace(uid, object {uid, size}).first;
 		for(const auto& b : m_UniqueBindings) {
 			auto res = m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
-			if(!res)
+			if(!res) {
 				core::gfx::log->error("could not allocate");
+				return {};
+			}
 			it->second.data.emplace_back(res.value());
 			it->second.description.emplace_back(b.first);
 		}
@@ -130,8 +137,10 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 			for(auto& d : it->second.data) {
 				auto res =
 				  m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
-				if(!res)
+				if(!res) {
 					core::gfx::log->error("could not allocate");
+					return {};
+				}
 				m_VertexInstanceBuffer->copy_from(
 				  m_VertexInstanceBuffer.value(),
 				  {core::gfx::memory_copy {d.range().begin, res.value().range().begin, d.range().size()}});
@@ -141,7 +150,21 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 		}
 	}
 
-	return it->second.id_generator.create_multi(count);
+	auto ranges		 = it->second.id_generator.create_multi(count);
+	size_t totalSize = 0;
+
+	for(auto const& [begin, end] : ranges) {
+		totalSize += end - begin;
+	}
+	psl::array<uint32_t> result {};
+	result.reserve(ranges.size());
+	for(auto const& [begin, end] : ranges) {
+		for(uint32_t i = begin; i < end; ++i) {
+			result.emplace_back(i);
+		}
+	}
+
+	return result;
 }
 
 

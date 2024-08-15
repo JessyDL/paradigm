@@ -26,6 +26,7 @@ enum class geometry_type { STATIC = 0, DYNAMIC = 1 };
 namespace constants {
 	static constexpr psl::string_view INSTANCE_MODELMATRIX		  = "INSTANCE_TRANSFORM";
 	static constexpr psl::string_view INSTANCE_LEGACY_MODELMATRIX = "iModelMat";
+	using instance_size_t										  = uint32_t;
 }	 // namespace constants
 
 /// \detail
@@ -40,6 +41,8 @@ namespace constants {
 class bundle final {
 	friend class core::ivk::drawpass;
 	friend class core::igles::drawpass;
+
+	using instance_size_t = core::gfx::constants::instance_size_t;
 
 	/*
 	todo: Uses a simple allocate front/back mechanism for handling static (front) and dynamic (back) items. This
@@ -86,13 +89,14 @@ class bundle final {
 	/// \brief returns the instance count currently used for the given piece of geometry.
 	/// \param[in] geometry UID to check
 	uint32_t instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept;
-	std::vector<std::pair<uint32_t, uint32_t>> instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
-														   uint32_t count	  = 1,
-														   geometry_type type = geometry_type::STATIC);
+
+	psl::array<instance_size_t> instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
+											instance_size_t count = 1,
+											geometry_type type	  = geometry_type::STATIC);
 
 	/// \brief returns how many instances are currently active for the given geometry.
 	/// \param[in] geometry UID to check
-	uint32_t size(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept;
+	instance_size_t size(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept;
 
 	/// \brief returns if there are *any* active instances for the given geometry.
 	/// \param[in] geometry UID to check
@@ -102,7 +106,7 @@ class bundle final {
 	/// \param[in] geometry target UID
 	/// \param[in] id instance ID
 	/// \returns true in case the instance was successfully transitioned from active to deactivated.
-	bool release(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept;
+	bool release(core::resource::tag<core::gfx::geometry_t> geometry, instance_size_t id) noexcept;
 
 	/// \brief release all instance data.
 	/// \param[in] type optionally target only static or dynamic data
@@ -112,7 +116,7 @@ class bundle final {
 	/// \param[in] geometry target UID
 	/// \param[in] id first instance ID
 	/// \param[in] name name of the buffer (present in the shader)
-	/// \param[in] values the values to set, where the size + id indicates the end of the range
+	/// \param[in] values the values to set, where the last id is id + values.size()
 	/// \returns true if the geometry was found, all instances were present, and the upload dispatched. The upload
 	/// is async.
 	template <typename T>
@@ -128,6 +132,48 @@ class bundle final {
 			return false;
 		}
 		return set(geometry, id, res.value().first, res.value().second, values.data(), sizeof(T), values.size());
+	}
+
+	/// \brief set instance data for the given instances
+	/// \param[in] geometry target UID
+	/// \param[in] ids the instance IDs to set
+	/// \param[in] name name of the buffer (present in the shader)
+	/// \param[in] values the values to set. this is a 1:1 mapping with the ids.
+	/// \returns true if the geometry was found, all instances were present, and the upload dispatched. The upload
+	/// is async.
+	template <typename T>
+	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
+			 psl::array<instance_size_t> ids,
+			 psl::string_view name,
+			 const psl::array<T>& values) {
+		static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
+		static_assert(std::is_standard_layout<T>::value, "the type has to be is_standard_layout");
+		psl_assert(ids.size() == values.size() && "ids and values should be of the same size");
+		auto segment = m_InstanceData.segment(geometry, name);
+		if(!segment) {
+			core::gfx::log->error("The element name {} was not found on geometry {}", name, geometry.uid().to_string());
+			return false;
+		}
+
+		psl::array<std::pair<instance_size_t, instance_size_t>> zipped {};
+		zipped.reserve(ids.size());
+		for(instance_size_t i = 0; i < psl::narrow_cast<instance_size_t>(ids.size()); ++i) {
+			zipped.emplace_back(ids[i], i);
+		}
+
+		std::sort(zipped.begin(), zipped.end(), [](auto const& a, auto const& b) { return a.first < b.first; });
+
+		for(auto i = 0; i < zipped.size(); ++i) {
+			ids[i] = zipped[i].first;
+		}
+
+		psl::array<T> sorted_values {};
+		sorted_values.reserve(values.size());
+		for(auto const& [id, index] : zipped) {
+			sorted_values.emplace_back(values[index]);
+		}
+
+		return set(geometry, ids, segment.value().first, segment.value().second, sorted_values.data(), sizeof(T));
 	}
 
 	template <typename T>
@@ -167,12 +213,19 @@ class bundle final {
 
   private:
 	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
-			 uint32_t id,
+			 instance_size_t id,
 			 memory::segment segment,
 			 uint32_t size_of_element,
 			 const void* data,
 			 size_t size,
 			 size_t count = 1);
+
+	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
+			 psl::array<instance_size_t> const& id,
+			 memory::segment segment,
+			 uint32_t size_of_element,
+			 const void* data,
+			 size_t size);
 
 	bool set(core::resource::tag<core::gfx::material_t> material, const void* data, size_t size, size_t offset);
 

@@ -86,19 +86,19 @@ uint32_t bundle::instances(core::resource::tag<core::gfx::geometry_t> geometry) 
 	return m_InstanceData.count(geometry);
 }
 
-std::vector<std::pair<uint32_t, uint32_t>>
-bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t count, geometry_type type) {
+psl::array<bundle::instance_size_t>
+bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry, instance_size_t count, geometry_type type) {
 	return m_InstanceData.add(geometry, count);
 }
 
-uint32_t bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept {
+bundle::instance_size_t bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept {
 	return m_InstanceData.count(geometry);
 }
 bool bundle::has(tag<core::gfx::geometry_t> geometry) const noexcept {
 	return size(geometry) > 0;
 }
 
-bool bundle::release(tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept {
+bool bundle::release(tag<core::gfx::geometry_t> geometry, bundle::instance_size_t id) noexcept {
 	return m_InstanceData.erase(geometry, id);
 }
 
@@ -107,7 +107,7 @@ bool bundle::release_all(std::optional<geometry_type> type) noexcept {
 };
 
 bool bundle::set(tag<core::gfx::geometry_t> geometry,
-				 uint32_t id,
+				 bundle::instance_size_t id,
 				 memory::segment segment,
 				 uint32_t size_of_element,
 				 const void* data,
@@ -120,4 +120,29 @@ bool bundle::set(tag<core::gfx::geometry_t> geometry,
 
 bool bundle::set(tag<core::gfx::material_t> material, const void* data, size_t size, size_t offset) {
 	return m_InstanceData.set(material, data, size, offset);
+}
+
+bool bundle::set(core::resource::tag<core::gfx::geometry_t> geometry,
+				 psl::array<bundle::instance_size_t> const& id,
+				 memory::segment segment,
+				 uint32_t size_of_element,
+				 const void* data,
+				 size_t size) {
+	psl::array<core::gfx::commit_instruction> instructions;
+
+	for(size_t i = 0; i < id.size(); ++i) {
+		auto const begin_index = id[i];
+
+		while(i + 1 < id.size() && id[i + 1] == id[i] + 1) {
+			++i;
+		}
+		auto const end_index = id[i];
+		instructions.emplace_back(core::gfx::commit_instruction {
+		  (void*)data,
+		  size * (end_index - begin_index + 1),
+		  segment,
+		  memory::range_t {size_of_element * begin_index, size_of_element * (end_index + 1)}});
+	}
+
+	return m_InstanceData.vertex_buffer()->commit(instructions);
 }

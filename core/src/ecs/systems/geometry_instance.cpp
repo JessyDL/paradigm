@@ -66,21 +66,18 @@ void geometry_instancing::dynamic_system(info_t& info,
 	core::profiler.scope_begin("create_all");
 	std::vector<psl::mat4x4> modelMats;
 	for(const auto& unique_bundle : UniqueCombinations) {
-		modelMats.clear();
-
 		for(const auto& [geometryUID, geometryData] : unique_bundle.second) {
+			modelMats.clear();
 			const auto& renderer = std::get<renderable&>(geometry_pack[geometryData.startIndex]);
 			auto bundleHandle	 = renderer.bundle;
 			auto geometryHandle	 = renderer.geometry;
 
-			auto instancesID = bundleHandle->instantiate(geometryHandle, (uint32_t)geometryData.count);
+			auto instancesIDs = bundleHandle->instantiate(geometryHandle, (uint32_t)geometryData.count);
+			modelMats.reserve(instancesIDs.size());
 
-			size_t indicesCompleted = 0;
-			for(auto [startIndex, endIndex] : instancesID) {
-				auto range = endIndex - startIndex;
-				for(auto i = 0u; i < range; ++i, ++indicesCompleted) {
-					const auto& transform = std::get<const core::ecs::components::transform&>(
-					  geometry_pack[indicesCompleted + geometryData.startIndex]);
+			for(size_t i = 0; i < instancesIDs.size(); ++i) {
+				const auto& transform =
+				  std::get<const core::ecs::components::transform&>(geometry_pack[i + geometryData.startIndex]);
 					const psl::mat4x4 translationMat = translate(transform.position);
 					const psl::mat4x4 rotationMat	 = to_matrix(transform.rotation);
 					const psl::mat4x4 scaleMat		 = scale(transform.scale);
@@ -88,14 +85,13 @@ void geometry_instancing::dynamic_system(info_t& info,
 				}
 
 				if(!bundleHandle->set(
-					 geometryHandle, startIndex, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats))
+				 geometryHandle, instancesIDs, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats)) {
 					core::log->error(
 					  "could not set the instance data for the dynamic elements in geometry: {} startIndex: {} size: "
 					  "{}",
 					  geometryHandle,
-					  startIndex,
+				  instancesIDs[0],
 					  modelMats.size());
-				modelMats.clear();
 			}
 		}
 	}
@@ -130,18 +126,17 @@ void geometry_instancing::static_add(info_t& info,
 	psl::array<entity_t> eIds;
 	eIds.resize(1);
 	for(const auto& unique_bundle : UniqueCombinations) {
-		modelMats.clear();
-
 		for(const auto& [geometryUID, geometryData] : unique_bundle.second) {
+			modelMats.clear();
 			const auto& renderer = std::get<const renderable&>(geometry_pack[geometryData.startIndex]);
 			auto bundleHandle	 = renderer.bundle;
 			auto geometryHandle	 = renderer.geometry;
 
-			auto instancesID = bundleHandle->instantiate(geometryHandle, (uint32_t)geometryData.count);
+			auto instancesIDs = bundleHandle->instantiate(geometryHandle, (uint32_t)geometryData.count);
+			modelMats.reserve(instancesIDs.size());
 
 			uint32_t indicesCompleted = 0;
-			for(auto [startIndex, endIndex] : instancesID) {
-				for(auto i = startIndex; i < endIndex; ++i, ++indicesCompleted) {
+			for(auto id : instancesIDs) {
 					const auto& transform = std::get<const core::ecs::components::transform&>(
 					  geometry_pack[indicesCompleted + geometryData.startIndex]);
 					const psl::mat4x4 translationMat = translate(transform.position);
@@ -150,13 +145,11 @@ void geometry_instancing::static_add(info_t& info,
 					modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 
 					eIds[0] = std::get<entity_t&>(geometry_pack[indicesCompleted + geometryData.startIndex]);
-					info.command_buffer.add_components<instance_id>(eIds, instance_id {i});
+				info.command_buffer.add_components<instance_id>(eIds, instance_id {id});
+				++indicesCompleted;
 				}
 				bundleHandle->set(
-				  geometryHandle, startIndex, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats);
-
-				modelMats.clear();
-			}
+			  geometryHandle, instancesIDs, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats);
 		}
 	}
 	core::profiler.scope_end();
@@ -196,7 +189,7 @@ void geometry_instancing::static_geometry_add(
 
 		auto instancesID = bundleHandle->instantiate(geometryHandle, 1);
 		eIds[0]			 = entity;
-		info.command_buffer.add_components<instance_id>(eIds, instance_id {instancesID[0].first});
+		info.command_buffer.add_components<instance_id>(eIds, instance_id {instancesID[0]});
 	}
 }
 
