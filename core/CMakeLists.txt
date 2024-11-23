@@ -96,6 +96,11 @@ if(PE_GLES)
 	endif()
 endif()
 
+add_custom_target(core_patcher
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+	COMMENT "Patching build files")
+
 add_custom_target(core_generator)
 add_custom_command(TARGET core_generator
 	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
@@ -106,7 +111,7 @@ add_custom_command(TARGET core_generator
 add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${INC_WEBGPU} ${SRC_WEBGPU} ${NATVIS})
 add_library(paradigm::core ALIAS core)
 
-add_dependencies(core core_generator)
+add_dependencies(core core_generator core_patcher)
 
 if(${PE_PCH})
 	target_precompile_headers(core PUBLIC ${INC_PCH})

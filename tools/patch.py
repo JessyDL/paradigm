@@ -110,9 +110,8 @@ def patch_msvc(root):
     elif os.path.isfile(os.path.join(root, "paradigm/core/core.vcxproj")):
         fObj = File(os.path.join(root, "paradigm/core/core.vcxproj"))
     else:
-        raise Exception(
-            f"No project files found at path '{root}', did you supply the correct path?"
-        )
+        return
+
     fObj.patch()
 
 
@@ -155,6 +154,7 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     if args.project:
+        print(f"patching {args.project}")
         patch(args.project)
     if args.utf8:
         patch_utf8(args.utf8)
