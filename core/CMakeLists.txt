@@ -1,3 +1,5 @@
+add_subdirectory(bindings)
+
 include(inc.txt)
 include(src.txt)
 include(FetchContent)
@@ -113,6 +115,10 @@ add_library(paradigm::core ALIAS core)
 
 add_dependencies(core core_generator core_patcher)
 
+if(${PE_CSHARP_BINDINGS})
+	setup_csharp_bindings(core)
+endif()
+
 if(${PE_PCH})
 	target_precompile_headers(core PUBLIC ${INC_PCH})
 endif()
@@ -126,7 +132,7 @@ if(VK_STATIC AND PE_VULKAN)
 	list(APPEND PE_DL_LIBS ${vk_lib_name})
 endif()
 
-target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS})
+target_link_libraries(core PUBLIC paradigm::psl ${CMAKE_DL_LIBS} ${PE_DL_LIBS} ${TEST_LIBS} ${PE_BINDINGS_CSHARP_NETHOST_SHARED_LIBRARY_PATH})
 set_target_output_directory(TARGET core)
 target_include_directories(core
 	PUBLIC 
@@ -135,6 +141,7 @@ target_include_directories(core
 	${CMAKE_CURRENT_SOURCE_DIR}/gen
 		${vulkan_SOURCE_DIR}/include
 		$<IF:$<STREQUAL:"${PE_PLATFORM}","ANDROID">,${ANDROID_NDK}/sources/android/native_app_glue,>
+		$<$<BOOL:${PE_CSHARP_BINDINGS}>:${PE_BINDINGS_CSHARP_NETHOST_INCLUDE_DIR}>
 	PRIVATE
 		${WSI_INC}
 )

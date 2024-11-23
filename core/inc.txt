@@ -84,6 +84,13 @@ ecs/components/text
 utility/geometry
 )
 
+# bindings related includes
+if(${PE_CSHARP_BINDINGS})
+	list(APPEND INC
+		bindings/csharp/runtime
+	)
+endif()
+
 list(TRANSFORM INC PREPEND inc/core/)
 list(TRANSFORM INC APPEND .hpp)
 

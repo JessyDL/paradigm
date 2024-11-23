@@ -74,6 +74,7 @@
 #if defined(PE_PLATFORM_ANDROID)
 	#include <android_native_app_glue.h>
 #endif
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -370,7 +371,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	core::log->info("cache created");
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
 
-	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
+	auto window_data = cache.instantiate<data::window>("4d42e7b3-dca2-0591-f042-326c2b986489"_uid);
 	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
 	auto surface_handle = cache.create<core::os::surface>(window_data);
 	if(!surface_handle) {
@@ -684,10 +685,8 @@ ECSState.create(
 		bundles.back()->set("lightDir", psl::vec4 {1.f, 1.f, 1.f, 0.f});
 		ECSState.create(
 		  1,
-		  [&bundle	 = bundles.back(),
-		   &geometry = geometryHandles[/*water_plane_index*/ 0]](core::ecs::components::renderable& renderable) {
-			  renderable = {bundle, geometry};
-		  },
+		  [&bundle = bundles.back(), &geometry = geometryHandles[/*water_plane_index*/ 0]](
+			core::ecs::components::renderable& renderable) { renderable = {bundle, geometry}; },
 		  core::ecs::components::transform {psl::vec3 {}, psl::vec3::one * 1.f});
 	}
 
@@ -748,8 +747,8 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity_t::size_type>(
-				(frame % 250 == 0) ? burst : 0),
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/
+			  static_cast<entity_t::size_type>((frame % 250 == 0) ? burst : 0),
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);
@@ -847,12 +846,25 @@ void android_main(android_app* application) {
 }
 
 #else
+
+
+	#if defined(PE_CSHARP_BINDINGS)
+		#include "core/bindings/csharp/runtime.hpp"
+	#endif
 int main(int argc, char* argv[]) {
 	#ifdef PE_PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	#endif
 	core::initialize_loggers();
+
+
+	#if defined(PE_CSHARP_BINDINGS)
+	auto runtime = core::bindings::csharp::runtime {psl::utility::application::path::project, "csharp_bindings"};
+	auto result	 = runtime.is_running();
+	#endif
+
+	return 0;
 
 	#ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support

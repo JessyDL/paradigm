@@ -1,0 +1,22 @@
+<Project>
+	<!-- The odd setup here is due to a bug: https://gitlab.kitware.com/cmake/cmake/-/issues/25579 -->
+	<PropertyGroup>
+		<MSBuildProjectExtensionsPath>legacy</MSBuildProjectExtensionsPath>
+		<BaseIntermediateOutputPath>$(MSBuildProjectExtensionsPath)\obj_csproj</BaseIntermediateOutputPath>
+		<OutputPath Condition="'$(Configuration)' != ''">$(MSBuildProjectExtensionsPath)\bin\$(Configuration)</OutputPath>
+	</PropertyGroup>
+
+	<Import Project="Sdk.props" Sdk="Microsoft.NET.Sdk" />
+	<PropertyGroup>
+		<OutputType>Library</OutputType>
+		<TargetFramework>@CSHARP_TARGET_FRAMEWORK@</TargetFramework>
+		<GenerateRuntimeConfigurationFiles>true</GenerateRuntimeConfigurationFiles>
+		<AssemblyName>@PE_BINDINGS_CSHARP_PROJECT_NAME@</AssemblyName>
+		<TargetRuntime>Native</TargetRuntime>
+	</PropertyGroup>
+	<ItemGroup>
+		@SRC@
+	</ItemGroup>
+	
+	<Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk" />	
+</Project>
