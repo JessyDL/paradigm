@@ -847,24 +847,12 @@ void android_main(android_app* application) {
 
 #else
 
-
-	#if defined(PE_CSHARP_BINDINGS)
-		#include "core/bindings/csharp/runtime.hpp"
-	#endif
 int main(int argc, char* argv[]) {
 	#ifdef PE_PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	#endif
 	core::initialize_loggers();
-
-
-	#if defined(PE_CSHARP_BINDINGS)
-	auto runtime = core::bindings::csharp::runtime {psl::utility::application::path::project, "csharp_bindings"};
-	auto result	 = runtime.is_running();
-	#endif
-
-	return 0;
 
 	#ifdef _MSC_VER
 	{	 // here to trick the compiler into generating these types to get UUID natvis support

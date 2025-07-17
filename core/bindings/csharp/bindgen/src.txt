@@ -1,0 +1,6 @@
+SET(SRC
+	main
+)
+
+list(TRANSFORM SRC PREPEND src/)
+list(TRANSFORM SRC APPEND .cs)

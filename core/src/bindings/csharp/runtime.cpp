@@ -93,6 +93,38 @@ runtime::runtime(psl::string root, psl::string dll) {
 			throw std::runtime_error("Failed to load the .NET assembly.");
 		}
 	}
+	return;
+	{
+		using delegate_void_void	= void(CORECLR_DELEGATE_CALLTYPE*)();
+		delegate_void_void entry_fn = nullptr;
+		auto rc						= get_function_pointer(L"Paradigm._Internal.Debugger, csharp_bindings",
+									   L"Attach",
+									   L"Paradigm._Internal.Delegates+void_void, csharp_bindings",
+									   nullptr,
+									   nullptr,
+									   reinterpret_cast<void**>(&entry_fn));
+		if(rc != 0) {
+			throw std::runtime_error("Failed to get the function pointer.");
+		}
+		entry_fn();
+	}
+	{
+		using delegate_int_string_IntPtr_int	= int(CORECLR_DELEGATE_CALLTYPE*)(char const*, char*, int);
+		delegate_int_string_IntPtr_int entry_fn = nullptr;
+		auto rc									= get_function_pointer(L"Paradigm._Internal.TypeInfo, csharp_bindings",
+									   L"GetTypesInAssembly",
+									   L"Paradigm._Internal.Delegates+int_string_IntPtr_int, csharp_bindings",
+									   nullptr,
+									   nullptr,
+									   reinterpret_cast<void**>(&entry_fn));
+		if(rc != 0) {
+			throw std::runtime_error("Failed to get the function pointer.");
+		}
+		int size = entry_fn("csharp_bindings", nullptr, 0);
+		psl::string8_t buffer {};
+		buffer.resize(size);
+		entry_fn("csharp_bindings", buffer.data(), size);
+	}
 	{
 		using delegate_void_void	= void(CORECLR_DELEGATE_CALLTYPE*)();
 		delegate_void_void entry_fn = nullptr;
@@ -108,7 +140,7 @@ runtime::runtime(psl::string root, psl::string dll) {
 		entry_fn();
 	}
 	{
-		using delegate_string_void	= int(CORECLR_DELEGATE_CALLTYPE*)(char*, int);
+		using delegate_string_void	  = int(CORECLR_DELEGATE_CALLTYPE*)(char*, int);
 		delegate_string_void entry_fn = nullptr;
 
 		auto rc = get_function_pointer(L"Paradigm.Example, csharp_bindings",
@@ -144,4 +176,18 @@ runtime::~runtime() {
 bool runtime::is_running() {
 	return m_HostContext != nullptr;
 }
+
+int runtime::unsafe_get(const psl::string& classname,
+						const psl::string& method,
+						const psl::string& delegate_type,
+						void** fn) {
+	auto rc = get_function_pointer(psl::to_pstring(classname + ", csharp_bindings").c_str(),
+								   psl::to_pstring(method).c_str(),
+								   psl::to_pstring("Paradigm._Internal.Delegates+" + delegate_type + ", csharp_bindings").c_str(),
+								   nullptr,
+								   nullptr,
+								   fn);
+	return rc;
+}
+
 }	 // namespace core::bindings::csharp

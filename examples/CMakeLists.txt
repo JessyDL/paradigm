@@ -1,2 +1,3 @@
 add_subdirectory(HelloScreen)
 add_subdirectory(HelloTriangle)
+add_subdirectory(CSharpBindings)

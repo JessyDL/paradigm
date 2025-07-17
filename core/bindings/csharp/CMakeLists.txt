@@ -109,7 +109,6 @@ function(setup_csharp_bindings target)
     if(${PE_BINDINGS_CSHARP_NETHOST_INCLUDE_DIR} STREQUAL "")
         message(FATAL_ERROR "You cannot depend yet on the csharp bindings before they've been added to cmake. You will need to add your dependency after they've been initialized. This would normally put it after `core`.")
     endif()
-	add_dependencies(${target} ${PE_BINDINGS_CSHARP_PROJECT_NAME})
 
     target_compile_definitions(${target} PUBLIC -DPE_CSHARP_BINDINGS)
     target_link_libraries(${target} PUBLIC ${PE_BINDINGS_CSHARP_NETHOST_STATIC_LIBRARY_PATH})
