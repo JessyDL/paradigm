@@ -25,7 +25,9 @@ class view_ptr {
 
 	~view_ptr() = default;
 	view_ptr(const view_ptr& other) : m_Value(other.m_Value) {};
-	view_ptr(view_ptr&& other) noexcept : m_Value(other.m_Value) { other.m_Value = nullptr; };
+	view_ptr(view_ptr&& other) noexcept : m_Value(other.m_Value) {
+		other.m_Value = nullptr;
+	};
 	view_ptr& operator=(const view_ptr& other) {
 		if(this != &other) {
 			m_Value = other.m_Value;
@@ -40,17 +42,25 @@ class view_ptr {
 		return *this;
 	};
 
-	constexpr reference get() const noexcept { return *m_Value; }
+	constexpr reference get() const noexcept {
+		return *m_Value;
+	}
 
 	constexpr reference operator*() const noexcept {
 		psl_assert(m_Value != nullptr, "m_Value was null");
 		return *m_Value;
 	}
 
-	constexpr pointer operator->() const noexcept { return m_Value; }
+	constexpr pointer operator->() const noexcept {
+		return m_Value;
+	}
 
-	constexpr explicit operator bool() const noexcept { return m_Value != nullptr; }
-	constexpr operator pointer() const noexcept { return m_Value; }
+	constexpr explicit operator bool() const noexcept {
+		return m_Value != nullptr;
+	}
+	constexpr operator pointer() const noexcept {
+		return m_Value;
+	}
 
 	constexpr pointer release() noexcept {
 		pointer p(m_Value);
@@ -58,7 +68,9 @@ class view_ptr {
 		return p;
 	}
 
-	constexpr void reset(pointer p = nullptr) noexcept { m_Value = p; }
+	constexpr void reset(pointer p = nullptr) noexcept {
+		m_Value = p;
+	}
 
 	constexpr void swap(view_ptr& other) noexcept {
 		using std::swap;
@@ -113,7 +125,9 @@ constexpr static void swap(psl::view_ptr<T>& lhs, psl::view_ptr<T>& rhs) noexcep
 
 template <class T>
 struct hash<::psl::view_ptr<T>> {
-	size_t operator()(::psl::view_ptr<T> p) const noexcept { return std::hash<T*>()(&p.get()); }
+	size_t operator()(::psl::view_ptr<T> p) const noexcept {
+		return std::hash<T*>()(&p.get());
+	}
 };
 
 }	 // namespace std

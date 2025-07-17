@@ -141,7 +141,9 @@ class delegate<R(A...)> {
 		return ::std::forward<T>(f);
 	}
 
-	static delegate from(R (*const function_ptr)(A...)) { return function_ptr; }
+	static delegate from(R (*const function_ptr)(A...)) {
+		return function_ptr;
+	}
 
 	template <class C>
 	using member_pair = ::std::pair<C* const, R (C::*const)(A...)>;
@@ -174,25 +176,37 @@ class delegate<R(A...)> {
 		store_.reset();
 	}
 
-	void reset_stub() noexcept { stub_ptr_ = nullptr; }
+	void reset_stub() noexcept {
+		stub_ptr_ = nullptr;
+	}
 
-	void swap(delegate& other) noexcept { ::std::swap(*this, other); }
+	void swap(delegate& other) noexcept {
+		::std::swap(*this, other);
+	}
 
 	bool operator==(delegate const& rhs) const noexcept {
 		return (object_ptr_ == rhs.object_ptr_) && (stub_ptr_ == rhs.stub_ptr_);
 	}
 
-	bool operator!=(delegate const& rhs) const noexcept { return !operator==(rhs); }
+	bool operator!=(delegate const& rhs) const noexcept {
+		return !operator==(rhs);
+	}
 
 	bool operator<(delegate const& rhs) const noexcept {
 		return (object_ptr_ < rhs.object_ptr_) || ((object_ptr_ == rhs.object_ptr_) && (stub_ptr_ < rhs.stub_ptr_));
 	}
 
-	bool operator==(::std::nullptr_t const) const noexcept { return !stub_ptr_; }
+	bool operator==(::std::nullptr_t const) const noexcept {
+		return !stub_ptr_;
+	}
 
-	bool operator!=(::std::nullptr_t const) const noexcept { return stub_ptr_; }
+	bool operator!=(::std::nullptr_t const) const noexcept {
+		return stub_ptr_;
+	}
 
-	explicit operator bool() const noexcept { return stub_ptr_; }
+	explicit operator bool() const noexcept {
+		return stub_ptr_;
+	}
 
 	R operator()(A... args) const {
 		//  assert(stub_ptr);

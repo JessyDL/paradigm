@@ -34,7 +34,8 @@ namespace details {
 	};
 
 	template <typename First, typename... Args>
-	requires(sizeof...(Args) >= 1) struct last_type_pack<First, Args...> : last_type_pack<Args...> {};
+		requires(sizeof...(Args) >= 1)
+	struct last_type_pack<First, Args...> : last_type_pack<Args...> {};
 
 	template <typename... Args>
 	using last_type_pack_t = typename last_type_pack<Args...>::type;
@@ -74,12 +75,9 @@ namespace details {
 			return log_level;
 		}
 
-		print_t(level_t level,
-				const char* func,
-				const char* file,
-				int line,
-				const char* format,
-				Args&&... args) requires((!std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> && ...)) {
+		print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
+			requires((!std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> && ...))
+		{
 			auto log_level = android_log_level(level);
 	#if defined(PE_DEBUG)
 			__android_log_write(
@@ -112,17 +110,13 @@ namespace details {
 		static auto stripped_print(const char* format, auto&& tuple) {
 			return [&]<size_t... Indices>(std::index_sequence<Indices...>) {
 				return fmt::format(fmt::runtime(format), std::get<Indices>(tuple)...);
-			}
-			(stripped_print_indices());
+			}(stripped_print_indices());
 		}
 
 	  public:
-		print_t(level_t level,
-				const char* func,
-				const char* file,
-				int line,
-				const char* format,
-				Args&&... args) requires((std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> || ...)) {
+		print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
+			requires((std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> || ...))
+		{
 			auto log_level = android_log_level(level);
 	#if defined(PE_DEBUG)
 			__android_log_write(log_level, "paradigm", stripped_print(format, std::forward_as_tuple(args...)).c_str());
@@ -132,16 +126,19 @@ namespace details {
 	#endif
 		}
 #else
-		print_t(
-		  level_t level,
-		  const char* fmt,
-		  Args&&... args,
-		  const psl::source_location& loc = psl::source_location::current()) requires(!HasSourceLocOverride<Args...>) {
+		print_t(level_t level,
+				const char* fmt,
+				Args&&... args,
+				const psl::source_location& loc = psl::source_location::current())
+			requires(!HasSourceLocOverride<Args...>)
+		{
 			internal_print(
 			  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args)> {}, loc);
 		}
 
-		print_t(level_t level, const char* fmt, Args&&... args) requires(HasSourceLocOverride<Args...>) {
+		print_t(level_t level, const char* fmt, Args&&... args)
+			requires(HasSourceLocOverride<Args...>)
+		{
 			internal_print(
 			  level, fmt, std::forward_as_tuple(args...), std::make_index_sequence<sizeof...(Args) - 1> {});
 		}

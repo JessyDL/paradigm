@@ -85,4 +85,4 @@ auto t0 = litmus::suite<"psl::generator">() = []() {
 	require(generator.capacity()) == generator.available() + accumulated;
 	require(generator.size()) == accumulated;
 };
-}
+}	 // namespace

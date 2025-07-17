@@ -30,7 +30,9 @@ class drawpass {
 	bool build();
 	void present();
 
-	bool is_swapchain() const noexcept { return m_Swapchain; }
+	bool is_swapchain() const noexcept {
+		return m_Swapchain;
+	}
 	void add(core::gfx::drawgroup& group) noexcept;
 
 	void connect(psl::view_ptr<drawpass> pass) noexcept;

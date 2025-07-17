@@ -78,9 +78,13 @@ struct converter<vk::Flags<BitType>> {
 
 template <>
 struct converter<vk::ClearValue> {
-	static psl::string8_t to_string(const vk::ClearValue& value) { return ""; }
+	static psl::string8_t to_string(const vk::ClearValue& value) {
+		return "";
+	}
 
-	static vk::ClearValue from_string(psl::string8::view str) { return vk::ClearValue {vk::ClearColorValue {}}; }
+	static vk::ClearValue from_string(psl::string8::view str) {
+		return vk::ClearValue {vk::ClearColorValue {}};
+	}
 };
 }	 // namespace psl::utility
 

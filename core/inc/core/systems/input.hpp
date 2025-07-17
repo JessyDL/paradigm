@@ -623,7 +623,9 @@ class input {
 	}
 
 	/// \returns the current mouse coordinate information
-	const mouse_coordinate& cursor() const noexcept { return m_Cursor; }
+	const mouse_coordinate& cursor() const noexcept {
+		return m_Cursor;
+	}
 
   private:
 #if defined(SURFACE_WIN32)

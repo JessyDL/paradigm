@@ -13,7 +13,9 @@ struct tmat {
 	static constexpr auto row_length	= columns_n;
 
   private:
-	inline constexpr auto index_of(size_t row, size_t column) const noexcept { return row * columns_n + column; }
+	inline constexpr auto index_of(size_t row, size_t column) const noexcept {
+		return row * columns_n + column;
+	}
 
   public:
 	constexpr tmat() noexcept = default;
@@ -37,8 +39,12 @@ struct tmat {
 			}
 		}
 	}
-	constexpr precision_t& operator[](size_t index) noexcept { return value[index]; }
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr precision_t& operator[](size_t index) noexcept {
+		return value[index];
+	}
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
 
 	constexpr precision_t& operator[](const size_t (&index)[2]) noexcept {
@@ -48,12 +54,16 @@ struct tmat {
 		return this->operator()(index[0], index[1]);
 	}
 
-	constexpr precision_t& operator()(size_t row, size_t column) noexcept { return value[index_of(row, column)]; }
+	constexpr precision_t& operator()(size_t row, size_t column) noexcept {
+		return value[index_of(row, column)];
+	}
 	constexpr const precision_t& operator()(size_t row, size_t column) const noexcept {
 		return value[index_of(row, column)];
 	}
 
-	constexpr precision_t& operator()(size_t index) { return value[index]; }
+	constexpr precision_t& operator()(size_t index) {
+		return value[index];
+	}
 
 	template <size_t row, size_t column>
 	constexpr precision_t& at() noexcept {

@@ -49,11 +49,17 @@ class pipeline {
 	/// \returns if the pipeline uses any push constants.
 	bool has_pushconstants() const noexcept;
 	/// \returns the vulkan pipeline object of this instance.
-	vk::Pipeline vkPipeline() const noexcept { return m_Pipeline; };
+	vk::Pipeline vkPipeline() const noexcept {
+		return m_Pipeline;
+	};
 	/// \returns the vulkan pipeline layout of this instance.
-	vk::PipelineLayout vkLayout() const noexcept { return m_PipelineLayout; };
+	vk::PipelineLayout vkLayout() const noexcept {
+		return m_PipelineLayout;
+	};
 	/// \returns the allocated descriptor set for this instance.
-	vk::DescriptorSet const* vkDescriptorSet() const noexcept { return &m_DescriptorSet; }
+	vk::DescriptorSet const* vkDescriptorSet() const noexcept {
+		return &m_DescriptorSet;
+	}
 
 	/// \returns true if there was a binding at that binding location.
 	/// \param[in] bindingLocation the binding location to check.
@@ -93,14 +99,20 @@ class pipeline {
 
 	/// \returns if the pipeline's descriptors have been completely filled in
 	/// \warning complete doesn't mean 'correct'. The descriptors can be filled in to point to missing or deleted items
-	inline bool is_complete() const noexcept { return m_IsComplete && is_valid(); }
+	inline bool is_complete() const noexcept {
+		return m_IsComplete && is_valid();
+	}
 
 	/// \returns if the pipeline was successfully created, when false the pipeline is unrecoverable (inspect logs
 	/// for reasons)
-	inline bool is_valid() const noexcept { return m_IsValid; }
+	inline bool is_valid() const noexcept {
+		return m_IsValid;
+	}
 
 	/// \copydoc is_valid()
-	inline operator bool() const noexcept { return is_valid(); }
+	inline operator bool() const noexcept {
+		return is_valid();
+	}
 
 	bool bind(vk::CommandBuffer& buffer, psl::array_view<uint32_t> dynamicOffsets = {});
 

@@ -12,9 +12,7 @@ void bundle::add(psl::array_view<std::pair<psl::UID, uint32_t>> materials) {
 	std::transform(std::begin(materials),
 				   std::end(materials),
 				   std::back_inserter(m_Data.value),
-				   [](const std::pair<psl::UID, uint32_t>& value) {
-					   return bundle::data {value.first, value.second};
-				   });
+				   [](const std::pair<psl::UID, uint32_t>& value) { return bundle::data {value.first, value.second}; });
 }
 void bundle::remove(psl::UID material) noexcept {
 	m_Data.value.erase(std::remove_if(std::begin(m_Data.value),

@@ -5,7 +5,7 @@
 
 #pragma once
 
-//#define WIN32_LEAN_AND_MEAN
+// #define WIN32_LEAN_AND_MEAN
 #define _CRT_SECURE_NO_WARNINGS
 #define _CRT_DISABLE_PERFCRIT_LOCKS
 
@@ -63,10 +63,10 @@
 	#include <stdlib.h>
 
 
-//#ifndef DBG_NEW
-//#define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
-//#define new DBG_NEW
-//#endif
+// #ifndef DBG_NEW
+// #define DBG_NEW new(_NORMAL_BLOCK, __FILE__, __LINE__)
+// #define new DBG_NEW
+// #endif
 
 #endif
 
@@ -82,7 +82,7 @@
 	__pragma(message("TODO: " #number "\nDescription: " #desc "\n" __FILE__ "(" STRINGIZE(__LINE__) ")"))
 
 
-//#ifdef DEBUG
+// #ifdef DEBUG
 #include <malloc.h>
 
 #if defined(PE_PLATFORM_WINDOWS)
@@ -109,7 +109,7 @@ static void chk_heap(char* file, int line) {
 }
 #endif
 
-//#endif
+// #endif
 /*
 void* operator new[](size_t size, const char* pName, int flags, unsigned debugFlags, const char* file, int line)
 {

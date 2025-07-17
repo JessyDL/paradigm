@@ -26,13 +26,25 @@ class context {
 	context& operator=(const context& other) = delete;
 	context& operator=(context&& other)		 = delete;
 
-	wgpu::Instance& instance() noexcept { return m_Instance; }
-	wgpu::Adapter& adapter() noexcept { return m_Adapter; }
-	wgpu::Device& device() noexcept { return m_Device; }
-	wgpu::Queue& queue() noexcept { return m_Queue; }
-	wgpu::Surface& surface() noexcept { return m_Surface; }
+	wgpu::Instance& instance() noexcept {
+		return m_Instance;
+	}
+	wgpu::Adapter& adapter() noexcept {
+		return m_Adapter;
+	}
+	wgpu::Device& device() noexcept {
+		return m_Device;
+	}
+	wgpu::Queue& queue() noexcept {
+		return m_Queue;
+	}
+	wgpu::Surface& surface() noexcept {
+		return m_Surface;
+	}
 
-	auto limits() const noexcept -> const core::gfx::limits& { return m_Limits; }
+	auto limits() const noexcept -> const core::gfx::limits& {
+		return m_Limits;
+	}
 
   private:
 	wgpu::Instance m_Instance  = {};

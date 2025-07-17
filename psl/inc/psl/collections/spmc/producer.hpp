@@ -60,7 +60,9 @@ class producer final {
 		}
 
 		/// \returns Max continuous range of items in the buffer.
-		size_t capacity() const noexcept { return m_Data.capacity(); };
+		size_t capacity() const noexcept {
+			return m_Data.capacity();
+		};
 
 	  private:
 		ring_array<T> m_Data;
@@ -96,7 +98,9 @@ class producer final {
 	}
 
 	/// \returns the current count of all elements in the producer.
-	size_t size() const noexcept { return static_cast<size_t>(ssize()); }
+	size_t size() const noexcept {
+		return static_cast<size_t>(ssize());
+	}
 
 	/// \returns the current count of all elements in the producer.
 	signed_size_t ssize() const noexcept {

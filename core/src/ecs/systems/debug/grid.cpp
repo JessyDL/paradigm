@@ -46,9 +46,8 @@ grid::grid(state_t& state,
 					   [](psl::vec3& pos) { pos -= psl::vec3::one * 0.5f; });
 	core::utility::geometry::copy_channel(
 	  boxData, core::data::geometry_t::constants::POSITION, core::data::geometry_t::constants::COLOR);
-	boxData->transform(core::data::geometry_t::constants::COLOR, [](psl::vec3& color) {
-		color = psl::vec3 {0.015f, 0.035f, 0.005f};
-	});
+	boxData->transform(core::data::geometry_t::constants::COLOR,
+					   [](psl::vec3& color) { color = psl::vec3 {0.015f, 0.035f, 0.005f}; });
 	array<vec3> positions;
 	constexpr int extent = 4;
 	for(auto x = -extent; x < extent; ++x) {
@@ -69,9 +68,8 @@ grid::grid(state_t& state,
 						[](psl::vec3& pos) { pos -= psl::vec3::one * 0.5f; });
 	core::utility::geometry::copy_channel(
 	  boxData2, core::data::geometry_t::constants::POSITION, core::data::geometry_t::constants::COLOR);
-	boxData2->transform(core::data::geometry_t::constants::COLOR, [](psl::vec3& color) {
-		color = psl::vec3 {0.015f, 0.035f, 0.005f};
-	});
+	boxData2->transform(core::data::geometry_t::constants::COLOR,
+						[](psl::vec3& color) { color = psl::vec3 {0.015f, 0.035f, 0.005f}; });
 	// core::utility::geometry::replicate(boxData2, positions);
 	auto geometry2 = cache.create<core::gfx::geometry_t>(context, boxData2, vertexBuffer, indexBuffer);
 	// create bundle

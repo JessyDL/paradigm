@@ -70,8 +70,8 @@ using string_view = string16::view;
 		#define STRING_8_BIT
 	#endif
 static constexpr size_t uchar_size {sizeof(string8::char_t)};
-using string = string8_t;
-using char_t = string8::char_t;
+using string	  = string8_t;
+using char_t	  = string8::char_t;
 using string_view = string8::view;
 #endif
 namespace string8 {

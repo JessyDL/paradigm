@@ -40,7 +40,9 @@ class component_container_t {
 	void add(psl::array_view<entity_t> entities, void* data = nullptr, bool repeat = false) {
 		add_impl(entities, data, repeat);
 	}
-	void add(entity_t entity, void* data = nullptr) { add_impl(entity, data); }
+	void add(entity_t entity, void* data = nullptr) {
+		add_impl(entity, data);
+	}
 	void add(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 			 void* data	 = nullptr,
 			 bool repeat = false) {
@@ -49,25 +51,45 @@ class component_container_t {
 	void destroy(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) {
 		remove_impl(entities);
 	};
-	void destroy(psl::array_view<entity_t> entities) noexcept { remove_impl(entities); }
-	void destroy(entity_t entity) noexcept { remove_impl(entity); }
+	void destroy(psl::array_view<entity_t> entities) noexcept {
+		remove_impl(entities);
+	}
+	void destroy(entity_t entity) noexcept {
+		remove_impl(entity);
+	}
 	virtual void* data() noexcept			  = 0;
 	virtual void* const data() const noexcept = 0;
-	inline bool has(entity_t entity, stage_range_t stage = stage_range_t::ALL) { return has_impl(entity, stage); }
-	inline bool has_component(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::ALIVE); }
-	inline bool has_added(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::ADDED); }
-	inline bool has_removed(entity_t entity) const noexcept { return has_impl(entity, stage_range_t::REMOVED); }
+	inline bool has(entity_t entity, stage_range_t stage = stage_range_t::ALL) {
+		return has_impl(entity, stage);
+	}
+	inline bool has_component(entity_t entity) const noexcept {
+		return has_impl(entity, stage_range_t::ALIVE);
+	}
+	inline bool has_added(entity_t entity) const noexcept {
+		return has_impl(entity, stage_range_t::ADDED);
+	}
+	inline bool has_removed(entity_t entity) const noexcept {
+		return has_impl(entity, stage_range_t::REMOVED);
+	}
 	virtual bool has_storage_for(entity_t entity) const noexcept = 0;
 	inline psl::array_view<entity_t> entities(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
 	}
 
-	virtual void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) { return nullptr; }
+	virtual void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) {
+		return nullptr;
+	}
 
-	inline void purge() noexcept { purge_impl(); }
-	constexpr component_key_t const& id() const noexcept { return m_ID; }
+	inline void purge() noexcept {
+		purge_impl();
+	}
+	constexpr component_key_t const& id() const noexcept {
+		return m_ID;
+	}
 
-	inline psl::array_view<entity_t> added_entities() const noexcept { return entities_impl(stage_range_t::ADDED); };
+	inline psl::array_view<entity_t> added_entities() const noexcept {
+		return entities_impl(stage_range_t::ADDED);
+	};
 	inline psl::array_view<entity_t> removed_entities() const noexcept {
 		return entities_impl(stage_range_t::REMOVED);
 	};
@@ -76,20 +98,32 @@ class component_container_t {
 																   entity_t::size_type* target) const noexcept {
 		return target;
 	}
-	virtual size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept { return 0; };
+	virtual size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept {
+		return 0;
+	};
 	virtual size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat = false) noexcept {
 		return 0;
 	};
 
-	inline size_t component_size() const noexcept { return m_Size; };
+	inline size_t component_size() const noexcept {
+		return m_Size;
+	};
 	size_t size(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE).size();
 	}
-	size_t alignment() const noexcept { return m_Alignment; }
+	size_t alignment() const noexcept {
+		return m_Alignment;
+	}
 
-	void set(entity_t entity, void* data) noexcept { set_impl(entity, data); }
-	virtual bool should_serialize() const noexcept { return false; }
-	virtual bool should_serialize(bool value) noexcept { return false; }
+	void set(entity_t entity, void* data) noexcept {
+		set_impl(entity, data);
+	}
+	virtual bool should_serialize() const noexcept {
+		return false;
+	}
+	virtual bool should_serialize(bool value) noexcept {
+		return false;
+	}
 
 	virtual void remap(const psl::sparse_array<entity_t::size_type>& mapping,
 					   std::function<bool(entity_t)> pred) noexcept = 0;
@@ -128,11 +162,17 @@ class component_container_typed_t final : public component_container_t {
 	component_container_typed_t()
 		: component_container_t(details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>) {};
 	~component_container_typed_t() override = default;
-	auto& entity_data() noexcept { return m_Entities; };
+	auto& entity_data() noexcept {
+		return m_Entities;
+	};
 
 
-	void* data() noexcept override { return m_Entities.data(); }
-	void* const data() const noexcept override { return m_Entities.data(); }
+	void* data() noexcept override {
+		return m_Entities.data();
+	}
+	void* const data() const noexcept override {
+		return m_Entities.data();
+	}
 
 	bool has_storage_for(entity_t entity) const noexcept override {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
@@ -256,9 +296,13 @@ class component_container_typed_t final : public component_container_t {
 			}
 		}
 	}
-	void purge_impl() noexcept override { m_Entities.promote(); }
+	void purge_impl() noexcept override {
+		m_Entities.promote();
+	}
 
-	void remove_impl(entity_t entity) override { m_Entities.erase(static_cast<entity_t::size_type>(entity)); }
+	void remove_impl(entity_t entity) override {
+		m_Entities.erase(static_cast<entity_t::size_type>(entity));
+	}
 	void remove_impl(psl::array_view<entity_t> entities) override {
 		for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(static_cast<entity_t::size_type>(entities[i]));
 	}
@@ -271,7 +315,9 @@ class component_container_typed_t final : public component_container_t {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage);
 	}
 
-	void clear() override { m_Entities.clear(); }
+	void clear() override {
+		m_Entities.clear();
+	}
 
   private:
 	details::staged_sparse_array<T, entity_t::size_type> m_Entities;
@@ -283,8 +329,12 @@ class component_container_flag_t : public component_container_t {
 		: component_container_t(std::move(key), 0, 0) {};
 	~component_container_flag_t() override = default;
 
-	void* data() noexcept override { return nullptr; }
-	void* const data() const noexcept override { return nullptr; }
+	void* data() noexcept override {
+		return nullptr;
+	}
+	void* const data() const noexcept override {
+		return nullptr;
+	}
 
 	bool has_storage_for(entity_t entity) const noexcept override {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
@@ -304,7 +354,9 @@ class component_container_flag_t : public component_container_t {
 		return true;
 	}
 
-	bool should_serialize() const noexcept override { return m_Serializable; }
+	bool should_serialize() const noexcept override {
+		return m_Serializable;
+	}
 	bool should_serialize(bool value) noexcept override {
 		m_Serializable = value;
 		return true;
@@ -320,7 +372,9 @@ class component_container_flag_t : public component_container_t {
 		m_Entities.reserve(m_Entities.size(stage_range_t::ALL) + entities.size());
 		for(auto e : entities) m_Entities.insert(static_cast<entity_t::size_type>(e));
 	}
-	void add_impl(entity_t entity, void* data) override { m_Entities.insert(static_cast<entity_t::size_type>(entity)); }
+	void add_impl(entity_t entity, void* data) override {
+		m_Entities.insert(static_cast<entity_t::size_type>(entity));
+	}
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 				  void* data,
 				  bool repeat) override {
@@ -336,9 +390,13 @@ class component_container_flag_t : public component_container_t {
 			for(auto e = range.first; e < range.second; ++e) m_Entities.insert(e);
 		}
 	}
-	void purge_impl() noexcept override { m_Entities.promote(); }
+	void purge_impl() noexcept override {
+		m_Entities.promote();
+	}
 
-	void remove_impl(entity_t entity) override { m_Entities.erase(static_cast<entity_t::size_type>(entity)); }
+	void remove_impl(entity_t entity) override {
+		m_Entities.erase(static_cast<entity_t::size_type>(entity));
+	}
 	void remove_impl(psl::array_view<entity_t> entities) override {
 		for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(static_cast<entity_t::size_type>(entities[i]));
 	}
@@ -371,11 +429,17 @@ class component_container_untyped_t : public component_container_t {
 								  bool serializable = false)
 		: component_container_t(std::move(key), size, alignment), m_Entities(size), m_Serializable(serializable) {};
 	~component_container_untyped_t() override = default;
-	auto& entity_data() noexcept { return m_Entities; };
+	auto& entity_data() noexcept {
+		return m_Entities;
+	};
 
 
-	void* data() noexcept override { return m_Entities.data(); }
-	void* const data() const noexcept override { return m_Entities.data(); }
+	void* data() noexcept override {
+		return m_Entities.data();
+	}
+	void* const data() const noexcept override {
+		return m_Entities.data();
+	}
 
 	bool has_storage_for(entity_t entity) const noexcept override {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
@@ -437,7 +501,9 @@ class component_container_untyped_t : public component_container_t {
 		m_Entities.template at<T>(static_cast<entity_t::size_type>(e), stage_range_t::ALL) = data;
 	}
 
-	bool should_serialize() const noexcept override { return m_Serializable; }
+	bool should_serialize() const noexcept override {
+		return m_Serializable;
+	}
 	bool should_serialize(bool value) noexcept override {
 		m_Serializable = value;
 		return true;
@@ -511,9 +577,13 @@ class component_container_untyped_t : public component_container_t {
 			}
 		}
 	}
-	void purge_impl() noexcept override { m_Entities.promote(); }
+	void purge_impl() noexcept override {
+		m_Entities.promote();
+	}
 
-	void remove_impl(entity_t entity) override { m_Entities.erase(static_cast<entity_t::size_type>(entity)); }
+	void remove_impl(entity_t entity) override {
+		m_Entities.erase(static_cast<entity_t::size_type>(entity));
+	}
 	void remove_impl(psl::array_view<entity_t> entities) override {
 		for(size_t i = 0; i < entities.size(); ++i) m_Entities.erase(static_cast<entity_t::size_type>(entities[i]));
 	}

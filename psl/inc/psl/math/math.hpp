@@ -99,13 +99,13 @@ constexpr inline precision_t grad(hash_t hash, precision_t x, precision_t y) {
 }
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr inline precision_t
-  lerp(precision_t t, precision_t a, precision_t b) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr inline precision_t lerp(precision_t t, precision_t a, precision_t b) noexcept {
 	return a + t * (b - a);
 }
 
 template <typename precision_t, details::IsVecLike L, details::IsVecLike R>
-requires details::IsVecSameLength<L, R>
+	requires details::IsVecSameLength<L, R>
 constexpr inline auto lerp(precision_t t, const L& left, const R& right) noexcept -> typename L::tvec_t {
 	typename L::tvec_t res;
 	for(auto i = 0; i < L::dimensions_n; ++i) res[i] = lerp(t, left[i], right[i]);
@@ -130,7 +130,8 @@ constexpr static precision_t distance(const tvec<precision_t, dimensions>& vec1,
 
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static precision_t floor(precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static precision_t floor(precision_t value) noexcept {
 	return std::floor(value);
 }
 
@@ -142,17 +143,20 @@ constexpr static inline auto floor(const T& value) noexcept -> typename T::tvec_
 }
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static precision_t exp(precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static precision_t exp(precision_t value) noexcept {
 	return std::exp(value);
 }
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static precision_t fract(precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static precision_t fract(precision_t value) noexcept {
 	return value - floor(value);
 }
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static auto log(precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static auto log(precision_t value) noexcept {
 	return std::log(value);
 }
 
@@ -177,8 +181,8 @@ constexpr static precision_t next_pow_of(precision_N_t N, precision_t value) noe
 /// \param[in] N the multiple to round to
 /// \param[in] value the value to round
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static precision_t
-  round_to(precision_t N, precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static precision_t round_to(precision_t N, precision_t value) noexcept {
 	constexpr auto remainder = value % N;
 	constexpr auto extra	 = N - remainder;
 	if(extra < remainder) {
@@ -192,8 +196,8 @@ requires(!details::IsVecLike<precision_t>) constexpr static precision_t
 /// \param[in] N the multiple to ceil to
 /// \param[in] value the value to ceil
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static precision_t
-  ceil_to(precision_t N, precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static precision_t ceil_to(precision_t N, precision_t value) noexcept {
 	constexpr auto remainder = value % N;
 	return value + (N - remainder);
 }
@@ -202,8 +206,8 @@ requires(!details::IsVecLike<precision_t>) constexpr static precision_t
 /// \param[in] N the multiple to floor to
 /// \param[in] value the value to floor
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static precision_t
-  floor_to(precision_t N, precision_t value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static precision_t floor_to(precision_t N, precision_t value) noexcept {
 	constexpr auto remainder = value % N;
 	return value - remainder;
 }
@@ -214,7 +218,7 @@ constexpr static inline precision_t min(const precision_t& left, const precision
 }
 
 template <details::IsVecLike L, details::IsVecLike R>
-requires details::IsVecSameLength<L, R>
+	requires details::IsVecSameLength<L, R>
 constexpr static inline auto min(const L& left, const R& right) noexcept {
 	typename L::tvec_t res;
 	for(auto i = 0; i < L::dimensions_n; ++i) res[i] = min<typename L::precision_t>(left[i], right[i]);
@@ -222,13 +226,13 @@ constexpr static inline auto min(const L& left, const R& right) noexcept {
 }
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static inline precision_t
-  max(const precision_t& left, const precision_t& right) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static inline precision_t max(const precision_t& left, const precision_t& right) noexcept {
 	return std::max(left, right);
 }
 
 template <details::IsVecLike L, details::IsVecLike R>
-requires details::IsVecSameLength<L, R>
+	requires details::IsVecSameLength<L, R>
 constexpr static inline auto max(const L& left, const R& right) noexcept {
 	typename L::tvec_t res;
 	for(auto i = 0; i < L::dimensions_n; ++i) res[i] = max<typename L::precision_t>(left[i], right[i]);
@@ -236,7 +240,8 @@ constexpr static inline auto max(const L& left, const R& right) noexcept {
 }
 
 template <typename precision_t>
-requires(!details::IsVecLike<precision_t>) constexpr static inline precision_t abs(const precision_t& value) noexcept {
+	requires(!details::IsVecLike<precision_t>)
+constexpr static inline precision_t abs(const precision_t& value) noexcept {
 	return std::abs(value);
 }
 
@@ -253,7 +258,7 @@ constexpr static inline precision_t difference(const precision_t& lhs, const pre
 }
 
 template <details::IsVecLike L, details::IsVecLike R>
-requires details::IsVecSameLength<L, R>
+	requires details::IsVecSameLength<L, R>
 constexpr static inline auto difference(const L& left, const R& right) noexcept {
 	typename L::tvec_t res;
 	for(auto i = 0; i < L::dimensions_n; ++i) res[i] = difference<typename L::precision_t>(left[i], right[i]);

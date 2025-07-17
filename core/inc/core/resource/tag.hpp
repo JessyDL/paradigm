@@ -12,8 +12,12 @@ class tag {
 	tag& operator=(const tag&) = default;
 	tag& operator=(tag&&)	   = default;
 
-	operator const psl::UID&() const noexcept { return m_UID; };
-	const psl::UID& uid() const noexcept { return m_UID; };
+	operator const psl::UID&() const noexcept {
+		return m_UID;
+	};
+	const psl::UID& uid() const noexcept {
+		return m_UID;
+	};
 
   private:
 	psl::UID m_UID {};

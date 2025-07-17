@@ -10,7 +10,9 @@ namespace psl {
 template <size_t SIZE = 8>
 struct local_storage {
 	static constexpr size_t size {SIZE};
-	void* storage() const { return (void*)&_storage[0]; }
+	void* storage() const {
+		return (void*)&_storage[0];
+	}
 
 	char _storage[SIZE];
 };
@@ -18,7 +20,9 @@ struct local_storage {
 template <>
 struct local_storage<0u> {
 	static constexpr size_t size {0u};
-	void* storage() const { return nullptr; }
+	void* storage() const {
+		return nullptr;
+	}
 };
 
 template <typename T, typename Storage = local_storage<8>>
@@ -133,12 +137,22 @@ struct buffer_t {
 		m_Allocator = nullptr;
 	}
 
-	T& operator[](size_t index) const noexcept { return *(first + index); }
+	T& operator[](size_t index) const noexcept {
+		return *(first + index);
+	}
 
-	iterator begin() { return first; }
-	const_iterator begin() const { return first; }
-	iterator end() { return last; }
-	const_iterator end() const { return last; }
+	iterator begin() {
+		return first;
+	}
+	const_iterator begin() const {
+		return first;
+	}
+	iterator end() {
+		return last;
+	}
+	const_iterator end() const {
+		return last;
+	}
 
 	void reserve(size_t capacity) noexcept {
 		if(first + capacity <= m_Capacity)
@@ -168,9 +182,15 @@ struct buffer_t {
 		m_Capacity = first + capacity;
 	}
 
-	size_t size() const noexcept { return (size_t)(last - first); }
-	size_t capacity() const noexcept { return m_Capacity - first; }
-	bool using_sbo() const noexcept { return first == (T*)m_Storage.storage(); }
+	size_t size() const noexcept {
+		return (size_t)(last - first);
+	}
+	size_t capacity() const noexcept {
+		return m_Capacity - first;
+	}
+	bool using_sbo() const noexcept {
+		return first == (T*)m_Storage.storage();
+	}
 
 	void clear() {
 		if constexpr(!std::is_pod<T>::value) {
@@ -247,7 +267,9 @@ struct buffer_t {
 		}
 	}
 
-	void replace(size_t where, std::initializer_list<T> values) noexcept { replace(first + where, values); }
+	void replace(size_t where, std::initializer_list<T> values) noexcept {
+		replace(first + where, values);
+	}
 	void replace(iterator where, std::initializer_list<T> values) noexcept {
 		if(where < first || where + values.size() > last)
 			return;
@@ -262,7 +284,9 @@ struct buffer_t {
 		}
 	}
 
-	void erase(iterator it) noexcept { erase(it, it + 1); }
+	void erase(iterator it) noexcept {
+		erase(it, it + 1);
+	}
 	void erase(iterator first, iterator last) noexcept {
 		if(first > last || first < this->first || last > this->last)
 			return;
@@ -278,7 +302,9 @@ struct buffer_t {
 		this->last = this->first + new_size;
 	}
 
-	void push_back(const T& value) { push_back_n(1, value); }
+	void push_back(const T& value) {
+		push_back_n(1, value);
+	}
 	void push_back_n(size_t count, const T& value) {
 		size_t expected_size = count + size();
 		if(expected_size > capacity()) {

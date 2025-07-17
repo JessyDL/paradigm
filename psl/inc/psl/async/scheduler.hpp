@@ -71,7 +71,9 @@ class scheduler final {
 	void barriers(token token, std::shared_future<barrier>& barrier);
 	void consecutive(token target, psl::array<token> tokens);
 
-	size_t workers() const noexcept { return m_Workers; };
+	size_t workers() const noexcept {
+		return m_Workers;
+	};
 
   private:
 	size_t m_Workers {4};

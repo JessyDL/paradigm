@@ -19,20 +19,36 @@ class barrier {
 	bool operator!=(const barrier& other) const noexcept {
 		return m_Begin != other.m_Begin || m_End != other.m_End || m_Type != other.m_Type;
 	}
-	location_t begin() const noexcept { return m_Begin; }
-	location_t end() const noexcept { return m_End; }
-	location_t size() const noexcept { return m_End - m_Begin; }
-	barrier_type type() const noexcept { return m_Type; }
+	location_t begin() const noexcept {
+		return m_Begin;
+	}
+	location_t end() const noexcept {
+		return m_End;
+	}
+	location_t size() const noexcept {
+		return m_End - m_Begin;
+	}
+	barrier_type type() const noexcept {
+		return m_Type;
+	}
 
-	void begin(location_t location) noexcept { m_Begin = location; };
-	void end(location_t location) noexcept { m_End = location; };
-	void type(barrier_type type) noexcept { m_Type = type; }
+	void begin(location_t location) noexcept {
+		m_Begin = location;
+	};
+	void end(location_t location) noexcept {
+		m_End = location;
+	};
+	void type(barrier_type type) noexcept {
+		m_Type = type;
+	}
 
 	void move(location_t location) noexcept {
 		m_End	= size() + location;
 		m_Begin = location;
 	}
-	void resize(location_t new_size) noexcept { m_End = m_Begin + new_size; };
+	void resize(location_t new_size) noexcept {
+		m_End = m_Begin + new_size;
+	};
 
 	bool conflicts(const barrier& other) const noexcept {
 		if((m_Type == barrier_type::READ && m_Type == other.m_Type) || !overlaps(other))

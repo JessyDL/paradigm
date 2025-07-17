@@ -110,7 +110,9 @@ class cache_t {
 
   public:
 	cache_t(psl::meta::library library) : m_Library(std::move(library)) {};
-	~cache_t() { free(true); };
+	~cache_t() {
+		free(true);
+	};
 
 	cache_t(const cache_t& other)			 = delete;
 	cache_t(cache_t&& other)				 = default;
@@ -266,7 +268,9 @@ class cache_t {
 		return {descr.resource, this, &descr.metaData, data.metaFile};
 	}
 
-	bool contains(const psl::UID& uid) const noexcept { return m_Cache.find(uid) != std::end(m_Cache); }
+	bool contains(const psl::UID& uid) const noexcept {
+		return m_Cache.find(uid) != std::end(m_Cache);
+	}
 
 	template <typename T, typename... Args>
 	handle<T> find(const psl::UID& uid) noexcept {

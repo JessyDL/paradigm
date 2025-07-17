@@ -31,7 +31,9 @@ class allocator_base {
 
 	std::vector<range_t> committed();
 	std::vector<range_t> available();
-	bool is_physically_backed() const noexcept { return m_IsPhysicallyBacked; };
+	bool is_physically_backed() const noexcept {
+		return m_IsPhysicallyBacked;
+	};
 
 	size_t alignment() const noexcept;
 

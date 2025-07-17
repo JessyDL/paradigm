@@ -25,8 +25,12 @@ class shader {
 		specialization() : name("main") {};
 		specialization(const specialization& other) : name(other.name) {}
 
-		bool operator==(const specialization& other) const { return name == other.name; }
-		bool operator!=(const specialization& other) const { return name != other.name; }
+		bool operator==(const specialization& other) const {
+			return name == other.name;
+		}
+		bool operator!=(const specialization& other) const {
+			return name != other.name;
+		}
 	};
 	shader(core::resource::cache_t& cache,
 		   const core::resource::metadata& metaData,

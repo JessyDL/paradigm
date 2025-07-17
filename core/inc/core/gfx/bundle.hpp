@@ -78,7 +78,9 @@ class bundle final {
 	psl::array<uint32_t> materialIndices(uint32_t begin, uint32_t end) const noexcept;
 	bool bind_material(uint32_t renderlayer) noexcept;
 
-	core::resource::handle<core::gfx::material_t> bound() const noexcept { return m_Bound; };
+	core::resource::handle<core::gfx::material_t> bound() const noexcept {
+		return m_Bound;
+	};
 	// ------------------------------------------------------------------------------------------------------------
 	// instance data API
 	// ------------------------------------------------------------------------------------------------------------

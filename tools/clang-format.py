@@ -134,7 +134,7 @@ def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True)
             files = [
                 file
                 for file in staged_files
-                if re.search(".*?\.(cpp|hpp|h)", file)
+                if re.search(r".*?\.(cpp|hpp|h)", file)
                 and any(os.path.abspath(file).startswith(folder) for folder in folders)
             ]
     else:
@@ -145,11 +145,11 @@ def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True)
             for folder in folders
             for r, d, f, in os.walk(folder)
             for file in f
-            if re.search(".*?\.(cpp|hpp|h)", file)
+            if re.search(r".*?\.(cpp|hpp|h)", file)
         ]
 
     marked_files = []
-    files = [file for file in files if re.search(".*?\.(cpp|hpp|h)", file)]
+    files = [file for file in files if re.search(r".*?\.(cpp|hpp|h)", file)]
 
     for file in files:
         commands = clang_format + [file, "-i", "-style=file"]

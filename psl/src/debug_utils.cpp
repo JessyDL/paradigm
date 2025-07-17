@@ -56,12 +56,12 @@ psl::utility::debug::trace(size_t offset, size_t depth, std::optional<std::threa
 	frame.AddrStack.Offset = context.Esp;
 	frame.AddrStack.Mode   = AddrModeFlat;
 	#elif defined(PE_ARCHITECTURE_X86_64)
-	frame.AddrPC.Offset		   = context.Rip;
-	frame.AddrPC.Mode		   = AddrModeFlat;
-	frame.AddrFrame.Offset	   = context.Rbp;
-	frame.AddrFrame.Mode	   = AddrModeFlat;
-	frame.AddrStack.Offset	   = context.Rsp;
-	frame.AddrStack.Mode	   = AddrModeFlat;
+	frame.AddrPC.Offset	   = context.Rip;
+	frame.AddrPC.Mode	   = AddrModeFlat;
+	frame.AddrFrame.Offset = context.Rbp;
+	frame.AddrFrame.Mode   = AddrModeFlat;
+	frame.AddrStack.Offset = context.Rsp;
+	frame.AddrStack.Mode   = AddrModeFlat;
 	#endif
 
 	for(unsigned int i = 0; i < depth + offset; i++) {

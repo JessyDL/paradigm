@@ -53,8 +53,8 @@ void compare_ranges(ssmr_t& val) {
 }
 
 template <typename T>
-inline auto append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges, std::vector<T> values = {})
-  -> size_t {
+inline auto
+append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges, std::vector<T> values = {}) -> size_t {
 	size_t total {0};
 	if(values.empty()) {
 		for(auto [first, last] : ranges) {
@@ -145,9 +145,9 @@ auto t0 = suite<ssmr_t, "collections">(
 
 auto t1													   = suite<ssmr_t, "collections">(
 	 array_typed<erase_structure,
-				 erase_structure {0, 50, 10, 35},
-				 erase_structure {0, 5000, 4500, 5500},
-				 erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
+																 erase_structure {0, 50, 10, 35},
+																 erase_structure {0, 5000, 4500, 5500},
+																 erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
 	   ssmr_t container			= ssmr_t::instantiate<float>();
 	   auto start_count_added	= container.indices(stage_range_t::ADDED).size();
 	   auto start_count_settled = container.indices(stage_range_t::SETTLED).size();

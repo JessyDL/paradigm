@@ -14,18 +14,20 @@ template <>
 inline constexpr auto enable_enum_ops<enum_ops_t> = enum_ops_t::BIT;
 
 template <typename T>
-concept HasEnumBitOps = IsEnumClass<T> && static_cast<enum_ops_t>(
-						  static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
+concept HasEnumBitOps =
+  IsEnumClass<T> &&
+  static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
 						  static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::BIT)) == enum_ops_t::BIT;
 template <typename T>
-concept HasEnumShiftOps = IsEnumClass<T> && static_cast<enum_ops_t>(
-							static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
-							static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::SHIFT)) == enum_ops_t::SHIFT;
+concept HasEnumShiftOps =
+  IsEnumClass<T> &&
+  static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
+						  static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::SHIFT)) == enum_ops_t::SHIFT;
 template <typename T>
 concept HasEnumArithmeticOps =
   IsEnumClass<T> && static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
 											static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::ARITHMETIC)) ==
-  enum_ops_t::ARITHMETIC;
+					  enum_ops_t::ARITHMETIC;
 template <typename T>
 concept HasEnumLogicalOps =
   IsEnumClass<T> &&

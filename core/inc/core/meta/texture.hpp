@@ -128,7 +128,9 @@ class texture_t final : public psl::meta::file {
 	/// ID of this type on.
 	static constexpr psl::string8::view polymorphic_name {"TEXTURE_META"};
 	/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
-	virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }
+	virtual const uint64_t polymorphic_id() override {
+		return polymorphic_identity;
+	}
 	/// \brief the associated unique ID (per type, not instance) for the polymorphic system.
 	static const uint64_t polymorphic_identity;
 };

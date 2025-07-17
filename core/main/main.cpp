@@ -684,10 +684,8 @@ ECSState.create(
 		bundles.back()->set("lightDir", psl::vec4 {1.f, 1.f, 1.f, 0.f});
 		ECSState.create(
 		  1,
-		  [&bundle	 = bundles.back(),
-		   &geometry = geometryHandles[/*water_plane_index*/ 0]](core::ecs::components::renderable& renderable) {
-			  renderable = {bundle, geometry};
-		  },
+		  [&bundle = bundles.back(), &geometry = geometryHandles[/*water_plane_index*/ 0]](
+			core::ecs::components::renderable& renderable) { renderable = {bundle, geometry}; },
 		  core::ecs::components::transform {psl::vec3 {}, psl::vec3::one * 1.f});
 	}
 
@@ -748,8 +746,8 @@ ECSState.create(
 		{
 			next_spawn += std::chrono::milliseconds(spawnInterval);
 			ECSState.create(
-			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/ static_cast<entity_t::size_type>(
-				(frame % 250 == 0) ? burst : 0),
+			  /*(iterations > 0) ? count + std::rand() % (swing + 1) : 0*/
+			  static_cast<entity_t::size_type>((frame % 250 == 0) ? burst : 0),
 			  [&bundles, &geometryHandles, &matusage](core::ecs::components::renderable& renderable) {
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);

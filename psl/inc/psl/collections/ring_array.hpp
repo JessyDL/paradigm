@@ -26,8 +26,12 @@ class ring_array {
 			std::swap(m_Data + offset_of(m_Index), iter.m_Data + iter.offset_of(iter.m_Index));
 		};
 
-		bool operator==(const iterator& rhs) { return m_Data == rhs.m_Data && m_Index == rhs.m_Index; }
-		bool operator!=(const iterator& rhs) const noexcept { return m_Data != rhs.m_Data || m_Index != rhs.m_Index; }
+		bool operator==(const iterator& rhs) {
+			return m_Data == rhs.m_Data && m_Index == rhs.m_Index;
+		}
+		bool operator!=(const iterator& rhs) const noexcept {
+			return m_Data != rhs.m_Data || m_Index != rhs.m_Index;
+		}
 		bool operator<(const iterator& rhs) const noexcept {
 			return (m_Data < rhs.m_Data) ? true : m_Index < rhs.m_Index;
 		}
@@ -41,9 +45,15 @@ class ring_array {
 			return (m_Data >= rhs.m_Data) ? true : m_Index >= rhs.m_Index;
 		}
 
-		reference operator*() { return *(m_Data + offset_of(m_Index)); }
-		pointer operator->() { return m_Data + offset_of(m_Index); }
-		reference operator[](difference_type n) { return *(m_Data + offset_of(m_Index + n)); }
+		reference operator*() {
+			return *(m_Data + offset_of(m_Index));
+		}
+		pointer operator->() {
+			return m_Data + offset_of(m_Index);
+		}
+		reference operator[](difference_type n) {
+			return *(m_Data + offset_of(m_Index + n));
+		}
 
 		iterator& operator++() {
 			++m_Index;
@@ -84,7 +94,9 @@ class ring_array {
 		}
 
 	  private:
-		inline size_t offset_of(size_t index) const noexcept { return ((m_Begin + index) % m_Capacity); };
+		inline size_t offset_of(size_t index) const noexcept {
+			return ((m_Begin + index) % m_Capacity);
+		};
 
 		pointer m_Data {nullptr};
 		size_t m_Begin {0u};
@@ -95,7 +107,9 @@ class ring_array {
 
 	ring_array(size_t size = 4) : m_Data(new T[size]), m_Begin(m_Data), m_Count(0), m_Capacity(size) {}
 
-	~ring_array() { delete[](m_Data); }
+	~ring_array() {
+		delete[](m_Data);
+	}
 
 
 	void reserve(size_t size) {
@@ -189,21 +203,33 @@ class ring_array {
 		}
 	}
 
-	void shrink_to_fit() { resize(m_Count); }
+	void shrink_to_fit() {
+		resize(m_Count);
+	}
 
 	void clear() noexcept {
 		m_Count = 0;
 		m_Begin = m_Data;
 	}
 
-	T& operator[](size_t index) { return *(m_Data + offset_of(index)); }
-	T& at(size_t index) noexcept { return *(m_Data + offset_of(index)); }
+	T& operator[](size_t index) {
+		return *(m_Data + offset_of(index));
+	}
+	T& at(size_t index) noexcept {
+		return *(m_Data + offset_of(index));
+	}
 
 
-	const T& operator[](size_t index) const noexcept { return *(m_Data + offset_of(index)); }
-	const T& at(size_t index) const noexcept { return *(m_Data + offset_of(index)); }
+	const T& operator[](size_t index) const noexcept {
+		return *(m_Data + offset_of(index));
+	}
+	const T& at(size_t index) const noexcept {
+		return *(m_Data + offset_of(index));
+	}
 
-	const T& at(int64_t index) const noexcept { return *(m_Data + offset_of(index)); }
+	const T& at(int64_t index) const noexcept {
+		return *(m_Data + offset_of(index));
+	}
 
 	void push_back(T&& value) {
 		if(m_Count == m_Capacity) {
@@ -267,25 +293,47 @@ class ring_array {
 		--m_Count;
 	}
 
-	T& back() { return *(m_Data + last_of()); };
-	T& front() { return *m_Begin; };
+	T& back() {
+		return *(m_Data + last_of());
+	};
+	T& front() {
+		return *m_Begin;
+	};
 
-	size_t size() const noexcept { return m_Count; }
-	int64_t ssize() const noexcept { return static_cast<int64_t>(m_Count); }
-	size_t capacity() const noexcept { return m_Capacity; }
+	size_t size() const noexcept {
+		return m_Count;
+	}
+	int64_t ssize() const noexcept {
+		return static_cast<int64_t>(m_Count);
+	}
+	size_t capacity() const noexcept {
+		return m_Capacity;
+	}
 
 
-	iterator begin() noexcept { return iterator {m_Data, start_of(), m_Capacity, 0}; }
-	iterator end() noexcept { return iterator {m_Data, end_of(), m_Capacity, m_Count}; }
+	iterator begin() noexcept {
+		return iterator {m_Data, start_of(), m_Capacity, 0};
+	}
+	iterator end() noexcept {
+		return iterator {m_Data, end_of(), m_Capacity, m_Count};
+	}
 
   private:
-	inline auto offset_of(size_t index) const noexcept { return (start_of() + index) & (m_Capacity - 1); }
+	inline auto offset_of(size_t index) const noexcept {
+		return (start_of() + index) & (m_Capacity - 1);
+	}
 	inline auto offset_of(int64_t index) const noexcept {
 		return (static_cast<int64_t>(start_of()) + index) & (m_Capacity - 1);
 	}
-	inline size_t start_of() const noexcept { return static_cast<size_t>(m_Begin - m_Data); }
-	inline size_t end_of() const noexcept { return offset_of(m_Count); }
-	inline size_t last_of() const noexcept { return offset_of(m_Count - 1); }
+	inline size_t start_of() const noexcept {
+		return static_cast<size_t>(m_Begin - m_Data);
+	}
+	inline size_t end_of() const noexcept {
+		return offset_of(m_Count);
+	}
+	inline size_t last_of() const noexcept {
+		return offset_of(m_Count - 1);
+	}
 
 	T* m_Data;
 	T* m_Begin;

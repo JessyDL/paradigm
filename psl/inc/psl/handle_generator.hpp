@@ -27,15 +27,25 @@ struct handle {
 			return m_AllHandles[id];
 		}
 
-		bool destroy(const handle& handle) { return m_Generator.destroy(handle.ID()); }
+		bool destroy(const handle& handle) {
+			return m_Generator.destroy(handle.ID());
+		}
 
-		void set(handle& handle, const T& val) { m_Items[handle.ID()] = val; };
+		void set(handle& handle, const T& val) {
+			m_Items[handle.ID()] = val;
+		};
 
-		void set(precision id, const T& val) { m_Items[id] = val; };
+		void set(precision id, const T& val) {
+			m_Items[id] = val;
+		};
 
-		T& get(handle& handle) { return m_Items[handle.ID()]; };
+		T& get(handle& handle) {
+			return m_Items[handle.ID()];
+		};
 
-		T& get(precision id) { return m_Items[id]; };
+		T& get(precision id) {
+			return m_Items[id];
+		};
 
 	  private:
 		psl::id_generator<precision> m_Generator;
@@ -46,16 +56,28 @@ struct handle {
 	handle() : m_Generator(nullptr) {};
 	handle(const precision& id, Generator* generator) : m_ID(id), m_Generator(generator) {};
 
-	bool operator==(const handle& other) { return (m_ID == other.m_ID); }
+	bool operator==(const handle& other) {
+		return (m_ID == other.m_ID);
+	}
 
-	bool operator!=(const handle& other) { return (m_ID != other.m_ID); }
+	bool operator!=(const handle& other) {
+		return (m_ID != other.m_ID);
+	}
 
-	precision ID() const { return m_ID; };
-	bool IsValid() { return m_Generator != nullptr; };
+	precision ID() const {
+		return m_ID;
+	};
+	bool IsValid() {
+		return m_Generator != nullptr;
+	};
 
-	const T& value() const { return m_Generator->get(m_ID); }
+	const T& value() const {
+		return m_Generator->get(m_ID);
+	}
 
-	T* operator->() const { return &m_Generator->get(m_ID); }
+	T* operator->() const {
+		return &m_Generator->get(m_ID);
+	}
 
   private:
 	precision m_ID;
@@ -94,16 +116,28 @@ struct handle<T*, precision> {
 			return m_Generator.destroy(handle.ID());
 		}
 
-		void set(handle& handle, T* val) { m_Items[handle.ID()] = val; };
+		void set(handle& handle, T* val) {
+			m_Items[handle.ID()] = val;
+		};
 
-		void set(precision id, T* val) { m_Items[id] = val; };
+		void set(precision id, T* val) {
+			m_Items[id] = val;
+		};
 
-		T* get(handle& handle) const { return m_Items[handle.ID()]; };
+		T* get(handle& handle) const {
+			return m_Items[handle.ID()];
+		};
 
-		T* get(precision id) const { return m_Items[id]; };
+		T* get(precision id) const {
+			return m_Items[id];
+		};
 
-		const std::vector<handle>& all() const { return m_AllHandles; };
-		const precision& Used() { return m_Used; }
+		const std::vector<handle>& all() const {
+			return m_AllHandles;
+		};
+		const precision& Used() {
+			return m_Used;
+		}
 
 	  private:
 		psl::id_generator<precision> m_Generator;
@@ -116,16 +150,28 @@ struct handle<T*, precision> {
 	handle() : m_Generator(nullptr) {};
 	handle(const precision& id, Generator* generator) : m_ID(id), m_Generator(generator) {};
 
-	bool operator==(const handle& other) { return (m_ID == other.m_ID); }
+	bool operator==(const handle& other) {
+		return (m_ID == other.m_ID);
+	}
 
-	bool operator!=(const handle& other) { return (m_ID != other.m_ID); }
+	bool operator!=(const handle& other) {
+		return (m_ID != other.m_ID);
+	}
 
-	precision ID() const { return m_ID; };
-	bool IsValid() const { return m_Generator != nullptr; };
+	precision ID() const {
+		return m_ID;
+	};
+	bool IsValid() const {
+		return m_Generator != nullptr;
+	};
 
-	T* value() const { return m_Generator->get(m_ID); }
+	T* value() const {
+		return m_Generator->get(m_ID);
+	}
 
-	T* operator->() const { return m_Generator->get(m_ID); }
+	T* operator->() const {
+		return m_Generator->get(m_ID);
+	}
 
   private:
 	precision m_ID;

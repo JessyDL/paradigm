@@ -22,8 +22,8 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 handle<core::ivk::context> context,
 					 core::os::context& os_context,
 					 bool use_depth)
-	: m_OSSurface(&surface.value()), m_Context(context), m_Cache(cache), m_DepthTextureHandle(),
-	  m_UseDepth(use_depth), m_SurfaceFormat {} {
+	: m_OSSurface(&surface.value()), m_Context(context), m_Cache(cache), m_DepthTextureHandle(), m_UseDepth(use_depth),
+	  m_SurfaceFormat {} {
 #ifdef SURFACE_WIN32
 	vk::Win32SurfaceCreateInfoKHR createInfo;
 	createInfo.hinstance = m_OSSurface->surface_instance();
@@ -362,8 +362,7 @@ void swapchain::init_depthstencil() {
 	m_Cache.library().set(m_DepthTextureHandle, "SCDepthStencil");
 }
 
-void swapchain::deinit_depthstencil() { /*m_DepthTextureHandle.unload();*/
-}
+void swapchain::deinit_depthstencil() { /*m_DepthTextureHandle.unload();*/ }
 
 void swapchain::init_renderpass() {
 	std::array<vk::AttachmentDescription, 2> attachments;

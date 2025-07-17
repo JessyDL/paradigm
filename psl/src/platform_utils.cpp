@@ -275,12 +275,12 @@ bool psl::utility::platform::file::read(psl::string_view filename, std::vector<p
 	file.close();
 #else	  // PE_PLATFORM_ANDROID
 	AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
-	AAsset* asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_STREAMING);
+	AAsset* asset		= AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_STREAMING);
 	// holds size of searched file
 	off64_t length = AAsset_getLength64(asset);
 	// keeps track of remaining bytes to read
 	off64_t remaining = AAsset_getRemainingLength64(asset);
-	size_t Mb = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
+	size_t Mb		  = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
 	size_t currChunk;
 	out.reserve(length);
 
@@ -343,12 +343,12 @@ bool psl::utility::platform::file::read(psl::string_view filename, psl::string& 
 	file.close();
 #else	  // PE_PLATFORM_ANDROID
 	AAssetDir* assetDir = AAssetManager_openDir(ANDROID_ASSET_MANAGER, "");
-	AAsset* asset = AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_BUFFER);
+	AAsset* asset		= AAssetManager_open(ANDROID_ASSET_MANAGER, file_name.data(), AASSET_MODE_BUFFER);
 	// holds size of searched file
 	off64_t length = AAsset_getLength64(asset);
 	// keeps track of remaining bytes to read
 	off64_t remaining = AAsset_getRemainingLength64(asset);
-	size_t Mb = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
+	size_t Mb		  = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
 	size_t currChunk;
 	out.reserve(length);
 

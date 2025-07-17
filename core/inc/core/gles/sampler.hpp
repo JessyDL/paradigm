@@ -18,7 +18,9 @@ class sampler_t {
 	sampler_t& operator=(const sampler_t& other)	 = delete;
 	sampler_t& operator=(sampler_t&& other) noexcept = delete;
 
-	unsigned int id() const noexcept { return m_Sampler; }
+	unsigned int id() const noexcept {
+		return m_Sampler;
+	}
 
   private:
 	unsigned int m_Sampler;

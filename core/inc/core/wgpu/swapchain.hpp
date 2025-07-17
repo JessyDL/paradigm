@@ -30,8 +30,12 @@ class swapchain {
 		return {std::begin(m_ColorAttachments), std::end(m_ColorAttachments)};
 	}
 
-	auto texture() const noexcept -> wgpu::Texture { return m_SwapChain.GetCurrentTexture(); }
-	auto view() const noexcept -> wgpu::TextureView { return m_SwapChain.GetCurrentTextureView(); }
+	auto texture() const noexcept -> wgpu::Texture {
+		return m_SwapChain.GetCurrentTexture();
+	}
+	auto view() const noexcept -> wgpu::TextureView {
+		return m_SwapChain.GetCurrentTextureView();
+	}
 
 	auto descriptor() noexcept -> wgpu::RenderPassDescriptor;
 

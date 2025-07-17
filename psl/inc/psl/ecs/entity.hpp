@@ -50,8 +50,12 @@ struct entity_t {
 	constexpr entity_t(entity_t&& entity) noexcept				   = default;
 	constexpr entity_t& operator=(entity_t&& entity) noexcept	   = default;
 
-	explicit constexpr inline operator size_type const&() const noexcept { return value; }
-	explicit constexpr inline operator size_type&() noexcept { return value; }
+	explicit constexpr inline operator size_type const&() const noexcept {
+		return value;
+	}
+	explicit constexpr inline operator size_type&() noexcept {
+		return value;
+	}
 
 	constexpr inline friend bool operator==(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.value == rhs.value;
@@ -60,7 +64,9 @@ struct entity_t {
 		return lhs.value != rhs.value;
 	}
 
-	constexpr inline operator bool() const noexcept { return value != 0; }
+	constexpr inline operator bool() const noexcept {
+		return value != 0;
+	}
 
 	size_type value {};
 };

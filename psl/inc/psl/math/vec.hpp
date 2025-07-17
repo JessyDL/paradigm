@@ -84,8 +84,8 @@ namespace details {
 			}
 		}
 
-		inline auto as_underlying() const noexcept
-		  -> std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>> {
+		inline auto
+		as_underlying() const noexcept -> std::conditional_t<is_single_accessor, const T&, tvec<T, dimensions_n>> {
 			if constexpr(dimensions_n > 1) {
 				return tvec<T, dimensions_n> {data[index]...};
 			} else {
@@ -94,7 +94,7 @@ namespace details {
 		}
 
 		template <IsVecLike Y>
-		requires IsVecSameLength<accessor, Y>
+			requires IsVecSameLength<accessor, Y>
 		auto operator=(const Y& other) noexcept -> accessor& {
 			if constexpr(dimensions_n > 1) {
 				size_t other_index = 0;
@@ -106,7 +106,9 @@ namespace details {
 			return *this;
 		}
 
-		auto operator=(const auto& other) noexcept -> accessor& requires(dimensions_n == 1) {
+		auto operator=(const auto& other) noexcept -> accessor&
+			requires(dimensions_n == 1)
+		{
 			data.at(index...) = other;
 			return *this;
 		}
@@ -115,15 +117,25 @@ namespace details {
 			return accessor_get_at<index...>(N, data);
 		}
 
-		auto operator/(const auto& other) const noexcept { return as_underlying() / other; }
+		auto operator/(const auto& other) const noexcept {
+			return as_underlying() / other;
+		}
 
-		auto operator*(const auto& other) const noexcept { return as_underlying() * other; }
+		auto operator*(const auto& other) const noexcept {
+			return as_underlying() * other;
+		}
 
-		auto operator+(const auto& other) const noexcept { return as_underlying() + other; }
+		auto operator+(const auto& other) const noexcept {
+			return as_underlying() + other;
+		}
 
-		auto operator-(const auto& other) const noexcept { return as_underlying() - other; }
+		auto operator-(const auto& other) const noexcept {
+			return as_underlying() - other;
+		}
 
-		constexpr auto operator[](size_t N) noexcept -> precision_t& { return accessor_get_at<index...>(N, data); }
+		constexpr auto operator[](size_t N) noexcept -> precision_t& {
+			return accessor_get_at<index...>(N, data);
+		}
 
 		static constexpr size_t max_elements = psl::utility::templates::max<index...>() + 1;
 		psl::static_array<T, max_elements> data;
@@ -240,8 +252,12 @@ struct tvec {
 	constexpr tvec(Args&&... args) noexcept : value({static_cast<precision_t>(args)...}) {};
 
 
-	operator container_t() const noexcept { return value; }
-	operator container_t&() noexcept { return value; }
+	operator container_t() const noexcept {
+		return value;
+	}
+	operator container_t&() noexcept {
+		return value;
+	}
 
 	tvec_t& operator=(const container_t& container) {
 		value = container;
@@ -257,7 +273,9 @@ struct tvec {
 		return value[index];
 	}
 
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
 	template <size_t index>
 	constexpr precision_t& at() noexcept {
@@ -271,7 +289,9 @@ struct tvec {
 	}
 
 	template <typename Y>
-	operator tvec<Y, dimensions>() const noexcept requires std::is_convertible_v<precision_t, Y> {
+	operator tvec<Y, dimensions>() const noexcept
+		requires std::is_convertible_v<precision_t, Y>
+	{
 		tvec<Y, dimensions> res {};
 		for(auto i = 0; i < dimensions; ++i) res[i] = static_cast<Y>(value[i]);
 		return res;
@@ -326,8 +346,12 @@ struct tvec<precision, 1> {
 	// ---------------------------------------------
 	// operators
 	// ---------------------------------------------
-	operator container_t() const noexcept { return value; }
-	operator container_t&() noexcept { return value; }
+	operator container_t() const noexcept {
+		return value;
+	}
+	operator container_t&() noexcept {
+		return value;
+	}
 
 
 	tvec_t& operator=(const container_t& container) {
@@ -341,7 +365,9 @@ struct tvec<precision, 1> {
 		return value[index];
 	}
 
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
 	template <size_t index>
 	constexpr precision_t& at() noexcept {
@@ -355,7 +381,9 @@ struct tvec<precision, 1> {
 	}
 
 	template <typename Y>
-	operator tvec<Y, 1>() const noexcept requires std::is_convertible_v<precision_t, Y> {
+	operator tvec<Y, 1>() const noexcept
+		requires std::is_convertible_v<precision_t, Y>
+	{
 		return {static_cast<Y>(value[0])};
 	}
 
@@ -423,8 +451,12 @@ struct tvec<precision, 2> {
 	// ---------------------------------------------
 	// operators
 	// ---------------------------------------------
-	operator container_t() const noexcept { return value; }
-	operator container_t&() noexcept { return value; }
+	operator container_t() const noexcept {
+		return value;
+	}
+	operator container_t&() noexcept {
+		return value;
+	}
 
 	constexpr precision_t& operator[](size_t index) noexcept {
 		static_assert(std::is_standard_layout<tvec_t>::value && std::is_trivially_copyable_v<tvec_t>,
@@ -432,7 +464,9 @@ struct tvec<precision, 2> {
 		return value[index];
 	}
 
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
 	template <size_t index>
 	constexpr precision_t& at() noexcept {
@@ -446,7 +480,9 @@ struct tvec<precision, 2> {
 	}
 
 	template <typename Y>
-	operator tvec<Y, 2>() const noexcept requires std::is_convertible_v<precision_t, Y> {
+	operator tvec<Y, 2>() const noexcept
+		requires std::is_convertible_v<precision_t, Y>
+	{
 		return {static_cast<Y>(value[0]), static_cast<Y>(value[1])};
 	}
 
@@ -521,8 +557,12 @@ struct tvec<precision, 3> {
 	// ---------------------------------------------
 	// operators
 	// ---------------------------------------------
-	operator container_t() const noexcept { return value; }
-	operator container_t&() noexcept { return value; }
+	operator container_t() const noexcept {
+		return value;
+	}
+	operator container_t&() noexcept {
+		return value;
+	}
 
 	tvec_t& operator=(const container_t& container) {
 		value = container;
@@ -535,7 +575,9 @@ struct tvec<precision, 3> {
 		return value[index];
 	}
 
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
 	template <size_t index>
 	constexpr precision_t& at() noexcept {
@@ -549,7 +591,9 @@ struct tvec<precision, 3> {
 	}
 
 	template <typename Y>
-	operator tvec<Y, 3>() const noexcept requires std::is_convertible_v<precision_t, Y> {
+	operator tvec<Y, 3>() const noexcept
+		requires std::is_convertible_v<precision_t, Y>
+	{
 		return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2])};
 	}
 
@@ -640,8 +684,12 @@ struct alignas(16) tvec<precision, 4> {
 	// ---------------------------------------------
 	// operators
 	// ---------------------------------------------
-	operator container_t() const noexcept { return value; }
-	operator container_t&() noexcept { return value; }
+	operator container_t() const noexcept {
+		return value;
+	}
+	operator container_t&() noexcept {
+		return value;
+	}
 
 	tvec_t& operator=(const container_t& container) {
 		value = container;
@@ -654,7 +702,9 @@ struct alignas(16) tvec<precision, 4> {
 		return value[index];
 	}
 
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
 	template <size_t index>
 	constexpr precision_t& at() noexcept {
@@ -668,7 +718,9 @@ struct alignas(16) tvec<precision, 4> {
 	}
 
 	template <typename Y>
-	operator tvec<Y, 4>() const noexcept requires std::is_convertible_v<precision_t, Y> {
+	operator tvec<Y, 4>() const noexcept
+		requires std::is_convertible_v<precision_t, Y>
+	{
 		return {static_cast<Y>(value[0]), static_cast<Y>(value[1]), static_cast<Y>(value[2]), static_cast<Y>(value[3])};
 	}
 

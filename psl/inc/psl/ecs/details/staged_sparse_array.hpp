@@ -182,9 +182,13 @@ class staged_sparse_array {
 		return false;
 	}
 
-	void emplace(index_t index, value_type&& value) { this->operator[](index) = std::forward<value_type>(value); }
+	void emplace(index_t index, value_type&& value) {
+		this->operator[](index) = std::forward<value_type>(value);
+	}
 
-	void insert(index_t index, const_reference value) { this->operator[](index) = value; }
+	void insert(index_t index, const_reference value) {
+		this->operator[](index) = value;
+	}
 	void insert(index_t index) {
 		auto sub_index = index;
 		auto& chunk	   = chunk_for(sub_index);
@@ -230,7 +234,9 @@ class staged_sparse_array {
 		return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 	}
 
-	size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
+	size_type capacity() const noexcept {
+		return std::size(m_Sparse) * chunks_size;
+	}
 
 	auto begin(stage_t stage = stage_t::SETTLED) noexcept {
 		return std::next((T*)m_DenseData.data(), m_StageStart[to_underlying(stage)]);
@@ -247,9 +253,15 @@ class staged_sparse_array {
 		return std::next(m_DenseData.data(), m_StageStart[to_underlying(stage) + 1]);
 	}
 
-	constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
-	void* data() noexcept { return m_DenseData.data(); };
-	void* const data() const noexcept { return m_DenseData.data(); };
+	constexpr bool empty() const noexcept {
+		return std::empty(m_Reverse);
+	};
+	void* data() noexcept {
+		return m_DenseData.data();
+	};
+	void* const data() const noexcept {
+		return m_DenseData.data();
+	};
 
 	void clear() noexcept {
 		m_Reverse.clear();
@@ -552,7 +564,9 @@ class staged_sparse_array<void, Key, chunks_size> {
 	staged_sparse_array& operator=(const staged_sparse_array& other)	 = default;
 	staged_sparse_array& operator=(staged_sparse_array&& other) noexcept = default;
 
-	bool operator[](index_t index) const noexcept { return has(index); }
+	bool operator[](index_t index) const noexcept {
+		return has(index);
+	}
 
 	void reserve(size_t capacity) {
 		if(capacity <= m_Reverse.capacity())
@@ -648,9 +662,13 @@ class staged_sparse_array<void, Key, chunks_size> {
 	size_type size(stage_range_t stage = stage_range_t::ALIVE) const noexcept {
 		return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 	}
-	size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
+	size_type capacity() const noexcept {
+		return std::size(m_Sparse) * chunks_size;
+	}
 
-	constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
+	constexpr bool empty() const noexcept {
+		return std::empty(m_Reverse);
+	};
 
 	void clear() noexcept {
 		m_Reverse.clear();
@@ -807,10 +825,14 @@ class staged_sparse_array<void, Key, chunks_size> {
 		return *m_CachedChunk;
 	}
 
-	inline const chunk_t& get_chunk_from_index(index_t index) const noexcept { return m_Sparse[index].value(); }
+	inline const chunk_t& get_chunk_from_index(index_t index) const noexcept {
+		return m_Sparse[index].value();
+	}
 
 
-	inline chunk_t& get_chunk_from_index(index_t index) noexcept { return m_Sparse[index].value(); }
+	inline chunk_t& get_chunk_from_index(index_t index) noexcept {
+		return m_Sparse[index].value();
+	}
 
 	inline void chunk_info_for(index_t index, index_t& element_index, index_t& chunk_index) const noexcept {
 		if constexpr(is_power_of_two) {

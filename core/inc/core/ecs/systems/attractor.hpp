@@ -35,4 +35,4 @@ auto attractor = [](psl::ecs::info_t& info,
 		}
 	}
 };
-}
+}	 // namespace core::ecs::systems

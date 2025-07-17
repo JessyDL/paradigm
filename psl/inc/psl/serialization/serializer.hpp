@@ -61,7 +61,9 @@ struct polymorphic_data_t {
 
 
 	std::vector<std::pair<psl::string8_t, uint64_t>> derived;
-	~polymorphic_data_t() { delete(factory); };
+	~polymorphic_data_t() {
+		delete(factory);
+	};
 };
 
 namespace details {
@@ -98,8 +100,9 @@ class accessor {
 	inline static auto serialize_fn(S& s, T& obj);
 
 	template <typename T>
-	inline static auto to_string(T& t, psl::format::container& container, psl::format::data& parent)
-	  -> decltype(t.to_string(container, parent)) {
+	inline static auto to_string(T& t,
+								 psl::format::container& container,
+								 psl::format::data& parent) -> decltype(t.to_string(container, parent)) {
 		t.to_string(container, parent);
 	}
 
@@ -153,14 +156,10 @@ class accessor {
 
 namespace details {
 	template <typename T>
-	concept HasSerializationName = requires {
-		accessor::template test_has_name<T>();
-	};
+	concept HasSerializationName = requires { accessor::template test_has_name<T>(); };
 
 	template <typename T>
-	concept HasSerializationPolymorphicName = requires {
-		accessor::template test_has_polymorphic_name<T>();
-	};
+	concept HasSerializationPolymorphicName = requires { accessor::template test_has_polymorphic_name<T>(); };
 
 	template <typename T>
 	concept IsSerializationPolymorphic = requires {

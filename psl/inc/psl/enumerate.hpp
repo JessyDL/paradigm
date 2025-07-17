@@ -37,11 +37,17 @@ class enumerator {
 			return copy;
 		}
 
-		bool operator!=(const iterator& other) const noexcept { return it != other.it; }
+		bool operator!=(const iterator& other) const noexcept {
+			return it != other.it;
+		}
 
-		bool operator==(const iterator& other) const noexcept { return it == other.it; }
+		bool operator==(const iterator& other) const noexcept {
+			return it == other.it;
+		}
 
-		auto operator*() -> std::pair<index_type, decltype(*std::declval<TIterator>())> { return {index, *it}; }
+		auto operator*() -> std::pair<index_type, decltype(*std::declval<TIterator>())> {
+			return {index, *it};
+		}
 
 
 		auto operator*() const -> std::pair<index_type, const decltype(*std::declval<TIterator>())> {
@@ -57,9 +63,13 @@ class enumerator {
 	enumerator(TIterator first, TIterator last, index_type index = 0, index_type count = 0)
 		: first(first), last(last), index(index), count(count) {}
 
-	iterator begin() const { return iterator(index, first); }
+	iterator begin() const {
+		return iterator(index, first);
+	}
 
-	iterator end() const { return iterator(count, last); }
+	iterator end() const {
+		return iterator(count, last);
+	}
 
   private:
 	TIterator first;

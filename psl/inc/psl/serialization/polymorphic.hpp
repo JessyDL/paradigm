@@ -46,7 +46,9 @@ class polymorphic final : public polymorphic_base {
 	}
 
 	virtual ~polymorphic() {};
-	uint64_t PolymorphicID() const override { return accessor::id<T>(); };
+	uint64_t PolymorphicID() const override {
+		return accessor::id<T>();
+	};
 	static constexpr uint64_t ID {accessor::id<T>()};
 };
 

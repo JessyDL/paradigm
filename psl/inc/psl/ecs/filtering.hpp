@@ -25,8 +25,12 @@ namespace details {
 		constexpr cached_container_entry_t& operator=(cached_container_entry_t const&) = default;
 		constexpr cached_container_entry_t& operator=(cached_container_entry_t&&)	   = default;
 
-		constexpr operator details::component_key_t const&() const noexcept { return key; }
-		constexpr operator details::component_key_t&() noexcept { return key; }
+		constexpr operator details::component_key_t const&() const noexcept {
+			return key;
+		}
+		constexpr operator details::component_key_t&() noexcept {
+			return key;
+		}
 
 		friend constexpr bool operator==(cached_container_entry_t const& lhs,
 										 cached_container_entry_t const& rhs) noexcept {
@@ -123,11 +127,15 @@ namespace details {
 			return end;
 		}
 
-		operator bool() const noexcept { return order_by || on_condition.size() > 0; }
+		operator bool() const noexcept {
+			return order_by || on_condition.size() > 0;
+		}
 
 	  private:
 		friend class ::psl::ecs::state_t;
-		void add_debug_system_name(psl::string_view name) { m_SystemsDebugNames.emplace_back(name); }
+		void add_debug_system_name(psl::string_view name) {
+			m_SystemsDebugNames.emplace_back(name);
+		}
 		std::function<ordering_pred_t> order_by;
 
 		psl::array<std::function<conditional_pred_t>> on_condition;
@@ -294,10 +302,14 @@ namespace details {
 		}
 
 		// inverse of subset, does this fully contain the other
-		bool is_superset_of(const filter_group& other) const noexcept { return other.is_subset_of(*this); }
+		bool is_superset_of(const filter_group& other) const noexcept {
+			return other.is_subset_of(*this);
+		}
 
 		// neither superset or subset, but partial match
-		bool is_divergent(const filter_group& other) const noexcept { return false; }
+		bool is_divergent(const filter_group& other) const noexcept {
+			return false;
+		}
 
 		bool clear_every_frame() const noexcept {
 			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0;
@@ -329,7 +341,9 @@ namespace details {
 	  private:
 		friend class ::psl::ecs::state_t;
 
-		void add_debug_system_name(psl::string_view name) { m_SystemsDebugNames.emplace_back(name); }
+		void add_debug_system_name(psl::string_view name) {
+			m_SystemsDebugNames.emplace_back(name);
+		}
 
 		psl::array<cached_container_entry_t> filters;
 		psl::array<cached_container_entry_t> on_add;

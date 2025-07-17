@@ -276,7 +276,8 @@ endif()
 set(CXX_EXTENSIONS OFF)
 
 if(MSVC) # we currently make no distinction for CLang (todo)
-	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC;/Zc:preprocessor)
+	# /Zc:__cplusplus needs to be set as utfcpp uses this to determine the C++ standard version
+	list(APPEND PE_COMPILE_OPTIONS /nologo;/MP;/sdl;/permissive-;/Zc:forScope;/Zc:inline;/Zc:rvalueCast;/Zc:wchar_t;/fp:precise;/JMC;/Zc:preprocessor;/Zc:__cplusplus)
 	list(APPEND PE_COMPILE_OPTIONS /wd4505)
 	if(PE_VERBOSE)
 		list(APPEND PE_COMPILE_OPTIONS /W4 /w14640 /w14242 /w14254 /wd4100)	

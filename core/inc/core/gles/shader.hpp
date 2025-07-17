@@ -16,7 +16,9 @@ class shader {
 	shader& operator=(shader&&)		 = delete;
 
 	GLuint id() const noexcept;
-	core::meta::shader* meta() const noexcept { return m_Meta; }
+	core::meta::shader* meta() const noexcept {
+		return m_Meta;
+	}
 
   private:
 	GLuint m_Shader {std::numeric_limits<GLuint>::max()};

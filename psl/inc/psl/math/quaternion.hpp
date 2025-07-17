@@ -23,14 +23,30 @@ struct alignas(16) tquat {
 	// ---------------------------------------------
 	// getters
 	// ---------------------------------------------
-	constexpr precision_t& x() noexcept { return value[0]; }
-	constexpr const precision_t& x() const noexcept { return value[0]; }
-	constexpr precision_t& y() noexcept { return value[1]; }
-	constexpr const precision_t& y() const noexcept { return value[1]; }
-	constexpr precision_t& z() noexcept { return value[2]; }
-	constexpr const precision_t& z() const noexcept { return value[2]; }
-	constexpr precision_t& w() noexcept { return value[3]; }
-	constexpr const precision_t& w() const noexcept { return value[3]; }
+	constexpr precision_t& x() noexcept {
+		return value[0];
+	}
+	constexpr const precision_t& x() const noexcept {
+		return value[0];
+	}
+	constexpr precision_t& y() noexcept {
+		return value[1];
+	}
+	constexpr const precision_t& y() const noexcept {
+		return value[1];
+	}
+	constexpr precision_t& z() noexcept {
+		return value[2];
+	}
+	constexpr const precision_t& z() const noexcept {
+		return value[2];
+	}
+	constexpr precision_t& w() noexcept {
+		return value[3];
+	}
+	constexpr const precision_t& w() const noexcept {
+		return value[3];
+	}
 
 	// ---------------------------------------------
 	// operators
@@ -42,9 +58,13 @@ struct alignas(16) tquat {
 		return value[index];
 	}
 
-	constexpr const precision_t& operator[](size_t index) const noexcept { return value[index]; }
+	constexpr const precision_t& operator[](size_t index) const noexcept {
+		return value[index];
+	}
 
-	constexpr psl::tvec<precision_t, 4> as_vec() const noexcept { return value; }
+	constexpr psl::tvec<precision_t, 4> as_vec() const noexcept {
+		return value;
+	}
 	// ---------------------------------------------
 	// members
 	// ---------------------------------------------

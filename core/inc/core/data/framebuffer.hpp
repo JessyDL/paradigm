@@ -157,7 +157,9 @@ class framebuffer_t final {
 
 	/// \brief gets all attachments currently assigned to this framebuffer.
 	/// \returns all attachments currently assigned to this framebuffer.
-	const std::vector<attachment>& attachments() const { return m_Attachments.value; };
+	const std::vector<attachment>& attachments() const {
+		return m_Attachments.value;
+	};
 
 	/// \brief returns the framebuffer count (layers).
 	/// \returns the framebuffer count (layers).

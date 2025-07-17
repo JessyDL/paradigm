@@ -70,14 +70,18 @@ struct UID final {
 
 	/// \brief checks if the held UID is valid.
 	/// \returns true in case the held UID is valid.
-	operator bool() const { return *this != invalid_uid; }
+	operator bool() const {
+		return *this != invalid_uid;
+	}
 
 	/// \brief invalidates the current UID.
 	///
 	/// If for some reason you want to invalidate this object as being a valid UID, then calling this
 	/// method will set the internal UID to be equivalent to UID::invalid_uid.
 	/// This operation is permanent.
-	void invalidate() { *this = invalid_uid; }
+	void invalidate() {
+		*this = invalid_uid;
+	}
 
 	/// \brief a global instance that signifies the invalid_uid used by the current runtime.
 	/// \note on certain platforms this can be a "nulled" UID, but prefer checking against this

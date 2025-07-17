@@ -48,17 +48,25 @@ namespace event {
 			ptrFunction = unsafe_horrible_cast<AnyPtrThis>(func);
 		}
 
-		inline bool operator==(std::nullptr_t) const noexcept { return ptrThis == nullptr && ptrFunction == nullptr; }
+		inline bool operator==(std::nullptr_t) const noexcept {
+			return ptrThis == nullptr && ptrFunction == nullptr;
+		}
 		inline bool operator==(const event_signature_t& mRhs) const noexcept {
 			return ptrThis == mRhs.ptrThis && ptrFunction == mRhs.ptrFunction;
 		}
-		inline bool operator!=(std::nullptr_t) const noexcept { return !operator==(nullptr); }
-		inline bool operator!=(const event_signature_t& mRhs) const noexcept { return !operator==(mRhs); }
+		inline bool operator!=(std::nullptr_t) const noexcept {
+			return !operator==(nullptr);
+		}
+		inline bool operator!=(const event_signature_t& mRhs) const noexcept {
+			return !operator==(mRhs);
+		}
 		inline bool operator<(const event_signature_t& mRhs) const {
 			return ptrThis != mRhs.ptrThis ? ptrThis < mRhs.ptrThis
 										   : std::memcmp(&ptrFunction, &mRhs.ptrFunction, sizeof(ptrFunction)) < 0;
 		}
-		inline bool operator>(const event_signature_t& mRhs) const { return !operator<(mRhs); }
+		inline bool operator>(const event_signature_t& mRhs) const {
+			return !operator<(mRhs);
+		}
 
 		event_signature_t(const event_signature_t& t)			 = default;
 		event_signature_t(event_signature_t&& t)				 = default;
@@ -266,7 +274,9 @@ class event_listener_t<void> {
 template <typename... T>
 class event final : public event_listener_t<T...> {
   public:
-	event_listener_t<T...>& Listener() const { return (event_listener_t<T...>)(*this); }
+	event_listener_t<T...>& Listener() const {
+		return (event_listener_t<T...>)(*this);
+	}
 
 	void operator()(T... arguments) {
 		auto listenerCopy = event_listener_t<T...>::m_Listeners;
@@ -292,7 +302,9 @@ class event final : public event_listener_t<T...> {
 template <>
 class event<void> final : public event_listener_t<void> {
   public:
-	event_listener_t& Listener() { return (*this); }
+	event_listener_t& Listener() {
+		return (*this);
+	}
 
 	void operator()() {
 		auto listenerCopy = event_listener_t<void>::m_Listeners;
@@ -301,7 +313,9 @@ class event<void> final : public event_listener_t<void> {
 		}
 	}
 
-	void Execute() { this->operator()(); }
+	void Execute() {
+		this->operator()();
+	}
 };
 
 // template<typename ... T>

@@ -31,7 +31,9 @@ struct binding {
 		uint32_t size_of_element {0};
 	};
 
-	bool operator==(const binding& b) const noexcept { return description == b.description; }
+	bool operator==(const binding& b) const noexcept {
+		return description == b.description;
+	}
 	header description;
 	uint32_t slot;
 };
@@ -40,7 +42,9 @@ struct object final {
 	object(psl::UID uid) : geometry(uid), id_generator(0) {};
 	object(psl::UID uid, uint32_t capacity) : geometry(uid), id_generator(capacity) {};
 
-	bool operator==(const object& rhs) const noexcept { return rhs.geometry == geometry; }
+	bool operator==(const object& rhs) const noexcept {
+		return rhs.geometry == geometry;
+	}
 
 	const psl::UID geometry;	// Defines which geometry this object maps to
 	psl::generator<uint32_t> id_generator;
@@ -56,7 +60,9 @@ struct hash<core::gfx::details::instance::object> {
 	std::size_t operator()(const core::gfx::details::instance::object& s) const noexcept {
 		return std::hash<psl::UID> {}(s.geometry);
 	}
-	std::size_t operator()(const psl::UID& s) const noexcept { return std::hash<psl::UID> {}(s); }
+	std::size_t operator()(const psl::UID& s) const noexcept {
+		return std::hash<psl::UID> {}(s);
+	}
 };
 
 template <>
@@ -111,7 +117,9 @@ class data final {
 	bindings(core::resource::tag<core::gfx::material_t> material,
 			 core::resource::tag<core::gfx::geometry_t> geometry) const noexcept;
 
-	core::resource::handle<core::gfx::buffer_t> vertex_buffer() const noexcept { return m_VertexInstanceBuffer; }
+	core::resource::handle<core::gfx::buffer_t> vertex_buffer() const noexcept {
+		return m_VertexInstanceBuffer;
+	}
 	core::resource::handle<core::gfx::buffer_t> material_buffer() const noexcept;
 
 	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept;

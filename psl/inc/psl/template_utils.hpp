@@ -74,10 +74,12 @@ namespace details {
 	struct has_type_impl : std::false_type {};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(!std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public has_type_impl<T, Ts...> {};
+		requires(!std::is_same_v<T, Y>)
+	struct has_type_impl<T, Y, Ts...> : public has_type_impl<T, Ts...> {};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(std::is_same_v<T, Y>) struct has_type_impl<T, Y, Ts...> : public std::true_type {};
+		requires(std::is_same_v<T, Y>)
+	struct has_type_impl<T, Y, Ts...> : public std::true_type {};
 
 }	 // namespace details
 
@@ -95,20 +97,24 @@ namespace details {
 	struct index_of_impl {};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(!std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...> {
+		requires(!std::is_same_v<T, Y>)
+	struct index_of_impl<T, Y, Ts...> {
 		static constexpr std::size_t value = 1 + index_of_impl<T, Ts...>::value;
 	};
 
 	template <typename T, typename Y, typename... Ts>
-	requires(std::is_same_v<T, Y>) struct index_of_impl<T, Y, Ts...> { static constexpr std::size_t value = 0; };
+		requires(std::is_same_v<T, Y>)
+	struct index_of_impl<T, Y, Ts...> {
+		static constexpr std::size_t value = 0;
+	};
 }	 // namespace details
 
 template <typename T, typename... Ts>
-requires HasType<T, Ts...>
+	requires HasType<T, Ts...>
 struct index_of : public details::index_of_impl<T, Ts...> {};
 
 template <typename T, typename... Ts>
-requires HasType<T, Ts...>
+	requires HasType<T, Ts...>
 struct index_of<T, type_pack_t<Ts...>> : details::index_of_impl<T, Ts...> {};
 
 template <typename... Ts>
@@ -119,14 +125,19 @@ namespace details {
 	struct type_at_index_impl {};
 
 	template <size_t N, size_t Curr, typename T, typename... Ts>
-	requires(N == Curr) struct type_at_index_impl<N, Curr, T, Ts...> { using type = T; };
+		requires(N == Curr)
+	struct type_at_index_impl<N, Curr, T, Ts...> {
+		using type = T;
+	};
 
 	template <size_t N, size_t Curr, typename T, typename... Ts>
-	requires(N != Curr) struct type_at_index_impl<N, Curr, T, Ts...> : public type_at_index_impl<N, Curr + 1, Ts...> {};
+		requires(N != Curr)
+	struct type_at_index_impl<N, Curr, T, Ts...> : public type_at_index_impl<N, Curr + 1, Ts...> {};
 }	 // namespace details
 
 template <size_t N, typename... Ts>
-requires(N < sizeof...(Ts)) struct type_at_index : details::type_at_index_impl<N, 0, Ts...> {};
+	requires(N < sizeof...(Ts))
+struct type_at_index : details::type_at_index_impl<N, 0, Ts...> {};
 
 template <size_t N, typename... Ts>
 struct type_at_index<N, type_pack_t<Ts...>> : type_at_index<N, Ts...> {};
@@ -174,12 +185,16 @@ template <typename T, typename Y>
 struct concat_type_pack {};
 
 template <template <typename...> typename PackA, template <typename...> typename PackB, typename... Ts, typename... Ys>
-requires(IsTypePack<PackA<Ts...>>&& IsTypePack<PackB<Ys...>>) struct concat_type_pack<PackA<Ts...>, PackB<Ys...>> {
+	requires(IsTypePack<PackA<Ts...>> && IsTypePack<PackB<Ys...>>)
+struct concat_type_pack<PackA<Ts...>, PackB<Ys...>> {
 	using type = type_pack_t<Ts..., Ys...>;
 };
 
 template <typename T, template <typename...> typename PackB, typename... Ys>
-requires(IsTypePack<PackB<Ys...>>) struct concat_type_pack<T, PackB<Ys...>> { using type = type_pack_t<T, Ys...>; };
+	requires(IsTypePack<PackB<Ys...>>)
+struct concat_type_pack<T, PackB<Ys...>> {
+	using type = type_pack_t<T, Ys...>;
+};
 
 namespace {
 	template <typename Y, typename... Ts>
@@ -288,8 +303,8 @@ namespace operators {
 		template <typename X, typename Y, typename Op>
 		struct op_valid_impl {
 			template <typename U, typename L, typename R>
-			static auto test(int)
-			  -> decltype(std::declval<U>()(std::declval<L>(), std::declval<R>()), void(), std::true_type());
+			static auto
+			test(int) -> decltype(std::declval<U>()(std::declval<L>(), std::declval<R>()), void(), std::true_type());
 
 			template <typename U, typename L, typename R>
 			static auto test(...) -> std::false_type;
@@ -436,16 +451,18 @@ namespace operators {
 
 		struct left_shift {
 			template <typename L, typename R>
-			constexpr auto operator()(L&& l, R&& r) const noexcept(noexcept(std::forward<L>(l) << std::forward<R>(r)))
-			  -> decltype(std::forward<L>(l) << std::forward<R>(r)) {
+			constexpr auto operator()(L&& l, R&& r) const
+			  noexcept(noexcept(std::forward<L>(l) << std::forward<R>(r))) -> decltype(std::forward<L>(l)
+																					   << std::forward<R>(r)) {
 				return std::forward<L>(l) << std::forward<R>(r);
 			}
 		};
 
 		struct right_shift {
 			template <typename L, typename R>
-			constexpr auto operator()(L&& l, R&& r) const noexcept(noexcept(std::forward<L>(l) >> std::forward<R>(r)))
-			  -> decltype(std::forward<L>(l) >> std::forward<R>(r)) {
+			constexpr auto operator()(L&& l, R&& r) const
+			  noexcept(noexcept(std::forward<L>(l) >> std::forward<R>(r))) -> decltype(std::forward<L>(l) >>
+																					   std::forward<R>(r)) {
 				return std::forward<L>(l) >> std::forward<R>(r);
 			}
 		};
