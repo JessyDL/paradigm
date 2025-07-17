@@ -49,7 +49,7 @@ jobs:
             .\tests.exe --formatter compact --no-source
     - name: finalize    
       if: ${{ matrix.benchmarks == 'ON' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-${{ matrix.graphics }}-bin
         path: builds/windows/${{ matrix.arch }}/release/bin/benchmarks.exe
@@ -66,13 +66,13 @@ jobs:
     steps:
     - name: setup
       id: download
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: windows-${{ matrix.graphics }}-bin
+        pattern: windows-${{ matrix.graphics }}-bin
     - name: benchmark
       run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: windows-${{ matrix.graphics }}
         path: results.json

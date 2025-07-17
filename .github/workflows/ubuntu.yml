@@ -98,7 +98,7 @@ jobs:
       run: ./builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/tests --formatter compact --no-source
     - name: finalize
       if: ${{ matrix.benchmarks == 'ON' }}
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
         path: builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
@@ -120,9 +120,10 @@ jobs:
     steps:
     - name: setup
       id: download
-      uses: actions/download-artifact@v3
+      uses: actions/download-artifact@v4
       with:
-        name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
+        pattern: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
+        merge-multiple: false
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
       run: |
@@ -133,7 +134,7 @@ jobs:
     - name: benchmark
       run: ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: ubuntu-${{ matrix.COMPILER }}-${{ matrix.graphics }}
         path: results.json
