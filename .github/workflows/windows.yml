@@ -23,7 +23,7 @@ jobs:
           - arch: x86_64
             bitconfig: 64
     name: build
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
     - uses: actions/checkout@v1
       with:
@@ -65,7 +65,7 @@ jobs:
         arch: [x86, x86_64]
     name: benchmark
     needs: build
-    runs-on: windows-2022
+    runs-on: windows-2025
     steps:
     - name: setup
       id: download

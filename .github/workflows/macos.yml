@@ -18,7 +18,7 @@ jobs:
             tests: ON
             arch: x86_64
     name: build
-    runs-on: macos-12
+    runs-on: macos-15
     steps:
     - uses: actions/checkout@v1
       with:
@@ -28,7 +28,7 @@ jobs:
     - name: setup dependencies
       run: python3 tools/generate_project_info.py
     - name: initialize
-      run: cmake --preset=${{ matrix.target }}-release -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }} -DCMAKE_C_COMPILER=$(brew --prefix llvm@15)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@15)/bin/clang++
+      run: cmake --preset=${{ matrix.target }}-release -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }} -DCMAKE_C_COMPILER=$(brew --prefix llvm@18)/bin/clang -DCMAKE_CXX_COMPILER=$(brew --prefix llvm@18)/bin/clang++
     - name: compile
       run: cmake --build --preset=${{ matrix.target }}-release -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
