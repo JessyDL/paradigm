@@ -130,9 +130,9 @@ jobs:
         sudo apt-get update
         sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
     - name: prepare
-      run: chmod +x benchmarks
+      run: chmod +x ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin/benchmarks
     - name: benchmark
-      run: ./benchmarks --benchmark_out_format=json --benchmark_out=results.json
+      run: ./ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin/benchmarks --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
       uses: actions/upload-artifact@v4
       with:

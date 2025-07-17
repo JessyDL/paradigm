@@ -51,7 +51,7 @@ jobs:
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v4
       with:
-        name: windows-${{ matrix.graphics }}-${{ matrix.arch }}-bin
+        name: windows-benchmark-${{ matrix.graphics }}-${{ matrix.arch }}-bin
         path: builds/windows/${{ matrix.arch }}/release/bin/benchmarks.exe
         if-no-files-found: error
         retention-days: 1
@@ -71,11 +71,9 @@ jobs:
       id: download
       uses: actions/download-artifact@v4
       with:
-        pattern: windows-${{ matrix.graphics }}-${{ matrix.arch }}-bin
-    - name: list output
-      run: dir .
+        pattern: windows-benchmark-${{ matrix.graphics }}-${{ matrix.arch }}-bin
     - name: benchmark
-      run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
+      run: .\windows-benchmark-${{ matrix.graphics }}-${{ matrix.arch }}-bin\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
       uses: actions/upload-artifact@v4
       with:
