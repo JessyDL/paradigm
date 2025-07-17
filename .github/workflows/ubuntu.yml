@@ -81,6 +81,10 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod u+x llvm.sh
         sudo ./llvm.sh 18
+    - name: install xcb dep
+      run: |
+        sudo apt-get update
+        sudo apt-get install libxcb1-dev -y
     - name: install GL libraries
       if: ${{ matrix.graphics  == 'all' ||  matrix.graphics  == 'gles' }}
       run: |

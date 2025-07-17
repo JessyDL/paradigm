@@ -23,8 +23,8 @@ jobs:
         target: ['gnu-linux']
         language: [ 'cpp' ]
         graphics: [ 'all' ]
-        cc: ['clang-12']
-        cxx: ['clang++-12']
+        cc: ['clang-18']
+        cxx: ['clang++-18']
     env:
       CC: ${{ matrix.cc }}
       CXX: ${{ matrix.cxx }}
