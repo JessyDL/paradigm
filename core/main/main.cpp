@@ -74,6 +74,7 @@
 #if defined(PE_PLATFORM_ANDROID)
 	#include <android_native_app_glue.h>
 #endif
+
 using namespace core;
 using namespace core::resource;
 using namespace core::gfx;
@@ -370,7 +371,7 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	core::log->info("cache created");
 	// cache cache{psl::meta::library{psl::to_string8_t(libraryPath), {{environment}}}, resource_region.allocator()};
 
-	auto window_data = cache.instantiate<data::window>("cd61ad53-5ac8-41e9-a8a2-1d20b43376d9"_uid);
+	auto window_data = cache.instantiate<data::window>("4d42e7b3-dca2-0591-f042-326c2b986489"_uid);
 	window_data->name(APPLICATION_FULL_NAME + " { " + environment + " }");
 	auto surface_handle = cache.create<core::os::surface>(window_data);
 	if(!surface_handle) {
@@ -845,6 +846,7 @@ void android_main(android_app* application) {
 }
 
 #else
+
 int main(int argc, char* argv[]) {
 	#ifdef PE_PLATFORM_WINDOWS
 	_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);

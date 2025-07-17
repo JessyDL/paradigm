@@ -1,0 +1,15 @@
+SET(SRC_LIST
+	main
+)
+
+list(TRANSFORM SRC_LIST PREPEND "<Compile Include=\"${CMAKE_CURRENT_SOURCE_DIR}/src/")
+list(TRANSFORM SRC_LIST APPEND ".cs\" />")
+
+list(JOIN SRC_LIST "\n" SRC)
+
+SET(SRC_BINDGEN
+	main
+)
+
+list(TRANSFORM SRC_BINDGEN PREPEND bindgen/)
+list(TRANSFORM SRC_BINDGEN APPEND .cpp)

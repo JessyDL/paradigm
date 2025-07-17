@@ -286,7 +286,8 @@
                 "windows-64-all"
             ],
             "cacheVariables": {
-                "PE_MODE": "debug"
+                "PE_MODE": "debug",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -296,7 +297,8 @@
                 "windows-64-all"
             ],
             "cacheVariables": {
-                "PE_MODE": "release"
+                "PE_MODE": "release",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -315,7 +317,8 @@
                 "windows-64-vulkan"
             ],
             "cacheVariables": {
-                "PE_MODE": "debug"
+                "PE_MODE": "debug",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -325,7 +328,8 @@
                 "windows-64-vulkan"
             ],
             "cacheVariables": {
-                "PE_MODE": "release"
+                "PE_MODE": "release",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -335,7 +339,8 @@
                 "windows-32-all"
             ],
             "cacheVariables": {
-                "PE_MODE": "debug"
+                "PE_MODE": "debug",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -345,7 +350,8 @@
                 "windows-32-all"
             ],
             "cacheVariables": {
-                "PE_MODE": "release"
+                "PE_MODE": "release",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {
@@ -364,7 +370,8 @@
                 "windows-32-vulkan"
             ],
             "cacheVariables": {
-                "PE_MODE": "debug"
+                "PE_MODE": "debug",
+                "CMAKE_BUILD_TYPE": "Debug"
             }
         },
         {
@@ -374,7 +381,8 @@
                 "windows-32-vulkan"
             ],
             "cacheVariables": {
-                "PE_MODE": "release"
+                "PE_MODE": "release",
+                "CMAKE_BUILD_TYPE": "Release"
             }
         },
         {

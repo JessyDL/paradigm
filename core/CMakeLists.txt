@@ -1,3 +1,5 @@
+add_subdirectory(bindings)
+
 include(inc.txt)
 include(src.txt)
 include(FetchContent)
@@ -96,22 +98,45 @@ if(PE_GLES)
 	endif()
 endif()
 
-add_custom_target(core_patcher
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
-	COMMENT "Patching build files")
-
-add_custom_target(core_generator)
-add_custom_command(TARGET core_generator
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
-	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/gen/core/paradigm.hpp
-	COMMENT "Generating headers for Paradigm")
-
 add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${INC_WEBGPU} ${SRC_WEBGPU} ${NATVIS})
 add_library(paradigm::core ALIAS core)
 
-add_dependencies(core core_generator core_patcher)
+if(MSVC)
+	set(CORE_PATCHER_DEPS
+		${CMAKE_CURRENT_BINARY_DIR}/core.vcxproj # we additionally patch the solution file, so in msvc we will need to make sure it's present first
+	)
+else()
+	set(CORE_PATCHER_DEPS
+	)
+endif()
+
+
+add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/.core_patcher PRE_BUILD
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
+	COMMAND echo ${CMAKE_CURRENT_BINARY_DIR}/core.vcxproj
+	COMMAND ${CMAKE_COMMAND} -E touch ${CMAKE_CURRENT_BINARY_DIR}/.core_patcher
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+	DEPENDS ${CORE_PATCHER_DEPS}
+	COMMENT "Patching build files"
+)
+add_custom_target(core_patcher ALL
+	DEPENDS ${CMAKE_CURRENT_BINARY_DIR}/.core_patcher
+)
+add_dependencies(core core_patcher)
+
+add_custom_target(core_generator ALL
+	DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/gen/core/paradigm.hpp
+)
+add_custom_command(OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/gen/core/paradigm.hpp
+	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
+	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
+	COMMENT "Generating headers for Paradigm")
+
+add_dependencies(core core_generator)
+
+if(${PE_CSHARP_BINDINGS})
+	setup_csharp_bindings(core)
+endif()
 
 if(${PE_PCH})
 	target_precompile_headers(core PUBLIC ${INC_PCH})

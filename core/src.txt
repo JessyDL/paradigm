@@ -59,6 +59,13 @@ else()
 	)		
 endif()
 
+# bindings related includes
+if(${PE_CSHARP_BINDINGS})
+	list(APPEND SRC
+		bindings/csharp/runtime
+	)
+endif()
+
 list(TRANSFORM SRC PREPEND src/)
 list(TRANSFORM SRC APPEND .cpp)
 
