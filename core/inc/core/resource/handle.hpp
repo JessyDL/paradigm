@@ -165,9 +165,15 @@ class handle {
 	}
 
 	inline value_type const* operator->() const {
+		psl_assert(state() == status::loaded,
+				   "state was expected to be loaded, but was {}",
+				   static_cast<std::underlying_type_t<status>>(state()));
 		return m_Resource;
 	}
 	inline value_type* operator->() {
+		psl_assert(state() == status::loaded,
+				   "state was expected to be loaded, but was {}",
+				   static_cast<std::underlying_type_t<status>>(state()));
 		return m_Resource;
 	}
 
@@ -353,16 +359,28 @@ class weak_handle final {
 	}
 
 	inline value_type const* operator->() const {
+		psl_assert(state() == status::loaded,
+				   "state was expected to be loaded, but was {}",
+				   static_cast<std::underlying_type_t<status>>(state()));
 		return m_Resource;
 	}
 	inline value_type* operator->() {
+		psl_assert(state() == status::loaded,
+				   "state was expected to be loaded, but was {}",
+				   static_cast<std::underlying_type_t<status>>(state()));
 		return m_Resource;
 	}
 
 	value_type& value() noexcept {
+		psl_assert(state() == status::loaded,
+				   "state was expected to be loaded, but was {}",
+				   static_cast<std::underlying_type_t<status>>(state()));
 		return *m_Resource;
 	};
 	const value_type& value() const noexcept {
+		psl_assert(state() == status::loaded,
+				   "state was expected to be loaded, but was {}",
+				   static_cast<std::underlying_type_t<status>>(state()));
 		return *m_Resource;
 	};
 
