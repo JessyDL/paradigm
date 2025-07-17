@@ -915,7 +915,7 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		out += constants::RANGE_CLOSE;
 	} break;
 	default: {
-		std::runtime_error("unknown node type");
+		throw std::runtime_error("unknown node type");
 	};
 	}
 
