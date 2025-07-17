@@ -51,15 +51,18 @@ jobs:
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v4
       with:
-        name: windows-${{ matrix.graphics }}-bin
+        name: windows-${{ matrix.graphics }}-${{ matrix.arch }}-bin
         path: builds/windows/${{ matrix.arch }}/release/bin/benchmarks.exe
         if-no-files-found: error
         retention-days: 1
+  # we only run the benchmarks on the 'all' graphics configurations.
+  # we could consider running them on the permutations as well, but for the time being this will suffice.
   benchmark:
     strategy:
       fail-fast: false
       matrix:
         graphics: [ all ]
+        arch: [x86, x86_64]
     name: benchmark
     needs: build
     runs-on: windows-2022
@@ -68,7 +71,7 @@ jobs:
       id: download
       uses: actions/download-artifact@v4
       with:
-        pattern: windows-${{ matrix.graphics }}-bin
+        pattern: windows-${{ matrix.graphics }}-${{ matrix.arch }}-bin
     - name: benchmark
       run: .\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
