@@ -75,22 +75,48 @@ namespace details {
 		template <typename... Ts>
 		memory_stream_impl_t(Ts&&... data) : m_Data(std::forward<Ts>(data)...) {}
 
-		void* data() noexcept override { return (void*)m_Data.data(); }
-		const void* data() const noexcept override { return (void*)m_Data.data(); }
-		size_t size() const noexcept override { return m_Data.size(); }
-		size_t element_size() const noexcept { return sizeof(unit_t); }
+		void* data() noexcept override {
+			return (void*)m_Data.data();
+		}
+		const void* data() const noexcept override {
+			return (void*)m_Data.data();
+		}
+		size_t size() const noexcept override {
+			return m_Data.size();
+		}
+		size_t element_size() const noexcept {
+			return sizeof(unit_t);
+		}
 
-		auto cbegin() const noexcept { return m_Data.cbegin(); }
-		auto begin() const noexcept { return m_Data.begin(); }
-		auto begin() noexcept { return m_Data.begin(); }
-		auto cend() const noexcept { return m_Data.cend(); }
-		auto end() const noexcept { return m_Data.end(); }
-		auto end() noexcept { return m_Data.end(); }
+		auto cbegin() const noexcept {
+			return m_Data.cbegin();
+		}
+		auto begin() const noexcept {
+			return m_Data.begin();
+		}
+		auto begin() noexcept {
+			return m_Data.begin();
+		}
+		auto cend() const noexcept {
+			return m_Data.cend();
+		}
+		auto end() const noexcept {
+			return m_Data.end();
+		}
+		auto end() noexcept {
+			return m_Data.end();
+		}
 
-		auto& value() noexcept { return m_Data; }
-		const auto& value() const noexcept { return m_Data; }
+		auto& value() noexcept {
+			return m_Data;
+		}
+		const auto& value() const noexcept {
+			return m_Data;
+		}
 
-		size_t components() const noexcept { return sizeof(unit_t) / sizeof(float); }
+		size_t components() const noexcept {
+			return sizeof(unit_t) / sizeof(float);
+		}
 
 	  private:
 		psl::array<unit_t> m_Data;
@@ -109,7 +135,9 @@ class vertex_stream_t {
 	/// \brief the supported internal types of the stream.
 	using type = details::memory_stream_type_e;
 
-	vertex_stream_t(type type = type::single) { init(type); }
+	vertex_stream_t(type type = type::single) {
+		init(type);
+	}
 
 	template <typename T>
 	vertex_stream_t(psl::array<T>&& data) {

@@ -33,7 +33,9 @@ class material_t final {
 		friend class psl::serialization::accessor;
 
 	  public:
-		static const blendstate opaque(uint32_t binding) { return blendstate(binding); }
+		static const blendstate opaque(uint32_t binding) {
+			return blendstate(binding);
+		}
 		static const blendstate transparent(uint32_t binding) {
 			using namespace core::gfx;
 			return blendstate(true,

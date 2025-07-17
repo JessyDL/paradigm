@@ -67,8 +67,12 @@ struct complex_wrapper {
 	complex_wrapper(T val) : val(val) {}
 	complex_wrapper(auto val) : val(static_cast<T>(val)) {}
 
-	operator const T&() const noexcept { return val; }
-	operator T&() noexcept { return val; }
+	operator const T&() const noexcept {
+		return val;
+	}
+	operator T&() noexcept {
+		return val;
+	}
 
 	complex_wrapper& operator=(const T& rhs) {
 		if(this != &rhs) {
@@ -350,9 +354,7 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 	size_t count {0};
 	state.create(
 	  static_cast<entity_t::size_type>(50),
-	  [&count](position& i) {
-		  i = {++count, 0};
-	  },
+	  [&count](position& i) { i = {++count, 0}; },
 	  type {5.0f},
 	  psl::ecs::empty<size_t>());
 
@@ -773,7 +775,9 @@ auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 };
 
 struct foo {
-	static constexpr auto prototype() -> foo { return foo {10}; }
+	static constexpr auto prototype() -> foo {
+		return foo {10};
+	}
 	int value;
 };
 

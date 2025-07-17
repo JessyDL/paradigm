@@ -20,7 +20,9 @@ class texture_t {
 	texture_t& operator=(const texture_t& other)	 = delete;
 	texture_t& operator=(texture_t&& other) noexcept = delete;
 
-	GLuint id() const noexcept { return m_Texture; }
+	GLuint id() const noexcept {
+		return m_Texture;
+	}
 
 	const core::meta::texture_t& meta() const noexcept;
 

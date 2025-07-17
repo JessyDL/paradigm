@@ -7,20 +7,28 @@ struct drawlayer {
 	drawlayer(const psl::string& name, uint32_t priority = 1000u, uint32_t extent = 1000u)
 		: name(name), priority(priority), extent(extent) {};
 
-	uint32_t begin() const noexcept { return priority; }
-	uint32_t end() const noexcept { return priority + extent; }
+	uint32_t begin() const noexcept {
+		return priority;
+	}
+	uint32_t end() const noexcept {
+		return priority + extent;
+	}
 
 	psl::string name;
 	uint32_t priority {1000u};
 	uint32_t extent {1000u};
-	bool operator<(const drawlayer& other) const { return priority < other.priority; }
+	bool operator<(const drawlayer& other) const {
+		return priority < other.priority;
+	}
 };
 }	 // namespace core::gfx
 
 namespace std {
 template <>
 struct less<core::gfx::drawlayer> {
-	bool operator()(const core::gfx::drawlayer& lhs, const core::gfx::drawlayer& rhs) const { return lhs < rhs; }
+	bool operator()(const core::gfx::drawlayer& lhs, const core::gfx::drawlayer& rhs) const {
+		return lhs < rhs;
+	}
 };
 }	 // namespace std
 

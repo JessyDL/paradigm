@@ -42,9 +42,13 @@ struct converter<psl::ecs::entity_t> {
 		return value_t(converter<psl::ecs::entity_t::size_type> {}.from_string(str));
 	}
 
-	static void from_string(value_t& out, view_t str) { out = from_string(str); }
+	static void from_string(value_t& out, view_t str) {
+		out = from_string(str);
+	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 }	 // namespace psl::utility
 
@@ -168,15 +172,21 @@ class state_t final {
 
 
 	struct transform_result {
-		bool operator==(const transform_result& other) const noexcept { return group == other.group; }
+		bool operator==(const transform_result& other) const noexcept {
+			return group == other.group;
+		}
 		psl::array<entity_t> entities;
 		psl::array<entity_t::size_type> indices;	// used in case there is an order_by
 		std::shared_ptr<details::transform_group> group;
 	};
 
 	struct filter_result {
-		bool operator==(const filter_result& other) const noexcept { return group == other.group; }
-		bool operator==(const details::filter_group& other) const noexcept { return *group == other; }
+		bool operator==(const filter_result& other) const noexcept {
+			return group == other.group;
+		}
+		bool operator==(const details::filter_group& other) const noexcept {
+			return *group == other;
+		}
 		psl::array<entity_t> entities;
 		std::shared_ptr<details::filter_group> group;
 
@@ -522,7 +532,9 @@ class state_t final {
 	}
 
 	/// \brief returns the amount of active systems
-	size_t systems() const noexcept { return m_SystemInformations.size() - m_ToRevoke.size(); }
+	size_t systems() const noexcept {
+		return m_SystemInformations.size() - m_ToRevoke.size();
+	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
 	auto declare(Fn&& fn, bool seedWithExisting = false, std::optional<system_group_t> systemGroup = std::nullopt) {
@@ -585,7 +597,9 @@ class state_t final {
 		}
 	}
 
-	size_t capacity() const noexcept { return m_Entities; }
+	size_t capacity() const noexcept {
+		return m_Entities;
+	}
 
 	template <typename... Ts>
 	size_t size() const noexcept {
@@ -803,10 +817,8 @@ class state_t final {
 
 	// invocable based construction
 	template <typename Fn>
-	requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value) void add_component_impl(
-	  details::component_container_t* cInfo,
-	  psl::array_view<entity_t> entities,
-	  Fn&& invocable) {
+		requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
+	void add_component_impl(details::component_container_t* cInfo, psl::array_view<entity_t> entities, Fn&& invocable) {
 		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 		const auto component_size = cInfo->component_size();
 		psl_assert(component_size != 0, "component size was 0");

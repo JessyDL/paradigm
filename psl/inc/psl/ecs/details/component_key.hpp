@@ -108,8 +108,12 @@ class component_key_t {
 		return *this;
 	}
 
-	inline constexpr auto name() const noexcept { return m_Name; }
-	inline constexpr operator std::string_view() const noexcept { return m_Name; }
+	inline constexpr auto name() const noexcept {
+		return m_Name;
+	}
+	inline constexpr operator std::string_view() const noexcept {
+		return m_Name;
+	}
 	inline constexpr auto operator==(const component_key_t& other) const noexcept -> bool {
 		return m_Value == other.m_Value && m_Name == other.m_Name;
 	}
@@ -129,7 +133,9 @@ class component_key_t {
 		return m_Value >= other.m_Value;
 	}
 
-	inline constexpr operator bool() const noexcept { return m_Value != 0; }
+	inline constexpr operator bool() const noexcept {
+		return m_Value != 0;
+	}
 
 	/// \brief Generates a `component_key_t` based on the given type in a cross platform safe manner.
 	/// \note Strips const, volatile, reference, and pointer designations of the template type.
@@ -139,7 +145,9 @@ class component_key_t {
 		return component_key_t(component_traits<std::remove_pointer_t<std::remove_cvref_t<T>>> {});
 	}
 
-	component_type type() const noexcept { return m_Type; }
+	component_type type() const noexcept {
+		return m_Type;
+	}
 
 	friend constexpr auto format_as(component_key_t const& key);
 

@@ -68,7 +68,9 @@ class region {
 		return allocate(sizeof(T));
 	}
 
-	bool owns(const memory::segment& segment) const noexcept { return m_Allocator->owns(segment); }
+	bool owns(const memory::segment& segment) const noexcept {
+		return m_Allocator->owns(segment);
+	}
 
 
 	// specialized version of allocate that will create the given type instead

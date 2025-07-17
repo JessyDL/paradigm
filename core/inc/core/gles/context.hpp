@@ -37,7 +37,9 @@ class context {
 	void enable(const core::os::surface& surface);
 	bool swapbuffers(core::resource::handle<core::os::surface> surface);
 
-	const core::gfx::limits& limits() const noexcept { return m_Limits; }
+	const core::gfx::limits& limits() const noexcept {
+		return m_Limits;
+	}
 
   private:
 	void quey_capabilities() noexcept;

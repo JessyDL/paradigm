@@ -177,8 +177,12 @@ namespace details {
 			return std::get<T>(deref());
 		}
 
-		operator value_type&() noexcept { return *reinterpret_cast<value_type*>(&data); }
-		operator const value_type&() const noexcept { return *reinterpret_cast<const value_type*>(&data); }
+		operator value_type&() noexcept {
+			return *reinterpret_cast<value_type*>(&data);
+		}
+		operator const value_type&() const noexcept {
+			return *reinterpret_cast<const value_type*>(&data);
+		}
 
 	  private:
 		internal_type data;
@@ -203,7 +207,9 @@ namespace details {
 			(void(std::get<indices>(data.data) += count), ...);
 		}
 
-		void advance_tuple(std::uintptr_t count) { advance_tuple(count, std::index_sequence_for<Ts...> {}); }
+		void advance_tuple(std::uintptr_t count) {
+			advance_tuple(count, std::index_sequence_for<Ts...> {});
+		}
 
 	  public:
 		~iterator() = default;
@@ -296,8 +302,12 @@ namespace details {
 			return std::get<0>(data.data) >= std::get<0>(other.data.data);
 		}
 
-		value_type& operator*() noexcept { return data; }
-		const value_type& operator*() const noexcept { return data; }
+		value_type& operator*() noexcept {
+			return data;
+		}
+		const value_type& operator*() const noexcept {
+			return data;
+		}
 
 		template <std::size_t N>
 		auto& get() noexcept {
@@ -339,8 +349,12 @@ namespace details {
 		}
 
 
-		operator value_type&() noexcept { return *reinterpret_cast<value_type*>(&data.data); }
-		operator const value_type&() const noexcept { return *reinterpret_cast<const value_type*>(&data.data); }
+		operator value_type&() noexcept {
+			return *reinterpret_cast<value_type*>(&data.data);
+		}
+		operator const value_type&() const noexcept {
+			return *reinterpret_cast<const value_type*>(&data.data);
+		}
 
 	  private:
 		internal_type data;
@@ -402,7 +416,8 @@ class pack_view {
 
   public:
 	pack_view() = default;
-	pack_view(psl::array_view<Ts>... views) requires(sizeof...(Ts) > 0)
+	pack_view(psl::array_view<Ts>... views)
+		requires(sizeof...(Ts) > 0)
 		: m_Pack(std::make_tuple(std::forward<psl::array_view<Ts>>(views)...)) {
 #ifdef PE_DEBUG
 		// todo this needs further verification, seems tag types are present here, should they be?
@@ -461,10 +476,14 @@ class pack_view {
 	unpack_iterator unpack_end() const noexcept {
 		return {unpack_iterator_end(m_Pack)};
 	}
-	constexpr size_t size() const noexcept requires(sizeof...(Ts) > 0) {
+	constexpr size_t size() const noexcept
+		requires(sizeof...(Ts) > 0)
+	{
 		return std::get<0>(m_Pack).size();
 	}
-	constexpr size_t size() const noexcept requires(sizeof...(Ts) == 0) {
+	constexpr size_t size() const noexcept
+		requires(sizeof...(Ts) == 0)
+	{
 		return 0;
 	}
 

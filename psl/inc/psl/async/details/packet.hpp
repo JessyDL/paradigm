@@ -13,7 +13,9 @@ struct packet {
 		m_Done.store(false, std::memory_order_relaxed);
 	}
 
-	packet(token token) noexcept : m_Token(token), m_Task(nullptr) { m_Done.store(false, std::memory_order_relaxed); }
+	packet(token token) noexcept : m_Token(token), m_Task(nullptr) {
+		m_Done.store(false, std::memory_order_relaxed);
+	}
 
 	~packet() = default;
 
@@ -35,7 +37,9 @@ struct packet {
 		return *this;
 	};
 
-	operator size_t() const noexcept { return m_Token.operator size_t(); }
+	operator size_t() const noexcept {
+		return m_Token.operator size_t();
+	}
 
 	/// \warning Only invoke in owning thread
 	void operator()() {
@@ -45,17 +49,29 @@ struct packet {
 		m_Done.store(true, std::memory_order_relaxed);
 	}
 
-	void reset() { m_Done.store(false, std::memory_order_relaxed); }
+	void reset() {
+		m_Done.store(false, std::memory_order_relaxed);
+	}
 
 	/// \brief Multithread safe way of accessing the current state of the packet
-	bool is_ready() const noexcept { return m_Done.load(std::memory_order_relaxed); }
+	bool is_ready() const noexcept {
+		return m_Done.load(std::memory_order_relaxed);
+	}
 
-	bool has_task() const noexcept { return m_Task; };
+	bool has_task() const noexcept {
+		return m_Task;
+	};
 
-	const details::description& description() const noexcept { return m_Description; }
-	details::description& description() noexcept { return m_Description; }
+	const details::description& description() const noexcept {
+		return m_Description;
+	}
+	details::description& description() noexcept {
+		return m_Description;
+	}
 
-	void substitute(psl::unique_ptr<details::task_base>&& task) { m_Task = std::move(task); }
+	void substitute(psl::unique_ptr<details::task_base>&& task) {
+		m_Task = std::move(task);
+	}
 
   private:
 	details::description m_Description {};

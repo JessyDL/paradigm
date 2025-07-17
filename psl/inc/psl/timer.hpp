@@ -5,7 +5,9 @@ namespace psl {
 class timer {
   public:
 	timer() : m_Point(std::chrono::high_resolution_clock::now()) {}
-	void reset() { m_Point = std::chrono::high_resolution_clock::now(); }
+	void reset() {
+		m_Point = std::chrono::high_resolution_clock::now();
+	}
 
 	template <typename type = std::chrono::nanoseconds>
 	type elapsed() const {

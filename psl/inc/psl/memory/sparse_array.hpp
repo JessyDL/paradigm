@@ -64,14 +64,24 @@ class sparse_array {
 			return orig;
 		}
 
-		bool operator==(const iterator& other) const noexcept { return value == other.value; }
-		bool operator!=(const iterator& other) const noexcept { return value != other.value; }
+		bool operator==(const iterator& other) const noexcept {
+			return value == other.value;
+		}
+		bool operator!=(const iterator& other) const noexcept {
+			return value != other.value;
+		}
 
-		pointer operator->() const noexcept { return value; }
+		pointer operator->() const noexcept {
+			return value;
+		}
 
-		inline reference operator*() const noexcept { return *value; }
+		inline reference operator*() const noexcept {
+			return *value;
+		}
 
-		index_type& index_of() const noexcept { return *dense_index; }
+		index_type& index_of() const noexcept {
+			return *dense_index;
+		}
 
 	  private:
 		pointer value;
@@ -86,7 +96,9 @@ class sparse_array {
 	using const_reference	= const value_type&;
 	using iterator_category = std::random_access_iterator_tag;
 
-	sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) { reserve(1024); };
+	sparse_array() noexcept : m_Reverse(), m_DenseData(m_Reverse.capacity() * sizeof(T)) {
+		reserve(1024);
+	};
 	~sparse_array() = default;
 	sparse_array(const sparse_array& other) noexcept
 		: m_DenseData(other.m_DenseData), m_Reverse(other.m_Reverse), m_Sparse(other.m_Sparse) {};
@@ -109,10 +121,16 @@ class sparse_array {
 		}
 		return *this;
 	}
-	size_type size() const noexcept { return m_Reverse.size(); }
-	size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
+	size_type size() const noexcept {
+		return m_Reverse.size();
+	}
+	size_type capacity() const noexcept {
+		return std::size(m_Sparse) * chunks_size;
+	}
 
-	iterator begin() noexcept { return iterator {(T*)m_DenseData.data(), m_Reverse.data()}; };
+	iterator begin() noexcept {
+		return iterator {(T*)m_DenseData.data(), m_Reverse.data()};
+	};
 	iterator end() noexcept {
 		return iterator {(T*)m_DenseData.data() + m_Reverse.size(), m_Reverse.data() + m_Reverse.size()};
 	};
@@ -259,10 +277,16 @@ class sparse_array {
 		return false;
 	}
 
-	constexpr bool empty() const noexcept { return std::empty(m_Reverse); };
+	constexpr bool empty() const noexcept {
+		return std::empty(m_Reverse);
+	};
 
-	void* data() noexcept { return m_DenseData.data(); };
-	const void* data() const noexcept { return m_DenseData.data(); };
+	void* data() noexcept {
+		return m_DenseData.data();
+	};
+	const void* data() const noexcept {
+		return m_DenseData.data();
+	};
 
 	void erase(index_type index) noexcept {
 		index_type sparse_index, chunk_index;
@@ -389,7 +413,9 @@ class sparse_array {
 		grow();
 	}
 
-	psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
+	psl::array_view<index_type> indices() const noexcept {
+		return m_Reverse;
+	}
 	psl::array_view<value_type> dense() const noexcept {
 		return psl::array_view<value_type> {(T*)m_DenseData.data(), (T*)m_DenseData.data() + m_Reverse.size()};
 	}

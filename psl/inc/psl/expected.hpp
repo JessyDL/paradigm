@@ -35,7 +35,9 @@ class result {
 		return m_Value;
 	}
 
-	const std::error_code& error() const { return m_Error; }
+	const std::error_code& error() const {
+		return m_Error;
+	}
 
   private:
 	struct dummy {};

@@ -17,9 +17,13 @@ class task final : public task_base {
   public:
 	task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)) {};
 	virtual ~task() = default;
-	Future future() noexcept { return m_Promise.get_future(); }
+	Future future() noexcept {
+		return m_Promise.get_future();
+	}
 
-	void operator()() override { m_Promise.set_value(std::move(std::invoke(m_Invocable))); }
+	void operator()() override {
+		m_Promise.set_value(std::move(std::invoke(m_Invocable)));
+	}
 
   private:
 	Actual_Storage m_Invocable;
@@ -34,7 +38,9 @@ class task<R, Storage, void> final : public task_base {
 	task(Storage&& invocable) : m_Invocable(std::forward<decltype(invocable)>(invocable)) {};
 	virtual ~task() = default;
 
-	void operator()() override { std::invoke(m_Invocable); }
+	void operator()() override {
+		std::invoke(m_Invocable);
+	}
 
   private:
 	Actual_Storage m_Invocable;

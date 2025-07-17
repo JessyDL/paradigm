@@ -79,7 +79,7 @@ struct VKAPIVersion {
   public:
 	explicit VKAPIVersion(uint32_t version)
 		: major((uint32_t)(version) >> 22), minor(((uint32_t)(version) >> 12) & 0x3ff),
-		  patch((uint32_t)(version)&0xfff) {};
+		  patch((uint32_t)(version) & 0xfff) {};
 
 	bool operator==(const VKAPIVersion& other) const {
 		return (major == other.major && minor == other.minor && patch == other.patch);

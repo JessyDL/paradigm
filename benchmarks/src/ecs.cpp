@@ -118,7 +118,9 @@ class filtering_fixture : public ::benchmark::Fixture {
 		  [](int& i) { i = std::rand() % 1000; });
 	}
 
-	void filter() { state.filter<Ts...>(); }
+	void filter() {
+		state.filter<Ts...>();
+	}
 
 	void order_by(benchmark::State& gState) {
 		gState.PauseTiming();

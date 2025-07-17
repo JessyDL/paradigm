@@ -17,24 +17,46 @@ class generator {
 	struct range {
 		range() = default;
 		range(T first, T last) : first(first), last(last) {};
-		T& begin() noexcept { return first; }
-		T& end() noexcept { return last; }
-		const T& begin() const noexcept { return first; }
-		const T& end() const noexcept { return last; }
+		T& begin() noexcept {
+			return first;
+		}
+		T& end() noexcept {
+			return last;
+		}
+		const T& begin() const noexcept {
+			return first;
+		}
+		const T& end() const noexcept {
+			return last;
+		}
 
-		bool operator<=(const range& other) const noexcept { return first <= other.first; }
-		bool operator>=(const range& other) const noexcept { return first >= other.first; }
-		bool operator<(const range& other) const noexcept { return first < other.first; }
-		bool operator>(const range& other) const noexcept { return first > other.first; }
-		bool operator==(const range& other) const noexcept { return first == other.first; }
-		bool operator!=(const range& other) const noexcept { return first != other.first; }
+		bool operator<=(const range& other) const noexcept {
+			return first <= other.first;
+		}
+		bool operator>=(const range& other) const noexcept {
+			return first >= other.first;
+		}
+		bool operator<(const range& other) const noexcept {
+			return first < other.first;
+		}
+		bool operator>(const range& other) const noexcept {
+			return first > other.first;
+		}
+		bool operator==(const range& other) const noexcept {
+			return first == other.first;
+		}
+		bool operator!=(const range& other) const noexcept {
+			return first != other.first;
+		}
 		bool overlaps(const range& other) const noexcept {
 			return (other.first >= first && other.first < last) || (other.last > first && other.last <= last);
 		}
 		T first {0};
 		T last {0};
 
-		T size() const noexcept { return last - first; };
+		T size() const noexcept {
+			return last - first;
+		};
 	};
 
 	std::vector<range> m_FreeRanges {};	   // Sorted array of ranges of free IDs
@@ -58,8 +80,12 @@ class generator {
 		return *this;
 	}
 
-	T capacity() const noexcept { return m_Max; }
-	T size() const noexcept { return capacity() - available(); }
+	T capacity() const noexcept {
+		return m_Max;
+	}
+	T size() const noexcept {
+		return capacity() - available();
+	}
 	T available() const noexcept {
 		T acc {0};
 		for(const auto& range : m_FreeRanges) {
@@ -266,7 +292,9 @@ class id_generator {
 		return *this;
 	}
 
-	T GetCapacity() const { return m_MaxID; }
+	T GetCapacity() const {
+		return m_MaxID;
+	}
 	bool CreateID(T& id) {
 		if(m_Ranges[0].m_First <= m_Ranges[0].m_Last) {
 			id = m_Ranges[0].m_First;
@@ -323,7 +351,9 @@ class id_generator {
 		return false;
 	}
 
-	bool DestroyID(const T id) { return DestroyRangeID(id, 1); }
+	bool DestroyID(const T id) {
+		return DestroyRangeID(id, 1);
+	}
 
 	bool DestroyRangeID(const T id, const T count) {
 		const T end_id = id + count;
@@ -451,7 +481,9 @@ class id_generator {
 		return max_count;
 	}
 
-	std::pair<Range*, T> AllRanges() const { return std::make_pair(m_Ranges, m_Count); }
+	std::pair<Range*, T> AllRanges() const {
+		return std::make_pair(m_Ranges, m_Count);
+	}
 
 	void PrintRanges() const {
 		T i = 0;

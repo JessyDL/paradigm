@@ -140,7 +140,9 @@ class context {
 	/// \returns the available memory (type) properties for the physical device
 	const vk::PhysicalDeviceMemoryProperties& memory_properties() const noexcept;
 
-	const core::gfx::limits& limits() const noexcept { return m_Limits; };
+	const core::gfx::limits& limits() const noexcept {
+		return m_Limits;
+	};
 
 	/// \returns the command_pool that commands can be enqueued on.
 	const vk::CommandPool& command_pool() const noexcept;
@@ -182,7 +184,9 @@ class context {
 	vk::DeviceSize remaining(vk::MemoryHeapFlagBits type);
 
 	/// \returns the device index of the current physical graphics device.
-	uint32_t device_index() const noexcept { return m_DeviceIndex; };
+	uint32_t device_index() const noexcept {
+		return m_DeviceIndex;
+	};
 
 	/// \returns true in case the given extension is supported.
 	/// \param[in] out_version optionally returns the revision version number.

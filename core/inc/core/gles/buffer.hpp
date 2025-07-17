@@ -27,7 +27,9 @@ class buffer_t {
 	bool set(const void* data, std::vector<core::gfx::memory_copy> commands);
 	bool set(std::vector<core::gfx::memory_copy> commands);
 
-	inline GLuint id() const noexcept { return m_Buffer; };
+	inline GLuint id() const noexcept {
+		return m_Buffer;
+	};
 
 	// when optimize is set to true it can allocate multiple ranges in one segment if possible.
 	// it will return ranges with local begin/end values relative to the segment.
@@ -62,7 +64,9 @@ class buffer_t {
 	/// you copy over the resources to a new, smaller buffer. Check copy_from() for that.
 	bool deallocate(memory::segment& segment);
 
-	const core::data::buffer_t& data() const noexcept { return m_BufferDataHandle.value(); }
+	const core::data::buffer_t& data() const noexcept {
+		return m_BufferDataHandle.value();
+	}
 
 	bool copy_from(const buffer_t& other, const psl::array<core::gfx::memory_copy>& ranges);
 

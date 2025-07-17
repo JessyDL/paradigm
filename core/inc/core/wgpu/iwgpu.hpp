@@ -28,9 +28,12 @@ struct RequestAdapterCallbackResult {
 }
 
 template <typename Fn>
-inline auto
-RequestAdapter(wgpu::Instance instance, wgpu::RequestAdapterOptions options, Fn&& invocable, void* userdata = nullptr)
-  -> void requires std::is_invocable_v<Fn, wgpu::RequestAdapterStatus, wgpu::Adapter, char const*, void*> {
+inline auto RequestAdapter(wgpu::Instance instance,
+						   wgpu::RequestAdapterOptions options,
+						   Fn&& invocable,
+						   void* userdata = nullptr) -> void
+	requires std::is_invocable_v<Fn, wgpu::RequestAdapterStatus, wgpu::Adapter, char const*, void*>
+{
 	auto future = RequestAdapter(instance, options);
 	auto result = future.get();
 	invocable(result.status, std::move(result.adapter), result.message, userdata);
@@ -43,8 +46,8 @@ struct DeviceCallbackResult {
 	void* userdata					 = nullptr;
 };
 
-[[nodiscard]] inline auto RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor)
-  -> std::future<DeviceCallbackResult> {
+[[nodiscard]] inline auto RequestDevice(wgpu::Adapter adapter,
+										wgpu::DeviceDescriptor descriptor) -> std::future<DeviceCallbackResult> {
 	auto promise = std::promise<DeviceCallbackResult>();
 	adapter.RequestDevice(
 	  &descriptor,
@@ -59,9 +62,12 @@ struct DeviceCallbackResult {
 }
 
 template <typename Fn>
-inline auto
-RequestDevice(wgpu::Adapter adapter, wgpu::DeviceDescriptor descriptor, Fn&& invocable, void* userdata = nullptr)
-  -> void requires std::is_invocable_v<Fn, wgpu::RequestDeviceStatus, wgpu::Device, char const*, void*> {
+inline auto RequestDevice(wgpu::Adapter adapter,
+						  wgpu::DeviceDescriptor descriptor,
+						  Fn&& invocable,
+						  void* userdata = nullptr) -> void
+	requires std::is_invocable_v<Fn, wgpu::RequestDeviceStatus, wgpu::Device, char const*, void*>
+{
 	auto future = RequestDevice(adapter, descriptor);
 	auto result = future.get();
 	invocable(result.status, std::move(result.device), result.message, userdata);

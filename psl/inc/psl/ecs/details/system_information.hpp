@@ -227,10 +227,18 @@ class dependency_pack {
 		return to_pack_impl(std::make_index_sequence<std::tuple_size<range_t>::value> {}, psl::type_pack_t<pack_t> {});
 	}
 
-	constexpr inline bool is_partial_pack() const noexcept { return m_IsPartial; };
-	constexpr inline bool is_full_pack() const noexcept { return !m_IsPartial; };
-	constexpr inline bool is_direct_access() const noexcept { return !m_IsIndirect; };
-	constexpr inline bool is_indirect_access() const noexcept { return m_IsIndirect; };
+	constexpr inline bool is_partial_pack() const noexcept {
+		return m_IsPartial;
+	};
+	constexpr inline bool is_full_pack() const noexcept {
+		return !m_IsPartial;
+	};
+	constexpr inline bool is_direct_access() const noexcept {
+		return !m_IsIndirect;
+	};
+	constexpr inline bool is_indirect_access() const noexcept {
+		return m_IsIndirect;
+	};
 
 	inline size_t size_per_element() const noexcept {
 		size_t res {0};
@@ -260,9 +268,13 @@ class dependency_pack {
 		return m_Sizes.at(int_id);
 	}
 
-	inline size_t size_of(component_key_t key) const noexcept { return m_Sizes.at(key); }
+	inline size_t size_of(component_key_t key) const noexcept {
+		return m_Sizes.at(key);
+	}
 
-	inline size_t entities() const noexcept { return m_Entities.size(); }
+	inline size_t entities() const noexcept {
+		return m_Entities.size();
+	}
 	dependency_pack slice(size_t begin, size_t end) const noexcept {
 		auto cpy = make_partial_copy();
 
@@ -382,8 +394,12 @@ class system_token {
 	constexpr system_token(size_t id) noexcept : id(id) {};
 
   public:
-	constexpr bool operator==(const system_token& other) const noexcept { return other.id == id; }
-	constexpr bool operator!=(const system_token& other) const noexcept { return other.id != id; }
+	constexpr bool operator==(const system_token& other) const noexcept {
+		return other.id == id;
+	}
+	constexpr bool operator!=(const system_token& other) const noexcept {
+		return other.id != id;
+	}
 
   private:
 	size_t id {};
@@ -410,21 +426,35 @@ class system_information final {
 	system_information& operator=(const system_information&) = default;
 	system_information& operator=(system_information&&)		 = default;
 
-	std::vector<details::dependency_pack> create_pack() { return std::invoke(m_PackGenerator, false); }
-	bool seed_with_previous() const noexcept { return m_SeedWithExisting; };
+	std::vector<details::dependency_pack> create_pack() {
+		return std::invoke(m_PackGenerator, false);
+	}
+	bool seed_with_previous() const noexcept {
+		return m_SeedWithExisting;
+	};
 	void operator()(psl::ecs::info_t& info, std::vector<details::dependency_pack> packs) {
 		m_SeedWithExisting = false;
 		std::invoke(m_System, info, packs);
 	}
 
-	system_invocable_type& system() { return m_System; };
+	system_invocable_type& system() {
+		return m_System;
+	};
 
-	psl::ecs::threading threading() const noexcept { return m_Threading; };
+	psl::ecs::threading threading() const noexcept {
+		return m_Threading;
+	};
 
-	constexpr system_token id() const noexcept { return m_ID; }
+	constexpr system_token id() const noexcept {
+		return m_ID;
+	}
 
-	auto filters() const noexcept { return m_Filters; }
-	auto transforms() const noexcept { return m_Transforms; }
+	auto filters() const noexcept {
+		return m_Filters;
+	}
+	auto transforms() const noexcept {
+		return m_Transforms;
+	}
 
   private:
 	psl::ecs::threading m_Threading = threading::sequential;
@@ -441,6 +471,8 @@ class system_information final {
 namespace std {
 template <>
 struct hash<psl::ecs::details::system_token> {
-	size_t operator()(const psl::ecs::details::system_token& token) const noexcept { return token.id; }
+	size_t operator()(const psl::ecs::details::system_token& token) const noexcept {
+		return token.id;
+	}
 };
 }	 // namespace std

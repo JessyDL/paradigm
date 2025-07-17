@@ -111,20 +111,44 @@ class enum_flag {
 		result ^= rhs;
 		return result;
 	}
-	bool operator==(enum_flag const& rhs) const noexcept { return m_Enum == rhs.m_Enum; }
-	bool operator!=(enum_flag const& rhs) const noexcept { return m_Enum != rhs.m_Enum; }
+	bool operator==(enum_flag const& rhs) const noexcept {
+		return m_Enum == rhs.m_Enum;
+	}
+	bool operator!=(enum_flag const& rhs) const noexcept {
+		return m_Enum != rhs.m_Enum;
+	}
 
-	enum_flag& operator|=(T const& rhs) noexcept { return *this |= static_cast<value_type>(rhs); }
-	enum_flag& operator&=(T const& rhs) noexcept { return *this &= static_cast<value_type>(rhs); }
-	enum_flag& operator^=(T const& rhs) noexcept { return *this ^= static_cast<value_type>(rhs); }
-	enum_flag operator|(T const& rhs) const noexcept { return *this | static_cast<value_type>(rhs); }
-	enum_flag operator&(T const& rhs) const noexcept { return *this & static_cast<value_type>(rhs); }
-	enum_flag operator^(T const& rhs) const noexcept { return *this ^ static_cast<value_type>(rhs); }
-	bool operator==(T const& rhs) const noexcept { return m_Enum == static_cast<value_type>(rhs); }
-	bool operator!=(T const& rhs) const noexcept { return m_Enum != static_cast<value_type>(rhs); }
+	enum_flag& operator|=(T const& rhs) noexcept {
+		return *this |= static_cast<value_type>(rhs);
+	}
+	enum_flag& operator&=(T const& rhs) noexcept {
+		return *this &= static_cast<value_type>(rhs);
+	}
+	enum_flag& operator^=(T const& rhs) noexcept {
+		return *this ^= static_cast<value_type>(rhs);
+	}
+	enum_flag operator|(T const& rhs) const noexcept {
+		return *this | static_cast<value_type>(rhs);
+	}
+	enum_flag operator&(T const& rhs) const noexcept {
+		return *this & static_cast<value_type>(rhs);
+	}
+	enum_flag operator^(T const& rhs) const noexcept {
+		return *this ^ static_cast<value_type>(rhs);
+	}
+	bool operator==(T const& rhs) const noexcept {
+		return m_Enum == static_cast<value_type>(rhs);
+	}
+	bool operator!=(T const& rhs) const noexcept {
+		return m_Enum != static_cast<value_type>(rhs);
+	}
 
-	operator T() const noexcept { return T {m_Enum}; }
-	explicit operator value_type() const noexcept { return m_Enum; }
+	operator T() const noexcept {
+		return T {m_Enum};
+	}
+	explicit operator value_type() const noexcept {
+		return m_Enum;
+	}
 
   private:
 	value_type m_Enum;

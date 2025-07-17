@@ -80,31 +80,63 @@ class array_view {
 			return copy;
 		}
 
-		difference_type operator-(iterator offset) const { return difference_type {it - offset.it}; }
+		difference_type operator-(iterator offset) const {
+			return difference_type {it - offset.it};
+		}
 
-		difference_type operator+(iterator offset) const { return difference_type {it + offset.it}; }
+		difference_type operator+(iterator offset) const {
+			return difference_type {it + offset.it};
+		}
 
-		bool operator!=(const iterator& other) const noexcept { return it != other.it; }
+		bool operator!=(const iterator& other) const noexcept {
+			return it != other.it;
+		}
 
-		bool operator==(const iterator& other) const noexcept { return it == other.it; }
+		bool operator==(const iterator& other) const noexcept {
+			return it == other.it;
+		}
 
-		bool operator<(const iterator& other) const noexcept { return it < other.it; }
-		bool operator<=(const iterator& other) const noexcept { return it <= other.it; }
-		bool operator>(const iterator& other) const noexcept { return it > other.it; }
-		bool operator>=(const iterator& other) const noexcept { return it >= other.it; }
+		bool operator<(const iterator& other) const noexcept {
+			return it < other.it;
+		}
+		bool operator<=(const iterator& other) const noexcept {
+			return it <= other.it;
+		}
+		bool operator>(const iterator& other) const noexcept {
+			return it > other.it;
+		}
+		bool operator>=(const iterator& other) const noexcept {
+			return it >= other.it;
+		}
 
-		reference operator*() noexcept { return *it; }
-		reference operator*() const noexcept { return *it; }
-		pointer operator->() noexcept { return it; }
-		pointer operator->() const noexcept { return it; }
+		reference operator*() noexcept {
+			return *it;
+		}
+		reference operator*() const noexcept {
+			return *it;
+		}
+		pointer operator->() noexcept {
+			return it;
+		}
+		pointer operator->() const noexcept {
+			return it;
+		}
 
-		reference value() noexcept { return *it; }
+		reference value() noexcept {
+			return *it;
+		}
 
-		reference cvalue() const noexcept { return *it; }
+		reference cvalue() const noexcept {
+			return *it;
+		}
 
-		operator reference() noexcept { return *it; }
+		operator reference() noexcept {
+			return *it;
+		}
 
-		operator const_reference() const noexcept { return *it; }
+		operator const_reference() const noexcept {
+			return *it;
+		}
 
 		// void swap(iterator& other) { std::swap(it, other.it); }
 
@@ -153,26 +185,46 @@ class array_view {
 	array_view& operator=(const array_view& other) noexcept = default;
 	array_view& operator=(array_view&& other) noexcept		= default;
 
-	reference operator[](size_t index) { return *(first + index); }
+	reference operator[](size_t index) {
+		return *(first + index);
+	}
 
-	const_reference operator[](size_t index) const { return *(first + index); }
+	const_reference operator[](size_t index) const {
+		return *(first + index);
+	}
 
-	operator array_view<const value_type>&() const noexcept { return *(array_view<const T>*)(this); }
+	operator array_view<const value_type>&() const noexcept {
+		return *(array_view<const T>*)(this);
+	}
 
 
-	explicit operator std::vector<value_type>() const noexcept { return std::vector<value_type> {first, last}; }
+	explicit operator std::vector<value_type>() const noexcept {
+		return std::vector<value_type> {first, last};
+	}
 
-	iterator begin() const { return iterator(first); }
+	iterator begin() const {
+		return iterator(first);
+	}
 
-	iterator end() const { return iterator(last); }
+	iterator end() const {
+		return iterator(last);
+	}
 
-	size_t size() const { return last - first; }
+	size_t size() const {
+		return last - first;
+	}
 
-	pointer& internal_data() { return first; };
+	pointer& internal_data() {
+		return first;
+	};
 
-	pointer data() const noexcept { return first; };
+	pointer data() const noexcept {
+		return first;
+	};
 
-	array_view slice(size_t begin, size_t end) const noexcept { return array_view<T> {first + begin, first + end}; }
+	array_view slice(size_t begin, size_t end) const noexcept {
+		return array_view<T> {first + begin, first + end};
+	}
 
   private:
 	pointer first;

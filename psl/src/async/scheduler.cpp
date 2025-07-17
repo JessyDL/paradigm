@@ -24,8 +24,12 @@ struct worker {
 		m_Done.store(false, std::memory_order_relaxed);
 		m_Thread = std::thread {&worker::loop, this};
 	}
-	void terminate() { m_Run.store(false, std::memory_order_relaxed); }
-	bool terminated() { return m_Done.load(std::memory_order_relaxed); }
+	void terminate() {
+		m_Run.store(false, std::memory_order_relaxed);
+	}
+	bool terminated() {
+		return m_Done.load(std::memory_order_relaxed);
+	}
 
 	void pause() {
 		if(m_Paused)
@@ -102,9 +106,13 @@ void scheduler::execute() {
 	}
 
 	struct invocable_comparer {
-		bool operator()(psl::view_ptr<details::packet> lhs, size_t rhs) const noexcept { return *lhs < rhs; }
+		bool operator()(psl::view_ptr<details::packet> lhs, size_t rhs) const noexcept {
+			return *lhs < rhs;
+		}
 
-		bool operator()(size_t lhs, psl::view_ptr<details::packet> rhs) const noexcept { return lhs < *rhs; }
+		bool operator()(size_t lhs, psl::view_ptr<details::packet> rhs) const noexcept {
+			return lhs < *rhs;
+		}
 	};
 
 	auto compatible = [](psl::array_view<barrier> lhs, psl::array_view<barrier> rhs) {

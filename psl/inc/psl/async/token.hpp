@@ -19,7 +19,9 @@ class token final {
 	token& operator=(const token& other)	 = default;
 	token& operator=(token&& other) noexcept = default;
 
-	operator size_t() const noexcept { return m_Token; }
+	operator size_t() const noexcept {
+		return m_Token;
+	}
 
 	void after(const token& other) noexcept;
 	void after(const psl::array<token>& others) noexcept;

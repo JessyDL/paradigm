@@ -32,18 +32,24 @@ class consumer final {
 	///
 	/// \details If any items are left on the producer's deque, then this method will pop an item off of the front.
 	/// Otherwise it will return a nullopt;
-	auto pop() noexcept -> decltype(std::declval<producer<T>>().steal()) { return m_Producer->steal(); }
+	auto pop() noexcept -> decltype(std::declval<producer<T>>().steal()) {
+		return m_Producer->steal();
+	}
 
 
 	/// \returns the current count of all elements in the producer.
 	/// \warning The result here doesn't mean there will be/won't be an item on the deque by the time you invoke
 	/// pop.
-	auto size() const noexcept -> decltype(std::declval<producer<T>>().size()) { return m_Producer->size(); }
+	auto size() const noexcept -> decltype(std::declval<producer<T>>().size()) {
+		return m_Producer->size();
+	}
 
 	/// \returns the current count of all elements in the producer.
 	/// \warning The result here doesn't mean there will be/won't be an item on the deque by the time you invoke
 	/// pop.
-	auto ssize() const noexcept -> decltype(std::declval<producer<T>>().ssize()) { return m_Producer->ssize(); }
+	auto ssize() const noexcept -> decltype(std::declval<producer<T>>().ssize()) {
+		return m_Producer->ssize();
+	}
 
   private:
 	psl::view_ptr<producer<T>> m_Producer;

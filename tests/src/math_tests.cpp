@@ -189,4 +189,4 @@ auto m = suite<"mathematics">() = []() {
 		require(inverse(dq)) == dquat {-15.0 / mag, -3.0 / mag, -5.0 / mag, 8.0 / mag};
 	};
 };
-}
+}	 // namespace

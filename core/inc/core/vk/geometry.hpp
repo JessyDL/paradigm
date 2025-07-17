@@ -58,7 +58,9 @@ class geometry_t {
 	void bind(vk::CommandBuffer& buffer, const core::ivk::material_t& material) const noexcept;
 
 	/// \returns the geometry data used by this instance.
-	core::resource::handle<core::data::geometry_t> data() const noexcept { return m_Data; };
+	core::resource::handle<core::data::geometry_t> data() const noexcept {
+		return m_Data;
+	};
 
 	size_t vertices() const noexcept;
 	size_t triangles() const noexcept;

@@ -44,9 +44,9 @@ namespace details {
 #endif
 			component_traits<T>::prototype()
 #if !defined(PE_PLATFORM_ANDROID)
-			} -> std::same_as<T>
+		} -> std::same_as<T>
 #endif
-			  ;
+		  ;
 	};
 
 	template <typename T>
@@ -56,9 +56,9 @@ namespace details {
 #endif
 			T::prototype()
 #if !defined(PE_PLATFORM_ANDROID)
-			} -> std::same_as<T>
+		} -> std::same_as<T>
 #endif
-			  ;
+		  ;
 	};
 
 	template <typename T>

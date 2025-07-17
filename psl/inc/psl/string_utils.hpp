@@ -593,14 +593,10 @@ namespace details {
 	  std::void_t<decltype(std::declval<X&>().from_string(std::declval<psl::string8::view>()))>> : std::true_type {};
 
 	template <typename T>
-	concept HasStaticFromString = requires() {
-		T::from_string(std::string_view {});
-	};
+	concept HasStaticFromString = requires() { T::from_string(std::string_view {}); };
 
 	template <typename T>
-	concept HasStdToString = requires(T t) {
-		std::to_string(t);
-	};
+	concept HasStdToString = requires(T t) { std::to_string(t); };
 }	 // namespace details
 template <typename X>
 struct converter {
@@ -665,13 +661,21 @@ struct converter<psl::string8_t> {
 	using view_t	 = psl::string8::view;
 	using encoding_t = psl::string8_t;
 
-	static encoding_t to_string(const value_t& x) { return x; }
+	static encoding_t to_string(const value_t& x) {
+		return x;
+	}
 
-	static value_t from_string(view_t str) { return value_t(str); }
+	static value_t from_string(view_t str) {
+		return value_t(str);
+	}
 
-	static void from_string(value_t& out, view_t str) { out = str; }
+	static void from_string(value_t& out, view_t str) {
+		out = str;
+	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 
 template <>
@@ -680,13 +684,21 @@ struct converter<psl::string16_t> {
 	using view_t	 = psl::string8::view;
 	using encoding_t = psl::string8_t;
 
-	static encoding_t to_string(const value_t& x) { return psl::string16::to_string8_t(x); }
+	static encoding_t to_string(const value_t& x) {
+		return psl::string16::to_string8_t(x);
+	}
 
-	static value_t from_string(view_t str) { return psl::string16::from_string8_t(psl::string8_t {str}); }
+	static value_t from_string(view_t str) {
+		return psl::string16::from_string8_t(psl::string8_t {str});
+	}
 
-	static void from_string(value_t& out, view_t str) { out = psl::string16::from_string8_t(psl::string8_t {str}); }
+	static void from_string(value_t& out, view_t str) {
+		out = psl::string16::from_string8_t(psl::string8_t {str});
+	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 
 template <size_t N>
@@ -695,17 +707,27 @@ struct converter<char[N]> {
 	using view_t	 = psl::string8::view;
 	using encoding_t = psl::string8_t;
 
-	static encoding_t to_string(const value_t& x) { return x; }
+	static encoding_t to_string(const value_t& x) {
+		return x;
+	}
 
-	static encoding_t from_string(view_t str) { return encoding_t(str); }
+	static encoding_t from_string(view_t str) {
+		return encoding_t(str);
+	}
 
-	static void from_string(value_t& out, view_t str) { out = from_string(str); }
+	static void from_string(value_t& out, view_t str) {
+		out = from_string(str);
+	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 template <>
 struct converter<bool> {
-	static psl::string8_t to_string(const bool& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const bool& x) {
+		return std::to_string(x);
+	}
 
 	static bool from_string(psl::string8::view str) {
 		psl::string8_t v {str};
@@ -725,35 +747,56 @@ struct converter<std::bitset<N>> {
 	using view_t	 = psl::string8::view;
 	using encoding_t = psl::string8_t;
 
-	static encoding_t to_string(const value_t& x) { return x.to_string(); }
+	static encoding_t to_string(const value_t& x) {
+		return x.to_string();
+	}
 
-	static value_t from_string(view_t str) { return value_t(encoding_t(str)); }
+	static value_t from_string(view_t str) {
+		return value_t(encoding_t(str));
+	}
 
-	static void from_string(value_t& out, view_t str) { out = from_string(str); }
+	static void from_string(value_t& out, view_t str) {
+		out = from_string(str);
+	}
 
-	static bool is_valid(view_t str) { return str.find_first_not_of("0123456789") == view_t::npos; }
+	static bool is_valid(view_t str) {
+		return str.find_first_not_of("0123456789") == view_t::npos;
+	}
 };
 
 
 template <>
 struct converter<float> {
-	static psl::string8_t to_string(const float& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const float& x) {
+		return std::to_string(x);
+	}
 
-	static float from_string(psl::string8::view str) { return std::stof(psl::string8_t(str)); }
+	static float from_string(psl::string8::view str) {
+		return std::stof(psl::string8_t(str));
+	}
 };
 
 template <>
 struct converter<double> {
-	static psl::string8_t to_string(const double& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const double& x) {
+		return std::to_string(x);
+	}
 
-	static double from_string(psl::string8::view str) { return std::stod(psl::string8_t(str)); }
+	static double from_string(psl::string8::view str) {
+		return std::stod(psl::string8_t(str));
+	}
 };
 
 template <typename T>
-requires(std::is_same_v<unsigned long, T> || std::is_same_v<uint64_t, T>) struct converter<T> {
-	static psl::string8_t to_string(const T& x) { return std::to_string(x); }
+	requires(std::is_same_v<unsigned long, T> || std::is_same_v<uint64_t, T>)
+struct converter<T> {
+	static psl::string8_t to_string(const T& x) {
+		return std::to_string(x);
+	}
 
-	static T from_string(psl::string8::view str) { return std::stoull(psl::string8_t(str)); }
+	static T from_string(psl::string8::view str) {
+		return std::stoull(psl::string8_t(str));
+	}
 	static T from_string(T& target, psl::string8::view str) {
 		target = std::stoull(psl::string8_t(str));
 		return target;
@@ -761,27 +804,41 @@ requires(std::is_same_v<unsigned long, T> || std::is_same_v<uint64_t, T>) struct
 };
 template <>
 struct converter<uint32_t> {
-	static psl::string8_t to_string(const uint32_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const uint32_t& x) {
+		return std::to_string(x);
+	}
 
-	static uint32_t from_string(psl::string8::view str) { return std::stoul(psl::string8_t(str)); }
+	static uint32_t from_string(psl::string8::view str) {
+		return std::stoul(psl::string8_t(str));
+	}
 };
 template <>
 struct converter<uint16_t> {
-	static psl::string8_t to_string(const uint16_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const uint16_t& x) {
+		return std::to_string(x);
+	}
 
-	static uint16_t from_string(psl::string8::view str) { return (uint16_t)std::stoul(psl::string8_t(str)); }
+	static uint16_t from_string(psl::string8::view str) {
+		return (uint16_t)std::stoul(psl::string8_t(str));
+	}
 };
 
 template <>
 struct converter<uint8_t> {
-	static psl::string8_t to_string(const uint8_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const uint8_t& x) {
+		return std::to_string(x);
+	}
 
-	static uint8_t from_string(psl::string8::view str) { return (uint8_t)std::stoul(psl::string8_t(str)); }
+	static uint8_t from_string(psl::string8::view str) {
+		return (uint8_t)std::stoul(psl::string8_t(str));
+	}
 };
 
 template <>
 struct converter<int8_t> {
-	static psl::string8_t to_string(const int8_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const int8_t& x) {
+		return std::to_string(x);
+	}
 
 	static int8_t from_string(psl::string8::view str) {
 		int8_t x;
@@ -796,7 +853,9 @@ struct converter<int8_t> {
 
 template <>
 struct converter<int16_t> {
-	static psl::string8_t to_string(const int16_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const int16_t& x) {
+		return std::to_string(x);
+	}
 
 	static int16_t from_string(psl::string8::view str) {
 		int16_t x;
@@ -811,7 +870,9 @@ struct converter<int16_t> {
 
 template <>
 struct converter<int32_t> {
-	static psl::string8_t to_string(const int32_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const int32_t& x) {
+		return std::to_string(x);
+	}
 
 	static int32_t from_string(psl::string8::view str) {
 		int32_t x;
@@ -825,9 +886,13 @@ struct converter<int32_t> {
 };
 template <>
 struct converter<int64_t> {
-	static psl::string8_t to_string(const int64_t& x) { return std::to_string(x); }
+	static psl::string8_t to_string(const int64_t& x) {
+		return std::to_string(x);
+	}
 
-	static int64_t from_string(psl::string8::view str) { return (int64_t)std::stoll(psl::string8_t(str)); }
+	static int64_t from_string(psl::string8::view str) {
+		return (int64_t)std::stoll(psl::string8_t(str));
+	}
 };
 // short hand version that calls the converter for you
 template <typename T>

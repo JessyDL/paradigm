@@ -20,18 +20,26 @@ struct description {
 	description(description&& other) noexcept			 = default;
 	description& operator=(description&& other) noexcept = default;
 
-	void blockers(token token) { m_Blockers.emplace_back(token); }
+	void blockers(token token) {
+		m_Blockers.emplace_back(token);
+	}
 	void blockers(const psl::array<token>& tokens) {
 		m_Blockers.insert(std::end(m_Blockers), std::begin(tokens), std::end(tokens));
 	}
 
-	void barriers(barrier barrier) { m_Barriers.emplace_back(barrier); }
+	void barriers(barrier barrier) {
+		m_Barriers.emplace_back(barrier);
+	}
 	void barriers(const psl::array<barrier>& barriers) {
 		m_Barriers.insert(std::end(m_Barriers), std::begin(barriers), std::end(barriers));
 	}
 
-	void dynamic_barriers(std::future<barrier>&& barrier) { m_DynamicBarriers.emplace_back(std::move(barrier)); }
-	void dynamic_barriers(std::shared_future<barrier>& barrier) { m_SharedDynamicBarriers.emplace_back(barrier); }
+	void dynamic_barriers(std::future<barrier>&& barrier) {
+		m_DynamicBarriers.emplace_back(std::move(barrier));
+	}
+	void dynamic_barriers(std::shared_future<barrier>& barrier) {
+		m_SharedDynamicBarriers.emplace_back(barrier);
+	}
 	void dynamic_barriers(psl::array<std::future<barrier>>&& barriers) {
 		m_DynamicBarriers.insert(std::end(m_DynamicBarriers),
 								 std::make_move_iterator(std::begin(barriers)),
@@ -42,15 +50,23 @@ struct description {
 		m_SharedDynamicBarriers.insert(std::end(m_SharedDynamicBarriers), std::begin(barriers), std::end(barriers));
 	}
 
-	void blocking(token token) { m_Blocking.emplace_back(token); }
+	void blocking(token token) {
+		m_Blocking.emplace_back(token);
+	}
 	void blocking(const psl::array<token>& tokens) {
 		m_Blocking.insert(std::end(m_Blocking), std::begin(tokens), std::end(tokens));
 	}
 
   private:
-	psl::array_view<size_t> blockers() const noexcept { return m_Blockers; }
-	psl::array_view<barrier> barriers() const noexcept { return m_Barriers; }
-	psl::array_view<size_t> blocking() const noexcept { return m_Blocking; }
+	psl::array_view<size_t> blockers() const noexcept {
+		return m_Blockers;
+	}
+	psl::array_view<barrier> barriers() const noexcept {
+		return m_Barriers;
+	}
+	psl::array_view<size_t> blocking() const noexcept {
+		return m_Blocking;
+	}
 
 	bool dynamic_barriers_ready() const noexcept {
 		return std::all_of(std::begin(m_DynamicBarriers),

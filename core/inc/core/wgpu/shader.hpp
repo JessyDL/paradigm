@@ -21,7 +21,9 @@ class shader {
 
 	core::meta::shader* meta() const noexcept;
 
-	wgpu::ShaderModule module() const noexcept { return m_Shader; }
+	wgpu::ShaderModule module() const noexcept {
+		return m_Shader;
+	}
 
   private:
 	core::resource::handle<core::iwgpu::context> m_Context;

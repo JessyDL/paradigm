@@ -132,8 +132,12 @@ struct data final {
 
 	psl::string8::view name() const;
 	container* root() const;
-	type_t type() const { return m_Type; };
-	format::children_t depth() const { return m_Depth; };
+	type_t type() const {
+		return m_Type;
+	};
+	format::children_t depth() const {
+		return m_Depth;
+	};
 	// rebase the node onto a new parent.
 	bool parent(data& parent);
 
@@ -152,7 +156,9 @@ struct data final {
 	std::optional<std::pair<bool, psl::string8::view>> as_value_content() const;
 	std::optional<std::vector<std::pair<bool, psl::string8::view>>> as_value_range_content() const;
 
-	void* _data() { return &buffer; };
+	void* _data() {
+		return &buffer;
+	};
 
   protected:
 	uint64_t buffer[4] {0, 0, 0, 0};
@@ -171,7 +177,9 @@ struct handle final {
 	handle& operator=(const handle& other) = delete;
 	data& get() const;
 	data* operator->() const;
-	bool exists() const { return m_Container != nullptr; }
+	bool exists() const {
+		return m_Container != nullptr;
+	}
 	bool operator==(const handle& other) const {
 		return m_Container == other.m_Container && m_Index == other.m_Index && parent == other.parent;
 	}
@@ -250,7 +258,9 @@ struct container {
 	nodes_t index_of(const data& data) const;
 	nodes_t index_of(const data& data, psl::string8::view child) const;
 	bool contains(psl::string8::view name) const;
-	size_t size() const { return m_NodeData.size(); };
+	size_t size() const {
+		return m_NodeData.size();
+	};
 
 	handle& add_value(psl::string8::view name, psl::string8::view content);
 	handle& add_value_range(psl::string8::view name, std::vector<psl::string8::view> content);
@@ -276,27 +286,45 @@ struct container {
 	psl::string8_t fullname(const data& node) const;
 
 	bool remove(data& data);
-	void reserve(size_t count) { m_NodeData.reserve(count); }
+	void reserve(size_t count) {
+		m_NodeData.reserve(count);
+	}
 
 	psl::string8_t to_string(std::optional<format::settings> settings = std::nullopt) const;
 
 	void validate();
 
-	std::vector<data>::iterator begin() noexcept { return m_NodeData.begin(); };
-	std::vector<data>::const_iterator begin() const noexcept { return m_NodeData.begin(); };
-	std::vector<data>::iterator end() noexcept { return m_NodeData.end(); };
-	std::vector<data>::const_iterator end() const noexcept { return m_NodeData.end(); };
+	std::vector<data>::iterator begin() noexcept {
+		return m_NodeData.begin();
+	};
+	std::vector<data>::const_iterator begin() const noexcept {
+		return m_NodeData.begin();
+	};
+	std::vector<data>::iterator end() noexcept {
+		return m_NodeData.end();
+	};
+	std::vector<data>::const_iterator end() const noexcept {
+		return m_NodeData.end();
+	};
 
-	std::vector<data>::const_iterator cbegin() const noexcept { return m_NodeData.cbegin(); };
-	std::vector<data>::const_iterator cend() const noexcept { return m_NodeData.cend(); };
+	std::vector<data>::const_iterator cbegin() const noexcept {
+		return m_NodeData.cbegin();
+	};
+	std::vector<data>::const_iterator cend() const noexcept {
+		return m_NodeData.cend();
+	};
 
 	container(const container&) = delete;
 	container(container&&);
 	container& operator=(const container&) = delete;
 	container& operator=(container&&);
 
-	void clear_settings() { m_Settings = std::nullopt; }
-	void set_settings(settings settings) { m_Settings = settings; }
+	void clear_settings() {
+		m_Settings = std::nullopt;
+	}
+	void set_settings(settings settings) {
+		m_Settings = settings;
+	}
 	bool operator==(const container& other) const {
 		return size() == other.size() && m_InternalData == other.m_InternalData && m_Content == other.m_Content;
 	}
@@ -338,7 +366,9 @@ struct node_not_found : public std::exception {
 	node_not_found(container const* const container, psl::string8::view name)
 		: m_Container(container), m_Data(name.data()) {};
 
-	container const* const target() const noexcept { return m_Container; }
+	container const* const target() const noexcept {
+		return m_Container;
+	}
 
 	char const* what() const noexcept override;
 

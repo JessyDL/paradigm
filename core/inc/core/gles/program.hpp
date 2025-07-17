@@ -13,7 +13,9 @@ class program {
 			psl::meta::file* metaFile,
 			core::resource::handle<core::data::material_t> data);
 	~program();
-	unsigned int id() const noexcept { return m_Program; }
+	unsigned int id() const noexcept {
+		return m_Program;
+	}
 
   private:
 	unsigned int m_Program;

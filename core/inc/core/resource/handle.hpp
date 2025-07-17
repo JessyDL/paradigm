@@ -106,7 +106,9 @@ class handle {
 	};
 
 
-	inline status state() const noexcept { return m_MetaData ? m_MetaData->state : status::invalid; }
+	inline status state() const noexcept {
+		return m_MetaData ? m_MetaData->state : status::invalid;
+	}
 
 	inline value_type& value() noexcept {
 		psl_assert(state() == status::loaded,
@@ -148,22 +150,44 @@ class handle {
 		return uid() != other.uid();
 	}
 
-	inline operator bool() const noexcept { return state() == status::loaded; }
+	inline operator bool() const noexcept {
+		return state() == status::loaded;
+	}
 
-	inline meta_type* meta() const noexcept { return m_MetaFile; }
-	inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
-	inline cache_t* cache() const noexcept { return m_Cache; }
+	inline meta_type* meta() const noexcept {
+		return m_MetaFile;
+	}
+	inline metadata const* resource_metadata() const noexcept {
+		return m_MetaData;
+	}
+	inline cache_t* cache() const noexcept {
+		return m_Cache;
+	}
 
-	inline value_type const* operator->() const { return m_Resource; }
-	inline value_type* operator->() { return m_Resource; }
+	inline value_type const* operator->() const {
+		return m_Resource;
+	}
+	inline value_type* operator->() {
+		return m_Resource;
+	}
 
-	inline psl::UID uid() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
-	inline const psl::UID& uid() noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+	inline psl::UID uid() const noexcept {
+		return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid;
+	}
+	inline const psl::UID& uid() noexcept {
+		return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid;
+	}
 
 
-	operator const psl::UID&() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
-	operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
-	operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
+	operator const psl::UID&() const noexcept {
+		return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid;
+	}
+	operator psl::view_ptr<meta_type>() const noexcept {
+		return m_MetaFile;
+	}
+	operator tag<T>() const noexcept {
+		return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid};
+	}
 
   private:
 	value_type* m_Resource {nullptr};
@@ -321,25 +345,53 @@ class weak_handle final {
 		return uid() != other.uid();
 	}
 
-	inline auto state() const noexcept { return m_MetaData ? m_MetaData->state : status::invalid; }
-	inline operator bool() const noexcept { return state() == status::loaded; }
+	inline auto state() const noexcept {
+		return m_MetaData ? m_MetaData->state : status::invalid;
+	}
+	inline operator bool() const noexcept {
+		return state() == status::loaded;
+	}
 
-	inline value_type const* operator->() const { return m_Resource; }
-	inline value_type* operator->() { return m_Resource; }
+	inline value_type const* operator->() const {
+		return m_Resource;
+	}
+	inline value_type* operator->() {
+		return m_Resource;
+	}
 
-	value_type& value() noexcept { return *m_Resource; };
-	const value_type& value() const noexcept { return *m_Resource; };
+	value_type& value() noexcept {
+		return *m_Resource;
+	};
+	const value_type& value() const noexcept {
+		return *m_Resource;
+	};
 
-	inline psl::UID uid() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
-	inline const psl::UID& uid() noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
+	inline psl::UID uid() const noexcept {
+		return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid;
+	}
+	inline const psl::UID& uid() noexcept {
+		return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid;
+	}
 
-	inline meta_type* meta() const noexcept { return m_MetaFile; }
-	inline metadata const* resource_metadata() const noexcept { return m_MetaData; }
-	inline cache_t* cache() const noexcept { return m_Cache; }
+	inline meta_type* meta() const noexcept {
+		return m_MetaFile;
+	}
+	inline metadata const* resource_metadata() const noexcept {
+		return m_MetaData;
+	}
+	inline cache_t* cache() const noexcept {
+		return m_Cache;
+	}
 
-	operator const psl::UID&() const noexcept { return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid; }
-	operator psl::view_ptr<meta_type>() const noexcept { return m_MetaFile; }
-	operator tag<T>() const noexcept { return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid}; }
+	operator const psl::UID&() const noexcept {
+		return m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid;
+	}
+	operator psl::view_ptr<meta_type>() const noexcept {
+		return m_MetaFile;
+	}
+	operator tag<T>() const noexcept {
+		return {m_MetaData ? m_MetaData->uid : psl::UID::invalid_uid};
+	}
 
 	handle<T> make_shared() const noexcept {
 		return handle<T>((void*)m_Resource, m_Cache, m_MetaData, (psl::meta::file*)m_MetaFile);

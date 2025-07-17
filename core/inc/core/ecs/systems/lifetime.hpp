@@ -24,4 +24,4 @@ auto lifetime = [](psl::ecs::info_t& info,
 		// info.command_buffer.remove_components<components::lifetime>(dead_entities);
 	}
 };
-}
+}	 // namespace core::ecs::systems

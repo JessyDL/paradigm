@@ -118,7 +118,9 @@ class evocable {
 
 
   public:
-	void operator()() { return; }
+	void operator()() {
+		return;
+	}
 	virtual ~evocable() {}	  // Destructor
 };
 
@@ -148,7 +150,9 @@ class evoke final : public virtual evocableR<R>, public virtual evocableT<T...> 
 
 	~evoke() {};
 
-	R operator()() override { return execute_fn(std::index_sequence_for<T...> {}); }
+	R operator()() override {
+		return execute_fn(std::index_sequence_for<T...> {});
+	}
 
 	evoke(const evoke& e) : bind_(e.bind_), params(e.params) {};					 // Copy constructor
 	evoke(evoke&& e) : bind_(std::move(e.bind_)), params(std::move(e.params)) {};	 // Move constructor
@@ -203,7 +207,9 @@ class evoke<R, void> final : public virtual evocableR<R>, public virtual evocabl
 	evoke(std::function<R()>&& f) : bind_([f {std::forward<std::function<R()>>(f)}]() { return (f)(); }) {}
 	~evoke() {};
 
-	R operator()() override { return bind_(); }
+	R operator()() override {
+		return bind_();
+	}
 	evoke(const evoke& e) : bind_(e.bind_) {};			// Copy constructor
 	evoke(evoke&& e) : bind_(std::move(e.bind_)) {};	// Move constructor
 	evoke& operator=(const evoke& e) &					// Copy assignment operator
@@ -243,7 +249,9 @@ class evoke<void, T...> final : public virtual evocableR<void>, public virtual e
 		: bind_(std::forward<std::function<void(T...)>>(f)), params(std::forward<T>(args)...) {}
 	~evoke() {};
 
-	void operator()() override { execute_fn(std::index_sequence_for<T...> {}); }
+	void operator()() override {
+		execute_fn(std::index_sequence_for<T...> {});
+	}
 	evoke(const evoke& e) : bind_(e.bind_), params(e.params) {};					 // Copy constructor
 	evoke(evoke&& e) : bind_(std::move(e.bind_)), params(std::move(e.params)) {};	 // Move constructor
 	evoke& operator=(const evoke& e) &												 // Copy assignment operator
@@ -296,7 +304,9 @@ class evoke<void, void> final : public virtual evocableR<void>, public virtual e
 	evoke(std::function<void()>&& f) : bind_([f {std::forward<std::function<void()>>(f)}]() { (f)(); }) {}
 	~evoke() {};
 
-	void operator()() override { bind_(); }
+	void operator()() override {
+		bind_();
+	}
 	evoke(const evoke& e) : bind_(e.bind_) {};			// Copy constructor
 	evoke(evoke&& e) : bind_(std::move(e.bind_)) {};	// Move constructor
 	evoke& operator=(const evoke& e) &					// Copy assignment operator

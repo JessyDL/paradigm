@@ -52,14 +52,20 @@ class file {
 	file& operator=(file&&)		 = delete;
 
 	/// \returns the psl::UID associated with this instance.
-	const psl::UID& ID() const { return m_ID.value; };
+	const psl::UID& ID() const {
+		return m_ID.value;
+	};
 
 	/// \returns the serialization name.
 	/// \see serialization for more information.
-	psl::string8::view name() const { return "META"; };
+	psl::string8::view name() const {
+		return "META";
+	};
 
 	/// \returns all associated tags with this instance.
-	const std::vector<psl::string8_t>& tags() const { return m_Tags.value; };
+	const std::vector<psl::string8_t>& tags() const {
+		return m_Tags.value;
+	};
 
   protected:
 	template <typename S>
@@ -73,7 +79,9 @@ class file {
 
 	static constexpr psl::string8::view serialization_name {"META"};
 	static constexpr psl::string8::view polymorphic_name {"META"};
-	virtual const uint64_t polymorphic_id() { return polymorphic_identity; }
+	virtual const uint64_t polymorphic_id() {
+		return polymorphic_identity;
+	}
 	static const uint64_t polymorphic_identity;
 };
 
@@ -340,7 +348,9 @@ class library {
 
 	void replace_content(psl::UID uid, psl::string8_t content) noexcept;
 
-	const std::vector<psl::string8_t>& environment() const noexcept { return m_Environment; }
+	const std::vector<psl::string8_t>& environment() const noexcept {
+		return m_Environment;
+	}
 
   private:
 	struct UIDData {

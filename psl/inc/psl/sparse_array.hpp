@@ -63,14 +63,24 @@ class sparse_array {
 			return orig;
 		}
 
-		bool operator==(const iterator& other) const noexcept { return value == other.value; }
-		bool operator!=(const iterator& other) const noexcept { return value != other.value; }
+		bool operator==(const iterator& other) const noexcept {
+			return value == other.value;
+		}
+		bool operator!=(const iterator& other) const noexcept {
+			return value != other.value;
+		}
 
-		pointer operator->() const noexcept { return value; }
+		pointer operator->() const noexcept {
+			return value;
+		}
 
-		inline reference operator*() const noexcept { return *value; }
+		inline reference operator*() const noexcept {
+			return *value;
+		}
 
-		index_type& index_of() const noexcept { return *dense_index; }
+		index_type& index_of() const noexcept {
+			return *dense_index;
+		}
 
 	  private:
 		pointer value;
@@ -108,11 +118,19 @@ class sparse_array {
 		}
 		return *this;
 	}
-	size_type size() const noexcept { return std::size(m_Dense); }
-	size_type capacity() const noexcept { return std::size(m_Sparse) * chunks_size; }
+	size_type size() const noexcept {
+		return std::size(m_Dense);
+	}
+	size_type capacity() const noexcept {
+		return std::size(m_Sparse) * chunks_size;
+	}
 
-	iterator begin() noexcept { return iterator {m_Dense.data(), m_Reverse.data()}; };
-	iterator end() noexcept { return iterator {m_Dense.data() + m_Dense.size(), m_Reverse.data() + m_Reverse.size()}; };
+	iterator begin() noexcept {
+		return iterator {m_Dense.data(), m_Reverse.data()};
+	};
+	iterator end() noexcept {
+		return iterator {m_Dense.data() + m_Dense.size(), m_Reverse.data() + m_Reverse.size()};
+	};
 
 	reference operator[](index_type index) {
 		auto sub_index = index;
@@ -278,9 +296,13 @@ class sparse_array {
 		return false;
 	}
 
-	constexpr bool empty() const noexcept { return std::empty(m_Dense); };
+	constexpr bool empty() const noexcept {
+		return std::empty(m_Dense);
+	};
 
-	void* data() noexcept { return m_Dense.data(); };
+	void* data() noexcept {
+		return m_Dense.data();
+	};
 
 	void erase(index_type index) noexcept {
 		index_type sparse_index, chunk_index;
@@ -410,8 +432,12 @@ class sparse_array {
 		m_Sparse.clear();
 	}
 
-	psl::array_view<index_type> indices() const noexcept { return m_Reverse; }
-	psl::array_view<value_type> dense() const noexcept { return m_Dense; }
+	psl::array_view<index_type> indices() const noexcept {
+		return m_Reverse;
+	}
+	psl::array_view<value_type> dense() const noexcept {
+		return m_Dense;
+	}
 
   private:
 	inline psl::array<index_type>& chunk_for(index_type& index) {

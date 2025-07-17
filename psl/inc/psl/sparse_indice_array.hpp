@@ -19,8 +19,12 @@ class sparse_indice_array {
 	sparse_indice_array& operator=(const sparse_indice_array&) = default;
 	sparse_indice_array& operator=(sparse_indice_array&&)	   = default;
 
-	size_t capacity() const noexcept { return m_Sparse.size() * chunks_size; }
-	size_t size() const noexcept { return m_Reverse.size(); }
+	size_t capacity() const noexcept {
+		return m_Sparse.size() * chunks_size;
+	}
+	size_t size() const noexcept {
+		return m_Reverse.size();
+	}
 
 	T& operator[](const T& index) {
 		if(index < m_Offset) {
@@ -142,16 +146,22 @@ class sparse_indice_array {
 			   m_Sparse[chunk_index][element_index] != std::numeric_limits<T>::max();
 	}
 
-	void reserve(size_t capacity) { m_Reverse.reserve(capacity); }
+	void reserve(size_t capacity) {
+		m_Reverse.reserve(capacity);
+	}
 
-	psl::array_view<T> indices() const noexcept { return m_Reverse; }
+	psl::array_view<T> indices() const noexcept {
+		return m_Reverse;
+	}
 
   private:
 	void pad_front(size_t count) {
 		m_Sparse.resize(m_Sparse.size() + count);
 		std::rotate(std::rbegin(m_Sparse), std::rbegin(m_Sparse) + count, std::rend(m_Sparse));
 	}
-	static constexpr T chunk_aligned_index(const T& index) { return index - (index & mod_val); }
+	static constexpr T chunk_aligned_index(const T& index) {
+		return index - (index & mod_val);
+	}
 	inline constexpr T chunk_index_for(const T& index) const noexcept {
 		if constexpr(is_power_of_two) {
 			return chunk_aligned_index(index) / chunks_size;

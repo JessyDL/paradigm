@@ -126,7 +126,9 @@ struct converter<psl::tvec<precision_t, size>> {
 		for(size_t i = 0; i < size; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 
 template <typename precision_t>
@@ -153,7 +155,9 @@ struct converter<psl::tquat<precision_t>> {
 		for(size_t i = 0; i < 4; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 
 
@@ -181,6 +185,8 @@ struct converter<psl::tmat<precision_t, nX, nY>> {
 		for(size_t i = 0; i < nX * nY; ++i) out[i] = utility::converter<precision_t>().from_string(split[i]);
 	}
 
-	static bool is_valid(view_t str) { return true; }
+	static bool is_valid(view_t str) {
+		return true;
+	}
 };
 }	 // namespace psl::utility

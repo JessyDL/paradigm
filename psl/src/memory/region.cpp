@@ -193,9 +193,9 @@ region::create_region(size_t size, std::optional<size_t> alignment, allocator_ba
 #elif defined(USE_POSIX)
 	// we cheat and trick the allocator to allocate in page sized allocations
 	auto cachedAlignment = m_Alignment;
-	m_Alignment = m_PageSize;
-	auto res = m_Allocator->allocate(size);
-	m_Alignment = cachedAlignment;
+	m_Alignment			 = m_PageSize;
+	auto res			 = m_Allocator->allocate(size);
+	m_Alignment			 = cachedAlignment;
 	if(res) {
 		return memory::region {*this, res.value(), 0, alignment.value_or(m_Alignment), allocator};
 	}

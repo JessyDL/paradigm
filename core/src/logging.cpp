@@ -119,13 +119,13 @@ auto core::initialize_loggers([[maybe_unused]] bool to_file) -> void {
 	core::data::log			   = spdlog::android_logger_mt("data", "paradigm");
 	core::gfx::log			   = spdlog::android_logger_mt("gfx", "paradigm");
 	#if defined(PE_VULKAN)
-	core::ivk::log			   = spdlog::android_logger_mt("ivk", "paradigm");
+	core::ivk::log = spdlog::android_logger_mt("ivk", "paradigm");
 	#endif
 	#if defined(PE_GLES)
-	core::igles::log		   = spdlog::android_logger_mt("igles", "paradigm");
+	core::igles::log = spdlog::android_logger_mt("igles", "paradigm");
 	#endif
 	#if defined(PE_WEBGPU)
-	core::iwgpu::log		   = spdlog::android_logger_mt("iwgpu", "paradigm");
+	core::iwgpu::log = spdlog::android_logger_mt("iwgpu", "paradigm");
 	#endif
 	spdlog::set_pattern("[%8T:%6f] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
 }

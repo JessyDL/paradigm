@@ -21,30 +21,56 @@ class shader final : public psl::meta::file {
 		friend class psl::serialization::accessor;
 
 	  public:
-		psl::string_view name() const noexcept { return m_Name.value; }
-		void name(psl::string value) noexcept { m_Name.value = value; }
+		psl::string_view name() const noexcept {
+			return m_Name.value;
+		}
+		void name(psl::string value) noexcept {
+			m_Name.value = value;
+		}
 
-		uint32_t offset() const noexcept { return m_Offset.value; }
-		void offset(uint32_t value) noexcept { m_Offset.value = value; }
+		uint32_t offset() const noexcept {
+			return m_Offset.value;
+		}
+		void offset(uint32_t value) noexcept {
+			m_Offset.value = value;
+		}
 
 		// \brief returns unique values present in the member (i.e. vec4 would return count 4)
-		uint32_t count() const noexcept { return m_Count.value; }
-		void count(uint32_t value) noexcept { m_Count.value = value; }
+		uint32_t count() const noexcept {
+			return m_Count.value;
+		}
+		void count(uint32_t value) noexcept {
+			m_Count.value = value;
+		}
 
 		// \brief returns bytesize between unique member components
-		uint32_t stride() const noexcept { return m_Stride.value; }
-		void stride(uint32_t value) noexcept { m_Stride.value = value; }
+		uint32_t stride() const noexcept {
+			return m_Stride.value;
+		}
+		void stride(uint32_t value) noexcept {
+			m_Stride.value = value;
+		}
 
 		// \brief returns the calculation of stride() * count() of the member
-		size_t size() const noexcept { return (size_t)stride() * count(); }
+		size_t size() const noexcept {
+			return (size_t)stride() * count();
+		}
 
-		psl::array_view<member> members() const noexcept { return m_Members.value; }
-		void members(psl::array<member> value) noexcept { m_Members.value = std::move(value); }
+		psl::array_view<member> members() const noexcept {
+			return m_Members.value;
+		}
+		void members(psl::array<member> value) noexcept {
+			m_Members.value = std::move(value);
+		}
 
 		/// \brief returns true if this is an unconstrained/unsized array
-		inline bool is_unconstrained() const noexcept { return is_array() && m_Count.value == 0; }
+		inline bool is_unconstrained() const noexcept {
+			return is_array() && m_Count.value == 0;
+		}
 
-		inline bool is_array() const noexcept { return m_Members.value.size() > 0; }
+		inline bool is_array() const noexcept {
+			return m_Members.value.size() > 0;
+		}
 
 	  private:
 		template <typename S>
@@ -64,22 +90,44 @@ class shader final : public psl::meta::file {
 		friend class psl::serialization::accessor;
 
 	  public:
-		psl::string_view name() const noexcept { return m_Name.value; }
-		void name(psl::string value) noexcept { m_Name.value = value; }
+		psl::string_view name() const noexcept {
+			return m_Name.value;
+		}
+		void name(psl::string value) noexcept {
+			m_Name.value = value;
+		}
 
-		uint32_t location() const noexcept { return m_Location.value; }
-		void location(uint32_t value) noexcept { m_Location.value = value; }
+		uint32_t location() const noexcept {
+			return m_Location.value;
+		}
+		void location(uint32_t value) noexcept {
+			m_Location.value = value;
+		}
 
-		uint32_t count() const noexcept { return m_Count.value; }
-		void count(uint32_t value) noexcept { m_Count.value = value; }
+		uint32_t count() const noexcept {
+			return m_Count.value;
+		}
+		void count(uint32_t value) noexcept {
+			m_Count.value = value;
+		}
 
-		uint32_t stride() const noexcept { return m_Stride.value; }
-		void stride(uint32_t value) noexcept { m_Stride.value = value; }
+		uint32_t stride() const noexcept {
+			return m_Stride.value;
+		}
+		void stride(uint32_t value) noexcept {
+			m_Stride.value = value;
+		}
 
-		core::gfx::format_t format() const noexcept { return m_Format.value; }
-		void format(core::gfx::format_t value) noexcept { m_Format.value = value; }
+		core::gfx::format_t format() const noexcept {
+			return m_Format.value;
+		}
+		void format(core::gfx::format_t value) noexcept {
+			m_Format.value = value;
+		}
 
-		auto size() const noexcept { return m_Count.value * m_Stride.value; }
+		auto size() const noexcept {
+			return m_Count.value * m_Stride.value;
+		}
 
 	  private:
 		template <typename S>
@@ -103,23 +151,47 @@ class shader final : public psl::meta::file {
 		~descriptor() = default;
 
 
-		psl::string_view name() const noexcept { return m_Name.value; }
-		void name(psl::string value) noexcept { m_Name.value = value; }
+		psl::string_view name() const noexcept {
+			return m_Name.value;
+		}
+		void name(psl::string value) noexcept {
+			m_Name.value = value;
+		}
 
-		uint32_t binding() const noexcept { return m_Binding.value; }
-		void binding(uint32_t value) noexcept { m_Binding.value = value; }
+		uint32_t binding() const noexcept {
+			return m_Binding.value;
+		}
+		void binding(uint32_t value) noexcept {
+			m_Binding.value = value;
+		}
 
-		uint32_t set() const noexcept { return m_Set.value; }
-		void set(uint32_t value) noexcept { m_Set.value = value; }
+		uint32_t set() const noexcept {
+			return m_Set.value;
+		}
+		void set(uint32_t value) noexcept {
+			m_Set.value = value;
+		}
 
-		dependency qualifier() const noexcept { return m_Dependency.value; }
-		void qualifier(dependency value) noexcept { m_Dependency.value = value; }
+		dependency qualifier() const noexcept {
+			return m_Dependency.value;
+		}
+		void qualifier(dependency value) noexcept {
+			m_Dependency.value = value;
+		}
 
-		core::gfx::binding_type type() const noexcept { return m_Type.value; }
-		void type(core::gfx::binding_type value) { m_Type.value = value; }
+		core::gfx::binding_type type() const noexcept {
+			return m_Type.value;
+		}
+		void type(core::gfx::binding_type value) {
+			m_Type.value = value;
+		}
 
-		psl::array_view<member> members() const noexcept { return m_Members.value; }
-		void members(psl::array<member> value) noexcept { m_Members.value = value; }
+		psl::array_view<member> members() const noexcept {
+			return m_Members.value;
+		}
+		void members(psl::array<member> value) noexcept {
+			m_Members.value = value;
+		}
 
 
 		size_t size() const noexcept {
@@ -149,22 +221,30 @@ class shader final : public psl::meta::file {
 	~shader() = default;
 
 	/// \returns the shader stage of this SPIR-V module (i.e. vertex, fragment, compute, etc..)
-	core::gfx::shader_stage stage() const noexcept { return m_Stage.value; }
+	core::gfx::shader_stage stage() const noexcept {
+		return m_Stage.value;
+	}
 
 	/// \brief sets the stage of this SPIR-V module to the given value.
 	/// \warning it is assumed this stage flag is the actual stage flag, otherwise binding the
 	/// shader will fail during creation.
 	/// \param[in] value the stage to expect.
-	void stage(core::gfx::shader_stage value) noexcept { m_Stage.value = value; }
+	void stage(core::gfx::shader_stage value) noexcept {
+		m_Stage.value = value;
+	}
 
 	/// \returns the source format of this SPIR-V module (i.e. glsl, spirv, etc..)
-	core::gfx::shader_source_format source_format() const noexcept { return m_SourceFormat.value; }
+	core::gfx::shader_source_format source_format() const noexcept {
+		return m_SourceFormat.value;
+	}
 
 	/// \brief sets the source format of this SPIR-V module to the given value.
 	/// \param[in] value the source format to expect.
 	/// \warning it is assumed this source format is the actual source format, otherwise binding the
 	/// shader will fail during creation.
-	void source_format(core::gfx::shader_source_format value) noexcept { m_SourceFormat.value = value; }
+	void source_format(core::gfx::shader_source_format value) noexcept {
+		m_SourceFormat.value = value;
+	}
 
 	psl::array_view<attribute> inputs() noexcept {
 		return psl::array_view<attribute>(m_Attributes.data(), m_InputAttributesSize);
@@ -185,8 +265,12 @@ class shader final : public psl::meta::file {
 		  std::end(m_Attributes), std::move_iterator(std::begin(value)), std::move_iterator(std::end(value)));
 	}
 
-	psl::array_view<descriptor> descriptors() const noexcept { return {m_Descriptors.value}; }
-	void descriptors(psl::array<descriptor> value) noexcept { m_Descriptors.value = std::move(value); }
+	psl::array_view<descriptor> descriptors() const noexcept {
+		return {m_Descriptors.value};
+	}
+	void descriptors(psl::array<descriptor> value) noexcept {
+		m_Descriptors.value = std::move(value);
+	}
 
 	static void register_serializer();
 
@@ -234,7 +318,9 @@ class shader final : public psl::meta::file {
 	/// ID of this type on.
 	static constexpr psl::string8::view polymorphic_name {"SHADER_META"};
 	/// \brief returns the polymorphic ID at runtime, to resolve what type this is.
-	virtual const uint64_t polymorphic_id() override { return polymorphic_identity; }
+	virtual const uint64_t polymorphic_id() override {
+		return polymorphic_identity;
+	}
 	/// \brief the associated unique ID (per type, not instance) for the polymorphic system.
 	static uint64_t polymorphic_identity;
 };
