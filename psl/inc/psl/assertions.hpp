@@ -10,8 +10,8 @@
 	#include <cstdio>
 #endif
 #ifdef PE_PLATFORM_ANDROID
-	#include <tuple>
 	#include <android/log.h>
+	#include <tuple>
 #endif	  // PE_PLATFORM_ANDROID
 
 namespace psl {
@@ -43,6 +43,11 @@ namespace details {
 	template <typename... Args>
 	concept HasSourceLocOverride =
 	  (std::is_same_v<std::remove_cvref_t<last_type_pack_t<Args...>>, psl::source_location>);
+
+
+#if !defined(PE_PLATFORM_ANDROID)
+	void print_to_cout(std::string_view message);
+#endif
 
 	template <typename... Args>
 	struct print_t {
@@ -159,34 +164,38 @@ namespace details {
 			const char* log_level;
 			switch(level) {
 			case level_t::verbose:
-				log_level = "[verbose] {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[verbose] {}\n    at: {} ({}:{}:{})\x1F";
 				break;
 			case level_t::debug:
-				log_level = "[debug]   {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[debug]   {}\n    at: {} ({}:{}:{})\x1F";
 				break;
 			case level_t::info:
-				log_level = "[info]    {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[info]    {}\n    at: {} ({}:{}:{})\x1F";
 				break;
 			case level_t::warn:
-				log_level = "[warn]    {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[warn]    {}\n    at: {} ({}:{}:{})\x1F";
 				break;
 			case level_t::error:
-				log_level = "[error]   {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[error]   {}\n    at: {} ({}:{}:{})\x1F";
 				break;
 			case level_t::fatal:
-				log_level = "[fatal]   {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[fatal]   {}\n    at: {} ({}:{}:{})\x1F";
 				break;
 			default:
-				log_level = "[info]    {}\n    at: {} ({}:{}:{})";
+				log_level = "\x1F[info]    {}\n    at: {} ({}:{}:{})\x1F";
 			}
 	#if defined(PE_DEBUG)
-			fmt::print(fmt::runtime(fmt::format(
-						 fmt::runtime(log_level), fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column())),
-					   std::get<Is>(args)...);
+			const auto log_level_rt_str = fmt::runtime(log_level);
+			const auto log_level_str =
+			  fmt::format(log_level_rt_str, fmt, loc.function_name(), loc.file_name(), loc.line(), loc.column());
+			const auto output_rt_str = fmt::runtime(log_level_str);
+			const auto output_str	 = fmt::format(output_rt_str, std::get<Is>(args)...);
+			print_to_cout(output_str);
 	#else
-			std::printf("todo: todo: assert log not supported in release");
+			print_to_cout("\x1Ftodo: todo: assert log not supported in release\x1F");
 	#endif
 		}
+
 #endif
 	};
 
