@@ -26,7 +26,8 @@ def patch_file(filename):
 
 class File(object):
     def __init__(self, filename):
-        if not os.path.exists(filename):
+        # checks if the file exists, or if it's a symlink ignore it (as exists returns False for broken symlinks)
+        if not os.path.exists(filename) and not os.path.islink(filename):
             raise Exception(
                 f"The file at '{filename}' could not be found, did you supply an incorrect root directory?"
             )
@@ -98,7 +99,7 @@ def patch_includes(root):
             files.append(os.path.join(r, file))
 
     for f in files:
-        fObj = File(f.replace("\\", "/"))
+        fObj = File(f.replace(r"\\", r"/"))
         fObj.patch()
 
 
