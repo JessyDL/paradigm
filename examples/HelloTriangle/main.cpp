@@ -80,8 +80,14 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 		break;
 	}
 
-	core::resource::cache_t cache {psl::meta::library {"resources.metalib", {{environment}}}};
+	// we'll create a memory region that will be used to store various data such wvp data and more.
+	// we create this before the cache as the handles which will reference this memory region will only be cleared
+	// when the cache is destroyed.
+	// todo(jdl): we should add additional logging/debugging to help with these types of lifetime issues, they are caused
+	// due to the deferred nature of the cache, and how the cache ends up being the lifetime manager of the resources.
+	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
 
+	core::resource::cache_t cache {psl::meta::library {"resources.metalib", {{environment}}}};
 
 #pragma endregion example
 	core::log->info("cache created");
@@ -172,23 +178,20 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	auto intanceMaterialBinding = cache.create<core::gfx::shader_buffer_binding>(instanceMaterialBuffer, 8_mb);
 	cache.library().set(intanceMaterialBinding.uid(), core::data::material_t::MATERIAL_DATA);
 
-	// Lastly, as we'll need a "camera", we'll instantiate a buffer that will contain our world view projection data
-	// (and more)
-	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
 	auto globalShaderBufferData = cache.create<core::data::buffer_t>(
-	  core::gfx::memory_usage::uniform_buffer,
-	  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-	  resource_region.create_region(1_mb, uniform_buffer_align, new memory::default_allocator(true)).value());
+		core::gfx::memory_usage::uniform_buffer,
+		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+		resource_region.create_region(1_mb, uniform_buffer_align, new memory::default_allocator(true)).value());
 
 	auto globalShaderBuffer	   = cache.create<core::gfx::buffer_t>(context_handle, globalShaderBufferData);
 	auto frameCamBufferBinding = cache.create<core::gfx::shader_buffer_binding>(
-	  globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
+		globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
 	// we additionally set a "readable" name we will use to lookup this buffer with. Shaders will use this name to
 	// reference the buffer within the shader code.
 	cache.library().set(frameCamBufferBinding, "GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX");
 
-	// next up we will create the geometry data. This data will be uploaded to the GPU and used to render the triangle.
-	// this is the equivalent of a "model", but in this case we will construct it through code.
+	// next up we will create the geometry data. This data will be uploaded to the GPU and used to render the
+	// triangle. this is the equivalent of a "model", but in this case we will construct it through code.
 	auto triangleGeomData = cache.create<core::data::geometry_t>();
 	{
 		core::vertex_stream_t vertexStream {core::vertex_stream_t::type::vec3};
@@ -210,14 +213,14 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 
 		triangleGeomData->indices(std::vector<uint32_t> {0, 1, 2});
 	}
-	// now with the geometry data container, we can create a gfx resource. This is the object that will be responsible
-	// for synchronizing the data between the CPU and GPU.
-	// together with a material you can use this resource to render the data.
+	// now with the geometry data container, we can create a gfx resource. This is the object that will be
+	// responsible for synchronizing the data between the CPU and GPU. together with a material you can use this
+	// resource to render the data.
 
 	// in general objects in core::data namespace are the RAM backed resources, and mostly used to create the GPU
 	// resources in the core::gfx namespace.
 	auto triangleGeometryResource =
-	  cache.create<core::gfx::geometry_t>(context_handle, triangleGeomData, vertexBuffer, indexBuffer);
+		cache.create<core::gfx::geometry_t>(context_handle, triangleGeomData, vertexBuffer, indexBuffer);
 
 	// create a pipeline cache
 	auto pipeline_cache = cache.create<core::gfx::pipeline_cache>(context_handle);
@@ -228,19 +231,20 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	auto vertShaderMeta		   = cache.library().get<core::meta::shader>(uid_vert_shader).value_or(nullptr);
 	auto fragShaderMeta		   = cache.library().get<core::meta::shader>(uid_frag_shader).value_or(nullptr);
 
-	psl_assert(vertShaderMeta != nullptr && fragShaderMeta != nullptr,
-			   "Missing vert/frag shaders. If this happens then you are missing the resources, they should be deployed "
-			   "with the binary.");
+	psl_assert(
+		vertShaderMeta != nullptr && fragShaderMeta != nullptr,
+		"Missing vert/frag shaders. If this happens then you are missing the resources, they should be deployed "
+		"with the binary.");
 
 	auto matData = cache.create<core::data::material_t>();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 	auto material =
-	  cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, instanceMaterialBuffer);
+		cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, instanceMaterialBuffer);
 
 
 	auto bundle = cache.create<core::gfx::bundle>(instanceBuffer, intanceMaterialBinding);
-	// the material itself comes with a renderlayer, but here we explicitly set it to 500 as we will add the bundle to
-	// the drawgroup with a renderlayer range of 0-1000.
+	// the material itself comes with a renderlayer, but here we explicitly set it to 500 as we will add the bundle
+	// to the drawgroup with a renderlayer range of 0-1000.
 	bundle->set_material(material, 500);
 
 	// next up we will boot up the ECS state which will handle the rendering for us.
@@ -256,13 +260,14 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// any renderables that have a bundle that satisfies this will have a drawcall created for them.
 	renderSystem.add_render_range(0, 1000);
 
-	state.create(
-	  1, core::ecs::components::transform {psl::vec3 {0, 0, -2}}, psl::ecs::empty<core::ecs::components::camera> {});
+	state.create(1,
+					core::ecs::components::transform {psl::vec3 {0, 0, -2}},
+					psl::ecs::empty<core::ecs::components::camera> {});
 
 	state.create(1,
-				 core::ecs::components::renderable {bundle, triangleGeometryResource},
-				 psl::ecs::empty<core::ecs::components::dynamic_tag>(),
-				 psl::ecs::empty<core::ecs::components::transform> {});
+					core::ecs::components::renderable {bundle, triangleGeometryResource},
+					psl::ecs::empty<core::ecs::components::dynamic_tag>(),
+					psl::ecs::empty<core::ecs::components::transform> {});
 
 #pragma endregion example
 
