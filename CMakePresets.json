@@ -24,7 +24,7 @@
             "cacheVariables": {
                 "PE_VULKAN_VERSION": {
                     "type": "STRING",
-                    "value": "1.2.148"
+                    "value": "1.4.321"
                 },
                 "PE_VULKAN": "ON",
                 "VK_STATIC": "OFF"

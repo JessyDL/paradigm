@@ -23,13 +23,13 @@
 #endif
 
 #define VK_VERSION_LATEST_MAJOR 1
-#define VK_VERSION_LATEST_MINOR 2
+#define VK_VERSION_LATEST_MINOR 4
 #define VULKAN_HPP_NO_SMART_HANDLE
 
 #include <vulkan/vulkan.hpp>
 
 #define VK_VERSION_LATEST_PATCH VK_HEADER_VERSION
-#define VK_API_VERSION_LATEST VK_API_VERSION_1_2
+#define VK_API_VERSION_LATEST VK_API_VERSION_1_4
 
 #include "psl/assertions.hpp"
 #include "psl/logging.hpp"

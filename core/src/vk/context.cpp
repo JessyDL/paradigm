@@ -15,9 +15,9 @@
 	#undef major
 #endif
 
-#ifdef VULKAN_HPP_DISPATCH_LOADER_DYNAMIC
+#ifdef VULKAN_HPP_ENABLE_DYNAMIC_LOADER_TOOL
 VULKAN_HPP_DEFAULT_DISPATCH_LOADER_DYNAMIC_STORAGE
-static vk::DynamicLoader dl;
+static vk::detail::DynamicLoader dl;
 #endif
 
 using namespace psl;
@@ -567,7 +567,7 @@ void context::init_debug() {
 								   vk::DebugReportFlagBitsEXT::ePerformanceWarning |
 								   vk::DebugReportFlagBitsEXT ::eError | vk::DebugReportFlagBitsEXT::eDebug;
 
-		callbackCreateInfo.pfnCallback = &VulkanDebugCB;
+		callbackCreateInfo.pfnCallback = (vk::PFN_DebugReportCallbackEXT)&VulkanDebugCB;
 
 		vk::Result success;
 		std::tie(success, m_DebugReport) = m_Instance.createDebugReportCallbackEXT(callbackCreateInfo);

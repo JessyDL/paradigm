@@ -20,7 +20,7 @@ bool allocator_base::deallocate(segment& segment) {
 	if(!m_Region->range().contains(segment.range()) || !do_deallocate(segment))
 		return false;
 
-	if(is_physically_backed())	  // zero-reset
+	if(is_physically_backed() && local.size() > 0)	   // zero-reset
 		std::memset((void*)local.begin, 0, local.size());
 
 	// static range r{std::numeric_limits<std::uint64_t>::max(), 0u};
