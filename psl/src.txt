@@ -1,4 +1,5 @@
 SET(SRC
+assertions
 platform_utils
 debug_utils
 terminal_utils

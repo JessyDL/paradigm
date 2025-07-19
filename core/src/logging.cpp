@@ -6,6 +6,110 @@
 	#include "spdlog/sinks/msvc_sink.h"
 #endif
 
+#include "psl/assertions.hpp"
+#include <iostream>
+
+/// \brief A custom streambuf that intercepts the std::cout and redirects it to the spdlog logger
+/// \details This streambuf will capture the output from std::cout and parse it for special control characters
+/// redirecting it to the corresponding log level in the `core` sink.
+/// \todo This could be improved to additionally parse the file location (if present) to redirect it to other sinks
+class spdlogbuf : public std::streambuf {
+	void log_buffer() {
+		std::string_view view {buffer_};
+		if(psl_log) {
+			size_t start = view.find(']');
+			assert(start != std::string_view::npos && start > 1);
+			start	   = view.find_first_not_of(' ', start + 1);	// first non-space character after the ']'
+			size_t end = view.size() - (2 + start);					// 2 control characters (including the endline)
+			view	   = view.substr(start, end);
+			switch(level_) {
+			case psl::level_t::info:
+				core::log->info("{}", view);
+				break;
+			case psl::level_t::warn:
+				core::log->warn("{}", view);
+				break;
+			case psl::level_t::error:
+				core::log->error("{}", view);
+				break;
+			case psl::level_t::debug:
+				core::log->debug("{}", view);
+				break;
+			case psl::level_t::verbose:
+				core::log->trace("{}", view);
+				break;
+			case psl::level_t::fatal:
+				core::log->critical("{}", view);
+				break;
+			default:
+				core::log->info("{}", view);
+				break;
+			}
+		} else {
+			core::log->info("{}", view);
+		}
+		buffer_.clear();
+		psl_log = false;
+	}
+
+  public:
+	int_type overflow(int_type ch) override {
+		if(ch != '\x1F') {
+			oldbuf_->sputc(ch);
+		}
+		if(ch != EOF && (ch != '\n' || psl_log)) {
+			buffer_ += static_cast<char>(ch);
+		}
+		if(ch == '\n') {
+			std::string_view view {buffer_};
+			if(psl_log) {
+				if(view.ends_with("\x1F\n")) {
+					log_buffer();
+				}
+			} else if(view.starts_with("\x1F[")) {
+				view	   = view.substr(2);	// remove the first '\x1F['
+				psl_log	   = true;
+				size_t pos = view.find(']');
+				if(view.starts_with("info]")) {
+					level_ = psl::level_t::info;
+				} else if(view.starts_with("warn]")) {
+					level_ = psl::level_t::warn;
+				} else if(view.starts_with("error]")) {
+					level_ = psl::level_t::error;
+				} else if(view.starts_with("debug]")) {
+					level_ = psl::level_t::debug;
+				} else if(view.starts_with("verbose]")) {
+					level_ = psl::level_t::verbose;
+				} else if(view.starts_with("fatal]")) {
+					level_ = psl::level_t::fatal;
+				} else {
+					psl_log = false;
+				}
+
+				if(psl_log) {
+					buffer_ += '\n';
+				}
+
+				if(view.ends_with("\x1F") && psl_log) {
+					log_buffer();
+				}
+			} else {
+				log_buffer();
+			}
+		}
+		return ch;
+	}
+
+  private:
+	psl::level_t level_ = psl::level_t::info;
+	bool psl_log		= false;	// true if we are logging through psl::print
+
+	std::string buffer_;
+	std::streambuf* oldbuf_ = std::cout.rdbuf();
+};
+
+static spdlogbuf sbuf;
+
 std::shared_ptr<spdlog::logger> core::log {nullptr};
 std::shared_ptr<spdlog::logger> core::gfx::log {nullptr};
 #ifdef PE_VULKAN
@@ -46,6 +150,9 @@ auto core::initialize_loggers(bool to_file) -> void {
 	}
 
 	core::_loggers_initialized = true;
+
+	std::ostream out(&sbuf);
+	std::cout.rdbuf(&sbuf);
 
 	std::chrono::system_clock::time_point now = std::chrono::system_clock::now();
 	std::time_t now_c						  = std::chrono::system_clock::to_time_t(now);
@@ -103,6 +210,7 @@ auto core::initialize_loggers(bool to_file) -> void {
 	make_sink(core::os::log, "os", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
 
 	spdlog::set_pattern("%8T.%6f [%=8n] [%=8l] %^%v%$ %@", spdlog::pattern_time_type::utc);
+	spdlog::flush_on(spdlog::level::warn);
 }
 #else
 
