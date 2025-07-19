@@ -218,7 +218,11 @@ void texture_t::create_2D(void* data) {
 	  m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 	core::utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
-	m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
+	if(auto res = m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0); !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical(
+		  "Failed to bind image memory for texture: {} reason: {}", m_Meta->ID().to_string(), vk::to_string(res));
+		std::abort();
+	}
 
 	if(data != nullptr) {
 		vk::CommandBuffer copyCmd = core::utility::vulkan::create_cmd_buffer(
@@ -396,7 +400,12 @@ void texture_t::load_2D() {
 		  m_Context->memory_type(memReqs.memoryTypeBits, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
 		core::utility::vulkan::check(m_Context->device().allocateMemory(&memAllocInfo, nullptr, &m_DeviceMemory));
-		m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
+		if(auto res = m_Context->device().bindImageMemory(m_Image, m_DeviceMemory, 0);
+		   !core::utility::vulkan::check(res)) {
+			core::ivk::log->critical(
+			  "Failed to bind image memory for texture: {} reason: {}", m_Meta->ID().to_string(), vk::to_string(res));
+			std::abort();
+		}
 
 		vk::CommandBuffer copyCmd = core::utility::vulkan::create_cmd_buffer(
 		  m_Context->device(), m_Context->command_pool(), vk::CommandBufferLevel::ePrimary, true, 1);

@@ -550,7 +550,10 @@ context::context(core::resource::cache_t& cache,
 }
 
 context::~context() {
-	m_Device.waitIdle();
+	if(auto res = m_Device.waitIdle(); !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical("Failed to wait for device idle: {}", vk::to_string(res));
+		std::abort();
+	}
 	deinit_descriptor_pool();
 	deinit_command_pool();
 	deinit_device();

@@ -24,9 +24,19 @@ auto to_num_string(T i) {
 	return conversion;
 }
 
+constexpr psl::ecs::entity_t::size_type to_entity_size_type(int64_t value) {
+	if(value < 0) {
+		throw std::invalid_argument("Negative value cannot be converted to entity_t::size_type");
+	}
+	if(value > std::numeric_limits<psl::ecs::entity_t::size_type>::max()) {
+		throw std::out_of_range("Value exceeds maximum limit for entity_t::size_type");
+	}
+	return static_cast<psl::ecs::entity_t::size_type>(value);
+}
+
 #ifdef BENCHMARK_ENTITY_CREATION
 void entity_creation(benchmark::State& gState) {
-	auto eCount = gState.range(0);
+	auto eCount = to_entity_size_type(gState.range(0));
 
 	ecs::state_t state;
 	for(auto _ : gState) {
@@ -38,7 +48,7 @@ void entity_creation(benchmark::State& gState) {
 }
 
 void entity_creation_with_destruction(benchmark::State& gState) {
-	auto eCount		= gState.range(0);
+	auto eCount		= to_entity_size_type(gState.range(0));
 	auto eHalfCount = static_cast<ecs::entity_t::size_type>(eCount / 2);
 
 	ecs::state_t state;
@@ -59,7 +69,7 @@ BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000
 
 #ifdef BENCHMARK_COMPONENT_CREATION
 void component_creation(benchmark::State& gState) {
-	auto eCount = gState.range(0);
+	auto eCount = to_entity_size_type( gState.range(0));
 	auto cCount = gState.range(1);
 	ecs::state_t state;
 	auto entities = state.create(eCount);
@@ -83,7 +93,7 @@ void component_creation(benchmark::State& gState) {
 
 void component_creation_args(benchmark::internal::Benchmark* b) {
 	for(int j = 1; j <= 5; ++j)
-		for(int i = 0; i <= 6; ++i) b->ArgPair(pow(10, i), j);
+		for(int i = 0; i <= 6; ++i) b->ArgPair((int64_t)pow(10, i), j);
 }
 BENCHMARK(component_creation)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
 #endif

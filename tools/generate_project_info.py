@@ -1,7 +1,7 @@
 from argparse import ArgumentParser
 import os
 import subprocess
-from datetime import datetime
+from datetime import datetime, UTC
 
 
 def run_git_command(command=[]):
@@ -54,7 +54,7 @@ def generate_header(
     major, minor, patch = version.split(".")
     sha1 = run_git_command(["rev-parse", "HEAD"]).rstrip()
     unix_timestamp = run_git_command(["log", "-1", "--pretty=format:%ct"])
-    utc_timestamp = datetime.utcfromtimestamp(int(unix_timestamp)).strftime(
+    utc_timestamp = datetime.fromtimestamp(int(unix_timestamp), UTC).strftime(
         "%Y-%m-%d %H:%M:%S"
     )
 
