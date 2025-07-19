@@ -69,7 +69,7 @@ BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000
 
 #ifdef BENCHMARK_COMPONENT_CREATION
 void component_creation(benchmark::State& gState) {
-	auto eCount = to_entity_size_type( gState.range(0));
+	auto eCount = to_entity_size_type(gState.range(0));
 	auto cCount = gState.range(1);
 	ecs::state_t state;
 	auto entities = state.create(eCount);
