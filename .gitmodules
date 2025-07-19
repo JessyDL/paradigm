@@ -6,7 +6,7 @@
 	url = https://github.com/gabime/spdlog.git
 [submodule "extern/gli"]
 	path = extern/gli
-	url = https://github.com/g-truc/gli.git
+	url = https://github.com/JessyDL/gli-fork.git
 [submodule "extern/litmus"]
 	path = extern/litmus
 	url = https://github.com/JessyDL/litmus.git
