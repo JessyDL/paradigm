@@ -105,8 +105,8 @@ class Paradigm(object):
         )
         build_arguments.add_argument(
             "--vulkan",
-            const="1.2.148",
-            default="1.2.148",
+            const="1.4.321",
+            default="1.4.321",
             nargs="?",
             help="vulkan version to use",
             dest="vk_version",
