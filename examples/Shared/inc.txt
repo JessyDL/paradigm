@@ -1,0 +1,7 @@
+SET(INC 
+cli_parser
+engine_instance
+)
+
+list(TRANSFORM INC APPEND .hpp)
+list(TRANSFORM INC PREPEND inc/examples/)
