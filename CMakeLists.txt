@@ -3,7 +3,7 @@ if(${CMAKE_SOURCE_DIR} STREQUAL ${CMAKE_BINARY_DIR})
     message(FATAL_ERROR "ERROR: detected an in-tree build. please create a sub-directory and invoke cmake from there, or a location outside the project.")
 endif()
 
-cmake_minimum_required(VERSION 3.16)
+cmake_minimum_required(VERSION 3.21)
 set(PE_NAME paradigm CACHE INTERNAL "")
 project(${PE_NAME} VERSION 1.0.0 LANGUAGES CXX C)
 set(CMAKE_MODULE_PATH ${CMAKE_MODULE_PATH} "${CMAKE_CURRENT_SOURCE_DIR}/cmake")
@@ -127,8 +127,7 @@ endif()
 if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidManifest.xml")
 	string(TOLOWER ${PE_ARCHITECTURE} PE_ARCHITECTURE_LOWER)
 
-	SET(Python_ADDITIONAL_VERSIONS 3 3.0)
-	find_package(PythonInterp REQUIRED)
+	find_package(Python3 REQUIRED)
 	set(ANDROID_PY_ARGS)
 	if(NOT ANDROID_SDK STREQUAL "")
 		list(APPEND --sdk "${ANDROID_SDK}" ANDROID_PY_ARGS)
@@ -143,14 +142,14 @@ if(PE_PLATFORM STREQUAL "ANDROID" AND NOT EXISTS "${CMAKE_SOURCE_DIR}/AndroidMan
 	string(TOLOWER ${CMAKE_BUILD_TYPE} build_type)
 	add_custom_target(paradigm_android_generate ALL)
 	add_custom_command(TARGET paradigm_android_generate
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
+		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
 			--output ${PE_BUILD_DIR}
 			${ANDROID_PY_ARGS}
 		USES_TERMINAL BYPRODUCTS ${PE_BUILD_DIR}/gradle.properties)
 
 	add_custom_target(paradigm_android_build ALL DEPENDS paradigm_android_generate)
 	add_custom_command(TARGET paradigm_android_build
-		COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
+		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tools/android.py
 			--output ${PE_BUILD_DIR}
 			--build gles ${PE_GLES} vulkan ${PE_VULKAN} vulkan.version ${PE_VULKAN_VERSION}
 			--type ${build_type}

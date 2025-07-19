@@ -3,8 +3,7 @@ include(src.txt)
 include(FetchContent)
 set(FETCHCONTENT_UPDATES_DISCONNECTED TRUE)
 
-SET(Python_ADDITIONAL_VERSIONS 3 3.6 3.5 3.4 3.3 3.2 3.1 3.0)
-find_package(PythonInterp REQUIRED)
+find_package(Python3 REQUIRED)
 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/inc" 	PREFIX "inc" FILES ${INC}) 
 source_group(TREE "${CMAKE_CURRENT_SOURCE_DIR}/gen" 	PREFIX "inc" FILES ${GEN}) 
@@ -24,72 +23,70 @@ endif()
 link_libraries(${WSI_LIB})
 
 if(PE_VULKAN)
-	FetchContent_Declare(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${PE_VULKAN_VERSION} GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-	FetchContent_GetProperties(vulkan)
-	if(NOT vulkan_POPULATED)
-		message(STATUS "fetching KhronosGroup/Vulkan-Headers...")
-		FetchContent_Populate(vulkan)
-		if(VK_STATIC)	
-			add_subdirectory(${vulkan_SOURCE_DIR} ${vulkan_BINARY_DIR})
-		endif()
-		message(STATUS "KhronosGroup/Vulkan-Headers fetched")
+	set(vulkan_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/vulkan-src")
+	set(vulkan_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/vulkan-build")
+
+	FetchContent_Populate(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${PE_VULKAN_VERSION} GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+
+	if(VK_STATIC)	
+		add_subdirectory(${vulkan_SOURCE_DIR} ${vulkan_BINARY_DIR})
 	endif()
 endif()
 
 if(PE_GLES)
 	if(PE_PLATFORM STREQUAL "WINDOWS")
-		FetchContent_Declare(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.36 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
-		FetchContent_GetProperties(glad)
-		if(NOT glad_POPULATED)
-			message(STATUS "fetching Dav1dde/glad...")
-			FetchContent_Populate(glad)
-			set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
+		set(glad_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/glad-src")
+		set(glad_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/glad-build")
+		FetchContent_Populate(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.36 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+
+		message(STATUS "fetching Dav1dde/glad...")
+		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
+		file(MAKE_DIRECTORY "${GL_INCLUDE_DIRS}")
 			
-			list(APPEND GL_SOURCES
-				"${GL_INCLUDE_DIRS}/src/glad.c"
-				"${GL_INCLUDE_DIRS}/include/glad/glad.h"
-			)
+		list(APPEND GL_SOURCES
+			"${GL_INCLUDE_DIRS}/src/glad.c"
+			"${GL_INCLUDE_DIRS}/include/glad/glad.h"
+		)
+		EXECUTE_PROCESS(
+			COMMAND ${Python3_EXECUTABLE} -m glad
+				--profile=core
+				--out-path=${GL_INCLUDE_DIRS}
+				--api=gles2=3.2
+				--generator=c
+				--extensions=GL_EXT_sRGB,GL_EXT_texture_buffer,GL_EXT_texture_compression_s3tc,GL_EXT_texture_compression_s3tc_srgb,GL_EXT_texture_filter_anisotropic,GL_EXT_texture_filter_minmax,GL_KHR_debug
+				--spec=gl
+				--reproducible
+			WORKING_DIRECTORY ${glad_SOURCE_DIR}
+		)
+		if(PE_SURFACE STREQUAL "WIN32")
 			EXECUTE_PROCESS(
-				COMMAND ${PYTHON_EXECUTABLE} -m glad
-					--profile=core
+				COMMAND ${Python3_EXECUTABLE} -m glad
 					--out-path=${GL_INCLUDE_DIRS}
-					--api=gles2=3.2
+					--api=wgl=1.0
 					--generator=c
-					--extensions=GL_EXT_sRGB,GL_EXT_texture_buffer,GL_EXT_texture_compression_s3tc,GL_EXT_texture_compression_s3tc_srgb,GL_EXT_texture_filter_anisotropic,GL_EXT_texture_filter_minmax,GL_KHR_debug
-					--spec=gl
+					--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
+					--spec=wgl
+					--omit-khrplatform
 					--reproducible
 				WORKING_DIRECTORY ${glad_SOURCE_DIR}
 			)
-			if(PE_SURFACE STREQUAL "WIN32")
-				EXECUTE_PROCESS(
-					COMMAND ${PYTHON_EXECUTABLE} -m glad
-						--out-path=${GL_INCLUDE_DIRS}
-						--api=wgl=1.0
-						--generator=c
-						--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
-						--spec=wgl
-						--omit-khrplatform
-						--reproducible
-					WORKING_DIRECTORY ${glad_SOURCE_DIR}
-				)
 			
-				list(APPEND GL_SOURCES
-					"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
-					"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
-				)				
-				set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" PROPERTIES LANGUAGE CXX)
-			endif()
-
-			add_library(gl ${GL_SOURCES})
-			set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
-			target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
-			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
-			set_property(TARGET gl PROPERTY FOLDER "extern")
-			
-			message(STATUS "Dav1dde/glad fetched")
-
-			list(APPEND PE_DL_LIBS gl)
+			list(APPEND GL_SOURCES
+				"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
+				"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
+			)				
+			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" PROPERTIES LANGUAGE CXX)
 		endif()
+
+		add_library(gl ${GL_SOURCES})
+		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
+		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
+		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
+		set_property(TARGET gl PROPERTY FOLDER "extern")
+			
+		message(STATUS "Dav1dde/glad fetched")
+
+		list(APPEND PE_DL_LIBS gl)
 	endif()
 	if(PE_PLATFORM STREQUAL "LINUX")
 		list(APPEND PE_DL_LIBS GLESv2 EGL)
@@ -97,13 +94,13 @@ if(PE_GLES)
 endif()
 
 add_custom_target(core_patcher
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
 	COMMENT "Patching build files")
 
 add_custom_target(core_generator)
-add_custom_command(TARGET core_generator
-	COMMAND ${PYTHON_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
+add_custom_command(TARGET core_generator PRE_BUILD
+	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
 	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/../tools/
 	BYPRODUCTS ${CMAKE_CURRENT_SOURCE_DIR}/gen/core/paradigm.hpp
 	COMMENT "Generating headers for Paradigm")
