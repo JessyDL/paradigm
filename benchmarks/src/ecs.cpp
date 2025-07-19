@@ -24,9 +24,24 @@ auto to_num_string(T i) {
 	return conversion;
 }
 
+template <typename T = size_t>
+constexpr T get_range(benchmark::State& gState, size_t pos = 0) {
+	static_assert(std::is_unsigned_v<T>, "T must be an unsigned type");
+
+	auto range = gState.range(pos);
+	if(range < 0) {
+		throw std::invalid_argument("Range must be positive");
+	}
+	if(static_cast<uint64_t>(range) > static_cast<uint64_t>(std::numeric_limits<T>::max())) {
+		throw std::out_of_range("Range exceeds maximum limit for unsigned int");
+	}
+
+	return static_cast<T>(range);
+}
+
 #ifdef BENCHMARK_ENTITY_CREATION
 void entity_creation(benchmark::State& gState) {
-	auto eCount = gState.range(0);
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
 
 	ecs::state_t state;
 	for(auto _ : gState) {
@@ -38,7 +53,7 @@ void entity_creation(benchmark::State& gState) {
 }
 
 void entity_creation_with_destruction(benchmark::State& gState) {
-	auto eCount		= gState.range(0);
+	auto eCount		= get_range<psl::ecs::entity_t::size_type>(gState, 0);
 	auto eHalfCount = static_cast<ecs::entity_t::size_type>(eCount / 2);
 
 	ecs::state_t state;
@@ -59,7 +74,7 @@ BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000
 
 #ifdef BENCHMARK_COMPONENT_CREATION
 void component_creation(benchmark::State& gState) {
-	auto eCount = gState.range(0);
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
 	auto cCount = gState.range(1);
 	ecs::state_t state;
 	auto entities = state.create(eCount);
@@ -83,7 +98,7 @@ void component_creation(benchmark::State& gState) {
 
 void component_creation_args(benchmark::internal::Benchmark* b) {
 	for(int j = 1; j <= 5; ++j)
-		for(int i = 0; i <= 6; ++i) b->ArgPair(pow(10, i), j);
+		for(int i = 0; i <= 6; ++i) b->ArgPair((int64_t)pow(10, i), j);
 }
 BENCHMARK(component_creation)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
 #endif
@@ -236,25 +251,25 @@ const std::vector<std::vector<entity_t::size_type>> system_counts {{10'000, 300,
 void trivial_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<full_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
+	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 void trivial_write_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<full_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
+	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 void trivial_read_only_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<partial_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
+	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 void trivial_write_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<partial_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[gState.range()]);
+	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 	#include "core/ecs/components/camera.hpp"
@@ -266,25 +281,25 @@ using namespace core::ecs::components;
 void complex_read_only_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<full_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
+	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 void complex_write_seq_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<full_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
+	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 void complex_read_only_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, read_only_system<partial_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
+	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 void complex_write_par_system(benchmark::State& gState) {
 	state_t state;
 	state.declare(threading::seq, write_system<partial_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[gState.range()]);
+	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
 }
 
 

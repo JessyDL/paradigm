@@ -75,7 +75,12 @@ buffer_t::buffer_t(core::resource::cache_t& cache,
 
 	vk::FenceCreateInfo fi;
 	fi.flags = vk::FenceCreateFlagBits::eSignaled;
-	m_Context->device().createFence(&fi, nullptr, &m_BufferCompleted);
+	if(auto res = m_Context->device().createFence(&fi, nullptr, &m_BufferCompleted);
+	   !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical(
+		  "could not create a fence for an ivk::buffer_t [UID: {}] reason: {}.", m_UID.to_string(), vk::to_string(res));
+		std::abort();
+	}
 
 	if(m_BufferDataHandle->region().allocator()->is_physically_backed()) {
 		for(const memory::segment& it : m_BufferDataHandle->segments()) {
@@ -410,7 +415,11 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 	// have been submitted and executed
 	core::utility::vulkan::check(m_CommandBuffer.begin(&cmdBufferBeginInfo));
 	m_CommandBuffer.copyBuffer(other.m_Buffer, m_Buffer, (uint32_t)copyRegions.size(), copyRegions.data());
-	m_CommandBuffer.end();
+	if(auto res = m_CommandBuffer.end(); !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical("could not end the command buffer for an ivk::buffer_t copy operation. Reason: {}",
+								 vk::to_string(res));
+		std::abort();
+	}
 
 	// Submit copies to the queue
 	vk::SubmitInfo copySubmitInfo;
@@ -420,7 +429,13 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 	core::profiler.scope_end(this);
 	core::utility::vulkan::check(queue.submit(1, &copySubmitInfo, m_BufferCompleted));
 	core::profiler.scope_begin("wait idle", this);
-	queue.waitIdle();
+	if(auto res = queue.waitIdle(); !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical(
+		  "could not wait for the queue to become idle after an ivk::buffer_t copy operation. "
+		  "Reason: {}",
+		  vk::to_string(res));
+		std::abort();
+	}
 	core::profiler.scope_end(this);
 
 	if(m_BufferDataHandle->memoryPropertyFlags() & core::gfx::memory_property::host_visible) {
@@ -516,7 +531,11 @@ bool buffer_t::set(const void* data,
 		m_CommandBuffer.updateBuffer(
 		  m_Buffer, it->dstOffset, it->size, (uint32_t*)(static_cast<const char*>(data) + it->srcOffset));
 	}
-	m_CommandBuffer.end();
+	if(auto res = m_CommandBuffer.end(); !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical("could not end the command buffer for an ivk::buffer_t update operation. Reason: {}",
+								 vk::to_string(res));
+		std::abort();
+	}
 
 	// Submit copies to the queue
 	vk::SubmitInfo copySubmitInfo;
@@ -537,7 +556,15 @@ bool buffer_t::is_busy() const {
 void buffer_t::wait_until_ready(uint64_t timeout) const {
 	PROFILE_SCOPE(core::profiler)
 	if(is_busy()) {
-		m_Context->device().waitForFences(m_BufferCompleted, VK_TRUE, timeout);
+		if(auto res = m_Context->device().waitForFences(m_BufferCompleted, VK_TRUE, timeout);
+		   !core::utility::vulkan::check(res)) {
+			core::ivk::log->critical(
+			  "could not wait for the fence of an ivk::buffer_t [UID: {}] to become ready. "
+			  "Reason: {}",
+			  m_UID.to_string(),
+			  vk::to_string(res));
+			std::abort();
+		}
 	}
 }
 

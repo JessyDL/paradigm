@@ -8,15 +8,8 @@ FetchContent_Declare(
   GIT_TAG        fix/win32_unicode_support
 )
 
-FetchContent_GetProperties(google_benchmark)
-if(NOT google_benchmark_POPULATED)
-  message(STATUS "fetching google/benchmark...")
-  set(BENCHMARK_ENABLE_TESTING OFF)
-  FetchContent_Populate(google_benchmark)
-  add_subdirectory(${google_benchmark_SOURCE_DIR} ${google_benchmark_BINARY_DIR})
-  message(STATUS "google/benchmark fetched")
-endif()
-
+set(BENCHMARK_ENABLE_TESTING OFF)
+FetchContent_MakeAvailable(google_benchmark)
 
 set_property(TARGET benchmark PROPERTY FOLDER "extern")
 set_property(TARGET benchmark_main PROPERTY FOLDER "extern")
@@ -42,5 +35,5 @@ target_include_directories(benchmarks
 		${CMAKE_CURRENT_SOURCE_DIR}/inc
 )
 
-target_compile_features(benchmarks PUBLIC ${PROJECT_COMPILER_FEATURES} PRIVATE ${PROJECT_COMPILER_FEATURES_PRIVATE})
-target_compile_options(benchmarks PRIVATE ${COMPILE_OPTIONS} ${COMPILE_OPTIONS_EXE})
+target_compile_features(benchmarks PUBLIC ${PE_COMPILER_FEATURES} PRIVATE ${PE_COMPILER_FEATURES_PRIVATE})
+target_compile_options(benchmarks PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})

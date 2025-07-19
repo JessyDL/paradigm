@@ -102,7 +102,10 @@ bool drawpass::build() {
 	LOG_INFO("Rebuilding Command Buffers");
 	m_LastBuildFrame = m_FrameCount;
 
-	m_Context->device().waitIdle();
+	if(auto res = m_Context->device().waitIdle(); !core::utility::vulkan::check(res)) {
+		core::ivk::log->critical("Failed to wait for device idle, error: {}", vk::to_string(res));
+		std::abort();
+	}
 	m_Context->device().freeCommandBuffers(
 	  m_Context->command_pool(), (uint32_t)m_DrawCommandBuffers.size(), m_DrawCommandBuffers.data());
 
@@ -139,7 +142,10 @@ bool drawpass::build() {
 	}
 	bool success = false;
 	for(size_t i = 0; i < m_DrawCommandBuffers.size(); ++i) {
-		m_Context->device().waitIdle();
+		if(auto res = m_Context->device().waitIdle(); !core::utility::vulkan::check(res)) {
+			core::ivk::log->critical("Failed to wait for device idle, error: {}", vk::to_string(res));
+			std::abort();
+		}
 		if(!core::utility::vulkan::check(m_DrawCommandBuffers[i].begin(cmdBufInfo)))
 			throw new std::runtime_error("Critical issue");
 

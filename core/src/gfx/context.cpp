@@ -78,7 +78,10 @@ const core::gfx::limits& context::limits() const noexcept {
 void context::wait_idle() {
 #ifdef PE_VULKAN
 	if(m_VKHandle) {
-		m_VKHandle->device().waitIdle();
+		if(auto res = m_VKHandle->device().waitIdle(); !core::utility::vulkan::check(res)) {
+			core::ivk::log->critical("Failed to wait for the device to become idle, reason: {}", vk::to_string(res));
+			std::abort();
+		}
 		return;
 	}
 #endif
