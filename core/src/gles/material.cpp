@@ -1,6 +1,7 @@
 #include "core/gles/material.hpp"
 #include "core/data/buffer.hpp"
 #include "core/data/material.hpp"
+#include "core/data/sampler.hpp"
 #include "core/gles/buffer.hpp"
 #include "core/gles/conversion.hpp"
 #include "core/gles/program.hpp"
@@ -9,6 +10,7 @@
 #include "core/gles/shader.hpp"
 #include "core/gles/texture.hpp"
 #include "core/meta/shader.hpp"
+#include "core/meta/texture.hpp"
 
 #include "core/gles/igles.hpp"
 #include "core/logging.hpp"
@@ -28,6 +30,10 @@ material_t::material_t(core::resource::cache_t& cache,
 					   handle<data::material_t> data,
 					   core::resource::handle<core::igles::program_cache> program_cache)
 	: m_Data(data) {
+	// todo(jdl): this API could be improved by never using the material data as the final say
+	// for the UID bindings, but instead pull the UID/Tag in from the data and resolve in here.
+	m_Data->resolve_tags(cache.library());
+
 	for(auto& stage : data->stages()) {
 		auto shader_handle = cache.find<core::igles::shader>(stage.shader());
 		if(!shader_handle) {
@@ -58,8 +64,20 @@ material_t::material_t(core::resource::cache_t& cache,
 			case core::gfx::binding_type::combined_image_sampler: {
 				auto binding_slot = glGetUniformLocation(m_Program->id(), meta->descriptors()[index].name().data());
 
+				if(!binding.sampler()) {
+					core::igles::log->error(
+					  "igles::material_t [{0}] uses a combined image sampler in shader [{1}] that does not have a "
+					  "sampler bound.",
+					  psl::utility::to_string(metaData.uid),
+					  psl::utility::to_string(stage.shader()));
+					return;
+				}
 				if(auto sampler_handle = cache.find<core::igles::sampler_t>(binding.sampler()); sampler_handle) {
 					m_Samplers.push_back(std::make_pair(binding_slot, sampler_handle));
+				} else if(cache.library().contains(binding.sampler())) {
+					auto sampler_data = cache.instantiate<core::data::sampler_t>(binding.sampler());
+					m_Samplers.push_back(std::make_pair(
+					  binding_slot, cache.create_using<core::igles::sampler_t>(binding.sampler(), sampler_data)));
 				} else {
 					core::igles::log->error(
 					  "igles::material_t [{0}] uses a sampler [{1}] in shader [{2}] that cannot be found in the "
@@ -70,8 +88,18 @@ material_t::material_t(core::resource::cache_t& cache,
 					  psl::utility::to_string(stage.shader()));
 					return;
 				}
-				if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle) {
+				if(!binding.texture()) {
+					core::igles::log->error(
+					  "igles::material_t [{0}] uses a combined image sampler in shader [{1}] that does not have a "
+					  "texture bound.",
+					  psl::utility::to_string(metaData.uid),
+					  psl::utility::to_string(stage.shader()));
+					return;
+				} else if(auto texture_handle = cache.find<core::igles::texture_t>(binding.texture()); texture_handle) {
 					m_Textures.push_back(std::make_pair(binding_slot, texture_handle));
+				} else if(cache.library().contains(binding.texture())) {
+					m_Textures.push_back(
+					  std::make_pair(binding_slot, cache.instantiate<core::igles::texture_t>(binding.texture())));
 				} else {
 					core::igles::log->error(
 					  "igles::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "

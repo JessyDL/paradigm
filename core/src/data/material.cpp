@@ -150,6 +150,15 @@ const UID& material_t::stage::shader() const noexcept {
 const psl::array<material_t::binding>& material_t::stage::bindings() const noexcept {
 	return m_Bindings.value;
 }
+material_t::binding* material_t::stage::get(uint32_t binding_slot) noexcept {
+	auto it = std::find_if(std::begin(m_Bindings.value),
+						   std::end(m_Bindings.value),
+						   [binding_slot](const binding& element) { return element.binding_slot() == binding_slot; });
+	if(it != std::end(m_Bindings.value)) {
+		return &(*it);
+	}
+	return nullptr;
+}
 
 void material_t::stage::shader(core::gfx::shader_stage stage, const UID& value) noexcept {
 	m_Stage.value  = stage;
@@ -210,7 +219,15 @@ bool material_t::depth_write() const {
 bool material_t::wireframe() const {
 	return m_Wireframe.value;
 }
-
+material_t::stage* material_t::get(core::gfx::shader_stage shader_stage) noexcept {
+	auto it = std::find_if(std::begin(m_Stage.value), std::end(m_Stage.value), [&shader_stage](const stage& element) {
+		return element.shader_stage() == shader_stage;
+	});
+	if(it != std::end(m_Stage.value)) {
+		return &(*it);
+	}
+	return nullptr;
+}
 void material_t::stages(const psl::array<stage>& values) {
 	m_Stage.value = values;
 }
@@ -282,6 +299,27 @@ void material_t::undefine(psl::string8::view value) {
 	auto it = std::find(std::begin(m_Defines.value), std::end(m_Defines.value), value);
 	if(it == std::end(m_Defines.value))
 		m_Defines.value.erase(it);
+}
+
+void material_t::binding::resolve_tags(const psl::meta::library& library) noexcept {
+	if(!m_UIDTag.empty() && !m_UID) {
+		m_UID = library.find(m_UIDTag).value_or(m_UID);
+	}
+	if(!m_SamplerUIDTag.empty() && !m_SamplerUID) {
+		m_SamplerUID = library.find(m_SamplerUIDTag).value_or(m_SamplerUID);
+	}
+	if(!m_BufferTag.empty() && !m_Buffer) {
+		m_Buffer = library.find(m_BufferTag).value_or(m_Buffer);
+	}
+}
+
+void material_t::resolve_tags(const psl::meta::library& library) noexcept {
+	psl::array<stage>& stages = m_Stage.value;
+	for(auto& stage : stages) {
+		for(auto& binding : stage.m_Bindings.value) {
+			binding.resolve_tags(library);
+		}
+	}
 }
 
 void material_t::from_shaders(const psl::meta::library& library, psl::array<core::meta::shader*> shaderMetas) {
