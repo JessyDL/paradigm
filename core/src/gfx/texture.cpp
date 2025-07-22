@@ -1,4 +1,5 @@
 #include "core/gfx/texture.hpp"
+#include "core/gfx/buffer.hpp"
 #include "core/gfx/context.hpp"
 #include "core/meta/texture.hpp"
 
@@ -26,13 +27,16 @@ texture_t::texture_t(core::resource::handle<core::igles::texture_t>& handle)
 texture_t::texture_t(core::resource::cache_t& cache,
 					 const core::resource::metadata& metaData,
 					 core::meta::texture_t* metaFile,
-					 core::resource::handle<core::gfx::context> context)
+					 core::resource::handle<core::gfx::context> context,
+					 core::resource::handle<core::gfx::buffer_t> staging)
 	: m_Backend(context->backend()) {
 	switch(m_Backend) {
 #ifdef PE_VULKAN
 	case graphics_backend::vulkan:
-		m_VKHandle =
-		  cache.create_using<core::ivk::texture_t>(metaData.uid, context->resource<graphics_backend::vulkan>());
+		m_VKHandle = cache.create_using<core::ivk::texture_t>(metaData.uid,
+															  context->resource<graphics_backend::vulkan>(),
+															  staging ? staging->resource<graphics_backend::vulkan>()
+																	  : core::resource::handle<core::ivk::buffer_t> {});
 		break;
 #endif
 #ifdef PE_GLES
