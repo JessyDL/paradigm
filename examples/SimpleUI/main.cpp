@@ -10,6 +10,7 @@
 
 #include "core/data/geometry.hpp"
 #include "core/data/material.hpp"
+#include "core/data/sampler.hpp"
 #include "core/ecs/components/camera.hpp"
 #include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
@@ -19,11 +20,14 @@
 #include "core/gfx/geometry.hpp"
 #include "core/gfx/material.hpp"
 #include "core/gfx/pipeline_cache.hpp"
+#include "core/gfx/sampler.hpp"
 #include "core/gfx/shader.hpp"
 #include "core/gfx/swapchain.hpp"
+#include "core/gfx/texture.hpp"
 #include "core/gfx/types.hpp"
 #include "core/logging.hpp"
 #include "core/meta/shader.hpp"
+#include "core/meta/texture.hpp"
 #include "core/os/context.hpp"
 #include "core/resource/resource.hpp"
 
@@ -32,7 +36,7 @@
 
 int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context> os_context) {
 	engine_instance_t::options_t options {};
-	options.backend = backend;
+	options.backend			 = backend;
 	options.application_name = "SimpleUI Example";
 	engine_instance_t engine_instance {options, std::move(os_context)};
 
@@ -40,20 +44,27 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	{
 		core::vertex_stream_t vertexStream {core::vertex_stream_t::type::vec3};
 		core::vertex_stream_t colorStream {core::vertex_stream_t::type::vec3};
+		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
 
 		auto& vertices = vertexStream.get<core::vertex_stream_t::type::vec3>();
 		auto& colors   = colorStream.get<core::vertex_stream_t::type::vec3>();
+		auto& uvs	   = uvStream.get<core::vertex_stream_t::type::vec2>();
 
 		vertices.emplace_back(psl::vec3 {-0.5f, -0.5f, 0.0f});
 		vertices.emplace_back(psl::vec3 {+0.0f, +0.5f, 0.0f});
 		vertices.emplace_back(psl::vec3 {+0.5f, -0.5f, 0.0f});
 
-		colors.emplace_back(psl::vec3 {1.0f, 0.0f, 0.0f});
-		colors.emplace_back(psl::vec3 {0.0f, 1.0f, 0.0f});
-		colors.emplace_back(psl::vec3 {0.0f, 0.0f, 1.0f});
+		colors.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
+		colors.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
+		colors.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
+
+		uvs.emplace_back(psl::vec2 {0.0f, 0.0f});
+		uvs.emplace_back(psl::vec2 {0.5f, 1.0f});
+		uvs.emplace_back(psl::vec2 {1.0f, 0.0f});
 
 		triangleGeomData->vertices(core::data::geometry_t::constants::POSITION, vertexStream);
 		triangleGeomData->vertices(core::data::geometry_t::constants::COLOR, colorStream);
+		triangleGeomData->vertices(core::data::geometry_t::constants::TEX, uvStream);
 
 		triangleGeomData->indices(std::vector<uint32_t> {0, 1, 2});
 	}
@@ -62,17 +73,17 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 
 	auto pipeline_cache = engine_instance.cache().create<core::gfx::pipeline_cache>(engine_instance.context());
 
-	auto const uid_vert_shader = "ef43c833-9503-c1e4-e5c0-055770a13282"_uid;	// ./shaders/color.vert.*
-	auto const uid_frag_shader = "1241e0fa-4602-74f8-c136-a7bd5f2d79a5"_uid;	// ./shaders/color.frag.*
+	auto const uid_vert_shader = "1a4cf9b4-7328-9094-49db-de4e439fd692"_uid;	// ./shaders/textured.vert.*
+	auto const uid_frag_shader = "5d42c614-b31a-9057-331b-2b43bb023f9f"_uid;	// ./shaders/textured.frag.*
 	auto vertShaderMeta = engine_instance.cache().library().get<core::meta::shader>(uid_vert_shader).value_or(nullptr);
 	auto fragShaderMeta = engine_instance.cache().library().get<core::meta::shader>(uid_frag_shader).value_or(nullptr);
 
 	psl_assert(vertShaderMeta != nullptr && fragShaderMeta != nullptr,
 			   "Missing vert/frag shaders. If this happens then you are missing the resources, they should be deployed "
 			   "with the binary.");
+	auto const uid_material = "5945a26d-c0e0-01a9-ce85-0b6bced962b5"_uid;	 // ./materials/textured.mat
 
-	auto matData = engine_instance.cache().create<core::data::material_t>();
-	matData->from_shaders(engine_instance.cache().library(), {vertShaderMeta, fragShaderMeta});
+	auto matData = engine_instance.cache().instantiate<core::data::material_t>(uid_material);
 	auto material = engine_instance.cache().create<core::gfx::material_t>(
 	  engine_instance.context(), matData, pipeline_cache, engine_instance.instance_material_buffer());
 

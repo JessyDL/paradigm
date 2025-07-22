@@ -1,0 +1,38 @@
+#version 310 es
+
+struct FrameData
+{
+    mat4 clipMatrix;
+    mat4 projectionMatrix;
+    mat4 modelMatrix;
+    mat4 viewMatrix;
+    mat4 WVP;
+    mat4 VP;
+    vec4 ScreenParams;
+    vec4 GameTimer;
+    vec4 Parameters;
+    vec4 FogColor;
+    vec4 viewPos;
+    vec4 viewDir;
+};
+
+layout(binding = 0, std140) uniform GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX
+{
+    FrameData data;
+} ubo;
+
+layout(location = 1) out vec2 vsTex;
+layout(location = 2) in vec2 iTex;
+layout(location = 0) out vec3 vsCol;
+layout(location = 1) in vec3 iCol;
+layout(location = 4) in mat4 INSTANCE_TRANSFORM;
+layout(location = 0) in vec3 iPos;
+
+void main()
+{
+    vsTex = iTex;
+    vsCol = iCol;
+    vec3 position = ((ubo.data.modelMatrix * INSTANCE_TRANSFORM) * vec4(iPos, 1.0)).xyz;
+    gl_Position = ubo.data.WVP * vec4(position, 1.0);
+}
+

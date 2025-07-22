@@ -1,0 +1,15 @@
+#version 310 es
+precision mediump float;
+precision highp int;
+
+layout(binding = 1) uniform highp sampler2D uTexture;
+
+layout(location = 0) out highp vec4 fsCol;
+layout(location = 0) in highp vec3 vsCol;
+layout(location = 1) in highp vec2 vsTex;
+
+void main()
+{
+    fsCol = vec4(vsCol * texture(uTexture, vsTex).xyz, 1.0);
+}
+
