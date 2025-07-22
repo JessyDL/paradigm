@@ -36,7 +36,7 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	options.window_title	 = format_string(options.window_title, options.application_name);
 
 	psl::string8_t environment = core::gfx::graphics_backend_str(m_Backend);
-	
+
 	m_MemoryRegion = std::make_unique<memory::region>(options.cpu_backed_memory_region.size,
 													  options.cpu_backed_memory_region.alignment,
 													  new memory::default_allocator());
@@ -60,7 +60,6 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	auto& renderGraph = *m_RenderGraph;
 	m_Swapchain		  = renderGraph.create_drawpass(m_ContextHandle, swapchain_handle);
 
-	core::resource::handle<core::gfx::buffer_t> stagingBuffer {};
 	{
 		core::log->info("Creating a staging buffer");
 		if(m_Backend == core::gfx::graphics_backend::vulkan) {
@@ -69,7 +68,7 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 			  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
 			  memory::region {
 				options.staging_buffer.size, options.staging_buffer.alignment, new memory::default_allocator(false)});
-			stagingBuffer = cache.create<core::gfx::buffer_t>(m_ContextHandle, stagingBufferData);
+			m_StagingBufferHandle = cache.create<core::gfx::buffer_t>(m_ContextHandle, stagingBufferData);
 		}
 		core::log->info("Staging buffer created");
 	}
@@ -78,13 +77,13 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	  core::gfx::memory_property::device_local,
 	  memory::region {
 		options.vertex_buffer.size, options.vertex_buffer.alignment, new memory::default_allocator(false)});
-	m_VertexBufferHandle = cache.create<core::gfx::buffer_t>(m_ContextHandle, vertexBufferData, stagingBuffer);
+	m_VertexBufferHandle = cache.create<core::gfx::buffer_t>(m_ContextHandle, vertexBufferData, m_StagingBufferHandle);
 
 	auto indexBufferData = cache.create<core::data::buffer_t>(
 	  core::gfx::memory_usage::index_buffer | core::gfx::memory_usage::transfer_destination,
 	  core::gfx::memory_property::device_local,
 	  memory::region {options.index_buffer.size, options.index_buffer.alignment, new memory::default_allocator(false)});
-	m_IndexBufferHandle = cache.create<core::gfx::buffer_t>(m_ContextHandle, indexBufferData, stagingBuffer);
+	m_IndexBufferHandle = cache.create<core::gfx::buffer_t>(m_ContextHandle, indexBufferData, m_StagingBufferHandle);
 
 	auto const uniform_buffer_align = m_ContextHandle->limits().uniform.alignment;
 
@@ -93,7 +92,8 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	  core::gfx::memory_property::device_local,
 	  memory::region {
 		options.instance_buffer.size, options.instance_buffer.alignment, new memory::default_allocator(false)});
-	m_InstanceBufferHandle = cache.create<core::gfx::buffer_t>(m_ContextHandle, instanceBufferData, stagingBuffer);
+	m_InstanceBufferHandle =
+	  cache.create<core::gfx::buffer_t>(m_ContextHandle, instanceBufferData, m_StagingBufferHandle);
 
 	auto instanceMaterialBufferData = cache.create<core::data::buffer_t>(
 	  core::gfx::memory_usage::uniform_buffer | core::gfx::memory_usage::transfer_destination,
@@ -101,7 +101,7 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	  memory::region {
 		options.instance_material_buffer.size, uniform_buffer_align, new memory::default_allocator(false)});
 	m_InstanceMaterialBufferHandle =
-	  cache.create<core::gfx::buffer_t>(m_ContextHandle, instanceMaterialBufferData, stagingBuffer);
+	  cache.create<core::gfx::buffer_t>(m_ContextHandle, instanceMaterialBufferData, m_StagingBufferHandle);
 	m_InstanceMaterialBindingHandle = cache.create<core::gfx::shader_buffer_binding>(
 	  m_InstanceMaterialBufferHandle, options.instance_material_binding.size);
 	cache.library().set(m_InstanceMaterialBindingHandle.uid(), core::data::material_t::MATERIAL_DATA);
