@@ -119,13 +119,24 @@ class cache_t {
 	cache_t& operator=(const cache_t& other) = delete;
 	cache_t& operator=(cache_t&& other)		 = default;
 
+	/// \brief returns a handle to a resource of the given type using the resource UID from the library.
+	/// \tparam T the type of resource to instantiate
+	/// \param resource_uid the UID of the resource to instantiate
+	/// \param args the arguments to pass to the resource constructor
+	/// \details This function will create a new resource of type T using the resource UID from the library.
+	/// if the resource is not found in the library, it will log an error and return an empty handle.
+	/// this method should be used when trying to load instances that might exist in memory, or when the resource
+	/// exists on disk.
 	template <typename T, typename... Args>
 	handle<T> instantiate(const psl::UID& resource_uid, Args&&... args) {
 		return instantiate_using<T>(psl::UID::generate(), resource_uid, std::forward<Args>(args)...);
 	}
+
+	/// \brief same as `instantiate`, but allows you to specify the UID of the handle that will be created.
+	/// \see instantiate for more details.
 	template <typename T, typename... Args>
 	handle<T> instantiate_using(const psl::UID& uid, const psl::UID& resource_uid, Args&&... args) {
-		using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
+		using value_type   = std::remove_cvref_t<T>;
 		using meta_type	   = typename resource_traits<T>::meta_type;
 		constexpr auto key = details::key_for<value_type>();
 		if(auto it = m_Deleters.find(key); it == std::end(m_Deleters)) {
@@ -180,15 +191,19 @@ class cache_t {
 		return {descr.resource, this, &descr.metaData, data.metaFile};
 	}
 
+	/// \brief creates a new resource of type T
+	/// \details unlike the `instantiate` method, this method will create a new resource from scratch,
+	/// meaning no lookup will happen in the library.
 	template <typename T, typename... Args>
 	handle<T> create(Args&&... args) {
 		return create_using<T>(psl::UID::generate(), std::forward<Args>(args)...);
 	}
 
-
+	/// \brief same as `create`, but allows you to specify the UID of the handle that will be created.
+	/// \see create for more details.
 	template <typename T, typename... Args>
 	handle<T> create_using(const psl::UID& uid, Args&&... args) {
-		using value_type   = std::remove_cv_t<std::remove_const_t<T>>;
+		using value_type   = std::remove_cvref_t<T>;
 		using meta_type	   = typename resource_traits<T>::meta_type;
 		constexpr auto key = details::key_for<value_type>();
 		if(auto it = m_Deleters.find(key); it == std::end(m_Deleters)) {
@@ -197,6 +212,8 @@ class cache_t {
 		}
 
 		auto& data = m_Cache[uid];
+
+		// if no pre-existing meta file is present in the library we will create a new one.
 		if(data.metaFile == nullptr) {
 			data.metaFile = static_cast<psl::meta::file*>(&m_Library.create<meta_type>(uid).second);
 		}
