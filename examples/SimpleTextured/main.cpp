@@ -1,6 +1,7 @@
 
 
-// This example demonstrates creating a simple UI, with control buttons and widgets.
+// This example demonstrates creating a simple textured object, it will load everything from data files
+// and will let the engine handle loading most of the resources aside from the material and geometry.
 // Do note that this example will not fully explain every concept, it is assumed you have a basic understanding of
 // certain rendering concepts, and some knowledge of threading and ECS.
 
@@ -10,7 +11,6 @@
 
 #include "core/data/geometry.hpp"
 #include "core/data/material.hpp"
-#include "core/data/sampler.hpp"
 #include "core/ecs/components/camera.hpp"
 #include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
@@ -20,14 +20,8 @@
 #include "core/gfx/geometry.hpp"
 #include "core/gfx/material.hpp"
 #include "core/gfx/pipeline_cache.hpp"
-#include "core/gfx/sampler.hpp"
-#include "core/gfx/shader.hpp"
-#include "core/gfx/swapchain.hpp"
-#include "core/gfx/texture.hpp"
 #include "core/gfx/types.hpp"
 #include "core/logging.hpp"
-#include "core/meta/shader.hpp"
-#include "core/meta/texture.hpp"
 #include "core/os/context.hpp"
 #include "core/resource/resource.hpp"
 
@@ -37,29 +31,25 @@
 int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context> os_context) {
 	engine_instance_t::options_t options {};
 	options.backend			 = backend;
-	options.application_name = "SimpleUI Example";
+	options.application_name = "SimpleTextured Example";
 	engine_instance_t engine_instance {options, std::move(os_context)};
 
-	auto triangleGeomData = engine_instance.cache().instantiate<core::data::geometry_t>("ea40568b-7009-208b-de85-3168f4b0d1af"_uid);
+	// We instantiate a geometry resource from a data file, we use the `instantiate` method so this resource is
+	// loaded from disk, and keeps the UID intact (for shared resources).
+	auto triangleGeomData =
+	  engine_instance.cache().instantiate<core::data::geometry_t>("ea40568b-7009-208b-de85-3168f4b0d1af"_uid);
 	auto triangleGeometryResource = engine_instance.cache().create<core::gfx::geometry_t>(
 	  engine_instance.context(), triangleGeomData, engine_instance.vertex_buffer(), engine_instance.index_buffer());
 
 	auto pipeline_cache = engine_instance.cache().create<core::gfx::pipeline_cache>(engine_instance.context());
 
-	auto const uid_vert_shader = "1a4cf9b4-7328-9094-49db-de4e439fd692"_uid;	// ./shaders/textured.vert.*
-	auto const uid_frag_shader = "5d42c614-b31a-9057-331b-2b43bb023f9f"_uid;	// ./shaders/textured.frag.*
-	auto vertShaderMeta = engine_instance.cache().library().get<core::meta::shader>(uid_vert_shader).value_or(nullptr);
-	auto fragShaderMeta = engine_instance.cache().library().get<core::meta::shader>(uid_frag_shader).value_or(nullptr);
-
-	psl_assert(vertShaderMeta != nullptr && fragShaderMeta != nullptr,
-			   "Missing vert/frag shaders. If this happens then you are missing the resources, they should be deployed "
-			   "with the binary.");
-	auto const uid_material = "5945a26d-c0e0-01a9-ce85-0b6bced962b5"_uid;	 // ./materials/textured.mat
-
-	auto matData  = engine_instance.cache().instantiate<core::data::material_t>(uid_material);
+	// The material is also loaded from a data file
+	// In this case the material will automatically load the shaders, textures, and samplers referenced in the
+	// data file when the material instance (not data) is created.
+	auto matData =
+	  engine_instance.cache().instantiate<core::data::material_t>("5945a26d-c0e0-01a9-ce85-0b6bced962b5"_uid);
 	auto material = engine_instance.cache().create<core::gfx::material_t>(
 	  engine_instance.context(), matData, pipeline_cache, engine_instance.instance_material_buffer());
-
 
 	auto bundle = engine_instance.cache().create<core::gfx::bundle>(engine_instance.instance_buffer(),
 																	engine_instance.instance_material_binding());
