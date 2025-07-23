@@ -40,34 +40,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	options.application_name = "SimpleUI Example";
 	engine_instance_t engine_instance {options, std::move(os_context)};
 
-	auto triangleGeomData = engine_instance.cache().create<core::data::geometry_t>();
-	{
-		core::vertex_stream_t vertexStream {core::vertex_stream_t::type::vec3};
-		core::vertex_stream_t colorStream {core::vertex_stream_t::type::vec3};
-		core::vertex_stream_t uvStream {core::vertex_stream_t::type::vec2};
-
-		auto& vertices = vertexStream.get<core::vertex_stream_t::type::vec3>();
-		auto& colors   = colorStream.get<core::vertex_stream_t::type::vec3>();
-		auto& uvs	   = uvStream.get<core::vertex_stream_t::type::vec2>();
-
-		vertices.emplace_back(psl::vec3 {-0.5f, -0.5f, 0.0f});
-		vertices.emplace_back(psl::vec3 {+0.0f, +0.5f, 0.0f});
-		vertices.emplace_back(psl::vec3 {+0.5f, -0.5f, 0.0f});
-
-		colors.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
-		colors.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
-		colors.emplace_back(psl::vec3 {1.0f, 1.0f, 1.0f});
-
-		uvs.emplace_back(psl::vec2 {0.0f, 0.0f});
-		uvs.emplace_back(psl::vec2 {0.5f, 1.0f});
-		uvs.emplace_back(psl::vec2 {1.0f, 0.0f});
-
-		triangleGeomData->vertices(core::data::geometry_t::constants::POSITION, vertexStream);
-		triangleGeomData->vertices(core::data::geometry_t::constants::COLOR, colorStream);
-		triangleGeomData->vertices(core::data::geometry_t::constants::TEX, uvStream);
-
-		triangleGeomData->indices(std::vector<uint32_t> {0, 1, 2});
-	}
+	auto triangleGeomData = engine_instance.cache().instantiate<core::data::geometry_t>("ea40568b-7009-208b-de85-3168f4b0d1af"_uid);
 	auto triangleGeometryResource = engine_instance.cache().create<core::gfx::geometry_t>(
 	  engine_instance.context(), triangleGeomData, engine_instance.vertex_buffer(), engine_instance.index_buffer());
 
@@ -83,7 +56,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 			   "with the binary.");
 	auto const uid_material = "5945a26d-c0e0-01a9-ce85-0b6bced962b5"_uid;	 // ./materials/textured.mat
 
-	auto matData = engine_instance.cache().instantiate<core::data::material_t>(uid_material);
+	auto matData  = engine_instance.cache().instantiate<core::data::material_t>(uid_material);
 	auto material = engine_instance.cache().create<core::gfx::material_t>(
 	  engine_instance.context(), matData, pipeline_cache, engine_instance.instance_material_buffer());
 

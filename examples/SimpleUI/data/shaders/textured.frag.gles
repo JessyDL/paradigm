@@ -10,6 +10,6 @@ layout(location = 1) in highp vec2 vsTex;
 
 void main()
 {
-    fsCol = vec4(vsCol * texture(uTexture, vsTex).xyz, 1.0);
+    fsCol = vec4(vsCol, 1.0) * texture(uTexture, vsTex);
 }
 
