@@ -261,12 +261,8 @@ class vertex_stream_t {
 			psl::serialization::property<"TYPE", type> type;
 			serializer << type;
 			init(type);
-			std::visit(
-			  [&serializer](auto& value) {
-				  psl::serialization::property<"DATA", psl::array<typename decltype(value)::unit_t>&> data;
-				  serializer << data;
-			  },
-			  m_Stream);
+			std::visit([&serializer]<typename T>(T& value) { serializer.template parse<"DATA">(value.value()); },
+					   m_Stream);
 		} else	  // storing to disk
 		{
 			std::visit(

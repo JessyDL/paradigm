@@ -1,0 +1,7 @@
+SET(SRC
+	main
+	engine_instance
+)
+
+list(TRANSFORM SRC APPEND .cpp)
+list(TRANSFORM SRC PREPEND src/)

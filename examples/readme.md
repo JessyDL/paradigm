@@ -11,3 +11,7 @@ This is the simplest example, showing how to create a window and render a single
 In this example, we render a single triangle to the screen. We handwave the library's initialization and focus entirely on the triangle being rendered. If you skip the [HelloScreen](#HelloScreen) example, you might be missing some context on how the library is initialized.
 
 The end result of running this example should be a single triangle, where each point is a different color (red, green, and blue).
+
+## SimpleTextured
+
+Showcases how to load the most minimal set of resources you need to render a textured triangle. It loads a material file, and a geometry file, which references shaders, textures, and a sampler.

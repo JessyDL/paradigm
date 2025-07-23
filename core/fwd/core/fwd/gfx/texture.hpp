@@ -17,6 +17,7 @@ class texture_t;
 
 namespace core::gfx {
 class texture_t;
+class buffer_t;
 
 #ifdef PE_VULKAN
 template <>

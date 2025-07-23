@@ -1,8 +1,10 @@
 #include "core/vk/material.hpp"
 #include "core/data/buffer.hpp"
 #include "core/data/material.hpp"
+#include "core/data/sampler.hpp"
 #include "core/logging.hpp"
 #include "core/meta/shader.hpp"
+#include "core/meta/texture.hpp"
 #include "core/vk/buffer.hpp"
 #include "core/vk/context.hpp"
 #include "core/vk/conversion.hpp"
@@ -34,6 +36,10 @@ material_t::material_t(core::resource::cache_t& cache,
 	const auto& ID = m_UID;
 	m_IsValid	   = false;
 
+	// todo(jdl): this API could be improved by never using the material data as the final say
+	// for the UID bindings, but instead pull the UID/Tag in from the data and resolve in here.
+	m_Data->resolve_tags(cache.library());
+
 
 	for(const auto& stage : m_Data->stages()) {
 		auto shader_handle = cache.find<core::ivk::shader>(stage.shader());
@@ -54,11 +60,28 @@ material_t::material_t(core::resource::cache_t& cache,
 		m_Shaders.push_back(shader_handle);
 
 		// now we validate the shader, and store all the bound resource handles
+		// per descriptor we will check the binding resources and see if the cache has the necessary resources
+		// if not we will attempt to create them if the library contains the resource (for disk-based assets)
+		// and otherwise we will error out
+		// todo(jdl): we should have fallback materials for this
 		for(const auto& binding : stage.bindings()) {
 			switch(binding.descriptor()) {
 			case core::gfx::binding_type::combined_image_sampler: {
-				if(auto sampler_handle = cache.find<core::ivk::sampler_t>(binding.sampler()); sampler_handle) {
+				if(!binding.sampler()) {
+					core::gfx::log->error(
+					  "ivk::material_t [{0}] uses a combined image sampler in shader [{1}] without a sampler.",
+					  psl::utility::to_string(ID),
+					  psl::utility::to_string(stage.shader()));
+					return;
+				} else if(auto sampler_handle = cache.find<core::ivk::sampler_t>(binding.sampler()); sampler_handle) {
 					m_Samplers.push_back(std::make_pair(binding.binding_slot(), sampler_handle));
+				} else if(cache.library().contains(binding.sampler())) {
+					// todo(jdl): verify if this actually correctly instantiates the sampler
+					// and shares the sampler data appropriately
+					auto sampler_data = cache.instantiate<core::data::sampler_t>(binding.sampler());
+					m_Samplers.push_back(std::make_pair(
+					  binding.binding_slot(),
+					  cache.create_using<core::ivk::sampler_t>(binding.sampler(), context, sampler_data)));
 				} else {
 					// todo: add error sampler as fallback when no sampler can be found
 					core::gfx::log->error(
@@ -69,18 +92,30 @@ material_t::material_t(core::resource::cache_t& cache,
 					  psl::utility::to_string(stage.shader()));
 					return;
 				}
-				if(auto texture_handle = cache.find<core::ivk::texture_t>(binding.texture()); texture_handle) {
+				if(!binding.texture()) {
+					core::gfx::log->error(
+					  "ivk::material_t [{0}] uses a combined image sampler in shader [{1}] without a texture.",
+					  psl::utility::to_string(ID),
+					  psl::utility::to_string(stage.shader()));
+					return;
+				} else if(auto texture_handle = cache.find<core::ivk::texture_t>(binding.texture()); texture_handle) {
 					m_Textures.push_back(std::make_pair(binding.binding_slot(), texture_handle));
+				} else if(cache.library().contains(binding.texture())) {
+					// if the texture is unloaded, we can still load it
+					m_Textures.push_back(std::make_pair(
+					  binding.binding_slot(), cache.instantiate<core::ivk::texture_t>(binding.texture(), context)));
 				} else {
 					// todo: add error texture as fallback when no texture can be found
 					core::gfx::log->error(
-					  "ivk::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the resource "
+					  "ivk::material_t [{0}] uses a texture [{1}] in shader [{2}] that cannot be found in the "
+					  "resource "
 					  "cache.",
 					  psl::utility::to_string(ID),
 					  psl::utility::to_string(binding.texture()),
 					  psl::utility::to_string(stage.shader()));
 					return;
 				}
+
 			} break;
 			case core::gfx::binding_type::uniform_buffer_dynamic:
 			case core::gfx::binding_type::storage_buffer_dynamic:

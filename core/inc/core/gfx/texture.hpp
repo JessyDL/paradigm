@@ -18,7 +18,8 @@ class texture_t {
 	texture_t(core::resource::cache_t& cache,
 			  const core::resource::metadata& metaData,
 			  core::meta::texture_t* metaFile,
-			  core::resource::handle<core::gfx::context> context);
+			  core::resource::handle<core::gfx::context> context,
+			  [[maybe_unused]] core::resource::handle<core::gfx::buffer_t> staging = {});
 
 	~texture_t();
 

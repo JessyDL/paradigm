@@ -246,6 +246,7 @@ class material_t final {
 
 	class binding {
 		friend class psl::serialization::accessor;
+		friend class material_t;
 
 	  public:
 		binding()						   = default;
@@ -267,28 +268,50 @@ class material_t final {
 		void sampler(const psl::UID& value, psl::string_view tag = {});
 		void buffer(const psl::UID& value, psl::string_view tag = {});
 
+		/// \brief resolves the tags into the actual UIDs in case they were missing
+		/// \details during loading there is a chance that the tags given were aliases for the actual UIDs,
+		/// we require the actual UIDs for the binding to be valid, this step will try to resolve the tags into the
+		/// actual UIDs
+		/// \warning this feels error-prone as a user could query the texture, sampler, or buffer before this is called
+		/// we should look into properly handling this to avoid user-based usage errors as 2-step loading is not ideal
+		void resolve_tags(const psl::meta::library& library) noexcept;
+
 	  private:
 		template <typename S>
 		void serialize(S& s) {
 			s << m_Binding << m_Description;
 
+			// todo(jdl): still need to handle updating the tag to the actual UID
 			if constexpr(psl::serialization::details::IsDecoder<S>) {
-				throw std::runtime_error("we need to solve the design issue of tagged resources");
+				// todo(jdl): could skip the parsing step if the tags are set explicitly
+				auto decode_uid = [](const psl::string& value, psl::UID& uid_target, psl::string& tag_target) {
+					if(psl::UID::valid(value)) {
+						uid_target = psl::UID::from_string(value);
+					} else {
+						tag_target = value;
+					}
+				};
 				switch(m_Description.value) {
 				case core::gfx::binding_type::combined_image_sampler: {
 					psl::serialization::property<"TEXTURE", psl::string> uid {};
 					s << uid;
+					decode_uid(uid.value, m_UID, m_UIDTag);
 
 					psl::serialization::property<"SAMPLER", psl::string> sampler {};
 					s << sampler;
+					decode_uid(sampler.value, m_SamplerUID, m_SamplerUIDTag);
 				} break;
+				case core::gfx::binding_type::uniform_buffer_dynamic:
 				case core::gfx::binding_type::uniform_buffer: {
 					psl::serialization::property<"UBO", psl::string> uid {};
 					s << uid;
+					decode_uid(uid.value, m_Buffer, m_BufferTag);
 				} break;
+				case core::gfx::binding_type::storage_buffer_dynamic:
 				case core::gfx::binding_type::storage_buffer: {
 					psl::serialization::property<"SSBO", psl::string> uid {};
 					s << uid;
+					decode_uid(uid.value, m_Buffer, m_BufferTag);
 				} break;
 				default:
 					break;
@@ -311,6 +334,7 @@ class material_t final {
 						s << sampler;
 					}
 				} break;
+				case core::gfx::binding_type::uniform_buffer_dynamic:
 				case core::gfx::binding_type::uniform_buffer: {
 					if(m_BufferTag.size() > 0) {
 						psl::serialization::property<"UBO", psl::string> uid {m_BufferTag};
@@ -320,6 +344,7 @@ class material_t final {
 						s << uid;
 					}
 				} break;
+				case core::gfx::binding_type::storage_buffer_dynamic:
 				case core::gfx::binding_type::storage_buffer: {
 					if(m_BufferTag.size() > 0) {
 						psl::serialization::property<"SSBO", psl::string> uid {m_BufferTag};
@@ -350,6 +375,7 @@ class material_t final {
 
 	class stage {
 		friend class psl::serialization::accessor;
+		friend class material_t;
 
 	  public:
 		stage()						   = default;
@@ -364,6 +390,7 @@ class material_t final {
 		void shader(gfx::shader_stage stage, const psl::UID& value) noexcept;
 		const psl::array<binding>& bindings() const noexcept;
 		void bindings(psl::array<binding> value) noexcept;
+		binding* get(uint32_t binding_slot) noexcept;
 		const psl::array<attribute>& attributes() const noexcept;
 		void attributes(psl::array<attribute> value) noexcept;
 
@@ -394,6 +421,7 @@ class material_t final {
 	material_t& operator=(material_t&&)		 = delete;
 
 	const psl::array<stage>& stages() const;
+	stage* get(core::gfx::shader_stage shader_stage) noexcept;
 	const psl::array<blendstate>& blend_states() const;
 	const psl::array<psl::string8_t>& defines() const;
 	core::gfx::cullmode cull_mode() const;
@@ -422,6 +450,10 @@ class material_t final {
 	void undefine(psl::string8::view value);
 
 	void from_shaders(const psl::meta::library& library, psl::array<core::meta::shader*> shaderMetas);
+
+	/// \brief resolves the tags for all bindings into the actual UIDs in case they were missing
+	/// \see binding::resolve_tags for more information
+	void resolve_tags(const psl::meta::library& library) noexcept;
 
   private:
 	template <typename S>
