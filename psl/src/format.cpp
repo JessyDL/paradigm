@@ -117,6 +117,10 @@ bool is_literal(const psl::string8::view& content, size_t node_content_begin_non
 		   0;
 }
 
+bool is_range_open(const psl::string8::view& content, size_t node_content_begin_non_empty_n) {
+	return content.compare(node_content_begin_non_empty_n, constants::RANGE_OPEN.size(), constants::RANGE_OPEN) == 0;
+}
+
 
 psl::string8_t::size_type rfind_first_not_of(psl::string8::view const& str,
 											 psl::string8_t::size_type const pos,
@@ -599,40 +603,62 @@ size_t container::parse(const psl::string8::view& content,
 			  value_t {literal_value, std::make_pair(m_Content.size() - content_size_n, content_size_n)};
 		} break;
 		case type_t::VALUE_RANGE: {
-			auto offset_n = content_begin_n;
-			while(node_content_end_n == psl::string8_t::npos && offset_n != psl::string8_t::npos) {
-				auto found_n = search(content, constants::RANGE_CLOSE, offset_n);
-				found_n =
-				  content.find_first_not_of(constants::EMPTY_CHARACTERS, found_n + constants::RANGE_CLOSE.size());
-				if(content.compare(found_n, tail_name.size(), tail_name) == 0) {
-					// todo: this might create an issue where the literals are ignored, watch out.
-					node_content_end_n = found_n;
+			auto offset_n = content.find_first_not_of(constants::EMPTY_CHARACTERS, content_begin_n);
+			if(offset_n == psl::string8_t::npos ||
+			   content.substr(offset_n, constants::RANGE_OPEN.size()) != constants::RANGE_OPEN) {
+				throw new std::runtime_error("invalid value range detected");
+			}
+			offset_n += constants::RANGE_OPEN.size();
+			{
+				size_t depth = 1u;
+				for(auto i = offset_n; i != content.size(); ++i) {
+					if(content.compare(i, constants::RANGE_OPEN.size(), constants::RANGE_OPEN) == 0) {
+						depth++;
+					} else if(content.compare(i, constants::RANGE_CLOSE.size(), constants::RANGE_CLOSE) == 0) {
+						depth--;
+					}
+					if(depth == 0) {
+						node_content_end_n = i + constants::RANGE_CLOSE.size();
+						break;
+					}
 				}
 			}
-
-			offset_n =
-			  content.find_first_not_of(constants::EMPTY_CHARACTERS, content_begin_n) + constants::RANGE_OPEN.size();
 			bool bEnd = false;
 
 			value_range_t* content_views = new(node_data[index]._data()) value_range_t();
 			while(!bEnd) {
 				auto sub_content_begin_n = content.find_first_not_of(constants::EMPTY_CHARACTERS, offset_n);
 				auto sub_content_end_n	 = psl::string8_t::npos;
-				bool literal			 = is_literal(content, sub_content_begin_n);
-				auto next_offset_n		 = psl::string8_t::npos;
+				bool range_open			 = is_range_open(content, sub_content_begin_n);
+				if(range_open) {
+					sub_content_begin_n += constants::RANGE_OPEN.size();
+				}
+				bool literal	   = is_literal(content, sub_content_begin_n);
+				auto next_offset_n = psl::string8_t::npos;
 				if(literal) {
 					sub_content_begin_n += constants::LITERAL_OPEN.size();
 					auto literal_end_n = search(content, constants::LITERAL_CLOSE, sub_content_begin_n);
 					next_offset_n	   = search(content, constants::RANGE_DIVIDER, literal_end_n);
+				} else if(range_open) {
+					next_offset_n = search(content, constants::RANGE_CLOSE, sub_content_begin_n);
+					psl_assert(next_offset_n != psl::string8_t::npos, "invalid range close detected");
+					next_offset_n += constants::RANGE_CLOSE.size();
+					next_offset_n = search(content, constants::RANGE_DIVIDER, next_offset_n);
 				} else {
 					next_offset_n = search(content, constants::RANGE_DIVIDER, offset_n);
 				}
 				if(next_offset_n == psl::string8_t::npos || next_offset_n >= node_content_end_n) {
 					next_offset_n = content.rfind(constants::RANGE_CLOSE, node_content_end_n);
-					bEnd		  = true;
+					if(range_open) {
+						next_offset_n = content.rfind(constants::RANGE_CLOSE, next_offset_n - 1);
+					}
+					bEnd = true;
 				}
 
-				sub_content_end_n		= content.find_last_not_of(constants::EMPTY_CHARACTERS, next_offset_n);
+				sub_content_end_n = content.find_last_not_of(constants::EMPTY_CHARACTERS, next_offset_n);
+				if(range_open) {
+					sub_content_end_n = content.rfind(constants::RANGE_CLOSE, sub_content_end_n);
+				}
 				auto sub_content_size_n = sub_content_end_n - sub_content_begin_n;
 				if(sub_content_size_n > 0) {
 					m_Content.append(&content[sub_content_begin_n], sub_content_size_n);
@@ -892,9 +918,11 @@ void data::to_string(const psl::format::settings& settings, psl::string8_t& out)
 		auto val = as_value_range_content().value();
 		out += constants::RANGE_OPEN;
 		for(const auto& it : val) {
+			out += constants::RANGE_OPEN;
 			out += (it.first) ? constants::LITERAL_OPEN : "";
 			out += it.second;
 			out += (it.first) ? constants::LITERAL_CLOSE : "";
+			out += constants::RANGE_CLOSE;
 			out += constants::RANGE_DIVIDER;
 		}
 		if(val.size() > 0)
