@@ -33,20 +33,14 @@ jobs:
     - name: setup dependencies
       uses: actions/setup-python@v4
       with:
-        python-version: '3.7'
+        python-version: '3.11'
     - name: initialize
-      run: |
-            python3 tools/generate_project_info.py
-            # todo: DCMAKE_CXX_FLAGS here is a workaround for an issue in the CI runner, which should be rechecked in a couple of weeks or so.
-            # see https://github.com/actions/runner-images/issues/10004
-            cmake --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DCMAKE_CXX_FLAGS="/D_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR"
-            python3 tools/patch.py --project ./project_files/${{ matrix.arch }}/
+      run: cmake --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }}
     - name: compile
       run: cmake --build --preset=windows-${{ matrix.bitconfig }}-release-${{ matrix.graphics }} -j ${{ steps.cpu-cores.outputs.count }}
     - name: test
-      run: |
-            cd builds/windows/${{ matrix.arch }}/release/bin
-            .\tests.exe --formatter compact --no-source
+      run: .\tests.exe --formatter compact --no-source
+      working-directory: builds/windows/${{ matrix.arch }}/release/bin
     - name: finalize    
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v4
