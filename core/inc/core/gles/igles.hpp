@@ -3,10 +3,10 @@
 #ifdef SURFACE_WIN32
 	// including wgl first as it also includes windows.h, not doing so creates warnings about redefinition of some
 	// defines
-	#include "glad/glad_wgl.h"
+	#include "glad/wgl.h"
 
 	// note: added extra space here to satisfy the earlier comment and to avoid any include reordering to affect this
-	#include "glad/glad.h"
+	#include "glad/gles2.h"
 #endif
 #ifdef SURFACE_XCB
 	#include <GLES3/gl32.h>

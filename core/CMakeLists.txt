@@ -37,45 +37,54 @@ if(PE_GLES)
 	if(PE_PLATFORM STREQUAL "WINDOWS")
 		set(glad_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/glad-src")
 		set(glad_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/glad-build")
-		FetchContent_Populate(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v0.1.36 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+		FetchContent_Populate(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v2.0.8 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 
 		message(STATUS "fetching Dav1dde/glad...")
 		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
 		file(MAKE_DIRECTORY "${GL_INCLUDE_DIRS}")
+
+		# make sure jinja2 is installed for python3
+		execute_process(
+			COMMAND ${Python3_EXECUTABLE} -m pip install jinja2 --user
+			RESULT_VARIABLE JINJA2_RESULT
+			OUTPUT_QUIET ERROR_QUIET
+		)
 			
 		list(APPEND GL_SOURCES
-			"${GL_INCLUDE_DIRS}/src/glad.c"
-			"${GL_INCLUDE_DIRS}/include/glad/glad.h"
+			"${GL_INCLUDE_DIRS}/src/gles2.c"
+			"${GL_INCLUDE_DIRS}/include/glad/gles2.h"
 		)
 		EXECUTE_PROCESS(
 			COMMAND ${Python3_EXECUTABLE} -m glad
-				--profile=core
 				--out-path=${GL_INCLUDE_DIRS}
-				--api=gles2=3.2
-				--generator=c
+				--api=gles2:core=3.2
 				--extensions=GL_EXT_sRGB,GL_EXT_texture_buffer,GL_EXT_texture_compression_s3tc,GL_EXT_texture_compression_s3tc_srgb,GL_EXT_texture_filter_anisotropic,GL_EXT_texture_filter_minmax,GL_KHR_debug
-				--spec=gl
 				--reproducible
+				c
 			WORKING_DIRECTORY ${glad_SOURCE_DIR}
 		)
 		if(PE_SURFACE STREQUAL "WIN32")
 			EXECUTE_PROCESS(
 				COMMAND ${Python3_EXECUTABLE} -m glad
 					--out-path=${GL_INCLUDE_DIRS}
-					--api=wgl=1.0
-					--generator=c
+					--api=wgl:core=1.0
 					--extensions=WGL_ARB_create_context,WGL_ARB_create_context_profile,WGL_ARB_extensions_string,WGL_EXT_extensions_string,WGL_ARB_framebuffer_sRGB,WGL_ARB_multisample,WGL_EXT_create_context_es2_profile,WGL_EXT_pixel_format,WGL_EXT_swap_control
-					--spec=wgl
-					--omit-khrplatform
 					--reproducible
+					c
 				WORKING_DIRECTORY ${glad_SOURCE_DIR}
+			)
+
+			# replace `#include <glad/gl.h>` with `#include <glad/gles2.h>` in wgl.h
+			# by default the wgl expects the gl headers, but we are running gles on desktop
+			EXECUTE_PROCESS(
+				COMMAND ${Python3_EXECUTABLE} -c "import os; f = open(os.path.join('${GL_INCLUDE_DIRS}', 'include', 'glad', 'wgl.h'), 'r'); content = f.read(); f.close(); content = content.replace('#include <glad/gl.h>', '#include <glad/gles2.h>'); f = open(os.path.join('${GL_INCLUDE_DIRS}', 'include', 'glad', 'wgl.h'), 'w'); f.write(content); f.close()"
 			)
 			
 			list(APPEND GL_SOURCES
-				"${GL_INCLUDE_DIRS}/src/glad_wgl.c"
-				"${GL_INCLUDE_DIRS}/include/glad/glad_wgl.h"
+				"${GL_INCLUDE_DIRS}/src/wgl.c"
+				"${GL_INCLUDE_DIRS}/include/glad/wgl.h"
 			)				
-			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad_wgl.c" PROPERTIES LANGUAGE CXX)
+			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
 		endif()
 
 		add_library(gl ${GL_SOURCES})

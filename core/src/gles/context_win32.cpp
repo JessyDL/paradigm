@@ -70,17 +70,16 @@ context::context(core::resource::cache_t& cache,
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
 						0};
-	// rc = wglCreateContext(target); // Rendering Contex
 	rc = wglCreateContext(target);	  // Rendering Contex
 	if(!wglMakeCurrent(target, rc))
 		return;
 
-	int version = gladLoadWGL(target);
+	int version = gladLoadWGL(target, (GLADloadfunc)wglGetProcAddress);
 	if(!version) {
 		core::igles::log->critical("could not create a context. failed to load fnpointers.");
 		return;
 	}
-	version	   = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	version	   = gladLoadGLES2((GLADloadfunc)glGetProcAddress);
 	auto error = glGetError();
 	quey_capabilities();
 
@@ -174,17 +173,16 @@ void context::enable(const core::os::surface& surface) {
 						WGL_CONTEXT_PROFILE_MASK_ARB,
 						WGL_CONTEXT_ES2_PROFILE_BIT_EXT,
 						0};
-	// rc = wglCreateContext(target); // Rendering Contex
 	rc = wglCreateContext(target);	  // Rendering Contex
 	if(!wglMakeCurrent(target, rc))
 		return;
 
-	int version = gladLoadWGL(target);
+	int version = gladLoadWGL(target, (GLADloadfunc)wglGetProcAddress);
 	if(!version) {
 		printf("Unable to load OpenGL\n");
 		return;
 	}
-	version	   = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	version	   = gladLoadGLES2((GLADloadfunc)glGetProcAddress);
 	auto error = glGetError();
 
 	wglMakeCurrent(NULL, NULL);
@@ -204,12 +202,12 @@ void context::enable(const core::os::surface& surface) {
 	rc = wglCreateContextAttribsARB(target, 0, attriblist);
 	if(!wglMakeCurrent(target, rc))
 		return;
-	version = gladLoadWGL(target);
+	version = gladLoadWGL(target, (GLADloadfunc)wglGetProcAddress);
 	if(!version) {
 		printf("Unable to load OpenGL\n");
 		return;
 	}
-	version = gladLoadGLES2Loader((GLADloadproc)glGetProcAddress);
+	version = gladLoadGLES2((GLADloadfunc)glGetProcAddress);
 	error	= glGetError();
 
 	auto glversion = glGetStringView(GL_VERSION);
