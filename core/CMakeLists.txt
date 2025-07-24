@@ -42,6 +42,13 @@ if(PE_GLES)
 		message(STATUS "fetching Dav1dde/glad...")
 		set(GL_INCLUDE_DIRS "${glad_SOURCE_DIR}/out")
 		file(MAKE_DIRECTORY "${GL_INCLUDE_DIRS}")
+
+		# make sure jinja2 is installed for python3
+		execute_process(
+			COMMAND ${Python3_EXECUTABLE} -m pip install jinja2 --user
+			RESULT_VARIABLE JINJA2_RESULT
+			OUTPUT_QUIET ERROR_QUIET
+		)
 			
 		list(APPEND GL_SOURCES
 			"${GL_INCLUDE_DIRS}/src/gles2.c"
