@@ -75,6 +75,58 @@ template <typename Pred, typename... Ts>
 struct order_by {};
 
 
+/// \brief tag that allows you to filter based on if a restricted mutability component has been mutated
+///
+/// When you constrain the mutation of a component the only way to modify its data is through a mutation instruction,
+/// this tag allows you to listen to those mutations. You will receive the component as its pre-mutation state,
+/// and the post-mutation state.
+/// Mutation instructions are applied before the normal systems tick.
+/// Note though that this filterin operation bears similarities to the `on_condition` filtering operation,
+/// but this is a much more performant operation with limitations that it can only be applied to components which
+/// are constrained to the restricted mutability mode.
+/// \warning not all components that can mutate are able to fire this filter event.
+template <typename T>
+struct on_mutate {};
+
+namespace details {
+	template <typename T>
+	struct is_component_filtering_op_t : std::false_type {};
+
+	template <typename... Ts>
+	struct is_component_filtering_op_t<filter<Ts...>> : std::true_type {};
+
+	template <typename... Ts>
+	struct is_component_filtering_op_t<on_add<Ts...>> : std::true_type {};
+
+	template <typename... Ts>
+	struct is_component_filtering_op_t<on_remove<Ts...>> : std::true_type {};
+
+	template <typename... Ts>
+	struct is_component_filtering_op_t<on_combine<Ts...>> : std::true_type {};
+
+	template <typename... Ts>
+	struct is_component_filtering_op_t<on_break<Ts...>> : std::true_type {};
+
+	template <typename... Ts>
+	struct is_component_filtering_op_t<except<Ts...>> : std::true_type {};
+
+	template <typename Pred, typename... Ts>
+	struct is_component_filtering_op_t<on_condition<Pred, Ts...>> : std::true_type {};
+
+	template <typename Pred, typename... Ts>
+	struct is_component_filtering_op_t<order_by<Pred, Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_component_filtering_op_t<on_mutate<T>> : std::true_type {};
+}	 // namespace details
+
+
+template <typename T>
+concept IsFilteringOp = details::is_component_filtering_op_t<T>::value;
+
+template <typename T>
+concept IsNotFilteringOp = !details::is_component_filtering_op_t<T>::value;
+
 /// \brief allows packs to exist in a partial state
 ///
 /// Special tag type that signifies that a pack can be split

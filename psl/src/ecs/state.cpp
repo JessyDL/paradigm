@@ -218,6 +218,9 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	invoke<entity_t::size_type>(
 	  [](auto... args) { std::sort(args...); }, modified_entities.begin(), modified_entities.end());
 
+	// apply mutations
+
+
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
 		filter(filter_result, modified_entities);
@@ -356,7 +359,7 @@ void state_t::add_component_impl(details::component_container_t* cInfo,
 								 void* prototype,
 								 bool repeat) {
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
-	const auto component_size = cInfo->component_size();
+	const auto component_size = cInfo->component_type_info().size;
 	psl_assert(component_size != 0, "component size was 0");
 
 	auto offset = cInfo->entities().size();
@@ -795,7 +798,7 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 	psl_assert(
 	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
 	  "some components failed to have storage for the entities");
-	psl_assert((std::uintptr_t)(cache) + (cInfo->component_size() * entities.size()) <=
+	psl_assert((std::uintptr_t)(cache) + (cInfo->component_type_info().size * entities.size()) <=
 				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
 			   "Cache ran out of memory");
 	return cInfo->copy_to(entities, cache);
@@ -820,8 +823,8 @@ size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
 		auto write_fn = [entities, &cache, this](auto& binding) {
 			std::uintptr_t data_begin = (std::uintptr_t)cache;
 			const auto& cInfo		  = get_component_container(binding.first);
-			if(cInfo->component_size() > 0) {
-				auto offset		= align(data_begin, cInfo->alignment());
+			if(cInfo->component_type_info().size > 0) {
+				auto offset		= align(data_begin, cInfo->component_type_info().alignment);
 				auto write_size = prepare_data(entities, (void*)data_begin, binding.first);
 				cache			= (void*)((std::uintptr_t)cache + write_size + offset);
 				binding.second	= psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
@@ -836,7 +839,7 @@ size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
 		auto view_fn = [entities, &cache, this](auto& binding) {
 			std::uintptr_t data_begin = (std::uintptr_t)cache;
 			const auto& cInfo		  = get_component_container(binding.first);
-			if(cInfo->component_size() > 0) {
+			if(cInfo->component_type_info().size > 0) {
 				auto offset = align(data_begin, alignof(entity_t));
 				cache		= cInfo->write_memory_location_offsets_for(entities, (entity_t::size_type*)data_begin);
 				binding.second.indices =

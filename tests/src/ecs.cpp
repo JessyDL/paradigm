@@ -43,9 +43,25 @@ struct foo_renamed {};
 
 namespace psl::ecs {
 template <>
-struct component_traits<foo_renamed> {
+struct component_trait_serializable_t<foo_renamed> {
 	static constexpr bool serializable {true};
+};
+template <>
+struct component_trait_name_t<foo_renamed> {
 	static constexpr auto name = "SOMEOVERRIDE";
+};
+}	 // namespace psl::ecs
+
+struct foo_restricted {
+	int value1;
+	float value2;
+	bool value3;
+};
+
+namespace psl::ecs {
+template <>
+struct component_trait_mutability_t<foo_restricted> {
+	static constexpr component_mutability_behaviour_t mutability = component_mutability_behaviour_t::restricted;
 };
 }	 // namespace psl::ecs
 
@@ -786,4 +802,16 @@ auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	auto entity = state.create<foo>(static_cast<entity_t::size_type>(1));
 	require(state.get<foo>(entity[0]).value) == 10;
 };
+
+
+auto t11 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+
+	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
+	auto entity = state.create<foo_restricted>(static_cast<entity_t::size_type>(1));
+	state.mutate_component<foo_restricted, &foo_restricted::value1, &foo_restricted::value3>(entity.front(), 5, true);
+
+	state.tick(std::chrono::duration<float>(1.0f));
+};
+
 }	 // namespace

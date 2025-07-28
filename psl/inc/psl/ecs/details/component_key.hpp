@@ -43,7 +43,7 @@ class component_key_t {
 	}
 
 	template <typename T>
-	consteval component_key_t(const component_traits<T>& traits) noexcept
+	consteval component_key_t(const component_traits_t<T>& traits) noexcept
 		: m_Name(traits.name), m_Value(fnv1a_32(traits.name)), m_Type(component_type_v<T>), m_StringMemory(nullptr) {}
 
   public:
@@ -142,7 +142,7 @@ class component_key_t {
 	/// \warning watch out with modifying this issue, see: https://developercommunity.visualstudio.com/t/constexpr-unable-to-call-private-constructor-in-st/82639
 	template <typename T>
 	static constexpr auto generate() noexcept -> component_key_t {
-		return component_key_t(component_traits<std::remove_pointer_t<std::remove_cvref_t<T>>> {});
+		return component_key_t(component_traits_v<std::remove_pointer_t<std::remove_cvref_t<T>>>);
 	}
 
 	component_type type() const noexcept {

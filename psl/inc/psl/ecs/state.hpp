@@ -3,6 +3,7 @@
 #include "command_buffer.hpp"
 #include "details/component_container.hpp"
 #include "details/component_key.hpp"
+#include "details/mutate_instruction.hpp"
 #include "details/system_information.hpp"
 #include "entity.hpp"
 #include "filtering.hpp"
@@ -91,6 +92,8 @@ class state_t final {
 		std::vector<size_t> component_data_alignment {};
 		std::vector<std::byte> component_data {};
 		std::vector<std::string> component_names {};
+		std::vector<component_mutability_behaviour_t> component_mutability {};
+		std::vector<size_t> component_versions {};
 
 		if constexpr(psl::serialization::details::IsEncoder<S>) {
 			size_t expected_total_datasize {0};
@@ -98,14 +101,16 @@ class state_t final {
 			std::vector<details::component_key_t> all_keys {};
 			for(const auto& [key, component] : m_Components) {
 				// skip unserializable types, or those that aren't requesting to be serialized
-				if(key.type() == component_type::COMPLEX || !component->should_serialize())
+				if(key.type() == component_type::COMPLEX || !component->component_type_info().serializable) {
 					continue;
+				}
 				expected_total_entities += component->size(true);
 
 				all_keys.emplace_back(key);
 
-				expected_total_datasize +=
-				  (component->component_size() > 0) ? component->component_size() * component->size(true) : 0;
+				expected_total_datasize += (component->component_type_info().size > 0)
+											 ? component->component_type_info().size * component->size(true)
+											 : 0;
 			}
 
 			// sort to make the serializations deterministic
@@ -117,15 +122,22 @@ class state_t final {
 			for(const auto& key : all_keys) {
 				const auto& component = m_Components[key];
 
+				auto cti = component->component_type_info();
+
+				// extra check, this shouldn't be possible to hit unless a contract was broken earlier.
+				psl_assert(cti.serializable, "{} was not serializable", cti.id.name());
+
 				component_sizes.emplace_back(component->size(true));
 				auto entities = component->entities(true);
 				component_entities.insert(std::end(component_entities), std::begin(entities), std::end(entities));
-				component_data_size.emplace_back(component->component_size());
-				component_data_alignment.emplace_back(component->alignment());
+				component_data_size.emplace_back(cti.size);
+				component_data_alignment.emplace_back(cti.alignment);
 				component_names.emplace_back(key.name());
+				component_mutability.emplace_back(cti.mutability);
+				component_versions.emplace_back(cti.version);
 
-				if(component->component_size() > 0) {
-					auto total_size = component->component_size() * component->size(true);
+				if(cti.size > 0) {
+					auto total_size = cti.size * component->size(true);
 					memcpy(component_data.data() + data_offset, component->data(), total_size);
 					data_offset += total_size;
 				}
@@ -133,8 +145,10 @@ class state_t final {
 		}
 
 		serializer.template parse<"COMPONENTS">(component_names);
-		serializer.template parse<"CDATASIZE">(component_data_size);
-		serializer.template parse<"CDATAALIGNMENT">(component_data_alignment);
+		serializer.template parse<"CTI_VERSION">(component_versions);
+		serializer.template parse<"CTI_DATASIZE">(component_data_size);
+		serializer.template parse<"CTI_DATAALIGNMENT">(component_data_alignment);
+		serializer.template parse<"CTI_MUTABILITY">(component_mutability);
 		serializer.template parse<"CSIZE">(component_sizes);
 		serializer.template parse<"CENTITIES">(component_entities);
 		serializer.template parse<"CDATA">(component_data);
@@ -149,9 +163,16 @@ class state_t final {
 				  component_names[i], (component_data_size[i] == 0) ? component_type::FLAG : component_type::TRIVIAL);
 				auto it = m_Components.find(key);
 				if(it == m_Components.end()) {
-					auto pair = m_Components.emplace(key,
-													 details::instantiate_component_container(
-													   key, component_data_size[i], component_data_alignment[i], true));
+					auto pair =
+					  m_Components.emplace(key,
+										   details::instantiate_component_container(details::component_type_info_t {
+											 .id		   = key,
+											 .version	   = component_versions[i],
+											 .size		   = component_data_size[i],
+											 .alignment	   = component_data_alignment[i],
+											 .mutability   = component_mutability[i],
+											 .serializable = true,
+										   }));
 
 					if(!pair.second) {
 						throw std::runtime_error("failed to insert key into map");
@@ -206,12 +227,27 @@ class state_t final {
 	state_t& operator=(state_t&&)	   = delete;
 
 	template <IsComponentTypeSerializable T>
-	bool override_serialization(bool value) {
+	void override_serialization(bool value) {
 		constexpr auto key = details::component_key_t::generate<T>();
 		if(auto it = m_Components.find(key); it != std::end(m_Components)) {
-			return it->second->should_serialize(value);
+			it->second->should_serialize(value);
 		}
-		return false;
+	}
+
+	template <typename T, typename Mutator>
+		requires(!IsFilteringOp<T> && IsRestrictedMutable<T>)
+	void mutate_component(entity_t entity, Mutator&& mutator) {
+		auto mutator = details::make_mutate_instruction<T, Mutator>(std::forward<Mutator>(mutator));
+		auto view	 = psl::array_view<entity_t>(&entity, &entity + 1);
+		add_components(view, &mutator);
+	}
+
+	template <typename T, auto Field, auto... Fields, typename... Args>
+		requires(!IsFilteringOp<T> && IsRestrictedMutable<T>)
+	void mutate_component(entity_t entity, Args&&... args) {
+		auto mutator = details::make_mutate_instruction<T, Field, Fields...>(std::forward<Args>(args)...);
+		auto view	 = psl::array_view<entity_t>(&entity, &entity + 1);
+		add_components(view, &mutator);
 	}
 
 	template <typename... Ts>
@@ -234,6 +270,7 @@ class state_t final {
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	psl::array<T> get_component(psl::ecs::direct_t, psl::array_view<entity_t> entities) const noexcept {
 		auto cInfo = get_component_typed_info<T>();
 		psl::array<T> result {};
@@ -243,6 +280,7 @@ class state_t final {
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto get_component(psl::ecs::indirect_t, psl::array_view<entity_t> entities) const noexcept
 	  -> psl::indirect_array_t<T, entity_t::size_type> {
 		auto cInfo = get_component_typed_info<T>();
@@ -253,28 +291,33 @@ class state_t final {
 	}
 
 	template <typename T, IsAccessType access = psl::ecs::indirect_t>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	inline auto get_component(psl::array_view<entity_t> entities) const noexcept {
 		return get_component<T>(access {}, entities);
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto get_component(psl::ecs::direct_t, entity_t entity) const noexcept -> T& {
 		auto cInfo = get_component_typed_info<T>();
 		return *(T*)(cInfo->get_if(entity));
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto get_component(psl::ecs::indirect_t, entity_t entity) const noexcept -> T& {
 		auto cInfo = get_component_typed_info<T>();
 		return *(T*)(cInfo->get_if(entity));
 	}
 
 	template <typename T, IsAccessType access = psl::ecs::indirect_t>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	inline auto get_component(entity_t entity) const noexcept {
 		return get_component<T>(access {}, entity);
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto try_get_component(psl::ecs::direct_t, psl::array_view<entity_t> entities) const noexcept -> psl::array<T*> {
 		auto cInfo = get_component_typed_info<T>();
 		psl::array<T*> result {};
@@ -286,6 +329,7 @@ class state_t final {
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto try_get_component(psl::ecs::indirect_t, psl::array_view<entity_t> entities) const noexcept -> psl::array<T*> {
 		auto cInfo = get_component_typed_info<T>();
 		psl::array<T*> result {};
@@ -297,23 +341,27 @@ class state_t final {
 	}
 
 	template <typename T, IsAccessType access = psl::ecs::indirect_t>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	inline auto try_get_component(psl::array_view<entity_t> entities) const noexcept {
 		return try_get_component<T>(access {}, entities);
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto try_get_component(psl::ecs::direct_t, entity_t entity) const noexcept -> T* {
 		auto cInfo = get_component_typed_info<T>();
 		return (T*)(cInfo->get_if(entity));
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	auto try_get_component(psl::ecs::indirect_t, entity_t entity) const noexcept -> T* {
 		auto cInfo = get_component_typed_info<T>();
 		return (T*)(cInfo->get_if(entity));
 	}
 
 	template <typename T, IsAccessType access = psl::ecs::indirect_t>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	inline auto try_get_component(entity_t entity) const noexcept {
 		return try_get_component<T>(access {}, entity);
 	}
@@ -321,6 +369,7 @@ class state_t final {
 	void clear(bool release_memory = true) noexcept;
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && (IsUnrestrictedMutable<T> || std::is_const_v<T>))
 	T& get(entity_t entity) {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
@@ -329,6 +378,7 @@ class state_t final {
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T> && IsUnrestrictedMutable<T>)
 	const T& get(entity_t entity) const noexcept {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
@@ -337,6 +387,7 @@ class state_t final {
 	}
 
 	template <typename T>
+		requires(!IsFilteringOp<T>)
 	psl::array<T> get(psl::array_view<entity_t> entities) const {
 		auto cInfo = get_component_typed_info<T>();
 		psl::array<T> result {};
@@ -819,8 +870,8 @@ class state_t final {
 	template <typename Fn>
 		requires(std::is_invocable<Fn, std::uintptr_t, size_t>::value)
 	void add_component_impl(details::component_container_t* cInfo, psl::array_view<entity_t> entities, Fn&& invocable) {
-		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
-		const auto component_size = cInfo->component_size();
+		psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->component_type_info().id);
+		const auto component_size = cInfo->component_type_info().size;
 		psl_assert(component_size != 0, "component size was 0");
 
 		auto offset = cInfo->entities().size();
