@@ -11,6 +11,7 @@
 #include "psl/collections/indirect_array.hpp"
 #include "psl/details/fixed_astring.hpp"
 #include "psl/ecs/component_traits.hpp"
+#include "psl/ecs/details/stage_range.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/string_utils.hpp"
@@ -179,6 +180,8 @@ class state_t final {
 					}
 					it = pair.first;
 				} else {
+					// todo(jdl): this should also handle the version migration, see the lookup for the component
+					// container how to do so.
 					throw std::runtime_error("unsupported deserializing into non-empty state");
 				}
 
@@ -237,9 +240,9 @@ class state_t final {
 	template <typename T, typename Mutator>
 		requires(!IsFilteringOp<T> && IsRestrictedMutable<T>)
 	void mutate_component(entity_t entity, Mutator&& mutator) {
-		auto mutator = details::make_mutate_instruction<T, Mutator>(std::forward<Mutator>(mutator));
-		auto view	 = psl::array_view<entity_t>(&entity, &entity + 1);
-		add_components(view, &mutator);
+		auto instance = details::make_mutate_instruction<T, Mutator>(std::forward<Mutator>(mutator));
+		auto view	  = psl::array_view<entity_t>(&entity, &entity + 1);
+		add_components(view, &instance);
 	}
 
 	template <typename T, auto Field, auto... Fields, typename... Args>
@@ -472,7 +475,7 @@ class state_t final {
 		psl::array<entity_t> result;
 		result.reserve(m_Entities - orphans.size());
 		for(entity_t::size_type e = 0; e < m_Entities; ++e) {
-			if(orphan_it != std::end(m_Orphans) && e == static_cast<entity_t::size_type>(*orphan_it)) {
+			if(orphan_it != std::end(orphans) && e == static_cast<entity_t::size_type>(*orphan_it)) {
 				orphan_it = std::next(orphan_it);
 				continue;
 			}
@@ -735,6 +738,62 @@ class state_t final {
 	}
 
 	template <typename T>
+	auto handle_version_migration(psl::ecs::details::component_container_t* container) const noexcept
+	  -> psl::ecs::details::component_container_t* {
+		auto const& cti = container->component_type_info();
+		if(!cti.serializable) {
+			return container;
+		}
+
+		if constexpr(component_trait_version_t<T>::version != 0) {
+			// todo(jdl): this should be possible to support, we'll have to recreate the container to achieve it though.
+			psl_assert(
+			  !IsComponentComplexType<T>,
+			  "component used to be a trivial type, is now a complex type, we don't support this migration yet");
+
+			static constexpr auto compiled_version = component_trait_version_t<T>::version;
+
+			if(cti.version != compiled_version) {
+				// have to make a new container
+				auto new_container = psl::ecs::details::instantiate_component_container<T>();
+				new_container->reserve(container->size(true));
+
+				auto removed_entities = container->removed_entities();
+				auto added_entities	  = container->added_entities();
+				auto stable_entities  = container->entities(details::stage_range_t::SETTLED);
+
+				auto fn = [&new_container, &container, &cti](auto entities, std::byte* data) {
+					for(auto entity : entities) {
+						auto temp {psl::ecs::component_updater_t<T> {}(cti.version, (void*)data)};
+						new_container->add(entity, &temp);
+						data += cti.size;
+					}
+				};
+
+				// todo(jdl): this can be more performant. We could merge internally within the component containers
+				// sidestepping this whole `add` behaviour.
+				fn(removed_entities,
+				   (std::byte*)container->data() + ((added_entities.size() + stable_entities.size()) * cti.size));
+				fn(stable_entities, (std::byte*)container->data());
+				new_container->purge();
+				new_container->destroy(removed_entities);
+				fn(added_entities, (std::byte*)container->data() + (stable_entities.size() * cti.size));
+
+				// next operation will kill the cti variable, so we cache the key
+				auto key			 = cti.id;
+				m_Components[cti.id] = std::move(new_container);
+
+				return m_Components[key].get();
+			}
+		} else {
+			psl_assert(
+			  cti.version == 0,
+			  "The serialized version appears to be a higher version than the component indicates it supports");
+		}
+		return container;
+	}
+
+	template <typename T>
 	inline auto get_component_untyped_info() const noexcept -> psl::ecs::details::component_container_t* {
 		constexpr auto key {details::component_key_t::generate<T>()};
 #if !defined(PE_ECS_DISABLE_LOOKUP_CACHE)
@@ -751,13 +810,13 @@ class state_t final {
 			if(it == std::end(m_Components)) {
 				return nullptr;
 			}
-			container		 = it->second.get();
+			container		 = handle_version_migration<T>(it->second.get());
 			state_unique_key = m_StateUniqueKey;
 		}
 		return container;
 #else
 		if(auto it = m_Components.find(key); it == std::end(m_Components)) {
-			return it->second.get();
+			return handle_version_migration<T>(it->second.get());
 		}
 		return nullptr;
 #endif
@@ -802,10 +861,9 @@ class state_t final {
 			using arg0_t = psl::type_at_index_t<0, pack_type>;
 			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 						  "the argument type for arg 0 should be of 'T&'");
-			using arg1_t = psl::type_at_index_t<1, pack_type>;
-			static_assert(std::is_same_v<arg1_t, entity_t>,
-						  "the argument type for arg 1 should be of 'psl::ecs::entity_t'");
 			using type = typename std::remove_reference<arg0_t>::type;
+			static_assert(std::is_invocable_v<T, type&, psl::ecs::entity_t>,
+						  "Must be invocable by your component type & entity_t as the second parameter");
 			static_assert(!std::is_empty_v<type>,
 						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 						  "psl::ecs::empty<T>{} to avoid initialization.");

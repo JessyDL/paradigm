@@ -147,4 +147,12 @@ namespace details {
 	}
 
 }	 // namespace details
+
+template <typename T>
+struct component_updater_t {
+	/*
+	* the following signature is expected:
+	auto operator()(size_t version, void* data) -> T;
+	*/
+};
 }	 // namespace psl::ecs

@@ -555,6 +555,14 @@ class staged_sparse_memory_region_t {
 		  .success = true, .added = inserted, .total = static_cast<key_type>(other.m_Reverse.size())};
 	}
 
+	FORCEINLINE auto reserve(size_t capacity) -> void {
+		if(capacity <= m_Reverse.capacity())
+			return;
+
+		m_Reverse.reserve(capacity);
+		grow();
+	}
+
   private:
 	FORCEINLINE constexpr auto size(stage_range_t stage) const noexcept -> size_type {
 		return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
@@ -573,14 +581,6 @@ class staged_sparse_memory_region_t {
 		}
 		if(m_Sparse.size() <= chunk_index)
 			m_Sparse.resize(chunk_index + 1);
-	}
-
-	FORCEINLINE auto reserve(size_t capacity) -> void {
-		if(capacity <= m_Reverse.capacity())
-			return;
-
-		m_Reverse.reserve(capacity);
-		grow();
 	}
 
 	FORCEINLINE constexpr auto capacity() const noexcept -> size_type {

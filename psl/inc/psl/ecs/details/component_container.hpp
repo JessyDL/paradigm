@@ -86,6 +86,9 @@ class component_container_t {
 	inline psl::array_view<entity_t> entities(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
 	}
+	inline psl::array_view<entity_t> entities(stage_range_t range) const noexcept {
+		return entities_impl(range);
+	}
 
 	virtual void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) {
 		return nullptr;
@@ -134,6 +137,7 @@ class component_container_t {
 					   std::function<bool(entity_t)> pred) noexcept = 0;
 	virtual bool merge(const component_container_t& other) noexcept = 0;
 	virtual void clear()											= 0;
+	virtual void reserve(size_t count)								= 0;
 
   protected:
 	virtual void purge_impl() noexcept																		= 0;
@@ -174,6 +178,9 @@ class component_container_typed_t final : public component_container_t {
 		return m_Entities;
 	};
 
+	void reserve(size_t count) override {
+		m_Entities.reserve(count);
+	}
 
 	void* data() noexcept override {
 		return m_Entities.data();
@@ -356,6 +363,11 @@ class component_container_flag_t : public component_container_t {
 	};
 	~component_container_flag_t() override = default;
 
+
+	void reserve(size_t count) override {
+		m_Entities.reserve(count);
+	}
+
 	void* data() noexcept override {
 		return nullptr;
 	}
@@ -453,6 +465,9 @@ class component_container_untyped_t : public component_container_t {
 		return m_Entities;
 	};
 
+	void reserve(size_t count) override {
+		m_Entities.reserve(count);
+	}
 
 	void* data() noexcept override {
 		return m_Entities.data();

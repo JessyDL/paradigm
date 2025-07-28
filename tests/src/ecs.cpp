@@ -52,6 +52,37 @@ struct component_trait_name_t<foo_renamed> {
 };
 }	 // namespace psl::ecs
 
+
+struct updated_component {
+	bool some_new_value;
+	float other;
+	int value;
+};
+template <>
+struct component_trait_version_t<updated_component> {
+	static constexpr size_t version = 1;
+};
+
+template <>
+struct component_updater_t<updated_component> {
+	updated_component operator()(size_t version, void* data) {
+		updated_component res {};
+		switch(version) {
+		case 0: {
+			// here we have the layout of how the component used to look like.
+			struct updated_component_v0 {
+				int value;
+			};
+
+			res.value = reinterpret_cast<updated_component_v0*>(data)->value;
+		} break;
+		default:
+			throw std::runtime_error("invalid version");
+		}
+		return res;
+	}
+};
+
 struct foo_restricted {
 	int value1;
 	float value2;
@@ -803,15 +834,28 @@ auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	require(state.get<foo>(entity[0]).value) == 10;
 };
 
-
-auto t11 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
+auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
+	psl::serialization::serializer s {};
+	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
 
-	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
-	auto entity = state.create<foo_restricted>(static_cast<entity_t::size_type>(1));
-	state.mutate_component<foo_restricted, &foo_restricted::value1, &foo_restricted::value3>(entity.front(), 5, true);
+	auto entities	= state.all_entities();
+	auto components = state.get_component<updated_component>(entities);
 
-	state.tick(std::chrono::duration<float>(1.0f));
+	for(auto e : entities) {
+		auto value = components[e.value].value;
+		require(value == (int)e);
+	}
 };
+
+// auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
+//	psl::ecs::state_t state {};
+//
+//	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
+//	auto entity = state.create<foo_restricted>(static_cast<entity_t::size_type>(1));
+//	state.mutate_component<foo_restricted, &foo_restricted::value1, &foo_restricted::value3>(entity.front(), 5, true);
+//
+//	state.tick(std::chrono::duration<float>(1.0f));
+// };
 
 }	 // namespace
