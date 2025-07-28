@@ -835,6 +835,9 @@ auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 };
 
 auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
+	// this test will load an outdated version of the `updated_component` (see `updated_component_v0`)
+	// and we'll verify if the data migration went correctly. If all went fine the value in the component
+	// should be equal to the entity id associated with the component.
 	psl::ecs::state_t state {};
 	psl::serialization::serializer s {};
 	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
