@@ -16,3 +16,9 @@
 [submodule "extern/strtype"]
 	path = extern/strtype
 	url = https://github.com/JessyDL/strtype.git
+[submodule "extern/dr_libs"]
+	path = extern/dr_libs
+	url = https://github.com/mackron/dr_libs.git
+[submodule "extern/miniaudio"]
+	path = extern/miniaudio
+	url = https://github.com/mackron/miniaudio.git

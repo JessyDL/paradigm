@@ -90,3 +90,6 @@ if(${PE_WEBGPU_NATIVE})
     endif()
     target_include_directories(dawn_utils PUBLIC "${CMAKE_BINARY_DIR}/_deps/dawn-src/src")
 endif()
+
+add_library(dr_libs INTERFACE)
+target_include_directories(dr_libs INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/dr_libs" "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")

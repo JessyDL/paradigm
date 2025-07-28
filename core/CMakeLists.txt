@@ -147,7 +147,7 @@ target_include_directories(core
 
 target_link_libraries(core 
 	PRIVATE
-		gli
+		gli dr_libs
 	PUBLIC
 		$<$<BOOL:${PE_WEBGPU_NATIVE}>:webgpu_dawn webgpu_cpp>
 )
