@@ -27,7 +27,14 @@ class scheduler;
 
 /// \brief Private implementation details for the ECS.
 /// \warning Users should not rely on these implementations.
-namespace psl::ecs::details {}
+namespace psl::ecs::details {
+template <typename T>
+concept IsRangeType = requires(T t) {
+	{ t.begin() } -> std::same_as<typename T::iterator>;
+	{ t.end() } -> std::same_as<typename T::iterator>;
+	{ t.size() } -> std::convertible_to<size_t>;
+};
+}	 // namespace psl::ecs::details
 
 namespace psl::utility {
 template <>
@@ -237,20 +244,11 @@ class state_t final {
 		}
 	}
 
-	template <typename T, typename Mutator>
-		requires(!IsFilteringOp<T> && IsRestrictedMutable<T>)
-	void mutate_component(entity_t entity, Mutator&& mutator) {
-		auto instance = details::make_mutate_instruction<T, Mutator>(std::forward<Mutator>(mutator));
-		auto view	  = psl::array_view<entity_t>(&entity, &entity + 1);
-		add_components(view, &instance);
-	}
 
-	template <typename T, auto Field, auto... Fields, typename... Args>
-		requires(!IsFilteringOp<T> && IsRestrictedMutable<T>)
-	void mutate_component(entity_t entity, Args&&... args) {
-		auto mutator = details::make_mutate_instruction<T, Field, Fields...>(std::forward<Args>(args)...);
-		auto view	 = psl::array_view<entity_t>(&entity, &entity + 1);
-		add_components(view, &mutator);
+	template <typename T>
+		requires((!IsFilteringOp<T> && IsRestrictedMutable<T>))
+	void mutate_components(psl::array_view<entity_t> entities, auto&& prototype) {
+		add_component<details::mutate_instruction_t<T>>(entities, std::forward<decltype(prototype)>(prototype));
 	}
 
 	template <typename... Ts>
@@ -264,7 +262,7 @@ class state_t final {
 	}
 	template <typename... Ts>
 	void add_components(psl::array_view<entity_t> entities, Ts&&... prototype) {
-		(add_component(entities, std::forward<Ts>(prototype)), ...);
+		(add_component<Ts>(entities, std::forward<Ts>(prototype)), ...);
 	}
 
 	template <typename... Ts>
@@ -718,9 +716,11 @@ class state_t final {
 	template <typename T>
 	inline void create_storage() const noexcept {
 		constexpr auto key = details::component_key_t::generate<T>();
-		auto cInfo		   = get_component_typed_info<T>();
-		if(cInfo == nullptr) {
-			m_Components.emplace(key, details::instantiate_component_container<T>());
+		using target_type =
+		  std::conditional_t<details::IsMutateInstruction<T>, details::mutate_instruction_underlying_t<T>, T>;
+
+		if(auto cInfo = get_component_typed_info<T>(); !cInfo) {
+			m_Components.emplace(key, details::instantiate_component_container<target_type>());
 			get_component_typed_info<T>();
 		}
 	}
@@ -815,7 +815,7 @@ class state_t final {
 		}
 		return container;
 #else
-		if(auto it = m_Components.find(key); it == std::end(m_Components)) {
+		if(auto it = m_Components.find(key); it != std::end(m_Components)) {
 			return handle_version_migration<T>(it->second.get());
 		}
 		return nullptr;
@@ -826,45 +826,50 @@ class state_t final {
 	//------------------------------------------------------------
 
 	template <typename T>
-	void add_component(psl::array_view<entity_t> entities, T&& prototype) {
-		using true_type = std::remove_const_t<std::remove_reference_t<T>>;
-		if constexpr(psl::ecs::details::is_empty_container<true_type>::value) {
-			using type = typename psl::ecs::details::empty_container<true_type>::type;
+	void add_component(psl::array_view<entity_t> entities, auto&& prototype) {
+		static constexpr bool is_mutate_instruction_wrapper = details::IsMutateInstruction<T>;
+		using prototype_t									= std::remove_cvref_t<decltype(prototype)>;
+
+		if constexpr(psl::ecs::details::is_empty_container<prototype_t>::value) {
+			using underlying_t = typename psl::ecs::details::empty_container<prototype_t>::type;
+			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
 			create_storage<type>();
-			if constexpr(details::DoesComponentTypeNeedPrototypeCall<type>) {
-				type v {details::prototype_for<type>()};
+			if constexpr(details::DoesComponentTypeNeedPrototypeCall<underlying_t>) {
+				underlying_t v {details::prototype_for<underlying_t>()};
 				add_component_impl(get_component_untyped_info<type>(), entities, &v);
 			} else {
 				add_component_impl(get_component_untyped_info<type>(), entities);
 			}
-		} else if constexpr(psl::templates::is_callable_n<T, 1>::value) {
-			using pack_type = typename psl::templates::func_traits<T>::arguments_t;
+		} else if constexpr(psl::templates::is_callable_n<prototype_t, 1>::value) {
+			using pack_type = typename psl::templates::func_traits<prototype_t>::arguments_t;
 			static_assert(psl::type_pack_size_v<pack_type> == 1,
 						  "only one argument is allowed in the prototype invocable");
 			using arg0_t = psl::type_at_index_t<0, pack_type>;
 			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 						  "the argument type should be of 'T&'");
-			using type = typename std::remove_reference<arg0_t>::type;
-			static_assert(!std::is_empty_v<type>,
+			using underlying_t = typename std::remove_reference<arg0_t>::type;
+			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
+			static_assert(!std::is_empty_v<underlying_t>,
 						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 						  "psl::ecs::empty<T>{} to avoid initialization.");
 			create_storage<type>();
 			add_component_impl(
 			  get_component_untyped_info<type>(), entities, [prototype](std::uintptr_t location, size_t count) {
 				  for(auto i = size_t {0}; i < count; ++i) {
-					  std::invoke(prototype, *((type*)(location) + i));
+					  std::invoke(prototype, *((underlying_t*)(location) + i));
 				  }
 			  });
-		} else if constexpr(psl::templates::is_callable_n<T, 2>::value) {
-			using pack_type = typename psl::templates::func_traits<T>::arguments_t;
+		} else if constexpr(psl::templates::is_callable_n<prototype_t, 2>::value) {
+			using pack_type = typename psl::templates::func_traits<prototype_t>::arguments_t;
 			static_assert(psl::type_pack_size_v<pack_type> == 2, "two arguments required in the prototype invocable");
 			using arg0_t = psl::type_at_index_t<0, pack_type>;
 			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
 						  "the argument type for arg 0 should be of 'T&'");
-			using type = typename std::remove_reference<arg0_t>::type;
-			static_assert(std::is_invocable_v<T, type&, psl::ecs::entity_t>,
+			using underlying_t = typename std::remove_reference<arg0_t>::type;
+			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
+			static_assert(std::is_invocable_v<prototype_t, underlying_t&, psl::ecs::entity_t>,
 						  "Must be invocable by your component type & entity_t as the second parameter");
-			static_assert(!std::is_empty_v<type>,
+			static_assert(!std::is_empty_v<underlying_t>,
 						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
 						  "psl::ecs::empty<T>{} to avoid initialization.");
 			create_storage<type>();
@@ -872,9 +877,20 @@ class state_t final {
 							   entities,
 							   [prototype, &entities](std::uintptr_t location, size_t count) {
 								   for(auto i = size_t {0}; i < count; ++i) {
-									   std::invoke(prototype, *((type*)(location) + i), entities[i]);
+									   std::invoke(prototype, *((underlying_t*)(location) + i), entities[i]);
 								   }
 							   });
+		} else if constexpr(details::IsRangeType<prototype_t>) {
+			psl_assert(entities.size() == prototype.size(),
+					   "incorrect amount of data input compared to entities, expected {} but got {}",
+					   entities.size(),
+					   prototype.size());
+			using underlying_t = std::remove_cvref_t<decltype(*prototype.data())>;
+			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
+			static_assert(!std::is_empty_v<underlying_t>,
+						  "no need to pass an array of tag types through, it's a waste of computing and memory");
+			create_storage<type>();
+			add_component_impl(get_component_untyped_info<type>(), entities, prototype.data(), false);
 		}
 		else if constexpr(/*std::is_trivially_copyable<T>::value && */std::is_standard_layout<T>::value/* &&
 							  std::is_trivially_destructible<T>::value*/)
@@ -886,10 +902,6 @@ class state_t final {
 
 			create_storage<T>();
 			add_component_impl(get_component_untyped_info<T>(), entities, &prototype);
-		} else if constexpr(details::is_range_t<true_type>::value) {
-			using type = typename psl::ecs::details::is_range_t<true_type>::type;
-			create_storage<type>();
-			add_component_impl(get_component_untyped_info<type>(), entities, prototype.data(), false);
 		} else {
 			static_assert(psl::templates::always_false<T>::value,
 						  "could not figure out if the template type was an invocable or a component prototype");
@@ -898,26 +910,16 @@ class state_t final {
 
 	template <typename T>
 	void add_component(psl::array_view<entity_t> entities) {
-		create_storage<T>();
-		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
-			T v {details::prototype_for<T>()};
-			add_component_impl(get_component_untyped_info<T>(), entities, &v);
+		using type = std::remove_cvref_t<T>;
+		using underlying_t =
+		  std::conditional_t<details::IsMutateInstruction<type>, details::mutate_instruction_underlying_t<type>, type>;
+		create_storage<type>();
+		if constexpr(details::DoesComponentTypeNeedPrototypeCall<underlying_t>) {
+			underlying_t v {details::prototype_for<underlying_t>()};
+			add_component_impl(get_component_untyped_info<type>(), entities, &v);
 		} else {
-			add_component_impl(get_component_untyped_info<T>(), entities);
+			add_component_impl(get_component_untyped_info<type>(), entities);
 		}
-	}
-
-	template <typename T>
-	void add_component(psl::array_view<entity_t> entities, psl::array_view<T> data) {
-		psl_assert(entities.size() == data.size(),
-				   "incorrect amount of data input compared to entities, expected {} but got {}",
-				   entities.size(),
-				   data.size());
-		create_storage<T>();
-		static_assert(!std::is_empty_v<T>,
-					  "no need to pass an array of tag types through, it's a waste of computing and memory");
-
-		add_component_impl(get_component_untyped_info<T>(), entities, data.data(), false);
 	}
 
 

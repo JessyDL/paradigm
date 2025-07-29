@@ -851,14 +851,14 @@ auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
 	}
 };
 
-// auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
-//	psl::ecs::state_t state {};
-//
-//	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
-//	auto entity = state.create<foo_restricted>(static_cast<entity_t::size_type>(1));
-//	state.mutate_component<foo_restricted, &foo_restricted::value1, &foo_restricted::value3>(entity.front(), 5, true);
-//
-//	state.tick(std::chrono::duration<float>(1.0f));
-// };
+auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+
+	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
+	auto entity = state.create<foo_restricted>(static_cast<entity_t::size_type>(1));
+	state.mutate_components<foo_restricted>(entity, foo_restricted {5, true});
+
+	state.tick(std::chrono::duration<float>(1.0f));
+};
 
 }	 // namespace

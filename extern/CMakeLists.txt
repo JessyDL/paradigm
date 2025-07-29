@@ -21,6 +21,11 @@ endif()
 set_property(TARGET gli PROPERTY FOLDER "extern")
 set_property(TARGET gli_dummy PROPERTY FOLDER "extern")
 
+if(NOT TARGET strtype)
+    add_subdirectory(strtype EXCLUDE_FROM_ALL)
+endif()
+set_property(TARGET strtype PROPERTY FOLDER "extern")
+
 if(PE_TESTS)
     add_subdirectory(litmus EXCLUDE_FROM_ALL)
     set_property(TARGET litmus PROPERTY FOLDER "extern")
@@ -29,10 +34,6 @@ endif()
 add_subdirectory(utfcpp EXCLUDE_FROM_ALL)
 set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
 
-if(NOT TARGET strtype)
-    add_subdirectory(strtype EXCLUDE_FROM_ALL)
-endif()
-set_property(TARGET strtype PROPERTY FOLDER "extern")
 
 if(${PE_WEBGPU_NATIVE})
     # some of the understandings in making this work are from https://github.com/eliemichel/webgpu-native
