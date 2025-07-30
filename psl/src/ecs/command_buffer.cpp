@@ -16,54 +16,6 @@ command_buffer_t::get_component_container(const details::component_key_t& key) n
 	return (it != std::end(m_Components)) ? it->operator->() : nullptr;
 }
 
-
-// empty construction
-void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										  psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
-										  size_t size) {
-	auto cInfo = get_component_container(key);
-
-	cInfo->add(entities);
-}
-
-
-// invocable based construction
-void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										  psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
-										  size_t size,
-										  std::function<void(std::uintptr_t, size_t)> invocable) {
-	psl_assert(size != 0, "size of requested components shouldn't be 0");
-	auto cInfo = get_component_container(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
-
-	auto offset = cInfo->size();
-	cInfo->add(entities);
-
-	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
-	std::invoke(invocable, location, entities.size());
-}
-
-// prototype based construction
-void command_buffer_t::add_component_impl(const details::component_key_t& key,
-										  psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
-										  size_t size,
-										  void* prototype) {
-	psl_assert(size != 0, "size of requested components shouldn't be 0");
-	auto cInfo = get_component_container(key);
-	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
-
-	auto offset = cInfo->size();
-	cInfo->add(entities);
-	for(const auto& id_range : entities) {
-		for(auto i = static_cast<entity_t::size_type>(id_range.first);
-			i < static_cast<entity_t::size_type>(id_range.second);
-			++i) {
-			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
-		}
-	}
-}
-
-
 // empty construction
 void command_buffer_t::add_component_impl(const details::component_key_t& key,
 										  psl::array_view<entity_t> entities,

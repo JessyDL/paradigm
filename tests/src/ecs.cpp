@@ -872,13 +872,9 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 		}
 	});
 
-	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<foo_restricted> pack) {
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<const foo_restricted> pack) {
 		require(pack.size()) == 5;
-		auto entries = pack.get<foo_restricted>();
-		if(info.tick == 1 /* second invocation */) {
-			require(entries[0].value1) == 10;
-		}
-		entries[0].value1 = 10;
+		auto entries = pack.get<const foo_restricted>();
 		require(entries[2].value1) == 0;
 	});
 

@@ -27,15 +27,7 @@ class scheduler;
 
 /// \brief Private implementation details for the ECS.
 /// \warning Users should not rely on these implementations.
-namespace psl::ecs::details {
-template <typename T>
-concept IsRangeType = requires(T t) {
-	{ t.begin() } -> std::same_as<typename T::iterator>;
-	{ t.end() } -> std::same_as<typename T::iterator>;
-	// todo std::convertible_to is not available in android ndk
-	{ t.size() } -> std::convertible_to<size_t>;
-};
-}	 // namespace psl::ecs::details
+namespace psl::ecs::details {}	  // namespace psl::ecs::details
 
 namespace psl::utility {
 template <>
@@ -130,6 +122,10 @@ class state_t final {
 			size_t data_offset {0};
 			for(const auto& key : all_keys) {
 				const auto& component = m_Components[key];
+
+				if(component->size(true) == 0) {
+					continue;	 // skip empty components
+				}
 
 				auto cti = component->component_type_info();
 
@@ -828,12 +824,12 @@ class state_t final {
 
 	template <typename T>
 	void add_component(psl::array_view<entity_t> entities, auto&& prototype) {
-		static constexpr bool is_mutate_instruction_wrapper = details::IsMutateInstruction<T>;
-		using prototype_t									= std::remove_cvref_t<decltype(prototype)>;
+		using behavior_t = details::decode_add_component_behaviour_t<T, std::remove_cvref_t<decltype(prototype)>>;
+		static constexpr auto mode = behavior_t::mode;
+		using type				   = typename behavior_t::type;
+		using underlying_t		   = typename behavior_t::underlying_t;
 
-		if constexpr(psl::ecs::details::is_empty_container<prototype_t>::value) {
-			using underlying_t = typename psl::ecs::details::empty_container<prototype_t>::type;
-			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
+		if constexpr(mode == details::add_component_behaviour_mode_t::empty_container) {
 			create_storage<type>();
 			if constexpr(details::DoesComponentTypeNeedPrototypeCall<underlying_t>) {
 				underlying_t v {details::prototype_for<underlying_t>()};
@@ -841,18 +837,7 @@ class state_t final {
 			} else {
 				add_component_impl(get_component_untyped_info<type>(), entities);
 			}
-		} else if constexpr(psl::templates::is_callable_n<prototype_t, 1>::value) {
-			using pack_type = typename psl::templates::func_traits<prototype_t>::arguments_t;
-			static_assert(psl::type_pack_size_v<pack_type> == 1,
-						  "only one argument is allowed in the prototype invocable");
-			using arg0_t = psl::type_at_index_t<0, pack_type>;
-			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
-						  "the argument type should be of 'T&'");
-			using underlying_t = typename std::remove_reference<arg0_t>::type;
-			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
-			static_assert(!std::is_empty_v<underlying_t>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_1) {
 			create_storage<type>();
 			add_component_impl(
 			  get_component_untyped_info<type>(), entities, [prototype](std::uintptr_t location, size_t count) {
@@ -860,19 +845,7 @@ class state_t final {
 					  std::invoke(prototype, *((underlying_t*)(location) + i));
 				  }
 			  });
-		} else if constexpr(psl::templates::is_callable_n<prototype_t, 2>::value) {
-			using pack_type = typename psl::templates::func_traits<prototype_t>::arguments_t;
-			static_assert(psl::type_pack_size_v<pack_type> == 2, "two arguments required in the prototype invocable");
-			using arg0_t = psl::type_at_index_t<0, pack_type>;
-			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
-						  "the argument type for arg 0 should be of 'T&'");
-			using underlying_t = typename std::remove_reference<arg0_t>::type;
-			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
-			static_assert(std::is_invocable_v<prototype_t, underlying_t&, psl::ecs::entity_t>,
-						  "Must be invocable by your component type & entity_t as the second parameter");
-			static_assert(!std::is_empty_v<underlying_t>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_2) {
 			create_storage<type>();
 			add_component_impl(get_component_untyped_info<type>(),
 							   entities,
@@ -881,46 +854,22 @@ class state_t final {
 									   std::invoke(prototype, *((underlying_t*)(location) + i), entities[i]);
 								   }
 							   });
-		} else if constexpr(details::IsRangeType<prototype_t>) {
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::range) {
 			psl_assert(entities.size() == prototype.size(),
 					   "incorrect amount of data input compared to entities, expected {} but got {}",
 					   entities.size(),
 					   prototype.size());
-			using underlying_t = std::remove_cvref_t<decltype(*prototype.data())>;
-			using type		   = std::conditional_t<is_mutate_instruction_wrapper, T, underlying_t>;
-			static_assert(!std::is_empty_v<underlying_t>,
-						  "no need to pass an array of tag types through, it's a waste of computing and memory");
 			create_storage<type>();
 			add_component_impl(get_component_untyped_info<type>(), entities, prototype.data(), false);
-		}
-		else if constexpr(/*std::is_trivially_copyable<T>::value && */std::is_standard_layout<T>::value/* &&
-							  std::is_trivially_destructible<T>::value*/)
-		{
-			static_assert(!std::is_empty_v<T>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
-
-
-			create_storage<T>();
-			add_component_impl(get_component_untyped_info<T>(), entities, &prototype);
-		} else {
-			static_assert(psl::templates::always_false<T>::value,
-						  "could not figure out if the template type was an invocable or a component prototype");
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::standard_layout) {
+			create_storage<type>();
+			add_component_impl(get_component_untyped_info<type>(), entities, &prototype);
 		}
 	}
 
 	template <typename T>
 	void add_component(psl::array_view<entity_t> entities) {
-		using type = std::remove_cvref_t<T>;
-		using underlying_t =
-		  std::conditional_t<details::IsMutateInstruction<type>, details::mutate_instruction_underlying_t<type>, type>;
-		create_storage<type>();
-		if constexpr(details::DoesComponentTypeNeedPrototypeCall<underlying_t>) {
-			underlying_t v {details::prototype_for<underlying_t>()};
-			add_component_impl(get_component_untyped_info<type>(), entities, &v);
-		} else {
-			add_component_impl(get_component_untyped_info<type>(), entities);
-		}
+		add_component<T>(entities, empty<T> {});
 	}
 
 

@@ -219,8 +219,11 @@ namespace details {
 
 		template <typename T, typename Fn>
 		constexpr void selector(psl::type_pack_t<T>, Fn&& query) noexcept {
-			if constexpr(!std::is_same_v<entity_t, T> && !IsPolicy<T> && !IsAccessType<T>)
+			if constexpr(!std::is_same_v<entity_t, T> && !IsPolicy<T> && !IsAccessType<T>) {
+				static_assert(IsUnrestrictedMutable<T> || std::is_const_v<T>,
+							  "Only mutable components (default) or read-only access is allowed.");
 				filters->emplace_back(details::component_key_t::generate<T>(), query.template operator()<T>());
+			}
 		}
 
 		template <typename... Ts, typename Fn>
