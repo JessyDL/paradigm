@@ -32,6 +32,7 @@ template <typename T>
 concept IsRangeType = requires(T t) {
 	{ t.begin() } -> std::same_as<typename T::iterator>;
 	{ t.end() } -> std::same_as<typename T::iterator>;
+	// todo std::convertible_to is not available in android ndk
 	{ t.size() } -> std::convertible_to<size_t>;
 };
 }	 // namespace psl::ecs::details
@@ -1027,6 +1028,9 @@ class state_t final {
 	psl::array<entity_t>::iterator on_combine_op(psl::array<details::cached_container_entry_t>& entries,
 												 psl::array<entity_t>::iterator& begin,
 												 psl::array<entity_t>::iterator& end) const noexcept;
+	psl::array<entity_t>::iterator on_mutate_op(details::cached_container_entry_t& entry,
+												psl::array<entity_t>::iterator& begin,
+												psl::array<entity_t>::iterator& end) const noexcept;
 
 	psl::array<entity_t> filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept;
 	void filter(filter_result& data, psl::array_view<entity_t> source) const noexcept;

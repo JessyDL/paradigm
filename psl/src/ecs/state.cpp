@@ -219,11 +219,34 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	  [](auto... args) { std::sort(args...); }, modified_entities.begin(), modified_entities.end());
 
 	// apply mutations
+	psl::array<details::component_container_t*> mutated_components;
+	for(auto& [key, cInfo] : m_Components) {
+		if(!cInfo || cInfo->size(true) == 0) {
+			continue;
+		}
+		if(cInfo->id() != key) {
+			// regardless if the mutation is applied or not, it will be cleared after this operation.
+			// mutations do not persist the frame as a design decision.
+			mutated_components.push_back(cInfo.get());
+			auto targetCInfo = get_component_container(cInfo->id());
+			if(!targetCInfo) {
+				continue;
+			}
+			targetCInfo->copy_from(cInfo.get());
+		}
+	}
 
 
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
 		filter(filter_result, modified_entities);
+	}
+
+	// we can clear the mutated component data now as we have the filtering information:
+	for(auto* cInfo : mutated_components) {
+		if(cInfo) {
+			cInfo->clear();
+		}
 	}
 
 	m_ModifiedEntities.clear();
@@ -505,6 +528,22 @@ psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached
 			   });
 }
 
+psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_entry_t& entry,
+													 psl::array<entity_t>::iterator& begin,
+													 psl::array<entity_t>::iterator& end) const noexcept {
+	if(!entry.container) {
+		// contains the mutated components
+		entry.container = get_component_container(entry.key);
+	}
+	// actual component data
+	auto cInfoTarget = get_component_container(entry.container->component_type_info().id);
+	return (entry.container == nullptr || cInfoTarget == nullptr)
+			 ? begin
+			 : std::partition(begin, end, [&entry, &cInfoTarget](entity_t e) {
+				   return entry.container->has(e) && cInfoTarget->has(e);
+			   });
+}
+
 psl::array<entity_t> state_t::filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept {
 	auto pack_filters = pack.filters;
 	for(const auto& [key, arr] : pack.m_RBindings) pack_filters.emplace_back(key);
@@ -552,6 +591,18 @@ psl::array<entity_t> state_t::filter(const details::dependency_pack& pack, bool 
 
 void state_t::filter(filter_result& data, bool seed_with_previous) const noexcept {
 	std::optional<psl::array_view<entity_t>> source;
+
+	for(auto filter : data.group->on_mutate) {
+		auto cInfo = get_component_container(filter);
+		if(!cInfo) {
+			data.entities = {};
+			return;
+		}
+		if(!source || cInfo->entities().size() < source.value().size()) {
+			// technically remove ops on the on_mutate should not be possible, but we'll filter for all anyway.
+			source = cInfo->entities(true);
+		}
+	}
 
 	for(auto filter : data.group->on_remove) {
 		auto cInfo = get_component_container(filter);
@@ -622,6 +673,10 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 		auto begin = std::begin(result);
 		auto end   = std::end(result);
 
+		for(auto filter : data.group->on_mutate) {
+			end = on_mutate_op(filter, begin, end);
+		}
+
 		for(auto filter : data.group->on_remove) {
 			end = on_remove_op(filter, begin, end);
 		}
@@ -666,6 +721,10 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 		psl::array<entity_t> result {source};
 		auto begin = std::begin(result);
 		auto end   = std::end(result);
+
+		for(auto filter : data.group->on_mutate) {
+			end = on_mutate_op(filter, begin, end);
+		}
 
 		for(auto filter : data.group->on_remove) {
 			end = on_remove_op(filter, begin, end);

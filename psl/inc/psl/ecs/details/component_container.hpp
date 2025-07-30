@@ -119,6 +119,13 @@ class component_container_t {
 		return 0;
 	};
 
+	size_t copy_from(component_container_t* source) noexcept {
+		auto entities	 = source->entities(stage_range_t::ALL);
+		auto source_data = source->data();
+
+		return copy_from(entities, source_data, false);
+	};
+
 	inline component_type_info_t const& component_type_info() const noexcept {
 		return m_Info;
 	};

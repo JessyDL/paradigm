@@ -481,11 +481,13 @@ class pack_t {
 	using except_type	   = typename details::typelist_to_except_pack<Ts...>::type;
 	using conditional_type = typename details::typelist_to_conditional_pack<Ts...>::type;
 	using order_by_type	   = typename details::typelist_to_orderby_pack<Ts...>::type;
+	using on_mutate_type   = typename details::typelist_to_on_mutate_pack<Ts...>::type;
 	using policy_type	   = Policy;
 	using access_type	   = Access;
 	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity_t, Ts>...>::value};
 
 	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
+	static_assert(std::tuple_size<on_mutate_type>::value <= 1, "cannot support multiple on_mutate filtering yet");
 
   public:
 	constexpr pack_t() = default;
@@ -543,11 +545,13 @@ class pack_t<Policy, indirect_t, Ts...> {
 	using except_type	   = typename details::typelist_to_except_pack<Ts...>::type;
 	using conditional_type = typename details::typelist_to_conditional_pack<Ts...>::type;
 	using order_by_type	   = typename details::typelist_to_orderby_pack<Ts...>::type;
+	using on_mutate_type   = typename details::typelist_to_on_mutate_pack<Ts...>::type;
 	using policy_type	   = Policy;
 	using access_type	   = indirect_t;
 	static constexpr bool has_entities {std::disjunction<std::is_same<psl::ecs::entity_t, Ts>...>::value};
 
 	static_assert(std::tuple_size<order_by_type>::value <= 1, "multiple order_by statements make no sense");
+	static_assert(std::tuple_size<on_mutate_type>::value <= 1, "cannot support multiple on_mutate filtering yet");
 
 	constexpr pack_t() = default;
 

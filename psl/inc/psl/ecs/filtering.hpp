@@ -1,6 +1,7 @@
 #pragma once
 #include "details/component_key.hpp"
 #include "details/execution.hpp"
+#include "details/mutate_instruction.hpp"
 #include "psl/array.hpp"
 #include "psl/ecs/pack.hpp"
 #include "psl/template_utils.hpp"
@@ -144,10 +145,82 @@ namespace details {
 
 
 	class filter_group {
+		friend class ::psl::ecs::state_t;
+
+		struct filter_group_container_t {
+			void sort() noexcept {
+				std::sort(std::begin(group), std::end(group));
+			}
+
+			void unique() noexcept {
+				group.erase(std::unique(std::begin(group), std::end(group)), std::end(group));
+			}
+
+			void clear() noexcept {
+				group.clear();
+			}
+
+			void set_difference(const filter_group_container_t& other) noexcept {
+				psl::array<cached_container_entry_t> cpy = group;
+				group.clear();
+				std::set_difference(std::begin(cpy),
+									std::end(cpy),
+									std::begin(other.group),
+									std::end(other.group),
+									std::back_inserter(group));
+			}
+
+			bool includes(const filter_group_container_t& other) const noexcept {
+				return std::includes(
+				  std::begin(group), std::end(group), std::begin(other.group), std::end(other.group));
+			}
+
+			bool operator==(const filter_group_container_t& other) const noexcept {
+				return std::equal(std::begin(group), std::end(group), std::begin(other.group), std::end(other.group));
+			}
+
+			size_t size() const noexcept {
+				return group.size();
+			}
+
+			operator psl::array<cached_container_entry_t>&() noexcept {
+				return group;
+			}
+			operator const psl::array<cached_container_entry_t>&() const noexcept {
+				return group;
+			}
+
+			auto begin() noexcept {
+				return std::begin(group);
+			}
+
+			auto end() noexcept {
+				return std::end(group);
+			}
+
+			auto begin() const noexcept {
+				return std::begin(group);
+			}
+
+			auto end() const noexcept {
+				return std::end(group);
+			}
+
+			auto operator->() noexcept {
+				return &group;
+			}
+
+			auto operator->() const noexcept {
+				return &group;
+			}
+
+			psl::array<cached_container_entry_t> group;
+		};
+
 		template <typename T, typename Fn>
 		constexpr void selector(psl::type_pack_t<T>, Fn&& query) noexcept {
 			if constexpr(!std::is_same_v<entity_t, T> && !IsPolicy<T> && !IsAccessType<T>)
-				filters.emplace_back(details::component_key_t::generate<T>(), query.template operator()<T>());
+				filters->emplace_back(details::component_key_t::generate<T>(), query.template operator()<T>());
 		}
 
 		template <typename... Ts, typename Fn>
@@ -157,31 +230,39 @@ namespace details {
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_combine<Ts...>>, Fn&& query) noexcept {
-			(void(on_combine.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			(void(on_combine->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
 			 ...);
 		}
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_break<Ts...>>, Fn&& query) noexcept {
-			(void(on_break.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			(void(on_break->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
 			 ...);
 		}
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<except<Ts...>>, Fn&& query) noexcept {
-			(void(except.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())), ...);
+			(void(except->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			 ...);
 		}
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_add<Ts...>>, Fn&& query) noexcept {
-			(void(on_add.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())), ...);
+			(void(on_add->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			 ...);
 		}
 
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_remove<Ts...>>, Fn&& query) noexcept {
-			(void(on_remove.emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
+			(void(on_remove->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
 			 ...);
+		}
+
+		template <typename T, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_mutate<T>>, Fn&& query) noexcept {
+			on_mutate->emplace_back(details::component_key_t::generate<details::mutate_instruction_t<T>>(),
+									query.template operator()<details::mutate_instruction_t<T>>());
 		}
 
 		template <typename Pred, typename... Ts, typename Fn>
@@ -190,7 +271,6 @@ namespace details {
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>, Fn&&) noexcept {}
 
-		friend class ::psl::ecs::state_t;
 		filter_group() = default;
 		filter_group(psl::array<cached_container_entry_t> filters_arr,
 					 psl::array<cached_container_entry_t> on_add_arr,
@@ -198,107 +278,43 @@ namespace details {
 					 psl::array<cached_container_entry_t> except_arr,
 					 psl::array<cached_container_entry_t> on_combine_arr,
 					 psl::array<cached_container_entry_t> on_break_arr)
-			: filters(filters_arr.begin(), filters_arr.end()), on_add(on_add_arr.begin(), on_add_arr.end()),
-			  on_remove(on_remove_arr.begin(), on_remove_arr.end()), except(except_arr.begin(), except_arr.end()),
-			  on_combine(on_combine_arr.begin(), on_combine_arr.end()),
-			  on_break(on_break_arr.begin(), on_break_arr.end()) {
-			std::sort(std::begin(filters), std::end(filters));
-			std::sort(std::begin(on_add), std::end(on_add));
-			std::sort(std::begin(on_remove), std::end(on_remove));
-			std::sort(std::begin(except), std::end(except));
-			std::sort(std::begin(on_combine), std::end(on_combine));
-			std::sort(std::begin(on_break), std::end(on_break));
-
-			filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
-			auto cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(on_add), std::end(on_add), std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(on_remove), std::end(on_remove), std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(std::begin(cpy),
-								std::end(cpy),
-								std::begin(on_combine),
-								std::end(on_combine),
-								std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(on_break), std::end(on_break), std::back_inserter(filters));
+			: filters(filters_arr), on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr),
+			  on_combine(on_combine_arr), on_break(on_break_arr) {
+			post_init();
 		};
+
+		void post_init() {
+			filters.sort();
+			on_add.sort();
+			on_remove.sort();
+			except.sort();
+			on_combine.sort();
+			on_break.sort();
+			on_mutate.sort();
+
+			filters.unique();
+
+			filters.set_difference(on_add);
+			filters.set_difference(on_remove);
+			filters.set_difference(except);
+			filters.set_difference(on_combine);
+			filters.set_difference(on_break);
+			filters.set_difference(on_mutate);
+		}
 
 	  public:
 		template <typename... Ts, typename Fn>
 		filter_group(psl::type_pack_t<Ts...>, Fn&& query) {
 			(void(selector(psl::type_pack_t<Ts>(), query)), ...);
-			std::sort(std::begin(filters), std::end(filters));
-			std::sort(std::begin(on_add), std::end(on_add));
-			std::sort(std::begin(on_remove), std::end(on_remove));
-			std::sort(std::begin(except), std::end(except));
-			std::sort(std::begin(on_combine), std::end(on_combine));
-			std::sort(std::begin(on_break), std::end(on_break));
-
-
-			filters.erase(std::unique(std::begin(filters), std::end(filters)), std::end(filters));
-			auto cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(on_add), std::end(on_add), std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(on_remove), std::end(on_remove), std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(except), std::end(except), std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(std::begin(cpy),
-								std::end(cpy),
-								std::begin(on_combine),
-								std::end(on_combine),
-								std::back_inserter(filters));
-
-			cpy = filters;
-			filters.clear();
-			std::set_difference(
-			  std::begin(cpy), std::end(cpy), std::begin(on_break), std::end(on_break), std::back_inserter(filters));
+			post_init();
 		}
 
 		// Is this fully containable in the other
 		bool is_subset_of(const filter_group& other) const noexcept {
-			return std::includes(
-					 std::begin(other.filters), std::end(other.filters), std::begin(filters), std::end(filters)) &&
-				   std::includes(
-					 std::begin(other.on_add), std::end(other.on_add), std::begin(on_add), std::end(on_add)) &&
-				   std::includes(std::begin(other.on_remove),
-								 std::end(other.on_remove),
-								 std::begin(on_remove),
-								 std::end(on_remove)) &&
-				   std::includes(
-					 std::begin(other.except), std::end(other.except), std::begin(except), std::end(except)) &&
-				   std::includes(std::begin(other.on_combine),
-								 std::end(other.on_combine),
-								 std::begin(on_combine),
-								 std::end(on_combine)) &&
-				   std::includes(
-					 std::begin(other.on_break), std::end(other.on_break), std::begin(on_break), std::end(on_break));
+			return other.filters.includes(filters) && other.on_add.includes(on_add) &&
+				   other.on_remove.includes(on_remove) && other.except.includes(except) &&
+				   other.on_combine.includes(on_combine) && other.on_break.includes(on_break) &&
+				   other.on_mutate.includes(on_mutate);
 		}
 
 		// inverse of subset, does this fully contain the other
@@ -312,24 +328,14 @@ namespace details {
 		}
 
 		bool clear_every_frame() const noexcept {
-			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0;
+			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0 ||
+				   on_mutate.size() > 0;
 		}
 
 		bool operator==(const filter_group& other) const noexcept {
-			return std::equal(
-					 std::begin(filters), std::end(filters), std::begin(other.filters), std::end(other.filters)) &&
-				   std::equal(std::begin(on_add), std::end(on_add), std::begin(other.on_add), std::end(other.on_add)) &&
-				   std::equal(std::begin(on_remove),
-							  std::end(on_remove),
-							  std::begin(other.on_remove),
-							  std::end(other.on_remove)) &&
-				   std::equal(std::begin(except), std::end(except), std::begin(other.except), std::end(other.except)) &&
-				   std::equal(std::begin(on_combine),
-							  std::end(on_combine),
-							  std::begin(other.on_combine),
-							  std::end(other.on_combine)) &&
-				   std::equal(
-					 std::begin(on_break), std::end(on_break), std::begin(other.on_break), std::end(other.on_break));
+			return filters == other.filters && on_add == other.on_add && on_remove == other.on_remove &&
+				   except == other.except && on_combine == other.on_combine && on_break == other.on_break &&
+				   on_mutate == other.on_mutate;
 		}
 
 		// returns true if this filter is a basic filter, meaning it only filters on components, not special events
@@ -345,12 +351,13 @@ namespace details {
 			m_SystemsDebugNames.emplace_back(name);
 		}
 
-		psl::array<cached_container_entry_t> filters;
-		psl::array<cached_container_entry_t> on_add;
-		psl::array<cached_container_entry_t> on_remove;
-		psl::array<cached_container_entry_t> except;
-		psl::array<cached_container_entry_t> on_combine;
-		psl::array<cached_container_entry_t> on_break;
+		filter_group_container_t filters;
+		filter_group_container_t on_add;
+		filter_group_container_t on_remove;
+		filter_group_container_t except;
+		filter_group_container_t on_combine;
+		filter_group_container_t on_break;
+		filter_group_container_t on_mutate;
 		psl::array<psl::string_view> m_SystemsDebugNames;
 	};
 }	 // namespace details

@@ -855,9 +855,41 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
 
 	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
-	auto entity = state.create<foo_restricted>(static_cast<entity_t::size_type>(1));
-	state.mutate_components<foo_restricted>(entity, foo_restricted {5, true});
+	auto entities		   = state.create<foo_restricted>(static_cast<entity_t::size_type>(5), {0, 0, false});
+	auto modified_entities = psl::array_view<entity_t> {std::begin(entities), 2};	 // only modify 2 of the 5 entities
+	foo_restricted mutated_values {5, 3, true};
+	state.mutate_components<foo_restricted>(modified_entities, mutated_values);
+	bool has_mutated {true};
 
+	state.declare([&has_mutated, &mutated_values](
+					psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+		require(pack.size()) == ((has_mutated) ? 2 : 0);
+
+		for(auto [value] : pack) {
+			require(value.value1) == mutated_values.value1;
+			require(value.value2) == mutated_values.value2;
+			require(value.value3) == mutated_values.value3;
+		}
+	});
+
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<foo_restricted> pack) {
+		require(pack.size()) == 5;
+		auto entries = pack.get<foo_restricted>();
+		if(info.tick == 1 /* second invocation */) {
+			require(entries[0].value1) == 10;
+		}
+		entries[0].value1 = 10;
+		require(entries[2].value1) == 0;
+	});
+
+	state.tick(std::chrono::duration<float>(1.0f));
+
+	has_mutated = false;
+	state.tick(std::chrono::duration<float>(1.0f));
+
+	mutated_values = {99, 2, true};
+	state.mutate_components<foo_restricted>(modified_entities, mutated_values);
+	has_mutated = true;
 	state.tick(std::chrono::duration<float>(1.0f));
 };
 
