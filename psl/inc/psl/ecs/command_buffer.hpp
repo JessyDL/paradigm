@@ -19,10 +19,16 @@ class state_t;
 namespace details {
 	template <typename T>
 	concept IsRangeType = requires(T t) {
+// todo std::convertible_to is not available in android ndk
+#if !defined(PE_PLATFORM_ANDROID)
 		{ t.begin() } -> std::same_as<typename T::iterator>;
 		{ t.end() } -> std::same_as<typename T::iterator>;
-		// todo std::convertible_to is not available in android ndk
 		{ t.size() } -> std::convertible_to<size_t>;
+#else
+		{ t.begin() };
+		{ t.end() };
+		{ t.size() };
+#endif
 	};
 
 	enum class add_component_behaviour_mode_t {

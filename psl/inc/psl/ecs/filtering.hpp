@@ -148,6 +148,9 @@ namespace details {
 		friend class ::psl::ecs::state_t;
 
 		struct filter_group_container_t {
+			filter_group_container_t() = default;
+			filter_group_container_t(const psl::array<cached_container_entry_t>& other) : group(other) {};
+
 			void sort() noexcept {
 				std::sort(std::begin(group), std::end(group));
 			}
@@ -214,7 +217,7 @@ namespace details {
 				return &group;
 			}
 
-			psl::array<cached_container_entry_t> group;
+			psl::array<cached_container_entry_t> group {};
 		};
 
 		template <typename T, typename Fn>
