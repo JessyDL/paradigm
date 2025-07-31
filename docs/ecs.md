@@ -9,8 +9,11 @@ Hopefully after this short introduction & examples you will have enough of an id
 |  |  |
 |--|--|
 | `entities` | an ID of type `uint32_t` |
-| `components` | are required to satisfy the requirements of [`standard_layout`](https://en.cppreference.com/w/cpp/types/is_standard_layout), [`trivially_destructible`](https://en.cppreference.com/w/cpp/types/is_trivially_destructible), and [`trivially_copyable`](https://en.cppreference.com/w/cpp/types/is_trivially_copyable). It is easiest of all to see them as a superset of POD types, with exception that you can provide a custom constructor, as long as they supply at least a `default` initializable constructor (no parameters). |
+| `components` | are required to satisfy the requirements of [`standard_layout`](https://en.cppreference.com/w/cpp/types/is_standard_layout). Depending on the complexity of the constructors available it will either be stored as a type-aware storage (following proper lifetime operations), or an untyped byte memory backing. |
 | `systems` | any invocable (lambda, function or method), that satisfies the required signature (see the *Systems* section) |
+
+##### note:
+Components can be slightly more complex than a POD type, but it is best to minimize the complexity of components. If they have don't have special requirements so that they satisfy [`trivially_destructible`](https://en.cppreference.com/w/cpp/types/is_trivially_destructible), and [`trivially_copyable`](https://en.cppreference.com/w/cpp/types/is_trivially_copyable), they can be serialized to disk trivially. Additionally some slight overhead will be avoided from having to use the typed backing storage.
 
 ## concepts
 ### state
@@ -44,13 +47,27 @@ By default all argument types you pass to an `ecs::pack` are filtering instructi
 - on_remove
 - on_combine
 - on_break
+- on_mutate
+- on_condition
+- order_by
 
 **filter:** requires the component to exist on the entity, but no data will be fetched for it.
+
 **except:** requires the component to be **non**-existent on the entity.
+
 **on_add:** only fills in data when this component was added to the entity since the last tick.
+
 **on_remove:** reverse scenario of on_add
+
 **on_combine:** fills in data when this combination is first created. I.e. if you were filtering `on_combine<transform, renderable>`, then on any  entity with a transform component, when a renderable component gets added, then the pack will be filled in with data of that entity. The reverse is true as well, for any entity with a renderable component, when you add a transform component to it, this filter will trigger.
+
 **on_break:** same like on_combine, but the reverse situation (i.e. when an entity that has this component combination, and you remove one, then this filter will trigger).
+
+**on_mutate:** only fills in data when the component was mutated since the last tick. This only is available for components that have a restricted mutability behaviour (see the *Restricted Mutability / mutate_components* section).
+
+**on_condition:** only fills in data when the component satisfies a condition. The condition is a callable that takes the component as an argument and returns a boolean. This is useful for filtering components based on their state.
+
+**order_by:** fairly rarely you need control over the order of the entities in the pack based on the data. This operation, which is not strictly a filtering operation, allows you to do so.
 
 Notable is that components that have been "destroyed" are actually still alive for one more tick, this is so that the **on_remove** and **on_break** functionality can still read the data and send it to the systems. Normal systems will however not get the component anymore.
 
@@ -175,6 +192,14 @@ You can also circumvent needing to call `add_components` completely, and pass th
 Removing components is quite trivial. You can either call `.remove_components<Ts...>(entities)` on a `state` to remove select component types on a range of entities, or call `.destroy(entities)` to remove all components (and return the given entities back to the pool as an orphan).
 Note that removing components will keep the actual component data around till the end of the next invocation of `.tick(dTime)`. This is for systems (and filtering instructions), that operate on removed components (the `on_break` and `on_remove` filtering instructions). For this reason, you cannot remove and add the same component in the same tick as of now, but this might change in the future.
 
+### Restricted Mutability / mutate_components
+
+Components come in 2 varieties, the default is an 'unrestricted' component which can be modified freely by any system, and at any time — taking into account for when the component is locked by a system. There is a second variety which is a `psl::ecs::component_mutability_behaviour_t::unrestricted`. When a component is marked (at compile time) as such the only way to modify it is through the `state_t::mutate_components(...)` API.
+
+The advantage of this is that you can now listen for the `psl::ecs::on_mutate<>` filtering instruction in a system which will only contain entities who's components have been mutated between last tick and now. This is a much cheaper filtering operation than the `on_condition<>` filtering instruction.
+
+To have your component be marked as restricted you will need to specialize the `psl::ecs::component_trait_mutability_t<>` which can be found at [psl/ecs/component_traits.hpp](psl/inc/psl/ecs/component_traits.hpp).
+
 ## Packs
 The `ecs::pack<>` type is both a view into the component data, as well as a set of filtering instructions of what requirements the entities are supposed to have. This might seem like an odd combination, but simplifies systems, as well as makes clear the constraints of the data a variable will be working with.
 
@@ -213,6 +238,9 @@ auto lifetimes = std::get<lifetime>(example_pack);
 ```
 ### partial and whole packs
 `partial` and `whole` are identifiers to designate if a pack is divisible or not. These are important for the `ecs::state` to know if this pack can be divided onto multiple contexts or not. The **Systems** section will explain more about this.
+
+### direct and indirect packs
+Data within the packs can either be directly stored in the pack, or involve an indirection to the backing storage. Typically you'll want to use the indirect pack unless you benefit from direct contiguous memory access.
 
 ## Systems
 The ECS takes a hands-off approach in dictating *how* systems should look as long as you supply an invocable function/method/object that satisfies the signature of `(psl::ecs::info& info, /* your filter instructions using the ecs::pack<> interface*/)`.
@@ -297,3 +325,13 @@ auto attractor_system =
 
 state.declare(psl::ecs::threading::par, attractor_system );
 ```
+
+### serialization
+
+All trivial components can be de/serialized to/from disk. You can test if your component is trivial by checking `psl::ecs::component_type_v` for your type. It will contain the enum value `psl::ecs::component_type`. Any value except `component_type::COMPLEX` can be serialized.
+
+Furthermore any component that can be serialized can also be versioned (default off). You can control the versioning by specializing the `psl::ecs::component_trait_version_t` for your type. You will also need to provide an instance of `psl::ecs::component_updater_t` for your type which will be used to handle data migration of an older version to the newer version.
+
+### See also
+
+There are tests covering all of the functionality described here in `tests/src/ecs.cpp`. Additionally if you see missing documentation, or have questions please open an issue.
