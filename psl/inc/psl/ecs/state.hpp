@@ -102,7 +102,8 @@ class state_t final {
 			std::vector<details::component_key_t> all_keys {};
 			for(const auto& [key, component] : m_Components) {
 				// skip unserializable types, or those that aren't requesting to be serialized
-				if(key.type() == component_type::COMPLEX || !component->component_type_info().serializable) {
+				if(key.type() == component_type::COMPLEX || !component->component_type_info().serializable ||
+				   key != component->id() /* mutation */) {
 					continue;
 				}
 				expected_total_entities += component->size(true);
@@ -118,6 +119,18 @@ class state_t final {
 			std::sort(std::begin(all_keys), std::end(all_keys));
 			component_entities.reserve(expected_total_entities);
 			component_data.resize(expected_total_datasize);
+
+			// not ideal, but as we cannot serialize the mutations we have to apply them here.
+			// the good news is that this doesn't cause any issues for the tick behaviour as
+			// the mutation will be applied as before, but it does mean we have "double" work.
+			// we could consider not applying the mutations, but users might not be happy with
+			// "lost data".
+			// additionally it doesn't make sense to serialize the mutation instructions as that
+			// would load the components and immediately mutate them anyway (with exception that
+			// it would also fire mutation events in the first tick).
+			if(!all_keys.empty()) {
+				std::ignore = apply_mutations();
+			}
 
 			size_t data_offset {0};
 			for(const auto& key : all_keys) {
@@ -1005,6 +1018,7 @@ class state_t final {
 	//------------------------------------------------------------
 	size_t set(psl::array_view<entity_t> entities, const details::component_key_t& key, void* data) noexcept;
 
+	psl::array<details::component_container_t*> apply_mutations();
 
 	//------------------------------------------------------------
 	// system declare

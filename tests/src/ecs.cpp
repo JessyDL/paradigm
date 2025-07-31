@@ -889,4 +889,29 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 	state.tick(std::chrono::duration<float>(1.0f));
 };
 
+auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+	auto entities = state.create<foo_restricted>(static_cast<entity_t::size_type>(5), {0, 0, false});
+
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+		require(pack.size()) == (info.tick == 0 ? 0 : 5);
+
+		for(auto [value] : pack) {
+			require(value.value1) == (int)info.tick - 1;
+			require(value.value2) == 3.0f * (info.tick - 1);
+			require(value.value3) == true;
+		}
+	});
+
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<entity_t, const foo_restricted> pack) {
+		require(pack.size()) == 5;
+		info.command_buffer.mutate_components<foo_restricted>(pack,
+															  foo_restricted {(int)info.tick, 3.0f * info.tick, true});
+	});
+	state.tick(std::chrono::duration<float>(1.0f));
+	state.tick(std::chrono::duration<float>(1.0f));
+	state.tick(std::chrono::duration<float>(1.0f));
+	state.tick(std::chrono::duration<float>(1.0f));
+};
+
 }	 // namespace

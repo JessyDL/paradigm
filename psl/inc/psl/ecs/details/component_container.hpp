@@ -17,6 +17,10 @@ template <typename... Ts>
 class pack_view;
 }
 
+namespace psl::ecs {
+class state_t;
+}
+
 namespace psl::ecs::details {
 
 /// \brief collects all handy information we need of a component both for identification purposes, and for safe de/serialization
@@ -37,6 +41,8 @@ struct component_type_info_t {
 /// \warning this should never be used by anything other than the psl::ecs::state_t
 /// The 'public' API is not safe to use.
 class component_container_t {
+	friend class psl::ecs::state_t;
+
   public:
 	component_container_t(component_type_info_t info);
 

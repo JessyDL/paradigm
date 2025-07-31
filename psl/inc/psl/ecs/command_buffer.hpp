@@ -133,8 +133,8 @@ class command_buffer_t {
 
 	template <typename T>
 		requires((!IsFilteringOp<T> && IsRestrictedMutable<T>))
-	void mutate_components(psl::array_view<entity_t> entities, T&& prototype) {
-		add_component<details::mutate_instruction_t<T>>(entities, std::forward<T>(prototype));
+	void mutate_components(psl::array_view<entity_t> entities, auto&& prototype) {
+		add_component<details::mutate_instruction_t<T>>(entities, std::forward<decltype(prototype)>(prototype));
 	}
 
 	template <typename T>
@@ -303,6 +303,11 @@ class command_buffer_t {
 		if(it == std::end(m_Components)) {
 			m_Components.emplace_back(details::instantiate_component_container<T>());
 		}
+
+		if constexpr(details::IsMutateInstruction<T>) {
+			using target_type = details::mutate_instruction_underlying_t<T>;
+			m_MutatedComponents.emplace(key, details::component_key_t::generate<target_type>());
+		}
 	}
 
 	details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
@@ -406,6 +411,8 @@ class command_buffer_t {
 
 	state_t const* m_State {nullptr};
 	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
+	// contains the association between the mutation instruction component (key), and the one it is mutating (value)
+	std::unordered_map<details::component_key_t, details::component_key_t> m_MutatedComponents {};
 	entity_t::size_type m_First {0};
 	psl::array<entity_t> m_Entities {};
 

@@ -197,6 +197,25 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 	}
 }
 
+psl::array<details::component_container_t*> state_t::apply_mutations() {
+	psl::array<details::component_container_t*> mutated_components;
+	for(auto& [key, cInfo] : m_Components) {
+		if(!cInfo || cInfo->size(true) == 0) {
+			continue;
+		}
+		if(cInfo->id() != key) {
+			// regardless if the mutation is applied or not, it will be cleared after this operation.
+			// mutations do not persist the frame as a design decision.
+			mutated_components.push_back(cInfo.get());
+			auto targetCInfo = get_component_container(cInfo->id());
+			if(!targetCInfo) {
+				continue;
+			}
+			targetCInfo->copy_from(cInfo.get());
+		}
+	}
+	return mutated_components;
+}
 
 void state_t::tick(std::chrono::duration<float> dTime) {
 	tick(dTime, psl::array_view<system_group_t> {});
@@ -218,23 +237,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	invoke<entity_t::size_type>(
 	  [](auto... args) { std::sort(args...); }, modified_entities.begin(), modified_entities.end());
 
-	// apply mutations
-	psl::array<details::component_container_t*> mutated_components;
-	for(auto& [key, cInfo] : m_Components) {
-		if(!cInfo || cInfo->size(true) == 0) {
-			continue;
-		}
-		if(cInfo->id() != key) {
-			// regardless if the mutation is applied or not, it will be cleared after this operation.
-			// mutations do not persist the frame as a design decision.
-			mutated_components.push_back(cInfo.get());
-			auto targetCInfo = get_component_container(cInfo->id());
-			if(!targetCInfo) {
-				continue;
-			}
-			targetCInfo->copy_from(cInfo.get());
-		}
-	}
+	psl::array<details::component_container_t*> mutated_components = apply_mutations();
 
 
 	// apply filterings
@@ -536,7 +539,7 @@ psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_e
 		entry.container = get_component_container(entry.key);
 	}
 	// actual component data
-	auto cInfoTarget = get_component_container(entry.container->component_type_info().id);
+	auto cInfoTarget = entry.container ? get_component_container(entry.container->component_type_info().id) : nullptr;
 	return (entry.container == nullptr || cInfoTarget == nullptr)
 			 ? begin
 			 : std::partition(begin, end, [&entry, &cInfoTarget](entity_t e) {
@@ -943,7 +946,15 @@ void state_t::execute_command_buffer(info_t& info) {
 	for(auto& component_src : buffer.m_Components) {
 		if(component_src->entities(true).size() == 0)
 			continue;
-		auto component_dst = get_component_container(component_src->id());
+		auto const key = component_src->id();
+		// In the case this is a mutation instruction, we need to remap the component id it uses
+		// internally to the target component id. This is a bit messy, but avoids having to recreate
+		// the component container.
+		if(auto it = buffer.m_MutatedComponents.find(key); it != std::end(buffer.m_MutatedComponents)) {
+			component_src->m_Info.id = it->second;
+		}
+
+		auto component_dst = get_component_container(key);
 
 		component_src->remap(remapped_entities, [first = buffer.m_First](entity_t e) -> bool {
 			return static_cast<entity_t::size_type>(e) >= first;
@@ -953,7 +964,8 @@ void state_t::execute_command_buffer(info_t& info) {
 			for(auto e : entities) {
 				m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
 			}
-			m_Components[component_src->id()] = std::move(component_src);
+
+			m_Components[key] = std::move(component_src);
 		} else {
 			component_dst->merge(*component_src);
 			for(auto e : component_src->entities(true))
