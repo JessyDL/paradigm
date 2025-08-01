@@ -540,6 +540,9 @@ psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_e
 	}
 	// actual component data
 	auto cInfoTarget = entry.container ? get_component_container(entry.container->component_type_info().id) : nullptr;
+	psl_assert(entry.container == nullptr || cInfoTarget != entry.container,
+			   "The mutation data source and destination are the same container, this means we have an incorrect "
+			   "lookup happening.");
 	return (entry.container == nullptr || cInfoTarget == nullptr)
 			 ? begin
 			 : std::partition(begin, end, [&entry, &cInfoTarget](entity_t e) {
