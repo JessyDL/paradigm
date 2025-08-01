@@ -8,21 +8,18 @@
 using namespace psl::ecs;
 using namespace psl::ecs::details;
 
-component_container_t::component_container_t(const component_key_t& id, size_t size, size_t alignment)
-	: m_ID(std::move(id)), m_Size(size), m_Alignment(alignment) {}
+component_container_t::component_container_t(component_type_info_t info) : m_Info(info) {}
 
-component_container_t::component_container_t(component_container_t&& other)
-	: m_ID(std::move(other.m_ID)), m_Size(std::move(other.m_Size)) {};
+component_container_t::component_container_t(component_container_t&& other) : m_Info(std::move(other.m_Info)) {};
 
 
 component_container_t& component_container_t::operator=(component_container_t&& other) {
 	if(this != &other) {
-		m_ID   = std::move(other.m_ID);
-		m_Size = std::move(other.m_Size);
+		m_Info = std::move(other.m_Info);
 	}
 	return *this;
 }
 
-bool component_container_t::is_tag() const noexcept {
-	return m_Size == 0;
+bool component_container_t::is_flag() const noexcept {
+	return m_Info.size == 0;
 }

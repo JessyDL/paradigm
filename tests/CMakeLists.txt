@@ -30,6 +30,7 @@ target_include_directories(tests
 
 target_compile_features(tests PUBLIC ${PE_COMPILER_FEATURES} PRIVATE ${PE_COMPILER_FEATURES_PRIVATE})
 target_compile_options(tests PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+target_compile_definitions(psl PUBLIC ${PE_DEFINES})
 
 if (MSVC)
 	target_compile_options(tests PRIVATE /bigobj)
@@ -37,3 +38,9 @@ endif()
 if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
 	target_compile_options(tests PRIVATE -Wno-unused-comparison)
 endif()
+
+add_custom_command(TARGET tests POST_BUILD
+    COMMAND ${CMAKE_COMMAND} -E copy_directory
+        "${CMAKE_CURRENT_SOURCE_DIR}/data"
+        "$<TARGET_FILE_DIR:tests>/tdata"
+)

@@ -17,7 +17,22 @@ template <typename... Ts>
 class pack_view;
 }
 
+namespace psl::ecs {
+class state_t;
+}
+
 namespace psl::ecs::details {
+
+/// \brief collects all handy information we need of a component both for identification purposes, and for safe de/serialization
+struct component_type_info_t {
+	component_key_t id;
+	size_t version;
+	size_t size;
+	size_t alignment;
+	psl::ecs::component_mutability_behaviour_t mutability;
+	bool serializable;
+};
+
 /// \brief implementation detail that stores the component data
 ///
 /// This class serves as a base to the actual component storage.
@@ -26,8 +41,10 @@ namespace psl::ecs::details {
 /// \warning this should never be used by anything other than the psl::ecs::state_t
 /// The 'public' API is not safe to use.
 class component_container_t {
+	friend class psl::ecs::state_t;
+
   public:
-	component_container_t(const component_key_t& id, size_t size, size_t alignment);
+	component_container_t(component_type_info_t info);
 
 	component_container_t(const component_container_t& other) = delete;
 	component_container_t(component_container_t&& other);
@@ -35,7 +52,7 @@ class component_container_t {
 	component_container_t& operator=(const component_container_t& other) = delete;
 	component_container_t& operator=(component_container_t&& other);
 
-	bool is_tag() const noexcept;
+	bool is_flag() const noexcept;
 
 	void add(psl::array_view<entity_t> entities, void* data = nullptr, bool repeat = false) {
 		add_impl(entities, data, repeat);
@@ -75,6 +92,9 @@ class component_container_t {
 	inline psl::array_view<entity_t> entities(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
 	}
+	inline psl::array_view<entity_t> entities(stage_range_t range) const noexcept {
+		return entities_impl(range);
+	}
 
 	virtual void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) {
 		return nullptr;
@@ -84,7 +104,7 @@ class component_container_t {
 		purge_impl();
 	}
 	constexpr component_key_t const& id() const noexcept {
-		return m_ID;
+		return m_Info.id;
 	}
 
 	inline psl::array_view<entity_t> added_entities() const noexcept {
@@ -105,30 +125,32 @@ class component_container_t {
 		return 0;
 	};
 
-	inline size_t component_size() const noexcept {
-		return m_Size;
+	size_t copy_from(component_container_t* source) noexcept {
+		auto entities	 = source->entities(stage_range_t::ALL);
+		auto source_data = source->data();
+
+		return copy_from(entities, source_data, false);
+	};
+
+	inline component_type_info_t const& component_type_info() const noexcept {
+		return m_Info;
 	};
 	size_t size(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE).size();
-	}
-	size_t alignment() const noexcept {
-		return m_Alignment;
 	}
 
 	void set(entity_t entity, void* data) noexcept {
 		set_impl(entity, data);
 	}
-	virtual bool should_serialize() const noexcept {
-		return false;
-	}
-	virtual bool should_serialize(bool value) noexcept {
-		return false;
+	virtual void should_serialize(bool value) noexcept {
+		psl_assert(false, "Component {} is not a type that can be serialized", m_Info.id.name());
 	}
 
 	virtual void remap(const psl::sparse_array<entity_t::size_type>& mapping,
 					   std::function<bool(entity_t)> pred) noexcept = 0;
 	virtual bool merge(const component_container_t& other) noexcept = 0;
 	virtual void clear()											= 0;
+	virtual void reserve(size_t count)								= 0;
 
   protected:
 	virtual void purge_impl() noexcept																		= 0;
@@ -145,9 +167,7 @@ class component_container_t {
 	virtual bool has_impl(entity_t entity, stage_range_t stage) const noexcept								= 0;
 
   protected:
-	component_key_t m_ID;
-	size_t m_Size;
-	size_t m_Alignment;
+	component_type_info_t m_Info;
 };
 
 template <typename T>
@@ -160,12 +180,20 @@ class component_container_typed_t final : public component_container_t {
 
   public:
 	component_container_typed_t()
-		: component_container_t(details::component_key_t::generate<T>(), sizeof(T), std::alignment_of_v<T>) {};
+		: component_container_t(component_type_info_t {.id			 = details::component_key_t::generate<T>(),
+													   .version		 = 0,
+													   .size		 = sizeof(T),
+													   .alignment	 = std::alignment_of_v<T>,
+													   .mutability	 = component_traits_t<T>::mutability,
+													   .serializable = component_traits_t<T>::serializable}) {};
 	~component_container_typed_t() override = default;
 	auto& entity_data() noexcept {
 		return m_Entities;
 	};
 
+	void reserve(size_t count) override {
+		m_Entities.reserve(count);
+	}
 
 	void* data() noexcept override {
 		return m_Entities.data();
@@ -192,7 +220,7 @@ class component_container_typed_t final : public component_container_t {
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {
-		psl_assert((std::uintptr_t)destination % alignment() == 0, "pointer has to be aligned");
+		psl_assert((std::uintptr_t)destination % m_Info.alignment == 0, "pointer has to be aligned");
 		T* dest = (T*)destination;
 		for(auto e : entities) {
 			std::memcpy(dest, m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), sizeof(T));
@@ -201,7 +229,7 @@ class component_container_typed_t final : public component_container_t {
 		return entities.size() * sizeof(T);
 	}
 	size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat) noexcept override {
-		psl_assert((std::uintptr_t)source % alignment() == 0, "pointer has to be aligned");
+		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
 		T* src = (T*)source;
 		if(repeat) {
 			for(auto e : entities) {
@@ -325,9 +353,33 @@ class component_container_typed_t final : public component_container_t {
 
 class component_container_flag_t : public component_container_t {
   public:
-	component_container_flag_t(const psl::ecs::details::component_key_t& key, bool serializable = false)
-		: component_container_t(std::move(key), 0, 0) {};
+	component_container_flag_t(component_type_info_t info)
+		: component_container_t({
+			.id		   = info.id,
+			.version   = 0,
+			.size	   = 0,
+			.alignment = 0,
+			.mutability =
+			  component_mutability_behaviour_t::unrestricted, /* doesn't have backing memory to begin with */
+			.serializable = info.serializable,
+		  }) {
+		psl_assert(info.version == 0, "Flag type component {} cannot have a version", info.id.name());
+		psl_assert(
+		  info.size == 0, "Flag type component {} cannot have a size, but had size of {}", info.id.name(), info.size);
+		psl_assert(info.alignment == 0,
+				   "Flag type component {} cannot have an alignment, but had one set to {}",
+				   info.id.name(),
+				   info.alignment);
+		psl_assert(info.mutability == component_mutability_behaviour_t::unrestricted,
+				   "Flag type component {} cannot be modified, so setting this trait has no effect",
+				   info.id.name());
+	};
 	~component_container_flag_t() override = default;
+
+
+	void reserve(size_t count) override {
+		m_Entities.reserve(count);
+	}
 
 	void* data() noexcept override {
 		return nullptr;
@@ -354,12 +406,9 @@ class component_container_flag_t : public component_container_t {
 		return true;
 	}
 
-	bool should_serialize() const noexcept override {
-		return m_Serializable;
-	}
-	bool should_serialize(bool value) noexcept override {
+
+	void should_serialize(bool value) noexcept override {
 		m_Serializable = value;
-		return true;
 	}
 
   protected:
@@ -423,16 +472,15 @@ class component_container_untyped_t : public component_container_t {
 	using stage_range_t = details::stage_range_t;
 
   public:
-	component_container_untyped_t(const psl::ecs::details::component_key_t& key,
-								  size_t size,
-								  size_t alignment,
-								  bool serializable = false)
-		: component_container_t(std::move(key), size, alignment), m_Entities(size), m_Serializable(serializable) {};
+	component_container_untyped_t(component_type_info_t info) : component_container_t(info), m_Entities(info.size) {};
 	~component_container_untyped_t() override = default;
 	auto& entity_data() noexcept {
 		return m_Entities;
 	};
 
+	void reserve(size_t count) override {
+		m_Entities.reserve(count);
+	}
 
 	void* data() noexcept override {
 		return m_Entities.data();
@@ -459,28 +507,31 @@ class component_container_untyped_t : public component_container_t {
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {
-		psl_assert((std::uintptr_t)destination % alignment() == 0, "pointer has to be aligned");
+		psl_assert((std::uintptr_t)destination % m_Info.alignment == 0, "pointer has to be aligned");
 		std::byte* dest = (std::byte*)destination;
 		for(auto e : entities) {
-			std::memcpy(dest, m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), m_Size);
-			dest += m_Size;
+			std::memcpy(
+			  dest, m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), m_Info.size);
+			dest += m_Info.size;
 		}
-		return entities.size() * m_Size;
+		return entities.size() * m_Info.size;
 	}
 	size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat) noexcept override {
-		psl_assert((std::uintptr_t)source % alignment() == 0, "pointer has to be aligned");
+		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
 		std::byte* src = (std::byte*)source;
 		if(repeat) {
 			for(auto e : entities) {
-				std::memcpy(m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), src, m_Size);
+				std::memcpy(
+				  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), src, m_Info.size);
 			}
 		} else {
 			for(auto e : entities) {
-				std::memcpy(m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), src, m_Size);
-				src += m_Size;
+				std::memcpy(
+				  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), src, m_Info.size);
+				src += m_Info.size;
 			}
 		}
-		return m_Size * entities.size();
+		return m_Info.size * entities.size();
 	};
 
 	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
@@ -501,23 +552,19 @@ class component_container_untyped_t : public component_container_t {
 		m_Entities.template at<T>(static_cast<entity_t::size_type>(e), stage_range_t::ALL) = data;
 	}
 
-	bool should_serialize() const noexcept override {
-		return m_Serializable;
-	}
-	bool should_serialize(bool value) noexcept override {
-		m_Serializable = value;
-		return true;
+	void should_serialize(bool value) noexcept override {
+		m_Info.serializable = value;
 	}
 
 	void clear() override {
 		m_Entities.clear();
-		m_Serializable = false;
+		m_Info.serializable = false;
 	}
 
   protected:
 	void set_impl(entity_t entity, void* data) noexcept override {
 		auto* ptr = m_Entities.addressof(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
-		std::memcpy(ptr, data, m_Size);
+		std::memcpy(ptr, data, m_Info.size);
 	}
 	psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept override {
 		auto indices = m_Entities.indices(stage);
@@ -533,7 +580,7 @@ class component_container_untyped_t : public component_container_t {
 			m_Entities.insert(
 			  (entity_t::size_type*)entities.data(),
 			  (entity_t::size_type*)entities.data() + entities.size(),
-			  [&source, size = m_Size, count = entities.size(), repeat](std::byte* begin, std::byte* end) {
+			  [&source, size = m_Info.size, count = entities.size(), repeat](std::byte* begin, std::byte* end) {
 				  psl_assert((end - begin) / size == count);
 				  if(repeat) {
 					  for(auto it = begin; it != end; it += size) {
@@ -548,7 +595,7 @@ class component_container_untyped_t : public component_container_t {
 
 	void add_impl(entity_t entity, void* data) override {
 		m_Entities.insert(static_cast<entity_t::size_type>(entity),
-						  [size = m_Size, data](std::byte* ptr) { memcpy(ptr, data, size); });
+						  [size = m_Info.size, data](std::byte* ptr) { memcpy(ptr, data, size); });
 	}
 
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
@@ -564,7 +611,7 @@ class component_container_untyped_t : public component_container_t {
 				m_Entities.insert(
 				  range.first,
 				  range.second - range.first,
-				  [&source, size = m_Size, count = entities.size(), repeat](std::byte* begin, std::byte* end) {
+				  [&source, size = m_Info.size, count = entities.size(), repeat](std::byte* begin, std::byte* end) {
 					  psl_assert((end - begin) / size == count);
 					  if(repeat) {
 						  for(auto it = begin; it != end; it += size) {
@@ -598,7 +645,6 @@ class component_container_untyped_t : public component_container_t {
 
   private:
 	details::staged_sparse_memory_region_t m_Entities;
-	bool m_Serializable {false};
 };
 
 template <typename T>
@@ -618,33 +664,37 @@ inline auto instantiate_component_container() -> std::unique_ptr<component_conta
 
 	// mostly future proofed check, this basically checks that either serialization is turned off, _or_ the type
 	// supports it.
-	static_assert(IsComponentTypeSerializable<T> || !component_traits<T>::serializable,
+	static_assert(IsComponentTypeSerializable<T> || !component_traits_t<T>::serializable,
 				  "Unsupported. Component type cannot support serialization, please fix your `component_traits<T>` "
 				  "specialization for this component type");
 
 	if constexpr(IsComponentFlagType<T>) {
 		return std::unique_ptr<component_container_t>(std::make_unique<component_container_flag_t>(
-		  psl::ecs::details::component_key_t::generate<T>(), component_traits<T>::serializable));
+		  component_type_info_t {.id		   = psl::ecs::details::component_key_t::generate<T>(),
+								 .version	   = component_traits_t<T>::version,
+								 .size		   = 0,
+								 .alignment	   = 0,
+								 .mutability   = component_traits_t<T>::mutability,
+								 .serializable = component_traits_t<T>::serializable}));
 	} else if constexpr(IsComponentTrivialType<T>) {
-		return std::unique_ptr<component_container_t>(
-		  std::make_unique<component_container_untyped_t>(psl::ecs::details::component_key_t::generate<T>(),
-														  sizeof(T),
-														  std::alignment_of_v<T>,
-														  component_traits<T>::serializable));
+		return std::unique_ptr<component_container_t>(std::make_unique<component_container_untyped_t>(
+		  component_type_info_t {.id		   = psl::ecs::details::component_key_t::generate<T>(),
+								 .version	   = component_traits_t<T>::version,
+								 .size		   = sizeof(T),
+								 .alignment	   = std::alignment_of_v<T>,
+								 .mutability   = component_traits_t<T>::mutability,
+								 .serializable = component_traits_t<T>::serializable}));
 	} else if constexpr(IsComponentComplexType<T>) {
 		return std::unique_ptr<component_container_t>(std::make_unique<component_container_typed_t<T>>());
 	}
 }
 
-inline auto instantiate_component_container(const psl::ecs::details::component_key_t& key,
-											size_t size,
-											size_t alignment,
-											bool should_serialize) -> std::unique_ptr<component_container_t> {
-	switch(key.type()) {
+inline auto instantiate_component_container(component_type_info_t info) -> std::unique_ptr<component_container_t> {
+	switch(info.id.type()) {
 	case psl::ecs::component_type::TRIVIAL:
-		return std::make_unique<component_container_untyped_t>(std::move(key), size, alignment, should_serialize);
+		return std::make_unique<component_container_untyped_t>(info);
 	case psl::ecs::component_type::FLAG:
-		return std::make_unique<component_container_flag_t>(std::move(key), should_serialize);
+		return std::make_unique<component_container_flag_t>(info);
 	case psl::ecs::component_type::COMPLEX:
 		throw std::runtime_error("Cannot runtime instantiate a complex type without type information");
 	}

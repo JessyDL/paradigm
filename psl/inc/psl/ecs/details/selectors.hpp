@@ -28,6 +28,9 @@ template <typename Pred, typename... Ts>
 struct is_selector<on_condition<Pred, Ts...>> : std::true_type {};
 
 template <typename T>
+struct is_selector<on_mutate<T>> : std::true_type {};
+
+template <typename T>
 struct is_exception : std::false_type {};
 
 template <typename... Ts>
@@ -89,6 +92,16 @@ struct extract_orderby<order_by<Pred, Ts...>> {
 };
 
 template <typename T>
+struct extract_on_mutate {
+	using type = std::tuple<>;
+};
+
+template <typename T>
+struct extract_on_mutate<on_mutate<T>> {
+	using type = std::tuple<T>;
+};
+
+template <typename T>
 struct extract_physical {
 	using type = std::tuple<T>;
 };
@@ -132,6 +145,11 @@ struct extract_physical<on_combine<Ts...>> {
 template <typename... Ts>
 struct extract_physical<on_break<Ts...>> {
 	using type = std::tuple<>;
+};
+
+template <typename T>
+struct extract_physical<on_mutate<T>> {
+	using type = std::tuple<T>;
 };
 
 template <typename T>
@@ -202,6 +220,11 @@ struct decode_type<on_condition<Pred, Ts...>> {
 	using type = std::tuple<>;
 };
 
+template <typename T>
+struct decode_type<on_mutate<T>> {
+	using type = std::tuple<T>;
+};
+
 template <typename... Ts>
 struct typelist_to_tuple {
 	using type = decltype(std::tuple_cat(std::declval<typename details::extract_physical<Ts>::type>()...));
@@ -267,6 +290,11 @@ struct typelist_to_break_pack {
 template <typename... Ts>
 struct typelist_to_remove_pack {
 	using type = decltype(std::tuple_cat(std::declval<typename details::extract_remove<Ts>::type>()...));
+};
+
+template <typename... Ts>
+struct typelist_to_on_mutate_pack {
+	using type = decltype(std::tuple_cat(std::declval<typename details::extract_on_mutate<Ts>::type>()...));
 };
 
 

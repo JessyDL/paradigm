@@ -1,6 +1,7 @@
 #pragma once
 #include "details/component_container.hpp"
 #include "details/component_key.hpp"
+#include "details/mutate_instruction.hpp"
 #include "entity.hpp"
 #include "psl/array.hpp"
 #include "psl/array_view.hpp"
@@ -14,6 +15,102 @@
 
 namespace psl::ecs {
 class state_t;
+
+namespace details {
+	template <typename T>
+	concept IsRangeType = requires(T t) {
+// todo std::convertible_to is not available in android ndk
+#if !defined(PE_PLATFORM_ANDROID)
+		{ t.begin() } -> std::same_as<typename T::iterator>;
+		{ t.end() } -> std::same_as<typename T::iterator>;
+		{ t.size() } -> std::convertible_to<size_t>;
+#else
+		{ t.begin() };
+		{ t.end() };
+		{ t.size() };
+#endif
+	};
+
+	enum class add_component_behaviour_mode_t {
+		empty_container,
+		callable_1,
+		callable_2,
+		range,
+		standard_layout,
+	};
+
+	template <typename T, typename Prototype>
+	struct decode_add_component_behaviour_t {
+		static_assert(psl::templates::always_false<T>::value,
+					  "could not figure out if the template type was an invocable or a component prototype");
+	};
+
+	template <typename T, typename Prototype>
+		requires(is_empty_container<Prototype>::value)
+	struct decode_add_component_behaviour_t<T, Prototype> {
+		using underlying_t		   = typename empty_container<Prototype>::type;
+		using type				   = std::conditional_t<IsMutateInstruction<T>, T, underlying_t>;
+		static constexpr auto mode = add_component_behaviour_mode_t::empty_container;
+	};
+
+
+	template <typename T, typename Prototype>
+		requires(psl::templates::is_callable_n<Prototype, 1>::value)
+	struct decode_add_component_behaviour_t<T, Prototype> {
+		using pack_type = typename psl::templates::func_traits<Prototype>::arguments_t;
+		static_assert(psl::type_pack_size_v<pack_type> == 1, "only one argument is allowed in the prototype invocable");
+
+		using arg0_t = psl::type_at_index_t<0, pack_type>;
+		static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>, "the argument type should be of 'T&'");
+		using underlying_t = typename std::remove_reference<arg0_t>::type;
+		using type		   = std::conditional_t<IsMutateInstruction<T>, T, underlying_t>;
+		static_assert(!std::is_empty_v<underlying_t>,
+					  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+					  "psl::ecs::empty<T>{} to avoid initialization.");
+		static constexpr auto mode = add_component_behaviour_mode_t::callable_1;
+	};
+
+	template <typename T, typename Prototype>
+		requires(psl::templates::is_callable_n<Prototype, 2>::value)
+	struct decode_add_component_behaviour_t<T, Prototype> {
+		using pack_type = typename psl::templates::func_traits<Prototype>::arguments_t;
+		static_assert(psl::type_pack_size_v<pack_type> == 2, "two arguments required in the prototype invocable");
+		using arg0_t = psl::type_at_index_t<0, pack_type>;
+		static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
+					  "the argument type for arg 0 should be of 'T&'");
+		using underlying_t = typename std::remove_reference<arg0_t>::type;
+		using type		   = std::conditional_t<IsMutateInstruction<T>, T, underlying_t>;
+		static_assert(std::is_invocable_v<Prototype, underlying_t&, psl::ecs::entity_t>,
+					  "Must be invocable by your component type & entity_t as the second parameter");
+		static_assert(!std::is_empty_v<underlying_t>,
+					  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+					  "psl::ecs::empty<T>{} to avoid initialization.");
+		static constexpr auto mode = add_component_behaviour_mode_t::callable_2;
+	};
+
+	template <typename T, typename Prototype>
+		requires(IsRangeType<Prototype>)
+	struct decode_add_component_behaviour_t<T, Prototype> {
+		using underlying_t = std::remove_cvref_t<decltype(*std::declval<Prototype>().data())>;
+		using type		   = std::conditional_t<IsMutateInstruction<T>, T, underlying_t>;
+		static_assert(!std::is_empty_v<underlying_t>,
+					  "no need to pass an array of tag types through, it's a waste of computing and memory");
+		static constexpr auto mode = add_component_behaviour_mode_t::range;
+	};
+
+	template <typename T, typename Prototype>
+		requires(std::is_standard_layout<T>::value && !is_empty_container<Prototype>::value &&
+				 !IsRangeType<Prototype> && !psl::templates::is_callable_n<Prototype, 1>::value &&
+				 !psl::templates::is_callable_n<Prototype, 2>::value)
+	struct decode_add_component_behaviour_t<T, Prototype> {
+		using type		   = T;
+		using underlying_t = T;
+		static_assert(!std::is_empty_v<T>,
+					  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
+					  "psl::ecs::empty<T>{} to avoid initialization.");
+		static constexpr auto mode = add_component_behaviour_mode_t::standard_layout;
+	};
+}	 // namespace details
 
 class command_buffer_t {
 	friend class state_t;
@@ -33,6 +130,19 @@ class command_buffer_t {
 
   public:
 	command_buffer_t(const state_t& state);
+
+	template <typename T>
+		requires((!IsFilteringOp<T> && IsRestrictedMutable<T>))
+	void mutate_components(psl::array_view<entity_t> entities, auto&& prototype) {
+		add_component<details::mutate_instruction_t<T>>(entities, std::forward<decltype(prototype)>(prototype));
+	}
+
+	template <typename T>
+		requires((!IsFilteringOp<T> && IsRestrictedMutable<T>))
+	void mutate_components(IsPack auto const& pack, auto&& prototype) {
+		psl::array_view<entity_t> entities = pack_get_entities(pack);
+		mutate_components<T>(entities, std::forward<decltype(prototype)>(prototype));
+	}
 
 	template <typename... Ts>
 	void add_components(IsPack auto const& pack) {
@@ -73,7 +183,7 @@ class command_buffer_t {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to add");
-		(add_component(entities, std::forward<Ts>(prototype)), ...);
+		(add_component<Ts>(entities, std::forward<Ts>(prototype)), ...);
 	}
 
 	template <typename... Ts>
@@ -193,6 +303,11 @@ class command_buffer_t {
 		if(it == std::end(m_Components)) {
 			m_Components.emplace_back(details::instantiate_component_container<T>());
 		}
+
+		if constexpr(details::IsMutateInstruction<T>) {
+			using target_type = details::mutate_instruction_underlying_t<T>;
+			m_MutatedComponents.emplace(key, details::component_key_t::generate<target_type>());
+		}
 	}
 
 	details::component_container_t* get_component_container(const details::component_key_t& key) noexcept;
@@ -201,136 +316,80 @@ class command_buffer_t {
 	// add_component
 	//------------------------------------------------------------
 	template <typename T>
-	void add_component(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities, T&& prototype) {
-		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
-					 std::is_trivially_destructible<T>::value) {
-			static_assert(!std::is_empty_v<T>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
-			create_storage<T>();
-			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
-		} else	  // todo wait till deduction guides are resolved on libc++
-				  // https://bugs.llvm.org/show_bug.cgi?id=39606
-		// else if constexpr(std::is_constructible<decltype(std::function(prototype)), T>::value)
-		{
-			using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
-			static_assert(psl::type_pack_size_v<pack_type> == 1,
-						  "only one argument is allowed in the prototype invocable");
-			using arg0_t = psl::type_at_index_t<0, pack_type>;
-			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
-						  "the argument type should be of 'T&'");
-			using type = typename std::remove_reference<arg0_t>::type;
-			static_assert(!std::is_empty_v<type>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
+	void add_component(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
+					   auto&& prototype) {
+		psl::array<entity_t> entity_array;
+		entity_array.reserve(
+		  std::accumulate(entities.begin(), entities.end(), size_t {0}, [](size_t acc, const auto& pair) {
+			  return acc + (pair.second - pair.first);
+		  }));
 
-			create_storage<type>();
-			add_component_impl(details::component_key_t::generate<type>(),
-							   entities,
-							   sizeof(type),
-							   [prototype](std::uintptr_t location, size_t count) {
-								   for(auto i = size_t {0}; i < count; ++i) {
-									   std::invoke(prototype, *((type*)(location) + i));
-								   }
-							   });
+		for(const auto& pair : entities) {
+			for(auto i = pair.first; i < pair.second; ++i) {
+				entity_array.emplace_back(entity_t {i});
+			}
 		}
-		/*else
-		{
-			static_assert(psl::templates::always_false<T>::value,
-						  "could not figure out if the template type was an invocable or a component prototype");
-		}*/
+		add_component<T>(entity_array, std::forward<decltype(prototype)>(prototype));
 	}
 
 	template <typename T>
 	void add_component(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) {
-		create_storage<T>();
-
-		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
-			T v {details::prototype_for<T>()};
-			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
-		} else {
-			add_component_impl(
-			  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-		}
+		add_component<T>(entities, empty<T> {});
 	}
 
 	template <typename T>
-	void add_component(psl::array_view<entity_t> entities, T&& prototype) {
-		if constexpr(std::is_trivially_copyable<T>::value && std::is_standard_layout<T>::value &&
-					 std::is_trivially_destructible<T>::value) {
-			static_assert(!std::is_empty_v<T>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
+	void add_component(psl::array_view<entity_t> entities, auto&& prototype) {
+		using behavior_t = details::decode_add_component_behaviour_t<T, std::remove_cvref_t<decltype(prototype)>>;
+		static constexpr auto mode = behavior_t::mode;
+		using type				   = typename behavior_t::type;
+		using underlying_t		   = typename behavior_t::underlying_t;
 
-
-			create_storage<T>();
-			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &prototype);
-		} else {
-			using pack_type = typename psl::templates::template func_traits<T>::arguments_t;
-			static_assert(psl::type_pack_size_v<pack_type> == 1,
-						  "only one argument is allowed in the prototype invocable");
-			using arg0_t = psl::type_at_index_t<0, pack_type>;
-			static_assert(std::is_reference_v<arg0_t> && !std::is_const_v<arg0_t>,
-						  "the argument type should be of 'T&'");
-			using type = typename std::remove_reference<arg0_t>::type;
-			static_assert(!std::is_empty_v<type>,
-						  "Unnecessary initialization of component tag, you likely didn't mean this. Wrap tags in "
-						  "psl::ecs::empty<T>{} to avoid initialization.");
+		if constexpr(mode == details::add_component_behaviour_mode_t::empty_container) {
+			create_storage<type>();
+			if constexpr(details::DoesComponentTypeNeedPrototypeCall<underlying_t>) {
+				underlying_t v {details::prototype_for<underlying_t>()};
+				add_component_impl(details::component_key_t::generate<type>(), entities, sizeof(type), &v);
+			} else {
+				add_component_impl(details::component_key_t::generate<type>(), entities, sizeof(type));
+			}
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_1) {
 			create_storage<type>();
 			add_component_impl(details::component_key_t::generate<type>(),
 							   entities,
 							   sizeof(type),
 							   [prototype](std::uintptr_t location, size_t count) {
 								   for(auto i = size_t {0}; i < count; ++i) {
-									   std::invoke(prototype, *((type*)(location) + i));
+									   std::invoke(prototype, *((underlying_t*)(location) + i));
 								   }
 							   });
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_2) {
+			create_storage<type>();
+			add_component_impl(details::component_key_t::generate<type>(),
+							   entities,
+							   sizeof(type),
+							   [prototype, &entities](std::uintptr_t location, size_t count) {
+								   for(auto i = size_t {0}; i < count; ++i) {
+									   std::invoke(prototype, *((underlying_t*)(location) + i), entities[i]);
+								   }
+							   });
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::range) {
+			psl_assert(entities.size() == prototype.size(),
+					   "incorrect amount of data input compared to entities, expected {} but got {}",
+					   entities.size(),
+					   prototype.size());
+			create_storage<type>();
+			add_component_impl(
+			  details::component_key_t::generate<type>(), entities, sizeof(type), prototype.data(), false);
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::standard_layout) {
+			create_storage<type>();
+			add_component_impl(details::component_key_t::generate<type>(), entities, sizeof(type), &prototype);
 		}
-		/*else
-		{
-			static_assert(psl::templates::always_false<T>::value,
-						  "could not figure out if the template type was an invocable or a component prototype");
-		}*/
 	}
 
 	template <typename T>
 	void add_component(psl::array_view<entity_t> entities) {
-		create_storage<T>();
-
-		if constexpr(details::DoesComponentTypeNeedPrototypeCall<T>) {
-			T v {details::prototype_for<T>};
-			add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), &v);
-		} else {
-			add_component_impl(
-			  details::component_key_t::generate<T>(), entities, (std::is_empty<T>::value) ? 0 : sizeof(T));
-		}
+		add_component<T>(entities, empty<T> {});
 	}
-
-	template <typename T>
-	void add_component(psl::array_view<entity_t> entities, psl::array_view<T> data) {
-		psl_assert(entities.size() == data.size(),
-				   "incorrect amount of data input compared to entities, expected {} but got {}",
-				   entities.size(),
-				   data.size());
-		create_storage<T>();
-		static_assert(!std::is_empty_v<T>,
-					  "no need to pass an array of tag types through, it's a waste of computing and memory");
-
-		add_component_impl(details::component_key_t::generate<T>(), entities, sizeof(T), data.data(), false);
-	}
-
-	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
-							size_t size);
-	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
-							size_t size,
-							std::function<void(std::uintptr_t, size_t)> invocable);
-	void add_component_impl(const details::component_key_t& key,
-							psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
-							size_t size,
-							void* prototype);
-
 
 	void add_component_impl(const details::component_key_t& key, psl::array_view<entity_t> entities, size_t size);
 	void add_component_impl(const details::component_key_t& key,
@@ -352,6 +411,8 @@ class command_buffer_t {
 
 	state_t const* m_State {nullptr};
 	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
+	// contains the association between the mutation instruction component (key), and the one it is mutating (value)
+	std::unordered_map<details::component_key_t, details::component_key_t> m_MutatedComponents {};
 	entity_t::size_type m_First {0};
 	psl::array<entity_t> m_Entities {};
 

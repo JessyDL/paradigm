@@ -188,6 +188,10 @@ class dependency_pack {
 			   typename pack_type::break_type {},
 			   on_break,
 			   query);
+		select(std::make_index_sequence<std::tuple_size<typename pack_type::on_mutate_type>::value> {},
+			   typename pack_type::on_mutate_type {},
+			   on_mutate,
+			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::combine_type>::value> {},
 			   typename pack_type::combine_type {},
 			   (seedWithPrevious) ? filters : on_combine,
@@ -323,6 +327,7 @@ class dependency_pack {
 		cpy.except		 = except;
 		cpy.on_combine	 = on_combine;
 		cpy.on_break	 = on_break;
+		cpy.on_mutate	 = on_mutate;
 		cpy.on_condition = on_condition;
 		cpy.orderby		 = orderby;
 		cpy.m_IsPartial	 = m_IsPartial;
@@ -347,6 +352,7 @@ class dependency_pack {
 	std::vector<cached_container_entry_t> except {};
 	std::vector<cached_container_entry_t> on_combine {};
 	std::vector<cached_container_entry_t> on_break {};
+	std::vector<cached_container_entry_t> on_mutate {};
 
 	std::vector<std::function<psl::array<
 	  entity_t>::iterator(psl::array<entity_t>::iterator, psl::array<entity_t>::iterator, const psl::ecs::state_t&)>>

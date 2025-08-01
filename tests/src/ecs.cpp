@@ -43,9 +43,56 @@ struct foo_renamed {};
 
 namespace psl::ecs {
 template <>
-struct component_traits<foo_renamed> {
+struct component_trait_serializable_t<foo_renamed> {
 	static constexpr bool serializable {true};
+};
+template <>
+struct component_trait_name_t<foo_renamed> {
 	static constexpr auto name = "SOMEOVERRIDE";
+};
+}	 // namespace psl::ecs
+
+
+struct updated_component {
+	bool some_new_value;
+	float other;
+	int value;
+};
+template <>
+struct component_trait_version_t<updated_component> {
+	static constexpr size_t version = 1;
+};
+
+template <>
+struct component_updater_t<updated_component> {
+	updated_component operator()(size_t version, void* data) {
+		updated_component res {};
+		switch(version) {
+		case 0: {
+			// here we have the layout of how the component used to look like.
+			struct updated_component_v0 {
+				int value;
+			};
+
+			res.value = reinterpret_cast<updated_component_v0*>(data)->value;
+		} break;
+		default:
+			throw std::runtime_error("invalid version");
+		}
+		return res;
+	}
+};
+
+struct foo_restricted {
+	int value1;
+	float value2;
+	bool value3;
+};
+
+namespace psl::ecs {
+template <>
+struct component_trait_mutability_t<foo_restricted> {
+	static constexpr component_mutability_behaviour_t mutability = component_mutability_behaviour_t::restricted;
 };
 }	 // namespace psl::ecs
 
@@ -786,4 +833,85 @@ auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	auto entity = state.create<foo>(static_cast<entity_t::size_type>(1));
 	require(state.get<foo>(entity[0]).value) == 10;
 };
+
+auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
+	// this test will load an outdated version of the `updated_component` (see `updated_component_v0`)
+	// and we'll verify if the data migration went correctly. If all went fine the value in the component
+	// should be equal to the entity id associated with the component.
+	psl::ecs::state_t state {};
+	psl::serialization::serializer s {};
+	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
+
+	auto entities	= state.all_entities();
+	auto components = state.get_component<updated_component>(entities);
+
+	for(auto e : entities) {
+		auto value = components[e.value].value;
+		require(value == (int)e);
+	}
+};
+
+auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+
+	static_assert(psl::ecs::IsRestrictedMutable<foo_restricted>);
+	auto entities		   = state.create<foo_restricted>(static_cast<entity_t::size_type>(5), {0, 0, false});
+	auto modified_entities = psl::array_view<entity_t> {std::begin(entities), 2};	 // only modify 2 of the 5 entities
+	foo_restricted mutated_values {5, 3, true};
+	state.mutate_components<foo_restricted>(modified_entities, mutated_values);
+	bool has_mutated {true};
+
+	state.declare([&has_mutated, &mutated_values](
+					psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+		require(pack.size()) == ((has_mutated) ? 2 : 0);
+
+		for(auto [value] : pack) {
+			require(value.value1) == mutated_values.value1;
+			require(value.value2) == mutated_values.value2;
+			require(value.value3) == mutated_values.value3;
+		}
+	});
+
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<const foo_restricted> pack) {
+		require(pack.size()) == 5;
+		auto entries = pack.get<const foo_restricted>();
+		require(entries[2].value1) == 0;
+	});
+
+	state.tick(std::chrono::duration<float>(1.0f));
+
+	has_mutated = false;
+	state.tick(std::chrono::duration<float>(1.0f));
+
+	mutated_values = {99, 2, true};
+	state.mutate_components<foo_restricted>(modified_entities, mutated_values);
+	has_mutated = true;
+	state.tick(std::chrono::duration<float>(1.0f));
+};
+
+auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+	auto entities = state.create<foo_restricted>(static_cast<entity_t::size_type>(5), {0, 0, false});
+
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+		require(pack.size()) == (info.tick == 0 ? 0 : 5);
+
+		for(auto [value] : pack) {
+			require(value.value1) == (int)info.tick - 1;
+			require(value.value2) == 3.0f * (info.tick - 1);
+			require(value.value3) == true;
+		}
+	});
+
+	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<entity_t, const foo_restricted> pack) {
+		require(pack.size()) == 5;
+		info.command_buffer.mutate_components<foo_restricted>(pack,
+															  foo_restricted {(int)info.tick, 3.0f * info.tick, true});
+	});
+	state.tick(std::chrono::duration<float>(1.0f));
+	state.tick(std::chrono::duration<float>(1.0f));
+	state.tick(std::chrono::duration<float>(1.0f));
+	state.tick(std::chrono::duration<float>(1.0f));
+};
+
 }	 // namespace

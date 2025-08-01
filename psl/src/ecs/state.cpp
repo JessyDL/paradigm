@@ -197,6 +197,25 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 	}
 }
 
+psl::array<details::component_container_t*> state_t::apply_mutations() {
+	psl::array<details::component_container_t*> mutated_components;
+	for(auto& [key, cInfo] : m_Components) {
+		if(!cInfo || cInfo->size(true) == 0) {
+			continue;
+		}
+		if(cInfo->id() != key) {
+			// regardless if the mutation is applied or not, it will be cleared after this operation.
+			// mutations do not persist the frame as a design decision.
+			mutated_components.push_back(cInfo.get());
+			auto targetCInfo = get_component_container(cInfo->id());
+			if(!targetCInfo) {
+				continue;
+			}
+			targetCInfo->copy_from(cInfo.get());
+		}
+	}
+	return mutated_components;
+}
 
 void state_t::tick(std::chrono::duration<float> dTime) {
 	tick(dTime, psl::array_view<system_group_t> {});
@@ -218,9 +237,19 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	invoke<entity_t::size_type>(
 	  [](auto... args) { std::sort(args...); }, modified_entities.begin(), modified_entities.end());
 
+	psl::array<details::component_container_t*> mutated_components = apply_mutations();
+
+
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
 		filter(filter_result, modified_entities);
+	}
+
+	// we can clear the mutated component data now as we have the filtering information:
+	for(auto* cInfo : mutated_components) {
+		if(cInfo) {
+			cInfo->clear();
+		}
 	}
 
 	m_ModifiedEntities.clear();
@@ -356,7 +385,7 @@ void state_t::add_component_impl(details::component_container_t* cInfo,
 								 void* prototype,
 								 bool repeat) {
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
-	const auto component_size = cInfo->component_size();
+	const auto component_size = cInfo->component_type_info().size;
 	psl_assert(component_size != 0, "component size was 0");
 
 	auto offset = cInfo->entities().size();
@@ -502,6 +531,25 @@ psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached
 			   });
 }
 
+psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_entry_t& entry,
+													 psl::array<entity_t>::iterator& begin,
+													 psl::array<entity_t>::iterator& end) const noexcept {
+	if(!entry.container) {
+		// contains the mutated components
+		entry.container = get_component_container(entry.key);
+	}
+	// actual component data
+	auto cInfoTarget = entry.container ? get_component_container(entry.container->component_type_info().id) : nullptr;
+	psl_assert(entry.container == nullptr || cInfoTarget != entry.container,
+			   "The mutation data source and destination are the same container, this means we have an incorrect "
+			   "lookup happening.");
+	return (entry.container == nullptr || cInfoTarget == nullptr)
+			 ? begin
+			 : std::partition(begin, end, [&entry, &cInfoTarget](entity_t e) {
+				   return entry.container->has(e) && cInfoTarget->has(e);
+			   });
+}
+
 psl::array<entity_t> state_t::filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept {
 	auto pack_filters = pack.filters;
 	for(const auto& [key, arr] : pack.m_RBindings) pack_filters.emplace_back(key);
@@ -549,6 +597,18 @@ psl::array<entity_t> state_t::filter(const details::dependency_pack& pack, bool 
 
 void state_t::filter(filter_result& data, bool seed_with_previous) const noexcept {
 	std::optional<psl::array_view<entity_t>> source;
+
+	for(auto filter : data.group->on_mutate) {
+		auto cInfo = get_component_container(filter);
+		if(!cInfo) {
+			data.entities = {};
+			return;
+		}
+		if(!source || cInfo->entities().size() < source.value().size()) {
+			// technically remove ops on the on_mutate should not be possible, but we'll filter for all anyway.
+			source = cInfo->entities(true);
+		}
+	}
 
 	for(auto filter : data.group->on_remove) {
 		auto cInfo = get_component_container(filter);
@@ -619,6 +679,10 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 		auto begin = std::begin(result);
 		auto end   = std::end(result);
 
+		for(auto filter : data.group->on_mutate) {
+			end = on_mutate_op(filter, begin, end);
+		}
+
 		for(auto filter : data.group->on_remove) {
 			end = on_remove_op(filter, begin, end);
 		}
@@ -663,6 +727,10 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 		psl::array<entity_t> result {source};
 		auto begin = std::begin(result);
 		auto end   = std::end(result);
+
+		for(auto filter : data.group->on_mutate) {
+			end = on_mutate_op(filter, begin, end);
+		}
 
 		for(auto filter : data.group->on_remove) {
 			end = on_remove_op(filter, begin, end);
@@ -795,7 +863,7 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 	psl_assert(
 	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
 	  "some components failed to have storage for the entities");
-	psl_assert((std::uintptr_t)(cache) + (cInfo->component_size() * entities.size()) <=
+	psl_assert((std::uintptr_t)(cache) + (cInfo->component_type_info().size * entities.size()) <=
 				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
 			   "Cache ran out of memory");
 	return cInfo->copy_to(entities, cache);
@@ -820,8 +888,8 @@ size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
 		auto write_fn = [entities, &cache, this](auto& binding) {
 			std::uintptr_t data_begin = (std::uintptr_t)cache;
 			const auto& cInfo		  = get_component_container(binding.first);
-			if(cInfo->component_size() > 0) {
-				auto offset		= align(data_begin, cInfo->alignment());
+			if(cInfo->component_type_info().size > 0) {
+				auto offset		= align(data_begin, cInfo->component_type_info().alignment);
 				auto write_size = prepare_data(entities, (void*)data_begin, binding.first);
 				cache			= (void*)((std::uintptr_t)cache + write_size + offset);
 				binding.second	= psl::array_view<std::uintptr_t>((std::uintptr_t*)data_begin, (std::uintptr_t*)cache);
@@ -836,7 +904,7 @@ size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
 		auto view_fn = [entities, &cache, this](auto& binding) {
 			std::uintptr_t data_begin = (std::uintptr_t)cache;
 			const auto& cInfo		  = get_component_container(binding.first);
-			if(cInfo->component_size() > 0) {
+			if(cInfo->component_type_info().size > 0) {
 				auto offset = align(data_begin, alignof(entity_t));
 				cache		= cInfo->write_memory_location_offsets_for(entities, (entity_t::size_type*)data_begin);
 				binding.second.indices =
@@ -881,7 +949,15 @@ void state_t::execute_command_buffer(info_t& info) {
 	for(auto& component_src : buffer.m_Components) {
 		if(component_src->entities(true).size() == 0)
 			continue;
-		auto component_dst = get_component_container(component_src->id());
+		auto const key = component_src->id();
+		// In the case this is a mutation instruction, we need to remap the component id it uses
+		// internally to the target component id. This is a bit messy, but avoids having to recreate
+		// the component container.
+		if(auto it = buffer.m_MutatedComponents.find(key); it != std::end(buffer.m_MutatedComponents)) {
+			component_src->m_Info.id = it->second;
+		}
+
+		auto component_dst = get_component_container(key);
 
 		component_src->remap(remapped_entities, [first = buffer.m_First](entity_t e) -> bool {
 			return static_cast<entity_t::size_type>(e) >= first;
@@ -891,7 +967,8 @@ void state_t::execute_command_buffer(info_t& info) {
 			for(auto e : entities) {
 				m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
 			}
-			m_Components[component_src->id()] = std::move(component_src);
+
+			m_Components[key] = std::move(component_src);
 		} else {
 			component_dst->merge(*component_src);
 			for(auto e : component_src->entities(true))
