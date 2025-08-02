@@ -862,13 +862,18 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 	bool has_mutated {true};
 
 	state.declare([&has_mutated, &mutated_values](
-					psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+					psl::ecs::info_t& info,
+					psl::ecs::pack_indirect_full_t<const foo_restricted, psl::ecs::on_mutate<foo_restricted>> pack) {
 		require(pack.size()) == ((has_mutated) ? 2 : 0);
 
-		for(auto [value] : pack) {
+		for(auto [value, mutator] : pack) {
 			require(value.value1) == mutated_values.value1;
 			require(value.value2) == mutated_values.value2;
 			require(value.value3) == mutated_values.value3;
+
+			require(mutator.has_mutated<&foo_restricted::value1>()) == has_mutated;
+			require(mutator.has_mutated<&foo_restricted::value2>()) == has_mutated;
+			require(mutator.has_mutated<&foo_restricted::value3>()) == has_mutated;
 		}
 	});
 
@@ -883,7 +888,7 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 	has_mutated = false;
 	state.tick(std::chrono::duration<float>(1.0f));
 
-	mutated_values = {99, 2, true};
+	mutated_values = {99, 2, false};
 	state.mutate_components<foo_restricted>(modified_entities, mutated_values);
 	has_mutated = true;
 	state.tick(std::chrono::duration<float>(1.0f));
@@ -893,13 +898,18 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
 	auto entities = state.create<foo_restricted>(static_cast<entity_t::size_type>(5), {0, 0, false});
 
-	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+	state.declare([](psl::ecs::info_t& info,
+					 psl::ecs::pack_indirect_full_t<const foo_restricted, psl::ecs::on_mutate<foo_restricted>> pack) {
 		require(pack.size()) == (info.tick == 0 ? 0 : 5);
 
-		for(auto [value] : pack) {
+		for(auto [value, mutator] : pack) {
 			require(value.value1) == (int)info.tick - 1;
 			require(value.value2) == 3.0f * (info.tick - 1);
 			require(value.value3) == true;
+
+			require(mutator.has_mutated<&foo_restricted::value1>()) == (info.tick == 1 ? false : true);
+			require(mutator.has_mutated<&foo_restricted::value2>()) == (info.tick == 1 ? false : true);
+			require(mutator.has_mutated<&foo_restricted::value3>()) == (info.tick == 1 ? true : false);
 		}
 	});
 

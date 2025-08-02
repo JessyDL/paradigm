@@ -211,7 +211,7 @@ psl::array<details::component_container_t*> state_t::apply_mutations() {
 			if(!targetCInfo) {
 				continue;
 			}
-			targetCInfo->copy_from(cInfo.get());
+			targetCInfo->apply_mutation(cInfo.get());
 		}
 	}
 	return mutated_components;
@@ -245,13 +245,6 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		filter(filter_result, modified_entities);
 	}
 
-	// we can clear the mutated component data now as we have the filtering information:
-	for(auto* cInfo : mutated_components) {
-		if(cInfo) {
-			cInfo->clear();
-		}
-	}
-
 	m_ModifiedEntities.clear();
 
 	// todo: we can optimize this, and additionally the filters should be refined for the systems that we'll actually
@@ -275,14 +268,6 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		m_ToBeOrphans.clear();
 
 		for(auto& [key, cInfo] : m_Components) cInfo->purge();
-
-		for(auto& info : info_buffer) {
-			execute_command_buffer(*info);
-		}
-		info_buffer.clear();
-
-		// purge;
-		++m_Tick;
 	} else {
 		auto system_indices = std::unordered_set<details::system_token>();
 
@@ -303,10 +288,23 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 			}
 			prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
 		}
-		for(auto& info : info_buffer) {
-			execute_command_buffer(*info);
+	}
+
+	// we can clear the mutated component data now as we have the filtering information:
+	for(auto* cInfo : mutated_components) {
+		if(cInfo) {
+			cInfo->clear();
 		}
-		info_buffer.clear();
+	}
+
+	for(auto& info : info_buffer) {
+		execute_command_buffer(*info);
+	}
+	info_buffer.clear();
+
+	if(groups.size() == 0) {
+		// purge;
+		++m_Tick;
 	}
 
 	if(m_NewSystemInformations.size() > 0) {

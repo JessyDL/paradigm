@@ -18,14 +18,20 @@ namespace details {
 		constexpr cached_container_entry_t(const details::component_key_t& target_key,
 										   details::component_container_t* target_container)
 			: key(target_key), container(target_container) {
-			psl_assert(target_container == nullptr || target_key == target_container->id(), "ID did not match");
+			psl_assert(target_container == nullptr || target_key == target_container->id(),
+					   "ID did not match. Was expecting '{}' but got '{}'",
+					   target_key.name(),
+					   target_container->id().name());
 		};
 		// specialized form for the on_mutate, as it masquerades as the container of another type.
 		constexpr cached_container_entry_t(const details::component_key_t& target_key,
 										   const details::component_key_t& container_key,
 										   details::component_container_t* target_container)
 			: key(target_key), container(target_container) {
-			psl_assert(target_container == nullptr || container_key == target_container->id(), "ID did not match");
+			psl_assert(target_container == nullptr || container_key == target_container->id(),
+					   "ID did not match. Was expecting '{}' but got '{}'",
+					   container_key.name(),
+					   target_container->id().name());
 		};
 
 		constexpr cached_container_entry_t(cached_container_entry_t const&)			   = default;

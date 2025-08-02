@@ -1,5 +1,6 @@
 #pragma once
 #include "../selectors.hpp"
+#include "psl/ecs/details/mutate_instruction.hpp"
 #include "psl/pack_view.hpp"
 
 namespace psl::ecs::details {
@@ -98,7 +99,7 @@ struct extract_on_mutate {
 
 template <typename T>
 struct extract_on_mutate<on_mutate<T>> {
-	using type = std::tuple<T>;
+	using type = std::tuple<const details::mutate_instruction_t<T>>;
 };
 
 template <typename T>
@@ -149,7 +150,7 @@ struct extract_physical<on_break<Ts...>> {
 
 template <typename T>
 struct extract_physical<on_mutate<T>> {
-	using type = std::tuple<T>;
+	using type = std::tuple<const details::mutate_instruction_t<T>>;
 };
 
 template <typename T>
@@ -222,7 +223,7 @@ struct decode_type<on_condition<Pred, Ts...>> {
 
 template <typename T>
 struct decode_type<on_mutate<T>> {
-	using type = std::tuple<T>;
+	using type = std::tuple<const details::mutate_instruction_t<T>>;
 };
 
 template <typename... Ts>

@@ -3,6 +3,7 @@
 #include "../pack.hpp"
 #include "component_key.hpp"
 #include "psl/array_view.hpp"
+#include "psl/ecs/details/mutate_instruction.hpp"
 #include "psl/ecs/filtering.hpp"
 #include "psl/template_utils.hpp"
 #include <chrono>
@@ -85,7 +86,14 @@ class dependency_pack {
 		if constexpr(!std::is_same<typename std::decay<F>::type, psl::ecs::entity_t>::value) {
 			using component_t			  = F;
 			constexpr component_key_t key = details::component_key_t::generate<component_t>();
-			target.emplace_back(key, query.template operator()<component_t>());
+
+			if constexpr(details::IsMutateInstruction<F>) {
+				using underlying_t						 = details::mutate_instruction_underlying_t<component_t>;
+				constexpr component_key_t underlying_key = details::component_key_t::generate<underlying_t>();
+				target.emplace_back(underlying_key, query.template operator()<component_t>());
+			} else {
+				target.emplace_back(key, query.template operator()<component_t>());
+			}
 			m_Sizes[key] = sizeof(component_t);
 		}
 	}
