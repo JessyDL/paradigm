@@ -125,11 +125,9 @@ class component_container_t {
 		return 0;
 	};
 
-	size_t copy_from(component_container_t* source) noexcept {
-		auto entities	 = source->entities(stage_range_t::ALL);
-		auto source_data = source->data();
-
-		return copy_from(entities, source_data, false);
+	virtual size_t apply_mutation(component_container_t* source) noexcept {
+		psl_assert(false, "Component {} does not support mutation", m_Info.id.name());
+		return 0;
 	};
 
 	inline component_type_info_t const& component_type_info() const noexcept {
@@ -351,7 +349,7 @@ class component_container_typed_t final : public component_container_t {
 	details::staged_sparse_array<T, entity_t::size_type> m_Entities;
 };
 
-class component_container_flag_t : public component_container_t {
+class component_container_flag_t final : public component_container_t {
   public:
 	component_container_flag_t(component_type_info_t info)
 		: component_container_t({
@@ -468,7 +466,7 @@ class component_container_flag_t : public component_container_t {
 	bool m_Serializable {false};
 };
 
-class component_container_untyped_t : public component_container_t {
+class component_container_untyped_t final : public component_container_t {
 	using stage_range_t = details::stage_range_t;
 
   public:
@@ -560,6 +558,36 @@ class component_container_untyped_t : public component_container_t {
 		m_Entities.clear();
 		m_Info.serializable = false;
 	}
+
+	size_t apply_mutation(component_container_t* source) noexcept override {
+		auto entities	 = source->entities(stage_range_t::ALL);
+		auto source_data = source->data();
+
+		psl_assert((std::uintptr_t)source_data % m_Info.alignment == 0, "pointer has to be aligned");
+		psl_assert(source->component_type_info().alignment == m_Info.alignment,
+				   "components must have the same alignment");
+		psl_assert(source->component_type_info().size == m_Info.size, "components have to be the same size");
+
+		std::byte* src	= (std::byte*)source_data;
+		std::byte* diff = new std::byte[m_Info.size];
+		for(auto e : entities) {
+			auto dst = m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL);
+
+			// make a diff between the src and dst and store it in diff
+			// for every byte we compare, if they are different we set the byte in diff to 1, otherwise 0
+			for(size_t i = 0; i < m_Info.size; ++i) {
+				diff[i] = (src[i] != dst[i]) ? std::byte {0xff} : std::byte {0};
+			}
+
+			std::memcpy(dst, src, m_Info.size);
+			std::memcpy(src, diff, m_Info.size);
+			src += m_Info.size;
+		}
+
+		delete[] diff;
+
+		return m_Info.size * entities.size();
+	};
 
   protected:
 	void set_impl(entity_t entity, void* data) noexcept override {

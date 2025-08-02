@@ -200,6 +200,26 @@ The advantage of this is that you can now listen for the `psl::ecs::on_mutate<>`
 
 To have your component be marked as restricted you will need to specialize the `psl::ecs::component_trait_mutability_t<>` which can be found at [psl/ecs/component_traits.hpp](psl/inc/psl/ecs/component_traits.hpp).
 
+Following is a small sample of how the `on_mutate` filtering in a pack behaves.
+```cpp
+struct audio_t {
+    float volume;
+    bool is_playing;
+};
+
+// pay attention that we both request the audio_t component, as well as the on_mutate filtering instruction
+// if we did not, we would only get the mutation info of the audio_t component, but not the audio_t component itself.
+void system(psl::ecs::info& info, psl::ecs::pack<const audio_t, psl::ecs::on_mutate<audio_t>> audio_pack) {
+    for(auto [audio, mutation_info] : audio_pack)
+    {
+        if(mutation_info.has_mutated<&audio_t::volume>()) {
+            some_audio_system.set_volume(audio.volume);
+        }
+    }
+})
+
+```
+
 ## Packs
 The `ecs::pack<>` type is both a view into the component data, as well as a set of filtering instructions of what requirements the entities are supposed to have. This might seem like an odd combination, but simplifies systems, as well as makes clear the constraints of the data a variable will be working with.
 
