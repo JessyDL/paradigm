@@ -12,7 +12,7 @@ using namespace core::resource;
 
 shader::shader(core::resource::cache_t& cache, const core::resource::metadata& metaData, core::meta::shader* metaFile)
 	: m_Shader {0} {
-	auto meta	= cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr);
+	auto meta	= metaFile;
 	m_Meta		= meta;
 	auto result = cache.library().load(meta->ID());
 	if(!result) {

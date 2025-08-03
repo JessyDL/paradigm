@@ -12,6 +12,9 @@ stdb_truetype
 targetver
 defines
 
+audio/audio
+audio/engine
+
 data/application
 data/buffer
 data/framebuffer
@@ -47,6 +50,7 @@ gfx/render_graph
 gfx/bundle
 gfx/details/instance
 
+meta/audio
 meta/shader
 meta/texture
 
@@ -60,6 +64,7 @@ resource/cache
 resource/handle
 resource/tag
 
+ecs/systems/audio
 ecs/systems/fly
 ecs/systems/death
 ecs/systems/lifetime
@@ -72,6 +77,7 @@ ecs/systems/lighting
 ecs/systems/text
 ecs/systems/debug/grid
 
+ecs/components/audio
 ecs/components/camera
 ecs/components/transform
 ecs/components/renderable
@@ -89,6 +95,7 @@ list(TRANSFORM INC APPEND .hpp)
 
 SET(FWD
 
+audio/audio
 resource/resource
 gfx/context
 gfx/shader

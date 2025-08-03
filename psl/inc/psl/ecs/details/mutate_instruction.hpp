@@ -15,8 +15,12 @@ struct get_field_info_t<T, Member> {
 	using member_type = FieldType T::*;
 };
 
-// todo(jdl): pending mutations should be handled before serialization
-template <typename T>
+/// \brief Wrapper around a component type to allow for mutations of the given component.
+/// \details This type is used to indicate that a component has been mutated and should be processed by the system.
+/// Additionally it provides a method to query if a specific field has been mutated.
+/// \warning the mutate instruction only works for trivial component types. Split components up into smaller components isolating the
+/// trivial fields if you need to mutate non-trivial components.
+template <IsComponentTrivialType T>
 struct mutate_instruction_t final : private T {
 	/// \brief Queries the given field to see if it has been mutated.
 	template <auto T::*Member>
@@ -34,14 +38,6 @@ struct is_mutate_instruction_t : public std::false_type {};
 
 template <typename T>
 struct is_mutate_instruction_t<mutate_instruction_t<T>> : public std::true_type {};
-
-template <typename T>
-struct mutate_instruction_target {};
-
-template <typename T>
-struct mutate_instruction_target<mutate_instruction_t<T>> {
-	using type = T;
-};
 
 template <typename T>
 struct mutate_instruction_internal_type {

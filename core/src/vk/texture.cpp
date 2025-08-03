@@ -43,9 +43,7 @@ texture_t::texture_t(core::resource::cache_t& cache,
 					 core::meta::texture_t* metaFile,
 					 handle<core::ivk::context> context,
 					 core::resource::handle<core::ivk::buffer_t> stagingBuffer)
-	: m_Cache(cache), m_Context(context),
-	  m_Meta(m_Cache.library().get<core::meta::texture_t>(metaFile->ID()).value_or(nullptr)),
-	  m_StagingBuffer(stagingBuffer) {
+	: m_Cache(cache), m_Context(context), m_Meta(metaFile), m_StagingBuffer(stagingBuffer) {
 	if(!m_Meta) {
 		core::ivk::log->error(
 		  "ivk::texture_t could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",
