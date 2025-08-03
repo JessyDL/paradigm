@@ -5,6 +5,7 @@ import re
 import subprocess
 import json
 import platform
+import asyncio
 
 CURRENT_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_DIR = os.path.join(CURRENT_DIR, os.path.pardir)
@@ -50,7 +51,7 @@ def load_config(file: str = CONFIG_FILE):
 CONFIG = load_config()
 
 
-def run_command(
+async def run_command(
     command=[],
     directory=None,
     print_stdout=False,
@@ -59,8 +60,8 @@ def run_command(
     shell=False,
     env=os.environ,
 ):
-    process = subprocess.Popen(
-        command,
+    process = await asyncio.create_subprocess_exec(
+        *command,
         stdout=os.sys.stdout if print_stdout and not catch_stdout else subprocess.PIPE,
         stderr=os.sys.stderr if print_stdout else subprocess.PIPE,
         cwd=directory,
@@ -69,26 +70,19 @@ def run_command(
     )
     output = []
     if catch_stdout:
-        if print_stdout:
-            for line in io.TextIOWrapper(process.stdout, newline=""):
-                if not line.endswith("\r"):
-                    output.append(
-                        line[: len(line) - 1] if line[-1] == os.linesep else line
-                    )
-        else:
-            for line in io.TextIOWrapper(process.stdout, newline=os.linesep):
-                line = line.rsplit("\r", maxsplit=1)[-1]
-                output.append(line[: len(line) - 1])
-        process.stdout.close()
-    process.wait()
+        async for line in process.stdout:
+            output.append(line.decode().rstrip())
+            if print_stdout:
+                print(line.decode().rstrip())
+    await process.wait()
     if error_out and process.returncode != 0:
         raise Exception(
-            f"Raised exitcode '{process.returncode}' while trying to run the command '{' '.join(comm for comm in command)}'"
+            f"Raised exitcode '{process.returncode}' while trying to run the command '{' '.join(command)}'"
         )
     return [output, process.returncode]
 
 
-def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True):
+async def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True):
     print("formatting...")
     if platform.system() == "Windows" and CONFIG["formatting"]["run-on-wsl"]:
         print("running on WSL")
@@ -102,7 +96,7 @@ def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True)
             command.append("--verify")
         if only_staged:
             command.append("--staged")
-        [_, errorCode] = run_command(
+        [_, errorCode] = await run_command(
             command,
             print_stdout=True,
             error_out=False,
@@ -122,13 +116,12 @@ def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True)
     folders = [os.path.abspath(folder) for folder in DIRECTORIES]
     files = []
     if only_staged:
-        staged_files = run_command(
+        staged_files, _ = await run_command(
             ["git", "diff", "--name-only", "--staged"],
             directory=PROJECT_DIR,
             catch_stdout=True,
         )
-        print(f"Staged files: {files}")
-        staged_files = staged_files[0]
+        print(f"Staged files: {staged_files}")
         if len(staged_files) == 1:
             staged_files = staged_files[0].split("\n")
             files = [
@@ -151,18 +144,26 @@ def format(cformat: str = None, dry_run: bool = False, only_staged: bool = True)
     marked_files = []
     files = [file for file in files if re.search(r".*?\.(cpp|hpp|h)", file)]
 
+    tasks = []
+
     for file in files:
         commands = clang_format + [file, "-i", "-style=file"]
         if dry_run:
             commands.extend(["--dry-run", "-Werror"])
 
-        [_, errorCode] = run_command(
-            commands,
-            print_stdout=not dry_run,
-            error_out=not dry_run,
-            directory=PROJECT_DIR,
-            shell=CONFIG["formatting"]["shell"],
-        )
+        tasks += [
+            run_command(
+                commands,
+                print_stdout=not dry_run,
+                error_out=not dry_run,
+                directory=PROJECT_DIR,
+                shell=CONFIG["formatting"]["shell"],
+            )
+        ]
+    results = await asyncio.gather(*tasks)
+
+    results = [result + [file] for result, file in zip(results, files)]
+    for _, errorCode, file in results:
         if dry_run and errorCode != 0:
             marked_files.append(file)
 
@@ -194,4 +195,4 @@ if __name__ == "__main__":
     )
     args = parser.parse_args()
 
-    format(args.clang_format, dry_run=args.verify, only_staged=args.staged)
+    asyncio.run(format(args.clang_format, dry_run=args.verify, only_staged=args.staged))
