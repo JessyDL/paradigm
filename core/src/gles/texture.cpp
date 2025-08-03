@@ -35,7 +35,7 @@ using namespace core::igles;
 texture_t::texture_t(core::resource::cache_t& cache,
 					 const core::resource::metadata& metaData,
 					 core::meta::texture_t* metaFile)
-	: m_Cache(cache), m_Meta(m_Cache.library().get<core::meta::texture_t>(metaFile->ID()).value_or(nullptr)) {
+	: m_Cache(cache), m_Meta(metaFile) {
 	if(!m_Meta) {
 		core::igles::log->error(
 		  "texture could not resolve the meta uid: {0}. is the meta file present in the metalibrary?",

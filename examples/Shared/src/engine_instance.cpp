@@ -141,7 +141,7 @@ engine_instance_t::~engine_instance_t() {
 	m_MemoryRegion.reset();
 }
 
-void engine_instance_t::run(std::function<void(engine_instance_t const&, std::chrono::duration<float>)> callback) {
+void engine_instance_t::run(std::function<void(engine_instance_t const&, std::chrono::duration<float>, std::chrono::duration<float>)> callback) {
 	std::chrono::high_resolution_clock::time_point last_tick = std::chrono::high_resolution_clock::now();
 	std::chrono::duration<float> dTime {};
 	std::chrono::duration<float> elapsed {};
@@ -151,7 +151,7 @@ void engine_instance_t::run(std::function<void(engine_instance_t const&, std::ch
 		dTime			  = std::chrono::duration_cast<std::chrono::duration<float>>(current_time - last_tick);
 		elapsed += dTime;
 		last_tick = current_time;
-		callback(*this, dTime);
+		callback(*this, dTime, elapsed);
 
 		m_RenderGraph->present();
 	}

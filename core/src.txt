@@ -1,6 +1,9 @@
 SET(SRC 
 logging
 
+audio/audio
+audio/engine
+
 data/application
 data/buffer
 data/framebuffer
@@ -30,6 +33,7 @@ gfx/render_graph
 gfx/bundle
 gfx/details/instance
 
+meta/audio
 meta/shader
 meta/texture
 
@@ -39,6 +43,7 @@ os/surface_${PE_SURFACE_LOWERCASE}
 systems/input
 systems/input_${PE_SURFACE_LOWERCASE}
 
+ecs/systems/audio
 ecs/systems/fly
 ecs/systems/render
 ecs/systems/gpu_camera

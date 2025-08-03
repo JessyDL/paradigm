@@ -13,8 +13,7 @@ shader::shader(core::resource::cache_t& cache,
 			   const core::resource::metadata& metaData,
 			   core::meta::shader* metaFile,
 			   core::resource::handle<core::ivk::context> context)
-	: m_Context(context), m_Cache(cache), m_UID(metaData.uid),
-	  m_Meta(cache.library().get<core::meta::shader>(metaFile->ID()).value_or(nullptr)) {
+	: m_Context(context), m_Cache(cache), m_UID(metaData.uid), m_Meta(metaFile) {
 	if(m_Meta == nullptr) {
 		core::ivk::log->error("ivk::shader [{0}] does not have a valid, on disk, meta file", m_UID.to_string());
 		return;
