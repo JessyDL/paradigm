@@ -2,28 +2,46 @@
 
 #include "core/os/surface.hpp"
 #include "core/resource/cache.hpp"
+#include <functional>
 
 using namespace core::iwgpu;
 
-void WebGPUErrorCallback(WGPUErrorType type, const char* message, void* userdata) {
+void WebGPUErrorCallback(wgpu::Device device, wgpu::ErrorType type, wgpu::StringView message, void*) {
 	switch(type) {
-	case WGPUErrorType_Validation: {
-		core::iwgpu::log->error("[validation] {}", message);
+	case wgpu::ErrorType::Validation: {
+		core::iwgpu::log->error("[validation] {}", message.data);
 	} break;
-	case WGPUErrorType_OutOfMemory: {
-		core::iwgpu::log->error("[OOM] {}", message);
+	case wgpu::ErrorType::OutOfMemory: {
+		core::iwgpu::log->error("[OOM] {}", message.data);
 	} break;
 	default:
-	case WGPUErrorType_Unknown: {
-		core::iwgpu::log->error("[unknown] {}", message);
+	case wgpu::ErrorType::Unknown: {
+		core::iwgpu::log->error("[unknown] {}", message.data);
 	} break;
-	case WGPUErrorType_DeviceLost: {
+	case wgpu::ErrorType::Internal: {
+		core::iwgpu::log->error("[internal] {}", message.data);
 	} break;
-	case WGPUErrorType_Internal: {
-		core::iwgpu::log->error("[internal] {}", message);
-	} break;
-	case WGPUErrorType_NoError:
+	case wgpu::ErrorType::NoError:
 		break;
+	}
+}
+
+
+void WebGPUDeviceLostCallback(wgpu::Device device, wgpu::DeviceLostReason reason, wgpu::StringView message) {
+	switch(reason) {
+	case wgpu::DeviceLostReason::Destroyed: {
+		core::iwgpu::log->error("WebGPU device lost: {}", message.data);
+	} break;
+	case wgpu::DeviceLostReason::FailedCreation: {
+		core::iwgpu::log->error("WebGPU device lost due to failed creation: {}", message.data);
+	} break;
+	default:
+	case wgpu::DeviceLostReason::Unknown: {
+		core::iwgpu::log->error("WebGPU device lost due to unknown reason: {}", message.data);
+	} break;
+	case wgpu::DeviceLostReason::CallbackCancelled: {
+		core::iwgpu::log->error("WebGPU device lost due to callback cancellation: {}", message.data);
+	} break;
 	}
 }
 
@@ -77,6 +95,9 @@ context::context(core::resource::cache_t& cache,
 	const auto deviceName			   = fmt::format("{} WebGPU Device", name);
 	device_desc.label				   = deviceName.c_str();
 	device_desc.defaultQueue.label	   = "WebGPU Queue";
+	device_desc.SetUncapturedErrorCallback<decltype(WebGPUErrorCallback), void*, decltype(WebGPUErrorCallback)>(
+	  WebGPUErrorCallback, nullptr);
+	device_desc.SetDeviceLostCallback(wgpu::CallbackMode::AllowSpontaneous, WebGPUDeviceLostCallback);
 	wgpu::RequestDevice(
 	  m_Adapter,
 	  device_desc,
@@ -87,18 +108,17 @@ context::context(core::resource::cache_t& cache,
 			  core::log->critical("Could not create a WebGPU device: {}", message);
 		  }
 	  });
-
-	m_Device.SetUncapturedErrorCallback(WebGPUErrorCallback, nullptr);
+	// m_Device.SetUncapturedErrorCallback(WebGPUErrorCallback, nullptr);
 
 	m_Queue = m_Device.GetQueue();
 
-	wgpu::SupportedLimits supportedLimits;
+	wgpu::Limits supportedLimits;
 	m_Device.GetLimits(&supportedLimits);
 
-	m_Limits.storage.alignment = supportedLimits.limits.minStorageBufferOffsetAlignment;
-	m_Limits.storage.size	   = supportedLimits.limits.maxStorageBufferBindingSize;
-	m_Limits.uniform.alignment = supportedLimits.limits.minUniformBufferOffsetAlignment;
-	m_Limits.uniform.size	   = supportedLimits.limits.maxUniformBufferBindingSize;
+	m_Limits.storage.alignment = supportedLimits.minStorageBufferOffsetAlignment;
+	m_Limits.storage.size	   = supportedLimits.maxStorageBufferBindingSize;
+	m_Limits.uniform.alignment = supportedLimits.minUniformBufferOffsetAlignment;
+	m_Limits.uniform.size	   = supportedLimits.maxUniformBufferBindingSize;
 
 	// todo: verify these numbers
 	m_Limits.memorymap.size		 = std::numeric_limits<size_t>::max();
@@ -106,13 +126,13 @@ context::context(core::resource::cache_t& cache,
 
 	m_Limits.supported_depthformat = core::gfx::format_t::d32_sfloat;
 
-	m_Limits.compute.workgroup.count[0] = supportedLimits.limits.maxComputeWorkgroupsPerDimension;
-	m_Limits.compute.workgroup.count[1] = supportedLimits.limits.maxComputeWorkgroupsPerDimension;
-	m_Limits.compute.workgroup.count[2] = supportedLimits.limits.maxComputeWorkgroupsPerDimension;
+	m_Limits.compute.workgroup.count[0] = supportedLimits.maxComputeWorkgroupsPerDimension;
+	m_Limits.compute.workgroup.count[1] = supportedLimits.maxComputeWorkgroupsPerDimension;
+	m_Limits.compute.workgroup.count[2] = supportedLimits.maxComputeWorkgroupsPerDimension;
 
-	m_Limits.compute.workgroup.size[0] = supportedLimits.limits.maxComputeWorkgroupSizeX;
-	m_Limits.compute.workgroup.size[1] = supportedLimits.limits.maxComputeWorkgroupSizeY;
-	m_Limits.compute.workgroup.size[2] = supportedLimits.limits.maxComputeWorkgroupSizeZ;
+	m_Limits.compute.workgroup.size[0] = supportedLimits.maxComputeWorkgroupSizeX;
+	m_Limits.compute.workgroup.size[1] = supportedLimits.maxComputeWorkgroupSizeY;
+	m_Limits.compute.workgroup.size[2] = supportedLimits.maxComputeWorkgroupSizeZ;
 
-	m_Limits.compute.workgroup.invocations = supportedLimits.limits.maxComputeInvocationsPerWorkgroup;
+	m_Limits.compute.workgroup.invocations = supportedLimits.maxComputeInvocationsPerWorkgroup;
 }

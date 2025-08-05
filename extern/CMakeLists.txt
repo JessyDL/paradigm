@@ -38,9 +38,7 @@ set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
 
 
 if(${PE_WEBGPU_NATIVE} AND NOT TARGET dawn)
-    # some of the understandings in making this work are from https://github.com/eliemichel/webgpu-native
-    # after chromium/5931 dawn started having issues with the cmake build and with build times.
-    
+    find_package(Python3 REQUIRED)
     set(DAWN_FETCH_DEPENDENCIES ON) # use manual method so we don't want to pull in depot_tools
     if (APPLE)
         set(USE_VULKAN OFF)
@@ -91,10 +89,10 @@ if(${PE_WEBGPU_NATIVE} AND NOT TARGET dawn)
 	    dawn
 	    DOWNLOAD_COMMAND
 		    cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
-		    git clone --depth=1 https://dawn.googlesource.com/dawn chromium/7187 &&
+		    git clone --depth=1 --branch=chromium/7187 https://dawn.googlesource.com/dawn ${FETCHCONTENT_BASE_DIR}/dawn-src &&
             ${Python3_EXECUTABLE} tools/fetch_dawn_dependencies.py -s
     )
-    target_include_directories(dawn_utils PUBLIC "${CMAKE_BINARY_DIR}/_deps/dawn-src/src")
+    FetchContent_MakeAvailable(dawn)
 endif()
 
 add_library(dr_libs INTERFACE)

@@ -176,7 +176,7 @@ constexpr wgpu::VertexFormat to_wgpu(core::gfx::format_t format) noexcept {
 	case core::gfx::format_t::r16g16b16a16_unorm:
 		return wgpu::VertexFormat::Unorm16x4;
 	default:
-		return wgpu::VertexFormat::Undefined;
+		return {};
 	}
 }
 }	 // namespace core::gfx::conversion

@@ -23,10 +23,12 @@ endif()
 link_libraries(${WSI_LIB})
 
 if(PE_VULKAN)
-	set(vulkan_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/vulkan-src")
-	set(vulkan_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/vulkan-build")
-
 	FetchContent_Populate(vulkan GIT_REPOSITORY https://github.com/KhronosGroup/Vulkan-Headers GIT_TAG v${PE_VULKAN_VERSION} GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
+
+	execute_process(
+		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --includes ${vulkan_SOURCE_DIR}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+	)
 
 	if(VK_STATIC)	
 		add_subdirectory(${vulkan_SOURCE_DIR} ${vulkan_BINARY_DIR})
@@ -35,8 +37,6 @@ endif()
 
 if(PE_GLES)
 	if(PE_PLATFORM STREQUAL "WINDOWS")
-		set(glad_SOURCE_DIR "${CMAKE_BINARY_DIR}/_deps/glad-src")
-		set(glad_BINARY_DIR "${CMAKE_BINARY_DIR}/_deps/glad-build")
 		FetchContent_Populate(glad GIT_REPOSITORY https://github.com/Dav1dde/glad.git GIT_TAG v2.0.8 GIT_SHALLOW TRUE GIT_PROGRESS TRUE)
 
 		message(STATUS "fetching Dav1dde/glad...")
@@ -102,11 +102,6 @@ if(PE_GLES)
 	endif()
 endif()
 
-add_custom_target(core_patcher
-	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
-	WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
-	COMMENT "Patching build files")
-
 add_custom_target(core_generator)
 add_custom_command(TARGET core_generator PRE_BUILD
 	COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/generate_project_info.py
@@ -117,7 +112,16 @@ add_custom_command(TARGET core_generator PRE_BUILD
 add_library(core STATIC ${FWD} ${SRC} ${INC} ${GEN} ${INC_GLES} ${SRC_GLES} ${INC_VULKAN} ${SRC_VULKAN} ${INC_WEBGPU} ${SRC_WEBGPU} ${NATVIS})
 add_library(paradigm::core ALIAS core)
 
-add_dependencies(core core_generator core_patcher)
+
+if(MSVC)
+	add_custom_target(core_patcher
+		COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/../tools/patch.py --project ${CMAKE_BINARY_DIR}
+		WORKING_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/..
+		COMMENT "Patching build files")
+	add_dependencies(core core_patcher)
+endif()
+
+add_dependencies(core core_generator)
 
 if(${PE_PCH})
 	target_precompile_headers(core PUBLIC ${INC_PCH})
