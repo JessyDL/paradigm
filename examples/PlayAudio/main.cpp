@@ -44,6 +44,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 
 	auto audioHandle = engine_instance.cache().instantiate<core::audio::audio_t>(
 	  "24469495-a1d4-ba64-77ed-f22be221f498"_uid, audioEngineHandle);
+	psl_assert(audioHandle, "Audio resource was missing");
 
 	psl::ecs::state_t state {};
 	auto gpuCameraSystem = core::ecs::systems::gpu_camera {

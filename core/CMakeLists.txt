@@ -87,7 +87,7 @@ if(PE_GLES)
 			set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)
 		endif()
 
-		add_library(gl ${GL_SOURCES})
+		add_library(gl STATIC ${GL_SOURCES})
 		set_target_properties(gl PROPERTIES LINKER_LANGUAGE CXX)
 		target_include_directories(gl PUBLIC ${GL_INCLUDE_DIRS}/include)
 		set_source_files_properties("${GL_INCLUDE_DIRS}/src/glad.c" PROPERTIES LANGUAGE CXX)

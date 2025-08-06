@@ -40,7 +40,7 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	m_MemoryRegion = std::make_unique<memory::region>(options.cpu_backed_memory_region.size,
 													  options.cpu_backed_memory_region.alignment,
 													  new memory::default_allocator());
-	m_Cache = std::make_unique<core::resource::cache_t>(psl::meta::library {"resources.metalib", {{environment}}});
+	m_Cache = std::make_unique<core::resource::cache_t>(psl::meta::library {"./data/resources.metalib", {{environment}}});
 
 	auto& cache = *m_Cache;
 

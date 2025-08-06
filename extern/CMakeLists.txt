@@ -3,6 +3,9 @@ set(CMAKE_CXX_CLANG_TIDY "")
 
 include(FetchContent)
 
+set(CACHED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
+
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
 set_property(TARGET fmt PROPERTY FOLDER "extern")
 
@@ -37,7 +40,7 @@ add_subdirectory(utfcpp EXCLUDE_FROM_ALL)
 set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
 
 
-if(${PE_WEBGPU_NATIVE} AND NOT TARGET dawn)
+if(${PE_WEBGPU_NATIVE} AND NOT TARGET webgpu_dawn)
     find_package(Python3 REQUIRED)
     set(DAWN_FETCH_DEPENDENCIES ON) # use manual method so we don't want to pull in depot_tools
     if (APPLE)
@@ -97,3 +100,5 @@ endif()
 
 add_library(dr_libs INTERFACE)
 target_include_directories(dr_libs INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/dr_libs" "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
+
+set(BUILD_SHARED_LIBS ${CACHED_BUILD_SHARED_LIBS})

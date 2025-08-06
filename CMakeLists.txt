@@ -399,7 +399,7 @@ if(PE_ASSEMBLER)
     FetchContent_Declare(
 	    assembler
 	    GIT_REPOSITORY https://github.com/JessyDL/assembler.git
-		GIT_TAG d150f5312aa7b8e03407687d3f4371a7015aec1b
+		GIT_TAG 497bb02e7e8cafebed52b27f9e84d98c295b419a
 		GIT_SHALLOW TRUE
         GIT_PROGRESS TRUE
 		GIT_SUBMODULES_RECURSE TRUE
