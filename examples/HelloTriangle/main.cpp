@@ -87,7 +87,7 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// due to the deferred nature of the cache, and how the cache ends up being the lifetime manager of the resources.
 	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
 
-	core::resource::cache_t cache {psl::meta::library {"resources.metalib", {{environment}}}};
+	core::resource::cache_t cache {psl::meta::library {"data/resources.metalib", {{environment}}}};
 
 #pragma endregion example
 	core::log->info("cache created");

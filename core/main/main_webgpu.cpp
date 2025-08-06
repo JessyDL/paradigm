@@ -30,6 +30,45 @@
 #include "core/gfx/swapchain.hpp"
 
 #include <core/wgpu/iwgpu.hpp>
+#include <span>
+
+void MainWebGPUErrorCallback(wgpu::Device device, wgpu::ErrorType type, wgpu::StringView message, void*) {
+	switch(type) {
+	case wgpu::ErrorType::Validation: {
+		core::iwgpu::log->error("[validation] {}", message.data);
+	} break;
+	case wgpu::ErrorType::OutOfMemory: {
+		core::iwgpu::log->error("[OOM] {}", message.data);
+	} break;
+	default:
+	case wgpu::ErrorType::Unknown: {
+		core::iwgpu::log->error("[unknown] {}", message.data);
+	} break;
+	case wgpu::ErrorType::Internal: {
+		core::iwgpu::log->error("[internal] {}", message.data);
+	} break;
+	case wgpu::ErrorType::NoError:
+		break;
+	}
+}
+
+void MainWebGPUDeviceLostCallback(wgpu::Device device, wgpu::DeviceLostReason reason, wgpu::StringView message) {
+	switch(reason) {
+	case wgpu::DeviceLostReason::Destroyed: {
+		core::iwgpu::log->error("WebGPU device lost: {}", message.data);
+	} break;
+	case wgpu::DeviceLostReason::FailedCreation: {
+		core::iwgpu::log->error("WebGPU device lost due to failed creation: {}", message.data);
+	} break;
+	default:
+	case wgpu::DeviceLostReason::Unknown: {
+		core::iwgpu::log->error("WebGPU device lost due to unknown reason: {}", message.data);
+	} break;
+	case wgpu::DeviceLostReason::CallbackCancelled: {
+		core::iwgpu::log->error("WebGPU device lost due to callback cancellation: {}", message.data);
+	} break;
+	}
+}
 
 using namespace core;
 using namespace core::resource;
@@ -135,10 +174,10 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	  },
 	  nullptr);
 
+	wgpu::SupportedFeatures supported_features;
 
-	auto const count = adapter.EnumerateFeatures(nullptr);
-	std::vector<wgpu::FeatureName> features(count);
-	adapter.EnumerateFeatures(features.data());
+	adapter.GetFeatures(&supported_features);
+	std::span<wgpu::FeatureName const> features(supported_features.features, supported_features.featureCount);
 
 	for(auto const& feature : features) {
 		core::log->info("Feature: {}", std::to_underlying(feature));
@@ -147,6 +186,9 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	wgpu::DeviceDescriptor device_desc = {};
 	device_desc.label				   = "WebGPU Device";
 	device_desc.defaultQueue.label	   = "WebGPU Queue";
+	device_desc.SetUncapturedErrorCallback<decltype(MainWebGPUErrorCallback), void*, decltype(MainWebGPUErrorCallback)>(
+	  MainWebGPUErrorCallback, nullptr);
+	device_desc.SetDeviceLostCallback(wgpu::CallbackMode::AllowSpontaneous, MainWebGPUDeviceLostCallback);
 	wgpu::Device device;
 	wgpu::RequestDevice(
 	  adapter,
@@ -159,30 +201,31 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 		  }
 	  });
 
-	device.SetUncapturedErrorCallback([](WGPUErrorType type,
-										 const char* message,
-										 void* userdata) -> void { core::log->error("WebGPU error: {}", message); },
-									  nullptr);
-
 	auto queue = device.GetQueue();
-	queue.OnSubmittedWorkDone(
-	  [](WGPUQueueWorkDoneStatus status, void* userdata) -> void {
-		  core::log->info("WebGPU queue work done: {}", std::to_underlying(status));
-	  },
-	  nullptr);
+	queue.OnSubmittedWorkDone(wgpu::CallbackMode::AllowSpontaneous, [](wgpu::QueueWorkDoneStatus status) -> void {
+		core::log->info("WebGPU queue work done: {}", std::to_underlying(status));
+	});
 
-	auto swap_chain_desc		= wgpu::SwapChainDescriptor();
-	swap_chain_desc.usage		= wgpu::TextureUsage::RenderAttachment;
-	swap_chain_desc.format		= surface.GetPreferredFormat(adapter);
-	swap_chain_desc.width		= window_data->width();
-	swap_chain_desc.height		= window_data->height();
-	swap_chain_desc.presentMode = wgpu::PresentMode::Fifo;
+	auto swap_chain = surface;
 
-	auto swap_chain = device.CreateSwapChain(surface, &swap_chain_desc);
+	wgpu::SurfaceCapabilities caps;
+	swap_chain.GetCapabilities(adapter, &caps);
+
+	wgpu::SurfaceConfiguration config = {};
+	config.usage					  = wgpu::TextureUsage::RenderAttachment;
+	config.format					  = caps.formats[0];	// todo make this configurable
+	config.width					  = window_data->width();
+	config.height					  = window_data->height();
+	config.presentMode				  = wgpu::PresentMode::Fifo;	// todo make this configurable
+
+	swap_chain.Configure(&config);
 
 
 	while(os_context.tick() && surface_handle->tick()) {
-		auto texture_view = swap_chain.GetCurrentTextureView();
+		wgpu::SurfaceTexture surfaceTexture;
+
+		swap_chain.GetCurrentTexture(&surfaceTexture);
+		auto texture_view = surfaceTexture.texture.CreateView();
 
 		auto color_attachments			= std::vector<wgpu::RenderPassColorAttachment>(1);
 		color_attachments[0].view		= texture_view;

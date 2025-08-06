@@ -1,6 +1,11 @@
 set(CMAKE_POLICY_DEFAULT_CMP0077 NEW)
 set(CMAKE_CXX_CLANG_TIDY "")
 
+include(FetchContent)
+
+set(CACHED_BUILD_SHARED_LIBS ${BUILD_SHARED_LIBS})
+set(BUILD_SHARED_LIBS OFF)
+
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
 set_property(TARGET fmt PROPERTY FOLDER "extern")
 
@@ -35,62 +40,65 @@ add_subdirectory(utfcpp EXCLUDE_FROM_ALL)
 set_property(TARGET utf8cpp PROPERTY FOLDER "extern")
 
 
-if(${PE_WEBGPU_NATIVE})
-    # some of the understandings in making this work are from https://github.com/eliemichel/webgpu-native
-    # after chromium/5931 dawn started having issues with the cmake build and with build times.
-    include(FetchContent)
-
-    FetchContent_Declare(
-	dawn
-	DOWNLOAD_COMMAND
-		cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
-		git init &&
-		git fetch --depth=1 https://dawn.googlesource.com/dawn chromium/6278 &&
-		git reset --hard FETCH_HEAD
-    )
-
-    FetchContent_GetProperties(dawn)
-    if (NOT dawn_POPULATED)
-        FetchContent_Populate(dawn)
-        set(DAWN_FETCH_DEPENDENCIES ON) # use manual method so we don't want to pull in depot_tools
-
-        if (APPLE)
-            set(USE_VULKAN OFF)
-            set(USE_METAL ON)
-        else()
-            set(USE_VULKAN ON)
-            set(USE_METAL OFF)
-        endif()
-        set(DAWN_ENABLE_D3D11 OFF)
-        set(DAWN_ENABLE_D3D12 OFF)
-        set(DAWN_ENABLE_METAL ${USE_METAL})
-        set(DAWN_ENABLE_NULL OFF)
-        set(DAWN_ENABLE_DESKTOP_GL OFF)
-        set(DAWN_ENABLE_OPENGLES OFF)
-        set(DAWN_ENABLE_VULKAN ${USE_VULKAN})
-        set(TINT_BUILD_SPV_READER OFF)
-
-        # Disable unneeded parts
-        
-        set(DAWN_USE_GLFW OFF)
-        set(DAWN_BUILD_SAMPLES OFF)
-        set(TINT_BUILD_TINT OFF)
-        set(TINT_BUILD_SAMPLES OFF)
-        set(TINT_BUILD_DOCS OFF)
-        set(TINT_BUILD_TESTS OFF)
-        set(TINT_BUILD_FUZZERS OFF)
-        set(TINT_BUILD_SPIRV_TOOLS_FUZZER OFF)
-        set(TINT_BUILD_AST_FUZZER OFF)
-        set(TINT_BUILD_REGEX_FUZZER OFF)
-        set(TINT_BUILD_BENCHMARKS OFF)
-        set(TINT_BUILD_AS_OTHER_OS OFF)
-        set(TINT_BUILD_REMOTE_COMPILE OFF)
-        set(TINT_BUILD_CMD_TOOLS OFF)
-
-        add_subdirectory(${dawn_SOURCE_DIR} ${dawn_BINARY_DIR} EXCLUDE_FROM_ALL)
+if(${PE_WEBGPU_NATIVE} AND NOT TARGET webgpu_dawn)
+    find_package(Python3 REQUIRED)
+    set(DAWN_FETCH_DEPENDENCIES ON) # use manual method so we don't want to pull in depot_tools
+    if (APPLE)
+        set(USE_VULKAN OFF)
+        set(USE_METAL ON)
+    else()
+        set(USE_VULKAN ON)
+        set(USE_METAL OFF)
     endif()
-    target_include_directories(dawn_utils PUBLIC "${CMAKE_BINARY_DIR}/_deps/dawn-src/src")
+    set(DAWN_ENABLE_D3D11 OFF)
+    set(DAWN_ENABLE_D3D12 OFF)
+    set(DAWN_ENABLE_METAL ${USE_METAL})
+    set(DAWN_ENABLE_NULL OFF)
+    set(DAWN_ENABLE_DESKTOP_GL OFF)
+    set(DAWN_ENABLE_OPENGLES OFF)
+    set(DAWN_ENABLE_VULKAN ${USE_VULKAN})
+
+    if(PE_INCLUDED_BY_ASSEMBLER OR PE_ASSEMBLER)
+        # these need to be available for the assembler to work properly
+        set(TINT_BUILD_SPV_READER ON)
+        set(TINT_BUILD_SPV_WRITER ON)
+        set(TINT_BUILD_GLSL_WRITER ON)
+        set(TINT_BUILD_WGSL_WRITER ON)
+    else()
+        set(TINT_BUILD_SPV_READER OFF)
+    endif()
+
+    # Disable unneeded parts        
+    set(DAWN_USE_GLFW OFF)
+    set(DAWN_BUILD_SAMPLES OFF)
+    set(DAWN_BUILD_TESTS OFF)
+    set(DAWN_BUILD_PROTOBUF OFF)
+
+    set(TINT_BUILD_TINT OFF)
+    set(TINT_BUILD_SAMPLES OFF)
+    set(TINT_BUILD_DOCS OFF)
+    set(TINT_BUILD_TESTS OFF)
+    set(TINT_BUILD_FUZZERS OFF)
+    set(TINT_BUILD_SPIRV_TOOLS_FUZZER OFF)
+    set(TINT_BUILD_AST_FUZZER OFF)
+    set(TINT_BUILD_REGEX_FUZZER OFF)
+    set(TINT_BUILD_BENCHMARKS OFF)
+    set(TINT_BUILD_AS_OTHER_OS OFF)
+    set(TINT_BUILD_REMOTE_COMPILE OFF)
+    set(TINT_BUILD_IR_BINARY OFF)
+    set(TINT_BUILD_CMD_TOOLS OFF)
+    set(TINT_ENABLE_INSTALL ON)
+    FetchContent_Declare(
+	    dawn
+	    DOWNLOAD_COMMAND
+		    cd ${FETCHCONTENT_BASE_DIR}/dawn-src &&
+		    git clone --depth=1 --branch=chromium/7187 https://dawn.googlesource.com/dawn ${FETCHCONTENT_BASE_DIR}/dawn-src &&
+            ${Python3_EXECUTABLE} tools/fetch_dawn_dependencies.py -s
+    )
+    FetchContent_MakeAvailable(dawn)
 endif()
 
 add_library(dr_libs INTERFACE)
 target_include_directories(dr_libs INTERFACE "${CMAKE_CURRENT_SOURCE_DIR}/dr_libs" "${CMAKE_CURRENT_SOURCE_DIR}/miniaudio")
+
+set(BUILD_SHARED_LIBS ${CACHED_BUILD_SHARED_LIBS})

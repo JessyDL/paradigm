@@ -8,7 +8,6 @@ set_target_properties(ex_simple_textured PROPERTIES LINKER_LANGUAGE CXX)
 
 set_property(TARGET ex_simple_textured PROPERTY FOLDER "paradigm-engine/examples")
 set_target_output_directory(TARGET ex_simple_textured DIRECTORY "examples/SimpleTextured")
+include(Utils)
+assembler_generate_files(TARGET ex_simple_textured)
 
-add_custom_command(TARGET ex_simple_textured PRE_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${CMAKE_CURRENT_SOURCE_DIR}/data $<TARGET_FILE_DIR:ex_simple_textured>)

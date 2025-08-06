@@ -9,6 +9,5 @@ set_target_properties(ex_play_audio PROPERTIES LINKER_LANGUAGE CXX)
 set_property(TARGET ex_play_audio PROPERTY FOLDER "paradigm-engine/examples")
 set_target_output_directory(TARGET ex_play_audio DIRECTORY "examples/PlayAudio")
 
-add_custom_command(TARGET ex_play_audio PRE_BUILD
-                   COMMAND ${CMAKE_COMMAND} -E copy_directory
-                       ${CMAKE_CURRENT_SOURCE_DIR}/data $<TARGET_FILE_DIR:ex_play_audio>)
+include(Utils)
+assembler_generate_files(TARGET ex_play_audio)

@@ -39,3 +39,19 @@ macro(set_target_output_directory)
         endforeach()
     endif()
 endmacro()
+
+macro(assembler_generate_files)
+    set(oneValueArgs TARGET)
+    cmake_parse_arguments(SET_ASSEMBLER_GENERATE_FILES "" ${oneValueArgs} "" ${ARGN})
+    if(NOT SET_ASSEMBLER_GENERATE_FILES_TARGET)
+        message(FATAL_ERROR "assembler_generate_files: TARGET argument is required")
+    endif()
+
+    add_dependencies(${SET_ASSEMBLER_GENERATE_FILES_TARGET} assembler)
+    get_target_property(TARGET_SOURCE_DIR ${SET_ASSEMBLER_GENERATE_FILES_TARGET} SOURCE_DIR)
+
+    add_custom_command(TARGET ${SET_ASSEMBLER_GENERATE_FILES_TARGET} PRE_BUILD
+        COMMAND echo "Assembler generating files for '${SET_ASSEMBLER_GENERATE_FILES_TARGET}'"
+        COMMAND $<TARGET_FILE:assembler> -g -p -i ${TARGET_SOURCE_DIR}/project.ppf -o $<TARGET_FILE_DIR:${SET_ASSEMBLER_GENERATE_FILES_TARGET}>/data
+    )
+endmacro()

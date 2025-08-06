@@ -40,6 +40,8 @@ include(FindXCB)
 OPTION(PE_WSI_D2D "use Direct to Display" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_XCB "use XCB" ON "XCB_FOUND" OFF)
 CMAKE_DEPENDENT_OPTION(PE_WSI_WIN32 "use win32 surface" ON "WIN32" OFF)
+CMAKE_DEPENDENT_OPTION(PE_ASSEMBLER "build the assembler tool to generate data files from source" ON "PE_EXAMPLES" OFF)
+OPTION(PE_INCLUDED_BY_ASSEMBLER "Enabled by assembler project to mark this scenario, typically users do not need to set this" OFF)
 
 set(PE_PLATFORM "AUTO" CACHE STRING "Target platform to build for, leave to 'AUTO' to detect and select the platform for you.")
 set_property(CACHE PE_PLATFORM PROPERTY STRINGS AUTO WINDOWS LINUX ANDROID MACOS WEB)
@@ -387,6 +389,22 @@ endif()
 
 if(PE_TESTS)
 	add_subdirectory(tests)
+endif()
+
+if(PE_ASSEMBLER)
+	include(FetchContent)
+    set(AS_ENABLE_WGSL ${PE_WEBGPU})
+    set(AS_PARADIGM_EXTERNAL ON)
+	set(AS_ENABLE_INSTALL ON)
+    FetchContent_Declare(
+	    assembler
+	    GIT_REPOSITORY https://github.com/JessyDL/assembler.git
+		GIT_TAG 497bb02e7e8cafebed52b27f9e84d98c295b419a
+		GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
+		GIT_SUBMODULES_RECURSE TRUE
+    )
+    FetchContent_MakeAvailable(assembler)
 endif()
 
 if(PE_EXAMPLES)

@@ -13,15 +13,21 @@ swapchain::swapchain(core::resource::cache_t& cache,
 					 core::resource::handle<core::os::surface> surface,
 					 core::resource::handle<core::iwgpu::context> context,
 					 bool use_depth)
-	: m_UseDepth(use_depth) {
-	auto swap_chain_desc		= wgpu::SwapChainDescriptor();
-	swap_chain_desc.usage		= wgpu::TextureUsage::RenderAttachment;
-	swap_chain_desc.format		= context->surface().GetPreferredFormat(context->adapter());
-	swap_chain_desc.width		= surface->data().width();
-	swap_chain_desc.height		= surface->data().height();
-	swap_chain_desc.presentMode = wgpu::PresentMode::Fifo;	  // todo make this configurable
+	: m_UseDepth(use_depth), m_Context(context) {
+	m_SwapChain = m_Context->surface();
 
-	m_SwapChain = context->device().CreateSwapChain(context->surface(), &swap_chain_desc);
+	wgpu::SurfaceCapabilities caps;
+	m_SwapChain.GetCapabilities(m_Context->adapter(), &caps);
+
+	wgpu::SurfaceConfiguration config = {};
+	config.usage					  = wgpu::TextureUsage::RenderAttachment;
+	config.format					  = caps.formats[0];	// todo make this configurable
+	config.width					  = surface->data().width();
+	config.height					  = surface->data().height();
+	config.presentMode				  = wgpu::PresentMode::Fifo;	// todo make this configurable
+	config.device					  = m_Context->device();
+
+	m_SwapChain.Configure(&config);
 }
 bool swapchain::present() {
 	m_SwapChain.Present();

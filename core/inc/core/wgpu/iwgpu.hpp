@@ -7,24 +7,23 @@
 namespace wgpu {
 struct RequestAdapterCallbackResult {
 	wgpu::Adapter adapter			  = {};
-	wgpu::RequestAdapterStatus status = wgpu::RequestAdapterStatus::Unknown;
+	wgpu::RequestAdapterStatus status = wgpu::RequestAdapterStatus::Unavailable;
 	char const* message				  = nullptr;
 	void* userdata					  = nullptr;
 };
 
 [[nodiscard]] inline auto RequestAdapter(wgpu::Instance instance, wgpu::RequestAdapterOptions options)
   -> std::future<RequestAdapterCallbackResult> {
-	auto promise = std::promise<RequestAdapterCallbackResult>();
+	auto promise = std::make_shared<std::promise<RequestAdapterCallbackResult>>();
+
 	instance.RequestAdapter(
 	  &options,
-	  [](WGPURequestAdapterStatus status, WGPUAdapter adapter, char const* message, void* userdata) -> void {
-		  auto promise = static_cast<std::promise<RequestAdapterCallbackResult>*>(userdata);
-		  promise->set_value({adapter, static_cast<wgpu::RequestAdapterStatus>(status), message, userdata});
-		  wgpuAdapterRelease(adapter);
-	  },
-	  &promise);
+	  CallbackMode::AllowSpontaneous,
+	  [promise](wgpu::RequestAdapterStatus status, wgpu::Adapter adapter, wgpu::StringView message) -> void {
+		  promise->set_value({adapter, status, message.data, nullptr});
+	  });
 
-	return promise.get_future();
+	return promise->get_future();
 }
 
 template <typename Fn>
@@ -41,24 +40,21 @@ inline auto RequestAdapter(wgpu::Instance instance,
 
 struct DeviceCallbackResult {
 	wgpu::Device device				 = {};
-	wgpu::RequestDeviceStatus status = wgpu::RequestDeviceStatus::Unknown;
+	wgpu::RequestDeviceStatus status = wgpu::RequestDeviceStatus::Error;
 	char const* message				 = nullptr;
 	void* userdata					 = nullptr;
 };
 
 [[nodiscard]] inline auto RequestDevice(wgpu::Adapter adapter,
 										wgpu::DeviceDescriptor descriptor) -> std::future<DeviceCallbackResult> {
-	auto promise = std::promise<DeviceCallbackResult>();
-	adapter.RequestDevice(
-	  &descriptor,
-	  [](WGPURequestDeviceStatus status, WGPUDevice device, char const* message, void* userdata) -> void {
-		  auto promise = static_cast<std::promise<DeviceCallbackResult>*>(userdata);
-		  promise->set_value({device, static_cast<wgpu::RequestDeviceStatus>(status), message, userdata});
-		  wgpuDeviceRelease(device);
-	  },
-	  &promise);
+	auto promise = std::make_shared<std::promise<DeviceCallbackResult>>();
+	adapter.RequestDevice(&descriptor,
+						  CallbackMode::AllowSpontaneous,
+						  [promise](wgpu::RequestDeviceStatus status, wgpu::Device device, const char* message) {
+							  promise->set_value({device, status, message, nullptr});
+						  });
 
-	return promise.get_future();
+	return promise->get_future();
 }
 
 template <typename Fn>

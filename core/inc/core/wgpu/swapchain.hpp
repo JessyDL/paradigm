@@ -3,6 +3,7 @@
 #include "core/fwd/wgpu/texture.hpp"
 #include "core/resource/handle.hpp"
 #include "core/wgpu/iwgpu.hpp"
+#include <span>
 
 namespace core::os {
 class surface;
@@ -31,10 +32,19 @@ class swapchain {
 	}
 
 	auto texture() const noexcept -> wgpu::Texture {
-		return m_SwapChain.GetCurrentTexture();
+		wgpu::SurfaceTexture surfaceTexture;
+
+		m_SwapChain.GetCurrentTexture(&surfaceTexture);
+		return surfaceTexture.texture;
 	}
 	auto view() const noexcept -> wgpu::TextureView {
-		return m_SwapChain.GetCurrentTextureView();
+		wgpu::SurfaceTexture surfaceTexture;
+
+		m_SwapChain.GetCurrentTexture(&surfaceTexture);
+		if(surfaceTexture.texture) {
+			return surfaceTexture.texture.CreateView();
+		}
+		return wgpu::TextureView {};
 	}
 
 	auto descriptor() noexcept -> wgpu::RenderPassDescriptor;
@@ -45,7 +55,8 @@ class swapchain {
 	uint32_t m_ClearStencil {0};
 	bool m_UseDepth {false};
 
-	wgpu::SwapChain m_SwapChain {};
+	wgpu::Surface m_SwapChain {};
+	core::resource::handle<core::iwgpu::context> m_Context {};
 	std::vector<wgpu::RenderPassColorAttachment> m_ColorAttachments {};
 	std::vector<wgpu::RenderPassDepthStencilAttachment> m_DepthStencilAttachments {};
 };

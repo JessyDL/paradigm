@@ -85,11 +85,6 @@ class File(object):
         )
 
 
-def patch(root):
-    patch_includes(root)
-    patch_msvc(root)
-
-
 def patch_includes(root):
     root = root.replace("\\", "/") + "/_deps/"
     files = []
@@ -152,10 +147,15 @@ if __name__ == "__main__":
         nargs="+",
         help="Override for the project files directory, this is relative to the root",
     )
+    parser.add_argument(
+        "--includes",
+        nargs="+",
+        help="Patches for the includes, point this to target source directories",
+    )
     args = parser.parse_args()
-
+    if args.includes:
+        [patch_includes(includes) for includes in args.includes]
     if args.project:
-        print(f"patching {args.project}")
-        patch(args.project)
+        patch_msvc(args.project)
     if args.utf8:
         patch_utf8(args.utf8)
