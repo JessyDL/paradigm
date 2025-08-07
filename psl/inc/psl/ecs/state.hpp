@@ -75,6 +75,15 @@ class state_t final {
 	friend class psl::serialization::accessor;
 	static constexpr auto serialization_name {"ECS"};
 
+
+	// todo(jdl): linked list-like structure. Good enough for now, but should be refactored
+	struct entity_relationship_t {
+		entity_t parent {};
+		entity_t first_child {};
+		entity_t next_sibling {};
+		entity_t prev_sibling {};
+	};
+
 	template <typename S>
 	void serialize(S& serializer) {
 		if constexpr(psl::serialization::details::IsDecoder<S>) {
@@ -579,6 +588,134 @@ class state_t final {
 			  .template dense<T>(details::stage_range_t::ALIVE);
 		}
 		return {};
+	}
+
+	void set_parent(entity_t parent, entity_t child) noexcept {
+		psl_assert(parent != child, "cannot set a parent to itself, this would create a cycle in the hierarchy");
+		psl_assert(child != invalid_entity, "cannot set the child to an invalid value");
+		auto& child_entry = m_ParentRelationship.at(child);
+		if(child_entry.parent == parent) {
+			return;	   // already set
+		}
+
+		// first we update the existing child's parent entry if it is present and then the siblings
+		// erasing the current child entity from their entries.
+		if(child_entry.parent != invalid_entity) {
+			auto& parent_entry = m_ParentRelationship.at(child_entry.parent);
+			if(parent_entry.first_child == child) {
+				parent_entry.first_child = child_entry.next_sibling;
+			}
+			child_entry.parent = parent;
+
+			m_ModifiedHierarchy.insert(child);
+			auto children = get_all_children(child);
+			for(auto c : children) {
+				m_ModifiedHierarchy.insert(c);
+			}
+		}
+
+		if(child_entry.next_sibling != invalid_entity) {
+			auto& next_sibling_entry = m_ParentRelationship.at(child_entry.next_sibling);
+			next_sibling_entry.prev_sibling =
+			  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.prev_sibling;
+		}
+		if(child_entry.prev_sibling != invalid_entity) {
+			auto& prev_sibling_entry = m_ParentRelationship.at(child_entry.prev_sibling);
+			prev_sibling_entry.next_sibling =
+			  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.next_sibling;
+		}
+
+		child_entry.next_sibling = invalid_entity;
+		child_entry.prev_sibling = invalid_entity;
+
+		if(parent == invalid_entity) {
+			return;	   // no parent, so we don't need to do anything else
+		}
+		auto& parent_entry = m_ParentRelationship.at(parent);
+		// if the parent had no children, then we can simply set the current child as the first child.
+		// otherwise we need to fetch the first child, update its prev_sibling value and set that to the
+		// newly added child.
+		// additionally we fetch the last child and set the next_sibling of the last child to the newly added child.
+		if(parent_entry.first_child == invalid_entity) {
+			parent_entry.first_child = child;
+		} else {
+			auto& parent_first_child_entry = m_ParentRelationship.at(parent_entry.first_child);
+			if(parent_first_child_entry.prev_sibling != invalid_entity) {
+				auto& last_child_entry		  = m_ParentRelationship.at(parent_first_child_entry.prev_sibling);
+				last_child_entry.next_sibling = child;
+				child_entry.prev_sibling	  = parent_first_child_entry.prev_sibling;
+			} else {
+				parent_first_child_entry.next_sibling = child;
+				child_entry.prev_sibling			  = parent_entry.first_child;
+			}
+			parent_first_child_entry.prev_sibling = child;
+			child_entry.next_sibling			  = parent_entry.first_child;
+		}
+	}
+
+	void unparent(entity_t target) {
+		set_parent(invalid_entity, target);
+	}
+
+	psl::array<entity_t> get_children(entity_t parent, bool direct_only = false) const noexcept {
+		psl::array<entity_t> result {};
+		auto& parent_entry = m_ParentRelationship.at(parent);
+		if(parent_entry.first_child == invalid_entity) {
+			return result;	  // no children
+		}
+		auto const first = parent_entry.first_child;
+		auto current	 = first;
+		do {
+			result.emplace_back(current);
+			auto& child_entry = m_ParentRelationship.at(current);
+			current			  = child_entry.next_sibling;
+		} while(current != invalid_entity && current != first);
+		if(!direct_only) {
+			const auto count = result.size();
+			for(auto i = 0u; i < count; ++i) {
+				auto children = get_children(result[i], false);
+				result.insert(std::end(result), std::begin(children), std::end(children));
+			}
+		}
+		return result;
+	}
+
+	psl::array<entity_t> get_direct_children(entity_t parent) const noexcept {
+		return get_children(parent, true);
+	}
+
+	psl::array<entity_t> get_all_children(entity_t parent) const noexcept {
+		return get_children(parent, false);
+	}
+
+	psl::array<entity_t> get_all_parents(entity_t child) const noexcept {
+		psl::array<entity_t> result {};
+		auto current = child;
+		while(current != invalid_entity) {
+			auto& entry = m_ParentRelationship.at(current);
+			if(entry.parent == invalid_entity) {
+				break;	  // no parent
+			}
+			result.emplace_back(entry.parent);
+			current = entry.parent;
+		}
+		return result;
+	}
+
+	entity_t get_parent(entity_t child) const noexcept {
+		auto& entry = m_ParentRelationship.at(child);
+		return entry.parent;
+	}
+
+	psl::array<entity_t> get_siblings(entity_t target) const noexcept {
+		psl_assert(target != invalid_entity, "cannot get siblings of an invalid entity");
+		auto current = target;
+		psl::array<entity_t> result {};
+		do {
+			result.push_back(current);
+			current = m_ParentRelationship.at(current).next_sibling;
+		} while(current != invalid_entity && current != target);
+		return result;
 	}
 
 	/// \brief returns the amount of active systems
@@ -1164,6 +1301,9 @@ class state_t final {
 	  m_Components {};
 
 	psl::sparse_indice_array<entity_t::size_type> m_ModifiedEntities {};
+	psl::sparse_indice_array<entity_t::size_type> m_ModifiedHierarchy {};
+
+	psl::sparse_array<entity_relationship_t, entity_t::size_type> m_ParentRelationship {};
 
 	psl::unique_ptr<psl::async::scheduler> m_Scheduler {nullptr};
 

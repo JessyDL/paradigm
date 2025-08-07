@@ -42,8 +42,9 @@ namespace details {
 /// \brief entity points to a collection of components
 struct entity_t {
 	// edit this value for smaller or larger entities.
-	using size_type		 = uint32_t;
-	constexpr entity_t() = default;
+	using size_type									= uint32_t;
+	static constexpr size_type INVALID_ENTITY_VALUE = 0;
+	constexpr entity_t()							= default;
 	constexpr entity_t(size_type value) noexcept : value(value) {}
 	constexpr entity_t(const entity_t& entity) noexcept			   = default;
 	constexpr entity_t& operator=(const entity_t& entity) noexcept = default;
@@ -65,13 +66,13 @@ struct entity_t {
 	}
 
 	constexpr inline operator bool() const noexcept {
-		return value != 0;
+		return value != INVALID_ENTITY_VALUE;
 	}
 
-	size_type value {};
+	size_type value {INVALID_ENTITY_VALUE};
 };
 
-static constexpr entity_t invalid_entity {0};
+static constexpr entity_t invalid_entity {entity_t::INVALID_ENTITY_VALUE};
 
 template <typename T>
 concept IsEntity = std::is_same_v<std::remove_cvref_t<T>, entity_t>;
