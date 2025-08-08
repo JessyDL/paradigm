@@ -240,14 +240,15 @@ class command_buffer_t {
 
 		for(size_t i = 0; i < recycled; ++i) {
 			const auto orphan = m_Next;
-			entities.emplace_back(orphan);
+			entities.emplace_back(details::make_entity(orphan));
 			m_Next					   = static_cast<entity_t::size_type>(m_Entities[m_Next]);
-			m_Entities[(size_t)orphan] = orphan;
+			m_Entities[(size_t)orphan] = details::make_entity(orphan);
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
-			m_Entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
+			entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
+			m_Entities.emplace_back(
+			  details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
 		}
 
 		if constexpr(sizeof...(Ts) > 0) {
@@ -269,14 +270,15 @@ class command_buffer_t {
 			m_Entities.reserve(m_Entities.size() * 2 + remainder);
 		for(size_t i = 0; i < recycled; ++i) {
 			auto orphan = m_Next;
-			entities.emplace_back(orphan);
-			m_Next					   = m_Entities[(size_t)m_Next];
-			m_Entities[(size_t)orphan] = orphan;
+			entities.emplace_back(details::make_entity(orphan));
+			m_Next					   = static_cast<entity_t::size_type>(m_Entities[m_Next]);
+			m_Entities[(size_t)orphan] = details::make_entity(orphan);
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
-			m_Entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
+			entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
+			m_Entities.emplace_back(
+			  details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
 		}
 		add_components(entities, std::forward<Ts>(prototype)...);
 
@@ -326,7 +328,7 @@ class command_buffer_t {
 
 		for(const auto& pair : entities) {
 			for(auto i = pair.first; i < pair.second; ++i) {
-				entity_array.emplace_back(entity_t {i});
+				entity_array.emplace_back(details::make_entity(i));
 			}
 		}
 		add_component<T>(entity_array, std::forward<decltype(prototype)>(prototype));

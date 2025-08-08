@@ -105,7 +105,7 @@ void command_buffer_t::destroy(psl::array_view<entity_t> entities) noexcept {
 			continue;
 		}
 		++m_Orphans;
-		m_Entities[static_cast<entity_t::size_type>(e)] = entity_t {m_Next};
+		m_Entities[static_cast<entity_t::size_type>(e)] = details::make_entity(m_Next);
 		m_Next											= static_cast<entity_t::size_type>(e);
 	}
 }
@@ -117,7 +117,7 @@ void command_buffer_t::destroy(psl::ecs::details::indirect_array_t<entity_t, ent
 			continue;
 		}
 		++m_Orphans;
-		m_Entities[static_cast<entity_t::size_type>(e)] = entity_t {m_Next};
+		m_Entities[static_cast<entity_t::size_type>(e)] = details::make_entity(m_Next);
 		m_Next											= static_cast<entity_t::size_type>(e);
 	}
 }
@@ -132,7 +132,7 @@ void command_buffer_t::destroy(entity_t entity) noexcept {
 	if(static_cast<entity_t::size_type>(entity) < m_First)
 		return;
 
-	m_Entities[static_cast<entity_t::size_type>(entity)] = entity_t {m_Next};
+	m_Entities[static_cast<entity_t::size_type>(entity)] = details::make_entity(m_Next);
 	m_Next												 = static_cast<entity_t::size_type>(entity);
 
 	++m_Orphans;

@@ -246,7 +246,7 @@ class component_container_typed_t final : public component_container_t {
 
 	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
-		m_Entities.remap(mapping, [pred](entity_t::size_type e) -> bool { return pred(entity_t {e}); });
+		m_Entities.remap(mapping, [pred](entity_t::size_type e) -> bool { return pred(details::make_entity(e)); });
 	}
 	bool merge(const component_container_t& other) noexcept override {
 		if(other.id() != id())
@@ -392,7 +392,7 @@ class component_container_flag_t final : public component_container_t {
 
 	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
-		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(entity_t {entity}); });
+		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(details::make_entity(entity)); });
 	}
 
 	bool merge(const component_container_t& other) noexcept override {
@@ -534,7 +534,7 @@ class component_container_untyped_t final : public component_container_t {
 
 	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
-		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(entity_t {entity}); });
+		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(details::make_entity(entity)); });
 	}
 
 	bool merge(const component_container_t& other) noexcept override {

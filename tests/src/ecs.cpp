@@ -59,12 +59,12 @@ struct updated_component {
 	int value;
 };
 template <>
-struct component_trait_version_t<updated_component> {
+struct psl::ecs::component_trait_version_t<updated_component> {
 	static constexpr size_t version = 1;
 };
 
 template <>
-struct component_updater_t<updated_component> {
+struct psl::ecs::component_updater_t<updated_component> {
 	updated_component operator()(size_t version, void* data) {
 		updated_component res {};
 		switch(version) {
@@ -130,6 +130,15 @@ struct complex_wrapper {
 	T val {};
 };
 
+psl::array<entity_t> make_entities_range(size_t count, size_t offset = 0) {
+	psl::array<entity_t> entities;
+	entities.reserve(count);
+	for(size_t i = 0; i < count; ++i) {
+		entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(i + offset)));
+	}
+	return entities;
+}
+
 struct complex_wrapper_float : public complex_wrapper<float> {
 	using complex_wrapper<float>::complex_wrapper;
 };
@@ -152,9 +161,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 		auto& cInfo = *details::cast_component_container<type>(cInfoPtr.get());
 
 		section<"additions">() = [&]() {
-			psl::array<entity_t> entities;
-			entities.resize(100);
-			std::iota(std::begin(entities), std::end(entities), entity_t::size_type {0});
+			psl::array<entity_t> entities {make_entities_range(100)};
 			cInfo.add(entities);
 			require(cInfo.size()) == entities.size();
 			require(cInfo.added_entities().size()) == entities.size();
@@ -203,10 +210,8 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 		// section<"additions && removals">() = [&](){};
 		section<"remap">() = [&]() {
 			auto cInfo2Ptr {details::instantiate_component_container<type>()};
-			auto& cInfo2 = *details::cast_component_container<type>(cInfo2Ptr.get());
-			psl::array<entity_t> entities;
-			entities.resize(100);
-			std::iota(std::begin(entities), std::end(entities), entity_t::size_type {0});
+			auto& cInfo2				  = *details::cast_component_container<type>(cInfo2Ptr.get());
+			psl::array<entity_t> entities = make_entities_range(100);
 			cInfo.add(entities);
 			cInfo2.add(entities);
 
@@ -322,8 +327,8 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 	  };
 
 	  section<"filtering components that are non-contiguous">() = [&]() {
-		  state.create<type, size_t>(static_cast<entity_t::size_type>(500));
-		  state.destroy(1200);
+		  auto last_created_entities = state.create<type, size_t>(static_cast<entity_t::size_type>(500));
+		  state.destroy(last_created_entities.back());
 		  auto entities = state.create<type, size_t>(static_cast<entity_t::size_type>(3));
 
 		  require(entities.size()) == 3;
@@ -758,7 +763,7 @@ auto t7 =
 		  expect(state.filter<on_add<type>>().size()) == 1;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
 		  state.declare([&](info_t& info, pack_t<psl::ecs::full_t, access, entity_t, type> pack) {
-			  expect(pack.size()) == 1;
+			  require(pack.size()) == 1;
 			  expect(static_cast<entity_t::size_type>(pack.template get<entity_t>()[0])) == 1;
 		  });
 		  state.tick(std::chrono::duration<float>(1.0f));
@@ -830,7 +835,7 @@ struct foo {
 
 auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
-	auto entity = state.create<foo>(static_cast<entity_t::size_type>(1));
+	auto entity = state.create<foo>(1);
 	require(state.get<foo>(entity[0]).value) == 10;
 };
 
@@ -846,8 +851,8 @@ auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
 	auto components = state.get_component<updated_component>(entities);
 
 	for(auto e : entities) {
-		auto value = components[e.value].value;
-		require(value == (int)e);
+		auto value = components[static_cast<psl::ecs::entity_t::size_type>(e)].value;
+		require(value == (int)static_cast<psl::ecs::entity_t::size_type>(e));
 	}
 };
 

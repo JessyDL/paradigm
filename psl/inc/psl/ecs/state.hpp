@@ -37,11 +37,11 @@ struct converter<psl::ecs::entity_t> {
 	using encoding_t = psl::string8_t;
 
 	static encoding_t to_string(const value_t& x) {
-		return converter<psl::ecs::entity_t::size_type> {}.to_string(x.value);
+		return converter<psl::ecs::entity_t::size_type> {}.to_string(static_cast<psl::ecs::entity_t::size_type>(x));
 	}
 
 	static value_t from_string(view_t str) {
-		return value_t(converter<psl::ecs::entity_t::size_type> {}.from_string(str));
+		return psl::ecs::details::make_entity(converter<psl::ecs::entity_t::size_type> {}.from_string(str));
 	}
 
 	static void from_string(value_t& out, view_t str) {
@@ -429,16 +429,20 @@ class state_t final {
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity_t> create(entity_t::size_type count) {
+	[[maybe_unused]] psl::array<entity_t> create(auto count) {
+		entity_t::size_type const count_sz = static_cast<entity_t::size_type>(count);
 		psl::array<entity_t> entities;
-		entities.reserve(count);
-		const auto recycled	 = std::min<entity_t::size_type>(count, static_cast<entity_t::size_type>(m_Orphans.size()));
-		const auto remainder = count - recycled;
+		entities.reserve(count_sz);
+		const auto recycled =
+		  std::min<entity_t::size_type>(count_sz, static_cast<entity_t::size_type>(m_Orphans.size()));
+		const auto remainder = count_sz - recycled;
 
 		std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans), std::back_inserter(entities));
 		m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
-		entities.resize(count);
-		std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
+		entities.reserve(remainder);
+		for(auto i = m_Entities, end = remainder + m_Entities; i < end; ++i) {
+			entities.emplace_back(details::make_entity(i));
+		}
 		m_Entities += remainder;
 
 		if constexpr(sizeof...(Ts) > 0) {
@@ -448,16 +452,20 @@ class state_t final {
 	}
 
 	template <typename... Ts>
-	[[maybe_unused]] psl::array<entity_t> create(entity_t::size_type count, Ts&&... prototype) {
+	[[maybe_unused]] psl::array<entity_t> create(auto count, Ts&&... prototype) {
+		entity_t::size_type const count_sz = static_cast<entity_t::size_type>(count);
 		psl::array<entity_t> entities;
-		entities.reserve(count);
-		const auto recycled	 = std::min<entity_t::size_type>(count, static_cast<entity_t::size_type>(m_Orphans.size()));
-		const auto remainder = count - recycled;
+		entities.reserve(count_sz);
+		const auto recycled =
+		  std::min<entity_t::size_type>(count_sz, static_cast<entity_t::size_type>(m_Orphans.size()));
+		const auto remainder = count_sz - recycled;
 
 		std::reverse_copy(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans), std::back_inserter(entities));
 		m_Orphans.erase(std::prev(std::end(m_Orphans), recycled), std::end(m_Orphans));
-		entities.resize(count);
-		std::iota(std::next(std::begin(entities), recycled), std::end(entities), m_Entities);
+		entities.reserve(remainder);
+		for(auto i = m_Entities, end = remainder + m_Entities; i < end; ++i) {
+			entities.emplace_back(details::make_entity(i));
+		}
 		m_Entities += remainder;
 
 		add_components(entities, std::forward<Ts>(prototype)...);
@@ -484,7 +492,7 @@ class state_t final {
 				orphan_it = std::next(orphan_it);
 				continue;
 			}
-			result.emplace_back(e);
+			result.emplace_back(details::make_entity(e));
 		}
 		return result;
 	}
@@ -590,10 +598,34 @@ class state_t final {
 		return {};
 	}
 
+	template <typename T>
+		requires(details::IsRangeType<T>)
+	void set_parent(entity_t parent, T const& children) noexcept {
+		for(auto child : children) {
+			set_parent(parent, child);
+		}
+	}
+
+	bool has_parent(entity_t target) const noexcept {
+		psl_assert(target != invalid_entity, "cannot check if an invalid entity has a parent");
+		return m_ParentRelationship.at(details::get_value(target)).parent != invalid_entity;
+	}
+
+	bool has_siblings(entity_t target) const noexcept {
+		psl_assert(target != invalid_entity, "cannot check if an invalid entity has siblings");
+		auto& entry = m_ParentRelationship.at(details::get_value(target));
+		return entry.next_sibling != target || entry.next_sibling != invalid_entity;
+	}
+
+	bool has_children(entity_t target) const noexcept {
+		psl_assert(target != invalid_entity, "cannot check if an invalid entity is a parent");
+		return m_ParentRelationship.at(details::get_value(target)).first_child != invalid_entity;
+	}
+
 	void set_parent(entity_t parent, entity_t child) noexcept {
 		psl_assert(parent != child, "cannot set a parent to itself, this would create a cycle in the hierarchy");
 		psl_assert(child != invalid_entity, "cannot set the child to an invalid value");
-		auto& child_entry = m_ParentRelationship.at(child);
+		auto& child_entry = m_ParentRelationship.at(details::get_value(child));
 		if(child_entry.parent == parent) {
 			return;	   // already set
 		}
@@ -601,37 +633,44 @@ class state_t final {
 		// first we update the existing child's parent entry if it is present and then the siblings
 		// erasing the current child entity from their entries.
 		if(child_entry.parent != invalid_entity) {
-			auto& parent_entry = m_ParentRelationship.at(child_entry.parent);
+			auto& parent_entry = m_ParentRelationship.at(details::get_value(child_entry.parent));
 			if(parent_entry.first_child == child) {
 				parent_entry.first_child = child_entry.next_sibling;
-			}
-			child_entry.parent = parent;
-
-			m_ModifiedHierarchy.insert(child);
-			auto children = get_all_children(child);
-			for(auto c : children) {
-				m_ModifiedHierarchy.insert(c);
 			}
 		}
 
 		if(child_entry.next_sibling != invalid_entity) {
-			auto& next_sibling_entry = m_ParentRelationship.at(child_entry.next_sibling);
+			auto& next_sibling_entry = m_ParentRelationship.at(details::get_value(child_entry.next_sibling));
 			next_sibling_entry.prev_sibling =
 			  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.prev_sibling;
 		}
 		if(child_entry.prev_sibling != invalid_entity) {
-			auto& prev_sibling_entry = m_ParentRelationship.at(child_entry.prev_sibling);
+			auto& prev_sibling_entry = m_ParentRelationship.at(details::get_value(child_entry.prev_sibling));
 			prev_sibling_entry.next_sibling =
 			  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.next_sibling;
 		}
 
-		child_entry.next_sibling = invalid_entity;
-		child_entry.prev_sibling = invalid_entity;
+
+		// update the child and its dependents to the new parent
+		{
+			child_entry.parent = parent;
+
+			// reset the siblings value, if the child gets a new parent these will be filled in again
+			// later in the scope
+			child_entry.next_sibling = invalid_entity;
+			child_entry.prev_sibling = invalid_entity;
+
+			m_ModifiedHierarchy.insert(details::get_value(child));
+			auto children = get_all_children(child);
+			for(auto c : children) {
+				m_ModifiedHierarchy.insert(details::get_value(c));
+			}
+		}
 
 		if(parent == invalid_entity) {
 			return;	   // no parent, so we don't need to do anything else
 		}
-		auto& parent_entry = m_ParentRelationship.at(parent);
+		auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
 		// if the parent had no children, then we can simply set the current child as the first child.
 		// otherwise we need to fetch the first child, update its prev_sibling value and set that to the
 		// newly added child.
@@ -639,9 +678,10 @@ class state_t final {
 		if(parent_entry.first_child == invalid_entity) {
 			parent_entry.first_child = child;
 		} else {
-			auto& parent_first_child_entry = m_ParentRelationship.at(parent_entry.first_child);
+			auto& parent_first_child_entry = m_ParentRelationship.at(details::get_value(parent_entry.first_child));
 			if(parent_first_child_entry.prev_sibling != invalid_entity) {
-				auto& last_child_entry		  = m_ParentRelationship.at(parent_first_child_entry.prev_sibling);
+				auto& last_child_entry =
+				  m_ParentRelationship.at(details::get_value(parent_first_child_entry.prev_sibling));
 				last_child_entry.next_sibling = child;
 				child_entry.prev_sibling	  = parent_first_child_entry.prev_sibling;
 			} else {
@@ -659,7 +699,7 @@ class state_t final {
 
 	psl::array<entity_t> get_children(entity_t parent, bool direct_only = false) const noexcept {
 		psl::array<entity_t> result {};
-		auto& parent_entry = m_ParentRelationship.at(parent);
+		auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
 		if(parent_entry.first_child == invalid_entity) {
 			return result;	  // no children
 		}
@@ -667,7 +707,7 @@ class state_t final {
 		auto current	 = first;
 		do {
 			result.emplace_back(current);
-			auto& child_entry = m_ParentRelationship.at(current);
+			auto& child_entry = m_ParentRelationship.at(details::get_value(current));
 			current			  = child_entry.next_sibling;
 		} while(current != invalid_entity && current != first);
 		if(!direct_only) {
@@ -692,7 +732,7 @@ class state_t final {
 		psl::array<entity_t> result {};
 		auto current = child;
 		while(current != invalid_entity) {
-			auto& entry = m_ParentRelationship.at(current);
+			auto& entry = m_ParentRelationship.at(details::get_value(current));
 			if(entry.parent == invalid_entity) {
 				break;	  // no parent
 			}
@@ -703,7 +743,7 @@ class state_t final {
 	}
 
 	entity_t get_parent(entity_t child) const noexcept {
-		auto& entry = m_ParentRelationship.at(child);
+		auto& entry = m_ParentRelationship.at(details::get_value(child));
 		return entry.parent;
 	}
 
@@ -713,7 +753,7 @@ class state_t final {
 		psl::array<entity_t> result {};
 		do {
 			result.push_back(current);
-			current = m_ParentRelationship.at(current).next_sibling;
+			current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
 		} while(current != invalid_entity && current != target);
 		return result;
 	}
