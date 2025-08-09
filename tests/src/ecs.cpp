@@ -13,10 +13,17 @@ using namespace tests::ecs;
 
 void registration_test(psl::ecs::info_t& info) {}
 
+namespace std {
+std::string to_string(entity_t entity) {
+	return entity.valid() ? std::string("Entity {") + std::to_string(entity.value()) + "}"
+						  : std::string("Entity { INVALID }");
+}
+}	 // namespace std
+
 
 namespace tests::ecs {
-template <IsPolicy Policy, IsAccessType Access>
-void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, const float, int> pack) {
+template <IsPolicy Policy, IsAccessType Access, typename First, typename Second>
+void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, const First, Second> pack) {
 	for(auto [fl, i] : pack) {
 		i += 5;
 	}
@@ -119,6 +126,11 @@ struct complex_wrapper {
 	}
 	operator T&() noexcept {
 		return val;
+	}
+
+	complex_wrapper& operator+=(const T& rhs) {
+		val += rhs;
+		return *this;
 	}
 
 	complex_wrapper& operator=(const T& rhs) {
@@ -279,9 +291,9 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 			.templates<tpack<float, complex_wrapper_float, flag_type>, policy_tpack, access_tpack>() =
   []<typename type, typename policy, typename access>() {
 	  state_t state;
-	  auto e_list1 {state.create(static_cast<entity_t::size_type>(100))};
-	  auto e_list2 {state.create(static_cast<entity_t::size_type>(400))};
-	  auto e_list3 {state.create(static_cast<entity_t::size_type>(500))};
+	  auto e_list1 {state.create(100)};
+	  auto e_list2 {state.create(400)};
+	  auto e_list3 {state.create(500)};
 
 
 	  section<"only the first 100 are given all components">() = [&]() {
@@ -684,7 +696,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  auto e_list3 {state.create(static_cast<entity_t::size_type>(50))};
 		  state.add_components<float>(e_list1);
 		  state.add_components<type>(e_list1);
-		  auto system_id = state.declare(float_iteration_test<policy, access>);
+		  auto system_id = state.declare(float_iteration_test<policy, access, float, type>);
 		  for(int i = 0; i < 10; ++i) state.tick(std::chrono::duration<float>(0.1f));
 
 		  auto entities = state.filter<type>();
@@ -927,6 +939,74 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 	state.tick(std::chrono::duration<float>(1.0f));
 	state.tick(std::chrono::duration<float>(1.0f));
 	state.tick(std::chrono::duration<float>(1.0f));
+};
+
+auto t14 = suite<"ecs entity relations state api", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+	auto entities = state.create(static_cast<entity_t::size_type>(10));
+
+	section<"state_t api">() = [&]() {
+		psl::array<entity_t> children {std::next(entities.begin()), entities.end()};
+		state.set_parent(entities[0], children);
+		require(state.has_children(entities[0]));
+		require(std::all_of(std::begin(children), std::end(children), [&](auto e) {
+			return (state.has_parent(e)) && state.get_parent(e) == entities[0];
+		}));
+
+		auto parents_children = state.get_children(entities[0]);
+		require(parents_children.size()) == children.size();
+		require(std::equal(std::begin(parents_children), std::end(parents_children), std::begin(children)));
+
+		state.unparent(children[0]);
+		require(!state.has_parent(children[0]));
+
+		children	  = state.get_children(entities[0]);
+		auto siblings = state.get_siblings(children[0]);
+		require(children.size()) == 8;
+		require(siblings.size()) == 7;
+		// note we go to the next element because siblings does not include the element itself
+		require(std::equal(std::begin(siblings), std::end(siblings), std::next(std::begin(children))));
+
+		require(!state.is_parent_of(entities[0], entities[1]));
+		require(!state.is_sibling(entities[1], children[0]));
+		require(state.is_sibling(children[1], children[0]));
+
+		state.set_parent(entities[1], entities[0]);
+
+		require(state.get_root(children[0])) == entities[1];
+		require(state.get_parent(children[0])) == entities[0];
+		require(state.get_parent(entities[0])) == entities[1];
+
+		auto root_children = state.get_children(entities[1], true);
+		require(root_children.size()) == 1;
+
+		auto root_all_children = state.get_all_children(entities[1]);
+		require(root_all_children.size()) == 9;
+
+		require(state.is_indirect_parent_of(entities[1], children[0]));
+		require(state.is_indirect_parent_of(entities[0], children[0]));
+		require(state.is_parent_of(entities[0], children[0]));
+		require(!state.is_parent_of(entities[1], children[0]));
+		require(state.is_root(entities[1]));
+		require(!state.is_root(entities[0]));
+
+		auto all_parents = state.get_all_parents(children[0]);
+		require(all_parents.size()) == 2;
+		std::sort(std::begin(all_parents), std::end(all_parents));
+		require(all_parents[0]) == entities[0];
+		require(all_parents[1]) == entities[1];
+
+		all_parents = state.get_all_parents(entities[0]);
+		require(all_parents.size()) == 1;
+		require(all_parents[0]) == entities[1];
+
+		all_parents = state.get_all_parents(entities[1]);
+		require(all_parents.size()) == 0;
+
+
+		require(state.get_siblings(entities[0]).size()) == 0;
+		require(state.get_siblings(entities[1]).size()) == 0;
+	};
 };
 
 }	 // namespace

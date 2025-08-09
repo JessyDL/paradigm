@@ -143,49 +143,48 @@ auto t0 = suite<ssmr_t, "collections">(
 	  compare_ranges(container);
   };
 
-auto t1													   = suite<ssmr_t, "collections">(
-	 array_typed<erase_structure,
-																 erase_structure {0, 50, 10, 35},
-																 erase_structure {0, 5000, 4500, 5500},
-																 erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
-	   ssmr_t container			= ssmr_t::instantiate<float>();
-	   auto start_count_added	= container.indices(stage_range_t::ADDED).size();
-	   auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
+auto t1 =
+  suite<ssmr_t, "collections">(array_typed<erase_structure,
+										   erase_structure {0, 50, 10, 35},
+										   erase_structure {0, 5000, 4500, 5500},
+										   erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
+	  ssmr_t container		   = ssmr_t::instantiate<float>();
+	  auto start_count_added   = container.indices(stage_range_t::ADDED).size();
+	  auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
 
-	   float default_value = 10.f;
-	   auto count		   = info.last - info.first;
-	   std::vector<float> values(size_t {count});
-	   std::iota(std::begin(values), std::end(values), default_value);
-	   container.insert(info.first, std::begin(values), std::end(values));
+	  float default_value = 10.f;
+	  auto count		  = info.last - info.first;
+	  std::vector<float> values(size_t {count});
+	  std::iota(std::begin(values), std::end(values), default_value);
+	  container.insert(info.first, std::begin(values), std::end(values));
 
-	   section<"removing elements">(
-		 container, info.erase_first, info.erase_last) = [](ssmr_t& container, entity first, entity last) {
-		   auto start_count_all		= container.indices(stage_range_t::ALL).size();
-		   auto start_count_alive	= container.indices(stage_range_t::ALIVE).size();
-		   auto start_count_removed = container.indices(stage_range_t::REMOVED).size();
+	  section<"removing elements">(
+		container, info.erase_first, info.erase_last) = [](ssmr_t& container, entity first, entity last) {
+		  auto start_count_all	   = container.indices(stage_range_t::ALL).size();
+		  auto start_count_alive   = container.indices(stage_range_t::ALIVE).size();
+		  auto start_count_removed = container.indices(stage_range_t::REMOVED).size();
 
-		   size_t erased {0};
-		   size_t expected {0};
-		   for(auto i = first; i < last; ++i) {
-			   expected += (size_t)container.has(i);
-		   }
+		  size_t erased {0};
+		  size_t expected {0};
+		  for(auto i = first; i < last; ++i) {
+			  expected += (size_t)container.has(i);
+		  }
 
-		   section<"ranged">() = [&]() { erased = container.erase(first, last); };
+		  section<"ranged">() = [&]() { erased = container.erase(first, last); };
 
-		   section<"manual">() = [&]() {
-			   for(auto i = first; i != last; ++i) erased += container.erase(i);
-		   };
-		   require(expected) == erased;
-		   require(none_of_n(first, first + erased, [&container](auto index) -> bool { return container.has(index); })) ==
-			 true;
+		  section<"manual">() = [&]() {
+			  for(auto i = first; i != last; ++i) erased += container.erase(i);
+		  };
+		  require(expected) == erased;
+		  require(none_of_n(first, first + erased, [&container](auto index) -> bool { return container.has(index); }));
 
-		   require(container.indices(stage_range_t::ALL).size()) == start_count_all;
-		   require(container.indices(stage_range_t::ALIVE).size()) == start_count_alive - erased;
-		   require(container.indices(stage_range_t::REMOVED).size()) == start_count_removed + erased;
+		  require(container.indices(stage_range_t::ALL).size()) == start_count_all;
+		  require(container.indices(stage_range_t::ALIVE).size()) == start_count_alive - erased;
+		  require(container.indices(stage_range_t::REMOVED).size()) == start_count_removed + erased;
 
-		   compare_ranges(container);
-	   };
-};
+		  compare_ranges(container);
+	  };
+  };
 
 auto t2 = suite<ssmr_t, "collections">() = []() {
 	auto promote = [](ssmr_t& container) mutable {
@@ -284,8 +283,11 @@ auto t4 = suite<ssmr_t, "collections">() = []() {
 
 	require(all_of_n(200, 785, [&container](auto index) { return container.has(index); }));
 	require(all_of_n(200, 750, [&container](auto index) { return container.get<float>(index) == (float)index; }));
-	require(
-	  all_of_n(750, 785, [&container](auto index) { return container.get<float>(index) == (float)(index + 750); }));
+
+	// remapping will have moved the indices from 15 to 50 to 750 to 785
+	require(all_of_n(
+	  750, 785, [&container](auto index) { return container.get<float>(index) == (float)(index - 750 + 15); }));
+	require(none_of_n(15, 50, [&container](auto index) { return container.has(index); }));
 
 	require(container.indices(stage_range_t::ALL).size()) == 585;
 };

@@ -622,6 +622,64 @@ class state_t final {
 		return m_ParentRelationship.at(details::get_value(target)).first_child != invalid_entity;
 	}
 
+	bool is_child_of(entity_t parent, entity_t child) const noexcept {
+		psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
+		psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
+		auto& entry = m_ParentRelationship.at(details::get_value(child));
+		return entry.parent == parent;
+	}
+
+	bool is_parent_of(entity_t parent, entity_t child) const noexcept {
+		psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
+		psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
+		auto& entry	 = m_ParentRelationship.at(details::get_value(parent));
+		auto current = entry.first_child;
+		if(current == invalid_entity) {
+			return false;
+		}
+		do {
+			if(current == child) {
+				return true;
+			}
+			current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
+		} while(current != invalid_entity && current != entry.first_child);
+		return false;
+	}
+
+	bool is_sibling(entity_t first, entity_t second) const noexcept {
+		psl_assert(first != invalid_entity, "cannot check if an invalid entity is a sibling");
+		psl_assert(second != invalid_entity, "cannot check if an invalid entity is a sibling");
+		auto& first_entry  = m_ParentRelationship.at(details::get_value(first));
+		auto& second_entry = m_ParentRelationship.at(details::get_value(second));
+		return first_entry.parent == second_entry.parent && first_entry.parent != invalid_entity;
+	}
+
+	bool is_indirect_parent_of(entity_t parent, entity_t child) const noexcept {
+		psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
+		psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
+		auto entry = m_ParentRelationship.at(details::get_value(child));
+		while(entry.parent != invalid_entity && entry.parent != parent) {
+			entry = m_ParentRelationship.at(details::get_value(entry.parent));
+		}
+		return entry.parent == parent;
+	}
+
+	bool is_root(entity_t target) const noexcept {
+		psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
+		auto& entry = m_ParentRelationship.at(details::get_value(target));
+		return entry.parent == invalid_entity;
+	}
+
+	entity_t get_root(entity_t target) const noexcept {
+		psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
+		auto previous = target;
+		while(target != invalid_entity) {
+			previous = target;
+			target	 = m_ParentRelationship.at(details::get_value(target)).parent;
+		}
+		return previous;
+	}
+
 	void set_parent(entity_t parent, entity_t child) noexcept {
 		psl_assert(parent != child, "cannot set a parent to itself, this would create a cycle in the hierarchy");
 		psl_assert(child != invalid_entity, "cannot set the child to an invalid value");
@@ -749,12 +807,12 @@ class state_t final {
 
 	psl::array<entity_t> get_siblings(entity_t target) const noexcept {
 		psl_assert(target != invalid_entity, "cannot get siblings of an invalid entity");
-		auto current = target;
+		auto current = m_ParentRelationship.at(details::get_value(target)).next_sibling;
 		psl::array<entity_t> result {};
-		do {
+		while(current != invalid_entity && current != target) {
 			result.push_back(current);
 			current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
-		} while(current != invalid_entity && current != target);
+		}
 		return result;
 	}
 

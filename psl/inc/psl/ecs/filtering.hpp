@@ -134,10 +134,13 @@ namespace details {
 		psl::array<entity_t>::iterator transform(psl::array<entity_t>::iterator begin,
 												 psl::array<entity_t>::iterator end,
 												 const state_t& state) const noexcept {
-			for(const auto& condition : on_condition) end = condition(begin, end, state);
+			for(const auto& condition : on_condition) {
+				end = condition(begin, end, state);
+			}
 
-			if(order_by)
+			if(order_by) {
 				order_by(begin, end, state);
+			}
 			return end;
 		}
 
