@@ -27,7 +27,18 @@ class scheduler;
 
 /// \brief Private implementation details for the ECS.
 /// \warning Users should not rely on these implementations.
-namespace psl::ecs::details {}	  // namespace psl::ecs::details
+namespace psl::ecs::details {
+template <typename... Ts>
+struct get_packs {
+	using type = psl::type_pack_t<Ts...>;
+};
+
+template <typename... Ts>
+struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...> {};
+
+template <typename... Ts>
+struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...> {};
+}	 // namespace psl::ecs::details
 
 namespace psl::utility {
 template <>
@@ -76,12 +87,23 @@ class state_t final {
 	static constexpr auto serialization_name {"ECS"};
 
 
-	// todo(jdl): linked list-like structure. Good enough for now, but should be refactored
+	// double linked list-like structure. Good enough for now, but could be refactored
 	struct entity_relationship_t {
 		entity_t parent {};
 		entity_t first_child {};
 		entity_t next_sibling {};
 		entity_t prev_sibling {};
+		entity_t::size_type children {0};	 // number of direct children this entity has
+	};
+
+	struct entity_relationship_component_t {
+		std::vector<entity_t> children {};	  // direct children of this entity
+		entity_t parent {};
+		hierarchy_change_event change_event {};
+
+		bool is_root() const noexcept {
+			return parent == invalid_entity;
+		}
 	};
 
 	template <typename S>
@@ -219,6 +241,33 @@ class state_t final {
 	};
 
 	struct filter_result {
+		filter_result(psl::array<entity_t> entities				   = {},
+					  std::shared_ptr<details::filter_group> group = {},
+					  psl::array<transform_result> transformations = {})
+			: entities(entities), group(group), transformations(transformations) {}
+		filter_result(filter_result const& rhs)
+			: entities(rhs.entities), group(rhs.group), transformations(rhs.transformations) {}
+		filter_result(filter_result&& rhs) noexcept
+			: entities(std::move(rhs.entities)), group(rhs.group), transformations(std::move(rhs.transformations)) {}
+		filter_result& operator=(filter_result const& rhs) {
+			if(this == &rhs) {
+				return *this;
+			}
+
+			entities		= rhs.entities;
+			group			= rhs.group;
+			transformations = rhs.transformations;
+			return *this;
+		}
+		filter_result& operator=(filter_result&& rhs) noexcept {
+			if(this == &rhs) {
+				return *this;
+			}
+			entities		= std::move(rhs.entities);
+			group			= std::move(rhs.group);
+			transformations = std::move(rhs.transformations);
+			return *this;
+		}
 		bool operator==(const filter_result& other) const noexcept {
 			return group == other.group;
 		}
@@ -520,7 +569,7 @@ class state_t final {
 		// todo: look into best fit filtering groups to seed this with
 		else {
 			filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
-			filter(data);
+			filter(data, get_source_for(data));
 			return data.entities;
 		}
 	}
@@ -568,6 +617,52 @@ class state_t final {
 				   "don't exist in the state.");
 		auto d = std::begin(data);
 		for(auto e : entities) {
+			cInfo->set(e, *d);
+			d = std::next(d);
+		}
+	}
+
+	template <typename... Ts>
+	void assign_components(psl::array_view<entity_t> entities, psl::array_view<Ts>... data) noexcept {
+		(set_component(entities, std::forward<Ts>(data)), ...);
+	}
+
+	template <typename... Ts>
+	void assign_components(psl::array_view<entity_t> entities, Ts&&... data) noexcept {
+		(set_component(entities, std::forward<Ts>(data)), ...);
+	}
+
+	template <typename T>
+	void assign_component(psl::array_view<entity_t> entities, T&& data) noexcept {
+		auto cInfo = get_component_typed_info<T>();
+		psl_assert(cInfo != nullptr,
+				   "there was no component storage for the given type. You cannot set components for components that "
+				   "don't exist in the state.");
+		for(auto e : entities) {
+			if(!cInfo->has_component(e)) {
+				throw std::runtime_error(
+				  "cannot assign component to entity that does not have the component, use add_component instead");
+			}
+			cInfo->set(e, &data);
+		}
+	}
+
+	template <typename T>
+	void assign_component(psl::array_view<entity_t> entities, psl::array_view<T> data) noexcept {
+		psl_assert(entities.size() == data.size(),
+				   "incorrect amount of data input compared to entities, expected {} but got {}",
+				   entities.size(),
+				   data.size());
+		auto cInfo = get_component_typed_info<T>();
+		psl_assert(cInfo != nullptr,
+				   "there was no component storage for the given type. You cannot set components for components that "
+				   "don't exist in the state.");
+		auto d = std::begin(data);
+		for(auto e : entities) {
+			if(!cInfo->has_component(e)) {
+				throw std::runtime_error(
+				  "cannot assign component to entity that does not have the component, use add_component instead");
+			}
 			cInfo->set(e, *d);
 			d = std::next(d);
 		}
@@ -692,6 +787,8 @@ class state_t final {
 		// erasing the current child entity from their entries.
 		if(child_entry.parent != invalid_entity) {
 			auto& parent_entry = m_ParentRelationship.at(details::get_value(child_entry.parent));
+			parent_entry.children--;
+			m_ModifiedHierarchy[details::get_value(child_entry.parent)] |= hierarchy_change_event::child_removed;
 			if(parent_entry.first_child == child) {
 				parent_entry.first_child = child_entry.next_sibling;
 			}
@@ -718,10 +815,10 @@ class state_t final {
 			child_entry.next_sibling = invalid_entity;
 			child_entry.prev_sibling = invalid_entity;
 
-			m_ModifiedHierarchy.insert(details::get_value(child));
+			m_ModifiedHierarchy[details::get_value(child)] |= hierarchy_change_event::reparented;
 			auto children = get_all_children(child);
 			for(auto c : children) {
-				m_ModifiedHierarchy.insert(details::get_value(c));
+				m_ModifiedHierarchy[details::get_value(c)] |= hierarchy_change_event::indirectly_reparented;
 			}
 		}
 
@@ -729,6 +826,8 @@ class state_t final {
 			return;	   // no parent, so we don't need to do anything else
 		}
 		auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
+		parent_entry.children++;
+		m_ModifiedHierarchy[details::get_value(parent)] |= hierarchy_change_event::child_added;
 		// if the parent had no children, then we can simply set the current child as the first child.
 		// otherwise we need to fetch the first child, update its prev_sibling value and set that to the
 		// newly added child.
@@ -761,6 +860,7 @@ class state_t final {
 		if(parent_entry.first_child == invalid_entity) {
 			return result;	  // no children
 		}
+		result.reserve(parent_entry.children);
 		auto const first = parent_entry.first_child;
 		auto current	 = first;
 		do {
@@ -822,32 +922,23 @@ class state_t final {
 	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(Fn&& fn, bool seedWithExisting = false, std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(
-		  threading::sequential, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName, systemGroup);
+	auto declare(Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup);
 	}
 
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(threading threading,
-				 Fn&& fn,
-				 bool seedWithExisting					   = false,
-				 std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, seedWithExisting, DebugName, systemGroup);
+	auto declare(threading threading, Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup);
 	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto
-	declare(Fn&& fn, T* ptr, bool seedWithExisting = false, std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName, systemGroup);
+	auto declare(Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, DebugName, systemGroup);
 	}
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(threading threading,
-				 Fn&& fn,
-				 T* ptr,
-				 bool seedWithExisting					   = false,
-				 std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading, std::forward<Fn>(fn), ptr, seedWithExisting, DebugName, systemGroup);
+	auto declare(threading threading, Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt) {
+		return declare_impl(threading, std::forward<Fn>(fn), ptr, DebugName, systemGroup);
 	}
 
 	template <psl::details::fixed_astring DebugName = "">
@@ -1150,76 +1241,80 @@ class state_t final {
 	//------------------------------------------------------------
 	template <typename T>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<T>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		return filter_op(get_component_untyped_info<T>(), begin, end);
 	}
 
 	template <typename T>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::filter<T>>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		return filter_op(get_component_untyped_info<T>(), begin, end);
 	}
 	template <typename T>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_add<T>>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		return on_add_op(get_component_untyped_info<T>(), begin, end);
 	}
 	template <typename T>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_remove<T>>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		return on_remove_op(get_component_untyped_info<T>(), begin, end);
 	}
 	template <typename T>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::except<T>>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		return on_except_op(get_component_untyped_info<T>(), begin, end);
 	}
 	template <typename... Ts>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_break<Ts...>>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
 		return on_break_op(entries, begin, end);
 	}
 
 	template <typename... Ts>
 	psl::array<entity_t>::iterator filter_op(psl::type_pack_t<psl::ecs::on_combine<Ts...>>,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept {
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept {
 		psl::array<details::cached_container_entry_t> entries {get_component_untyped_info<Ts>()...};
 		return on_combine_op(entries, begin, end);
 	}
 
 	psl::array<entity_t>::iterator filter_op(details::cached_container_entry_t& entry,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept;
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_add_op(details::cached_container_entry_t& entry,
-											 psl::array<entity_t>::iterator& begin,
-											 psl::array<entity_t>::iterator& end) const noexcept;
+											 psl::array<entity_t>::iterator begin,
+											 psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_remove_op(details::cached_container_entry_t& entry,
-												psl::array<entity_t>::iterator& begin,
-												psl::array<entity_t>::iterator& end) const noexcept;
+												psl::array<entity_t>::iterator begin,
+												psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_except_op(details::cached_container_entry_t& entry,
-												psl::array<entity_t>::iterator& begin,
-												psl::array<entity_t>::iterator& end) const noexcept;
+												psl::array<entity_t>::iterator begin,
+												psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_break_op(psl::array<details::cached_container_entry_t>& entries,
-											   psl::array<entity_t>::iterator& begin,
-											   psl::array<entity_t>::iterator& end) const noexcept;
+											   psl::array<entity_t>::iterator begin,
+											   psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_combine_op(psl::array<details::cached_container_entry_t>& entries,
-												 psl::array<entity_t>::iterator& begin,
-												 psl::array<entity_t>::iterator& end) const noexcept;
+												 psl::array<entity_t>::iterator begin,
+												 psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_mutate_op(details::cached_container_entry_t& entry,
-												psl::array<entity_t>::iterator& begin,
-												psl::array<entity_t>::iterator& end) const noexcept;
+												psl::array<entity_t>::iterator begin,
+												psl::array<entity_t>::iterator end) const noexcept;
+	psl::array<entity_t>::iterator on_hierarchy_op(hierarchy_change_event event,
+												   psl::array<entity_t>::iterator begin,
+												   psl::array<entity_t>::iterator end) const noexcept;
 
-	psl::array<entity_t> filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept;
 	void filter(filter_result& data, psl::array_view<entity_t> source) const noexcept;
-	void filter(filter_result& data, bool seed_with_previous = false) const noexcept;
+
+	// returns the smallest set of entities that is in the filter
+	psl::array_view<entity_t> get_source_for(filter_result const& data) const noexcept;
 
 
 	//------------------------------------------------------------
@@ -1246,16 +1341,6 @@ class state_t final {
 	//------------------------------------------------------------
 	// system declare
 	//------------------------------------------------------------
-	template <typename... Ts>
-	struct get_packs {
-		using type = psl::type_pack_t<Ts...>;
-	};
-
-	template <typename... Ts>
-	struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...> {};
-
-	template <typename... Ts>
-	struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...> {};
 
 	std::pair<std::shared_ptr<details::filter_group>, std::shared_ptr<details::transform_group>>
 	add_filter_group(details::filter_group& filter_group,
@@ -1269,6 +1354,9 @@ class state_t final {
 		if(filter_it == std::end(m_Filters)) {
 			m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
 			filter_it = std::prev(std::end(m_Filters));
+			if(filter_it->group->should_be_preseeded()) {
+				filter(*filter_it, get_source_for(*filter_it));
+			}
 		}
 
 		filter_it->group->add_debug_system_name(debugName);
@@ -1315,20 +1403,18 @@ class state_t final {
 	auto declare_impl(threading threading,
 					  Fn&& fn,
 					  T* ptr,
-					  bool seedWithExisting						= false,
 					  psl::string_view debugName				= "",
 					  std::optional<system_group_t> systemGroup = std::nullopt) {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-		using pack_type		  = typename get_packs<function_args>::type;
+		using pack_type		  = typename details::get_packs<function_args>::type;
 		auto filter_groups	  = make_filter_group(pack_type {});
 		auto transform_groups = []<typename... Ts>(psl::type_pack_t<Ts...>) -> psl::array<details::transform_group> {
 			return psl::array<details::transform_group> {details::transform_group(decode_pack_types_t<Ts> {})...};
 		}(pack_type {});
-		auto pack_generator = [this](bool seedWithPrevious = false) {
+		auto pack_generator = [this]() {
 			return details::expand_to_dependency_pack(
-			  pack_type {}, seedWithPrevious, [this]<typename Z>() -> details::component_container_t* {
-				  return get_component_untyped_info<Z>();
-			  });
+			  pack_type {},
+			  [this]<typename Z>() -> details::component_container_t* { return get_component_untyped_info<Z>(); });
 		};
 
 		// make sure systems don't have any non-basic filter operations if they are part of a system group
@@ -1365,7 +1451,6 @@ class state_t final {
 										 shared_filter_groups,
 										 shared_transform_groups,
 										 ++m_SystemCounter,
-										 seedWithExisting,
 										 debugName)
 						   .id();
 
@@ -1399,7 +1484,7 @@ class state_t final {
 	  m_Components {};
 
 	psl::sparse_indice_array<entity_t::size_type> m_ModifiedEntities {};
-	psl::sparse_indice_array<entity_t::size_type> m_ModifiedHierarchy {};
+	psl::sparse_array<hierarchy_change_event, entity_t::size_type> m_ModifiedHierarchy {};
 
 	psl::sparse_array<entity_relationship_t, entity_t::size_type> m_ParentRelationship {};
 

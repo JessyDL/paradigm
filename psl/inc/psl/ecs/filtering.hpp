@@ -163,6 +163,19 @@ namespace details {
 	class filter_group {
 		friend class ::psl::ecs::state_t;
 
+		struct on_hierarchy_change_info_t {
+			hierarchy_change_event change {hierarchy_change_event::none};
+			entity_relationship relationship {entity_relationship::none};
+
+			bool is_active() const noexcept {
+				return change != hierarchy_change_event::none && relationship != entity_relationship::none;
+			}
+
+			constexpr bool operator==(const on_hierarchy_change_info_t& other) const noexcept {
+				return change == other.change && relationship == other.relationship;
+			}
+		};
+
 		struct filter_group_container_t {
 			filter_group_container_t() = default;
 			filter_group_container_t(const psl::array<cached_container_entry_t>& other) : group(other) {};
@@ -237,6 +250,7 @@ namespace details {
 		};
 
 		template <typename T, typename Fn>
+			requires(!IsPreseedTag<T>)
 		constexpr void selector(psl::type_pack_t<T>, Fn&& query) noexcept {
 			if constexpr(!std::is_same_v<entity_t, T> && !IsPolicy<T> && !IsAccessType<T>) {
 				static_assert(IsUnrestrictedMutable<T> || std::is_const_v<T>,
@@ -246,23 +260,34 @@ namespace details {
 		}
 
 		template <typename... Ts, typename Fn>
+			requires(!IsPreseedTag<Ts> && ...)
 		constexpr void selector(psl::type_pack_t<filter<Ts...>>, Fn&& query) noexcept {
 			(selector(psl::type_pack_t<Ts>(), query), ...);
 		}
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_combine<Ts...>>, Fn&& query) noexcept {
-			(void(on_combine->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
-			 ...);
+			(
+			  [this, &query]() mutable {
+				  if constexpr(!IsPreseedTag<Ts>) {
+					  on_combine->emplace_back(details::component_key_t::generate<Ts>(),
+											   query.template operator()<Ts>());
+				  } else {
+					  seed_with_previous = true;
+				  }
+			  }(),
+			  ...);
 		}
 
 		template <typename... Ts, typename Fn>
+			requires(!IsPreseedTag<Ts> && ...)
 		constexpr void selector(psl::type_pack_t<on_break<Ts...>>, Fn&& query) noexcept {
 			(void(on_break->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
 			 ...);
 		}
 
 		template <typename... Ts, typename Fn>
+			requires(!IsPreseedTag<Ts> && ...)
 		constexpr void selector(psl::type_pack_t<except<Ts...>>, Fn&& query) noexcept {
 			(void(except->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
 			 ...);
@@ -270,18 +295,27 @@ namespace details {
 
 		template <typename... Ts, typename Fn>
 		constexpr void selector(psl::type_pack_t<on_add<Ts...>>, Fn&& query) noexcept {
-			(void(on_add->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
-			 ...);
+			(
+			  [this, &query]() mutable {
+				  if constexpr(!IsPreseedTag<Ts>) {
+					  on_add->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>());
+				  } else {
+					  seed_with_previous = true;
+				  }
+			  }(),
+			  ...);
 		}
 
 
 		template <typename... Ts, typename Fn>
+			requires(!IsPreseedTag<Ts> && ...)
 		constexpr void selector(psl::type_pack_t<on_remove<Ts...>>, Fn&& query) noexcept {
 			(void(on_remove->emplace_back(details::component_key_t::generate<Ts>(), query.template operator()<Ts>())),
 			 ...);
 		}
 
 		template <typename T, typename Fn>
+			requires(!IsPreseedTag<T>)
 		constexpr void selector(psl::type_pack_t<on_mutate<T>>, Fn&& query) noexcept {
 			on_mutate->emplace_back(details::component_key_t::generate<details::mutate_instruction_t<T>>(),
 									details::component_key_t::generate<T>(),
@@ -289,10 +323,22 @@ namespace details {
 		}
 
 		template <typename Pred, typename... Ts, typename Fn>
+			requires(!IsPreseedTag<Ts> && ...)
 		constexpr void selector(psl::type_pack_t<order_by<Pred, Ts...>>, Fn&&) noexcept {}
 
 		template <typename... Ts, typename Fn>
+			requires(!IsPreseedTag<Ts> && ...)
 		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>, Fn&&) noexcept {}
+
+
+		template <hierarchy_change_event Change, entity_relationship Relationship, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_hierarchy_change<Change, Relationship>>, Fn&&) noexcept {
+			psl_assert(!hierarchy_change_filter.is_active(),
+					   "Cannot have multiple hierarchy change filters in a single filter group.");
+			hierarchy_change_filter.change		 = Change;
+			hierarchy_change_filter.relationship = Relationship;
+			psl_assert(hierarchy_change_filter.is_active(), "Useless filtering operation that would yield no results.");
+		}
 
 		filter_group() = default;
 		filter_group(psl::array<cached_container_entry_t> filters_arr,
@@ -300,9 +346,12 @@ namespace details {
 					 psl::array<cached_container_entry_t> on_remove_arr,
 					 psl::array<cached_container_entry_t> except_arr,
 					 psl::array<cached_container_entry_t> on_combine_arr,
-					 psl::array<cached_container_entry_t> on_break_arr)
+					 psl::array<cached_container_entry_t> on_break_arr,
+					 psl::array<cached_container_entry_t> on_mutate_arr,
+					 on_hierarchy_change_info_t hierarchy_change_filter_)
 			: filters(filters_arr), on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr),
-			  on_combine(on_combine_arr), on_break(on_break_arr) {
+			  on_combine(on_combine_arr), on_break(on_break_arr), on_mutate(on_mutate_arr),
+			  hierarchy_change_filter(hierarchy_change_filter_) {
 			post_init();
 		};
 
@@ -323,6 +372,17 @@ namespace details {
 			filters.set_difference(on_combine);
 			filters.set_difference(on_break);
 			filters.set_difference(on_mutate);
+
+			// if we have these filters there is no point in seeding with the previous frame, as these filters
+			// specifically prevent those entities from matching the filtering group.
+			if(!on_break->empty() || !on_remove->empty() || !on_mutate->empty()) {
+				seed_with_previous = false;
+			}
+			// similarly if we have no add/combine filters, but we do have normal filters, then we need to have
+			// the entire state data.
+			else if(on_add->empty() && on_combine->empty() && !filters->empty()) {
+				seed_with_previous = true;
+			}
 		}
 
 	  public:
@@ -337,7 +397,8 @@ namespace details {
 			return other.filters.includes(filters) && other.on_add.includes(on_add) &&
 				   other.on_remove.includes(on_remove) && other.except.includes(except) &&
 				   other.on_combine.includes(on_combine) && other.on_break.includes(on_break) &&
-				   other.on_mutate.includes(on_mutate);
+				   other.on_mutate.includes(on_mutate) && other.hierarchy_change_filter == hierarchy_change_filter &&
+				   other.seed_with_previous == seed_with_previous;
 		}
 
 		// inverse of subset, does this fully contain the other
@@ -352,19 +413,32 @@ namespace details {
 
 		bool clear_every_frame() const noexcept {
 			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0 ||
-				   on_mutate.size() > 0;
+				   on_mutate.size() > 0 || hierarchy_change_filter.is_active();
 		}
 
 		bool operator==(const filter_group& other) const noexcept {
 			return filters == other.filters && on_add == other.on_add && on_remove == other.on_remove &&
 				   except == other.except && on_combine == other.on_combine && on_break == other.on_break &&
-				   on_mutate == other.on_mutate;
+				   on_mutate == other.on_mutate && other.seed_with_previous == seed_with_previous;
 		}
 
 		// returns true if this filter is a basic filter, meaning it only filters on components, not special events
 		// such as on_add, on_remove, on_combine, on_break
 		bool is_basic_filter() const noexcept {
 			return on_add.size() == 0 && on_remove.size() == 0 && on_combine.size() == 0 && on_break.size() == 0;
+		}
+
+		bool should_be_preseeded() const noexcept {
+			return !clear_every_frame() || (seed_with_previous && (on_add.size() > 0 || on_combine.size() > 0));
+		}
+
+		bool is_transient() const noexcept {
+			return clear_every_frame() && seed_with_previous;
+		}
+		void disable_transience() noexcept {
+			if(clear_every_frame()) {
+				seed_with_previous = false;
+			}
 		}
 
 	  private:
@@ -381,7 +455,9 @@ namespace details {
 		filter_group_container_t on_combine;
 		filter_group_container_t on_break;
 		filter_group_container_t on_mutate;
+		on_hierarchy_change_info_t hierarchy_change_filter {};
 		psl::array<psl::string_view> m_SystemsDebugNames;
+		bool seed_with_previous {false};
 	};
 }	 // namespace details
 }	 // namespace psl::ecs

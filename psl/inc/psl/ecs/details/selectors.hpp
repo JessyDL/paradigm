@@ -5,42 +5,24 @@
 
 namespace psl::ecs::details {
 template <typename T>
-struct is_selector : std::false_type {};
-
-template <typename... Ts>
-struct is_selector<on_add<Ts...>> : std::true_type {};
-
-template <typename... Ts>
-struct is_selector<on_remove<Ts...>> : std::true_type {};
-
-template <typename... Ts>
-struct is_selector<filter<Ts...>> : std::true_type {};
-
-template <typename... Ts>
-struct is_selector<except<Ts...>> : std::true_type {};
-
-template <typename... Ts>
-struct is_selector<on_break<Ts...>> : std::true_type {};
-
-template <typename... Ts>
-struct is_selector<on_combine<Ts...>> : std::true_type {};
-
-template <typename Pred, typename... Ts>
-struct is_selector<on_condition<Pred, Ts...>> : std::true_type {};
-
-template <typename T>
-struct is_selector<on_mutate<T>> : std::true_type {};
-
-template <typename T>
-struct is_exception : std::false_type {};
-
-template <typename... Ts>
-struct is_exception<except<Ts...>> : std::true_type {};
-
-template <typename T>
 struct extract {
 	using type = std::tuple<T>;
 };
+
+template <typename... Ts>
+struct has_preseed : std::conditional_t<(std::is_same_v<Ts, preseed_tag> || ...), std::true_type, std::false_type> {};
+
+template <typename... Ts>
+struct has_preseed<on_add<Ts...>> : public has_preseed<Ts...> {};
+
+template <typename... Ts>
+struct has_preseed<on_combine<Ts...>> : public has_preseed<Ts...> {};
+
+template <typename... Ts>
+concept HasPreseedTag = has_preseed<Ts...>::value;
+
+template <typename T>
+concept IsPreseedTag = std::is_same_v<T, preseed_tag>;
 
 template <typename T>
 struct extract_add {
@@ -153,6 +135,11 @@ struct extract_physical<on_mutate<T>> {
 	using type = std::tuple<const details::mutate_instruction_t<T>>;
 };
 
+template <hierarchy_change_event Change, entity_relationship Relationship>
+struct extract_physical<on_hierarchy_change<Change, Relationship>> {
+	using type = std::tuple<>;
+};
+
 template <typename T>
 struct extract_combine {
 	using type = std::tuple<>;
@@ -215,7 +202,6 @@ struct decode_type<order_by<Pred, Ts...>> {
 	using type = std::tuple<>;
 };
 
-
 template <typename Pred, typename... Ts>
 struct decode_type<on_condition<Pred, Ts...>> {
 	using type = std::tuple<>;
@@ -224,6 +210,11 @@ struct decode_type<on_condition<Pred, Ts...>> {
 template <typename T>
 struct decode_type<on_mutate<T>> {
 	using type = std::tuple<const details::mutate_instruction_t<T>>;
+};
+
+template <hierarchy_change_event Change, entity_relationship Relationship>
+struct decode_type<on_hierarchy_change<Change, Relationship>> {
+	using type = std::tuple<>;
 };
 
 template <typename... Ts>
@@ -297,7 +288,6 @@ template <typename... Ts>
 struct typelist_to_on_mutate_pack {
 	using type = decltype(std::tuple_cat(std::declval<typename details::extract_on_mutate<Ts>::type>()...));
 };
-
 
 template <typename... Ts>
 struct wrap_with_array_view {

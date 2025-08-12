@@ -171,7 +171,7 @@ class dependency_pack {
 
   public:
 	template <typename T, typename Fn>
-	dependency_pack(psl::type_pack_t<T>, bool seedWithPrevious, Fn&& query)
+	dependency_pack(psl::type_pack_t<T>, Fn&& query)
 		: m_IsPartial(IsPackPartial<typename T::policy_type>), m_IsIndirect(IsAccessIndirect<typename T::access_type>) {
 		orderby			= [](psl::array<entity_t>::iterator begin,
 					 psl::array<entity_t>::iterator end,
@@ -186,7 +186,7 @@ class dependency_pack {
 			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::add_type>::value> {},
 			   typename pack_type::add_type {},
-			   (seedWithPrevious) ? filters : on_add,
+			   on_add,
 			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::remove_type>::value> {},
 			   typename pack_type::remove_type {},
@@ -202,7 +202,7 @@ class dependency_pack {
 			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::combine_type>::value> {},
 			   typename pack_type::combine_type {},
-			   (seedWithPrevious) ? filters : on_combine,
+			   on_combine,
 			   query);
 		select(std::make_index_sequence<std::tuple_size<typename pack_type::except_type>::value> {},
 			   typename pack_type::except_type {},
@@ -373,18 +373,18 @@ class dependency_pack {
 };
 
 template <typename... Ts>
-std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, bool seedWithPrevious = false) {
+std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>) {
 	std::vector<dependency_pack> res;
 	res.reserve(sizeof...(Ts));
-	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, seedWithPrevious)); }), ...);
+	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {})); }), ...);
 	return res;
 }
 
 template <typename... Ts, typename Fn>
-std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, bool seedWithPrevious, Fn&& query) {
+std::vector<dependency_pack> expand_to_dependency_pack(psl::type_pack_t<Ts...>, Fn&& query) {
 	std::vector<dependency_pack> res;
 	res.reserve(sizeof...(Ts));
-	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, seedWithPrevious, query)); }), ...);
+	(std::invoke([&]() { res.emplace_back(dependency_pack(psl::type_pack_t<Ts> {}, query)); }), ...);
 	return res;
 }
 namespace {
@@ -415,12 +415,18 @@ class system_token {
 		return other.id != id;
 	}
 
+	constexpr auto value() const noexcept {
+		return id;
+	}
+
   private:
 	size_t id {};
 };
 class system_information final {
+	friend class psl::ecs::state_t;
+
   public:
-	using pack_generator_type	= std::function<std::vector<details::dependency_pack>(bool)>;
+	using pack_generator_type	= std::function<std::vector<details::dependency_pack>()>;
 	using system_invocable_type = std::function<void(psl::ecs::info_t&, std::vector<details::dependency_pack>)>;
 	system_information()		= default;
 	system_information(psl::ecs::threading threading,
@@ -429,11 +435,9 @@ class system_information final {
 					   psl::array<std::shared_ptr<details::filter_group>> filters,
 					   psl::array<std::shared_ptr<details::transform_group>> transforms,
 					   size_t id,
-					   bool seedWithExisting	  = false,
-					   psl::string_view debugName = "")
+					   psl::string_view debugName)
 		: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)),
-		  m_Filters(filters), m_Transforms(transforms), m_SeedWithExisting(seedWithExisting), m_DebugName(debugName),
-		  m_ID(id) {};
+		  m_Filters(filters), m_Transforms(transforms), m_DebugName(debugName), m_ID(id) {};
 	~system_information()									 = default;
 	system_information(const system_information&)			 = default;
 	system_information(system_information&&)				 = default;
@@ -441,13 +445,9 @@ class system_information final {
 	system_information& operator=(system_information&&)		 = default;
 
 	std::vector<details::dependency_pack> create_pack() {
-		return std::invoke(m_PackGenerator, false);
+		return std::invoke(m_PackGenerator);
 	}
-	bool seed_with_previous() const noexcept {
-		return m_SeedWithExisting;
-	};
 	void operator()(psl::ecs::info_t& info, std::vector<details::dependency_pack> packs) {
-		m_SeedWithExisting = false;
 		std::invoke(m_System, info, packs);
 	}
 
@@ -470,13 +470,16 @@ class system_information final {
 		return m_Transforms;
 	}
 
+	constexpr auto debug_name() const noexcept {
+		return m_DebugName;
+	}
+
   private:
 	psl::ecs::threading m_Threading = threading::sequential;
 	pack_generator_type m_PackGenerator;
 	system_invocable_type m_System;
 	psl::array<std::shared_ptr<details::filter_group>> m_Filters {};
 	psl::array<std::shared_ptr<details::transform_group>> m_Transforms {};
-	bool m_SeedWithExisting {false};
 	psl::string_view m_DebugName {};
 	system_token m_ID {0};
 };

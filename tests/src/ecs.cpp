@@ -690,7 +690,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  }
 	  };
 
-	  section<"simple iterations test">() = [&]() {
+	  section<"simple iterations">() = [&]() {
 		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
 		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  auto e_list3 {state.create(static_cast<entity_t::size_type>(50))};
@@ -710,6 +710,39 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  require(state.systems()) == 0;
 		  state.tick(std::chrono::duration<float>(0.1f));
 		  require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+	  };
+
+	  section<"preseed_tag">() = [&]() {
+		  auto e_list {state.create<type>(10)};
+		  state.declare<"fullpack-from-start">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) { require(pack.size()) == 10; });
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  auto invocation_count = 0;
+
+		  // thanks to the preseed tag this system will always have the previous entities present in the pack
+		  // "as-if" they were added in the current tick
+		  state.declare<"on-add-delayed-preseed">(
+			[&](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<preseed_tag, type>> pack) {
+				++invocation_count;
+				require(pack.size()) == (invocation_count == 1 ? 10 : 0);
+			});
+		  // this will not have the preseed tag, so it will only have the entities that were added in this tick (or
+		  // later)
+		  state.declare<"on-add-delayed">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<type>> pack) {
+				require(pack.size()) == 0;
+			});
+
+		  // other filters implicitly have the preseed tag (when it is applicable).
+		  state.declare<"fullpack-delayed">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) { require(pack.size()) == 10; });
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  state.declare<"on-add-delayed-preseed_2">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<preseed_tag, type>> pack) {
+				require(pack.size()) == 10;
+			});
+		  state.tick(std::chrono::duration<float>(0.1f));
 	  };
   };
 
@@ -943,9 +976,9 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 
 auto t14 = suite<"ecs entity relations state api", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
-	auto entities = state.create(static_cast<entity_t::size_type>(10));
 
 	section<"state_t api">() = [&]() {
+		auto entities = state.create(static_cast<entity_t::size_type>(10));
 		psl::array<entity_t> children {std::next(entities.begin()), entities.end()};
 		state.set_parent(entities[0], children);
 		require(state.has_children(entities[0]));
@@ -1006,6 +1039,23 @@ auto t14 = suite<"ecs entity relations state api", "ecs", "psl">() = []() {
 
 		require(state.get_siblings(entities[0]).size()) == 0;
 		require(state.get_siblings(entities[1]).size()) == 0;
+	};
+
+	section<"systems">() = [&]() {
+		auto entities = state.create<position>(20);
+		state.set_parent(entities[0], entities[1]);
+		state.set_parent(entities[1],
+						 psl::array_view<entity_t> {std::next(entities.begin(), 2), std::next(entities.begin(), 10)});
+
+		state.declare(
+		  [](psl::ecs::info_t& info,
+			 psl::ecs::pack_indirect_full_t<entity_t,
+											const position,
+											psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented,
+																		  psl::ecs::entity_relationship::direct_parent>>
+			   pack) { require(pack.size()) == 10; });
+
+		state.tick(std::chrono::duration<float>(1.0f));
 	};
 };
 

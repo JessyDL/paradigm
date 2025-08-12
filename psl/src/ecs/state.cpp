@@ -9,20 +9,6 @@ using namespace psl::ecs;
 
 using psl::ecs::details::component_key_t;
 
-template <typename T = void>
-void invoke(auto&& fn, auto begin, auto end) {
-	auto count = end - begin;
-	if(count > 0) {
-		auto* data = begin.operator->();
-		if constexpr(std::is_same_v<T, void>) {
-			fn(data, data + count);
-		} else {
-			fn((T*)data, (T*)(data) + count);
-		}
-	}
-}
-
-
 state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_entities_per_worker)
 	: m_Cache(cache_size),
 	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers})),
@@ -169,6 +155,10 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 			psl::array_view<entity_t> entities;
 			auto group_it = std::find_if(
 			  begin(m_Filters), end(m_Filters), [filter_it](const auto& data) { return data == **filter_it; });
+			psl_assert(group_it != std::end(m_Filters),
+					   "Could not find a matching filter for the system {} with debug name '{}'",
+					   information.id().value(),
+					   information.debug_name());
 			if(*transform_it) {
 				auto transform		= std::find_if(begin(group_it->transformations),
 											   end(group_it->transformations),
@@ -234,18 +224,23 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	auto modified_entities =
 	  psl::array<entity_t> {(entity_t*)m_ModifiedEntities.indices().data(),
 							(entity_t*)m_ModifiedEntities.indices().data() + m_ModifiedEntities.indices().size()};
-	invoke<entity_t::size_type>(
-	  [](auto... args) { std::sort(args...); }, modified_entities.begin(), modified_entities.end());
+	auto modified_hierarchy_entities =
+	  psl::array<entity_t> {(entity_t*)m_ModifiedHierarchy.indices().data(),
+							(entity_t*)m_ModifiedHierarchy.indices().data() + m_ModifiedHierarchy.indices().size()};
+	std::sort(std::begin(modified_entities), std::end(modified_entities));
+	std::sort(std::begin(modified_hierarchy_entities), std::end(modified_hierarchy_entities));
 
 	psl::array<details::component_container_t*> mutated_components = apply_mutations();
 
-
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
-		filter(filter_result, modified_entities);
+		filter(filter_result,
+			   filter_result.group->hierarchy_change_filter.is_active() ? modified_hierarchy_entities
+																		: modified_entities);
 	}
 
 	m_ModifiedEntities.clear();
+	m_ModifiedHierarchy.clear();
 
 	// todo: we can optimize this, and additionally the filters should be refined for the systems that we'll actually
 	// use
@@ -306,6 +301,41 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		// purge;
 		++m_Tick;
 	}
+
+
+	// here we clean up the transient filters (on_add/on_combine) which need to be merged with the pre-existing filters
+	// (if available) if they are available then we will look through all the systems and update the filters. if not,
+	// they become the new permanent filter.
+	auto transient_filters_it =
+	  std::stable_partition(std::begin(m_Filters), std::end(m_Filters), [](const filter_result& data) {
+		  return !data.group->is_transient();
+	  });
+	for(auto it = transient_filters_it; it != std::end(m_Filters); ++it) {
+		if(it->group && it->group->is_transient()) {
+			it->group->disable_transience();
+
+			auto found_it = std::find_if(std::begin(m_Filters), transient_filters_it, [&it](const filter_result& data) {
+				return *data.group == *it->group;
+			});
+
+			// in case an already existing filter was found we will update it the systems to the pre-existing filter
+			if(found_it != std::end(m_Filters)) {
+				for(auto& system : m_SystemInformations) {
+					auto system_filter_it = std::find_if(std::begin(system.m_Filters),
+														 std::end(system.m_Filters),
+														 [&it](const auto& filter) { return *filter == *it->group; });
+					if(system_filter_it != std::end(system.m_Filters)) {
+						*system_filter_it = found_it->group;
+					}
+				}
+			}
+		}
+	}
+	// run another gc pass to remove filters that are no longer in use.
+	m_Filters.erase(std::remove_if(begin(m_Filters),
+								   end(m_Filters),
+								   [](const filter_result& res) { return res.group.use_count() <= 1; }),
+					end(m_Filters));
 
 	if(m_NewSystemInformations.size() > 0) {
 		for(auto& system : m_NewSystemInformations) m_SystemInformations.emplace_back(std::move(system));
@@ -442,8 +472,8 @@ void state_t::reset(psl::array_view<entity_t> entities) noexcept {
 }
 
 psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entry_t& entry,
-												  psl::array<entity_t>::iterator& begin,
-												  psl::array<entity_t>::iterator& end) const noexcept {
+												  psl::array<entity_t>::iterator begin,
+												  psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -453,8 +483,8 @@ psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entr
 }
 
 psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entry_t& entry,
-												  psl::array<entity_t>::iterator& begin,
-												  psl::array<entity_t>::iterator& end) const noexcept {
+												  psl::array<entity_t>::iterator begin,
+												  psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -464,8 +494,8 @@ psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entr
 }
 
 psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_entry_t& entry,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
+													 psl::array<entity_t>::iterator begin,
+													 psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -475,8 +505,8 @@ psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_e
 }
 
 psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_entry_t& entry,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
+													 psl::array<entity_t>::iterator begin,
+													 psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -486,8 +516,8 @@ psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_e
 }
 
 psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_container_entry_t>& entries,
-													psl::array<entity_t>::iterator& begin,
-													psl::array<entity_t>::iterator& end) const noexcept {
+													psl::array<entity_t>::iterator begin,
+													psl::array<entity_t>::iterator end) const noexcept {
 	for(auto& entry : entries) {
 		if(entry.container == nullptr) {
 			entry.container = get_component_container(entry.key);
@@ -511,8 +541,8 @@ psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_c
 }
 
 psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached_container_entry_t>& entries,
-													  psl::array<entity_t>::iterator& begin,
-													  psl::array<entity_t>::iterator& end) const noexcept {
+													  psl::array<entity_t>::iterator begin,
+													  psl::array<entity_t>::iterator end) const noexcept {
 	for(auto& entry : entries) {
 		if(entry.container == nullptr) {
 			entry.container = get_component_container(entry.key);
@@ -529,9 +559,10 @@ psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached
 			   });
 }
 
+
 psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_entry_t& entry,
-													 psl::array<entity_t>::iterator& begin,
-													 psl::array<entity_t>::iterator& end) const noexcept {
+													 psl::array<entity_t>::iterator begin,
+													 psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
 		// contains the mutated components
 		entry.container = get_component_container(entry.key);
@@ -548,59 +579,28 @@ psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_e
 			   });
 }
 
-psl::array<entity_t> state_t::filter(const details::dependency_pack& pack, bool seed_with_previous) const noexcept {
-	auto pack_filters = pack.filters;
-	for(const auto& [key, arr] : pack.m_RBindings) pack_filters.emplace_back(key);
-	for(const auto& [key, arr] : pack.m_RWBindings) pack_filters.emplace_back(key);
-
-	details::filter_group group {
-	  pack_filters, pack.on_add, pack.on_remove, pack.except, pack.on_combine, pack.on_break};
-
-	auto it = std::find_if(
-	  std::begin(m_Filters), std::end(m_Filters), [&group](const filter_result& data) { return *data.group == group; });
-
-	psl_assert(it != std::end(m_Filters), "could not find filter group for pack, could indicate a sync issue");
-
-
-	auto entities = it->entities;
-
-	if(seed_with_previous) {
-		filter_result data {{}, std::make_shared<details::filter_group>(group)};
-		filter(data, seed_with_previous);
-		entities = data.entities;
+psl::array<entity_t>::iterator state_t::on_hierarchy_op(hierarchy_change_event change,
+														psl::array<entity_t>::iterator begin,
+														psl::array<entity_t>::iterator end) const noexcept {
+	if(change == hierarchy_change_event::none) {
+		return begin;
 	}
 
-	auto begin = std::begin(entities);
-	auto end   = std::end(entities);
-
-	for(const auto& conditional : pack.on_condition) {
-		end = std::invoke(conditional, begin, end, *this);
-	}
-
-	std::invoke(pack.orderby, begin, end, *this);
-
-	entities.erase(end, std::end(entities));
-
-	psl_assert(std::all_of(std::begin(pack.filters),
-						   std::end(pack.filters),
-						   [this, &entities](auto filter) {
-							   auto cInfo = get_component_container(filter);
-							   return std::all_of(std::begin(entities),
-												  std::end(entities),
-												  [filter, &cInfo](entity_t e) { return cInfo->has_storage_for(e); });
-						   }),
-			   "not all components had storage for all entities");
-	return entities;
+	return std::remove_if(begin, end, [change, this](entity_t e) {
+		if(auto it = m_ModifiedHierarchy.try_get(e.value()); it != nullptr) {
+			return (*it & change) != change;
+		}
+		return true;
+	});
 }
 
-void state_t::filter(filter_result& data, bool seed_with_previous) const noexcept {
+psl::array_view<entity_t> state_t::get_source_for(filter_result const& data) const noexcept {
 	std::optional<psl::array_view<entity_t>> source;
 
 	for(auto filter : data.group->on_mutate) {
 		auto cInfo = get_component_container(filter);
 		if(!cInfo) {
-			data.entities = {};
-			return;
+			return {};
 		}
 		if(!source || cInfo->entities().size() < source.value().size()) {
 			// technically remove ops on the on_mutate should not be possible, but we'll filter for all anyway.
@@ -611,8 +611,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	for(auto filter : data.group->on_remove) {
 		auto cInfo = get_component_container(filter);
 		if(!cInfo) {
-			data.entities = {};
-			return;
+			return {};
 		}
 		if(!source || cInfo->removed_entities().size() < source.value().size()) {
 			source = cInfo->removed_entities();
@@ -621,8 +620,7 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	for(auto filter : data.group->on_break) {
 		auto cInfo = get_component_container(filter);
 		if(!cInfo) {
-			data.entities = {};
-			return;
+			return {};
 		}
 		if(!source || cInfo->entities(true).size() < source.value().size()) {
 			source = cInfo->entities(true);
@@ -631,10 +629,9 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	for(auto filter : data.group->on_add) {
 		auto cInfo = get_component_container(filter);
 		if(!cInfo) {
-			data.entities = {};
-			return;
+			return {};
 		}
-		if(seed_with_previous) {
+		if(data.group->seed_with_previous) {
 			if(!source || cInfo->entities().size() < source.value().size()) {
 				source = cInfo->entities();
 			}
@@ -647,10 +644,9 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	for(auto filter : data.group->on_combine) {
 		auto cInfo = get_component_container(filter);
 		if(!cInfo) {
-			data.entities = {};
-			return;
+			return {};
 		}
-		if(seed_with_previous) {
+		if(data.group->seed_with_previous) {
 			if(!source || cInfo->entities().size() < source.value().size()) {
 				source = cInfo->entities();
 			}
@@ -664,67 +660,78 @@ void state_t::filter(filter_result& data, bool seed_with_previous) const noexcep
 	for(auto filter : data.group->filters) {
 		auto cInfo = get_component_container(filter);
 		if(!cInfo) {
-			data.entities = {};
-			return;
+			return {};
 		}
 		if(!source || cInfo->entities().size() < source.value().size()) {
 			source = cInfo->entities();
 		}
 	}
 
-	if(source) {
-		psl::array<entity_t> result {source.value()};
-		auto begin = std::begin(result);
-		auto end   = std::end(result);
-
-		for(auto filter : data.group->on_mutate) {
-			end = on_mutate_op(filter, begin, end);
-		}
-
-		for(auto filter : data.group->on_remove) {
-			end = on_remove_op(filter, begin, end);
-		}
-		if(data.group->on_break.size() > 0) {
-			end = on_break_op(data.group->on_break, begin, end);
-		}
-		for(auto filter : data.group->on_add) {
-			if(seed_with_previous)
-				end = filter_op(filter, begin, end);
-			else
-				end = on_add_op(filter, begin, end);
-		}
-		if(seed_with_previous) {
-			for(auto filter : data.group->on_combine) {
-				end = filter_op(filter, begin, end);
-			}
-		} else {
-			if(data.group->on_combine.size() > 0)
-				end = on_combine_op(data.group->on_combine, begin, end);
-		}
-
-		for(auto filter : data.group->filters) {
-			end = filter_op(filter, begin, end);
-		}
-		for(auto filter : data.group->except) {
-			end = on_except_op(filter, begin, end);
-		}
-
-		// todo support order_by and on_condition
-
-		data.entities = {begin, end};
-		return;
-	}
+	return source.value_or(psl::array_view<entity_t> {});
 }
 
 void state_t::filter(filter_result& data, psl::array_view<entity_t> source) const noexcept {
 	if(source.size() == 0) {
-		if(data.group->clear_every_frame()) {
+		if(!data.group->is_transient() && data.group->clear_every_frame()) {
 			data.entities.clear();
 		}
 	} else {
 		psl::array<entity_t> result {source};
+
+		// first do the hierarchy change events, as the parents need to satisfy the filters as well and can add to the
+		// source entities we can cache the resultant query of the modified entities for subsequent filters
 		auto begin = std::begin(result);
 		auto end   = std::end(result);
+
+		if(data.group->hierarchy_change_filter.is_active()) {
+			end = on_hierarchy_op(data.group->hierarchy_change_filter.change, begin, end);
+
+			result.erase(end, std::end(result));
+			const auto size = result.size();
+
+			// todo(jdl): we can reduce the duplication here by using a set to store the entities
+
+			if((data.group->hierarchy_change_filter.relationship & entity_relationship::all_parents) ==
+			   entity_relationship::all_parents) {
+				for(auto i = 0u; i < size; ++i) {
+					auto parents = get_all_parents(result[i]);
+					result.insert(std::end(result), std::begin(parents), std::end(parents));
+				}
+			} else if((data.group->hierarchy_change_filter.relationship & entity_relationship::direct_parent) ==
+					  entity_relationship::direct_parent) {
+				for(auto i = 0u; i < size; ++i) {
+					result.emplace_back(m_ParentRelationship.at(result[i].value()).parent);
+				}
+			}
+
+			if((data.group->hierarchy_change_filter.relationship & entity_relationship::all_children) ==
+			   entity_relationship::all_children) {
+				for(auto i = 0u; i < size; ++i) {
+					auto children = get_all_children(result[i]);
+					result.insert(std::end(result), std::begin(children), std::end(children));
+				}
+			} else if((data.group->hierarchy_change_filter.relationship & entity_relationship::direct_children) ==
+					  entity_relationship::direct_children) {
+				for(auto i = 0u; i < size; ++i) {
+					auto children = get_children(result[i], true);
+					result.insert(std::end(result), std::begin(children), std::end(children));
+				}
+			}
+
+			if((data.group->hierarchy_change_filter.relationship & entity_relationship::siblings) ==
+			   entity_relationship::siblings) {
+				for(auto i = 0u; i < size; ++i) {
+					auto siblings = get_siblings(result[i]);
+					result.insert(std::end(result), std::begin(siblings), std::end(siblings));
+				}
+			}
+
+			std::sort(std::begin(result), std::end(result));
+			result.erase(std::unique(std::begin(result), std::end(result)), std::end(result));
+
+			begin = std::begin(result);
+			end	  = std::end(result);
+		}
 
 		for(auto filter : data.group->on_mutate) {
 			end = on_mutate_op(filter, begin, end);
@@ -736,11 +743,22 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 		if(data.group->on_break.size() > 0) {
 			end = on_break_op(data.group->on_break, begin, end);
 		}
-		for(auto filter : data.group->on_add) {
-			end = on_add_op(filter, begin, end);
+
+		if(data.group->is_transient()) {
+			for(auto filter : data.group->on_add) {
+				end = filter_op(filter, begin, end);
+			}
+			for(auto filter : data.group->on_combine) {
+				end = filter_op(filter, begin, end);
+			}
+		} else {
+			for(auto filter : data.group->on_add) {
+				end = on_add_op(filter, begin, end);
+			}
+			if(data.group->on_combine.size() > 0) {
+				end = on_combine_op(data.group->on_combine, begin, end);
+			}
 		}
-		if(data.group->on_combine.size() > 0)
-			end = on_combine_op(data.group->on_combine, begin, end);
 
 
 		for(auto filter : data.group->filters) {
@@ -750,8 +768,8 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			end = on_except_op(filter, begin, end);
 		}
 
-		invoke<entity_t::size_type>([](auto... args) { std::sort(args...); }, begin, end);
-		if(data.group->clear_every_frame()) {
+		std::sort(begin, end);
+		if(data.group->clear_every_frame() && !data.group->is_transient()) {
 			result.erase(end, std::end(result));
 			data.entities = std::move(result);
 
@@ -764,8 +782,8 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 											  std::end(transformation.entities));
 			}
 		} else {
-			invoke<entity_t::size_type>([](auto... args) { std::sort(args...); }, end, std::end(result));
-
+			// invoke<entity_t::size_type>([](auto... args) { std::sort(args...); }, end, std::end(result));
+			//
 			// todo support order_by and on_condition
 			// if(false && data.transformations.size() > 0)
 			//{
@@ -824,10 +842,10 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			{
 				psl::array_view new_source {begin, end};
 				psl::array<entity_t> diff_set {};
-				std::set_difference(data.entities.data(),
-									data.entities.data() + data.entities.size(),
-									source.data(),
-									source.data() + source.size(),
+				std::set_difference(std::begin(data.entities),
+									std::end(data.entities),
+									std::begin(source),
+									std::end(source),
 									std::back_inserter(diff_set));
 				data.entities = std::move(diff_set);
 
@@ -835,7 +853,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 				data.entities.insert(std::end(data.entities), begin, end);
 
 				std::inplace_merge(
-				  data.entities.data(), data.entities.data() + size, data.entities.data() + data.entities.size());
+				  std::begin(data.entities), std::next(std::begin(data.entities), size), std::end(data.entities));
 			}
 		}
 	}
@@ -857,9 +875,14 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 		return 0;
 	const auto& cInfo = get_component_container(id);
 	psl_assert(cInfo != nullptr, "component info was null for the key {}", id);
-	psl_assert(
-	  std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) { return cInfo->has_storage_for(e); }),
-	  "some components failed to have storage for the entities");
+	psl_assert(std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) {
+		if(!cInfo->has_storage_for(e)) {
+			__debugbreak();
+		}
+		psl_assert(
+		  cInfo->has_storage_for(e), "component {} does not have storage for entity {}", cInfo->id().name(), e.value());
+		return true;
+	}));
 	psl_assert((std::uintptr_t)(cache) + (cInfo->component_type_info().size * entities.size()) <=
 				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
 			   "Cache ran out of memory");

@@ -34,70 +34,71 @@ concept HasEnumLogicalOps =
   static_cast<enum_ops_t>(static_cast<std::underlying_type_t<enum_ops_t>>(enable_enum_ops<T>) &
 						  static_cast<std::underlying_type_t<enum_ops_t>>(enum_ops_t::LOGICAL)) == enum_ops_t::LOGICAL;
 
-template <HasEnumBitOps T>
+}	 // namespace psl::utility
+
+template <psl::utility::HasEnumBitOps T>
 [[nodiscard]] constexpr T operator|(T const a, T const b) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) | static_cast<I>(b));
 }
 
-template <HasEnumBitOps T>
+template <psl::utility::HasEnumBitOps T>
 [[nodiscard]] constexpr T operator&(T const a, T const b) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) & static_cast<I>(b));
 }
 
-template <HasEnumBitOps T>
+template <psl::utility::HasEnumBitOps T>
 [[nodiscard]] constexpr T operator^(T const a, T const b) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) ^ static_cast<I>(b));
 }
 
-template <HasEnumBitOps T>
+template <psl::utility::HasEnumBitOps T>
 constexpr T& operator|=(T& a, T const b) noexcept {
 	return a = a | b;
 }
 
-template <HasEnumBitOps T>
+template <psl::utility::HasEnumBitOps T>
 constexpr T& operator&=(T& a, T const b) noexcept {
 	return a = a & b;
 }
 
-template <HasEnumBitOps T>
+template <psl::utility::HasEnumBitOps T>
 constexpr T& operator^=(T& a, T const b) noexcept {
 	return a = a ^ b;
 }
 
-template <HasEnumLogicalOps T>
+template <psl::utility::HasEnumLogicalOps T>
 constexpr bool operator&&(T const a, T const b) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) & static_cast<I>(b)) == b;
 }
 
-template <HasEnumBitOps T>
+template <psl::utility::HasEnumBitOps T>
 [[nodiscard]] constexpr T operator~(T const a) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(~static_cast<I>(a));
 }
 
-template <HasEnumShiftOps T>
+template <psl::utility::HasEnumShiftOps T>
 [[nodiscard]] constexpr T operator<<(T const a, std::size_t pos) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) << pos);
 }
 
-template <HasEnumShiftOps T>
+template <psl::utility::HasEnumShiftOps T>
 [[nodiscard]] constexpr T operator>>(T const a, std::size_t pos) noexcept {
 	using I = std::underlying_type_t<T>;
 	return static_cast<T>(static_cast<I>(a) >> pos);
 }
 
-template <HasEnumShiftOps T>
+template <psl::utility::HasEnumShiftOps T>
 constexpr T& operator<<=(T& a, std::size_t pos) noexcept {
 	return a = a << pos;
 }
 
-template <HasEnumShiftOps T>
+template <psl::utility::HasEnumShiftOps T>
 constexpr T& operator>>=(T& a, std::size_t pos) noexcept {
 	return a = a >> pos;
 }
-}	 // namespace psl::utility
