@@ -989,7 +989,7 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 	state.tick(std::chrono::duration<float>(1.0f));
 };
 
-auto t14 = suite<"entity_relations", "ecs", "psl", "new_tests">() = []() {
+auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
 
 	section<"state_t">() = [&]() {
@@ -1297,6 +1297,76 @@ auto t14 = suite<"entity_relations", "ecs", "psl", "new_tests">() = []() {
 			  require(pack.template get<entity_t>()[0]) == entities[0];
 			  require(pack.template get<entity_t>()[1]) == entities[1];
 			  require(pack.template get<entity_t>()[2]) == entities[10];
+		  });
+		state.tick(std::chrono::duration<float>(1.0f));
+	};
+
+
+	section<"entity_relationship_data_t">() = [&]() {
+		auto entities = state.create<position>(20);
+		state.set_parent(entities[0], entities[1]);
+		state.set_parent(entities[1],
+						 psl::array_view<entity_t> {std::next(entities.begin(), 2), std::next(entities.begin(), 10)});
+
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<entity_t, const position, const entity_relationship_data_t> pack) {
+			  require(pack.size()) == 20;
+			  {
+				  // first entity has no parent, and one child
+				  auto& data = pack.template get<entity_relationship_data_t const>()[0];
+				  require(data.is_root()) == true;
+				  require(data.has_parent()) == false;
+				  require(data.has_children()) == true;
+				  require(data.has_siblings()) == false;
+				  require(data.children_count()) == 1;
+				  require(data.children()[0]) == entities[1];
+			  }
+			  {
+				  // second entity has a parent, and 8 children
+				  auto& data = pack.template get<entity_relationship_data_t const>()[1];
+				  require(data.is_root()) == false;
+				  require(data.has_parent()) == true;
+				  require(data.has_children()) == true;
+				  require(data.has_siblings()) == false;
+				  require(data.parent()) == entities[0];
+				  require(data.children_count()) == 8;
+				  require(std::equal(
+					std::begin(data.children()), std::end(data.children()), std::next(std::begin(entities), 2)));
+			  }
+			  {
+				  for(auto i = 2; i < 10; ++i) {
+					  // all entities in the range [2..9] have a parent, no children, and 7 siblings (8 with themselves
+					  // included)
+					  auto& data = pack.template get<entity_relationship_data_t const>()[i];
+					  require(data.is_root()) == false;
+					  require(data.has_parent()) == true;
+					  require(data.has_children()) == false;
+					  require(data.has_siblings()) == true;
+					  require(data.parent()) == entities[1];
+					  require(data.children_count()) == 0;
+					  require(data.siblings_count()) == 7;
+					  require(std::equal(
+						std::begin(data.siblings()), std::end(data.siblings()), std::next(std::begin(entities), 2)));
+					  auto siblings_excluding_self = data.siblings_excluding_self();
+					  require(std::find(std::begin(siblings_excluding_self),
+										std::end(siblings_excluding_self),
+										entities[i]) == std::end(siblings_excluding_self));
+				  }
+			  }
+			  {
+				  // the remaining entities [10..19] have no parent, no children, and no siblings
+				  for(auto i = 10; i < 20; ++i) {
+					  auto& data = pack.template get<entity_relationship_data_t const>()[i];
+					  require(data.is_root()) == true;
+					  require(data.has_parent()) == false;
+					  require(data.has_children()) == false;
+					  require(data.has_siblings()) == false;
+					  require(data.children_count()) == 0;
+					  require(data.siblings_count()) == 0;
+				  }
+			  }
 		  });
 		state.tick(std::chrono::duration<float>(1.0f));
 	};

@@ -74,6 +74,88 @@ struct transient_system_tag_t {};
 
 constexpr transient_system_tag_t transient_system_tag {};
 
+class entity_relationship_data_t final {
+	friend class state_t;
+	entity_relationship_data_t(entity_t self) : m_Self(self) {}
+
+  public:
+	entity_relationship_data_t()  = default;
+	~entity_relationship_data_t() = default;
+
+	entity_t parent() const noexcept {
+		return m_Parent;
+	}
+
+	bool is_root() const noexcept {
+		return m_Parent == invalid_entity;
+	}
+
+	bool has_children() const noexcept {
+		return m_Children && !m_Children->empty();
+	}
+
+	bool has_siblings() const noexcept {
+		return m_Siblings && m_Siblings->size() > 1;
+	}
+
+	bool has_parent() const noexcept {
+		return m_Parent != invalid_entity;
+	}
+
+	size_t children_count() const noexcept {
+		if(m_Children) {
+			return m_Children->size();
+		}
+		return 0;
+	}
+
+	size_t siblings_count() const noexcept {
+		if(m_Siblings) {
+			return m_Siblings->size() - 1;
+		}
+		return 0;
+	}
+
+	psl::array_view<entity_t const> children() const noexcept {
+		if(m_Children) {
+			return psl::array_view<entity_t const>(m_Children->data(), m_Children->size());
+		}
+		return psl::array_view<entity_t const> {};
+	}
+
+	psl::array_view<entity_t const> siblings() const noexcept {
+		if(m_Siblings) {
+			return psl::array_view<entity_t const>(m_Siblings->data(), m_Siblings->size());
+		}
+		return psl::array_view<entity_t const> {(const entity_t*)&m_Self, ((const entity_t*)&m_Self) + 1};
+	}
+	[[nodiscard]] psl::array<entity_t> siblings_excluding_self() const noexcept {
+		if(m_Siblings) {
+			psl::array<entity_t> siblings_ {m_Siblings->begin(), m_Siblings->end()};
+			auto it = std::find(siblings_.begin(), siblings_.end(), m_Self);
+			if(it != siblings_.end()) {
+				// remove the self from the siblings
+				*it = siblings_.back();
+				siblings_.pop_back();
+			}
+			return siblings_;
+		}
+		return {};
+	}
+
+  private:
+	entity_t m_Parent {};
+	entity_t m_Self {};
+	std::shared_ptr<psl::array<entity_t>> m_Children {};
+	mutable std::shared_ptr<psl::array<entity_t>> m_Siblings {};
+};
+
+// todo(jdl): this should be fully locked down and only editable by the state_t
+template <>
+struct component_trait_mutability_t<entity_relationship_data_t> {
+	static constexpr component_mutability_behaviour_t mutability {component_mutability_behaviour_t::restricted};
+};
+
 class system_group_t final {
 	friend class state_t;
 	system_group_t(size_t id, psl::string_view debugName = "") : m_Id(id), m_DebugName(debugName) {}
@@ -131,6 +213,9 @@ class state_t final {
 		std::vector<component_mutability_behaviour_t> component_mutability {};
 		std::vector<size_t> component_versions {};
 
+		std::vector<entity_t::size_type> relationship_entities {};
+		std::vector<entity_t::size_type> relationship_parents {};
+
 		if constexpr(psl::serialization::details::IsEncoder<S>) {
 			size_t expected_total_datasize {0};
 			size_t expected_total_entities {0};
@@ -183,6 +268,20 @@ class state_t final {
 					data_offset += total_size;
 				}
 			}
+
+			{
+				auto relationship_indices = m_ParentRelationship.indices();
+				auto relationship_data	  = m_ParentRelationship.dense();
+
+				auto relationship_indices_it = relationship_indices.begin();
+				auto relationship_data_it	 = relationship_data.begin();
+
+				for(auto end = relationship_indices.end(); relationship_indices_it != end;
+					++relationship_indices_it, ++relationship_data_it) {
+					relationship_entities.emplace_back(*relationship_indices_it);
+					relationship_parents.emplace_back(relationship_data_it->parent.value());
+				}
+			}
 		}
 
 		serializer.template parse<"COMPONENTS">(component_names);
@@ -193,6 +292,8 @@ class state_t final {
 		serializer.template parse<"CSIZE">(component_sizes);
 		serializer.template parse<"CENTITIES">(component_entities);
 		serializer.template parse<"CDATA">(component_data);
+		serializer.template parse<"REL_ENTITIES">(relationship_entities);
+		serializer.template parse<"REL_PARENTS">(relationship_parents);
 
 
 		if constexpr(psl::serialization::details::IsDecoder<S>) {
@@ -230,6 +331,13 @@ class state_t final {
 				  std::next(std::begin(component_entities), entity_offset + component_sizes[i])};
 
 				add_component_impl(key, entities, (void*)(&*std::next(std::begin(component_data), data_offset)), false);
+
+				auto rel_ent_it = relationship_entities.begin();
+				auto rel_par_it = relationship_parents.begin();
+
+				for(auto end = relationship_entities.end(); rel_ent_it != end; ++rel_ent_it, ++rel_par_it) {
+					set_parent(details::make_entity(*rel_par_it), details::make_entity(*rel_ent_it));
+				}
 			}
 		}
 	}
@@ -477,13 +585,17 @@ class state_t final {
 	}
 
 	[[maybe_unused]] entity_t create() {
+		entity_t entity {};
 		if(m_Orphans.size() > 0) {
-			auto entity = m_Orphans.back();
+			entity = m_Orphans.back();
 			m_Orphans.pop_back();
-			return entity;
 		} else {
-			return m_Entities++;
+			entity = m_Entities++;
 		}
+
+		add_component<entity_relationship_data_t>(psl::array_view<entity_t> {&entity, 1},
+												  entity_relationship_data_t {entity});
+		return entity;
 	}
 
 	template <typename... Ts>
@@ -506,6 +618,8 @@ class state_t final {
 		if constexpr(sizeof...(Ts) > 0) {
 			(add_components<Ts>(entities), ...);
 		}
+		add_component<entity_relationship_data_t>(
+		  entities, [](entity_relationship_data_t& data, entity_t e) { data.m_Self = e; });
 		return entities;
 	}
 
@@ -528,6 +642,8 @@ class state_t final {
 
 		add_components(entities, std::forward<Ts>(prototype)...);
 
+		add_component<entity_relationship_data_t>(
+		  entities, [](entity_relationship_data_t& data, entity_t e) { data.m_Self = e; });
 		return entities;
 	}
 
@@ -1341,6 +1457,8 @@ class state_t final {
 		}
 		return system_id;
 	}
+
+	void update_relationship_components();
 
 	::memory::raw_region m_Cache {1024 * 1024 * 256};
 	psl::array<psl::unique_ptr<info_t>> info_buffer {};

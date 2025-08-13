@@ -55,11 +55,11 @@ By default all argument types you pass to an `ecs::pack` are filtering instructi
 
 **except:** requires the component to be **non**-existent on the entity.
 
-**on_add:** only fills in data when this component was added to the entity since the last tick.
+**on_add:** only fills in data when this component was added to the entity since the last tick. This filtering operation also supports the `preseed_tag` (see examples).
 
 **on_remove:** reverse scenario of on_add
 
-**on_combine:** fills in data when this combination is first created. I.e. if you were filtering `on_combine<transform, renderable>`, then on any  entity with a transform component, when a renderable component gets added, then the pack will be filled in with data of that entity. The reverse is true as well, for any entity with a renderable component, when you add a transform component to it, this filter will trigger.
+**on_combine:** fills in data when this combination is first created. I.e. if you were filtering `on_combine<transform, renderable>`, then on any  entity with a transform component, when a renderable component gets added, then the pack will be filled in with data of that entity. The reverse is true as well, for any entity with a renderable component, when you add a transform component to it, this filter will trigger. This filtering operation also supports the `preseed_tag` (see examples).
 
 **on_break:** same like on_combine, but the reverse situation (i.e. when an entity that has this component combination, and you remove one, then this filter will trigger).
 
@@ -220,6 +220,78 @@ void system(psl::ecs::info& info, psl::ecs::pack<const audio_t, psl::ecs::on_mut
 
 ```
 
+### Hierarchy / Entity Relations
+
+Entities can have relations to other entities. This is useful for creating parent-child relationships, such as a transform hierarchy in a 3D scene graph. These relations can be filtered on, or queried from the `ecs::state_t` directly. Do note that relations have no direct impact on the component data, this is something the user will need to handle. For example if you wished to have a parent-child relationship between transforms, you would need to filter on the `transform` component and then query the relations to find the parent-child relationships, make (ideally) a new transform-like component that would represent the world transform of the entity, and then update that component based on the parent-child relationship (and changes). An example of this is present, see `core::ecs::components::local_transform_t` & `core::ecs::components::world_transform_t`. The key part of this is that the local transform is mutable, but the world transform is not, and is updated based on the local transforms of the parent entities.
+
+Filtering based on relation changes can be done through the `on_hierarchy_change<hierarchy_change_event>` where the `hierarchy_change_event` is one of the following:
+- `child_added`: when the given entity became the parent of atleast one new entity.
+- `child_removed`: when the given entity lost a child entity.
+- `reparented`: when the given entity's parent has changed, which includes being parented for the first time or to _nothing_ (if it had a parent originally).
+- `child_changed`: meta event based on any child related changes.
+- `any`: meta event that triggers on any observed hierarchy change.
+
+Additionally you can add the `preseed_tag` as the second argument to `on_hierarchy_change`. It will then also include entities that satisfy the filtering instruction but were not changed since the last tick. The only exception to this is the `child_removed` filter as there's no way to know.
+
+Entity relations can be filtered using `get_relationship<entity_relationship>` where the `entity_relationship` indicates the type of data you wish to filter on, this can be one of the following:
+- `self`: include the entity itself in the pack (elsewise it will be excluded).
+- `direct_children`: only the direct children of the entity will be returned.
+- `all_children`: all children of the entity, including indirect children, will be returned.
+- `direct_parent`: only the direct parent of the entity will be returned.
+- `all_parents`: all parents of the entity, including indirect parents, will be returned.
+- `siblings`: only the siblings of the entity will be returned.
+
+Both of these are flag-type enum values, so you can mix and match them as you see fit.
+
+Lastly you can get the entity's specific relationship data by filtering on `const entity_relationship_data_t` in your pack. This is an immutable component managed by the state where you can get parent, children, and sibling relationships of the current entity.
+
+As a-not-so-short example consider the following:
+```cpp
+pack<
+    entity_t, 
+    const local_position,
+    world_position,
+    const entity_relationship_data_t,
+    on_hierarchy_change<hierarchy_change_event::child_added>,
+    get_relationship<entity_relationship::self | entity_relationship::all_children>>
+        example_pack;
+
+// we use this as an early-out to avoid processing the same entity multiple times
+std::unordered_set<entity_t> already_parsed_entities {};
+
+auto calculate_new_wpos_helper = [&example_pack, &already_parsed_entities](
+        entity_t entity,
+        local_position const& local_pos,
+        world_position& world_pos,
+        entity_relationship_data_t const& relationship,
+        auto& fn) {
+
+    if (already_parsed_entities.contains(entity)) return;
+
+    if(relationship.has_parent()) {
+        auto parent = relationship.parent();
+        fn( parent,
+            example_pack.template get<const local_position>(parent),
+            example_pack.template get<world_position>(),
+            example_pack.template get<entity_relationship_data_t const>(),
+            fn);
+
+        auto parent_world_pos = example_pack.template get<world_position>(parent);
+
+        world_pos = parent_world_pos + local_pos;
+    } else {
+        world_pos = local_pos; // no parent, so world position is just the local position
+    }
+
+    already_parsed_entities.insert(entity);
+}
+
+for (auto [entity, local_pos, world_pos, _relations] : example_pack) {
+    calculate_new_wpos_helper(entity, local_pos, world_pos, calculate_new_wpos_helper);
+}
+```
+
+
 ## Packs
 The `ecs::pack<>` type is both a view into the component data, as well as a set of filtering instructions of what requirements the entities are supposed to have. This might seem like an odd combination, but simplifies systems, as well as makes clear the constraints of the data a variable will be working with.
 
@@ -344,6 +416,24 @@ auto attractor_system =
 { /* change velocity based on attractor force & distance */ };
 
 state.declare(psl::ecs::threading::par, attractor_system );
+```
+
+Preseeding example. Sometimes you want to run a system that reacts to the addition of a component, but also want it to run on all entities that already satisfy the filtering instruction. For this you can use the `preseed_tag`. Note that this tag is also available for the `on_combine` operation.
+
+```cpp
+state.create<some_component>(100);
+state.tick(std::chrono::duration<float>(1.0f));
+
+// normally as the system has been declared after the tick where the components were added,
+// this system would never know about the pre-existing components. 
+// But by using the `preseed_tag`, the next tick we will also get the 100 pre-existing components (one time).
+state.declare(
+    [](psl::ecs::info& info, 
+       pack<whole, some_component, on_add<preseed_tag, some_component>> registrations)
+    { /* do things */ };
+);
+
+state.tick(std::chrono::duration<float>(1.0f));
 ```
 
 ### serialization

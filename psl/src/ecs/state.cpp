@@ -21,6 +21,7 @@ state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_enti
 	m_StateUniqueKey = ++generation;
 #endif
 	m_ModifiedEntities.reserve(65536);
+	create_storage<entity_relationship_data_t>();
 }
 
 state_t::~state_t() = default;
@@ -212,6 +213,59 @@ psl::array<details::component_container_t*> state_t::apply_mutations() {
 	return mutated_components;
 }
 
+void state_t::update_relationship_components() {
+	auto modified_hierarchy_entities =
+	  psl::array<entity_t> {(entity_t*)m_ModifiedHierarchy.indices().data(),
+							(entity_t*)m_ModifiedHierarchy.indices().data() + m_ModifiedHierarchy.indices().size()};
+
+	// we might be better off doing this in the filter loop instead.
+	auto hierarchyCInfo = get_component_typed_info<entity_relationship_data_t>();
+	auto update_event_component_data =
+	  [this, &hierarchyCInfo](entity_t e, entity_relationship_data_t& data, hierarchy_change_event event) {
+		  if((event & hierarchy_change_event::child_changed) != hierarchy_change_event::none) {
+			  data.m_Children = std::make_shared<psl::array<entity_t>>(get_direct_children(e));
+
+			  // Notify my direct children of the changes to their siblings.
+			  for(auto child : *data.m_Children) {
+				  if(auto dataPtr = static_cast<entity_relationship_data_t*>(
+					   hierarchyCInfo->get_if(child, details::stage_range_t::ALL));
+					 dataPtr) {
+					  dataPtr->m_Siblings = data.m_Children;
+				  } else {
+					  entity_relationship_data_t data {};
+					  data.m_Siblings = data.m_Children;
+					  data.m_Parent	  = e;
+					  hierarchyCInfo->add(child, &data);
+				  }
+			  }
+		  }
+		  if((event & hierarchy_change_event::reparented) != hierarchy_change_event::none) {
+			  data.m_Parent = get_parent(e);
+			  // only need to handle this when we unparent an entity, the other scenario will be handled
+			  // by the parent updating itself.
+			  if(data.m_Parent == invalid_entity) {
+				  data.m_Siblings->clear();
+			  }
+		  }
+	  };
+
+	auto modified_hierarchy_data = m_ModifiedHierarchy.dense();
+	auto event_it				 = std::begin(modified_hierarchy_data);
+	for(auto ent_it = std::begin(modified_hierarchy_entities); ent_it != std::end(modified_hierarchy_entities);
+		++ent_it, ++event_it) {
+		auto e = *ent_it;
+		if(auto dataPtr =
+			 static_cast<entity_relationship_data_t*>(hierarchyCInfo->get_if(e, details::stage_range_t::ALL));
+		   dataPtr) {
+			update_event_component_data(e, *dataPtr, *event_it);
+		} else {
+			entity_relationship_data_t data {};
+			update_event_component_data(e, data, *event_it);
+			hierarchyCInfo->add(e, &data);
+		}
+	}
+}
+
 void state_t::tick(std::chrono::duration<float> dTime) {
 	tick(dTime, psl::array_view<system_group_t> {});
 }
@@ -220,6 +274,9 @@ void state_t::tick(std::chrono::duration<float> dTime, system_group_t group) {
 }
 void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_group_t> groups) {
 	m_LockState = 1;
+
+	update_relationship_components();
+
 	// remove filters that are no longer in use
 	m_Filters.erase(std::remove_if(begin(m_Filters),
 								   end(m_Filters),
@@ -236,6 +293,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	std::sort(std::begin(modified_hierarchy_entities), std::end(modified_hierarchy_entities));
 
 	psl::array<details::component_container_t*> mutated_components = apply_mutations();
+
 
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
@@ -1134,32 +1192,34 @@ void state_t::execute_command_buffer(info_t& info) {
 
 bool state_t::has_parent(entity_t target) const noexcept {
 	psl_assert(target != invalid_entity, "cannot check if an invalid entity has a parent");
-	return m_ParentRelationship.at(details::get_value(target)).parent != invalid_entity;
+	auto entry = m_ParentRelationship.try_get(details::get_value(target));
+	return entry && entry->parent != invalid_entity;
 }
 
 bool state_t::has_siblings(entity_t target) const noexcept {
 	psl_assert(target != invalid_entity, "cannot check if an invalid entity has siblings");
-	auto& entry = m_ParentRelationship.at(details::get_value(target));
-	return entry.next_sibling != target || entry.next_sibling != invalid_entity;
+	auto entry = m_ParentRelationship.try_get(details::get_value(target));
+	return entry && (entry->next_sibling != target || entry->next_sibling != invalid_entity);
 }
 
 bool state_t::has_children(entity_t target) const noexcept {
 	psl_assert(target != invalid_entity, "cannot check if an invalid entity is a parent");
-	return m_ParentRelationship.at(details::get_value(target)).first_child != invalid_entity;
+	auto entry = m_ParentRelationship.try_get(details::get_value(target));
+	return entry && entry->first_child != invalid_entity;
 }
 
 bool state_t::is_child_of(entity_t parent, entity_t child) const noexcept {
 	psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
 	psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
-	auto& entry = m_ParentRelationship.at(details::get_value(child));
-	return entry.parent == parent;
+	auto entry = m_ParentRelationship.try_get(details::get_value(child));
+	return entry && entry->parent == parent;
 }
 
 bool state_t::is_parent_of(entity_t parent, entity_t child) const noexcept {
 	psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
 	psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
-	auto& entry	 = m_ParentRelationship.at(details::get_value(parent));
-	auto current = entry.first_child;
+	auto entry	 = m_ParentRelationship.try_get(details::get_value(parent));
+	auto current = entry ? entry->first_child : invalid_entity;
 	if(current == invalid_entity) {
 		return false;
 	}
@@ -1168,16 +1228,17 @@ bool state_t::is_parent_of(entity_t parent, entity_t child) const noexcept {
 			return true;
 		}
 		current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
-	} while(current != invalid_entity && current != entry.first_child);
+	} while(current != invalid_entity && current != entry->first_child);
 	return false;
 }
 
 bool state_t::is_sibling(entity_t first, entity_t second) const noexcept {
 	psl_assert(first != invalid_entity, "cannot check if an invalid entity is a sibling");
 	psl_assert(second != invalid_entity, "cannot check if an invalid entity is a sibling");
-	auto& first_entry  = m_ParentRelationship.at(details::get_value(first));
-	auto& second_entry = m_ParentRelationship.at(details::get_value(second));
-	return first_entry.parent == second_entry.parent && first_entry.parent != invalid_entity;
+	auto first_entry  = m_ParentRelationship.try_get(details::get_value(first));
+	auto second_entry = m_ParentRelationship.try_get(details::get_value(second));
+	return first_entry && second_entry && first_entry->parent == second_entry->parent &&
+		   first_entry->parent != invalid_entity;
 }
 
 bool state_t::is_indirect_parent_of(entity_t parent, entity_t child) const noexcept {
@@ -1192,16 +1253,17 @@ bool state_t::is_indirect_parent_of(entity_t parent, entity_t child) const noexc
 
 bool state_t::is_root(entity_t target) const noexcept {
 	psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
-	auto& entry = m_ParentRelationship.at(details::get_value(target));
-	return entry.parent == invalid_entity;
+	auto entry = m_ParentRelationship.try_get(details::get_value(target));
+	return !entry || entry->parent == invalid_entity;
 }
 
 entity_t state_t::get_root(entity_t target) const noexcept {
 	psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
 	auto previous = target;
 	while(target != invalid_entity) {
-		previous = target;
-		target	 = m_ParentRelationship.at(details::get_value(target)).parent;
+		previous   = target;
+		auto entry = m_ParentRelationship.try_get(details::get_value(target));
+		target	   = entry ? entry->parent : invalid_entity;
 	}
 	return previous;
 }
@@ -1282,12 +1344,12 @@ void state_t::unparent(entity_t target) {
 
 psl::array<entity_t> state_t::get_children(entity_t parent, bool direct_only) const noexcept {
 	psl::array<entity_t> result {};
-	auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
-	if(parent_entry.first_child == invalid_entity) {
+	auto parent_entry = m_ParentRelationship.try_get(details::get_value(parent));
+	if(!parent_entry || parent_entry->first_child == invalid_entity) {
 		return result;	  // no children
 	}
-	result.reserve(parent_entry.children);
-	auto const first = parent_entry.first_child;
+	result.reserve(parent_entry->children);
+	auto const first = parent_entry->first_child;
 	auto current	 = first;
 	do {
 		result.emplace_back(current);
@@ -1316,28 +1378,30 @@ psl::array<entity_t> state_t::get_all_parents(entity_t child) const noexcept {
 	psl::array<entity_t> result {};
 	auto current = child;
 	while(current != invalid_entity) {
-		auto& entry = m_ParentRelationship.at(details::get_value(current));
-		if(entry.parent == invalid_entity) {
+		auto entry = m_ParentRelationship.try_get(details::get_value(current));
+		if(!entry || entry->parent == invalid_entity) {
 			break;	  // no parent
 		}
-		result.emplace_back(entry.parent);
-		current = entry.parent;
+		result.emplace_back(entry->parent);
+		current = entry->parent;
 	}
 	return result;
 }
 
 entity_t state_t::get_parent(entity_t child) const noexcept {
-	auto& entry = m_ParentRelationship.at(details::get_value(child));
-	return entry.parent;
+	auto entry = m_ParentRelationship.try_get(details::get_value(child));
+	return entry ? entry->parent : invalid_entity;
 }
 
 psl::array<entity_t> state_t::get_siblings(entity_t target) const noexcept {
 	psl_assert(target != invalid_entity, "cannot get siblings of an invalid entity");
-	auto current = m_ParentRelationship.at(details::get_value(target)).next_sibling;
+	auto entry	 = m_ParentRelationship.try_get(details::get_value(target));
+	auto current = entry ? entry->next_sibling : invalid_entity;
 	psl::array<entity_t> result {};
 	while(current != invalid_entity && current != target) {
 		result.push_back(current);
-		current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
+		entry	= m_ParentRelationship.try_get(details::get_value(current));
+		current = entry ? entry->next_sibling : invalid_entity;
 	}
 	return result;
 }
@@ -1374,5 +1438,6 @@ void state_t::clear(bool release_memory) noexcept {
 	m_SystemGroups.clear();
 	m_SystemGroupIndices.clear();
 	m_SystemGroups.emplace(0, psl::array<details::system_token> {});
+	create_storage<entity_relationship_data_t>();
 	++m_ComponentGeneration;
 }
