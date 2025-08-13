@@ -89,6 +89,11 @@ struct extract_physical {
 	using type = std::tuple<T>;
 };
 
+template <IsEntityFilteringOp T>
+struct extract_physical<T> {
+	using type = std::tuple<>;
+};
+
 template <typename Pred, typename... Ts>
 struct extract_physical<on_condition<Pred, Ts...>> {
 	using type = std::tuple<>;
@@ -135,11 +140,6 @@ struct extract_physical<on_mutate<T>> {
 	using type = std::tuple<const details::mutate_instruction_t<T>>;
 };
 
-template <hierarchy_change_event Change, entity_relationship Relationship>
-struct extract_physical<on_hierarchy_change<Change, Relationship>> {
-	using type = std::tuple<>;
-};
-
 template <typename T>
 struct extract_combine {
 	using type = std::tuple<>;
@@ -163,6 +163,11 @@ struct extract_break<on_break<Ts...>> {
 template <typename T>
 struct decode_type {
 	using type = std::tuple<T>;
+};
+
+template <IsEntityFilteringOp T>
+struct decode_type<T> {
+	using type = std::tuple<>;
 };
 
 template <typename... Ts>
@@ -210,11 +215,6 @@ struct decode_type<on_condition<Pred, Ts...>> {
 template <typename T>
 struct decode_type<on_mutate<T>> {
 	using type = std::tuple<const details::mutate_instruction_t<T>>;
-};
-
-template <hierarchy_change_event Change, entity_relationship Relationship>
-struct decode_type<on_hierarchy_change<Change, Relationship>> {
-	using type = std::tuple<>;
 };
 
 template <typename... Ts>

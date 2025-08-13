@@ -442,6 +442,21 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
   []<typename type, typename policy, typename access>() {
 	  state_t state;
 
+	  section<"transient_systems">() = [&]() {
+		  // transient systems are only executed once and removed after the tick is done.
+		  bool has_triggered {false};
+		  state.declare(transient_system_tag,
+						[&has_triggered](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<entity_t> pack) {
+							require(pack.size()) == 0;			// no entities should be present in this pack
+							require(has_triggered) == false;	// this should not have been triggered yet
+							has_triggered =
+							  true;	   // we set this to true to indicate that the system has been triggered
+						});
+		  state.tick(std::chrono::duration<float>(1.0f));
+		  require(has_triggered) == true;	 // after the tick, the system should have been triggered
+		  state.tick(std::chrono::duration<float>(1.0f));
+	  };
+
 	  section<"lifetime test">() = [&]() {
 		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
 		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
@@ -974,10 +989,10 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 	state.tick(std::chrono::duration<float>(1.0f));
 };
 
-auto t14 = suite<"ecs entity relations state api", "ecs", "psl">() = []() {
+auto t14 = suite<"entity_relations", "ecs", "psl", "new_tests">() = []() {
 	psl::ecs::state_t state {};
 
-	section<"state_t api">() = [&]() {
+	section<"state_t">() = [&]() {
 		auto entities = state.create(static_cast<entity_t::size_type>(10));
 		psl::array<entity_t> children {std::next(entities.begin()), entities.end()};
 		state.set_parent(entities[0], children);
@@ -1047,14 +1062,242 @@ auto t14 = suite<"ecs entity relations state api", "ecs", "psl">() = []() {
 		state.set_parent(entities[1],
 						 psl::array_view<entity_t> {std::next(entities.begin(), 2), std::next(entities.begin(), 10)});
 
+		// Layer 1 and 2 satisy this query (they are the ones that got reparented), but as we additionally filter for
+		// self we get layer 2 as well in addition to layer 0 and 1 (direct_parent of layer 2 is layer 1, and layer 1
+		// is / layer 0)
 		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<
+			  entity_t,
+			  const position,
+			  psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+			  psl::ecs::get_relationship<entity_relationship::direct_parent | entity_relationship::self>> pack) {
+			  require(pack.size()) == 10;
+
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::begin(entities)));
+		  });
+
+		// Layer 1 and 2 satisfies this query, and their direct parents would be layer 0 and 1 respectively
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// The only ones satisfying this query are layer 0 & 1, and their children would be layer 1 & 2
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added>,
+										   psl::ecs::get_relationship<entity_relationship::direct_children>> pack) {
+			  require(pack.size()) == 9;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::next(std::begin(entities), 1)));
+		  });
+
+		// the last layer is the only ones who have siblings, but the parents are the ones that will have a
+		// child_changed event
+		state.declare(
+		  transient_system_tag,
+		  [](psl::ecs::info_t& info,
+			 psl::ecs::pack_indirect_full_t<
+			   entity_t,
+			   const position,
+			   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_changed>,
+			   psl::ecs::get_relationship<entity_relationship::siblings>> pack) { require(pack.size()) == 0; });
+
+		// as only the last layer that got reparented has siblings, we expect only those 8 entities to be present
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::siblings>> pack) {
+			  require(pack.size()) == 8;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::next(std::begin(entities), 2)));
+		  });
+
+		state.tick(std::chrono::duration<float>(1.0f));
+
+		// with preseed_tag we will now filter for all those _with_ children and return ourselves.
+		// in our current case that is layer 0 & 1
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::self>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// same as preceeding, but instead we get the direct parents. this results in only layer 0 getting returned
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 1;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+		  });
+
+		// like the above test, but with additionally self filtering, so we get layer 0 and layer 1
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<
+			  entity_t,
+			  const position,
+			  psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+			  psl::ecs::get_relationship<entity_relationship::direct_parent | entity_relationship::self>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// catches all (except floating root entities) in the current setup
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<
+			  entity_t,
+			  const position,
+			  psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+			  psl::ecs::get_relationship<entity_relationship::all_children | entity_relationship::self>> pack) {
+			  require(pack.size()) == 10;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::begin(entities)));
+		  });
+
+		// similar to the child_added test earlier, but from the perspective of reparenting
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// no-preseed_tag version of the preceeding test as a sanity check
+		state.declare(
+		  transient_system_tag,
 		  [](psl::ecs::info_t& info,
 			 psl::ecs::pack_indirect_full_t<entity_t,
 											const position,
-											psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented,
-																		  psl::ecs::entity_relationship::direct_parent>>
-			   pack) { require(pack.size()) == 10; });
+											psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+											psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 0;
+		  });
+		state.tick(std::chrono::duration<float>(1.0f));
 
+		// from here on out we have 2 trees;
+		// 0 -> 1 -> [3..9] and 10 -> 2
+		// that means 11 entities have relations, and 9 are orphans
+		state.set_parent(entities[10], entities[2]);
+
+		// get all siblings, this results in [3..9] being returned due to the preseed_tag
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::siblings>> pack) {
+			  require(pack.size()) == 7;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::next(std::begin(entities), 3)));
+		  });
+
+		// same as previous but without preseed_tag results in 0 siblings
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::siblings>> pack) {
+			  require(pack.size()) == 0;
+		  });
+
+		// without the preseed_tag the only one who had a reparenting event was entity 2, and as we get its parent
+		// we get entity 10 back
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 1;
+			  require(pack.template get<entity_t>()[0]) == entities[10];
+		  });
+
+		// all entities w/ preseed_tag who have a child, results in entities 0, 1, and 10
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::self>> pack) {
+			  require(pack.size()) == 3;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+			  require(pack.template get<entity_t>()[2]) == entities[10];
+		  });
+
+		// all direct parents w/ preseed_tag results in the same result as the previous filter test
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 3;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+			  require(pack.template get<entity_t>()[2]) == entities[10];
+		  });
 		state.tick(std::chrono::duration<float>(1.0f));
 	};
 };

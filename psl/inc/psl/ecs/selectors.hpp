@@ -104,24 +104,26 @@ struct on_mutate {};
 
 enum class entity_relationship : std::uint8_t {
 	none			= 0 << 0,	 // not useful for users as this would yield a pack with no entities
-	direct_children = 1 << 0,
-	direct_parent	= 1 << 1,
-	siblings		= 1 << 2,
-	all_parents		= 1 << 3,
-	all_children	= 1 << 4,
+	self			= 1 << 0,
+	direct_children = 1 << 1,
+	direct_parent	= 1 << 2,
+	siblings		= 1 << 3,
+	all_parents		= 1 << 4,
+	all_children	= 1 << 5,
 	all_relatives	= all_parents | all_children | siblings,	// all relatives of the entity
-	any				= 1 << 5,									// any relationship, this is the equivalent of a
-																// pack with all entities in it
+	all_direct_relatives =
+	  direct_parent | direct_children | siblings,	 // all relatives of the entity that are directly connected to it
+	any = 1 << 6,									 // any relationship, this is the equivalent of a
+													 // pack with all entities in it
 };
 
 enum class hierarchy_change_event : std::uint8_t {
-	none				  = 0 << 0,	   // not useful for users, but useful for internal operations
-	child_added			  = 1 << 0,
-	child_removed		  = 1 << 1,
-	reparented			  = 1 << 2,
-	indirectly_reparented = reparented | 1 << 3,
-	child_changed		  = child_added | child_removed,
-	any					  = child_added | child_removed | indirectly_reparented | reparented | child_changed,
+	none		  = 0 << 0,	   // not useful for users, but useful for internal operations
+	child_added	  = 1 << 0,
+	child_removed = 1 << 1,
+	reparented	  = 1 << 2,
+	child_changed = child_added | child_removed,
+	any			  = child_added | child_removed | reparented | child_changed,
 };
 
 /// \brief tag that allows you to filter based on hierarchy changes
@@ -132,8 +134,13 @@ enum class hierarchy_change_event : std::uint8_t {
 /// had their hierarchy changed as well as their new parent in the pack. This can be useful if the entity has
 /// a component that needs to recalculate its data based on the new parent.
 /// \note this is not a component filtering operation, but an entity filtering operation.
-template <hierarchy_change_event Change, entity_relationship Relationship = entity_relationship::none>
+template <hierarchy_change_event Change, typename T = void>
+	requires(std::is_void_v<T> || std::is_same_v<T, preseed_tag>)
 struct on_hierarchy_change {};
+
+
+template <entity_relationship Relationship>
+struct get_relationship {};
 
 namespace details {
 	template <typename T>
@@ -169,8 +176,11 @@ namespace details {
 	template <typename T>
 	struct is_entity_filtering_op_t : std::false_type {};
 
-	template <hierarchy_change_event Change, entity_relationship T>
+	template <hierarchy_change_event Change, typename T>
 	struct is_entity_filtering_op_t<on_hierarchy_change<Change, T>> : std::true_type {};
+
+	template <entity_relationship Relationship>
+	struct is_entity_filtering_op_t<get_relationship<Relationship>> : std::true_type {};
 }	 // namespace details
 
 template <typename T>

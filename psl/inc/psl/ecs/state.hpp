@@ -70,6 +70,10 @@ struct converter<psl::ecs::entity_t> {
 namespace psl::ecs {
 class state_t;
 
+struct transient_system_tag_t {};
+
+constexpr transient_system_tag_t transient_system_tag {};
+
 class system_group_t final {
 	friend class state_t;
 	system_group_t(size_t id, psl::string_view debugName = "") : m_Id(id), m_DebugName(debugName) {}
@@ -246,15 +250,18 @@ class state_t final {
 					  psl::array<transform_result> transformations = {})
 			: entities(entities), group(group), transformations(transformations) {}
 		filter_result(filter_result const& rhs)
-			: entities(rhs.entities), group(rhs.group), transformations(rhs.transformations) {}
+			: entities(rhs.entities), direct_entities(rhs.direct_entities), group(rhs.group),
+			  transformations(rhs.transformations) {}
 		filter_result(filter_result&& rhs) noexcept
-			: entities(std::move(rhs.entities)), group(rhs.group), transformations(std::move(rhs.transformations)) {}
+			: entities(std::move(rhs.entities)), direct_entities(std::move(rhs.direct_entities)), group(rhs.group),
+			  transformations(std::move(rhs.transformations)) {}
 		filter_result& operator=(filter_result const& rhs) {
 			if(this == &rhs) {
 				return *this;
 			}
 
 			entities		= rhs.entities;
+			direct_entities = rhs.direct_entities;
 			group			= rhs.group;
 			transformations = rhs.transformations;
 			return *this;
@@ -264,17 +271,19 @@ class state_t final {
 				return *this;
 			}
 			entities		= std::move(rhs.entities);
+			direct_entities = std::move(rhs.direct_entities);
 			group			= std::move(rhs.group);
 			transformations = std::move(rhs.transformations);
 			return *this;
 		}
-		bool operator==(const filter_result& other) const noexcept {
-			return group == other.group;
-		}
-		bool operator==(const details::filter_group& other) const noexcept {
-			return *group == other;
-		}
+
 		psl::array<entity_t> entities;
+		std::optional<psl::array<entity_t>>
+		  direct_entities;	  // activated when the grouping has relationship filtering
+		// this way the entities contain _all_ entities opaquely for the systems (and system preparation), but for the
+		// filtering we can be sure that we're not going to get frame drift (f.e. when the parent is added, the next
+		// frame the .entities will now believe the parent is a valid source entry, and so their parents will now be
+		// added.
 		std::shared_ptr<details::filter_group> group;
 
 		// all transformations that will depend on this result
@@ -555,23 +564,29 @@ class state_t final {
 			return *data.group == filter_group[0];
 		});
 
-		if(it != std::end(m_Filters)) {
-			auto modified = psl::array<entity_t> {(entity_t*)m_ModifiedEntities.indices().data(),
-												  (entity_t*)m_ModifiedEntities.indices().data() +
-													m_ModifiedEntities.indices().size()};
-			std::sort((entity_t::size_type*)modified.data(), (entity_t::size_type*)(modified.data() + modified.size()));
+		filter_result data {};
 
-			filter_result data {it->entities, it->group};
-			filter(data, modified);
-			return data.entities;
+		if(it == std::end(m_Filters)) {
+			data.group = std::make_shared<details::filter_group>(filter_group[0]);
+			initialize_filter(data);
+		} else {
+			data.entities = it->entities;
+			data.group	  = it->group;
 		}
-		// run on all entities, as no pre-existing filtering group could be found
-		// todo: look into best fit filtering groups to seed this with
-		else {
-			filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
-			filter(data, get_source_for(data));
-			return data.entities;
+
+		psl::array<entity_t> modified {};
+		if(data.group->hierarchy_change == hierarchy_change_event::none) {
+			modified = psl::array<entity_t> {(entity_t*)m_ModifiedEntities.indices().data(),
+											 (entity_t*)m_ModifiedEntities.indices().data() +
+											   m_ModifiedEntities.indices().size()};
+		} else {
+			modified = psl::array<entity_t> {(entity_t*)m_ModifiedHierarchy.indices().data(),
+											 (entity_t*)m_ModifiedHierarchy.indices().data() +
+											   m_ModifiedHierarchy.indices().size()};
 		}
+		std::sort(std::begin(modified), std::end(modified));
+		filter(data, modified);
+		return data.entities;
 	}
 
 	template <typename... Ts>
@@ -697,224 +712,27 @@ class state_t final {
 		requires(details::IsRangeType<T>)
 	void set_parent(entity_t parent, T const& children) noexcept {
 		for(auto child : children) {
-			set_parent(parent, child);
+			state_t::set_parent(parent, child);
 		}
 	}
 
-	bool has_parent(entity_t target) const noexcept {
-		psl_assert(target != invalid_entity, "cannot check if an invalid entity has a parent");
-		return m_ParentRelationship.at(details::get_value(target)).parent != invalid_entity;
-	}
-
-	bool has_siblings(entity_t target) const noexcept {
-		psl_assert(target != invalid_entity, "cannot check if an invalid entity has siblings");
-		auto& entry = m_ParentRelationship.at(details::get_value(target));
-		return entry.next_sibling != target || entry.next_sibling != invalid_entity;
-	}
-
-	bool has_children(entity_t target) const noexcept {
-		psl_assert(target != invalid_entity, "cannot check if an invalid entity is a parent");
-		return m_ParentRelationship.at(details::get_value(target)).first_child != invalid_entity;
-	}
-
-	bool is_child_of(entity_t parent, entity_t child) const noexcept {
-		psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
-		psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
-		auto& entry = m_ParentRelationship.at(details::get_value(child));
-		return entry.parent == parent;
-	}
-
-	bool is_parent_of(entity_t parent, entity_t child) const noexcept {
-		psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
-		psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
-		auto& entry	 = m_ParentRelationship.at(details::get_value(parent));
-		auto current = entry.first_child;
-		if(current == invalid_entity) {
-			return false;
-		}
-		do {
-			if(current == child) {
-				return true;
-			}
-			current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
-		} while(current != invalid_entity && current != entry.first_child);
-		return false;
-	}
-
-	bool is_sibling(entity_t first, entity_t second) const noexcept {
-		psl_assert(first != invalid_entity, "cannot check if an invalid entity is a sibling");
-		psl_assert(second != invalid_entity, "cannot check if an invalid entity is a sibling");
-		auto& first_entry  = m_ParentRelationship.at(details::get_value(first));
-		auto& second_entry = m_ParentRelationship.at(details::get_value(second));
-		return first_entry.parent == second_entry.parent && first_entry.parent != invalid_entity;
-	}
-
-	bool is_indirect_parent_of(entity_t parent, entity_t child) const noexcept {
-		psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
-		psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
-		auto entry = m_ParentRelationship.at(details::get_value(child));
-		while(entry.parent != invalid_entity && entry.parent != parent) {
-			entry = m_ParentRelationship.at(details::get_value(entry.parent));
-		}
-		return entry.parent == parent;
-	}
-
-	bool is_root(entity_t target) const noexcept {
-		psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
-		auto& entry = m_ParentRelationship.at(details::get_value(target));
-		return entry.parent == invalid_entity;
-	}
-
-	entity_t get_root(entity_t target) const noexcept {
-		psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
-		auto previous = target;
-		while(target != invalid_entity) {
-			previous = target;
-			target	 = m_ParentRelationship.at(details::get_value(target)).parent;
-		}
-		return previous;
-	}
-
-	void set_parent(entity_t parent, entity_t child) noexcept {
-		psl_assert(parent != child, "cannot set a parent to itself, this would create a cycle in the hierarchy");
-		psl_assert(child != invalid_entity, "cannot set the child to an invalid value");
-		auto& child_entry = m_ParentRelationship.at(details::get_value(child));
-		if(child_entry.parent == parent) {
-			return;	   // already set
-		}
-
-		// first we update the existing child's parent entry if it is present and then the siblings
-		// erasing the current child entity from their entries.
-		if(child_entry.parent != invalid_entity) {
-			auto& parent_entry = m_ParentRelationship.at(details::get_value(child_entry.parent));
-			parent_entry.children--;
-			m_ModifiedHierarchy[details::get_value(child_entry.parent)] |= hierarchy_change_event::child_removed;
-			if(parent_entry.first_child == child) {
-				parent_entry.first_child = child_entry.next_sibling;
-			}
-		}
-
-		if(child_entry.next_sibling != invalid_entity) {
-			auto& next_sibling_entry = m_ParentRelationship.at(details::get_value(child_entry.next_sibling));
-			next_sibling_entry.prev_sibling =
-			  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.prev_sibling;
-		}
-		if(child_entry.prev_sibling != invalid_entity) {
-			auto& prev_sibling_entry = m_ParentRelationship.at(details::get_value(child_entry.prev_sibling));
-			prev_sibling_entry.next_sibling =
-			  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.next_sibling;
-		}
-
-
-		// update the child and its dependents to the new parent
-		{
-			child_entry.parent = parent;
-
-			// reset the siblings value, if the child gets a new parent these will be filled in again
-			// later in the scope
-			child_entry.next_sibling = invalid_entity;
-			child_entry.prev_sibling = invalid_entity;
-
-			m_ModifiedHierarchy[details::get_value(child)] |= hierarchy_change_event::reparented;
-			auto children = get_all_children(child);
-			for(auto c : children) {
-				m_ModifiedHierarchy[details::get_value(c)] |= hierarchy_change_event::indirectly_reparented;
-			}
-		}
-
-		if(parent == invalid_entity) {
-			return;	   // no parent, so we don't need to do anything else
-		}
-		auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
-		parent_entry.children++;
-		m_ModifiedHierarchy[details::get_value(parent)] |= hierarchy_change_event::child_added;
-		// if the parent had no children, then we can simply set the current child as the first child.
-		// otherwise we need to fetch the first child, update its prev_sibling value and set that to the
-		// newly added child.
-		// additionally we fetch the last child and set the next_sibling of the last child to the newly added child.
-		if(parent_entry.first_child == invalid_entity) {
-			parent_entry.first_child = child;
-		} else {
-			auto& parent_first_child_entry = m_ParentRelationship.at(details::get_value(parent_entry.first_child));
-			if(parent_first_child_entry.prev_sibling != invalid_entity) {
-				auto& last_child_entry =
-				  m_ParentRelationship.at(details::get_value(parent_first_child_entry.prev_sibling));
-				last_child_entry.next_sibling = child;
-				child_entry.prev_sibling	  = parent_first_child_entry.prev_sibling;
-			} else {
-				parent_first_child_entry.next_sibling = child;
-				child_entry.prev_sibling			  = parent_entry.first_child;
-			}
-			parent_first_child_entry.prev_sibling = child;
-			child_entry.next_sibling			  = parent_entry.first_child;
-		}
-	}
-
-	void unparent(entity_t target) {
-		set_parent(invalid_entity, target);
-	}
-
-	psl::array<entity_t> get_children(entity_t parent, bool direct_only = false) const noexcept {
-		psl::array<entity_t> result {};
-		auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
-		if(parent_entry.first_child == invalid_entity) {
-			return result;	  // no children
-		}
-		result.reserve(parent_entry.children);
-		auto const first = parent_entry.first_child;
-		auto current	 = first;
-		do {
-			result.emplace_back(current);
-			auto& child_entry = m_ParentRelationship.at(details::get_value(current));
-			current			  = child_entry.next_sibling;
-		} while(current != invalid_entity && current != first);
-		if(!direct_only) {
-			const auto count = result.size();
-			for(auto i = 0u; i < count; ++i) {
-				auto children = get_children(result[i], false);
-				result.insert(std::end(result), std::begin(children), std::end(children));
-			}
-		}
-		return result;
-	}
-
-	psl::array<entity_t> get_direct_children(entity_t parent) const noexcept {
-		return get_children(parent, true);
-	}
-
-	psl::array<entity_t> get_all_children(entity_t parent) const noexcept {
-		return get_children(parent, false);
-	}
-
-	psl::array<entity_t> get_all_parents(entity_t child) const noexcept {
-		psl::array<entity_t> result {};
-		auto current = child;
-		while(current != invalid_entity) {
-			auto& entry = m_ParentRelationship.at(details::get_value(current));
-			if(entry.parent == invalid_entity) {
-				break;	  // no parent
-			}
-			result.emplace_back(entry.parent);
-			current = entry.parent;
-		}
-		return result;
-	}
-
-	entity_t get_parent(entity_t child) const noexcept {
-		auto& entry = m_ParentRelationship.at(details::get_value(child));
-		return entry.parent;
-	}
-
-	psl::array<entity_t> get_siblings(entity_t target) const noexcept {
-		psl_assert(target != invalid_entity, "cannot get siblings of an invalid entity");
-		auto current = m_ParentRelationship.at(details::get_value(target)).next_sibling;
-		psl::array<entity_t> result {};
-		while(current != invalid_entity && current != target) {
-			result.push_back(current);
-			current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
-		}
-		return result;
-	}
+	bool has_parent(entity_t target) const noexcept;
+	bool has_siblings(entity_t target) const noexcept;
+	bool has_children(entity_t target) const noexcept;
+	bool is_child_of(entity_t parent, entity_t child) const noexcept;
+	bool is_parent_of(entity_t parent, entity_t child) const noexcept;
+	bool is_sibling(entity_t first, entity_t second) const noexcept;
+	bool is_indirect_parent_of(entity_t parent, entity_t child) const noexcept;
+	bool is_root(entity_t target) const noexcept;
+	entity_t get_root(entity_t target) const noexcept;
+	void set_parent(entity_t parent, entity_t child) noexcept;
+	void unparent(entity_t target);
+	psl::array<entity_t> get_children(entity_t parent, bool direct_only = false) const noexcept;
+	psl::array<entity_t> get_direct_children(entity_t parent) const noexcept;
+	psl::array<entity_t> get_all_children(entity_t parent) const noexcept;
+	psl::array<entity_t> get_all_parents(entity_t child) const noexcept;
+	entity_t get_parent(entity_t child) const noexcept;
+	psl::array<entity_t> get_siblings(entity_t target) const noexcept;
 
 	/// \brief returns the amount of active systems
 	size_t systems() const noexcept {
@@ -922,23 +740,60 @@ class state_t final {
 	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading::sequential, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup);
+		requires(!std::is_same_v<Fn, transient_system_tag_t>)
+	auto declare(Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) -> system_token {
+		return declare_impl(
+		  threading::sequential, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup, std::nullopt);
 	}
 
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn>
-	auto declare(threading threading, Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup);
+	auto
+	declare(threading threading, Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) -> system_token {
+		return declare_impl(threading, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup, std::nullopt);
 	}
 
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, DebugName, systemGroup);
+		requires(!std::is_same_v<Fn, transient_system_tag_t>)
+	auto declare(Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt) -> system_token {
+		return declare_impl(threading::sequential, std::forward<Fn>(fn), ptr, DebugName, systemGroup, std::nullopt);
 	}
 	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
-	auto declare(threading threading, Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt) {
-		return declare_impl(threading, std::forward<Fn>(fn), ptr, DebugName, systemGroup);
+	auto declare(threading threading, Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt)
+	  -> system_token {
+		return declare_impl(threading, std::forward<Fn>(fn), ptr, DebugName, systemGroup, std::nullopt);
+	}
+
+	template <psl::details::fixed_astring DebugName = "", typename Fn>
+	auto
+	declare(transient_system_tag_t, Fn&& fn, std::optional<system_group_t> systemGroup = std::nullopt) -> system_token {
+		return declare_impl(
+		  threading::sequential, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup, transient_system_tag);
+	}
+
+
+	template <psl::details::fixed_astring DebugName = "", typename Fn>
+	auto declare(transient_system_tag_t,
+				 threading threading,
+				 Fn&& fn,
+				 std::optional<system_group_t> systemGroup = std::nullopt) -> system_token {
+		return declare_impl(
+		  threading, std::forward<Fn>(fn), (void*)nullptr, DebugName, systemGroup, transient_system_tag);
+	}
+
+	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
+	auto declare(transient_system_tag_t, Fn&& fn, T* ptr, std::optional<system_group_t> systemGroup = std::nullopt)
+	  -> system_token {
+		return declare_impl(
+		  threading::sequential, std::forward<Fn>(fn), ptr, DebugName, systemGroup, transient_system_tag);
+	}
+	template <psl::details::fixed_astring DebugName = "", typename Fn, typename T>
+	auto declare(transient_system_tag_t,
+				 threading threading,
+				 Fn&& fn,
+				 T* ptr,
+				 std::optional<system_group_t> systemGroup = std::nullopt) -> system_token {
+		return declare_impl(threading, std::forward<Fn>(fn), ptr, DebugName, systemGroup, transient_system_tag);
 	}
 
 	template <psl::details::fixed_astring DebugName = "">
@@ -967,6 +822,13 @@ class state_t final {
 									  [&id](const auto& system) { return system.id() == id; });
 			   it != std::end(m_SystemInformations)) {
 				m_SystemInformations.erase(it);
+
+				for(auto& group : m_SystemGroups) {
+					group.second.erase(std::remove_if(std::begin(group.second),
+													  std::end(group.second),
+													  [&id](const auto& token) { return token == id; }),
+									   std::end(group.second));
+				}
 				return true;
 			}
 			return false;
@@ -1286,35 +1148,45 @@ class state_t final {
 		return on_combine_op(entries, begin, end);
 	}
 
-	psl::array<entity_t>::iterator filter_op(details::cached_container_entry_t& entry,
+	psl::array<entity_t>::iterator filter_op(details::cached_container_entry_t const& entry,
 											 psl::array<entity_t>::iterator begin,
 											 psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_add_op(details::cached_container_entry_t& entry,
+	psl::array<entity_t>::iterator on_add_op(details::cached_container_entry_t const& entry,
 											 psl::array<entity_t>::iterator begin,
 											 psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_remove_op(details::cached_container_entry_t& entry,
+	psl::array<entity_t>::iterator on_remove_op(details::cached_container_entry_t const& entry,
 												psl::array<entity_t>::iterator begin,
 												psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_except_op(details::cached_container_entry_t& entry,
+	psl::array<entity_t>::iterator on_except_op(details::cached_container_entry_t const& entry,
 												psl::array<entity_t>::iterator begin,
 												psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_break_op(psl::array<details::cached_container_entry_t>& entries,
+	psl::array<entity_t>::iterator on_break_op(psl::array<details::cached_container_entry_t> const& entries,
 											   psl::array<entity_t>::iterator begin,
 											   psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_combine_op(psl::array<details::cached_container_entry_t>& entries,
+	psl::array<entity_t>::iterator on_combine_op(psl::array<details::cached_container_entry_t> const& entries,
 												 psl::array<entity_t>::iterator begin,
 												 psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_mutate_op(details::cached_container_entry_t& entry,
+	psl::array<entity_t>::iterator on_mutate_op(details::cached_container_entry_t const& entry,
 												psl::array<entity_t>::iterator begin,
 												psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_hierarchy_op(hierarchy_change_event event,
 												   psl::array<entity_t>::iterator begin,
 												   psl::array<entity_t>::iterator end) const noexcept;
+	psl::array<entity_t>::iterator on_hierarchy_with_preseed_op(hierarchy_change_event event,
+																psl::array<entity_t>::iterator begin,
+																psl::array<entity_t>::iterator end) const noexcept;
 
 	void filter(filter_result& data, psl::array_view<entity_t> source) const noexcept;
+	psl::array<entity_t>::iterator filter(details::filter_group const& group,
+										  psl::array<entity_t>::iterator begin,
+										  psl::array<entity_t>::iterator end) const noexcept;
 
 	// returns the smallest set of entities that is in the filter
 	psl::array_view<entity_t> get_source_for(filter_result const& data) const noexcept;
+	void initialize_filter(filter_result& data) const noexcept;
+
+	psl::array<entity_t> get_all_relationships_unfiltered(psl::array_view<entity_t> source,
+														  entity_relationship relationship) const noexcept;
 
 
 	//------------------------------------------------------------
@@ -1354,9 +1226,7 @@ class state_t final {
 		if(filter_it == std::end(m_Filters)) {
 			m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
 			filter_it = std::prev(std::end(m_Filters));
-			if(filter_it->group->should_be_preseeded()) {
-				filter(*filter_it, get_source_for(*filter_it));
-			}
+			initialize_filter(*filter_it);
 		}
 
 		filter_it->group->add_debug_system_name(debugName);
@@ -1403,8 +1273,9 @@ class state_t final {
 	auto declare_impl(threading threading,
 					  Fn&& fn,
 					  T* ptr,
-					  psl::string_view debugName				= "",
-					  std::optional<system_group_t> systemGroup = std::nullopt) {
+					  psl::string_view debugName					  = "",
+					  std::optional<system_group_t> systemGroup		  = std::nullopt,
+					  std::optional<transient_system_tag_t> transient = std::nullopt) {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
 		using pack_type		  = typename details::get_packs<function_args>::type;
 		auto filter_groups	  = make_filter_group(pack_type {});
@@ -1464,6 +1335,10 @@ class state_t final {
 			it->second.push_back(system_id);
 		}
 
+		m_SystemGroups[0].push_back(system_id);	   // always add to the default group
+		if(transient.has_value()) {
+			m_ToRevoke.push_back(system_id);
+		}
 		return system_id;
 	}
 
@@ -1478,7 +1353,7 @@ class state_t final {
 	psl::array<details::system_information> m_NewSystemInformations {};
 	std::unordered_map<size_t, psl::array<details::system_token>> m_SystemGroups {};
 	std::unordered_set<details::system_token> m_SystemGroupIndices {};
-	size_t m_SystemGroupCounter {0};
+	size_t m_SystemGroupCounter {1};
 
 	mutable std::unordered_map<details::component_key_t, std::unique_ptr<details::component_container_t>>
 	  m_Components {};

@@ -13,6 +13,7 @@ state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_enti
 	: m_Cache(cache_size),
 	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers})),
 	  m_MinEntitiesPerWorker(min_entities_per_worker) {
+	m_SystemGroups.emplace(0, psl::array<details::system_token> {});
 #if !defined(PE_ECS_DISABLE_LOOKUP_CACHE)
 	static std::mutex mut {};
 	static std::atomic<size_t> generation {1};
@@ -104,11 +105,14 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 	auto filter_it	  = begin(filter_groups);
 	auto transform_it = begin(transform_groups);
 
+	auto system_tick = information.tick();
+
 	if(is_partial_pack && information.threading() == threading::par) {
 		for(auto& dep_pack : pack) {
 			psl::array_view<entity_t> entities;
-			auto group_it = std::find_if(
-			  begin(m_Filters), end(m_Filters), [filter_it](const auto& data) { return data == **filter_it; });
+			auto group_it = std::find_if(begin(m_Filters), end(m_Filters), [filter_it](const auto& data) {
+				return data.group && *data.group == **filter_it;
+			});
 			if(*transform_it) {
 				auto transform		= std::find_if(begin(group_it->transformations),
 											   end(group_it->transformations),
@@ -135,7 +139,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 
 		auto index = info_buffer.size();
 		for(size_t i = 0; i < std::min(m_Scheduler->workers() + 1, multi_pack.size()); ++i)
-			info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick));
+			info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick, system_tick));
 
 		auto infoBuffer = std::next(std::begin(info_buffer), index);
 
@@ -153,8 +157,9 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 		bool has_entities = false;
 		for(auto& dep_pack : pack) {
 			psl::array_view<entity_t> entities;
-			auto group_it = std::find_if(
-			  begin(m_Filters), end(m_Filters), [filter_it](const auto& data) { return data == **filter_it; });
+			auto group_it = std::find_if(begin(m_Filters), end(m_Filters), [filter_it](const auto& data) {
+				return data.group && *data.group == **filter_it;
+			});
 			psl_assert(group_it != std::end(m_Filters),
 					   "Could not find a matching filter for the system {} with debug name '{}'",
 					   information.id().value(),
@@ -180,7 +185,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
 
-		info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick));
+		info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick, system_tick));
 		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
 
 		write_data(*this, pack);
@@ -235,8 +240,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
 		filter(filter_result,
-			   filter_result.group->hierarchy_change_filter.is_active() ? modified_hierarchy_entities
-																		: modified_entities);
+			   filter_result.group->is_hierarchy_change_active() ? modified_hierarchy_entities : modified_entities);
 	}
 
 	m_ModifiedEntities.clear();
@@ -251,6 +255,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	// new systems can be added and removed during this tick, but that's the only shared functionality between the two.
 	// as group ticks can not use advanced filtering operations they will additionally not see new components until a
 	// normal tick is performed.
+	auto system_indices = std::unordered_set<details::system_token>();
 	if(groups.size() == 0) {
 		for(auto& system : m_SystemInformations) {
 			if(m_SystemGroupIndices.find(system.id()) != std::end(m_SystemGroupIndices)) {
@@ -264,13 +269,12 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 
 		for(auto& [key, cInfo] : m_Components) cInfo->purge();
 	} else {
-		auto system_indices = std::unordered_set<details::system_token>();
-
 		// for every group, get all the systems and append them to system_indices
 		for(auto& group : groups) {
 			auto group_it = m_SystemGroups.find(group.m_Id);
 			if(group_it == std::end(m_SystemGroups)) {
-				continue;
+				throw std::runtime_error("The system group '" + psl::string {group.m_DebugName} +
+										 "' was not found in the state.");
 			}
 			for(auto& system : group_it->second) {
 				system_indices.insert(system);
@@ -278,9 +282,10 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		}
 
 		for(auto& system : m_SystemInformations) {
-			if(system_indices.find(system.id()) == std::end(system_indices)) {
-				continue;
-			}
+			psl_assert(system_indices.contains(system.id()),
+					   "The system '{}' with debug name '{}' was not found in the system indices for the tick.",
+					   system.id().value(),
+					   system.debug_name());
 			prepare_system(dTime, dTime, (std::uintptr_t)m_Cache.data(), system);
 		}
 	}
@@ -297,11 +302,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	}
 	info_buffer.clear();
 
-	if(groups.size() == 0) {
-		// purge;
-		++m_Tick;
-	}
-
+	++m_Tick;
 
 	// here we clean up the transient filters (on_add/on_combine) which need to be merged with the pre-existing filters
 	// (if available) if they are available then we will look through all the systems and update the filters. if not,
@@ -341,14 +342,25 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		for(auto& system : m_NewSystemInformations) m_SystemInformations.emplace_back(std::move(system));
 		m_NewSystemInformations.clear();
 	}
+	m_LockState = 0;
 
 	if(m_ToRevoke.size() > 0) {
-		for(auto id : m_ToRevoke) {
-			revoke(id);
+		if(groups.size() == 0) {
+			for(auto id : m_ToRevoke) {
+				revoke(id);
+			}
+			m_ToRevoke.clear();
+		} else {
+			m_ToRevoke.erase(
+			  std::remove_if(std::begin(m_ToRevoke), std::end(m_ToRevoke), [&system_indices, this](auto id) {
+				  if(system_indices.contains(id)) {
+					  revoke(id);
+					  return true;
+				  }
+				  return false;
+			  }));
 		}
-		m_ToRevoke.clear();
 	}
-	m_LockState = 0;
 }
 
 details::component_container_t* state_t::get_component_container(const details::component_key_t& key) const noexcept {
@@ -471,7 +483,7 @@ void state_t::reset(psl::array_view<entity_t> entities) noexcept {
 	}
 }
 
-psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entry_t& entry,
+psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entry_t const& entry,
 												  psl::array<entity_t>::iterator begin,
 												  psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
@@ -482,7 +494,7 @@ psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entr
 			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_component(e); });
 }
 
-psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entry_t& entry,
+psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entry_t const& entry,
 												  psl::array<entity_t>::iterator begin,
 												  psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
@@ -493,7 +505,7 @@ psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entr
 			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_added(e); });
 }
 
-psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_entry_t& entry,
+psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_entry_t const& entry,
 													 psl::array<entity_t>::iterator begin,
 													 psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
@@ -504,7 +516,7 @@ psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_e
 			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_removed(e); });
 }
 
-psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_entry_t& entry,
+psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_entry_t const& entry,
 													 psl::array<entity_t>::iterator begin,
 													 psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
@@ -515,7 +527,7 @@ psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_e
 			 : std::partition(begin, end, [&entry](entity_t e) { return !entry.container->has_component(e); });
 }
 
-psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_container_entry_t>& entries,
+psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_container_entry_t> const& entries,
 													psl::array<entity_t>::iterator begin,
 													psl::array<entity_t>::iterator end) const noexcept {
 	for(auto& entry : entries) {
@@ -540,7 +552,7 @@ psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_c
 			 });
 }
 
-psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached_container_entry_t>& entries,
+psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached_container_entry_t> const& entries,
 													  psl::array<entity_t>::iterator begin,
 													  psl::array<entity_t>::iterator end) const noexcept {
 	for(auto& entry : entries) {
@@ -560,7 +572,7 @@ psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached
 }
 
 
-psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_entry_t& entry,
+psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_entry_t const& entry,
 													 psl::array<entity_t>::iterator begin,
 													 psl::array<entity_t>::iterator end) const noexcept {
 	if(!entry.container) {
@@ -586,15 +598,41 @@ psl::array<entity_t>::iterator state_t::on_hierarchy_op(hierarchy_change_event c
 		return begin;
 	}
 
-	return std::remove_if(begin, end, [change, this](entity_t e) {
+	return std::partition(begin, end, [change, this](entity_t e) {
 		if(auto it = m_ModifiedHierarchy.try_get(e.value()); it != nullptr) {
-			return (*it & change) != change;
+			return (*it & change) != hierarchy_change_event::none;
 		}
-		return true;
+		return false;
+	});
+}
+
+psl::array<entity_t>::iterator
+state_t::on_hierarchy_with_preseed_op(hierarchy_change_event change,
+									  psl::array<entity_t>::iterator begin,
+									  psl::array<entity_t>::iterator end) const noexcept {
+	if(change == hierarchy_change_event::none) {
+		return begin;
+	}
+
+	return std::partition(begin, end, [change, this](entity_t e) {
+		if(auto relationship = m_ParentRelationship.try_get(e.value()); relationship) {
+			if((change & hierarchy_change_event::reparented) == hierarchy_change_event::reparented &&
+			   relationship->parent != invalid_entity) {
+				return true;
+			}
+			if((change & hierarchy_change_event::child_added) == hierarchy_change_event::child_added &&
+			   relationship->first_child != invalid_entity) {
+				return true;
+			}
+		}
+		return false;
 	});
 }
 
 psl::array_view<entity_t> state_t::get_source_for(filter_result const& data) const noexcept {
+	psl_assert(data.entities.size() == 0,
+			   "The filter result should not have entities yet, this is used to first-pass initialize the "
+			   "filter_result container.");
 	std::optional<psl::array_view<entity_t>> source;
 
 	for(auto filter : data.group->on_mutate) {
@@ -670,7 +708,134 @@ psl::array_view<entity_t> state_t::get_source_for(filter_result const& data) con
 	return source.value_or(psl::array_view<entity_t> {});
 }
 
+psl::array<entity_t>::iterator state_t::filter(details::filter_group const& group,
+											   psl::array<entity_t>::iterator begin,
+											   psl::array<entity_t>::iterator end) const noexcept {
+	for(auto filter : group.on_mutate) {
+		end = on_mutate_op(filter, begin, end);
+	}
+
+	for(auto filter : group.on_remove) {
+		end = on_remove_op(filter, begin, end);
+	}
+	if(group.on_break.size() > 0) {
+		end = on_break_op(group.on_break, begin, end);
+	}
+
+	if(group.is_transient()) {
+		for(auto filter : group.on_add) {
+			end = filter_op(filter, begin, end);
+		}
+		for(auto filter : group.on_combine) {
+			end = filter_op(filter, begin, end);
+		}
+	} else {
+		for(auto filter : group.on_add) {
+			end = on_add_op(filter, begin, end);
+		}
+		if(group.on_combine.size() > 0) {
+			end = on_combine_op(group.on_combine, begin, end);
+		}
+	}
+
+
+	for(auto filter : group.filters) {
+		end = filter_op(filter, begin, end);
+	}
+	for(auto filter : group.except) {
+		end = on_except_op(filter, begin, end);
+	}
+
+	return end;
+}
+psl::array<entity_t> state_t::get_all_relationships_unfiltered(psl::array_view<entity_t> source,
+															   entity_relationship relationship) const noexcept {
+	auto begin = std::begin(source);
+	auto end   = std::end(source);
+
+	psl::array<entity_t> relationship_entities {};
+	if((relationship & entity_relationship::all_parents) == entity_relationship::all_parents) {
+		for(auto it = begin; it != end; it = std::next(it)) {
+			auto parents = get_all_parents(*it);
+			relationship_entities.insert(std::end(relationship_entities), std::begin(parents), std::end(parents));
+		}
+	} else if((relationship & entity_relationship::direct_parent) == entity_relationship::direct_parent) {
+		for(auto it = begin; it != end; it = std::next(it)) {
+			relationship_entities.emplace_back(m_ParentRelationship.at(it->value()).parent);
+		}
+	}
+
+	if((relationship & entity_relationship::all_children) == entity_relationship::all_children) {
+		for(auto it = begin; it != end; it = std::next(it)) {
+			auto children = get_all_children(*it);
+			relationship_entities.insert(std::end(relationship_entities), std::begin(children), std::end(children));
+		}
+	} else if((relationship & entity_relationship::direct_children) == entity_relationship::direct_children) {
+		for(auto it = begin; it != end; it = std::next(it)) {
+			auto children = get_children(*it, true);
+			relationship_entities.insert(std::end(relationship_entities), std::begin(children), std::end(children));
+		}
+	}
+
+	if((relationship & entity_relationship::siblings) == entity_relationship::siblings) {
+		for(auto it = begin; it != end; it = std::next(it)) {
+			auto siblings = get_siblings(*it);
+			relationship_entities.insert(std::end(relationship_entities), std::begin(siblings), std::end(siblings));
+		}
+	}
+
+	if((relationship & entity_relationship::self) == entity_relationship::self) {
+		relationship_entities.insert(std::end(relationship_entities), std::begin(source), std::end(source));
+	}
+
+	return relationship_entities;
+}
+
+void state_t::initialize_filter(filter_result& data) const noexcept {
+	if(data.group->should_be_preseeded()) {
+		auto source = get_source_for(data);
+		if(data.group->is_hierarchy_seed_with_previous()) {
+			auto cpy = psl::array<entity_t>(source.begin(), source.end());
+			cpy.erase(std::remove_if(cpy.begin(),
+									 cpy.end(),
+									 [this, &group = *data.group](entity_t e) {
+										 if(auto relationship = m_ParentRelationship.try_get(e.value()); relationship) {
+											 if((group.hierarchy_change & hierarchy_change_event::reparented) ==
+												  hierarchy_change_event::reparented &&
+												relationship->parent != invalid_entity) {
+												 return false;
+											 }
+											 if((group.hierarchy_change & hierarchy_change_event::child_added) ==
+												  hierarchy_change_event::child_added &&
+												relationship->first_child != invalid_entity) {
+												 return false;
+											 }
+										 }
+										 return true;
+									 }),
+					  cpy.end());
+
+			auto cached					 = data.group->hierarchy_change;
+			data.group->hierarchy_change = hierarchy_change_event::none;
+			filter(data, psl::array_view<entity_t>(cpy.begin(), cpy.end()));
+			if(data.direct_entities.has_value()) {
+				data.entities		 = std::move(data.direct_entities.value());
+				data.direct_entities = std::nullopt;	// clear the direct entities as we no longer need them
+			}
+			data.group->hierarchy_change = cached;
+		} else {
+			filter(data, source);
+		}
+	}
+}
+
 void state_t::filter(filter_result& data, psl::array_view<entity_t> source) const noexcept {
+	if(data.direct_entities.has_value() && data.direct_entities->size() > 0) {
+		// if we have direct entities, we can use those as the source
+		data.entities		 = data.direct_entities.value();
+		data.direct_entities = std::nullopt;	// clear the direct entities as we no longer need them
+	}
+
 	if(source.size() == 0) {
 		if(!data.group->is_transient() && data.group->clear_every_frame()) {
 			data.entities.clear();
@@ -683,89 +848,14 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 		auto begin = std::begin(result);
 		auto end   = std::end(result);
 
-		if(data.group->hierarchy_change_filter.is_active()) {
-			end = on_hierarchy_op(data.group->hierarchy_change_filter.change, begin, end);
+		end = filter(*data.group, begin, end);
 
-			result.erase(end, std::end(result));
-			const auto size = result.size();
-
-			// todo(jdl): we can reduce the duplication here by using a set to store the entities
-
-			if((data.group->hierarchy_change_filter.relationship & entity_relationship::all_parents) ==
-			   entity_relationship::all_parents) {
-				for(auto i = 0u; i < size; ++i) {
-					auto parents = get_all_parents(result[i]);
-					result.insert(std::end(result), std::begin(parents), std::end(parents));
-				}
-			} else if((data.group->hierarchy_change_filter.relationship & entity_relationship::direct_parent) ==
-					  entity_relationship::direct_parent) {
-				for(auto i = 0u; i < size; ++i) {
-					result.emplace_back(m_ParentRelationship.at(result[i].value()).parent);
-				}
+		if(data.group->is_hierarchy_change_active()) {
+			if(data.group->is_hierarchy_seed_with_previous()) {
+				end = on_hierarchy_with_preseed_op(data.group->hierarchy_change, begin, end);
+			} else {
+				end = on_hierarchy_op(data.group->hierarchy_change, begin, end);
 			}
-
-			if((data.group->hierarchy_change_filter.relationship & entity_relationship::all_children) ==
-			   entity_relationship::all_children) {
-				for(auto i = 0u; i < size; ++i) {
-					auto children = get_all_children(result[i]);
-					result.insert(std::end(result), std::begin(children), std::end(children));
-				}
-			} else if((data.group->hierarchy_change_filter.relationship & entity_relationship::direct_children) ==
-					  entity_relationship::direct_children) {
-				for(auto i = 0u; i < size; ++i) {
-					auto children = get_children(result[i], true);
-					result.insert(std::end(result), std::begin(children), std::end(children));
-				}
-			}
-
-			if((data.group->hierarchy_change_filter.relationship & entity_relationship::siblings) ==
-			   entity_relationship::siblings) {
-				for(auto i = 0u; i < size; ++i) {
-					auto siblings = get_siblings(result[i]);
-					result.insert(std::end(result), std::begin(siblings), std::end(siblings));
-				}
-			}
-
-			std::sort(std::begin(result), std::end(result));
-			result.erase(std::unique(std::begin(result), std::end(result)), std::end(result));
-
-			begin = std::begin(result);
-			end	  = std::end(result);
-		}
-
-		for(auto filter : data.group->on_mutate) {
-			end = on_mutate_op(filter, begin, end);
-		}
-
-		for(auto filter : data.group->on_remove) {
-			end = on_remove_op(filter, begin, end);
-		}
-		if(data.group->on_break.size() > 0) {
-			end = on_break_op(data.group->on_break, begin, end);
-		}
-
-		if(data.group->is_transient()) {
-			for(auto filter : data.group->on_add) {
-				end = filter_op(filter, begin, end);
-			}
-			for(auto filter : data.group->on_combine) {
-				end = filter_op(filter, begin, end);
-			}
-		} else {
-			for(auto filter : data.group->on_add) {
-				end = on_add_op(filter, begin, end);
-			}
-			if(data.group->on_combine.size() > 0) {
-				end = on_combine_op(data.group->on_combine, begin, end);
-			}
-		}
-
-
-		for(auto filter : data.group->filters) {
-			end = filter_op(filter, begin, end);
-		}
-		for(auto filter : data.group->except) {
-			end = on_except_op(filter, begin, end);
 		}
 
 		std::sort(begin, end);
@@ -840,7 +930,16 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			//}
 			// else
 			{
-				psl::array_view new_source {begin, end};
+				// here the following operations happen
+				// - we make a difference set between the existing entities (data.entities) and the new source entities
+				// (unfiltered)
+				// - we then append the list of filtered source entities to the resulting difference set
+				// - as both are already sorted at this point, we can use std::inplace_merge to merge the two
+				//
+				// If we did not do a difference set with the original source we'd have to run a std::unique on the full
+				// data.entities. This could be cheaper but we'd need to benchmark it or do some napkin math first.
+				// todo(jdl): do napkin math. Most likely if the filtered source is smaller than the existing entities
+				// it would be worthwhile to do the post-unique instead of the difference set.
 				psl::array<entity_t> diff_set {};
 				std::set_difference(std::begin(data.entities),
 									std::end(data.entities),
@@ -857,6 +956,35 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 			}
 		}
 	}
+
+	// if we have more relationships to resolve other than ourselves we need to resolve those now.
+	if((data.group->relationship & entity_relationship::self) != data.group->relationship) {
+		auto relationship_entities =
+		  get_all_relationships_unfiltered(psl::array_view<entity_t> {data.entities}, data.group->relationship);
+		data.direct_entities = data.entities;
+		std::sort(std::begin(relationship_entities), std::end(relationship_entities));
+		relationship_entities.erase(std::unique(std::begin(relationship_entities), std::end(relationship_entities)),
+									std::end(relationship_entities));
+		relationship_entities.erase(
+		  filter(*data.group, std::begin(relationship_entities), std::end(relationship_entities)),
+		  std::end(relationship_entities));
+
+		// if we don't have a self relationship we can just replace the entities with the new list, otherwise
+		// we need to merge them.
+		if((data.group->relationship & entity_relationship::self) != entity_relationship::self) {
+			data.entities = relationship_entities;
+		} else {
+			const auto size = data.entities.size();
+			data.entities.insert(std::end(data.entities),
+								 std::make_move_iterator(std::begin(relationship_entities)),
+								 std::make_move_iterator(std::end(relationship_entities)));
+			std::inplace_merge(
+			  std::begin(data.entities), std::next(std::begin(data.entities), size), std::end(data.entities));
+			data.entities.erase(std::unique(std::begin(data.entities), std::end(data.entities)),
+								std::end(data.entities));
+		}
+	}
+
 	psl_assert(std::unique(std::begin(data.entities), std::end(data.entities)) == std::end(data.entities),
 			   "some entities were not unique");
 	psl_assert(std::all_of(std::begin(data.group->on_combine),
@@ -1004,6 +1132,216 @@ void state_t::execute_command_buffer(info_t& info) {
 		  psl::array_view<entity_t> {&*mid, static_cast<size_t>(std::distance(mid, std::end(destroyed_entities)))});
 }
 
+bool state_t::has_parent(entity_t target) const noexcept {
+	psl_assert(target != invalid_entity, "cannot check if an invalid entity has a parent");
+	return m_ParentRelationship.at(details::get_value(target)).parent != invalid_entity;
+}
+
+bool state_t::has_siblings(entity_t target) const noexcept {
+	psl_assert(target != invalid_entity, "cannot check if an invalid entity has siblings");
+	auto& entry = m_ParentRelationship.at(details::get_value(target));
+	return entry.next_sibling != target || entry.next_sibling != invalid_entity;
+}
+
+bool state_t::has_children(entity_t target) const noexcept {
+	psl_assert(target != invalid_entity, "cannot check if an invalid entity is a parent");
+	return m_ParentRelationship.at(details::get_value(target)).first_child != invalid_entity;
+}
+
+bool state_t::is_child_of(entity_t parent, entity_t child) const noexcept {
+	psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
+	psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
+	auto& entry = m_ParentRelationship.at(details::get_value(child));
+	return entry.parent == parent;
+}
+
+bool state_t::is_parent_of(entity_t parent, entity_t child) const noexcept {
+	psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
+	psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
+	auto& entry	 = m_ParentRelationship.at(details::get_value(parent));
+	auto current = entry.first_child;
+	if(current == invalid_entity) {
+		return false;
+	}
+	do {
+		if(current == child) {
+			return true;
+		}
+		current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
+	} while(current != invalid_entity && current != entry.first_child);
+	return false;
+}
+
+bool state_t::is_sibling(entity_t first, entity_t second) const noexcept {
+	psl_assert(first != invalid_entity, "cannot check if an invalid entity is a sibling");
+	psl_assert(second != invalid_entity, "cannot check if an invalid entity is a sibling");
+	auto& first_entry  = m_ParentRelationship.at(details::get_value(first));
+	auto& second_entry = m_ParentRelationship.at(details::get_value(second));
+	return first_entry.parent == second_entry.parent && first_entry.parent != invalid_entity;
+}
+
+bool state_t::is_indirect_parent_of(entity_t parent, entity_t child) const noexcept {
+	psl_assert(parent != invalid_entity, "cannot check if an invalid entity is a parent");
+	psl_assert(child != invalid_entity, "cannot check if an invalid entity is a child");
+	auto entry = m_ParentRelationship.at(details::get_value(child));
+	while(entry.parent != invalid_entity && entry.parent != parent) {
+		entry = m_ParentRelationship.at(details::get_value(entry.parent));
+	}
+	return entry.parent == parent;
+}
+
+bool state_t::is_root(entity_t target) const noexcept {
+	psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
+	auto& entry = m_ParentRelationship.at(details::get_value(target));
+	return entry.parent == invalid_entity;
+}
+
+entity_t state_t::get_root(entity_t target) const noexcept {
+	psl_assert(target != invalid_entity, "cannot check if an invalid entity is a root");
+	auto previous = target;
+	while(target != invalid_entity) {
+		previous = target;
+		target	 = m_ParentRelationship.at(details::get_value(target)).parent;
+	}
+	return previous;
+}
+
+void state_t::set_parent(entity_t parent, entity_t child) noexcept {
+	psl_assert(parent != child, "cannot set a parent to itself, this would create a cycle in the hierarchy");
+	psl_assert(child != invalid_entity, "cannot set the child to an invalid value");
+	auto& child_entry = m_ParentRelationship.at(details::get_value(child));
+	if(child_entry.parent == parent) {
+		return;	   // already set
+	}
+
+	// first we update the existing child's parent entry if it is present and then the siblings
+	// erasing the current child entity from their entries.
+	if(child_entry.parent != invalid_entity) {
+		auto& parent_entry = m_ParentRelationship.at(details::get_value(child_entry.parent));
+		parent_entry.children--;
+		m_ModifiedHierarchy[details::get_value(child_entry.parent)] |= hierarchy_change_event::child_removed;
+		if(parent_entry.first_child == child) {
+			parent_entry.first_child = child_entry.next_sibling;
+		}
+	}
+
+	if(child_entry.next_sibling != invalid_entity) {
+		auto& next_sibling_entry = m_ParentRelationship.at(details::get_value(child_entry.next_sibling));
+		next_sibling_entry.prev_sibling =
+		  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.prev_sibling;
+	}
+	if(child_entry.prev_sibling != invalid_entity) {
+		auto& prev_sibling_entry = m_ParentRelationship.at(details::get_value(child_entry.prev_sibling));
+		prev_sibling_entry.next_sibling =
+		  child_entry.prev_sibling == child_entry.next_sibling ? invalid_entity : child_entry.next_sibling;
+	}
+
+
+	// update the child and its dependents to the new parent
+	{
+		child_entry.parent = parent;
+
+		// reset the siblings value, if the child gets a new parent these will be filled in again
+		// later in the scope
+		child_entry.next_sibling = invalid_entity;
+		child_entry.prev_sibling = invalid_entity;
+
+		m_ModifiedHierarchy[details::get_value(child)] |= hierarchy_change_event::reparented;
+	}
+
+	if(parent == invalid_entity) {
+		return;	   // no parent, so we don't need to do anything else
+	}
+	auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
+	parent_entry.children++;
+	m_ModifiedHierarchy[details::get_value(parent)] |= hierarchy_change_event::child_added;
+	// if the parent had no children, then we can simply set the current child as the first child.
+	// otherwise we need to fetch the first child, update its prev_sibling value and set that to the
+	// newly added child.
+	// additionally we fetch the last child and set the next_sibling of the last child to the newly added child.
+	if(parent_entry.first_child == invalid_entity) {
+		parent_entry.first_child = child;
+	} else {
+		auto& parent_first_child_entry = m_ParentRelationship.at(details::get_value(parent_entry.first_child));
+		if(parent_first_child_entry.prev_sibling != invalid_entity) {
+			auto& last_child_entry = m_ParentRelationship.at(details::get_value(parent_first_child_entry.prev_sibling));
+			last_child_entry.next_sibling = child;
+			child_entry.prev_sibling	  = parent_first_child_entry.prev_sibling;
+		} else {
+			parent_first_child_entry.next_sibling = child;
+			child_entry.prev_sibling			  = parent_entry.first_child;
+		}
+		parent_first_child_entry.prev_sibling = child;
+		child_entry.next_sibling			  = parent_entry.first_child;
+	}
+}
+
+void state_t::unparent(entity_t target) {
+	set_parent(invalid_entity, target);
+}
+
+psl::array<entity_t> state_t::get_children(entity_t parent, bool direct_only) const noexcept {
+	psl::array<entity_t> result {};
+	auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
+	if(parent_entry.first_child == invalid_entity) {
+		return result;	  // no children
+	}
+	result.reserve(parent_entry.children);
+	auto const first = parent_entry.first_child;
+	auto current	 = first;
+	do {
+		result.emplace_back(current);
+		auto& child_entry = m_ParentRelationship.at(details::get_value(current));
+		current			  = child_entry.next_sibling;
+	} while(current != invalid_entity && current != first);
+	if(!direct_only) {
+		const auto count = result.size();
+		for(auto i = 0u; i < count; ++i) {
+			auto children = get_children(result[i], false);
+			result.insert(std::end(result), std::begin(children), std::end(children));
+		}
+	}
+	return result;
+}
+
+psl::array<entity_t> state_t::get_direct_children(entity_t parent) const noexcept {
+	return get_children(parent, true);
+}
+
+psl::array<entity_t> state_t::get_all_children(entity_t parent) const noexcept {
+	return get_children(parent, false);
+}
+
+psl::array<entity_t> state_t::get_all_parents(entity_t child) const noexcept {
+	psl::array<entity_t> result {};
+	auto current = child;
+	while(current != invalid_entity) {
+		auto& entry = m_ParentRelationship.at(details::get_value(current));
+		if(entry.parent == invalid_entity) {
+			break;	  // no parent
+		}
+		result.emplace_back(entry.parent);
+		current = entry.parent;
+	}
+	return result;
+}
+
+entity_t state_t::get_parent(entity_t child) const noexcept {
+	auto& entry = m_ParentRelationship.at(details::get_value(child));
+	return entry.parent;
+}
+
+psl::array<entity_t> state_t::get_siblings(entity_t target) const noexcept {
+	psl_assert(target != invalid_entity, "cannot get siblings of an invalid entity");
+	auto current = m_ParentRelationship.at(details::get_value(target)).next_sibling;
+	psl::array<entity_t> result {};
+	while(current != invalid_entity && current != target) {
+		result.push_back(current);
+		current = m_ParentRelationship.at(details::get_value(current)).next_sibling;
+	}
+	return result;
+}
+
 
 size_t state_t::size(psl::array_view<details::component_key_t> keys) const noexcept {
 	for(auto& key : keys) {
@@ -1032,8 +1370,9 @@ void state_t::clear(bool release_memory) noexcept {
 	m_LockState = 0;
 	m_ModifiedEntities.clear();
 	m_ToRevoke.clear();
-	m_SystemGroupCounter = 0;
+	m_SystemGroupCounter = 1;
 	m_SystemGroups.clear();
 	m_SystemGroupIndices.clear();
+	m_SystemGroups.emplace(0, psl::array<details::system_token> {});
 	++m_ComponentGeneration;
 }

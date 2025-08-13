@@ -18,14 +18,16 @@ struct info_t {
 	info_t(const state_t& state,
 		   std::chrono::duration<float> dTime,
 		   std::chrono::duration<float> rTime,
-		   size_t frame) noexcept
-		: state(state), command_buffer(state), dTime(dTime), rTime(rTime), tick(frame) {}
+		   size_t tick,
+		   size_t system_tick) noexcept
+		: state(state), command_buffer(state), dTime(dTime), rTime(rTime), tick(tick), system_tick(system_tick) {}
 
 	const state_t& state;
 	command_buffer_t command_buffer;
 	std::chrono::duration<float> dTime;
 	std::chrono::duration<float> rTime;
 	size_t tick;
+	size_t system_tick;
 };
 }	 // namespace psl::ecs
 
@@ -474,6 +476,10 @@ class system_information final {
 		return m_DebugName;
 	}
 
+	auto tick() noexcept {
+		return m_Tick++;
+	}
+
   private:
 	psl::ecs::threading m_Threading = threading::sequential;
 	pack_generator_type m_PackGenerator;
@@ -482,8 +488,13 @@ class system_information final {
 	psl::array<std::shared_ptr<details::transform_group>> m_Transforms {};
 	psl::string_view m_DebugName {};
 	system_token m_ID {0};
+	size_t m_Tick {0};
 };
 }	 // namespace psl::ecs::details
+
+namespace psl::ecs {
+using system_token = details::system_token;
+}
 
 namespace std {
 template <>

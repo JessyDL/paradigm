@@ -97,7 +97,7 @@ namespace details {
 		}
 
 		details::component_key_t key {};
-		details::component_container_t* container {nullptr};
+		mutable details::component_container_t* container {nullptr};
 	};
 
 	// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
@@ -162,19 +162,6 @@ namespace details {
 
 	class filter_group {
 		friend class ::psl::ecs::state_t;
-
-		struct on_hierarchy_change_info_t {
-			hierarchy_change_event change {hierarchy_change_event::none};
-			entity_relationship relationship {entity_relationship::none};
-
-			bool is_active() const noexcept {
-				return change != hierarchy_change_event::none && relationship != entity_relationship::none;
-			}
-
-			constexpr bool operator==(const on_hierarchy_change_info_t& other) const noexcept {
-				return change == other.change && relationship == other.relationship;
-			}
-		};
 
 		struct filter_group_container_t {
 			filter_group_container_t() = default;
@@ -331,13 +318,27 @@ namespace details {
 		constexpr void selector(psl::type_pack_t<on_condition<Ts...>>, Fn&&) noexcept {}
 
 
-		template <hierarchy_change_event Change, entity_relationship Relationship, typename Fn>
-		constexpr void selector(psl::type_pack_t<on_hierarchy_change<Change, Relationship>>, Fn&&) noexcept {
-			psl_assert(!hierarchy_change_filter.is_active(),
+		template <hierarchy_change_event Change, typename T, typename Fn>
+		constexpr void selector(psl::type_pack_t<on_hierarchy_change<Change, T>>, Fn&&) noexcept {
+			psl_assert(hierarchy_change == hierarchy_change_event::none,
 					   "Cannot have multiple hierarchy change filters in a single filter group.");
-			hierarchy_change_filter.change		 = Change;
-			hierarchy_change_filter.relationship = Relationship;
-			psl_assert(hierarchy_change_filter.is_active(), "Useless filtering operation that would yield no results.");
+			static_assert(Change != hierarchy_change_event::none,
+						  "Useless filtering operation that would yield no results.");
+			static_assert(!IsPreseedTag<T> || (IsPreseedTag<T> && (Change == hierarchy_change_event::child_added ||
+																   Change == hierarchy_change_event::reparented)),
+						  "`preseed_tag` only works with `hierarchy_change_event::child_added` or "
+						  "`hierarchy_change_event::reparented`");
+			if constexpr(IsPreseedTag<T>) {
+				hierarchy_seed_with_previous = true;
+			}
+			hierarchy_change = Change;
+		}
+
+		template <entity_relationship Relationship, typename Fn>
+		constexpr void selector(psl::type_pack_t<get_relationship<Relationship>>, Fn&&) noexcept {
+			relationship = Relationship;
+			static_assert(Relationship != entity_relationship::none,
+						  "Useless filtering operation that would yield no results.");
 		}
 
 		filter_group() = default;
@@ -348,10 +349,11 @@ namespace details {
 					 psl::array<cached_container_entry_t> on_combine_arr,
 					 psl::array<cached_container_entry_t> on_break_arr,
 					 psl::array<cached_container_entry_t> on_mutate_arr,
-					 on_hierarchy_change_info_t hierarchy_change_filter_)
+					 hierarchy_change_event hierarchy_change,
+					 entity_relationship relationship)
 			: filters(filters_arr), on_add(on_add_arr), on_remove(on_remove_arr), except(except_arr),
 			  on_combine(on_combine_arr), on_break(on_break_arr), on_mutate(on_mutate_arr),
-			  hierarchy_change_filter(hierarchy_change_filter_) {
+			  hierarchy_change(hierarchy_change), relationship(relationship) {
 			post_init();
 		};
 
@@ -397,8 +399,9 @@ namespace details {
 			return other.filters.includes(filters) && other.on_add.includes(on_add) &&
 				   other.on_remove.includes(on_remove) && other.except.includes(except) &&
 				   other.on_combine.includes(on_combine) && other.on_break.includes(on_break) &&
-				   other.on_mutate.includes(on_mutate) && other.hierarchy_change_filter == hierarchy_change_filter &&
-				   other.seed_with_previous == seed_with_previous;
+				   other.on_mutate.includes(on_mutate) && other.relationship == relationship &&
+				   other.hierarchy_change == hierarchy_change && other.seed_with_previous == seed_with_previous &&
+				   other.hierarchy_seed_with_previous == hierarchy_seed_with_previous;
 		}
 
 		// inverse of subset, does this fully contain the other
@@ -413,32 +416,45 @@ namespace details {
 
 		bool clear_every_frame() const noexcept {
 			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0 ||
-				   on_mutate.size() > 0 || hierarchy_change_filter.is_active();
+				   on_mutate.size() > 0 || hierarchy_change != hierarchy_change_event::none;
 		}
 
 		bool operator==(const filter_group& other) const noexcept {
 			return filters == other.filters && on_add == other.on_add && on_remove == other.on_remove &&
 				   except == other.except && on_combine == other.on_combine && on_break == other.on_break &&
-				   on_mutate == other.on_mutate && other.seed_with_previous == seed_with_previous;
+				   on_mutate == other.on_mutate && other.seed_with_previous == seed_with_previous &&
+				   other.hierarchy_seed_with_previous == hierarchy_seed_with_previous &&
+				   other.hierarchy_change == hierarchy_change && other.relationship == relationship;
 		}
 
 		// returns true if this filter is a basic filter, meaning it only filters on components, not special events
 		// such as on_add, on_remove, on_combine, on_break
 		bool is_basic_filter() const noexcept {
-			return on_add.size() == 0 && on_remove.size() == 0 && on_combine.size() == 0 && on_break.size() == 0;
+			return on_add.size() == 0 && on_remove.size() == 0 && on_combine.size() == 0 && on_break.size() == 0 &&
+				   hierarchy_change == hierarchy_change_event::none;
 		}
 
 		bool should_be_preseeded() const noexcept {
-			return !clear_every_frame() || (seed_with_previous && (on_add.size() > 0 || on_combine.size() > 0));
+			return !clear_every_frame() || (seed_with_previous && (on_add.size() > 0 || on_combine.size() > 0)) ||
+				   is_hierarchy_seed_with_previous();
 		}
 
 		bool is_transient() const noexcept {
-			return clear_every_frame() && seed_with_previous;
+			return clear_every_frame() && (seed_with_previous || hierarchy_seed_with_previous);
 		}
 		void disable_transience() noexcept {
 			if(clear_every_frame()) {
-				seed_with_previous = false;
+				seed_with_previous			 = false;
+				hierarchy_seed_with_previous = false;
 			}
+		}
+
+		bool is_hierarchy_change_active() const noexcept {
+			return hierarchy_change != hierarchy_change_event::none;
+		}
+
+		bool is_hierarchy_seed_with_previous() const noexcept {
+			return hierarchy_seed_with_previous && is_hierarchy_change_active();
 		}
 
 	  private:
@@ -455,9 +471,11 @@ namespace details {
 		filter_group_container_t on_combine;
 		filter_group_container_t on_break;
 		filter_group_container_t on_mutate;
-		on_hierarchy_change_info_t hierarchy_change_filter {};
+		hierarchy_change_event hierarchy_change {hierarchy_change_event::none};
+		entity_relationship relationship {entity_relationship::self};
 		psl::array<psl::string_view> m_SystemsDebugNames;
 		bool seed_with_previous {false};
+		bool hierarchy_seed_with_previous {false};
 	};
 }	 // namespace details
 }	 // namespace psl::ecs
