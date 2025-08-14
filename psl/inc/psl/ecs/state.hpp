@@ -11,6 +11,7 @@
 #include "psl/collections/indirect_array.hpp"
 #include "psl/details/fixed_astring.hpp"
 #include "psl/ecs/component_traits.hpp"
+#include "psl/ecs/details/entity_relationship_handler.hpp"
 #include "psl/ecs/details/stage_range.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
@@ -94,7 +95,11 @@ class entity_relationship_data_t final {
 	size_t children_count() const noexcept;
 	size_t siblings_count() const noexcept;
 	psl::array_view<entity_t const> children() const noexcept;
+
+	/// \brief Returns the siblings of this entity including itself.
 	psl::array_view<entity_t const> siblings() const noexcept;
+
+	/// \brief Returns the siblings of this entity excluding itself, but to do that it will create a new array.
 	[[nodiscard]] psl::array<entity_t> siblings_excluding_self() const noexcept;
 
   private:
@@ -104,7 +109,6 @@ class entity_relationship_data_t final {
 	std::shared_ptr<psl::array<entity_t>> m_Siblings {};
 };
 
-// todo(jdl): this should be fully locked down and only editable by the state_t
 template <>
 struct component_trait_mutability_t<entity_relationship_data_t> {
 	static constexpr component_mutability_behaviour_t mutability {component_mutability_behaviour_t::restricted};
@@ -122,29 +126,10 @@ class system_group_t final {
 	psl::string_view m_DebugName;
 };
 
-class state_t final {
+class state_t final : public details::entity_relationship_handler_t {
 	friend class psl::serialization::accessor;
 	static constexpr auto serialization_name {"ECS"};
 
-
-	// double linked list-like structure. Good enough for now, but could be refactored
-	struct entity_relationship_t {
-		entity_t parent {};
-		entity_t first_child {};
-		entity_t next_sibling {};
-		entity_t prev_sibling {};
-		entity_t::size_type children {0};	 // number of direct children this entity has
-	};
-
-	struct entity_relationship_component_t {
-		std::vector<entity_t> children {};	  // direct children of this entity
-		entity_t parent {};
-		hierarchy_change_event change_event {};
-
-		bool is_root() const noexcept {
-			return parent == invalid_entity;
-		}
-	};
 
 	template <typename S>
 	void serialize(S& serializer) {
@@ -778,32 +763,6 @@ class state_t final {
 		return {};
 	}
 
-	template <typename T>
-		requires(details::IsRangeType<T>)
-	void set_parent(entity_t parent, T const& children) noexcept {
-		for(auto child : children) {
-			state_t::set_parent(parent, child);
-		}
-	}
-
-	bool has_parent(entity_t target) const noexcept;
-	bool has_siblings(entity_t target) const noexcept;
-	bool has_children(entity_t target) const noexcept;
-	bool is_child_of(entity_t parent, entity_t child) const noexcept;
-	bool is_parent_of(entity_t parent, entity_t child) const noexcept;
-	bool is_sibling(entity_t first, entity_t second) const noexcept;
-	bool is_indirect_parent_of(entity_t parent, entity_t child) const noexcept;
-	bool is_root(entity_t target) const noexcept;
-	entity_t get_root(entity_t target) const noexcept;
-	void set_parent(entity_t parent, entity_t child) noexcept;
-	void unparent(entity_t target);
-	psl::array<entity_t> get_children(entity_t parent, bool direct_only = false) const noexcept;
-	psl::array<entity_t> get_direct_children(entity_t parent) const noexcept;
-	psl::array<entity_t> get_all_children(entity_t parent) const noexcept;
-	psl::array<entity_t> get_all_parents(entity_t child) const noexcept;
-	entity_t get_parent(entity_t child) const noexcept;
-	psl::array<entity_t> get_siblings(entity_t target) const noexcept;
-
 	/// \brief returns the amount of active systems
 	size_t systems() const noexcept {
 		return m_SystemInformations.size() - m_ToRevoke.size();
@@ -1431,9 +1390,6 @@ class state_t final {
 	  m_Components {};
 
 	psl::sparse_indice_array<entity_t::size_type> m_ModifiedEntities {};
-	psl::sparse_array<hierarchy_change_event, entity_t::size_type> m_ModifiedHierarchy {};
-
-	psl::sparse_array<entity_relationship_t, entity_t::size_type> m_ParentRelationship {};
 
 	psl::unique_ptr<psl::async::scheduler> m_Scheduler {nullptr};
 

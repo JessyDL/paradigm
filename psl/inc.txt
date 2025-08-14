@@ -84,6 +84,7 @@ ecs/selectors
 ecs/state
 ecs/details/component_container
 ecs/details/component_key
+ecs/details/entity_relationship_handler
 ecs/details/execution
 ecs/details/selectors
 ecs/details/stage_range
