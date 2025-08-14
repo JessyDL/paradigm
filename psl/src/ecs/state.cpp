@@ -1062,9 +1062,6 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 	const auto& cInfo = get_component_container(id);
 	psl_assert(cInfo != nullptr, "component info was null for the key {}", id);
 	psl_assert(std::all_of(std::begin(entities), std::end(entities), [&cInfo](auto e) {
-		if(!cInfo->has_storage_for(e)) {
-			__debugbreak();
-		}
 		psl_assert(
 		  cInfo->has_storage_for(e), "component {} does not have storage for entity {}", cInfo->id().name(), e.value());
 		return true;
