@@ -237,7 +237,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							  cInfo2.set(e, type(static_cast<entity_t::size_type>(e) + offset));
 						  });
 
-			psl::sparse_array<entity_t::size_type> remap;
+			psl::sparse_array<entity_t::size_type, entity_t::size_type> remap;
 			std::for_each(std::begin(entities),
 						  std::end(entities),
 						  [&remap, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {

@@ -144,7 +144,7 @@ class component_container_t {
 		psl_assert(false, "Component {} is not a type that can be serialized", m_Info.id.name());
 	}
 
-	virtual void remap(const psl::sparse_array<entity_t::size_type>& mapping,
+	virtual void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 					   std::function<bool(entity_t)> pred) noexcept = 0;
 	virtual bool merge(const component_container_t& other) noexcept = 0;
 	virtual void clear()											= 0;
@@ -244,7 +244,7 @@ class component_container_typed_t final : public component_container_t {
 		return sizeof(T) * entities.size();
 	};
 
-	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
+	void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
 		m_Entities.remap(mapping, [pred](entity_t::size_type e) -> bool { return pred(details::make_entity(e)); });
 	}
@@ -390,7 +390,7 @@ class component_container_flag_t final : public component_container_t {
 		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
 	}
 
-	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
+	void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
 		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(details::make_entity(entity)); });
 	}
@@ -532,7 +532,7 @@ class component_container_untyped_t final : public component_container_t {
 		return m_Info.size * entities.size();
 	};
 
-	void remap(const psl::sparse_array<entity_t::size_type>& mapping,
+	void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
 		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(details::make_entity(entity)); });
 	}

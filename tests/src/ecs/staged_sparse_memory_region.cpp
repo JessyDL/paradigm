@@ -273,7 +273,7 @@ auto t4 = suite<ssmr_t, "collections">() = []() {
 						std::end(container.indices(stage_range_t::ALL)),
 						[&container](auto index) { return container.get<float>(index) == (float)index; }));
 
-	psl::sparse_array<entity> sparse {};
+	psl::sparse_array<entity, entity> sparse {};
 
 	for(entity i = 0; i < 35; ++i) {
 		sparse[i + 15] = 750 + i;

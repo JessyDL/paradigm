@@ -496,7 +496,7 @@ class staged_sparse_memory_region_t {
 	/// } (index, value), and the predicate didn't reject the item on our end, then what was at 100 in this
 	/// container would be remapped to the index 200.
 	template <typename Fn>
-	FORCEINLINE auto remap(const psl::sparse_array<key_type>& mapping, Fn&& predicate) -> void {
+	FORCEINLINE auto remap(const psl::sparse_array<key_type, key_type>& mapping, Fn&& predicate) -> void {
 		psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 		m_Sparse.clear();
 		m_CachedChunkUserIndex = std::numeric_limits<key_type>::max();

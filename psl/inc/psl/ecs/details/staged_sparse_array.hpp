@@ -272,7 +272,7 @@ class staged_sparse_array {
 	}
 
 	template <typename Fn>
-	void remap(const psl::sparse_array<index_t>& mapping, Fn&& predicate) {
+	void remap(const psl::sparse_array<index_t, index_t>& mapping, Fn&& predicate) {
 		psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 		m_Sparse.clear();
 		m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();
@@ -679,7 +679,7 @@ class staged_sparse_array<void, Key, chunks_size> {
 	}
 
 	template <typename Fn>
-	void remap(const psl::sparse_array<index_t>& mapping, Fn&& predicate) {
+	void remap(const psl::sparse_array<index_t, index_t>& mapping, Fn&& predicate) {
 		psl_assert(m_Reverse.size() >= mapping.size(), "expected {} >= {}", m_Reverse.size(), mapping.size());
 		m_Sparse.clear();
 		m_CachedChunkUserIndex = std::numeric_limits<index_t>::max();

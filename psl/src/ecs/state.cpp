@@ -1235,7 +1235,7 @@ void state_t::execute_command_buffer(info_t& info) {
 		  psl::array_view<entity_t> {&*mid, static_cast<size_t>(std::distance(mid, std::end(destroyed_entities)))});
 	}
 
-	psl::sparse_array<entity_t::size_type> remapped_entities;
+	psl::sparse_array<entity_t::size_type, entity_t::size_type> remapped_entities;
 	if(buffer.m_Entities.size() > 0) {
 		psl::array<entity_t> added_entities;
 		std::set_difference(buffer.m_Entities.data(),
@@ -1245,9 +1245,10 @@ void state_t::execute_command_buffer(info_t& info) {
 							std::back_inserter(added_entities));
 
 		auto new_entities	 = create(added_entities.size());
+		psl_assert(new_entities.size() == added_entities.size(), "new entities size should match added entities size");
 		auto new_entities_it = std::begin(new_entities);
 		for(auto e : added_entities) {
-			remapped_entities[e.value()] = new_entities_it->value();
+			remapped_entities.insert(e.value(), new_entities_it->value());
 			++new_entities_it;
 		}
 	}
@@ -1280,7 +1281,7 @@ void state_t::execute_command_buffer(info_t& info) {
 				m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
 		}
 	}
-	}
+}
 
 size_t state_t::size(psl::array_view<details::component_key_t> keys) const noexcept {
 	for(auto& key : keys) {
