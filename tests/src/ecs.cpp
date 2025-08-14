@@ -290,7 +290,7 @@ auto t1 = suite<"component_key must be unique", "ecs", "psl">().templates<float_
 auto t2 = suite<"filtering", "ecs", "psl">()
 			.templates<tpack<float, complex_wrapper_float, flag_type>, policy_tpack, access_tpack>() =
   []<typename type, typename policy, typename access>() {
-	  state_t state;
+	  state_t state {};
 	  auto e_list1 {state.create(100)};
 	  auto e_list2 {state.create(400)};
 	  auto e_list3 {state.create(500)};

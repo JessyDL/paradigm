@@ -79,75 +79,29 @@ class entity_relationship_data_t final {
 	entity_relationship_data_t(entity_t self) : m_Self(self) {}
 
   public:
-	entity_relationship_data_t()  = default;
-	~entity_relationship_data_t() = default;
+	entity_relationship_data_t();
+	~entity_relationship_data_t();
+	entity_relationship_data_t(entity_relationship_data_t const& rhs);
+	entity_relationship_data_t(entity_relationship_data_t&& rhs);
+	entity_relationship_data_t& operator=(entity_relationship_data_t const& rhs);
+	entity_relationship_data_t& operator=(entity_relationship_data_t&& rhs);
 
-	entity_t parent() const noexcept {
-		return m_Parent;
-	}
-
-	bool is_root() const noexcept {
-		return m_Parent == invalid_entity;
-	}
-
-	bool has_children() const noexcept {
-		return m_Children && !m_Children->empty();
-	}
-
-	bool has_siblings() const noexcept {
-		return m_Siblings && m_Siblings->size() > 1;
-	}
-
-	bool has_parent() const noexcept {
-		return m_Parent != invalid_entity;
-	}
-
-	size_t children_count() const noexcept {
-		if(m_Children) {
-			return m_Children->size();
-		}
-		return 0;
-	}
-
-	size_t siblings_count() const noexcept {
-		if(m_Siblings) {
-			return m_Siblings->size() - 1;
-		}
-		return 0;
-	}
-
-	psl::array_view<entity_t const> children() const noexcept {
-		if(m_Children) {
-			return psl::array_view<entity_t const>(m_Children->data(), m_Children->size());
-		}
-		return psl::array_view<entity_t const> {};
-	}
-
-	psl::array_view<entity_t const> siblings() const noexcept {
-		if(m_Siblings) {
-			return psl::array_view<entity_t const>(m_Siblings->data(), m_Siblings->size());
-		}
-		return psl::array_view<entity_t const> {(const entity_t*)&m_Self, ((const entity_t*)&m_Self) + 1};
-	}
-	[[nodiscard]] psl::array<entity_t> siblings_excluding_self() const noexcept {
-		if(m_Siblings) {
-			psl::array<entity_t> siblings_ {m_Siblings->begin(), m_Siblings->end()};
-			auto it = std::find(siblings_.begin(), siblings_.end(), m_Self);
-			if(it != siblings_.end()) {
-				// remove the self from the siblings
-				*it = siblings_.back();
-				siblings_.pop_back();
-			}
-			return siblings_;
-		}
-		return {};
-	}
+	entity_t parent() const noexcept;
+	bool is_root() const noexcept;
+	bool has_children() const noexcept;
+	bool has_siblings() const noexcept;
+	bool has_parent() const noexcept;
+	size_t children_count() const noexcept;
+	size_t siblings_count() const noexcept;
+	psl::array_view<entity_t const> children() const noexcept;
+	psl::array_view<entity_t const> siblings() const noexcept;
+	[[nodiscard]] psl::array<entity_t> siblings_excluding_self() const noexcept;
 
   private:
 	entity_t m_Parent {};
 	entity_t m_Self {};
 	std::shared_ptr<psl::array<entity_t>> m_Children {};
-	mutable std::shared_ptr<psl::array<entity_t>> m_Siblings {};
+	std::shared_ptr<psl::array<entity_t>> m_Siblings {};
 };
 
 // todo(jdl): this should be fully locked down and only editable by the state_t
