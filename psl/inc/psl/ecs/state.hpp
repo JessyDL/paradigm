@@ -531,9 +531,6 @@ class state_t final : public details::entity_relationship_handler_t {
 		} else {
 			entity = m_Entities++;
 		}
-
-		add_component<entity_relationship_data_t>(psl::array_view<entity_t> {&entity, 1},
-												  entity_relationship_data_t {entity});
 		return entity;
 	}
 
@@ -557,8 +554,6 @@ class state_t final : public details::entity_relationship_handler_t {
 		if constexpr(sizeof...(Ts) > 0) {
 			(add_components<Ts>(entities), ...);
 		}
-		add_component<entity_relationship_data_t>(
-		  entities, [](entity_relationship_data_t& data, entity_t e) { data.m_Self = e; });
 		return entities;
 	}
 
@@ -580,9 +575,6 @@ class state_t final : public details::entity_relationship_handler_t {
 		m_Entities += remainder;
 
 		add_components(entities, std::forward<Ts>(prototype)...);
-
-		add_component<entity_relationship_data_t>(
-		  entities, [](entity_relationship_data_t& data, entity_t e) { data.m_Self = e; });
 		return entities;
 	}
 

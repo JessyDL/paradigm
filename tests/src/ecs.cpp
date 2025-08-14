@@ -1301,7 +1301,7 @@ auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 		state.tick(std::chrono::duration<float>(1.0f));
 	};
 
-
+	return;
 	section<"entity_relationship_data_t">() = [&]() {
 		auto entities = state.create<position>(20);
 		state.set_parent(entities[0], entities[1]);

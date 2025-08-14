@@ -887,8 +887,11 @@ psl::array<entity_t>::iterator state_t::filter(details::filter_group const& grou
 		}
 	}
 
-
+	static constexpr auto erd_key = component_key_t::generate<entity_relationship_data_t>();
 	for(auto filter : group.filters) {
+		if(filter.key == erd_key) {
+			continue;
+		}
 		end = filter_op(filter, begin, end);
 	}
 	for(auto filter : group.except) {
@@ -1145,6 +1148,17 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 												  [filter, &cInfo](entity_t e) { return cInfo->has_storage_for(e); });
 						   }),
 			   "some components failed to have storage for the entities");
+	static constexpr auto erd_key = component_key_t::generate<entity_relationship_data_t>();
+	if(std::any_of(std::begin(data.group->filters), std::end(data.group->filters), [](auto const& container) {
+		   return container.key == erd_key;
+	   })) {
+		for(auto e : data.entities) {
+			if(!m_Components[erd_key]->has(e)) {
+				entity_relationship_data_t value {e};
+				m_Components[erd_key]->add(e, &value);
+			}
+		}
+	}
 }
 
 size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, component_key_t id) const noexcept {
@@ -1244,7 +1258,7 @@ void state_t::execute_command_buffer(info_t& info) {
 							buffer.m_DestroyedEntities.data() + buffer.m_DestroyedEntities.size(),
 							std::back_inserter(added_entities));
 
-		auto new_entities	 = create(added_entities.size());
+		auto new_entities = create(added_entities.size());
 		psl_assert(new_entities.size() == added_entities.size(), "new entities size should match added entities size");
 		auto new_entities_it = std::begin(new_entities);
 		for(auto e : added_entities) {
