@@ -24,6 +24,11 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", key);
 
 	cInfo->add(entities);
+	for(auto e : entities) {
+		if(e.value() < m_First) {
+			m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
+		}
+	}
 }
 
 // invocable based construction
@@ -40,6 +45,11 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 
 	auto location = (std::uintptr_t)cInfo->data() + (offset * size);
 	std::invoke(invocable, location, entities.size());
+	for(auto e : entities) {
+		if(e.value() < m_First) {
+			m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
+		}
+	}
 }
 
 // prototype based construction
@@ -58,11 +68,17 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 	if(repeat) {
 		for(auto e : entities) {
 			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
+			if(e.value() < m_First) {
+				m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
+			}
 		}
 	} else {
 		for(auto e : entities) {
 			std::memcpy((void*)((std::uintptr_t)cInfo->data() + (offset++) * size), prototype, size);
 			prototype = (void*)((std::uintptr_t)prototype + size);
+			if(e.value() < m_First) {
+				m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
+			}
 		}
 	}
 }
@@ -71,23 +87,28 @@ void command_buffer_t::add_component_impl(const details::component_key_t& key,
 void command_buffer_t::remove_component(
   const details::component_key_t& key,
   psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) noexcept {
-	auto it = std::find_if(
-	  std::begin(m_Components), std::end(m_Components), [&key](const auto& cInfo) { return cInfo->id() == key; });
-	psl_assert(it != std::end(m_Components), "component info for key {} was not found", key);
-	(*it)->add(entities);
-	(*it)->destroy(entities);
+	auto& array = m_RemovedComponents[key];
+
+	for(auto range : entities) {
+		for(entity_t::size_type i = range.first; i < range.second; ++i) {
+			array.insert(i);
+			if(i < m_First) {
+				m_ModifiedEntities.try_insert(i);
+			}
+		}
+	}
 }
 
 
 void command_buffer_t::remove_component(const details::component_key_t& key,
 										psl::array_view<entity_t> entities) noexcept {
-	auto it = std::find_if(
-	  std::begin(m_Components), std::end(m_Components), [&key](const auto& cInfo) { return cInfo->id() == key; });
-	psl_assert(it != std::end(m_Components), "component info for key {} was not found", key);
-
-
-	(*it)->add(entities);
-	(*it)->destroy(entities);
+	auto& array = m_RemovedComponents[key];
+	array.insert(entities.begin(), entities.end());
+	for(auto e : entities) {
+		if(e.value() < m_First) {
+			m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));
+		}
+	}
 }
 
 // consider an alias feature

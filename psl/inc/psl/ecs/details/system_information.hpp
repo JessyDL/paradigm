@@ -486,7 +486,7 @@ class system_information final {
 	system_invocable_type m_System;
 	psl::array<std::shared_ptr<details::filter_group>> m_Filters {};
 	psl::array<std::shared_ptr<details::transform_group>> m_Transforms {};
-	psl::string_view m_DebugName {};
+	psl::string m_DebugName {};
 	system_token m_ID {0};
 	size_t m_Tick {0};
 };

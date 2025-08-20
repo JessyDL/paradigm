@@ -205,7 +205,11 @@ constexpr static tquat<precision_t> inverse(const tquat<precision_t>& quat) {
 }
 }	 // namespace psl::math
 
-#include "psl/math/AVX/quaternion.hpp"
+// separate to avoid sorting
 #include "psl/math/AVX2/quaternion.hpp"
+// separate to avoid sorting
+#include "psl/math/AVX/quaternion.hpp"
+// separate to avoid sorting
 #include "psl/math/SSE/quaternion.hpp"
+// separate to avoid sorting
 #include "psl/math/fallback/quaternion.hpp"

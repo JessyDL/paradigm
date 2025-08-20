@@ -30,7 +30,7 @@ target_include_directories(tests
 
 target_compile_features(tests PUBLIC ${PE_COMPILER_FEATURES} PRIVATE ${PE_COMPILER_FEATURES_PRIVATE})
 target_compile_options(tests PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
-target_compile_definitions(psl PUBLIC ${PE_DEFINES})
+target_compile_definitions(tests PUBLIC ${PE_DEFINES})
 
 if (MSVC)
 	target_compile_options(tests PRIVATE /bigobj)

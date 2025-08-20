@@ -1,4 +1,5 @@
 #include "psl/math/math.hpp"
+#include "psl/math/quaternion.hpp"
 #include <stdint.h>
 
 using namespace psl;

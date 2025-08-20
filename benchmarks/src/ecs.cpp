@@ -3,6 +3,7 @@
 #include "psl/ecs/state.hpp"
 #include "psl/math/math.hpp"
 #include <benchmark/benchmark.h>
+#include <random>
 
 using namespace psl;
 using namespace psl::ecs;
@@ -54,7 +55,7 @@ void entity_creation(benchmark::State& gState) {
 
 void entity_creation_with_destruction(benchmark::State& gState) {
 	auto eCount		= get_range<psl::ecs::entity_t::size_type>(gState, 0);
-	auto eHalfCount = static_cast<ecs::entity_t::size_type>(eCount / 2);
+	auto eHalfCount = eCount >> 1;
 
 	ecs::state_t state;
 	for(auto _ : gState) {
@@ -63,16 +64,123 @@ void entity_creation_with_destruction(benchmark::State& gState) {
 		gState.ResumeTiming();
 		auto ents = state.create(eCount);
 		ents.erase(std::next(std::begin(ents), eHalfCount), std::end(ents));
+
+		gState.PauseTiming();
+		std::random_device rd;
+		std::mt19937 g(rd());
+		std::shuffle(std::begin(ents), std::end(ents), g);
+		gState.ResumeTiming();
+
 		state.destroy(ents);
 		state.create(eHalfCount);
 	}
 }
 
-BENCHMARK(entity_creation)->RangeMultiplier(10)->Range(1, 1'000'000)->Unit(benchmark::kMicrosecond);
-BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(1, 1'000'000)->Unit(benchmark::kMicrosecond);
+BENCHMARK(entity_creation)->RangeMultiplier(10)->Range(100, 1'000'000)->Unit(benchmark::kMicrosecond);
+BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(100, 1'000'000)->Unit(benchmark::kMicrosecond);
 #endif
 
 #ifdef BENCHMARK_COMPONENT_CREATION
+
+struct some_type_t {
+	some_type_t() : value(0) {}
+	some_type_t(uint64_t v) : value(v) {}
+	some_type_t(const some_type_t& other) : value(other.value) {}
+	some_type_t(some_type_t&& other) noexcept : value(other.value) {
+		other.value = 0;
+	}
+	some_type_t& operator=(const some_type_t& other) {
+		if(this != &other) {
+			value = other.value;
+		}
+		return *this;
+	}
+	some_type_t& operator=(some_type_t&& other) noexcept {
+		if(this != &other) {
+			value		= other.value;
+			other.value = 0;
+		}
+		return *this;
+	}
+	~some_type_t() {};
+	uint64_t value {0};
+};
+
+struct some_type2_t : public some_type_t {};
+struct some_type3_t : public some_type_t {};
+struct some_type4_t : public some_type_t {};
+struct some_type5_t : public some_type_t {};
+
+void component_creation_baseline(benchmark::State& gState) {
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
+	auto cCount = gState.range(1);
+
+
+	for(auto _ : gState) {
+		std::vector<int> vec0;
+		std::vector<float> vec1;
+		std::vector<char> vec2;
+		std::vector<bool> vec3;
+		std::vector<uint64_t> vec4;
+		if(cCount >= 5)
+			benchmark::DoNotOptimize([&]() {
+				vec4.resize(eCount);
+				benchmark::DoNotOptimize(vec4);
+				return vec4.data();
+			}());
+		if(cCount >= 4)
+			benchmark::DoNotOptimize([&]() {
+				vec3.resize(eCount);
+				benchmark::DoNotOptimize(vec3);
+				return vec3.back();
+			}());
+		if(cCount >= 3)
+			benchmark::DoNotOptimize([&]() {
+				vec2.resize(eCount);
+				benchmark::DoNotOptimize(vec2);
+				return vec2.data();
+			}());
+		if(cCount >= 2)
+			benchmark::DoNotOptimize([&]() {
+				vec1.resize(eCount);
+				benchmark::DoNotOptimize(vec1);
+				return vec1.data();
+			}());
+
+		benchmark::DoNotOptimize([&]() {
+			vec0.resize(eCount);
+			benchmark::DoNotOptimize(vec0);
+			return vec0.data();
+		}());
+	}
+}
+
+void component_creation_no_mod(benchmark::State& gState) {
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
+	auto cCount = gState.range(1);
+	psl::array<std::unique_ptr<psl::ecs::details::component_container_t>> containers {};
+
+	ecs::state_t state;
+	auto entities = state.create(eCount);
+	for(auto _ : gState) {
+		gState.PauseTiming();
+		containers.clear();
+		containers.emplace_back(psl::ecs::details::instantiate_component_container<int>());
+		if(cCount >= 2)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<float>());
+		if(cCount >= 3)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<char>());
+		if(cCount >= 4)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<bool>());
+		if(cCount >= 5)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<uint64_t>());
+		gState.ResumeTiming();
+		for(auto i = 0; i < cCount; ++i) {
+			containers[i]->add(entities);
+		}
+	}
+}
+
 void component_creation(benchmark::State& gState) {
 	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
 	auto cCount = gState.range(1);
@@ -96,11 +204,107 @@ void component_creation(benchmark::State& gState) {
 	}
 }
 
-void component_creation_args(benchmark::internal::Benchmark* b) {
-	for(int j = 1; j <= 5; ++j)
-		for(int i = 0; i <= 6; ++i) b->ArgPair((int64_t)pow(10, i), j);
+void complex_component_creation_baseline(benchmark::State& gState) {
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
+	auto cCount = gState.range(1);
+	for(auto _ : gState) {
+		std::vector<some_type_t> vec0;
+		std::vector<some_type2_t> vec1;
+		std::vector<some_type3_t> vec2;
+		std::vector<some_type4_t> vec3;
+		std::vector<some_type5_t> vec4;
+
+		if(cCount >= 5)
+			benchmark::DoNotOptimize([&]() {
+				vec4.resize(eCount);
+				return vec4.data();
+			}());
+		if(cCount >= 4)
+			benchmark::DoNotOptimize([&]() {
+				vec3.resize(eCount);
+				return vec3.data();
+			}());
+		if(cCount >= 3)
+			benchmark::DoNotOptimize([&]() {
+				vec2.resize(eCount);
+				return vec2.data();
+			}());
+		if(cCount >= 2)
+			benchmark::DoNotOptimize([&]() {
+				vec1.resize(eCount);
+				return vec1.data();
+			}());
+
+		benchmark::DoNotOptimize([&]() {
+			vec0.resize(eCount);
+			return vec0.data();
+		}());
+	}
 }
+
+void complex_component_creation_no_mod(benchmark::State& gState) {
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
+	auto cCount = gState.range(1);
+	psl::array<std::unique_ptr<psl::ecs::details::component_container_t>> containers {};
+
+	ecs::state_t state;
+	auto entities = state.create(eCount);
+	for(auto _ : gState) {
+		gState.PauseTiming();
+		containers.clear();
+		containers.emplace_back(psl::ecs::details::instantiate_component_container<some_type_t>());
+		if(cCount >= 2)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<some_type2_t>());
+		if(cCount >= 3)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<some_type3_t>());
+		if(cCount >= 4)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<some_type4_t>());
+		if(cCount >= 5)
+			containers.emplace_back(psl::ecs::details::instantiate_component_container<some_type5_t>());
+		gState.ResumeTiming();
+		for(auto i = 0; i < cCount; ++i) {
+			containers[i]->add(entities);
+		}
+	}
+}
+
+void complex_component_creation(benchmark::State& gState) {
+	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
+	auto cCount = gState.range(1);
+	ecs::state_t state;
+	auto entities = state.create(eCount);
+
+	for(auto _ : gState) {
+		gState.PauseTiming();
+		state.clear();
+		gState.ResumeTiming();
+		if(cCount >= 5)
+			state.add_components<some_type5_t>(entities);
+		if(cCount >= 4)
+			state.add_components<some_type4_t>(entities);
+		if(cCount >= 3)
+			state.add_components<some_type3_t>(entities);
+		if(cCount >= 2)
+			state.add_components<some_type2_t>(entities);
+
+		state.add_components<some_type_t>(entities);
+	}
+}
+
+void component_creation_args(benchmark::internal::Benchmark* b) {
+	for(int j = 1; j <= 5; ++j) {
+		for(int i = 2; i <= 6; ++i) {
+			b->ArgPair((int64_t)pow(10, i), j);
+		}
+	}
+}
+
 BENCHMARK(component_creation)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
+// BENCHMARK(component_creation_no_mod)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
+// BENCHMARK(component_creation_baseline)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
+BENCHMARK(complex_component_creation)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
+// BENCHMARK(complex_component_creation_no_mod)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
+// BENCHMARK(complex_component_creation_baseline)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
 #endif
 
 #ifdef BENCHMARK_FILTERING

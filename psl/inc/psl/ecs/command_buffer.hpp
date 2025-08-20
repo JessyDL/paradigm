@@ -17,6 +17,7 @@ namespace psl::ecs {
 class state_t;
 
 namespace details {
+	class components_cache_t;
 	template <typename T>
 	concept IsRangeType = requires(T t) {
 // todo std::convertible_to is not available in android ndk
@@ -114,6 +115,7 @@ namespace details {
 
 class command_buffer_t {
 	friend class state_t;
+	friend class details::components_cache_t;
 
 	template <IsPack PackType>
 	psl::array_view<entity_t> pack_get_entities(PackType const& pack) {
@@ -197,7 +199,6 @@ class command_buffer_t {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
-		(create_storage<Ts>(), ...);
 		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 	}
 
@@ -222,7 +223,6 @@ class command_buffer_t {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
-		(create_storage<Ts>(), ...);
 		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 	}
 
@@ -415,10 +415,12 @@ class command_buffer_t {
 	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
 	// contains the association between the mutation instruction component (key), and the one it is mutating (value)
 	std::unordered_map<details::component_key_t, details::component_key_t> m_MutatedComponents {};
+	std::unordered_map<details::component_key_t, std::unordered_set<entity_t::size_type>> m_RemovedComponents {};
 	entity_t::size_type m_First {0};
 	psl::array<entity_t> m_Entities {};
 
 	psl::array<entity_t> m_DestroyedEntities {};
+	psl::sparse_indice_array<entity_t::size_type> m_ModifiedEntities {};
 
 	entity_t::size_type m_Next {0};
 	entity_t::size_type m_Orphans {0};

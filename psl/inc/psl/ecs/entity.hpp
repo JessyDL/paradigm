@@ -1,6 +1,7 @@
 #pragma once
 #include "psl/array.hpp"
 #include <cstdint>
+#include <numeric>
 #include <type_traits>
 
 namespace psl::ecs {
@@ -39,6 +40,8 @@ namespace details {
 
 	constexpr inline entity_t make_entity(entity_size_type value) noexcept;
 	constexpr inline entity_size_type get_value(entity_t entity) noexcept;
+
+	class entity_container_t;
 }	 // namespace details
 
 /// ----------------------------------------------------------------------------------------------
@@ -50,6 +53,8 @@ namespace details {
 struct entity_t {
 	friend struct std::hash<entity_t>;
 	friend class psl::ecs::state_t;
+	friend class psl::ecs::details::entity_container_t;
+
 	// edit this value for smaller or larger entities.
 	using size_type												   = details::entity_size_type;
 	static constexpr size_type INVALID_ENTITY_VALUE				   = std::numeric_limits<size_type>::max();

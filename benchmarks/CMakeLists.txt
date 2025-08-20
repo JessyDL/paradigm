@@ -37,3 +37,4 @@ target_include_directories(benchmarks
 
 target_compile_features(benchmarks PUBLIC ${PE_COMPILER_FEATURES} PRIVATE ${PE_COMPILER_FEATURES_PRIVATE})
 target_compile_options(benchmarks PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+target_compile_definitions(benchmarks PUBLIC ${PE_DEFINES})

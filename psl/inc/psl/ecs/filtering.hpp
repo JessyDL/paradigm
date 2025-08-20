@@ -11,6 +11,19 @@
 namespace psl::ecs {
 class state_t;
 namespace details {
+	class filter_work_order_t;
+	class systems_cache_t;
+	enum class filtering_op_type_t : uint8_t {
+		filter,
+		on_add,
+		on_remove,
+		on_break,
+		on_combine,
+		on_mutate,
+		except,
+		on_hierarchy_change,
+	};
+
 	struct cached_container_entry_t {
 		constexpr cached_container_entry_t(const details::component_key_t& target) : key(target), container(nullptr) {};
 		constexpr cached_container_entry_t(details::component_container_t* target)
@@ -150,6 +163,7 @@ namespace details {
 
 	  private:
 		friend class ::psl::ecs::state_t;
+		friend class ::psl::ecs::details::systems_cache_t;
 		void add_debug_system_name(psl::string_view name) {
 			m_SystemsDebugNames.emplace_back(name);
 		}
@@ -162,6 +176,7 @@ namespace details {
 
 	class filter_group {
 		friend class ::psl::ecs::state_t;
+		friend class ::psl::ecs::details::filter_work_order_t;
 
 		struct filter_group_container_t {
 			filter_group_container_t() = default;
@@ -414,6 +429,12 @@ namespace details {
 			return false;
 		}
 
+		bool is_singular_filter() const noexcept {
+			return (filters.size() + on_add.size() + on_remove.size() + on_combine.size() + on_break.size() <= 0) &&
+				   except.size() == 0 && on_mutate.size() == 0 && hierarchy_change == hierarchy_change_event::none &&
+				   relationship == entity_relationship::self;
+		}
+
 		bool clear_every_frame() const noexcept {
 			return on_remove.size() > 0 || on_break.size() > 0 || on_combine.size() > 0 || on_add.size() > 0 ||
 				   on_mutate.size() > 0 || hierarchy_change != hierarchy_change_event::none;
@@ -459,6 +480,7 @@ namespace details {
 
 	  private:
 		friend class ::psl::ecs::state_t;
+		friend class ::psl::ecs::details::systems_cache_t;
 
 		void add_debug_system_name(psl::string_view name) {
 			m_SystemsDebugNames.emplace_back(name);
@@ -473,7 +495,7 @@ namespace details {
 		filter_group_container_t on_mutate;
 		hierarchy_change_event hierarchy_change {hierarchy_change_event::none};
 		entity_relationship relationship {entity_relationship::self};
-		psl::array<psl::string_view> m_SystemsDebugNames;
+		psl::array<psl::string> m_SystemsDebugNames;
 		bool seed_with_previous {false};
 		bool hierarchy_seed_with_previous {false};
 	};

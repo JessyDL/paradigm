@@ -1,6 +1,5 @@
 #pragma once
 #if INSTRUCTION_SET == 0
-	#include "psl/math/quaternion.hpp"
 
 namespace psl {
 template <typename precision_t>

@@ -2,7 +2,7 @@
 #if INSTRUCTION_SET == 2
 	#undef INSTRUCTION_SET
 	#define INSTRUCTION_SET 1
-	#include "math/SSE/quaternion.hpp"
+	#include "psl/math/SSE/quaternion.hpp"
 	#undef INSTRUCTION_SET
 	#define INSTRUCTION_SET 2
 #endif

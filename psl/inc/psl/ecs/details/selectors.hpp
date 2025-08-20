@@ -298,4 +298,87 @@ template <typename... Ts>
 struct wrap_with_array_view<std::tuple<Ts...>> {
 	using type = std::tuple<psl::array_view<Ts>...>;
 };
+namespace {
+	template <typename T>
+	struct is_on_add_t : std::false_type {};
+	template <typename... Ts>
+	struct is_on_add_t<on_add<Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_on_remove_t : std::false_type {};
+	template <typename... Ts>
+	struct is_on_remove_t<on_remove<Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_on_combine_t : std::false_type {};
+	template <typename... Ts>
+	struct is_on_combine_t<on_combine<Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_on_break_t : std::false_type {};
+	template <typename... Ts>
+	struct is_on_break_t<on_break<Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_on_mutate_t : std::false_type {};
+	template <typename T>
+	struct is_on_mutate_t<on_mutate<T>> : std::true_type {};
+
+	template <typename T>
+	struct is_on_condition_t : std::false_type {};
+	template <typename Pred, typename... Ts>
+	struct is_on_condition_t<on_condition<Pred, Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_order_by_t : std::false_type {};
+	template <typename Pred, typename... Ts>
+	struct is_order_by_t<order_by<Pred, Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_get_relationship_t : std::false_type {};
+	template <entity_relationship Relationship>
+	struct is_get_relationship_t<get_relationship<Relationship>> : std::true_type {};
+
+	template <typename T>
+	struct is_hierarchy_change_t : std::false_type {};
+	template <hierarchy_change_event Change, typename T>
+	struct is_hierarchy_change_t<on_hierarchy_change<Change, T>> : std::true_type {};
+
+
+	template <typename T>
+	struct is_filter_t : std::true_type {};
+
+	template <typename T>
+		requires(!is_on_add_t<T>::value && !is_on_remove_t<T>::value && !is_on_combine_t<T>::value &&
+				 !is_on_break_t<T>::value && !is_on_mutate_t<T>::value && !is_on_condition_t<T>::value &&
+				 !is_order_by_t<T>::value && !is_get_relationship_t<T>::value && !is_hierarchy_change_t<T>::value)
+	struct is_filter_t<T> : std::false_type {};
+	template <typename... Ts>
+	struct is_filter_t<filter<Ts...>> : std::true_type {};
+}	 // namespace
+
+template <typename T>
+concept IsOnAdd = is_on_add_t<T>::value;
+template <typename T>
+concept IsOnRemove = is_on_remove_t<T>::value;
+template <typename T>
+concept IsOnCombine = is_on_combine_t<T>::value;
+template <typename T>
+concept IsOnBreak = is_on_break_t<T>::value;
+template <typename T>
+concept IsOnMutate = is_on_mutate_t<T>::value;
+template <typename T>
+concept IsOnCondition = is_on_condition_t<T>::value;
+template <typename T>
+concept IsOrderBy = is_order_by_t<T>::value;
+template <typename T>
+concept IsFilter = is_filter_t<T>::value;
+template <typename T>
+concept IsGetRelationship = is_get_relationship_t<T>::value;
+template <typename T>
+concept IsHierarchyChange = is_hierarchy_change_t<T>::value;
+
+template <typename T>
+concept IsSimpleFilteringOp = !IsOnAdd<T> && !IsOnRemove<T> && !IsOnCombine<T> && !IsOnBreak<T> && !IsOnMutate<T> &&
+							  !IsOnCondition<T> && !IsHierarchyChange<T>;
 }	 // namespace psl::ecs::details

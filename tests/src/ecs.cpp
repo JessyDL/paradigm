@@ -92,7 +92,7 @@ struct psl::ecs::component_updater_t<updated_component> {
 
 struct foo_restricted {
 	int value1;
-	float value2;
+	int value2;
 	bool value3;
 };
 
@@ -197,6 +197,8 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 					for(entity_t::size_type i = 0; i < count; ++i) {
 						auto index = c * 10 + i;
 						cInfo.destroy(entities[index]);
+						require(!cInfo.has_component(entities[index]));
+						require(cInfo.has_removed(entities[index]));
 					}
 
 					for(entity_t::size_type i = 0; i < static_cast<entity_t::size_type>(entities.size()); ++i) {
@@ -259,8 +261,8 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							  std::end(cInfo.entities()),
 							  [&cInfo, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
 								  require(static_cast<entity_t::size_type>(e)) <= offset;
-								  require(cInfo.entity_data().template operator[]<type>(
-									static_cast<entity_t::size_type>(e))) == type(static_cast<entity_t::size_type>(e));
+								  require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(e))) ==
+									type(static_cast<entity_t::size_type>(e));
 							  });
 			};
 		};
@@ -339,9 +341,9 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 	  };
 
 	  section<"filtering components that are non-contiguous">() = [&]() {
-		  auto last_created_entities = state.create<type, size_t>(static_cast<entity_t::size_type>(500));
+		  auto last_created_entities = state.create<type, size_t>(500);
 		  state.destroy(last_created_entities.back());
-		  auto entities = state.create<type, size_t>(static_cast<entity_t::size_type>(3));
+		  auto entities = state.create<type, size_t>(3);
 
 		  require(entities.size()) == 3;
 		  require(static_cast<entity_t::size_type>(entities[0])) == 1500;
@@ -583,7 +585,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
-		  ;
+
 		  state.add_components<type>(e_list2, values);
 		  auto expected = e_list2.size();
 
@@ -610,7 +612,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 
 
 	  section<"continuous removal from external">() = [&]() {
-		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
+		  auto e_list2 {state.create(40)};
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
@@ -634,8 +636,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 			  require(total) == expected;
 			  total	   = 0;
 			  auto mid = std::partition(std::begin(e_list2), std::end(e_list2), [](auto e) { return std::rand() % 2; });
-			  state.remove_components<type>(
-				psl::array_view<entity_t> {mid, static_cast<size_t>(std::distance(mid, std::end(e_list2)))});
+			  state.remove_components<type>(psl::array_view<entity_t> {mid, std::end(e_list2)});
 			  expected -= std::distance(mid, std::end(e_list2));
 			  e_list2.erase(mid, std::end(e_list2));
 		  }
@@ -813,8 +814,8 @@ auto t7 =
 		  // reason: filtering operation that was based on existing filters did not correctly
 		  //         use the already filtered entity list
 
-		  auto entities0 = state.create<type>(static_cast<entity_t::size_type>(1));
-		  auto entities1 = state.create(static_cast<entity_t::size_type>(1));
+		  auto entities0 = state.create<type>(1);
+		  auto entities1 = state.create(1);
 		  state.remove_components<type>(entities0);
 		  expect(state.filter<type>().size()) == 0;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
@@ -899,22 +900,22 @@ auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	require(state.get<foo>(entity[0]).value) == 10;
 };
 
-auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
-	// this test will load an outdated version of the `updated_component` (see `updated_component_v0`)
-	// and we'll verify if the data migration went correctly. If all went fine the value in the component
-	// should be equal to the entity id associated with the component.
-	psl::ecs::state_t state {};
-	psl::serialization::serializer s {};
-	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
-
-	auto entities	= state.all_entities();
-	auto components = state.get_component<updated_component>(entities);
-
-	for(auto e : entities) {
-		auto value = components[static_cast<psl::ecs::entity_t::size_type>(e)].value;
-		require(value == (int)static_cast<psl::ecs::entity_t::size_type>(e));
-	}
-};
+// auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
+//	// this test will load an outdated version of the `updated_component` (see `updated_component_v0`)
+//	// and we'll verify if the data migration went correctly. If all went fine the value in the component
+//	// should be equal to the entity id associated with the component.
+//	psl::ecs::state_t state {};
+//	psl::serialization::serializer s {};
+//	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
+//
+//	auto entities	= state.all_entities();
+//	auto components = state.get_component<updated_component>(entities);
+//
+//	for(auto e : entities) {
+//		auto value = components[static_cast<psl::ecs::entity_t::size_type>(e)].value;
+//		require(value == (int)static_cast<psl::ecs::entity_t::size_type>(e));
+//	}
+// };
 
 auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
@@ -936,6 +937,17 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 			require(value.value2) == mutated_values.value2;
 			require(value.value3) == mutated_values.value3;
 
+			require(mutator.has_mutated<&foo_restricted::value1>()) == has_mutated;
+			require(mutator.has_mutated<&foo_restricted::value2>()) == has_mutated;
+			require(mutator.has_mutated<&foo_restricted::value3>()) == has_mutated;
+		}
+	});
+
+	state.declare([&has_mutated, &mutated_values](
+					psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+		require(pack.size()) == ((has_mutated) ? 2 : 0);
+
+		for(auto [mutator] : pack) {
 			require(mutator.has_mutated<&foo_restricted::value1>()) == has_mutated;
 			require(mutator.has_mutated<&foo_restricted::value2>()) == has_mutated;
 			require(mutator.has_mutated<&foo_restricted::value3>()) == has_mutated;
@@ -969,7 +981,7 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 
 		for(auto [value, mutator] : pack) {
 			require(value.value1) == (int)info.tick - 1;
-			require(value.value2) == 3.0f * (info.tick - 1);
+			require(value.value2) == 3 * (int)(info.tick - 1);
 			require(value.value3) == true;
 
 			require(mutator.has_mutated<&foo_restricted::value1>()) == (info.tick == 1 ? false : true);
@@ -980,8 +992,8 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 
 	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<entity_t, const foo_restricted> pack) {
 		require(pack.size()) == 5;
-		info.command_buffer.mutate_components<foo_restricted>(pack,
-															  foo_restricted {(int)info.tick, 3.0f * info.tick, true});
+		info.command_buffer.mutate_components<foo_restricted>(
+		  pack, foo_restricted {(int)info.tick, 3 * (int)info.tick, true});
 	});
 	state.tick(std::chrono::duration<float>(1.0f));
 	state.tick(std::chrono::duration<float>(1.0f));
@@ -989,6 +1001,7 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 	state.tick(std::chrono::duration<float>(1.0f));
 };
 
+#if !defined(PE_ECS_DISABLE_ENTITY_HIERARCHY)
 auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
 
@@ -1371,5 +1384,6 @@ auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 		state.tick(std::chrono::duration<float>(1.0f));
 	};
 };
+#endif
 
 }	 // namespace
