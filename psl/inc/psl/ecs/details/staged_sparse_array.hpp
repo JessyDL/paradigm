@@ -20,101 +20,101 @@ namespace psl::ecs::details {
 struct untyped_tag_t {};
 struct flag_tag_t {};
 
-namespace {
-	struct untyped_iterator_t {
-		using iterator_concept	= std::contiguous_iterator_tag;
-		using iterator_category = std::random_access_iterator_tag;
-		using value_type		= std::byte;	// your element type
-		using difference_type	= std::ptrdiff_t;
-		using pointer			= std::byte*;	 // can be void for output iterators
-		using reference			= std::byte&;	 // can be void for output iterators
-		using element_type		= std::byte;
+struct untyped_iterator_t {
+	using iterator_concept	= std::contiguous_iterator_tag;
+	using iterator_category = std::random_access_iterator_tag;
+	using value_type		= std::byte;	// your element type
+	using difference_type	= std::ptrdiff_t;
+	using pointer			= std::byte*;	 // can be void for output iterators
+	using reference			= std::byte&;	 // can be void for output iterators
+	using element_type		= std::byte;
 
-		untyped_iterator_t(std::byte* ptr, size_t type_size) : m_Ptr(ptr), m_TypeSize(type_size) {
-			psl_assert(m_TypeSize > 0, "type size must be greater than 0");
-		}
-		untyped_iterator_t() = default;
-		untyped_iterator_t(untyped_iterator_t&& other) noexcept : m_Ptr(other.m_Ptr), m_TypeSize(other.m_TypeSize) {
-			other.m_Ptr = nullptr;
-		}
-		untyped_iterator_t(const untyped_iterator_t& other)			   = default;
-		untyped_iterator_t& operator=(const untyped_iterator_t& other) = default;
-		untyped_iterator_t& operator=(untyped_iterator_t&& other)	   = default;
-		~untyped_iterator_t()										   = default;
+	untyped_iterator_t(std::byte* ptr, size_t type_size) : m_Ptr(ptr), m_TypeSize(type_size) {
+		psl_assert(m_TypeSize > 0, "type size must be greater than 0");
+	}
+	untyped_iterator_t() = default;
+	untyped_iterator_t(untyped_iterator_t&& other) noexcept : m_Ptr(other.m_Ptr), m_TypeSize(other.m_TypeSize) {
+		other.m_Ptr = nullptr;
+	}
+	untyped_iterator_t(const untyped_iterator_t& other)			   = default;
+	untyped_iterator_t& operator=(const untyped_iterator_t& other) = default;
+	untyped_iterator_t& operator=(untyped_iterator_t&& other)	   = default;
+	~untyped_iterator_t()										   = default;
 
-		reference operator*() const {
-			psl_assert(m_Ptr != nullptr, "dereferencing a null pointer");
-			return *m_Ptr;
-		}
-		pointer operator->() const {
-			psl_assert(m_Ptr != nullptr, "accessing a null pointer");
-			return m_Ptr;
-		}
+	reference operator*() const {
+		psl_assert(m_Ptr != nullptr, "dereferencing a null pointer");
+		return *m_Ptr;
+	}
+	pointer operator->() const {
+		psl_assert(m_Ptr != nullptr, "accessing a null pointer");
+		return m_Ptr;
+	}
 
-		// For accessing the whole "element"
-		pointer data() const {
-			return m_Ptr;
-		}
+	// For accessing the whole "element"
+	pointer data() const {
+		return m_Ptr;
+	}
 
-		bool operator==(const untyped_iterator_t& other) const noexcept {
-			return m_Ptr == other.m_Ptr;
-		}
-		bool operator!=(const untyped_iterator_t& other) const noexcept {
-			return m_Ptr != other.m_Ptr;
-		}
-		untyped_iterator_t& operator++() noexcept {
-			m_Ptr += m_TypeSize;
-			return *this;
-		}
-		untyped_iterator_t operator++(int) noexcept {
-			auto temp = *this;
-			++(*this);
-			return temp;
-		}
-		untyped_iterator_t& operator--() noexcept {
-			m_Ptr -= m_TypeSize;
-			return *this;
-		}
-		untyped_iterator_t operator--(int) noexcept {
-			auto temp = *this;
-			--(*this);
-			return temp;
-		}
-		untyped_iterator_t operator+(size_t offset) const noexcept {
-			return untyped_iterator_t(m_Ptr + (offset * m_TypeSize), m_TypeSize);
-		}
-		untyped_iterator_t operator-(size_t offset) const noexcept {
-			return untyped_iterator_t(m_Ptr - (offset * m_TypeSize), m_TypeSize);
-		}
-		untyped_iterator_t& operator+=(size_t offset) noexcept {
-			m_Ptr += (offset * m_TypeSize);
-			return *this;
-		}
-		untyped_iterator_t& operator-=(size_t offset) noexcept {
-			m_Ptr -= (offset * m_TypeSize);
-			return *this;
-		}
-		bool operator<(const untyped_iterator_t& other) const noexcept {
-			return m_Ptr < other.m_Ptr;
-		}
-		bool operator>(const untyped_iterator_t& other) const noexcept {
-			return m_Ptr > other.m_Ptr;
-		}
-		bool operator<=(const untyped_iterator_t& other) const noexcept {
-			return m_Ptr <= other.m_Ptr;
-		}
-		bool operator>=(const untyped_iterator_t& other) const noexcept {
-			return m_Ptr >= other.m_Ptr;
-		}
+	bool operator==(const untyped_iterator_t& other) const noexcept {
+		return m_Ptr == other.m_Ptr;
+	}
+	bool operator!=(const untyped_iterator_t& other) const noexcept {
+		return m_Ptr != other.m_Ptr;
+	}
+	untyped_iterator_t& operator++() noexcept {
+		m_Ptr += m_TypeSize;
+		return *this;
+	}
+	untyped_iterator_t operator++(int) noexcept {
+		auto temp = *this;
+		++(*this);
+		return temp;
+	}
+	untyped_iterator_t& operator--() noexcept {
+		m_Ptr -= m_TypeSize;
+		return *this;
+	}
+	untyped_iterator_t operator--(int) noexcept {
+		auto temp = *this;
+		--(*this);
+		return temp;
+	}
+	untyped_iterator_t operator+(size_t offset) const noexcept {
+		return untyped_iterator_t(m_Ptr + (offset * m_TypeSize), m_TypeSize);
+	}
+	untyped_iterator_t operator-(size_t offset) const noexcept {
+		return untyped_iterator_t(m_Ptr - (offset * m_TypeSize), m_TypeSize);
+	}
+	untyped_iterator_t& operator+=(size_t offset) noexcept {
+		m_Ptr += (offset * m_TypeSize);
+		return *this;
+	}
+	untyped_iterator_t& operator-=(size_t offset) noexcept {
+		m_Ptr -= (offset * m_TypeSize);
+		return *this;
+	}
+	bool operator<(const untyped_iterator_t& other) const noexcept {
+		return m_Ptr < other.m_Ptr;
+	}
+	bool operator>(const untyped_iterator_t& other) const noexcept {
+		return m_Ptr > other.m_Ptr;
+	}
+	bool operator<=(const untyped_iterator_t& other) const noexcept {
+		return m_Ptr <= other.m_Ptr;
+	}
+	bool operator>=(const untyped_iterator_t& other) const noexcept {
+		return m_Ptr >= other.m_Ptr;
+	}
 
-		difference_type operator-(const untyped_iterator_t& other) const {
-			return (m_Ptr - other.m_Ptr) / m_TypeSize;
-		}
+	difference_type operator-(const untyped_iterator_t& other) const {
+		return (m_Ptr - other.m_Ptr) / m_TypeSize;
+	}
 
 
-		std::byte* m_Ptr {nullptr};
-		size_t m_TypeSize {0};
-	};
+	std::byte* m_Ptr {nullptr};
+	size_t m_TypeSize {0};
+};
+namespace impl {
 	template <typename T, typename Key>
 	struct dense_storage_base_t {
 		dense_storage_base_t(Key initial_size) : m_Dense(initial_size * sizeof(T)) {
@@ -317,7 +317,7 @@ namespace {
 					   "aligned begin address is greater than or equal to end address");
 		}
 
-		::memory::raw_region m_Dense {};
+		::memory::raw_region m_Dense;
 		T* m_Begin {nullptr};
 		T* m_End {nullptr};
 		T* m_StorageEnd {nullptr};
@@ -536,12 +536,12 @@ namespace {
 			return nullptr;
 		}
 	};
-}	 // namespace
+}	 // namespace impl
 
 template <typename T,
 		  typename Key	  = psl::ecs::entity_t::size_type,
 		  Key CHUNKS_SIZE = component_traits_t<T>::storage_chunks_size>
-class staged_sparse_array final : private dense_storage_base_t<T, Key> {
+class staged_sparse_array final : private impl::dense_storage_base_t<T, Key> {
 	static_assert(std::is_same_v<T, std::remove_cvref_t<T>>,
 				  "staged_sparse_array does not support cvref types, please use a non-cvref type");
 	static_assert(std::is_pointer_v<T> == false,
@@ -557,7 +557,7 @@ class staged_sparse_array final : private dense_storage_base_t<T, Key> {
 
 	using this_type			 = staged_sparse_array<T, Key, CHUNKS_SIZE>;
 	using index_type		 = Key;
-	using dense_storage_type = dense_storage_base_t<T, Key>;
+	using dense_storage_type = impl::dense_storage_base_t<T, Key>;
 	using chunk_type		 = psl::array<index_type>;
 	using chunk_ptr_type	 = std::unique_ptr<chunk_type>;
 	using chunk_storage_type = psl::array<chunk_ptr_type>;
@@ -572,15 +572,21 @@ class staged_sparse_array final : private dense_storage_base_t<T, Key> {
 	using iterator_category = std::random_access_iterator_tag;
 
   public:
-	staged_sparse_array()
+	staged_sparse_array(index_type initial_size = 16)
 		requires(IS_FLAG)
-		: dense_storage_type() {}
-	staged_sparse_array(index_type initial_size = 0)
+		: dense_storage_type() {
+		m_Reverse.reserve(initial_size);
+	}
+	staged_sparse_array(index_type initial_size = 16)
 		requires(IS_COMPLEX)
-		: dense_storage_type(initial_size) {}
-	staged_sparse_array(index_type type_size, index_type alignment_size, index_type initial_size = 0)
+		: dense_storage_type(initial_size) {
+		m_Reverse.reserve(initial_size);
+	}
+	staged_sparse_array(index_type type_size, index_type alignment_size, index_type initial_size = 16)
 		requires(IS_TRIVIAL)
-		: dense_storage_type(initial_size, type_size, alignment_size) {}
+		: dense_storage_type(initial_size, type_size, alignment_size) {
+		m_Reverse.reserve(initial_size);
+	}
 
 	staged_sparse_array(staged_sparse_array const&)			   = delete;
 	staged_sparse_array(staged_sparse_array&&)				   = delete;
@@ -851,7 +857,7 @@ class staged_sparse_array final : private dense_storage_base_t<T, Key> {
 	};
 
 	constexpr FORCEINLINE auto capacity() const noexcept -> index_type {
-		return details::dense_storage_base_t<T, Key>::capacity();
+		return dense_storage_type::capacity();
 	}
 
 	constexpr FORCEINLINE void reserve(index_type count) noexcept {
@@ -932,7 +938,7 @@ class staged_sparse_array final : private dense_storage_base_t<T, Key> {
 					++valid;
 				}
 				++current;
-			} while(current != last&&* current = next_treshold);
+			} while(current != last && *current < next_treshold);
 		} while(current != last);
 
 		return valid;

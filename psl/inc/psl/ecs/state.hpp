@@ -209,18 +209,18 @@ class filter_work_order_t {
 		}
 
 		auto entities() const noexcept {
-			auto get_hierarchy_entities = [this]() -> psl::array<entity_t> {
-				if(!hierarchy_handler) {
-					return {};
-				}
+			// auto get_hierarchy_entities = [this]() -> psl::array<entity_t> {
+			// 	if(!hierarchy_handler) {
+			// 		return {};
+			// 	}
 
-				switch(hierarchy_change) {
-				case hierarchy_change_event::child_added: {
-				}
-				default:
-					break;
-				}
-			};
+			// 	switch(hierarchy_change) {
+			// 	case hierarchy_change_event::child_added: {
+			// 	}
+			// 	default:
+			// 		break;
+			// 	}
+			// };
 			return containers.size() > 0 ? psl::array<entity_t> {containers[0]->entities(stage_range_for(type))}
 										 : psl::array<entity_t> {};
 		}
@@ -274,6 +274,7 @@ class filter_work_order_t {
 			default:
 				break;
 			}
+			return end;
 		}
 		details::entity_relationship_handler_t* hierarchy_handler {nullptr};
 		psl::array<psl::ecs::details::component_container_t*> containers {};

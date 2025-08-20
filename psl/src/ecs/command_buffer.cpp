@@ -103,7 +103,7 @@ void command_buffer_t::remove_component(
 void command_buffer_t::remove_component(const details::component_key_t& key,
 										psl::array_view<entity_t> entities) noexcept {
 	auto& array = m_RemovedComponents[key];
-	array.insert(entities.begin(), entities.end());
+	array.insert((entity_t::size_type*)entities.data(), (entity_t::size_type*)entities.data() + entities.size());
 	for(auto e : entities) {
 		if(e.value() < m_First) {
 			m_ModifiedEntities.try_insert(static_cast<entity_t::size_type>(e));

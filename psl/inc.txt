@@ -93,7 +93,6 @@ ecs/details/execution
 ecs/details/selectors
 ecs/details/stage_range
 ecs/details/staged_sparse_array
-ecs/details/staged_sparse_memory_region
 ecs/details/system_information
 
 async/async

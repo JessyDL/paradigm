@@ -62,7 +62,7 @@ library::library(std::optional<psl::string8::view> lib, std::vector<psl::string8
 		file* metaPtr = nullptr;
 		s.deserialize<decode_from_format>(metaPtr, full_metapath);
 
-		psl_assert(metaPtr->ID() == entry.id,
+		psl_assert(metaPtr->ID() == entry.id.value,
 				   "UID mismatch between library and metafile library expected {} but file has {}",
 				   entry.id->to_string(),
 				   metaPtr->ID().to_string());
