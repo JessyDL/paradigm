@@ -206,6 +206,7 @@ void state_t::update_relationship_components() {
 					  dataPtr->m_Siblings = data.m_Children;
 				  } else {
 					  entity_relationship_data_t data {};
+					  data.m_Self	  = child;
 					  data.m_Siblings = data.m_Children;
 					  data.m_Parent	  = e;
 					  hierarchyCInfo->add(child, &data);
@@ -214,10 +215,15 @@ void state_t::update_relationship_components() {
 		  }
 		  if((event & hierarchy_change_event::reparented) != hierarchy_change_event::none) {
 			  data.m_Parent = get_parent(e);
-			  // only need to handle this when we unparent an entity, the other scenario will be handled
-			  // by the parent updating itself.
+			  // only need to handle this when we unparent an entity, if the parent exists in the hierarchy then we
+			  // fetch the children to set the siblings. If the parent doesn't exist yet it will set the siblings for
+			  // us.
 			  if(data.m_Parent == invalid_entity) {
 				  data.m_Siblings->clear();
+			  } else if(auto parent = static_cast<entity_relationship_data_t*>(
+						  hierarchyCInfo->get_if(data.m_Parent, details::stage_range_t::ALL));
+						parent) {
+				  data.m_Siblings = parent->m_Children;
 			  }
 		  }
 	  };
@@ -234,6 +240,7 @@ void state_t::update_relationship_components() {
 			update_event_component_data(e, *dataPtr, *event_it);
 		} else {
 			entity_relationship_data_t data {};
+			data.m_Self = e;
 			update_event_component_data(e, data, *event_it);
 			hierarchyCInfo->add(e, &data);
 		}

@@ -1314,7 +1314,6 @@ auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 		state.tick(std::chrono::duration<float>(1.0f));
 	};
 
-	return;
 	section<"entity_relationship_data_t">() = [&]() {
 		auto entities = state.create<position>(20);
 		state.set_parent(entities[0], entities[1]);
@@ -1326,6 +1325,10 @@ auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 		  [&entities](psl::ecs::info_t& info,
 					  psl::ecs::pack_indirect_full_t<entity_t, const position, const entity_relationship_data_t> pack) {
 			  require(pack.size()) == 20;
+			  for(auto [e, p, data] : pack) {
+				  require(e) != data.parent();
+			  }
+
 			  {
 				  // first entity has no parent, and one child
 				  auto& data = pack.template get<entity_relationship_data_t const>()[0];

@@ -277,9 +277,14 @@ class component_container_typed_t final : public component_container_t {
 		}
 	}
 	void add_impl(entity_t entity, void* data) override {
-		m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
-						  reinterpret_cast<entity_t::size_type*>(&entity) + 1,
-						  (data ? (T*)data : data));
+		if(data) {
+			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
+							  reinterpret_cast<entity_t::size_type*>(&entity) + 1,
+							  (T*)data);
+		} else {
+			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
+							  reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+		}
 	}
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 				  void* data,
@@ -631,8 +636,14 @@ class component_container_untyped_t final : public component_container_t {
 	}
 
 	void add_impl(entity_t entity, void* data) override {
-		m_Entities.insert(
-		  reinterpret_cast<entity_t::size_type*>(&entity), reinterpret_cast<entity_t::size_type*>(&entity) + 1, data);
+		if(data) {
+			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
+							  reinterpret_cast<entity_t::size_type*>(&entity) + 1,
+							  details::untyped_iterator_t {(std::byte*)data, m_Info.size});
+		} else {
+			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
+							  reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+		}
 	}
 
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
