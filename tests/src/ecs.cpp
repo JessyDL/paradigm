@@ -1390,3 +1390,26 @@ auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 #endif
 
 }	 // namespace
+
+// these are in an anonymous namespace, but aren't portable, so we override them here to satisfy the
+// component_trait_name_t requirement rule
+template <>
+struct psl::ecs::component_trait_name_t<foo> {
+	static constexpr std::string_view name = "foo"sv;
+};
+template <>
+struct psl::ecs::component_trait_name_t<position> {
+	static constexpr std::string_view name = "position"sv;
+};
+template <>
+struct psl::ecs::component_trait_name_t<complex_wrapper_float> {
+	static constexpr std::string_view name = "complex_wrapper_float"sv;
+};
+template <>
+struct psl::ecs::component_trait_name_t<complex_wrapper_int> {
+	static constexpr std::string_view name = "complex_wrapper_int"sv;
+};
+template <>
+struct psl::ecs::component_trait_name_t<flag_type> {
+	static constexpr std::string_view name = "flag_type"sv;
+};

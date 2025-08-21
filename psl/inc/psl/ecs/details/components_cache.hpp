@@ -16,6 +16,10 @@
 #include <psl/sparse_array.hpp>
 #include <unordered_map>
 
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	#include <bitset>
+#endif
+
 namespace psl::ecs::details {
 class components_cache_t {
   protected:
@@ -602,6 +606,13 @@ class components_cache_t {
 
 		if(auto cInfo = get_component_typed_info<T>(); !cInfo) {
 			m_Components.emplace(key, details::instantiate_component_container<target_type>());
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+			m_ComponentFlags.emplace(key, m_NextComponentFlagIndex);
+			m_ComponentLookup.emplace(m_NextComponentFlagIndex, key);
+			m_ComponentLookupArray[m_NextComponentFlagIndex] = m_Components[key].get();
+			m_NextComponentFlag								 = m_NextComponentFlag << 1;
+			m_NextComponentFlagIndex += 1;
+#endif
 			return get_component_typed_info<T>();
 		} else {
 			return cInfo;
@@ -611,6 +622,14 @@ class components_cache_t {
   private:
 	mutable std::unordered_map<details::component_key_t, std::unique_ptr<details::component_container_t>>
 	  m_Components {};
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	mutable std::unordered_map<details::component_key_t, size_t> m_ComponentFlags {};
+	mutable std::unordered_map<size_t, details::component_key_t> m_ComponentLookup {};
+	mutable std::array<details::component_container_t*, 256> m_ComponentLookupArray {};
+	psl::sparse_array<std::bitset<256>, entity_t::size_type> m_EntityFlags {};
+	mutable std::bitset<256> m_NextComponentFlag {1};
+	mutable size_t m_NextComponentFlagIndex {0};
+#endif
 
 #if !defined(PE_ECS_DISABLE_LOOKUP_CACHE)
 	// Used by the local cache to improve lookup speed. Every time the state get's cleared this is incremented so the

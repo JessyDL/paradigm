@@ -29,10 +29,10 @@ psl::array<entity_t> entity_container_t::create(entity_t::size_type count) {
 
 	psl::array<entity_t> entities(count);
 	if(recycled > 0) {
-		auto it = std::prev(std::end(m_Orphans));
+		auto it = std::end(m_Orphans);
 		for(entity_t::size_type i = 0; i != recycled; ++i) {
-			entities[i] = *it;
 			it			= std::prev(it);
+			entities[i] = *it;
 		}
 		m_Orphans.erase(it, std::end(m_Orphans));
 	}

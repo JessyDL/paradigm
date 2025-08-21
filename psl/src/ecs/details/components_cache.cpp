@@ -88,6 +88,15 @@ void components_cache_t::add_component_impl(details::component_container_t* cInf
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 
 	cInfo->add(entities);
+
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	auto const componentFlag = m_ComponentFlags[cInfo->id()];
+	std::bitset<256> entityFlags {};
+	entityFlags.set(componentFlag);
+	for(auto e : entities) {
+		m_EntityFlags[e.value()] |= entityFlags;
+	}
+#endif
 }
 
 void components_cache_t::add_component_impl(const details::component_key_t& key, psl::array_view<entity_t> entities) {
@@ -105,6 +114,15 @@ void components_cache_t::add_component_impl(details::component_container_t* cInf
 	psl_assert(component_size != 0, "component size was 0");
 
 	cInfo->add(entities, prototype, repeat);
+
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	auto const componentFlag = m_ComponentFlags[cInfo->id()];
+	std::bitset<256> entityFlags {};
+	entityFlags.set(componentFlag);
+	for(auto e : entities) {
+		m_EntityFlags[e.value()] |= entityFlags;
+	}
+#endif
 }
 void components_cache_t::add_component_impl(const details::component_key_t& key,
 											psl::array_view<entity_t> entities,
@@ -112,12 +130,30 @@ void components_cache_t::add_component_impl(const details::component_key_t& key,
 											bool repeat) {
 	auto cInfo = get_component_container(key);
 	add_component_impl(cInfo, entities, prototype, repeat);
+
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	auto const componentFlag = m_ComponentFlags[key];
+	std::bitset<256> entityFlags {};
+	entityFlags.set(componentFlag);
+	for(auto e : entities) {
+		m_EntityFlags[e.value()] |= entityFlags;
+	}
+#endif
 }
 
 void components_cache_t::remove_component(details::component_container_t* cInfo,
 										  psl::array_view<entity_t> entities) noexcept {
 	psl_assert(cInfo != nullptr, "component info for key {} was not found", cInfo->id());
 	cInfo->destroy(entities);
+
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	auto const componentFlag = m_ComponentFlags[cInfo->id()];
+	std::bitset<256> entityFlags {};
+	entityFlags.set(componentFlag);
+	for(auto e : entities) {
+		m_EntityFlags[e.value()] &= ~entityFlags;
+	}
+#endif
 }
 void components_cache_t::remove_component(const details::component_key_t& key,
 										  psl::array_view<entity_t> entities) noexcept {
@@ -127,12 +163,36 @@ void components_cache_t::remove_component(const details::component_key_t& key,
 void components_cache_t::destroy_components(psl::array_view<entity_t> entities) noexcept {
 	// todo, iterating over the components is expensive
 	for(auto& [key, cInfo] : m_Components) {
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+		auto const componentFlag = m_ComponentFlags[key];
+		if(std::none_of(entities.begin(), entities.end(), [componentFlag, this](entity_t e) {
+			   return !m_EntityFlags[e.value()].test(componentFlag);
+		   })) {
+			continue;
+		}
+		std::bitset<256> entityFlags {};
+		entityFlags.set(componentFlag);
+		for(auto e : entities) {
+			m_EntityFlags[e.value()] &= ~entityFlags;
+		}
+#endif
+
 		cInfo->destroy(entities);
 	}
 }
 void components_cache_t::destroy_components(entity_t entity) noexcept {
-	// todo, iterating over the components is expensive
+	// todo, iterating over thde components is expensive
 	for(auto& [key, cInfo] : m_Components) {
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+		auto const componentFlag = m_ComponentFlags[key];
+		if(!m_EntityFlags[entity.value()].test(componentFlag)) {
+			continue;
+		}
+
+		std::bitset<256> entityFlags {};
+		entityFlags.set(componentFlag);
+		m_EntityFlags[entity.value()] &= ~entityFlags;
+#endif
 		cInfo->destroy(entity);
 	}
 }
@@ -156,6 +216,15 @@ void components_cache_t::clear(bool release_memory) {
 			storage->clear();
 		}
 	}
+
+#if defined(PE_ECS_FEATURE_COMPONENT_BITSET)
+	m_NextComponentFlagIndex = 0;
+	m_NextComponentFlag		 = {1};
+	m_ComponentLookupArray	 = {};
+	m_ComponentLookup.clear();
+	m_ComponentFlags.clear();
+	m_EntityFlags.clear();
+#endif
 #if !defined(PE_ECS_DISABLE_LOOKUP_CACHE)
 	++m_ComponentGeneration;
 #endif

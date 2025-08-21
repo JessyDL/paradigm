@@ -5,13 +5,26 @@
 #include <benchmark/benchmark.h>
 #include <random>
 
+#include "core/ecs/components/camera.hpp"
+#include "core/ecs/components/lifetime.hpp"
+#include "core/ecs/components/transform.hpp"
+#include "core/ecs/components/velocity.hpp"
 using namespace psl;
 using namespace psl::ecs;
+using namespace core::ecs::components;
 
 #define BENCHMARK_ENTITY_CREATION
 #define BENCHMARK_COMPONENT_CREATION
 #define BENCHMARK_FILTERING
 #define BENCHMARK_SYSTEMS
+
+
+#define DEFINE_AND_REGISTER_BENCHMARK(fixture, name, ...)                                                              \
+	BENCHMARK_TEMPLATE_DEFINE_F(fixture, name, __VA_ARGS__)(benchmark::State & gState) {                               \
+		run_benchmark(gState);                                                                                         \
+	}                                                                                                                  \
+	BENCHMARK_REGISTER_F(fixture, name)->Unit(benchmark::kMicrosecond)
+
 
 template <typename T>
 auto to_num_string(T i) {
@@ -26,7 +39,7 @@ auto to_num_string(T i) {
 }
 
 template <typename T = size_t>
-constexpr T get_range(benchmark::State& gState, size_t pos = 0) {
+constexpr T get_range(benchmark::State const& gState, size_t pos = 0) {
 	static_assert(std::is_unsigned_v<T>, "T must be an unsigned type");
 
 	auto range = gState.range(pos);
@@ -307,7 +320,104 @@ BENCHMARK(complex_component_creation)->Apply(component_creation_args)->Unit(benc
 // BENCHMARK(complex_component_creation_baseline)->Apply(component_creation_args)->Unit(benchmark::kMicrosecond);
 #endif
 
+template <template <typename...> typename PackType>
+class idiomatic_system_usage : public ::benchmark::Fixture {
+  public:
+	void SetUp(const ::benchmark::State& gState) override {
+		auto const entity_count = get_range<psl::ecs::entity_t::size_type>(gState, 0);
+
+		auto base_entities = state.create<int, transform, camera>(entity_count);
+		auto to_erase	   = base_entities;
+
+		auto index				  = 0;
+		auto const max_iterations = 20;
+		for(auto iteration = 0; iteration < max_iterations; ++iteration) {
+			// shuffle the entities to remove random entries.
+			// additionally we do this at the start as the end of the loop will
+			// erase and create new entities which we'll want to properly shuffle
+			// again.
+			std::random_device rd;
+			std::mt19937 g(rd());
+			std::shuffle(std::begin(to_erase), std::end(to_erase), g);
+
+			auto begin = std::begin(to_erase);
+			auto end   = std::next(begin, entity_count / max_iterations);
+			psl::array<psl::ecs::entity_t> transforms_to_remove {};
+			psl::array<psl::ecs::entity_t> cameras_to_remove {};
+			psl::array<psl::ecs::entity_t> ints_to_remove {};
+			psl::array<psl::ecs::entity_t> entities_to_remove {};
+			for(auto i = 0; begin != end; ++begin, ++i) {
+				// some prime numbers
+				if(i % 7 <= 3) {
+					transforms_to_remove.emplace_back(*begin);
+				}
+				if(i % 11 <= 5) {
+					cameras_to_remove.emplace_back(*begin);
+				}
+				if(i % 17 <= 5) {
+					entities_to_remove.emplace_back(*begin);
+				}
+				if(i % 19 <= 7) {
+					ints_to_remove.emplace_back(*begin);
+				}
+			}
+
+			// most entities will be created & destroyed during the system calls, so we do the creation here
+			// before we tick the state as that's how the lifetime of the entities is best reflected.
+
+			state.remove_components<transform>(transforms_to_remove);
+			state.remove_components<camera>(cameras_to_remove);
+			state.remove_components<int>(ints_to_remove);
+			state.destroy(entities_to_remove);
+
+			auto new_entities = state.create<int, transform, camera>(entity_count / max_iterations);
+			for(entity_t::size_type i = 0; i < entity_count / max_iterations; ++i) {
+				to_erase[i] = new_entities[i];
+			}
+
+			// ticking will promote the entities to the next lifetime stage, erased entities will be removed
+			// and new entities will become settled.
+			state.tick(std::chrono::duration<float> {1.f});
+		}
+
+		state.declare(psl::ecs::threading::seq, &idiomatic_system_usage::system, this);
+		benchmark::DoNotOptimize(state);
+	}
+
+	void system(info_t& buffer, PackType<entity_t, int, const transform, const camera> pack) {
+		for(auto [e, i, transf, cam] : pack) {
+			i += e.value();
+		}
+	}
+	void TearDown(const ::benchmark::State& gState) override {
+		state.clear();
+	}
+	void run_benchmark(benchmark::State& gState) {
+		for(auto _ : gState) {
+			state.tick(std::chrono::duration<float> {1.f});
+		}
+	}
+
+  protected:
+	// need increased cache size to deal with direct component access
+	psl::ecs::state_t state {0, 256 * 1024 * 1024};
+};
+
+DEFINE_AND_REGISTER_BENCHMARK(idiomatic_system_usage, indirect_full, pack_indirect_full_t)
+  ->RangeMultiplier(10)
+  ->Range(1000, 1'000'000);
+DEFINE_AND_REGISTER_BENCHMARK(idiomatic_system_usage, indirect_partial, pack_indirect_partial_t)
+  ->RangeMultiplier(10)
+  ->Range(1000, 1'000'000);
+DEFINE_AND_REGISTER_BENCHMARK(idiomatic_system_usage, direct_full, pack_direct_full_t)
+  ->RangeMultiplier(10)
+  ->Range(1000, 1'000'000);
+DEFINE_AND_REGISTER_BENCHMARK(idiomatic_system_usage, direct_partial, pack_direct_partial_t)
+  ->RangeMultiplier(10)
+  ->Range(1000, 1'000'000);
+
 #ifdef BENCHMARK_FILTERING
+
 template <typename... Ts>
 class filtering_fixture : public ::benchmark::Fixture {
 	const std::vector<std::vector<int>> data_constraint {{10'000, 300, 2'700, 1'200, 6'700},
@@ -419,102 +529,72 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
 #endif
 #ifdef BENCHMARK_SYSTEMS
 
-	#include <random>
-template <typename T, typename... Ts>
-auto read_only_system = [](info_t& info, pack_t<T, direct_t, const Ts...>) {};
 
-template <typename T, typename... Ts>
-auto write_system = [](info_t& info, pack_t<T, direct_t, Ts...>) {};
+template <template <typename...> typename PackType, typename... Ts>
+class basic_system_usage : public ::benchmark::Fixture {
+	const std::vector<std::vector<entity_t::size_type>> system_counts {{10'000, 300, 2'700, 1'200, 6'700},
+																	   {100'000, 3'000, 21'700, 10'200, 68'700},
+																	   {1'000'000, 3'000, 20'700, 30'200, 60'700},
+																	   {1'000'000, 300'000, 210'700, 300'200, 680'700}};
 
-auto get_random_entities(const psl::array<entity_t>& source, size_t count, std::mt19937 g) {
-	auto copy = source;
-	std::shuffle(std::begin(copy), std::end(copy), g);
-	copy.resize(std::min(copy.size(), count));
-	return copy;
-}
+  public:
+	void SetUp(const ::benchmark::State& gState) override {
+		psl_assert(count.size() == 5, "expected size to be 5");
+		auto counts_entry = system_counts[get_range<size_t>(gState)];
+		auto eCount		  = counts_entry[0];
+		auto entities	  = state.create(eCount);
 
-template <typename... Ts>
-void run_system(benchmark::State& gState, state_t& state, const std::vector<entity_t::size_type>& count) {
-	psl_assert(count.size() == 5, "expected size to be 5");
-	auto entities = state.create(count[0]);
-	std::random_device rd;
-	std::mt19937 g(rd());
-	size_t i {1};
-	(state.add_components<Ts>(get_random_entities(entities, count[i++], g)), ...);
+		auto create_random_entity_array = [](const psl::array<entity_t>& source, size_t count, std::mt19937 g) {
+			auto copy = source;
+			std::shuffle(std::begin(copy), std::end(copy), g);
+			copy.resize(std::min(copy.size(), count));
+			return copy;
+		};
 
-	for(auto _ : gState) {
-		state.tick(std::chrono::duration<float> {0.01f});
+		std::random_device rd;
+		std::mt19937 g(rd());
+		size_t i {1};
+		(state.add_components<std::remove_const_t<Ts>>(create_random_entity_array(entities, counts_entry[i++], g)),
+		 ...);
+
+		state.declare(threading::seq, [](info_t& info, PackType<Ts...> pack) {});
 	}
-}
+	void TearDown(const ::benchmark::State& gState) override {
+		state.clear();
+	}
+	void run_benchmark(benchmark::State& gState) {
+		for(auto _ : gState) {
+			state.tick(std::chrono::duration<float> {1.f});
+		}
+	}
 
+  protected:
+	psl::ecs::state_t state;
+};
 
-const std::vector<std::vector<entity_t::size_type>> system_counts {{10'000, 300, 2'700, 1'200, 6'700},
-																   {100'000, 3'000, 21'700, 10'200, 68'700},
-																   {1'000'000, 3'000, 20'700, 30'200, 60'700},
-																   {1'000'000, 300'000, 210'700, 300'200, 680'700}};
-void trivial_read_only_seq_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, read_only_system<full_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
+	#define CONST_TRIVIAL_COMPONENT_TYPES const char, const int, const float, const uint64_t
+	#define TRIVIAL_COMPONENT_TYPES const char, const int, const float, const uint64_t
+	#define CONST_COMPLEX_COMPONENT_TYPES const camera, const velocity, const lifetime, const transform
+	#define COMPLEX_COMPONENT_TYPES camera, velocity, lifetime, transform
 
-void trivial_write_seq_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, write_system<full_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
+	#define DEFINE_ALL_PACK_VARIANTS(fixture, base_name, ...)                                                          \
+		DEFINE_AND_REGISTER_BENCHMARK(fixture, base_name##_seq_indirect_system, pack_indirect_full_t, __VA_ARGS__)     \
+		  ->DenseRange(0, 3);                                                                                          \
+		DEFINE_AND_REGISTER_BENCHMARK(fixture, base_name##_seq_direct_system, pack_direct_full_t, __VA_ARGS__)         \
+		  ->DenseRange(0, 3);                                                                                          \
+		DEFINE_AND_REGISTER_BENCHMARK(fixture, base_name##_par_indirect_system, pack_indirect_partial_t, __VA_ARGS__)  \
+		  ->DenseRange(0, 3);                                                                                          \
+		DEFINE_AND_REGISTER_BENCHMARK(fixture, base_name##_par_direct_system, pack_direct_partial_t, __VA_ARGS__)      \
+		  ->DenseRange(0, 3)
 
-void trivial_read_only_par_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, read_only_system<partial_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
+DEFINE_ALL_PACK_VARIANTS(basic_system_usage, trivial_read_only, CONST_TRIVIAL_COMPONENT_TYPES);
+DEFINE_ALL_PACK_VARIANTS(basic_system_usage, trivial_write, TRIVIAL_COMPONENT_TYPES);
+DEFINE_ALL_PACK_VARIANTS(basic_system_usage, complex_read_only, CONST_COMPLEX_COMPONENT_TYPES);
+DEFINE_ALL_PACK_VARIANTS(basic_system_usage, complex_write, COMPLEX_COMPONENT_TYPES);
 
-void trivial_write_par_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, write_system<partial_t, char, int, float, uint64_t>);
-	run_system<char, int, float, uint64_t>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
-
-	#include "core/ecs/components/camera.hpp"
-	#include "core/ecs/components/lifetime.hpp"
-	#include "core/ecs/components/transform.hpp"
-	#include "core/ecs/components/velocity.hpp"
-using namespace core::ecs::components;
-
-void complex_read_only_seq_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, read_only_system<full_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
-
-void complex_write_seq_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, write_system<full_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
-
-void complex_read_only_par_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, read_only_system<partial_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
-
-void complex_write_par_system(benchmark::State& gState) {
-	state_t state;
-	state.declare(threading::seq, write_system<partial_t, camera, velocity, lifetime, transform>);
-	run_system<camera, velocity, lifetime, transform>(gState, state, system_counts[get_range<size_t>(gState)]);
-}
-
-
-BENCHMARK(trivial_read_only_seq_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-BENCHMARK(trivial_write_seq_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-BENCHMARK(trivial_read_only_par_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-BENCHMARK(trivial_write_par_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-
-BENCHMARK(complex_read_only_seq_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-BENCHMARK(complex_write_seq_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-BENCHMARK(complex_read_only_par_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-BENCHMARK(complex_write_par_system)->DenseRange(0, 3)->Unit(benchmark::kMicrosecond);
-
+	#undef DEFINE_ALL_PACK_VARIANTS
+	#undef CONST_TRIVIAL_COMPONENT_TYPES
+	#undef TRIVIAL_COMPONENT_TYPES
+	#undef CONST_COMPLEX_COMPONENT_TYPES
+	#undef COMPLEX_COMPONENT_TYPES
 #endif

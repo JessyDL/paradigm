@@ -405,7 +405,7 @@ void state_t::destroy(psl::array_view<entity_t> entities) noexcept {
 
 	psl::array<entity_t> storage {};
 	if(!std::is_sorted(entities.begin(), entities.end())) {
-		storage = psl::array<entity_t> {entities.begin(), entities.end()};
+		storage = psl::array<entity_t>(entities.begin(), entities.end());
 		std::sort(storage.begin(), storage.end());
 		entities = psl::array_view<entity_t>(storage.begin(), storage.end());
 	}
@@ -422,7 +422,7 @@ void state_t::destroy(entity_t entity) noexcept {
 void state_t::reset(psl::array_view<entity_t> entities) noexcept {
 	psl::array<entity_t> storage {};
 	if(!std::is_sorted(entities.begin(), entities.end())) {
-		storage = psl::array<entity_t> {entities.begin(), entities.end()};
+		storage = psl::array<entity_t>(entities.begin(), entities.end());
 		std::sort(storage.begin(), storage.end());
 		entities = psl::array_view<entity_t>(storage.begin(), storage.end());
 	}
@@ -974,7 +974,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 #endif
 }
 
-size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, component_key_t id) const noexcept {
+size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, component_key_t id) const {
 	if(entities.size() == 0)
 		return 0;
 	const auto& cInfo = get_component_container(id);
@@ -984,19 +984,28 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 		  cInfo->has_storage_for(e), "component {} does not have storage for entity {}", cInfo->id().name(), e.value());
 		return true;
 	}));
-	psl_assert((std::uintptr_t)(cache) + (cInfo->component_type_info().size * entities.size()) <=
-				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
-			   "Cache ran out of memory");
+	if((std::uintptr_t)(cache) + (cInfo->component_type_info().size * entities.size()) >
+	   (std::uintptr_t)(m_Cache.data()) + m_Cache.size()) {
+		throw std::runtime_error(
+		  fmt::format("Cache ran out of memory, cache size {} with remaining {}, but {} additional bytes were required",
+					  m_Cache.size(),
+					  (std::uintptr_t)cache - (std::uintptr_t)m_Cache.data(),
+					  cInfo->component_type_info().size * entities.size()));
+	}
 	return cInfo->copy_to(entities, cache);
 }
 
-size_t state_t::prepare_bindings(psl::array_view<entity_t> entities,
-								 void* cache,
-								 details::dependency_pack& dep_pack) const noexcept {
+size_t
+state_t::prepare_bindings(psl::array_view<entity_t> entities, void* cache, details::dependency_pack& dep_pack) const {
 	size_t offset_start = (std::uintptr_t)cache;
-	psl_assert((std::uintptr_t)(cache) + (sizeof(entity_t) * entities.size()) <=
-				 (std::uintptr_t)(m_Cache.data()) + m_Cache.size(),
-			   "Cache ran out of memory");
+	if((std::uintptr_t)(cache) + (sizeof(entity_t) * entities.size()) >
+	   (std::uintptr_t)(m_Cache.data()) + m_Cache.size()) {
+		throw std::runtime_error(
+		  fmt::format("Cache ran out of memory, cache size {} with remaining {}, but {} additional bytes were required",
+					  m_Cache.size(),
+					  (std::uintptr_t)cache - (std::uintptr_t)m_Cache.data(),
+					  sizeof(entity_t) * entities.size()));
+	}
 	std::memcpy(cache, entities.data(), sizeof(entity_t) * entities.size());
 	dep_pack.m_Entities = psl::array_view<entity_t>(
 	  (entity_t*)cache, (entity_t*)((std::uintptr_t)cache + (sizeof(entity_t) * entities.size())));
