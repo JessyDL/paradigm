@@ -255,8 +255,7 @@ class components_cache_t {
 	T& get(entity_t entity) {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity),
-												   details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 	}
 
 	template <typename T>
@@ -264,8 +263,7 @@ class components_cache_t {
 	const T& get(entity_t entity) const noexcept {
 		// todo this should support filtering
 		auto cInfo = get_component_typed_info<T>();
-		return cInfo->entity_data().template at<T>(static_cast<entity_t::size_type>(entity),
-												   details::stage_range_t::ALL);
+		return cInfo->entity_data().template at<T>(entity, details::stage_range_t::ALL);
 	}
 
 	template <typename T>

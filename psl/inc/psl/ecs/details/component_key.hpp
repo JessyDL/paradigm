@@ -30,7 +30,7 @@ constexpr auto is_templated_name(std::string_view name) -> bool {
 /// \note Templated names are not supported due to portability issues, so this function will return false for those.
 constexpr auto is_valid_name(std::string_view name) -> bool {
 	using namespace std::literals::string_view_literals;
-	return name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_ "sv) ==
+	return name.find_first_not_of("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789:_ \0"sv) ==
 			 std::string_view::npos &&
 		   "0123456789"sv.find(name[0]) == std::string_view::npos;
 }
@@ -51,16 +51,7 @@ class component_key_t {
 
 	template <typename T>
 	consteval component_key_t(const component_traits_t<T>& traits) noexcept
-		: m_Name(traits.name), m_Value(fnv1a_32(traits.name)), m_Type(component_type_v<T>), m_StringMemory(nullptr) {
-		// only doing this separately to give a better error message in case of failure
-		static_assert(!is_templated_name(traits.name),
-					  "Templated types are unsupported due to portability issues. Please specialize "
-					  "`psl::ecs::component_trait_name_t` for your type.");
-
-		static_assert(is_valid_name(traits.name),
-					  "Component names must only contain alphanumeric characters, underscores, and colons. They must "
-					  "not start with a number or contain template characters '<' or '>'.");
-	}
+		: m_Name(traits.name), m_Value(fnv1a_32(traits.name)), m_Type(component_type_v<T>), m_StringMemory(nullptr) {}
 
   public:
 	constexpr component_key_t() noexcept
@@ -157,6 +148,7 @@ class component_key_t {
 	/// \note Strips const, volatile, reference, and pointer designations of the template type.
 	/// \warning watch out with modifying this issue, see: https://developercommunity.visualstudio.com/t/constexpr-unable-to-call-private-constructor-in-st/82639
 	template <typename T>
+		requires(is_valid_name(psl::ecs::component_trait_name_t<std::remove_pointer_t<std::remove_cvref_t<T>>>::name))
 	static constexpr auto generate() noexcept -> component_key_t {
 		return component_key_t(component_traits_v<std::remove_pointer_t<std::remove_cvref_t<T>>>);
 	}

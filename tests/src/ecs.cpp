@@ -183,8 +183,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity_t e) {
 				require(cInfo.has_component(e));
 				require(cInfo.has_added(e));
-				require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(e))) ==
-				  type(static_cast<entity_t::size_type>(e));
+				require(cInfo.entity_data().template at<type>(e)) == type(static_cast<entity_t::size_type>(e));
 			});
 
 			section<"removals">() = [&]() {
@@ -206,13 +205,12 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							auto index = entities[i];
 							require(!cInfo.has_component(index));
 							require(cInfo.has_removed(index));
-							require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(index),
-																		  details::stage_range_t::REMOVED)) ==
+							require(cInfo.entity_data().template at<type>(index, details::stage_range_t::REMOVED)) ==
 							  type(static_cast<entity_t::size_type>(index));
 						} else {
 							auto index = entities[i];
 							require(cInfo.has_component(index));
-							require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(index))) ==
+							require(cInfo.entity_data().template at<type>(index)) ==
 							  type(static_cast<entity_t::size_type>(index));
 						}
 					}
@@ -261,7 +259,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							  std::end(cInfo.entities()),
 							  [&cInfo, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
 								  require(static_cast<entity_t::size_type>(e)) <= offset;
-								  require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(e))) ==
+								  require(cInfo.entity_data().template at<type>(e)) ==
 									type(static_cast<entity_t::size_type>(e));
 							  });
 			};

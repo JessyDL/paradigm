@@ -55,6 +55,9 @@ struct entity_t {
 	friend class psl::ecs::state_t;
 	friend class psl::ecs::details::entity_container_t;
 
+	template <class _FwdIt, class _Ty>
+	friend constexpr void std::iota(_FwdIt _First, _FwdIt _Last, _Ty _Val);
+
 	// edit this value for smaller or larger entities.
 	using size_type												   = details::entity_size_type;
 	static constexpr size_type INVALID_ENTITY_VALUE				   = std::numeric_limits<size_type>::max();
@@ -64,38 +67,38 @@ struct entity_t {
 	constexpr entity_t(entity_t&& entity) noexcept				   = default;
 	constexpr entity_t& operator=(entity_t&& entity) noexcept	   = default;
 
-	explicit constexpr inline operator size_type const&() const noexcept {
+	explicit FORCEINLINE constexpr operator size_type const&() const noexcept {
 		return m_Value;
 	}
 
-	constexpr inline friend bool operator==(entity_t const& lhs, entity_t const& rhs) noexcept {
+	FORCEINLINE constexpr friend bool operator==(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.m_Value == rhs.m_Value;
 	}
-	constexpr inline friend bool operator!=(entity_t const& lhs, entity_t const& rhs) noexcept {
+	FORCEINLINE constexpr friend bool operator!=(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.m_Value != rhs.m_Value;
 	}
-	constexpr inline friend bool operator<(entity_t const& lhs, entity_t const& rhs) noexcept {
+	FORCEINLINE constexpr friend bool operator<(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.m_Value < rhs.m_Value;
 	}
-	constexpr inline friend bool operator>(entity_t const& lhs, entity_t const& rhs) noexcept {
+	FORCEINLINE constexpr friend bool operator>(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.m_Value > rhs.m_Value;
 	}
-	constexpr inline friend bool operator<=(entity_t const& lhs, entity_t const& rhs) noexcept {
+	FORCEINLINE constexpr friend bool operator<=(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.m_Value <= rhs.m_Value;
 	}
-	constexpr inline friend bool operator>=(entity_t const& lhs, entity_t const& rhs) noexcept {
+	FORCEINLINE constexpr friend bool operator>=(entity_t const& lhs, entity_t const& rhs) noexcept {
 		return lhs.m_Value >= rhs.m_Value;
 	}
 
-	explicit constexpr inline operator bool() const noexcept {
+	explicit FORCEINLINE constexpr operator bool() const noexcept {
 		return m_Value != INVALID_ENTITY_VALUE;
 	}
 
-	constexpr inline bool valid() const noexcept {
+	FORCEINLINE constexpr bool valid() const noexcept {
 		return m_Value != INVALID_ENTITY_VALUE;
 	}
 
-	constexpr inline size_type value() const noexcept {
+	FORCEINLINE constexpr size_type value() const noexcept {
 		return m_Value;
 	}
 

@@ -89,6 +89,16 @@ class component_container_t {
 	inline bool has_removed(entity_t entity) const noexcept {
 		return has_impl(entity, stage_range_t::REMOVED);
 	}
+
+	inline entity_t*
+	remove_if_has(entity_t* begin, entity_t* end, stage_range_t stage = stage_range_t::ALL) const noexcept {
+		return remove_if_has_impl(begin, end, stage, false);
+	}
+	inline entity_t*
+	remove_if_has_not(entity_t* begin, entity_t* end, stage_range_t stage = stage_range_t::ALL) const noexcept {
+		return remove_if_has_impl(begin, end, stage, true);
+	}
+
 	virtual bool has_storage_for(entity_t entity) const noexcept = 0;
 	inline psl::array_view<entity_t> entities(bool include_removed = false) const noexcept {
 		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
@@ -155,18 +165,20 @@ class component_container_t {
 	virtual void reserve(size_t count)								= 0;
 
   protected:
-	virtual void purge_impl() noexcept																		= 0;
-	virtual void add_impl(entity_t entity, void* data)														= 0;
-	virtual void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat)						= 0;
+	virtual entity_t*
+	remove_if_has_impl(entity_t* begin, entity_t* end, stage_range_t stage, bool has_not = false) const noexcept = 0;
+	virtual void purge_impl() noexcept																			 = 0;
+	virtual void add_impl(entity_t entity, void* data)															 = 0;
+	virtual void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat)							 = 0;
 	virtual void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 						  void* data,
-						  bool repeat)																		= 0;
-	virtual psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept						= 0;
-	virtual void set_impl(entity_t entity, void* data) noexcept												= 0;
-	virtual void remove_impl(entity_t entity)																= 0;
-	virtual void remove_impl(psl::array_view<entity_t> entities)											= 0;
-	virtual void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) = 0;
-	virtual bool has_impl(entity_t entity, stage_range_t stage) const noexcept								= 0;
+						  bool repeat)																			 = 0;
+	virtual psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept							 = 0;
+	virtual void set_impl(entity_t entity, void* data) noexcept													 = 0;
+	virtual void remove_impl(entity_t entity)																	 = 0;
+	virtual void remove_impl(psl::array_view<entity_t> entities)												 = 0;
+	virtual void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities)		 = 0;
+	virtual bool has_impl(entity_t entity, stage_range_t stage) const noexcept									 = 0;
 
   protected:
 	component_type_info_t m_Info;
@@ -205,41 +217,35 @@ class component_container_typed_t final : public component_container_t {
 	}
 
 	bool has_storage_for(entity_t entity) const noexcept override {
-		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
+		return m_Entities.has(entity, stage_range_t::ALL);
 	}
 
 	void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) override {
-		return m_Entities.addressof_if(static_cast<entity_t::size_type>(entity), stage);
+		return m_Entities.addressof_if(entity, stage);
 	}
 
 	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
 														   entity_t::size_type* destination) const noexcept override {
-		psl::array_view<entity_t::size_type> view(reinterpret_cast<entity_t::size_type*>(entities.data()),
-												  entities.size());
-		m_Entities.write_dense_indices(view.begin(), view.end(), destination);
-		return destination + view.size();
+		m_Entities.write_dense_indices(entities.begin(), entities.end(), destination);
+		return destination + entities.size();
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {
 		psl_assert((std::uintptr_t)destination % m_Info.alignment == 0, "pointer has to be aligned");
 		T* dest = (T*)destination;
-		psl::array_view<entity_t::size_type> view(reinterpret_cast<entity_t::size_type*>(entities.data()),
-												  entities.size());
-		m_Entities.copy_dense_into(view.begin(), view.end(), dest);
+		m_Entities.copy_dense_into(entities.begin(), entities.end(), dest);
 		return entities.size() * sizeof(T);
 	}
 	size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat) noexcept override {
 		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
 		T* src = (T*)source;
-		psl::array_view<entity_t::size_type> view(reinterpret_cast<entity_t::size_type*>(entities.data()),
-												  entities.size());
-		m_Entities.set(view.begin(), view.end(), src, repeat ? nullptr : src + view.size());
+		m_Entities.set(entities.begin(), entities.end(), src, repeat ? nullptr : src + entities.size());
 		return sizeof(T) * entities.size();
 	};
 
 	void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
-		m_Entities.remap(mapping, [pred](entity_t::size_type e) -> bool { return pred(details::make_entity(e)); });
+		m_Entities.remap(mapping, [pred](entity_t e) -> bool { return pred(e); });
 	}
 	bool merge(const component_container_t& other) noexcept override {
 		if(other.id() != id())
@@ -251,39 +257,31 @@ class component_container_typed_t final : public component_container_t {
 	}
 
 	void set(entity_t e, const T& data) noexcept {
-		m_Entities[static_cast<entity_t::size_type>(e)] = data;
+		m_Entities[e] = data;
 	}
 
   protected:
 	void set_impl(entity_t entity, void* data) noexcept override {
-		m_Entities.set(reinterpret_cast<entity_t::size_type*>(&entity),
-					   reinterpret_cast<entity_t::size_type*>(&entity) + 1,
-					   (T*)data);
+		m_Entities.set(&entity, &entity + 1, (T*)data);
 	}
 	psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept override {
-		auto indices = m_Entities.indices(stage);
-		return psl::array_view<entity_t>(reinterpret_cast<entity_t*>(indices.data()), indices.size());
+		return m_Entities.indices(stage);
 	}
 	void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat) override {
 		T* source = (T*)data;
-		std::span<entity_t::size_type> entities_view(reinterpret_cast<entity_t::size_type*>(entities.data()),
-													 entities.size());
 		if(source == nullptr) {
-			m_Entities.insert(entities_view.begin(), entities_view.end());
+			m_Entities.insert(entities.begin(), entities.end());
 		} else if(repeat) {
-			m_Entities.insert(entities_view.begin(), entities_view.end(), source);
+			m_Entities.insert(entities.begin(), entities.end(), source);
 		} else {
-			m_Entities.insert(entities_view.begin(), entities_view.end(), source, source + entities_view.size());
+			m_Entities.insert(entities.begin(), entities.end(), source, source + entities.size());
 		}
 	}
 	void add_impl(entity_t entity, void* data) override {
 		if(data) {
-			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
-							  reinterpret_cast<entity_t::size_type*>(&entity) + 1,
-							  (T*)data);
+			m_Entities.insert(&entity, &entity + 1, (T*)data);
 		} else {
-			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
-							  reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+			m_Entities.insert(&entity, &entity + 1);
 		}
 	}
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
@@ -298,20 +296,20 @@ class component_container_typed_t final : public component_container_t {
 		T* source  = (T*)data;
 		if(data == nullptr) {
 			for(auto range : entities) {
-				psl::array<entity_t::size_type> range_view(range.second - range.first);
+				psl::array<entity_t> range_view(range.second - range.first);
 				std::iota(range_view.begin(), range_view.end(), range.first);
 				m_Entities.insert(range_view.begin(), range_view.end());
 			}
 		} else if(repeat) {
 			for(auto range : entities) {
-				psl::array<entity_t::size_type> range_view(range.second - range.first);
+				psl::array<entity_t> range_view(range.second - range.first);
 				std::iota(range_view.begin(), range_view.end(), range.first);
 				m_Entities.insert(range_view.begin(), range_view.end(), source);
 			}
 		} else {
 			for(auto range : entities) {
 				for(auto e = range.first; e < range.second; ++e) {
-					psl::array<entity_t::size_type> range_view(range.second - range.first);
+					psl::array<entity_t> range_view(range.second - range.first);
 					std::iota(range_view.begin(), range_view.end(), range.first);
 					m_Entities.insert(
 					  range_view.begin(), range_view.end(), source, source + (range.second - range.first));
@@ -324,16 +322,14 @@ class component_container_typed_t final : public component_container_t {
 	}
 
 	void remove_impl(entity_t entity) override {
-		m_Entities.try_erase(reinterpret_cast<entity_t::size_type*>(&entity),
-							 reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+		m_Entities.try_erase(&entity, &entity + 1);
 	}
 
 	void remove_impl(psl::array_view<entity_t> entities) override {
-		m_Entities.try_erase(reinterpret_cast<entity_t::size_type*>(entities.data()),
-							 reinterpret_cast<entity_t::size_type*>(entities.data()) + entities.size());
+		m_Entities.try_erase(entities.begin(), entities.end());
 	}
 	void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) override {
-		psl::array<entity_t::size_type> indices;
+		psl::array<entity_t> indices;
 		for(auto range : entities) {
 			auto const count = range.second - range.first;
 			if(indices.size() < count) {
@@ -345,15 +341,26 @@ class component_container_typed_t final : public component_container_t {
 		}
 	}
 	bool has_impl(entity_t entity, stage_range_t stage) const noexcept override {
-		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage);
+		return m_Entities.has(entity, stage);
 	}
 
 	void clear() override {
 		m_Entities.clear();
 	}
 
+	entity_t* remove_if_has_impl(entity_t* begin,
+								 entity_t* end,
+								 stage_range_t stage,
+								 bool has_not = false) const noexcept override {
+		if(has_not) {
+			return m_Entities.remove_if_has_not(begin, end, stage);
+		} else {
+			return m_Entities.remove_if_has(begin, end, stage);
+		}
+	}
+
   private:
-	details::staged_sparse_array<T, entity_t::size_type> m_Entities;
+	details::staged_sparse_array<T> m_Entities;
 };
 
 class component_container_flag_t final : public component_container_t {
@@ -394,12 +401,12 @@ class component_container_flag_t final : public component_container_t {
 	}
 
 	bool has_storage_for(entity_t entity) const noexcept override {
-		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
+		return m_Entities.has(entity, stage_range_t::ALL);
 	}
 
 	void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
-		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(details::make_entity(entity)); });
+		m_Entities.remap(mapping, [pred](entity_t entity) { return pred(entity); });
 	}
 
 	bool merge(const component_container_t& other) noexcept override {
@@ -419,16 +426,13 @@ class component_container_flag_t final : public component_container_t {
   protected:
 	void set_impl(entity_t entity, void* data) noexcept override {};
 	psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept override {
-		auto indices = m_Entities.indices(stage);
-		return psl::array_view<entity_t>(reinterpret_cast<entity_t*>(indices.data()), indices.size());
+		return m_Entities.indices(stage);
 	}
 	void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat) override {
-		m_Entities.insert(reinterpret_cast<entity_t::size_type*>(entities.data()),
-						  reinterpret_cast<entity_t::size_type*>(entities.data()) + entities.size());
+		m_Entities.insert(entities.begin(), entities.end());
 	}
 	void add_impl(entity_t entity, void* data) override {
-		m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
-						  reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+		m_Entities.insert(&entity, &entity + 1);
 	}
 	void add_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities,
 				  void* data,
@@ -443,7 +447,7 @@ class component_container_flag_t final : public component_container_t {
 
 		m_Entities.reserve(m_Entities.size(stage_range_t::ALL) + count);
 		for(auto range : entities) {
-			psl::array<entity_t::size_type> indices;
+			psl::array<entity_t> indices;
 			auto count = range.second - range.first;
 			std::iota(indices.begin(), indices.end(), range.first);
 			m_Entities.insert(indices.begin(), indices.end());
@@ -454,23 +458,21 @@ class component_container_flag_t final : public component_container_t {
 	}
 
 	void remove_impl(entity_t entity) override {
-		m_Entities.try_erase(reinterpret_cast<entity_t::size_type*>(&entity),
-							 reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+		m_Entities.try_erase(&entity, &entity + 1);
 	}
 	void remove_impl(psl::array_view<entity_t> entities) override {
-		m_Entities.try_erase(reinterpret_cast<entity_t::size_type*>(entities.data()),
-							 reinterpret_cast<entity_t::size_type*>(entities.data()) + entities.size());
+		m_Entities.try_erase(entities.begin(), entities.end());
 	}
 	void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) override {
 		for(auto range : entities) {
-			psl::array<entity_t::size_type> indices;
+			psl::array<entity_t> indices;
 			auto count = range.second - range.first;
 			std::iota(indices.begin(), indices.end(), range.first);
 			m_Entities.try_erase(indices.begin(), indices.end());
 		}
 	}
 	bool has_impl(entity_t entity, stage_range_t stage) const noexcept override {
-		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage);
+		return m_Entities.has(entity, stage);
 	}
 
 	void clear() override {
@@ -478,8 +480,19 @@ class component_container_flag_t final : public component_container_t {
 		m_Serializable = false;
 	}
 
+	entity_t* remove_if_has_impl(entity_t* begin,
+								 entity_t* end,
+								 stage_range_t stage,
+								 bool has_not = false) const noexcept override {
+		if(has_not) {
+			return m_Entities.remove_if_has_not(begin, end, stage);
+		} else {
+			return m_Entities.remove_if_has(begin, end, stage);
+		}
+	}
+
   private:
-	details::staged_sparse_array<details::flag_tag_t, entity_t::size_type> m_Entities;
+	details::staged_sparse_array<details::flag_tag_t> m_Entities;
 	bool m_Serializable {false};
 };
 
@@ -507,28 +520,23 @@ class component_container_untyped_t final : public component_container_t {
 	}
 
 	bool has_storage_for(entity_t entity) const noexcept override {
-		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage_range_t::ALL);
+		return m_Entities.has(entity, stage_range_t::ALL);
 	}
 
 	void* get_if(entity_t entity, stage_range_t stage = stage_range_t::ALL) override {
-		return m_Entities.addressof_if(static_cast<entity_t::size_type>(entity), stage);
+		return m_Entities.addressof_if(entity, stage);
 	}
 
 	entity_t::size_type* write_memory_location_offsets_for(psl::array_view<entity_t> entities,
 														   entity_t::size_type* destination) const noexcept override {
-		m_Entities.write_dense_indices(reinterpret_cast<entity_t::size_type*>(entities.data()),
-									   reinterpret_cast<entity_t::size_type*>(entities.data()) + entities.size(),
-									   destination);
-
+		m_Entities.write_dense_indices(entities.begin(), entities.end(), destination);
 		return destination + entities.size();
 	}
 
 	size_t copy_to(psl::array_view<entity_t> entities, void* destination) const noexcept override {
 		psl_assert((std::uintptr_t)destination % m_Info.alignment == 0, "pointer has to be aligned");
 		std::byte* dest = (std::byte*)destination;
-		m_Entities.copy_dense_into(reinterpret_cast<entity_t::size_type*>(entities.data()),
-								   reinterpret_cast<entity_t::size_type*>(entities.data()) + entities.size(),
-								   details::untyped_iterator_t {dest, m_Info.size});
+		m_Entities.copy_dense_into(entities.begin(), entities.end(), details::untyped_iterator_t {dest, m_Info.size});
 		return entities.size() * m_Info.size;
 	}
 	size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat) noexcept override {
@@ -536,13 +544,11 @@ class component_container_untyped_t final : public component_container_t {
 		std::byte* src = (std::byte*)source;
 		if(repeat) {
 			for(auto e : entities) {
-				std::memcpy(
-				  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), src, m_Info.size);
+				std::memcpy(m_Entities.addressof(e, stage_range_t::ALL), src, m_Info.size);
 			}
 		} else {
 			for(auto e : entities) {
-				std::memcpy(
-				  m_Entities.addressof(static_cast<entity_t::size_type>(e), stage_range_t::ALL), src, m_Info.size);
+				std::memcpy(m_Entities.addressof(e, stage_range_t::ALL), src, m_Info.size);
 				src += m_Info.size;
 			}
 		}
@@ -551,7 +557,7 @@ class component_container_untyped_t final : public component_container_t {
 
 	void remap(const psl::sparse_array<entity_t::size_type, entity_t::size_type>& mapping,
 			   std::function<bool(entity_t)> pred) noexcept override {
-		m_Entities.remap(mapping, [pred](entity_t::size_type entity) { return pred(details::make_entity(entity)); });
+		m_Entities.remap(mapping, [pred](entity_t entity) { return pred(entity); });
 	}
 
 	bool merge(const component_container_t& other) noexcept override {
@@ -564,8 +570,7 @@ class component_container_untyped_t final : public component_container_t {
 
 	template <typename T>
 	void set(entity_t e, const T& data) noexcept {
-		m_Entities.set(
-		  reinterpret_cast<entity_t::size_type*>(&e), reinterpret_cast<entity_t::size_type*>(&e) + 1, &data);
+		m_Entities.set(&e, &e + 1, &data);
 	}
 
 	void should_serialize(bool value) noexcept override {
@@ -609,27 +614,21 @@ class component_container_untyped_t final : public component_container_t {
 
   protected:
 	void set_impl(entity_t entity, void* data) noexcept override {
-		m_Entities.set(reinterpret_cast<entity_t::size_type*>(&entity),
-					   reinterpret_cast<entity_t::size_type*>(&entity) + 1,
-					   details::untyped_iterator_t {(std::byte*)data, m_Info.size});
+		m_Entities.set(&entity, &entity + 1, details::untyped_iterator_t {(std::byte*)data, m_Info.size});
 	}
 	psl::array_view<entity_t> entities_impl(stage_range_t stage) const noexcept override {
-		auto indices = m_Entities.indices(stage);
-		return psl::array_view<entity_t>(reinterpret_cast<entity_t*>(indices.data()), indices.size());
+		return m_Entities.indices(stage);
 	}
 
 	void add_impl(psl::array_view<entity_t> entities, void* data, bool repeat) override {
 		std::byte* source = (std::byte*)data;
 		if(data == nullptr) {
-			m_Entities.insert((entity_t::size_type*)entities.data(),
-							  (entity_t::size_type*)entities.data() + entities.size());
+			m_Entities.insert(entities.begin(), entities.end());
 		} else if(repeat) {
-			m_Entities.insert((entity_t::size_type*)entities.data(),
-							  (entity_t::size_type*)entities.data() + entities.size(),
-							  details::untyped_iterator_t {source, m_Info.size});
+			m_Entities.insert(entities.begin(), entities.end(), details::untyped_iterator_t {source, m_Info.size});
 		} else {
-			m_Entities.insert((entity_t::size_type*)entities.data(),
-							  (entity_t::size_type*)entities.data() + entities.size(),
+			m_Entities.insert(entities.begin(),
+							  entities.end(),
 							  details::untyped_iterator_t {source, m_Info.size},
 							  details::untyped_iterator_t {source, m_Info.size} + entities.size());
 		}
@@ -637,12 +636,9 @@ class component_container_untyped_t final : public component_container_t {
 
 	void add_impl(entity_t entity, void* data) override {
 		if(data) {
-			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
-							  reinterpret_cast<entity_t::size_type*>(&entity) + 1,
-							  details::untyped_iterator_t {(std::byte*)data, m_Info.size});
+			m_Entities.insert(&entity, &entity + 1, details::untyped_iterator_t {(std::byte*)data, m_Info.size});
 		} else {
-			m_Entities.insert(reinterpret_cast<entity_t::size_type*>(&entity),
-							  reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+			m_Entities.insert(&entity, &entity + 1);
 		}
 	}
 
@@ -652,20 +648,20 @@ class component_container_untyped_t final : public component_container_t {
 		std::byte* source = (std::byte*)data;
 		if(data == nullptr) {
 			for(auto range : entities) {
-				psl::array<entity_t::size_type> range_view(range.second - range.first);
+				psl::array<entity_t> range_view(range.second - range.first);
 				std::iota(range_view.begin(), range_view.end(), range.first);
 				m_Entities.insert(range_view.begin(), range_view.end());
 			}
 		} else if(repeat) {
 			for(auto range : entities) {
-				psl::array<entity_t::size_type> range_view(range.second - range.first);
+				psl::array<entity_t> range_view(range.second - range.first);
 				std::iota(range_view.begin(), range_view.end(), range.first);
 				m_Entities.insert(
 				  range_view.begin(), range_view.end(), details::untyped_iterator_t {source, m_Info.size});
 			}
 		} else {
 			for(auto range : entities) {
-				psl::array<entity_t::size_type> range_view(range.second - range.first);
+				psl::array<entity_t> range_view(range.second - range.first);
 				std::iota(range_view.begin(), range_view.end(), range.first);
 				m_Entities.insert(range_view.begin(),
 								  range_view.end(),
@@ -679,22 +675,31 @@ class component_container_untyped_t final : public component_container_t {
 	}
 
 	void remove_impl(entity_t entity) override {
-		m_Entities.try_erase(reinterpret_cast<entity_t::size_type*>(&entity),
-							 reinterpret_cast<entity_t::size_type*>(&entity) + 1);
+		m_Entities.try_erase(&entity, &entity + 1);
 	}
 	void remove_impl(psl::array_view<entity_t> entities) override {
-		m_Entities.try_erase(reinterpret_cast<entity_t::size_type*>(entities.data()),
-							 reinterpret_cast<entity_t::size_type*>(entities.data()) + entities.size());
+		m_Entities.try_erase(entities.begin(), entities.end());
 	}
 	void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities) override {
 		for(auto range : entities) {
-			psl::array<entity_t::size_type> range_view(range.second - range.first);
+			psl::array<entity_t> range_view(range.second - range.first);
 			std::iota(range_view.begin(), range_view.end(), range.first);
 			m_Entities.try_erase(range_view.begin(), range_view.end());
 		}
 	}
 	bool has_impl(entity_t entity, stage_range_t stage) const noexcept override {
-		return m_Entities.has(static_cast<entity_t::size_type>(entity), stage);
+		return m_Entities.has(entity, stage);
+	}
+
+	entity_t* remove_if_has_impl(entity_t* begin,
+								 entity_t* end,
+								 stage_range_t stage,
+								 bool has_not = false) const noexcept override {
+		if(has_not) {
+			return m_Entities.remove_if_has_not(begin, end, stage);
+		} else {
+			return m_Entities.remove_if_has(begin, end, stage);
+		}
 	}
 
   private:
