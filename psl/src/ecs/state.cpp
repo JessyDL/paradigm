@@ -507,6 +507,17 @@ psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached
 			entry.container = get_component_container(entry.key);
 		}
 	}
+	//// if any of the containers are null, we cannot combine them, so we return the begin iterator
+	// if(std::any_of(entries.begin(), entries.end(), [](const auto& cache) { return cache.container == nullptr; })) {
+	//	return begin;
+	// }
+	// for(auto& entry : entries) {
+	//	end = entry.container->remove_if_has_not(begin, end, psl::ecs::details::stage_range_t::ALIVE);
+	// }
+	// return std::remove_if(begin, end, [entries](entity_t e) {
+	//	return !std::any_of(
+	//	  std::begin(entries), std::end(entries), [e](const auto& entry) { return entry.container->has_added(e); });
+	// });
 	return (std::any_of(entries.begin(), entries.end(), [](const auto& cache) { return cache.container == nullptr; }))
 			 ? begin
 			 : std::remove_if(begin, end, [entries](entity_t e) {

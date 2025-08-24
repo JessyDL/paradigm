@@ -1,18 +1,18 @@
 #pragma once
-#include "command_buffer.hpp"
-#include "details/component_container.hpp"
-#include "details/component_key.hpp"
-#include "details/mutate_instruction.hpp"
-#include "details/system_information.hpp"
-#include "entity.hpp"
-#include "filtering.hpp"
 #include "psl/array.hpp"
 #include "psl/collections/indirect_array.hpp"
 #include "psl/details/fixed_astring.hpp"
+#include "psl/ecs/command_buffer.hpp"
 #include "psl/ecs/component_traits.hpp"
+#include "psl/ecs/details/component_container.hpp"
+#include "psl/ecs/details/component_key.hpp"
 #include "psl/ecs/details/components_cache.hpp"
 #include "psl/ecs/details/entity_container.hpp"
+#include "psl/ecs/details/mutate_instruction.hpp"
 #include "psl/ecs/details/stage_range.hpp"
+#include "psl/ecs/details/system_information.hpp"
+#include "psl/ecs/entity.hpp"
+#include "psl/ecs/filtering.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/string_utils.hpp"
@@ -47,305 +47,7 @@ struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...> {};
 template <typename... Ts>
 struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...> {};
 
-constexpr stage_range_t stage_range_for(filtering_op_type_t type) noexcept {
-	switch(type) {
-	case psl::ecs::details::filtering_op_type_t::filter:
-		return stage_range_t::ALIVE;
-		break;
-	case psl::ecs::details::filtering_op_type_t::on_add:
-		return stage_range_t::ADDED;
-		break;
-	case psl::ecs::details::filtering_op_type_t::on_remove:
-		return stage_range_t::REMOVED;
-		break;
-	case psl::ecs::details::filtering_op_type_t::on_break:
-		return stage_range_t::ALL;
-		break;
-	case psl::ecs::details::filtering_op_type_t::on_combine:
-		return stage_range_t::ALIVE;
-		break;
-	case psl::ecs::details::filtering_op_type_t::on_mutate:
-		return stage_range_t::ALIVE;
-		break;
-	case psl::ecs::details::filtering_op_type_t::except:
-		return stage_range_t::ALIVE;
-		break;
-	case psl::ecs::details::filtering_op_type_t::on_hierarchy_change:
-		return stage_range_t {0};
-		break;
-	default:
-		break;
-	}
-}
 
-struct transform_data_container_t {
-	bool operator==(const transform_data_container_t& other) const noexcept {
-		return group == other.group;
-	}
-	psl::array<entity_t> entities;
-	psl::array<entity_t::size_type> indices;	// used in case there is an order_by
-	std::shared_ptr<details::transform_group> group;
-};
-
-struct filter_data_container_t {
-	filter_data_container_t(psl::array<entity_t> entities						   = {},
-							std::shared_ptr<details::filter_group> group		   = {},
-							psl::array<transform_data_container_t> transformations = {})
-		: entities(entities), group(group), transformations(transformations) {}
-	filter_data_container_t(filter_data_container_t const& rhs)
-		: entities(rhs.entities), direct_entities(rhs.direct_entities), group(rhs.group),
-		  transformations(rhs.transformations) {}
-	filter_data_container_t(filter_data_container_t&& rhs) noexcept
-		: entities(std::move(rhs.entities)), direct_entities(std::move(rhs.direct_entities)), group(rhs.group),
-		  transformations(std::move(rhs.transformations)) {}
-	filter_data_container_t& operator=(filter_data_container_t const& rhs) {
-		if(this == &rhs) {
-			return *this;
-		}
-
-		entities		= rhs.entities;
-		direct_entities = rhs.direct_entities;
-		group			= rhs.group;
-		transformations = rhs.transformations;
-		return *this;
-	}
-	filter_data_container_t& operator=(filter_data_container_t&& rhs) noexcept {
-		if(this == &rhs) {
-			return *this;
-		}
-		entities		= std::move(rhs.entities);
-		direct_entities = std::move(rhs.direct_entities);
-		group			= std::move(rhs.group);
-		transformations = std::move(rhs.transformations);
-		return *this;
-	}
-
-	psl::array<entity_t> entities;
-	std::optional<psl::array<entity_t>> direct_entities;	// activated when the grouping has relationship filtering
-	// this way the entities contain _all_ entities opaquely for the systems (and system preparation), but for the
-	// filtering we can be sure that we're not going to get frame drift (f.e. when the parent is added, the next
-	// frame the .entities will now believe the parent is a valid source entry, and so their parents will now be
-	// added.
-	std::shared_ptr<details::filter_group> group;
-
-	// all transformations that will depend on this result
-	psl::array<transform_data_container_t> transformations;
-};
-
-class filter_work_order_t {
-	struct entry_t {
-		entry_t(details::cached_container_entry_t const& container, filtering_op_type_t type)
-			: containers({container.container}), heuristic(container.container->size(stage_range_for(type))),
-			  type(type) {}
-		entry_t(psl::array<details::cached_container_entry_t> const& containers, filtering_op_type_t type)
-			: containers({}), type(type) {
-			switch(type) {
-			case psl::ecs::details::filtering_op_type_t::on_break:
-			case psl::ecs::details::filtering_op_type_t::on_combine: {
-				psl_assert(containers.size() >= 1, "on_combine operation requires at least one container.");
-				this->containers.reserve(containers.size());
-				heuristic = std::numeric_limits<size_t>::max();
-				psl::array<std::pair<size_t, size_t>> container_heuristics_pair {};
-				size_t index = 0;
-				for(const auto& container : containers) {
-					container_heuristics_pair.emplace_back(index++, container.container->size(stage_range_for(type)));
-				}
-				std::sort(std::begin(container_heuristics_pair),
-						  std::end(container_heuristics_pair),
-						  [](const auto& lhs, const auto& rhs) { return lhs.second < rhs.second; });
-				heuristic = container_heuristics_pair[0].second;
-				for(const auto& pair : container_heuristics_pair) {
-					this->containers.push_back(containers[pair.first].container);
-				}
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_mutate: {
-				psl_assert(containers.size() == 2,
-						   "on_mutate operation requires exactly two containers, one for each component.");
-				this->containers = {containers[0].container, containers[1].container};
-				heuristic		 = this->containers[0]->size(stage_range_for(type));
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_hierarchy_change:
-			case psl::ecs::details::filtering_op_type_t::except:
-			case psl::ecs::details::filtering_op_type_t::filter:
-			case psl::ecs::details::filtering_op_type_t::on_add:
-			case psl::ecs::details::filtering_op_type_t::on_remove:
-			default:
-				throw std::runtime_error("Invalid filtering operation type for entry_t construction.");
-				break;
-			}
-		}
-
-		// todo(jdl): could be possible to check a proper heuristics here, but the most common usecase will
-		// typically be something that applies to all entities.
-		entry_t(details::entity_relationship_handler_t* handler, hierarchy_change_event hierarchy_change)
-			: hierarchy_handler(handler), heuristic(std::numeric_limits<size_t>::max()),
-			  type(filtering_op_type_t::on_hierarchy_change), hierarchy_change(hierarchy_change) {}
-		entry_t(entry_t const&)				   = default;
-		entry_t(entry_t&&) noexcept			   = default;
-		entry_t& operator=(entry_t const&)	   = default;
-		entry_t& operator=(entry_t&&) noexcept = default;
-		entry_t()							   = default;
-
-		bool operator==(const entry_t& other) const noexcept {
-			return hierarchy_handler == other.hierarchy_handler && containers.size() == other.containers.size() &&
-				   std::is_permutation(std::begin(containers), std::end(containers), std::begin(other.containers)) &&
-				   type == other.type && hierarchy_change == other.hierarchy_change;
-		}
-
-		bool operator!=(const entry_t& other) const noexcept {
-			return !(*this == other);
-		}
-		bool operator<(const entry_t& other) const noexcept {
-			return heuristic < other.heuristic;
-		}
-		bool operator>(const entry_t& other) const noexcept {
-			return heuristic > other.heuristic;
-		}
-		bool operator<=(const entry_t& other) const noexcept {
-			return heuristic <= other.heuristic;
-		}
-		bool operator>=(const entry_t& other) const noexcept {
-			return heuristic >= other.heuristic;
-		}
-
-		auto entities() const noexcept {
-			// auto get_hierarchy_entities = [this]() -> psl::array<entity_t> {
-			// 	if(!hierarchy_handler) {
-			// 		return {};
-			// 	}
-
-			// 	switch(hierarchy_change) {
-			// 	case hierarchy_change_event::child_added: {
-			// 	}
-			// 	default:
-			// 		break;
-			// 	}
-			// };
-			return containers.size() > 0 ? psl::array<entity_t> {containers[0]->entities(stage_range_for(type))}
-										 : psl::array<entity_t> {};
-		}
-
-		psl::array<entity_t>::iterator filter_op(psl::array<entity_t>::iterator begin,
-												 psl::array<entity_t>::iterator end) {
-			switch(type) {
-			case psl::ecs::details::filtering_op_type_t::filter: {
-				return std::partition(
-				  begin, end, [container = containers[0]](entity_t e) { return container->has_component(e); });
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_add: {
-				return std::partition(
-				  begin, end, [container = containers[0]](entity_t e) { return container->has_added(e); });
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_remove: {
-				return std::partition(
-				  begin, end, [container = containers[0]](entity_t e) { return container->has_removed(e); });
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_break: {
-				// for every entity, remove if...
-				return std::partition(begin, end, [this](entity_t e) {
-					return
-					  // any of them have not had an entity removed
-					  !(!std::any_of(std::begin(containers),
-									 std::end(containers),
-									 [e](const auto& container) { return container->has_removed(e); }) ||
-						// or all of them do not have a component, or had the entity removed
-						!std::all_of(std::begin(containers), std::end(containers), [e](const auto& container) {
-							return container->has_component(e) || container->has_removed(e);
-						}));
-				});
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_combine: {
-				std::partition(begin, end, [this](entity_t e) {
-					return !std::any_of(std::begin(containers), std::end(containers), [e](const auto& container) {
-						return container->has_added(e);
-					}) || !std::all_of(std::begin(containers), std::end(containers), [e](const auto& container) {
-						return container->has_component(e);
-					});
-				});
-			} break;
-			case psl::ecs::details::filtering_op_type_t::on_mutate: {
-				return std::partition(
-				  begin, end, [this](entity_t e) { return containers[0]->has(e) && containers[1]->has(e); });
-			} break;
-			case psl::ecs::details::filtering_op_type_t::except: {
-				return std::partition(
-				  begin, end, [container = containers[0]](entity_t e) { return !container->has_component(e); });
-			} break;
-			default:
-				break;
-			}
-			return end;
-		}
-		details::entity_relationship_handler_t* hierarchy_handler {nullptr};
-		psl::array<psl::ecs::details::component_container_t*> containers {};
-		size_t heuristic {std::numeric_limits<size_t>::max()};
-		filtering_op_type_t type {filtering_op_type_t::filter};
-		hierarchy_change_event hierarchy_change {hierarchy_change_event::none};
-	};
-
-  public:
-	void initialize_filter_data(filter_data_container_t& container) {
-		if(container.group->should_be_preseeded()) {
-			auto& first = m_Entries.front();
-			m_NextIndex++;
-			psl::array<entity_t> entities {first.entities()};
-			container.entities = std::move(filter_pass(std::move(psl::array<entity_t>(first.entities()))));
-		}
-	}
-
-	psl::array<entity_t> filter_pass(psl::array<entity_t> entities) {
-		auto begin = entities.begin();
-		auto end   = entities.end();
-		for(auto i = m_NextIndex; i < m_Entries.size(); ++i) {
-			auto& entry = m_Entries[i];
-			end			= entry.filter_op(begin, end);
-		}
-
-		m_NextIndex = 0;
-
-		entities.erase(end, entities.end());
-		std::sort(entities.begin(), entities.end());
-		return entities;
-	}
-
-  private:
-	void calculate_heuristic(psl::ecs::details::filter_group const& group) {
-		m_Entries.clear();
-
-		for(auto const& filter : group.filters) {
-			m_Entries.emplace_back(entry_t {filter, filtering_op_type_t::filter});
-		}
-		for(auto const& filter : group.on_add) {
-			m_Entries.emplace_back(entry_t {filter, filtering_op_type_t::on_add});
-		}
-		for(auto const& filter : group.on_remove) {
-			m_Entries.emplace_back(entry_t {filter, filtering_op_type_t::on_remove});
-		}
-		for(auto const& filter : group.on_mutate) {
-			m_Entries.emplace_back(entry_t {filter, filtering_op_type_t::on_mutate});
-		}
-		if(group.on_combine.size() > 0) {
-			m_Entries.emplace_back(entry_t {group.on_combine, filtering_op_type_t::on_combine});
-		}
-		if(group.on_break.size() > 0) {
-			m_Entries.emplace_back(entry_t {group.on_break, filtering_op_type_t::on_combine});
-		}
-		for(auto const& filter : group.except) {
-			m_Entries.emplace_back(entry_t {filter.key, filtering_op_type_t::except});
-		}
-		if(group.is_hierarchy_change_active()) {
-			m_Entries.emplace_back(entry_t {});
-		}
-
-		std::sort(m_Entries.begin(), m_Entries.end());
-	}
-
-	psl::array<entry_t> m_Entries {};
-	size_t m_NextIndex {0};
-	bool m_ShouldPreseed {false};
-	// I need to know the components involved, and the filters associated with them.
-	// from there I need to rank them based on size where smaller is better (or manually later if they are complex).
-};
 }	 // namespace psl::ecs::details
 
 namespace psl::utility {
@@ -764,10 +466,8 @@ class state_t final : public details::entity_relationship_handler_t,
 		  [this]<typename T>() -> details::component_container_t* { return get_component_untyped_info<T>(); }};
 	}
 
-	size_t prepare_bindings(psl::array_view<entity_t> entities,
-							void* cache,
-							details::dependency_pack& dep_pack) const noexcept;
-	size_t prepare_data(psl::array_view<entity_t> entities, void* cache, details::component_key_t id) const noexcept;
+	size_t prepare_bindings(psl::array_view<entity_t> entities, void* cache, details::dependency_pack& dep_pack) const;
+	size_t prepare_data(psl::array_view<entity_t> entities, void* cache, details::component_key_t id) const;
 
 	void prepare_system(std::chrono::duration<float> dTime,
 						std::chrono::duration<float> rTime,
