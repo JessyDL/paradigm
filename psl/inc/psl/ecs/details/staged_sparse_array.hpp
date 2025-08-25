@@ -1024,7 +1024,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	}
 
 	/// \brief Iterates through the given range, removing the elements that do not exist in the given stage range
-	template <bool Operation = false, typename IndexItFirst, typename IndexItLast>
+	template <bool Operation = false, bool PreSorted = false, typename IndexItFirst, typename IndexItLast>
 	FORCEINLINE auto remove_if_has_impl(IndexItFirst it_index_first,
 										IndexItLast it_index_last,
 										stage_range_t range = stage_range_t::ALL) const {
@@ -1032,7 +1032,12 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			return it_index_last;
 		}
 
-		psl_assert(std::is_sorted(it_index_first, it_index_last), "This method requires sorted indices");
+		if constexpr(!PreSorted) {
+			if(std::is_sorted(it_index_first, it_index_last)) {
+				return remove_if_has_impl<Operation, true>(it_index_first, it_index_last, range);
+			}
+		}
+
 		auto current	= it_index_first;
 		auto const last = it_index_last;
 		auto valid		= current;
@@ -1045,30 +1050,71 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			index_type chunk_index {};
 			index_type element_index {};
 			chunk_info_for(first_index, element_index, chunk_index);
-			// if the returned chunk_index is larger than the amount we've stored
-			// we can safely terminate the loop due to the source being sorted.
-			if(chunk_index >= m_Sparse.size()) {
-				break;
+			size_t prev_treshold {(chunk_index)*CHUNKS_SIZE};
+			size_t next_treshold {prev_treshold + CHUNKS_SIZE};
+			if constexpr(PreSorted) {
+				// if the returned chunk_index is larger than the amount we've stored
+				// we can safely terminate the loop due to the source being sorted.
+				if(chunk_index >= m_Sparse.size()) {
+					return valid;
+				}
+			} else {
+				for(;;) {
+					if(current == last) {
+						return valid;
+					}
+					auto const next_index = convert_from_user_type(*current);
+					if(next_index < prev_treshold || next_index >= next_treshold) {
+						break;
+					}
+					++current;
+				}
+				continue;
 			}
-			size_t next_treshold {(chunk_index + 1) * CHUNKS_SIZE};
 			auto& chunkPtr = m_Sparse[chunk_index];
 			// skip the chunk in case there's nothing in it
 			if(!chunkPtr) {
-				do {
+				for(;;) {
+					if(current == last) {
+						return valid;
+					}
+					auto const next_index = convert_from_user_type(*current);
+					if constexpr(PreSorted) {
+						if(next_index >= next_treshold) {
+							break;
+						}
+					} else {
+						if(next_index < prev_treshold || next_index >= next_treshold) {
+							break;
+						}
+					}
 					if constexpr(!Operation) {
 						*valid = *current;
 						++valid;
 					}
 					++current;
-				} while(current != last && convert_from_user_type(*current) < next_treshold);
+				}
 				continue;
 			}
 			auto& chunk = *chunkPtr;
 
-			do {
+			for(;;) {
+				if(current == last) {
+					return valid;
+				}
 				auto const next_index = convert_from_user_type(*current);
-				auto const diff		  = next_index - first_index;
-				auto const val		  = chunk[element_index + diff];
+				if constexpr(PreSorted) {
+					if(next_index >= next_treshold) {
+						break;
+					}
+				} else {
+					if(next_index < prev_treshold || next_index >= next_treshold) {
+						break;
+					}
+				}
+
+				auto const diff = next_index - first_index;
+				auto const val	= chunk[element_index + diff];
 				if constexpr(Operation) {
 					if(val >= MAX_REV_INDEX && val < MIN_REV_INDEX) {
 						*valid = *current;
@@ -1081,7 +1127,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 					}
 				}
 				++current;
-			} while(current != last && convert_from_user_type(*current) < next_treshold);
+			}
 		} while(current != last);
 
 		return valid;
@@ -1476,84 +1522,76 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 								DataItFirst it_data_first		 = nullptr,
 								DataItLast it_data_last			 = nullptr,
 								InvocableNotFoundFn&& CbNotFound = nullptr) {
-		using view_type	   = std::conditional_t<std::is_same_v<DataItLast, void*>,
-												std::span<index_type>,
-												std::span<std::pair<index_type, DataItFirst>>>;
-		using storage_type = std::conditional_t<std::is_same_v<DataItLast, void*>,
-												psl::array<index_type>,
-												psl::array<std::pair<index_type, DataItFirst>>>;
-		storage_type storage;
+		using view_type = std::span<index_type>;
 		auto const size = psl::narrow_cast<index_type>(std::distance(it_index_first, it_index_last));
 		if(size == 0) {
 			return;
 		}
-		view_type view;
+		view_type view =
+		  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
 		if constexpr(std::is_same_v<DataItLast, void*>) {
-			view = std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-			if(!std::is_sorted(view.begin(), view.end())) {
-				storage = psl::array<index_type>(view.begin(), view.end());
-				std::sort(storage.begin(), storage.end());
-				view = std::span<index_type>(storage);
+			if(std::is_sorted(view.begin(), view.end())) {
+				invoke_for_impl<AutoCreate, true>(view, Cb, it_data_first, CbNotFound);
+			} else {
+				invoke_for_impl<AutoCreate, false>(view, Cb, it_data_first, CbNotFound);
 			}
-			invoke_for_presorted<AutoCreate>(view, Cb, it_data_first, CbNotFound);
 		} else {
 			if(std::is_sorted(it_index_first, it_index_last)) {
-				auto new_view =
-				  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-				invoke_for_presorted<AutoCreate>(new_view, Cb, it_data_first, it_data_last, CbNotFound);
+				invoke_for_impl<AutoCreate, true>(view, Cb, it_data_first, it_data_last, CbNotFound);
 			} else {
-				storage.reserve(size);
-				for(auto it = it_index_first; it != it_index_last; ++it) {
-					storage.emplace_back(*it, it_data_first);
-					++it_data_first;
-				}
-				std::sort(
-				  storage.begin(), storage.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-				view = view_type(storage);
-
-				invoke_for_presorted<AutoCreate>(view, Cb, it_data_first, it_data_last, CbNotFound);
+				invoke_for_impl<AutoCreate, false>(view, Cb, it_data_first, it_data_last, CbNotFound);
 			}
 		}
 	}
 
 	template <bool AutoCreate,
+			  bool PreSorted,
 			  typename View,
 			  typename DataItFirst		   = void*,
 			  typename DataItLast		   = void*,
 			  typename InvocableNotFoundFn = void*>
-	FORCEINLINE auto invoke_for_presorted(View& view,
-										  auto&& Cb,
-										  DataItFirst it_data_first		 = nullptr,
-										  DataItLast it_data_last		 = nullptr,
-										  InvocableNotFoundFn CbNotFound = nullptr) {
+	FORCEINLINE auto invoke_for_impl(View& view,
+									 auto&& Cb,
+									 DataItFirst it_data_first		= nullptr,
+									 DataItLast it_data_last		= nullptr,
+									 InvocableNotFoundFn CbNotFound = nullptr) {
 		static_assert(std::is_same_v<InvocableNotFoundFn, void*> || !AutoCreate,
 					  "Cannot autocreate with a not-found-callback");
-		auto const get_index = [](auto it) noexcept -> index_type {
-			if constexpr(std::is_same_v<View, std::span<index_type>>) {
-				return *it;
-			} else {
-				return it->first;
-			}
-		};
 
-		if constexpr(AutoCreate) {
-			sparse_guarantee_for_userspace(get_index(std::prev(view.end())));
+		if constexpr(AutoCreate && PreSorted) {
+			sparse_guarantee_for_userspace(*(std::prev(view.end())));
+		} else if constexpr(AutoCreate && !PreSorted) {
+			sparse_guarantee_for_userspace(*std::max_element(view.begin(), view.end()));
 		}
 
 
 		auto it = view.begin();
 		do {
-			auto const first_index = get_index(it);
+			auto const first_index = *it;
 			index_type chunk_index {};
 			index_type element_index {};
 			chunk_info_for(first_index, element_index, chunk_index);
-			size_t const next_treshold {(chunk_index + 1) * CHUNKS_SIZE};
+			size_t const prev_treshold {(chunk_index)*CHUNKS_SIZE};
+			size_t const next_treshold {prev_treshold + CHUNKS_SIZE};
 			if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
 				if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
-					do {
-						CbNotFound(get_index(it));
+					for(;;) {
+						if(it == view.end()) {
+							return;
+						}
+						auto const next_index = *it;
+						if constexpr(PreSorted) {
+							if(chunk_index < m_Sparse.size() && next_index >= next_treshold) {
+								break;
+							}
+						} else {
+							if(next_index >= next_treshold || next_index < prev_treshold) {
+								break;
+							}
+						}
+						CbNotFound(next_index);
 						++it;
-					} while(it != view.end() && (chunk_index >= m_Sparse.size() || get_index(it) < next_treshold));
+					}
 					continue;
 				}
 			} else {
@@ -1569,9 +1607,22 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			}
 
 			auto& chunk = *chunkPtr;
-			do {
-				auto const next_index = get_index(it);
-				auto const diff		  = next_index - first_index;
+			for(;;) {
+				if(it == view.end()) {
+					break;
+				}
+				auto const next_index = *it;
+				if constexpr(PreSorted) {
+					if(next_index >= next_treshold) {
+						break;
+					}
+				} else {
+					if(next_index >= next_treshold || next_index < prev_treshold) {
+						break;
+					}
+				}
+
+				auto const diff = next_index - first_index;
 				if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
 					if(chunk[element_index + diff] == TOMBSTONE) {
 						CbNotFound(next_index);
@@ -1593,26 +1644,18 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 					psl_assert(false, "unreachable");
 				}
 				++it;
-			} while(it != view.end() && get_index(it) < next_treshold);
+			}
 		} while(it != view.end());
 	}
 
-	template <typename View, typename DataItFirst = void*, typename DataItLast = void*>
-	FORCEINLINE auto cinvoke_for_presorted(View& view,
-										   auto&& Cb,
-										   DataItFirst it_data_first = nullptr,
-										   DataItLast it_data_last	 = nullptr) const {
-		auto get_index = [](auto const& it) -> index_type {
-			if constexpr(!std::is_same_v<View, std::span<index_type>>) {
-				return it->first;
-			} else {
-				return *it;
-			}
-		};
-
+	template <bool PreSorted, typename View, typename DataItFirst = void*, typename DataItLast = void*>
+	FORCEINLINE auto cinvoke_for_impl(View& view,
+									  auto&& Cb,
+									  DataItFirst it_data_first = nullptr,
+									  DataItLast it_data_last	= nullptr) const {
 		auto it = view.begin();
 		do {
-			auto const first_index = get_index(it);
+			auto const first_index = *it;
 			index_type chunk_index {};
 			index_type element_index {};
 			chunk_info_for(first_index, element_index, chunk_index);
@@ -1620,11 +1663,24 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			auto& chunkPtr = m_Sparse[chunk_index];
 			psl_assert(chunkPtr, "Chunk pointer cannot be null");
 			auto& chunk = *chunkPtr;
-			size_t next_treshold {(chunk_index + 1) * CHUNKS_SIZE};
+			size_t const prev_treshold {(chunk_index)*CHUNKS_SIZE};
+			size_t const next_treshold {prev_treshold + CHUNKS_SIZE};
 
-			do {
-				auto const next_index = get_index(it);
-				auto const diff		  = next_index - first_index;
+			for(;;) {
+				if(it == view.end()) {
+					break;
+				}
+				auto const next_index = *it;
+				if constexpr(PreSorted) {
+					if(next_index >= next_treshold) {
+						break;
+					}
+				} else {
+					if(next_index >= next_treshold || next_index < prev_treshold) {
+						break;
+					}
+				}
+				auto const diff = next_index - first_index;
 				if constexpr(std::is_same_v<DataItFirst, void*>) {
 					Cb(next_index, chunk, element_index + diff);
 				} else if constexpr(std::is_same_v<DataItLast, void*>) {
@@ -1638,7 +1694,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 					psl_assert(false, "unreachable hit");
 				}
 				++it;
-			} while(it != view.end() && get_index(it) < next_treshold);
+			}
 		} while(it != view.end());
 	}
 
@@ -1648,67 +1704,50 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 								 auto&& Cb,
 								 DataItFirst it_data_first = nullptr,
 								 DataItLast it_data_last   = nullptr) const {
-		using view_type	   = std::conditional_t<std::is_same_v<DataItLast, void*>,
-												std::span<index_type>,
-												std::span<std::pair<index_type, DataItFirst>>>;
-		using storage_type = std::conditional_t<std::is_same_v<DataItLast, void*>,
-												psl::array<index_type>,
-												psl::array<std::pair<index_type, DataItFirst>>>;
-		storage_type storage;
+		using view_type = std::span<index_type>;
 		auto const size = psl::narrow_cast<index_type>(std::distance(it_index_first, it_index_last));
 		if(size == 0) {
 			return;
 		}
-		view_type view;
+		view_type view =
+		  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
 		if constexpr(std::is_same_v<DataItLast, void*>) {
-			view = std::span<index_type>(it_index_first, it_index_last);
-			if(!std::is_sorted(view.begin(), view.end())) {
-				storage = psl::array<index_type>(view.begin(), view.end());
-				std::sort(storage.begin(), storage.end());
-				view = std::span<index_type>(storage);
+			if(std::is_sorted(view.begin(), view.end())) {
+				cinvoke_for_impl<true>(view, Cb, it_data_first);
+			} else {
+				cinvoke_for_impl<false>(view, Cb, it_data_first);
 			}
-			cinvoke_for_presorted(view, Cb, it_data_first);
 		} else {
 			if(std::is_sorted(it_index_first, it_index_last)) {
-				auto new_view =
-				  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-				cinvoke_for_presorted(new_view, Cb, it_data_first, it_data_last);
+				cinvoke_for_impl<true>(view, Cb, it_data_first, it_data_last);
 			} else {
-				// more expensive pathway
-				storage.reserve(size);
-				for(auto it = it_index_first; it != it_index_last; ++it) {
-					storage.emplace_back(*it, it_data_first);
-					++it_data_first;
-				}
-				std::sort(
-				  storage.begin(), storage.end(), [](const auto& a, const auto& b) { return a.first < b.first; });
-				view = view_type(storage);
-
-				cinvoke_for_presorted(view, Cb, it_data_first, it_data_last);
+				cinvoke_for_impl<false>(view, Cb, it_data_first, it_data_last);
 			}
 		}
 	}
 
 	/// \brief Invokes the callback for each index in the given range, sorted by chunk, in reverse order.
-	template <bool AutoCreate, bool SkipMissing, typename IndexItFirst, typename IndexItLast>
+	template <bool AutoCreate, bool SkipMissing, bool PreSorted = false, typename IndexItFirst, typename IndexItLast>
 	FORCEINLINE auto reverse_invoke_for(IndexItFirst it_index_first, IndexItLast it_index_last, auto&& Cb) {
 		if(it_index_first == it_index_last) {
 			return;
 		}
-		psl::array<index_type> storage;
 		std::span<index_type> view((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-		if(!std::is_sorted(view.begin(), view.end())) {
-			storage = psl::array<index_type>(view.begin(), view.end());
-			std::sort(storage.begin(), storage.end());
-			view = std::span<index_type>(storage);
+		if constexpr(!PreSorted) {
+			if(std::is_sorted(view.begin(), view.end())) {
+				reverse_invoke_for<AutoCreate, SkipMissing, true>(it_index_first, it_index_last, Cb);
+				return;
+			}
 		}
 		auto it = view.rbegin();
 
-		if constexpr(AutoCreate) {
+		if constexpr(AutoCreate && PreSorted) {
 			sparse_guarantee_for_userspace(*std::prev(view.end()));
+		} else if constexpr(AutoCreate && !PreSorted) {
+			sparse_guarantee_for_userspace(*std::max_element(view.begin(), view.end()));
 		}
 
-		if constexpr(SkipMissing && !AutoCreate) {
+		if constexpr(SkipMissing && !AutoCreate && PreSorted) {
 			auto const first_index = *std::begin(view);
 			index_type chunk_index {};
 			index_type element_index {};
@@ -1724,11 +1763,26 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			index_type element_index {};
 			chunk_info_for(first_index, element_index, chunk_index);
 			size_t next_treshold {chunk_index * CHUNKS_SIZE};
+			size_t prev_treshold {next_treshold + CHUNKS_SIZE};
+
 			if constexpr(SkipMissing && !AutoCreate) {
 				if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
-					do {
-						it = std::next(it);
-					} while(it != view.rend() && *it >= next_treshold);
+					for(;;) {
+						if(it == view.rend()) {
+							break;
+						}
+						auto const next_index = *it;
+						if constexpr(PreSorted) {
+							if(next_index < next_treshold) {
+								break;
+							}
+						} else {
+							if(next_index < next_treshold || next_index >= prev_treshold) {
+								break;
+							}
+						}
+						++it;
+					}
 					continue;
 				}
 			}
@@ -1742,13 +1796,25 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			}
 			auto& chunk = *chunkPtr;
 
-			do {
+			for(;;) {
+				if(it == view.rend()) {
+					break;
+				}
 				auto const next_index = *it;
-				auto const diff		  = first_index - next_index;
+				if constexpr(PreSorted) {
+					if(next_index < next_treshold) {
+						break;
+					}
+				} else {
+					if(next_index < next_treshold || next_index >= prev_treshold) {
+						break;
+					}
+				}
+				auto const diff = first_index - next_index;
 				psl_assert(element_index >= diff, "underflow warning");
-				++it;
 				Cb(next_index, chunk, element_index - diff);
-			} while(it != view.rend() && *it >= next_treshold);
+				++it;
+			}
 		} while(it != view.rend());
 	}
 
