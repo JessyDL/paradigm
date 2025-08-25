@@ -403,13 +403,6 @@ void state_t::destroy(psl::array_view<entity_t> entities) noexcept {
 	if(entities.size() == 0)
 		return;
 
-	psl::array<entity_t> storage {};
-	if(!std::is_sorted(entities.begin(), entities.end())) {
-		storage = psl::array<entity_t>(entities.begin(), entities.end());
-		std::sort(storage.begin(), storage.end());
-		entities = psl::array_view<entity_t>(storage.begin(), storage.end());
-	}
-
 	components_cache_t::destroy_components(entities);
 	entity_container_t::destroy(entities);
 }
@@ -421,12 +414,6 @@ void state_t::destroy(entity_t entity) noexcept {
 
 void state_t::reset(psl::array_view<entity_t> entities) noexcept {
 	psl::array<entity_t> storage {};
-	if(!std::is_sorted(entities.begin(), entities.end())) {
-		storage = psl::array<entity_t>(entities.begin(), entities.end());
-		std::sort(storage.begin(), storage.end());
-		entities = psl::array_view<entity_t>(storage.begin(), storage.end());
-	}
-
 	components_cache_t::destroy_components(entities);
 }
 
