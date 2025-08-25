@@ -54,21 +54,9 @@ constexpr T get_range(benchmark::State const& gState, size_t pos = 0) {
 }
 
 #ifdef BENCHMARK_ENTITY_CREATION
-void entity_creation(benchmark::State& gState) {
-	auto eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
-
-	ecs::state_t state;
-	for(auto _ : gState) {
-		gState.PauseTiming();
-		state.clear();
-		gState.ResumeTiming();
-		state.create(eCount);
-	}
-}
-
-void entity_creation_with_destruction(benchmark::State& gState) {
-	auto eCount		= get_range<psl::ecs::entity_t::size_type>(gState, 0);
-	auto eHalfCount = eCount >> 1;
+template <bool Destruction, bool Shuffle>
+void entity_creation_fn(benchmark::State& gState) {
+	auto const eCount = get_range<psl::ecs::entity_t::size_type>(gState, 0);
 
 	ecs::state_t state;
 	for(auto _ : gState) {
@@ -76,21 +64,41 @@ void entity_creation_with_destruction(benchmark::State& gState) {
 		state.clear();
 		gState.ResumeTiming();
 		auto ents = state.create(eCount);
-		ents.erase(std::next(std::begin(ents), eHalfCount), std::end(ents));
+		if constexpr(Destruction) {
+			ents.erase(std::next(std::begin(ents), eCount >> 1), std::end(ents));
 
+			if constexpr(Shuffle) {
 		gState.PauseTiming();
 		std::random_device rd;
 		std::mt19937 g(rd());
 		std::shuffle(std::begin(ents), std::end(ents), g);
 		gState.ResumeTiming();
+			}
 
 		state.destroy(ents);
-		state.create(eHalfCount);
+			state.create(eCount >> 1);
+		}
 	}
+}
+
+void entity_creation(benchmark::State& gState) {
+	entity_creation_fn<false, false>(gState);
+}
+
+void entity_creation_with_destruction(benchmark::State& gState) {
+	entity_creation_fn<true, false>(gState);
+	}
+
+void entity_creation_with_destruction_shuffle(benchmark::State& gState) {
+	entity_creation_fn<true, true>(gState);
 }
 
 BENCHMARK(entity_creation)->RangeMultiplier(10)->Range(100, 1'000'000)->Unit(benchmark::kMicrosecond);
 BENCHMARK(entity_creation_with_destruction)->RangeMultiplier(10)->Range(100, 1'000'000)->Unit(benchmark::kMicrosecond);
+BENCHMARK(entity_creation_with_destruction_shuffle)
+  ->RangeMultiplier(10)
+  ->Range(100, 1'000'000)
+  ->Unit(benchmark::kMicrosecond);
 #endif
 
 #ifdef BENCHMARK_COMPONENT_CREATION
@@ -539,7 +547,6 @@ class basic_system_usage : public ::benchmark::Fixture {
 
   public:
 	void SetUp(const ::benchmark::State& gState) override {
-		psl_assert(count.size() == 5, "expected size to be 5");
 		auto counts_entry = system_counts[get_range<size_t>(gState)];
 		auto eCount		  = counts_entry[0];
 		auto entities	  = state.create(eCount);

@@ -67,7 +67,7 @@ class sparse_indice_array {
 		}
 		if(m_Sparse.size() <= chunk_index) {
 			m_Sparse.resize(chunk_index + 1);
-			m_CachedChunk = nullptr;
+			m_CachedChunk		   = nullptr;
 			m_CachedChunkUserIndex = std::numeric_limits<T>::max();
 		}
 	}
@@ -131,7 +131,7 @@ class sparse_indice_array {
 			chunk_info_for(last_index, element_index, chunk_index);
 			if(m_Sparse.size() <= chunk_index) {
 				m_Sparse.resize(chunk_index + 1);
-				m_CachedChunk = nullptr;
+				m_CachedChunk		   = nullptr;
 				m_CachedChunkUserIndex = std::numeric_limits<T>::max();
 			}
 		}
@@ -166,13 +166,74 @@ class sparse_indice_array {
 
 	template <typename InputIt>
 		requires std::input_iterator<InputIt>
+	size_t try_insert_unsorted(InputIt first, InputIt last) {
+		auto const total {std::distance(first, last)};
+		if(total == 0) {
+			return 0;
+		}
+		if(total == 1) {
+			return try_insert(*first) ? 1 : 0;
+		}
+
+		m_Reverse.reserve(BufferGrowthStrategy {}.growth(m_Reverse.capacity(), m_Reverse.size() + total));
+
+		psl::array_view<T> indices {first, last};
+		auto const [min, max] = std::minmax_element(indices.begin(), indices.end());
+		if(*min < m_Offset) {
+			auto aligned_index = chunk_aligned_index(*min);
+			if(m_Offset != OFFSET_START) {
+				pad_front((m_Offset - aligned_index) / chunks_size);
+			}
+			m_Offset = aligned_index;
+		}
+
+		{
+			auto const last_index = *max;
+			T element_index, chunk_index;
+			chunk_info_for(last_index, element_index, chunk_index);
+			if(m_Sparse.size() <= chunk_index) {
+				m_Sparse.resize(chunk_index + 1);
+				m_CachedChunk		   = nullptr;
+				m_CachedChunkUserIndex = std::numeric_limits<T>::max();
+			}
+		}
+
+
+		size_t count {0};
+		size_t i {0};
+		do {
+			auto const first_index = indices[i];
+			T element_index, chunk_index;
+			chunk_info_for(first_index, element_index, chunk_index);
+			auto& chunk = m_Sparse[chunk_index];
+			if(chunk.size() == 0) {
+				chunk.resize(chunks_size, std::numeric_limits<T>::max());
+			}
+			size_t prev_treshold {(chunk_index)*chunks_size};
+			size_t next_treshold {(chunk_index + 1) * chunks_size};
+
+			do {
+				auto const next_index = indices[i];
+				auto const diff		  = next_index - first_index;
+				if(chunk[element_index + diff] == std::numeric_limits<T>::max()) {
+					chunk[element_index + diff] = (T)m_Reverse.size();
+					m_Reverse.emplace_back(next_index);
+					++count;
+				}
+				++i;
+			} while(i < indices.size() && indices[i] < next_treshold && indices[i] >= prev_treshold);
+		} while(i < indices.size());
+
+		return count;
+	}
+
+	template <typename InputIt>
+		requires std::input_iterator<InputIt>
 	size_t try_insert(InputIt first, InputIt last) {
 		if(std::is_sorted(first, last)) {
 			return try_insert_presorted(first, last);
 		}
-		psl::array<T> indices(first, last);
-		std::sort(std::begin(indices), std::end(indices));
-		return try_insert_presorted(std::begin(indices), std::end(indices));
+		return try_insert_unsorted(first, last);
 	}
 
 	void emplace(T&& index) {
@@ -313,7 +374,7 @@ class sparse_indice_array {
 	void pad_front(size_t count) {
 		m_Sparse.resize(m_Sparse.size() + count);
 		std::rotate(std::rbegin(m_Sparse), std::rbegin(m_Sparse) + count, std::rend(m_Sparse));
-		m_CachedChunk = nullptr;
+		m_CachedChunk		   = nullptr;
 		m_CachedChunkUserIndex = std::numeric_limits<T>::max();
 	}
 	static constexpr T chunk_aligned_index(const T& index) {
