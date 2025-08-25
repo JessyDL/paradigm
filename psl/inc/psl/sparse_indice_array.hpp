@@ -67,6 +67,8 @@ class sparse_indice_array {
 		}
 		if(m_Sparse.size() <= chunk_index) {
 			m_Sparse.resize(chunk_index + 1);
+			m_CachedChunk = nullptr;
+			m_CachedChunkUserIndex = std::numeric_limits<T>::max();
 		}
 	}
 	void insert(const T& index) {
@@ -129,6 +131,8 @@ class sparse_indice_array {
 			chunk_info_for(last_index, element_index, chunk_index);
 			if(m_Sparse.size() <= chunk_index) {
 				m_Sparse.resize(chunk_index + 1);
+				m_CachedChunk = nullptr;
+				m_CachedChunkUserIndex = std::numeric_limits<T>::max();
 			}
 		}
 
@@ -309,6 +313,8 @@ class sparse_indice_array {
 	void pad_front(size_t count) {
 		m_Sparse.resize(m_Sparse.size() + count);
 		std::rotate(std::rbegin(m_Sparse), std::rbegin(m_Sparse) + count, std::rend(m_Sparse));
+		m_CachedChunk = nullptr;
+		m_CachedChunkUserIndex = std::numeric_limits<T>::max();
 	}
 	static constexpr T chunk_aligned_index(const T& index) {
 		if constexpr(is_power_of_two) {
