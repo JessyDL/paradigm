@@ -332,6 +332,7 @@ template <template <typename...> typename PackType>
 class idiomatic_system_usage : public ::benchmark::Fixture {
   public:
 	void SetUp(const ::benchmark::State& gState) override {
+		auto& state				= *statePtr;
 		auto const entity_count = get_range<psl::ecs::entity_t::size_type>(gState, 0);
 
 		auto base_entities = state.create<int, transform, camera>(entity_count);
@@ -398,18 +399,29 @@ class idiomatic_system_usage : public ::benchmark::Fixture {
 		}
 	}
 	void TearDown(const ::benchmark::State& gState) override {
-		state.clear();
+		statePtr->clear();
 	}
 	void run_benchmark(benchmark::State& gState) {
 		for(auto _ : gState) {
-			state.tick(std::chrono::duration<float> {1.f});
+			statePtr->tick(std::chrono::duration<float> {1.f});
 		}
 	}
 
+	static void SetUpTestSuite() {
+		// need increased cache size to deal with direct component access
+		statePtr = new ecs::state_t(0, 256 * 1024 * 1024);
+		}
+
+	static void TearDownTestSuite() {
+		delete(statePtr);
+	}
+
   protected:
-	// need increased cache size to deal with direct component access
-	psl::ecs::state_t state {0, 256 * 1024 * 1024};
+	static psl::ecs::state_t* statePtr;
 };
+
+template <template <typename...> typename PackType>
+psl::ecs::state_t* idiomatic_system_usage<PackType>::statePtr = nullptr;
 
 DEFINE_AND_REGISTER_BENCHMARK(idiomatic_system_usage, indirect_full, pack_indirect_full_t)
   ->RangeMultiplier(10)
@@ -549,7 +561,7 @@ class basic_system_usage : public ::benchmark::Fixture {
 	void SetUp(const ::benchmark::State& gState) override {
 		auto counts_entry = system_counts[get_range<size_t>(gState)];
 		auto eCount		  = counts_entry[0];
-		auto entities	  = state.create(eCount);
+		auto entities	  = statePtr->create(eCount);
 
 		auto create_random_entity_array = [](const psl::array<entity_t>& source, size_t count, std::mt19937 g) {
 			auto copy = source;
@@ -561,23 +573,35 @@ class basic_system_usage : public ::benchmark::Fixture {
 		std::random_device rd;
 		std::mt19937 g(rd());
 		size_t i {1};
-		(state.add_components<std::remove_const_t<Ts>>(create_random_entity_array(entities, counts_entry[i++], g)),
+		(statePtr->add_components<std::remove_const_t<Ts>>(create_random_entity_array(entities, counts_entry[i++], g)),
 		 ...);
 
-		state.declare(threading::seq, [](info_t& info, PackType<Ts...> pack) {});
+		statePtr->declare(threading::seq, [](info_t& info, PackType<Ts...> pack) {});
 	}
 	void TearDown(const ::benchmark::State& gState) override {
-		state.clear();
+		statePtr->clear();
 	}
 	void run_benchmark(benchmark::State& gState) {
 		for(auto _ : gState) {
-			state.tick(std::chrono::duration<float> {1.f});
+			statePtr->tick(std::chrono::duration<float> {1.f});
 		}
 	}
 
+	static void SetUpTestSuite() {
+		statePtr = new ecs::state_t();
+		}
+
+	static void TearDownTestSuite() {
+		delete(statePtr);
+	}
+
   protected:
-	psl::ecs::state_t state;
+	static psl::ecs::state_t* statePtr;
 };
+
+template <template <typename...> typename PackType, typename... Ts>
+psl::ecs::state_t* basic_system_usage<PackType, Ts...>::statePtr = nullptr;
+
 
 	#define CONST_TRIVIAL_COMPONENT_TYPES const char, const int, const float, const uint64_t
 	#define TRIVIAL_COMPONENT_TYPES const char, const int, const float, const uint64_t
