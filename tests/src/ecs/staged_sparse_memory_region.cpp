@@ -280,7 +280,7 @@ auto t4 = suite<"psl::ecs::details::staged_sparse_array<psl::ecs::details::untyp
 	return;
 	auto indices = psl::array<psl::ecs::entity_t>(container.indices(stage_range_t::ALL));
 	psl::array<float> values(indices.size());
-	for(auto i = 0; i < indices.size(); ++i) {
+	for(size_t i = 0; i < indices.size(); ++i) {
 		values[i] = (float)indices[i].value();
 	}
 	container.set(indices.begin(), indices.end(), values.begin(), values.end());

@@ -109,7 +109,6 @@ struct component_trait_mutability_t<foo_restricted> {
 
 using namespace litmus;
 
-namespace {
 struct position {
 	size_t x;
 	size_t y;
@@ -142,15 +141,6 @@ struct complex_wrapper {
 	T val {};
 };
 
-psl::array<entity_t> make_entities_range(size_t count, size_t offset = 0) {
-	psl::array<entity_t> entities;
-	entities.reserve(count);
-	for(size_t i = 0; i < count; ++i) {
-		entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(i + offset)));
-	}
-	return entities;
-}
-
 struct complex_wrapper_float : public complex_wrapper<float> {
 	using complex_wrapper<float>::complex_wrapper;
 };
@@ -161,11 +151,29 @@ struct complex_wrapper_int : public complex_wrapper<int> {
 
 struct flag_type {};
 
+struct foo {
+	static constexpr auto prototype() -> foo {
+		return foo {10};
+	}
+	int value;
+};
+
+namespace {
+
 // components do not support templated typenames
 using float_tpack  = tpack<float, complex_wrapper_float>;
 using int_tpack	   = tpack<int, complex_wrapper_int>;
 using policy_tpack = tpack<psl::ecs::partial_t, psl::ecs::full_t>;
 using access_tpack = tpack<psl::ecs::direct_t, psl::ecs::indirect_t>;
+
+psl::array<entity_t> make_entities_range(size_t count, size_t offset = 0) {
+	psl::array<entity_t> entities;
+	entities.reserve(count);
+	for(size_t i = 0; i < count; ++i) {
+		entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(i + offset)));
+	}
+	return entities;
+}
 
 auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
 	section<"non-empty component_info_typed">() = [&]() {
@@ -885,13 +893,6 @@ auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 	require(container_b.to_string()) == container_a.to_string();
 };
 
-struct foo {
-	static constexpr auto prototype() -> foo {
-		return foo {10};
-	}
-	int value;
-};
-
 auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
 	auto entity = state.create<foo>(1);
@@ -1386,28 +1387,4 @@ auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
 	};
 };
 #endif
-
 }	 // namespace
-
-// these are in an anonymous namespace, but aren't portable, so we override them here to satisfy the
-// component_trait_name_t requirement rule
-template <>
-struct psl::ecs::component_trait_name_t<foo> {
-	static constexpr std::string_view name = "foo"sv;
-};
-template <>
-struct psl::ecs::component_trait_name_t<position> {
-	static constexpr std::string_view name = "position"sv;
-};
-template <>
-struct psl::ecs::component_trait_name_t<complex_wrapper_float> {
-	static constexpr std::string_view name = "complex_wrapper_float"sv;
-};
-template <>
-struct psl::ecs::component_trait_name_t<complex_wrapper_int> {
-	static constexpr std::string_view name = "complex_wrapper_int"sv;
-};
-template <>
-struct psl::ecs::component_trait_name_t<flag_type> {
-	static constexpr std::string_view name = "flag_type"sv;
-};

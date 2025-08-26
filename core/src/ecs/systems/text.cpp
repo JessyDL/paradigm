@@ -151,9 +151,9 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 
 	// validate for illegal characters in input.
 	{
-		const auto max_char = character_data.size() + 32;
-		for(int character : text) {
-			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t',
+		const auto max_char = psl::narrow_cast<char>(character_data.size() + 32);
+		for(auto character : text) {
+			psl_assert((character >= char(32) && character < max_char) || character == '\n' || character == '\t',
 					   "illegal character '{}' used",
 					   (char)character);
 		}

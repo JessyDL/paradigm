@@ -23,7 +23,23 @@ using namespace core::ecs::components;
 	BENCHMARK_TEMPLATE_DEFINE_F(fixture, name, __VA_ARGS__)(benchmark::State & gState) {                               \
 		run_benchmark(gState);                                                                                         \
 	}                                                                                                                  \
-	BENCHMARK_REGISTER_F(fixture, name)->Unit(benchmark::kMicrosecond)
+	BENCHMARK_REGISTER_F(fixture, name)->Unit(benchmark::kMicrosecond)->Threads(1)
+
+class SharedResourceManager {
+  public:
+	static SharedResourceManager& getInstance() {
+		static SharedResourceManager instance;
+		return instance;
+	}
+
+	psl::ecs::state_t& getResource() {
+		return resource;
+	}
+
+  private:
+	SharedResourceManager() : resource(0, 256 * 1024 * 1024) {}
+	psl::ecs::state_t resource;
+};
 
 
 template <typename T>
@@ -332,7 +348,7 @@ template <template <typename...> typename PackType>
 class idiomatic_system_usage : public ::benchmark::Fixture {
   public:
 	void SetUp(const ::benchmark::State& gState) override {
-		auto& state				= *statePtr;
+		auto& state				= SharedResourceManager::getInstance().getResource();
 		auto const entity_count = get_range<psl::ecs::entity_t::size_type>(gState, 0);
 
 		auto base_entities = state.create<int, transform, camera>(entity_count);
@@ -390,7 +406,6 @@ class idiomatic_system_usage : public ::benchmark::Fixture {
 		}
 
 		state.declare(psl::ecs::threading::seq, &idiomatic_system_usage::system, this);
-		benchmark::DoNotOptimize(state);
 	}
 
 	void system(info_t& buffer, PackType<entity_t, int, const transform, const camera> pack) {
@@ -399,29 +414,14 @@ class idiomatic_system_usage : public ::benchmark::Fixture {
 		}
 	}
 	void TearDown(const ::benchmark::State& gState) override {
-		statePtr->clear();
+		SharedResourceManager::getInstance().getResource().clear(true);
 	}
 	void run_benchmark(benchmark::State& gState) {
 		for(auto _ : gState) {
-			statePtr->tick(std::chrono::duration<float> {1.f});
+			SharedResourceManager::getInstance().getResource().tick(std::chrono::duration<float> {1.f});
 		}
 	}
-
-	static void SetUpTestSuite() {
-		// need increased cache size to deal with direct component access
-		statePtr = new ecs::state_t(0, 256 * 1024 * 1024);
-		}
-
-	static void TearDownTestSuite() {
-		delete(statePtr);
-	}
-
-  protected:
-	static psl::ecs::state_t* statePtr;
 };
-
-template <template <typename...> typename PackType>
-psl::ecs::state_t* idiomatic_system_usage<PackType>::statePtr = nullptr;
 
 DEFINE_AND_REGISTER_BENCHMARK(idiomatic_system_usage, indirect_full, pack_indirect_full_t)
   ->RangeMultiplier(10)
@@ -448,7 +448,7 @@ class filtering_fixture : public ::benchmark::Fixture {
   public:
 	void SetUp(const ::benchmark::State& gState) override {
 		auto index		 = gState.range();
-		const auto& data = data_constraint[index];
+		const auto& data = data_constraint[psl::narrow_cast<size_t>(index)];
 		auto eCount		 = data[0];
 		auto char_beg	 = data[1];
 		auto char_end	 = data[2];
@@ -561,7 +561,7 @@ class basic_system_usage : public ::benchmark::Fixture {
 	void SetUp(const ::benchmark::State& gState) override {
 		auto counts_entry = system_counts[get_range<size_t>(gState)];
 		auto eCount		  = counts_entry[0];
-		auto entities	  = statePtr->create(eCount);
+		auto entities	  = SharedResourceManager::getInstance().getResource().create(eCount);
 
 		auto create_random_entity_array = [](const psl::array<entity_t>& source, size_t count, std::mt19937 g) {
 			auto copy = source;
@@ -573,34 +573,22 @@ class basic_system_usage : public ::benchmark::Fixture {
 		std::random_device rd;
 		std::mt19937 g(rd());
 		size_t i {1};
-		(statePtr->add_components<std::remove_const_t<Ts>>(create_random_entity_array(entities, counts_entry[i++], g)),
+		(SharedResourceManager::getInstance().getResource().add_components<std::remove_const_t<Ts>>(
+		   create_random_entity_array(entities, counts_entry[i++], g)),
 		 ...);
 
-		statePtr->declare(threading::seq, [](info_t& info, PackType<Ts...> pack) {});
+		SharedResourceManager::getInstance().getResource().declare(threading::seq,
+																   [](info_t& info, PackType<Ts...> pack) {});
 	}
 	void TearDown(const ::benchmark::State& gState) override {
-		statePtr->clear();
+		SharedResourceManager::getInstance().getResource().clear(true);
 	}
 	void run_benchmark(benchmark::State& gState) {
 		for(auto _ : gState) {
-			statePtr->tick(std::chrono::duration<float> {1.f});
+			SharedResourceManager::getInstance().getResource().tick(std::chrono::duration<float> {1.f});
 		}
 	}
-
-	static void SetUpTestSuite() {
-		statePtr = new ecs::state_t();
-		}
-
-	static void TearDownTestSuite() {
-		delete(statePtr);
-	}
-
-  protected:
-	static psl::ecs::state_t* statePtr;
 };
-
-template <template <typename...> typename PackType, typename... Ts>
-psl::ecs::state_t* basic_system_usage<PackType, Ts...>::statePtr = nullptr;
 
 
 	#define CONST_TRIVIAL_COMPONENT_TYPES const char, const int, const float, const uint64_t

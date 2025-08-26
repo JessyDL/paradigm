@@ -953,12 +953,20 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		return reverse != TOMBSTONE && ((stage & range) == stage);
 	}
 
-	template <typename IndexItFirst, typename IndexItLast>
+	template <bool PreSorted = false, typename IndexItFirst, typename IndexItLast>
 	FORCEINLINE auto for_each_generator(IndexItFirst it_index_first, IndexItLast it_index_last) {
 		psl_assert(std::is_sorted(it_index_first, it_index_last), "This method requires sorted indices");
+
+		if constexpr(!PreSorted) {
+			if(std::is_sorted(it_index_first, it_index_last)) {
+				return for_each_generator<true>(it_index_first, it_index_last);
+			}
+		}
+
 		return [this,
 				end			  = it_index_last,
 				it			  = it_index_first,
+				prev_treshold = size_t {0},
 				next_treshold = size_t {0},
 				first_index	  = index_type {0},
 				element_index = index_type {0},
@@ -968,33 +976,62 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			}
 			auto next_index = index_type {0};
 			auto rev_index	= index_type {0};
-			do {
-				while(chunkPtr == nullptr || *it >= next_treshold) {
+			for(;;) {
+				if(it == end) {
+					break;
+				}
+
+				for(;;) {
 					first_index = *it;
+					if constexpr(PreSorted) {
+						if(chunkPtr != nullptr && first_index >= next_treshold) {
+							break;
+						}
+					} else {
+						if(chunkPtr != nullptr && (first_index < prev_treshold || first_index >= next_treshold)) {
+							break;
+						}
+					}
 					index_type chunk_index {};
 					chunk_info_for(first_index, element_index, chunk_index);
-					next_treshold = (chunk_index + 1) * CHUNKS_SIZE;
+					prev_treshold = chunk_index * CHUNKS_SIZE;
+					next_treshold = prev_treshold + CHUNKS_SIZE;
 					if(chunk_index > m_Sparse.size()) {
 						it = end;
 						return std::make_pair(std::numeric_limits<index_type>::max(), details::stage_t {4});
 					}
 					chunkPtr = m_Sparse[chunk_index].get();
 					if(!chunkPtr) {
-						do {
+						for(;;) {
+							if(it == end) {
+								return std::make_pair(std::numeric_limits<index_type>::max(), details::stage_t {4});
+							}
+							auto const next_index = *it;
+
+							if constexpr(PreSorted) {
+								if(next_index >= next_treshold) {
+									first_index = next_index;
+									break;
+								}
+							} else {
+								if(next_index < prev_treshold || next_index >= next_treshold) {
+									first_index = next_index;
+									break;
+								}
+							}
 							++it;
-						} while(it != end && *it < next_treshold);
-						if(it == end) {
-							return std::make_pair(std::numeric_limits<index_type>::max(), details::stage_t {4});
 						}
-						first_index = *it;
 					}
 				}
 
-				next_index		= *it;
-				auto const diff = next_index - first_index;
+				next_index					  = *it;
+				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
 				++it;
-				rev_index = (*chunkPtr)[element_index + diff];
-			} while(it != end && rev_index == TOMBSTONE);
+				rev_index = (*chunkPtr)[next_element_index];
+				if(rev_index != TOMBSTONE) {
+					break;
+				}
+			}
 
 			if(rev_index != TOMBSTONE) {
 				auto const what_stage = rev_index < m_StageStart[1]	  ? stage_t::SETTLED
@@ -1113,8 +1150,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 					}
 				}
 
-				auto const diff = next_index - first_index;
-				auto const val	= chunk[element_index + diff];
+				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
+				auto const val				  = chunk[next_element_index];
 				if constexpr(Operation) {
 					if(val >= MAX_REV_INDEX && val < MIN_REV_INDEX) {
 						*valid = *current;
@@ -1622,9 +1659,9 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 					}
 				}
 
-				auto const diff = next_index - first_index;
+				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
 				if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
-					if(chunk[element_index + diff] == TOMBSTONE) {
+					if(chunk[next_element_index] == TOMBSTONE) {
 						CbNotFound(next_index);
 						++it;
 						continue;
@@ -1632,13 +1669,13 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 				}
 
 				if constexpr(std::is_same_v<DataItFirst, void*>) {
-					Cb(next_index, chunk, element_index + diff);
+					Cb(next_index, chunk, next_element_index);
 				} else if constexpr(std::is_same_v<DataItLast, void*>) {
-					Cb(next_index, chunk, element_index + diff, it_data_first);
+					Cb(next_index, chunk, next_element_index, it_data_first);
 				} else if constexpr(!std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, element_index + diff, it->second);
+					Cb(next_index, chunk, next_element_index, it->second);
 				} else if constexpr(std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, element_index + diff, it_data_first);
+					Cb(next_index, chunk, next_element_index, it_data_first);
 					++it_data_first;
 				} else {
 					psl_assert(false, "unreachable");
@@ -1680,15 +1717,15 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 						break;
 					}
 				}
-				auto const diff = next_index - first_index;
+				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
 				if constexpr(std::is_same_v<DataItFirst, void*>) {
-					Cb(next_index, chunk, element_index + diff);
+					Cb(next_index, chunk, next_element_index);
 				} else if constexpr(std::is_same_v<DataItLast, void*>) {
-					Cb(next_index, chunk, element_index + diff, it_data_first);
+					Cb(next_index, chunk, next_element_index, it_data_first);
 				} else if constexpr(!std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, element_index + diff, it->second);
+					Cb(next_index, chunk, next_element_index, it->second);
 				} else if constexpr(std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, element_index + diff, it_data_first);
+					Cb(next_index, chunk, next_element_index, it_data_first);
 					++it_data_first;
 				} else {
 					psl_assert(false, "unreachable hit");
@@ -1810,9 +1847,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 						break;
 					}
 				}
-				auto const diff = first_index - next_index;
-				psl_assert(element_index >= diff, "underflow warning");
-				Cb(next_index, chunk, element_index - diff);
+				auto const next_element_index = next_index - static_cast<index_type>(next_treshold);
+				Cb(next_index, chunk, next_element_index);
 				++it;
 			}
 		} while(it != view.rend());
