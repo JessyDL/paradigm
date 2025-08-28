@@ -1,9 +1,10 @@
 #pragma once
-#include "psl/array.hpp"
-#include "psl/ecs/entity.hpp"
-#include "psl/ecs/selectors.hpp"
-#include "psl/serialization/serializer.hpp"
-#include "psl/sparse_array.hpp"
+#if !defined(PE_ECS_DISABLE_ENTITY_HIERARCHY)
+	#include "psl/array.hpp"
+	#include "psl/ecs/entity.hpp"
+	#include "psl/ecs/selectors.hpp"
+	#include "psl/serialization/serializer.hpp"
+	#include "psl/sparse_array.hpp"
 
 namespace psl::ecs::details {
 class entity_relationship_handler_t {
@@ -107,3 +108,6 @@ class entity_relationship_handler_t {
 	psl::sparse_array<entity_relationship_t, entity_t::size_type> m_ParentRelationship {};
 };
 }	 // namespace psl::ecs::details
+#else
+	#include "psl/ecs/details/entity_relationship_null_handler.hpp"
+#endif

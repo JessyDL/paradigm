@@ -145,10 +145,10 @@ class component_container_t {
 		return m_Info;
 	};
 	size_t size(bool include_removed = false) const noexcept {
-		return entities_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE).size();
+		return size_impl((include_removed) ? stage_range_t::ALL : stage_range_t::ALIVE);
 	}
 	size_t size(stage_range_t range) const noexcept {
-		return entities_impl(range).size();
+		return size_impl(range);
 	}
 
 	void set(entity_t entity, void* data) noexcept {
@@ -179,6 +179,7 @@ class component_container_t {
 	virtual void remove_impl(psl::array_view<entity_t> entities)												 = 0;
 	virtual void remove_impl(psl::array_view<std::pair<entity_t::size_type, entity_t::size_type>> entities)		 = 0;
 	virtual bool has_impl(entity_t entity, stage_range_t stage) const noexcept									 = 0;
+	virtual size_t size_impl(stage_range_t range) const noexcept												 = 0;
 
   protected:
 	component_type_info_t m_Info;
@@ -344,6 +345,10 @@ class component_container_typed_t final : public component_container_t {
 		return m_Entities.has(entity, stage);
 	}
 
+	size_t size_impl(stage_range_t range) const noexcept override {
+		return m_Entities.size(range);
+	}
+
 	void clear() override {
 		m_Entities.clear();
 	}
@@ -473,6 +478,10 @@ class component_container_flag_t final : public component_container_t {
 	}
 	bool has_impl(entity_t entity, stage_range_t stage) const noexcept override {
 		return m_Entities.has(entity, stage);
+	}
+
+	size_t size_impl(stage_range_t range) const noexcept override {
+		return m_Entities.size(range);
 	}
 
 	void clear() override {
@@ -689,6 +698,10 @@ class component_container_untyped_t final : public component_container_t {
 	}
 	bool has_impl(entity_t entity, stage_range_t stage) const noexcept override {
 		return m_Entities.has(entity, stage);
+	}
+
+	size_t size_impl(stage_range_t range) const noexcept override {
+		return m_Entities.size(range);
 	}
 
 	entity_t* remove_if_has_impl(entity_t* begin,

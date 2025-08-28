@@ -908,7 +908,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(stage == stage_range_t::NOT_ADDED) {
 			return m_StageSize[0] + m_StageSize[2];
 		}
-		return m_StageSize[stage_begin(stage)];
+		return m_StageStart[stage_end(stage)] - m_StageStart[stage_begin(stage)];
 	}
 
 	FORCEINLINE constexpr auto empty() const noexcept -> bool {
@@ -1079,9 +1079,6 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		auto const last = it_index_last;
 		auto valid		= current;
 
-		auto const MIN_REV_INDEX = m_StageStart[stage_begin(range)];
-		auto const MAX_REV_INDEX = m_StageStart[stage_end(range)];
-
 		do {
 			auto const first_index = convert_from_user_type(*current);
 			index_type chunk_index {};
@@ -1125,7 +1122,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 							break;
 						}
 					}
-					if constexpr(!Operation) {
+					if constexpr(Operation) {
 						*valid = *current;
 						++valid;
 					}
@@ -1152,13 +1149,14 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 
 				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
 				auto const val				  = chunk[next_element_index];
+				auto const stage			  = stage_range_for_index(val);
 				if constexpr(Operation) {
-					if(val >= MAX_REV_INDEX && val < MIN_REV_INDEX) {
+					if(val == TOMBSTONE || ((stage & range) != stage)) {
 						*valid = *current;
 						++valid;
 					}
 				} else {
-					if(val < MAX_REV_INDEX && val >= MIN_REV_INDEX) {
+					if(val != TOMBSTONE && ((stage & range) == stage)) {
 						*valid = *current;
 						++valid;
 					}

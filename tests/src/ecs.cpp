@@ -598,6 +598,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  std::mutex lock {};
 
 		  state.declare([&expected, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) {
+			  require(pack.size()) == expected;
 			  size_t removed {0};
 			  psl::array<entity_t> entities;
 			  for(auto [e, i] : pack) {

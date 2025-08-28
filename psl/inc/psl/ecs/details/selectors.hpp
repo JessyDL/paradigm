@@ -300,6 +300,11 @@ struct wrap_with_array_view<std::tuple<Ts...>> {
 };
 namespace {
 	template <typename T>
+	struct is_except_t : std::false_type {};
+	template <typename... Ts>
+	struct is_except_t<except<Ts...>> : std::true_type {};
+
+	template <typename T>
 	struct is_on_add_t : std::false_type {};
 	template <typename... Ts>
 	struct is_on_add_t<on_add<Ts...>> : std::true_type {};
@@ -344,19 +349,34 @@ namespace {
 	template <hierarchy_change_event Change, typename T>
 	struct is_hierarchy_change_t<on_hierarchy_change<Change, T>> : std::true_type {};
 
+	template <typename T>
+	struct is_filter_t : std::false_type {};
 
 	template <typename T>
-	struct is_filter_t : std::true_type {};
-
-	template <typename T>
-		requires(!is_on_add_t<T>::value && !is_on_remove_t<T>::value && !is_on_combine_t<T>::value &&
-				 !is_on_break_t<T>::value && !is_on_mutate_t<T>::value && !is_on_condition_t<T>::value &&
-				 !is_order_by_t<T>::value && !is_get_relationship_t<T>::value && !is_hierarchy_change_t<T>::value)
-	struct is_filter_t<T> : std::false_type {};
+		requires(!is_except_t<T>::value && !is_on_add_t<T>::value && !is_on_remove_t<T>::value &&
+				 !is_on_combine_t<T>::value && !is_on_break_t<T>::value && !is_on_mutate_t<T>::value &&
+				 !is_optional_t<T>::value && !is_on_condition_t<T>::value && !is_order_by_t<T>::value &&
+				 !is_get_relationship_t<T>::value && !is_hierarchy_change_t<T>::value)
+	struct is_filter_t<T> : std::true_type {};
 	template <typename... Ts>
 	struct is_filter_t<filter<Ts...>> : std::true_type {};
+
+	template <typename T>
+	struct is_weak_filter_t : std::true_type {};
+
+	template <typename T>
+		requires(is_except_t<T>::value || is_on_add_t<T>::value || is_on_remove_t<T>::value ||
+				 is_on_combine_t<T>::value || is_on_break_t<T>::value || is_on_mutate_t<T>::value ||
+				 is_optional_t<T>::value || is_on_condition_t<T>::value || is_order_by_t<T>::value ||
+				 is_get_relationship_t<T>::value || is_hierarchy_change_t<T>::value)
+	struct is_weak_filter_t<T> : std::false_type {};
+
+	template <typename... Ts>
+	struct is_weak_filter_t<filter<Ts...>> : std::false_type {};
 }	 // namespace
 
+template <typename T>
+concept IsExcept = is_except_t<T>::value;
 template <typename T>
 concept IsOnAdd = is_on_add_t<T>::value;
 template <typename T>
@@ -374,6 +394,8 @@ concept IsOrderBy = is_order_by_t<T>::value;
 template <typename T>
 concept IsFilter = is_filter_t<T>::value;
 template <typename T>
+concept IsImplicitFilter = is_weak_filter_t<T>::value;
+template <typename T>
 concept IsGetRelationship = is_get_relationship_t<T>::value;
 template <typename T>
 concept IsHierarchyChange = is_hierarchy_change_t<T>::value;
@@ -381,4 +403,15 @@ concept IsHierarchyChange = is_hierarchy_change_t<T>::value;
 template <typename T>
 concept IsSimpleFilteringOp = !IsOnAdd<T> && !IsOnRemove<T> && !IsOnCombine<T> && !IsOnBreak<T> && !IsOnMutate<T> &&
 							  !IsOnCondition<T> && !IsHierarchyChange<T>;
+
+namespace {
+	template <typename T>
+	struct is_valid_component_t : std::true_type {};
+
+	template <>
+	struct is_valid_component_t<preseed_tag> : std::false_type {};
+}	 // namespace
+
+template <typename T>
+concept IsValidComponent = is_valid_component_t<T>::value;
 }	 // namespace psl::ecs::details
