@@ -1,4 +1,4 @@
-﻿#include <benchmark/benchmark.h>
+#include <benchmark/benchmark.h>
 
 #ifdef PE_PLATFORM_WINDOWS
 	#define _CRTDBG_MAP_ALLOC

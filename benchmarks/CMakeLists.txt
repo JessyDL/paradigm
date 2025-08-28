@@ -29,6 +29,10 @@ set_property(TARGET benchmarks PROPERTY FOLDER "benchmarks")
 target_link_libraries(benchmarks PUBLIC ${SHLWAPI} paradigm::core benchmark::benchmark)
 set_target_properties(benchmarks PROPERTIES LINKER_LANGUAGE CXX)
 
+if (MSVC)
+	target_compile_options(benchmarks PRIVATE /bigobj)
+endif()
+
 set_target_output_directory(TARGET benchmarks)
 target_include_directories(benchmarks
 	PUBLIC
@@ -37,3 +41,4 @@ target_include_directories(benchmarks
 
 target_compile_features(benchmarks PUBLIC ${PE_COMPILER_FEATURES} PRIVATE ${PE_COMPILER_FEATURES_PRIVATE})
 target_compile_options(benchmarks PRIVATE ${PE_COMPILE_OPTIONS} ${PE_COMPILE_OPTIONS_EXE})
+target_compile_definitions(benchmarks PUBLIC ${PE_DEFINES})

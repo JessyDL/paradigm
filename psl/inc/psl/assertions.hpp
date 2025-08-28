@@ -221,84 +221,6 @@ namespace details {
 		}
 #endif
 
-#if defined(PE_DEBUG)
-	#define PE_ASSERT
-	 // _PSL_ASSERT_IMPL_(N) are added to inject a generic failed message in case none was provided.
-	#define _PSL_ASSERT_IMPL_(...) psl_print(psl::level_t::fatal, "assertion failed")
-	#define _PSL_ASSERT_IMPL_N(...) psl_print(psl::level_t::fatal, __VA_ARGS__)
-	#define psl_assert(expression, ...)                                                                                \
-		(void)((!!(expression)) || (_PSL_ASSERT_IMPL_##__VA_OPT__(N)(__VA_ARGS__), 0) || (std::terminate(), 0))
-#else
-	#define psl_assert(expression, ...)
-#endif
-
-
-namespace psl {
-[[noreturn]] inline void unreachable() {
-	psl_print(level_t::fatal, "unreachable code reached.");
-	std::terminate();
-}
-
-[[noreturn]] inline void unreachable(const auto& reason) {
-	psl_print(level_t::fatal, "{}", reason);
-	std::terminate();
-}
-
-[[noreturn]] inline void not_implemented(size_t issue = 0) {
-	if(issue != 0)
-		psl_print(level_t::fatal,
-				  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
-				  issue);
-	else
-		psl_print(level_t::fatal, "feature not implemented");
-	std::terminate();
-}
-
-[[noreturn]] inline void not_implemented(const auto& reason, size_t issue = 0) {
-	if(issue != 0)
-		psl_print(level_t::fatal,
-				  "feature not implemented reason: '{}', follow development at "
-				  "https://github.com/JessyDL/paradigm/issues/{}",
-				  reason,
-				  issue);
-	else
-		psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
-	std::terminate();
-}
-
-
-/// @brief Similar to std::terminate, but additionally prints a message and location
-/// @param reason An optional message to print
-/// @param loc The location where the fatal error occurred, note ignore setting this value, it will be set automatically
-[[noreturn]] inline void fatal(auto const& reason			   = "",
-							   const psl::source_location& loc = psl::source_location::current()) {
-	psl_print(level_t::fatal, "{} at {}", reason, loc);
-	std::terminate();
-}
-
-template <typename Fn>
-constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args) {
-	if(std::is_constant_evaluated()) {
-		if(!conditional()) {
-			throw std::runtime_error(reason);
-		}
-	} else {
-		psl_assert(conditional(), reason, args...);
-	}
-}
-
-template <typename Fn>
-constexpr inline void assertion(Fn&& conditional) {
-	if(std::is_constant_evaluated()) {
-		if(!conditional()) {
-			throw std::exception();
-		}
-	} else {
-		psl_assert(conditional());
-	}
-}
-}	 // namespace psl
-
 
 #if defined(HEDLEY_ALWAYS_INLINE)
 	#define DBG__ALWAYS_INLINE HEDLEY_ALWAYS_INLINE
@@ -375,3 +297,81 @@ DBG__FUNCTION void debug_break(void) {
 #else
 	#define DBG_LIKELY(expr) (!!(expr))
 #endif
+
+#if defined(PE_DEBUG)
+	#define PE_ASSERT
+	 // _PSL_ASSERT_IMPL_(N) are added to inject a generic failed message in case none was provided.
+	#define _PSL_ASSERT_IMPL_(...) psl_print(psl::level_t::fatal, "assertion failed")
+	#define _PSL_ASSERT_IMPL_N(...) psl_print(psl::level_t::fatal, __VA_ARGS__)
+	#define psl_assert(expression, ...)                                                                                \
+		(void)((!!(expression)) || (_PSL_ASSERT_IMPL_##__VA_OPT__(N)(__VA_ARGS__), 0) || (debug_break(), 0) ||         \
+			   (std::terminate(), 0))
+#else
+	#define psl_assert(expression, ...)
+#endif
+
+namespace psl {
+[[noreturn]] inline void unreachable() {
+	psl_print(level_t::fatal, "unreachable code reached.");
+	std::terminate();
+}
+
+[[noreturn]] inline void unreachable(const auto& reason) {
+	psl_print(level_t::fatal, "{}", reason);
+	std::terminate();
+}
+
+[[noreturn]] inline void not_implemented(size_t issue = 0) {
+	if(issue != 0)
+		psl_print(level_t::fatal,
+				  "feature not implemented, follow development at https://github.com/JessyDL/paradigm/issues/{}",
+				  issue);
+	else
+		psl_print(level_t::fatal, "feature not implemented");
+	std::terminate();
+}
+
+[[noreturn]] inline void not_implemented(const auto& reason, size_t issue = 0) {
+	if(issue != 0)
+		psl_print(level_t::fatal,
+				  "feature not implemented reason: '{}', follow development at "
+				  "https://github.com/JessyDL/paradigm/issues/{}",
+				  reason,
+				  issue);
+	else
+		psl_print(level_t::fatal, "feature not implemented reason: '{}'", reason);
+	std::terminate();
+}
+
+
+/// @brief Similar to std::terminate, but additionally prints a message and location
+/// @param reason An optional message to print
+/// @param loc The location where the fatal error occurred, note ignore setting this value, it will be set automatically
+[[noreturn]] inline void fatal(auto const& reason			   = "",
+							   const psl::source_location& loc = psl::source_location::current()) {
+	psl_print(level_t::fatal, "{} at {}", reason, loc);
+	std::terminate();
+}
+
+template <typename Fn>
+constexpr inline void assertion(Fn&& conditional, const char* reason, auto&&... args) {
+	if(std::is_constant_evaluated()) {
+		if(!conditional()) {
+			throw std::runtime_error(reason);
+		}
+	} else {
+		psl_assert(conditional(), reason, args...);
+	}
+}
+
+template <typename Fn>
+constexpr inline void assertion(Fn&& conditional) {
+	if(std::is_constant_evaluated()) {
+		if(!conditional()) {
+			throw std::exception();
+		}
+	} else {
+		psl_assert(conditional());
+	}
+}
+}	 // namespace psl

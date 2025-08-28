@@ -4,7 +4,7 @@
 	#include <xmmintrin.h>
 namespace psl {
 template <typename precision_t>
-tquat<precision_t>& operator+=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept {
+constexpr tquat<precision_t>& operator+=(tquat<precision_t>& owner, const tquat<precision_t>& other) noexcept {
 	if constexpr(std::is_same<float, precision_t>::value) {
 		auto ownL {_mm_load_ps(owner.value.data())};
 		auto othL {_mm_load_ps(other.value.data())};

@@ -1,6 +1,20 @@
 #pragma once
+#include "psl/utility/enum.hpp"
 
 namespace psl::ecs {
+
+/// \brief tag to indicate the ecs to preseed the pack with all entities
+///
+/// the `on_add` and `on_combine` filtering operations normally will only return the entities
+/// that satisfy the filter for that tick, but with this tag the first invocation all entities
+/// within the state will be returned making the first turn operation more like a normal
+/// filter rather than a lifetime. After that the pack will behave like normal.
+///
+/// This is useful for systems that need to react to specific components being added, but also
+/// need to handle the pre-existing set without having to temporarily register multiple systems
+/// to handle that.
+struct preseed_tag {};
+
 /// \brief tag that allows you to select entities (and components) that have recently added
 /// the given component type
 ///
@@ -88,6 +102,46 @@ struct order_by {};
 template <typename T>
 struct on_mutate {};
 
+enum class entity_relationship : std::uint8_t {
+	none			= 0 << 0,	 // not useful for users as this would yield a pack with no entities
+	self			= 1 << 0,
+	direct_children = 1 << 1,
+	direct_parent	= 1 << 2,
+	siblings		= 1 << 3,
+	all_parents		= 1 << 4,
+	all_children	= 1 << 5,
+	all_relatives	= all_parents | all_children | siblings,	// all relatives of the entity
+	all_direct_relatives =
+	  direct_parent | direct_children | siblings,	 // all relatives of the entity that are directly connected to it
+	any = 1 << 6,									 // any relationship, this is the equivalent of a
+													 // pack with all entities in it
+};
+
+enum class hierarchy_change_event : std::uint8_t {
+	none		  = 0 << 0,	   // not useful for users, but useful for internal operations
+	child_added	  = 1 << 0,
+	child_removed = 1 << 1,
+	reparented	  = 1 << 2,
+	child_changed = child_added | child_removed,
+	any			  = child_added | child_removed | reparented | child_changed,
+};
+
+/// \brief tag that allows you to filter based on hierarchy changes
+///
+/// When a reparentage operation occurs this tag allows you to filter for the entities that have been affected
+/// and additionally the entities that are associated by-proxy with the hierarchy change.
+/// For example if you filter on the `direct_parent` relationship you will receive all the entities that have
+/// had their hierarchy changed as well as their new parent in the pack. This can be useful if the entity has
+/// a component that needs to recalculate its data based on the new parent.
+/// \note this is not a component filtering operation, but an entity filtering operation.
+template <hierarchy_change_event Change, typename T = void>
+	requires(std::is_void_v<T> || std::is_same_v<T, preseed_tag>)
+struct on_hierarchy_change {};
+
+
+template <entity_relationship Relationship>
+struct get_relationship {};
+
 namespace details {
 	template <typename T>
 	struct is_component_filtering_op_t : std::false_type {};
@@ -118,14 +172,25 @@ namespace details {
 
 	template <typename T>
 	struct is_component_filtering_op_t<on_mutate<T>> : std::true_type {};
+
+	template <typename T>
+	struct is_entity_filtering_op_t : std::false_type {};
+
+	template <hierarchy_change_event Change, typename T>
+	struct is_entity_filtering_op_t<on_hierarchy_change<Change, T>> : std::true_type {};
+
+	template <entity_relationship Relationship>
+	struct is_entity_filtering_op_t<get_relationship<Relationship>> : std::true_type {};
 }	 // namespace details
 
+template <typename T>
+concept IsEntityFilteringOp = details::is_entity_filtering_op_t<T>::value;
 
 template <typename T>
-concept IsFilteringOp = details::is_component_filtering_op_t<T>::value;
+concept IsFilteringOp = details::is_component_filtering_op_t<T>::value || IsEntityFilteringOp<T>;
 
 template <typename T>
-concept IsNotFilteringOp = !details::is_component_filtering_op_t<T>::value;
+concept IsNotFilteringOp = !details::is_component_filtering_op_t<T>::value && !IsEntityFilteringOp<T>;
 
 /// \brief allows packs to exist in a partial state
 ///
@@ -172,3 +237,11 @@ concept IsAccessIndirect = std::is_same_v<std::remove_cvref_t<T>, psl::ecs::indi
 template <typename T>
 concept IsAccessType = IsAccessDirect<T> || IsAccessIndirect<T>;
 }	 // namespace psl::ecs
+
+template <>
+inline constexpr psl::utility::enum_ops_t psl::utility::enable_enum_ops<psl::ecs::entity_relationship> =
+  psl::utility::enum_ops_t::BIT;
+
+template <>
+inline constexpr psl::utility::enum_ops_t psl::utility::enable_enum_ops<psl::ecs::hierarchy_change_event> =
+  psl::utility::enum_ops_t::BIT;

@@ -76,19 +76,23 @@ profiling/profiler
 ecs/command_buffer
 ecs/component_traits
 ecs/entity
+ecs/entity_relationship_data
 ecs/filtering
 ecs/on_condition
 ecs/order_by
 ecs/pack
 ecs/selectors
 ecs/state
+ecs/details/components_cache
 ecs/details/component_container
 ecs/details/component_key
+ecs/details/entity_container
+ecs/details/entity_relationship_handler
+ecs/details/entity_relationship_null_handler
 ecs/details/execution
 ecs/details/selectors
 ecs/details/stage_range
 ecs/details/staged_sparse_array
-ecs/details/staged_sparse_memory_region
 ecs/details/system_information
 
 async/async
@@ -107,6 +111,7 @@ serialization/polymorphic
 serialization/property
 serialization/serializer
 
+details/buffer_growth_strategy
 details/fixed_astring
 
 utility/cast

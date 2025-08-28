@@ -25,6 +25,11 @@ struct component_trait_serializable_t {
 	static constexpr bool serializable {false};
 };
 
+template <typename T>
+struct component_trait_storage_t {
+	static constexpr size_t storage_chunks_size {4096};
+};
+
 // keep the indices stable as this enum will be serialized
 enum class component_mutability_behaviour_t : std::uint8_t {
 	unrestricted = 0,
@@ -59,7 +64,8 @@ namespace details {
 	struct component_traits_impl_t : public component_trait_name_t<T>,
 									 public component_trait_serializable_t<T>,
 									 public component_trait_version_t<T>,
-									 public component_trait_mutability_t<T> {};
+									 public component_trait_mutability_t<T>,
+									 public component_trait_storage_t<T> {};
 }	 // namespace details
 
 /// \warning do not specialize, specialize the individual traits instead so as to preserve future compatibility

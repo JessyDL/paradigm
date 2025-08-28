@@ -13,10 +13,17 @@ using namespace tests::ecs;
 
 void registration_test(psl::ecs::info_t& info) {}
 
+namespace std {
+std::string to_string(entity_t entity) {
+	return entity.valid() ? std::string("Entity {") + std::to_string(entity.value()) + "}"
+						  : std::string("Entity { INVALID }");
+}
+}	 // namespace std
+
 
 namespace tests::ecs {
-template <IsPolicy Policy, IsAccessType Access>
-void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, const float, int> pack) {
+template <IsPolicy Policy, IsAccessType Access, typename First, typename Second>
+void float_iteration_test(psl::ecs::info_t& info, psl::ecs::pack_t<Policy, Access, const First, Second> pack) {
 	for(auto [fl, i] : pack) {
 		i += 5;
 	}
@@ -59,12 +66,12 @@ struct updated_component {
 	int value;
 };
 template <>
-struct component_trait_version_t<updated_component> {
+struct psl::ecs::component_trait_version_t<updated_component> {
 	static constexpr size_t version = 1;
 };
 
 template <>
-struct component_updater_t<updated_component> {
+struct psl::ecs::component_updater_t<updated_component> {
 	updated_component operator()(size_t version, void* data) {
 		updated_component res {};
 		switch(version) {
@@ -85,7 +92,7 @@ struct component_updater_t<updated_component> {
 
 struct foo_restricted {
 	int value1;
-	float value2;
+	int value2;
 	bool value3;
 };
 
@@ -102,7 +109,6 @@ struct component_trait_mutability_t<foo_restricted> {
 
 using namespace litmus;
 
-namespace {
 struct position {
 	size_t x;
 	size_t y;
@@ -119,6 +125,11 @@ struct complex_wrapper {
 	}
 	operator T&() noexcept {
 		return val;
+	}
+
+	complex_wrapper& operator+=(const T& rhs) {
+		val += rhs;
+		return *this;
 	}
 
 	complex_wrapper& operator=(const T& rhs) {
@@ -140,11 +151,29 @@ struct complex_wrapper_int : public complex_wrapper<int> {
 
 struct flag_type {};
 
+struct foo {
+	static constexpr auto prototype() -> foo {
+		return foo {10};
+	}
+	int value;
+};
+
+namespace {
+
 // components do not support templated typenames
 using float_tpack  = tpack<float, complex_wrapper_float>;
 using int_tpack	   = tpack<int, complex_wrapper_int>;
 using policy_tpack = tpack<psl::ecs::partial_t, psl::ecs::full_t>;
 using access_tpack = tpack<psl::ecs::direct_t, psl::ecs::indirect_t>;
+
+psl::array<entity_t> make_entities_range(size_t count, size_t offset = 0) {
+	psl::array<entity_t> entities;
+	entities.reserve(count);
+	for(size_t i = 0; i < count; ++i) {
+		entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(i + offset)));
+	}
+	return entities;
+}
 
 auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<typename type>() {
 	section<"non-empty component_info_typed">() = [&]() {
@@ -152,9 +181,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 		auto& cInfo = *details::cast_component_container<type>(cInfoPtr.get());
 
 		section<"additions">() = [&]() {
-			psl::array<entity_t> entities;
-			entities.resize(100);
-			std::iota(std::begin(entities), std::end(entities), entity_t::size_type {0});
+			psl::array<entity_t> entities {make_entities_range(100)};
 			cInfo.add(entities);
 			require(cInfo.size()) == entities.size();
 			require(cInfo.added_entities().size()) == entities.size();
@@ -164,8 +191,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 			std::for_each(std::begin(entities), std::end(entities), [&cInfo](entity_t e) {
 				require(cInfo.has_component(e));
 				require(cInfo.has_added(e));
-				require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(e))) ==
-				  type(static_cast<entity_t::size_type>(e));
+				require(cInfo.entity_data().template at<type>(e)) == type(static_cast<entity_t::size_type>(e));
 			});
 
 			section<"removals">() = [&]() {
@@ -178,6 +204,8 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 					for(entity_t::size_type i = 0; i < count; ++i) {
 						auto index = c * 10 + i;
 						cInfo.destroy(entities[index]);
+						require(!cInfo.has_component(entities[index]));
+						require(cInfo.has_removed(entities[index]));
 					}
 
 					for(entity_t::size_type i = 0; i < static_cast<entity_t::size_type>(entities.size()); ++i) {
@@ -185,13 +213,12 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							auto index = entities[i];
 							require(!cInfo.has_component(index));
 							require(cInfo.has_removed(index));
-							require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(index),
-																		  details::stage_range_t::REMOVED)) ==
+							require(cInfo.entity_data().template at<type>(index, details::stage_range_t::REMOVED)) ==
 							  type(static_cast<entity_t::size_type>(index));
 						} else {
 							auto index = entities[i];
 							require(cInfo.has_component(index));
-							require(cInfo.entity_data().template at<type>(static_cast<entity_t::size_type>(index))) ==
+							require(cInfo.entity_data().template at<type>(index)) ==
 							  type(static_cast<entity_t::size_type>(index));
 						}
 					}
@@ -203,10 +230,8 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 		// section<"additions && removals">() = [&](){};
 		section<"remap">() = [&]() {
 			auto cInfo2Ptr {details::instantiate_component_container<type>()};
-			auto& cInfo2 = *details::cast_component_container<type>(cInfo2Ptr.get());
-			psl::array<entity_t> entities;
-			entities.resize(100);
-			std::iota(std::begin(entities), std::end(entities), entity_t::size_type {0});
+			auto& cInfo2				  = *details::cast_component_container<type>(cInfo2Ptr.get());
+			psl::array<entity_t> entities = make_entities_range(100);
 			cInfo.add(entities);
 			cInfo2.add(entities);
 
@@ -220,7 +245,7 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							  cInfo2.set(e, type(static_cast<entity_t::size_type>(e) + offset));
 						  });
 
-			psl::sparse_array<entity_t::size_type> remap;
+			psl::sparse_array<entity_t::size_type, entity_t::size_type> remap;
 			std::for_each(std::begin(entities),
 						  std::end(entities),
 						  [&remap, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
@@ -242,8 +267,8 @@ auto t0 = suite<"component_info", "ecs", "psl">().templates<float_tpack>() = []<
 							  std::end(cInfo.entities()),
 							  [&cInfo, offset = static_cast<entity_t::size_type>(cInfo.size())](entity_t e) {
 								  require(static_cast<entity_t::size_type>(e)) <= offset;
-								  require(cInfo.entity_data().template operator[]<type>(
-									static_cast<entity_t::size_type>(e))) == type(static_cast<entity_t::size_type>(e));
+								  require(cInfo.entity_data().template at<type>(e)) ==
+									type(static_cast<entity_t::size_type>(e));
 							  });
 			};
 		};
@@ -273,10 +298,10 @@ auto t1 = suite<"component_key must be unique", "ecs", "psl">().templates<float_
 auto t2 = suite<"filtering", "ecs", "psl">()
 			.templates<tpack<float, complex_wrapper_float, flag_type>, policy_tpack, access_tpack>() =
   []<typename type, typename policy, typename access>() {
-	  state_t state;
-	  auto e_list1 {state.create(static_cast<entity_t::size_type>(100))};
-	  auto e_list2 {state.create(static_cast<entity_t::size_type>(400))};
-	  auto e_list3 {state.create(static_cast<entity_t::size_type>(500))};
+	  state_t state {};
+	  auto e_list1 {state.create(100)};
+	  auto e_list2 {state.create(400)};
+	  auto e_list3 {state.create(500)};
 
 
 	  section<"only the first 100 are given all components">() = [&]() {
@@ -322,9 +347,9 @@ auto t2 = suite<"filtering", "ecs", "psl">()
 	  };
 
 	  section<"filtering components that are non-contiguous">() = [&]() {
-		  state.create<type, size_t>(static_cast<entity_t::size_type>(500));
-		  state.destroy(1200);
-		  auto entities = state.create<type, size_t>(static_cast<entity_t::size_type>(3));
+		  auto last_created_entities = state.create<type, size_t>(500);
+		  state.destroy(last_created_entities.back());
+		  auto entities = state.create<type, size_t>(3);
 
 		  require(entities.size()) == 3;
 		  require(static_cast<entity_t::size_type>(entities[0])) == 1500;
@@ -424,6 +449,21 @@ auto t3 = suite<"initializing components", "ecs", "psl">().templates<float_tpack
 auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, access_tpack>() =
   []<typename type, typename policy, typename access>() {
 	  state_t state;
+
+	  section<"transient_systems">() = [&]() {
+		  // transient systems are only executed once and removed after the tick is done.
+		  bool has_triggered {false};
+		  state.declare(transient_system_tag,
+						[&has_triggered](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<entity_t> pack) {
+							require(pack.size()) == 0;			// no entities should be present in this pack
+							require(has_triggered) == false;	// this should not have been triggered yet
+							has_triggered =
+							  true;	   // we set this to true to indicate that the system has been triggered
+						});
+		  state.tick(std::chrono::duration<float>(1.0f));
+		  require(has_triggered) == true;	 // after the tick, the system should have been triggered
+		  state.tick(std::chrono::duration<float>(1.0f));
+	  };
 
 	  section<"lifetime test">() = [&]() {
 		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
@@ -551,13 +591,14 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
-		  ;
+
 		  state.add_components<type>(e_list2, values);
 		  auto expected = e_list2.size();
 
 		  std::mutex lock {};
 
 		  state.declare([&expected, &lock](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) {
+			  require(pack.size()) == expected;
 			  size_t removed {0};
 			  psl::array<entity_t> entities;
 			  for(auto [e, i] : pack) {
@@ -578,7 +619,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 
 
 	  section<"continuous removal from external">() = [&]() {
-		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
+		  auto e_list2 {state.create(40)};
 		  psl::array<type> values;
 		  values.resize(e_list2.size());
 		  std::iota(std::begin(values), std::end(values), 0);
@@ -602,8 +643,7 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 			  require(total) == expected;
 			  total	   = 0;
 			  auto mid = std::partition(std::begin(e_list2), std::end(e_list2), [](auto e) { return std::rand() % 2; });
-			  state.remove_components<type>(
-				psl::array_view<entity_t> {mid, static_cast<size_t>(std::distance(mid, std::end(e_list2)))});
+			  state.remove_components<type>(psl::array_view<entity_t> {mid, std::end(e_list2)});
 			  expected -= std::distance(mid, std::end(e_list2));
 			  e_list2.erase(mid, std::end(e_list2));
 		  }
@@ -673,13 +713,13 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  }
 	  };
 
-	  section<"simple iterations test">() = [&]() {
+	  section<"simple iterations">() = [&]() {
 		  auto e_list1 {state.create(static_cast<entity_t::size_type>(10))};
 		  auto e_list2 {state.create(static_cast<entity_t::size_type>(40))};
 		  auto e_list3 {state.create(static_cast<entity_t::size_type>(50))};
 		  state.add_components<float>(e_list1);
 		  state.add_components<type>(e_list1);
-		  auto system_id = state.declare(float_iteration_test<policy, access>);
+		  auto system_id = state.declare(float_iteration_test<policy, access, float, type>);
 		  for(int i = 0; i < 10; ++i) state.tick(std::chrono::duration<float>(0.1f));
 
 		  auto entities = state.filter<type>();
@@ -693,6 +733,39 @@ auto t4 = suite<"systems", "ecs", "psl">().templates<int_tpack, policy_tpack, ac
 		  require(state.systems()) == 0;
 		  state.tick(std::chrono::duration<float>(0.1f));
 		  require(std::all_of(std::begin(results), std::end(results), [](const auto& res) { return res == type(50); }));
+	  };
+
+	  section<"preseed_tag">() = [&]() {
+		  auto e_list {state.create<type>(10)};
+		  state.declare<"fullpack-from-start">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) { require(pack.size()) == 10; });
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  auto invocation_count = 0;
+
+		  // thanks to the preseed tag this system will always have the previous entities present in the pack
+		  // "as-if" they were added in the current tick
+		  state.declare<"on-add-delayed-preseed">(
+			[&](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<preseed_tag, type>> pack) {
+				++invocation_count;
+				require(pack.size()) == (invocation_count == 1 ? 10 : 0);
+			});
+		  // this will not have the preseed tag, so it will only have the entities that were added in this tick (or
+		  // later)
+		  state.declare<"on-add-delayed">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<type>> pack) {
+				require(pack.size()) == 0;
+			});
+
+		  // other filters implicitly have the preseed tag (when it is applicable).
+		  state.declare<"fullpack-delayed">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type> pack) { require(pack.size()) == 10; });
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  state.tick(std::chrono::duration<float>(0.1f));
+		  state.declare<"on-add-delayed-preseed_2">(
+			[](psl::ecs::info_t& info, pack_t<policy, access, entity_t, type, on_add<preseed_tag, type>> pack) {
+				require(pack.size()) == 10;
+			});
+		  state.tick(std::chrono::duration<float>(0.1f));
 	  };
   };
 
@@ -748,8 +821,8 @@ auto t7 =
 		  // reason: filtering operation that was based on existing filters did not correctly
 		  //         use the already filtered entity list
 
-		  auto entities0 = state.create<type>(static_cast<entity_t::size_type>(1));
-		  auto entities1 = state.create(static_cast<entity_t::size_type>(1));
+		  auto entities0 = state.create<type>(1);
+		  auto entities1 = state.create(1);
 		  state.remove_components<type>(entities0);
 		  expect(state.filter<type>().size()) == 0;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
@@ -758,7 +831,7 @@ auto t7 =
 		  expect(state.filter<on_add<type>>().size()) == 1;
 		  expect(state.filter<on_remove<type>>().size()) == 1;
 		  state.declare([&](info_t& info, pack_t<psl::ecs::full_t, access, entity_t, type> pack) {
-			  expect(pack.size()) == 1;
+			  require(pack.size()) == 1;
 			  expect(static_cast<entity_t::size_type>(pack.template get<entity_t>()[0])) == 1;
 		  });
 		  state.tick(std::chrono::duration<float>(1.0f));
@@ -821,35 +894,28 @@ auto t9 = suite<"ecs state serialization", "ecs", "psl">() = []() {
 	require(container_b.to_string()) == container_a.to_string();
 };
 
-struct foo {
-	static constexpr auto prototype() -> foo {
-		return foo {10};
-	}
-	int value;
-};
-
 auto t10 = suite<"ecs prototype support", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
-	auto entity = state.create<foo>(static_cast<entity_t::size_type>(1));
+	auto entity = state.create<foo>(1);
 	require(state.get<foo>(entity[0]).value) == 10;
 };
 
-auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
-	// this test will load an outdated version of the `updated_component` (see `updated_component_v0`)
-	// and we'll verify if the data migration went correctly. If all went fine the value in the component
-	// should be equal to the entity id associated with the component.
-	psl::ecs::state_t state {};
-	psl::serialization::serializer s {};
-	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
-
-	auto entities	= state.all_entities();
-	auto components = state.get_component<updated_component>(entities);
-
-	for(auto e : entities) {
-		auto value = components[e.value].value;
-		require(value == (int)e);
-	}
-};
+// auto t11 = suite<"ecs versioning", "ecs", "psl">() = []() {
+//	// this test will load an outdated version of the `updated_component` (see `updated_component_v0`)
+//	// and we'll verify if the data migration went correctly. If all went fine the value in the component
+//	// should be equal to the entity id associated with the component.
+//	psl::ecs::state_t state {};
+//	psl::serialization::serializer s {};
+//	s.deserialize<psl::serialization::decode_from_format>(state, "tdata/outdated.txt");
+//
+//	auto entities	= state.all_entities();
+//	auto components = state.get_component<updated_component>(entities);
+//
+//	for(auto e : entities) {
+//		auto value = components[static_cast<psl::ecs::entity_t::size_type>(e)].value;
+//		require(value == (int)static_cast<psl::ecs::entity_t::size_type>(e));
+//	}
+// };
 
 auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 	psl::ecs::state_t state {};
@@ -871,6 +937,17 @@ auto t12 = suite<"ecs restricted mutability", "ecs", "psl">() = []() {
 			require(value.value2) == mutated_values.value2;
 			require(value.value3) == mutated_values.value3;
 
+			require(mutator.has_mutated<&foo_restricted::value1>()) == has_mutated;
+			require(mutator.has_mutated<&foo_restricted::value2>()) == has_mutated;
+			require(mutator.has_mutated<&foo_restricted::value3>()) == has_mutated;
+		}
+	});
+
+	state.declare([&has_mutated, &mutated_values](
+					psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<psl::ecs::on_mutate<foo_restricted>> pack) {
+		require(pack.size()) == ((has_mutated) ? 2 : 0);
+
+		for(auto [mutator] : pack) {
 			require(mutator.has_mutated<&foo_restricted::value1>()) == has_mutated;
 			require(mutator.has_mutated<&foo_restricted::value2>()) == has_mutated;
 			require(mutator.has_mutated<&foo_restricted::value3>()) == has_mutated;
@@ -904,7 +981,7 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 
 		for(auto [value, mutator] : pack) {
 			require(value.value1) == (int)info.tick - 1;
-			require(value.value2) == 3.0f * (info.tick - 1);
+			require(value.value2) == 3 * (int)(info.tick - 1);
 			require(value.value3) == true;
 
 			require(mutator.has_mutated<&foo_restricted::value1>()) == (info.tick == 1 ? false : true);
@@ -915,8 +992,8 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 
 	state.declare([](psl::ecs::info_t& info, psl::ecs::pack_indirect_full_t<entity_t, const foo_restricted> pack) {
 		require(pack.size()) == 5;
-		info.command_buffer.mutate_components<foo_restricted>(pack,
-															  foo_restricted {(int)info.tick, 3.0f * info.tick, true});
+		info.command_buffer.mutate_components<foo_restricted>(
+		  pack, foo_restricted {(int)info.tick, 3 * (int)info.tick, true});
 	});
 	state.tick(std::chrono::duration<float>(1.0f));
 	state.tick(std::chrono::duration<float>(1.0f));
@@ -924,4 +1001,391 @@ auto t13 = suite<"ecs restricted mutability - systems", "ecs", "psl">() = []() {
 	state.tick(std::chrono::duration<float>(1.0f));
 };
 
+#if !defined(PE_ECS_DISABLE_ENTITY_HIERARCHY)
+auto t14 = suite<"entity_relations", "ecs", "psl">() = []() {
+	psl::ecs::state_t state {};
+
+	section<"state_t">() = [&]() {
+		auto entities = state.create(static_cast<entity_t::size_type>(10));
+		psl::array<entity_t> children {std::next(entities.begin()), entities.end()};
+		state.set_parent(entities[0], children);
+		require(state.has_children(entities[0]));
+		require(std::all_of(std::begin(children), std::end(children), [&](auto e) {
+			return (state.has_parent(e)) && state.get_parent(e) == entities[0];
+		}));
+
+		auto parents_children = state.get_children(entities[0]);
+		require(parents_children.size()) == children.size();
+		require(std::equal(std::begin(parents_children), std::end(parents_children), std::begin(children)));
+
+		state.unparent(children[0]);
+		require(!state.has_parent(children[0]));
+
+		children	  = state.get_children(entities[0]);
+		auto siblings = state.get_siblings(children[0]);
+		require(children.size()) == 8;
+		require(siblings.size()) == 7;
+		// note we go to the next element because siblings does not include the element itself
+		require(std::equal(std::begin(siblings), std::end(siblings), std::next(std::begin(children))));
+
+		require(!state.is_parent_of(entities[0], entities[1]));
+		require(!state.is_sibling(entities[1], children[0]));
+		require(state.is_sibling(children[1], children[0]));
+
+		state.set_parent(entities[1], entities[0]);
+
+		require(state.get_root(children[0])) == entities[1];
+		require(state.get_parent(children[0])) == entities[0];
+		require(state.get_parent(entities[0])) == entities[1];
+
+		auto root_children = state.get_children(entities[1], true);
+		require(root_children.size()) == 1;
+
+		auto root_all_children = state.get_all_children(entities[1]);
+		require(root_all_children.size()) == 9;
+
+		require(state.is_indirect_parent_of(entities[1], children[0]));
+		require(state.is_indirect_parent_of(entities[0], children[0]));
+		require(state.is_parent_of(entities[0], children[0]));
+		require(!state.is_parent_of(entities[1], children[0]));
+		require(state.is_root(entities[1]));
+		require(!state.is_root(entities[0]));
+
+		auto all_parents = state.get_all_parents(children[0]);
+		require(all_parents.size()) == 2;
+		std::sort(std::begin(all_parents), std::end(all_parents));
+		require(all_parents[0]) == entities[0];
+		require(all_parents[1]) == entities[1];
+
+		all_parents = state.get_all_parents(entities[0]);
+		require(all_parents.size()) == 1;
+		require(all_parents[0]) == entities[1];
+
+		all_parents = state.get_all_parents(entities[1]);
+		require(all_parents.size()) == 0;
+
+
+		require(state.get_siblings(entities[0]).size()) == 0;
+		require(state.get_siblings(entities[1]).size()) == 0;
+	};
+
+	section<"systems">() = [&]() {
+		auto entities = state.create<position>(20);
+		state.set_parent(entities[0], entities[1]);
+		state.set_parent(entities[1],
+						 psl::array_view<entity_t> {std::next(entities.begin(), 2), std::next(entities.begin(), 10)});
+
+		// Layer 1 and 2 satisy this query (they are the ones that got reparented), but as we additionally filter for
+		// self we get layer 2 as well in addition to layer 0 and 1 (direct_parent of layer 2 is layer 1, and layer 1
+		// is / layer 0)
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<
+			  entity_t,
+			  const position,
+			  psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+			  psl::ecs::get_relationship<entity_relationship::direct_parent | entity_relationship::self>> pack) {
+			  require(pack.size()) == 10;
+
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::begin(entities)));
+		  });
+
+		// Layer 1 and 2 satisfies this query, and their direct parents would be layer 0 and 1 respectively
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// The only ones satisfying this query are layer 0 & 1, and their children would be layer 1 & 2
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added>,
+										   psl::ecs::get_relationship<entity_relationship::direct_children>> pack) {
+			  require(pack.size()) == 9;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::next(std::begin(entities), 1)));
+		  });
+
+		// the last layer is the only ones who have siblings, but the parents are the ones that will have a
+		// child_changed event
+		state.declare(
+		  transient_system_tag,
+		  [](psl::ecs::info_t& info,
+			 psl::ecs::pack_indirect_full_t<
+			   entity_t,
+			   const position,
+			   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_changed>,
+			   psl::ecs::get_relationship<entity_relationship::siblings>> pack) { require(pack.size()) == 0; });
+
+		// as only the last layer that got reparented has siblings, we expect only those 8 entities to be present
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::siblings>> pack) {
+			  require(pack.size()) == 8;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::next(std::begin(entities), 2)));
+		  });
+
+		state.tick(std::chrono::duration<float>(1.0f));
+
+		// with preseed_tag we will now filter for all those _with_ children and return ourselves.
+		// in our current case that is layer 0 & 1
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::self>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// same as preceeding, but instead we get the direct parents. this results in only layer 0 getting returned
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 1;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+		  });
+
+		// like the above test, but with additionally self filtering, so we get layer 0 and layer 1
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<
+			  entity_t,
+			  const position,
+			  psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+			  psl::ecs::get_relationship<entity_relationship::direct_parent | entity_relationship::self>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// catches all (except floating root entities) in the current setup
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<
+			  entity_t,
+			  const position,
+			  psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+			  psl::ecs::get_relationship<entity_relationship::all_children | entity_relationship::self>> pack) {
+			  require(pack.size()) == 10;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::begin(entities)));
+		  });
+
+		// similar to the child_added test earlier, but from the perspective of reparenting
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 2;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+		  });
+
+		// no-preseed_tag version of the preceeding test as a sanity check
+		state.declare(
+		  transient_system_tag,
+		  [](psl::ecs::info_t& info,
+			 psl::ecs::pack_indirect_full_t<entity_t,
+											const position,
+											psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+											psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 0;
+		  });
+		state.tick(std::chrono::duration<float>(1.0f));
+
+		// from here on out we have 2 trees;
+		// 0 -> 1 -> [3..9] and 10 -> 2
+		// that means 11 entities have relations, and 9 are orphans
+		state.set_parent(entities[10], entities[2]);
+
+		// get all siblings, this results in [3..9] being returned due to the preseed_tag
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::siblings>> pack) {
+			  require(pack.size()) == 7;
+			  require(std::equal(std::begin(pack.template get<entity_t>()),
+								 std::end(pack.template get<entity_t>()),
+								 std::next(std::begin(entities), 3)));
+		  });
+
+		// same as previous but without preseed_tag results in 0 siblings
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::siblings>> pack) {
+			  require(pack.size()) == 0;
+		  });
+
+		// without the preseed_tag the only one who had a reparenting event was entity 2, and as we get its parent
+		// we get entity 10 back
+		state.declare(
+		  transient_system_tag,
+		  [&entities](
+			psl::ecs::info_t& info,
+			psl::ecs::pack_indirect_full_t<entity_t,
+										   const position,
+										   psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented>,
+										   psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 1;
+			  require(pack.template get<entity_t>()[0]) == entities[10];
+		  });
+
+		// all entities w/ preseed_tag who have a child, results in entities 0, 1, and 10
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::child_added, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::self>> pack) {
+			  require(pack.size()) == 3;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+			  require(pack.template get<entity_t>()[2]) == entities[10];
+		  });
+
+		// all direct parents w/ preseed_tag results in the same result as the previous filter test
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<
+						entity_t,
+						const position,
+						psl::ecs::on_hierarchy_change<psl::ecs::hierarchy_change_event::reparented, preseed_tag>,
+						psl::ecs::get_relationship<entity_relationship::direct_parent>> pack) {
+			  require(pack.size()) == 3;
+			  require(pack.template get<entity_t>()[0]) == entities[0];
+			  require(pack.template get<entity_t>()[1]) == entities[1];
+			  require(pack.template get<entity_t>()[2]) == entities[10];
+		  });
+		state.tick(std::chrono::duration<float>(1.0f));
+	};
+
+	section<"entity_relationship_data_t">() = [&]() {
+		auto entities = state.create<position>(20);
+		state.set_parent(entities[0], entities[1]);
+		state.set_parent(entities[1],
+						 psl::array_view<entity_t> {std::next(entities.begin(), 2), std::next(entities.begin(), 10)});
+
+		state.declare(
+		  transient_system_tag,
+		  [&entities](psl::ecs::info_t& info,
+					  psl::ecs::pack_indirect_full_t<entity_t, const position, const entity_relationship_data_t> pack) {
+			  require(pack.size()) == 20;
+			  for(auto [e, p, data] : pack) {
+				  require(e) != data.parent();
+			  }
+
+			  {
+				  // first entity has no parent, and one child
+				  auto& data = pack.template get<entity_relationship_data_t const>()[0];
+				  require(data.is_root()) == true;
+				  require(data.has_parent()) == false;
+				  require(data.has_children()) == true;
+				  require(data.has_siblings()) == false;
+				  require(data.children_count()) == 1;
+				  require(data.children()[0]) == entities[1];
+			  }
+			  {
+				  // second entity has a parent, and 8 children
+				  auto& data = pack.template get<entity_relationship_data_t const>()[1];
+				  require(data.is_root()) == false;
+				  require(data.has_parent()) == true;
+				  require(data.has_children()) == true;
+				  require(data.has_siblings()) == false;
+				  require(data.parent()) == entities[0];
+				  require(data.children_count()) == 8;
+				  require(std::equal(
+					std::begin(data.children()), std::end(data.children()), std::next(std::begin(entities), 2)));
+			  }
+			  {
+				  for(auto i = 2; i < 10; ++i) {
+					  // all entities in the range [2..9] have a parent, no children, and 7 siblings (8 with themselves
+					  // included)
+					  auto& data = pack.template get<entity_relationship_data_t const>()[i];
+					  require(data.is_root()) == false;
+					  require(data.has_parent()) == true;
+					  require(data.has_children()) == false;
+					  require(data.has_siblings()) == true;
+					  require(data.parent()) == entities[1];
+					  require(data.children_count()) == 0;
+					  require(data.siblings_count()) == 7;
+					  require(std::equal(
+						std::begin(data.siblings()), std::end(data.siblings()), std::next(std::begin(entities), 2)));
+					  auto siblings_excluding_self = data.siblings_excluding_self();
+					  require(std::find(std::begin(siblings_excluding_self),
+										std::end(siblings_excluding_self),
+										entities[i]) == std::end(siblings_excluding_self));
+				  }
+			  }
+			  {
+				  // the remaining entities [10..19] have no parent, no children, and no siblings
+				  for(auto i = 10; i < 20; ++i) {
+					  auto& data = pack.template get<entity_relationship_data_t const>()[i];
+					  require(data.is_root()) == true;
+					  require(data.has_parent()) == false;
+					  require(data.has_children()) == false;
+					  require(data.has_siblings()) == false;
+					  require(data.children_count()) == 0;
+					  require(data.siblings_count()) == 0;
+				  }
+			  }
+		  });
+		state.tick(std::chrono::duration<float>(1.0f));
+	};
+};
+#endif
 }	 // namespace

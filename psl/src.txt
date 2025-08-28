@@ -18,8 +18,13 @@ ustring
 
 profiling/profiler
 
+ecs/command_buffer
+ecs/entity_relationship_data
 ecs/state
+ecs/details/components_cache
 ecs/details/component_container
+ecs/details/entity_container
+ecs/details/entity_relationship_handler
 ecs/command_buffer
 
 async/scheduler

@@ -19,6 +19,7 @@ jobs:
           - graphics: all
             benchmarks: ON
           - arch: x86
+            benchmarks: OFF
             bitconfig: 32
           - arch: x86_64
             bitconfig: 64
@@ -56,7 +57,7 @@ jobs:
       fail-fast: false
       matrix:
         graphics: [ all ]
-        arch: [x86, x86_64]
+        arch: [x86_64]
     name: benchmark
     needs: build
     runs-on: windows-2025

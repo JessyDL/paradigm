@@ -87,9 +87,9 @@ text::text(psl::ecs::state_t& state,
 
 	m_FontTexture = cache.create_using<core::gfx::texture_t>(res.first, context);
 
-	state.declare<"text::update_dynamic">(&text::update_dynamic, this, true);
-	state.declare<"text::add">(&text::add, this, true);
-	state.declare<"text::remove">(&text::remove, this, true);
+	state.declare<"text::update_dynamic">(&text::update_dynamic, this);
+	state.declare<"text::add">(&text::add, this);
+	state.declare<"text::remove">(&text::remove, this);
 
 	// create the sampler
 	auto samplerData = cache.create<data::sampler_t>();
@@ -151,9 +151,9 @@ core::resource::handle<core::data::geometry_t> text::create_text(psl::string_vie
 
 	// validate for illegal characters in input.
 	{
-		const auto max_char = character_data.size() + 32;
-		for(int character : text) {
-			psl_assert((character >= 32 && character < max_char) || character == '\n' || character == '\t',
+		const auto max_char = psl::narrow_cast<char>(character_data.size() + 32);
+		for(auto character : text) {
+			psl_assert((character >= char(32) && character < max_char) || character == '\n' || character == '\t',
 					   "illegal character '{}' used",
 					   (char)character);
 		}
@@ -243,7 +243,8 @@ void text::update_dynamic(
 	}
 }
 
-void text::add(info_t& info, pack_direct_partial_t<entity_t, comp::text, on_add<comp::text>> pack) {
+void text::add(info_t& info,
+			   pack_direct_partial_t<entity_t, comp::text, on_add<psl::ecs::preseed_tag, comp::text>> pack) {
 	psl::array<entity_t> ents;
 	ents.resize(1);
 	for(auto [e, text] : pack) {

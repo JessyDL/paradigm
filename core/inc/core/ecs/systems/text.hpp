@@ -57,10 +57,11 @@ class text {
 														core::ecs::components::text,
 														core::ecs::components::renderable,
 														psl::ecs::filter<core::ecs::components::dynamic_tag>> pack);
-	void add(psl::ecs::info_t& info,
-			 psl::ecs::pack_direct_partial_t<psl::ecs::entity_t,
-											 core::ecs::components::text,
-											 psl::ecs::on_add<core::ecs::components::text>> pack);
+	void
+	add(psl::ecs::info_t& info,
+		psl::ecs::pack_direct_partial_t<psl::ecs::entity_t,
+										core::ecs::components::text,
+										psl::ecs::on_add<psl::ecs::preseed_tag, core::ecs::components::text>> pack);
 	void remove(psl::ecs::info_t& info,
 				psl::ecs::pack_direct_partial_t<psl::ecs::entity_t,
 												core::ecs::components::text,

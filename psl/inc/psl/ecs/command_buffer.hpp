@@ -17,6 +17,7 @@ namespace psl::ecs {
 class state_t;
 
 namespace details {
+	class components_cache_t;
 	template <typename T>
 	concept IsRangeType = requires(T t) {
 // todo std::convertible_to is not available in android ndk
@@ -114,6 +115,7 @@ namespace details {
 
 class command_buffer_t {
 	friend class state_t;
+	friend class details::components_cache_t;
 
 	template <IsPack PackType>
 	psl::array_view<entity_t> pack_get_entities(PackType const& pack) {
@@ -197,7 +199,6 @@ class command_buffer_t {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
-		(create_storage<Ts>(), ...);
 		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 	}
 
@@ -222,7 +223,6 @@ class command_buffer_t {
 		if(entities.size() == 0)
 			return;
 		static_assert(sizeof...(Ts) > 0, "you need to supply at least one component to remove");
-		(create_storage<Ts>(), ...);
 		(remove_component(details::component_key_t::generate<Ts>(), entities), ...);
 	}
 
@@ -240,14 +240,15 @@ class command_buffer_t {
 
 		for(size_t i = 0; i < recycled; ++i) {
 			const auto orphan = m_Next;
-			entities.emplace_back(orphan);
+			entities.emplace_back(details::make_entity(orphan));
 			m_Next					   = static_cast<entity_t::size_type>(m_Entities[m_Next]);
-			m_Entities[(size_t)orphan] = orphan;
+			m_Entities[(size_t)orphan] = details::make_entity(orphan);
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
-			m_Entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
+			entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
+			m_Entities.emplace_back(
+			  details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
 		}
 
 		if constexpr(sizeof...(Ts) > 0) {
@@ -269,14 +270,15 @@ class command_buffer_t {
 			m_Entities.reserve(m_Entities.size() * 2 + remainder);
 		for(size_t i = 0; i < recycled; ++i) {
 			auto orphan = m_Next;
-			entities.emplace_back(orphan);
-			m_Next					   = m_Entities[(size_t)m_Next];
-			m_Entities[(size_t)orphan] = orphan;
+			entities.emplace_back(details::make_entity(orphan));
+			m_Next					   = static_cast<entity_t::size_type>(m_Entities[m_Next]);
+			m_Entities[(size_t)orphan] = details::make_entity(orphan);
 		}
 
 		for(size_t i = 0; i < remainder; ++i) {
-			entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
-			m_Entities.emplace_back(entity_t {static_cast<entity_t::size_type>(m_Entities.size()) + m_First});
+			entities.emplace_back(details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
+			m_Entities.emplace_back(
+			  details::make_entity(static_cast<entity_t::size_type>(m_Entities.size()) + m_First));
 		}
 		add_components(entities, std::forward<Ts>(prototype)...);
 
@@ -326,7 +328,7 @@ class command_buffer_t {
 
 		for(const auto& pair : entities) {
 			for(auto i = pair.first; i < pair.second; ++i) {
-				entity_array.emplace_back(entity_t {i});
+				entity_array.emplace_back(details::make_entity(i));
 			}
 		}
 		add_component<T>(entity_array, std::forward<decltype(prototype)>(prototype));
@@ -413,10 +415,12 @@ class command_buffer_t {
 	psl::array<std::unique_ptr<details::component_container_t>> m_Components {};
 	// contains the association between the mutation instruction component (key), and the one it is mutating (value)
 	std::unordered_map<details::component_key_t, details::component_key_t> m_MutatedComponents {};
+	std::unordered_map<details::component_key_t, std::unordered_set<entity_t::size_type>> m_RemovedComponents {};
 	entity_t::size_type m_First {0};
 	psl::array<entity_t> m_Entities {};
 
 	psl::array<entity_t> m_DestroyedEntities {};
+	psl::sparse_indice_array<entity_t::size_type> m_ModifiedEntities {};
 
 	entity_t::size_type m_Next {0};
 	entity_t::size_type m_Orphans {0};

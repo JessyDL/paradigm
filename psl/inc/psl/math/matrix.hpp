@@ -11,6 +11,7 @@ template <typename precision_t, size_t columns_n, size_t rows_n>
 struct tmat {
 	static constexpr auto column_length = rows_n;
 	static constexpr auto row_length	= columns_n;
+	using self_type						= tmat<precision_t, columns_n, rows_n>;
 
   private:
 	inline constexpr auto index_of(size_t row, size_t column) const noexcept {
@@ -231,8 +232,11 @@ using imat1x1	= tmat<int, 1, 1>;
 using mat1x1_sz = tmat<size_t, 1, 1>;
 }	 // namespace psl
 
-
-#include "psl/math/AVX/matrix.hpp"
+// separate to avoid sorting
 #include "psl/math/AVX2/matrix.hpp"
+// separate to avoid sorting
+#include "psl/math/AVX/matrix.hpp"
+// separate to avoid sorting
 #include "psl/math/SSE/matrix.hpp"
+// separate to avoid sorting
 #include "psl/math/fallback/matrix.hpp"

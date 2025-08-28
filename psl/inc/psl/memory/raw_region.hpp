@@ -22,6 +22,13 @@ class raw_region {
 		return m_PageSize;
 	}
 
+	void* begin() const noexcept {
+		return m_Base;
+	}
+	void* end() const noexcept {
+		return static_cast<uint8_t*>(m_Base) + m_Size;
+	}
+
   private:
 	void release() noexcept;
 	void* m_Base {nullptr};

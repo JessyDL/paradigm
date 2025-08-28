@@ -1,6 +1,6 @@
-#include "psl/ecs/details/staged_sparse_memory_region.hpp"
+#include "psl/ecs/details/staged_sparse_array.hpp"
 #include <array>
-using ssmr_t		= psl::ecs::details::staged_sparse_memory_region_t;
+using ssmr_t		= psl::ecs::details::staged_sparse_array<psl::ecs::details::untyped_tag_t>;
 using stage_range_t = psl::ecs::details::stage_range_t;
 using stage_t		= psl::ecs::details::stage_t;
 #include <litmus/expect.hpp>
@@ -18,7 +18,7 @@ using entity = psl::ecs::entity_t::size_type;
 template <typename Fn>
 auto any_of_n(auto first, auto last, Fn&& fn) {
 	for(auto i = first; i != last; ++i) {
-		if(fn(i))
+		if(fn(psl::ecs::details::make_entity(i)))
 			return true;
 	}
 	return false;
@@ -27,7 +27,7 @@ auto any_of_n(auto first, auto last, Fn&& fn) {
 template <typename Fn>
 auto none_of_n(auto first, auto last, Fn&& fn) {
 	for(auto i = first; i != last; ++i) {
-		if(fn(i))
+		if(fn(psl::ecs::details::make_entity(i)))
 			return false;
 	}
 	return true;
@@ -36,7 +36,7 @@ auto none_of_n(auto first, auto last, Fn&& fn) {
 template <typename Fn>
 auto all_of_n(auto first, auto last, Fn&& fn) {
 	for(auto i = first; i != last; ++i) {
-		if(!fn(i))
+		if(!fn(psl::ecs::details::make_entity(i)))
 			return false;
 	}
 	return true;
@@ -58,21 +58,19 @@ append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges, st
 	size_t total {0};
 	if(values.empty()) {
 		for(auto [first, last] : ranges) {
-			for(auto it = first; it != last; ++it) {
-				total += (size_t)(!container.has(it));
-				container.insert(it);
-			}
+			psl::array<psl::ecs::entity_t> entries {};
+			entries.resize(last - first);
+			std::iota(entries.begin(), entries.end(), first);
+			total += container.try_insert(entries.begin(), entries.end());
 		}
 	} else {
 		auto val = std::begin(values);
 		for(auto [first, last] : ranges) {
-			for(auto it = first; it != last; ++it) {
-				total += (size_t)(!container.has(it));
-				if(val == std::end(values))
-					throw std::exception();
-				container.insert(it, *val);
-				val = std::next(val);
-			}
+			psl::array<psl::ecs::entity_t> entries {};
+			entries.resize(last - first);
+			std::iota(entries.begin(), entries.end(), first);
+			total += container.try_insert(entries.begin(), entries.end(), val, val + entries.size());
+			val += entries.size();
 		}
 	}
 	return total;
@@ -81,7 +79,10 @@ append_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges, st
 inline auto erase_ssmr(ssmr_t& container, std::vector<std::pair<entity, entity>> ranges) -> size_t {
 	size_t total {0};
 	for(auto [first, last] : ranges) {
-		total += container.erase(first, last);
+		psl::array<psl::ecs::entity_t> values {};
+		values.resize(last - first);
+		std::iota(values.begin(), values.end(), first);
+		total += container.try_erase(values.begin(), values.end());
 	}
 	return total;
 }
@@ -94,10 +95,10 @@ struct erase_structure : public insert_structure {
 	entity erase_first, erase_last;
 };
 
-auto t0 = suite<ssmr_t, "collections">(
+auto t0 = suite<"psl::ecs::details::staged_sparse_array<psl::ecs::details::untyped_tag_t>">(
   array_typed<insert_structure, insert_structure {0, 50}, insert_structure {0, 5000}, insert_structure {0, 50000}> {}) =
   [](insert_structure info) {
-	  ssmr_t container = ssmr_t::instantiate<float>();
+	  ssmr_t container = ssmr_t(sizeof(float), alignof(float));
 	  require(container.indices().size()) >= 0u;
 	  require(container.dense<float>().size()) >= 0u;
 
@@ -110,7 +111,8 @@ auto t0 = suite<ssmr_t, "collections">(
 		[](ssmr_t& container, auto first, auto last, auto default_value, auto& count) {
 			count = last - first;
 			for(entity i = first; i < last; ++i, ++default_value) {
-				container.insert(i, default_value);
+				auto entity = psl::ecs::details::make_entity(i);
+				container.insert(&entity, &entity + 1, &default_value);
 			}
 		};
 
@@ -119,17 +121,25 @@ auto t0 = suite<ssmr_t, "collections">(
 			count = last - first;
 			std::vector<float> values(size_t {count});
 			std::iota(std::begin(values), std::end(values), default_value);
-			container.insert(first, std::begin(values), std::end(values));
+			psl::array<psl::ecs::entity_t> entries {};
+			entries.resize(count);
+			std::iota(entries.begin(), entries.end(), first);
+			container.insert(entries.begin(), entries.end(), std::begin(values), std::end(values));
 		};
 
 	  section<"without data (post modification)">(container, info.first, info.last, default_value, count) =
 		[](ssmr_t& container, auto first, auto last, auto default_value, auto& count) {
 			count = last - first;
-			for(entity i = first; i < last; ++i) {
-				container.insert(i);
-			}
-			require(all_of_n(
-			  first, last, [&default_value, &container](auto i) mutable { return container.set(i, default_value++); }));
+			psl::array<psl::ecs::entity_t> values {};
+			values.resize(count);
+			std::iota(values.begin(), values.end(), first);
+			container.insert(values.begin(), values.end());
+			require(all_of_n(first, last, [&default_value, &container](psl::ecs::entity_t i) mutable {
+				container.set(&i, &i + 1, &default_value);
+				bool result = container.at<float>(i) == default_value;
+				++default_value;
+				return result;
+			}));
 		};
 
 	  require(all_of_n(info.first, info.first + count, [&default_value, &container](auto i) mutable {
@@ -143,51 +153,53 @@ auto t0 = suite<ssmr_t, "collections">(
 	  compare_ranges(container);
   };
 
-auto t1													   = suite<ssmr_t, "collections">(
-	 array_typed<erase_structure,
-																 erase_structure {0, 50, 10, 35},
-																 erase_structure {0, 5000, 4500, 5500},
-																 erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
-	   ssmr_t container			= ssmr_t::instantiate<float>();
-	   auto start_count_added	= container.indices(stage_range_t::ADDED).size();
-	   auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
+auto t1 = suite<"psl::ecs::details::staged_sparse_array<psl::ecs::details::untyped_tag_t>">(
+  array_typed<erase_structure,
+			  erase_structure {0, 50, 10, 35},
+			  erase_structure {0, 5000, 4500, 5500},
+			  erase_structure {0, 50000, 5500, 50000}> {}) = [](erase_structure info) {
+	ssmr_t container		 = ssmr_t(sizeof(float), alignof(float));
+	auto start_count_added	 = container.indices(stage_range_t::ADDED).size();
+	auto start_count_settled = container.indices(stage_range_t::SETTLED).size();
 
-	   float default_value = 10.f;
-	   auto count		   = info.last - info.first;
-	   std::vector<float> values(size_t {count});
-	   std::iota(std::begin(values), std::end(values), default_value);
-	   container.insert(info.first, std::begin(values), std::end(values));
+	float default_value = 10.f;
+	auto count			= info.last - info.first;
+	std::vector<psl::ecs::entity_t> entries(count);
+	std::iota(std::begin(entries), std::end(entries), info.first);
+	std::vector<float> values(size_t {count});
+	std::iota(std::begin(values), std::end(values), default_value);
+	container.insert(entries.begin(), entries.end(), std::begin(values), std::end(values));
 
-	   section<"removing elements">(
-		 container, info.erase_first, info.erase_last) = [](ssmr_t& container, entity first, entity last) {
-		   auto start_count_all		= container.indices(stage_range_t::ALL).size();
-		   auto start_count_alive	= container.indices(stage_range_t::ALIVE).size();
-		   auto start_count_removed = container.indices(stage_range_t::REMOVED).size();
+	section<"removing elements">(container, info.erase_first, info.erase_last) =
+	  [](ssmr_t& container, entity first, entity last) {
+		  auto start_count_all	   = container.indices(stage_range_t::ALL).size();
+		  auto start_count_alive   = container.indices(stage_range_t::ALIVE).size();
+		  auto start_count_removed = container.indices(stage_range_t::REMOVED).size();
 
-		   size_t erased {0};
-		   size_t expected {0};
-		   for(auto i = first; i < last; ++i) {
-			   expected += (size_t)container.has(i);
-		   }
+		  psl::array<psl::ecs::entity_t> values {};
+		  values.resize(last - first);
+		  std::iota(values.begin(), values.end(), first);
 
-		   section<"ranged">() = [&]() { erased = container.erase(first, last); };
+		  size_t erased {0};
+		  size_t expected {0};
+		  for(auto i = first; i < last; ++i) {
+			  expected += (size_t)container.has(psl::ecs::details::make_entity(i));
+		  }
 
-		   section<"manual">() = [&]() {
-			   for(auto i = first; i != last; ++i) erased += container.erase(i);
-		   };
-		   require(expected) == erased;
-		   require(none_of_n(first, first + erased, [&container](auto index) -> bool { return container.has(index); })) ==
-			 true;
+		  section<"ranged">() = [&]() { erased = container.try_erase(values.begin(), values.end()); };
 
-		   require(container.indices(stage_range_t::ALL).size()) == start_count_all;
-		   require(container.indices(stage_range_t::ALIVE).size()) == start_count_alive - erased;
-		   require(container.indices(stage_range_t::REMOVED).size()) == start_count_removed + erased;
+		  require(expected) == erased;
+		  require(none_of_n(first, first + erased, [&container](auto index) -> bool { return container.has(index); }));
 
-		   compare_ranges(container);
-	   };
+		  require(container.indices(stage_range_t::ALL).size()) == start_count_all;
+		  require(container.indices(stage_range_t::ALIVE).size()) == start_count_alive - erased;
+		  require(container.indices(stage_range_t::REMOVED).size()) == start_count_removed + erased;
+
+		  compare_ranges(container);
+	  };
 };
 
-auto t2 = suite<ssmr_t, "collections">() = []() {
+auto t2 = suite<"psl::ecs::details::staged_sparse_array<psl::ecs::details::untyped_tag_t>">() = []() {
 	auto promote = [](ssmr_t& container) mutable {
 		auto previous_added	  = container.indices(stage_range_t::ADDED).size();
 		auto previous_removed = container.indices(stage_range_t::REMOVED).size();
@@ -203,7 +215,7 @@ auto t2 = suite<ssmr_t, "collections">() = []() {
 		require(container.indices(stage_range_t::TERMINAL).size()) == 0;
 	};
 
-	ssmr_t container = ssmr_t::instantiate<float>();
+	ssmr_t container = ssmr_t(sizeof(float), alignof(float));
 	append_ssmr<float>(container, {{15, 50}, {200, 750}});
 	promote(container);
 	append_ssmr<float>(container, {{900, 1050}, {2000, 7500}});
@@ -211,9 +223,9 @@ auto t2 = suite<ssmr_t, "collections">() = []() {
 	promote(container);
 };
 
-auto t3 = suite<ssmr_t, "collections">() = []() {
+auto t3 = suite<"psl::ecs::details::staged_sparse_array<psl::ecs::details::untyped_tag_t>">() = []() {
 	auto merge = [](ssmr_t& container, ssmr_t& other) {
-		auto container_indices = psl::array<entity> {container.indices(stage_range_t::ALL)};
+		auto container_indices = psl::array<psl::ecs::entity_t> {container.indices(stage_range_t::ALL)};
 
 		size_t pre_existing {0};
 		for(auto index : other.indices(stage_range_t::ALL)) {
@@ -230,20 +242,20 @@ auto t3 = suite<ssmr_t, "collections">() = []() {
 	};
 
 	section<"non-overlapping">() = [&merge]() {
-		ssmr_t container_1 = ssmr_t::instantiate<float>();
+		ssmr_t container_1 = ssmr_t(sizeof(float), alignof(float));
 		append_ssmr<float>(container_1, {{15, 50}, {200, 750}});
 
-		ssmr_t container_2 = ssmr_t::instantiate<float>();
+		ssmr_t container_2 = ssmr_t(sizeof(float), alignof(float));
 		append_ssmr<float>(container_2, {{1500, 5000}});
 
 		merge(container_1, container_2);
 	};
 
 	section<"fully-overlapping">() = [&merge]() {
-		ssmr_t container_1 = ssmr_t::instantiate<float>();
+		ssmr_t container_1 = ssmr_t(sizeof(float), alignof(float));
 		append_ssmr<float>(container_1, {{15, 50}, {200, 750}});
 
-		ssmr_t container_2 = ssmr_t::instantiate<float>();
+		ssmr_t container_2 = ssmr_t(sizeof(float), alignof(float));
 		append_ssmr<float>(container_2, {{0, 1000}});
 
 		merge(container_1, container_2);
@@ -251,41 +263,49 @@ auto t3 = suite<ssmr_t, "collections">() = []() {
 
 
 	section<"partial-overlapping">() = [&merge]() {
-		ssmr_t container_1 = ssmr_t::instantiate<float>();
+		ssmr_t container_1 = ssmr_t(sizeof(float), alignof(float));
 		append_ssmr<float>(container_1, {{15, 50}, {200, 750}});
 
-		ssmr_t container_2 = ssmr_t::instantiate<float>();
+		ssmr_t container_2 = ssmr_t(sizeof(float), alignof(float));
 		append_ssmr<float>(container_2, {{60, 500}});
 
 		merge(container_1, container_2);
 	};
 };
 
-auto t4 = suite<ssmr_t, "collections">() = []() {
-	ssmr_t container = ssmr_t::instantiate<float>();
+auto t4 = suite<"psl::ecs::details::staged_sparse_array<psl::ecs::details::untyped_tag_t>">() = []() {
+	ssmr_t container = ssmr_t(sizeof(float), alignof(float));
 	append_ssmr<float>(container, {{15, 50}, {200, 750}});
-
 	require(container.indices(stage_range_t::ALL).size()) == 585;
-
-	for(auto index : container.indices(stage_range_t::ALL)) {
-		container.set(index, (float)index);
+	return;
+	auto indices = psl::array<psl::ecs::entity_t>(container.indices(stage_range_t::ALL));
+	psl::array<float> values(indices.size());
+	for(size_t i = 0; i < indices.size(); ++i) {
+		values[i] = (float)indices[i].value();
 	}
+	container.set(indices.begin(), indices.end(), values.begin(), values.end());
+
+
 	require(std::all_of(std::begin(container.indices(stage_range_t::ALL)),
 						std::end(container.indices(stage_range_t::ALL)),
-						[&container](auto index) { return container.get<float>(index) == (float)index; }));
+						[&container](auto index) { return container.at<float>(index) == (float)index.value(); }));
 
-	psl::sparse_array<entity> sparse {};
+	psl::sparse_array<entity, entity> sparse {};
 
 	for(entity i = 0; i < 35; ++i) {
 		sparse[i + 15] = 750 + i;
 	}
 
-	container.remap(sparse, [](auto index) -> bool { return index <= 50; });
+	container.remap(sparse, [](auto index) -> bool { return index.value() <= 50; });
 
 	require(all_of_n(200, 785, [&container](auto index) { return container.has(index); }));
-	require(all_of_n(200, 750, [&container](auto index) { return container.get<float>(index) == (float)index; }));
 	require(
-	  all_of_n(750, 785, [&container](auto index) { return container.get<float>(index) == (float)(index + 750); }));
+	  all_of_n(200, 750, [&container](auto index) { return container.at<float>(index) == (float)index.value(); }));
+
+	// remapping will have moved the indices from 15 to 50 to 750 to 785
+	require(all_of_n(
+	  750, 785, [&container](auto index) { return container.at<float>(index) == (float)(index.value() - 750 + 15); }));
+	require(none_of_n(15, 50, [&container](auto index) { return container.has(index); }));
 
 	require(container.indices(stage_range_t::ALL).size()) == 585;
 };
