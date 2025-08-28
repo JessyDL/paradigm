@@ -472,12 +472,13 @@ class filtering_fixture : public ::benchmark::Fixture {
 		state.filter<Ts...>();
 	}
 
-	void order_by(benchmark::State& gState) {
-		gState.PauseTiming();
-		auto entities = state.filter<int>();
-		gState.ResumeTiming();
-
-		psl::ecs::details::order_by<std::less<int>, int>(state, std::begin(entities), std::end(entities));
+	void order_by(benchmark::State& gState, auto par) {
+		[this, &gState, &par]<typename U, typename... Rest>() {
+			gState.PauseTiming();
+			auto entities = state.filter<U>();
+			gState.ResumeTiming();
+			psl::ecs::details::order_by<std::less<U const&>, U>(par, state, std::begin(entities), std::end(entities));
+		}.template operator()<Ts...>();
 	}
 
 	void on_condition(benchmark::State& gState) {
@@ -520,10 +521,125 @@ BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_float_int_char,
 	}
 }
 
-BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_order_by)
+struct small_complex_type_t {
+	small_complex_type_t() : value(0) {}
+	small_complex_type_t(uint64_t v) : value(v) {}
+	small_complex_type_t(const small_complex_type_t& other) : value(other.value), data(other.data) {}
+	small_complex_type_t(small_complex_type_t&& other) noexcept : value(other.value), data(std::move(other.data)) {
+		other.value = 0;
+	}
+	small_complex_type_t& operator=(const small_complex_type_t& other) {
+		if(this != &other) {
+			value = other.value;
+			data  = other.data;
+		}
+		return *this;
+	}
+	small_complex_type_t& operator=(small_complex_type_t&& other) noexcept {
+		if(this != &other) {
+			value		= other.value;
+			data		= std::move(other.data);
+			other.value = 0;
+		}
+		return *this;
+	}
+	bool operator<(const small_complex_type_t& other) const {
+		return value < other.value;
+	}
+	bool operator==(const small_complex_type_t& other) const {
+		return value == other.value;
+	}
+	bool operator!=(const small_complex_type_t& other) const {
+		return value != other.value;
+	}
+	bool operator>(const small_complex_type_t& other) const {
+		return value > other.value;
+	}
+	~small_complex_type_t() {};
+	uint64_t value {0};
+	std::array<uint8_t, 32> data {0};
+};
+struct big_complex_type_t {
+	big_complex_type_t() : value(0) {}
+	big_complex_type_t(uint64_t v) : value(v) {}
+	big_complex_type_t(const big_complex_type_t& other) : value(other.value), data(other.data) {}
+	big_complex_type_t(big_complex_type_t&& other) noexcept : value(other.value), data(std::move(other.data)) {
+		other.value = 0;
+	}
+	big_complex_type_t& operator=(const big_complex_type_t& other) {
+		if(this != &other) {
+			value = other.value;
+			data  = other.data;
+		}
+		return *this;
+	}
+	big_complex_type_t& operator=(big_complex_type_t&& other) noexcept {
+		if(this != &other) {
+			value		= other.value;
+			data		= std::move(other.data);
+			other.value = 0;
+		}
+		return *this;
+	}
+	bool operator<(const big_complex_type_t& other) const {
+		return value < other.value;
+	}
+	bool operator==(const big_complex_type_t& other) const {
+		return value == other.value;
+	}
+	bool operator!=(const big_complex_type_t& other) const {
+		return value != other.value;
+	}
+	bool operator>(const big_complex_type_t& other) const {
+		return value > other.value;
+	}
+	~big_complex_type_t() {};
+	uint64_t value {0};
+	std::array<uint8_t, 256> data {0};
+};
+
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_order_by_seq, int)
 (benchmark::State& gState) {
 	for(auto _ : gState) {
-		order_by(gState);
+		order_by(gState, psl::ecs::execution::seq);
+	}
+}
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, complex_small_filtering_order_by_seq, small_complex_type_t)
+(benchmark::State& gState) {
+	auto entities = state.filter<int>();
+	state.add_components(entities, [](small_complex_type_t& val) { val.value = std::rand() % 1000; });
+	for(auto _ : gState) {
+		order_by(gState, psl::ecs::execution::seq);
+	}
+}
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, complex_big_filtering_order_by_seq, big_complex_type_t)
+(benchmark::State& gState) {
+	auto entities = state.filter<int>();
+	state.add_components(entities, [](big_complex_type_t& val) { val.value = std::rand() % 1000; });
+	for(auto _ : gState) {
+		order_by(gState, psl::ecs::execution::seq);
+	}
+}
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_order_by_par, int)
+(benchmark::State& gState) {
+	for(auto _ : gState) {
+		order_by(gState, psl::ecs::execution::par);
+	}
+}
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, complex_small_filtering_order_by_par, small_complex_type_t)
+(benchmark::State& gState) {
+	auto entities = state.filter<int>();
+	state.add_components(entities, [](small_complex_type_t& val) { val.value = std::rand() % 1000; });
+	for(auto _ : gState) {
+		order_by(gState, psl::ecs::execution::par);
+	}
+}
+BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, complex_big_filtering_order_by_par, big_complex_type_t)
+(benchmark::State& gState) {
+	auto entities = state.filter<int>();
+	state.add_components(entities, [](big_complex_type_t& val) { val.value = std::rand() % 1000; });
+	for(auto _ : gState) {
+		order_by(gState, psl::ecs::execution::par);
 	}
 }
 BENCHMARK_TEMPLATE_DEFINE_F(filtering_fixture, trivial_filtering_on_condition)
@@ -542,7 +658,24 @@ BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_char_int_float)
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_float_int_char)
   ->Unit(benchmark::kMicrosecond)
   ->DenseRange(0, 3);
-BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_order_by)->Unit(benchmark::kMicrosecond)->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_order_by_seq)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, complex_small_filtering_order_by_seq)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, complex_big_filtering_order_by_seq)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_order_by_par)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, complex_small_filtering_order_by_par)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
+BENCHMARK_REGISTER_F(filtering_fixture, complex_big_filtering_order_by_par)
+  ->Unit(benchmark::kMicrosecond)
+  ->DenseRange(0, 3);
 BENCHMARK_REGISTER_F(filtering_fixture, trivial_filtering_on_condition)
   ->Unit(benchmark::kMicrosecond)
   ->DenseRange(0, 3);
