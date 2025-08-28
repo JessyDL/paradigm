@@ -84,14 +84,14 @@ void entity_creation_fn(benchmark::State& gState) {
 			ents.erase(std::next(std::begin(ents), eCount >> 1), std::end(ents));
 
 			if constexpr(Shuffle) {
-		gState.PauseTiming();
-		std::random_device rd;
-		std::mt19937 g(rd());
-		std::shuffle(std::begin(ents), std::end(ents), g);
-		gState.ResumeTiming();
+				gState.PauseTiming();
+				std::random_device rd;
+				std::mt19937 g(rd());
+				std::shuffle(std::begin(ents), std::end(ents), g);
+				gState.ResumeTiming();
 			}
 
-		state.destroy(ents);
+			state.destroy(ents);
 			state.create(eCount >> 1);
 		}
 	}
@@ -103,7 +103,7 @@ void entity_creation(benchmark::State& gState) {
 
 void entity_creation_with_destruction(benchmark::State& gState) {
 	entity_creation_fn<true, false>(gState);
-	}
+}
 
 void entity_creation_with_destruction_shuffle(benchmark::State& gState) {
 	entity_creation_fn<true, true>(gState);
@@ -442,8 +442,8 @@ template <typename... Ts>
 class filtering_fixture : public ::benchmark::Fixture {
 	const std::vector<std::vector<int>> data_constraint {{10'000, 300, 2'700, 1'200, 6'700},
 														 {100'000, 3'000, 21'700, 10'200, 68'700},
-														 {10'000, 300, 2'700, 3'200, 6'700},
-														 {100'000, 3'000, 21'700, 30'200, 68'700}};
+														 {100'000, 3'000, 20'700, 30'200, 60'700},
+														 {1'000'000, 30'000, 210'700, 300'200, 680'700}};
 
   public:
 	void SetUp(const ::benchmark::State& gState) override {
@@ -455,16 +455,17 @@ class filtering_fixture : public ::benchmark::Fixture {
 		auto int_beg	 = data[3];
 		auto int_end	 = data[4];
 
-		auto entities = state.create(eCount);
+		auto entities = state.create<float>(eCount);
 
-		state.add_components<float>(
-		  psl::array<entity_t> {std::begin(entities), std::next(std::begin(entities), eCount)});
 		state.add_components<char>(
 		  psl::array<entity_t> {std::next(std::begin(entities), char_beg), std::next(std::begin(entities), char_end)});
 
 		state.add_components(
 		  psl::array<entity_t> {std::next(std::begin(entities), int_beg), std::next(std::begin(entities), int_end)},
 		  [](int& i) { i = std::rand() % 1000; });
+	}
+	void TearDown(const ::benchmark::State& gState) override {
+		state.clear();
 	}
 
 	void filter() {

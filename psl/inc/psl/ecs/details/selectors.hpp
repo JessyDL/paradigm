@@ -355,8 +355,8 @@ namespace {
 	template <typename T>
 		requires(!is_except_t<T>::value && !is_on_add_t<T>::value && !is_on_remove_t<T>::value &&
 				 !is_on_combine_t<T>::value && !is_on_break_t<T>::value && !is_on_mutate_t<T>::value &&
-				 !is_optional_t<T>::value && !is_on_condition_t<T>::value && !is_order_by_t<T>::value &&
-				 !is_get_relationship_t<T>::value && !is_hierarchy_change_t<T>::value)
+				 !is_on_condition_t<T>::value && !is_order_by_t<T>::value && !is_get_relationship_t<T>::value &&
+				 !is_hierarchy_change_t<T>::value)
 	struct is_filter_t<T> : std::true_type {};
 	template <typename... Ts>
 	struct is_filter_t<filter<Ts...>> : std::true_type {};
@@ -367,8 +367,8 @@ namespace {
 	template <typename T>
 		requires(is_except_t<T>::value || is_on_add_t<T>::value || is_on_remove_t<T>::value ||
 				 is_on_combine_t<T>::value || is_on_break_t<T>::value || is_on_mutate_t<T>::value ||
-				 is_optional_t<T>::value || is_on_condition_t<T>::value || is_order_by_t<T>::value ||
-				 is_get_relationship_t<T>::value || is_hierarchy_change_t<T>::value)
+				 is_on_condition_t<T>::value || is_order_by_t<T>::value || is_get_relationship_t<T>::value ||
+				 is_hierarchy_change_t<T>::value)
 	struct is_weak_filter_t<T> : std::false_type {};
 
 	template <typename... Ts>
