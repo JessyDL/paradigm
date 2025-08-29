@@ -6,15 +6,57 @@
 #include <future>
 
 namespace psl::ecs::details {
+template <typename T>
+struct get_pair_type {
+	using pair_t = std::pair<T, entity_t>;
+	static constexpr auto is_big {false};
+
+	static psl::array<pair_t> make_array(const psl::ecs::state_t& state,
+										 psl::array<entity_t>::iterator begin,
+										 psl::array<entity_t>::iterator end) {
+		auto const count = (size_t)std::distance(begin, end);
+		psl::array_view<entity_t> view(begin, end);
+		auto data = state.get<T>(view);
+		psl::array<pair_t> result {};
+		result.reserve(std::distance(begin, end));
+		for(auto i = size_t {0}; i < count; ++i, ++begin) {
+			result.emplace_back(std::move(data[i]), *begin);
+		}
+		return result;
+	}
+};
+
+template <typename T>
+	requires(sizeof(T) > sizeof(void*))
+struct get_pair_type<T> {
+	using pair_t = std::pair<T*, entity_t>;
+	static constexpr auto is_big {true};
+
+	static psl::array<pair_t> make_array(const psl::ecs::state_t& state,
+										 psl::array<entity_t>::iterator begin,
+										 psl::array<entity_t>::iterator end) {
+		auto const count = (size_t)std::distance(begin, end);
+		psl::array_view<entity_t> view(begin, end);
+		auto data = state.try_get_component<T>(view);
+		psl::array<pair_t> result {};
+		result.reserve(std::distance(begin, end));
+		for(auto i = size_t {0}; i < count; ++i, ++begin) {
+			result.emplace_back(data[i], *begin);
+		}
+		return result;
+	}
+};
+
 template <typename Pred, typename T>
 static inline void order_by(psl::ecs::execution::no_exec,
 							const psl::ecs::state_t& state,
 							psl::array<entity_t>::iterator begin,
 							psl::array<entity_t>::iterator end) noexcept {
-	const auto pred = Pred {};
-	std::sort(begin, end, [&state, &pred](entity_t lhs, entity_t rhs) -> bool {
-		return std::invoke(pred, state.get<T>(lhs), state.get<T>(rhs));
-	});
+	auto sortable = get_pair_type<T>::make_array(state, begin, end);
+	order_by<Pred, T>(psl::ecs::execution::no_exec {}, state, sortable.begin(), sortable.end());
+	for(size_t i = 0; i < sortable.size(); ++i) {
+		*(begin + i) = sortable[i].second;
+	}
 }
 
 template <typename Pred, typename T>
@@ -22,18 +64,49 @@ static inline void order_by(psl::ecs::execution::sequenced_policy,
 							const psl::ecs::state_t& state,
 							psl::array<entity_t>::iterator begin,
 							psl::array<entity_t>::iterator end) noexcept {
-	const auto pred = Pred {};
-	std::sort(psl::ecs::execution::seq, begin, end, [&state, &pred](entity_t lhs, entity_t rhs) -> bool {
-		return std::invoke(pred, state.get<T>(lhs), state.get<T>(rhs));
+	auto sortable = get_pair_type<T>::make_array(state, begin, end);
+	order_by<Pred, T>(psl::ecs::execution::sequenced_policy {}, state, sortable.begin(), sortable.end());
+	for(size_t i = 0; i < sortable.size(); ++i) {
+		*(begin + i) = sortable[i].second;
+	}
+}
+
+template <typename Pred, typename T>
+static inline void order_by(psl::ecs::execution::no_exec,
+							const psl::ecs::state_t& state,
+							typename psl::array<typename get_pair_type<T>::pair_t>::iterator begin,
+							typename psl::array<typename get_pair_type<T>::pair_t>::iterator end) noexcept {
+	std::sort(begin, end, [](auto& lhs, auto& rhs) -> bool {
+		if constexpr(get_pair_type<T>::is_big) {
+			return Pred {}(*lhs.first, *rhs.first);
+		} else {
+			return Pred {}(lhs.first, rhs.first);
+		}
 	});
 }
+
+template <typename Pred, typename T>
+static inline void order_by(psl::ecs::execution::sequenced_policy,
+							const psl::ecs::state_t& state,
+							typename psl::array<typename get_pair_type<T>::pair_t>::iterator begin,
+							typename psl::array<typename get_pair_type<T>::pair_t>::iterator end) noexcept {
+	std::sort(psl::ecs::execution::seq, begin, end, [](auto& lhs, auto& rhs) -> bool {
+		if constexpr(get_pair_type<T>::is_big) {
+			return Pred {}(*lhs.first, *rhs.first);
+		} else {
+			return Pred {}(lhs.first, rhs.first);
+		}
+	});
+}
+
 template <typename Pred, typename T>
 static inline void order_by(psl::ecs::execution::parallel_policy,
 							const psl::ecs::state_t& state,
-							psl::array<entity_t>::iterator begin,
-							psl::array<entity_t>::iterator end,
+							typename psl::array<typename get_pair_type<T>::pair_t>::iterator begin,
+							typename psl::array<typename get_pair_type<T>::pair_t>::iterator end,
 							size_t max) noexcept {
 	auto size = std::distance(begin, end);
+
 	if(size <= static_cast<decltype(size)>(max)) {
 		psl::ecs::details::order_by<Pred, T>(psl::ecs::execution::seq, state, begin, end);
 	} else {
@@ -49,16 +122,23 @@ static inline void order_by(psl::ecs::execution::parallel_policy,
 
 		psl::ecs::details::order_by<Pred, T>(psl::ecs::execution::par, state, middle, end, max);
 
-		const auto pred = Pred {};
 		future.wait();
 		if constexpr(std::is_same_v<psl::ecs::execution::parallel_unsequenced_policy, psl::ecs::execution::no_exec>) {
-			std::inplace_merge(begin, middle, end, [&state, &pred](entity_t lhs, entity_t rhs) -> bool {
-				return std::invoke(pred, state.get<T>(lhs), state.get<T>(rhs));
+			std::inplace_merge(begin, middle, end, [&state](auto const& lhs, auto const& rhs) -> bool {
+				if constexpr(get_pair_type<T>::is_big) {
+					return Pred {}(*lhs.first, *rhs.first);
+				} else {
+					return Pred {}(lhs.first, rhs.first);
+				}
 			});
 		} else {
 			std::inplace_merge(
-			  psl::ecs::execution::par_unseq, begin, middle, end, [&state, &pred](entity_t lhs, entity_t rhs) -> bool {
-				  return std::invoke(pred, state.get<T>(lhs), state.get<T>(rhs));
+			  psl::ecs::execution::par_unseq, begin, middle, end, [&state](auto const& lhs, auto const& rhs) -> bool {
+				  if constexpr(get_pair_type<T>::is_big) {
+					  return Pred {}(*lhs.first, *rhs.first);
+				  } else {
+					  return Pred {}(lhs.first, rhs.first);
+				  }
 			  });
 		}
 	}
@@ -68,9 +148,25 @@ template <typename Pred, typename T>
 static inline void order_by(psl::ecs::execution::parallel_policy,
 							const psl::ecs::state_t& state,
 							psl::array<entity_t>::iterator begin,
+							psl::array<entity_t>::iterator end,
+							size_t max) noexcept {
+	auto size	  = std::distance(begin, end);
+	auto sortable = get_pair_type<T>::make_array(state, begin, end);
+
+	order_by<Pred, T>(psl::ecs::execution::parallel_policy {}, state, sortable.begin(), sortable.end(), max);
+
+	for(size_t i = 0; i < sortable.size(); ++i) {
+		*(begin + i) = sortable[i].second;
+	}
+}
+
+template <typename Pred, typename T>
+static inline void order_by(psl::ecs::execution::parallel_policy,
+							const psl::ecs::state_t& state,
+							psl::array<entity_t>::iterator begin,
 							psl::array<entity_t>::iterator end) noexcept {
 	auto size		 = std::distance(begin, end);
-	auto thread_size = std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % 1024u));
+	auto thread_size = std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % (1 << 12)));
 	size /= thread_size;
 
 
