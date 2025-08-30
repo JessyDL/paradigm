@@ -251,9 +251,11 @@ namespace impl {
 		void truncate(Key new_size) {
 			psl_assert(new_size <= size(), "new size must be less than or equal to current size");
 			auto const old_size = size();
-			for(size_t i = new_size; i < old_size; ++i) {
-				m_End->~T();
-				--m_End;
+			if constexpr(!std::is_trivially_destructible_v<T>) {
+				for(size_t i = new_size; i < old_size; ++i) {
+					m_End->~T();
+					--m_End;
+				}
 			}
 			std::memset(m_End, 0, (old_size - new_size) * sizeof(T));
 		}
@@ -894,7 +896,11 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		  [this](auto index, chunk_type& chunk, index_type chunk_offset, ItDataFirst dataIt) {
 			  psl_assert(chunk[chunk_offset] != TOMBSTONE, "expected valid index in sparse array");
 			  if constexpr(IS_COMPLEX) {
-				  *dataIt = *dense_storage_type::unsafe_data(chunk[chunk_offset]);
+				  if constexpr(std::is_trivially_copyable_v<value_type>) {
+					  std::memcpy(&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), sizeof(value_type));
+				  } else {
+					  new(dataIt) value_type(*dense_storage_type::unsafe_data(chunk[chunk_offset]));
+				  }
 			  } else {
 				  std::memcpy(
 					&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), dense_storage_type::type_size());
