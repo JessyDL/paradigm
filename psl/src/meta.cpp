@@ -3,27 +3,27 @@
 
 using namespace psl;
 
-const UID UID::invalid_uid = PUID {0};
+const UID UID::invalid_uid = storage_type {0};
 
-UID::UID(const psl::string8_t& key) : GUID(from_string(key).GUID) {}
+UID::UID(const psl::string8_t& key) : m_Data(from_string(key).m_Data) {}
 
-bool UID::operator==(const UID& b) const {
-	return GUID == b.GUID;
+bool UID::operator==(const UID& b) const noexcept {
+	return m_Data == b.m_Data;
 }
-bool UID::operator!=(const UID& b) const {
-	return GUID != b.GUID;
+bool UID::operator!=(const UID& b) const noexcept {
+	return m_Data != b.m_Data;
 }
-bool UID::operator<(const UID& b) const {
-	return GUID < b.GUID;
+bool UID::operator<(const UID& b) const noexcept {
+	return m_Data < b.m_Data;
 }
-bool UID::operator>(const UID& b) const {
-	return GUID > b.GUID;
+bool UID::operator>(const UID& b) const noexcept {
+	return m_Data > b.m_Data;
 }
-bool UID::operator<=(const UID& b) const {
-	return GUID <= b.GUID;
+bool UID::operator<=(const UID& b) const noexcept {
+	return m_Data <= b.m_Data;
 }
-bool UID::operator>=(const UID& b) const {
-	return GUID >= b.GUID;
+bool UID::operator>=(const UID& b) const noexcept {
+	return m_Data >= b.m_Data;
 }
 
 const psl::string8_t UID::to_string() const {
@@ -32,22 +32,22 @@ const psl::string8_t UID::to_string() const {
 	snprintf(str.data(),
 			 str.size(),
 			 "%02x%02x%02x%02x-%02x%02x-%02x%02x-%02x%02x-%02x%02x%02x%02x%02x%02x",
-			 GUID[0],
-			 GUID[1],
-			 GUID[2],
-			 GUID[3],
-			 GUID[4],
-			 GUID[5],
-			 GUID[6],
-			 GUID[7],
-			 GUID[8],
-			 GUID[9],
-			 GUID[10],
-			 GUID[11],
-			 GUID[12],
-			 GUID[13],
-			 GUID[14],
-			 GUID[15]);
+			 m_Data[0],
+			 m_Data[1],
+			 m_Data[2],
+			 m_Data[3],
+			 m_Data[4],
+			 m_Data[5],
+			 m_Data[6],
+			 m_Data[7],
+			 m_Data[8],
+			 m_Data[9],
+			 m_Data[10],
+			 m_Data[11],
+			 m_Data[12],
+			 m_Data[13],
+			 m_Data[14],
+			 m_Data[15]);
 	str.resize(36);
 	return str;
 }
@@ -56,7 +56,7 @@ UID UID::generate() {
 	static std::random_device rd;
 	static std::uniform_int_distribution<uint64_t> dist(0, (uint64_t)(~0));
 
-	PUID res {0};
+	storage_type res {0};
 	uint64_t* my = reinterpret_cast<uint64_t*>(res.data());
 
 	my[0] = dist(rd);

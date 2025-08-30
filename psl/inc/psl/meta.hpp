@@ -20,17 +20,18 @@ namespace psl {
 /// UID generates a unique ID, either through a random number generator, or by using OS provided
 /// methods. It is immutable once created.
 struct UID final {
+	using storage_type = std::array<uint8_t, 16>;
+
   public:
 	friend struct std::hash<UID>;
-	using PUID = std::array<uint8_t, 16>;
 
 	UID(const psl::string8_t& key);
 
 	/// \brief constructor that creates an invalid UID.
 	UID() = default;
-	/// a constructor that created a UID from the internal representation (PUID).
+	/// a constructor that created a UID from the internal representation (storage_type).
 	/// \param[in] id the internal representation of a UID.
-	constexpr UID(const PUID& id) : GUID(id) {}
+	constexpr UID(const storage_type& id) : m_Data(id) {}
 
 	UID(const UID& other) noexcept			  = default;
 	UID(UID&& other) noexcept				  = default;
@@ -61,16 +62,16 @@ struct UID final {
 	/// \returns a valid UID.
 	static UID generate();
 
-	bool operator==(const UID& b) const;
-	bool operator!=(const UID& b) const;
-	bool operator<(const UID& b) const;
-	bool operator<=(const UID& b) const;
-	bool operator>(const UID& b) const;
-	bool operator>=(const UID& b) const;
+	bool operator==(const UID& b) const noexcept;
+	bool operator!=(const UID& b) const noexcept;
+	bool operator<(const UID& b) const noexcept;
+	bool operator<=(const UID& b) const noexcept;
+	bool operator>(const UID& b) const noexcept;
+	bool operator>=(const UID& b) const noexcept;
 
 	/// \brief checks if the held UID is valid.
 	/// \returns true in case the held UID is valid.
-	operator bool() const {
+	operator bool() const noexcept {
 		return *this != invalid_uid;
 	}
 
@@ -90,7 +91,7 @@ struct UID final {
 	const static UID invalid_uid;
 
   private:
-	PUID GUID;
+	storage_type m_Data;
 };
 
 inline auto format_as(UID const& value) {
@@ -196,7 +197,7 @@ constexpr psl::UID try_make_uid(const char* text, std::size_t size) {
 		return result;
 	};
 
-	psl::UID::PUID res {};
+	psl::UID::storage_type res {};
 	auto res_offset = 0;
 	for(size_t i = 0; i < 4; ++i) {
 		res[res_offset++] = parse(text);
@@ -263,7 +264,7 @@ constexpr psl::UID make_uid(const char* text, std::size_t size) noexcept {
 	};
 
 
-	psl::UID::PUID res {};
+	psl::UID::storage_type res {};
 	auto res_offset = 0;
 	for(size_t i = 0; i < 4; ++i) {
 		parse(text, res[res_offset++]);
@@ -306,27 +307,15 @@ inline bool psl::UID::valid(const psl::string8_t& key) noexcept {
 }
 }	 // namespace psl
 
-
-// required by the natvis file
-namespace dummy {
-struct hex_dummy_low {
-	unsigned char c;
-};
-
-struct hex_dummy_high {
-	unsigned char c;
-};
-}	 // namespace dummy
-
 namespace std {
 template <>
 struct hash<psl::UID> {
 	size_t operator()(const psl::UID& x) const noexcept {
 		if constexpr(sizeof(size_t) == 4) {
-			const uint32_t* quarters = reinterpret_cast<const uint32_t*>(&x.GUID);
+			const uint32_t* quarters = reinterpret_cast<const uint32_t*>(&x.m_Data);
 			return quarters[0] ^ quarters[1] ^ quarters[2] ^ quarters[3];
 		} else if constexpr(sizeof(size_t) == 8) {
-			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.GUID);
+			const uint64_t* half = reinterpret_cast<const uint64_t*>(&x.m_Data);
 			return half[0] ^ half[1];
 		}
 	}

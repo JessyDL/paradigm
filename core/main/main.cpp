@@ -851,13 +851,6 @@ int main(int argc, char* argv[]) {
 	_CrtSetReportMode(_CRT_ERROR, _CRTDBG_MODE_DEBUG);
 	#endif
 	core::initialize_loggers();
-
-	#ifdef _MSC_VER
-	{	 // here to trick the compiler into generating these types to get UUID natvis support
-		dummy::hex_dummy_high hex_dummy_high {};
-		dummy::hex_dummy_low hex_dummy_lowy {};
-	}
-	#endif
 	std::srand(0);
 	if(argc > 0) {
 		core::log->info("Received the cli args:");

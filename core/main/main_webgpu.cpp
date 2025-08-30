@@ -257,13 +257,6 @@ int main(int argc, char** argv) {
 	core::initialize_loggers();
 
 	core::log->warn("WebGPU is not yet fully implemented, this is a temporary main file.");
-
-#ifdef _MSC_VER
-	{	 // here to trick the compiler into generating these types to get UUID natvis support
-		dummy::hex_dummy_high hex_dummy_high {};
-		dummy::hex_dummy_low hex_dummy_lowy {};
-	}
-#endif
 	std::srand(0);
 	if(argc > 0) {
 		core::log->info("Received the cli args:");
