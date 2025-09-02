@@ -133,10 +133,9 @@ std::optional<segment> region::allocate(size_t size) {
 }
 
 region::~region() {
-	if(m_Children.size() != 0)
-		debug_break();	  // todo: we need to figure out a good error here, children need to be cleared before their
-						  // parents
-
+	psl_assert(m_Children.empty(),
+			   "children should be cleared before their parents, this will cause a leak or crash depending on when "
+			   "this happens.");
 	if(m_Parent != nullptr) {
 		m_Parent->erase_region(*this);
 		delete(m_Allocator);
