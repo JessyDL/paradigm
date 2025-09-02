@@ -11,6 +11,7 @@
 #include "psl/static_array.hpp"
 #include "psl/unique_ptr.hpp"
 #include "psl/view_ptr.hpp"
+#include <strtype/strtype.hpp>
 
 
 namespace psl {
@@ -93,7 +94,8 @@ struct metadata {
 	resource_key_t type;
 	status state;
 	size_t reference_count;
-	bool strong_type;
+	psl::string_view dbg_typename;
+	bool strong_type;	 // used for alias types
 };
 
 class cache_t {
@@ -152,6 +154,7 @@ class cache_t {
 									 key,
 									 status::initial,
 									 0u,
+									 dbg_typename_for<value_type>(),
 									 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 						   nullptr,
 						   m_AgeCounter++});
@@ -225,6 +228,7 @@ class cache_t {
 									 details::key_for<value_type>(),
 									 status::initial,
 									 0u,
+									 dbg_typename_for<value_type>(),
 									 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 						   nullptr,
 						   m_AgeCounter++});
@@ -264,6 +268,7 @@ class cache_t {
 									 details::key_for<value_type>(),
 									 status::initial,
 									 0u,
+									 dbg_typename_for<value_type>(),
 									 std::is_same_v<typename details::alias_type<value_type>::type, void>},
 						   nullptr,
 						   m_AgeCounter++});
@@ -512,6 +517,12 @@ class cache_t {
 	}
 
   private:
+	template <typename T>
+	psl::string_view dbg_typename_for() const noexcept {
+		constexpr static auto str_type = strtype::stringify_typename<T>();
+		return str_type;
+	}
+
 	size_t m_AgeCounter {0};
 	psl::meta::library m_Library;
 	std::unordered_map<psl::UID, entry> m_Cache {};

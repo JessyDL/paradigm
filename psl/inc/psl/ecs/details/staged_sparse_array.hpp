@@ -184,7 +184,7 @@ namespace impl {
 		void emplace_back() {
 			psl_assert(size() < capacity(), "no more space left to create new elements");
 			if constexpr(std::is_trivially_constructible_v<T>) {
-				// no-op for trivial types
+				// no-op for trivial types, when available use std::start_lifetime_as<T>(m_End);
 			} else {
 				new(m_End) T();
 			}
@@ -194,7 +194,12 @@ namespace impl {
 		template <typename U>
 		void emplace_back(U&& value) {
 			psl_assert(size() < capacity(), "no more space left to create new elements");
-			new(m_End) T(*value);
+			if constexpr(std::is_trivially_copyable_v<T>) {
+				std::memcpy(m_End, &*value, sizeof(T));
+				// when available use std::start_lifetime_as<T>(m_End);
+			} else {
+				new(m_End) T(*value);
+			}
 			++m_End;
 		}
 
@@ -204,7 +209,8 @@ namespace impl {
 
 				::memory::raw_region new_dense(new_size * sizeof(T));
 				if constexpr(std::is_trivially_copyable_v<T>) {
-					std::memcpy(new_dense.data(), m_Dense.data(), old_size);
+					std::memcpy(new_dense.data(), m_Dense.data(), old_size * sizeof(T));
+					// when available use std::start_lifetime_as<T>(...);
 				} else {
 					auto currentPtr		= m_Begin;
 					auto newTargetPtr	= (T*)new_dense.data();
@@ -214,6 +220,9 @@ namespace impl {
 							   "new dense size must be greater than or equal to current size");
 					for(size_t i = 0; i < size(); ++i) {
 						new(newTargetPtr) T(std::move(*currentPtr));
+						if constexpr(!std::is_trivially_destructible_v<T>) {
+							currentPtr->~T();
+						}
 						++currentPtr;
 						++newTargetPtr;
 					}
@@ -251,9 +260,13 @@ namespace impl {
 		void truncate(Key new_size) {
 			psl_assert(new_size <= size(), "new size must be less than or equal to current size");
 			auto const old_size = size();
-			for(size_t i = new_size; i < old_size; ++i) {
-				m_End->~T();
-				--m_End;
+			if constexpr(!std::is_trivially_destructible_v<T>) {
+				for(size_t i = new_size; i < old_size; ++i) {
+					m_End->~T();
+					--m_End;
+				}
+			} else {
+				m_End -= (old_size - new_size);
 			}
 			std::memset(m_End, 0, (old_size - new_size) * sizeof(T));
 		}
@@ -323,6 +336,10 @@ namespace impl {
 
 			psl_assert(m_Dense.end() >= (void*)m_Begin || pre_existing_size == 0,
 					   "aligned begin address is greater than or equal to end address");
+			if(pre_existing_size > 0) {
+				m_Begin = std::launder(m_Begin);
+				m_End	= m_Begin + pre_existing_size;
+			}
 		}
 
 		::memory::raw_region m_Dense;
@@ -429,7 +446,24 @@ namespace impl {
 					   middle,
 					   last,
 					   size() + 1);
-			std::rotate(m_Begin + begin * m_TypeSize, m_Begin + middle * m_TypeSize, m_Begin + last * m_TypeSize);
+			if(begin == middle || middle == last) {
+				return;
+			}
+
+			Key n = middle - begin;
+			Key m = last - middle;
+
+			while(n != 0 && m != 0) {
+				if(n <= m) {
+					swap_chunks(begin, last - n, n);
+					last -= n;
+					m -= n;
+				} else {
+					swap_chunks(begin, middle, m);
+					begin += m;
+					n -= m;
+				}
+			}
 		}
 
 		void clear(bool release_memory = false) noexcept {
@@ -474,6 +508,17 @@ namespace impl {
 		}
 
 	  private:
+		void swap_chunks(Key first_idx, Key second_idx, Key count) {
+			std::byte* first  = m_Begin + (first_idx * m_TypeSize);
+			std::byte* second = m_Begin + (second_idx * m_TypeSize);
+
+			for(Key i = 0; i < count; ++i) {
+				std::swap_ranges(first, first + m_TypeSize, second);
+				first += m_TypeSize;
+				second += m_TypeSize;
+			}
+		}
+
 		std::byte* index_to_memory_offset(Key index) const {
 			psl_assert(index < capacity(), "index out of bounds");
 			return m_Begin + (index * m_TypeSize);
@@ -894,7 +939,11 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		  [this](auto index, chunk_type& chunk, index_type chunk_offset, ItDataFirst dataIt) {
 			  psl_assert(chunk[chunk_offset] != TOMBSTONE, "expected valid index in sparse array");
 			  if constexpr(IS_COMPLEX) {
-				  *dataIt = *dense_storage_type::unsafe_data(chunk[chunk_offset]);
+				  if constexpr(std::is_trivially_copyable_v<value_type>) {
+					  std::memcpy(&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), sizeof(value_type));
+				  } else {
+					  new(dataIt) value_type(*dense_storage_type::unsafe_data(chunk[chunk_offset]));
+				  }
 			  } else {
 				  std::memcpy(
 					&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), dense_storage_type::type_size());
