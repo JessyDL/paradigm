@@ -265,6 +265,8 @@ namespace impl {
 					m_End->~T();
 					--m_End;
 				}
+			} else {
+				m_End -= (old_size - new_size);
 			}
 			std::memset(m_End, 0, (old_size - new_size) * sizeof(T));
 		}
