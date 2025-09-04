@@ -72,23 +72,26 @@ class Android:
             )
             try:
                 run_command(
-                    command=[application, "--install", f'"{package}"', f"--channel={str(channel)}"],
+                    command=[
+                        application,
+                        "--install",
+                        f'"{package}"',
+                        f"--channel={str(channel)}",
+                    ],
                     print_stdout=True,
                     catch_stdout=False,
                 )
             except Exception as e:
-                print(f"Failed to install '{package}': {e}. This could be caused by permission issues, please install it manually.")
+                print(
+                    f"Failed to install '{package}': {e}. This could be caused by permission issues, please install it manually."
+                )
                 exit(1)
         else:
             raise Exception(f"Could not find the required sdk package '{package}'")
 
     def _parse_installed_packages(channel=0, sdk=None):
         backup_dir = os.path.join(sdk, "cmdline-tools", "latest", "bin", "sdkmanager")
-        application = (
-            backup_dir
-            if sdk != None
-            else "sdkmanager"
-        )
+        application = backup_dir if sdk != None else "sdkmanager"
         sdkman_output = run_command(
             [application, "--list", f"--channel={str(channel)}"], catch_stdout=True
         )
