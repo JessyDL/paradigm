@@ -91,6 +91,8 @@ jobs:
                 commit: '${{ github.sha }}',
                 branch: '${{ github.ref_name }}',
                 repository: '${{ github.repository }}',
-                run_id: '${{ github.run_id }}'
+                run_id: '${{ github.run_id }}',
+                platform: 'windows',
+                architecture: '${{ matrix.arch }}'
               }
             })
