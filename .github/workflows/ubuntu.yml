@@ -140,16 +140,37 @@ jobs:
       run: ./ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin/benchmarks --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
       uses: actions/upload-artifact@v4
+      id: upload_artifact
       with:
         name: ubuntu-${{ matrix.COMPILER }}-${{ matrix.graphics }}
         path: results.json
-        if-no-files-found: error
+        if-no-files-found: error    
+    - name: announce-benchmark-results
+      uses: actions/github-script@v7
+      with:
+          github-token: ${{ secrets.BENCHMARKS_VISUALIZER_PAT }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'ParadigmEngine',
+              repo: 'benchmarks-visualizer',
+              workflow_id: 'package.yml',
+              ref: 'main',
+              inputs: {
+                artifact_id: '${{ steps.upload_artifact.outputs.artifact-id }}',
+                commit: '${{ github.sha }}',
+                branch: '${{ github.ref_name }}',
+                repository: '${{ github.repository }}',
+                run_id: '${{ github.run_id }}',
+                platform: 'ubuntu',
+                architecture: '${{ matrix.compiler }}-${{ matrix.graphics }}'
+              }
+            })
   # fires off the documentation generator
   documentation:
     needs: [build, formatting]
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/github-script@v6
+    - uses: actions/github-script@v7
       with:
         github-token: ${{ secrets.PUSH_TOKEN }}
         script: |
