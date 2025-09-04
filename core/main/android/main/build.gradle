@@ -1,14 +1,14 @@
 apply plugin: 'com.android.application'
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 34
     ndkVersion '27.3.13750724'
     assetPacks = [":package_0"]
     namespace 'com.paradigmengine.main'
     defaultConfig {
         applicationId = 'com.paradigmengine.main'
         minSdkVersion 21
-        targetSdkVersion 31
+        targetSdkVersion 34
         externalNativeBuild {
             cmake {
                 arguments '-DANDROID_STL=c++_static', '-DPE_PLATFORM=ANDROID', '-DPE_GLES=' + getProperty('paradigm.gles'), '-DPE_VULKAN=' + getProperty('paradigm.vulkan'), '-DPE_MAKE_EXE=ON', '-DPE_VULKAN_VERSION=' + getProperty('paradigm.vulkan.version'), '-DPE_TESTS=OFF'
@@ -39,6 +39,6 @@ android {
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
-    implementation 'androidx.appcompat:appcompat:1.3.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
 }

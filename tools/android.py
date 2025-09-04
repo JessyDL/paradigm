@@ -114,7 +114,7 @@ class Android:
     def dependencies():
         return [
             ("platform-tools", 0),
-            ("platforms;android-33-ext4", 0),
+            ("platforms;android-34", 0),
             ("cmake;3.31.0", 0),
             ("ndk;27.3.13750724", 0),
         ]
