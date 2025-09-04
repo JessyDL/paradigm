@@ -4,7 +4,29 @@ import subprocess
 from datetime import datetime
 
 
+def is_git_repo():
+    try:
+        subprocess.check_output(["git", "status"], stderr=subprocess.STDOUT)
+        return True
+    except subprocess.CalledProcessError:
+        return False
+
+
+STUB_GIT = not is_git_repo()
+
+
 def run_git_command(command=[]):
+    if STUB_GIT:
+        if command == ["tag", "-l", "--sort=-v:refname"]:
+            return "0.0.1"
+        if command == ["rev-parse", "HEAD"]:
+            return "totalyfakegitshaasthisisnotarealgitrepo1"
+        if command == ["log", "-1", "--pretty=format:%ct"]:
+            return "1700000000"
+        if command == ["shortlog", "-s", "-n", "--all", "--no-merges"]:
+            return "  1 UNKNOWN_NO_GIT_REPO"
+
+        raise ValueError(f"Unstubbed git command: {' '.join(command)}")
     tag = (
         subprocess.Popen(["git"] + command, stdout=subprocess.PIPE)
         .stdout.read()
@@ -18,7 +40,7 @@ def all_authors():
         ["shortlog", "-s", "-n", "--all", "--no-merges"]
     ).split("\n")
     author_exemptions = ["Travis-CI"]
-    author_alias = {"JessyDL": "Jessy De Lannoit"}
+    author_alias = {"JessyDL": "Jessy De Lannoit", "jdl": "Jessy De Lannoit"}
     authors = {}
     for author in possible_authors:
         if author and not any(s in author for s in author_exemptions):

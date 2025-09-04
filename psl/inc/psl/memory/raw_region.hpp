@@ -7,9 +7,9 @@ class raw_region {
   public:
 	raw_region(size_t size);
 	~raw_region();
-	raw_region(const raw_region& other);
+	raw_region(const raw_region& other) = delete;
 	raw_region(raw_region&& other);
-	raw_region& operator=(const raw_region& other);
+	raw_region& operator=(const raw_region& other) = delete;
 	raw_region& operator=(raw_region&& other);
 
 	void* data() const noexcept {

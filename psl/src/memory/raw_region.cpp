@@ -66,18 +66,6 @@ raw_region::~raw_region() {
 	release();
 }
 
-raw_region::raw_region(const raw_region& other)
-	: m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize) {}
-
-raw_region& raw_region::operator=(const raw_region& other) {
-	if(this != &other) {
-		m_Base	   = other.m_Base;
-		m_Size	   = other.m_Size;
-		m_PageSize = other.m_PageSize;
-	}
-	return *this;
-}
-
 raw_region::raw_region(raw_region&& other) : m_Base(other.m_Base), m_Size(other.m_Size), m_PageSize(other.m_PageSize) {
 	other.m_Base	 = nullptr;
 	other.m_Size	 = 0;
@@ -86,10 +74,10 @@ raw_region::raw_region(raw_region&& other) : m_Base(other.m_Base), m_Size(other.
 
 raw_region& raw_region::operator=(raw_region&& other) {
 	if(this != &other) {
+		release();
 		std::swap(m_Base, other.m_Base);
 		std::swap(m_Size, other.m_Size);
 		std::swap(m_PageSize, other.m_PageSize);
-		other.release();
 	}
 	return *this;
 }
@@ -105,7 +93,7 @@ void raw_region::release() noexcept {
 				0,				 // Bytes of committed pages
 				MEM_RELEASE);	 // Decommit the pages
 #elif defined(USE_POSIX)
-	if(munmap(m_Base, sizeof(int)) == -1) {
+	if(munmap(m_Base, m_Size) == -1) {
 		LOG_ERROR("munmap()() failed");
 		exit(EXIT_FAILURE);
 	}
