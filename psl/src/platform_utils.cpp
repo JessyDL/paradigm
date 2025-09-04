@@ -287,6 +287,7 @@ bool psl::utility::platform::file::read(psl::string_view filename, std::vector<p
 	size_t currChunk;
 	out.reserve(length);
 
+	psl::array<char> buffer;
 	// while we have still some data to read
 	while(remaining != 0) {
 		// set proper size for our next chunk
@@ -295,13 +296,13 @@ bool psl::utility::platform::file::read(psl::string_view filename, std::vector<p
 		} else {
 			currChunk = remaining;
 		}
-		char chunk[currChunk];
+		buffer.resize(currChunk);
 
 		// read data chunk
-		if(AAsset_read(asset, chunk, currChunk) > 0)	// returns less than 0 on error
+		if(AAsset_read(asset, buffer.data(), currChunk) > 0)	// returns less than 0 on error
 		{
 			// and append it to our vector
-			out.insert(out.end(), chunk, chunk + currChunk);
+			out.insert(out.end(), buffer.data(), buffer.data() + currChunk);
 			remaining = AAsset_getRemainingLength64(asset);
 		}
 	}
@@ -355,6 +356,7 @@ bool psl::utility::platform::file::read(psl::string_view filename, psl::string& 
 	off64_t remaining = AAsset_getRemainingLength64(asset);
 	size_t Mb		  = 1000 * 1024;	// 1Mb is maximum chunk size for compressed assets
 	size_t currChunk;
+	psl::array<char> buffer;
 	out.reserve(length);
 
 	// while we have still some data to read
@@ -365,13 +367,13 @@ bool psl::utility::platform::file::read(psl::string_view filename, psl::string& 
 		} else {
 			currChunk = remaining;
 		}
-		char chunk[currChunk];
+		buffer.resize(currChunk);
 
 		// read data chunk
-		if(AAsset_read(asset, chunk, currChunk) > 0)	// returns less than 0 on error
+		if(AAsset_read(asset, buffer.data(), currChunk) > 0)	// returns less than 0 on error
 		{
 			// and append it to our vector
-			out.insert(out.end(), chunk, chunk + currChunk);
+			out.insert(out.end(), buffer.data(), buffer.data() + currChunk);
 			remaining = AAsset_getRemainingLength64(asset);
 		}
 	}

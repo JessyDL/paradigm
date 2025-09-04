@@ -90,9 +90,12 @@ jobs:
       run: |
         sudo apt-get update
         sudo apt-get install libgl1-mesa-dev libegl1-mesa-dev -y
+    # installing the android sdk deps manually due to issues with permissions
     - name: dependencies
       if: ${{ matrix.target == 'android' }}
-      run: yes | ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses
+      run: |
+        yes | sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager --licenses
+        sudo ${ANDROID_SDK_ROOT}/cmdline-tools/latest/bin/sdkmanager "platform-tools" "ndk;27.3.13750724" "cmake;3.31.0" "platforms;android-33-ext4"
     - name: initialize
       run: cmake --preset=${{ matrix.target }}-release-${{ matrix.graphics }} -DPE_BENCHMARKS=${{ matrix.benchmarks }} -DPE_TESTS=${{ matrix.tests }}
     - name: compile
