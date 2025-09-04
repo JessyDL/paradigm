@@ -70,17 +70,22 @@ class Android:
                 if sdk != None
                 else "sdkmanager"
             )
-            run_command(
-                command=[application, package, f"--channel={str(channel)}"],
-                print_stdout=True,
-                catch_stdout=False,
-            )
+            try:
+                run_command(
+                    command=[application, "--install", f'"{package}"', f"--channel={str(channel)}"],
+                    print_stdout=True,
+                    catch_stdout=False,
+                )
+            except Exception as e:
+                print(f"Failed to install '{package}': {e}. This could be caused by permission issues, please install it manually.")
+                exit(1)
         else:
             raise Exception(f"Could not find the required sdk package '{package}'")
 
     def _parse_installed_packages(channel=0, sdk=None):
+        backup_dir = os.path.join(sdk, "cmdline-tools", "latest", "bin", "sdkmanager")
         application = (
-            os.path.join(sdk, "cmdline-tools", "latest", "bin", "sdkmanager")
+            backup_dir
             if sdk != None
             else "sdkmanager"
         )
@@ -105,9 +110,10 @@ class Android:
 
     def dependencies():
         return [
+            ("platform-tools", 0),
             ("platforms;android-33-ext4", 0),
-            ("cmake;3.22.1", 3),
-            ("ndk;25.2.9519653", 1),
+            ("cmake;3.31.0", 0),
+            ("ndk;27.3.13750724", 0),
         ]
 
     def is_generated(self) -> bool:

@@ -2,7 +2,7 @@ apply plugin: 'com.android.application'
 
 android {
     compileSdkVersion 31
-    ndkVersion '25.2.9519653'
+    ndkVersion '27.3.13750724'
     assetPacks = [":package_0"]
     namespace 'com.paradigmengine.main'
     defaultConfig {
@@ -31,7 +31,7 @@ android {
     }
     externalNativeBuild {
         cmake {
-            version '3.22.1'
+            version '3.31.0'
             path 'src/main/CMakeLists.txt'
         }
     }

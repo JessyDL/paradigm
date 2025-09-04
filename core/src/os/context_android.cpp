@@ -119,7 +119,7 @@ bool core::os::context::tick() noexcept {
 	// If not animating, we will block forever waiting for events.
 	// If animating, we loop until all events are read, then continue
 	// to draw the next frame of animation.
-	while((ident = ALooper_pollAll(m_Paused ? -1 : 0, nullptr, &events, (void**)&source)) >= 0) {
+	while((ident = ALooper_pollOnce(m_Paused ? -1 : 0, nullptr, &events, (void**)&source)) >= 0) {
 		// Process this event.
 		if(source != nullptr) {
 			source->process(m_Application, source);
