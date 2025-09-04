@@ -24,11 +24,11 @@ jobs:
           - arch: x86_64
             bitconfig: 64
     name: build
-    runs-on: windows-2025
+    runs-on: windows-2025    
     steps:
     - uses: actions/checkout@v1
       with:
-        submodules: recursive    
+        submodules: recursive
     - uses: SimenB/github-actions-cpu-cores@v1
       id: cpu-cores
     - name: setup dependencies
@@ -70,8 +70,29 @@ jobs:
     - name: benchmark
       run: .\windows-benchmark-${{ matrix.graphics }}-${{ matrix.arch }}-bin\benchmarks.exe --benchmark_out_format=json --benchmark_out=results.json
     - name: finalize
+      id: upload_artifact
       uses: actions/upload-artifact@v4
       with:
         name: windows-${{ matrix.graphics }}-${{ matrix.arch }}
         path: results.json
         if-no-files-found: error
+    - name: announce-benchmark-results
+      uses: actions/github-script@v7
+      with:
+          github-token: ${{ secrets.BENCHMARKS_VISUALIZER_PAT }}
+          script: |
+            await github.rest.actions.createWorkflowDispatch({
+              owner: 'ParadigmEngine',
+              repo: 'benchmarks-visualizer',
+              workflow_id: 'package.yml',
+              ref: 'main',
+              inputs: {
+                artifact_id: '${{ steps.upload_artifact.outputs.artifact-id }}',
+                commit: '${{ github.sha }}',
+                branch: '${{ github.ref_name }}',
+                repository: '${{ github.repository }}',
+                run_id: '${{ github.run_id }}',
+                platform: 'windows',
+                architecture: '${{ matrix.arch }}'
+              }
+            })
