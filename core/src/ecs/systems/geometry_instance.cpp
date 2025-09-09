@@ -70,8 +70,7 @@ void geometry_instancing::dynamic_add(info_t& info,
 				instanceIDs.emplace_back(instance_id {startIndex + i});
 			}
 
-			if(!rend.bundle->set(
-				 rend.geometry, startIndex, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats))
+			if(!rend.bundle->set(rend.geometry, startIndex, core::gfx::constants::INSTANCE_MODELMATRIX, modelMats))
 				core::log->error(
 				  "could not set the instance data for the dynamic elements in geometry: {} startIndex: {} size: "
 				  "{}",
@@ -264,7 +263,7 @@ void geometry_instancing::dynamic_system(info_t& info,
 				}
 
 				if(!bundleHandle->set(
-					 geometryHandle, startIndex, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats))
+					 geometryHandle, startIndex, core::gfx::constants::INSTANCE_MODELMATRIX, modelMats))
 					core::log->error(
 					  "could not set the instance data for the dynamic elements in geometry: {} startIndex: {} size: "
 					  "{}",
@@ -332,8 +331,7 @@ void geometry_instancing::static_add(info_t& info,
 					instanceIds.emplace_back(instance_id {i});
 				}
 				info.command_buffer.add_components<instance_id>(eIds, instanceIds);
-				bundleHandle->set(
-				  geometryHandle, startIndex, psl::string {core::gfx::constants::INSTANCE_MODELMATRIX}, modelMats);
+				bundleHandle->set(geometryHandle, startIndex, core::gfx::constants::INSTANCE_MODELMATRIX, modelMats);
 
 				modelMats.clear();
 				eIds.clear();
