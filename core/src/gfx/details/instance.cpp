@@ -92,8 +92,10 @@ void data::add(core::resource::handle<material_t> material) {
 
 			for(auto& [uid, obj] : m_InstanceData) {
 				auto res = m_VertexInstanceBuffer->reserve(obj.id_generator.capacity() * d.description.size_of_element);
-				if(!res)
+				if(!res) {
 					core::gfx::log->error("could not allocate");
+					continue;
+				}
 
 				obj.data.emplace_back(res.value());
 				obj.description.emplace_back(d.description);
@@ -110,12 +112,14 @@ void data::add(core::resource::handle<material_t> material) {
 std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count) {
 	auto it = m_InstanceData.find(uid);
 	if(it == std::end(m_InstanceData)) {
-		auto size {(count > default_capacity) ? count << 2 : default_capacity};
-		it = m_InstanceData.emplace(uid, object {uid, size}).first;
+		auto const size = std::max(count, default_capacity);
+		it				= m_InstanceData.emplace(uid, object {uid, size}).first;
 		for(const auto& b : m_UniqueBindings) {
 			auto res = m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * b.first.size_of_element);
-			if(!res)
+			if(!res) {
 				core::gfx::log->error("could not allocate");
+				continue;
+			}
 			it->second.data.emplace_back(res.value());
 			it->second.description.emplace_back(b.first);
 		}
@@ -123,20 +127,29 @@ std::vector<std::pair<uint32_t, uint32_t>> data::add(core::resource::tag<core::g
 
 	if(it->second.id_generator.available() < count) {
 		auto size	  = it->second.id_generator.size();
-		auto new_size = (it->second.id_generator.available() + count) << 2;
+		auto new_size = std::max(size + count, size + (size >> 1));
 		if(!it->second.id_generator.resize(new_size))
 			core::gfx::log->error("could not increase the id_generator size from {} to {}", size, new_size);
 		else {
-			for(auto& d : it->second.data) {
-				auto res =
-				  m_VertexInstanceBuffer->reserve(it->second.id_generator.capacity() * d.range().size() / size);
-				if(!res)
+			psl_assert(it->second.data.size() == it->second.description.size(),
+					   "Assuming that descriptions and data are always 1-1 match");
+			auto dataIt	 = std::begin(it->second.data);
+			auto descrIt = std::begin(it->second.description);
+			for(; dataIt != std::end(it->second.data) && descrIt != std::end(it->second.description);
+				++dataIt, ++descrIt) {
+				auto& d					   = *dataIt;
+				const auto requested_bytes = it->second.id_generator.capacity() * descrIt->size_of_element;
+				auto res				   = m_VertexInstanceBuffer->reserve(requested_bytes);
+				if(!res) {
 					core::gfx::log->error("could not allocate");
+					continue;
+				}
+				auto& value = res.value();
 				m_VertexInstanceBuffer->copy_from(
 				  m_VertexInstanceBuffer.value(),
-				  {core::gfx::memory_copy {d.range().begin, res.value().range().begin, d.range().size()}});
-				std::swap(d, res.value());
-				m_VertexInstanceBuffer->deallocate(res.value());
+				  {core::gfx::memory_copy {d.range().begin, value.range().begin, d.range().size()}});
+				std::swap(d, value);
+				m_VertexInstanceBuffer->deallocate(value);
 			}
 		}
 	}
@@ -218,7 +231,9 @@ bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t i
 		it->second.id_generator.destroy(id);
 
 		if(it->second.id_generator.size() == 0) {
-			for(auto& segment : it->second.data) m_VertexInstanceBuffer->deallocate(segment);
+			for(auto& segment : it->second.data) {
+				m_VertexInstanceBuffer->deallocate(segment);
+			}
 
 			m_InstanceData.erase(it);
 		}
@@ -228,7 +243,9 @@ bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t i
 }
 bool data::clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept {
 	if(auto it = m_InstanceData.find(geometry); it != std::end(m_InstanceData)) {
-		for(auto& segment : it->second.data) m_VertexInstanceBuffer->deallocate(segment);
+		for(auto& segment : it->second.data) {
+			m_VertexInstanceBuffer->deallocate(segment);
+		}
 
 		m_InstanceData.erase(it);
 		return true;
@@ -237,7 +254,9 @@ bool data::clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept {
 }
 bool data::clear() noexcept {
 	for(auto& [uid, obj] : m_InstanceData) {
-		for(auto& segment : obj.data) m_VertexInstanceBuffer->deallocate(segment);
+		for(auto& segment : obj.data) {
+			m_VertexInstanceBuffer->deallocate(segment);
+		}
 	}
 	m_InstanceData.clear();
 	return true;
@@ -281,8 +300,9 @@ bool data::set(core::resource::tag<core::gfx::material_t> material,
 			   size_t size,
 			   size_t offset) noexcept {
 	auto it = m_MaterialInstanceData.find(material);
-	if(it == std::end(m_MaterialInstanceData))
+	if(it == std::end(m_MaterialInstanceData)) {
 		return false;
+	}
 
 	return m_MaterialInstanceBuffer->buffer->commit(
 	  {core::gfx::commit_instruction {(void*)data, size, it->second.segment, memory::range_t {offset, offset + size}}});
@@ -290,8 +310,9 @@ bool data::set(core::resource::tag<core::gfx::material_t> material,
 
 bool data::bind_material(core::resource::handle<core::gfx::material_t> material) {
 	auto it = m_MaterialInstanceData.find(material);
-	if(it == std::end(m_MaterialInstanceData))
+	if(it == std::end(m_MaterialInstanceData)) {
 		return false;
+	}
 
 	return material->bind_instance_data(it->second.descriptor.binding(),
 										static_cast<uint32_t>(it->second.segment.range().begin));
