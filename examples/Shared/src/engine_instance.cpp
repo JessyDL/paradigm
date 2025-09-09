@@ -46,6 +46,8 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 
 	auto window_data = cache.create<core::data::window>();
 	window_data->name(options.window_title);
+	window_data->width(1600);
+	window_data->height(900);
 	m_SurfaceHandle = cache.create<core::os::surface>(window_data);
 	if(!m_SurfaceHandle) {
 		core::log->critical("Could not create a OS surface to draw on.");

@@ -53,11 +53,11 @@ class engine_instance_t {
 		} instance_buffer {};
 
 		struct {
-			size_t size {8_mb};
+			size_t size {32_mb};
 		} instance_material_buffer {};
 
 		struct {
-			size_t size {8_mb};
+			size_t size {32_mb};
 		} instance_material_binding {};
 
 		struct {

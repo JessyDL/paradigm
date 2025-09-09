@@ -427,7 +427,7 @@ class components_cache_t {
 		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_1) {
 			create_storage<type>();
 			add_component_impl(
-			  get_component_untyped_info<type>(), entities, [prototype](std::uintptr_t location, size_t count) {
+			  get_component_untyped_info<type>(), entities, [&prototype](std::uintptr_t location, size_t count) {
 				  for(auto i = size_t {0}; i < count; ++i) {
 					  std::invoke(prototype, *((underlying_t*)(location) + i));
 				  }
@@ -436,7 +436,7 @@ class components_cache_t {
 			create_storage<type>();
 			add_component_impl(get_component_untyped_info<type>(),
 							   entities,
-							   [prototype, &entities](std::uintptr_t location, size_t count) {
+							   [&prototype, &entities](std::uintptr_t location, size_t count) {
 								   for(auto i = size_t {0}; i < count; ++i) {
 									   std::invoke(prototype, *((underlying_t*)(location) + i), entities[i]);
 								   }

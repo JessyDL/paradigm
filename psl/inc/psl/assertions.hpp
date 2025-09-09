@@ -192,7 +192,7 @@ namespace details {
 			const auto output_str	 = fmt::format(output_rt_str, std::get<Is>(args)...);
 			print_to_cout(output_str);
 	#else
-			print_to_cout("\x1Ftodo: todo: assert log not supported in release\x1F");
+			print_to_cout("\x1Ftodo: assert log not supported in release\x1F");
 	#endif
 		}
 

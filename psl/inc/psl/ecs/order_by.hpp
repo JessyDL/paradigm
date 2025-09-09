@@ -106,6 +106,9 @@ static inline void order_by(psl::ecs::execution::parallel_policy,
 							typename psl::array<typename get_pair_type<T>::pair_t>::iterator end,
 							size_t max) noexcept {
 	auto size = std::distance(begin, end);
+	if(size == 0) {
+		return;
+	}
 
 	if(size <= static_cast<decltype(size)>(max)) {
 		psl::ecs::details::order_by<Pred, T>(psl::ecs::execution::seq, state, begin, end);
@@ -150,7 +153,10 @@ static inline void order_by(psl::ecs::execution::parallel_policy,
 							psl::array<entity_t>::iterator begin,
 							psl::array<entity_t>::iterator end,
 							size_t max) noexcept {
-	auto size	  = std::distance(begin, end);
+	auto size = std::distance(begin, end);
+	if(size == 0) {
+		return;
+	}
 	auto sortable = get_pair_type<T>::make_array(state, begin, end);
 
 	order_by<Pred, T>(psl::ecs::execution::parallel_policy {}, state, sortable.begin(), sortable.end(), max);
@@ -165,7 +171,10 @@ static inline void order_by(psl::ecs::execution::parallel_policy,
 							const psl::ecs::state_t& state,
 							psl::array<entity_t>::iterator begin,
 							psl::array<entity_t>::iterator end) noexcept {
-	auto size		 = std::distance(begin, end);
+	auto size = std::distance(begin, end);
+	if(size == 0) {
+		return;
+	}
 	auto thread_size = std::max<size_t>(1u, std::min<size_t>(std::thread::hardware_concurrency(), size % (1 << 12)));
 	size /= thread_size;
 
