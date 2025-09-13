@@ -1220,10 +1220,13 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	constexpr FORCEINLINE auto operator[](user_index_type index) -> value_type&
 		requires(IS_COMPLEX)
 	{
-		auto& internal_index = userspace_to_internal_guarantee(convert_from_user_type(index));
-		if(internal_index == TOMBSTONE) {
+		auto element_index = convert_from_user_type(index);
+		auto chunk_index   = userspace_to_internal(element_index);
+		if(element_index == TOMBSTONE) {
 			insert(&index, &index + 1);
+			return operator[](index);
 		}
+		auto internal_index = m_Sparse[chunk_index]->at(element_index);
 		return dense_storage_type::operator[](internal_index);
 	}
 
@@ -1578,7 +1581,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		m_Sparse.clear();
 		for(index_type i = 0, count = psl::narrow_cast<index_type>(m_Reverse.size()); i < count; ++i) {
 			if(predicate(convert_to_user_type(m_Reverse[i]))) {
-				psl_assert(mapping.has(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
+				psl_assert(mapping.contains(m_Reverse[i]), "mapping didnt have the ID {}", m_Reverse[i]);
 				auto new_index = mapping.at(m_Reverse[i]);
 				auto offset	   = new_index;
 				auto& chunk	   = chunk_for_guarantee(offset);
@@ -2164,23 +2167,6 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		}
 		index = element_index;
 		return chunk_index;
-	}
-
-	/// \brief Same as `userspace_to_internal`, but creates the chunk if it doesn't exist.
-	constexpr FORCEINLINE auto userspace_to_internal_guarantee(index_type index) noexcept -> index_type& {
-		index_type chunk_index;
-		index_type element_index;
-		chunk_info_for(index, element_index, chunk_index);
-		if(m_Sparse.size() <= chunk_index) {
-			m_Sparse.resize(chunk_index + 1);
-		}
-		auto& chunkPtr = m_Sparse[chunk_index];
-		if(!chunkPtr) {
-			chunkPtr = std::make_unique<chunk_type>(CHUNKS_SIZE, TOMBSTONE);
-		}
-		auto& chunk = *chunkPtr;
-
-		return chunk[element_index];
 	}
 
 	/// \brief Ensures that the sparse array has enough space for the given index.
