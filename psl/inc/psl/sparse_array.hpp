@@ -377,33 +377,57 @@ class sparse_array {
 		return m_Data[dense_index];
 	}
 
-	constexpr FORCEINLINE auto at(this auto&& self, user_index_type index)
-	  -> std::conditional_t<std::is_const_v<std::remove_reference_t<decltype(self)>>, const_reference, reference>
+	constexpr FORCEINLINE auto at(user_index_type index) const -> const_reference
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		auto element_index = static_cast<index_type>(index);
-		auto chunk		   = std::as_const(self).userspace_to_internal(element_index);
+		auto chunk		   = std::as_const(*this).userspace_to_internal(element_index);
 		psl_assert(chunk != TOMBSTONE, "index not found in sparse array");
-		psl_assert(self.m_Sparse[chunk] != nullptr, "index not found in sparse array");
-		auto dense_index = (*self.m_Sparse[chunk])[element_index];
-		return self.m_Data[dense_index];
+		psl_assert(m_Sparse[chunk] != nullptr, "index not found in sparse array");
+		auto dense_index = (*m_Sparse[chunk])[element_index];
+		return m_Data[dense_index];
 	}
 
-	constexpr FORCEINLINE auto try_get(this auto&& self, user_index_type index)
-	  -> std::conditional_t<std::is_const_v<std::remove_reference_t<decltype(self)>>, const_pointer, pointer>
+	constexpr FORCEINLINE auto at(user_index_type index) -> reference
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
-		using return_t	   = std::conditional_t<std::is_const_v<decltype(self)>, const_pointer, pointer>;
 		auto element_index = static_cast<index_type>(index);
-		auto chunk		   = self.userspace_to_internal(element_index);
-		if(chunk == TOMBSTONE || self.m_Sparse[chunk] == nullptr) {
+		auto chunk		   = std::as_const(*this).userspace_to_internal(element_index);
+		psl_assert(chunk != TOMBSTONE, "index not found in sparse array");
+		psl_assert(m_Sparse[chunk] != nullptr, "index not found in sparse array");
+		auto dense_index = (*m_Sparse[chunk])[element_index];
+		return m_Data[dense_index];
+	}
+
+	constexpr FORCEINLINE auto try_get(user_index_type index) const -> const_pointer
+		requires(impl::StorageDataAccessible<dense_storage_type>)
+	{
+		auto element_index = static_cast<index_type>(index);
+		auto chunk		   = std::as_const(*this).userspace_to_internal(element_index);
+		if(chunk == TOMBSTONE || m_Sparse[chunk] == nullptr) {
 			return nullptr;
 		}
-		auto dense_index = (*self.m_Sparse[chunk])[element_index];
+		auto dense_index = (*m_Sparse[chunk])[element_index];
 		if(dense_index == TOMBSTONE) {
 			return nullptr;
 		}
-		auto& data = self.m_Data[dense_index];
+		auto& data = m_Data[dense_index];
+		return std::addressof(data);
+	}
+
+	constexpr FORCEINLINE auto try_get(user_index_type index) -> pointer
+		requires(impl::StorageDataAccessible<dense_storage_type>)
+	{
+		auto element_index = static_cast<index_type>(index);
+		auto chunk		   = std::as_const(*this).userspace_to_internal(element_index);
+		if(chunk == TOMBSTONE || m_Sparse[chunk] == nullptr) {
+			return nullptr;
+		}
+		auto dense_index = (*m_Sparse[chunk])[element_index];
+		if(dense_index == TOMBSTONE) {
+			return nullptr;
+		}
+		auto& data = m_Data[dense_index];
 		return std::addressof(data);
 	}
 
@@ -448,12 +472,16 @@ class sparse_array {
 		return m_Data.end();
 	}
 
-	constexpr FORCEINLINE auto
-	data(this auto&& self) noexcept -> std::conditional_t<std::is_const_v<decltype(self)>, const_pointer, pointer>
+	constexpr FORCEINLINE auto data() const noexcept -> const_pointer
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
-		using return_t = std::conditional_t<std::is_const_v<decltype(self)>, const_pointer, pointer>;
-		return reinterpret_cast<return_t>(self.m_Data.data());
+		return reinterpret_cast<const_pointer>(m_Data.data());
+	}
+
+	constexpr FORCEINLINE auto data() noexcept -> pointer
+		requires(impl::StorageDataAccessible<dense_storage_type>)
+	{
+		return reinterpret_cast<pointer>(m_Data.data());
 	}
 
 	FORCEINLINE auto indices() const noexcept -> std::span<user_index_type const> {
