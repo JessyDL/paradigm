@@ -389,7 +389,7 @@ class components_cache_t {
 		return get_component_container(key);
 	}
 	void execute_command_buffer(info_t& info,
-								psl::sparse_array<entity_t::size_type, entity_t::size_type> remapped_entities);
+								psl::sparse_array<entity_t::size_type, entity_t::size_type> const& remapped_entities);
 	void clear(bool release_memory = false);
 	void purge() noexcept;
 
