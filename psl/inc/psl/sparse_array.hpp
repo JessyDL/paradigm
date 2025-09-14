@@ -26,6 +26,7 @@ namespace impl {
 		{ a.data() };
 	};
 
+	/// \brief A storage type that uses a memory::raw_region as its backing storage. Typically this is a virtual page allocator
 	template <typename T, typename Key>
 	struct dense_storage_base_t {
 		dense_storage_base_t(Key initial_size = 16) : m_Dense(initial_size * sizeof(T)) {
@@ -233,6 +234,7 @@ namespace impl {
 		T* m_StorageEnd {nullptr};
 	};
 
+	/// \brief A storage type that does not actually store anything, but provides the same interface as dense_storage_base_t
 	template <typename T, typename Key>
 	struct no_storage_base_t {
 		no_storage_base_t([[maybe_unused]] Key initial_size = 16) {};
@@ -253,6 +255,9 @@ namespace impl {
 		void clear([[maybe_unused]] bool release_memory = false) noexcept {}
 	};
 
+	/// \brief A simple iterator range wrapper that provides begin/end/size functionality as well as next/has_next/current functionality
+	/// \details This is primarily used to provide a uniform interface for iterating over ranges of iterators or single values reducing code
+	/// bloat slightly in the sparse_array implementation.
 	template <typename T, bool SingleValue = false>
 	class iterator_range_wrapper {
 	  public:
@@ -319,8 +324,38 @@ namespace impl {
 
 	template <typename T, typename Value>
 	concept IsIteratorLikeType = std::is_same_v<std::remove_cvref_t<decltype(*std::declval<T>())>, Value>;
+
+	/// \brief A helper function to create an iterator_range_wrapper from either a single value or a range of iterators.
+	/// \details If only a single value is provided, a SingleValue iterator_range_wrapper is
+	/// created. If a range of iterators is provided, a normal iterator_range_wrapper is created.
+	/// If a nullptr is provided, a nullptr_t is returned.
+	/// \note This function is used internally by the sparse_array to provide a uniform interface for iterating over ranges of iterators or single values.
+	template <typename ItFirst, typename ItLast = std::nullptr_t>
+	constexpr FORCEINLINE auto to_span_wrapper(ItFirst first, ItLast last = nullptr) noexcept {
+		if constexpr(std::is_same_v<std::remove_cvref_t<ItFirst>, std::nullptr_t>) {
+			return std::nullptr_t {};
+		} else if constexpr(std::is_same_v<std::remove_cvref_t<ItLast>, std::nullptr_t>) {
+			return impl::iterator_range_wrapper<std::remove_cvref_t<ItFirst>, true>(first, first + 1);
+		} else {
+			return impl::iterator_range_wrapper<std::remove_cvref_t<ItFirst>, false>(first, last);
+		}
+	}
 }	 // namespace impl
 
+/// \brief A sparse array implementation that provides a mapping between user provided keys and a dense storage of values.
+/// \tparam T The type of value to store in the sparse array
+/// \tparam UserKey The type of key provided by the user to access values in the sparse array. Must be convertible to IndexType.
+/// \tparam IndexType The internal index type used by the sparse array. Must be an integral type.
+/// \tparam CHUNKS_SIZE The size of each chunk in the sparse array. Should be a power of 2 for optimal performance.
+/// \tparam BufferGrowthStrategy The strategy used to grow the internal storage of the sparse array. Defaults to doubling the size.
+/// \tparam StorageType The type of dense storage to use for the values in the sparse array. Must provide a similar interface to impl::dense_storage_base_t.
+///
+/// \details The sparse_array is a data structure that provides a mapping between user provided keys and a dense storage of values.
+/// Unlike a traditional array, the sparse_array does not require contiguous storage for all possible keys. Instead the
+/// keys are indirections that map to the dense storage of values. The sparse_array is implemented using a chunked
+/// approach, where it is divided into chunks of a fixed size (CHUNKS_SIZE). Each chunk contains an array of indices
+/// that map to the dense storage of values. This allows for efficient insertion, deletion, and access of values in the
+/// sparse array.
 template <typename T,
 		  typename UserKey				= size_t,
 		  typename IndexType			= UserKey,
@@ -371,6 +406,10 @@ class sparse_array {
 	sparse_array& operator=(sparse_array&&)		 = default;
 	~sparse_array()								 = default;
 
+	/// \brief Fetches the stored data at the provided index.
+	/// \param index The user provided index to the value.
+	/// \return A reference to the stored data at the provided index.
+	/// \details This function will assert if the index is not found in the sparse array.
 	constexpr FORCEINLINE auto operator[](user_index_type index) const -> const_reference
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
@@ -383,6 +422,9 @@ class sparse_array {
 		return m_Data[dense_index];
 	}
 
+	/// \brief Fetches the stored data at the provided index, inserting a new element if it does not exist.
+	/// \param index The user provided index to the value.
+	/// \return A reference to the stored data at the provided index.
 	constexpr FORCEINLINE auto operator[](user_index_type index) -> reference
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
@@ -396,6 +438,10 @@ class sparse_array {
 		return m_Data[dense_index];
 	}
 
+	/// \brief Fetches the stored data at the provided index.
+	/// \param index The user provided index to the value.
+	/// \return A reference to the stored data at the provided index.
+	/// \details This function will assert if the index is not found in the sparse array.
 	constexpr FORCEINLINE auto at(user_index_type index) const -> const_reference
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
@@ -407,6 +453,10 @@ class sparse_array {
 		return m_Data[dense_index];
 	}
 
+	/// \brief Fetches the stored data at the provided index.
+	/// \param index The user provided index to the value.
+	/// \return A reference to the stored data at the provided index.
+	/// \details This function will assert if the index is not found in the sparse array.
 	constexpr FORCEINLINE auto at(user_index_type index) -> reference
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
@@ -418,6 +468,9 @@ class sparse_array {
 		return m_Data[dense_index];
 	}
 
+	/// \brief Attempts to fetch the stored data at the provided index.
+	/// \param index The user provided index to the value.
+	/// \return A pointer to the stored data at the provided index, or nullptr if the index is not found.
 	constexpr FORCEINLINE auto try_get(user_index_type index) const -> const_pointer
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
@@ -434,6 +487,9 @@ class sparse_array {
 		return std::addressof(data);
 	}
 
+	/// \brief Attempts to fetch the stored data at the provided index.
+	/// \param index The user provided index to the value.
+	/// \return A pointer to the stored data at the provided index, or nullptr if the index is not found.
 	constexpr FORCEINLINE auto try_get(user_index_type index) -> pointer
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
@@ -450,15 +506,22 @@ class sparse_array {
 		return std::addressof(data);
 	}
 
+	/// \brief Returns the number of elements in the sparse array.
 	constexpr FORCEINLINE auto size() const noexcept -> index_type {
 		return psl::narrow_cast<index_type>(m_Reverse.size());
 	}
+
+	/// \brief Returns the capacity of the sparse array.
 	constexpr FORCEINLINE auto capacity() const noexcept -> index_type {
 		return m_Data.capacity();
 	}
+
+	/// \brief Returns true if the sparse array is empty.
 	constexpr FORCEINLINE auto empty() const noexcept -> bool {
 		return size() == 0;
 	}
+
+	/// \brief Reserves space in the sparse array for at least count elements.
 	constexpr FORCEINLINE void reserve(index_type count) noexcept {
 		if(count <= capacity())
 			return;
@@ -467,42 +530,55 @@ class sparse_array {
 		m_Data.reserve(count);
 	}
 
+	/// \brief Returns an iterator to the beginning of the dense storage.
+	/// \details Only available if the dense storage type supports contiguous access (i.e. provides begin/end methods).
 	constexpr FORCEINLINE auto begin() noexcept -> pointer
 		requires(impl::StorageContiguousAccessible<dense_storage_type>)
 	{
 		return m_Data.begin();
 	}
 
+	/// \brief Returns an iterator to the beginning of the dense storage.
+	/// \details Only available if the dense storage type supports contiguous access (i.e. provides begin/end methods).
 	constexpr FORCEINLINE auto begin() const noexcept -> const_pointer
 		requires(impl::StorageContiguousAccessible<dense_storage_type>)
 	{
 		return m_Data.begin();
 	}
 
+	/// \brief Returns an iterator to the end of the dense storage.
+	/// \details Only available if the dense storage type supports contiguous access (i.e. provides begin/end methods).
 	constexpr FORCEINLINE auto end() noexcept -> pointer
 		requires(impl::StorageContiguousAccessible<dense_storage_type>)
 	{
 		return m_Data.end();
 	}
 
+	/// \brief Returns an iterator to the end of the dense storage.
+	/// \details Only available if the dense storage type supports contiguous access (i.e. provides begin/end methods).
 	constexpr FORCEINLINE auto end() const noexcept -> const_pointer
 		requires(impl::StorageContiguousAccessible<dense_storage_type>)
 	{
 		return m_Data.end();
 	}
 
+	/// \brief Returns a pointer to the underlying data of the dense storage.
+	/// \details Only available if the dense storage type supports data access (i.e. provides a data method).
 	constexpr FORCEINLINE auto data() const noexcept -> const_pointer
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		return reinterpret_cast<const_pointer>(m_Data.data());
 	}
 
+	/// \brief Returns a pointer to the underlying data of the dense storage.
+	/// \details Only available if the dense storage type supports data access (i.e. provides a data method).
 	constexpr FORCEINLINE auto data() noexcept -> pointer
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		return reinterpret_cast<pointer>(m_Data.data());
 	}
 
+	/// \brief Returns a span of the user indices currently stored in the sparse array.
 	FORCEINLINE auto indices() const noexcept -> std::span<user_index_type const> {
 		if(m_Reverse.empty()) {
 			return {};
@@ -512,13 +588,28 @@ class sparse_array {
 		  reinterpret_cast<user_index_type const*>(m_Reverse.data() + m_Reverse.size()));
 	}
 
-
+	/// \brief Clears the sparse array, optionally releasing memory.
 	constexpr FORCEINLINE void clear(bool release_memory = false) noexcept {
 		m_Reverse.clear();
 		m_Sparse.clear();
 		m_Data.clear(release_memory);
 	}
 
+	/// \brief Inserts a range of indices and optional data into the sparse array.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	/// \tparam DataItFirst The type of the first iterator for the data.
+	/// \tparam DataItLast The type of the last iterator for the data.
+	///
+	/// \details This function will insert the provided indices into the sparse array.
+	/// If data iterators are provided, the corresponding data will be inserted as well.
+	/// If only one data iterator is provided, it is assumed to be a single value to be used for all indices.
+	/// If both data iterators are provided, they must match the number of indices.
+	/// All indices must be unique and not already present in the sparse array.
+	///
+	/// \warning Do not provide an end data iterator if you are providing a single value.
+	/// \return The number of indices that were actually inserted. Note that this will be equal to the number of indices provided, otherwise
+	/// it's considered an error on the user's part.
 	template <typename IndexItFirst,
 			  typename IndexItLast,
 			  typename DataItFirst = std::nullptr_t,
@@ -536,20 +627,36 @@ class sparse_array {
 			return index_type {0};
 		}
 
-		auto [index_span, data_span] = to_span_wrapper(it_index_first, it_index_last, it_data_first, it_data_last);
+		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
 		return insert_impl<insertion_mode::insert>(index_span, data_span);
 	}
 
+	/// \brief Inserts a single index and value into the sparse array.
+	/// \see insert
 	constexpr FORCEINLINE auto insert(user_index_type index, const_reference value) -> bool
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		return insert(&index, &index + 1, &value) != 0;
 	}
 
+	/// \brief Inserts a single index into the sparse array.
+	/// \see insert
 	constexpr FORCEINLINE auto insert(user_index_type index) -> bool {
 		return insert(&index, &index + 1) != 0;
 	}
 
+	/// \brief Attempts to insert a range of indices and optional data into the sparse array.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	/// \tparam DataItFirst The type of the first iterator for the data.
+	/// \tparam DataItLast The type of the last iterator for the data.
+	///
+	/// \details This function will attempt to insert the provided indices into the sparse array.
+	/// It behaves exactly the same as `insert`, except that if an index is already present in the sparse array, it will
+	/// be skipped instead of being considered an error.
+	/// \see insert
+	/// \return The number of indices that were actually inserted.
 	template <typename IndexItFirst,
 			  typename IndexItLast,
 			  typename DataItFirst = std::nullptr_t,
@@ -567,20 +674,30 @@ class sparse_array {
 			return index_type {0};
 		}
 
-		auto [index_span, data_span] = to_span_wrapper(it_index_first, it_index_last, it_data_first, it_data_last);
+		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
 		return insert_impl<insertion_mode::try_insert>(index_span, data_span);
 	}
 
+	/// \brief Attempts to insert a single index and value into the sparse array.
+	/// \see try_insert
+	/// \return True if the index was inserted, false if it was already present.
 	constexpr FORCEINLINE auto try_insert(user_index_type index, const_reference value) -> bool
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		return try_insert(&index, &index + 1, &value) != 0;
 	}
 
+	/// \brief Attempts to insert a single index into the sparse array.
+	/// \see try_insert
+	/// \return True if the index was inserted, false if it was already present.
 	constexpr FORCEINLINE auto try_insert(user_index_type index) -> bool {
 		return try_insert(&index, &index + 1) != 0;
 	}
 
+	/// \brief Checks if the sparse array contains the provided index.
+	/// \param index The user provided index to check.
+	/// \return True if the index is present in the sparse array, false otherwise.
 	constexpr FORCEINLINE auto contains(user_index_type index) const noexcept -> bool {
 		auto element_index = static_cast<index_type>(index);
 		auto chunk		   = userspace_to_internal(element_index);
@@ -597,6 +714,19 @@ class sparse_array {
 		return dense_index != TOMBSTONE;
 	}
 
+	/// \brief Sets the value at the provided indices, inserting them if they do not exist.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	/// \tparam DataItFirst The type of the first iterator for the data.
+	/// \tparam DataItLast The type of the last iterator for the data.
+	///
+	/// \details This function will set the provided indices in the sparse array to the provided values.
+	/// If they already existed it will overwrite the existing value. If they did not exist, they will be inserted.
+	/// This method requires that the dense storage type supports data access (i.e. provides a data method). Otherwise
+	/// it is assumed the dense storage has no backing storage.
+	///
+	/// \return The number of indices that were newly inserted.
+	/// \warning Do not provide an end data iterator if you are providing a single value.
 	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst, typename DataItLast = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
 				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
@@ -610,17 +740,32 @@ class sparse_array {
 			return index_type {0};
 		}
 
-		auto [index_span, data_span] = to_span_wrapper(it_index_first, it_index_last, it_data_first, it_data_last);
+		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
 		return insert_impl<insertion_mode::set>(index_span, data_span);
 	}
 
+	/// \brief Sets the value at the provided index, inserting it if it does not exist.
+	/// \see set
 	constexpr FORCEINLINE auto set(user_index_type index, const_reference value) -> bool
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		return set(&index, &index + 1, &value) != 0;
 	}
 
-
+	/// \brief Assigns the value at the provided indices, overwriting them if they exist, skipping them if they do not.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	/// \tparam DataItFirst The type of the first iterator for the data.
+	/// \tparam DataItLast The type of the last iterator for the data.
+	///
+	/// \details This function will assign the provided indices in the sparse array to the provided values.
+	/// If the indice did not exist, it will be skipped.
+	/// This method requires that the dense storage type supports data access (i.e. provides a data method). Otherwise
+	/// it is assumed the dense storage has no backing storage.
+	///
+	/// \return The number of indices that were actually assigned.
+	/// \warning Do not provide an end data iterator if you are providing a single value.
 	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst, typename DataItLast = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
 				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
@@ -633,17 +778,29 @@ class sparse_array {
 		if(it_index_first == it_index_last) {
 			return index_type {0};
 		}
-
-		auto [index_span, data_span] = to_span_wrapper(it_index_first, it_index_last, it_data_first, it_data_last);
+		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
 		return insert_impl<insertion_mode::assign>(index_span, data_span);
 	}
 
+	/// \brief Assigns the value at the provided index, overwriting it if it exists, skipping it if it does not.
+	/// \see assign
 	constexpr FORCEINLINE auto assign(user_index_type index, const_reference value) -> bool
 		requires(impl::StorageDataAccessible<dense_storage_type>)
 	{
 		return assign(&index, &index + 1, &value) != 0;
 	}
 
+	/// \brief Erases the values at the provided indices from the sparse array.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	///
+	/// \details This function will erase the provided indices from the sparse array.
+	/// All indices are expected to be valid and present in the sparse array, otherwise
+	/// it is considered a user error and will assert in debug builds. Use try_erase to skip
+	/// indices that are not present.
+	///
+	/// \return The number of indices that were actually erased.
 	template <typename IndexItFirst, typename IndexItLast>
 		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
 				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
@@ -651,14 +808,24 @@ class sparse_array {
 		if(begin == end) {
 			return index_type {0};
 		}
-		auto [index_span, _] = to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
+		auto index_span = impl::to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
 		return erase_impl<false>(index_span);
 	}
 
+	/// \brief Erases the value at the provided index from the sparse array.
+	/// \see erase
 	constexpr FORCEINLINE auto erase(user_index_type index) -> bool {
 		return erase(&index, &index + 1) != 0;
 	}
 
+	/// \brief Attempts to erase the values at the provided indices from the sparse array.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	///
+	/// \details This function will attempt to erase the provided indices from the sparse array.
+	/// If an index is not present in the sparse array, it will be skipped instead of being considered an error.
+	///
+	/// \return The number of indices that were actually erased.
 	template <typename IndexItFirst, typename IndexItLast>
 		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
 				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
@@ -666,40 +833,22 @@ class sparse_array {
 		if(begin == end) {
 			return index_type {0};
 		}
-		auto [index_span, _] = to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
+		auto index_span = impl::to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
 		return erase_impl<true>(index_span);
 	}
 
+	/// \brief Attempts to erase the value at the provided index from the sparse array.
+	/// \see try_erase
 	constexpr FORCEINLINE auto try_erase(user_index_type index) -> bool {
 		return try_erase(&index, &index + 1) != 0;
 	}
 
   private:
-	template <typename IndexItFirst,
-			  typename IndexItLast,
-			  typename DataItFirst = std::nullptr_t,
-			  typename DataItLast  = std::nullptr_t>
-	auto to_span_wrapper(IndexItFirst it_index_first,
-						 IndexItLast it_index_last,
-						 DataItFirst it_data_first = std::nullptr_t {},
-						 DataItLast it_data_last   = std::nullptr_t {}) const noexcept {
-		if constexpr(std::is_same_v<std::remove_cvref_t<DataItFirst>, std::nullptr_t>) {
-			return std::pair {
-			  impl::iterator_range_wrapper<std::remove_cvref_t<IndexItFirst>, false>(it_index_first, it_index_last),
-			  std::nullptr_t {}};
-		} else if constexpr(std::is_same_v<std::remove_cvref_t<DataItLast>, std::nullptr_t>) {
-			return std::pair {
-			  impl::iterator_range_wrapper<std::remove_cvref_t<IndexItFirst>, false>(it_index_first, it_index_last),
-			  impl::iterator_range_wrapper<std::remove_cvref_t<DataItFirst>, true>(it_data_first, it_data_first + 1)};
-		} else {
-			psl_assert(std::distance(it_index_first, it_index_last) == std::distance(it_data_first, it_data_last),
-					   "index and data iterators must have the same distance");
-			return std::pair {
-			  impl::iterator_range_wrapper<std::remove_cvref_t<IndexItFirst>, false>(it_index_first, it_index_last),
-			  impl::iterator_range_wrapper<std::remove_cvref_t<DataItFirst>, false>(it_data_first, it_data_last)};
-		}
-	}
-
+	/// \brief Entrypoint for all operations that modify the sparse array's underlying data, or add new indices.
+	/// \tparam InsertMode The mode of insertion to perform. Can be insert, try_insert, set, or assign.
+	/// \param index_span A span wrapper containing the indices to operate on.
+	/// \param data_span A span wrapper containing the data to operate on. Can be nullptr if no data is to be used.
+	/// \return The number of indices that were actually modified/inserted. Depending on the operation, this may be less than the number of indices provided.
 	template <insertion_mode InsertMode>
 	constexpr FORCEINLINE auto insert_impl(auto&& index_span, auto&& data_span) -> index_type {
 		const auto size = psl::narrow_cast<index_type>(index_span.size());
@@ -785,6 +934,10 @@ class sparse_array {
 		return count;
 	}
 
+	/// \brief Entrypoint for all erase operations on the sparse array.
+	/// \tparam TryErase If true, will skip indices that are not present in the sparse array. If false, will assert if an index is not present.
+	/// \param index_span A span wrapper containing the indices to erase.
+	/// \return The number of indices that were actually erased.
 	template <bool TryErase>
 	constexpr FORCEINLINE auto erase_impl(auto&& range) -> index_type {
 		if constexpr(!TryErase) {
@@ -793,41 +946,50 @@ class sparse_array {
 
 		index_type start_size = psl::narrow_cast<index_type>(m_Reverse.size());
 
-		invoke_for_l0<false>(range, [this](index_type user_index, chunk_type& chunk, index_type chunk_offset) {
-			if constexpr(TryErase) {
-				if(chunk[chunk_offset] == TOMBSTONE) {
-					return;
-				}
-			} else {
-				psl_assert(chunk[chunk_offset] != TOMBSTONE);
-			}
-			auto reverse_index = chunk[chunk_offset];
-			auto last_index	   = m_Reverse.back();
-			// if we're not removing the last element, we need to swap the last element into the removed element's place
-			// otherwise we can just pop the last element
-			if(last_index != user_index) {
-				auto const chunk_index = &chunk - m_Sparse.front().get();
-				if(last_index >= chunk_index * CHUNKS_SIZE && last_index < (chunk_index + 1) * CHUNKS_SIZE) {
-					chunk[last_index - (chunk_index * CHUNKS_SIZE)] = reverse_index;
-				} else {
-					auto original_sparse_offset = last_index;
-					auto original_sparse		= userspace_to_internal(original_sparse_offset);
-					(*m_Sparse[original_sparse])[original_sparse_offset] = reverse_index;
-				}
+		invoke_for_l0<false, std::greater<index_type>>(
+		  range, [this](index_type user_index, chunk_type& chunk, index_type chunk_offset) {
+			  if constexpr(TryErase) {
+				  if(chunk[chunk_offset] == TOMBSTONE) {
+					  return;
+				  }
+			  } else {
+				  psl_assert(chunk[chunk_offset] != TOMBSTONE);
+			  }
+			  auto reverse_index = chunk[chunk_offset];
+			  auto last_index	 = m_Reverse.back();
+			  // if we're not removing the last element, we need to swap the last element into the removed element's
+			  // place otherwise we can just pop the last element
+			  if(last_index != user_index) {
+				  auto const chunk_index = &chunk - m_Sparse.front().get();
+				  if(last_index >= chunk_index * CHUNKS_SIZE && last_index < (chunk_index + 1) * CHUNKS_SIZE) {
+					  chunk[last_index - (chunk_index * CHUNKS_SIZE)] = reverse_index;
+				  } else {
+					  auto original_sparse_offset = last_index;
+					  auto original_sparse		  = userspace_to_internal(original_sparse_offset);
+					  (*m_Sparse[original_sparse])[original_sparse_offset] = reverse_index;
+				  }
 
-				std::iter_swap(std::next(std::begin(m_Reverse), reverse_index), std::prev(std::end(m_Reverse)));
-				m_Data.swap(reverse_index, psl::narrow_cast<index_type>(m_Reverse.size()) - 1);
-			}
+				  std::iter_swap(std::next(std::begin(m_Reverse), reverse_index), std::prev(std::end(m_Reverse)));
+				  m_Data.swap(reverse_index, psl::narrow_cast<index_type>(m_Reverse.size()) - 1);
+			  }
 
-			m_Reverse.pop_back();
-			m_Data.truncate(psl::narrow_cast<index_type>(m_Reverse.size()));
-			chunk[chunk_offset] = TOMBSTONE;
-		});
+			  m_Reverse.pop_back();
+			  m_Data.truncate(psl::narrow_cast<index_type>(m_Reverse.size()));
+			  chunk[chunk_offset] = TOMBSTONE;
+		  });
 
 		return start_size - psl::narrow_cast<index_type>(m_Reverse.size());
 	}
 
-	template <bool AutoCreate, typename DataSpan = std::nullptr_t, typename CbNotFound = std::nullptr_t>
+	/// \brief Helper intermediate that will invoke all indices in the provided span, creating chunks as needed if AutoCreate is true.
+	/// It will determine if the span is sorted or not, and call the appropriate invoke_for_l1 function.
+	/// \tparam AutoCreate If true, will create chunks as needed. If false, will assert if a chunk is missing.
+	/// \tparam Cmp The comparator to use for determining if the span is sorted. Defaults to std::less.
+	/// \tparam DataSpan The type of the data span wrapper. Can be nullptr if no data is to be used.
+	template <bool AutoCreate,
+			  typename Cmp		  = std::less<index_type>,
+			  typename DataSpan	  = std::nullptr_t,
+			  typename CbNotFound = std::nullptr_t>
 	constexpr FORCEINLINE auto invoke_for_l0(auto index_span,
 											 auto&& CallbackFound,
 											 DataSpan data_span			   = nullptr,
@@ -835,7 +997,7 @@ class sparse_array {
 		if(index_span.size() == 0) {
 			return;
 		}
-		if(std::is_sorted(index_span.begin(), index_span.end())) {
+		if(std::is_sorted(index_span.begin(), index_span.end(), Cmp {})) {
 			if constexpr(AutoCreate) {
 				sparse_guarantee_for_userspace(*(std::prev(index_span.end())));
 			}
@@ -848,6 +1010,11 @@ class sparse_array {
 		}
 	}
 
+	/// \brief Core implementation that will invoke all indices in the provided span, creating chunks as needed if AutoCreate is true.
+	/// \tparam AutoCreate If true, will create chunks as needed. If false,
+	/// will assert if a chunk is missing.
+	/// \tparam PreSorted If true, will assume the indices are sorted in ascending order.
+	///
 	template <bool AutoCreate, bool PreSorted, typename DataSpan = std::nullptr_t, typename CbNotFound = std::nullptr_t>
 	constexpr FORCEINLINE auto invoke_for_l1(auto&& index_span,
 											 auto&& CallbackFound,
@@ -934,8 +1101,10 @@ class sparse_array {
 		} while(index_span.has_next());
 	}
 
-	// utilities
-
+	/// \brief Calculates the chunk index and element index within the chunk for a given user index.
+	/// \param index The user provided index to the value.
+	/// \param element_index The output parameter that will hold the index within the chunk.
+	/// \param chunk_index The output parameter that will hold the chunk index.
 	constexpr FORCEINLINE auto
 	chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept -> void {
 		if constexpr(IS_CHUNKS_POW_2) {
@@ -947,6 +1116,8 @@ class sparse_array {
 		}
 	}
 
+	/// \brief Converts a user provided index to the internal chunk index and updates the index to be the offset within the chunk. It will create missing chunks as needed.
+	/// \param index The user provided index to the value. This will be updated to be the offset within the chunk.
 	constexpr FORCEINLINE auto userspace_to_internal(index_type& index) noexcept -> index_type {
 		index_type chunk_index;
 		index_type element_index;
@@ -962,6 +1133,10 @@ class sparse_array {
 		return chunk_index;
 	}
 
+	/// \brief Converts a user index to the internal chunk index and element index.
+	/// \param index The user provided index to the value. This will be updated to be the offset within the chunk.
+	/// \note This function does not create chunks, and will return TOMBSTONE if the chunk does not exist.
+	/// Similarly if the chunk does not exist, the index will be set to TOMBSTONE.
 	constexpr FORCEINLINE auto userspace_to_internal(index_type& index) const noexcept -> index_type {
 		index_type chunk_index;
 		index_type element_index;
@@ -992,12 +1167,19 @@ class sparse_array {
 		}
 	}
 
+	/// \brief Returns the chunk for the given user index, and updates the index to be the offset within the chunk.
+	/// \warning This function assumes that the chunk exists. Use sparse_guarantee_for_users
+	/// to ensure that the chunk exists if not certain.
+	/// \param index The user provided index to the value. This will be updated to be the offset within the chunk.
 	constexpr FORCEINLINE auto chunk_for(index_type& index) const noexcept -> chunk_type& {
 		auto chunk_index = userspace_to_internal(index);
 		psl_assert(chunk_index != TOMBSTONE, "chunk for user index {} does not exist in staged_sparse_array", index);
 		return *m_Sparse[chunk_index];
 	}
 
+	/// \brief Ensures that the chunk for the given user index exists, creating it if necessary, and updates the index
+	/// to be the offset within the chunk.
+	/// \param index The user provided index to the value. This will be updated to be the offset within the chunk.
 	constexpr FORCEINLINE auto chunk_for_guarantee(index_type& index) noexcept -> chunk_type& {
 		auto chunk_index = userspace_to_internal(index);
 		psl_assert(chunk_index != TOMBSTONE, "chunk for user index {} does not exist in staged_sparse_array", index);
