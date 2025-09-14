@@ -1001,12 +1001,14 @@ class sparse_array {
 			if constexpr(AutoCreate) {
 				sparse_guarantee_for_userspace(*(std::prev(index_span.end())));
 			}
-			invoke_for_l1<AutoCreate, true>(index_span, CallbackFound, data_span, CallbackNotFound);
+			invoke_for_l1<AutoCreate, true, std::is_same_v<Cmp, std::greater<index_type>>>(
+			  index_span, CallbackFound, data_span, CallbackNotFound);
 		} else {
 			if constexpr(AutoCreate) {
 				sparse_guarantee_for_userspace(*std::max_element(index_span.begin(), index_span.end()));
 			}
-			invoke_for_l1<AutoCreate, false>(index_span, CallbackFound, data_span, CallbackNotFound);
+			invoke_for_l1<AutoCreate, false, std::is_same_v<Cmp, std::greater<index_type>>>(
+			  index_span, CallbackFound, data_span, CallbackNotFound);
 		}
 	}
 
@@ -1015,7 +1017,11 @@ class sparse_array {
 	/// will assert if a chunk is missing.
 	/// \tparam PreSorted If true, will assume the indices are sorted in ascending order.
 	///
-	template <bool AutoCreate, bool PreSorted, typename DataSpan = std::nullptr_t, typename CbNotFound = std::nullptr_t>
+	template <bool AutoCreate,
+			  bool PreSorted,
+			  bool IsReverse	  = false,
+			  typename DataSpan	  = std::nullptr_t,
+			  typename CbNotFound = std::nullptr_t>
 	constexpr FORCEINLINE auto invoke_for_l1(auto&& index_span,
 											 auto&& CallbackFound,
 											 DataSpan&& data_span		   = nullptr,
@@ -1028,11 +1034,13 @@ class sparse_array {
 			index_type chunk_index {};
 			index_type element_index {};
 			chunk_info_for(first_index, element_index, chunk_index);
-			size_t const prev_treshold {(chunk_index)*CHUNKS_SIZE};
-			size_t const next_treshold {prev_treshold + CHUNKS_SIZE};
+			auto const prev_treshold {chunk_index * CHUNKS_SIZE};
+			auto const next_treshold {prev_treshold + CHUNKS_SIZE};
 
+			// todo(jdl): This doesn't work properly yet, but we have no use case either
 			if constexpr(HasNotFoundCb) {
-				if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
+				psl::not_implemented("Callback for not found is not fully implemented yet");
+				/*if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
 					for(;;) {
 						if(!index_span.has_next()) {
 							return;
@@ -1050,7 +1058,7 @@ class sparse_array {
 						CallbackNotFound(next_index);
 					}
 					continue;
-				}
+				}*/
 			} else {
 				psl_assert(chunk_index < m_Sparse.size(), "Chunk index out of bounds");
 			}
@@ -1071,8 +1079,14 @@ class sparse_array {
 				}
 				auto const next_index = static_cast<index_type>(*index_span.current());
 				if constexpr(PreSorted) {
-					if(next_index >= next_treshold) {
-						break;
+					if constexpr(IsReverse) {
+						if(next_index < prev_treshold) {
+							break;
+						}
+					} else {
+						if(next_index >= next_treshold) {
+							break;
+						}
 					}
 				} else {
 					if(next_index >= next_treshold || next_index < prev_treshold) {
@@ -1080,7 +1094,7 @@ class sparse_array {
 					}
 				}
 
-				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
+				index_type const next_element_index = next_index - prev_treshold;
 				if constexpr(HasNotFoundCb) {
 					if(chunk[next_element_index] == TOMBSTONE) {
 						CallbackNotFound(next_index);
