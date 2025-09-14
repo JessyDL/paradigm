@@ -1,9 +1,13 @@
 SET(SRC 
-src/main.cpp
-src/ecs.cpp
+src/main.cpp # Always needs to be included first
+
 src/ecs/staged_sparse_memory_region.cpp
+
+src/tests/generator.cpp
+
+src/ecs.cpp
 src/math_tests.cpp
 src/memory.cpp
-src/tests/generator.cpp
+src/sparse_array.cpp
 src/task_test.cpp
 )

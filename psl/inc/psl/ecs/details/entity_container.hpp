@@ -2,7 +2,7 @@
 #include "psl/array.hpp"
 #include "psl/ecs/entity.hpp"
 #include "psl/serialization/serializer.hpp"
-#include "psl/sparse_indice_array.hpp"
+#include "psl/sparse_array.hpp"
 #include "psl/utility/cast.hpp"
 
 namespace psl::ecs::details {
@@ -56,8 +56,8 @@ class entity_container_t {
 	}
 	[[nodiscard]] psl::array<entity_t> modified_entities() const noexcept {
 		auto view = m_ModifiedEntities.indices();
-		return psl::array<entity_t>(reinterpret_cast<entity_t*>(view.data()),
-									reinterpret_cast<entity_t*>(view.data()) + view.size());
+		return psl::array<entity_t>(reinterpret_cast<entity_t const*>(view.data()),
+									reinterpret_cast<entity_t const*>(view.data()) + view.size());
 	}
 
 	void modify_entities(psl::array_view<entity_t> entities) noexcept;

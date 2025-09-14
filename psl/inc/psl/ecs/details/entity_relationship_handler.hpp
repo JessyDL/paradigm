@@ -29,7 +29,7 @@ class entity_relationship_handler_t {
 
 		if constexpr(psl::serialization::details::IsEncoder<S>) {
 			auto relationship_indices = m_ParentRelationship.indices();
-			auto relationship_data	  = m_ParentRelationship.dense();
+			auto relationship_data	  = psl::array_view(m_ParentRelationship.begin(), m_ParentRelationship.end());
 
 			auto relationship_indices_it = relationship_indices.begin();
 			auto relationship_data_it	 = relationship_data.begin();
@@ -96,7 +96,7 @@ class entity_relationship_handler_t {
 	}
 
 	auto modified_hierarchy_data() const noexcept -> psl::array_view<hierarchy_change_event const> {
-		return m_ModifiedHierarchy.dense();
+		return psl::array_view<hierarchy_change_event const>(m_ModifiedHierarchy.begin(), m_ModifiedHierarchy.end());
 	}
 
 	auto change_event(entity_t e) const noexcept -> hierarchy_change_event const* {

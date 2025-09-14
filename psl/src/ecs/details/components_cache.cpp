@@ -13,7 +13,7 @@ components_cache_t::components_cache_t() {
 
 void components_cache_t::execute_command_buffer(
   info_t& info,
-  psl::sparse_array<entity_t::size_type, entity_t::size_type> remapped_entities) {
+  psl::sparse_array<entity_t::size_type, entity_t::size_type> const& remapped_entities) {
 	auto& buffer = info.command_buffer;
 	for(auto& component_src : buffer.m_Components) {
 		if(component_src->entities(true).size() == 0)

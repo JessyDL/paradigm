@@ -94,10 +94,11 @@ void entity_relationship_handler_t::set_parent(entity_t parent,
 	children.reserve(std::distance(begin, end));
 
 	// needed to guarantee pointer stability for the next section.
-	m_ParentRelationship.reserve(m_ParentRelationship.capacity() + std::distance(begin, end) + 1, true);
+	m_ParentRelationship.reserve(m_ParentRelationship.size() +
+								 psl::narrow_cast<entity_t::size_type>(std::distance(begin, end) + 1));
 
 	for(auto child = begin; child != end; ++child) {
-		auto& child_entry = m_ParentRelationship.at(details::get_value(*child));
+		auto& child_entry = m_ParentRelationship[details::get_value(*child)];
 
 		// only modify if the child is not already set to the parent
 		if(child_entry.parent == parent) {
@@ -143,7 +144,7 @@ void entity_relationship_handler_t::set_parent(entity_t parent,
 		return;
 	}
 
-	auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
+	auto& parent_entry = m_ParentRelationship[details::get_value(parent)];
 	m_ModifiedHierarchy[details::get_value(parent)] |= hierarchy_change_event::child_added;
 	parent_entry.children += psl::narrow_cast<entity_t::size_type>(children.size());
 
@@ -208,7 +209,7 @@ void entity_relationship_handler_t::set_parent(entity_t parent,
 void entity_relationship_handler_t::set_parent(entity_t parent, entity_t child) noexcept {
 	psl_assert(parent != child, "cannot set a parent to itself, this would create a cycle in the hierarchy");
 	psl_assert(child != invalid_entity, "cannot set the child to an invalid value");
-	auto& child_entry = m_ParentRelationship.at(details::get_value(child));
+	auto& child_entry = m_ParentRelationship[details::get_value(child)];
 	if(child_entry.parent == parent) {
 		return;	   // already set
 	}
@@ -251,7 +252,7 @@ void entity_relationship_handler_t::set_parent(entity_t parent, entity_t child) 
 	if(parent == invalid_entity) {
 		return;	   // no parent, so we don't need to do anything else
 	}
-	auto& parent_entry = m_ParentRelationship.at(details::get_value(parent));
+	auto& parent_entry = m_ParentRelationship[details::get_value(parent)];
 	parent_entry.children++;
 	m_ModifiedHierarchy[details::get_value(parent)] |= hierarchy_change_event::child_added;
 	// if the parent had no children, then we can simply set the current child as the first child.
