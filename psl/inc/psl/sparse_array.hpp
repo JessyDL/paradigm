@@ -837,12 +837,12 @@ class sparse_array {
 		}
 		if(std::is_sorted(index_span.begin(), index_span.end())) {
 			if constexpr(AutoCreate) {
-				sparse_guarantee_for_userspace(*std::max_element(index_span.begin(), index_span.end()));
+				sparse_guarantee_for_userspace(*(std::prev(index_span.end())));
 			}
 			invoke_for_l1<AutoCreate, true>(index_span, CallbackFound, data_span, CallbackNotFound);
 		} else {
 			if constexpr(AutoCreate) {
-				sparse_guarantee_for_userspace(*(std::prev(index_span.end())));
+				sparse_guarantee_for_userspace(*std::max_element(index_span.begin(), index_span.end()));
 			}
 			invoke_for_l1<AutoCreate, false>(index_span, CallbackFound, data_span, CallbackNotFound);
 		}
