@@ -820,7 +820,7 @@ class sparse_array {
 			}
 
 			m_Reverse.pop_back();
-			m_Data.truncate(psl::narrow_cast<index_type>(m_Reverse.size()) - 1);
+			m_Data.truncate(psl::narrow_cast<index_type>(m_Reverse.size()));
 			chunk[chunk_offset] = TOMBSTONE;
 		});
 
