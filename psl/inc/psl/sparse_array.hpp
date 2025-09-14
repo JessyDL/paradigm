@@ -233,6 +233,25 @@ namespace impl {
 		T* m_StorageEnd {nullptr};
 	};
 
+	template <typename T, typename Key>
+	struct no_storage_base_t {
+		no_storage_base_t([[maybe_unused]] Key initial_size = 16) {};
+
+		Key capacity() const noexcept {
+			return std::numeric_limits<Key>::max();
+		}
+
+		template <typename U>
+		void set([[maybe_unused]] Key index, [[maybe_unused]] U&& value) {}
+		void swap([[maybe_unused]] Key first, [[maybe_unused]] Key second) {}
+		void emplace_back() {}
+		template <typename U>
+		void emplace_back([[maybe_unused]] U&& value) {}
+		void reserve([[maybe_unused]] Key new_size) {}
+		void insert_space([[maybe_unused]] Key index, [[maybe_unused]] Key count) {}
+		void truncate([[maybe_unused]] Key new_size) {}
+		void clear([[maybe_unused]] bool release_memory = false) noexcept {}
+	};
 
 	template <typename T, bool SingleValue = false>
 	class iterator_range_wrapper {
@@ -636,6 +655,10 @@ class sparse_array {
 		return erase_impl<false>(index_span);
 	}
 
+	constexpr FORCEINLINE auto erase(user_index_type index) -> bool {
+		return erase(&index, &index + 1) != 0;
+	}
+
 	template <typename IndexItFirst, typename IndexItLast>
 		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
 				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
@@ -645,6 +668,10 @@ class sparse_array {
 		}
 		auto [index_span, _] = to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
 		return erase_impl<true>(index_span);
+	}
+
+	constexpr FORCEINLINE auto try_erase(user_index_type index) -> bool {
+		return try_erase(&index, &index + 1) != 0;
 	}
 
   private:
@@ -697,7 +724,7 @@ class sparse_array {
 			  }
 			  // both insert and try_insert always add to the end
 			  if constexpr(InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::insert) {
-				  rev_index = psl::narrow_cast<index_type>(m_Reverse.size()) + count;
+				  rev_index = psl::narrow_cast<index_type>(m_Reverse.size());
 				  m_Reverse.emplace_back(index);
 				  if constexpr(InsertMode == insertion_mode::try_insert && sizeof...(dataIt) > 0) {
 					  m_Data.emplace_back(*dataIt...);
@@ -714,7 +741,7 @@ class sparse_array {
 						  m_Data.set(rev_index, *dataIt...);
 					  }
 				  } else {
-					  rev_index = psl::narrow_cast<index_type>(m_Reverse.size()) + count;
+					  rev_index = psl::narrow_cast<index_type>(m_Reverse.size());
 					  m_Reverse.emplace_back(index);
 					  if constexpr(sizeof...(dataIt) == 0) {
 						  psl_assert(false, "set without data makes no sense, use (try-)insert");
@@ -732,18 +759,17 @@ class sparse_array {
 						  psl_assert(false, "assign without data makes no sense, use (try-)insert");
 					  } else {
 						  m_Data.set(rev_index, *dataIt...);
+						  ++count;	  // count successful assignments
 					  }
 				  }
 			  }
 		  },
 		  data_span);
 
-
-		if(count == 0) {
-			return count;
-		}
-
 		if constexpr(InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::insert) {
+			if(count == 0) {
+				return count;
+			}
 			m_Data.reserve(m_Data.size() + count);
 			if constexpr(InsertMode == insertion_mode::insert &&
 						 !std::is_same_v<std::remove_cvref_t<decltype(data_span)>, std::nullptr_t>) {
@@ -779,7 +805,7 @@ class sparse_array {
 			auto last_index	   = m_Reverse.back();
 			// if we're not removing the last element, we need to swap the last element into the removed element's place
 			// otherwise we can just pop the last element
-			if(last_index != reverse_index) {
+			if(last_index != user_index) {
 				auto const chunk_index = &chunk - m_Sparse.front().get();
 				if(last_index >= chunk_index * CHUNKS_SIZE && last_index < (chunk_index + 1) * CHUNKS_SIZE) {
 					chunk[last_index - (chunk_index * CHUNKS_SIZE)] = reverse_index;
