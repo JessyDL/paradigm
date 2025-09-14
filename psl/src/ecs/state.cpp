@@ -1076,7 +1076,10 @@ void state_t::execute_command_buffer(info_t& info) {
 	}
 
 	components_cache_t::execute_command_buffer(info, remapped_entities);
-	modify_entities(buffer.m_ModifiedEntities.indices());
+	auto span = buffer.m_ModifiedEntities.indices();
+	psl::array_view<entity_t> indices {const_cast<entity_t*>(reinterpret_cast<entity_t const*>(span.data())),
+									   span.size()};
+	modify_entities(indices);
 
 	if(mid != std::end(destroyed_entities)) {
 		destroy(

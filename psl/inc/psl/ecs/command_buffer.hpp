@@ -8,7 +8,6 @@
 #include "psl/ecs/pack.hpp"
 #include "psl/memory/sparse_array.hpp"
 #include "psl/sparse_array.hpp"
-#include "psl/sparse_indice_array.hpp"
 #include "psl/static_array.hpp"
 #include "psl/template_utils.hpp"
 #include "psl/unique_ptr.hpp"

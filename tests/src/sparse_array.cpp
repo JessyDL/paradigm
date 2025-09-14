@@ -71,4 +71,30 @@ auto t0_sparse = litmus::suite<"psl::sparse_array">() = []() {
 		require(array.erase(arr_indices.begin(), arr_indices.end()) == arr_indices.size());
 	};
 };
+auto t1_sparse = litmus::suite<"psl::sparse_indice_array">() = []() {
+	using namespace litmus;
+	section<"basic_operations">() = []() {
+		psl::sparse_indice_array<size_t> array {};
+		require(array.size()) == 0;
+		require(array.empty()) == true;
+		array.insert(0);
+		require(array.size()) == 1;
+		require(array.empty()) == false;
+		array.insert(2);
+		require(array.size()) == 2;
+		array.insert(1);
+		require(array.size()) == 3;
+		require(array.contains(1));
+		require(array.contains(0));
+		require(array.contains(2));
+		array.erase(1);
+		require(array.size()) == 2;
+		require(array.contains(0));
+		require(array.contains(2));
+		require(!array.contains(1));
+		array.clear();
+		require(array.size()) == 0;
+		require(array.empty()) == true;
+	};
+};
 }	 // namespace

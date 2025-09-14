@@ -6,7 +6,6 @@
 #include "psl/ecs/entity.hpp"
 #include "psl/memory/sparse_array.hpp"
 #include "psl/sparse_array.hpp"
-#include "psl/sparse_indice_array.hpp"
 #include "psl/static_array.hpp"
 #include <functional>
 #include <numeric>

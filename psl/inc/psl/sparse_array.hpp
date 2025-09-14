@@ -451,7 +451,7 @@ class sparse_array {
 	}
 
 	constexpr FORCEINLINE auto size() const noexcept -> index_type {
-		return m_Data.size();
+		return psl::narrow_cast<index_type>(m_Reverse.size());
 	}
 	constexpr FORCEINLINE auto capacity() const noexcept -> index_type {
 		return m_Data.capacity();
@@ -704,7 +704,7 @@ class sparse_array {
 	constexpr FORCEINLINE auto insert_impl(auto&& index_span, auto&& data_span) -> index_type {
 		const auto size = psl::narrow_cast<index_type>(index_span.size());
 		m_Reverse.reserve(m_Reverse.size() + size);
-		m_Data.reserve(m_Data.size() + size);
+		m_Data.reserve(psl::narrow_cast<index_type>(m_Reverse.size()) + size);
 		index_type count = 0;
 
 		invoke_for_l0<true>(
@@ -770,7 +770,7 @@ class sparse_array {
 			if(count == 0) {
 				return count;
 			}
-			m_Data.reserve(m_Data.size() + count);
+			m_Data.reserve(psl::narrow_cast<index_type>(m_Reverse.size()));
 			if constexpr(InsertMode == insertion_mode::insert &&
 						 !std::is_same_v<std::remove_cvref_t<decltype(data_span)>, std::nullptr_t>) {
 				for(size_t i = 0; i < count; ++i) {
@@ -778,7 +778,7 @@ class sparse_array {
 					data_span.next();
 				}
 			} else {
-				m_Data.insert_space(m_Data.size(), count);
+				m_Data.insert_space(psl::narrow_cast<index_type>(m_Reverse.size()) - count, count);
 			}
 		}
 
@@ -816,11 +816,11 @@ class sparse_array {
 				}
 
 				std::iter_swap(std::next(std::begin(m_Reverse), reverse_index), std::prev(std::end(m_Reverse)));
-				m_Data.swap(reverse_index, m_Data.size() - 1);
+				m_Data.swap(reverse_index, psl::narrow_cast<index_type>(m_Reverse.size()) - 1);
 			}
 
 			m_Reverse.pop_back();
-			m_Data.truncate(m_Data.size() - 1);
+			m_Data.truncate(psl::narrow_cast<index_type>(m_Reverse.size()) - 1);
 			chunk[chunk_offset] = TOMBSTONE;
 		});
 
@@ -1008,4 +1008,25 @@ class sparse_array {
 	psl::array<index_type> m_Reverse {};
 	chunk_storage_type m_Sparse {};
 };
+
+
+/// \brief A sparse array that only stores the indices of the elements that are present.
+/// The value type is std::byte which doesn't matter but it needs something, and the storage type does not actually
+/// store any data
+/// \tparam UserKey The type used by the user to index the sparse array.
+/// \tparam IndexType The internal type used to index the sparse array. These is the internal type used, typically this
+/// should be the same as UserKey, but for certain opaque types this can be different.
+/// \tparam CHUNKS_SIZE The size of each chunk in the sparse array. This should be a power of two for optimal performance.
+/// \tparam BufferGrowthStrategy The strategy used to grow the internal buffers.
+/// \see psl::sparse_array for more information.
+template <typename UserKey				= size_t,
+		  typename IndexType			= UserKey,
+		  IndexType CHUNKS_SIZE			= 4096,
+		  typename BufferGrowthStrategy = details::default_buffer_growth_strategy_t>
+using sparse_indice_array = psl::sparse_array<std::byte,
+											  UserKey,
+											  IndexType,
+											  CHUNKS_SIZE,
+											  BufferGrowthStrategy,
+											  impl::no_storage_base_t<std::byte, IndexType>>;
 }	 // namespace psl
