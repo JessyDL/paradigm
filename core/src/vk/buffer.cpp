@@ -250,10 +250,6 @@ bool buffer_t::commit(std::vector<core::gfx::commit_instruction> instructions) {
 				return false;
 			}
 
-			if(i == 4) {
-				core::log->info("first element: {}", *(float*)(instructions[i].source));
-			}
-
 			memcpy((void*)((std::uintptr_t)tuple.value + stagingSegments[i].second.begin),
 				   (void*)(instructions[i].source),
 				   instructions[i].size);
@@ -401,11 +397,6 @@ bool buffer_t::copy_from(const buffer_t& other, const std::vector<vk::BufferCopy
 						 psl::utility::to_string(m_UID),
 						 totalsize,
 						 copyRegions.size());
-
-	for(const auto& region : copyRegions) {
-		core::ivk::log->info(
-		  "srcOffset | dstOffset | size : {0} | {1} | {2}", region.srcOffset, region.dstOffset, region.size);
-	}
 
 	vk::CommandBufferBeginInfo cmdBufferBeginInfo;
 	cmdBufferBeginInfo.pNext = NULL;
