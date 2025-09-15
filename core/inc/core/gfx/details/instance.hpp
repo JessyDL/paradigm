@@ -7,6 +7,11 @@
 #include "psl/meta.hpp"
 #include "psl/sparse_array.hpp"
 
+// bundles consist out of N instances of unique geometry, and M instances of unique materials
+// they manage the instance data associated to these geometry/material combinations.
+// additionally they manage the instance data associated to the materials themselves (only 1 per material).
+// This data is shared between all drawcalls using this bundle.
+
 namespace std {
 #ifdef _MSC_VER
 template <typename T>
@@ -22,6 +27,62 @@ class material_t;
 }	 // namespace core::gfx
 
 namespace core::gfx::details::instance {
+
+struct storage_link {
+	struct swap_command {
+		uint32_t src;
+		uint32_t dst;
+		uint32_t count;
+	};
+	struct resize_command {
+		uint32_t new_size;
+	};
+	uint32_t m_MaxSize {std::numeric_limits<uint32_t>::max()};
+	std::vector<std::variant<swap_command, resize_command>> m_Commands;
+};
+
+/// \brief A virtual storage buffer that records commands instead of executing them
+/// \details This storage buffer does not actually store any data, but instead records commands that can
+/// be executed later. This is useful for recording operations that need to be performed on a GPU buffer.
+/// This is used as the backing storage for instance data in a `psl::sparse_array`.
+template <typename Key>
+class gpu_storage_buffer {
+  public:
+	gpu_storage_buffer([[maybe_unused]] Key max_size, std::shared_ptr<storage_link> link) : m_Link(link) {}
+	Key capacity() const noexcept {
+		return m_Link->m_MaxSize;
+	}
+
+	void swap([[maybe_unused]] Key first, [[maybe_unused]] Key second) {
+		m_Link->m_Commands.push_back(storage_link::swap_command {second, first, 1});
+	}
+	void reserve([[maybe_unused]] Key new_size) {
+		// reserve does nothing, as this is a virtual buffer
+		// we only resize when needed
+	}
+	void insert_space([[maybe_unused]] Key index, [[maybe_unused]] Key count) {
+		m_Size += count;
+		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
+		// m_Link->m_Commands.push_back(storage_link::swap_command {index, index + count, m_Size - (index + count)});
+	}
+	void truncate([[maybe_unused]] Key new_size) {
+		m_Size = new_size;
+		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
+	}
+	void clear([[maybe_unused]] bool release_memory = false) noexcept {
+		m_Size = 0;
+		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
+	}
+
+	void emplace_back() {
+		++m_Size;
+		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
+	};
+
+  private:
+	std::shared_ptr<storage_link> m_Link;
+	Key m_Size {0};
+};
 struct binding {
 	struct header final {
 		bool operator==(const header& b) const noexcept {
@@ -38,32 +99,46 @@ struct binding {
 	uint32_t slot;
 };
 
-struct object final {
-	object(psl::UID uid) : geometry(uid), id_generator(0) {};
-	object(psl::UID uid, uint32_t capacity) : geometry(uid), id_generator(capacity) {};
+// for every unique geometry we will have an instance of this that will manage the instance data
+// associated to this geometry for all materials in the bundle.
+struct geometry_instance_data {
+	struct entry {
+		memory::segment memory;
+		binding::header description;
+		uint32_t slot;
+	};
 
-	bool operator==(const object& rhs) const noexcept {
-		return rhs.geometry == geometry;
-	}
+	geometry_instance_data(uint32_t capacity) : manager(capacity, m_Link), instance_data(), m_Max(capacity) {}
 
-	const psl::UID geometry;	// Defines which geometry this object maps to
-	psl::generator<uint32_t> id_generator;
-	psl::array<binding::header> description;
-	psl::array<memory::segment> data;
+	std::shared_ptr<storage_link> m_Link {std::make_shared<storage_link>()};
+	psl::sparse_indice_array<std::uint32_t,
+							 std::uint32_t,
+							 4096,
+							 psl::details::default_buffer_growth_strategy_t,
+							 gpu_storage_buffer<std::uint32_t>>
+	  manager;
+	std::vector<entry> instance_data;
+
+	uint32_t m_Head {0};				// Head is always the highest allocated id + 1
+	std::vector<uint32_t> m_Orphans;	// Orphans are ids that were allocated but later freed, we can reuse these.
+										// Note that these will never be compacted.
+	uint32_t m_Max {0};					// Maximum number of instances allowed, set to numeric_limits::max to disable
+
+	uint32_t available() const noexcept;
+	size_t capacity() const noexcept;
+	void capacity(uint32_t max);
+	std::vector<uint32_t> add(uint32_t count);
+	uint32_t size() const noexcept;
+	void erase(uint32_t id);
+	void erase(auto&& first, auto&& last);
+	uint32_t offset_of(uint32_t id) const noexcept;
+	void clear() noexcept;
+	psl::array<core::gfx::memory_copy> consume();
 };
+
 }	 // namespace core::gfx::details::instance
 
-
 namespace std {
-template <>
-struct hash<core::gfx::details::instance::object> {
-	std::size_t operator()(const core::gfx::details::instance::object& s) const noexcept {
-		return std::hash<psl::UID> {}(s.geometry);
-	}
-	std::size_t operator()(const psl::UID& s) const noexcept {
-		return std::hash<psl::UID> {}(s);
-	}
-};
 
 template <>
 struct hash<core::gfx::details::instance::binding::header> {
@@ -103,7 +178,7 @@ class data final {
 	data(core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 		 core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept;
 	void add(core::resource::handle<core::gfx::material_t> material);
-	std::vector<std::pair<uint32_t, uint32_t>> add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count = 1);
+	std::vector<uint32_t> add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count = 1);
 
 	bool remove(core::resource::handle<core::gfx::material_t> material) noexcept;
 
@@ -123,6 +198,7 @@ class data final {
 	core::resource::handle<core::gfx::buffer_t> material_buffer() const noexcept;
 
 	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept;
+	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, std::span<uint32_t const> ids) noexcept;
 	bool clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept;
 	bool clear() noexcept;
 
@@ -135,7 +211,11 @@ class data final {
 	/// the bracket operator '[i]', otherwise it will default to '[0]' implicitly.
 	size_t offset_of(core::resource::tag<core::gfx::material_t> material, psl::string_view name) const noexcept;
 
+	size_t offset_of(core::resource::tag<core::gfx::geometry_t> geometry, std::uint32_t id) const noexcept;
 
+	void apply();
+
+  public:
 	/**
 	 * \brief bind the given material's instance data (if present).
 	 * \returns true if there was instance data found, otherwise propogates lower failure.
@@ -150,10 +230,11 @@ class data final {
   private:
 	std::unordered_map<psl::UID, psl::array<binding>> m_Bindings;		  // <material_t, bindings[]>
 	psl::array<std::pair<binding::header, uint32_t>> m_UniqueBindings;	  // unique binding and usage count
-	std::unordered_map<psl::UID, object> m_InstanceData;				  // <geometry_t, object>
 	std::unordered_map<psl::UID, material_instance_data> m_MaterialInstanceData {};
 	psl::array<size_t> m_MaterialDataSizes {};
 	core::resource::handle<core::gfx::buffer_t> m_VertexInstanceBuffer;
 	core::resource::handle<core::gfx::shader_buffer_binding> m_MaterialInstanceBuffer;
+	std::unordered_map<psl::UID, geometry_instance_data>
+	  m_GeometryInstanceData;	 // <geometry_t, geometry_instance_data>
 };
 }	 // namespace core::gfx::details::instance

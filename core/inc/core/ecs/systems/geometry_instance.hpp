@@ -17,10 +17,6 @@ class geometry_instancing {
 				return lhs.geometry.uid() < rhs.geometry.uid();
 		}
 	};
-	struct geometry_instance {
-		size_t startIndex;
-		size_t count;
-	};
 
 	struct instance_id {
 		uint32_t id;
@@ -42,16 +38,11 @@ class geometry_instancing {
 	geometry_instancing& operator=(geometry_instancing&& other) noexcept = delete;
 
   private:
-	/* void dynamic_add(psl::ecs::info& info,
-					 psl::ecs::pack_direct_full_t<core::ecs::components::renderable,
-									psl::ecs::filter<const core::ecs::components::dynamic_tag>,
-									psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
-	*/
 	void dynamic_add(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_indirect_full_t<
+	  psl::ecs::pack_indirect_partial_t<
 		psl::ecs::entity_t,
-		core::ecs::components::renderable,
+		const core::ecs::components::renderable,
 		const core::ecs::components::transform,
 		psl::ecs::filter<core::ecs::components::dynamic_tag>,
 		psl::ecs::except<core::ecs::components::dont_render_tag>,
@@ -59,27 +50,22 @@ class geometry_instancing {
 
 	void dynamic_remove(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_direct_partial_t<
+	  psl::ecs::pack_indirect_full_t<
 		psl::ecs::entity_t,
-		core::ecs::components::renderable,
+		const core::ecs::components::renderable,
 		const instance_id,
 		psl::ecs::filter<core::ecs::components::dynamic_tag>,
 		psl::ecs::except<core::ecs::components::dont_render_tag>,
-		psl::ecs::on_break<core::ecs::components::renderable, core::ecs::components::transform, instance_id>> pack);
-	void dynamic_update(psl::ecs::info_t& info,
-						psl::ecs::pack_indirect_partial_t<core::ecs::components::renderable,
-														  const core::ecs::components::transform,
-														  const instance_id,
-														  psl::ecs::filter<core::ecs::components::dynamic_tag>,
-														  psl::ecs::except<core::ecs::components::dont_render_tag>,
-														  psl::ecs::order_by<instance_id_sort, instance_id>> pack);
-	void dynamic_system(
+		psl::ecs::on_break<core::ecs::components::renderable, core::ecs::components::transform, instance_id>,
+		psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
+	void dynamic_update(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_direct_full_t<core::ecs::components::renderable,
-								   const core::ecs::components::transform,
-								   const core::ecs::components::dynamic_tag,
-								   psl::ecs::except<core::ecs::components::dont_render_tag>,
-								   psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> geometry_pack);
+	  psl::ecs::pack_indirect_partial_t<const core::ecs::components::renderable,
+										const core::ecs::components::transform,
+										const instance_id,
+										psl::ecs::filter<core::ecs::components::dynamic_tag>,
+										psl::ecs::except<core::ecs::components::dont_render_tag>,
+										psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
 
 	void
 	static_add(psl::ecs::info_t& info,
@@ -99,11 +85,13 @@ class geometry_instancing {
 								   psl::ecs::on_break<const core::ecs::components::renderable,
 													  const core::ecs::components::transform>> geometry_pack);
 
-	void static_geometry_add(psl::ecs::info_t& info,
-							 psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
-														  const core::ecs::components::renderable,
-														  psl::ecs::except<core::ecs::components::transform>,
-														  psl::ecs::on_add<core::ecs::components::renderable>> pack);
+	void static_geometry_add(
+	  psl::ecs::info_t& info,
+	  psl::ecs::pack_indirect_full_t<psl::ecs::entity_t,
+									 const core::ecs::components::renderable,
+									 psl::ecs::except<core::ecs::components::transform>,
+									 psl::ecs::on_add<core::ecs::components::renderable>,
+									 psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
 
 
 	void
@@ -113,9 +101,10 @@ class geometry_instancing {
 														const instance_id,
 														psl::ecs::except<core::ecs::components::transform>,
 														psl::ecs::on_remove<core::ecs::components::renderable>> pack);
+
+	psl::array<instance_id> make_instances(core::ecs::components::renderable const& renderable,
+										   const core::ecs::components::transform* first,
+										   const core::ecs::components::transform* last);
 	std::mutex m_Mutex;
-	// void static_disable();
-	// void static_enable(psl::ecs::info& info, psl::ecs::pack_direct_full_t<psl::ecs::entity_t, const
-	// core::ecs::components::renderable, const instance_id, core::ecs::components::dont_render_tag> dont_render);
 };
 }	 // namespace core::ecs::systems
