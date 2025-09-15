@@ -26,6 +26,11 @@ namespace impl {
 		{ a.data() };
 	};
 
+	struct no_data_t {};
+
+	template <typename T>
+	concept IsNoDataSpecialization = std::is_same_v<T, no_data_t>;
+
 	/// \brief A storage type that uses a memory::raw_region as its backing storage. Typically this is a virtual page allocator
 	template <typename T, typename Key>
 	struct dense_storage_base_t {
@@ -396,7 +401,8 @@ class sparse_array {
 	};
 
   public:
-	sparse_array(index_type initial_size = 16) : m_Data(initial_size) {
+	template <typename... Args>
+	sparse_array(index_type initial_size = 16, Args&&... args) : m_Data(initial_size, std::forward<Args>(args)...) {
 		m_Reverse.reserve(initial_size);
 	}
 
@@ -843,6 +849,23 @@ class sparse_array {
 		return try_erase(&index, &index + 1) != 0;
 	}
 
+	/// \brief Returns the internal dense storage index of the provided user index.
+	/// \param index The user provided index to look up.
+	/// \details This function is only available really for sparse arrays that do not store any data,
+	/// this allows for a mapping between user indices and dense indices. Useful for tracking indices
+	/// in other data structures.
+	/// \see psl::sparse_indices_array
+	constexpr FORCEINLINE auto index_of(user_index_type index) const -> index_type
+		requires(impl::IsNoDataSpecialization<value_type> && !impl::StorageDataAccessible<dense_storage_type>)
+	{
+		auto element_index = static_cast<index_type>(index);
+		auto chunk		   = std::as_const(*this).userspace_to_internal(element_index);
+		psl_assert(chunk != TOMBSTONE && m_Sparse[chunk] != nullptr, "index not found in sparse array");
+		auto dense_index = (*m_Sparse[chunk])[element_index];
+		psl_assert(dense_index != TOMBSTONE, "index not found in sparse array");
+		return dense_index;
+	}
+
   private:
 	/// \brief Entrypoint for all operations that modify the sparse array's underlying data, or add new indices.
 	/// \tparam InsertMode The mode of insertion to perform. Can be insert, try_insert, set, or assign.
@@ -1218,11 +1241,8 @@ class sparse_array {
 template <typename UserKey				= size_t,
 		  typename IndexType			= UserKey,
 		  IndexType CHUNKS_SIZE			= 4096,
-		  typename BufferGrowthStrategy = details::default_buffer_growth_strategy_t>
-using sparse_indice_array = psl::sparse_array<std::byte,
-											  UserKey,
-											  IndexType,
-											  CHUNKS_SIZE,
-											  BufferGrowthStrategy,
-											  impl::no_storage_base_t<std::byte, IndexType>>;
+		  typename BufferGrowthStrategy = details::default_buffer_growth_strategy_t,
+		  typename StorageType			= impl::no_storage_base_t<impl::no_data_t, IndexType>>
+using sparse_indice_array =
+  psl::sparse_array<impl::no_data_t, UserKey, IndexType, CHUNKS_SIZE, BufferGrowthStrategy, StorageType>;
 }	 // namespace psl
