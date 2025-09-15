@@ -527,18 +527,22 @@ class state_t final : public details::entity_relationship_handler_t,
 		return on_combine_op(entries, begin, end);
 	}
 
-	psl::array<entity_t>::iterator filter_op(details::cached_container_entry_t const& entry,
-											 psl::array<entity_t>::iterator begin,
-											 psl::array<entity_t>::iterator end) const noexcept;
+	psl::array<entity_t>::iterator
+	filter_op(details::cached_container_entry_t const& entry,
+			  psl::array<entity_t>::iterator begin,
+			  psl::array<entity_t>::iterator end,
+			  details::stage_range_t range = details::stage_range_t::ALIVE) const noexcept;
 	psl::array<entity_t>::iterator on_add_op(details::cached_container_entry_t const& entry,
 											 psl::array<entity_t>::iterator begin,
 											 psl::array<entity_t>::iterator end) const noexcept;
 	psl::array<entity_t>::iterator on_remove_op(details::cached_container_entry_t const& entry,
 												psl::array<entity_t>::iterator begin,
 												psl::array<entity_t>::iterator end) const noexcept;
-	psl::array<entity_t>::iterator on_except_op(details::cached_container_entry_t const& entry,
-												psl::array<entity_t>::iterator begin,
-												psl::array<entity_t>::iterator end) const noexcept;
+	psl::array<entity_t>::iterator
+	on_except_op(details::cached_container_entry_t const& entry,
+				 psl::array<entity_t>::iterator begin,
+				 psl::array<entity_t>::iterator end,
+				 details::stage_range_t range = details::stage_range_t::ALIVE) const noexcept;
 	psl::array<entity_t>::iterator on_break_op(psl::array<details::cached_container_entry_t> const& entries,
 											   psl::array<entity_t>::iterator begin,
 											   psl::array<entity_t>::iterator end) const noexcept;

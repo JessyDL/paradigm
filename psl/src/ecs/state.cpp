@@ -419,13 +419,14 @@ void state_t::reset(psl::array_view<entity_t> entities) noexcept {
 
 psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entry_t const& entry,
 												  psl::array<entity_t>::iterator begin,
-												  psl::array<entity_t>::iterator end) const noexcept {
+												  psl::array<entity_t>::iterator end,
+												  details::stage_range_t range) const noexcept {
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
 	return (entry.container == nullptr)
 			 ? begin
-			 : std::partition(begin, end, [&entry](entity_t e) { return entry.container->has_component(e); });
+			 : std::partition(begin, end, [&entry, &range](entity_t e) { return entry.container->has(e, range); });
 }
 
 psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entry_t const& entry,
@@ -452,13 +453,14 @@ psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_e
 
 psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_entry_t const& entry,
 													 psl::array<entity_t>::iterator begin,
-													 psl::array<entity_t>::iterator end) const noexcept {
+													 psl::array<entity_t>::iterator end,
+													 details::stage_range_t range) const noexcept {
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
 	return (entry.container == nullptr)
 			 ? end
-			 : std::partition(begin, end, [&entry](entity_t e) { return !entry.container->has_component(e); });
+			 : std::partition(begin, end, [&entry, &range](entity_t e) { return !entry.container->has(e, range); });
 }
 
 psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_container_entry_t> const& entries,
@@ -653,6 +655,7 @@ psl::array_view<entity_t> state_t::get_source_for(filter_result const& data) con
 psl::array<entity_t>::iterator state_t::filter(details::filter_group const& group,
 											   psl::array<entity_t>::iterator begin,
 											   psl::array<entity_t>::iterator end) const noexcept {
+	auto const range = group.on_break.size() > 0 ? details::stage_range_t::ALL : details::stage_range_t::ALIVE;
 	for(auto filter : group.on_mutate) {
 		end = on_mutate_op(filter, begin, end);
 	}
@@ -688,10 +691,10 @@ psl::array<entity_t>::iterator state_t::filter(details::filter_group const& grou
 			continue;
 		}
 #endif
-		end = filter_op(filter, begin, end);
+		end = filter_op(filter, begin, end, range);
 	}
 	for(auto filter : group.except) {
-		end = on_except_op(filter, begin, end);
+		end = on_except_op(filter, begin, end, range);
 	}
 
 	return end;
