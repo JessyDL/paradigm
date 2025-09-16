@@ -551,8 +551,7 @@ class component_container_untyped_t final : public component_container_t {
 		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
 		std::byte* src = (std::byte*)source;
 		if(repeat) {
-			m_Entities.assign(
-			  entities.begin(), entities.end(), details::untyped_iterator_t {src, m_Info.size}, nullptr);
+			m_Entities.assign(entities.begin(), entities.end(), details::untyped_iterator_t {src, m_Info.size});
 
 		} else {
 			m_Entities.assign(entities.begin(),

@@ -5,6 +5,7 @@
 #include "psl/details/buffer_growth_strategy.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/platform_def.hpp"
+#include "psl/thread_safety_guard.hpp"
 #include "psl/utility/cast.hpp"
 
 #include <cstring>	  // std::memmove
@@ -634,6 +635,7 @@ class sparse_array {
 
 		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
 		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
+		auto lock		= m_Guard->scoped_guard();
 		return insert_impl<insertion_mode::insert>(index_span, data_span);
 	}
 
@@ -681,6 +683,7 @@ class sparse_array {
 
 		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
 		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
+		auto lock		= m_Guard->scoped_guard();
 		return insert_impl<insertion_mode::try_insert>(index_span, data_span);
 	}
 
@@ -747,6 +750,7 @@ class sparse_array {
 
 		auto index_span = impl::to_span_wrapper(it_index_first, it_index_last);
 		auto data_span	= impl::to_span_wrapper(it_data_first, it_data_last);
+		auto lock		= m_Guard->scoped_guard();
 		return insert_impl<insertion_mode::set>(index_span, data_span);
 	}
 
@@ -814,6 +818,7 @@ class sparse_array {
 			return index_type {0};
 		}
 		auto index_span = impl::to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
+		auto lock		= m_Guard->scoped_guard();
 		return erase_impl<false>(index_span);
 	}
 
@@ -839,6 +844,7 @@ class sparse_array {
 			return index_type {0};
 		}
 		auto index_span = impl::to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
+		auto lock		= m_Guard->scoped_guard();
 		return erase_impl<true>(index_span);
 	}
 
@@ -874,13 +880,18 @@ class sparse_array {
 	template <insertion_mode InsertMode>
 	constexpr FORCEINLINE auto insert_impl(auto&& index_span, auto&& data_span) -> index_type {
 		const auto size = psl::narrow_cast<index_type>(index_span.size());
-		m_Reverse.reserve(m_Reverse.size() + size);
-		m_Data.reserve(psl::narrow_cast<index_type>(m_Reverse.size()) + size);
+
+		// assign is thread safe as it only modifies existing elements
+		if constexpr(InsertMode != insertion_mode::assign) {
+			m_Reverse.reserve(m_Reverse.size() + size);
+			m_Data.reserve(psl::narrow_cast<index_type>(m_Reverse.size()) + size);
+		}
 		index_type count = 0;
 
 		invoke_for_l0<true>(
 		  index_span,
-		  [&, this](index_type index, chunk_type& chunk, index_type chunk_offset, auto&&... dataIt) {
+		  [&, this](
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto&&... dataIt) {
 			  static_assert(sizeof...(dataIt) <= 1, "dataIt can only be empty, or contain a single element");
 			  index_type rev_index {chunk[chunk_offset]};
 			  // try_insert requires the element to be empty
@@ -969,29 +980,28 @@ class sparse_array {
 		index_type start_size = psl::narrow_cast<index_type>(m_Reverse.size());
 
 		invoke_for_l0<false, std::greater<index_type>>(
-		  range, [this](index_type user_index, chunk_type& chunk, index_type chunk_offset) {
+		  range, [this](index_type user_index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset) {
+			  auto const reverse_index = chunk[chunk_offset];
 			  if constexpr(TryErase) {
-				  if(chunk[chunk_offset] == TOMBSTONE) {
+				  if(reverse_index == TOMBSTONE) {
 					  return;
 				  }
 			  } else {
-				  psl_assert(chunk[chunk_offset] != TOMBSTONE);
+				  psl_assert(reverse_index != TOMBSTONE);
 			  }
-			  auto reverse_index = chunk[chunk_offset];
-			  auto last_index	 = m_Reverse.back();
+			  auto const last_index = m_Reverse.back();
 			  // if we're not removing the last element, we need to swap the last element into the removed element's
 			  // place otherwise we can just pop the last element
 			  if(last_index != user_index) {
-				  auto const chunk_index = &chunk - m_Sparse.front().get();
 				  if(last_index >= chunk_index * CHUNKS_SIZE && last_index < (chunk_index + 1) * CHUNKS_SIZE) {
 					  chunk[last_index - (chunk_index * CHUNKS_SIZE)] = reverse_index;
 				  } else {
 					  auto original_sparse_offset = last_index;
-					  auto original_sparse		  = userspace_to_internal(original_sparse_offset);
+					  auto original_sparse		  = std::as_const(*this).userspace_to_internal(original_sparse_offset);
 					  (*m_Sparse[original_sparse])[original_sparse_offset] = reverse_index;
 				  }
 
-				  std::iter_swap(std::next(std::begin(m_Reverse), reverse_index), std::prev(std::end(m_Reverse)));
+				  m_Reverse[reverse_index] = last_index;
 				  m_Data.swap(reverse_index, psl::narrow_cast<index_type>(m_Reverse.size()) - 1);
 			  }
 
@@ -1126,10 +1136,10 @@ class sparse_array {
 				}
 
 				if constexpr(!HasDataSpan) {
-					CallbackFound(next_index, chunk, next_element_index);
+					CallbackFound(next_index, chunk, chunk_index, next_element_index);
 				} else {
 					auto data_it = data_span.current();
-					CallbackFound(next_index, chunk, next_element_index, data_it);
+					CallbackFound(next_index, chunk, chunk_index, next_element_index, data_it);
 					data_span.next();
 				}
 				index_span.next();
@@ -1225,6 +1235,8 @@ class sparse_array {
 	dense_storage_type m_Data {};
 	psl::array<index_type> m_Reverse {};
 	chunk_storage_type m_Sparse {};
+
+	std::shared_ptr<psl::thread_safety_guard_t> m_Guard {std::make_shared<psl::thread_safety_guard_t>()};
 };
 
 
