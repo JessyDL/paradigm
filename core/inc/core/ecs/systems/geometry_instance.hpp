@@ -40,7 +40,7 @@ class geometry_instancing {
   private:
 	void dynamic_add(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_indirect_partial_t<
+	  psl::ecs::pack_direct_partial_t<
 		psl::ecs::entity_t,
 		const core::ecs::components::renderable,
 		const core::ecs::components::transform,
@@ -87,11 +87,11 @@ class geometry_instancing {
 
 	void static_geometry_add(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_indirect_full_t<psl::ecs::entity_t,
-									 const core::ecs::components::renderable,
-									 psl::ecs::except<core::ecs::components::transform>,
-									 psl::ecs::on_add<core::ecs::components::renderable>,
-									 psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
+	  psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
+								   const core::ecs::components::renderable,
+								   psl::ecs::except<core::ecs::components::transform>,
+								   psl::ecs::on_add<core::ecs::components::renderable>,
+								   psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack);
 
 
 	void

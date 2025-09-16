@@ -67,12 +67,12 @@ geometry_instancing::make_instances(renderable const& renderable, const transfor
 }
 
 void geometry_instancing::dynamic_add(info_t& info,
-									  pack_indirect_partial_t<entity_t,
-															  const renderable,
-															  const transform,
-															  filter<dynamic_tag>,
-															  except<dont_render_tag>,
-															  on_combine<renderable, transform>> geometry_pack) {
+									  pack_direct_partial_t<entity_t,
+															const renderable,
+															const transform,
+															filter<dynamic_tag>,
+															except<dont_render_tag>,
+															on_combine<renderable, transform>> geometry_pack) {
 	if(geometry_pack.size() == 0) {
 		return;
 	}
@@ -113,19 +113,13 @@ void geometry_instancing::dynamic_remove(
 	if(pack.empty()) {
 		return;
 	}
-	instance_id const* first {&pack.get<const instance_id>()[0]};
-	instance_id const* last {nullptr};
-	auto* render_it		= &pack.get<renderable const>()[0];
-	entity_t* first_ent = &pack.get<entity_t>()[0];
-	entity_t* last_ent {nullptr};
+	auto* render_it = &pack.get<renderable const>()[0];
 
 	psl::array<std::uint32_t> instanceIDs {};
 	std::unordered_map<psl::UID, core::resource::handle<core::gfx::bundle>> seenBundles;
 
 	for(auto [ent, render, instance_id] : pack) {
 		auto bundleHandle = render.bundle;
-		last_ent		  = &ent;
-		last			  = &instance_id;
 		instanceIDs.push_back(instance_id.id);
 		if(bundleHandle.uid() != render_it->bundle.uid() || render_it->geometry.uid() != render.geometry.uid()) {
 			auto scoped_lock = std::scoped_lock(m_Mutex);
@@ -133,8 +127,6 @@ void geometry_instancing::dynamic_remove(
 			if(seenBundles.find(bundleHandle.uid()) == seenBundles.end()) {
 				seenBundles.insert({bundleHandle.uid(), bundleHandle});
 			}
-			first	  = &instance_id;
-			first_ent = &ent;
 			render_it = &render;
 			instanceIDs.clear();
 		}
@@ -262,11 +254,11 @@ void geometry_instancing::static_remove(info_t& info,
 
 void geometry_instancing::static_geometry_add(
   psl::ecs::info_t& info,
-  psl::ecs::pack_indirect_full_t<psl::ecs::entity_t,
-								 const core::ecs::components::renderable,
-								 psl::ecs::except<core::ecs::components::transform>,
-								 psl::ecs::on_add<core::ecs::components::renderable>,
-								 psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack) {
+  psl::ecs::pack_direct_full_t<psl::ecs::entity_t,
+							   const core::ecs::components::renderable,
+							   psl::ecs::except<core::ecs::components::transform>,
+							   psl::ecs::on_add<core::ecs::components::renderable>,
+							   psl::ecs::order_by<renderer_sort, core::ecs::components::renderable>> pack) {
 	if(pack.size() == 0) {
 		return;
 	}
@@ -305,7 +297,7 @@ void geometry_instancing::static_geometry_add(
 			instanceIds.emplace_back(instance_id {instanceId});
 		}
 	}
-	info.command_buffer.add_components<instance_id>(pack.get<entity_t>().to_array(), instanceIds);
+	info.command_buffer.add_components<instance_id>(pack.get<entity_t>(), instanceIds);
 }
 
 
