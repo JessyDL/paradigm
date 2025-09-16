@@ -49,4 +49,28 @@ class thread_safety_guard_t {
 	mutable std::atomic<std::thread::id> m_Owner {};
 	mutable std::atomic<size_t> m_Recursion {0};
 };
+
+namespace {
+	class thread_safety_noop_guard_t {
+	  public:
+		class scoped_guard_t {
+		  public:
+			explicit scoped_guard_t(const thread_safety_noop_guard_t&) {}
+			~scoped_guard_t() {}
+			scoped_guard_t(scoped_guard_t const&)			 = delete;
+			scoped_guard_t& operator=(scoped_guard_t const&) = delete;
+			scoped_guard_t(scoped_guard_t&&)				 = delete;
+			scoped_guard_t& operator=(scoped_guard_t&&)		 = delete;
+		};
+		scoped_guard_t scoped_guard() const {
+			return scoped_guard_t(*this);
+		}
+	};
+}	 // namespace
+
+#if defined(PE_DEBUG)
+using dbg_thread_safety_guard_t = thread_safety_guard_t;
+#else
+using dbg_thread_safety_guard_t = thread_safety_noop_guard_t;
+#endif
 }	 // namespace psl

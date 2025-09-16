@@ -2227,7 +2227,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	psl::static_array<index_type, 4> m_StageStart {0, 0, 0, 0};
 	psl::static_array<index_type, 3> m_StageSize {0, 0, 0};
 
-	psl::thread_safety_guard_t m_Guard {};
+	psl::dbg_thread_safety_guard_t m_Guard {};
 };
 
 }	 // namespace psl::ecs::details

@@ -1236,7 +1236,7 @@ class sparse_array {
 	psl::array<index_type> m_Reverse {};
 	chunk_storage_type m_Sparse {};
 
-	std::shared_ptr<psl::thread_safety_guard_t> m_Guard {std::make_shared<psl::thread_safety_guard_t>()};
+	std::shared_ptr<psl::dbg_thread_safety_guard_t> m_Guard {std::make_shared<psl::dbg_thread_safety_guard_t>()};
 };
 
 
