@@ -3,6 +3,7 @@ assertions
 platform_utils
 debug_utils
 terminal_utils
+thread_safety_guard
 application_utils
 formatted_string_buffer
 stdafx_psl
