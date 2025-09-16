@@ -31,7 +31,6 @@ logging
 meta
 pack_view
 platform_def
-source_location
 sparse_array
 static_array
 stdafx_psl
