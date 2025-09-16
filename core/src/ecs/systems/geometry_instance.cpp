@@ -33,7 +33,7 @@ geometry_instancing::geometry_instancing(psl::ecs::state_t& state) {
 
 psl::array<geometry_instancing::instance_id>
 geometry_instancing::make_instances(renderable const& renderable, const transform* first, const transform* last) {
-	const auto count = std::distance(first, last);
+	const auto count = psl::narrow_cast<core::gfx::instancing_size_type>(std::distance(first, last));
 	if(!renderable.bundle || !renderable.geometry || count == 0) {
 		return {};
 	}
@@ -128,6 +128,7 @@ void geometry_instancing::dynamic_remove(
 		last			  = &instance_id;
 		instanceIDs.push_back(instance_id.id);
 		if(bundleHandle.uid() != render_it->bundle.uid() || render_it->geometry.uid() != render.geometry.uid()) {
+			auto scoped_lock = std::scoped_lock(m_Mutex);
 			bundleHandle->release(render.geometry, instanceIDs);
 			if(seenBundles.find(bundleHandle.uid()) == seenBundles.end()) {
 				seenBundles.insert({bundleHandle.uid(), bundleHandle});
@@ -140,7 +141,8 @@ void geometry_instancing::dynamic_remove(
 	}
 
 	{
-		auto bundle = render_it->bundle;
+		auto scoped_lock = std::scoped_lock(m_Mutex);
+		auto bundle		 = render_it->bundle;
 		bundle->release(render_it->geometry, instanceIDs);
 		if(seenBundles.find(bundle.uid()) == seenBundles.end()) {
 			seenBundles.insert({bundle.uid(), bundle});

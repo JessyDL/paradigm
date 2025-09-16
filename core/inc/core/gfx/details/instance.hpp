@@ -1,4 +1,5 @@
 #pragma once
+#include "core/gfx/types.hpp"
 #include "core/meta/shader.hpp"
 #include "core/resource/resource.hpp"
 #include "psl/array.hpp"
@@ -12,12 +13,6 @@
 // additionally they manage the instance data associated to the materials themselves (only 1 per material).
 // This data is shared between all drawcalls using this bundle.
 
-namespace std {
-#ifdef _MSC_VER
-template <typename T>
-struct hash;
-#endif
-}	 // namespace std
 
 namespace core::gfx {
 class buffer_t;
@@ -30,14 +25,14 @@ namespace core::gfx::details::instance {
 
 struct storage_link {
 	struct swap_command {
-		uint32_t src;
-		uint32_t dst;
-		uint32_t count;
+		instancing_size_type src;
+		instancing_size_type dst;
+		instancing_size_type count;
 	};
 	struct resize_command {
-		uint32_t new_size;
+		instancing_size_type new_size;
 	};
-	uint32_t m_MaxSize {std::numeric_limits<uint32_t>::max()};
+	instancing_size_type m_MaxSize {std::numeric_limits<instancing_size_type>::max()};
 	std::vector<std::variant<swap_command, resize_command>> m_Commands;
 };
 
@@ -89,7 +84,7 @@ struct binding {
 			return /*size_of_element == b.size_of_element && */ name == b.name;
 		}
 		psl::string name {};
-		uint32_t size_of_element {0};
+		instancing_size_type size_of_element {0};
 	};
 
 	bool operator==(const binding& b) const noexcept {
@@ -111,37 +106,38 @@ struct geometry_instance_data {
 	geometry_instance_data(uint32_t capacity) : manager(capacity, m_Link), instance_data(), m_Max(capacity) {}
 
 	std::shared_ptr<storage_link> m_Link {std::make_shared<storage_link>()};
-	psl::sparse_indice_array<std::uint32_t,
-							 std::uint32_t,
+	psl::sparse_indice_array<instancing_size_type,
+							 instancing_size_type,
 							 4096,
 							 psl::details::default_buffer_growth_strategy_t,
-							 gpu_storage_buffer<std::uint32_t>>
+							 gpu_storage_buffer<instancing_size_type>>
 	  manager;
 	std::vector<entry> instance_data;
 
-	uint32_t m_Head {0};				// Head is always the highest allocated id + 1
-	std::vector<uint32_t> m_Orphans;	// Orphans are ids that were allocated but later freed, we can reuse these.
-										// Note that these will never be compacted.
-	uint32_t m_Max {0};					// Maximum number of instances allowed, set to numeric_limits::max to disable
+	instancing_size_type m_Head {0};				// Head is always the highest allocated id + 1
+	std::vector<instancing_size_type> m_Orphans;	// Orphans are ids that were allocated but later freed, we can reuse
+													// these.
+													// Note that these will never be compacted.
+	instancing_size_type m_Max {0};	   // Maximum number of instances allowed, set to numeric_limits::max to disable
 
-	uint32_t available() const noexcept;
-	size_t capacity() const noexcept;
-	void capacity(uint32_t max);
-	std::vector<uint32_t> add(uint32_t count);
-	uint32_t size() const noexcept;
-	void erase(uint32_t id);
+	instancing_size_type available() const noexcept;
+	instancing_size_type capacity() const noexcept;
+	void capacity(instancing_size_type max);
+	std::vector<instancing_size_type> add(instancing_size_type count);
+	instancing_size_type size() const noexcept;
+	void erase(instancing_size_type id);
 	void erase(auto&& first, auto&& last);
-	uint32_t offset_of(uint32_t id) const noexcept;
+
+	/// \brief returns the offset of the instance data's member. Note that this is not accounting for the instance's size
+	instancing_size_type index_of(instancing_size_type id) const noexcept;
 	void clear() noexcept;
 	psl::array<core::gfx::memory_copy> consume();
 };
 
 }	 // namespace core::gfx::details::instance
 
-namespace std {
-
 template <>
-struct hash<core::gfx::details::instance::binding::header> {
+struct std::hash<core::gfx::details::instance::binding::header> {
 	std::size_t operator()(const core::gfx::details::instance::binding::header& s) const noexcept {
 		std::size_t seed = std::hash<psl::string> {}(s.name);
 		// seed ^= (uint64_t)s.size_of_element + 0x9e3779b9 + (seed << 6) + (seed >> 2);
@@ -150,12 +146,11 @@ struct hash<core::gfx::details::instance::binding::header> {
 };
 
 template <>
-struct hash<core::gfx::details::instance::binding> {
+struct std::hash<core::gfx::details::instance::binding> {
 	std::size_t operator()(const core::gfx::details::instance::binding& s) const noexcept {
 		return std::hash<core::gfx::details::instance::binding::header> {}(s.description);
 	}
 };
-}	 // namespace std
 
 
 namespace core::gfx::details::instance {
@@ -178,7 +173,8 @@ class data final {
 	data(core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 		 core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept;
 	void add(core::resource::handle<core::gfx::material_t> material);
-	std::vector<uint32_t> add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count = 1);
+	std::vector<instancing_size_type> add(core::resource::tag<core::gfx::geometry_t> uid,
+										  instancing_size_type count = 1);
 
 	bool remove(core::resource::handle<core::gfx::material_t> material) noexcept;
 
@@ -186,7 +182,7 @@ class data final {
 	bool has_element(core::resource::tag<core::gfx::geometry_t> geometry, psl::string_view name) const noexcept;
 	std::optional<std::pair<memory::segment, uint32_t>> segment(core::resource::tag<core::gfx::geometry_t> geometry,
 																psl::string_view name) const noexcept;
-	uint32_t count(core::resource::tag<core::gfx::geometry_t> uid) const noexcept;
+	instancing_size_type count(core::resource::tag<core::gfx::geometry_t> uid) const noexcept;
 
 	psl::array<std::pair<size_t, std::uintptr_t>>
 	bindings(core::resource::tag<core::gfx::material_t> material,
@@ -197,8 +193,8 @@ class data final {
 	}
 	core::resource::handle<core::gfx::buffer_t> material_buffer() const noexcept;
 
-	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept;
-	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, std::span<uint32_t const> ids) noexcept;
+	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, instancing_size_type id) noexcept;
+	bool erase(core::resource::tag<core::gfx::geometry_t> geometry, std::span<instancing_size_type const> ids) noexcept;
 	bool clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept;
 	bool clear() noexcept;
 
@@ -211,7 +207,8 @@ class data final {
 	/// the bracket operator '[i]', otherwise it will default to '[0]' implicitly.
 	size_t offset_of(core::resource::tag<core::gfx::material_t> material, psl::string_view name) const noexcept;
 
-	size_t offset_of(core::resource::tag<core::gfx::geometry_t> geometry, std::uint32_t id) const noexcept;
+	instancing_size_type index_of(core::resource::tag<core::gfx::geometry_t> geometry,
+								  instancing_size_type id) const noexcept;
 
 	void apply();
 

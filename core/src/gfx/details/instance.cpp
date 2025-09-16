@@ -13,7 +13,7 @@ using namespace core::gfx;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
-constexpr uint32_t default_capacity = 32;
+constexpr instancing_size_type default_capacity = 32;
 
 data::data(core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 		   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept
@@ -107,7 +107,8 @@ void data::add(core::resource::handle<material_t> material) {
 	}
 }
 
-std::vector<uint32_t> data::add(core::resource::tag<core::gfx::geometry_t> uid, uint32_t count) {
+std::vector<instancing_size_type> data::add(core::resource::tag<core::gfx::geometry_t> uid,
+											instancing_size_type count) {
 	auto it = m_GeometryInstanceData.find(uid);
 	if(it == std::end(m_GeometryInstanceData)) {
 		auto const size = std::max(count, default_capacity);
@@ -159,7 +160,7 @@ bool data::remove(core::resource::handle<material_t> material) noexcept {
 }
 
 
-uint32_t data::count(core::resource::tag<core::gfx::geometry_t> uid) const noexcept {
+instancing_size_type data::count(core::resource::tag<core::gfx::geometry_t> uid) const noexcept {
 	if(auto it = m_GeometryInstanceData.find(uid.uid()); it != std::end(m_GeometryInstanceData)) {
 		return it->second.size();
 	}
@@ -214,7 +215,8 @@ std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry_t
 }
 
 
-bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, std::span<uint32_t const> ids) noexcept {
+bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry,
+				 std::span<instancing_size_type const> ids) noexcept {
 	if(auto it = m_GeometryInstanceData.find(geometry); it != std::end(m_GeometryInstanceData)) {
 		it->second.erase(ids.begin(), ids.end());
 		return true;
@@ -222,7 +224,7 @@ bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, std::span<
 	return false;
 }
 
-bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept {
+bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, instancing_size_type id) noexcept {
 	if(auto it = m_GeometryInstanceData.find(geometry); it != std::end(m_GeometryInstanceData)) {
 		it->second.erase(id);
 		return true;
@@ -282,11 +284,12 @@ size_t data::offset_of(core::resource::tag<core::gfx::material_t> material, psl:
 	return res;
 }
 
-size_t data::offset_of(core::resource::tag<core::gfx::geometry_t> geometry, std::uint32_t id) const noexcept {
+instancing_size_type data::index_of(core::resource::tag<core::gfx::geometry_t> geometry,
+									instancing_size_type id) const noexcept {
 	if(auto it = m_GeometryInstanceData.find(geometry); it != std::end(m_GeometryInstanceData)) {
-		return it->second.offset_of(id);
+		return it->second.index_of(id);
 	}
-	return std::numeric_limits<size_t>::max();
+	return std::numeric_limits<instancing_size_type>::max();
 }
 
 bool data::set(core::resource::tag<core::gfx::material_t> material,
@@ -309,7 +312,7 @@ bool data::bind_material(core::resource::handle<core::gfx::material_t> material)
 	}
 
 	return material->bind_instance_data(it->second.descriptor.binding(),
-										static_cast<uint32_t>(it->second.segment.range().begin));
+										psl::narrow_cast<uint32_t>(it->second.segment.range().begin));
 }
 
 core::resource::handle<core::gfx::buffer_t> data::material_buffer() const noexcept {
@@ -329,21 +332,21 @@ void data::apply() {
 }
 
 
-uint32_t geometry_instance_data::available() const noexcept {
-	return m_Max - (m_Head - static_cast<uint32_t>(m_Orphans.size()));
+instancing_size_type geometry_instance_data::available() const noexcept {
+	return m_Max - (m_Head - psl::narrow_cast<uint32_t>(m_Orphans.size()));
 }
 
-size_t geometry_instance_data::capacity() const noexcept {
+instancing_size_type geometry_instance_data::capacity() const noexcept {
 	return m_Max;
 }
 
-void geometry_instance_data::capacity(uint32_t max) {
+void geometry_instance_data::capacity(instancing_size_type max) {
 	psl_assert(max > manager.size(),
 			   "Setting a max capacity lower than the current allocated entries will end up in errors.");
 	m_Max = max;
 }
 
-std::vector<uint32_t> geometry_instance_data::add(uint32_t count) {
+std::vector<instancing_size_type> geometry_instance_data::add(instancing_size_type count) {
 	if(count == 0) {
 		return {};
 	}
@@ -361,12 +364,12 @@ std::vector<uint32_t> geometry_instance_data::add(uint32_t count) {
 		return {};
 	}
 
-	std::vector<uint32_t> ids {};
+	std::vector<instancing_size_type> ids {};
 	ids.resize(count);
-	auto orphans_to_use = std::min(static_cast<uint32_t>(m_Orphans.size()), count);
+	auto orphans_to_use = std::min(static_cast<instancing_size_type>(m_Orphans.size()), count);
 	if(orphans_to_use > 0) {
 		auto it = std::end(m_Orphans);
-		for(uint32_t i = 0; i != orphans_to_use; ++i) {
+		for(instancing_size_type i = 0; i != orphans_to_use; ++i) {
 			it	   = std::prev(it);
 			ids[i] = *it;
 		}
@@ -383,11 +386,11 @@ std::vector<uint32_t> geometry_instance_data::add(uint32_t count) {
 	return ids;
 };
 
-uint32_t geometry_instance_data::size() const noexcept {
+instancing_size_type geometry_instance_data::size() const noexcept {
 	return manager.size();
 }
 
-void geometry_instance_data::erase(uint32_t id) {
+void geometry_instance_data::erase(instancing_size_type id) {
 	psl_assert(manager.contains(id), "Trying to erase an id that does not exist");
 	manager.erase(id);
 	m_Orphans.push_back(id);
@@ -398,9 +401,9 @@ void geometry_instance_data::erase(auto&& first, auto&& last) {
 	m_Orphans.insert(m_Orphans.end(), first, last);
 }
 
-uint32_t geometry_instance_data::offset_of(uint32_t id) const noexcept {
+instancing_size_type geometry_instance_data::index_of(instancing_size_type id) const noexcept {
 	if(!manager.contains(id)) {
-		return std::numeric_limits<uint32_t>::max();
+		return std::numeric_limits<instancing_size_type>::max();
 	}
 	return manager.index_of(id);
 }

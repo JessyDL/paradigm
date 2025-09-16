@@ -82,27 +82,28 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept {
 // instance data API
 // ------------------------------------------------------------------------------------------------------------
 
-uint32_t bundle::instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept {
+instancing_size_type bundle::instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept {
 	return m_InstanceData.count(geometry);
 }
 
-std::vector<uint32_t>
-bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t count, geometry_type type) {
+std::vector<instancing_size_type> bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
+													  instancing_size_type count,
+													  geometry_type type) {
 	return m_InstanceData.add(geometry, count);
 }
 
-uint32_t bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept {
+instancing_size_type bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept {
 	return m_InstanceData.count(geometry);
 }
 bool bundle::has(tag<core::gfx::geometry_t> geometry) const noexcept {
 	return size(geometry) > 0;
 }
 
-bool bundle::release(tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept {
+bool bundle::release(tag<core::gfx::geometry_t> geometry, instancing_size_type id) noexcept {
 	return m_InstanceData.erase(geometry, id);
 }
 
-bool bundle::release(tag<core::gfx::geometry_t> geometry, std::span<uint32_t const> ids) noexcept {
+bool bundle::release(tag<core::gfx::geometry_t> geometry, std::span<instancing_size_type const> ids) noexcept {
 	return m_InstanceData.erase(geometry, ids);
 }
 
@@ -111,7 +112,7 @@ bool bundle::release_all(std::optional<geometry_type> type) noexcept {
 };
 
 bool bundle::set(core::resource::tag<core::gfx::geometry_t> geometry,
-				 std::span<uint32_t const> ids,
+				 std::span<instancing_size_type const> ids,
 				 memory::segment segment,
 				 uint32_t size_of_element,
 				 std::byte* data,
@@ -120,25 +121,25 @@ bool bundle::set(core::resource::tag<core::gfx::geometry_t> geometry,
 		return true;
 	}
 	struct range {
-		size_t begin, end;
+		instancing_size_type begin, end;
 		std::byte *data_begin, *data_end;
 	};
 	std::vector<range> ranges {};
 	ranges.reserve(ids.size());
 	auto data_offset = data;
 	{
-		auto offset_of = m_InstanceData.offset_of(geometry, ids[0]);
-		ranges.push_back(range {offset_of, offset_of + 1, data, data + size});
+		auto index_of = m_InstanceData.index_of(geometry, ids[0]);
+		ranges.push_back(range {index_of, index_of + 1, data, data + size});
 		data_offset += size;
 	}
 
 	for(auto i = 1; i < ids.size(); ++i, data_offset += size) {
-		auto offset_of = m_InstanceData.offset_of(geometry, ids[i]);
-		if(ranges.back().end == offset_of) {
-			ranges.back().end = offset_of + 1;
+		auto index_of = m_InstanceData.index_of(geometry, ids[i]);
+		if(ranges.back().end == index_of) {
+			ranges.back().end = index_of + 1;
 			ranges.back().data_end += size;
 		} else {
-			ranges.emplace_back(range {offset_of, offset_of + 1, data_offset, data_offset + size});
+			ranges.emplace_back(range {index_of, index_of + 1, data_offset, data_offset + size});
 		}
 	}
 

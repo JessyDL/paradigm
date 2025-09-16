@@ -26,7 +26,6 @@ enum class geometry_type { STATIC = 0, DYNAMIC = 1 };
 namespace constants {
 	static constexpr psl::string_view INSTANCE_MODELMATRIX		  = "INSTANCE_TRANSFORM";
 	static constexpr psl::string_view INSTANCE_LEGACY_MODELMATRIX = "iModelMat";
-	using instance_size_type									  = std::uint32_t;
 }	 // namespace constants
 
 /// \detail
@@ -41,13 +40,6 @@ namespace constants {
 class bundle final {
 	friend class core::ivk::drawpass;
 	friend class core::igles::drawpass;
-
-	using instance_size_type = constants::instance_size_type;
-
-	/*
-	todo: Uses a simple allocate front/back mechanism for handling static (front) and dynamic (back) items. This
-	helps in mitigating stalls and useless uploads to the GPU.
-	*/
 
   public:
 	bundle(core::resource::cache_t& cache,
@@ -91,9 +83,11 @@ class bundle final {
 	/// \brief returns the instance count currently used for the given piece of geometry.
 	/// \param[in] geometry UID to check
 	uint32_t instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept;
-	std::vector<uint32_t> instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
-									  uint32_t count	 = 1,
-									  geometry_type type = geometry_type::STATIC);
+
+	/// \brief instantiate one or more instances for the given geometry, returning their IDs.
+	std::vector<instancing_size_type> instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
+												  instancing_size_type count = 1,
+												  geometry_type type		 = geometry_type::STATIC);
 
 	/// \brief returns how many instances are currently active for the given geometry.
 	/// \param[in] geometry UID to check
@@ -107,23 +101,25 @@ class bundle final {
 	/// \param[in] geometry target UID
 	/// \param[in] id instance ID
 	/// \returns true in case the instance was successfully transitioned from active to deactivated.
-	bool release(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept;
-	bool release(core::resource::tag<core::gfx::geometry_t> geometry, std::span<uint32_t const> ids) noexcept;
+	bool release(core::resource::tag<core::gfx::geometry_t> geometry, instancing_size_type id) noexcept;
+	bool release(core::resource::tag<core::gfx::geometry_t> geometry,
+				 std::span<instancing_size_type const> ids) noexcept;
 
 	/// \brief release all instance data.
 	/// \param[in] type optionally target only static or dynamic data
 	bool release_all(std::optional<geometry_type> type = {}) noexcept;
 
-	/// \brief set instance data for the given instance (and range)
+	/// \brief set instance data for the given instances
 	/// \param[in] geometry target UID
 	/// \param[in] ids instance IDs
 	/// \param[in] name name of the buffer (present in the shader)
 	/// \param[in] values the values to set, where the size + id indicates the end of the range
 	/// \returns true if the geometry was found, all instances were present, and the upload dispatched. The upload
 	/// is async.
+	/// \warning This method is not thread safe, and should be externally synchronized.
 	template <typename T>
 	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
-			 std::span<uint32_t const> ids,
+			 std::span<instancing_size_type const> ids,
 			 psl::string_view name,
 			 psl::array<T> values) {
 		static_assert(std::is_trivially_copyable<T>::value, "the type has to be trivially copyable");
@@ -179,14 +175,7 @@ class bundle final {
 
   private:
 	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
-			 uint32_t id,
-			 memory::segment segment,
-			 uint32_t size_of_element,
-			 void* data,
-			 size_t size,
-			 size_t count = 1);
-	bool set(core::resource::tag<core::gfx::geometry_t> geometry,
-			 std::span<uint32_t const> ids,
+			 std::span<instancing_size_type const> ids,
 			 memory::segment segment,
 			 uint32_t size_of_element,
 			 std::byte* data,
