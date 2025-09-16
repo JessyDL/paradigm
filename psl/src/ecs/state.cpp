@@ -111,13 +111,18 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 				return data.group && *data.group == **filter_it;
 			});
 			if(*transform_it) {
-				auto transform		= std::find_if(begin(group_it->transformations),
-											   end(group_it->transformations),
-											   [transform_it](const auto& data) { return data.group == *transform_it; });
-				transform->entities = group_it->entities;
-				transform->entities.erase(
-				  transform->group->transform(begin(transform->entities), end(transform->entities), *this),
-				  end(transform->entities));
+				auto transform = std::find_if(begin(group_it->transformations),
+											  end(group_it->transformations),
+											  [transform_it](const auto& data) { return data.group == *transform_it; });
+
+				if(transform->group->on_condition.size() > 0 &&
+					 !(group_it->group->clear_every_frame() && !group_it->group->is_transient()) ||
+				   (group_it->group->relationship & entity_relationship::self) != group_it->group->relationship) {
+					transform->entities = group_it->entities;
+					transform->entities.erase(
+					  transform->group->transform(begin(transform->entities), end(transform->entities), *this),
+					  end(transform->entities));
+				}
 				entities = transform->entities;
 			} else {
 				entities = group_it->entities;
@@ -162,13 +167,17 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 					   information.id().value(),
 					   information.debug_name());
 			if(*transform_it) {
-				auto transform		= std::find_if(begin(group_it->transformations),
-											   end(group_it->transformations),
-											   [transform_it](const auto& data) { return data.group == *transform_it; });
-				transform->entities = group_it->entities;
-				transform->entities.erase(
-				  transform->group->transform(begin(transform->entities), end(transform->entities), *this),
-				  end(transform->entities));
+				auto transform = std::find_if(begin(group_it->transformations),
+											  end(group_it->transformations),
+											  [transform_it](const auto& data) { return data.group == *transform_it; });
+				if(transform->group->on_condition.size() > 0 &&
+					 !(group_it->group->clear_every_frame() && !group_it->group->is_transient()) ||
+				   (group_it->group->relationship & entity_relationship::self) != group_it->group->relationship) {
+					transform->entities = group_it->entities;
+					transform->entities.erase(
+					  transform->group->transform(begin(transform->entities), end(transform->entities), *this),
+					  end(transform->entities));
+				}
 				entities = transform->entities;
 			} else {
 				entities = group_it->entities;
@@ -275,9 +284,13 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
-		filter(filter_result,
-			   filter_result.group->is_hierarchy_change_active() ? mod_hierarchy_entities : mod_entities);
+		m_Scheduler->schedule([this, &filter_result, &mod_entities, &mod_hierarchy_entities]() {
+			filter(filter_result,
+				   filter_result.group->is_hierarchy_change_active() ? mod_hierarchy_entities : mod_entities);
+		});
 	}
+
+	m_Scheduler->execute();
 
 	clear_modified_entities();
 	clear_modified_hierarchy();
@@ -821,6 +834,11 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 
 			// do normal operations here, we cannot save perf
 			for(auto& transformation : data.transformations) {
+				if(!transformation.group || !transformation.group->order_by ||
+				   !transformation.group->on_condition.empty()) {
+					continue;
+				}
+
 				transformation.entities = data.entities;
 				transformation.entities.erase(transformation.group->transform(std::begin(transformation.entities),
 																			  std::end(transformation.entities),
@@ -913,6 +931,23 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 
 				auto size = std::size(data.entities);
 				data.entities.insert(std::end(data.entities), begin, end);
+
+
+				for(auto& transformation : data.transformations) {
+					if(!transformation.group || !transformation.group->order_by ||
+					   !transformation.group->on_condition.empty() ||
+					   (data.group->relationship & entity_relationship::self) != data.group->relationship) {
+						continue;
+					}
+
+					if(transformation.entities.size() != size) {
+						transformation.entities =
+						  psl::array<entity_t>(data.entities.begin(), data.entities.begin() + size);
+					}
+					transformation.entities.insert(std::end(transformation.entities), begin, end);
+					transformation.group->transform(
+					  std::begin(transformation.entities), std::end(transformation.entities), *this);
+				}
 
 				std::inplace_merge(
 				  std::begin(data.entities), std::next(std::begin(data.entities), size), std::end(data.entities));
