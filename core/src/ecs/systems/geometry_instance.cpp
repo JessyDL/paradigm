@@ -30,10 +30,9 @@ geometry_instancing::geometry_instancing(psl::ecs::state_t& state) {
 	state.declare<"geometry_instancing::dynamic_update">(
 	  psl::ecs::threading::par, &geometry_instancing::dynamic_update, this);
 }
-
 psl::array<geometry_instancing::instance_id>
-geometry_instancing::make_instances(renderable const& renderable, const transform* first, const transform* last) {
-	const auto count = psl::narrow_cast<core::gfx::instancing_size_type>(std::distance(first, last));
+geometry_instancing::make_instances(renderable const& renderable, psl::array<transform const*> transforms) {
+	const auto count = psl::narrow_cast<core::gfx::instancing_size_type>(transforms.size());
 	if(!renderable.bundle || !renderable.geometry || count == 0) {
 		return {};
 	}
@@ -44,13 +43,14 @@ geometry_instancing::make_instances(renderable const& renderable, const transfor
 	psl::array<instance_id> compInstanceIDs {};
 	compInstanceIDs.reserve(count);
 
-	for(auto instanceId : instancesIDs) {
-		const psl::mat4x4 translationMat = translate(first->position);
-		const psl::mat4x4 rotationMat	 = to_matrix(first->rotation);
-		const psl::mat4x4 scaleMat		 = scale(first->scale);
+	for(auto i = 0; i < instancesIDs.size(); ++i) {
+		auto const* trnsform			 = transforms[i];
+		auto instanceId					 = instancesIDs[i];
+		const psl::mat4x4 translationMat = translate(trnsform->position);
+		const psl::mat4x4 rotationMat	 = to_matrix(trnsform->rotation);
+		const psl::mat4x4 scaleMat		 = scale(trnsform->scale);
 		modelMats.emplace_back(translationMat * rotationMat * scaleMat);
 		compInstanceIDs.emplace_back(instance_id {instanceId});
-		++first;
 	}
 
 	{
@@ -67,38 +67,36 @@ geometry_instancing::make_instances(renderable const& renderable, const transfor
 }
 
 void geometry_instancing::dynamic_add(info_t& info,
-									  pack_direct_partial_t<entity_t,
-															const renderable,
-															const transform,
-															filter<dynamic_tag>,
-															except<dont_render_tag>,
-															on_combine<renderable, transform>> geometry_pack) {
+									  pack_indirect_partial_t<entity_t,
+															  const renderable,
+															  const transform,
+															  filter<dynamic_tag>,
+															  except<dont_render_tag>,
+															  on_combine<renderable, transform>> geometry_pack) {
 	if(geometry_pack.size() == 0) {
 		return;
 	}
 
-	transform const* first {&geometry_pack.get<const transform>()[0]};
-	transform const* last {nullptr};
-	auto* render_it		= &geometry_pack.get<renderable const>()[0];
-	entity_t* first_ent = &geometry_pack.get<entity_t>()[0];
-	entity_t* last_ent {nullptr};
+	auto* render_it = &geometry_pack.get<renderable const>()[0];
+	psl::array<transform const*> transforms {};
+	psl::array<entity_t> entities {};
+	transforms.reserve(geometry_pack.size());
+	entities.reserve(geometry_pack.size());
 	for(auto [ent, render, trns] : geometry_pack) {
 		auto bundleHandle = render.bundle;
-		last_ent		  = &ent;
-		last			  = &trns;
 		if(bundleHandle.uid() != render_it->bundle.uid() || render_it->geometry.uid() != render.geometry.uid()) {
-			auto instanceComponents = make_instances(*render_it, first, last + 1);
-			info.command_buffer.add_components<instance_id>(psl::array_view<entity_t>(first_ent, last_ent + 1),
-															instanceComponents);
-			first	  = &trns;
-			first_ent = &ent;
+			auto instanceComponents = make_instances(*render_it, transforms);
+			info.command_buffer.add_components<instance_id>(entities, instanceComponents);
 			render_it = &render;
+			transforms.clear();
+			entities.clear();
 		}
+		transforms.push_back(&trns);
+		entities.push_back(ent);
 	}
 
-	auto instanceComponents = make_instances(*render_it, first, last + 1);
-	info.command_buffer.add_components<instance_id>(psl::array_view<entity_t>(first_ent, last_ent + 1),
-													instanceComponents);
+	auto instanceComponents = make_instances(*render_it, transforms);
+	info.command_buffer.add_components<instance_id>(entities, instanceComponents);
 }
 
 void geometry_instancing::dynamic_remove(
@@ -198,38 +196,35 @@ void geometry_instancing::dynamic_update(info_t& info,
 }
 
 void geometry_instancing::static_add(info_t& info,
-									 pack_direct_full_t<entity_t,
-														const renderable,
-														const transform,
-														psl::ecs::except<dynamic_tag>,
-														on_combine<const renderable, const transform>,
-														order_by<renderer_sort, renderable>> geometry_pack) {
+									 pack_indirect_full_t<entity_t,
+														  const renderable,
+														  const transform,
+														  psl::ecs::except<dynamic_tag>,
+														  on_combine<const renderable, const transform>,
+														  order_by<renderer_sort, renderable>> geometry_pack) {
 	if(geometry_pack.size() == 0) {
 		return;
 	}
 	core::profiler.scope_begin("geometry_instancing::static_add");
-	transform const* first {&geometry_pack.get<const transform>()[0]};
-	transform const* last {nullptr};
-	auto* render_it		= &geometry_pack.get<renderable const>()[0];
-	entity_t* first_ent = &geometry_pack.get<entity_t>()[0];
-	entity_t* last_ent {nullptr};
+	psl::array<transform const*> transforms {};
+	psl::array<entity_t> entities {};
+	transforms.reserve(geometry_pack.size());
+	entities.reserve(geometry_pack.size());
+
+	auto* render_it = &geometry_pack.get<renderable const>()[0];
 	for(auto [ent, render, trns] : geometry_pack) {
 		auto bundleHandle = render.bundle;
-		last_ent		  = &ent;
-		last			  = &trns;
 		if(bundleHandle.uid() != render_it->bundle.uid() || render_it->geometry.uid() != render.geometry.uid()) {
-			auto instanceComponents = make_instances(*render_it, first, last + 1);
-			info.command_buffer.add_components<instance_id>(psl::array_view<entity_t>(first_ent, last_ent + 1),
-															instanceComponents);
-			first	  = &trns;
-			first_ent = &ent;
+			auto instanceComponents = make_instances(*render_it, transforms);
+			info.command_buffer.add_components<instance_id>(entities, instanceComponents);
 			render_it = &render;
 		}
+		transforms.push_back(&trns);
+		entities.push_back(ent);
 	}
 
-	auto instanceComponents = make_instances(*render_it, first, last + 1);
-	info.command_buffer.add_components<instance_id>(psl::array_view<entity_t>(first_ent, last_ent + 1),
-													instanceComponents);
+	auto instanceComponents = make_instances(*render_it, transforms);
+	info.command_buffer.add_components<instance_id>(entities, instanceComponents);
 	core::profiler.scope_end();
 }
 void geometry_instancing::static_remove(info_t& info,

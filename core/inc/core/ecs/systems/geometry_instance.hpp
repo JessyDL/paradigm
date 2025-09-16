@@ -40,7 +40,7 @@ class geometry_instancing {
   private:
 	void dynamic_add(
 	  psl::ecs::info_t& info,
-	  psl::ecs::pack_direct_partial_t<
+	  psl::ecs::pack_indirect_partial_t<
 		psl::ecs::entity_t,
 		const core::ecs::components::renderable,
 		const core::ecs::components::transform,
@@ -69,7 +69,7 @@ class geometry_instancing {
 
 	void
 	static_add(psl::ecs::info_t& info,
-			   psl::ecs::pack_direct_full_t<
+			   psl::ecs::pack_indirect_full_t<
 				 psl::ecs::entity_t,
 				 const core::ecs::components::renderable,
 				 const core::ecs::components::transform,
@@ -103,8 +103,7 @@ class geometry_instancing {
 														psl::ecs::on_remove<core::ecs::components::renderable>> pack);
 
 	psl::array<instance_id> make_instances(core::ecs::components::renderable const& renderable,
-										   const core::ecs::components::transform* first,
-										   const core::ecs::components::transform* last);
+										   psl::array<core::ecs::components::transform const*> transforms);
 	std::mutex m_Mutex;
 };
 }	 // namespace core::ecs::systems
