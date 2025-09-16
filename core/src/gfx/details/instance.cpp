@@ -13,8 +13,6 @@ using namespace core::gfx;
 using namespace core::gfx::details::instance;
 using namespace core::resource;
 
-constexpr instancing_size_type default_capacity = 32;
-
 data::data(core::resource::handle<core::gfx::buffer_t> vertexBuffer,
 		   core::resource::handle<core::gfx::shader_buffer_binding> materialBuffer) noexcept
 	: m_VertexInstanceBuffer(vertexBuffer), m_MaterialInstanceBuffer(materialBuffer) {}
@@ -96,7 +94,7 @@ void data::add(core::resource::handle<material_t> material) {
 					core::gfx::log->error("could not allocate");
 					continue;
 				}
-				data.instance_data.emplace_back(geometry_instance_data::entry {res.value(), d.description, d.slot});
+				data.add_binding(d.description, res.value(), d.slot);
 			}
 		} else {
 			if(it->first.size_of_element != d.description.size_of_element)
@@ -111,7 +109,7 @@ std::vector<instancing_size_type> data::add(core::resource::tag<core::gfx::geome
 											instancing_size_type count) {
 	auto it = m_GeometryInstanceData.find(uid);
 	if(it == std::end(m_GeometryInstanceData)) {
-		auto const size = std::max(count, default_capacity);
+		auto const size = std::max(count, instancing_default_capacity);
 		it				= m_GeometryInstanceData.emplace(uid, geometry_instance_data {size}).first;
 		it->second.capacity(size);
 		for(const auto& b : m_UniqueBindings) {
@@ -120,7 +118,7 @@ std::vector<instancing_size_type> data::add(core::resource::tag<core::gfx::geome
 				core::gfx::log->error("could not allocate");
 				continue;
 			}
-			it->second.instance_data.emplace_back(geometry_instance_data::entry {res.value(), b.first, b.second});
+			it->second.add_binding(b.first, res.value(), b.second);
 		}
 	}
 
@@ -128,7 +126,7 @@ std::vector<instancing_size_type> data::add(core::resource::tag<core::gfx::geome
 		auto const size = it->second.capacity();
 		auto new_size	= std::max(size + count, size + (size >> 1));
 
-		for(auto& entry : it->second.instance_data) {
+		for(auto& entry : it->second) {
 			auto res = m_VertexInstanceBuffer->reserve(new_size * entry.description.size_of_element);
 			if(!res) {
 				core::gfx::log->error("could not allocate");
@@ -162,7 +160,7 @@ bool data::remove(core::resource::handle<material_t> material) noexcept {
 
 instancing_size_type data::count(core::resource::tag<core::gfx::geometry_t> uid) const noexcept {
 	if(auto it = m_GeometryInstanceData.find(uid.uid()); it != std::end(m_GeometryInstanceData)) {
-		return it->second.size();
+		return it->second.count();
 	}
 	return 0;
 }
@@ -175,12 +173,9 @@ psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material_t> mat
 		if(auto geomIt = m_GeometryInstanceData.find(geometry); geomIt != std::end(m_GeometryInstanceData)) {
 			size_t count = {0};
 			for(const auto& binding : matIt->second) {
-				auto it = std::find_if(std::begin(geomIt->second.instance_data),
-									   std::end(geomIt->second.instance_data),
-									   [&bDescr = binding.description](const geometry_instance_data::entry& entry) {
-										   return entry.description == bDescr;
-									   });
-
+				auto it = geomIt->second.find(binding.description);
+				psl_assert(
+				  it != nullptr, "could not find binding {} in geometry instance data", binding.description.name);
 				result.emplace_back(binding.slot, it->memory.range().begin);
 			}
 		}
@@ -191,11 +186,7 @@ psl::array<std::pair<size_t, std::uintptr_t>> data::bindings(tag<material_t> mat
 
 bool data::has_element(tag<geometry_t> geometry, psl::string_view name) const noexcept {
 	if(auto it = m_GeometryInstanceData.find(geometry); it != std::end(m_GeometryInstanceData)) {
-		return std::find_if(std::begin(it->second.instance_data),
-							std::end(it->second.instance_data),
-							[&name](const geometry_instance_data::entry& entry) {
-								return entry.description.name == name;
-							}) != std::end(it->second.instance_data);
+		return it->second.contains(name);
 	}
 	return false;
 }
@@ -203,11 +194,8 @@ bool data::has_element(tag<geometry_t> geometry, psl::string_view name) const no
 std::optional<std::pair<memory::segment, uint32_t>> data::segment(tag<geometry_t> geometry,
 																  psl::string_view name) const noexcept {
 	if(auto it = m_GeometryInstanceData.find(geometry); it != std::end(m_GeometryInstanceData)) {
-		auto descrIt =
-		  std::find_if(std::begin(it->second.instance_data),
-					   std::end(it->second.instance_data),
-					   [&name](const geometry_instance_data::entry& entry) { return entry.description.name == name; });
-		if(descrIt != std::end(it->second.instance_data)) {
+		auto descrIt = it->second.find(name);
+		if(descrIt != nullptr) {
 			return std::pair {descrIt->memory, descrIt->description.size_of_element};
 		}
 	}
@@ -233,7 +221,7 @@ bool data::erase(core::resource::tag<core::gfx::geometry_t> geometry, instancing
 }
 bool data::clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept {
 	if(auto it = m_GeometryInstanceData.find(geometry); it != std::end(m_GeometryInstanceData)) {
-		for(auto& data : it->second.instance_data) {
+		for(auto& data : it->second) {
 			m_VertexInstanceBuffer->deallocate(data.memory);
 		}
 
@@ -244,7 +232,7 @@ bool data::clear(core::resource::tag<core::gfx::geometry_t> geometry) noexcept {
 }
 bool data::clear() noexcept {
 	for(auto& [uid, geom_data] : m_GeometryInstanceData) {
-		for(auto& data : geom_data.instance_data) {
+		for(auto& data : geom_data) {
 			m_VertexInstanceBuffer->deallocate(data.memory);
 		}
 	}
@@ -343,7 +331,8 @@ instancing_size_type geometry_instance_data::capacity() const noexcept {
 void geometry_instance_data::capacity(instancing_size_type max) {
 	psl_assert(max > manager.size(),
 			   "Setting a max capacity lower than the current allocated entries will end up in errors.");
-	m_Max = max;
+	m_Max			  = max;
+	m_Link->m_MaxSize = m_Max;
 }
 
 std::vector<instancing_size_type> geometry_instance_data::add(instancing_size_type count) {
@@ -386,7 +375,7 @@ std::vector<instancing_size_type> geometry_instance_data::add(instancing_size_ty
 	return ids;
 };
 
-instancing_size_type geometry_instance_data::size() const noexcept {
+instancing_size_type geometry_instance_data::count() const noexcept {
 	return manager.size();
 }
 
@@ -415,23 +404,61 @@ void geometry_instance_data::clear() noexcept {
 }
 
 psl::array<core::gfx::memory_copy> geometry_instance_data::consume() {
-	auto commands = std::move(m_Link->m_Commands);
-	m_Link->m_Commands.clear();
+	auto& commands = m_Link->consume();
 	if(commands.empty()) {
 		return {};
 	}
 
 	psl::array<core::gfx::memory_copy> instructions {};
+	instructions.reserve(commands.size() * instance_data.size());
 	for(auto const& data : instance_data) {
 		for(auto& command : commands) {
-			// we can safely ignore resize commands, as they are implicit in the copy commands.
-			if(std::holds_alternative<storage_link::swap_command>(command)) {
-				auto& swap = std::get<storage_link::swap_command>(command);
-				instructions.push_back({data.memory.range().begin + (swap.src * data.description.size_of_element),
-										data.memory.range().begin + (swap.dst * data.description.size_of_element),
-										swap.count * data.description.size_of_element});
-			}
+			instructions.push_back({data.memory.range().begin + (command.src * data.description.size_of_element),
+									data.memory.range().begin + (command.dst * data.description.size_of_element),
+									command.count * data.description.size_of_element});
 		}
 	}
+	commands.clear();
 	return instructions;
+}
+
+void geometry_instance_data::add_binding(binding::header description, memory::segment segment, uint32_t slot) {
+	auto it = std::find_if(
+	  std::begin(instance_data), std::end(instance_data), [&description](const geometry_instance_data::entry& entry) {
+		  return entry.description == description;
+	  });
+	if(it != std::end(instance_data)) {
+		core::gfx::log->error("binding {} already exists, cannot add it again", description.name);
+		return;
+	}
+	instance_data.emplace_back(geometry_instance_data::entry {segment, description, slot});
+}
+
+geometry_instance_data::entry const* geometry_instance_data::find(psl::string_view name) const noexcept {
+	auto it =
+	  std::find_if(std::begin(instance_data),
+				   std::end(instance_data),
+				   [&name](const geometry_instance_data::entry& entry) { return entry.description.name == name; });
+	if(it != std::end(instance_data)) {
+		return &*it;
+	}
+	return nullptr;
+}
+
+geometry_instance_data::entry const* geometry_instance_data::find(binding::header const& header) const noexcept {
+	auto it =
+	  std::find_if(std::begin(instance_data),
+				   std::end(instance_data),
+				   [&header](const geometry_instance_data::entry& entry) { return entry.description == header; });
+	if(it != std::end(instance_data)) {
+		return &*it;
+	}
+	return nullptr;
+}
+
+bool geometry_instance_data::contains(psl::string_view name) const noexcept {
+	return std::find_if(
+			 std::begin(instance_data), std::end(instance_data), [&name](const geometry_instance_data::entry& entry) {
+				 return entry.description.name == name;
+			 }) != std::end(instance_data);
 }

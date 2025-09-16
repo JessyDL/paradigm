@@ -22,18 +22,37 @@ class material_t;
 }	 // namespace core::gfx
 
 namespace core::gfx::details::instance {
+class geometry_instance_data;
 
+/// \brief A link between a gpu_storage_buffer and the geometry_instance_data that owns it.
+/// \details This link is used to record commands that need to be executed on the gpu storage buffer.
+/// When the instance's apply is invoked, it will consume the commands recorded in this link and execute
+/// them on the actual gpu buffer.
+/// \warning This structure relies on implementation details of psl::sparse_array.
 struct storage_link {
+	friend class geometry_instance_data;
+
+  public:
 	struct swap_command {
 		instancing_size_type src;
 		instancing_size_type dst;
 		instancing_size_type count;
 	};
-	struct resize_command {
-		instancing_size_type new_size;
-	};
+	void swap(instancing_size_type first, instancing_size_type second, instancing_size_type count) {
+		m_Swaps.emplace_back(first, second, count);
+	}
+
+	instancing_size_type capacity() const noexcept {
+		return m_MaxSize;
+	}
+
+  private:
+	std::vector<swap_command>& consume() {
+		return m_Swaps;
+	}
+
 	instancing_size_type m_MaxSize {std::numeric_limits<instancing_size_type>::max()};
-	std::vector<std::variant<swap_command, resize_command>> m_Commands;
+	std::vector<swap_command> m_Swaps {};
 };
 
 /// \brief A virtual storage buffer that records commands instead of executing them
@@ -45,34 +64,24 @@ class gpu_storage_buffer {
   public:
 	gpu_storage_buffer([[maybe_unused]] Key max_size, std::shared_ptr<storage_link> link) : m_Link(link) {}
 	Key capacity() const noexcept {
-		return m_Link->m_MaxSize;
+		return m_Link->capacity();
 	}
 
 	void swap([[maybe_unused]] Key first, [[maybe_unused]] Key second) {
-		m_Link->m_Commands.push_back(storage_link::swap_command {second, first, 1});
+		// This relies on implementation details, but a swap always happens when an erase happens.
+		// The second element is always the last element that is being moved to the first element's
+		// position. And the first element will always be the element being erased.
+		m_Link->swap(second, first, 1);
 	}
 	void reserve([[maybe_unused]] Key new_size) {
 		// reserve does nothing, as this is a virtual buffer
 		// we only resize when needed
 	}
-	void insert_space([[maybe_unused]] Key index, [[maybe_unused]] Key count) {
-		m_Size += count;
-		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
-		// m_Link->m_Commands.push_back(storage_link::swap_command {index, index + count, m_Size - (index + count)});
-	}
-	void truncate([[maybe_unused]] Key new_size) {
-		m_Size = new_size;
-		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
-	}
-	void clear([[maybe_unused]] bool release_memory = false) noexcept {
-		m_Size = 0;
-		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
-	}
+	void insert_space([[maybe_unused]] Key index, [[maybe_unused]] Key count) {}
+	void truncate([[maybe_unused]] Key new_size) {}
+	void clear([[maybe_unused]] bool release_memory = false) noexcept {}
 
-	void emplace_back() {
-		++m_Size;
-		m_Link->m_Commands.push_back(storage_link::resize_command {m_Size});
-	};
+	void emplace_back() {};
 
   private:
 	std::shared_ptr<storage_link> m_Link;
@@ -96,15 +105,70 @@ struct binding {
 
 // for every unique geometry we will have an instance of this that will manage the instance data
 // associated to this geometry for all materials in the bundle.
-struct geometry_instance_data {
+class geometry_instance_data {
+	/// \brief An entry containing the memory segment, description and slot for an instance data element.
 	struct entry {
 		memory::segment memory;
 		binding::header description;
 		uint32_t slot;
 	};
 
-	geometry_instance_data(uint32_t capacity) : manager(capacity, m_Link), instance_data(), m_Max(capacity) {}
+  public:
+	geometry_instance_data(instancing_size_type capacity)
+		: manager(capacity, m_Link), instance_data(), m_Max(capacity) {}
 
+
+	/// \brief returns the number of available instances that can be allocated without reallocating.
+	instancing_size_type available() const noexcept;
+	/// \brief returns the maximum number of instances that can be allocated.
+	instancing_size_type capacity() const noexcept;
+	/// \brief sets the maximum number of instances that can be allocated.
+	void capacity(instancing_size_type max);
+	/// \brief adds `count` instances and returns their ids.
+	/// \warning This does not dynamically resize the storage, if you exceed the capacity, an assertion will be
+	/// triggered. It is your responsibility to reserve enough capacity before adding instances.
+	/// \see capacity()
+	std::vector<instancing_size_type> add(instancing_size_type count);
+
+	/// \brief returns the number of currently allocated instances.
+	instancing_size_type count() const noexcept;
+
+	/// \brief removes the instance with the given id.
+	void erase(instancing_size_type id);
+	/// \brief removes all instances in the given range.
+	void erase(auto&& first, auto&& last);
+
+	/// \brief returns the offset of the instance data's member. Note that this is not accounting for the instance's size
+	instancing_size_type index_of(instancing_size_type id) const noexcept;
+
+	/// \brief clears all instances.
+	/// \warning This does not deallocate any memory, it only marks all instances as free.
+	void clear() noexcept;
+
+	/// \brief returns all recorded memory copy operations and clears the internal list.
+	psl::array<core::gfx::memory_copy> consume();
+
+	void add_binding(binding::header description, memory::segment segment, uint32_t slot);
+
+	auto begin() const noexcept {
+		return instance_data.begin();
+	}
+	auto begin() noexcept {
+		return instance_data.begin();
+	}
+
+	auto end() const noexcept {
+		return instance_data.end();
+	}
+	auto end() noexcept {
+		return instance_data.end();
+	}
+
+	entry const* find(psl::string_view name) const noexcept;
+	entry const* find(binding::header const& header) const noexcept;
+	bool contains(psl::string_view name) const noexcept;
+
+  private:
 	std::shared_ptr<storage_link> m_Link {std::make_shared<storage_link>()};
 	psl::sparse_indice_array<instancing_size_type,
 							 instancing_size_type,
@@ -119,19 +183,6 @@ struct geometry_instance_data {
 													// these.
 													// Note that these will never be compacted.
 	instancing_size_type m_Max {0};	   // Maximum number of instances allowed, set to numeric_limits::max to disable
-
-	instancing_size_type available() const noexcept;
-	instancing_size_type capacity() const noexcept;
-	void capacity(instancing_size_type max);
-	std::vector<instancing_size_type> add(instancing_size_type count);
-	instancing_size_type size() const noexcept;
-	void erase(instancing_size_type id);
-	void erase(auto&& first, auto&& last);
-
-	/// \brief returns the offset of the instance data's member. Note that this is not accounting for the instance's size
-	instancing_size_type index_of(instancing_size_type id) const noexcept;
-	void clear() noexcept;
-	psl::array<core::gfx::memory_copy> consume();
 };
 
 }	 // namespace core::gfx::details::instance
