@@ -1,7 +1,7 @@
 #pragma once
 #include "platform_def.hpp"
-#include "source_location.hpp"
 #include <exception>
+#include <source_location>
 #include <tuple>
 #include <type_traits>
 #if defined(PE_DEBUG)
@@ -42,7 +42,7 @@ namespace details {
 
 	template <typename... Args>
 	concept HasSourceLocOverride =
-	  (std::is_same_v<std::remove_cvref_t<last_type_pack_t<Args...>>, psl::source_location>);
+	  (std::is_same_v<std::remove_cvref_t<last_type_pack_t<Args...>>, std::source_location>);
 
 
 #if !defined(PE_PLATFORM_ANDROID)
@@ -81,7 +81,7 @@ namespace details {
 		}
 
 		print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
-			requires((!std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> && ...))
+			requires((!std::is_same_v<std::remove_cvref_t<Args>, std::source_location> && ...))
 		{
 			auto log_level = android_log_level(level);
 	#if defined(PE_DEBUG)
@@ -101,7 +101,7 @@ namespace details {
 
 		template <size_t Current, typename T, typename... Types, size_t... Indices>
 		static auto stripped_print_indices(std::index_sequence<Indices...> indices) {
-			if constexpr(std::is_same_v<std::remove_cvref_t<T>, psl::source_location>) {
+			if constexpr(std::is_same_v<std::remove_cvref_t<T>, std::source_location>) {
 				return stripped_print_indices<Current + 1, Types...>(indices);
 			} else {
 				return stripped_print_indices<Current + 1, Types...>(std::index_sequence<Indices..., Current> {});
@@ -120,7 +120,7 @@ namespace details {
 
 	  public:
 		print_t(level_t level, const char* func, const char* file, int line, const char* format, Args&&... args)
-			requires((std::is_same_v<std::remove_cvref_t<Args>, psl::source_location> || ...))
+			requires((std::is_same_v<std::remove_cvref_t<Args>, std::source_location> || ...))
 		{
 			auto log_level = android_log_level(level);
 	#if defined(PE_DEBUG)
@@ -134,7 +134,7 @@ namespace details {
 		print_t(level_t level,
 				const char* fmt,
 				Args&&... args,
-				const psl::source_location& loc = psl::source_location::current())
+				const std::source_location& loc = std::source_location::current())
 			requires(!HasSourceLocOverride<Args...>)
 		{
 			internal_print(
@@ -160,7 +160,7 @@ namespace details {
 							const char* fmt,
 							std::tuple<Ys&...> args,
 							std::index_sequence<Is...> indices,
-							const psl::source_location& loc) {
+							const std::source_location& loc) {
 			const char* log_level;
 			switch(level) {
 			case level_t::verbose:
@@ -348,7 +348,7 @@ namespace psl {
 /// @param reason An optional message to print
 /// @param loc The location where the fatal error occurred, note ignore setting this value, it will be set automatically
 [[noreturn]] inline void fatal(auto const& reason			   = "",
-							   const psl::source_location& loc = psl::source_location::current()) {
+							   const std::source_location& loc = std::source_location::current()) {
 	psl_print(level_t::fatal, "{} at {}", reason, loc);
 	std::terminate();
 }

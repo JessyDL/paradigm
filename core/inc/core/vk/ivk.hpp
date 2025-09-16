@@ -1,6 +1,4 @@
 #pragma once
-#include "psl/source_location.hpp"
-
 #include "psl/platform_def.hpp"
 #include "psl/string_utils.hpp"
 
@@ -476,12 +474,12 @@ inline VkPushConstantRange push_constant_range(VkShaderStageFlags stageFlags, ui
 }	 // namespace core::utility::vulkan::defaults
 
 namespace core::utility::vulkan {
-inline bool check(const vk::Result& value, const psl::source_location& loc = psl::source_location::current()) {
+inline bool check(const vk::Result& value, const std::source_location& loc = std::source_location::current()) {
 	psl_assert(value == vk::Result::eSuccess, "vk::Result expected success, but got {}", vk::to_string(value), loc);
 	return value == vk::Result::eSuccess;
 }
 
-inline bool check(const VkResult& value, const psl::source_location& loc = psl::source_location::current()) {
+inline bool check(const VkResult& value, const std::source_location& loc = std::source_location::current()) {
 	psl_assert(
 	  value == VkResult::VK_SUCCESS, "vk::Result expected success, but got {}", vk::to_string((vk::Result)value), loc);
 	return value == VkResult::VK_SUCCESS;
