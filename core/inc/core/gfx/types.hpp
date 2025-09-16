@@ -9,6 +9,10 @@
 #include <vector>
 
 namespace core::gfx {
+/// \brief Defines the maximum number of instances that can be rendered in a single draw call.
+using instancing_size_type										  = std::uint32_t;
+static constexpr instancing_size_type instancing_default_capacity = 32;
+
 enum class graphics_backend { undefined = 0, vulkan = 1 << 0, gles = 1 << 1, webgpu = 1 << 2 };
 
 constexpr auto graphics_backend_str(graphics_backend backend) noexcept {

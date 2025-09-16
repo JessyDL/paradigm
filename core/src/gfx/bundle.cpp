@@ -82,42 +82,111 @@ bool bundle::bind_material(uint32_t renderlayer) noexcept {
 // instance data API
 // ------------------------------------------------------------------------------------------------------------
 
-uint32_t bundle::instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept {
+instancing_size_type bundle::instances(core::resource::tag<core::gfx::geometry_t> geometry) const noexcept {
 	return m_InstanceData.count(geometry);
 }
 
-std::vector<std::pair<uint32_t, uint32_t>>
-bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry, uint32_t count, geometry_type type) {
+std::vector<instancing_size_type> bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
+													  instancing_size_type count,
+													  geometry_type type) {
 	return m_InstanceData.add(geometry, count);
 }
 
-uint32_t bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept {
+instancing_size_type bundle::size(tag<core::gfx::geometry_t> geometry) const noexcept {
 	return m_InstanceData.count(geometry);
 }
 bool bundle::has(tag<core::gfx::geometry_t> geometry) const noexcept {
 	return size(geometry) > 0;
 }
 
-bool bundle::release(tag<core::gfx::geometry_t> geometry, uint32_t id) noexcept {
+bool bundle::release(tag<core::gfx::geometry_t> geometry, instancing_size_type id) noexcept {
 	return m_InstanceData.erase(geometry, id);
+}
+
+bool bundle::release(tag<core::gfx::geometry_t> geometry, std::span<instancing_size_type const> ids) noexcept {
+	return m_InstanceData.erase(geometry, ids);
 }
 
 bool bundle::release_all(std::optional<geometry_type> type) noexcept {
 	return m_InstanceData.clear();
 };
 
-bool bundle::set(tag<core::gfx::geometry_t> geometry,
-				 uint32_t id,
+bool bundle::set(core::resource::tag<core::gfx::geometry_t> geometry,
+				 std::span<instancing_size_type const> ids,
 				 memory::segment segment,
 				 uint32_t size_of_element,
-				 const void* data,
-				 size_t size,
-				 size_t count) {
-	return m_InstanceData.vertex_buffer()->commit({core::gfx::commit_instruction {
-	  (void*)data, size * count, segment, memory::range_t {size_of_element * id, size_of_element * (id + count)}}});
+				 std::byte* data,
+				 size_t size) {
+	if(ids.size() == 0) {
+		return true;
+	}
+	struct range {
+		instancing_size_type begin, end;
+		std::byte *data_begin, *data_end;
+	};
+	std::vector<range> ranges {};
+	ranges.reserve(ids.size());
+	auto data_offset = data;
+	{
+		auto index_of = m_InstanceData.index_of(geometry, ids[0]);
+		ranges.push_back(range {index_of, index_of + 1, data, data + size});
+		data_offset += size;
+	}
+
+	for(auto i = 1; i < ids.size(); ++i, data_offset += size) {
+		auto index_of = m_InstanceData.index_of(geometry, ids[i]);
+		if(ranges.back().end == index_of) {
+			ranges.back().end = index_of + 1;
+			ranges.back().data_end += size;
+		} else {
+			ranges.emplace_back(range {index_of, index_of + 1, data_offset, data_offset + size});
+		}
+	}
+
+	std::byte* temp = new std::byte[size * ids.size()];
+	// sort the ranges, and swap the memory of the data pointer accordingly.
+	std::sort(std::begin(ranges), std::end(ranges), [](const range& a, const range& b) { return a.begin < b.begin; });
+
+	// now copy the data over to a temp buffer in the right order.
+	size_t offset = 0;
+	for(auto& range : ranges) {
+		auto range_size = range.data_end - range.data_begin;
+		std::memcpy(temp + offset, range.data_begin, range_size);
+		range.data_begin = temp + offset;
+		range.data_end	 = range.data_begin + range_size;
+		offset += range_size;
+	}
+
+	// now that the ranges are sorted, we can merge them if the end == begin of the next range
+	for(size_t i = 1; i < ranges.size(); ++i) {
+		if(ranges[i - 1].end == ranges[i].begin) {
+			ranges[i - 1].end	   = ranges[i].end;
+			ranges[i - 1].data_end = ranges[i].data_end;
+			ranges.erase(std::begin(ranges) + i);
+			--i;
+		}
+	}
+
+	psl::array<core::gfx::commit_instruction> instructions {};
+	for(auto range : ranges) {
+		auto range_count = range.end - range.begin;
+		instructions.emplace_back(
+		  core::gfx::commit_instruction {range.data_begin,
+										 size * range_count,
+										 segment,
+										 memory::range_t {size_of_element * range.begin, size_of_element * range.end}});
+	}
+
+	auto res = m_InstanceData.vertex_buffer()->commit(instructions);
+	delete[] temp;
+	return res;
 }
 
 
 bool bundle::set(tag<core::gfx::material_t> material, const void* data, size_t size, size_t offset) {
 	return m_InstanceData.set(material, data, size, offset);
+}
+
+void bundle::apply() {
+	m_InstanceData.apply();
 }

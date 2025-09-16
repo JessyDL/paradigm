@@ -235,6 +235,11 @@ namespace details {
 			return m_Data;
 		}
 
+		constexpr inline auto to_array() const noexcept -> psl::array<value_type> {
+			psl::array<value_type> arr(begin(), end());
+			return arr;
+		}
+
 	  private:
 		psl::array_view<size_type> m_Indices {};
 		pointer_type m_Data {};

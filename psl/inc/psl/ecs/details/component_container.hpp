@@ -239,7 +239,7 @@ class component_container_typed_t final : public component_container_t {
 	size_t copy_from(psl::array_view<entity_t> entities, void* source, bool repeat) noexcept override {
 		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
 		T* src = (T*)source;
-		m_Entities.set(entities.begin(), entities.end(), src, repeat ? nullptr : src + entities.size());
+		m_Entities.assign(entities.begin(), entities.end(), src, repeat ? nullptr : src + entities.size());
 		return sizeof(T) * entities.size();
 	};
 
@@ -551,14 +551,13 @@ class component_container_untyped_t final : public component_container_t {
 		psl_assert((std::uintptr_t)source % m_Info.alignment == 0, "pointer has to be aligned");
 		std::byte* src = (std::byte*)source;
 		if(repeat) {
-			for(auto e : entities) {
-				std::memcpy(m_Entities.addressof(e, stage_range_t::ALL), src, m_Info.size);
-			}
+			m_Entities.assign(entities.begin(), entities.end(), details::untyped_iterator_t {src, m_Info.size});
+
 		} else {
-			for(auto e : entities) {
-				std::memcpy(m_Entities.addressof(e, stage_range_t::ALL), src, m_Info.size);
-				src += m_Info.size;
-			}
+			m_Entities.assign(entities.begin(),
+							  entities.end(),
+							  details::untyped_iterator_t {src, m_Info.size},
+							  details::untyped_iterator_t {src + entities.size(), m_Info.size});
 		}
 		return m_Info.size * entities.size();
 	};
