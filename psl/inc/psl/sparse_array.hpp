@@ -171,8 +171,7 @@ namespace impl {
 			auto const old_size = size();
 			if constexpr(!std::is_trivially_destructible_v<T>) {
 				for(size_t i = new_size; i < old_size; ++i) {
-					m_End->~T();
-					--m_End;
+					(--m_End)->~T();
 				}
 			} else {
 				m_End -= (old_size - new_size);

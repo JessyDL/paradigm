@@ -8,6 +8,7 @@
 #include "psl/memory/raw_region.hpp"
 #include "psl/platform_def.hpp"
 #include "psl/sparse_array.hpp"
+#include "psl/thread_safety_guard.hpp"
 #include "psl/utility/cast.hpp"
 #include <cstring>	  // std::memmove
 #include <memory>	  // std::uninitialized_move
@@ -204,12 +205,16 @@ namespace impl {
 		}
 
 		void reserve(Key new_size) {
-			if(new_size > capacity()) {
-				auto const old_size = m_End - m_Begin;
+			const auto cap = capacity();
+			if(new_size > cap) {
+				auto const old_count = m_End - m_Begin;
+				auto const old_size	 = old_count * sizeof(T);
 
 				::memory::raw_region new_dense(new_size * sizeof(T));
+				psl_assert(new_dense.size() >= old_size,
+						   "new dense size must be greater than or equal to current size");
 				if constexpr(std::is_trivially_copyable_v<T>) {
-					std::memcpy(new_dense.data(), m_Dense.data(), old_size * sizeof(T));
+					std::memcpy(new_dense.data(), m_Dense.data(), old_size);
 					// when available use std::start_lifetime_as<T>(...);
 				} else {
 					auto currentPtr		= m_Begin;
@@ -262,8 +267,7 @@ namespace impl {
 			auto const old_size = size();
 			if constexpr(!std::is_trivially_destructible_v<T>) {
 				for(size_t i = new_size; i < old_size; ++i) {
-					m_End->~T();
-					--m_End;
+					(--m_End)->~T();
 				}
 			} else {
 				m_End -= (old_size - new_size);
@@ -1249,6 +1253,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
+		auto lock		  = m_Guard.scoped_guard();
 		index_type* begin = &convert_from_user_type(it_index_first);
 		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
 		return insert_impl<insertion_mode::insert>(begin, end, it_data_first, it_data_last);
@@ -1264,6 +1269,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
+		auto lock		  = m_Guard.scoped_guard();
 		index_type* begin = &convert_from_user_type(it_index_first);
 		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
 		return insert_impl<insertion_mode::try_insert>(begin, end, it_data_first, it_data_last);
@@ -1278,6 +1284,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
+		auto lock		  = m_Guard.scoped_guard();
 		index_type* begin = &convert_from_user_type(it_index_first);
 		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
 		return insert_impl<insertion_mode::set>(begin, end, it_data_first, it_data_last);
@@ -1303,6 +1310,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
+		auto lock		  = m_Guard.scoped_guard();
 		index_type* begin = &convert_from_user_type(it_index_first);
 		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
 		return erase_impl<false>(begin, end);
@@ -1314,6 +1322,7 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
+		auto lock		  = m_Guard.scoped_guard();
 		index_type* begin = &convert_from_user_type(it_index_first);
 		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
 		return erase_impl<true>(begin, end);
@@ -2021,7 +2030,9 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 					   "Data iterator range must match the index iterator range in size");
 		}
 
-		m_Reverse.reserve(m_StageStart[3] + size);
+		if constexpr(InsertMode != insertion_mode::assign) {
+			m_Reverse.reserve(m_StageStart[3] + size);
+		}
 
 		// as we'll insert as we go along, we need to reserve space upfront
 		// try_insert can have holes and set can add new elements.
@@ -2074,6 +2085,10 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		  },
 		  it_data_first,
 		  it_data_last);
+
+		if constexpr(InsertMode == insertion_mode::assign) {
+			return count;
+		}
 
 		if(count > 0) {
 			if constexpr(IS_ASSIGNABLE && InsertMode == insertion_mode::try_insert &&
@@ -2211,6 +2226,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 
 	psl::static_array<index_type, 4> m_StageStart {0, 0, 0, 0};
 	psl::static_array<index_type, 3> m_StageSize {0, 0, 0};
+
+	psl::thread_safety_guard_t m_Guard {};
 };
 
 }	 // namespace psl::ecs::details
