@@ -587,6 +587,10 @@ struct func_traits<Ret (C::*)(Args...) const> {
 	using arguments_t = type_pack_t<Args...>;
 };
 
+template <typename F>
+concept IsCallable = std::is_function_v<std::remove_pointer_t<std::decay_t<F>>> ||
+					 std::is_member_function_pointer_v<std::decay_t<F>> || requires { &F::operator(); };
+
 struct any {
 	template <typename T>
 	operator T&() const;
