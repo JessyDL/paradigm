@@ -69,7 +69,6 @@ ecs/systems/fly
 ecs/systems/death
 ecs/systems/lifetime
 ecs/systems/render
-ecs/systems/geometry_instance
 ecs/systems/attractor
 ecs/systems/movement
 ecs/systems/gpu_camera

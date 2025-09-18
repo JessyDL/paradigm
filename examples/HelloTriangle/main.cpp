@@ -37,7 +37,6 @@
 #include "core/ecs/components/camera.hpp"
 #include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
-#include "core/ecs/systems/geometry_instance.hpp"	 // ecs system that handles instanced rendering, as we only support instanced rendering this does the heavy lifting for you
 #include "core/ecs/systems/gpu_camera.hpp"
 #include "core/ecs/systems/render.hpp"	  // the ecs system that handles making the drawcalls for you based on the renderables
 #include "core/gfx/buffer.hpp"
@@ -83,8 +82,9 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// we'll create a memory region that will be used to store various data such wvp data and more.
 	// we create this before the cache as the handles which will reference this memory region will only be cleared
 	// when the cache is destroyed.
-	// todo(jdl): we should add additional logging/debugging to help with these types of lifetime issues, they are caused
-	// due to the deferred nature of the cache, and how the cache ends up being the lifetime manager of the resources.
+	// todo(jdl): we should add additional logging/debugging to help with these types of lifetime issues, they are
+	// caused due to the deferred nature of the cache, and how the cache ends up being the lifetime manager of the
+	// resources.
 	memory::region resource_region {20_mb, 4u, new memory::default_allocator()};
 
 	core::resource::cache_t cache {psl::meta::library {"data/resources.metalib", {{environment}}}};
@@ -179,13 +179,13 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	cache.library().set(intanceMaterialBinding.uid(), core::data::material_t::MATERIAL_DATA);
 
 	auto globalShaderBufferData = cache.create<core::data::buffer_t>(
-		core::gfx::memory_usage::uniform_buffer,
-		core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
-		resource_region.create_region(1_mb, uniform_buffer_align, new memory::default_allocator(true)).value());
+	  core::gfx::memory_usage::uniform_buffer,
+	  core::gfx::memory_property::host_visible | core::gfx::memory_property::host_coherent,
+	  resource_region.create_region(1_mb, uniform_buffer_align, new memory::default_allocator(true)).value());
 
 	auto globalShaderBuffer	   = cache.create<core::gfx::buffer_t>(context_handle, globalShaderBufferData);
 	auto frameCamBufferBinding = cache.create<core::gfx::shader_buffer_binding>(
-		globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
+	  globalShaderBuffer, 100_kb, sizeof(core::ecs::systems::gpu_camera::framedata));
 	// we additionally set a "readable" name we will use to lookup this buffer with. Shaders will use this name to
 	// reference the buffer within the shader code.
 	cache.library().set(frameCamBufferBinding, "GLOBAL_DYNAMIC_WORLD_VIEW_PROJECTION_MATRIX");
@@ -220,7 +220,7 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// in general objects in core::data namespace are the RAM backed resources, and mostly used to create the GPU
 	// resources in the core::gfx namespace.
 	auto triangleGeometryResource =
-		cache.create<core::gfx::geometry_t>(context_handle, triangleGeomData, vertexBuffer, indexBuffer);
+	  cache.create<core::gfx::geometry_t>(context_handle, triangleGeomData, vertexBuffer, indexBuffer);
 
 	// create a pipeline cache
 	auto pipeline_cache = cache.create<core::gfx::pipeline_cache>(context_handle);
@@ -231,15 +231,14 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	auto vertShaderMeta		   = cache.library().get<core::meta::shader>(uid_vert_shader).value_or(nullptr);
 	auto fragShaderMeta		   = cache.library().get<core::meta::shader>(uid_frag_shader).value_or(nullptr);
 
-	psl_assert(
-		vertShaderMeta != nullptr && fragShaderMeta != nullptr,
-		"Missing vert/frag shaders. If this happens then you are missing the resources, they should be deployed "
-		"with the binary.");
+	psl_assert(vertShaderMeta != nullptr && fragShaderMeta != nullptr,
+			   "Missing vert/frag shaders. If this happens then you are missing the resources, they should be deployed "
+			   "with the binary.");
 
 	auto matData = cache.create<core::data::material_t>();
 	matData->from_shaders(cache.library(), {vertShaderMeta, fragShaderMeta});
 	auto material =
-		cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, instanceMaterialBuffer);
+	  cache.create<core::gfx::material_t>(context_handle, matData, pipeline_cache, instanceMaterialBuffer);
 
 
 	auto bundle = cache.create<core::gfx::bundle>(instanceBuffer, intanceMaterialBinding);
@@ -251,23 +250,28 @@ int entry(core::gfx::graphics_backend backend, core::os::context& os_context) {
 	// you can find more information on the ECS design in `docs/ecs.md`.
 	// the core::ecs::system::render will take care of constructing the drawcalls for us based on the renderable
 	// component, which has a reference to both the bundle and the geometry.
-	// the core::ecs::system::geometry_instancing will take care of setting up the instance data for us.
+	// the core::ecs::system::render will take care of setting up the instance data for us if we set the correct tag on
+	// our entities.
 	psl::ecs::state_t state {};
 	auto gpuCameraSystem = core::ecs::systems::gpu_camera {state, surface_handle, frameCamBufferBinding, backend};
-	auto geometryInstancingSystem = core::ecs::systems::geometry_instancing {state};
-	auto renderSystem			  = core::ecs::systems::render {state, swapchain_pass};
+	auto renderSystem	 = core::ecs::systems::render {state, swapchain_pass};
 	// here we define the renderrange this system will be in charge of.
 	// any renderables that have a bundle that satisfies this will have a drawcall created for them.
 	renderSystem.add_render_range(0, 1000);
 
-	state.create(1,
-					core::ecs::components::transform {psl::vec3 {0, 0, -2}},
-					psl::ecs::empty<core::ecs::components::camera> {});
+	state.create(
+	  1, core::ecs::components::transform {psl::vec3 {0, 0, -2}}, psl::ecs::empty<core::ecs::components::camera> {});
 
-	state.create(1,
-					core::ecs::components::renderable {bundle, triangleGeometryResource},
-					psl::ecs::empty<core::ecs::components::dynamic_tag>(),
-					psl::ecs::empty<core::ecs::components::transform> {});
+	state.create(
+	  1,
+	  [&](core::ecs::components::renderable& renderable) {
+		  renderable.bundle		 = bundle;
+		  renderable.geometry	 = triangleGeometryResource;
+		  renderable.instance_id = bundle->instantiate(triangleGeometryResource, 1).front();
+	  },
+	  psl::ecs::empty<core::ecs::components::transform_instance_object_model_tag> {},
+	  psl::ecs::empty<core::ecs::components::dynamic_tag>(),
+	  psl::ecs::empty<core::ecs::components::transform> {});
 
 #pragma endregion example
 

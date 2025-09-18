@@ -59,7 +59,6 @@
 #include "core/ecs/systems/attractor.hpp"
 #include "core/ecs/systems/death.hpp"
 #include "core/ecs/systems/fly.hpp"
-#include "core/ecs/systems/geometry_instance.hpp"
 #include "core/ecs/systems/gpu_camera.hpp"
 #include "core/ecs/systems/lifetime.hpp"
 #include "core/ecs/systems/lighting.hpp"
@@ -620,7 +619,6 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 								  });
 
 	ECSState.declare<"attractor">(psl::ecs::threading::par, core::ecs::systems::attractor);
-	core::ecs::systems::geometry_instancing geometry_instancing_system {ECSState};
 
 	core::ecs::systems::lighting_system lighting {psl::view_ptr(&ECSState),
 												  psl::view_ptr(&cache),

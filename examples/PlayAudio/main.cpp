@@ -9,9 +9,7 @@
 #include "core/data/geometry.hpp"
 #include "core/data/material.hpp"
 #include "core/ecs/components/camera.hpp"
-#include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
-#include "core/ecs/systems/geometry_instance.hpp"
 #include "core/ecs/systems/gpu_camera.hpp"
 #include "core/ecs/systems/render.hpp"
 #include "core/gfx/geometry.hpp"
@@ -49,7 +47,6 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	psl::ecs::state_t state {};
 	auto gpuCameraSystem = core::ecs::systems::gpu_camera {
 	  state, engine_instance.surface(), engine_instance.frame_cam_buffer_binding(), backend};
-	auto geometryInstancingSystem = core::ecs::systems::geometry_instancing {state};
 	auto renderSystem			  = core::ecs::systems::render {state, engine_instance.swapchain()};
 	renderSystem.add_render_range(0, 1000);
 

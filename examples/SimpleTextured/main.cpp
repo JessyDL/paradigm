@@ -14,7 +14,6 @@
 #include "core/ecs/components/camera.hpp"
 #include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
-#include "core/ecs/systems/geometry_instance.hpp"
 #include "core/ecs/systems/gpu_camera.hpp"
 #include "core/ecs/systems/render.hpp"
 #include "core/gfx/geometry.hpp"
@@ -58,17 +57,22 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	psl::ecs::state_t state {};
 	auto gpuCameraSystem = core::ecs::systems::gpu_camera {
 	  state, engine_instance.surface(), engine_instance.frame_cam_buffer_binding(), backend};
-	auto geometryInstancingSystem = core::ecs::systems::geometry_instancing {state};
-	auto renderSystem			  = core::ecs::systems::render {state, engine_instance.swapchain()};
+	auto renderSystem = core::ecs::systems::render {state, engine_instance.swapchain()};
 	renderSystem.add_render_range(0, 1000);
 
 	state.create(
 	  1, core::ecs::components::transform {psl::vec3 {0, 0, -2}}, psl::ecs::empty<core::ecs::components::camera> {});
 
-	state.create(1,
-				 core::ecs::components::renderable {bundle, triangleGeometryResource},
-				 psl::ecs::empty<core::ecs::components::dynamic_tag>(),
-				 psl::ecs::empty<core::ecs::components::transform> {});
+	state.create(
+	  1,
+	  [&](core::ecs::components::renderable& renderable) {
+		  renderable.bundle		 = bundle;
+		  renderable.geometry	 = triangleGeometryResource;
+		  renderable.instance_id = bundle->instantiate(triangleGeometryResource, 1).front();
+	  },
+	  psl::ecs::empty<core::ecs::components::transform_instance_object_model_tag>(),
+	  psl::ecs::empty<core::ecs::components::dynamic_tag>(),
+	  psl::ecs::empty<core::ecs::components::transform> {});
 
 	engine_instance.run([&state](auto const& engine_instance,
 								 std::chrono::duration<float> dTime,
