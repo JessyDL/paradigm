@@ -27,6 +27,8 @@ bool render::renderer_sort::operator()(const core::ecs::components::renderable& 
 
 render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass) : m_Pass(pass) {
 	state.declare<"render::update_instance_data">(threading::seq, &render::update_instance_data, this);
+	state.declare<"render::update_instance_object_model">(threading::seq, &render::update_instance_object_model, this);
+	state.declare<"render::release_renderable_instances">(threading::seq, &render::release_renderable_instances, this);
 	state.declare<"render::tick_draws">(threading::seq, &render::tick_draws, this);
 }
 
@@ -135,6 +137,54 @@ void render::update_instance_object_model(
 	}
 }
 
+void render::release_renderable_instances(
+  info_t& info,
+  pack_indirect_partial_t<const renderable, on_remove<renderable>, psl::ecs::order_by<renderer_sort, renderable>>
+	pack) {
+	if(pack.empty()) {
+		return;
+	}
+	// now for each removed renderable, remove the instance ids from the bundle if they exist.
+	auto* render_it = &pack.get<renderable const>()[0];
+
+	psl::array<std::uint32_t> instanceIDs {};
+	std::unordered_map<psl::UID, core::resource::handle<core::gfx::bundle>> seenBundles;
+
+	for(auto [render] : pack) {
+		auto bundleHandle = render.bundle;
+		if(render.instance_id != std::numeric_limits<core::gfx::instancing_size_type>::max()) {
+			instanceIDs.push_back(render.instance_id);
+		}
+		if(bundleHandle.uid() != render_it->bundle.uid() || render_it->geometry.uid() != render.geometry.uid()) {
+			{
+				auto lck = std::scoped_lock(m_Mutex);
+				bundleHandle->release(render.geometry, instanceIDs);
+			}
+			if(seenBundles.find(bundleHandle.uid()) == seenBundles.end()) {
+				seenBundles.insert({bundleHandle.uid(), bundleHandle});
+			}
+			render_it = &render;
+			instanceIDs.clear();
+		}
+	}
+
+	{
+		{
+			auto scoped_lock = std::scoped_lock(m_Mutex);
+			auto bundle		 = render_it->bundle;
+			bundle->release(render_it->geometry, instanceIDs);
+		}
+		if(seenBundles.find(render_it->bundle.uid()) == seenBundles.end()) {
+			seenBundles.insert({render_it->bundle.uid(), render_it->bundle});
+		}
+	}
+
+	auto scoped_lock = std::scoped_lock(m_Mutex);
+	for(auto& [uid, bundle] : seenBundles) {
+		bundle->apply();
+	}
+}
+
 
 void render::tick_draws(info_t& info,
 						pack_indirect_full_t<const renderable, on_add<renderable>> renderables,
@@ -161,45 +211,6 @@ void render::tick_draws(info_t& info,
 		}
 	}
 	m_Pass->add(m_DrawGroup);
-
-	if(broken_renderables.empty()) {
-		return;
-	}
-
-	// now for each removed renderable, remove the instance ids from the bundle if they exist.
-	auto* render_it = &broken_renderables.get<renderable const>()[0];
-
-	psl::array<std::uint32_t> instanceIDs {};
-	std::unordered_map<psl::UID, core::resource::handle<core::gfx::bundle>> seenBundles;
-
-	for(auto [render] : broken_renderables) {
-		auto bundleHandle = render.bundle;
-		if(render.instance_id != std::numeric_limits<core::gfx::instancing_size_type>::max()) {
-			instanceIDs.push_back(render.instance_id);
-		}
-		if(bundleHandle.uid() != render_it->bundle.uid() || render_it->geometry.uid() != render.geometry.uid()) {
-			auto scoped_lock = std::scoped_lock(m_Mutex);
-			bundleHandle->release(render.geometry, instanceIDs);
-			if(seenBundles.find(bundleHandle.uid()) == seenBundles.end()) {
-				seenBundles.insert({bundleHandle.uid(), bundleHandle});
-			}
-			render_it = &render;
-			instanceIDs.clear();
-		}
-	}
-
-	{
-		auto scoped_lock = std::scoped_lock(m_Mutex);
-		auto bundle		 = render_it->bundle;
-		bundle->release(render_it->geometry, instanceIDs);
-		if(seenBundles.find(bundle.uid()) == seenBundles.end()) {
-			seenBundles.insert({bundle.uid(), bundle});
-		}
-	}
-
-	for(auto& [uid, bundle] : seenBundles) {
-		bundle->apply();
-	}
 }
 
 void render::add_render_range(uint32_t begin, uint32_t end) {

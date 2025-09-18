@@ -283,8 +283,8 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	// apply filterings
 	for(auto& filter_result : m_Filters) {
 		m_Scheduler->schedule([this, &filter_result, &mod_entities, &mod_hierarchy_entities]() {
-		filter(filter_result,
-			   filter_result.group->is_hierarchy_change_active() ? mod_hierarchy_entities : mod_entities);
+			filter(filter_result,
+				   filter_result.group->is_hierarchy_change_active() ? mod_hierarchy_entities : mod_entities);
 		});
 	}
 

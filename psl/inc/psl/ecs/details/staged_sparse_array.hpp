@@ -734,8 +734,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	/// \param stage `stage_range_t` to limit what data is returned
 	/// \return A view of the underlying data as the requested type
 	template <typename U = T>
-	FORCEINLINE auto dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept
-	  -> psl::array_view<value_type const>
+	FORCEINLINE auto
+	dense(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> psl::array_view<value_type const>
 		requires(IS_COMPLEX)
 	{
 		static_assert(std::is_same_v<value_type, U>, "dense_storage_type type does not match requested type");
@@ -810,8 +810,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	/// \param stage Used to limit the stages we wish to look in
 	/// \return Given memory address as a const ref
 	/// \note When assertions are enabled, this function can assert
-	FORCEINLINE auto at(user_index_type index, stage_range_t stage = stage_range_t::ALIVE) const noexcept
-	  -> value_type const&
+	FORCEINLINE auto at(user_index_type index,
+						stage_range_t stage = stage_range_t::ALIVE) const noexcept -> value_type const&
 		requires(IS_COMPLEX)
 	{
 		return *addressof(index, stage);
@@ -824,8 +824,11 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	/// \param stage Used to limit the stages we wish to look in
 	/// \return Given memory address as a const ref
 	/// \note When assertions are enabled, this function can assert
-	FORCEINLINE auto at(user_index_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept
-	  -> value_type& requires(IS_COMPLEX) { return *addressof(index, stage); }
+	FORCEINLINE auto at(user_index_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> value_type&
+		requires(IS_COMPLEX)
+	{
+		return *addressof(index, stage);
+	}
 
 
 	template <typename U>
@@ -844,26 +847,27 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	}
 
 	template <typename U>
-	FORCEINLINE auto at(user_index_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept
-	  -> U& requires(IS_COMPLEX || IS_TRIVIAL) {
-		  if constexpr(IS_TRIVIAL) {
-			  psl_assert(dense_storage_type::type_size() == sizeof(U),
-						 "dense_storage_type type size does not match requested type size");
-			  psl_assert(dense_storage_type::type_alignment() == alignof(U),
-						 "dense_storage_type type alignment does not match requested type alignment");
-		  } else {
-			  static_assert(std::is_same_v<value_type, U>, "dense_storage_type type does not match requested type");
-		  }
-		  return *reinterpret_cast<U*>(addressof(index, stage));
-	  }
+	FORCEINLINE auto at(user_index_type index, stage_range_t stage = stage_range_t::ALIVE) noexcept -> U&
+		requires(IS_COMPLEX || IS_TRIVIAL)
+	{
+		if constexpr(IS_TRIVIAL) {
+			psl_assert(dense_storage_type::type_size() == sizeof(U),
+					   "dense_storage_type type size does not match requested type size");
+			psl_assert(dense_storage_type::type_alignment() == alignof(U),
+					   "dense_storage_type type alignment does not match requested type alignment");
+		} else {
+			static_assert(std::is_same_v<value_type, U>, "dense_storage_type type does not match requested type");
+		}
+		return *reinterpret_cast<U*>(addressof(index, stage));
+	}
 
 	/// \brief Get a pointer of the data at the index
 	/// \param index Where to look
 	/// \param stage Used to limit the stages we wish to look in
 	/// \return memory address
 	/// \note When assertions are enabled, this function can assert
-	FORCEINLINE auto addressof(user_index_type index, stage_range_t range = stage_range_t::ALIVE) const noexcept
-	  -> const_pointer
+	FORCEINLINE auto addressof(user_index_type index,
+							   stage_range_t range = stage_range_t::ALIVE) const noexcept -> const_pointer
 		requires(IS_ASSIGNABLE)
 	{
 		auto element_index = convert_from_user_type(index);
@@ -907,8 +911,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	/// \param index Where to look
 	/// \param stage Used to limit the stages we wish to look in
 	/// \return memory address or nullptr
-	FORCEINLINE auto addressof_if(user_index_type index, stage_range_t range = stage_range_t::ALIVE) const noexcept
-	  -> const_pointer
+	FORCEINLINE auto addressof_if(user_index_type index,
+								  stage_range_t range = stage_range_t::ALIVE) const noexcept -> const_pointer
 		requires(IS_ASSIGNABLE)
 	{
 		auto chunk = userspace_to_internal(convert_from_user_type(index));
@@ -1010,8 +1014,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	/// \brief Get a view of the indices for the given `stage_range_t`
 	/// \param stage `stage_range_t` to limit what indices are returned
 	/// \return A view of the indices
-	FORCEINLINE auto indices(stage_range_t range = stage_range_t::ALIVE) const noexcept
-	  -> psl::array_view<user_index_type> {
+	FORCEINLINE auto
+	indices(stage_range_t range = stage_range_t::ALIVE) const noexcept -> psl::array_view<user_index_type> {
 		if(m_Reverse.empty()) {
 			return {};
 		}
@@ -1249,7 +1253,9 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		return valid;
 	}
 
-	constexpr FORCEINLINE auto operator[](user_index_type index) -> value_type& requires(IS_COMPLEX) {
+	constexpr FORCEINLINE auto operator[](user_index_type index) -> value_type&
+		requires(IS_COMPLEX)
+	{
 		auto element_index = convert_from_user_type(index);
 		auto chunk_index   = userspace_to_internal(element_index);
 		if(element_index == TOMBSTONE) {
@@ -1449,11 +1455,11 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 
 	constexpr FORCEINLINE auto end() noexcept -> T* requires(IS_COMPLEX) { return dense_storage_type::end(); }
 
-	constexpr FORCEINLINE auto begin() const noexcept
-	  -> T const* requires(IS_COMPLEX) { return dense_storage_type::begin(); }
+	constexpr FORCEINLINE
+	  auto begin() const noexcept -> T const* requires(IS_COMPLEX) { return dense_storage_type::begin(); }
 
-	constexpr FORCEINLINE auto end() const noexcept
-	  -> T const* requires(IS_COMPLEX) { return dense_storage_type::end(); }
+	constexpr FORCEINLINE
+	  auto end() const noexcept -> T const* requires(IS_COMPLEX) { return dense_storage_type::end(); }
 
 	struct merge_result {
 		bool success {false};
