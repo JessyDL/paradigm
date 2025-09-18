@@ -74,7 +74,6 @@ ecs/systems/movement
 ecs/systems/gpu_camera
 ecs/systems/lighting
 ecs/systems/text
-ecs/systems/debug/grid
 
 ecs/components/audio
 ecs/components/camera

@@ -6,12 +6,17 @@
 #include "core/gfx/bundle.hpp"
 #include "core/gfx/geometry.hpp"
 
+namespace psl::ecs {
+class accessor;
+}
+
 namespace core::gfx {
 class bundle;
 class geometry_t;
 }	 // namespace core::gfx
 namespace core::ecs::components {
 struct renderable {
+	friend class psl::ecs::accessor;
 	renderable() = default;
 	renderable(const core::resource::handle<core::gfx::bundle>& bundle,
 			   const core::resource::handle<core::gfx::geometry_t>& geometry) noexcept
@@ -20,6 +25,10 @@ struct renderable {
 	core::resource::handle<core::gfx::bundle> bundle {};
 	core::resource::handle<core::gfx::geometry_t> geometry {};
 	core::gfx::instancing_size_type instance_id {std::numeric_limits<core::gfx::instancing_size_type>::max()};
+
+  private:
+	renderable(renderable const&)			 = default;
+	renderable& operator=(renderable const&) = default;
 };
 
 /// \brief Tag that indicates we should upload the transform instance data for this renderable.

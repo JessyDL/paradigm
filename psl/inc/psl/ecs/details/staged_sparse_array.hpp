@@ -168,7 +168,7 @@ namespace impl {
 				if constexpr(std::is_trivially_copyable_v<T>) {
 					std::memcpy(m_Begin + index, std::addressof(*value), sizeof(T));
 				} else {
-					m_Begin[index] = *value;
+					psl::ecs::accessor::assign<T>(m_Begin + index, *value);
 				}
 			}
 		}
@@ -178,7 +178,10 @@ namespace impl {
 			if constexpr(std::is_trivially_copyable_v<T>) {
 				std::swap_ranges(m_Begin + first, m_Begin + first + 1, m_Begin + second);
 			} else {
-				std::swap(m_Begin[first], m_Begin[second]);
+				T tmp;
+				psl::ecs::accessor::assign<T>(&tmp, std::move(*(m_Begin + first)));
+				psl::ecs::accessor::assign<T>(m_Begin + first, std::move(m_Begin[second]));
+				psl::ecs::accessor::assign<T>(m_Begin + second, std::move(tmp));
 			}
 		}
 
@@ -187,7 +190,7 @@ namespace impl {
 			if constexpr(std::is_trivially_constructible_v<T>) {
 				// no-op for trivial types, when available use std::start_lifetime_as<T>(m_End);
 			} else {
-				new(m_End) T();
+				psl::ecs::accessor::construct_at<T>(m_End);
 			}
 			++m_End;
 		}
@@ -199,7 +202,7 @@ namespace impl {
 				std::memcpy(m_End, &*value, sizeof(T));
 				// when available use std::start_lifetime_as<T>(m_End);
 			} else {
-				new(m_End) T(*value);
+				psl::ecs::accessor::construct_at<T>(m_End, *value);
 			}
 			++m_End;
 		}
@@ -224,7 +227,7 @@ namespace impl {
 					psl_assert(new_dense_size >= (m_End - m_Begin) * sizeof(T),
 							   "new dense size must be greater than or equal to current size");
 					for(size_t i = 0; i < size(); ++i) {
-						new(newTargetPtr) T(std::move(*currentPtr));
+						psl::ecs::accessor::construct_at<T>(newTargetPtr, std::move(*currentPtr));
 						if constexpr(!std::is_trivially_destructible_v<T>) {
 							currentPtr->~T();
 						}
@@ -256,7 +259,7 @@ namespace impl {
 				while(currentPtr > m_Begin + index) {
 					--currentPtr;
 					--targetPtr;
-					new(targetPtr) T(std::move(*currentPtr));
+					psl::ecs::accessor::construct_at<T>(targetPtr, std::move(*currentPtr));
 				}
 			}
 			m_End += count;
@@ -277,7 +280,30 @@ namespace impl {
 
 		void rotate(Key begin, Key middle, Key last) {
 			psl_assert(begin < size() && middle < size() && last <= size(), "index out of bounds");
-			std::rotate(m_Begin + begin, m_Begin + middle, m_Begin + last);
+			auto firstPtr = m_Begin + begin;
+			auto midPtr	  = m_Begin + middle;
+			auto lastPtr  = m_Begin + last;
+			if(firstPtr == midPtr || midPtr == lastPtr) {
+				return;
+			}
+
+			// implement rotate using three reverses
+			auto reverse = [](T* start, T* end) {
+				while((start < end) && (start != --end)) {
+					if constexpr(std::is_trivially_copyable_v<T>) {
+						std::swap_ranges(start, start + 1, end);
+					} else {
+						T tmp;
+						psl::ecs::accessor::assign<T>(&tmp, std::move(*start));
+						psl::ecs::accessor::assign<T>(start, std::move(*end));
+						psl::ecs::accessor::assign<T>(end, std::move(tmp));
+					}
+					++start;
+				}
+			};
+			reverse(firstPtr, midPtr);
+			reverse(midPtr, lastPtr);
+			reverse(firstPtr, lastPtr);
 		}
 
 		T* begin() noexcept {
@@ -946,7 +972,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 				  if constexpr(std::is_trivially_copyable_v<value_type>) {
 					  std::memcpy(&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), sizeof(value_type));
 				  } else {
-					  new(dataIt) value_type(*dense_storage_type::unsafe_data(chunk[chunk_offset]));
+					  psl::ecs::accessor::construct_at<value_type>(
+						dataIt, *dense_storage_type::unsafe_data(chunk[chunk_offset]));
 				  }
 			  } else {
 				  std::memcpy(

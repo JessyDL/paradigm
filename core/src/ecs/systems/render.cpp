@@ -162,6 +162,9 @@ void render::tick_draws(info_t& info,
 	}
 	m_Pass->add(m_DrawGroup);
 
+	if(broken_renderables.empty()) {
+		return;
+	}
 
 	// now for each removed renderable, remove the instance ids from the bundle if they exist.
 	auto* render_it = &broken_renderables.get<renderable const>()[0];
