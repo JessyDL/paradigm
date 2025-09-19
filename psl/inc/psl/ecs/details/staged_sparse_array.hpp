@@ -1479,8 +1479,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			  typename InvocableNotFound,
 			  typename IndexItFirst,
 			  typename IndexItLast,
-			  typename DataItFirst = void*,
-			  typename DataItLast  = void*>
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each(stage_range_t range,
 							  InvocableFound&& InvocableOnFound,
@@ -1496,29 +1496,25 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
-		invoke_for<false>(
-		  begin,
-		  end,
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
+		invoke_for_l0<false, false>(
+		  index_span,
 		  [&InvocableOnFound,
 		   &InvocableOnNotFound,
 		   range_begin = psl::narrow_cast<index_type>(stage_begin(range)),
 		   range_end   = psl::narrow_cast<index_type>(stage_end(range))](
-			index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto... dataIt) {
 			  if(chunk[chunk_offset] < range_begin || chunk[chunk_offset] >= range_end) {
 				  InvocableOnNotFound(index);
 			  }
 			  if constexpr(IS_FLAG) {
 				  InvocableOnFound(index);
-			  } else if constexpr(std::is_same_v<DataItFirst, void*>) {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]));
 			  } else {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt);
+				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt...);
 			  }
 		  },
-		  data_first,
-		  data_last,
+		  data_span,
 		  InvocableOnNotFound);
 	}
 
@@ -1527,8 +1523,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			  typename InvocableNotFound,
 			  typename IndexItFirst,
 			  typename IndexItLast,
-			  typename DataItFirst = void*,
-			  typename DataItLast  = void*>
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each(InvocableFound&& InvocableOnFound,
 							  InvocableNotFound&& InvocableOnNotFound,
@@ -1543,29 +1539,26 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
-		invoke_for<false>(
-		  begin,
-		  end,
-		  [&InvocableOnFound](index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
+		invoke_for_l0<false, false>(
+		  index_span,
+		  [&InvocableOnFound](
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto... dataIt) {
 			  if constexpr(IS_FLAG) {
 				  InvocableOnFound(index);
-			  } else if constexpr(std::is_same_v<DataItFirst, void*>) {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]));
 			  } else {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt);
+				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt...);
 			  }
 		  },
-		  data_first,
-		  data_last,
+		  data_span,
 		  InvocableOnNotFound);
 	}
 
 	template <typename Invocable,
 			  typename IndexItFirst,
 			  typename IndexItLast,
-			  typename DataItFirst = void*,
+			  typename DataItFirst = std::nullptr_t,
 			  typename DataItLast  = void*>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each(Invocable&& InvocableOnFound,
@@ -1579,22 +1572,19 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
-		invoke_for<false>(
-		  begin,
-		  end,
-		  [&InvocableOnFound](index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
+		invoke_for_l0<false, false>(
+		  index_span,
+		  [&InvocableOnFound](
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto... dataIt) {
 			  if constexpr(IS_FLAG) {
 				  InvocableOnFound(index);
-			  } else if constexpr(std::is_same_v<DataItFirst, void*>) {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]));
 			  } else {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt);
+				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt...);
 			  }
 		  },
-		  data_first,
-		  data_last);
+		  data_span);
 	}
 
 	template <typename IndexItFirst,
@@ -1679,145 +1669,6 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	}
 
   private:
-	/// \brief Invokes the callback for each index in the given range, sorted by chunk.
-	template <bool AutoCreate,
-			  typename IndexItFirst,
-			  typename IndexItLast,
-			  typename DataItFirst		   = void*,
-			  typename DataItLast		   = void*,
-			  typename InvocableNotFoundFn = void*>
-	FORCEINLINE auto invoke_for(IndexItFirst it_index_first,
-								IndexItLast it_index_last,
-								auto&& Cb,
-								DataItFirst it_data_first		 = nullptr,
-								DataItLast it_data_last			 = nullptr,
-								InvocableNotFoundFn&& CbNotFound = nullptr) {
-		using view_type = std::span<index_type>;
-		auto const size = psl::narrow_cast<index_type>(std::distance(it_index_first, it_index_last));
-		if(size == 0) {
-			return;
-		}
-		view_type view =
-		  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-		if constexpr(std::is_same_v<DataItLast, void*>) {
-			if(std::is_sorted(view.begin(), view.end())) {
-				invoke_for_impl<AutoCreate, true>(view, Cb, it_data_first, CbNotFound);
-			} else {
-				invoke_for_impl<AutoCreate, false>(view, Cb, it_data_first, CbNotFound);
-			}
-		} else {
-			if(std::is_sorted(it_index_first, it_index_last)) {
-				invoke_for_impl<AutoCreate, true>(view, Cb, it_data_first, it_data_last, CbNotFound);
-			} else {
-				invoke_for_impl<AutoCreate, false>(view, Cb, it_data_first, it_data_last, CbNotFound);
-			}
-		}
-	}
-
-	template <bool AutoCreate,
-			  bool PreSorted,
-			  typename View,
-			  typename DataItFirst		   = void*,
-			  typename DataItLast		   = void*,
-			  typename InvocableNotFoundFn = void*>
-	FORCEINLINE auto invoke_for_impl(View& view,
-									 auto&& Cb,
-									 DataItFirst it_data_first		= nullptr,
-									 DataItLast it_data_last		= nullptr,
-									 InvocableNotFoundFn CbNotFound = nullptr) {
-		static_assert(std::is_same_v<InvocableNotFoundFn, void*> || !AutoCreate,
-					  "Cannot autocreate with a not-found-callback");
-
-		if constexpr(AutoCreate && PreSorted) {
-			sparse_guarantee_for_userspace(*(std::prev(view.end())));
-		} else if constexpr(AutoCreate && !PreSorted) {
-			sparse_guarantee_for_userspace(*std::max_element(view.begin(), view.end()));
-		}
-
-
-		auto it = view.begin();
-		do {
-			auto const first_index = *it;
-			index_type chunk_index {};
-			index_type element_index {};
-			chunk_info_for(first_index, element_index, chunk_index);
-			size_t const prev_treshold {(chunk_index)*CHUNKS_SIZE};
-			size_t const next_treshold {prev_treshold + CHUNKS_SIZE};
-			if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
-				if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
-					for(;;) {
-						if(it == view.end()) {
-							return;
-						}
-						auto const next_index = *it;
-						if constexpr(PreSorted) {
-							if(chunk_index < m_Sparse.size() && next_index >= next_treshold) {
-								break;
-							}
-						} else {
-							if(next_index >= next_treshold || next_index < prev_treshold) {
-								break;
-							}
-						}
-						CbNotFound(next_index);
-						++it;
-					}
-					continue;
-				}
-			} else {
-				psl_assert(chunk_index < m_Sparse.size(), "Chunk index out of bounds");
-			}
-			auto& chunkPtr = m_Sparse[chunk_index];
-			if constexpr(AutoCreate) {
-				if(!chunkPtr) {
-					chunkPtr = std::make_unique<chunk_type>(CHUNKS_SIZE, TOMBSTONE);
-				}
-			} else {
-				psl_assert(chunkPtr, "Chunk pointer cannot be null");
-			}
-
-			auto& chunk = *chunkPtr;
-			for(;;) {
-				if(it == view.end()) {
-					break;
-				}
-				auto const next_index = *it;
-				if constexpr(PreSorted) {
-					if(next_index >= next_treshold) {
-						break;
-					}
-				} else {
-					if(next_index >= next_treshold || next_index < prev_treshold) {
-						break;
-					}
-				}
-
-				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
-				if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
-					if(chunk[next_element_index] == TOMBSTONE) {
-						CbNotFound(next_index);
-						++it;
-						continue;
-					}
-				}
-
-				if constexpr(std::is_same_v<DataItFirst, void*>) {
-					Cb(next_index, chunk, next_element_index);
-				} else if constexpr(std::is_same_v<DataItLast, void*>) {
-					Cb(next_index, chunk, next_element_index, it_data_first);
-				} else if constexpr(!std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, next_element_index, it->second);
-				} else if constexpr(std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, next_element_index, it_data_first);
-					++it_data_first;
-				} else {
-					psl_assert(false, "unreachable");
-				}
-				++it;
-			}
-		} while(it != view.end());
-	}
-
 	enum class insertion_mode {
 		insert,
 		try_insert,
