@@ -125,6 +125,7 @@ class state_t final : public details::entity_relationship_handler_t,
 		psl::array<entity_t> entities;
 		psl::array<entity_t::size_type> indices;	// used in case there is an order_by
 		std::shared_ptr<details::transform_group> group;
+		bool should_generate {true};
 	};
 
 	struct filter_result {

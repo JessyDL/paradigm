@@ -168,7 +168,7 @@ namespace impl {
 				if constexpr(std::is_trivially_copyable_v<T>) {
 					std::memcpy(m_Begin + index, std::addressof(*value), sizeof(T));
 				} else {
-					m_Begin[index] = *value;
+					psl::ecs::accessor::assign<T>(m_Begin + index, *value);
 				}
 			}
 		}
@@ -178,7 +178,10 @@ namespace impl {
 			if constexpr(std::is_trivially_copyable_v<T>) {
 				std::swap_ranges(m_Begin + first, m_Begin + first + 1, m_Begin + second);
 			} else {
-				std::swap(m_Begin[first], m_Begin[second]);
+				T tmp;
+				psl::ecs::accessor::assign<T>(&tmp, std::move(*(m_Begin + first)));
+				psl::ecs::accessor::assign<T>(m_Begin + first, std::move(m_Begin[second]));
+				psl::ecs::accessor::assign<T>(m_Begin + second, std::move(tmp));
 			}
 		}
 
@@ -187,7 +190,7 @@ namespace impl {
 			if constexpr(std::is_trivially_constructible_v<T>) {
 				// no-op for trivial types, when available use std::start_lifetime_as<T>(m_End);
 			} else {
-				new(m_End) T();
+				psl::ecs::accessor::construct_at<T>(m_End);
 			}
 			++m_End;
 		}
@@ -199,7 +202,7 @@ namespace impl {
 				std::memcpy(m_End, &*value, sizeof(T));
 				// when available use std::start_lifetime_as<T>(m_End);
 			} else {
-				new(m_End) T(*value);
+				psl::ecs::accessor::construct_at<T>(m_End, *value);
 			}
 			++m_End;
 		}
@@ -224,7 +227,7 @@ namespace impl {
 					psl_assert(new_dense_size >= (m_End - m_Begin) * sizeof(T),
 							   "new dense size must be greater than or equal to current size");
 					for(size_t i = 0; i < size(); ++i) {
-						new(newTargetPtr) T(std::move(*currentPtr));
+						psl::ecs::accessor::construct_at<T>(newTargetPtr, std::move(*currentPtr));
 						if constexpr(!std::is_trivially_destructible_v<T>) {
 							currentPtr->~T();
 						}
@@ -256,7 +259,7 @@ namespace impl {
 				while(currentPtr > m_Begin + index) {
 					--currentPtr;
 					--targetPtr;
-					new(targetPtr) T(std::move(*currentPtr));
+					psl::ecs::accessor::construct_at<T>(targetPtr, std::move(*currentPtr));
 				}
 			}
 			m_End += count;
@@ -276,8 +279,36 @@ namespace impl {
 		}
 
 		void rotate(Key begin, Key middle, Key last) {
-			psl_assert(begin < size() && middle < size() && last <= size(), "index out of bounds");
-			std::rotate(m_Begin + begin, m_Begin + middle, m_Begin + last);
+			psl_assert(begin < size() && middle < size() && last <= size(),
+					   "index out of bounds, rotate got begin | middle | last: {} {} {} out of size: {}",
+					   begin,
+					   middle,
+					   last,
+					   size());
+			auto firstPtr = m_Begin + begin;
+			auto midPtr	  = m_Begin + middle;
+			auto lastPtr  = m_Begin + last;
+			if(firstPtr == midPtr || midPtr == lastPtr) {
+				return;
+			}
+
+			// implement rotate using three reverses
+			auto reverse = [](T* start, T* end) {
+				while((start < end) && (start != --end)) {
+					if constexpr(std::is_trivially_copyable_v<T>) {
+						std::swap_ranges(start, start + 1, end);
+					} else {
+						T tmp;
+						psl::ecs::accessor::assign<T>(&tmp, std::move(*start));
+						psl::ecs::accessor::assign<T>(start, std::move(*end));
+						psl::ecs::accessor::assign<T>(end, std::move(tmp));
+					}
+					++start;
+				}
+			};
+			reverse(firstPtr, midPtr);
+			reverse(midPtr, lastPtr);
+			reverse(firstPtr, lastPtr);
 		}
 
 		T* begin() noexcept {
@@ -921,15 +952,15 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 										 ItDataFirst it_target_first) const noexcept
 		requires(IS_ASSIGNABLE)
 	{
-		cinvoke_for(
-		  it_index_first,
-		  it_index_last,
-		  [](auto index, chunk_type& chunk, index_type chunk_offset, ItDataFirst dataIt) {
+		auto index_span = psl::impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= psl::impl::to_span_wrapper(it_target_first, it_target_first + index_span.size());
+		std::as_const(*this).template invoke_for_l0<false, false>(
+		  index_span,
+		  [](auto index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto dataIt) {
 			  psl_assert(chunk[chunk_offset] != TOMBSTONE, "expected valid index in sparse array");
 			  *dataIt = chunk[chunk_offset];
 		  },
-		  it_target_first,
-		  it_target_first + std::distance(it_index_first, it_index_last));
+		  data_span);
 	}
 
 	template <typename ItIndexFirst, typename ItIndexLast, typename ItDataFirst>
@@ -937,24 +968,25 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	copy_dense_into(ItIndexFirst it_index_first, ItIndexLast it_index_last, ItDataFirst it_target_first) const noexcept
 		requires(IS_ASSIGNABLE)
 	{
-		cinvoke_for(
-		  it_index_first,
-		  it_index_last,
-		  [this](auto index, chunk_type& chunk, index_type chunk_offset, ItDataFirst dataIt) {
+		auto index_span = psl::impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= psl::impl::to_span_wrapper(it_target_first, it_target_first + index_span.size());
+		std::as_const(*this).template invoke_for_l0<false, false>(
+		  index_span,
+		  [this](auto index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto dataIt) {
 			  psl_assert(chunk[chunk_offset] != TOMBSTONE, "expected valid index in sparse array");
 			  if constexpr(IS_COMPLEX) {
 				  if constexpr(std::is_trivially_copyable_v<value_type>) {
 					  std::memcpy(&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), sizeof(value_type));
 				  } else {
-					  new(dataIt) value_type(*dense_storage_type::unsafe_data(chunk[chunk_offset]));
+					  psl::ecs::accessor::construct_at<value_type>(
+						dataIt, *dense_storage_type::unsafe_data(chunk[chunk_offset]));
 				  }
 			  } else {
 				  std::memcpy(
 					&*dataIt, dense_storage_type::unsafe_data(chunk[chunk_offset]), dense_storage_type::type_size());
 			  }
 		  },
-		  it_target_first,
-		  it_target_first + std::distance(it_index_first, it_index_last));
+		  data_span);
 	}
 
 	constexpr FORCEINLINE auto size(stage_range_t stage = stage_range_t::ALIVE) const noexcept -> index_type {
@@ -1228,7 +1260,9 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		auto chunk_index   = userspace_to_internal(element_index);
 		if(element_index == TOMBSTONE) {
 			insert(&index, &index + 1);
-			return operator[](index);
+			// we know the index must be the last in the added stage start (meaning removed stage - 1) as it has just
+			// been inserted
+			return dense_storage_type::operator[](m_StageStart[2] - 1);
 		}
 		auto internal_index = m_Sparse[chunk_index]->at(element_index);
 		return dense_storage_type::operator[](internal_index);
@@ -1244,7 +1278,10 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		return dense_storage_type::operator[]((*m_Sparse[internal_index])[convert_from_user_type(index)]);
 	}
 
-	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst = void*, typename DataItLast = void*>
+	template <typename IndexItFirst,
+			  typename IndexItLast,
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	constexpr FORCEINLINE auto insert(IndexItFirst it_index_first,
 									  IndexItLast it_index_last,
@@ -1253,14 +1290,17 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
-		auto lock		  = m_Guard.scoped_guard();
-		index_type* begin = &convert_from_user_type(it_index_first);
-		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
-		return insert_impl<insertion_mode::insert>(begin, end, it_data_first, it_data_last);
+		auto index_span = psl::impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= psl::impl::to_span_wrapper(it_data_first, it_data_last);
+		auto lock		= m_Guard.scoped_guard();
+		return insert_impl<insertion_mode::insert>(index_span, data_span);
 	}
 
 
-	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst = void*, typename DataItLast = void*>
+	template <typename IndexItFirst,
+			  typename IndexItLast,
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	constexpr FORCEINLINE auto try_insert(IndexItFirst it_index_first,
 										  IndexItLast it_index_last,
@@ -1269,13 +1309,13 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
-		auto lock		  = m_Guard.scoped_guard();
-		index_type* begin = &convert_from_user_type(it_index_first);
-		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
-		return insert_impl<insertion_mode::try_insert>(begin, end, it_data_first, it_data_last);
+		auto index_span = psl::impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= psl::impl::to_span_wrapper(it_data_first, it_data_last);
+		auto lock		= m_Guard.scoped_guard();
+		return insert_impl<insertion_mode::try_insert>(index_span, data_span);
 	}
 
-	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst, typename DataItLast = void*>
+	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst, typename DataItLast = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	constexpr FORCEINLINE auto set(IndexItFirst it_index_first,
 								   IndexItLast it_index_last,
@@ -1284,13 +1324,13 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
-		auto lock		  = m_Guard.scoped_guard();
-		index_type* begin = &convert_from_user_type(it_index_first);
-		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
-		return insert_impl<insertion_mode::set>(begin, end, it_data_first, it_data_last);
+		auto lock		= m_Guard.scoped_guard();
+		auto index_span = psl::impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= psl::impl::to_span_wrapper(it_data_first, it_data_last);
+		return insert_impl<insertion_mode::set>(index_span, data_span);
 	}
 
-	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst, typename DataItLast = void*>
+	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst, typename DataItLast = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	constexpr FORCEINLINE auto assign(IndexItFirst it_index_first,
 									  IndexItLast it_index_last,
@@ -1299,33 +1339,65 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(it_index_first == it_index_last) {
 			return 0;
 		}
-		index_type* begin = &convert_from_user_type(it_index_first);
-		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
-		return insert_impl<insertion_mode::assign>(begin, end, it_data_first, it_data_last);
+		auto index_span = psl::impl::to_span_wrapper(it_index_first, it_index_last);
+		auto data_span	= psl::impl::to_span_wrapper(it_data_first, it_data_last);
+		return insert_impl<insertion_mode::assign>(index_span, data_span);
 	}
 
+	/// \brief Erases the values at the provided indices from the sparse array.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	///
+	/// \details This function will erase the provided indices from the sparse array.
+	/// All indices are expected to be valid and present in the sparse array, otherwise
+	/// it is considered a user error and will assert in debug builds. Use try_erase to skip
+	/// indices that are not present.
+	///
+	/// \return The number of indices that were actually erased.
 	template <typename IndexItFirst, typename IndexItLast>
-		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
-	constexpr FORCEINLINE auto erase(IndexItFirst it_index_first, IndexItLast it_index_last) -> index_type {
-		if(it_index_first == it_index_last) {
-			return 0;
+		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
+				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
+	constexpr FORCEINLINE auto erase(IndexItFirst begin, IndexItLast end) -> index_type {
+		if(begin == end) {
+			return index_type {0};
 		}
-		auto lock		  = m_Guard.scoped_guard();
-		index_type* begin = &convert_from_user_type(it_index_first);
-		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
-		return erase_impl<false>(begin, end);
+		auto index_span =
+		  psl::impl::to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
+		auto lock = m_Guard.scoped_guard();
+		return erase_impl<false>(index_span);
 	}
 
+	/// \brief Erases the value at the provided index from the sparse array.
+	/// \see erase
+	constexpr FORCEINLINE auto erase(user_index_type index) -> bool {
+		return erase(&index, &index + 1) != 0;
+	}
+
+	/// \brief Attempts to erase the values at the provided indices from the sparse array.
+	/// \tparam IndexItFirst The type of the first iterator for the indices.
+	/// \tparam IndexItLast The type of the last iterator for the indices.
+	///
+	/// \details This function will attempt to erase the provided indices from the sparse array.
+	/// If an index is not present in the sparse array, it will be skipped instead of being considered an error.
+	///
+	/// \return The number of indices that were actually erased.
 	template <typename IndexItFirst, typename IndexItLast>
-		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
-	constexpr FORCEINLINE auto try_erase(IndexItFirst it_index_first, IndexItLast it_index_last) -> index_type {
-		if(it_index_first == it_index_last) {
-			return 0;
+		requires(impl::IsIteratorLikeType<IndexItFirst, user_index_type> &&
+				 impl::IsIteratorLikeType<IndexItLast, user_index_type>)
+	constexpr FORCEINLINE auto try_erase(IndexItFirst begin, IndexItLast end) -> index_type {
+		if(begin == end) {
+			return index_type {0};
 		}
-		auto lock		  = m_Guard.scoped_guard();
-		index_type* begin = &convert_from_user_type(it_index_first);
-		index_type* end	  = begin + std::distance(it_index_first, it_index_last);
-		return erase_impl<true>(begin, end);
+		auto index_span =
+		  psl::impl::to_span_wrapper(std::make_reverse_iterator(end), std::make_reverse_iterator(begin));
+		auto lock = m_Guard.scoped_guard();
+		return erase_impl<true>(index_span);
+	}
+
+	/// \brief Attempts to erase the value at the provided index from the sparse array.
+	/// \see try_erase
+	constexpr FORCEINLINE auto try_erase(user_index_type index) -> bool {
+		return try_erase(&index, &index + 1) != 0;
 	}
 
 	/// \brief Promotes all values to the next `stage_t`. The cycle is as follows: ADDED -> SETTLED -> REMOVED -> deleted.
@@ -1333,12 +1405,12 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		std::span<index_type> reverse_view(std::next(m_Reverse.begin(), m_StageStart[2]), m_Reverse.end());
 
 		if(!reverse_view.empty()) {
-			invoke_for<false>(reverse_view.begin(),
-							  reverse_view.end(),
-							  [this](index_type index, chunk_type& chunk, index_type chunk_offset) {
-								  psl_assert(chunk[chunk_offset] != TOMBSTONE);
-								  chunk[chunk_offset] = TOMBSTONE;
-							  });
+			auto index_span = psl::impl::to_span_wrapper(reverse_view.begin(), reverse_view.end());
+			invoke_for_l0<false, false, index_type>(
+			  index_span, [this](index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset) {
+				  psl_assert(chunk[chunk_offset] != TOMBSTONE);
+				  chunk[chunk_offset] = TOMBSTONE;
+			  });
 
 			dense_storage_type::truncate(m_StageStart[to_underlying(stage_t::REMOVED)]);
 			m_Reverse.erase(std::next(std::begin(m_Reverse), m_StageStart[to_underlying(stage_t::REMOVED)]),
@@ -1384,20 +1456,20 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		}
 		size_t added {0};
 		if(other.m_Reverse.size() > 0) {
+			auto index_span = psl::impl::to_span_wrapper(other.m_Reverse.begin(), other.m_Reverse.end());
 			if constexpr(IS_FLAG) {
-				added = insert_impl<insertion_mode::try_insert>(other.m_Reverse.data(),
-																other.m_Reverse.data() + other.m_Reverse.size());
+				added = insert_impl<insertion_mode::try_insert, index_type>(index_span, nullptr);
 			} else {
-				added += insert_impl<insertion_mode::set>(other.m_Reverse.data(),
-														  other.m_Reverse.data() + other.m_Reverse.size(),
-														  other.dense_storage_type::begin(),
-														  other.dense_storage_type::end());
+				auto data_span =
+				  psl::impl::to_span_wrapper(other.dense_storage_type::begin(), other.dense_storage_type::end());
+				added += insert_impl<insertion_mode::set, index_type>(index_span, data_span);
 			}
 		}
 
 		if(other.m_StageSize[2] > 0) {
-			erase_impl<true>(std::next(other.m_Reverse.data(), other.m_StageStart[2]),
-							 other.m_Reverse.data() + other.m_Reverse.size());
+			auto index_span = psl::impl::to_span_wrapper(std::next(other.m_Reverse.begin(), other.m_StageStart[2]),
+														 std::next(other.m_Reverse.begin(), other.m_Reverse.size()));
+			erase_impl<true, index_type>(index_span);
 		}
 
 		return merge_result {.success = true, .added = added};
@@ -1407,8 +1479,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			  typename InvocableNotFound,
 			  typename IndexItFirst,
 			  typename IndexItLast,
-			  typename DataItFirst = void*,
-			  typename DataItLast  = void*>
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each(stage_range_t range,
 							  InvocableFound&& InvocableOnFound,
@@ -1424,29 +1496,25 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
-		invoke_for<false>(
-		  begin,
-		  end,
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
+		invoke_for_l0<false, false>(
+		  index_span,
 		  [&InvocableOnFound,
 		   &InvocableOnNotFound,
 		   range_begin = psl::narrow_cast<index_type>(stage_begin(range)),
 		   range_end   = psl::narrow_cast<index_type>(stage_end(range))](
-			index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto... dataIt) {
 			  if(chunk[chunk_offset] < range_begin || chunk[chunk_offset] >= range_end) {
 				  InvocableOnNotFound(index);
 			  }
 			  if constexpr(IS_FLAG) {
 				  InvocableOnFound(index);
-			  } else if constexpr(std::is_same_v<DataItFirst, void*>) {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]));
 			  } else {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt);
+				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt...);
 			  }
 		  },
-		  data_first,
-		  data_last,
+		  data_span,
 		  InvocableOnNotFound);
 	}
 
@@ -1455,8 +1523,8 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 			  typename InvocableNotFound,
 			  typename IndexItFirst,
 			  typename IndexItLast,
-			  typename DataItFirst = void*,
-			  typename DataItLast  = void*>
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each(InvocableFound&& InvocableOnFound,
 							  InvocableNotFound&& InvocableOnNotFound,
@@ -1471,29 +1539,26 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
-		invoke_for<false>(
-		  begin,
-		  end,
-		  [&InvocableOnFound](index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
+		invoke_for_l0<false, false>(
+		  index_span,
+		  [&InvocableOnFound](
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto... dataIt) {
 			  if constexpr(IS_FLAG) {
 				  InvocableOnFound(index);
-			  } else if constexpr(std::is_same_v<DataItFirst, void*>) {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]));
 			  } else {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt);
+				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt...);
 			  }
 		  },
-		  data_first,
-		  data_last,
+		  data_span,
 		  InvocableOnNotFound);
 	}
 
 	template <typename Invocable,
 			  typename IndexItFirst,
 			  typename IndexItLast,
-			  typename DataItFirst = void*,
+			  typename DataItFirst = std::nullptr_t,
 			  typename DataItLast  = void*>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each(Invocable&& InvocableOnFound,
@@ -1507,25 +1572,25 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
-		invoke_for<false>(
-		  begin,
-		  end,
-		  [&InvocableOnFound](index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
+		invoke_for_l0<false, false>(
+		  index_span,
+		  [&InvocableOnFound](
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto... dataIt) {
 			  if constexpr(IS_FLAG) {
 				  InvocableOnFound(index);
-			  } else if constexpr(std::is_same_v<DataItFirst, void*>) {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]));
 			  } else {
-				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt);
+				  InvocableOnFound(index, (pointer)dense_storage_type::unsafe_data(chunk[chunk_offset]), &*dataIt...);
 			  }
 		  },
-		  data_first,
-		  data_last);
+		  data_span);
 	}
 
-	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst = void*, typename DataItLast = void*>
+	template <typename IndexItFirst,
+			  typename IndexItLast,
+			  typename DataItFirst = std::nullptr_t,
+			  typename DataItLast  = std::nullptr_t>
 		requires(impl::IsIteratorLikeType<IndexItFirst, Key> && impl::IsIteratorLikeType<IndexItLast, Key>)
 	FORCEINLINE auto for_each_guarantee(auto&& Invocable,
 										IndexItFirst first,
@@ -1535,15 +1600,15 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		if(first == last) {
 			return 0;
 		}
-		index_type* begin = &convert_from_user_type(first);
-		index_type* end	  = begin + std::distance(first, last);
+		auto index_span = psl::impl::to_span_wrapper(first, last);
+		auto data_span	= psl::impl::to_span_wrapper(data_first, data_last);
 
 		auto const size = psl::narrow_cast<index_type>(m_Reverse.size());
-		dense_storage_type::reserve(size + psl::narrow_cast<index_type>(std::distance(first, last)));
-		invoke_for<true>(
-		  begin,
-		  end,
-		  [&Invocable, this](index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
+		dense_storage_type::reserve(size + psl::narrow_cast<index_type>(index_span.size()));
+		invoke_for_l0<true, false>(
+		  index_span,
+		  [&Invocable,
+		   this](index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto dataIt) {
 			  index_type rev_index {chunk[chunk_offset]};
 			  if(rev_index == TOMBSTONE) {
 				  chunk[index] = psl::narrow_cast<index_type>(m_Reverse.size()) - m_StageSize[2];
@@ -1552,14 +1617,13 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 				  dense_storage_type::emplace_back();
 			  }
 
-			  if constexpr(std::is_same_v<DataItFirst, void*>) {
+			  if constexpr(std::is_same_v<DataItFirst, std::nullptr_t>) {
 				  Invocable(index, (pointer)dense_storage_type::unsafe_data(rev_index));
 			  } else {
 				  Invocable(index, (pointer)dense_storage_type::unsafe_data(rev_index), &*dataIt);
 			  }
 		  },
-		  data_first,
-		  data_last);
+		  data_span);
 
 		auto count = psl::narrow_cast<index_type>(m_Reverse.size()) - size;
 		if(count > 0) {
@@ -1605,376 +1669,6 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 	}
 
   private:
-	/// \brief Invokes the callback for each index in the given range, sorted by chunk.
-	template <bool AutoCreate,
-			  typename IndexItFirst,
-			  typename IndexItLast,
-			  typename DataItFirst		   = void*,
-			  typename DataItLast		   = void*,
-			  typename InvocableNotFoundFn = void*>
-	FORCEINLINE auto invoke_for(IndexItFirst it_index_first,
-								IndexItLast it_index_last,
-								auto&& Cb,
-								DataItFirst it_data_first		 = nullptr,
-								DataItLast it_data_last			 = nullptr,
-								InvocableNotFoundFn&& CbNotFound = nullptr) {
-		using view_type = std::span<index_type>;
-		auto const size = psl::narrow_cast<index_type>(std::distance(it_index_first, it_index_last));
-		if(size == 0) {
-			return;
-		}
-		view_type view =
-		  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-		if constexpr(std::is_same_v<DataItLast, void*>) {
-			if(std::is_sorted(view.begin(), view.end())) {
-				invoke_for_impl<AutoCreate, true>(view, Cb, it_data_first, CbNotFound);
-			} else {
-				invoke_for_impl<AutoCreate, false>(view, Cb, it_data_first, CbNotFound);
-			}
-		} else {
-			if(std::is_sorted(it_index_first, it_index_last)) {
-				invoke_for_impl<AutoCreate, true>(view, Cb, it_data_first, it_data_last, CbNotFound);
-			} else {
-				invoke_for_impl<AutoCreate, false>(view, Cb, it_data_first, it_data_last, CbNotFound);
-			}
-		}
-	}
-
-	template <bool AutoCreate,
-			  bool PreSorted,
-			  typename View,
-			  typename DataItFirst		   = void*,
-			  typename DataItLast		   = void*,
-			  typename InvocableNotFoundFn = void*>
-	FORCEINLINE auto invoke_for_impl(View& view,
-									 auto&& Cb,
-									 DataItFirst it_data_first		= nullptr,
-									 DataItLast it_data_last		= nullptr,
-									 InvocableNotFoundFn CbNotFound = nullptr) {
-		static_assert(std::is_same_v<InvocableNotFoundFn, void*> || !AutoCreate,
-					  "Cannot autocreate with a not-found-callback");
-
-		if constexpr(AutoCreate && PreSorted) {
-			sparse_guarantee_for_userspace(*(std::prev(view.end())));
-		} else if constexpr(AutoCreate && !PreSorted) {
-			sparse_guarantee_for_userspace(*std::max_element(view.begin(), view.end()));
-		}
-
-
-		auto it = view.begin();
-		do {
-			auto const first_index = *it;
-			index_type chunk_index {};
-			index_type element_index {};
-			chunk_info_for(first_index, element_index, chunk_index);
-			size_t const prev_treshold {(chunk_index)*CHUNKS_SIZE};
-			size_t const next_treshold {prev_treshold + CHUNKS_SIZE};
-			if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
-				if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
-					for(;;) {
-						if(it == view.end()) {
-							return;
-						}
-						auto const next_index = *it;
-						if constexpr(PreSorted) {
-							if(chunk_index < m_Sparse.size() && next_index >= next_treshold) {
-								break;
-							}
-						} else {
-							if(next_index >= next_treshold || next_index < prev_treshold) {
-								break;
-							}
-						}
-						CbNotFound(next_index);
-						++it;
-					}
-					continue;
-				}
-			} else {
-				psl_assert(chunk_index < m_Sparse.size(), "Chunk index out of bounds");
-			}
-			auto& chunkPtr = m_Sparse[chunk_index];
-			if constexpr(AutoCreate) {
-				if(!chunkPtr) {
-					chunkPtr = std::make_unique<chunk_type>(CHUNKS_SIZE, TOMBSTONE);
-				}
-			} else {
-				psl_assert(chunkPtr, "Chunk pointer cannot be null");
-			}
-
-			auto& chunk = *chunkPtr;
-			for(;;) {
-				if(it == view.end()) {
-					break;
-				}
-				auto const next_index = *it;
-				if constexpr(PreSorted) {
-					if(next_index >= next_treshold) {
-						break;
-					}
-				} else {
-					if(next_index >= next_treshold || next_index < prev_treshold) {
-						break;
-					}
-				}
-
-				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
-				if constexpr(!std::is_same_v<InvocableNotFoundFn, void*>) {
-					if(chunk[next_element_index] == TOMBSTONE) {
-						CbNotFound(next_index);
-						++it;
-						continue;
-					}
-				}
-
-				if constexpr(std::is_same_v<DataItFirst, void*>) {
-					Cb(next_index, chunk, next_element_index);
-				} else if constexpr(std::is_same_v<DataItLast, void*>) {
-					Cb(next_index, chunk, next_element_index, it_data_first);
-				} else if constexpr(!std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, next_element_index, it->second);
-				} else if constexpr(std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, next_element_index, it_data_first);
-					++it_data_first;
-				} else {
-					psl_assert(false, "unreachable");
-				}
-				++it;
-			}
-		} while(it != view.end());
-	}
-
-	template <bool PreSorted, typename View, typename DataItFirst = void*, typename DataItLast = void*>
-	FORCEINLINE auto cinvoke_for_impl(View& view,
-									  auto&& Cb,
-									  DataItFirst it_data_first = nullptr,
-									  DataItLast it_data_last	= nullptr) const {
-		auto it = view.begin();
-		do {
-			auto const first_index = *it;
-			index_type chunk_index {};
-			index_type element_index {};
-			chunk_info_for(first_index, element_index, chunk_index);
-			psl_assert(chunk_index < m_Sparse.size(), "Chunk index out of bounds");
-			auto& chunkPtr = m_Sparse[chunk_index];
-			psl_assert(chunkPtr, "Chunk pointer cannot be null");
-			auto& chunk = *chunkPtr;
-			size_t const prev_treshold {(chunk_index)*CHUNKS_SIZE};
-			size_t const next_treshold {prev_treshold + CHUNKS_SIZE};
-
-			for(;;) {
-				if(it == view.end()) {
-					break;
-				}
-				auto const next_index = *it;
-				if constexpr(PreSorted) {
-					if(next_index >= next_treshold) {
-						break;
-					}
-				} else {
-					if(next_index >= next_treshold || next_index < prev_treshold) {
-						break;
-					}
-				}
-				auto const next_element_index = next_index - static_cast<index_type>(prev_treshold);
-				if constexpr(std::is_same_v<DataItFirst, void*>) {
-					Cb(next_index, chunk, next_element_index);
-				} else if constexpr(std::is_same_v<DataItLast, void*>) {
-					Cb(next_index, chunk, next_element_index, it_data_first);
-				} else if constexpr(!std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, next_element_index, it->second);
-				} else if constexpr(std::is_same_v<View, std::span<index_type>>) {
-					Cb(next_index, chunk, next_element_index, it_data_first);
-					++it_data_first;
-				} else {
-					psl_assert(false, "unreachable hit");
-				}
-				++it;
-			}
-		} while(it != view.end());
-	}
-
-	template <typename IndexItFirst, typename IndexItLast, typename DataItFirst = void*, typename DataItLast = void*>
-	FORCEINLINE auto cinvoke_for(IndexItFirst it_index_first,
-								 IndexItLast it_index_last,
-								 auto&& Cb,
-								 DataItFirst it_data_first = nullptr,
-								 DataItLast it_data_last   = nullptr) const {
-		using view_type = std::span<index_type>;
-		auto const size = psl::narrow_cast<index_type>(std::distance(it_index_first, it_index_last));
-		if(size == 0) {
-			return;
-		}
-		view_type view =
-		  std::span<index_type>((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-		if constexpr(std::is_same_v<DataItLast, void*>) {
-			if(std::is_sorted(view.begin(), view.end())) {
-				cinvoke_for_impl<true>(view, Cb, it_data_first);
-			} else {
-				cinvoke_for_impl<false>(view, Cb, it_data_first);
-			}
-		} else {
-			if(std::is_sorted(it_index_first, it_index_last)) {
-				cinvoke_for_impl<true>(view, Cb, it_data_first, it_data_last);
-			} else {
-				cinvoke_for_impl<false>(view, Cb, it_data_first, it_data_last);
-			}
-		}
-	}
-
-	/// \brief Invokes the callback for each index in the given range, sorted by chunk, in reverse order.
-	template <bool AutoCreate, bool SkipMissing, bool PreSorted = false, typename IndexItFirst, typename IndexItLast>
-	FORCEINLINE auto reverse_invoke_for(IndexItFirst it_index_first, IndexItLast it_index_last, auto&& Cb) {
-		if(it_index_first == it_index_last) {
-			return;
-		}
-		std::span<index_type> view((index_type*)&*it_index_first, std::distance(it_index_first, it_index_last));
-		if constexpr(!PreSorted) {
-			if(std::is_sorted(view.begin(), view.end())) {
-				reverse_invoke_for<AutoCreate, SkipMissing, true>(it_index_first, it_index_last, Cb);
-				return;
-			}
-		}
-		auto it = view.rbegin();
-
-		if constexpr(AutoCreate && PreSorted) {
-			sparse_guarantee_for_userspace(*std::prev(view.end()));
-		} else if constexpr(AutoCreate && !PreSorted) {
-			sparse_guarantee_for_userspace(*std::max_element(view.begin(), view.end()));
-		}
-
-		if constexpr(SkipMissing && !AutoCreate && PreSorted) {
-			auto const first_index = *std::begin(view);
-			index_type chunk_index {};
-			index_type element_index {};
-			chunk_info_for(first_index, element_index, chunk_index);
-			if(chunk_index >= m_Sparse.size()) {
-				return;
-			}
-		}
-
-		do {
-			auto const first_index = *it;
-			index_type chunk_index {};
-			index_type element_index {};
-			chunk_info_for(first_index, element_index, chunk_index);
-			size_t next_treshold {chunk_index * CHUNKS_SIZE};
-			size_t prev_treshold {next_treshold + CHUNKS_SIZE};
-
-			if constexpr(SkipMissing && !AutoCreate) {
-				if(chunk_index >= m_Sparse.size() || !m_Sparse[chunk_index]) {
-					for(;;) {
-						if(it == view.rend()) {
-							break;
-						}
-						auto const next_index = *it;
-						if constexpr(PreSorted) {
-							if(next_index < next_treshold) {
-								break;
-							}
-						} else {
-							if(next_index < next_treshold || next_index >= prev_treshold) {
-								break;
-							}
-						}
-						++it;
-					}
-					continue;
-				}
-			}
-			auto& chunkPtr = m_Sparse[chunk_index];
-			if constexpr(AutoCreate) {
-				if(!chunkPtr) {
-					chunkPtr = std::make_unique<chunk_type>(CHUNKS_SIZE, TOMBSTONE);
-				}
-			} else {
-				psl_assert(chunkPtr, "Chunk pointer cannot be null");
-			}
-			auto& chunk = *chunkPtr;
-
-			for(;;) {
-				if(it == view.rend()) {
-					break;
-				}
-				auto const next_index = *it;
-				if constexpr(PreSorted) {
-					if(next_index < next_treshold) {
-						break;
-					}
-				} else {
-					if(next_index < next_treshold || next_index >= prev_treshold) {
-						break;
-					}
-				}
-				auto const next_element_index = next_index - static_cast<index_type>(next_treshold);
-				Cb(next_index, chunk, next_element_index);
-				++it;
-			}
-		} while(it != view.rend());
-	}
-
-	template <bool TryErase, typename IndexItFirst, typename IndexItLast>
-	constexpr FORCEINLINE auto erase_impl(IndexItFirst it_index_first, IndexItLast it_index_last) -> index_type {
-		if(it_index_first == it_index_last) {
-			return 0;
-		}
-		if(m_StageStart[2] == 0) {
-			return 0;
-		}
-		if constexpr(!TryErase) {
-			psl_assert(!std::empty(m_Reverse), "cannot erase from an empty staged_sparse_array");
-		}
-
-		auto const original_deleted = m_StageSize[2];
-
-		reverse_invoke_for<false, TryErase>(
-		  it_index_first, it_index_last, [this](index_type user_index, chunk_type& chunk, index_type chunk_offset) {
-			  if constexpr(TryErase) {
-				  if(chunk[chunk_offset] == TOMBSTONE) {
-					  return;
-				  }
-			  } else {
-				  psl_assert(chunk[chunk_offset] != TOMBSTONE);
-			  }
-			  auto reverse_index = chunk[chunk_offset];
-			  auto what_stage	 = (reverse_index < m_StageStart[1]) ? 0 : (reverse_index < m_StageStart[2]) ? 1 : 2;
-			  if(what_stage == 2) {
-				  return;
-			  }
-
-			  // swap with the back of my range, afterwards
-			  for(auto i = what_stage; i < 2; ++i) {
-				  auto const original_index = m_StageStart[i + 1] - 1;
-				  auto const original_value = m_Reverse[original_index];
-				  if(original_index != reverse_index) {
-					  auto const sparse_index  = &chunk - m_Sparse.begin()->get();
-					  auto const next_treshold = sparse_index * CHUNKS_SIZE;
-					  /*if(original_value >= next_treshold && original_value < next_treshold + CHUNKS_SIZE) {
-						  auto const distance =
-							original_value > index ? original_value - index : index - original_value;
-						  chunk[chunk_offset + distance] = reverse_index;
-					  } else {*/
-					  auto original_sparse_offset = original_value;
-					  auto original_sparse		  = userspace_to_internal(original_sparse_offset);
-					  (*m_Sparse[original_sparse])[original_sparse_offset] = reverse_index;
-					  //}
-
-					  std::iter_swap(std::next(std::begin(m_Reverse), reverse_index),
-									 std::next(std::begin(m_Reverse), original_index));
-
-					  dense_storage_type::swap(original_index, reverse_index);
-
-					  chunk[chunk_offset] = original_index;
-					  reverse_index		  = original_index;
-				  }
-				  m_StageSize[i] -= 1;
-				  m_StageStart[i + 1] -= 1;
-				  m_StageSize[i + 1] += 1;
-			  }
-		  });
-		return m_StageSize[2] - original_deleted;
-	}
-
 	enum class insertion_mode {
 		insert,
 		try_insert,
@@ -1982,164 +1676,6 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		assign,
 	};
 
-	template <insertion_mode InsertMode, typename DataItFirst = void*, typename DataItLast = void*>
-	auto insert_impl(index_type const* it_index_first,
-					 index_type const* it_index_last,
-					 DataItFirst it_data_first = nullptr,
-					 DataItLast it_data_last   = nullptr) -> index_type {
-		// this function behaves a bit different depending on the mode (normal or try-insert), and if data is provided.
-		// insert mode /w data:
-		// - does all the normal insertions as if no data is present
-		// - at the end will make space and insert. If there's a last-data iterator it will advance the data-iterator
-		// otherwise it will consume the first one continiously
-		// data iterator towards the next if an end iterator is present.
-		// - afterwards it will rotate the dense data and swap it with the ones in the removed state.
-		// insert mode /w no data:
-		// - normal insertion operations for all indices
-		// - afterwards it will inject space for the new indices in the dense storage before the removed indices stage
-		// try-insert mode /w data:
-		// - reserves all the required size for the data upfront in the dense storage
-		// - during insertions it will emplace the data at the back of the dense storage. It will always advance the
-		// try-insert mode /w no data:
-		// - behaves exactly like the normal mode /w no data.
-		// set mode /w data:
-		// - when the element is already present it will overwrite the data in the dense storage
-		// - otherwise it will insert the data at the end of the dense storage (and rotate at the end)
-		// set mode /w no data:
-		// - compile error
-		// assign mode /w data:
-		// - will overwrite the data in the dense storage or assert when the element is not present
-		// assign mode /w no data:
-		// - compile error
-
-		static_assert(std::is_same_v<DataItFirst, void*> || IS_ASSIGNABLE, "Only assignable types can have data");
-		static_assert((InsertMode != insertion_mode::assign && InsertMode != insertion_mode::set) ||
-						!std::is_same_v<DataItFirst, void*>,
-					  "set/assign without data makes no sense, use (try-)insert");
-		const auto size = psl::narrow_cast<index_type>(std::distance(it_index_first, it_index_last));
-		if(size == 0) {
-			return 0;
-		}
-
-		psl_assert(m_Reverse.empty() || it_index_first < m_Reverse.data() ||
-					 it_index_first > m_Reverse.data() + m_Reverse.size(),
-				   "Cannot self-assign");
-
-		if constexpr(!std::is_same_v<DataItFirst, void*> && !std::is_same_v<DataItLast, void*>) {
-			psl_assert(std::distance(it_data_first, it_data_last) == size,
-					   "Data iterator range must match the index iterator range in size");
-		}
-
-		if constexpr(InsertMode != insertion_mode::assign) {
-			m_Reverse.reserve(m_StageStart[3] + size);
-		}
-
-		// as we'll insert as we go along, we need to reserve space upfront
-		// try_insert can have holes and set can add new elements.
-		if constexpr(IS_ASSIGNABLE && (InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::set) &&
-					 !std::is_same_v<DataItFirst, void*>) {
-			dense_storage_type::reserve(m_StageStart[3] + size);
-		}
-		index_type count = 0;
-		invoke_for<true>(
-		  it_index_first,
-		  it_index_last,
-		  [this, &count](index_type index, chunk_type& chunk, index_type chunk_offset, DataItFirst dataIt = {}) {
-			  auto& reverse_index = chunk[chunk_offset];
-			  // try_insert requires the element to be empty
-			  if constexpr(InsertMode == insertion_mode::try_insert) {
-				  if(reverse_index != TOMBSTONE) {
-					  return;
-				  }
-			  }
-			  // if we're inserting or assigning, we need to ensure that the chunk is empty
-			  else if constexpr(InsertMode == insertion_mode::insert) {
-				  psl_assert(reverse_index == TOMBSTONE);
-			  }
-			  // both insert and try_insert always add to the end
-			  if constexpr(InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::insert) {
-				  reverse_index = m_StageStart[2] + count;
-				  m_Reverse.emplace_back(index);
-				  if constexpr(InsertMode == insertion_mode::try_insert && !std::is_same_v<DataItFirst, void*>) {
-					  dense_storage_type::emplace_back(dataIt);
-				  }
-				  ++count;
-			  }
-			  // set might add a new element, or it will overwrite an existing one
-			  else if constexpr(InsertMode == insertion_mode::set) {
-				  if(reverse_index != TOMBSTONE) {
-					  dense_storage_type::set(reverse_index, dataIt);
-				  } else {
-					  reverse_index = m_StageStart[2] + count;
-					  m_Reverse.emplace_back(index);
-					  dense_storage_type::emplace_back(dataIt);
-					  ++count;
-				  }
-			  }
-			  // assign will always overwrite an existing element, and skip missing ones
-			  else {
-				  if(reverse_index != TOMBSTONE) {
-					  dense_storage_type::set(reverse_index, dataIt);
-				  }
-			  }
-		  },
-		  it_data_first,
-		  it_data_last);
-
-		if constexpr(InsertMode == insertion_mode::assign) {
-			return count;
-		}
-
-		if(count > 0) {
-			if constexpr(IS_ASSIGNABLE && InsertMode == insertion_mode::try_insert &&
-						 std::is_same_v<DataItFirst, void*>) {
-				dense_storage_type::reserve(m_StageStart[3] + count);
-				dense_storage_type::insert_space(m_StageStart[2], count);
-			}
-		}
-
-		if(m_StageSize[2] > 0 && count > 0) {
-			for(auto it = m_Reverse.begin() + m_StageStart[2], end = m_Reverse.begin() + m_StageStart[3]; it != end;
-				++it) {
-				index_type element_index, chunk_index;
-				chunk_info_for(*it, element_index, chunk_index);
-				(*m_Sparse[chunk_index])[element_index] += count;
-			}
-			std::rotate(m_Reverse.begin() + m_StageStart[2],
-						m_Reverse.begin() + m_StageStart[3],
-						m_Reverse.begin() + m_StageStart[3] + count);
-
-			// both try_insert and set can add new data elements at the end of the dense storage, so we'll rotate those
-			if constexpr(IS_ASSIGNABLE &&
-						 (InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::set) &&
-						 !std::is_same_v<DataItFirst, void*>) {
-				dense_storage_type::rotate(m_StageStart[2], m_StageStart[3], m_StageStart[3] + count);
-			}
-		}
-
-		// when inserting we only need to reserve space and insert at the end as we can be certain these
-		// are all new elements.
-		if constexpr(IS_ASSIGNABLE && InsertMode == insertion_mode::insert) {
-			dense_storage_type::reserve(m_StageStart[3] + count);
-			if constexpr(!std::is_same_v<DataItFirst, void*>) {
-				auto dataIt = it_data_first;
-				for(size_t i = 0; i < count; ++i) {
-					dense_storage_type::emplace_back(dataIt);
-					if constexpr(!std::is_same_v<DataItLast, void*>) {
-						++dataIt;
-					}
-				}
-				dense_storage_type::rotate(m_StageStart[2], m_StageStart[3], m_StageStart[3] + count);
-			} else {
-				dense_storage_type::insert_space(m_StageStart[2], count);
-			}
-		}
-
-		m_StageStart[2] += count;
-		m_StageStart[3] += count;
-		m_StageSize[1] += count;
-		return count;
-	}
 
 	constexpr FORCEINLINE auto
 	chunk_info_for(index_type index, index_type& element_index, index_type& chunk_index) const noexcept -> void {
@@ -2219,6 +1755,381 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		auto chunk_index = userspace_to_internal(index);
 		psl_assert(chunk_index != TOMBSTONE, "chunk for user index {} does not exist in staged_sparse_array", index);
 		return *m_Sparse[chunk_index].get();
+	}
+
+	/// \brief Entrypoint for all operations that modify the sparse array's underlying data, or add new indices.
+	/// \tparam InsertMode The mode of insertion to perform. Can be insert, try_insert, set, or assign.
+	/// \param index_span A span wrapper containing the indices to operate on.
+	/// \param data_span A span wrapper containing the data to operate on. Can be nullptr if no data is to be used.
+	/// \return The number of indices that were actually modified/inserted. Depending on the operation, this may be less than the number of indices provided.
+	template <insertion_mode InsertMode, typename local_index_type = user_index_type>
+	constexpr FORCEINLINE auto insert_impl(auto&& index_span, auto&& data_span) -> index_type {
+		// this function behaves a bit different depending on the mode (normal or try-insert), and if data is provided.
+		// insert mode /w data:
+		// - does all the normal insertions as if no data is present
+		// - at the end will make space and insert all the data at once
+		// - afterwards it will rotate the dense data and swap it with the ones in the removed state.
+		// insert mode /w no data:
+		// - normal insertion operations for all indices
+		// - afterwards it will inject space for the new indices in the dense storage before the removed indices stage
+		// try-insert mode /w data:
+		// - reserves all the required size for the data upfront in the dense storage
+		// - during insertions it will emplace the data at the back of the dense storage
+		// try-insert mode /w no data:
+		// - behaves exactly like the normal mode /w no data.
+		// set mode /w data:
+		// - when the element is already present it will overwrite the data in the dense storage
+		// - otherwise it will insert the data at the end of the dense storage (and rotate at the end)
+		// set mode /w no data:
+		// - compile error
+		// assign mode /w data:
+		// - will overwrite the data in the dense storage or assert when the element is not present
+		// assign mode /w no data:
+		// - compile error
+		const auto size = psl::narrow_cast<index_type>(index_span.size());
+
+		if constexpr(!std::is_same_v<std::remove_cvref_t<decltype(data_span)>, std::nullptr_t>) {
+			psl_assert(data_span.size() == size || data_span.size() == 1,
+					   "Data span size must match index span size (or be 1), got for data_span {} and expected {} or 1",
+					   data_span.size(),
+					   size);
+		}
+
+		// assign is thread safe as it only modifies existing elements
+		if constexpr(InsertMode != insertion_mode::assign) {
+			m_Reverse.reserve(m_StageStart[3] + size);
+			dense_storage_type::reserve(m_StageStart[3] + size);
+		}
+		index_type count = 0;
+
+		invoke_for_l0<true, false, local_index_type>(
+		  index_span,
+		  [&, this](
+			index_type index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset, auto&&... dataIt) {
+			  static_assert(sizeof...(dataIt) <= 1, "dataIt can only be empty, or contain a single element");
+			  index_type rev_index {chunk[chunk_offset]};
+			  // try_insert requires the element to be empty
+			  if constexpr(InsertMode == insertion_mode::try_insert) {
+				  if(rev_index != TOMBSTONE) {
+					  return;
+				  }
+			  }
+			  // if we're inserting or assigning, we need to ensure that the chunk is empty
+			  else if constexpr(InsertMode == insertion_mode::insert) {
+				  psl_assert(rev_index == TOMBSTONE);
+			  }
+			  // both insert and try_insert always add to the end
+			  if constexpr(InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::insert) {
+				  rev_index = m_StageStart[2] + count;
+				  m_Reverse.emplace_back(index);
+				  if constexpr(InsertMode == insertion_mode::try_insert && sizeof...(dataIt) > 0) {
+					  dense_storage_type::emplace_back(&*dataIt...);
+				  }
+				  chunk[chunk_offset] = rev_index;
+				  ++count;
+			  }
+			  // set might add a new element, or it will overwrite an existing one
+			  else if constexpr(InsertMode == insertion_mode::set) {
+				  if(rev_index != TOMBSTONE) {
+					  if constexpr(sizeof...(dataIt) == 0) {
+						  psl_assert(false, "set without data makes no sense, use (try-)insert");
+					  } else {
+						  dense_storage_type::set(rev_index, &*dataIt...);
+					  }
+				  } else {
+					  rev_index = m_StageStart[2] + count;
+					  m_Reverse.emplace_back(index);
+					  if constexpr(sizeof...(dataIt) == 0) {
+						  psl_assert(false, "set without data makes no sense, use (try-)insert");
+					  } else {
+						  dense_storage_type::emplace_back(&*dataIt...);
+					  }
+					  chunk[chunk_offset] = rev_index;
+					  ++count;
+				  }
+			  }
+			  // assign will always overwrite an existing element, and skip missing ones
+			  else {
+				  if(rev_index != TOMBSTONE) {
+					  if constexpr(sizeof...(dataIt) == 0) {
+						  psl_assert(false, "assign without data makes no sense, use (try-)insert");
+					  } else {
+						  dense_storage_type::set(rev_index, &*dataIt...);
+						  ++count;	  // count successful assignments
+					  }
+				  }
+			  }
+		  },
+		  data_span);
+
+		// we silence the next scope if this is an assign as we have already completed our work
+		if constexpr(InsertMode == insertion_mode::assign) {
+		} else if(count > 0) {
+			if constexpr(IS_ASSIGNABLE && InsertMode == insertion_mode::try_insert &&
+						 std::is_same_v<std::remove_cvref_t<decltype(data_span)>, std::nullptr_t>) {
+				dense_storage_type::insert_space(m_StageStart[2], count);
+			}
+
+			if(m_StageSize[2] > 0) {
+				for(auto it = m_Reverse.begin() + m_StageStart[2], end = m_Reverse.begin() + m_StageStart[3]; it != end;
+					++it) {
+					index_type element_index, chunk_index;
+					chunk_info_for(*it, element_index, chunk_index);
+					(*m_Sparse[chunk_index])[element_index] += count;
+				}
+				std::rotate(m_Reverse.begin() + m_StageStart[2],
+							m_Reverse.begin() + m_StageStart[3],
+							m_Reverse.begin() + m_StageStart[3] + count);
+
+				// both try_insert and set can add new data elements at the end of the dense storage, so we'll rotate
+				// those
+				if constexpr(IS_ASSIGNABLE &&
+							 (InsertMode == insertion_mode::try_insert || InsertMode == insertion_mode::set) &&
+							 !std::is_same_v<std::remove_cvref_t<decltype(data_span)>, std::nullptr_t>) {
+					dense_storage_type::rotate(m_StageStart[2], m_StageStart[3], m_StageStart[3] + count);
+				}
+			}
+
+			// when inserting we only need to reserve space and insert at the end as we can be certain these
+			// are all new elements.
+			if constexpr(IS_ASSIGNABLE && InsertMode == insertion_mode::insert) {
+				if constexpr(!std::is_same_v<std::remove_cvref_t<decltype(data_span)>, std::nullptr_t>) {
+					for(size_t i = 0; i < count; ++i) {
+						dense_storage_type::emplace_back(&*data_span.current());
+						data_span.next();
+					}
+					dense_storage_type::rotate(m_StageStart[2], m_StageStart[3], m_StageStart[3] + count);
+				} else {
+					dense_storage_type::insert_space(m_StageStart[2], count);
+				}
+			}
+
+			m_StageStart[2] += count;
+			m_StageStart[3] += count;
+			m_StageSize[1] += count;
+		}
+		return count;
+	}
+
+	/// \brief Entrypoint for all erase operations on the sparse array.
+	/// \tparam TryErase If true, will skip indices that are not present in the sparse array. If false, will assert if an index is not present.
+	/// \param index_span A span wrapper containing the indices to erase.
+	/// \return The number of indices that were actually erased.
+	template <bool TryErase, typename local_index_type = user_index_type>
+	constexpr FORCEINLINE auto erase_impl(auto&& range) -> index_type {
+		if constexpr(!TryErase) {
+			psl_assert(!std::empty(m_Reverse), "cannot erase from an empty staged_sparse_array");
+		}
+
+		auto const original_deleted = m_StageSize[2];
+
+		invoke_for_l0<false, TryErase, local_index_type, std::greater<local_index_type>>(
+		  range, [this](index_type user_index, chunk_type& chunk, index_type chunk_index, index_type chunk_offset) {
+			  auto reverse_index = chunk[chunk_offset];
+			  psl_assert(reverse_index != TOMBSTONE);
+			  auto const what_stage = (reverse_index < m_StageStart[1]) ? 0 : (reverse_index < m_StageStart[2]) ? 1 : 2;
+			  // It's already set to be removed
+			  if(what_stage == 2) {
+				  return;
+			  }
+
+			  for(auto i = what_stage; i < 2; ++i) {
+				  // last index in the current stage
+				  auto const original_index = m_StageStart[i + 1] - 1;
+				  auto const original_value = m_Reverse[original_index];
+
+				  // if the original index is the same as the reverse index, we don't need to do anything
+				  if(original_index != reverse_index) {
+					  if(original_value >= chunk_index * CHUNKS_SIZE &&
+						 original_value < (chunk_index + 1) * CHUNKS_SIZE) {
+						  chunk[original_value - (chunk_index * CHUNKS_SIZE)] = reverse_index;
+					  } else {
+						  auto original_sparse_offset = original_value;
+						  auto original_sparse		  = userspace_to_internal(original_sparse_offset);
+						  (*m_Sparse[original_sparse])[original_sparse_offset] = reverse_index;
+					  }
+
+					  dense_storage_type::swap(reverse_index, original_index);
+					  std::iter_swap(std::next(std::begin(m_Reverse), reverse_index),
+									 std::next(std::begin(m_Reverse), original_index));
+
+					  chunk[chunk_offset] = original_index;
+					  reverse_index		  = original_index;
+				  }
+
+				  m_StageSize[i] -= 1;
+				  m_StageStart[i + 1] -= 1;
+				  m_StageSize[i + 1] += 1;
+			  }
+		  });
+
+		return m_StageSize[2] - original_deleted;
+	}
+
+	/// \brief Helper intermediate that will invoke all indices in the provided span, creating chunks as needed if AutoCreate is true.
+	/// It will determine if the span is sorted or not, and call the appropriate invoke_for_l1 function.
+	/// \tparam AutoCreate If true, will create chunks as needed. If false, will assert if a chunk is missing.
+	/// \tparam Cmp The comparator to use for determining if the span is sorted. Defaults to std::less.
+	/// \tparam DataSpan The type of the data span wrapper. Can be nullptr if no data is to be used.
+	template <bool AutoCreate,
+			  bool SkipMissing,
+			  typename local_index_type = user_index_type,
+			  typename Cmp				= std::less<local_index_type>,
+			  typename DataSpan			= std::nullptr_t,
+			  typename CbNotFound		= std::nullptr_t>
+	constexpr FORCEINLINE auto invoke_for_l0(this auto&& self,
+											 auto index_span,
+											 auto&& CallbackFound,
+											 DataSpan data_span			   = nullptr,
+											 CbNotFound&& CallbackNotFound = nullptr) {
+		constexpr auto IsConst = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+		static_assert((!AutoCreate && IsConst) || !IsConst, "Cannot mutate when this is a const invoke");
+		if(index_span.size() == 0) {
+			return;
+		}
+		if(std::is_sorted(index_span.begin(), index_span.end(), Cmp {})) {
+			if constexpr(AutoCreate) {
+				self.sparse_guarantee_for_userspace(static_cast<index_type>(*(std::prev(index_span.end()))));
+			}
+			self.template invoke_for_l1<AutoCreate,
+										true,
+										std::is_same_v<Cmp, std::greater<local_index_type>>,
+										SkipMissing>(index_span, CallbackFound, data_span, CallbackNotFound);
+		} else {
+			if constexpr(AutoCreate) {
+				self.sparse_guarantee_for_userspace(
+				  static_cast<index_type>(*std::max_element(index_span.begin(), index_span.end())));
+			}
+			self.template invoke_for_l1<AutoCreate,
+										false,
+										std::is_same_v<Cmp, std::greater<local_index_type>>,
+										SkipMissing>(index_span, CallbackFound, data_span, CallbackNotFound);
+		}
+	}
+
+	/// \brief Core implementation that will invoke all indices in the provided span, creating chunks as needed if AutoCreate is true.
+	/// \tparam AutoCreate If true, will create chunks as needed. If false,
+	/// will assert if a chunk is missing.
+	/// \tparam PreSorted If true, will assume the indices are sorted in ascending order.
+	///
+	template <bool AutoCreate,
+			  bool PreSorted,
+			  bool IsReverse	  = false,
+			  bool SkipMissing	  = false,
+			  typename DataSpan	  = std::nullptr_t,
+			  typename CbNotFound = std::nullptr_t>
+	constexpr FORCEINLINE auto invoke_for_l1(this auto&& self,
+											 auto&& index_span,
+											 auto&& CallbackFound,
+											 DataSpan&& data_span		   = nullptr,
+											 CbNotFound&& CallbackNotFound = nullptr) {
+		constexpr auto HasNotFoundCb = !std::is_same_v<std::remove_cvref_t<CbNotFound>, std::nullptr_t>;
+		constexpr auto HasDataSpan	 = !std::is_same_v<std::remove_cvref_t<DataSpan>, std::nullptr_t>;
+		constexpr auto IsConst		 = std::is_const_v<std::remove_reference_t<decltype(self)>>;
+
+		static_assert((!AutoCreate && IsConst) || !IsConst, "Cannot mutate when this is a const invoke");
+
+		do {
+			auto const first_index = static_cast<index_type>(*index_span.current());
+			index_type chunk_index {};
+			index_type element_index {};
+			self.chunk_info_for(first_index, element_index, chunk_index);
+			auto const prev_treshold {chunk_index * CHUNKS_SIZE};
+			auto const next_treshold {prev_treshold + CHUNKS_SIZE};
+
+			if constexpr(SkipMissing || HasNotFoundCb) {
+				if(chunk_index >= self.m_Sparse.size() || !self.m_Sparse[chunk_index]) {
+					for(;;) {
+						if(!index_span.has_next()) {
+							return;
+						}
+
+						auto const next_index = static_cast<index_type>(*index_span.current());
+
+						if constexpr(PreSorted && IsReverse) {
+							if(chunk_index < self.m_Sparse.size() && next_index < prev_treshold) {
+								break;
+							}
+						} else if constexpr(PreSorted) {
+							if(chunk_index < self.m_Sparse.size() && next_index >= next_treshold) {
+								break;
+							}
+						} else {
+							if(next_index >= next_treshold || next_index < prev_treshold) {
+								break;
+							}
+						}
+
+						if constexpr(HasNotFoundCb) {
+							CallbackNotFound(next_index);
+						}
+						index_span.next();
+						if constexpr(HasDataSpan) {
+							data_span.next();
+						}
+					}
+					continue;
+				}
+			}
+
+			psl_assert(chunk_index < self.m_Sparse.size(), "Chunk index out of bounds");
+
+			auto& chunkPtr = self.m_Sparse[chunk_index];
+			if constexpr(AutoCreate) {
+				if(!chunkPtr) {
+					chunkPtr = std::make_unique<chunk_type>(CHUNKS_SIZE, TOMBSTONE);
+				}
+			} else {
+				psl_assert(chunkPtr, "Chunk pointer cannot be null");
+			}
+
+			auto& chunk = *chunkPtr;
+			for(;;) {
+				if(!index_span.has_next()) {
+					break;
+				}
+				auto const next_index = static_cast<index_type>(*index_span.current());
+				if constexpr(PreSorted) {
+					if constexpr(IsReverse) {
+						if(next_index < prev_treshold) {
+							break;
+						}
+					} else {
+						if(next_index >= next_treshold) {
+							break;
+						}
+					}
+				} else {
+					if(next_index >= next_treshold || next_index < prev_treshold) {
+						break;
+					}
+				}
+
+				index_type const next_element_index = next_index - prev_treshold;
+				if constexpr(SkipMissing || HasNotFoundCb) {
+					if(chunk[next_element_index] == TOMBSTONE) {
+						if constexpr(HasNotFoundCb) {
+							CallbackNotFound(next_index);
+						}
+						index_span.next();
+
+						if constexpr(HasDataSpan) {
+							data_span.next();
+						}
+						continue;
+					}
+				}
+
+				if constexpr(!HasDataSpan) {
+					CallbackFound(next_index, chunk, chunk_index, next_element_index);
+				} else {
+					auto data_it = data_span.current();
+					CallbackFound(next_index, chunk, chunk_index, next_element_index, data_it);
+					data_span.next();
+				}
+				index_span.next();
+			}
+		} while(index_span.has_next());
 	}
 
 	psl::array<index_type> m_Reverse {};

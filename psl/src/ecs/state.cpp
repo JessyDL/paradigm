@@ -115,13 +115,12 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 											  end(group_it->transformations),
 											  [transform_it](const auto& data) { return data.group == *transform_it; });
 
-				if(transform->group->on_condition.size() > 0 &&
-					 !(group_it->group->clear_every_frame() && !group_it->group->is_transient()) ||
-				   (group_it->group->relationship & entity_relationship::self) != group_it->group->relationship) {
+				if(transform->should_generate) {
 					transform->entities = group_it->entities;
 					transform->entities.erase(
 					  transform->group->transform(begin(transform->entities), end(transform->entities), *this),
 					  end(transform->entities));
+					transform->should_generate = false;
 				}
 				entities = transform->entities;
 			} else {
@@ -170,13 +169,12 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 				auto transform = std::find_if(begin(group_it->transformations),
 											  end(group_it->transformations),
 											  [transform_it](const auto& data) { return data.group == *transform_it; });
-				if(transform->group->on_condition.size() > 0 &&
-					 !(group_it->group->clear_every_frame() && !group_it->group->is_transient()) ||
-				   (group_it->group->relationship & entity_relationship::self) != group_it->group->relationship) {
+				if(transform->should_generate) {
 					transform->entities = group_it->entities;
 					transform->entities.erase(
 					  transform->group->transform(begin(transform->entities), end(transform->entities), *this),
 					  end(transform->entities));
+					transform->should_generate = false;
 				}
 				entities = transform->entities;
 			} else {
@@ -799,6 +797,10 @@ void state_t::initialize_filter(filter_result& data) const noexcept {
 }
 
 void state_t::filter(filter_result& data, psl::array_view<entity_t> source) const noexcept {
+	// reset the transformations state
+	for(auto& transformation : data.transformations) {
+		transformation.should_generate = true;
+	}
 	if(data.direct_entities.has_value() && data.direct_entities->size() > 0) {
 		// if we have direct entities, we can use those as the source
 		data.entities		 = data.direct_entities.value();
@@ -844,6 +846,8 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 																			  std::end(transformation.entities),
 																			  *this),
 											  std::end(transformation.entities));
+
+				transformation.should_generate = false;
 			}
 		} else {
 			// invoke<entity_t::size_type>([](auto... args) { std::sort(args...); }, end, std::end(result));
@@ -947,6 +951,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 					transformation.entities.insert(std::end(transformation.entities), begin, end);
 					transformation.group->transform(
 					  std::begin(transformation.entities), std::end(transformation.entities), *this);
+					transformation.should_generate = false;
 				}
 
 				std::inplace_merge(

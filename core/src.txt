@@ -49,8 +49,6 @@ ecs/systems/render
 ecs/systems/gpu_camera
 ecs/systems/lighting
 ecs/systems/text
-ecs/systems/geometry_instance
-ecs/systems/debug/grid
 )
 
 # plaftorm specific includes

@@ -152,7 +152,33 @@ namespace details {
 		}
 	}
 
+	namespace impl {
+		template <typename, typename>
+		struct dense_storage_base_t;
+	}
+
+	template <typename, typename, typename IndexType, IndexType>
+	class staged_sparse_array;
 }	 // namespace details
+
+
+/// \brief A helper class to construct and assign components in case they have private constructors or assignment operators.
+class accessor {
+	template <typename, typename>
+	friend struct psl::ecs::details::impl::dense_storage_base_t;
+	template <typename, typename, typename IndexType, IndexType>
+	friend class psl::ecs::details::staged_sparse_array;
+
+	template <typename T, typename... Args>
+	FORCEINLINE static T* construct_at(void* location, Args&&... args) {
+		return new(location) T(std::forward<Args>(args)...);
+	}
+
+	template <typename T, typename U>
+	FORCEINLINE static void assign(T* location, U&& value) {
+		*location = std::forward<U>(value);
+	}
+};
 
 template <typename T>
 struct component_updater_t {

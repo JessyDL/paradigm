@@ -424,23 +424,36 @@ class components_cache_t {
 			} else {
 				add_component_impl(get_component_untyped_info<type>(), entities);
 			}
-		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_1) {
-			create_storage<type>();
-			add_component_impl(
-			  get_component_untyped_info<type>(), entities, [&prototype](std::uintptr_t location, size_t count) {
-				  for(auto i = size_t {0}; i < count; ++i) {
-					  std::invoke(prototype, *((underlying_t*)(location) + i));
-				  }
-			  });
-		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_2) {
-			create_storage<type>();
-			add_component_impl(get_component_untyped_info<type>(),
-							   entities,
-							   [&prototype, &entities](std::uintptr_t location, size_t count) {
-								   for(auto i = size_t {0}; i < count; ++i) {
-									   std::invoke(prototype, *((underlying_t*)(location) + i), entities[i]);
-								   }
-							   });
+		} else if constexpr(mode == details::add_component_behaviour_mode_t::callable_dynamic) {
+			behavior_t {}.for_each([&, this]<typename... Ts>() {
+				(void(this->create_storage<std::remove_cvref_t<Ts>>()), ...);
+
+				auto invoke_n = [&](auto*... ptrs) {
+					for(auto i = size_t {0}; i < entities.size(); ++i) {
+						std::invoke(prototype, *(ptrs + i)...);
+					}
+				};
+
+				auto location_for = [&, this]<typename U>() -> U* {
+					if constexpr(std::is_same_v<entity_t, U>) {
+						return entities.data();
+					} else {
+						auto cInfo = get_component_untyped_info<U>();
+						psl_assert(
+						  cInfo != nullptr, "component info for key {} was not found", cInfo->component_type_info().id);
+						const auto component_size = cInfo->component_type_info().size;
+						psl_assert(component_size != 0, "component size was 0");
+
+						auto offset = cInfo->entities().size();
+						cInfo->add(entities);
+
+						auto location = (std::uintptr_t)cInfo->data() + (offset * component_size);
+						return ((U*)(location));
+					}
+				};
+
+				invoke_n(location_for.template operator()<Ts>()...);
+			});
 		} else if constexpr(mode == details::add_component_behaviour_mode_t::range) {
 			psl_assert(entities.size() == prototype.size(),
 					   "incorrect amount of data input compared to entities, expected {} but got {}",
