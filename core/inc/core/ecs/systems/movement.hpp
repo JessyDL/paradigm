@@ -5,16 +5,19 @@
 
 namespace core::ecs::systems {
 auto movement =
-  [](
-	psl::ecs::info_t& info,
-	psl::ecs::pack_direct_partial_t<const core::ecs::components::velocity, core::ecs::components::transform> movables) {
+  [](psl::ecs::info_t& info,
+	 psl::ecs::pack_direct_partial_t<core::ecs::components::velocity, core::ecs::components::transform> movables) {
 	  using namespace psl::math;
 	  using namespace core::ecs;
 	  using namespace core::ecs::components;
 
 	  for(auto [velocity, transform] : movables) {
 		  transform.position += velocity.direction * velocity.force * info.dTime.count();
-		  transform.rotation = normalize(psl::quat(0.8f * info.dTime.count(), 0.0f, 0.0f, 1.0f) * transform.rotation);
+
+		  velocity.force *= (1.0f - (velocity.inertia * info.dTime.count()));
+		  if(velocity.force < 0.01f) {
+			  velocity.force = 0.0f;
+		  }
 	  }
   };
 }	 // namespace core::ecs::systems

@@ -57,6 +57,7 @@ engine_instance_t::engine_instance_t(options_t options, std::unique_ptr<core::os
 	m_ContextHandle =
 	  cache.create<core::gfx::context>(m_Backend, psl::string8_t {options.application_name}, m_SurfaceHandle);
 	auto swapchain_handle = cache.create<core::gfx::swapchain>(m_SurfaceHandle, m_ContextHandle, *m_OSContext);
+	swapchain_handle->clear_color({0.1f, 0.1f, 0.1f, 1.0f});
 
 	m_RenderGraph	  = std::make_unique<core::gfx::render_graph>();
 	auto& renderGraph = *m_RenderGraph;

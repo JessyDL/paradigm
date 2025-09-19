@@ -15,3 +15,11 @@ The end result of running this example should be a single triangle, where each p
 ## SimpleTextured
 
 Showcases how to load the most minimal set of resources you need to render a textured triangle. It loads a material file, and a geometry file, which references shaders, textures, and a sampler.
+
+## Instancing
+
+Small sample showing how to instantiate a specific renderable multiple times with different instance data (such as position, rotation, scale, color, etc). It should spawn around 300'000 icospheres, each with a different color and position, and move them around every frame until they despawn in around 14-34 seconds after the start.
+
+A little while off another group of 100 icospheres are continiously spawned every frame with a lifetime of 2 seconds.
+
+Some general tips for instancing: Prefer doing bulk updates of instance data rather than setting each instance individually. You can inspect the `core::ecs::systems::render` how more complex instance updates are done (that is where the model matrix is updated every frame).
