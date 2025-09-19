@@ -29,9 +29,10 @@ auto attractor = [](psl::ecs::info_t& info,
 			const auto mag =
 			  saturate((attractor.radius - magnitude(movTrans.position - attrTransform.position)) / attractor.radius) *
 			  info.dTime.count();
-			const auto direction = normalize(attrTransform.position - movTrans.position) * attractor.force;
+			const auto direction = normalize(attrTransform.position - movTrans.position);
 
 			movVel.direction = mix(movVel.direction, direction, mag);
+			movVel.force += attractor.force * mag;
 		}
 	}
 };
