@@ -170,12 +170,12 @@ class accessor {
 	friend class psl::ecs::details::staged_sparse_array;
 
 	template <typename T, typename... Args>
-	static T* construct_at(void* location, Args&&... args) {
+	FORCEINLINE static T* construct_at(void* location, Args&&... args) {
 		return new(location) T(std::forward<Args>(args)...);
 	}
 
 	template <typename T, typename U>
-	static void assign(T* location, U&& value) {
+	FORCEINLINE static void assign(T* location, U&& value) {
 		*location = std::forward<U>(value);
 	}
 };

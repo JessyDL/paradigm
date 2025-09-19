@@ -160,12 +160,16 @@ bool bundle::set(core::resource::tag<core::gfx::geometry_t> geometry,
 	// now that the ranges are sorted, we can merge them if the end == begin of the next range
 	for(size_t i = 1; i < ranges.size(); ++i) {
 		if(ranges[i - 1].end == ranges[i].begin) {
-			ranges[i - 1].end	   = ranges[i].end;
-			ranges[i - 1].data_end = ranges[i].data_end;
-			ranges.erase(std::begin(ranges) + i);
-			--i;
+			auto& prev			 = ranges[i - 1];
+			ranges[i].begin		 = prev.begin;
+			ranges[i].data_begin = prev.data_begin;
+			prev.data_begin		 = nullptr;
 		}
 	}
+
+	ranges.erase(
+	  std::remove_if(std::begin(ranges), std::end(ranges), [](const range& r) { return r.data_begin == nullptr; }),
+	  std::end(ranges));
 
 	psl::array<core::gfx::commit_instruction> instructions {};
 	for(auto range : ranges) {

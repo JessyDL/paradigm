@@ -645,7 +645,8 @@ int entry(gfx::graphics_backend backend, core::os::context& os_context) {
 	ECSState.create(
 	  1,
 	  [&post_effect_bundle, &geometry = fullscreenQuad](core::ecs::components::renderable& renderable) {
-		  renderable = {post_effect_bundle, geometry};
+		  renderable.bundle	  = post_effect_bundle;
+		  renderable.geometry = geometry;
 	  },
 	  core::ecs::components::transform {{0, 0, 1.f}});
 
@@ -682,8 +683,11 @@ ECSState.create(
 		bundles.back()->set("lightDir", psl::vec4 {1.f, 1.f, 1.f, 0.f});
 		ECSState.create(
 		  1,
-		  [&bundle = bundles.back(), &geometry = geometryHandles[/*water_plane_index*/ 0]](
-			core::ecs::components::renderable& renderable) { renderable = {bundle, geometry}; },
+		  [&bundle	 = bundles.back(),
+		   &geometry = geometryHandles[/*water_plane_index*/ 0]](core::ecs::components::renderable& renderable) {
+			  renderable.bundle	  = bundle;
+			  renderable.geometry = geometry;
+		  },
 		  core::ecs::components::transform {psl::vec3 {}, psl::vec3::one * 1.f});
 	}
 
@@ -750,7 +754,8 @@ ECSState.create(
 				  auto matIndex = 0;
 				  // (std::rand() % 2 == 0);
 				  matusage[matIndex] += 1;
-				  renderable = {bundles[matIndex], geometryHandles[/*std::rand() % geometryHandles.size()*/ 0]};
+				  renderable.bundle	  = bundles[matIndex];
+				  renderable.geometry = geometryHandles[/*std::rand() % geometryHandles.size()*/ 0];
 			  },
 			  psl::ecs::empty<core::ecs::components::dynamic_tag> {},
 			  psl::ecs::empty<core::ecs::components::transform> {},

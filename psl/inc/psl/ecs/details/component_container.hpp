@@ -557,7 +557,7 @@ class component_container_untyped_t final : public component_container_t {
 			m_Entities.assign(entities.begin(),
 							  entities.end(),
 							  details::untyped_iterator_t {src, m_Info.size},
-							  details::untyped_iterator_t {src + entities.size(), m_Info.size});
+							  details::untyped_iterator_t {src, m_Info.size} + entities.size());
 		}
 		return m_Info.size * entities.size();
 	};
