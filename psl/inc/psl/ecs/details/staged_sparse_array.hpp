@@ -1260,7 +1260,9 @@ class staged_sparse_array final : private impl::dense_storage_base_t<T, IndexTyp
 		auto chunk_index   = userspace_to_internal(element_index);
 		if(element_index == TOMBSTONE) {
 			insert(&index, &index + 1);
-			return operator[](index);
+			// we know the index must be the last in the added stage start (meaning removed stage - 1) as it has just
+			// been inserted
+			return dense_storage_type::operator[](m_StageStart[2] - 1);
 		}
 		auto internal_index = m_Sparse[chunk_index]->at(element_index);
 		return dense_storage_type::operator[](internal_index);
