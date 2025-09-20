@@ -2,6 +2,7 @@
 #include "core/data/geometry.hpp"
 #include "core/data/material.hpp"
 #include "core/gles/buffer.hpp"
+#include "core/gles/conversion.hpp"
 #include "core/gles/igles.hpp"
 #include "core/gles/material.hpp"
 #include "core/gles/shader.hpp"
@@ -148,13 +149,34 @@ void geometry_t::create_vao(core::resource::handle<core::igles::material_t> mate
 	auto instance_buffer = instanceBuffer->id();
 	glBindBuffer(GL_ARRAY_BUFFER, instance_buffer);
 
+	auto get_attribute = [&shaders = material->shaders()](size_t location) -> core::meta::shader::attribute const& {
+		for(const auto& shader : shaders) {
+			if(shader->meta()->stage() != core::gfx::shader_stage::vertex &&
+			   shader->meta()->stage() != core::gfx::shader_stage::compute) {
+				continue;
+			}
+			for(const auto& attribute : shader->meta()->inputs()) {
+				if(attribute.location() == location)
+					return attribute;
+			}
+		}
+		throw std::runtime_error("could not find attribute with location " + std::to_string(location));
+	};
+
 	for(auto binding : bindings) {
 		core::log->info("binding id {} offset {}", binding.first, binding.second);
-		for(int index = 0; index < 4; ++index) {
+		auto attribute = get_attribute(binding.first);
+		GLint internalFormat, format, type;
+		core::gfx::conversion::to_gles(attribute.format(), internalFormat, format, type);
+		for(auto index = 0u; index < attribute.count(); ++index) {
 			glEnableVertexAttribArray(static_cast<int>(binding.first) + index);
-			auto offset = binding.second + (index * sizeof(float) * 4);
-			glVertexAttribPointer(
-			  static_cast<int>(binding.first) + index, 4, GL_FLOAT, GL_FALSE, sizeof(GLfloat) * 4 * 4, (void*)(offset));
+			auto offset = binding.second + (index * attribute.stride());
+			glVertexAttribPointer(static_cast<int>(binding.first) + index,
+								  attribute.stride() / 4,
+								  type,
+								  GL_FALSE,
+								  attribute.stride() * attribute.count(),
+								  (void*)(offset));
 			glVertexAttribDivisor(static_cast<int>(binding.first) + index, 1);
 		}
 	}
@@ -168,17 +190,26 @@ void geometry_t::create_vao(core::resource::handle<core::igles::material_t> mate
 
 		for(const auto& attribute : stage.attributes()) {
 			for(const auto& b : m_Bindings) {
-				if(psl::to_string8_t(b.name) == attribute.tag()) {
+				if(b.name == attribute.tag()) {
 					auto offset = uint64_t {b.segment.range().begin + b.sub_range.begin};
 
 					auto input = std::find_if(
 					  std::begin(meta_it->meta()->inputs()),
 					  std::end(meta_it->meta()->inputs()),
 					  [location = attribute.location()](const auto& input) { return location == input.location(); });
-					// todo we need type information here
-					glEnableVertexAttribArray(attribute.location());
-					glVertexAttribPointer(
-					  attribute.location(), input->size() / sizeof(GL_FLOAT), GL_FLOAT, GL_FALSE, 0, (void*)offset);
+					GLint internalFormat, format, type;
+					core::gfx::conversion::to_gles(input->format(), internalFormat, format, type);
+
+					for(int index = 0; index < input->count(); ++index) {
+						glEnableVertexAttribArray(attribute.location() + index);
+						glVertexAttribPointer(attribute.location() + index,
+											  input->stride() / sizeof(GL_FLOAT),
+											  type,
+											  GL_FALSE,
+											  0,
+											  (void*)(offset + (index * input->stride())));
+					}
+					break;
 				}
 			}
 		}
