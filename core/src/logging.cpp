@@ -217,7 +217,7 @@ auto core::initialize_loggers(bool to_file, bool to_terminal) -> void {
 #else
 
 	#include "spdlog/sinks/android_sink.h"
-auto core::initialize_loggers([[maybe_unused]] bool to_file) -> void {
+auto core::initialize_loggers([[maybe_unused]] bool to_file, [[maybe_unused]] bool to_terminal) -> void {
 	if(core::_loggers_initialized) {
 		return;
 	}
