@@ -161,9 +161,11 @@ struct foo {
 namespace {
 
 // components do not support templated typenames
-using float_tpack  = tpack<float, complex_wrapper_float>;
-using int_tpack	   = tpack<int, complex_wrapper_int>;
-using policy_tpack = tpack<psl::ecs::partial_t, psl::ecs::full_t>;
+using float_tpack = tpack<float, complex_wrapper_float>;
+using int_tpack	  = tpack<int, complex_wrapper_int>;
+using policy_tpack =
+  tpack</*psl::ecs::partial_t,*/ psl::ecs::full_t>;	   // todo(jdl): partial packs cannot be tested, they trigger issues
+													   // in the way litmus tracks suites
 using access_tpack = tpack<psl::ecs::direct_t, psl::ecs::indirect_t>;
 
 psl::array<entity_t> make_entities_range(size_t count, size_t offset = 0) {
