@@ -14,6 +14,7 @@ FetchContent_Declare(
     GIT_PROGRESS TRUE
 )
 
+set(TRACY_ENABLE ${PE_ENABLE_TRACY})
 FetchContent_MakeAvailable(tracy)
 
 add_subdirectory(fmt EXCLUDE_FROM_ALL)
