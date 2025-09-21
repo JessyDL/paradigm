@@ -1,18 +1,12 @@
 #include "core/ecs/systems/render.hpp"
 #include "core/ecs/components/renderable.hpp"
 #include "core/ecs/components/transform.hpp"
+#include "core/gfx/buffer.hpp"
 #include "core/gfx/bundle.hpp"
 #include "core/gfx/drawpass.hpp"
 #include "core/gfx/geometry.hpp"
 #include "core/gfx/render_graph.hpp"
 #include "psl/ecs/order_by.hpp"
-
-// todo(jdl): The issue here is that we have parallel systems that upload data to the GPU.
-// on gles this isn't possible without either shared contexts, or syncing the commands to the main
-// thread. For now we will just sync to the main thread and have some abstraction breaking code here.
-#if defined(PE_GLES)
-	#include "core/gles/buffer.hpp"
-#endif
 
 using core::resource::handle;
 using namespace core::gfx;
@@ -35,18 +29,10 @@ bool render::renderer_sort::operator()(const core::ecs::components::renderable& 
 render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass, core::gfx::graphics_backend backend)
 	: m_Pass(pass) {
 	state.declare<"render::release_renderable_instances">(threading::par, &render::release_renderable_instances, this);
-#if defined(PE_GLES)
-	if(backend == graphics_backend::gles) {
-		state.declare<"render::apply_release">(threading::main, [this]() { core::igles::buffer_t::apply(); });
-	}
-#endif
+	state.declare<"render::apply_release">(threading::main, []() { core::gfx::buffer_t::apply(); });
 	state.declare<"render::update_instance_data">(threading::par, &render::update_instance_data, this);
 	state.declare<"render::update_instance_object_model">(threading::par, &render::update_instance_object_model, this);
-#if defined(PE_GLES)
-	if(backend == graphics_backend::gles) {
-		state.declare<"render::apply_instanced_data">(threading::main, [this]() { core::igles::buffer_t::apply(); });
-	}
-#endif
+	state.declare<"render::apply_instanced_data">(threading::main, []() { core::gfx::buffer_t::apply(); });
 	state.declare<"render::tick_draws">(threading::seq, &render::tick_draws, this);
 }
 

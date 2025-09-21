@@ -1,5 +1,5 @@
 
-// This example demonstrated instancing. It will create about 300'000 spheres, most will perish after 14-34 seconds.
+// This example demonstrated instancing. It will create about 512'000 spheres, most will perish after 14-34 seconds.
 // Additionally every frame another 100 spheres will be created at random locations with random velocities that live 2
 // seconds.
 
@@ -226,6 +226,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 			while(colours.size() < ids.size()) {
 				colours.push_back(colours[colours.size() % 2]);
 			}
+			colours.resize(count);
 			bundle->set(geometryResource, ids, "INSTANCE_COLOR", colours);
 			state.create(
 			  count,

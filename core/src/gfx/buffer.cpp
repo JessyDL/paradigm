@@ -198,3 +198,12 @@ shader_buffer_binding::shader_buffer_binding(core::resource::cache_t& cache,
 shader_buffer_binding::~shader_buffer_binding() {
 	buffer->deallocate(segment);
 }
+
+void buffer_t::apply() {
+#ifdef PE_VULKAN
+	core::ivk::buffer_t::apply();
+#endif
+#ifdef PE_GLES
+	core::igles::buffer_t::apply();
+#endif
+}

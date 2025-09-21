@@ -67,6 +67,8 @@ class buffer_t {
 #endif
 	};
 
+	static void apply();
+
   private:
 	core::gfx::graphics_backend m_Backend {graphics_backend::undefined};
 #ifdef PE_VULKAN
