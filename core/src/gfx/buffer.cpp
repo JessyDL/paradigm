@@ -146,7 +146,7 @@ bool buffer_t::copy_from(const buffer_t& other, psl::array<core::gfx::memory_cop
 			  return vk::BufferCopy {range.source_offset, range.destination_offset, range.size};
 		  });
 
-		return m_VKHandle->copy_from(other.resource<graphics_backend::vulkan>().value(), buffer_ranges);
+		return m_VKHandle->copy_from_mt(other.resource<graphics_backend::vulkan>().value(), buffer_ranges);
 	}
 #endif
 	throw std::logic_error("core::gfx::buffer_t has no API specific buffer associated with it");

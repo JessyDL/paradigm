@@ -3,6 +3,8 @@
 #include "core/gles/igles.hpp"
 #include "core/os/surface.hpp"
 
+#include "tracy/Tracy.hpp"
+
 using namespace core::igles;
 using namespace core;
 using namespace core::resource;
@@ -26,10 +28,12 @@ swapchain::swapchain(core::resource::cache_t& cache,
 swapchain::~swapchain() {}
 
 bool swapchain::present() {
+	ZoneScoped;
 	return m_Context->swapbuffers(m_Surface);
 }
 
 void swapchain::clear() {
+	ZoneScoped;
 	if(m_UseDepth) {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 		glClearColor(m_ClearColor[0], m_ClearColor[1], m_ClearColor[2], m_ClearColor[3]);

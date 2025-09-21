@@ -18,6 +18,8 @@
 
 #include "core/gfx/buffer.hpp"
 
+#include "tracy/Tracy.hpp"
+
 using namespace psl;
 using namespace core::ivk;
 using namespace core::resource;
@@ -32,7 +34,7 @@ material_t::material_t(core::resource::cache_t& cache,
 					   core::resource::handle<core::ivk::buffer_t> materialBuffer)
 	: m_UID(metaData.uid), m_Context(context), m_PipelineCache(pipelineCache), m_Data(data),
 	  m_MaterialBuffer(materialBuffer) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	const auto& ID = m_UID;
 	m_IsValid	   = false;
 
@@ -179,7 +181,6 @@ const std::vector<std::pair<uint32_t, core::resource::handle<core::ivk::sampler_
 }
 
 core::resource::handle<pipeline> material_t::get(core::resource::handle<framebuffer_t> framebuffer) {
-	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_Pipeline.find(framebuffer); it == std::end(m_Pipeline)) {
 		m_Pipeline[framebuffer] = m_PipelineCache->get(m_UID, m_Data, framebuffer);
 		return m_Pipeline[framebuffer];
@@ -189,7 +190,6 @@ core::resource::handle<pipeline> material_t::get(core::resource::handle<framebuf
 }
 
 core::resource::handle<pipeline> material_t::get(core::resource::handle<swapchain> swapchain) {
-	PROFILE_SCOPE(core::profiler)
 	if(auto it = m_Pipeline.find(swapchain); it == std::end(m_Pipeline)) {
 		m_Pipeline[swapchain] = m_PipelineCache->get(m_UID, m_Data, swapchain);
 		return m_Pipeline[swapchain];
@@ -201,7 +201,7 @@ core::resource::handle<pipeline> material_t::get(core::resource::handle<swapchai
 bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
 							   core::resource::handle<framebuffer_t> framebuffer,
 							   uint32_t drawIndex) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	m_Bound = get(framebuffer);
 	if(m_Bound->has_pushconstants()) {
 		cmdBuffer.pushConstants(m_Bound->vkLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &drawIndex);
@@ -225,7 +225,7 @@ bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
 bool material_t::bind_pipeline(vk::CommandBuffer cmdBuffer,
 							   core::resource::handle<swapchain> swapchain,
 							   uint32_t drawIndex) {
-	PROFILE_SCOPE(core::profiler)
+	ZoneScoped;
 	m_Bound = get(swapchain);
 	if(m_Bound->has_pushconstants()) {
 		cmdBuffer.pushConstants(m_Bound->vkLayout(), vk::ShaderStageFlagBits::eVertex, 0, sizeof(uint32_t), &drawIndex);

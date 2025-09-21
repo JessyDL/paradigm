@@ -2,13 +2,15 @@
 #include "psl/collections/spmc/consumer.hpp"
 #include "psl/view_ptr.hpp"
 
+#include "tracy/Tracy.hpp"
 using namespace psl::async;
 
 namespace psl::async::details {
 struct worker {
   public:
 	worker() = delete;
-	worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer) : m_Consumer(std::move(consumer)) {};
+	worker(psl::spmc::consumer<psl::view_ptr<details::packet>>&& consumer, psl::string_view name)
+		: m_Consumer(std::move(consumer)), m_Name(name) {};
 	~worker() {
 		if(!terminated())
 			resume(), terminate();
@@ -52,6 +54,13 @@ struct worker {
 
   private:
 	void loop() {
+#ifdef TRACY_ENABLE
+		if(m_Name.empty()) {
+			tracy::SetThreadName("psl::async::worker");
+		} else {
+			tracy::SetThreadName(m_Name.c_str());
+		}
+#endif
 		constexpr size_t spin_default {1000};
 		size_t spincount {spin_default};
 		while(m_Run.load(std::memory_order_relaxed)) {
@@ -85,15 +94,21 @@ struct worker {
 	bool m_Paused {true};
 	std::condition_variable cv;
 	std::mutex m;
+	psl::string m_Name {};
 };
 }	 // namespace psl::async::details
 
-scheduler::scheduler(std::optional<size_t> workers) noexcept
+scheduler::scheduler(std::optional<size_t> workers, psl::string_view name) noexcept
 	: m_Workers(workers.value_or(std::thread::hardware_concurrency() -
 								 1 /* removing one for the main thread that participates */)) {
 	m_Workerthreads.reserve(m_Workers);
 	for(size_t i = 0; i < m_Workers; ++i) {
-		m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer()));
+		if(name.empty()) {
+			m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer(), name));
+		} else {
+			psl::string name_str = psl::string {name} + " - " + std::to_string(i);
+			m_Workerthreads.emplace_back(new details::worker(m_Tasks.consumer(), name_str));
+		}
 		m_Workerthreads[i]->start();
 	}
 }

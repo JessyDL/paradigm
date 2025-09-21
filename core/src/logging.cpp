@@ -144,7 +144,7 @@ inline std::tm localtime_safe(std::time_t timer) {
 	return bt;
 }
 
-auto core::initialize_loggers(bool to_file) -> void {
+auto core::initialize_loggers(bool to_file, bool to_terminal) -> void {
 	if(core::_loggers_initialized) {
 		return;
 	}
@@ -186,13 +186,15 @@ auto core::initialize_loggers(bool to_file) -> void {
 		mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(sub_path + "main.log", true));
 		mainlogger->add_sink(std::make_shared<spdlog::sinks::basic_file_sink_mt>(path + "logs/latest.log", true));
 	}
+	if(to_terminal) {
 	#ifdef _MSC_VER
-	mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
+		mainlogger->add_sink(std::make_shared<spdlog::sinks::msvc_sink_mt>());
 	#else
-	auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
-	outlogger->set_level(spdlog::level::level_enum::warn);
-	mainlogger->add_sink(outlogger);
+		auto outlogger = std::make_shared<spdlog::sinks::stdout_color_sink_mt>();
+		outlogger->set_level(spdlog::level::level_enum::warn);
+		mainlogger->add_sink(outlogger);
 	#endif
+	}
 
 	make_sink(core::log, "core", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);
 	make_sink(core::gfx::log, "gfx", to_file ? std::make_optional(sub_path) : std::nullopt, mainlogger);

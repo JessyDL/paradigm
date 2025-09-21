@@ -103,6 +103,11 @@ class buffer_t {
 	/// \returns true in case the instructions were successfully uploaded to the GPU.
 	bool copy_from(const buffer_t& other, const std::vector<vk::BufferCopy>& copyRegions);
 
+
+	bool copy_from_mt(const buffer_t& other,
+					  const std::vector<vk::BufferCopy>& copyRegions,
+					  std::function<void()> on_finish = {});
+
 	// bool set(const void* data, vk::DeviceSize size, std::optional<vk::DeviceSize> dstOffset = {},
 	// std::optional<vk::DeviceSize> srcOffset = {});
 	bool set(const void* data, std::vector<vk::BufferCopy> commands);
@@ -154,6 +159,8 @@ class buffer_t {
 	core::resource::cache_t& m_Cache;
 
 	psl::UID m_UID;
+
+	mutable std::mutex m_Mutex {};
 };
 
 }	 // namespace core::ivk

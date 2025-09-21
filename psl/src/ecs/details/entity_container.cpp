@@ -6,6 +6,7 @@
 #include <stdexcept>
 
 #include "psl/assertions.hpp"
+#include "tracy/Tracy.hpp"
 
 namespace psl::ecs::details {
 
@@ -13,6 +14,7 @@ entity_container_t::entity_container_t() {
 	m_ModifiedEntities.reserve(1 << 16);
 }
 entity_t entity_container_t::create() {
+	ZoneScoped;
 	entity_t entity {};
 	if(!m_Orphans.empty()) {
 		entity = m_Orphans.back();
@@ -24,6 +26,7 @@ entity_t entity_container_t::create() {
 }
 
 psl::array<entity_t> entity_container_t::create(entity_t::size_type count) {
+	ZoneScoped;
 	const auto recycled = std::min<entity_t::size_type>(count, psl::narrow_cast<entity_t::size_type>(m_Orphans.size()));
 	const auto remainder = count - recycled;
 
@@ -47,6 +50,7 @@ psl::array<entity_t> entity_container_t::create(entity_t::size_type count) {
 }
 
 void entity_container_t::destroy(psl::array_view<entity_t> entities) noexcept {
+	ZoneScoped;
 	psl::array_view<entity_t::size_type> entity_values((entity_t::size_type*)entities.data(), entities.size());
 	m_ModifiedEntities.try_insert(entity_values.begin(), entity_values.end());
 	m_ToBeOrphans.insert(std::end(m_ToBeOrphans),
@@ -55,6 +59,7 @@ void entity_container_t::destroy(psl::array_view<entity_t> entities) noexcept {
 }
 
 void entity_container_t::destroy(entity_t entity) noexcept {
+	ZoneScoped;
 	psl_assert(entity.valid(), "attempting to destroy invalid entity");
 	if(!entity.valid()) {
 		return;

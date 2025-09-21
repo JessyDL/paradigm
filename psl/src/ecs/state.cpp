@@ -3,6 +3,7 @@
 #include "psl/algorithm.hpp"
 #include "psl/async/async.hpp"
 #include "psl/unique_ptr.hpp"
+#include "tracy/Tracy.hpp"
 
 #include <numeric>
 using namespace psl::ecs;
@@ -12,7 +13,7 @@ using psl::ecs::details::component_key_t;
 state_t::state_t(size_t workers, size_t cache_size, entity_t::size_type min_entities_per_worker)
 	: details::entity_relationship_handler_t::entity_relationship_handler_t(), entity_container_t::entity_container_t(),
 	  details::components_cache_t::components_cache_t(), m_Cache(cache_size),
-	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers})),
+	  m_Scheduler(new psl::async::scheduler((workers == 0) ? std::nullopt : std::optional {workers}, "ECS Worker")),
 	  m_MinEntitiesPerWorker(min_entities_per_worker) {
 	m_SystemGroups.emplace(0, psl::array<details::system_token> {});
 #if !defined(PE_ECS_DISABLE_ENTITY_HIERARCHY)
@@ -40,6 +41,7 @@ psl::array<psl::array<details::dependency_pack>> slice(psl::array<details::depen
 
 	if(source.size() == 0)
 		return packs;
+	ZoneScoped;
 
 	auto [smallest_batch, largest_batch] =
 	  std::minmax_element(std::begin(source), std::end(source), [](const auto& lhs, const auto& rhs) {
@@ -81,7 +83,9 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 							 std::chrono::duration<float> rTime,
 							 std::uintptr_t cache_offset,
 							 details::system_information& information) {
+	ZoneScoped;
 	auto write_data = [](state_t& state, psl::array<details::dependency_pack> const& dep_packs) {
+		ZoneScoped;
 		for(const auto& dep_pack : dep_packs) {
 			for(auto& binding : dep_pack.m_RWBindings) {
 				const size_t size	= dep_pack.m_Sizes.at(binding.first);
@@ -104,13 +108,20 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 
 	auto system_tick = information.tick();
 
-	if(is_partial_pack && information.threading() == threading::par) {
+	m_ConstInfo->dTime		 = dTime;
+	m_ConstInfo->rTime		 = rTime;
+	m_ConstInfo->system_tick = system_tick;
+
+	// todo(jdl): support information.threading() == threading::par
+
+	if(is_partial_pack) {
 		for(auto& dep_pack : pack) {
 			psl::array_view<entity_t> entities;
 			auto group_it = std::find_if(begin(m_Filters), end(m_Filters), [filter_it](const auto& data) {
 				return data.group && *data.group == **filter_it;
 			});
 			if(*transform_it) {
+				ZoneScopedN("Transform Apply");
 				auto transform = std::find_if(begin(group_it->transformations),
 											  end(group_it->transformations),
 											  [transform_it](const auto& data) { return data.group == *transform_it; });
@@ -138,20 +149,32 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 		// main thread participates, so workers + 1
 		auto multi_pack = slice(pack, m_Scheduler->workers() + 1, m_MinEntitiesPerWorker);
 
-		auto index = info_buffer.size();
-		for(size_t i = 0; i < std::min(m_Scheduler->workers() + 1, multi_pack.size()); ++i)
-			info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick, system_tick));
+		info_t* infoBuffer {nullptr};
+		auto index = m_InfoBuffer.size();
+		if(information.is_const()) {
+			infoBuffer = m_ConstInfo.get();
+		} else {
+			for(size_t i = 0; i < std::min(m_Scheduler->workers() + 1, multi_pack.size()); ++i) {
+				m_InfoBuffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick, system_tick));
+			}
 
-		auto infoBuffer = std::next(std::begin(info_buffer), index);
+			infoBuffer = m_InfoBuffer[index].get();
+		}
 
 		for(auto& mPack : multi_pack) {
-			auto t1 = m_Scheduler->schedule([&fn = information.system(), infoBuffer, &mPack]() mutable {
-				std::invoke(fn, infoBuffer->get(), mPack);
+			if(!information.is_const()) {
+				infoBuffer = m_InfoBuffer[index++].get();
+			}
+			auto t1 = m_Scheduler->schedule([&fn	  = information.system(),
+											 info_ptr = infoBuffer,
+											 &mPack,
+											 name = psl::string {information.debug_name()}]() {
+				ZoneScopedN("System Invoke");
+				ZoneName(name.data(), name.size());
+				std::invoke(fn, *info_ptr, mPack);
 			});
-			auto t2 = m_Scheduler->schedule([&]() { std::invoke(write_data, *this, mPack); });
+			auto t2 = m_Scheduler->schedule([this, write_data, &mPack]() { std::invoke(write_data, *this, mPack); });
 			t2.after(t1);
-
-			infoBuffer = std::next(infoBuffer);
 		}
 		m_Scheduler->execute();
 	} else {
@@ -166,6 +189,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 					   information.id().value(),
 					   information.debug_name());
 			if(*transform_it) {
+				ZoneScopedN("Transform Apply");
 				auto transform = std::find_if(begin(group_it->transformations),
 											  end(group_it->transformations),
 											  [transform_it](const auto& data) { return data.group == *transform_it; });
@@ -189,8 +213,14 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 			cache_offset += prepare_bindings(entities, (void*)cache_offset, dep_pack);
 		}
 
-		info_buffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick, system_tick));
-		information.operator()(*info_buffer[info_buffer.size() - 1], pack);
+		auto& info = information.is_const()
+					   ? m_ConstInfo
+					   : m_InfoBuffer.emplace_back(new info_t(*this, dTime, rTime, m_Tick, system_tick));
+		{
+			ZoneScopedN("System Invoke");
+			ZoneName(information.debug_name().data(), information.debug_name().size());
+			information.operator()(*info, pack);
+		}
 
 		write_data(*this, pack);
 	}
@@ -198,6 +228,7 @@ void state_t::prepare_system(std::chrono::duration<float> dTime,
 
 void state_t::update_relationship_components() {
 #if !defined(PE_ECS_DISABLE_ENTITY_HIERARCHY)
+	ZoneScoped;
 	// we might be better off doing this in the filter loop instead.
 	auto hierarchyCInfo = get_component_typed_info<entity_relationship_data_t>();
 	auto update_event_component_data =
@@ -262,6 +293,7 @@ void state_t::tick(std::chrono::duration<float> dTime, system_group_t group) {
 	tick(dTime, psl::array_view<system_group_t> {&group, 1});
 }
 void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_group_t> groups) {
+	ZoneScoped;
 	m_LockState = 1;
 
 	update_relationship_components();
@@ -303,6 +335,11 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 	// as group ticks can not use advanced filtering operations they will additionally not see new components until a
 	// normal tick is performed.
 	auto system_indices = std::unordered_set<details::system_token>();
+
+	if(!m_ConstInfo) {
+		m_ConstInfo = std::move(std::make_unique<info_t>(*this, dTime, dTime, m_Tick, 0));
+	}
+
 	if(groups.size() == 0) {
 		for(auto& system : m_SystemInformations) {
 			if(m_SystemGroupIndices.find(system.id()) != std::end(m_SystemGroupIndices)) {
@@ -342,10 +379,10 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		}
 	}
 
-	for(auto& info : info_buffer) {
+	for(auto& info : m_InfoBuffer) {
 		execute_command_buffer(*info);
 	}
-	info_buffer.clear();
+	m_InfoBuffer.clear();
 
 	++m_Tick;
 
@@ -411,6 +448,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 // consider an alias feature
 // ie: alias transform = position, rotation, scale components
 void state_t::destroy(psl::array_view<entity_t> entities) noexcept {
+	ZoneScoped;
 	if(entities.size() == 0)
 		return;
 
@@ -419,11 +457,13 @@ void state_t::destroy(psl::array_view<entity_t> entities) noexcept {
 }
 
 void state_t::destroy(entity_t entity) noexcept {
+	ZoneScoped;
 	components_cache_t::destroy_components(entity);
 	entity_container_t::destroy(entity);
 }
 
 void state_t::reset(psl::array_view<entity_t> entities) noexcept {
+	ZoneScoped;
 	psl::array<entity_t> storage {};
 	components_cache_t::destroy_components(entities);
 }
@@ -432,6 +472,7 @@ psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entr
 												  psl::array<entity_t>::iterator begin,
 												  psl::array<entity_t>::iterator end,
 												  details::stage_range_t range) const noexcept {
+	ZoneScoped;
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -443,6 +484,7 @@ psl::array<entity_t>::iterator state_t::filter_op(details::cached_container_entr
 psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entry_t const& entry,
 												  psl::array<entity_t>::iterator begin,
 												  psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -454,6 +496,7 @@ psl::array<entity_t>::iterator state_t::on_add_op(details::cached_container_entr
 psl::array<entity_t>::iterator state_t::on_remove_op(details::cached_container_entry_t const& entry,
 													 psl::array<entity_t>::iterator begin,
 													 psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -466,6 +509,7 @@ psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_e
 													 psl::array<entity_t>::iterator begin,
 													 psl::array<entity_t>::iterator end,
 													 details::stage_range_t range) const noexcept {
+	ZoneScoped;
 	if(!entry.container) {
 		entry.container = get_component_container(entry.key);
 	}
@@ -477,6 +521,7 @@ psl::array<entity_t>::iterator state_t::on_except_op(details::cached_container_e
 psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_container_entry_t> const& entries,
 													psl::array<entity_t>::iterator begin,
 													psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	for(auto& entry : entries) {
 		if(entry.container == nullptr) {
 			entry.container = get_component_container(entry.key);
@@ -502,6 +547,7 @@ psl::array<entity_t>::iterator state_t::on_break_op(psl::array<details::cached_c
 psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached_container_entry_t> const& entries,
 													  psl::array<entity_t>::iterator begin,
 													  psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	for(auto& entry : entries) {
 		if(entry.container == nullptr) {
 			entry.container = get_component_container(entry.key);
@@ -533,6 +579,7 @@ psl::array<entity_t>::iterator state_t::on_combine_op(psl::array<details::cached
 psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_entry_t const& entry,
 													 psl::array<entity_t>::iterator begin,
 													 psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	if(!entry.container) {
 		// contains the mutated components
 		entry.container = get_component_container(entry.key);
@@ -552,6 +599,7 @@ psl::array<entity_t>::iterator state_t::on_mutate_op(details::cached_container_e
 psl::array<entity_t>::iterator state_t::on_hierarchy_op(hierarchy_change_event change,
 														psl::array<entity_t>::iterator begin,
 														psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	if(change == hierarchy_change_event::none) {
 		return begin;
 	}
@@ -568,6 +616,7 @@ psl::array<entity_t>::iterator
 state_t::on_hierarchy_with_preseed_op(hierarchy_change_event change,
 									  psl::array<entity_t>::iterator begin,
 									  psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	if(change == hierarchy_change_event::none) {
 		return begin;
 	}
@@ -591,6 +640,7 @@ state_t::on_hierarchy_with_preseed_op(hierarchy_change_event change,
 }
 
 psl::array_view<entity_t> state_t::get_source_for(filter_result const& data) const noexcept {
+	ZoneScoped;
 	psl_assert(data.entities.size() == 0,
 			   "The filter result should not have entities yet, this is used to first-pass initialize the "
 			   "filter_result container.");
@@ -666,6 +716,7 @@ psl::array_view<entity_t> state_t::get_source_for(filter_result const& data) con
 psl::array<entity_t>::iterator state_t::filter(details::filter_group const& group,
 											   psl::array<entity_t>::iterator begin,
 											   psl::array<entity_t>::iterator end) const noexcept {
+	ZoneScoped;
 	auto const range = group.on_break.size() > 0 ? details::stage_range_t::ALL : details::stage_range_t::ALIVE;
 	for(auto filter : group.on_mutate) {
 		end = on_mutate_op(filter, begin, end);
@@ -712,6 +763,7 @@ psl::array<entity_t>::iterator state_t::filter(details::filter_group const& grou
 }
 psl::array<entity_t> state_t::get_all_relationships_unfiltered(psl::array_view<entity_t> source,
 															   entity_relationship relationship) const noexcept {
+	ZoneScoped;
 	auto begin = std::begin(source);
 	auto end   = std::end(source);
 
@@ -797,6 +849,7 @@ void state_t::initialize_filter(filter_result& data) const noexcept {
 }
 
 void state_t::filter(filter_result& data, psl::array_view<entity_t> source) const noexcept {
+	ZoneScoped;
 	// reset the transformations state
 	for(auto& transformation : data.transformations) {
 		transformation.should_generate = true;
@@ -1016,6 +1069,7 @@ void state_t::filter(filter_result& data, psl::array_view<entity_t> source) cons
 }
 
 size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, component_key_t id) const {
+	ZoneScoped;
 	if(entities.size() == 0)
 		return 0;
 	const auto& cInfo = get_component_container(id);
@@ -1038,6 +1092,7 @@ size_t state_t::prepare_data(psl::array_view<entity_t> entities, void* cache, co
 
 size_t
 state_t::prepare_bindings(psl::array_view<entity_t> entities, void* cache, details::dependency_pack& dep_pack) const {
+	ZoneScoped;
 	size_t offset_start = (std::uintptr_t)cache;
 	if((std::uintptr_t)(cache) + (sizeof(entity_t) * entities.size()) >
 	   (std::uintptr_t)(m_Cache.data()) + m_Cache.size()) {
@@ -1091,6 +1146,7 @@ state_t::prepare_bindings(psl::array_view<entity_t> entities, void* cache, detai
 }
 
 void state_t::execute_command_buffer(info_t& info) {
+	ZoneScoped;
 	auto& buffer = info.command_buffer;
 
 	auto destroyed_entities = buffer.m_DestroyedEntities;

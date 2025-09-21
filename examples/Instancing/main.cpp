@@ -47,9 +47,10 @@
 
 int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context> os_context) {
 	engine_instance_t::options_t options {};
-	options.instance_buffer.size = 96_mb;	  // make sure we have enough
-	options.backend			 = backend;
-	options.application_name = "Instancing Example";
+	options.instance_buffer.size = 160_mb;	  // make sure we have enough
+	options.staging_buffer.size	 = 128_mb;	  // make sure we have enough
+	options.backend				 = backend;
+	options.application_name	 = "Instancing Example";
 	engine_instance_t engine_instance {options, std::move(os_context)};
 
 	auto sphereGeomData	  = core::utility::geometry::create_icosphere(engine_instance.cache(), psl::vec3::one, 2u);
@@ -69,15 +70,15 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 	bundle->set_material(material, 500);
 
 	psl::ecs::state_t state {};
-	state.declare(psl::ecs::threading::par, core::ecs::systems::lifetime);
-	state.declare(psl::ecs::threading::seq, core::ecs::systems::attractor);
-	state.declare(psl::ecs::threading::seq, core::ecs::systems::movement);
+	state.declare<"lifetime">(psl::ecs::threading::par, core::ecs::systems::lifetime);
+	state.declare<"attractor">(psl::ecs::threading::seq, core::ecs::systems::attractor);
+	state.declare<"movement">(psl::ecs::threading::seq, core::ecs::systems::movement);
 	core::ecs::systems::fly flySystem(state, engine_instance.surface()->input());
 
 	auto gpuCameraSystem = core::ecs::systems::gpu_camera {
 	  state, engine_instance.surface(), engine_instance.frame_cam_buffer_binding(), backend};
 
-	auto renderSystem = core::ecs::systems::render {state, engine_instance.swapchain()};
+	auto renderSystem = core::ecs::systems::render {state, engine_instance.swapchain(), backend};
 	renderSystem.add_render_range(0, 1000);
 
 	state.create(1,
@@ -85,7 +86,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 				 psl::ecs::empty<core::ecs::components::camera> {},
 				 psl::ecs::empty<core::ecs::components::input_tag> {});
 
-	static const int range_i	  = 65;
+	static const int range_i	  = 80;
 	static const float range_f	  = float(range_i);
 	static const float midpoint	  = range_f / 2.f;
 	static const float bounds_min = midpoint - (midpoint * 9);
@@ -96,9 +97,8 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 
 
 	// simple bounds system to keep the spheres from floating away too far
-	state.declare(
-	  [](psl::ecs::info_t& info,
-		 psl::ecs::pack_indirect_partial_t<const core::ecs::components::transform,
+	state.declare<"bounds-check">(
+	  [](psl::ecs::pack_indirect_partial_t<const core::ecs::components::transform,
 										   core::ecs::components::velocity,
 										   psl::ecs::filter<core::ecs::components::dynamic_tag, bounds_tag>> pack) {
 		  for(auto [transform, vel] : pack) {
@@ -201,7 +201,10 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 						  std::chrono::duration<float> elapsed) {
 		dTime = std::min(dTime, std::chrono::duration<float> {1.f});
 		state.tick(dTime);
-		core::log->info("Entities: {}, Instances: {}", state.size(), bundle->instances(geometryResource.uid()));
+		core::log->info("Entities: {}, Instances: {}, triangles: {}",
+						state.size(),
+						bundle->instances(geometryResource.uid()),
+						geometryResource->triangles() * bundle->instances(geometryResource.uid()));
 
 		frameTimes.push(dTime.count());
 		totalTime += dTime.count();
@@ -253,7 +256,7 @@ int entry(core::gfx::graphics_backend backend, std::unique_ptr<core::os::context
 }
 
 int main(int argc, char** argv) {
-	core::initialize_loggers();
+	core::initialize_loggers(false, true);
 	if(argc > 0) {
 		core::log->info("Received the cli args:");
 		for(auto i = 0; i < argc; ++i) core::log->info(argv[i]);

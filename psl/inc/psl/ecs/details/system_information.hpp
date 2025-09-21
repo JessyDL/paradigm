@@ -437,9 +437,10 @@ class system_information final {
 					   psl::array<std::shared_ptr<details::filter_group>> filters,
 					   psl::array<std::shared_ptr<details::transform_group>> transforms,
 					   size_t id,
-					   psl::string_view debugName)
+					   psl::string_view debugName,
+					   bool is_const)
 		: m_Threading(threading), m_PackGenerator(std::move(generator)), m_System(std::move(invocable)),
-		  m_Filters(filters), m_Transforms(transforms), m_DebugName(debugName), m_ID(id) {};
+		  m_Filters(filters), m_Transforms(transforms), m_DebugName(debugName), m_ID(id), m_IsConst(is_const) {};
 	~system_information()									 = default;
 	system_information(const system_information&)			 = default;
 	system_information(system_information&&)				 = default;
@@ -480,6 +481,10 @@ class system_information final {
 		return m_Tick++;
 	}
 
+	auto is_const() const noexcept {
+		return m_IsConst;
+	}
+
   private:
 	psl::ecs::threading m_Threading = threading::sequential;
 	pack_generator_type m_PackGenerator;
@@ -489,6 +494,7 @@ class system_information final {
 	psl::string m_DebugName {};
 	system_token m_ID {0};
 	size_t m_Tick {0};
+	bool m_IsConst {false};
 };
 }	 // namespace psl::ecs::details
 

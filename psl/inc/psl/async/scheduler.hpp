@@ -4,6 +4,7 @@
 #include "psl/collections/spmc/producer.hpp"
 #include "psl/template_utils.hpp"
 #include "psl/unique_ptr.hpp"
+#include "psl/ustring.hpp"
 #include "token.hpp"
 #include <future>
 #include <optional>
@@ -14,7 +15,7 @@ struct worker;
 namespace psl::async {
 class scheduler final {
   public:
-	scheduler(std::optional<size_t> workers = std::nullopt) noexcept;
+	scheduler(std::optional<size_t> workers = std::nullopt, psl::string_view name = "") noexcept;
 	~scheduler();
 
 	template <template <typename> typename Future = std::future, typename Fn>

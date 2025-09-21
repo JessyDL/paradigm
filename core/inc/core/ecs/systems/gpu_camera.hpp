@@ -50,8 +50,7 @@ class gpu_camera {
 			   core::resource::handle<core::os::surface> surface,
 			   core::resource::handle<core::gfx::shader_buffer_binding> binding,
 			   core::gfx::graphics_backend backend);
-	void tick(psl::ecs::info_t& info,
-			  psl::ecs::pack_direct_full_t<const core::ecs::components::camera, const core::ecs::components::transform>
+	void tick(psl::ecs::pack_direct_full_t<const core::ecs::components::camera, const core::ecs::components::transform>
 				cameras);
 
   private:

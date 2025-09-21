@@ -44,10 +44,33 @@ struct get_packs {
 template <typename... Ts>
 struct get_packs<psl::type_pack_t<Ts...>> : public get_packs<Ts...> {};
 
+template <typename T, typename... Ts>
+	requires(std::is_same_v<std::remove_cvref_t<T>, psl::ecs::info_t>)
+struct get_packs<T, Ts...> : public get_packs<Ts...> {};
+
+
 template <typename... Ts>
-struct get_packs<psl::ecs::info_t&, Ts...> : public get_packs<Ts...> {};
+struct signature_info {
+	using packs					   = psl::type_pack_t<Ts...>;
+	static constexpr bool has_info = false;
+	static constexpr bool is_const = true;
+};
 
+template <typename... Ts>
+struct signature_info<psl::ecs::info_t&, Ts...> {
+	using packs					   = typename get_packs<Ts...>::type;
+	static constexpr bool has_info = true;
+	static constexpr bool is_const = false;
+};
+template <typename... Ts>
+struct signature_info<psl::ecs::info_t const&, Ts...> {
+	using packs					   = typename get_packs<Ts...>::type;
+	static constexpr bool has_info = true;
+	static constexpr bool is_const = true;
+};
 
+template <typename... Ts>
+struct signature_info<psl::type_pack_t<Ts...>> : public signature_info<Ts...> {};
 }	 // namespace psl::ecs::details
 
 namespace psl::utility {
@@ -628,19 +651,34 @@ class state_t final : public details::entity_relationship_handler_t,
 
 	template <typename Fn, typename T, typename pack_type>
 	auto create_system_tick_functional(Fn& fn, T* ptr) const noexcept {
+		using function_args	 = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
+		using signature_info = details::signature_info<function_args>;
+
 		if constexpr(std::is_member_function_pointer<Fn>::value) {
 			return [fn, ptr](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
-				auto tuple_argument_list = std::tuple_cat(std::tuple<T*, psl::ecs::info_t&>(ptr, info),
-														  details::compress_from_dependency_pack(pack_type {}, packs));
+				if constexpr(signature_info::has_info) {
+					auto tuple_argument_list =
+					  std::tuple_cat(std::tuple<T*, psl::ecs::info_t&>(ptr, info),
+									 details::compress_from_dependency_pack(pack_type {}, packs));
 
-				std::apply(fn, std::move(tuple_argument_list));
+					std::apply(fn, std::move(tuple_argument_list));
+				} else {
+					auto tuple_argument_list =
+					  std::tuple_cat(std::tuple<T*>(ptr), details::compress_from_dependency_pack(pack_type {}, packs));
+					std::apply(fn, std::move(tuple_argument_list));
+				}
 			};
 		} else {
 			return [fn](psl::ecs::info_t& info, psl::array<details::dependency_pack> packs) -> void {
-				auto tuple_argument_list = std::tuple_cat(std::tuple<psl::ecs::info_t&>(info),
-														  details::compress_from_dependency_pack(pack_type {}, packs));
+				if constexpr(signature_info::has_info) {
+					auto tuple_argument_list = std::tuple_cat(
+					  std::tuple<psl::ecs::info_t&>(info), details::compress_from_dependency_pack(pack_type {}, packs));
 
-				std::apply(fn, std::move(tuple_argument_list));
+					std::apply(fn, std::move(tuple_argument_list));
+				} else {
+					auto tuple_argument_list = details::compress_from_dependency_pack(pack_type {}, packs);
+					std::apply(fn, std::move(tuple_argument_list));
+				}
 			};
 		}
 	}
@@ -653,7 +691,8 @@ class state_t final : public details::entity_relationship_handler_t,
 					  std::optional<system_group_t> systemGroup		  = std::nullopt,
 					  std::optional<transient_system_tag_t> transient = std::nullopt) {
 		using function_args	  = typename psl::templates::func_traits<typename std::decay<Fn>::type>::arguments_t;
-		using pack_type		  = typename details::get_packs<function_args>::type;
+		using signature_info  = details::signature_info<function_args>;
+		using pack_type		  = typename signature_info::packs;
 		auto filter_groups	  = make_filter_group(pack_type {});
 		auto transform_groups = []<typename... Ts>(psl::type_pack_t<Ts...>) -> psl::array<details::transform_group> {
 			return psl::array<details::transform_group> {details::transform_group(decode_pack_types_t<Ts> {})...};
@@ -663,7 +702,6 @@ class state_t final : public details::entity_relationship_handler_t,
 			  pack_type {},
 			  [this]<typename Z>() -> details::component_container_t* { return get_component_untyped_info<Z>(); });
 		};
-
 		// make sure systems don't have any non-basic filter operations if they are part of a system group
 		// the reason for this is that the tracking for component lifetime events is not done on a per system level
 		// but handled by the storage of the components themselves. This means that if a group is ticked on a different
@@ -698,7 +736,8 @@ class state_t final : public details::entity_relationship_handler_t,
 										 shared_filter_groups,
 										 shared_transform_groups,
 										 ++m_SystemCounter,
-										 debugName)
+										 debugName,
+										 signature_info::is_const)
 						   .id();
 
 		if(systemGroup != std::nullopt) {
@@ -721,7 +760,8 @@ class state_t final : public details::entity_relationship_handler_t,
 	void update_relationship_components();
 
 	::memory::raw_region m_Cache {1024 * 1024 * 256};
-	psl::array<psl::unique_ptr<info_t>> info_buffer {};
+	psl::array<std::unique_ptr<info_t>> m_InfoBuffer {};
+	std::unique_ptr<info_t> m_ConstInfo {};
 	mutable psl::array<filter_result> m_Filters {};
 	psl::array<details::system_information> m_SystemInformations {};
 

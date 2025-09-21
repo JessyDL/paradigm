@@ -4,6 +4,8 @@
 #include "core/gfx/geometry.hpp"
 #include "core/gfx/material.hpp"
 
+#include "tracy/Tracy.hpp"
+
 using namespace core::gfx;
 using namespace core::ivk;
 using namespace core::resource;
@@ -89,6 +91,7 @@ instancing_size_type bundle::instances(core::resource::tag<core::gfx::geometry_t
 std::vector<instancing_size_type> bundle::instantiate(core::resource::tag<core::gfx::geometry_t> geometry,
 													  instancing_size_type count,
 													  geometry_type type) {
+	ZoneScoped;
 	return m_InstanceData.add(geometry, count);
 }
 
@@ -120,6 +123,7 @@ bool bundle::set(core::resource::tag<core::gfx::geometry_t> geometry,
 	if(ids.size() == 0) {
 		return true;
 	}
+	ZoneScoped;
 	struct range {
 		instancing_size_type begin, end;
 		std::byte *data_begin, *data_end;
@@ -192,5 +196,6 @@ bool bundle::set(tag<core::gfx::material_t> material, const void* data, size_t s
 }
 
 void bundle::apply() {
+	ZoneScoped;
 	m_InstanceData.apply();
 }

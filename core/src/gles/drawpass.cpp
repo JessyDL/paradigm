@@ -18,6 +18,8 @@
 
 #include "core/data/framebuffer.hpp"
 
+#include "tracy/Tracy.hpp"
+
 using namespace core::igles;
 using namespace core::resource;
 
@@ -29,7 +31,7 @@ void drawpass::clear() {
 	m_DrawGroups.clear();
 }
 void drawpass::prepare() {
-	PROFILE_SCOPE(core::profiler);
+	ZoneScoped;
 	if(m_Framebuffer) {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
 
@@ -105,7 +107,7 @@ bool drawpass::build() {
 	return true;
 }
 void drawpass::present() {
-	PROFILE_SCOPE(core::profiler);
+	ZoneScoped;
 	glGetError();
 	if(m_Framebuffer) {
 		glBindFramebuffer(GL_FRAMEBUFFER, m_Framebuffer->framebuffers()[0]);
