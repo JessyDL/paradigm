@@ -478,6 +478,14 @@ namespace details {
 			return hierarchy_seed_with_previous && is_hierarchy_change_active();
 		}
 
+		psl::array<component_key_t> get_filters() const noexcept {
+			psl::array<component_key_t> result;
+			for(auto const& entry : filters) {
+				result.emplace_back(entry.key);
+			}
+			return result;
+		}
+
 	  private:
 		friend class ::psl::ecs::state_t;
 		friend class ::psl::ecs::details::systems_cache_t;

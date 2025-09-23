@@ -9,6 +9,8 @@
 #include <chrono>
 #include <functional>
 
+class thread_scheduler_t;
+
 namespace psl::ecs {
 enum class threading { seq = 0, sequential = seq, par = 1, parallel = par, main = 2 };
 
@@ -32,6 +34,17 @@ struct info_t {
 }	 // namespace psl::ecs
 
 namespace psl::ecs::details {
+
+constexpr auto align(std::uintptr_t& ptr, size_t alignment) noexcept {
+#pragma warning(push)
+#pragma warning(disable : 4146)
+	const auto orig	   = ptr;
+	const auto aligned = (ptr - 1u + alignment) & -alignment;
+	ptr				   = aligned;
+	return aligned - orig;
+#pragma warning(pop)
+}
+
 /// \brief describes a set of dependencies for a given system
 ///
 /// systems can have various dependencies, for example a movement system could have
@@ -42,6 +55,12 @@ namespace psl::ecs::details {
 /// `psl::ecs::components::transform`, but also needs to know all `psl::ecs::components::camera's`. So that
 /// system would require several dependency_pack's.
 class dependency_pack {
+	friend class thread_scheduler_t;
+	struct type_info_t {
+		size_t size {0};
+		size_t alignment {0};
+	};
+
 	struct indirect_storage_t {
 		psl::array_view<entity_t::size_type> indices {};
 		void* data {nullptr};
@@ -96,7 +115,7 @@ class dependency_pack {
 			} else {
 				target.emplace_back(key, query.template operator()<component_t>());
 			}
-			m_Sizes[key] = sizeof(component_t);
+			m_Info[key] = type_info_t {sizeof(component_t), alignof(component_t)};
 		}
 	}
 
@@ -258,32 +277,80 @@ class dependency_pack {
 		size_t res {0};
 		if(!m_IsIndirect) {
 			for(const auto& binding : m_RBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 
 			for(const auto& binding : m_RWBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 		} else {
 			for(const auto& binding : m_IndirectReadBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 
 			for(const auto& binding : m_IndirectReadWriteBindings) {
-				res += m_Sizes.at(binding.first);
+				res += m_Info.at(binding.first).size;
 			}
 		}
 		return res;
 	}
 
+	inline size_t bindings_total_size() const noexcept {
+		auto res = size_t {0};
+		if(m_IsIndirect) {
+			for(const auto& binding : m_IndirectReadBindings) {
+				align(res, alignof(entity_t::size_type));
+				res += sizeof(entity_t::size_type) * m_Entities.size();
+			}
+			for(const auto& binding : m_IndirectReadWriteBindings) {
+				align(res, alignof(entity_t::size_type));
+				res += sizeof(entity_t::size_type) * m_Entities.size();
+			}
+		} else {
+			for(const auto& binding : m_RBindings) {
+				auto const& info = m_Info.at(binding.first);
+				align(res, info.alignment);
+				res += info.size * m_Entities.size();
+			}
+			for(const auto& binding : m_RWBindings) {
+				auto const& info = m_Info.at(binding.first);
+				align(res, info.alignment);
+				res += info.size * m_Entities.size();
+			}
+		}
+		return res;
+	}
+
+	inline size_t align_of(component_key_t key) const noexcept {
+		return m_Info.at(key).alignment;
+	}
+
+	/// \brief used in conjunction with size_per_element to determine the overall alignment of a packed array
+	/// so we can safely allocate memory for it.
+	inline size_t align_of_first_binding() const noexcept {
+		if(m_IsIndirect) {
+			if(!m_IndirectReadBindings.empty() || !m_IndirectReadWriteBindings.empty()) {
+				return alignof(entity_t::size_type);
+			}
+		} else {
+			for(const auto& binding : m_RBindings) {
+				return m_Info.at(binding.first).alignment;
+			}
+			for(const auto& binding : m_RWBindings) {
+				return m_Info.at(binding.first).alignment;
+			}
+		}
+		return 1;
+	}
+
 	template <typename T>
 	inline constexpr size_t size_of() const noexcept {
 		constexpr component_key_t int_id = details::component_key_t::generate<T>();
-		return m_Sizes.at(int_id);
+		return m_Info.at(int_id).size;
 	}
 
 	inline size_t size_of(component_key_t key) const noexcept {
-		return m_Sizes.at(key);
+		return m_Info.at(key).size;
 	}
 
 	inline size_t entities() const noexcept {
@@ -296,7 +363,7 @@ class dependency_pack {
 		  psl::array_view<entity_t>(std::next(m_Entities.begin(), begin), std::next(m_Entities.begin(), end));
 
 		for(const auto& binding : m_RBindings) {
-			auto size = cpy.m_Sizes[binding.first];
+			auto size = cpy.m_Info[binding.first].size;
 
 			std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
 			std::uintptr_t end_mem	 = (std::uintptr_t)binding.second.data() + (end * size);
@@ -304,7 +371,7 @@ class dependency_pack {
 			  psl::array_view<std::uintptr_t> {(std::uintptr_t*)begin_mem, (std::uintptr_t*)end_mem};
 		}
 		for(const auto& binding : m_RWBindings) {
-			auto size = cpy.m_Sizes[binding.first];
+			auto size = cpy.m_Info[binding.first].size;
 			// binding.second = binding.second.slice(size * begin, size * end);
 			std::uintptr_t begin_mem = (std::uintptr_t)binding.second.data() + (begin * size);
 			std::uintptr_t end_mem	 = (std::uintptr_t)binding.second.data() + (end * size);
@@ -326,11 +393,32 @@ class dependency_pack {
 		return cpy;
 	}
 
+	dependency_pack from_entities(psl::array_view<psl::ecs::entity_t> entities) const noexcept {
+		auto cpy	   = make_partial_copy();
+		cpy.m_Entities = entities;
+
+		for(const auto& binding : m_RBindings) {
+			cpy.m_RBindings[binding.first] = psl::array_view<std::uintptr_t> {};
+		}
+		for(const auto& binding : m_RWBindings) {
+			cpy.m_RWBindings[binding.first] = psl::array_view<std::uintptr_t> {};
+		}
+		for(const auto& binding : m_IndirectReadBindings) {
+			cpy.m_IndirectReadBindings[binding.first].indices = psl::array_view<entity_t::size_type> {};
+			cpy.m_IndirectReadBindings[binding.first].data	  = nullptr;
+		}
+		for(const auto& binding : m_IndirectReadWriteBindings) {
+			cpy.m_IndirectReadWriteBindings[binding.first].indices = psl::array_view<entity_t::size_type> {};
+			cpy.m_IndirectReadWriteBindings[binding.first].data	   = nullptr;
+		}
+		return cpy;
+	}
+
   private:
 	dependency_pack() = default;
 	auto make_partial_copy() const noexcept -> dependency_pack {
 		dependency_pack cpy {};
-		cpy.m_Sizes		 = m_Sizes;
+		cpy.m_Info		 = m_Info;
 		cpy.filters		 = filters;
 		cpy.on_add		 = on_add;
 		cpy.on_remove	 = on_remove;
@@ -350,7 +438,7 @@ class dependency_pack {
 	// to access entities within an indirect pack we must create a fake indices array.
 	psl::array<psl::ecs::entity_t::size_type> m_EntityIndices {};
 	psl::array_view<psl::ecs::entity_t> m_Entities {};
-	std::unordered_map<component_key_t, size_t> m_Sizes {};
+	std::unordered_map<component_key_t, type_info_t> m_Info {};
 	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RBindings;
 	std::unordered_map<component_key_t, psl::array_view<std::uintptr_t>> m_RWBindings;
 	std::unordered_map<component_key_t, indirect_storage_t> m_IndirectReadBindings;

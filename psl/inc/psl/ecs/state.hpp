@@ -13,6 +13,7 @@
 #include "psl/ecs/details/system_information.hpp"
 #include "psl/ecs/entity.hpp"
 #include "psl/ecs/filtering.hpp"
+#include "psl/memory/range.hpp"
 #include "psl/memory/raw_region.hpp"
 #include "psl/pack_view.hpp"
 #include "psl/string_utils.hpp"
@@ -32,6 +33,8 @@
 namespace psl::async {
 class scheduler;
 }
+
+class thread_scheduler_t;
 
 /// \brief Private implementation details for the ECS.
 /// \warning Users should not rely on these implementations.
@@ -126,6 +129,13 @@ class state_t final : public details::entity_relationship_handler_t,
 	friend class psl::serialization::accessor;
 	static constexpr auto serialization_name {"ECS"};
 
+	struct filter_result;
+
+	friend struct std::hash<state_t::filter_result>;
+
+	friend class thread_scheduler_t;
+	using filter_id_t = size_t;
+
 
 	template <typename S>
 	void serialize(S& serializer) {
@@ -152,21 +162,22 @@ class state_t final : public details::entity_relationship_handler_t,
 	};
 
 	struct filter_result {
-		filter_result(psl::array<entity_t> entities				   = {},
+		filter_result(filter_id_t id,
+					  psl::array<entity_t> entities				   = {},
 					  std::shared_ptr<details::filter_group> group = {},
 					  psl::array<transform_result> transformations = {})
-			: entities(entities), group(group), transformations(transformations) {}
+			: id(id), entities(entities), group(group), transformations(transformations) {}
 		filter_result(filter_result const& rhs)
-			: entities(rhs.entities), direct_entities(rhs.direct_entities), group(rhs.group),
+			: id(rhs.id), entities(rhs.entities), direct_entities(rhs.direct_entities), group(rhs.group),
 			  transformations(rhs.transformations) {}
 		filter_result(filter_result&& rhs) noexcept
-			: entities(std::move(rhs.entities)), direct_entities(std::move(rhs.direct_entities)), group(rhs.group),
-			  transformations(std::move(rhs.transformations)) {}
+			: id(rhs.id), entities(std::move(rhs.entities)), direct_entities(std::move(rhs.direct_entities)),
+			  group(rhs.group), transformations(std::move(rhs.transformations)) {}
 		filter_result& operator=(filter_result const& rhs) {
 			if(this == &rhs) {
 				return *this;
 			}
-
+			id				= rhs.id;
 			entities		= rhs.entities;
 			direct_entities = rhs.direct_entities;
 			group			= rhs.group;
@@ -177,6 +188,7 @@ class state_t final : public details::entity_relationship_handler_t,
 			if(this == &rhs) {
 				return *this;
 			}
+			id				= rhs.id;
 			entities		= std::move(rhs.entities);
 			direct_entities = std::move(rhs.direct_entities);
 			group			= std::move(rhs.group);
@@ -184,6 +196,7 @@ class state_t final : public details::entity_relationship_handler_t,
 			return *this;
 		}
 
+		filter_id_t id {};
 		psl::array<entity_t> entities;
 		std::optional<psl::array<entity_t>>
 		  direct_entities;	  // activated when the grouping has relationship filtering
@@ -197,6 +210,30 @@ class state_t final : public details::entity_relationship_handler_t,
 		psl::array<transform_result> transformations;
 	};
 
+	// transient data container for when a system is being executed on the workers
+	// an instance of this will be created for each string of tasks that will be
+	// executed on a system
+	struct thread_data_pack {
+		struct entry {
+			details::dependency_pack dep_pack;
+			psl::array_view<entity_t> entities;
+			size_t cache_size {0};
+		};
+		std::vector<entry> entries;
+		std::vector<size_t> unique_entries;
+		std::vector<size_t> entry_count;
+		bool is_partial_pack {false};
+		size_t subpacks {0};
+	};
+
+	void init_thread_data_pack(thread_data_pack& datapack, details::system_information& information) const;
+	void calculate_cache_size(thread_data_pack& datapack, details::system_information& information) const;
+	void prepare_bindings(thread_data_pack& datapack, details::system_information& information);
+	void invoke_system(thread_data_pack& datapack, details::system_information& information);
+	void write_system_results(thread_data_pack& datapack, details::system_information& information);
+
+	size_t calculate_required_cache_size(psl::array_view<entity_t> entities,
+										 details::dependency_pack& dep_pack) const noexcept;
 
   public:
 	state_t(size_t workers								= 0,
@@ -276,7 +313,7 @@ class state_t final : public details::entity_relationship_handler_t,
 			return *data.group == filter_group[0];
 		});
 
-		filter_result data {};
+		filter_result data {0};
 
 		if(it == std::end(m_Filters)) {
 			data.group = std::make_shared<details::filter_group>(filter_group[0]);
@@ -308,7 +345,7 @@ class state_t final : public details::entity_relationship_handler_t,
 		auto filter_group = make_filter_group<psl::ecs::pack_direct_full_t<Ts...>>();
 		psl_assert(filter_group.size() == 1, "expected only one filter group");
 
-		filter_result data {{}, std::make_shared<details::filter_group>(filter_group[0])};
+		filter_result data {0, {}, std::make_shared<details::filter_group>(filter_group[0])};
 		filter(data, entities);
 		return data.entities;
 	}
@@ -490,6 +527,7 @@ class state_t final : public details::entity_relationship_handler_t,
 		  [this]<typename T>() -> details::component_container_t* { return get_component_untyped_info<T>(); }};
 	}
 
+	size_t prepare_bindings2(psl::array_view<entity_t> entities, void* cache, details::dependency_pack& dep_pack) const;
 	size_t prepare_bindings(psl::array_view<entity_t> entities, void* cache, details::dependency_pack& dep_pack) const;
 	size_t prepare_data(psl::array_view<entity_t> entities, void* cache, details::component_key_t id) const;
 
@@ -623,7 +661,8 @@ class state_t final : public details::entity_relationship_handler_t,
 			  return *data.group == filter_group;
 		  });
 		if(filter_it == std::end(m_Filters)) {
-			m_Filters.emplace_back(filter_result {{}, std::make_shared<details::filter_group>(filter_group)});
+			m_Filters.emplace_back(
+			  filter_result {m_FilterCounter++, {}, std::make_shared<details::filter_group>(filter_group)});
 			filter_it = std::prev(std::end(m_Filters));
 			initialize_filter(*filter_it);
 		}
@@ -776,6 +815,17 @@ class state_t final : public details::entity_relationship_handler_t,
 	size_t m_LockState {0};
 	size_t m_Tick {0};
 	size_t m_SystemCounter {0};
+	size_t m_FilterCounter {0};
 	entity_t::size_type m_MinEntitiesPerWorker {1024};
+
+	std::unique_ptr<thread_scheduler_t> m_ThreadScheduler {};
 };
 }	 // namespace psl::ecs
+
+
+template <>
+struct std::hash<psl::ecs::state_t::filter_result> {
+	size_t operator()(const psl::ecs::state_t::filter_result& res) const noexcept {
+		return std::hash<size_t> {}(res.id);
+	}
+};

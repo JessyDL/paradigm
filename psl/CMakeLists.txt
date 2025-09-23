@@ -24,7 +24,7 @@ target_include_directories(psl
 )
 target_compile_definitions(psl PUBLIC "SPDLOG_FMT_EXTERNAL" ${PE_DEFINES})
 
-target_link_libraries(psl PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8cpp strtype TracyClient)
+target_link_libraries(psl PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8cpp strtype TracyClient TBB::tbb)
 if(PE_ENABLE_TRACY)
 	target_compile_definitions(psl PUBLIC "TRACY_ENABLE")
 endif()

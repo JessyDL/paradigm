@@ -152,7 +152,7 @@ region::~region() {
 					0,				 // Bytes of committed pages
 					MEM_RELEASE);	 // Decommit the pages
 #elif defined(USE_POSIX)
-		if(munmap(m_Base, sizeof(int)) == -1) {
+		if(munmap(m_Base, m_Size) == -1) {
 			LOG_ERROR("munmap()() failed");
 			exit(EXIT_FAILURE);
 		}
