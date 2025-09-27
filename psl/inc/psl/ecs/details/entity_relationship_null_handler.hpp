@@ -12,6 +12,9 @@ namespace psl::ecs::details {
 /// By default all its methods are empty and return default values. Additionally its entire interface is
 /// protected so that the state_t can call it, but external users cannot access it anymore.
 class entity_relationship_handler_t {
+  public:
+	struct entity_relationship_t {};
+
   protected:
 	entity_relationship_handler_t()												   = default;
 	entity_relationship_handler_t(entity_relationship_handler_t const&)			   = delete;
@@ -21,8 +24,6 @@ class entity_relationship_handler_t {
 
 	template <typename S>
 	void serialize(S& serializer) {}
-
-	struct entity_relationship_t {};
 
 	template <typename T>
 		requires(IsRangeType<T>)

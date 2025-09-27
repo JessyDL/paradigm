@@ -28,12 +28,23 @@ bool render::renderer_sort::operator()(const core::ecs::components::renderable& 
 
 render::render(state_t& state, psl::view_ptr<core::gfx::drawpass> pass, core::gfx::graphics_backend backend)
 	: m_Pass(pass) {
-	state.declare<"render::release_renderable_instances">(threading::par, &render::release_renderable_instances, this);
-	state.declare<"render::apply_release">(threading::main, []() { core::gfx::buffer_t::apply(); });
-	state.declare<"render::update_instance_data">(threading::par, &render::update_instance_data, this);
-	state.declare<"render::update_instance_object_model">(threading::par, &render::update_instance_object_model, this);
-	state.declare<"render::apply_instanced_data">(threading::main, []() { core::gfx::buffer_t::apply(); });
-	state.declare<"render::tick_draws">(threading::seq, &render::tick_draws, this);
+	auto release_token = state.declare<"render::release_renderable_instances">(
+	  threading::par, &render::release_renderable_instances, this);
+	auto apply_release_token =
+	  state.declare<"render::apply_release">(threading::main, []() { core::gfx::buffer_t::apply(); });
+	apply_release_token.add_dependency(release_token);
+	auto update_instance_data_token =
+	  state.declare<"render::update_instance_data">(threading::par, &render::update_instance_data, this);
+	auto update_instance_object_model_token = state.declare<"render::update_instance_object_model">(
+	  threading::par, &render::update_instance_object_model, this);
+	auto apply_instanced_data_token =
+	  state.declare<"render::apply_instanced_data">(threading::main, []() { core::gfx::buffer_t::apply(); });
+	update_instance_data_token.add_dependency(apply_release_token);
+	update_instance_object_model_token.add_dependency(apply_release_token);
+	apply_instanced_data_token.add_dependency(update_instance_data_token);
+	apply_instanced_data_token.add_dependency(update_instance_object_model_token);
+	auto tick_draws_token = state.declare<"render::tick_draws">(threading::seq, &render::tick_draws, this);
+	tick_draws_token.add_dependency(apply_instanced_data_token);
 }
 
 void render::update_instance_data(
@@ -184,8 +195,9 @@ void render::release_renderable_instances(
 
 void render::tick_draws(pack_indirect_full_t<const renderable, on_add<renderable>> renderables,
 						pack_indirect_full_t<const renderable, on_remove<renderable>> broken_renderables) {
-	if(!renderables.size() && !broken_renderables.size())
+	if(renderables.empty() && broken_renderables.empty()) {
 		return;
+	}
 	m_Pass->dirty(true);
 	m_Pass->clear();
 
@@ -193,13 +205,15 @@ void render::tick_draws(pack_indirect_full_t<const renderable, on_add<renderable
 	for(auto renderRange : m_RenderRanges) {
 		auto& default_layer = m_DrawGroup.layer("default", renderRange.first, renderRange.second - renderRange.first);
 		for(auto [renderable] : renderables) {
-			if(renderable.bundle)
+			if(renderable.bundle) {
 				m_DrawGroup.add(default_layer, renderable.bundle).add(renderable.geometry);
+			}
 		}
 
 		for(auto [renderable] : broken_renderables) {
-			if(!renderable.bundle)
+			if(!renderable.bundle) {
 				continue;
+			}
 			if(auto dCall = m_DrawGroup.get(default_layer, renderable.bundle)) {
 				dCall.value().get().remove(renderable.geometry.operator const psl::UID&());
 			}

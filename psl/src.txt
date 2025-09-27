@@ -21,11 +21,14 @@ profiling/profiler
 
 ecs/command_buffer
 ecs/entity_relationship_data
+ecs/filtering
 ecs/state
 ecs/details/components_cache
 ecs/details/component_container
 ecs/details/entity_container
 ecs/details/entity_relationship_handler
+ecs/details/system_handler
+ecs/details/system_information
 ecs/command_buffer
 
 async/scheduler

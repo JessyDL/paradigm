@@ -95,10 +95,12 @@ void entity_container_t::modify_entities(psl::array_view<entity_t> entities) noe
 	modify_entities(entity_values);
 }
 void entity_container_t::modify_entities(psl::array_view<entity_t::size_type> entities) noexcept {
+	ZoneScoped;
 	m_ModifiedEntities.try_insert(entities.begin(), entities.end());
 }
 
 void entity_container_t::modify_entity(entity_t entity) noexcept {
+	ZoneScoped;
 	m_ModifiedEntities.try_insert(entity.value());
 }
 

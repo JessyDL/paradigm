@@ -4,6 +4,7 @@
 #include "core/gfx/drawgroup.hpp"
 #include "core/gfx/framebuffer.hpp"
 #include "core/gfx/swapchain.hpp"
+#include "tracy/Tracy.hpp"
 
 #ifdef PE_GLES
 	#include "core/gles/drawpass.hpp"
@@ -107,6 +108,7 @@ bool drawpass::is_swapchain() const noexcept {
 
 
 void drawpass::prepare() {
+	ZoneScoped;
 #ifdef PE_GLES
 	if(m_GLESHandle)
 		m_GLESHandle->prepare();
@@ -122,6 +124,7 @@ void drawpass::prepare() {
 #endif
 }
 bool drawpass::build(bool force) {
+	ZoneScoped;
 	if(!m_Dirty && !force)
 		return true;
 
@@ -144,6 +147,7 @@ bool drawpass::build(bool force) {
 
 
 void drawpass::clear() {
+	ZoneScoped;
 #ifdef PE_GLES
 	if(m_GLESHandle)
 		m_GLESHandle->clear();
@@ -159,6 +163,7 @@ void drawpass::clear() {
 #endif
 }
 void drawpass::present() {
+	ZoneScoped;
 #ifdef PE_GLES
 	if(m_GLESHandle)
 		m_GLESHandle->present();

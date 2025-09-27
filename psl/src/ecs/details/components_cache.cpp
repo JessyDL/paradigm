@@ -14,24 +14,23 @@ components_cache_t::components_cache_t() {
 }
 
 void components_cache_t::execute_command_buffer(
-  info_t& info,
+  command_buffer_t& command_buffer,
   psl::sparse_array<entity_t::size_type, entity_t::size_type> const& remapped_entities) {
 	ZoneScoped;
-	auto& buffer = info.command_buffer;
-	for(auto& component_src : buffer.m_Components) {
+	for(auto& component_src : command_buffer.m_Components) {
 		if(component_src->entities(true).size() == 0)
 			continue;
 		auto const key = component_src->id();
 		// In the case this is a mutation instruction, we need to remap the component id it uses
 		// internally to the target component id. This is a bit messy, but avoids having to recreate
 		// the component container.
-		if(auto it = buffer.m_MutatedComponents.find(key); it != std::end(buffer.m_MutatedComponents)) {
+		if(auto it = command_buffer.m_MutatedComponents.find(key); it != std::end(command_buffer.m_MutatedComponents)) {
 			component_src->m_Info.id = it->second;
 		}
 
 		auto component_dst = get_component_container(key);
 
-		component_src->remap(remapped_entities, [first = buffer.m_First](entity_t e) -> bool {
+		component_src->remap(remapped_entities, [first = command_buffer.m_First](entity_t e) -> bool {
 			return static_cast<entity_t::size_type>(e) >= first;
 		});
 		if(component_dst == nullptr) {
@@ -41,14 +40,14 @@ void components_cache_t::execute_command_buffer(
 		}
 	}
 
-	for(auto& [key, removed_components] : buffer.m_RemovedComponents) {
+	for(auto& [key, removed_components] : command_buffer.m_RemovedComponents) {
 		psl::array<entity_t> ids {};
 		ids.reserve(removed_components.size());
 		auto component_dst = get_component_container(key);
 		psl_assert(component_dst);
 
 		for(auto entity : removed_components) {
-			if(entity >= buffer.m_First) {
+			if(entity >= command_buffer.m_First) {
 				ids.emplace_back(details::make_entity(remapped_entities[entity]));
 			} else {
 				ids.emplace_back(details::make_entity(entity));
@@ -146,6 +145,17 @@ void components_cache_t::add_component_impl(const details::component_key_t& key,
 		m_EntityFlags[e.value()] |= entityFlags;
 	}
 #endif
+}
+
+
+void components_cache_t::add_component_impl(details::component_container_t* cInfo,
+											psl::array_view<entity_t> entities,
+											std::function<void()> invocable) {
+	ZoneScoped;
+	const auto component_size = cInfo->component_type_info().size;
+	auto offset				  = cInfo->entities().size();
+	cInfo->add(entities);
+	std::invoke(invocable);
 }
 
 void components_cache_t::remove_component(details::component_container_t* cInfo,

@@ -1,6 +1,9 @@
 #include "psl/ecs/details/entity_relationship_handler.hpp"
 #include "psl/assertions.hpp"
+#include "psl/ecs/details/component_container.hpp"
+#include "psl/ecs/entity_relationship_data.hpp"
 #include "psl/utility/cast.hpp"
+#include "tracy/Tracy.hpp"
 
 namespace psl::ecs::details {
 bool entity_relationship_handler_t::has_parent(entity_t target) const noexcept {
@@ -347,6 +350,63 @@ psl::array<entity_t> entity_relationship_handler_t::get_siblings(entity_t target
 void entity_relationship_handler_t::clear() noexcept {
 	m_ParentRelationship.clear();
 	m_ModifiedHierarchy.clear();
+}
+
+void entity_relationship_handler_t::update_relationship_components(
+  component_container_typed_t<entity_relationship_data_t>* hierarchyCInfo) const {
+	ZoneScoped;
+	auto update_event_component_data =
+	  [this, &hierarchyCInfo](entity_t e, entity_relationship_data_t& data, hierarchy_change_event event) {
+		  if((event & hierarchy_change_event::child_changed) != hierarchy_change_event::none) {
+			  data.m_Children = std::make_shared<psl::array<entity_t>>(get_direct_children(e));
+
+			  // Notify my direct children of the changes to their siblings.
+			  for(auto child : *data.m_Children) {
+				  if(auto dataPtr = static_cast<entity_relationship_data_t*>(
+					   hierarchyCInfo->get_if(child, details::stage_range_t::ALL));
+					 dataPtr) {
+					  dataPtr->m_Siblings = data.m_Children;
+				  } else {
+					  entity_relationship_data_t data {};
+					  data.m_Self	  = child;
+					  data.m_Siblings = data.m_Children;
+					  data.m_Parent	  = e;
+					  hierarchyCInfo->add(child, &data);
+				  }
+			  }
+		  }
+		  if((event & hierarchy_change_event::reparented) != hierarchy_change_event::none) {
+			  data.m_Parent = get_parent(e);
+			  // only need to handle this when we unparent an entity, if the parent exists in the hierarchy then we
+			  // fetch the children to set the siblings. If the parent doesn't exist yet it will set the siblings
+			  // for us.
+			  if(data.m_Parent == invalid_entity) {
+				  data.m_Siblings->clear();
+			  } else if(auto parent = static_cast<entity_relationship_data_t*>(
+						  hierarchyCInfo->get_if(data.m_Parent, details::stage_range_t::ALL));
+						parent) {
+				  data.m_Siblings = parent->m_Children;
+			  }
+		  }
+	  };
+
+	auto mod_hierarchy_entities = modified_hierarchy_entities();
+	auto mod_hierarchy_data		= modified_hierarchy_data();
+	auto event_it				= std::begin(mod_hierarchy_data);
+	for(auto ent_it = std::begin(mod_hierarchy_entities); ent_it != std::end(mod_hierarchy_entities);
+		++ent_it, ++event_it) {
+		auto e = *ent_it;
+		if(auto dataPtr =
+			 static_cast<entity_relationship_data_t*>(hierarchyCInfo->get_if(e, details::stage_range_t::ALL));
+		   dataPtr) {
+			update_event_component_data(e, *dataPtr, *event_it);
+		} else {
+			entity_relationship_data_t data {};
+			data.m_Self = e;
+			update_event_component_data(e, data, *event_it);
+			hierarchyCInfo->add(e, &data);
+		}
+	}
 }
 
 }	 // namespace psl::ecs::details

@@ -3,6 +3,7 @@
 #include "details/execution.hpp"
 #include "details/mutate_instruction.hpp"
 #include "psl/array.hpp"
+#include "psl/ecs/details/entity_relationship_handler.hpp"
 #include "psl/ecs/pack.hpp"
 #include "psl/template_utils.hpp"
 #include "psl/ustring.hpp"
@@ -13,6 +14,8 @@ class state_t;
 namespace details {
 	class filter_work_order_t;
 	class systems_cache_t;
+	class component_container_t;
+	struct filter_result;
 	enum class filtering_op_type_t : uint8_t {
 		filter,
 		on_add,
@@ -24,28 +27,17 @@ namespace details {
 		on_hierarchy_change,
 	};
 
+	using filter_id_t = size_t;
+
 	struct cached_container_entry_t {
 		constexpr cached_container_entry_t(const details::component_key_t& target) : key(target), container(nullptr) {};
-		constexpr cached_container_entry_t(details::component_container_t* target)
-			: key(target->id()), container(target) {};
-		constexpr cached_container_entry_t(const details::component_key_t& target_key,
-										   details::component_container_t* target_container)
-			: key(target_key), container(target_container) {
-			psl_assert(target_container == nullptr || target_key == target_container->id(),
-					   "ID did not match. Was expecting '{}' but got '{}'",
-					   target_key.name(),
-					   target_container->id().name());
-		};
+		cached_container_entry_t(details::component_container_t* target);
+		cached_container_entry_t(const details::component_key_t& target_key,
+								 details::component_container_t* target_container);
 		// specialized form for the on_mutate, as it masquerades as the container of another type.
-		constexpr cached_container_entry_t(const details::component_key_t& target_key,
-										   const details::component_key_t& container_key,
-										   details::component_container_t* target_container)
-			: key(target_key), container(target_container) {
-			psl_assert(target_container == nullptr || container_key == target_container->id(),
-					   "ID did not match. Was expecting '{}' but got '{}'",
-					   container_key.name(),
-					   target_container->id().name());
-		};
+		cached_container_entry_t(const details::component_key_t& target_key,
+								 const details::component_key_t& container_key,
+								 details::component_container_t* target_container);
 
 		constexpr cached_container_entry_t(cached_container_entry_t const&)			   = default;
 		constexpr cached_container_entry_t(cached_container_entry_t&&)				   = default;
@@ -115,6 +107,7 @@ namespace details {
 
 	// unlike filter_groups, transform groups are dynamic operations on every element of a filtered list
 	class transform_group {
+		friend struct filter_result;
 		using ordering_pred_t	 = void(psl::array<entity_t>::iterator,
 										psl::array<entity_t>::iterator,
 										const psl::ecs::state_t&);
@@ -177,6 +170,7 @@ namespace details {
 	class filter_group {
 		friend class ::psl::ecs::state_t;
 		friend class ::psl::ecs::details::filter_work_order_t;
+		friend struct filter_result;
 
 		struct filter_group_container_t {
 			filter_group_container_t() = default;
@@ -486,6 +480,15 @@ namespace details {
 			return result;
 		}
 
+		psl::array<entity_t>::iterator
+		execute(std::function<details::component_container_t*(component_key_t const&)> const& get_component_container,
+				psl::array<entity_t>::iterator begin,
+				psl::array<entity_t>::iterator end) const noexcept;
+
+		psl::array_view<entity_t> get_smallest(
+		  std::function<details::component_container_t*(component_key_t const&)> const& get_component_container)
+		  const noexcept;
+
 	  private:
 		friend class ::psl::ecs::state_t;
 		friend class ::psl::ecs::details::systems_cache_t;
@@ -507,5 +510,87 @@ namespace details {
 		bool seed_with_previous {false};
 		bool hierarchy_seed_with_previous {false};
 	};
+
+	struct transform_result {
+		bool operator==(const transform_result& other) const noexcept {
+			return group == other.group;
+		}
+		psl::array<entity_t> entities;
+		psl::array<entity_t::size_type> indices;	// used in case there is an order_by
+		std::shared_ptr<details::transform_group> group;
+		bool should_generate {true};
+	};
+
+	struct filter_result {
+		filter_result(filter_id_t id,
+					  psl::array<entity_t> entities				   = {},
+					  std::shared_ptr<details::filter_group> group = {},
+					  psl::array<transform_result> transformations = {})
+			: id(id), entities(entities), group(group), transformations(transformations) {}
+		filter_result(filter_result const& rhs)
+			: id(rhs.id), entities(rhs.entities), direct_entities(rhs.direct_entities), group(rhs.group),
+			  transformations(rhs.transformations) {}
+		filter_result(filter_result&& rhs) noexcept
+			: id(rhs.id), entities(std::move(rhs.entities)), direct_entities(std::move(rhs.direct_entities)),
+			  group(rhs.group), transformations(std::move(rhs.transformations)) {}
+		filter_result& operator=(filter_result const& rhs) {
+			if(this == &rhs) {
+				return *this;
+			}
+			id				= rhs.id;
+			entities		= rhs.entities;
+			direct_entities = rhs.direct_entities;
+			group			= rhs.group;
+			transformations = rhs.transformations;
+			return *this;
+		}
+		filter_result& operator=(filter_result&& rhs) noexcept {
+			if(this == &rhs) {
+				return *this;
+			}
+			id				= rhs.id;
+			entities		= std::move(rhs.entities);
+			direct_entities = std::move(rhs.direct_entities);
+			group			= std::move(rhs.group);
+			transformations = std::move(rhs.transformations);
+			return *this;
+		}
+
+		void initialize(
+		  const state_t& state,
+		  std::function<details::component_container_t*(component_key_t const&)> const& get_component_container,
+		  std::function<hierarchy_change_event const*(entity_t)> const& change_event,
+		  std::function<entity_relationship_handler_t::entity_relationship_t const*(entity_t)> const&
+			get_relationship) noexcept;
+
+		void
+		execute(psl::array_view<entity_t> source,
+				const state_t& state,
+				std::function<details::component_container_t*(component_key_t const&)> const& get_component_container,
+				std::function<hierarchy_change_event const*(entity_t)> const& change_event,
+				std::function<entity_relationship_handler_t::entity_relationship_t const*(entity_t)> const&
+				  get_relationship) noexcept;
+
+		filter_id_t id {};
+		psl::array<entity_t> entities;
+		std::optional<psl::array<entity_t>>
+		  direct_entities;	  // activated when the grouping has relationship filtering
+		// this way the entities contain _all_ entities opaquely for the systems (and system preparation), but for the
+		// filtering we can be sure that we're not going to get frame drift (f.e. when the parent is added, the next
+		// frame the .entities will now believe the parent is a valid source entry, and so their parents will now be
+		// added.
+		std::shared_ptr<details::filter_group> group;
+
+		// all transformations that will depend on this result
+		psl::array<transform_result> transformations;
+	};
 }	 // namespace details
 }	 // namespace psl::ecs
+
+
+template <>
+struct std::hash<psl::ecs::details::filter_result> {
+	size_t operator()(const psl::ecs::details::filter_result& res) const noexcept {
+		return std::hash<size_t> {}(res.id);
+	}
+};

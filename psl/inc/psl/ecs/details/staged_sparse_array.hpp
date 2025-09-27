@@ -210,6 +210,7 @@ namespace impl {
 		void reserve(Key new_size) {
 			const auto cap = capacity();
 			if(new_size > cap) {
+				new_size			 = (std::max)(new_size, cap + (cap / 2));
 				auto const old_count = m_End - m_Begin;
 				auto const old_size	 = old_count * sizeof(T);
 
@@ -447,6 +448,7 @@ namespace impl {
 
 		void reserve(Key new_size) {
 			if(new_size > capacity()) {
+				new_size			= (std::max)(new_size, capacity() + (capacity() / 2));
 				auto const old_size = m_End - m_Begin;
 
 				::memory::raw_region new_dense(new_size * m_TypeSize);

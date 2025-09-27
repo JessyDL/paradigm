@@ -6,10 +6,14 @@
 #include <psl/ecs/component_traits.hpp>
 
 namespace psl::ecs {
-class state_t;
+namespace details {
+	struct filter_result;
+	class entity_relationship_handler_t;
+}	 // namespace details
 
 class entity_relationship_data_t final {
-	friend class state_t;
+	friend struct details::filter_result;
+	friend class details::entity_relationship_handler_t;
 	entity_relationship_data_t(entity_t self) : m_Self(self) {}
 
   public:

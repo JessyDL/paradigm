@@ -14,6 +14,7 @@
 #include "core/vk/geometry.hpp"
 #include "core/vk/material.hpp"
 #include "core/vk/swapchain.hpp"
+#include "tracy/Tracy.hpp"
 
 #include "psl/utility/cast.hpp"
 
@@ -99,6 +100,7 @@ drawpass::~drawpass() {
 	m_Context->device().destroySemaphore(m_RenderComplete);
 }
 bool drawpass::build() {
+	ZoneScoped;
 	LOG_INFO("Rebuilding Command Buffers");
 	m_LastBuildFrame = m_FrameCount;
 
@@ -265,6 +267,7 @@ void drawpass::destroy_fences() {
 }
 
 void drawpass::prepare() {
+	ZoneScoped;
 	if(m_UsingSwap) {
 		m_Swapchain->next(m_PresentComplete, m_CurrentBuffer);
 		// if(m_Swapchain->next(m_PresentComplete, m_CurrentBuffer)) build();
@@ -275,6 +278,7 @@ void drawpass::prepare() {
 }
 
 void drawpass::present() {
+	ZoneScoped;
 	if(m_WaitFences.size() > 0) {
 		if(!core::utility::vulkan::check(m_Context->device().waitForFences(
 			 1, &m_WaitFences[m_CurrentBuffer], VK_TRUE, std::numeric_limits<uint64_t>::max())))
@@ -363,6 +367,7 @@ void drawpass::build_drawgroup(drawgroup& group,
 							   vk::CommandBuffer cmdBuffer,
 							   core::resource::handle<core::ivk::framebuffer_t> framebuffer,
 							   uint32_t index) {
+	ZoneScoped;
 	for(auto& drawLayer : group.m_Group) {
 		psl::array<uint32_t> render_indices;
 		for(auto& drawCall : drawLayer.second) {
@@ -415,6 +420,7 @@ void drawpass::build_drawgroup(drawgroup& group,
 							   vk::CommandBuffer cmdBuffer,
 							   core::resource::handle<core::ivk::swapchain> swapchain,
 							   uint32_t index) {
+	ZoneScoped;
 	for(auto& drawLayer : group.m_Group) {
 		psl::array<uint32_t> render_indices;
 		for(auto& drawCall : drawLayer.second) {

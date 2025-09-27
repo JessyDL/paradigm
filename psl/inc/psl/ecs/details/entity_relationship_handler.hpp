@@ -6,9 +6,15 @@
 	#include "psl/serialization/serializer.hpp"
 	#include "psl/sparse_array.hpp"
 
+namespace psl::ecs {
+class entity_relationship_data_t;
+}
+
 namespace psl::ecs::details {
+template <typename T>
+class component_container_typed_t;
 class entity_relationship_handler_t {
-  protected:
+  public:
 	struct entity_relationship_t {
 		entity_t parent {};
 		entity_t first_child {};
@@ -16,6 +22,8 @@ class entity_relationship_handler_t {
 		entity_t prev_sibling {};
 		entity_t::size_type children {0};	 // number of direct children this entity has
 	};
+
+  protected:
 	entity_relationship_handler_t()												   = default;
 	entity_relationship_handler_t(entity_relationship_handler_t const&)			   = delete;
 	entity_relationship_handler_t(entity_relationship_handler_t&&)				   = delete;
@@ -81,6 +89,7 @@ class entity_relationship_handler_t {
 	psl::array<entity_t> get_siblings(entity_t target) const noexcept;
 
   protected:
+	void update_relationship_components(component_container_typed_t<entity_relationship_data_t>* hierarchyCInfo) const;
 	void set_parent(entity_t parent, entity_t const* begin, entity_t const* const end) noexcept;
 	entity_relationship_t const* get_relationship(entity_t target) const noexcept {
 		return m_ParentRelationship.try_get(target.value());

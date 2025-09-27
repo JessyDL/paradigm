@@ -4,6 +4,7 @@
 #include "core/gfx/drawpass.hpp"
 #include "core/gfx/framebuffer.hpp"
 #include "core/gfx/swapchain.hpp"
+#include "tracy/Tracy.hpp"
 
 using namespace core::gfx;
 using core::resource::handle;
@@ -52,14 +53,13 @@ void render_graph::rebuild() noexcept {
 }
 
 void render_graph::present() {
+	ZoneScoped;
 	if(m_Rebuild) {
-		core::profiler.scope_begin("rebuild");
+		ZoneScopedN("Rebuild RenderGraph");
 		m_FlattenedRenderGraph = m_RenderGraph.to_array();
 		m_Rebuild			   = false;
-		core::profiler.scope_end();
 	}
 
-	core::profiler.scope_begin("prepare/build");
 	for(auto* ptr : m_FlattenedRenderGraph) {
 		auto& pass = *ptr;
 		std::visit(psl::utility::templates::overloaded {[rebuild = m_Rebuild](auto&& pass) {
@@ -68,13 +68,10 @@ void render_graph::present() {
 				   }},
 				   pass);
 	}
-	core::profiler.scope_end();
-	core::profiler.scope_begin("present");
 	for(auto* ptr : m_FlattenedRenderGraph) {
 		auto& pass = *ptr;
 		std::visit(psl::utility::templates::overloaded {[](auto&& pass) { pass->present(); }}, pass);
 	}
-	core::profiler.scope_end();
 }
 
 bool render_graph::connect(render_graph::view_var_t child, render_graph::view_var_t root) noexcept {
