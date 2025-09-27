@@ -23,8 +23,6 @@
 //	                 └─→ system_group_t ─┬─→ CacheB_0 ─→ ExecuteB_0 (main thread)
 //	                                     └─→ CacheB_1 ─→ ExecuteB_1 (main thread)
 
-#include <iostream>
-
 namespace psl::ecs::details {
 
 system_handler_t::system_handler_t(size_t cache_size)
@@ -32,118 +30,146 @@ system_handler_t::system_handler_t(size_t cache_size)
 	  m_Arena(tbb::task_arena::automatic), m_Cache(cache_size, std::hardware_destructive_interference_size) {}
 system_handler_t ::~system_handler_t() = default;
 
-void system_handler_t::rebuild_graph(psl::array<system_task_t>& systems, state_info_t info) {
-	ZoneScoped;
-	m_SystemContainers.clear();
-	m_FilterResults.clear();
-	m_SystemContainers.reserve(systems.size());
-	m_RunningSystems.clear();
-	m_ComponentLocks.clear();
-	auto& all_filters = info.filter_handler->get_filter_results();
+component_lock_instance_group_t make_locks(tbb::mutex& master_lock,
+										   details::system_information& system,
+										   std::unordered_map<component_key_t, component_lock_t>& cache) {
+	auto pack = system.create_pack();
 
-	std::unordered_map<filter_id_t, std::vector<std::pair<system_id_t, size_t>>> used_filters {};
-	used_filters.reserve(all_filters.size());
-	std::vector<size_t> filterless_systems {};
-	size_t system_index = 0;
-	for(auto& system : systems) {
-		auto& container = m_SystemContainers.emplace_back(system.id, system.system, system.filters.size());
-		for(auto filter_id : system.filters) {
-			used_filters[filter_id].emplace_back(system.id, system_index);
+	std::vector<component_lock_instance_t> locks {};
+	for(auto const& entry : pack) {
+		auto bindings = entry.get_bindings();
+		for(auto const& binding : bindings) {
+			auto lock_it = cache.find(binding.id);
+			if(lock_it == cache.end()) {
+				auto [it, success] = cache.emplace(binding.id, component_lock_t {});
+				lock_it			   = it;
+				psl_assert(success, "Failed to insert a new component lock");
+			}
+			locks.emplace_back(&lock_it->second, system.id(), !binding.is_read_only, !binding.is_indirect);
 		}
+	}
+	return component_lock_instance_group_t(locks, master_lock);
+}
+void system_handler_t::internal_graph_t::prepare(filter_shared_state_t const& state, cache_resource_t& cache) {
+	m_FilterState = state;
+	m_Cache		  = &cache;
+}
+void system_handler_t::internal_graph_t::add(system_information* system, psl::array<filter_result>& all_filters) {
+	if(has(system->id())) {
+		return;
+	}
+	m_ExistingSystems.insert(system->id());
+	auto get_filter_id = [&all_filters](std::shared_ptr<psl::ecs::details::filter_group> const& filter) -> filter_id_t {
+		auto filter_it = std::find_if(begin(all_filters), end(all_filters), [&filter](const auto& data) {
+			return data.group && *data.group == *filter;
+		});
+		return filter_it->id;
+	};
 
-		auto pack = system.system->create_pack();
-		std::vector<component_lock_instance_t> locks {};
-		for(auto const& entry : pack) {
-			auto bindings = entry.get_bindings();
-			for(auto const& binding : bindings) {
-				auto lock_it = m_ComponentLocks.find(binding.id);
-				if(lock_it == m_ComponentLocks.end()) {
-					auto [it, success] = m_ComponentLocks.emplace(binding.id, component_lock_t {});
-					lock_it			   = it;
-					psl_assert(success, "Failed to insert a new component lock");
+	auto get_all_filter_ids =
+	  [&get_filter_id](
+		psl::array<std::shared_ptr<psl::ecs::details::filter_group>> const& filters) -> std::vector<filter_id_t> {
+		std::vector<filter_id_t> result {};
+		result.reserve(filters.size());
+		for(auto const& filter : filters) {
+			result.push_back(get_filter_id(filter));
+		}
+		return result;
+	};
+
+	auto filters = get_all_filter_ids(system->filters());
+	auto& task =
+	  m_SystemContainers.emplace_back(std::make_unique<system_task_container_t>(system->id(), system, filters.size()));
+	auto res = m_SystemMap.emplace(
+	  system->id(),
+	  system_info_t {system,
+					 filters,
+					 {},
+					 std::vector<system_token>(system->id().dependencies().begin(), system->id().dependencies().end()),
+					 m_SystemContainers.back().get()});
+
+	std::vector<filter_id_t> missing_filters {};
+	for(auto filter_id : filters) {
+		if(m_FilterMap.find(filter_id) == m_FilterMap.end()) {
+			missing_filters.push_back(filter_id);
+		}
+		m_FilterMap[filter_id].systems.emplace_back(system->id(), &res.first->second);
+	}
+	if(filters.empty()) {
+		m_FilterlessSystems.insert(system->id());
+	}
+
+	for(auto id : missing_filters) {
+		auto& filter = m_FilterMap[id];
+		auto filter_it =
+		  std::find_if(all_filters.begin(), all_filters.end(), [id](const auto& filter) { return filter.id == id; });
+		psl_assert(filter_it != all_filters.end(), "Filter id {} was not found in the provided filters", id);
+		m_FilterResults.emplace_back(std::make_unique<filter_task_result_t>(&*filter_it, 1, id));
+		filter.result = m_FilterResults.back().get();
+	}
+
+	for(auto const& filter : filters) {
+		res.first->second.filters_task_results.push_back(m_FilterMap[filter].result);
+		res.first->second.task->filters.push_back(m_FilterMap[filter].result);
+	}
+
+	m_RunningSystems.emplace(
+	  system->id(),
+	  std::make_unique<system_invocable_task_group_t>(
+		system->id(), system, make_locks(m_ComponentLockMutex, *system, m_ComponentLocks), m_Cache));
+}
+
+void system_handler_t::internal_graph_t::remove(filter_id_t filter) {
+	if(auto it = m_FilterMap.find(filter); it != m_FilterMap.end()) {
+		m_FilterResults.erase(std::remove_if(m_FilterResults.begin(),
+											 m_FilterResults.end(),
+											 [filter](auto const& result) { return result->id == filter; }),
+							  m_FilterResults.end());
+		m_FilterMap.erase(it);
+	}
+}
+
+void system_handler_t::internal_graph_t::remove(system_token system) {
+	if(!has(system)) {
+		return;
+	}
+	m_ExistingSystems.erase(system);
+	if(auto it = m_SystemMap.find(system); it != m_SystemMap.end()) {
+		auto& info = it->second;
+		for(auto filter_id : info.filters) {
+			auto filter_it = m_FilterMap.find(filter_id);
+			if(filter_it != m_FilterMap.end()) {
+				auto& systems = filter_it->second.systems;
+				systems.erase(std::remove_if(systems.begin(),
+											 systems.end(),
+											 [system](auto const& pair) { return pair.first == system; }),
+							  systems.end());
+				if(systems.empty()) {
+					remove(filter_id);
 				}
-				locks.emplace_back(&lock_it->second, system.id, !binding.is_read_only, !binding.is_indirect);
 			}
 		}
-
-		if(system.filters.empty()) {
-			filterless_systems.push_back(system_index);
-		}
-
-		m_RunningSystems.emplace(system.id,
-								 std::make_unique<system_invocable_task_group_t>(
-								   system.id,
-								   system.system,
-								   std::move(component_lock_instance_group_t(locks, m_ComponentLockMutex)),
-								   &m_Cache));
-		++system_index;
+		m_SystemContainers.erase(std::find_if(m_SystemContainers.begin(),
+											  m_SystemContainers.end(),
+											  [task = info.task](auto const& ptr) { return task == ptr.get(); }));
+		m_SystemMap.erase(it);
 	}
+	m_RunningSystems.erase(system);
+	m_FilterlessSystems.erase(system);
+}
 
-	for(auto& system : systems) {
-		std::vector<system_invocable_task_group_t*> dependencies {};
-		dependencies.reserve(system.dependencies.size());
-		for(auto dependency : system.dependencies) {
-			auto it = m_RunningSystems.find(dependency);
-			dependencies.push_back(it->second.get());
-		}
-		auto running_it = m_RunningSystems.find(system.id);
-		running_it->second->set_dependencies(std::move(dependencies));
-	}
-
-	m_SystemScheduler.m_RemainingTasks = m_SystemContainers.size();
-
-	m_FilterResults.resize(used_filters.size());
-	auto filter_result_it = m_FilterResults.begin();
-
-	for(auto const& [id, systems] : used_filters) {
-		auto filter_it =
-		  std::find_if(all_filters.begin(), all_filters.end(), [id](const auto& filter) { return filter.id == id; });
-		psl_assert(filter_it != all_filters.end(), "Filter id {} was not found in the provided filters", id);
-		auto& filter	  = *filter_it;
-		*filter_result_it = filter_task_result_t {.container = &*filter_it, .workers = 1, .id = id};
-		++filter_result_it;
-	}
-
-	for(auto i = 0; i < systems.size(); ++i) {
-		auto& system = systems[i];
-		if(system.filters.empty()) {
-			continue;
-		}
-		auto& container = m_SystemContainers[i];
-		for(auto filter_id : system.filters) {
-			auto filter_it = std::find_if(all_filters.begin(), all_filters.end(), [filter_id](const auto& filter) {
-				return filter.id == filter_id;
-			});
-			psl_assert(filter_it != all_filters.end(), "Filter id {} was not found in the provided filters", filter_id);
-			container.filters.emplace_back(
-			  &*std::find_if(m_FilterResults.begin(), m_FilterResults.end(), [filter_it](const auto& result) {
-				  return result.id == filter_it->id;
-			  }));
-		}
-		++system_index;
-	}
-
-	filter_result_it = m_FilterResults.begin();
-	for(auto const& [id, systems] : used_filters) {
-		auto filter_it =
-		  std::find_if(all_filters.begin(), all_filters.end(), [id](const auto& filter) { return filter.id == id; });
-		psl_assert(filter_it != all_filters.end(), "Filter id {} was not found in the provided filters", id);
-
-		std::vector<system_task_container_t*> filter_systems {};
-		for(auto& [system_id, system_index] : systems) {
-			filter_systems.push_back(&m_SystemContainers[system_index]);
-		}
-
-		auto& filter = *filter_it;
-		auto data =
-		  filter_task_t {m_FilterState.handler,
-						 filter.group->is_hierarchy_change_active() ? m_FilterState.mutated : m_FilterState.modified,
-						 &filter,
-						 filter_systems,
-						 *filter_result_it};
-		m_FilteringTasks.run([data, &system_scheduler = m_SystemScheduler]() {
-			data.handler->filter(*data.filter, data.changeset);
-
+void system_handler_t::internal_graph_t::schedule(tbb::task_group& group, system_scheduler_t& system_scheduler) {
+	ZoneScoped;
+	system_scheduler.m_RemainingTasks = m_SystemMap.size();
+	for(auto& [filter_id, filter_info] : m_FilterMap) {
+		group.run([handler			 = m_FilterState.handler,
+				   result			 = filter_info.result,
+				   changeset		 = filter_info.result->container->group->is_hierarchy_change_active()
+										 ? m_FilterState.mutated
+										 : m_FilterState.modified,
+				   systems			 = filter_info.systems,
+				   &system_scheduler = system_scheduler]() {
+			handler->filter(*const_cast<filter_result*>(result->container), changeset);
 			// determine the amount of max amount workers to use for this filter
 			// this doesn't mean the system will use that many, as other filters the system depends on might
 			// influence this, as well as the historical execution time of the system.
@@ -152,39 +178,74 @@ void system_handler_t::rebuild_graph(psl::array<system_task_t>& systems, state_i
 			{
 				static constexpr auto min_entities_per_worker = 1 << 11;
 				// todo(jdl): this should be load balanced based on past performance of the system
-				auto const workers	   = size_t(std::thread::hardware_concurrency());
-				auto const max_workers = std::max(
-				  size_t {1},
-				  std::min(workers,
-						   (data.filter->entities.size() - (data.filter->entities.size() % min_entities_per_worker)) /
-							 min_entities_per_worker));
-				data.result.workers = max_workers;
+				auto const workers = size_t(std::thread::hardware_concurrency());
+				auto const max_workers =
+				  std::max(size_t {1},
+						   std::min(workers,
+									(result->container->entities.size() -
+									 (result->container->entities.size() % min_entities_per_worker)) /
+									  min_entities_per_worker));
+				result->workers = max_workers;
 			}
 
-			for(auto system : data.systems) {
-				if(--system->pending_filters == 0) {
-					system_scheduler.execute(system->id, system->system, system->filters);
+			for(auto& [id, info] : systems) {
+				if(--info->task->pending_filters == 0) {
+					system_scheduler.execute(id, info->system, info->filters_task_results);
 				}
 			}
 		});
-
-		++filter_result_it;
 	}
 
-
-	for(auto id : filterless_systems) {
-		auto& system = m_SystemContainers[id];
-		if(system.filters.empty()) {
-			m_FilteringTasks.run([&system_scheduler = m_SystemScheduler, &system]() {
-				system_scheduler.execute(system.id, system.system, {});
-			});
-		}
+	for(auto const& system_id : m_FilterlessSystems) {
+		auto it = m_SystemMap.find(system_id);
+		psl_assert(it != m_SystemMap.end(), "system was not found in the system map");
+		auto& info = it->second;
+		psl_assert(info.task->pending_filters == 0, "system with filters was found in the filterless set");
+		group.run(
+		  [&system_scheduler = system_scheduler,
+		   system_id,
+		   system		= info.system,
+		   task_results = info.filters_task_results]() { system_scheduler.execute(system_id, system, task_results); });
 	}
 }
 
+void system_handler_t::internal_graph_t::apply_changes(psl::array<system_information*>& systems,
+													   psl::array<filter_result>& all_filters) {
+	ZoneScoped;
+	std::unordered_set<system_token> to_remove = m_ExistingSystems;
+	bool has_changes						   = false;
+	for(auto& system : systems) {
+		to_remove.erase(system->id());
+		if(!has(system->id())) {
+			add(system, all_filters);
+			has_changes = true;
+		}
+	}
+	for(auto const& system : to_remove) {
+		remove(system);
+	}
+
+	for(auto& [id, info] : m_SystemMap) {
+		info.task->reset();
+	}
+	for(auto& [id, sys] : m_RunningSystems) {
+		sys->reset();
+	}
+
+	for(auto& system : systems) {
+		std::vector<system_invocable_task_group_t*> dependencies {};
+		dependencies.reserve(system->id().dependencies().size());
+		for(auto const& dependency : system->id().dependencies()) {
+			auto it = m_RunningSystems.find(dependency);
+			dependencies.push_back(it->second.get());
+		}
+		auto running_it = m_RunningSystems.find(system->id());
+		running_it->second->set_dependencies(std::move(dependencies));
+	}
+}
 
 auto system_handler_t::execute(state_info_t info,
-							   psl::array<system_task_t>& systems,
+							   psl::array<system_information*> systems,
 							   std::chrono::duration<float> dTime,
 							   std::chrono::duration<float> rTime,
 							   size_t tick) -> psl::array<std::unique_ptr<psl::ecs::info_t>> {
@@ -192,17 +253,22 @@ auto system_handler_t::execute(state_info_t info,
 	if(!info.state) {
 		throw std::runtime_error("You need to provide a valid state to execute systems");
 	}
-	m_FilterState = {info.filter_handler, info.modified_entities, info.mutated_entities};
-	m_SystemScheduler.prepare(*info.state,
-							  dTime,
-							  rTime,
-							  tick,
-							  &m_RunningSystems);	 // consider the calling thread the main thread for this run
+	m_Graph.prepare({info.filter_handler, info.modified_entities, info.mutated_entities}, m_Cache);
+	m_Graph.apply_changes(systems, info.filter_handler->get_filter_results());
+	m_SystemScheduler.prepare(
+	  *info.state,
+	  dTime,
+	  rTime,
+	  tick,
+	  &m_Graph.running_systems());	  // consider the calling thread the main thread for this run
 	m_Arena.execute([&, this]() {
-		rebuild_graph(systems, info);
-		m_FilteringTasks.wait();
+		m_Graph.schedule(m_FilteringTasks, m_SystemScheduler);
+		// rebuild_graph2(systems, info.filter_handler->get_filter_results());
+		// In case there are not enough tasks available to keep all the threads busy, we might
+		// end up with the main thread never participating. This last call will ensure that
+		// the main thread will help out if needed.
+		m_FilteringTasks.run_and_wait([this]() { m_SystemScheduler.try_execute_pending(); });
 	});
-	m_SystemScheduler.m_MainThreadExecutor.process();
 	psl_assert(m_SystemScheduler.is_done(), "System scheduler is not done after execution");
 	psl::array<std::unique_ptr<psl::ecs::info_t>> results {};
 	results.reserve(m_SystemScheduler.m_CommandBuffers.size());
@@ -213,10 +279,9 @@ auto system_handler_t::execute(state_info_t info,
 	return results;
 }
 
-std::vector<system_invocable_task_t>
-system_scheduler_t::make_tasks(system_token id,
-							   system_information* system,
-							   std::vector<filter_task_result_t const*> const& filters) {
+std::vector<system_invocable_task_t> system_scheduler_t::make_tasks(system_token id,
+																	system_information* system,
+																	std::vector<filter_task_result_t*> filters) {
 	std::vector<psl::array_view<psl::ecs::entity_t>> entities;
 	for(auto i = 0u; i < filters.size(); ++i) {
 		auto filter_result	 = filters[i]->container;
@@ -297,33 +362,6 @@ system_scheduler_t::make_tasks(system_token id,
 	return tasks;
 }
 
-bool try_lock(std::recursive_mutex& shared, std::vector<component_lock_instance_t>& locks) {
-	auto scoped_lock = std::scoped_lock(shared);
-	for(auto it = locks.begin(); it != locks.end(); ++it) {
-		if(!it->try_lock()) {
-			// unlock all previous locks
-			for(auto rev = locks.begin(); rev != it; ++rev) {
-				rev->unlock();
-			}
-			return false;
-		}
-	}
-	return true;
-}
-
-void lock(std::recursive_mutex& shared, std::vector<component_lock_instance_t>& locks) {
-	auto scoped_lock = std::scoped_lock(shared);
-	for(auto it = locks.begin(); it != locks.cend(); ++it) {
-		it->lock();
-	}
-}
-
-void unlock(std::recursive_mutex& shared, std::vector<component_lock_instance_t>& locks) {
-	auto scoped_lock = std::scoped_lock(shared);
-	for(auto it = locks.begin(); it != locks.cend(); ++it) {
-		it->unlock();
-	}
-}
 
 void system_scheduler_t::schedule(psl::ecs::details::system_information* system, system_invocable_task_group_t& group) {
 	if(system->threading() == psl::ecs::threading::main) {
@@ -348,56 +386,20 @@ void system_scheduler_t::schedule(psl::ecs::details::system_information* system,
 
 void system_scheduler_t::execute(system_token id,
 								 system_information* system,
-								 std::vector<filter_task_result_t const*> const& filters) {
+								 std::vector<filter_task_result_t*> filters) {
 	auto system_it = m_RunningSystems->find(id);
 	system_it->second->set_tasks(make_tasks(id, system, filters));
 	if(system_it->second->is_ready()) {
-		schedule(system, *system_it->second);
+		if(((system->threading() == psl::ecs::threading::main && m_MainThreadExecutor.is_valid_thread()) ||
+			system->threading() != psl::ecs::threading::main) &&
+		   system_it->second->operator()(this, m_ExecutionGroup)) {
+			--m_RemainingTasks;
+		} else {
+			schedule(system, *system_it->second);
+		}
 	}
+
 	try_execute_pending();
-	// return;
-	// if(system->threading() == psl::ecs::threading::main && !m_MainThreadExecutor.is_valid_thread()) {
-	//	schedule(system, std::move(tasks));
-	//	return;
-	// }
-
-	// m_LockingMutex.lock();
-	// if(!try_lock(locks)) {
-	//	m_LockingMutex.unlock();
-	//	schedule(system, std::move(tasks));
-	//	return;
-	// }
-	// m_LockingMutex.unlock();
-
-	// for(auto it = tasks.begin(); it != tasks.cend(); ++it) {
-	//	std::vector<std::optional<memory::segment>> segments {};
-	//	if(!try_allocate_cache(*it, segments)) {
-	//		// failed to allocate the cache, unlock all locks and schedule the task for later execution
-	//		// we assume that the subsequent tasks will at least try to allocate the same amount of memory
-	//		// so we reschedule all of them
-	//		// todo(jdl): these could be prioritized as we can assume space will be cleared for every task
-	//		// that finishes of the same system.
-	//		unlock(locks);
-	//		schedule(system, std::vector<system_invocable_task_t>(it, tasks.end()));
-	//		return;
-	//	}
-	//	if(system->threading() == psl::ecs::threading::main) {
-	//		std::invoke(*it, segments);
-	//		deallocate_cache(segments);
-	//	} else {
-	//		m_ExecutionGroup.run([scheduler = this, task = std::move(*it), segments = std::move(segments)]() {
-	//			if(!task.try_lock()) {
-	//				scheduler->reschedule(std::move(task));
-	//			} else {
-	//				std::invoke(task, segments);
-	//			}
-	//			scheduler->deallocate_cache(segments);
-	//			scheduler->try_execute_pending();
-	//		});
-	//	}
-	// }
-
-	// unlock(locks);
 }
 
 constexpr auto align_offset(std::uintptr_t size, std::uintptr_t alignment) -> std::uintptr_t {
@@ -477,13 +479,6 @@ void system_invocable_task_t::prepare(std::vector<std::optional<memory::segment>
 		}
 		write_fn(*pack_it, segment_it->value());
 	}
-	// direct access locks can be released during the execution of the system
-	// as the data is in the cache, and so no other pack has access to it
-	/*for(auto& lock : m_Locks) {
-		if(lock.is_direct()) {
-			lock.unlock();
-		}
-	}*/
 }
 void system_invocable_task_t::execute() const {
 	ZoneScoped;
@@ -491,12 +486,6 @@ void system_invocable_task_t::execute() const {
 }
 void system_invocable_task_t::finalize() const {
 	ZoneScoped;
-	/*for(auto& lock : m_Locks) {
-		if(lock.is_direct()) {
-			lock.lock();
-		}
-	}*/
-
 	for(const auto& dep_pack : m_Packs) {
 		auto bindings = dep_pack.get_bindings();
 		for(auto& binding : dep_pack.m_RWBindings) {

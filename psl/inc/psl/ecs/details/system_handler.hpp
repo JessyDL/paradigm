@@ -58,7 +58,7 @@ class explicit_thread_executor_t {
 		return !m_Tasks.empty();
 	}
 
-	void process(std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) {
+	void process(std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) const {
 		if(!is_valid_thread()) {
 			throw std::runtime_error("Main thread executor can only be processed from the main thread");
 		}
@@ -80,8 +80,12 @@ class explicit_thread_executor_t {
 		}
 	}
 
+	void operator()(std::chrono::milliseconds timeout = std::chrono::milliseconds::max()) const {
+		process(timeout);
+	}
+
   private:
-	tbb::concurrent_queue<std::function<bool()>> m_Tasks;
+	mutable tbb::concurrent_queue<std::function<bool()>> m_Tasks;
 	std::thread::id m_ThreadId {};
 };
 struct component_lock_t {
@@ -252,34 +256,44 @@ struct filter_task_result_t {
 
 struct system_task_container_t {
 	system_task_container_t(system_token id, system_information* system, size_t pending_filters)
-		: id(id), system(system), pending_filters(pending_filters) {}
+		: id(id), system(system), pending_filters(pending_filters), original_pending(pending_filters) {}
 	system_task_container_t(const system_task_container_t& other)
-		: id(other.id), system(other.system), filters(other.filters), pending_filters(other.pending_filters.load()) {}
+		: id(other.id), system(other.system), filters(other.filters), pending_filters(other.pending_filters.load()),
+		  original_pending(other.original_pending) {}
 	system_task_container_t(system_task_container_t&& other) noexcept
 		: id(other.id), system(other.system), filters(std::move(other.filters)),
-		  pending_filters(other.pending_filters.load()) {}
+		  pending_filters(other.pending_filters.load()), original_pending(other.original_pending) {}
 	system_task_container_t& operator=(const system_task_container_t& other) {
 		if(this != &other) {
-			id				= other.id;
-			system			= other.system;
-			filters			= other.filters;
-			pending_filters = other.pending_filters.load();
+			id				 = other.id;
+			system			 = other.system;
+			filters			 = other.filters;
+			pending_filters	 = other.pending_filters.load();
+			original_pending = other.original_pending;
 		}
 		return *this;
 	}
 	system_task_container_t& operator=(system_task_container_t&& other) noexcept {
 		if(this != &other) {
-			id				= other.id;
-			system			= other.system;
-			filters			= std::move(other.filters);
-			pending_filters = other.pending_filters.load();
+			id				 = other.id;
+			system			 = other.system;
+			filters			 = std::move(other.filters);
+			pending_filters	 = other.pending_filters.load();
+			original_pending = other.original_pending;
 		}
 		return *this;
 	}
+
+	void reset() {
+		pending_filters.store(original_pending);
+	}
+
 	system_token id;
 	system_information* system;
 	std::vector<filter_task_result_t const*> filters;
 	std::atomic<size_t> pending_filters;
+
+	size_t original_pending;
 };
 
 struct filter_task_t {
@@ -290,10 +304,7 @@ struct filter_task_t {
 	filter_task_result_t& result;
 };
 
-class system_handler_t;
 class system_invocable_task_t {
-	friend class system_handler_t;
-
   public:
 	system_invocable_task_t() noexcept = default;
 	system_invocable_task_t(system_token id,
@@ -307,27 +318,6 @@ class system_invocable_task_t {
 		execute();
 		finalize();
 	}
-
-	// bool try_lock() const {
-	//	for(auto it = m_Locks.begin(); it != m_Locks.end(); ++it) {
-	//		if(!it->try_lock()) {
-	//			// unlock all previous locks
-	//			for(auto rev = m_Locks.begin(); rev != it; ++rev) {
-	//				rev->unlock();
-	//			}
-	//			return false;
-	//		}
-	//	}
-	//	return true;
-	// }
-
-	// void unlock() const {
-	//	for(auto& lock : m_Locks) {
-	//		if(lock.is_locked()) {
-	//			lock.unlock();
-	//		}
-	//	}
-	// }
 
 	std::vector<size_t> get_cache_requirements() const;
 
@@ -401,19 +391,20 @@ class system_invocable_task_group_t {
 		m_PendingTasks.store(m_Tasks.size());
 	}
 
-	system_invocable_task_group_t(system_token id,
-								  system_information* system,
-								  std::vector<system_invocable_task_t> tasks,
-								  component_lock_instance_group_t locks,
-								  cache_resource_t* cache) noexcept
-		: m_Id(id), m_System(system), m_Tasks(std::move(tasks)), m_Locks(std::move(locks)), m_Cache(cache) {
-		m_PendingTasks.store(m_Tasks.size());
-	}
-
 	void set_dependencies(std::vector<system_invocable_task_group_t*> dependencies) {
 		std::lock_guard lock(m_Mutex);
-		m_DependentTasks = std::move(dependencies);
-		m_RemainingDependencies.store(m_DependentTasks.size());
+		for(auto& dependency : dependencies) {
+			dependency->m_DependentTasks.emplace_back(this);
+		}
+		m_RemainingDependencies.store(dependencies.size());
+	}
+
+	void remove_dependency(system_invocable_task_group_t* dependency) {
+		std::lock_guard lock(m_Mutex);
+		dependency->m_DependentTasks.erase(
+		  std::remove(dependency->m_DependentTasks.begin(), dependency->m_DependentTasks.end(), this),
+		  dependency->m_DependentTasks.end());
+		--m_RemainingDependencies;
 	}
 
 	void set_tasks(std::vector<system_invocable_task_t> tasks) {
@@ -433,6 +424,16 @@ class system_invocable_task_group_t {
 
 	bool is_finished() const noexcept {
 		return m_Finished.load();
+	}
+
+	void reset() noexcept {
+		m_Tasks.clear();
+		m_Current = m_Tasks.begin();
+		m_PendingTasks.store(m_Tasks.size());
+		m_Finished.store(false);
+		m_Startable.store(false);
+		m_RemainingDependencies.store(0);
+		m_DependentTasks.clear();
 	}
 
 	/// \brief Either schedules tasks to be executed on the provided task_group, or executes them on the calling thread.
@@ -472,14 +473,13 @@ class system_invocable_task_group_t {
 /// freed up the scheduler will check the pending tasks and try to execute them.
 class system_scheduler_t {
 	friend class system_handler_t;
-	friend class system_invocable_task_group_t;
 
   public:
 	system_scheduler_t(tbb::task_group& group, size_t cache_size, size_t cache_alignment) noexcept
 		: m_ExecutionGroup(group) {}
 	/// \brief Schedules a system for execution, if it cannot be executed immediately it will be stored as a pending task.
 	/// \note This function is thread-safe and can be called from any thread. Additionally the calling thread _might_ be used to execute the system if possible.
-	void execute(system_token id, system_information* system, std::vector<filter_task_result_t const*> const& filters);
+	void execute(system_token id, system_information* system, std::vector<filter_task_result_t*> filters = {});
 
 	void
 	prepare(psl::ecs::state_t& state,
@@ -495,7 +495,7 @@ class system_scheduler_t {
 
   private:
 	std::vector<system_invocable_task_t>
-	make_tasks(system_token id, system_information* system, std::vector<filter_task_result_t const*> const& filters);
+	make_tasks(system_token id, system_information* system, std::vector<filter_task_result_t*> filters);
 
 	void reschedule(system_invocable_task_group_t& group);
 
@@ -503,8 +503,6 @@ class system_scheduler_t {
 	tbb::concurrent_queue<system_invocable_task_group_t*> m_PendingTaskGroups {};
 	tbb::concurrent_vector<std::unique_ptr<psl::ecs::info_t>> m_CommandBuffers {};
 	explicit_thread_executor_t m_MainThreadExecutor {};
-	std::recursive_mutex m_LockingMutex {};	   // used to protect the stage where systems try to allocate the
-											   // cache & set the component locks
 	tbb::task_group& m_ExecutionGroup;
 	std::unique_ptr<psl::ecs::info_t>
 	  m_SharedCommandBuffer {};	   // used for const systems, or those who do not read the info_t
@@ -514,14 +512,66 @@ class system_scheduler_t {
 };
 
 class system_handler_t {
-  public:
-	using system_id_t = system_token;
+	struct filter_shared_state_t {
+		filter_handler_t* handler;
+		psl::array_view<psl::ecs::entity_t> modified;
+		psl::array_view<psl::ecs::entity_t> mutated;
+	};
 
+	class internal_graph_t {
+	  public:
+		struct system_info_t {
+			system_information* system;
+			std::vector<filter_id_t> filters;
+			std::vector<filter_task_result_t*> filters_task_results;
+			std::vector<system_token> dependencies;
+			system_task_container_t* task {};
+		};
+
+		struct filter_info_t {
+			std::vector<std::pair<system_token, system_info_t*>> systems;
+			filter_task_result_t* result;
+		};
+
+		bool has(system_token id) const noexcept {
+			return m_ExistingSystems.find(id) != m_ExistingSystems.end();
+		}
+
+		void prepare(filter_shared_state_t const& state, cache_resource_t& cache);
+		void apply_changes(psl::array<system_information*>& systems, psl::array<filter_result>& all_filters);
+		void add(system_information* system, psl::array<filter_result>& all_filters);
+		void remove(system_token system);
+		// void rebuild(psl::array<system_information*> systems, psl::array<filter_result>& all_filters);
+		void schedule(tbb::task_group& group, system_scheduler_t& system_scheduler);
+
+		std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>>& running_systems() {
+			return m_RunningSystems;
+		}
+
+	  private:
+		// happens when a system is removed from the state which was the last owner of a filter
+		void remove(filter_id_t filter);
+		std::unordered_set<system_token> m_ExistingSystems;
+		std::unordered_map<system_token, system_info_t> m_SystemMap {};
+		std::unordered_map<filter_id_t, filter_info_t> m_FilterMap {};
+		std::unordered_map<component_key_t, component_lock_t> m_ComponentLocks {};
+		std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>> m_RunningSystems {};
+		std::vector<std::unique_ptr<system_task_container_t>> m_SystemContainers {};
+		std::vector<std::unique_ptr<filter_task_result_t>> m_FilterResults {};
+		filter_shared_state_t m_FilterState;
+
+		// normally we schedule all the filters, which will kick off the systems that depend on them
+		// but there are system which have no filters, these need special handling.
+		std::unordered_set<system_token> m_FilterlessSystems {};
+		tbb::mutex m_ComponentLockMutex {};
+		cache_resource_t* m_Cache {nullptr};
+	};
+
+  public:
 	struct system_task_t {
-		system_id_t id;
+		system_token id;
 		std::unordered_set<filter_id_t> filters;
 		system_information* system;
-		psl::array<system_id_t> dependencies;
 	};
 
 	struct state_info_t {
@@ -539,29 +589,23 @@ class system_handler_t {
 	system_handler_t& operator=(system_handler_t&&)		 = delete;
 
 	auto execute(state_info_t info,
-				 psl::array<system_task_t>& systems,
+				 psl::array<system_information*> systems,
 				 std::chrono::duration<float> dTime,
 				 std::chrono::duration<float> rTime,
 				 size_t tick) -> psl::array<std::unique_ptr<psl::ecs::info_t>>;
 
   private:
-	struct filter_shared_state_t {
-		filter_handler_t* handler;
-		psl::array_view<psl::ecs::entity_t> modified;
-		psl::array_view<psl::ecs::entity_t> mutated;
-	};
-
-	void rebuild_graph(psl::array<system_task_t>& systems, state_info_t info);
-
 	system_scheduler_t m_SystemScheduler;
-	std::vector<system_task_container_t> m_SystemContainers {};
-	std::vector<filter_task_result_t> m_FilterResults {};
-	std::unordered_map<component_key_t, component_lock_t> m_ComponentLocks {};
-	std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>> m_RunningSystems {};
+	// std::vector<system_task_container_t> m_SystemContainers {};
+	// std::vector<filter_task_result_t> m_FilterResults {};
+	// std::unordered_map<component_key_t, component_lock_t> m_ComponentLocks {};
+	// std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>> m_RunningSystems {};
 	tbb::task_arena m_Arena;
 	tbb::task_group m_FilteringTasks;
-	filter_shared_state_t m_FilterState;
-	tbb::mutex m_ComponentLockMutex {};
+	// filter_shared_state_t m_FilterState;
 	cache_resource_t m_Cache;
+	// tbb::mutex m_ComponentLockMutex {};
+
+	internal_graph_t m_Graph {};
 };
 }	 // namespace psl::ecs::details

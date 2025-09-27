@@ -60,26 +60,10 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 
 	psl::array<details::component_container_t*> mutated_components = apply_mutations();
 
-	std::vector<details::system_handler_t::system_task_t> systems_to_execute {};
+	psl::array<details::system_information*> systems {};
 	if(groups.size() == 0) {
 		for(auto& [id, system] : m_SystemInformations) {
-			if(m_SystemGroupIndices.find(id) != std::end(m_SystemGroupIndices)) {
-				continue;
-			}
-			auto& task	= systems_to_execute.emplace_back();
-			task.id		= id;
-			task.system = &system;
-
-			for(auto& filter : system.m_Filters) {
-				auto filter_it = std::find_if(begin(m_Filters), end(m_Filters), [&filter](const auto& data) {
-					return data.group && *data.group == *filter;
-				});
-				psl_assert(filter_it != std::end(m_Filters),
-						   "Could not find a matching filter for the system {} with debug name '{}'",
-						   id.value(),
-						   system.debug_name());
-				task.filters.insert(filter_it->id);
-			}
+			systems.push_back(&system);
 		}
 	}
 
@@ -90,7 +74,7 @@ void state_t::tick(std::chrono::duration<float> dTime, psl::array_view<system_gr
 		.state			   = this,
 		.filter_handler	   = this,
 	  },
-	  systems_to_execute,
+	  systems,
 	  dTime,
 	  dTime,
 	  m_Tick);
