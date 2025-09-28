@@ -28,6 +28,11 @@ target_link_libraries(psl PUBLIC fmt::fmt ${CMAKE_THREAD_LIBS_INIT} spdlog utf8c
 if(PE_ENABLE_TRACY)
 	target_compile_definitions(psl PUBLIC "TRACY_ENABLE")
 endif()
+
+if((CMAKE_CXX_COMPILER_ID STREQUAL "GNU" OR CMAKE_CXX_COMPILER_ID STREQUAL "Clang") AND NOT PE_PLATFORM STREQUAL "MACOS")
+	target_link_libraries(psl PRIVATE atomic)
+endif()
+
 set_target_output_directory(TARGET psl)
 set_target_properties(psl PROPERTIES LINKER_LANGUAGE CXX)
 
