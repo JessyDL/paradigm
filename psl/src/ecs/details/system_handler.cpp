@@ -4,7 +4,7 @@
 #include <tbb/flow_graph.h>
 #include <tbb/rw_mutex.h>
 
-#include "Tracy/tracy.hpp"
+#include "tracy/Tracy.hpp"
 
 #include "fmt/format.h"
 
