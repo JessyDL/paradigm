@@ -622,7 +622,7 @@ class system_information final {
 		return m_Transforms;
 	}
 
-	constexpr auto debug_name() const noexcept {
+	constexpr auto const& debug_name() const noexcept {
 		return m_DebugName;
 	}
 

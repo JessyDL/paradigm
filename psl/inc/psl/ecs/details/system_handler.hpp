@@ -15,29 +15,6 @@ namespace psl::ecs {
 class state_t;
 }
 namespace psl::ecs::details {
-class task_performance_observer_t : tbb::task_scheduler_observer {
-  public:
-	task_performance_observer_t() : tbb::task_scheduler_observer() {
-		observe(true);
-	}
-	~task_performance_observer_t() {
-		observe(false);
-	}
-	void on_scheduler_entry(bool) override {
-		m_Start = std::chrono::high_resolution_clock::now();
-	}
-	void on_scheduler_exit(bool) override {
-		m_End = std::chrono::high_resolution_clock::now();
-	}
-	auto duration() const noexcept -> std::chrono::duration<float> {
-		return m_End - m_Start;
-	}
-
-  private:
-	std::chrono::time_point<std::chrono::high_resolution_clock> m_Start {};
-	std::chrono::time_point<std::chrono::high_resolution_clock> m_End {};
-};
-
 class explicit_thread_executor_t {
   public:
 	explicit_thread_executor_t() noexcept : m_Tasks({}), m_ThreadId(std::this_thread::get_id()) {}
@@ -88,6 +65,7 @@ class explicit_thread_executor_t {
 	mutable tbb::concurrent_queue<std::function<bool()>> m_Tasks;
 	std::thread::id m_ThreadId {};
 };
+
 struct component_lock_t {
 	component_lock_t() : lock(std::make_unique<tbb::rw_mutex>()) {}
 	component_lock_t(const component_lock_t&) = delete;
@@ -296,48 +274,82 @@ struct system_task_container_t {
 	size_t original_pending;
 };
 
-struct filter_task_t {
-	filter_handler_t const* handler {};
-	psl::array_view<psl::ecs::entity_t> changeset {};
-	filter_result* filter {};
-	std::vector<system_task_container_t*> systems {};
-	filter_task_result_t& result;
-};
-
 class system_invocable_task_t {
   public:
+	struct metrics_t {
+		std::chrono::duration<float> duration {};
+		size_t entities_processed {0};
+		size_t read_components {0};
+		size_t write_components {0};
+		size_t tasks_executed {0};
+
+		metrics_t& operator+=(const metrics_t& other) {
+			duration += other.duration;
+			entities_processed += other.entities_processed;
+			read_components += other.read_components;
+			write_components += other.write_components;
+			tasks_executed += other.tasks_executed;
+			return *this;
+		}
+
+		metrics_t operator+(const metrics_t& other) const {
+			metrics_t result = *this;
+			result += other;
+			return result;
+		}
+
+		void reset() {
+			duration		   = {};
+			entities_processed = 0;
+			read_components	   = 0;
+			write_components   = 0;
+			tasks_executed	   = 0;
+		}
+	};
 	system_invocable_task_t() noexcept = default;
-	system_invocable_task_t(system_token id,
-							system_information* system,
-							std::vector<dependency_pack> const& packs,
-							psl::ecs::info_t* info,
-							components_cache_t* component_cache) noexcept
-		: m_Id(id), m_System(system), m_Packs(packs), m_Info(info), m_ComponentCache(component_cache) {}
-	auto operator()(std::vector<std::optional<memory::segment>> const& segments) const -> void {
-		prepare(segments);
-		execute();
-		finalize();
+	system_invocable_task_t(psl::ecs::info_t* info, std::vector<dependency_pack> const& packs) noexcept
+		: m_Info(info), m_Packs(packs) {}
+	auto operator()(std::vector<std::optional<memory::segment>> const& segments,
+					system_information* system,
+					components_cache_t* components_cache) const -> metrics_t {
+		metrics_t metrics {};
+		metrics.tasks_executed = 1;
+		auto start			   = std::chrono::high_resolution_clock::now();
+		auto name			   = psl::string_view {system->debug_name()};
+		prepare(name, segments, components_cache);
+		execute(name, system, m_Info);
+		finalize(name, components_cache);
+		metrics.duration = std::chrono::high_resolution_clock::now() - start;
+		for(auto const& pack : m_Packs) {
+			metrics.entities_processed += pack.entities();
+			auto const& bindings	= pack.get_bindings();
+			metrics.read_components = std::accumulate(
+			  std::begin(bindings),
+			  std::end(bindings),
+			  metrics.read_components,
+			  [](size_t acc, dependency_pack::binding_info_t const& info) { return acc + info.is_read_only; });
+			metrics.write_components = bindings.size() - metrics.read_components;
+		}
+		return metrics;
 	}
 
 	std::vector<size_t> get_cache_requirements() const;
 
-	system_token id() const noexcept {
-		return m_Id;
-	}
-
   private:
 	/// \brief Loads all the required data into the cache, and binds the m_Packs.
-	void prepare(std::vector<std::optional<memory::segment>> const& segments) const;
+	void prepare(psl::string_view system_name,
+				 std::vector<std::optional<memory::segment>> const& segments,
+				 components_cache_t* components_cache) const;
 	/// \brief Executes the system with the provided info_t and the packs it has prepared.
-	void execute() const;
+	void execute(psl::string_view system_name, system_information* system, psl::ecs::info_t* info) const;
 	/// \brief Copy the results back into the state's component caches, and returns the command_buffer_t containing the instructions for the state to process.
-	void finalize() const;
+	void finalize(psl::string_view system_name, components_cache_t* components_cache) const;
 
-	system_token m_Id;
-	system_information* m_System;
+	psl::ecs::info_t* m_Info {nullptr};
 	std::vector<dependency_pack> m_Packs;
-	psl::ecs::info_t* m_Info;
-	components_cache_t* m_ComponentCache;
+
+	mutable std::chrono::time_point<std::chrono::high_resolution_clock> m_Start {};
+	mutable std::chrono::duration<float> m_Duration {};
 };
 
 class cache_resource_t {
@@ -375,7 +387,7 @@ class cache_resource_t {
 			}
 		}
 	}
-	std::mutex m_Mutex;
+	tbb::mutex m_Mutex;
 	memory::region m_Region;
 };
 
@@ -386,8 +398,10 @@ class system_invocable_task_group_t {
 	system_invocable_task_group_t(system_token id,
 								  system_information* system,
 								  component_lock_instance_group_t locks,
-								  cache_resource_t* cache) noexcept
-		: m_Id(id), m_System(system), m_Tasks(), m_Locks(std::move(locks)), m_Cache(cache) {
+								  cache_resource_t* cache,
+								  components_cache_t* components_cache) noexcept
+		: m_Id(id), m_System(system), m_Tasks(), m_Locks(std::move(locks)), m_Cache(cache),
+		  m_ComponentsCache(components_cache) {
 		m_PendingTasks.store(m_Tasks.size());
 	}
 
@@ -397,6 +411,7 @@ class system_invocable_task_group_t {
 			dependency->m_DependentTasks.emplace_back(this);
 		}
 		m_RemainingDependencies.store(dependencies.size());
+		m_OriginalDependencies = dependencies.size();
 	}
 
 	void remove_dependency(system_invocable_task_group_t* dependency) {
@@ -432,8 +447,8 @@ class system_invocable_task_group_t {
 		m_PendingTasks.store(m_Tasks.size());
 		m_Finished.store(false);
 		m_Startable.store(false);
-		m_RemainingDependencies.store(0);
-		m_DependentTasks.clear();
+		m_RemainingDependencies.store(m_OriginalDependencies);
+		m_Metrics.reset();
 	}
 
 	/// \brief Either schedules tasks to be executed on the provided task_group, or executes them on the calling thread.
@@ -442,6 +457,11 @@ class system_invocable_task_group_t {
 	/// \return True if all tasks have been executed, false otherwise.
 	bool operator()(system_scheduler_t* handler,
 					std::optional<std::reference_wrapper<tbb::task_group>> group = std::nullopt);
+
+
+	system_invocable_task_t::metrics_t get_metrics() const noexcept {
+		return m_Metrics;
+	}
 
   private:
 	/// \brief Notifies the task group that a dependency has been completed.
@@ -453,14 +473,17 @@ class system_invocable_task_group_t {
 	system_token m_Id;
 	system_information* m_System;
 	std::vector<system_invocable_task_t> m_Tasks;
+	system_invocable_task_t::metrics_t m_Metrics {};
 	component_lock_instance_group_t m_Locks;
 	cache_resource_t* m_Cache {nullptr};
+	components_cache_t* m_ComponentsCache {nullptr};
 	std::vector<system_invocable_task_t>::iterator m_Current {m_Tasks.begin()};
 	std::atomic<size_t> m_PendingTasks {0};
 	tbb::mutex m_Mutex;
 	std::atomic<bool> m_Finished {false};
 	std::atomic<bool> m_Startable {false};
 	std::atomic<size_t> m_RemainingDependencies {0};
+	size_t m_OriginalDependencies {0};
 	std::vector<system_invocable_task_group_t*> m_DependentTasks {};
 };
 
@@ -506,7 +529,6 @@ class system_scheduler_t {
 	tbb::task_group& m_ExecutionGroup;
 	std::unique_ptr<psl::ecs::info_t>
 	  m_SharedCommandBuffer {};	   // used for const systems, or those who do not read the info_t
-	components_cache_t* m_ComponentCache {nullptr};
 	std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>>* m_RunningSystems {nullptr};
 	std::atomic<size_t> m_RemainingTasks {};
 };
@@ -537,20 +559,23 @@ class system_handler_t {
 			return m_ExistingSystems.find(id) != m_ExistingSystems.end();
 		}
 
-		void prepare(filter_shared_state_t const& state, cache_resource_t& cache);
+		void prepare(filter_shared_state_t const& state, cache_resource_t& cache, components_cache_t* components_cache);
 		void apply_changes(psl::array<system_information*>& systems, psl::array<filter_result>& all_filters);
-		void add(system_information* system, psl::array<filter_result>& all_filters);
-		void remove(system_token system);
-		// void rebuild(psl::array<system_information*> systems, psl::array<filter_result>& all_filters);
 		void schedule(tbb::task_group& group, system_scheduler_t& system_scheduler);
 
-		std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>>& running_systems() {
+		std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>>& running_systems() noexcept {
+			return m_RunningSystems;
+		}
+		std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>> const&
+		running_systems() const noexcept {
 			return m_RunningSystems;
 		}
 
 	  private:
 		// happens when a system is removed from the state which was the last owner of a filter
 		void remove(filter_id_t filter);
+		void add(system_information* system, psl::array<filter_result>& all_filters);
+		void remove(system_token system);
 		std::unordered_set<system_token> m_ExistingSystems;
 		std::unordered_map<system_token, system_info_t> m_SystemMap {};
 		std::unordered_map<filter_id_t, filter_info_t> m_FilterMap {};
@@ -565,6 +590,7 @@ class system_handler_t {
 		std::unordered_set<system_token> m_FilterlessSystems {};
 		tbb::mutex m_ComponentLockMutex {};
 		cache_resource_t* m_Cache {nullptr};
+		components_cache_t* m_ComponentCache {nullptr};
 	};
 
   public:
@@ -594,18 +620,13 @@ class system_handler_t {
 				 std::chrono::duration<float> rTime,
 				 size_t tick) -> psl::array<std::unique_ptr<psl::ecs::info_t>>;
 
+	std::vector<std::pair<system_token, system_invocable_task_t::metrics_t>> get_metrics() const noexcept;
+
   private:
 	system_scheduler_t m_SystemScheduler;
-	// std::vector<system_task_container_t> m_SystemContainers {};
-	// std::vector<filter_task_result_t> m_FilterResults {};
-	// std::unordered_map<component_key_t, component_lock_t> m_ComponentLocks {};
-	// std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>> m_RunningSystems {};
 	tbb::task_arena m_Arena;
 	tbb::task_group m_FilteringTasks;
-	// filter_shared_state_t m_FilterState;
 	cache_resource_t m_Cache;
-	// tbb::mutex m_ComponentLockMutex {};
-
 	internal_graph_t m_Graph {};
 };
 }	 // namespace psl::ecs::details

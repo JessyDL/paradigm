@@ -1,9 +1,26 @@
 #include "psl/ecs/details/system_handler.hpp"
 #include "psl/ecs/state.hpp"
+#include <new>
 #include <tbb/flow_graph.h>
 #include <tbb/rw_mutex.h>
 
 #include "Tracy/tracy.hpp"
+
+#include "fmt/format.h"
+
+#ifdef __cpp_lib_hardware_interference_size
+using std::hardware_constructive_interference_size;
+using std::hardware_destructive_interference_size;
+#else
+// 64 bytes on x86-64 │ L1_CACHE_BYTES │ L1_CACHE_SHIFT │ __cacheline_aligned │ ...
+constexpr std::size_t hardware_constructive_interference_size = 64;
+constexpr std::size_t hardware_destructive_interference_size  = 64;
+#endif
+
+
+#define ZoneNameFmt(formatting, ...)                                                                                   \
+	auto _val {::fmt::format(formatting, ##__VA_ARGS__)};                                                              \
+	ZoneName(_val.data(), _val.size());
 
 //	Initial Graph:
 //	filter_node_t 1 ─┬─→ system_group_t ─→ (creates nodes dynamically)
@@ -26,8 +43,8 @@
 namespace psl::ecs::details {
 
 system_handler_t::system_handler_t(size_t cache_size)
-	: m_SystemScheduler(m_FilteringTasks, cache_size, std::hardware_destructive_interference_size),
-	  m_Arena(tbb::task_arena::automatic), m_Cache(cache_size, std::hardware_destructive_interference_size) {}
+	: m_SystemScheduler(m_FilteringTasks, cache_size, hardware_destructive_interference_size),
+	  m_Arena(tbb::task_arena::automatic), m_Cache(cache_size, hardware_destructive_interference_size) {}
 system_handler_t ::~system_handler_t() = default;
 
 component_lock_instance_group_t make_locks(tbb::mutex& master_lock,
@@ -50,9 +67,12 @@ component_lock_instance_group_t make_locks(tbb::mutex& master_lock,
 	}
 	return component_lock_instance_group_t(locks, master_lock);
 }
-void system_handler_t::internal_graph_t::prepare(filter_shared_state_t const& state, cache_resource_t& cache) {
-	m_FilterState = state;
-	m_Cache		  = &cache;
+void system_handler_t::internal_graph_t::prepare(filter_shared_state_t const& state,
+												 cache_resource_t& cache,
+												 components_cache_t* components_cache) {
+	m_FilterState	 = state;
+	m_Cache			 = &cache;
+	m_ComponentCache = components_cache;
 }
 void system_handler_t::internal_graph_t::add(system_information* system, psl::array<filter_result>& all_filters) {
 	if(has(system->id())) {
@@ -116,7 +136,7 @@ void system_handler_t::internal_graph_t::add(system_information* system, psl::ar
 	m_RunningSystems.emplace(
 	  system->id(),
 	  std::make_unique<system_invocable_task_group_t>(
-		system->id(), system, make_locks(m_ComponentLockMutex, *system, m_ComponentLocks), m_Cache));
+		system->id(), system, make_locks(m_ComponentLockMutex, *system, m_ComponentLocks), m_Cache, m_ComponentCache));
 }
 
 void system_handler_t::internal_graph_t::remove(filter_id_t filter) {
@@ -178,7 +198,7 @@ void system_handler_t::internal_graph_t::schedule(tbb::task_group& group, system
 			{
 				static constexpr auto min_entities_per_worker = 1 << 11;
 				// todo(jdl): this should be load balanced based on past performance of the system
-				auto const workers = size_t(std::thread::hardware_concurrency());
+				auto const workers = size_t(std::thread::hardware_concurrency() * 2);
 				auto const max_workers =
 				  std::max(size_t {1},
 						   std::min(workers,
@@ -213,12 +233,14 @@ void system_handler_t::internal_graph_t::apply_changes(psl::array<system_informa
 													   psl::array<filter_result>& all_filters) {
 	ZoneScoped;
 	std::unordered_set<system_token> to_remove = m_ExistingSystems;
-	bool has_changes						   = false;
+	std::unordered_set<system_token> added_systems {};
+	bool has_changes = false;
 	for(auto& system : systems) {
 		to_remove.erase(system->id());
 		if(!has(system->id())) {
 			add(system, all_filters);
 			has_changes = true;
+			added_systems.insert(system->id());
 		}
 	}
 	for(auto const& system : to_remove) {
@@ -232,14 +254,17 @@ void system_handler_t::internal_graph_t::apply_changes(psl::array<system_informa
 		sys->reset();
 	}
 
-	for(auto& system : systems) {
+	// we do this at the end so we know the systems we depend on are already present.
+	for(auto const& id : added_systems) {
 		std::vector<system_invocable_task_group_t*> dependencies {};
-		dependencies.reserve(system->id().dependencies().size());
-		for(auto const& dependency : system->id().dependencies()) {
+		dependencies.reserve(id.dependencies().size());
+		for(auto const& dependency : id.dependencies()) {
 			auto it = m_RunningSystems.find(dependency);
-			dependencies.push_back(it->second.get());
+			if(it != m_RunningSystems.end()) {
+				dependencies.push_back(it->second.get());
+			}
 		}
-		auto running_it = m_RunningSystems.find(system->id());
+		auto running_it = m_RunningSystems.find(id);
 		running_it->second->set_dependencies(std::move(dependencies));
 	}
 }
@@ -253,7 +278,7 @@ auto system_handler_t::execute(state_info_t info,
 	if(!info.state) {
 		throw std::runtime_error("You need to provide a valid state to execute systems");
 	}
-	m_Graph.prepare({info.filter_handler, info.modified_entities, info.mutated_entities}, m_Cache);
+	m_Graph.prepare({info.filter_handler, info.modified_entities, info.mutated_entities}, m_Cache, info.state);
 	m_Graph.apply_changes(systems, info.filter_handler->get_filter_results());
 	m_SystemScheduler.prepare(
 	  *info.state,
@@ -277,6 +302,17 @@ auto system_handler_t::execute(state_info_t info,
 	}
 	m_SystemScheduler.m_CommandBuffers.clear();
 	return results;
+}
+
+
+std::vector<std::pair<system_token, system_invocable_task_t::metrics_t>>
+system_handler_t::get_metrics() const noexcept {
+	std::vector<std::pair<system_token, system_invocable_task_t::metrics_t>> result {};
+	result.reserve(m_Graph.running_systems().size());
+	for(auto const& [id, system] : m_Graph.running_systems()) {
+		result.emplace_back(id, system->get_metrics());
+	}
+	return result;
 }
 
 std::vector<system_invocable_task_t> system_scheduler_t::make_tasks(system_token id,
@@ -345,10 +381,7 @@ std::vector<system_invocable_task_t> system_scheduler_t::make_tasks(system_token
 				task_packs.push_back(pack[i]);
 			}
 		}
-		tasks.emplace_back(id,
-						   system,
-						   task_packs,
-						   system->is_const()
+		tasks.emplace_back(system->is_const()
 							 ? m_SharedCommandBuffer.get()
 							 : m_CommandBuffers
 								 .emplace_back(std::make_unique<psl::ecs::info_t>(m_SharedCommandBuffer->state,
@@ -357,7 +390,7 @@ std::vector<system_invocable_task_t> system_scheduler_t::make_tasks(system_token
 																				  m_SharedCommandBuffer->tick,
 																				  system->tick()))
 								 ->get(),
-						   m_ComponentCache);
+						   task_packs);
 	}
 	return tasks;
 }
@@ -426,14 +459,19 @@ void system_scheduler_t::reschedule(system_invocable_task_group_t& group) {
 	m_PendingTaskGroups.push(&group);
 }
 
-void system_invocable_task_t::prepare(std::vector<std::optional<memory::segment>> const& segments) const {
+void system_invocable_task_t::prepare(psl::string_view system_name,
+									  std::vector<std::optional<memory::segment>> const& segments,
+									  components_cache_t* components_cache) const {
 	ZoneScoped;
+	ZoneNameFmt("ecs::prepare::{}", system_name);
+	// ZoneNameF("ecs::prepare::{}", (int)system_name.size(), system_name.data());
 	psl_assert(segments.size() == m_Packs.size(),
 			   "The number of segments provided does not match the number of packs in the task");
-	auto write_fn = [this](details::dependency_pack const& pack, memory::segment const& segment) {
+	auto write_fn = [components_cache, &segments](details::dependency_pack const& pack,
+												  memory::segment const& segment) {
 		std::uintptr_t data_begin = segment.range().begin;
-		auto write_fn			  = [this, entities = pack.m_Entities, &segment, &data_begin](auto& binding) {
-			const auto& cInfo = m_ComponentCache->get_component_container(binding.first);
+		auto write_fn = [components_cache, entities = pack.m_Entities, &segment, &data_begin](auto& binding) {
+			const auto& cInfo = components_cache->get_component_container(binding.first);
 			if(cInfo->component_type_info().size > 0) {
 				data_begin += align_offset(data_begin, cInfo->component_type_info().alignment);
 				psl_assert(data_begin + cInfo->component_type_info().size * entities.size() <= segment.range().end,
@@ -446,8 +484,8 @@ void system_invocable_task_t::prepare(std::vector<std::optional<memory::segment>
 			}
 		};
 
-		auto view_fn = [this, entities = pack.m_Entities, &segment, &data_begin](auto& binding) {
-			const auto& cInfo = m_ComponentCache->get_component_container(binding.first);
+		auto view_fn = [components_cache, entities = pack.m_Entities, &segment, &data_begin](auto& binding) {
+			const auto& cInfo = components_cache->get_component_container(binding.first);
 			if(cInfo->component_type_info().size > 0) {
 				data_begin += align_offset(data_begin, alignof(entity_t));
 				psl_assert(data_begin + sizeof(entity_t) * entities.size() <= segment.range().end,
@@ -480,17 +518,21 @@ void system_invocable_task_t::prepare(std::vector<std::optional<memory::segment>
 		write_fn(*pack_it, segment_it->value());
 	}
 }
-void system_invocable_task_t::execute() const {
+void system_invocable_task_t::execute(psl::string_view system_name,
+									  system_information* system,
+									  psl::ecs::info_t* info) const {
 	ZoneScoped;
-	std::invoke(*m_System, *m_Info, m_Packs);
+	ZoneNameFmt("ecs::execute::{}", system_name);
+	std::invoke(*system, *info, m_Packs);
 }
-void system_invocable_task_t::finalize() const {
+void system_invocable_task_t::finalize(psl::string_view system_name, components_cache_t* components_cache) const {
 	ZoneScoped;
+	ZoneNameFmt("ecs::finalize::{}", system_name);
 	for(const auto& dep_pack : m_Packs) {
 		auto bindings = dep_pack.get_bindings();
 		for(auto& binding : dep_pack.m_RWBindings) {
 			std::uintptr_t data = (std::uintptr_t)binding.second.data();
-			m_ComponentCache->component_copy_from(dep_pack.m_Entities, binding.first, (void*)data);
+			components_cache->component_copy_from(dep_pack.m_Entities, binding.first, (void*)data);
 		}
 	}
 }
@@ -503,7 +545,6 @@ void system_scheduler_t::prepare(
   std::unordered_map<system_token, std::unique_ptr<system_invocable_task_group_t>>* running_systems) noexcept {
 	m_MainThreadExecutor.rebind();
 	m_RunningSystems = running_systems;
-	m_ComponentCache = &state;
 	if(!m_SharedCommandBuffer || &state != &m_SharedCommandBuffer->state) {
 		m_SharedCommandBuffer = std::make_unique<psl::ecs::info_t>(state, dTime, rTime, tick, 0);
 	} else {
@@ -560,12 +601,13 @@ bool system_invocable_task_group_t::operator()(system_scheduler_t* handler,
 			// we have enough cache to run the task
 			if(group) {
 				group->get().run([this, task = std::move(*it), segments = std::move(segments), handler]() {
-					task(segments);
+					auto metrics = task(segments, m_System, m_ComponentsCache);
 					m_Cache->deallocate(segments);
 
 					// we have to wait for new tasks to be scheduled, otherwise we could lose track
 					// of the amount of locks we need to release.
 					auto scoped = std::scoped_lock(m_Mutex);
+					m_Metrics += metrics;
 					if(--m_PendingTasks == 0) {
 						m_Locks.unlock();
 						if(m_Current == m_Tasks.end()) {
@@ -581,8 +623,9 @@ bool system_invocable_task_group_t::operator()(system_scheduler_t* handler,
 				});
 			} else {
 				std::invoke([this, task = std::move(*it), segments = std::move(segments)]() {
-					task(segments);
+					auto metrics = task(segments, m_System, m_ComponentsCache);
 					m_Cache->deallocate(segments);
+					m_Metrics += metrics;
 					if(--m_PendingTasks == 0) {
 						m_Locks.unlock();
 					}
