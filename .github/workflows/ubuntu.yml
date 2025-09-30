@@ -108,7 +108,7 @@ jobs:
       if: ${{ matrix.benchmarks == 'ON' }}
       uses: actions/upload-artifact@v4
       with:
-        name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}-bin
+        name: ubuntu-${{ matrix.compiler }}-${{ matrix.graphics }}
         path: |
             builds/${{ matrix.name }}/${{ matrix.arch }}/default/bin/benchmarks
             builds/${{ matrix.name }}/${{ matrix.arch }}/default/lib/libtbb.so
